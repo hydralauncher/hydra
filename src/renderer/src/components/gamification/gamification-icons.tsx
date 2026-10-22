@@ -10,9 +10,9 @@ import { PixelArt } from "./pixel-art";
 export function CoinIcon({ size = 16 }: Readonly<{ size?: number }>) {
   const colors = useMemo(
     () => ({
-      "#": mixHex(GAMIFICATION_PALETTE.b, "#ffffff", 0.45),
-      "+": GAMIFICATION_PALETTE.b,
-      ":": mixHex(GAMIFICATION_PALETTE.b, "#000000", 0.45),
+      "#": mixHex(GAMIFICATION_PALETTE.coin, "#ffffff", 0.45),
+      "+": GAMIFICATION_PALETTE.coin,
+      ":": mixHex(GAMIFICATION_PALETTE.coin, "#000000", 0.45),
     }),
     []
   );

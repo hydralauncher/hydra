@@ -6,6 +6,10 @@ import {
   useGamificationProgress,
   useToast,
 } from "@renderer/hooks";
+import {
+  celebrateReward,
+  launchConfetti,
+} from "@renderer/components/gamification";
 import { logger } from "@renderer/logger";
 import type { Mission, TrailKey } from "@types";
 import { getMissionTitleKey } from "./mission-catalog";
@@ -55,9 +59,13 @@ export function useMissionActions() {
   );
 
   const claim = useCallback(
-    (mission: Mission) =>
-      run(`claim:${mission.kind}:${mission.slot}`, async () => {
+    (mission: Mission, origin?: Element) => {
+      const originRect = origin?.getBoundingClientRect() ?? null;
+      return run(`claim:${mission.kind}:${mission.slot}`, async () => {
         const response = await claimMission(mission.kind, mission.slot);
+        if (response.wasClaimed) {
+          celebrateReward(originRect, response.xp, response.coins);
+        }
         showSuccessToast(
           t("reward_claimed_title", {
             xp: formatNumber(response.xp),
@@ -70,7 +78,8 @@ export function useMissionActions() {
             { title: t(getMissionTitleKey(mission)) }
           )
         );
-      }),
+      });
+    },
     [run, claimMission, showSuccessToast, t, formatNumber]
   );
 
@@ -114,9 +123,13 @@ export function useMissionActions() {
   );
 
   const claimTrail = useCallback(
-    (trail: TrailKey, level: number) =>
-      run(`trail:${trail}:${level}`, async () => {
+    (trail: TrailKey, level: number, origin?: Element) => {
+      const originRect = origin?.getBoundingClientRect() ?? null;
+      return run(`trail:${trail}:${level}`, async () => {
         const response = await claimTrailLevel(trail, level);
+        if (response.wasClaimed) {
+          launchConfetti(originRect);
+        }
         showSuccessToast(
           t("reward_claimed_title", {
             xp: formatNumber(response.xp),
@@ -124,7 +137,8 @@ export function useMissionActions() {
           }),
           t("reward_claimed_trail", { trail: t(`trail_${trail}`), level })
         );
-      }),
+      });
+    },
     [run, claimTrailLevel, showSuccessToast, t, formatNumber]
   );
 

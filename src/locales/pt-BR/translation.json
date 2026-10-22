@@ -1966,6 +1966,18 @@
     "toggle_password_visibility": "Alternar visibilidade da senha"
   },
   "user_profile": {
+    "trail_wheel_label": "Níveis de {{trail}}",
+    "trail_wheel_claim": "Resgatar recompensa",
+    "trail_wheel_done": "Concluída",
+    "trail_wheel_locked": "Bloqueada",
+    "trail_wheel_current": "{{percent}}% · faltam {{remaining}}",
+    "trail_level_reached_banner": "Nível concluído",
+    "trail_level_reached_title": "Nível concluído · {{amount}}",
+    "trail_level_reached_message": "A recompensa está pronta para resgatar.",
+    "level_up_tag": "Subiu de nível",
+    "level_up_title": "Nível {{level}}",
+    "level_up_continue": "Continuar",
+    "level_up_skip": "Clique para pular",
     "missions_tab": "Missões",
     "daily_missions": "Missões diárias",
     "weekly_missions": "Semanais",

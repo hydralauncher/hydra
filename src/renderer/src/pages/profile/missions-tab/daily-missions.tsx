@@ -37,7 +37,7 @@ function DailyMissionCard({ mission }: Readonly<{ mission: Mission }>) {
           type="button"
           className="missions-tab__claim"
           disabled={pendingAction !== null}
-          onClick={() => void claim(mission)}
+          onClick={(event) => void claim(mission, event.currentTarget)}
         >
           {t("claim_reward")}
         </button>
@@ -57,6 +57,7 @@ function DailyMissionCard({ mission }: Readonly<{ mission: Mission }>) {
     <article
       className={cn("daily-mission", {
         "daily-mission--claimed": mission.isClaimed,
+        "daily-mission--ready": mission.isComplete && !mission.isClaimed,
       })}
     >
       <span className="daily-mission__icon">

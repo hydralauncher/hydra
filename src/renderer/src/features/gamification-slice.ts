@@ -10,12 +10,15 @@ export interface GamificationState {
   progress: GamificationProgress | null;
   missions: MissionsResponse | null;
   trails: Trail[] | null;
+  /** Level shown by the level-up overlay, or null when it is closed. */
+  levelUpTo: number | null;
 }
 
 const initialState: GamificationState = {
   progress: null,
   missions: null,
   trails: null,
+  levelUpTo: null,
 };
 
 export const gamificationSlice = createSlice({
@@ -30,6 +33,7 @@ export const gamificationSlice = createSlice({
       if (action.payload === null) {
         state.missions = null;
         state.trails = null;
+        state.levelUpTo = null;
       }
     },
     applyRewardProgress: (state, action: PayloadAction<RewardProgress>) => {
@@ -46,6 +50,12 @@ export const gamificationSlice = createSlice({
     setGamificationTrails: (state, action: PayloadAction<Trail[] | null>) => {
       state.trails = action.payload;
     },
+    showLevelUp: (state, action: PayloadAction<number>) => {
+      state.levelUpTo = action.payload;
+    },
+    dismissLevelUp: (state) => {
+      state.levelUpTo = null;
+    },
   },
 });
 
@@ -54,4 +64,6 @@ export const {
   applyRewardProgress,
   setGamificationMissions,
   setGamificationTrails,
+  showLevelUp,
+  dismissLevelUp,
 } = gamificationSlice.actions;

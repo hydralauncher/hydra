@@ -46,7 +46,7 @@ function WeeklyMissionRow({ mission }: Readonly<{ mission: Mission }>) {
             type="button"
             className="missions-tab__claim"
             disabled={pendingAction !== null}
-            onClick={() => void claim(mission)}
+            onClick={(event) => void claim(mission, event.currentTarget)}
           >
             {t("claim_reward")}
           </button>

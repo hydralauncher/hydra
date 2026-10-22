@@ -3,12 +3,12 @@ import cn from "classnames";
 import {
   CoinIcon,
   FlameIcon,
-  LevelSeal,
   STREAK_EMBERS_DAYS,
   STREAK_FIRE_DAYS,
   STREAK_GLOW_DAYS,
   StreakFire,
   XpBar,
+  useAnimatedNumber,
   useHoverHalo,
 } from "@renderer/components/gamification";
 import { useFormat } from "@renderer/hooks";
@@ -23,6 +23,7 @@ export function ProfileGamificationPills() {
   const { formatNumber } = useFormat();
   const { level, loginStreak, coins, isMe } = useProfileGamification();
   const halo = useHoverHalo<HTMLDivElement>(LEVEL_PILL_HALO_ALPHA);
+  const shownCoins = useAnimatedNumber(coins ?? 0);
 
   if (!level) return null;
 
@@ -52,7 +53,6 @@ export function ProfileGamificationPills() {
         }
         {...halo.handlers}
       >
-        <LevelSeal level={level.level} size={34} />
         <strong>{t("level_number", { level: level.level })}</strong>
         <XpBar
           xp={level.xp}
@@ -99,10 +99,13 @@ export function ProfileGamificationPills() {
       )}
 
       {coins !== null && (
-        <div className="profile-gamification-pills__pill">
+        <div
+          className="profile-gamification-pills__pill"
+          data-gamification-coins
+        >
           <CoinIcon />
           <span>
-            <strong>{formatNumber(coins)}</strong>{" "}
+            <strong>{formatNumber(shownCoins)}</strong>{" "}
             {t("coins_label", { count: coins })}
           </span>
         </div>

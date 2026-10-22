@@ -1975,6 +1975,18 @@
     "toggle_password_visibility": "Toggle password visibility"
   },
   "user_profile": {
+    "trail_wheel_label": "{{trail}} levels",
+    "trail_wheel_claim": "Claim reward",
+    "trail_wheel_done": "Done",
+    "trail_wheel_locked": "Locked",
+    "trail_wheel_current": "{{percent}}% · {{remaining}} to go",
+    "trail_level_reached_banner": "Level complete",
+    "trail_level_reached_title": "Level complete · {{amount}}",
+    "trail_level_reached_message": "The reward is ready to claim.",
+    "level_up_tag": "Level up",
+    "level_up_title": "Level {{level}}",
+    "level_up_continue": "Continue",
+    "level_up_skip": "Click to skip",
     "missions_tab": "Missions",
     "daily_missions": "Daily missions",
     "weekly_missions": "Weekly",

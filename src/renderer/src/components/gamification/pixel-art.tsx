@@ -26,6 +26,30 @@ export const prepareCrispCanvas = (
   return { context, unit: cellSize * pixelRatio };
 };
 
+export const drawPixelArt = (
+  canvas: HTMLCanvasElement,
+  rows: readonly string[],
+  colors: Record<string, string>,
+  size: number
+) => {
+  const { context, unit } = prepareCrispCanvas(canvas, rows.length, size);
+  if (!context) return;
+
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const color = colors[row[x]];
+      if (!color) continue;
+      context.fillStyle = color;
+      context.fillRect(
+        Math.round(x * unit),
+        Math.round(y * unit),
+        Math.ceil(unit),
+        Math.ceil(unit)
+      );
+    }
+  });
+};
+
 export function PixelArt({
   rows,
   colors,
@@ -35,27 +59,7 @@ export function PixelArt({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (!canvasRef.current) return;
-    const { context, unit } = prepareCrispCanvas(
-      canvasRef.current,
-      rows.length,
-      size
-    );
-    if (!context) return;
-
-    rows.forEach((row, y) => {
-      for (let x = 0; x < row.length; x++) {
-        const color = colors[row[x]];
-        if (!color) continue;
-        context.fillStyle = color;
-        context.fillRect(
-          Math.round(x * unit),
-          Math.round(y * unit),
-          Math.ceil(unit),
-          Math.ceil(unit)
-        );
-      }
-    });
+    if (canvasRef.current) drawPixelArt(canvasRef.current, rows, colors, size);
   }, [rows, colors, size]);
 
   return <canvas ref={canvasRef} className={className} aria-hidden="true" />;
