@@ -7,7 +7,7 @@ $medal-shine-travel: 32px;
 $frame-spin-duration: 4.5s;
 $frame-spin-offset: math.div($frame-spin-duration, 3);
 $frame-border-width: 1.5px;
-$frame-spinner-size: 150%;
+$frame-spinner-overscan: 64px;
 
 .rank-medal {
   --rank-medal-color: var(--rank-gold-color, #{globals.$rank-gold-color});
@@ -154,7 +154,7 @@ $frame-spinner-size: 150%;
     position: absolute;
     top: 50%;
     left: 50%;
-    width: $frame-spinner-size;
+    width: calc(100% + #{$frame-spinner-overscan});
     aspect-ratio: 1;
     background: conic-gradient(
       transparent 0deg,
