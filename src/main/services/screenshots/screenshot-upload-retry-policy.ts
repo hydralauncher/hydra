@@ -47,6 +47,7 @@ const RECOVERY_BY_ERROR_CODE: Record<string, ScreenshotUploadRecoveryAction> = {
   "screenshots/upload-mismatch": "retry",
   "screenshots/upload-rate-limited": "retry",
   "screenshots/upload-capacity-reached": "wait",
+  "screenshots/text-change-rate-limit-unavailable": "wait",
   "screenshots/disabled-for-game": "terminal",
   "screenshots/limit-reached": "terminal",
   "screenshots/blocked-limit-reached": "terminal",
