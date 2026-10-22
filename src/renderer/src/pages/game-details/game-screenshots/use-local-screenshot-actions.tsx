@@ -4,14 +4,10 @@ import { useTranslation } from "react-i18next";
 import { ConfirmationModal } from "@renderer/components";
 import { useDate, useToast } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
-import { useLocalScreenshotViewer } from "@shared";
+import { getLocalScreenshotTitle, useLocalScreenshotViewer } from "@shared";
 import type { LocalScreenshot } from "@types";
 
 import { LocalScreenshotViewer } from "./local-screenshot-viewer";
-
-export const getLocalScreenshotTitle = (screenshot: LocalScreenshot) =>
-  (screenshot.shop === "custom" && screenshot.customGameTitle) ||
-  screenshot.gameTitle;
 
 export function useLocalScreenshotAlt() {
   const { t } = useTranslation("screenshots");

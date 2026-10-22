@@ -31,12 +31,19 @@ export interface MyGameScreenshotsLocalBridge {
     objectId: string
   ) => Promise<string[]>;
   forgetPublishedScreenshots: (screenshotIds: string[]) => Promise<number>;
+  onLocalScreenshotsChange: (
+    callback: (screenshots: LocalScreenshot[]) => void
+  ) => () => void;
 }
 
 export interface MyGameScreenshotsApi {
   get: <T>(path: string) => Promise<T | null | undefined>;
   delete: <T>(path: string) => Promise<T | null | undefined>;
 }
+
+export const getLocalScreenshotTitle = (screenshot: LocalScreenshot) =>
+  (screenshot.shop === "custom" && screenshot.customGameTitle) ||
+  screenshot.gameTitle;
 
 export type MyScreenshotItem =
   | { kind: "published"; id: string; screenshot: ProfileScreenshot }
