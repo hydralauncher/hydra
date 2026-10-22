@@ -27,6 +27,13 @@ $platinum-cyan: #30edc5;
 
 $classics-washed: #f6746b;
 
+$rank-gold-color: #f3c611;
+$rank-gold-ribbon: #a8870c;
+$rank-silver-color: #d0d1d7;
+$rank-silver-ribbon: #8a8b91;
+$rank-bronze-color: #d08a52;
+$rank-bronze-ribbon: #8f5a2e;
+
 @mixin platinum-gradient {
   background-image:
     linear-gradient(
