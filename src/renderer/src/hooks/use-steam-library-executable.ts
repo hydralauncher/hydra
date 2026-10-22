@@ -19,7 +19,7 @@ const checkSteamLibraryExecutable = (
   executablePath: string
 ) => {
   const pending = pendingExecutableChecks.get(checkKey);
-  if (pending) return pending;
+  if (pending !== undefined) return pending;
 
   const check = globalThis.window.electron
     .isSteamAppExecutable(objectId, executablePath)
