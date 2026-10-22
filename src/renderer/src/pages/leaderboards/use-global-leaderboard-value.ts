@@ -3,11 +3,11 @@ import { useTranslation } from "react-i18next";
 
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { useFormat } from "@renderer/hooks";
-import { getDurationParts } from "../game-details/leaderboard/game-leaderboard";
+import { formatDurationParts } from "../game-details/leaderboard/game-leaderboard";
 import type { MetricDefinition } from "./global-leaderboard";
 
 export function useMetricText() {
-  const { t } = useTranslation("leaderboards");
+  const { t, i18n } = useTranslation("leaderboards");
   const { numberFormatter } = useFormat();
 
   const label = useCallback(
@@ -19,11 +19,12 @@ export function useMetricText() {
   const format = useCallback(
     (metric: MetricDefinition, value: number) => {
       if (metric.valueType === "duration") {
-        const { unit, amount } = getDurationParts(
+        const { unit, amount } = formatDurationParts(
           value,
-          MAX_MINUTES_TO_SHOW_IN_PLAYTIME
+          MAX_MINUTES_TO_SHOW_IN_PLAYTIME,
+          i18n.language
         );
-        return t(`value_${unit}`, { amount: numberFormatter.format(amount) });
+        return t(`value_${unit}`, { amount });
       }
 
       if (metric.valueType === "days") {
@@ -37,7 +38,7 @@ export function useMetricText() {
         defaultValue: amount,
       });
     },
-    [numberFormatter, t]
+    [i18n.language, numberFormatter, t]
   );
 
   return { label, format };

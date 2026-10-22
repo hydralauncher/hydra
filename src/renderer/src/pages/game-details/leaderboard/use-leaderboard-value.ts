@@ -3,20 +3,24 @@ import { useTranslation } from "react-i18next";
 
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { useFormat } from "@renderer/hooks";
-import { getDurationParts, type LeaderboardMetric } from "./game-leaderboard";
+import {
+  formatDurationParts,
+  type LeaderboardMetric,
+} from "./game-leaderboard";
 
 export function useLeaderboardValue() {
-  const { t } = useTranslation("leaderboard");
+  const { t, i18n } = useTranslation("leaderboard");
   const { numberFormatter } = useFormat();
 
   return useCallback(
     (metric: LeaderboardMetric, value: number) => {
       if (metric === "playtime") {
-        const { unit, amount } = getDurationParts(
+        const { unit, amount } = formatDurationParts(
           value,
-          MAX_MINUTES_TO_SHOW_IN_PLAYTIME
+          MAX_MINUTES_TO_SHOW_IN_PLAYTIME,
+          i18n.language
         );
-        return t(`value_${unit}`, { amount: numberFormatter.format(amount) });
+        return t(`value_${unit}`, { amount });
       }
 
       if (metric === "streak") {
@@ -25,6 +29,6 @@ export function useLeaderboardValue() {
 
       return numberFormatter.format(value);
     },
-    [numberFormatter, t]
+    [i18n.language, numberFormatter, t]
   );
 }

@@ -5,6 +5,7 @@ import {
   buildLeaderboardRequest,
   buildLeaderboardRows,
   fetchGameLeaderboard,
+  formatDurationParts,
   getDurationParts,
   buildGameLeaderboardPath,
   getLeaderboardNudge,
@@ -446,6 +447,27 @@ describe("getDurationParts", () => {
     assert.deepEqual(getDurationParts(12540, 120), {
       unit: "hours",
       amount: 3.5,
+    });
+  });
+});
+
+describe("formatDurationParts", () => {
+  it("renders one decimal for hours and none for minutes", () => {
+    assert.deepEqual(formatDurationParts(9060, 120, "en"), {
+      unit: "hours",
+      amount: "2.5",
+    });
+    assert.deepEqual(formatDurationParts(9060, 120, "pt-BR"), {
+      unit: "hours",
+      amount: "2,5",
+    });
+    assert.deepEqual(formatDurationParts(7200, 120, "en"), {
+      unit: "hours",
+      amount: "2",
+    });
+    assert.deepEqual(formatDurationParts(3000, 120, "en"), {
+      unit: "minutes",
+      amount: "50",
     });
   });
 });

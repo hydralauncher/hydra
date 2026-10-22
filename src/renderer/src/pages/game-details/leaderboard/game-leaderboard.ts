@@ -369,6 +369,27 @@ export const getDurationParts = (
   return { unit: "hours", amount: Math.round(minutes / 6) / 10 };
 };
 
+const durationFormatters = new Map<string, Intl.NumberFormat>();
+
+const getDurationFormatter = (language: string) => {
+  let formatter = durationFormatters.get(language);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(language, { maximumFractionDigits: 1 });
+    durationFormatters.set(language, formatter);
+  }
+
+  return formatter;
+};
+
+export const formatDurationParts = (
+  seconds: number,
+  maxMinutes: number,
+  language: string
+): { unit: "minutes" | "hours"; amount: string } => {
+  const { unit, amount } = getDurationParts(seconds, maxMinutes);
+  return { unit, amount: getDurationFormatter(language).format(amount) };
+};
+
 export const buildGameLeaderboardPath = (shop: GameShop, objectId: string) => {
   const params = new URLSearchParams({ tab: "games", shop, objectId });
   return `/leaderboards?${params.toString()}`;
