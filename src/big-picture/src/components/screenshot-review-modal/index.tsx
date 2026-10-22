@@ -118,6 +118,12 @@ function useLocalScreenshots(isActive: boolean, requestCount: number) {
   const [loadedRequestCount, setLoadedRequestCount] = useState<number | null>(
     null
   );
+  const [hasLoadFailed, setHasLoadFailed] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
+  const retryLoad = useCallback(() => {
+    setHasLoadFailed(false);
+    setReloadToken((current) => current + 1);
+  }, []);
 
   useEffect(() => {
     if (!isActive) {
@@ -135,16 +141,18 @@ function useLocalScreenshots(isActive: boolean, requestCount: number) {
       .then((items) => {
         if (!isCurrent) return;
         setScreenshots(items);
+        setHasLoadFailed(false);
         setLoadedRequestCount(requestCount);
       })
       .catch((error: unknown) => {
         logger.error("Failed to load local screenshots", error);
+        if (isCurrent) setHasLoadFailed(true);
       });
 
     return () => {
       isCurrent = false;
     };
-  }, [isActive, requestCount]);
+  }, [isActive, reloadToken, requestCount]);
 
   useEffect(() => {
     if (!IS_DESKTOP || !isActive) return;
@@ -172,7 +180,7 @@ function useLocalScreenshots(isActive: boolean, requestCount: number) {
     };
   }, [isActive]);
 
-  return { screenshots, loadedRequestCount };
+  return { screenshots, loadedRequestCount, hasLoadFailed, retryLoad };
 }
 
 const keepScreenshotsLocally = (clientIds: string[]) => {
@@ -350,11 +358,40 @@ function UploadStatus({ screenshot }: Readonly<UploadStatusProps>) {
   );
 }
 
+const RECORD_RETRY_FOCUS_ID = "screenshot-review-record-retry";
+
+function ReviewRecordStatus({
+  hasFailed,
+  onRetry,
+}: Readonly<{ hasFailed: boolean; onRetry: () => void }>) {
+  const { t } = useTranslation("big_picture");
+
+  return (
+    <output className="screenshot-review-modal__record-status">
+      <span>
+        {t(hasFailed ? "screenshots_load_failed" : "screenshots_loading")}
+      </span>
+      {hasFailed ? (
+        <Button
+          variant="secondary"
+          size="small"
+          focusId={RECORD_RETRY_FOCUS_ID}
+          icon={<ArrowClockwiseIcon size={18} />}
+          onClick={onRetry}
+        >
+          {t("screenshots_retry")}
+        </Button>
+      ) : null}
+    </output>
+  );
+}
+
 interface ReviewActionsProps {
   isUploading: boolean;
   canRetry: boolean;
   isLastItem: boolean;
   isBusy: boolean;
+  isRecordReady: boolean;
   pendingAction: ReviewDecision | null;
   undecidedCount: number;
   onRetry: () => void;
@@ -371,6 +408,7 @@ function ReviewActions({
   canRetry,
   isLastItem,
   isBusy,
+  isRecordReady,
   pendingAction,
   undecidedCount,
   onRetry,
@@ -430,7 +468,7 @@ function ReviewActions({
             })}
             variant="secondary"
             icon={<HardDrivesIcon size={18} />}
-            disabled={isBusy}
+            disabled={isBusy || !isRecordReady}
             loading={pendingAction === "skip"}
             menuAction={
               undecidedCount > 1
@@ -454,7 +492,7 @@ function ReviewActions({
               ns: "screenshots_capture",
             })}
             icon={<CloudArrowUpIcon size={18} />}
-            disabled={isBusy}
+            disabled={isBusy || !isRecordReady}
             loading={pendingAction === "upload"}
             menuAction={
               undecidedCount > 1
@@ -539,10 +577,8 @@ export function ScreenshotReviewModal() {
     if (!isQueueOpen) setIsPresented(false);
     else if (!isScreenshotDialogOpen) setIsPresented(true);
   }, [isQueueOpen, isScreenshotDialogOpen]);
-  const { screenshots, loadedRequestCount } = useLocalScreenshots(
-    visible,
-    queueState.requestCount
-  );
+  const { screenshots, loadedRequestCount, hasLoadFailed, retryLoad } =
+    useLocalScreenshots(visible, queueState.requestCount);
   const isListFresh = isReviewListFresh(queueState, loadedRequestCount);
   const { items: queue, index, decisions } = queueState;
   const defaultVisibility =
@@ -583,6 +619,7 @@ export function ScreenshotReviewModal() {
     [current?.clientId, screenshots]
   );
   const decision = current ? decisions[current.clientId] : undefined;
+  const isRecordReady = Boolean(currentScreenshot);
   const isCustomGame = current?.shop === "custom";
   const draft: ReviewDraft =
     (current && drafts[current.clientId]) ??
@@ -626,7 +663,10 @@ export function ScreenshotReviewModal() {
   useEffect(() => {
     if (!visible) return;
 
-    const focusId = decision === "upload" ? NEXT_FOCUS_ID : UPLOAD_FOCUS_ID;
+    if (!isRecordReady && !hasLoadFailed) return;
+    const readyFocusId =
+      decision === "upload" ? NEXT_FOCUS_ID : UPLOAD_FOCUS_ID;
+    const focusId = isRecordReady ? readyFocusId : RECORD_RETRY_FOCUS_ID;
     const frameId = globalThis.window.requestAnimationFrame(() => {
       setFocus(focusId);
       globalThis.document
@@ -638,7 +678,7 @@ export function ScreenshotReviewModal() {
     });
 
     return () => globalThis.window.cancelAnimationFrame(frameId);
-  }, [decision, index, setFocus, visible]);
+  }, [decision, hasLoadFailed, index, isRecordReady, setFocus, visible]);
 
   useEffect(() => {
     if (!visible || !currentFocusId) return;
@@ -695,7 +735,7 @@ export function ScreenshotReviewModal() {
   };
 
   const upload = () => {
-    if (!current) return;
+    if (!current || !currentScreenshot) return;
 
     cancelDraftSave(current.clientId);
 
@@ -708,7 +748,7 @@ export function ScreenshotReviewModal() {
   };
 
   const skip = async () => {
-    if (!current) return;
+    if (!current || !currentScreenshot) return;
 
     const { clientId } = current;
     saveDraft(clientId);
@@ -752,6 +792,7 @@ export function ScreenshotReviewModal() {
     try {
       for (const clientId of pendingIds) {
         if (queueGenerationRef.current !== generation) break;
+        if (!screenshots.some((item) => item.clientId === clientId)) continue;
         const item = queueState.items.find(
           (entry) => entry.clientId === clientId
         );
@@ -803,6 +844,7 @@ export function ScreenshotReviewModal() {
     currentScreenshot?.state === "failed" &&
     isScreenshotUploadRetryable(currentScreenshot.lastError);
   const isBusy = pendingAction !== null;
+  const isLocked = isBusy || !isRecordReady;
   const undecidedCount = getUndecidedReviewIds(queueState).length;
 
   return (
@@ -843,7 +885,7 @@ export function ScreenshotReviewModal() {
               icon={<PencilSimpleIcon size={18} />}
               maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
               allowEmpty
-              disabled={isUploading || isBusy}
+              disabled={isUploading || isLocked}
               onSave={(customGameTitle) => {
                 updateDraft({ customGameTitle });
                 return true;
@@ -856,6 +898,12 @@ export function ScreenshotReviewModal() {
 
         <div className="screenshot-review-modal__form">
           <div ref={fieldsRef} className="screenshot-review-modal__fields">
+            {isRecordReady ? null : (
+              <ReviewRecordStatus
+                hasFailed={hasLoadFailed}
+                onRetry={retryLoad}
+              />
+            )}
             {isUploading ? (
               <UploadStatus screenshot={currentScreenshot} />
             ) : (
@@ -870,7 +918,7 @@ export function ScreenshotReviewModal() {
                   icon={<PlusIcon size={18} weight="bold" />}
                   maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
                   allowEmpty
-                  disabled={isBusy}
+                  disabled={isLocked}
                   sanitize={sanitizeScreenshotDescriptionInput}
                   onSave={(description) => {
                     updateDraft({ description });
@@ -883,7 +931,7 @@ export function ScreenshotReviewModal() {
                   label={t("screenshots_mark_spoiler")}
                   secondaryText={t("screenshots_mark_spoiler_description")}
                   checked={draft.isSpoiler}
-                  disabled={isBusy}
+                  disabled={isLocked}
                   focusId={SPOILER_FOCUS_ID}
                   onChange={(isSpoiler) => updateDraft({ isSpoiler })}
                 />
@@ -892,7 +940,7 @@ export function ScreenshotReviewModal() {
                   label={t("screenshots_visibility_label")}
                   value={draft.visibility}
                   options={visibilityOptions}
-                  disabled={isBusy}
+                  disabled={isLocked}
                   focusId={VISIBILITY_FOCUS_ID}
                   onValueChange={(visibility) => updateDraft({ visibility })}
                 />
@@ -905,6 +953,7 @@ export function ScreenshotReviewModal() {
             canRetry={canRetry}
             isLastItem={index >= queue.length - 1}
             isBusy={isBusy}
+            isRecordReady={isRecordReady}
             pendingAction={pendingAction}
             undecidedCount={undecidedCount}
             onRetry={upload}

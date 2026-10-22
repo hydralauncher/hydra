@@ -49,6 +49,16 @@ $screenshot-review-progress-duration: 0.2s;
     }
   }
 
+  &__record-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--spacing-unit) * 3);
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
   &__heading {
     flex-shrink: 0;
     min-width: 0;
