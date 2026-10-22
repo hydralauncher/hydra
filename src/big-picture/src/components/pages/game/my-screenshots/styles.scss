@@ -178,27 +178,6 @@ $local-screenshot-actions-fade-duration: 0.15s;
     min-height: 0;
   }
 
-  &__section {
-    display: flex;
-    flex-direction: column;
-    gap: calc(var(--spacing-unit) * 3);
-  }
-
-  &__section-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: calc(var(--spacing-unit) * 4);
-  }
-
-  &__section-title {
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 15px;
-    font-weight: 600;
-  }
-
   &__skeleton-card {
     min-width: 0;
   }
@@ -207,6 +186,11 @@ $local-screenshot-actions-fade-duration: 0.15s;
     width: 100%;
     aspect-ratio: 16 / 9;
     border-radius: 12px;
+  }
+
+  &__status-filter {
+    display: flex;
+    gap: var(--spacing-unit);
   }
 
   &__tabs {

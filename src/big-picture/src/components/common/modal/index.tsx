@@ -26,6 +26,7 @@ export interface ModalProps {
   onClose: () => void;
   onBack?: () => void;
   title: string;
+  headerContent?: ReactNode;
   description?: string;
   children: ReactNode;
   className?: string;
@@ -58,6 +59,7 @@ export function Modal({
   onClose,
   onBack,
   title,
+  headerContent,
   description,
   children,
   coverImage,
@@ -233,7 +235,7 @@ export function Modal({
                       </button>
                     )}
 
-                    <h4>{title}</h4>
+                    {headerContent ?? <h4>{title}</h4>}
                   </div>
 
                   {description && (

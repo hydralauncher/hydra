@@ -25,7 +25,7 @@ interface UseMyGameScreenshotsOptions {
   feedKeySuffix: string;
 }
 
-function usePendingLocalScreenshots(
+export function usePendingLocalScreenshots(
   shop: GameShop,
   objectId: string,
   isEnabled: boolean
@@ -101,7 +101,7 @@ function usePendingLocalScreenshots(
   return { pending, hasLoaded, hasFailed, reload: load, retry };
 }
 
-export function useMyGameScreenshots({
+export function useMyPublishedScreenshots({
   shop,
   objectId,
   sort,
@@ -113,7 +113,6 @@ export function useMyGameScreenshots({
   const { userDetails } = useUserDetails();
   const userId = userDetails?.id ?? null;
   const canFetchPublished = Boolean(userId) && shop !== "custom";
-  const local = usePendingLocalScreenshots(shop, objectId, isEnabled);
 
   const buildPath = useCallback(
     (cursor: string | null) =>
@@ -137,6 +136,35 @@ export function useMyGameScreenshots({
     needsAuth: true,
     writeBus,
   });
+
+  return { feed, canFetchPublished };
+}
+
+export type MyPublishedScreenshots = ReturnType<
+  typeof useMyPublishedScreenshots
+>;
+export type PendingLocalScreenshots = ReturnType<
+  typeof usePendingLocalScreenshots
+>;
+
+const noop = () => {};
+
+interface UseMyGameScreenshotsStateOptions {
+  local: PendingLocalScreenshots;
+  published: MyPublishedScreenshots;
+  sort: ScreenshotSort;
+  isEnabled: boolean;
+  refreshOtherPublished?: () => void;
+}
+
+export function useMyGameScreenshotsState({
+  local,
+  published,
+  sort,
+  isEnabled,
+  refreshOtherPublished = noop,
+}: UseMyGameScreenshotsStateOptions) {
+  const { feed, canFetchPublished } = published;
   const { refresh } = feed;
   const reloadLocal = local.reload;
 
@@ -147,16 +175,20 @@ export function useMyGameScreenshots({
       (clientId) => !currentIds.includes(clientId)
     );
     pendingIdsRef.current = currentIds;
-    if (hasSettled) refresh();
-  }, [local.pending, refresh]);
+    if (hasSettled) {
+      refresh();
+      refreshOtherPublished();
+    }
+  }, [local.pending, refresh, refreshOtherPublished]);
 
   useEffect(() => {
     if (!isEnabled) return;
     return subscribeMyGameScreenshotsChanged(() => {
       void reloadLocal();
       refresh();
+      refreshOtherPublished();
     });
-  }, [isEnabled, refresh, reloadLocal]);
+  }, [isEnabled, refresh, refreshOtherPublished, reloadLocal]);
 
   const items = useMemo(
     () => mergeMyScreenshots(feed.items, local.pending, sort),
@@ -186,6 +218,7 @@ export function useMyGameScreenshots({
   return {
     feed,
     pendingLocal: local.pending,
+    hasLoadedLocal: local.hasLoaded,
     items,
     status,
     hasLoaded: status !== "loading",
@@ -197,6 +230,22 @@ export function useMyGameScreenshots({
     retry,
     retryFailed,
   };
+}
+
+export function useMyGameScreenshots(options: UseMyGameScreenshotsOptions) {
+  const local = usePendingLocalScreenshots(
+    options.shop,
+    options.objectId,
+    options.isEnabled
+  );
+  const published = useMyPublishedScreenshots(options);
+
+  return useMyGameScreenshotsState({
+    local,
+    published,
+    sort: options.sort,
+    isEnabled: options.isEnabled,
+  });
 }
 
 export type MyGameScreenshots = ReturnType<typeof useMyGameScreenshots>;

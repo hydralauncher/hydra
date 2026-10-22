@@ -36,15 +36,19 @@ import {
   useScreenshotFeed,
   useScreenshotLightbox,
 } from "../../screenshots";
+import { FocusRegionContext } from "../../../context";
 import { useNavigation, useUserDetails } from "../../../../hooks";
 import {
   GAME_SCREENSHOTS_MODAL_GRID_REGION_ID,
+  GAME_SCREENSHOTS_MODAL_LIST_REGION_ID,
   GAME_SCREENSHOTS_MODAL_LOAD_MORE_ID,
   GAME_SCREENSHOTS_MODAL_LOCAL_GRID_REGION_ID,
   GAME_SCREENSHOTS_MODAL_MINE_GRID_REGION_ID,
   GAME_SCREENSHOTS_MODAL_MINE_LOAD_MORE_ID,
   GAME_SCREENSHOTS_MODAL_MINE_RETRY_ID,
+  GAME_SCREENSHOTS_MODAL_MINE_LOCAL_ID,
   GAME_SCREENSHOTS_MODAL_MINE_SORT_ID,
+  GAME_SCREENSHOTS_MODAL_MINE_UPLOADED_ID,
   GAME_SCREENSHOTS_MODAL_REGION_ID,
   GAME_SCREENSHOTS_MODAL_RETRY_ID,
   GAME_SCREENSHOTS_MODAL_SORT_ID,
@@ -54,9 +58,12 @@ import {
 } from "../navigation";
 import { ScreenshotHotkeyHint } from "./hotkey-hint";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
-import { MyScreenshotsPartialNotice } from "./partial-notice";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
-import { useMyGameScreenshots } from "./use-my-game-screenshots";
+import {
+  useMyGameScreenshotsState,
+  useMyPublishedScreenshots,
+  usePendingLocalScreenshots,
+} from "./use-my-game-screenshots";
 
 const SORT_STORAGE_KEY = "big-picture:game-screenshots-sort";
 const MODAL_PAGE_SIZE = 24;
@@ -323,6 +330,7 @@ function CommunityScreenshotsPanel({
     <>
       <HorizontalFocusGroup
         regionId={GAME_SCREENSHOTS_MODAL_TOOLBAR_REGION_ID}
+        navigationOrder={0}
         asChild
       >
         <div className="game-screenshots-modal__toolbar">
@@ -346,21 +354,29 @@ function CommunityScreenshotsPanel({
         </div>
       </HorizontalFocusGroup>
 
-      <div className="game-screenshots-modal__scroll">
-        <CommunityScreenshotsGrid community={community} />
+      <VerticalFocusGroup
+        regionId={GAME_SCREENSHOTS_MODAL_LIST_REGION_ID}
+        navigationOrder={1}
+        asChild
+      >
+        <div className="game-screenshots-modal__scroll">
+          <CommunityScreenshotsGrid community={community} />
 
-        {feed.hasMore && feed.items.length > 0 ? (
-          <LoadMoreButton
-            focusId={GAME_SCREENSHOTS_MODAL_LOAD_MORE_ID}
-            isLoading={feed.isLoadingMore}
-            hasError={feed.error === "page"}
-            onPress={community.loadNextPage}
-          />
-        ) : null}
-      </div>
+          {feed.hasMore && feed.items.length > 0 ? (
+            <LoadMoreButton
+              focusId={GAME_SCREENSHOTS_MODAL_LOAD_MORE_ID}
+              isLoading={feed.isLoadingMore}
+              hasError={feed.error === "page"}
+              onPress={community.loadNextPage}
+            />
+          ) : null}
+        </div>
+      </VerticalFocusGroup>
     </>
   );
 }
+
+type MyScreenshotsStatusFilter = "uploaded" | "local";
 
 function useMyScreenshotsTab({
   enabled,
@@ -369,15 +385,41 @@ function useMyScreenshotsTab({
   writeBus,
 }: ScreenshotsSourceOptions) {
   const [sort, setSort] = useState<ScreenshotSort>("recent");
-  const mine = useMyGameScreenshots({
+  const [hasOpenedTop, setHasOpenedTop] = useState(false);
+  const [statusFilter, setStatusFilter] =
+    useState<MyScreenshotsStatusFilter>("uploaded");
+  const pendingLocal = usePendingLocalScreenshots(shop, objectId, enabled);
+  const recent = useMyPublishedScreenshots({
     shop,
     objectId,
-    sort,
+    sort: "recent",
     take: MODAL_PAGE_SIZE,
     isEnabled: enabled,
     writeBus,
     feedKeySuffix: "all",
   });
+  const top = useMyPublishedScreenshots({
+    shop,
+    objectId,
+    sort: "top",
+    take: MODAL_PAGE_SIZE,
+    isEnabled: enabled && hasOpenedTop,
+    writeBus,
+    feedKeySuffix: "all",
+  });
+  const active = sort === "top" ? top : recent;
+  const inactive = sort === "top" ? recent : top;
+  const mine = useMyGameScreenshotsState({
+    local: pendingLocal,
+    published: active,
+    sort,
+    isEnabled: enabled,
+    refreshOtherPublished: inactive.feed.refresh,
+  });
+  const changeSort = (nextSort: ScreenshotSort) => {
+    if (nextSort === "top") setHasOpenedTop(true);
+    setSort(nextSort);
+  };
   const { feed } = mine;
   const local = useLocalScreenshotActions(mine.pendingLocal);
   const { lightboxProps, open } = useScreenshotLightbox({
@@ -393,6 +435,9 @@ function useMyScreenshotsTab({
     hasLoadMoreError: feed.error === "page",
     retryLoadMore: feed.retry,
   });
+  const activeFilter: MyScreenshotsStatusFilter = mine.canFetchPublished
+    ? statusFilter
+    : "local";
 
   const loadNextPage = () => {
     if (feed.error === "page") {
@@ -405,132 +450,44 @@ function useMyScreenshotsTab({
     });
   };
 
-  return { sort, setSort, mine, local, lightboxProps, open, loadNextPage };
+  return {
+    sort,
+    setSort: changeSort,
+    activeFilter,
+    setStatusFilter,
+    mine,
+    local,
+    lightboxProps,
+    open,
+    loadNextPage,
+  };
 }
 
 type MyScreenshotsTab = ReturnType<typeof useMyScreenshotsTab>;
 
-function PublishedSection({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
+function MyScreenshotsMessage({
+  tab,
+  hasFailed,
+}: Readonly<{ tab: MyScreenshotsTab; hasFailed: boolean }>) {
   const { t } = useTranslation("big_picture");
-  const sortOptions = useScreenshotSortOptions();
-  const { mine, open, loadNextPage } = tab;
-  const { feed } = mine;
 
-  if (!mine.canFetchPublished || mine.hasPublishedFailed) return null;
-  if (!feed.isLoading && feed.items.length === 0) return null;
-
-  return (
-    <section className="game-screenshots-modal__section">
-      <HorizontalFocusGroup
-        regionId={GAME_SCREENSHOTS_MODAL_TOOLBAR_REGION_ID}
-        asChild
-      >
-        <div className="game-screenshots-modal__section-header">
-          <h3 className="game-screenshots-modal__section-title">
-            {t("published_screenshots_section", { ns: "screenshots" })}
-          </h3>
-          <DropdownSelect
-            className="game-screenshots-modal__sort"
-            label={t("screenshots_sort_label")}
-            hideLabel
-            leadingIcon={<SortAscendingIcon size={20} />}
-            ariaLabel={t("screenshots_sort_label")}
-            value={tab.sort}
-            options={sortOptions}
-            focusId={GAME_SCREENSHOTS_MODAL_MINE_SORT_ID}
-            onValueChange={tab.setSort}
-          />
-        </div>
-      </HorizontalFocusGroup>
-      {feed.isLoading ? (
-        <ScreenshotSkeletonGrid />
-      ) : (
-        <GridFocusGroup
-          regionId={GAME_SCREENSHOTS_MODAL_MINE_GRID_REGION_ID}
-          className="game-screenshots-modal__grid"
-        >
-          <ul className="game-screenshots-modal__list">
-            {feed.items.map((screenshot) => (
-              <ScreenshotCard
-                key={screenshot.id}
-                screenshot={screenshot}
-                focusId={getGameScreenshotsModalItemId(`mine-${screenshot.id}`)}
-                showOwnerDetails
-                showAuthor={false}
-                onActivate={open}
-                onRefreshImage={feed.refreshImage}
-              />
-            ))}
-          </ul>
-        </GridFocusGroup>
-      )}
-      {feed.hasMore && feed.items.length > 0 ? (
-        <LoadMoreButton
-          focusId={GAME_SCREENSHOTS_MODAL_MINE_LOAD_MORE_ID}
-          isLoading={feed.isLoadingMore}
-          hasError={feed.error === "page"}
-          onPress={loadNextPage}
-        />
-      ) : null}
-    </section>
-  );
-}
-
-function LocalSection({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
-  const { t } = useTranslation("screenshots");
-  const { mine, local } = tab;
-
-  if (mine.pendingLocal.length === 0) return null;
-
-  return (
-    <section className="game-screenshots-modal__section">
-      <h3 className="game-screenshots-modal__section-title">
-        {t("not_uploaded")}
-      </h3>
-      <GridFocusGroup
-        regionId={GAME_SCREENSHOTS_MODAL_LOCAL_GRID_REGION_ID}
-        className="game-screenshots-modal__grid"
-      >
-        <ul className="game-screenshots-modal__list">
-          {mine.pendingLocal.map((screenshot) => (
-            <li
-              key={screenshot.clientId}
-              className="game-screenshots-modal__local-item"
-            >
-              <LocalScreenshotTile
-                screenshot={screenshot}
-                focusId={getGameScreenshotsModalItemId(
-                  `mine-local:${screenshot.clientId}`
-                )}
-                alt={local.describe(screenshot)}
-                isBusy={local.busyIds.has(screenshot.clientId)}
-                variant="card"
-                onOpen={local.open}
-                onUpload={local.upload}
-                onDelete={local.requestDelete}
-              />
-            </li>
-          ))}
-        </ul>
-      </GridFocusGroup>
-    </section>
-  );
-}
-
-function MyScreenshotsContent({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
-  const { t } = useTranslation("big_picture");
-  const { mine } = tab;
-
-  if (mine.hasFailed) {
+  if (hasFailed) {
     return (
       <div className="game-screenshots-modal__message">
-        <p>{t("screenshots_load_failed")}</p>
+        <p>
+          {t(
+            tab.activeFilter === "local"
+              ? "local_screenshots_load_failed"
+              : "published_screenshots_load_failed",
+            { ns: "screenshots" }
+          )}
+        </p>
         <Button
           variant="secondary"
           size="small"
           focusId={GAME_SCREENSHOTS_MODAL_MINE_RETRY_ID}
           icon={<ArrowClockwiseIcon size={18} />}
-          onClick={mine.retry}
+          onClick={tab.mine.retryFailed}
         >
           {t("screenshots_retry")}
         </Button>
@@ -538,45 +495,183 @@ function MyScreenshotsContent({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
     );
   }
 
-  if (!mine.hasLoaded && mine.items.length === 0 && !mine.canFetchPublished) {
-    return <ScreenshotSkeletonGrid />;
-  }
+  return (
+    <div className="game-screenshots-modal__message">
+      <ImageIcon size={28} />
+      <p>{t("screenshots_empty_filtered")}</p>
+      <ScreenshotHotkeyHint className="game-screenshots-modal__hint" />
+    </div>
+  );
+}
 
-  if (mine.items.length === 0 && !mine.isPartial) {
-    return (
-      <div className="game-screenshots-modal__message">
-        <ImageIcon size={28} />
-        <p>{t("screenshots_empty_filtered")}</p>
-        <ScreenshotHotkeyHint className="game-screenshots-modal__hint" />
-      </div>
-    );
+function UploadedScreenshotsList({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
+  const { mine, open, loadNextPage } = tab;
+  const { feed } = mine;
+
+  if (mine.hasPublishedFailed) {
+    return <MyScreenshotsMessage tab={tab} hasFailed />;
+  }
+  if (feed.isLoading) return <ScreenshotSkeletonGrid />;
+  if (feed.items.length === 0) {
+    return <MyScreenshotsMessage tab={tab} hasFailed={false} />;
   }
 
   return (
     <>
-      <MyScreenshotsPartialNotice
-        mine={mine}
-        focusId={GAME_SCREENSHOTS_MODAL_MINE_RETRY_ID}
-        className="game-screenshots-modal__notice"
-      />
-      <LocalSection tab={tab} />
-      <PublishedSection tab={tab} />
+      <GridFocusGroup
+        regionId={GAME_SCREENSHOTS_MODAL_MINE_GRID_REGION_ID}
+        className="game-screenshots-modal__grid"
+      >
+        <ul className="game-screenshots-modal__list">
+          {feed.items.map((screenshot) => (
+            <ScreenshotCard
+              key={screenshot.id}
+              screenshot={screenshot}
+              focusId={getGameScreenshotsModalItemId(`mine-${screenshot.id}`)}
+              showOwnerDetails
+              showAuthor={false}
+              onActivate={open}
+              onRefreshImage={feed.refreshImage}
+            />
+          ))}
+        </ul>
+      </GridFocusGroup>
+      {feed.hasMore ? (
+        <LoadMoreButton
+          focusId={GAME_SCREENSHOTS_MODAL_MINE_LOAD_MORE_ID}
+          isLoading={feed.isLoadingMore}
+          hasError={feed.error === "page"}
+          onPress={loadNextPage}
+        />
+      ) : null}
     </>
   );
 }
 
-function MyScreenshotsPanel({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
+function LocalScreenshotsList({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
+  const { mine, local } = tab;
+
+  if (mine.hasLocalFailed) {
+    return <MyScreenshotsMessage tab={tab} hasFailed />;
+  }
+  if (!mine.hasLoadedLocal && mine.pendingLocal.length === 0) {
+    return <ScreenshotSkeletonGrid />;
+  }
+  if (mine.pendingLocal.length === 0) {
+    return <MyScreenshotsMessage tab={tab} hasFailed={false} />;
+  }
+
   return (
-    <div className="game-screenshots-modal__scroll">
-      <MyScreenshotsContent tab={tab} />
-    </div>
+    <GridFocusGroup
+      regionId={GAME_SCREENSHOTS_MODAL_LOCAL_GRID_REGION_ID}
+      className="game-screenshots-modal__grid"
+    >
+      <ul className="game-screenshots-modal__list">
+        {mine.pendingLocal.map((screenshot) => (
+          <li
+            key={screenshot.clientId}
+            className="game-screenshots-modal__local-item"
+          >
+            <LocalScreenshotTile
+              screenshot={screenshot}
+              focusId={getGameScreenshotsModalItemId(
+                `mine-local:${screenshot.clientId}`
+              )}
+              alt={local.describe(screenshot)}
+              isBusy={local.busyIds.has(screenshot.clientId)}
+              variant="card"
+              onOpen={local.open}
+              onUpload={local.upload}
+              onDelete={local.requestDelete}
+            />
+          </li>
+        ))}
+      </ul>
+    </GridFocusGroup>
+  );
+}
+
+const STATUS_FILTER_FOCUS_IDS: Record<MyScreenshotsStatusFilter, string> = {
+  uploaded: GAME_SCREENSHOTS_MODAL_MINE_UPLOADED_ID,
+  local: GAME_SCREENSHOTS_MODAL_MINE_LOCAL_ID,
+};
+
+function MyScreenshotsPanel({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
+  const { t } = useTranslation("big_picture");
+  const sortOptions = useScreenshotSortOptions();
+  const isLocal = tab.activeFilter === "local";
+  const filters: { value: MyScreenshotsStatusFilter; label: string }[] = [
+    { value: "uploaded", label: t("screenshots_filter_uploaded") },
+    { value: "local", label: t("not_uploaded", { ns: "screenshots" }) },
+  ];
+
+  return (
+    <>
+      <HorizontalFocusGroup
+        regionId={GAME_SCREENSHOTS_MODAL_TOOLBAR_REGION_ID}
+        navigationOrder={0}
+        asChild
+      >
+        <div className="game-screenshots-modal__toolbar">
+          {tab.mine.canFetchPublished ? (
+            <div
+              className="game-screenshots-modal__status-filter"
+              role="radiogroup"
+              aria-label={t("screenshots_sort_label")}
+            >
+              {filters.map((filter) => (
+                <Button
+                  key={filter.value}
+                  variant={
+                    tab.activeFilter === filter.value ? "primary" : "secondary"
+                  }
+                  size="small"
+                  focusId={STATUS_FILTER_FOCUS_IDS[filter.value]}
+                  role="radio"
+                  aria-checked={tab.activeFilter === filter.value}
+                  onClick={() => tab.setStatusFilter(filter.value)}
+                >
+                  {filter.label}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+          <DropdownSelect
+            className="game-screenshots-modal__sort"
+            label={t("screenshots_sort_label")}
+            hideLabel
+            leadingIcon={<SortAscendingIcon size={20} />}
+            ariaLabel={t("screenshots_sort_label")}
+            value={isLocal ? "recent" : tab.sort}
+            options={sortOptions}
+            disabled={isLocal}
+            focusId={GAME_SCREENSHOTS_MODAL_MINE_SORT_ID}
+            onValueChange={tab.setSort}
+          />
+        </div>
+      </HorizontalFocusGroup>
+
+      <VerticalFocusGroup
+        regionId={GAME_SCREENSHOTS_MODAL_LIST_REGION_ID}
+        navigationOrder={1}
+        asChild
+      >
+        <div className="game-screenshots-modal__scroll">
+          {isLocal ? (
+            <LocalScreenshotsList tab={tab} />
+          ) : (
+            <UploadedScreenshotsList tab={tab} />
+          )}
+        </div>
+      </VerticalFocusGroup>
+    </>
   );
 }
 
 type GameScreenshotsTab = "mine" | "community";
 
 const TAB_SORT_FOCUS_IDS: Record<GameScreenshotsTab, string> = {
-  mine: GAME_SCREENSHOTS_MODAL_MINE_SORT_ID,
+  mine: GAME_SCREENSHOTS_MODAL_MINE_UPLOADED_ID,
   community: GAME_SCREENSHOTS_MODAL_SORT_ID,
 };
 
@@ -640,11 +735,12 @@ export function GameScreenshotsModal({
         title={t("tab_title")}
         onClose={onClose}
         className="game-screenshots-modal"
-        initialFocusId={GAME_SCREENSHOTS_MODAL_MINE_SORT_ID}
-      >
-        <VerticalFocusGroup regionId={GAME_SCREENSHOTS_MODAL_REGION_ID} asChild>
-          <div className="game-screenshots-modal__content">
-            {hasCommunity ? (
+        ariaLabel={t("tab_title")}
+        headerContent={
+          hasCommunity ? (
+            <FocusRegionContext.Provider
+              value={GAME_SCREENSHOTS_MODAL_REGION_ID}
+            >
               <div className="game-screenshots-modal__tabs">
                 <BumperBadge label="LB" />
                 <Tabs
@@ -657,8 +753,17 @@ export function GameScreenshotsModal({
                 />
                 <BumperBadge label="RB" />
               </div>
-            ) : null}
-
+            </FocusRegionContext.Provider>
+          ) : undefined
+        }
+        initialFocusId={
+          hasCommunity || mineTab.mine.canFetchPublished
+            ? GAME_SCREENSHOTS_MODAL_MINE_UPLOADED_ID
+            : GAME_SCREENSHOTS_MODAL_MINE_SORT_ID
+        }
+      >
+        <VerticalFocusGroup regionId={GAME_SCREENSHOTS_MODAL_REGION_ID} asChild>
+          <div className="game-screenshots-modal__content">
             {activeTab === "mine" ? (
               <MyScreenshotsPanel tab={mineTab} />
             ) : (
