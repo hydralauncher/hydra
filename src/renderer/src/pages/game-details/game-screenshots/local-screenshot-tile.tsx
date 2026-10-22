@@ -85,7 +85,12 @@ export function LocalScreenshotTile({
       </div>
 
       {createPortal(
-        <Tooltip id={tooltipId} place="top" positionStrategy="fixed" />,
+        <Tooltip
+          id={tooltipId}
+          place="top"
+          positionStrategy="fixed"
+          className="local-screenshot-tile__tooltip"
+        />,
         document.body
       )}
     </div>

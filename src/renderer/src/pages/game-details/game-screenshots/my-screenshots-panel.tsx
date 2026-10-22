@@ -1,11 +1,10 @@
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageIcon } from "@primer/octicons-react";
-
-import { Button } from "@renderer/components";
 import InfiniteScroll from "react-infinite-scroll-component";
 import Skeleton from "react-loading-skeleton";
 
+import { Button } from "@renderer/components";
 import {
   ScreenshotCard,
   ScreenshotLightbox,
@@ -17,14 +16,22 @@ import type { GameShop, ScreenshotSort } from "@types";
 
 import { GameScreenshotsHotkeyTip } from "./game-screenshots-hotkey-tip";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
-import { MyScreenshotsPartialNotice } from "./my-screenshots-partial-notice";
-import { ScreenshotSortToggle } from "./screenshot-sort-toggle";
+import {
+  ScreenshotSortToggle,
+  SegmentedToggle,
+} from "./screenshot-sort-toggle";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
-import { useMyGameScreenshots } from "./use-my-game-screenshots";
+import {
+  useCanFetchMyPublishedScreenshots,
+  useMyLocalGameScreenshots,
+  useMyPublishedGameScreenshots,
+} from "./use-my-game-screenshots";
 
 const MY_SCREENSHOTS_PAGE_SIZE = 24;
 const SKELETON_COUNT = 6;
 const INFINITE_SCROLL_THRESHOLD = 0.9;
+
+type MyScreenshotsStatusFilter = "uploaded" | "local";
 
 interface MyScreenshotsPanelProps {
   visible: boolean;
@@ -32,6 +39,43 @@ interface MyScreenshotsPanelProps {
   shop: GameShop;
   objectId: string;
   writeBus: ScreenshotWriteBus;
+}
+
+function GridSkeleton() {
+  return (
+    <ul className="screenshot-grid" aria-busy="true">
+      {Array.from({ length: SKELETON_COUNT }, (_, index) => (
+        <li key={`my-screenshots-skeleton-${index}`}>
+          <Skeleton className="game-screenshots-modal__skeleton" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function LoadError({ onRetry }: Readonly<{ onRetry: () => void }>) {
+  const { t } = useTranslation("screenshots");
+  return (
+    <output className="game-screenshots-modal__empty">
+      <span>{t("screenshots_load_failed")}</span>
+      <Button theme="outline" onClick={onRetry}>
+        {t("retry")}
+      </Button>
+    </output>
+  );
+}
+
+function EmptyState() {
+  const { t } = useTranslation("screenshots");
+  return (
+    <output className="game-screenshots-modal__empty">
+      <span className="game-screenshots-modal__empty-icon">
+        <ImageIcon size={24} />
+      </span>
+      <span>{t("no_game_screenshots_yet")}</span>
+      <GameScreenshotsHotkeyTip />
+    </output>
+  );
 }
 
 export function MyScreenshotsPanel({
@@ -43,22 +87,48 @@ export function MyScreenshotsPanel({
 }: Readonly<MyScreenshotsPanelProps>) {
   const { t } = useTranslation("screenshots");
   const scrollId = useId();
+  const { canFetchPublished } = useCanFetchMyPublishedScreenshots(shop);
+  const [statusFilter, setStatusFilter] =
+    useState<MyScreenshotsStatusFilter>("uploaded");
   const [sort, setSort] = useState<ScreenshotSort>("recent");
-  const mine = useMyGameScreenshots({
+  const [visitedSorts, setVisitedSorts] = useState<ReadonlySet<ScreenshotSort>>(
+    () => new Set<ScreenshotSort>(["recent"])
+  );
+  const activeFilter: MyScreenshotsStatusFilter = canFetchPublished
+    ? statusFilter
+    : "local";
+
+  const localState = useMyLocalGameScreenshots({
     shop,
     objectId,
-    sort,
-    take: MY_SCREENSHOTS_PAGE_SIZE,
     isEnabled: visible,
-    writeBus,
   });
-  const { feed, actions, lightbox } = mine.collection;
-  const local = useLocalScreenshotActions(mine.pendingLocal);
+  const publishedOptions = {
+    shop,
+    objectId,
+    take: MY_SCREENSHOTS_PAGE_SIZE,
+    writeBus,
+    settledCount: localState.settledCount,
+  };
+  const recent = useMyPublishedGameScreenshots({
+    ...publishedOptions,
+    sort: "recent",
+    isEnabled: visible && visitedSorts.has("recent"),
+  });
+  const top = useMyPublishedGameScreenshots({
+    ...publishedOptions,
+    sort: "top",
+    isEnabled: visible && visitedSorts.has("top"),
+  });
+  const published = sort === "top" ? top : recent;
+  const { feed, actions, lightbox } = published;
+  const local = useLocalScreenshotActions(localState.pendingLocal);
 
   useLoadUntilScrollable({
     scrollTargetId: scrollId,
     canLoadMore:
       visible &&
+      activeFilter === "uploaded" &&
       feed.hasLoaded &&
       feed.hasMore &&
       !feed.isLoading &&
@@ -67,134 +137,107 @@ export function MyScreenshotsPanel({
     loadMore: feed.loadMore,
   });
 
-  const renderGrid = () => {
-    if (!mine.hasLoaded) {
-      return (
-        <ul className="screenshot-grid" aria-busy="true">
-          {Array.from({ length: SKELETON_COUNT }, (_, index) => (
-            <li key={`my-screenshots-skeleton-${index}`}>
-              <Skeleton className="game-screenshots-modal__skeleton" />
-            </li>
-          ))}
-        </ul>
-      );
-    }
+  const changeSort = (nextSort: ScreenshotSort) => {
+    setVisitedSorts((current) => new Set(current).add(nextSort));
+    setSort(nextSort);
+  };
 
-    if (mine.hasFailed) {
-      return (
-        <output className="game-screenshots-modal__empty">
-          <span>{t("screenshots_load_failed")}</span>
-          <Button theme="outline" onClick={mine.retry}>
-            {t("retry")}
-          </Button>
-        </output>
-      );
-    }
-
-    const hasLocal = mine.pendingLocal.length > 0;
-    const hasPublished = feed.items.length > 0;
-
-    if (!hasLocal && !hasPublished) {
-      if (mine.isPartial) return null;
-      return (
-        <output className="game-screenshots-modal__empty">
-          <span className="game-screenshots-modal__empty-icon">
-            <ImageIcon size={24} />
-          </span>
-          <span>{t("no_game_screenshots_yet")}</span>
-          <GameScreenshotsHotkeyTip />
-        </output>
-      );
-    }
+  const renderUploaded = (): ReactNode => {
+    if (feed.hasFailed) return <LoadError onRetry={() => void feed.reload()} />;
+    if (!feed.hasLoaded) return <GridSkeleton />;
+    if (feed.items.length === 0) return <EmptyState />;
 
     return (
-      <>
-        {hasLocal ? (
-          <section className="my-screenshots-section">
-            <header className="my-screenshots-section__header">
-              <h3>{t("not_uploaded")}</h3>
-            </header>
-            <ul className="screenshot-grid">
-              {mine.pendingLocal.map((screenshot) => (
-                <li key={screenshot.clientId} className="screenshot-card">
-                  <LocalScreenshotTile
-                    screenshot={screenshot}
-                    alt={local.describe(screenshot)}
-                    isBusy={local.busyIds.has(screenshot.clientId)}
-                    className="local-screenshot-tile--card"
-                    onOpen={local.open}
-                    onUpload={local.upload}
-                    onDelete={local.requestDelete}
-                  />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
+      <InfiniteScroll
+        dataLength={feed.items.length}
+        next={() => void feed.loadMore()}
+        hasMore={feed.hasMore && !feed.hasLoadMoreFailed}
+        loader={
+          feed.isLoading ? (
+            <output className="game-screenshots-modal__loading">
+              {t("loading_screenshots")}
+            </output>
+          ) : null
+        }
+        scrollThreshold={INFINITE_SCROLL_THRESHOLD}
+        scrollableTarget={scrollId}
+        style={{ overflow: "visible" }}
+      >
+        <ul className="screenshot-grid">
+          {feed.items.map((screenshot) => (
+            <ScreenshotCard
+              key={screenshot.id}
+              screenshot={screenshot}
+              variant="profile"
+              isOwner
+              isLiking={actions.likingIds.has(screenshot.id)}
+              showCommentCount={showCommentCount}
+              onOpen={lightbox.open}
+              onLike={(item) => void actions.toggleLike(item)}
+              onImageError={lightbox.refreshScreenshot}
+            />
+          ))}
+        </ul>
+      </InfiniteScroll>
+    );
+  };
 
-        {hasPublished ? (
-          <section className="my-screenshots-section">
-            <header className="my-screenshots-section__header">
-              <h3>{t("published_screenshots_section")}</h3>
-              <ScreenshotSortToggle sort={sort} onChange={setSort} />
-            </header>
-            <InfiniteScroll
-              dataLength={feed.items.length}
-              next={() => void feed.loadMore()}
-              hasMore={feed.hasMore && !feed.hasLoadMoreFailed}
-              loader={
-                feed.isLoading ? (
-                  <output className="game-screenshots-modal__loading">
-                    {t("loading_screenshots")}
-                  </output>
-                ) : null
-              }
-              scrollThreshold={INFINITE_SCROLL_THRESHOLD}
-              scrollableTarget={scrollId}
-              style={{ overflow: "visible" }}
-            >
-              <ul className="screenshot-grid">
-                {feed.items.map((screenshot) => (
-                  <ScreenshotCard
-                    key={screenshot.id}
-                    screenshot={screenshot}
-                    variant="profile"
-                    isOwner
-                    isLiking={actions.likingIds.has(screenshot.id)}
-                    showCommentCount={showCommentCount}
-                    onOpen={lightbox.open}
-                    onLike={(item) => void actions.toggleLike(item)}
-                    onImageError={lightbox.refreshScreenshot}
-                  />
-                ))}
-              </ul>
-            </InfiniteScroll>
-          </section>
-        ) : null}
-      </>
+  const renderLocal = (): ReactNode => {
+    if (localState.hasFailed) return <LoadError onRetry={localState.retry} />;
+    if (!localState.hasLoaded) return <GridSkeleton />;
+    if (localState.pendingLocal.length === 0) return <EmptyState />;
+
+    return (
+      <ul className="screenshot-grid">
+        {localState.pendingLocal.map((screenshot) => (
+          <li key={screenshot.clientId} className="screenshot-card">
+            <LocalScreenshotTile
+              screenshot={screenshot}
+              alt={local.describe(screenshot)}
+              isBusy={local.busyIds.has(screenshot.clientId)}
+              className="local-screenshot-tile--card"
+              onOpen={local.open}
+              onUpload={local.upload}
+              onDelete={local.requestDelete}
+            />
+          </li>
+        ))}
+      </ul>
     );
   };
 
   return (
     <div className="game-screenshots-modal__panel">
-      <div id={scrollId} className="game-screenshots-modal__scroll">
-        {mine.isPartial ? (
-          <MyScreenshotsPartialNotice
-            hasLocalFailed={mine.hasLocalFailed}
-            onRetry={mine.retryFailed}
+      <div className="game-screenshots-modal__toolbar">
+        {canFetchPublished ? (
+          <SegmentedToggle
+            label={t("screenshot_status_filter")}
+            value={activeFilter}
+            options={[
+              { value: "uploaded", label: t("uploaded") },
+              { value: "local", label: t("not_uploaded") },
+            ]}
+            onChange={setStatusFilter}
           />
         ) : null}
-        {renderGrid()}
+        {activeFilter === "uploaded" ? (
+          <ScreenshotSortToggle sort={sort} onChange={changeSort} />
+        ) : null}
+      </div>
 
-        {feed.hasLoadMoreFailed ? (
+      <div id={scrollId} className="game-screenshots-modal__scroll">
+        {activeFilter === "uploaded" ? renderUploaded() : renderLocal()}
+
+        {activeFilter === "uploaded" && feed.hasLoadMoreFailed ? (
           <ScreenshotLoadMoreError onRetry={() => void feed.loadMore()} />
         ) : null}
       </div>
 
       <ScreenshotLightbox
-        collection={mine.collection}
-        navigationItems={feed.items}
+        collection={recent}
+        navigationItems={recent.feed.items}
       />
+      <ScreenshotLightbox collection={top} navigationItems={top.feed.items} />
       {local.elements}
     </div>
   );
