@@ -66,6 +66,10 @@ export const GAME_SCREENSHOTS_MODAL_LOAD_MORE_ID =
 export const GAME_SCREENSHOTS_MODAL_RETRY_ID = "game-screenshots-modal-retry";
 export const GAME_SCREENSHOTS_MODAL_TABS_REGION_ID =
   "game-screenshots-modal-tabs";
+export const GAME_SCREENSHOTS_MODAL_MINE_GRID_REGION_ID =
+  "game-screenshots-modal-mine-grid";
+export const GAME_SCREENSHOTS_MODAL_LOCAL_GRID_REGION_ID =
+  "game-screenshots-modal-local-grid";
 export const GAME_SCREENSHOTS_MODAL_MINE_SORT_ID =
   "game-screenshots-modal-mine-sort";
 export const GAME_SCREENSHOTS_MODAL_MINE_LOAD_MORE_ID =

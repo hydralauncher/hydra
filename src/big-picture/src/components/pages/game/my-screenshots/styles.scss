@@ -160,12 +160,45 @@ $local-screenshot-actions-fade-duration: 0.15s;
 
 .game-screenshots-modal {
   width: min(1280px, calc(100vw - 96px));
+  height: min(880px, calc(100vh - 4rem));
+
+  .modal__content {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
 
   &__content {
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: calc(var(--spacing-unit) * 4);
     min-height: 0;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 3);
+  }
+
+  &__section-title {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  &__skeleton-card {
+    min-width: 0;
+  }
+
+  &__skeleton {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
   }
 
   &__tabs {
@@ -210,11 +243,14 @@ $local-screenshot-actions-fade-duration: 0.15s;
 
   &__scroll {
     display: flex;
+    flex: 1;
     flex-direction: column;
-    gap: calc(var(--spacing-unit) * 4);
-    max-height: min(68vh, 760px);
-    padding: calc(var(--spacing-unit) * 2);
+    gap: calc(var(--spacing-unit) * 6);
+    min-height: 0;
+    padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 2)
+      calc(var(--spacing-unit) * 6);
     overflow-y: auto;
+    scroll-padding-block: calc(var(--spacing-unit) * 4);
   }
 
   &__list {
@@ -225,8 +261,10 @@ $local-screenshot-actions-fade-duration: 0.15s;
     padding: 0;
     list-style: none;
 
-    .screenshot-card {
+    .screenshot-card,
+    .local-screenshot-tile {
       width: auto;
+      scroll-margin-block: calc(var(--spacing-unit) * 4);
     }
   }
 
