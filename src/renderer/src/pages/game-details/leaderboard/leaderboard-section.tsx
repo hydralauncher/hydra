@@ -79,7 +79,6 @@ export function LeaderboardSection() {
 
   const state = getLeaderboardState({
     isEligible,
-    isLoading,
     hasError,
     leaderboard,
     period: dataPeriod,
@@ -238,7 +237,8 @@ export function LeaderboardSection() {
                 navigate(
                   buildGameLeaderboardPath(
                     catalogueGame.shop,
-                    catalogueGame.objectId
+                    catalogueGame.objectId,
+                    { period: dataPeriod, scope: dataScope, metric: dataMetric }
                   )
                 )
               }
@@ -271,7 +271,7 @@ export function LeaderboardSection() {
         {!isLoggedIn && state !== "loading" && (
           <div className="leaderboard-section__sign-in">
             <p className="leaderboard-section__sign-in-text">
-              {t("sign_in_hint")}
+              {t(isExtended ? "sign_in_hint" : "sign_in_hint_position")}
             </p>
             <button
               type="button"

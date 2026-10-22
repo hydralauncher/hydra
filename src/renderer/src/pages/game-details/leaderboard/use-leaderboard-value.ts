@@ -1,13 +1,23 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { useFormat } from "@renderer/hooks";
 import type { LeaderboardMetric } from "./game-leaderboard";
 
+const FRACTIONAL_HOURS_LIMIT = 10;
+const HOUR_FRACTION_DIGITS = 1;
+
 export function useLeaderboardValue() {
-  const { t } = useTranslation("leaderboard");
+  const { t, i18n } = useTranslation("leaderboard");
   const { numberFormatter } = useFormat();
+  const hourFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(i18n.language, {
+        maximumFractionDigits: HOUR_FRACTION_DIGITS,
+      }),
+    [i18n.language]
+  );
 
   return useCallback(
     (metric: LeaderboardMetric, value: number) => {
@@ -22,8 +32,13 @@ export function useLeaderboardValue() {
           });
         }
 
+        const hours = minutes / 60;
+
         return t("value_hours", {
-          amount: numberFormatter.format(Math.round(minutes / 60)),
+          amount:
+            hours < FRACTIONAL_HOURS_LIMIT
+              ? hourFormatter.format(hours)
+              : numberFormatter.format(Math.round(hours)),
         });
       }
 
@@ -33,6 +48,6 @@ export function useLeaderboardValue() {
 
       return numberFormatter.format(value);
     },
-    [numberFormatter, t]
+    [hourFormatter, numberFormatter, t]
   );
 }

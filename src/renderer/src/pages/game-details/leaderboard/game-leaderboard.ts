@@ -3,6 +3,7 @@ import type { GameShop } from "@types";
 export const LEADERBOARD_TAKE = 100;
 export const LEADERBOARD_CARD_SIZE = 5;
 export const LEADERBOARD_CACHE_TTL_MS = 60_000;
+export const LEADERBOARD_CACHE_MAX_ENTRIES = 50;
 export const LEADERBOARD_MIN_PROGRESS = 4;
 
 export const LEADERBOARD_PERIODS = ["week", "all"] as const;
@@ -41,7 +42,6 @@ export interface LeaderboardViewer {
 export interface Leaderboard {
   entries: LeaderboardEntry[];
   viewer: LeaderboardViewer | null;
-  periodEnd: string | null;
 }
 
 export interface LeaderboardQuery {
@@ -208,8 +208,6 @@ export const normalizeLeaderboardResponse = (
   return {
     entries,
     viewer: normalizeViewer(candidate.viewer),
-    periodEnd:
-      typeof candidate.periodEnd === "string" ? candidate.periodEnd : null,
   };
 };
 
@@ -281,10 +279,13 @@ export const getLeaderboardNudge = (
   if (!viewerEntry) return null;
   if (viewerEntry.rank === 1) return { type: "leading" };
 
-  const above = leaderboard.entries.find(
-    (entry) => entry.rank === viewerEntry.rank - 1
+  const ahead = leaderboard.entries.filter(
+    (entry) =>
+      entry.rank < viewerEntry.rank && entry.user.id !== viewerEntry.user.id
   );
-  if (!above) return null;
+  if (ahead.length === 0 || ahead.length < viewerEntry.rank - 1) return null;
+
+  const above = ahead[ahead.length - 1];
 
   const gap = above.value - viewerEntry.value;
   if (gap <= 0) return null;
@@ -294,7 +295,6 @@ export const getLeaderboardNudge = (
 
 export const getLeaderboardState = ({
   isEligible,
-  isLoading,
   hasError,
   leaderboard,
   period,
@@ -302,7 +302,6 @@ export const getLeaderboardState = ({
   viewerId,
 }: {
   isEligible: boolean;
-  isLoading: boolean;
   hasError: boolean;
   leaderboard: Pick<Leaderboard, "entries"> | null;
   period: LeaderboardPeriod;
@@ -310,8 +309,8 @@ export const getLeaderboardState = ({
   viewerId: string | null;
 }): LeaderboardState => {
   if (!isEligible) return "hidden";
-  if (isLoading && !leaderboard) return "loading";
-  if (hasError || !leaderboard) return "error";
+  if (hasError) return "error";
+  if (!leaderboard) return "loading";
 
   const others = leaderboard.entries.filter(
     (entry) => entry.user.id !== viewerId
@@ -338,7 +337,7 @@ export const buildLeaderboardRequest = (
 
   return {
     path: `/games/${query.shop}/${encodeURIComponent(query.objectId)}/top-users`,
-    options: { params, needsAuth: query.isLoggedIn },
+    options: { params, needsAuth: query.isExtended && query.isLoggedIn },
   };
 };
 
@@ -355,14 +354,15 @@ export const getLeaderboardCacheKey = (query: LeaderboardQuery) => {
 export const createLeaderboardFetcher = (
   get: LeaderboardGet,
   now: () => number = Date.now,
-  ttl = LEADERBOARD_CACHE_TTL_MS
+  ttl = LEADERBOARD_CACHE_TTL_MS,
+  maxEntries = LEADERBOARD_CACHE_MAX_ENTRIES
 ) => {
   const cache = new Map<string, { at: number; leaderboard: Leaderboard }>();
   const inFlight = new Map<string, Promise<Leaderboard>>();
 
   return (query: LeaderboardQuery): Promise<Leaderboard> => {
     if (!isLeaderboardShop(query.shop) || !query.objectId) {
-      return Promise.resolve({ entries: [], viewer: null, periodEnd: null });
+      return Promise.resolve({ entries: [], viewer: null });
     }
 
     const key = getLeaderboardCacheKey(query);
@@ -370,6 +370,7 @@ export const createLeaderboardFetcher = (
     if (cached && now() - cached.at < ttl) {
       return Promise.resolve(cached.leaderboard);
     }
+    if (cached) cache.delete(key);
 
     const pending = inFlight.get(key);
     if (pending !== undefined) return pending;
@@ -379,6 +380,10 @@ export const createLeaderboardFetcher = (
       .then((response) => {
         const leaderboard = normalizeLeaderboardResponse(response);
         cache.set(key, { at: now(), leaderboard });
+        if (cache.size > maxEntries) {
+          const oldestKey = cache.keys().next().value;
+          if (oldestKey !== undefined) cache.delete(oldestKey);
+        }
         return leaderboard;
       })
       .finally(() => {
@@ -390,7 +395,26 @@ export const createLeaderboardFetcher = (
   };
 };
 
-export const buildGameLeaderboardPath = (shop: GameShop, objectId: string) => {
-  const params = new URLSearchParams({ tab: "games", shop, objectId });
+export const buildGameLeaderboardPath = (
+  shop: GameShop,
+  objectId: string,
+  {
+    period,
+    scope,
+    metric,
+  }: {
+    period: LeaderboardPeriod;
+    scope: LeaderboardScope;
+    metric: LeaderboardMetric;
+  }
+) => {
+  const params = new URLSearchParams({
+    tab: "games",
+    shop,
+    objectId,
+    period,
+    scope,
+    metric,
+  });
   return `/leaderboards?${params.toString()}`;
 };
