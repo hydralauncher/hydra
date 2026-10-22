@@ -92,15 +92,20 @@ function useScreenshotComments(
   const writeVersionRef = useRef(0);
   const writesRef = useRef<ScreenshotCommentWrite[]>([]);
   const pendingReadsRef = useRef(0);
+  const readEpochRef = useRef(0);
   const ownerId = screenshot.owner.id;
   const screenshotId = screenshot.id;
 
   const beginRead = () => {
     pendingReadsRef.current += 1;
-    return writeVersionRef.current;
+    return {
+      sinceVersion: writeVersionRef.current,
+      epoch: readEpochRef.current,
+    };
   };
 
-  const endRead = () => {
+  const endRead = (epoch: number) => {
+    if (readEpochRef.current !== epoch) return;
     pendingReadsRef.current = Math.max(0, pendingReadsRef.current - 1);
     if (pendingReadsRef.current === 0) writesRef.current = [];
   };
@@ -108,7 +113,7 @@ function useScreenshotComments(
   const fetchFirstPage = useCallback(async () => {
     const generation = generationRef.current + 1;
     generationRef.current = generation;
-    const sinceVersion = beginRead();
+    const { sinceVersion, epoch } = beginRead();
 
     try {
       const response =
@@ -135,12 +140,13 @@ function useScreenshotComments(
       logger.error("Failed to load screenshot comments", error);
       setStatus("error");
     } finally {
-      if (generationRef.current === generation) endRead();
+      endRead(epoch);
     }
   }, [needsAuth, ownerId, screenshotId]);
 
   useEffect(() => {
     generationRef.current += 1;
+    readEpochRef.current += 1;
     pendingReadsRef.current = 0;
     writesRef.current = [];
     setComments([]);
@@ -168,7 +174,7 @@ function useScreenshotComments(
     if (!nextCursor || isLoadingMore) return;
 
     const generation = generationRef.current;
-    const sinceVersion = beginRead();
+    const { sinceVersion, epoch } = beginRead();
     setIsLoadingMore(true);
 
     try {
@@ -196,12 +202,15 @@ function useScreenshotComments(
     } catch (error) {
       logger.error("Failed to load more screenshot comments", error);
     } finally {
-      if (generationRef.current === generation) {
-        endRead();
-        setIsLoadingMore(false);
-      }
+      endRead(epoch);
+      if (generationRef.current === generation) setIsLoadingMore(false);
     }
   }, [isLoadingMore, needsAuth, nextCursor, ownerId, screenshotId]);
+
+  const retry = useCallback(() => {
+    setStatus("loading");
+    return fetchFirstPage();
+  }, [fetchFirstPage]);
 
   return {
     comments,
@@ -210,7 +219,7 @@ function useScreenshotComments(
     hasMore: Boolean(nextCursor),
     isLoadingMore,
     loadMore,
-    retry: fetchFirstPage,
+    retry,
     recordWrite,
     setComments,
     setTotal,
