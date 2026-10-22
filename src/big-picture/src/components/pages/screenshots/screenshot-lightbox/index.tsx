@@ -149,7 +149,7 @@ function LoadMoreErrorNotice({ onRetry }: Readonly<{ onRetry?: () => void }>) {
   const { t } = useTranslation("big_picture");
 
   return (
-    <div className="screenshot-viewer__load-error" role="status">
+    <output className="screenshot-viewer__load-error">
       <span>{t("screenshots_load_more_failed")}</span>
       <button
         type="button"
@@ -160,7 +160,7 @@ function LoadMoreErrorNotice({ onRetry }: Readonly<{ onRetry?: () => void }>) {
         <ArrowClockwiseIcon size={18} />
         {t("screenshots_retry")}
       </button>
-    </div>
+    </output>
   );
 }
 
