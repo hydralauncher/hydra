@@ -57,16 +57,17 @@ export function BoardView({
     onVisibleChange?.(visible);
   }, [onVisibleChange, visible]);
 
-  const getDelta = (entry: LeaderboardEntry) =>
-    showDelta
-      ? getRankDelta(
-          entry.rank,
-          leaderboard.extras[entry.user.id]?.previousRank ??
-            (entry.user.id === viewerUser?.id
-              ? leaderboard.viewerPreviousRank
-              : null)
-        )
+  const getPreviousRank = (entry: LeaderboardEntry) => {
+    const listed = leaderboard.extras[entry.user.id]?.previousRank;
+    if (listed !== null && listed !== undefined) return listed;
+
+    return entry.user.id === viewerUser?.id
+      ? leaderboard.viewerPreviousRank
       : null;
+  };
+
+  const getDelta = (entry: LeaderboardEntry) =>
+    showDelta ? getRankDelta(entry.rank, getPreviousRank(entry)) : null;
 
   const getStreak = (entry: LeaderboardEntry): StreakStatus => {
     if (!isStreak) return null;
