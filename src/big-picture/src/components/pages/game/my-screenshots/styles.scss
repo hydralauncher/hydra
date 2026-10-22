@@ -218,7 +218,7 @@ $local-screenshot-actions-fade-duration: 0.15s;
   }
 
   &__local-item {
-    display: flex;
+    display: block;
     min-width: 0;
   }
 
@@ -253,9 +253,12 @@ $local-screenshot-actions-fade-duration: 0.15s;
     padding: 0;
     list-style: none;
 
+    .screenshot-card {
+      width: auto;
+    }
+
     .screenshot-card,
     .local-screenshot-tile {
-      width: auto;
       scroll-margin-block: calc(var(--spacing-unit) * 4);
     }
   }
