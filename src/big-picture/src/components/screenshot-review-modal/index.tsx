@@ -8,6 +8,7 @@ import {
   HardDrivesIcon,
   ImageIcon,
   PencilSimpleIcon,
+  PlusIcon,
   TrashIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
@@ -35,7 +36,6 @@ import {
   ContextMenu,
   DropdownSelect,
   HorizontalFocusGroup,
-  Input,
   Modal,
   VerticalFocusGroup,
   type ContextMenuItem,
@@ -831,48 +831,51 @@ export function ScreenshotReviewModal() {
           gameTitle={gameTitle}
         />
 
+        <div className="screenshot-review-modal__heading">
+          {isCustomGame ? (
+            <InlineTextField
+              key={current.clientId}
+              focusId={TITLE_FOCUS_ID}
+              className="screenshot-review-modal__title-field"
+              label={t("screenshots_custom_title_label")}
+              value={draft.customGameTitle.trim()}
+              placeholder={t("screenshots_custom_game")}
+              icon={<PencilSimpleIcon size={18} />}
+              maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
+              allowEmpty
+              disabled={isUploading || isBusy}
+              onSave={(customGameTitle) => {
+                updateDraft({ customGameTitle });
+                return true;
+              }}
+            />
+          ) : (
+            <p className="screenshot-review-modal__game">{gameTitle}</p>
+          )}
+        </div>
+
         <div className="screenshot-review-modal__form">
           <div ref={fieldsRef} className="screenshot-review-modal__fields">
-            {isCustomGame ? (
-              <InlineTextField
-                key={current.clientId}
-                focusId={TITLE_FOCUS_ID}
-                className="screenshot-review-modal__title-field"
-                label={t("screenshots_custom_title_label")}
-                value={draft.customGameTitle.trim()}
-                placeholder={t("screenshots_custom_game")}
-                icon={<PencilSimpleIcon size={18} />}
-                maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
-                allowEmpty
-                disabled={isUploading || isBusy}
-                onSave={(customGameTitle) => {
-                  updateDraft({ customGameTitle });
-                  return true;
-                }}
-              />
-            ) : (
-              <p className="screenshot-review-modal__game">{gameTitle}</p>
-            )}
-
             {isUploading ? (
               <UploadStatus screenshot={currentScreenshot} />
             ) : (
               <>
-                <Input
-                  label={t("screenshots_description_label")}
-                  placeholder={t("screenshots_description_placeholder")}
-                  value={draft.description}
-                  maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
-                  hint={`${draft.description.length}/${SCREENSHOT_DESCRIPTION_MAX_LENGTH}`}
-                  disabled={isBusy}
+                <InlineTextField
+                  key={`description:${current.clientId}`}
                   focusId={DESCRIPTION_FOCUS_ID}
-                  onChange={(event) =>
-                    updateDraft({
-                      description: sanitizeScreenshotDescriptionInput(
-                        event.target.value
-                      ),
-                    })
-                  }
+                  className="screenshot-review-modal__description-field"
+                  label={t("screenshots_description_label")}
+                  value={draft.description}
+                  placeholder={t("screenshots_add_description")}
+                  icon={<PlusIcon size={18} weight="bold" />}
+                  maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
+                  allowEmpty
+                  disabled={isBusy}
+                  sanitize={sanitizeScreenshotDescriptionInput}
+                  onSave={(description) => {
+                    updateDraft({ description });
+                    return true;
+                  }}
                 />
 
                 <Checkbox

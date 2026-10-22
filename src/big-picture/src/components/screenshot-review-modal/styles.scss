@@ -49,6 +49,30 @@ $screenshot-review-progress-duration: 0.2s;
     }
   }
 
+  &__heading {
+    flex-shrink: 0;
+    min-width: 0;
+    padding-right: var(--spacing-unit);
+  }
+
+  &__description-field {
+    width: 100%;
+  }
+
+  &__delete.button--danger {
+    border-color: rgba(225, 29, 72, 0.35);
+    background-color: rgba(225, 29, 72, 0.14);
+    color: var(--error);
+    opacity: 1;
+
+    &:hover,
+    &[data-focused="true"],
+    &[data-focus-visible="true"] {
+      border-color: var(--error);
+      background-color: rgba(225, 29, 72, 0.28);
+    }
+  }
+
   &__form {
     display: flex;
     flex: 1;
@@ -127,7 +151,6 @@ $screenshot-review-progress-duration: 0.2s;
     justify-content: flex-end;
     gap: calc(var(--spacing-unit) * 2);
     padding-top: calc(var(--spacing-unit) * 2);
-    border-top: 1px solid var(--secondary-border);
   }
 
   &__status {
