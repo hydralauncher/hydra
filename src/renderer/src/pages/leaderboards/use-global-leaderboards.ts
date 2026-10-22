@@ -48,6 +48,7 @@ const readCachedBoard = (
   try {
     return normalizeGlobalLeaderboardResponse(cached);
   } catch {
+    leaderboardsCache.evict(path, options, query.accountId);
     return null;
   }
 };
@@ -124,6 +125,7 @@ export function useGlobalLeaderboards({
         })
         .catch((error) => {
           if (requestId !== requestIdRef.current) return;
+          leaderboardsCache.evict(path, options, accountId);
           logger.error("Failed to fetch global leaderboard", error);
           setState((current) => ({
             key: current.key,

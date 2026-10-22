@@ -885,6 +885,17 @@ $leaderboards-streak-to: #b05cff;
     font-variant-numeric: tabular-nums;
   }
 
+  &__mine-error {
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+  }
+
+  &__mine-retry {
+    display: flex;
+    justify-content: center;
+    padding: 0 globals.$spacing-unit globals.$spacing-unit;
+  }
+
   &__streak-numbers {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -5,6 +5,7 @@ import { useUserDetails } from "@renderer/hooks";
 import type { GameShop } from "@types";
 import { leaderboardsCache } from "@renderer/services/leaderboards-cache";
 import {
+  buildLeaderboardRequest,
   fetchGameLeaderboard,
   getLeaderboardBoardKey,
   isLeaderboardShop,
@@ -106,6 +107,8 @@ export function useGameLeaderboard({
         }
       })
       .catch((error) => {
+        const { path, options } = buildLeaderboardRequest(query);
+        leaderboardsCache.evict(path, options, viewerId);
         if (requestId !== requestIdRef.current) return;
         logger.error("Failed to fetch game leaderboard", error);
         setLoaded(null);

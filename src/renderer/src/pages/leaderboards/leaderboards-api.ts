@@ -48,6 +48,7 @@ const readCached = <T>(
   try {
     return normalize(cached);
   } catch {
+    leaderboardsCache.evict(path, options, accountId);
     return null;
   }
 };
@@ -123,6 +124,7 @@ export function useApiResource<T>(
       })
       .catch((error) => {
         if (requestId !== requestIdRef.current) return;
+        leaderboardsCache.evict(currentPath, currentOptions, currentAccountId);
         logger.error("Failed to fetch leaderboard data", error);
         setState({
           key: requestKey,

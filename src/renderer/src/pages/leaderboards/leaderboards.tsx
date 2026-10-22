@@ -251,6 +251,7 @@ function LeaderboardsPage() {
               period={period}
               viewerUser={viewerUser}
               onOpenMetric={openMetric}
+              onRetry={retryAll}
             />
           )}
 

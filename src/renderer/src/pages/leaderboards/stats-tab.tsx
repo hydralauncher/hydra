@@ -45,6 +45,7 @@ export interface StatsTabProps {
   period: GlobalLeaderboardPeriod;
   viewerUser: LeaderboardUser | null;
   onOpenMetric: (metric: string) => void;
+  onRetry: () => void;
 }
 
 const DAY_LABEL_DATES = [5, 6, 7, 8, 9, 10, 11].map(
@@ -73,6 +74,7 @@ export function StatsTab({
   period,
   viewerUser,
   onOpenMetric,
+  onRetry,
 }: Readonly<StatsTabProps>) {
   const { t, i18n } = useTranslation("leaderboards");
   const metricText = useMetricText();
@@ -91,6 +93,13 @@ export function StatsTab({
   );
 
   const utcDay = useUtcDay();
+  const hasFailedRanking = metrics.some((metric) => {
+    const result = results[metric.id];
+    return Boolean(
+      result && !result.isLoading && result.hasError && !result.leaderboard
+    );
+  });
+
   const heatmap = useMemo(
     () => buildHeatmap(activity.data?.days ?? [], utcDay),
     [activity.data, utcDay]
@@ -341,6 +350,9 @@ export function StatsTab({
             {metrics.map((metric) => {
               const result = results[metric.id] ?? EMPTY_BOARD_RESULT;
               const ranking = getViewerRanking(result.leaderboard, viewerId);
+              const isPending = result.isLoading && !result.leaderboard;
+              const isFailed =
+                !result.isLoading && result.hasError && !result.leaderboard;
 
               return (
                 <li key={metric.id}>
@@ -353,9 +365,13 @@ export function StatsTab({
                     <span className="leaderboards__mine-label">
                       {metricText.label(metric)}
                     </span>
-                    {result.isLoading && !result.leaderboard ? (
-                      <Skeleton width={48} />
-                    ) : (
+                    {isPending && <Skeleton width={48} />}
+                    {isFailed && (
+                      <span className="leaderboards__mine-error">
+                        {t("leader_error")}
+                      </span>
+                    )}
+                    {!isPending && !isFailed && (
                       <>
                         <span className="leaderboards__mine-delta">
                           {isWeek && ranking && (
@@ -372,6 +388,13 @@ export function StatsTab({
               );
             })}
           </ul>
+          {hasFailedRanking && (
+            <div className="leaderboards__mine-retry">
+              <Button theme="outline" size="small" onClick={onRetry}>
+                {t("retry")}
+              </Button>
+            </div>
+          )}
         </section>
 
         <section className="leaderboards__panel" aria-labelledby="streak-title">

@@ -61,7 +61,10 @@ export function BoardView({
     showDelta
       ? getRankDelta(
           entry.rank,
-          leaderboard.extras[entry.user.id]?.previousRank ?? null
+          leaderboard.extras[entry.user.id]?.previousRank ??
+            (entry.user.id === viewerUser?.id
+              ? leaderboard.viewerPreviousRank
+              : null)
         )
       : null;
 

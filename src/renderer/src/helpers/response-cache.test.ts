@@ -68,6 +68,22 @@ describe("createResponseCache", () => {
     assert.equal(calls, 3);
   });
 
+  it("evicts a single response", async () => {
+    let calls = 0;
+    const cache = createResponseCache(async () => {
+      calls += 1;
+      return calls;
+    });
+
+    await cache.get("/a", options);
+    await cache.get("/b", options);
+    cache.evict("/a", options);
+
+    assert.equal(cache.peek("/a", options), undefined);
+    assert.equal(cache.peek("/b", options), 2);
+    assert.equal(await cache.get("/a", options), 3);
+  });
+
   it("keeps each account's responses apart", async () => {
     let calls = 0;
     const cache = createResponseCache(async () => {

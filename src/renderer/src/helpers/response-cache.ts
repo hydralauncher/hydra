@@ -85,11 +85,19 @@ export const createResponseCache = (
     return promise;
   };
 
+  const evict = (
+    path: string,
+    options: ApiRequestOptions,
+    accountId: string | null = null
+  ) => {
+    cache.delete(getRequestKey(path, options, accountId));
+  };
+
   const clear = () => {
     generation += 1;
     cache.clear();
     inFlight.clear();
   };
 
-  return { get: request, peek, clear };
+  return { get: request, peek, evict, clear };
 };
