@@ -31,6 +31,15 @@
       gap: 10px;
     }
 
+    &--clickable {
+      cursor: pointer;
+
+      &:focus-visible {
+        outline: 2px solid globals.$muted-color;
+        outline-offset: 2px;
+      }
+    }
+
     &--streak {
       overflow: visible;
 

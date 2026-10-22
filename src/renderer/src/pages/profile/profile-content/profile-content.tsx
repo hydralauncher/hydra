@@ -18,6 +18,7 @@ import {
   useAppDispatch,
   useAppSelector,
   useFormat,
+  useGamificationProgress,
   useUserDetails,
 } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
@@ -37,6 +38,8 @@ import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
 import { ProfileSection } from "../profile-section/profile-section";
 import { useProfileGamification } from "../use-profile-gamification";
+import { MissionsSidebar, MissionsTab } from "../missions-tab/missions-tab";
+import { OPEN_PROFILE_TAB_EVENT } from "../profile-tab-events";
 import { LevelBox } from "./level-box";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
 import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
@@ -101,6 +104,15 @@ const getRatingText = (score: number, t: (key: string) => string): string => {
     default:
       return "";
   }
+};
+
+const getRequestedProfileTab = (
+  requestedTab: string | null,
+  isMe: boolean
+): ProfileTabType => {
+  if (requestedTab === "souvenirs") return "souvenirs";
+  if (requestedTab === "missions" && isMe) return "missions";
+  return "library";
 };
 
 export function ProfileContent() {
@@ -177,7 +189,7 @@ export function ProfileContent() {
   );
 
   const [activeTab, setActiveTab] = useState<ProfileTabType>(
-    requestedTab === "souvenirs" ? "souvenirs" : "library"
+    getRequestedProfileTab(requestedTab, isMe)
   );
 
   // User reviews state
@@ -190,6 +202,7 @@ export function ProfileContent() {
 
   const dispatch = useAppDispatch();
   const { level } = useProfileGamification();
+  const { progress: ownProgress } = useGamificationProgress();
 
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
@@ -348,9 +361,18 @@ export function ProfileContent() {
     setReviews([]);
     setReviewsTotalCount(0);
     setIsLoadingReviews(false);
-    setActiveTab(requestedTab === "souvenirs" ? "souvenirs" : "library");
+    setActiveTab(getRequestedProfileTab(requestedTab, isMe));
     setPlatform(readStoredProfilePlatform());
-  }, [requestedTab, userProfile?.id]);
+  }, [requestedTab, userProfile?.id, isMe]);
+
+  useEffect(() => {
+    const openTab = (event: Event) => {
+      const tab = (event as CustomEvent<ProfileTabType>).detail;
+      if (tab !== "missions" || isMe) setActiveTab(tab);
+    };
+    window.addEventListener(OPEN_PROFILE_TAB_EVENT, openTab);
+    return () => window.removeEventListener(OPEN_PROFILE_TAB_EVENT, openTab);
+  }, [isMe]);
 
   const fetchUserReviews = useCallback(async () => {
     if (!userProfile?.id) return;
@@ -552,6 +574,7 @@ export function ProfileContent() {
             activeTab={activeTab}
             reviewsTotalCount={reviewsTotalCount}
             souvenirsCount={souvenirsTotal}
+            showMissions={isMe}
             onTabChange={setActiveTab}
           />
 
@@ -618,11 +641,19 @@ export function ProfileContent() {
                   }
                 />
               )}
+
+              {activeTab === "missions" && isMe && <MissionsTab />}
             </AnimatePresence>
           </div>
         </div>
 
-        {shouldShowRightContent && (
+        {activeTab === "missions" && isMe && ownProgress && (
+          <div className="profile-content__right-content">
+            <MissionsSidebar progress={ownProgress} />
+          </div>
+        )}
+
+        {shouldShowRightContent && activeTab !== "missions" && (
           <div className="profile-content__right-content">
             {level && (
               <ProfileSection title={t("level_title")} defaultOpen={true}>

@@ -557,6 +557,79 @@ export interface GamificationProgress extends LevelProgress {
   passives: PassiveProgress[];
 }
 
+export interface RewardProgress extends LevelProgress {
+  coins: number;
+}
+
+export type MissionKind = "daily" | "weekly";
+export type MissionGroup = "daily" | "medium" | "hard";
+export type MissionUnit = "seconds" | "days" | "count";
+
+export interface Mission {
+  kind: MissionKind;
+  slot: number;
+  key: string;
+  group: MissionGroup;
+  category: string;
+  unit: MissionUnit;
+  target: number;
+  current: number;
+  isComplete: boolean;
+  isClaimed: boolean;
+  xp: number;
+  coins: number;
+}
+
+export interface MissionPeriod {
+  period: string;
+  resetsAt: string;
+  missions: Mission[];
+}
+
+export interface MissionsResponse {
+  daily: MissionPeriod;
+  weekly: MissionPeriod;
+  refresh: { isFreeAvailable: boolean; price: number };
+}
+
+export type TrailKey =
+  | "playtime"
+  | "achievements"
+  | "souvenirs"
+  | "friends"
+  | "reviews"
+  | "likesReceived";
+
+export interface TrailLevel {
+  level: number;
+  threshold: number;
+  xp: number;
+  coins: number;
+  isReached: boolean;
+  isClaimed: boolean;
+}
+
+export interface Trail {
+  key: TrailKey;
+  group: "solo" | "social";
+  current: number;
+  isComplete: boolean;
+  levels: TrailLevel[];
+}
+
+export interface RewardClaimResponse {
+  wasClaimed: boolean;
+  xp: number;
+  coins: number;
+  progress: RewardProgress;
+}
+
+export interface MissionRefreshResponse {
+  wasFree: boolean;
+  mission: Mission;
+  progress: RewardProgress;
+}
+
 export interface UpdateProfileRequest {
   displayName?: string;
   profileVisibility?: ProfileVisibility;

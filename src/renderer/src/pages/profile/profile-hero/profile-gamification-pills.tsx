@@ -12,6 +12,7 @@ import {
   useHoverHalo,
 } from "@renderer/components/gamification";
 import { useFormat } from "@renderer/hooks";
+import { openProfileTab } from "../profile-tab-events";
 import { useProfileGamification } from "../use-profile-gamification";
 import "./profile-gamification-pills.scss";
 
@@ -20,7 +21,7 @@ const LEVEL_PILL_HALO_ALPHA = 0.07;
 export function ProfileGamificationPills() {
   const { t } = useTranslation("user_profile");
   const { formatNumber } = useFormat();
-  const { level, loginStreak, coins } = useProfileGamification();
+  const { level, loginStreak, coins, isMe } = useProfileGamification();
   const halo = useHoverHalo<HTMLDivElement>(LEVEL_PILL_HALO_ALPHA);
 
   if (!level) return null;
@@ -31,7 +32,24 @@ export function ProfileGamificationPills() {
     <div className="profile-gamification-pills">
       <div
         ref={halo.hostRef}
-        className="profile-gamification-pills__pill profile-gamification-pills__pill--level"
+        className={cn(
+          "profile-gamification-pills__pill",
+          "profile-gamification-pills__pill--level",
+          { "profile-gamification-pills__pill--clickable": isMe }
+        )}
+        role={isMe ? "button" : undefined}
+        tabIndex={isMe ? 0 : undefined}
+        onClick={isMe ? () => openProfileTab("missions") : undefined}
+        onKeyDown={
+          isMe
+            ? (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openProfileTab("missions");
+                }
+              }
+            : undefined
+        }
         {...halo.handlers}
       >
         <LevelSeal level={level.level} size={34} />

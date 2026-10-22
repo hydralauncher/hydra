@@ -15,6 +15,7 @@ export function useProfileGamification() {
       },
       loginStreak: progress.loginStreak,
       coins: progress.coins,
+      isMe,
     };
   }
 
@@ -22,5 +23,6 @@ export function useProfileGamification() {
     level: userProfile?.progress ?? null,
     loginStreak: userProfile?.loginStreak ?? null,
     coins: null,
+    isMe,
   };
 }
