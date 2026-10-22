@@ -207,7 +207,9 @@ function ReviewPreview({
   const { t, i18n } = useTranslation("big_picture");
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const [failedPath, setFailedPath] = useState<string | null>(null);
-  const source = screenshot ? resolveImageSource(screenshot.path) : "";
+  const source = screenshot
+    ? resolveImageSource(screenshot.previewPath ?? screenshot.path)
+    : "";
   const hasImage = Boolean(source) && screenshot?.path !== failedPath;
 
   return (

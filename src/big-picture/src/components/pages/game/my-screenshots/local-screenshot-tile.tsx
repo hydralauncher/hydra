@@ -111,7 +111,9 @@ export function LocalScreenshotTile({
           ) : (
             <img
               className="local-screenshot-tile__image"
-              src={toLocalScreenshotUrl(screenshot.path)}
+              src={toLocalScreenshotUrl(
+                screenshot.previewPath ?? screenshot.path
+              )}
               alt=""
               draggable={false}
               loading="lazy"
