@@ -10,6 +10,7 @@ import {
 } from "./steam-openid-return.ts";
 import {
   parseSteamCommunityPageSteamId,
+  resolveSteamCommunityLogin,
   parseSteamStoreSessionConfig,
   SteamSessionRequiredError,
 } from "./steam-store-session-config.ts";
@@ -194,6 +195,26 @@ describe("parseSteamCommunityPageSteamId", () => {
     );
   });
 
+  it("keeps a logged-in vanity URL that starts with login", () => {
+    assert.equal(
+      parseSteamCommunityPageSteamId({
+        currentUrl: "https://steamcommunity.com/id/loginking/",
+        steamIdRaw: "76561199208012825",
+      }),
+      "76561199208012825"
+    );
+  });
+
+  it("treats the Steam login host as logged out", () => {
+    assert.equal(
+      parseSteamCommunityPageSteamId({
+        currentUrl: "https://login.steampowered.com/jwt/refresh",
+        steamIdRaw: "76561199208012825",
+      }),
+      null
+    );
+  });
+
   it("rejects a missing or malformed g_steamID", () => {
     assert.equal(
       parseSteamCommunityPageSteamId({
@@ -208,6 +229,39 @@ describe("parseSteamCommunityPageSteamId", () => {
         steamIdRaw: "12345",
       }),
       null
+    );
+  });
+});
+
+describe("resolveSteamCommunityLogin", () => {
+  it("is logged in when the refreshed page reports a SteamID64", () => {
+    assert.deepEqual(
+      resolveSteamCommunityLogin({
+        refreshed: { steamId64: "76561199208012825" },
+        hasLoginCookie: true,
+      }),
+      { status: "logged-in", steamId64: "76561199208012825" }
+    );
+  });
+
+  it("is logged out when the refreshed page reports no SteamID64", () => {
+    assert.deepEqual(
+      resolveSteamCommunityLogin({
+        refreshed: { steamId64: null },
+        hasLoginCookie: true,
+      }),
+      { status: "logged-out" }
+    );
+  });
+
+  it("falls back to the stored cookie when the page failed to load", () => {
+    assert.deepEqual(
+      resolveSteamCommunityLogin({ refreshed: null, hasLoginCookie: true }),
+      { status: "unverified" }
+    );
+    assert.deepEqual(
+      resolveSteamCommunityLogin({ refreshed: null, hasLoginCookie: false }),
+      { status: "logged-out" }
     );
   });
 });

@@ -13,9 +13,12 @@ import {
 import {
   parseSteamCommunityPageSteamId,
   parseSteamStoreSessionConfig,
+  resolveSteamCommunityLogin,
+  type SteamCommunityLogin,
   type SteamWebApiToken,
 } from "./steam-store-session-config";
 import { parseSteamTimezoneOffsetSeconds } from "./steam-community-achievements";
+import { isSteamSyncAbortError } from "./steam-sync-errors";
 
 export { isSteamOpenIdSuccessUrl } from "./steam-openid-return";
 export { STEAM_CONNECTED_DEEP_LINK } from "./steam-openid-return";
@@ -260,7 +263,7 @@ export const openSteamOpenIdWindow = (
 
 export type SteamCommunitySession = {
   fetch: typeof fetch;
-  steamId64: string | null;
+  login: SteamCommunityLogin;
   timeZoneOffsetSeconds: number;
 };
 
@@ -345,13 +348,26 @@ const refreshSteamCommunityLogin = (signal?: AbortSignal) =>
 export const readSteamCommunitySession = async (
   signal?: AbortSignal
 ): Promise<SteamCommunitySession> => {
-  const steamId64 = await refreshSteamCommunityLogin(signal);
+  let refreshed: { steamId64: string | null } | null = null;
+  try {
+    refreshed = { steamId64: await refreshSteamCommunityLogin(signal) };
+  } catch (error) {
+    if (isSteamSyncAbortError(error)) throw error;
+    steamSyncLogger.error(
+      "Steam Community refresh failed, using stored cookies",
+      error
+    );
+  }
 
   const steamSession = session.fromPartition(STEAM_SESSION_PARTITION);
   const [communityCookies, storeCookies] = await Promise.all([
     steamSession.cookies.get({ url: "https://steamcommunity.com/" }),
     steamSession.cookies.get({ url: "https://store.steampowered.com/" }),
   ]);
+  const hasLoginCookie = communityCookies.some(
+    (cookie) => cookie.name === "steamLoginSecure" && cookie.value.length > 0
+  );
+  const login = resolveSteamCommunityLogin({ refreshed, hasLoginCookie });
   const timezone =
     communityCookies.find((cookie) => cookie.name === "timezoneOffset") ??
     storeCookies.find((cookie) => cookie.name === "timezoneOffset");
@@ -362,7 +378,7 @@ export const readSteamCommunitySession = async (
 
   return {
     fetch: createSteamCommunityCookieFetch(cookieHeader),
-    steamId64,
+    login,
     timeZoneOffsetSeconds: parseSteamTimezoneOffsetSeconds(timezone?.value),
   };
 };
