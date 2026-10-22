@@ -15,7 +15,6 @@ import {
   ConfirmationModal,
   InlineEditField,
   SelectField,
-  TextField,
 } from "@renderer/components";
 import { logger } from "@renderer/logger";
 
@@ -124,6 +123,12 @@ export function ScreenshotReviewItem({
     hasBulkActions && onKeepAll
       ? [{ label: t("keep_all", { count: pendingCount }), onSelect: onKeepAll }]
       : [];
+
+  const handleDescriptionSave = (description: string) => {
+    onDraftChange({ ...draft, description });
+    onDraftCommit?.();
+    return true;
+  };
 
   const handleTitleSave = (customGameTitle: string) => {
     onDraftChange({ ...draft, customGameTitle: customGameTitle.trim() });
@@ -278,26 +283,16 @@ export function ScreenshotReviewItem({
         </div>
 
         <div className="screenshot-review-item__form">
-          <TextField
+          <InlineEditField
+            className="screenshot-review-item__description"
             label={t("description_label")}
-            placeholder={t("description_placeholder")}
-            hint={t("description_counter", {
-              count: draft.description.length,
-              max: SCREENSHOT_DESCRIPTION_MAX_LENGTH,
-            })}
+            placeholder={t("description_add")}
+            initialValue={draft.description}
             maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
-            value={draft.description}
+            sanitize={sanitizeScreenshotDescriptionInput}
+            allowEmpty
             disabled={isFormDisabled}
-            onChange={(event) =>
-              onDraftChange({
-                ...draft,
-                description: sanitizeScreenshotDescriptionInput(
-                  event.target.value
-                ),
-              })
-            }
-            onBlur={onDraftCommit}
-            theme="dark"
+            onSave={handleDescriptionSave}
           />
 
           <div className="screenshot-review-item__checkbox">

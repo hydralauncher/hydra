@@ -338,7 +338,6 @@ $review-outline-hover-overlay: rgba(255, 255, 255, 0.1);
     gap: globals.$spacing-unit;
     padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
     background-color: globals.$dark-background-color;
-    border-top: 1px solid globals.$border-color;
 
     > .button,
     > .screenshot-review-split-button {
