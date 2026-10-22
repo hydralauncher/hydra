@@ -16,11 +16,7 @@ import { logger } from "@renderer/logger";
 import { useGameOptionsModal } from "@renderer/context/game-options-modal/game-options-modal.context";
 import type { GameSettingsCategoryId } from "@renderer/pages/game-details/modals/game-options-modal/types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
-import {
-  applyLibraryGroupAction,
-  isLibraryGameDownloading,
-  type RemoveFilesTarget,
-} from "@shared";
+import { applyLibraryGroupAction, isLibraryGameDownloading } from "@shared";
 
 export function useGameActions(requestedGame: GameContextMenuGame) {
   const { t } = useTranslation("game_details");
@@ -367,16 +363,10 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
     }
   };
 
-  const handleRemoveFiles = async (target?: RemoveFilesTarget) => {
-    let targetGame: typeof downloadGame | null = null;
-    if (target === undefined) {
-      targetGame = downloadGame;
-    } else if (target.kind === "hydra") {
-      targetGame = target.game;
-    }
-
+  const handleRemoveFiles = async (
+    targetGame: GameContextMenuGame = downloadGame
+  ) => {
     if (
-      !targetGame ||
       isLibraryGameDownloading(targetGame) ||
       isGameDeleting(targetGame.objectId)
     )
