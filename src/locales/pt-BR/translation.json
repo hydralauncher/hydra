@@ -771,7 +771,6 @@
     "enable_hydra_playtime_tracking": "Também contar o tempo de jogo no Hydra para este jogo",
     "steam_playtime_tracking_error": "Não foi possível atualizar a configuração de tempo de jogo",
     "steam_playtime_non_steam_executable_tooltip": "O executável selecionado não é da Steam, então o Hydra sempre conta o tempo de jogo. Esta opção só se aplica a jogos da Steam",
-    "show_more": "Mostrar mais",
     "show_less": "Mostrar menos",
     "reviews": "Avaliações",
     "leave_a_review": "Deixar uma Avaliação",
@@ -2565,8 +2564,6 @@
   "leaderboard": {
     "title": "Ranking",
     "you": "Você",
-    "players_count_one": "{{amount}} jogador",
-    "players_count_other": "{{amount}} jogadores",
     "scope_label": "Escopo do ranking",
     "scope_global": "Global",
     "scope_friends": "Amigos",
@@ -2597,11 +2594,6 @@
     "find_friends": "Encontrar amigos",
     "sign_in_hint": "Entre para ver sua posição e o ranking dos seus amigos.",
     "sign_in": "Entrar",
-    "modal_title": "Ranking · {{game}}",
-    "search_player": "Buscar jogador",
-    "search_empty": "Nenhum jogador encontrado.",
-    "show_more": "Mostrar mais",
-    "your_position": "Sua posição",
     "medal_gold": "1º lugar, ouro",
     "medal_silver": "2º lugar, prata",
     "medal_bronze": "3º lugar, bronze"

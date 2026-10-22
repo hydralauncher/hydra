@@ -440,58 +440,6 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   }
 }
 
-.leaderboard-modal {
-  display: flex;
-  flex-direction: column;
-  gap: calc(globals.$spacing-unit * 2);
-  width: 100%;
-
-  &__toolbar {
-    display: flex;
-    flex-direction: column;
-
-    .leaderboard-controls {
-      padding: calc(globals.$spacing-unit * 1.5) 0 0;
-    }
-  }
-
-  &__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
-  }
-
-  &__empty {
-    padding: calc(globals.$spacing-unit * 3) 0;
-    text-align: center;
-    color: globals.$body-color;
-  }
-
-  &__more {
-    display: flex;
-    justify-content: center;
-  }
-
-  &__viewer {
-    display: flex;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
-    padding-top: calc(globals.$spacing-unit * 2);
-    border-top: solid 1px globals.$border-color;
-  }
-
-  &__viewer-label {
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 16px;
-    text-transform: uppercase;
-    color: globals.$body-color;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .leaderboard-controls__indicator,
   .leaderboard-controls__filter-content,

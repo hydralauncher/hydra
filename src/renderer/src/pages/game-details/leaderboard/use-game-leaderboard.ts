@@ -5,8 +5,10 @@ import { useUserDetails } from "@renderer/hooks";
 import type { GameShop } from "@types";
 import {
   createLeaderboardFetcher,
+  getLeaderboardGameKey,
   isLeaderboardShop,
-  type Leaderboard,
+  selectLoadedLeaderboard,
+  type LoadedLeaderboard,
   type LeaderboardMetric,
   type LeaderboardPeriod,
   type LeaderboardQuery,
@@ -42,10 +44,7 @@ export function useGameLeaderboard({
   isExtended,
 }: UseGameLeaderboardOptions) {
   const { userDetails } = useUserDetails();
-  const [result, setResult] = useState<{
-    leaderboard: Leaderboard;
-    metric: LeaderboardMetric;
-  } | null>(null);
+  const [loaded, setLoaded] = useState<LoadedLeaderboard | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -55,6 +54,7 @@ export function useGameLeaderboard({
   const isEligible = Boolean(objectId) && isLeaderboardShop(shop);
   const effectiveScope = isExtended && isLoggedIn ? scope : "global";
   const effectiveMetric = isExtended ? metric : "playtime";
+  const gameKey = getLeaderboardGameKey(shop, objectId ?? "");
 
   const viewerUser = useMemo<LeaderboardUser | null>(
     () =>
@@ -73,7 +73,7 @@ export function useGameLeaderboard({
     const requestId = ++requestIdRef.current;
 
     if (!isEligible || !objectId) {
-      setResult(null);
+      setLoaded(null);
       setIsLoading(false);
       setHasError(false);
       return;
@@ -95,13 +95,19 @@ export function useGameLeaderboard({
     getFetcher()(query)
       .then((leaderboard) => {
         if (requestId === requestIdRef.current) {
-          setResult({ leaderboard, metric: query.metric });
+          setLoaded({
+            gameKey: getLeaderboardGameKey(query.shop, query.objectId),
+            leaderboard,
+            period: query.period,
+            scope: query.scope,
+            metric: query.metric,
+          });
         }
       })
       .catch((error) => {
         if (requestId !== requestIdRef.current) return;
         logger.error("Failed to fetch game leaderboard", error);
-        setResult(null);
+        setLoaded(null);
         setHasError(true);
       })
       .finally(() => {
@@ -121,9 +127,17 @@ export function useGameLeaderboard({
 
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
+  const current = selectLoadedLeaderboard(loaded, gameKey, {
+    period,
+    scope: effectiveScope,
+    metric: effectiveMetric,
+  });
+
   return {
-    leaderboard: result?.leaderboard ?? null,
-    dataMetric: result?.metric ?? effectiveMetric,
+    leaderboard: current.leaderboard,
+    dataPeriod: current.period,
+    dataScope: current.scope,
+    dataMetric: current.metric,
     isLoading,
     hasError,
     isEligible,

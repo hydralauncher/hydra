@@ -16,7 +16,9 @@ export function useLeaderboardValue() {
 
         if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
           return t("value_minutes", {
-            amount: numberFormatter.format(Math.round(minutes)),
+            amount: numberFormatter.format(
+              value > 0 ? Math.max(1, Math.round(minutes)) : 0
+            ),
           });
         }
 
