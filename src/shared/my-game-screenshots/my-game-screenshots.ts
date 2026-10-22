@@ -121,3 +121,26 @@ export const subscribeMyGameScreenshotsChanged = (listener: ChangeListener) => {
 export const notifyMyGameScreenshotsChanged = () => {
   for (const listener of changeListeners) listener();
 };
+
+export type MyGameScreenshotsStatus = "loading" | "failed" | "ready";
+
+interface MyGameScreenshotsSourceState {
+  isLoaded: boolean;
+  hasFailed: boolean;
+}
+
+export const resolveMyGameScreenshotsStatus = ({
+  local,
+  published,
+}: {
+  local: MyGameScreenshotsSourceState;
+  published: MyGameScreenshotsSourceState & { isEnabled: boolean };
+}): MyGameScreenshotsStatus => {
+  if (local.hasFailed || (published.isEnabled && published.hasFailed)) {
+    return "failed";
+  }
+  if (!local.isLoaded || (published.isEnabled && !published.isLoaded)) {
+    return "loading";
+  }
+  return "ready";
+};
