@@ -354,6 +354,30 @@ const getGameWindowSource = async (
   return source;
 };
 
+const findX11WindowSourceId = async (windowId: string) => {
+  const sources = await desktopCapturer.getSources({
+    types: ["window"],
+    thumbnailSize: { width: 0, height: 0 },
+  });
+  const source = sources.find(
+    (candidate) => /^window:(\d+):/.exec(candidate.id)?.[1] === windowId
+  );
+  if (!source) throw new Error("Could not find the active X11 game window");
+  return source.id;
+};
+
+export const resolveGameCaptureSourceId = async (
+  captureTarget: GameScreenshotCaptureTarget
+) => {
+  if (process.platform === "win32") {
+    return (await getWindowsGameWindowSource(captureTarget)).id;
+  }
+  if (process.platform === "linux" && !isWaylandSession()) {
+    return findX11WindowSourceId(await resolveX11GameWindowId(captureTarget));
+  }
+  return null;
+};
+
 const captureGameImage = async (
   captureTarget: GameScreenshotCaptureTarget
 ): Promise<Electron.NativeImage> => {
@@ -380,6 +404,12 @@ const captureGameImage = async (
 export class ScreenshotService {
   public static getScreenshotsPath() {
     return getAchievementScreenshotsDirectory();
+  }
+
+  public static captureRawGameImage(
+    captureTarget: GameScreenshotCaptureTarget
+  ) {
+    return captureGameImage(captureTarget);
   }
 
   public static async captureGameImage(

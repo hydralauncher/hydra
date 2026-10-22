@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hydra screenshot flash</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .glow {
+        position: fixed;
+        inset: 0;
+        box-shadow:
+          inset 0 0 0 3px rgba(255, 255, 255, 0.85),
+          inset 0 0 48px 12px rgba(255, 255, 255, 0.35);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .glow--active {
+        animation: glow 650ms ease-out forwards;
+      }
+
+      @keyframes glow {
+        0% {
+          opacity: 0;
+        }
+
+        8% {
+          opacity: 1;
+        }
+
+        100% {
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="glow" aria-hidden="true"></div>
+    <script>
+      globalThis.hydraScreenshotFeedback = (flash, soundUrl, volume) => {
+        if (flash) {
+          const glow = document.querySelector(".glow");
+          glow.classList.remove("glow--active");
+          glow.getBoundingClientRect();
+          glow.classList.add("glow--active");
+        }
+        if (soundUrl) {
+          const audio = new Audio(soundUrl);
+          audio.volume = volume;
+          return audio.play().then(
+            () => true,
+            () => false
+          );
+        }
+        return true;
+      };
+    </script>
+  </body>
+</html>

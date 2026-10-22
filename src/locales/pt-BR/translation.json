@@ -1004,8 +1004,6 @@
     "video_quality_auto": "Automática",
     "fullscreen": "Tela cheia",
     "exit_fullscreen": "Sair da tela cheia",
-    "lightbox_show_details": "Mostrar detalhes",
-    "lightbox_hide_details": "Ocultar detalhes",
     "keyboard_space": "Espaço",
     "not_enough_space_on_disk": "Espaço insuficiente neste disco. Necessário {{required}}, disponível {{available}}.",
     "epic_playtime_tracking_title": "Tempo de jogo Epic",
@@ -1054,7 +1052,9 @@
     "epic_play_offline": "Jogar — Offline",
     "epic_prerequisites_required": "Autorize os pré-requisitos do jogo e tente novamente.",
     "epic_update_required": "Atualize o jogo pela opção Epic Games, usando a mesma pasta.",
-    "epic_retry": "Tentar novamente"
+    "epic_retry": "Tentar novamente",
+    "lightbox_show_details": "Mostrar detalhes",
+    "lightbox_hide_details": "Ocultar detalhes"
   },
   "activation": {
     "title": "Ativação",
@@ -2774,6 +2774,7 @@
     "yes": "sim"
   },
   "screenshots": {
+    "title_not_allowed": "Este título não é permitido",
     "add_description": "Adicionar descrição",
     "edit_description": "Editar descrição",
     "all_games": "Todos os jogos",
@@ -2930,7 +2931,6 @@
     "text_changes_temporarily_unavailable": "Não é possível salvar descrições e títulos agora, tente novamente em instantes",
     "comment_only_visible_to_you": "Seu comentário só está visível para você porque não passou na moderação",
     "description_only_visible_to_you": "Só você pode ver esta descrição",
-    "title_not_allowed": "Este título não é permitido",
     "moderation_in_progress": "Outra alteração ainda está sendo verificada, tente novamente em instantes"
   }
 }

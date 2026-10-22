@@ -40,14 +40,20 @@ const fetchFeatureFlag = async () => {
   }
 };
 
-export const isScreenshotsFeatureEnabled = async () => {
-  if (cachedValue && Date.now() - cachedValue.fetchedAt < FEATURE_CACHE_TTL_MS)
-    return cachedValue.enabled;
-
+const refreshFeatureFlag = () => {
   inFlight ??= fetchFeatureFlag().finally(() => {
     inFlight = null;
   });
   return inFlight;
+};
+
+export const isScreenshotsFeatureEnabled = async () => {
+  if (!cachedValue) return refreshFeatureFlag();
+
+  if (Date.now() - cachedValue.fetchedAt >= FEATURE_CACHE_TTL_MS) {
+    void refreshFeatureFlag();
+  }
+  return cachedValue.enabled;
 };
 
 export const markScreenshotsFeatureDisabled = () => {

@@ -10,6 +10,11 @@ import { db, levelKeys } from "@main/level";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 import {
+  buildEncodeFrameExpression,
+  parseEncodedFrame,
+  type ScreenshotFrameEncodeOptions,
+} from "./screenshots/screenshot-frame-script";
+import {
   addCaptureSessionReason,
   removeCaptureSessionReason,
   type CaptureSessionReason,
@@ -261,6 +266,37 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   }
 
   return image;
+};
+
+export const encodeLinuxGameSessionFrame = async (
+  gameKey: string,
+  options: ScreenshotFrameEncodeOptions
+) => {
+  const registration = sessions.get(gameKey);
+  if (!registration) {
+    throw new Error("No Wayland game-window capture session is available");
+  }
+
+  await registration.preparation;
+  const captureWindow = registration.window;
+
+  if (!captureWindow || captureWindow.isDestroyed()) {
+    throw new Error("Wayland game-window capture session was closed");
+  }
+
+  const frame = parseEncodedFrame(
+    await captureWindow.webContents.executeJavaScript(`(async () => {
+      const track = globalThis.__hydraSouvenirStream?.getVideoTracks()[0];
+      if (!track || track.readyState !== "live") {
+        throw new Error("Wayland game-window stream is no longer active");
+      }
+      return await ${buildEncodeFrameExpression("globalThis.__hydraSouvenirVideo", options)};
+    })()`)
+  );
+  if (frame.isBlank) {
+    throw new Error("Wayland game-window capture returned a blank frame");
+  }
+  return frame;
 };
 
 export const stopLinuxGameCaptureSession = (

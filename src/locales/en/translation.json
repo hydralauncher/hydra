@@ -334,8 +334,6 @@
     "video_quality_auto": "Auto",
     "fullscreen": "Fullscreen",
     "exit_fullscreen": "Exit fullscreen",
-    "lightbox_show_details": "Show details",
-    "lightbox_hide_details": "Hide details",
     "keyboard_space": "Space",
     "download_settings": "Download settings",
     "downloader": "Downloader",
@@ -1088,7 +1086,9 @@
     "epic_play_offline": "Play — Offline",
     "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
     "epic_update_required": "Update the game through the Epic Games option using the same folder.",
-    "epic_retry": "Try again"
+    "epic_retry": "Try again",
+    "lightbox_show_details": "Show details",
+    "lightbox_hide_details": "Hide details"
   },
   "activation": {
     "title": "Activate Hydra",
@@ -2770,6 +2770,7 @@
     "yes": "yes"
   },
   "screenshots": {
+    "title_not_allowed": "This title isn't allowed",
     "add_description": "Add description",
     "edit_description": "Edit description",
     "all_games": "All games",
@@ -2926,7 +2927,6 @@
     "text_changes_temporarily_unavailable": "Descriptions and titles can't be saved right now, try again in a moment",
     "comment_only_visible_to_you": "Your comment is only visible to you because it didn't pass moderation",
     "description_only_visible_to_you": "Only you can see this description",
-    "title_not_allowed": "This title isn't allowed",
     "moderation_in_progress": "Another change is still being checked, try again in a moment"
   }
 }

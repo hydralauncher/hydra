@@ -29,6 +29,11 @@ export function ScreenshotReviewStatus({
 }: Readonly<ScreenshotReviewStatusProps>) {
   const { t } = useTranslation("screenshots_capture");
   const { t: tModeration } = useTranslation("screenshots_moderation");
+  const { t: tScreenshots } = useTranslation("screenshots");
+  const titleNote =
+    screenshot.textModeration?.title === "hidden"
+      ? tScreenshots("title_not_allowed")
+      : null;
 
   const getMessage = (): StatusMessage | null => {
     if (screenshot.state === "local") {
@@ -55,7 +60,11 @@ export function ScreenshotReviewStatus({
     if (screenshot.state !== "uploaded") return null;
 
     if (screenshot.moderationStatus === "APPROVED") {
-      return { tone: "success", title: t("moderation_approved"), detail: null };
+      return {
+        tone: "success",
+        title: t("moderation_approved"),
+        detail: titleNote,
+      };
     }
 
     if (screenshot.moderationStatus === "BLOCKED") {
@@ -70,7 +79,11 @@ export function ScreenshotReviewStatus({
       };
     }
 
-    return { tone: "neutral", title: t("moderation_pending"), detail: null };
+    return {
+      tone: "neutral",
+      title: t("moderation_pending"),
+      detail: titleNote,
+    };
   };
 
   if (screenshot.state === "uploading") {

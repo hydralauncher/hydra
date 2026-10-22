@@ -1560,17 +1560,6 @@ contextBridge.exposeInMainWorld("electron", {
         listener
       );
   },
-  screenshotFlashReady: () => ipcRenderer.invoke("screenshotFlashReady"),
-  onScreenshotFeedback: (
-    cb: (feedback: { flash: boolean; playSound: boolean }) => void
-  ) => {
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      feedback: { flash: boolean; playSound: boolean }
-    ) => cb(feedback);
-    ipcRenderer.on("on-screenshot-feedback", listener);
-    return () => ipcRenderer.removeListener("on-screenshot-feedback", listener);
-  },
   getAchievementSouvenirSyncStatus: () =>
     ipcRenderer.invoke("getAchievementSouvenirSyncStatus"),
   getAchievementSouvenirSyncDetails: () =>

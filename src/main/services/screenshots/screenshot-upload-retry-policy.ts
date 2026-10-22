@@ -11,6 +11,7 @@ import {
 export type ScreenshotUploadRecoveryAction =
   | "already_uploaded"
   | "wait"
+  | "moderation_wait"
   | "retry"
   | "wait_for_game"
   | "recompress_standard"
@@ -22,6 +23,7 @@ export type ScreenshotUploadRecoveryAction =
 export interface ScreenshotUploadFailure {
   code: string;
   action: ScreenshotUploadRecoveryAction;
+  retryAfterMs?: number;
 }
 
 export const SCREENSHOT_UPLOAD_MAX_ATTEMPTS = 6;
@@ -31,6 +33,9 @@ export const SCREENSHOT_UPLOAD_RETRY_MAX_DELAY_MS = 10 * 60_000;
 export const SCREENSHOT_UPLOAD_GAME_WAIT_DELAY_MS = 30_000;
 export const SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS = 60_000;
 export const SCREENSHOT_UPLOAD_PAUSE_DELAY_MS = 30 * 60_000;
+export const SCREENSHOT_MODERATION_DEFAULT_WAIT_MS = 30_000;
+export const SCREENSHOT_MODERATION_BACKOFF_BASE_MS = 2_000;
+export const SCREENSHOT_MODERATION_BACKOFF_MAX_MS = 60_000;
 
 export const SCREENSHOT_MISSING_FILE_CODE = "screenshot_missing";
 export const SCREENSHOT_ALREADY_UPLOADED_CODE = "screenshots/already-uploaded";
@@ -49,6 +54,9 @@ const RECOVERY_BY_ERROR_CODE: Record<string, ScreenshotUploadRecoveryAction> = {
   "screenshots/upload-rate-limited": "retry",
   "screenshots/upload-capacity-reached": "wait",
   "screenshots/text-change-rate-limit-unavailable": "wait",
+  "screenshots/moderation-unavailable": "moderation_wait",
+  "screenshots/moderation-in-progress": "moderation_wait",
+  "screenshots/moderation-rate-limited": "moderation_wait",
   "screenshots/disabled-for-game": "terminal",
   "screenshots/limit-reached": "terminal",
   "screenshots/blocked-limit-reached": "terminal",
@@ -57,6 +65,25 @@ const RECOVERY_BY_ERROR_CODE: Record<string, ScreenshotUploadRecoveryAction> = {
   [SCREENSHOT_FEATURE_DISABLED_CODE]: "pause",
   "user not logged in": "stop",
 };
+
+const getRetryAfterMs = (error: unknown) => {
+  if (!isAxiosError(error)) return null;
+  const headers = error.response?.headers as
+    | Record<string, unknown>
+    | undefined;
+  const value = Number(headers?.["retry-after"]);
+  return Number.isFinite(value) && value >= 0 ? value * 1_000 : null;
+};
+
+export const getScreenshotModerationWaitDelay = (
+  failure: ScreenshotUploadFailure,
+  moderationWaits: number
+) =>
+  (failure.retryAfterMs ?? SCREENSHOT_MODERATION_DEFAULT_WAIT_MS) +
+  Math.min(
+    SCREENSHOT_MODERATION_BACKOFF_BASE_MS * 2 ** moderationWaits,
+    SCREENSHOT_MODERATION_BACKOFF_MAX_MS
+  );
 
 export const getScreenshotUploadFailure = (
   error: unknown
@@ -67,6 +94,12 @@ export const getScreenshotUploadFailure = (
 
   const code = getGroupedSouvenirErrorCode(error);
   const mapped = RECOVERY_BY_ERROR_CODE[code];
+  if (mapped === "moderation_wait") {
+    const retryAfterMs = getRetryAfterMs(error);
+    return retryAfterMs === null
+      ? { code, action: mapped }
+      : { code, action: mapped, retryAfterMs };
+  }
   if (mapped) return { code, action: mapped };
 
   if (isGroupedSouvenirNetworkFailure(error)) return { code, action: "retry" };
@@ -98,6 +131,7 @@ export const getScreenshotUploadRetryDelay = (attempt: number) =>
 export interface ScreenshotUploadRetryState {
   uploadAttempts: number;
   gameWaits: number;
+  moderationWaits?: number;
 }
 
 export type ScreenshotUploadNextStep =
@@ -146,6 +180,15 @@ export const planScreenshotUploadRecovery = (
       return {
         kind: "retry_at",
         delay: SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS,
+        countsAsAttempt: false,
+      };
+    case "moderation_wait":
+      return {
+        kind: "retry_at",
+        delay: getScreenshotModerationWaitDelay(
+          failure,
+          state.moderationWaits ?? 0
+        ),
         countsAsAttempt: false,
       };
     case "retry":
