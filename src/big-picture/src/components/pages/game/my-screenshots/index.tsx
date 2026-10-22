@@ -202,6 +202,8 @@ export function GameMyScreenshots({
     retryLoadMore: feed.retry,
   });
   const items = mine.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
+  const showGrid = items.length > 0 && !mine.hasFailed;
+  const showMessage = !showGrid && !mine.isPartial;
   const canViewAll = items.length > 0 || (shop !== "custom" && mine.hasLoaded);
 
   if (!isEnabled) return null;
@@ -220,7 +222,7 @@ export function GameMyScreenshots({
           <Typography>{t("my_screenshots", { ns: "screenshots" })}</Typography>
         </div>
         <div className="game-my-screenshots__body">
-          {items.length > 0 && !mine.hasFailed ? (
+          {showGrid ? (
             <MyScreenshotsGrid
               items={items}
               local={local}
@@ -229,14 +231,15 @@ export function GameMyScreenshots({
               onOpen={open}
               onRefreshImage={feed.refreshImage}
             />
-          ) : mine.isPartial ? null : (
+          ) : null}
+          {showMessage ? (
             <MyScreenshotsMessage
               isLoading={!mine.hasLoaded}
               hasLoadError={mine.hasFailed}
               leftTarget={leftTarget}
               onRetry={mine.retry}
             />
-          )}
+          ) : null}
           <MyScreenshotsPartialNotice
             mine={mine}
             focusId={GAME_MY_SCREENSHOTS_RETRY_ID}

@@ -371,7 +371,7 @@ function MyScreenshotsModalGrid({
     return (
       <>
         {notice}
-        {mine.items.length > 0 ? (
+        {mine.items.length > 0 && (
           <GridFocusGroup
             regionId={GAME_SCREENSHOTS_MODAL_GRID_REGION_ID}
             className="game-screenshots-modal__grid"
@@ -408,7 +408,7 @@ function MyScreenshotsModalGrid({
               )}
             </ul>
           </GridFocusGroup>
-        ) : null}
+        )}
       </>
     );
   }
