@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import cn from "classnames";
 import { GlobeIcon, PeopleIcon, TrophyIcon } from "@primer/octicons-react";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 
 import { SegmentedControl } from "../game-details/leaderboard/leaderboard-controls";
 import {
@@ -18,7 +19,7 @@ import {
 } from "./global-leaderboard";
 import { leaderboardsCache, useLeaderboardViewer } from "./leaderboards-api";
 import { BadgesSection } from "./badges-section";
-import { ByGameTab } from "./by-game-tab";
+import { ByGameTab, type LinkedGame } from "./by-game-tab";
 import { RankingTab } from "./ranking-tab";
 import { StatsTab } from "./stats-tab";
 import { useGlobalLeaderboards } from "./use-global-leaderboards";
@@ -29,7 +30,25 @@ import "./leaderboards.scss";
 
 export default function Leaderboards() {
   const { t } = useTranslation("leaderboards");
-  const [requestedTab, setTab] = useState<LeaderboardPageTab>("ranking");
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const shopParam = searchParams.get("shop");
+  const objectIdParam = searchParams.get("objectId");
+  const linkedTab = (
+    LEADERBOARD_PAGE_TABS as readonly (string | null)[]
+  ).includes(tabParam)
+    ? (tabParam as LeaderboardPageTab)
+    : null;
+  const linkedGame = useMemo<LinkedGame | null>(
+    () =>
+      shopParam && objectIdParam
+        ? { shop: shopParam, objectId: objectIdParam }
+        : null,
+    [objectIdParam, shopParam]
+  );
+  const [requestedTab, setTab] = useState<LeaderboardPageTab>(
+    linkedTab ?? "ranking"
+  );
   const [requestedMetric, setMetric] =
     useState<GlobalLeaderboardMetric>("playtime");
   const [period, setPeriod] = useState<GlobalLeaderboardPeriod>("week");
@@ -39,6 +58,10 @@ export default function Leaderboards() {
   const { viewerUser, isLoggedIn } = useLeaderboardViewer();
   const scope = isLoggedIn ? requestedScope : "global";
   const tab = isLoggedIn ? requestedTab : "ranking";
+
+  useEffect(() => {
+    if (linkedTab) setTab(linkedTab);
+  }, [linkedTab, linkedGame]);
   const tabs = isLoggedIn
     ? LEADERBOARD_PAGE_TABS
     : LEADERBOARD_PAGE_TABS.slice(0, 1);
@@ -156,7 +179,17 @@ export default function Leaderboards() {
           )}
 
           {tab === "games" && (
-            <ByGameTab period={period} scope={scope} viewerUser={viewerUser} />
+            <ByGameTab
+              key={
+                linkedGame
+                  ? `${linkedGame.shop}:${linkedGame.objectId}`
+                  : "list"
+              }
+              period={period}
+              scope={scope}
+              viewerUser={viewerUser}
+              initialGame={linkedGame}
+            />
           )}
 
           {tab === "stats" && (

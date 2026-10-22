@@ -33,6 +33,8 @@ A **Leaderboards** page in the launcher, reached from the sidebar, that implemen
 - "Your games' rankings" with search: one card per game on a single row (cover, your rank "#6 of 12,480", change, leader).
 - Selected game: hero with the game art, "{game} ranking", "{N} players · You are #6", "Open game page", metric chips, podium and rows as on the Ranking tab and "Show more" (no "View full ranking": the tab already is the full ranking, decided).
 
+- Deep link from the game page (LBX-1266): `/leaderboards?tab=games&shop=&objectId=` opens this tab with that game selected; a game outside "Your games" still opens, with title and art from `getGameAssets`.
+
 ### Your stats tab
 
 - "Your week": banner + avatar, and one row per metric with ▲▼ change next to your rank.

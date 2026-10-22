@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import cn from "classnames";
 import {
   LinkExternalIcon,
@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 
 import { Avatar } from "@renderer/components";
 import { useFormat } from "@renderer/hooks";
+import type { GameShop } from "@types";
 import {
   LEADERBOARD_METRICS,
   type LeaderboardMetric,
@@ -21,6 +22,7 @@ import { useLeaderboardValue } from "../game-details/leaderboard/use-leaderboard
 import {
   getBoardState,
   getRankDelta,
+  getViewerRanking,
   GLOBAL_LEADERBOARD_TAKE,
   normalizeGlobalLeaderboardResponse,
   normalizeMyGames,
@@ -37,10 +39,26 @@ import {
   RankDelta,
 } from "./leaderboard-bits";
 
+export interface LinkedGame {
+  shop: string;
+  objectId: string;
+}
+
 export interface ByGameTabProps {
   period: GlobalLeaderboardPeriod;
   scope: GlobalLeaderboardScope;
   viewerUser: LeaderboardUser | null;
+  initialGame?: LinkedGame | null;
+}
+
+interface SelectedGame {
+  shop: string;
+  objectId: string;
+  title: string;
+  coverImageUrl: string | null;
+  heroImageUrl: string | null;
+  rank: number | null;
+  total: number | null;
 }
 
 const backgroundStyle = (url: string | null, variable: string) =>
@@ -48,14 +66,63 @@ const backgroundStyle = (url: string | null, variable: string) =>
     ? ({ [variable]: `url(${JSON.stringify(url)})` } as React.CSSProperties)
     : undefined;
 
-export function ByGameTab({ period, scope, viewerUser }: ByGameTabProps) {
+const gameKey = (game: LinkedGame) => `${game.shop}:${game.objectId}`;
+
+function useLinkedGameAssets(game: LinkedGame | null) {
+  const [assets, setAssets] = useState<SelectedGame | null>(null);
+  const shop = game?.shop ?? null;
+  const objectId = game?.objectId ?? null;
+
+  useEffect(() => {
+    if (!shop || !objectId) {
+      setAssets(null);
+      return;
+    }
+
+    let cancelled = false;
+    globalThis.window.electron
+      .getGameAssets(objectId, shop as GameShop)
+      .then((result) => {
+        if (cancelled || !result) return;
+        setAssets({
+          shop,
+          objectId,
+          title: result.title,
+          coverImageUrl: result.coverImageUrl,
+          heroImageUrl: result.libraryHeroImageUrl,
+          rank: null,
+          total: null,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setAssets(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [objectId, shop]);
+
+  return assets && assets.shop === shop && assets.objectId === objectId
+    ? assets
+    : null;
+}
+
+export function ByGameTab({
+  period,
+  scope,
+  viewerUser,
+  initialGame = null,
+}: ByGameTabProps) {
   const { t } = useTranslation("leaderboards");
   const { t: tLeaderboard } = useTranslation("leaderboard");
   const navigate = useNavigate();
   const formatGameValue = useLeaderboardValue();
   const { numberFormatter } = useFormat();
   const [search, setSearch] = useState("");
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(
+    initialGame ? gameKey(initialGame) : null
+  );
   const [metric, setMetric] = useState<LeaderboardMetric>("playtime");
 
   const games = useApiResource(
@@ -64,12 +131,15 @@ export function ByGameTab({ period, scope, viewerUser }: ByGameTabProps) {
     normalizeMyGames
   );
 
-  const gameKey = (game: MyGameRanking) => `${game.shop}:${game.objectId}`;
   const allGames = useMemo(() => games.data ?? [], [games.data]);
-  const selected =
-    allGames.find((game) => gameKey(game) === selectedKey) ??
-    allGames[0] ??
-    null;
+  const listed = allGames.find((game) => gameKey(game) === selectedKey);
+  const linkedGame =
+    initialGame && selectedKey === gameKey(initialGame) && games.data && !listed
+      ? initialGame
+      : null;
+  const linkedAssets = useLinkedGameAssets(linkedGame);
+  const selected: SelectedGame | MyGameRanking | null =
+    listed ?? linkedAssets ?? (linkedGame ? null : (allGames[0] ?? null));
 
   const filtered = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
@@ -102,6 +172,19 @@ export function ByGameTab({ period, scope, viewerUser }: ByGameTabProps) {
   });
 
   const formatValue = (value: number) => formatGameValue(metric, value);
+
+  const viewerRanking = getViewerRanking(board.data, viewerId);
+  const heroRank = selected?.rank ?? viewerRanking?.rank ?? null;
+  const heroTotal = selected?.total ?? board.data?.total ?? null;
+  let heroSubtitle = "";
+  if (heroRank !== null && heroTotal !== null) {
+    heroSubtitle = t("game_ranking_subtitle", {
+      total: numberFormatter.format(heroTotal),
+      rank: heroRank,
+    });
+  } else if (heroTotal !== null) {
+    heroSubtitle = t("players_count", { count: heroTotal });
+  }
 
   const metricChips = (
     <div
@@ -138,7 +221,7 @@ export function ByGameTab({ period, scope, viewerUser }: ByGameTabProps) {
 
     if (games.hasError) return <BlockError onRetry={games.retry} />;
 
-    if (allGames.length === 0) {
+    if (allGames.length === 0 && !linkedGame) {
       return (
         <BlockMessage
           icon={<TrophyIcon size={24} />}
@@ -285,10 +368,7 @@ export function ByGameTab({ period, scope, viewerUser }: ByGameTabProps) {
                 {t("game_ranking_title", { game: selected.title })}
               </h2>
               <span className="leaderboards__hero-subtitle">
-                {t("game_ranking_subtitle", {
-                  total: numberFormatter.format(selected.total),
-                  rank: selected.rank,
-                })}
+                {heroSubtitle}
               </span>
             </div>
             <button
