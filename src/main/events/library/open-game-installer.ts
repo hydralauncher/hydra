@@ -17,6 +17,10 @@ import {
   findDownloadInstaller,
   getDownloadFolderPath,
 } from "@main/helpers/find-game-installer";
+import {
+  startInstalledExecutablePolling,
+  stopInstalledExecutablePolling,
+} from "@main/helpers/installed-executable-poller";
 
 interface InstallerLaunchOptions {
   gameId?: string;
@@ -37,6 +41,7 @@ const SUCCESS_EXIT_CODES = new Set([0, 1641, 3010]);
 const INSTALLER_STARTED_MARKER = "HYDRA_INSTALLER_STARTED";
 const INSTALLER_EXIT_MARKER = "HYDRA_INSTALLER_EXIT=";
 
+const QUICK_INSTALLER_EXIT_MS = 15_000;
 const ELEVATION_ERROR_CODES = new Set(["EACCES", "UNKNOWN"]);
 
 const runningInstallers = new Set<string>();
@@ -336,15 +341,30 @@ const handleInstallerExit = async (
     objectId
   ).searchAndBindInstalledExecutable(installerStartedAt, winePrefixPath);
 
+  const exitedQuickly =
+    Date.now() - installerStartedAt < QUICK_INSTALLER_EXIT_MS;
+
   logger.info(
     executableFound
       ? `[GameInstaller] Found the installed executable for ${objectId}`
-      : `[GameInstaller] No installed executable found for ${objectId}, user has to select it`
+      : `[GameInstaller] No installed executable found for ${objectId} yet, polling for it`
   );
 
   await updateInstallerState(gameKey, { installerRunning: false });
 
+  if (!executableFound) {
+    startInstalledExecutablePolling(
+      shop,
+      objectId,
+      installerStartedAt,
+      winePrefixPath
+    );
+  }
+
   WindowManager.sendToAppWindows("on-library-batch-complete");
+
+  if (!executableFound && exitedQuickly) return;
+
   WindowManager.sendToAppWindows(
     "on-game-installer-closed",
     shop,
@@ -381,6 +401,8 @@ const openGameInstaller = async (
     logger.info(`[GameInstaller] Installer for ${objectId} is already running`);
     return true;
   }
+
+  stopInstalledExecutablePolling(gameKey);
 
   const installerPath = await findDownloadInstaller(download);
 
