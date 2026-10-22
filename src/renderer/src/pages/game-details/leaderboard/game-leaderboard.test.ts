@@ -8,6 +8,7 @@ import {
   buildGameLeaderboardPath,
   getLeaderboardNudge,
   getLeaderboardState,
+  getLeaderboardBoardKey,
   normalizeLeaderboardResponse,
   selectLoadedLeaderboard,
   type LeaderboardEntry,
@@ -41,6 +42,7 @@ const query = (
   metric: "playtime",
   isExtended: false,
   isLoggedIn: false,
+  viewerId: null,
   ...overrides,
 });
 
@@ -433,9 +435,19 @@ describe("createLeaderboardFetcher", () => {
 
     await fetchLeaderboard(query());
     await fetchLeaderboard(query({ period: "week" }));
-    await fetchLeaderboard(query({ isLoggedIn: true }));
+    await fetchLeaderboard(query({ isLoggedIn: true, viewerId: "a" }));
 
     assert.equal(calls.length, 3);
+  });
+
+  it("keeps separate cache entries per account", async () => {
+    const { calls, fetchLeaderboard } = setup();
+
+    await fetchLeaderboard(query({ isLoggedIn: true, viewerId: "a" }));
+    await fetchLeaderboard(query({ isLoggedIn: true, viewerId: "b" }));
+    await fetchLeaderboard(query({ isLoggedIn: true, viewerId: "a" }));
+
+    assert.equal(calls.length, 2);
   });
 
   it("does not call the API for unsupported games", async () => {
@@ -472,7 +484,7 @@ describe("selectLoadedLeaderboard", () => {
     metric: "streak" as const,
   };
   const loaded = {
-    gameKey: "steam:1",
+    boardKey: "steam:1:anonymous",
     leaderboard: { entries: [entry(1, "a", 1)], viewer: null, periodEnd: null },
     period: "all" as const,
     scope: "global" as const,
@@ -480,26 +492,42 @@ describe("selectLoadedLeaderboard", () => {
   };
 
   it("returns the loaded board with the query it was fetched for", () => {
-    assert.deepEqual(selectLoadedLeaderboard(loaded, "steam:1", fallback), {
-      leaderboard: loaded.leaderboard,
-      period: "all",
-      scope: "global",
-      metric: "playtime",
-    });
+    assert.deepEqual(
+      selectLoadedLeaderboard(loaded, "steam:1:anonymous", fallback),
+      {
+        leaderboard: loaded.leaderboard,
+        period: "all",
+        scope: "global",
+        metric: "playtime",
+      }
+    );
   });
 
   it("drops a board loaded for another game", () => {
-    assert.deepEqual(selectLoadedLeaderboard(loaded, "steam:2", fallback), {
+    assert.deepEqual(
+      selectLoadedLeaderboard(loaded, "steam:2:anonymous", fallback),
+      {
+        leaderboard: null,
+        ...fallback,
+      }
+    );
+  });
+
+  it("drops a board loaded for another account", () => {
+    assert.deepEqual(selectLoadedLeaderboard(loaded, "steam:1:b", fallback), {
       leaderboard: null,
       ...fallback,
     });
   });
 
   it("falls back to the selection when nothing is loaded", () => {
-    assert.deepEqual(selectLoadedLeaderboard(null, "steam:1", fallback), {
-      leaderboard: null,
-      ...fallback,
-    });
+    assert.deepEqual(
+      selectLoadedLeaderboard(null, "steam:1:anonymous", fallback),
+      {
+        leaderboard: null,
+        ...fallback,
+      }
+    );
   });
 });
 
@@ -515,6 +543,20 @@ describe("buildGameLeaderboardPath", () => {
     assert.equal(
       buildGameLeaderboardPath("launchbox", "a b/c"),
       "/leaderboards?tab=games&shop=launchbox&objectId=a+b%2Fc"
+    );
+  });
+});
+
+describe("getLeaderboardBoardKey", () => {
+  it("separates games and accounts", () => {
+    assert.equal(
+      getLeaderboardBoardKey("steam", "1", null),
+      "steam:1:anonymous"
+    );
+    assert.equal(getLeaderboardBoardKey("steam", "1", "a"), "steam:1:a");
+    assert.notEqual(
+      getLeaderboardBoardKey("steam", "1", "a"),
+      getLeaderboardBoardKey("steam", "1", "b")
     );
   });
 });

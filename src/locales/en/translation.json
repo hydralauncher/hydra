@@ -466,6 +466,7 @@
     "hydra_needs_to_remain_open": "For this download, Hydra needs to remain open until it's completed. If Hydra closes before completing, you will lose your progress.",
     "achievements": "Achievements",
     "achievements_count": "Achievements {{unlockedCount}}/{{achievementsCount}}",
+    "show_more": "Show more",
     "show_less": "Show less",
     "reviews": "Reviews",
     "review_played_for": "Played for",
