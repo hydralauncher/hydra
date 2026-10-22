@@ -2,6 +2,7 @@ import {
   ArrowClockwiseIcon,
   ImageIcon,
   SortAscendingIcon,
+  UsersThreeIcon,
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,9 +37,15 @@ import {
   useScreenshotFeed,
   useScreenshotLightbox,
 } from "../../screenshots";
-import { FocusRegionContext } from "../../../context";
-import { useNavigation, useUserDetails } from "../../../../hooks";
+import { FocusRegionContext, useFocusLayerId } from "../../../context";
+import { useGamepad, useNavigation, useUserDetails } from "../../../../hooks";
+import { NavigationService } from "../../../../services";
 import {
+  GamepadButtonType,
+  type GamepadButtonPressEvent,
+} from "../../../../types";
+import {
+  GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID,
   GAME_SCREENSHOTS_MODAL_GRID_REGION_ID,
   GAME_SCREENSHOTS_MODAL_LIST_REGION_ID,
   GAME_SCREENSHOTS_MODAL_LOAD_MORE_ID,
@@ -465,10 +472,17 @@ function useMyScreenshotsTab({
 
 type MyScreenshotsTab = ReturnType<typeof useMyScreenshotsTab>;
 
+interface MyScreenshotsMessageProps {
+  tab: MyScreenshotsTab;
+  hasFailed: boolean;
+  onBrowseCommunity?: () => void;
+}
+
 function MyScreenshotsMessage({
   tab,
   hasFailed,
-}: Readonly<{ tab: MyScreenshotsTab; hasFailed: boolean }>) {
+  onBrowseCommunity,
+}: Readonly<MyScreenshotsMessageProps>) {
   const { t } = useTranslation("big_picture");
 
   if (hasFailed) {
@@ -500,11 +514,30 @@ function MyScreenshotsMessage({
       <ImageIcon size={28} />
       <p>{t("screenshots_empty_filtered")}</p>
       <ScreenshotHotkeyHint className="game-screenshots-modal__hint" />
+      {onBrowseCommunity ? (
+        <Button
+          variant="secondary"
+          size="small"
+          focusId={GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID}
+          icon={<UsersThreeIcon size={18} />}
+          onClick={onBrowseCommunity}
+        >
+          {t("screenshots_browse_community")}
+        </Button>
+      ) : null}
     </div>
   );
 }
 
-function UploadedScreenshotsList({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
+interface MyScreenshotsListProps {
+  tab: MyScreenshotsTab;
+  onBrowseCommunity?: () => void;
+}
+
+function UploadedScreenshotsList({
+  tab,
+  onBrowseCommunity,
+}: Readonly<MyScreenshotsListProps>) {
   const { mine, open, loadNextPage } = tab;
   const { feed } = mine;
 
@@ -513,7 +546,13 @@ function UploadedScreenshotsList({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
   }
   if (feed.isLoading) return <ScreenshotSkeletonGrid />;
   if (feed.items.length === 0) {
-    return <MyScreenshotsMessage tab={tab} hasFailed={false} />;
+    return (
+      <MyScreenshotsMessage
+        tab={tab}
+        hasFailed={false}
+        onBrowseCommunity={onBrowseCommunity}
+      />
+    );
   }
 
   return (
@@ -548,7 +587,10 @@ function UploadedScreenshotsList({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
   );
 }
 
-function LocalScreenshotsList({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
+function LocalScreenshotsList({
+  tab,
+  onBrowseCommunity,
+}: Readonly<MyScreenshotsListProps>) {
   const { mine, local } = tab;
 
   if (mine.hasLocalFailed) {
@@ -558,7 +600,13 @@ function LocalScreenshotsList({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
     return <ScreenshotSkeletonGrid />;
   }
   if (mine.pendingLocal.length === 0) {
-    return <MyScreenshotsMessage tab={tab} hasFailed={false} />;
+    return (
+      <MyScreenshotsMessage
+        tab={tab}
+        hasFailed={false}
+        onBrowseCommunity={onBrowseCommunity}
+      />
+    );
   }
 
   return (
@@ -596,7 +644,10 @@ const STATUS_FILTER_FOCUS_IDS: Record<MyScreenshotsStatusFilter, string> = {
   local: GAME_SCREENSHOTS_MODAL_MINE_LOCAL_ID,
 };
 
-function MyScreenshotsPanel({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
+function MyScreenshotsPanel({
+  tab,
+  onBrowseCommunity,
+}: Readonly<MyScreenshotsListProps>) {
   const { t } = useTranslation("big_picture");
   const sortOptions = useScreenshotSortOptions();
   const isLocal = tab.activeFilter === "local";
@@ -659,9 +710,15 @@ function MyScreenshotsPanel({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
       >
         <div className="game-screenshots-modal__scroll">
           {isLocal ? (
-            <LocalScreenshotsList tab={tab} />
+            <LocalScreenshotsList
+              tab={tab}
+              onBrowseCommunity={onBrowseCommunity}
+            />
           ) : (
-            <UploadedScreenshotsList tab={tab} />
+            <UploadedScreenshotsList
+              tab={tab}
+              onBrowseCommunity={onBrowseCommunity}
+            />
           )}
         </div>
       </VerticalFocusGroup>
@@ -670,6 +727,45 @@ function MyScreenshotsPanel({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
 }
 
 type GameScreenshotsTab = "mine" | "community";
+
+const TAB_ORDER: GameScreenshotsTab[] = ["mine", "community"];
+
+function TabBumperFallback({
+  activeTab,
+  onSelect,
+}: Readonly<{
+  activeTab: GameScreenshotsTab;
+  onSelect: (tab: GameScreenshotsTab) => void;
+}>) {
+  const layerId = useFocusLayerId();
+  const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
+
+  useEffect(() => {
+    const navigation = NavigationService.getInstance();
+    const isFocusOutsideLayer = () => {
+      const focusId = navigation.getCurrentFocusId();
+      return !focusId || navigation.getNode(focusId)?.layerId !== layerId;
+    };
+    const step = (direction: -1 | 1) => (event: GamepadButtonPressEvent) => {
+      if (!isActiveGamepadEvent(event)) return;
+      if (navigation.getActiveLayerId() !== layerId) return;
+      if (!isFocusOutsideLayer()) return;
+      const next = TAB_ORDER[TAB_ORDER.indexOf(activeTab) + direction];
+      if (next) onSelect(next);
+    };
+    const removeLeft = onButtonPressed(GamepadButtonType.LEFT_BUMPER, step(-1));
+    const removeRight = onButtonPressed(
+      GamepadButtonType.RIGHT_BUMPER,
+      step(1)
+    );
+    return () => {
+      removeLeft();
+      removeRight();
+    };
+  }, [activeTab, isActiveGamepadEvent, layerId, onButtonPressed, onSelect]);
+
+  return null;
+}
 
 const TAB_SORT_FOCUS_IDS: Record<GameScreenshotsTab, string> = {
   mine: GAME_SCREENSHOTS_MODAL_MINE_UPLOADED_ID,
@@ -721,13 +817,16 @@ export function GameScreenshotsModal({
     if (visible) setTab("mine");
   }, [visible]);
 
-  const selectTab = (nextTab: GameScreenshotsTab) => {
-    if (nextTab === "community") setHasOpenedCommunity(true);
-    setTab(nextTab);
-    globalThis.window.requestAnimationFrame(() =>
-      setFocus(TAB_SORT_FOCUS_IDS[nextTab])
-    );
-  };
+  const selectTab = useCallback(
+    (nextTab: GameScreenshotsTab) => {
+      if (nextTab === "community") setHasOpenedCommunity(true);
+      setTab(nextTab);
+      globalThis.window.requestAnimationFrame(() =>
+        setFocus(TAB_SORT_FOCUS_IDS[nextTab])
+      );
+    },
+    [setFocus]
+  );
 
   return (
     <>
@@ -765,8 +864,16 @@ export function GameScreenshotsModal({
       >
         <VerticalFocusGroup regionId={GAME_SCREENSHOTS_MODAL_REGION_ID} asChild>
           <div className="game-screenshots-modal__content">
+            {hasCommunity ? (
+              <TabBumperFallback activeTab={activeTab} onSelect={selectTab} />
+            ) : null}
             {activeTab === "mine" ? (
-              <MyScreenshotsPanel tab={mineTab} />
+              <MyScreenshotsPanel
+                tab={mineTab}
+                onBrowseCommunity={
+                  hasCommunity ? () => selectTab("community") : undefined
+                }
+              />
             ) : (
               <CommunityScreenshotsPanel community={community} />
             )}

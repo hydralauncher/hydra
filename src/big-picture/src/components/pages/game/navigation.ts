@@ -70,6 +70,8 @@ export const GAME_SCREENSHOTS_MODAL_MINE_GRID_REGION_ID =
   "game-screenshots-modal-mine-grid";
 export const GAME_SCREENSHOTS_MODAL_LOCAL_GRID_REGION_ID =
   "game-screenshots-modal-local-grid";
+export const GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID =
+  "game-screenshots-modal-browse-community";
 export const GAME_SCREENSHOTS_MODAL_LIST_REGION_ID =
   "game-screenshots-modal-list";
 export const GAME_SCREENSHOTS_MODAL_MINE_UPLOADED_ID =
