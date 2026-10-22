@@ -4,13 +4,19 @@ import type { GameShop, LocalScreenshot } from "@types";
 
 import { logger } from "../logger";
 import {
-  isLocalScreenshotForGame,
+  isLocalScreenshotFileForGame,
   isPublishedLocalScreenshot,
 } from "./local-screenshot-game";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { ScreenshotReviewWindows } from "./screenshot-review-windows";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { screenshotUploadWorker } from "./screenshot-upload-worker";
+
+const fileExists = (filePath: string) =>
+  fs.promises.access(filePath).then(
+    () => true,
+    () => false
+  );
 
 const removeLocalScreenshot = async (
   clientId: string,
@@ -39,15 +45,37 @@ export const deleteLocalScreenshot = async (clientId: string) => {
   await removeLocalScreenshot(clientId);
 };
 
+const listLocalScreenshotFilesForGame = async (
+  shop: GameShop,
+  objectId: string
+) => {
+  const screenshots = await LocalScreenshotStore.list();
+  const candidates = screenshots.filter((screenshot) =>
+    isLocalScreenshotFileForGame(screenshot, shop, objectId)
+  );
+  const hasFile = await Promise.all(
+    candidates.map(
+      (screenshot) =>
+        screenshot.state !== "uploaded" || fileExists(screenshot.path)
+    )
+  );
+  return candidates.filter((_, index) => hasFile[index]);
+};
+
+export const countLocalScreenshotFilesForGame = async (
+  shop: GameShop,
+  objectId: string
+) => (await listLocalScreenshotFilesForGame(shop, objectId)).length;
+
 export const deleteLocalScreenshotsForGame = async (
   shop: GameShop,
   objectId: string
 ) => {
-  const screenshots = await LocalScreenshotStore.listForGame(shop, objectId);
+  const screenshots = await listLocalScreenshotFilesForGame(shop, objectId);
   const results = await Promise.allSettled(
     screenshots.map((screenshot) =>
       removeLocalScreenshot(screenshot.clientId, (current) =>
-        isLocalScreenshotForGame(current, shop, objectId)
+        isLocalScreenshotFileForGame(current, shop, objectId)
       )
     )
   );
@@ -75,12 +103,6 @@ const UNPUBLISHED_FIELDS: Partial<LocalScreenshot> = {
   uploadedAt: null,
   lastError: null,
 };
-
-const fileExists = (filePath: string) =>
-  fs.promises.access(filePath).then(
-    () => true,
-    () => false
-  );
 
 const forgetPublishedScreenshot = async (screenshot: LocalScreenshot) => {
   const keepsFile =
