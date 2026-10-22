@@ -395,6 +395,7 @@ declare global {
       executablePath: string
     ) => Promise<boolean>;
     installGameOnSteam: (steamAppId: string) => Promise<void>;
+    uninstallGameOnSteam: (steamAppId: string) => Promise<void>;
     isMangohudAvailable: () => Promise<boolean>;
     isWinetricksAvailable: () => Promise<boolean>;
     addGameToLibrary: (
