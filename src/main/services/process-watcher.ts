@@ -822,13 +822,15 @@ const onCloseGame = (game: Game, options: { isShutdown?: boolean } = {}) => {
 };
 
 export const clearGamesPlaytime = async () => {
-  for (const game of gamesPlaytime.keys()) {
-    const gameData = await gamesSublevel.get(game);
+  await Promise.all(
+    Array.from(gamesPlaytime.keys(), async (game) => {
+      const gameData = await gamesSublevel.get(game);
 
-    if (gameData) {
-      await onCloseGame(gameData, { isShutdown: true });
-    }
-  }
+      if (gameData) {
+        await onCloseGame(gameData, { isShutdown: true });
+      }
+    })
+  );
 
   clearGamesPlaytimeState();
 };
