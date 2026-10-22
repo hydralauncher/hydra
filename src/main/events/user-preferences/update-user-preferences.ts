@@ -7,7 +7,7 @@ import i18next from "i18next";
 import { defaultDownloadsPath } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
-import { DownloadManager, Wine } from "@main/services";
+import { DownloadManager, DownloadOrchestrator, Wine } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 import {
@@ -164,6 +164,10 @@ const updateUserPreferences = async (
   );
 
   await applyDownloadManagerPreferences(preferences);
+
+  if (Object.hasOwn(preferences, "maxConcurrentDownloads")) {
+    await DownloadOrchestrator.reconcileConcurrentDownloadLimit();
+  }
 };
 
 registerEvent("updateUserPreferences", updateUserPreferences);

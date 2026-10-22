@@ -374,6 +374,11 @@ declare global {
       objectId: string,
       automaticCloudSync: boolean
     ) => Promise<void>;
+    setDownloadBandwidthPriority: (
+      shop: GameShop,
+      objectId: string,
+      priority: "normal" | "high"
+    ) => Promise<boolean>;
     setGameHydraPlaytimeEnabled: (
       shop: GameShop,
       objectId: string,

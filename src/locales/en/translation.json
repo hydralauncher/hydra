@@ -1152,7 +1152,10 @@
     "peak": "PEAK",
     "files": "FILES",
     "move_up": "Move up",
-    "move_down": "Move down"
+    "move_down": "Move down",
+    "set_priority": "Set priority",
+    "remove_priority": "Remove priority",
+    "open_download_folder": "Open download folder"
   },
   "settings": {
     "rpcs3_config_title": "RPCS3 configuration folder",
@@ -1490,6 +1493,8 @@
     "max_download_speed_unit_megabytes": "MB/s",
     "max_download_speed_unit_megabits": "Mbps",
     "max_download_speed_unlimited": "Unlimited",
+    "max_concurrent_downloads": "Concurrent downloads",
+    "max_concurrent_downloads_hint": "How many games can download at the same time across all sources.",
     "extract_files_by_default": "Extract files by default after download",
     "delete_archive_files_after_extraction": "Always automatically delete archive files after extraction",
     "global_trackers": "Trackers",

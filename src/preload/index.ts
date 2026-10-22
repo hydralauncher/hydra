@@ -456,6 +456,17 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       targetIndex
     ),
+  setDownloadBandwidthPriority: (
+    shop: GameShop,
+    objectId: string,
+    priority: "normal" | "high"
+  ) =>
+    ipcRenderer.invoke(
+      "setDownloadBandwidthPriority",
+      shop,
+      objectId,
+      priority
+    ),
   moveDownloadPlacement: (
     shop: GameShop,
     objectId: string,

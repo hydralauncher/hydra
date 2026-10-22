@@ -283,6 +283,12 @@ interface HeroDownloadViewProps {
   pauseDownload: (shop: GameShop, objectId: string) => void;
   resumeDownload: (shop: GameShop, objectId: string) => void;
   onCancelClick: (shop: GameShop, objectId: string) => void;
+  onSetBandwidthPriority: (
+    shop: GameShop,
+    objectId: string,
+    priority: "normal" | "high"
+  ) => void;
+  onOpenDownloadFolder: (shop: GameShop, objectId: string) => void;
   t: (key: string, options?: Record<string, unknown>) => string;
 }
 
@@ -358,6 +364,8 @@ function HeroDownloadView({
   pauseDownload,
   resumeDownload,
   onCancelClick,
+  onSetBandwidthPriority,
+  onOpenDownloadFolder,
   t,
 }: Readonly<HeroDownloadViewProps>) {
   const navigate = useNavigate();
@@ -370,6 +378,9 @@ function HeroDownloadView({
   const recoveryPercent = Math.round((lastPacket?.recoveryProgress ?? 0) * 100);
   const isReconnecting =
     !isGameExtracting && !isRecovering && !!lastPacket?.isReconnecting;
+  const supportsBandwidthPriority =
+    game.download?.downloader !== Downloader.Epic;
+  const isHighPriority = game.download?.bandwidthPriority === "high";
 
   return (
     <div className="download-group download-group--hero">
@@ -501,6 +512,38 @@ function HeroDownloadView({
                   <XCircleIcon size={14} />
                   {t("cancel")}
                 </Button>
+                <DropdownMenu
+                  align="end"
+                  items={[
+                    {
+                      label: isHighPriority
+                        ? t("remove_priority")
+                        : t("set_priority"),
+                      show: supportsBandwidthPriority,
+                      icon: <GraphIcon />,
+                      onClick: () =>
+                        onSetBandwidthPriority(
+                          game.shop,
+                          game.objectId,
+                          isHighPriority ? "normal" : "high"
+                        ),
+                    },
+                    {
+                      label: t("open_download_folder"),
+                      icon: <Folder size={16} />,
+                      onClick: () =>
+                        onOpenDownloadFolder(game.shop, game.objectId),
+                    },
+                  ]}
+                >
+                  <Button
+                    theme="outline"
+                    className="download-group__glass-btn download-group__hero-menu-btn"
+                    tooltip={t("options")}
+                  >
+                    <MoreVertical size={16} />
+                  </Button>
+                </DropdownMenu>
               </div>
             )}
           </div>
@@ -609,6 +652,7 @@ export function DownloadGroup({
 
   const {
     lastPacket,
+    packetsById,
     pauseDownload: pauseDownloadOriginal,
     resumeDownload: resumeDownloadOriginal,
     cancelDownload,
@@ -783,23 +827,24 @@ export function DownloadGroup({
     const map: Record<string, boolean> = {};
     for (const game of library) {
       map[game.id] =
-        lastPacket?.gameId === game.id ||
+        packetsById[game.id] !== undefined ||
         optimisticallyResumed[game.id] === true;
     }
     return map;
-  }, [library, lastPacket?.gameId, optimisticallyResumed]);
+  }, [library, packetsById, optimisticallyResumed]);
 
   const getFinalDownloadSize = (game: LibraryGame) => {
     const download = game.download!;
     const isGameDownloading = isGameDownloadingMap[game.id];
 
-    // Check lastPacket first for most up-to-date size during active downloads
+    const packet = packetsById[game.id];
+    // Check the game's live packet first for its most up-to-date size.
     if (
       isGameDownloading &&
-      lastPacket?.download.fileSize &&
-      lastPacket.download.fileSize > 0
+      packet?.download.fileSize &&
+      packet.download.fileSize > 0
     )
-      return formatBytes(lastPacket.download.fileSize);
+      return formatBytes(packet.download.fileSize);
 
     // Then check the stored download size (must be > 0 to be valid)
     if (download.fileSize != null && download.fileSize > 0)
@@ -814,17 +859,18 @@ export function DownloadGroup({
       : formatBytesToMbps(speed);
   };
 
-  const calculateETA = () => {
+  const calculateETA = (gameId: string) => {
+    const packet = packetsById[gameId];
     if (
-      !lastPacket ||
-      lastPacket.timeRemaining <= 0 ||
-      !Number.isFinite(lastPacket.timeRemaining)
+      !packet ||
+      packet.timeRemaining <= 0 ||
+      !Number.isFinite(packet.timeRemaining)
     ) {
       return null;
     }
 
     return formatDistance(
-      addMilliseconds(new Date(), lastPacket.timeRemaining),
+      addMilliseconds(new Date(), packet.timeRemaining),
       new Date(),
       { addSuffix: true }
     );
@@ -858,6 +904,25 @@ export function DownloadGroup({
     setGameToCancelShop(null);
     setGameToCancelObjectId(null);
   }, []);
+
+  const handleSetBandwidthPriority = useCallback(
+    async (shop: GameShop, objectId: string, priority: "normal" | "high") => {
+      await window.electron.setDownloadBandwidthPriority(
+        shop,
+        objectId,
+        priority
+      );
+      updateLibrary();
+    },
+    [updateLibrary]
+  );
+
+  const handleOpenDownloadFolder = useCallback(
+    (shop: GameShop, objectId: string) => {
+      void window.electron.openGameInstallerPath(shop, objectId);
+    },
+    []
+  );
 
   const handleMoveInQueue = useCallback(
     async (shop: GameShop, objectId: string, direction: "up" | "down") => {
@@ -1094,32 +1159,6 @@ export function DownloadGroup({
   const isCompletedGroup = title === t("downloads_completed");
 
   if (isDownloadingGroup && library.length > 0) {
-    const game = library[0];
-    const isGameExtracting = extraction?.visibleId === game.id;
-    const isGameDownloading =
-      isGameDownloadingMap[game.id] && !isGameExtracting;
-    const downloadSpeed = isGameDownloading
-      ? (lastPacket?.downloadSpeed ?? 0)
-      : 0;
-    const finalDownloadSize = getFinalDownloadSize(game);
-    // Use lastPacket.gameId for lookup since that's the key used to store the data
-    // Fall back to game.id if lastPacket is not available
-    const dataKey = lastPacket?.gameId ?? game.id;
-    const gameSpeedHistory = speedHistory[dataKey] ?? [];
-    const storedPeak = peakSpeeds[dataKey];
-    // Use stored peak if available and > 0, otherwise use current speed as initial value
-    const peakSpeed =
-      storedPeak !== undefined && storedPeak > 0 ? storedPeak : downloadSpeed;
-
-    let currentProgress = game.download?.progress || 0;
-    if (isGameExtracting) {
-      currentProgress = extraction.progress;
-    } else if (isGameDownloading && lastPacket) {
-      currentProgress = lastPacket.progress;
-    }
-
-    const dominantColor = pickChartColor(dominantColors[game.id]);
-
     return (
       <>
         {pauseWarningModal}
@@ -1133,24 +1172,49 @@ export function DownloadGroup({
           onConfirm={handleConfirmCancel}
           onClose={handleCancelModalClose}
         />
-        <HeroDownloadView
-          game={game}
-          isGameDownloading={isGameDownloading}
-          isGameExtracting={isGameExtracting}
-          downloadSpeed={downloadSpeed}
-          finalDownloadSize={finalDownloadSize}
-          peakSpeed={peakSpeed}
-          currentProgress={currentProgress}
-          dominantColor={dominantColor}
-          lastPacket={lastPacket}
-          speedHistory={gameSpeedHistory}
-          formatSpeed={formatSpeed}
-          calculateETA={calculateETA}
-          pauseDownload={pauseDownload}
-          resumeDownload={resumeDownload}
-          onCancelClick={handleCancelClick}
-          t={t}
-        />
+        {library.map((game) => {
+          const packet = packetsById[game.id] ?? null;
+          const isGameExtracting = extraction?.visibleId === game.id;
+          const isGameDownloading =
+            isGameDownloadingMap[game.id] && !isGameExtracting;
+          const downloadSpeed = isGameDownloading
+            ? (packet?.downloadSpeed ?? 0)
+            : 0;
+          const storedPeak = peakSpeeds[game.id];
+          const peakSpeed =
+            storedPeak !== undefined && storedPeak > 0
+              ? storedPeak
+              : downloadSpeed;
+          const currentProgress = isGameExtracting
+            ? extraction.progress
+            : isGameDownloading && packet
+              ? packet.progress
+              : (game.download?.progress ?? 0);
+
+          return (
+            <HeroDownloadView
+              key={game.id}
+              game={game}
+              isGameDownloading={isGameDownloading}
+              isGameExtracting={isGameExtracting}
+              downloadSpeed={downloadSpeed}
+              finalDownloadSize={getFinalDownloadSize(game)}
+              peakSpeed={peakSpeed}
+              currentProgress={currentProgress}
+              dominantColor={pickChartColor(dominantColors[game.id])}
+              lastPacket={packet}
+              speedHistory={speedHistory[game.id] ?? []}
+              formatSpeed={formatSpeed}
+              calculateETA={() => calculateETA(game.id)}
+              pauseDownload={pauseDownload}
+              resumeDownload={resumeDownload}
+              onCancelClick={handleCancelClick}
+              onSetBandwidthPriority={handleSetBandwidthPriority}
+              onOpenDownloadFolder={handleOpenDownloadFolder}
+              t={t}
+            />
+          );
+        })}
       </>
     );
   }

@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from "./redux";
 import {
   setLastPacket,
   clearDownload,
+  clearDownloadById,
   setGameDeleting,
   removeGameFromDeleting,
 } from "@renderer/features";
@@ -23,9 +24,8 @@ export function useDownload() {
 
   const userPrefs = useAppSelector((state) => state.userPreferences.value);
 
-  const { lastPacket, gamesWithDeletionInProgress } = useAppSelector(
-    (state) => state.download
-  );
+  const { lastPacket, packetsById, gamesWithDeletionInProgress } =
+    useAppSelector((state) => state.download);
   const dispatch = useAppDispatch();
 
   const createAbortError = () => {
@@ -42,7 +42,7 @@ export function useDownload() {
       throw createAbortError();
     }
 
-    dispatch(clearDownload());
+    dispatch(clearDownloadById(`${payload.shop}:${payload.objectId}`));
 
     const cancelPendingDownload = () =>
       window.electron
@@ -122,7 +122,7 @@ export function useDownload() {
     );
     if (paused === false) return false;
     await updateLibrary();
-    if (lastPacket?.gameId === `${shop}:${objectId}`) dispatch(clearDownload());
+    dispatch(clearDownloadById(`${shop}:${objectId}`));
     return paused;
   };
 
@@ -145,13 +145,8 @@ export function useDownload() {
 
   const cancelDownload = async (shop: GameShop, objectId: string) => {
     const gameId = `${shop}:${objectId}`;
-    const isActiveDownload = lastPacket?.gameId === gameId;
-
     await window.electron.cancelGameDownload(shop, objectId);
-
-    if (isActiveDownload) {
-      dispatch(clearDownload());
-    }
+    dispatch(clearDownloadById(gameId));
 
     updateLibrary();
     removeGameInstaller(shop, objectId);
@@ -200,6 +195,8 @@ export function useDownload() {
     downloadSpeed: formatDownloadSpeed(lastPacket?.downloadSpeed ?? 0),
     progress: formatDownloadProgress(lastPacket?.progress ?? 0),
     lastPacket,
+    packetsById,
+    getPacket: (gameId: string) => packetsById[gameId] ?? null,
     eta: calculateETA(),
     startDownload,
     addGameToQueue,
@@ -212,6 +209,7 @@ export function useDownload() {
     pauseSeeding,
     resumeSeeding,
     clearDownload: () => dispatch(clearDownload()),
+    clearDownloadById: (gameId: string) => dispatch(clearDownloadById(gameId)),
     setLastPacket: (packet: DownloadProgress | null) =>
       dispatch(setLastPacket(packet)),
   };

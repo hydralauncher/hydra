@@ -1,4 +1,4 @@
-import { downloadsSublevel, levelKeys } from "@main/level";
+import { db, downloadsSublevel, levelKeys } from "@main/level";
 import { withDownloadActivation } from "./download/download-activation";
 import { DownloadManager } from "./download/download-manager";
 import { isDebridPendingError } from "./download/debrid-files";
@@ -14,12 +14,13 @@ import {
   type Download,
   type DownloadLayoutState,
   type GameShop,
+  type UserPreferences,
 } from "../../types";
 import {
-  getNextQueuedDownloadFromLayout,
   getNormalizedDownloadLayoutState,
-  getPausedDownloadsOrderedByLayout,
   getQueuedDownloadsOrderedByLayout,
+  getPausedDownloadsOrderedByLayout,
+  getNextQueuedDownloadFromLayout,
   removeDownloadFromLayoutState,
   saveDownloadLayoutState,
   setDownloadLayoutQueues,
@@ -28,6 +29,9 @@ import {
 
 export type ResumeDownloadStrategy = "interruptActive" | "queueIfActive";
 type ResumeIntent = ResumeDownloadStrategy | "queue";
+
+const DEFAULT_MAX_CONCURRENT_DOWNLOADS = 2;
+const MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS = 8;
 
 function getGameKey(download: Pick<Download, "shop" | "objectId">) {
   return levelKeys.game(download.shop, download.objectId);
@@ -211,19 +215,23 @@ export class DownloadOrchestrator {
   }
 
   private static async stopActiveDownloadForNoNetwork() {
-    const downloadId = DownloadManager.getActiveDownloadId();
-    if (!downloadId) return;
-
-    const download = await downloadsSublevel.get(downloadId).catch(() => null);
-    if (!download) return;
+    const activeDownloadIds = DownloadManager.getActiveDownloadIds();
+    if (activeDownloadIds.length === 0) return;
 
     logger.log(
-      "[DownloadOrchestrator] No connection after the grace window; pausing the download"
+      "[DownloadOrchestrator] No connection after the grace window; pausing active downloads"
     );
-    await this.pauseDownload(download, {
-      reason: "paused",
-      startNextQueued: false,
-    });
+    for (const downloadId of activeDownloadIds) {
+      const download = await downloadsSublevel
+        .get(downloadId)
+        .catch(() => null);
+      if (!download) continue;
+
+      await this.pauseDownload(download, {
+        reason: "paused",
+        startNextQueued: false,
+      });
+    }
   }
 
   private static async getAllDownloads() {
@@ -457,20 +465,67 @@ export class DownloadOrchestrator {
     );
   }
 
+  private static isTransferActive(download: Download) {
+    // Extraction continues independently after a transfer has released its
+    // network slot.
+    return download.status === "active";
+  }
+
+  private static async getConcurrentDownloadLimit() {
+    const preferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+    const configuredLimit = preferences?.maxConcurrentDownloads;
+
+    return typeof configuredLimit === "number" &&
+      Number.isInteger(configuredLimit) &&
+      configuredLimit >= 1 &&
+      configuredLimit <= MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS
+      ? configuredLimit
+      : DEFAULT_MAX_CONCURRENT_DOWNLOADS;
+  }
+
+  private static async canStartDownload(
+    candidate: Download,
+    downloads: Download[]
+  ) {
+    const activeDownloads = downloads.filter(this.isTransferActive);
+
+    if (activeDownloads.length >= (await this.getConcurrentDownloadLimit())) {
+      return false;
+    }
+
+    // Legendary manages one install process. It can coexist with every other
+    // source, but it must remain a single active Epic transfer.
+    if (candidate.downloader === Downloader.Epic) {
+      return !activeDownloads.some(
+        (download) => download.downloader === Downloader.Epic
+      );
+    }
+
+    return true;
+  }
+
   private static async activateNextQueuedDownload(
     downloads?: Download[],
     prepared?: { id: string; isCurrent: () => boolean; signal: AbortSignal }
   ) {
     if (prepared && !prepared.isCurrent()) return null;
     const currentDownloads = downloads ?? (await this.getAllDownloads());
-    if (this.hasActiveTransfer(currentDownloads)) return null;
     const layoutState =
       await getNormalizedDownloadLayoutState(currentDownloads);
-    if (DownloadManager.hasActiveDownload()) return null;
-    const nextDownload = getNextQueuedDownloadFromLayout(
+    const queuedDownloads = getQueuedDownloadsOrderedByLayout(
       currentDownloads,
       layoutState
     );
+    let nextDownload: Download | undefined;
+    for (const queuedDownload of queuedDownloads) {
+      if (await this.canStartDownload(queuedDownload, currentDownloads)) {
+        nextDownload = queuedDownload;
+        break;
+      }
+    }
     if (!nextDownload) {
       WindowManager.sendDownloadsUpdated();
       return null;
@@ -484,12 +539,50 @@ export class DownloadOrchestrator {
     );
     if (activated) {
       WindowManager.sendDownloadsUpdated();
-      return nextDownload;
+      return (
+        (await this.activateNextQueuedDownload(
+          await this.getAllDownloads(),
+          prepared
+        )) ?? nextDownload
+      );
     }
     return this.activateNextQueuedDownload(
       await this.getAllDownloads(),
       prepared
     );
+  }
+
+  public static async pumpDownloadQueue() {
+    return withDownloadActivation(async () => {
+      await this.activateNextQueuedDownload(await this.getAllDownloads());
+    });
+  }
+
+  /** Apply a changed global transfer limit without interrupting extraction. */
+  public static async reconcileConcurrentDownloadLimit() {
+    return withDownloadActivation(async () => {
+      const downloads = await this.getAllDownloads();
+      const activeDownloads = downloads.filter(this.isTransferActive);
+      const limit = await this.getConcurrentDownloadLimit();
+      const downloadsToQueue = [...activeDownloads]
+        .sort((left, right) => {
+          const leftPriority = left.bandwidthPriority === "high" ? 1 : 0;
+          const rightPriority = right.bandwidthPriority === "high" ? 1 : 0;
+          if (leftPriority !== rightPriority)
+            return leftPriority - rightPriority;
+          return (right.timestamp ?? 0) - (left.timestamp ?? 0);
+        })
+        .slice(0, Math.max(0, activeDownloads.length - limit));
+
+      for (const download of downloadsToQueue) {
+        await this.pauseDownload(download, {
+          queueActiveReplacement: true,
+          startNextQueued: false,
+        });
+      }
+
+      await this.activateNextQueuedDownload(await this.getAllDownloads());
+    });
   }
 
   private static async queueDownload(
@@ -580,15 +673,13 @@ export class DownloadOrchestrator {
       );
     }
 
-    if (options.startNextQueued && !DownloadManager.hasActiveDownload()) {
+    if (options.startNextQueued) {
       const downloads = await this.getAllDownloads();
-      if (!this.hasActiveTransfer(downloads)) {
-        await this.startNextQueuedDownload(
-          downloads.filter(
-            (entry) => getDownloadId(entry) !== getDownloadId(nextDownload)
-          )
-        );
-      }
+      await this.startNextQueuedDownload(
+        downloads.filter(
+          (entry) => getDownloadId(entry) !== getDownloadId(nextDownload)
+        )
+      );
     }
 
     WindowManager.sendDownloadsUpdated();
@@ -871,7 +962,7 @@ export class DownloadOrchestrator {
           const downloads = await this.getAllDownloads();
           if (
             this.acceptedEpicActivations.get(id) !== ticket ||
-            downloads.some(isActiveLikeDownload)
+            !(await this.canStartDownload(current, downloads))
           )
             return;
           const active = await this.activateDownload(
@@ -1250,14 +1341,12 @@ export class DownloadOrchestrator {
     const currentActiveDownload =
       downloads.find(
         (entry) =>
-          isActiveLikeDownload(entry) &&
+          this.isTransferActive(entry) &&
           getDownloadId(entry) !== getDownloadId(readyDownload)
       ) ?? null;
+    const canStart = await this.canStartDownload(readyDownload, downloads);
 
-    if (
-      strategy === "queue" ||
-      (currentActiveDownload && strategy === "queueIfActive")
-    ) {
+    if (strategy === "queue" || (!canStart && strategy === "queueIfActive")) {
       await this.queueDownload(
         {
           ...readyDownload,
@@ -1278,7 +1367,7 @@ export class DownloadOrchestrator {
       return true;
     }
 
-    if (currentActiveDownload) {
+    if (!canStart && currentActiveDownload) {
       await this.pauseDownload(currentActiveDownload, {
         reason: "paused",
         startNextQueued: false,

@@ -79,7 +79,8 @@ export function App() {
 
   const { t } = useTranslation("app");
 
-  const { clearDownload, setLastPacket, lastPacket } = useDownload();
+  const { clearDownload, clearDownloadById, setLastPacket, lastPacket } =
+    useDownload();
 
   const workwondersRef = useRef<WorkWonders | null>(null);
   const workwondersInitializingRef = useRef(false);
@@ -150,7 +151,7 @@ export function App() {
           !downloadProgress.isCheckingFiles &&
           !downloadProgress.isDownloadingMetadata
         ) {
-          clearDownload();
+          clearDownloadById(downloadProgress.gameId);
           updateLibrary();
           return;
         }
@@ -162,7 +163,7 @@ export function App() {
     return () => {
       unsubscribe();
     };
-  }, [clearDownload, setLastPacket, updateLibrary]);
+  }, [clearDownloadById, setLastPacket, updateLibrary]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onHardDelete(() => {

@@ -86,6 +86,9 @@ int ht_pause(ht_handle* h) { return protect([&] {
 int ht_resume(ht_handle* h) { return protect([&] {
   h->value.set_flags(lt::torrent_flags::auto_managed); h->value.resume();
 }); }
+int ht_download_limit(ht_handle* h, int32_t limit) { return protect([&] {
+  h->value.set_download_limit(limit);
+}); }
 int ht_download_mode(ht_handle* h, int selective) { return protect([&] {
   h->value.unset_flags(lt::torrent_flags::upload_mode);
   if (selective) h->value.set_flags(lt::torrent_flags::default_dont_download);

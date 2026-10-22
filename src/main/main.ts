@@ -67,6 +67,9 @@ const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
 };
 
 export const loadState = async () => {
+  // Migrations below use sublevels immediately. Opening explicitly prevents a
+  // startup race where a deferred sublevel operation is drained after shutdown.
+  await db.open();
   await Lock.acquireLock();
   await clearLegacyAchievementPersistence();
   await migrateCloudSaveAutomaticSyncDefaults();

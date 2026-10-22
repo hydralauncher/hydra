@@ -25,6 +25,7 @@ const buildForm = (preferences: UserPreferences | null) => ({
     preferences?.showDownloadSpeedInMegabytes ?? false,
   extractFilesByDefault: preferences?.extractFilesByDefault ?? true,
   createStartMenuShortcut: preferences?.createStartMenuShortcut ?? true,
+  maxConcurrentDownloads: preferences?.maxConcurrentDownloads ?? 2,
   maxDownloadSpeedMegabytes:
     typeof preferences?.maxDownloadSpeedBytesPerSecond === "number" &&
     preferences.maxDownloadSpeedBytesPerSecond > 0
@@ -172,6 +173,36 @@ export function SettingsContextDownloads() {
     <div className="settings-context-panel">
       <div className="settings-context-panel__group">
         <h3>{t("download_behavior")}</h3>
+
+        <div className="settings-general__download-concurrency">
+          <div className="settings-general__download-concurrency-heading">
+            <div>
+              <label htmlFor="download-concurrency">
+                {t("max_concurrent_downloads")}
+              </label>
+              <small>{t("max_concurrent_downloads_hint")}</small>
+            </div>
+            <span>{form.maxConcurrentDownloads}</span>
+          </div>
+          <input
+            id="download-concurrency"
+            type="range"
+            min="1"
+            max="8"
+            value={form.maxConcurrentDownloads}
+            onChange={(event) =>
+              handleChange({
+                maxConcurrentDownloads: Number(event.target.value),
+              })
+            }
+            className="settings-general__download-concurrency-slider"
+            style={
+              {
+                "--download-concurrency-percent": `${((form.maxConcurrentDownloads - 1) / 7) * 100}%`,
+              } as React.CSSProperties
+            }
+          />
+        </div>
 
         <TextField
           type="number"

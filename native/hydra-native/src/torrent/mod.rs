@@ -32,16 +32,22 @@ struct Request {
 mod tests {
     use super::*;
 
-    fn action(engine: &mut Engine, params: Value) -> Result<Value> {
+    fn request(engine: &mut Engine, method: &str, params: Value) -> Result<Value> {
         let (reply, mut result) = oneshot::channel();
-        engine.action(Request {
-            method: "action".into(),
+        engine.dispatch(Request {
+            method: method.into(),
             params,
             reply,
         });
-        result
-            .try_recv()
-            .expect("non-selective actions reply immediately")
+        result.try_recv().expect("request replies immediately")
+    }
+
+    fn action(engine: &mut Engine, params: Value) -> Result<Value> {
+        request(engine, "action", params)
+    }
+
+    fn status(engine: &mut Engine, game: &str) -> Value {
+        request(engine, "status", json!({ "game_id": game })).unwrap()
     }
 
     #[test]
@@ -88,6 +94,67 @@ mod tests {
         action(&mut engine, start("duplicate", "start")).unwrap();
         assert_eq!(engine.downloads.len(), 1);
         assert_eq!(engine.active.as_deref(), Some("duplicate"));
+    }
+
+    #[test]
+    fn independent_torrents_can_be_controlled_and_cleaned_up_concurrently() {
+        let mut engine = Engine::new(0).unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let start = |game: &str, hash: &str| {
+            json!({
+                "action": "start",
+                "game_id": game,
+                "url": format!("magnet:?xt=urn:btih:{hash}"),
+                "save_path": directory.path().to_str().unwrap()
+            })
+        };
+
+        action(
+            &mut engine,
+            start("first", "0000000000000000000000000000000000000001"),
+        )
+        .unwrap();
+        action(
+            &mut engine,
+            start("second", "0000000000000000000000000000000000000002"),
+        )
+        .unwrap();
+
+        assert_eq!(engine.downloads.len(), 2);
+        assert_ne!(status(&mut engine, "first"), Value::Null);
+        assert_ne!(status(&mut engine, "second"), Value::Null);
+
+        action(
+            &mut engine,
+            json!({ "action": "pause", "game_id": "first" }),
+        )
+        .unwrap();
+        assert!(engine.downloads.contains_key("first"));
+        assert!(engine.downloads.contains_key("second"));
+
+        action(
+            &mut engine,
+            start("first", "0000000000000000000000000000000000000001"),
+        )
+        .unwrap();
+        assert!(engine.downloads.contains_key("first"));
+
+        action(
+            &mut engine,
+            json!({ "action": "cancel", "game_id": "first" }),
+        )
+        .unwrap();
+        assert_eq!(status(&mut engine, "first"), Value::Null);
+        assert_ne!(status(&mut engine, "second"), Value::Null);
+
+        action(
+            &mut engine,
+            json!({ "action": "cancel", "game_id": "second" }),
+        )
+        .unwrap();
+        engine.collect_handles();
+        assert!(engine.downloads.is_empty());
+        assert!(engine.pool.is_empty());
     }
 }
 enum Command {
@@ -376,8 +443,12 @@ impl Engine {
     }
     fn dispatch(&mut self, request: Request) {
         let result = match request.method.as_str() {
-            "status" => self
-                .active
+            "status" => request
+                .params
+                .get("game_id")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+                .or_else(|| self.active.clone())
                 .as_ref()
                 .and_then(|id| self.downloads.get(id))
                 .and_then(|d| Self::status(d).ok())
@@ -513,6 +584,15 @@ impl Engine {
                             .unwrap_or(0)
                             .clamp(0, i32::MAX as i64) as i32;
                     self.session.limit(self.limit)?;
+                }
+                "set_game_download_limit" => {
+                    let limit =
+                        validation::integer(&request.params["max_download_speed_bytes_per_second"])
+                            .unwrap_or(0)
+                            .clamp(0, i32::MAX as i64) as i32;
+                    if let Some(download) = self.downloads.get(&game) {
+                        download.handle.download_limit(limit)?;
+                    }
                 }
                 "set_network_interface" => {
                     let (listen, outgoing) =

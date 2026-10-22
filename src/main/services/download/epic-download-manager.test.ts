@@ -6,7 +6,11 @@ import vm from "node:vm";
 import { setTimeout as sleep } from "node:timers/promises";
 import { test } from "node:test";
 import ts from "typescript";
-import type { Download, Game } from "../../../types/level.types";
+import type {
+  Download,
+  Game,
+  UserPreferences,
+} from "../../../types/level.types";
 import type { DownloadProgress } from "../../../types/download.types";
 import { Downloader } from "../../../shared/constants.js";
 import * as downloadContract from "../../../types/download-contract.js";
@@ -43,6 +47,20 @@ const epic = (objectId: string): Download => ({
     diskSizeInBytes: 2000,
   },
 });
+const torrent = (objectId: string, hash: string): Download => ({
+  ...epic(objectId),
+  shop: "steam",
+  downloader: Downloader.Torrent,
+  uri: `magnet:?xt=urn:btih:${hash}`,
+  epic: undefined,
+});
+const http = (objectId: string): Download => ({
+  ...epic(objectId),
+  shop: "steam",
+  downloader: Downloader.PixelDrain,
+  uri: `https://fixture.invalid/${objectId}.zip`,
+  epic: undefined,
+});
 const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 /** Exercise the production manager/orchestrator; replace only external I/O ports. */
@@ -65,9 +83,11 @@ function fixture() {
     layout: structuredClone(downloadContract.DEFAULT_DOWNLOAD_LAYOUT_STATE),
     completed: new Set<string>(),
     torrentCalls: [] as string[],
+    torrentActions: [] as Array<Record<string, unknown>>,
     httpStarted: [] as string[],
     httpPaused: 0,
     writes: [] as Download[],
+    preferences: null as UserPreferences | null,
     beforeRead: async (_id: string) => {
       return undefined;
     },
@@ -142,7 +162,7 @@ function fixture() {
     "@main/level": {
       downloadsSublevel: sublevel,
       gamesSublevel: { get: async (id: string) => games.get(id) },
-      db: { get: async () => null },
+      db: { get: async () => state.preferences },
       levelKeys: {
         game: (shop: string, objectId: string) => `${shop}:${objectId}`,
       },
@@ -171,9 +191,10 @@ function fixture() {
     },
     "../torrent-service": {
       TorrentService: {
-        call: async (method: string) => {
+        call: async (method: string, params?: Record<string, unknown>) => {
           state.torrentCalls.push(method);
-          throw new Error("Unexpected torrent dispatch");
+          if (method === "action" && params) state.torrentActions.push(params);
+          return { data: null };
         },
       },
     },
@@ -266,6 +287,7 @@ function fixture() {
   const orchestrator = load<typeof import("../download-orchestrator")>(
     "../download-orchestrator.ts"
   ).DownloadOrchestrator;
+  modules["../download-orchestrator"] = { DownloadOrchestrator: orchestrator };
   const add = (download: Download) => {
     downloads.set(key(download), download);
     games.set(key(download), {
@@ -322,6 +344,116 @@ test("Epic acceptance returns before preparation and concurrent clicks keep one 
     preparation.resolve();
     await settle();
   }
+});
+
+test("production manager keeps concurrent torrent sessions independently controllable", async () => {
+  const f = fixture();
+  const first = torrent(
+    "TorrentOne",
+    "0000000000000000000000000000000000000001"
+  );
+  const second = {
+    ...torrent("TorrentTwo", "0000000000000000000000000000000000000002"),
+    bandwidthPriority: "high" as const,
+  };
+  f.add(first);
+  f.add(second);
+
+  await Promise.all([
+    f.manager.startDownload(first),
+    f.manager.startDownload(second),
+  ]);
+  assert.deepEqual(
+    f.state.torrentActions.slice(0, 2).map((action) => action.game_id),
+    [key(first), key(second)]
+  );
+  assert.deepEqual(
+    f.state.torrentActions.slice(0, 2).map((action) => action.action),
+    ["start", "start"]
+  );
+  assert.equal(f.manager.getActiveDownloadCount(), 2);
+  assert.deepEqual(
+    [...f.manager.getActiveDownloadIds()].sort(),
+    [key(first), key(second)].sort()
+  );
+
+  await f.manager.applyDownloadSpeedLimit(300);
+  const allocations = f.state.torrentActions
+    .filter((action) => action.action === "set_game_download_limit")
+    .map((action) => [
+      action.game_id,
+      action.max_download_speed_bytes_per_second,
+    ]);
+  assert.deepEqual(allocations, [
+    [key(first), 100],
+    [key(second), 200],
+  ]);
+
+  await f.manager.pauseDownload(key(first));
+  await f.manager.cancelDownload(key(second));
+  assert.deepEqual(
+    f.state.torrentActions
+      .slice(5)
+      .map((action) => [action.action, action.game_id]),
+    [
+      ["pause", key(first)],
+      ["cancel", key(second)],
+    ]
+  );
+  assert.equal(f.manager.getActiveDownloadCount(), 0);
+});
+
+test("production manager keeps concurrent HTTP sessions independently controllable", async () => {
+  const f = fixture();
+  const first = http("HttpOne");
+  const second = http("HttpTwo");
+  f.add(first);
+  f.add(second);
+  f.prepareHttp(first);
+  f.prepareHttp(second);
+
+  await Promise.all([
+    f.manager.startDownload(first),
+    f.manager.startDownload(second),
+  ]);
+
+  assert.equal(f.manager.getActiveDownloadCount(), 2);
+  assert.deepEqual(
+    [...f.manager.getActiveDownloadIds()].sort(),
+    [key(first), key(second)].sort()
+  );
+  assert.equal(f.state.httpStarted.length, 2);
+});
+
+test("global concurrency limit schedules mixed sources and requeues excess transfers", async () => {
+  const f = fixture();
+  const first = {
+    ...torrent("TorrentOne", "0000000000000000000000000000000000000001"),
+    queued: true,
+    timestamp: 1,
+  };
+  const second = { ...http("HttpOne"), queued: true, timestamp: 2 };
+  const third = { ...http("HttpTwo"), queued: true, timestamp: 3 };
+  f.state.preferences = { maxConcurrentDownloads: 2 };
+  f.add(first);
+  f.add(second);
+  f.add(third);
+  f.prepareHttp(second);
+  f.prepareHttp(third);
+  f.state.layout.queueOrder = [key(first), key(second), key(third)];
+
+  await f.orchestrator.pumpDownloadQueue();
+
+  assert.equal(f.downloads.get(key(first))?.status, "active");
+  assert.equal(f.downloads.get(key(second))?.status, "active");
+  assert.equal(f.downloads.get(key(third))?.queued, true);
+
+  f.state.preferences = { maxConcurrentDownloads: 1 };
+  await f.orchestrator.reconcileConcurrentDownloadLimit();
+
+  assert.equal(f.downloads.get(key(first))?.queued, true);
+  assert.equal(f.downloads.get(key(second))?.status, "active");
+  assert.equal(f.manager.getActiveDownloadCount(), 1);
 });
 
 test("cancel immediately after Epic acknowledgement stops its reserved slot without resurrecting it", async () => {
@@ -449,7 +581,12 @@ for (const [code, nextDownloader] of [
     });
     await f.orchestrator.acceptPreparedEpicDownload(download);
     await f.orchestrator.startPreparedDownload(next);
-    assert.equal(f.downloads.get(key(next))?.queued, true);
+    if (nextDownloader === "epic")
+      assert.equal(f.downloads.get(key(next))?.queued, true);
+    else {
+      assert.equal(f.downloads.get(key(next))?.status, "active");
+      assert.equal(f.state.httpStarted.length, 1);
+    }
     f.state.startGate = Promise.resolve();
     fail(Object.assign(new Error("current preparation failed"), { code }));
     await settle();
@@ -466,7 +603,7 @@ for (const [code, nextDownloader] of [
   });
 }
 
-test("resuming a non-Epic download after Epic acknowledgement stops the reserved Epic preparation first", async () => {
+test("resuming a non-Epic download after Epic acknowledgement keeps both transfers active", async () => {
   const f = fixture();
   const download = epic("Namespace:Interrupt");
   const http: Download = {
@@ -484,19 +621,22 @@ test("resuming a non-Epic download after Epic acknowledgement stops the reserved
   await f.orchestrator.resumeDownload(http.shop, http.objectId);
   preparation.resolve();
   await settle();
-  assert.equal(f.manager.getActiveDownloadId(), key(http));
-  assert.equal(f.downloads.get(key(download))?.status, "paused");
+  assert.deepEqual(
+    [...f.manager.getActiveDownloadIds()].sort(),
+    [key(download), key(http)].sort()
+  );
+  assert.equal(f.downloads.get(key(download))?.status, "active");
   assert.equal(f.downloads.get(key(http))?.status, "active");
-  assert.equal(f.requests[0].current(), false);
+  assert.equal(f.requests[0].current(), true);
   assert.equal(f.state.httpStarted.length, 1);
   assert.equal(
     [...f.downloads.values()].filter((entry) => entry.status === "active")
       .length,
-    1
+    2
   );
 });
 
-test("an accepted Epic download queues behind a concurrently resumed non-Epic download", async () => {
+test("an accepted Epic download starts alongside a concurrently resumed non-Epic download", async () => {
   const f = fixture();
   const download = epic("Namespace:Concurrent");
   const http: Download = {
@@ -514,13 +654,14 @@ test("an accepted Epic download queues behind a concurrently resumed non-Epic do
   ]);
   await settle();
   assert.equal(f.manager.getActiveDownloadId(), key(http));
-  assert.equal(f.downloads.get(key(download))?.queued, true);
-  assert.equal(f.requests.length, 0);
+  assert.equal(f.downloads.get(key(download))?.queued, false);
+  assert.equal(f.downloads.get(key(download))?.status, "active");
+  assert.equal(f.requests.length, 1);
   assert.equal(f.state.httpStarted.length, 1);
   assert.equal(
     [...f.downloads.values()].filter((entry) => entry.status === "active")
       .length,
-    1
+    2
   );
 });
 

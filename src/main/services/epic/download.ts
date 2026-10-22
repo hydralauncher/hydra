@@ -434,17 +434,14 @@ export class EpicDownloadService {
     onFailure: (error: unknown) => void,
     isCurrent: () => boolean = () => true
   ): Promise<void> {
-    if (
-      this.active ||
-      this.preparing ||
-      this.removals.has(this.id(download.objectId))
-    )
+    const id = this.id(download.objectId);
+    if (this.active || this.preparing || this.removals.has(id))
       throw new EpicManagedError("operation-in-progress");
     const controller = new AbortController();
     const done = withEpicTiming("download.prepare-runtime", () =>
       this.prepareRuntime(download, onFailure, controller, isCurrent)
     );
-    const preparing = { id: this.id(download.objectId), controller, done };
+    const preparing = { id, controller, done };
     this.preparing = preparing;
     try {
       await done;

@@ -1,6 +1,6 @@
 const THROTTLE_CHECK_INTERVAL_MS = 100;
 
-/** One byte budget, shared by every transfer belonging to a download. */
+/** One byte budget shared by every transfer belonging to a download. */
 export class DownloadThrottle {
   private limit: number | null = null;
   private updatedAt = Date.now();
