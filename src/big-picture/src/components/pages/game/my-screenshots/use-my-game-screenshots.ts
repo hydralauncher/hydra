@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameShop, LocalScreenshot, ScreenshotSort } from "@types";
 import {
   buildUserScreenshotsPath,
+  createLocalSnapshotGuard,
   isLocalScreenshotForGame,
   mergeMyScreenshots,
   resolveMyGameScreenshotsStatus,
@@ -33,20 +34,22 @@ export function usePendingLocalScreenshots(
   const [screenshots, setScreenshots] = useState<LocalScreenshot[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
-  const snapshotVersionRef = useRef(0);
+  const snapshotGuardRef = useRef(createLocalSnapshotGuard());
 
   const load = useCallback(() => {
-    const version = snapshotVersionRef.current;
+    const snapshots = snapshotGuardRef.current;
+    const startedAt = snapshots.beginRead();
     return myGameScreenshotsLocal
       .getLocalScreenshotsForGame(shop, objectId)
       .then((items) => {
-        if (snapshotVersionRef.current === version) setScreenshots(items);
+        if (!snapshots.isCurrentRead(startedAt)) return;
+        setScreenshots(items);
         setHasFailed(false);
         setHasLoaded(true);
       })
       .catch((error: unknown) => {
         logger.error("Failed to load local screenshots for the game", error);
-        if (snapshotVersionRef.current !== version) return;
+        if (!snapshots.isCurrentRead(startedAt)) return;
         setHasFailed(true);
         setHasLoaded(true);
       });
@@ -61,6 +64,8 @@ export function usePendingLocalScreenshots(
   useEffect(() => {
     if (!isEnabled) return;
     let isCurrent = true;
+    const snapshots = createLocalSnapshotGuard();
+    snapshotGuardRef.current = snapshots;
 
     const loadIfCurrent = () => {
       if (isCurrent) void load();
@@ -70,7 +75,7 @@ export function usePendingLocalScreenshots(
     const unsubscribeLocal = myGameScreenshotsLocal.onLocalScreenshotsChange(
       (items) => {
         if (!isCurrent) return;
-        snapshotVersionRef.current += 1;
+        snapshots.noteSnapshot();
         setScreenshots(
           items.filter((item) => isLocalScreenshotForGame(item, shop, objectId))
         );
