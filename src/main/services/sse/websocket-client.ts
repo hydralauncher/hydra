@@ -16,7 +16,14 @@ export type RealtimeEnvelope = RealtimeEnvelopeBase &
       }
     | {
         event: "friendGameSession";
-        payload: { objectId: string; shop: string; friendId: string };
+        payload: {
+          objectId: string;
+          shop: string;
+          friendId: string;
+          displayName?: string;
+          profileImageUrl?: string | null;
+          gameTitle?: string | null;
+        };
       }
     | {
         event: "friendPresence";

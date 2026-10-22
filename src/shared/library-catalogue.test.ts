@@ -187,6 +187,17 @@ describe("library catalogue presentation", () => {
     );
   });
 
+  it("takes artwork selections from the member that provides the artwork", () => {
+    const epic = makeGame({
+      executablePath: "epic.exe",
+      selectedArtworkTypes: ["hero", "logo"],
+    });
+    const steam = makeGame({ id: "steam:123", shop: "steam", objectId: "123" });
+    const [group] = groupLibraryGames([epic, steam]);
+    assert.equal(group.operationalGame, epic);
+    assert.equal(group.selectedArtworkTypes, undefined);
+  });
+
   it("keeps Epic-only catalogue and unrelated same-title games separate", () => {
     const epic = makeGame({
       catalogueGame: { shop: "epic", objectId: "namespace:item" },

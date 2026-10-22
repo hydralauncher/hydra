@@ -2377,6 +2377,11 @@
     "minimize": "Свернуть",
     "close": "Закрыть"
   },
+  "leaderboard": {
+    "medal_gold": "1-е место, золото",
+    "medal_silver": "2-е место, серебро",
+    "medal_bronze": "3-е место, бронза"
+  },
   "screenshots_input": {
     "gamepad_combo_too_long": "Используйте не больше 4 кнопок в комбинации для скриншота",
     "gamepad_combo_too_short": "Используйте хотя бы 2 кнопки в комбинации для скриншота",

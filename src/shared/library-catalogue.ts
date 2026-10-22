@@ -155,6 +155,7 @@ const projectGroup = (
     coverImageUrl: presentationGame.coverImageUrl,
     logoPosition: presentationGame.logoPosition,
     downloadSources: presentationGame.downloadSources,
+    selectedArtworkTypes: presentationGame.selectedArtworkTypes,
     achievementCount: operationalGame.achievementCount,
     unlockedAchievementCount: operationalGame.unlockedAchievementCount,
     customIconUrl: custom("customIconUrl"),
