@@ -2561,5 +2561,10 @@
     "next": "Próximo",
     "explore": "Explorar",
     "dont_show_again": "Não mostrar novamente"
+  },
+  "leaderboard": {
+    "medal_gold": "1º lugar, ouro",
+    "medal_silver": "2º lugar, prata",
+    "medal_bronze": "3º lugar, bronze"
   }
 }

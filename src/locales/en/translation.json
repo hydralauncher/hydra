@@ -2557,5 +2557,10 @@
     "show_spoiler_image_of": "Show spoiler image {{index}} of {{count}}",
     "image": "Image",
     "close_image": "Close image"
+  },
+  "leaderboard": {
+    "medal_gold": "1st place, gold",
+    "medal_silver": "2nd place, silver",
+    "medal_bronze": "3rd place, bronze"
   }
 }
