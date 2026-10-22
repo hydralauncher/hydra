@@ -91,6 +91,12 @@ $screenshot-lightbox-hover-duration: 0.2s;
   }
 }
 
+.screenshot-lightbox__description-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
 .screenshot-viewer-sidebar {
   display: flex;
   flex: 1;

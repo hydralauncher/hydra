@@ -18,3 +18,9 @@
     margin-top: calc(var(--spacing-unit) * 2);
   }
 }
+
+.screenshot-manage-modal__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}

@@ -103,8 +103,10 @@ function getUploadStatusKey(screenshot: LocalScreenshot | undefined) {
   if (!screenshot) return "screenshots_review_upload_queued";
   if (screenshot.state === "failed") return "screenshots_review_upload_failed";
   if (screenshot.state === "uploaded") {
-    return screenshot.moderationStatus === "BLOCKED"
-      ? "screenshots_review_upload_blocked"
+    if (screenshot.moderationStatus === "BLOCKED")
+      return "screenshots_review_upload_blocked";
+    return screenshot.moderationStatus === "APPROVED"
+      ? "screenshots:uploaded"
       : "screenshots_review_upload_done";
   }
   if (screenshot.state === "uploading")

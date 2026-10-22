@@ -6,19 +6,21 @@ import type {
   ScreenshotUnlikeResponse,
   ScreenshotReportValues,
   ScreenshotUpdateRequest,
+  ScreenshotUpdateResponse,
 } from "@types";
 import {
   AuthPage,
   buildProfileScreenshotPath,
   buildUserScreenshotLikePath,
   buildUserScreenshotReportPath,
+  getEditedScreenshotFields,
   getScreenshotApiErrorCode,
   type ScreenshotPatch,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
 import { useBigPictureToast } from "../../../../hooks";
-import { getEditedScreenshotFields, getScreenshotErrorKey } from "../helpers";
+import { getScreenshotErrorKey } from "../helpers";
 
 const getLikePatch = (
   response: ScreenshotLikeResponse | ScreenshotUnlikeResponse
@@ -45,7 +47,8 @@ export function useLightboxSocialActions({
   onUnavailable,
 }: LightboxSocialOptions) {
   const { t } = useTranslation("big_picture");
-  const { showErrorToast, showSuccessToast } = useBigPictureToast();
+  const { showErrorToast, showSuccessToast, showWarningToast } =
+    useBigPictureToast();
   const [likingIds, setLikingIds] = useState<Set<string>>(new Set());
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
   const [isReporting, setIsReporting] = useState(false);
@@ -162,7 +165,7 @@ export function useLightboxSocialActions({
 
       try {
         const updated =
-          await globalThis.window.electron.hydraApi.patch<ProfileScreenshot>(
+          await globalThis.window.electron.hydraApi.patch<ScreenshotUpdateResponse>(
             buildProfileScreenshotPath(screenshot.id),
             { data: update, needsAuth: true }
           );
@@ -170,7 +173,20 @@ export function useLightboxSocialActions({
           screenshot.id,
           getEditedScreenshotFields(update, updated ?? null)
         );
-        showSuccessToast(t("screenshots_saved"), SETTINGS_TOAST);
+        const moderation = updated?.textModeration;
+        if (moderation?.title === "hidden") {
+          showWarningToast(
+            t("title_not_allowed", { ns: "screenshots" }),
+            SETTINGS_TOAST
+          );
+        } else if (moderation?.description === "hidden") {
+          showWarningToast(
+            t("description_only_visible_to_you", { ns: "screenshots" }),
+            SETTINGS_TOAST
+          );
+        } else {
+          showSuccessToast(t("screenshots_saved"), SETTINGS_TOAST);
+        }
         return true;
       } catch (error) {
         showError(error);
@@ -179,7 +195,7 @@ export function useLightboxSocialActions({
         setIsSaving(false);
       }
     },
-    [onUpdate, screenshot, showError, showSuccessToast, t]
+    [onUpdate, screenshot, showError, showSuccessToast, showWarningToast, t]
   );
 
   const remove = useCallback(async () => {

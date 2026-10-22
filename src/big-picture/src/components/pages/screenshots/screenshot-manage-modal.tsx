@@ -150,6 +150,12 @@ export function ScreenshotManageModal({
             )
           }
         />
+        {screenshot.descriptionModerationStatus === "BLOCKED" &&
+        description === (screenshot.description ?? "") ? (
+          <p className="screenshot-manage-modal__note">
+            {t("description_only_visible_to_you", { ns: "screenshots" })}
+          </p>
+        ) : null}
 
         <Checkbox
           block

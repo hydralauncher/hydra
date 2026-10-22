@@ -452,7 +452,8 @@ export function ScreenshotCommentsPanel({
   onCommentCountChange,
 }: Readonly<ScreenshotCommentsPanelProps>) {
   const { t, i18n } = useTranslation("big_picture");
-  const { showErrorToast, showSuccessToast } = useBigPictureToast();
+  const { showErrorToast, showSuccessToast, showWarningToast } =
+    useBigPictureToast();
   const { setFocus } = useNavigation();
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const focusIds = getScreenshotCommentsPanelFocusIds(screenshot.id);
@@ -513,6 +514,12 @@ export function ScreenshotCommentsPanel({
     [recordWrite, setComments]
   );
 
+  const showHiddenCommentToast = useCallback(() => {
+    showWarningToast(t("comment_only_visible_to_you", { ns: "screenshots" }), {
+      fallbackVisual: "settings",
+    });
+  }, [showWarningToast, t]);
+
   const submit = useCallback(
     async (html: string) => {
       const bodyHtml = normalizeScreenshotCommentBody(html);
@@ -535,6 +542,12 @@ export function ScreenshotCommentsPanel({
             editingComment.id,
             updated ?? { bodyHtml, editedAt: Date.now() }
           );
+          if (updated && updated.isHidden !== editingComment.isHidden) {
+            const delta = updated.isHidden ? -1 : 1;
+            setTotal((current) => Math.max(0, current + delta));
+            onCommentCountChange(screenshot.id, delta);
+          }
+          if (updated?.isHidden) showHiddenCommentToast();
           setEditingComment(null);
           return true;
         }
@@ -544,7 +557,10 @@ export function ScreenshotCommentsPanel({
             buildUserScreenshotCommentsPath(ownerId, screenshot.id),
             { data: { bodyHtml }, needsAuth: true }
           );
-        if (created) {
+        if (created?.isHidden) {
+          setComments((current) => [created, ...current]);
+          showHiddenCommentToast();
+        } else if (created) {
           recordWrite({ kind: "add", comment: created });
           setComments((current) => [created, ...current]);
           setTotal((current) => current + 1);
@@ -569,6 +585,7 @@ export function ScreenshotCommentsPanel({
       setComments,
       setTotal,
       showError,
+      showHiddenCommentToast,
     ]
   );
 
