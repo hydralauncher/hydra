@@ -1,0 +1,184 @@
+import { useCallback, useMemo, useState } from "react";
+import cn from "classnames";
+import { GlobeIcon, PeopleIcon, TrophyIcon } from "@primer/octicons-react";
+import { SkeletonTheme } from "react-loading-skeleton";
+import { useTranslation } from "react-i18next";
+
+import { SegmentedControl } from "../game-details/leaderboard/leaderboard-controls";
+import {
+  getAvailableMetrics,
+  GLOBAL_LEADERBOARD_PERIODS,
+  GLOBAL_LEADERBOARD_SCOPES,
+  LEADERBOARD_PAGE_TABS,
+  resolveWeekRange,
+  type GlobalLeaderboardMetric,
+  type GlobalLeaderboardPeriod,
+  type GlobalLeaderboardScope,
+  type LeaderboardPageTab,
+} from "./global-leaderboard";
+import { leaderboardsCache, useLeaderboardViewer } from "./leaderboards-api";
+import { BadgesSection } from "./badges-section";
+import { ByGameTab } from "./by-game-tab";
+import { RankingTab } from "./ranking-tab";
+import { StatsTab } from "./stats-tab";
+import { useGlobalLeaderboards } from "./use-global-leaderboards";
+import { useGlobalLeaderboardValue } from "./use-global-leaderboard-value";
+import { WeekSubtitle } from "./week-subtitle";
+import "../game-details/leaderboard/leaderboard.scss";
+import "./leaderboards.scss";
+
+export default function Leaderboards() {
+  const { t } = useTranslation("leaderboards");
+  const [requestedTab, setTab] = useState<LeaderboardPageTab>("ranking");
+  const [requestedMetric, setMetric] =
+    useState<GlobalLeaderboardMetric>("playtime");
+  const [period, setPeriod] = useState<GlobalLeaderboardPeriod>("week");
+  const [requestedScope, setScope] = useState<GlobalLeaderboardScope>("global");
+  const [generation, setGeneration] = useState(0);
+
+  const { viewerUser, isLoggedIn } = useLeaderboardViewer();
+  const scope = isLoggedIn ? requestedScope : "global";
+  const tab = isLoggedIn ? requestedTab : "ranking";
+  const tabs = isLoggedIn
+    ? LEADERBOARD_PAGE_TABS
+    : LEADERBOARD_PAGE_TABS.slice(0, 1);
+
+  const { results, retry } = useGlobalLeaderboards({
+    period,
+    scope,
+    isLoggedIn,
+  });
+  const formatValue = useGlobalLeaderboardValue();
+
+  const availableMetrics = useMemo(
+    () => getAvailableMetrics(results),
+    [results]
+  );
+  const metric = availableMetrics.includes(requestedMetric)
+    ? requestedMetric
+    : availableMetrics[0];
+
+  const playtimeBoard = results.playtime.leaderboard;
+  const weekRange = useMemo(
+    () => resolveWeekRange(playtimeBoard, Date.now()),
+    [playtimeBoard]
+  );
+
+  const handleWeekEnd = useCallback(() => {
+    leaderboardsCache.clear();
+    retry();
+    setGeneration((value) => value + 1);
+  }, [retry]);
+
+  const scopeIcons: Record<GlobalLeaderboardScope, React.ReactNode> = {
+    global: <GlobeIcon size={14} />,
+    friends: <PeopleIcon size={14} />,
+  };
+
+  const openMetric = (value: GlobalLeaderboardMetric) => {
+    setMetric(value);
+    setTab("ranking");
+  };
+
+  return (
+    <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
+      <section className="leaderboards">
+        <header className="leaderboards__header">
+          <div className="leaderboards__heading">
+            <h1 className="leaderboards__title">{t("title")}</h1>
+            <WeekSubtitle
+              weekRange={weekRange}
+              isAllTime={period === "all"}
+              onWeekEnd={handleWeekEnd}
+            />
+          </div>
+
+          <div className="leaderboards__toggles leaderboard-controls__row">
+            {isLoggedIn && (
+              <SegmentedControl
+                label={t("scope_label")}
+                value={scope}
+                onChange={setScope}
+                options={GLOBAL_LEADERBOARD_SCOPES.map((id) => ({
+                  id,
+                  label: t(`scope_${id}`),
+                  icon: scopeIcons[id],
+                }))}
+              />
+            )}
+
+            <SegmentedControl
+              label={t("period_label")}
+              value={period}
+              onChange={setPeriod}
+              options={GLOBAL_LEADERBOARD_PERIODS.map((id) => ({
+                id,
+                label: t(`period_${id}`),
+              }))}
+            />
+          </div>
+        </header>
+
+        <div
+          className="leaderboards__tabs"
+          role="tablist"
+          aria-label={t("tabs_label")}
+        >
+          {tabs.map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={id === tab}
+              className={cn("leaderboards__tab", {
+                "leaderboards__tab--selected": id === tab,
+              })}
+              onClick={() => setTab(id)}
+            >
+              {t(`tab_${id}`)}
+            </button>
+          ))}
+        </div>
+
+        <div key={generation} className="leaderboards__content">
+          {tab === "ranking" && (
+            <RankingTab
+              results={results}
+              metrics={availableMetrics}
+              metric={metric}
+              onMetricChange={setMetric}
+              period={period}
+              scope={scope}
+              viewerUser={viewerUser}
+              formatValue={formatValue}
+              onRetry={retry}
+            />
+          )}
+
+          {tab === "games" && (
+            <ByGameTab period={period} scope={scope} viewerUser={viewerUser} />
+          )}
+
+          {tab === "stats" && (
+            <StatsTab
+              results={results}
+              metrics={availableMetrics}
+              period={period}
+              viewerUser={viewerUser}
+              onOpenMetric={openMetric}
+            />
+          )}
+
+          {isLoggedIn ? (
+            <BadgesSection />
+          ) : (
+            <p className="leaderboards__sign-in">
+              <TrophyIcon size={14} />
+              {t("sign_in_hint")}
+            </p>
+          )}
+        </div>
+      </section>
+    </SkeletonTheme>
+  );
+}
