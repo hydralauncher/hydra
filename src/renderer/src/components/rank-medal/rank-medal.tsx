@@ -44,7 +44,7 @@ export function RankMedal({
         } as React.CSSProperties
       }
       role="img"
-      aria-label={t(`medal_${tier}`, { rank })}
+      aria-label={t(`medal_${tier}`)}
     >
       <svg
         className="rank-medal__icon"
@@ -62,6 +62,14 @@ export function RankMedal({
         </text>
       </svg>
       <span className="rank-medal__shine" aria-hidden="true" />
+    </span>
+  );
+}
+
+export function RankFrameRing() {
+  return (
+    <span className="rank-frame__ring" aria-hidden="true">
+      <span className="rank-frame__spinner" />
     </span>
   );
 }
