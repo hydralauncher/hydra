@@ -53,6 +53,7 @@ export const routes = [
   {
     path: "/leaderboards",
     nameKey: "leaderboards",
+    isGlobalLeaderboards: true,
     render: () => <LeaderboardsIcon />,
   },
   {

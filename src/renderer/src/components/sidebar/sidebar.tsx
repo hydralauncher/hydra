@@ -19,6 +19,7 @@ import {
 } from "@renderer/hooks";
 import { selectIsLibraryLoading } from "@renderer/features";
 import { routes } from "./routes";
+import { useGlobalLeaderboardsFeature } from "@renderer/pages/leaderboards/leaderboards-api";
 
 import "./sidebar.scss";
 
@@ -86,6 +87,8 @@ const readStoredSidebarPlatforms = (): string[] => {
 
 export function Sidebar() {
   const { t } = useTranslation(["sidebar", "library"]);
+  const { isEnabled: isGlobalLeaderboardsEnabled } =
+    useGlobalLeaderboardsFeature();
   const { library, updateLibrary } = useLibrary();
   const isLibraryLoading = useAppSelector(selectIsLibraryLoading);
   const runningGameId = useAppSelector(
@@ -515,23 +518,28 @@ export function Sidebar() {
         <div className="sidebar__content">
           <section className="sidebar__section">
             <ul className="sidebar__menu">
-              {routes.map(({ nameKey, path, render }) => (
-                <li
-                  key={nameKey}
-                  className={cn("sidebar__menu-item", {
-                    "sidebar__menu-item--active": location.pathname === path,
-                  })}
-                >
-                  <button
-                    type="button"
-                    className="sidebar__menu-item-button"
-                    onClick={() => handleSidebarItemClick(path)}
+              {routes
+                .filter(
+                  (route) =>
+                    !route.isGlobalLeaderboards || isGlobalLeaderboardsEnabled
+                )
+                .map(({ nameKey, path, render }) => (
+                  <li
+                    key={nameKey}
+                    className={cn("sidebar__menu-item", {
+                      "sidebar__menu-item--active": location.pathname === path,
+                    })}
                   >
-                    {render()}
-                    <span>{t(nameKey)}</span>
-                  </button>
-                </li>
-              ))}
+                    <button
+                      type="button"
+                      className="sidebar__menu-item-button"
+                      onClick={() => handleSidebarItemClick(path)}
+                    >
+                      {render()}
+                      <span>{t(nameKey)}</span>
+                    </button>
+                  </li>
+                ))}
 
               {window.electron.platform === "linux" && homebrewFolderExists && (
                 <li className="sidebar__menu-item sidebar__menu-item--decky">

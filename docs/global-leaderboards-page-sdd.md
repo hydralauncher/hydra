@@ -83,7 +83,7 @@ Until each dependency exists, its block uses the local mock; switching to the re
 7. **Order and eligibility** come from the backend (profile photo required on global, subscriber tie-break; LBX-1259 addendum A). The launcher does not reorder.
 8. **Period = Week / All time**, as in the design. The launcher sends `window=week|all`.
 9. **Gamification colour**: the cyan to violet gradient (`#22c7ee` → `#b05cff`) marks progress and streaks: flames, heatmap, streak badge, badge progress bars, ranking bars, and the like and star icons on reviews. Medals, ▲▼ colours and the leader trophy keep their own colours.
-10. **No feature flag** for now: the sidebar item shows as soon as the branch ships (decided).
+10. **`GLOBAL_LEADERBOARDS` feature flag** (decided after review): while it is off, the sidebar item and the game page "View full ranking" link are hidden and `/leaderboards` redirects home without fetching. The API turns it on once the endpoints listed above ship.
 
 ## Performance and backend behaviour
 

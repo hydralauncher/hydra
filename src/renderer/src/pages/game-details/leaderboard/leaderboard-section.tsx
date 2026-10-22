@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { useFeature } from "@renderer/hooks";
+import { useGlobalLeaderboardsFeature } from "../../leaderboards/leaderboards-api";
 import { AuthPage } from "@shared";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import {
@@ -37,6 +38,8 @@ export function LeaderboardSection() {
   const { t } = useTranslation("leaderboard");
   const { catalogueGame } = useContext(gameDetailsContext);
   const navigate = useNavigate();
+  const { isEnabled: isGlobalLeaderboardsEnabled } =
+    useGlobalLeaderboardsFeature();
   const { isFeatureEnabled, Feature } = useFeature();
   const isExtended = isFeatureEnabled(Feature.GameLeaderboardsExtended);
   const formatValue = useLeaderboardValue();
@@ -222,21 +225,23 @@ export function LeaderboardSection() {
 
         <div className="leaderboard-section__footer">
           {renderNudge()}
-          <button
-            type="button"
-            className="leaderboard-section__see-all"
-            onClick={() =>
-              navigate(
-                buildGameLeaderboardPath(
-                  catalogueGame.shop,
-                  catalogueGame.objectId
+          {isGlobalLeaderboardsEnabled && (
+            <button
+              type="button"
+              className="leaderboard-section__see-all"
+              onClick={() =>
+                navigate(
+                  buildGameLeaderboardPath(
+                    catalogueGame.shop,
+                    catalogueGame.objectId
+                  )
                 )
-              )
-            }
-          >
-            {t("see_full_ranking")}
-            <ArrowRightIcon size={14} />
-          </button>
+              }
+            >
+              {t("see_full_ranking")}
+              <ArrowRightIcon size={14} />
+            </button>
+          )}
         </div>
       </>
     );

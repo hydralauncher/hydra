@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { logger } from "@renderer/logger";
-import { useUserDetails } from "@renderer/hooks";
+import { useFeature, useUserDetails } from "@renderer/hooks";
 import type {
   LeaderboardGet,
   LeaderboardRequestOptions,
@@ -13,6 +13,15 @@ const leaderboardsGet: LeaderboardGet = (path, options) =>
   globalThis.window.electron.hydraApi.get<unknown>(path, options);
 
 export const leaderboardsCache = createResponseCache(leaderboardsGet);
+
+export function useGlobalLeaderboardsFeature() {
+  const { isFeatureEnabled, isFeaturesLoaded, Feature } = useFeature();
+
+  return {
+    isEnabled: isFeatureEnabled(Feature.GlobalLeaderboards),
+    isLoaded: isFeaturesLoaded,
+  };
+}
 
 export function useLeaderboardViewer() {
   const { userDetails } = useUserDetails();

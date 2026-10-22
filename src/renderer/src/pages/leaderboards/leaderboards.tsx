@@ -3,7 +3,7 @@ import cn from "classnames";
 import { GlobeIcon, PeopleIcon, TrophyIcon } from "@primer/octicons-react";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 
 import { SegmentedControl } from "../game-details/leaderboard/leaderboard-controls";
 import {
@@ -17,7 +17,11 @@ import {
   type GlobalLeaderboardScope,
   type LeaderboardPageTab,
 } from "./global-leaderboard";
-import { leaderboardsCache, useLeaderboardViewer } from "./leaderboards-api";
+import {
+  leaderboardsCache,
+  useGlobalLeaderboardsFeature,
+  useLeaderboardViewer,
+} from "./leaderboards-api";
 import { BadgesSection } from "./badges-section";
 import { ByGameTab, type LinkedGame } from "./by-game-tab";
 import { RankingTab } from "./ranking-tab";
@@ -28,7 +32,7 @@ import { WeekSubtitle } from "./week-subtitle";
 import "../game-details/leaderboard/leaderboard.scss";
 import "./leaderboards.scss";
 
-export default function Leaderboards() {
+function LeaderboardsPage() {
   const { t } = useTranslation("leaderboards");
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -218,4 +222,12 @@ export default function Leaderboards() {
       </section>
     </SkeletonTheme>
   );
+}
+
+export default function Leaderboards() {
+  const { isEnabled, isLoaded } = useGlobalLeaderboardsFeature();
+
+  if (!isEnabled) return isLoaded ? <Navigate to="/" replace /> : null;
+
+  return <LeaderboardsPage />;
 }
