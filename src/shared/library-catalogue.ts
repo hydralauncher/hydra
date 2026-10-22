@@ -95,6 +95,9 @@ export type RemoveFilesTarget =
 
 const STEAM_APP_ID_PATTERN = /^[1-9]\d{0,9}$/;
 
+export const isValidSteamAppId = (appId: string) =>
+  STEAM_APP_ID_PATTERN.test(appId);
+
 export const isSameRemoveFilesTarget = (
   target: RemoveFilesTarget,
   other: RemoveFilesTarget
@@ -146,7 +149,7 @@ export const getRemoveFilesTarget = (
   if (
     !steamMember ||
     !isSteamLibraryExecutable ||
-    !STEAM_APP_ID_PATTERN.test(steamMember.objectId)
+    !isValidSteamAppId(steamMember.objectId)
   ) {
     return null;
   }

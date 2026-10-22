@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AuthPage } from "@shared";
+import { AuthPage, type RemoveFilesTarget } from "@shared";
 import {
   PlayIcon,
   DownloadIcon,
@@ -28,6 +28,7 @@ import {
   ContextMenuProps,
   ConfirmationModal,
   CreateCollectionModal,
+  SteamUninstallModal,
   useGameActions,
 } from "..";
 import {
@@ -36,6 +37,7 @@ import {
   useUserDetails,
   useLibrary,
   useLibraryGamePresentation,
+  useSteamUninstallAction,
 } from "@renderer/hooks";
 import { applyLibraryGroupAction } from "@shared";
 import { useCollectionContextMenu } from "@renderer/context";
@@ -71,11 +73,13 @@ export function GameContextMenu({
   const { userDetails } = useUserDetails();
   const group = useLibraryGamePresentation(game);
   const preferenceGame = group ?? game;
-  const { updateLibrary } = useLibrary();
+  const { library, updateLibrary } = useLibrary();
   const [searchParams] = useSearchParams();
   const [showConfirmRemoveLibrary, setShowConfirmRemoveLibrary] =
     useState(false);
   const [showConfirmRemoveFiles, setShowConfirmRemoveFiles] = useState(false);
+  const [pendingSteamUninstallTarget, setPendingSteamUninstallTarget] =
+    useState<RemoveFilesTarget | null>(null);
   const [showCreateCollectionModal, setShowCreateCollectionModal] =
     useState(false);
   const [localCollectionIds, setLocalCollectionIds] = useState<string[]>(() =>
@@ -127,6 +131,44 @@ export function GameContextMenu({
   } = useGameActions(game);
   const { isCollectionContextMenuOrModalOpen } = useCollectionContextMenu();
   const selectedCollectionId = searchParams.get("collection");
+
+  const targetSource =
+    group ??
+    library.find(
+      (item) => item.shop === game.shop && item.objectId === game.objectId
+    );
+  const hydraRemoveFilesAvailable = Boolean(
+    downloadGame.download?.downloadPath
+  );
+  const { steamUninstallTarget, isSteamProbePending, handleSteamUninstall } =
+    useSteamUninstallAction(
+      targetSource,
+      visible && !hydraRemoveFilesAvailable
+    );
+  const showRemoveFiles =
+    hydraRemoveFilesAvailable ||
+    isSteamProbePending ||
+    steamUninstallTarget !== null;
+  const removeFilesDisabled =
+    isDeleting ||
+    isDownloadDeleting ||
+    isGameDownloading ||
+    (!hydraRemoveFilesAvailable && isSteamProbePending);
+
+  const handleCloseContextMenu = () => {
+    setShowConfirmRemoveLibrary(false);
+    setShowConfirmRemoveFiles(false);
+    setPendingSteamUninstallTarget(null);
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!visible) {
+      setShowConfirmRemoveLibrary(false);
+      setShowConfirmRemoveFiles(false);
+      setPendingSteamUninstallTarget(null);
+    }
+  }, [visible]);
 
   useEffect(() => {
     if (!visible || !userDetails) return;
@@ -455,14 +497,22 @@ export function GameContextMenu({
           danger: true,
           closeOnClick: false,
         },
-        ...(downloadGame.download?.downloadPath
+        ...(showRemoveFiles
           ? [
               {
                 id: "remove-files",
                 label: t("remove_files"),
                 icon: <TrashIcon size={16} />,
-                onClick: () => setShowConfirmRemoveFiles(true),
-                disabled: isDeleting || isDownloadDeleting || isGameDownloading,
+                onClick: () => {
+                  if (hydraRemoveFilesAvailable) {
+                    setShowConfirmRemoveFiles(true);
+                    return;
+                  }
+                  if (steamUninstallTarget) {
+                    setPendingSteamUninstallTarget(steamUninstallTarget);
+                  }
+                },
+                disabled: removeFilesDisabled,
                 danger: true,
                 closeOnClick: false,
               },
@@ -481,7 +531,11 @@ export function GameContextMenu({
   ];
 
   let forceOpenSubmenuId: string | undefined;
-  if (showConfirmRemoveLibrary || showConfirmRemoveFiles) {
+  if (
+    showConfirmRemoveLibrary ||
+    showConfirmRemoveFiles ||
+    pendingSteamUninstallTarget !== null
+  ) {
     forceOpenSubmenuId = "manage";
   } else if (isCollectionContextMenuOrModalOpen || showCreateCollectionModal) {
     forceOpenSubmenuId = "collection";
@@ -493,7 +547,7 @@ export function GameContextMenu({
         items={items}
         visible={visible}
         position={position}
-        onClose={onClose}
+        onClose={handleCloseContextMenu}
         forceOpenSubmenuId={forceOpenSubmenuId}
         className={
           !game.executablePath ? "context-menu--game-not-installed" : undefined
@@ -543,6 +597,17 @@ export function GameContextMenu({
           setShowConfirmRemoveFiles(false);
           onClose();
           void handleRemoveFiles();
+        }}
+      />
+
+      <SteamUninstallModal
+        visible={pendingSteamUninstallTarget !== null}
+        gameTitle={pendingSteamUninstallTarget?.game.title ?? game.title}
+        onClose={() => setPendingSteamUninstallTarget(null)}
+        onConfirm={() => {
+          const target = pendingSteamUninstallTarget;
+          handleCloseContextMenu();
+          if (target) void handleSteamUninstall(target);
         }}
       />
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { LibraryGame } from "@types";
 
-type SteamLibraryExecutableGame = Pick<
+export type SteamLibraryExecutableGame = Pick<
   LibraryGame,
   "shop" | "objectId" | "hasActiveSteamImport" | "executablePath"
 >;
@@ -11,22 +11,35 @@ interface SteamLibraryExecutableCheck {
   value: boolean;
 }
 
-export function useIsSteamLibraryExecutable(
-  game: SteamLibraryExecutableGame | null | undefined
-) {
-  const [checked, setChecked] = useState<SteamLibraryExecutableCheck | null>(
-    null
-  );
-
+export const getSteamLibraryExecutableCheckKey = (
+  game: SteamLibraryExecutableGame | null | undefined,
+  enabled = true
+) => {
   const shop = game?.shop;
   const objectId = game?.objectId;
   const hasActiveSteamImport = game?.hasActiveSteamImport;
   const executablePath = game?.executablePath;
 
-  const checkKey =
-    shop === "steam" && hasActiveSteamImport && objectId && executablePath
-      ? JSON.stringify([objectId, executablePath])
-      : null;
+  return enabled &&
+    shop === "steam" &&
+    hasActiveSteamImport &&
+    objectId &&
+    executablePath
+    ? JSON.stringify([objectId, executablePath])
+    : null;
+};
+
+export function useIsSteamLibraryExecutable(
+  game: SteamLibraryExecutableGame | null | undefined,
+  enabled = true
+) {
+  const [checked, setChecked] = useState<SteamLibraryExecutableCheck | null>(
+    null
+  );
+
+  const objectId = game?.objectId;
+  const executablePath = game?.executablePath;
+  const checkKey = getSteamLibraryExecutableCheckKey(game, enabled);
 
   useEffect(() => {
     if (!checkKey || !objectId || !executablePath) {
@@ -52,5 +65,6 @@ export function useIsSteamLibraryExecutable(
     };
   }, [checkKey, objectId, executablePath]);
 
+  if (!enabled || !checkKey) return null;
   return checked?.key === checkKey ? checked.value : null;
 }
