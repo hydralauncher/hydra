@@ -105,7 +105,7 @@ export const selectLoadedLeaderboard = (
   boardKey: string,
   fallback: Pick<LoadedLeaderboard, "period" | "scope" | "metric">
 ) => {
-  if (!loaded || loaded.boardKey !== boardKey) {
+  if (loaded?.boardKey !== boardKey) {
     return { leaderboard: null, ...fallback };
   }
 
@@ -346,7 +346,7 @@ export const getLeaderboardCacheKey = (query: LeaderboardQuery) => {
   const { path, options } = buildLeaderboardRequest(query);
   const params = Object.entries(options.params)
     .map(([key, value]) => `${key}=${value}`)
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .join("&");
 
   return `${path}?${params}|viewer=${query.viewerId ?? "anonymous"}`;
@@ -372,7 +372,7 @@ export const createLeaderboardFetcher = (
     }
 
     const pending = inFlight.get(key);
-    if (pending) return pending;
+    if (pending !== undefined) return pending;
 
     const { path, options } = buildLeaderboardRequest(query);
     const request = get(path, options)
