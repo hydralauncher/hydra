@@ -19,7 +19,7 @@ export function LevelBox({ level }: Readonly<{ level: LevelProgress }>) {
   return (
     <div className="level-box">
       <div ref={halo.hostRef} className="level-box__seal" {...halo.handlers}>
-        <LevelSeal level={level.level} size={119} preview={halo.intensity} />
+        <LevelSeal level={level.level} size={119} />
         <canvas
           ref={halo.canvasRef}
           className="level-box__halo"

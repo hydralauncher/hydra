@@ -1,13 +1,11 @@
 import { useEffect, useRef } from "react";
 import { GAMIFICATION_PALETTE, LEVEL_SEAL_STAGES } from "./gamification-art";
-import { BAYER_4X4, getLevelSealStage, mixHex } from "./gamification-colors";
+import { getLevelSealStage, mixHex } from "./gamification-colors";
 import { prepareCrispCanvas } from "./pixel-art";
 
 export interface LevelSealProps {
   level: number;
   size: number;
-  /** 0..1: dithers the art toward the next stage (hover preview). */
-  preview?: number;
   className?: string;
 }
 
@@ -18,13 +16,11 @@ const BRIGHT_ART_STAGE = 9;
 export function LevelSeal({
   level,
   size,
-  preview = 0,
   className,
 }: Readonly<LevelSealProps>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageIndex = getLevelSealStage(level);
   const stage = LEVEL_SEAL_STAGES[stageIndex];
-  const nextStage = LEVEL_SEAL_STAGES[stageIndex + 1] ?? null;
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -55,35 +51,30 @@ export function LevelSeal({
         cells - 1 - x + (cells - 1 - y)
       ) < 2;
 
-    const plateColor = (x: number, y: number) => {
-      const isEdge =
-        x === 0 ||
-        y === 0 ||
-        x === cells - 1 ||
-        y === cells - 1 ||
-        isCut(x - 1, y) ||
-        isCut(x + 1, y) ||
-        isCut(x, y - 1) ||
-        isCut(x, y + 1);
-      if (isEdge) return palette.rim;
-      return x + y >= cells + 2 && (x + y) % 2 === 0
-        ? palette.dither
-        : palette.fill;
-    };
-
     for (let y = 0; y < cells; y++) {
       for (let x = 0; x < cells; x++) {
         if (isCut(x, y)) continue;
 
-        let color = plateColor(x, y);
+        const isEdge =
+          x === 0 ||
+          y === 0 ||
+          x === cells - 1 ||
+          y === cells - 1 ||
+          isCut(x - 1, y) ||
+          isCut(x + 1, y) ||
+          isCut(x, y - 1) ||
+          isCut(x, y + 1);
+
+        let color = isEdge
+          ? palette.rim
+          : x + y >= cells + 2 && (x + y) % 2 === 0
+            ? palette.dither
+            : palette.fill;
+
         const artX = x - 1;
         const artY = y - 1;
         if (artX >= 0 && artY >= 0 && artX < artSize && artY < artSize) {
-          const usesNext =
-            nextStage !== null &&
-            preview > 0 &&
-            BAYER_4X4[artY % 4][artX % 4] < preview * 16;
-          const cell = (usesNext ? nextStage.rows : stage.rows)[artY][artX];
+          const cell = stage.rows[artY][artX];
           if (cell === "#") {
             color =
               stage.soil && artY >= SOIL_START_ROW
@@ -103,7 +94,7 @@ export function LevelSeal({
         );
       }
     }
-  }, [stage, nextStage, stageIndex, size, preview]);
+  }, [stage, stageIndex, size]);
 
   return (
     <canvas
