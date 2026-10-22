@@ -2,9 +2,8 @@ import type { GameShop } from "@types";
 
 export const LEADERBOARD_TAKE = 100;
 export const LEADERBOARD_CARD_SIZE = 5;
-export const LEADERBOARD_CACHE_TTL_MS = 60_000;
-export const LEADERBOARD_CACHE_MAX_ENTRIES = 50;
 export const LEADERBOARD_MIN_PROGRESS = 4;
+const FRACTIONAL_HOURS_LIMIT = 10;
 
 export const LEADERBOARD_PERIODS = ["week", "all"] as const;
 export const LEADERBOARD_SCOPES = ["global", "friends"] as const;
@@ -341,16 +340,6 @@ export const buildLeaderboardRequest = (
   };
 };
 
-export const getLeaderboardCacheKey = (query: LeaderboardQuery) => {
-  const { path, options } = buildLeaderboardRequest(query);
-  const params = Object.entries(options.params)
-    .map(([key, value]) => `${key}=${value}`)
-    .sort((a, b) => a.localeCompare(b))
-    .join("&");
-
-  return `${path}?${params}|viewer=${query.viewerId ?? "anonymous"}`;
-};
-
 const SIGNED_OUT_ERROR_NAME = "UserNotLoggedInError";
 const SIGNED_OUT_ERROR_MESSAGE = "user not logged in";
 
@@ -359,52 +348,66 @@ export const isSignedOutError = (error: unknown) =>
   (error.name === SIGNED_OUT_ERROR_NAME ||
     error.message.includes(SIGNED_OUT_ERROR_MESSAGE));
 
-export const createLeaderboardFetcher = (
+export const fetchGameLeaderboard = async (
   get: LeaderboardGet,
-  now: () => number = Date.now,
-  ttl = LEADERBOARD_CACHE_TTL_MS,
-  maxEntries = LEADERBOARD_CACHE_MAX_ENTRIES
-) => {
-  const cache = new Map<string, { at: number; leaderboard: Leaderboard }>();
-  const inFlight = new Map<string, Promise<Leaderboard>>();
+  query: LeaderboardQuery
+): Promise<Leaderboard> => {
+  if (!isLeaderboardShop(query.shop) || !query.objectId) {
+    return { entries: [], viewer: null };
+  }
 
-  return (query: LeaderboardQuery): Promise<Leaderboard> => {
-    if (!isLeaderboardShop(query.shop) || !query.objectId) {
-      return Promise.resolve({ entries: [], viewer: null });
-    }
+  const { path, options } = buildLeaderboardRequest(query);
+  const response = await get(path, options).catch((error: unknown) => {
+    if (!options.needsAuth || !isSignedOutError(error)) throw error;
+    return get(path, { ...options, needsAuth: false });
+  });
 
-    const key = getLeaderboardCacheKey(query);
-    const cached = cache.get(key);
-    if (cached && now() - cached.at < ttl) {
-      return Promise.resolve(cached.leaderboard);
-    }
-    if (cached) cache.delete(key);
+  return normalizeLeaderboardResponse(response);
+};
 
-    const pending = inFlight.get(key);
-    if (pending !== undefined) return pending;
+export const getDurationParts = (
+  seconds: number,
+  maxMinutes: number
+): { unit: "minutes" | "hours"; amount: number } => {
+  const minutes = seconds / 60;
 
-    const { path, options } = buildLeaderboardRequest(query);
-    const request = get(path, options)
-      .catch((error: unknown) => {
-        if (!options.needsAuth || !isSignedOutError(error)) throw error;
-        return get(path, { ...options, needsAuth: false });
-      })
-      .then((response) => {
-        const leaderboard = normalizeLeaderboardResponse(response);
-        cache.set(key, { at: now(), leaderboard });
-        if (cache.size > maxEntries) {
-          const oldestKey = cache.keys().next().value;
-          if (oldestKey !== undefined) cache.delete(oldestKey);
-        }
-        return leaderboard;
-      })
-      .finally(() => {
-        inFlight.delete(key);
-      });
+  if (minutes < maxMinutes) {
+    return {
+      unit: "minutes",
+      amount: seconds > 0 ? Math.max(1, Math.round(minutes)) : 0,
+    };
+  }
 
-    inFlight.set(key, request);
-    return request;
+  const hours = minutes / 60;
+
+  return {
+    unit: "hours",
+    amount:
+      hours < FRACTIONAL_HOURS_LIMIT
+        ? Math.round(hours * 10) / 10
+        : Math.round(hours),
   };
+};
+
+const durationFormatters = new Map<string, Intl.NumberFormat>();
+
+const getDurationFormatter = (language: string) => {
+  let formatter = durationFormatters.get(language);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(language, { maximumFractionDigits: 1 });
+    durationFormatters.set(language, formatter);
+  }
+
+  return formatter;
+};
+
+export const formatDurationParts = (
+  seconds: number,
+  maxMinutes: number,
+  language: string
+): { unit: "minutes" | "hours"; amount: string } => {
+  const { unit, amount } = getDurationParts(seconds, maxMinutes);
+  return { unit, amount: getDurationFormatter(language).format(amount) };
 };
 
 export const buildGameLeaderboardPath = (

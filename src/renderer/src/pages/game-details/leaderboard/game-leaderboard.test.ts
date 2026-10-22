@@ -4,7 +4,9 @@ import { describe, it } from "node:test";
 import {
   buildLeaderboardRequest,
   buildLeaderboardRows,
-  createLeaderboardFetcher,
+  fetchGameLeaderboard,
+  formatDurationParts,
+  getDurationParts,
   buildGameLeaderboardPath,
   getLeaderboardNudge,
   getLeaderboardState,
@@ -407,111 +409,40 @@ describe("buildLeaderboardRequest", () => {
   });
 });
 
-describe("createLeaderboardFetcher", () => {
+describe("fetchGameLeaderboard", () => {
   const response = {
     users: [{ rank: 1, playTimeInSeconds: 60, user: user("a") }],
   };
 
-  const setup = () => {
-    let clock = 0;
+  it("requests the board and normalizes the response", async () => {
     const calls: string[] = [];
-    const get: LeaderboardGet = async (path) => {
+    const leaderboard = await fetchGameLeaderboard(async (path) => {
       calls.push(path);
       return response;
-    };
-    const fetchLeaderboard = createLeaderboardFetcher(get, () => clock, 1000);
-
-    return {
-      calls,
-      fetchLeaderboard,
-      advance: (ms: number) => {
-        clock += ms;
-      },
-    };
-  };
-
-  it("reuses the cached board inside the TTL and refetches after", async () => {
-    const { calls, fetchLeaderboard, advance } = setup();
-
-    await fetchLeaderboard(query());
-    advance(999);
-    await fetchLeaderboard(query());
-    assert.equal(calls.length, 1);
-
-    advance(1);
-    await fetchLeaderboard(query());
-    assert.equal(calls.length, 2);
-  });
-
-  it("deduplicates concurrent requests for the same board", async () => {
-    const { calls, fetchLeaderboard } = setup();
-
-    const [first, second] = await Promise.all([
-      fetchLeaderboard(query()),
-      fetchLeaderboard(query()),
-    ]);
+    }, query());
 
     assert.equal(calls.length, 1);
-    assert.equal(first, second);
-  });
-
-  it("keeps separate cache entries per period and login state", async () => {
-    const { calls, fetchLeaderboard } = setup();
-
-    await fetchLeaderboard(query());
-    await fetchLeaderboard(query({ period: "week" }));
-    await fetchLeaderboard(query({ isLoggedIn: true, viewerId: "a" }));
-
-    assert.equal(calls.length, 3);
-  });
-
-  it("keeps separate cache entries per account", async () => {
-    const { calls, fetchLeaderboard } = setup();
-
-    await fetchLeaderboard(query({ isLoggedIn: true, viewerId: "a" }));
-    await fetchLeaderboard(query({ isLoggedIn: true, viewerId: "b" }));
-    await fetchLeaderboard(query({ isLoggedIn: true, viewerId: "a" }));
-
-    assert.equal(calls.length, 2);
+    assert.equal(leaderboard.entries[0].value, 60);
   });
 
   it("does not call the API for unsupported games", async () => {
-    const { calls, fetchLeaderboard } = setup();
+    let calls = 0;
+    const get: LeaderboardGet = async () => {
+      calls += 1;
+      return response;
+    };
 
-    const custom = await fetchLeaderboard(query({ shop: "custom" }));
-    const missing = await fetchLeaderboard(query({ objectId: "" }));
+    const custom = await fetchGameLeaderboard(get, query({ shop: "custom" }));
+    const missing = await fetchGameLeaderboard(get, query({ objectId: "" }));
 
-    assert.equal(calls.length, 0);
+    assert.equal(calls, 0);
     assert.deepEqual(custom.entries, []);
     assert.deepEqual(missing.entries, []);
   });
 
-  it("drops expired and overflowing entries", async () => {
-    let clock = 0;
-    const calls: string[] = [];
-    const fetchLeaderboard = createLeaderboardFetcher(
-      async (path, options) => {
-        calls.push(`${path}:${options.params.range}`);
-        return response;
-      },
-      () => clock,
-      1000,
-      1
-    );
-
-    await fetchLeaderboard(query());
-    await fetchLeaderboard(query({ period: "week" }));
-    await fetchLeaderboard(query());
-    assert.equal(calls.length, 3);
-
-    clock += 1000;
-    await fetchLeaderboard(query());
-    assert.equal(calls.length, 4);
-  });
-
   it("retries without auth when the session is stale", async () => {
     const auth: boolean[] = [];
-    const fetchLeaderboard = createLeaderboardFetcher(
+    const result = await fetchGameLeaderboard(
       async (_path, options) => {
         auth.push(options.needsAuth);
         if (options.needsAuth) {
@@ -520,10 +451,7 @@ describe("createLeaderboardFetcher", () => {
           );
         }
         return response;
-      }
-    );
-
-    const result = await fetchLeaderboard(
+      },
       query({ isExtended: true, isLoggedIn: true, viewerId: "a" })
     );
 
@@ -533,13 +461,12 @@ describe("createLeaderboardFetcher", () => {
 
   it("does not retry other errors", async () => {
     let calls = 0;
-    const fetchLeaderboard = createLeaderboardFetcher(async () => {
-      calls += 1;
-      throw new Error("boom");
-    });
-
     await assert.rejects(
-      fetchLeaderboard(
+      fetchGameLeaderboard(
+        async () => {
+          calls += 1;
+          throw new Error("boom");
+        },
         query({ isExtended: true, isLoggedIn: true, viewerId: "a" })
       ),
       /boom/
@@ -547,19 +474,67 @@ describe("createLeaderboardFetcher", () => {
     assert.equal(calls, 1);
   });
 
-  it("does not cache failures", async () => {
-    let attempt = 0;
-    const fetchLeaderboard = createLeaderboardFetcher(async () => {
-      attempt += 1;
-      if (attempt === 1) throw new Error("boom");
-      return response;
+  it("propagates request failures", async () => {
+    await assert.rejects(
+      fetchGameLeaderboard(async () => {
+        throw new Error("boom");
+      }, query()),
+      /boom/
+    );
+  });
+});
+
+describe("getDurationParts", () => {
+  it("shows minutes below the limit with a one minute floor", () => {
+    assert.deepEqual(getDurationParts(20, 120), { unit: "minutes", amount: 1 });
+    assert.deepEqual(getDurationParts(0, 120), { unit: "minutes", amount: 0 });
+    assert.deepEqual(getDurationParts(3000, 120), {
+      unit: "minutes",
+      amount: 50,
     });
+  });
 
-    await assert.rejects(fetchLeaderboard(query()), /boom/);
-    const result = await fetchLeaderboard(query());
+  it("switches to hours at the limit", () => {
+    assert.deepEqual(getDurationParts(7200, 120), { unit: "hours", amount: 2 });
+  });
 
-    assert.equal(attempt, 2);
-    assert.equal(result.entries.length, 1);
+  it("keeps one decimal for hours", () => {
+    assert.deepEqual(getDurationParts(9060, 120), {
+      unit: "hours",
+      amount: 2.5,
+    });
+    assert.deepEqual(getDurationParts(12540, 120), {
+      unit: "hours",
+      amount: 3.5,
+    });
+  });
+
+  it("rounds to whole hours from ten hours up", () => {
+    assert.deepEqual(getDurationParts(37800, 120), {
+      unit: "hours",
+      amount: 11,
+    });
+  });
+});
+
+describe("formatDurationParts", () => {
+  it("renders one decimal for hours and none for minutes", () => {
+    assert.deepEqual(formatDurationParts(9060, 120, "en"), {
+      unit: "hours",
+      amount: "2.5",
+    });
+    assert.deepEqual(formatDurationParts(9060, 120, "pt-BR"), {
+      unit: "hours",
+      amount: "2,5",
+    });
+    assert.deepEqual(formatDurationParts(7200, 120, "en"), {
+      unit: "hours",
+      amount: "2",
+    });
+    assert.deepEqual(formatDurationParts(3000, 120, "en"), {
+      unit: "minutes",
+      amount: "50",
+    });
   });
 });
 

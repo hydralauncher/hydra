@@ -372,7 +372,9 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     width: 28px;
     flex-shrink: 0;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
   }
 
   &__body {
@@ -430,13 +432,40 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     background-color: color-mix(in srgb, currentColor 85%, transparent);
   }
 
+  &__item--tooltip {
+    position: relative;
+  }
+
+  &__tooltip {
+    position: absolute;
+    z-index: 5;
+    right: calc(globals.$spacing-unit * 1.5);
+    bottom: calc(100% + globals.$spacing-unit);
+    display: none;
+    pointer-events: none;
+  }
+
+  &__item--tooltip:hover &__tooltip,
+  &__item--tooltip:focus-within &__tooltip {
+    display: block;
+  }
+
   &__value {
     flex-shrink: 0;
     min-width: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
     text-align: right;
     font-size: globals.$body-font-size;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+
+    &--muted {
+      color: #838383;
+    }
   }
 }
 

@@ -15,12 +15,20 @@ export interface LeaderboardRowProps {
   row: LeaderboardRowData;
   value: string;
   showProgress?: boolean;
+  rankAddon?: React.ReactNode;
+  valuePrefix?: React.ReactNode;
+  valueMuted?: boolean;
+  tooltip?: React.ReactNode;
 }
 
 export function LeaderboardRow({
   row,
   value,
   showProgress = true,
+  rankAddon,
+  valuePrefix,
+  valueMuted = false,
+  tooltip,
 }: Readonly<LeaderboardRowProps>) {
   const { t } = useTranslation("leaderboard");
   const navigate = useNavigate();
@@ -29,7 +37,17 @@ export function LeaderboardRow({
   const banner = entry.user.backgroundImageUrl;
 
   return (
-    <li className="leaderboard-row__item">
+    <li
+      className={cn("leaderboard-row__item", {
+        "leaderboard-row__item--tooltip": tooltip,
+      })}
+    >
+      {tooltip && (
+        <div className="leaderboard-row__tooltip" role="tooltip">
+          {tooltip}
+        </div>
+      )}
+
       {gapBefore && (
         <div className="leaderboard-row__gap" aria-hidden="true">
           <span />
@@ -58,6 +76,7 @@ export function LeaderboardRow({
         {isMedalTier(tier) && <RankFrameRing />}
         <span className="leaderboard-row__rank">
           <RankMedal rank={entry.rank} highlighted={isViewer} />
+          {rankAddon}
         </span>
 
         <Avatar
@@ -86,7 +105,14 @@ export function LeaderboardRow({
           )}
         </span>
 
-        <span className="leaderboard-row__value">{value}</span>
+        <span
+          className={cn("leaderboard-row__value", {
+            "leaderboard-row__value--muted": valueMuted,
+          })}
+        >
+          {valuePrefix}
+          {value}
+        </span>
       </button>
     </li>
   );

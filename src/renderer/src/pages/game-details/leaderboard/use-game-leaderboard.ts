@@ -3,8 +3,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logger } from "@renderer/logger";
 import { useUserDetails } from "@renderer/hooks";
 import type { GameShop } from "@types";
+import { leaderboardsCache } from "@renderer/services/leaderboards-cache";
 import {
-  createLeaderboardFetcher,
+  buildLeaderboardRequest,
+  fetchGameLeaderboard,
   getLeaderboardBoardKey,
   isLeaderboardShop,
   selectLoadedLeaderboard,
@@ -15,16 +17,6 @@ import {
   type LeaderboardScope,
   type LeaderboardUser,
 } from "./game-leaderboard";
-
-let fetchLeaderboard: ReturnType<typeof createLeaderboardFetcher> | null = null;
-
-const getFetcher = () => {
-  fetchLeaderboard ??= createLeaderboardFetcher((path, options) =>
-    globalThis.window.electron.hydraApi.get<unknown>(path, options)
-  );
-
-  return fetchLeaderboard;
-};
 
 export interface UseGameLeaderboardOptions {
   shop: GameShop;
@@ -95,7 +87,10 @@ export function useGameLeaderboard({
     setIsLoading(true);
     setFailedRequestKey(null);
 
-    getFetcher()(query)
+    fetchGameLeaderboard(
+      (path, options) => leaderboardsCache.get(path, options, viewerId),
+      query
+    )
       .then((leaderboard) => {
         if (requestId === requestIdRef.current) {
           setLoaded({
@@ -112,6 +107,8 @@ export function useGameLeaderboard({
         }
       })
       .catch((error) => {
+        const { path, options } = buildLeaderboardRequest(query);
+        leaderboardsCache.evict(path, options, viewerId);
         if (requestId !== requestIdRef.current) return;
         logger.error("Failed to fetch game leaderboard", error);
         setLoaded(null);

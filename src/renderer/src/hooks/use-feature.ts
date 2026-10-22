@@ -47,6 +47,7 @@ export function useFeature() {
 
   return {
     isFeatureEnabled,
+    isFeaturesLoaded: features !== null,
     Feature,
   };
 }

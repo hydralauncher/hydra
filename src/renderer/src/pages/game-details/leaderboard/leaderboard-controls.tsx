@@ -30,7 +30,7 @@ interface SegmentedControlProps<T extends string> {
   onChange: (value: T) => void;
 }
 
-function SegmentedControl<T extends string>({
+export function SegmentedControl<T extends string>({
   label,
   options,
   value,
