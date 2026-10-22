@@ -8,6 +8,7 @@ import {
   isPublishedLocalScreenshot,
 } from "./local-screenshot-game";
 import { LocalScreenshotStore } from "./local-screenshot-store";
+import { removeScreenshotPreview } from "./screenshot-preview";
 import { ScreenshotReviewWindows } from "./screenshot-review-windows";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { screenshotUploadWorker } from "./screenshot-upload-worker";
@@ -28,10 +29,12 @@ const removeLocalScreenshot = async (
 
   screenshotUploadWorker.cancel(clientId);
   await fs.promises.rm(screenshot.path, { force: true });
+  await removeScreenshotPreview(screenshot.previewPath);
   if (isPublishedLocalScreenshot(screenshot)) {
     await LocalScreenshotStore.update(clientId, {
       state: "deleted",
       uploadProgress: null,
+      previewPath: null,
     });
   } else {
     await LocalScreenshotStore.delete(clientId);
@@ -109,6 +112,7 @@ const forgetPublishedScreenshot = async (screenshot: LocalScreenshot) => {
     screenshot.state === "uploaded" && (await fileExists(screenshot.path));
 
   if (!keepsFile) {
+    await removeScreenshotPreview(screenshot.previewPath);
     await LocalScreenshotStore.delete(screenshot.clientId);
     return true;
   }

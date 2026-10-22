@@ -228,6 +228,7 @@ export interface LocalScreenshot {
   uploadedAt?: number | null;
   isDevCapture?: boolean;
   description?: string | null;
+  previewPath?: string | null;
 }
 
 export interface LocalScreenshotUploadOptions {
