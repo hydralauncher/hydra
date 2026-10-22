@@ -7,6 +7,7 @@ import "./show-game-launcher-window";
 import "./get-app-session-id";
 import "./get-game-launcher-statuses";
 import "./get-hydra-decky-plugin-info";
+import "./get-file-icon";
 import "./get-image-data-url";
 import "./get-processed-image";
 import "./hydra-api-call";

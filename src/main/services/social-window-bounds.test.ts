@@ -40,6 +40,28 @@ describe("social window bounds", () => {
     );
   });
 
+  it("drops the position when the title bar is above every display", () => {
+    assert.deepEqual(
+      resolveSocialWindowBounds(
+        { x: 200, y: -300, width: 500, height: 800 },
+        workAreas,
+        minimumSize
+      ),
+      { width: 500, height: 800 }
+    );
+  });
+
+  it("drops the position when only a sliver of the title bar is visible", () => {
+    assert.deepEqual(
+      resolveSocialWindowBounds(
+        { x: 1850, y: 100, width: 500, height: 800 },
+        workAreas,
+        minimumSize
+      ),
+      { width: 500, height: 800 }
+    );
+  });
+
   it("restores on a secondary display", () => {
     assert.deepEqual(
       resolveSocialWindowBounds(

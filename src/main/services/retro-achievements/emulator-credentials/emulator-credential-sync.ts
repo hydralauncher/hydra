@@ -11,7 +11,6 @@ import { getRetroArchConfig } from "../../retroarch/retroarch-repository";
 import { resolveEmulatorExecutableTarget } from "../../emulators/macos-app-bundle";
 import { KNOWN_BINARIES } from "../../emulators/known-binaries";
 import {
-  duckstationConfigCandidates,
   findExistingConfig,
   pcsx2ConfigCandidates,
 } from "../../emulators/emulator-config";
@@ -25,27 +24,18 @@ import {
 } from "../retro-achievements-emulator-account";
 import {
   readDolphinAccount,
-  readDuckStationAccount,
   readPcsx2Account,
   readPpssppUsername,
   readRetroArchAccount,
   shouldWriteEmulatorAccount,
   writeDolphinAccount,
-  writeDuckStationAccount,
   writePcsx2Account,
   writePcsx2Token,
   writePpssppUsername,
   writeRetroArchAccount,
 } from "./emulator-credential-config";
-import { encryptDuckStationLoginToken } from "./duckstation-login-token";
-import { readDuckStationMachineKey } from "./duckstation-machine-key";
 
-export type CredentialEmulator =
-  | "retroarch"
-  | "duckstation"
-  | "pcsx2"
-  | "ppsspp"
-  | "dolphin";
+export type CredentialEmulator = "retroarch" | "pcsx2" | "ppsspp" | "dolphin";
 
 interface CredentialTarget {
   emulator: CredentialEmulator;
@@ -61,7 +51,6 @@ interface CredentialHandler {
 
 const BINARY_TO_EMULATOR: Partial<Record<EmulatorBinary, CredentialEmulator>> =
   {
-    duckstation: "duckstation",
     pcsx2: "pcsx2",
     ppsspp: "ppsspp",
     dolphin: "dolphin",
@@ -70,7 +59,7 @@ const BINARY_TO_EMULATOR: Partial<Record<EmulatorBinary, CredentialEmulator>> =
 const SYSTEM_TO_EMULATOR: Partial<
   Record<EmulatorSessionSystem, CredentialEmulator | null>
 > = {
-  ps1: "duckstation",
+  ps1: null,
   ps2: "pcsx2",
   ps3: null,
   psp: "ppsspp",
@@ -86,7 +75,6 @@ export const getCredentialEmulatorForSystem = (
 
 const CREDENTIAL_EMULATORS: CredentialEmulator[] = [
   "retroarch",
-  "duckstation",
   "pcsx2",
   "ppsspp",
   "dolphin",
@@ -99,7 +87,6 @@ const knownExecutableNames = (system: EmulatorSystem) => [
 
 const EMULATOR_PROCESS_NAMES: Record<CredentialEmulator, string[]> = {
   retroarch: ["retroarch.exe", "retroarch"],
-  duckstation: knownExecutableNames("ps1"),
   pcsx2: knownExecutableNames("ps2"),
   ppsspp: knownExecutableNames("psp"),
   dolphin: knownExecutableNames("dolphin"),
@@ -124,25 +111,6 @@ const writeIfChanged = async (
 };
 
 const unixTimestamp = () => Math.floor(Date.now() / 1000);
-
-const resolveDuckStationConfig = (executablePath: string | null) => {
-  if (executablePath) {
-    const executableDirectory = path.dirname(executablePath);
-    const portableConfig = path.join(executableDirectory, "settings.ini");
-    const isPortable =
-      fs.existsSync(path.join(executableDirectory, "portable.txt")) ||
-      fs.existsSync(portableConfig);
-
-    if (isPortable) {
-      return fs.existsSync(portableConfig)
-        ? { configPath: portableConfig, isPortable }
-        : null;
-    }
-  }
-
-  const configPath = findExistingConfig(duckstationConfigCandidates());
-  return configPath ? { configPath, isPortable: false } : null;
-};
 
 const DOLPHIN_FLATPAK_CONFIG_DIRECTORY = path.join(
   os.homedir(),
@@ -240,44 +208,6 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
         writeRetroArchAccount(content, account.username, account.token)
       );
       return configPath;
-    },
-  },
-  duckstation: {
-    apply: async (executablePath, account) => {
-      const config = resolveDuckStationConfig(executablePath);
-      if (!config) return null;
-
-      const content = await readText(config.configPath);
-      if (content === null) return null;
-      if (
-        !shouldWriteEmulatorAccount(
-          readDuckStationAccount(content),
-          account.username
-        )
-      ) {
-        return null;
-      }
-
-      const machineKey = config.isPortable
-        ? null
-        : await readDuckStationMachineKey();
-      if (!config.isPortable && !machineKey) return null;
-
-      await writeIfChanged(
-        config.configPath,
-        content,
-        writeDuckStationAccount(
-          content,
-          account.username,
-          encryptDuckStationLoginToken(
-            account.token,
-            account.username,
-            machineKey
-          ),
-          unixTimestamp()
-        )
-      );
-      return config.configPath;
     },
   },
   pcsx2: {

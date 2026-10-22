@@ -67,27 +67,9 @@ export const writeRetroArchAccount = (
     ""
   );
 
-export const DUCKSTATION_SECTION = "Cheevos";
 export const PCSX2_SECTION = "Achievements";
 export const PPSSPP_SECTION = "Achievements";
 export const DOLPHIN_SECTION = "Achievements";
-
-export const readDuckStationAccount = (content: string) => ({
-  username: getIniValue(content, DUCKSTATION_SECTION, "Username"),
-  hasToken: Boolean(getIniValue(content, DUCKSTATION_SECTION, "Token")),
-});
-
-export const writeDuckStationAccount = (
-  content: string,
-  username: string,
-  encryptedToken: string,
-  loginTimestamp: number
-) =>
-  setIniValues(content, DUCKSTATION_SECTION, {
-    Username: username,
-    Token: encryptedToken,
-    LoginTimestamp: String(loginTimestamp),
-  });
 
 export const readPcsx2Account = (
   content: string,

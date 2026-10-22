@@ -3,33 +3,17 @@ import { describe, it } from "node:test";
 
 import type { UserFriend } from "@types";
 import {
-  getBackgroundImageSizes,
-  getBannerWidth,
+  BACKGROUND_IMAGE_SIZES,
   sortFriendsByUnreadMessages,
 } from "./friends-window-layout.js";
 
 const friend = (id: string) => ({ id }) as UserFriend;
 
 describe("friends window layout", () => {
-  it("keeps the original banner width at the minimum window width", () => {
-    assert.equal(getBannerWidth(420), 420);
-    assert.equal(getBannerWidth(300), 420);
-  });
-
-  it("grows the banner width in steps as the window widens", () => {
-    assert.equal(getBannerWidth(421), 540);
-    assert.equal(getBannerWidth(540), 540);
-    assert.equal(getBannerWidth(800), 900);
-  });
-
-  it("derives background sizes from the banner width", () => {
-    assert.deepEqual(getBackgroundImageSizes(420), {
-      profile: { width: 420, height: 180 },
-      friend: { width: 480, height: 96 },
-    });
-    assert.deepEqual(getBackgroundImageSizes(900).friend, {
-      width: 960,
-      height: 96,
+  it("processes banners once at twice the default size and shape", () => {
+    assert.deepEqual(BACKGROUND_IMAGE_SIZES, {
+      profile: { width: 840, height: 360 },
+      friend: { width: 960, height: 192 },
     });
   });
 });

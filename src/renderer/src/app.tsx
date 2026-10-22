@@ -22,6 +22,7 @@ import { WorkWonders } from "workwonders-sdk";
 import {
   clearExtraction,
   closeToast,
+  showToast,
   failClassicsScan,
   failRetroArchScan,
   finishClassicsScan,
@@ -599,6 +600,14 @@ export function App() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = globalThis.electron.onShowToast((toast) => {
+      dispatch(showToast(toast));
+    });
+
+    return () => unsubscribe();
+  }, [dispatch]);
 
   const playAudio = useCallback(async () => {
     const soundUrl = await getAchievementSoundUrl();

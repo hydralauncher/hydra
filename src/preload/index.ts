@@ -1222,7 +1222,12 @@ contextBridge.exposeInMainWorld("electron", {
       selectedDiscPath?: string | null;
       dontAskDiscSelection?: boolean;
       platform?: string | null;
-      addDisc?: { path: string; label: string; fileName: string };
+      addDisc?: {
+        path: string;
+        label: string;
+        fileName: string;
+        isExecutable?: boolean;
+      };
       removeDiscPath?: string;
     }
   ) => ipcRenderer.invoke("updateClassicsDisc", shop, objectId, patch),
@@ -1526,6 +1531,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showItemInFolder", path),
   getImageDataUrl: (imageUrl: string) =>
     ipcRenderer.invoke("getImageDataUrl", imageUrl),
+  getFileIcon: (filePath: string) =>
+    ipcRenderer.invoke("getFileIcon", filePath),
   getProcessedImage: (
     imageUrl: string | null,
     options: { width: number; height: number; preserveAnimation?: boolean }
@@ -2144,6 +2151,27 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openFriendProfileInMainWindow", userId),
   openAddFriendModalInMainWindow: () =>
     ipcRenderer.invoke("openAddFriendModalInMainWindow"),
+  showToastInMainWindow: (toast: {
+    title: string;
+    message?: string;
+    type: "success" | "error" | "warning";
+    duration?: number;
+  }) => ipcRenderer.invoke("showToastInMainWindow", toast),
+  onShowToast: (
+    cb: (toast: {
+      title: string;
+      message?: string;
+      type: "success" | "error" | "warning";
+      duration?: number;
+    }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      toast: Parameters<typeof cb>[0]
+    ) => cb(toast);
+    ipcRenderer.on("on-show-toast", listener);
+    return () => ipcRenderer.removeListener("on-show-toast", listener);
+  },
 
   /* Chat */
   openChatWindow: (friend: UserFriend) =>

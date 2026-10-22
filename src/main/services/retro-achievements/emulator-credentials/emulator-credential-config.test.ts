@@ -3,13 +3,11 @@ import { describe, it } from "node:test";
 
 import {
   readDolphinAccount,
-  readDuckStationAccount,
   readPcsx2Account,
   readPpssppUsername,
   readRetroArchAccount,
   shouldWriteEmulatorAccount,
   writeDolphinAccount,
-  writeDuckStationAccount,
   writePcsx2Account,
   writePcsx2Token,
   writePpssppUsername,
@@ -68,18 +66,6 @@ describe("emulator RetroAchievements config values", () => {
     });
     assert.match(signedIn, /cheevos_enable = "false"/);
     assert.match(signedIn, /cheevos_password = ""/);
-  });
-
-  it("signs DuckStation in within the Cheevos section", () => {
-    const original = "[Cheevos]\nEnabled = false\n\n[Main]\nFoo = 1\n";
-    const signedIn = writeDuckStationAccount(original, "Player", "ENC==", 10);
-
-    assert.deepEqual(readDuckStationAccount(signedIn), {
-      username: "Player",
-      hasToken: true,
-    });
-    assert.match(signedIn, /Enabled = false/);
-    assert.match(signedIn, /LoginTimestamp = 10/);
   });
 
   it("reads PCSX2 tokens from either the base or secrets file", () => {

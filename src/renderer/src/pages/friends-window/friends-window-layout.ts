@@ -1,27 +1,17 @@
 import type { UserFriend } from "@types";
 
-export const FRIENDS_WINDOW_MIN_WIDTH = 420;
-const BANNER_WIDTH_STEP = 120;
-const PROFILE_BACKGROUND_HEIGHT = 180;
-const FRIEND_BACKGROUND_HEIGHT = 96;
-const FRIEND_BACKGROUND_EXTRA_WIDTH = 60;
+const BACKGROUND_IMAGE_SCALE = 2;
 
-export const getBannerWidth = (windowWidth: number) => {
-  const extraWidth = Math.max(0, windowWidth - FRIENDS_WINDOW_MIN_WIDTH);
-
-  return (
-    FRIENDS_WINDOW_MIN_WIDTH +
-    Math.ceil(extraWidth / BANNER_WIDTH_STEP) * BANNER_WIDTH_STEP
-  );
-};
-
-export const getBackgroundImageSizes = (bannerWidth: number) => ({
-  profile: { width: bannerWidth, height: PROFILE_BACKGROUND_HEIGHT },
-  friend: {
-    width: bannerWidth + FRIEND_BACKGROUND_EXTRA_WIDTH,
-    height: FRIEND_BACKGROUND_HEIGHT,
+export const BACKGROUND_IMAGE_SIZES = {
+  profile: {
+    width: 420 * BACKGROUND_IMAGE_SCALE,
+    height: 180 * BACKGROUND_IMAGE_SCALE,
   },
-});
+  friend: {
+    width: 480 * BACKGROUND_IMAGE_SCALE,
+    height: 96 * BACKGROUND_IMAGE_SCALE,
+  },
+};
 
 export const sortFriendsByUnreadMessages = (
   friends: UserFriend[],

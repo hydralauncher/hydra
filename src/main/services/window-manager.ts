@@ -66,7 +66,7 @@ const EMPTY_CHAT_WINDOW_STATE: ChatWindowState = {
 // Upper bound on how long a painted friends window stays hidden while its
 // renderer waits for the cached friends list. Past this it shows the skeleton.
 const FRIENDS_WINDOW_SHOW_FALLBACK_MS = 400;
-const FRIENDS_WINDOW_MIN_SIZE = { width: 420, height: 560 };
+const FRIENDS_WINDOW_MIN_SIZE = { width: 260, height: 360 };
 const CHAT_WINDOW_MIN_SIZE = { width: 400, height: 420 };
 
 interface CreateMainWindowOptions {
@@ -89,7 +89,7 @@ export class WindowManager {
   private static mainWindowShownListeners: Array<(shown: boolean) => void> = [];
   private static socialWindowsBounds: SocialWindowsBounds = {};
   private static lastFocusedSocialWindow: SocialWindowKind | null = null;
-  private static deferredSocialWindowShows = new Map<
+  private static readonly deferredSocialWindowShows = new Map<
     SocialWindowKind,
     () => void
   >();
@@ -628,7 +628,10 @@ export class WindowManager {
 
       friendsWindow.show();
       if (!app.isPackaged || isStaging) {
-        friendsWindow.webContents.openDevTools();
+        friendsWindow.webContents.openDevTools({
+          mode: "detach",
+          activate: false,
+        });
       }
     };
 
@@ -824,7 +827,7 @@ export class WindowManager {
       // A window popping up over Big Picture would cover its fullscreen UI.
       if (this.bigPicture && !this.bigPicture.isDestroyed()) return;
 
-      this.openChatWindow(friend, { activate: false });
+      void this.openChatWindow(friend, { activate: false });
       return;
     }
 

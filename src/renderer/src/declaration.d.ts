@@ -146,6 +146,13 @@ declare global {
     export default content;
   }
 
+  type MainWindowToast = {
+    title: string;
+    message?: string;
+    type: "success" | "error" | "warning";
+    duration?: number;
+  };
+
   type FileExplorerEntry = {
     name: string;
     path: string;
@@ -568,7 +575,12 @@ declare global {
         selectedDiscPath?: string | null;
         dontAskDiscSelection?: boolean;
         platform?: string | null;
-        addDisc?: { path: string; label: string; fileName: string };
+        addDisc?: {
+          path: string;
+          label: string;
+          fileName: string;
+          isExecutable?: boolean;
+        };
         removeDiscPath?: string;
       }
     ) => Promise<LibraryGame>;
@@ -1109,6 +1121,7 @@ declare global {
     listDrives: () => Promise<string[]>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
+    getFileIcon: (filePath: string) => Promise<string | null>;
     getProcessedImage: (
       imageUrl: string | null,
       options: { width: number; height: number; preserveAnimation?: boolean }
@@ -1438,6 +1451,10 @@ declare global {
     getFriendsSnapshot: () => Promise<FriendsSnapshot | null>;
     openFriendProfileInMainWindow: (userId: string) => Promise<void>;
     openAddFriendModalInMainWindow: () => Promise<void>;
+    showToastInMainWindow: (toast: MainWindowToast) => Promise<boolean>;
+    onShowToast: (
+      cb: (toast: MainWindowToast) => void
+    ) => () => Electron.IpcRenderer;
 
     /* Chat Window */
     openChatWindow: (friend: UserFriend) => Promise<void>;

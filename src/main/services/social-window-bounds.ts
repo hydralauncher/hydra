@@ -5,8 +5,8 @@ export interface WindowRect {
   height: number;
 }
 
-const MIN_VISIBLE_WIDTH = 120;
-const MIN_VISIBLE_HEIGHT = 40;
+const MIN_VISIBLE_TITLE_BAR_WIDTH = 120;
+const TITLE_BAR_HEIGHT = 35;
 
 const getVisibleArea = (rect: WindowRect, area: WindowRect) => ({
   width:
@@ -35,13 +35,15 @@ export const resolveSocialWindowBounds = (
     width,
     height,
   };
+  const titleBar = { ...rect, height: TITLE_BAR_HEIGHT };
 
-  const isOnScreen = workAreas.some((area) => {
-    const visible = getVisibleArea(rect, area);
+  const isTitleBarReachable = workAreas.some((area) => {
+    const visible = getVisibleArea(titleBar, area);
     return (
-      visible.width >= MIN_VISIBLE_WIDTH && visible.height >= MIN_VISIBLE_HEIGHT
+      visible.width >= MIN_VISIBLE_TITLE_BAR_WIDTH &&
+      visible.height >= TITLE_BAR_HEIGHT
     );
   });
 
-  return isOnScreen ? rect : { width, height };
+  return isTitleBarReachable ? rect : { width, height };
 };

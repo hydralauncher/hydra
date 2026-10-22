@@ -39,6 +39,7 @@ export {
 export * from "./cloud-save-access";
 export * from "./cloud-save-emulator-provider";
 export * from "./profile-friends";
+export * from "./classics-disc-label";
 export * from "./controller-support";
 export * from "./artwork-resolver";
 export * from "./library-catalogue";

@@ -389,6 +389,18 @@ $disc-menu-transition-duration: 0.15s;
     }
   }
 
+  &__add {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  &__menu--add {
+    left: auto;
+    right: 0;
+    min-width: 180px;
+  }
+
   &__option {
     display: flex;
     align-items: center;

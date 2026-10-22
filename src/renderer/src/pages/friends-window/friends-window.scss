@@ -1,10 +1,53 @@
 @use "../../scss/globals.scss";
 
+@keyframes friends-window-add-actions-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .friends-window {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100%;
+
+  .toast {
+    left: calc(globals.$spacing-unit * 2);
+    right: calc(globals.$spacing-unit * 2);
+    bottom: calc(globals.$spacing-unit * 2);
+    max-width: none;
+  }
+
+  &__add-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: globals.$spacing-unit;
+    margin-top: calc(globals.$spacing-unit * -1);
+    padding: 0 calc(globals.$spacing-unit * 2);
+    animation: friends-window-add-actions-enter 0.15s ease-out;
+
+    > * {
+      flex: 1 1 110px;
+      min-width: 0;
+    }
+  }
+
+  &__search--add {
+    border-color: rgba(255, 255, 255, 0.3);
+
+    .friends-window__search-input:not(:placeholder-shown) {
+      font-family: monospace;
+      letter-spacing: 0.05em;
+    }
+  }
   background-color: globals.$background-color;
   color: globals.$body-color;
   // Set explicitly so the window doesn't silently rely on the body rule in
@@ -279,10 +322,90 @@
     padding: 0 calc(globals.$spacing-unit * 2);
   }
 
-  // Look comes from the shared Button; this only keeps it from shrinking.
-  &__add-friend {
+  &__add-friend.button {
+    display: grid;
+    height: 40px;
     flex-shrink: 0;
+    padding: 0;
+    border: none;
+    background-color: transparent;
     white-space: nowrap;
+
+    &:hover,
+    &:disabled {
+      background-color: transparent;
+    }
+  }
+
+  &__add-friend-face {
+    grid-area: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 calc(globals.$spacing-unit * 2);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    transition:
+      opacity 0.2s ease,
+      background-color 0.2s ease,
+      padding 0.3s ease;
+
+    @media (max-width: 379px) {
+      padding: 0 calc(globals.$spacing-unit * 1.5);
+    }
+
+    &--add {
+      background-color: globals.$muted-color;
+      color: globals.$dark-background-color;
+    }
+
+    &--close {
+      opacity: 0;
+      border-color: globals.$border-color;
+      color: globals.$muted-color;
+    }
+  }
+
+  &__add-friend:hover &__add-friend-face--add {
+    background-color: #dadbe1;
+  }
+
+  &__add-friend:hover &__add-friend-face--close {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  &__add-friend--active &__add-friend-face--add {
+    opacity: 0;
+  }
+
+  &__add-friend--active &__add-friend-face--close {
+    opacity: 1;
+  }
+
+  &__add-friend-icon {
+    flex-shrink: 0;
+    transition: transform 0.25s ease;
+  }
+
+  &__add-friend--active &__add-friend-icon {
+    transform: rotate(45deg);
+  }
+
+  &__add-friend-label {
+    max-width: 160px;
+    margin-left: globals.$spacing-unit;
+    overflow: hidden;
+    transition:
+      max-width 0.3s ease,
+      margin-left 0.3s ease,
+      opacity 0.2s ease;
+
+    @media (max-width: 379px) {
+      max-width: 0;
+      margin-left: 0;
+      opacity: 0;
+    }
   }
 
   // Matches the shared Button's 40px height so the row lines up.
@@ -729,6 +852,8 @@
 
   &__request-actions {
     display: flex;
+    position: relative;
+    z-index: 2;
     gap: calc(globals.$spacing-unit / 2);
     margin-right: globals.$spacing-unit;
     flex-shrink: 0;
