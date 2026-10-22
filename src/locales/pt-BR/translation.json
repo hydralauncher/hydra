@@ -320,7 +320,7 @@
     "steam_uninstall_title": "Desinstalar pela Steam?",
     "steam_uninstall_description": "A Steam deve abrir para desinstalar {{game}}. O Hydra será atualizado quando a Steam concluir.",
     "steam_uninstall_confirm": "Desinstalar pela Steam",
-    "steam_uninstall_requested": "Desinstalar pela Steam",
+    "steam_uninstall_requested": "Abrindo a Steam para desinstalar",
     "steam_uninstall_requested_description": "O Hydra será atualizado quando a Steam concluir a remoção.",
     "steam_uninstall_failed": "Falha ao abrir a Steam",
     "options": "Gerenciar",

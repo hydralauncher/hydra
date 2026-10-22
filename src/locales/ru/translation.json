@@ -382,7 +382,7 @@
     "steam_uninstall_title": "Удалить через Steam?",
     "steam_uninstall_description": "Steam должна открыться для удаления {{game}}. Hydra обновится, когда Steam завершит удаление.",
     "steam_uninstall_confirm": "Удалить через Steam",
-    "steam_uninstall_requested": "Удалить через Steam",
+    "steam_uninstall_requested": "Открываем Steam для удаления",
     "steam_uninstall_requested_description": "Hydra обновится, когда Steam завершит удаление.",
     "steam_uninstall_failed": "Не удалось открыть Steam",
     "remove_from_library_title": "Вы уверены?",

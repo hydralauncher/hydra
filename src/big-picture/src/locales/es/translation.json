@@ -742,7 +742,7 @@
     "remove_game_files_target_changed": "El juego cambió mientras la confirmación estaba abierta. Inténtalo de nuevo.",
     "remove_game_files_downloading": "No puedes eliminar los archivos del juego mientras el juego se está descargando.",
     "remove_game_files_failed": "Error al eliminar los archivos del juego",
-    "steam_uninstall_requested": "Desinstalar desde Steam",
+    "steam_uninstall_requested": "Abriendo Steam para desinstalar",
     "steam_uninstall_failed": "Error al abrir Steam",
     "download_options_unavailable_one": "{{formattedCount}} opción de descarga ya no está disponible.",
     "download_options_unavailable_other": "{{formattedCount}} opciones de descarga ya no están disponibles.",

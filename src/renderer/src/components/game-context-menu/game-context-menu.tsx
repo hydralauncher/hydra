@@ -596,7 +596,7 @@ export function GameContextMenu({
         deleteGame={() => {
           setShowConfirmRemoveFiles(false);
           onClose();
-          void handleRemoveFiles();
+          void handleRemoveFiles(hydraRemoveFilesTarget ?? undefined);
         }}
       />
 

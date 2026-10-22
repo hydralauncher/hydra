@@ -379,7 +379,7 @@
     "steam_uninstall_title": "Uninstall from Steam?",
     "steam_uninstall_description": "Steam should open to uninstall {{game}}. Hydra will refresh after Steam finishes.",
     "steam_uninstall_confirm": "Uninstall from Steam",
-    "steam_uninstall_requested": "Uninstall via Steam",
+    "steam_uninstall_requested": "Opening Steam to uninstall",
     "steam_uninstall_requested_description": "Hydra will refresh after Steam finishes the removal.",
     "steam_uninstall_failed": "Failed to open Steam",
     "remove_from_library_title": "Are you sure?",

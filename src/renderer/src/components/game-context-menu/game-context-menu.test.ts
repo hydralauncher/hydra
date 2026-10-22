@@ -688,6 +688,19 @@ describe("context menu download identity", () => {
     await state.click("remove-files");
     assert.equal(state.confirmationVisible, true);
     assert.notEqual(state.steamConfirmation?.visible, true);
+    await state.confirmRemoval();
+
+    assert.deepEqual(
+      state.calls.filter(([action]) => action === "remove-installer"),
+      [["remove-installer", "epic", epic.objectId]]
+    );
+    assert.deepEqual(state.removedEvents, [
+      { shop: "epic", objectId: epic.objectId },
+    ]);
+    assert.equal(
+      state.calls.some(([action]) => action === "steam-uninstall"),
+      false
+    );
   });
 
   it("rejects Steam removal when the target changes after confirmation opens", async (t) => {

@@ -16,7 +16,11 @@ import { logger } from "@renderer/logger";
 import { useGameOptionsModal } from "@renderer/context/game-options-modal/game-options-modal.context";
 import type { GameSettingsCategoryId } from "@renderer/pages/game-details/modals/game-options-modal/types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
-import { applyLibraryGroupAction, isLibraryGameDownloading } from "@shared";
+import {
+  applyLibraryGroupAction,
+  isLibraryGameDownloading,
+  type RemoveFilesTarget,
+} from "@shared";
 
 export function useGameActions(requestedGame: GameContextMenuGame) {
   const { t } = useTranslation("game_details");
@@ -363,23 +367,31 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
     }
   };
 
-  const handleRemoveFiles = async () => {
+  const handleRemoveFiles = async (target?: RemoveFilesTarget) => {
+    const targetGame =
+      target === undefined
+        ? downloadGame
+        : target.kind === "hydra"
+          ? target.game
+          : null;
+
     if (
-      isLibraryGameDownloading(downloadGame) ||
-      isGameDeleting(downloadGame.objectId)
+      !targetGame ||
+      isLibraryGameDownloading(targetGame) ||
+      isGameDeleting(targetGame.objectId)
     )
       return;
 
     try {
-      await removeGameInstaller(downloadGame.shop, downloadGame.objectId);
+      await removeGameInstaller(targetGame.shop, targetGame.objectId);
       await updateLibrary();
       showSuccessToast(t("files_removed_success"));
       try {
         window.dispatchEvent(
           new CustomEvent("hydra:game-files-removed", {
             detail: {
-              shop: downloadGame.shop,
-              objectId: downloadGame.objectId,
+              shop: targetGame.shop,
+              objectId: targetGame.objectId,
             },
           })
         );
