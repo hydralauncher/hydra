@@ -497,13 +497,13 @@ export default function FriendsWindow() {
   const searchFieldValue = isAddMode ? addFriend.friendCode : search;
 
   const handleSearchFieldChange = (value: string) => {
-    if (isAddMode) addFriend.setFriendCode(value);
+    if (isAddMode) addFriend.changeFriendCode(value);
     else setSearch(value);
   };
 
   const handleToggleAddMode = () => {
     setIsAddMode((current) => !current);
-    addFriend.setFriendCode("");
+    addFriend.changeFriendCode("");
     setSearch("");
     searchInputRef.current?.focus();
   };
@@ -801,6 +801,107 @@ export default function FriendsWindow() {
     </section>
   );
 
+  const renderSearchControls = () => {
+    const searchPlaceholder = isAddMode
+      ? tProfile("friend_code")
+      : t("search_placeholder");
+    const addFriendToggleLabel = isAddMode ? t("close") : t("add_friend");
+
+    return (
+      <>
+        <div className="friends-window__search-row">
+          <div
+            className={`friends-window__search${
+              isAddMode ? " friends-window__search--add" : ""
+            }`}
+          >
+            {isAddMode ? (
+              <PersonAddIcon
+                size={16}
+                className="friends-window__search-icon"
+              />
+            ) : (
+              <SearchIcon size={16} className="friends-window__search-icon" />
+            )}
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchFieldValue}
+              spellCheck={false}
+              onChange={(event) => handleSearchFieldChange(event.target.value)}
+              onKeyDown={handleSearchFieldKeyDown}
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+              className="friends-window__search-input"
+            />
+            {searchFieldValue && (
+              <button
+                type="button"
+                className="friends-window__search-clear"
+                onClick={() => handleSearchFieldChange("")}
+                title={t("clear_search")}
+                aria-label={t("clear_search")}
+              >
+                <XIcon size={16} />
+              </button>
+            )}
+          </div>
+          <Button
+            theme="primary"
+            className={`friends-window__add-friend${
+              isAddMode ? " friends-window__add-friend--active" : ""
+            }`}
+            onClick={handleToggleAddMode}
+            title={addFriendToggleLabel}
+            aria-label={addFriendToggleLabel}
+            aria-expanded={isAddMode}
+          >
+            <span
+              className="friends-window__add-friend-face friends-window__add-friend-face--add"
+              aria-hidden="true"
+            >
+              <PlusIcon size={16} className="friends-window__add-friend-icon" />
+              <span className="friends-window__add-friend-label">
+                {t("add_friend")}
+              </span>
+            </span>
+            <span
+              className="friends-window__add-friend-face friends-window__add-friend-face--close"
+              aria-hidden="true"
+            >
+              <PlusIcon size={16} className="friends-window__add-friend-icon" />
+              <span className="friends-window__add-friend-label">
+                {t("close")}
+              </span>
+            </span>
+          </Button>
+        </div>
+
+        {isAddMode && (
+          <div className="friends-window__add-actions">
+            <Button
+              theme="primary"
+              disabled={addFriend.isSending}
+              onClick={() => void addFriend.sendRequest()}
+            >
+              <PersonAddIcon size={16} />
+              {addFriend.isSending
+                ? tProfile("sending")
+                : t("send_friend_request")}
+            </Button>
+            <Button
+              theme="outline"
+              disabled={addFriend.isSending}
+              onClick={() => void addFriend.openProfile()}
+            >
+              {tProfile("see_profile")}
+            </Button>
+          </div>
+        )}
+      </>
+    );
+  };
+
   const showSkeleton = isLoadingFriends && searchResults === null;
 
   const profileBackgroundImageUrl = getProcessedImageUrl(
@@ -914,99 +1015,7 @@ export default function FriendsWindow() {
       </div>
 
       <div className="friends-window__content">
-        <div className="friends-window__search-row">
-          <div
-            className={`friends-window__search${
-              isAddMode ? " friends-window__search--add" : ""
-            }`}
-          >
-            {isAddMode ? (
-              <PersonAddIcon
-                size={16}
-                className="friends-window__search-icon"
-              />
-            ) : (
-              <SearchIcon size={16} className="friends-window__search-icon" />
-            )}
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchFieldValue}
-              spellCheck={false}
-              onChange={(event) => handleSearchFieldChange(event.target.value)}
-              onKeyDown={handleSearchFieldKeyDown}
-              placeholder={
-                isAddMode ? tProfile("friend_code") : t("search_placeholder")
-              }
-              aria-label={
-                isAddMode ? tProfile("friend_code") : t("search_placeholder")
-              }
-              className="friends-window__search-input"
-            />
-            {searchFieldValue && (
-              <button
-                type="button"
-                className="friends-window__search-clear"
-                onClick={() => handleSearchFieldChange("")}
-                title={t("clear_search")}
-                aria-label={t("clear_search")}
-              >
-                <XIcon size={16} />
-              </button>
-            )}
-          </div>
-          <Button
-            theme="primary"
-            className={`friends-window__add-friend${
-              isAddMode ? " friends-window__add-friend--active" : ""
-            }`}
-            onClick={handleToggleAddMode}
-            title={isAddMode ? t("close") : t("add_friend")}
-            aria-label={isAddMode ? t("close") : t("add_friend")}
-            aria-expanded={isAddMode}
-          >
-            <span
-              className="friends-window__add-friend-face friends-window__add-friend-face--add"
-              aria-hidden="true"
-            >
-              <PlusIcon size={16} className="friends-window__add-friend-icon" />
-              <span className="friends-window__add-friend-label">
-                {t("add_friend")}
-              </span>
-            </span>
-            <span
-              className="friends-window__add-friend-face friends-window__add-friend-face--close"
-              aria-hidden="true"
-            >
-              <PlusIcon size={16} className="friends-window__add-friend-icon" />
-              <span className="friends-window__add-friend-label">
-                {t("close")}
-              </span>
-            </span>
-          </Button>
-        </div>
-
-        {isAddMode && (
-          <div className="friends-window__add-actions">
-            <Button
-              theme="primary"
-              disabled={addFriend.isSending}
-              onClick={() => void addFriend.sendRequest()}
-            >
-              <PersonAddIcon size={16} />
-              {addFriend.isSending
-                ? tProfile("sending")
-                : t("send_friend_request")}
-            </Button>
-            <Button
-              theme="outline"
-              disabled={addFriend.isSending}
-              onClick={() => void addFriend.openProfile()}
-            >
-              {tProfile("see_profile")}
-            </Button>
-          </div>
-        )}
+        {renderSearchControls()}
 
         <div
           className="friends-window__list-container"

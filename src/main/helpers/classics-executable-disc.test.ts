@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { findSelectedExecutableDisc } from "./classics-executable-disc.js";
+import {
+  findSelectedExecutableDisc,
+  mergeScannedDiscs,
+} from "./classics-executable-disc.js";
 
 const rom = { path: "/roms/game.iso", label: "Disc 1", fileName: "game.iso" };
 const executable = {
@@ -43,5 +46,22 @@ describe("classics executable disc", () => {
       findSelectedExecutableDisc(undefined, undefined, undefined),
       null
     );
+  });
+
+  it("keeps added executables when a rescan replaces the ROM list", () => {
+    const rescannedRom = { ...rom, label: "Disc 1 (rescanned)" };
+
+    assert.deepEqual(mergeScannedDiscs([rescannedRom], [rom, executable]), [
+      rescannedRom,
+      executable,
+    ]);
+  });
+
+  it("prefers the scanned entry when an executable path was rescanned", () => {
+    const scannedExecutable = { ...executable, isExecutable: undefined };
+
+    assert.deepEqual(mergeScannedDiscs([scannedExecutable], [executable]), [
+      scannedExecutable,
+    ]);
   });
 });

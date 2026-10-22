@@ -12,8 +12,10 @@ const ERROR_KEYS_BY_CODE: Record<string, AddFriendErrorKey> = {
   "user/not-found": "friend_code_not_found",
 };
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error ?? "");
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  return typeof error === "string" ? error : "";
+};
 
 export const getAddFriendErrorKey = (
   error: unknown

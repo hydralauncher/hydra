@@ -39,11 +39,11 @@ export function useAddFriend({ isFriend, onOpenProfile }: UseAddFriendOptions) {
   const showErrorToast = (title: string) =>
     showToastPreferringMainWindow("error", title);
 
-  const [friendCode, setFriendCodeValue] = useState("");
+  const [friendCode, setFriendCode] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  const setFriendCode = useCallback((value: string) => {
-    setFriendCodeValue(normalizeFriendCode(value));
+  const changeFriendCode = useCallback((value: string) => {
+    setFriendCode(normalizeFriendCode(value));
   }, []);
 
   const hasCompleteCode = () => {
@@ -69,7 +69,7 @@ export function useAddFriend({ isFriend, onOpenProfile }: UseAddFriendOptions) {
     setIsSending(true);
     try {
       await sendFriendRequest(friendCode);
-      setFriendCodeValue("");
+      setFriendCode("");
       showSuccessToast(tProfile("request_sent"));
     } catch (error) {
       const errorKey = getAddFriendErrorKey(error);
@@ -103,7 +103,7 @@ export function useAddFriend({ isFriend, onOpenProfile }: UseAddFriendOptions) {
 
   return {
     friendCode,
-    setFriendCode,
+    changeFriendCode,
     isSending,
     sendRequest,
     openProfile,
