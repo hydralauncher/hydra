@@ -44,6 +44,9 @@ export function LeaderboardSection() {
   const navigate = useNavigate();
   const { isFeatureEnabled, Feature } = useFeature();
   const isExtended = isFeatureEnabled(Feature.GameLeaderboardsExtended);
+  const isGlobalLeaderboardsEnabled = isFeatureEnabled(
+    Feature.GlobalLeaderboards
+  );
   const formatValue = useLeaderboardValue();
 
   const [period, setPeriod] = useState<LeaderboardPeriod>("week");
@@ -227,21 +230,23 @@ export function LeaderboardSection() {
 
         <div className="leaderboard-section__footer">
           {renderNudge()}
-          <button
-            type="button"
-            className="leaderboard-section__see-all"
-            onClick={() =>
-              navigate(
-                buildGameLeaderboardPath(
-                  catalogueGame.shop,
-                  catalogueGame.objectId
+          {isGlobalLeaderboardsEnabled && (
+            <button
+              type="button"
+              className="leaderboard-section__see-all"
+              onClick={() =>
+                navigate(
+                  buildGameLeaderboardPath(
+                    catalogueGame.shop,
+                    catalogueGame.objectId
+                  )
                 )
-              )
-            }
-          >
-            {t("see_full_ranking")}
-            <ArrowRightIcon size={14} />
-          </button>
+              }
+            >
+              {t("see_full_ranking")}
+              <ArrowRightIcon size={14} />
+            </button>
+          )}
         </div>
       </>
     );
