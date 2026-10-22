@@ -162,6 +162,41 @@
   }
 }
 
+.my-screenshots-partial-notice {
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
+  margin-bottom: calc(globals.$spacing-unit * 1.5);
+  padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+  border: 1px solid globals.$border-color;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: globals.$body-color;
+  font-size: globals.$small-font-size;
+
+  span {
+    flex: 1;
+  }
+
+  &__retry {
+    flex-shrink: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: globals.$muted-color;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+
+    &:focus-visible {
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 2px;
+    }
+  }
+}
+
 .local-screenshot-tile {
   position: relative;
 

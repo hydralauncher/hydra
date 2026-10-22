@@ -14,6 +14,7 @@ import { GameScreenshotThumbnail } from "./game-screenshot-thumbnail";
 import { GameScreenshotsHotkeyTip } from "./game-screenshots-hotkey-tip";
 import { GameScreenshotsModal } from "./game-screenshots-modal";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
+import { MyScreenshotsPartialNotice } from "./my-screenshots-partial-notice";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
 import { useMyGameScreenshots } from "./use-my-game-screenshots";
 
@@ -89,6 +90,22 @@ function GameScreenshotsBox({
       );
     }
 
+    const partialNotice = mine.isPartial ? (
+      <MyScreenshotsPartialNotice
+        hasLocalFailed={mine.hasLocalFailed}
+        onRetry={mine.retryFailed}
+      />
+    ) : null;
+
+    if (topItems.length === 0 && partialNotice) {
+      return (
+        <>
+          {partialNotice}
+          {shop === "custom" ? null : viewAllButton}
+        </>
+      );
+    }
+
     if (topItems.length === 0) {
       return (
         <output className="game-screenshots-box__empty">
@@ -104,6 +121,7 @@ function GameScreenshotsBox({
 
     return (
       <>
+        {partialNotice}
         <ul className="game-screenshots-box__grid">
           {topItems.map((item) => (
             <li key={item.id}>

@@ -17,6 +17,7 @@ import type { GameShop, ScreenshotSort } from "@types";
 
 import { GameScreenshotsHotkeyTip } from "./game-screenshots-hotkey-tip";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
+import { MyScreenshotsPartialNotice } from "./my-screenshots-partial-notice";
 import { ScreenshotSortToggle } from "./screenshot-sort-toggle";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
 import { useMyGameScreenshots } from "./use-my-game-screenshots";
@@ -90,6 +91,8 @@ export function MyScreenshotsPanel({
       );
     }
 
+    if (mine.items.length === 0 && mine.isPartial) return null;
+
     if (mine.items.length === 0) {
       return (
         <output className="game-screenshots-modal__empty">
@@ -158,6 +161,12 @@ export function MyScreenshotsPanel({
       </div>
 
       <div id={scrollId} className="game-screenshots-modal__scroll">
+        {mine.isPartial ? (
+          <MyScreenshotsPartialNotice
+            hasLocalFailed={mine.hasLocalFailed}
+            onRetry={mine.retryFailed}
+          />
+        ) : null}
         {renderGrid()}
 
         {feed.hasLoadMoreFailed ? (

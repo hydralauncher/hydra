@@ -2869,6 +2869,8 @@
     "screenshot_unavailable": "This screenshot is no longer available",
     "screenshots_friends_only": "Only friends can see these screenshots",
     "screenshots_load_failed": "Could not load screenshots",
+    "published_screenshots_load_failed": "Couldn't load your published screenshots",
+    "local_screenshots_load_failed": "Couldn't load screenshots saved on this computer",
     "screenshots_private": "These screenshots are private",
     "sign_in": "Sign in",
     "sign_in_to_like": "Sign in to like",
