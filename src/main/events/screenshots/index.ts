@@ -5,7 +5,6 @@ import "./skip-local-screenshot";
 import "./open-screenshots-folder";
 import "./get-screenshot-review-items";
 import "./open-screenshot-review";
-import "./screenshot-flash-ready";
 import "./get-pending-screenshot-review-request";
 import "./update-local-screenshot-draft";
 import "./get-local-screenshots-for-game";

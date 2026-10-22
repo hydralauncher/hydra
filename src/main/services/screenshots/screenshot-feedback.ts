@@ -3,8 +3,12 @@ import { t } from "i18next";
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { pathToFileURL } from "node:url";
 import icon from "@resources/icon.png?asset";
-import { db, levelKeys } from "@main/level";
+import flashPagePath from "@resources/screenshot-flash.html?asset";
+import { achievementSoundPath } from "@main/constants";
+import { getThemeSoundPath } from "@main/helpers";
+import { db, levelKeys, themesSublevel } from "@main/level";
 import { resolveScreenshotPreferences } from "@shared";
 import type { ScreenshotFeedbackToast, UserPreferences } from "@types";
 
@@ -12,10 +16,9 @@ import { achievementNotificationPresenter } from "../achievement-notification-pr
 import { isWaylandSession } from "../linux-game-capture-session";
 import { logger } from "../logger";
 import { SystemPath } from "../system-path";
-import { WindowManager } from "../window-manager";
 
 const FLASH_VISIBLE_DURATION_MS = 700;
-const FLASH_READY_TIMEOUT_MS = 10_000;
+const DEFAULT_CAPTURE_SOUND_VOLUME = 0.15;
 const TOAST_THUMBNAIL_WIDTH = 320;
 const TOAST_THUMBNAIL_JPEG_QUALITY = 80;
 const MAX_TOAST_THUMBNAILS = 20;
@@ -24,10 +27,10 @@ interface FeedbackWindow {
   displayId: number;
   window: BrowserWindow;
   ready: Promise<void>;
+  isPrimary: boolean;
 }
 
 let feedbackWindows: FeedbackWindow[] = [];
-const flashReadyResolvers = new Map<number, () => void>();
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 let displayListenersRegistered = false;
 
@@ -45,7 +48,7 @@ const canShowFlashWindows = () =>
 const createFeedbackWindow = (
   display: Electron.Display,
   isPrimary: boolean
-) => {
+): FeedbackWindow => {
   const window = new BrowserWindow({
     ...display.bounds,
     show: false,
@@ -62,9 +65,9 @@ const createFeedbackWindow = (
     hasShadow: false,
     enableLargerThanScreen: true,
     webPreferences: {
-      preload: path.join(__dirname, "../preload/index.mjs"),
-      sandbox: false,
       backgroundThrottling: false,
+      contextIsolation: true,
+      sandbox: true,
     },
   });
 
@@ -72,29 +75,30 @@ const createFeedbackWindow = (
   window.setAlwaysOnTop(true, "screen-saver", 1);
   window.removeMenu();
 
-  const webContentsId = window.webContents.id;
-  const ready = new Promise<void>((resolve) => {
-    const finish = () => {
-      clearTimeout(timeout);
-      flashReadyResolvers.delete(webContentsId);
-      resolve();
-    };
-    const timeout = setTimeout(() => {
-      logger.warn("The screenshot flash window did not report ready in time");
-      finish();
-    }, FLASH_READY_TIMEOUT_MS);
-    flashReadyResolvers.set(webContentsId, finish);
-    window.once("closed", finish);
-  });
+  const ready = window.loadFile(flashPagePath).then(
+    () => undefined,
+    (error) => {
+      logger.error("Failed to load the screenshot flash window", error);
+    }
+  );
 
-  WindowManager.loadWindowURL(
-    window,
-    `screenshot-flash?primary=${isPrimary ? "1" : "0"}`
-  ).catch((error) => {
-    logger.error("Failed to load the screenshot flash window", error);
-  });
+  return { displayId: display.id, window, ready, isPrimary };
+};
 
-  return { displayId: display.id, window, ready };
+const resolveCaptureSoundUrl = async () => {
+  try {
+    const themes = await themesSublevel.values().all();
+    const activeTheme = themes.find((theme) => theme.isActive);
+    if (activeTheme?.hasCustomSound) {
+      const soundPath = getThemeSoundPath(activeTheme.id, activeTheme.name);
+      if (soundPath && fs.existsSync(soundPath)) {
+        return pathToFileURL(soundPath).href;
+      }
+    }
+  } catch (error) {
+    logger.warn("Could not resolve the theme capture sound", error);
+  }
+  return pathToFileURL(achievementSoundPath).href;
 };
 
 const destroyFeedbackWindows = () => {
@@ -205,10 +209,6 @@ const toLocalUrl = (filePath: string) =>
   `local:${filePath.replaceAll("\\", "/")}`;
 
 export class ScreenshotFeedback {
-  public static markFlashWindowReady(sender: Electron.WebContents) {
-    flashReadyResolvers.get(sender.id)?.();
-  }
-
   public static prepare() {
     if (feedbackWindows.length) return;
 
@@ -234,9 +234,8 @@ export class ScreenshotFeedback {
   public static async playCaptureFeedback(
     override?: Partial<{ flash: boolean; playSound: boolean }>
   ) {
-    const preferences = resolveScreenshotPreferences(
-      await readUserPreferences()
-    );
+    const userPreferences = await readUserPreferences();
+    const preferences = resolveScreenshotPreferences(userPreferences);
     const flash =
       (override?.flash ?? preferences.borderFlashEnabled) &&
       canShowFlashWindows();
@@ -245,14 +244,24 @@ export class ScreenshotFeedback {
 
     this.prepare();
     const windows = getLiveFeedbackWindows();
+    const soundUrl = playSound ? await resolveCaptureSoundUrl() : null;
+    const volume =
+      userPreferences?.achievementSoundVolume ?? DEFAULT_CAPTURE_SOUND_VOLUME;
     await Promise.all(windows.map(({ ready }) => ready));
 
     if (hideTimer) clearTimeout(hideTimer);
 
-    for (const { window } of windows) {
+    for (const { window, isPrimary } of windows) {
       if (window.isDestroyed()) continue;
       if (flash) window.showInactive();
-      window.webContents.send("on-screenshot-feedback", { flash, playSound });
+      const windowSoundUrl = isPrimary ? soundUrl : null;
+      window.webContents
+        .executeJavaScript(
+          `globalThis.hydraScreenshotFeedback(${JSON.stringify(flash)}, ${JSON.stringify(windowSoundUrl)}, ${JSON.stringify(volume)})`
+        )
+        .catch((error) => {
+          logger.error("Failed to play the screenshot feedback", error);
+        });
     }
 
     if (!flash) return;
