@@ -2636,7 +2636,7 @@
     "delete_confirm_button": "Delete screenshot",
     "delete_confirm_description": "The file will be removed from this computer. Screenshots you already uploaded stay on your profile.",
     "delete_confirm_title": "Delete this screenshot?",
-    "description_counter": "{{count}}/{{max}}",
+    "description_add": "Add description (optional)",
     "description_label": "Description (optional)",
     "description_placeholder": "For example: Finally beat this boss",
     "disabled_for_game": "Screenshots are disabled for this game",

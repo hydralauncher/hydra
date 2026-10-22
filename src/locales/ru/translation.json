@@ -2401,7 +2401,7 @@
     "delete_confirm_button": "Удалить скриншот",
     "delete_confirm_description": "Файл будет удален с этого компьютера. Уже загруженные скриншоты останутся в вашем профиле.",
     "delete_confirm_title": "Удалить этот скриншот?",
-    "description_counter": "{{count}}/{{max}}",
+    "description_add": "Добавить описание (необязательно)",
     "description_label": "Описание (необязательно)",
     "description_placeholder": "Например: наконец победил этого босса",
     "disabled_for_game": "Скриншоты отключены для этой игры",
