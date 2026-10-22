@@ -297,7 +297,10 @@ const describeInstallerExit = (exitCode: number | null) => {
 
 const updateInstallerState = async (
   gameKey: string,
-  state: Pick<Download, "installerLaunched" | "installerRunning">
+  state: Pick<
+    Download,
+    "installerLaunched" | "installerRunning" | "installerStartedAt"
+  >
 ) => {
   const download = await downloadsSublevel.get(gameKey);
   if (!download) return;
@@ -440,6 +443,7 @@ const openGameInstaller = async (
       await updateInstallerState(gameKey, {
         installerLaunched: true,
         installerRunning: tracked && !installerFinished,
+        installerStartedAt,
       });
     }
   } finally {

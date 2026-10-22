@@ -138,6 +138,7 @@ export interface Download {
   extractionProgress?: number;
   installerLaunched?: boolean;
   installerRunning?: boolean;
+  installerStartedAt?: number;
   hasInstaller?: boolean;
   sourceArchiveName?: string;
   automaticallyExtract: boolean;

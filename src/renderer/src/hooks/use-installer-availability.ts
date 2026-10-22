@@ -7,7 +7,7 @@ const toRequestKey = (games: LibraryGame[]) =>
     .filter((game) => getFinishedDownload(game))
     .map(
       (game) =>
-        `${game.id}:${game.download?.folderName}:${game.download?.extracting}`
+        `${game.id}:${game.download?.folderName}:${game.download?.extracting}:${game.download?.installerLaunched}:${game.download?.installerRunning}:${Boolean(game.executablePath)}`
     )
     .join("|");
 
@@ -27,6 +27,19 @@ export function useInstallerAvailability(games: LibraryGame[]) {
     const finishedGames = gamesRef.current.filter((game) =>
       getFinishedDownload(game)
     );
+
+    finishedGames
+      .filter(
+        (game) =>
+          game.download?.installerLaunched &&
+          !game.download.installerRunning &&
+          !game.executablePath
+      )
+      .forEach((game) => {
+        void electron
+          .recheckInstalledExecutable(game.shop, game.objectId)
+          .catch(() => false);
+      });
 
     void Promise.all(
       finishedGames.map(async (game) => {

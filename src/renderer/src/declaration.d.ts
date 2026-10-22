@@ -585,6 +585,10 @@ declare global {
       options?: { deleteSourceArchive?: boolean }
     ) => Promise<unknown>;
     hasSourceArchive: (shop: GameShop, objectId: string) => Promise<boolean>;
+    recheckInstalledExecutable: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<boolean>;
     getGameByObjectId: (
       shop: GameShop,
       objectId: string

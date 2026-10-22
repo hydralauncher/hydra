@@ -25,6 +25,7 @@ import "./get-game-by-object-id";
 import "./has-game-installer";
 import "./has-download-folder";
 import "./has-source-archive";
+import "./recheck-installed-executable";
 import "./get-executable-picker-path";
 import "./get-game-launch-proton-version";
 import "./get-game-save-folder";

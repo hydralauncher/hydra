@@ -1245,6 +1245,8 @@ contextBridge.exposeInMainWorld("electron", {
     objectId: string,
     options?: { deleteSourceArchive?: boolean }
   ) => ipcRenderer.invoke("deleteGameFolder", shop, objectId, options),
+  recheckInstalledExecutable: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("recheckInstalledExecutable", shop, objectId),
   hasSourceArchive: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("hasSourceArchive", shop, objectId),
   getGameByObjectId: (shop: GameShop, objectId: string) =>
