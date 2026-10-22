@@ -49,6 +49,8 @@ import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-mo
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
 import { playMessageSound } from "./pages/chat-window/chat-sounds";
 
+import { PartyProvider } from "./context/PartyContext";
+
 import type { UserPreferences } from "@types";
 import "./app.scss";
 import {
@@ -659,7 +661,7 @@ export function App() {
   }, []);
 
   return (
-    <>
+    <PartyProvider>
       {(window.electron.platform === "win32" ||
         window.electron.platform === "linux") && (
         <div
@@ -773,6 +775,6 @@ export function App() {
       </main>
 
       <BottomPanel />
-    </>
+    </PartyProvider>
   );
 }
