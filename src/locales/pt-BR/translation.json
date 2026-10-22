@@ -2914,6 +2914,7 @@
     "delete_local_screenshots_description": "Todos os arquivos de capturas deste jogo neste computador serão excluídos. As capturas publicadas continuam online.",
     "delete_screenshots_rate_limited": "Você excluiu capturas muitas vezes. Tente novamente em alguns minutos.",
     "delete_screenshots_failed": "Não foi possível excluir as capturas",
+    "delete_screenshots_incomplete": "Não foi possível excluir alguns arquivos de capturas. Feche os programas que os estejam usando e tente novamente.",
     "screenshots_deleted_count_one": "{{count}} captura excluída",
     "screenshots_deleted_count_other": "{{count}} capturas excluídas"
   }

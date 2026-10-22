@@ -15,6 +15,7 @@ import { buildUserScreenshotsPath } from "../screenshots";
 export interface MyGameScreenshotsTarget {
   shop: GameShop;
   objectId: string;
+  isSignedIn?: boolean;
 }
 
 export interface MyGameScreenshotsLocalBridge {

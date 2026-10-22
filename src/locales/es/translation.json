@@ -2638,6 +2638,7 @@
     "delete_local_screenshots_description": "Se eliminarán todos los archivos de capturas de este juego en este equipo. Las capturas publicadas seguirán en línea.",
     "delete_screenshots_rate_limited": "Has eliminado capturas demasiadas veces. Inténtalo de nuevo en unos minutos.",
     "delete_screenshots_failed": "No se pudieron eliminar las capturas",
+    "delete_screenshots_incomplete": "No se pudieron eliminar algunos archivos de capturas. Cierra los programas que los estén usando e inténtalo de nuevo.",
     "screenshots_deleted_count_one": "Se eliminó {{count}} captura",
     "screenshots_deleted_count_other": "Se eliminaron {{count}} capturas"
   }

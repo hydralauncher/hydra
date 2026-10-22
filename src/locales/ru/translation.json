@@ -2687,6 +2687,7 @@
     "delete_local_screenshots_description": "Все файлы скриншотов этой игры на этом компьютере будут удалены. Опубликованные скриншоты останутся в сети.",
     "delete_screenshots_rate_limited": "Вы слишком часто удаляете скриншоты. Попробуйте снова через несколько минут.",
     "delete_screenshots_failed": "Не удалось удалить скриншоты",
+    "delete_screenshots_incomplete": "Не удалось удалить некоторые файлы скриншотов. Закройте программы, которые их используют, и попробуйте снова.",
     "screenshots_deleted_count_one": "Удалён {{count}} скриншот",
     "screenshots_deleted_count_few": "Удалено {{count}} скриншота",
     "screenshots_deleted_count_many": "Удалено {{count}} скриншотов",
