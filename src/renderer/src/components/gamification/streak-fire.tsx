@@ -13,7 +13,11 @@ export const STREAK_GLOW_DAYS = 180;
 
 const CELL = 2;
 const MAX_HEAT = 36;
-const FRAME_MS = 1000 / 24;
+// Calmer than the prototype (24 fps, faster tongues, more drift and sparks), on request.
+const FRAME_MS = 1000 / 12;
+const TONGUE_SPEED = 0.04;
+const SIDE_DRIFT_CHANCE = 0.2;
+const HEAT_SMOOTHING = 0.35;
 
 const fireGrowth = (days: number) =>
   days < STREAK_FIRE_DAYS
@@ -88,7 +92,7 @@ export function StreakFire({ days }: Readonly<{ days: number }>) {
 
     const step = () => {
       frame++;
-      const phase = frame * 0.09;
+      const phase = frame * TONGUE_SPEED;
 
       for (let x = 0; x < columns; x++) {
         const u = x / (columns - 1);
@@ -108,23 +112,30 @@ export function StreakFire({ days }: Readonly<{ days: number }>) {
 
       for (let y = 0; y < rows - 2; y++) {
         for (let x = 0; x < columns; x++) {
-          const drift =
-            Math.trunc(Math.random() * 3) - 1 + (Math.random() < 0.3 ? 1 : 0);
+          let drift = 0;
+          if (Math.random() < SIDE_DRIFT_CHANCE) {
+            drift = Math.random() < 0.5 ? -1 : 1;
+          }
           const sourceX = Math.min(columns - 1, Math.max(0, x + drift));
-          heat[y * columns + x] = Math.max(
+          const rising = Math.max(
             0,
             heat[(y + 1) * columns + sourceX] -
-              Math.random() * decay * (1.1 + 1.8 * (1 - tongues[sourceX]))
+              (0.3 + Math.random() * 0.4) *
+                decay *
+                (1.1 + 1.8 * (1 - tongues[sourceX]))
           );
+          const index = y * columns + x;
+          heat[index] =
+            heat[index] * HEAT_SMOOTHING + rising * (1 - HEAT_SMOOTHING);
         }
       }
 
-      if (Math.random() < (isEmbers ? 0.06 : 0.1 + growth * 0.4)) {
+      if (Math.random() < (isEmbers ? 0.04 : 0.05 + growth * 0.2)) {
         sparks.push({
           x: 2 + Math.random() * (columns - 4),
           y: rows - 1 - (isEmbers ? 0 : Math.random() * rows * 0.4),
-          vy: (isEmbers ? 0.12 : 0.25) + Math.random() * 0.25 + growth * 0.3,
-          dx: (Math.random() - 0.5) * 0.3,
+          vy: (isEmbers ? 0.1 : 0.18) + Math.random() * 0.12 + growth * 0.15,
+          dx: (Math.random() - 0.5) * 0.15,
           life: 1,
         });
       }
