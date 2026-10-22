@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { useFormat } from "@renderer/hooks";
+import { getDurationParts } from "../game-details/leaderboard/game-leaderboard";
 import type { MetricDefinition } from "./global-leaderboard";
 
 export function useMetricText() {
@@ -18,17 +19,11 @@ export function useMetricText() {
   const format = useCallback(
     (metric: MetricDefinition, value: number) => {
       if (metric.valueType === "duration") {
-        const minutes = value / 60;
-
-        if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
-          return t("value_minutes", {
-            amount: numberFormatter.format(Math.round(minutes)),
-          });
-        }
-
-        return t("value_hours", {
-          amount: numberFormatter.format(Math.round(minutes / 60)),
-        });
+        const { unit, amount } = getDurationParts(
+          value,
+          MAX_MINUTES_TO_SHOW_IN_PLAYTIME
+        );
+        return t(`value_${unit}`, { amount: numberFormatter.format(amount) });
       }
 
       if (metric.valueType === "days") {

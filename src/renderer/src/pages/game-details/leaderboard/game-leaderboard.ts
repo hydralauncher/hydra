@@ -2,7 +2,6 @@ import type { GameShop } from "@types";
 
 export const LEADERBOARD_TAKE = 100;
 export const LEADERBOARD_CARD_SIZE = 5;
-export const LEADERBOARD_CACHE_TTL_MS = 60_000;
 export const LEADERBOARD_MIN_PROGRESS = 4;
 
 export const LEADERBOARD_PERIODS = ["week", "all"] as const;
@@ -342,52 +341,32 @@ export const buildLeaderboardRequest = (
   };
 };
 
-export const getLeaderboardCacheKey = (query: LeaderboardQuery) => {
-  const { path, options } = buildLeaderboardRequest(query);
-  const params = Object.entries(options.params)
-    .map(([key, value]) => `${key}=${value}`)
-    .sort((a, b) => a.localeCompare(b))
-    .join("&");
+export const fetchGameLeaderboard = async (
+  get: LeaderboardGet,
+  query: LeaderboardQuery
+): Promise<Leaderboard> => {
+  if (!isLeaderboardShop(query.shop) || !query.objectId) {
+    return { entries: [], viewer: null, periodEnd: null };
+  }
 
-  return `${path}?${params}|viewer=${query.viewerId ?? "anonymous"}`;
+  const { path, options } = buildLeaderboardRequest(query);
+  return normalizeLeaderboardResponse(await get(path, options));
 };
 
-export const createLeaderboardFetcher = (
-  get: LeaderboardGet,
-  now: () => number = Date.now,
-  ttl = LEADERBOARD_CACHE_TTL_MS
-) => {
-  const cache = new Map<string, { at: number; leaderboard: Leaderboard }>();
-  const inFlight = new Map<string, Promise<Leaderboard>>();
+export const getDurationParts = (
+  seconds: number,
+  maxMinutes: number
+): { unit: "minutes" | "hours"; amount: number } => {
+  const minutes = seconds / 60;
 
-  return (query: LeaderboardQuery): Promise<Leaderboard> => {
-    if (!isLeaderboardShop(query.shop) || !query.objectId) {
-      return Promise.resolve({ entries: [], viewer: null, periodEnd: null });
-    }
+  if (minutes < maxMinutes) {
+    return {
+      unit: "minutes",
+      amount: seconds > 0 ? Math.max(1, Math.round(minutes)) : 0,
+    };
+  }
 
-    const key = getLeaderboardCacheKey(query);
-    const cached = cache.get(key);
-    if (cached && now() - cached.at < ttl) {
-      return Promise.resolve(cached.leaderboard);
-    }
-
-    const pending = inFlight.get(key);
-    if (pending !== undefined) return pending;
-
-    const { path, options } = buildLeaderboardRequest(query);
-    const request = get(path, options)
-      .then((response) => {
-        const leaderboard = normalizeLeaderboardResponse(response);
-        cache.set(key, { at: now(), leaderboard });
-        return leaderboard;
-      })
-      .finally(() => {
-        inFlight.delete(key);
-      });
-
-    inFlight.set(key, request);
-    return request;
-  };
+  return { unit: "hours", amount: Math.round(minutes / 60) };
 };
 
 export const buildGameLeaderboardPath = (shop: GameShop, objectId: string) => {

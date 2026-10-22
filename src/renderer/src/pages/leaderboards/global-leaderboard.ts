@@ -10,10 +10,13 @@ export const GLOBAL_LEADERBOARD_TAKE = 100;
 export const GLOBAL_LEADERBOARD_PAGE_SIZE = 13;
 export const GLOBAL_LEADERBOARD_PAGE_STEP = 10;
 export const GLOBAL_LEADERBOARD_CACHE_TTL_MS = 60_000;
+export const MAX_CACHED_RESPONSES = 200;
 export const GLOBAL_LEADERBOARD_PODIUM_SIZE = 3;
 export const PLAY_ACTIVITY_WEEKS = 15;
 export const BADGES_PAGE_SIZE = 8;
-export const SECONDS_PER_HOUR = 60 * 60;
+export const SECONDS_PER_MINUTE = 60;
+export const MINUTES_PER_HOUR = 60;
+export const SECONDS_PER_HOUR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR;
 export const PLAY_LEVEL_LOW_SECONDS = SECONDS_PER_HOUR;
 export const PLAY_LEVEL_HIGH_SECONDS = 3 * SECONDS_PER_HOUR;
 
@@ -266,7 +269,8 @@ export const getRequestKey = (
 export const createResponseCache = (
   get: LeaderboardGet,
   now: () => number = Date.now,
-  ttl = GLOBAL_LEADERBOARD_CACHE_TTL_MS
+  ttl = GLOBAL_LEADERBOARD_CACHE_TTL_MS,
+  maxEntries = MAX_CACHED_RESPONSES
 ) => {
   const cache = new Map<string, { at: number; response: unknown }>();
   const inFlight = new Map<string, Promise<unknown>>();
@@ -277,8 +281,24 @@ export const createResponseCache = (
     options: LeaderboardRequestOptions,
     accountId: string | null = null
   ) => {
-    const cached = cache.get(getRequestKey(path, options, accountId));
-    return cached && now() - cached.at < ttl ? cached.response : undefined;
+    const key = getRequestKey(path, options, accountId);
+    const cached = cache.get(key);
+    if (!cached) return undefined;
+    if (now() - cached.at < ttl) return cached.response;
+
+    cache.delete(key);
+    return undefined;
+  };
+
+  const store = (key: string, response: unknown) => {
+    cache.delete(key);
+    cache.set(key, { at: now(), response });
+
+    while (cache.size > maxEntries) {
+      const oldest = cache.keys().next().value;
+      if (oldest === undefined) break;
+      cache.delete(oldest);
+    }
   };
 
   const request = (
@@ -296,9 +316,7 @@ export const createResponseCache = (
     const requestGeneration = generation;
     const promise: Promise<unknown> = get(path, options)
       .then((response) => {
-        if (requestGeneration === generation) {
-          cache.set(key, { at: now(), response });
-        }
+        if (requestGeneration === generation) store(key, response);
         return response;
       })
       .finally(() => {
@@ -377,18 +395,6 @@ export const normalizeMetricDefinitions = (
       },
     ];
   });
-};
-
-export const getAvailableMetrics = (
-  metrics: MetricDefinition[],
-  results: Partial<Record<string, { leaderboard: unknown; hasError: boolean }>>
-): MetricDefinition[] => {
-  const available = metrics.filter((metric) => {
-    const result = results[metric.id];
-    return !result || Boolean(result.leaderboard) || !result.hasError;
-  });
-
-  return available.length > 0 ? available : metrics;
 };
 
 export const hasStreakData = (leaderboard: GlobalLeaderboard | null) =>

@@ -8,7 +8,6 @@ import { Navigate, useSearchParams } from "react-router-dom";
 import { SegmentedControl } from "../game-details/leaderboard/leaderboard-controls";
 import {
   buildMetricsRequest,
-  getAvailableMetrics,
   GLOBAL_LEADERBOARD_PERIODS,
   GLOBAL_LEADERBOARD_SCOPES,
   LEADERBOARD_PAGE_TABS,
@@ -91,8 +90,8 @@ function LeaderboardsPage() {
   });
 
   const availableMetrics = useMemo(
-    () => getAvailableMetrics(metricDefinitions.data ?? [], results),
-    [metricDefinitions.data, results]
+    () => metricDefinitions.data ?? [],
+    [metricDefinitions.data]
   );
   const metric =
     availableMetrics.find((definition) => definition.id === requestedMetric) ??
@@ -108,10 +107,11 @@ function LeaderboardsPage() {
     [referenceBoard, weekClock]
   );
 
+  const { retry: retryMetrics } = metricDefinitions;
   const retryAll = useCallback(() => {
-    metricDefinitions.retry();
+    retryMetrics();
     retry();
-  }, [metricDefinitions, retry]);
+  }, [retryMetrics, retry]);
 
   const handleWeekEnd = useCallback(() => {
     leaderboardsCache.clear();

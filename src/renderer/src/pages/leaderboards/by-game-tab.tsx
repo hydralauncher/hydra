@@ -231,7 +231,7 @@ export function ByGameTab({
 
     if (games.hasError) return <BlockError onRetry={games.retry} />;
 
-    if (allGames.length === 0 && !linkedGame) {
+    if (allGames.length === 0) {
       return (
         <BlockMessage
           icon={<TrophyIcon size={24} />}
@@ -241,7 +241,7 @@ export function ByGameTab({
       );
     }
 
-    if (filtered.length === 0) {
+    if (filtered.length === 0 && search.trim()) {
       return <BlockMessage title={t("games_search_empty")} />;
     }
 

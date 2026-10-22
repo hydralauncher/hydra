@@ -27,14 +27,10 @@ export function WeekSubtitle({
   const endTime = weekRange.end.getTime();
 
   useEffect(() => {
-    let notified = false;
     const tick = () => {
       const current = Date.now();
       setNow(current);
-      if (current >= endTime && !notified) {
-        notified = true;
-        onWeekEndRef.current();
-      }
+      if (current >= endTime) onWeekEndRef.current();
     };
 
     const interval = setInterval(tick, COUNTDOWN_TICK_MS);

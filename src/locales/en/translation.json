@@ -2626,6 +2626,7 @@
     "leaders_title": "Leaders of the week",
     "leaders_all_title": "All-time record holders",
     "no_leader": "No one yet",
+    "leader_error": "Couldn't load",
     "metal_gold": "Gold",
     "metal_silver": "Silver",
     "metal_bronze": "Bronze",

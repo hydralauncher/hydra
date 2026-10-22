@@ -12,7 +12,8 @@ import {
   normalizeFriendStreaks,
   normalizePlayActivity,
   PLAY_ACTIVITY_WEEKS,
-  SECONDS_PER_HOUR,
+  MINUTES_PER_HOUR,
+  SECONDS_PER_MINUTE,
   type MetricDefinition,
   type GlobalLeaderboardPeriod,
   type HeatmapCell,
@@ -90,8 +91,12 @@ export function StatsTab({
       timeZone: "UTC",
     }).format(cell.date);
     const label = cell.isToday ? t("today_date", { date }) : date;
-    const hours = Math.floor(cell.seconds / SECONDS_PER_HOUR);
-    const minutes = Math.round((cell.seconds % SECONDS_PER_HOUR) / 60);
+    const totalMinutes = Math.max(
+      1,
+      Math.round(cell.seconds / SECONDS_PER_MINUTE)
+    );
+    const hours = Math.floor(totalMinutes / MINUTES_PER_HOUR);
+    const minutes = totalMinutes % MINUTES_PER_HOUR;
     let time = t("not_played");
     if (cell.seconds > 0) {
       time =

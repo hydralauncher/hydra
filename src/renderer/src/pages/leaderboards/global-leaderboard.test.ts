@@ -6,7 +6,6 @@ import {
   buildHeatmap,
   createResponseCache,
   buildMetricsRequest,
-  getAvailableMetrics,
   hasReviewData,
   hasStreakData,
   normalizeMetricDefinitions,
@@ -241,6 +240,25 @@ describe("createResponseCache isolation", () => {
   });
 });
 
+describe("createResponseCache housekeeping", () => {
+  it("drops stale entries and keeps at most maxEntries", async () => {
+    let clock = 0;
+    const get: LeaderboardGet = async (path) => path;
+    const cache = createResponseCache(get, () => clock, 1000, 2);
+    const request = (path: string) => cache.get(path, options);
+    const options = { params: {}, needsAuth: false };
+
+    await request("/a");
+    await request("/b");
+    await request("/c");
+    assert.equal(cache.peek("/a", options), undefined);
+    assert.equal(cache.peek("/c", options), "/c");
+
+    clock = 1001;
+    assert.equal(cache.peek("/c", options), undefined);
+  });
+});
+
 describe("metric definitions", () => {
   it("builds the metrics request per scope without auth", () => {
     assert.deepEqual(buildMetricsRequest("game"), {
@@ -265,46 +283,6 @@ describe("metric definitions", () => {
       { id: "sessions", valueType: "count", label: "sessions" },
     ]);
     assert.throws(() => normalizeMetricDefinitions({}), TypeError);
-  });
-});
-
-describe("getAvailableMetrics", () => {
-  const definition = (id: string) => ({
-    id,
-    valueType: "count" as const,
-    label: id,
-  });
-  const metrics = ["playtime", "friends", "streak", "reviews", "new"].map(
-    definition
-  );
-  const ok = { leaderboard: {}, hasError: false };
-  const loading = { leaderboard: null, hasError: false };
-  const failed = { leaderboard: null, hasError: true };
-
-  it("hides metrics whose board failed and keeps unloaded ones", () => {
-    const available = getAvailableMetrics(metrics, {
-      playtime: ok,
-      friends: loading,
-      streak: failed,
-      reviews: failed,
-    });
-
-    assert.deepEqual(
-      available.map((metric) => metric.id),
-      ["playtime", "friends", "new"]
-    );
-  });
-
-  it("keeps every metric when all of them failed", () => {
-    const available = getAvailableMetrics(metrics, {
-      playtime: failed,
-      friends: failed,
-      streak: failed,
-      reviews: failed,
-      new: failed,
-    });
-
-    assert.equal(available.length, 5);
   });
 });
 

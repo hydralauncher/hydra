@@ -129,7 +129,11 @@ export function RankingTab({
       <span className="leaderboards__card-empty">{t("no_leader")}</span>
     );
 
-    if (result.isLoading && !result.leaderboard) {
+    if (result.hasError) {
+      leaderContent = (
+        <span className="leaderboards__card-empty">{t("leader_error")}</span>
+      );
+    } else if (result.isLoading && !result.leaderboard) {
       leaderContent = (
         <Skeleton className="leaderboards__card-skeleton" width="100%" />
       );
