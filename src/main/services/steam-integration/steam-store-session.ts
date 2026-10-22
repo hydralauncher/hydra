@@ -289,17 +289,27 @@ const loadHiddenSteamPage = async <T>(
     }
   };
 
+  const abortError = () => {
+    const error = new Error("steam-sync-aborted");
+    error.name = "AbortError";
+    return error;
+  };
+
   signal?.addEventListener("abort", abort, { once: true });
 
   try {
     if (signal?.aborted) {
-      const error = new Error("steam-sync-aborted");
-      error.name = "AbortError";
-      throw error;
+      throw abortError();
     }
 
     await window.loadURL(url);
     return await read(window);
+  } catch (error) {
+    // Destroying the window on abort rejects the load with ERR_ABORTED.
+    if (signal?.aborted) {
+      throw abortError();
+    }
+    throw error;
   } finally {
     signal?.removeEventListener("abort", abort);
     if (!window.isDestroyed()) {
