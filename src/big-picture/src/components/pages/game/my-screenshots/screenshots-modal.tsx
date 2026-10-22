@@ -601,7 +601,7 @@ function MyScreenshotsPanel({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
   const sortOptions = useScreenshotSortOptions();
   const isLocal = tab.activeFilter === "local";
   const filters: { value: MyScreenshotsStatusFilter; label: string }[] = [
-    { value: "uploaded", label: t("screenshots_filter_uploaded") },
+    { value: "uploaded", label: t("uploaded", { ns: "screenshots" }) },
     { value: "local", label: t("not_uploaded", { ns: "screenshots" }) },
   ];
 
@@ -617,7 +617,7 @@ function MyScreenshotsPanel({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
             <div
               className="game-screenshots-modal__status-filter"
               role="radiogroup"
-              aria-label={t("screenshots_sort_label")}
+              aria-label={t("screenshot_status_filter", { ns: "screenshots" })}
             >
               {filters.map((filter) => (
                 <Button
@@ -636,18 +636,19 @@ function MyScreenshotsPanel({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
               ))}
             </div>
           ) : null}
-          <DropdownSelect
-            className="game-screenshots-modal__sort"
-            label={t("screenshots_sort_label")}
-            hideLabel
-            leadingIcon={<SortAscendingIcon size={20} />}
-            ariaLabel={t("screenshots_sort_label")}
-            value={isLocal ? "recent" : tab.sort}
-            options={sortOptions}
-            disabled={isLocal}
-            focusId={GAME_SCREENSHOTS_MODAL_MINE_SORT_ID}
-            onValueChange={tab.setSort}
-          />
+          {isLocal ? null : (
+            <DropdownSelect
+              className="game-screenshots-modal__sort"
+              label={t("screenshots_sort_label")}
+              hideLabel
+              leadingIcon={<SortAscendingIcon size={20} />}
+              ariaLabel={t("screenshots_sort_label")}
+              value={tab.sort}
+              options={sortOptions}
+              focusId={GAME_SCREENSHOTS_MODAL_MINE_SORT_ID}
+              onValueChange={tab.setSort}
+            />
+          )}
         </div>
       </HorizontalFocusGroup>
 
@@ -757,9 +758,9 @@ export function GameScreenshotsModal({
           ) : undefined
         }
         initialFocusId={
-          hasCommunity || mineTab.mine.canFetchPublished
+          mineTab.mine.canFetchPublished
             ? GAME_SCREENSHOTS_MODAL_MINE_UPLOADED_ID
-            : GAME_SCREENSHOTS_MODAL_MINE_SORT_ID
+            : undefined
         }
       >
         <VerticalFocusGroup regionId={GAME_SCREENSHOTS_MODAL_REGION_ID} asChild>

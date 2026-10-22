@@ -1015,7 +1015,6 @@
     "screenshots_description_placeholder": "Add a short note, like what just happened",
     "screenshots_reveal_spoiler_hint": "Press A to reveal",
     "screenshots_add_description": "Add description",
-    "screenshots_danger_zone_description": "Delete your published screenshots of this game, every screenshot file of it on this computer, or both.",
-    "screenshots_filter_uploaded": "Uploaded"
+    "screenshots_danger_zone_description": "Delete your published screenshots of this game, every screenshot file of it on this computer, or both."
   }
 }
