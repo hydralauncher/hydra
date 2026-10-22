@@ -4,13 +4,19 @@ import { useTranslation } from "react-i18next";
 import { getRankTier, isMedalTier } from "./rank-tier";
 import "./rank-medal.scss";
 
+const MEDAL_SHINE_STAGGER_SECONDS = 0.35;
+
 export interface RankMedalProps {
   rank: number;
   highlighted?: boolean;
   className?: string;
 }
 
-export function RankMedal({ rank, highlighted, className }: RankMedalProps) {
+export function RankMedal({
+  rank,
+  highlighted,
+  className,
+}: Readonly<RankMedalProps>) {
   const { t } = useTranslation("leaderboard");
   const tier = getRankTier(rank);
 
@@ -32,7 +38,11 @@ export function RankMedal({ rank, highlighted, className }: RankMedalProps) {
   return (
     <span
       className={cn("rank-medal", `rank-medal--${tier}`, className)}
-      style={{ "--rank-medal-delay": `${rank * 0.35}s` } as React.CSSProperties}
+      style={
+        {
+          "--rank-medal-delay": `${rank * MEDAL_SHINE_STAGGER_SECONDS}s`,
+        } as React.CSSProperties
+      }
       role="img"
       aria-label={t(`medal_${tier}`, { rank })}
     >

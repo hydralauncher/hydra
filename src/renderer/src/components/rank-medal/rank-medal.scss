@@ -1,4 +1,10 @@
+@use "sass:math";
 @use "../../scss/globals.scss";
+
+$medal-shine-duration: 3.6s;
+$medal-shine-stagger: 0.35s;
+$frame-spin-duration: 4.5s;
+$frame-spin-offset: math.div($frame-spin-duration, 3);
 
 .rank-medal {
   --rank-medal-color: var(--rank-gold-color, #{globals.$rank-gold-color});
@@ -80,8 +86,8 @@
         rgba(255, 255, 255, 0)
       );
       transform: rotate(20deg);
-      animation: rank-medal-shine 3.6s ease-in-out infinite;
-      animation-delay: var(--rank-medal-delay, 0.35s);
+      animation: rank-medal-shine $medal-shine-duration ease-in-out infinite;
+      animation-delay: var(--rank-medal-delay, #{$medal-shine-stagger});
     }
   }
 
@@ -144,7 +150,7 @@
     mask:
       linear-gradient(#000 0 0) content-box exclude,
       linear-gradient(#000 0 0);
-    animation: rank-frame-spin 4.5s linear infinite;
+    animation: rank-frame-spin $frame-spin-duration linear infinite;
   }
 
   &--silver {
@@ -152,7 +158,7 @@
     --rank-frame-soft-amount: 34%;
 
     &::before {
-      animation-delay: -1.5s;
+      animation-delay: $frame-spin-offset * -1;
     }
   }
 
@@ -161,7 +167,7 @@
     --rank-frame-soft-amount: 42%;
 
     &::before {
-      animation-delay: -3s;
+      animation-delay: $frame-spin-offset * -2;
     }
   }
 }
