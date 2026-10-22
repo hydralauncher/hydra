@@ -48,6 +48,16 @@ function GameScreenshotsBox({
   const topItems = mine.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
   const local = useLocalScreenshotActions(mine.pendingLocal);
 
+  const viewAllButton = (
+    <Button
+      theme="outline"
+      className="game-screenshots-box__view-all"
+      onClick={() => setIsModalVisible(true)}
+    >
+      {t("view_all")}
+    </Button>
+  );
+
   const renderContent = () => {
     if (!mine.hasLoaded) {
       return (
@@ -73,6 +83,7 @@ function GameScreenshotsBox({
             {t("no_game_screenshots_yet")}
           </span>
           <GameScreenshotsHotkeyTip />
+          {shop === "custom" ? null : viewAllButton}
         </output>
       );
     }
@@ -106,13 +117,7 @@ function GameScreenshotsBox({
           ))}
         </ul>
 
-        <Button
-          theme="outline"
-          className="game-screenshots-box__view-all"
-          onClick={() => setIsModalVisible(true)}
-        >
-          {t("view_all")}
-        </Button>
+        {viewAllButton}
       </>
     );
   };
