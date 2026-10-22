@@ -21,7 +21,7 @@ export function LeaderboardRow({
   row,
   value,
   showProgress = true,
-}: LeaderboardRowProps) {
+}: Readonly<LeaderboardRowProps>) {
   const { t } = useTranslation("leaderboard");
   const navigate = useNavigate();
   const { entry, isViewer, gapBefore, progress } = row;
