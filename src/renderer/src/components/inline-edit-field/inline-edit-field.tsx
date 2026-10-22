@@ -139,8 +139,9 @@ export function InlineEditField({
   };
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const next = sanitize ? sanitize(event.target.value) : event.target.value;
-    if (next.length > maxLength) signalLimit();
+    const raw = event.target.value;
+    const next = sanitize ? sanitize(raw) : raw;
+    if (raw.length > maxLength || next.length > maxLength) signalLimit();
     setValue(next.slice(0, maxLength));
   };
 
