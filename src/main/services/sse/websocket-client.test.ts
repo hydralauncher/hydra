@@ -323,6 +323,48 @@ describe("realtime WebSocket helpers", () => {
     }
   });
 
+  it("accepts friend game sessions with or without profile fields", () => {
+    const parseFriendGameSession = (payload: Record<string, unknown>) =>
+      parseRealtimeEnvelope(
+        JSON.stringify({
+          v: 1,
+          eventId: "friend-game-session",
+          event: "friendGameSession",
+          payload,
+          publishedAt: Date.now(),
+        })
+      );
+    const session = {
+      objectId: "1091500",
+      shop: "steam",
+      friendId: "friend01",
+    };
+    const profile = {
+      displayName: "Alice",
+      profileImageUrl: "https://cdn.example/alice.png",
+      gameTitle: "Cyberpunk 2077",
+    };
+
+    for (const payload of [
+      session,
+      { ...session, ...profile },
+      {
+        ...session,
+        displayName: "Alice",
+        profileImageUrl: null,
+        gameTitle: null,
+      },
+    ]) {
+      assert.deepEqual(parseFriendGameSession(payload)?.payload, payload);
+    }
+
+    const { friendId: _friendId, ...withoutFriendId } = {
+      ...session,
+      ...profile,
+    };
+    assert.equal(parseFriendGameSession(withoutFriendId), null);
+  });
+
   const chatMessagePayload = {
     senderId: "sender01",
     recipientId: "recipie1",

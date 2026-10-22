@@ -2558,6 +2558,11 @@
     "image": "Image",
     "close_image": "Close image"
   },
+  "leaderboard": {
+    "medal_gold": "1st place, gold",
+    "medal_silver": "2nd place, silver",
+    "medal_bronze": "3rd place, bronze"
+  },
   "screenshots_input": {
     "gamepad_combo_too_long": "Use at most 4 buttons for the screenshot combo",
     "gamepad_combo_too_short": "Use at least 2 buttons for the screenshot combo",
