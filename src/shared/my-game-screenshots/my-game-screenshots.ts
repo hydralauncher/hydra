@@ -153,3 +153,15 @@ export const resolveMyGameScreenshotsStatus = ({
   if (localReady && publishedReady) return "ready";
   return "loading";
 };
+
+export function createLocalSnapshotGuard() {
+  let version = 0;
+
+  return {
+    beginRead: () => version,
+    isCurrentRead: (startedAt: number) => startedAt === version,
+    noteSnapshot: () => {
+      version += 1;
+    },
+  };
+}
