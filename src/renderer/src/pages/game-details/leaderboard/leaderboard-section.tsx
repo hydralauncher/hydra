@@ -250,16 +250,18 @@ export function LeaderboardSection() {
 
         {!isLoggedIn && state !== "loading" && (
           <div className="leaderboard-section__sign-in">
-            <p>{t("sign_in_hint")}</p>
-            <Button
-              theme="primary"
-              size="small"
+            <p className="leaderboard-section__sign-in-text">
+              {t("sign_in_hint")}
+            </p>
+            <button
+              type="button"
+              className="leaderboard-section__sign-in-button"
               onClick={() =>
                 globalThis.window.electron.openAuthWindow(AuthPage.SignIn)
               }
             >
               {t("sign_in")}
-            </Button>
+            </button>
           </div>
         )}
       </div>
