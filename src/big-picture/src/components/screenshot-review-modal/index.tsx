@@ -51,6 +51,7 @@ import {
 } from "../pages/screenshots";
 import { InlineTextField } from "../pages/screenshots/inline-text-field";
 import { useScreenshotDialogPresenceStore } from "../pages/screenshots/screenshot-dialog-presence";
+import { subscribeScreenshotReviewRequests } from "./review-requests";
 import {
   useBigPictureToast,
   useNavigation,
@@ -497,6 +498,8 @@ const toUploadOptions = (draft: ReviewDraft, isCustomGame: boolean) => {
   };
 };
 
+export { requestScreenshotReview } from "./review-requests";
+
 export function ScreenshotReviewModal() {
   const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
@@ -548,6 +551,7 @@ export function ScreenshotReviewModal() {
     };
     const unsubscribe =
       globalThis.window.electron.onScreenshotReviewRequested(enqueue);
+    const unsubscribeLocal = subscribeScreenshotReviewRequests(enqueue);
 
     globalThis.window.electron
       .getPendingScreenshotReviewRequest()
@@ -561,6 +565,7 @@ export function ScreenshotReviewModal() {
     return () => {
       isSubscribed = false;
       unsubscribe();
+      unsubscribeLocal();
     };
   }, []);
 

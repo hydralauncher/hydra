@@ -44,17 +44,13 @@ export function getGameCommentVoteItemId(
   return `game-comment-${reviewId}-${voteType}`;
 }
 
-export const GAME_COMMUNITY_SCREENSHOTS_REGION_ID =
-  "game-community-screenshots";
-export const GAME_COMMUNITY_SCREENSHOTS_GRID_REGION_ID =
-  "game-community-screenshots-grid";
-export const GAME_COMMUNITY_SCREENSHOTS_VIEW_ALL_ID =
-  "game-community-screenshots-view-all";
-export const GAME_COMMUNITY_SCREENSHOTS_RETRY_ID =
-  "game-community-screenshots-retry";
+export const GAME_MY_SCREENSHOTS_REGION_ID = "game-my-screenshots";
+export const GAME_MY_SCREENSHOTS_GRID_REGION_ID = "game-my-screenshots-grid";
+export const GAME_MY_SCREENSHOTS_VIEW_ALL_ID = "game-my-screenshots-view-all";
+export const GAME_MY_SCREENSHOTS_RETRY_ID = "game-my-screenshots-retry";
 
-export function getGameCommunityScreenshotItemId(screenshotId: string) {
-  return `game-community-screenshot-${screenshotId}`;
+export function getGameMyScreenshotItemId(itemId: string) {
+  return `game-my-screenshot-${itemId}`;
 }
 
 export const GAME_SCREENSHOTS_MODAL_REGION_ID = "game-screenshots-modal";
@@ -68,6 +64,14 @@ export const GAME_SCREENSHOTS_MODAL_SPOILERS_ID =
 export const GAME_SCREENSHOTS_MODAL_LOAD_MORE_ID =
   "game-screenshots-modal-load-more";
 export const GAME_SCREENSHOTS_MODAL_RETRY_ID = "game-screenshots-modal-retry";
+export const GAME_SCREENSHOTS_MODAL_TABS_REGION_ID =
+  "game-screenshots-modal-tabs";
+export const GAME_SCREENSHOTS_MODAL_MINE_SORT_ID =
+  "game-screenshots-modal-mine-sort";
+export const GAME_SCREENSHOTS_MODAL_MINE_LOAD_MORE_ID =
+  "game-screenshots-modal-mine-load-more";
+export const GAME_SCREENSHOTS_MODAL_MINE_RETRY_ID =
+  "game-screenshots-modal-mine-retry";
 
 export function getGameScreenshotsModalItemId(screenshotId: string) {
   return `game-screenshots-modal-item-${screenshotId}`;

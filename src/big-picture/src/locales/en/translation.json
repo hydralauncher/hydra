@@ -1006,7 +1006,7 @@
     "screenshots_view_all": "View all",
     "screenshots_comment_bold": "Bold",
     "screenshots_comment_italic": "Italic",
-    "screenshots_settings_ask_to_upload_description": "When off, screenshots are only saved on this computer. You can upload them later from the list below.",
+    "screenshots_settings_ask_to_upload_description": "When off, screenshots are only saved on this computer. You can upload them later from the game page.",
     "screenshots_comment_count_one": "{{count}} comment",
     "screenshots_comment_count_other": "{{count}} comments",
     "screenshots_like_count_one": "{{count}} like",
@@ -1014,6 +1014,7 @@
     "screenshots_description_label": "Description",
     "screenshots_description_placeholder": "Add a short note, like what just happened",
     "screenshots_reveal_spoiler_hint": "Press A to reveal",
-    "screenshots_add_description": "Add description"
+    "screenshots_add_description": "Add description",
+    "screenshots_danger_zone_description": "Delete the screenshots you took of this game, from your profile, from this computer, or both."
   }
 }

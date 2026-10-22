@@ -53,7 +53,7 @@ import {
   ProtonDBSection,
   RequirementsToPlay,
   ScreenshotCarousel,
-  GameCommunityScreenshots,
+  GameMyScreenshots,
   SupportedLanguages,
 } from "../../components/pages/game";
 import { useGameSettingsModalState } from "../../components/pages/game/game-settings-modal/use-game-settings-modal-state";
@@ -1845,15 +1845,13 @@ export default function Game() {
                   </FocusItem>
                 )}
 
-                {isCustomGame ? null : (
-                  <GameCommunityScreenshots
-                    shop={shop!}
-                    objectId={objectId!}
-                    isAdultGame={isAdultGame}
-                    navigationOrder={0.5}
-                    leftTarget={sidebarCarouselLeftNavigationTarget}
-                  />
-                )}
+                <GameMyScreenshots
+                  shop={shop!}
+                  objectId={objectId!}
+                  isAdultGame={isAdultGame}
+                  navigationOrder={0.5}
+                  leftTarget={sidebarCarouselLeftNavigationTarget}
+                />
 
                 {(howLongToBeat?.length ?? 0) > 0 && (
                   <HowLongToBeatBox

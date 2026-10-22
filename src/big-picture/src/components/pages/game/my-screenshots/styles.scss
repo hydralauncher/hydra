@@ -1,4 +1,4 @@
-.game-community-screenshots {
+.game-my-screenshots {
   display: flex;
   flex-direction: column;
 
@@ -83,48 +83,6 @@
     color: var(--text-secondary);
   }
 
-  &__owner {
-    position: absolute;
-    top: calc(var(--spacing-unit) * 1.5);
-    left: calc(var(--spacing-unit) * 1.5);
-    z-index: 2;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-unit);
-    max-width: calc(100% - var(--spacing-unit) * 3);
-    height: 26px;
-    padding: 0 calc(var(--spacing-unit) * 1.5) 0 4px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(10px);
-    color: rgba(255, 255, 255, 0.95);
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  &__owner-avatar {
-    flex-shrink: 0;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    object-fit: cover;
-
-    &--fallback {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--secondary);
-    }
-  }
-
-  &__owner-name {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
   &__stats {
     position: absolute;
     right: calc(var(--spacing-unit) * 1.5);
@@ -179,6 +137,12 @@
       font-size: 14px;
     }
   }
+
+  &__hint {
+    font-size: 12px;
+    line-height: 1.4;
+    opacity: 0.85;
+  }
 }
 
 .game-screenshots-modal {
@@ -189,6 +153,22 @@
     flex-direction: column;
     gap: calc(var(--spacing-unit) * 4);
     min-height: 0;
+  }
+
+  &__tabs {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 3);
+  }
+
+  &__hint {
+    max-width: 520px;
+    font-size: 14px;
+  }
+
+  &__local-item {
+    display: flex;
+    min-width: 0;
   }
 
   &__toolbar {
@@ -242,4 +222,139 @@
       font-size: 15px;
     }
   }
+}
+
+.local-screenshot-tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #000;
+  outline: none;
+
+  &--card {
+    border-radius: 12px;
+  }
+
+  &:hover,
+  &[data-focused="true"] {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+  }
+
+  &--card:hover,
+  &--card[data-focused="true"] {
+    outline-offset: 4px;
+  }
+
+  &__media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    appearance: none;
+  }
+
+  &__image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+  }
+
+  &__badge {
+    position: absolute;
+    top: calc(var(--spacing-unit) * 1.5);
+    left: calc(var(--spacing-unit) * 1.5);
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    max-width: calc(100% - var(--spacing-unit) * 3);
+    height: 22px;
+    padding: 0 calc(var(--spacing-unit) * 2);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(10px);
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 11px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  &__actions {
+    position: absolute;
+    right: calc(var(--spacing-unit) * 1.5);
+    bottom: calc(var(--spacing-unit) * 1.5);
+    z-index: 2;
+    display: flex;
+    gap: var(--spacing-unit);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  &:hover &__actions,
+  &[data-focused="true"] &__actions {
+    opacity: 1;
+  }
+
+  &__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 calc(var(--spacing-unit) * 1.5) 0 3px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+    color: rgba(255, 255, 255, 0.95);
+    cursor: pointer;
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+
+    &--danger:not(:disabled):hover {
+      color: var(--danger, #ff6b6b);
+    }
+  }
+
+  &__button-hint {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 3px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #000;
+    font-size: 10px;
+    font-weight: 700;
+  }
+}
+
+.local-screenshot-viewer__confirmation-backdrop {
+  z-index: 130;
 }

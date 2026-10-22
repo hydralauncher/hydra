@@ -967,7 +967,7 @@
     "screenshots_view_all": "Ver todas",
     "screenshots_comment_bold": "Negrita",
     "screenshots_comment_italic": "Cursiva",
-    "screenshots_settings_ask_to_upload_description": "Si está desactivado, las capturas solo se guardan en este equipo. Puedes subirlas más tarde desde la lista de abajo.",
+    "screenshots_settings_ask_to_upload_description": "Si está desactivado, las capturas solo se guardan en este equipo. Puedes subirlas más tarde desde la página del juego.",
     "screenshots_comment_count_one": "{{count}} comentario",
     "screenshots_comment_count_other": "{{count}} comentarios",
     "screenshots_like_count_one": "{{count}} me gusta",
@@ -975,6 +975,7 @@
     "screenshots_description_label": "Descripción",
     "screenshots_description_placeholder": "Añade una nota breve, por ejemplo qué acaba de pasar",
     "screenshots_reveal_spoiler_hint": "Pulsa A para mostrarla",
-    "screenshots_add_description": "Añadir descripción"
+    "screenshots_add_description": "Añadir descripción",
+    "screenshots_danger_zone_description": "Elimina las capturas que tomaste de este juego de tu perfil, de este equipo o de ambos."
   }
 }

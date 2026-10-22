@@ -992,7 +992,7 @@
     "screenshots_view_all": "Показать все",
     "screenshots_comment_bold": "Жирный",
     "screenshots_comment_italic": "Курсив",
-    "screenshots_settings_ask_to_upload_description": "Если выключено, скриншоты только сохраняются на этом компьютере. Загрузить их можно позже из списка ниже.",
+    "screenshots_settings_ask_to_upload_description": "Если выключено, скриншоты только сохраняются на этом компьютере. Загрузить их можно позже со страницы игры.",
     "screenshots_comment_count_one": "{{count}} комментарий",
     "screenshots_comment_count_few": "{{count}} комментария",
     "screenshots_comment_count_many": "{{count}} комментариев",
@@ -1004,6 +1004,7 @@
     "screenshots_description_label": "Описание",
     "screenshots_description_placeholder": "Добавьте короткую заметку, например, что сейчас произошло",
     "screenshots_reveal_spoiler_hint": "Нажмите A, чтобы показать",
-    "screenshots_add_description": "Добавить описание"
+    "screenshots_add_description": "Добавить описание",
+    "screenshots_danger_zone_description": "Удалите скриншоты этой игры из профиля, с этого компьютера или отовсюду сразу."
   }
 }

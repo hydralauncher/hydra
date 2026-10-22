@@ -1006,7 +1006,7 @@
     "screenshots_view_all": "Ver todas",
     "screenshots_comment_bold": "Negrito",
     "screenshots_comment_italic": "Itálico",
-    "screenshots_settings_ask_to_upload_description": "Quando desativado, as capturas ficam salvas apenas neste computador. Você pode enviá-las depois pela lista abaixo.",
+    "screenshots_settings_ask_to_upload_description": "Quando desativado, as capturas ficam salvas apenas neste computador. Você pode enviá-las depois pela página do jogo.",
     "screenshots_comment_count_one": "{{count}} comentário",
     "screenshots_comment_count_other": "{{count}} comentários",
     "screenshots_like_count_one": "{{count}} curtida",
@@ -1014,6 +1014,7 @@
     "screenshots_description_label": "Descrição",
     "screenshots_description_placeholder": "Adicione uma nota curta, como o que acabou de acontecer",
     "screenshots_reveal_spoiler_hint": "Pressione A para revelar",
-    "screenshots_add_description": "Adicionar descrição"
+    "screenshots_add_description": "Adicionar descrição",
+    "screenshots_danger_zone_description": "Exclua as capturas que você tirou deste jogo do seu perfil, deste computador ou de ambos."
   }
 }
