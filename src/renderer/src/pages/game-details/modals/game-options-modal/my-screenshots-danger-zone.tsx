@@ -5,23 +5,20 @@ import { Button, ConfirmationModal } from "@renderer/components";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import {
-  buildUserScreenshotsPath,
-  getScreenshotApiErrorCode,
+  countPublishedScreenshotsForGame,
+  deleteMyGameScreenshots,
   isLocalScreenshotForGame,
+  notifyMyGameScreenshotsChanged,
+  selectPendingLocalScreenshots,
+  subscribeMyGameScreenshotsChanged,
+  type MyScreenshotsDeletion,
 } from "@shared";
-import type { GameShop, ScreenshotsResponse } from "@types";
+import type { GameShop } from "@types";
 
 import {
-  deleteMyGameScreenshots,
-  type MyScreenshotsDeletion,
-} from "../../game-screenshots/delete-my-game-screenshots";
-import {
-  getPublishedScreenshotIdsForGame,
-  loadLocalScreenshotsForGame,
-  notifyMyScreenshotsChanged,
-  selectPendingLocalScreenshots,
-  subscribeMyScreenshotsChanged,
-} from "../../game-screenshots/my-screenshots-store";
+  myGameScreenshotsApi,
+  myGameScreenshotsLocal,
+} from "../../game-screenshots/my-game-screenshots-bridge";
 
 interface MyScreenshotsCounts {
   local: number;
@@ -65,33 +62,28 @@ export function MyScreenshotsDangerZone({
   const [pending, setPending] = useState<MyScreenshotsDeletion | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const countPublished = useCallback(async () => {
-    if (!userId) return 0;
-    if (shop === "custom") {
-      return (await getPublishedScreenshotIdsForGame(shop, objectId)).length;
-    }
-    const response = await window.electron.hydraApi.get<ScreenshotsResponse>(
-      buildUserScreenshotsPath({ userId, take: 1, shop, objectId }),
-      { needsAuth: true }
-    );
-    return response?.total ?? response?.items.length ?? 0;
-  }, [objectId, shop, userId]);
-
   const refreshCounts = useCallback(async () => {
     try {
       const [localScreenshots, published] = await Promise.all([
-        loadLocalScreenshotsForGame(shop, objectId),
-        countPublished(),
+        myGameScreenshotsLocal.getLocalScreenshotsForGame(shop, objectId),
+        countPublishedScreenshotsForGame(
+          { shop, objectId },
+          userId,
+          myGameScreenshotsApi,
+          myGameScreenshotsLocal
+        ),
       ]);
       setCounts({
-        local: selectPendingLocalScreenshots(localScreenshots, shop, objectId)
-          .length,
+        local: selectPendingLocalScreenshots(localScreenshots, {
+          shop,
+          objectId,
+        }).length,
         published,
       });
     } catch (error) {
       logger.error("Failed to count screenshots for the game", error);
     }
-  }, [countPublished, objectId, shop]);
+  }, [objectId, shop, userId]);
 
   useEffect(() => {
     void refreshCounts();
@@ -101,13 +93,12 @@ export function MyScreenshotsDangerZone({
           screenshots.filter((screenshot) =>
             isLocalScreenshotForGame(screenshot, shop, objectId)
           ),
-          shop,
-          objectId
+          { shop, objectId }
         ).length;
         setCounts((current) => ({ ...current, local }));
       }
     );
-    const unsubscribeChanged = subscribeMyScreenshotsChanged(
+    const unsubscribeChanged = subscribeMyGameScreenshotsChanged(
       () => void refreshCounts()
     );
     return () => {
@@ -121,21 +112,28 @@ export function MyScreenshotsDangerZone({
     const deletion = pending;
     setPending(null);
     setIsDeleting(true);
-    try {
-      const deleted = await deleteMyGameScreenshots(deletion, shop, objectId);
-      showSuccessToast(t("screenshots_deleted_count", { count: deleted }));
-    } catch (error) {
-      logger.error("Failed to delete screenshots for the game", error);
-      showErrorToast(
-        getScreenshotApiErrorCode(error) ===
-          "screenshots/game-deletion-rate-limited"
-          ? t("delete_screenshots_rate_limited")
-          : t("delete_screenshots_failed")
+    const result = await deleteMyGameScreenshots(
+      deletion,
+      { shop, objectId },
+      myGameScreenshotsApi,
+      myGameScreenshotsLocal
+    );
+    setIsDeleting(false);
+    notifyMyGameScreenshotsChanged();
+
+    if (result.ok) {
+      showSuccessToast(
+        t("screenshots_deleted_count", { count: result.deleted })
       );
-    } finally {
-      setIsDeleting(false);
-      notifyMyScreenshotsChanged();
+      return;
     }
+
+    logger.error("Failed to delete screenshots for the game", result.error);
+    showErrorToast(
+      result.errorCode === "screenshots/game-deletion-rate-limited"
+        ? t("delete_screenshots_rate_limited")
+        : t("delete_screenshots_failed")
+    );
   };
 
   return (
