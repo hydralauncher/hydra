@@ -303,6 +303,11 @@ export function useScreenshotComments({
         return;
       }
 
+      if (code === "screenshots/comment-rate-limit-unavailable") {
+        showErrorToast(t("comments_temporarily_unavailable"));
+        return;
+      }
+
       if (code === "screenshots/comment-not-found") {
         if (commentId) removeMissingComment(commentId);
         showErrorToast(t("comment_unavailable"));

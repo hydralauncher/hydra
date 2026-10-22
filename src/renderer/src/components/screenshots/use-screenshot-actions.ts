@@ -197,7 +197,12 @@ export function useScreenshotActions({
         return true;
       } catch (error) {
         logger.error("Failed to update screenshot", error);
-        if (!handleAccessError(screenshot, error)) {
+        if (
+          getScreenshotApiErrorCode(error) ===
+          "screenshots/text-change-rate-limit-unavailable"
+        ) {
+          showErrorToast(t("text_changes_temporarily_unavailable"));
+        } else if (!handleAccessError(screenshot, error)) {
           showErrorToast(t("update_failed"));
         }
         return false;

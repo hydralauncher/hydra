@@ -2695,6 +2695,8 @@
     "screenshots_deleted_count_one": "Удалён {{count}} скриншот",
     "screenshots_deleted_count_few": "Удалено {{count}} скриншота",
     "screenshots_deleted_count_many": "Удалено {{count}} скриншотов",
-    "screenshots_deleted_count_other": "Удалено {{count}} скриншотов"
+    "screenshots_deleted_count_other": "Удалено {{count}} скриншотов",
+    "comments_temporarily_unavailable": "Комментарии временно недоступны, попробуйте ещё раз чуть позже",
+    "text_changes_temporarily_unavailable": "Описание и название сейчас нельзя сохранить, попробуйте ещё раз чуть позже"
   }
 }
