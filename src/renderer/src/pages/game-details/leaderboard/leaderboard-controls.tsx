@@ -94,7 +94,7 @@ function Filter<T extends string>({
   options,
   value,
   onChange,
-}: FilterProps<T>) {
+}: Readonly<FilterProps<T>>) {
   const selected = options.find((option) => option.id === value);
 
   return (
@@ -163,7 +163,7 @@ export function LeaderboardControls({
   onPeriodChange,
   onScopeChange,
   onMetricChange,
-}: LeaderboardControlsProps) {
+}: Readonly<LeaderboardControlsProps>) {
   const { t } = useTranslation("leaderboard");
 
   return (

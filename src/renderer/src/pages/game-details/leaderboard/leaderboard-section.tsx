@@ -33,6 +33,11 @@ import { useLeaderboardValue } from "./use-leaderboard-value";
 import "./leaderboard.scss";
 
 const EMPTY_BOARD = { entries: [], viewer: null };
+const LEADERBOARD_SKELETON_ROWS = 4;
+const LEADERBOARD_SKELETON_KEYS = Array.from(
+  { length: LEADERBOARD_SKELETON_ROWS },
+  (_, index) => `leaderboard-skeleton-${index}`
+);
 
 export function LeaderboardSection() {
   const { t } = useTranslation("leaderboard");
@@ -137,9 +142,9 @@ export function LeaderboardSection() {
       return (
         <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
           <div className="leaderboard-section__skeleton" aria-busy="true">
-            {Array.from({ length: 4 }).map((_, index) => (
+            {LEADERBOARD_SKELETON_KEYS.map((key) => (
               <Skeleton
-                key={index}
+                key={key}
                 className="leaderboard-section__skeleton-row"
               />
             ))}

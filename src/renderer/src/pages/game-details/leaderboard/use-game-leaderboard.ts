@@ -5,7 +5,7 @@ import { useUserDetails } from "@renderer/hooks";
 import type { GameShop } from "@types";
 import {
   createLeaderboardFetcher,
-  getLeaderboardGameKey,
+  getLeaderboardBoardKey,
   isLeaderboardShop,
   selectLoadedLeaderboard,
   type LoadedLeaderboard,
@@ -54,7 +54,8 @@ export function useGameLeaderboard({
   const isEligible = Boolean(objectId) && isLeaderboardShop(shop);
   const effectiveScope = isExtended && isLoggedIn ? scope : "global";
   const effectiveMetric = isExtended ? metric : "playtime";
-  const gameKey = getLeaderboardGameKey(shop, objectId ?? "");
+  const viewerId = userDetails?.id ?? null;
+  const boardKey = getLeaderboardBoardKey(shop, objectId ?? "", viewerId);
 
   const viewerUser = useMemo<LeaderboardUser | null>(
     () =>
@@ -87,6 +88,7 @@ export function useGameLeaderboard({
       metric: effectiveMetric,
       isExtended,
       isLoggedIn,
+      viewerId,
     };
 
     setIsLoading(true);
@@ -96,7 +98,11 @@ export function useGameLeaderboard({
       .then((leaderboard) => {
         if (requestId === requestIdRef.current) {
           setLoaded({
-            gameKey: getLeaderboardGameKey(query.shop, query.objectId),
+            boardKey: getLeaderboardBoardKey(
+              query.shop,
+              query.objectId,
+              query.viewerId
+            ),
             leaderboard,
             period: query.period,
             scope: query.scope,
@@ -123,11 +129,12 @@ export function useGameLeaderboard({
     objectId,
     period,
     shop,
+    viewerId,
   ]);
 
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
-  const current = selectLoadedLeaderboard(loaded, gameKey, {
+  const current = selectLoadedLeaderboard(loaded, boardKey, {
     period,
     scope: effectiveScope,
     metric: effectiveMetric,
