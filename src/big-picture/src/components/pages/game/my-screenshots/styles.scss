@@ -181,6 +181,7 @@ $local-screenshot-actions-fade-duration: 0.15s;
 
   &__notice {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: calc(var(--spacing-unit) * 4);

@@ -172,14 +172,16 @@ export function useMyGameScreenshots({
       hasFailed: hasPublishedFailed,
     },
   });
-  const hasEverySourceFailed =
-    local.hasFailed && (!canFetchPublished || hasPublishedFailed);
-  const isPartial = status === "failed" && !hasEverySourceFailed;
   const retryLocal = local.retry;
+  const hasLocalFailed = local.hasFailed;
   const retry = useCallback(() => {
     void retryLocal();
     if (canFetchPublished) refresh();
   }, [canFetchPublished, refresh, retryLocal]);
+  const retryFailed = useCallback(() => {
+    if (hasLocalFailed) void retryLocal();
+    if (hasPublishedFailed) refresh();
+  }, [hasLocalFailed, hasPublishedFailed, refresh, retryLocal]);
 
   return {
     feed,
@@ -187,11 +189,13 @@ export function useMyGameScreenshots({
     items,
     status,
     hasLoaded: status !== "loading",
-    hasFailed:
-      status === "failed" && (hasEverySourceFailed || items.length === 0),
-    isPartial: isPartial && items.length > 0,
+    hasFailed: status === "failed",
+    isPartial: status === "partial",
+    hasLocalFailed,
+    hasPublishedFailed,
     canFetchPublished,
     retry,
+    retryFailed,
   };
 }
 

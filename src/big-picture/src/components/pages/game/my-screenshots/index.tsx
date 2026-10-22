@@ -28,6 +28,7 @@ import {
 } from "../navigation";
 import { ScreenshotHotkeyHint } from "./hotkey-hint";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
+import { MyScreenshotsPartialNotice } from "./partial-notice";
 import { PublishedScreenshotThumbnail } from "./published-thumbnail";
 import { GameScreenshotsModal } from "./screenshots-modal";
 import {
@@ -228,7 +229,7 @@ export function GameMyScreenshots({
               onOpen={open}
               onRefreshImage={feed.refreshImage}
             />
-          ) : (
+          ) : mine.isPartial ? null : (
             <MyScreenshotsMessage
               isLoading={!mine.hasLoaded}
               hasLoadError={mine.hasFailed}
@@ -236,24 +237,12 @@ export function GameMyScreenshots({
               onRetry={mine.retry}
             />
           )}
-          {mine.isPartial ? (
-            <div className="game-my-screenshots__notice">
-              <span>{t("screenshots_load_failed")}</span>
-              <Button
-                variant="secondary"
-                size="small"
-                focusId={GAME_MY_SCREENSHOTS_RETRY_ID}
-                icon={<ArrowClockwiseIcon size={18} />}
-                focusNavigationOverrides={{
-                  left: leftTarget,
-                  right: BLOCK_TARGET,
-                }}
-                onClick={mine.retry}
-              >
-                {t("screenshots_retry")}
-              </Button>
-            </div>
-          ) : null}
+          <MyScreenshotsPartialNotice
+            mine={mine}
+            focusId={GAME_MY_SCREENSHOTS_RETRY_ID}
+            className="game-my-screenshots__notice"
+            navigationOverrides={{ left: leftTarget, right: BLOCK_TARGET }}
+          />
           {canViewAll ? (
             <Button
               variant="secondary"

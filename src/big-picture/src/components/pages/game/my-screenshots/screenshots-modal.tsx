@@ -51,6 +51,7 @@ import {
 } from "../navigation";
 import { ScreenshotHotkeyHint } from "./hotkey-hint";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
+import { MyScreenshotsPartialNotice } from "./partial-notice";
 import {
   useLocalScreenshotActions,
   type LocalScreenshotActions,
@@ -358,59 +359,56 @@ function MyScreenshotsModalGrid({
     );
   }
 
-  if (mine.items.length > 0) {
+  const notice = (
+    <MyScreenshotsPartialNotice
+      mine={mine}
+      focusId={GAME_SCREENSHOTS_MODAL_MINE_RETRY_ID}
+      className="game-screenshots-modal__notice"
+    />
+  );
+
+  if (mine.items.length > 0 || mine.isPartial) {
     return (
       <>
-        {mine.isPartial ? (
-          <div className="game-screenshots-modal__notice">
-            <span>{t("screenshots_load_failed")}</span>
-            <Button
-              variant="secondary"
-              size="small"
-              focusId={GAME_SCREENSHOTS_MODAL_MINE_RETRY_ID}
-              icon={<ArrowClockwiseIcon size={18} />}
-              onClick={mine.retry}
-            >
-              {t("screenshots_retry")}
-            </Button>
-          </div>
-        ) : null}
-        <GridFocusGroup
-          regionId={GAME_SCREENSHOTS_MODAL_GRID_REGION_ID}
-          className="game-screenshots-modal__grid"
-        >
-          <ul className="game-screenshots-modal__list">
-            {mine.items.map((item) =>
-              item.kind === "published" ? (
-                <ScreenshotCard
-                  key={item.id}
-                  screenshot={item.screenshot}
-                  focusId={getGameScreenshotsModalItemId(`mine-${item.id}`)}
-                  showOwnerDetails
-                  showAuthor={false}
-                  onActivate={onOpen}
-                  onRefreshImage={feed.refreshImage}
-                />
-              ) : (
-                <li
-                  key={item.id}
-                  className="game-screenshots-modal__local-item"
-                >
-                  <LocalScreenshotTile
+        {notice}
+        {mine.items.length > 0 ? (
+          <GridFocusGroup
+            regionId={GAME_SCREENSHOTS_MODAL_GRID_REGION_ID}
+            className="game-screenshots-modal__grid"
+          >
+            <ul className="game-screenshots-modal__list">
+              {mine.items.map((item) =>
+                item.kind === "published" ? (
+                  <ScreenshotCard
+                    key={item.id}
                     screenshot={item.screenshot}
                     focusId={getGameScreenshotsModalItemId(`mine-${item.id}`)}
-                    alt={local.describe(item.screenshot)}
-                    isBusy={local.busyIds.has(item.screenshot.clientId)}
-                    variant="card"
-                    onOpen={local.open}
-                    onUpload={local.upload}
-                    onDelete={local.requestDelete}
+                    showOwnerDetails
+                    showAuthor={false}
+                    onActivate={onOpen}
+                    onRefreshImage={feed.refreshImage}
                   />
-                </li>
-              )
-            )}
-          </ul>
-        </GridFocusGroup>
+                ) : (
+                  <li
+                    key={item.id}
+                    className="game-screenshots-modal__local-item"
+                  >
+                    <LocalScreenshotTile
+                      screenshot={item.screenshot}
+                      focusId={getGameScreenshotsModalItemId(`mine-${item.id}`)}
+                      alt={local.describe(item.screenshot)}
+                      isBusy={local.busyIds.has(item.screenshot.clientId)}
+                      variant="card"
+                      onOpen={local.open}
+                      onUpload={local.upload}
+                      onDelete={local.requestDelete}
+                    />
+                  </li>
+                )
+              )}
+            </ul>
+          </GridFocusGroup>
+        ) : null}
       </>
     );
   }
