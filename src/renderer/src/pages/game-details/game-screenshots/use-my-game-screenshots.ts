@@ -5,6 +5,7 @@ import { useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import {
   buildUserScreenshotsPath,
+  createLocalSnapshotGuard,
   isLocalScreenshotForGame,
   mergeMyScreenshots,
   resolveMyGameScreenshotsStatus,
@@ -67,19 +68,21 @@ export function useMyLocalGameScreenshots({
   useEffect(() => {
     if (!isEnabled) return;
     let isCurrent = true;
+    const snapshots = createLocalSnapshotGuard();
 
     const loadLocal = () => {
+      const startedAt = snapshots.beginRead();
       myGameScreenshotsLocal
         .getLocalScreenshotsForGame(shop, objectId)
         .then((screenshots) => {
-          if (!isCurrent) return;
+          if (!isCurrent || !snapshots.isCurrentRead(startedAt)) return;
           setLocalScreenshots(screenshots);
           setHasFailed(false);
           setHasLoaded(true);
         })
         .catch((error) => {
           logger.error("Failed to load local screenshots", error);
-          if (!isCurrent) return;
+          if (!isCurrent || !snapshots.isCurrentRead(startedAt)) return;
           setHasFailed(true);
           setHasLoaded(true);
         });
@@ -88,6 +91,7 @@ export function useMyLocalGameScreenshots({
     loadLocal();
     const unsubscribeLocal = window.electron.onLocalScreenshotsChange(
       (screenshots) => {
+        snapshots.noteSnapshot();
         setLocalScreenshots(
           screenshots.filter((screenshot) =>
             isLocalScreenshotForGame(screenshot, shop, objectId)
