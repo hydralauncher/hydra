@@ -160,10 +160,12 @@ describe("Library and console filters", () => {
 
     assert.deepEqual(getLibraryFilterOptions(visibleGames), {
       hasImportedGames: false,
+      sources: ["hydra"],
       platforms: [],
     });
     assert.deepEqual(getLibraryFilterOptions(hiddenGames), {
       hasImportedGames: true,
+      sources: ["hydra", "steam"],
       platforms: ["N64", "SNES"],
     });
     assert.deepEqual(
@@ -178,8 +180,29 @@ describe("Library and console filters", () => {
     );
     assert.deepEqual(getLibraryFilterOptions([]), {
       hasImportedGames: false,
+      sources: ["hydra"],
       platforms: [],
     });
+  });
+
+  it("offers only the libraries that have imported games", () => {
+    assert.deepEqual(
+      getLibraryFilterOptions([{ shop: "steam", hasActiveSteamImport: true }])
+        .sources,
+      ["hydra", "steam"]
+    );
+    assert.deepEqual(
+      getLibraryFilterOptions([
+        {
+          shop: "steam",
+          members: [
+            { shop: "steam", hasActiveSteamImport: true },
+            { shop: "epic", hasActiveEpicImport: true },
+          ],
+        },
+      ]).sources,
+      ["hydra", "steam", "epic"]
+    );
   });
 
   it("returns every game in the category when nothing is selected", () => {

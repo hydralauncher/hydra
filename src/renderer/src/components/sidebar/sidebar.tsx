@@ -28,6 +28,7 @@ import {
   categoryShowsPlatforms,
   categoryShowsSources,
   filterLibraryGames,
+  getAvailableLibrarySources,
   hasImportedLibraryGames,
   readStoredLibraryFilters,
   type LibraryCategory,
@@ -162,9 +163,16 @@ export function Sidebar() {
     [library]
   );
   const hasPlatforms = uniquePlatforms.length > 0;
+  const availableSources = useMemo(
+    () => getAvailableLibrarySources(library),
+    [library]
+  );
   const effectiveSources = useMemo(
-    () => (hasImportedGames ? selectedSources : []),
-    [hasImportedGames, selectedSources]
+    () =>
+      hasImportedGames
+        ? selectedSources.filter((source) => availableSources.includes(source))
+        : [],
+    [hasImportedGames, selectedSources, availableSources]
   );
   const effectivePlatforms = useMemo(
     () => (hasPlatforms ? selectedPlatforms : []),
@@ -608,7 +616,8 @@ export function Sidebar() {
                 showSources={
                   categoryShowsSources(sidebarCategory) && hasImportedGames
                 }
-                selectedSources={selectedSources}
+                sources={availableSources}
+                selectedSources={effectiveSources}
                 onSourcesChange={handleSelectedSourcesChange}
                 showPlatforms={
                   categoryShowsPlatforms(sidebarCategory) && hasPlatforms
