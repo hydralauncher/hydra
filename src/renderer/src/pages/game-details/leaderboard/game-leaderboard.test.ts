@@ -10,6 +10,7 @@ import {
   buildGameLeaderboardPath,
   getLeaderboardNudge,
   getLeaderboardState,
+  isSignedOutError,
   getLeaderboardBoardKey,
   normalizeLeaderboardResponse,
   selectLoadedLeaderboard,
@@ -439,6 +440,40 @@ describe("fetchGameLeaderboard", () => {
     assert.deepEqual(missing.entries, []);
   });
 
+  it("retries without auth when the session is stale", async () => {
+    const auth: boolean[] = [];
+    const result = await fetchGameLeaderboard(
+      async (_path, options) => {
+        auth.push(options.needsAuth);
+        if (options.needsAuth) {
+          throw new Error(
+            "Error invoking remote method: UserNotLoggedInError: user not logged in"
+          );
+        }
+        return response;
+      },
+      query({ isExtended: true, isLoggedIn: true, viewerId: "a" })
+    );
+
+    assert.deepEqual(auth, [true, false]);
+    assert.equal(result.entries.length, 1);
+  });
+
+  it("does not retry other errors", async () => {
+    let calls = 0;
+    await assert.rejects(
+      fetchGameLeaderboard(
+        async () => {
+          calls += 1;
+          throw new Error("boom");
+        },
+        query({ isExtended: true, isLoggedIn: true, viewerId: "a" })
+      ),
+      /boom/
+    );
+    assert.equal(calls, 1);
+  });
+
   it("propagates request failures", async () => {
     await assert.rejects(
       fetchGameLeaderboard(async () => {
@@ -590,5 +625,20 @@ describe("getLeaderboardBoardKey", () => {
       getLeaderboardBoardKey("steam", "1", "a"),
       getLeaderboardBoardKey("steam", "1", "b")
     );
+  });
+});
+
+describe("isSignedOutError", () => {
+  it("matches the signed-out error by name or IPC message", () => {
+    const named = new Error("x");
+    named.name = "UserNotLoggedInError";
+
+    assert.equal(isSignedOutError(named), true);
+    assert.equal(
+      isSignedOutError(new Error("UserNotLoggedInError: user not logged in")),
+      true
+    );
+    assert.equal(isSignedOutError(new Error("boom")), false);
+    assert.equal(isSignedOutError("user not logged in"), false);
   });
 });
