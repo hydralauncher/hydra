@@ -8,13 +8,11 @@ import {
 } from "@renderer/helpers";
 import type { GameShop, ShopAssets, LibraryGame } from "@types";
 import {
-  getFinishedDownloadStep,
   hasCloudSaveExecutableSelection,
   getInstalledStoreMembers,
   getOfficialStoreMembers,
 } from "@shared";
-import { useInstallerAvailability } from "@renderer/hooks/use-installer-availability";
-import { useDownloadFolderExists } from "@renderer/hooks/use-download-folder-exists";
+import { useFinishedDownloadStep } from "@renderer/hooks/use-finished-download-step";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -954,17 +952,7 @@ export default function Game() {
     setIsDownloadModalOpen(true);
   }, []);
 
-  const installerAvailability = useInstallerAvailability(
-    downloadGame ? [downloadGame] : []
-  );
-  const downloadFolderExists = useDownloadFolderExists(downloadGame);
-  const installStep =
-    downloadGame && downloadFolderExists !== false
-      ? getFinishedDownloadStep(
-          downloadGame,
-          installerAvailability[downloadGame.id] === true
-        )
-      : null;
+  const installStep = useFinishedDownloadStep(downloadGame);
   const [executablePickerTarget, setExecutablePickerTarget] =
     useState<ExecutablePickerTarget | null>(null);
 

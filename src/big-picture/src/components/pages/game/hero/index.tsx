@@ -10,11 +10,8 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import type { LibraryGame, ShopDetailsWithAssets } from "@types";
-import {
-  type FinishedDownloadStep,
-  isCloudSaveV2Eligible,
-  isLibraryGameDownloading,
-} from "@shared";
+import { isCloudSaveV2Eligible, isLibraryGameDownloading } from "@shared";
+import type { GamePageDownloadStep } from "@renderer/hooks/use-finished-download-step";
 import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -56,7 +53,7 @@ export interface HeroProps {
   toggleFavorite: () => void;
   onPlay: () => void;
   onDownload: () => void;
-  installStep?: FinishedDownloadStep | null;
+  installStep?: GamePageDownloadStep | null;
   onInstall: () => void;
   onExtract: () => void;
   onSelectExecutable: () => void;
@@ -197,6 +194,14 @@ export function Hero({
     onClick?: () => void;
     disabled: boolean;
   }>(() => {
+    if (installStep === "checking") {
+      return {
+        label: t("checking_files", { ns: "downloads" }),
+        icon: <HourglassIcon size={24} />,
+        disabled: true,
+      };
+    }
+
     if (installStep === "extracting") {
       return {
         label: t("extracting"),

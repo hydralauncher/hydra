@@ -240,12 +240,15 @@ export function useLibraryPendingAction({
     deleteSourceArchive,
   ]);
 
+  const sourceArchiveOption =
+    pendingAction?.type === "remove-files" && hasSourceArchive
+      ? { checked: deleteSourceArchive, onChange: setDeleteSourceArchive }
+      : null;
+
   return {
     pendingAction,
     isSubmittingAction,
-    hasSourceArchive,
-    deleteSourceArchive,
-    setDeleteSourceArchive,
+    sourceArchiveOption,
     requestRemoveFiles,
     requestRemoveFromLibrary,
     closePendingAction,

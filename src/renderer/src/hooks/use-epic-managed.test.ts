@@ -2099,6 +2099,7 @@ describe("Epic managed UI lifecycle", () => {
         useGameExecutablePicker: () => async () => false,
         useInstallerAvailability: () => ({}),
         useDownloadFolderExists: () => null,
+        useFinishedDownloadStep: () => null,
         useLibrary: () => ({ updateLibrary: async () => {} }),
         useToast: () => ({
           showSuccessToast: () => {},

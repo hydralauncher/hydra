@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigation } from "../../../hooks";
 import {
@@ -23,10 +23,10 @@ interface ConfirmationModalProps {
   danger?: boolean;
   closeOnBackdrop?: boolean;
   backdropClassName?: string;
-  children?: ReactNode;
+  sourceArchiveOption?: SourceArchiveOptionProps | null;
 }
 
-interface SourceArchiveOptionProps {
+export interface SourceArchiveOptionProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
 }
@@ -47,7 +47,7 @@ export function ConfirmationModal({
   danger = false,
   closeOnBackdrop = true,
   backdropClassName,
-  children,
+  sourceArchiveOption = null,
 }: Readonly<ConfirmationModalProps>) {
   const { setFocus } = useNavigation();
 
@@ -80,7 +80,12 @@ export function ConfirmationModal({
         regionId={CONFIRMATION_MODAL_CONTENT_REGION_ID}
         className="confirmation-modal__content"
       >
-        {children}
+        {sourceArchiveOption && (
+          <SourceArchiveOption
+            checked={sourceArchiveOption.checked}
+            onChange={sourceArchiveOption.onChange}
+          />
+        )}
 
         <HorizontalFocusGroup
           regionId={CONFIRMATION_MODAL_ACTIONS_REGION_ID}
@@ -110,7 +115,7 @@ export function ConfirmationModal({
   );
 }
 
-export function SourceArchiveOption({
+function SourceArchiveOption({
   checked,
   onChange,
 }: Readonly<SourceArchiveOptionProps>) {

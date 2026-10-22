@@ -20,8 +20,7 @@ import { FileArchive, XCircle } from "lucide-react";
 import {
   useDownload,
   useGameExecutablePicker,
-  useInstallerAvailability,
-  useDownloadFolderExists,
+  useFinishedDownloadStep,
   useLibrary,
   useToast,
   useUserDetails,
@@ -41,7 +40,6 @@ import "./hero-panel-actions.scss";
 import { useEffect } from "react";
 import {
   applyLibraryGroupAction,
-  getFinishedDownloadStep,
   isLibraryGameDownloading,
   getOfficialStoreMembers,
 } from "@shared";
@@ -75,17 +73,7 @@ export function HeroPanelActions() {
   const isGameDownloading = isLibraryGameDownloading(downloadGame);
 
   const pickGameExecutable = useGameExecutablePicker();
-  const installerAvailability = useInstallerAvailability(
-    downloadGame ? [downloadGame] : []
-  );
-  const downloadFolderExists = useDownloadFolderExists(downloadGame);
-  const finishedDownloadStep =
-    downloadGame && downloadFolderExists !== false
-      ? getFinishedDownloadStep(
-          downloadGame,
-          installerAvailability[downloadGame.id] === true
-        )
-      : null;
+  const finishedDownloadStep = useFinishedDownloadStep(downloadGame);
 
   const { updateLibrary } = useLibrary();
 
@@ -440,6 +428,14 @@ export function HeroPanelActions() {
       finishedDownloadStep === "play"
     ) {
       return null;
+    }
+
+    if (finishedDownloadStep === "checking") {
+      return (
+        <Button theme="outline" disabled className="hero-panel-actions__action">
+          {t("checking_files", { ns: "downloads" })}
+        </Button>
+      );
     }
 
     if (finishedDownloadStep === "extracting") {

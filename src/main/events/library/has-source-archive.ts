@@ -1,8 +1,6 @@
-import fs from "node:fs";
-
 import { registerEvent } from "../register-event";
 import { downloadsSublevel, levelKeys } from "@main/level";
-import { getSourceArchivePath } from "@main/helpers/find-game-installer";
+import { findSourceArchiveFile } from "@main/helpers/find-game-installer";
 import type { GameShop } from "@types";
 
 const hasSourceArchive = async (
@@ -11,12 +9,9 @@ const hasSourceArchive = async (
   objectId: string
 ): Promise<boolean> => {
   const download = await downloadsSublevel.get(levelKeys.game(shop, objectId));
-  const archivePath = download ? await getSourceArchivePath(download) : null;
+  if (!download) return false;
 
-  if (!archivePath) return false;
-
-  const stats = await fs.promises.stat(archivePath).catch(() => null);
-  return stats?.isFile() ?? false;
+  return (await findSourceArchiveFile(download)) !== null;
 };
 
 registerEvent("hasSourceArchive", hasSourceArchive);

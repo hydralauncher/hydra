@@ -48,11 +48,7 @@ import {
   useLibraryPendingAction,
   EmptyState,
 } from "../../components";
-import {
-  ConfirmationModal,
-  DownloadGameModal,
-  SourceArchiveOption,
-} from "../../components/modals";
+import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
 import {
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
   LIBRARY_HERO_LAUNCH_BUTTON_ID,
@@ -316,9 +312,7 @@ export default function LibraryPage() {
     requestRemoveFromLibrary,
     closePendingAction,
     confirmPendingAction,
-    hasSourceArchive,
-    deleteSourceArchive,
-    setDeleteSourceArchive,
+    sourceArchiveOption,
   } = useLibraryPendingAction({
     getRestoreFocusId: useCallback(
       () => contextMenuState.restoreFocusId,
@@ -561,14 +555,8 @@ export default function LibraryPage() {
           loading={isSubmittingAction}
           onClose={closePendingAction}
           onConfirm={confirmPendingAction}
-        >
-          {pendingAction.type === "remove-files" && hasSourceArchive ? (
-            <SourceArchiveOption
-              checked={deleteSourceArchive}
-              onChange={setDeleteSourceArchive}
-            />
-          ) : null}
-        </ConfirmationModal>
+          sourceArchiveOption={sourceArchiveOption}
+        />
       ) : null}
 
       {downloadModalGame ? (

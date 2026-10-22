@@ -7,6 +7,7 @@ export * from "./use-game-executable-picker";
 export * from "./use-installer-availability";
 export * from "./use-download-folder-exists";
 export * from "./use-source-archive";
+export * from "./use-finished-download-step";
 export * from "./use-steam-library-executable";
 export * from "./use-steam-uninstall-action";
 export * from "./use-date";

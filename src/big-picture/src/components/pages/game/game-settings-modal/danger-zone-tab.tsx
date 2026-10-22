@@ -13,7 +13,7 @@ import {
 } from "@shared";
 import { useIsSteamLibraryExecutable } from "@renderer/hooks/use-steam-library-executable";
 import { Button, VerticalFocusGroup } from "../../../common";
-import { ConfirmationModal, SourceArchiveOption } from "../../../modals";
+import { ConfirmationModal } from "../../../modals";
 import { useSourceArchive } from "@renderer/hooks/use-source-archive";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
 import { useBigPictureToast } from "../../../../hooks/use-big-picture-toast.hook";
@@ -342,14 +342,15 @@ export function GameDangerZoneSettingsTab({
           loading={actionLoading}
           onClose={clearPendingAction}
           onConfirm={confirmationConfig.onConfirm}
-        >
-          {pendingAction === "remove-files" && hasSourceArchive ? (
-            <SourceArchiveOption
-              checked={deleteSourceArchive}
-              onChange={setDeleteSourceArchive}
-            />
-          ) : null}
-        </ConfirmationModal>
+          sourceArchiveOption={
+            pendingAction === "remove-files" && hasSourceArchive
+              ? {
+                  checked: deleteSourceArchive,
+                  onChange: setDeleteSourceArchive,
+                }
+              : null
+          }
+        />
       )}
     </VerticalFocusGroup>
   );
