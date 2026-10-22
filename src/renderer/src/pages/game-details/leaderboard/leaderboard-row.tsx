@@ -6,6 +6,7 @@ import {
   Avatar,
   getRankTier,
   isMedalTier,
+  RankFrameRing,
   RankMedal,
 } from "@renderer/components";
 import type { LeaderboardRow as LeaderboardRowData } from "./game-leaderboard";
@@ -54,6 +55,7 @@ export function LeaderboardRow({
         onClick={() => navigate(`/profile/${entry.user.id}`)}
         aria-current={isViewer ? "true" : undefined}
       >
+        {isMedalTier(tier) && <RankFrameRing />}
         <span className="leaderboard-row__rank">
           <RankMedal rank={entry.rank} highlighted={isViewer} />
         </span>
