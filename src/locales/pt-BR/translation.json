@@ -2605,6 +2605,11 @@
     "explore": "Explorar",
     "dont_show_again": "Não mostrar novamente"
   },
+  "leaderboard": {
+    "medal_gold": "1º lugar, ouro",
+    "medal_silver": "2º lugar, prata",
+    "medal_bronze": "3º lugar, bronze"
+  },
   "screenshots_input": {
     "gamepad_combo_too_long": "Use no máximo 4 botões no combo de captura de tela",
     "gamepad_combo_too_short": "Use pelo menos 2 botões no combo de captura de tela",
