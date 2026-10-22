@@ -44,7 +44,7 @@ export function BoardView({
   onSelect,
   renderTooltip,
   onVisibleChange,
-}: BoardViewProps) {
+}: Readonly<BoardViewProps>) {
   const { t } = useTranslation("leaderboards");
   const [visible, setVisible] = useState(GLOBAL_LEADERBOARD_PAGE_SIZE);
 

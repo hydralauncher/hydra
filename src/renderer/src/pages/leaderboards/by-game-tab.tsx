@@ -103,9 +103,7 @@ function useLinkedGameAssets(game: LinkedGame | null) {
     };
   }, [objectId, shop]);
 
-  return assets && assets.shop === shop && assets.objectId === objectId
-    ? assets
-    : null;
+  return assets?.shop === shop && assets.objectId === objectId ? assets : null;
 }
 
 export function ByGameTab({
@@ -113,7 +111,7 @@ export function ByGameTab({
   scope,
   viewerUser,
   initialGame = null,
-}: ByGameTabProps) {
+}: Readonly<ByGameTabProps>) {
   const { t } = useTranslation("leaderboards");
   const { t: tLeaderboard } = useTranslation("leaderboard");
   const navigate = useNavigate();
@@ -193,11 +191,8 @@ export function ByGameTab({
   }
 
   const metricChips = (
-    <div
-      className="leaderboards__chips"
-      role="group"
-      aria-label={t("metric_label")}
-    >
+    <fieldset className="leaderboards__chips">
+      <legend className="leaderboards__sr-only">{t("metric_label")}</legend>
       {LEADERBOARD_METRICS.map((id) => (
         <button
           key={id}
@@ -211,7 +206,7 @@ export function ByGameTab({
           {tLeaderboard(`metric_${id}`)}
         </button>
       ))}
-    </div>
+    </fieldset>
   );
 
   const renderGames = () => {

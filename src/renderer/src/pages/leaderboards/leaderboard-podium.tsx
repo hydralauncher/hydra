@@ -31,7 +31,7 @@ export function LeaderboardPodium({
   getStreak,
   selectedId,
   onSelect,
-}: LeaderboardPodiumProps) {
+}: Readonly<LeaderboardPodiumProps>) {
   const { t } = useTranslation("leaderboards");
   const { t: tLeaderboard } = useTranslation("leaderboard");
   const navigate = useNavigate();

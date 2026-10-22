@@ -46,13 +46,14 @@ export default function Leaderboards() {
         : null,
     [objectIdParam, shopParam]
   );
-  const [requestedTab, setTab] = useState<LeaderboardPageTab>(
+  const [requestedTab, setRequestedTab] = useState<LeaderboardPageTab>(
     linkedTab ?? "ranking"
   );
-  const [requestedMetric, setMetric] =
+  const [requestedMetric, setRequestedMetric] =
     useState<GlobalLeaderboardMetric>("playtime");
   const [period, setPeriod] = useState<GlobalLeaderboardPeriod>("week");
-  const [requestedScope, setScope] = useState<GlobalLeaderboardScope>("global");
+  const [requestedScope, setRequestedScope] =
+    useState<GlobalLeaderboardScope>("global");
   const [generation, setGeneration] = useState(0);
 
   const { viewerUser, isLoggedIn } = useLeaderboardViewer();
@@ -60,7 +61,7 @@ export default function Leaderboards() {
   const tab = isLoggedIn ? requestedTab : "ranking";
 
   useEffect(() => {
-    if (linkedTab) setTab(linkedTab);
+    if (linkedTab) setRequestedTab(linkedTab);
   }, [linkedTab, linkedGame]);
   const tabs = isLoggedIn
     ? LEADERBOARD_PAGE_TABS
@@ -102,8 +103,8 @@ export default function Leaderboards() {
   };
 
   const openMetric = (value: GlobalLeaderboardMetric) => {
-    setMetric(value);
-    setTab("ranking");
+    setRequestedMetric(value);
+    setRequestedTab("ranking");
   };
 
   return (
@@ -124,7 +125,7 @@ export default function Leaderboards() {
               <SegmentedControl
                 label={t("scope_label")}
                 value={scope}
-                onChange={setScope}
+                onChange={setRequestedScope}
                 options={GLOBAL_LEADERBOARD_SCOPES.map((id) => ({
                   id,
                   label: t(`scope_${id}`),
@@ -159,7 +160,7 @@ export default function Leaderboards() {
               className={cn("leaderboards__tab", {
                 "leaderboards__tab--selected": id === tab,
               })}
-              onClick={() => setTab(id)}
+              onClick={() => setRequestedTab(id)}
             >
               {t(`tab_${id}`)}
             </button>
@@ -172,7 +173,7 @@ export default function Leaderboards() {
               results={results}
               metrics={availableMetrics}
               metric={metric}
-              onMetricChange={setMetric}
+              onMetricChange={setRequestedMetric}
               period={period}
               scope={scope}
               viewerUser={viewerUser}

@@ -63,7 +63,8 @@ export function BadgesSection() {
         return `${metric} · ${t("week_number", { number: badge.week })}`;
     }
 
-    return `${metric} · ${t(`scope_${badge.scope}`)}`;
+    const scopeLabel = t(`scope_${badge.scope}`);
+    return `${metric} · ${scopeLabel}`;
   };
 
   const getChip = (badge: LeaderboardBadge) => {

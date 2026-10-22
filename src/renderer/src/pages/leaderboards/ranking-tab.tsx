@@ -42,7 +42,7 @@ export interface RankingTabProps {
   onRetry: () => void;
 }
 
-function ReviewScore({ review }: { review: LeaderboardReview }) {
+function ReviewScore({ review }: Readonly<{ review: LeaderboardReview }>) {
   const { t } = useTranslation("leaderboards");
   const { formatDistance } = useDate();
   const distance = review.createdAt
@@ -68,7 +68,7 @@ export function RankingTab({
   viewerUser,
   formatValue,
   onRetry,
-}: RankingTabProps) {
+}: Readonly<RankingTabProps>) {
   const { t } = useTranslation("leaderboards");
   const { numberFormatter } = useFormat();
   const navigate = useNavigate();
@@ -185,9 +185,10 @@ export function RankingTab({
   const renderSelectedReview = () => {
     if (!isReviews || !selectedEntry || !selectedReview) return null;
 
+    const topTitle = t(isWeek ? "review_top_week" : "review_top_all");
     const title =
       selectedEntry.user.id === leaderId
-        ? t(isWeek ? "review_top_week" : "review_top_all")
+        ? topTitle
         : t("review_top_of", { name: selectedEntry.user.displayName });
 
     return (

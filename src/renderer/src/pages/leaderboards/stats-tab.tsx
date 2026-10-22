@@ -45,7 +45,7 @@ export function StatsTab({
   period,
   viewerUser,
   onOpenMetric,
-}: StatsTabProps) {
+}: Readonly<StatsTabProps>) {
   const { t, i18n } = useTranslation("leaderboards");
   const viewerId = viewerUser?.id ?? null;
   const isWeek = period === "week";
@@ -71,7 +71,10 @@ export function StatsTab({
       weekday: "narrow",
       timeZone: "UTC",
     });
-    return DAY_LABEL_DATES.map((date) => formatter.format(date));
+    return DAY_LABEL_DATES.map((date) => ({
+      key: date.toISOString(),
+      label: formatter.format(date),
+    }));
   }, [i18n.language]);
 
   const cellTitle = (cell: HeatmapCell) => {
@@ -148,8 +151,8 @@ export function StatsTab({
             </span>
           </div>
           <div className="leaderboards__heatmap">
-            {dayLabels.map((label, index) => (
-              <span key={index} className="leaderboards__heatmap-day">
+            {dayLabels.map(({ key, label }) => (
+              <span key={key} className="leaderboards__heatmap-day">
                 {label}
               </span>
             ))}

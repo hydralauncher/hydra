@@ -35,7 +35,7 @@ export function SegmentedControl<T extends string>({
   options,
   value,
   onChange,
-}: SegmentedControlProps<T>) {
+}: Readonly<SegmentedControlProps<T>>) {
   const selectedIndex = Math.max(
     0,
     options.findIndex((option) => option.id === value)

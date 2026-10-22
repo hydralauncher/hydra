@@ -29,7 +29,7 @@ export function LeaderboardRow({
   valuePrefix,
   valueMuted = false,
   tooltip,
-}: LeaderboardRowProps) {
+}: Readonly<LeaderboardRowProps>) {
   const { t } = useTranslation("leaderboard");
   const navigate = useNavigate();
   const { entry, isViewer, gapBefore, progress } = row;

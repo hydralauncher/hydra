@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@renderer/components";
 
-export function RankDelta({ delta }: { delta: number | null }) {
+export function RankDelta({ delta }: Readonly<{ delta: number | null }>) {
   const { t } = useTranslation("leaderboards");
   if (delta === null) return null;
 
@@ -31,37 +31,38 @@ export function StreakFlame({
   flicker = false,
   gradient = true,
   label,
-}: {
+}: Readonly<{
   size?: number;
   flicker?: boolean;
   gradient?: boolean;
   label?: string;
-}) {
+}>) {
   const gradientId = useId();
 
   return (
-    <svg
-      className={cn("streak-flame", { "streak-flame--flicker": flicker })}
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      role={label ? "img" : undefined}
-      aria-label={label}
-      aria-hidden={label ? undefined : true}
-    >
-      {gradient && (
-        <defs>
-          <linearGradient id={gradientId} x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stopColor="#22c7ee" />
-            <stop offset="100%" stopColor="#b05cff" />
-          </linearGradient>
-        </defs>
-      )}
-      <path
-        fill={gradient ? `url(#${gradientId})` : undefined}
-        d="M8 14c-2.8 0-4.5-1.9-4.5-4.3 0-2.6 2.2-3.9 2.7-6.7 1.6 1 2.3 2.4 2.3 3.6.8-.4 1.3-1.2 1.4-2 1.6 1.3 2.6 3 2.6 5.1C12.5 12.1 10.8 14 8 14z"
-      />
-    </svg>
+    <>
+      <svg
+        className={cn("streak-flame", { "streak-flame--flicker": flicker })}
+        width={size}
+        height={size}
+        viewBox="0 0 16 16"
+        aria-hidden="true"
+      >
+        {gradient && (
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stopColor="#22c7ee" />
+              <stop offset="100%" stopColor="#b05cff" />
+            </linearGradient>
+          </defs>
+        )}
+        <path
+          fill={gradient ? `url(#${gradientId})` : undefined}
+          d="M8 14c-2.8 0-4.5-1.9-4.5-4.3 0-2.6 2.2-3.9 2.7-6.7 1.6 1 2.3 2.4 2.3 3.6.8-.4 1.3-1.2 1.4-2 1.6 1.3 2.6 3 2.6 5.1C12.5 12.1 10.8 14 8 14z"
+        />
+      </svg>
+      {label && <span className="leaderboards__sr-only">{label}</span>}
+    </>
   );
 }
 
@@ -70,12 +71,12 @@ export function BlockMessage({
   title,
   description,
   action,
-}: {
+}: Readonly<{
   icon?: React.ReactNode;
   title: string;
   description?: string | null;
   action?: React.ReactNode;
-}) {
+}>) {
   return (
     <div className="leaderboards__message">
       {icon}
@@ -88,7 +89,7 @@ export function BlockMessage({
   );
 }
 
-export function BlockError({ onRetry }: { onRetry: () => void }) {
+export function BlockError({ onRetry }: Readonly<{ onRetry: () => void }>) {
   const { t } = useTranslation("leaderboards");
 
   return (

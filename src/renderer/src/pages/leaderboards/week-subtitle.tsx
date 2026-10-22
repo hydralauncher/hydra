@@ -19,7 +19,7 @@ export function WeekSubtitle({
   weekRange,
   isAllTime,
   onWeekEnd,
-}: WeekSubtitleProps) {
+}: Readonly<WeekSubtitleProps>) {
   const { t, i18n } = useTranslation("leaderboards");
   const [now, setNow] = useState(Date.now);
   const onWeekEndRef = useRef(onWeekEnd);

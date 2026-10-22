@@ -534,6 +534,10 @@ $leaderboards-streak-to: #b05cff;
   }
 
   &__chips {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
     display: flex;
     flex-wrap: wrap;
     gap: globals.$spacing-unit;

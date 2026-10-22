@@ -19,10 +19,10 @@ const paths: Record<GlobalLeaderboardMetric, string> = {
 export function MetricIcon({
   metric,
   size = 16,
-}: {
+}: Readonly<{
   metric: GlobalLeaderboardMetric;
   size?: number;
-}) {
+}>) {
   return (
     <svg
       width={size}
