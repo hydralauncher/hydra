@@ -82,7 +82,11 @@ export function MyScreenshotsDangerZone({
     setIsDeleting(true);
     const result = await deleteMyGameScreenshots(
       deletion,
-      { shop, objectId, isSignedIn: Boolean(userId) },
+      {
+        shop,
+        objectId,
+        isSignedIn: Boolean(userId) && !counts.hasPublishedFailed,
+      },
       myGameScreenshotsApi,
       myGameScreenshotsLocal
     );
