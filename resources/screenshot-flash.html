@@ -51,7 +51,7 @@
         if (flash) {
           const glow = document.querySelector(".glow");
           glow.classList.remove("glow--active");
-          void glow.offsetWidth;
+          glow.getBoundingClientRect();
           glow.classList.add("glow--active");
         }
         if (soundUrl) {
