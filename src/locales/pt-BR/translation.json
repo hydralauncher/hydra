@@ -2927,6 +2927,10 @@
     "screenshots_deleted_count_one": "{{count}} captura excluída",
     "screenshots_deleted_count_other": "{{count}} capturas excluídas",
     "comments_temporarily_unavailable": "Os comentários estão temporariamente indisponíveis, tente novamente em instantes",
-    "text_changes_temporarily_unavailable": "Não é possível salvar descrições e títulos agora, tente novamente em instantes"
+    "text_changes_temporarily_unavailable": "Não é possível salvar descrições e títulos agora, tente novamente em instantes",
+    "comment_only_visible_to_you": "Seu comentário só está visível para você porque não passou na moderação",
+    "description_only_visible_to_you": "Só você pode ver esta descrição",
+    "title_not_allowed": "Este título não é permitido",
+    "moderation_in_progress": "Outra alteração ainda está sendo verificada, tente novamente em instantes"
   }
 }

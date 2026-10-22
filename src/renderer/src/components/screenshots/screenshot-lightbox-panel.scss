@@ -65,6 +65,12 @@ $description-outline-fade-duration: 0.15s;
     }
   }
 
+  &__description-note {
+    margin: 0;
+    color: globals.$warning-color;
+    font-size: globals.$small-font-size;
+  }
+
   &__byline {
     display: flex;
     min-width: 0;
@@ -486,6 +492,12 @@ $description-outline-fade-duration: 0.15s;
   display: flex;
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 2);
+
+  &__note {
+    margin: calc(globals.$spacing-unit * -1) 0 0;
+    color: globals.$warning-color;
+    font-size: globals.$small-font-size;
+  }
 
   &__actions {
     display: flex;

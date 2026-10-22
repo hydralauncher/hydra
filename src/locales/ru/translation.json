@@ -2702,6 +2702,10 @@
     "screenshots_deleted_count_many": "Удалено {{count}} скриншотов",
     "screenshots_deleted_count_other": "Удалено {{count}} скриншотов",
     "comments_temporarily_unavailable": "Комментарии временно недоступны, попробуйте ещё раз чуть позже",
-    "text_changes_temporarily_unavailable": "Описание и название сейчас нельзя сохранить, попробуйте ещё раз чуть позже"
+    "text_changes_temporarily_unavailable": "Описание и название сейчас нельзя сохранить, попробуйте ещё раз чуть позже",
+    "comment_only_visible_to_you": "Ваш комментарий виден только вам, потому что он не прошёл модерацию",
+    "description_only_visible_to_you": "Это описание видите только вы",
+    "title_not_allowed": "Это название недопустимо",
+    "moderation_in_progress": "Другое изменение ещё проверяется, попробуйте чуть позже"
   }
 }
