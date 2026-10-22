@@ -28,6 +28,7 @@ interface ReviewSession {
   gameTitle: string;
   gameWindowHandle: string | null;
   windows: ReviewWindowEntry[];
+  deferredClientIds: string[];
   isGameRunning: boolean;
   handedToBigPicture: boolean;
 }
@@ -192,29 +193,46 @@ const attachWindow = (session: ReviewSession, clientIds: string[]) => {
   return entry;
 };
 
-const hasPendingItems = async (entry: ReviewWindowEntry) => {
-  const records = await Promise.all(
-    entry.clientIds.map((clientId) => LocalScreenshotStore.get(clientId))
-  );
-  return records.some((record) => record?.state === "reviewing");
+const findOpenEntry = (session: ReviewSession) =>
+  session.windows.findLast(({ window }) => !window.isDestroyed()) ?? null;
+
+const canShowWhileGameRuns = (session: ReviewSession) =>
+  process.platform === "win32" &&
+  Boolean(session.gameWindowHandle) &&
+  !WindowManager.bigPictureWindow;
+
+const addToSessionWindow = (session: ReviewSession, clientIds: string[]) => {
+  if (!clientIds.length) return;
+  const openEntry = findOpenEntry(session);
+  if (openEntry) {
+    openEntry.clientIds = [
+      ...openEntry.clientIds,
+      ...clientIds.filter(
+        (clientId) => !openEntry.clientIds.includes(clientId)
+      ),
+    ];
+    sendReviewItems(openEntry);
+    return;
+  }
+  attachWindow(session, clientIds);
 };
 
-const findOpenEntry = async (session: ReviewSession) => {
-  const liveEntries = session.windows.filter(
-    ({ window }) => !window.isDestroyed()
-  );
-  for (const entry of liveEntries.toReversed()) {
-    if (await hasPendingItems(entry)) return entry;
-  }
-  return null;
+const attachDeferredItems = (session: ReviewSession) => {
+  const clientIds = session.deferredClientIds;
+  session.deferredClientIds = [];
+  addToSessionWindow(session, clientIds);
 };
 
 const createSession = (
-  details: Omit<ReviewSession, "windows" | "handedToBigPicture">
+  details: Omit<
+    ReviewSession,
+    "windows" | "deferredClientIds" | "handedToBigPicture"
+  >
 ) => {
   const session: ReviewSession = {
     ...details,
     windows: [],
+    deferredClientIds: [],
     handedToBigPicture: false,
   };
   sessions.set(session.gameKey, session);
@@ -257,7 +275,11 @@ const handOffToBigPicture = (session: ReviewSession) => {
   const bigPicture = WindowManager.bigPictureWindow;
   if (!bigPicture) return false;
 
-  const clientIds = session.windows.flatMap(({ clientIds }) => clientIds);
+  const clientIds = [
+    ...session.windows.flatMap(({ clientIds }) => clientIds),
+    ...session.deferredClientIds,
+  ];
+  session.deferredClientIds = [];
   if (!clientIds.length) return true;
 
   session.handedToBigPicture = true;
@@ -277,13 +299,16 @@ const handOffToBigPicture = (session: ReviewSession) => {
 };
 
 const presentClosedSession = async (session: ReviewSession) => {
-  if (!session.windows.length || handOffToBigPicture(session)) {
+  const hasItems =
+    session.windows.length > 0 || session.deferredClientIds.length > 0;
+  if (!hasItems || handOffToBigPicture(session)) {
     if (sessions.get(session.gameKey) === session) {
       sessions.delete(session.gameKey);
     }
     return;
   }
 
+  attachDeferredItems(session);
   await showSessionWindows(session);
 };
 
@@ -331,13 +356,13 @@ export class ScreenshotReviewWindows {
 
       if (gameWindowHandle) session.gameWindowHandle = gameWindowHandle;
 
-      const openEntry = await findOpenEntry(session);
       if (sessions.get(gameKey) !== session) sessions.set(gameKey, session);
-      if (openEntry && !openEntry.window.isDestroyed()) {
-        openEntry.clientIds = [...openEntry.clientIds, screenshot.clientId];
-        sendReviewItems(openEntry);
+      if (session.isGameRunning && !canShowWhileGameRuns(session)) {
+        if (!session.deferredClientIds.includes(screenshot.clientId)) {
+          session.deferredClientIds.push(screenshot.clientId);
+        }
       } else {
-        attachWindow(session, [screenshot.clientId]);
+        addToSessionWindow(session, [screenshot.clientId]);
       }
 
       if (!session.isGameRunning) await presentClosedSession(session);
@@ -476,6 +501,9 @@ export class ScreenshotReviewWindows {
 
   public static removeScreenshotFromWindows(clientId: string) {
     for (const session of sessions.values()) {
+      session.deferredClientIds = session.deferredClientIds.filter(
+        (candidate) => candidate !== clientId
+      );
       for (const entry of session.windows) {
         if (!entry.clientIds.includes(clientId)) continue;
         entry.clientIds = entry.clientIds.filter(

@@ -20,9 +20,12 @@ import {
   rejectAdultGameCapture,
   resolveCaptureFilePath,
 } from "@main/services/screenshots/screenshot-capture-service";
+import { SCREENSHOT_PREVIEW_MAX_WIDTH } from "@main/services/screenshots/screenshot-frame-script";
+import { writeScreenshotPreview } from "@main/services/screenshots/screenshot-preview";
 import { onScreenshotGameClosed } from "@main/services/screenshots";
 
 const DEV_CAPTURE_JPEG_QUALITY = 100;
+const DEV_PREVIEW_JPEG_QUALITY = 85;
 const DEV_THUMBNAIL_WIDTH = 1280;
 const DEV_THUMBNAIL_HEIGHT = 720;
 const DEV_PATTERN_COLUMNS = 16;
@@ -128,6 +131,14 @@ export const simulateCapture = async ({
   const filePath = await resolveCaptureFilePath(game.title, capturedAt);
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
   await fs.promises.writeFile(filePath, rendered.data);
+  const previewPath = await writeScreenshotPreview(
+    await sharp(rendered.data)
+      .resize({
+        width: Math.min(rendered.width, SCREENSHOT_PREVIEW_MAX_WIDTH),
+      })
+      .jpeg({ quality: DEV_PREVIEW_JPEG_QUALITY })
+      .toBuffer()
+  );
 
   return finishCapture({
     target: { gameKey, shop: game.shop, objectId: game.objectId },
@@ -141,6 +152,7 @@ export const simulateCapture = async ({
     gameWindowHandle: null,
     isGameRunning: () => isGameRunning(gameKey),
     ...(signedOut ? { ownerId: null } : {}),
+    previewPath,
     extra: { isDevCapture: true },
   });
 };

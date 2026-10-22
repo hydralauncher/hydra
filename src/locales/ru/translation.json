@@ -338,8 +338,6 @@
     "video_quality_auto": "Авто",
     "fullscreen": "Полноэкранный режим",
     "exit_fullscreen": "Выйти из полноэкранного режима",
-    "lightbox_show_details": "Показать подробности",
-    "lightbox_hide_details": "Скрыть подробности",
     "keyboard_space": "Пробел",
     "download_settings": "Параметры загрузки",
     "downloader": "Загрузчик",
@@ -1043,7 +1041,9 @@
     "epic_play_offline": "Играть — Не в сети",
     "epic_prerequisites_required": "Разрешите установку необходимых компонентов игры и повторите попытку.",
     "epic_update_required": "Обновите игру через вариант Epic Games, используя ту же папку.",
-    "epic_retry": "Повторить"
+    "epic_retry": "Повторить",
+    "lightbox_show_details": "Показать подробности",
+    "lightbox_hide_details": "Скрыть подробности"
   },
   "activation": {
     "title": "Активировать Hydra",
@@ -2545,6 +2545,7 @@
     "yes": "да"
   },
   "screenshots": {
+    "title_not_allowed": "Это название недопустимо",
     "add_description": "Добавить описание",
     "edit_description": "Изменить описание",
     "all_games": "Все игры",
@@ -2705,7 +2706,6 @@
     "text_changes_temporarily_unavailable": "Описание и название сейчас нельзя сохранить, попробуйте ещё раз чуть позже",
     "comment_only_visible_to_you": "Ваш комментарий виден только вам, потому что он не прошёл модерацию",
     "description_only_visible_to_you": "Это описание видите только вы",
-    "title_not_allowed": "Это название недопустимо",
     "moderation_in_progress": "Другое изменение ещё проверяется, попробуйте чуть позже"
   }
 }

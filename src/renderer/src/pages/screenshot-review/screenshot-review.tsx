@@ -294,7 +294,9 @@ export function ScreenshotReview() {
                   }}
                 >
                   <img
-                    src={getLocalImageSource(screenshot.path)}
+                    src={getLocalImageSource(
+                      screenshot.previewPath ?? screenshot.path
+                    )}
                     alt=""
                     loading="lazy"
                     draggable={false}

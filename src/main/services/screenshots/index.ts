@@ -33,6 +33,7 @@ import {
   handleScreenshotTrigger,
 } from "./screenshot-capture-service";
 import { ScreenshotFeedback } from "./screenshot-feedback";
+import { ScreenshotFrameWorker } from "./screenshot-frame-worker";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { getManualScreenshotsDirectory } from "./screenshot-file-path";
 import { ScreenshotReviewWindows } from "./screenshot-review-windows";
@@ -94,6 +95,11 @@ export const initializeScreenshots = () => {
     .finally(() => screenshotUploadWorker.start());
 };
 
+const releaseRunningGameResources = () => {
+  ScreenshotFeedback.release();
+  ScreenshotFrameWorker.release();
+};
+
 export const onScreenshotGameStarted = async (
   gameKey: string,
   shop: GameShop,
@@ -106,6 +112,8 @@ export const onScreenshotGameStarted = async (
     ScreenshotFeedback.prepare();
     if (isWaylandSession()) {
       void prepareLinuxGameCaptureSession(gameKey, "screenshot");
+    } else if (process.platform === "win32" || process.platform === "linux") {
+      ScreenshotFrameWorker.prepare();
     }
   } catch (error) {
     logger.error("Failed to prepare screenshots for a running game", error);
@@ -118,7 +126,7 @@ export const onScreenshotGameClosed = (gameKey: string) => {
     logger.error("Failed to show the screenshot review windows", error);
   });
 
-  if (!hasRunningGames()) ScreenshotFeedback.release();
+  if (!hasRunningGames()) releaseRunningGameResources();
 };
 
 export const applyScreenshotsEnabledPreference = async (
@@ -126,7 +134,7 @@ export const applyScreenshotsEnabledPreference = async (
 ) => {
   if (enabled === false) {
     stopAllLinuxGameCaptureSessions("screenshot");
-    ScreenshotFeedback.release();
+    releaseRunningGameResources();
     return;
   }
 

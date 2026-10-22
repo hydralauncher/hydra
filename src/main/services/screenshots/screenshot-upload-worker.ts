@@ -8,6 +8,7 @@ import type {
   ScreenshotModerationState,
   ScreenshotPresignRequest,
   ScreenshotPresignResponse,
+  ScreenshotTextModeration,
   ScreenshotQuality,
   ScreenshotUploadProgress,
 } from "@types";
@@ -34,6 +35,7 @@ import {
 
 const PROGRESS_THROTTLE_MS = 150;
 const REQUEST_TIMEOUT_MS = 30_000;
+const COMPLETE_TIMEOUT_MS = 45_000;
 const UPLOAD_TIMEOUT_MS = 5 * 60_000;
 const IMAGE_PROGRESS_SHARE = 0.9;
 const THUMBNAIL_PROGRESS_SHARE = 0.07;
@@ -136,6 +138,7 @@ class ScreenshotUploadWorker {
     controller: AbortController;
   } | null = null;
   private readonly gameWaits = new Map<string, number>();
+  private readonly moderationWaits = new Map<string, number>();
   private lastOwnerId: string | null = null;
   private authListenerRegistered = false;
 
@@ -363,64 +366,105 @@ class ScreenshotUploadWorker {
     reportProgress(0, true);
 
     try {
-      if (!(await hasSyncedGame(screenshot))) {
-        throw new Error(GAME_NOT_FOUND_ERROR_CODE);
-      }
-
-      const original = await fs.promises.readFile(screenshot.path);
-      const compressed = await compressScreenshotForUpload(original, quality);
-      if (controller.signal.aborted) throw new axios.CanceledError();
-
-      const presign = await HydraApi.post<ScreenshotPresignResponse>(
-        "/presigned-urls/screenshot",
-        buildPresignRequest(
+      const screenshotId =
+        screenshot.pendingCompleteScreenshotId ??
+        (await this.uploadFiles(
           screenshot,
           uploadClientId,
-          compressed.quality,
-          {
-            length: compressed.image.byteLength,
-            width: compressed.width,
-            height: compressed.height,
-          },
-          compressed.thumbnail.byteLength
-        ),
-        { authContext, signal: controller.signal, timeout: REQUEST_TIMEOUT_MS }
-      );
-
-      await putObject(
-        presign.presignedUrl,
-        compressed.image,
-        controller.signal,
-        (fraction) => reportProgress(fraction * IMAGE_PROGRESS_SHARE)
-      );
-      await putObject(
-        presign.thumbnailPresignedUrl,
-        compressed.thumbnail,
-        controller.signal,
-        (fraction) =>
-          reportProgress(
-            IMAGE_PROGRESS_SHARE + fraction * THUMBNAIL_PROGRESS_SHARE
-          )
-      );
+          quality,
+          authContext,
+          controller,
+          reportProgress
+        ));
+      reportProgress(IMAGE_PROGRESS_SHARE + THUMBNAIL_PROGRESS_SHARE, true);
 
       const result = await HydraApi.post<ScreenshotModerationState>(
-        `/profile/screenshots/${encodeURIComponent(presign.id)}/complete`,
+        `/profile/screenshots/${encodeURIComponent(screenshotId)}/complete`,
         undefined,
-        { authContext, signal: controller.signal, timeout: REQUEST_TIMEOUT_MS }
+        { authContext, signal: controller.signal, timeout: COMPLETE_TIMEOUT_MS }
       );
 
       await this.markUploaded(clientId, {
-        id: presign.id,
+        id: screenshotId,
         moderationStatus: result?.moderationStatus,
         moderationReason: result?.moderationReason,
       });
-      ScreenshotTelemetry.record("upload", "uploaded", compressed.quality);
+      ScreenshotTelemetry.record("upload", "uploaded", quality);
     } catch (error) {
       await this.handleFailure(screenshot, quality, attempt, error, controller);
     } finally {
       if (this.activeUpload?.controller === controller)
         this.activeUpload = null;
     }
+  }
+
+  private async uploadFiles(
+    screenshot: LocalScreenshot,
+    uploadClientId: string,
+    quality: ScreenshotQuality,
+    authContext: HydraApiAuthContext,
+    controller: AbortController,
+    reportProgress: (progress: number, force?: boolean) => void
+  ) {
+    if (!(await hasSyncedGame(screenshot))) {
+      throw new Error(GAME_NOT_FOUND_ERROR_CODE);
+    }
+
+    const original = await fs.promises.readFile(screenshot.path);
+    const compressed = await compressScreenshotForUpload(original, quality);
+    if (controller.signal.aborted) throw new axios.CanceledError();
+
+    const presign = await HydraApi.post<ScreenshotPresignResponse>(
+      "/presigned-urls/screenshot",
+      buildPresignRequest(
+        screenshot,
+        uploadClientId,
+        compressed.quality,
+        {
+          length: compressed.image.byteLength,
+          width: compressed.width,
+          height: compressed.height,
+        },
+        compressed.thumbnail.byteLength
+      ),
+      { authContext, signal: controller.signal, timeout: REQUEST_TIMEOUT_MS }
+    );
+    await this.applyTextModeration(screenshot.clientId, presign.textModeration);
+
+    await putObject(
+      presign.presignedUrl,
+      compressed.image,
+      controller.signal,
+      (fraction) => reportProgress(fraction * IMAGE_PROGRESS_SHARE)
+    );
+    await putObject(
+      presign.thumbnailPresignedUrl,
+      compressed.thumbnail,
+      controller.signal,
+      (fraction) =>
+        reportProgress(
+          IMAGE_PROGRESS_SHARE + fraction * THUMBNAIL_PROGRESS_SHARE
+        )
+    );
+
+    await LocalScreenshotStore.update(screenshot.clientId, {
+      pendingCompleteScreenshotId: presign.id,
+      uploadQuality: compressed.quality,
+    });
+    return presign.id;
+  }
+
+  private async applyTextModeration(
+    clientId: string,
+    textModeration: ScreenshotTextModeration | undefined
+  ) {
+    if (!textModeration) return;
+    await LocalScreenshotStore.update(clientId, (current) => ({
+      textModeration,
+      ...(textModeration.title === "hidden" && current.shop === "custom"
+        ? { customGameTitle: null }
+        : {}),
+    }));
   }
 
   private async markUploaded(
@@ -432,6 +476,7 @@ class ScreenshotUploadWorker {
     }
   ) {
     this.gameWaits.delete(clientId);
+    this.moderationWaits.delete(clientId);
     const moderationStatus = isModerationStatus(result.moderationStatus)
       ? result.moderationStatus
       : "PENDING";
@@ -446,6 +491,7 @@ class ScreenshotUploadWorker {
       uploadProgress: 1,
       uploadedAt: Date.now(),
       nextUploadAttemptAt: null,
+      pendingCompleteScreenshotId: null,
       lastError: null,
     });
     emitProgress({ clientId, state: "uploaded", progress: 1 });
@@ -473,6 +519,10 @@ class ScreenshotUploadWorker {
     if (failure.action === "wait_for_game") {
       this.gameWaits.set(current.clientId, gameWaits + 1);
     }
+    const moderationWaits = this.moderationWaits.get(current.clientId) ?? 0;
+    if (failure.action === "moderation_wait") {
+      this.moderationWaits.set(current.clientId, moderationWaits + 1);
+    }
 
     if (failure.code === "screenshots/disabled-for-game" && current.objectId) {
       GameContentWarningCache.markAdult(current.shop, current.objectId);
@@ -480,7 +530,7 @@ class ScreenshotUploadWorker {
 
     return planScreenshotUploadRecovery(
       failure,
-      { uploadAttempts: attempt, gameWaits },
+      { uploadAttempts: attempt, gameWaits, moderationWaits },
       quality
     );
   }
@@ -508,6 +558,7 @@ class ScreenshotUploadWorker {
           uploadProgress: 0,
           lastError: failure.code,
           nextUploadAttemptAt: null,
+          pendingCompleteScreenshotId: null,
           ...(step.quality ? { uploadQuality: step.quality } : {}),
           ...(step.rotateClientId ? { uploadClientId: randomUUID() } : {}),
         });
@@ -567,11 +618,13 @@ class ScreenshotUploadWorker {
 
   private async markFailed(clientId: string, failure: ScreenshotUploadFailure) {
     this.gameWaits.delete(clientId);
+    this.moderationWaits.delete(clientId);
     await LocalScreenshotStore.update(clientId, {
       state: "failed",
       uploadProgress: null,
       lastError: failure.code,
       nextUploadAttemptAt: null,
+      pendingCompleteScreenshotId: null,
     });
     emitProgress({ clientId, state: "failed", progress: null });
     ScreenshotTelemetry.record("upload", "failed", failure.code);

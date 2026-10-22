@@ -247,7 +247,7 @@ export function ScreenshotReviewItem({
       <div className="screenshot-review-item__body">
         <div className="screenshot-review-item__preview">
           <img
-            src={getLocalImageSource(screenshot.path)}
+            src={getLocalImageSource(screenshot.previewPath ?? screenshot.path)}
             alt={t("screenshot_alt", {
               game: screenshot.gameTitle,
               date: capturedAt,
