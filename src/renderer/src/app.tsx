@@ -10,6 +10,7 @@ import {
   useAppDispatch,
   useAppSelector,
   useDownload,
+  useGamificationProgressSync,
   useLibrary,
   useToast,
   useUserDetails,
@@ -90,6 +91,8 @@ export function App() {
     updateUserDetails,
     clearUserDetails,
   } = useUserDetails();
+
+  useGamificationProgressSync();
 
   const { hideHydraCloudModal, isHydraCloudModalVisible, hydraCloudFeature } =
     useSubscription();

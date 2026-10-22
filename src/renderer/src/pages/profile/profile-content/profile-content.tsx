@@ -36,6 +36,8 @@ import { FriendsBox, FriendsBoxAddButton } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
 import { ProfileSection } from "../profile-section/profile-section";
+import { useProfileGamification } from "../use-profile-gamification";
+import { LevelBox } from "./level-box";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
 import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
@@ -187,6 +189,7 @@ export function ProfileContent() {
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
 
   const dispatch = useAppDispatch();
+  const { level } = useProfileGamification();
 
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
@@ -540,7 +543,7 @@ export function ProfileContent() {
     const hasAnyGames = hasGames || hasPinnedGames;
 
     const shouldShowRightContent =
-      hasAnyGames || userProfile.friends.length > 0 || isMe;
+      hasAnyGames || userProfile.friends.length > 0 || isMe || level !== null;
 
     return (
       <section className="profile-content__section">
@@ -621,6 +624,11 @@ export function ProfileContent() {
 
         {shouldShowRightContent && (
           <div className="profile-content__right-content">
+            {level && (
+              <ProfileSection title={t("level_title")} defaultOpen={true}>
+                <LevelBox level={level} />
+              </ProfileSection>
+            )}
             {userStats && (
               <ProfileSection title={t("stats")} defaultOpen={true}>
                 <UserStatsBox />

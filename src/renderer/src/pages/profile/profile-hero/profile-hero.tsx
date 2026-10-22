@@ -1,4 +1,4 @@
-import { useCallback, useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import {
   BlockedIcon,
@@ -23,6 +23,7 @@ import { useTranslation } from "react-i18next";
 import {
   useAppSelector,
   useDate,
+  useGamificationProgress,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
@@ -36,6 +37,7 @@ import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
+import { ProfileGamificationPills } from "./profile-gamification-pills";
 import "./profile-hero.scss";
 
 type FriendAction =
@@ -62,6 +64,11 @@ export function ProfileHero() {
   } = useUserDetails();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
+  const { refreshProgress } = useGamificationProgress();
+
+  useEffect(() => {
+    if (isMe) void refreshProgress();
+  }, [isMe, refreshProgress]);
 
   const { t } = useTranslation("user_profile");
   const { formatDistance } = useDate();
@@ -423,6 +430,8 @@ export function ProfileHero() {
               ) : (
                 <Skeleton width={150} height={28} />
               )}
+
+              <ProfileGamificationPills />
 
               {currentGame && (
                 <div className="profile-hero__current-game-wrapper">

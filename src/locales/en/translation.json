@@ -1975,6 +1975,17 @@
     "toggle_password_visibility": "Toggle password visibility"
   },
   "user_profile": {
+    "level_title": "Level",
+    "level_number": "Level {{level}}",
+    "xp_progress": "{{xp}} / {{total}} XP",
+    "xp_to_next_level": "{{xp}} XP to Level {{level}}",
+    "max_level": "Max level",
+    "streak_days_one": "{{count}} day",
+    "streak_days_other": "{{count}} days",
+    "streak_tooltip_one": "{{count}}-day streak · record {{record}}",
+    "streak_tooltip_other": "{{count}}-day streak · record {{record}}",
+    "coins_label_one": "coin",
+    "coins_label_other": "coins",
     "amount_hours": "{{amount}} hours",
     "amount_minutes": "{{amount}} minutes",
     "amount_hours_short": "{{amount}}h",

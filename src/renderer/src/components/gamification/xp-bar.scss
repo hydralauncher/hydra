@@ -1,0 +1,10 @@
+.xp-bar {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.12);
+
+  &__fill {
+    height: 100%;
+  }
+}

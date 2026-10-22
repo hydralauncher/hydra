@@ -1,0 +1,36 @@
+@use "../../../scss/globals.scss";
+
+.profile-gamification-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+
+  &__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    height: 34px;
+    padding: 0 10px 0 6px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+    overflow: hidden;
+    white-space: nowrap;
+
+    strong {
+      font-weight: 700;
+    }
+
+    &--level {
+      padding-left: 0;
+      gap: 10px;
+    }
+  }
+
+  &__bar {
+    width: 72px;
+  }
+}

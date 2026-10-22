@@ -521,6 +521,40 @@ export interface UserProfile {
   badges: string[];
   badgesDetails?: { badge: string; unlockedAt: string }[];
   hasCompletedWrapped2025: boolean;
+  progress?: LevelProgress | null;
+  loginStreak?: LoginStreak | null;
+}
+
+export interface LevelProgress {
+  level: number;
+  xp: number;
+  xpToNextLevel: number | null;
+}
+
+export interface LoginStreak {
+  current: number;
+  record: number;
+  hasPlayedToday: boolean;
+}
+
+export type PassiveType =
+  | "session"
+  | "achievement"
+  | "souvenir"
+  | "review"
+  | "friend";
+
+export interface PassiveProgress {
+  type: PassiveType;
+  xp: number;
+  dailyLimit: number;
+  today: number;
+}
+
+export interface GamificationProgress extends LevelProgress {
+  coins: number;
+  loginStreak: LoginStreak;
+  passives: PassiveProgress[];
 }
 
 export interface UpdateProfileRequest {
