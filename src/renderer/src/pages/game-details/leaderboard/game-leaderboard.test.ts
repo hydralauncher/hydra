@@ -5,10 +5,11 @@ import {
   buildLeaderboardRequest,
   buildLeaderboardRows,
   createLeaderboardFetcher,
-  filterLeaderboardEntries,
+  buildGameLeaderboardPath,
   getLeaderboardNudge,
   getLeaderboardState,
   normalizeLeaderboardResponse,
+  selectLoadedLeaderboard,
   type LeaderboardEntry,
   type LeaderboardGet,
   type LeaderboardQuery,
@@ -464,19 +465,56 @@ describe("createLeaderboardFetcher", () => {
   });
 });
 
-describe("filterLeaderboardEntries", () => {
-  const entries = [entry(1, "a", 1), entry(2, "b", 1)];
-  entries[0].user.displayName = "Guigo_1";
-  entries[1].user.displayName = "cZedkkj";
+describe("selectLoadedLeaderboard", () => {
+  const fallback = {
+    period: "week" as const,
+    scope: "friends" as const,
+    metric: "streak" as const,
+  };
+  const loaded = {
+    gameKey: "steam:1",
+    leaderboard: { entries: [entry(1, "a", 1)], viewer: null, periodEnd: null },
+    period: "all" as const,
+    scope: "global" as const,
+    metric: "playtime" as const,
+  };
 
-  it("matches display names case-insensitively", () => {
-    assert.deepEqual(
-      filterLeaderboardEntries(entries, "  GUI ").map((item) => item.rank),
-      [1]
+  it("returns the loaded board with the query it was fetched for", () => {
+    assert.deepEqual(selectLoadedLeaderboard(loaded, "steam:1", fallback), {
+      leaderboard: loaded.leaderboard,
+      period: "all",
+      scope: "global",
+      metric: "playtime",
+    });
+  });
+
+  it("drops a board loaded for another game", () => {
+    assert.deepEqual(selectLoadedLeaderboard(loaded, "steam:2", fallback), {
+      leaderboard: null,
+      ...fallback,
+    });
+  });
+
+  it("falls back to the selection when nothing is loaded", () => {
+    assert.deepEqual(selectLoadedLeaderboard(null, "steam:1", fallback), {
+      leaderboard: null,
+      ...fallback,
+    });
+  });
+});
+
+describe("buildGameLeaderboardPath", () => {
+  it("opens the per-game tab of the leaderboards page", () => {
+    assert.equal(
+      buildGameLeaderboardPath("steam", "291550"),
+      "/leaderboards?tab=games&shop=steam&objectId=291550"
     );
   });
 
-  it("returns everything for an empty search", () => {
-    assert.equal(filterLeaderboardEntries(entries, "  ").length, 2);
+  it("encodes object ids", () => {
+    assert.equal(
+      buildGameLeaderboardPath("launchbox", "a b/c"),
+      "/leaderboards?tab=games&shop=launchbox&objectId=a+b%2Fc"
+    );
   });
 });

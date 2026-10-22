@@ -85,6 +85,34 @@ export type LeaderboardState =
   | "empty_all"
   | "empty_friends";
 
+export interface LoadedLeaderboard {
+  gameKey: string;
+  leaderboard: Leaderboard;
+  period: LeaderboardPeriod;
+  scope: LeaderboardScope;
+  metric: LeaderboardMetric;
+}
+
+export const getLeaderboardGameKey = (shop: GameShop, objectId: string) =>
+  `${shop}:${objectId}`;
+
+export const selectLoadedLeaderboard = (
+  loaded: LoadedLeaderboard | null,
+  gameKey: string,
+  fallback: Pick<LoadedLeaderboard, "period" | "scope" | "metric">
+) => {
+  if (!loaded || loaded.gameKey !== gameKey) {
+    return { leaderboard: null, ...fallback };
+  }
+
+  return {
+    leaderboard: loaded.leaderboard,
+    period: loaded.period,
+    scope: loaded.scope,
+    metric: loaded.metric,
+  };
+};
+
 export const isLeaderboardShop = (shop: GameShop): shop is LeaderboardShop =>
   shop === "steam" || shop === "epic" || shop === "launchbox";
 
@@ -358,14 +386,7 @@ export const createLeaderboardFetcher = (
   };
 };
 
-export const filterLeaderboardEntries = (
-  entries: LeaderboardEntry[],
-  search: string
-) => {
-  const term = search.trim().toLocaleLowerCase();
-  if (!term) return entries;
-
-  return entries.filter((entry) =>
-    entry.user.displayName.toLocaleLowerCase().includes(term)
-  );
+export const buildGameLeaderboardPath = (shop: GameShop, objectId: string) => {
+  const params = new URLSearchParams({ tab: "games", shop, objectId });
+  return `/leaderboards?${params.toString()}`;
 };

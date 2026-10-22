@@ -1,4 +1,5 @@
 import { useContext, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRightIcon,
   ClockIcon,
@@ -15,6 +16,7 @@ import { useFeature } from "@renderer/hooks";
 import { AuthPage } from "@shared";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import {
+  buildGameLeaderboardPath,
   buildLeaderboardRows,
   getLeaderboardNudge,
   getLeaderboardState,
@@ -24,7 +26,6 @@ import {
   type LeaderboardScope,
 } from "./game-leaderboard";
 import { LeaderboardControls } from "./leaderboard-controls";
-import { LeaderboardModal } from "./leaderboard-modal";
 import { LeaderboardRow } from "./leaderboard-row";
 import { useGameLeaderboard } from "./use-game-leaderboard";
 import { useLeaderboardValue } from "./use-leaderboard-value";
@@ -34,7 +35,8 @@ const EMPTY_BOARD = { entries: [], viewer: null };
 
 export function LeaderboardSection() {
   const { t } = useTranslation("leaderboard");
-  const { catalogueGame, gameTitle } = useContext(gameDetailsContext);
+  const { catalogueGame } = useContext(gameDetailsContext);
+  const navigate = useNavigate();
   const { isFeatureEnabled, Feature } = useFeature();
   const isExtended = isFeatureEnabled(Feature.GameLeaderboardsExtended);
   const formatValue = useLeaderboardValue();
@@ -44,7 +46,6 @@ export function LeaderboardSection() {
     useState<LeaderboardScope>("global");
   const [selectedMetric, setSelectedMetric] =
     useState<LeaderboardMetric>("playtime");
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const {
     leaderboard,
@@ -56,6 +57,8 @@ export function LeaderboardSection() {
     scope,
     metric,
     dataMetric,
+    dataScope,
+    dataPeriod,
     retry,
   } = useGameLeaderboard({
     shop: catalogueGame.shop,
@@ -71,8 +74,8 @@ export function LeaderboardSection() {
     isLoading,
     hasError,
     leaderboard,
-    period,
-    scope,
+    period: dataPeriod,
+    scope: dataScope,
     viewerId: viewerUser?.id ?? null,
   });
 
@@ -80,9 +83,9 @@ export function LeaderboardSection() {
   const rows = useMemo(
     () =>
       buildLeaderboardRows(board, viewerUser, LEADERBOARD_CARD_SIZE, {
-        pinViewer: true,
+        pinViewer: state !== "empty_friends",
       }),
-    [board, viewerUser]
+    [board, state, viewerUser]
   );
   const nudge = useMemo(
     () => getLeaderboardNudge(board, viewerUser),
@@ -222,7 +225,14 @@ export function LeaderboardSection() {
           <button
             type="button"
             className="leaderboard-section__see-all"
-            onClick={() => setIsModalOpen(true)}
+            onClick={() =>
+              navigate(
+                buildGameLeaderboardPath(
+                  catalogueGame.shop,
+                  catalogueGame.objectId
+                )
+              )
+            }
           >
             {t("see_full_ranking")}
             <ArrowRightIcon size={14} />
@@ -265,31 +275,6 @@ export function LeaderboardSection() {
           </div>
         )}
       </div>
-
-      {leaderboard && (
-        <LeaderboardModal
-          visible={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          gameTitle={gameTitle}
-          leaderboard={leaderboard}
-          viewerUser={viewerUser}
-          isLoading={isLoading}
-          controls={
-            <LeaderboardControls
-              period={period}
-              scope={scope}
-              metric={metric}
-              showScope={isExtended && isLoggedIn}
-              showMetrics={isExtended}
-              onPeriodChange={setPeriod}
-              onScopeChange={setSelectedScope}
-              onMetricChange={setSelectedMetric}
-            />
-          }
-          metric={dataMetric}
-          formatValue={formatValue}
-        />
-      )}
     </SidebarSection>
   );
 }
