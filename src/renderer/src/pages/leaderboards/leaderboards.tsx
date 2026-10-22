@@ -35,6 +35,9 @@ function LeaderboardsPage() {
   const tabParam = searchParams.get("tab");
   const shopParam = searchParams.get("shop");
   const objectIdParam = searchParams.get("objectId");
+  const periodParam = searchParams.get("period");
+  const scopeParam = searchParams.get("scope");
+  const metricParam = searchParams.get("metric");
   const linkedTab = (
     LEADERBOARD_PAGE_TABS as readonly (string | null)[]
   ).includes(tabParam)
@@ -51,9 +54,21 @@ function LeaderboardsPage() {
     linkedTab ?? "ranking"
   );
   const [requestedMetric, setRequestedMetric] = useState<string | null>(null);
-  const [period, setPeriod] = useState<GlobalLeaderboardPeriod>("week");
-  const [requestedScope, setRequestedScope] =
-    useState<GlobalLeaderboardScope>("global");
+  const [period, setPeriod] = useState<GlobalLeaderboardPeriod>(() =>
+    (GLOBAL_LEADERBOARD_PERIODS as readonly (string | null)[]).includes(
+      periodParam
+    )
+      ? (periodParam as GlobalLeaderboardPeriod)
+      : "week"
+  );
+  const [requestedScope, setRequestedScope] = useState<GlobalLeaderboardScope>(
+    () =>
+      (GLOBAL_LEADERBOARD_SCOPES as readonly (string | null)[]).includes(
+        scopeParam
+      )
+        ? (scopeParam as GlobalLeaderboardScope)
+        : "global"
+  );
   const [generation, setGeneration] = useState(0);
 
   const { viewerUser, isLoggedIn } = useLeaderboardViewer();
@@ -225,6 +240,7 @@ function LeaderboardsPage() {
               scope={scope}
               viewerUser={viewerUser}
               initialGame={linkedGame}
+              initialMetric={linkedGame ? metricParam : null}
             />
           )}
 

@@ -3,6 +3,7 @@ import type { GameShop } from "@types";
 export const LEADERBOARD_TAKE = 100;
 export const LEADERBOARD_CARD_SIZE = 5;
 export const LEADERBOARD_MIN_PROGRESS = 4;
+const FRACTIONAL_HOURS_LIMIT = 10;
 
 export const LEADERBOARD_PERIODS = ["week", "all"] as const;
 export const LEADERBOARD_SCOPES = ["global", "friends"] as const;
@@ -40,7 +41,6 @@ export interface LeaderboardViewer {
 export interface Leaderboard {
   entries: LeaderboardEntry[];
   viewer: LeaderboardViewer | null;
-  periodEnd: string | null;
 }
 
 export interface LeaderboardQuery {
@@ -207,8 +207,6 @@ export const normalizeLeaderboardResponse = (
   return {
     entries,
     viewer: normalizeViewer(candidate.viewer),
-    periodEnd:
-      typeof candidate.periodEnd === "string" ? candidate.periodEnd : null,
   };
 };
 
@@ -280,10 +278,13 @@ export const getLeaderboardNudge = (
   if (!viewerEntry) return null;
   if (viewerEntry.rank === 1) return { type: "leading" };
 
-  const above = leaderboard.entries.find(
-    (entry) => entry.rank === viewerEntry.rank - 1
+  const ahead = leaderboard.entries.filter(
+    (entry) =>
+      entry.rank < viewerEntry.rank && entry.user.id !== viewerEntry.user.id
   );
-  if (!above) return null;
+  if (ahead.length === 0 || ahead.length < viewerEntry.rank - 1) return null;
+
+  const above = ahead[ahead.length - 1];
 
   const gap = above.value - viewerEntry.value;
   if (gap <= 0) return null;
@@ -293,7 +294,6 @@ export const getLeaderboardNudge = (
 
 export const getLeaderboardState = ({
   isEligible,
-  isLoading,
   hasError,
   leaderboard,
   period,
@@ -301,7 +301,6 @@ export const getLeaderboardState = ({
   viewerId,
 }: {
   isEligible: boolean;
-  isLoading: boolean;
   hasError: boolean;
   leaderboard: Pick<Leaderboard, "entries"> | null;
   period: LeaderboardPeriod;
@@ -309,8 +308,8 @@ export const getLeaderboardState = ({
   viewerId: string | null;
 }): LeaderboardState => {
   if (!isEligible) return "hidden";
-  if (isLoading && !leaderboard) return "loading";
-  if (hasError || !leaderboard) return "error";
+  if (hasError) return "error";
+  if (!leaderboard) return "loading";
 
   const others = leaderboard.entries.filter(
     (entry) => entry.user.id !== viewerId
@@ -337,7 +336,7 @@ export const buildLeaderboardRequest = (
 
   return {
     path: `/games/${query.shop}/${encodeURIComponent(query.objectId)}/top-users`,
-    options: { params, needsAuth: query.isLoggedIn },
+    options: { params, needsAuth: query.isExtended && query.isLoggedIn },
   };
 };
 
@@ -346,7 +345,7 @@ export const fetchGameLeaderboard = async (
   query: LeaderboardQuery
 ): Promise<Leaderboard> => {
   if (!isLeaderboardShop(query.shop) || !query.objectId) {
-    return { entries: [], viewer: null, periodEnd: null };
+    return { entries: [], viewer: null };
   }
 
   const { path, options } = buildLeaderboardRequest(query);
@@ -366,7 +365,15 @@ export const getDurationParts = (
     };
   }
 
-  return { unit: "hours", amount: Math.round(minutes / 6) / 10 };
+  const hours = minutes / 60;
+
+  return {
+    unit: "hours",
+    amount:
+      hours < FRACTIONAL_HOURS_LIMIT
+        ? Math.round(hours * 10) / 10
+        : Math.round(hours),
+  };
 };
 
 const durationFormatters = new Map<string, Intl.NumberFormat>();
@@ -390,7 +397,26 @@ export const formatDurationParts = (
   return { unit, amount: getDurationFormatter(language).format(amount) };
 };
 
-export const buildGameLeaderboardPath = (shop: GameShop, objectId: string) => {
-  const params = new URLSearchParams({ tab: "games", shop, objectId });
+export const buildGameLeaderboardPath = (
+  shop: GameShop,
+  objectId: string,
+  {
+    period,
+    scope,
+    metric,
+  }: {
+    period: LeaderboardPeriod;
+    scope: LeaderboardScope;
+    metric: LeaderboardMetric;
+  }
+) => {
+  const params = new URLSearchParams({
+    tab: "games",
+    shop,
+    objectId,
+    period,
+    scope,
+    metric,
+  });
   return `/leaderboards?${params.toString()}`;
 };

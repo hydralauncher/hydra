@@ -54,6 +54,7 @@ export interface ByGameTabProps {
   scope: GlobalLeaderboardScope;
   viewerUser: LeaderboardUser | null;
   initialGame?: LinkedGame | null;
+  initialMetric?: string | null;
 }
 
 interface SelectedGame {
@@ -116,6 +117,7 @@ export function ByGameTab({
   scope,
   viewerUser,
   initialGame = null,
+  initialMetric = null,
 }: Readonly<ByGameTabProps>) {
   const { t } = useTranslation("leaderboards");
   const navigate = useNavigate();
@@ -125,7 +127,9 @@ export function ByGameTab({
   const [selectedKey, setSelectedKey] = useState<string | null>(
     initialGame ? gameKey(initialGame) : null
   );
-  const [requestedMetric, setRequestedMetric] = useState<string | null>(null);
+  const [requestedMetric, setRequestedMetric] = useState<string | null>(
+    initialMetric
+  );
   const metricsRequest = buildMetricsRequest("game");
   const metricDefinitions = useApiResource(
     metricsRequest.path,

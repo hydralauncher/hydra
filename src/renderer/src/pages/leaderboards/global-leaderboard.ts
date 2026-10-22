@@ -65,6 +65,7 @@ export interface LeaderboardEntryExtras {
 
 export interface GlobalLeaderboard extends Leaderboard {
   periodStart: string | null;
+  periodEnd: string | null;
   total: number | null;
   viewerPreviousRank: number | null;
   extras: Record<string, LeaderboardEntryExtras>;
@@ -217,7 +218,6 @@ export const normalizeGlobalLeaderboardResponse = (
   const leaderboard = normalizeLeaderboardResponse({
     users: rawEntries,
     viewer: response.viewer,
-    periodEnd: response.weekEnd ?? response.periodEnd,
   });
 
   const extras: Record<string, LeaderboardEntryExtras> = {};
@@ -239,6 +239,7 @@ export const normalizeGlobalLeaderboardResponse = (
   return {
     ...leaderboard,
     periodStart: toStringOrNull(response.weekStart ?? response.periodStart),
+    periodEnd: toStringOrNull(response.weekEnd ?? response.periodEnd),
     total:
       typeof response.total === "number" && response.total >= 0
         ? response.total

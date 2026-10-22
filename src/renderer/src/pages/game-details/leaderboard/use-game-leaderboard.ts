@@ -37,7 +37,7 @@ export function useGameLeaderboard({
   const { userDetails } = useUserDetails();
   const [loaded, setLoaded] = useState<LoadedLeaderboard | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasError, setHasError] = useState(false);
+  const [failedRequestKey, setFailedRequestKey] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const requestIdRef = useRef(0);
 
@@ -47,6 +47,7 @@ export function useGameLeaderboard({
   const effectiveMetric = isExtended ? metric : "playtime";
   const viewerId = userDetails?.id ?? null;
   const boardKey = getLeaderboardBoardKey(shop, objectId ?? "", viewerId);
+  const requestKey = `${boardKey}|${period}|${effectiveScope}|${effectiveMetric}|${attempt}`;
 
   const viewerUser = useMemo<LeaderboardUser | null>(
     () =>
@@ -67,7 +68,7 @@ export function useGameLeaderboard({
     if (!isEligible || !objectId) {
       setLoaded(null);
       setIsLoading(false);
-      setHasError(false);
+      setFailedRequestKey(null);
       return;
     }
 
@@ -83,7 +84,7 @@ export function useGameLeaderboard({
     };
 
     setIsLoading(true);
-    setHasError(false);
+    setFailedRequestKey(null);
 
     fetchGameLeaderboard(
       (path, options) => leaderboardsCache.get(path, options, viewerId),
@@ -108,7 +109,7 @@ export function useGameLeaderboard({
         if (requestId !== requestIdRef.current) return;
         logger.error("Failed to fetch game leaderboard", error);
         setLoaded(null);
-        setHasError(true);
+        setFailedRequestKey(requestKey);
       })
       .finally(() => {
         if (requestId === requestIdRef.current) setIsLoading(false);
@@ -122,6 +123,7 @@ export function useGameLeaderboard({
     isLoggedIn,
     objectId,
     period,
+    requestKey,
     shop,
     viewerId,
   ]);
@@ -140,7 +142,7 @@ export function useGameLeaderboard({
     dataScope: current.scope,
     dataMetric: current.metric,
     isLoading,
-    hasError,
+    hasError: failedRequestKey === requestKey,
     isEligible,
     isLoggedIn,
     viewerUser,

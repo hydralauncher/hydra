@@ -76,7 +76,6 @@ describe("normalizeLeaderboardResponse", () => {
         },
       ],
       viewer: null,
-      periodEnd: "2026-10-26T00:00:00.000Z",
     });
   });
 
@@ -264,6 +263,16 @@ describe("getLeaderboardNudge", () => {
     });
   });
 
+  it("uses the player right above with tied ranks", () => {
+    assert.deepEqual(
+      getLeaderboardNudge(
+        board(entry(1, "a", 100), entry(1, "b", 100), entry(3, "me", 60)),
+        user("me")
+      ),
+      { type: "behind", gap: 40, target: user("b") }
+    );
+  });
+
   it("congratulates the leader", () => {
     assert.deepEqual(getLeaderboardNudge(top, user("a")), { type: "leading" });
   });
@@ -291,7 +300,6 @@ describe("getLeaderboardNudge", () => {
 describe("getLeaderboardState", () => {
   const base = {
     isEligible: true,
-    isLoading: false,
     hasError: false,
     leaderboard: board(entry(1, "a", 1)),
     period: "all" as const,
@@ -301,13 +309,15 @@ describe("getLeaderboardState", () => {
 
   it("covers hidden, loading, error and ready", () => {
     assert.equal(getLeaderboardState({ ...base, isEligible: false }), "hidden");
+    assert.equal(getLeaderboardState({ ...base, hasError: true }), "error");
     assert.equal(
-      getLeaderboardState({ ...base, isLoading: true, leaderboard: null }),
+      getLeaderboardState({ ...base, leaderboard: null }),
       "loading"
     );
-    assert.equal(getLeaderboardState({ ...base, isLoading: true }), "ready");
-    assert.equal(getLeaderboardState({ ...base, hasError: true }), "error");
-    assert.equal(getLeaderboardState({ ...base, leaderboard: null }), "error");
+    assert.equal(
+      getLeaderboardState({ ...base, hasError: true, leaderboard: null }),
+      "error"
+    );
     assert.equal(getLeaderboardState(base), "ready");
   });
 
@@ -345,6 +355,20 @@ describe("getLeaderboardState", () => {
 });
 
 describe("buildLeaderboardRequest", () => {
+  it("only authenticates extended requests", () => {
+    assert.equal(
+      buildLeaderboardRequest(query({ isLoggedIn: true, viewerId: "a" }))
+        .options.needsAuth,
+      false
+    );
+    assert.equal(
+      buildLeaderboardRequest(
+        query({ isLoggedIn: true, isExtended: true, viewerId: "a" })
+      ).options.needsAuth,
+      true
+    );
+  });
+
   it("only sends the current API params when the flag is off", () => {
     assert.deepEqual(
       buildLeaderboardRequest(
@@ -449,6 +473,13 @@ describe("getDurationParts", () => {
       amount: 3.5,
     });
   });
+
+  it("rounds to whole hours from ten hours up", () => {
+    assert.deepEqual(getDurationParts(37800, 120), {
+      unit: "hours",
+      amount: 11,
+    });
+  });
 });
 
 describe("formatDurationParts", () => {
@@ -480,7 +511,7 @@ describe("selectLoadedLeaderboard", () => {
   };
   const loaded = {
     boardKey: "steam:1:anonymous",
-    leaderboard: { entries: [entry(1, "a", 1)], viewer: null, periodEnd: null },
+    leaderboard: { entries: [entry(1, "a", 1)], viewer: null },
     period: "all" as const,
     scope: "global" as const,
     metric: "playtime" as const,
@@ -527,17 +558,23 @@ describe("selectLoadedLeaderboard", () => {
 });
 
 describe("buildGameLeaderboardPath", () => {
-  it("opens the per-game tab of the leaderboards page", () => {
+  const selection = {
+    period: "all" as const,
+    scope: "friends" as const,
+    metric: "sessions" as const,
+  };
+
+  it("opens the per-game tab with the current selection", () => {
     assert.equal(
-      buildGameLeaderboardPath("steam", "291550"),
-      "/leaderboards?tab=games&shop=steam&objectId=291550"
+      buildGameLeaderboardPath("steam", "291550", selection),
+      "/leaderboards?tab=games&shop=steam&objectId=291550&period=all&scope=friends&metric=sessions"
     );
   });
 
   it("encodes object ids", () => {
     assert.equal(
-      buildGameLeaderboardPath("launchbox", "a b/c"),
-      "/leaderboards?tab=games&shop=launchbox&objectId=a+b%2Fc"
+      buildGameLeaderboardPath("launchbox", "a b/c", selection),
+      "/leaderboards?tab=games&shop=launchbox&objectId=a+b%2Fc&period=all&scope=friends&metric=sessions"
     );
   });
 });
