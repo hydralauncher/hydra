@@ -13,7 +13,6 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { useFeature } from "@renderer/hooks";
-import { useGlobalLeaderboardsFeature } from "../../leaderboards/leaderboards-api";
 import { AuthPage } from "@shared";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import {
@@ -43,10 +42,11 @@ export function LeaderboardSection() {
   const { t } = useTranslation("leaderboard");
   const { catalogueGame } = useContext(gameDetailsContext);
   const navigate = useNavigate();
-  const { isEnabled: isGlobalLeaderboardsEnabled } =
-    useGlobalLeaderboardsFeature();
   const { isFeatureEnabled, Feature } = useFeature();
   const isExtended = isFeatureEnabled(Feature.GameLeaderboardsExtended);
+  const isGlobalLeaderboardsEnabled = isFeatureEnabled(
+    Feature.GlobalLeaderboards
+  );
   const formatValue = useLeaderboardValue();
 
   const [period, setPeriod] = useState<LeaderboardPeriod>("week");
