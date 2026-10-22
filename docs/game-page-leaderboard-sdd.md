@@ -1,119 +1,124 @@
-# Ranking na página do jogo (LBX-1266)
+# Game page leaderboard (LBX-1266)
 
-SDD de 21 de outubro de 2026. Status: aguardando aprovação.
+SDD written on October 21, 2026, revised on October 22, 2026. Status: implemented. The PR waits for LBX-1265, which owns the route that "View full ranking" opens.
 
-Base: branch `feat/LBX-1266-game-page-leaderboard`, criada a partir de `feat/LBX-1267-leaderboard-top-position-styling` porque usa o `RankMedal`. Referências visuais: protótipo "Game Ranking Card" (boards "Game page sidebar · Ranking", "Ranking states" e "View all · Full board") e o Design System do launcher. Backend lido em `hydra-backend/backend@70250f4c`.
+Base: branch `feat/LBX-1266-game-page-leaderboard`, stacked on `feat/LBX-1267-leaderboard-top-position-styling` because it uses `RankMedal` and `RankFrameRing`. Visual references: the "Game Ranking Card" prototype (boards "Game page sidebar · Ranking", "Ranking states" and "View all · Full board") and the launcher Design System. Backend read at `hydra-backend/backend@70250f4c`.
 
-## Resultado esperado
+## Expected result
 
-A barra lateral da página do jogo ganha a seção "Ranking", logo abaixo de Conquistas. Ela mostra o top 5 de quem mais jogou, com Semana e Sempre, a sua linha destacada e quanto falta para você passar quem está logo acima. "Ver ranking completo" leva para a aba "Por jogo" da página de leaderboards (LBX-1265), já no jogo atual.
+The game page sidebar gets a "Ranking" section right below Achievements. It shows the top 5 players by playtime with This week and All time, your own row highlighted, and how far you are from the player right above you. "View full ranking" opens the "By game" tab of the leaderboards page (LBX-1265) with the current game selected.
 
-Global e Tempo de jogo funcionam desde já, com dados reais. A aba Amigos e as métricas Sessões, Souvenirs e Sequência ficam prontas, mas atrás de uma feature flag até a LBX-1264 entregar a API.
+Global and Playtime already work with real data. The Friends scope and the Sessions, Souvenirs and Streak metrics are built but stay behind a feature flag until LBX-1264 ships the API.
 
-## Critérios de aceite da task
+## Task acceptance criteria
 
-| Critério no Linear                                                                                                                                            | Como este SDD atende                                                                                                                               | Situação                                                         |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Seção na barra lateral com o top N da métrica escolhida (tempo de jogo por padrão; sessões, souvenirs e sequência conforme disponíveis), Esta semana e Sempre | Seção "Ranking" com top 5, Semana e Sempre, e Tempo de jogo como padrão. As outras métricas ficam atrás da flag até a API existir.                 | Atende com a API atual. As outras métricas dependem da LBX-1264. |
-| Aba Amigos: amigos que têm o jogo e você, sempre mostrando a sua posição                                                                                      | Aba pronta no front, atrás da flag.                                                                                                                | **Pendente da LBX-1264:** a API não tem escopo de amigos         |
-| A sua linha fica destacada; "Ver tudo" abre o ranking completo                                                                                                | Linha "Você" destacada. "Ver ranking completo" leva para a página de leaderboards (LBX-1265), aba "Por jogo", já no jogo atual (revisão de 21/10). | Atende quando a LBX-1265 entrar: a rota é dela.                  |
-| Escondida em jogos custom e para quem está deslogado (o Global continua visível se a API permitir acesso anônimo)                                             | Escondida em custom. Como a API é pública, quem está deslogado vê só o Global, com o convite para entrar.                                          | Atende                                                           |
-| Textos em `src/locales/en/translation.json`                                                                                                                   | Inglês obrigatório; também incluo `pt-BR`.                                                                                                         | Atende                                                           |
+| Linear criterion                                                                                                                             | How it is met                                                                                                                                                          | Status                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Game page section with the top N for the selected metric (playtime by default; sessions, souvenirs, streak as available), This week/All time | "Ranking" section with the top 5, This week and All time, and Playtime by default. The other metrics stay behind the flag until the API exists.                        | Met with the current API. The other metrics depend on LBX-1264. |
+| Friends tab: friends who own the game plus you, always showing your own rank                                                                 | Built in the launcher, behind the flag.                                                                                                                                | **Waiting on LBX-1264:** the API has no friends scope.          |
+| Your row is highlighted; "View all" opens the full board                                                                                     | Your row is highlighted with a "You" tag. "View full ranking" opens the leaderboards page (LBX-1265) on the "By game" tab with the current game (October 21 revision). | Met once LBX-1265 lands, since it owns the route.               |
+| Hidden for custom games and when logged out (Global still visible if the API allows anonymous access)                                        | Hidden for custom games. The API is public, so signed-out users see Global only, with a sign-in prompt.                                                                | Met                                                             |
+| Strings in `src/locales/en/translation.json`                                                                                                 | English is required; `pt-BR` is included too.                                                                                                                          | Met                                                             |
 
-A task só pode ir para Done depois que a LBX-1264 entregar e a flag for ligada. Até lá, este PR entrega a parte Global.
+The task can move to Done only after LBX-1264 ships and the flag is turned on. Until then, this change delivers the Global board.
 
-O que vem do protótipo e não está nos critérios ("Faltam X", os estados vazios e o de erro) entra porque está desenhado.
+Prototype items that are not in the criteria (the "X to pass" hint, the empty states and the error state) are included because they are designed.
 
-## O que a API oferece hoje
+## What the API offers today
 
 `GET /games/:shop/:objectId/top-users` (`games.controller.ts:406`, `game-top-users.service.ts:271`):
 
-- é público, sem guard de autenticação;
-- aceita `take` de 1 a 100 (padrão 10) e `range` `week` ou `all` (padrão `all`);
-- só funciona para lojas de catálogo: `steam`, `epic` e `launchbox`;
-- responde `{ users: [{ rank, playTimeInSeconds, user: { id, displayName, profileImageUrl } }], periodStart?, periodEnd? }`, com o período apenas em `week`;
-- responde lista vazia quando dá timeout ou o jogo Epic não está publicado.
+- is public, with no auth guard;
+- accepts `take` from 1 to 100 (default 10) and `range` `week` or `all` (default `all`);
+- only works for catalogue shops: `steam`, `epic` and `launchbox`;
+- responds with `{ users: [{ rank, playTimeInSeconds, user: { id, displayName, profileImageUrl } }], periodStart?, periodEnd? }`, with the period only for `week`;
+- responds with an empty list on timeout or when an Epic game is not published.
 
-Ela não tem escopo de amigos, outras métricas, a posição de quem está vendo fora do top, a contagem total de jogadores nem o banner do perfil.
+It has no friends scope, no other metrics, no viewer rank outside the top, no total player count and no profile banner.
 
-## Decisões
+## Decisions
 
-| Assunto                       | Decisão                                                                                                                                                                                                                                                                                                                                       |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Onde aparece                  | `SidebarSection` "Ranking" em `sidebar.tsx`, depois de Conquistas. Chamadas usam `catalogueGame`, nunca `shop`, que pode ser a loja de conquistas.                                                                                                                                                                                            |
-| Quando esconder               | Jogos `custom`, lojas fora de `steam`/`epic`/`launchbox`, ou sem `objectId`.                                                                                                                                                                                                                                                                  |
-| Requisição                    | Uma por combinação de jogo, período, escopo e métrica, sempre com `take=100`.                                                                                                                                                                                                                                                                 |
-| Cache                         | Em memória no módulo, com TTL de 60 s e deduplicação de requisições em voo, no padrão do ProtonDB em `sidebar.tsx:42`.                                                                                                                                                                                                                        |
-| Autenticação                  | `needsAuth` só quando há usuário logado, para a API já poder calcular sua posição. Deslogado, a chamada é pública.                                                                                                                                                                                                                            |
-| Sua linha                     | Identificada comparando `user.id` com `userDetails.id`, ou pelo `viewer` da API. No card, ela fica sempre fixa embaixo, depois das reticências, mesmo quando você está no top 5 (revisão de 21/10). Sem posição, nada aparece.                                                                                                                |
-| "Faltam X"                    | Diferença para quem está uma posição acima, quando os dois estão na resposta. Em 1º lugar mostra "Você lidera este ranking". Sem dados suficientes, a linha não aparece.                                                                                                                                                                      |
-| Controles                     | Revisão de 21/10: Global/Amigos e Semana/Sempre viram filtros em dropdown (Radix, no padrão dos filtros da Biblioteca), lado a lado, no tamanho do conteúdo e alinhados à esquerda. As 4 métricas usam o switch deslizante. Os controles ficam alinhados à esquerda com a lista.                                                              |
-| Feature flag                  | `Feature.GameLeaderboardsExtended = "GAME_LEADERBOARDS_EXTENDED"` em `use-feature.ts`, ligada pelo `/features` do backend. Desligada, esconde a aba Amigos e os chips de métrica e nunca envia `scope`/`metric`.                                                                                                                              |
-| Contrato previsto da LBX-1264 | Com a flag ligada, envia `metric=playtime\|sessions\|souvenirs\|streak` e `scope=global\|friends` no mesmo endpoint. A leitura aceita `value` ou `playTimeInSeconds`, um `viewer` opcional `{ rank, value }` e um `user.backgroundImageUrl` opcional. A normalização ignora entradas inválidas. Precisa ser confirmado com quem fizer a 1264. |
-| Valores                       | Tempo de jogo usa as chaves `amount_hours`/`amount_minutes` que a página já usa. Sessões e Souvenirs são números; Sequência é "N dias".                                                                                                                                                                                                       |
-| Banner do perfil              | Revisão do protótipo de 21/10. Quando o usuário da linha tiver `user.backgroundImageUrl` na resposta, a linha usa o banner como fundo, com o gradiente escuro do protótipo (94% → 72% → 40%). Sem o campo, a linha fica lisa. A API ainda não manda esse campo; ele entra no contrato a combinar na LBX-1264. Sem ícone de nuvem.             |
-| Tag "Você" no banner          | Fundo `rgba(13,13,13,0.55)` com `backdrop-filter: blur(10px)` e texto em `$muted-color`, para não sumir sobre a imagem. Na linha com banner, o destaque é o próprio banner e o fundo cinza não é aplicado.                                                                                                                                    |
-| Top 3                         | O `rank-frame` da LBX-1267 envolve as linhas de 1º a 3º, com ou sem banner.                                                                                                                                                                                                                                                                   |
-| Ver tudo                      | "Ver ranking completo" navega para `/leaderboards?tab=games&shop=<shop>&objectId=<objectId>` (`buildGameLeaderboardPath`). A LBX-1265 lê esses parâmetros e abre a aba "Por jogo" com o jogo selecionado. O modal do protótipo saiu, conforme a revisão de 21/10. Por isso a PR da 1266 espera a PR da 1265.                                  |
-| Ícones                        | Octicons (`GlobeIcon`, `PeopleIcon`, `GraphIcon`, `ArrowRightIcon`) no lugar dos SVGs do protótipo, como pede o Design System.                                                                                                                                                                                                                |
-| Textos                        | Namespace `leaderboard`, em sentence case e sem emoji, em `en` e `pt-BR`.                                                                                                                                                                                                                                                                     |
+| Topic                      | Decision                                                                                                                                                                                                                                                                                                                                               |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Placement                  | A "Ranking" `SidebarSection` in `sidebar.tsx`, after Achievements. Requests use `catalogueGame`, never `shop`, which can be the achievement shop.                                                                                                                                                                                                      |
+| When hidden                | `custom` games, shops other than `steam`/`epic`/`launchbox`, or no `objectId`.                                                                                                                                                                                                                                                                         |
+| Request                    | One per game, period, scope and metric combination, always with `take=100`.                                                                                                                                                                                                                                                                            |
+| Cache                      | In-memory at module level, with a 60 s TTL and in-flight request deduplication, following the ProtonDB pattern in `sidebar.tsx:42`.                                                                                                                                                                                                                    |
+| Stale data                 | The loaded board is stored with the game, period, scope and metric it was fetched for (`selectLoadedLeaderboard`). A board from another game is never shown, and values and empty states always use the query the data belongs to.                                                                                                                     |
+| Auth                       | `needsAuth` only when a user is signed in, so the API can compute the viewer's rank. Signed-out requests are public.                                                                                                                                                                                                                                   |
+| Your row                   | Found by comparing `user.id` with `userDetails.id`, or through the API's `viewer`. On the card it is always pinned at the bottom, after an ellipsis, even when you are in the top 5 (October 21 revision). It is not duplicated on an empty friends board. Without a rank, nothing is shown.                                                           |
+| "X to pass" hint           | The gap to the player one rank above, when both are in the response. At rank 1 it shows "You lead this ranking". Without enough data the line is hidden. A positive gap is never shown as 0 minutes.                                                                                                                                                   |
+| Controls                   | October 21 revision: Global/Friends and This week/All time are dropdown filters (Radix, following the Library filters), side by side, sized to their content and left-aligned with the list. The 4 metrics use the sliding switch.                                                                                                                     |
+| Feature flag               | `Feature.GameLeaderboardsExtended = "GAME_LEADERBOARDS_EXTENDED"` in `use-feature.ts`, turned on through the backend's `/features`. When off, the Friends filter and the metric switch are hidden and `scope`/`metric` are never sent.                                                                                                                 |
+| Expected LBX-1264 contract | With the flag on, the launcher sends `metric=playtime\|sessions\|souvenirs\|streak` and `scope=global\|friends` to the same endpoint. It reads `value` or `playTimeInSeconds`, an optional `viewer` `{ rank, value }` and an optional `user.backgroundImageUrl`. Invalid entries are dropped. This needs to be confirmed with whoever builds LBX-1264. |
+| Values                     | Playtime shows hours, or minutes under 2 hours. Sessions and Souvenirs are plain numbers. Streak is "N days".                                                                                                                                                                                                                                          |
+| Profile banner             | October 21 prototype revision. When a row's user has `user.backgroundImageUrl`, the row uses it as the background with the prototype's dark gradient (94% → 72% → 40%). Without it, the row is plain. The API does not send the field yet; it belongs in the LBX-1264 contract. No cloud icon.                                                         |
+| "You" tag on a banner      | `rgba(13,13,13,0.55)` background with `backdrop-filter: blur(10px)` and `$muted-color` text, so it stays readable on the image. Banner rows always keep light text and a stronger progress track.                                                                                                                                                      |
+| Top three                  | Rows 1 to 3 get the `rank-frame` classes and render `RankFrameRing` from LBX-1267, with or without a banner.                                                                                                                                                                                                                                           |
+| View full ranking          | Navigates to `/leaderboards?tab=games&shop=<shop>&objectId=<objectId>` (`buildGameLeaderboardPath`). LBX-1265 reads these parameters and opens the "By game" tab with the game selected. The prototype's modal was dropped in the October 21 revision. This is why the LBX-1266 PR waits for the LBX-1265 PR.                                          |
+| Icons                      | Octicons (`GlobeIcon`, `PeopleIcon`, `CalendarIcon`, `GraphIcon`, `ArrowRightIcon`) instead of the prototype's SVGs, as the Design System asks.                                                                                                                                                                                                        |
+| Strings                    | `leaderboard` namespace, sentence case and no emoji, in `en` and `pt-BR`.                                                                                                                                                                                                                                                                              |
 
-## Estados
+## States
 
-| Estado       | Quando                                | O que mostra                                                                                                                            |
-| ------------ | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Carregando   | Primeira resposta pendente            | Skeleton de 4 linhas (`react-loading-skeleton`, mesmo tema do HowLongToBeat).                                                           |
-| Pronto       | Há linhas                             | Seletores, linhas, "Faltam X" e "Ver ranking completo".                                                                                 |
-| Semana vazia | `week` sem linhas                     | "Ninguém jogou esta semana", "Seja o primeiro a pontuar até domingo" e o botão "Ver ranking de sempre".                                 |
-| Sempre vazio | `all` sem linhas                      | "Ninguém jogou ainda".                                                                                                                  |
-| Amigos vazio | `friends` só com você (atrás da flag) | "Nenhum amigo seu tem este jogo", a sua linha e o botão "Encontrar amigos", que abre a tela de amigos.                                  |
-| Deslogado    | Sem `userDetails`                     | Só Global e o aviso "Entre para ver sua posição e o ranking dos seus amigos", com o botão "Entrar" (`openAuthWindow(AuthPage.SignIn)`). |
-| Erro         | A requisição falhou                   | "Não foi possível carregar o ranking" e o botão "Tentar novamente".                                                                     |
+| State          | When                                      | What it shows                                                                                                                                                                                 |
+| -------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Loading        | First response pending                    | 4-row skeleton (`react-loading-skeleton`, same theme as HowLongToBeat).                                                                                                                       |
+| Ready          | There are rows                            | Controls, rows, the "X to pass" hint and "View full ranking".                                                                                                                                 |
+| Empty week     | `week` with no rows                       | "No one played this week", "Be the first to score before Sunday" and a "View all-time ranking" button.                                                                                        |
+| Empty all time | `all` with no rows                        | "No one has played this yet".                                                                                                                                                                 |
+| Empty friends  | `friends` with only you (behind the flag) | "None of your friends have this game", your row and a "Find friends" button that opens the friends window.                                                                                    |
+| Signed out     | No `userDetails`                          | Global only and the prompt "Sign in to see your position and your friends' ranking", with a "Sign in" button (`openAuthWindow(AuthPage.SignIn)`) styled as in the "Ranking states" reference. |
+| Error          | The request failed                        | "Couldn't load the ranking" and a "Try again" button.                                                                                                                                         |
 
-## Comportamento visual
+## Visual behavior
 
-- Os seletores segmentados (Global/Amigos e Semana/Sempre) têm o indicador deslizando com a curva do protótipo, `cubic-bezier(0.34, 1.4, 0.64, 1)` em 0,46 s.
-- A linha tem 56 px de altura, avatar de 36 px (`Avatar`), nome, a tag "Você" e uma barra de 3 px proporcional ao primeiro colocado.
-- A sua linha tem fundo `rgba(255,255,255,0.08)` e barra em `$muted-color`.
-- As medalhas vêm do `RankMedal` (LBX-1267).
-- Com `prefers-reduced-motion`, as transições são desligadas.
+- The metric switch indicator slides with the prototype's curve, `cubic-bezier(0.34, 1.4, 0.64, 1)` over 0.46 s.
+- Rows are 56 px tall, with a 36 px avatar (`Avatar`), the name, the "You" tag and a 3 px bar relative to the leader.
+- Progress tracks, fills and the ellipsis follow the row text color, so they stay visible on light themes.
+- Your row has a `rgba(255,255,255,0.08)` background when it has no banner.
+- Clicking any row opens that player's profile.
+- With `prefers-reduced-motion`, transitions are turned off.
 
-## Fora do escopo
+## Out of scope
 
-- Clicar em qualquer linha abre o perfil daquela pessoa.
-- Contador de reset semanal e página global, que ficam na LBX-1265.
+- The weekly reset countdown and the global page, which belong to LBX-1265.
 
-## Alterações por arquivo
+## Changes by file
 
-| Arquivo                                                                 | Mudança                                                                                               |
-| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `src/renderer/src/pages/game-details/leaderboard/game-leaderboard.ts`   | Tipos, normalização, montagem das linhas, "Faltam X", estado e busca com cache, sem React e testável. |
-| `.../leaderboard/use-game-leaderboard.ts`                               | Hook com proteção contra respostas antigas, no padrão de `use-similar-games.ts`.                      |
-| `.../leaderboard/leaderboard-section.tsx`                               | Card da barra lateral.                                                                                |
-| `.../leaderboard/leaderboard-row.tsx`                                   | Linha do card, também usada pela página da LBX-1265.                                                  |
-| `.../leaderboard/leaderboard-controls.tsx`                              | Seletores segmentados e chips de métrica.                                                             |
-| `.../leaderboard/leaderboard.scss`                                      | Estilos.                                                                                              |
-| `.../sidebar/sidebar.tsx`                                               | Inclui a seção.                                                                                       |
-| `src/renderer/src/hooks/use-feature.ts`                                 | Nova flag.                                                                                            |
-| `src/locales/en/translation.json`, `src/locales/pt-BR/translation.json` | Chaves no namespace `leaderboard`.                                                                    |
+| File                                                                    | Change                                                                                                                                |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/renderer/src/pages/game-details/leaderboard/game-leaderboard.ts`   | Types, normalization, rows, "X to pass" hint, state, loaded-board selection, page path and cached fetching. No React, fully testable. |
+| `.../leaderboard/use-game-leaderboard.ts`                               | Hook with stale-response protection, following `use-similar-games.ts`.                                                                |
+| `.../leaderboard/use-leaderboard-value.ts`                              | Value formatting per metric.                                                                                                          |
+| `.../leaderboard/leaderboard-section.tsx`                               | Sidebar card.                                                                                                                         |
+| `.../leaderboard/leaderboard-row.tsx`                                   | Card row, also used by the LBX-1265 page.                                                                                             |
+| `.../leaderboard/leaderboard-controls.tsx`                              | Dropdown filters and the metric switch.                                                                                               |
+| `.../leaderboard/leaderboard.scss`                                      | Styles.                                                                                                                               |
+| `.../sidebar/sidebar.tsx`                                               | Adds the section.                                                                                                                     |
+| `src/renderer/src/hooks/use-feature.ts`                                 | New flag.                                                                                                                             |
+| `src/locales/en/translation.json`, `src/locales/pt-BR/translation.json` | Keys in the `leaderboard` namespace.                                                                                                  |
 
-## Testes e critérios de aceite
+## Tests
 
-Automatizados (`node:test`, em `game-leaderboard.test.ts`):
+Automated (`node:test`, in `game-leaderboard.test.ts`):
 
-- **Normalização:** aceita `playTimeInSeconds` e `value`, descarta entradas sem `rank`, `user.id` ou com valor inválido, ordena por `rank` e lê `viewer` e o banner quando vêm.
-- **Linhas:** top N; você dentro do top sem duplicar; você fora do top com reticências; e a barra proporcional, com mínimo de 4%.
-- **"Faltam X":** acima de você, em 1º lugar, e sem a pessoa de cima na resposta.
-- **Estado:** carregando, pronto, semana vazia, sempre vazio, amigos vazio e erro.
-- **Busca:** os parâmetros mudam com a flag ligada e desligada, o cache é usado dentro do TTL, requisições iguais em voo são deduplicadas, e lojas não suportadas nem chegam a chamar a API.
+- **Normalization:** accepts `playTimeInSeconds` and `value`; drops entries without `rank` or `user.id` or with invalid values; sorts by `rank`; reads `viewer` and the banner when present.
+- **Rows:** top N; the viewer inside the top without duplication by default; the viewer outside the top after an ellipsis; the pinned viewer row; the bar relative to the leader with a 4% minimum.
+- **"X to pass" hint:** above you, at rank 1, and without the player above in the response.
+- **State:** loading, ready, empty week, empty all time, empty friends and error.
+- **Loaded board:** the board stays tied to its game and query, and a board from another game is ignored.
+- **Fetching:** parameters with the flag on and off, cache use within the TTL, in-flight deduplication, and no API call for unsupported games.
+- **Page path:** the "By game" URL with encoded ids.
 
-A cobertura alvo é de pelo menos 80% de `game-leaderboard.ts`. Os componentes visuais são validados no app.
+Coverage target is at least 80% of `game-leaderboard.ts`. The visual components are checked in the app.
 
-Validação manual com `yarn dev`, em um jogo Steam com jogadores:
+Manual checks with `yarn dev`:
 
-- Bate com o protótipo em Semana e em Sempre.
-- Logado e deslogado.
-- Num jogo custom, a seção não aparece.
-- Com `GAME_LEADERBOARDS_EXTENDED` ligada no `/features` de um ambiente de teste, aparecem a aba Amigos e os chips de métrica. O `localStorage` não basta, porque o `useFeature` sobrescreve o cache ao buscar `/features`.
-- "Ver ranking completo" leva para a aba "Por jogo" da página de leaderboards com o jogo atual (depende da LBX-1265).
-- `yarn typecheck`, `yarn lint` e `yarn test` passam.
+- Matches the prototype for This week and All time, using local mock data (not committed).
+- Signed in and signed out.
+- On a custom game, the section is hidden.
+- With `GAME_LEADERBOARDS_EXTENDED` turned on, the Friends filter and the metric switch appear.
+- Light and dark themes stay readable.
+- "View full ranking" opens the "By game" tab of the leaderboards page with the current game (depends on LBX-1265).
+- `yarn typecheck`, `yarn lint` and `yarn test` pass.
