@@ -12,6 +12,7 @@ import {
   Wine,
   WindowManager,
 } from "@main/services";
+import { UmuEarlyExitError } from "@main/services/umu-launch-monitor";
 import {
   findDownloadInstaller,
   getDownloadFolderPath,
@@ -32,7 +33,11 @@ interface InstallerLaunchResult {
 }
 
 const UAC_DECLINED_EXIT_CODE = 1223;
+const SUCCESS_EXIT_CODES = new Set([0, 1641, 3010]);
+const INSTALLER_STARTED_MARKER = "HYDRA_INSTALLER_STARTED";
 const INSTALLER_EXIT_MARKER = "HYDRA_INSTALLER_EXIT=";
+
+const runningInstallers = new Set<string>();
 
 const ELEVATED_INSTALLER_COMMAND = [
   "$ErrorActionPreference = 'Stop'",
@@ -43,9 +48,8 @@ const ELEVATED_INSTALLER_COMMAND = [
   "$info.Verb = 'runas'",
   "$info.UseShellExecute = $true",
   "$installer = [System.Diagnostics.Process]::Start($info)",
-  "Write-Output ('Started installer process ' + $installer.Id)",
-  "$installer.WaitForExit()",
-  `Write-Output ('${INSTALLER_EXIT_MARKER}' + $installer.ExitCode)`,
+  `Write-Output '${INSTALLER_STARTED_MARKER}'`,
+  `if ($installer) { $installer.WaitForExit(); Write-Output ('${INSTALLER_EXIT_MARKER}' + $installer.ExitCode) }`,
   "} catch {",
   "$failure = $_.Exception.GetBaseException()",
   `if ($failure.NativeErrorCode -eq ${UAC_DECLINED_EXIT_CODE}) { Write-Output '${INSTALLER_EXIT_MARKER}${UAC_DECLINED_EXIT_CODE}' } else { Write-Output $failure.Message }`,
@@ -78,7 +82,7 @@ const spawnInstaller = async ({
         detached: !captureOutput,
         stdio: captureOutput ? ["ignore", "pipe", "pipe"] : "ignore",
         shell: false,
-        windowsHide: true,
+        windowsHide: captureOutput,
         env: env ?? process.env,
       });
     } catch (error) {
@@ -111,10 +115,12 @@ const openPathAndCheck = async (filePath: string): Promise<boolean> => {
   return openError.length === 0;
 };
 
+const readOutputLines = (output: string) => output.split(/\r?\n/);
+
 const readInstallerExitCode = (output: string) => {
-  const markerLine = output
-    .split(/\r?\n/)
-    .find((line) => line.startsWith(INSTALLER_EXIT_MARKER));
+  const markerLine = readOutputLines(output).find((line) =>
+    line.startsWith(INSTALLER_EXIT_MARKER)
+  );
 
   return markerLine
     ? Number(markerLine.slice(INSTALLER_EXIT_MARKER.length))
@@ -133,6 +139,13 @@ const handleElevatedInstallerExit = async (
 
   const installerExitCode = readInstallerExitCode(output);
   if (installerExitCode !== null) return options.onExit(installerExitCode);
+
+  if (readOutputLines(output).includes(INSTALLER_STARTED_MARKER)) {
+    logger.info(
+      `[GameInstaller] Started ${filePath} with elevation but could not wait for it`
+    );
+    return options.onUntrackedLaunch();
+  }
 
   logger.error("Failed to launch game installer with elevation");
 
@@ -172,14 +185,22 @@ const launchInstallerWithUmu = async (
 ) => {
   let launched = false;
 
-  await Umu.launchExecutable(filePath, [], {
-    gameId: options.gameId,
-    winePrefixPath: options.winePrefixPath,
-    protonPath: options.protonPath,
-    onExit: (exitCode) => {
-      if (launched) options.onExit(exitCode);
-    },
-  });
+  try {
+    await Umu.launchExecutable(filePath, [], {
+      gameId: options.gameId,
+      winePrefixPath: options.winePrefixPath,
+      protonPath: options.protonPath,
+      onExit: (exitCode) => {
+        if (launched) options.onExit(exitCode);
+      },
+    });
+  } catch (error) {
+    if (!(error instanceof UmuEarlyExitError)) throw error;
+
+    logger.info(`[GameInstaller] umu-run exited early: ${error.message}`);
+    options.onExit(error.code);
+    return;
+  }
 
   launched = true;
 };
@@ -244,8 +265,14 @@ const executeGameInstaller = async (
   return await openUntracked(filePath);
 };
 
+const isSuccessfulExit = (exitCode: number | null) =>
+  exitCode !== null && SUCCESS_EXIT_CODES.has(exitCode);
+
 const describeInstallerExit = (exitCode: number | null) => {
   if (exitCode === 0) return "completed";
+  if (isSuccessfulExit(exitCode)) {
+    return `completed and asked for a restart (exit code ${exitCode})`;
+  }
   if (exitCode === UAC_DECLINED_EXIT_CODE) return "UAC prompt declined";
   if (exitCode === null) return "terminated without an exit code";
   return `cancelled or failed with exit code ${exitCode}`;
@@ -275,7 +302,7 @@ const handleInstallerExit = async (
 
   const gameKey = levelKeys.game(shop, objectId);
 
-  if (exitCode !== 0) {
+  if (!isSuccessfulExit(exitCode)) {
     logger.info(`[GameInstaller] Reset ${objectId} back to Install`);
     await updateInstallerState(gameKey, {
       installerRunning: false,
@@ -330,6 +357,11 @@ const openGameInstaller = async (
     return true;
   }
 
+  if (runningInstallers.has(gameKey) || download?.installerRunning) {
+    logger.info(`[GameInstaller] Installer for ${objectId} is already running`);
+    return true;
+  }
+
   const installerPath = await findDownloadInstaller(download);
 
   if (!installerPath) {
@@ -337,12 +369,18 @@ const openGameInstaller = async (
     return true;
   }
 
+  runningInstallers.add(gameKey);
+
   const installerStartedAt = Date.now();
   let installerFinished = false;
-  let launchRecorded: Promise<void> = Promise.resolve();
+  let markLaunchRecorded = () => {};
+  const launchRecorded = new Promise<void>((resolve) => {
+    markLaunchRecorded = resolve;
+  });
 
   const afterLaunchRecorded = (callback: () => Promise<void>) => {
     installerFinished = true;
+    runningInstallers.delete(gameKey);
     void launchRecorded.then(callback).catch((error) => {
       logger.error("Failed to update the installer state", error);
     });
@@ -378,12 +416,17 @@ const openGameInstaller = async (
       ),
   });
 
-  if (launched) {
-    launchRecorded = updateInstallerState(gameKey, {
-      installerLaunched: true,
-      installerRunning: tracked && !installerFinished,
-    });
-    await launchRecorded;
+  if (!launched || !tracked) runningInstallers.delete(gameKey);
+
+  try {
+    if (launched) {
+      await updateInstallerState(gameKey, {
+        installerLaunched: true,
+        installerRunning: tracked && !installerFinished,
+      });
+    }
+  } finally {
+    markLaunchRecorded();
   }
 
   return launched;

@@ -18,6 +18,7 @@ const WINE_DRIVE_C_GAME_FOLDERS = [
 ];
 
 const MODIFICATION_TIME_TOLERANCE_MS = 2000;
+const MAX_CHANGED_FOLDERS = 10;
 
 const unique = (values: (string | null | undefined)[]) => [
   ...new Set(values.filter((value): value is string => !!value)),
@@ -40,27 +41,20 @@ const getWindowsTargetDirectories = (downloadPath: string) => {
     ),
     process.env.ProgramFiles,
     process.env["ProgramFiles(x86)"],
-    downloadPath,
   ]);
 };
 
-const getWinePrefixTargetDirectories = (
-  downloadPath: string,
-  winePrefixPath: string | null
-) => {
+const getWinePrefixTargetDirectories = (winePrefixPath: string | null) => {
   const prefixes = unique([
     winePrefixPath,
     process.env.WINEPREFIX ?? path.join(SystemPath.getPath("home"), ".wine"),
   ]);
 
-  return unique([
-    ...prefixes.flatMap((prefix) =>
-      WINE_DRIVE_C_GAME_FOLDERS.map((folder) =>
-        path.join(prefix, "drive_c", folder)
-      )
-    ),
-    downloadPath,
-  ]);
+  return prefixes.flatMap((prefix) =>
+    WINE_DRIVE_C_GAME_FOLDERS.map((folder) =>
+      path.join(prefix, "drive_c", folder)
+    )
+  );
 };
 
 export const getInstallerTargetDirectories = (
@@ -72,10 +66,10 @@ export const getInstallerTargetDirectories = (
   }
 
   if (process.platform === "linux") {
-    return getWinePrefixTargetDirectories(downloadPath, winePrefixPath);
+    return getWinePrefixTargetDirectories(winePrefixPath);
   }
 
-  return [downloadPath];
+  return [];
 };
 
 const listSubfoldersChangedSince = async (directory: string, since: number) => {
@@ -118,5 +112,5 @@ export const listFoldersChangedSince = async (
     changed
       .sort((a, b) => b.changedAt - a.changedAt)
       .map(({ folderPath }) => folderPath)
-  );
+  ).slice(0, MAX_CHANGED_FOLDERS);
 };

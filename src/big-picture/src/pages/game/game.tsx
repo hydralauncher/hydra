@@ -14,6 +14,7 @@ import {
   getOfficialStoreMembers,
 } from "@shared";
 import { useInstallerAvailability } from "@renderer/hooks/use-installer-availability";
+import { useDownloadFolderExists } from "@renderer/hooks/use-download-folder-exists";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -956,12 +957,14 @@ export default function Game() {
   const installerAvailability = useInstallerAvailability(
     downloadGame ? [downloadGame] : []
   );
-  const installStep = downloadGame
-    ? getFinishedDownloadStep(
-        downloadGame,
-        installerAvailability[downloadGame.id] === true
-      )
-    : null;
+  const downloadFolderExists = useDownloadFolderExists(downloadGame);
+  const installStep =
+    downloadGame && downloadFolderExists !== false
+      ? getFinishedDownloadStep(
+          downloadGame,
+          installerAvailability[downloadGame.id] === true
+        )
+      : null;
   const [executablePickerTarget, setExecutablePickerTarget] =
     useState<ExecutablePickerTarget | null>(null);
 

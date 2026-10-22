@@ -1183,6 +1183,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
   hasGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("hasGameInstaller", shop, objectId),
+  hasDownloadFolder: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("hasDownloadFolder", shop, objectId),
   getExecutablePickerPath: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("getExecutablePickerPath", shop, objectId),
   openGameInstallerPath: (shop: GameShop, objectId: string) =>

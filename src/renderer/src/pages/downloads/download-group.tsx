@@ -902,7 +902,7 @@ export function DownloadGroup({
       const actions = [
         {
           label: t("run_installer"),
-          show: hasInstaller && step !== "install",
+          show: hasInstaller && step !== "install" && step !== "installing",
           disabled: deleting,
           icon: <DownloadIcon />,
           onClick: () => {

@@ -21,6 +21,7 @@ import {
   useDownload,
   useGameExecutablePicker,
   useInstallerAvailability,
+  useDownloadFolderExists,
   useLibrary,
   useToast,
   useUserDetails,
@@ -77,12 +78,14 @@ export function HeroPanelActions() {
   const installerAvailability = useInstallerAvailability(
     downloadGame ? [downloadGame] : []
   );
-  const finishedDownloadStep = downloadGame
-    ? getFinishedDownloadStep(
-        downloadGame,
-        installerAvailability[downloadGame.id] === true
-      )
-    : null;
+  const downloadFolderExists = useDownloadFolderExists(downloadGame);
+  const finishedDownloadStep =
+    downloadGame && downloadFolderExists !== false
+      ? getFinishedDownloadStep(
+          downloadGame,
+          installerAvailability[downloadGame.id] === true
+        )
+      : null;
 
   const { updateLibrary } = useLibrary();
 

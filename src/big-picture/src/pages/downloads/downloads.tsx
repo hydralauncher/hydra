@@ -2341,7 +2341,9 @@ export default function Downloads() {
     const isEpic = item.game.download?.downloader === Downloader.Epic;
 
     return [
-      ...(hasInstaller && completedStep !== "install"
+      ...(hasInstaller &&
+      completedStep !== "install" &&
+      completedStep !== "installing"
         ? [
             {
               id: "run-installer",
