@@ -91,9 +91,11 @@ export function MyScreenshotsPanel({
       );
     }
 
-    if (mine.items.length === 0 && mine.isPartial) return null;
+    const hasLocal = mine.pendingLocal.length > 0;
+    const hasPublished = feed.items.length > 0;
 
-    if (mine.items.length === 0) {
+    if (!hasLocal && !hasPublished) {
+      if (mine.isPartial) return null;
       return (
         <output className="game-screenshots-modal__empty">
           <span className="game-screenshots-modal__empty-icon">
@@ -106,60 +108,75 @@ export function MyScreenshotsPanel({
     }
 
     return (
-      <InfiniteScroll
-        dataLength={feed.items.length}
-        next={() => void feed.loadMore()}
-        hasMore={feed.hasMore && !feed.hasLoadMoreFailed}
-        loader={
-          feed.isLoading ? (
-            <output className="game-screenshots-modal__loading">
-              {t("loading_screenshots")}
-            </output>
-          ) : null
-        }
-        scrollThreshold={INFINITE_SCROLL_THRESHOLD}
-        scrollableTarget={scrollId}
-        style={{ overflow: "visible" }}
-      >
-        <ul className="screenshot-grid">
-          {mine.items.map((item) =>
-            item.kind === "published" ? (
-              <ScreenshotCard
-                key={item.id}
-                screenshot={item.screenshot}
-                variant="profile"
-                isOwner
-                isLiking={actions.likingIds.has(item.screenshot.id)}
-                showCommentCount={showCommentCount}
-                onOpen={lightbox.open}
-                onLike={(screenshot) => void actions.toggleLike(screenshot)}
-                onImageError={lightbox.refreshScreenshot}
-              />
-            ) : (
-              <li key={item.id} className="screenshot-card">
-                <LocalScreenshotTile
-                  screenshot={item.screenshot}
-                  alt={local.describe(item.screenshot)}
-                  isBusy={local.busyIds.has(item.screenshot.clientId)}
-                  className="local-screenshot-tile--card"
-                  onOpen={local.open}
-                  onUpload={local.upload}
-                  onDelete={local.requestDelete}
-                />
-              </li>
-            )
-          )}
-        </ul>
-      </InfiniteScroll>
+      <>
+        {hasLocal ? (
+          <section className="my-screenshots-section">
+            <header className="my-screenshots-section__header">
+              <h3>{t("not_uploaded")}</h3>
+            </header>
+            <ul className="screenshot-grid">
+              {mine.pendingLocal.map((screenshot) => (
+                <li key={screenshot.clientId} className="screenshot-card">
+                  <LocalScreenshotTile
+                    screenshot={screenshot}
+                    alt={local.describe(screenshot)}
+                    isBusy={local.busyIds.has(screenshot.clientId)}
+                    className="local-screenshot-tile--card"
+                    onOpen={local.open}
+                    onUpload={local.upload}
+                    onDelete={local.requestDelete}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {hasPublished ? (
+          <section className="my-screenshots-section">
+            <header className="my-screenshots-section__header">
+              <h3>{t("published_screenshots_section")}</h3>
+              <ScreenshotSortToggle sort={sort} onChange={setSort} />
+            </header>
+            <InfiniteScroll
+              dataLength={feed.items.length}
+              next={() => void feed.loadMore()}
+              hasMore={feed.hasMore && !feed.hasLoadMoreFailed}
+              loader={
+                feed.isLoading ? (
+                  <output className="game-screenshots-modal__loading">
+                    {t("loading_screenshots")}
+                  </output>
+                ) : null
+              }
+              scrollThreshold={INFINITE_SCROLL_THRESHOLD}
+              scrollableTarget={scrollId}
+              style={{ overflow: "visible" }}
+            >
+              <ul className="screenshot-grid">
+                {feed.items.map((screenshot) => (
+                  <ScreenshotCard
+                    key={screenshot.id}
+                    screenshot={screenshot}
+                    variant="profile"
+                    isOwner
+                    isLiking={actions.likingIds.has(screenshot.id)}
+                    showCommentCount={showCommentCount}
+                    onOpen={lightbox.open}
+                    onLike={(item) => void actions.toggleLike(item)}
+                    onImageError={lightbox.refreshScreenshot}
+                  />
+                ))}
+              </ul>
+            </InfiniteScroll>
+          </section>
+        ) : null}
+      </>
     );
   };
 
   return (
     <div className="game-screenshots-modal__panel">
-      <div className="game-screenshots-modal__toolbar">
-        <ScreenshotSortToggle sort={sort} onChange={setSort} />
-      </div>
-
       <div id={scrollId} className="game-screenshots-modal__scroll">
         {mine.isPartial ? (
           <MyScreenshotsPartialNotice

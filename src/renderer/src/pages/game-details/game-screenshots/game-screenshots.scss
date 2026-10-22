@@ -162,6 +162,31 @@
   }
 }
 
+.my-screenshots-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 1.5);
+
+  & + & {
+    margin-top: calc(globals.$spacing-unit * 3);
+  }
+
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+
+    h3 {
+      margin: 0;
+      color: globals.$muted-color;
+      font-size: globals.$body-font-size;
+      font-weight: 600;
+    }
+  }
+}
+
 .my-screenshots-partial-notice {
   display: flex;
   align-items: center;

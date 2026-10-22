@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ImageIcon, TrashIcon, UploadIcon } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
@@ -83,7 +84,10 @@ export function LocalScreenshotTile({
         </button>
       </div>
 
-      <Tooltip id={tooltipId} place="top" positionStrategy="fixed" />
+      {createPortal(
+        <Tooltip id={tooltipId} place="top" positionStrategy="fixed" />,
+        document.body
+      )}
     </div>
   );
 }
