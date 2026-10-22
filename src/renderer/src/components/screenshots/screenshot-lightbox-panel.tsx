@@ -111,6 +111,12 @@ function ScreenshotPanelInfo({
         />
       ) : null}
 
+      {isOwner && screenshot.descriptionModerationStatus === "BLOCKED" ? (
+        <p className="screenshot-lightbox__description-note">
+          {t("description_only_visible_to_you")}
+        </p>
+      ) : null}
+
       {!isOwner && hasDescription ? (
         <h2 className="screenshot-lightbox__description">
           {screenshot.description}

@@ -19,6 +19,7 @@ import type {
   ScreenshotUnlikeResponse,
   ScreenshotReportValues,
   ScreenshotUpdateRequest,
+  ScreenshotUpdateResponse,
 } from "@types";
 
 export type ScreenshotFailure = "private" | "unavailable";
@@ -65,7 +66,7 @@ export function useScreenshotActions({
 }: UseScreenshotActionsOptions) {
   const { t } = useTranslation("screenshots");
   const { userDetails } = useUserDetails();
-  const { showErrorToast, showSuccessToast } = useToast();
+  const { showErrorToast, showSuccessToast, showWarningToast } = useToast();
   const {
     pendingIds: likingIds,
     start: startLiking,
@@ -187,21 +188,28 @@ export function useScreenshotActions({
 
       try {
         const response =
-          await window.electron.hydraApi.patch<ProfileScreenshot | null>(
+          await window.electron.hydraApi.patch<ScreenshotUpdateResponse | null>(
             buildProfileScreenshotPath(screenshot.id),
             { data: update, needsAuth: true }
           );
 
         onPatch(screenshot.id, getEditedScreenshotFields(update, response));
-        showSuccessToast(t("changes_saved"));
+        const moderation = response?.textModeration;
+        if (moderation?.title === "hidden") {
+          showWarningToast(t("title_not_allowed"));
+        } else if (moderation?.description === "hidden") {
+          showWarningToast(t("description_only_visible_to_you"));
+        } else {
+          showSuccessToast(t("changes_saved"));
+        }
         return true;
       } catch (error) {
         logger.error("Failed to update screenshot", error);
-        if (
-          getScreenshotApiErrorCode(error) ===
-          "screenshots/text-change-rate-limit-unavailable"
-        ) {
+        const code = getScreenshotApiErrorCode(error);
+        if (code === "screenshots/text-change-rate-limit-unavailable") {
           showErrorToast(t("text_changes_temporarily_unavailable"));
+        } else if (code === "screenshots/moderation-in-progress") {
+          showErrorToast(t("moderation_in_progress"));
         } else if (!handleAccessError(screenshot, error)) {
           showErrorToast(t("update_failed"));
         }
@@ -216,6 +224,7 @@ export function useScreenshotActions({
       onPatch,
       showErrorToast,
       showSuccessToast,
+      showWarningToast,
       startUpdating,
       t,
     ]

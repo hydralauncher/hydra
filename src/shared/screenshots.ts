@@ -196,6 +196,7 @@ export const SCREENSHOT_API_ERROR_CODES = [
   "screenshots/game-deletion-rate-limited",
   "screenshots/comment-rate-limit-unavailable",
   "screenshots/text-change-rate-limit-unavailable",
+  "screenshots/moderation-in-progress",
 ] as const;
 
 export type ScreenshotApiErrorCode =
@@ -337,6 +338,10 @@ export const getEditedScreenshotFields = (
   }
   if (update.description !== undefined) {
     patch.description = source.description ?? null;
+    if (response) {
+      patch.descriptionModerationStatus =
+        response.descriptionModerationStatus ?? null;
+    }
   }
 
   return patch;

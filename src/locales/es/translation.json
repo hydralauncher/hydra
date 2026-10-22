@@ -2651,6 +2651,10 @@
     "screenshots_deleted_count_one": "Se eliminó {{count}} captura",
     "screenshots_deleted_count_other": "Se eliminaron {{count}} capturas",
     "comments_temporarily_unavailable": "Los comentarios no están disponibles temporalmente, inténtalo de nuevo en un momento",
-    "text_changes_temporarily_unavailable": "Ahora no se pueden guardar descripciones ni títulos, inténtalo de nuevo en un momento"
+    "text_changes_temporarily_unavailable": "Ahora no se pueden guardar descripciones ni títulos, inténtalo de nuevo en un momento",
+    "comment_only_visible_to_you": "Tu comentario solo lo ves tú porque no superó la moderación",
+    "description_only_visible_to_you": "Solo tú puedes ver esta descripción",
+    "title_not_allowed": "Este título no está permitido",
+    "moderation_in_progress": "Todavía se está revisando otro cambio, inténtalo de nuevo en un momento"
   }
 }

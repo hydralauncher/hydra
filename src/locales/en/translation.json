@@ -2923,6 +2923,10 @@
     "screenshots_deleted_count_one": "Deleted {{count}} screenshot",
     "screenshots_deleted_count_other": "Deleted {{count}} screenshots",
     "comments_temporarily_unavailable": "Comments are temporarily unavailable, try again in a moment",
-    "text_changes_temporarily_unavailable": "Descriptions and titles can't be saved right now, try again in a moment"
+    "text_changes_temporarily_unavailable": "Descriptions and titles can't be saved right now, try again in a moment",
+    "comment_only_visible_to_you": "Your comment is only visible to you because it didn't pass moderation",
+    "description_only_visible_to_you": "Only you can see this description",
+    "title_not_allowed": "This title isn't allowed",
+    "moderation_in_progress": "Another change is still being checked, try again in a moment"
   }
 }

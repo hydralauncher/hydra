@@ -3,6 +3,8 @@ import type { ProfileVisibility } from "./index";
 
 export type ScreenshotShop = GameShop;
 export type ScreenshotModerationStatus = "PENDING" | "APPROVED" | "BLOCKED";
+export type TextModerationOutcome = "approved" | "hidden" | "unevaluated";
+export type DescriptionModerationStatus = "APPROVED" | "BLOCKED";
 export type ScreenshotQuality = "STANDARD" | "CLOUD";
 export type ScreenshotCommentsPolicy = "EVERYONE" | "FRIENDS" | "NOBODY";
 export type ScreenshotSort = "recent" | "top";
@@ -52,6 +54,7 @@ export interface ProfileScreenshot {
   gameIconUrl: string | null;
   isSpoiler: boolean;
   description: string | null;
+  descriptionModerationStatus?: DescriptionModerationStatus | null;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
@@ -115,6 +118,15 @@ export interface ScreenshotModerationState {
   moderationReason: string | null;
 }
 
+export interface ScreenshotTextModeration {
+  title?: TextModerationOutcome;
+  description?: TextModerationOutcome;
+}
+
+export type ScreenshotUpdateResponse = ProfileScreenshot & {
+  textModeration?: ScreenshotTextModeration;
+};
+
 export interface ScreenshotUpdateRequest {
   visibility?: ProfileVisibility;
   commentsEnabled?: boolean;
@@ -145,6 +157,7 @@ export interface ScreenshotComment {
   isHidden: boolean;
   isOwn: boolean;
   canDelete: boolean;
+  moderation?: TextModerationOutcome;
 }
 
 export interface ScreenshotCommentsResponse {

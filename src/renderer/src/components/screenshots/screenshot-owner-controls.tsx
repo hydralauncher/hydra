@@ -80,6 +80,13 @@ export function ScreenshotOwnerControls({
         }
       />
 
+      {screenshot.descriptionModerationStatus === "BLOCKED" &&
+      values.description === (screenshot.description ?? "") ? (
+        <p className="screenshot-manage-form__note">
+          {t("description_only_visible_to_you")}
+        </p>
+      ) : null}
+
       <SelectField
         label={t("visibility")}
         value={values.visibility}

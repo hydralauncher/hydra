@@ -98,7 +98,7 @@ export function useScreenshotComments({
   onFailure,
 }: UseScreenshotCommentsOptions) {
   const { t } = useTranslation("screenshots");
-  const { showErrorToast, showSuccessToast } = useToast();
+  const { showErrorToast, showSuccessToast, showWarningToast } = useToast();
   const ownerId = screenshot.owner.id;
   const screenshotId = screenshot.id;
   const [comments, setComments] = useState<ScreenshotComment[]>([]);
@@ -303,6 +303,11 @@ export function useScreenshotComments({
         return;
       }
 
+      if (code === "screenshots/moderation-in-progress") {
+        showErrorToast(t("moderation_in_progress"));
+        return;
+      }
+
       if (code === "screenshots/comment-rate-limit-unavailable") {
         showErrorToast(t("comments_temporarily_unavailable"));
         return;
@@ -341,7 +346,11 @@ export function useScreenshotComments({
 
         recordWrite({ kind: "create", comment });
         setTotal((current) => (current ?? 0) + 1);
-        onPatch(screenshotId, adjustCommentCount(1));
+        if (comment.isHidden) {
+          showWarningToast(t("comment_only_visible_to_you"));
+        } else {
+          onPatch(screenshotId, adjustCommentCount(1));
+        }
         return true;
       } catch (error) {
         logger.error("Failed to post screenshot comment", error);
@@ -358,6 +367,8 @@ export function useScreenshotComments({
       ownerId,
       recordWrite,
       screenshotId,
+      showWarningToast,
+      t,
     ]
   );
 
@@ -380,6 +391,12 @@ export function useScreenshotComments({
           commentId: comment.id,
           patch: updated ?? { bodyHtml: normalizedBody, editedAt: Date.now() },
         });
+        if (updated && updated.isHidden !== comment.isHidden) {
+          onPatch(screenshotId, adjustCommentCount(updated.isHidden ? -1 : 1));
+        }
+        if (updated?.isHidden) {
+          showWarningToast(t("comment_only_visible_to_you"));
+        }
         return true;
       } catch (error) {
         logger.error("Failed to edit screenshot comment", error);
@@ -391,11 +408,14 @@ export function useScreenshotComments({
     },
     [
       handleWriteError,
+      onPatch,
       ownerId,
       pendingCommentIds,
       recordWrite,
       screenshotId,
       setPending,
+      showWarningToast,
+      t,
     ]
   );
 
