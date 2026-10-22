@@ -1,5 +1,5 @@
 import { app, nativeImage, shell } from "electron";
-import { existsSync } from "node:fs";
+import { existsSync, promises as fsPromises } from "node:fs";
 import path from "node:path";
 import { registerEvent } from "../register-event";
 import { logger } from "@main/services";
@@ -7,7 +7,7 @@ import { logger } from "@main/services";
 const MAX_CACHED_ICONS = 200;
 const ICON_SIZE = 32;
 const IMAGE_ICON_EXTENSIONS = new Set([".ico", ".png"]);
-const iconCache = new Map<string, string | null>();
+const iconCache = new Map<string, string>();
 
 const resolveShortcutIconSource = (filePath: string) => {
   if (
@@ -59,16 +59,21 @@ const getFileIcon = async (
   filePath: unknown
 ): Promise<string | null> => {
   if (typeof filePath !== "string" || !path.isAbsolute(filePath)) return null;
-  if (iconCache.has(filePath)) return iconCache.get(filePath) ?? null;
-  if (!existsSync(filePath)) return null;
+  const stats = await fsPromises.stat(filePath).catch(() => null);
+  if (!stats) return null;
+
+  const cacheKey = `${filePath}:${stats.mtimeMs}`;
+  const cachedIcon = iconCache.get(cacheKey);
+  if (cachedIcon) return cachedIcon;
 
   const icon = await loadFileIcon(filePath);
+  if (!icon) return null;
 
   if (iconCache.size >= MAX_CACHED_ICONS) {
     const oldestKey = iconCache.keys().next().value;
     if (oldestKey !== undefined) iconCache.delete(oldestKey);
   }
-  iconCache.set(filePath, icon);
+  iconCache.set(cacheKey, icon);
 
   return icon;
 };

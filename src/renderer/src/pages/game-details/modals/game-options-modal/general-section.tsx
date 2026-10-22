@@ -1,6 +1,7 @@
 import { Trans, useTranslation } from "react-i18next";
 import {
   getClassicsDiscLabel,
+  getNextClassicsDiscLabel,
   getRetroArchRomExtensions,
   stripFileExtension,
   platformToRetroArchPlatform,
@@ -132,13 +133,12 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
 
   const addDiscFromPath = async (fullPath: string, isExecutable = false) => {
     const fileName = fullPath.split(/[\\/]/).pop() ?? fullPath;
-    const nextIndex = discs.filter((disc) => !disc.isExecutable).length + 1;
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
       addDisc: {
         path: fullPath,
         label: isExecutable
           ? stripFileExtension(fileName)
-          : `Disc ${nextIndex}`,
+          : getNextClassicsDiscLabel(discs),
         fileName,
         ...(isExecutable ? { isExecutable } : {}),
       },

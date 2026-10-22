@@ -66,7 +66,7 @@ export const publishAchievementUnlockNotifications = ({
     game.title
   );
 
-  const customEnabled =
+  const customNotificationsOnly =
     userPreferences?.achievementCustomNotificationsEnabled !== false &&
     process.platform !== "darwin";
 
@@ -84,15 +84,13 @@ export const publishAchievementUnlockNotifications = ({
 
   if (process.platform === "linux") {
     const shownInApp =
-      customEnabled &&
+      customNotificationsOnly &&
       WindowManager.sendAchievementToFocusedWindow(position, achievementsInfo);
 
     if (!shownInApp) {
       void publishOsNotification();
     }
-  } else if (customEnabled) {
-    // No OS fallback: the user opted into the custom notification, so a failure
-    // must not surface as a duplicate system toast.
+  } else if (customNotificationsOnly) {
     achievementNotificationPresenter.enqueueAchievements(
       position,
       achievementsInfo

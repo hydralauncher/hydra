@@ -12,7 +12,10 @@ import { FriendsSnapshotCache } from "./friends-snapshot";
 import { getSocialWindowsRestorePlan } from "./social-windows-restore-plan";
 
 export const saveSocialWindowsSession = async () => {
+  if (!HydraApi.isLoggedIn()) return;
+
   try {
+    await WindowManager.saveOpenSocialWindowsBounds();
     await db.put<string, SocialWindowsSession>(
       levelKeys.socialWindowsSession,
       WindowManager.getSocialWindowsSession(),
@@ -33,21 +36,17 @@ export const loadSocialWindowsBounds = async () => {
   WindowManager.setSocialWindowsBounds(bounds);
 };
 
-const takeSavedSession = async () => {
-  const session = await db
+const readSavedSession = () =>
+  db
     .get<
       string,
       Partial<SocialWindowsSession> | null
     >(levelKeys.socialWindowsSession, { valueEncoding: "json" })
     .catch(() => null);
 
-  await db.del(levelKeys.socialWindowsSession).catch(() => undefined);
-  return session;
-};
-
 export const restoreSocialWindows = async () => {
   const [session, userPreferences] = await Promise.all([
-    takeSavedSession(),
+    readSavedSession(),
     db
       .get<string, UserPreferences | null>(levelKeys.userPreferences, {
         valueEncoding: "json",
@@ -56,6 +55,8 @@ export const restoreSocialWindows = async () => {
   ]);
 
   if (!HydraApi.isLoggedIn()) return;
+
+  await db.del(levelKeys.socialWindowsSession).catch(() => undefined);
 
   const plan = getSocialWindowsRestorePlan(session, userPreferences);
   if (plan.showOrder.length === 0) return;

@@ -908,17 +908,20 @@ export class WindowManager {
     );
   }
 
-  private static rememberSocialWindowBounds(
+  private static captureSocialWindowBounds(
     kind: SocialWindowKind,
-    window: Electron.BrowserWindow
+    window: Electron.BrowserWindow | null
   ) {
-    if (window.isDestroyed()) return;
+    if (!window || window.isDestroyed()) return;
 
     this.socialWindowsBounds = {
       ...this.socialWindowsBounds,
       [kind]: window.getNormalBounds(),
     };
-    void db
+  }
+
+  private static persistSocialWindowsBounds() {
+    return db
       .put<
         string,
         SocialWindowsBounds
@@ -926,6 +929,24 @@ export class WindowManager {
       .catch((error) => {
         logger.error("Failed to save the window position", error);
       });
+  }
+
+  private static rememberSocialWindowBounds(
+    kind: SocialWindowKind,
+    window: Electron.BrowserWindow
+  ) {
+    if (window.isDestroyed()) return;
+
+    this.captureSocialWindowBounds(kind, window);
+    void this.persistSocialWindowsBounds();
+  }
+
+  public static async saveOpenSocialWindowsBounds() {
+    if (!this.friendsWindow && !this.chatWindow) return;
+
+    this.captureSocialWindowBounds("friends", this.friendsWindow);
+    this.captureSocialWindowBounds("chat", this.chatWindow);
+    await this.persistSocialWindowsBounds();
   }
 
   public static showDeferredSocialWindow(kind: SocialWindowKind) {

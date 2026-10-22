@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   getClassicsDiscLabel,
+  getNextClassicsDiscLabel,
   stripFileExtension,
 } from "./classics-disc-label.js";
 
@@ -29,5 +30,12 @@ describe("classics disc label", () => {
     assert.equal(stripFileExtension("game.v1.2.exe"), "game.v1.2");
     assert.equal(stripFileExtension("launcher"), "launcher");
     assert.equal(stripFileExtension(".hidden"), ".hidden");
+  });
+
+  it("numbers the next disc without counting executables", () => {
+    assert.equal(
+      getNextClassicsDiscLabel([{}, { isExecutable: true }]),
+      "Disc 2"
+    );
   });
 });
