@@ -15,7 +15,7 @@ import { useFormat } from "@renderer/hooks";
 import { useProfileGamification } from "../use-profile-gamification";
 import "./profile-gamification-pills.scss";
 
-const LEVEL_PILL_HALO_ALPHA = 0.16;
+const LEVEL_PILL_HALO_ALPHA = 0.07;
 
 export function ProfileGamificationPills() {
   const { t } = useTranslation("user_profile");
@@ -39,7 +39,6 @@ export function ProfileGamificationPills() {
         <XpBar
           xp={level.xp}
           xpToNextLevel={level.xpToNextLevel}
-          trail={halo.intensity}
           className="profile-gamification-pills__bar"
         />
         <span>
