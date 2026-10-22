@@ -75,6 +75,20 @@ function GameScreenshotsBox({
       );
     }
 
+    if (mine.hasFailed) {
+      return (
+        <output className="game-screenshots-box__empty">
+          <span className="game-screenshots-box__empty-title">
+            <ImageIcon size={16} />
+            {t("screenshots_load_failed")}
+          </span>
+          <Button theme="outline" onClick={mine.retry}>
+            {t("retry")}
+          </Button>
+        </output>
+      );
+    }
+
     if (topItems.length === 0) {
       return (
         <output className="game-screenshots-box__empty">

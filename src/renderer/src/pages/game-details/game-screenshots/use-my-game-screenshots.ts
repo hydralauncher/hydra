@@ -7,6 +7,7 @@ import {
   buildUserScreenshotsPath,
   isLocalScreenshotForGame,
   mergeMyScreenshots,
+  resolveMyGameScreenshotsStatus,
   selectPendingLocalScreenshots,
   subscribeMyGameScreenshotsChanged,
   type ScreenshotWriteBus,
@@ -45,6 +46,8 @@ export function useMyGameScreenshots({
     []
   );
   const [hasLoadedLocal, setHasLoadedLocal] = useState(false);
+  const [hasLocalFailed, setHasLocalFailed] = useState(false);
+  const [localReloadKey, setLocalReloadKey] = useState(0);
 
   const fetchPage = useCallback(
     async (cursor: string | null) => {
@@ -99,22 +102,28 @@ export function useMyGameScreenshots({
         .then((screenshots) => {
           if (!isCurrent) return;
           setLocalScreenshots(screenshots);
+          setHasLocalFailed(false);
           setHasLoadedLocal(true);
         })
         .catch((error) => {
           logger.error("Failed to load local screenshots", error);
-          if (isCurrent) setHasLoadedLocal(true);
+          if (!isCurrent) return;
+          setHasLocalFailed(true);
+          setHasLoadedLocal(true);
         });
     };
 
     loadLocal();
     const unsubscribeLocal = window.electron.onLocalScreenshotsChange(
-      (screenshots) =>
+      (screenshots) => {
         setLocalScreenshots(
           screenshots.filter((screenshot) =>
             isLocalScreenshotForGame(screenshot, shop, objectId)
           )
-        )
+        );
+        setHasLocalFailed(false);
+        setHasLoadedLocal(true);
+      }
     );
     const unsubscribeChanged = subscribeMyGameScreenshotsChanged(() => {
       loadLocal();
@@ -126,22 +135,41 @@ export function useMyGameScreenshots({
       unsubscribeLocal();
       unsubscribeChanged();
     };
-  }, [isEnabled, objectId, shop]);
+  }, [isEnabled, localReloadKey, objectId, shop]);
 
   const items = useMemo(
     () => mergeMyScreenshots(collection.feed.items, pendingLocal, sort),
     [collection.feed.items, pendingLocal, sort]
   );
 
-  const hasLoaded =
-    hasLoadedLocal && (!canFetchPublished || collection.feed.hasLoaded);
+  const { feed } = collection;
+  const status = resolveMyGameScreenshotsStatus({
+    local: { isLoaded: hasLoadedLocal, hasFailed: hasLocalFailed },
+    published: {
+      isEnabled: canFetchPublished,
+      isLoaded: feed.hasLoaded,
+      hasFailed: feed.hasFailed,
+    },
+  });
+  const { reload } = feed;
+
+  const retry = useCallback(() => {
+    setHasLoadedLocal(false);
+    setHasLocalFailed(false);
+    setLocalReloadKey((current) => current + 1);
+    if (canFetchPublished) void reload();
+  }, [canFetchPublished, reload]);
 
   return {
     collection,
     pendingLocal,
     items,
-    hasLoaded,
+    status,
+    hasLoaded: status !== "loading",
+    hasFailed: status === "failed",
+    hasLocalFailed,
     canFetchPublished,
+    retry,
   };
 }
 

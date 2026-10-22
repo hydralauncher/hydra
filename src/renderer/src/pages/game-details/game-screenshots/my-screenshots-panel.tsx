@@ -1,6 +1,8 @@
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageIcon } from "@primer/octicons-react";
+
+import { Button } from "@renderer/components";
 import InfiniteScroll from "react-infinite-scroll-component";
 import Skeleton from "react-loading-skeleton";
 
@@ -77,8 +79,15 @@ export function MyScreenshotsPanel({
       );
     }
 
-    if (feed.hasFailed) {
-      return <ScreenshotLoadMoreError onRetry={() => void feed.reload()} />;
+    if (mine.hasFailed) {
+      return (
+        <output className="game-screenshots-modal__empty">
+          <span>{t("screenshots_load_failed")}</span>
+          <Button theme="outline" onClick={mine.retry}>
+            {t("retry")}
+          </Button>
+        </output>
+      );
     }
 
     if (mine.items.length === 0) {
