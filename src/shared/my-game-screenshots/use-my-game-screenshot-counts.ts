@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { GameShop } from "@types";
 
-import { isLocalScreenshotForGame } from "../local-screenshots";
 import {
   countPublishedScreenshotsForGame,
-  selectPendingLocalScreenshots,
   subscribeMyGameScreenshotsChanged,
   type MyGameScreenshotsApi,
   type MyGameScreenshotsLocalBridge,
@@ -39,8 +37,8 @@ export function useMyGameScreenshotCounts({
 
   const refreshCounts = useCallback(async () => {
     try {
-      const [localScreenshots, published] = await Promise.all([
-        local.getLocalScreenshotsForGame(shop, objectId),
+      const [localFiles, published] = await Promise.all([
+        local.countLocalScreenshotFiles(shop, objectId),
         countPublishedScreenshotsForGame(
           { shop, objectId },
           userId,
@@ -48,13 +46,7 @@ export function useMyGameScreenshotCounts({
           local
         ),
       ]);
-      setCounts({
-        local: selectPendingLocalScreenshots(localScreenshots, {
-          shop,
-          objectId,
-        }).length,
-        published,
-      });
+      setCounts({ local: localFiles, published });
     } catch (error) {
       onError?.(error);
     }
@@ -62,14 +54,13 @@ export function useMyGameScreenshotCounts({
 
   useEffect(() => {
     void refreshCounts();
-    const unsubscribeLocal = local.onLocalScreenshotsChange((screenshots) => {
-      const pending = selectPendingLocalScreenshots(
-        screenshots.filter((screenshot) =>
-          isLocalScreenshotForGame(screenshot, shop, objectId)
-        ),
-        { shop, objectId }
-      ).length;
-      setCounts((current) => ({ ...current, local: pending }));
+    const unsubscribeLocal = local.onLocalScreenshotsChange(() => {
+      local
+        .countLocalScreenshotFiles(shop, objectId)
+        .then((localFiles) =>
+          setCounts((current) => ({ ...current, local: localFiles }))
+        )
+        .catch((error) => onError?.(error));
     });
     const unsubscribeChanged = subscribeMyGameScreenshotsChanged(
       () => void refreshCounts()
@@ -78,7 +69,7 @@ export function useMyGameScreenshotCounts({
       unsubscribeLocal();
       unsubscribeChanged();
     };
-  }, [local, objectId, refreshCounts, shop]);
+  }, [local, objectId, onError, refreshCounts, shop]);
 
   return counts;
 }

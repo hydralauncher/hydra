@@ -26,6 +26,10 @@ export interface MyGameScreenshotsLocalBridge {
     shop: GameShop,
     objectId: string
   ) => Promise<number>;
+  countLocalScreenshotFiles: (
+    shop: GameShop,
+    objectId: string
+  ) => Promise<number>;
   getPublishedScreenshotIdsForGame: (
     shop: GameShop,
     objectId: string

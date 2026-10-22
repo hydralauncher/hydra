@@ -20,6 +20,16 @@ export const isLocalScreenshotForGame = (
   screenshot.objectId === objectId &&
   GAME_PAGE_STATES.has(screenshot.state);
 
+export const isLocalScreenshotFileForGame = (
+  screenshot: LocalScreenshot,
+  shop: GameShop,
+  objectId: string
+) =>
+  isLocalScreenshotForGame(screenshot, shop, objectId) ||
+  (screenshot.shop === shop &&
+    screenshot.objectId === objectId &&
+    screenshot.state === "uploaded");
+
 export const isPublishedLocalScreenshot = (screenshot: LocalScreenshot) =>
   screenshot.state === "uploaded" && Boolean(screenshot.screenshotId);
 
