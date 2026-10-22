@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import cn from "classnames";
 import {
   LinkExternalIcon,
@@ -152,7 +152,11 @@ export function ByGameTab({
     normalizeMyGames
   );
 
-  const allGames = useMemo(() => games.data ?? [], [games.data]);
+  const lastGamesRef = useRef(games.data);
+  if (games.data) lastGamesRef.current = games.data;
+  const shownGames =
+    games.data ?? (games.isLoading ? lastGamesRef.current : null);
+  const allGames = useMemo(() => shownGames ?? [], [shownGames]);
   const listed = allGames.find((game) => gameKey(game) === selectedKey);
   const linkedGame =
     initialGame && selectedKey === gameKey(initialGame) && !listed

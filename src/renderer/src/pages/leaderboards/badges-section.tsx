@@ -41,12 +41,12 @@ export function BadgesSection() {
     gameMetricsRequest.options,
     normalizeMetricDefinitions
   );
+  const findDefinition = (id: string): MetricDefinition | null =>
+    [...(globalMetrics.data ?? []), ...(gameMetrics.data ?? [])].find(
+      (definition) => definition.id === id
+    ) ?? null;
   const findMetric = (id: string | null): MetricDefinition | null =>
-    id
-      ? ([...(globalMetrics.data ?? []), ...(gameMetrics.data ?? [])].find(
-          (definition) => definition.id === id
-        ) ?? { id, valueType: "count", label: id })
-      : null;
+    id ? (findDefinition(id) ?? { id, valueType: "count", label: id }) : null;
   const [expanded, setExpanded] = useState(false);
 
   const badges = useApiResource(
@@ -126,10 +126,15 @@ export function BadgesSection() {
       0,
       badge.progress.target - badge.progress.current
     );
-    const metric = findMetric(badge.metric);
-    const amount = metric
-      ? metricText.format(metric, Math.ceil(remaining))
-      : numberFormatter.format(Math.ceil(remaining));
+    if (!badge.metric) {
+      return t("badge_remaining", {
+        amount: numberFormatter.format(Math.ceil(remaining)),
+      });
+    }
+
+    const metric = findDefinition(badge.metric);
+    if (!metric) return "";
+    const amount = metricText.format(metric, Math.ceil(remaining));
 
     return t("badge_remaining", { amount });
   };
