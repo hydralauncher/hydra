@@ -2910,6 +2910,7 @@
     "delete_local_screenshots_description": "Every screenshot file of this game on this computer will be deleted. Published screenshots stay online.",
     "delete_screenshots_rate_limited": "You've deleted screenshots too often. Please try again in a few minutes.",
     "delete_screenshots_failed": "Could not delete the screenshots",
+    "delete_screenshots_incomplete": "Some screenshot files couldn't be deleted. Close any program using them and try again.",
     "screenshots_deleted_count_one": "Deleted {{count}} screenshot",
     "screenshots_deleted_count_other": "Deleted {{count}} screenshots"
   }

@@ -12,12 +12,16 @@ import type {
 
 export type MyScreenshotsDeletion = "all" | "published" | "local";
 
+export type MyScreenshotsDeletionErrorCode =
+  | ScreenshotApiErrorCode
+  | "screenshots/local-deletion-incomplete";
+
 export type MyScreenshotsDeletionResult =
   | { ok: true; deleted: number }
   | {
       ok: false;
       deleted: number;
-      errorCode: ScreenshotApiErrorCode | null;
+      errorCode: MyScreenshotsDeletionErrorCode | null;
       error: unknown;
     };
 
@@ -89,23 +93,50 @@ const deletePublished = async ({ target, api, local }: DeletionContext) => {
   return deletedIds.length;
 };
 
+const LOCAL_DELETION_INCOMPLETE = "screenshots/local-deletion-incomplete";
+
+interface DeletionOutcome {
+  deleted: number;
+  isComplete: boolean;
+}
+
+const deleteLocalFiles = async ({ target, local }: DeletionContext) => {
+  const { shop, objectId } = target;
+  const expected = await local.countLocalScreenshotFiles(shop, objectId);
+  const deleted = await local.deleteLocalScreenshotsForGame(shop, objectId);
+  return { deleted, expected, isComplete: deleted >= expected };
+};
+
 const runDeletion = async (
   deletion: MyScreenshotsDeletion,
   context: DeletionContext
-) => {
-  const { shop, objectId } = context.target;
+): Promise<DeletionOutcome> => {
+  const { shop, objectId, isSignedIn = true } = context.target;
 
   if (deletion === "local") {
-    return context.local.deleteLocalScreenshotsForGame(shop, objectId);
+    const { deleted, isComplete } = await deleteLocalFiles(context);
+    return { deleted, isComplete };
   }
-  if (deletion === "published") return deletePublished(context);
+  if (deletion === "published") {
+    if (!isSignedIn) return { deleted: 0, isComplete: true };
+    return { deleted: await deletePublished(context), isComplete: true };
+  }
 
-  const localBefore = (
+  if (!isSignedIn) {
+    const { deleted, isComplete } = await deleteLocalFiles(context);
+    return { deleted, isComplete };
+  }
+
+  const pendingBefore = (
     await context.local.getLocalScreenshotsForGame(shop, objectId)
   ).length;
   const published = await deletePublished(context);
-  await context.local.deleteLocalScreenshotsForGame(shop, objectId);
-  return published + localBefore;
+  const local = await deleteLocalFiles(context);
+  const restoredCopies = Math.max(0, local.expected - pendingBefore);
+  return {
+    deleted: published + Math.max(0, local.deleted - restoredCopies),
+    isComplete: local.isComplete,
+  };
 };
 
 export const deleteMyGameScreenshots = async (
@@ -115,8 +146,18 @@ export const deleteMyGameScreenshots = async (
   local: MyGameScreenshotsLocalBridge
 ): Promise<MyScreenshotsDeletionResult> => {
   try {
-    const deleted = await runDeletion(deletion, { target, api, local });
-    return { ok: true, deleted };
+    const { deleted, isComplete } = await runDeletion(deletion, {
+      target,
+      api,
+      local,
+    });
+    if (isComplete) return { ok: true, deleted };
+    return {
+      ok: false,
+      deleted,
+      errorCode: LOCAL_DELETION_INCOMPLETE,
+      error: null,
+    };
   } catch (error) {
     const cause = error instanceof PartialDeletionError ? error.reason : error;
     return {
