@@ -79,9 +79,6 @@ const isRemoteImageUrl = (
 const getProcessedImageKey = (imageUrl: string, size: FriendImageSize) =>
   `${size.width}x${size.height}:${imageUrl}`;
 
-const preventFocusOnClick = (event: React.MouseEvent<HTMLButtonElement>) =>
-  event.preventDefault();
-
 export default function FriendsWindow() {
   const { t } = useTranslation("friends_window");
   const { t: tProfile } = useTranslation("user_profile");
@@ -933,7 +930,6 @@ export default function FriendsWindow() {
             <button
               type="button"
               className="friends-window__window-control"
-              onMouseDown={preventFocusOnClick}
               onClick={() => electron.minimizeFriendsWindow()}
               title={t("minimize")}
               aria-label={t("minimize")}
@@ -943,7 +939,6 @@ export default function FriendsWindow() {
             <button
               type="button"
               className="friends-window__window-control friends-window__window-control--close"
-              onMouseDown={preventFocusOnClick}
               onClick={() => electron.closeFriendsWindow()}
               title={t("close")}
               aria-label={t("close")}
