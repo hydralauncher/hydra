@@ -520,12 +520,20 @@ export function ScreenshotReviewModal() {
     flushAll: flushDraftSaves,
   } = useReviewDraftSave();
   const fieldsRef = useRef<HTMLDivElement | null>(null);
+  const queueGenerationRef = useRef(0);
   const isQueueOpen = isReviewQueueOpen(queueState);
   const isScreenshotDialogOpen = useScreenshotDialogPresenceStore(
     (state) => state.openCount > 0
   );
   const [isPresented, setIsPresented] = useState(false);
   const visible = isQueueOpen && isPresented;
+
+  useEffect(
+    () => () => {
+      queueGenerationRef.current += 1;
+    },
+    []
+  );
 
   useEffect(() => {
     if (!isQueueOpen) setIsPresented(false);
@@ -723,6 +731,8 @@ export function ScreenshotReviewModal() {
   };
 
   const close = () => {
+    if (pendingAction) return;
+    queueGenerationRef.current += 1;
     keepScreenshotsLocally(getUndecidedReviewIds(queueState));
     setQueueState(closeReviewQueue);
   };
@@ -736,10 +746,12 @@ export function ScreenshotReviewModal() {
     if (pendingAction) return;
 
     const pendingIds = getUndecidedReviewIds(queueState);
+    const generation = queueGenerationRef.current;
     setPendingAction("upload");
 
     try {
       for (const clientId of pendingIds) {
+        if (queueGenerationRef.current !== generation) break;
         const item = queueState.items.find(
           (entry) => entry.clientId === clientId
         );
