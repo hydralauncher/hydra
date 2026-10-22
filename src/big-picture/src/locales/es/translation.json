@@ -976,6 +976,6 @@
     "screenshots_description_placeholder": "Añade una nota breve, por ejemplo qué acaba de pasar",
     "screenshots_reveal_spoiler_hint": "Pulsa A para mostrarla",
     "screenshots_add_description": "Añadir descripción",
-    "screenshots_danger_zone_description": "Elimina las capturas que tomaste de este juego de tu perfil, de este equipo o de ambos."
+    "screenshots_danger_zone_description": "Elimina tus capturas publicadas de este juego, todos sus archivos de capturas en este equipo o ambos."
   }
 }
