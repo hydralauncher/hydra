@@ -7,6 +7,8 @@ import type {
 } from "@types";
 
 export interface GamificationState {
+  /** The GAMIFICATION feature flag for this user. Off hides every gamification surface. */
+  isEnabled: boolean;
   progress: GamificationProgress | null;
   missions: MissionsResponse | null;
   trails: Trail[] | null;
@@ -15,6 +17,7 @@ export interface GamificationState {
 }
 
 const initialState: GamificationState = {
+  isEnabled: false,
   progress: null,
   missions: null,
   trails: null,
@@ -25,6 +28,9 @@ export const gamificationSlice = createSlice({
   name: "gamification",
   initialState,
   reducers: {
+    setGamificationEnabled: (state, action: PayloadAction<boolean>) => {
+      state.isEnabled = action.payload;
+    },
     setGamificationProgress: (
       state,
       action: PayloadAction<GamificationProgress | null>
@@ -60,6 +66,7 @@ export const gamificationSlice = createSlice({
 });
 
 export const {
+  setGamificationEnabled,
   setGamificationProgress,
   applyRewardProgress,
   setGamificationMissions,

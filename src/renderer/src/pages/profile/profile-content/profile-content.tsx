@@ -108,10 +108,10 @@ const getRatingText = (score: number, t: (key: string) => string): string => {
 
 const getRequestedProfileTab = (
   requestedTab: string | null,
-  isMe: boolean
+  canShowMissions: boolean
 ): ProfileTabType => {
   if (requestedTab === "souvenirs") return "souvenirs";
-  if (requestedTab === "missions" && isMe) return "missions";
+  if (requestedTab === "missions" && canShowMissions) return "missions";
   return "library";
 };
 
@@ -188,8 +188,13 @@ export function ProfileContent() {
     [platform]
   );
 
+  const isGamificationEnabled = useAppSelector(
+    (state) => state.gamification.isEnabled
+  );
+  const canShowMissions = isMe && isGamificationEnabled;
+
   const [activeTab, setActiveTab] = useState<ProfileTabType>(
-    getRequestedProfileTab(requestedTab, isMe)
+    getRequestedProfileTab(requestedTab, canShowMissions)
   );
 
   // User reviews state
@@ -361,18 +366,18 @@ export function ProfileContent() {
     setReviews([]);
     setReviewsTotalCount(0);
     setIsLoadingReviews(false);
-    setActiveTab(getRequestedProfileTab(requestedTab, isMe));
+    setActiveTab(getRequestedProfileTab(requestedTab, canShowMissions));
     setPlatform(readStoredProfilePlatform());
-  }, [requestedTab, userProfile?.id, isMe]);
+  }, [requestedTab, userProfile?.id, canShowMissions]);
 
   useEffect(() => {
     const openTab = (event: Event) => {
       const tab = (event as CustomEvent<ProfileTabType>).detail;
-      if (tab !== "missions" || isMe) setActiveTab(tab);
+      if (tab !== "missions" || canShowMissions) setActiveTab(tab);
     };
     window.addEventListener(OPEN_PROFILE_TAB_EVENT, openTab);
     return () => window.removeEventListener(OPEN_PROFILE_TAB_EVENT, openTab);
-  }, [isMe]);
+  }, [canShowMissions]);
 
   const fetchUserReviews = useCallback(async () => {
     if (!userProfile?.id) return;
@@ -574,7 +579,7 @@ export function ProfileContent() {
             activeTab={activeTab}
             reviewsTotalCount={reviewsTotalCount}
             souvenirsCount={souvenirsTotal}
-            showMissions={isMe}
+            showMissions={canShowMissions}
             onTabChange={setActiveTab}
           />
 
@@ -642,12 +647,12 @@ export function ProfileContent() {
                 />
               )}
 
-              {activeTab === "missions" && isMe && <MissionsTab />}
+              {activeTab === "missions" && canShowMissions && <MissionsTab />}
             </AnimatePresence>
           </div>
         </div>
 
-        {activeTab === "missions" && isMe && ownProgress && (
+        {activeTab === "missions" && canShowMissions && ownProgress && (
           <div className="profile-content__right-content">
             <MissionsSidebar progress={ownProgress} />
           </div>

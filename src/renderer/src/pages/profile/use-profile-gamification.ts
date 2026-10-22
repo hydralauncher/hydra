@@ -1,10 +1,15 @@
 import { useContext } from "react";
 import { userProfileContext } from "@renderer/context";
-import { useGamificationProgress } from "@renderer/hooks";
+import { useAppSelector, useGamificationProgress } from "@renderer/hooks";
 
 export function useProfileGamification() {
   const { userProfile, isMe } = useContext(userProfileContext);
   const { progress } = useGamificationProgress();
+  const isEnabled = useAppSelector((state) => state.gamification.isEnabled);
+
+  if (!isEnabled) {
+    return { level: null, loginStreak: null, coins: null, isMe };
+  }
 
   if (isMe && progress) {
     return {
