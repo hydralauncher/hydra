@@ -368,12 +368,12 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
   };
 
   const handleRemoveFiles = async (target?: RemoveFilesTarget) => {
-    const targetGame =
-      target === undefined
-        ? downloadGame
-        : target.kind === "hydra"
-          ? target.game
-          : null;
+    let targetGame: typeof downloadGame | null = null;
+    if (target === undefined) {
+      targetGame = downloadGame;
+    } else if (target.kind === "hydra") {
+      targetGame = target.game;
+    }
 
     if (
       !targetGame ||
