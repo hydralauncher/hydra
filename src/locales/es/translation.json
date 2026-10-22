@@ -2485,5 +2485,8 @@
     "trigger_input": "Lanzar captura",
     "upload_failure": "Error de subida",
     "yes": "sí"
+  },
+  "screenshots": {
+    "title_not_allowed": "Este título no está permitido"
   }
 }

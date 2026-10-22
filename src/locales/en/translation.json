@@ -2757,5 +2757,8 @@
     "trigger_input": "Trigger capture",
     "upload_failure": "Upload failure",
     "yes": "yes"
+  },
+  "screenshots": {
+    "title_not_allowed": "This title isn't allowed"
   }
 }

@@ -2761,5 +2761,8 @@
     "trigger_input": "Disparar captura",
     "upload_failure": "Falha de envio",
     "yes": "sim"
+  },
+  "screenshots": {
+    "title_not_allowed": "Este título não é permitido"
   }
 }

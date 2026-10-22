@@ -2528,5 +2528,8 @@
     "trigger_input": "Запустить съемку",
     "upload_failure": "Ошибка загрузки",
     "yes": "да"
+  },
+  "screenshots": {
+    "title_not_allowed": "Это название недопустимо"
   }
 }

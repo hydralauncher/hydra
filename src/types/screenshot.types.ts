@@ -94,11 +94,22 @@ export interface ScreenshotPresignRequest {
   visibility?: ProfileVisibility;
 }
 
+export type ScreenshotTextModerationVerdict =
+  | "approved"
+  | "hidden"
+  | "unevaluated";
+
+export interface ScreenshotTextModeration {
+  title?: ScreenshotTextModerationVerdict;
+  description?: ScreenshotTextModerationVerdict;
+}
+
 export interface ScreenshotPresignResponse {
   id: string;
   presignedUrl: string;
   thumbnailPresignedUrl: string;
   expiresAt: number;
+  textModeration?: ScreenshotTextModeration;
 }
 
 export interface ScreenshotModerationState {
@@ -229,6 +240,8 @@ export interface LocalScreenshot {
   isDevCapture?: boolean;
   description?: string | null;
   previewPath?: string | null;
+  pendingCompleteScreenshotId?: string | null;
+  textModeration?: ScreenshotTextModeration | null;
 }
 
 export interface LocalScreenshotUploadOptions {
