@@ -15,6 +15,8 @@ export const myGameScreenshotsLocal: MyGameScreenshotsLocalBridge = {
     window.electron.getLocalScreenshotsForGame(shop, objectId),
   deleteLocalScreenshotsForGame: (shop, objectId) =>
     window.electron.deleteLocalScreenshotsForGame(shop, objectId),
+  countLocalScreenshotFiles: (shop, objectId) =>
+    window.electron.countLocalScreenshotFilesForGame(shop, objectId),
   getPublishedScreenshotIdsForGame: (shop, objectId) =>
     window.electron.getPublishedScreenshotIdsForGame(shop, objectId),
   forgetPublishedScreenshots: (screenshotIds) =>
