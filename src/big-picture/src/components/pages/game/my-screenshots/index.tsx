@@ -201,6 +201,7 @@ export function GameMyScreenshots({
     retryLoadMore: feed.retry,
   });
   const items = mine.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
+  const canViewAll = items.length > 0 || (shop !== "custom" && mine.hasLoaded);
 
   if (!isEnabled) return null;
 
@@ -219,30 +220,14 @@ export function GameMyScreenshots({
         </div>
         <div className="game-my-screenshots__body">
           {items.length > 0 ? (
-            <>
-              <MyScreenshotsGrid
-                items={items}
-                local={local}
-                showCommentCount={isFeatureEnabled(Feature.ScreenshotComments)}
-                leftTarget={leftTarget}
-                onOpen={open}
-                onRefreshImage={feed.refreshImage}
-              />
-              <Button
-                variant="secondary"
-                size="small"
-                focusId={GAME_MY_SCREENSHOTS_VIEW_ALL_ID}
-                className="game-my-screenshots__view-all"
-                icon={<SquaresFourIcon size={18} />}
-                focusNavigationOverrides={{
-                  left: leftTarget,
-                  right: BLOCK_TARGET,
-                }}
-                onClick={() => setIsModalOpen(true)}
-              >
-                {t("screenshots_view_all")}
-              </Button>
-            </>
+            <MyScreenshotsGrid
+              items={items}
+              local={local}
+              showCommentCount={isFeatureEnabled(Feature.ScreenshotComments)}
+              leftTarget={leftTarget}
+              onOpen={open}
+              onRefreshImage={feed.refreshImage}
+            />
           ) : (
             <MyScreenshotsMessage
               isLoading={!mine.hasLoaded}
@@ -253,6 +238,22 @@ export function GameMyScreenshots({
               onRetry={feed.retry}
             />
           )}
+          {canViewAll ? (
+            <Button
+              variant="secondary"
+              size="small"
+              focusId={GAME_MY_SCREENSHOTS_VIEW_ALL_ID}
+              className="game-my-screenshots__view-all"
+              icon={<SquaresFourIcon size={18} />}
+              focusNavigationOverrides={{
+                left: leftTarget,
+                right: BLOCK_TARGET,
+              }}
+              onClick={() => setIsModalOpen(true)}
+            >
+              {t("screenshots_view_all")}
+            </Button>
+          ) : null}
         </div>
 
         <ScreenshotLightbox {...lightboxProps} />
