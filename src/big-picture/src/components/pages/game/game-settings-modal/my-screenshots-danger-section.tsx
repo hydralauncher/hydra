@@ -7,6 +7,7 @@ import {
   useMyGameScreenshotCounts,
   type MyGameScreenshotCounts,
   type MyScreenshotsDeletion,
+  type MyScreenshotsDeletionErrorCode,
 } from "@shared";
 import { logger } from "@renderer/logger";
 import {
@@ -40,6 +41,18 @@ const hasSomethingToDelete = (
   return counts.published + counts.local > 0;
 };
 
+const getDeletionErrorKey = (
+  errorCode: MyScreenshotsDeletionErrorCode | null
+) => {
+  if (errorCode === "screenshots/game-deletion-rate-limited") {
+    return "delete_screenshots_rate_limited";
+  }
+  if (errorCode === "screenshots/local-deletion-incomplete") {
+    return "delete_screenshots_incomplete";
+  }
+  return "delete_screenshots_failed";
+};
+
 const logCountError = (error: unknown) => {
   logger.error("Failed to count screenshots for the game", error);
 };
@@ -56,8 +69,9 @@ export function MyScreenshotsDangerSection({
   const { t } = useTranslation("screenshots");
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
   const { userDetails } = useUserDetails();
+  const userId = userDetails?.id ?? null;
   const counts = useMyGameScreenshotCounts({
-    userId: userDetails?.id ?? null,
+    userId,
     shop,
     objectId,
     api: myGameScreenshotsApi,
@@ -73,7 +87,7 @@ export function MyScreenshotsDangerSection({
     setIsDeleting(true);
     const result = await deleteMyGameScreenshots(
       deletion,
-      { shop, objectId },
+      { shop, objectId, isSignedIn: Boolean(userId) },
       myGameScreenshotsApi,
       myGameScreenshotsLocal
     );
@@ -89,11 +103,7 @@ export function MyScreenshotsDangerSection({
     }
 
     logger.error("Failed to delete screenshots for the game", result.error);
-    showErrorToast(
-      result.errorCode === "screenshots/game-deletion-rate-limited"
-        ? t("delete_screenshots_rate_limited")
-        : t("delete_screenshots_failed")
-    );
+    showErrorToast(t(getDeletionErrorKey(result.errorCode)));
   };
 
   return (
