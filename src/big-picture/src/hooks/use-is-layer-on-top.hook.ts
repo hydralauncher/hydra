@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { NavigationService } from "../services";
 
-export function useIsLayerOnTop(layerId: string | null) {
+export function useActiveLayerId() {
   const [activeLayerId, setActiveLayerId] = useState(() =>
     NavigationService.getInstance().getActiveLayerId()
   );
@@ -15,5 +15,10 @@ export function useIsLayerOnTop(layerId: string | null) {
     return navigation.subscribe(update);
   }, []);
 
+  return activeLayerId;
+}
+
+export function useIsLayerOnTop(layerId: string | null) {
+  const activeLayerId = useActiveLayerId();
   return layerId !== null && activeLayerId === layerId;
 }

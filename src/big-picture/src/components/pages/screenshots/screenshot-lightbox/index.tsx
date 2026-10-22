@@ -1,7 +1,7 @@
 import "./styles.scss";
 
 import { ArrowClockwiseIcon } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { ProfileScreenshot } from "@types";
@@ -12,7 +12,12 @@ import {
 } from "@shared";
 
 import { ConfirmationModal } from "../../../modals";
-import { Feature, useFeature, useUserDetails } from "../../../../hooks";
+import {
+  Feature,
+  useActiveLayerId,
+  useFeature,
+  useUserDetails,
+} from "../../../../hooks";
 import type { FocusOverrideTarget } from "../../../../services";
 import {
   MEDIA_VIEWER_STAGE_FOCUS_ID,
@@ -286,6 +291,14 @@ export function ScreenshotLightbox({
   const { isFeatureEnabled } = useFeature();
   const navigate = useNavigate();
   const [openModal, setOpenModal] = useState<LightboxModal>(null);
+  const statusLayerIdRef = useRef<string | null>(null);
+  const reportStatusLayer = useCallback((layerId: string | null) => {
+    statusLayerIdRef.current = layerId;
+  }, []);
+  const activeLayerId = useActiveLayerId();
+  const isViewerCovered =
+    statusLayerIdRef.current !== null &&
+    activeLayerId !== statusLayerIdRef.current;
   const viewerId = userDetails?.id ?? null;
   const isOwner = viewerId !== null && screenshot?.owner.id === viewerId;
   const social = useLightboxSocialActions({
@@ -302,11 +315,12 @@ export function ScreenshotLightbox({
 
   if (status === null) return null;
 
-  if (status !== "ready" || !screenshot) {
+  if (status !== "ready" || !screenshot || isViewerCovered) {
     return (
       <ScreenshotLightboxStatusPanel
         status={status === "ready" ? "loading" : status}
         onClose={onClose}
+        onLayerIdChange={reportStatusLayer}
       />
     );
   }

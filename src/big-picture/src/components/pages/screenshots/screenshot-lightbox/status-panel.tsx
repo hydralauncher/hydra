@@ -1,4 +1,5 @@
 import { ImageIcon, LockSimpleIcon, ProhibitIcon } from "@phosphor-icons/react";
+import { useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
@@ -30,14 +31,23 @@ export type ScreenshotLightboxPendingStatus =
 interface ScreenshotLightboxStatusPanelProps {
   status: ScreenshotLightboxPendingStatus;
   onClose: () => void;
+  onLayerIdChange?: (layerId: string | null) => void;
 }
 
 export function ScreenshotLightboxStatusPanel({
   status,
   onClose,
+  onLayerIdChange,
 }: Readonly<ScreenshotLightboxStatusPanelProps>) {
   const { t } = useTranslation("big_picture");
   const { layerId, handleLayerChange, isActiveLayer } = useActiveLayerTracker();
+  const reportLayerChange = useCallback(
+    (nextLayerId: string | null) => {
+      handleLayerChange(nextLayerId);
+      onLayerIdChange?.(nextLayerId);
+    },
+    [handleLayerChange, onLayerIdChange]
+  );
   const messages = {
     loading: {
       icon: <ImageIcon size={40} />,
@@ -78,7 +88,7 @@ export function ScreenshotLightboxStatusPanel({
             initialFocusId={STATUS_CLOSE_FOCUS_ID}
             restoreFocusOnUnmount={shouldRestoreFocus}
           >
-            <LightboxLayerReporter onLayerChange={handleLayerChange} />
+            <LightboxLayerReporter onLayerChange={reportLayerChange} />
             <VerticalFocusGroup regionId={STATUS_REGION_ID} asChild>
               <div
                 className="screenshot-lightbox__status"
