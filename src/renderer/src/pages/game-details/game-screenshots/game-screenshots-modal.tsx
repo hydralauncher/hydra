@@ -253,28 +253,28 @@ export function GameScreenshotsModal({
   return (
     <Modal
       visible={visible}
-      title={t("tab_title")}
+      headerContent={
+        <div className="game-screenshots-modal__tabs" role="tablist">
+          {tabs.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === id}
+              className={cn("game-screenshots-modal__tab", {
+                "game-screenshots-modal__tab--active": activeTab === id,
+              })}
+              onClick={() => setTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      }
       onClose={onClose}
       large
       className="game-screenshots-modal"
     >
-      <div className="game-screenshots-modal__tabs" role="tablist">
-        {tabs.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === id}
-            className={cn("game-screenshots-modal__tab", {
-              "game-screenshots-modal__tab--active": activeTab === id,
-            })}
-            onClick={() => setTab(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
       {activeTab === "mine" ? (
         <MyScreenshotsPanel
           visible={visible}

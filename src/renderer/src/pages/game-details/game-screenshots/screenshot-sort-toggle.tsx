@@ -4,10 +4,47 @@ import cn from "classnames";
 
 import type { ScreenshotSort } from "@types";
 
-const SORT_OPTIONS: { value: ScreenshotSort; icon: typeof HistoryIcon }[] = [
-  { value: "recent", icon: HistoryIcon },
-  { value: "top", icon: FlameIcon },
-];
+interface SegmentedOption<Value extends string> {
+  value: Value;
+  label: string;
+  icon?: typeof HistoryIcon;
+}
+
+interface SegmentedToggleProps<Value extends string> {
+  label: string;
+  value: Value;
+  options: SegmentedOption<Value>[];
+  onChange: (value: Value) => void;
+}
+
+export function SegmentedToggle<Value extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: Readonly<SegmentedToggleProps<Value>>) {
+  return (
+    <fieldset className="game-screenshots-modal__sort" aria-label={label}>
+      {options.map(({ value: optionValue, label: optionLabel, icon: Icon }) => (
+        <button
+          key={optionValue}
+          type="button"
+          className={cn("game-screenshots-modal__sort-option", {
+            "game-screenshots-modal__sort-option--active":
+              value === optionValue,
+          })}
+          aria-pressed={value === optionValue}
+          onClick={() => {
+            if (optionValue !== value) onChange(optionValue);
+          }}
+        >
+          {Icon ? <Icon size={14} /> : null}
+          {optionLabel}
+        </button>
+      ))}
+    </fieldset>
+  );
+}
 
 interface ScreenshotSortToggleProps {
   sort: ScreenshotSort;
@@ -21,26 +58,14 @@ export function ScreenshotSortToggle({
   const { t } = useTranslation("screenshots");
 
   return (
-    <fieldset
-      className="game-screenshots-modal__sort"
-      aria-label={t("sort_by")}
-    >
-      {SORT_OPTIONS.map(({ value, icon: Icon }) => (
-        <button
-          key={value}
-          type="button"
-          className={cn("game-screenshots-modal__sort-option", {
-            "game-screenshots-modal__sort-option--active": sort === value,
-          })}
-          aria-pressed={sort === value}
-          onClick={() => {
-            if (value !== sort) onChange(value);
-          }}
-        >
-          <Icon size={14} />
-          {t(`sort_${value}`)}
-        </button>
-      ))}
-    </fieldset>
+    <SegmentedToggle
+      label={t("sort_by")}
+      value={sort}
+      options={[
+        { value: "recent", label: t("sort_recent"), icon: HistoryIcon },
+        { value: "top", label: t("sort_top"), icon: FlameIcon },
+      ]}
+      onChange={onChange}
+    />
   );
 }

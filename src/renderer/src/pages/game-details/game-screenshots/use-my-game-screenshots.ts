@@ -21,33 +21,126 @@ import type {
 
 import { myGameScreenshotsLocal } from "./my-game-screenshots-bridge";
 
-interface UseMyGameScreenshotsOptions {
+interface GameTarget {
   shop: GameShop;
   objectId: string;
+}
+
+export function useCanFetchMyPublishedScreenshots(shop: GameShop) {
+  const { userDetails } = useUserDetails();
+  const userId = userDetails?.id ?? null;
+  return { userId, canFetchPublished: Boolean(userId) && shop !== "custom" };
+}
+
+interface UseMyLocalGameScreenshotsOptions extends GameTarget {
+  isEnabled: boolean;
+}
+
+export function useMyLocalGameScreenshots({
+  shop,
+  objectId,
+  isEnabled,
+}: UseMyLocalGameScreenshotsOptions) {
+  const [localScreenshots, setLocalScreenshots] = useState<LocalScreenshot[]>(
+    []
+  );
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [hasFailed, setHasFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [settledCount, setSettledCount] = useState(0);
+
+  const pendingLocal = useMemo(
+    () => selectPendingLocalScreenshots(localScreenshots, { shop, objectId }),
+    [localScreenshots, objectId, shop]
+  );
+  const pendingIdsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    const currentIds = pendingLocal.map((item) => item.clientId);
+    const hasSettled = pendingIdsRef.current.some(
+      (clientId) => !currentIds.includes(clientId)
+    );
+    pendingIdsRef.current = currentIds;
+    if (hasSettled) setSettledCount((current) => current + 1);
+  }, [pendingLocal]);
+
+  useEffect(() => {
+    if (!isEnabled) return;
+    let isCurrent = true;
+
+    const loadLocal = () => {
+      myGameScreenshotsLocal
+        .getLocalScreenshotsForGame(shop, objectId)
+        .then((screenshots) => {
+          if (!isCurrent) return;
+          setLocalScreenshots(screenshots);
+          setHasFailed(false);
+          setHasLoaded(true);
+        })
+        .catch((error) => {
+          logger.error("Failed to load local screenshots", error);
+          if (!isCurrent) return;
+          setHasFailed(true);
+          setHasLoaded(true);
+        });
+    };
+
+    loadLocal();
+    const unsubscribeLocal = window.electron.onLocalScreenshotsChange(
+      (screenshots) => {
+        setLocalScreenshots(
+          screenshots.filter((screenshot) =>
+            isLocalScreenshotForGame(screenshot, shop, objectId)
+          )
+        );
+        setHasFailed(false);
+        setHasLoaded(true);
+      }
+    );
+    const unsubscribeChanged = subscribeMyGameScreenshotsChanged(loadLocal);
+
+    return () => {
+      isCurrent = false;
+      unsubscribeLocal();
+      unsubscribeChanged();
+    };
+  }, [isEnabled, objectId, reloadKey, shop]);
+
+  const retry = useCallback(() => {
+    setHasLoaded(false);
+    setHasFailed(false);
+    setReloadKey((current) => current + 1);
+  }, []);
+
+  return { pendingLocal, hasLoaded, hasFailed, settledCount, retry };
+}
+
+interface UseMyPublishedGameScreenshotsOptions extends GameTarget {
   sort: ScreenshotSort;
   take: number;
   isEnabled: boolean;
   writeBus: ScreenshotWriteBus;
+  settledCount: number;
 }
 
-export function useMyGameScreenshots({
+export function useMyPublishedGameScreenshots({
   shop,
   objectId,
   sort,
   take,
   isEnabled,
   writeBus,
-}: UseMyGameScreenshotsOptions) {
-  const { userDetails } = useUserDetails();
-  const userId = userDetails?.id ?? null;
-  const canFetchPublished = Boolean(userId) && shop !== "custom";
+  settledCount,
+}: UseMyPublishedGameScreenshotsOptions) {
+  const { userId, canFetchPublished } = useCanFetchMyPublishedScreenshots(shop);
   const [reloadKey, setReloadKey] = useState(0);
-  const [localScreenshots, setLocalScreenshots] = useState<LocalScreenshot[]>(
-    []
-  );
-  const [hasLoadedLocal, setHasLoadedLocal] = useState(false);
-  const [hasLocalFailed, setHasLocalFailed] = useState(false);
-  const [localReloadKey, setLocalReloadKey] = useState(0);
+
+  useEffect(() => {
+    if (!isEnabled) return;
+    return subscribeMyGameScreenshotsChanged(() =>
+      setReloadKey((current) => current + 1)
+    );
+  }, [isEnabled]);
 
   const fetchPage = useCallback(
     async (cursor: string | null) => {
@@ -68,98 +161,62 @@ export function useMyGameScreenshots({
     [objectId, shop, sort, take, userId]
   );
 
-  const collection = useScreenshotCollection({
+  return useScreenshotCollection({
     feedKey:
       isEnabled && canFetchPublished
-        ? [userId, shop, objectId, sort, take, reloadKey].join(":")
+        ? [userId, shop, objectId, sort, take, reloadKey, settledCount].join(
+            ":"
+          )
         : null,
     fetchPage,
     writeBus,
   });
+}
 
-  const pendingLocal = useMemo(
-    () => selectPendingLocalScreenshots(localScreenshots, { shop, objectId }),
-    [localScreenshots, objectId, shop]
-  );
-  const pendingIdsRef = useRef<string[]>([]);
+interface UseMyGameScreenshotsOptions extends GameTarget {
+  sort: ScreenshotSort;
+  take: number;
+  isEnabled: boolean;
+  writeBus: ScreenshotWriteBus;
+}
 
-  useEffect(() => {
-    const currentIds = pendingLocal.map((item) => item.clientId);
-    const hasSettled = pendingIdsRef.current.some(
-      (clientId) => !currentIds.includes(clientId)
-    );
-    pendingIdsRef.current = currentIds;
-    if (hasSettled) setReloadKey((current) => current + 1);
-  }, [pendingLocal]);
-
-  useEffect(() => {
-    if (!isEnabled) return;
-    let isCurrent = true;
-
-    const loadLocal = () => {
-      myGameScreenshotsLocal
-        .getLocalScreenshotsForGame(shop, objectId)
-        .then((screenshots) => {
-          if (!isCurrent) return;
-          setLocalScreenshots(screenshots);
-          setHasLocalFailed(false);
-          setHasLoadedLocal(true);
-        })
-        .catch((error) => {
-          logger.error("Failed to load local screenshots", error);
-          if (!isCurrent) return;
-          setHasLocalFailed(true);
-          setHasLoadedLocal(true);
-        });
-    };
-
-    loadLocal();
-    const unsubscribeLocal = window.electron.onLocalScreenshotsChange(
-      (screenshots) => {
-        setLocalScreenshots(
-          screenshots.filter((screenshot) =>
-            isLocalScreenshotForGame(screenshot, shop, objectId)
-          )
-        );
-        setHasLocalFailed(false);
-        setHasLoadedLocal(true);
-      }
-    );
-    const unsubscribeChanged = subscribeMyGameScreenshotsChanged(() => {
-      loadLocal();
-      setReloadKey((current) => current + 1);
-    });
-
-    return () => {
-      isCurrent = false;
-      unsubscribeLocal();
-      unsubscribeChanged();
-    };
-  }, [isEnabled, localReloadKey, objectId, shop]);
+export function useMyGameScreenshots({
+  shop,
+  objectId,
+  sort,
+  take,
+  isEnabled,
+  writeBus,
+}: UseMyGameScreenshotsOptions) {
+  const { canFetchPublished } = useCanFetchMyPublishedScreenshots(shop);
+  const local = useMyLocalGameScreenshots({ shop, objectId, isEnabled });
+  const collection = useMyPublishedGameScreenshots({
+    shop,
+    objectId,
+    sort,
+    take,
+    isEnabled,
+    writeBus,
+    settledCount: local.settledCount,
+  });
+  const { feed } = collection;
 
   const items = useMemo(
-    () => mergeMyScreenshots(collection.feed.items, pendingLocal, sort),
-    [collection.feed.items, pendingLocal, sort]
+    () => mergeMyScreenshots(feed.items, local.pendingLocal, sort),
+    [feed.items, local.pendingLocal, sort]
   );
 
-  const { feed } = collection;
   const status = resolveMyGameScreenshotsStatus({
-    local: { isLoaded: hasLoadedLocal, hasFailed: hasLocalFailed },
+    local: { isLoaded: local.hasLoaded, hasFailed: local.hasFailed },
     published: {
       isEnabled: canFetchPublished,
       isLoaded: feed.hasLoaded,
       hasFailed: feed.hasFailed,
     },
   });
-  const { reload } = feed;
-
   const hasPublishedFailed = canFetchPublished && feed.hasFailed;
-
-  const retryLocal = useCallback(() => {
-    setHasLoadedLocal(false);
-    setHasLocalFailed(false);
-    setLocalReloadKey((current) => current + 1);
-  }, []);
+  const { reload } = feed;
+  const { retry: retryLocal, hasFailed: hasLocalFailed } = local;
 
   const retry = useCallback(() => {
     retryLocal();
@@ -173,7 +230,7 @@ export function useMyGameScreenshots({
 
   return {
     collection,
-    pendingLocal,
+    pendingLocal: local.pendingLocal,
     items,
     status,
     hasLoaded: status !== "loading",
@@ -181,9 +238,9 @@ export function useMyGameScreenshots({
     isPartial: status === "partial",
     hasLocalFailed,
     hasPublishedFailed,
-    retryFailed,
     canFetchPublished,
     retry,
+    retryFailed,
   };
 }
 
