@@ -3,15 +3,21 @@ import { useTranslation } from "react-i18next";
 
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { useFormat } from "@renderer/hooks";
-import type { GlobalLeaderboardMetric } from "./global-leaderboard";
+import type { MetricDefinition } from "./global-leaderboard";
 
-export function useGlobalLeaderboardValue() {
+export function useMetricText() {
   const { t } = useTranslation("leaderboards");
   const { numberFormatter } = useFormat();
 
-  return useCallback(
-    (metric: GlobalLeaderboardMetric, value: number) => {
-      if (metric === "playtime") {
+  const label = useCallback(
+    (metric: MetricDefinition) =>
+      t(`metric_${metric.id}`, { defaultValue: metric.label }),
+    [t]
+  );
+
+  const format = useCallback(
+    (metric: MetricDefinition, value: number) => {
+      if (metric.valueType === "duration") {
         const minutes = value / 60;
 
         if (minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME) {
@@ -25,11 +31,19 @@ export function useGlobalLeaderboardValue() {
         });
       }
 
-      return t(`value_${metric}`, {
+      if (metric.valueType === "days") {
+        return t("days_count", { count: value });
+      }
+
+      const amount = numberFormatter.format(value);
+      return t(`value_${metric.id}`, {
         count: value,
-        amount: numberFormatter.format(value),
+        amount,
+        defaultValue: amount,
       });
     },
     [numberFormatter, t]
   );
+
+  return { label, format };
 }

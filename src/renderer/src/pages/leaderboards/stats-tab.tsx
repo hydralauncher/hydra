@@ -14,6 +14,7 @@ import {
   PLAY_ACTIVITY_WEEKS,
   SECONDS_PER_HOUR,
   type GlobalLeaderboardMetric,
+  type MetricDefinition,
   type GlobalLeaderboardPeriod,
   type HeatmapCell,
 } from "./global-leaderboard";
@@ -25,11 +26,15 @@ import {
   StreakFlame,
 } from "./leaderboard-bits";
 import { MetricIcon } from "./metric-icon";
-import type { GlobalBoardResults } from "./use-global-leaderboards";
+import {
+  EMPTY_BOARD_RESULT,
+  type GlobalBoardResults,
+} from "./use-global-leaderboards";
+import { useMetricText } from "./use-global-leaderboard-value";
 
 export interface StatsTabProps {
   results: GlobalBoardResults;
-  metrics: GlobalLeaderboardMetric[];
+  metrics: MetricDefinition[];
   period: GlobalLeaderboardPeriod;
   viewerUser: LeaderboardUser | null;
   onOpenMetric: (metric: GlobalLeaderboardMetric) => void;
@@ -47,6 +52,7 @@ export function StatsTab({
   onOpenMetric,
 }: Readonly<StatsTabProps>) {
   const { t, i18n } = useTranslation("leaderboards");
+  const metricText = useMetricText();
   const viewerId = viewerUser?.id ?? null;
   const isWeek = period === "week";
 
@@ -299,19 +305,19 @@ export function StatsTab({
           </div>
           <ul className="leaderboards__mine-list">
             {metrics.map((metric) => {
-              const result = results[metric];
+              const result = results[metric.id] ?? EMPTY_BOARD_RESULT;
               const ranking = getViewerRanking(result.leaderboard, viewerId);
 
               return (
-                <li key={metric}>
+                <li key={metric.id}>
                   <button
                     type="button"
                     className="leaderboards__mine-row"
-                    onClick={() => onOpenMetric(metric)}
+                    onClick={() => onOpenMetric(metric.id)}
                   >
-                    <MetricIcon metric={metric} />
+                    <MetricIcon metric={metric.id} />
                     <span className="leaderboards__mine-label">
-                      {t(`metric_${metric}`)}
+                      {metricText.label(metric)}
                     </span>
                     {result.isLoading && !result.leaderboard ? (
                       <Skeleton width={48} />

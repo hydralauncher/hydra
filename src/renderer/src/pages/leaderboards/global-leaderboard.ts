@@ -20,22 +20,22 @@ export const PLAY_LEVEL_HIGH_SECONDS = 3 * SECONDS_PER_HOUR;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export const GLOBAL_LEADERBOARD_METRICS = [
-  "playtime",
-  "games",
-  "friends",
-  "achievements",
-  "souvenirs",
-  "streak",
-  "reviews",
-] as const;
+export const METRIC_VALUE_TYPES = ["duration", "count", "days"] as const;
+export const METRIC_SCOPES = ["global", "game"] as const;
 
 export const GLOBAL_LEADERBOARD_PERIODS = ["week", "all"] as const;
 export const GLOBAL_LEADERBOARD_SCOPES = ["global", "friends"] as const;
 export const LEADERBOARD_PAGE_TABS = ["ranking", "games", "stats"] as const;
 
-export type GlobalLeaderboardMetric =
-  (typeof GLOBAL_LEADERBOARD_METRICS)[number];
+export type GlobalLeaderboardMetric = string;
+export type MetricValueType = (typeof METRIC_VALUE_TYPES)[number];
+export type MetricScope = (typeof METRIC_SCOPES)[number];
+
+export interface MetricDefinition {
+  id: GlobalLeaderboardMetric;
+  valueType: MetricValueType;
+  label: string;
+}
 export type GlobalLeaderboardPeriod =
   (typeof GLOBAL_LEADERBOARD_PERIODS)[number];
 export type GlobalLeaderboardScope = (typeof GLOBAL_LEADERBOARD_SCOPES)[number];
@@ -345,18 +345,66 @@ export const getBoardState = ({
   return "ready";
 };
 
+export const buildMetricsRequest = (
+  scope: MetricScope
+): { path: string; options: LeaderboardRequestOptions } => ({
+  path: "/leaderboards/metrics",
+  options: { params: { scope }, needsAuth: false },
+});
+
+export const normalizeMetricDefinitions = (
+  response: unknown
+): MetricDefinition[] => {
+  const items = isRecord(response) ? response.metrics : response;
+  if (!Array.isArray(items)) throw new TypeError("Invalid metrics response");
+
+  const seen = new Set<string>();
+
+  return items.flatMap((item): MetricDefinition[] => {
+    if (!isRecord(item) || typeof item.id !== "string" || !item.id) return [];
+    if (seen.has(item.id)) return [];
+    seen.add(item.id);
+
+    return [
+      {
+        id: item.id,
+        valueType: (METRIC_VALUE_TYPES as readonly unknown[]).includes(
+          item.valueType
+        )
+          ? (item.valueType as MetricValueType)
+          : "count",
+        label:
+          typeof item.label === "string" && item.label ? item.label : item.id,
+      },
+    ];
+  });
+};
+
 export const getAvailableMetrics = (
-  results: Record<
-    GlobalLeaderboardMetric,
-    { leaderboard: unknown; hasError: boolean }
+  metrics: MetricDefinition[],
+  results: Partial<
+    Record<GlobalLeaderboardMetric, { leaderboard: unknown; hasError: boolean }>
   >
-): GlobalLeaderboardMetric[] => {
-  const available = GLOBAL_LEADERBOARD_METRICS.filter(
-    (metric) => results[metric].leaderboard || !results[metric].hasError
+): MetricDefinition[] => {
+  const available = metrics.filter((metric) => {
+    const result = results[metric.id];
+    return !result || Boolean(result.leaderboard) || !result.hasError;
+  });
+
+  return available.length > 0 ? available : metrics;
+};
+
+export const hasStreakData = (leaderboard: GlobalLeaderboard | null) =>
+  Boolean(leaderboard) &&
+  Object.values(leaderboard?.extras ?? {}).some(
+    (extras) => extras.streakActive !== null
   );
 
-  return available.length > 0 ? available : [...GLOBAL_LEADERBOARD_METRICS];
-};
+export const hasReviewData = (leaderboard: GlobalLeaderboard | null) =>
+  Boolean(leaderboard) &&
+  Object.values(leaderboard?.extras ?? {}).some(
+    (extras) => extras.review !== null
+  );
 
 export const getRankDelta = (rank: number, previousRank: number | null) =>
   previousRank === null ? 0 : previousRank - rank;

@@ -228,6 +228,12 @@ $leaderboards-streak-to: #b05cff;
     font-size: globals.$small-font-size;
   }
 
+  &__card-placeholder {
+    display: block;
+    height: 86px;
+    border-radius: 8px;
+  }
+
   &__card-skeleton {
     height: 28px;
   }

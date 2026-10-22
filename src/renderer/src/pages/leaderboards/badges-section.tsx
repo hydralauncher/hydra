@@ -7,19 +7,40 @@ import { Button } from "@renderer/components";
 import { useDate, useFormat } from "@renderer/hooks";
 import {
   BADGES_PAGE_SIZE,
+  buildMetricsRequest,
   getBadgeProgress,
   normalizeBadges,
+  normalizeMetricDefinitions,
   type LeaderboardBadge,
+  type MetricDefinition,
 } from "./global-leaderboard";
 import { useApiResource } from "./leaderboards-api";
 import { BlockError, StreakFlame } from "./leaderboard-bits";
-import { useGlobalLeaderboardValue } from "./use-global-leaderboard-value";
+import { useMetricText } from "./use-global-leaderboard-value";
 
 export function BadgesSection() {
   const { t } = useTranslation("leaderboards");
   const { formatDate } = useDate();
   const { numberFormatter } = useFormat();
-  const formatValue = useGlobalLeaderboardValue();
+  const metricText = useMetricText();
+  const globalMetricsRequest = buildMetricsRequest("global");
+  const gameMetricsRequest = buildMetricsRequest("game");
+  const globalMetrics = useApiResource(
+    globalMetricsRequest.path,
+    globalMetricsRequest.options,
+    normalizeMetricDefinitions
+  );
+  const gameMetrics = useApiResource(
+    gameMetricsRequest.path,
+    gameMetricsRequest.options,
+    normalizeMetricDefinitions
+  );
+  const findMetric = (id: string | null): MetricDefinition | null =>
+    id
+      ? ([...(globalMetrics.data ?? []), ...(gameMetrics.data ?? [])].find(
+          (definition) => definition.id === id
+        ) ?? { id, valueType: "count", label: id })
+      : null;
   const [expanded, setExpanded] = useState(false);
 
   const badges = useApiResource(
@@ -28,8 +49,10 @@ export function BadgesSection() {
     normalizeBadges
   );
 
-  const metricLabel = (badge: LeaderboardBadge) =>
-    badge.metric ? t(`metric_${badge.metric}`) : "";
+  const metricLabel = (badge: LeaderboardBadge) => {
+    const metric = findMetric(badge.metric);
+    return metric ? metricText.label(metric) : "";
+  };
 
   const getTitle = (badge: LeaderboardBadge) => {
     const game = badge.gameTitle ?? "";
@@ -97,10 +120,10 @@ export function BadgesSection() {
       0,
       badge.progress.target - badge.progress.current
     );
-    const amount =
-      badge.metric === "playtime"
-        ? formatValue("playtime", remaining)
-        : numberFormatter.format(Math.ceil(remaining));
+    const metric = findMetric(badge.metric);
+    const amount = metric
+      ? metricText.format(metric, Math.ceil(remaining))
+      : numberFormatter.format(Math.ceil(remaining));
 
     return t("badge_remaining", { amount });
   };

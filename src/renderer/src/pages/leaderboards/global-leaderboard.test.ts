@@ -5,7 +5,11 @@ import {
   buildGlobalLeaderboardRequest,
   buildHeatmap,
   createResponseCache,
+  buildMetricsRequest,
   getAvailableMetrics,
+  hasReviewData,
+  hasStreakData,
+  normalizeMetricDefinitions,
   getRequestKey,
   getBadgeProgress,
   getBoardState,
@@ -237,42 +241,90 @@ describe("createResponseCache isolation", () => {
   });
 });
 
+describe("metric definitions", () => {
+  it("builds the metrics request per scope without auth", () => {
+    assert.deepEqual(buildMetricsRequest("game"), {
+      path: "/leaderboards/metrics",
+      options: { params: { scope: "game" }, needsAuth: false },
+    });
+  });
+
+  it("normalizes definitions, keeping order and dropping invalid items", () => {
+    const metrics = normalizeMetricDefinitions({
+      metrics: [
+        { id: "playtime", valueType: "duration", label: "Playtime" },
+        { id: "sessions", valueType: "weird" },
+        { id: "playtime", valueType: "count" },
+        { id: "" },
+        "bad",
+      ],
+    });
+
+    assert.deepEqual(metrics, [
+      { id: "playtime", valueType: "duration", label: "Playtime" },
+      { id: "sessions", valueType: "count", label: "sessions" },
+    ]);
+    assert.throws(() => normalizeMetricDefinitions({}), TypeError);
+  });
+});
+
 describe("getAvailableMetrics", () => {
+  const definition = (id: string) => ({
+    id,
+    valueType: "count" as const,
+    label: id,
+  });
+  const metrics = ["playtime", "friends", "streak", "reviews", "new"].map(
+    definition
+  );
   const ok = { leaderboard: {}, hasError: false };
   const loading = { leaderboard: null, hasError: false };
   const failed = { leaderboard: null, hasError: true };
-  const all = {
-    playtime: ok,
-    games: ok,
-    friends: loading,
-    achievements: ok,
-    souvenirs: ok,
-    streak: failed,
-    reviews: failed,
-  };
 
-  it("hides metrics whose board failed", () => {
-    assert.deepEqual(getAvailableMetrics(all), [
-      "playtime",
-      "games",
-      "friends",
-      "achievements",
-      "souvenirs",
-    ]);
+  it("hides metrics whose board failed and keeps unloaded ones", () => {
+    const available = getAvailableMetrics(metrics, {
+      playtime: ok,
+      friends: loading,
+      streak: failed,
+      reviews: failed,
+    });
+
+    assert.deepEqual(
+      available.map((metric) => metric.id),
+      ["playtime", "friends", "new"]
+    );
   });
 
   it("keeps every metric when all of them failed", () => {
-    const allFailed = {
+    const available = getAvailableMetrics(metrics, {
       playtime: failed,
-      games: failed,
       friends: failed,
-      achievements: failed,
-      souvenirs: failed,
       streak: failed,
       reviews: failed,
-    };
+      new: failed,
+    });
 
-    assert.equal(getAvailableMetrics(allFailed).length, 7);
+    assert.equal(available.length, 5);
+  });
+});
+
+describe("board data detection", () => {
+  it("detects streak and review data from the entries", () => {
+    const streak = normalizeGlobalLeaderboardResponse({
+      entries: [rawEntry(1, "a", { streakActive: false })],
+    });
+    const review = normalizeGlobalLeaderboardResponse({
+      entries: [rawEntry(1, "a", { review: { text: "Nice", score: 5 } })],
+    });
+    const plain = normalizeGlobalLeaderboardResponse({
+      entries: [rawEntry(1, "a")],
+    });
+
+    assert.equal(hasStreakData(streak), true);
+    assert.equal(hasReviewData(streak), false);
+    assert.equal(hasReviewData(review), true);
+    assert.equal(hasStreakData(plain), false);
+    assert.equal(hasStreakData(null), false);
   });
 });
 

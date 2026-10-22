@@ -7,10 +7,12 @@ import { Navigate, useSearchParams } from "react-router-dom";
 
 import { SegmentedControl } from "../game-details/leaderboard/leaderboard-controls";
 import {
+  buildMetricsRequest,
   getAvailableMetrics,
   GLOBAL_LEADERBOARD_PERIODS,
   GLOBAL_LEADERBOARD_SCOPES,
   LEADERBOARD_PAGE_TABS,
+  normalizeMetricDefinitions,
   resolveWeekRange,
   type GlobalLeaderboardMetric,
   type GlobalLeaderboardPeriod,
@@ -19,6 +21,7 @@ import {
 } from "./global-leaderboard";
 import {
   leaderboardsCache,
+  useApiResource,
   useGlobalLeaderboardsFeature,
   useLeaderboardViewer,
 } from "./leaderboards-api";
@@ -27,7 +30,6 @@ import { ByGameTab, type LinkedGame } from "./by-game-tab";
 import { RankingTab } from "./ranking-tab";
 import { StatsTab } from "./stats-tab";
 import { useGlobalLeaderboards } from "./use-global-leaderboards";
-import { useGlobalLeaderboardValue } from "./use-global-leaderboard-value";
 import { WeekSubtitle } from "./week-subtitle";
 import "../game-details/leaderboard/leaderboard.scss";
 import "./leaderboards.scss";
@@ -54,7 +56,7 @@ function LeaderboardsPage() {
     linkedTab ?? "ranking"
   );
   const [requestedMetric, setRequestedMetric] =
-    useState<GlobalLeaderboardMetric>("playtime");
+    useState<GlobalLeaderboardMetric | null>(null);
   const [period, setPeriod] = useState<GlobalLeaderboardPeriod>("week");
   const [requestedScope, setRequestedScope] =
     useState<GlobalLeaderboardScope>("global");
@@ -71,28 +73,47 @@ function LeaderboardsPage() {
     ? LEADERBOARD_PAGE_TABS
     : LEADERBOARD_PAGE_TABS.slice(0, 1);
 
+  const metricsRequest = buildMetricsRequest("global");
+  const metricDefinitions = useApiResource(
+    metricsRequest.path,
+    metricsRequest.options,
+    normalizeMetricDefinitions
+  );
+  const metricIds = useMemo(
+    () => (metricDefinitions.data ?? []).map((definition) => definition.id),
+    [metricDefinitions.data]
+  );
+
   const { results, retry } = useGlobalLeaderboards({
+    metrics: metricIds,
     period,
     scope,
     isLoggedIn,
     accountId: viewerUser?.id ?? null,
   });
-  const formatValue = useGlobalLeaderboardValue();
 
   const availableMetrics = useMemo(
-    () => getAvailableMetrics(results),
-    [results]
+    () => getAvailableMetrics(metricDefinitions.data ?? [], results),
+    [metricDefinitions.data, results]
   );
-  const metric = availableMetrics.includes(requestedMetric)
-    ? requestedMetric
-    : availableMetrics[0];
+  const metric =
+    availableMetrics.find((definition) => definition.id === requestedMetric) ??
+    availableMetrics[0] ??
+    null;
 
-  const playtimeBoard = results.playtime.leaderboard;
+  const referenceBoard =
+    Object.values(results).find((result) => result?.leaderboard)?.leaderboard ??
+    null;
   const [weekClock, setWeekClock] = useState(Date.now);
   const weekRange = useMemo(
-    () => resolveWeekRange(playtimeBoard, weekClock),
-    [playtimeBoard, weekClock]
+    () => resolveWeekRange(referenceBoard, weekClock),
+    [referenceBoard, weekClock]
   );
+
+  const retryAll = useCallback(() => {
+    metricDefinitions.retry();
+    retry();
+  }, [metricDefinitions, retry]);
 
   const handleWeekEnd = useCallback(() => {
     leaderboardsCache.clear();
@@ -177,12 +198,13 @@ function LeaderboardsPage() {
               results={results}
               metrics={availableMetrics}
               metric={metric}
+              isMetricsLoading={metricDefinitions.isLoading}
+              hasMetricsError={metricDefinitions.hasError}
               onMetricChange={setRequestedMetric}
               period={period}
               scope={scope}
               viewerUser={viewerUser}
-              formatValue={formatValue}
-              onRetry={retry}
+              onRetry={retryAll}
             />
           )}
 

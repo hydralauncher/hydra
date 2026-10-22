@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logger } from "@renderer/logger";
 import {
   buildGlobalLeaderboardRequest,
-  GLOBAL_LEADERBOARD_METRICS,
   normalizeGlobalLeaderboardResponse,
   type GlobalLeaderboard,
   type GlobalLeaderboardMetric,
@@ -18,17 +17,23 @@ export interface GlobalBoardResult {
   hasError: boolean;
 }
 
-export type GlobalBoardResults = Record<
-  GlobalLeaderboardMetric,
-  GlobalBoardResult
+export type GlobalBoardResults = Partial<
+  Record<GlobalLeaderboardMetric, GlobalBoardResult>
 >;
 
 interface BoardsQuery {
+  metrics: GlobalLeaderboardMetric[];
   period: GlobalLeaderboardPeriod;
   scope: GlobalLeaderboardScope;
   isLoggedIn: boolean;
   accountId: string | null;
 }
+
+export const EMPTY_BOARD_RESULT: GlobalBoardResult = {
+  leaderboard: null,
+  isLoading: true,
+  hasError: false,
+};
 
 const readCachedBoard = (
   metric: GlobalLeaderboardMetric,
@@ -36,7 +41,9 @@ const readCachedBoard = (
 ): GlobalLeaderboard | null => {
   const { path, options } = buildGlobalLeaderboardRequest({
     metric,
-    ...query,
+    period: query.period,
+    scope: query.scope,
+    isLoggedIn: query.isLoggedIn,
   });
   const cached = leaderboardsCache.peek(path, options, query.accountId);
   if (cached === undefined) return null;
@@ -48,43 +55,61 @@ const readCachedBoard = (
   }
 };
 
-const readCachedBoards = (query: BoardsQuery) =>
+const readCachedBoards = (query: BoardsQuery): GlobalBoardResults =>
   Object.fromEntries(
-    GLOBAL_LEADERBOARD_METRICS.map((metric) => {
+    query.metrics.map((metric) => {
       const leaderboard = readCachedBoard(metric, query);
       return [
         metric,
         { leaderboard, isLoading: leaderboard === null, hasError: false },
       ];
     })
-  ) as GlobalBoardResults;
+  );
 
 export function useGlobalLeaderboards({
+  metrics,
   period,
   scope,
   isLoggedIn,
   accountId,
 }: BoardsQuery) {
-  const queryKey = `${period}|${scope}|${isLoggedIn}|${accountId}`;
+  const metricsKey = metrics.join(",");
+  const queryKey = `${metricsKey}|${period}|${scope}|${isLoggedIn}|${accountId}`;
   const [state, setState] = useState(() => ({
     key: queryKey,
-    results: readCachedBoards({ period, scope, isLoggedIn, accountId }),
+    results: readCachedBoards({
+      metrics,
+      period,
+      scope,
+      isLoggedIn,
+      accountId,
+    }),
   }));
   const [attempt, setAttempt] = useState(0);
   const requestIdRef = useRef(0);
+  const metricsRef = useRef(metrics);
+  metricsRef.current = metrics;
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
-    const query = { period, scope, isLoggedIn, accountId };
+    const query = {
+      metrics: metricsRef.current,
+      period,
+      scope,
+      isLoggedIn,
+      accountId,
+    };
     const initial = readCachedBoards(query);
     setState({ key: queryKey, results: initial });
 
-    GLOBAL_LEADERBOARD_METRICS.forEach((metric) => {
-      if (initial[metric].leaderboard) return;
+    query.metrics.forEach((metric) => {
+      if (initial[metric]?.leaderboard) return;
 
       const { path, options } = buildGlobalLeaderboardRequest({
         metric,
-        ...query,
+        period,
+        scope,
+        isLoggedIn,
       });
 
       leaderboardsCache
@@ -112,12 +137,12 @@ export function useGlobalLeaderboards({
           }));
         });
     });
-  }, [accountId, attempt, isLoggedIn, period, queryKey, scope]);
+  }, [accountId, attempt, isLoggedIn, metricsKey, period, queryKey, scope]);
 
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
   const pending = useMemo(
-    () => readCachedBoards({ period, scope, isLoggedIn, accountId }),
-    [accountId, isLoggedIn, period, scope]
+    () => readCachedBoards({ metrics, period, scope, isLoggedIn, accountId }),
+    [accountId, isLoggedIn, metrics, period, scope]
   );
 
   return {

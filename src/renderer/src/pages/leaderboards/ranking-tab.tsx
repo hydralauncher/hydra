@@ -5,6 +5,7 @@ import {
   ClockIcon,
   PeopleIcon,
   StarIcon,
+  ThumbsupIcon,
   TrophyIcon,
 } from "@primer/octicons-react";
 import Skeleton from "react-loading-skeleton";
@@ -20,25 +21,35 @@ import type {
 import {
   getBoardState,
   GLOBAL_LEADERBOARD_PAGE_SIZE,
+  hasReviewData,
+  hasStreakData,
   type GlobalLeaderboardMetric,
   type GlobalLeaderboardPeriod,
+  type MetricDefinition,
   type GlobalLeaderboardScope,
   type LeaderboardReview,
 } from "./global-leaderboard";
 import { BoardView } from "./board-view";
 import { BlockError, BlockMessage, BoardSkeleton } from "./leaderboard-bits";
 import { MetricIcon } from "./metric-icon";
-import type { GlobalBoardResults } from "./use-global-leaderboards";
+import {
+  EMPTY_BOARD_RESULT,
+  type GlobalBoardResults,
+} from "./use-global-leaderboards";
+import { useMetricText } from "./use-global-leaderboard-value";
+
+const METRIC_CARD_PLACEHOLDERS = 7;
 
 export interface RankingTabProps {
   results: GlobalBoardResults;
-  metrics: GlobalLeaderboardMetric[];
-  metric: GlobalLeaderboardMetric;
+  metrics: MetricDefinition[];
+  metric: MetricDefinition | null;
+  isMetricsLoading: boolean;
+  hasMetricsError: boolean;
   onMetricChange: (metric: GlobalLeaderboardMetric) => void;
   period: GlobalLeaderboardPeriod;
   scope: GlobalLeaderboardScope;
   viewerUser: LeaderboardUser | null;
-  formatValue: (metric: GlobalLeaderboardMetric, value: number) => string;
   onRetry: () => void;
 }
 
@@ -62,20 +73,22 @@ export function RankingTab({
   results,
   metrics,
   metric,
+  isMetricsLoading,
+  hasMetricsError,
   onMetricChange,
   period,
   scope,
   viewerUser,
-  formatValue,
   onRetry,
 }: Readonly<RankingTabProps>) {
   const { t } = useTranslation("leaderboards");
   const { numberFormatter } = useFormat();
+  const metricText = useMetricText();
   const navigate = useNavigate();
   const [reviewerId, setReviewerId] = useState<string | null>(null);
   const [visibleRows, setVisibleRows] = useState(GLOBAL_LEADERBOARD_PAGE_SIZE);
 
-  const current = results[metric];
+  const current = (metric && results[metric.id]) || EMPTY_BOARD_RESULT;
   const leaderboard = current.leaderboard;
   const isWeek = period === "week";
   const viewerId = viewerUser?.id ?? null;
@@ -85,15 +98,16 @@ export function RankingTab({
   }, [leaderboard]);
 
   const state = getBoardState({
-    isLoading: current.isLoading,
-    hasError: current.hasError,
+    isLoading: current.isLoading || isMetricsLoading,
+    hasError: current.hasError || hasMetricsError,
     leaderboard,
     scope,
     viewerId,
   });
 
-  const format = (value: number) => formatValue(metric, value);
-  const isReviews = metric === "reviews";
+  const format = (value: number) =>
+    metric ? metricText.format(metric, value) : String(value);
+  const isReviews = hasReviewData(leaderboard);
   const leaderId = leaderboard?.entries[0]?.user.id ?? null;
   const selectedReviewerId = reviewerId ?? leaderId;
   const selectedEntry =
@@ -104,8 +118,9 @@ export function RankingTab({
     ? (leaderboard?.extras[selectedEntry.user.id]?.review ?? null)
     : null;
 
-  const renderLeaderCard = (id: GlobalLeaderboardMetric) => {
-    const result = results[id];
+  const renderLeaderCard = (definition: MetricDefinition) => {
+    const { id } = definition;
+    const result = results[id] ?? EMPTY_BOARD_RESULT;
     const leader = result.leaderboard?.entries[0] ?? null;
 
     let leaderContent: React.ReactNode = (
@@ -129,7 +144,7 @@ export function RankingTab({
               {leader.user.displayName}
             </span>
             <span className="leaderboards__card-leader-value">
-              {formatValue(id, leader.value)}
+              {metricText.format(definition, leader.value)}
             </span>
           </span>
         </>
@@ -141,16 +156,16 @@ export function RankingTab({
         key={id}
         type="button"
         role="tab"
-        aria-selected={id === metric}
+        aria-selected={id === metric?.id}
         className={cn("leaderboards__card", {
-          "leaderboards__card--selected": id === metric,
+          "leaderboards__card--selected": id === metric?.id,
         })}
         onClick={() => onMetricChange(id)}
       >
         <span className="leaderboards__card-label">
           <MetricIcon metric={id} />
           <span className="leaderboards__card-label-text">
-            {t(`metric_${id}`)}
+            {metricText.label(definition)}
           </span>
         </span>
         <span className="leaderboards__card-leader">{leaderContent}</span>
@@ -228,7 +243,7 @@ export function RankingTab({
             </p>
             <div className="leaderboards__review-footer">
               <span className="leaderboards__review-votes">
-                <MetricIcon metric="reviews" size={14} />
+                <ThumbsupIcon size={14} />
                 {format(selectedEntry.value)}
               </span>
               <button
@@ -296,7 +311,7 @@ export function RankingTab({
           formatValue={format}
           leaderLabel={t(isWeek ? "leader_of_week" : "record_holder")}
           showDelta={isWeek}
-          isStreak={metric === "streak"}
+          isStreak={hasStreakData(leaderboard)}
           isLoading={current.isLoading}
           selectedId={isReviews ? selectedReviewerId : undefined}
           onSelect={
@@ -324,15 +339,24 @@ export function RankingTab({
           role="tablist"
           aria-label={t("metric_label")}
         >
-          {metrics.map(renderLeaderCard)}
+          {isMetricsLoading && metrics.length === 0
+            ? Array.from({ length: METRIC_CARD_PLACEHOLDERS }).map(
+                (_, index) => (
+                  <Skeleton
+                    key={index}
+                    className="leaderboards__card-placeholder"
+                  />
+                )
+              )
+            : metrics.map(renderLeaderCard)}
         </div>
       </section>
 
       <section className="leaderboards__board" aria-labelledby="board-title">
         <div className="leaderboards__board-header">
-          <MetricIcon metric={metric} size={20} />
+          {metric && <MetricIcon metric={metric.id} size={20} />}
           <h2 id="board-title" className="leaderboards__board-title">
-            {t(`metric_${metric}`)}
+            {metric ? metricText.label(metric) : ""}
           </h2>
           {state === "ready" && leaderboard && (
             <span className="leaderboards__board-count">
