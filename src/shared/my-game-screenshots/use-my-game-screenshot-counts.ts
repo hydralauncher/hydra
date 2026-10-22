@@ -11,6 +11,7 @@ import {
 export interface MyGameScreenshotCounts {
   local: number;
   published: number;
+  hasPublishedFailed: boolean;
 }
 
 interface UseMyGameScreenshotCountsOptions {
@@ -33,22 +34,34 @@ export function useMyGameScreenshotCounts({
   const [counts, setCounts] = useState<MyGameScreenshotCounts>({
     local: 0,
     published: 0,
+    hasPublishedFailed: false,
   });
 
   const refreshCounts = useCallback(async () => {
-    try {
-      const [localFiles, published] = await Promise.all([
-        local.countLocalScreenshotFiles(shop, objectId),
-        countPublishedScreenshotsForGame(
-          { shop, objectId },
-          userId,
-          api,
-          local
-        ),
-      ]);
-      setCounts({ local: localFiles, published });
-    } catch (error) {
-      onError?.(error);
+    const [localResult, publishedResult] = await Promise.allSettled([
+      local.countLocalScreenshotFiles(shop, objectId),
+      countPublishedScreenshotsForGame({ shop, objectId }, userId, api, local),
+    ]);
+
+    if (localResult.status === "fulfilled") {
+      setCounts((current) => ({ ...current, local: localResult.value }));
+    } else {
+      onError?.(localResult.reason);
+    }
+
+    if (publishedResult.status === "fulfilled") {
+      setCounts((current) => ({
+        ...current,
+        published: publishedResult.value,
+        hasPublishedFailed: false,
+      }));
+    } else {
+      onError?.(publishedResult.reason);
+      setCounts((current) => ({
+        ...current,
+        published: 0,
+        hasPublishedFailed: true,
+      }));
     }
   }, [api, local, objectId, onError, shop, userId]);
 
