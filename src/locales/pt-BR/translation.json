@@ -2920,6 +2920,8 @@
     "delete_screenshots_failed": "Não foi possível excluir as capturas",
     "delete_screenshots_incomplete": "Não foi possível excluir alguns arquivos de capturas. Feche os programas que os estejam usando e tente novamente.",
     "screenshots_deleted_count_one": "{{count}} captura excluída",
-    "screenshots_deleted_count_other": "{{count}} capturas excluídas"
+    "screenshots_deleted_count_other": "{{count}} capturas excluídas",
+    "comments_temporarily_unavailable": "Os comentários estão temporariamente indisponíveis, tente novamente em instantes",
+    "text_changes_temporarily_unavailable": "Não é possível salvar descrições e títulos agora, tente novamente em instantes"
   }
 }

@@ -194,6 +194,8 @@ export const SCREENSHOT_API_ERROR_CODES = [
   "screenshots/already-reported",
   "screenshots/cannot-report-own",
   "screenshots/game-deletion-rate-limited",
+  "screenshots/comment-rate-limit-unavailable",
+  "screenshots/text-change-rate-limit-unavailable",
 ] as const;
 
 export type ScreenshotApiErrorCode =

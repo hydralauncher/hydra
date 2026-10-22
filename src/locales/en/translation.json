@@ -2916,6 +2916,8 @@
     "delete_screenshots_failed": "Could not delete the screenshots",
     "delete_screenshots_incomplete": "Some screenshot files couldn't be deleted. Close any program using them and try again.",
     "screenshots_deleted_count_one": "Deleted {{count}} screenshot",
-    "screenshots_deleted_count_other": "Deleted {{count}} screenshots"
+    "screenshots_deleted_count_other": "Deleted {{count}} screenshots",
+    "comments_temporarily_unavailable": "Comments are temporarily unavailable, try again in a moment",
+    "text_changes_temporarily_unavailable": "Descriptions and titles can't be saved right now, try again in a moment"
   }
 }
