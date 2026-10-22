@@ -1,17 +1,31 @@
 import { useTranslation } from "react-i18next";
-import { LevelSeal, XpBar } from "@renderer/components/gamification";
+import {
+  LevelSeal,
+  XpBar,
+  useHoverHalo,
+} from "@renderer/components/gamification";
 import { useFormat } from "@renderer/hooks";
 import type { LevelProgress } from "@types";
 import "./level-box.scss";
 
+const SEAL_HALO_ALPHA = 0.04;
+
 export function LevelBox({ level }: Readonly<{ level: LevelProgress }>) {
   const { t } = useTranslation("user_profile");
   const { formatNumber } = useFormat();
+  const halo = useHoverHalo<HTMLDivElement>(SEAL_HALO_ALPHA);
   const isMaxLevel = level.xpToNextLevel === null;
 
   return (
     <div className="level-box">
-      <LevelSeal level={level.level} size={119} />
+      <div ref={halo.hostRef} className="level-box__seal" {...halo.handlers}>
+        <LevelSeal level={level.level} size={119} preview={halo.intensity} />
+        <canvas
+          ref={halo.canvasRef}
+          className="level-box__halo"
+          aria-hidden="true"
+        />
+      </div>
 
       <div className="level-box__info">
         <div className="level-box__header">

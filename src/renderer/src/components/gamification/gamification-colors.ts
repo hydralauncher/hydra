@@ -3,6 +3,16 @@ import { GAMIFICATION_PALETTE, LEVEL_SEAL_RANGES } from "./gamification-art";
 export const DIM_COLOR = "#6b6c72";
 export const BAR_TRACK_COLOR = "rgba(255, 255, 255, 0.12)";
 
+export const BAYER_4X4 = [
+  [0, 8, 2, 10],
+  [12, 4, 14, 6],
+  [3, 11, 1, 9],
+  [15, 7, 13, 5],
+] as const;
+
+export const prefersReducedMotion = () =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 export const mixHex = (from: string, to: string, amount: number) => {
   const channels = (hex: string) =>
     [1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16));

@@ -7,6 +7,8 @@
   margin-top: 10px;
 
   &__pill {
+    position: relative;
+    isolation: isolate;
     display: inline-flex;
     align-items: center;
     gap: globals.$spacing-unit;
@@ -28,9 +30,64 @@
       padding-left: 0;
       gap: 10px;
     }
+
+    &--streak {
+      overflow: visible;
+
+      > :not(.streak-fire) {
+        position: relative;
+        z-index: 1;
+      }
+    }
+
+    &--lit {
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+      background-color: rgba(255, 90, 60, 0.2);
+    }
+
+    &--hot strong {
+      animation: profile-gamification-pills-combo 0.9s steps(2) infinite;
+    }
   }
 
   &__bar {
     width: 72px;
+  }
+
+  &__halo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+    mix-blend-mode: screen;
+  }
+
+  .streak-fire {
+    position: absolute;
+    left: 0;
+    bottom: 100%;
+    z-index: 0;
+    pointer-events: none;
+    image-rendering: pixelated;
+
+    &--glow {
+      filter: drop-shadow(0 0 4px rgba(255, 138, 60, 0.8))
+        drop-shadow(0 0 14px rgba(255, 79, 163, 0.4));
+    }
+  }
+}
+
+@keyframes profile-gamification-pills-combo {
+  50% {
+    transform: translate(0.5px, -0.5px) rotate(-1.5deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-gamification-pills__pill--hot strong {
+    animation: none;
   }
 }

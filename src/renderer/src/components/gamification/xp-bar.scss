@@ -1,10 +1,8 @@
 .xp-bar {
-  position: relative;
   height: 4px;
-  overflow: hidden;
-  background-color: rgba(255, 255, 255, 0.12);
+  line-height: 0;
 
-  &__fill {
-    height: 100%;
+  canvas {
+    display: block;
   }
 }

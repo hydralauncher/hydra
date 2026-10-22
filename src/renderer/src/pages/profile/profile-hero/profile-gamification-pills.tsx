@@ -1,29 +1,45 @@
 import { useTranslation } from "react-i18next";
+import cn from "classnames";
 import {
   CoinIcon,
   FlameIcon,
   LevelSeal,
+  STREAK_EMBERS_DAYS,
+  STREAK_FIRE_DAYS,
+  STREAK_GLOW_DAYS,
+  StreakFire,
   XpBar,
+  useHoverHalo,
 } from "@renderer/components/gamification";
 import { useFormat } from "@renderer/hooks";
 import { useProfileGamification } from "../use-profile-gamification";
 import "./profile-gamification-pills.scss";
 
+const LEVEL_PILL_HALO_ALPHA = 0.16;
+
 export function ProfileGamificationPills() {
   const { t } = useTranslation("user_profile");
   const { formatNumber } = useFormat();
   const { level, loginStreak, coins } = useProfileGamification();
+  const halo = useHoverHalo<HTMLDivElement>(LEVEL_PILL_HALO_ALPHA);
 
   if (!level) return null;
 
+  const streakDays = loginStreak?.current ?? 0;
+
   return (
     <div className="profile-gamification-pills">
-      <div className="profile-gamification-pills__pill profile-gamification-pills__pill--level">
+      <div
+        ref={halo.hostRef}
+        className="profile-gamification-pills__pill profile-gamification-pills__pill--level"
+        {...halo.handlers}
+      >
         <LevelSeal level={level.level} size={34} />
         <strong>{t("level_number", { level: level.level })}</strong>
         <XpBar
           xp={level.xp}
           xpToNextLevel={level.xpToNextLevel}
+          trail={halo.intensity}
           className="profile-gamification-pills__bar"
         />
         <span>
@@ -34,18 +50,33 @@ export function ProfileGamificationPills() {
                 total: formatNumber(level.xpToNextLevel),
               })}
         </span>
+        <canvas
+          ref={halo.canvasRef}
+          className="profile-gamification-pills__halo"
+          aria-hidden="true"
+        />
       </div>
 
       {loginStreak && (
         <div
-          className="profile-gamification-pills__pill"
+          className={cn(
+            "profile-gamification-pills__pill",
+            "profile-gamification-pills__pill--streak",
+            {
+              "profile-gamification-pills__pill--lit":
+                streakDays >= STREAK_FIRE_DAYS,
+              "profile-gamification-pills__pill--hot":
+                streakDays >= STREAK_GLOW_DAYS,
+            }
+          )}
           title={t("streak_tooltip", {
-            count: loginStreak.current,
+            count: streakDays,
             record: loginStreak.record,
           })}
         >
-          <FlameIcon isDim={loginStreak.current === 0} />
-          <strong>{t("streak_days", { count: loginStreak.current })}</strong>
+          {streakDays >= STREAK_EMBERS_DAYS && <StreakFire days={streakDays} />}
+          <FlameIcon isDim={streakDays === 0} />
+          <strong>{t("streak_days", { count: streakDays })}</strong>
         </div>
       )}
 
