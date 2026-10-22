@@ -1,8 +1,6 @@
-import type { GlobalLeaderboardMetric } from "./global-leaderboard";
-
 const FALLBACK_PATH = "M3 13.5V9M8 13.5V3M13 13.5V6.5M2 13.5h12";
 
-const paths: Record<GlobalLeaderboardMetric, string> = {
+const paths: Record<string, string> = {
   playtime: "M8 2a6 6 0 1 0 0 12A6 6 0 1 0 8 2zM8 5v3l2 1.5",
   games:
     "M5 4.5h6a3.5 3.5 0 0 1 0 7H5a3.5 3.5 0 0 1 0-7zM4.5 8h3M6 6.5v3M10.5 7.5h.01M12 9h.01",
@@ -23,7 +21,7 @@ export function MetricIcon({
   metric,
   size = 16,
 }: Readonly<{
-  metric: GlobalLeaderboardMetric;
+  metric: string;
   size?: number;
 }>) {
   return (

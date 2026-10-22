@@ -27,12 +27,11 @@ export const GLOBAL_LEADERBOARD_PERIODS = ["week", "all"] as const;
 export const GLOBAL_LEADERBOARD_SCOPES = ["global", "friends"] as const;
 export const LEADERBOARD_PAGE_TABS = ["ranking", "games", "stats"] as const;
 
-export type GlobalLeaderboardMetric = string;
 export type MetricValueType = (typeof METRIC_VALUE_TYPES)[number];
 export type MetricScope = (typeof METRIC_SCOPES)[number];
 
 export interface MetricDefinition {
-  id: GlobalLeaderboardMetric;
+  id: string;
   valueType: MetricValueType;
   label: string;
 }
@@ -42,7 +41,7 @@ export type GlobalLeaderboardScope = (typeof GLOBAL_LEADERBOARD_SCOPES)[number];
 export type LeaderboardPageTab = (typeof LEADERBOARD_PAGE_TABS)[number];
 
 export interface GlobalLeaderboardQuery {
-  metric: GlobalLeaderboardMetric;
+  metric: string;
   period: GlobalLeaderboardPeriod;
   scope: GlobalLeaderboardScope;
   isLoggedIn: boolean;
@@ -382,9 +381,7 @@ export const normalizeMetricDefinitions = (
 
 export const getAvailableMetrics = (
   metrics: MetricDefinition[],
-  results: Partial<
-    Record<GlobalLeaderboardMetric, { leaderboard: unknown; hasError: boolean }>
-  >
+  results: Partial<Record<string, { leaderboard: unknown; hasError: boolean }>>
 ): MetricDefinition[] => {
   const available = metrics.filter((metric) => {
     const result = results[metric.id];

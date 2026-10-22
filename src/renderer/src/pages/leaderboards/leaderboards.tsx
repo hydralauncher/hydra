@@ -14,7 +14,6 @@ import {
   LEADERBOARD_PAGE_TABS,
   normalizeMetricDefinitions,
   resolveWeekRange,
-  type GlobalLeaderboardMetric,
   type GlobalLeaderboardPeriod,
   type GlobalLeaderboardScope,
   type LeaderboardPageTab,
@@ -55,8 +54,7 @@ function LeaderboardsPage() {
   const [requestedTab, setRequestedTab] = useState<LeaderboardPageTab>(
     linkedTab ?? "ranking"
   );
-  const [requestedMetric, setRequestedMetric] =
-    useState<GlobalLeaderboardMetric | null>(null);
+  const [requestedMetric, setRequestedMetric] = useState<string | null>(null);
   const [period, setPeriod] = useState<GlobalLeaderboardPeriod>("week");
   const [requestedScope, setRequestedScope] =
     useState<GlobalLeaderboardScope>("global");
@@ -127,7 +125,7 @@ function LeaderboardsPage() {
     friends: <PeopleIcon size={14} />,
   };
 
-  const openMetric = (value: GlobalLeaderboardMetric) => {
+  const openMetric = (value: string) => {
     setRequestedMetric(value);
     setRequestedTab("ranking");
   };

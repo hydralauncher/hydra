@@ -5,7 +5,6 @@ import {
   buildGlobalLeaderboardRequest,
   normalizeGlobalLeaderboardResponse,
   type GlobalLeaderboard,
-  type GlobalLeaderboardMetric,
   type GlobalLeaderboardPeriod,
   type GlobalLeaderboardScope,
 } from "./global-leaderboard";
@@ -17,12 +16,10 @@ export interface GlobalBoardResult {
   hasError: boolean;
 }
 
-export type GlobalBoardResults = Partial<
-  Record<GlobalLeaderboardMetric, GlobalBoardResult>
->;
+export type GlobalBoardResults = Partial<Record<string, GlobalBoardResult>>;
 
 interface BoardsQuery {
-  metrics: GlobalLeaderboardMetric[];
+  metrics: string[];
   period: GlobalLeaderboardPeriod;
   scope: GlobalLeaderboardScope;
   isLoggedIn: boolean;
@@ -36,7 +33,7 @@ export const EMPTY_BOARD_RESULT: GlobalBoardResult = {
 };
 
 const readCachedBoard = (
-  metric: GlobalLeaderboardMetric,
+  metric: string,
   query: BoardsQuery
 ): GlobalLeaderboard | null => {
   const { path, options } = buildGlobalLeaderboardRequest({

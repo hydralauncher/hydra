@@ -23,7 +23,6 @@ import {
   GLOBAL_LEADERBOARD_PAGE_SIZE,
   hasReviewData,
   hasStreakData,
-  type GlobalLeaderboardMetric,
   type GlobalLeaderboardPeriod,
   type MetricDefinition,
   type GlobalLeaderboardScope,
@@ -38,7 +37,10 @@ import {
 } from "./use-global-leaderboards";
 import { useMetricText } from "./use-global-leaderboard-value";
 
-const METRIC_CARD_PLACEHOLDERS = 7;
+const METRIC_CARD_PLACEHOLDERS = Array.from(
+  { length: 7 },
+  (_, position) => `metric-placeholder-${position}`
+);
 
 export interface RankingTabProps {
   results: GlobalBoardResults;
@@ -46,7 +48,7 @@ export interface RankingTabProps {
   metric: MetricDefinition | null;
   isMetricsLoading: boolean;
   hasMetricsError: boolean;
-  onMetricChange: (metric: GlobalLeaderboardMetric) => void;
+  onMetricChange: (metric: string) => void;
   period: GlobalLeaderboardPeriod;
   scope: GlobalLeaderboardScope;
   viewerUser: LeaderboardUser | null;
@@ -340,14 +342,12 @@ export function RankingTab({
           aria-label={t("metric_label")}
         >
           {isMetricsLoading && metrics.length === 0
-            ? Array.from({ length: METRIC_CARD_PLACEHOLDERS }).map(
-                (_, index) => (
-                  <Skeleton
-                    key={index}
-                    className="leaderboards__card-placeholder"
-                  />
-                )
-              )
+            ? METRIC_CARD_PLACEHOLDERS.map((placeholder) => (
+                <Skeleton
+                  key={placeholder}
+                  className="leaderboards__card-placeholder"
+                />
+              ))
             : metrics.map(renderLeaderCard)}
         </div>
       </section>

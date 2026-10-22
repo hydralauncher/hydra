@@ -13,7 +13,6 @@ import {
   normalizePlayActivity,
   PLAY_ACTIVITY_WEEKS,
   SECONDS_PER_HOUR,
-  type GlobalLeaderboardMetric,
   type MetricDefinition,
   type GlobalLeaderboardPeriod,
   type HeatmapCell,
@@ -37,7 +36,7 @@ export interface StatsTabProps {
   metrics: MetricDefinition[];
   period: GlobalLeaderboardPeriod;
   viewerUser: LeaderboardUser | null;
-  onOpenMetric: (metric: GlobalLeaderboardMetric) => void;
+  onOpenMetric: (metric: string) => void;
 }
 
 const DAY_LABEL_DATES = [5, 6, 7, 8, 9, 10, 11].map(
