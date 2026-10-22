@@ -54,13 +54,14 @@ function usePendingLocalScreenshots(
     };
 
     loadIfCurrent();
-    const unsubscribeLocal =
-      globalThis.window.electron.onLocalScreenshotsChange((items) => {
+    const unsubscribeLocal = myGameScreenshotsLocal.onLocalScreenshotsChange(
+      (items) => {
         if (!isCurrent) return;
         setScreenshots(
           items.filter((item) => isLocalScreenshotForGame(item, shop, objectId))
         );
-      });
+      }
+    );
     const unsubscribeProgress =
       globalThis.window.electron.onScreenshotUploadProgress((progress) => {
         if (!isCurrent) return;
