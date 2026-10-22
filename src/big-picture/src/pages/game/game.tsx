@@ -1646,6 +1646,7 @@ export default function Game() {
             <GameSettingsModal
               visible={isGameSettingsModalOpen}
               game={game}
+              removeFilesGame={presentationGame ?? game}
               launchSettings={launchSettings}
               customizationSettings={customizationSettings}
               cloudSettings={cloudSettings}

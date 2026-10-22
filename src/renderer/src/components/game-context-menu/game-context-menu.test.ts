@@ -10,9 +10,14 @@ import type { Download, LibraryGame } from "@types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
 import {
   findLibraryGamePresentation,
+  getRemoveFilesTarget,
+  getLibraryGameMembers,
   isLibraryGameDownloading,
+  isSameRemoveFilesTarget,
+  isValidSteamAppId,
   mergeLibraryCatalogueMetadata,
 } from "../../../../shared/library-catalogue.js";
+import { getOfficialStoreMembers } from "../../../../shared/official-store-options.js";
 import { applyLibraryGroupAction } from "../../../../shared/library-group-actions.js";
 import { selectLibraryPresentationIndex } from "../../features/library-presentation.js";
 
@@ -37,6 +42,16 @@ function loadModule(filename: string, stubs: Record<string, unknown>) {
   return exports;
 }
 
+const { getSteamLibraryExecutableCheckKey } = loadModule(
+  "src/renderer/src/hooks/use-steam-library-executable.ts",
+  { react: React }
+) as {
+  getSteamLibraryExecutableCheckKey: (
+    game: unknown,
+    enabled?: boolean
+  ) => string | null;
+};
+
 const steam = {
   id: "steam:123",
   shop: "steam",
@@ -49,6 +64,7 @@ const steam = {
   canonicalId: "canonical-game",
   catalogueGame: { shop: "steam", objectId: "123" },
   executablePath: "steam.exe",
+  hasActiveSteamImport: true,
   download: null,
   playTimeInMilliseconds: 0,
   lastTimePlayed: null,
@@ -96,7 +112,10 @@ async function fixture(
 ) {
   let library = initialLibrary;
   let deletingIds = new Set<string>();
+  let steamExecutableCheck: boolean | null = false;
+  let steamUninstallError = false;
   let refreshWait: Promise<void> | null = null;
+  let menuVisible = true;
   const dom = new JSDOM("<div id='root'></div>", {
     url: "https://hydra.test/library",
   });
@@ -147,6 +166,14 @@ async function fixture(
     createSteamShortcut: async (...args: unknown[]) => {
       calls.push(["steam-shortcut", ...args]);
     },
+    isSteamAppExecutable: async (...args: unknown[]) => {
+      calls.push(["steam-executable", ...args]);
+      return steamExecutableCheck === true;
+    },
+    uninstallGameOnSteam: async (...args: unknown[]) => {
+      calls.push(["steam-uninstall", ...args]);
+      if (steamUninstallError) throw new Error("uninstall failed");
+    },
   };
   Object.assign(dom.window, { electron: bridge });
   const updateLibrary = async () => {
@@ -182,6 +209,11 @@ async function fixture(
     mergeLibraryCatalogueMetadata,
     isLibraryGameDownloading,
     applyLibraryGroupAction,
+    getOfficialStoreMembers,
+    getLibraryGameMembers,
+    getRemoveFilesTarget,
+    isSameRemoveFilesTarget,
+    isValidSteamAppId,
   };
   const presentation = loadModule(
     "src/renderer/src/hooks/use-library-game-presentation.ts",
@@ -199,6 +231,10 @@ async function fixture(
     }
   );
   hooks.useLibraryGamePresentation = presentation.useLibraryGamePresentation;
+  hooks.useIsSteamLibraryExecutable = (
+    _game: { executablePath?: string | null } | null | undefined,
+    enabled = true
+  ) => (enabled && _game?.executablePath ? steamExecutableCheck : null);
   const navigate = (...args: unknown[]) => calls.push(["navigate", ...args]);
   const router = {
     useNavigate: () => navigate,
@@ -207,6 +243,19 @@ async function fixture(
   };
   const translate = (key: string) => key;
   const translation = { useTranslation: () => ({ t: translate }) };
+  const steamActionModule = loadModule(
+    "src/renderer/src/hooks/use-steam-uninstall-action.ts",
+    {
+      "./use-steam-library-executable": {
+        useIsSteamLibraryExecutable: hooks.useIsSteamLibraryExecutable,
+        getSteamLibraryExecutableCheckKey,
+      },
+      "./use-toast": { useToast: hooks.useToast },
+      "@shared": shared,
+      "react-i18next": translation,
+    }
+  );
+  hooks.useSteamUninstallAction = steamActionModule.useSteamUninstallAction;
   const helpers = {
     buildGameDetailsPath: (game: GameContextMenuGame) =>
       `/game/${game.shop}/${game.objectId}`,
@@ -234,6 +283,17 @@ async function fixture(
   let currentActions!: MenuActions;
   let items: MenuItem[] = [];
   let confirmation!: { visible: boolean; deleteGame: () => void };
+  let contextMenuClose: (() => void) | null = null;
+  const confirmationModals = new Map<
+    string,
+    {
+      visible: boolean;
+      title: string;
+      descriptionText?: string;
+      onConfirm: () => void;
+      onClose: () => void;
+    }
+  >();
   const stubComponent = () => null;
   const menuModule = loadModule(`${directory}/game-context-menu.tsx`, {
     "react-i18next": translation,
@@ -242,15 +302,39 @@ async function fixture(
     "@primer/octicons-react": new Proxy({}, { get: () => stubComponent }),
     "@renderer/assets/steam-logo.svg?react": stubComponent,
     "..": {
-      ContextMenu: (props: { items: MenuItem[] }) => {
+      ContextMenu: (props: { items: MenuItem[]; onClose: () => void }) => {
         items = props.items;
+        contextMenuClose = props.onClose;
         return null;
       },
       useGameActions: (game: GameContextMenuGame) => {
         currentActions = useActions(game);
         return currentActions;
       },
-      ConfirmationModal: stubComponent,
+      ConfirmationModal: (props: {
+        visible: boolean;
+        title: string;
+        descriptionText?: string;
+        onConfirm: () => void;
+        onClose: () => void;
+      }) => {
+        confirmationModals.set(props.title, props);
+        return null;
+      },
+      SteamUninstallModal: (props: {
+        visible: boolean;
+        gameTitle: string;
+        onConfirm: () => void;
+        onClose: () => void;
+      }) => {
+        confirmationModals.set("steam", {
+          visible: props.visible,
+          title: "steam",
+          onConfirm: props.onConfirm,
+          onClose: props.onClose,
+        });
+        return null;
+      },
       CreateCollectionModal: stubComponent,
     },
     "@renderer/hooks": hooks,
@@ -272,13 +356,16 @@ async function fixture(
   });
   const Menu = menuModule.GameContextMenu as React.ElementType;
   const root = createRoot(dom.window.document.getElementById("root")!);
-  const onClose = () => calls.push(["close-menu"]);
+  const onClose = () => {
+    menuVisible = false;
+    calls.push(["close-menu"]);
+  };
   const render = () =>
     React.act(async () => {
       root.render(
         React.createElement(Menu, {
           game: requestedGame,
-          visible: true,
+          visible: menuVisible,
           position: { x: 0, y: 0 },
           onClose,
         })
@@ -313,11 +400,42 @@ async function fixture(
     calls,
     removedEvents,
     item,
+    hasItem: (id: string) => Boolean(findItem(id)),
     get actions() {
       return currentActions;
     },
     get confirmationVisible() {
       return confirmation.visible;
+    },
+    get steamConfirmation() {
+      return confirmationModals.get("steam");
+    },
+    async setSteamExecutableCheck(value: boolean | null) {
+      steamExecutableCheck = value;
+      await render();
+    },
+    async setSteamUninstallError(value: boolean) {
+      steamUninstallError = value;
+      await render();
+    },
+    async removeSteamUninstallBridge() {
+      delete (
+        dom.window as unknown as {
+          electron: { uninstallGameOnSteam?: unknown };
+        }
+      ).electron.uninstallGameOnSteam;
+      await render();
+    },
+    async closeContextMenu() {
+      assert.ok(contextMenuClose, "context menu onClose must be captured");
+      await React.act(async () => contextMenuClose?.());
+      await render();
+    },
+    async confirmSteamUninstall() {
+      const modal = confirmationModals.get("steam");
+      assert.ok(modal, "Steam confirmation must exist");
+      assert.equal(modal.visible, true);
+      await React.act(async () => modal.onConfirm());
     },
     async click(id: string) {
       const target = item(id);
@@ -513,5 +631,191 @@ describe("context menu download identity", () => {
     assert.deepEqual(state.removedEvents, [
       { shop: "epic", objectId: epic.objectId },
     ]);
+  });
+
+  it("shows a disabled Remove files item while the Steam executable check is pending", async (t) => {
+    const state = await fixture(t, [steam]);
+
+    await state.setSteamExecutableCheck(null);
+
+    assert.equal(state.item("remove-files").disabled, true);
+  });
+
+  it("hides Remove files after the Steam executable check resolves false", async (t) => {
+    const state = await fixture(t, [steam]);
+
+    await state.setSteamExecutableCheck(null);
+    assert.equal(state.item("remove-files").disabled, true);
+
+    await state.setSteamExecutableCheck(false);
+    assert.equal(state.hasItem("remove-files"), false);
+  });
+
+  it("routes Steam removal through the Steam uninstall bridge", async (t) => {
+    const state = await fixture(t, [steam]);
+    await state.setSteamExecutableCheck(true);
+
+    assert.equal(state.item("remove-files").disabled, false);
+    await state.click("remove-files");
+
+    assert.equal(state.steamConfirmation?.visible, true);
+    await state.confirmSteamUninstall();
+
+    assert.deepEqual(
+      state.calls.filter(([action]) => action === "steam-uninstall"),
+      [["steam-uninstall", "123"]]
+    );
+    assert.equal(
+      state.calls.some(([action]) => action === "remove-installer"),
+      false
+    );
+  });
+
+  it("hides Steam removal when the Steam game has no executable", async (t) => {
+    const noExecutable = { ...steam, executablePath: null };
+    const state = await fixture(t, [noExecutable], noExecutable);
+    await state.setSteamExecutableCheck(true);
+
+    assert.equal(state.hasItem("remove-files"), false);
+  });
+
+  it("offers Hydra removal for a Steam operational game with a completed Epic download", async (t) => {
+    const epic = epicWithDownload({ status: "complete" });
+    const state = await fixture(t, [steam, epic]);
+    await state.setSteamExecutableCheck(true);
+
+    assert.equal(state.hasItem("remove-files"), true);
+    await state.click("remove-files");
+    assert.equal(state.confirmationVisible, true);
+    assert.notEqual(state.steamConfirmation?.visible, true);
+    await state.confirmRemoval();
+
+    assert.deepEqual(
+      state.calls.filter(([action]) => action === "remove-installer"),
+      [["remove-installer", "epic", epic.objectId]]
+    );
+    assert.deepEqual(state.removedEvents, [
+      { shop: "epic", objectId: epic.objectId },
+    ]);
+    assert.equal(
+      state.calls.some(([action]) => action === "steam-uninstall"),
+      false
+    );
+  });
+
+  it("disables Remove files while the resolved Hydra target is deleting", async (t) => {
+    const epic = epicWithDownload({ status: "complete" });
+    const state = await fixture(t, [steam, epic]);
+    await state.setSteamExecutableCheck(true);
+    await state.setDeleting([epic.objectId]);
+
+    assert.equal(state.item("remove-files").disabled, true);
+  });
+
+  it("rejects Steam removal when the target changes after confirmation opens", async (t) => {
+    const state = await fixture(t, [steam]);
+    await state.setSteamExecutableCheck(true);
+    await state.click("remove-files");
+
+    assert.equal(state.steamConfirmation?.visible, true);
+    await state.updateLibrary([{ ...steam, hasActiveSteamImport: false }]);
+    await state.confirmSteamUninstall();
+
+    assert.equal(
+      state.calls.some(([action]) => action === "steam-uninstall"),
+      false
+    );
+    assert.equal(
+      state.calls.some(
+        ([action, title]) =>
+          action === "error" && title === "remove_files_target_changed"
+      ),
+      true
+    );
+  });
+
+  it("clears the Steam confirmation when the context menu closes", async (t) => {
+    const state = await fixture(t, [steam]);
+    await state.setSteamExecutableCheck(true);
+    await state.click("remove-files");
+
+    assert.equal(state.steamConfirmation?.visible, true);
+    await state.closeContextMenu();
+    assert.equal(state.steamConfirmation?.visible, false);
+  });
+
+  it("clears the Hydra confirmation when the context menu closes", async (t) => {
+    const epic = epicWithDownload({ status: "paused" });
+    const state = await fixture(t, [steam, epic]);
+
+    await state.click("remove-files");
+    assert.equal(state.confirmationVisible, true);
+
+    await state.closeContextMenu();
+    assert.equal(state.confirmationVisible, false);
+  });
+
+  it("keeps Hydra removal precedence when both Hydra and Steam are eligible", async (t) => {
+    const epic = epicWithDownload({ status: "paused" });
+    const state = await fixture(t, [steam, epic]);
+    await state.setSteamExecutableCheck(true);
+
+    await state.click("remove-files");
+
+    assert.equal(state.confirmationVisible, true);
+    assert.notEqual(state.steamConfirmation?.visible, true);
+    await state.confirmRemoval();
+
+    assert.deepEqual(
+      state.calls.filter(([action]) => action === "remove-installer"),
+      [["remove-installer", "epic", epic.objectId]]
+    );
+    assert.equal(
+      state.calls.some(([action]) => action === "steam-uninstall"),
+      false
+    );
+  });
+
+  it("shows a Steam error toast when uninstall fails", async (t) => {
+    const state = await fixture(t, [steam]);
+    await state.setSteamExecutableCheck(true);
+    await state.setSteamUninstallError(true);
+    await state.click("remove-files");
+    await state.confirmSteamUninstall();
+
+    assert.deepEqual(
+      state.calls.filter(([action]) => action === "steam-uninstall"),
+      [["steam-uninstall", "123"]]
+    );
+    assert.equal(
+      state.calls.some(
+        ([action, title]) =>
+          action === "error" && title === "steam_uninstall_failed"
+      ),
+      true
+    );
+    assert.equal(
+      state.calls.some(
+        ([action, title]) =>
+          action === "success" && title === "steam_uninstall_requested"
+      ),
+      false
+    );
+  });
+
+  it("hides Steam removal when the uninstall bridge is unavailable", async (t) => {
+    const state = await fixture(t, [steam]);
+    await state.setSteamExecutableCheck(true);
+    await state.removeSteamUninstallBridge();
+
+    assert.equal(state.hasItem("remove-files"), false);
+  });
+
+  it("hides Steam removal for an invalid app ID", async (t) => {
+    const invalidSteam = { ...steam, objectId: "abc" };
+    const state = await fixture(t, [invalidSteam], invalidSteam);
+    await state.setSteamExecutableCheck(true);
+
+    assert.equal(state.hasItem("remove-files"), false);
   });
 });
