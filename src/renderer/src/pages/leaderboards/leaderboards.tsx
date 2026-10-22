@@ -70,6 +70,7 @@ export default function Leaderboards() {
     period,
     scope,
     isLoggedIn,
+    accountId: viewerUser?.id ?? null,
   });
   const formatValue = useGlobalLeaderboardValue();
 
@@ -82,13 +83,15 @@ export default function Leaderboards() {
     : availableMetrics[0];
 
   const playtimeBoard = results.playtime.leaderboard;
+  const [weekClock, setWeekClock] = useState(Date.now);
   const weekRange = useMemo(
-    () => resolveWeekRange(playtimeBoard, Date.now()),
-    [playtimeBoard]
+    () => resolveWeekRange(playtimeBoard, weekClock),
+    [playtimeBoard, weekClock]
   );
 
   const handleWeekEnd = useCallback(() => {
     leaderboardsCache.clear();
+    setWeekClock(Date.now());
     retry();
     setGeneration((value) => value + 1);
   }, [retry]);

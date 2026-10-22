@@ -73,6 +73,7 @@ export function RankingTab({
   const { numberFormatter } = useFormat();
   const navigate = useNavigate();
   const [reviewerId, setReviewerId] = useState<string | null>(null);
+  const [visibleRows, setVisibleRows] = useState(GLOBAL_LEADERBOARD_PAGE_SIZE);
 
   const current = results[metric];
   const leaderboard = current.leaderboard;
@@ -301,13 +302,14 @@ export function RankingTab({
             isReviews ? (entry) => setReviewerId(entry.user.id) : undefined
           }
           renderTooltip={isReviews ? renderReviewTooltip : undefined}
+          onVisibleChange={setVisibleRows}
         />
       </>
     );
   };
 
   const visibleCount = leaderboard
-    ? Math.min(leaderboard.entries.length, GLOBAL_LEADERBOARD_PAGE_SIZE)
+    ? Math.min(leaderboard.entries.length, visibleRows)
     : 0;
 
   return (

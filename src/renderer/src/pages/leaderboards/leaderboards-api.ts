@@ -43,10 +43,11 @@ export interface ApiResource<T> {
 const readCached = <T>(
   path: string | null,
   options: LeaderboardRequestOptions,
+  accountId: string | null,
   normalize: (response: unknown) => T
 ): T | null => {
   if (!path) return null;
-  const cached = leaderboardsCache.peek(path, options);
+  const cached = leaderboardsCache.peek(path, options, accountId);
   if (cached === undefined) return null;
 
   try {
@@ -61,9 +62,11 @@ export function useApiResource<T>(
   options: LeaderboardRequestOptions,
   normalize: (response: unknown) => T
 ): ApiResource<T> {
-  const requestKey = path ? getRequestKey(path, options) : null;
+  const { viewerUser } = useLeaderboardViewer();
+  const accountId = viewerUser?.id ?? null;
+  const requestKey = path ? getRequestKey(path, options, accountId) : null;
   const [state, setState] = useState(() => {
-    const data = readCached(path, options, normalize);
+    const data = readCached(path, options, accountId, normalize);
     return {
       key: requestKey,
       data,
@@ -73,12 +76,16 @@ export function useApiResource<T>(
   });
   const [attempt, setAttempt] = useState(0);
   const requestIdRef = useRef(0);
-  const latest = useRef({ path, options, normalize });
-  latest.current = { path, options, normalize };
+  const latest = useRef({ path, options, accountId, normalize });
+  latest.current = { path, options, accountId, normalize };
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
-    const { path: currentPath, options: currentOptions } = latest.current;
+    const {
+      path: currentPath,
+      options: currentOptions,
+      accountId: currentAccountId,
+    } = latest.current;
 
     if (!currentPath) {
       setState({ key: null, data: null, isLoading: false, hasError: false });
@@ -88,6 +95,7 @@ export function useApiResource<T>(
     const cached = readCached(
       currentPath,
       currentOptions,
+      currentAccountId,
       latest.current.normalize
     );
     if (cached !== null) {
@@ -108,7 +116,7 @@ export function useApiResource<T>(
     }));
 
     leaderboardsCache
-      .get(currentPath, currentOptions)
+      .get(currentPath, currentOptions, currentAccountId)
       .then((response) => {
         if (requestId !== requestIdRef.current) return;
         setState({

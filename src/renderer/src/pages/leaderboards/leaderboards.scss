@@ -603,8 +603,10 @@ $leaderboards-streak-to: #b05cff;
   &__games {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-columns: minmax(200px, 1fr);
     gap: globals.$spacing-unit;
+    overflow-x: auto;
+    scrollbar-width: thin;
   }
 
   &__game {

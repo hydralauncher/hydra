@@ -192,6 +192,51 @@ describe("createResponseCache", () => {
   });
 });
 
+describe("createResponseCache isolation", () => {
+  const { path, options } = buildGlobalLeaderboardRequest(query);
+
+  it("keeps each account's responses apart", async () => {
+    let calls = 0;
+    const get: LeaderboardGet = async () => {
+      calls += 1;
+      return { entries: [rawEntry(1, `user-${calls}`)] };
+    };
+    const cache = createResponseCache(get);
+
+    await cache.get(path, options, "account-a");
+    assert.equal(cache.peek(path, options, "account-b"), undefined);
+    await cache.get(path, options, "account-b");
+    assert.equal(calls, 2);
+    assert.notEqual(
+      getRequestKey(path, options, "account-a"),
+      getRequestKey(path, options, "account-b")
+    );
+  });
+
+  it("ignores responses from before a clear", async () => {
+    let resolveOld: (value: unknown) => void = () => undefined;
+    let calls = 0;
+    const get: LeaderboardGet = () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Promise((resolve) => {
+          resolveOld = resolve;
+        });
+      }
+      return Promise.resolve("fresh");
+    };
+    const cache = createResponseCache(get);
+
+    const old = cache.get(path, options);
+    cache.clear();
+    assert.equal(await cache.get(path, options), "fresh");
+
+    resolveOld("stale");
+    await old;
+    assert.equal(cache.peek(path, options), "fresh");
+  });
+});
+
 describe("getAvailableMetrics", () => {
   const ok = { leaderboard: {}, hasError: false };
   const loading = { leaderboard: null, hasError: false };

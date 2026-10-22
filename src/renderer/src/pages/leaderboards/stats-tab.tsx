@@ -11,6 +11,8 @@ import {
   getViewerRanking,
   normalizeFriendStreaks,
   normalizePlayActivity,
+  PLAY_ACTIVITY_WEEKS,
+  SECONDS_PER_HOUR,
   type GlobalLeaderboardMetric,
   type GlobalLeaderboardPeriod,
   type HeatmapCell,
@@ -50,7 +52,7 @@ export function StatsTab({
 
   const activity = useApiResource(
     "/users/me/play-activity",
-    { params: { weeks: 15 }, needsAuth: true },
+    { params: { weeks: PLAY_ACTIVITY_WEEKS }, needsAuth: true },
     normalizePlayActivity
   );
   const friends = useApiResource(
@@ -80,8 +82,8 @@ export function StatsTab({
       timeZone: "UTC",
     }).format(cell.date);
     const label = cell.isToday ? t("today_date", { date }) : date;
-    const hours = Math.floor(cell.seconds / 3600);
-    const minutes = Math.round((cell.seconds % 3600) / 60);
+    const hours = Math.floor(cell.seconds / SECONDS_PER_HOUR);
+    const minutes = Math.round((cell.seconds % SECONDS_PER_HOUR) / 60);
     let time = t("not_played");
     if (cell.seconds > 0) {
       time =
@@ -132,7 +134,7 @@ export function StatsTab({
         <div className="leaderboards__heatmap-block">
           <div className="leaderboards__heatmap-header">
             <span className="leaderboards__heatmap-title">
-              {t("last_weeks", { count: 15 })}
+              {t("last_weeks", { count: PLAY_ACTIVITY_WEEKS })}
             </span>
             <span className="leaderboards__heatmap-legend">
               {t("legend_min")}

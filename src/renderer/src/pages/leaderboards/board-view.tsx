@@ -29,7 +29,7 @@ export interface BoardViewProps {
   selectedId?: string | null;
   onSelect?: (entry: LeaderboardEntry) => void;
   renderTooltip?: (entry: LeaderboardEntry) => React.ReactNode;
-  footer?: React.ReactNode;
+  onVisibleChange?: (visible: number) => void;
 }
 
 export function BoardView({
@@ -43,7 +43,7 @@ export function BoardView({
   selectedId,
   onSelect,
   renderTooltip,
-  footer,
+  onVisibleChange,
 }: BoardViewProps) {
   const { t } = useTranslation("leaderboards");
   const [visible, setVisible] = useState(GLOBAL_LEADERBOARD_PAGE_SIZE);
@@ -51,6 +51,10 @@ export function BoardView({
   useEffect(() => {
     setVisible(GLOBAL_LEADERBOARD_PAGE_SIZE);
   }, [leaderboard]);
+
+  useEffect(() => {
+    onVisibleChange?.(visible);
+  }, [onVisibleChange, visible]);
 
   const getDelta = (entry: LeaderboardEntry) =>
     showDelta
@@ -124,8 +128,6 @@ export function BoardView({
           </Button>
         </div>
       )}
-
-      {footer}
     </>
   );
 }

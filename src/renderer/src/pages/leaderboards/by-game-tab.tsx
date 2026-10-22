@@ -134,10 +134,12 @@ export function ByGameTab({
   const allGames = useMemo(() => games.data ?? [], [games.data]);
   const listed = allGames.find((game) => gameKey(game) === selectedKey);
   const linkedGame =
-    initialGame && selectedKey === gameKey(initialGame) && games.data && !listed
+    initialGame && selectedKey === gameKey(initialGame) && !listed
       ? initialGame
       : null;
   const linkedAssets = useLinkedGameAssets(linkedGame);
+  const boardGame: LinkedGame | null =
+    listed ?? linkedGame ?? allGames[0] ?? null;
   const selected: SelectedGame | MyGameRanking | null =
     listed ?? linkedAssets ?? (linkedGame ? null : (allGames[0] ?? null));
 
@@ -151,8 +153,8 @@ export function ByGameTab({
   }, [allGames, search]);
 
   const board = useApiResource(
-    selected
-      ? `/games/${selected.shop}/${encodeURIComponent(selected.objectId)}/leaderboards/${metric}`
+    boardGame
+      ? `/games/${boardGame.shop}/${encodeURIComponent(boardGame.objectId)}/leaderboards/${metric}`
       : null,
     {
       params: { range: period, scope, take: GLOBAL_LEADERBOARD_TAKE },
@@ -174,8 +176,12 @@ export function ByGameTab({
   const formatValue = (value: number) => formatGameValue(metric, value);
 
   const viewerRanking = getViewerRanking(board.data, viewerId);
-  const heroRank = selected?.rank ?? viewerRanking?.rank ?? null;
-  const heroTotal = selected?.total ?? board.data?.total ?? null;
+  const heroRank = board.data
+    ? (viewerRanking?.rank ?? null)
+    : (selected?.rank ?? null);
+  const heroTotal = board.data
+    ? (board.data.total ?? null)
+    : (selected?.total ?? null);
   let heroSubtitle = "";
   if (heroRank !== null && heroTotal !== null) {
     heroSubtitle = t("game_ranking_subtitle", {
@@ -238,7 +244,7 @@ export function ByGameTab({
     return (
       <div className="leaderboards__games">
         {filtered.map((game) => {
-          const isSelected = selected && gameKey(selected) === gameKey(game);
+          const isSelected = boardGame && gameKey(boardGame) === gameKey(game);
 
           return (
             <button
@@ -315,7 +321,7 @@ export function ByGameTab({
       );
     }
 
-    if (!board.data || !selected) return null;
+    if (!board.data || !boardGame) return null;
 
     return (
       <BoardView
@@ -348,24 +354,27 @@ export function ByGameTab({
         {renderGames()}
       </section>
 
-      {selected && (
+      {boardGame && (
         <section
           className="leaderboards__board leaderboards__board--game"
           aria-labelledby="game-board-title"
         >
           <div
             className={cn("leaderboards__hero", {
-              "leaderboards__hero--image": selected.heroImageUrl,
+              "leaderboards__hero--image": selected?.heroImageUrl,
             })}
-            style={backgroundStyle(selected.heroImageUrl, "--hero")}
+            style={backgroundStyle(selected?.heroImageUrl ?? null, "--hero")}
           >
             <span
               className="leaderboards__hero-cover"
-              style={backgroundStyle(selected.coverImageUrl, "--cover")}
+              style={backgroundStyle(
+                selected?.coverImageUrl ?? null,
+                "--cover"
+              )}
             />
             <div className="leaderboards__hero-text">
               <h2 id="game-board-title" className="leaderboards__hero-title">
-                {t("game_ranking_title", { game: selected.title })}
+                {t("game_ranking_title", { game: selected?.title ?? "" })}
               </h2>
               <span className="leaderboards__hero-subtitle">
                 {heroSubtitle}
@@ -376,7 +385,7 @@ export function ByGameTab({
               className="leaderboards__hero-link"
               onClick={() =>
                 navigate(
-                  `/game/${selected.shop}/${encodeURIComponent(selected.objectId)}`
+                  `/game/${boardGame.shop}/${encodeURIComponent(boardGame.objectId)}`
                 )
               }
             >

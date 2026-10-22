@@ -27,6 +27,7 @@ interface BoardsQuery {
   period: GlobalLeaderboardPeriod;
   scope: GlobalLeaderboardScope;
   isLoggedIn: boolean;
+  accountId: string | null;
 }
 
 const readCachedBoard = (
@@ -37,7 +38,7 @@ const readCachedBoard = (
     metric,
     ...query,
   });
-  const cached = leaderboardsCache.peek(path, options);
+  const cached = leaderboardsCache.peek(path, options, query.accountId);
   if (cached === undefined) return null;
 
   try {
@@ -62,18 +63,19 @@ export function useGlobalLeaderboards({
   period,
   scope,
   isLoggedIn,
+  accountId,
 }: BoardsQuery) {
-  const queryKey = `${period}|${scope}|${isLoggedIn}`;
+  const queryKey = `${period}|${scope}|${isLoggedIn}|${accountId}`;
   const [state, setState] = useState(() => ({
     key: queryKey,
-    results: readCachedBoards({ period, scope, isLoggedIn }),
+    results: readCachedBoards({ period, scope, isLoggedIn, accountId }),
   }));
   const [attempt, setAttempt] = useState(0);
   const requestIdRef = useRef(0);
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
-    const query = { period, scope, isLoggedIn };
+    const query = { period, scope, isLoggedIn, accountId };
     const initial = readCachedBoards(query);
     setState({ key: queryKey, results: initial });
 
@@ -86,7 +88,7 @@ export function useGlobalLeaderboards({
       });
 
       leaderboardsCache
-        .get(path, options)
+        .get(path, options, accountId)
         .then((response) => {
           if (requestId !== requestIdRef.current) return;
           const leaderboard = normalizeGlobalLeaderboardResponse(response);
@@ -110,12 +112,12 @@ export function useGlobalLeaderboards({
           }));
         });
     });
-  }, [attempt, isLoggedIn, period, queryKey, scope]);
+  }, [accountId, attempt, isLoggedIn, period, queryKey, scope]);
 
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
   const pending = useMemo(
-    () => readCachedBoards({ period, scope, isLoggedIn }),
-    [isLoggedIn, period, scope]
+    () => readCachedBoards({ period, scope, isLoggedIn, accountId }),
+    [accountId, isLoggedIn, period, scope]
   );
 
   return {

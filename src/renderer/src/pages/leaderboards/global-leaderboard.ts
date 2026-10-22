@@ -13,6 +13,9 @@ export const GLOBAL_LEADERBOARD_CACHE_TTL_MS = 60_000;
 export const GLOBAL_LEADERBOARD_PODIUM_SIZE = 3;
 export const PLAY_ACTIVITY_WEEKS = 15;
 export const BADGES_PAGE_SIZE = 8;
+export const SECONDS_PER_HOUR = 60 * 60;
+export const PLAY_LEVEL_LOW_SECONDS = SECONDS_PER_HOUR;
+export const PLAY_LEVEL_HIGH_SECONDS = 3 * SECONDS_PER_HOUR;
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -250,14 +253,15 @@ export const normalizeGlobalLeaderboardResponse = (
 
 export const getRequestKey = (
   path: string,
-  options: LeaderboardRequestOptions
+  options: LeaderboardRequestOptions,
+  accountId: string | null = null
 ) => {
   const params = Object.entries(options.params)
     .map(([key, value]) => `${key}=${value}`)
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .join("&");
 
-  return `${path}?${params}|auth=${options.needsAuth}`;
+  return `${accountId ?? "guest"}|${path}?${params}|auth=${options.needsAuth}`;
 };
 
 export const createResponseCache = (
@@ -267,30 +271,39 @@ export const createResponseCache = (
 ) => {
   const cache = new Map<string, { at: number; response: unknown }>();
   const inFlight = new Map<string, Promise<unknown>>();
+  let generation = 0;
 
-  const peek = (path: string, options: LeaderboardRequestOptions) => {
-    const cached = cache.get(getRequestKey(path, options));
+  const peek = (
+    path: string,
+    options: LeaderboardRequestOptions,
+    accountId: string | null = null
+  ) => {
+    const cached = cache.get(getRequestKey(path, options, accountId));
     return cached && now() - cached.at < ttl ? cached.response : undefined;
   };
 
   const request = (
     path: string,
-    options: LeaderboardRequestOptions
+    options: LeaderboardRequestOptions,
+    accountId: string | null = null
   ): Promise<unknown> => {
-    const key = getRequestKey(path, options);
-    const cached = peek(path, options);
+    const key = getRequestKey(path, options, accountId);
+    const cached = peek(path, options, accountId);
     if (cached !== undefined) return Promise.resolve(cached);
 
     const pending = inFlight.get(key);
-    if (pending) return pending;
+    if (pending !== undefined) return pending;
 
-    const promise = get(path, options)
+    const requestGeneration = generation;
+    const promise: Promise<unknown> = get(path, options)
       .then((response) => {
-        cache.set(key, { at: now(), response });
+        if (requestGeneration === generation) {
+          cache.set(key, { at: now(), response });
+        }
         return response;
       })
       .finally(() => {
-        inFlight.delete(key);
+        if (inFlight.get(key) === promise) inFlight.delete(key);
       });
 
     inFlight.set(key, promise);
@@ -298,6 +311,7 @@ export const createResponseCache = (
   };
 
   const clear = () => {
+    generation += 1;
     cache.clear();
     inFlight.clear();
   };
@@ -432,8 +446,8 @@ export const getCountdownParts = (end: Date, now: number) => {
 
 export const getPlayLevel = (seconds: number) => {
   if (seconds <= 0) return 0;
-  if (seconds < 3600) return 1;
-  if (seconds < 3 * 3600) return 2;
+  if (seconds < PLAY_LEVEL_LOW_SECONDS) return 1;
+  if (seconds < PLAY_LEVEL_HIGH_SECONDS) return 2;
 
   return 3;
 };
