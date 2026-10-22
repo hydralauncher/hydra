@@ -39,6 +39,7 @@ export function ProfileGamificationPills() {
         <XpBar
           xp={level.xp}
           xpToNextLevel={level.xpToNextLevel}
+          trail={halo.intensity}
           className="profile-gamification-pills__bar"
         />
         <span>

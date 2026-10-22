@@ -8,7 +8,7 @@ const MIN_RADIUS = 120;
 
 /**
  * Dotted halo that follows the pointer, as in the designer's prototype.
- * `intensity` (0..1) eases in and out so children can react too (badge preview).
+ * `intensity` (0..1) eases in and out so children can react too (bar trail, badge preview).
  */
 export function useHoverHalo<T extends HTMLElement>(alpha: number) {
   const hostRef = useRef<T>(null);
