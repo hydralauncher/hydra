@@ -1,3 +1,5 @@
+$screenshot-lightbox-hover-duration: 0.2s;
+
 .screenshot-lightbox__backdrop {
   z-index: 120;
 }
@@ -145,7 +147,7 @@
     text-align: left;
     cursor: pointer;
     appearance: none;
-    transition: background-color 0.2s ease;
+    transition: background-color $screenshot-lightbox-hover-duration ease;
 
     &:focus,
     &:focus-visible {
@@ -690,8 +692,8 @@
     cursor: pointer;
     appearance: none;
     transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+      background-color $screenshot-lightbox-hover-duration ease,
+      color $screenshot-lightbox-hover-duration ease;
 
     &:focus,
     &:focus-visible {

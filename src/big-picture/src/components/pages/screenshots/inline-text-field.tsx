@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type FormEvent,
   type ReactNode,
 } from "react";
@@ -172,6 +173,11 @@ export function InlineTextField({
           },
           className
         )}
+        style={
+          {
+            "--inline-text-field-limit-feedback-duration": `${LIMIT_FEEDBACK_MS}ms`,
+          } as CSSProperties
+        }
         onSubmit={handleSubmit}
       >
         <svg className="inline-text-field__outline" aria-hidden="true">

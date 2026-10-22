@@ -1,3 +1,5 @@
+$screenshot-card-spoiler-duration: 0.2s;
+
 .screenshot-card {
   position: relative;
   display: flex;
@@ -41,8 +43,8 @@
     height: 100%;
     object-fit: cover;
     transition:
-      filter 0.2s ease,
-      transform 0.2s ease;
+      filter $screenshot-card-spoiler-duration ease,
+      transform $screenshot-card-spoiler-duration ease;
 
     &--spoiler {
       filter: blur(18px) brightness(0.55);

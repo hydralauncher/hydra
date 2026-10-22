@@ -992,7 +992,7 @@
     "screenshots_view_all": "Показать все",
     "screenshots_comment_bold": "Жирный",
     "screenshots_comment_italic": "Курсив",
-    "screenshots_settings_ask_to_upload_description": "Если выключено, скриншоты только сохраняются на этом компьютере. Загрузить их можно позже со страницы игры.",
+    "screenshots_settings_ask_to_upload_description": "Если выключено, скриншоты только сохраняются на этом компьютере. Загрузить их можно позже на странице игры, в разделе «Мои скриншоты».",
     "screenshots_comment_count_one": "{{count}} комментарий",
     "screenshots_comment_count_few": "{{count}} комментария",
     "screenshots_comment_count_many": "{{count}} комментариев",

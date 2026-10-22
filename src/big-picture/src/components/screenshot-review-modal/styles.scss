@@ -1,3 +1,5 @@
+$screenshot-review-progress-duration: 0.2s;
+
 .screenshot-review-modal {
   width: min(760px, calc(100vw - 48px));
 
@@ -164,7 +166,7 @@
 
     &::-webkit-progress-value {
       background: var(--primary);
-      transition: width 0.2s ease;
+      transition: width $screenshot-review-progress-duration ease;
     }
   }
 

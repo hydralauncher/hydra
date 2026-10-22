@@ -967,7 +967,7 @@
     "screenshots_view_all": "Ver todas",
     "screenshots_comment_bold": "Negrita",
     "screenshots_comment_italic": "Cursiva",
-    "screenshots_settings_ask_to_upload_description": "Si está desactivado, las capturas solo se guardan en este equipo. Puedes subirlas más tarde desde la página del juego.",
+    "screenshots_settings_ask_to_upload_description": "Si está desactivado, las capturas solo se guardan en este equipo. Puedes subirlas más tarde desde la página del juego, en Mis capturas de pantalla.",
     "screenshots_comment_count_one": "{{count}} comentario",
     "screenshots_comment_count_other": "{{count}} comentarios",
     "screenshots_like_count_one": "{{count}} me gusta",

@@ -1006,7 +1006,7 @@
     "screenshots_view_all": "View all",
     "screenshots_comment_bold": "Bold",
     "screenshots_comment_italic": "Italic",
-    "screenshots_settings_ask_to_upload_description": "When off, screenshots are only saved on this computer. You can upload them later from the game page.",
+    "screenshots_settings_ask_to_upload_description": "When off, screenshots are only saved on this computer. You can upload them later from the game's page, under My Screenshots.",
     "screenshots_comment_count_one": "{{count}} comment",
     "screenshots_comment_count_other": "{{count}} comments",
     "screenshots_like_count_one": "{{count}} like",
