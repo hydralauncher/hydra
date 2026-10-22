@@ -203,6 +203,7 @@ export const uploadLocalScreenshot = async (
 };
 
 export {
+  countLocalScreenshotFilesForGame,
   deleteLocalScreenshot,
   deleteLocalScreenshotsForGame,
   forgetPublishedScreenshots,

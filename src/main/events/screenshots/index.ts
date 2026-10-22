@@ -10,5 +10,6 @@ import "./get-pending-screenshot-review-request";
 import "./update-local-screenshot-draft";
 import "./get-local-screenshots-for-game";
 import "./delete-local-screenshots-for-game";
+import "./count-local-screenshot-files-for-game";
 import "./get-published-screenshot-ids-for-game";
 import "./forget-published-screenshots";

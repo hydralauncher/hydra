@@ -1107,6 +1107,10 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<number>;
+    countLocalScreenshotFilesForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<number>;
     getPublishedScreenshotIdsForGame: (
       shop: GameShop,
       objectId: string
