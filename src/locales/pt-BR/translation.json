@@ -2873,6 +2873,8 @@
     "screenshot_unavailable": "Esta captura de tela não está mais disponível",
     "screenshots_friends_only": "Somente amigos podem ver estas capturas de tela",
     "screenshots_load_failed": "Não foi possível carregar as capturas de tela",
+    "published_screenshots_load_failed": "Não foi possível carregar suas capturas publicadas",
+    "local_screenshots_load_failed": "Não foi possível carregar as capturas salvas neste computador",
     "screenshots_private": "Estas capturas de tela são privadas",
     "sign_in": "Entrar",
     "sign_in_to_like": "Entre para curtir",

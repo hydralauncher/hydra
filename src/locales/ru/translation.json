@@ -2646,6 +2646,8 @@
     "screenshot_unavailable": "Этот скриншот больше недоступен",
     "screenshots_friends_only": "Эти скриншоты видят только друзья",
     "screenshots_load_failed": "Не удалось загрузить скриншоты",
+    "published_screenshots_load_failed": "Не удалось загрузить ваши опубликованные скриншоты",
+    "local_screenshots_load_failed": "Не удалось загрузить скриншоты, сохранённые на этом компьютере",
     "screenshots_private": "Эти скриншоты скрыты",
     "sign_in": "Войти",
     "sign_in_to_like": "Войдите, чтобы отметить «Нравится»",

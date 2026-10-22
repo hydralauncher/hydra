@@ -122,7 +122,11 @@ export const notifyMyGameScreenshotsChanged = () => {
   for (const listener of changeListeners) listener();
 };
 
-export type MyGameScreenshotsStatus = "loading" | "failed" | "ready";
+export type MyGameScreenshotsStatus =
+  | "loading"
+  | "failed"
+  | "partial"
+  | "ready";
 
 interface MyGameScreenshotsSourceState {
   isLoaded: boolean;
@@ -136,11 +140,16 @@ export const resolveMyGameScreenshotsStatus = ({
   local: MyGameScreenshotsSourceState;
   published: MyGameScreenshotsSourceState & { isEnabled: boolean };
 }): MyGameScreenshotsStatus => {
-  if (local.hasFailed || (published.isEnabled && published.hasFailed)) {
+  const publishedFailed = published.isEnabled && published.hasFailed;
+  const publishedReady =
+    !published.isEnabled || (published.isLoaded && !published.hasFailed);
+  const localReady = local.isLoaded && !local.hasFailed;
+
+  if (local.hasFailed && (!published.isEnabled || publishedFailed)) {
     return "failed";
   }
-  if (!local.isLoaded || (published.isEnabled && !published.isLoaded)) {
-    return "loading";
-  }
-  return "ready";
+  if (local.hasFailed) return publishedReady ? "partial" : "loading";
+  if (publishedFailed) return localReady ? "partial" : "loading";
+  if (localReady && publishedReady) return "ready";
+  return "loading";
 };
