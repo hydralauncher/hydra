@@ -136,10 +136,20 @@ export function useApiResource<T>(
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
   const isCurrent = state.key === requestKey;
 
+  if (!isCurrent) {
+    const pending = readCached(path, options, accountId, normalize);
+    return {
+      data: pending,
+      isLoading: Boolean(path) && pending === null,
+      hasError: false,
+      retry,
+    };
+  }
+
   return {
-    data: isCurrent ? state.data : null,
-    isLoading: isCurrent ? state.isLoading : Boolean(path),
-    hasError: isCurrent && state.hasError,
+    data: state.data,
+    isLoading: state.isLoading,
+    hasError: state.hasError,
     retry,
   };
 }

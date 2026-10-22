@@ -2663,6 +2663,8 @@
     "empty_all_description": "Jogue para ser o primeiro deste ranking.",
     "empty_friends_title": "Nenhum amigo para comparar",
     "empty_friends_description": "Adicione amigos para ver sua posição entre eles.",
+    "game_metrics_empty_title": "Nenhum ranking por jogo ainda",
+    "game_metrics_empty_description": "Os rankings por jogo vão aparecer aqui em breve.",
     "empty_friends_game_title": "Nenhum amigo seu joga este jogo",
     "empty_friend_streaks_description": "Adicione amigos para ver quem joga todo dia.",
     "find_friends": "Encontrar amigos",

@@ -2659,6 +2659,8 @@
     "empty_all_description": "Play to be the first on this board.",
     "empty_friends_title": "No friends to compare with",
     "empty_friends_description": "Add friends to see how you rank against them.",
+    "game_metrics_empty_title": "No game rankings yet",
+    "game_metrics_empty_description": "Per-game rankings will show up here soon.",
     "empty_friends_game_title": "None of your friends play this game",
     "empty_friend_streaks_description": "Add friends to see who plays every day.",
     "find_friends": "Find friends",

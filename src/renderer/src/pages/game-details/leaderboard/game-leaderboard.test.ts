@@ -437,6 +437,17 @@ describe("getDurationParts", () => {
   it("switches to hours at the limit", () => {
     assert.deepEqual(getDurationParts(7200, 120), { unit: "hours", amount: 2 });
   });
+
+  it("keeps one decimal for hours", () => {
+    assert.deepEqual(getDurationParts(9060, 120), {
+      unit: "hours",
+      amount: 2.5,
+    });
+    assert.deepEqual(getDurationParts(12540, 120), {
+      unit: "hours",
+      amount: 3.5,
+    });
+  });
 });
 
 describe("selectLoadedLeaderboard", () => {

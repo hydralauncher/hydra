@@ -241,7 +241,7 @@ describe("rank deltas and viewer ranking", () => {
   it("computes the delta from the previous rank", () => {
     assert.equal(getRankDelta(3, 5), 2);
     assert.equal(getRankDelta(5, 3), -2);
-    assert.equal(getRankDelta(4, null), 0);
+    assert.equal(getRankDelta(4, null), null);
   });
 
   it("reads the viewer from the list or from the viewer field", () => {

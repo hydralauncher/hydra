@@ -1,12 +1,12 @@
 # Global leaderboards page in the launcher (LBX-1265)
 
-SDD from 2026-10-21. Status: approved, scope = the full Claude Design screen.
+SDD from 2026-10-21. Status: approved, scope = the full design screen.
 
-Base: branch `feature/lbx-1265`, in the `hydra/hydra-launcher-lbx-1265` worktree, stacked on `feat/LBX-1266-game-page-leaderboard` (which sits on `feat/LBX-1267-leaderboard-top-position-styling`), because it reuses the per-game ranking row, medal and value formatter. Prototype: Claude Design "Rankings · em abas" (tabs **Ranking**, **By game** and **Your stats**). Backend: `hydra-api` on `feature/lbx-1259` (framework) and the endpoint introduced by LBX-1260 (`feature/lbx-1260`).
+Builds on the game page leaderboard (LBX-1266), reusing its ranking row, medal and value formatter. The design has three tabs: **Ranking**, **By game** and **Your stats**. Backend: the leaderboard framework (LBX-1259) and the global weekly boards (LBX-1260).
 
 ## Expected result
 
-A **Leaderboards** page in the launcher, reached from the sidebar, that implements the Claude Design screen exactly, including what goes beyond the task text: the three tabs, badges, rank change, player totals, the review preview and the streak indicators. Where the API does not provide the data yet, the screen is ready with a local mock and the dependency is listed below.
+A **Leaderboards** page in the launcher, reached from the sidebar, that implements the design screen exactly, including what goes beyond the task text: the three tabs, badges, rank change, player totals, the review preview and the streak indicators. Where the API does not provide the data yet, the dependency is listed below.
 
 ## Task acceptance criteria
 
@@ -59,9 +59,9 @@ A **Leaderboards** page in the launcher, reached from the sidebar, that implemen
 | Friends' streaks with presence                                                  | LBX-1263 + existing presence | to confirm                                                                          |
 | Badges (earned, progress)                                                       | no task                      | **needs a backend task**                                                            |
 
-Until each dependency exists, its block uses the local mock; switching to the real API happens per block.
+Each block switches to the real API as its dependency ships.
 
-## Proposed contracts (the mock already answers like this)
+## Proposed contracts
 
 | Endpoint                                                           | Response                                                                                                                                                                                                                                                                                                     |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -90,15 +90,13 @@ Until each dependency exists, its block uses the local mock; switching to the re
 
 - One renderer response cache (`createResponseCache`, 60 s, deduping identical in-flight requests). Switching to an already visited tab, period or scope does not refetch nor flash a skeleton, because the screen reads the cache synchronously.
 - The countdown lives in `WeekSubtitle`; its 30 s tick does not re-render the page.
-- When the week resets with the page open, the cache is cleared and every block reloads.
+- When the week resets with the page open, the cache is cleared and every block reloads, retrying with backoff (30 s up to 5 min) while the API still returns the old week. The tabs remount only when the week start day changes.
+- Heatmap days and "today" use UTC, matching the backend weeks (Monday 00:00 UTC), and "today" moves at UTC midnight while the page stays open.
+- If `/leaderboards/metrics?scope=game` returns no metric, the By game board shows an empty state instead of an error.
+- The game page "View full ranking" link shows only to signed-in users, since the By game tab needs a session.
+- A missing `previousRank` hides the rank change instead of showing "no change".
 - A metric is hidden only when `/leaderboards/metrics` does not list it. If a listed metric's board fails, its card stays visible with a load error and the board shows the error with "Try again", which requests it again. The game page leaderboard reads through the same response cache, so one `clear()` at the weekly reset covers every board; stale entries are deleted on read and the cache keeps at most 200 responses.
-- Animations: the podium shine uses only `transform` (GPU). The badge ring animates a `conic-gradient` angle, which repaints every frame, but only on a few small elements.
-
-## Before the PR
-
-- `leaderboards-api.ts` calls `globalThis.window.electron.hydraApi.get` and returns `null` for the viewer when logged out; the local mock only replaces those lines in the working tree.
-- Do not commit `*-mock.local.ts`, `src/renderer/public/leaderboard-mock.local/` or the LBX-1266 `// LOCAL MOCK` lines.
-- PR stacked on LBX-1266 (and that one on LBX-1267) with `gh stack`.
+- Animations: the podium shine and the earned badge ring (`RankFrameRing`) use only `transform` (GPU).
 
 ## States
 
@@ -125,7 +123,7 @@ Until each dependency exists, its block uses the local mock; switching to the re
 | `pages/leaderboards/leaderboard-bits.tsx`                                   | rank change, streak flame, block states                                                             |
 | `pages/leaderboards/badges-section.tsx`                                     | your badges                                                                                         |
 | `pages/leaderboards/metric-icon.tsx`                                        | metric icons                                                                                        |
-| `pages/leaderboards/global-leaderboard.ts` (+ `.test.ts`)                   | metrics, request, normalizers, response cache, states, ISO week, countdown, change, heatmap, badges |
+| `pages/leaderboards/global-leaderboard.ts` (+ `.test.ts`)                   | metrics, request, normalizers, states, ISO week, countdown, change, heatmap, badges                 |
 | `pages/leaderboards/leaderboards-api.ts`                                    | API access, viewer, cached resource hook                                                            |
 | `helpers/response-cache.ts` (+ `.test.ts`)                                  | shared response cache: per account keys, TTL, dedupe, generation on clear, stale eviction, size cap |
 | `services/leaderboards-cache.ts`                                            | the single cache instance used by the Leaderboards page and the game page board                     |
@@ -136,12 +134,11 @@ Until each dependency exists, its block uses the local mock; switching to the re
 | `pages/game-details/leaderboard/leaderboard-controls.tsx`                   | exports `SegmentedControl`                                                                          |
 | `pages/game-details/leaderboard/leaderboard-row.tsx`, `leaderboard.scss`    | optional rank addon, value prefix, muted value and tooltip slots                                    |
 | `main.tsx`, `components/sidebar/routes.tsx`, `components/header/header.tsx` | route, sidebar item with the design trophy icon, title                                              |
-| `src/locales/en/translation.json`, `src/locales/pt-BR/translation.json`     | strings                                                                                             |
-| `pages/leaderboards/leaderboards-mock.local.ts`                             | local mock, **not committed**                                                                       |
+| `src/locales/{en,pt-BR,es,ru}/translation.json`                             | strings                                                                                             |
 
 ## Tests and acceptance
 
-- `global-leaderboard.test.ts` (`node:test`, same pattern as `game-leaderboard.test.ts`): request, normalizers, response cache (key, TTL, dedupe, uncached errors, clear), available metrics, states, rank change, viewer ranking, ISO week, countdown, heatmap and badge progress. 54 tests pass together with the LBX-1266 and rank tier tests.
+- `global-leaderboard.test.ts` (`node:test`, same pattern as `game-leaderboard.test.ts`): request, normalizers, metric definitions, rows below the podium, states, rank change, viewer ranking, ISO week, countdown, heatmap and badge progress. `response-cache.test.ts` covers keys, TTL, dedupe, uncached errors, clear, account isolation and housekeeping.
 - Goal: 80% or more of the new logic lines. Components are validated in the launcher.
-- Manual test in the launcher with the mock (`localStorage.globalLeaderboardMock` = `full`, `empty`, `empty_friends`, `error`, `slow`, `leader`): the three tabs, toggles, countdown, podium, review, streak, badges, "Show more", pinned row, profile link, logged out.
+- Manual test in the launcher: the three tabs, toggles, countdown, podium, review, streak, badges, "Show more", pinned row, profile link, logged out.
 - Once the backend ships: validate each block against a local `hydra-api`.

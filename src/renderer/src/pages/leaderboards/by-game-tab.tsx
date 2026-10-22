@@ -133,6 +133,10 @@ export function ByGameTab({
     normalizeMetricDefinitions
   );
   const gameMetrics = metricDefinitions.data ?? [];
+  const hasNoGameMetrics =
+    !metricDefinitions.isLoading &&
+    !metricDefinitions.hasError &&
+    metricDefinitions.data?.length === 0;
   const metric =
     gameMetrics.find((definition) => definition.id === requestedMetric) ??
     gameMetrics[0] ??
@@ -309,6 +313,16 @@ export function ByGameTab({
   };
 
   const renderBoard = () => {
+    if (hasNoGameMetrics) {
+      return (
+        <BlockMessage
+          icon={<TrophyIcon size={24} />}
+          title={t("game_metrics_empty_title")}
+          description={t("game_metrics_empty_description")}
+        />
+      );
+    }
+
     if (boardState === "loading") return <BoardSkeleton />;
     if (boardState === "error") {
       return (
@@ -420,7 +434,7 @@ export function ByGameTab({
             </button>
           </div>
 
-          {metricChips}
+          {!hasNoGameMetrics && metricChips}
           {renderBoard()}
         </section>
       )}

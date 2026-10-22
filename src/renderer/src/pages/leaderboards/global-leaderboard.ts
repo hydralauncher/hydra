@@ -18,7 +18,7 @@ export const PLAY_LEVEL_LOW_SECONDS = SECONDS_PER_HOUR;
 export const PLAY_LEVEL_HIGH_SECONDS = 3 * SECONDS_PER_HOUR;
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
+export const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const METRIC_VALUE_TYPES = ["duration", "count", "days"] as const;
 export const METRIC_SCOPES = ["global", "game"] as const;
@@ -329,8 +329,10 @@ export const hasReviewData = (leaderboard: GlobalLeaderboard | null) =>
     (extras) => extras.review !== null
   );
 
-export const getRankDelta = (rank: number, previousRank: number | null) =>
-  previousRank === null ? 0 : previousRank - rank;
+export const getRankDelta = (
+  rank: number,
+  previousRank: number | null
+): number | null => (previousRank === null ? null : previousRank - rank);
 
 export const getViewerRanking = (
   leaderboard: GlobalLeaderboard | null,

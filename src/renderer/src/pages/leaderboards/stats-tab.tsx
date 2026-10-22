@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import cn from "classnames";
 import { PeopleIcon } from "@primer/octicons-react";
 import Skeleton from "react-loading-skeleton";
@@ -8,6 +8,7 @@ import { Avatar, Button } from "@renderer/components";
 import type { LeaderboardUser } from "../game-details/leaderboard/game-leaderboard";
 import {
   buildHeatmap,
+  DAY_MS,
   getViewerRanking,
   normalizeFriendStreaks,
   normalizePlayActivity,
@@ -50,6 +51,22 @@ const DAY_LABEL_DATES = [5, 6, 7, 8, 9, 10, 11].map(
   (day) => new Date(Date.UTC(2024, 1, day))
 );
 
+function useUtcDay() {
+  const [day, setDay] = useState(
+    () => Math.floor(Date.now() / DAY_MS) * DAY_MS
+  );
+
+  useEffect(() => {
+    const timeout = setTimeout(
+      () => setDay(Math.floor(Date.now() / DAY_MS) * DAY_MS),
+      day + DAY_MS - Date.now() + 1000
+    );
+    return () => clearTimeout(timeout);
+  }, [day]);
+
+  return day;
+}
+
 export function StatsTab({
   results,
   metrics,
@@ -73,9 +90,10 @@ export function StatsTab({
     normalizeFriendStreaks
   );
 
+  const utcDay = useUtcDay();
   const heatmap = useMemo(
-    () => buildHeatmap(activity.data?.days ?? [], Date.now()),
-    [activity.data]
+    () => buildHeatmap(activity.data?.days ?? [], utcDay),
+    [activity.data, utcDay]
   );
 
   const dayLabels = useMemo(() => {
@@ -89,13 +107,19 @@ export function StatsTab({
     }));
   }, [i18n.language]);
 
+  const cellDateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(i18n.language, {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        timeZone: "UTC",
+      }),
+    [i18n.language]
+  );
+
   const cellTitle = (cell: HeatmapCell) => {
-    const date = new Intl.DateTimeFormat(i18n.language, {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      timeZone: "UTC",
-    }).format(cell.date);
+    const date = cellDateFormatter.format(cell.date);
     const label = cell.isToday ? t("today_date", { date }) : date;
     const totalMinutes = Math.max(
       1,

@@ -113,14 +113,14 @@ function LeaderboardsPage() {
     retry();
   }, [retryMetrics, retry]);
 
-  const weekEndTime = weekRange.end.getTime();
-  const lastWeekEndRef = useRef(weekEndTime);
+  const weekKey = weekRange.start.toISOString().slice(0, 10);
+  const lastWeekKeyRef = useRef(weekKey);
 
   useEffect(() => {
-    if (lastWeekEndRef.current === weekEndTime) return;
-    lastWeekEndRef.current = weekEndTime;
+    if (lastWeekKeyRef.current === weekKey) return;
+    lastWeekKeyRef.current = weekKey;
     setGeneration((value) => value + 1);
-  }, [weekEndTime]);
+  }, [weekKey]);
 
   const handleWeekEnd = useCallback(() => {
     leaderboardsCache.clear();

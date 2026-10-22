@@ -230,7 +230,7 @@ export function LeaderboardSection() {
 
         <div className="leaderboard-section__footer">
           {renderNudge()}
-          {isGlobalLeaderboardsEnabled && (
+          {isGlobalLeaderboardsEnabled && isLoggedIn && (
             <button
               type="button"
               className="leaderboard-section__see-all"

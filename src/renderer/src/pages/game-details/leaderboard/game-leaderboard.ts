@@ -366,7 +366,7 @@ export const getDurationParts = (
     };
   }
 
-  return { unit: "hours", amount: Math.round(minutes / 60) };
+  return { unit: "hours", amount: Math.round(minutes / 6) / 10 };
 };
 
 export const buildGameLeaderboardPath = (shop: GameShop, objectId: string) => {
