@@ -40,6 +40,7 @@ const RECOVERY_BY_ERROR_CODE: Record<string, ScreenshotUploadRecoveryAction> = {
   [GAME_NOT_FOUND_ERROR_CODE]: "wait_for_game",
   [SCREENSHOT_ALREADY_UPLOADED_CODE]: "already_uploaded",
   "screenshots/exceeds-tier-limit": "recompress_standard",
+  "screenshots/cloud-subscription-required": "recompress_standard",
   "screenshots/client-id-conflict": "rotate_client_id",
   "screenshots/upload-expired": "rotate_client_id",
   "screenshots/not-found": "rotate_client_id",
