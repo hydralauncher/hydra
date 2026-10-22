@@ -703,6 +703,15 @@ describe("context menu download identity", () => {
     );
   });
 
+  it("disables Remove files while the resolved Hydra target is deleting", async (t) => {
+    const epic = epicWithDownload({ status: "complete" });
+    const state = await fixture(t, [steam, epic]);
+    await state.setSteamExecutableCheck(true);
+    await state.setDeleting([epic.objectId]);
+
+    assert.equal(state.item("remove-files").disabled, true);
+  });
+
   it("rejects Steam removal when the target changes after confirmation opens", async (t) => {
     const state = await fixture(t, [steam]);
     await state.setSteamExecutableCheck(true);

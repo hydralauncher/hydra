@@ -5,6 +5,7 @@ import {
   AuthPage,
   applyLibraryGroupAction,
   getRemoveFilesTarget,
+  isLibraryGameDownloading,
   type RemoveFilesTarget,
 } from "@shared";
 import {
@@ -37,6 +38,7 @@ import {
   useGameActions,
 } from "..";
 import {
+  useDownload,
   useGameCollections,
   useToast,
   useUserDetails,
@@ -133,6 +135,7 @@ export function GameContextMenu({
     handleConfirmRpcs3Launch,
     handleCancelRpcs3Launch,
   } = useGameActions(game);
+  const { isGameDeleting } = useDownload();
   const { isCollectionContextMenuOrModalOpen } = useCollectionContextMenu();
   const selectedCollectionId = searchParams.get("collection");
 
@@ -156,10 +159,18 @@ export function GameContextMenu({
     hydraRemoveFilesAvailable ||
     isSteamProbePending ||
     steamUninstallTarget !== null;
+  const hydraRemoveFilesDeleting =
+    hydraRemoveFilesTarget?.kind === "hydra" &&
+    isGameDeleting(hydraRemoveFilesTarget.game.objectId);
+  const hydraRemoveFilesDownloading =
+    hydraRemoveFilesTarget?.kind === "hydra" &&
+    isLibraryGameDownloading(hydraRemoveFilesTarget.game);
   const removeFilesDisabled =
     isDeleting ||
     isDownloadDeleting ||
+    hydraRemoveFilesDeleting ||
     isGameDownloading ||
+    hydraRemoveFilesDownloading ||
     (!hydraRemoveFilesAvailable && isSteamProbePending);
 
   useEffect(() => {
