@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 
 import { Avatar } from "@renderer/components";
 import { useFormat } from "@renderer/hooks";
+import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
 import type { LeaderboardUser } from "../game-details/leaderboard/game-leaderboard";
 import {
@@ -36,6 +37,12 @@ import {
   BoardSkeleton,
   RankDelta,
 } from "./leaderboard-bits";
+
+const GAME_SKELETON_ROWS = 4;
+const GAME_SKELETON_KEYS = Array.from(
+  { length: GAME_SKELETON_ROWS },
+  (_, index) => `game-skeleton-${index}`
+);
 
 export interface LinkedGame {
   shop: string;
@@ -160,7 +167,7 @@ export function ByGameTab({
 
   const board = useApiResource(
     boardGame && metric
-      ? `/games/${boardGame.shop}/${encodeURIComponent(boardGame.objectId)}/leaderboards/${metric.id}`
+      ? `/games/${boardGame.shop}/${encodeURIComponent(boardGame.objectId)}/leaderboards/${encodeURIComponent(metric.id)}`
       : null,
     {
       params: { range: period, scope, take: GLOBAL_LEADERBOARD_TAKE },
@@ -195,6 +202,8 @@ export function ByGameTab({
       total: numberFormatter.format(heroTotal),
       rank: heroRank,
     });
+  } else if (heroRank !== null) {
+    heroSubtitle = t("you_are_at", { rank: heroRank });
   } else if (heroTotal !== null) {
     heroSubtitle = t("players_count", { count: heroTotal });
   }
@@ -222,8 +231,8 @@ export function ByGameTab({
     if (games.isLoading && !games.data) {
       return (
         <div className="leaderboards__games">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="leaderboards__game-skeleton" />
+          {GAME_SKELETON_KEYS.map((key) => (
+            <Skeleton key={key} className="leaderboards__game-skeleton" />
           ))}
         </div>
       );
@@ -398,7 +407,11 @@ export function ByGameTab({
               className="leaderboards__hero-link"
               onClick={() =>
                 navigate(
-                  `/game/${boardGame.shop}/${encodeURIComponent(boardGame.objectId)}`
+                  buildGameDetailsPath({
+                    shop: boardGame.shop as GameShop,
+                    objectId: boardGame.objectId,
+                    title: selected?.title ?? "",
+                  })
                 )
               }
             >

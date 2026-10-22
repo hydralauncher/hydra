@@ -10,6 +10,7 @@ import {
 import { LeaderboardRow } from "../game-details/leaderboard/leaderboard-row";
 import {
   getRankDelta,
+  getRowsBelowPodium,
   GLOBAL_LEADERBOARD_PAGE_SIZE,
   GLOBAL_LEADERBOARD_PAGE_STEP,
   GLOBAL_LEADERBOARD_PODIUM_SIZE,
@@ -72,9 +73,9 @@ export function BoardView({
     return active ? "active" : "ended";
   };
 
-  const rows = buildLeaderboardRows(leaderboard, viewerUser, visible).filter(
-    (row) => row.entry.rank > GLOBAL_LEADERBOARD_PODIUM_SIZE
-  );
+  const allRows = buildLeaderboardRows(leaderboard, viewerUser, visible);
+  const listedCount = Math.min(visible, leaderboard.entries.length);
+  const rows = getRowsBelowPodium(allRows, listedCount);
   const hasMore = leaderboard.entries.length > visible;
 
   return (

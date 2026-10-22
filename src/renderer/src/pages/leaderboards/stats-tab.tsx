@@ -32,6 +32,12 @@ import {
 } from "./use-global-leaderboards";
 import { useMetricText } from "./use-global-leaderboard-value";
 
+const FRIEND_SKELETON_ROWS = 6;
+const FRIEND_SKELETON_KEYS = Array.from(
+  { length: FRIEND_SKELETON_ROWS },
+  (_, index) => `friend-skeleton-${index}`
+);
+
 export interface StatsTabProps {
   results: GlobalBoardResults;
   metrics: MetricDefinition[];
@@ -190,8 +196,8 @@ export function StatsTab({
     if (friends.isLoading && !friends.data) {
       return (
         <div className="leaderboards__friend-streaks">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <Skeleton key={index} className="leaderboards__friend-skeleton" />
+          {FRIEND_SKELETON_KEYS.map((key) => (
+            <Skeleton key={key} className="leaderboards__friend-skeleton" />
           ))}
         </div>
       );

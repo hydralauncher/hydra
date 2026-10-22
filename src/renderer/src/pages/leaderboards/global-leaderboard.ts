@@ -1,7 +1,6 @@
 import {
   normalizeLeaderboardResponse,
   type Leaderboard,
-  type LeaderboardGet,
   type LeaderboardRequestOptions,
   type LeaderboardUser,
 } from "../game-details/leaderboard/game-leaderboard.js";
@@ -9,8 +8,6 @@ import {
 export const GLOBAL_LEADERBOARD_TAKE = 100;
 export const GLOBAL_LEADERBOARD_PAGE_SIZE = 13;
 export const GLOBAL_LEADERBOARD_PAGE_STEP = 10;
-export const GLOBAL_LEADERBOARD_CACHE_TTL_MS = 60_000;
-export const MAX_CACHED_RESPONSES = 200;
 export const GLOBAL_LEADERBOARD_PODIUM_SIZE = 3;
 export const PLAY_ACTIVITY_WEEKS = 15;
 export const BADGES_PAGE_SIZE = 8;
@@ -201,7 +198,7 @@ export const buildGlobalLeaderboardRequest = (
   const scope = query.isLoggedIn ? query.scope : "global";
 
   return {
-    path: `/leaderboards/${query.metric}`,
+    path: `/leaderboards/${encodeURIComponent(query.metric)}`,
     options: {
       params: { window: query.period, scope, take: GLOBAL_LEADERBOARD_TAKE },
       needsAuth: query.isLoggedIn,
@@ -253,88 +250,11 @@ export const normalizeGlobalLeaderboardResponse = (
   };
 };
 
-export const getRequestKey = (
-  path: string,
-  options: LeaderboardRequestOptions,
-  accountId: string | null = null
-) => {
-  const params = Object.entries(options.params)
-    .map(([key, value]) => `${key}=${value}`)
-    .sort((a, b) => a.localeCompare(b))
-    .join("&");
-
-  return `${accountId ?? "guest"}|${path}?${params}|auth=${options.needsAuth}`;
-};
-
-export const createResponseCache = (
-  get: LeaderboardGet,
-  now: () => number = Date.now,
-  ttl = GLOBAL_LEADERBOARD_CACHE_TTL_MS,
-  maxEntries = MAX_CACHED_RESPONSES
-) => {
-  const cache = new Map<string, { at: number; response: unknown }>();
-  const inFlight = new Map<string, Promise<unknown>>();
-  let generation = 0;
-
-  const peek = (
-    path: string,
-    options: LeaderboardRequestOptions,
-    accountId: string | null = null
-  ) => {
-    const key = getRequestKey(path, options, accountId);
-    const cached = cache.get(key);
-    if (!cached) return undefined;
-    if (now() - cached.at < ttl) return cached.response;
-
-    cache.delete(key);
-    return undefined;
-  };
-
-  const store = (key: string, response: unknown) => {
-    cache.delete(key);
-    cache.set(key, { at: now(), response });
-
-    while (cache.size > maxEntries) {
-      const oldest = cache.keys().next().value;
-      if (oldest === undefined) break;
-      cache.delete(oldest);
-    }
-  };
-
-  const request = (
-    path: string,
-    options: LeaderboardRequestOptions,
-    accountId: string | null = null
-  ): Promise<unknown> => {
-    const key = getRequestKey(path, options, accountId);
-    const cached = peek(path, options, accountId);
-    if (cached !== undefined) return Promise.resolve(cached);
-
-    const pending = inFlight.get(key);
-    if (pending !== undefined) return pending;
-
-    const requestGeneration = generation;
-    const promise: Promise<unknown> = get(path, options)
-      .then((response) => {
-        if (requestGeneration === generation) store(key, response);
-        return response;
-      })
-      .finally(() => {
-        if (inFlight.get(key) === promise) inFlight.delete(key);
-      });
-
-    inFlight.set(key, promise);
-    return promise;
-  };
-
-  const clear = () => {
-    generation += 1;
-    cache.clear();
-    inFlight.clear();
-  };
-
-  return { get: request, peek, clear };
-};
+export const getRowsBelowPodium = <T>(
+  rows: T[],
+  listedCount: number,
+  podiumSize = GLOBAL_LEADERBOARD_PODIUM_SIZE
+) => [...rows.slice(podiumSize, listedCount), ...rows.slice(listedCount)];
 
 export const getBoardState = ({
   isLoading,

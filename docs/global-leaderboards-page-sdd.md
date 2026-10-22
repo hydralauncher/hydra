@@ -127,6 +127,9 @@ Until each dependency exists, its block uses the local mock; switching to the re
 | `pages/leaderboards/metric-icon.tsx`                                        | metric icons                                                                                        |
 | `pages/leaderboards/global-leaderboard.ts` (+ `.test.ts`)                   | metrics, request, normalizers, response cache, states, ISO week, countdown, change, heatmap, badges |
 | `pages/leaderboards/leaderboards-api.ts`                                    | API access, viewer, cached resource hook                                                            |
+| `helpers/response-cache.ts` (+ `.test.ts`)                                  | shared response cache: per account keys, TTL, dedupe, generation on clear, stale eviction, size cap |
+| `services/leaderboards-cache.ts`                                            | the single cache instance used by the Leaderboards page and the game page board                     |
+| `hooks/use-global-leaderboards-feature.ts`                                  | `GLOBAL_LEADERBOARDS` flag for the sidebar, the route and the game page link                        |
 | `pages/leaderboards/use-global-leaderboards.ts`                             | global boards for every metric                                                                      |
 | `pages/leaderboards/use-global-leaderboard-value.ts`                        | value formatting per metric                                                                         |
 | `pages/leaderboards/leaderboards.scss`                                      | BEM styles                                                                                          |

@@ -8,7 +8,7 @@ import {
   type GlobalLeaderboardPeriod,
   type GlobalLeaderboardScope,
 } from "./global-leaderboard";
-import { leaderboardsCache } from "./leaderboards-api";
+import { leaderboardsCache } from "@renderer/services/leaderboards-cache";
 
 export interface GlobalBoardResult {
   leaderboard: GlobalLeaderboard | null;

@@ -4,18 +4,17 @@ import { describe, it } from "node:test";
 import {
   buildGlobalLeaderboardRequest,
   buildHeatmap,
-  createResponseCache,
   buildMetricsRequest,
   hasReviewData,
   hasStreakData,
   normalizeMetricDefinitions,
-  getRequestKey,
   getBadgeProgress,
   getBoardState,
   getCountdownParts,
   getIsoWeekNumber,
   getPlayLevel,
   getRankDelta,
+  getRowsBelowPodium,
   getUtcWeekRange,
   getViewerRanking,
   normalizeBadges,
@@ -26,7 +25,6 @@ import {
   resolveWeekRange,
   type GlobalLeaderboardQuery,
 } from "./global-leaderboard.js";
-import type { LeaderboardGet } from "../game-details/leaderboard/game-leaderboard.js";
 
 const rawUser = (id: string) => ({
   id,
@@ -133,132 +131,6 @@ describe("normalizeGlobalLeaderboardResponse", () => {
   });
 });
 
-describe("createResponseCache", () => {
-  const response = { entries: [rawEntry(1, "a")] };
-  const { path, options } = buildGlobalLeaderboardRequest(query);
-
-  it("builds a stable key regardless of param order", () => {
-    assert.equal(
-      getRequestKey("/x", { params: { b: 2, a: 1 }, needsAuth: true }),
-      getRequestKey("/x", { params: { a: 1, b: 2 }, needsAuth: true })
-    );
-    assert.notEqual(
-      getRequestKey("/x", { params: { a: 1 }, needsAuth: true }),
-      getRequestKey("/x", { params: { a: 1 }, needsAuth: false })
-    );
-  });
-
-  it("caches by request, dedupes in flight requests and expires", async () => {
-    let calls = 0;
-    let clock = 0;
-    const get: LeaderboardGet = async () => {
-      calls += 1;
-      return response;
-    };
-    const cache = createResponseCache(get, () => clock, 1000);
-
-    assert.equal(cache.peek(path, options), undefined);
-    await Promise.all([cache.get(path, options), cache.get(path, options)]);
-    assert.equal(calls, 1);
-    assert.deepEqual(cache.peek(path, options), response);
-
-    await cache.get(path, options);
-    assert.equal(calls, 1);
-
-    const games = buildGlobalLeaderboardRequest({ ...query, metric: "games" });
-    await cache.get(games.path, games.options);
-    assert.equal(calls, 2);
-
-    clock = 1001;
-    assert.equal(cache.peek(path, options), undefined);
-    await cache.get(path, options);
-    assert.equal(calls, 3);
-  });
-
-  it("does not cache failures and can be cleared", async () => {
-    let calls = 0;
-    const get: LeaderboardGet = async () => {
-      calls += 1;
-      if (calls === 1) throw new Error("boom");
-      return response;
-    };
-    const cache = createResponseCache(get);
-
-    await assert.rejects(cache.get(path, options));
-    await cache.get(path, options);
-    assert.equal(calls, 2);
-
-    cache.clear();
-    assert.equal(cache.peek(path, options), undefined);
-    await cache.get(path, options);
-    assert.equal(calls, 3);
-  });
-});
-
-describe("createResponseCache isolation", () => {
-  const { path, options } = buildGlobalLeaderboardRequest(query);
-
-  it("keeps each account's responses apart", async () => {
-    let calls = 0;
-    const get: LeaderboardGet = async () => {
-      calls += 1;
-      return { entries: [rawEntry(1, `user-${calls}`)] };
-    };
-    const cache = createResponseCache(get);
-
-    await cache.get(path, options, "account-a");
-    assert.equal(cache.peek(path, options, "account-b"), undefined);
-    await cache.get(path, options, "account-b");
-    assert.equal(calls, 2);
-    assert.notEqual(
-      getRequestKey(path, options, "account-a"),
-      getRequestKey(path, options, "account-b")
-    );
-  });
-
-  it("ignores responses from before a clear", async () => {
-    let resolveOld: (value: unknown) => void = () => undefined;
-    let calls = 0;
-    const get: LeaderboardGet = () => {
-      calls += 1;
-      if (calls === 1) {
-        return new Promise((resolve) => {
-          resolveOld = resolve;
-        });
-      }
-      return Promise.resolve("fresh");
-    };
-    const cache = createResponseCache(get);
-
-    const old = cache.get(path, options);
-    cache.clear();
-    assert.equal(await cache.get(path, options), "fresh");
-
-    resolveOld("stale");
-    await old;
-    assert.equal(cache.peek(path, options), "fresh");
-  });
-});
-
-describe("createResponseCache housekeeping", () => {
-  it("drops stale entries and keeps at most maxEntries", async () => {
-    let clock = 0;
-    const get: LeaderboardGet = async (path) => path;
-    const cache = createResponseCache(get, () => clock, 1000, 2);
-    const request = (path: string) => cache.get(path, options);
-    const options = { params: {}, needsAuth: false };
-
-    await request("/a");
-    await request("/b");
-    await request("/c");
-    assert.equal(cache.peek("/a", options), undefined);
-    assert.equal(cache.peek("/c", options), "/c");
-
-    clock = 1001;
-    assert.equal(cache.peek("/c", options), undefined);
-  });
-});
-
 describe("metric definitions", () => {
   it("builds the metrics request per scope without auth", () => {
     assert.deepEqual(buildMetricsRequest("game"), {
@@ -303,6 +175,27 @@ describe("board data detection", () => {
     assert.equal(hasReviewData(review), true);
     assert.equal(hasStreakData(plain), false);
     assert.equal(hasStreakData(null), false);
+  });
+});
+
+describe("getRowsBelowPodium", () => {
+  it("splits by position so tied ranks are never dropped", () => {
+    const board = normalizeGlobalLeaderboardResponse({
+      entries: [
+        rawEntry(1, "a"),
+        rawEntry(2, "b"),
+        rawEntry(3, "c"),
+        rawEntry(3, "d"),
+        rawEntry(5, "e"),
+      ],
+    });
+    const ids = board.entries.map((entry) => entry.user.id);
+
+    assert.deepEqual(getRowsBelowPodium(ids, ids.length), ["d", "e"]);
+  });
+
+  it("keeps a pinned row after a short list", () => {
+    assert.deepEqual(getRowsBelowPodium(["a", "b", "viewer"], 2), ["viewer"]);
   });
 });
 

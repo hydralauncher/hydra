@@ -16,10 +16,10 @@ import {
   useDownload,
   useLibrary,
   useToast,
+  useGlobalLeaderboardsFeature,
 } from "@renderer/hooks";
 import { selectIsLibraryLoading } from "@renderer/features";
 import { routes } from "./routes";
-import { useGlobalLeaderboardsFeature } from "@renderer/pages/leaderboards/leaderboards-api";
 
 import "./sidebar.scss";
 

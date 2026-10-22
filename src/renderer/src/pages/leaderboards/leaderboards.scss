@@ -8,12 +8,6 @@ $leaderboards-ended: #838383;
 $leaderboards-streak-from: #22c7ee;
 $leaderboards-streak-to: #b05cff;
 
-@property --leaderboards-ring-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
 .leaderboards {
   display: flex;
   flex-direction: column;
@@ -1092,9 +1086,6 @@ $leaderboards-streak-to: #b05cff;
   }
 
   &__badge {
-    --ring: transparent;
-    --ring-soft: transparent;
-
     position: relative;
     display: flex;
     align-items: center;
@@ -1105,20 +1096,14 @@ $leaderboards-streak-to: #b05cff;
     background-color: globals.$background-color;
 
     &--gold {
-      --ring: #{globals.$rank-gold-color};
-      --ring-soft: rgba(243, 198, 17, 0.4);
       --chip-bg: #{globals.$rank-gold-color};
     }
 
     &--silver {
-      --ring: #{globals.$rank-silver-color};
-      --ring-soft: rgba(208, 209, 215, 0.34);
       --chip-bg: #{globals.$rank-silver-color};
     }
 
     &--bronze {
-      --ring: #{globals.$rank-bronze-color};
-      --ring-soft: rgba(208, 138, 82, 0.42);
       --chip-bg: #{globals.$rank-bronze-color};
     }
 
@@ -1155,38 +1140,6 @@ $leaderboards-streak-to: #b05cff;
 
     &--ring {
       border-color: transparent;
-
-      &::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        padding: 1.5px;
-        border-radius: inherit;
-        background:
-          conic-gradient(
-            from var(--leaderboards-ring-angle),
-            rgba(255, 255, 255, 0) 0deg,
-            rgba(255, 255, 255, 0) 190deg,
-            var(--ring) 290deg,
-            #fff 315deg,
-            var(--ring) 335deg,
-            rgba(255, 255, 255, 0) 360deg
-          ),
-          linear-gradient(var(--ring-soft), var(--ring-soft));
-        mask:
-          linear-gradient(#000 0 0) content-box exclude,
-          linear-gradient(#000 0 0);
-        animation: leaderboards-ring-spin 4.5s linear infinite;
-        pointer-events: none;
-      }
-    }
-
-    &--silver::before {
-      animation-delay: -1.5s;
-    }
-
-    &--bronze::before {
-      animation-delay: -3s;
     }
 
     &--locked {
@@ -1556,12 +1509,6 @@ $leaderboards-streak-to: #b05cff;
   }
 }
 
-@keyframes leaderboards-ring-spin {
-  to {
-    --leaderboards-ring-angle: 360deg;
-  }
-}
-
 @keyframes leaderboards-flicker {
   0%,
   100% {
@@ -1587,7 +1534,6 @@ $leaderboards-streak-to: #b05cff;
     animation: none;
   }
 
-  .leaderboards__badge--ring::before,
   .streak-flame--flicker {
     animation: none;
   }

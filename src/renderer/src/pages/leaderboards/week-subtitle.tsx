@@ -8,6 +8,8 @@ import {
 } from "./global-leaderboard";
 
 const COUNTDOWN_TICK_MS = 30_000;
+const WEEK_END_RETRY_BASE_MS = 30_000;
+const WEEK_END_RETRY_MAX_MS = 5 * 60_000;
 
 export interface WeekSubtitleProps {
   weekRange: WeekRange;
@@ -27,10 +29,18 @@ export function WeekSubtitle({
   const endTime = weekRange.end.getTime();
 
   useEffect(() => {
+    let attempts = 0;
+    let nextAttemptAt = endTime;
     const tick = () => {
       const current = Date.now();
       setNow(current);
-      if (current >= endTime) onWeekEndRef.current();
+      if (current < nextAttemptAt) return;
+
+      onWeekEndRef.current();
+      nextAttemptAt =
+        current +
+        Math.min(WEEK_END_RETRY_MAX_MS, WEEK_END_RETRY_BASE_MS * 2 ** attempts);
+      attempts += 1;
     };
 
     const interval = setInterval(tick, COUNTDOWN_TICK_MS);

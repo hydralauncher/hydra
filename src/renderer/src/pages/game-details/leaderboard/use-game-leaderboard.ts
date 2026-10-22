@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logger } from "@renderer/logger";
 import { useUserDetails } from "@renderer/hooks";
 import type { GameShop } from "@types";
-import { leaderboardsCache } from "../../leaderboards/leaderboards-api";
+import { leaderboardsCache } from "@renderer/services/leaderboards-cache";
 import {
   fetchGameLeaderboard,
   getLeaderboardBoardKey,

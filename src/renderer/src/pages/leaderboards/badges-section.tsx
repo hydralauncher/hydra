@@ -3,7 +3,7 @@ import cn from "classnames";
 import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "@renderer/components";
+import { Button, RankFrameRing } from "@renderer/components";
 import { useDate, useFormat } from "@renderer/hooks";
 import {
   BADGES_PAGE_SIZE,
@@ -17,6 +17,12 @@ import {
 import { useApiResource } from "./leaderboards-api";
 import { BlockError, StreakFlame } from "./leaderboard-bits";
 import { useMetricText } from "./use-global-leaderboard-value";
+
+const BADGE_SKELETON_ROWS = 6;
+const BADGE_SKELETON_KEYS = Array.from(
+  { length: BADGE_SKELETON_ROWS },
+  (_, index) => `badge-skeleton-${index}`
+);
 
 export function BadgesSection() {
   const { t } = useTranslation("leaderboards");
@@ -141,9 +147,11 @@ export function BadgesSection() {
           {
             "leaderboards__badge--locked": locked,
             "leaderboards__badge--ring": ring,
+            [`rank-frame rank-frame--${badge.tier}`]: ring,
           }
         )}
       >
+        {ring && <RankFrameRing />}
         <div className="leaderboards__badge-art">
           <div
             className="leaderboards__badge-cover"
@@ -187,8 +195,8 @@ export function BadgesSection() {
     if (badges.isLoading && !badges.data) {
       return (
         <div className="leaderboards__badges">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <Skeleton key={index} className="leaderboards__badge-skeleton" />
+          {BADGE_SKELETON_KEYS.map((key) => (
+            <Skeleton key={key} className="leaderboards__badge-skeleton" />
           ))}
         </div>
       );

@@ -14,6 +14,8 @@ import { useNavigate } from "react-router-dom";
 
 import { Avatar, Button } from "@renderer/components";
 import { useDate, useFormat } from "@renderer/hooks";
+import { buildGameDetailsPath } from "@renderer/helpers";
+import type { GameShop } from "@types";
 import type {
   LeaderboardEntry,
   LeaderboardUser,
@@ -257,7 +259,11 @@ export function RankingTab({
                 className="leaderboards__link"
                 onClick={() =>
                   navigate(
-                    `/game/${selectedReview.shop}/${selectedReview.objectId}`
+                    buildGameDetailsPath({
+                      shop: selectedReview.shop as GameShop,
+                      objectId: selectedReview.objectId,
+                      title: selectedReview.gameTitle,
+                    })
                   )
                 }
               >

@@ -5,6 +5,12 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@renderer/components";
 
+const ROW_SKELETON_ROWS = 5;
+const ROW_SKELETON_KEYS = Array.from(
+  { length: ROW_SKELETON_ROWS },
+  (_, index) => `row-skeleton-${index}`
+);
+
 export function RankDelta({ delta }: Readonly<{ delta: number | null }>) {
   const { t } = useTranslation("leaderboards");
   if (delta === null) return null;
@@ -117,8 +123,8 @@ export function BoardSkeleton() {
           />
         ))}
       </div>
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Skeleton key={index} className="leaderboards__skeleton-row" />
+      {ROW_SKELETON_KEYS.map((key) => (
+        <Skeleton key={key} className="leaderboards__skeleton-row" />
       ))}
     </div>
   );

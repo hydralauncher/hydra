@@ -1,27 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { logger } from "@renderer/logger";
-import { useFeature, useUserDetails } from "@renderer/hooks";
+import { useUserDetails } from "@renderer/hooks";
+import { getRequestKey } from "@renderer/helpers/response-cache";
+import { leaderboardsCache } from "@renderer/services/leaderboards-cache";
 import type {
-  LeaderboardGet,
   LeaderboardRequestOptions,
   LeaderboardUser,
 } from "../game-details/leaderboard/game-leaderboard";
-import { createResponseCache, getRequestKey } from "./global-leaderboard";
-
-const leaderboardsGet: LeaderboardGet = (path, options) =>
-  globalThis.window.electron.hydraApi.get<unknown>(path, options);
-
-export const leaderboardsCache = createResponseCache(leaderboardsGet);
-
-export function useGlobalLeaderboardsFeature() {
-  const { isFeatureEnabled, isFeaturesLoaded, Feature } = useFeature();
-
-  return {
-    isEnabled: isFeatureEnabled(Feature.GlobalLeaderboards),
-    isLoaded: isFeaturesLoaded,
-  };
-}
 
 export function useLeaderboardViewer() {
   const { userDetails } = useUserDetails();

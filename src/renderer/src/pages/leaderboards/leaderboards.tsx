@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import cn from "classnames";
 import { GlobeIcon, PeopleIcon, TrophyIcon } from "@primer/octicons-react";
 import { SkeletonTheme } from "react-loading-skeleton";
@@ -17,12 +17,9 @@ import {
   type GlobalLeaderboardScope,
   type LeaderboardPageTab,
 } from "./global-leaderboard";
-import {
-  leaderboardsCache,
-  useApiResource,
-  useGlobalLeaderboardsFeature,
-  useLeaderboardViewer,
-} from "./leaderboards-api";
+import { useGlobalLeaderboardsFeature } from "@renderer/hooks";
+import { leaderboardsCache } from "@renderer/services/leaderboards-cache";
+import { useApiResource, useLeaderboardViewer } from "./leaderboards-api";
 import { BadgesSection } from "./badges-section";
 import { ByGameTab, type LinkedGame } from "./by-game-tab";
 import { RankingTab } from "./ranking-tab";
@@ -98,9 +95,12 @@ function LeaderboardsPage() {
     availableMetrics[0] ??
     null;
 
-  const referenceBoard =
+  const loadedBoard =
     Object.values(results).find((result) => result?.leaderboard)?.leaderboard ??
     null;
+  const lastBoardRef = useRef(loadedBoard);
+  if (loadedBoard) lastBoardRef.current = loadedBoard;
+  const referenceBoard = loadedBoard ?? lastBoardRef.current;
   const [weekClock, setWeekClock] = useState(Date.now);
   const weekRange = useMemo(
     () => resolveWeekRange(referenceBoard, weekClock),
@@ -113,11 +113,19 @@ function LeaderboardsPage() {
     retry();
   }, [retryMetrics, retry]);
 
+  const weekEndTime = weekRange.end.getTime();
+  const lastWeekEndRef = useRef(weekEndTime);
+
+  useEffect(() => {
+    if (lastWeekEndRef.current === weekEndTime) return;
+    lastWeekEndRef.current = weekEndTime;
+    setGeneration((value) => value + 1);
+  }, [weekEndTime]);
+
   const handleWeekEnd = useCallback(() => {
     leaderboardsCache.clear();
     setWeekClock(Date.now());
     retry();
-    setGeneration((value) => value + 1);
   }, [retry]);
 
   const scopeIcons: Record<GlobalLeaderboardScope, React.ReactNode> = {
