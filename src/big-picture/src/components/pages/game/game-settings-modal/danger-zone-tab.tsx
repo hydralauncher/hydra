@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { LibraryGame } from "@types";
 import {
@@ -98,12 +98,20 @@ export function GameDangerZoneSettingsTab({
 
   const steamUninstallAvailable =
     typeof globalThis.window.electron.uninstallGameOnSteam === "function";
+  const removeFilesSource = useMemo(
+    () => removeFilesGame ?? game,
+    [removeFilesGame, game]
+  );
+  const hydraRemoveFilesTarget = getRemoveFilesTarget(removeFilesSource, false);
   const steamMember = getOfficialStoreMembers(
-    getLibraryGameMembers(removeFilesGame ?? game)
+    getLibraryGameMembers(removeFilesSource)
   ).steam;
-  const isSteamLibraryExecutable = useIsSteamLibraryExecutable(steamMember);
+  const isSteamLibraryExecutable = useIsSteamLibraryExecutable(
+    steamMember,
+    hydraRemoveFilesTarget === null
+  );
   const removeFilesTarget = getRemoveFilesTarget(
-    removeFilesGame ?? game,
+    removeFilesSource,
     steamUninstallAvailable,
     isSteamLibraryExecutable === true
   );
@@ -180,7 +188,7 @@ export function GameDangerZoneSettingsTab({
     setActionLoading(true);
     try {
       const liveTarget = getRemoveFilesTarget(
-        removeFilesGame ?? game,
+        removeFilesSource,
         steamUninstallAvailable,
         isSteamLibraryExecutable === true
       );
@@ -225,8 +233,7 @@ export function GameDangerZoneSettingsTab({
       setActionLoading(false);
     }
   }, [
-    game,
-    removeFilesGame,
+    removeFilesSource,
     steamUninstallAvailable,
     isSteamLibraryExecutable,
     pendingRemoveFilesTarget,

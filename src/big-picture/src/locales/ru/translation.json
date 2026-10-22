@@ -767,7 +767,7 @@
     "remove_game_files_target_changed": "Игра изменилась, пока окно подтверждения было открыто. Попробуйте снова.",
     "remove_game_files_downloading": "Нельзя удалить файлы игры, пока игра загружается.",
     "remove_game_files_failed": "Не удалось удалить файлы игры",
-    "steam_uninstall_requested": "Запрос на удаление отправлен в Steam",
+    "steam_uninstall_requested": "Удалить через Steam",
     "steam_uninstall_failed": "Не удалось открыть Steam",
     "edit_game_modal_section_title": "Название игры",
     "edit_game_modal_section_title_description": "Измените название, которое отображается для этой игры в вашей библиотеке.",

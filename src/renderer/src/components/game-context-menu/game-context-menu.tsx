@@ -1,7 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AuthPage, type RemoveFilesTarget } from "@shared";
+import {
+  AuthPage,
+  applyLibraryGroupAction,
+  getRemoveFilesTarget,
+  type RemoveFilesTarget,
+} from "@shared";
 import {
   PlayIcon,
   DownloadIcon,
@@ -39,7 +44,6 @@ import {
   useLibraryGamePresentation,
   useSteamUninstallAction,
 } from "@renderer/hooks";
-import { applyLibraryGroupAction } from "@shared";
 import { useCollectionContextMenu } from "@renderer/context";
 import { getGameCollectionIds } from "@renderer/helpers";
 import { RemoveGameFromLibraryModal } from "@renderer/pages/game-details/modals/remove-from-library-modal";
@@ -137,9 +141,12 @@ export function GameContextMenu({
     library.find(
       (item) => item.shop === game.shop && item.objectId === game.objectId
     );
-  const hydraRemoveFilesAvailable = Boolean(
-    downloadGame.download?.downloadPath
-  );
+  const hydraRemoveFilesTarget = targetSource
+    ? getRemoveFilesTarget(targetSource, false)
+    : null;
+  const hydraRemoveFilesAvailable =
+    hydraRemoveFilesTarget !== null ||
+    Boolean(downloadGame.download?.downloadPath);
   const { steamUninstallTarget, isSteamProbePending, handleSteamUninstall } =
     useSteamUninstallAction(
       targetSource,
@@ -154,13 +161,6 @@ export function GameContextMenu({
     isDownloadDeleting ||
     isGameDownloading ||
     (!hydraRemoveFilesAvailable && isSteamProbePending);
-
-  const handleCloseContextMenu = () => {
-    setShowConfirmRemoveLibrary(false);
-    setShowConfirmRemoveFiles(false);
-    setPendingSteamUninstallTarget(null);
-    onClose();
-  };
 
   useEffect(() => {
     if (!visible) {
@@ -547,7 +547,7 @@ export function GameContextMenu({
         items={items}
         visible={visible}
         position={position}
-        onClose={handleCloseContextMenu}
+        onClose={onClose}
         forceOpenSubmenuId={forceOpenSubmenuId}
         className={
           !game.executablePath ? "context-menu--game-not-installed" : undefined
@@ -606,7 +606,7 @@ export function GameContextMenu({
         onClose={() => setPendingSteamUninstallTarget(null)}
         onConfirm={() => {
           const target = pendingSteamUninstallTarget;
-          handleCloseContextMenu();
+          onClose();
           if (target) void handleSteamUninstall(target);
         }}
       />

@@ -11,6 +11,24 @@ interface SteamLibraryExecutableCheck {
   value: boolean;
 }
 
+const pendingExecutableChecks = new Map<string, Promise<boolean>>();
+
+const checkSteamLibraryExecutable = (
+  checkKey: string,
+  objectId: string,
+  executablePath: string
+) => {
+  const pending = pendingExecutableChecks.get(checkKey);
+  if (pending) return pending;
+
+  const check = globalThis.window.electron
+    .isSteamAppExecutable(objectId, executablePath)
+    .finally(() => pendingExecutableChecks.delete(checkKey));
+
+  pendingExecutableChecks.set(checkKey, check);
+  return check;
+};
+
 export const getSteamLibraryExecutableCheckKey = (
   game: SteamLibraryExecutableGame | null | undefined,
   enabled = true
@@ -49,8 +67,7 @@ export function useIsSteamLibraryExecutable(
 
     let cancelled = false;
 
-    globalThis.window.electron
-      .isSteamAppExecutable(objectId, executablePath)
+    checkSteamLibraryExecutable(checkKey, objectId, executablePath)
       .then((isSteamExecutable) => {
         if (!cancelled) {
           setChecked({ key: checkKey, value: isSteamExecutable });

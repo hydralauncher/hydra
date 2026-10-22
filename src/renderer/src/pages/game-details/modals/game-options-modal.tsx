@@ -286,7 +286,6 @@ export function GameOptionsModal({
   const globalAutoRunMangohud = userPreferences?.autoRunMangohud === true;
   const hasAchievements =
     (achievements?.filter((a) => a.unlocked).length ?? 0) > 0;
-  const deleting = isGameDeleting(game.id);
   const hydraRemoveFilesTarget = useMemo(
     () => getRemoveFilesTarget(presentation ?? game, false),
     [presentation, game]
@@ -307,6 +306,7 @@ export function GameOptionsModal({
   const removeFilesDeleting =
     removeFilesTarget?.kind === "hydra" &&
     isGameDeleting(removeFilesTarget.game.objectId);
+  const deleting = isGameDeleting(game.objectId) || removeFilesDeleting;
   const isGameDownloading =
     removeFilesTarget?.kind === "hydra" &&
     isLibraryGameDownloading(removeFilesTarget.game);
@@ -1465,7 +1465,7 @@ export function GameOptionsModal({
             {selectedCategory === "downloads" && showDownloadSettings && (
               <DownloadsSettingsSection
                 game={downloadGame}
-                deleting={isGameDeleting(downloadGame.id)}
+                deleting={isGameDeleting(downloadGame.objectId)}
                 isGameDownloading={isLibraryGameDownloading(downloadGame)}
                 repacksLength={repacks.length}
                 hasOfficialSource={Object.values(
@@ -1482,7 +1482,6 @@ export function GameOptionsModal({
                 isDeletingAchievements={isDeletingAchievements}
                 hasAchievements={hasAchievements}
                 isGameDownloading={isGameDownloading}
-                removeFilesDeleting={removeFilesDeleting}
                 removeFilesTarget={removeFilesTarget}
                 userDetails={userDetails}
                 onOpenRemoveFromLibrary={() => setShowRemoveGameModal(true)}

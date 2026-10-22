@@ -18,26 +18,6 @@ import {
   mergeLibraryCatalogueMetadata,
 } from "../../../../shared/library-catalogue.js";
 import { getOfficialStoreMembers } from "../../../../shared/official-store-options.js";
-
-const getSteamLibraryExecutableCheckKey = (
-  game:
-    | {
-        shop?: string;
-        objectId?: string;
-        hasActiveSteamImport?: boolean;
-        executablePath?: string | null;
-      }
-    | null
-    | undefined,
-  enabled = true
-) =>
-  enabled &&
-  game?.shop === "steam" &&
-  game.hasActiveSteamImport &&
-  game.objectId &&
-  game.executablePath
-    ? JSON.stringify([game.objectId, game.executablePath])
-    : null;
 import { applyLibraryGroupAction } from "../../../../shared/library-group-actions.js";
 import { selectLibraryPresentationIndex } from "../../features/library-presentation.js";
 
@@ -61,6 +41,16 @@ function loadModule(filename: string, stubs: Record<string, unknown>) {
   );
   return exports;
 }
+
+const { getSteamLibraryExecutableCheckKey } = loadModule(
+  "src/renderer/src/hooks/use-steam-library-executable.ts",
+  { react: React }
+) as {
+  getSteamLibraryExecutableCheckKey: (
+    game: unknown,
+    enabled?: boolean
+  ) => string | null;
+};
 
 const steam = {
   id: "steam:123",
@@ -125,6 +115,7 @@ async function fixture(
   let steamExecutableCheck: boolean | null = false;
   let steamUninstallError = false;
   let refreshWait: Promise<void> | null = null;
+  let menuVisible = true;
   const dom = new JSDOM("<div id='root'></div>", {
     url: "https://hydra.test/library",
   });
@@ -365,13 +356,16 @@ async function fixture(
   });
   const Menu = menuModule.GameContextMenu as React.ElementType;
   const root = createRoot(dom.window.document.getElementById("root")!);
-  const onClose = () => calls.push(["close-menu"]);
+  const onClose = () => {
+    menuVisible = false;
+    calls.push(["close-menu"]);
+  };
   const render = () =>
     React.act(async () => {
       root.render(
         React.createElement(Menu, {
           game: requestedGame,
-          visible: true,
+          visible: menuVisible,
           position: { x: 0, y: 0 },
           onClose,
         })
@@ -435,6 +429,7 @@ async function fixture(
     async closeContextMenu() {
       assert.ok(contextMenuClose, "context menu onClose must be captured");
       await React.act(async () => contextMenuClose?.());
+      await render();
     },
     async confirmSteamUninstall() {
       const modal = confirmationModals.get("steam");
@@ -684,12 +679,15 @@ describe("context menu download identity", () => {
     assert.equal(state.hasItem("remove-files"), false);
   });
 
-  it("keeps Remove files hidden for a Steam operational game with a completed Epic download", async (t) => {
+  it("offers Hydra removal for a Steam operational game with a completed Epic download", async (t) => {
     const epic = epicWithDownload({ status: "complete" });
     const state = await fixture(t, [steam, epic]);
     await state.setSteamExecutableCheck(true);
 
-    assert.equal(state.hasItem("remove-files"), false);
+    assert.equal(state.hasItem("remove-files"), true);
+    await state.click("remove-files");
+    assert.equal(state.confirmationVisible, true);
+    assert.notEqual(state.steamConfirmation?.visible, true);
   });
 
   it("rejects Steam removal when the target changes after confirmation opens", async (t) => {

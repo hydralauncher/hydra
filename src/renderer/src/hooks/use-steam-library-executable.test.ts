@@ -151,4 +151,49 @@ describe("useIsSteamLibraryExecutable", () => {
 
     await React.act(async () => root.unmount());
   });
+
+  it("shares an in-flight executable check between consumers", async (t) => {
+    const dom = prepareDom(t);
+    let resolveCheck!: (value: boolean) => void;
+    let calls = 0;
+    Object.assign(dom.window, {
+      electron: {
+        isSteamAppExecutable: () => {
+          calls += 1;
+          return new Promise<boolean>((resolve) => {
+            resolveCheck = resolve;
+          });
+        },
+      },
+    });
+
+    const results: (boolean | null)[] = [null, null];
+    const game = makeGame();
+    const root = createRoot(dom.window.document.getElementById("root")!);
+    const Probe = ({ index }: { index: number }) => {
+      results[index] = useIsSteamLibraryExecutable(game, true);
+      return null;
+    };
+
+    await React.act(async () =>
+      root.render(
+        React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(Probe, { index: 0 }),
+          React.createElement(Probe, { index: 1 })
+        )
+      )
+    );
+
+    assert.equal(calls, 1);
+
+    await React.act(async () => {
+      resolveCheck(true);
+      await Promise.resolve();
+    });
+    assert.deepEqual(results, [true, true]);
+
+    await React.act(async () => root.unmount());
+  });
 });

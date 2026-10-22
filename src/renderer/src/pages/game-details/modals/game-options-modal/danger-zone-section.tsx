@@ -10,7 +10,6 @@ interface DangerZoneSectionProps {
   isDeletingAchievements: boolean;
   hasAchievements: boolean;
   isGameDownloading: boolean;
-  removeFilesDeleting: boolean;
   removeFilesTarget: RemoveFilesTarget | null;
   userDetails: UserDetails | null;
   onOpenRemoveFromLibrary: () => void;
@@ -26,7 +25,6 @@ export function DangerZoneSection({
   isDeletingAchievements,
   hasAchievements,
   isGameDownloading,
-  removeFilesDeleting,
   removeFilesTarget,
   userDetails,
   onOpenRemoveFromLibrary,
@@ -84,12 +82,7 @@ export function DangerZoneSection({
               if (removeFilesTarget) onOpenRemoveFiles(removeFilesTarget);
             }}
             theme="danger"
-            disabled={
-              deleting ||
-              isGameDownloading ||
-              removeFilesDeleting ||
-              !removeFilesTarget
-            }
+            disabled={deleting || isGameDownloading || !removeFilesTarget}
           >
             {t("remove_files")}
           </Button>
