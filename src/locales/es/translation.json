@@ -1082,6 +1082,7 @@
     "delete": "Remover archivos",
     "delete_modal_title": "¿Querés continuar?",
     "delete_modal_description": "Esto eliminará de tu computadora todos los archivos de este juego descargados por Hydra",
+    "delete_source_archive": "Eliminar también el archivo comprimido original",
     "install": "Instalar",
     "download_in_progress": "En progreso",
     "queued_downloads": "Descargas en cola",

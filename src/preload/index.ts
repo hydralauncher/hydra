@@ -1240,8 +1240,13 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("removeGameFromLibrary", shop, objectId),
   removeGame: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("removeGame", shop, objectId),
-  deleteGameFolder: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("deleteGameFolder", shop, objectId),
+  deleteGameFolder: (
+    shop: GameShop,
+    objectId: string,
+    options?: { deleteSourceArchive?: boolean }
+  ) => ipcRenderer.invoke("deleteGameFolder", shop, objectId, options),
+  hasSourceArchive: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("hasSourceArchive", shop, objectId),
   getGameByObjectId: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("getGameByObjectId", shop, objectId),
   resetGameAchievements: (shop: GameShop, objectId: string) =>

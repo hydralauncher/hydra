@@ -24,6 +24,7 @@ import "./is-winetricks-available";
 import "./get-game-by-object-id";
 import "./has-game-installer";
 import "./has-download-folder";
+import "./has-source-archive";
 import "./get-executable-picker-path";
 import "./get-game-launch-proton-version";
 import "./get-game-save-folder";

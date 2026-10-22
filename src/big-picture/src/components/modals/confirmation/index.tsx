@@ -1,7 +1,9 @@
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigation } from "../../../hooks";
 import {
   Button,
+  Checkbox,
   HorizontalFocusGroup,
   Modal,
   VerticalFocusGroup,
@@ -21,6 +23,12 @@ interface ConfirmationModalProps {
   danger?: boolean;
   closeOnBackdrop?: boolean;
   backdropClassName?: string;
+  children?: ReactNode;
+}
+
+interface SourceArchiveOptionProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
 }
 
 const CONFIRMATION_MODAL_CONTENT_REGION_ID = "confirmation-modal-content";
@@ -39,6 +47,7 @@ export function ConfirmationModal({
   danger = false,
   closeOnBackdrop = true,
   backdropClassName,
+  children,
 }: Readonly<ConfirmationModalProps>) {
   const { setFocus } = useNavigation();
 
@@ -71,6 +80,8 @@ export function ConfirmationModal({
         regionId={CONFIRMATION_MODAL_CONTENT_REGION_ID}
         className="confirmation-modal__content"
       >
+        {children}
+
         <HorizontalFocusGroup
           regionId={CONFIRMATION_MODAL_ACTIONS_REGION_ID}
           className="confirmation-modal__actions"
@@ -96,5 +107,21 @@ export function ConfirmationModal({
         </HorizontalFocusGroup>
       </VerticalFocusGroup>
     </Modal>
+  );
+}
+
+export function SourceArchiveOption({
+  checked,
+  onChange,
+}: Readonly<SourceArchiveOptionProps>) {
+  const { t } = useTranslation("downloads");
+
+  return (
+    <Checkbox
+      block
+      label={t("delete_source_archive")}
+      checked={checked}
+      onChange={onChange}
+    />
   );
 }

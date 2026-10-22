@@ -103,6 +103,22 @@ export const getDownloadFolderPath = async (download: Download) =>
       )
     : null;
 
+export const getSourceArchivePath = async (download: Download) => {
+  if (!download.sourceArchiveName) return null;
+
+  const downloadPath = download.downloadPath ?? (await getDownloadsPath());
+  const archivePath = path.join(downloadPath, download.sourceArchiveName);
+  const folderPath = await getDownloadFolderPath(download);
+  const relativePath = path.relative(downloadPath, archivePath);
+
+  if (archivePath === folderPath) return null;
+  if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+    return null;
+  }
+
+  return archivePath;
+};
+
 export const findDownloadInstaller = async (
   download: Download | undefined | null
 ): Promise<string | null> => {

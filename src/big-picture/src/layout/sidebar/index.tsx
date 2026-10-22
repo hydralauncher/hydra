@@ -81,7 +81,11 @@ import {
   useLibraryLaunchGame,
   useLibraryPendingAction,
 } from "../../components/pages/library";
-import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
+import {
+  ConfirmationModal,
+  DownloadGameModal,
+  SourceArchiveOption,
+} from "../../components/modals";
 import { SidebarNotificationsDropdown } from "./notifications-dropdown";
 import { PowerMenu } from "./power-menu";
 import "./styles.scss";
@@ -953,6 +957,9 @@ function Sidebar() {
     requestRemoveFromLibrary,
     closePendingAction,
     confirmPendingAction,
+    hasSourceArchive,
+    deleteSourceArchive,
+    setDeleteSourceArchive,
   } = useLibraryPendingAction({
     getRestoreFocusId: useCallback(
       () => contextMenuState.restoreFocusId,
@@ -1167,7 +1174,14 @@ function Sidebar() {
           danger
           onClose={closePendingAction}
           onConfirm={confirmPendingAction}
-        />
+        >
+          {pendingAction.type === "remove-files" && hasSourceArchive ? (
+            <SourceArchiveOption
+              checked={deleteSourceArchive}
+              onChange={setDeleteSourceArchive}
+            />
+          ) : null}
+        </ConfirmationModal>
       ) : null}
 
       <div className="sidebar-spacer" />

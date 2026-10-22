@@ -1084,6 +1084,7 @@
     "delete": "Удалить файлы",
     "delete_modal_title": "Вы уверены?",
     "delete_modal_description": "Это удалит с вашего компьютера все файлы этой игры, загруженные через Hydra",
+    "delete_source_archive": "Также удалить исходный архив",
     "install": "Установить",
     "download_in_progress": "В процессе",
     "queued_downloads": "Загрузки в очереди",

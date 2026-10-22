@@ -42,7 +42,11 @@ import {
   GridFocusGroup,
   VerticalFocusGroup,
 } from "../../components";
-import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
+import {
+  ConfirmationModal,
+  DownloadGameModal,
+  SourceArchiveOption,
+} from "../../components/modals";
 import {
   buildCatalogGameContextMenuItems,
   buildLibraryGameContextMenuItems,
@@ -151,6 +155,9 @@ export default function Home() {
     requestRemoveFromLibrary: handleRequestRemoveFromLibraryFromMenu,
     closePendingAction,
     confirmPendingAction,
+    hasSourceArchive,
+    deleteSourceArchive,
+    setDeleteSourceArchive,
   } = useLibraryPendingAction({
     getRestoreFocusId: useCallback(
       () => menuState.restoreFocusId,
@@ -647,7 +654,14 @@ export default function Home() {
             loading={isSubmittingAction}
             onClose={closePendingAction}
             onConfirm={confirmPendingAction}
-          />
+          >
+            {pendingAction.type === "remove-files" && hasSourceArchive ? (
+              <SourceArchiveOption
+                checked={deleteSourceArchive}
+                onChange={setDeleteSourceArchive}
+              />
+            ) : null}
+          </ConfirmationModal>
         ) : null}
 
         {settingsModalGame ? (

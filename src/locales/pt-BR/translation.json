@@ -1093,6 +1093,7 @@
     "downloading_metadata": "Baixando metadados…",
     "delete": "Remover arquivos",
     "delete_modal_description": "Isso removerá do seu computador todos os arquivos deste jogo baixados pelo Hydra",
+    "delete_source_archive": "Excluir também o arquivo compactado original",
     "delete_modal_title": "Tem certeza?",
     "deleting": "Excluindo instalador…",
     "install": "Instalar",

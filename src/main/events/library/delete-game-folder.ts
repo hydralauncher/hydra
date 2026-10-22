@@ -18,13 +18,15 @@ import { updateGameRecord } from "@main/services/game-record-updater";
 import { HydraApi } from "@main/services/hydra-api";
 import { registerEvent } from "../register-event";
 import { isWithin } from "../emulators/rom-path-utils";
+import { getSourceArchivePath } from "@main/helpers/find-game-installer";
 import { GameShop } from "@types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
 const deleteGameFolder = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
-  objectId: string
+  objectId: string,
+  options: { deleteSourceArchive?: boolean } = {}
 ): Promise<void> => {
   const gameKey = levelKeys.game(shop, objectId);
   const download = await downloadsSublevel.get(gameKey);
@@ -181,20 +183,11 @@ const deleteGameFolder = async (
     await deleteFile(metaPath);
   }
 
-  const sourceArchivePath = download.sourceArchiveName
-    ? path.join(
-        download.downloadPath ?? (await getDownloadsPath()),
-        download.sourceArchiveName
-      )
+  const sourceArchivePath = options.deleteSourceArchive
+    ? await getSourceArchivePath(download)
     : null;
 
-  if (
-    sourceArchivePath &&
-    sourceArchivePath !== folderPath &&
-    isWithin(sourceArchivePath, download.downloadPath)
-  ) {
-    await deleteFile(sourceArchivePath);
-  }
+  if (sourceArchivePath) await deleteFile(sourceArchivePath);
 
   await downloadsSublevel.del(gameKey);
   await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });

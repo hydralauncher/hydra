@@ -36,12 +36,12 @@ export default function Downloads() {
 
   const { removeGameInstaller, pauseSeeding } = useDownload();
 
-  const handleDeleteGame = async () => {
+  const handleDeleteGame = async (deleteSourceArchive: boolean) => {
     if (gameToBeDeleted.current) {
       const [shop, objectId] = gameToBeDeleted.current;
 
       await pauseSeeding(shop, objectId);
-      await removeGameInstaller(shop, objectId);
+      await removeGameInstaller(shop, objectId, { deleteSourceArchive });
     }
   };
 
@@ -182,6 +182,14 @@ export default function Downloads() {
       <DeleteGameModal
         visible={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
+        target={
+          showDeleteModal && gameToBeDeleted.current
+            ? {
+                shop: gameToBeDeleted.current[0],
+                objectId: gameToBeDeleted.current[1],
+              }
+            : null
+        }
         deleteGame={handleDeleteGame}
       />
 

@@ -1129,6 +1129,7 @@
     "delete": "Remove files",
     "delete_modal_title": "Are you sure?",
     "delete_modal_description": "This will remove all files downloaded by Hydra for this game from your computer",
+    "delete_source_archive": "Also delete the original archive",
     "install": "Install",
     "download_in_progress": "In progress",
     "queued_downloads": "Queued downloads",

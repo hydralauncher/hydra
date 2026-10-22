@@ -579,7 +579,12 @@ declare global {
     closeGame: (shop: GameShop, objectId: string) => Promise<boolean>;
     removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
     removeGame: (shop: GameShop, objectId: string) => Promise<void>;
-    deleteGameFolder: (shop: GameShop, objectId: string) => Promise<unknown>;
+    deleteGameFolder: (
+      shop: GameShop,
+      objectId: string,
+      options?: { deleteSourceArchive?: boolean }
+    ) => Promise<unknown>;
+    hasSourceArchive: (shop: GameShop, objectId: string) => Promise<boolean>;
     getGameByObjectId: (
       shop: GameShop,
       objectId: string
