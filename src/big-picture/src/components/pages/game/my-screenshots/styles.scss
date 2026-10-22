@@ -184,6 +184,14 @@ $local-screenshot-actions-fade-duration: 0.15s;
     gap: calc(var(--spacing-unit) * 3);
   }
 
+  &__section-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--spacing-unit) * 4);
+  }
+
   &__section-title {
     margin: 0;
     color: var(--text-secondary);

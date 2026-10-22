@@ -412,6 +412,7 @@ type MyScreenshotsTab = ReturnType<typeof useMyScreenshotsTab>;
 
 function PublishedSection({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
   const { t } = useTranslation("big_picture");
+  const sortOptions = useScreenshotSortOptions();
   const { mine, open, loadNextPage } = tab;
   const { feed } = mine;
 
@@ -420,9 +421,27 @@ function PublishedSection({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
 
   return (
     <section className="game-screenshots-modal__section">
-      <h3 className="game-screenshots-modal__section-title">
-        {t("screenshots_section_published")}
-      </h3>
+      <HorizontalFocusGroup
+        regionId={GAME_SCREENSHOTS_MODAL_TOOLBAR_REGION_ID}
+        asChild
+      >
+        <div className="game-screenshots-modal__section-header">
+          <h3 className="game-screenshots-modal__section-title">
+            {t("published_screenshots_section", { ns: "screenshots" })}
+          </h3>
+          <DropdownSelect
+            className="game-screenshots-modal__sort"
+            label={t("screenshots_sort_label")}
+            hideLabel
+            leadingIcon={<SortAscendingIcon size={20} />}
+            ariaLabel={t("screenshots_sort_label")}
+            value={tab.sort}
+            options={sortOptions}
+            focusId={GAME_SCREENSHOTS_MODAL_MINE_SORT_ID}
+            onValueChange={tab.setSort}
+          />
+        </div>
+      </HorizontalFocusGroup>
       {feed.isLoading ? (
         <ScreenshotSkeletonGrid />
       ) : (
@@ -519,7 +538,7 @@ function MyScreenshotsContent({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
     );
   }
 
-  if (!mine.hasLoaded && mine.items.length === 0) {
+  if (!mine.hasLoaded && mine.items.length === 0 && !mine.canFetchPublished) {
     return <ScreenshotSkeletonGrid />;
   }
 
@@ -540,41 +559,17 @@ function MyScreenshotsContent({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
         focusId={GAME_SCREENSHOTS_MODAL_MINE_RETRY_ID}
         className="game-screenshots-modal__notice"
       />
-      <PublishedSection tab={tab} />
       <LocalSection tab={tab} />
+      <PublishedSection tab={tab} />
     </>
   );
 }
 
 function MyScreenshotsPanel({ tab }: Readonly<{ tab: MyScreenshotsTab }>) {
-  const { t } = useTranslation("big_picture");
-  const sortOptions = useScreenshotSortOptions();
-
   return (
-    <>
-      <HorizontalFocusGroup
-        regionId={GAME_SCREENSHOTS_MODAL_TOOLBAR_REGION_ID}
-        asChild
-      >
-        <div className="game-screenshots-modal__toolbar">
-          <DropdownSelect
-            className="game-screenshots-modal__sort"
-            label={t("screenshots_sort_label")}
-            hideLabel
-            leadingIcon={<SortAscendingIcon size={20} />}
-            ariaLabel={t("screenshots_sort_label")}
-            value={tab.sort}
-            options={sortOptions}
-            focusId={GAME_SCREENSHOTS_MODAL_MINE_SORT_ID}
-            onValueChange={tab.setSort}
-          />
-        </div>
-      </HorizontalFocusGroup>
-
-      <div className="game-screenshots-modal__scroll">
-        <MyScreenshotsContent tab={tab} />
-      </div>
-    </>
+    <div className="game-screenshots-modal__scroll">
+      <MyScreenshotsContent tab={tab} />
+    </div>
   );
 }
 
