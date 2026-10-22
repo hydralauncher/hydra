@@ -37,7 +37,12 @@ const SUCCESS_EXIT_CODES = new Set([0, 1641, 3010]);
 const INSTALLER_STARTED_MARKER = "HYDRA_INSTALLER_STARTED";
 const INSTALLER_EXIT_MARKER = "HYDRA_INSTALLER_EXIT=";
 
+const ELEVATION_ERROR_CODES = new Set(["EACCES", "UNKNOWN"]);
+
 const runningInstallers = new Set<string>();
+
+const isSuccessfulExit = (exitCode: number | null) =>
+  exitCode !== null && SUCCESS_EXIT_CODES.has(exitCode);
 
 const ELEVATED_INSTALLER_COMMAND = [
   "$ErrorActionPreference = 'Stop'",
@@ -56,6 +61,11 @@ const ELEVATED_INSTALLER_COMMAND = [
   "}",
 ].join("; ");
 
+interface SpawnInstallerResult {
+  spawned: boolean;
+  errorCode: string | null;
+}
+
 interface SpawnInstallerConfig {
   command: string;
   args: string[];
@@ -72,8 +82,8 @@ const spawnInstaller = async ({
   onExit,
   env,
   captureOutput = false,
-}: SpawnInstallerConfig): Promise<boolean> => {
-  return await new Promise<boolean>((resolve) => {
+}: SpawnInstallerConfig): Promise<SpawnInstallerResult> => {
+  return await new Promise<SpawnInstallerResult>((resolve) => {
     let child: ReturnType<typeof spawn>;
     let output = "";
 
@@ -87,7 +97,10 @@ const spawnInstaller = async ({
       });
     } catch (error) {
       logger.error(failureMessage, error);
-      resolve(false);
+      resolve({
+        spawned: false,
+        errorCode: (error as NodeJS.ErrnoException).code ?? null,
+      });
       return;
     }
 
@@ -100,12 +113,12 @@ const spawnInstaller = async ({
     child.once("spawn", () => {
       child.once("close", (code) => onExit(code, output.trim()));
       if (!captureOutput) child.unref();
-      resolve(true);
+      resolve({ spawned: true, errorCode: null });
     });
 
-    child.once("error", (error) => {
+    child.once("error", (error: NodeJS.ErrnoException) => {
       logger.error(failureMessage, error);
-      resolve(false);
+      resolve({ spawned: false, errorCode: error.code ?? null });
     });
   });
 };
@@ -195,7 +208,12 @@ const launchInstallerWithUmu = async (
       },
     });
   } catch (error) {
-    if (!(error instanceof UmuEarlyExitError)) throw error;
+    if (
+      !(error instanceof UmuEarlyExitError) ||
+      !isSuccessfulExit(error.code)
+    ) {
+      throw error;
+    }
 
     logger.info(`[GameInstaller] umu-run exited early: ${error.message}`);
     options.onExit(error.code);
@@ -229,16 +247,18 @@ const executeGameInstaller = async (
   options: InstallerLaunchOptions
 ): Promise<InstallerLaunchResult> => {
   if (process.platform === "win32") {
-    const launchedDirectly = await spawnInstaller({
+    const direct = await spawnInstaller({
       command: filePath,
       args: [],
       failureMessage: "Failed to execute game installer directly",
       onExit: options.onExit,
     });
-    if (launchedDirectly) return trackedLaunch(filePath, "directly");
+    if (direct.spawned) return trackedLaunch(filePath, "directly");
 
-    const launchedElevated = await launchInstallerElevated(filePath, options);
-    if (launchedElevated) return trackedLaunch(filePath, "with elevation");
+    if (direct.errorCode && ELEVATION_ERROR_CODES.has(direct.errorCode)) {
+      const elevated = await launchInstallerElevated(filePath, options);
+      if (elevated.spawned) return trackedLaunch(filePath, "with elevation");
+    }
 
     return await openUntracked(filePath);
   }
@@ -250,13 +270,13 @@ const executeGameInstaller = async (
     } catch (error) {
       logger.error("Failed to execute game installer with umu-run", error);
 
-      const launchedWithWine = await spawnInstaller({
+      const wine = await spawnInstaller({
         command: "wine",
         args: [filePath],
         failureMessage: "Failed to execute game installer with wine",
         onExit: options.onExit,
       });
-      if (launchedWithWine) return trackedLaunch(filePath, "with wine");
+      if (wine.spawned) return trackedLaunch(filePath, "with wine");
 
       return await openUntracked(filePath);
     }
@@ -264,9 +284,6 @@ const executeGameInstaller = async (
 
   return await openUntracked(filePath);
 };
-
-const isSuccessfulExit = (exitCode: number | null) =>
-  exitCode !== null && SUCCESS_EXIT_CODES.has(exitCode);
 
 const describeInstallerExit = (exitCode: number | null) => {
   if (exitCode === 0) return "completed";

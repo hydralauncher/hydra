@@ -50,6 +50,8 @@ const PROGRESS_THROTTLE_MS = 1000;
 
 const MAX_ARCHIVE_EXTRACTION_PASSES = 2;
 
+const INSTALLED_EXECUTABLE_MAX_DEPTH = 4;
+
 export class GameFilesManager {
   private lastProgressUpdateTime = 0;
   private lastProgressUpdateValue = 0;
@@ -597,7 +599,12 @@ export class GameFilesManager {
 
       const matches = await Promise.all(
         changedFolders.map((folderPath) =>
-          findGameExecutableInFolder(folderPath, executables)
+          findGameExecutableInFolder(
+            folderPath,
+            executables,
+            "installation",
+            INSTALLED_EXECUTABLE_MAX_DEPTH
+          )
         )
       );
       const distinctMatches = [

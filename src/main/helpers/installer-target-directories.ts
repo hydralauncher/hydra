@@ -20,6 +20,32 @@ const WINE_DRIVE_C_GAME_FOLDERS = [
 const MODIFICATION_TIME_TOLERANCE_MS = 2000;
 const MAX_CHANGED_FOLDERS = 10;
 
+const LAUNCHER_FOLDERS = new Set([
+  "steam",
+  "steamlibrary",
+  "steamapps",
+  "epic games",
+  "gog galaxy",
+  "ubisoft",
+  "ubisoft game launcher",
+  "ea games",
+  "ea app",
+  "electronic arts",
+  "origin",
+  "origin games",
+  "battle.net",
+  "riot games",
+  "rockstar games",
+  "xboxgames",
+  "windowsapps",
+  "hydra",
+]);
+
+const getChangedAt = (stats: fs.Stats) =>
+  process.platform === "win32"
+    ? stats.birthtimeMs
+    : Math.max(stats.birthtimeMs, stats.mtimeMs);
+
 const unique = (values: (string | null | undefined)[]) => [
   ...new Set(values.filter((value): value is string => !!value)),
 ];
@@ -79,13 +105,14 @@ const listSubfoldersChangedSince = async (directory: string, since: number) => {
 
   const subfolders = await Promise.all(
     entries
-      .filter((entry) => entry.isDirectory())
+      .filter(
+        (entry) =>
+          entry.isDirectory() && !LAUNCHER_FOLDERS.has(entry.name.toLowerCase())
+      )
       .map(async (entry) => {
         const folderPath = path.join(directory, entry.name);
         const stats = await fs.promises.stat(folderPath).catch(() => null);
-        const changedAt = stats
-          ? Math.max(stats.birthtimeMs, stats.mtimeMs)
-          : 0;
+        const changedAt = stats ? getChangedAt(stats) : 0;
 
         return { folderPath, changedAt };
       })
