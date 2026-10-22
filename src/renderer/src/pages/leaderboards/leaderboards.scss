@@ -56,6 +56,13 @@ $leaderboards-streak-to: #b05cff;
 
   &__toggles {
     width: min(100%, 500px);
+    display: flex;
+    gap: globals.$spacing-unit;
+
+    .leaderboard-controls__segmented {
+      flex: 1;
+      min-width: 0;
+    }
 
     .leaderboard-controls__segment {
       height: 34px;

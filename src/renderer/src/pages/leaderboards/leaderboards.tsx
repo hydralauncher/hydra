@@ -143,7 +143,7 @@ function LeaderboardsPage() {
             />
           </div>
 
-          <div className="leaderboards__toggles leaderboard-controls__row">
+          <div className="leaderboards__toggles">
             {isLoggedIn && (
               <SegmentedControl
                 label={t("scope_label")}
