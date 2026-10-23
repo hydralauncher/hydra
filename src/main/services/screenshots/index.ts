@@ -242,6 +242,9 @@ export const openScreenshotReview = async (clientId: string) => {
 
 export const closeScreenshotReview = () => ScreenshotReviewSession.close();
 
+export const releaseBigPictureScreenshotReview = (clientIds: string[]) =>
+  ScreenshotReviewSession.releaseBigPictureReview(clientIds);
+
 export const getScreenshotReview = () =>
   ScreenshotReviewSession.getDesktopReview();
 

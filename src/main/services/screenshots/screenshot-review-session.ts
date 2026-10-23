@@ -163,6 +163,17 @@ export class ScreenshotReviewSession {
     sendDesktopReview();
   }
 
+  public static async releaseBigPictureReview(clientIds: string[]) {
+    if (
+      pendingBigPictureRequest?.clientIds.some((clientId) =>
+        clientIds.includes(clientId)
+      )
+    ) {
+      pendingBigPictureRequest = null;
+    }
+    await releaseUnreviewedScreenshots(clientIds);
+  }
+
   public static async requestBigPictureReview(
     request: ScreenshotReviewRequest
   ) {
