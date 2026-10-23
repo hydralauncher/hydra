@@ -83,19 +83,26 @@ export function RetroArchSetupModal({
     handleToggleSubfolders,
   } = usePendingRomFolders({ previewFolder });
 
+  const wasVisibleRef = useRef(false);
+
   useEffect(() => {
-    if (visible) {
-      setConfig(initialConfig);
-      setStepIndex(0);
-      setFolders([]);
-      setGamesAdded(0);
-      setScanComplete(false);
-      setShowDownloadHelp(false);
-      autoDetectRef.current = false;
-      scanStartedRef.current = false;
-      persistedExecutableRef.current = false;
-      reset();
+    if (!visible) {
+      wasVisibleRef.current = false;
+      return;
     }
+    if (wasVisibleRef.current) return;
+
+    wasVisibleRef.current = true;
+    setConfig(initialConfig);
+    setStepIndex(0);
+    setFolders([]);
+    setGamesAdded(0);
+    setScanComplete(false);
+    setShowDownloadHelp(false);
+    autoDetectRef.current = false;
+    scanStartedRef.current = false;
+    persistedExecutableRef.current = false;
+    reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, initialConfig]);
 
