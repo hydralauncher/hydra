@@ -113,6 +113,9 @@ for (const ownerChanged of [false, true]) {
           "@main/services/achievements/merge-unlocked-achievements": {
             mergeUnlockedAchievementLists,
           },
+          "@main/services/achievements/epic/epic-local-achievement-store": {
+            EpicLocalAchievementStore: { getResolved: () => [] },
+          },
           "@main/services/achievements/combined-achievement-presentation": {
             presentCombinedAchievements() {
               assert.ok(combinedAvailable);

@@ -6,6 +6,7 @@ import {
   achievementSyncCoordinator,
   AchievementSyncCancelledError,
 } from "../../services/achievements/achievement-sync-coordinator.ts";
+import { mergeUnlockedAchievementLists } from "../../services/achievements/merge-unlocked-achievements.ts";
 
 type Row = {
   name: string;
@@ -38,6 +39,7 @@ const load = (options: {
   linked: boolean;
   remoteAvailable: boolean;
   unlocked?: Array<{ name: string; unlockTime: number }>;
+  localUnlocked?: Array<{ name: string; unlockTime: number }>;
   switchAccountDuring?: "game-read" | "steam-read";
 }) => {
   const reads: string[] = [];
@@ -121,7 +123,12 @@ const load = (options: {
       },
     },
     "@main/services/achievements/merge-unlocked-achievements": {
-      mergeUnlockedAchievementLists: (remote: unknown[]) => remote,
+      mergeUnlockedAchievementLists,
+    },
+    "@main/services/achievements/epic/epic-local-achievement-store": {
+      EpicLocalAchievementStore: {
+        getResolved: () => options.localUnlocked ?? [],
+      },
     },
     "@main/services/achievements/combined-achievement-presentation": {},
   };
@@ -217,5 +224,25 @@ it("keeps the remote Epic list when the copy has no Steam catalogue", async () =
   assert.deepEqual(
     rows.map((row) => [row.name, row.unlocked, row.unlockTime]),
     [["only", true, 2_000]]
+  );
+});
+
+it("shows local Epic unlocks the profile has not confirmed yet", async () => {
+  const { exported } = load({
+    linked: true,
+    remoteAvailable: true,
+    unlocked: [{ name: "first", unlockTime: 1_000 }],
+    localUnlocked: [
+      { name: "FIRST", unlockTime: 3_000 },
+      { name: "second", unlockTime: 2_000 },
+    ],
+  });
+  const rows = await exported.getUnlockedAchievements("game", "epic", false);
+  assert.deepEqual(
+    rows.map((row) => [row.name, row.unlocked, row.unlockTime]),
+    [
+      ["SECOND", true, 2_000],
+      ["FIRST", true, 1_000],
+    ]
   );
 });
