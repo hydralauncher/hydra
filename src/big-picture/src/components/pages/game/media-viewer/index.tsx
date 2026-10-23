@@ -46,6 +46,7 @@ import {
 import {
   NavigationAudioService,
   NavigationService,
+  type FocusOverrides,
 } from "../../../../services";
 import { GamepadButtonType } from "../../../../types";
 
@@ -166,6 +167,7 @@ export interface MediaViewerProps {
   renderImage?: (props: MediaViewerImageRenderProps) => ReactNode;
   onStagePrimary?: () => void;
   onNavigatePastEnd?: () => void;
+  stageNavigationOverrides?: FocusOverrides;
 }
 
 export const MEDIA_VIEWER_STAGE_FOCUS_ID = STAGE_FOCUS_ID;
@@ -265,6 +267,7 @@ export function MediaViewer({
   renderImage,
   onStagePrimary,
   onNavigatePastEnd,
+  stageNavigationOverrides,
 }: Readonly<MediaViewerProps>) {
   const hasSidebar = sidebar !== undefined && sidebar !== null;
   const layerIdRef = useRef<string | null>(null);
@@ -636,6 +639,7 @@ export function MediaViewer({
       <FocusItem
         id={STAGE_FOCUS_ID}
         actions={{ primary: handlePrimary }}
+        navigationOverrides={stageNavigationOverrides}
         asChild
       >
         <div className="media-viewer__stage">

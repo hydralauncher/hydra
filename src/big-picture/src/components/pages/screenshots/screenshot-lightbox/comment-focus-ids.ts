@@ -16,6 +16,14 @@ export type ScreenshotCommentsPanelFocusIds = ReturnType<
   typeof getScreenshotCommentsPanelFocusIds
 >;
 
+export const COMMENTS_NAVIGATION_ORDER = {
+  status: 0,
+  firstComment: 1,
+  loadMore: 1_000_000,
+  composerInput: 1_000_001,
+  composerToolbar: 1_000_002,
+} as const;
+
 export const getCommentFocusIds = (commentId: string) => ({
   region: `screenshot-comment:${commentId}`,
   upvote: `screenshot-comment-upvote:${commentId}`,

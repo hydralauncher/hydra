@@ -59,6 +59,7 @@ import { ScreenshotCommentBody } from "./comment-body";
 import { ScreenshotDialogPresence } from "../screenshot-dialog-presence";
 import { CommentComposer } from "./comment-composer";
 import {
+  COMMENTS_NAVIGATION_ORDER,
   getCommentFocusIds,
   getScreenshotCommentsPanelFocusIds,
 } from "./comment-focus-ids";
@@ -266,6 +267,7 @@ interface CommentItemProps {
   isVoting: boolean;
   language: string;
   leftTarget: FocusOverrideTarget;
+  navigationOrder: number;
   onVote: (comment: ScreenshotComment, vote: ScreenshotCommentVoteType) => void;
   onOpenMenu: (comment: ScreenshotComment, element: HTMLElement) => void;
 }
@@ -320,6 +322,7 @@ function CommentItem({
   isVoting,
   language,
   leftTarget,
+  navigationOrder,
   onVote,
   onOpenMenu,
 }: Readonly<CommentItemProps>) {
@@ -372,7 +375,11 @@ function CommentItem({
         />
       </div>
 
-      <HorizontalFocusGroup regionId={focusIds.region} asChild>
+      <HorizontalFocusGroup
+        regionId={focusIds.region}
+        navigationOrder={navigationOrder}
+        asChild
+      >
         <div className="screenshot-comments__item-actions">
           <div className="screenshot-comments__votes">
             <CommentVoteButton
@@ -462,6 +469,7 @@ function CommentsListStatus({
           variant="secondary"
           size="small"
           focusId={retryFocusId}
+          focusNavigationOrder={COMMENTS_NAVIGATION_ORDER.status}
           icon={<ArrowClockwiseIcon size={18} />}
           focusNavigationOverrides={
             leftTarget ? { left: leftTarget } : undefined
@@ -922,10 +930,13 @@ export function ScreenshotCommentsPanel({
 
           {comments.length > 0 ? (
             <ul className="screenshot-comments__list">
-              {comments.map((comment) => (
+              {comments.map((comment, index) => (
                 <CommentItem
                   key={comment.id}
                   comment={comment}
+                  navigationOrder={
+                    COMMENTS_NAVIGATION_ORDER.firstComment + index
+                  }
                   isSignedIn={Boolean(viewerId)}
                   hasMenu={hasMenu(comment)}
                   isVoting={
@@ -949,6 +960,7 @@ export function ScreenshotCommentsPanel({
           {hasMore ? (
             <FocusItem
               id={focusIds.loadMore}
+              navigationOrder={COMMENTS_NAVIGATION_ORDER.loadMore}
               navigationOverrides={{ left: leftTarget }}
               asChild
             >

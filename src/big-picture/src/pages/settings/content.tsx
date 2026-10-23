@@ -1,13 +1,6 @@
 import "./content.scss";
 
-import {
-  Suspense,
-  lazy,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ArrowCounterClockwiseIcon,
@@ -36,17 +29,8 @@ import {
   SETTINGS_HEADER_RETURN_TARGET,
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
-import {
-  SCREENSHOTS_DEV_ENTRY_FOCUS_ID,
-  SCREENSHOT_SETTINGS_FOCUS_IDS,
-  ScreenshotSettingsSection,
-} from "./screenshots-section";
 import { isAchievementSouvenirsEnabled } from "@shared";
 import type { UserPreferences } from "@types";
-
-const ScreenshotsDevSection = import.meta.env.DEV
-  ? lazy(() => import("./screenshots-dev-section"))
-  : null;
 
 interface SettingsSectionProps {
   className?: string;
@@ -69,13 +53,6 @@ interface ContentItem {
   checked: boolean;
   onChange: (checked: boolean) => void;
 }
-
-const getContentBottomTarget = (
-  showScreenshotSettings: boolean
-): FocusOverrides["down"] =>
-  showScreenshotSettings
-    ? { type: "item", itemId: SCREENSHOT_SETTINGS_FOCUS_IDS.enabled }
-    : { type: "block" };
 
 const DEFAULT_FORM: ContentForm = {
   autoplayGameTrailers: true,
@@ -317,12 +294,14 @@ export function ContentSettingsSection({
                   type: "item",
                   itemId: nextFocusId,
                 }
-              : getContentBottomTarget(showScreenshotSettings),
+              : {
+                  type: "block",
+                },
           } satisfies FocusOverrides,
         ];
       })
     );
-  }, [navigationFocusIds, showScreenshotSettings]);
+  }, [navigationFocusIds]);
 
   const renderItem = (item: ContentItem) => (
     <Checkbox
@@ -449,23 +428,6 @@ export function ContentSettingsSection({
           </div>
         </VerticalFocusGroup>
       </SettingsSection>
-
-      {showScreenshotSettings ? (
-        <ScreenshotSettingsSection
-          upFocusId={navigationFocusIds.at(-1) ?? null}
-          downFocusId={
-            ScreenshotsDevSection ? SCREENSHOTS_DEV_ENTRY_FOCUS_ID : null
-          }
-        />
-      ) : null}
-
-      {showScreenshotSettings && ScreenshotsDevSection ? (
-        <Suspense fallback={null}>
-          <ScreenshotsDevSection
-            upFocusId={SCREENSHOT_SETTINGS_FOCUS_IDS.folder}
-          />
-        </Suspense>
-      ) : null}
 
       <ConfirmationModal
         visible={showWaylandSouvenirsWarning}

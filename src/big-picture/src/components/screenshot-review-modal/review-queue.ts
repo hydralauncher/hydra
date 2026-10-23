@@ -1,6 +1,6 @@
 import type { ScreenshotReviewRequest } from "@types";
 
-export type ReviewDecision = "upload" | "skip" | "delete";
+export type ReviewDecision = "upload" | "delete";
 
 export interface ReviewQueueItem {
   clientId: string;

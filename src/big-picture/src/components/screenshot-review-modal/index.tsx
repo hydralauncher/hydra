@@ -5,7 +5,6 @@ import {
   ArrowsOutSimpleIcon,
   CheckCircleIcon,
   CloudArrowUpIcon,
-  HardDrivesIcon,
   ImageIcon,
   PencilSimpleIcon,
   PlusIcon,
@@ -87,7 +86,6 @@ const PREVIEW_FOCUS_ID = "screenshot-review-preview";
 const SPOILER_FOCUS_ID = "screenshot-review-spoiler";
 const VISIBILITY_FOCUS_ID = "screenshot-review-visibility";
 const UPLOAD_FOCUS_ID = "screenshot-review-upload";
-const SKIP_FOCUS_ID = "screenshot-review-skip";
 const DELETE_FOCUS_ID = "screenshot-review-delete";
 const NEXT_FOCUS_ID = "screenshot-review-next";
 const RETRY_FOCUS_ID = "screenshot-review-retry";
@@ -196,14 +194,13 @@ function useLocalScreenshots(isActive: boolean, requestCount: number) {
   return { screenshots, loadedRequestCount, hasLoadFailed, retryLoad };
 }
 
-const keepScreenshotsLocally = (clientIds: string[]) => {
-  for (const clientId of clientIds) {
-    void globalThis.window.electron
-      .skipLocalScreenshot(clientId)
-      .catch((error: unknown) => {
-        logger.error("Failed to keep the screenshot locally", error);
-      });
-  }
+const releaseUndecidedScreenshots = (clientIds: string[]) => {
+  if (!clientIds.length) return;
+  void globalThis.window.electron
+    .releaseBigPictureScreenshotReview(clientIds)
+    .catch((error: unknown) => {
+      logger.error("Failed to release the reviewed screenshots", error);
+    });
 };
 
 interface ReviewPreviewProps {
@@ -381,7 +378,6 @@ interface ReviewActionsProps {
   onRetry: () => void;
   onNext: () => void;
   onDelete: () => void;
-  onKeep: () => void;
   onUpload: () => void;
 }
 
@@ -395,7 +391,6 @@ function ReviewActions({
   onRetry,
   onNext,
   onDelete,
-  onKeep,
   onUpload,
 }: Readonly<ReviewActionsProps>) {
   const { t } = useTranslation("big_picture");
@@ -450,16 +445,6 @@ function ReviewActions({
             {null}
           </Button>
           <Button
-            variant="secondary"
-            focusId={SKIP_FOCUS_ID}
-            disabled={isBusy || !isRecordReady}
-            loading={pendingAction === "skip"}
-            icon={<HardDrivesIcon size={18} />}
-            onClick={onKeep}
-          >
-            {t("keep_on_computer", { ns: "screenshots_capture" })}
-          </Button>
-          <Button
             focusId={UPLOAD_FOCUS_ID}
             disabled={isBusy || !isRecordReady}
             loading={pendingAction === "upload"}
@@ -512,7 +497,6 @@ export function ScreenshotReviewModal() {
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
   const {
     schedule: scheduleDraftSave,
-    save: saveDraft,
     cancel: cancelDraftSave,
     flushAll: flushDraftSaves,
   } = useReviewDraftSave();
@@ -667,7 +651,7 @@ export function ScreenshotReviewModal() {
     );
     if (droppedIds.length === 0) return;
 
-    keepScreenshotsLocally(droppedIds);
+    releaseUndecidedScreenshots(droppedIds);
     setQueueState(nextState);
   }, [isListFresh, pendingAction, queueState, screenshots]);
 
@@ -715,17 +699,6 @@ export function ScreenshotReviewModal() {
     );
   };
 
-  const skip = async () => {
-    if (!current || !currentScreenshot) return;
-
-    const { clientId } = current;
-    saveDraft(clientId);
-    const done = await runAction("skip", () =>
-      globalThis.window.electron.skipLocalScreenshot(clientId)
-    );
-    if (done) goToNextFrom(clientId);
-  };
-
   const remove = async () => {
     if (!current) return;
 
@@ -741,7 +714,7 @@ export function ScreenshotReviewModal() {
   const close = () => {
     if (pendingAction) return;
     queueGenerationRef.current += 1;
-    keepScreenshotsLocally(getUndecidedReviewIds(queueState));
+    releaseUndecidedScreenshots(getUndecidedReviewIds(queueState));
     setQueueState(closeReviewQueue);
   };
 
@@ -922,7 +895,6 @@ export function ScreenshotReviewModal() {
                   onRetry={upload}
                   onNext={() => goToNextFrom(current.clientId)}
                   onDelete={() => setIsDeleteConfirmVisible(true)}
-                  onKeep={() => void skip()}
                   onUpload={upload}
                 />
               </div>

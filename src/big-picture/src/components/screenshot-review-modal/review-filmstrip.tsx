@@ -1,9 +1,4 @@
-import {
-  CheckIcon,
-  CloudArrowUpIcon,
-  HardDrivesIcon,
-  ImageIcon,
-} from "@phosphor-icons/react";
+import { CheckIcon, CloudArrowUpIcon, ImageIcon } from "@phosphor-icons/react";
 import cn from "classnames";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -82,7 +77,6 @@ function ReviewFilmstripThumbnail({
       ) : null}
       {decision ? (
         <span className="screenshot-review-modal__thumb-status" aria-hidden>
-          {decision === "skip" ? <HardDrivesIcon size={12} /> : null}
           {decision === "upload" && isUploaded ? (
             <CheckIcon size={12} weight="bold" />
           ) : null}

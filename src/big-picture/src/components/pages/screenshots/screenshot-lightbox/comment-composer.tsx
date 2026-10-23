@@ -25,7 +25,10 @@ import {
 import { Button, FocusItem, HorizontalFocusGroup } from "../../../common";
 import { useVirtualKeyboardStore } from "../../../../stores";
 import type { FocusOverrideTarget } from "../../../../services";
-import type { ScreenshotCommentsPanelFocusIds } from "./comment-focus-ids";
+import {
+  COMMENTS_NAVIGATION_ORDER,
+  type ScreenshotCommentsPanelFocusIds,
+} from "./comment-focus-ids";
 
 const measureCommentText = (html: string) => richTextToPlainText(html).length;
 
@@ -154,6 +157,7 @@ function CommentEditorForm({
       ) : null}
       <FocusItem
         id={focusIds.input}
+        navigationOrder={COMMENTS_NAVIGATION_ORDER.composerInput}
         actions={{ primary: openKeyboard }}
         navigationOverrides={{ left: leftTarget, right: { type: "block" } }}
         asChild
@@ -162,7 +166,11 @@ function CommentEditorForm({
           <EditorContent editor={editor} />
         </div>
       </FocusItem>
-      <HorizontalFocusGroup regionId={focusIds.composerRegion} asChild>
+      <HorizontalFocusGroup
+        regionId={focusIds.composerRegion}
+        navigationOrder={COMMENTS_NAVIGATION_ORDER.composerToolbar}
+        asChild
+      >
         <div className="screenshot-comments__composer-row">
           <FormatToggle
             focusId={focusIds.bold}
@@ -271,6 +279,7 @@ export function CommentComposer({
           variant="secondary"
           size="small"
           focusId={focusIds.signIn}
+          focusNavigationOrder={COMMENTS_NAVIGATION_ORDER.composerInput}
           icon={<SignInIcon size={18} />}
           focusNavigationOverrides={{ left: leftTarget }}
           onClick={() =>

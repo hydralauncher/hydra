@@ -18,7 +18,7 @@ import {
   useFeature,
   useUserDetails,
 } from "../../../../hooks";
-import type { FocusOverrideTarget } from "../../../../services";
+import type { FocusOverrides, FocusOverrideTarget } from "../../../../services";
 import {
   MEDIA_VIEWER_STAGE_FOCUS_ID,
   MediaViewer,
@@ -28,6 +28,7 @@ import { ScreenshotManageModal } from "../screenshot-manage-modal";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
 import { ScreenshotDialogPresence } from "../screenshot-dialog-presence";
 import { useRevealedScreenshotSpoilers } from "../use-revealed-spoilers";
+import { getScreenshotCommentsPanelFocusIds } from "./comment-focus-ids";
 import { ScreenshotLightboxSidebar } from "./sidebar";
 import {
   useLightboxSocialActions,
@@ -60,6 +61,21 @@ export interface ScreenshotLightboxProps {
 const STAGE_TARGET: FocusOverrideTarget = {
   type: "item",
   itemId: MEDIA_VIEWER_STAGE_FOCUS_ID,
+};
+
+const getStageNavigationOverrides = (
+  screenshot: ProfileScreenshot,
+  viewerId: string | null,
+  showComments: boolean
+): FocusOverrides | undefined => {
+  if (!showComments) return undefined;
+
+  const focusIds = getScreenshotCommentsPanelFocusIds(screenshot.id);
+  if (!viewerId) {
+    return { right: { type: "item", itemId: focusIds.signIn } };
+  }
+  if (!screenshot.canComment) return undefined;
+  return { right: { type: "item", itemId: focusIds.input } };
 };
 
 const getViewerScreenshots = (
@@ -214,12 +230,17 @@ function ScreenshotViewer({
   );
   const isBlurred = (target: ProfileScreenshot) =>
     shouldBlurScreenshot(target, revealedIds) && Boolean(target.imageUrl);
+  const stageNavigationOverrides = useMemo(
+    () => getStageNavigationOverrides(screenshot, viewerId, showComments),
+    [screenshot, viewerId, showComments]
+  );
 
   return (
     <MediaViewer
       items={mediaItems}
       index={index}
       className="screenshot-viewer"
+      stageNavigationOverrides={stageNavigationOverrides}
       showFilmstrip={false}
       showCounter={false}
       canNavigatePastEnd={canLoadMore}

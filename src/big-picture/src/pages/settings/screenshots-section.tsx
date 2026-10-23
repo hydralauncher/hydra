@@ -388,12 +388,12 @@ function buildScreenshotSettingsRows(options: ScreenshotSettingsRowsOptions) {
 }
 
 interface ScreenshotSettingsSectionProps {
-  upFocusId: string | null;
+  upTarget: FocusOverrideTarget;
   downFocusId?: string | null;
 }
 
 export function ScreenshotSettingsSection({
-  upFocusId,
+  upTarget,
   downFocusId = null,
 }: Readonly<ScreenshotSettingsSectionProps>) {
   const { t } = useTranslation("big_picture");
@@ -564,10 +564,10 @@ export function ScreenshotSettingsSection({
     () =>
       buildRowNavigation(
         rows,
-        upFocusId ? { type: "item", itemId: upFocusId } : BLOCK_TARGET,
+        upTarget,
         downFocusId ? { type: "item", itemId: downFocusId } : BLOCK_TARGET
       ),
-    [downFocusId, rows, upFocusId]
+    [downFocusId, rows, upTarget]
   );
 
   const renderCheckbox = (
