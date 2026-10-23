@@ -287,6 +287,8 @@ export interface ScreenshotUploadProgress {
   progress: number | null;
 }
 
+export type ScreenshotReviewScope = "game" | "screenshot";
+
 export interface ScreenshotReview {
   clientIds: string[];
   selectedClientId: string | null;

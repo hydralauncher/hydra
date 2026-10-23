@@ -7,6 +7,7 @@ import type {
   LocalScreenshot,
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
+  ScreenshotReviewScope,
   UserPreferences,
 } from "@types";
 
@@ -215,14 +216,18 @@ const REVIEWABLE_STATES = new Set<LocalScreenshot["state"]>([
   "failed",
 ]);
 
-export const openScreenshotReview = async (clientId: string) => {
+export const openScreenshotReview = async (
+  clientId: string,
+  scope: ScreenshotReviewScope = "game"
+) => {
   const screenshot = await LocalScreenshotStore.get(clientId);
   if (!screenshot) return;
 
   const objectId = screenshot.objectId ?? "";
-  const gameScreenshots = screenshot.objectId
-    ? await LocalScreenshotStore.listForGame(screenshot.shop, objectId)
-    : [screenshot];
+  const gameScreenshots =
+    scope === "game" && screenshot.objectId
+      ? await LocalScreenshotStore.listForGame(screenshot.shop, objectId)
+      : [screenshot];
   const clientIds = gameScreenshots
     .filter(
       (candidate) =>

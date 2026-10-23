@@ -6,6 +6,7 @@ import type {
   LocalScreenshotUploadOptions,
   ScreenshotReview,
   ScreenshotReviewRequest,
+  ScreenshotReviewScope,
   ScreenshotUploadProgress,
   SystemPowerAction,
   AppUpdaterEvent,
@@ -1128,7 +1129,10 @@ declare global {
       draft: LocalScreenshotDraft
     ) => Promise<LocalScreenshot | null>;
     deleteLocalScreenshot: (clientId: string) => Promise<void>;
-    openScreenshotReview: (clientId: string) => Promise<void>;
+    openScreenshotReview: (
+      clientId: string,
+      scope?: ScreenshotReviewScope
+    ) => Promise<void>;
     closeScreenshotReview: () => Promise<void>;
     releaseBigPictureScreenshotReview: (clientIds: string[]) => Promise<void>;
     openScreenshotsFolder: () => Promise<void>;
