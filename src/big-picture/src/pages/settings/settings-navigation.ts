@@ -49,6 +49,8 @@ export const ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID =
   "account-privacy-souvenirs-visibility";
 export const COMPATIBILITY_GAMEMODE_FOCUS_ID = "compatibility-gamemode";
 export const COMPATIBILITY_MANGOHUD_FOCUS_ID = "compatibility-mangohud";
+export const COMPATIBILITY_AUTO_DETECT_WINE_DLL_OVERRIDES_FOCUS_ID =
+  "compatibility-auto-detect-wine-dll-overrides";
 export const COMPATIBILITY_COMMON_REDIST_BUTTON_ID =
   "compatibility-common-redist";
 export const ACCOUNT_PRIVACY_UPDATE_EMAIL_BUTTON_ID =

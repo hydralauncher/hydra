@@ -11,14 +11,17 @@ import { registerEvent } from "../register-event";
 registerEvent(
   "confirmCloudSaveCustomPathApproval",
   async (
-    _event: Electron.IpcMainInvokeEvent,
+    event: Electron.IpcMainInvokeEvent,
     approvalId: string
   ): Promise<ConfirmCloudSaveCustomPathApprovalResult> => {
     assertCloudSaveSubscription();
     const launchOptions =
       await confirmPendingCloudSaveCustomPathApproval(approvalId);
 
-    await launchGame(launchOptions);
+    await launchGame({
+      ...launchOptions,
+      requestingWebContents: event.sender,
+    });
 
     return {
       pendingApproval: getPendingCloudSaveCustomPathApproval(
