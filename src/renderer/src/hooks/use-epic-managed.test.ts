@@ -25,9 +25,11 @@ import type {
   getEpicManagedError,
 } from "../helpers/epic-managed-error";
 import {
+  getEpicLaunchOptions,
   getInstalledStoreMembers,
   getOfficialStoreMembers,
   isEpicMemberInCurrentScope,
+  isEpicUpdateInterrupted,
 } from "../../../shared/official-store-options.js";
 
 const requireModule = createRequire(import.meta.url);
@@ -483,6 +485,12 @@ describe("Epic managed UI lifecycle", () => {
       "epic_compatibility_automatic",
       "epic_finalizing_install",
       "epic_prerequisites_required",
+      "epic_update",
+      "epic_update_resume",
+      "epic_updating",
+      "epic_play_without_update",
+      "epic_update_available",
+      "epic_update_failed",
     ];
     for (const locale of fs.readdirSync(localeRoot, { withFileTypes: true })) {
       if (!locale.isDirectory()) continue;
@@ -2112,6 +2120,21 @@ describe("Epic managed UI lifecycle", () => {
             ConfirmationModal: () => null,
           },
           "@renderer/hooks": hooks,
+          "@renderer/hooks/use-epic-managed": {
+            useEpicManagedConnection: () => ({
+              installationAvailable: false,
+              connection: null,
+            }),
+          },
+          "@renderer/hooks/use-epic-game-update": {
+            useEpicGameUpdate: () => ({
+              update: null,
+              checking: false,
+              starting: false,
+              start: async () => ({ ok: true }),
+              refresh: async () => {},
+            }),
+          },
           "@renderer/context": { gameDetailsContext: context },
           "react-i18next": {
             useTranslation: () => ({ t: (key: string) => key }),
@@ -2123,8 +2146,11 @@ describe("Epic managed UI lifecycle", () => {
           },
           "@renderer/helpers/epic-managed-error": ErrorHelpers,
           "@shared": {
+            getEpicLaunchOptions,
             getInstalledStoreMembers,
             getOfficialStoreMembers,
+            isEpicMemberInCurrentScope,
+            isEpicUpdateInterrupted,
             isLibraryGameDownloading: () => false,
             applyLibraryGroupAction: async () => {},
           },

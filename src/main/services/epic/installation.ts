@@ -683,6 +683,12 @@ export class EpicInstallationService {
       "Windows",
     ]);
   }
+  /** Drops a game's settled preview after Epic reported a newer build. */
+  invalidateOptions(objectId: string) {
+    for (const [key, entry] of this.optionsCache)
+      if (entry.settled && JSON.parse(key).at(-2) === objectId)
+        this.optionsCache.delete(key);
+  }
   async getOptions(
     objectId: string,
     signal?: AbortSignal
@@ -774,22 +780,24 @@ export class EpicInstallationService {
       epicAccountId: context.connection.epicAccountId,
     };
     const options = await Promise.all(
-      result.options.map(async (option) => ({
-        ...option,
-        ...(reused
-          ? {
-              installed: !!(await this.readInstalledForRepair(
-                {
-                  ...context,
-                  owner,
-                  artifactId: option.artifactId,
-                  platform: option.platform,
-                },
-                objectId
-              )),
-            }
-          : {}),
-      }))
+      result.options.map(async (option) => {
+        // Callers own the result; never hand out the cached option itself.
+        if (!reused) return { ...option };
+        const installed = await this.readInstalledForRepair(
+          {
+            ...context,
+            owner,
+            artifactId: option.artifactId,
+            platform: option.platform,
+          },
+          objectId
+        );
+        return {
+          ...option,
+          installed: !!installed,
+          installedVersion: installed?.version ?? null,
+        };
+      })
     );
     if (!this.options.current(context) || signal.aborted)
       throw new EpicManagedError("operation-cancelled");
@@ -832,6 +840,8 @@ export class EpicInstallationService {
             diskSizeInBytes: prepared.diskSizeInBytes,
             supportsCloudSaves: prepared.supportsCloudSaves,
             installed: !!installed,
+            version: prepared.version,
+            installedVersion: installed?.version ?? null,
           });
         } catch (error) {
           if (

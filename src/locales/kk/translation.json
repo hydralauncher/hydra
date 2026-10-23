@@ -576,6 +576,12 @@
     "epic_play_offline": "Ойнау — Offline",
     "epic_prerequisites_required": "Ойынға қажетті құрамдастарға рұқсат беріп, қайталап көріңіз.",
     "epic_update_required": "Ойынды Epic Games опциясы арқылы сол қалтаға жаңартыңыз.",
+    "epic_update": "Жаңарту",
+    "epic_update_resume": "Жаңартуды жалғастыру",
+    "epic_updating": "Жаңартылуда…",
+    "epic_play_without_update": "Жаңартпай ойнау",
+    "epic_update_available": "{{version}} нұсқасы қолжетімді",
+    "epic_update_failed": "Ойынды жаңарту мүмкін болмады",
     "epic_retry": "Қайта көру"
   },
   "activation": {

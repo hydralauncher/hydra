@@ -577,6 +577,12 @@
     "epic_play_offline": "Spela — Offline",
     "epic_prerequisites_required": "Godkänn spelets förutsättningar och försök igen.",
     "epic_update_required": "Uppdatera spelet via Epic Games-alternativet i samma mapp.",
+    "epic_update": "Uppdatera",
+    "epic_update_resume": "Återuppta uppdatering",
+    "epic_updating": "Uppdaterar…",
+    "epic_play_without_update": "Spela utan att uppdatera",
+    "epic_update_available": "Version {{version}} är tillgänglig",
+    "epic_update_failed": "Det gick inte att uppdatera spelet",
     "epic_retry": "Försök igen"
   },
   "activation": {

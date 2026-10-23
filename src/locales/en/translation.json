@@ -1097,6 +1097,12 @@
     "epic_play_offline": "Play — Offline",
     "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
     "epic_update_required": "Update the game through the Epic Games option using the same folder.",
+    "epic_update": "Update",
+    "epic_update_resume": "Resume update",
+    "epic_updating": "Updating…",
+    "epic_play_without_update": "Play without updating",
+    "epic_update_available": "Version {{version}} is available",
+    "epic_update_failed": "Couldn't update the game",
     "epic_retry": "Try again"
   },
   "activation": {

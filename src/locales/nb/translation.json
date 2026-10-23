@@ -577,6 +577,12 @@
     "epic_play_offline": "Spil — Offline",
     "epic_prerequisites_required": "Godkjenn spillets forutsetninger og prøv igjen.",
     "epic_update_required": "Oppdater spillet via Epic Games-alternativet i den samme mappen.",
+    "epic_update": "Oppdater",
+    "epic_update_resume": "Gjenoppta oppdatering",
+    "epic_updating": "Oppdaterer…",
+    "epic_play_without_update": "Spill uten å oppdatere",
+    "epic_update_available": "Versjon {{version}} er tilgjengelig",
+    "epic_update_failed": "Kunne ikke oppdatere spillet",
     "epic_retry": "Prøv igjen"
   },
   "activation": {

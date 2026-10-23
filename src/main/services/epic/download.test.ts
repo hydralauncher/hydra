@@ -8,6 +8,8 @@ import { Downloader } from "../../../shared/constants.js";
 import {
   EpicDownloadService,
   EpicDownloadProgressParser,
+  epicInstallArgs,
+  epicInstallTags,
   getReusableEpicDiskBytes,
   quoteWindowsEpicArgument,
   runEpicPrerequisite,
@@ -28,6 +30,8 @@ import {
 } from "./store-test-helpers.js";
 
 const MIB = 1024 * 1024;
+const COMPLETION_POLL_ATTEMPTS = 500;
+const COMPLETION_POLL_INTERVAL_MS = 5;
 const auth = {
   environment: "https://api.example.test",
   userId: "managed-test",
@@ -950,4 +954,162 @@ test("file removal holds the workspace and blocks restarting the same download",
   );
   release.resolve();
   await removal;
+});
+
+test("install arguments repeat Legendary's install tags because the workspace forgets them", () => {
+  const base = {
+    artifactId: "Artifact1",
+    platform: "Windows",
+    basePath: "/games",
+    folderName: "EpicGame",
+  };
+  assert.deepEqual(epicInstallArgs(base), [
+    "-y",
+    "install",
+    "Artifact1",
+    "--platform",
+    "Windows",
+    "--base-path",
+    "/games",
+    "--game-folder",
+    "EpicGame",
+    "--skip-dlcs",
+    "--skip-sdl",
+  ]);
+  assert.deepEqual(
+    epicInstallArgs({ ...base, installTags: ["", "voice_de_de"] }).slice(-2),
+    ["--install-tag=", "--install-tag=voice_de_de"]
+  );
+  assert.deepEqual(epicInstallTags(undefined), []);
+  assert.deepEqual(epicInstallTags(null), []);
+  assert.deepEqual(epicInstallTags(["", "chunk0", "chunk0"]), ["", "chunk0"]);
+  for (const value of [
+    "chunk0",
+    [1],
+    ["--manifest=/tmp/x"],
+    ["a b"],
+    Array.from({ length: 257 }, (_, index) => `tag${index}`),
+  ])
+    assert.throws(() => epicInstallTags(value), {
+      code: "installation-incomplete",
+    });
+});
+
+test("update progress adopts Legendary's delta as the total and keeps it on resume", () => {
+  const update = new EpicDownloadProgressParser(0);
+  update.line("[cli] INFO: Download size: 4.00 MiB");
+  assert.equal(update.state.fileSize, 4 * MIB);
+  assert.equal(update.state.bytesDownloaded, 0);
+  update.line("[DLManager] INFO: = Progress: 50.00%, ETA: 00:00:10");
+  assert.equal(update.state.progress, 0.5);
+  const resumed = new EpicDownloadProgressParser(4 * MIB, 2 * MIB, 0.5);
+  resumed.line("[cli] INFO: Download size: 2.00 MiB");
+  assert.equal(resumed.state.fileSize, 4 * MIB);
+  assert.equal(resumed.state.bytesDownloaded, 2 * MIB);
+  const empty = new EpicDownloadProgressParser(0);
+  empty.line(
+    "[cli] INFO: Download size is 0, the game is either already up to date or has not changed."
+  );
+  assert.equal(empty.state.fileSize, 0);
+  assert.equal(empty.state.preparing, false);
+});
+
+test("an Epic update reuses the install command in the installed folder with its install tags", async (t) => {
+  const previousVersion = info.game.version;
+  t.after(() => {
+    info.game.version = previousVersion;
+  });
+  const f = await fixture(t, async (directory, options, destination) => {
+    const update = info.game.version !== "build-1";
+    options.onLine?.(
+      `[cli] INFO: Download size: ${update ? "0.50" : "2.00"} MiB`
+    );
+    options.onLine?.("[DLManager] INFO: = Progress: 100.00%, ETA: 00:00:00");
+    await fs.mkdir(destination, { recursive: true });
+    await fs.writeFile(path.join(destination, "Game.exe"), info.game.version);
+    await fs.writeFile(
+      path.join(directory, "installed.json"),
+      JSON.stringify({
+        Artifact1: {
+          app_name: "Artifact1",
+          platform: "Windows",
+          install_path: destination,
+          executable: "Game.exe",
+          install_size: 4 * MIB,
+          version: info.game.version,
+          install_tags: ["", "voice_de_de"],
+        },
+      })
+    );
+  });
+  const waitForComplete = async () => {
+    for (let attempt = 0; attempt < COMPLETION_POLL_ATTEMPTS; attempt++) {
+      if (f.getDownload()?.status === "complete") return;
+      await new Promise((resolve) =>
+        setTimeout(resolve, COMPLETION_POLL_INTERVAL_MS)
+      );
+    }
+    assert.fail("download did not complete");
+  };
+  t.mock.method(
+    f.installation,
+    "captureLocal",
+    (id: string, signal: AbortSignal) => f.installation.capture(id, signal)
+  );
+  const { downloadPath: _downloadPath, ...target } = f.payload;
+  assert.deepEqual(await f.service.startUpdate(target), {
+    ok: false,
+    error: "installation-missing",
+  });
+
+  assert.deepEqual(await f.service.start(f.payload), { ok: true });
+  await f.service.startRuntime(f.getDownload()!, (error) =>
+    f.failed.resolve(error)
+  );
+  await waitForComplete();
+  // The download manager releases the runtime slot after each completion.
+  await f.service.stop();
+  const firstInstall = f.commands.filter((args) => args.includes("install"));
+  assert.equal(firstInstall.length, 1);
+  assert.equal(
+    firstInstall[0].some((arg) => arg.startsWith("--install-tag")),
+    false
+  );
+  assert.equal(f.getDownload()?.epic?.update, undefined);
+
+  info.game.version = "build-2";
+  const options = await f.service.getOptions(objectId);
+  assert.equal(options.options[0].installed, true);
+  assert.equal(options.options[0].version, "build-2");
+  assert.equal(options.options[0].installedVersion, "build-1");
+  assert.deepEqual(
+    await f.service.startUpdate({ ...target, artifactId: "Other" }),
+    { ok: false, error: "invalid-artifact" }
+  );
+  assert.deepEqual(
+    await f.service.startUpdate({
+      ...target,
+      preparationId: options.options[0].preparationId,
+    }),
+    { ok: true }
+  );
+  const queued = f.getDownload()!;
+  assert.equal(queued.downloadPath, f.base);
+  assert.equal(queued.fileSize, 0);
+  assert.deepEqual(queued.epic?.update, {
+    fromVersion: "build-1",
+    toVersion: "build-2",
+  });
+  await f.service.startRuntime(queued, (error) => f.failed.resolve(error));
+  await waitForComplete();
+  const updateInstall = f.commands.filter((args) => args.includes("install"));
+  assert.equal(updateInstall.length, 2);
+  assert.deepEqual(updateInstall[1].slice(-2), [
+    "--install-tag=",
+    "--install-tag=voice_de_de",
+  ]);
+  assert.equal(f.getDownload()?.fileSize, 0.5 * MIB);
+  assert.equal(f.getDownload()?.epic?.update, undefined);
+  const updated = await f.service.getOptions(objectId);
+  assert.equal(updated.options[0].installedVersion, "build-2");
 });

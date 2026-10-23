@@ -787,6 +787,12 @@
     "epic_play_offline": "Chơi — Ngoại tuyến",
     "epic_prerequisites_required": "Cho phép cài đặt các thành phần cần thiết của trò chơi và thử lại.",
     "epic_update_required": "Cập nhật trò chơi qua tùy chọn Epic Games vào cùng thư mục.",
+    "epic_update": "Cập nhật",
+    "epic_update_resume": "Tiếp tục cập nhật",
+    "epic_updating": "Đang cập nhật…",
+    "epic_play_without_update": "Chơi mà không cập nhật",
+    "epic_update_available": "Đã có phiên bản {{version}}",
+    "epic_update_failed": "Không thể cập nhật trò chơi",
     "epic_retry": "Thử lại"
   },
   "activation": {

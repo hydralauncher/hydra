@@ -1050,6 +1050,12 @@
     "epic_play_offline": "Jugar — Desconectado",
     "epic_prerequisites_required": "Autoriza los requisitos previos del juego e inténtalo de nuevo.",
     "epic_update_required": "Actualiza el juego desde la opción Epic Games usando la misma carpeta.",
+    "epic_update": "Actualizar",
+    "epic_update_resume": "Reanudar actualización",
+    "epic_updating": "Actualizando…",
+    "epic_play_without_update": "Jugar sin actualizar",
+    "epic_update_available": "Versión {{version}} disponible",
+    "epic_update_failed": "No se pudo actualizar el juego",
     "epic_retry": "Intentar de nuevo"
   },
   "activation": {

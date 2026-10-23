@@ -574,6 +574,12 @@
     "epic_play_offline": "Speel — Offline",
     "epic_prerequisites_required": "Sta de vereisten van het spel toe en probeer opnieuw.",
     "epic_update_required": "Werk het spel bij via de Epic Games-optie met dezelfde map.",
+    "epic_update": "Bijwerken",
+    "epic_update_resume": "Update hervatten",
+    "epic_updating": "Bijwerken…",
+    "epic_play_without_update": "Spelen zonder bij te werken",
+    "epic_update_available": "Versie {{version}} beschikbaar",
+    "epic_update_failed": "Kan het spel niet bijwerken",
     "epic_retry": "Opnieuw proberen"
   },
   "activation": {

@@ -9,9 +9,14 @@ import {
 import type { GameShop, ShopAssets, LibraryGame } from "@types";
 import {
   hasCloudSaveExecutableSelection,
+  getEpicLaunchOptions,
   getInstalledStoreMembers,
   getOfficialStoreMembers,
+  isEpicMemberInCurrentScope,
+  isEpicUpdateInterrupted,
 } from "@shared";
+import { useEpicManagedConnection } from "@renderer/hooks/use-epic-managed";
+import { useEpicGameUpdate } from "@renderer/hooks/use-epic-game-update";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -87,6 +92,7 @@ import {
 } from "../../components/pages/game/navigation";
 import { NavigationService, type FocusOverrideTarget } from "../../services";
 import { useNavigationStore } from "../../stores";
+import { useBigPictureDownloadsStore } from "../../stores/downloads.store";
 import { extractGenreNames } from "./game-metadata";
 import "./game.scss";
 import { EpicCloudSaves } from "../../components/pages/game/epic-cloud-saves";
@@ -203,6 +209,20 @@ const REGION_LABELS: Record<SkuRegion, string> = {
   KR: "Korea",
   ASIA: "Asia",
 };
+
+/** The Epic copy's own download, preferring the live record for that member. */
+function getEpicMemberDownload(
+  member: LibraryGame | null,
+  downloadGame: LibraryGame | null | undefined
+) {
+  if (!member) return null;
+  if (
+    downloadGame?.shop === member.shop &&
+    downloadGame.objectId === member.objectId
+  )
+    return downloadGame.download;
+  return member.download;
+}
 
 function easeOutCubic(progress: number) {
   return 1 - Math.pow(1 - progress, 3);
@@ -600,6 +620,28 @@ export default function Game() {
   const installedMembers = getInstalledStoreMembers(members);
   const epicMember = getOfficialStoreMembers(members).epic;
   const [showStoreSelection, setShowStoreSelection] = useState(false);
+  const [showEpicUpdate, setShowEpicUpdate] = useState(false);
+  const lastPacket = useBigPictureDownloadsStore((state) => state.lastPacket);
+  const { installationAvailable: epicInstallationAvailable, connection } =
+    useEpicManagedConnection();
+  // Updates belong to the installed Epic copy, even when Steam presents the page.
+  const epicUpdateMember =
+    epicMember?.epicInstallation && epicMember.executablePath
+      ? epicMember
+      : null;
+  const epicUpdate = useEpicGameUpdate(
+    epicUpdateMember,
+    epicInstallationAvailable &&
+      isEpicMemberInCurrentScope(epicUpdateMember, connection)
+  );
+  const epicDownload = getEpicMemberDownload(epicUpdateMember, downloadGame);
+  const epicUpdateInterrupted =
+    !!epicDownload && isEpicUpdateInterrupted(epicDownload);
+  const epicDownloadStatus = epicDownload?.status;
+  const refreshEpicUpdate = epicUpdate.refresh;
+  useEffect(() => {
+    if (epicDownloadStatus === "complete") void refreshEpicUpdate();
+  }, [epicDownloadStatus, refreshEpicUpdate]);
   const [localSaveRetry, setLocalSaveRetry] = useState<LibraryGame | null>(
     null
   );
@@ -607,6 +649,8 @@ export default function Game() {
     null
   );
   const [canRetryOffline, setCanRetryOffline] = useState(false);
+  // A retry keeps the player's choice to launch the outdated build.
+  const [retrySkipsUpdateCheck, setRetrySkipsUpdateCheck] = useState(false);
   const [canRetryLocalSaves, setCanRetryLocalSaves] = useState(false);
   const launchGeneration = useRef(0);
   const invalidateLaunch = useCallback(() => {
@@ -626,8 +670,66 @@ export default function Game() {
       stop?.();
     };
   }, [shop, objectId, invalidateLaunch]);
+  const offerEpicLaunchRecovery = useCallback(
+    async (
+      member: LibraryGame,
+      generation: number,
+      skipUpdateCheck: boolean
+    ) => {
+      if (typeof window.electron.getEpicCloudSaveState !== "function") return;
+      const state = await window.electron
+        .getEpicCloudSaveState(member.objectId)
+        .catch(() => null);
+      if (generation !== launchGeneration.current) return;
+      if (state?.status === "conflict") {
+        setEpicSaveConflict(member);
+        return;
+      }
+      if (
+        canRetryEpicLaunchWithLocalSaves(state) ||
+        state?.canRunOffline === true
+      ) {
+        setLocalSaveRetry(member);
+        setRetrySkipsUpdateCheck(skipUpdateCheck);
+        setCanRetryOffline(state?.canRunOffline === true);
+        setCanRetryLocalSaves(canRetryEpicLaunchWithLocalSaves(state));
+      }
+    },
+    []
+  );
+  const reportLaunchFailure = useCallback(
+    async (
+      member: LibraryGame,
+      error: unknown,
+      generation: number,
+      skipUpdateCheck: boolean
+    ) => {
+      const code =
+        member.shop === "epic" ? getEpicLaunchError(error) : undefined;
+      if (code === "save-conflict") {
+        setEpicSaveConflict(member);
+        return;
+      }
+      // The cached preview predates the published build: fetch a fresh one.
+      if (code === "update-required") void refreshEpicUpdate(true);
+      const translation = code ? getEpicManagedError(code) : null;
+      showErrorToast(
+        translation
+          ? t(translation.key, { ns: translation.ns })
+          : t("epic_launch_failed", { ns: "game_details" })
+      );
+      if (member.shop === "epic")
+        await offerEpicLaunchRecovery(member, generation, skipUpdateCheck);
+    },
+    [showErrorToast, t, refreshEpicUpdate, offerEpicLaunchRecovery]
+  );
   const launchMember = useCallback(
-    async (member: LibraryGame, localOnce = false, offline = false) => {
+    async (
+      member: LibraryGame,
+      localOnce = false,
+      offline = false,
+      skipUpdateCheck = false
+    ) => {
       if (!member.executablePath) return;
       setShowStoreSelection(false);
       setLocalSaveRetry(null);
@@ -641,51 +743,66 @@ export default function Game() {
           member.objectId,
           member.executablePath,
           member.launchOptions,
-          offline
-            ? { epicOffline: true }
-            : localOnce
-              ? { epicSavePolicy: "local-once" }
-              : undefined
+          getEpicLaunchOptions(localOnce, offline, skipUpdateCheck)
         );
       } catch (error) {
         if (generation !== launchGeneration.current) return;
-        const code =
-          member.shop === "epic" ? getEpicLaunchError(error) : undefined;
-        if (code === "save-conflict") {
-          setEpicSaveConflict(member);
-          return;
-        }
-        const translation = code ? getEpicManagedError(code) : null;
-        showErrorToast(
-          translation
-            ? t(translation.key, { ns: translation.ns })
-            : t("epic_launch_failed", { ns: "game_details" })
-        );
-        if (
-          member.shop === "epic" &&
-          typeof window.electron.getEpicCloudSaveState === "function"
-        ) {
-          const state = await window.electron
-            .getEpicCloudSaveState(member.objectId)
-            .catch(() => null);
-          if (generation !== launchGeneration.current) return;
-          if (state?.status === "conflict") {
-            setEpicSaveConflict(member);
-            return;
-          }
-          if (
-            canRetryEpicLaunchWithLocalSaves(state) ||
-            state?.canRunOffline === true
-          ) {
-            setLocalSaveRetry(member);
-            setCanRetryOffline(state?.canRunOffline === true);
-            setCanRetryLocalSaves(canRetryEpicLaunchWithLocalSaves(state));
-          }
-        }
+        await reportLaunchFailure(member, error, generation, skipUpdateCheck);
       }
     },
-    [showErrorToast, t]
+    [reportLaunchFailure]
   );
+  const playEpicMember = useCallback(
+    (member: LibraryGame) => {
+      setShowStoreSelection(false);
+      if (epicUpdate.update || epicUpdateInterrupted) {
+        setShowEpicUpdate(true);
+        return;
+      }
+      void launchMember(member);
+    },
+    [epicUpdate.update, epicUpdateInterrupted, launchMember]
+  );
+  const startEpicUpdate = useCallback(
+    async (resume = false) => {
+      setShowEpicUpdate(false);
+      const result = await epicUpdate.start(lastPacket !== null, resume);
+      if (result.ok) {
+        await updateGame();
+        globalThis.window.dispatchEvent(new Event("library-update"));
+        return;
+      }
+      const translation = getEpicManagedError(result.error);
+      showErrorToast(t("epic_update_failed", { ns: "game_details" }), {
+        message: t(translation.key, { ns: translation.ns }),
+      });
+    },
+    [epicUpdate, lastPacket, updateGame, showErrorToast, t]
+  );
+  const resumeEpicUpdate = useCallback(async () => {
+    if (!epicUpdateMember) return;
+    if (epicDownload?.status !== "paused" && epicDownload?.status !== "error") {
+      await startEpicUpdate(true);
+      return;
+    }
+    setShowEpicUpdate(false);
+    try {
+      await window.electron.resumeGameDownload(
+        epicUpdateMember.shop,
+        epicUpdateMember.objectId
+      );
+    } catch {
+      showErrorToast(t("epic_update_failed", { ns: "game_details" }));
+    }
+    await updateGame();
+  }, [
+    epicUpdateMember,
+    epicDownload?.status,
+    startEpicUpdate,
+    showErrorToast,
+    t,
+    updateGame,
+  ]);
   const { launchSettings, customizationSettings, cloudSettings } =
     useGameSettingsModalState({
       game,
@@ -1052,7 +1169,7 @@ export default function Game() {
         return;
       }
       if (game.shop === "epic" && game.epicInstallation) {
-        await launchMember(game);
+        playEpicMember(game);
         return;
       }
       await openGame();
@@ -1078,9 +1195,9 @@ export default function Game() {
   }, [
     game,
     installedMembers,
-    launchMember,
     launchClassicsWithErrorHandling,
     openGame,
+    playEpicMember,
   ]);
 
   const handleDiscSelectionConfirm = useCallback(
@@ -1573,13 +1690,65 @@ export default function Game() {
               <Button
                 key={member.id}
                 variant="primary"
-                onClick={() => void launchMember(member)}
+                onClick={() =>
+                  member.shop === "epic"
+                    ? playEpicMember(member)
+                    : void launchMember(member)
+                }
               >
                 {t(member.shop === "steam" ? "play_on_steam" : "play_on_epic", {
                   ns: "game_details",
                 })}
               </Button>
             ))}
+          </HorizontalFocusGroup>
+        </Modal>
+        <Modal
+          visible={showEpicUpdate}
+          title={t(
+            epicUpdateInterrupted ? "epic_update_resume" : "epic_update",
+            { ns: "game_details" }
+          )}
+          description={
+            epicUpdate.update?.version
+              ? t("epic_update_available", {
+                  ns: "game_details",
+                  version: epicUpdate.update.version,
+                })
+              : undefined
+          }
+          onClose={() => setShowEpicUpdate(false)}
+        >
+          <HorizontalFocusGroup>
+            {epicUpdateInterrupted ? (
+              <Button
+                variant="primary"
+                disabled={epicUpdate.starting}
+                onClick={() => void resumeEpicUpdate()}
+              >
+                {t("epic_update_resume", { ns: "game_details" })}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="primary"
+                  disabled={epicUpdate.starting}
+                  onClick={() => void startEpicUpdate()}
+                >
+                  {t("epic_update", { ns: "game_details" })}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowEpicUpdate(false);
+                    const member = epicUpdateMember ?? game;
+                    if (member) void launchMember(member, false, false, true);
+                  }}
+                >
+                  {t("epic_play_without_update", { ns: "game_details" })}
+                </Button>
+              </>
+            )}
           </HorizontalFocusGroup>
         </Modal>
         <Modal
@@ -1595,7 +1764,13 @@ export default function Game() {
               <Button
                 variant="primary"
                 onClick={() => {
-                  if (localSaveRetry) void launchMember(localSaveRetry, true);
+                  if (localSaveRetry)
+                    void launchMember(
+                      localSaveRetry,
+                      true,
+                      false,
+                      retrySkipsUpdateCheck
+                    );
                 }}
               >
                 {t("epic_play_local_saves", { ns: "game_details" })}

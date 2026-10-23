@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { EpicConnectionState, LibraryGame } from "@types";
+import type {
+  EpicConnectionState,
+  EpicGameInstallOption,
+  LibraryGame,
+} from "@types";
 import {
+  getEpicGameUpdate,
+  getEpicLaunchOptions,
   getOfficialStoreMembers,
   getInstalledStoreMembers,
   isEpicMemberInCurrentScope,
+  isEpicUpdateInterrupted,
 } from "./official-store-options.js";
 
 const makeGame = (
@@ -118,5 +125,66 @@ describe("official store source and launch choices", () => {
       0
     );
     assert.equal(getInstalledStoreMembers([makeGame("epic")]).length, 0);
+  });
+});
+
+describe("Epic game updates", () => {
+  const option = (
+    overrides: Partial<EpicGameInstallOption> = {}
+  ): EpicGameInstallOption => ({
+    artifactId: "Artifact",
+    platform: "Windows",
+    downloadSizeInBytes: 10,
+    diskSizeInBytes: 20,
+    supportsCloudSaves: false,
+    installed: true,
+    version: "build-2",
+    installedVersion: "build-1",
+    ...overrides,
+  });
+  const installation = { artifactId: "Artifact", platform: "Windows" } as const;
+
+  it("reports only the installed artifact when Epic published another build", () => {
+    const update = option();
+    assert.equal(getEpicGameUpdate([update], installation), update);
+    assert.equal(getEpicGameUpdate([update], null), null);
+    for (const overrides of [
+      { installedVersion: "build-2" },
+      { installed: false },
+      { version: null },
+      { installedVersion: null },
+      { artifactId: "OtherArtifact" },
+      { platform: "Mac" as const },
+    ])
+      assert.equal(getEpicGameUpdate([option(overrides)], installation), null);
+  });
+
+  it("treats an update as interrupted until its download completes", () => {
+    const update = { fromVersion: "build-1", toVersion: "build-2" };
+    assert.equal(isEpicUpdateInterrupted(null), false);
+    assert.equal(isEpicUpdateInterrupted({ status: "paused" }), false);
+    for (const status of ["paused", "error", "removed", "active"])
+      assert.equal(isEpicUpdateInterrupted({ status, epic: { update } }), true);
+    assert.equal(
+      isEpicUpdateInterrupted({ status: "complete", epic: { update } }),
+      false
+    );
+  });
+
+  it("builds launch options without mixing offline and version-skip launches", () => {
+    assert.equal(getEpicLaunchOptions(false, false), undefined);
+    assert.deepEqual(getEpicLaunchOptions(false, true, true), {
+      epicOffline: true,
+    });
+    assert.deepEqual(getEpicLaunchOptions(true, false), {
+      epicSavePolicy: "local-once",
+    });
+    assert.deepEqual(getEpicLaunchOptions(false, false, true), {
+      epicSkipUpdateCheck: true,
+    });
+    assert.deepEqual(getEpicLaunchOptions(true, false, true), {
+      epicSavePolicy: "local-once",
+      epicSkipUpdateCheck: true,
+    });
   });
 });

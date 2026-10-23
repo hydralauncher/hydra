@@ -778,6 +778,12 @@
     "epic_play_offline": "Παίξτε — Εκτός σύνδεσης",
     "epic_prerequisites_required": "Εγκρίνετε τα προαπαιτούμενα του παιχνιδιού και δοκιμάστε ξανά.",
     "epic_update_required": "Ενημερώστε το παιχνίδι μέσω της επιλογής Epic Games στον ίδιο φάκελο.",
+    "epic_update": "Ενημέρωση",
+    "epic_update_resume": "Συνέχιση ενημέρωσης",
+    "epic_updating": "Ενημέρωση…",
+    "epic_play_without_update": "Παιχνίδι χωρίς ενημέρωση",
+    "epic_update_available": "Η έκδοση {{version}} είναι διαθέσιμη",
+    "epic_update_failed": "Δεν ήταν δυνατή η ενημέρωση του παιχνιδιού",
     "epic_retry": "Δοκιμάστε ξανά"
   },
   "activation": {

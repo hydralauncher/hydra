@@ -34,6 +34,8 @@ export interface EpicDownloadMetadata {
   diskSizeInBytes: number;
   phase?: "preparing" | "downloading" | "finalizing" | "prerequisites";
   error?: EpicInstallError;
+  /** Present while a newer build replaces an existing installation. */
+  update?: { fromVersion: string; toVersion: string };
 }
 
 export type EpicInstallError =
@@ -71,6 +73,10 @@ export interface EpicGameInstallOption {
   diskSizeInBytes: number | null;
   supportsCloudSaves: boolean;
   installed: boolean;
+  /** Build currently published by Epic. */
+  version?: string | null;
+  /** Build recorded by Legendary for this installation. */
+  installedVersion?: string | null;
 }
 
 export interface EpicGameInstallOptions {
@@ -89,9 +95,17 @@ export interface StartEpicGameDownloadPayload {
   addToQueueOnly?: boolean;
 }
 
+/** The main process derives the folder from the existing installation. */
+export type StartEpicGameUpdatePayload = Omit<
+  StartEpicGameDownloadPayload,
+  "downloadPath"
+>;
+
 export interface EpicLaunchOptions {
   epicSavePolicy?: "local-once";
   epicOffline?: boolean;
+  /** Launches the installed build although Epic published a newer one. */
+  epicSkipUpdateCheck?: boolean;
 }
 
 export type EpicSaveError =

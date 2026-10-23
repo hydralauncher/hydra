@@ -599,6 +599,12 @@
     "epic_play_offline": "Játék — Offline",
     "epic_prerequisites_required": "Engedélyezd a játék előfeltételeit, és próbáld újra.",
     "epic_update_required": "Frissítsd a játékot az Epic Games lehetőséggel ugyanabba a mappába.",
+    "epic_update": "Frissítés",
+    "epic_update_resume": "Frissítés folytatása",
+    "epic_updating": "Frissítés…",
+    "epic_play_without_update": "Játék frissítés nélkül",
+    "epic_update_available": "Elérhető a(z) {{version}} verzió",
+    "epic_update_failed": "Nem sikerült frissíteni a játékot",
     "epic_retry": "Próbáld újra"
   },
   "activation": {

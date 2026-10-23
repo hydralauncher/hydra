@@ -577,6 +577,12 @@
     "epic_play_offline": "O'ynash — Offline",
     "epic_prerequisites_required": "O‘yin uchun zarur komponentlarga ruxsat bering va qayta urinib ko‘ring.",
     "epic_update_required": "O‘yinni Epic Games opsiyasi orqali o‘sha papkaga yangilang.",
+    "epic_update": "Yangilash",
+    "epic_update_resume": "Yangilashni davom ettirish",
+    "epic_updating": "Yangilanmoqda…",
+    "epic_play_without_update": "Yangilamasdan o‘ynash",
+    "epic_update_available": "{{version}} versiyasi mavjud",
+    "epic_update_failed": "O‘yinni yangilab bo‘lmadi",
     "epic_retry": "Qayta urinish"
   },
   "activation": {

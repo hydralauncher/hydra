@@ -1,4 +1,10 @@
-import type { EpicConnectionState, LibraryGame } from "@types";
+import type {
+  EpicConnectionState,
+  EpicGameInstallOption,
+  EpicInstallation,
+  EpicLaunchOptions,
+  LibraryGame,
+} from "@types";
 
 /** Catalogue availability does not prove that the current account owns a copy. */
 export const getOfficialStoreMembers = (members: readonly LibraryGame[]) => {
@@ -40,4 +46,41 @@ export const getInstalledStoreMembers = (members: readonly LibraryGame[]) => {
       );
     })
     .sort((a, b) => Number(b.shop === "steam") - Number(a.shop === "steam"));
+};
+
+/** The installed artifact's option when Epic published a different build. */
+export const getEpicGameUpdate = (
+  options: readonly EpicGameInstallOption[],
+  installation: Pick<EpicInstallation, "artifactId" | "platform"> | null
+): EpicGameInstallOption | null => {
+  if (!installation) return null;
+  return (
+    options.find(
+      (option) =>
+        option.artifactId === installation.artifactId &&
+        option.platform === installation.platform &&
+        option.installed &&
+        !!option.version &&
+        !!option.installedVersion &&
+        option.version !== option.installedVersion
+    ) ?? null
+  );
+};
+
+/** An update that stopped before Legendary recorded the new build. */
+export const isEpicUpdateInterrupted = (
+  download: { status?: string | null; epic?: { update?: unknown } } | null
+) => !!download?.epic?.update && download.status !== "complete";
+
+export const getEpicLaunchOptions = (
+  localOnce: boolean,
+  offline: boolean,
+  skipUpdateCheck = false
+): EpicLaunchOptions | undefined => {
+  if (offline) return { epicOffline: true };
+  if (!localOnce && !skipUpdateCheck) return undefined;
+  return {
+    ...(localOnce ? { epicSavePolicy: "local-once" as const } : {}),
+    ...(skipUpdateCheck ? { epicSkipUpdateCheck: true } : {}),
+  };
 };
