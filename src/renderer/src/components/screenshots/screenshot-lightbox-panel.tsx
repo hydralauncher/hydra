@@ -1,16 +1,18 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CopyIcon,
   GearIcon,
   HeartFillIcon,
   HeartIcon,
+  ImageIcon,
   ReportIcon,
   TrashIcon,
 } from "@primer/octicons-react";
 import cn from "classnames";
 import { Tooltip } from "react-tooltip";
 
+import { Avatar } from "../avatar/avatar";
 import { InlineEditField } from "../inline-edit-field/inline-edit-field";
 import { Link } from "../link/link";
 import { buildGameDetailsPath } from "@renderer/helpers";
@@ -34,6 +36,30 @@ import "./screenshot-lightbox-panel.scss";
 
 type ScreenshotActions = ScreenshotCollection["actions"];
 
+function ScreenshotGameIcon({
+  screenshot,
+}: Readonly<{ screenshot: ProfileScreenshot }>) {
+  const [failedIconUrl, setFailedIconUrl] = useState<string | null>(null);
+  const hasIcon = Boolean(
+    screenshot.gameIconUrl && screenshot.gameIconUrl !== failedIconUrl
+  );
+
+  return (
+    <span className="screenshot-lightbox__game-icon">
+      {hasIcon ? (
+        <img
+          src={screenshot.gameIconUrl ?? undefined}
+          alt=""
+          loading="lazy"
+          onError={() => setFailedIconUrl(screenshot.gameIconUrl)}
+        />
+      ) : (
+        <ImageIcon size={12} />
+      )}
+    </span>
+  );
+}
+
 function ScreenshotGameLink({
   screenshot,
   onNavigateAway,
@@ -44,6 +70,7 @@ function ScreenshotGameLink({
   if (screenshot.isCustomGame || !screenshot.objectId) {
     return (
       <span className="screenshot-lightbox__game">
+        <ScreenshotGameIcon screenshot={screenshot} />
         {title}
         <span className="screenshot-lightbox__tag">{t("custom_game_tag")}</span>
       </span>
@@ -60,6 +87,7 @@ function ScreenshotGameLink({
       })}
       onClick={onNavigateAway}
     >
+      <ScreenshotGameIcon screenshot={screenshot} />
       {title}
     </Link>
   );
@@ -129,6 +157,7 @@ function ScreenshotPanelInfo({
           to={`/profile/${encodeURIComponent(screenshot.owner.id)}`}
           onClick={onClose}
         >
+          <Avatar size={20} src={screenshot.owner.profileImageUrl} alt="" />
           {screenshot.owner.displayName}
         </Link>
         <span className="screenshot-lightbox__separator" aria-hidden="true">

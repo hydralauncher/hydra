@@ -36,6 +36,7 @@ export interface ScreenshotAuthor {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
+  backgroundImageUrl?: string | null;
 }
 
 export interface ProfileScreenshot {

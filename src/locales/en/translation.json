@@ -3062,6 +3062,8 @@
     "my_screenshots": "My Screenshots",
     "community_screenshots_tab": "Community Screenshots",
     "not_uploaded": "Not uploaded",
+    "date_group_today": "Today",
+    "date_group_yesterday": "Yesterday",
     "uploaded": "Uploaded",
     "screenshot_status_filter": "Upload status",
     "upload_screenshot": "Upload",

@@ -2790,6 +2790,8 @@
     "my_screenshots": "Mis capturas de pantalla",
     "community_screenshots_tab": "Capturas de la comunidad",
     "not_uploaded": "Sin subir",
+    "date_group_today": "Hoy",
+    "date_group_yesterday": "Ayer",
     "uploaded": "Subidas",
     "screenshot_status_filter": "Estado de subida",
     "upload_screenshot": "Subir",

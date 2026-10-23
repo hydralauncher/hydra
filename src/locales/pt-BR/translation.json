@@ -3066,6 +3066,8 @@
     "my_screenshots": "Minhas capturas de tela",
     "community_screenshots_tab": "Capturas da comunidade",
     "not_uploaded": "Não enviado",
+    "date_group_today": "Hoje",
+    "date_group_yesterday": "Ontem",
     "uploaded": "Enviadas",
     "screenshot_status_filter": "Status de envio",
     "upload_screenshot": "Enviar",

@@ -2859,6 +2859,8 @@
     "my_screenshots": "Мои скриншоты",
     "community_screenshots_tab": "Скриншоты сообщества",
     "not_uploaded": "Не загружен",
+    "date_group_today": "Сегодня",
+    "date_group_yesterday": "Вчера",
     "uploaded": "Загруженные",
     "screenshot_status_filter": "Статус загрузки",
     "upload_screenshot": "Загрузить",
