@@ -399,4 +399,8 @@
     align-items: center;
     gap: 4px;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
