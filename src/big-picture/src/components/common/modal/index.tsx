@@ -26,6 +26,7 @@ export interface ModalProps {
   onClose: () => void;
   onBack?: () => void;
   title: string;
+  headerContent?: ReactNode;
   description?: string;
   children: ReactNode;
   className?: string;
@@ -42,11 +43,23 @@ export interface ModalProps {
 
 export const MODAL_OWNED_OVERLAY_ATTRIBUTE = "data-hydra-modal-owned-overlay";
 
+interface ModalBackActionProps {
+  enabled: boolean;
+  onBack: () => void;
+}
+
+function ModalBackAction({ enabled, onBack }: Readonly<ModalBackActionProps>) {
+  useNavigationScreenActions(enabled ? { press: { b: onBack } } : {});
+
+  return null;
+}
+
 export function Modal({
   visible,
   onClose,
   onBack,
   title,
+  headerContent,
   description,
   children,
   coverImage,
@@ -67,7 +80,7 @@ export function Modal({
   const isVirtualKeyboardOpen = virtualKeyboardTarget !== null;
 
   const isTopMostModal = () => {
-    const openModals = document.querySelectorAll("[role=dialog]");
+    const openModals = document.querySelectorAll("[role=dialog], dialog[open]");
     return (
       openModals.length &&
       openModals[openModals.length - 1] === modalContentRef.current
@@ -98,10 +111,6 @@ export function Modal({
     if (!isTopMostModal()) return;
     handleCloseClick();
   }, [handleCloseClick]);
-
-  useNavigationScreenActions(
-    shouldCloseOnB ? { press: { b: handleBPress } } : {}
-  );
 
   useEffect(() => {
     if (!visible) return;
@@ -182,6 +191,9 @@ export function Modal({
 
   return createPortal(
     <FocusRegionContext.Provider value={null}>
+      {visible ? (
+        <ModalBackAction enabled={shouldCloseOnB} onBack={handleBPress} />
+      ) : null}
       <AnimatePresence>
         {visible && (
           <Backdrop className={backdropClassName}>
@@ -223,7 +235,7 @@ export function Modal({
                       </button>
                     )}
 
-                    <h4>{title}</h4>
+                    {headerContent ?? <h4>{title}</h4>}
                   </div>
 
                   {description && (

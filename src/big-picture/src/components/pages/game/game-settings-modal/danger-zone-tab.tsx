@@ -16,6 +16,8 @@ import { Button, VerticalFocusGroup } from "../../../common";
 import { ConfirmationModal } from "../../../modals";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
 import { useBigPictureToast } from "../../../../hooks/use-big-picture-toast.hook";
+import { Feature, useFeature } from "../../../../hooks";
+import { MyScreenshotsDangerSection } from "./my-screenshots-danger-section";
 
 import "./danger-zone-tab.scss";
 
@@ -91,6 +93,7 @@ export function GameDangerZoneSettingsTab({
 }: Readonly<GameDangerZoneSettingsTabProps>) {
   const { t } = useTranslation("big_picture");
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
+  const { isFeatureEnabled } = useFeature();
   const [pendingAction, setPendingAction] = useState<DangerAction | null>(null);
   const [pendingRemoveFilesTarget, setPendingRemoveFilesTarget] =
     useState<RemoveFilesTarget | null>(null);
@@ -316,6 +319,10 @@ export function GameDangerZoneSettingsTab({
           </Button>
         </SettingsSection>
       )}
+
+      {isFeatureEnabled(Feature.Screenshots) ? (
+        <MyScreenshotsDangerSection shop={game.shop} objectId={game.objectId} />
+      ) : null}
 
       {confirmationConfig && (
         <ConfirmationModal

@@ -8,7 +8,8 @@ import {
   type TabsItem,
   VerticalFocusGroup,
 } from "../../components";
-import { useGamepad, useNavigation } from "../../hooks";
+import { Feature, useFeature, useGamepad, useNavigation } from "../../hooks";
+import { IS_DESKTOP } from "../../constants";
 import {
   NavigationAudioService,
   type FocusOverrideTarget,
@@ -29,6 +30,8 @@ import { GeneralSettingsSection } from "./general";
 import { IntegrationsSettingsSection } from "./integrations";
 import { SETTINGS_PAGE_REGION_ID } from "./navigation";
 import { NotificationsSettingsSection } from "./notifications";
+import { ScreenshotsSettingsSection } from "./screenshots";
+import { SCREENSHOT_SETTINGS_FOCUS_IDS } from "./screenshots-section";
 import { useUserDetails } from "../../hooks";
 import {
   ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
@@ -51,6 +54,7 @@ const ALL_SETTINGS_TABS = [
   { id: "downloads", label: "Downloads" },
   { id: "notifications", label: "Notifications" },
   { id: "content", label: "Content" },
+  { id: "screenshots", label: "Screenshots" },
   { id: "big-picture", label: "Big Picture" },
   { id: "emulation", label: "Emulation" },
   { id: "integrations", label: "Integrations" },
@@ -98,6 +102,7 @@ const SETTINGS_TAB_CONTENT: Record<
   downloads: DownloadsSettingsSection,
   notifications: NotificationsSettingsSection,
   content: ContentSettingsSection,
+  screenshots: ScreenshotsSettingsSection,
   "big-picture": BigPictureSettingsSection,
   emulation: EmulationSettingsSection,
   integrations: IntegrationsSettingsSection,
@@ -170,13 +175,18 @@ export default function Settings() {
     [search]
   );
 
+  const { isFeatureEnabled } = useFeature();
+  const showScreenshotsTab =
+    IS_DESKTOP && isFeatureEnabled(Feature.Screenshots);
+
   const visibleTabs = useMemo(() => {
     return ALL_SETTINGS_TABS.filter((tab) => {
+      if (tab.id === "screenshots") return showScreenshotsTab;
       if (tab.id !== "account-privacy") return true;
 
       return Boolean(userDetails);
     });
-  }, [userDetails]);
+  }, [showScreenshotsTab, userDetails]);
 
   const selectedTabIndex = visibleTabs.findIndex(
     (tab) => tab.id === selectedTab
@@ -303,6 +313,11 @@ export default function Settings() {
         return {
           type: "item",
           itemId: CONTENT_ITEM_FOCUS_IDS.autoplayGameTrailers,
+        };
+      case "screenshots":
+        return {
+          type: "item",
+          itemId: SCREENSHOT_SETTINGS_FOCUS_IDS.enabled,
         };
       case "big-picture":
         return {

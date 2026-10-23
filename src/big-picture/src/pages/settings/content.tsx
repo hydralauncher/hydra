@@ -15,7 +15,13 @@ import {
   VerticalFocusGroup,
 } from "../../components";
 import { ConfirmationModal } from "../../components/modals";
-import { useUserDetails, useUserPreferences } from "../../hooks";
+import { IS_DESKTOP } from "../../constants";
+import {
+  Feature,
+  useFeature,
+  useUserDetails,
+  useUserPreferences,
+} from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
   CONTENT_ITEM_FOCUS_IDS,
@@ -84,6 +90,9 @@ export function ContentSettingsSection({
   const { t } = useTranslation("settings");
   const userPreferences = useUserPreferences();
   const { hasActiveSubscription } = useUserDetails();
+  const { isFeatureEnabled } = useFeature();
+  const showScreenshotSettings =
+    IS_DESKTOP && isFeatureEnabled(Feature.Screenshots);
   const [form, setForm] = useState<ContentForm>(() =>
     buildForm(userPreferences)
   );
@@ -130,8 +139,10 @@ export function ContentSettingsSection({
   }, [updateUserPreferences]);
 
   const supportsSouvenirs = hasActiveSubscription;
+  const showSouvenirScreenshotsDirectory =
+    supportsSouvenirs && !showScreenshotSettings;
   const canManageScreenshots =
-    supportsSouvenirs && form.enableAchievementSouvenirs;
+    showSouvenirScreenshotsDirectory && form.enableAchievementSouvenirs;
 
   const handleChooseScreenshotsPath = useCallback(async () => {
     if (!canManageScreenshots) return;
@@ -321,7 +332,7 @@ export function ContentSettingsSection({
           <div className="content-settings-section__content">
             {items.map(renderItem)}
 
-            {supportsSouvenirs && (
+            {showSouvenirScreenshotsDirectory && (
               <div className="content-settings-section__screenshots-directory">
                 <span className="content-settings-section__screenshots-label">
                   {t("screenshots_directory")}

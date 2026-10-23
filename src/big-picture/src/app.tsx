@@ -27,6 +27,7 @@ import {
   VerticalFocusGroup,
   BigPictureToastHost,
   CloudGiftNotificationModal,
+  ScreenshotReviewModal,
   VirtualKeyboardProvider,
 } from "./components";
 import { getItemFocusTarget } from "./helpers";
@@ -219,6 +220,7 @@ export default function App() {
           <NavigationDiagnostics />
           <BigPictureToastHost />
           <CloudGiftNotificationModal />
+          <ScreenshotReviewModal />
         </div>
       </NavigationInputProvider>
     </Fragment>

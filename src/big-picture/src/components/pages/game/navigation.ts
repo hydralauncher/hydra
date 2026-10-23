@@ -43,3 +43,46 @@ export function getGameCommentVoteItemId(
 ) {
   return `game-comment-${reviewId}-${voteType}`;
 }
+
+export const GAME_MY_SCREENSHOTS_REGION_ID = "game-my-screenshots";
+export const GAME_MY_SCREENSHOTS_GRID_REGION_ID = "game-my-screenshots-grid";
+export const GAME_MY_SCREENSHOTS_VIEW_ALL_ID = "game-my-screenshots-view-all";
+export const GAME_MY_SCREENSHOTS_RETRY_ID = "game-my-screenshots-retry";
+
+export function getGameMyScreenshotItemId(itemId: string) {
+  return `game-my-screenshot-${itemId}`;
+}
+
+export const GAME_SCREENSHOTS_MODAL_REGION_ID = "game-screenshots-modal";
+export const GAME_SCREENSHOTS_MODAL_TOOLBAR_REGION_ID =
+  "game-screenshots-modal-toolbar";
+export const GAME_SCREENSHOTS_MODAL_GRID_REGION_ID =
+  "game-screenshots-modal-grid";
+export const GAME_SCREENSHOTS_MODAL_SORT_ID = "game-screenshots-modal-sort";
+export const GAME_SCREENSHOTS_MODAL_SPOILERS_ID =
+  "game-screenshots-modal-spoilers";
+export const GAME_SCREENSHOTS_MODAL_LOAD_MORE_ID =
+  "game-screenshots-modal-load-more";
+export const GAME_SCREENSHOTS_MODAL_RETRY_ID = "game-screenshots-modal-retry";
+export const GAME_SCREENSHOTS_MODAL_MINE_GRID_REGION_ID =
+  "game-screenshots-modal-mine-grid";
+export const GAME_SCREENSHOTS_MODAL_LOCAL_GRID_REGION_ID =
+  "game-screenshots-modal-local-grid";
+export const GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID =
+  "game-screenshots-modal-browse-community";
+export const GAME_SCREENSHOTS_MODAL_LIST_REGION_ID =
+  "game-screenshots-modal-list";
+export const GAME_SCREENSHOTS_MODAL_MINE_UPLOADED_ID =
+  "game-screenshots-modal-mine-uploaded";
+export const GAME_SCREENSHOTS_MODAL_MINE_LOCAL_ID =
+  "game-screenshots-modal-mine-local";
+export const GAME_SCREENSHOTS_MODAL_MINE_SORT_ID =
+  "game-screenshots-modal-mine-sort";
+export const GAME_SCREENSHOTS_MODAL_MINE_LOAD_MORE_ID =
+  "game-screenshots-modal-mine-load-more";
+export const GAME_SCREENSHOTS_MODAL_MINE_RETRY_ID =
+  "game-screenshots-modal-mine-retry";
+
+export function getGameScreenshotsModalItemId(screenshotId: string) {
+  return `game-screenshots-modal-item-${screenshotId}`;
+}

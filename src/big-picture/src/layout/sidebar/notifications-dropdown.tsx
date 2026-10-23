@@ -1,10 +1,13 @@
 import "./notifications-dropdown.scss";
 
 import {
+  ChatCircleIcon,
   CheckCircleIcon,
   DotsThreeVerticalIcon,
   DownloadSimpleIcon,
+  HeartIcon,
   MinusCircleIcon,
+  ProhibitIcon,
   TrashIcon,
   TrophyIcon,
   UserCheckIcon,
@@ -52,7 +55,9 @@ import type {
   NotificationsResponse,
 } from "@types";
 import {
+  buildScreenshotNotificationTarget,
   buildSouvenirNotificationTarget,
+  isScreenshotNotificationType,
   CLOUD_GIFT_ID_VARIABLE,
   CLOUD_GIFT_RECEIVED_NOTIFICATION,
   NOTIFICATIONS_FETCH_FILTER,
@@ -109,6 +114,14 @@ function parseApiNotificationPath(notificationUrl: string) {
 
   return notificationUrl;
 }
+
+const SCREENSHOT_NOTIFICATION_ICONS: Partial<
+  Record<Notification["type"], typeof HeartIcon>
+> = {
+  SCREENSHOT_LIKE: HeartIcon,
+  SCREENSHOT_COMMENT: ChatCircleIcon,
+  SCREENSHOT_BLOCKED: ProhibitIcon,
+};
 
 function resolveBigPicturePath(path: string) {
   if (/^(?:[a-z][a-z\d+.-]*:)?\/\//i.test(path)) return path;
@@ -170,12 +183,48 @@ function getApiNotificationContent(
         description: `Your souvenir received ${likeCount} new ${likeCount === 1 ? "like" : "likes"}`,
       };
     }
+    case "SCREENSHOT_LIKE":
+    case "SCREENSHOT_COMMENT":
+    case "SCREENSHOT_BLOCKED":
+      return getScreenshotNotificationContent(notification, t);
     default:
       return {
         title: "Notification",
         description: "",
       };
   }
+}
+
+function getScreenshotNotificationKeyPrefix(type: Notification["type"]) {
+  if (type === "SCREENSHOT_COMMENT") return "screenshots_notification_comment";
+  if (type === "SCREENSHOT_BLOCKED") return "screenshots_notification_blocked";
+
+  return "screenshots_notification_like";
+}
+
+function getScreenshotNotificationContent(
+  notification: Notification,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  const game =
+    notification.variables.gameTitle ||
+    notification.variables.customGameTitle ||
+    t("screenshots_notification_fallback_game", { ns: "big_picture" });
+  const countVariable =
+    notification.type === "SCREENSHOT_COMMENT"
+      ? notification.variables.commentCount
+      : notification.variables.likeCount;
+  const count = Number(countVariable ?? 1);
+  const prefix = getScreenshotNotificationKeyPrefix(notification.type);
+
+  return {
+    title: t(`${prefix}_title`, { ns: "big_picture", game }),
+    description: t(`${prefix}_description`, {
+      ns: "big_picture",
+      game,
+      count: Number.isFinite(count) ? count : 1,
+    }),
+  };
 }
 
 function getNotificationContent(
@@ -208,6 +257,21 @@ function isAchievementNotification(notification: MergedNotification) {
 }
 
 function getNotificationUrl(notification: MergedNotification) {
+  if (
+    notification.source === "api" &&
+    isScreenshotNotificationType(notification.type)
+  ) {
+    const ownerId = notification.variables.ownerId;
+    const baseUrl =
+      notification.url ?? (ownerId ? `/profile/${ownerId}` : null);
+    if (!baseUrl) return null;
+
+    return buildScreenshotNotificationTarget(
+      parseApiNotificationPath(baseUrl),
+      notification.variables
+    );
+  }
+
   if (!notification.url) return null;
   const target =
     notification.source === "api"
@@ -769,6 +833,21 @@ export function SidebarNotificationsDropdown({
           />
         </div>
       );
+    }
+
+    if (notification.source === "api") {
+      const ScreenshotIcon = SCREENSHOT_NOTIFICATION_ICONS[notification.type];
+      if (ScreenshotIcon) {
+        return (
+          <div className="sidebar-notifications-dropdown__fallback-icon">
+            <ScreenshotIcon
+              size={24}
+              weight="fill"
+              className="sidebar-notifications-dropdown__fallback-symbol"
+            />
+          </div>
+        );
+      }
     }
 
     if (isHydraNotification(notification)) {
