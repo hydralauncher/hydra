@@ -284,7 +284,7 @@ export function LeaderboardSection() {
           metric={metric}
           showScope={isExtended && isLoggedIn}
           metrics={servedMetrics}
-          showMetrics={isExtended}
+          showMetrics={isExtended && servedMetrics.length > 1}
           onPeriodChange={setPeriod}
           onScopeChange={setSelectedScope}
           onMetricChange={setSelectedMetric}
