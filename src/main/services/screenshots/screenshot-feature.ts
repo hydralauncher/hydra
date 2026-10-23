@@ -12,10 +12,11 @@ let inFlight: Promise<boolean> | null = null;
 
 const readPersistedValue = () =>
   db
-    .get<string, boolean>(levelKeys.screenshotsFeatureEnabled, {
+    .get<string, boolean | undefined>(levelKeys.screenshotsFeatureEnabled, {
       valueEncoding: "json",
     })
-    .catch(() => false);
+    .then((enabled) => enabled ?? true)
+    .catch(() => true);
 
 const fetchFeatureFlag = async () => {
   try {
