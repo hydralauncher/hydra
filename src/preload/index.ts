@@ -1512,6 +1512,8 @@ contextBridge.exposeInMainWorld("electron", {
   openScreenshotReview: (clientId: string) =>
     ipcRenderer.invoke("openScreenshotReview", clientId),
   closeScreenshotReview: () => ipcRenderer.invoke("closeScreenshotReview"),
+  releaseBigPictureScreenshotReview: (clientIds: string[]) =>
+    ipcRenderer.invoke("releaseBigPictureScreenshotReview", clientIds),
   openScreenshotsFolder: () => ipcRenderer.invoke("openScreenshotsFolder"),
   getScreenshotsFolderPath: () =>
     ipcRenderer.invoke("getScreenshotsFolderPath"),
