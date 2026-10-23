@@ -408,16 +408,16 @@ const openGameInstaller = async (
     return true;
   }
 
+  runningInstallers.add(gameKey);
   stopInstalledExecutablePolling(gameKey);
 
-  const installerPath = await findDownloadInstaller(download);
+  const installerPath = await findDownloadInstaller(download).catch(() => null);
 
   if (!installerPath) {
+    runningInstallers.delete(gameKey);
     shell.openPath(gamePath);
     return true;
   }
-
-  runningInstallers.add(gameKey);
 
   const installerStartedAt = Date.now();
   let installerFinished = false;
@@ -435,7 +435,7 @@ const openGameInstaller = async (
     });
   };
 
-  const { launched, tracked } = await executeGameInstaller(installerPath, {
+  const launchResult = await executeGameInstaller(installerPath, {
     gameId: objectId,
     winePrefixPath,
     protonPath: game?.protonPath,
@@ -463,7 +463,12 @@ const openGameInstaller = async (
           installerRunning: false,
         })
       ),
+  }).catch((error) => {
+    runningInstallers.delete(gameKey);
+    markLaunchRecorded();
+    throw error;
   });
+  const { launched, tracked } = launchResult;
 
   if (!launched || !tracked) runningInstallers.delete(gameKey);
 

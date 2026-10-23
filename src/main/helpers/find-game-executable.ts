@@ -21,7 +21,10 @@ const readEntriesUpToDepth = async (
     entries
       .filter((entry) => entry.isDirectory())
       .map((entry) =>
-        readEntriesUpToDepth(path.join(folderPath, entry.name), maxDepth - 1)
+        readEntriesUpToDepth(
+          path.join(folderPath, entry.name),
+          maxDepth - 1
+        ).catch(() => [])
       )
   );
 

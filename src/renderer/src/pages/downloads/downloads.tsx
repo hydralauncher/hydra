@@ -5,10 +5,10 @@ import {
   useDownload,
   useDownloadLayout,
   useLibrary,
+  useToast,
 } from "@renderer/hooks";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import "./downloads.scss";
 import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
@@ -31,7 +31,7 @@ export default function Downloads() {
 
   const gameToBeDeleted = useRef<[GameShop, string] | null>(null);
 
-  const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
+  const { showErrorToast } = useToast();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { removeGameInstaller, pauseSeeding } = useDownload();
@@ -64,7 +64,7 @@ export default function Downloads() {
   const handleOpenGameInstaller = (shop: GameShop, objectId: string) =>
     window.electron.openGameInstaller(shop, objectId).then((wasOpened) => {
       if (!wasOpened) {
-        setShowBinaryNotFoundModal(true);
+        showErrorToast(t("installer_launch_failed"));
       }
 
       updateLibrary();
@@ -174,11 +174,6 @@ export default function Downloads() {
 
   return (
     <>
-      <BinaryNotFoundModal
-        visible={showBinaryNotFoundModal}
-        onClose={() => setShowBinaryNotFoundModal(false)}
-      />
-
       <DeleteGameModal
         visible={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}

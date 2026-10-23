@@ -129,6 +129,16 @@ describe("findGameInstaller", () => {
     );
   });
 
+  it("prefers the base installer over DLC installers at the same level", async () => {
+    assert.equal(
+      await installerIn("gog", [
+        "setup_game_1.0.exe",
+        "setup_game_dlc_soundtrack_1.0.exe",
+      ]),
+      "setup_game_1.0.exe"
+    );
+  });
+
   it("gives up when two installers tie", async () => {
     assert.equal(
       await installerIn("tied", ["Part1/setup.exe", "Part2/setup.exe"]),

@@ -75,8 +75,17 @@ const collectInstallerCandidates = async (
   return [...candidates, ...nestedCandidates.flat()];
 };
 
+const SECONDARY_INSTALLER_PATTERN = /dlc|patch|update|addon|soundtrack|ost/;
+
+const isSecondaryInstaller = (filePath: string) =>
+  SECONDARY_INSTALLER_PATTERN.test(path.basename(filePath).toLowerCase());
+
 const compareCandidates = (a: InstallerCandidate, b: InstallerCandidate) =>
-  a.depth - b.depth || a.priority - b.priority;
+  a.depth - b.depth ||
+  a.priority - b.priority ||
+  Number(isSecondaryInstaller(a.filePath)) -
+    Number(isSecondaryInstaller(b.filePath)) ||
+  path.basename(a.filePath).length - path.basename(b.filePath).length;
 
 export const findGameInstaller = async (
   folderPath: string
@@ -128,6 +137,37 @@ export const findSourceArchiveFile = async (download: Download) => {
 
   const stats = await fs.promises.stat(archivePath).catch(() => null);
   return stats?.isFile() ? archivePath : null;
+};
+
+const ARCHIVE_VOLUME_PATTERNS = [
+  /^(.*)\.part\d+\.rar$/i,
+  /^(.*\.(?:7z|zip|rar))\.\d{3}$/i,
+];
+
+const isVolumeOf = (fileName: string, archiveBase: string) =>
+  ARCHIVE_VOLUME_PATTERNS.some((pattern) => {
+    const match = pattern.exec(fileName);
+    return match?.[1].toLowerCase() === archiveBase.toLowerCase();
+  });
+
+export const listArchiveVolumes = async (archivePath: string) => {
+  const archiveName = path.basename(archivePath);
+  const archiveBase = ARCHIVE_VOLUME_PATTERNS.map((pattern) =>
+    pattern.exec(archiveName)
+  ).find(Boolean)?.[1];
+
+  if (!archiveBase) return [archivePath];
+
+  const directory = path.dirname(archivePath);
+  const entries = await fs.promises
+    .readdir(directory, { withFileTypes: true })
+    .catch(() => []);
+
+  const volumes = entries
+    .filter((entry) => entry.isFile() && isVolumeOf(entry.name, archiveBase))
+    .map((entry) => path.join(directory, entry.name));
+
+  return volumes.length > 0 ? volumes : [archivePath];
 };
 
 export const findDownloadInstaller = async (

@@ -44,6 +44,7 @@ const recheckInstalledExecutable = async (
   );
 
   if (executableFound) {
+    lastRecheckAt.delete(gameKey);
     logger.info(
       `[GameInstaller] Found the installed executable for ${objectId} on a later check`
     );

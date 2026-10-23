@@ -18,7 +18,10 @@ import { updateGameRecord } from "@main/services/game-record-updater";
 import { HydraApi } from "@main/services/hydra-api";
 import { registerEvent } from "../register-event";
 import { isWithin } from "../emulators/rom-path-utils";
-import { findSourceArchiveFile } from "@main/helpers/find-game-installer";
+import {
+  findSourceArchiveFile,
+  listArchiveVolumes,
+} from "@main/helpers/find-game-installer";
 import { GameShop } from "@types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 
@@ -186,8 +189,18 @@ const deleteGameFolder = async (
   const sourceArchivePath = options.deleteSourceArchive
     ? await findSourceArchiveFile(download)
     : null;
+  const sourceArchivePaths = sourceArchivePath
+    ? await listArchiveVolumes(sourceArchivePath)
+    : [];
 
-  if (sourceArchivePath) await deleteFile(sourceArchivePath);
+  for (const archivePath of sourceArchivePaths) {
+    await deleteFile(archivePath).catch((error) => {
+      logger.error(
+        `[deleteGameFolder] Failed to delete source archive ${archivePath}`,
+        error
+      );
+    });
+  }
 
   await downloadsSublevel.del(gameKey);
   await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
