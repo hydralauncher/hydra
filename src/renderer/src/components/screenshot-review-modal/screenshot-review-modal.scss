@@ -65,29 +65,6 @@ $review-fade-size: 40px;
   row-gap: calc(globals.$spacing-unit * 2);
   min-width: 0;
   min-height: 0;
-
-  &__done {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    gap: globals.$spacing-unit;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
-    background-color: rgba(28, 151, 73, 0.12);
-    border: 1px solid rgba(28, 151, 73, 0.4);
-    border-radius: 8px;
-    color: globals.$muted-color;
-    font-size: globals.$small-font-size;
-
-    svg {
-      flex-shrink: 0;
-      color: globals.$success-color;
-    }
-
-    span {
-      flex: 1;
-      min-width: 0;
-    }
-  }
 }
 
 .screenshot-review-filmstrip {
@@ -382,18 +359,6 @@ $review-fade-size: 40px;
   &__footer-status {
     flex: 1;
     min-width: 0;
-
-    .screenshot-review-status {
-      flex-direction: row;
-      flex-wrap: wrap;
-      align-items: center;
-      column-gap: globals.$spacing-unit;
-      padding: calc(globals.$spacing-unit * 0.75) globals.$spacing-unit;
-    }
-
-    .screenshot-review-status__progress-track {
-      flex: 1 1 120px;
-    }
   }
 
   &__actions {
@@ -414,25 +379,30 @@ $review-fade-size: 40px;
   display: flex;
   flex-direction: column;
   gap: calc(globals.$spacing-unit / 2);
-  padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
-  background-color: rgba(255, 255, 255, 0.04);
-  border: 1px solid globals.$border-color;
-  border-radius: 6px;
-  font-size: globals.$small-font-size;
+  min-width: 0;
 
   &__title {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
     font-weight: 500;
-    line-height: 18px;
+    line-height: 20px;
     color: globals.$muted-color;
+
+    svg {
+      flex-shrink: 0;
+    }
   }
 
   &__detail {
+    font-size: globals.$small-font-size;
     line-height: 18px;
     color: globals.$body-color;
   }
 
   &__progress-track {
     width: 100%;
+    max-width: 320px;
     height: 6px;
     overflow: hidden;
     background-color: rgba(255, 255, 255, 0.1);
@@ -446,19 +416,11 @@ $review-fade-size: 40px;
     transition: width $review-progress-duration ease;
   }
 
-  &--success {
-    border-color: rgba(28, 151, 73, 0.4);
-
-    .screenshot-review-status__title {
-      color: #4ade80;
-    }
+  &--success svg {
+    color: globals.$success-color;
   }
 
-  &--error {
-    border-color: rgba(225, 29, 72, 0.4);
-
-    .screenshot-review-status__title {
-      color: #fb7185;
-    }
+  &--error svg {
+    color: globals.$error-color;
   }
 }

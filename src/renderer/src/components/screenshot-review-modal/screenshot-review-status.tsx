@@ -1,5 +1,6 @@
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
+import { AlertIcon, CheckCircleIcon } from "@primer/octicons-react";
 import type { LocalScreenshot } from "@types";
 import { ProgressBar } from "@renderer/components";
 import {
@@ -36,10 +37,6 @@ export function ScreenshotReviewStatus({
       : null;
 
   const getMessage = (): StatusMessage | null => {
-    if (screenshot.state === "local") {
-      return { tone: "neutral", title: t("kept_locally"), detail: null };
-    }
-
     if (screenshot.state === "queued") {
       const detailKey = getQueuedMessageKey(screenshot.lastError);
       return {
@@ -59,29 +56,22 @@ export function ScreenshotReviewStatus({
 
     if (screenshot.state !== "uploaded") return null;
 
-    if (screenshot.moderationStatus === "APPROVED") {
-      return {
-        tone: "success",
-        title: t("moderation_approved"),
-        detail: titleNote,
-      };
-    }
-
     if (screenshot.moderationStatus === "BLOCKED") {
       return {
         tone: "error",
-        title: t("blocked"),
-        detail: t("blocked_reason", {
-          reason: tModeration(
-            getScreenshotModerationReasonKey(screenshot.moderationReason)
-          ),
-        }),
+        title: t("upload_blocked"),
+        detail: tModeration(
+          getScreenshotModerationReasonKey(screenshot.moderationReason)
+        ),
       };
     }
 
     return {
-      tone: "neutral",
-      title: t("moderation_pending"),
+      tone: "success",
+      title:
+        screenshot.moderationStatus === "APPROVED"
+          ? t("uploaded")
+          : t("uploaded_under_review"),
       detail: titleNote,
     };
   };
@@ -92,6 +82,7 @@ export function ScreenshotReviewStatus({
 
     return (
       <output className="screenshot-review-status">
+        <p className="screenshot-review-status__title">{label}</p>
         <ProgressBar
           now={percent}
           max={100}
@@ -100,7 +91,6 @@ export function ScreenshotReviewStatus({
           trackClassName="screenshot-review-status__progress-track"
           barClassName="screenshot-review-status__progress-bar"
         />
-        <p className="screenshot-review-status__title">{label}</p>
       </output>
     );
   }
@@ -115,7 +105,11 @@ export function ScreenshotReviewStatus({
         `screenshot-review-status--${message.tone}`
       )}
     >
-      <p className="screenshot-review-status__title">{message.title}</p>
+      <p className="screenshot-review-status__title">
+        {message.tone === "success" && <CheckCircleIcon size={16} />}
+        {message.tone === "error" && <AlertIcon size={16} />}
+        {message.title}
+      </p>
       {message.detail && (
         <p className="screenshot-review-status__detail">{message.detail}</p>
       )}
