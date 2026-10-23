@@ -148,7 +148,9 @@ export function RetroArchDetail({
         executablePath: config.executablePath,
         detectedVersion: config.detectedVersion,
       };
-      const next = await window.electron.detectRetroArch();
+      const next = await window.electron.detectRetroArch({
+        includeDriveRoots: true,
+      });
       onChange(next);
       notifyRedetectOutcome(
         next,

@@ -154,7 +154,9 @@ export function EmulatorDetail({
         executablePath: config.executablePath,
         detectedVersion: config.detectedVersion,
       };
-      const next = await window.electron.detectEmulator(config.system);
+      const next = await window.electron.detectEmulator(config.system, {
+        includeDriveRoots: true,
+      });
       onChange(next);
       notifyRedetectOutcome(
         next,

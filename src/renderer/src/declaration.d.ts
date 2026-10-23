@@ -689,7 +689,10 @@ declare global {
     ) => Promise<import("@types").Rpcs3DiscIdentityStatus>;
     setRpcs3ConfigRoot: (root: string) => Promise<EmulatorConfig>;
     detectEmulators: () => Promise<EmulatorConfigMap>;
-    detectEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    detectEmulator: (
+      system: EmulatorSystem,
+      options?: { includeDriveRoots?: boolean }
+    ) => Promise<EmulatorConfig>;
     previewEmulatorExecutable: (
       system: EmulatorSystem,
       executablePath?: string | null
@@ -750,7 +753,9 @@ declare global {
     ) => () => void;
     /* RetroArch */
     getRetroArchConfig: () => Promise<RetroArchConfig>;
-    detectRetroArch: () => Promise<RetroArchConfig>;
+    detectRetroArch: (options?: {
+      includeDriveRoots?: boolean;
+    }) => Promise<RetroArchConfig>;
     previewRetroArchExecutable: (
       executablePath?: string | null
     ) => Promise<RetroArchExecutablePreview | null>;

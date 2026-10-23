@@ -547,8 +547,10 @@ contextBridge.exposeInMainWorld("electron", {
   setRpcs3ConfigRoot: (root: string) =>
     ipcRenderer.invoke("setRpcs3ConfigRoot", root),
   detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
-  detectEmulator: (system: EmulatorSystem) =>
-    ipcRenderer.invoke("detectEmulator", system),
+  detectEmulator: (
+    system: EmulatorSystem,
+    options?: { includeDriveRoots?: boolean }
+  ) => ipcRenderer.invoke("detectEmulator", system, options),
   previewEmulatorExecutable: (
     system: EmulatorSystem,
     executablePath?: string | null
@@ -623,7 +625,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
   /* RetroArch */
   getRetroArchConfig: () => ipcRenderer.invoke("getRetroArchConfig"),
-  detectRetroArch: () => ipcRenderer.invoke("detectRetroArch"),
+  detectRetroArch: (options?: { includeDriveRoots?: boolean }) =>
+    ipcRenderer.invoke("detectRetroArch", options),
   previewRetroArchExecutable: (executablePath?: string | null) =>
     ipcRenderer.invoke("previewRetroArchExecutable", executablePath ?? null),
   setRetroArchExecutablePath: (executablePath: string | null) =>
