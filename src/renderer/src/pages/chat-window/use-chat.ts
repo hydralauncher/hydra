@@ -293,13 +293,20 @@ export function useChat({
   const fetchPage = useCallback<FetchMessages>(async (friendId, params) => {
     const startedAt = Date.now();
     const page = await fetchMessages(friendId, params);
+    const isHiddenSince = (seq: number | null | undefined) =>
+      seq !== null &&
+      seq !== undefined &&
+      (hiddenAtRef.current.get(`${friendId}:${seq}`) ?? 0) > startedAt;
+
     return {
       ...page,
-      messages: page.messages.map((message) =>
-        (hiddenAtRef.current.get(`${friendId}:${message.seq}`) ?? 0) > startedAt
-          ? { ...message, hidden: true }
-          : message
-      ),
+      messages: page.messages.map((message) => ({
+        ...message,
+        ...(isHiddenSince(message.seq) ? { hidden: true } : {}),
+        ...(message.replyTo && isHiddenSince(message.replyToSeq)
+          ? { replyTo: { ...message.replyTo, hidden: true } }
+          : {}),
+      })),
     };
   }, []);
   // Held messages waiting for a realtime answer, by client nonce. Each one
