@@ -49,8 +49,6 @@ import {
 } from "./use-local-screenshot-actions";
 import { useMyGameScreenshots } from "./use-my-game-screenshots";
 
-export { GameScreenshotsModal } from "./screenshots-modal";
-
 const SIDEBAR_SCREENSHOT_COUNT = 4;
 const PUBLISHED_WAIT_TIMEOUT_MS = 1_500;
 const SIDEBAR_COLUMNS = 2;

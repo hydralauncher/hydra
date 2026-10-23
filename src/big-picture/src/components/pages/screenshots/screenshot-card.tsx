@@ -32,7 +32,6 @@ export interface ScreenshotCardProps {
   showOwnerDetails: boolean;
   showAuthor: boolean;
   navigationOverrides?: FocusOverrides;
-  className?: string;
   isLikePending?: boolean;
   onActivate: (screenshot: ProfileScreenshot) => void;
   onLike?: (screenshot: ProfileScreenshot) => void;
@@ -193,7 +192,6 @@ export function ScreenshotCard({
   showOwnerDetails,
   showAuthor,
   navigationOverrides,
-  className,
   isLikePending = false,
   onActivate,
   onLike,
@@ -231,7 +229,7 @@ export function ScreenshotCard({
       navigationOverrides={navigationOverrides}
       asChild
     >
-      <li className={cn("screenshot-card", className)}>
+      <li className="screenshot-card">
         <button
           type="button"
           className="screenshot-card__open-button"

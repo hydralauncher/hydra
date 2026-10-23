@@ -12,19 +12,15 @@ import { FocusItem } from "../focus-item";
 export interface SegmentedControlOption<TValue extends string = string> {
   value: TValue;
   label: ReactNode;
-  icon?: ReactNode;
 }
 
 export interface SegmentedControlProps<TValue extends string = string> {
   label?: string;
-  hideLabel?: boolean;
-  ariaLabel?: string;
   value: TValue;
   options: SegmentedControlOption<TValue>[];
   disabled?: boolean;
   focusId: string;
   navigationOverrides?: FocusOverrides;
-  className?: string;
   onValueChange: (value: TValue) => void;
 }
 
@@ -32,14 +28,11 @@ const NO_SCREEN_ACTIONS: ScreenActions = {};
 
 export function SegmentedControl<TValue extends string = string>({
   label,
-  hideLabel = false,
-  ariaLabel,
   value,
   options,
   disabled = false,
   focusId,
   navigationOverrides,
-  className,
   onValueChange,
 }: Readonly<SegmentedControlProps<TValue>>) {
   const labelId = useId();
@@ -89,11 +82,11 @@ export function SegmentedControl<TValue extends string = string>({
 
   return (
     <div
-      className={cn("segmented-control", className, {
+      className={cn("segmented-control", {
         "segmented-control--disabled": disabled,
       })}
     >
-      {label && !hideLabel ? (
+      {label ? (
         <span id={labelId} className="segmented-control__label">
           {label}
         </span>
@@ -110,8 +103,7 @@ export function SegmentedControl<TValue extends string = string>({
           className="segmented-control__track"
           role="radiogroup"
           tabIndex={-1}
-          aria-label={ariaLabel ?? (hideLabel ? label : undefined)}
-          aria-labelledby={label && !hideLabel ? labelId : undefined}
+          aria-labelledby={label ? labelId : undefined}
           aria-disabled={disabled}
         >
           {options.map((option, index) => {
@@ -130,11 +122,6 @@ export function SegmentedControl<TValue extends string = string>({
                 })}
                 onClick={() => select(index)}
               >
-                {option.icon ? (
-                  <span className="segmented-control__icon" aria-hidden>
-                    {option.icon}
-                  </span>
-                ) : null}
                 <span className="segmented-control__text">{option.label}</span>
               </button>
             );

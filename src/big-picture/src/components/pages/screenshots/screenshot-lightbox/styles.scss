@@ -171,11 +171,6 @@ $screenshot-lightbox-hover-duration: 0.2s;
     }
   }
 
-  &__link-caret {
-    flex-shrink: 0;
-    color: var(--text-secondary);
-  }
-
   &__owner {
     display: inline-flex;
     align-items: center;
@@ -220,15 +215,6 @@ $screenshot-lightbox-hover-duration: 0.2s;
     color: var(--text-secondary);
     font-size: 12px;
     font-weight: 500;
-  }
-
-  &__meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: calc(var(--spacing-unit) * 2);
-    color: var(--text-secondary);
-    font-size: 14px;
   }
 
   &__description {
@@ -402,10 +388,6 @@ $screenshot-lightbox-hover-duration: 0.2s;
 
     &[data-focused="true"] {
       border-color: rgba(255, 255, 255, 0.6);
-    }
-
-    &--disabled {
-      opacity: 0.6;
     }
 
     .ProseMirror {

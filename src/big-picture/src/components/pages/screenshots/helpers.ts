@@ -9,8 +9,6 @@ import { getBigPictureGameDetailsPath } from "../../../helpers";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
-export const SCREENSHOTS_TRANSLATION_NAMESPACE = "big_picture";
-
 export function getScreenshotGameTitle(
   screenshot: Pick<ProfileScreenshot, "gameTitle" | "isCustomGame">,
   t: Translate
