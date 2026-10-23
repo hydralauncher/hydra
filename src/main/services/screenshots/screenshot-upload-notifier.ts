@@ -7,7 +7,7 @@ import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { toXmlString } from "../notifications/xml";
 import { LocalScreenshotStore } from "./local-screenshot-store";
-import { ScreenshotReviewWindows } from "./screenshot-review-windows";
+import { ScreenshotReviewSession } from "./screenshot-review-session";
 
 interface UploadBatch {
   clientIds: Set<string>;
@@ -138,7 +138,7 @@ export class ScreenshotUploadNotifier {
         reviewOriginClientIds.has(screenshot.clientId) &&
         screenshot.ownerId === ownerId &&
         isActiveState(screenshot.state) &&
-        !ScreenshotReviewWindows.isScreenshotUnderReview(screenshot.clientId)
+        !ScreenshotReviewSession.isScreenshotUnderReview(screenshot.clientId)
     );
 
     pruneReviewOrigins(byClientId);

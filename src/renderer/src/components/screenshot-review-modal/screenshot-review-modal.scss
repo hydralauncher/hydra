@@ -3,73 +3,26 @@
 $review-hover-duration: 0.2s;
 $review-progress-duration: 0.2s;
 
+.screenshot-review-modal {
+  width: 520px;
+  max-width: calc(100vw - globals.$spacing-unit * 8);
+  height: min(760px, calc(100vh - globals.$spacing-unit * 12));
+
+  .modal__content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
 .screenshot-review {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  width: 100%;
-  height: 100vh;
+  min-height: 0;
   overflow: hidden;
-  background-color: globals.$background-color;
-  color: globals.$body-color;
-  font-family:
-    Noto Sans,
-    sans-serif;
-  font-size: globals.$body-font-size;
-
-  &__title-bar {
-    position: relative;
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    width: 100%;
-    height: 34px;
-    min-height: 34px;
-    padding-left: calc(globals.$spacing-unit * 2);
-    background-color: globals.$dark-background-color;
-    border-bottom: 1px solid globals.$border-color;
-    -webkit-app-region: drag;
-    z-index: globals.$title-bar-z-index;
-
-    h4 {
-      min-width: 0;
-      margin: 0;
-      overflow: hidden;
-      font-size: globals.$small-font-size;
-      font-weight: 500;
-      color: globals.$muted-color;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
-  }
-
-  &__window-controls {
-    display: flex;
-    align-items: center;
-    height: 100%;
-    margin-left: auto;
-    -webkit-app-region: no-drag;
-  }
-
-  &__window-control {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    height: 100%;
-    padding: 0;
-    background: none;
-    border: none;
-    color: globals.$muted-color;
-    cursor: pointer;
-    transition:
-      background-color $review-hover-duration ease,
-      color $review-hover-duration ease;
-
-    &:hover {
-      background-color: globals.$error-color;
-      color: #ffffff;
-    }
-  }
 
   &__content {
     display: flex;

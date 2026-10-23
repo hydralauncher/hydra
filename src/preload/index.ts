@@ -106,6 +106,7 @@ import type {
   LocalScreenshot,
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
+  ScreenshotReview,
   ScreenshotReviewRequest,
   ScreenshotUploadProgress,
 } from "@types";
@@ -1510,6 +1511,7 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("deleteLocalScreenshot", clientId),
   openScreenshotReview: (clientId: string) =>
     ipcRenderer.invoke("openScreenshotReview", clientId),
+  closeScreenshotReview: () => ipcRenderer.invoke("closeScreenshotReview"),
   skipLocalScreenshot: (clientId: string) =>
     ipcRenderer.invoke("skipLocalScreenshot", clientId),
   openScreenshotsFolder: () => ipcRenderer.invoke("openScreenshotsFolder"),
@@ -1548,22 +1550,17 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-screenshot-review-requested", listener);
   },
-  getScreenshotReviewItems: () =>
-    ipcRenderer.invoke("getScreenshotReviewItems"),
-  onScreenshotReviewItemsChanged: (
-    cb: (clientIds: string[], selectedClientId: string | null) => void
+  getScreenshotReview: () => ipcRenderer.invoke("getScreenshotReview"),
+  onScreenshotReviewChanged: (
+    cb: (review: ScreenshotReview | null) => void
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      clientIds: string[],
-      selectedClientId: string | null
-    ) => cb(clientIds, selectedClientId ?? null);
-    ipcRenderer.on("on-screenshot-review-items-changed", listener);
+      review: ScreenshotReview | null
+    ) => cb(review);
+    ipcRenderer.on("on-screenshot-review-changed", listener);
     return () =>
-      ipcRenderer.removeListener(
-        "on-screenshot-review-items-changed",
-        listener
-      );
+      ipcRenderer.removeListener("on-screenshot-review-changed", listener);
   },
   getAchievementSouvenirSyncStatus: () =>
     ipcRenderer.invoke("getAchievementSouvenirSyncStatus"),
