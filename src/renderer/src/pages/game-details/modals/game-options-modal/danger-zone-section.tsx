@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@renderer/components";
 import { useFeature } from "@renderer/hooks";
+import type { RemoveFilesTarget } from "@shared";
 import type { LibraryGame, UserDetails } from "@types";
 
 import { MyScreenshotsDangerZone } from "./my-screenshots-danger-zone";
@@ -12,12 +13,13 @@ interface DangerZoneSectionProps {
   isDeletingAchievements: boolean;
   hasAchievements: boolean;
   isGameDownloading: boolean;
+  removeFilesTarget: RemoveFilesTarget | null;
   userDetails: UserDetails | null;
   onOpenRemoveFromLibrary: () => void;
   onOpenResetAchievements: () => void;
   onOpenChangePlaytime: () => void;
   onOpenResetPlaytime: () => void;
-  onOpenRemoveFiles: () => void;
+  onOpenRemoveFiles: (target: RemoveFilesTarget) => void;
 }
 
 export function DangerZoneSection({
@@ -26,6 +28,7 @@ export function DangerZoneSection({
   isDeletingAchievements,
   hasAchievements,
   isGameDownloading,
+  removeFilesTarget,
   userDetails,
   onOpenRemoveFromLibrary,
   onOpenResetAchievements,
@@ -79,11 +82,11 @@ export function DangerZoneSection({
 
         {game.shop !== "custom" && (
           <Button
-            onClick={onOpenRemoveFiles}
+            onClick={() => {
+              if (removeFilesTarget) onOpenRemoveFiles(removeFilesTarget);
+            }}
             theme="danger"
-            disabled={
-              isGameDownloading || deleting || !game.download?.downloadPath
-            }
+            disabled={deleting || isGameDownloading || !removeFilesTarget}
           >
             {t("remove_files")}
           </Button>

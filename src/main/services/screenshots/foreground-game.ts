@@ -13,6 +13,7 @@ import { getForegroundWindow } from "../screenshot";
 import { Wine } from "../wine";
 import {
   findForegroundGameTarget,
+  isLaunchedForegroundProcess,
   parseNamespacedPids,
   type ForegroundProcess,
   type ForegroundWindowInfo,
@@ -162,6 +163,14 @@ export const resolveForegroundGame = async ({
   if (!candidates.length) return null;
 
   const foreground = await resolveForegroundWindow();
+
+  if (
+    foreground &&
+    candidates.length === 1 &&
+    isLaunchedForegroundProcess(candidates[0].target, foreground)
+  ) {
+    return { ...candidates[0], foreground };
+  }
 
   if (foreground) {
     const processes = toForegroundProcesses(await NativeAddon.listProcesses());

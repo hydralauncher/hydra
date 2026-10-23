@@ -20,6 +20,7 @@ export function LibraryGameSettingsModal({
   const shop = game?.shop ?? "steam";
   const {
     game: detailedGame,
+    presentationGame,
     isGameRunning,
     updateGame,
     refreshGameDetails,
@@ -56,6 +57,7 @@ export function LibraryGameSettingsModal({
       <GameSettingsModal
         visible={visible}
         game={modalGame}
+        removeFilesGame={presentationGame ?? modalGame}
         launchSettings={launchSettings}
         customizationSettings={customizationSettings}
         cloudSettings={cloudSettings}
