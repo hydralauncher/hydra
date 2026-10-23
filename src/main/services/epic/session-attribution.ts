@@ -289,7 +289,6 @@ const isActiveLauncherRecord = (
   Boolean(record.dir) &&
   (typeof record.platform !== "string" || record.platform === "Windows");
 
-/** Replays the Epic Games Launcher v2 installations log, latest record wins. */
 export function parseEpicLauncherInstallations(content: string) {
   const { latest, artifactIds } = readLauncherLogRecords(content);
   const installations: EpicInstallManifest[] = [];
@@ -311,7 +310,6 @@ export function parseEpicLauncherInstallations(content: string) {
   return { installations, removedArtifactIds };
 }
 
-/** Reads the legacy launcher's LauncherInstalled.dat install list. */
 export function parseLauncherInstalledList(content: string) {
   let parsed: unknown;
   try {

@@ -9,6 +9,7 @@ const detectEmulatorEvent = async (
   const binary = emulators.KNOWN_BINARIES[system];
   const result = await emulators.detectEmulatorWithDownloads(binary, {
     resolveVersion: true,
+    includeDriveRoots: true,
   });
 
   return emulators.updateEmulatorConfig(system, (current) => {

@@ -452,14 +452,15 @@ export function DetailRemoveModals({
   onCloseRemoveEmulator,
 }: Readonly<DetailRemoveModalsProps>) {
   const { t } = useTranslation("settings");
-  const { library } = useLibrary();
+  const { downloadLibrary } = useLibrary();
   const [removeGames, setRemoveGames] = useState(false);
 
   const emulatorGamesCount = useMemo(
     () =>
-      library.filter((game) => isClassicsGameForEmulator(game, removeTarget))
-        .length,
-    [library, removeTarget]
+      downloadLibrary.filter((game) =>
+        isClassicsGameForEmulator(game, removeTarget)
+      ).length,
+    [downloadLibrary, removeTarget]
   );
 
   useEffect(() => {

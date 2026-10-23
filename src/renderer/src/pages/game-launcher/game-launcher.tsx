@@ -55,10 +55,6 @@ const getCoverImageSource = (
       ? `https://shared.steamstatic.com/store_item_assets/steam/apps/${objectId}/library_600x900_2x.jpg`
       : "";
 
-  // Resolve the cover from the artwork the launcher already has for custom/
-  // non-Steam games (whose assets live on the Game object, not ShopAssets).
-  // The guessed Steam capsule URL comes last, since it 404s for games without
-  // a capsule and would otherwise shadow the real assets below it.
   const coverImageSource =
     normalizeImageUrl(game?.customCoverImageUrl) ||
     normalizeImageUrl(gameAssets?.coverImageUrl) ||

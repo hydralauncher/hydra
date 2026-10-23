@@ -4,6 +4,7 @@ import { retroarch } from "@main/services";
 const detectRetroArch = async (_event: Electron.IpcMainInvokeEvent) => {
   const result = await retroarch.detectRetroArchWithFallback({
     resolveVersion: true,
+    includeDriveRoots: true,
   });
 
   if (!result) {
