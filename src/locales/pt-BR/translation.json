@@ -1063,9 +1063,7 @@
     "epic_play_offline": "Jogar — Offline",
     "epic_prerequisites_required": "Autorize os pré-requisitos do jogo e tente novamente.",
     "epic_update_required": "Atualize o jogo pela opção Epic Games, usando a mesma pasta.",
-    "epic_retry": "Tentar novamente",
-    "lightbox_show_details": "Mostrar detalhes",
-    "lightbox_hide_details": "Ocultar detalhes"
+    "epic_retry": "Tentar novamente"
   },
   "activation": {
     "title": "Ativação",
@@ -2825,7 +2823,6 @@
     "error_unreadable": "Não foi possível ler o arquivo da captura",
     "error_upload_blocked": "Você não pode enviar capturas no momento. Esta captura continua salva no seu computador",
     "error_waiting_for_game": "Aguardando este jogo sincronizar com a sua biblioteca",
-    "keep_on_computer": "Manter no computador",
     "kept_locally": "Mantida neste computador",
     "moderation_approved": "Enviada para o seu perfil",
     "moderation_pending": "Enviada. Você receberá uma notificação se houver algum problema.",
