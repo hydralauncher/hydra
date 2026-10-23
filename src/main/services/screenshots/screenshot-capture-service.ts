@@ -218,8 +218,8 @@ export const finishCapture = async ({
 };
 
 const playCaptureFeedback = () => {
-  void ScreenshotFeedback.playCaptureFeedback().catch((error) => {
-    logger.error("Failed to play the screenshot capture feedback", error);
+  void ScreenshotFeedback.playCaptureSound().catch((error) => {
+    logger.error("Failed to play the screenshot capture sound", error);
   });
 };
 

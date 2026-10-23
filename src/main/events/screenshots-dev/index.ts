@@ -103,18 +103,7 @@ const getModerationReason = (
 
 const playFeedback = async (kind: ScreenshotsDevFeedbackKind) => {
   if (kind === "sound") {
-    await ScreenshotFeedback.playCaptureFeedback({
-      playSound: true,
-      flash: false,
-    });
-    return;
-  }
-
-  if (kind === "flash") {
-    await ScreenshotFeedback.playCaptureFeedback({
-      playSound: false,
-      flash: true,
-    });
+    await ScreenshotFeedback.playCaptureSound({ force: true });
     return;
   }
 
