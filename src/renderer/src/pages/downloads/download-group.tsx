@@ -1099,6 +1099,26 @@ export function DownloadGroup({
     return step ?? "checking";
   };
 
+  const [runningGameIds, setRunningGameIds] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  useEffect(() => {
+    const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
+      setRunningGameIds(new Set(gamesRunning.map((game) => game.id)));
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const closeGame = (game: LibraryGame) => {
+    window.electron
+      .closeGame(game.shop, game.objectId)
+      .catch((error) => logger.error("Failed to close game", error));
+  };
+
   const playGame = (game: LibraryGame) => {
     window.electron
       .openGame(
@@ -1128,6 +1148,20 @@ export function DownloadGroup({
         >
           <FolderOpen size={16} />
           {tGameDetails("open_folder")}
+        </Button>
+      );
+    }
+
+    if (step === "play" && runningGameIds.has(game.id)) {
+      return (
+        <Button
+          theme="outline"
+          onClick={() => closeGame(game)}
+          disabled={disabled}
+          className="download-group__simple-action-btn"
+        >
+          <XCircleIcon size={16} />
+          {tGameDetails("close")}
         </Button>
       );
     }

@@ -13,6 +13,7 @@ import {
   FileIcon,
   HourglassIcon,
   PlayIcon,
+  XCircleIcon,
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import {
@@ -27,6 +28,7 @@ import { useNavigate } from "react-router-dom";
 import { type FocusItemActions } from "../../types";
 import type { FocusOverrides } from "../../services";
 import {
+  useBigPictureRunningGames,
   useBigPictureToast,
   useNavigation,
   useNavigationScreenActions,
@@ -1070,6 +1072,7 @@ export default function Downloads() {
 
   const { showErrorToast } = useBigPictureToast();
   const launchGame = useLibraryLaunchGame(() => undefined);
+  const runningGamesById = useBigPictureRunningGames();
   const installerAvailability = useInstallerAvailability(
     completedDownloads.map((item) => item.game)
   );
@@ -1105,6 +1108,15 @@ export default function Downloads() {
         game,
         installerAvailability[game.id] === true
       );
+
+      if (step === "play" && runningGamesById[game.id]) {
+        return {
+          label: t("close", { ns: "game_details" }),
+          icon: <XCircleIcon size={22} />,
+          run: () =>
+            void globalThis.window.electron.closeGame(game.shop, game.objectId),
+        };
+      }
 
       if (step === "play") {
         return {
@@ -1159,7 +1171,7 @@ export default function Downloads() {
 
       return null;
     },
-    [installerAvailability, launchGame, runInstaller, t]
+    [installerAvailability, launchGame, runInstaller, runningGamesById, t]
   );
   const previewLayoutState =
     moveMode ?? dragPreviewState ?? optimisticCommitState?.layout ?? null;
