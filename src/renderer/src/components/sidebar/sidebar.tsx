@@ -242,6 +242,8 @@ export function Sidebar() {
   const isSearching = filterQuery.trim().length > 0;
 
   const visibleGames = useMemo(() => {
+    if (isLibraryLoading) return [];
+
     if (isSearching) {
       const normalizedQuery = removeDiacritics(filterQuery).toLowerCase();
 
@@ -253,7 +255,14 @@ export function Sidebar() {
     return showPlayableOnly
       ? sortedLibrary.filter(isGamePlayable)
       : sortedLibrary;
-  }, [isSearching, filterQuery, searchIndex, showPlayableOnly, sortedLibrary]);
+  }, [
+    isLibraryLoading,
+    isSearching,
+    filterQuery,
+    searchIndex,
+    showPlayableOnly,
+    sortedLibrary,
+  ]);
 
   const hasActiveFilter =
     library.length > 0 &&
@@ -642,11 +651,13 @@ export function Sidebar() {
               >
                 {isLibraryLoading && <SidebarGameListSkeleton />}
 
-                {hasActiveFilter && visibleGames.length === 0 && (
-                  <p className="sidebar__game-list-empty">
-                    {t("library:no_results")}
-                  </p>
-                )}
+                {!isLibraryLoading &&
+                  hasActiveFilter &&
+                  visibleGames.length === 0 && (
+                    <p className="sidebar__game-list-empty">
+                      {t("library:no_results")}
+                    </p>
+                  )}
 
                 <div
                   style={{

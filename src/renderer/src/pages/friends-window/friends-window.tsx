@@ -8,7 +8,6 @@ import {
   CopyIcon,
   DashIcon,
   PersonAddIcon,
-  PlusIcon,
   SearchIcon,
   XIcon,
 } from "@primer/octicons-react";
@@ -860,19 +859,13 @@ export default function FriendsWindow() {
               className="friends-window__add-friend-face friends-window__add-friend-face--add"
               aria-hidden="true"
             >
-              <PlusIcon size={16} className="friends-window__add-friend-icon" />
-              <span className="friends-window__add-friend-label">
-                {t("add_friend")}
-              </span>
+              <PersonAddIcon size={16} />
             </span>
             <span
               className="friends-window__add-friend-face friends-window__add-friend-face--close"
               aria-hidden="true"
             >
-              <PlusIcon size={16} className="friends-window__add-friend-icon" />
-              <span className="friends-window__add-friend-label">
-                {t("close")}
-              </span>
+              <XIcon size={16} />
             </span>
           </Button>
         </div>

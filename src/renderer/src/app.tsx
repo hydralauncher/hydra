@@ -33,6 +33,7 @@ import {
   setExtractionProgress,
   setGameRunning,
   setLibrarySyncingRemote,
+  setLibraryAwaitingAccount,
   setProfileBackground,
   setUserDetails,
   setUserPreferences,
@@ -359,13 +360,14 @@ export function App() {
   }, [setupExternalResources]);
 
   const onSignIn = useCallback(() => {
+    dispatch(setLibraryAwaitingAccount(true));
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
         showSuccessToast(t("successfully_signed_in"));
       }
     });
-  }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
+  }, [dispatch, fetchUserDetails, t, showSuccessToast, updateUserDetails]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
@@ -494,9 +496,10 @@ export function App() {
         return;
       }
 
-      void updateLibrary().finally(() =>
-        dispatch(setLibrarySyncingRemote(false))
-      );
+      void updateLibrary().finally(() => {
+        dispatch(setLibrarySyncingRemote(false));
+        dispatch(setLibraryAwaitingAccount(false));
+      });
     });
   }, [dispatch, updateLibrary]);
 

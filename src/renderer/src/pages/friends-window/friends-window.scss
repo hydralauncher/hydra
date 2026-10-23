@@ -343,18 +343,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 40px;
     height: 40px;
-    padding: 0 calc(globals.$spacing-unit * 2);
+    padding: 0;
     border: 1px solid transparent;
     border-radius: 6px;
     transition:
       opacity 0.2s ease,
-      background-color 0.2s ease,
-      padding 0.3s ease;
-
-    @media (max-width: 379px) {
-      padding: 0 calc(globals.$spacing-unit * 1.5);
-    }
+      background-color 0.2s ease;
 
     &--add {
       background-color: globals.$muted-color;
@@ -382,31 +378,6 @@
 
   &__add-friend--active &__add-friend-face--close {
     opacity: 1;
-  }
-
-  &__add-friend-icon {
-    flex-shrink: 0;
-    transition: transform 0.25s ease;
-  }
-
-  &__add-friend--active &__add-friend-icon {
-    transform: rotate(45deg);
-  }
-
-  &__add-friend-label {
-    max-width: 160px;
-    margin-left: globals.$spacing-unit;
-    overflow: hidden;
-    transition:
-      max-width 0.3s ease,
-      margin-left 0.3s ease,
-      opacity 0.2s ease;
-
-    @media (max-width: 379px) {
-      max-width: 0;
-      margin-left: 0;
-      opacity: 0;
-    }
   }
 
   // Matches the shared Button's 40px height so the row lines up.

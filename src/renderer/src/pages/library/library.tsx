@@ -697,9 +697,13 @@ export default function Library() {
   const isFavoritesCollectionSelected =
     selectedCollectionId === FAVORITES_COLLECTION_ID;
   const shouldShowFavoritesEmptyState =
-    hasGames && isFavoritesCollectionSelected && hasNoFilteredGames;
+    hasGames &&
+    !isLibraryLoading &&
+    isFavoritesCollectionSelected &&
+    hasNoFilteredGames;
   const shouldShowCollectionEmptyState =
     hasGames &&
+    !isLibraryLoading &&
     !shouldShowFavoritesEmptyState &&
     !(
       isHiddenCollectionSelected &&
@@ -714,6 +718,7 @@ export default function Library() {
     hasNoFilteredGames;
   const shouldShowNoResultsEmptyState =
     hasGames &&
+    !isLibraryLoading &&
     hasNoFilteredGames &&
     !shouldShowFavoritesEmptyState &&
     !shouldShowCollectionEmptyState &&
@@ -878,6 +883,7 @@ export default function Library() {
         )}
         {containerWidth > 0 &&
           hasGames &&
+          !isLibraryLoading &&
           !shouldShowFavoritesEmptyState &&
           !shouldShowCollectionEmptyState &&
           !shouldShowClassicsImporting &&

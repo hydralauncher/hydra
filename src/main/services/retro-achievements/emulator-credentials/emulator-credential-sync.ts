@@ -336,8 +336,8 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
   },
 };
 
-const readConfigText = async (configPath: string | null) =>
-  configPath ? readText(configPath) : null;
+const readConfigText = (configPath: string | null) =>
+  configPath ? readText(configPath) : Promise.resolve(null);
 
 const SIGNED_IN_USERNAME_READERS: Record<
   CredentialEmulator,
