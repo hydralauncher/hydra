@@ -88,9 +88,20 @@ export interface ScreenshotPresignRequest {
   shop: ScreenshotShop;
   objectId?: string;
   customGameTitle?: string;
+  description?: string;
   capturedAt: number;
   isSpoiler?: boolean;
   visibility?: ProfileVisibility;
+}
+
+export type ScreenshotTextModerationVerdict =
+  | "approved"
+  | "hidden"
+  | "unevaluated";
+
+export interface ScreenshotTextModeration {
+  title?: ScreenshotTextModerationVerdict;
+  description?: ScreenshotTextModerationVerdict;
 }
 
 export interface ScreenshotPresignResponse {
@@ -98,6 +109,7 @@ export interface ScreenshotPresignResponse {
   presignedUrl: string;
   thumbnailPresignedUrl: string;
   expiresAt: number;
+  textModeration?: ScreenshotTextModeration;
 }
 
 export interface ScreenshotModerationState {
@@ -220,4 +232,59 @@ export interface LocalScreenshot {
   uploadProgress: number | null;
   lastError: string | null;
   gameSessionId: string | null;
+  uploadQuality?: ScreenshotQuality | null;
+  uploadClientId?: string | null;
+  uploadAttempts?: number;
+  nextUploadAttemptAt?: number | null;
+  uploadedAt?: number | null;
+  isDevCapture?: boolean;
+  description?: string | null;
+  previewPath?: string | null;
+  pendingCompleteScreenshotId?: string | null;
+  textModeration?: ScreenshotTextModeration | null;
+}
+
+export interface LocalScreenshotUploadOptions {
+  isSpoiler: boolean;
+  visibility: ProfileVisibility;
+  customGameTitle: string | null;
+  description?: string | null;
+}
+
+export type LocalScreenshotDraft = Partial<LocalScreenshotUploadOptions>;
+
+export interface ScreenshotUploadProgress {
+  clientId: string;
+  state: LocalScreenshotState;
+  progress: number | null;
+}
+
+export type ScreenshotReviewScope = "game" | "screenshot";
+
+export interface ScreenshotReview {
+  clientIds: string[];
+  selectedClientId: string | null;
+}
+
+export interface ScreenshotReviewRequest {
+  gameKey: string;
+  shop: ScreenshotShop;
+  objectId: string;
+  gameTitle: string;
+  clientIds: string[];
+}
+
+export type ScreenshotTelemetryEventType = "capture" | "upload" | "review";
+
+export interface ScreenshotTelemetryEvent {
+  type: ScreenshotTelemetryEventType;
+  outcome: string;
+  reason?: string;
+  platform: "win32" | "linux";
+  count: number;
+}
+
+export interface ScreenshotFeedbackToast {
+  kind: "captured" | "saved_locally" | "disabled_for_game" | "capture_failed";
+  gameTitle: string;
 }

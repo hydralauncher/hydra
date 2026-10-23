@@ -169,7 +169,7 @@ export class HydraApi {
       void import("./linux-game-capture-session").then(
         ({ stopAllLinuxGameCaptureSessions }) => {
           if (!this.hasActiveSubscription()) {
-            stopAllLinuxGameCaptureSessions();
+            stopAllLinuxGameCaptureSessions("souvenir");
           }
         }
       );
@@ -337,7 +337,7 @@ export class HydraApi {
         "./linux-game-capture-session"
       );
       if (generation !== this.authContexts.generation) return;
-      stopAllLinuxGameCaptureSessions();
+      stopAllLinuxGameCaptureSessions("souvenir");
       const { groupedSouvenirWorker } = await import(
         "./achievements/grouped-souvenir-worker"
       );
@@ -610,7 +610,7 @@ export class HydraApi {
           "./linux-game-capture-session"
         );
         if (signedOutGeneration !== this.authContexts.generation) throw err;
-        stopAllLinuxGameCaptureSessions();
+        stopAllLinuxGameCaptureSessions("souvenir");
         const { groupedSouvenirWorker } = await import(
           "./achievements/grouped-souvenir-worker"
         );

@@ -97,6 +97,12 @@ export class WindowManager {
     return this.mainWindowInstance;
   }
 
+  public static get bigPictureWindow(): Electron.BrowserWindow | null {
+    return this.bigPicture && !this.bigPicture.isDestroyed()
+      ? this.bigPicture
+      : null;
+  }
+
   public static get gameLauncherWindow(): Electron.BrowserWindow | null {
     return this.gameLauncherWindowInstance;
   }

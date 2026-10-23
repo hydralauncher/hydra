@@ -4,6 +4,8 @@ mod constants;
 mod linux_process;
 mod screenshot_input;
 mod torrent;
+mod window_client;
+mod window_order;
 
 pub use cloud_save::hashing::{build_snapshot_aggregate_hash, hash_local_save_file};
 pub use cloud_save::local_snapshot::build_local_game_snapshot;
@@ -73,6 +75,27 @@ pub fn get_linux_active_window() -> Option<NativeActiveWindow> {
         window_id: window_id.to_string(),
         process_id,
     })
+}
+
+#[napi(object)]
+pub struct NativeForegroundWindow {
+    pub window_handle: String,
+    pub process_id: u32,
+}
+
+#[napi]
+pub fn get_windows_foreground_window() -> Option<NativeForegroundWindow> {
+    window_order::get_foreground_window().map(|(window_handle, process_id)| {
+        NativeForegroundWindow {
+            window_handle,
+            process_id,
+        }
+    })
+}
+
+#[napi]
+pub fn get_linux_window_client_pid(window_id: String) -> Option<u32> {
+    window_client::get_window_client_pid(&window_id)
 }
 
 #[napi]

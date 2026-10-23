@@ -103,8 +103,16 @@ import type {
   ResolveEpicCloudSaveConflictPayload,
   EpicLaunchOptions,
   EpicLinuxCompatibility,
+  LocalScreenshot,
+  LocalScreenshotDraft,
+  LocalScreenshotUploadOptions,
+  ScreenshotReview,
+  ScreenshotReviewRequest,
+  ScreenshotReviewScope,
+  ScreenshotUploadProgress,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
+import { screenshotsDevApi } from "./screenshots-dev";
 import type { AxiosProgressEvent } from "axios";
 
 const fileExplorerApi = {
@@ -1482,6 +1490,77 @@ contextBridge.exposeInMainWorld("electron", {
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
   getScreenshotsPath: () => ipcRenderer.invoke("getScreenshotsPath"),
+  ...(import.meta.env.DEV ? { screenshotsDev: screenshotsDevApi } : {}),
+  getLocalScreenshots: () => ipcRenderer.invoke("getLocalScreenshots"),
+  getLocalScreenshotsForGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getLocalScreenshotsForGame", shop, objectId),
+  deleteLocalScreenshotsForGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("deleteLocalScreenshotsForGame", shop, objectId),
+  countLocalScreenshotFilesForGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("countLocalScreenshotFilesForGame", shop, objectId),
+  getPublishedScreenshotIdsForGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getPublishedScreenshotIdsForGame", shop, objectId),
+  forgetPublishedScreenshots: (screenshotIds: string[]) =>
+    ipcRenderer.invoke("forgetPublishedScreenshots", screenshotIds),
+  uploadLocalScreenshot: (
+    clientId: string,
+    options: LocalScreenshotUploadOptions
+  ) => ipcRenderer.invoke("uploadLocalScreenshot", clientId, options),
+  updateLocalScreenshotDraft: (clientId: string, draft: LocalScreenshotDraft) =>
+    ipcRenderer.invoke("updateLocalScreenshotDraft", clientId, draft),
+  deleteLocalScreenshot: (clientId: string) =>
+    ipcRenderer.invoke("deleteLocalScreenshot", clientId),
+  openScreenshotReview: (clientId: string, scope?: ScreenshotReviewScope) =>
+    ipcRenderer.invoke("openScreenshotReview", clientId, scope),
+  closeScreenshotReview: () => ipcRenderer.invoke("closeScreenshotReview"),
+  releaseBigPictureScreenshotReview: (clientIds: string[]) =>
+    ipcRenderer.invoke("releaseBigPictureScreenshotReview", clientIds),
+  openScreenshotsFolder: () => ipcRenderer.invoke("openScreenshotsFolder"),
+  onLocalScreenshotsChange: (cb: (screenshots: LocalScreenshot[]) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      screenshots: LocalScreenshot[]
+    ) => cb(screenshots);
+    ipcRenderer.on("on-local-screenshots-change", listener);
+    return () =>
+      ipcRenderer.removeListener("on-local-screenshots-change", listener);
+  },
+  onScreenshotUploadProgress: (
+    cb: (progress: ScreenshotUploadProgress) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      progress: ScreenshotUploadProgress
+    ) => cb(progress);
+    ipcRenderer.on("on-screenshot-upload-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-screenshot-upload-progress", listener);
+  },
+  getPendingScreenshotReviewRequest: () =>
+    ipcRenderer.invoke("getPendingScreenshotReviewRequest"),
+  onScreenshotReviewRequested: (
+    cb: (request: ScreenshotReviewRequest) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      request: ScreenshotReviewRequest
+    ) => cb(request);
+    ipcRenderer.on("on-screenshot-review-requested", listener);
+    return () =>
+      ipcRenderer.removeListener("on-screenshot-review-requested", listener);
+  },
+  getScreenshotReview: () => ipcRenderer.invoke("getScreenshotReview"),
+  onScreenshotReviewChanged: (
+    cb: (review: ScreenshotReview | null) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      review: ScreenshotReview | null
+    ) => cb(review);
+    ipcRenderer.on("on-screenshot-review-changed", listener);
+    return () =>
+      ipcRenderer.removeListener("on-screenshot-review-changed", listener);
+  },
   getAchievementSouvenirSyncStatus: () =>
     ipcRenderer.invoke("getAchievementSouvenirSyncStatus"),
   getAchievementSouvenirSyncDetails: () =>

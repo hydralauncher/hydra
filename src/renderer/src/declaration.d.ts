@@ -1,5 +1,13 @@
 import type { AuthPage, Downloader } from "@shared";
 import type {
+  ScreenshotsDevApi,
+  LocalScreenshot,
+  LocalScreenshotDraft,
+  LocalScreenshotUploadOptions,
+  ScreenshotReview,
+  ScreenshotReviewRequest,
+  ScreenshotReviewScope,
+  ScreenshotUploadProgress,
   SystemPowerAction,
   AppUpdaterEvent,
   GameShop,
@@ -1092,6 +1100,55 @@ declare global {
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     getScreenshotsPath: () => Promise<string>;
+    screenshotsDev?: ScreenshotsDevApi;
+    getLocalScreenshots: () => Promise<LocalScreenshot[]>;
+    getLocalScreenshotsForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<LocalScreenshot[]>;
+    deleteLocalScreenshotsForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<number>;
+    countLocalScreenshotFilesForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<number>;
+    getPublishedScreenshotIdsForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<string[]>;
+    forgetPublishedScreenshots: (screenshotIds: string[]) => Promise<number>;
+    uploadLocalScreenshot: (
+      clientId: string,
+      options: LocalScreenshotUploadOptions
+    ) => Promise<LocalScreenshot | null>;
+    updateLocalScreenshotDraft: (
+      clientId: string,
+      draft: LocalScreenshotDraft
+    ) => Promise<LocalScreenshot | null>;
+    deleteLocalScreenshot: (clientId: string) => Promise<void>;
+    openScreenshotReview: (
+      clientId: string,
+      scope?: ScreenshotReviewScope
+    ) => Promise<void>;
+    closeScreenshotReview: () => Promise<void>;
+    releaseBigPictureScreenshotReview: (clientIds: string[]) => Promise<void>;
+    openScreenshotsFolder: () => Promise<void>;
+    onLocalScreenshotsChange: (
+      cb: (screenshots: LocalScreenshot[]) => void
+    ) => () => Electron.IpcRenderer;
+    onScreenshotUploadProgress: (
+      cb: (progress: ScreenshotUploadProgress) => void
+    ) => () => Electron.IpcRenderer;
+    getPendingScreenshotReviewRequest: () => Promise<ScreenshotReviewRequest | null>;
+    onScreenshotReviewRequested: (
+      cb: (request: ScreenshotReviewRequest) => void
+    ) => () => Electron.IpcRenderer;
+    getScreenshotReview: () => Promise<ScreenshotReview | null>;
+    onScreenshotReviewChanged: (
+      cb: (review: ScreenshotReview | null) => void
+    ) => () => Electron.IpcRenderer;
     getAchievementSouvenirSyncStatus: () => Promise<AchievementSouvenirSyncStatus>;
     getAchievementSouvenirSyncDetails: () => Promise<AchievementSouvenirSyncDetails>;
     retryAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncRetryResult>;

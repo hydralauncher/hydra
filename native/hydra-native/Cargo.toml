@@ -38,7 +38,7 @@ windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Grap
 [target.'cfg(target_os = "linux")'.dependencies]
 evdev = "0.13.2"
 libc = "0.2.183"
-x11rb = { version = "0.13.2", default-features = false, features = ["xinput"] }
+x11rb = { version = "0.13.2", default-features = false, features = ["res", "xinput"] }
 
 [dev-dependencies]
 tempfile = "3.27"

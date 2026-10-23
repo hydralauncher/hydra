@@ -674,6 +674,7 @@ export interface AchievementNotificationInfo {
   isRare: boolean;
   isPlatinum: boolean;
   points?: number;
+  variant?: "screenshot";
 }
 
 export type AchievementNotificationRequest = {
@@ -688,6 +689,10 @@ export type AchievementNotificationRequest = {
       type: "combined";
       gameCount: number;
       achievementCount: number;
+    }
+  | {
+      type: "screenshot";
+      achievement: AchievementNotificationInfo;
     }
 );
 
@@ -921,6 +926,7 @@ export * from "./artwork.types";
 export * from "./cloud-save.types";
 export * from "./souvenir.types";
 export * from "./screenshot.types";
+export * from "./screenshots-dev.types";
 
 export type ExtractionFailure =
   | { reason: "unsupported-format"; format: string }

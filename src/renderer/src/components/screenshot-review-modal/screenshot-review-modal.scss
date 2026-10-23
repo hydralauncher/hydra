@@ -1,0 +1,426 @@
+@use "../../scss/globals.scss";
+
+$review-hover-duration: 0.2s;
+$review-progress-duration: 0.2s;
+$review-fade-duration: 0.25s;
+$review-fade-size: 40px;
+
+@property --review-thumbs-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --review-thumbs-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.screenshot-review-modal {
+  width: min(1120px, calc(100vw - globals.$spacing-unit * 12));
+  max-width: none;
+  max-height: calc(100vh - globals.$spacing-unit * 8);
+
+  .modal__content {
+    display: flex;
+    min-height: 0;
+    padding: calc(globals.$spacing-unit * 3);
+    overflow: hidden;
+  }
+
+  &__heading {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    min-width: 0;
+  }
+
+  &__game-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  &__game-title {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+.screenshot-review {
+  display: grid;
+  flex: 1;
+  grid-template-areas:
+    "media side"
+    "strip side"
+    "footer footer";
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto 1fr auto;
+  row-gap: calc(globals.$spacing-unit * 2);
+  min-width: 0;
+  min-height: 0;
+}
+
+.screenshot-review-filmstrip {
+  display: flex;
+  grid-area: strip;
+  align-items: center;
+  align-self: start;
+  gap: globals.$spacing-unit;
+  min-width: 0;
+
+  &__step {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition:
+      background-color $review-hover-duration ease,
+      opacity $review-hover-duration ease;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.4;
+    }
+  }
+
+  &__thumbs {
+    display: flex;
+    flex: 1;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+    padding: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    --review-thumbs-fade-start: 0px;
+    --review-thumbs-fade-end: 0px;
+    transition:
+      --review-thumbs-fade-start $review-fade-duration ease,
+      --review-thumbs-fade-end $review-fade-duration ease;
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000000 var(--review-thumbs-fade-start),
+      #000000 calc(100% - var(--review-thumbs-fade-end)),
+      transparent 100%
+    );
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    &--fade-start {
+      --review-thumbs-fade-start: #{$review-fade-size};
+    }
+
+    &--fade-end {
+      --review-thumbs-fade-end: #{$review-fade-size};
+    }
+  }
+
+  &__thumb {
+    position: relative;
+    flex: 0 0 112px;
+    aspect-ratio: 16 / 9;
+    padding: 0;
+    overflow: hidden;
+    background-color: #000000;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition:
+      opacity $review-hover-duration ease,
+      border-color $review-hover-duration ease;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    &:hover,
+    &:focus-visible {
+      opacity: 0.9;
+    }
+
+    &--selected {
+      border-color: globals.$muted-color;
+      opacity: 1;
+    }
+  }
+
+  &__status {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+
+    &--pending {
+      background-color: globals.$muted-color;
+    }
+
+    &--kept {
+      background-color: globals.$body-color;
+    }
+
+    &--progress {
+      background-color: #f4a510;
+    }
+
+    &--success {
+      background-color: globals.$success-color;
+    }
+
+    &--error {
+      background-color: globals.$error-color;
+    }
+  }
+}
+
+.screenshot-review-item {
+  display: contents;
+
+  &__media {
+    grid-area: media;
+    min-width: 0;
+  }
+
+  &__preview {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-height: calc(100vh - 360px);
+    aspect-ratio: 16 / 9;
+    padding: 0;
+    overflow: hidden;
+    background-color: #000000;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    cursor: zoom-in;
+    transition: border-color $review-hover-duration ease;
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    &:hover .screenshot-review-item__expand,
+    &:focus-visible .screenshot-review-item__expand {
+      opacity: 1;
+    }
+  }
+
+  &__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  &__expand {
+    position: absolute;
+    top: globals.$spacing-unit;
+    right: globals.$spacing-unit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background-color: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    opacity: 0.7;
+    transition: opacity $review-hover-duration ease;
+  }
+
+  &__date {
+    position: absolute;
+    right: globals.$spacing-unit;
+    bottom: globals.$spacing-unit;
+    max-width: calc(100% - globals.$spacing-unit * 2);
+    overflow: hidden;
+    padding: 2px globals.$spacing-unit;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background-color: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__side {
+    position: relative;
+    grid-area: side;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  &__side-content {
+    position: absolute;
+    inset: 0 auto 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: 0 globals.$spacing-unit globals.$spacing-unit
+      calc(globals.$spacing-unit * 3);
+    overflow-y: auto;
+    will-change: transform, opacity;
+  }
+
+  &__title-field {
+    align-self: flex-start;
+    max-width: 100%;
+    min-height: 36px;
+
+    .inline-edit-field__trigger,
+    .inline-edit-field__input {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .inline-edit-field__trigger {
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .inline-edit-field__input {
+      height: 36px;
+    }
+  }
+
+  &__checkbox {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__hint {
+    padding-left: calc(20px + globals.$spacing-unit);
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    opacity: 0.7;
+  }
+
+  &__footer {
+    display: flex;
+    grid-area: footer;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+    min-width: 0;
+    padding-top: calc(globals.$spacing-unit * 2);
+    border-top: 1px solid globals.$border-color;
+  }
+
+  &__details-toggle {
+    flex-shrink: 0;
+
+    svg {
+      transition: transform $review-hover-duration ease;
+    }
+
+    &:hover:not(:disabled) svg {
+      transform: scale(1.12);
+    }
+  }
+
+  &__footer-status {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__actions {
+    display: flex;
+    flex-shrink: 0;
+    justify-content: flex-end;
+    gap: globals.$spacing-unit;
+
+    > .screenshot-review-item__delete {
+      flex: 0 0 40px;
+      width: 40px;
+      padding: 0;
+    }
+  }
+}
+
+.screenshot-review-status {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit / 2);
+  min-width: 0;
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    font-weight: 500;
+    line-height: 20px;
+    color: globals.$muted-color;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  &__detail {
+    font-size: globals.$small-font-size;
+    line-height: 18px;
+    color: globals.$body-color;
+  }
+
+  &__progress-track {
+    width: 100%;
+    max-width: 320px;
+    height: 6px;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+
+  &__progress-bar {
+    height: 100%;
+    background-color: globals.$muted-color;
+    border-radius: 3px;
+    transition: width $review-progress-duration ease;
+  }
+
+  &--success svg {
+    color: globals.$success-color;
+  }
+
+  &--error svg {
+    color: globals.$error-color;
+  }
+}

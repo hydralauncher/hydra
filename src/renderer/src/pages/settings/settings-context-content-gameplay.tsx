@@ -9,7 +9,7 @@ import {
   TextField,
 } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
-import { useAppSelector, useUserDetails } from "@renderer/hooks";
+import { useAppSelector, useFeature, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { FileDirectoryIcon, HistoryIcon } from "@primer/octicons-react";
 import { useLocation } from "react-router-dom";
@@ -49,6 +49,8 @@ export function SettingsContextContentGameplay() {
   const { hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
   const { hash } = useLocation();
+  const { isFeatureEnabled, Feature } = useFeature();
+  const showScreenshotsDirectory = !isFeatureEnabled(Feature.Screenshots);
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -243,48 +245,50 @@ export function SettingsContextContentGameplay() {
           </button>
         )}
 
-        <div className="settings-behavior__screenshots-directory">
-          <TextField
-            label={t("screenshots_directory")}
-            value={screenshotsPath}
-            readOnly
-            disabled
-            rightContent={
-              <>
-                <Button
-                  theme="outline"
-                  disabled={!canManageScreenshots}
-                  onClick={handleChooseScreenshotsPath}
-                >
-                  <FileDirectoryIcon size={14} />
-                  {t("change_screenshots_directory")}
-                </Button>
-                {hasCustomScreenshotsPath && (
+        {showScreenshotsDirectory && (
+          <div className="settings-behavior__screenshots-directory">
+            <TextField
+              label={t("screenshots_directory")}
+              value={screenshotsPath}
+              readOnly
+              disabled
+              rightContent={
+                <>
                   <Button
-                    className="settings-behavior__reset-screenshots-button"
                     theme="outline"
                     disabled={!canManageScreenshots}
-                    tooltip={t("reset_screenshots_directory")}
-                    aria-label={t("reset_screenshots_directory")}
-                    onClick={handleResetScreenshotsPath}
+                    onClick={handleChooseScreenshotsPath}
                   >
-                    <HistoryIcon size={14} />
+                    <FileDirectoryIcon size={14} />
+                    {t("change_screenshots_directory")}
                   </Button>
-                )}
-              </>
-            }
-          />
+                  {hasCustomScreenshotsPath && (
+                    <Button
+                      className="settings-behavior__reset-screenshots-button"
+                      theme="outline"
+                      disabled={!canManageScreenshots}
+                      tooltip={t("reset_screenshots_directory")}
+                      aria-label={t("reset_screenshots_directory")}
+                      onClick={handleResetScreenshotsPath}
+                    >
+                      <HistoryIcon size={14} />
+                    </Button>
+                  )}
+                </>
+              }
+            />
 
-          <Button
-            className="settings-behavior__open-screenshots-button"
-            theme="outline"
-            disabled={!canManageScreenshots}
-            onClick={handleOpenScreenshotsPath}
-          >
-            <FileDirectoryIcon size={14} />
-            {t("open_screenshots_directory")}
-          </Button>
-        </div>
+            <Button
+              className="settings-behavior__open-screenshots-button"
+              theme="outline"
+              disabled={!canManageScreenshots}
+              onClick={handleOpenScreenshotsPath}
+            >
+              <FileDirectoryIcon size={14} />
+              {t("open_screenshots_directory")}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="settings-context-panel__group">
