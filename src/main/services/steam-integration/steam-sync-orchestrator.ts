@@ -30,6 +30,7 @@ import {
   isSteamSourceRateLimited,
   isSteamSyncConflict,
   withSteamSourceRetry,
+  isSteamRateLimitStatus,
 } from "./steam-source-retry";
 import {
   SteamAccountMismatchError,
@@ -841,7 +842,7 @@ class SteamSyncOrchestrator {
             );
             achievementsByAppId.set(game.steamAppId, undefined);
 
-            if (status === 429) {
+            if (isSteamRateLimitStatus(status)) {
               rateLimited = true;
               if (trackProgress) {
                 this.setState(idleState());

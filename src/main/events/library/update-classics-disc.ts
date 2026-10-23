@@ -25,7 +25,7 @@ const applyAddDisc = async (
   platformHint: string | null | undefined
 ): Promise<void> => {
   if (discs.some((d) => d.path === addDisc.path)) return;
-  if (!addDisc.sku) {
+  if (!addDisc.sku && !addDisc.isExecutable) {
     const system = platformToSystem(platformHint);
     if (system) {
       addDisc.sku = await emulators.extractDiscSku(addDisc.path, system);
@@ -82,6 +82,9 @@ const updateClassicsDisc = async (
   }
 
   const next = { ...game, discs };
+  if (patch.removeDiscPath && game.executablePath === patch.removeDiscPath) {
+    next.executablePath = null;
+  }
   if (patch.selectedDiscPath !== undefined) {
     next.selectedDiscPath = patch.selectedDiscPath;
   }

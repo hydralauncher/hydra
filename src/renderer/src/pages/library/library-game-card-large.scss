@@ -7,7 +7,10 @@
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all ease 0.2s;
+  transition:
+    transform ease 0.2s,
+    box-shadow ease 0.2s,
+    border-color ease 0.2s;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -27,7 +30,9 @@
       rgba(255, 255, 255, 0.15) 64%,
       rgba(255, 255, 255, 0.1) 100%
     );
-    transition: all ease 0.3s;
+    transition:
+      opacity ease 0.3s,
+      transform ease 0.3s;
     transform: translateY(-36%);
     opacity: 0.5;
     z-index: 1;
@@ -353,7 +358,7 @@
   &__achievement-progress {
     width: 100%;
     height: 4px;
-    transition: all ease 0.2s;
+    transition: background-color ease 0.2s;
     background-color: rgba(255, 255, 255, 0.08);
     border-radius: 4px;
     overflow: hidden;
@@ -387,5 +392,15 @@
     &--completed {
       color: globals.$brand-teal;
     }
+  }
+
+  &__import-badges {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 }

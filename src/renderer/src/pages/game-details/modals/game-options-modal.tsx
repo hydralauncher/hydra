@@ -964,6 +964,9 @@ export function GameOptionsModal({
   };
 
   const isLaunchbox = game.shop === "launchbox";
+  const hasClassicsExecutable = Boolean(
+    game.discs?.some((disc) => disc.isExecutable)
+  );
   const showDownloadSettings = game.shop !== "custom";
   const shouldShowWinePrefixConfiguration =
     globalThis.window.electron.platform === "linux";
@@ -1376,7 +1379,7 @@ export function GameOptionsModal({
                 {...baseGeneralSettingsProps}
                 showExecutableSection={isLaunchbox}
                 showTransferSection={false}
-                showLaunchOptionsSection={!isLaunchbox}
+                showLaunchOptionsSection={!isLaunchbox || hasClassicsExecutable}
               />
             )}
             {selectedCategory === "locations" && (

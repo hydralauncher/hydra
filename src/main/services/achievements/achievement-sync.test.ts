@@ -71,6 +71,7 @@ async function fixture(
   const outfile = path.join(root, `${key}.mjs`);
   const actual = new Set([
     "merge-achievements",
+    "achievement-unlock-notifications",
     "achievement-memory-store",
     "reconcile-achievement-memory",
     "achievement-sync-coordinator",

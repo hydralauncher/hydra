@@ -28,6 +28,7 @@ export const RETROARCH_DETECTABLE: DetectableBinary = {
 
 export const detectRetroArch = (options?: {
   resolveVersion?: boolean;
+  includeDriveRoots?: boolean;
 }): DetectionResult | null => detectEmulator(RETROARCH_DETECTABLE, options);
 
 export const getRetroArchVersion = (executablePath: string): string | null =>
@@ -66,6 +67,7 @@ const findExecutableInManagedDir = (root: string): string | null => {
 
 export const detectRetroArchWithFallback = async (options?: {
   resolveVersion?: boolean;
+  includeDriveRoots?: boolean;
 }): Promise<DetectionResult | null> => {
   const generic = detectRetroArch(options);
   if (generic) return generic;
