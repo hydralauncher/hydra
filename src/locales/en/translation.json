@@ -2827,6 +2827,8 @@
     "spoiler_hint": "Others will see it blurred until they choose to reveal it",
     "spoiler_label": "Contains spoilers",
     "thumbnail_label": "Screenshot {{index}} of {{count}}",
+    "previous_screenshot": "Previous screenshot",
+    "next_screenshot": "Next screenshot",
     "upload": "Upload",
     "upload_failed": "Upload failed",
     "upload_failed_body_one": "{{count}} screenshot could not be uploaded. You can retry it from the game's page, under My Screenshots.",

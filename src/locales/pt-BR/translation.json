@@ -2831,6 +2831,8 @@
     "spoiler_hint": "Os outros verão a imagem desfocada até escolherem revelá-la",
     "spoiler_label": "Contém spoilers",
     "thumbnail_label": "Captura {{index}} de {{count}}",
+    "previous_screenshot": "Captura anterior",
+    "next_screenshot": "Próxima captura",
     "upload": "Enviar",
     "upload_failed": "Falha no envio",
     "upload_failed_body_one": "Não foi possível enviar {{count}} captura. Você pode tentar novamente pela página do jogo, em Minhas capturas de tela.",

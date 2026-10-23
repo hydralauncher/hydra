@@ -3,15 +3,15 @@ import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import { CheckCircleIcon } from "@primer/octicons-react";
 import type { LocalScreenshot, ScreenshotReview } from "@types";
-import { Button, Modal } from "@renderer/components";
+import { Button, FullscreenMediaModal, Modal } from "@renderer/components";
 import { logger } from "@renderer/logger";
 
+import { ReviewFilmstrip } from "./review-filmstrip";
 import { ScreenshotReviewItem } from "./screenshot-review-item";
 import {
   applyUploadProgress,
   createReviewDraft,
   getLocalImageSource,
-  getReviewTone,
   isScreenshotAwaitingReview,
   selectReviewScreenshots,
   type ScreenshotReviewDraft,
@@ -19,7 +19,6 @@ import {
 
 import "./screenshot-review-modal.scss";
 
-const MAX_VISIBLE_THUMBNAILS = 5;
 const DRAFT_SAVE_DELAY_MS = 300;
 
 const closeReview = () => {
@@ -80,6 +79,7 @@ function ScreenshotReviewContent({
   const [drafts, setDrafts] = useState<Record<string, ScreenshotReviewDraft>>(
     {}
   );
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const hasLiveSnapshot = useRef(false);
   const draftsRef = useRef(drafts);
   const draftSaveTimers = useRef(
@@ -214,17 +214,41 @@ function ScreenshotReviewContent({
     };
   }, [flushDrafts]);
 
-  const title = isMultiple
-    ? t("review_count", { count: reviewScreenshots.length })
-    : t("review_title");
+  const selectedIndex = selectedScreenshot
+    ? reviewScreenshots.indexOf(selectedScreenshot)
+    : -1;
+
+  const selectScreenshot = (clientId: string) => {
+    flushDrafts();
+    setSelectedClientId(clientId);
+  };
+
+  useEffect(() => {
+    if (!isViewerOpen) return;
+    const closeViewerFirst = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopImmediatePropagation();
+      setIsViewerOpen(false);
+    };
+    window.addEventListener("keydown", closeViewerFirst, true);
+    return () => window.removeEventListener("keydown", closeViewerFirst, true);
+  }, [isViewerOpen]);
 
   return (
     <Modal
       visible
-      title={title}
+      title={t("review_title")}
+      description={
+        isMultiple && selectedIndex !== -1
+          ? t("thumbnail_label", {
+              index: selectedIndex + 1,
+              count: reviewScreenshots.length,
+            })
+          : undefined
+      }
       onClose={closeReview}
       onCloseStart={flushDrafts}
-      noContentPadding
+      clickOutsideToClose={!isViewerOpen}
       className="screenshot-review-modal"
     >
       <div
@@ -232,88 +256,52 @@ function ScreenshotReviewContent({
           "screenshot-review--multiple": isMultiple,
         })}
       >
+        {selectedScreenshot && (
+          <ScreenshotReviewItem
+            key={selectedScreenshot.clientId}
+            screenshot={selectedScreenshot}
+            draft={
+              drafts[selectedScreenshot.clientId] ??
+              createReviewDraft(selectedScreenshot)
+            }
+            onDraftCommit={flushDrafts}
+            onDraftChange={(draft) =>
+              updateDraft(selectedScreenshot.clientId, draft)
+            }
+            onExpand={() => setIsViewerOpen(true)}
+            canClose={!isMultiple}
+            onClose={closeReview}
+            notice={
+              isMultiple &&
+              isAllDone && (
+                <output className="screenshot-review__done">
+                  <CheckCircleIcon size={16} />
+                  <span>{t("review_all_done")}</span>
+                  <Button theme="outline" size="small" onClick={closeReview}>
+                    {t("close")}
+                  </Button>
+                </output>
+              )
+            }
+          />
+        )}
+
         {isMultiple && (
-          <section className="screenshot-review__toolbar">
-            <div
-              className={cn("screenshot-review__strip", {
-                "screenshot-review__strip--overflowing":
-                  reviewScreenshots.length > MAX_VISIBLE_THUMBNAILS,
-              })}
-              role="tablist"
-              aria-label={title}
-            >
-              {reviewScreenshots.map((screenshot, index) => {
-                const isSelected =
-                  screenshot.clientId === selectedScreenshot?.clientId;
-                return (
-                  <button
-                    key={screenshot.clientId}
-                    type="button"
-                    role="tab"
-                    aria-selected={isSelected}
-                    aria-current={isSelected ? "true" : undefined}
-                    aria-label={t("thumbnail_label", {
-                      index: index + 1,
-                      count: reviewScreenshots.length,
-                    })}
-                    className={cn("screenshot-review__thumb", {
-                      "screenshot-review__thumb--selected": isSelected,
-                    })}
-                    onClick={() => {
-                      flushDrafts();
-                      setSelectedClientId(screenshot.clientId);
-                    }}
-                  >
-                    <img
-                      src={getLocalImageSource(
-                        screenshot.previewPath ?? screenshot.path
-                      )}
-                      alt=""
-                      loading="lazy"
-                      draggable={false}
-                    />
-                    <span
-                      className={cn(
-                        "screenshot-review__thumb-status",
-                        `screenshot-review__thumb-status--${getReviewTone(screenshot)}`
-                      )}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+          <ReviewFilmstrip
+            screenshots={reviewScreenshots}
+            selectedClientId={selectedScreenshot?.clientId ?? null}
+            label={t("review_count", { count: reviewScreenshots.length })}
+            onSelect={selectScreenshot}
+          />
         )}
-
-        {isMultiple && isAllDone && (
-          <output className="screenshot-review__done">
-            <CheckCircleIcon size={16} />
-            <span>{t("review_all_done")}</span>
-            <Button theme="outline" size="small" onClick={closeReview}>
-              {t("close")}
-            </Button>
-          </output>
-        )}
-
-        <div className="screenshot-review__content">
-          {selectedScreenshot && (
-            <ScreenshotReviewItem
-              key={selectedScreenshot.clientId}
-              screenshot={selectedScreenshot}
-              draft={
-                drafts[selectedScreenshot.clientId] ??
-                createReviewDraft(selectedScreenshot)
-              }
-              onDraftCommit={flushDrafts}
-              onDraftChange={(draft) =>
-                updateDraft(selectedScreenshot.clientId, draft)
-              }
-              canClose={!isMultiple}
-              onClose={closeReview}
-            />
-          )}
-        </div>
       </div>
+
+      <FullscreenMediaModal
+        visible={isViewerOpen && !!selectedScreenshot}
+        onClose={() => setIsViewerOpen(false)}
+        src={selectedScreenshot && getLocalImageSource(selectedScreenshot.path)}
+        alt={selectedScreenshot?.gameTitle}
+      />
     </Modal>
   );
 }
