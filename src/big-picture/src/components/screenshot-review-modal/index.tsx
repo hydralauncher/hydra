@@ -8,9 +8,11 @@ import {
   ImageIcon,
   PencilSimpleIcon,
   PlusIcon,
+  SidebarSimpleIcon,
   TrashIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -30,6 +32,7 @@ import { logger } from "@renderer/logger";
 import { useReviewDraftSave } from "./use-review-draft-save";
 
 import {
+  BumperBadge,
   Button,
   Checkbox,
   FocusItem,
@@ -39,11 +42,12 @@ import {
   VerticalFocusGroup,
   type SegmentedControlOption,
 } from "../common";
+import { useFocusLayerId } from "../context";
 import { ConfirmationModal } from "../modals";
 import { IS_DESKTOP } from "../../constants";
-import { resolveImageSource } from "../../helpers";
-import { useNavigationStore } from "../../stores";
-import type { FocusOverrideTarget } from "../../services";
+import { getPreferredGameAssets, resolveImageSource } from "../../helpers";
+import { useNavigationStore, useVirtualKeyboardStore } from "../../stores";
+import { NavigationService, type FocusOverrideTarget } from "../../services";
 import {
   formatScreenshotDate,
   getLocalScreenshotStatusDetail,
@@ -55,7 +59,10 @@ import { ReviewFilmstrip } from "./review-filmstrip";
 import { subscribeScreenshotReviewRequests } from "./review-requests";
 import {
   useBigPictureToast,
+  useIsLayerOnTop,
+  useLibrary,
   useNavigation,
+  useNavigationScreenActions,
   useUserPreferences,
 } from "../../hooks";
 import {
@@ -89,11 +96,25 @@ const UPLOAD_FOCUS_ID = "screenshot-review-upload";
 const DELETE_FOCUS_ID = "screenshot-review-delete";
 const NEXT_FOCUS_ID = "screenshot-review-next";
 const RETRY_FOCUS_ID = "screenshot-review-retry";
+const DETAILS_TOGGLE_FOCUS_ID = "screenshot-review-details-toggle";
+const DETAILS_PANEL_ID = "screenshot-review-details";
 const PREVIEW_TARGET: FocusOverrideTarget = {
   type: "item",
   itemId: PREVIEW_FOCUS_ID,
 };
+const DETAILS_TOGGLE_TARGET: FocusOverrideTarget = {
+  type: "item",
+  itemId: DETAILS_TOGGLE_FOCUS_ID,
+};
 const BLOCK_TARGET: FocusOverrideTarget = { type: "block" };
+const DETAILS_PANEL_WIDTH = 420;
+const DETAILS_PANEL_SPRING = {
+  type: "spring",
+  stiffness: 360,
+  damping: 36,
+  mass: 0.9,
+} as const;
+const DETAILS_CONTENT_OFFSET = 40;
 const FIELD_FOCUS_IDS = new Set([
   TITLE_FOCUS_ID,
   DESCRIPTION_FOCUS_ID,
@@ -206,13 +227,15 @@ const releaseUndecidedScreenshots = (clientIds: string[]) => {
 interface ReviewPreviewProps {
   screenshot: LocalScreenshot | undefined;
   gameTitle: string;
-  rightFocusId: string;
+  rightTarget: FocusOverrideTarget;
+  downTarget: FocusOverrideTarget;
 }
 
 function ReviewPreview({
   screenshot,
   gameTitle,
-  rightFocusId,
+  rightTarget,
+  downTarget,
 }: Readonly<ReviewPreviewProps>) {
   const { t, i18n } = useTranslation("big_picture");
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
@@ -250,9 +273,9 @@ function ReviewPreview({
         navigationState={hasImage ? "active" : "disabled"}
         navigationOverrides={{
           up: BLOCK_TARGET,
-          down: BLOCK_TARGET,
+          down: downTarget,
           left: BLOCK_TARGET,
-          right: { type: "item", itemId: rightFocusId },
+          right: rightTarget,
         }}
         asChild
       >
@@ -343,8 +366,13 @@ const RECORD_RETRY_FOCUS_ID = "screenshot-review-record-retry";
 
 function ReviewRecordStatus({
   hasFailed,
+  upTarget,
   onRetry,
-}: Readonly<{ hasFailed: boolean; onRetry: () => void }>) {
+}: Readonly<{
+  hasFailed: boolean;
+  upTarget: FocusOverrideTarget;
+  onRetry: () => void;
+}>) {
   const { t } = useTranslation("big_picture");
 
   return (
@@ -357,7 +385,10 @@ function ReviewRecordStatus({
           variant="secondary"
           size="small"
           focusId={RECORD_RETRY_FOCUS_ID}
-          focusNavigationOverrides={{ left: PREVIEW_TARGET }}
+          focusNavigationOverrides={{
+            left: DETAILS_TOGGLE_TARGET,
+            up: upTarget,
+          }}
           icon={<ArrowClockwiseIcon size={18} />}
           onClick={onRetry}
         >
@@ -375,6 +406,7 @@ interface ReviewActionsProps {
   isBusy: boolean;
   isRecordReady: boolean;
   pendingAction: ReviewDecision | null;
+  upTarget: FocusOverrideTarget;
   onRetry: () => void;
   onNext: () => void;
   onDelete: () => void;
@@ -388,6 +420,7 @@ function ReviewActions({
   isBusy,
   isRecordReady,
   pendingAction,
+  upTarget,
   onRetry,
   onNext,
   onDelete,
@@ -395,68 +428,100 @@ function ReviewActions({
 }: Readonly<ReviewActionsProps>) {
   const { t } = useTranslation("big_picture");
 
+  if (isUploading) {
+    return (
+      <div className="screenshot-review-modal__actions">
+        {canRetry ? (
+          <Button
+            variant="secondary"
+            focusId={RETRY_FOCUS_ID}
+            focusNavigationOverrides={{
+              left: DETAILS_TOGGLE_TARGET,
+              up: upTarget,
+            }}
+            icon={<ArrowClockwiseIcon size={18} />}
+            onClick={onRetry}
+          >
+            {t("screenshots_review_retry")}
+          </Button>
+        ) : null}
+        <Button
+          focusId={NEXT_FOCUS_ID}
+          focusNavigationOverrides={{
+            left: canRetry
+              ? { type: "item", itemId: RETRY_FOCUS_ID }
+              : DETAILS_TOGGLE_TARGET,
+            right: BLOCK_TARGET,
+            up: upTarget,
+          }}
+          onClick={onNext}
+        >
+          {t(
+            isLastItem ? "screenshots_review_done" : "screenshots_review_next"
+          )}
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <HorizontalFocusGroup
-      regionId={ACTIONS_REGION_ID}
-      className="screenshot-review-modal__actions"
-    >
-      {isUploading ? (
-        <>
-          {canRetry ? (
-            <Button
-              variant="secondary"
-              focusId={RETRY_FOCUS_ID}
-              focusNavigationOverrides={{ left: PREVIEW_TARGET }}
-              icon={<ArrowClockwiseIcon size={18} />}
-              onClick={onRetry}
-            >
-              {t("screenshots_review_retry")}
-            </Button>
-          ) : null}
-          <Button
-            focusId={NEXT_FOCUS_ID}
-            focusNavigationOverrides={
-              canRetry
-                ? { left: { type: "item", itemId: RETRY_FOCUS_ID } }
-                : { left: PREVIEW_TARGET }
-            }
-            onClick={onNext}
-          >
-            {t(
-              isLastItem ? "screenshots_review_done" : "screenshots_review_next"
-            )}
-          </Button>
-        </>
-      ) : (
-        <>
-          <Button
-            variant="danger"
-            size="icon"
-            focusId={DELETE_FOCUS_ID}
-            focusNavigationOverrides={{ left: PREVIEW_TARGET }}
-            disabled={isBusy}
-            loading={pendingAction === "delete"}
-            icon={<TrashIcon size={20} />}
-            aria-label={t("screenshots_review_delete")}
-            title={t("screenshots_review_delete")}
-            className="screenshot-review-modal__delete"
-            onClick={onDelete}
-          >
-            {null}
-          </Button>
-          <Button
-            focusId={UPLOAD_FOCUS_ID}
-            disabled={isBusy || !isRecordReady}
-            loading={pendingAction === "upload"}
-            icon={<CloudArrowUpIcon size={18} />}
-            onClick={onUpload}
-          >
-            {t("screenshots_review_upload")}
-          </Button>
-        </>
-      )}
-    </HorizontalFocusGroup>
+    <div className="screenshot-review-modal__actions">
+      <Button
+        focusId={UPLOAD_FOCUS_ID}
+        focusNavigationOverrides={{
+          left: DETAILS_TOGGLE_TARGET,
+          right: { type: "item", itemId: DELETE_FOCUS_ID },
+          up: upTarget,
+        }}
+        disabled={isBusy || !isRecordReady}
+        loading={pendingAction === "upload"}
+        icon={<CloudArrowUpIcon size={18} />}
+        onClick={onUpload}
+      >
+        {t("screenshots_review_upload")}
+      </Button>
+      <Button
+        variant="danger"
+        size="icon"
+        focusId={DELETE_FOCUS_ID}
+        focusNavigationOverrides={{
+          left: { type: "item", itemId: UPLOAD_FOCUS_ID },
+          right: BLOCK_TARGET,
+          up: upTarget,
+        }}
+        disabled={isBusy}
+        loading={pendingAction === "delete"}
+        icon={<TrashIcon size={20} />}
+        aria-label={t("screenshots_review_delete")}
+        title={t("screenshots_review_delete")}
+        className="screenshot-review-modal__delete"
+        onClick={onDelete}
+      >
+        {null}
+      </Button>
+    </div>
   );
+}
+
+function ReviewDetailsShortcut({
+  enabled,
+  onToggle,
+}: Readonly<{ enabled: boolean; onToggle: () => void }>) {
+  const layerId = useFocusLayerId();
+  const isOnTop = useIsLayerOnTop(layerId);
+  const isVirtualKeyboardOpen = useVirtualKeyboardStore(
+    (state) => state.target !== null
+  );
+  const actions = useMemo(
+    () =>
+      enabled && isOnTop && !isVirtualKeyboardOpen
+        ? { press: { y: onToggle } }
+        : {},
+    [enabled, isOnTop, isVirtualKeyboardOpen, onToggle]
+  );
+  useNavigationScreenActions(actions);
+
+  return null;
 }
 
 const createReviewDraft = (
@@ -495,6 +560,9 @@ export function ScreenshotReviewModal() {
     null
   );
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const { library } = useLibrary();
+  const prefersReducedMotion = useReducedMotion();
   const {
     schedule: scheduleDraftSave,
     cancel: cancelDraftSave,
@@ -590,7 +658,16 @@ export function ScreenshotReviewModal() {
     setDrafts({});
     setPendingAction(null);
     setIsDeleteConfirmVisible(false);
+    setIsDetailsOpen(false);
   }, [flushDraftSaves, visible]);
+
+  const toggleDetails = useCallback(() => {
+    const focusId = NavigationService.getInstance().getCurrentFocusId();
+    if (focusId && FIELD_FOCUS_IDS.has(focusId)) {
+      setFocus(DETAILS_TOGGLE_FOCUS_ID);
+    }
+    setIsDetailsOpen((isOpen) => !isOpen);
+  }, [setFocus]);
 
   const goToNextFrom = useCallback((clientId: string) => {
     setQueueState((state) => advanceReviewQueuePast(state, clientId));
@@ -742,21 +819,65 @@ export function ScreenshotReviewModal() {
     isScreenshotUploadRetryable(currentScreenshot.lastError);
   const isBusy = pendingAction !== null;
   const isLocked = isBusy || !isRecordReady;
-  const getSideEntryFocusId = () => {
-    if (!isRecordReady) return RECORD_RETRY_FOCUS_ID;
+  const isSidePanelOpen = isDetailsOpen && !isUploading;
+  const getFooterEntryFocusId = () => {
+    if (!isRecordReady) {
+      return hasLoadFailed ? RECORD_RETRY_FOCUS_ID : DETAILS_TOGGLE_FOCUS_ID;
+    }
     if (isUploading) return canRetry ? RETRY_FOCUS_ID : NEXT_FOCUS_ID;
-    if (isCustomGame) return TITLE_FOCUS_ID;
-    return DESCRIPTION_FOCUS_ID;
+    return UPLOAD_FOCUS_ID;
   };
+  const sideEntryTarget: FocusOverrideTarget = isSidePanelOpen
+    ? {
+        type: "item",
+        itemId: isCustomGame ? TITLE_FOCUS_ID : DESCRIPTION_FOCUS_ID,
+      }
+    : BLOCK_TARGET;
+  const footerUpTarget: FocusOverrideTarget = isSidePanelOpen
+    ? { type: "item", itemId: VISIBILITY_FOCUS_ID }
+    : PREVIEW_TARGET;
   const visibleItems = getVisibleReviewItems(queueState);
   const visiblePosition = visibleItems.findIndex(
     (item) => item.clientId === current.clientId
+  );
+  const libraryGame = currentScreenshot
+    ? library.find(
+        (game) =>
+          game.shop === currentScreenshot.shop &&
+          game.objectId === currentScreenshot.objectId
+      )
+    : undefined;
+  const gameIconUrl = getPreferredGameAssets(libraryGame, null).iconUrl;
+  const gameIconSource = gameIconUrl ? resolveImageSource(gameIconUrl) : "";
+  const panelTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : DETAILS_PANEL_SPRING;
+  const contentTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.24, ease: [0.22, 1, 0.36, 1] as const };
+  const detailsLabel = t(
+    isSidePanelOpen
+      ? "screenshots_review_hide_details"
+      : "screenshots_review_show_details"
   );
 
   return (
     <Modal
       visible={visible}
-      title={t("screenshots_review_title")}
+      title={gameTitle}
+      headerContent={
+        <div className="screenshot-review-modal__header-game">
+          {gameIconSource ? (
+            <img
+              className="screenshot-review-modal__header-icon"
+              src={gameIconSource}
+              alt=""
+              draggable={false}
+            />
+          ) : null}
+          <h4>{gameTitle}</h4>
+        </div>
+      }
       description={t("screenshots_review_counter", {
         current: visiblePosition + 1,
         total: visibleItems.length,
@@ -769,14 +890,19 @@ export function ScreenshotReviewModal() {
       className="screenshot-review-modal"
       backdropClassName="screenshot-review-modal__backdrop"
     >
-      <HorizontalFocusGroup regionId={REGION_ID} asChild>
+      <ReviewDetailsShortcut
+        enabled={!isUploading && !isDeleteConfirmVisible}
+        onToggle={toggleDetails}
+      />
+      <VerticalFocusGroup regionId={REGION_ID} asChild>
         <div className="screenshot-review-modal__content">
           <div className="screenshot-review-modal__media">
             <ReviewPreview
               key={current.clientId}
               screenshot={currentScreenshot}
               gameTitle={gameTitle}
-              rightFocusId={getSideEntryFocusId()}
+              rightTarget={sideEntryTarget}
+              downTarget={{ type: "item", itemId: getFooterEntryFocusId() }}
             />
             <ReviewFilmstrip
               items={visibleItems}
@@ -789,119 +915,166 @@ export function ScreenshotReviewModal() {
             />
           </div>
 
-          <VerticalFocusGroup regionId={SIDE_REGION_ID} asChild>
-            <div className="screenshot-review-modal__side">
-              <div className="screenshot-review-modal__heading">
-                {isCustomGame ? (
-                  <InlineTextField
-                    key={current.clientId}
-                    focusId={TITLE_FOCUS_ID}
-                    navigationOverrides={{ left: PREVIEW_TARGET }}
-                    className="screenshot-review-modal__title-field"
-                    label={t("screenshots_custom_title_label")}
-                    value={draft.customGameTitle.trim()}
-                    placeholder={t("screenshots_custom_game")}
-                    icon={<PencilSimpleIcon size={18} />}
-                    maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
-                    allowEmpty
-                    disabled={isUploading || isLocked}
-                    onSave={(customGameTitle) => {
-                      updateDraft({ customGameTitle });
-                      return true;
-                    }}
-                  />
-                ) : (
-                  <p className="screenshot-review-modal__game">{gameTitle}</p>
-                )}
-              </div>
-
-              <div className="screenshot-review-modal__form">
-                <div
-                  ref={fieldsRef}
-                  className="screenshot-review-modal__fields"
-                >
-                  {isRecordReady ? null : (
-                    <ReviewRecordStatus
-                      hasFailed={hasLoadFailed}
-                      onRetry={retryLoad}
-                    />
-                  )}
-                  {isUploading ? (
-                    <UploadStatus screenshot={currentScreenshot} />
-                  ) : (
-                    <>
+          <AnimatePresence initial={false}>
+            {isSidePanelOpen ? (
+              <motion.div
+                key="details"
+                id={DETAILS_PANEL_ID}
+                className="screenshot-review-modal__side"
+                initial={{ width: 0 }}
+                animate={{ width: DETAILS_PANEL_WIDTH }}
+                exit={{ width: 0 }}
+                transition={panelTransition}
+              >
+                <VerticalFocusGroup regionId={SIDE_REGION_ID} asChild>
+                  <motion.div
+                    ref={fieldsRef}
+                    className="screenshot-review-modal__fields"
+                    style={{ width: DETAILS_PANEL_WIDTH }}
+                    initial={{ opacity: 0, x: DETAILS_CONTENT_OFFSET }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: DETAILS_CONTENT_OFFSET }}
+                    transition={contentTransition}
+                  >
+                    {isCustomGame ? (
                       <InlineTextField
-                        key={`description:${current.clientId}`}
-                        focusId={DESCRIPTION_FOCUS_ID}
-                        navigationOverrides={{ left: PREVIEW_TARGET }}
-                        className="screenshot-review-modal__description-field"
-                        label={t("screenshots_description_label")}
-                        value={draft.description}
-                        placeholder={t("screenshots_add_description")}
-                        icon={<PlusIcon size={18} weight="bold" />}
-                        maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
+                        key={current.clientId}
+                        focusId={TITLE_FOCUS_ID}
+                        navigationOverrides={{
+                          up: BLOCK_TARGET,
+                          left: PREVIEW_TARGET,
+                          right: BLOCK_TARGET,
+                        }}
+                        className="screenshot-review-modal__title-field"
+                        label={t("screenshots_custom_title_label")}
+                        value={draft.customGameTitle.trim()}
+                        placeholder={t("screenshots_custom_game")}
+                        icon={<PencilSimpleIcon size={18} />}
+                        maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
                         allowEmpty
                         disabled={isLocked}
-                        sanitize={sanitizeScreenshotDescriptionInput}
-                        onSave={(description) => {
-                          updateDraft({ description });
+                        onSave={(customGameTitle) => {
+                          updateDraft({ customGameTitle });
                           return true;
                         }}
                       />
+                    ) : null}
 
-                      <Checkbox
-                        block
-                        label={t("screenshots_mark_spoiler")}
-                        secondaryText={t(
-                          "screenshots_mark_spoiler_description"
-                        )}
-                        checked={draft.isSpoiler}
-                        disabled={isLocked}
-                        focusId={SPOILER_FOCUS_ID}
-                        navigationOverrides={{
-                          up: { type: "item", itemId: DESCRIPTION_FOCUS_ID },
-                          down: { type: "item", itemId: VISIBILITY_FOCUS_ID },
-                          left: PREVIEW_TARGET,
-                        }}
-                        onChange={(isSpoiler) => updateDraft({ isSpoiler })}
-                      />
+                    <InlineTextField
+                      key={`description:${current.clientId}`}
+                      focusId={DESCRIPTION_FOCUS_ID}
+                      navigationOverrides={{
+                        up: isCustomGame
+                          ? { type: "item", itemId: TITLE_FOCUS_ID }
+                          : BLOCK_TARGET,
+                        left: PREVIEW_TARGET,
+                        right: BLOCK_TARGET,
+                      }}
+                      className="screenshot-review-modal__description-field"
+                      label={t("screenshots_description_label")}
+                      value={draft.description}
+                      placeholder={t("screenshots_add_description")}
+                      icon={<PlusIcon size={18} weight="bold" />}
+                      maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
+                      allowEmpty
+                      disabled={isLocked}
+                      sanitize={sanitizeScreenshotDescriptionInput}
+                      onSave={(description) => {
+                        updateDraft({ description });
+                        return true;
+                      }}
+                    />
 
-                      <SegmentedControl
-                        label={t("screenshots_visibility_label")}
-                        value={draft.visibility}
-                        options={visibilityOptions}
-                        disabled={isLocked}
-                        focusId={VISIBILITY_FOCUS_ID}
-                        navigationOverrides={{
-                          up: { type: "item", itemId: SPOILER_FOCUS_ID },
-                          down: { type: "item", itemId: UPLOAD_FOCUS_ID },
-                          left: PREVIEW_TARGET,
-                        }}
-                        onValueChange={(visibility) =>
-                          updateDraft({ visibility })
-                        }
-                      />
-                    </>
-                  )}
-                </div>
+                    <Checkbox
+                      block
+                      label={t("screenshots_mark_spoiler")}
+                      secondaryText={t("screenshots_mark_spoiler_description")}
+                      checked={draft.isSpoiler}
+                      disabled={isLocked}
+                      focusId={SPOILER_FOCUS_ID}
+                      navigationOverrides={{
+                        up: { type: "item", itemId: DESCRIPTION_FOCUS_ID },
+                        down: { type: "item", itemId: VISIBILITY_FOCUS_ID },
+                        left: PREVIEW_TARGET,
+                        right: BLOCK_TARGET,
+                      }}
+                      onChange={(isSpoiler) => updateDraft({ isSpoiler })}
+                    />
 
-                <ReviewActions
-                  isUploading={isUploading}
-                  canRetry={canRetry}
-                  isLastItem={!hasOtherUndecidedReviewItems(queueState)}
-                  isBusy={isBusy}
-                  isRecordReady={isRecordReady}
-                  pendingAction={pendingAction}
-                  onRetry={upload}
-                  onNext={() => goToNextFrom(current.clientId)}
-                  onDelete={() => setIsDeleteConfirmVisible(true)}
-                  onUpload={upload}
+                    <SegmentedControl
+                      label={t("screenshots_visibility_label")}
+                      value={draft.visibility}
+                      options={visibilityOptions}
+                      disabled={isLocked}
+                      focusId={VISIBILITY_FOCUS_ID}
+                      navigationOverrides={{
+                        up: { type: "item", itemId: SPOILER_FOCUS_ID },
+                        down: { type: "item", itemId: getFooterEntryFocusId() },
+                        left: PREVIEW_TARGET,
+                      }}
+                      onValueChange={(visibility) =>
+                        updateDraft({ visibility })
+                      }
+                    />
+                  </motion.div>
+                </VerticalFocusGroup>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          <HorizontalFocusGroup regionId={ACTIONS_REGION_ID} asChild>
+            <footer className="screenshot-review-modal__footer">
+              <Button
+                variant="secondary"
+                focusId={DETAILS_TOGGLE_FOCUS_ID}
+                focusNavigationOverrides={{
+                  left: BLOCK_TARGET,
+                  up: footerUpTarget,
+                }}
+                disabled={isUploading}
+                icon={<SidebarSimpleIcon size={18} mirrored />}
+                aria-expanded={isSidePanelOpen}
+                aria-controls={DETAILS_PANEL_ID}
+                className="screenshot-review-modal__details-toggle"
+                onClick={toggleDetails}
+              >
+                {detailsLabel}
+                <BumperBadge
+                  label="Y"
+                  className="screenshot-review-modal__shortcut"
                 />
+              </Button>
+
+              <div className="screenshot-review-modal__footer-status">
+                {isRecordReady ? null : (
+                  <ReviewRecordStatus
+                    hasFailed={hasLoadFailed}
+                    upTarget={footerUpTarget}
+                    onRetry={retryLoad}
+                  />
+                )}
+                {isRecordReady && isUploading ? (
+                  <UploadStatus screenshot={currentScreenshot} />
+                ) : null}
               </div>
-            </div>
-          </VerticalFocusGroup>
+
+              <ReviewActions
+                isUploading={isUploading}
+                canRetry={canRetry}
+                isLastItem={!hasOtherUndecidedReviewItems(queueState)}
+                isBusy={isBusy}
+                isRecordReady={isRecordReady}
+                pendingAction={pendingAction}
+                upTarget={footerUpTarget}
+                onRetry={upload}
+                onNext={() => goToNextFrom(current.clientId)}
+                onDelete={() => setIsDeleteConfirmVisible(true)}
+                onUpload={upload}
+              />
+            </footer>
+          </HorizontalFocusGroup>
         </div>
-      </HorizontalFocusGroup>
+      </VerticalFocusGroup>
 
       <ConfirmationModal
         visible={isDeleteConfirmVisible}
