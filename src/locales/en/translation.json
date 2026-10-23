@@ -1097,9 +1097,7 @@
     "epic_play_offline": "Play — Offline",
     "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
     "epic_update_required": "Update the game through the Epic Games option using the same folder.",
-    "epic_retry": "Try again",
-    "lightbox_show_details": "Show details",
-    "lightbox_hide_details": "Hide details"
+    "epic_retry": "Try again"
   },
   "activation": {
     "title": "Activate Hydra",

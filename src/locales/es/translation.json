@@ -1050,9 +1050,7 @@
     "epic_play_offline": "Jugar — Desconectado",
     "epic_prerequisites_required": "Autoriza los requisitos previos del juego e inténtalo de nuevo.",
     "epic_update_required": "Actualiza el juego desde la opción Epic Games usando la misma carpeta.",
-    "epic_retry": "Intentar de nuevo",
-    "lightbox_show_details": "Mostrar detalles",
-    "lightbox_hide_details": "Ocultar detalles"
+    "epic_retry": "Intentar de nuevo"
   },
   "activation": {
     "title": "Activar Hydra",

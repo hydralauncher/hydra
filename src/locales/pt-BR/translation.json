@@ -1063,9 +1063,7 @@
     "epic_play_offline": "Jogar — Offline",
     "epic_prerequisites_required": "Autorize os pré-requisitos do jogo e tente novamente.",
     "epic_update_required": "Atualize o jogo pela opção Epic Games, usando a mesma pasta.",
-    "epic_retry": "Tentar novamente",
-    "lightbox_show_details": "Mostrar detalhes",
-    "lightbox_hide_details": "Ocultar detalhes"
+    "epic_retry": "Tentar novamente"
   },
   "activation": {
     "title": "Ativação",

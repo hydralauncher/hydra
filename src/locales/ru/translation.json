@@ -1052,9 +1052,7 @@
     "epic_play_offline": "Играть — Не в сети",
     "epic_prerequisites_required": "Разрешите установку необходимых компонентов игры и повторите попытку.",
     "epic_update_required": "Обновите игру через вариант Epic Games, используя ту же папку.",
-    "epic_retry": "Повторить",
-    "lightbox_show_details": "Показать подробности",
-    "lightbox_hide_details": "Скрыть подробности"
+    "epic_retry": "Повторить"
   },
   "activation": {
     "title": "Активировать Hydra",

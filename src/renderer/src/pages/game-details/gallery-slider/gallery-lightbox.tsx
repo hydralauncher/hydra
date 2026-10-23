@@ -13,8 +13,6 @@ import {
   XIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  SidebarCollapseIcon,
-  SidebarExpandIcon,
 } from "@primer/octicons-react";
 import { CornersIn, CornersOut, Play } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
@@ -313,21 +311,12 @@ function GalleryLightboxContent({
     { key: 0, index, ready: true },
   ]);
 
-  const [sidebarOverride, setSidebarOverride] = useState<{
-    isFullscreen: boolean;
-    isOpen: boolean;
-  } | null>(null);
-
   const item = items[index];
   const isVideo = item?.type === "video";
   const hasPrevious = index > 0;
   const hasNext = index < items.length - 1 || hasMoreAfter;
   const hasSidebar = Boolean(renderSidebar);
-  const isSidebarOpen =
-    hasSidebar &&
-    (sidebarOverride?.isFullscreen === isFullscreen
-      ? sidebarOverride.isOpen
-      : !isFullscreen);
+  const isSidebarOpen = hasSidebar && !isFullscreen;
 
   useEffect(() => {
     const sidebar = sidebarRef.current;
@@ -338,9 +327,6 @@ function GalleryLightboxContent({
     }
   }, [isSidebarOpen]);
 
-  const toggleSidebar = () => {
-    setSidebarOverride({ isFullscreen, isOpen: !isSidebarOpen });
-  };
   const platform = window.electron?.platform;
 
   isFullscreenRef.current = isFullscreen;
@@ -881,9 +867,6 @@ function GalleryLightboxContent({
   const showFilmstrip =
     allowFilmstrip && items.length > 1 && !(isFullscreen && isVideo);
   const caption = getCaption ? getCaption(item, { isSidebarOpen }) : item.alt;
-  const sidebarLabel = isSidebarOpen
-    ? t("lightbox_hide_details")
-    : t("lightbox_show_details");
 
   return (
     <dialog
@@ -960,26 +943,6 @@ function GalleryLightboxContent({
               <span className="gallery-lightbox__title">{caption}</span>
             )}
           </div>
-
-          {hasSidebar && (
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              onMouseDown={preventFocusOnClick}
-              className="gallery-lightbox__icon-button gallery-lightbox__sidebar-toggle"
-              aria-label={sidebarLabel}
-              aria-pressed={isSidebarOpen}
-              data-tooltip-id={GALLERY_VIEWER_TOOLTIP_ID}
-              data-tooltip-content={sidebarLabel}
-              data-tooltip-place="bottom"
-            >
-              {isSidebarOpen ? (
-                <SidebarCollapseIcon size={18} />
-              ) : (
-                <SidebarExpandIcon size={18} />
-              )}
-            </button>
-          )}
 
           {!isFullscreen && (
             <button
