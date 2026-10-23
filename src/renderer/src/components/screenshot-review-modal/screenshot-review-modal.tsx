@@ -4,6 +4,7 @@ import cn from "classnames";
 import { CheckCircleIcon } from "@primer/octicons-react";
 import type { LocalScreenshot, ScreenshotReview } from "@types";
 import { Button, FullscreenMediaModal, Modal } from "@renderer/components";
+import { useAppSelector } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 
 import { ReviewFilmstrip } from "./review-filmstrip";
@@ -80,6 +81,8 @@ function ScreenshotReviewContent({
     {}
   );
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const library = useAppSelector((state) => state.library.value);
   const hasLiveSnapshot = useRef(false);
   const draftsRef = useRef(drafts);
   const draftSaveTimers = useRef(
@@ -217,6 +220,23 @@ function ScreenshotReviewContent({
   const selectedIndex = selectedScreenshot
     ? reviewScreenshots.indexOf(selectedScreenshot)
     : -1;
+  const selectedDraft = selectedScreenshot
+    ? (drafts[selectedScreenshot.clientId] ??
+      createReviewDraft(selectedScreenshot))
+    : null;
+  const libraryGame = selectedScreenshot
+    ? library.find(
+        (game) =>
+          game.shop === selectedScreenshot.shop &&
+          game.objectId === selectedScreenshot.objectId
+      )
+    : undefined;
+  const gameIconUrl = libraryGame?.customIconUrl || libraryGame?.iconUrl;
+  const gameTitle = selectedScreenshot
+    ? (selectedScreenshot.shop === "custom" &&
+        selectedDraft?.customGameTitle.trim()) ||
+      selectedScreenshot.gameTitle
+    : "";
 
   const selectScreenshot = (clientId: string) => {
     flushDrafts();
@@ -237,7 +257,21 @@ function ScreenshotReviewContent({
   return (
     <Modal
       visible
-      title={t("review_title")}
+      title={
+        <span className="screenshot-review-modal__heading">
+          {gameIconUrl && (
+            <img
+              className="screenshot-review-modal__game-icon"
+              src={gameIconUrl}
+              alt=""
+              draggable={false}
+            />
+          )}
+          <span className="screenshot-review-modal__game-title">
+            {gameTitle}
+          </span>
+        </span>
+      }
       description={
         isMultiple && selectedIndex !== -1
           ? t("thumbnail_label", {
@@ -260,15 +294,14 @@ function ScreenshotReviewContent({
           <ScreenshotReviewItem
             key={selectedScreenshot.clientId}
             screenshot={selectedScreenshot}
-            draft={
-              drafts[selectedScreenshot.clientId] ??
-              createReviewDraft(selectedScreenshot)
-            }
+            draft={selectedDraft ?? createReviewDraft(selectedScreenshot)}
             onDraftCommit={flushDrafts}
             onDraftChange={(draft) =>
               updateDraft(selectedScreenshot.clientId, draft)
             }
             onExpand={() => setIsViewerOpen(true)}
+            isDetailsOpen={isDetailsOpen}
+            onToggleDetails={() => setIsDetailsOpen((current) => !current)}
             canClose={!isMultiple}
             onClose={closeReview}
             notice={
