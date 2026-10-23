@@ -98,12 +98,6 @@ export function ScreenshotReviewItem({
       "Failed to upload the screenshot"
     );
 
-  const handleKeep = () =>
-    runAction(
-      () => window.electron.skipLocalScreenshot(screenshot.clientId),
-      "Failed to keep the screenshot on this computer"
-    );
-
   const handleDescriptionSave = (description: string) => {
     onDraftChange({ ...draft, description });
     onDraftCommit?.();
@@ -165,24 +159,10 @@ export function ScreenshotReviewItem({
     );
 
   const renderActions = () => {
-    if (isScreenshotAwaitingReview(screenshot)) {
-      return (
-        <>
-          {renderDeleteButton()}
-          <Button
-            className="screenshot-review-item__keep"
-            theme="outline"
-            disabled={isBusy}
-            onClick={handleKeep}
-          >
-            {t("keep_on_computer")}
-          </Button>
-          {renderUploadButton()}
-        </>
-      );
-    }
-
-    if (isScreenshotKeptLocally(screenshot)) {
+    if (
+      isScreenshotAwaitingReview(screenshot) ||
+      isScreenshotKeptLocally(screenshot)
+    ) {
       return (
         <>
           {renderDeleteButton()}

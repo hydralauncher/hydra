@@ -253,17 +253,6 @@ export const updateLocalScreenshotDraft = (
     buildLocalScreenshotDraftPatch(current, draft)
   );
 
-export const skipLocalScreenshot = async (clientId: string) => {
-  const screenshot = await LocalScreenshotStore.get(clientId);
-  if (!screenshot) return;
-
-  if (screenshot.state === "reviewing") {
-    await LocalScreenshotStore.update(clientId, { state: "local" });
-  }
-  await ScreenshotReviewSession.closeIfOnlyScreenshot(clientId);
-  ScreenshotTelemetry.record("review", "skip");
-};
-
 export const openScreenshotsFolder = async () => {
   const directory = getManualScreenshotsDirectory(
     await getAchievementScreenshotsDirectory()

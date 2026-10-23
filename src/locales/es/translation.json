@@ -2538,7 +2538,6 @@
     "error_unreadable": "No se puede leer el archivo de la captura",
     "error_upload_blocked": "No puedes subir capturas en este momento. Esta captura se queda guardada en tu equipo",
     "error_waiting_for_game": "Esperando a que este juego se sincronice con tu biblioteca",
-    "keep_on_computer": "Guardar en el equipo",
     "kept_locally": "Guardada en este equipo",
     "moderation_approved": "Subida a tu perfil",
     "moderation_pending": "Subida. Recibirás una notificación si hay algún problema.",

@@ -142,15 +142,6 @@ export class ScreenshotReviewSession {
     };
   }
 
-  public static async closeIfOnlyScreenshot(clientId: string) {
-    if (
-      desktopReview?.clientIds.length === 1 &&
-      desktopReview.clientIds[0] === clientId
-    ) {
-      await this.close();
-    }
-  }
-
   public static async removeScreenshot(clientId: string) {
     if (!desktopReview?.clientIds.includes(clientId)) return;
 
