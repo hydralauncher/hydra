@@ -1516,8 +1516,6 @@ contextBridge.exposeInMainWorld("electron", {
   releaseBigPictureScreenshotReview: (clientIds: string[]) =>
     ipcRenderer.invoke("releaseBigPictureScreenshotReview", clientIds),
   openScreenshotsFolder: () => ipcRenderer.invoke("openScreenshotsFolder"),
-  getScreenshotsFolderPath: () =>
-    ipcRenderer.invoke("getScreenshotsFolderPath"),
   onLocalScreenshotsChange: (cb: (screenshots: LocalScreenshot[]) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,

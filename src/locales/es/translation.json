@@ -2526,7 +2526,6 @@
     "delete_confirm_title": "¿Eliminar esta captura?",
     "description_add": "Añadir descripción (opcional)",
     "description_label": "Descripción (opcional)",
-    "description_placeholder": "Por ejemplo: por fin vencí a este jefe",
     "disabled_for_game": "Las capturas están desactivadas para este juego",
     "error_disabled_for_game": "No se pueden subir capturas de este juego",
     "error_feature_disabled": "La subida de capturas está en pausa. Hydra lo intentará más tarde.",
