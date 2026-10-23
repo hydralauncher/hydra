@@ -16,7 +16,6 @@ export type ScreenshotUploadRecoveryAction =
   | "wait_for_game"
   | "recompress_standard"
   | "rotate_client_id"
-  | "pause"
   | "terminal"
   | "stop";
 
@@ -32,7 +31,6 @@ export const SCREENSHOT_UPLOAD_RETRY_BASE_DELAY_MS = 5_000;
 export const SCREENSHOT_UPLOAD_RETRY_MAX_DELAY_MS = 10 * 60_000;
 export const SCREENSHOT_UPLOAD_GAME_WAIT_DELAY_MS = 30_000;
 export const SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS = 60_000;
-export const SCREENSHOT_UPLOAD_PAUSE_DELAY_MS = 30 * 60_000;
 export const SCREENSHOT_MODERATION_DEFAULT_WAIT_MS = 30_000;
 export const SCREENSHOT_MODERATION_BACKOFF_BASE_MS = 2_000;
 export const SCREENSHOT_MODERATION_BACKOFF_MAX_MS = 60_000;
@@ -62,7 +60,7 @@ const RECOVERY_BY_ERROR_CODE: Record<string, ScreenshotUploadRecoveryAction> = {
   "screenshots/blocked-limit-reached": "terminal",
   screenshot_too_large: "terminal",
   screenshot_unreadable: "terminal",
-  [SCREENSHOT_FEATURE_DISABLED_CODE]: "pause",
+  [SCREENSHOT_FEATURE_DISABLED_CODE]: "terminal",
   "user not logged in": "stop",
 };
 
@@ -154,12 +152,6 @@ export const planScreenshotUploadRecovery = (
       return { kind: "stopped" };
     case "terminal":
       return { kind: "failed" };
-    case "pause":
-      return {
-        kind: "retry_at",
-        delay: SCREENSHOT_UPLOAD_PAUSE_DELAY_MS,
-        countsAsAttempt: false,
-      };
     case "wait_for_game":
       return state.gameWaits >= SCREENSHOT_UPLOAD_MAX_GAME_WAITS
         ? { kind: "failed" }

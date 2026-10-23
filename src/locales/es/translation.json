@@ -2528,7 +2528,7 @@
     "description_label": "Descripción (opcional)",
     "disabled_for_game": "Las capturas están desactivadas para este juego",
     "error_disabled_for_game": "No se pueden subir capturas de este juego",
-    "error_feature_disabled": "La subida de capturas está en pausa. Hydra lo intentará más tarde.",
+    "error_feature_disabled": "La subida de capturas no está disponible ahora mismo. Puedes intentarlo de nuevo más tarde.",
     "error_generic": "No se pudo subir. Inténtalo de nuevo.",
     "error_limit_reached": "Alcanzaste el límite de 500 capturas",
     "error_missing_file": "No se encontró el archivo de la captura",

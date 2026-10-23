@@ -2800,7 +2800,7 @@
     "description_label": "Description (optional)",
     "disabled_for_game": "Screenshots are disabled for this game",
     "error_disabled_for_game": "Screenshots can't be uploaded for this game",
-    "error_feature_disabled": "Screenshot uploads are paused. Hydra will try again later.",
+    "error_feature_disabled": "Screenshot uploads are unavailable right now. You can try again later.",
     "error_generic": "The upload failed. Try again.",
     "error_limit_reached": "You reached the limit of 500 screenshots",
     "error_missing_file": "The screenshot file was not found",
