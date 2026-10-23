@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { ScreenFullIcon, TrashIcon, UploadIcon } from "@primer/octicons-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import {
+  ScreenFullIcon,
+  SidebarCollapseIcon,
+  SidebarExpandIcon,
+  TrashIcon,
+  UploadIcon,
+} from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import type { LocalScreenshot, ProfileVisibility } from "@types";
 import {
@@ -34,12 +41,23 @@ const VISIBILITY_LABEL_KEYS: Record<ProfileVisibility, string> = {
   PRIVATE: "visibility_private",
 };
 
+const DETAILS_PANEL_WIDTH = 384;
+const DETAILS_PANEL_SPRING = {
+  type: "spring",
+  stiffness: 380,
+  damping: 38,
+  mass: 0.9,
+} as const;
+const DETAILS_CONTENT_OFFSET = 32;
+
 interface ScreenshotReviewItemProps {
   screenshot: LocalScreenshot;
   draft: ScreenshotReviewDraft;
   onDraftChange: (draft: ScreenshotReviewDraft) => void;
   onDraftCommit?: () => void;
   onExpand: () => void;
+  isDetailsOpen: boolean;
+  onToggleDetails: () => void;
   canClose: boolean;
   onClose: () => void;
   notice?: React.ReactNode;
@@ -52,24 +70,31 @@ export function ScreenshotReviewItem({
   onDraftChange,
   onDraftCommit,
   onExpand,
+  isDetailsOpen,
+  onToggleDetails,
   canClose,
   onClose,
   notice,
   isLocked = false,
 }: Readonly<ScreenshotReviewItemProps>) {
   const { t, i18n } = useTranslation("screenshots_capture");
+  const prefersReducedMotion = useReducedMotion();
   const [isActionBusy, setIsActionBusy] = useState(false);
   const isBusy = isActionBusy || isLocked;
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
   const isCustomGame = screenshot.shop === "custom";
   const isTitleEditable = isCustomGame && isScreenshotEditable(screenshot);
-  const displayTitle =
-    (isCustomGame && screenshot.customGameTitle) || screenshot.gameTitle;
   const isFormDisabled = isBusy || !isScreenshotEditable(screenshot);
   const capturedAt = new Date(screenshot.capturedAt).toLocaleString(
     i18n.language
   );
+  const panelTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : DETAILS_PANEL_SPRING;
+  const contentTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.22, ease: "easeOut" as const };
 
   const visibilityOptions = SCREENSHOT_VISIBILITY_OPTIONS.map((option) => ({
     key: option,
@@ -165,8 +190,8 @@ export function ScreenshotReviewItem({
     ) {
       return (
         <>
-          {renderDeleteButton()}
           {renderUploadButton()}
+          {renderDeleteButton()}
         </>
       );
     }
@@ -174,13 +199,13 @@ export function ScreenshotReviewItem({
     if (screenshot.state === "failed") {
       return (
         <>
-          {renderDeleteButton()}
           {renderCloseButton()}
           {isScreenshotUploadRetryable(screenshot.lastError) && (
             <Button disabled={isBusy} onClick={handleUpload}>
               {t("retry")}
             </Button>
           )}
+          {renderDeleteButton()}
         </>
       );
     }
@@ -191,6 +216,7 @@ export function ScreenshotReviewItem({
   };
 
   const actions = renderActions();
+  const detailsLabel = isDetailsOpen ? t("hide_details") : t("show_details");
 
   return (
     <article
@@ -225,72 +251,102 @@ export function ScreenshotReviewItem({
         </button>
       </div>
 
-      <div className="screenshot-review-item__side">
-        <div className="screenshot-review-item__heading">
-          {isTitleEditable ? (
-            <InlineEditField
-              className="screenshot-review-item__title-field"
-              label={t("custom_game_title_edit")}
-              placeholder={t("custom_game_default_title")}
-              initialValue={draft.customGameTitle}
-              maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
-              allowEmpty
-              disabled={isBusy}
-              onSave={handleTitleSave}
-            />
+      <AnimatePresence initial={false}>
+        {isDetailsOpen && (
+          <motion.aside
+            key="details"
+            id={`screenshot-review-details-${screenshot.clientId}`}
+            className="screenshot-review-item__side"
+            initial={{ width: 0 }}
+            animate={{ width: DETAILS_PANEL_WIDTH }}
+            exit={{ width: 0 }}
+            transition={panelTransition}
+          >
+            <motion.div
+              className="screenshot-review-item__side-content"
+              style={{ width: DETAILS_PANEL_WIDTH }}
+              initial={{ opacity: 0, x: DETAILS_CONTENT_OFFSET }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: DETAILS_CONTENT_OFFSET }}
+              transition={contentTransition}
+            >
+              {isTitleEditable && (
+                <InlineEditField
+                  className="screenshot-review-item__title-field"
+                  label={t("custom_game_title_edit")}
+                  placeholder={t("custom_game_default_title")}
+                  initialValue={draft.customGameTitle}
+                  maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
+                  allowEmpty
+                  disabled={isBusy}
+                  onSave={handleTitleSave}
+                />
+              )}
+
+              <InlineEditField
+                className="screenshot-review-item__description"
+                label={t("description_label")}
+                placeholder={t("description_add")}
+                initialValue={draft.description}
+                maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
+                sanitize={sanitizeScreenshotDescriptionInput}
+                multiline
+                allowEmpty
+                disabled={isFormDisabled}
+                onSave={handleDescriptionSave}
+              />
+
+              <div className="screenshot-review-item__checkbox">
+                <CheckboxField
+                  label={t("spoiler_label")}
+                  checked={draft.isSpoiler}
+                  disabled={isFormDisabled}
+                  onChange={(event) =>
+                    onDraftChange({ ...draft, isSpoiler: event.target.checked })
+                  }
+                />
+                <small className="screenshot-review-item__hint">
+                  {t("spoiler_hint")}
+                </small>
+              </div>
+
+              <SelectField
+                label={t("visibility_label")}
+                value={draft.visibility}
+                options={visibilityOptions}
+                disabled={isFormDisabled}
+                onChange={handleVisibilityChange}
+                theme="dark"
+              />
+            </motion.div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      <footer className="screenshot-review-item__footer">
+        <Button
+          theme="outline"
+          className="screenshot-review-item__details-toggle"
+          aria-expanded={isDetailsOpen}
+          aria-controls={`screenshot-review-details-${screenshot.clientId}`}
+          onClick={onToggleDetails}
+        >
+          {isDetailsOpen ? (
+            <SidebarCollapseIcon size={16} />
           ) : (
-            <p className="screenshot-review-item__game" title={displayTitle}>
-              {displayTitle}
-            </p>
+            <SidebarExpandIcon size={16} />
           )}
-        </div>
+          {detailsLabel}
+        </Button>
 
-        <div className="screenshot-review-item__fields">
-          {notice}
-
-          <ScreenshotReviewStatus screenshot={screenshot} />
-
-          <InlineEditField
-            className="screenshot-review-item__description"
-            label={t("description_label")}
-            placeholder={t("description_add")}
-            initialValue={draft.description}
-            maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
-            sanitize={sanitizeScreenshotDescriptionInput}
-            multiline
-            allowEmpty
-            disabled={isFormDisabled}
-            onSave={handleDescriptionSave}
-          />
-
-          <div className="screenshot-review-item__checkbox">
-            <CheckboxField
-              label={t("spoiler_label")}
-              checked={draft.isSpoiler}
-              disabled={isFormDisabled}
-              onChange={(event) =>
-                onDraftChange({ ...draft, isSpoiler: event.target.checked })
-              }
-            />
-            <small className="screenshot-review-item__hint">
-              {t("spoiler_hint")}
-            </small>
-          </div>
-
-          <SelectField
-            label={t("visibility_label")}
-            value={draft.visibility}
-            options={visibilityOptions}
-            disabled={isFormDisabled}
-            onChange={handleVisibilityChange}
-            theme="dark"
-          />
+        <div className="screenshot-review-item__footer-status">
+          {notice || <ScreenshotReviewStatus screenshot={screenshot} />}
         </div>
 
         {actions && (
           <div className="screenshot-review-item__actions">{actions}</div>
         )}
-      </div>
+      </footer>
 
       <ConfirmationModal
         visible={isDeleteModalVisible}

@@ -28,6 +28,29 @@ $review-fade-size: 40px;
     padding: calc(globals.$spacing-unit * 3);
     overflow: hidden;
   }
+
+  &__heading {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    min-width: 0;
+  }
+
+  &__game-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  &__game-title {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
 }
 
 .screenshot-review {
@@ -35,10 +58,10 @@ $review-fade-size: 40px;
   flex: 1;
   grid-template-areas:
     "media side"
-    "strip side";
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
-  grid-template-rows: auto 1fr;
-  column-gap: calc(globals.$spacing-unit * 3);
+    "strip side"
+    "footer footer";
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto 1fr auto;
   row-gap: calc(globals.$spacing-unit * 2);
   min-width: 0;
   min-height: 0;
@@ -214,7 +237,7 @@ $review-fade-size: 40px;
     align-items: center;
     justify-content: center;
     width: 100%;
-    max-height: calc(100vh - 320px);
+    max-height: calc(100vh - 360px);
     aspect-ratio: 16 / 9;
     padding: 0;
     overflow: hidden;
@@ -280,26 +303,22 @@ $review-fade-size: 40px;
   }
 
   &__side {
+    position: relative;
+    grid-area: side;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  &__side-content {
+    position: absolute;
+    inset: 0 auto 0 0;
     display: flex;
     flex-direction: column;
-    grid-area: side;
     gap: calc(globals.$spacing-unit * 2);
-    min-width: 0;
-    min-height: 0;
-  }
-
-  &__heading {
-    flex-shrink: 0;
-    min-width: 0;
-  }
-
-  &__game {
-    overflow: hidden;
-    font-size: 18px;
-    font-weight: 600;
-    color: globals.$muted-color;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    padding: 0 globals.$spacing-unit globals.$spacing-unit
+      calc(globals.$spacing-unit * 3);
+    overflow-y: auto;
+    will-change: transform, opacity;
   }
 
   &__title-field {
@@ -325,17 +344,6 @@ $review-fade-size: 40px;
     }
   }
 
-  &__fields {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
-    min-height: 0;
-    margin-inline: calc(globals.$spacing-unit * -0.5);
-    padding: 0 calc(globals.$spacing-unit * 0.5) globals.$spacing-unit;
-    overflow-y: auto;
-  }
-
   &__checkbox {
     display: flex;
     flex-direction: column;
@@ -349,19 +357,50 @@ $review-fade-size: 40px;
     opacity: 0.7;
   }
 
+  &__footer {
+    display: flex;
+    grid-area: footer;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+    min-width: 0;
+    padding-top: calc(globals.$spacing-unit * 2);
+    border-top: 1px solid globals.$border-color;
+  }
+
+  &__details-toggle {
+    flex-shrink: 0;
+
+    svg {
+      transition: transform $review-hover-duration ease;
+    }
+
+    &:hover:not(:disabled) svg {
+      transform: scale(1.12);
+    }
+  }
+
+  &__footer-status {
+    flex: 1;
+    min-width: 0;
+
+    .screenshot-review-status {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      column-gap: globals.$spacing-unit;
+      padding: calc(globals.$spacing-unit * 0.75) globals.$spacing-unit;
+    }
+
+    .screenshot-review-status__progress-track {
+      flex: 1 1 120px;
+    }
+  }
+
   &__actions {
     display: flex;
     flex-shrink: 0;
-    flex-wrap: wrap;
     justify-content: flex-end;
     gap: globals.$spacing-unit;
-    padding-top: calc(globals.$spacing-unit * 2);
-    border-top: 1px solid globals.$border-color;
-
-    > .screenshot-review-item__upload {
-      flex: 1;
-      min-width: max-content;
-    }
 
     > .screenshot-review-item__delete {
       flex: 0 0 40px;
