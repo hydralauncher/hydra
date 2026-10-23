@@ -75,10 +75,19 @@ const parseNotificationUrl = (notificationUrl: string): string => {
   return notificationUrl;
 };
 
-const getNotificationTarget = (notification: Notification) => {
-  if (!notification.url) return null;
+const getNotificationUrl = (notification: Notification) => {
+  if (notification.url) return notification.url;
+  if (!isScreenshotNotificationType(notification.type)) return null;
 
-  const target = parseNotificationUrl(notification.url);
+  const ownerId = notification.variables.ownerId;
+  return ownerId ? `/profile/${encodeURIComponent(ownerId)}` : null;
+};
+
+const getNotificationTarget = (notification: Notification) => {
+  const url = getNotificationUrl(notification);
+  if (!url) return null;
+
+  const target = parseNotificationUrl(url);
 
   if (notification.type === "SOUVENIR_LIKE") {
     return buildSouvenirNotificationTarget(target, notification.variables);

@@ -1550,9 +1550,14 @@ contextBridge.exposeInMainWorld("electron", {
   },
   getScreenshotReviewItems: () =>
     ipcRenderer.invoke("getScreenshotReviewItems"),
-  onScreenshotReviewItemsChanged: (cb: (clientIds: string[]) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, clientIds: string[]) =>
-      cb(clientIds);
+  onScreenshotReviewItemsChanged: (
+    cb: (clientIds: string[], selectedClientId: string | null) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      clientIds: string[],
+      selectedClientId: string | null
+    ) => cb(clientIds, selectedClientId ?? null);
     ipcRenderer.on("on-screenshot-review-items-changed", listener);
     return () =>
       ipcRenderer.removeListener(

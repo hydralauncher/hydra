@@ -16,7 +16,7 @@ interface ScreenshotCommentInputProps {
   initialValue?: string;
   placeholder: string;
   submitLabel: string;
-  isSubmitting: boolean;
+  isSubmitting?: boolean;
   focusOnMount?: boolean;
   onSubmit: (body: string) => Promise<boolean>;
   onCancel?: () => void;
@@ -26,7 +26,7 @@ export function ScreenshotCommentInput({
   initialValue = "",
   placeholder,
   submitLabel,
-  isSubmitting,
+  isSubmitting = false,
   focusOnMount = false,
   onSubmit,
   onCancel,

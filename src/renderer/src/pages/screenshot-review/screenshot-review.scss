@@ -2,9 +2,6 @@
 
 $review-hover-duration: 0.2s;
 $review-progress-duration: 0.2s;
-$review-menu-duration: 0.15s;
-$review-menu-offset: 4px;
-$review-outline-hover-overlay: rgba(255, 255, 255, 0.1);
 
 .screenshot-review {
   display: flex;
@@ -339,8 +336,7 @@ $review-outline-hover-overlay: rgba(255, 255, 255, 0.1);
     padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
     background-color: globals.$dark-background-color;
 
-    > .button,
-    > .screenshot-review-split-button {
+    > .button {
       flex: 1;
       min-width: 0;
     }
@@ -351,10 +347,7 @@ $review-outline-hover-overlay: rgba(255, 255, 255, 0.1);
 
     > .screenshot-review-item__keep {
       flex: 0 0 auto;
-
-      .screenshot-review-split-button__main {
-        flex: 0 0 auto;
-      }
+      white-space: nowrap;
     }
 
     > .screenshot-review-item__delete {
@@ -362,91 +355,6 @@ $review-outline-hover-overlay: rgba(255, 255, 255, 0.1);
       width: 40px;
       padding: 0;
     }
-  }
-}
-
-.screenshot-review-split-button {
-  display: flex;
-  min-width: 0;
-
-  &__main {
-    flex: 1;
-    min-width: 0;
-    white-space: nowrap;
-  }
-
-  &--with-menu &__main {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-
-  &__toggle {
-    flex: 0 0 32px;
-    width: 32px;
-    padding: 0;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
-
-  .button--primary + &__toggle {
-    border-left: 1px solid rgba(0, 0, 0, 0.18);
-  }
-
-  .button--outline + &__toggle {
-    border-left-width: 0;
-  }
-
-  &__menu {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
-    z-index: calc(globals.$modal-z-index + 1);
-    animation: screenshot-review-split-menu-in $review-menu-duration ease-out;
-  }
-
-  &__menu-item {
-    width: 100%;
-    white-space: nowrap;
-    user-select: none;
-    outline: none;
-
-    &.button--primary[data-highlighted] {
-      background-color: #dadbe1;
-    }
-
-    &.button--outline {
-      background-color: globals.$dark-background-color;
-
-      &[data-highlighted] {
-        background-image: linear-gradient(
-          $review-outline-hover-overlay,
-          $review-outline-hover-overlay
-        );
-      }
-    }
-  }
-
-  &__menu--keyboard &__menu-item[data-highlighted] {
-    outline: 2px solid globals.$muted-color;
-    outline-offset: 2px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &__menu {
-      animation: none;
-    }
-  }
-}
-
-@keyframes screenshot-review-split-menu-in {
-  from {
-    opacity: 0;
-    transform: translateY($review-menu-offset);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

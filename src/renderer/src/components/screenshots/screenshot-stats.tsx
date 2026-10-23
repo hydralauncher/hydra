@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { CommentIcon, HeartFillIcon, HeartIcon } from "@primer/octicons-react";
 import cn from "classnames";
 
@@ -7,7 +8,7 @@ import type { ProfileScreenshot } from "@types";
 
 import "./screenshot-stats.scss";
 
-const LIKE_TAP_SCALE = 0.92;
+const LIKE_ANIMATION_DURATION_MS = 400;
 
 interface ScreenshotLikeButtonProps {
   screenshot: ProfileScreenshot;
@@ -21,7 +22,25 @@ export function ScreenshotLikeButton({
   onLike,
 }: Readonly<ScreenshotLikeButtonProps>) {
   const { t } = useTranslation("screenshots");
+  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const label = t(screenshot.likedByMe ? "unlike" : "like");
+  const isLocked = isLikeAnimating || isDisabled;
+
+  useEffect(() => {
+    if (!isLikeAnimating) return;
+
+    const timeout = setTimeout(
+      () => setIsLikeAnimating(false),
+      LIKE_ANIMATION_DURATION_MS
+    );
+    return () => clearTimeout(timeout);
+  }, [isLikeAnimating]);
+
+  const handleClick = () => {
+    if (isLocked) return;
+    setIsLikeAnimating(true);
+    onLike(screenshot);
+  };
 
   return (
     <motion.button
@@ -29,19 +48,30 @@ export function ScreenshotLikeButton({
       className={cn("screenshot-stat-chip screenshot-stat-chip--button", {
         "screenshot-stat-chip--active": screenshot.likedByMe,
       })}
-      onClick={() => onLike(screenshot)}
-      disabled={isDisabled}
+      onClick={handleClick}
+      disabled={isLocked}
       aria-pressed={screenshot.likedByMe}
       aria-label={label}
       title={label}
-      whileTap={{ scale: LIKE_TAP_SCALE }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
     >
       {screenshot.likedByMe ? (
         <HeartFillIcon size={14} />
       ) : (
         <HeartIcon size={14} />
       )}
-      <span>{screenshot.likeCount}</span>
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={screenshot.likeCount}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.2 }}
+        >
+          {screenshot.likeCount}
+        </motion.span>
+      </AnimatePresence>
     </motion.button>
   );
 }

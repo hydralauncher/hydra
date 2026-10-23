@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageIcon } from "@primer/octicons-react";
 import InfiniteScroll from "react-infinite-scroll-component";
@@ -12,7 +12,7 @@ import {
   useLoadUntilScrollable,
 } from "@renderer/components/screenshots";
 import type { ScreenshotWriteBus } from "@shared";
-import type { GameShop, ScreenshotSort } from "@types";
+import type { GameShop, ProfileScreenshot, ScreenshotSort } from "@types";
 
 import { GameScreenshotsHotkeyTip } from "./game-screenshots-hotkey-tip";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
@@ -20,6 +20,10 @@ import {
   ScreenshotSortToggle,
   SegmentedToggle,
 } from "./screenshot-sort-toggle";
+import {
+  groupByCaptureDay,
+  useCaptureDayLabel,
+} from "./screenshot-date-groups";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
 import {
   useCanFetchMyPublishedScreenshots,
@@ -89,11 +93,15 @@ export function MyScreenshotsPanel({
   const scrollId = useId();
   const { canFetchPublished } = useCanFetchMyPublishedScreenshots(shop);
   const [statusFilter, setStatusFilter] =
-    useState<MyScreenshotsStatusFilter>("uploaded");
+    useState<MyScreenshotsStatusFilter>("local");
   const [sort, setSort] = useState<ScreenshotSort>("recent");
   const [visitedSorts, setVisitedSorts] = useState<ReadonlySet<ScreenshotSort>>(
     () => new Set<ScreenshotSort>(["recent"])
   );
+  useEffect(() => {
+    if (visible) setStatusFilter("local");
+  }, [visible]);
+
   const activeFilter: MyScreenshotsStatusFilter = canFetchPublished
     ? statusFilter
     : "local";
@@ -122,7 +130,22 @@ export function MyScreenshotsPanel({
   });
   const published = sort === "top" ? top : recent;
   const { feed, actions, lightbox } = published;
-  const local = useLocalScreenshotActions(localState.pendingLocal);
+  const local = useLocalScreenshotActions();
+  const getDayLabel = useCaptureDayLabel();
+
+  const renderDayGroups = <Item,>(
+    items: Item[],
+    getCapturedAt: (item: Item) => number,
+    renderItem: (item: Item) => ReactNode
+  ) =>
+    groupByCaptureDay(items, getCapturedAt).map((group) => (
+      <section key={group.key} className="game-screenshots-modal__day">
+        <h4 className="game-screenshots-modal__day-title">
+          {getDayLabel(group.dayStart)}
+        </h4>
+        <ul className="screenshot-grid">{group.items.map(renderItem)}</ul>
+      </section>
+    ));
 
   useLoadUntilScrollable({
     scrollTargetId: scrollId,
@@ -141,6 +164,20 @@ export function MyScreenshotsPanel({
     setVisitedSorts((current) => new Set(current).add(nextSort));
     setSort(nextSort);
   };
+
+  const renderUploadedCard = (screenshot: ProfileScreenshot) => (
+    <ScreenshotCard
+      key={screenshot.id}
+      screenshot={screenshot}
+      variant="profile"
+      isOwner
+      isLiking={actions.likingIds.has(screenshot.id)}
+      showCommentCount={showCommentCount}
+      onOpen={lightbox.open}
+      onLike={(item) => void actions.toggleLike(item)}
+      onImageError={lightbox.refreshScreenshot}
+    />
+  );
 
   const renderUploaded = (): ReactNode => {
     if (feed.hasFailed) return <LoadError onRetry={() => void feed.reload()} />;
@@ -163,21 +200,17 @@ export function MyScreenshotsPanel({
         scrollableTarget={scrollId}
         style={{ overflow: "visible" }}
       >
-        <ul className="screenshot-grid">
-          {feed.items.map((screenshot) => (
-            <ScreenshotCard
-              key={screenshot.id}
-              screenshot={screenshot}
-              variant="profile"
-              isOwner
-              isLiking={actions.likingIds.has(screenshot.id)}
-              showCommentCount={showCommentCount}
-              onOpen={lightbox.open}
-              onLike={(item) => void actions.toggleLike(item)}
-              onImageError={lightbox.refreshScreenshot}
-            />
-          ))}
-        </ul>
+        {sort === "recent" ? (
+          renderDayGroups(
+            feed.items,
+            (screenshot) => screenshot.capturedAt,
+            renderUploadedCard
+          )
+        ) : (
+          <ul className="screenshot-grid">
+            {feed.items.map(renderUploadedCard)}
+          </ul>
+        )}
       </InfiniteScroll>
     );
   };
@@ -187,22 +220,23 @@ export function MyScreenshotsPanel({
     if (!localState.hasLoaded) return <GridSkeleton />;
     if (localState.pendingLocal.length === 0) return <EmptyState />;
 
-    return (
-      <ul className="screenshot-grid">
-        {localState.pendingLocal.map((screenshot) => (
-          <li key={screenshot.clientId} className="screenshot-card">
-            <LocalScreenshotTile
-              screenshot={screenshot}
-              alt={local.describe(screenshot)}
-              isBusy={local.busyIds.has(screenshot.clientId)}
-              className="local-screenshot-tile--card"
-              onOpen={local.open}
-              onUpload={local.upload}
-              onDelete={local.requestDelete}
-            />
-          </li>
-        ))}
-      </ul>
+    return renderDayGroups(
+      localState.pendingLocal,
+      (screenshot) => screenshot.capturedAt,
+      (screenshot) => (
+        <li key={screenshot.clientId} className="screenshot-card">
+          <LocalScreenshotTile
+            screenshot={screenshot}
+            alt={local.describe(screenshot)}
+            isBusy={local.busyIds.has(screenshot.clientId)}
+            uploadStatus={local.getUploadStatus(screenshot)}
+            className="local-screenshot-tile--card"
+            onOpen={local.open}
+            onUpload={local.upload}
+            onDelete={local.requestDelete}
+          />
+        </li>
+      )
     );
   };
 
@@ -214,8 +248,8 @@ export function MyScreenshotsPanel({
             label={t("screenshot_status_filter")}
             value={activeFilter}
             options={[
-              { value: "uploaded", label: t("uploaded") },
               { value: "local", label: t("not_uploaded") },
+              { value: "uploaded", label: t("uploaded") },
             ]}
             onChange={setStatusFilter}
           />

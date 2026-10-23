@@ -17,6 +17,7 @@ import {
 } from "@shared";
 import type {
   ProfileScreenshot,
+  ScreenshotAuthor,
   ScreenshotComment,
   ScreenshotCommentReportReason,
   ScreenshotCommentsResponse,
@@ -30,6 +31,7 @@ import type { ScreenshotPatch } from "@shared";
 
 type CommentWrite =
   | { kind: "create"; comment: ScreenshotComment }
+  | { kind: "replace"; commentId: string; comment: ScreenshotComment }
   | { kind: "patch"; commentId: string; patch: Partial<ScreenshotComment> }
   | { kind: "delete"; commentId: string };
 
@@ -37,6 +39,8 @@ interface VersionedCommentWrite {
   version: number;
   write: CommentWrite;
 }
+
+const VOTE_UNLOCK_DELAY_MS = 500;
 
 const adjustCommentCount =
   (delta: number) =>
@@ -52,6 +56,12 @@ const applyCommentWrite = (
   if (write.kind === "create") {
     const exists = comments.some((item) => item.id === write.comment.id);
     return exists || !includeCreated ? comments : [write.comment, ...comments];
+  }
+
+  if (write.kind === "replace") {
+    return comments
+      .filter((item) => item.id !== write.comment.id)
+      .map((item) => (item.id === write.commentId ? write.comment : item));
   }
 
   if (write.kind === "delete") {
@@ -82,8 +92,31 @@ const replayCommentWrites = (
   };
 };
 
+const createPendingComment = (
+  bodyHtml: string,
+  author: ScreenshotAuthor
+): ScreenshotComment => ({
+  id: `pending:${crypto.randomUUID()}`,
+  bodyHtml,
+  createdAt: Date.now(),
+  editedAt: null,
+  author,
+  upvotes: 0,
+  downvotes: 0,
+  myVote: null,
+  isHidden: false,
+  isOwn: true,
+  canDelete: false,
+});
+
+interface RestoredCommentDraft {
+  key: number;
+  body: string;
+}
+
 interface UseScreenshotCommentsOptions {
   screenshot: ProfileScreenshot;
+  author: ScreenshotAuthor | null;
   isEnabled: boolean;
   isSignedIn: boolean;
   onPatch: (screenshotId: string, patch: ScreenshotPatch) => void;
@@ -92,6 +125,7 @@ interface UseScreenshotCommentsOptions {
 
 export function useScreenshotComments({
   screenshot,
+  author,
   isEnabled,
   isSignedIn,
   onPatch,
@@ -106,7 +140,8 @@ export function useScreenshotComments({
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [restoredDraft, setRestoredDraft] =
+    useState<RestoredCommentDraft | null>(null);
   const [pendingCommentIds, setPendingCommentIds] = useState<
     ReadonlySet<string>
   >(() => new Set());
@@ -117,6 +152,7 @@ export function useScreenshotComments({
   const isReadInFlightRef = useRef(false);
   const writeVersionRef = useRef(0);
   const writesRef = useRef<VersionedCommentWrite[]>([]);
+  const editVersionsRef = useRef(new Map<string, number>());
   const commentsRef = useRef(comments);
   commentsRef.current = comments;
 
@@ -332,37 +368,100 @@ export function useScreenshotComments({
     ]
   );
 
-  const createComment = useCallback(
-    async (body: string) => {
-      const normalizedBody = normalizeScreenshotCommentBody(body);
-      if (!normalizedBody || isSubmitting) return false;
-
-      setIsSubmitting(true);
+  const publishComment = useCallback(
+    async (pendingId: string, bodyHtml: string) => {
       try {
         const comment = await window.electron.hydraApi.post<ScreenshotComment>(
           buildUserScreenshotCommentsPath(ownerId, screenshotId),
-          { data: { bodyHtml: normalizedBody }, needsAuth: true }
+          { data: { bodyHtml }, needsAuth: true }
         );
 
-        recordWrite({ kind: "create", comment });
-        setTotal((current) => (current ?? 0) + 1);
+        recordWrite({ kind: "replace", commentId: pendingId, comment });
         if (comment.isHidden) {
+          onPatch(screenshotId, adjustCommentCount(-1));
           showWarningToast(t("comment_only_visible_to_you"));
-        } else {
-          onPatch(screenshotId, adjustCommentCount(1));
         }
-        return true;
       } catch (error) {
         logger.error("Failed to post screenshot comment", error);
+        recordWrite({ kind: "delete", commentId: pendingId });
+        setTotal((current) => Math.max(0, (current ?? 1) - 1));
+        onPatch(screenshotId, adjustCommentCount(-1));
+        setRestoredDraft((current) => ({
+          key: (current?.key ?? 0) + 1,
+          body: bodyHtml,
+        }));
         handleWriteError(error, "comment_post_failed");
-        return false;
       } finally {
-        setIsSubmitting(false);
+        setPending(pendingId, false);
       }
     },
     [
       handleWriteError,
-      isSubmitting,
+      onPatch,
+      ownerId,
+      recordWrite,
+      screenshotId,
+      setPending,
+      showWarningToast,
+      t,
+    ]
+  );
+
+  const createComment = useCallback(
+    async (body: string) => {
+      const normalizedBody = normalizeScreenshotCommentBody(body);
+      if (!normalizedBody || !author) return false;
+
+      const pendingComment = createPendingComment(normalizedBody, author);
+      setPending(pendingComment.id, true);
+      recordWrite({ kind: "create", comment: pendingComment });
+      setTotal((current) => (current ?? 0) + 1);
+      onPatch(screenshotId, adjustCommentCount(1));
+      void publishComment(pendingComment.id, normalizedBody);
+      return true;
+    },
+    [author, onPatch, publishComment, recordWrite, screenshotId, setPending]
+  );
+
+  const persistCommentEdit = useCallback(
+    async (
+      comment: ScreenshotComment,
+      bodyHtml: string,
+      editVersion: number
+    ) => {
+      const isLatestEdit = () =>
+        editVersionsRef.current.get(comment.id) === editVersion;
+
+      try {
+        const updated = await window.electron.hydraApi.patch<ScreenshotComment>(
+          buildUserScreenshotCommentPath(ownerId, screenshotId, comment.id),
+          { data: { bodyHtml }, needsAuth: true }
+        );
+
+        if (!isLatestEdit()) return;
+        if (updated) {
+          recordWrite({ kind: "patch", commentId: comment.id, patch: updated });
+        }
+        if (updated && updated.isHidden !== comment.isHidden) {
+          onPatch(screenshotId, adjustCommentCount(updated.isHidden ? -1 : 1));
+        }
+        if (updated?.isHidden) {
+          showWarningToast(t("comment_only_visible_to_you"));
+        }
+      } catch (error) {
+        logger.error("Failed to edit screenshot comment", error);
+        if (isLatestEdit()) {
+          recordWrite({
+            kind: "patch",
+            commentId: comment.id,
+            patch: { bodyHtml: comment.bodyHtml, editedAt: comment.editedAt },
+          });
+        }
+        handleWriteError(error, "comment_edit_failed", comment.id);
+      }
+    },
+    [
+      handleWriteError,
       onPatch,
       ownerId,
       recordWrite,
@@ -379,44 +478,17 @@ export function useScreenshotComments({
       if (normalizedBody === comment.bodyHtml) return true;
       if (pendingCommentIds.has(comment.id)) return false;
 
-      setPending(comment.id, true);
-      try {
-        const updated = await window.electron.hydraApi.patch<ScreenshotComment>(
-          buildUserScreenshotCommentPath(ownerId, screenshotId, comment.id),
-          { data: { bodyHtml: normalizedBody }, needsAuth: true }
-        );
-
-        recordWrite({
-          kind: "patch",
-          commentId: comment.id,
-          patch: updated ?? { bodyHtml: normalizedBody, editedAt: Date.now() },
-        });
-        if (updated && updated.isHidden !== comment.isHidden) {
-          onPatch(screenshotId, adjustCommentCount(updated.isHidden ? -1 : 1));
-        }
-        if (updated?.isHidden) {
-          showWarningToast(t("comment_only_visible_to_you"));
-        }
-        return true;
-      } catch (error) {
-        logger.error("Failed to edit screenshot comment", error);
-        handleWriteError(error, "comment_edit_failed", comment.id);
-        return false;
-      } finally {
-        setPending(comment.id, false);
-      }
+      const editVersion = (editVersionsRef.current.get(comment.id) ?? 0) + 1;
+      editVersionsRef.current.set(comment.id, editVersion);
+      recordWrite({
+        kind: "patch",
+        commentId: comment.id,
+        patch: { bodyHtml: normalizedBody, editedAt: Date.now() },
+      });
+      void persistCommentEdit(comment, normalizedBody, editVersion);
+      return true;
     },
-    [
-      handleWriteError,
-      onPatch,
-      ownerId,
-      pendingCommentIds,
-      recordWrite,
-      screenshotId,
-      setPending,
-      showWarningToast,
-      t,
-    ]
+    [pendingCommentIds, persistCommentEdit, recordWrite]
   );
 
   const deleteComment = useCallback(
@@ -475,23 +547,21 @@ export function useScreenshotComments({
       applyVote(getVotedScreenshotComment(comment, vote));
 
       try {
-        const response =
-          await window.electron.hydraApi.put<ScreenshotCommentVoteResponse>(
-            buildUserScreenshotCommentVotePath(
-              ownerId,
-              screenshotId,
-              comment.id,
-              vote
-            ),
-            { needsAuth: true }
-          );
-        if (response) applyVote(response);
+        await window.electron.hydraApi.put<ScreenshotCommentVoteResponse>(
+          buildUserScreenshotCommentVotePath(
+            ownerId,
+            screenshotId,
+            comment.id,
+            vote
+          ),
+          { needsAuth: true }
+        );
       } catch (error) {
         applyVote(previous);
         logger.error("Failed to vote on screenshot comment", error);
         handleWriteError(error, "comment_vote_failed", comment.id);
       } finally {
-        setPending(comment.id, false);
+        setTimeout(() => setPending(comment.id, false), VOTE_UNLOCK_DELAY_MS);
       }
     },
     [
@@ -563,7 +633,7 @@ export function useScreenshotComments({
     hasMore: nextCursor !== null,
     isLoading,
     hasFailed,
-    isSubmitting,
+    restoredDraft,
     pendingCommentIds,
     reportedCommentIds,
     reload,

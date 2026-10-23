@@ -4,6 +4,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { resolveScreenshotPreferences } from "@shared";
 import type {
   GameShop,
+  LocalScreenshot,
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
   UserPreferences,
@@ -122,10 +123,6 @@ export const onScreenshotGameStarted = async (
 
 export const onScreenshotGameClosed = (gameKey: string) => {
   clearScreenshotGameSession(gameKey);
-  void ScreenshotReviewWindows.onGameClosed(gameKey).catch((error) => {
-    logger.error("Failed to show the screenshot review windows", error);
-  });
-
   if (!hasRunningGames()) releaseRunningGameResources();
 };
 
@@ -217,10 +214,35 @@ export {
   forgetPublishedScreenshots,
 } from "./local-screenshot-removal";
 
+const REVIEWABLE_STATES = new Set<LocalScreenshot["state"]>([
+  "local",
+  "reviewing",
+  "failed",
+]);
+
 export const openScreenshotReview = async (clientId: string) => {
   const screenshot = await LocalScreenshotStore.get(clientId);
   if (!screenshot) return;
-  await ScreenshotReviewWindows.openForScreenshot(screenshot);
+
+  const objectId = screenshot.objectId ?? "";
+  const gameScreenshots = screenshot.objectId
+    ? await LocalScreenshotStore.listForGame(screenshot.shop, objectId)
+    : [screenshot];
+  const clientIds = gameScreenshots
+    .filter(
+      (candidate) =>
+        candidate.clientId === clientId ||
+        REVIEWABLE_STATES.has(candidate.state)
+    )
+    .toSorted((left, right) => right.capturedAt - left.capturedAt)
+    .map((candidate) => candidate.clientId);
+
+  await ScreenshotReviewWindows.openForGame({
+    shop: screenshot.shop,
+    objectId,
+    clientIds,
+    selectedClientId: clientId,
+  });
 };
 
 export const updateLocalScreenshotDraft = (

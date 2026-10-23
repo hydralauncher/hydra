@@ -14,6 +14,13 @@
     list-style: none;
     gap: globals.$spacing-unit;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    > :only-child,
+    > :first-child:nth-last-child(2),
+    > :nth-child(2):last-child,
+    > :nth-child(3):last-child {
+      grid-column: 1 / -1;
+    }
   }
 
   &__skeleton {
@@ -121,6 +128,14 @@
     border-radius: 8px;
   }
 
+  &__caption {
+    display: block;
+    margin-bottom: globals.$spacing-unit;
+    color: globals.$muted-color;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
   &__empty {
     display: flex;
     flex-direction: column;
@@ -197,6 +212,12 @@
   }
 }
 
+@keyframes local-screenshot-tile-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .local-screenshot-tile {
   position: relative;
 
@@ -261,6 +282,40 @@
     pointer-events: none;
   }
 
+  &__badge--error {
+    border-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(globals.$danger-color, 0.85);
+  }
+
+  &--uploading &__image,
+  &--uploading &__media:hover &__image {
+    filter: brightness(0.45);
+  }
+
+  &__upload {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: globals.$spacing-unit;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 500;
+    pointer-events: none;
+  }
+
+  &__spinner {
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: local-screenshot-tile-spin 0.8s linear infinite;
+  }
+
   &__tooltip {
     z-index: globals.$backdrop-z-index + 1;
   }
@@ -310,6 +365,17 @@
 }
 
 .game-screenshots-modal {
+  &__day + &__day {
+    margin-top: calc(globals.$spacing-unit * 3);
+  }
+
+  &__day-title {
+    margin: 0 0 calc(globals.$spacing-unit * 1.5);
+    color: globals.$muted-color;
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+  }
+
   &.modal--large {
     width: min(960px, calc(100vw - 48px));
     max-width: min(960px, calc(100vw - 48px));

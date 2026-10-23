@@ -12,9 +12,13 @@ import type { GameShop } from "@types";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { GameScreenshotThumbnail } from "./game-screenshot-thumbnail";
 import { GameScreenshotsHotkeyTip } from "./game-screenshots-hotkey-tip";
-import { GameScreenshotsModal } from "./game-screenshots-modal";
+import {
+  GameScreenshotsModal,
+  type GameScreenshotsTab,
+} from "./game-screenshots-modal";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
 import { MyScreenshotsPartialNotice } from "./my-screenshots-partial-notice";
+import { useGameScreenshotsCollection } from "./use-game-screenshots-collection";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
 import { useMyGameScreenshots } from "./use-my-game-screenshots";
 
@@ -34,7 +38,7 @@ function GameScreenshotsBox({
   showCommentCount,
 }: Readonly<GameScreenshotsBoxProps>) {
   const { t } = useTranslation("screenshots");
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [modalTab, setModalTab] = useState<GameScreenshotsTab | null>(null);
   const [writeBus] = useState(createScreenshotWriteBus);
   const mine = useMyGameScreenshots({
     shop,
@@ -47,34 +51,98 @@ function GameScreenshotsBox({
   const { collection } = mine;
   const { actions, lightbox } = collection;
   const topItems = mine.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
-  const local = useLocalScreenshotActions(mine.pendingLocal);
+  const local = useLocalScreenshotActions();
+  const hasCommunity = shop !== "custom";
+  const hasNoScreenshotsOfMine =
+    mine.hasLoaded &&
+    !mine.hasFailed &&
+    !mine.isPartial &&
+    topItems.length === 0;
+  const community = useGameScreenshotsCollection({
+    shop,
+    objectId,
+    sort: "top",
+    take: SIDEBAR_SCREENSHOT_COUNT,
+    isEnabled: hasCommunity && hasNoScreenshotsOfMine,
+    writeBus,
+  });
+  const communityItems = community.feed.items.slice(
+    0,
+    SIDEBAR_SCREENSHOT_COUNT
+  );
 
-  const viewAllButton = (
+  const renderViewAllButton = (tab: GameScreenshotsTab) => (
     <Button
       theme="outline"
       className="game-screenshots-box__view-all"
-      onClick={() => setIsModalVisible(true)}
+      onClick={() => setModalTab(tab)}
     >
       {t("view_all")}
     </Button>
   );
+  const viewAllButton = renderViewAllButton("mine");
 
-  const renderContent = () => {
-    if (!mine.hasLoaded) {
+  const renderSkeleton = () => (
+    <>
+      <div className="game-screenshots-box__grid" aria-busy="true">
+        {Array.from({ length: SIDEBAR_SCREENSHOT_COUNT }, (_, index) => (
+          <Skeleton
+            key={`game-screenshots-box-skeleton-${index}`}
+            className="game-screenshots-box__skeleton"
+          />
+        ))}
+      </div>
+      <Skeleton className="game-screenshots-box__view-all-skeleton" />
+    </>
+  );
+
+  const renderCommunity = () => {
+    const isCommunityLoading =
+      hasCommunity && !community.feed.hasLoaded && !community.feed.hasFailed;
+    if (isCommunityLoading && communityItems.length === 0) {
+      return renderSkeleton();
+    }
+
+    if (communityItems.length === 0) {
       return (
-        <>
-          <div className="game-screenshots-box__grid" aria-busy="true">
-            {Array.from({ length: SIDEBAR_SCREENSHOT_COUNT }, (_, index) => (
-              <Skeleton
-                key={`game-screenshots-box-skeleton-${index}`}
-                className="game-screenshots-box__skeleton"
-              />
-            ))}
-          </div>
-          <Skeleton className="game-screenshots-box__view-all-skeleton" />
-        </>
+        <output className="game-screenshots-box__empty">
+          <span className="game-screenshots-box__empty-title">
+            <ImageIcon size={16} />
+            {t("no_game_screenshots_yet")}
+          </span>
+          <GameScreenshotsHotkeyTip />
+        </output>
       );
     }
+
+    return (
+      <>
+        <span className="game-screenshots-box__caption">
+          {t("community_screenshots_tab")}
+        </span>
+        <ul className="game-screenshots-box__grid">
+          {communityItems.map((screenshot) => (
+            <li key={screenshot.id}>
+              <GameScreenshotThumbnail
+                screenshot={screenshot}
+                isLiking={community.actions.likingIds.has(screenshot.id)}
+                showCommentCount={showCommentCount}
+                showOwner
+                onOpen={community.lightbox.open}
+                onLike={(item) => void community.actions.toggleLike(item)}
+                onImageError={community.lightbox.refreshScreenshot}
+              />
+            </li>
+          ))}
+        </ul>
+
+        {renderViewAllButton("community")}
+      </>
+    );
+  };
+
+  const renderContent = () => {
+    if (!mine.hasLoaded) return renderSkeleton();
 
     if (mine.hasFailed) {
       return (
@@ -106,18 +174,7 @@ function GameScreenshotsBox({
       );
     }
 
-    if (topItems.length === 0) {
-      return (
-        <output className="game-screenshots-box__empty">
-          <span className="game-screenshots-box__empty-title">
-            <ImageIcon size={16} />
-            {t("no_game_screenshots_yet")}
-          </span>
-          <GameScreenshotsHotkeyTip />
-          {shop === "custom" ? null : viewAllButton}
-        </output>
-      );
-    }
+    if (topItems.length === 0) return renderCommunity();
 
     return (
       <>
@@ -140,6 +197,7 @@ function GameScreenshotsBox({
                   screenshot={item.screenshot}
                   alt={local.describe(item.screenshot)}
                   isBusy={local.busyIds.has(item.screenshot.clientId)}
+                  uploadStatus={local.getUploadStatus(item.screenshot)}
                   onOpen={local.open}
                   onUpload={local.upload}
                   onDelete={local.requestDelete}
@@ -159,15 +217,17 @@ function GameScreenshotsBox({
       <div className="game-screenshots-box">{renderContent()}</div>
 
       <ScreenshotLightbox collection={collection} />
+      <ScreenshotLightbox collection={community} />
       {local.elements}
 
       <GameScreenshotsModal
-        visible={isModalVisible}
+        visible={modalTab !== null}
         showCommentCount={showCommentCount}
         shop={shop}
         objectId={objectId}
         writeBus={writeBus}
-        onClose={() => setIsModalVisible(false)}
+        initialTab={modalTab ?? "mine"}
+        onClose={() => setModalTab(null)}
       />
     </SidebarSection>
   );

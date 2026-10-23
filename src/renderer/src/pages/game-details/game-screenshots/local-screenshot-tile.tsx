@@ -8,10 +8,13 @@ import cn from "classnames";
 import { toLocalScreenshotUrl } from "@shared";
 import type { LocalScreenshot } from "@types";
 
+import type { LocalScreenshotUploadStatus } from "./use-local-screenshot-actions";
+
 interface LocalScreenshotTileProps {
   screenshot: LocalScreenshot;
   alt: string;
   isBusy: boolean;
+  uploadStatus: LocalScreenshotUploadStatus | null;
   className?: string;
   onOpen: (screenshot: LocalScreenshot) => void;
   onUpload: (screenshot: LocalScreenshot) => void;
@@ -22,19 +25,34 @@ export function LocalScreenshotTile({
   screenshot,
   alt,
   isBusy,
+  uploadStatus,
   className,
   onOpen,
   onUpload,
   onDelete,
 }: Readonly<LocalScreenshotTileProps>) {
   const { t } = useTranslation("screenshots");
+  const { t: tCapture } = useTranslation("screenshots_capture");
   const tooltipId = useId();
   const [hasFailed, setHasFailed] = useState(false);
   const uploadLabel = t("upload_screenshot");
   const deleteLabel = t("delete_screenshot");
+  const isUploading = uploadStatus !== null;
+  const hasUploadFailed = !isUploading && screenshot.state === "failed";
+
+  const getUploadLabel = (status: LocalScreenshotUploadStatus) => {
+    if (status.state === "queued") return tCapture("queued");
+    const percent = Math.round(Math.min(Math.max(status.progress, 0), 1) * 100);
+    return tCapture("uploading", { progress: percent });
+  };
 
   return (
-    <div className={cn("local-screenshot-tile", className)}>
+    <div
+      className={cn("local-screenshot-tile", className, {
+        "local-screenshot-tile--uploading": isUploading,
+      })}
+      aria-busy={isUploading}
+    >
       <button
         type="button"
         className="local-screenshot-tile__media"
@@ -59,14 +77,25 @@ export function LocalScreenshotTile({
         )}
       </button>
 
-      <span className="local-screenshot-tile__badge">{t("not_uploaded")}</span>
+      {uploadStatus ? (
+        <output className="local-screenshot-tile__upload">
+          <span className="local-screenshot-tile__spinner" aria-hidden />
+          <span>{getUploadLabel(uploadStatus)}</span>
+        </output>
+      ) : null}
 
-      <div className="local-screenshot-tile__actions">
+      {hasUploadFailed ? (
+        <span className="local-screenshot-tile__badge local-screenshot-tile__badge--error">
+          {tCapture("upload_failed")}
+        </span>
+      ) : null}
+
+      <div className="local-screenshot-tile__actions" hidden={isUploading}>
         <button
           type="button"
           className="local-screenshot-tile__action"
           onClick={() => onUpload(screenshot)}
-          disabled={isBusy}
+          disabled={isBusy || isUploading}
           aria-label={uploadLabel}
           data-tooltip-id={tooltipId}
           data-tooltip-content={uploadLabel}
@@ -77,7 +106,7 @@ export function LocalScreenshotTile({
           type="button"
           className="local-screenshot-tile__action local-screenshot-tile__action--danger"
           onClick={() => onDelete(screenshot)}
-          disabled={isBusy}
+          disabled={isBusy || isUploading}
           aria-label={deleteLabel}
           data-tooltip-id={tooltipId}
           data-tooltip-content={deleteLabel}

@@ -185,13 +185,13 @@ function CommunityScreenshotsPanel({
     <>
       <div className="game-screenshots-modal__panel">
         <div className="game-screenshots-modal__toolbar">
-          <ScreenshotSortToggle sort={sort} onChange={handleSortChange} />
-
           <CheckboxField
             label={t("hide_spoilers")}
             checked={hideSpoilers}
             onChange={(event) => setHideSpoilers(event.target.checked)}
           />
+
+          <ScreenshotSortToggle sort={sort} onChange={handleSortChange} />
         </div>
 
         <div id={scrollId} className="game-screenshots-modal__scroll">
@@ -221,9 +221,10 @@ function CommunityScreenshotsPanel({
   );
 }
 
-type GameScreenshotsTab = "mine" | "community";
+export type GameScreenshotsTab = "mine" | "community";
 
 interface GameScreenshotsModalProps extends ScreenshotsPanelProps {
+  initialTab?: GameScreenshotsTab;
   onClose: () => void;
 }
 
@@ -233,10 +234,11 @@ export function GameScreenshotsModal({
   shop,
   objectId,
   writeBus,
+  initialTab = "mine",
   onClose,
 }: Readonly<GameScreenshotsModalProps>) {
   const { t } = useTranslation("screenshots");
-  const [tab, setTab] = useState<GameScreenshotsTab>("mine");
+  const [tab, setTab] = useState<GameScreenshotsTab>(initialTab);
   const hasCommunity = shop !== "custom";
   const activeTab = hasCommunity ? tab : "mine";
   const tabs: { id: GameScreenshotsTab; label: string }[] = hasCommunity
@@ -247,8 +249,8 @@ export function GameScreenshotsModal({
     : [{ id: "mine", label: t("my_screenshots") }];
 
   useEffect(() => {
-    if (visible) setTab("mine");
-  }, [visible]);
+    if (visible) setTab(initialTab);
+  }, [initialTab, visible]);
 
   return (
     <Modal

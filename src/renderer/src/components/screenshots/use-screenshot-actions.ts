@@ -15,8 +15,6 @@ import {
 } from "@shared";
 import type {
   ProfileScreenshot,
-  ScreenshotLikeResponse,
-  ScreenshotUnlikeResponse,
   ScreenshotReportValues,
   ScreenshotUpdateRequest,
   ScreenshotUpdateResponse,
@@ -144,22 +142,10 @@ export function useScreenshotActions({
       onPatch(screenshot.id, optimistic);
 
       try {
-        const response = optimistic.likedByMe
-          ? await window.electron.hydraApi.put<ScreenshotLikeResponse>(path, {
-              needsAuth: true,
-            })
-          : await window.electron.hydraApi.delete<ScreenshotUnlikeResponse>(
-              path,
-              { needsAuth: true }
-            );
-
-        if (response) {
-          onPatch(screenshot.id, {
-            likedByMe: response.likedByMe,
-            ...(typeof response.likeCount === "number"
-              ? { likeCount: response.likeCount }
-              : {}),
-          });
+        if (optimistic.likedByMe) {
+          await window.electron.hydraApi.put(path, { needsAuth: true });
+        } else {
+          await window.electron.hydraApi.delete(path, { needsAuth: true });
         }
       } catch (error) {
         onPatch(screenshot.id, previous);
@@ -182,10 +168,8 @@ export function useScreenshotActions({
     ]
   );
 
-  const updateScreenshot = useCallback(
+  const persistScreenshotUpdate = useCallback(
     async (screenshot: ProfileScreenshot, update: ScreenshotUpdateRequest) => {
-      if (!startUpdating(screenshot.id)) return false;
-
       try {
         const response =
           await window.electron.hydraApi.patch<ScreenshotUpdateResponse | null>(
@@ -202,9 +186,9 @@ export function useScreenshotActions({
         } else {
           showSuccessToast(t("changes_saved"));
         }
-        return true;
       } catch (error) {
         logger.error("Failed to update screenshot", error);
+        onPatch(screenshot.id, getEditedScreenshotFields(update, screenshot));
         const code = getScreenshotApiErrorCode(error);
         if (code === "screenshots/text-change-rate-limit-unavailable") {
           showErrorToast(t("text_changes_temporarily_unavailable"));
@@ -213,7 +197,6 @@ export function useScreenshotActions({
         } else if (!handleAccessError(screenshot, error)) {
           showErrorToast(t("update_failed"));
         }
-        return false;
       } finally {
         finishUpdating(screenshot.id);
       }
@@ -225,9 +208,19 @@ export function useScreenshotActions({
       showErrorToast,
       showSuccessToast,
       showWarningToast,
-      startUpdating,
       t,
     ]
+  );
+
+  const updateScreenshot = useCallback(
+    async (screenshot: ProfileScreenshot, update: ScreenshotUpdateRequest) => {
+      if (!startUpdating(screenshot.id)) return false;
+
+      onPatch(screenshot.id, getEditedScreenshotFields(update, null));
+      void persistScreenshotUpdate(screenshot, update);
+      return true;
+    },
+    [onPatch, persistScreenshotUpdate, startUpdating]
   );
 
   const deleteScreenshot = useCallback(
