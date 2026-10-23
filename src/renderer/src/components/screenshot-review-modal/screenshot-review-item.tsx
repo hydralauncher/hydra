@@ -61,7 +61,6 @@ interface ScreenshotReviewItemProps {
   canClose: boolean;
   onClose: () => void;
   notice?: React.ReactNode;
-  isLocked?: boolean;
 }
 
 export function ScreenshotReviewItem({
@@ -75,12 +74,10 @@ export function ScreenshotReviewItem({
   canClose,
   onClose,
   notice,
-  isLocked = false,
 }: Readonly<ScreenshotReviewItemProps>) {
   const { t, i18n } = useTranslation("screenshots_capture");
   const prefersReducedMotion = useReducedMotion();
-  const [isActionBusy, setIsActionBusy] = useState(false);
-  const isBusy = isActionBusy || isLocked;
+  const [isBusy, setIsBusy] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
 
   const isCustomGame = screenshot.shop === "custom";
@@ -103,13 +100,13 @@ export function ScreenshotReviewItem({
   }));
 
   const runAction = async (action: () => Promise<unknown>, label: string) => {
-    setIsActionBusy(true);
+    setIsBusy(true);
     try {
       await action();
     } catch (error) {
       logger.error(label, error);
     } finally {
-      setIsActionBusy(false);
+      setIsBusy(false);
     }
   };
 

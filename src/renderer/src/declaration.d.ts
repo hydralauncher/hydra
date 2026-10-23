@@ -1136,7 +1136,6 @@ declare global {
     closeScreenshotReview: () => Promise<void>;
     releaseBigPictureScreenshotReview: (clientIds: string[]) => Promise<void>;
     openScreenshotsFolder: () => Promise<void>;
-    getScreenshotsFolderPath: () => Promise<string>;
     onLocalScreenshotsChange: (
       cb: (screenshots: LocalScreenshot[]) => void
     ) => () => Electron.IpcRenderer;

@@ -257,7 +257,6 @@ export interface UserPreferences {
   screenshotToastEnabled?: boolean;
   screenshotBorderFlashEnabled?: boolean;
   screenshotDefaultVisibility?: ProfileVisibility;
-  screenshotsPath?: string | null;
 }
 
 export interface NetworkInterface {

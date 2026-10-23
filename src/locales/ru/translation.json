@@ -2592,7 +2592,6 @@
     "delete_confirm_title": "Удалить этот скриншот?",
     "description_add": "Добавить описание (необязательно)",
     "description_label": "Описание (необязательно)",
-    "description_placeholder": "Например: наконец победил этого босса",
     "disabled_for_game": "Скриншоты отключены для этой игры",
     "error_disabled_for_game": "Скриншоты этой игры нельзя загружать",
     "error_feature_disabled": "Загрузка скриншотов приостановлена. Hydra попробует позже.",
@@ -2642,7 +2641,7 @@
     "uploading_body_other": "Загружаются {{count}} скриншота",
     "uploading_progress": "{{done}} из {{total}}",
     "uploading_title": "Загрузка скриншотов",
-    "visibility_friends": "Друзья",
+    "visibility_friends": "Только друзья",
     "visibility_label": "Кто может видеть",
     "visibility_private": "Только я",
     "visibility_public": "Все"
