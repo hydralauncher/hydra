@@ -62,6 +62,7 @@ const SIDEBAR_GAME_ITEM_HEIGHT = 42;
 const SIDEBAR_SORT_OPTIONS = new Set<SortOption>([
   "title_asc",
   "recently_played",
+  "recently_downloaded",
   "most_played",
   "achievements",
 ]);
