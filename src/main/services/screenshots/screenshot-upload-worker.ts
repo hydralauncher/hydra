@@ -22,16 +22,10 @@ import { WindowManager } from "../window-manager";
 import { GameContentWarningCache } from "./content-warning-cache";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { compressScreenshotForUpload } from "./screenshot-compression";
-import {
-  areScreenshotUploadsDisabled,
-  getScreenshotUploadsResumeAt,
-  markScreenshotUploadsDisabled,
-} from "./screenshot-feature";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
 import {
   SCREENSHOT_FEATURE_DISABLED_CODE,
-  SCREENSHOT_UPLOAD_PAUSE_DELAY_MS,
   getAlreadyUploadedScreenshot,
   getScreenshotUploadFailure,
   planScreenshotUploadRecovery,
@@ -137,6 +131,7 @@ const getCurrentOwnerId = () => HydraApi.getAuthContext()?.userId ?? null;
 class ScreenshotUploadWorker {
   private running: Promise<void> | null = null;
   private rerunRequested = false;
+  private uploadsDisabledThisRun = false;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private activeUpload: {
     clientId: string;
@@ -307,7 +302,10 @@ class ScreenshotUploadWorker {
   ): Promise<void> {
     const [screenshot, ...rest] = queue;
     if (!screenshot || !HydraApi.isAuthContextCurrent(authContext)) return;
-    if (areScreenshotUploadsDisabled()) return;
+    if (this.uploadsDisabledThisRun) {
+      await this.failUploadsDisabled(queue);
+      return;
+    }
 
     if ((screenshot.nextUploadAttemptAt ?? 0) <= Date.now()) {
       const current = await LocalScreenshotStore.get(screenshot.clientId);
@@ -319,7 +317,21 @@ class ScreenshotUploadWorker {
     return this.processQueue(rest, ownerId, authContext);
   }
 
+  private async failUploadsDisabled(queue: LocalScreenshot[]) {
+    const failure: ScreenshotUploadFailure = {
+      code: SCREENSHOT_FEATURE_DISABLED_CODE,
+      action: "terminal",
+    };
+    for (const screenshot of queue) {
+      const current = await LocalScreenshotStore.get(screenshot.clientId);
+      if (current?.state === "queued") {
+        await this.markFailed(screenshot.clientId, failure);
+      }
+    }
+  }
+
   private async run() {
+    this.uploadsDisabledThisRun = false;
     const ownerId = getCurrentOwnerId();
     if (!ownerId || !HydraApi.isLoggedIn()) return;
     const authContext = HydraApi.getAuthContext();
@@ -603,7 +615,7 @@ class ScreenshotUploadWorker {
 
     const failure = getScreenshotUploadFailure(error);
     if (failure.code === SCREENSHOT_FEATURE_DISABLED_CODE) {
-      markScreenshotUploadsDisabled(SCREENSHOT_UPLOAD_PAUSE_DELAY_MS);
+      this.uploadsDisabledThisRun = true;
     }
     const alreadyUploaded =
       failure.action === "already_uploaded"
@@ -654,8 +666,7 @@ class ScreenshotUploadWorker {
       .toSorted((a, b) => a - b)[0];
     if (nextRetryAt === undefined) return;
 
-    const runAt = Math.max(nextRetryAt, getScreenshotUploadsResumeAt());
-    const delay = Math.max(MIN_SCHEDULED_RUN_DELAY_MS, runAt - now);
+    const delay = Math.max(MIN_SCHEDULED_RUN_DELAY_MS, nextRetryAt - now);
     this.retryTimer = setTimeout(() => void this.trigger(), delay);
     this.retryTimer.unref?.();
   }
