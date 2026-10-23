@@ -94,11 +94,6 @@ pub fn get_windows_foreground_window() -> Option<NativeForegroundWindow> {
 }
 
 #[napi]
-pub fn place_window_below(window_handle: String, insert_after_handle: String) -> bool {
-    window_order::place_window_below(&window_handle, &insert_after_handle)
-}
-
-#[napi]
 pub fn get_linux_window_client_pid(window_id: String) -> Option<u32> {
     window_client::get_window_client_pid(&window_id)
 }
