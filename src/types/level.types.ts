@@ -256,7 +256,6 @@ export interface UserPreferences {
   screenshotCaptureSoundEnabled?: boolean;
   screenshotToastEnabled?: boolean;
   screenshotBorderFlashEnabled?: boolean;
-  screenshotAskToUploadAfterGame?: boolean;
   screenshotDefaultVisibility?: ProfileVisibility;
   screenshotsPath?: string | null;
 }

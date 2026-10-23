@@ -24,15 +24,19 @@ const TOAST_THUMBNAIL_JPEG_QUALITY = 80;
 const MAX_TOAST_THUMBNAILS = 20;
 
 interface FeedbackWindow {
-  displayId: number;
   window: BrowserWindow;
-  ready: Promise<void>;
+  ready: Promise<boolean>;
+  bounds: Electron.Rectangle | null;
   isPrimary: boolean;
 }
 
-let feedbackWindows: FeedbackWindow[] = [];
+const SOUND_WINDOW_KEY = "sound";
+
+const feedbackWindows = new Map<string, FeedbackWindow>();
+const failedWindowKeys = new Set<string>();
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 let displayListenersRegistered = false;
+let isSyncingFlashWindows = false;
 
 const readUserPreferences = () =>
   db
@@ -45,12 +49,40 @@ const canShowFlashWindows = () =>
   (process.platform === "win32" || process.platform === "linux") &&
   !isWaylandSession();
 
-const createFeedbackWindow = (
-  display: Electron.Display,
+const toDisplayKey = (displayId: number) => `display:${displayId}`;
+
+const isSameBounds = (left: Electron.Rectangle, right: Electron.Rectangle) =>
+  left.x === right.x &&
+  left.y === right.y &&
+  left.width === right.width &&
+  left.height === right.height;
+
+const destroyWindow = (window: BrowserWindow) => {
+  if (!window.isDestroyed()) window.destroy();
+};
+
+const loadFeedbackPage = (key: string, window: BrowserWindow) =>
+  window.loadFile(flashPagePath).then(
+    () => true,
+    (error) => {
+      if (window.isDestroyed()) return false;
+      logger.error("Failed to load the screenshot feedback window", error);
+      failedWindowKeys.add(key);
+      if (feedbackWindows.get(key)?.window === window) {
+        feedbackWindows.delete(key);
+      }
+      destroyWindow(window);
+      return false;
+    }
+  );
+
+const createFlashWindow = (
+  key: string,
+  bounds: Electron.Rectangle,
   isPrimary: boolean
 ): FeedbackWindow => {
   const window = new BrowserWindow({
-    ...display.bounds,
+    ...bounds,
     show: false,
     frame: false,
     transparent: true,
@@ -75,14 +107,78 @@ const createFeedbackWindow = (
   window.setAlwaysOnTop(true, "screen-saver", 1);
   window.removeMenu();
 
-  const ready = window.loadFile(flashPagePath).then(
-    () => undefined,
-    (error) => {
-      logger.error("Failed to load the screenshot flash window", error);
-    }
-  );
+  return {
+    window,
+    ready: loadFeedbackPage(key, window),
+    bounds: { ...bounds },
+    isPrimary,
+  };
+};
 
-  return { displayId: display.id, window, ready, isPrimary };
+const createSoundWindow = (): FeedbackWindow => {
+  const window = new BrowserWindow({
+    show: false,
+    width: 1,
+    height: 1,
+    frame: false,
+    focusable: false,
+    skipTaskbar: true,
+    webPreferences: {
+      backgroundThrottling: false,
+      contextIsolation: true,
+      sandbox: true,
+    },
+  });
+
+  window.removeMenu();
+
+  return {
+    window,
+    ready: loadFeedbackPage(SOUND_WINDOW_KEY, window),
+    bounds: null,
+    isPrimary: true,
+  };
+};
+
+const syncFlashWindows = () => {
+  if (isSyncingFlashWindows) return;
+  isSyncingFlashWindows = true;
+
+  try {
+    const primaryDisplayId = screen.getPrimaryDisplay().id;
+    const displays = screen.getAllDisplays();
+    const displayKeys = new Set(displays.map(({ id }) => toDisplayKey(id)));
+
+    for (const [key, { window }] of feedbackWindows) {
+      if (displayKeys.has(key)) continue;
+      feedbackWindows.delete(key);
+      destroyWindow(window);
+    }
+
+    for (const display of displays) {
+      const key = toDisplayKey(display.id);
+      const isPrimary = display.id === primaryDisplayId;
+      const existing = feedbackWindows.get(key);
+
+      if (!existing || existing.window.isDestroyed()) {
+        if (failedWindowKeys.has(key)) continue;
+        feedbackWindows.set(
+          key,
+          createFlashWindow(key, display.bounds, isPrimary)
+        );
+        continue;
+      }
+
+      existing.isPrimary = isPrimary;
+      if (existing.bounds && isSameBounds(existing.bounds, display.bounds)) {
+        continue;
+      }
+      existing.bounds = { ...display.bounds };
+      existing.window.setBounds(display.bounds);
+    }
+  } finally {
+    isSyncingFlashWindows = false;
+  }
 };
 
 const resolveCaptureSoundUrl = async () => {
@@ -104,29 +200,26 @@ const resolveCaptureSoundUrl = async () => {
 const destroyFeedbackWindows = () => {
   if (hideTimer) clearTimeout(hideTimer);
   hideTimer = null;
-  for (const { window } of feedbackWindows) {
-    if (!window.isDestroyed()) window.destroy();
-  }
-  feedbackWindows = [];
+  for (const { window } of feedbackWindows.values()) destroyWindow(window);
+  feedbackWindows.clear();
+  failedWindowKeys.clear();
 };
 
 const registerDisplayListeners = () => {
   if (displayListenersRegistered) return;
   displayListenersRegistered = true;
 
-  const resetWindows = () => {
-    if (!feedbackWindows.length) return;
-    destroyFeedbackWindows();
-    ScreenshotFeedback.prepare();
+  const onDisplaysChanged = () => {
+    if (feedbackWindows.size) syncFlashWindows();
   };
 
-  screen.on("display-added", resetWindows);
-  screen.on("display-removed", resetWindows);
-  screen.on("display-metrics-changed", resetWindows);
+  screen.on("display-added", onDisplaysChanged);
+  screen.on("display-removed", onDisplaysChanged);
+  screen.on("display-metrics-changed", onDisplaysChanged);
 };
 
 const getLiveFeedbackWindows = () =>
-  feedbackWindows.filter(({ window }) => !window.isDestroyed());
+  [...feedbackWindows.values()].filter(({ window }) => !window.isDestroyed());
 
 const getToastThumbnailDirectory = async () => {
   const directory = path.join(
@@ -210,21 +303,16 @@ const toLocalUrl = (filePath: string) =>
 
 export class ScreenshotFeedback {
   public static prepare() {
-    if (feedbackWindows.length) return;
-
-    registerDisplayListeners();
-
     if (canShowFlashWindows()) {
-      const primaryDisplayId = screen.getPrimaryDisplay().id;
-      feedbackWindows = screen
-        .getAllDisplays()
-        .map((display) =>
-          createFeedbackWindow(display, display.id === primaryDisplayId)
-        );
+      registerDisplayListeners();
+      syncFlashWindows();
       return;
     }
 
-    feedbackWindows = [createFeedbackWindow(screen.getPrimaryDisplay(), true)];
+    const existing = feedbackWindows.get(SOUND_WINDOW_KEY);
+    if (existing && !existing.window.isDestroyed()) return;
+    if (failedWindowKeys.has(SOUND_WINDOW_KEY)) return;
+    feedbackWindows.set(SOUND_WINDOW_KEY, createSoundWindow());
   }
 
   public static release() {
@@ -243,11 +331,11 @@ export class ScreenshotFeedback {
     if (!flash && !playSound) return;
 
     this.prepare();
-    const windows = getLiveFeedbackWindows();
     const soundUrl = playSound ? await resolveCaptureSoundUrl() : null;
     const volume =
       userPreferences?.achievementSoundVolume ?? DEFAULT_CAPTURE_SOUND_VOLUME;
-    await Promise.all(windows.map(({ ready }) => ready));
+    await Promise.all(getLiveFeedbackWindows().map(({ ready }) => ready));
+    const windows = getLiveFeedbackWindows();
 
     if (hideTimer) clearTimeout(hideTimer);
 

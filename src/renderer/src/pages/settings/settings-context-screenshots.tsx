@@ -266,23 +266,6 @@ export function SettingsContextScreenshots() {
       <div className="settings-context-panel__group">
         <h3>{t("screenshots_upload_group")}</h3>
 
-        <div className="settings-screenshots__field">
-          <CheckboxField
-            label={t("screenshots_ask_to_upload")}
-            checked={form.askToUploadAfterGame}
-            onChange={() =>
-              savePreferences(
-                { askToUploadAfterGame: !form.askToUploadAfterGame },
-                { screenshotAskToUploadAfterGame: !form.askToUploadAfterGame }
-              )
-            }
-          />
-
-          <small className="settings-screenshots__hint">
-            {t("screenshots_ask_to_upload_description")}
-          </small>
-        </div>
-
         <SelectField
           className="settings-screenshots__select"
           label={t("screenshots_default_visibility")}

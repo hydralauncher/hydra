@@ -25,7 +25,6 @@ export interface ResolvedScreenshotPreferences {
   captureSoundEnabled: boolean;
   toastEnabled: boolean;
   borderFlashEnabled: boolean;
-  askToUploadAfterGame: boolean;
   defaultVisibility: ProfileVisibility;
 }
 
@@ -41,7 +40,6 @@ export const resolveScreenshotPreferences = (
   captureSoundEnabled: preferences?.screenshotCaptureSoundEnabled ?? true,
   toastEnabled: preferences?.screenshotToastEnabled ?? true,
   borderFlashEnabled: preferences?.screenshotBorderFlashEnabled ?? true,
-  askToUploadAfterGame: preferences?.screenshotAskToUploadAfterGame ?? true,
   defaultVisibility: preferences?.screenshotDefaultVisibility ?? "PUBLIC",
 });
 
