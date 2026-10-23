@@ -78,22 +78,16 @@ export function ScreenshotLikeButton({
 
 interface ScreenshotCommentCountProps {
   count: number;
-  className?: string;
 }
 
 export function ScreenshotCommentCount({
   count,
-  className,
 }: Readonly<ScreenshotCommentCountProps>) {
   const { t } = useTranslation("screenshots");
   const label = t("comments_title", { count });
 
   return (
-    <span
-      className={cn("screenshot-stat-chip", className)}
-      title={label}
-      aria-label={label}
-    >
+    <span className="screenshot-stat-chip" title={label} aria-label={label}>
       <CommentIcon size={14} />
       <span>{count}</span>
     </span>

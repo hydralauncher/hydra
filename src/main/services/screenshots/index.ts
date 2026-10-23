@@ -269,6 +269,3 @@ export const openScreenshotsFolder = async () => {
   const error = await shell.openPath(directory);
   if (error) logger.error("Failed to open the screenshots folder", error);
 };
-
-export const getScreenshotsFolderPath = async () =>
-  getManualScreenshotsDirectory(await getAchievementScreenshotsDirectory());

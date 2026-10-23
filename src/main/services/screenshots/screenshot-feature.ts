@@ -9,6 +9,7 @@ const FEATURE_REQUEST_TIMEOUT_MS = 5_000;
 
 let cachedValue: { enabled: boolean; fetchedAt: number } | null = null;
 let inFlight: Promise<boolean> | null = null;
+let uploadsDisabledUntil = 0;
 
 const readPersistedValue = () =>
   db
@@ -27,6 +28,7 @@ const fetchFeatureFlag = async () => {
     const enabled =
       Array.isArray(features) && features.includes(SCREENSHOTS_FEATURE);
     cachedValue = { enabled, fetchedAt: Date.now() };
+    if (enabled) uploadsDisabledUntil = 0;
     await db
       .put(levelKeys.screenshotsFeatureEnabled, enabled, {
         valueEncoding: "json",
@@ -57,6 +59,11 @@ export const isScreenshotsFeatureEnabled = async () => {
   return cachedValue.enabled;
 };
 
-export const markScreenshotsFeatureDisabled = () => {
-  cachedValue = { enabled: false, fetchedAt: Date.now() };
+export const markScreenshotUploadsDisabled = (durationMs: number) => {
+  uploadsDisabledUntil = Date.now() + durationMs;
 };
+
+export const getScreenshotUploadsResumeAt = () => uploadsDisabledUntil;
+
+export const areScreenshotUploadsDisabled = () =>
+  Date.now() < uploadsDisabledUntil;

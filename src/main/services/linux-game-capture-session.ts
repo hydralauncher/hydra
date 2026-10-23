@@ -22,8 +22,6 @@ import {
   type CaptureSessionReason,
 } from "./linux-game-capture-session-reasons";
 
-export type { CaptureSessionReason } from "./linux-game-capture-session-reasons";
-
 interface CaptureSessionRegistration {
   token: object;
   window: BrowserWindow | null;
@@ -339,9 +337,3 @@ export const stopAllLinuxGameCaptureSessions = (
     stopLinuxGameCaptureSession(gameKey, reason);
   }
 };
-
-export const hasLinuxGameCaptureSession = (gameKey: string) =>
-  sessions.has(gameKey);
-
-export const getLinuxGameCaptureSessionReasons = (gameKey: string) =>
-  new Set(sessions.get(gameKey)?.reasons ?? []);

@@ -362,7 +362,6 @@ export function useScreenshotCollection({
     feed,
     actions,
     onPatch,
-    onRemove,
     lightbox: {
       status,
       screenshot,
