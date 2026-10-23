@@ -22,9 +22,16 @@ import { WindowManager } from "../window-manager";
 import { GameContentWarningCache } from "./content-warning-cache";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { compressScreenshotForUpload } from "./screenshot-compression";
+import {
+  areScreenshotUploadsDisabled,
+  getScreenshotUploadsResumeAt,
+  markScreenshotUploadsDisabled,
+} from "./screenshot-feature";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
 import {
+  SCREENSHOT_FEATURE_DISABLED_CODE,
+  SCREENSHOT_UPLOAD_PAUSE_DELAY_MS,
   getAlreadyUploadedScreenshot,
   getScreenshotUploadFailure,
   planScreenshotUploadRecovery,
@@ -300,6 +307,7 @@ class ScreenshotUploadWorker {
   ): Promise<void> {
     const [screenshot, ...rest] = queue;
     if (!screenshot || !HydraApi.isAuthContextCurrent(authContext)) return;
+    if (areScreenshotUploadsDisabled()) return;
 
     if ((screenshot.nextUploadAttemptAt ?? 0) <= Date.now()) {
       const current = await LocalScreenshotStore.get(screenshot.clientId);
@@ -594,6 +602,9 @@ class ScreenshotUploadWorker {
     }
 
     const failure = getScreenshotUploadFailure(error);
+    if (failure.code === SCREENSHOT_FEATURE_DISABLED_CODE) {
+      markScreenshotUploadsDisabled(SCREENSHOT_UPLOAD_PAUSE_DELAY_MS);
+    }
     const alreadyUploaded =
       failure.action === "already_uploaded"
         ? getAlreadyUploadedScreenshot(error)
@@ -643,7 +654,8 @@ class ScreenshotUploadWorker {
       .toSorted((a, b) => a - b)[0];
     if (nextRetryAt === undefined) return;
 
-    const delay = Math.max(MIN_SCHEDULED_RUN_DELAY_MS, nextRetryAt - now);
+    const runAt = Math.max(nextRetryAt, getScreenshotUploadsResumeAt());
+    const delay = Math.max(MIN_SCHEDULED_RUN_DELAY_MS, runAt - now);
     this.retryTimer = setTimeout(() => void this.trigger(), delay);
     this.retryTimer.unref?.();
   }
