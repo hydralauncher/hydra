@@ -3,6 +3,11 @@ import type { GameShop } from "./game.types";
 import type { DownloadStatus } from "./download.types";
 import type { ClassicsDisc } from "./emulator.types";
 import type {
+  ScreenshotGamepadButton,
+  ScreenshotHotkeyBinding,
+} from "./screenshot.types";
+import type { ProfileVisibility } from "./index";
+import type {
   EpicDownloadMetadata,
   EpicInstallation,
 } from "./epic-managed.types";
@@ -244,6 +249,13 @@ export interface UserPreferences {
   hideLibraryAchievementProgress?: boolean;
   autoplayAnimatedArtwork?: boolean;
   persistFiltersAndSorting?: boolean;
+  screenshotsEnabled?: boolean;
+  screenshotHotkey?: ScreenshotHotkeyBinding;
+  screenshotGamepadEnabled?: boolean;
+  screenshotGamepadCombo?: ScreenshotGamepadButton[];
+  screenshotCaptureSoundEnabled?: boolean;
+  screenshotToastEnabled?: boolean;
+  screenshotDefaultVisibility?: ProfileVisibility;
 }
 
 export interface NetworkInterface {

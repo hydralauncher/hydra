@@ -29,6 +29,7 @@ import {
   SSEClient,
   Wine,
   WindowManager,
+  ScreenshotInputService,
   logger,
   migrateCloudSaveAutomaticSyncDefaults,
   groupedSouvenirWorker,
@@ -81,6 +82,7 @@ export const loadState = async () => {
   );
 
   Wine.syncUserPreferences(userPreferences);
+  ScreenshotInputService.syncUserPreferences(userPreferences);
 
   await import("./events");
 

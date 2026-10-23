@@ -46,6 +46,30 @@ type NativeActiveWindowResponse = {
   process_id?: number;
 };
 
+export interface ScreenshotInputNativeConfig {
+  key: string;
+  ctrl: boolean;
+  alt: boolean;
+  shift: boolean;
+  keyboardEnabled: boolean;
+  gamepadEnabled: boolean;
+  gamepadButtons: string[];
+}
+
+export interface ScreenshotInputNativeEvent {
+  kind: string;
+  source: string;
+  backend: string;
+}
+
+export interface ScreenshotInputNativeStatus {
+  keyboardBackend: string;
+  gamepadBackend: string;
+  keyboardError?: string | null;
+  gamepadError?: string | null;
+  waylandSession: boolean;
+}
+
 export type NativeProcessPayload = ProcessPayload &
   Pick<
     EpicProcessNode,
@@ -73,6 +97,17 @@ type HydraNativeModule = {
   ) => Promise<NativeProcessSizedImageResponse>;
   listProcesses: () => NativeProcessPayload[];
   getLinuxActiveWindow: () => NativeActiveWindowResponse | null;
+  startScreenshotInput: (
+    config: ScreenshotInputNativeConfig,
+    callback: (event: ScreenshotInputNativeEvent) => void
+  ) => ScreenshotInputNativeStatus;
+  updateScreenshotInputBinding: (
+    config: ScreenshotInputNativeConfig
+  ) => boolean;
+  stopScreenshotInput: () => void;
+  probeScreenshotInput: (
+    config: ScreenshotInputNativeConfig
+  ) => ScreenshotInputNativeStatus;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
@@ -425,6 +460,27 @@ export class NativeAddon {
       logger.error("Failed to identify active Linux window", error);
       return null;
     }
+  }
+
+  public static startScreenshotInput(
+    config: ScreenshotInputNativeConfig,
+    callback: (event: ScreenshotInputNativeEvent) => void
+  ) {
+    return this.load().startScreenshotInput(config, callback);
+  }
+
+  public static updateScreenshotInputBinding(
+    config: ScreenshotInputNativeConfig
+  ) {
+    return this.load().updateScreenshotInputBinding(config);
+  }
+
+  public static stopScreenshotInput() {
+    this.nativeModule?.stopScreenshotInput();
+  }
+
+  public static probeScreenshotInput(config: ScreenshotInputNativeConfig) {
+    return this.load().probeScreenshotInput(config);
   }
 
   public static getSystemProcessMap(): Promise<SystemProcessMap | null> {
