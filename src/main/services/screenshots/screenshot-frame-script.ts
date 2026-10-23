@@ -10,28 +10,37 @@ export const SCREENSHOT_FRAME_SAMPLE_SIZE = 32;
 export const SCREENSHOT_NEXT_FRAME_TIMEOUT_MS = 150;
 export const SCREENSHOT_FIRST_FRAME_TIMEOUT_MS = 3_000;
 
-export interface ScreenshotFrameEncodeOptions {
-  quality: number;
+const CAPTURED_FRAME_GLOBAL = "globalThis.__hydraCapturedFrame";
+
+export interface ScreenshotFrameGrabOptions {
   waitForNextFrame: boolean;
 }
 
-export interface EncodedScreenshotFrame {
+export interface GrabbedFrameInfo {
   width: number;
   height: number;
-  jpeg: Buffer;
-  preview: Buffer;
   isBlank: boolean;
 }
 
-const ENCODE_FRAME_FUNCTION = `async (video, options) => {
-  const decode = (dataUrl) => {
-    const binary = atob(dataUrl.slice(dataUrl.indexOf(",") + 1));
-    const bytes = new Uint8Array(binary.length);
-    for (let index = 0; index < binary.length; index++) {
-      bytes[index] = binary.charCodeAt(index);
-    }
-    return bytes;
-  };
+export interface EncodedScreenshotImages {
+  jpeg: Buffer;
+  preview: Buffer;
+}
+
+export interface GrabbedScreenshotFrame {
+  width: number;
+  height: number;
+  encode: (quality: number) => Promise<EncodedScreenshotImages>;
+  discard: () => void;
+}
+
+const GRAB_FRAME_FUNCTION = `async (video, options) => {
+  const previous = ${CAPTURED_FRAME_GLOBAL};
+  if (previous) {
+    previous.width = 0;
+    previous.height = 0;
+    ${CAPTURED_FRAME_GLOBAL} = null;
+  }
   if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || !video.videoWidth) {
     await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("Screenshot stream timed out")), options.firstFrameTimeout);
@@ -48,49 +57,78 @@ const ENCODE_FRAME_FUNCTION = `async (video, options) => {
   const height = video.videoHeight;
   if (!width || !height) throw new Error("Screenshot stream returned an empty frame");
   const canvas = document.createElement("canvas");
-  const preview = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d").drawImage(video, 0, 0, width, height);
   const sample = document.createElement("canvas");
+  sample.width = options.sampleSize;
+  sample.height = options.sampleSize;
+  const sampleContext = sample.getContext("2d", { willReadFrequently: true });
+  sampleContext.drawImage(canvas, 0, 0, options.sampleSize, options.sampleSize);
+  const pixels = new Uint8Array(sampleContext.getImageData(0, 0, options.sampleSize, options.sampleSize).data);
+  ${CAPTURED_FRAME_GLOBAL} = canvas;
+  return { width, height, pixels };
+}`;
+
+const ENCODE_FRAME_FUNCTION = `async (options) => {
+  const canvas = ${CAPTURED_FRAME_GLOBAL};
+  if (!canvas || !canvas.width || !canvas.height) throw new Error("No captured screenshot frame to encode");
+  const toBytes = (target, quality) => {
+    const dataUrl = target.toDataURL("image/jpeg", quality);
+    const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+    if (typeof Uint8Array.fromBase64 === "function") return Uint8Array.fromBase64(base64);
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index++) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
+  };
+  const preview = document.createElement("canvas");
   try {
-    canvas.width = width;
-    canvas.height = height;
-    canvas.getContext("2d").drawImage(video, 0, 0, width, height);
-    sample.width = options.sampleSize;
-    sample.height = options.sampleSize;
-    const sampleContext = sample.getContext("2d", { willReadFrequently: true });
-    sampleContext.drawImage(canvas, 0, 0, options.sampleSize, options.sampleSize);
-    const pixels = new Uint8Array(sampleContext.getImageData(0, 0, options.sampleSize, options.sampleSize).data);
-    const previewWidth = Math.min(width, options.previewMaxWidth);
+    const previewWidth = Math.min(canvas.width, options.previewMaxWidth);
     preview.width = previewWidth;
-    preview.height = Math.max(1, Math.round((height * previewWidth) / width));
+    preview.height = Math.max(1, Math.round((canvas.height * previewWidth) / canvas.width));
     preview.getContext("2d").drawImage(canvas, 0, 0, preview.width, preview.height);
     return {
-      width,
-      height,
-      pixels,
-      jpeg: decode(canvas.toDataURL("image/jpeg", options.quality)),
-      preview: decode(preview.toDataURL("image/jpeg", options.previewQuality)),
+      jpeg: toBytes(canvas, options.quality),
+      preview: toBytes(preview, options.previewQuality),
     };
   } finally {
-    canvas.width = 0;
-    canvas.height = 0;
     preview.width = 0;
     preview.height = 0;
+    canvas.width = 0;
+    canvas.height = 0;
+    if (${CAPTURED_FRAME_GLOBAL} === canvas) ${CAPTURED_FRAME_GLOBAL} = null;
   }
 }`;
 
-export const buildEncodeFrameExpression = (
+export const buildGrabFrameExpression = (
   videoExpression: string,
-  options: ScreenshotFrameEncodeOptions
+  options: ScreenshotFrameGrabOptions
 ) =>
-  `(${ENCODE_FRAME_FUNCTION})(${videoExpression}, ${JSON.stringify({
-    quality: options.quality,
+  `(${GRAB_FRAME_FUNCTION})(${videoExpression}, ${JSON.stringify({
     waitForNextFrame: options.waitForNextFrame,
-    previewMaxWidth: SCREENSHOT_PREVIEW_MAX_WIDTH,
-    previewQuality: SCREENSHOT_PREVIEW_JPEG_QUALITY,
     sampleSize: SCREENSHOT_FRAME_SAMPLE_SIZE,
     nextFrameTimeout: SCREENSHOT_NEXT_FRAME_TIMEOUT_MS,
     firstFrameTimeout: SCREENSHOT_FIRST_FRAME_TIMEOUT_MS,
   })})`;
+
+export const buildEncodeFrameExpression = (quality: number) =>
+  `(${ENCODE_FRAME_FUNCTION})(${JSON.stringify({
+    quality,
+    previewMaxWidth: SCREENSHOT_PREVIEW_MAX_WIDTH,
+    previewQuality: SCREENSHOT_PREVIEW_JPEG_QUALITY,
+  })})`;
+
+export const DISCARD_FRAME_EXPRESSION = `(() => {
+  const canvas = ${CAPTURED_FRAME_GLOBAL};
+  if (canvas) {
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+  ${CAPTURED_FRAME_GLOBAL} = null;
+})()`;
 
 const toBgra = (rgba: Uint8Array) => {
   const bgra = new Uint8Array(rgba.length);
@@ -106,16 +144,13 @@ const toBgra = (rgba: Uint8Array) => {
 const isByteArray = (value: unknown): value is Uint8Array =>
   value instanceof Uint8Array;
 
-export const parseEncodedFrame = (value: unknown): EncodedScreenshotFrame => {
+export const parseGrabbedFrame = (value: unknown): GrabbedFrameInfo => {
   const frame = value as Record<string, unknown> | null;
   if (
     !frame ||
     typeof frame.width !== "number" ||
     typeof frame.height !== "number" ||
-    !isByteArray(frame.jpeg) ||
-    !isByteArray(frame.preview) ||
-    !isByteArray(frame.pixels) ||
-    !frame.jpeg.length
+    !isByteArray(frame.pixels)
   ) {
     throw new TypeError("Screenshot capture returned an invalid frame");
   }
@@ -124,10 +159,49 @@ export const parseEncodedFrame = (value: unknown): EncodedScreenshotFrame => {
   return {
     width: frame.width,
     height: frame.height,
-    jpeg: Buffer.from(frame.jpeg),
-    preview: Buffer.from(frame.preview),
     isBlank:
       isNearlyUniformScreenshot(getBitmapColorRange(bgra)) ||
       isMostlyBlackScreenshot(bgra),
+  };
+};
+
+export const parseEncodedImages = (value: unknown): EncodedScreenshotImages => {
+  const images = value as Record<string, unknown> | null;
+  if (
+    !images ||
+    !isByteArray(images.jpeg) ||
+    !isByteArray(images.preview) ||
+    !images.jpeg.length
+  ) {
+    throw new TypeError("Screenshot capture returned an invalid image");
+  }
+
+  return {
+    jpeg: Buffer.from(images.jpeg),
+    preview: Buffer.from(images.preview),
+  };
+};
+
+export const createGrabbedFrame = (
+  info: Pick<GrabbedFrameInfo, "width" | "height">,
+  runInPage: (expression: string) => Promise<unknown>
+): GrabbedScreenshotFrame => {
+  let isSettled = false;
+
+  return {
+    width: info.width,
+    height: info.height,
+    encode: async (quality) => {
+      if (isSettled) throw new Error("The screenshot frame was already used");
+      isSettled = true;
+      return parseEncodedImages(
+        await runInPage(buildEncodeFrameExpression(quality))
+      );
+    },
+    discard: () => {
+      if (isSettled) return;
+      isSettled = true;
+      void runInPage(DISCARD_FRAME_EXPRESSION).catch(() => undefined);
+    },
   };
 };

@@ -20,7 +20,7 @@ import { getAchievementScreenshotsDirectory } from "../achievement-screenshots-d
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import {
-  encodeLinuxGameSessionFrame,
+  grabLinuxGameSessionFrame,
   isWaylandSession,
 } from "../linux-game-capture-session";
 import {
@@ -28,6 +28,7 @@ import {
   ScreenshotService,
   type GameScreenshotCaptureTarget,
 } from "../screenshot";
+import { buildWindowsWindowSourceId } from "../windows-game-window-match";
 import { GameContentWarningCache } from "./content-warning-cache";
 import { resolveForegroundGame } from "./foreground-game";
 import type { ScreenshotGameTarget } from "./foreground-game-match";
@@ -35,16 +36,20 @@ import { LocalScreenshotStore } from "./local-screenshot-store";
 import { ScreenshotFeedback } from "./screenshot-feedback";
 import {
   SCREENSHOT_PREVIEW_MAX_WIDTH,
-  type EncodedScreenshotFrame,
+  type EncodedScreenshotImages,
+  type GrabbedScreenshotFrame,
 } from "./screenshot-frame-script";
-import { ScreenshotFrameWorker } from "./screenshot-frame-worker";
+import {
+  BlankScreenshotFrameError,
+  ScreenshotFrameWorker,
+} from "./screenshot-frame-worker";
 import { writeScreenshotPreview } from "./screenshot-preview";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { resolveManualScreenshotPath } from "./screenshot-file-path";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 
-const CAPTURE_JPEG_QUALITY = 1;
-const FALLBACK_JPEG_QUALITY = 100;
+const CAPTURE_JPEG_QUALITY = 0.95;
+const FALLBACK_JPEG_QUALITY = 95;
 const FALLBACK_PREVIEW_JPEG_QUALITY = 85;
 const CONTENT_WARNING_WAIT_MS = 1_500;
 const MAX_FILE_NAME_SUFFIX = 50;
@@ -218,41 +223,76 @@ const playCaptureFeedback = () => {
   });
 };
 
-const encodeNativeImage = (
+const wrapNativeImage = (
   image: Electron.NativeImage
-): EncodedScreenshotFrame => {
+): GrabbedScreenshotFrame => {
   const { width, height } = image.getSize();
   return {
     width,
     height,
-    jpeg: image.toJPEG(FALLBACK_JPEG_QUALITY),
-    preview: image
-      .resize({ width: Math.min(width, SCREENSHOT_PREVIEW_MAX_WIDTH) })
-      .toJPEG(FALLBACK_PREVIEW_JPEG_QUALITY),
-    isBlank: false,
+    encode: async () => ({
+      jpeg: image.toJPEG(FALLBACK_JPEG_QUALITY),
+      preview: image
+        .resize({ width: Math.min(width, SCREENSHOT_PREVIEW_MAX_WIDTH) })
+        .toJPEG(FALLBACK_PREVIEW_JPEG_QUALITY),
+    }),
+    discard: () => {},
   };
+};
+
+const grabFromDirectWindowsSource = async (
+  captureTarget: GameScreenshotCaptureTarget
+) => {
+  if (process.platform !== "win32" || !captureTarget.windowHandle) return null;
+
+  const sourceId = buildWindowsWindowSourceId(captureTarget.windowHandle);
+  if (!sourceId) return null;
+
+  try {
+    return await ScreenshotFrameWorker.grab(sourceId, {
+      waitForNextFrame: true,
+    });
+  } catch (error) {
+    if (error instanceof BlankScreenshotFrameError) throw error;
+    logger.warn("Direct window capture failed, resolving the window source", {
+      gameKey: captureTarget.gameKey,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 };
 
 const acquireFrame = async (
   captureTarget: GameScreenshotCaptureTarget
-): Promise<EncodedScreenshotFrame> => {
+): Promise<GrabbedScreenshotFrame> => {
   if (isWaylandSession() && captureTarget.gameKey) {
-    return encodeLinuxGameSessionFrame(captureTarget.gameKey, {
-      quality: CAPTURE_JPEG_QUALITY,
+    return grabLinuxGameSessionFrame(captureTarget.gameKey, {
       waitForNextFrame: false,
     });
   }
 
+  const directFrame = await grabFromDirectWindowsSource(captureTarget);
+  if (directFrame) return directFrame;
+
   const sourceId = await resolveGameCaptureSourceId(captureTarget);
   if (sourceId) {
-    return ScreenshotFrameWorker.capture(sourceId, {
-      quality: CAPTURE_JPEG_QUALITY,
-      waitForNextFrame: true,
-    });
+    return ScreenshotFrameWorker.grab(sourceId, { waitForNextFrame: true });
   }
 
-  return encodeNativeImage(
+  return wrapNativeImage(
     await ScreenshotService.captureRawGameImage(captureTarget)
+  );
+};
+
+const recordCaptureFailure = (gameKey: string, error: unknown) => {
+  logger.error("Failed to capture a manual screenshot", {
+    gameKey,
+    error: error instanceof Error ? error.message : String(error),
+  });
+  ScreenshotTelemetry.record(
+    "capture",
+    "failed",
+    error instanceof Error ? error.name : "unknown_error"
   );
 };
 
@@ -293,7 +333,7 @@ const captureScreenshot = async (
   const warning = getContentWarning(target.shop, target.objectId);
   const capturedAt = new Date();
 
-  let frame: EncodedScreenshotFrame;
+  let frame: GrabbedScreenshotFrame;
   try {
     frame = await acquireFrame({
       processId: target.processId,
@@ -304,31 +344,34 @@ const captureScreenshot = async (
       x11WindowId: foreground?.windowId,
     });
   } catch (error) {
-    logger.error("Failed to capture a manual screenshot", {
-      gameKey: target.gameKey,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    ScreenshotTelemetry.record(
-      "capture",
-      "failed",
-      error instanceof Error ? error.name : "unknown_error"
-    );
+    recordCaptureFailure(target.gameKey, error);
     return;
   }
   timer.mark("frame");
 
-  if (isAdultGameContentWarning(await warning)) {
-    await rejectAdultGameCapture(gameTitle);
-    return;
-  }
+  let images: EncodedScreenshotImages;
+  try {
+    if (isAdultGameContentWarning(await warning)) {
+      await rejectAdultGameCapture(gameTitle);
+      return;
+    }
 
-  playCaptureFeedback();
-  timer.mark("feedback");
+    playCaptureFeedback();
+    timer.mark("feedback");
+
+    images = await frame.encode(CAPTURE_JPEG_QUALITY);
+  } catch (error) {
+    recordCaptureFailure(target.gameKey, error);
+    return;
+  } finally {
+    frame.discard();
+  }
+  timer.mark("encoded");
 
   const filePath = await resolveCaptureFilePath(gameTitle, capturedAt);
   await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.promises.writeFile(filePath, frame.jpeg);
-  const previewPath = await writeScreenshotPreview(frame.preview).catch(
+  await fs.promises.writeFile(filePath, images.jpeg);
+  const previewPath = await writeScreenshotPreview(images.preview).catch(
     (error) => {
       logger.warn("Failed to write the screenshot preview", error);
       return null;

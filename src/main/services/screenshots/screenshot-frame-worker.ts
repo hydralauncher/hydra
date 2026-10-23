@@ -3,10 +3,12 @@ import capturePagePath from "@resources/linux-game-capture.html?asset";
 
 import { logger } from "../logger";
 import {
-  buildEncodeFrameExpression,
-  parseEncodedFrame,
-  type EncodedScreenshotFrame,
-  type ScreenshotFrameEncodeOptions,
+  buildGrabFrameExpression,
+  createGrabbedFrame,
+  parseGrabbedFrame,
+  type GrabbedFrameInfo,
+  type GrabbedScreenshotFrame,
+  type ScreenshotFrameGrabOptions,
 } from "./screenshot-frame-script";
 
 const RECYCLE_AFTER_IDLE_MS = 10_000;
@@ -72,9 +74,16 @@ const scheduleRecycle = () => {
   recycleTimer.unref?.();
 };
 
-const buildCaptureExpression = (
+export class BlankScreenshotFrameError extends Error {
+  constructor() {
+    super("Screenshot capture returned only blank frames");
+    this.name = "BlankScreenshotFrameError";
+  }
+}
+
+const buildGrabExpression = (
   sourceId: string,
-  options: ScreenshotFrameEncodeOptions
+  options: ScreenshotFrameGrabOptions
 ) => `(async () => {
   const video = document.querySelector("video");
   if (!navigator.mediaDevices?.getUserMedia || !(video instanceof HTMLVideoElement)) {
@@ -95,22 +104,22 @@ const buildCaptureExpression = (
   try {
     video.srcObject = stream;
     await video.play();
-    return await ${buildEncodeFrameExpression("video", options)};
+    return await ${buildGrabFrameExpression("video", options)};
   } finally {
     stream.getTracks().forEach((track) => track.stop());
     video.srcObject = null;
   }
 })()`;
 
-const captureFrame = async (
+const grabFrame = async (
   current: WorkerWindow,
   sourceId: string,
-  options: ScreenshotFrameEncodeOptions,
+  options: ScreenshotFrameGrabOptions,
   attempt = 1
-): Promise<EncodedScreenshotFrame> => {
-  const frame = parseEncodedFrame(
+): Promise<GrabbedFrameInfo> => {
+  const frame = parseGrabbedFrame(
     await current.window.webContents.executeJavaScript(
-      buildCaptureExpression(sourceId, options)
+      buildGrabExpression(sourceId, options)
     )
   );
   if (!frame.isBlank) return frame;
@@ -119,10 +128,17 @@ const captureFrame = async (
     sourceId,
     attempt,
   });
-  if (attempt >= MAX_FRAME_ATTEMPTS) {
-    throw new Error("Screenshot capture returned only blank frames");
+  if (attempt >= MAX_FRAME_ATTEMPTS) throw new BlankScreenshotFrameError();
+  return grabFrame(current, sourceId, options, attempt + 1);
+};
+
+const runInWorker = (current: WorkerWindow, expression: string) => {
+  if (current.window.isDestroyed()) {
+    return Promise.reject(
+      new Error("The screenshot capture worker was closed")
+    );
   }
-  return captureFrame(current, sourceId, options, attempt + 1);
+  return current.window.webContents.executeJavaScript(expression);
 };
 
 export class ScreenshotFrameWorker {
@@ -138,21 +154,49 @@ export class ScreenshotFrameWorker {
     destroyWorker();
   }
 
-  public static capture(
+  public static grab(
     sourceId: string,
-    options: ScreenshotFrameEncodeOptions
-  ) {
+    options: ScreenshotFrameGrabOptions
+  ): Promise<GrabbedScreenshotFrame> {
+    let resolveReleased = () => {};
+    const released = new Promise<void>((resolve) => {
+      resolveReleased = resolve;
+    });
+    let isReleased = false;
+    const releaseWorker = () => {
+      if (isReleased) return;
+      isReleased = true;
+      scheduleRecycle();
+      resolveReleased();
+    };
+
     const task = queue.then(async () => {
       clearRecycleTimer();
       const current = getWorker();
       try {
         await current.ready;
-        return await captureFrame(current, sourceId, options);
-      } finally {
-        scheduleRecycle();
+        const info = await grabFrame(current, sourceId, options);
+        const frame = createGrabbedFrame(info, (expression) =>
+          runInWorker(current, expression)
+        );
+        return {
+          ...frame,
+          encode: (quality: number) =>
+            frame.encode(quality).finally(releaseWorker),
+          discard: () => {
+            frame.discard();
+            releaseWorker();
+          },
+        };
+      } catch (error) {
+        releaseWorker();
+        throw error;
       }
     });
-    queue = task.catch(() => undefined);
+    queue = task.then(
+      () => released,
+      () => undefined
+    );
     return task;
   }
 }
