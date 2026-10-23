@@ -2544,6 +2544,8 @@
     "spoiler_hint": "Los demás la verán difuminada hasta que decidan mostrarla",
     "spoiler_label": "Contiene spoilers",
     "thumbnail_label": "Captura {{index}} de {{count}}",
+    "previous_screenshot": "Captura anterior",
+    "next_screenshot": "Captura siguiente",
     "upload": "Subir",
     "upload_failed": "Error al subir",
     "upload_failed_body_one": "No se pudo subir {{count}} captura. Puedes reintentarlo desde la página del juego, en Mis capturas de pantalla.",

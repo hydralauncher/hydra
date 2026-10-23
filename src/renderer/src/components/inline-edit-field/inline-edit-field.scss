@@ -92,6 +92,26 @@ $inline-edit-wiggle-offset: 3px;
     font-size: globals.$body-font-size;
   }
 
+  &--multiline {
+    min-height: 96px;
+  }
+
+  &--multiline &__trigger {
+    display: flex;
+    align-items: flex-start;
+    padding-block: calc(globals.$spacing-unit * 1.25);
+    line-height: 20px;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  &--multiline &__input {
+    height: auto;
+    padding-block: calc(globals.$spacing-unit * 1.25);
+    line-height: 20px;
+    resize: none;
+  }
+
   &--limit {
     animation: inline-edit-field-wiggle $inline-edit-limit-duration ease;
   }
