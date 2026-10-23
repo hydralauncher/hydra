@@ -49,6 +49,16 @@ const getUmuLogPath = (gameId?: string | null) =>
     ? path.join(logsPath, `umu-${gameId.replaceAll(/[^\w.-]/g, "_")}.log`)
     : getSharedUmuLogPath();
 
+const getUmuHomeEnvironment = (): NodeJS.ProcessEnv => {
+  // UMU stores managed Proton files under $HOME/.local/share/Steam.
+  // Keep this writable state inside Hydra's private Flatpak app data.
+  if (process.env.FLATPAK_ID !== "gg.hydralauncher.hydra") return {};
+
+  const umuHomePath = path.join(SystemPath.getPath("userData"), "umu-home");
+  fs.mkdirSync(umuHomePath, { recursive: true });
+  return { HOME: umuHomePath };
+};
+
 const appendUmuLogHeader = (umuLogPath: string, header: string) => {
   fs.appendFileSync(umuLogPath, header);
   const sharedLogPath = getSharedUmuLogPath();
@@ -308,6 +318,7 @@ export class Umu {
       ? [umuBinaryPath, "createprefix"]
       : ["createprefix"];
     const launchEnv = {
+      ...getUmuHomeEnvironment(),
       PROTON_LOG: "1",
       WINEPREFIX: options.winePrefixPath,
       ...(options.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
@@ -464,6 +475,7 @@ export class Umu {
         : {}),
       ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
       ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
+      ...getUmuHomeEnvironment(),
       ...resolvedLaunchCommand.env,
     };
 
