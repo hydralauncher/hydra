@@ -2567,7 +2567,7 @@
     "uploading_body_other": "Subiendo {{count}} capturas",
     "uploading_progress": "{{done}} de {{total}}",
     "uploading_title": "Subiendo capturas",
-    "visibility_friends": "Amigos",
+    "visibility_friends": "Solo amigos",
     "visibility_label": "Quién puede verla",
     "visibility_private": "Solo yo",
     "visibility_public": "Todos"

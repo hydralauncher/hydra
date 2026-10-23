@@ -2839,7 +2839,7 @@
     "uploading_body_other": "Uploading {{count}} screenshots",
     "uploading_progress": "{{done}} of {{total}}",
     "uploading_title": "Uploading screenshots",
-    "visibility_friends": "Friends",
+    "visibility_friends": "Friends only",
     "visibility_label": "Who can see it",
     "visibility_private": "Only me",
     "visibility_public": "Everyone"

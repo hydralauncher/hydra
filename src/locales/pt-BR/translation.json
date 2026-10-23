@@ -2843,9 +2843,9 @@
     "uploading_body_other": "Enviando {{count}} capturas",
     "uploading_progress": "{{done}} de {{total}}",
     "uploading_title": "Enviando capturas",
-    "visibility_friends": "Amigos",
+    "visibility_friends": "Somente amigos",
     "visibility_label": "Quem pode ver",
-    "visibility_private": "Só eu",
+    "visibility_private": "Somente eu",
     "visibility_public": "Todos"
   },
   "screenshots_moderation": {

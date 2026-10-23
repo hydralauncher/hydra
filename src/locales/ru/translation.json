@@ -2628,7 +2628,7 @@
     "uploading_body_other": "Загружаются {{count}} скриншота",
     "uploading_progress": "{{done}} из {{total}}",
     "uploading_title": "Загрузка скриншотов",
-    "visibility_friends": "Друзья",
+    "visibility_friends": "Только друзья",
     "visibility_label": "Кто может видеть",
     "visibility_private": "Только я",
     "visibility_public": "Все"
