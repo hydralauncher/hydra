@@ -12,6 +12,7 @@ enum Feature {
   NimbusPreview = "NIMBUS_PREVIEW",
   ChatImages = "CHAT_IMAGES",
   Screenshots = "SCREENSHOTS",
+  ScreenshotComments = "SCREENSHOT_COMMENTS",
   GameLeaderboardsExtended = "GAME_LEADERBOARDS_EXTENDED",
   GlobalLeaderboards = "GLOBAL_LEADERBOARDS",
 }

@@ -55,6 +55,7 @@
     "@tiptap/extension-italic": "^3.6.2",
     "@tiptap/extension-link": "^3.6.2",
     "@tiptap/extension-underline": "^3.6.2",
+    "@tiptap/pm": "^3.6.7",
     "@tiptap/react": "^3.6.2",
     "@tiptap/starter-kit": "^3.6.2",
     "auto-launch": "^5.0.6",

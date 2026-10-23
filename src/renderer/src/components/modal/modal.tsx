@@ -10,7 +10,8 @@ import cn from "classnames";
 
 export interface ModalProps {
   visible: boolean;
-  title: React.ReactNode;
+  title?: React.ReactNode;
+  headerContent?: React.ReactNode;
   description?: React.ReactNode;
   onClose: () => void;
   onCloseStart?: () => void;
@@ -24,6 +25,7 @@ export interface ModalProps {
 export function Modal({
   visible,
   title,
+  headerContent,
   description,
   onClose,
   onCloseStart,
@@ -62,7 +64,7 @@ export function Modal({
     )
       return false;
 
-    const openModals = document.querySelectorAll("[role=dialog]");
+    const openModals = document.querySelectorAll("[role=dialog], dialog[open]");
 
     return (
       openModals.length &&
@@ -140,11 +142,17 @@ export function Modal({
         ref={modalContentRef}
         data-hydra-dialog
       >
-        <div className="modal__header">
-          <div className="modal__header-title">
-            <h3>{title}</h3>
-            {description && <p id={descriptionId}>{description}</p>}
-          </div>
+        <div
+          className={cn("modal__header", {
+            "modal__header--custom": headerContent,
+          })}
+        >
+          {headerContent ?? (
+            <div className="modal__header-title">
+              <h3>{title}</h3>
+              {description && <p id={descriptionId}>{description}</p>}
+            </div>
+          )}
 
           <button
             type="button"
@@ -164,6 +172,6 @@ export function Modal({
         </div>
       </div>
     </Backdrop>,
-    document.body
+    document.fullscreenElement ?? document.body
   );
 }

@@ -47,6 +47,14 @@
       gap: 4px;
       flex-direction: column;
     }
+
+    &--custom {
+      padding-block: globals.$spacing-unit;
+
+      .modal__close-button {
+        align-self: center;
+      }
+    }
   }
 
   &__close-button {

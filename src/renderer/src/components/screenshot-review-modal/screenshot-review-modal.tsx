@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import type { LocalScreenshot, ScreenshotReview } from "@types";
-import { FullscreenMediaModal, Modal } from "@renderer/components";
+import { Modal } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
+import { GalleryLightbox } from "@renderer/pages/game-details/gallery-slider/gallery-lightbox";
+import type { GalleryMediaItem } from "@renderer/pages/game-details/gallery-slider/gallery-slider";
 import { logger } from "@renderer/logger";
 
 import { ReviewFilmstrip } from "./review-filmstrip";
@@ -215,6 +217,21 @@ function ScreenshotReviewContent({
     };
   }, [flushDrafts]);
 
+  const viewerItems = useMemo<GalleryMediaItem[]>(
+    () =>
+      selectedScreenshot
+        ? [
+            {
+              id: selectedScreenshot.clientId,
+              type: "image",
+              src: getLocalImageSource(selectedScreenshot.path),
+              alt: selectedScreenshot.gameTitle,
+            },
+          ]
+        : [],
+    [selectedScreenshot]
+  );
+
   const selectedIndex = selectedScreenshot
     ? reviewScreenshots.indexOf(selectedScreenshot)
     : -1;
@@ -329,12 +346,18 @@ function ScreenshotReviewContent({
         )}
       </div>
 
-      <FullscreenMediaModal
-        visible={isViewerOpen && !!selectedScreenshot}
-        onClose={() => setIsViewerOpen(false)}
-        src={selectedScreenshot && getLocalImageSource(selectedScreenshot.path)}
-        alt={selectedScreenshot?.gameTitle}
-      />
+      {viewerItems.length > 0 && (
+        <GalleryLightbox
+          visible={isViewerOpen}
+          fullscreen
+          items={viewerItems}
+          index={0}
+          showFilmstrip={false}
+          showCounter={false}
+          onNavigate={() => undefined}
+          onClose={() => setIsViewerOpen(false)}
+        />
+      )}
     </Modal>
   );
 }

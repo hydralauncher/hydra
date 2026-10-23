@@ -13,7 +13,7 @@ export const getFocusableElements = (container: HTMLElement) =>
   Array.from(
     container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
   ).filter(
-    (element) => !element.hasAttribute("inert") && element.tabIndex >= 0
+    (element) => element.closest("[inert]") === null && element.tabIndex >= 0
   );
 
 export const moveFocusWithinContainer = (

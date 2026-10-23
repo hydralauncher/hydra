@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import { createPortal, flushSync } from "react-dom";
 import cn from "classnames";
@@ -15,6 +16,7 @@ import {
 } from "@primer/octicons-react";
 import { CornersIn, CornersOut, Play } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
+import { moveFocusWithinContainer } from "@renderer/hooks/use-focus-trap";
 import {
   FULLSCREEN_IDLE_TIMEOUT_MS,
   GALLERY_VIEWER_TOOLTIP_ID,
@@ -27,7 +29,12 @@ import {
 import { GalleryVideoSlot, type GalleryVideoHost } from "./gallery-video-host";
 import type { GalleryMediaItem } from "./gallery-slider";
 import { useDragScroll } from "./use-drag-scroll";
-import { isPointerActivity, normalizeShortcutKey } from "./gallery-shortcuts";
+import {
+  isEditableTarget,
+  isPointerActivity,
+  isTopmostDialog,
+  normalizeShortcutKey,
+} from "./gallery-shortcuts";
 import "./gallery-lightbox.scss";
 
 const ESCAPE_AFTER_FULLSCREEN_EXIT_MS = 300;
@@ -95,6 +102,12 @@ export interface GalleryViewerPresentation {
   borrowedVideoIds: string[];
 }
 
+export interface GalleryImageRenderContext {
+  isFullscreen: boolean;
+  onReady: () => void;
+  onToggleFullscreen: () => void;
+}
+
 export interface GalleryLightboxProps {
   visible: boolean;
   items: GalleryMediaItem[];
@@ -102,14 +115,35 @@ export interface GalleryLightboxProps {
   fullscreen?: boolean;
   initialChromeHidden?: boolean;
   autoplay?: boolean;
-  videoHosts: Map<string, GalleryVideoHost>;
-  videoHoldsChrome: boolean;
-  toggleFullscreenRef: React.MutableRefObject<(() => void) | null>;
-  getVideoHandle: (id: string) => GalleryVideoPlayerHandle | undefined;
-  onPresentationChange: (presentation: GalleryViewerPresentation) => void;
+  videoHosts?: Map<string, GalleryVideoHost>;
+  videoHoldsChrome?: boolean;
+  toggleFullscreenRef?: React.MutableRefObject<(() => void) | null>;
+  getVideoHandle?: (id: string) => GalleryVideoPlayerHandle | undefined;
+  onPresentationChange?: (presentation: GalleryViewerPresentation) => void;
+  renderImage?: (
+    item: GalleryMediaItem,
+    context: GalleryImageRenderContext
+  ) => ReactNode;
+  renderSidebar?: (item: GalleryMediaItem, index: number) => ReactNode;
+  getCaption?: (
+    item: GalleryMediaItem,
+    context: { isSidebarOpen: boolean }
+  ) => string | null;
+  showFilmstrip?: boolean;
+  showCounter?: boolean;
+  hasMoreAfter?: boolean;
+  trapFocus?: boolean;
+  onNavigatePastEnd?: () => void;
   onClose: (index: number, playback?: GalleryPlaybackState) => void;
   onNavigate: (index: number) => void;
 }
+
+const NO_VIDEO_HOSTS = new Map<string, GalleryVideoHost>();
+const getNoVideoHandle = (): GalleryVideoPlayerHandle | undefined => undefined;
+
+const isInsideScrollable = (target: EventTarget | null) =>
+  target instanceof Element &&
+  target.closest("[data-gallery-scrollable], [role='dialog']") !== null;
 
 interface StageLayer {
   key: number;
@@ -117,11 +151,11 @@ interface StageLayer {
   ready: boolean;
 }
 
-interface GalleryLightboxImageProps {
+interface GalleryLightboxImageProps extends GalleryImageRenderContext {
   item: GalleryMediaItem;
-  isFullscreen: boolean;
-  onReady: () => void;
-  onToggleFullscreen: () => void;
+  imageClassName?: string;
+  children?: ReactNode;
+  onImageError?: () => void;
 }
 
 const preventFocusOnClick = (event: React.MouseEvent) => event.preventDefault();
@@ -149,11 +183,14 @@ const isActivatingFocusedControl = (
   return target.closest("button") !== null;
 };
 
-function GalleryLightboxImage({
+export function GalleryLightboxImage({
   item,
   isFullscreen,
+  imageClassName,
+  children,
   onReady,
   onToggleFullscreen,
+  onImageError,
 }: Readonly<GalleryLightboxImageProps>) {
   const { t } = useTranslation("game_details");
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
@@ -177,7 +214,7 @@ function GalleryLightboxImage({
         src={item.src}
         alt={item.alt}
         draggable={false}
-        className="gallery-lightbox__image"
+        className={cn("gallery-lightbox__image", imageClassName)}
         onLoad={(event) => {
           const { naturalWidth, naturalHeight } = event.currentTarget;
           handleLoaded(
@@ -186,9 +223,14 @@ function GalleryLightboxImage({
               : DEFAULT_ASPECT_RATIO
           );
         }}
-        onError={() => handleLoaded(DEFAULT_ASPECT_RATIO)}
+        onError={() => {
+          handleLoaded(DEFAULT_ASPECT_RATIO);
+          onImageError?.();
+        }}
         onDoubleClick={onToggleFullscreen}
       />
+
+      {children}
 
       {!isFullscreen && (
         <button
@@ -209,22 +251,37 @@ function GalleryLightboxImage({
   );
 }
 
+const renderDefaultImage = (
+  item: GalleryMediaItem,
+  context: GalleryImageRenderContext
+) => <GalleryLightboxImage item={item} {...context} />;
+
 function GalleryLightboxContent({
   items,
   index,
   fullscreen = false,
   initialChromeHidden = false,
   autoplay = true,
-  videoHosts,
-  videoHoldsChrome,
+  videoHosts = NO_VIDEO_HOSTS,
+  videoHoldsChrome = false,
   toggleFullscreenRef,
-  getVideoHandle,
+  getVideoHandle = getNoVideoHandle,
   onPresentationChange,
+  renderImage,
+  renderSidebar,
+  getCaption,
+  showFilmstrip: allowFilmstrip = true,
+  showCounter = true,
+  hasMoreAfter = false,
+  trapFocus = false,
+  onNavigatePastEnd,
   onClose,
   onNavigate,
 }: Readonly<Omit<GalleryLightboxProps, "visible">>) {
   const { t } = useTranslation("game_details");
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const filmstripRef = useRef<HTMLDivElement>(null);
   const filmstripDrag = useDragScroll();
   const idleTimerRef = useRef<number>();
@@ -257,11 +314,24 @@ function GalleryLightboxContent({
   const item = items[index];
   const isVideo = item?.type === "video";
   const hasPrevious = index > 0;
-  const hasNext = index < items.length - 1;
+  const hasNext = index < items.length - 1 || hasMoreAfter;
+  const hasSidebar = Boolean(renderSidebar);
+  const isSidebarOpen = hasSidebar && !isFullscreen;
+
+  useEffect(() => {
+    const sidebar = sidebarRef.current;
+    if (!sidebar) return;
+    sidebar.toggleAttribute("inert", !isSidebarOpen);
+    if (!isSidebarOpen && sidebar.contains(document.activeElement)) {
+      rootRef.current?.focus({ preventScroll: true });
+    }
+  }, [isSidebarOpen]);
+
   const platform = window.electron?.platform;
 
   isFullscreenRef.current = isFullscreen;
   indexRef.current = index;
+  const renderLayerImage = renderImage ?? renderDefaultImage;
 
   const close = useCallback(() => {
     const currentIndex = indexRef.current;
@@ -350,6 +420,14 @@ function GalleryLightboxContent({
 
   const navigate = useCallback(
     (nextIndex: number) => {
+      if (
+        nextIndex >= items.length &&
+        nextIndex === index + 1 &&
+        hasMoreAfter
+      ) {
+        onNavigatePastEnd?.();
+        return;
+      }
       if (nextIndex < 0 || nextIndex >= items.length || nextIndex === index) {
         return;
       }
@@ -363,7 +441,15 @@ function GalleryLightboxContent({
       }
       onNavigate(nextIndex);
     },
-    [items, index, autoplay, getVideoHandle, onNavigate]
+    [
+      items,
+      index,
+      autoplay,
+      hasMoreAfter,
+      getVideoHandle,
+      onNavigate,
+      onNavigatePastEnd,
+    ]
   );
 
   const holdPage = useCallback(() => {
@@ -550,7 +636,15 @@ function GalleryLightboxContent({
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (!isTopmostDialog(dialogRef.current)) return;
+      if (trapFocus && event.key === "Tab" && rootRef.current) {
+        event.preventDefault();
+        event.stopPropagation();
+        moveFocusWithinContainer(rootRef.current, event.shiftKey);
+        return;
+      }
       if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (isEditableTarget(event.target)) return;
       if (isActivatingFocusedControl(event, rootRef.current)) return;
 
       const video = isVideo && item ? (getVideoHandle(item.id) ?? null) : null;
@@ -614,16 +708,28 @@ function GalleryLightboxContent({
       if (result === "wake") wake();
     };
 
+    const onTypingEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (!isEditableTarget(event.target)) return;
+      if (!rootRef.current?.contains(event.target as Node)) return;
+      if (!isTopmostDialog(dialogRef.current)) return;
+      event.preventDefault();
+      handleEscape(null);
+    };
+
     window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("keydown", onTypingEscape);
 
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("keydown", onTypingEscape);
     };
   }, [
     isVideo,
     item,
     index,
     items.length,
+    trapFocus,
     getVideoHandle,
     navigate,
     close,
@@ -637,6 +743,7 @@ function GalleryLightboxContent({
     if (!root) return undefined;
 
     const onWheel = (event: WheelEvent) => {
+      if (isInsideScrollable(event.target)) return;
       event.preventDefault();
       const filmstrip = filmstripRef.current;
       if (filmstrip?.contains(event.target as Node)) {
@@ -733,7 +840,7 @@ function GalleryLightboxContent({
     .join("|");
 
   useEffect(() => {
-    onPresentationChange({
+    onPresentationChange?.({
       isFullscreen,
       chromeHidden,
       activeVideoId,
@@ -748,6 +855,7 @@ function GalleryLightboxContent({
   ]);
 
   useEffect(() => {
+    if (!toggleFullscreenRef) return undefined;
     toggleFullscreenRef.current = toggleFullscreen;
     return () => {
       toggleFullscreenRef.current = null;
@@ -756,10 +864,13 @@ function GalleryLightboxContent({
 
   if (!item) return null;
 
-  const showFilmstrip = items.length > 1 && !(isFullscreen && isVideo);
+  const showFilmstrip =
+    allowFilmstrip && items.length > 1 && !(isFullscreen && isVideo);
+  const caption = getCaption ? getCaption(item, { isSidebarOpen }) : item.alt;
 
   return (
     <dialog
+      ref={dialogRef}
       open
       className="gallery-lightbox-dialog"
       data-hydra-dialog
@@ -772,6 +883,7 @@ function GalleryLightboxContent({
           "gallery-lightbox--fullscreen": isFullscreen,
           "gallery-lightbox--chrome-hidden": chromeHidden,
           "gallery-lightbox--with-filmstrip": showFilmstrip,
+          "gallery-lightbox--with-sidebar": isSidebarOpen,
           "gallery-lightbox--titlebar-offset":
             !isFullscreen && (platform === "win32" || platform === "darwin"),
         })}
@@ -800,21 +912,18 @@ function GalleryLightboxContent({
                   "gallery-lightbox__layer--leaving": !isTop && topLayer.ready,
                 })}
               >
-                {layerItem.type === "video" ? (
-                  videoHosts.has(layerItem.id) && (
-                    <GalleryVideoSlot
-                      host={videoHosts.get(layerItem.id)!}
-                      mode="borrow"
-                    />
-                  )
-                ) : (
-                  <GalleryLightboxImage
-                    item={layerItem}
-                    isFullscreen={isFullscreen}
-                    onReady={() => markLayerReady(layer.key)}
-                    onToggleFullscreen={toggleFullscreen}
-                  />
-                )}
+                {layerItem.type === "video"
+                  ? videoHosts.has(layerItem.id) && (
+                      <GalleryVideoSlot
+                        host={videoHosts.get(layerItem.id)!}
+                        mode="borrow"
+                      />
+                    )
+                  : renderLayerImage(layerItem, {
+                      isFullscreen,
+                      onReady: () => markLayerReady(layer.key),
+                      onToggleFullscreen: toggleFullscreen,
+                    })}
               </div>
             );
           })}
@@ -825,10 +934,14 @@ function GalleryLightboxContent({
           data-gallery-chrome
         >
           <div className="gallery-lightbox__heading">
-            <span className="gallery-lightbox__counter">
-              {index + 1} / {items.length}
-            </span>
-            <span className="gallery-lightbox__title">{item.alt}</span>
+            {showCounter && (
+              <span className="gallery-lightbox__counter">
+                {index + 1} / {items.length}
+              </span>
+            )}
+            {caption && (
+              <span className="gallery-lightbox__title">{caption}</span>
+            )}
           </div>
 
           {!isFullscreen && (
@@ -953,6 +1066,18 @@ function GalleryLightboxContent({
                 <CornersIn size={34} weight="bold" />
               </button>
             )}
+          </div>
+        )}
+
+        {renderSidebar && (
+          <div
+            ref={sidebarRef}
+            className="gallery-lightbox__sidebar"
+            hidden={!isSidebarOpen}
+            data-gallery-chrome
+            data-gallery-scrollable
+          >
+            {renderSidebar(item, index)}
           </div>
         )}
       </div>

@@ -245,6 +245,15 @@ $disc-menu-transition-duration: 0.15s;
     }
   }
 
+  &__my-screenshots {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    margin-top: calc(globals.$spacing-unit * 2);
+    padding-top: calc(globals.$spacing-unit * 2);
+    border-top: 1px solid globals.$border-color;
+  }
+
   &__category-note {
     font-size: globals.$small-font-size;
     color: globals.$muted-color;

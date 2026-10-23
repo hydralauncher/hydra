@@ -56,6 +56,15 @@ export * from "./souvenir-sync";
 export * from "./game-content-warning";
 export * from "./screenshot-preferences";
 export * from "./screenshot-moderation";
+export * from "./screenshots";
+export * from "./screenshot-feed-writes";
+export * from "./screenshot-image-refresh";
+export * from "./screenshot-spoiler-paging";
+export * from "./screenshot-write-bus";
+export * from "./screenshot-settings";
+export * from "./my-game-screenshots";
+export * from "./use-screenshot-image-fallback";
+export * from "./rich-text";
 export * from "./local-screenshots";
 
 export class UserNotLoggedInError extends Error {

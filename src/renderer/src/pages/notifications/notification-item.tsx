@@ -7,6 +7,7 @@ import {
   HeartFillIcon,
   CommentDiscussionIcon,
   GiftIcon,
+  BlockedIcon,
 } from "@primer/octicons-react";
 import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
 import { useTranslation } from "react-i18next";
@@ -14,11 +15,30 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@renderer/components";
 import { useDate, useUserDetails } from "@renderer/hooks";
 import cn from "classnames";
-import { buildSouvenirNotificationTarget } from "@shared";
+import {
+  buildScreenshotNotificationTarget,
+  buildSouvenirNotificationTarget,
+  isScreenshotNotificationType,
+} from "@shared";
 
 import type { Notification, Badge } from "@types";
 import { openCloudGiftModal } from "../shared-modals/cloud-gift-modal.events";
 import "./notification-item.scss";
+
+const PROFILE_DEEP_LINK_PARAMS = ["tab", "souvenir", "screenshot"];
+
+const buildProfileTarget = (userId: string, searchParams: URLSearchParams) => {
+  const params = new URLSearchParams();
+  for (const key of PROFILE_DEEP_LINK_PARAMS) {
+    const value = searchParams.get(key);
+    if (value) params.set(key, value);
+  }
+
+  const queryString = params.toString();
+  return queryString
+    ? `/profile/${userId}?${queryString}`
+    : `/profile/${userId}`;
+};
 
 const parseNotificationUrl = (notificationUrl: string): string => {
   const url = new URL(notificationUrl, "http://localhost");
@@ -29,7 +49,7 @@ const parseNotificationUrl = (notificationUrl: string): string => {
   const reviewId = url.searchParams.get("reviewId");
 
   if (url.pathname === "/profile" && userId) {
-    return `/profile/${userId}`;
+    return buildProfileTarget(userId, url.searchParams);
   }
 
   if (url.pathname === "/badges" && badgeName) {
@@ -55,13 +75,29 @@ const parseNotificationUrl = (notificationUrl: string): string => {
   return notificationUrl;
 };
 
+const getNotificationUrl = (notification: Notification) => {
+  if (notification.url) return notification.url;
+  if (!isScreenshotNotificationType(notification.type)) return null;
+
+  const ownerId = notification.variables.ownerId;
+  return ownerId ? `/profile/${encodeURIComponent(ownerId)}` : null;
+};
+
 const getNotificationTarget = (notification: Notification) => {
-  if (!notification.url) return null;
+  const url = getNotificationUrl(notification);
+  if (!url) return null;
 
-  const target = parseNotificationUrl(notification.url);
-  if (notification.type !== "SOUVENIR_LIKE") return target;
+  const target = parseNotificationUrl(url);
 
-  return buildSouvenirNotificationTarget(target, notification.variables);
+  if (notification.type === "SOUVENIR_LIKE") {
+    return buildSouvenirNotificationTarget(target, notification.variables);
+  }
+
+  if (isScreenshotNotificationType(notification.type)) {
+    return buildScreenshotNotificationTarget(target, notification.variables);
+  }
+
+  return target;
 };
 
 interface NotificationItemProps {
@@ -142,6 +178,11 @@ export function NotificationItem({
     [notification.id, onDismiss]
   );
 
+  const screenshotGameTitle =
+    notification.variables.gameTitle ||
+    notification.variables.customGameTitle ||
+    t("screenshot_custom_game");
+
   const getNotificationContent = () => {
     switch (notification.type) {
       case "FRIEND_REQUEST_RECEIVED":
@@ -212,6 +253,33 @@ export function NotificationItem({
           }),
           showActions: false,
         };
+      case "SCREENSHOT_LIKE":
+        return {
+          title: t("screenshot_like_title", { gameTitle: screenshotGameTitle }),
+          description: t("screenshot_like_description", {
+            count: Number(notification.variables.likeCount ?? 1),
+          }),
+          showActions: false,
+        };
+      case "SCREENSHOT_COMMENT":
+        return {
+          title: t("screenshot_comment_title", {
+            gameTitle: screenshotGameTitle,
+          }),
+          description: t("screenshot_comment_description", {
+            gameTitle: screenshotGameTitle,
+            count: Number(notification.variables.commentCount ?? 1),
+          }),
+          showActions: false,
+        };
+      case "SCREENSHOT_BLOCKED":
+        return {
+          title: t("screenshot_blocked_title"),
+          description: t("screenshot_blocked_description", {
+            gameTitle: screenshotGameTitle,
+          }),
+          showActions: false,
+        };
       case "RETROACHIEVEMENTS_CREDENTIALS_RESTORED":
         return {
           title: t("retroachievements_credentials_restored_title"),
@@ -261,6 +329,8 @@ export function NotificationItem({
   const isReviewAnswerUpvote = notification.type === "REVIEW_ANSWER_UPVOTE";
   const isReview = isReviewUpvote || isReviewAnswer || isReviewAnswerUpvote;
   const isSouvenirLike = notification.type === "SOUVENIR_LIKE";
+  const isScreenshotLike = notification.type === "SCREENSHOT_LIKE";
+  const isScreenshotComment = notification.type === "SCREENSHOT_COMMENT";
 
   const isRetroAchievements =
     notification.type === "RETROACHIEVEMENTS_CREDENTIALS_RESTORED" ||
@@ -277,13 +347,16 @@ export function NotificationItem({
     if (isReviewUpvote || isReviewAnswerUpvote) {
       return <StarFillIcon size={24} />;
     }
-    if (isReviewAnswer) {
+    if (isReviewAnswer || isScreenshotComment) {
       return <CommentDiscussionIcon size={24} />;
+    }
+    if (notification.type === "SCREENSHOT_BLOCKED") {
+      return <BlockedIcon size={24} />;
     }
     if (notification.type === "CLOUD_GIFT_RECEIVED") {
       return <GiftIcon size={24} />;
     }
-    if (isSouvenirLike) {
+    if (isSouvenirLike || isScreenshotLike) {
       return <HeartFillIcon size={24} />;
     }
     return <PersonIcon size={24} />;
