@@ -2343,7 +2343,8 @@ export default function Downloads() {
     return [
       ...(hasInstaller &&
       completedStep !== "install" &&
-      completedStep !== "installing"
+      completedStep !== "installing" &&
+      completedStep !== "extracting"
         ? [
             {
               id: "run-installer",

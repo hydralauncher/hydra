@@ -40,7 +40,11 @@ export function ExecutablePickerModal({
 }: Readonly<ExecutablePickerModalProps>) {
   const { t } = useTranslation("game_details");
   const { showErrorToast } = useBigPictureToast();
-  const [initialPath, setInitialPath] = useState("");
+  const [resolvedPath, setResolvedPath] = useState<{
+    key: string;
+    path: string;
+  } | null>(null);
+  const targetKey = target ? `${target.shop}:${target.objectId}` : null;
 
   const filters = useMemo(
     () =>
@@ -56,8 +60,10 @@ export function ExecutablePickerModal({
 
     let cancelled = false;
 
+    const key = `${target.shop}:${target.objectId}`;
+
     void getInitialPath(target).then((path) => {
-      if (!cancelled) setInitialPath(path);
+      if (!cancelled) setResolvedPath({ key, path });
     });
 
     return () => {
@@ -100,11 +106,11 @@ export function ExecutablePickerModal({
 
   return (
     <FileExplorerModal
-      visible={target !== null}
+      visible={target !== null && resolvedPath?.key === targetKey}
       onClose={onClose}
       onSelect={(executablePath) => void handleSelect(executablePath)}
       title={t("select_executable", { ns: "downloads" })}
-      initialPath={initialPath}
+      initialPath={resolvedPath?.path ?? ""}
       filters={filters}
     />
   );

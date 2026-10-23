@@ -42,9 +42,7 @@ const LAUNCHER_FOLDERS = new Set([
 ]);
 
 const getChangedAt = (stats: fs.Stats) =>
-  process.platform === "win32"
-    ? stats.birthtimeMs
-    : Math.max(stats.birthtimeMs, stats.mtimeMs);
+  Math.max(stats.birthtimeMs, stats.mtimeMs);
 
 const unique = (values: (string | null | undefined)[]) => [
   ...new Set(values.filter((value): value is string => !!value)),

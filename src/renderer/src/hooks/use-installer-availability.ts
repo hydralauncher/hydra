@@ -2,6 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import type { LibraryGame } from "@types";
 import { getFinishedDownload } from "@shared";
 
+interface LiveAvailability {
+  folderKey: string;
+  hasInstaller: boolean;
+}
+
+const toFolderKey = (game: LibraryGame) =>
+  `${game.download?.folderName}:${game.download?.extracting}`;
+
 const toRequestKey = (games: LibraryGame[]) =>
   games
     .filter((game) => getFinishedDownload(game))
@@ -12,7 +20,9 @@ const toRequestKey = (games: LibraryGame[]) =>
     .join("|");
 
 export function useInstallerAvailability(games: LibraryGame[]) {
-  const [availability, setAvailability] = useState<Record<string, boolean>>({});
+  const [availability, setAvailability] = useState<
+    Record<string, LiveAvailability>
+  >({});
   const gamesRef = useRef(games);
   gamesRef.current = games;
 
@@ -47,7 +57,10 @@ export function useInstallerAvailability(games: LibraryGame[]) {
           .hasGameInstaller(game.shop, game.objectId)
           .catch(() => false);
 
-        return [game.id, hasInstaller] as const;
+        return [
+          game.id,
+          { folderKey: toFolderKey(game), hasInstaller },
+        ] as const;
       })
     ).then((results) => {
       if (cancelled) return;
@@ -63,11 +76,17 @@ export function useInstallerAvailability(games: LibraryGame[]) {
     };
   }, [requestKey]);
 
-  const storedAvailability = Object.fromEntries(
-    games
-      .filter((game) => game.download?.hasInstaller !== undefined)
-      .map((game) => [game.id, game.download?.hasInstaller === true])
-  );
+  const result: Record<string, boolean> = {};
 
-  return { ...availability, ...storedAvailability };
+  for (const game of games) {
+    const live = availability[game.id];
+
+    if (live?.folderKey === toFolderKey(game)) {
+      result[game.id] = live.hasInstaller;
+    } else if (game.download?.hasInstaller !== undefined) {
+      result[game.id] = game.download.hasInstaller;
+    }
+  }
+
+  return result;
 }

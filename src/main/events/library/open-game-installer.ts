@@ -1,5 +1,6 @@
 import { shell } from "electron";
 import fs from "node:fs";
+import path from "node:path";
 import { spawn } from "node:child_process";
 
 import { registerEvent } from "../register-event";
@@ -42,6 +43,7 @@ const INSTALLER_STARTED_MARKER = "HYDRA_INSTALLER_STARTED";
 const INSTALLER_EXIT_MARKER = "HYDRA_INSTALLER_EXIT=";
 
 const QUICK_INSTALLER_EXIT_MS = 15_000;
+const MAX_INSTALLER_TRACKING_MS = 2 * 60 * 60_000;
 const ELEVATION_ERROR_CODES = new Set(["EACCES", "UNKNOWN"]);
 
 const runningInstallers = new Set<string>();
@@ -77,6 +79,7 @@ interface SpawnInstallerConfig {
   failureMessage: string;
   onExit: (code: number | null, output: string) => void;
   env?: NodeJS.ProcessEnv;
+  cwd?: string;
   captureOutput?: boolean;
 }
 
@@ -86,6 +89,7 @@ const spawnInstaller = async ({
   failureMessage,
   onExit,
   env,
+  cwd,
   captureOutput = false,
 }: SpawnInstallerConfig): Promise<SpawnInstallerResult> => {
   return await new Promise<SpawnInstallerResult>((resolve) => {
@@ -99,6 +103,7 @@ const spawnInstaller = async ({
         shell: false,
         windowsHide: captureOutput,
         env: env ?? process.env,
+        cwd,
       });
     } catch (error) {
       logger.error(failureMessage, error);
@@ -254,6 +259,7 @@ const executeGameInstaller = async (
     const direct = await spawnInstaller({
       command: filePath,
       args: [],
+      cwd: path.dirname(filePath),
       failureMessage: "Failed to execute game installer directly",
       onExit: options.onExit,
     });
@@ -277,6 +283,7 @@ const executeGameInstaller = async (
       const wine = await spawnInstaller({
         command: "wine",
         args: [filePath],
+        cwd: path.dirname(filePath),
         failureMessage: "Failed to execute game installer with wine",
         onExit: options.onExit,
       });
@@ -420,6 +427,7 @@ const openGameInstaller = async (
   });
 
   const afterLaunchRecorded = (callback: () => Promise<void>) => {
+    if (installerFinished) return;
     installerFinished = true;
     runningInstallers.delete(gameKey);
     void launchRecorded.then(callback).catch((error) => {
@@ -458,6 +466,25 @@ const openGameInstaller = async (
   });
 
   if (!launched || !tracked) runningInstallers.delete(gameKey);
+
+  if (launched && tracked && !installerFinished) {
+    setTimeout(() => {
+      if (installerFinished) return;
+
+      logger.info(
+        `[GameInstaller] Stopped tracking the installer for ${objectId} after it ran for two hours`
+      );
+      afterLaunchRecorded(async () => {
+        await updateInstallerState(gameKey, { installerRunning: false });
+        startInstalledExecutablePolling(
+          shop,
+          objectId,
+          installerStartedAt,
+          winePrefixPath
+        );
+      });
+    }, MAX_INSTALLER_TRACKING_MS).unref();
+  }
 
   try {
     if (launched) {

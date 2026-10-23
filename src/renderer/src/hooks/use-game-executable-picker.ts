@@ -40,7 +40,11 @@ export function useGameExecutablePicker() {
       const gameUsingPath =
         await window.electron.verifyExecutablePathInUse(executablePath);
 
-      if (gameUsingPath) {
+      const usedByAnotherGame =
+        gameUsingPath &&
+        (gameUsingPath.shop !== shop || gameUsingPath.objectId !== objectId);
+
+      if (usedByAnotherGame) {
         showErrorToast(
           t("executable_path_in_use", { game: gameUsingPath.title })
         );
