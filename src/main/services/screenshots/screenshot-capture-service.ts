@@ -17,8 +17,6 @@ import type {
 } from "@types";
 
 import { getAchievementScreenshotsDirectory } from "../achievement-screenshots-directory";
-import { emulatorSessions } from "../emulators/emulator-session-tracker";
-import { gamesPlaytime } from "../game-running-state";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import {
@@ -43,7 +41,6 @@ import { ScreenshotFrameWorker } from "./screenshot-frame-worker";
 import { writeScreenshotPreview } from "./screenshot-preview";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { resolveManualScreenshotPath } from "./screenshot-file-path";
-import { ScreenshotReviewWindows } from "./screenshot-review-windows";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 
 const CAPTURE_JPEG_QUALITY = 1;
@@ -153,10 +150,7 @@ export interface FinishCaptureOptions {
   capturedAt: Date;
   size: { width: number; height: number };
   defaultVisibility: ProfileVisibility;
-  askToUploadAfterGame: boolean;
   source: ScreenshotTriggerSource;
-  gameWindowHandle: string | null;
-  isGameRunning: () => boolean;
   ownerId?: string | null;
   previewPath?: string | null;
   playFeedback?: boolean;
@@ -173,10 +167,7 @@ export const finishCapture = async ({
   capturedAt,
   size,
   defaultVisibility,
-  askToUploadAfterGame,
   source,
-  gameWindowHandle,
-  isGameRunning,
   ownerId = getSignedInOwnerId(),
   previewPath = null,
   playFeedback = true,
@@ -217,15 +208,6 @@ export const finishCapture = async ({
   }).catch((error) => {
     logger.error("Failed to show the screenshot toast", error);
   });
-
-  if (ownerId && askToUploadAfterGame) {
-    await ScreenshotReviewWindows.addCapture({
-      screenshot,
-      gameKey: target.gameKey,
-      gameWindowHandle,
-      isGameRunning,
-    });
-  }
 
   return screenshot;
 };
@@ -361,11 +343,7 @@ const captureScreenshot = async (
     capturedAt,
     size: { width: frame.width, height: frame.height },
     defaultVisibility: preferences.defaultVisibility,
-    askToUploadAfterGame: preferences.askToUploadAfterGame,
     source,
-    gameWindowHandle: foreground?.windowHandle ?? null,
-    isGameRunning: () =>
-      gamesPlaytime.has(target.gameKey) || emulatorSessions.has(target.gameKey),
     previewPath,
     playFeedback: false,
   });

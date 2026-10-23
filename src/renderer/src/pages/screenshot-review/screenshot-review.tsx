@@ -16,7 +16,6 @@ import {
   isScreenshotAwaitingReview,
   parseClientIds,
   selectReviewScreenshots,
-  toUploadOptions,
   type ScreenshotReviewDraft,
 } from "./screenshot-review-state";
 
@@ -37,18 +36,17 @@ export function ScreenshotReview() {
   const [screenshots, setScreenshots] = useState<LocalScreenshot[] | null>(
     null
   );
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(() =>
+    searchParams.get("selected")
+  );
   const [drafts, setDrafts] = useState<Record<string, ScreenshotReviewDraft>>(
     {}
   );
-  const [isBulkBusy, setIsBulkBusy] = useState(false);
   const hasLiveSnapshot = useRef(false);
-  const clientIdsRef = useRef(clientIds);
   const draftsRef = useRef(drafts);
   const draftSaveTimers = useRef(
     new Map<string, ReturnType<typeof setTimeout>>()
   );
-  clientIdsRef.current = clientIds;
   draftsRef.current = drafts;
 
   useEffect(() => {
@@ -67,8 +65,12 @@ export function ScreenshotReview() {
         );
       }
     );
-    const unsubscribeItems =
-      window.electron.onScreenshotReviewItemsChanged(setClientIds);
+    const unsubscribeItems = window.electron.onScreenshotReviewItemsChanged(
+      (nextClientIds, nextSelectedClientId) => {
+        setClientIds(nextClientIds);
+        if (nextSelectedClientId) setSelectedClientId(nextSelectedClientId);
+      }
+    );
 
     window.electron
       .getLocalScreenshots()
@@ -185,56 +187,6 @@ export function ScreenshotReview() {
     };
   }, [flushDrafts]);
 
-  const runBulk = async (
-    action: (
-      screenshot: LocalScreenshot,
-      draft: ScreenshotReviewDraft
-    ) => Promise<unknown>
-  ) => {
-    setIsBulkBusy(true);
-    try {
-      const latest = await window.electron.getLocalScreenshots();
-      const targets = selectReviewScreenshots(
-        latest,
-        clientIdsRef.current
-      ).filter(isScreenshotAwaitingReview);
-      const results = await Promise.allSettled(
-        targets.map((screenshot) =>
-          action(
-            screenshot,
-            draftsRef.current[screenshot.clientId] ??
-              createReviewDraft(screenshot)
-          )
-        )
-      );
-      for (const result of results) {
-        if (result.status === "rejected") {
-          logger.error(
-            "Failed to apply the bulk screenshot action",
-            result.reason
-          );
-        }
-      }
-    } catch (error) {
-      logger.error("Failed to load screenshots for the bulk action", error);
-    } finally {
-      setIsBulkBusy(false);
-    }
-  };
-
-  const handleUploadAll = () =>
-    runBulk((screenshot, draft) =>
-      window.electron.uploadLocalScreenshot(
-        screenshot.clientId,
-        toUploadOptions(screenshot, draft)
-      )
-    );
-
-  const handleKeepAll = () =>
-    runBulk((screenshot) =>
-      window.electron.skipLocalScreenshot(screenshot.clientId)
-    );
-
   const title = isMultiple
     ? t("review_count", { count: reviewScreenshots.length })
     : t("review_title");
@@ -287,7 +239,6 @@ export function ScreenshotReview() {
                   className={cn("screenshot-review__thumb", {
                     "screenshot-review__thumb--selected": isSelected,
                   })}
-                  disabled={isBulkBusy}
                   onClick={() => {
                     flushDrafts();
                     setSelectedClientId(screenshot.clientId);
@@ -338,10 +289,6 @@ export function ScreenshotReview() {
               updateDraft(selectedScreenshot.clientId, draft)
             }
             canClose={!isMultiple}
-            isLocked={isBulkBusy}
-            pendingCount={pendingScreenshots.length}
-            onUploadAll={handleUploadAll}
-            onKeepAll={handleKeepAll}
           />
         )}
       </main>

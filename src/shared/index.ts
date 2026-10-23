@@ -57,7 +57,6 @@ export * from "./game-content-warning";
 export * from "./screenshot-preferences";
 export * from "./screenshot-moderation";
 export * from "./local-screenshots";
-export * from "./use-local-screenshot-viewer";
 
 export class UserNotLoggedInError extends Error {
   constructor() {

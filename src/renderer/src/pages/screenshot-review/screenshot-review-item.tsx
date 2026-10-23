@@ -20,10 +20,6 @@ import { logger } from "@renderer/logger";
 
 import { ScreenshotReviewStatus } from "./screenshot-review-status";
 import {
-  ScreenshotReviewSplitButton,
-  type ScreenshotReviewMenuAction,
-} from "./screenshot-review-split-button";
-import {
   getLocalImageSource,
   isScreenshotAwaitingReview,
   isScreenshotEditable,
@@ -45,9 +41,6 @@ interface ScreenshotReviewItemProps {
   onDraftCommit?: () => void;
   canClose: boolean;
   isLocked?: boolean;
-  pendingCount?: number;
-  onUploadAll?: () => void;
-  onKeepAll?: () => void;
 }
 
 export function ScreenshotReviewItem({
@@ -57,9 +50,6 @@ export function ScreenshotReviewItem({
   onDraftCommit,
   canClose,
   isLocked = false,
-  pendingCount = 0,
-  onUploadAll,
-  onKeepAll,
 }: Readonly<ScreenshotReviewItemProps>) {
   const { t, i18n } = useTranslation("screenshots_capture");
   const [isActionBusy, setIsActionBusy] = useState(false);
@@ -108,22 +98,6 @@ export function ScreenshotReviewItem({
       "Failed to keep the screenshot on this computer"
     );
 
-  const hasBulkActions = pendingCount > 1;
-  const uploadMenuActions: ScreenshotReviewMenuAction[] =
-    hasBulkActions && onUploadAll
-      ? [
-          {
-            label: t("upload_all", { count: pendingCount }),
-            icon: <UploadIcon size={16} />,
-            onSelect: onUploadAll,
-          },
-        ]
-      : [];
-  const keepMenuActions: ScreenshotReviewMenuAction[] =
-    hasBulkActions && onKeepAll
-      ? [{ label: t("keep_all", { count: pendingCount }), onSelect: onKeepAll }]
-      : [];
-
   const handleDescriptionSave = (description: string) => {
     onDraftChange({ ...draft, description });
     onDraftCommit?.();
@@ -167,16 +141,14 @@ export function ScreenshotReviewItem({
   );
 
   const renderUploadButton = () => (
-    <ScreenshotReviewSplitButton
+    <Button
       className="screenshot-review-item__upload"
       disabled={isBusy}
       onClick={handleUpload}
-      menuLabel={t("upload_more_options")}
-      menuActions={uploadMenuActions}
     >
       <UploadIcon size={16} />
       {t("upload")}
-    </ScreenshotReviewSplitButton>
+    </Button>
   );
 
   const renderActions = () => {
@@ -184,16 +156,14 @@ export function ScreenshotReviewItem({
       return (
         <>
           {renderUploadButton()}
-          <ScreenshotReviewSplitButton
+          <Button
             className="screenshot-review-item__keep"
             theme="outline"
             disabled={isBusy}
             onClick={handleKeep}
-            menuLabel={t("keep_more_options")}
-            menuActions={keepMenuActions}
           >
             {t("keep_on_computer")}
-          </ScreenshotReviewSplitButton>
+          </Button>
           {renderDeleteButton()}
         </>
       );

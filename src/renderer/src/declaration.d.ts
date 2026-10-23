@@ -1141,7 +1141,7 @@ declare global {
     ) => () => Electron.IpcRenderer;
     getScreenshotReviewItems: () => Promise<string[] | null>;
     onScreenshotReviewItemsChanged: (
-      cb: (clientIds: string[]) => void
+      cb: (clientIds: string[], selectedClientId: string | null) => void
     ) => () => Electron.IpcRenderer;
     getAchievementSouvenirSyncStatus: () => Promise<AchievementSouvenirSyncStatus>;
     getAchievementSouvenirSyncDetails: () => Promise<AchievementSouvenirSyncDetails>;
