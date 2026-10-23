@@ -61,15 +61,11 @@ export function useCatalogue() {
   }, [dispatch, i18n.language]);
 
   const getSteamPublishers = useCallback(() => {
-    window.electron.hydraApi
-      .get<string[]>("/catalogue/steam/publishers", { needsAuth: false })
-      .then(setSteamPublishers);
+    window.electron.getCatalogueNames("publishers").then(setSteamPublishers);
   }, []);
 
   const getSteamDevelopers = useCallback(() => {
-    window.electron.hydraApi
-      .get<string[]>("/catalogue/steam/developers", { needsAuth: false })
-      .then(setSteamDevelopers);
+    window.electron.getCatalogueNames("developers").then(setSteamDevelopers);
   }, []);
 
   const getDownloadSources = useCallback(() => {
