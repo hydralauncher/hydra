@@ -1550,6 +1550,7 @@ contextBridge.exposeInMainWorld("electron", {
         needsAuth?: boolean;
         needsSubscription?: boolean;
         ifModifiedSince?: Date;
+        timeout?: number;
       }
     ) =>
       ipcRenderer.invoke("hydraApiCall", {
@@ -1560,6 +1561,7 @@ contextBridge.exposeInMainWorld("electron", {
           needsAuth: options?.needsAuth,
           needsSubscription: options?.needsSubscription,
           ifModifiedSince: options?.ifModifiedSince,
+          timeout: options?.timeout,
         },
       }),
     post: (

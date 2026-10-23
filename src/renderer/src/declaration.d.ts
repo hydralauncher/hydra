@@ -1140,6 +1140,7 @@ declare global {
           needsAuth?: boolean;
           needsSubscription?: boolean;
           ifModifiedSince?: Date;
+          timeout?: number;
         }
       ) => Promise<T>;
       post: <T = unknown>(

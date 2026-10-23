@@ -73,6 +73,17 @@ export interface UserProfileContext {
 
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
 
+const LIBRARY_REQUEST_TIMEOUT_MS = 15_000;
+
+const requestLibraryPage = (url: string) =>
+  window.electron.hydraApi.get<{
+    library: UserGame[];
+    pinnedGames: UserGame[];
+  }>(url, { needsAuth: false, timeout: LIBRARY_REQUEST_TIMEOUT_MS });
+
+const fetchLibraryPage = (url: string) =>
+  requestLibraryPage(url).catch(() => requestLibraryPage(url));
+
 export const userProfileContext = createContext<UserProfileContext>({
   userProfile: null,
   heroBackground: DEFAULT_USER_PROFILE_BACKGROUND,
@@ -224,10 +235,7 @@ export function UserProfileContextProvider({
 
         const url = `/users/${userId}/library?${params.toString()}`;
 
-        const response = await window.electron.hydraApi.get<{
-          library: UserGame[];
-          pinnedGames: UserGame[];
-        }>(url, { needsAuth: false });
+        const response = await fetchLibraryPage(url);
 
         if (!isCurrentRequest()) return;
 
@@ -284,10 +292,7 @@ export function UserProfileContextProvider({
 
         const url = `/users/${userId}/library?${params.toString()}`;
 
-        const response = await window.electron.hydraApi.get<{
-          library: UserGame[];
-          pinnedGames: UserGame[];
-        }>(url, { needsAuth: false });
+        const response = await fetchLibraryPage(url);
 
         if (!isCurrentRequest()) return false;
 
