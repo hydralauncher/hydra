@@ -193,14 +193,16 @@ const deleteGameFolder = async (
     ? await listArchiveVolumes(sourceArchivePath)
     : [];
 
-  for (const archivePath of sourceArchivePaths) {
-    await deleteFile(archivePath).catch((error) => {
-      logger.error(
-        `[deleteGameFolder] Failed to delete source archive ${archivePath}`,
-        error
-      );
-    });
-  }
+  await Promise.all(
+    sourceArchivePaths.map((archivePath) =>
+      deleteFile(archivePath).catch((error) => {
+        logger.error(
+          `[deleteGameFolder] Failed to delete source archive ${archivePath}`,
+          error
+        );
+      })
+    )
+  );
 
   await downloadsSublevel.del(gameKey);
   await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
