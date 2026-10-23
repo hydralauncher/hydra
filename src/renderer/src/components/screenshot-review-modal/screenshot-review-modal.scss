@@ -2,84 +2,143 @@
 
 $review-hover-duration: 0.2s;
 $review-progress-duration: 0.2s;
+$review-fade-duration: 0.25s;
+$review-fade-size: 40px;
+
+@property --review-thumbs-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --review-thumbs-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
 
 .screenshot-review-modal {
-  width: 520px;
-  max-width: calc(100vw - globals.$spacing-unit * 8);
-  height: min(760px, calc(100vh - globals.$spacing-unit * 12));
+  width: min(1120px, calc(100vw - globals.$spacing-unit * 12));
+  max-width: none;
+  max-height: calc(100vh - globals.$spacing-unit * 8);
 
   .modal__content {
     display: flex;
-    flex: 1;
-    flex-direction: column;
     min-height: 0;
+    padding: calc(globals.$spacing-unit * 3);
     overflow: hidden;
   }
 }
 
 .screenshot-review {
-  display: flex;
+  display: grid;
   flex: 1;
-  flex-direction: column;
+  grid-template-areas:
+    "media side"
+    "strip side";
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  grid-template-rows: auto 1fr;
+  column-gap: calc(globals.$spacing-unit * 3);
+  row-gap: calc(globals.$spacing-unit * 2);
+  min-width: 0;
   min-height: 0;
-  overflow: hidden;
 
-  &__content {
+  &__done {
     display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-  }
-
-  &__toolbar {
-    display: flex;
-    flex-direction: column;
+    align-items: center;
     flex-shrink: 0;
     gap: globals.$spacing-unit;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+    background-color: rgba(28, 151, 73, 0.12);
+    border: 1px solid rgba(28, 151, 73, 0.4);
+    border-radius: 8px;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+
+    svg {
+      flex-shrink: 0;
+      color: globals.$success-color;
+    }
+
+    span {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+}
+
+.screenshot-review-filmstrip {
+  display: flex;
+  grid-area: strip;
+  align-items: center;
+  align-self: start;
+  gap: globals.$spacing-unit;
+  min-width: 0;
+
+  &__step {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     background-color: globals.$dark-background-color;
-    border-bottom: 1px solid globals.$border-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition:
+      background-color $review-hover-duration ease,
+      opacity $review-hover-duration ease;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.4;
+    }
   }
 
-  &__strip {
+  &__thumbs {
     display: flex;
+    flex: 1;
     gap: globals.$spacing-unit;
     min-width: 0;
+    padding: 2px;
     overflow-x: auto;
-    scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
-
-    &:hover {
-      scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
-    }
+    scrollbar-width: none;
+    --review-thumbs-fade-start: 0px;
+    --review-thumbs-fade-end: 0px;
+    transition:
+      --review-thumbs-fade-start $review-fade-duration ease,
+      --review-thumbs-fade-end $review-fade-duration ease;
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000000 var(--review-thumbs-fade-start),
+      #000000 calc(100% - var(--review-thumbs-fade-end)),
+      transparent 100%
+    );
 
     &::-webkit-scrollbar {
-      height: 4px;
-      background-color: transparent;
+      display: none;
     }
 
-    &::-webkit-scrollbar-thumb {
-      background-color: transparent;
-      border-radius: 4px;
+    &--fade-start {
+      --review-thumbs-fade-start: #{$review-fade-size};
     }
 
-    &:hover::-webkit-scrollbar-thumb {
-      background-color: rgba(255, 255, 255, 0.24);
-    }
-
-    &--overflowing {
-      padding-bottom: calc(globals.$spacing-unit / 2);
-      mask-image: linear-gradient(
-        to right,
-        #000000 calc(100% - 24px),
-        transparent
-      );
+    &--fade-end {
+      --review-thumbs-fade-end: #{$review-fade-size};
     }
   }
 
   &__thumb {
     position: relative;
-    flex: 0 0 calc((100% - 4 * #{globals.$spacing-unit}) / 5);
+    flex: 0 0 112px;
     aspect-ratio: 16 / 9;
     padding: 0;
     overflow: hidden;
@@ -87,7 +146,7 @@ $review-progress-duration: 0.2s;
     border: 2px solid transparent;
     border-radius: 6px;
     cursor: pointer;
-    opacity: 0.7;
+    opacity: 0.6;
     transition:
       opacity $review-hover-duration ease,
       border-color $review-hover-duration ease;
@@ -101,20 +160,16 @@ $review-progress-duration: 0.2s;
 
     &:hover,
     &:focus-visible {
-      opacity: 1;
+      opacity: 0.9;
     }
 
     &--selected {
       border-color: globals.$muted-color;
       opacity: 1;
     }
-
-    &:disabled {
-      cursor: progress;
-    }
   }
 
-  &__thumb-status {
+  &__status {
     position: absolute;
     top: 4px;
     right: 4px;
@@ -143,58 +198,41 @@ $review-progress-duration: 0.2s;
       background-color: globals.$error-color;
     }
   }
-
-  &__done {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    gap: globals.$spacing-unit;
-    margin: globals.$spacing-unit calc(globals.$spacing-unit * 2) 0;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
-    background-color: rgba(28, 151, 73, 0.12);
-    border: 1px solid rgba(28, 151, 73, 0.4);
-    border-radius: 8px;
-    color: globals.$muted-color;
-    font-size: globals.$small-font-size;
-
-    svg {
-      flex-shrink: 0;
-      color: globals.$success-color;
-    }
-
-    span {
-      flex: 1;
-      min-width: 0;
-    }
-  }
 }
 
 .screenshot-review-item {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
+  display: contents;
 
-  &__body {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
-    min-height: 0;
-    padding: calc(globals.$spacing-unit * 2);
-    overflow-y: auto;
+  &__media {
+    grid-area: media;
+    min-width: 0;
   }
 
   &__preview {
     position: relative;
-    flex: 1 1 252px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-    min-height: 160px;
+    max-height: calc(100vh - 320px);
+    aspect-ratio: 16 / 9;
+    padding: 0;
     overflow: hidden;
     background-color: #000000;
     border: 1px solid globals.$border-color;
-    border-radius: 6px;
+    border-radius: 8px;
+    cursor: zoom-in;
+    transition: border-color $review-hover-duration ease;
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    &:hover .screenshot-review-item__expand,
+    &:focus-visible .screenshot-review-item__expand {
+      opacity: 1;
+    }
   }
 
   &__image {
@@ -204,43 +242,22 @@ $review-progress-duration: 0.2s;
     object-fit: contain;
   }
 
-  &__meta {
+  &__expand {
+    position: absolute;
+    top: globals.$spacing-unit;
+    right: globals.$spacing-unit;
     display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit / 4);
-    min-width: 0;
-  }
-
-  &__game {
-    overflow: hidden;
-    font-size: 15px;
-    font-weight: 600;
-    color: globals.$muted-color;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  &__title-field {
-    align-self: flex-start;
-    max-width: 100%;
-    min-height: 36px;
-
-    .inline-edit-field__trigger,
-    .inline-edit-field__input {
-      font-size: 15px;
-      font-weight: 600;
-    }
-
-    .inline-edit-field__trigger {
-      min-width: 0;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
-
-    .inline-edit-field__input {
-      height: 34px;
-    }
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background-color: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    opacity: 0.7;
+    transition: opacity $review-hover-duration ease;
   }
 
   &__date {
@@ -262,10 +279,61 @@ $review-progress-duration: 0.2s;
     white-space: nowrap;
   }
 
-  &__form {
+  &__side {
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
+    grid-area: side;
+    gap: calc(globals.$spacing-unit * 2);
+    min-width: 0;
+    min-height: 0;
+  }
+
+  &__heading {
+    flex-shrink: 0;
+    min-width: 0;
+  }
+
+  &__game {
+    overflow: hidden;
+    font-size: 18px;
+    font-weight: 600;
+    color: globals.$muted-color;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  &__title-field {
+    align-self: flex-start;
+    max-width: 100%;
+    min-height: 36px;
+
+    .inline-edit-field__trigger,
+    .inline-edit-field__input {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .inline-edit-field__trigger {
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .inline-edit-field__input {
+      height: 36px;
+    }
+  }
+
+  &__fields {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    min-height: 0;
+    margin-inline: calc(globals.$spacing-unit * -0.5);
+    padding: 0 calc(globals.$spacing-unit * 0.5) globals.$spacing-unit;
+    overflow-y: auto;
   }
 
   &__checkbox {
@@ -285,21 +353,17 @@ $review-progress-duration: 0.2s;
     display: flex;
     flex-shrink: 0;
     flex-wrap: wrap;
+    justify-content: flex-end;
     gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
-    background-color: globals.$dark-background-color;
-
-    > .button {
-      flex: 1;
-      min-width: 0;
-    }
+    padding-top: calc(globals.$spacing-unit * 2);
+    border-top: 1px solid globals.$border-color;
 
     > .screenshot-review-item__upload {
+      flex: 1;
       min-width: max-content;
     }
 
     > .screenshot-review-item__keep {
-      flex: 0 0 auto;
       white-space: nowrap;
     }
 

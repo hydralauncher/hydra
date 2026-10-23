@@ -14,14 +14,17 @@ export interface InlineEditFieldProps {
   disabled?: boolean;
   isSaving?: boolean;
   className?: string;
+  multiline?: boolean;
   sanitize?: (value: string) => string;
   onSave: (value: string) => Promise<boolean> | boolean;
 }
 
-const isTextKey = (event: React.KeyboardEvent<HTMLInputElement>) =>
+type InlineEditElement = HTMLInputElement | HTMLTextAreaElement;
+
+const isTextKey = (event: React.KeyboardEvent<InlineEditElement>) =>
   event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
 
-const getSelectionLength = (input: HTMLInputElement) =>
+const getSelectionLength = (input: InlineEditElement) =>
   (input.selectionEnd ?? 0) - (input.selectionStart ?? 0);
 
 export function InlineEditField({
@@ -33,6 +36,7 @@ export function InlineEditField({
   disabled = false,
   isSaving = false,
   className,
+  multiline = false,
   sanitize,
   onSave,
 }: Readonly<InlineEditFieldProps>) {
@@ -41,7 +45,7 @@ export function InlineEditField({
   const [lockedWidth, setLockedWidth] = useState<number | null>(null);
   const [isAtLimit, setIsAtLimit] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<InlineEditElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const isEditingRef = useRef(false);
   const shouldRestoreFocusRef = useRef(false);
@@ -110,7 +114,7 @@ export function InlineEditField({
     }, LIMIT_FEEDBACK_MS);
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (event: React.KeyboardEvent<InlineEditElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
       void commit(true);
@@ -131,18 +135,32 @@ export function InlineEditField({
     }
   };
 
-  const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+  const handlePaste = (event: React.ClipboardEvent<InlineEditElement>) => {
     const pasted = event.clipboardData.getData("text");
     const room =
       maxLength - value.length + getSelectionLength(event.currentTarget);
     if (pasted.length > room) signalLimit();
   };
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (event: React.ChangeEvent<InlineEditElement>) => {
     const raw = event.target.value;
     const next = sanitize ? sanitize(raw) : raw;
     if (raw.length > maxLength || next.length > maxLength) signalLimit();
     setValue(next.slice(0, maxLength));
+  };
+
+  const editorProps = {
+    className: "inline-edit-field__input",
+    value,
+    maxLength,
+    placeholder,
+    "aria-label": label,
+    "aria-invalid": isAtLimit || undefined,
+    disabled: isSaving,
+    onChange: handleChange,
+    onKeyDown: handleKeyDown,
+    onPaste: handlePaste,
+    onBlur: () => void commit(false),
   };
 
   return (
@@ -154,6 +172,7 @@ export function InlineEditField({
           "inline-edit-field--editing": isEditing,
           "inline-edit-field--disabled": disabled,
           "inline-edit-field--limit": isAtLimit,
+          "inline-edit-field--multiline": multiline,
         },
         className
       )}
@@ -163,22 +182,25 @@ export function InlineEditField({
         <rect className="inline-edit-field__outline-shape" />
       </svg>
 
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          className="inline-edit-field__input"
-          value={value}
-          maxLength={maxLength}
-          placeholder={placeholder}
-          aria-label={label}
-          aria-invalid={isAtLimit || undefined}
-          disabled={isSaving}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          onBlur={() => void commit(false)}
+      {isEditing && multiline && (
+        <textarea
+          ref={(element) => {
+            inputRef.current = element;
+          }}
+          {...editorProps}
         />
-      ) : (
+      )}
+
+      {isEditing && !multiline && (
+        <input
+          ref={(element) => {
+            inputRef.current = element;
+          }}
+          {...editorProps}
+        />
+      )}
+
+      {!isEditing && (
         <button
           ref={triggerRef}
           type="button"

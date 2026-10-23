@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TrashIcon, UploadIcon } from "@primer/octicons-react";
+import { ScreenFullIcon, TrashIcon, UploadIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import type { LocalScreenshot, ProfileVisibility } from "@types";
 import {
@@ -39,8 +39,10 @@ interface ScreenshotReviewItemProps {
   draft: ScreenshotReviewDraft;
   onDraftChange: (draft: ScreenshotReviewDraft) => void;
   onDraftCommit?: () => void;
+  onExpand: () => void;
   canClose: boolean;
   onClose: () => void;
+  notice?: React.ReactNode;
   isLocked?: boolean;
 }
 
@@ -49,8 +51,10 @@ export function ScreenshotReviewItem({
   draft,
   onDraftChange,
   onDraftCommit,
+  onExpand,
   canClose,
   onClose,
+  notice,
   isLocked = false,
 }: Readonly<ScreenshotReviewItemProps>) {
   const { t, i18n } = useTranslation("screenshots_capture");
@@ -153,11 +157,18 @@ export function ScreenshotReviewItem({
     </Button>
   );
 
+  const renderCloseButton = () =>
+    canClose && (
+      <Button theme="outline" onClick={onClose}>
+        {t("close")}
+      </Button>
+    );
+
   const renderActions = () => {
     if (isScreenshotAwaitingReview(screenshot)) {
       return (
         <>
-          {renderUploadButton()}
+          {renderDeleteButton()}
           <Button
             className="screenshot-review-item__keep"
             theme="outline"
@@ -166,7 +177,7 @@ export function ScreenshotReviewItem({
           >
             {t("keep_on_computer")}
           </Button>
-          {renderDeleteButton()}
+          {renderUploadButton()}
         </>
       );
     }
@@ -174,8 +185,8 @@ export function ScreenshotReviewItem({
     if (isScreenshotKeptLocally(screenshot)) {
       return (
         <>
-          {renderUploadButton()}
           {renderDeleteButton()}
+          {renderUploadButton()}
         </>
       );
     }
@@ -183,28 +194,18 @@ export function ScreenshotReviewItem({
     if (screenshot.state === "failed") {
       return (
         <>
+          {renderDeleteButton()}
+          {renderCloseButton()}
           {isScreenshotUploadRetryable(screenshot.lastError) && (
             <Button disabled={isBusy} onClick={handleUpload}>
               {t("retry")}
-            </Button>
-          )}
-          {renderDeleteButton()}
-          {canClose && (
-            <Button theme="outline" onClick={onClose}>
-              {t("close")}
             </Button>
           )}
         </>
       );
     }
 
-    if (screenshot.state === "uploaded" && canClose) {
-      return (
-        <Button theme="outline" onClick={onClose}>
-          {t("close")}
-        </Button>
-      );
-    }
+    if (screenshot.state === "uploaded") return renderCloseButton() || null;
 
     return null;
   };
@@ -216,26 +217,36 @@ export function ScreenshotReviewItem({
       className="screenshot-review-item"
       data-client-id={screenshot.clientId}
     >
-      <div className="screenshot-review-item__body">
-        <div className="screenshot-review-item__preview">
+      <div className="screenshot-review-item__media">
+        <button
+          type="button"
+          className="screenshot-review-item__preview"
+          onClick={onExpand}
+          aria-label={t("screenshot_alt", {
+            game: screenshot.gameTitle,
+            date: capturedAt,
+          })}
+        >
           <img
             src={getLocalImageSource(screenshot.previewPath ?? screenshot.path)}
-            alt={t("screenshot_alt", {
-              game: screenshot.gameTitle,
-              date: capturedAt,
-            })}
+            alt=""
             className="screenshot-review-item__image"
             draggable={false}
           />
+          <span className="screenshot-review-item__expand" aria-hidden>
+            <ScreenFullIcon size={16} />
+          </span>
           <time
             className="screenshot-review-item__date"
             dateTime={new Date(screenshot.capturedAt).toISOString()}
           >
             {capturedAt}
           </time>
-        </div>
+        </button>
+      </div>
 
-        <div className="screenshot-review-item__meta">
+      <div className="screenshot-review-item__side">
+        <div className="screenshot-review-item__heading">
           {isTitleEditable ? (
             <InlineEditField
               className="screenshot-review-item__title-field"
@@ -254,7 +265,11 @@ export function ScreenshotReviewItem({
           )}
         </div>
 
-        <div className="screenshot-review-item__form">
+        <div className="screenshot-review-item__fields">
+          {notice}
+
+          <ScreenshotReviewStatus screenshot={screenshot} />
+
           <InlineEditField
             className="screenshot-review-item__description"
             label={t("description_label")}
@@ -262,6 +277,7 @@ export function ScreenshotReviewItem({
             initialValue={draft.description}
             maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
             sanitize={sanitizeScreenshotDescriptionInput}
+            multiline
             allowEmpty
             disabled={isFormDisabled}
             onSave={handleDescriptionSave}
@@ -291,12 +307,10 @@ export function ScreenshotReviewItem({
           />
         </div>
 
-        <ScreenshotReviewStatus screenshot={screenshot} />
+        {actions && (
+          <div className="screenshot-review-item__actions">{actions}</div>
+        )}
       </div>
-
-      {actions && (
-        <div className="screenshot-review-item__actions">{actions}</div>
-      )}
 
       <ConfirmationModal
         visible={isDeleteModalVisible}
