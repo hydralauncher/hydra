@@ -1130,6 +1130,7 @@ declare global {
     deleteLocalScreenshot: (clientId: string) => Promise<void>;
     openScreenshotReview: (clientId: string) => Promise<void>;
     closeScreenshotReview: () => Promise<void>;
+    releaseBigPictureScreenshotReview: (clientIds: string[]) => Promise<void>;
     openScreenshotsFolder: () => Promise<void>;
     getScreenshotsFolderPath: () => Promise<string>;
     onLocalScreenshotsChange: (
