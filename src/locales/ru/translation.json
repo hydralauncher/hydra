@@ -2578,6 +2578,7 @@
   },
   "screenshots_capture": {
     "cancel": "Отмена",
+    "capture_failed": "Не удалось сделать скриншот",
     "captured": "Скриншот сделан",
     "custom_game_default_title": "Своя игра",
     "custom_game_title_edit": "Изменить название игры",
@@ -2679,6 +2680,7 @@
     "failure_blocked_limit_reached": "Загрузка заблокирована",
     "failure_network": "Ошибка сети",
     "failure_tier_limit": "Превышен лимит тарифа",
+    "feedback_capture_failed": "Уведомление: ошибка снимка",
     "feedback_captured": "Уведомление: снято",
     "feedback_disabled_for_game": "Уведомление: отключено для игры",
     "feedback_group": "Только отклик",

@@ -260,10 +260,12 @@ $margin-bottom: 28px;
   }
 
   &--screenshot &__icon {
-    min-width: 112px;
-    width: 112px;
-    flex: 0 0 112px;
-    object-fit: cover;
+    display: flex;
+    flex: 0 0 64px;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.06);
+    color: globals.$muted-color;
   }
 
   &--screenshot &__additional-overlay {

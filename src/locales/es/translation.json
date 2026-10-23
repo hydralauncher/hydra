@@ -2521,6 +2521,7 @@
   },
   "screenshots_capture": {
     "cancel": "Cancelar",
+    "capture_failed": "No se pudo hacer la captura",
     "captured": "Captura realizada",
     "custom_game_default_title": "Juego personalizado",
     "custom_game_title_edit": "Editar el título del juego",
@@ -2614,6 +2615,7 @@
     "failure_blocked_limit_reached": "Subida bloqueada",
     "failure_network": "Error de red",
     "failure_tier_limit": "Supera el límite del plan",
+    "feedback_capture_failed": "Aviso: captura fallida",
     "feedback_captured": "Aviso: capturada",
     "feedback_disabled_for_game": "Aviso: desactivada para este juego",
     "feedback_group": "Solo respuesta",

@@ -312,7 +312,7 @@ export interface ScreenshotTelemetryEvent {
   count: number;
 }
 
-export type ScreenshotFeedbackToast =
-  | { kind: "captured"; gameTitle: string; thumbnailPath: string }
-  | { kind: "saved_locally"; gameTitle: string; thumbnailPath: string }
-  | { kind: "disabled_for_game"; gameTitle: string };
+export interface ScreenshotFeedbackToast {
+  kind: "captured" | "saved_locally" | "disabled_for_game" | "capture_failed";
+  gameTitle: string;
+}

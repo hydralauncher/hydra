@@ -37,6 +37,7 @@ const FEEDBACK_KINDS: ScreenshotsDevFeedbackKind[] = [
   "captured",
   "saved_locally",
   "disabled_for_game",
+  "capture_failed",
 ];
 const MODERATION_OUTCOMES: ScreenshotsDevModerationOutcome[] = [
   "APPROVED",

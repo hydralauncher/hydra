@@ -24,6 +24,7 @@ import { logger } from "../logger";
 import { ScreenshotInputService } from "../screenshot-input";
 import { WindowManager } from "../window-manager";
 import { GameContentWarningCache } from "./content-warning-cache";
+import { forgetForegroundGame } from "./foreground-game";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import {
   findLocalScreenshotGameObjectId,
@@ -108,6 +109,9 @@ export const onScreenshotGameStarted = async (
     if (!(await isScreenshotCaptureAvailable())) return;
 
     ScreenshotFeedback.prepare();
+    void ScreenshotFeedback.prepareToast().catch((error) => {
+      logger.error("Failed to prepare the screenshot toast", error);
+    });
     if (isWaylandSession()) {
       void prepareLinuxGameCaptureSession(gameKey, "screenshot");
     } else if (process.platform === "win32" || process.platform === "linux") {
@@ -120,6 +124,7 @@ export const onScreenshotGameStarted = async (
 
 export const onScreenshotGameClosed = (gameKey: string) => {
   clearScreenshotGameSession(gameKey);
+  forgetForegroundGame(gameKey);
   if (!hasRunningGames()) releaseRunningGameResources();
 };
 

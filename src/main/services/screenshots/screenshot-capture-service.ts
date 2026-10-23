@@ -158,7 +158,7 @@ export interface FinishCaptureOptions {
   source: ScreenshotTriggerSource;
   ownerId?: string | null;
   previewPath?: string | null;
-  playFeedback?: boolean;
+  announce?: boolean;
   extra?: Partial<LocalScreenshot>;
 }
 
@@ -175,10 +175,10 @@ export const finishCapture = async ({
   source,
   ownerId = getSignedInOwnerId(),
   previewPath = null,
-  playFeedback = true,
+  announce = true,
   extra = {},
 }: FinishCaptureOptions) => {
-  if (playFeedback) playCaptureFeedback();
+  if (announce) announceCapture(gameTitle, ownerId);
 
   const screenshot = await LocalScreenshotStore.put({
     clientId: randomUUID(),
@@ -206,21 +206,23 @@ export const finishCapture = async ({
 
   ScreenshotTelemetry.record("capture", "saved", source);
 
-  void ScreenshotFeedback.showToast({
-    kind: ownerId ? "captured" : "saved_locally",
-    gameTitle,
-    thumbnailPath: previewPath ?? filePath,
-  }).catch((error) => {
-    logger.error("Failed to show the screenshot toast", error);
-  });
-
   return screenshot;
 };
 
-const playCaptureFeedback = () => {
+const showCaptureToast = (
+  kind: "captured" | "saved_locally" | "capture_failed",
+  gameTitle: string
+) => {
+  void ScreenshotFeedback.showToast({ kind, gameTitle }).catch((error) => {
+    logger.error("Failed to show the screenshot toast", error);
+  });
+};
+
+const announceCapture = (gameTitle: string, ownerId: string | null) => {
   void ScreenshotFeedback.playCaptureSound().catch((error) => {
     logger.error("Failed to play the screenshot capture sound", error);
   });
+  showCaptureToast(ownerId ? "captured" : "saved_locally", gameTitle);
 };
 
 const wrapNativeImage = (
@@ -330,8 +332,25 @@ const captureScreenshot = async (
 
   const { target, foreground } = resolved;
   const gameTitle = resolved.game?.title ?? target.title;
-  const warning = getContentWarning(target.shop, target.objectId);
   const capturedAt = new Date();
+
+  if (
+    isAdultGameContentWarning(
+      await getContentWarning(target.shop, target.objectId)
+    )
+  ) {
+    await rejectAdultGameCapture(gameTitle);
+    return;
+  }
+
+  const ownerId = getSignedInOwnerId();
+  announceCapture(gameTitle, ownerId);
+  timer.mark("feedback");
+
+  const failCapture = (error: unknown) => {
+    recordCaptureFailure(target.gameKey, error);
+    showCaptureToast("capture_failed", gameTitle);
+  };
 
   let frame: GrabbedScreenshotFrame;
   try {
@@ -344,33 +363,31 @@ const captureScreenshot = async (
       x11WindowId: foreground?.windowId,
     });
   } catch (error) {
-    recordCaptureFailure(target.gameKey, error);
+    failCapture(error);
     return;
   }
   timer.mark("frame");
 
   let images: EncodedScreenshotImages;
   try {
-    if (isAdultGameContentWarning(await warning)) {
-      await rejectAdultGameCapture(gameTitle);
-      return;
-    }
-
-    playCaptureFeedback();
-    timer.mark("feedback");
-
     images = await frame.encode(CAPTURE_JPEG_QUALITY);
   } catch (error) {
-    recordCaptureFailure(target.gameKey, error);
+    failCapture(error);
     return;
   } finally {
     frame.discard();
   }
   timer.mark("encoded");
 
-  const filePath = await resolveCaptureFilePath(gameTitle, capturedAt);
-  await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.promises.writeFile(filePath, images.jpeg);
+  let filePath: string;
+  try {
+    filePath = await resolveCaptureFilePath(gameTitle, capturedAt);
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.promises.writeFile(filePath, images.jpeg);
+  } catch (error) {
+    failCapture(error);
+    return;
+  }
   const previewPath = await writeScreenshotPreview(images.preview).catch(
     (error) => {
       logger.warn("Failed to write the screenshot preview", error);
@@ -387,8 +404,9 @@ const captureScreenshot = async (
     size: { width: frame.width, height: frame.height },
     defaultVisibility: preferences.defaultVisibility,
     source,
+    ownerId,
     previewPath,
-    playFeedback: false,
+    announce: false,
   });
   timer.mark("saved");
   timer.flush(target.gameKey);

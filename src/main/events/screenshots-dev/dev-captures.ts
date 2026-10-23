@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { resolveScreenshotPreferences } from "@shared";
@@ -14,7 +13,6 @@ import type {
 
 import { emulatorSessions } from "@main/services/emulators/emulator-session-tracker";
 import { gamesPlaytime } from "@main/services/game-running-state";
-import { SystemPath } from "@main/services/system-path";
 import {
   finishCapture,
   rejectAdultGameCapture,
@@ -26,8 +24,6 @@ import { onScreenshotGameClosed } from "@main/services/screenshots";
 
 const DEV_CAPTURE_JPEG_QUALITY = 100;
 const DEV_PREVIEW_JPEG_QUALITY = 85;
-const DEV_THUMBNAIL_WIDTH = 1280;
-const DEV_THUMBNAIL_HEIGHT = 720;
 const DEV_PATTERN_COLUMNS = 16;
 const DEV_PATTERN_ROWS = 9;
 const DEV_PATTERN_SATURATION = 55;
@@ -158,23 +154,4 @@ export const simulateGameClosed = (shop: GameShop, objectId: string) => {
   const gameKey = getGameKey(shop, objectId);
   simulatedRunningGameKeys.delete(gameKey);
   onScreenshotGameClosed(gameKey);
-};
-
-export const createDevThumbnail = async (label: string) => {
-  const rendered = await renderImage(
-    {
-      kind: "pattern",
-      width: DEV_THUMBNAIL_WIDTH,
-      height: DEV_THUMBNAIL_HEIGHT,
-    },
-    label
-  );
-  const directory = path.join(
-    SystemPath.getPath("temp"),
-    "hydra-screenshots-dev"
-  );
-  await fs.promises.mkdir(directory, { recursive: true });
-  const filePath = path.join(directory, `${randomUUID()}.jpeg`);
-  await fs.promises.writeFile(filePath, rendered.data);
-  return filePath;
 };

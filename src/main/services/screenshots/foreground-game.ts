@@ -50,6 +50,27 @@ const getTrackedGameTarget = (
 
 type ScreenshotGameCandidate = { target: ScreenshotGameTarget; game: Game };
 
+const matchedForegroundProcesses = new Map<number, string>();
+
+export const forgetForegroundGame = (gameKey: string) => {
+  for (const [processId, matchedGameKey] of matchedForegroundProcesses) {
+    if (matchedGameKey === gameKey)
+      matchedForegroundProcesses.delete(processId);
+  }
+};
+
+const findRememberedCandidate = (
+  candidates: ScreenshotGameCandidate[],
+  foreground: ForegroundWindowInfo
+) => {
+  if (foreground.processId === null) return null;
+  const gameKey = matchedForegroundProcesses.get(foreground.processId);
+  if (!gameKey) return null;
+  return (
+    candidates.find((candidate) => candidate.target.gameKey === gameKey) ?? null
+  );
+};
+
 const readGame = (gameKey: string) =>
   gamesSublevel.get(gameKey).catch(() => null);
 
@@ -173,6 +194,9 @@ export const resolveForegroundGame = async ({
   }
 
   if (foreground) {
+    const remembered = findRememberedCandidate(candidates, foreground);
+    if (remembered) return { ...remembered, foreground };
+
     const processes = toForegroundProcesses(await NativeAddon.listProcesses());
     const target = findForegroundGameTarget({
       platform: process.platform,
@@ -184,6 +208,9 @@ export const resolveForegroundGame = async ({
     });
 
     if (target) {
+      if (foreground.processId !== null) {
+        matchedForegroundProcesses.set(foreground.processId, target.gameKey);
+      }
       const game =
         candidates.find(
           (candidate) => candidate.target.gameKey === target.gameKey
