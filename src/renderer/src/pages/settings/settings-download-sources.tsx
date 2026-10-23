@@ -5,11 +5,14 @@ import {
   Button,
   Badge,
   ConfirmationModal,
+  Modal,
 } from "@renderer/components";
 import { useTranslation } from "react-i18next";
 
 import type { DownloadSource } from "@types";
 import {
+  DownloadIcon,
+  UploadIcon,
   NoEntryIcon,
   PlusCircleIcon,
   SyncIcon,
@@ -26,6 +29,7 @@ import { levelDBService } from "@renderer/services/leveldb.service";
 import { orderBy } from "lodash-es";
 import "./settings-download-sources.scss";
 import { logger } from "@renderer/logger";
+import { useDownloadSourceTransferStore } from "@renderer/features/download-source-transfer";
 
 export function SettingsDownloadSources() {
   const [
@@ -42,10 +46,14 @@ export function SettingsDownloadSources() {
   const [isRemovingDownloadSource, setIsRemovingDownloadSource] =
     useState(false);
 
+  const { activeTransfer, setActiveTransfer, importResult, setImportResult } =
+    useDownloadSourceTransferStore();
+  const isTransferringSources = activeTransfer !== null;
+
   const { sourceUrl, clearSourceUrl } = useContext(settingsContext);
 
   const { t } = useTranslation("settings");
-  const { showSuccessToast } = useToast();
+  const { showSuccessToast, showErrorToast } = useToast();
   const { numberFormatter } = useFormat();
 
   const dispatch = useAppDispatch();
@@ -57,17 +65,24 @@ export function SettingsDownloadSources() {
   }, [sourceUrl]);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchDownloadSources = async () => {
       const sources = (await levelDBService.values(
         "downloadSources"
       )) as DownloadSource[];
       const sorted = orderBy(sources, "createdAt", "desc");
+      if (cancelled) return;
       setDownloadSources(sorted);
       setHasLoadedDownloadSources(true);
     };
 
-    fetchDownloadSources();
-  }, []);
+    fetchDownloadSources().catch((error) =>
+      logger.error("Failed to fetch download sources:", error)
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTransfer]);
 
   useEffect(() => {
     const hasPendingOrMatchingSource = downloadSources.some(
@@ -76,7 +91,11 @@ export function SettingsDownloadSources() {
         source.status === DownloadSourceStatus.Matching
     );
 
-    if (!hasPendingOrMatchingSource || !downloadSources.length) {
+    if (
+      isTransferringSources ||
+      !hasPendingOrMatchingSource ||
+      !downloadSources.length
+    ) {
       return;
     }
 
@@ -94,7 +113,7 @@ export function SettingsDownloadSources() {
     }, 5000);
 
     return () => clearInterval(intervalId);
-  }, [downloadSources]);
+  }, [downloadSources, isTransferringSources]);
 
   const handleRemoveSource = async (downloadSource: DownloadSource) => {
     setIsRemovingDownloadSource(true);
@@ -145,6 +164,40 @@ export function SettingsDownloadSources() {
     }
   };
 
+  const exportDownloadSources = async () => {
+    setActiveTransfer("export");
+    try {
+      if (await window.electron.exportDownloadSources()) {
+        showSuccessToast(t("download_sources_exported"));
+      }
+    } catch (error) {
+      logger.error("Failed to export download sources:", error);
+      showErrorToast(t("download_sources_export_failed"));
+    } finally {
+      setActiveTransfer(null);
+    }
+  };
+
+  const importDownloadSources = async () => {
+    setActiveTransfer("import");
+    try {
+      const result = await window.electron.importDownloadSources();
+      if (result) {
+        setImportResult(result);
+      }
+    } catch (error) {
+      logger.error("Failed to import download sources:", error);
+      showErrorToast(t("download_sources_import_failed"));
+    } finally {
+      setActiveTransfer(null);
+    }
+  };
+
+  const isBusy =
+    isSyncingDownloadSources ||
+    isRemovingDownloadSource ||
+    isTransferringSources;
+
   const syncDownloadSources = async () => {
     setIsSyncingDownloadSources(true);
     try {
@@ -190,7 +243,7 @@ export function SettingsDownloadSources() {
   return (
     <>
       <AddDownloadSourceModal
-        visible={showAddDownloadSourceModal}
+        visible={showAddDownloadSourceModal && !isTransferringSources}
         onClose={handleModalClose}
         onAddDownloadSource={handleAddDownloadSource}
       />
@@ -203,25 +256,83 @@ export function SettingsDownloadSources() {
         visible={showConfirmationDeleteAllSourcesModal}
         title={t("title_confirmation_delete_all_sources")}
         onClose={() => setShowConfirmationDeleteAllSourcesModal(false)}
-        buttonsIsDisabled={isRemovingDownloadSource}
+        buttonsIsDisabled={isBusy}
       />
+
+      <Modal
+        visible={Boolean(importResult)}
+        title={t("download_sources_import_result")}
+        onClose={() => setImportResult(null)}
+      >
+        {importResult && (
+          <div className="settings-download-sources__import-result">
+            <p>
+              {t("download_sources_import_summary", {
+                ...importResult,
+                failedCount: importResult.failed.length,
+              })}
+            </p>
+            {importResult.failed.length > 0 && (
+              <>
+                <p>{t("download_sources_import_retry")}</p>
+                <ul className="settings-download-sources__failed-urls">
+                  {importResult.failed.map((url) => (
+                    <li key={url}>{url}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+            <Button type="button" onClick={() => setImportResult(null)}>
+              {t("header:close")}
+            </Button>
+          </div>
+        )}
+      </Modal>
 
       <p>{t("download_sources_description")}</p>
 
       <div className="settings-download-sources__header">
-        <Button
-          type="button"
-          theme="outline"
-          disabled={
-            (hasLoadedDownloadSources && !downloadSources.length) ||
-            isSyncingDownloadSources ||
-            isRemovingDownloadSource
-          }
-          onClick={syncDownloadSources}
-        >
-          <SyncIcon />
-          {t("sync_download_sources")}
-        </Button>
+        <div className="settings-download-sources__buttons-container">
+          <Button
+            type="button"
+            theme="outline"
+            disabled={
+              (hasLoadedDownloadSources && !downloadSources.length) || isBusy
+            }
+            onClick={syncDownloadSources}
+          >
+            <SyncIcon />
+            {t("sync_download_sources")}
+          </Button>
+          <Button
+            type="button"
+            theme="outline"
+            disabled={
+              !hasLoadedDownloadSources || !downloadSources.length || isBusy
+            }
+            onClick={exportDownloadSources}
+          >
+            <UploadIcon />
+            {t(
+              activeTransfer === "export"
+                ? "transferring_download_sources"
+                : "export_download_sources"
+            )}
+          </Button>
+          <Button
+            type="button"
+            theme="outline"
+            disabled={!hasLoadedDownloadSources || isBusy}
+            onClick={importDownloadSources}
+          >
+            <DownloadIcon />
+            {t(
+              activeTransfer === "import"
+                ? "transferring_download_sources"
+                : "import_download_sources"
+            )}
+          </Button>
+        </div>
 
         <div className="settings-download-sources__buttons-container">
           <Button
@@ -229,9 +340,7 @@ export function SettingsDownloadSources() {
             theme="danger"
             onClick={() => setShowConfirmationDeleteAllSourcesModal(true)}
             disabled={
-              isRemovingDownloadSource ||
-              isSyncingDownloadSources ||
-              (hasLoadedDownloadSources && !downloadSources.length)
+              isBusy || (hasLoadedDownloadSources && !downloadSources.length)
             }
           >
             <TrashIcon />
@@ -242,7 +351,7 @@ export function SettingsDownloadSources() {
             type="button"
             theme="outline"
             onClick={() => setShowAddDownloadSourceModal(true)}
-            disabled={isSyncingDownloadSources || isRemovingDownloadSource}
+            disabled={isBusy}
           >
             <PlusCircleIcon />
             {t("add_download_source")}
@@ -305,7 +414,7 @@ export function SettingsDownloadSources() {
                     type="button"
                     theme="outline"
                     onClick={() => handleRemoveSource(downloadSource)}
-                    disabled={isRemovingDownloadSource}
+                    disabled={isBusy}
                   >
                     <NoEntryIcon />
                     {t("remove_download_source")}
