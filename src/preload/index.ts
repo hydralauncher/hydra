@@ -1187,8 +1187,12 @@ contextBridge.exposeInMainWorld("electron", {
   } | null> => ipcRenderer.invoke("getActiveClassicsImport"),
   openGameInstaller: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstaller", shop, objectId),
-  getGameInstallerActionType: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("getGameInstallerActionType", shop, objectId),
+  hasGameInstaller: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("hasGameInstaller", shop, objectId),
+  hasDownloadFolder: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("hasDownloadFolder", shop, objectId),
+  getExecutablePickerPath: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getExecutablePickerPath", shop, objectId),
   openGameInstallerPath: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("openGameInstallerPath", shop, objectId),
   openGameWinetricks: (shop: GameShop, objectId: string) =>
@@ -1247,8 +1251,15 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("removeGameFromLibrary", shop, objectId),
   removeGame: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("removeGame", shop, objectId),
-  deleteGameFolder: (shop: GameShop, objectId: string) =>
-    ipcRenderer.invoke("deleteGameFolder", shop, objectId),
+  deleteGameFolder: (
+    shop: GameShop,
+    objectId: string,
+    options?: { deleteSourceArchive?: boolean }
+  ) => ipcRenderer.invoke("deleteGameFolder", shop, objectId, options),
+  recheckInstalledExecutable: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("recheckInstalledExecutable", shop, objectId),
+  hasSourceArchive: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("hasSourceArchive", shop, objectId),
   getGameByObjectId: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("getGameByObjectId", shop, objectId),
   resetGameAchievements: (shop: GameShop, objectId: string) =>
@@ -1322,6 +1333,19 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-classics-import-status", listener);
     return () =>
       ipcRenderer.removeListener("on-classics-import-status", listener);
+  },
+  onGameInstallerClosed: (
+    cb: (shop: GameShop, objectId: string, executableFound: boolean) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string,
+      executableFound: boolean
+    ) => cb(shop, objectId, executableFound);
+    ipcRenderer.on("on-game-installer-closed", listener);
+    return () =>
+      ipcRenderer.removeListener("on-game-installer-closed", listener);
   },
   onExtractionComplete: (cb: (shop: GameShop, objectId: string) => void) => {
     const listener = (

@@ -4,10 +4,15 @@ import {
   PlayIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import type { FocusItemActions } from "../../../../types";
 import type { FocusOverrides } from "../../../../services";
-import { Button, FocusItem, HorizontalFocusGroup } from "../../../common";
+import {
+  Button,
+  ControllerButtonGlyph,
+  FocusItem,
+  HorizontalFocusGroup,
+} from "../../../common";
 
 import "./game-card.scss";
 
@@ -27,6 +32,7 @@ interface DownloadsGameCardProps {
   onOpen: () => void;
   onPrimaryAction?: () => void;
   primaryActionLabel?: string;
+  primaryActionIcon?: ReactNode;
   onOpenOptions?: React.MouseEventHandler<HTMLButtonElement>;
   optionsLabel?: string;
   primaryActionDisabled?: boolean;
@@ -63,6 +69,7 @@ export function DownloadsGameCard({
   onOpen,
   onPrimaryAction,
   primaryActionLabel,
+  primaryActionIcon,
   onOpenOptions,
   optionsLabel = "Options",
   primaryActionDisabled = false,
@@ -84,7 +91,8 @@ export function DownloadsGameCard({
     (variant === "queue" || variant === "paused") && progressLabel != null;
   const showsProgressMeta = showsProgress && metaLabel != null;
   const showsRightMeta = variant === "completed" && metaLabel != null;
-  const primaryActionIcon =
+  const isLabeledPrimaryAction = variant === "completed";
+  const defaultPrimaryActionIcon =
     variant === "paused" ? (
       <PlayIcon size={22} weight="fill" />
     ) : (
@@ -197,9 +205,13 @@ export function DownloadsGameCard({
                   <Button
                     focusable={false}
                     variant="secondary"
-                    size="icon"
-                    className="downloads-game-card__action-button downloads-game-card__action-button--icon-only"
-                    icon={primaryActionIcon}
+                    size={isLabeledPrimaryAction ? "small" : "icon"}
+                    className={cn(
+                      "downloads-game-card__action-button",
+                      !isLabeledPrimaryAction &&
+                        "downloads-game-card__action-button--icon-only"
+                    )}
+                    icon={primaryActionIcon ?? defaultPrimaryActionIcon}
                     aria-label={primaryActionLabel}
                     disabled={primaryActionDisabled}
                     onClick={(event) => {
@@ -209,7 +221,14 @@ export function DownloadsGameCard({
                     onMouseDown={stopCardOpen}
                     focusId={primaryActionFocusId}
                   >
-                    {null}
+                    {isLabeledPrimaryAction ? (
+                      <span className="downloads-game-card__action-label">
+                        {primaryActionLabel}
+                        {primaryActionDisabled ? null : (
+                          <ControllerButtonGlyph button="X" />
+                        )}
+                      </span>
+                    ) : null}
                   </Button>
                 ) : null}
 

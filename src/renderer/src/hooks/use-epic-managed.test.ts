@@ -2096,6 +2096,10 @@ describe("Epic managed UI lifecycle", () => {
       }) => (visible ? React.createElement("section", null, children) : null);
       const hooks = {
         useDownload: () => ({ isGameDeleting: () => false }),
+        useGameExecutablePicker: () => async () => false,
+        useInstallerAvailability: () => ({}),
+        useDownloadFolderExists: () => null,
+        useFinishedDownloadStep: () => null,
         useLibrary: () => ({ updateLibrary: async () => {} }),
         useToast: () => ({
           showSuccessToast: () => {},
@@ -2127,6 +2131,7 @@ describe("Epic managed UI lifecycle", () => {
             getOfficialStoreMembers,
             isLibraryGameDownloading: () => false,
             applyLibraryGroupAction: async () => {},
+            getFinishedDownloadStep: () => null,
           },
           "../modals/disc-selection-modal": { DiscSelectionModal: () => null },
           "../modals/epic-cloud-save-conflict-modal": {

@@ -1,50 +1,134 @@
 import { shell } from "electron";
-import path from "node:path";
 import fs from "node:fs";
+import path from "node:path";
 import { spawn } from "node:child_process";
 
-import { getDownloadsPath } from "../helpers/get-downloads-path";
 import { registerEvent } from "../register-event";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { GameShop } from "@types";
-import { logger, Umu, Wine } from "@main/services";
+import type { Download, GameShop } from "@types";
+import {
+  GameFilesManager,
+  logger,
+  Umu,
+  Wine,
+  WindowManager,
+} from "@main/services";
+import { UmuEarlyExitError } from "@main/services/umu-launch-monitor";
+import {
+  findDownloadInstaller,
+  getDownloadFolderPath,
+} from "@main/helpers/find-game-installer";
+import {
+  startInstalledExecutablePolling,
+  stopInstalledExecutablePolling,
+} from "@main/helpers/installed-executable-poller";
 
-const launchInstallerWithWine = async (filePath: string): Promise<boolean> => {
-  return await new Promise<boolean>((resolve) => {
-    const child = spawn("wine", [filePath], {
-      detached: true,
-      stdio: "ignore",
-      shell: false,
-    });
+interface InstallerLaunchOptions {
+  gameId?: string;
+  winePrefixPath?: string | null;
+  protonPath?: string | null;
+  onExit: (exitCode: number | null) => void;
+  onCancel: () => void;
+  onUntrackedLaunch: () => void;
+}
+
+interface InstallerLaunchResult {
+  launched: boolean;
+  tracked: boolean;
+}
+
+const UAC_DECLINED_EXIT_CODE = 1223;
+const SUCCESS_EXIT_CODES = new Set([0, 1641, 3010]);
+const INSTALLER_STARTED_MARKER = "HYDRA_INSTALLER_STARTED";
+const INSTALLER_EXIT_MARKER = "HYDRA_INSTALLER_EXIT=";
+
+const QUICK_INSTALLER_EXIT_MS = 15_000;
+const MAX_INSTALLER_TRACKING_MS = 2 * 60 * 60_000;
+const ELEVATION_ERROR_CODES = new Set(["EACCES", "UNKNOWN"]);
+
+const runningInstallers = new Set<string>();
+
+const isSuccessfulExit = (exitCode: number | null) =>
+  exitCode !== null && SUCCESS_EXIT_CODES.has(exitCode);
+
+const ELEVATED_INSTALLER_COMMAND = [
+  "$ErrorActionPreference = 'Stop'",
+  "try {",
+  "$info = New-Object System.Diagnostics.ProcessStartInfo",
+  "$info.FileName = $env:HYDRA_INSTALLER_PATH",
+  "$info.WorkingDirectory = [System.IO.Path]::GetDirectoryName($env:HYDRA_INSTALLER_PATH)",
+  "$info.Verb = 'runas'",
+  "$info.UseShellExecute = $true",
+  "$installer = [System.Diagnostics.Process]::Start($info)",
+  `Write-Output '${INSTALLER_STARTED_MARKER}'`,
+  `if ($installer) { $installer.WaitForExit(); Write-Output ('${INSTALLER_EXIT_MARKER}' + $installer.ExitCode) }`,
+  "} catch {",
+  "$failure = $_.Exception.GetBaseException()",
+  `if ($failure.NativeErrorCode -eq ${UAC_DECLINED_EXIT_CODE}) { Write-Output '${INSTALLER_EXIT_MARKER}${UAC_DECLINED_EXIT_CODE}' } else { Write-Output $failure.Message }`,
+  "}",
+].join("; ");
+
+interface SpawnInstallerResult {
+  spawned: boolean;
+  errorCode: string | null;
+}
+
+interface SpawnInstallerConfig {
+  command: string;
+  args: string[];
+  failureMessage: string;
+  onExit: (code: number | null, output: string) => void;
+  env?: NodeJS.ProcessEnv;
+  cwd?: string;
+  captureOutput?: boolean;
+}
+
+const spawnInstaller = async ({
+  command,
+  args,
+  failureMessage,
+  onExit,
+  env,
+  cwd,
+  captureOutput = false,
+}: SpawnInstallerConfig): Promise<SpawnInstallerResult> => {
+  return await new Promise<SpawnInstallerResult>((resolve) => {
+    let child: ReturnType<typeof spawn>;
+    let output = "";
+
+    try {
+      child = spawn(command, args, {
+        detached: !captureOutput,
+        stdio: captureOutput ? ["ignore", "pipe", "pipe"] : "ignore",
+        shell: false,
+        windowsHide: captureOutput,
+        env: env ?? process.env,
+        cwd,
+      });
+    } catch (error) {
+      logger.error(failureMessage, error);
+      resolve({
+        spawned: false,
+        errorCode: (error as NodeJS.ErrnoException).code ?? null,
+      });
+      return;
+    }
+
+    const appendOutput = (chunk: Buffer) => {
+      output += chunk.toString();
+    };
+    child.stdout?.on("data", appendOutput);
+    child.stderr?.on("data", appendOutput);
 
     child.once("spawn", () => {
-      child.unref();
-      resolve(true);
+      child.once("close", (code) => onExit(code, output.trim()));
+      if (!captureOutput) child.unref();
+      resolve({ spawned: true, errorCode: null });
     });
 
-    child.once("error", (error) => {
-      logger.error("Failed to execute game installer with wine", error);
-      resolve(false);
-    });
-  });
-};
-
-const launchInstallerDirectly = async (filePath: string): Promise<boolean> => {
-  return await new Promise<boolean>((resolve) => {
-    const child = spawn(filePath, [], {
-      detached: true,
-      stdio: "ignore",
-      shell: false,
-    });
-
-    child.once("spawn", () => {
-      child.unref();
-      resolve(true);
-    });
-
-    child.once("error", (error) => {
-      logger.error("Failed to execute game installer directly", error);
-      resolve(false);
+    child.once("error", (error: NodeJS.ErrnoException) => {
+      logger.error(failureMessage, error);
+      resolve({ spawned: false, errorCode: error.code ?? null });
     });
   });
 };
@@ -54,44 +138,245 @@ const openPathAndCheck = async (filePath: string): Promise<boolean> => {
   return openError.length === 0;
 };
 
-const executeGameInstaller = async (
+const readOutputLines = (output: string) => output.split(/\r?\n/);
+
+const readInstallerExitCode = (output: string) => {
+  const markerLine = readOutputLines(output).find((line) =>
+    line.startsWith(INSTALLER_EXIT_MARKER)
+  );
+
+  return markerLine
+    ? Number(markerLine.slice(INSTALLER_EXIT_MARKER.length))
+    : null;
+};
+
+const handleElevatedInstallerExit = async (
+  code: number | null,
+  output: string,
   filePath: string,
-  options?: {
-    gameId?: string;
-    winePrefixPath?: string | null;
-    protonPath?: string | null;
-  }
+  options: InstallerLaunchOptions
 ) => {
-  if (process.platform === "win32") {
-    const launchedDirectly = await launchInstallerDirectly(filePath);
-    if (launchedDirectly) {
-      return true;
+  logger.info(
+    `[GameInstaller] PowerShell exited with code ${code}: ${output || "no output"}`
+  );
+
+  const installerExitCode = readInstallerExitCode(output);
+  if (installerExitCode !== null) return options.onExit(installerExitCode);
+
+  if (readOutputLines(output).includes(INSTALLER_STARTED_MARKER)) {
+    logger.info(
+      `[GameInstaller] Started ${filePath} with elevation but could not wait for it`
+    );
+    return options.onUntrackedLaunch();
+  }
+
+  logger.error("Failed to launch game installer with elevation");
+
+  if (await openPathAndCheck(filePath)) {
+    logger.info(`[GameInstaller] Opened ${filePath} untracked`);
+    return options.onUntrackedLaunch();
+  }
+
+  logger.error(`[GameInstaller] Could not open ${filePath}`);
+  options.onCancel();
+};
+
+const launchInstallerElevated = async (
+  filePath: string,
+  options: InstallerLaunchOptions
+) =>
+  spawnInstaller({
+    command: "powershell.exe",
+    args: [
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      ELEVATED_INSTALLER_COMMAND,
+    ],
+    failureMessage: "Failed to execute game installer with elevation",
+    onExit: (code, output) =>
+      void handleElevatedInstallerExit(code, output, filePath, options),
+    env: { ...process.env, HYDRA_INSTALLER_PATH: filePath },
+    captureOutput: true,
+  });
+
+const launchInstallerWithUmu = async (
+  filePath: string,
+  options: InstallerLaunchOptions
+) => {
+  let launched = false;
+
+  try {
+    await Umu.launchExecutable(filePath, [], {
+      gameId: options.gameId,
+      winePrefixPath: options.winePrefixPath,
+      protonPath: options.protonPath,
+      onExit: (exitCode) => {
+        if (launched) options.onExit(exitCode);
+      },
+    });
+  } catch (error) {
+    if (!(error instanceof UmuEarlyExitError) || error.failureMessage) {
+      throw error;
     }
 
-    return await openPathAndCheck(filePath);
+    logger.info(
+      `[GameInstaller] Installer exited early under umu-run: ${error.message}`
+    );
+    options.onExit(error.code);
+    return;
+  }
+
+  launched = true;
+};
+
+const trackedLaunch = (
+  filePath: string,
+  method: string
+): InstallerLaunchResult => {
+  logger.info(`[GameInstaller] Launched ${filePath} ${method}`);
+  return { launched: true, tracked: true };
+};
+
+const openUntracked = async (
+  filePath: string
+): Promise<InstallerLaunchResult> => {
+  const launched = await openPathAndCheck(filePath);
+
+  if (launched) logger.info(`[GameInstaller] Opened ${filePath} untracked`);
+  else logger.error(`[GameInstaller] Could not open ${filePath}`);
+
+  return { launched, tracked: false };
+};
+
+const executeGameInstaller = async (
+  filePath: string,
+  options: InstallerLaunchOptions
+): Promise<InstallerLaunchResult> => {
+  if (process.platform === "win32") {
+    const direct = await spawnInstaller({
+      command: filePath,
+      args: [],
+      cwd: path.dirname(filePath),
+      failureMessage: "Failed to execute game installer directly",
+      onExit: options.onExit,
+    });
+    if (direct.spawned) return trackedLaunch(filePath, "directly");
+
+    if (direct.errorCode && ELEVATION_ERROR_CODES.has(direct.errorCode)) {
+      const elevated = await launchInstallerElevated(filePath, options);
+      if (elevated.spawned) return trackedLaunch(filePath, "with elevation");
+    }
+
+    return await openUntracked(filePath);
   }
 
   if (process.platform === "linux") {
     try {
-      await Umu.launchExecutable(filePath, [], {
-        gameId: options?.gameId,
-        winePrefixPath: options?.winePrefixPath,
-        protonPath: options?.protonPath,
-      });
-      return true;
+      await launchInstallerWithUmu(filePath, options);
+      return trackedLaunch(filePath, "with umu-run");
     } catch (error) {
       logger.error("Failed to execute game installer with umu-run", error);
 
-      const launchedWithWine = await launchInstallerWithWine(filePath);
-      if (launchedWithWine) {
-        return true;
-      }
+      const wine = await spawnInstaller({
+        command: "wine",
+        args: [filePath],
+        cwd: path.dirname(filePath),
+        failureMessage: "Failed to execute game installer with wine",
+        onExit: options.onExit,
+      });
+      if (wine.spawned) return trackedLaunch(filePath, "with wine");
 
-      return await openPathAndCheck(filePath);
+      return await openUntracked(filePath);
     }
   }
 
-  return await openPathAndCheck(filePath);
+  return await openUntracked(filePath);
+};
+
+const describeInstallerExit = (exitCode: number | null) => {
+  if (exitCode === 0) return "completed";
+  if (isSuccessfulExit(exitCode)) {
+    return `completed and asked for a restart (exit code ${exitCode})`;
+  }
+  if (exitCode === UAC_DECLINED_EXIT_CODE) return "UAC prompt declined";
+  if (exitCode === null) return "terminated without an exit code";
+  return `cancelled or failed with exit code ${exitCode}`;
+};
+
+const updateInstallerState = async (
+  gameKey: string,
+  state: Pick<
+    Download,
+    "installerLaunched" | "installerRunning" | "installerStartedAt"
+  >
+) => {
+  const download = await downloadsSublevel.get(gameKey);
+  if (!download) return;
+
+  await downloadsSublevel.put(gameKey, { ...download, ...state });
+  WindowManager.sendDownloadsUpdated();
+};
+
+const handleInstallerExit = async (
+  shop: GameShop,
+  objectId: string,
+  installerStartedAt: number,
+  winePrefixPath: string | null,
+  exitCode: number | null
+) => {
+  logger.info(
+    `[GameInstaller] Installer for ${objectId} ${describeInstallerExit(exitCode)}`
+  );
+
+  const gameKey = levelKeys.game(shop, objectId);
+
+  if (!isSuccessfulExit(exitCode)) {
+    logger.info(`[GameInstaller] Reset ${objectId} back to Install`);
+    await updateInstallerState(gameKey, {
+      installerRunning: false,
+      installerLaunched: false,
+    });
+    return;
+  }
+
+  const executableFound = await new GameFilesManager(
+    shop,
+    objectId
+  ).searchAndBindInstalledExecutable(installerStartedAt, winePrefixPath);
+
+  const exitedQuickly =
+    Date.now() - installerStartedAt < QUICK_INSTALLER_EXIT_MS;
+
+  logger.info(
+    executableFound
+      ? `[GameInstaller] Found the installed executable for ${objectId}`
+      : `[GameInstaller] No installed executable found for ${objectId} yet, polling for it`
+  );
+
+  await updateInstallerState(gameKey, { installerRunning: false });
+
+  if (!executableFound) {
+    startInstalledExecutablePolling(
+      shop,
+      objectId,
+      installerStartedAt,
+      winePrefixPath
+    );
+  }
+
+  WindowManager.sendToAppWindows("on-library-batch-complete");
+
+  if (!executableFound && exitedQuickly) return;
+
+  WindowManager.sendToAppWindows(
+    "on-game-installer-closed",
+    shop,
+    objectId,
+    executableFound
+  );
 };
 
 const openGameInstaller = async (
@@ -99,22 +384,17 @@ const openGameInstaller = async (
   shop: GameShop,
   objectId: string
 ) => {
-  const downloadKey = levelKeys.game(shop, objectId);
-  const download = await downloadsSublevel.get(downloadKey);
-  const game = await gamesSublevel.get(downloadKey).catch(() => null);
-  const effectiveWinePrefixPath = Wine.getEffectivePrefixPath(
+  const gameKey = levelKeys.game(shop, objectId);
+  const download = await downloadsSublevel.get(gameKey);
+  const game = await gamesSublevel.get(gameKey).catch(() => null);
+  const winePrefixPath = Wine.getEffectivePrefixPath(
     game?.winePrefixPath,
     objectId
   );
 
-  if (!download?.folderName) return true;
+  const gamePath = download ? await getDownloadFolderPath(download) : null;
 
-  const gamePath = path.join(
-    download.downloadPath ?? (await getDownloadsPath()),
-    download.folderName
-  );
-
-  if (!fs.existsSync(gamePath)) {
+  if (!gamePath || !fs.existsSync(gamePath)) {
     return true;
   }
 
@@ -123,38 +403,107 @@ const openGameInstaller = async (
     return true;
   }
 
-  if (process.platform === "darwin") {
+  if (runningInstallers.has(gameKey) || download?.installerRunning) {
+    logger.info(`[GameInstaller] Installer for ${objectId} is already running`);
+    return true;
+  }
+
+  runningInstallers.add(gameKey);
+  stopInstalledExecutablePolling(gameKey);
+
+  const installerPath = await findDownloadInstaller(download).catch(() => null);
+
+  if (!installerPath) {
+    runningInstallers.delete(gameKey);
     shell.openPath(gamePath);
     return true;
   }
 
-  const setupPath = path.join(gamePath, "setup.exe");
-  if (fs.existsSync(setupPath)) {
-    return await executeGameInstaller(setupPath, {
-      gameId: objectId,
-      winePrefixPath: effectiveWinePrefixPath,
-      protonPath: game?.protonPath,
+  const installerStartedAt = Date.now();
+  let installerFinished = false;
+  let markLaunchRecorded = () => {};
+  const launchRecorded = new Promise<void>((resolve) => {
+    markLaunchRecorded = resolve;
+  });
+
+  const afterLaunchRecorded = (callback: () => Promise<void>) => {
+    if (installerFinished) return;
+    installerFinished = true;
+    runningInstallers.delete(gameKey);
+    void launchRecorded.then(callback).catch((error) => {
+      logger.error("Failed to update the installer state", error);
     });
+  };
+
+  const launchResult = await executeGameInstaller(installerPath, {
+    gameId: objectId,
+    winePrefixPath,
+    protonPath: game?.protonPath,
+    onExit: (exitCode) =>
+      afterLaunchRecorded(() =>
+        handleInstallerExit(
+          shop,
+          objectId,
+          installerStartedAt,
+          winePrefixPath,
+          exitCode
+        )
+      ),
+    onCancel: () =>
+      afterLaunchRecorded(() =>
+        updateInstallerState(gameKey, {
+          installerLaunched: false,
+          installerRunning: false,
+        })
+      ),
+    onUntrackedLaunch: () =>
+      afterLaunchRecorded(() =>
+        updateInstallerState(gameKey, {
+          installerLaunched: true,
+          installerRunning: false,
+        })
+      ),
+  }).catch((error) => {
+    runningInstallers.delete(gameKey);
+    markLaunchRecorded();
+    throw error;
+  });
+  const { launched, tracked } = launchResult;
+
+  if (!launched || !tracked) runningInstallers.delete(gameKey);
+
+  if (launched && tracked && !installerFinished) {
+    setTimeout(() => {
+      if (installerFinished) return;
+
+      logger.info(
+        `[GameInstaller] Stopped tracking the installer for ${objectId} after it ran for two hours`
+      );
+      afterLaunchRecorded(async () => {
+        await updateInstallerState(gameKey, { installerRunning: false });
+        startInstalledExecutablePolling(
+          shop,
+          objectId,
+          installerStartedAt,
+          winePrefixPath
+        );
+      });
+    }, MAX_INSTALLER_TRACKING_MS).unref();
   }
 
-  const gamePathFileNames = fs.readdirSync(gamePath);
-  const gamePathExecutableFiles = gamePathFileNames.filter(
-    (fileName: string) => path.extname(fileName).toLowerCase() === ".exe"
-  );
-
-  if (gamePathExecutableFiles.length === 1) {
-    return await executeGameInstaller(
-      path.join(gamePath, gamePathExecutableFiles[0]),
-      {
-        gameId: objectId,
-        winePrefixPath: effectiveWinePrefixPath,
-        protonPath: game?.protonPath,
-      }
-    );
+  try {
+    if (launched) {
+      await updateInstallerState(gameKey, {
+        installerLaunched: true,
+        installerRunning: tracked && !installerFinished,
+        installerStartedAt,
+      });
+    }
+  } finally {
+    markLaunchRecorded();
   }
 
-  shell.openPath(gamePath);
-  return true;
+  return launched;
 };
 
 registerEvent("openGameInstaller", openGameInstaller);

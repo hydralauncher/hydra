@@ -136,6 +136,11 @@ export interface Download {
   timestamp: number;
   extracting: boolean;
   extractionProgress?: number;
+  installerLaunched?: boolean;
+  installerRunning?: boolean;
+  installerStartedAt?: number;
+  hasInstaller?: boolean;
+  sourceArchiveName?: string;
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];

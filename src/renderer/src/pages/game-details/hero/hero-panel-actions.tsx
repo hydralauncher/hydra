@@ -1,5 +1,6 @@
 import {
   DownloadIcon,
+  FileIcon,
   GearIcon,
   HeartFillIcon,
   HeartIcon,
@@ -15,9 +16,11 @@ import {
   getEpicLaunchError,
   getEpicManagedError,
 } from "@renderer/helpers/epic-managed-error";
-import { XCircle } from "lucide-react";
+import { FileArchive, XCircle } from "lucide-react";
 import {
   useDownload,
+  useGameExecutablePicker,
+  useFinishedDownloadStep,
   useLibrary,
   useToast,
   useUserDetails,
@@ -68,6 +71,9 @@ export function HeroPanelActions() {
   } = useContext(gameDetailsContext);
 
   const isGameDownloading = isLibraryGameDownloading(downloadGame);
+
+  const pickGameExecutable = useGameExecutablePicker();
+  const finishedDownloadStep = useFinishedDownloadStep(downloadGame);
 
   const { updateLibrary } = useLibrary();
 
@@ -415,6 +421,104 @@ export function HeroPanelActions() {
     </Button>
   );
 
+  const finishedDownloadButton = () => {
+    if (
+      !downloadGame ||
+      !finishedDownloadStep ||
+      finishedDownloadStep === "play"
+    ) {
+      return null;
+    }
+
+    if (finishedDownloadStep === "checking") {
+      return (
+        <Button theme="outline" disabled className="hero-panel-actions__action">
+          {t("checking_files", { ns: "downloads" })}
+        </Button>
+      );
+    }
+
+    if (finishedDownloadStep === "extracting") {
+      return (
+        <Button theme="outline" disabled className="hero-panel-actions__action">
+          {t("extracting")}
+        </Button>
+      );
+    }
+
+    if (finishedDownloadStep === "extract") {
+      return (
+        <Button
+          onClick={async () => {
+            await window.electron.extractGameDownload(
+              downloadGame.shop,
+              downloadGame.objectId
+            );
+            updateLibrary();
+          }}
+          theme="outline"
+          disabled={deleting}
+          className="hero-panel-actions__action"
+        >
+          <FileArchive size={16} />
+          {t("extract", { ns: "downloads" })}
+        </Button>
+      );
+    }
+
+    if (finishedDownloadStep === "installing") {
+      return (
+        <Button theme="outline" disabled className="hero-panel-actions__action">
+          {t("installing", { ns: "downloads" })}
+        </Button>
+      );
+    }
+
+    if (finishedDownloadStep === "install") {
+      return (
+        <Button
+          onClick={async () => {
+            const opened = await window.electron.openGameInstaller(
+              downloadGame.shop,
+              downloadGame.objectId
+            );
+
+            if (!opened) {
+              showErrorToast(t("installer_launch_failed", { ns: "downloads" }));
+            }
+
+            updateLibrary();
+          }}
+          theme="outline"
+          disabled={deleting}
+          className="hero-panel-actions__action"
+        >
+          <DownloadIcon />
+          {t("install")}
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        onClick={async () => {
+          const picked = await pickGameExecutable(
+            downloadGame.shop,
+            downloadGame.objectId
+          );
+
+          if (picked) updateGame();
+        }}
+        theme="outline"
+        disabled={deleting}
+        className="hero-panel-actions__action"
+      >
+        <FileIcon size={16} />
+        {t("select_executable", { ns: "downloads" })}
+      </Button>
+    );
+  };
+
   const gameActionButton = () => {
     if (isTransferring) {
       const percent = Math.round(transferProgress * 100);
@@ -462,6 +566,9 @@ export function HeroPanelActions() {
         </Button>
       );
     }
+
+    const finishedDownloadAction = finishedDownloadButton();
+    if (finishedDownloadAction) return finishedDownloadAction;
 
     return (
       <Button

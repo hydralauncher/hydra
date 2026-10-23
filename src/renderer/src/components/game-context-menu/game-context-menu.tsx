@@ -600,10 +600,14 @@ export function GameContextMenu({
       <DeleteGameModal
         visible={showConfirmRemoveFiles}
         onClose={() => setShowConfirmRemoveFiles(false)}
-        deleteGame={() => {
+        target={hydraRemoveFilesTarget?.game}
+        deleteGame={(deleteSourceArchive) => {
           setShowConfirmRemoveFiles(false);
           onClose();
-          void handleRemoveFiles(hydraRemoveFilesTarget?.game);
+          void handleRemoveFiles(
+            hydraRemoveFilesTarget?.game,
+            deleteSourceArchive
+          );
         }}
       />
 

@@ -3,6 +3,7 @@ import {
   startEpicSyncOnStartup,
 } from "./services/epic";
 import { downloadsSublevel } from "./level/sublevels/downloads";
+import { clearRunningInstallers } from "./helpers/clear-running-installers";
 import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
@@ -143,6 +144,8 @@ export const loadState = async () => {
       void startEpicSyncOnStartup();
     }
   });
+
+  await clearRunningInstallers();
 
   const downloadToResume =
     await DownloadOrchestrator.bootstrapDownloadsOnStartup();
