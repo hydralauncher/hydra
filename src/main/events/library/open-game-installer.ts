@@ -213,14 +213,13 @@ const launchInstallerWithUmu = async (
       },
     });
   } catch (error) {
-    if (
-      !(error instanceof UmuEarlyExitError) ||
-      !isSuccessfulExit(error.code)
-    ) {
+    if (!(error instanceof UmuEarlyExitError) || error.failureMessage) {
       throw error;
     }
 
-    logger.info(`[GameInstaller] umu-run exited early: ${error.message}`);
+    logger.info(
+      `[GameInstaller] Installer exited early under umu-run: ${error.message}`
+    );
     options.onExit(error.code);
     return;
   }
