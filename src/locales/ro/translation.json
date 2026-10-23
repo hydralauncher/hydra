@@ -579,6 +579,13 @@
     "epic_play_without_update": "Joacă fără actualizare",
     "epic_update_available": "Versiunea {{version}} este disponibilă",
     "epic_update_failed": "Jocul nu a putut fi actualizat",
+    "epic_extras_title": "Conținut suplimentar (DLC)",
+    "epic_extras_selected": "Selectate: {{selected}} din {{total}}",
+    "epic_select_all": "Selectează tot",
+    "epic_dlc_installed": "Instalat",
+    "epic_selection_size": "{{size}} de descărcat",
+    "epic_not_enough_space": "Nu există suficient spațiu pe disc pentru această selecție.",
+    "epic_selection_invalid": "Selecția s-a schimbat. Redeschide opțiunile de descărcare și încearcă din nou.",
     "epic_retry": "Încearcă din nou"
   },
   "activation": {

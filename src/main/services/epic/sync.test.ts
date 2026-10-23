@@ -8,8 +8,10 @@ import {
   normalizeEpicPlaytime,
   applyEpicPlaytime,
   getEpicGamePlaytime,
+  parseEpicSnapshotDlcs,
   type EpicLibraryDiagnostic,
 } from "./library-normalizer.js";
+import { epicConnectionCapabilities } from "./sync-protocol.js";
 import { buildEpicSnapshotChunks } from "./sync-snapshot.js";
 import { epicRetryAfter, fetchEpicWithRetry } from "./source-retry.js";
 import { EpicPlaytimeSource } from "./playtime-source.js";
@@ -31,6 +33,7 @@ import {
   EPIC_PENDING_EXPIRATION_MS,
 } from "./constants.js";
 import { EpicIntegrationError } from "./auth-protocol.js";
+import type { EpicSnapshotChunk } from "./sync-snapshot.js";
 import type {
   EpicSyncFinished,
   EpicSyncRun,
@@ -882,4 +885,124 @@ it("normalizes the sanitized real Legendary library format", () => {
       (game) => game.artifactIds.length === 1 && game.playTimeInSeconds === 0
     )
   );
+});
+
+const dlcRow = (artifact: string, overrides: Record<string, unknown> = {}) => ({
+  app_name: artifact,
+  app_title: ` DLC ${artifact} `,
+  metadata: {
+    namespace: "Namespace",
+    id: `${artifact}Item`,
+    categories: [{ path: "addons" }],
+    mainGameItem: { id: "Item" },
+  },
+  asset_infos: {
+    Windows: {
+      app_name: artifact,
+      namespace: "Namespace",
+      catalog_item_id: `${artifact}Item`,
+    },
+  },
+  ...overrides,
+});
+
+describe("Epic owned DLC", () => {
+  it("keeps installable owned DLC per game and skips anything unexpected", () => {
+    const [game] = normalizeEpicLibrary([
+      [
+        {
+          ...item(),
+          dlcs: [
+            dlcRow("Zeta"),
+            dlcRow("Alpha"),
+            dlcRow("Alpha"),
+            dlcRow("NoWindows", { asset_infos: {} }),
+            dlcRow("Artifact"),
+            dlcRow("Game", {
+              metadata: { ...item().metadata, categories: [{ path: "games" }] },
+            }),
+            dlcRow("Bad:Id"),
+            null,
+          ],
+        },
+      ],
+      [{ ...item(), dlcs: [dlcRow("Mac")] }],
+    ]);
+    assert.deepEqual(
+      game.dlcs?.map(({ artifactId, name }) => [artifactId, name]),
+      [
+        ["Alpha", "DLC Alpha"],
+        ["Mac", "DLC Mac"],
+        ["Zeta", "DLC Zeta"],
+      ]
+    );
+    assert.equal(normalizeEpicLibrary([[item()]])[0].dlcs, undefined);
+  });
+
+  it("validates DLC echoed by the API like Legendary output", () => {
+    const owner = {
+      namespace: "Namespace",
+      catalogItemId: "Item",
+      artifactIds: ["Artifact"],
+    };
+    const dlc = {
+      artifactId: "Dlc",
+      namespace: "Namespace",
+      catalogItemId: "DlcItem",
+      name: "DLC",
+    };
+    assert.deepEqual(parseEpicSnapshotDlcs([dlc], owner), [dlc]);
+    for (const value of [undefined, null, "Dlc", {}])
+      assert.deepEqual(parseEpicSnapshotDlcs(value, owner), []);
+    for (const invalid of [
+      { ...dlc, artifactId: "Artifact" },
+      { ...dlc, catalogItemId: "Item" },
+      { ...dlc, namespace: "a:b" },
+      { ...dlc, name: " " },
+      { ...dlc, artifactId: 1 },
+    ])
+      assert.deepEqual(parseEpicSnapshotDlcs([invalid], owner), []);
+  });
+
+  it("keeps only capabilities this launcher understands", () => {
+    assert.deepEqual(epicConnectionCapabilities(undefined), {});
+    assert.deepEqual(
+      epicConnectionCapabilities({
+        achievementsSnapshotVersion: 1,
+        dlcSnapshotVersion: 1,
+      }),
+      {
+        capabilities: { achievementsSnapshotVersion: 1, dlcSnapshotVersion: 1 },
+      }
+    );
+    assert.deepEqual(epicConnectionCapabilities({ dlcSnapshotVersion: 2 }), {});
+  });
+
+  for (const supported of [true, false])
+    it(`${supported ? "sends" : "omits"} DLC when the API ${supported ? "supports" : "does not support"} it`, async () => {
+      const f = syncFixture();
+      const uploaded: EpicSnapshotChunk[] = [];
+      f.deps.library = async () =>
+        normalizeEpicLibrary([[{ ...item(), dlcs: [dlcRow("Dlc")] }]]);
+      f.deps.capture = async () => ({
+        ...context,
+        connection: {
+          ...connection,
+          ...(supported ? { capabilities: { dlcSnapshotVersion: 1 } } : {}),
+        },
+      });
+      f.deps.upload = async (_context, _id, _index, chunk) => {
+        uploaded.push(chunk);
+      };
+      await f.sync.start(connection.connectionId);
+      await f.sync.wait();
+      assert.equal(f.state.result?.ok, true);
+      const [game] = uploaded[0].games;
+      if (supported)
+        assert.deepEqual(
+          game.dlcs?.map(({ artifactId }) => artifactId),
+          ["Dlc"]
+        );
+      else assert.equal("dlcs" in game, false);
+    });
 });

@@ -583,6 +583,13 @@
     "epic_play_without_update": "Spill uten å oppdatere",
     "epic_update_available": "Versjon {{version}} er tilgjengelig",
     "epic_update_failed": "Kunne ikke oppdatere spillet",
+    "epic_extras_title": "Ekstra innhold (DLC)",
+    "epic_extras_selected": "Valgt: {{selected}} av {{total}}",
+    "epic_select_all": "Velg alle",
+    "epic_dlc_installed": "Installert",
+    "epic_selection_size": "{{size}} nedlasting",
+    "epic_not_enough_space": "Ikke nok diskplass for dette valget.",
+    "epic_selection_invalid": "Valget er endret. Åpne nedlastingsvalgene på nytt og prøv igjen.",
     "epic_retry": "Prøv igjen"
   },
   "activation": {

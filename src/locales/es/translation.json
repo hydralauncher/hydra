@@ -1056,6 +1056,13 @@
     "epic_play_without_update": "Jugar sin actualizar",
     "epic_update_available": "Versión {{version}} disponible",
     "epic_update_failed": "No se pudo actualizar el juego",
+    "epic_extras_title": "Contenido adicional (DLC)",
+    "epic_extras_selected": "Seleccionados: {{selected}} de {{total}}",
+    "epic_select_all": "Seleccionar todo",
+    "epic_dlc_installed": "Instalado",
+    "epic_selection_size": "{{size}} de descarga",
+    "epic_not_enough_space": "No hay suficiente espacio en disco para esta selección.",
+    "epic_selection_invalid": "La selección cambió. Vuelve a abrir las opciones de descarga e inténtalo de nuevo.",
     "epic_retry": "Intentar de nuevo"
   },
   "activation": {

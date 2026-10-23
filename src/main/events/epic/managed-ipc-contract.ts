@@ -12,7 +12,10 @@ import {
   isRecord,
 } from "../../services/epic/auth-protocol.js";
 import { isEpicObjectId } from "../../services/epic/library-normalizer.js";
-import { isSafeEpicArtifact } from "../../services/epic/installation.js";
+import {
+  isEpicSelectionId,
+  isSafeEpicArtifact,
+} from "../../services/epic/installation.js";
 import { isEpicRemoteSaveTimestamp } from "../../services/epic/cloud-save-protocol.js";
 
 const MAX_EPIC_LOCAL_PATH_LENGTH = 32_768;
@@ -86,18 +89,46 @@ function parseEpicTargetPayload(
   };
 }
 
+const MAX_EPIC_SELECTION_ITEMS = 64;
+const parseSelection = (
+  value: unknown,
+  valid: (item: unknown) => item is string
+): string[] | undefined => {
+  if (value === undefined) return undefined;
+  if (
+    !Array.isArray(value) ||
+    value.length > MAX_EPIC_SELECTION_ITEMS ||
+    !value.every(valid) ||
+    new Set(value).size !== value.length
+  )
+    return invalid();
+  return [...value];
+};
+
 export function parseEpicDownloadPayload(
   value: unknown
 ): StartEpicGameDownloadPayload {
   if (
     !isRecord(value) ||
-    !hasOnlyFields(value, [...EPIC_TARGET_PAYLOAD_FIELDS, "downloadPath"]) ||
+    !hasOnlyFields(value, [
+      ...EPIC_TARGET_PAYLOAD_FIELDS,
+      "downloadPath",
+      "components",
+      "dlcs",
+    ]) ||
     !isLocalPath(value.downloadPath)
   ) {
     return invalid();
   }
   const target = parseEpicTargetPayload(value);
-  return { ...target, downloadPath: value.downloadPath };
+  const components = parseSelection(value.components, isEpicSelectionId);
+  const dlcs = parseSelection(value.dlcs, isSafeEpicArtifact);
+  return {
+    ...target,
+    downloadPath: value.downloadPath,
+    ...(components ? { components } : {}),
+    ...(dlcs ? { dlcs } : {}),
+  };
 }
 
 /** Updates never accept a folder: main derives it from the installation. */

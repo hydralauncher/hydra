@@ -88,6 +88,51 @@ def manifest_bytes(version="1", encrypted=False, app_name="Example"):
     return manifest.write(), secrets
 
 
+def tagged_manifest_bytes():
+    manifest = Manifest()
+    manifest.meta = ManifestMeta()
+    manifest.meta.app_name = "Example"
+    manifest.meta.build_version = "1"
+    manifest.meta.launch_exe = "game.exe"
+    manifest.chunk_data_list = CDL()
+    manifest.file_manifest_list = FML()
+    manifest.custom_fields = CustomFields()
+    chunks = {}
+    for index, size in enumerate((100, 20, 30, 40, 50), start=1):
+        chunk = ChunkInfo()
+        chunk.guid = (index, 0, 0, 0)
+        chunk.file_size = size
+        chunk.sha_hash = bytes(20)
+        chunks[index] = chunk
+    manifest.chunk_data_list.elements = list(chunks.values())
+    manifest.chunk_data_list.count = len(chunks)
+    for name, tags, guids, size in (("game.exe", [], [1], 1000), ("core.pak", ["chunk0"], [1, 2], 200), ("de.pak", ["voice_de"], [3, 1], 300), ("shared.pak", ["voice_de", "voice_fr"], [4], 400), ("fr.pak", ["voice_fr"], [5], 500)):
+        file = FileManifest()
+        file.filename = name
+        file.hash = bytes(20)
+        file.install_tags = tags
+        file.file_size = size
+        file.chunk_parts = []
+        for guid in guids:
+            part = ChunkPart()
+            part.guid = chunks[guid].guid
+            part.offset = 0
+            part.size = size // len(guids)
+            file.chunk_parts.append(part)
+        manifest.file_manifest_list.elements.append(file)
+    manifest.file_manifest_list.count = len(manifest.file_manifest_list.elements)
+    return manifest.write()
+
+
+SDL = {
+    "__required": dict(tags=["chunk0"], name="Core"),
+    "de": dict(tags=["voice_de"], name="Deutsch"),
+    "fr": dict(tags=["voice_fr"], name="Français"),
+}
+DLC = dict(artifactId="ExampleDlc", namespace="namespace", catalogItemId="dlc", platform="Windows")
+DLC_METADATA = dict(id="dlc", namespace="namespace", title="Example DLC", categories=[dict(path="addons")], mainGameItem=dict(id="item", namespace="namespace", releaseInfo=[dict(appId="Example")]))
+
+
 class Fixture:
     def __init__(self, data, secrets=None):
         self.data = data
@@ -331,6 +376,90 @@ class AdapterTests(unittest.TestCase):
             self.assertIn("--skipdlcs", sys.argv)
         with patch.object(cli, "main", invoke_cli), patch.object(cli, "LegendaryCLI", cli.LegendaryCLI):
             managed.run_install(self.fixture.core, self.request, game, manifest)
+
+    def test_selective_packs_report_sizes_beyond_required_files(self):
+        from legendary.utils import selective_dl
+        self.fixture = Fixture(tagged_manifest_bytes())
+        self.fixture.core.lgdapi = SimpleNamespace(get_sdl_config=lambda name: copy.deepcopy(SDL))
+        with patch.dict(selective_dl.games, {"Example": {}}):
+            sdl = self.inspect()[0]["info"]["sdl"]
+        self.assertEqual(sdl["required_tags"], ["chunk0"])
+        self.assertEqual((sdl["download_size"], sdl["disk_size"]), (120, 1200))
+        packs = {pack["id"]: pack for pack in sdl["packs"]}
+        self.assertEqual(sorted(packs), ["de", "fr"])
+        self.assertEqual((packs["de"]["download_size"], packs["de"]["disk_size"]), (70, 700))
+        self.assertEqual((packs["fr"]["download_size"], packs["fr"]["disk_size"]), (90, 900))
+        self.assertEqual(packs["fr"]["name"], "Français")
+        self.assertEqual(packs["de"]["tags"], ["voice_de"])
+
+    def test_selective_definition_falls_back_and_rejects_malformed_data(self):
+        from legendary.utils import selective_dl
+        def unavailable(name):
+            raise ValueError("offline")
+        core = SimpleNamespace(lgdapi=SimpleNamespace(get_sdl_config=unavailable))
+        self.assertIsNone(managed.sdl_definition(core, "Example"))
+        with patch.dict(selective_dl.games, {"Example": copy.deepcopy(SDL)}):
+            self.assertEqual(managed.sdl_definition(core, "Example"), SDL)
+            core.lgdapi.get_sdl_config = lambda name: {"de": dict(tags=["--manifest=x"], name="Bad")}
+            self.assertEqual(managed.sdl_definition(core, "Example"), SDL)
+        for value in (None, {}, {"__required": SDL["__required"]}, {"de": dict(tags=[], name="Empty")}, {"de": dict(tags=["voice"], name="")}, {"../x": dict(tags=["voice"], name="Path")}, {f"p{i}": dict(tags=["t"], name="n") for i in range(66)}):
+            self.assertFalse(managed.valid_sdl(value))
+
+    def test_dlc_target_must_belong_to_the_base_game(self):
+        base = dict(TARGET)
+        request = dict(target=DLC, base=base)
+        self.assertEqual(managed.base_from_request(request), base)
+        self.assertIsNone(managed.base_from_request(dict(target=DLC)))
+        for invalid in (dict(TARGET, artifactId="ExampleDlc"), dict(TARGET, catalogItemId="dlc"), dict(TARGET, artifactId="../x"), dict(TARGET, platform="Mac")):
+            with self.assertRaises(managed.ManagedError):
+                managed.base_from_request(dict(target=DLC, base=invalid))
+        managed.validate_metadata(copy.deepcopy(DLC_METADATA), DLC, base)
+        for change in (dict(mainGameItem=dict(id="other", releaseInfo=[dict(appId="Example")])), dict(mainGameItem=dict(id="item", releaseInfo=[dict(appId="Other")])), dict(mainGameItem=dict(id="item", releaseInfo=[])), dict(categories=[dict(path="games")]), dict(categories=[dict(path="addons"), dict(path="addons/launchable")])):
+            with self.assertRaisesRegex(managed.ManagedError, "unsupported-game"):
+                managed.validate_metadata({**copy.deepcopy(DLC_METADATA), **change}, DLC, base)
+        with self.assertRaisesRegex(managed.ManagedError, "unsupported-game"):
+            managed.validate_metadata(copy.deepcopy(DLC_METADATA), DLC)
+        external = copy.deepcopy(DLC_METADATA)
+        external["customAttributes"] = dict(partnerLinkType=dict(value="ubisoft"))
+        with self.assertRaisesRegex(managed.ManagedError, "external-launcher-required"):
+            managed.validate_metadata(external, DLC, base)
+
+    def test_dlc_install_resolves_only_its_installed_base_game(self):
+        from legendary.models.game import Game, GameAsset
+        base_game = Game(app_name="Example", app_title="Example", metadata=dict(namespace="namespace", id="item"))
+        base_game.asset_infos = {"Windows": GameAsset(app_name="Example", namespace="namespace", catalog_item_id="item", build_version="1", label_name="Live")}
+        installed = {"Example"}
+        core = SimpleNamespace(lgd=SimpleNamespace(get_game_meta=lambda name: base_game if name == "Example" else None), is_installed=lambda name: name in installed)
+        self.assertIs(managed.installed_base_game(core, dict(TARGET)), base_game)
+        self.assertIsNone(managed.installed_base_game(core, None))
+        with self.assertRaisesRegex(managed.ManagedError, "invalid-target"):
+            managed.installed_base_game(core, dict(TARGET, catalogItemId="other"))
+        installed.clear()
+        with self.assertRaisesRegex(managed.ManagedError, "base-not-installed"):
+            managed.installed_base_game(core, dict(TARGET))
+        self.assertEqual(managed.error_code(managed.ManagedError("base-not-installed")), "installation-missing")
+        dlc = Game(app_name="ExampleDlc", app_title="DLC", metadata=copy.deepcopy(DLC_METADATA))
+        constrained = SimpleNamespace(egs=SimpleNamespace())
+        managed.constrain_core(constrained, dlc, DLC, ("manifest",), base_game)
+        self.assertIs(constrained.get_game("ExampleDlc"), dlc)
+        self.assertIs(constrained.get_game("Example"), base_game)
+        with self.assertRaisesRegex(managed.ManagedError, "invalid-target"):
+            constrained.get_game("Unrelated")
+
+    def test_install_tags_are_the_only_selection_arguments_accepted(self):
+        import legendary.cli as cli
+        _, game, manifest = self.inspect()
+        captured = []
+        for tags, accepted in ((["--install-tag=", "--install-tag=voice_de"], True), (["--install-tag", "voice_de"], False), (["--install-tag=../x"], False), (["--reset-sdl"], False)):
+            self.request.update(operation="install", args=["-y", "install", "Example", *tags])
+            if not accepted:
+                with self.assertRaisesRegex(managed.ManagedError, "invalid-request"):
+                    managed.run_install(self.fixture.core, self.request, game, manifest)
+                continue
+            with patch.object(cli, "main", side_effect=lambda: captured.append(list(sys.argv))), patch.object(cli, "LegendaryCLI", cli.LegendaryCLI):
+                managed.run_install(self.fixture.core, self.request, game, manifest)
+        self.assertIn("--install-tag=voice_de", captured[0])
+        self.assertIn("--disable-sdl", captured[0])
 
     def test_receipt_outside_private_workspace_is_rejected(self):
         with self.assertRaisesRegex(managed.ManagedError, "invalid-receipt"):

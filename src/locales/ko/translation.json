@@ -579,6 +579,13 @@
     "epic_play_without_update": "업데이트 없이 플레이",
     "epic_update_available": "버전 {{version}} 사용 가능",
     "epic_update_failed": "게임을 업데이트할 수 없습니다",
+    "epic_extras_title": "추가 콘텐츠 (DLC)",
+    "epic_extras_selected": "선택됨: {{selected}}/{{total}}",
+    "epic_select_all": "모두 선택",
+    "epic_dlc_installed": "설치됨",
+    "epic_selection_size": "{{size}} 다운로드",
+    "epic_not_enough_space": "이 선택에 필요한 디스크 공간이 부족합니다.",
+    "epic_selection_invalid": "선택이 변경되었습니다. 다운로드 옵션을 다시 열고 다시 시도하세요.",
     "epic_retry": "다시 시도"
   },
   "activation": {

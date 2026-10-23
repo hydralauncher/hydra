@@ -582,6 +582,13 @@
     "epic_play_without_update": "Жаңартпай ойнау",
     "epic_update_available": "{{version}} нұсқасы қолжетімді",
     "epic_update_failed": "Ойынды жаңарту мүмкін болмады",
+    "epic_extras_title": "Қосымша мазмұн (DLC)",
+    "epic_extras_selected": "Таңдалды: {{selected}} / {{total}}",
+    "epic_select_all": "Барлығын таңдау",
+    "epic_dlc_installed": "Орнатылған",
+    "epic_selection_size": "{{size}} жүктеу",
+    "epic_not_enough_space": "Бұл таңдау үшін дискіде орын жеткіліксіз.",
+    "epic_selection_invalid": "Таңдау өзгерді. Жүктеу параметрлерін қайта ашып, қайталап көріңіз.",
     "epic_retry": "Қайта көру"
   },
   "activation": {

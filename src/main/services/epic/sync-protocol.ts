@@ -1,5 +1,8 @@
-import type { EpicSyncRun } from "../../../types/epic-integration.types";
-import type { EpicAchievementSummary } from "../../../types/epic-integration.types";
+import type {
+  EpicAchievementSummary,
+  EpicConnectedConnection,
+  EpicSyncRun,
+} from "../../../types/epic-integration.types";
 import { EpicIntegrationError, isRecord } from "./auth-protocol.js";
 import {
   EPIC_SYNC_RUN_ID_MIN_LENGTH,
@@ -95,3 +98,20 @@ export function epicSyncHttpError(error: unknown) {
     return "operation-cancelled" as const;
   return "network" as const;
 }
+
+/** Only capabilities this launcher understands are kept with the connection. */
+export const epicConnectionCapabilities = (
+  value:
+    | { achievementsSnapshotVersion?: unknown; dlcSnapshotVersion?: unknown }
+    | undefined
+): { capabilities?: EpicConnectedConnection["capabilities"] } => {
+  const achievements = value?.achievementsSnapshotVersion === 1;
+  const dlcs = value?.dlcSnapshotVersion === 1;
+  if (!achievements && !dlcs) return {};
+  return {
+    capabilities: {
+      ...(achievements ? { achievementsSnapshotVersion: 1 as const } : {}),
+      ...(dlcs ? { dlcSnapshotVersion: 1 as const } : {}),
+    },
+  };
+};

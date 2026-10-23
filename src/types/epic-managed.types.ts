@@ -26,6 +26,16 @@ export interface EpicInstallation {
   pendingSaveUpload?: boolean;
 }
 
+/** What a download installs beyond the game's required files. */
+export interface EpicInstallSelection {
+  /** Optional pack ids; absent means the complete game. */
+  components?: string[];
+  /** Legendary install tags; empty installs every file. */
+  installTags: string[];
+  /** DLC artifact ids installed after the game. */
+  dlcs: string[];
+}
+
 export interface EpicDownloadMetadata {
   owner: EpicLocalOwner;
   connectionId: string;
@@ -34,6 +44,7 @@ export interface EpicDownloadMetadata {
   diskSizeInBytes: number;
   phase?: "preparing" | "downloading" | "finalizing" | "prerequisites";
   error?: EpicInstallError;
+  selection?: EpicInstallSelection;
   /** Present while a newer build replaces an existing installation. */
   update?: { fromVersion: string; toVersion: string };
 }
@@ -53,6 +64,7 @@ export type EpicInstallError =
   | "prerequisites-required"
   | "game-running"
   | "update-required"
+  | "invalid-selection"
   | "compatibility-runtime-unavailable"
   | "compatibility-runtime-download-failed"
   | "compatibility-prefix-invalid"
@@ -63,6 +75,21 @@ export interface EpicLinuxCompatibility {
   winePrefixPath: string | null;
   protonName: string | null;
   protonSource: "game" | "global" | "umu";
+}
+
+export interface EpicInstallComponent {
+  id: string;
+  name: string;
+  downloadSizeInBytes: number;
+  diskSizeInBytes: number;
+}
+
+export interface EpicInstallDlc {
+  artifactId: string;
+  name: string;
+  downloadSizeInBytes: number;
+  diskSizeInBytes: number;
+  installed: boolean;
 }
 
 export interface EpicGameInstallOption {
@@ -77,6 +104,11 @@ export interface EpicGameInstallOption {
   version?: string | null;
   /** Build recorded by Legendary for this installation. */
   installedVersion?: string | null;
+  /** Optional packs; sizes exclude the files every selection installs. */
+  components?: EpicInstallComponent[];
+  requiredDownloadSizeInBytes?: number;
+  requiredDiskSizeInBytes?: number;
+  dlcs?: EpicInstallDlc[];
 }
 
 export interface EpicGameInstallOptions {
@@ -93,12 +125,16 @@ export interface StartEpicGameDownloadPayload {
   platform: EpicInstallPlatform;
   downloadPath: string;
   addToQueueOnly?: boolean;
+  /** Selected optional pack ids; omitted installs the complete game. */
+  components?: string[];
+  /** Selected DLC artifact ids. */
+  dlcs?: string[];
 }
 
 /** The main process derives the folder from the existing installation. */
 export type StartEpicGameUpdatePayload = Omit<
   StartEpicGameDownloadPayload,
-  "downloadPath"
+  "downloadPath" | "components" | "dlcs"
 >;
 
 export interface EpicLaunchOptions {

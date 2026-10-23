@@ -580,6 +580,13 @@
     "epic_play_without_update": "Spelen zonder bij te werken",
     "epic_update_available": "Versie {{version}} beschikbaar",
     "epic_update_failed": "Kan het spel niet bijwerken",
+    "epic_extras_title": "Extra content (DLC)",
+    "epic_extras_selected": "Geselecteerd: {{selected}} van {{total}}",
+    "epic_select_all": "Alles selecteren",
+    "epic_dlc_installed": "Geïnstalleerd",
+    "epic_selection_size": "{{size}} downloaden",
+    "epic_not_enough_space": "Onvoldoende schijfruimte voor deze selectie.",
+    "epic_selection_invalid": "De selectie is gewijzigd. Open de downloadopties opnieuw en probeer het nog eens.",
     "epic_retry": "Opnieuw proberen"
   },
   "activation": {

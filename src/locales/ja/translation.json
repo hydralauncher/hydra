@@ -605,6 +605,13 @@
     "epic_play_without_update": "アップデートせずにプレイ",
     "epic_update_available": "バージョン {{version}} が利用可能です",
     "epic_update_failed": "ゲームをアップデートできませんでした",
+    "epic_extras_title": "追加コンテンツ (DLC)",
+    "epic_extras_selected": "選択済み: {{selected}} / {{total}}",
+    "epic_select_all": "すべて選択",
+    "epic_dlc_installed": "インストール済み",
+    "epic_selection_size": "ダウンロード {{size}}",
+    "epic_not_enough_space": "この選択に必要なディスク容量が足りません。",
+    "epic_selection_invalid": "選択内容が変わりました。ダウンロードオプションを開き直して、もう一度お試しください。",
     "epic_retry": "再試行"
   },
   "activation": {

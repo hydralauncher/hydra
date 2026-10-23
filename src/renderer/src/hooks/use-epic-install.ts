@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppSelector } from "./redux";
 import {
   afterEpicInstallReadyPaint,
@@ -9,6 +9,29 @@ import type {
   EpicSaveError,
   LibraryGame,
 } from "@types";
+import { getEpicInstallChoice } from "@shared";
+
+/** A DLC or an optional pack, shown to the user as one kind of extra content. */
+export interface EpicInstallExtra {
+  key: string;
+  kind: "dlc" | "component";
+  id: string;
+  name: string;
+  downloadSizeInBytes: number;
+  installed: boolean;
+  checked: boolean;
+}
+
+const toggleExcluded = (
+  excluded: ReadonlySet<string>,
+  id: string,
+  checked: boolean
+) => {
+  const next = new Set(excluded);
+  if (checked) next.delete(id);
+  else next.add(id);
+  return next;
+};
 
 export function useEpicInstall(
   game: LibraryGame | null,
@@ -26,6 +49,13 @@ export function useEpicInstall(
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<EpicSaveError | null>(null);
+  // DLC start selected, like the Epic launcher; optional packs start off, like Legendary.
+  const [excludedComponents, setExcludedComponents] = useState<
+    ReadonlySet<string>
+  >(new Set());
+  const [excludedDlcs, setExcludedDlcs] = useState<ReadonlySet<string>>(
+    new Set()
+  );
   const generation = useRef(0);
   const directoryGeneration = useRef(0);
   const directoryChosen = useRef(false);
@@ -214,6 +244,94 @@ export function useEpicInstall(
 
   const option =
     selected === "" ? null : (result?.options[Number(selected)] ?? null);
+  const optionKey = option ? `${option.artifactId}:${option.platform}` : "";
+  const [selectionKey, setSelectionKey] = useState(optionKey);
+  // Reset during render so the first paint of a new option already shows its defaults.
+  if (selectionKey !== optionKey) {
+    setSelectionKey(optionKey);
+    setExcludedComponents(
+      new Set(option?.components?.map((component) => component.id))
+    );
+    setExcludedDlcs(new Set());
+  }
+  const choice = useMemo(
+    () => getEpicInstallChoice(option, excludedComponents, excludedDlcs),
+    [option, excludedComponents, excludedDlcs]
+  );
+  const toggleComponent = useCallback(
+    (id: string, checked: boolean) =>
+      setExcludedComponents((previous) =>
+        toggleExcluded(previous, id, checked)
+      ),
+    []
+  );
+  const toggleDlc = useCallback(
+    (id: string, checked: boolean) =>
+      setExcludedDlcs((previous) => toggleExcluded(previous, id, checked)),
+    []
+  );
+  const extras = useMemo<EpicInstallExtra[]>(
+    () => [
+      ...(option?.dlcs ?? []).map((dlc) => ({
+        key: `dlc:${dlc.artifactId}`,
+        kind: "dlc" as const,
+        id: dlc.artifactId,
+        name: dlc.name,
+        downloadSizeInBytes: dlc.downloadSizeInBytes,
+        installed: dlc.installed,
+        checked: dlc.installed || !excludedDlcs.has(dlc.artifactId),
+      })),
+      ...(option?.components ?? []).map((component) => ({
+        key: `component:${component.id}`,
+        kind: "component" as const,
+        id: component.id,
+        name: component.name,
+        downloadSizeInBytes: component.downloadSizeInBytes,
+        installed: false,
+        checked: !excludedComponents.has(component.id),
+      })),
+    ],
+    [option, excludedComponents, excludedDlcs]
+  );
+  const extrasSummary = useMemo(() => {
+    const pending = extras.filter((extra) => !extra.installed);
+    const chosen = pending.filter((extra) => extra.checked);
+    return {
+      selected: chosen.length,
+      total: pending.length,
+      selectedDownloadSizeInBytes: chosen.reduce(
+        (total, extra) => total + extra.downloadSizeInBytes,
+        0
+      ),
+    };
+  }, [extras]);
+  const toggleExtra = useCallback(
+    (extra: EpicInstallExtra, checked: boolean) =>
+      extra.kind === "dlc"
+        ? toggleDlc(extra.id, checked)
+        : toggleComponent(extra.id, checked),
+    [toggleDlc, toggleComponent]
+  );
+  const setAllExtras = useCallback(
+    (checked: boolean) => {
+      setExcludedDlcs(
+        checked
+          ? new Set()
+          : new Set(option?.dlcs?.map((dlc) => dlc.artifactId) ?? [])
+      );
+      setExcludedComponents(
+        checked
+          ? new Set()
+          : new Set(option?.components?.map((component) => component.id))
+      );
+    },
+    [option]
+  );
+  // Advisory only: the main process subtracts files already in the folder.
+  const insufficientSpace =
+    diskFreeSpace !== null &&
+    choice.diskSizeInBytes !== null &&
+    diskFreeSpace < choice.diskSizeInBytes;
   useEffect(() => {
     if (
       objectId &&
@@ -263,6 +381,8 @@ export function useEpicInstall(
           : {}),
         downloadPath: path.trim(),
         addToQueueOnly,
+        ...(choice.components ? { components: choice.components } : {}),
+        ...(choice.dlcs.length ? { dlcs: choice.dlcs } : {}),
       });
       if (current !== generation.current) return;
       if (response?.ok) {
@@ -288,6 +408,12 @@ export function useEpicInstall(
     starting,
     error,
     option,
+    choice,
+    extras,
+    extrasSummary,
+    toggleExtra,
+    setAllExtras,
+    insufficientSpace,
     chooseDirectory,
     retry,
     start,
