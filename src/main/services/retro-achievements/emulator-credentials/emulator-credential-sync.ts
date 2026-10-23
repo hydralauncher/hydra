@@ -279,7 +279,8 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
       if (content === null) return null;
 
       const tokenPath = ppssppTokenPath(configPath);
-      const existingToken = await readText(tokenPath);
+      const existingToken = await readTextOrEmptyIfMissing(tokenPath);
+      if (existingToken === null) return null;
       if (
         !shouldWriteEmulatorAccount(
           {

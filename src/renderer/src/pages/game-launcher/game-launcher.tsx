@@ -118,9 +118,14 @@ export default function GameLauncher() {
   useEffect(() => {
     if (shop && objectId) {
       let hasAssets = false;
+      let hasCoverAssets = false;
+      const hasCover = (assets: ShopAssets) =>
+        Boolean(assets.coverImageUrl || assets.libraryImageUrl);
       const applyAssets = (assets: ShopAssets | null) => {
-        if (!assets || hasAssets) return;
+        if (!assets || hasCoverAssets) return;
+        if (hasAssets && !hasCover(assets)) return;
         hasAssets = true;
+        hasCoverAssets = hasCover(assets);
         setGameAssets(assets);
       };
 
@@ -136,7 +141,7 @@ export default function GameLauncher() {
             .catch(() => {}),
         ]);
         setHasLoadedLocalData(true);
-        if (hasAssets) return;
+        if (hasCoverAssets) return;
 
         applyAssets(
           await window.electron.getGameAssets(objectId, shop).catch(() => null)
