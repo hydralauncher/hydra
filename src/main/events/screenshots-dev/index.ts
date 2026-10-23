@@ -22,7 +22,6 @@ import {
 import { ScreenshotFeedback } from "@main/services/screenshots/screenshot-feedback";
 import { registerEvent } from "../register-event";
 import {
-  createDevThumbnail,
   listDevGames,
   simulateCapture,
   simulateGameClosed,
@@ -107,17 +106,8 @@ const playFeedback = async (kind: ScreenshotsDevFeedbackKind) => {
     return;
   }
 
-  const gameTitle = "Hydra";
-  if (kind === "disabled_for_game") {
-    await ScreenshotFeedback.showToast(
-      { kind, gameTitle },
-      { ignorePreference: true }
-    );
-    return;
-  }
-
   await ScreenshotFeedback.showToast(
-    { kind, gameTitle, thumbnailPath: await createDevThumbnail(gameTitle) },
+    { kind, gameTitle: "Hydra" },
     { ignorePreference: true }
   );
 };
