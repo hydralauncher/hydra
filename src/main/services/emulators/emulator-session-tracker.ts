@@ -149,6 +149,7 @@ export const closeEmulatorSession = (gameKey: string): boolean => {
   if (!session) return false;
 
   const { pid } = session.child;
+  stopLinuxGameCaptureSession(gameKey);
 
   try {
     if (pid && process.platform !== "win32") {
