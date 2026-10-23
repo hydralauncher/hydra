@@ -34,6 +34,10 @@
     padding: 0 calc(globals.$spacing-unit * 2);
     animation: friends-window-add-actions-enter 0.15s ease-out;
 
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+
     > * {
       flex: 1 1 110px;
       min-width: 0;
