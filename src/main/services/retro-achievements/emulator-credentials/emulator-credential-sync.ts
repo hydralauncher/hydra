@@ -11,6 +11,7 @@ import { getRetroArchConfig } from "../../retroarch/retroarch-repository";
 import { resolveEmulatorExecutableTarget } from "../../emulators/macos-app-bundle";
 import { KNOWN_BINARIES } from "../../emulators/known-binaries";
 import {
+  duckstationConfigCandidates,
   findExistingConfig,
   pcsx2ConfigCandidates,
 } from "../../emulators/emulator-config";
@@ -23,6 +24,7 @@ import {
   type RetroAchievementsEmulatorAccount,
 } from "../retro-achievements-emulator-account";
 import {
+  getIniValue,
   readDolphinAccount,
   readPcsx2Account,
   readPpssppUsername,
@@ -369,17 +371,33 @@ const SIGNED_IN_USERNAME_READERS: Record<
   },
 };
 
+const readDuckStationUsername = async (executablePath: string | null) => {
+  const portableConfig = executablePath
+    ? path.join(path.dirname(executablePath), "settings.ini")
+    : null;
+  const configPath =
+    portableConfig && fs.existsSync(portableConfig)
+      ? portableConfig
+      : findExistingConfig(duckstationConfigCandidates());
+  const content = await readConfigText(configPath);
+  return content ? getIniValue(content, "Cheevos", "Username") : null;
+};
+
 export const readEmulatorSignedInUsername = async (
   system: EmulatorSessionSystem,
   executablePath: string | null
 ) => {
-  const emulator = getCredentialEmulatorForSystem(system);
-  if (!emulator) return null;
-
   const resolvedPath = executablePath
     ? (resolveEmulatorExecutableTarget(path.normalize(executablePath)) ??
       executablePath)
     : null;
+
+  if (system === "ps1") {
+    return readDuckStationUsername(resolvedPath).catch(() => null);
+  }
+
+  const emulator = getCredentialEmulatorForSystem(system);
+  if (!emulator) return null;
 
   return SIGNED_IN_USERNAME_READERS[emulator](resolvedPath).catch(() => null);
 };
