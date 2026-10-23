@@ -5,7 +5,7 @@ import { ConfirmationModal } from "@renderer/components";
 import { useDate, useToast } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import { getLocalScreenshotTitle } from "@shared";
-import type { LocalScreenshot, LocalScreenshotUploadOptions } from "@types";
+import type { LocalScreenshot, ScreenshotReviewScope } from "@types";
 
 export function useLocalScreenshotAlt() {
   const { t } = useTranslation("screenshots");
@@ -31,37 +31,22 @@ const isActiveUploadState = (
 ): state is LocalScreenshotUploadStatus["state"] =>
   state === "queued" || state === "uploading";
 
-const toUploadOptions = (
-  screenshot: LocalScreenshot
-): LocalScreenshotUploadOptions => ({
-  isSpoiler: screenshot.isSpoiler,
-  visibility: screenshot.visibility,
-  customGameTitle:
-    screenshot.shop === "custom"
-      ? screenshot.customGameTitle?.trim() || null
-      : null,
-});
-
-const toggleId = (
-  current: ReadonlySet<string>,
-  clientId: string,
-  isIncluded: boolean
+const openReview = (
+  screenshot: LocalScreenshot,
+  scope: ScreenshotReviewScope
 ) => {
-  const next = new Set(current);
-  if (isIncluded) next.add(clientId);
-  else next.delete(clientId);
-  return next;
+  window.electron
+    .openScreenshotReview(screenshot.clientId, scope)
+    .catch((error) => {
+      logger.error("Failed to open the screenshot review", error);
+    });
 };
 
 export function useLocalScreenshotActions() {
   const { t } = useTranslation("screenshots");
-  const { t: tCapture } = useTranslation("screenshots_capture");
   const { showErrorToast, showSuccessToast } = useToast();
   const describe = useLocalScreenshotAlt();
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(() => new Set());
-  const [uploadingIds, setUploadingIds] = useState<ReadonlySet<string>>(
-    () => new Set()
-  );
   const [pendingDelete, setPendingDelete] = useState<LocalScreenshot | null>(
     null
   );
@@ -88,43 +73,24 @@ export function useLocalScreenshotActions() {
   );
 
   const setBusy = useCallback((clientId: string, isBusy: boolean) => {
-    setBusyIds((current) => toggleId(current, clientId, isBusy));
-  }, []);
-
-  const setUploading = useCallback((clientId: string, isUploading: boolean) => {
-    setUploadingIds((current) => toggleId(current, clientId, isUploading));
+    setBusyIds((current) => {
+      const next = new Set(current);
+      if (isBusy) next.add(clientId);
+      else next.delete(clientId);
+      return next;
+    });
   }, []);
 
   const getUploadStatus = (
     screenshot: LocalScreenshot
   ): LocalScreenshotUploadStatus | null => {
-    if (isActiveUploadState(screenshot.state)) {
-      return (
-        uploadProgress.get(screenshot.clientId) ?? {
-          state: screenshot.state,
-          progress: screenshot.uploadProgress ?? 0,
-        }
-      );
-    }
-    return uploadingIds.has(screenshot.clientId)
-      ? { state: "queued", progress: 0 }
-      : null;
-  };
-
-  const upload = async (screenshot: LocalScreenshot) => {
-    const { clientId } = screenshot;
-    setUploading(clientId, true);
-    try {
-      await window.electron.uploadLocalScreenshot(
-        clientId,
-        toUploadOptions(screenshot)
-      );
-    } catch (error) {
-      logger.error("Failed to upload the local screenshot", error);
-      showErrorToast(tCapture("upload_failed"));
-    } finally {
-      setUploading(clientId, false);
-    }
+    if (!isActiveUploadState(screenshot.state)) return null;
+    return (
+      uploadProgress.get(screenshot.clientId) ?? {
+        state: screenshot.state,
+        progress: screenshot.uploadProgress ?? 0,
+      }
+    );
   };
 
   const confirmDelete = async () => {
@@ -162,15 +128,10 @@ export function useLocalScreenshotActions() {
     busyIds,
     getUploadStatus,
     describe,
-    upload: (screenshot: LocalScreenshot) => void upload(screenshot),
+    upload: (screenshot: LocalScreenshot) =>
+      openReview(screenshot, "screenshot"),
     requestDelete: setPendingDelete,
-    open: (screenshot: LocalScreenshot) => {
-      window.electron
-        .openScreenshotReview(screenshot.clientId)
-        .catch((error) => {
-          logger.error("Failed to open the screenshot review", error);
-        });
-    },
+    open: (screenshot: LocalScreenshot) => openReview(screenshot, "game"),
     elements,
   };
 }
