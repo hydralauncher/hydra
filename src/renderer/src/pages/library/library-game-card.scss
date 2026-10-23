@@ -1,6 +1,12 @@
 @use "../../scss/globals.scss";
 
 .library-game-card {
+  &__import-badges {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   &__wrapper {
     cursor: pointer;
     transition: all ease 0.2s;

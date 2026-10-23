@@ -1,6 +1,12 @@
 @use "../../scss/globals.scss";
 
 .library-game-card-large {
+  &__import-badges {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   width: 100%;
   height: 300px;
   position: relative;

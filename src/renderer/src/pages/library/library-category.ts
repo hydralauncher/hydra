@@ -233,6 +233,18 @@ export const hasImportedLibraryGames = (games: LibraryCategoryGame[]) =>
     )
   );
 
+export const getLibraryPresentationImportSources = (
+  game: LibraryCategoryGame
+) => {
+  const activeMembers = (game.members ?? [game]).filter(
+    (member) => !member.isDeleted
+  );
+  return {
+    steam: activeMembers.some((member) => member.hasActiveSteamImport === true),
+    epic: activeMembers.some((member) => member.hasActiveEpicImport === true),
+  };
+};
+
 export const getLibraryPresentationBadgeSource = (
   game: LibraryCategoryGame
 ): "steam" | "epic" | null => {

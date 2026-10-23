@@ -10,6 +10,7 @@ const {
   filterLibraryGamesByCategory,
   getLibraryFilterOptions,
   getLibraryPresentationBadgeSource,
+  getLibraryPresentationImportSources,
   getProfileLibraryFilter,
   hasSteamLibraryGames,
   isSteamLibraryGame,
@@ -329,6 +330,27 @@ describe("Profile library filter", () => {
 });
 
 describe("Steam badge", () => {
+  it("lists every active import for separate badges", () => {
+    assert.deepEqual(
+      getLibraryPresentationImportSources({
+        shop: "steam",
+        members: [
+          { shop: "steam", hasActiveSteamImport: true },
+          { shop: "epic", hasActiveEpicImport: true },
+          { shop: "epic", hasActiveEpicImport: true, isDeleted: true },
+        ],
+      }),
+      { steam: true, epic: true }
+    );
+    assert.deepEqual(
+      getLibraryPresentationImportSources({
+        shop: "epic",
+        hasActiveEpicImport: true,
+      }),
+      { steam: false, epic: true }
+    );
+  });
+
   it("uses real imports instead of catalogue availability or preferred metadata", () => {
     const catalogue = {
       shop: "epic",

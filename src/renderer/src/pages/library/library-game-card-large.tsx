@@ -1,5 +1,5 @@
 import cn from "classnames";
-import { getLibraryPresentationBadgeSource } from "./library-category";
+import { getLibraryPresentationImportSources } from "./library-category";
 
 import { LibraryGame } from "@types";
 import {
@@ -94,11 +94,11 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     userPreferences?.hideLibraryReadySizeBadges ?? false;
   const hideClassicsBadges =
     userPreferences?.hideLibraryClassicsBadges ?? false;
-  const badgeSource = getLibraryPresentationBadgeSource(game);
+  const importSources = getLibraryPresentationImportSources(game);
   const showEpicLibraryBadge =
-    badgeSource === "epic" && !userPreferences?.hideEpicLibraryBadges;
+    importSources.epic && !userPreferences?.hideEpicLibraryBadges;
   const showSteamLibraryBadge =
-    badgeSource === "steam" && !userPreferences?.hideSteamLibraryBadges;
+    importSources.steam && !userPreferences?.hideSteamLibraryBadges;
   const hideAchievementProgress =
     userPreferences?.hideLibraryAchievementProgress ?? false;
   const autoplayAnimatedArtwork =
@@ -449,23 +449,22 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                 </span>
               </div>
             )}
-
-            {showEpicLibraryBadge && (
-              <SteamLibraryBadge
-                source="epic"
-                variant="large"
-                availableShops={game.availableShops}
-                hasActiveSteamImport={game.hasActiveSteamImport}
-                hasActiveEpicImport={game.hasActiveEpicImport}
-              />
-            )}
-            {showSteamLibraryBadge && (
-              <SteamLibraryBadge
-                variant="large"
-                availableShops={game.availableShops}
-                hasActiveSteamImport={game.hasActiveSteamImport}
-                hasActiveEpicImport={game.hasActiveEpicImport}
-              />
+            {(showSteamLibraryBadge || showEpicLibraryBadge) && (
+              <div className="library-game-card-large__import-badges">
+                {showSteamLibraryBadge && (
+                  <SteamLibraryBadge
+                    variant="large"
+                    availableShops={game.availableShops}
+                  />
+                )}
+                {showEpicLibraryBadge && (
+                  <SteamLibraryBadge
+                    source="epic"
+                    variant="large"
+                    availableShops={game.availableShops}
+                  />
+                )}
+              </div>
             )}
 
             {!hideClassicsBadges && classicsPlatformLabel && (
