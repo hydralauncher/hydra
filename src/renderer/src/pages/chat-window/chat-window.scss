@@ -822,6 +822,10 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     &--closing {
       pointer-events: none;
       animation: chat-window-picker-hide 0.14s ease-in both;
+
+      @media (prefers-reduced-motion: reduce) {
+        animation: none;
+      }
     }
   }
 
@@ -1258,6 +1262,10 @@ $cooldown-ring-length: 2 * math.$pi * 11;
       width 0.15s ease,
       background-color 0.15s ease;
 
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+
     &:hover,
     &--dragging {
       width: 6px;
@@ -1291,6 +1299,10 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     &--leaving {
       pointer-events: none;
       animation: chat-window-jump-out 0.16s ease-in both;
+
+      @media (prefers-reduced-motion: reduce) {
+        animation: none;
+      }
     }
   }
 

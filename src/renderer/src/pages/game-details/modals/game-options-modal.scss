@@ -534,7 +534,9 @@ $disc-menu-transition-duration: 0.15s;
   cursor: pointer;
   width: 100%;
   text-align: left;
-  transition: all 0.15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
 
   &:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.08);
