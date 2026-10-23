@@ -25,3 +25,4 @@ export * from "./game-artwork-utils";
 export * from "./use-cover-poster";
 export * from "./use-processed-image";
 export * from "./use-file-icons";
+export * from "./use-drag-text-selection";

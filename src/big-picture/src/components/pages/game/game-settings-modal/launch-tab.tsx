@@ -20,7 +20,6 @@ import {
   FocusItem,
   HorizontalFocusGroup,
   Input,
-  Typography,
   type FileFilter,
   VerticalFocusGroup,
 } from "../../../common";
@@ -166,9 +165,9 @@ function LaunchboxDiscsSection({
           />
         ) : (
           <>
-            <Typography className="game-launch-settings-tab__empty-state">
+            <div className="game-launch-settings-tab__exec-path-button game-launch-settings-tab__exec-path-button--placeholder game-launch-settings-tab__exec-path-button--static">
               {t("no_discs_found")}
-            </Typography>
+            </div>
 
             <HorizontalFocusGroup className="game-launch-settings-tab__actions game-launch-settings-tab__actions--thirds">
               <Button

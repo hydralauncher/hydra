@@ -10,6 +10,7 @@ import {
   useAppDispatch,
   useAppSelector,
   useDownload,
+  useDragTextSelection,
   useLibrary,
   useToast,
   useUserDetails,
@@ -77,6 +78,7 @@ export function App() {
 
   // Listen for new download options updates
   useDownloadOptionsListener();
+  useDragTextSelection();
 
   const { t } = useTranslation("app");
 
@@ -171,6 +173,19 @@ export function App() {
     });
 
     return () => unsubscribe();
+  }, [updateLibrary]);
+
+  useEffect(() => {
+    const refreshLibrary = () => {
+      void updateLibrary();
+    };
+
+    window.addEventListener("hydra:game-visibility-updated", refreshLibrary);
+    return () =>
+      window.removeEventListener(
+        "hydra:game-visibility-updated",
+        refreshLibrary
+      );
   }, [updateLibrary]);
 
   useEffect(() => {
@@ -355,12 +370,28 @@ export function App() {
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
       if (gamesRunning.length) {
+        const runningIds = new Set(gamesRunning.map((game) => game.id));
+        const concealedExecutables = new Set(
+          downloadLibrary
+            .filter(
+              (game) =>
+                game.isConcealed &&
+                game.executablePath &&
+                runningIds.has(game.id)
+            )
+            .map((game) => game.executablePath!.toLowerCase())
+        );
         const lastGame = gamesRunning[gamesRunning.length - 1];
         const libraryGame = library.find(
           (library) => library.id === lastGame.id
         );
 
-        if (libraryGame) {
+        if (
+          libraryGame &&
+          !concealedExecutables.has(
+            libraryGame.executablePath?.toLowerCase() ?? ""
+          )
+        ) {
           dispatch(
             setGameRunning({
               ...libraryGame,
@@ -377,7 +408,7 @@ export function App() {
     return () => {
       unsubscribe();
     };
-  }, [dispatch, library]);
+  }, [dispatch, library, downloadLibrary]);
 
   useEffect(() => {
     window.electron.getActiveClassicsImport().then((snapshot) => {

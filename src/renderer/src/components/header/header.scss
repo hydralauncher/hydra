@@ -131,11 +131,15 @@
     transition: all ease 0.2s;
     overflow: hidden;
     text-overflow: ellipsis;
-    width: 100%;
+    width: fit-content;
+    max-width: 100%;
+    user-select: text;
+    cursor: text;
+    -webkit-app-region: no-drag;
 
     &--has-back-button {
       transform: translateX(28px);
-      width: calc(100% - 28px);
+      max-width: calc(100% - 28px);
     }
   }
 }

@@ -415,6 +415,38 @@
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }
 
+  &__souvenir-skeleton {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$background-color;
+  }
+
+  &__souvenir-skeleton-image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  &__souvenir-skeleton-details {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__souvenir-skeleton-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
   &__souvenir {
     position: relative;
     display: flex;
@@ -775,6 +807,26 @@
 
 .user-reviews__review-item {
   border-radius: 8px;
+}
+
+.user-reviews__skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: globals.$spacing-unit;
+  padding-bottom: calc(globals.$spacing-unit * 2);
+  border-bottom: solid 1px globals.$border-color;
+
+  > span:not(:first-child) {
+    width: 100%;
+  }
+}
+
+.user-reviews__skeleton-header,
+.user-reviews__skeleton-votes {
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
 }
 
 .user-reviews__review-header {

@@ -732,7 +732,7 @@ declare global {
     ) => Promise<EmulatorConfig>;
     checkPs3Firmware: (
       executablePath: string | null
-    ) => Promise<{ installed: boolean }>;
+    ) => Promise<{ installed: boolean; path: string | null }>;
     checkEmulatorBios: (
       system: EmulatorSystem,
       executablePath: string | null,
@@ -829,7 +829,9 @@ declare global {
       scanSubfolders: boolean
     ) => Promise<{ fileCount: number }>;
     checkRetroArchExecutable: () => Promise<{ exists: boolean }>;
-    removeRetroArch: () => Promise<RetroArchConfig>;
+    removeRetroArch: (options?: {
+      removeGames?: boolean;
+    }) => Promise<RetroArchConfig>;
     addRetroArchRomFolder: (
       folderPath: string,
       scanSubfolders: boolean
@@ -858,7 +860,10 @@ declare global {
       gamesYmlPath: string | null;
       gamesYmlEntries: { titleId: string; path: string }[];
     }>;
-    removeEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    removeEmulator: (
+      system: EmulatorSystem,
+      options?: { removeGames?: boolean }
+    ) => Promise<EmulatorConfig>;
     checkEmulatorExecutable: (
       system: EmulatorSystem
     ) => Promise<{ exists: boolean }>;

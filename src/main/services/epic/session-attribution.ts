@@ -250,16 +250,166 @@ async function readEpicStoreManifests(root: string, signal?: AbortSignal) {
   return manifests;
 }
 
+const EPIC_INSTALLATION_LIST_MAX_BYTES = 16 * 1024 * 1024;
+
+const optionalString = (key: string, value: unknown) =>
+  typeof value === "string" && value ? { [key]: value } : {};
+
+/** Replays the Epic Games Launcher v2 installations log, latest record wins. */
+export function parseEpicLauncherInstallations(content: string) {
+  const latest = new Map<string, Record<string, unknown>>();
+  const artifactIds = new Map<string, string>();
+  for (const line of content.replace(/^\uFEFF/, "").split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    let record: unknown;
+    try {
+      record = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (!isRecord(record) || typeof record.installationId !== "string")
+      continue;
+    latest.set(record.installationId, record);
+    if (typeof record.artifactId === "string" && record.artifactId)
+      artifactIds.set(record.installationId, record.artifactId);
+  }
+
+  const installations: EpicInstallManifest[] = [];
+  const removedArtifactIds = new Set<string>();
+  for (const [installationId, record] of latest) {
+    const artifactId = artifactIds.get(installationId);
+    if (!artifactId) continue;
+    if (
+      record.deleted === true ||
+      record.complete !== true ||
+      typeof record.dir !== "string" ||
+      !record.dir ||
+      (typeof record.platform === "string" && record.platform !== "Windows")
+    ) {
+      removedArtifactIds.add(artifactId);
+      continue;
+    }
+    installations.push({
+      artifactId,
+      installLocation: record.dir,
+      ...optionalString("namespace", record.namespace),
+      ...optionalString("itemId", record.itemId),
+    });
+  }
+  return { installations, removedArtifactIds };
+}
+
+/** Reads the legacy launcher's LauncherInstalled.dat install list. */
+export function parseLauncherInstalledList(content: string) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content.replace(/^\uFEFF/, ""));
+  } catch {
+    return [];
+  }
+  if (!isRecord(parsed) || !Array.isArray(parsed.InstallationList)) return [];
+  return parsed.InstallationList.flatMap((entry): EpicInstallManifest[] => {
+    if (
+      !isRecord(entry) ||
+      typeof entry.AppName !== "string" ||
+      !entry.AppName ||
+      typeof entry.InstallLocation !== "string" ||
+      !entry.InstallLocation
+    )
+      return [];
+    return [
+      {
+        artifactId: entry.AppName,
+        installLocation: entry.InstallLocation,
+        ...optionalString("namespace", entry.NamespaceId),
+        ...optionalString("itemId", entry.ItemId),
+      },
+    ];
+  });
+}
+
+async function readInstallationList(file: string) {
+  try {
+    const stat = await fs.lstat(file);
+    if (
+      !stat.isFile() ||
+      stat.isSymbolicLink() ||
+      stat.size > EPIC_INSTALLATION_LIST_MAX_BYTES
+    )
+      return null;
+    return await fs.readFile(file, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+const isDirectory = (directory: string) =>
+  fs
+    .stat(directory)
+    .then((stat) => stat.isDirectory())
+    .catch(() => false);
+
 /** Complete Epic Games Store installations on this Windows machine. */
 export async function listEpicStoreInstallations(
   signal?: AbortSignal,
   programData = process.env.PROGRAMDATA,
-  platform: NodeJS.Platform = process.platform
+  platform: NodeJS.Platform = process.platform,
+  localAppData = process.env.LOCALAPPDATA
 ) {
-  if (platform !== "win32" || !programData || !path.isAbsolute(programData))
-    return [];
-  return readEpicStoreManifests(
-    path.join(programData, "Epic", "EpicGamesLauncher", "Data", "Manifests"),
-    signal
-  );
+  if (platform !== "win32") return [];
+  const programDataRoot =
+    programData && path.isAbsolute(programData) ? programData : null;
+  const installations = new Map<string, EpicInstallManifest>();
+  const add = (manifest: EpicInstallManifest) => {
+    if (!installations.has(manifest.artifactId))
+      installations.set(manifest.artifactId, manifest);
+  };
+
+  if (programDataRoot) {
+    const manifests = await readEpicStoreManifests(
+      path.join(
+        programDataRoot,
+        "Epic",
+        "EpicGamesLauncher",
+        "Data",
+        "Manifests"
+      ),
+      signal
+    );
+    manifests.forEach(add);
+  }
+
+  let removedArtifactIds = new Set<string>();
+  if (localAppData && path.isAbsolute(localAppData)) {
+    const content = await readInstallationList(
+      path.join(localAppData, "com.epicgames.eglv2", "installations.jsonl")
+    );
+    if (content !== null) {
+      const parsed = parseEpicLauncherInstallations(content);
+      parsed.installations.forEach(add);
+      removedArtifactIds = parsed.removedArtifactIds;
+    }
+  }
+
+  if (programDataRoot) {
+    const content = await readInstallationList(
+      path.join(
+        programDataRoot,
+        "Epic",
+        "UnrealEngineLauncher",
+        "LauncherInstalled.dat"
+      )
+    );
+    for (const manifest of content ? parseLauncherInstalledList(content) : []) {
+      if (signal?.aborted) break;
+      if (
+        installations.has(manifest.artifactId) ||
+        removedArtifactIds.has(manifest.artifactId)
+      )
+        continue;
+      if (await isDirectory(manifest.installLocation)) add(manifest);
+    }
+  }
+
+  return [...installations.values()];
 }

@@ -272,9 +272,15 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
               </div>
             </div>
           ) : (
-            <p className="game-options-modal__header-description disc-field__empty">
-              {t("no_discs_found")}
-            </p>
+            <div className="disc-field__dropdown">
+              <TextField
+                value=""
+                readOnly
+                theme="dark"
+                disabled
+                placeholder={t("no_discs_found")}
+              />
+            </div>
           )}
 
           <div className="disc-field__add" ref={addMenuRef}>

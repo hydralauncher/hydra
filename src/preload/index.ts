@@ -674,7 +674,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("previewRetroArchRomFolder", folderPath, scanSubfolders),
   checkRetroArchExecutable: () =>
     ipcRenderer.invoke("checkRetroArchExecutable"),
-  removeRetroArch: () => ipcRenderer.invoke("removeRetroArch"),
+  removeRetroArch: (options?: { removeGames?: boolean }) =>
+    ipcRenderer.invoke("removeRetroArch", options),
   addRetroArchRomFolder: (folderPath: string, scanSubfolders: boolean) =>
     ipcRenderer.invoke("addRetroArchRomFolder", folderPath, scanSubfolders),
   changeRetroArchRomFolder: (folderId: string, newPath: string) =>
@@ -739,8 +740,10 @@ contextBridge.exposeInMainWorld("electron", {
   addEmulatorRomPath: (system: EmulatorSystem, folderPath: string) =>
     ipcRenderer.invoke("addEmulatorRomPath", system, folderPath),
   getRpcs3DefaultSources: () => ipcRenderer.invoke("getRpcs3DefaultSources"),
-  removeEmulator: (system: EmulatorSystem) =>
-    ipcRenderer.invoke("removeEmulator", system),
+  removeEmulator: (
+    system: EmulatorSystem,
+    options?: { removeGames?: boolean }
+  ) => ipcRenderer.invoke("removeEmulator", system, options),
   checkEmulatorExecutable: (system: EmulatorSystem) =>
     ipcRenderer.invoke("checkEmulatorExecutable", system),
   importLaunchboxRoms: (

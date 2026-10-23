@@ -54,6 +54,7 @@ export interface UserProfileContext {
   pinnedGames: UserGame[];
   hasMoreLibraryGames: boolean;
   isLoadingLibraryGames: boolean;
+  hasLoadedLibraryGames: boolean;
   souvenirs: ProfileSouvenir[];
   souvenirsTotal: number;
   hasReachedSouvenirLimit: boolean;
@@ -95,6 +96,7 @@ export const userProfileContext = createContext<UserProfileContext>({
   pinnedGames: [],
   hasMoreLibraryGames: false,
   isLoadingLibraryGames: false,
+  hasLoadedLibraryGames: false,
   souvenirs: [],
   souvenirsTotal: 0,
   hasReachedSouvenirLimit: false,
@@ -138,6 +140,7 @@ export function UserProfileContextProvider({
   const [libraryPage, setLibraryPage] = useState(0);
   const [hasMoreLibraryGames, setHasMoreLibraryGames] = useState(true);
   const [isLoadingLibraryGames, setIsLoadingLibraryGames] = useState(false);
+  const [hasLoadedLibraryGames, setHasLoadedLibraryGames] = useState(false);
   const [souvenirs, setSouvenirs] = useState<ProfileSouvenir[]>([]);
   const [souvenirsTotal, setSouvenirsTotal] = useState(0);
   const [hasReachedSouvenirLimit, setHasReachedSouvenirLimit] = useState(false);
@@ -150,6 +153,7 @@ export function UserProfileContextProvider({
   );
   const previousUserIdRef = useRef(userId);
   const userStatsRequestIdRef = useRef(0);
+  const libraryRequestIdRef = useRef(0);
 
   const isMe = userDetails?.id === userProfile?.id;
 
@@ -198,6 +202,11 @@ export function UserProfileContextProvider({
       reset = true,
       filter = DEFAULT_PROFILE_LIBRARY_FILTER
     ) => {
+      const requestId = reset
+        ? ++libraryRequestIdRef.current
+        : libraryRequestIdRef.current;
+      const isCurrentRequest = () => requestId === libraryRequestIdRef.current;
+
       if (reset) {
         setLibraryPage(0);
         setHasMoreLibraryGames(true);
@@ -220,6 +229,8 @@ export function UserProfileContextProvider({
           pinnedGames: UserGame[];
         }>(url, { needsAuth: false });
 
+        if (!isCurrentRequest()) return;
+
         if (reset) {
           setLoadedLibrarySortBy(sortBy ?? null);
         }
@@ -234,11 +245,15 @@ export function UserProfileContextProvider({
           setHasMoreLibraryGames(false);
         }
       } catch (error) {
+        if (!isCurrentRequest()) return;
         setLibraryGames([]);
         setPinnedGames([]);
         setHasMoreLibraryGames(false);
       } finally {
-        setIsLoadingLibraryGames(false);
+        if (isCurrentRequest()) {
+          setIsLoadingLibraryGames(false);
+          if (reset) setHasLoadedLibraryGames(true);
+        }
       }
     },
     [userId]
@@ -252,6 +267,9 @@ export function UserProfileContextProvider({
       if (isLoadingLibraryGames || !hasMoreLibraryGames) {
         return false;
       }
+
+      const requestId = libraryRequestIdRef.current;
+      const isCurrentRequest = () => requestId === libraryRequestIdRef.current;
 
       setIsLoadingLibraryGames(true);
       try {
@@ -271,6 +289,8 @@ export function UserProfileContextProvider({
           pinnedGames: UserGame[];
         }>(url, { needsAuth: false });
 
+        if (!isCurrentRequest()) return false;
+
         if (response && response.library.length > 0) {
           setLibraryGames((prev) => {
             const existingIds = new Set(prev.map((game) => game.objectId));
@@ -287,10 +307,10 @@ export function UserProfileContextProvider({
           return false;
         }
       } catch (error) {
-        setHasMoreLibraryGames(false);
+        if (isCurrentRequest()) setHasMoreLibraryGames(false);
         return false;
       } finally {
-        setIsLoadingLibraryGames(false);
+        if (isCurrentRequest()) setIsLoadingLibraryGames(false);
       }
     },
     [userId, libraryPage, hasMoreLibraryGames, isLoadingLibraryGames]
@@ -442,6 +462,7 @@ export function UserProfileContextProvider({
         needsAuth: false,
       })
       .then(async (userProfile) => {
+        if (previousUserIdRef.current !== userId) return;
         setUserProfile(userProfile);
 
         if (userProfile.profileImageUrl) {
@@ -451,6 +472,7 @@ export function UserProfileContextProvider({
         }
       })
       .catch(() => {
+        if (previousUserIdRef.current !== userId) return;
         showErrorToast(t("user_not_found"));
         navigate(-1);
       });
@@ -478,9 +500,13 @@ export function UserProfileContextProvider({
   useEffect(() => {
     if (previousUserIdRef.current !== userId) {
       previousUserIdRef.current = userId;
+      libraryRequestIdRef.current++;
+      userStatsRequestIdRef.current++;
+      setIsLoadingLibraryGames(false);
       setUserProfile(null);
       setLibraryGames([]);
       setPinnedGames([]);
+      setHasLoadedLibraryGames(false);
       setHeroBackground(DEFAULT_USER_PROFILE_BACKGROUND);
       setLibraryPage(0);
       setHasMoreLibraryGames(true);
@@ -512,6 +538,7 @@ export function UserProfileContextProvider({
         pinnedGames,
         hasMoreLibraryGames,
         isLoadingLibraryGames,
+        hasLoadedLibraryGames,
         souvenirs,
         souvenirsTotal,
         hasReachedSouvenirLimit,

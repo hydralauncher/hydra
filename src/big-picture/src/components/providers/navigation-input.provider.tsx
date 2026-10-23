@@ -404,6 +404,20 @@ export function NavigationInputProvider({
         return;
       }
 
+      if (event.key === "Escape") {
+        if (event.defaultPrevented) return;
+
+        const activeElement = document.activeElement;
+        if (
+          activeElement instanceof HTMLElement &&
+          isEditableElement(activeElement)
+        ) {
+          event.preventDefault();
+          activeElement.blur();
+          return;
+        }
+      }
+
       if (shouldIgnoreKeyboardNavigation(event)) {
         return;
       }

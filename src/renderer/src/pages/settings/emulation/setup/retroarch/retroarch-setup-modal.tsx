@@ -49,7 +49,7 @@ export function RetroArchSetupModal({
   onManage,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
-  const { showErrorToast } = useToast();
+  const { showErrorToast, showSuccessToast } = useToast();
   const { scan, start, cancel, reset } = useRetroArchScan();
 
   const [config, setConfig] = useState<RetroArchConfig | null>(initialConfig);
@@ -130,6 +130,24 @@ export function RetroArchSetupModal({
   }, [visible, initialConfig?.executablePath]);
 
   const currentStep = STEPS[stepIndex];
+
+  const hasShownSetupToastRef = useRef(false);
+
+  useEffect(() => {
+    if (!visible || currentStep !== "done") {
+      hasShownSetupToastRef.current = false;
+      return;
+    }
+    if (hasShownSetupToastRef.current) return;
+
+    hasShownSetupToastRef.current = true;
+    showSuccessToast(
+      t("setup_emulator_success", { name: RETROARCH_LABEL }),
+      gamesAdded > 0
+        ? t("setup_emulator_games_added", { count: gamesAdded })
+        : undefined
+    );
+  }, [visible, currentStep, gamesAdded, showSuccessToast, t]);
 
   const goNext = useCallback(() => setStepIndex((i) => i + 1), []);
   const goBack = useCallback(() => setStepIndex((i) => Math.max(0, i - 1)), []);

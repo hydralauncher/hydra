@@ -50,6 +50,7 @@ export default function GameLauncher() {
 
   const [game, setGame] = useState<Game | null>(null);
   const [gameAssets, setGameAssets] = useState<ShopAssets | null>(null);
+  const [hasLoadedLocalData, setHasLoadedLocalData] = useState(false);
   const [coverImage, setCoverImage] = useState("");
   const [imageResolved, setImageResolved] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -91,13 +92,36 @@ export default function GameLauncher() {
 
   useEffect(() => {
     if (shop && objectId) {
-      window.electron.getGameByObjectId(shop, objectId).then((gameData) => {
-        setGame(gameData);
-      });
+      let hasAssets = false;
 
-      window.electron.getGameAssets(objectId, shop).then((assets) => {
-        setGameAssets(assets);
+      const gameRequest = window.electron
+        .getGameByObjectId(shop, objectId)
+        .then((gameData) => {
+          setGame(gameData);
+        })
+        .catch(() => {});
+
+      const cachedAssetsRequest = window.electron
+        .getGameAssets(objectId, shop, { cacheOnly: true })
+        .then((assets) => {
+          if (!assets || hasAssets) return;
+          hasAssets = true;
+          setGameAssets(assets);
+        })
+        .catch(() => {});
+
+      void Promise.all([gameRequest, cachedAssetsRequest]).then(() => {
+        setHasLoadedLocalData(true);
+        if (hasAssets) return;
+
+        window.electron.getGameAssets(objectId, shop).then((assets) => {
+          if (!assets || hasAssets) return;
+          hasAssets = true;
+          setGameAssets(assets);
+        });
       });
+    } else {
+      setHasLoadedLocalData(true);
     }
 
     window.electron.isMainWindowOpen().then((isOpen) => {
@@ -239,6 +263,7 @@ export default function GameLauncher() {
     normalizeImageUrl(game?.customIconUrl) ||
     normalizeImageUrl(game?.iconUrl ?? gameAssets?.iconUrl) ||
     fallbackSteamCoverImage;
+  const isCoverSourcePending = !coverImageSource && !hasLoadedLocalData;
   const gameTitle = game?.title ?? gameAssets?.title ?? "";
   const playTime = game ? getDisplayedPlayTimeInMilliseconds(game) : 0;
   const achievementCount = game?.achievementCount ?? 0;
@@ -313,6 +338,8 @@ export default function GameLauncher() {
   });
 
   useEffect(() => {
+    if (isCoverSourcePending) return;
+
     let cancelled = false;
 
     setImageError(false);
@@ -354,7 +381,7 @@ export default function GameLauncher() {
     return () => {
       cancelled = true;
     };
-  }, [coverImageSource]);
+  }, [coverImageSource, isCoverSourcePending]);
 
   useEffect(() => {
     if (coverImage && !colorExtracted) {

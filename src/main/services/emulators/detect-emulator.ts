@@ -97,6 +97,14 @@ const windowsPortableDirs = (): string[] => {
   return dirs;
 };
 
+const windowsDriveRoots = (): string[] => {
+  const systemDrive = (process.env["SystemDrive"] ?? "C:").toUpperCase();
+  const otherDrives = [..."CDEFGHIJKLMNOPQRSTUVWXYZ"]
+    .map((letter) => `${letter}:`)
+    .filter((drive) => drive !== systemDrive);
+  return [systemDrive, ...otherDrives].map((drive) => `${drive}\\`);
+};
+
 const binarySubdirName = (executableName: string): string => {
   const base = executableName.replace(/\.exe$/i, "");
   return base.split(/[-_]/)[0];
@@ -245,7 +253,10 @@ const findPlatformInstall = (
   if (downloaded) return downloaded;
 
   if (isWindows) {
-    return searchPortableWindows(names, windowsPortableDirs());
+    return (
+      searchPortableWindows(names, windowsPortableDirs()) ??
+      searchPortableWindows(names, windowsDriveRoots())
+    );
   }
   if (isMac) return null;
 
