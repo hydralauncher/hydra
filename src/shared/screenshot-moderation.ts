@@ -29,8 +29,14 @@ const NON_RETRYABLE_UPLOAD_ERRORS: Record<string, string> = {
   screenshot_unreadable: "error_unreadable",
 };
 
+const RETRYABLE_UPLOAD_ERRORS: Record<string, string> = {
+  "feature/feature-not-enabled": "error_feature_disabled",
+};
+
 export const getScreenshotUploadErrorKey = (code: string | null | undefined) =>
-  (code && NON_RETRYABLE_UPLOAD_ERRORS[code]) || "error_generic";
+  (code &&
+    (NON_RETRYABLE_UPLOAD_ERRORS[code] ?? RETRYABLE_UPLOAD_ERRORS[code])) ||
+  "error_generic";
 
 export const isScreenshotUploadRetryable = (code: string | null | undefined) =>
   !code || !(code in NON_RETRYABLE_UPLOAD_ERRORS);

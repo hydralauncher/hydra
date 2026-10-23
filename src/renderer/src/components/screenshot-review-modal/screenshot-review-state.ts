@@ -78,7 +78,6 @@ export const getUploadPercent = (screenshot: LocalScreenshot) =>
 
 export const getQueuedMessageKey = (lastError: string | null) => {
   if (lastError === "game/not-found") return "error_waiting_for_game";
-  if (lastError?.startsWith("feature/")) return "error_feature_disabled";
   if (
     lastError === "screenshots/upload-rate-limited" ||
     lastError === "screenshots/upload-capacity-reached"
