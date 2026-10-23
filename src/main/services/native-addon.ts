@@ -115,10 +115,6 @@ type HydraNativeModule = {
     config: ScreenshotInputNativeConfig
   ) => ScreenshotInputNativeStatus;
   getWindowsForegroundWindow?: () => NativeForegroundWindowResponse | null;
-  placeWindowBelow?: (
-    windowHandle: string,
-    insertAfterHandle: string
-  ) => boolean;
   getLinuxWindowClientPid?: (windowId: string) => number | null;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
@@ -513,22 +509,6 @@ export class NativeAddon {
     } catch (error) {
       logger.error("Failed to identify the Windows foreground window", error);
       return undefined;
-    }
-  }
-
-  public static placeWindowBelow(
-    windowHandle: string,
-    insertAfterHandle: string
-  ) {
-    if (process.platform !== "win32") return false;
-
-    try {
-      return (
-        this.load().placeWindowBelow?.(windowHandle, insertAfterHandle) ?? false
-      );
-    } catch (error) {
-      logger.error("Failed to place a window below another window", error);
-      return false;
     }
   }
 
