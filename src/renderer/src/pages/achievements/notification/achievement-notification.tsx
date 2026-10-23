@@ -212,12 +212,15 @@ export function AchievementNotification() {
         setAchievement(null);
         setPhase("idle");
 
-        const sourceIcon =
-          nextRequest.type === "combined"
-            ? HydraIconUrl
-            : nextRequest.achievement.iconUrl;
+        const resolveIcon = () => {
+          if (nextRequest.type === "screenshot") return Promise.resolve("");
+          if (nextRequest.type === "combined") {
+            return resolveImageUrl(HydraIconUrl);
+          }
+          return resolveImageUrl(nextRequest.achievement.iconUrl);
+        };
 
-        void resolveImageUrl(sourceIcon)
+        void resolveIcon()
           .then((resolvedIcon) => {
             if (preparationSequence.current !== sequence) return;
 

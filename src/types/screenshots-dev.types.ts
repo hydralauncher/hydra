@@ -28,7 +28,8 @@ export type ScreenshotsDevFeedbackKind =
   | "sound"
   | "captured"
   | "saved_locally"
-  | "disabled_for_game";
+  | "disabled_for_game"
+  | "capture_failed";
 
 export type ScreenshotsDevModerationOutcome =
   | "APPROVED"

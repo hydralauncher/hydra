@@ -2793,6 +2793,7 @@
   },
   "screenshots_capture": {
     "cancel": "Cancel",
+    "capture_failed": "Couldn't take the screenshot",
     "captured": "Screenshot captured",
     "custom_game_default_title": "Custom Game",
     "custom_game_title_edit": "Edit game title",
@@ -2886,6 +2887,7 @@
     "failure_blocked_limit_reached": "Upload blocked",
     "failure_network": "Network error",
     "failure_tier_limit": "Exceeds tier limit",
+    "feedback_capture_failed": "Toast: capture failed",
     "feedback_captured": "Toast: captured",
     "feedback_disabled_for_game": "Toast: disabled for this game",
     "feedback_group": "Feedback only",
