@@ -983,6 +983,8 @@
     "screenshots_reveal_spoiler_hint": "Pulsa A para mostrarla",
     "screenshots_add_description": "Añadir descripción",
     "screenshots_danger_zone_description": "Elimina tus capturas publicadas de este juego, todos sus archivos de capturas en este equipo o ambos.",
-    "screenshots_browse_community": "Ver capturas de la comunidad"
+    "screenshots_browse_community": "Ver capturas de la comunidad",
+    "media_viewer_hide_sidebar": "Ocultar panel lateral",
+    "media_viewer_show_sidebar": "Mostrar panel lateral"
   }
 }

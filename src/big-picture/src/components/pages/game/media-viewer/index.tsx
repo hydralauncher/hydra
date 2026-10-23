@@ -11,12 +11,14 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import cn from "classnames";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
   CaretLeftIcon,
   CaretRightIcon,
   CornersIn,
   Play,
+  SidebarSimpleIcon,
 } from "@phosphor-icons/react";
 import {
   GalleryVideoSlot,
@@ -108,6 +110,38 @@ const withoutLayersBelow = (layers: StageLayer[], key: number) => {
 const STAGE_FOCUS_ID = "game-media-viewer-stage";
 const STAGE_REGION_ID = "game-media-viewer";
 const SIDEBAR_ROOT_REGION_ID = "game-media-viewer-root";
+const SIDEBAR_PANEL_ID = "game-media-viewer-sidebar";
+const SIDEBAR_MIN_WIDTH = 340;
+const SIDEBAR_MAX_WIDTH = 460;
+const SIDEBAR_VIEWPORT_RATIO = 0.3;
+const SIDEBAR_CONTENT_OFFSET = 48;
+const SIDEBAR_SPRING = {
+  type: "spring",
+  stiffness: 340,
+  damping: 36,
+  mass: 0.9,
+} as const;
+const SIDEBAR_CONTENT_EASE = [0.22, 1, 0.36, 1] as const;
+
+const getSidebarWidth = () =>
+  Math.round(
+    Math.min(
+      SIDEBAR_MAX_WIDTH,
+      Math.max(SIDEBAR_MIN_WIDTH, window.innerWidth * SIDEBAR_VIEWPORT_RATIO)
+    )
+  );
+
+function useSidebarWidth() {
+  const [width, setWidth] = useState(getSidebarWidth);
+
+  useEffect(() => {
+    const update = () => setWidth(getSidebarWidth());
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return width;
+}
 
 const isTypingInField = () => {
   const activeElement = globalThis.document.activeElement;
@@ -284,6 +318,10 @@ export function MediaViewer({
     []
   );
   const { t } = useTranslation("game_details");
+  const { t: tBigPicture } = useTranslation("big_picture");
+  const prefersReducedMotion = useReducedMotion();
+  const sidebarWidth = useSidebarWidth();
+  const [isSidebarHidden, setIsSidebarHidden] = useState(false);
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
   const idleTimerRef = useRef<number>();
   const layerKeyRef = useRef(0);
@@ -532,6 +570,18 @@ export function MediaViewer({
     navigate,
   ]);
 
+  const toggleSidebar = useCallback(() => {
+    if (
+      !isSidebarHidden &&
+      navigationService.getCurrentFocusId() !== STAGE_FOCUS_ID
+    ) {
+      navigationService.setFocus(STAGE_FOCUS_ID);
+    }
+    setIsSidebarHidden((hidden) => !hidden);
+    navigationAudio.play("select");
+    wake();
+  }, [isSidebarHidden, wake]);
+
   const handleQualityMenu = useCallback(() => {
     const activeVideo = getActiveVideo();
     if (!activeVideo) return;
@@ -543,7 +593,7 @@ export function MediaViewer({
   }, [getActiveVideo, wake]);
 
   const stageScreenActions = hasSidebar
-    ? { press: { b: handleBack } }
+    ? { press: { b: handleBack, y: toggleSidebar } }
     : {
         press: { b: handleBack, x: handleToggleMute, y: handleQualityMenu },
         direction: {
@@ -626,6 +676,16 @@ export function MediaViewer({
 
   if (!item) return null;
 
+  const sidebarToggleLabel = tBigPicture(
+    isSidebarHidden ? "media_viewer_show_sidebar" : "media_viewer_hide_sidebar"
+  );
+  const sidebarTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : SIDEBAR_SPRING;
+  const sidebarContentTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.26, ease: SIDEBAR_CONTENT_EASE };
+
   const portalTarget =
     document.getElementById("big-picture") ??
     document.getElementById("root") ??
@@ -639,7 +699,9 @@ export function MediaViewer({
       <FocusItem
         id={STAGE_FOCUS_ID}
         actions={{ primary: handlePrimary }}
-        navigationOverrides={stageNavigationOverrides}
+        navigationOverrides={
+          isSidebarHidden ? undefined : stageNavigationOverrides
+        }
         asChild
       >
         <div className="media-viewer__stage">
@@ -766,6 +828,26 @@ export function MediaViewer({
             </div>
           ) : null}
 
+          {hasSidebar ? (
+            <div className="media-viewer__sidebar-toggle">
+              <button
+                type="button"
+                className="media-viewer__sidebar-toggle-button"
+                onClick={toggleSidebar}
+                aria-label={sidebarToggleLabel}
+                aria-expanded={!isSidebarHidden}
+                aria-controls={SIDEBAR_PANEL_ID}
+                tabIndex={-1}
+                data-tooltip-id={GALLERY_VIEWER_TOOLTIP_ID}
+                data-tooltip-content={sidebarToggleLabel}
+                data-tooltip-place="top"
+              >
+                <SidebarSimpleIcon size={30} weight="bold" mirrored />
+              </button>
+              <BumperBadge label="Y" />
+            </div>
+          ) : null}
+
           <button
             type="button"
             className="media-viewer__exit-button"
@@ -809,7 +891,30 @@ export function MediaViewer({
                   {stageRegion}
                   {chrome}
                 </div>
-                <aside className="media-viewer__sidebar">{sidebar}</aside>
+                <AnimatePresence initial={false}>
+                  {isSidebarHidden ? null : (
+                    <motion.aside
+                      key="sidebar"
+                      id={SIDEBAR_PANEL_ID}
+                      className="media-viewer__sidebar"
+                      initial={{ width: 0 }}
+                      animate={{ width: sidebarWidth }}
+                      exit={{ width: 0 }}
+                      transition={sidebarTransition}
+                    >
+                      <motion.div
+                        className="media-viewer__sidebar-content"
+                        style={{ width: sidebarWidth }}
+                        initial={{ x: SIDEBAR_CONTENT_OFFSET, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: SIDEBAR_CONTENT_OFFSET, opacity: 0 }}
+                        transition={sidebarContentTransition}
+                      >
+                        {sidebar}
+                      </motion.div>
+                    </motion.aside>
+                  )}
+                </AnimatePresence>
               </div>
             </HorizontalFocusGroup>
           </NavigationLayer>

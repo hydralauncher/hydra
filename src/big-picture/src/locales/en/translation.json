@@ -1022,6 +1022,8 @@
     "screenshots_reveal_spoiler_hint": "Press A to reveal",
     "screenshots_add_description": "Add description",
     "screenshots_danger_zone_description": "Delete your published screenshots of this game, every screenshot file of it on this computer, or both.",
-    "screenshots_browse_community": "Browse community screenshots"
+    "screenshots_browse_community": "Browse community screenshots",
+    "media_viewer_hide_sidebar": "Hide sidebar",
+    "media_viewer_show_sidebar": "Show sidebar"
   }
 }

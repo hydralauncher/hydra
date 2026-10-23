@@ -1022,6 +1022,8 @@
     "screenshots_reveal_spoiler_hint": "Pressione A para revelar",
     "screenshots_add_description": "Adicionar descrição",
     "screenshots_danger_zone_description": "Exclua suas capturas publicadas deste jogo, todos os arquivos de captura dele neste computador ou ambos.",
-    "screenshots_browse_community": "Ver capturas da comunidade"
+    "screenshots_browse_community": "Ver capturas da comunidade",
+    "media_viewer_hide_sidebar": "Ocultar painel lateral",
+    "media_viewer_show_sidebar": "Mostrar painel lateral"
   }
 }
