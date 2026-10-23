@@ -146,12 +146,6 @@ export function useRichTextEditor({
     },
   });
 
-  const clear = () => {
-    clearRichTextEditor(editor);
-    setCharCount(0);
-    setHtmlLength(0);
-  };
-
   const submit = (
     send: (html: string) => Promise<boolean>,
     options?: SubmitRichTextEditorOptions
@@ -162,10 +156,6 @@ export function useRichTextEditor({
     charCount,
     htmlLength,
     isEmpty: !isRichTextEditorAvailable(editor) || !editor.getText().trim(),
-    getHtml: () => (isRichTextEditorAvailable(editor) ? editor.getHTML() : ""),
-    clear,
     submit,
   };
 }
-
-export type RichTextEditorInstance = Editor | null;

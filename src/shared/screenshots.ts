@@ -16,8 +16,6 @@ export const SCREENSHOT_COMMENT_MAX_LENGTH = 500;
 export const SCREENSHOT_COMMENT_HTML_MAX_LENGTH = 5000;
 export const SCREENSHOT_REPORT_DESCRIPTION_MAX_LENGTH = 255;
 
-export const SCREENSHOT_SORTS: ScreenshotSort[] = ["recent", "top"];
-
 export const SCREENSHOT_REPORT_REASONS: ScreenshotReportReason[] = [
   "hate",
   "sexual_content",
