@@ -136,7 +136,7 @@ function getUploadStatusKey(screenshot: LocalScreenshot | undefined) {
     if (screenshot.moderationStatus === "BLOCKED")
       return "screenshots_review_upload_blocked";
     return screenshot.moderationStatus === "APPROVED"
-      ? "screenshots:uploaded"
+      ? "screenshots_review_upload_approved"
       : "screenshots_review_upload_done";
   }
   if (screenshot.state === "uploading")

@@ -68,7 +68,6 @@ export const SCREENSHOT_SETTINGS_FOCUS_IDS = {
   gamepadReset: "screenshot-settings-gamepad-reset",
   captureSound: "screenshot-settings-capture-sound",
   toast: "screenshot-settings-toast",
-  borderFlash: "screenshot-settings-border-flash",
   defaultVisibility: "screenshot-settings-default-visibility",
   folder: "screenshot-settings-folder",
   folderReset: "screenshot-settings-folder-reset",
@@ -99,7 +98,6 @@ type ScreenshotPreferenceUpdate = Pick<
   | "screenshotGamepadCombo"
   | "screenshotCaptureSoundEnabled"
   | "screenshotToastEnabled"
-  | "screenshotBorderFlashEnabled"
   | "screenshotDefaultVisibility"
 >;
 
@@ -379,7 +377,6 @@ function buildScreenshotSettingsRows(options: ScreenshotSettingsRowsOptions) {
     comboActionsRow,
     [ids.captureSound],
     [ids.toast],
-    [ids.borderFlash],
     [ids.defaultVisibility],
     folderRow,
   ]
@@ -404,9 +401,6 @@ export function ScreenshotSettingsSection({
   const [overrides, setOverrides] = useState<ScreenshotPreferenceUpdate>({});
   const [folderPath, setFolderPath] = useState("");
   const inputStatus = useScreenshotInputStatus();
-  const isBorderFlashUnavailable = Boolean(
-    globalThis.window.electron.isWayland
-  );
   const preferences = resolveScreenshotPreferences({
     ...userPreferences,
     ...overrides,
@@ -575,13 +569,11 @@ export function ScreenshotSettingsSection({
     label: string,
     checked: boolean,
     onChange: (checked: boolean) => void,
-    disabled = settingsDisabled,
-    secondaryText?: string
+    disabled = settingsDisabled
   ) => (
     <Checkbox
       block
       label={label}
-      secondaryText={secondaryText}
       checked={checked}
       disabled={disabled}
       focusId={focusId}
@@ -771,17 +763,6 @@ export function ScreenshotSettingsSection({
             t("screenshots_settings_toast"),
             preferences.toastEnabled,
             (screenshotToastEnabled) => void update({ screenshotToastEnabled })
-          )}
-          {renderCheckbox(
-            ids.borderFlash,
-            t("screenshots_settings_border_flash"),
-            preferences.borderFlashEnabled && !isBorderFlashUnavailable,
-            (screenshotBorderFlashEnabled) =>
-              void update({ screenshotBorderFlashEnabled }),
-            settingsDisabled || isBorderFlashUnavailable,
-            isBorderFlashUnavailable
-              ? t("screenshots_border_flash_unavailable", { ns: "settings" })
-              : undefined
           )}
 
           <DropdownSelect
