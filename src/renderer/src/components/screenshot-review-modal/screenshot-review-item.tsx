@@ -40,6 +40,7 @@ interface ScreenshotReviewItemProps {
   onDraftChange: (draft: ScreenshotReviewDraft) => void;
   onDraftCommit?: () => void;
   canClose: boolean;
+  onClose: () => void;
   isLocked?: boolean;
 }
 
@@ -49,6 +50,7 @@ export function ScreenshotReviewItem({
   onDraftChange,
   onDraftCommit,
   canClose,
+  onClose,
   isLocked = false,
 }: Readonly<ScreenshotReviewItemProps>) {
   const { t, i18n } = useTranslation("screenshots_capture");
@@ -188,7 +190,7 @@ export function ScreenshotReviewItem({
           )}
           {renderDeleteButton()}
           {canClose && (
-            <Button theme="outline" onClick={() => window.close()}>
+            <Button theme="outline" onClick={onClose}>
               {t("close")}
             </Button>
           )}
@@ -198,7 +200,7 @@ export function ScreenshotReviewItem({
 
     if (screenshot.state === "uploaded" && canClose) {
       return (
-        <Button theme="outline" onClick={() => window.close()}>
+        <Button theme="outline" onClick={onClose}>
           {t("close")}
         </Button>
       );

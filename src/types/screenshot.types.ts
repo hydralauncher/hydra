@@ -287,6 +287,11 @@ export interface ScreenshotUploadProgress {
   progress: number | null;
 }
 
+export interface ScreenshotReview {
+  clientIds: string[];
+  selectedClientId: string | null;
+}
+
 export interface ScreenshotReviewRequest {
   gameKey: string;
   shop: ScreenshotShop;
