@@ -24,7 +24,6 @@ export interface ResolvedScreenshotPreferences {
   gamepadCombo: ScreenshotGamepadButton[];
   captureSoundEnabled: boolean;
   toastEnabled: boolean;
-  borderFlashEnabled: boolean;
   defaultVisibility: ProfileVisibility;
 }
 
@@ -39,7 +38,6 @@ export const resolveScreenshotPreferences = (
   ),
   captureSoundEnabled: preferences?.screenshotCaptureSoundEnabled ?? true,
   toastEnabled: preferences?.screenshotToastEnabled ?? true,
-  borderFlashEnabled: preferences?.screenshotBorderFlashEnabled ?? true,
   defaultVisibility: preferences?.screenshotDefaultVisibility ?? "PUBLIC",
 });
 

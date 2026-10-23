@@ -58,9 +58,8 @@ interface ScreenshotReviewItemProps {
   onExpand: () => void;
   isDetailsOpen: boolean;
   onToggleDetails: () => void;
-  canClose: boolean;
-  onClose: () => void;
-  notice?: React.ReactNode;
+  hasNext: boolean;
+  onNext: () => void;
 }
 
 export function ScreenshotReviewItem({
@@ -71,9 +70,8 @@ export function ScreenshotReviewItem({
   onExpand,
   isDetailsOpen,
   onToggleDetails,
-  canClose,
-  onClose,
-  notice,
+  hasNext,
+  onNext,
 }: Readonly<ScreenshotReviewItemProps>) {
   const { t, i18n } = useTranslation("screenshots_capture");
   const prefersReducedMotion = useReducedMotion();
@@ -173,12 +171,11 @@ export function ScreenshotReviewItem({
     </Button>
   );
 
-  const renderCloseButton = () =>
-    canClose && (
-      <Button theme="outline" onClick={onClose}>
-        {t("close")}
-      </Button>
-    );
+  const renderNextButton = (theme: "primary" | "outline") => (
+    <Button theme={theme} disabled={isBusy} onClick={onNext}>
+      {hasNext ? t("next") : t("done")}
+    </Button>
+  );
 
   const renderActions = () => {
     if (
@@ -194,22 +191,21 @@ export function ScreenshotReviewItem({
     }
 
     if (screenshot.state === "failed") {
+      const canRetry = isScreenshotUploadRetryable(screenshot.lastError);
       return (
         <>
-          {renderCloseButton()}
-          {isScreenshotUploadRetryable(screenshot.lastError) && (
-            <Button disabled={isBusy} onClick={handleUpload}>
+          {canRetry && (
+            <Button theme="outline" disabled={isBusy} onClick={handleUpload}>
               {t("retry")}
             </Button>
           )}
+          {renderNextButton(canRetry ? "outline" : "primary")}
           {renderDeleteButton()}
         </>
       );
     }
 
-    if (screenshot.state === "uploaded") return renderCloseButton() || null;
-
-    return null;
+    return renderNextButton("primary");
   };
 
   const actions = renderActions();
@@ -337,7 +333,7 @@ export function ScreenshotReviewItem({
         </Button>
 
         <div className="screenshot-review-item__footer-status">
-          {notice || <ScreenshotReviewStatus screenshot={screenshot} />}
+          <ScreenshotReviewStatus screenshot={screenshot} />
         </div>
 
         {actions && (

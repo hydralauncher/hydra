@@ -34,7 +34,6 @@ const BURST_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8];
 const DEFAULT_BURST_COUNT = 6;
 const FEEDBACK_KINDS: ScreenshotsDevFeedbackKind[] = [
   "sound",
-  "flash",
   "captured",
   "saved_locally",
   "disabled_for_game",

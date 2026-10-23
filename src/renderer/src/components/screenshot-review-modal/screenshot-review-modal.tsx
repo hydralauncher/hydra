@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
-import { CheckCircleIcon } from "@primer/octicons-react";
 import type { LocalScreenshot, ScreenshotReview } from "@types";
-import { Button, Modal } from "@renderer/components";
+import { Modal } from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { GalleryLightbox } from "@renderer/pages/game-details/gallery-slider/gallery-lightbox";
 import type { GalleryMediaItem } from "@renderer/pages/game-details/gallery-slider/gallery-slider";
@@ -16,6 +15,7 @@ import {
   createReviewDraft,
   getLocalImageSource,
   isScreenshotAwaitingReview,
+  isScreenshotUndecided,
   selectReviewScreenshots,
   type ScreenshotReviewDraft,
 } from "./screenshot-review-state";
@@ -163,8 +163,6 @@ function ScreenshotReviewContent({
     reviewScreenshots[0] ??
     null;
   const isMultiple = reviewScreenshots.length > 1;
-  const isAllDone =
-    isLoaded && reviewScreenshots.length > 0 && pendingScreenshots.length === 0;
 
   useEffect(() => {
     if (isLoaded && reviewScreenshots.length === 0) closeReview();
@@ -255,9 +253,23 @@ function ScreenshotReviewContent({
       selectedScreenshot.gameTitle
     : "";
 
+  const nextUndecidedScreenshot = [
+    ...reviewScreenshots.slice(selectedIndex + 1),
+    ...reviewScreenshots.slice(0, Math.max(selectedIndex, 0)),
+  ].find(isScreenshotUndecided);
+
   const selectScreenshot = (clientId: string) => {
     flushDrafts();
     setSelectedClientId(clientId);
+  };
+
+  const goToNextScreenshot = () => {
+    if (nextUndecidedScreenshot) {
+      selectScreenshot(nextUndecidedScreenshot.clientId);
+      return;
+    }
+    flushDrafts();
+    closeReview();
   };
 
   useEffect(() => {
@@ -319,20 +331,8 @@ function ScreenshotReviewContent({
             onExpand={() => setIsViewerOpen(true)}
             isDetailsOpen={isDetailsOpen}
             onToggleDetails={() => setIsDetailsOpen((current) => !current)}
-            canClose={!isMultiple}
-            onClose={closeReview}
-            notice={
-              isMultiple &&
-              isAllDone && (
-                <output className="screenshot-review__done">
-                  <CheckCircleIcon size={16} />
-                  <span>{t("review_all_done")}</span>
-                  <Button theme="outline" size="small" onClick={closeReview}>
-                    {t("close")}
-                  </Button>
-                </output>
-              )
-            }
+            hasNext={Boolean(nextUndecidedScreenshot)}
+            onNext={goToNextScreenshot}
           />
         )}
 

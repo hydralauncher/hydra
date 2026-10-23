@@ -168,7 +168,6 @@ export function SettingsContextScreenshots() {
     userPreferences?.achievementScreenshotsPath
   );
   const isCaptureDisabled = !form.enabled;
-  const isBorderFlashUnavailable = Boolean(window.electron.isWayland);
 
   const visibilityOptions = SCREENSHOT_VISIBILITY_OPTIONS.map((visibility) => ({
     key: visibility,
@@ -241,26 +240,6 @@ export function SettingsContextScreenshots() {
             )
           }
         />
-
-        <div className="settings-screenshots__field">
-          <CheckboxField
-            label={t("screenshots_border_flash")}
-            checked={form.borderFlashEnabled && !isBorderFlashUnavailable}
-            disabled={isCaptureDisabled || isBorderFlashUnavailable}
-            onChange={() =>
-              savePreferences(
-                { borderFlashEnabled: !form.borderFlashEnabled },
-                { screenshotBorderFlashEnabled: !form.borderFlashEnabled }
-              )
-            }
-          />
-
-          {isBorderFlashUnavailable && (
-            <small className="settings-screenshots__hint">
-              {t("screenshots_border_flash_unavailable")}
-            </small>
-          )}
-        </div>
       </div>
 
       <div className="settings-context-panel__group">
