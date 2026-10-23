@@ -75,15 +75,17 @@ const deleteAssetFiles = async (
 ): Promise<void> => {
   if (assetPathsToDelete.length === 0) return;
 
-  for (const assetPath of assetPathsToDelete) {
-    try {
-      if (fs.existsSync(assetPath)) {
-        await fs.promises.unlink(assetPath);
+  await Promise.all(
+    assetPathsToDelete.map(async (assetPath) => {
+      try {
+        if (fs.existsSync(assetPath)) {
+          await fs.promises.unlink(assetPath);
+        }
+      } catch (error) {
+        logger.warn(`Failed to delete asset ${assetPath}:`, error);
       }
-    } catch (error) {
-      logger.warn(`Failed to delete asset ${assetPath}:`, error);
-    }
-  }
+    })
+  );
 };
 
 export const removeLibraryGame = async (shop: GameShop, objectId: string) => {
@@ -123,9 +125,9 @@ export const removeClassicsEmulatorGames = async (
     isClassicsGameForEmulator(game, target)
   );
 
-  for (const game of matches) {
-    await removeLibraryGame(game.shop, game.objectId);
-  }
+  await Promise.all(
+    matches.map((game) => removeLibraryGame(game.shop, game.objectId))
+  );
 
   return matches.length;
 };

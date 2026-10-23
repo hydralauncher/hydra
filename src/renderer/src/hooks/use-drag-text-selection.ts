@@ -30,11 +30,11 @@ const isOnScrollbar = (event: MouseEvent, target: Element) =>
   (event.offsetX >= target.clientWidth || event.offsetY >= target.clientHeight);
 
 const selectableCaretAt = (x: number, y: number) => {
-  const range = document.caretRangeFromPoint(x, y);
-  const node = range?.startContainer;
-  if (!range || !(node instanceof Text)) return null;
+  const position = document.caretPositionFromPoint(x, y);
+  const node = position?.offsetNode;
+  if (!position || !(node instanceof Text)) return null;
   if (!isSelectableElement(node.parentElement)) return null;
-  return { node, offset: range.startOffset };
+  return { node, offset: position.offset };
 };
 
 export function useDragTextSelection() {

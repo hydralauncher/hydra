@@ -10,6 +10,7 @@ import {
   createRetroAchievementsUnlockConfirmer,
   type DetectedRetroAchievementUnlock,
 } from "./retro-achievements-unlock-confirmer";
+import { loadRetroAchievementsEmulatorAccount } from "./retro-achievements-emulator-account";
 import {
   countSessionUnlocks,
   retroAchievementKey,
@@ -23,8 +24,27 @@ const loadUserPreferences = () =>
     })
     .catch(() => null);
 
-export const createRetroAchievementsRealtimeUnlocks = (game: Game) => {
+interface RealtimeUnlocksOptions {
+  getEmulatorUsername?: () => Promise<string | null>;
+}
+
+export const createRetroAchievementsRealtimeUnlocks = (
+  game: Game,
+  { getEmulatorUsername }: RealtimeUnlocksOptions = {}
+) => {
   const notifiedKeys = new Set<string>();
+  let accountMatch: Promise<boolean> | null = null;
+
+  const isEmulatorOnHydraAccount = () => {
+    accountMatch ??= Promise.all([
+      getEmulatorUsername?.().catch(() => null) ?? null,
+      loadRetroAchievementsEmulatorAccount().catch(() => null),
+    ]).then(([emulatorUsername, account]) => {
+      if (!emulatorUsername || !account) return true;
+      return emulatorUsername.toLowerCase() === account.username.toLowerCase();
+    });
+    return accountMatch;
+  };
 
   const sync = () =>
     syncRetroAchievements({ objectId: game.objectId, shop: game.shop });
@@ -80,6 +100,14 @@ export const createRetroAchievementsRealtimeUnlocks = (game: Game) => {
   ) => {
     const cached = AchievementMemoryStore.get(game.shop, game.objectId);
     if (!cached?.achievements.length) return;
+
+    if (!(await isEmulatorOnHydraAccount())) {
+      achievementsLogger.info(
+        "Skipped instant RetroAchievements unlocks for a different emulator account",
+        { objectId: game.objectId }
+      );
+      return;
+    }
 
     const unlockedNames = cached.unlockedAchievements.map(({ name }) => name);
     const achievements = selectOptimisticUnlocks(

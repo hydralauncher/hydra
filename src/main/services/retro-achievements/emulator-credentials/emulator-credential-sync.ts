@@ -98,6 +98,13 @@ const absolutePaths = (paths: string[]) =>
 const readText = (filePath: string) =>
   fs.promises.readFile(filePath, "utf8").catch(() => null);
 
+const readTextOrEmptyIfMissing = (filePath: string) =>
+  fs.promises
+    .readFile(filePath, "utf8")
+    .catch((error: NodeJS.ErrnoException) =>
+      error.code === "ENOENT" ? "" : null
+    );
+
 const CREDENTIAL_FILE_MODE = 0o600;
 
 const writeIfChanged = async (
@@ -307,7 +314,8 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
       const configPath = resolveDolphinConfig(executablePath);
       if (!configPath) return null;
 
-      const content = (await readText(configPath)) ?? "";
+      const content = await readTextOrEmptyIfMissing(configPath);
+      if (content === null) return null;
       if (
         !shouldWriteEmulatorAccount(
           readDolphinAccount(content),
@@ -326,6 +334,54 @@ const HANDLERS: Record<CredentialEmulator, CredentialHandler> = {
       return configPath;
     },
   },
+};
+
+const readConfigText = async (configPath: string | null) =>
+  configPath ? readText(configPath) : null;
+
+const SIGNED_IN_USERNAME_READERS: Record<
+  CredentialEmulator,
+  (executablePath: string | null) => Promise<string | null>
+> = {
+  retroarch: async (executablePath) => {
+    const content = await readConfigText(
+      findExistingConfig(retroArchCredentialConfigCandidates(executablePath))
+    );
+    return content ? readRetroArchAccount(content).username : null;
+  },
+  pcsx2: async (executablePath) => {
+    const content = await readConfigText(
+      findExistingConfig(pcsx2ConfigCandidates(executablePath))
+    );
+    return content ? readPcsx2Account(content, null).username : null;
+  },
+  ppsspp: async (executablePath) => {
+    const content = await readConfigText(
+      findExistingConfig(
+        absolutePaths(ppssppConfigCandidates(executablePath ?? ""))
+      )
+    );
+    return content ? readPpssppUsername(content) : null;
+  },
+  dolphin: async (executablePath) => {
+    const content = await readConfigText(resolveDolphinConfig(executablePath));
+    return content ? readDolphinAccount(content).username : null;
+  },
+};
+
+export const readEmulatorSignedInUsername = async (
+  system: EmulatorSessionSystem,
+  executablePath: string | null
+) => {
+  const emulator = getCredentialEmulatorForSystem(system);
+  if (!emulator) return null;
+
+  const resolvedPath = executablePath
+    ? (resolveEmulatorExecutableTarget(path.normalize(executablePath)) ??
+      executablePath)
+    : null;
+
+  return SIGNED_IN_USERNAME_READERS[emulator](resolvedPath).catch(() => null);
 };
 
 const getCredentialTargets = async (): Promise<CredentialTarget[]> => {

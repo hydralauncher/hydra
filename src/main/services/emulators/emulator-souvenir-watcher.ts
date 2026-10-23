@@ -14,6 +14,7 @@ import { prepareLinuxGameCaptureSession } from "../linux-game-capture-session";
 import { PendingGroupedSouvenirStore } from "../achievements/grouped-souvenir-store";
 import { groupedSouvenirWorker } from "../achievements/grouped-souvenir-worker";
 import { createRetroAchievementsRealtimeUnlocks } from "../retro-achievements/retro-achievements-realtime-unlocks";
+import { readEmulatorSignedInUsername } from "../retro-achievements/emulator-credentials/emulator-credential-sync";
 import type { DetectedRetroAchievementUnlock } from "../retro-achievements/retro-achievements-unlock-confirmer";
 import {
   getEmulatorAchievementLogFormat,
@@ -151,6 +152,7 @@ const captureEmulatorSouvenir = async (
 };
 
 interface StartLogWatcherOptions {
+  getEmulatorUsername: () => Promise<string | null>;
   gameKey: string;
   watcherToken: object;
   game: Game;
@@ -163,6 +165,7 @@ interface StartLogWatcherOptions {
 }
 
 const startLogWatcher = ({
+  getEmulatorUsername,
   gameKey,
   watcherToken,
   game,
@@ -174,7 +177,9 @@ const startLogWatcher = ({
   primeRealtimeUnlocks,
 }: StartLogWatcherOptions) => {
   const readNewUnlocks = createLogTail(logPath, format, initialOffset);
-  const realtimeUnlocks = createRetroAchievementsRealtimeUnlocks(game);
+  const realtimeUnlocks = createRetroAchievementsRealtimeUnlocks(game, {
+    getEmulatorUsername,
+  });
   if (primeRealtimeUnlocks) realtimeUnlocks.prime();
   let isProcessing = false;
 
@@ -303,6 +308,8 @@ export const startEmulatorSouvenirWatcher = async ({
       : null;
 
   startLogWatcher({
+    getEmulatorUsername: () =>
+      readEmulatorSignedInUsername(system, executablePath),
     gameKey,
     watcherToken,
     game,

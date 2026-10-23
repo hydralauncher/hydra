@@ -304,27 +304,26 @@ export function SettingsRetroAchievements() {
     );
   };
 
-  const status = isInvalid
-    ? t("retroachievements_status_invalid_credentials")
-    : isMissingLocalKey
-      ? t("retroachievements_status_missing_key")
-      : integration.connected
-        ? t("retroachievements_status_active")
-        : t("integration_status_not_connected");
+  const getStatus = () => {
+    if (isInvalid) return t("retroachievements_status_invalid_credentials");
+    if (isMissingLocalKey) return t("retroachievements_status_missing_key");
+    return integration.connected
+      ? t("retroachievements_status_active")
+      : t("integration_status_not_connected");
+  };
+
+  const getStatusTone = () => {
+    if (isInvalid || isMissingLocalKey) return "warning";
+    return integration.connected ? "success" : "neutral";
+  };
 
   return (
     <>
       <SettingsIntegrationCard
         title={t("retroachievements")}
         logo={<img src={retroAchievementsLogo} alt="" />}
-        status={status}
-        statusTone={
-          isInvalid || isMissingLocalKey
-            ? "warning"
-            : integration.connected
-              ? "success"
-              : "neutral"
-        }
+        status={getStatus()}
+        statusTone={getStatusTone()}
         actions={renderActions()}
         loading={isLoading}
       >
