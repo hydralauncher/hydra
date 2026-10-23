@@ -4,6 +4,7 @@ export const getScreenshotCommentsPanelFocusIds = (screenshotId: string) => ({
   input: `screenshot-comments-input:${screenshotId}`,
   bold: `screenshot-comments-bold:${screenshotId}`,
   italic: `screenshot-comments-italic:${screenshotId}`,
+  underline: `screenshot-comments-underline:${screenshotId}`,
   send: `screenshot-comments-send:${screenshotId}`,
   cancelEdit: `screenshot-comments-cancel-edit:${screenshotId}`,
   signIn: `screenshot-comments-sign-in:${screenshotId}`,

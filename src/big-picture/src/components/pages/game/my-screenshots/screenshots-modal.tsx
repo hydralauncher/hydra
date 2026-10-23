@@ -34,6 +34,7 @@ import {
 import {
   ScreenshotCard,
   ScreenshotLightbox,
+  useScreenshotCardLike,
   useScreenshotFeed,
   useScreenshotLightbox,
 } from "../../screenshots";
@@ -65,6 +66,10 @@ import {
 } from "../navigation";
 import { ScreenshotHotkeyHint } from "./hotkey-hint";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
+import {
+  groupByCaptureDay,
+  useCaptureDayLabel,
+} from "./screenshot-date-groups";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
 import {
   useMyGameScreenshotsState,
@@ -269,6 +274,7 @@ function CommunityScreenshotsGrid({
 }: Readonly<{ community: CommunityScreenshots }>) {
   const { t } = useTranslation("big_picture");
   const { feed, visibleItems, open } = community;
+  const cardLike = useScreenshotCardLike(feed.updateItem);
 
   if (visibleItems.length > 0) {
     return (
@@ -284,7 +290,9 @@ function CommunityScreenshotsGrid({
               focusId={getGameScreenshotsModalItemId(screenshot.id)}
               showOwnerDetails={false}
               showAuthor
+              isLikePending={cardLike.likingIds.has(screenshot.id)}
               onActivate={open}
+              onLike={(item) => void cardLike.toggleLike(item)}
               onRefreshImage={feed.refreshImage}
             />
           ))}
@@ -341,6 +349,12 @@ function CommunityScreenshotsPanel({
         asChild
       >
         <div className="game-screenshots-modal__toolbar">
+          <Checkbox
+            label={t("screenshots_hide_spoilers")}
+            checked={community.hideSpoilers}
+            focusId={GAME_SCREENSHOTS_MODAL_SPOILERS_ID}
+            onChange={community.setHideSpoilers}
+          />
           <DropdownSelect
             className="game-screenshots-modal__sort"
             label={t("screenshots_sort_label")}
@@ -351,12 +365,6 @@ function CommunityScreenshotsPanel({
             options={sortOptions}
             focusId={GAME_SCREENSHOTS_MODAL_SORT_ID}
             onValueChange={community.changeSort}
-          />
-          <Checkbox
-            label={t("screenshots_hide_spoilers")}
-            checked={community.hideSpoilers}
-            focusId={GAME_SCREENSHOTS_MODAL_SPOILERS_ID}
-            onChange={community.setHideSpoilers}
           />
         </div>
       </HorizontalFocusGroup>
@@ -394,8 +402,12 @@ function useMyScreenshotsTab({
   const [sort, setSort] = useState<ScreenshotSort>("recent");
   const [hasOpenedTop, setHasOpenedTop] = useState(false);
   const [statusFilter, setStatusFilter] =
-    useState<MyScreenshotsStatusFilter>("uploaded");
+    useState<MyScreenshotsStatusFilter>("local");
   const pendingLocal = usePendingLocalScreenshots(shop, objectId, enabled);
+
+  useEffect(() => {
+    if (enabled) setStatusFilter("local");
+  }, [enabled]);
   const recent = useMyPublishedScreenshots({
     shop,
     objectId,
@@ -534,12 +546,49 @@ interface MyScreenshotsListProps {
   onBrowseCommunity?: () => void;
 }
 
+interface ScreenshotDayGroupsProps<Item> {
+  regionId: string;
+  items: Item[];
+  getCapturedAt: (item: Item) => number;
+  renderItem: (item: Item) => React.ReactNode;
+}
+
+function ScreenshotDayGroups<Item>({
+  regionId,
+  items,
+  getCapturedAt,
+  renderItem,
+}: Readonly<ScreenshotDayGroupsProps<Item>>) {
+  const getDayLabel = useCaptureDayLabel();
+
+  return (
+    <>
+      {groupByCaptureDay(items, getCapturedAt).map((group) => (
+        <section key={group.key} className="game-screenshots-modal__day">
+          <h3 className="game-screenshots-modal__day-title">
+            {getDayLabel(group.dayStart)}
+          </h3>
+          <GridFocusGroup
+            regionId={`${regionId}:${group.key}`}
+            className="game-screenshots-modal__grid"
+          >
+            <ul className="game-screenshots-modal__list">
+              {group.items.map(renderItem)}
+            </ul>
+          </GridFocusGroup>
+        </section>
+      ))}
+    </>
+  );
+}
+
 function UploadedScreenshotsList({
   tab,
   onBrowseCommunity,
 }: Readonly<MyScreenshotsListProps>) {
   const { mine, open, loadNextPage } = tab;
   const { feed } = mine;
+  const cardLike = useScreenshotCardLike(feed.updateItem);
 
   if (mine.hasPublishedFailed) {
     return <MyScreenshotsMessage tab={tab} hasFailed />;
@@ -555,26 +604,39 @@ function UploadedScreenshotsList({
     );
   }
 
+  const renderCard = (screenshot: ProfileScreenshot) => (
+    <ScreenshotCard
+      key={screenshot.id}
+      screenshot={screenshot}
+      focusId={getGameScreenshotsModalItemId(`mine-${screenshot.id}`)}
+      showOwnerDetails
+      showAuthor={false}
+      isLikePending={cardLike.likingIds.has(screenshot.id)}
+      onActivate={open}
+      onLike={(item) => void cardLike.toggleLike(item)}
+      onRefreshImage={feed.refreshImage}
+    />
+  );
+
   return (
     <>
-      <GridFocusGroup
-        regionId={GAME_SCREENSHOTS_MODAL_MINE_GRID_REGION_ID}
-        className="game-screenshots-modal__grid"
-      >
-        <ul className="game-screenshots-modal__list">
-          {feed.items.map((screenshot) => (
-            <ScreenshotCard
-              key={screenshot.id}
-              screenshot={screenshot}
-              focusId={getGameScreenshotsModalItemId(`mine-${screenshot.id}`)}
-              showOwnerDetails
-              showAuthor={false}
-              onActivate={open}
-              onRefreshImage={feed.refreshImage}
-            />
-          ))}
-        </ul>
-      </GridFocusGroup>
+      {tab.sort === "recent" ? (
+        <ScreenshotDayGroups
+          regionId={GAME_SCREENSHOTS_MODAL_MINE_GRID_REGION_ID}
+          items={feed.items}
+          getCapturedAt={(screenshot) => screenshot.capturedAt}
+          renderItem={renderCard}
+        />
+      ) : (
+        <GridFocusGroup
+          regionId={GAME_SCREENSHOTS_MODAL_MINE_GRID_REGION_ID}
+          className="game-screenshots-modal__grid"
+        >
+          <ul className="game-screenshots-modal__list">
+            {feed.items.map(renderCard)}
+          </ul>
+        </GridFocusGroup>
+      )}
       {feed.hasMore ? (
         <LoadMoreButton
           focusId={GAME_SCREENSHOTS_MODAL_MINE_LOAD_MORE_ID}
@@ -610,32 +672,30 @@ function LocalScreenshotsList({
   }
 
   return (
-    <GridFocusGroup
+    <ScreenshotDayGroups
       regionId={GAME_SCREENSHOTS_MODAL_LOCAL_GRID_REGION_ID}
-      className="game-screenshots-modal__grid"
-    >
-      <ul className="game-screenshots-modal__list">
-        {mine.pendingLocal.map((screenshot) => (
-          <li
-            key={screenshot.clientId}
-            className="game-screenshots-modal__local-item"
-          >
-            <LocalScreenshotTile
-              screenshot={screenshot}
-              focusId={getGameScreenshotsModalItemId(
-                `mine-local:${screenshot.clientId}`
-              )}
-              alt={local.describe(screenshot)}
-              isBusy={local.busyIds.has(screenshot.clientId)}
-              variant="card"
-              onOpen={local.open}
-              onUpload={local.upload}
-              onDelete={local.requestDelete}
-            />
-          </li>
-        ))}
-      </ul>
-    </GridFocusGroup>
+      items={mine.pendingLocal}
+      getCapturedAt={(screenshot) => screenshot.capturedAt}
+      renderItem={(screenshot) => (
+        <li
+          key={screenshot.clientId}
+          className="game-screenshots-modal__local-item"
+        >
+          <LocalScreenshotTile
+            screenshot={screenshot}
+            focusId={getGameScreenshotsModalItemId(
+              `mine-local:${screenshot.clientId}`
+            )}
+            alt={local.describe(screenshot)}
+            isBusy={local.busyIds.has(screenshot.clientId)}
+            variant="card"
+            onOpen={local.open}
+            onUpload={local.upload}
+            onDelete={local.requestDelete}
+          />
+        </li>
+      )}
+    />
   );
 }
 
@@ -652,8 +712,8 @@ function MyScreenshotsPanel({
   const sortOptions = useScreenshotSortOptions();
   const isLocal = tab.activeFilter === "local";
   const filters: { value: MyScreenshotsStatusFilter; label: string }[] = [
-    { value: "uploaded", label: t("uploaded", { ns: "screenshots" }) },
     { value: "local", label: t("not_uploaded", { ns: "screenshots" }) },
+    { value: "uploaded", label: t("uploaded", { ns: "screenshots" }) },
   ];
 
   return (
@@ -726,7 +786,7 @@ function MyScreenshotsPanel({
   );
 }
 
-type GameScreenshotsTab = "mine" | "community";
+export type GameScreenshotsTab = "mine" | "community";
 
 const TAB_ORDER: GameScreenshotsTab[] = ["mine", "community"];
 
@@ -768,7 +828,7 @@ function TabBumperFallback({
 }
 
 const TAB_SORT_FOCUS_IDS: Record<GameScreenshotsTab, string> = {
-  mine: GAME_SCREENSHOTS_MODAL_MINE_UPLOADED_ID,
+  mine: GAME_SCREENSHOTS_MODAL_MINE_LOCAL_ID,
   community: GAME_SCREENSHOTS_MODAL_SORT_ID,
 };
 
@@ -777,6 +837,7 @@ export interface GameScreenshotsModalProps {
   shop: GameShop;
   objectId: string;
   writeBus?: ScreenshotWriteBus;
+  initialTab?: GameScreenshotsTab;
   onClose: () => void;
 }
 
@@ -785,11 +846,12 @@ export function GameScreenshotsModal({
   shop,
   objectId,
   writeBus,
+  initialTab = "mine",
   onClose,
 }: Readonly<GameScreenshotsModalProps>) {
   const { t } = useTranslation("screenshots");
   const { setFocus } = useNavigation();
-  const [tab, setTab] = useState<GameScreenshotsTab>("mine");
+  const [tab, setTab] = useState<GameScreenshotsTab>(initialTab);
   const [hasOpenedCommunity, setHasOpenedCommunity] = useState(false);
   const hasCommunity = shop !== "custom";
   const activeTab = hasCommunity ? tab : "mine";
@@ -814,8 +876,10 @@ export function GameScreenshotsModal({
   );
 
   useEffect(() => {
-    if (visible) setTab("mine");
-  }, [visible]);
+    if (!visible) return;
+    if (initialTab === "community") setHasOpenedCommunity(true);
+    setTab(initialTab);
+  }, [initialTab, visible]);
 
   const selectTab = useCallback(
     (nextTab: GameScreenshotsTab) => {
@@ -858,7 +922,7 @@ export function GameScreenshotsModal({
         }
         initialFocusId={
           mineTab.mine.canFetchPublished
-            ? GAME_SCREENSHOTS_MODAL_MINE_UPLOADED_ID
+            ? GAME_SCREENSHOTS_MODAL_MINE_LOCAL_ID
             : undefined
         }
       >

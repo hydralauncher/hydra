@@ -1,6 +1,5 @@
 import {
   PlusIcon,
-  CopyIcon,
   FlagIcon,
   GameControllerIcon,
   GearSixIcon,
@@ -46,7 +45,6 @@ export const getLightboxFocusIds = (screenshotId: string) => ({
   report: `screenshot-lightbox-report:${screenshotId}`,
   manage: `screenshot-lightbox-manage:${screenshotId}`,
   remove: `screenshot-lightbox-delete:${screenshotId}`,
-  copy: `screenshot-lightbox-copy:${screenshotId}`,
   summary: `screenshot-lightbox-summary:${screenshotId}`,
   byline: `screenshot-lightbox-byline:${screenshotId}`,
   description: `screenshot-lightbox-description:${screenshotId}`,
@@ -218,9 +216,7 @@ interface LightboxActionsProps {
   isSignedIn: boolean;
   isLiking: boolean;
   isReported: boolean;
-  isCopying: boolean;
   onLike: () => void;
-  onCopy: () => void;
   onReport: () => void;
   onManage: () => void;
   onDelete: () => void;
@@ -234,9 +230,7 @@ function LightboxActions({
   isSignedIn,
   isLiking,
   isReported,
-  isCopying,
   onLike,
-  onCopy,
   onReport,
   onManage,
   onDelete,
@@ -274,21 +268,6 @@ function LightboxActions({
         </Button>
 
         <div className="screenshot-lightbox__action-group">
-          {screenshot.imageUrl ? (
-            <Button
-              variant="secondary"
-              size="icon"
-              focusId={focusIds.copy}
-              loading={isCopying}
-              icon={<CopyIcon size={20} />}
-              aria-label={t("screenshots_copy_image")}
-              title={t("screenshots_copy_image")}
-              onClick={onCopy}
-            >
-              {null}
-            </Button>
-          ) : null}
-
           {isOwner ? (
             <>
               <Button
@@ -404,9 +383,7 @@ export function ScreenshotLightboxSidebar({
             isSignedIn={viewerId !== null}
             isLiking={social.isLiking}
             isReported={social.isReported}
-            isCopying={social.isCopying}
             onLike={() => void social.toggleLike()}
-            onCopy={() => void social.copyImage()}
             onReport={onRequestReport}
             onManage={onRequestManage}
             onDelete={onRequestDelete}

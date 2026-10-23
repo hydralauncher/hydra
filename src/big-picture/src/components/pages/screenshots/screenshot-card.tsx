@@ -10,6 +10,7 @@ import {
   UsersIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
+import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ProfileScreenshot } from "@types";
@@ -32,8 +33,78 @@ export interface ScreenshotCardProps {
   showAuthor: boolean;
   navigationOverrides?: FocusOverrides;
   className?: string;
+  isLikePending?: boolean;
   onActivate: (screenshot: ProfileScreenshot) => void;
+  onLike?: (screenshot: ProfileScreenshot) => void;
   onRefreshImage?: (screenshot: ProfileScreenshot) => Promise<void>;
+}
+
+interface ScreenshotCardLikeProps {
+  screenshot: ProfileScreenshot;
+  isPending: boolean;
+  canLike: boolean;
+  onLike?: (screenshot: ProfileScreenshot) => void;
+}
+
+function ScreenshotCardLike({
+  screenshot,
+  isPending,
+  canLike,
+  onLike,
+}: Readonly<ScreenshotCardLikeProps>) {
+  const { t } = useTranslation("big_picture");
+  const count = (
+    <AnimatePresence mode="wait">
+      <motion.span
+        key={screenshot.likeCount}
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 10 }}
+        transition={{ duration: 0.2 }}
+      >
+        {screenshot.likeCount}
+      </motion.span>
+    </AnimatePresence>
+  );
+  const icon = (
+    <HeartIcon size={18} weight={screenshot.likedByMe ? "fill" : "regular"} />
+  );
+
+  if (!onLike) {
+    return (
+      <span className="screenshot-card__stat">
+        {icon}
+        {count}
+      </span>
+    );
+  }
+
+  const label = t(
+    screenshot.likedByMe ? "screenshots_unlike" : "screenshots_like"
+  );
+
+  return (
+    <motion.button
+      type="button"
+      className={cn("screenshot-card__stat screenshot-card__stat--button", {
+        "screenshot-card__stat--pending": isPending,
+      })}
+      disabled={!canLike}
+      onClick={(event) => {
+        event.stopPropagation();
+        onLike(screenshot);
+      }}
+      aria-label={label}
+      aria-pressed={screenshot.likedByMe}
+      title={label}
+      tabIndex={-1}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+    >
+      {icon}
+      {count}
+    </motion.button>
+  );
 }
 
 function ScreenshotCardBadges({
@@ -49,7 +120,7 @@ function ScreenshotCardBadges({
           title={t("screenshots_visibility_friends")}
           aria-label={t("screenshots_visibility_friends")}
         >
-          <UsersIcon size={14} weight="bold" />
+          <UsersIcon size={18} weight="bold" />
         </span>
       ) : null}
 
@@ -59,7 +130,7 @@ function ScreenshotCardBadges({
           title={t("screenshots_visibility_private")}
           aria-label={t("screenshots_visibility_private")}
         >
-          <EyeClosedIcon size={14} weight="bold" />
+          <EyeClosedIcon size={18} weight="bold" />
         </span>
       ) : null}
     </div>
@@ -123,7 +194,9 @@ export function ScreenshotCard({
   showAuthor,
   navigationOverrides,
   className,
+  isLikePending = false,
   onActivate,
+  onLike,
   onRefreshImage,
 }: Readonly<ScreenshotCardProps>) {
   const { t, i18n } = useTranslation("big_picture");
@@ -143,11 +216,18 @@ export function ScreenshotCard({
   const isBlurred = shouldBlurScreenshot(screenshot, revealedIds);
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const altText = getScreenshotAltText(screenshot, t, language);
+  const isApproved =
+    screenshot.moderationStatus === undefined ||
+    screenshot.moderationStatus === "APPROVED";
+  const canLike = Boolean(onLike) && isApproved && !isLikePending;
 
   return (
     <FocusItem
       id={focusId}
-      actions={{ primary: () => onActivate(screenshot) }}
+      actions={{
+        primary: () => onActivate(screenshot),
+        secondary: canLike ? () => onLike?.(screenshot) : undefined,
+      }}
       navigationOverrides={navigationOverrides}
       asChild
     >
@@ -185,24 +265,25 @@ export function ScreenshotCard({
             </span>
           ) : null}
 
-          {showOwnerDetails ? (
-            <ScreenshotCardBadges screenshot={screenshot} />
-          ) : null}
-
-          <div className="screenshot-card__stats">
-            <span className="screenshot-card__stat">
-              <HeartIcon
-                size={14}
-                weight={screenshot.likedByMe ? "fill" : "bold"}
-              />
-              {screenshot.likeCount}
-            </span>
-            {isFeatureEnabled(Feature.ScreenshotComments) ? (
-              <span className="screenshot-card__stat">
-                <ChatCircleIcon size={14} weight="bold" />
-                {screenshot.commentCount}
-              </span>
+          <div className="screenshot-card__corner">
+            {showOwnerDetails ? (
+              <ScreenshotCardBadges screenshot={screenshot} />
             ) : null}
+
+            <div className="screenshot-card__stats">
+              <ScreenshotCardLike
+                screenshot={screenshot}
+                isPending={isLikePending}
+                canLike={canLike}
+                onLike={onLike}
+              />
+              {isFeatureEnabled(Feature.ScreenshotComments) ? (
+                <span className="screenshot-card__stat">
+                  <ChatCircleIcon size={18} />
+                  {screenshot.commentCount}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
 

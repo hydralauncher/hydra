@@ -122,10 +122,6 @@ export function LocalScreenshotTile({
           )}
         </button>
 
-        <span className="local-screenshot-tile__badge">
-          {t("not_uploaded", { ns: "screenshots" })}
-        </span>
-
         <span className="local-screenshot-tile__actions">
           <TileAction
             button={t("screenshots_gamepad_button_x")}

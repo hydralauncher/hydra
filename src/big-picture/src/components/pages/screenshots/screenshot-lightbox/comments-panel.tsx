@@ -1,19 +1,20 @@
 import {
   ArrowClockwiseIcon,
-  ArrowFatDownIcon,
-  ArrowFatUpIcon,
   ChatCircleIcon,
   ChatsCircleIcon,
   DotsThreeVerticalIcon,
   FlagIcon,
   PencilSimpleIcon,
   TrashIcon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   ProfileScreenshot,
+  ScreenshotAuthor,
   ScreenshotComment,
   ScreenshotCommentsResponse,
   ScreenshotCommentVoteResponse,
@@ -46,7 +47,11 @@ import {
 } from "../../../common";
 import { ConfirmationModal } from "../../../modals";
 import { formatRelativeDate } from "../../../../helpers";
-import { useBigPictureToast, useNavigation } from "../../../../hooks";
+import {
+  useBigPictureToast,
+  useNavigation,
+  useUserDetails,
+} from "../../../../hooks";
 import type { FocusOverrides, FocusOverrideTarget } from "../../../../services";
 import { getScreenshotErrorKey } from "../helpers";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
@@ -76,6 +81,34 @@ interface ScreenshotCommentsPanelProps {
   isOwner: boolean;
   leftTarget: FocusOverrideTarget;
   onCommentCountChange: (screenshotId: string, delta: number) => void;
+}
+
+const PENDING_COMMENT_ID_PREFIX = "pending:";
+const VOTE_UNLOCK_DELAY_MS = 500;
+
+const isPendingComment = (comment: ScreenshotComment) =>
+  comment.id.startsWith(PENDING_COMMENT_ID_PREFIX);
+
+const createPendingComment = (
+  bodyHtml: string,
+  author: ScreenshotAuthor
+): ScreenshotComment => ({
+  id: `${PENDING_COMMENT_ID_PREFIX}${crypto.randomUUID()}`,
+  bodyHtml,
+  createdAt: Date.now(),
+  editedAt: null,
+  author,
+  upvotes: 0,
+  downvotes: 0,
+  myVote: null,
+  isHidden: false,
+  isOwn: true,
+  canDelete: false,
+});
+
+interface RestoredCommentDraft {
+  key: number;
+  body: string;
 }
 
 function useScreenshotComments(
@@ -258,7 +291,7 @@ function CommentVoteButton({
   navigationOverrides,
   onVote,
 }: Readonly<CommentVoteButtonProps>) {
-  const Icon = voteType === "UPVOTE" ? ArrowFatUpIcon : ArrowFatDownIcon;
+  const Icon = voteType === "UPVOTE" ? ThumbsUpIcon : ThumbsDownIcon;
 
   return (
     <FocusItem id={focusId} navigationOverrides={navigationOverrides} asChild>
@@ -273,7 +306,7 @@ function CommentVoteButton({
         title={label}
         onClick={onVote}
       >
-        <Icon size={18} weight={isActive ? "fill" : "regular"} />
+        <Icon size={20} weight={isActive ? "fill" : "regular"} />
         <span>{count}</span>
       </button>
     </FocusItem>
@@ -296,39 +329,48 @@ function CommentItem({
 
   return (
     <li className="screenshot-comments__item">
-      <div className="screenshot-comments__item-header">
-        <UserProfileAvatar
-          image={comment.author.profileImageUrl}
-          alt=""
-          className="screenshot-comments__avatar"
-          fallbackClassName="screenshot-comments__avatar--fallback"
-          width={28}
-          height={28}
-          iconSize={14}
-        />
-        <div className="screenshot-comments__item-heading">
-          <span className="screenshot-comments__author">
-            {comment.author.displayName}
-          </span>
-          <span className="screenshot-comments__time">
-            {formatRelativeDate(comment.createdAt, { locale: language })}
-            {comment.editedAt ? ` · ${t("screenshots_comment_edited")}` : ""}
-          </span>
+      <div className="screenshot-comments__item-top">
+        <div className="screenshot-comments__item-header">
+          <UserProfileAvatar
+            image={comment.author.profileImageUrl}
+            alt=""
+            className="screenshot-comments__avatar"
+            fallbackClassName="screenshot-comments__avatar--fallback"
+            width={40}
+            height={40}
+            iconSize={20}
+          />
+          <div className="screenshot-comments__item-heading">
+            <span className="screenshot-comments__author">
+              {comment.author.displayName}
+            </span>
+            <span className="screenshot-comments__time">
+              {formatRelativeDate(comment.createdAt, { locale: language })}
+              {comment.editedAt ? (
+                <>
+                  <span aria-hidden="true"> · </span>
+                  <span className="screenshot-comments__edited">
+                    {t("screenshots_comment_edited")}
+                  </span>
+                </>
+              ) : null}
+            </span>
+          </div>
         </div>
+
+        {comment.isHidden ? (
+          <p className="screenshot-comments__hidden-notice">
+            {t("screenshots_comment_hidden")}
+          </p>
+        ) : null}
+
+        <ScreenshotCommentBody
+          bodyHtml={comment.bodyHtml}
+          className={cn({
+            "screenshot-comments__body--hidden": comment.isHidden,
+          })}
+        />
       </div>
-
-      {comment.isHidden ? (
-        <p className="screenshot-comments__hidden-notice">
-          {t("screenshots_comment_hidden")}
-        </p>
-      ) : null}
-
-      <ScreenshotCommentBody
-        bodyHtml={comment.bodyHtml}
-        className={cn({
-          "screenshot-comments__body--hidden": comment.isHidden,
-        })}
-      />
 
       <HorizontalFocusGroup regionId={focusIds.region} asChild>
         <div className="screenshot-comments__item-actions">
@@ -455,6 +497,7 @@ export function ScreenshotCommentsPanel({
   const { showErrorToast, showSuccessToast, showWarningToast } =
     useBigPictureToast();
   const { setFocus } = useNavigation();
+  const { userDetails } = useUserDetails();
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const focusIds = getScreenshotCommentsPanelFocusIds(screenshot.id);
   const isAvailable =
@@ -474,7 +517,9 @@ export function ScreenshotCommentsPanel({
   } = useScreenshotComments(screenshot, isAvailable, Boolean(viewerId));
   const [editingComment, setEditingComment] =
     useState<ScreenshotComment | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [restoredDraft, setRestoredDraft] =
+    useState<RestoredCommentDraft | null>(null);
+  const editVersionsRef = useRef(new Map<string, number>());
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<CommentMenuState | null>(null);
   const [deletingComment, setDeletingComment] =
@@ -520,72 +565,158 @@ export function ScreenshotCommentsPanel({
     });
   }, [showWarningToast, t]);
 
-  const submit = useCallback(
-    async (html: string) => {
-      const bodyHtml = normalizeScreenshotCommentBody(html);
-      if (!bodyHtml || isSubmitting) return false;
+  const removePendingComment = useCallback(
+    (pendingId: string) => {
+      recordWrite({ kind: "remove", commentId: pendingId, wasCounted: true });
+      setComments((current) =>
+        current.filter((comment) => comment.id !== pendingId)
+      );
+      setTotal((current) => Math.max(0, current - 1));
+      onCommentCountChange(screenshot.id, -1);
+    },
+    [onCommentCountChange, recordWrite, screenshot.id, setComments, setTotal]
+  );
 
-      setIsSubmitting(true);
-
+  const publishComment = useCallback(
+    async (pending: ScreenshotComment) => {
       try {
-        if (editingComment) {
-          const updated =
-            await globalThis.window.electron.hydraApi.patch<ScreenshotComment>(
-              buildUserScreenshotCommentPath(
-                ownerId,
-                screenshot.id,
-                editingComment.id
-              ),
-              { data: { bodyHtml }, needsAuth: true }
-            );
-          replaceComment(
-            editingComment.id,
-            updated ?? { bodyHtml, editedAt: Date.now() }
-          );
-          if (updated && updated.isHidden !== editingComment.isHidden) {
-            const delta = updated.isHidden ? -1 : 1;
-            setTotal((current) => Math.max(0, current + delta));
-            onCommentCountChange(screenshot.id, delta);
-          }
-          if (updated?.isHidden) showHiddenCommentToast();
-          setEditingComment(null);
-          return true;
-        }
-
         const created =
           await globalThis.window.electron.hydraApi.post<ScreenshotComment>(
             buildUserScreenshotCommentsPath(ownerId, screenshot.id),
-            { data: { bodyHtml }, needsAuth: true }
+            { data: { bodyHtml: pending.bodyHtml }, needsAuth: true }
           );
-        if (created?.isHidden) {
-          setComments((current) => [created, ...current]);
-          showHiddenCommentToast();
-        } else if (created) {
-          recordWrite({ kind: "add", comment: created });
-          setComments((current) => [created, ...current]);
-          setTotal((current) => current + 1);
-          onCommentCountChange(screenshot.id, 1);
+        if (!created) {
+          removePendingComment(pending.id);
+          return;
         }
-        return true;
+
+        recordWrite({
+          kind: "remove",
+          commentId: pending.id,
+          wasCounted: true,
+        });
+        if (!created.isHidden) recordWrite({ kind: "add", comment: created });
+        setComments((current) =>
+          current
+            .filter((comment) => comment.id !== created.id)
+            .map((comment) => (comment.id === pending.id ? created : comment))
+        );
+        if (created.isHidden) {
+          setTotal((current) => Math.max(0, current - 1));
+          onCommentCountChange(screenshot.id, -1);
+          showHiddenCommentToast();
+        }
       } catch (error) {
+        removePendingComment(pending.id);
+        setRestoredDraft((current) => ({
+          key: (current?.key ?? 0) + 1,
+          body: pending.bodyHtml,
+        }));
         showError(error);
-        return false;
-      } finally {
-        setIsSubmitting(false);
       }
     },
     [
-      editingComment,
-      recordWrite,
-      isSubmitting,
       onCommentCountChange,
       ownerId,
-      replaceComment,
+      recordWrite,
+      removePendingComment,
       screenshot.id,
       setComments,
       setTotal,
       showError,
       showHiddenCommentToast,
+    ]
+  );
+
+  const persistCommentEdit = useCallback(
+    async (
+      comment: ScreenshotComment,
+      bodyHtml: string,
+      editVersion: number
+    ) => {
+      const isLatestEdit = () =>
+        editVersionsRef.current.get(comment.id) === editVersion;
+
+      try {
+        const updated =
+          await globalThis.window.electron.hydraApi.patch<ScreenshotComment>(
+            buildUserScreenshotCommentPath(ownerId, screenshot.id, comment.id),
+            { data: { bodyHtml }, needsAuth: true }
+          );
+        if (!isLatestEdit()) return;
+        if (updated) replaceComment(comment.id, updated);
+        if (updated && updated.isHidden !== comment.isHidden) {
+          const delta = updated.isHidden ? -1 : 1;
+          setTotal((current) => Math.max(0, current + delta));
+          onCommentCountChange(screenshot.id, delta);
+        }
+        if (updated?.isHidden) showHiddenCommentToast();
+      } catch (error) {
+        if (isLatestEdit()) {
+          replaceComment(comment.id, {
+            bodyHtml: comment.bodyHtml,
+            editedAt: comment.editedAt,
+          });
+        }
+        showError(error);
+      }
+    },
+    [
+      onCommentCountChange,
+      ownerId,
+      replaceComment,
+      screenshot.id,
+      setTotal,
+      showError,
+      showHiddenCommentToast,
+    ]
+  );
+
+  const submit = useCallback(
+    async (html: string) => {
+      const bodyHtml = normalizeScreenshotCommentBody(html);
+      if (!bodyHtml) return false;
+
+      if (editingComment) {
+        if (bodyHtml !== editingComment.bodyHtml) {
+          const editVersion =
+            (editVersionsRef.current.get(editingComment.id) ?? 0) + 1;
+          editVersionsRef.current.set(editingComment.id, editVersion);
+          replaceComment(editingComment.id, {
+            bodyHtml,
+            editedAt: Date.now(),
+          });
+          void persistCommentEdit(editingComment, bodyHtml, editVersion);
+        }
+        setEditingComment(null);
+        return true;
+      }
+
+      if (!userDetails) return false;
+
+      const pending = createPendingComment(bodyHtml, {
+        id: userDetails.id,
+        displayName: userDetails.displayName,
+        profileImageUrl: userDetails.profileImageUrl,
+      });
+      recordWrite({ kind: "add", comment: pending });
+      setComments((current) => [pending, ...current]);
+      setTotal((current) => current + 1);
+      onCommentCountChange(screenshot.id, 1);
+      void publishComment(pending);
+      return true;
+    },
+    [
+      editingComment,
+      onCommentCountChange,
+      persistCommentEdit,
+      publishComment,
+      recordWrite,
+      replaceComment,
+      screenshot.id,
+      setComments,
+      setTotal,
+      userDetails,
     ]
   );
 
@@ -595,7 +726,7 @@ export function ScreenshotCommentsPanel({
         void globalThis.window.electron.openAuthWindow(AuthPage.SignIn);
         return;
       }
-      if (votingIds.has(comment.id)) return;
+      if (votingIds.has(comment.id) || isPendingComment(comment)) return;
 
       const previous = {
         upvotes: comment.upvotes,
@@ -606,26 +737,26 @@ export function ScreenshotCommentsPanel({
       replaceComment(comment.id, getVotedScreenshotComment(comment, voteType));
 
       try {
-        const response =
-          await globalThis.window.electron.hydraApi.put<ScreenshotCommentVoteResponse>(
-            buildUserScreenshotCommentVotePath(
-              ownerId,
-              screenshot.id,
-              comment.id,
-              voteType
-            ),
-            { needsAuth: true }
-          );
-        if (response) replaceComment(comment.id, response);
+        await globalThis.window.electron.hydraApi.put<ScreenshotCommentVoteResponse>(
+          buildUserScreenshotCommentVotePath(
+            ownerId,
+            screenshot.id,
+            comment.id,
+            voteType
+          ),
+          { needsAuth: true }
+        );
       } catch (error) {
         replaceComment(comment.id, previous);
         showError(error);
       } finally {
-        setVotingIds((current) => {
-          const next = new Set(current);
-          next.delete(comment.id);
-          return next;
-        });
+        setTimeout(() => {
+          setVotingIds((current) => {
+            const next = new Set(current);
+            next.delete(comment.id);
+            return next;
+          });
+        }, VOTE_UNLOCK_DELAY_MS);
       }
     },
     [ownerId, replaceComment, screenshot.id, showError, viewerId, votingIds]
@@ -764,9 +895,10 @@ export function ScreenshotCommentsPanel({
   }, [menu, screenshot.canComment, t, viewerId]);
 
   const hasMenu = (comment: ScreenshotComment) =>
-    (comment.isOwn && screenshot.canComment) ||
-    comment.canDelete ||
-    (!comment.isOwn && Boolean(viewerId));
+    !isPendingComment(comment) &&
+    ((comment.isOwn && screenshot.canComment) ||
+      comment.canDelete ||
+      (!comment.isOwn && Boolean(viewerId)));
 
   return (
     <VerticalFocusGroup regionId={focusIds.region} asChild>
@@ -796,7 +928,9 @@ export function ScreenshotCommentsPanel({
                   comment={comment}
                   isSignedIn={Boolean(viewerId)}
                   hasMenu={hasMenu(comment)}
-                  isVoting={votingIds.has(comment.id)}
+                  isVoting={
+                    votingIds.has(comment.id) || isPendingComment(comment)
+                  }
                   language={language}
                   leftTarget={leftTarget}
                   onVote={(target, voteType) => void vote(target, voteType)}
@@ -841,7 +975,7 @@ export function ScreenshotCommentsPanel({
           focusIds={focusIds}
           leftTarget={leftTarget}
           editingComment={editingComment}
-          isSubmitting={isSubmitting}
+          restoredDraft={restoredDraft}
           onSubmit={submit}
           onCancelEdit={() => setEditingComment(null)}
         />

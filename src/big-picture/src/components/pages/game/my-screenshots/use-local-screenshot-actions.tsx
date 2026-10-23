@@ -1,11 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LocalScreenshot } from "@types";
-import {
-  getLocalScreenshotTitle,
-  toLocalScreenshotUrl,
-  useLocalScreenshotViewer,
-} from "@shared";
+import { getLocalScreenshotTitle } from "@shared";
 import { logger } from "@renderer/logger";
 
 import { ConfirmationModal } from "../../../modals";
@@ -13,7 +9,6 @@ import { requestScreenshotReview } from "../../../screenshot-review-modal";
 import { useBigPictureToast } from "../../../../hooks";
 import { formatScreenshotDate } from "../../screenshots";
 import { ScreenshotDialogPresence } from "../../screenshots/screenshot-dialog-presence";
-import { MediaViewer } from "../media-viewer";
 
 export function useLocalScreenshotAlt() {
   const { t, i18n } = useTranslation("screenshots");
@@ -29,50 +24,30 @@ export function useLocalScreenshotAlt() {
   );
 }
 
-interface LocalScreenshotViewerProps {
-  screenshots: LocalScreenshot[];
-  viewer: ReturnType<typeof useLocalScreenshotViewer>;
-  describe: (screenshot: LocalScreenshot) => string;
-}
+const REVIEWABLE_STATES = new Set<LocalScreenshot["state"]>([
+  "local",
+  "reviewing",
+  "failed",
+]);
 
-function LocalScreenshotViewer({
-  screenshots,
-  viewer,
-  describe,
-}: Readonly<LocalScreenshotViewerProps>) {
-  const items = useMemo(
-    () =>
-      screenshots.map((screenshot) => ({
-        id: screenshot.clientId,
-        type: "image" as const,
-        src: toLocalScreenshotUrl(screenshot.path),
-        alt: describe(screenshot),
-      })),
-    [describe, screenshots]
-  );
-
-  if (!viewer.current || viewer.index < 0) return null;
-
-  return (
-    <MediaViewer
-      items={items}
-      index={viewer.index}
-      className="local-screenshot-viewer"
-      showFilmstrip={false}
-      onNavigate={(index) => {
-        const next = screenshots[index];
-        if (next) viewer.open(next.clientId);
-      }}
-      onClose={viewer.close}
-    />
-  );
-}
+const getReviewOrder = (
+  screenshots: LocalScreenshot[],
+  selected: LocalScreenshot
+) => [
+  selected.clientId,
+  ...screenshots
+    .filter(
+      (screenshot) =>
+        screenshot.clientId !== selected.clientId &&
+        REVIEWABLE_STATES.has(screenshot.state)
+    )
+    .map((screenshot) => screenshot.clientId),
+];
 
 export function useLocalScreenshotActions(screenshots: LocalScreenshot[]) {
   const { t } = useTranslation("big_picture");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const describe = useLocalScreenshotAlt();
-  const viewer = useLocalScreenshotViewer(screenshots);
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(() => new Set());
   const [pendingDelete, setPendingDelete] = useState<LocalScreenshot | null>(
     null
@@ -130,11 +105,6 @@ export function useLocalScreenshotActions(screenshots: LocalScreenshot[]) {
         onClose={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
       />
-      <LocalScreenshotViewer
-        screenshots={screenshots}
-        viewer={viewer}
-        describe={describe}
-      />
     </>
   );
 
@@ -143,7 +113,15 @@ export function useLocalScreenshotActions(screenshots: LocalScreenshot[]) {
     describe,
     upload,
     requestDelete: setPendingDelete,
-    open: (screenshot: LocalScreenshot) => viewer.open(screenshot.clientId),
+    open: (screenshot: LocalScreenshot) => {
+      requestScreenshotReview({
+        gameKey: `manual:${screenshot.shop}:${screenshot.objectId ?? ""}`,
+        shop: screenshot.shop,
+        objectId: screenshot.objectId ?? "",
+        gameTitle: getLocalScreenshotTitle(screenshot),
+        clientIds: getReviewOrder(screenshots, screenshot),
+      });
+    },
     elements,
   };
 }

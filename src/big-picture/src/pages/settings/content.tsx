@@ -1,6 +1,13 @@
 import "./content.scss";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   ArrowCounterClockwiseIcon,
@@ -30,11 +37,16 @@ import {
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
 import {
+  SCREENSHOTS_DEV_ENTRY_FOCUS_ID,
   SCREENSHOT_SETTINGS_FOCUS_IDS,
   ScreenshotSettingsSection,
 } from "./screenshots-section";
 import { isAchievementSouvenirsEnabled } from "@shared";
 import type { UserPreferences } from "@types";
+
+const ScreenshotsDevSection = import.meta.env.DEV
+  ? lazy(() => import("./screenshots-dev-section"))
+  : null;
 
 interface SettingsSectionProps {
   className?: string;
@@ -441,7 +453,18 @@ export function ContentSettingsSection({
       {showScreenshotSettings ? (
         <ScreenshotSettingsSection
           upFocusId={navigationFocusIds.at(-1) ?? null}
+          downFocusId={
+            ScreenshotsDevSection ? SCREENSHOTS_DEV_ENTRY_FOCUS_ID : null
+          }
         />
+      ) : null}
+
+      {showScreenshotSettings && ScreenshotsDevSection ? (
+        <Suspense fallback={null}>
+          <ScreenshotsDevSection
+            upFocusId={SCREENSHOT_SETTINGS_FOCUS_IDS.folder}
+          />
+        </Suspense>
       ) : null}
 
       <ConfirmationModal

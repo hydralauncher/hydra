@@ -33,6 +33,7 @@ import {
 } from "../../components";
 import {
   ScreenshotRow,
+  useScreenshotCardLike,
   useScreenshotFeed,
   useScreenshotLightbox,
 } from "../../components/pages/screenshots";
@@ -423,6 +424,7 @@ export function ProfileScreenshots({
   downFocusId,
   onActivate,
 }: Readonly<ProfileScreenshotsProps>) {
+  const cardLike = useScreenshotCardLike(state.updateItem);
   const { t } = useTranslation("big_picture");
   const showControls = shouldShowScreenshotControls(state);
   const firstItem = state.items[0];
@@ -540,7 +542,9 @@ export function ProfileScreenshots({
           retryFocusId={PROFILE_SCREENSHOTS_LOAD_MORE_RETRY_ID}
           onRetryLoadMore={state.retry}
           onLoadMore={() => void state.loadMore()}
+          likingIds={cardLike.likingIds}
           onActivate={onActivate}
+          onLike={(screenshot) => void cardLike.toggleLike(screenshot)}
           onRefreshImage={state.refreshImage}
         />
       ) : null}

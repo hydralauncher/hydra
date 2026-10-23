@@ -54,7 +54,6 @@ export function useLightboxSocialActions({
   const [isReporting, setIsReporting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isCopying, setIsCopying] = useState(false);
 
   const showError = useCallback(
     (error: unknown) => {
@@ -157,22 +156,17 @@ export function useLightboxSocialActions({
     [onUnavailable, screenshot, showError, showSuccessToast, t]
   );
 
-  const save = useCallback(
-    async (update: ScreenshotUpdateRequest) => {
-      if (!screenshot) return false;
-
+  const persistUpdate = useCallback(
+    async (target: ProfileScreenshot, update: ScreenshotUpdateRequest) => {
       setIsSaving(true);
 
       try {
         const updated =
           await globalThis.window.electron.hydraApi.patch<ScreenshotUpdateResponse>(
-            buildProfileScreenshotPath(screenshot.id),
+            buildProfileScreenshotPath(target.id),
             { data: update, needsAuth: true }
           );
-        onUpdate(
-          screenshot.id,
-          getEditedScreenshotFields(update, updated ?? null)
-        );
+        onUpdate(target.id, getEditedScreenshotFields(update, updated ?? null));
         const moderation = updated?.textModeration;
         if (moderation?.title === "hidden") {
           showWarningToast(
@@ -187,15 +181,25 @@ export function useLightboxSocialActions({
         } else {
           showSuccessToast(t("screenshots_saved"), SETTINGS_TOAST);
         }
-        return true;
       } catch (error) {
+        onUpdate(target.id, getEditedScreenshotFields(update, target));
         showError(error);
-        return false;
       } finally {
         setIsSaving(false);
       }
     },
-    [onUpdate, screenshot, showError, showSuccessToast, showWarningToast, t]
+    [onUpdate, showError, showSuccessToast, showWarningToast, t]
+  );
+
+  const save = useCallback(
+    async (update: ScreenshotUpdateRequest) => {
+      if (!screenshot) return false;
+
+      onUpdate(screenshot.id, getEditedScreenshotFields(update, null));
+      void persistUpdate(screenshot, update);
+      return true;
+    },
+    [onUpdate, persistUpdate, screenshot]
   );
 
   const remove = useCallback(async () => {
@@ -220,32 +224,7 @@ export function useLightboxSocialActions({
     }
   }, [onRemove, screenshot, showError, showSuccessToast, t]);
 
-  const copyImage = useCallback(async () => {
-    if (!screenshot?.imageUrl || isCopying) return;
-
-    setIsCopying(true);
-
-    try {
-      const copied = await globalThis.window.electron.clipboard.writeImage(
-        screenshot.imageUrl
-      );
-
-      if (copied) {
-        showSuccessToast(t("screenshots_copied"), SETTINGS_TOAST);
-      } else {
-        showErrorToast(t("screenshots_copy_failed"), SETTINGS_TOAST);
-      }
-    } catch (error) {
-      logger.error("Failed to copy screenshot", error);
-      showErrorToast(t("screenshots_copy_failed"), SETTINGS_TOAST);
-    } finally {
-      setIsCopying(false);
-    }
-  }, [isCopying, screenshot, showErrorToast, showSuccessToast, t]);
-
   return {
-    isCopying,
-    copyImage,
     isLiking: Boolean(screenshot && likingIds.has(screenshot.id)),
     isReported: Boolean(screenshot && reportedIds.has(screenshot.id)),
     isReporting,

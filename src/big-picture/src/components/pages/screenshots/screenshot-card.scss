@@ -76,62 +76,70 @@ $screenshot-card-spoiler-duration: 0.2s;
     letter-spacing: 0.04em;
   }
 
-  &__badges {
+  &__corner {
     position: absolute;
     top: calc(var(--spacing-unit) * 1.5);
     right: calc(var(--spacing-unit) * 1.5);
-    z-index: 2;
+    z-index: 4;
     display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    align-items: center;
     gap: calc(var(--spacing-unit) / 2);
     max-width: calc(100% - var(--spacing-unit) * 3);
   }
 
-  &__badge {
-    display: inline-flex;
+  &__badges,
+  &__stats {
+    display: flex;
     align-items: center;
     gap: calc(var(--spacing-unit) / 2);
-    height: 26px;
-    padding: 0 var(--spacing-unit);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(8px);
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-
-    &--icon {
-      justify-content: center;
-      width: 26px;
-      padding: 0;
-    }
   }
 
-  &__stats {
-    position: absolute;
-    bottom: calc(var(--spacing-unit) * 1.5);
-    left: calc(var(--spacing-unit) * 1.5);
-    z-index: 2;
-    display: flex;
-    gap: calc(var(--spacing-unit) / 2);
-  }
-
+  &__badge,
   &__stat {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: calc(var(--spacing-unit) / 2);
-    height: 26px;
+    min-width: 32px;
+    height: 32px;
     padding: 0 var(--spacing-unit);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 6px;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     color: rgba(255, 255, 255, 0.9);
-    font-size: 12px;
-    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+  }
+
+  &__stat--button {
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      opacity 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background: rgba(0, 0, 0, 0.6);
+      color: var(--text);
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+  }
+
+  &__stat--pending:disabled {
+    opacity: 1;
+  }
+
+  &__badge--icon {
+    width: 32px;
+    padding: 0;
   }
 
   &__meta {
@@ -175,7 +183,7 @@ $screenshot-card-spoiler-duration: 0.2s;
     flex-shrink: 0;
     width: 20px;
     height: 20px;
-    border-radius: 50%;
+    border-radius: 4px;
     object-fit: cover;
 
     &--fallback {

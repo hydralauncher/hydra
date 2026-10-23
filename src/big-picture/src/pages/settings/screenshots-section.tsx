@@ -69,12 +69,13 @@ export const SCREENSHOT_SETTINGS_FOCUS_IDS = {
   captureSound: "screenshot-settings-capture-sound",
   toast: "screenshot-settings-toast",
   borderFlash: "screenshot-settings-border-flash",
-  askToUpload: "screenshot-settings-ask-to-upload",
   defaultVisibility: "screenshot-settings-default-visibility",
   folder: "screenshot-settings-folder",
   folderReset: "screenshot-settings-folder-reset",
   folderOpen: "screenshot-settings-folder-open",
 } as const;
+
+export const SCREENSHOTS_DEV_ENTRY_FOCUS_ID = "screenshots-dev-game";
 
 const SECTION_REGION_ID = "screenshot-settings-section";
 const navigationService = NavigationService.getInstance();
@@ -99,7 +100,6 @@ type ScreenshotPreferenceUpdate = Pick<
   | "screenshotCaptureSoundEnabled"
   | "screenshotToastEnabled"
   | "screenshotBorderFlashEnabled"
-  | "screenshotAskToUploadAfterGame"
   | "screenshotDefaultVisibility"
 >;
 
@@ -114,7 +114,7 @@ function withoutPreferenceKeys(
   ) as ScreenshotPreferenceUpdate;
 }
 
-function buildRowNavigation(
+export function buildRowNavigation(
   rows: string[][],
   upTarget: FocusOverrideTarget,
   downTarget: FocusOverrideTarget
@@ -380,7 +380,6 @@ function buildScreenshotSettingsRows(options: ScreenshotSettingsRowsOptions) {
     [ids.captureSound],
     [ids.toast],
     [ids.borderFlash],
-    [ids.askToUpload],
     [ids.defaultVisibility],
     folderRow,
   ]
@@ -390,10 +389,12 @@ function buildScreenshotSettingsRows(options: ScreenshotSettingsRowsOptions) {
 
 interface ScreenshotSettingsSectionProps {
   upFocusId: string | null;
+  downFocusId?: string | null;
 }
 
 export function ScreenshotSettingsSection({
   upFocusId,
+  downFocusId = null,
 }: Readonly<ScreenshotSettingsSectionProps>) {
   const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
@@ -564,9 +565,9 @@ export function ScreenshotSettingsSection({
       buildRowNavigation(
         rows,
         upFocusId ? { type: "item", itemId: upFocusId } : BLOCK_TARGET,
-        BLOCK_TARGET
+        downFocusId ? { type: "item", itemId: downFocusId } : BLOCK_TARGET
       ),
-    [rows, upFocusId]
+    [downFocusId, rows, upFocusId]
   );
 
   const renderCheckbox = (
@@ -781,15 +782,6 @@ export function ScreenshotSettingsSection({
             isBorderFlashUnavailable
               ? t("screenshots_border_flash_unavailable", { ns: "settings" })
               : undefined
-          )}
-          {renderCheckbox(
-            ids.askToUpload,
-            t("screenshots_settings_ask_to_upload"),
-            preferences.askToUploadAfterGame,
-            (screenshotAskToUploadAfterGame) =>
-              void update({ screenshotAskToUploadAfterGame }),
-            settingsDisabled,
-            t("screenshots_settings_ask_to_upload_description")
           )}
 
           <DropdownSelect

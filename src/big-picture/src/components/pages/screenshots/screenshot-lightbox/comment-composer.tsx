@@ -3,6 +3,7 @@ import {
   SignInIcon,
   TextBIcon,
   TextItalicIcon,
+  TextUnderlineIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { EditorContent, type Editor } from "@tiptap/react";
@@ -45,7 +46,6 @@ interface FormatToggleProps {
   focusId: string;
   label: string;
   isActive: boolean;
-  disabled: boolean;
   icon: ReactNode;
   onToggle: () => void;
 }
@@ -54,7 +54,6 @@ function FormatToggle({
   focusId,
   label,
   isActive,
-  disabled,
   icon,
   onToggle,
 }: Readonly<FormatToggleProps>) {
@@ -65,7 +64,6 @@ function FormatToggle({
         className={cn("screenshot-comments__format", {
           "screenshot-comments__format--active": isActive,
         })}
-        disabled={disabled}
         aria-label={label}
         aria-pressed={isActive}
         title={label}
@@ -81,7 +79,7 @@ interface CommentEditorFormProps {
   focusIds: ScreenshotCommentsPanelFocusIds;
   leftTarget: FocusOverrideTarget;
   editingComment: ScreenshotComment | null;
-  isSubmitting: boolean;
+  draftBody: string;
   onSubmit: (bodyHtml: string) => Promise<boolean>;
   onCancelEdit: () => void;
 }
@@ -90,7 +88,7 @@ function CommentEditorForm({
   focusIds,
   leftTarget,
   editingComment,
-  isSubmitting,
+  draftBody,
   onSubmit,
   onCancelEdit,
 }: Readonly<CommentEditorFormProps>) {
@@ -102,7 +100,7 @@ function CommentEditorForm({
     htmlLength,
     submit: submitEditor,
   } = useRichTextEditor({
-    initialHtml: editingComment?.bodyHtml ?? "",
+    initialHtml: editingComment?.bodyHtml ?? draftBody,
     placeholder: t("screenshots_comment_placeholder"),
     maxLength: SCREENSHOT_COMMENT_MAX_LENGTH,
     className: "screenshot-comments__prose",
@@ -113,7 +111,7 @@ function CommentEditorForm({
   const isTooLong =
     charCount > SCREENSHOT_COMMENT_MAX_LENGTH ||
     htmlLength > SCREENSHOT_COMMENT_HTML_MAX_LENGTH;
-  const canSubmit = charCount > 0 && !isTooLong && !isSubmitting;
+  const canSubmit = charCount > 0 && !isTooLong;
 
   const submit = async () => {
     if (!canSubmit || !isRichTextEditorAvailable(editor)) return;
@@ -132,18 +130,19 @@ function CommentEditorForm({
 
   const openKeyboard = () => {
     const element = editor?.view.dom;
-    if (!element || isSubmitting) return;
+    if (!element) return;
 
     element.focus({ preventScroll: true });
     useVirtualKeyboardStore.getState().openKeyboard?.(element);
   };
 
-  const toggleFormat = (format: "bold" | "italic") => {
+  const toggleFormat = (format: "bold" | "italic" | "underline") => {
     if (!editor) return;
 
     const chain = editor.chain().focus();
     if (format === "bold") chain.toggleBold().run();
-    else chain.toggleItalic().run();
+    else if (format === "italic") chain.toggleItalic().run();
+    else chain.toggleUnderline().run();
   };
 
   return (
@@ -159,11 +158,7 @@ function CommentEditorForm({
         navigationOverrides={{ left: leftTarget, right: { type: "block" } }}
         asChild
       >
-        <div
-          className={cn("screenshot-comments__editor", {
-            "screenshot-comments__editor--disabled": isSubmitting,
-          })}
-        >
+        <div className="screenshot-comments__editor">
           <EditorContent editor={editor} />
         </div>
       </FocusItem>
@@ -173,7 +168,6 @@ function CommentEditorForm({
             focusId={focusIds.bold}
             label={t("screenshots_comment_bold")}
             isActive={editor?.isActive("bold") ?? false}
-            disabled={isSubmitting}
             icon={<TextBIcon size={18} weight="bold" />}
             onToggle={() => toggleFormat("bold")}
           />
@@ -181,9 +175,15 @@ function CommentEditorForm({
             focusId={focusIds.italic}
             label={t("screenshots_comment_italic")}
             isActive={editor?.isActive("italic") ?? false}
-            disabled={isSubmitting}
             icon={<TextItalicIcon size={18} weight="bold" />}
             onToggle={() => toggleFormat("italic")}
+          />
+          <FormatToggle
+            focusId={focusIds.underline}
+            label={t("screenshots_comment_underline")}
+            isActive={editor?.isActive("underline") ?? false}
+            icon={<TextUnderlineIcon size={18} weight="bold" />}
+            onToggle={() => toggleFormat("underline")}
           />
           <span
             className={cn("screenshot-comments__counter", {
@@ -197,7 +197,6 @@ function CommentEditorForm({
               variant="secondary"
               size="icon"
               focusId={focusIds.cancelEdit}
-              disabled={isSubmitting}
               icon={<XIcon size={18} />}
               aria-label={t("screenshots_cancel")}
               title={t("screenshots_cancel")}
@@ -209,7 +208,6 @@ function CommentEditorForm({
           <Button
             size="icon"
             focusId={focusIds.send}
-            loading={isSubmitting}
             disabled={!canSubmit}
             icon={<PaperPlaneRightIcon size={18} />}
             aria-label={t(
@@ -247,7 +245,7 @@ export interface CommentComposerProps {
   focusIds: ScreenshotCommentsPanelFocusIds;
   leftTarget: FocusOverrideTarget;
   editingComment: ScreenshotComment | null;
-  isSubmitting: boolean;
+  restoredDraft: { key: number; body: string } | null;
   onSubmit: (bodyHtml: string) => Promise<boolean>;
   onCancelEdit: () => void;
 }
@@ -259,7 +257,7 @@ export function CommentComposer({
   focusIds,
   leftTarget,
   editingComment,
-  isSubmitting,
+  restoredDraft,
   onSubmit,
   onCancelEdit,
 }: Readonly<CommentComposerProps>) {
@@ -298,11 +296,11 @@ export function CommentComposer({
 
   return (
     <CommentEditorForm
-      key={editingComment?.id ?? "new"}
+      key={editingComment?.id ?? `new:${restoredDraft?.key ?? 0}`}
       focusIds={focusIds}
       leftTarget={leftTarget}
       editingComment={editingComment}
-      isSubmitting={isSubmitting}
+      draftBody={restoredDraft?.body ?? ""}
       onSubmit={onSubmit}
       onCancelEdit={onCancelEdit}
     />

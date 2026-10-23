@@ -73,11 +73,51 @@ export function recordReviewDecision(
   };
 }
 
-export function advanceReviewQueue(state: ReviewQueueState): ReviewQueueState {
-  if (state.index >= state.items.length - 1) return closeReviewQueue(state);
+export const getVisibleReviewItems = (state: ReviewQueueState) =>
+  state.items.filter((item) => state.decisions[item.clientId] !== "delete");
 
-  return { ...state, index: state.index + 1 };
+export function selectReviewItem(
+  state: ReviewQueueState,
+  clientId: string
+): ReviewQueueState {
+  const index = state.items.findIndex((item) => item.clientId === clientId);
+  if (index === -1 || index === state.index) return state;
+  if (state.decisions[clientId] === "delete") return state;
+
+  return { ...state, index };
 }
+
+export function stepReviewQueue(
+  state: ReviewQueueState,
+  direction: -1 | 1
+): ReviewQueueState {
+  const visible = getVisibleReviewItems(state);
+  const current = getCurrentReviewItem(state);
+  const position = visible.findIndex(
+    (item) => item.clientId === current?.clientId
+  );
+  const next = visible[position + direction];
+
+  return next ? selectReviewItem(state, next.clientId) : state;
+}
+
+const findNextUndecidedIndex = (state: ReviewQueueState) => {
+  const isUndecided = (index: number) => {
+    const item = state.items[index];
+    return Boolean(item) && !state.decisions[item.clientId];
+  };
+
+  for (let index = state.index + 1; index < state.items.length; index += 1) {
+    if (isUndecided(index)) return index;
+  }
+  for (let index = 0; index < state.index; index += 1) {
+    if (isUndecided(index)) return index;
+  }
+  return -1;
+};
+
+export const hasOtherUndecidedReviewItems = (state: ReviewQueueState) =>
+  findNextUndecidedIndex(state) !== -1;
 
 export function advanceReviewQueuePast(
   state: ReviewQueueState,
@@ -85,7 +125,10 @@ export function advanceReviewQueuePast(
 ): ReviewQueueState {
   if (getCurrentReviewItem(state)?.clientId !== clientId) return state;
 
-  return advanceReviewQueue(state);
+  const nextIndex = findNextUndecidedIndex(state);
+  if (nextIndex === -1) return closeReviewQueue(state);
+
+  return { ...state, index: nextIndex };
 }
 
 export function getUndecidedReviewIds(state: ReviewQueueState) {

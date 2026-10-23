@@ -5,10 +5,15 @@ import {
   ImageIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { GameShop, ProfileScreenshot } from "@types";
-import { createScreenshotWriteBus, type MyScreenshotItem } from "@shared";
+import {
+  buildGameScreenshotsPath,
+  createScreenshotWriteBus,
+  type MyScreenshotItem,
+  type ScreenshotWriteBus,
+} from "@shared";
 
 import {
   Button,
@@ -16,8 +21,12 @@ import {
   Typography,
   VerticalFocusGroup,
 } from "../../../common";
-import { ScreenshotLightbox, useScreenshotLightbox } from "../../screenshots";
-import { Feature, useFeature } from "../../../../hooks";
+import {
+  ScreenshotLightbox,
+  useScreenshotFeed,
+  useScreenshotLightbox,
+} from "../../screenshots";
+import { Feature, useFeature, useUserDetails } from "../../../../hooks";
 import type { FocusOverrides, FocusOverrideTarget } from "../../../../services";
 import {
   GAME_MY_SCREENSHOTS_GRID_REGION_ID,
@@ -30,7 +39,10 @@ import { ScreenshotHotkeyHint } from "./hotkey-hint";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
 import { MyScreenshotsPartialNotice } from "./partial-notice";
 import { PublishedScreenshotThumbnail } from "./published-thumbnail";
-import { GameScreenshotsModal } from "./screenshots-modal";
+import {
+  GameScreenshotsModal,
+  type GameScreenshotsTab,
+} from "./screenshots-modal";
 import {
   useLocalScreenshotActions,
   type LocalScreenshotActions,
@@ -40,16 +52,26 @@ import { useMyGameScreenshots } from "./use-my-game-screenshots";
 export { GameScreenshotsModal } from "./screenshots-modal";
 
 const SIDEBAR_SCREENSHOT_COUNT = 4;
+const PUBLISHED_WAIT_TIMEOUT_MS = 1_500;
 const SIDEBAR_COLUMNS = 2;
 const BLOCK_TARGET: FocusOverrideTarget = { type: "block" };
 
+const isFullWidthThumbnail = (index: number, count: number) =>
+  count <= 2 || (count === 3 && index === 2);
+
 const getThumbnailNavigation = (
   index: number,
+  count: number,
   leftTarget: FocusOverrideTarget
-): FocusOverrides =>
-  index % SIDEBAR_COLUMNS === 0
+): FocusOverrides => {
+  if (isFullWidthThumbnail(index, count)) {
+    return { left: leftTarget, right: BLOCK_TARGET };
+  }
+
+  return index % SIDEBAR_COLUMNS === 0
     ? { left: leftTarget }
     : { right: BLOCK_TARGET };
+};
 
 interface MyScreenshotsGridProps {
   items: MyScreenshotItem[];
@@ -75,7 +97,11 @@ function MyScreenshotsGrid({
     >
       {items.map((item, index) => {
         const focusId = getGameMyScreenshotItemId(item.id);
-        const navigationOverrides = getThumbnailNavigation(index, leftTarget);
+        const navigationOverrides = getThumbnailNavigation(
+          index,
+          items.length,
+          leftTarget
+        );
 
         return item.kind === "published" ? (
           <PublishedScreenshotThumbnail
@@ -104,6 +130,75 @@ function MyScreenshotsGrid({
       })}
     </GridFocusGroup>
   );
+}
+
+interface CommunityScreenshotsOptions {
+  enabled: boolean;
+  shop: GameShop;
+  objectId: string;
+  writeBus: ScreenshotWriteBus;
+}
+
+function useSidebarCommunityScreenshots({
+  enabled,
+  shop,
+  objectId,
+  writeBus,
+}: CommunityScreenshotsOptions) {
+  const { userDetails } = useUserDetails();
+  const isSignedIn = Boolean(userDetails);
+  const buildPath = useCallback(
+    (cursor: string | null) =>
+      buildGameScreenshotsPath({
+        shop,
+        objectId,
+        cursor,
+        sort: "top",
+        take: SIDEBAR_SCREENSHOT_COUNT,
+      }),
+    [objectId, shop]
+  );
+  const feed = useScreenshotFeed({
+    requestKey: enabled ? `${shop}:${objectId}:top:sidebar-community` : null,
+    buildPath,
+    needsAuth: isSignedIn,
+    writeBus,
+  });
+  const { lightboxProps, open } = useScreenshotLightbox({
+    items: feed.items,
+    needsAuth: isSignedIn,
+    updateItem: feed.updateItem,
+    removeItem: feed.removeItem,
+    getFetchedAt: feed.getFetchedAt,
+    imageRefresher: feed.imageRefresher,
+    subscribeRemoteWrites: feed.subscribeRemoteWrites,
+    hasMore: feed.hasMore,
+    loadMore: feed.loadMore,
+    hasLoadMoreError: feed.error === "page",
+    retryLoadMore: feed.retry,
+  });
+  const items = useMemo<MyScreenshotItem[]>(
+    () =>
+      feed.items.slice(0, SIDEBAR_SCREENSHOT_COUNT).map((screenshot) => ({
+        kind: "published",
+        id: `community:${screenshot.id}`,
+        screenshot,
+      })),
+    [feed.items]
+  );
+
+  return { feed, items, lightboxProps, open };
+}
+
+function useHasWaited(key: string, timeoutMs: number) {
+  const [expiredKey, setExpiredKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setExpiredKey(key), timeoutMs);
+    return () => clearTimeout(timeout);
+  }, [key, timeoutMs]);
+
+  return expiredKey === key;
 }
 
 interface MyScreenshotsMessageProps {
@@ -174,7 +269,7 @@ export function GameMyScreenshots({
 }: Readonly<GameMyScreenshotsProps>) {
   const { t } = useTranslation("big_picture");
   const { isFeatureEnabled } = useFeature();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalTab, setModalTab] = useState<GameScreenshotsTab | null>(null);
   const [writeBus] = useState(createScreenshotWriteBus);
   const isEnabled = isFeatureEnabled(Feature.Screenshots) && !isAdultGame;
   const mine = useMyGameScreenshots({
@@ -202,9 +297,35 @@ export function GameMyScreenshots({
     retryLoadMore: feed.retry,
   });
   const items = mine.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
-  const showGrid = items.length > 0 && !mine.hasFailed;
-  const showMessage = !showGrid && !mine.isPartial;
-  const canViewAll = items.length > 0 || (shop !== "custom" && mine.hasLoaded);
+  const hasWaitedForPublished = useHasWaited(
+    `${shop}:${objectId}`,
+    PUBLISHED_WAIT_TIMEOUT_MS
+  );
+  const isSettled =
+    mine.hasLoaded ||
+    (hasWaitedForPublished && mine.hasLoadedLocal && !mine.hasLocalFailed);
+  const hasCommunity = shop !== "custom";
+  const hasNoScreenshotsOfMine =
+    mine.hasLoaded && !mine.hasFailed && !mine.isPartial && items.length === 0;
+  const community = useSidebarCommunityScreenshots({
+    enabled: isEnabled && hasCommunity && hasNoScreenshotsOfMine,
+    shop,
+    objectId,
+    writeBus,
+  });
+  const showCommunity = hasNoScreenshotsOfMine && community.items.length > 0;
+  const showGrid = isSettled && items.length > 0 && !mine.hasFailed;
+  const showMessage = !showGrid && !showCommunity && !mine.isPartial;
+  const isMessageLoading = !isSettled || community.feed.isLoading;
+  const getViewAllTab = (): GameScreenshotsTab | null => {
+    if (showCommunity) return "community";
+    if (showGrid) return "mine";
+    if (hasCommunity && mine.hasLoaded && !hasNoScreenshotsOfMine) {
+      return "mine";
+    }
+    return null;
+  };
+  const viewAllTab = getViewAllTab();
 
   if (!isEnabled) return null;
 
@@ -232,9 +353,24 @@ export function GameMyScreenshots({
               onRefreshImage={feed.refreshImage}
             />
           ) : null}
+          {showCommunity ? (
+            <>
+              <span className="game-my-screenshots__caption">
+                {t("community_screenshots_tab", { ns: "screenshots" })}
+              </span>
+              <MyScreenshotsGrid
+                items={community.items}
+                local={local}
+                showCommentCount={isFeatureEnabled(Feature.ScreenshotComments)}
+                leftTarget={leftTarget}
+                onOpen={community.open}
+                onRefreshImage={community.feed.refreshImage}
+              />
+            </>
+          ) : null}
           {showMessage ? (
             <MyScreenshotsMessage
-              isLoading={!mine.hasLoaded}
+              isLoading={isMessageLoading}
               hasLoadError={mine.hasFailed}
               leftTarget={leftTarget}
               onRetry={mine.retry}
@@ -246,7 +382,7 @@ export function GameMyScreenshots({
             className="game-my-screenshots__notice"
             navigationOverrides={{ left: leftTarget, right: BLOCK_TARGET }}
           />
-          {canViewAll ? (
+          {viewAllTab ? (
             <Button
               variant="secondary"
               size="small"
@@ -257,7 +393,7 @@ export function GameMyScreenshots({
                 left: leftTarget,
                 right: BLOCK_TARGET,
               }}
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => setModalTab(viewAllTab)}
             >
               {t("screenshots_view_all")}
             </Button>
@@ -265,13 +401,15 @@ export function GameMyScreenshots({
         </div>
 
         <ScreenshotLightbox {...lightboxProps} />
+        <ScreenshotLightbox {...community.lightboxProps} />
         {local.elements}
         <GameScreenshotsModal
-          visible={isModalOpen}
+          visible={modalTab !== null}
           shop={shop}
           objectId={objectId}
           writeBus={writeBus}
-          onClose={() => setIsModalOpen(false)}
+          initialTab={modalTab ?? "mine"}
+          onClose={() => setModalTab(null)}
         />
       </section>
     </VerticalFocusGroup>

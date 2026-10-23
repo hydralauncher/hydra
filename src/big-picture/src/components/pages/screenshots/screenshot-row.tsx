@@ -32,7 +32,9 @@ export interface ScreenshotRowProps {
   retryFocusId: string;
   onRetryLoadMore: () => void;
   onLoadMore: () => void;
+  likingIds?: ReadonlySet<string>;
   onActivate: (screenshot: ProfileScreenshot) => void;
+  onLike?: (screenshot: ProfileScreenshot) => void;
   onRefreshImage?: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
@@ -51,7 +53,9 @@ export function ScreenshotRow({
   retryFocusId,
   onRetryLoadMore,
   onLoadMore,
+  likingIds,
   onActivate,
+  onLike,
   onRefreshImage,
 }: Readonly<ScreenshotRowProps>) {
   const { t } = useTranslation("big_picture");
@@ -126,7 +130,9 @@ export function ScreenshotRow({
                     : (leftTarget ?? BLOCKED_TARGET),
                   right: toItemTarget(nextFocusId ?? rightFocusId),
                 }}
+                isLikePending={likingIds?.has(screenshot.id) ?? false}
                 onActivate={onActivate}
+                onLike={onLike}
               />
             );
           })}

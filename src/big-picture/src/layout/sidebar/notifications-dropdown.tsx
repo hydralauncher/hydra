@@ -1,10 +1,13 @@
 import "./notifications-dropdown.scss";
 
 import {
+  ChatCircleIcon,
   CheckCircleIcon,
   DotsThreeVerticalIcon,
   DownloadSimpleIcon,
+  HeartIcon,
   MinusCircleIcon,
+  ProhibitIcon,
   TrashIcon,
   TrophyIcon,
   UserCheckIcon,
@@ -112,6 +115,14 @@ function parseApiNotificationPath(notificationUrl: string) {
   return notificationUrl;
 }
 
+const SCREENSHOT_NOTIFICATION_ICONS: Partial<
+  Record<Notification["type"], typeof HeartIcon>
+> = {
+  SCREENSHOT_LIKE: HeartIcon,
+  SCREENSHOT_COMMENT: ChatCircleIcon,
+  SCREENSHOT_BLOCKED: ProhibitIcon,
+};
+
 function resolveBigPicturePath(path: string) {
   if (/^(?:[a-z][a-z\d+.-]*:)?\/\//i.test(path)) return path;
   if (path.startsWith("/big-picture")) return path;
@@ -197,6 +208,7 @@ function getScreenshotNotificationContent(
 ) {
   const game =
     notification.variables.gameTitle ||
+    notification.variables.customGameTitle ||
     t("screenshots_notification_fallback_game", { ns: "big_picture" });
   const countVariable =
     notification.type === "SCREENSHOT_COMMENT"
@@ -821,6 +833,21 @@ export function SidebarNotificationsDropdown({
           />
         </div>
       );
+    }
+
+    if (notification.source === "api") {
+      const ScreenshotIcon = SCREENSHOT_NOTIFICATION_ICONS[notification.type];
+      if (ScreenshotIcon) {
+        return (
+          <div className="sidebar-notifications-dropdown__fallback-icon">
+            <ScreenshotIcon
+              size={24}
+              weight="fill"
+              className="sidebar-notifications-dropdown__fallback-symbol"
+            />
+          </div>
+        );
+      }
     }
 
     if (isHydraNotification(notification)) {
