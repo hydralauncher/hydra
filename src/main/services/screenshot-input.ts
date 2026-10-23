@@ -32,6 +32,7 @@ type ScreenshotInputStatusListener = (status: ScreenshotInputStatus) => void;
 export const SCREENSHOT_TRIGGER_COOLDOWN_MS = 3_000;
 export const SCREENSHOT_INPUT_RESTART_DELAY_MS = 5_000;
 export const SCREENSHOT_INPUT_MAX_RESTARTS = 3;
+export const SCREENSHOT_INPUT_STABLE_RUN_MS = 60_000;
 
 export interface ScreenshotInputSettings {
   enabled: boolean;
@@ -147,6 +148,7 @@ export class ScreenshotInputService {
   private static gamesRunning = false;
   private static lastTriggerAt: number | null = null;
   private static restartAttempts = 0;
+  private static listeningSince: number | null = null;
   private static restartTimer: ReturnType<typeof setTimeout> | null = null;
   private static unsubscribeGamesRunning: (() => void) | null = null;
 
@@ -289,6 +291,7 @@ export class ScreenshotInputService {
         (event) => this.handleNativeEvent(event)
       );
       this.listening = true;
+      this.listeningSince = Date.now();
       const status = toScreenshotInputStatus(nativeStatus, this.settings, true);
       logger.info("Screenshot input started", {
         ...status,
@@ -329,6 +332,13 @@ export class ScreenshotInputService {
   }
 
   private static handleBackendStopped(event: ScreenshotInputNativeEvent) {
+    if (
+      this.listeningSince !== null &&
+      Date.now() - this.listeningSince >= SCREENSHOT_INPUT_STABLE_RUN_MS
+    ) {
+      this.restartAttempts = 0;
+    }
+
     logger.warn("Screenshot input backend stopped unexpectedly", {
       source: event.source,
       backend: event.backend,
