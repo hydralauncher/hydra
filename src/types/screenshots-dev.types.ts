@@ -26,7 +26,6 @@ export interface ScreenshotsDevBurstRequest
 
 export type ScreenshotsDevFeedbackKind =
   | "sound"
-  | "flash"
   | "captured"
   | "saved_locally"
   | "disabled_for_game";

@@ -73,6 +73,9 @@ export const isScreenshotAwaitingReview = (screenshot: LocalScreenshot) =>
 export const isScreenshotKeptLocally = (screenshot: LocalScreenshot) =>
   screenshot.state === "local";
 
+export const isScreenshotUndecided = (screenshot: LocalScreenshot) =>
+  isScreenshotAwaitingReview(screenshot) || isScreenshotKeptLocally(screenshot);
+
 export const getUploadPercent = (screenshot: LocalScreenshot) =>
   Math.round(Math.min(Math.max(screenshot.uploadProgress ?? 0, 0), 1) * 100);
 
