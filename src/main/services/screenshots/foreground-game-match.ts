@@ -154,6 +154,14 @@ const ownsForegroundProcess = (
   return collectDescendants(input.processes, target.processId).has(ownerPid);
 };
 
+export const isLaunchedForegroundProcess = (
+  target: ScreenshotGameTarget,
+  foreground: ForegroundWindowInfo
+) =>
+  target.processId !== undefined &&
+  (foreground.processId === target.processId ||
+    foreground.clientProcessId === target.processId);
+
 export const findForegroundGameTarget = (
   input: ForegroundGameMatchInput
 ): ScreenshotGameTarget | null => {

@@ -10,9 +10,11 @@ import { db, levelKeys } from "@main/level";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 import {
-  buildEncodeFrameExpression,
-  parseEncodedFrame,
-  type ScreenshotFrameEncodeOptions,
+  buildGrabFrameExpression,
+  createGrabbedFrame,
+  parseGrabbedFrame,
+  type GrabbedScreenshotFrame,
+  type ScreenshotFrameGrabOptions,
 } from "./screenshots/screenshot-frame-script";
 import {
   addCaptureSessionReason,
@@ -268,10 +270,10 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   return image;
 };
 
-export const encodeLinuxGameSessionFrame = async (
+export const grabLinuxGameSessionFrame = async (
   gameKey: string,
-  options: ScreenshotFrameEncodeOptions
-) => {
+  options: ScreenshotFrameGrabOptions
+): Promise<GrabbedScreenshotFrame> => {
   const registration = sessions.get(gameKey);
   if (!registration) {
     throw new Error("No Wayland game-window capture session is available");
@@ -284,16 +286,25 @@ export const encodeLinuxGameSessionFrame = async (
     throw new Error("Wayland game-window capture session was closed");
   }
 
-  const frame = parseEncodedFrame(
+  const runInCaptureWindow = (expression: string) =>
+    captureWindow.isDestroyed()
+      ? Promise.reject(
+          new Error("Wayland game-window capture session was closed")
+        )
+      : captureWindow.webContents.executeJavaScript(expression);
+
+  const info = parseGrabbedFrame(
     await captureWindow.webContents.executeJavaScript(`(async () => {
       const track = globalThis.__hydraSouvenirStream?.getVideoTracks()[0];
       if (!track || track.readyState !== "live") {
         throw new Error("Wayland game-window stream is no longer active");
       }
-      return await ${buildEncodeFrameExpression("globalThis.__hydraSouvenirVideo", options)};
+      return await ${buildGrabFrameExpression("globalThis.__hydraSouvenirVideo", options)};
     })()`)
   );
-  if (frame.isBlank) {
+  const frame = createGrabbedFrame(info, runInCaptureWindow);
+  if (info.isBlank) {
+    frame.discard();
     throw new Error("Wayland game-window capture returned a blank frame");
   }
   return frame;
