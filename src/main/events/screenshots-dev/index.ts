@@ -16,7 +16,7 @@ import { ScreenshotInputService } from "@main/services/screenshot-input";
 import {
   deleteLocalScreenshot,
   LocalScreenshotStore,
-  ScreenshotReviewWindows,
+  ScreenshotReviewSession,
   screenshotUploadWorker,
 } from "@main/services/screenshots";
 import { ScreenshotFeedback } from "@main/services/screenshots/screenshot-feedback";
@@ -252,7 +252,7 @@ const registerScreenshotsDevEvents = () => {
         const first = records[0];
         if (!first) return { ok: false, error: "not_found" };
 
-        const sent = await ScreenshotReviewWindows.requestBigPictureReview({
+        const sent = await ScreenshotReviewSession.requestBigPictureReview({
           gameKey: `${first.shop}:${first.objectId ?? ""}`,
           shop: first.shop,
           objectId: first.objectId ?? "",

@@ -22,7 +22,6 @@ import { WindowManager } from "../window-manager";
 import { GameContentWarningCache } from "./content-warning-cache";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { compressScreenshotForUpload } from "./screenshot-compression";
-import { ScreenshotReviewWindows } from "./screenshot-review-windows";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
 import {
@@ -61,7 +60,6 @@ const isActiveUploadState = (state: LocalScreenshot["state"]) =>
 
 const emitProgress = (progress: ScreenshotUploadProgress) => {
   WindowManager.sendToAppWindows("on-screenshot-upload-progress", progress);
-  ScreenshotReviewWindows.broadcast("on-screenshot-upload-progress", progress);
 };
 
 const buildPresignRequest = (

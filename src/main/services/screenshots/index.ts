@@ -37,14 +37,14 @@ import { ScreenshotFeedback } from "./screenshot-feedback";
 import { ScreenshotFrameWorker } from "./screenshot-frame-worker";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { getManualScreenshotsDirectory } from "./screenshot-file-path";
-import { ScreenshotReviewWindows } from "./screenshot-review-windows";
+import { ScreenshotReviewSession } from "./screenshot-review-session";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
 import { screenshotUploadWorker } from "./screenshot-upload-worker";
 
 export { LocalScreenshotStore } from "./local-screenshot-store";
 export { screenshotUploadWorker } from "./screenshot-upload-worker";
-export { ScreenshotReviewWindows } from "./screenshot-review-windows";
+export { ScreenshotReviewSession } from "./screenshot-review-session";
 
 const SCREENSHOTS_MODULE_LOADED_AT = Date.now();
 
@@ -75,13 +75,9 @@ export const initializeScreenshots = () => {
 
   LocalScreenshotStore.onChange((screenshots) => {
     WindowManager.sendToAppWindows("on-local-screenshots-change", screenshots);
-    ScreenshotReviewWindows.broadcast(
-      "on-local-screenshots-change",
-      screenshots
-    );
   });
 
-  ScreenshotReviewWindows.onWindowClosed(() => {
+  ScreenshotReviewSession.onClosed(() => {
     void ScreenshotUploadNotifier.refresh();
   });
 
@@ -89,7 +85,7 @@ export const initializeScreenshots = () => {
     logger.error("Failed to back-fill local screenshot game ids", error);
   });
 
-  void ScreenshotReviewWindows.releaseStaleReviews(SCREENSHOTS_MODULE_LOADED_AT)
+  void ScreenshotReviewSession.releaseStaleReviews(SCREENSHOTS_MODULE_LOADED_AT)
     .catch((error) => {
       logger.error("Failed to release stale screenshot reviews", error);
     })
@@ -199,9 +195,8 @@ export const uploadLocalScreenshot = async (
   sender?: Electron.WebContents
 ) => {
   const isReviewOrigin =
-    !!sender &&
-    (ScreenshotReviewWindows.isReviewWindowSender(sender) ||
-      WindowManager.bigPictureWindow?.webContents === sender);
+    ScreenshotReviewSession.isReviewing(clientId) ||
+    (!!sender && WindowManager.bigPictureWindow?.webContents === sender);
   if (isReviewOrigin) ScreenshotUploadNotifier.markReviewOrigin(clientId);
 
   return screenshotUploadWorker.enqueue(clientId, options);
@@ -237,13 +232,18 @@ export const openScreenshotReview = async (clientId: string) => {
     .toSorted((left, right) => right.capturedAt - left.capturedAt)
     .map((candidate) => candidate.clientId);
 
-  await ScreenshotReviewWindows.openForGame({
+  await ScreenshotReviewSession.open({
     shop: screenshot.shop,
     objectId,
     clientIds,
     selectedClientId: clientId,
   });
 };
+
+export const closeScreenshotReview = () => ScreenshotReviewSession.close();
+
+export const getScreenshotReview = () =>
+  ScreenshotReviewSession.getDesktopReview();
 
 export const updateLocalScreenshotDraft = (
   clientId: string,
@@ -260,7 +260,7 @@ export const skipLocalScreenshot = async (clientId: string) => {
   if (screenshot.state === "reviewing") {
     await LocalScreenshotStore.update(clientId, { state: "local" });
   }
-  ScreenshotReviewWindows.closeSingleItemWindows(clientId);
+  await ScreenshotReviewSession.closeIfOnlyScreenshot(clientId);
   ScreenshotTelemetry.record("review", "skip");
 };
 

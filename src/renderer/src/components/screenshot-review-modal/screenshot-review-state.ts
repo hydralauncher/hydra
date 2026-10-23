@@ -64,12 +64,6 @@ const EDITABLE_STATES = new Set<LocalScreenshotState>([
 
 export { toLocalScreenshotUrl as getLocalImageSource } from "@shared";
 
-export const parseClientIds = (value: string | null) =>
-  (value ?? "")
-    .split(",")
-    .map((clientId) => clientId.trim())
-    .filter(Boolean);
-
 export const isScreenshotEditable = (screenshot: LocalScreenshot) =>
   EDITABLE_STATES.has(screenshot.state);
 
