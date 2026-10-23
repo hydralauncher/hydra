@@ -2821,7 +2821,6 @@
     "error_unreadable": "The screenshot file can't be read",
     "error_upload_blocked": "You can't upload screenshots right now. This one stays saved on your computer",
     "error_waiting_for_game": "Waiting for this game to sync with your library",
-    "keep_on_computer": "Keep on computer",
     "kept_locally": "Kept on this computer",
     "moderation_approved": "Uploaded to your profile",
     "moderation_pending": "Uploaded. You'll get a notification if there's a problem.",

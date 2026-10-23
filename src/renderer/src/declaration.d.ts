@@ -1128,7 +1128,6 @@ declare global {
       draft: LocalScreenshotDraft
     ) => Promise<LocalScreenshot | null>;
     deleteLocalScreenshot: (clientId: string) => Promise<void>;
-    skipLocalScreenshot: (clientId: string) => Promise<void>;
     openScreenshotReview: (clientId: string) => Promise<void>;
     closeScreenshotReview: () => Promise<void>;
     openScreenshotsFolder: () => Promise<void>;
