@@ -685,7 +685,7 @@ const mergeWithRemoteGamesOnce = async (
 };
 
 // A connection transition invalidates old snapshots even when the Hydra user did not change.
-export const mergeWithRemoteGames: typeof mergeWithRemoteGamesOnce = async (
+const mergeWithRemoteGamesRetrying: typeof mergeWithRemoteGamesOnce = async (
   ...args
 ) => {
   const revision = getEpicLibraryConnectionRevision();
@@ -701,6 +701,44 @@ export const mergeWithRemoteGames: typeof mergeWithRemoteGamesOnce = async (
   )
     return mergeWithRemoteGamesOnce(...args);
   return result;
+};
+
+const plainMerges = new Map<
+  string,
+  { running: Promise<boolean>; next?: Promise<boolean> }
+>();
+
+const startPlainMerge = (key: string, run: () => Promise<boolean>) => {
+  const merge = { running: run() };
+  plainMerges.set(key, merge);
+  const settle = () => {
+    if (plainMerges.get(key) === merge) plainMerges.delete(key);
+  };
+  void merge.running.then(settle, settle);
+  return merge.running;
+};
+
+export const mergeWithRemoteGames: typeof mergeWithRemoteGamesOnce = (
+  ...args
+) => {
+  const [onProgress, capturedContext, ...options] = args;
+  if (onProgress || options.some((option) => option !== undefined))
+    return mergeWithRemoteGamesRetrying(...args);
+
+  const context = capturedContext ?? HydraApi.getAuthContext() ?? undefined;
+  const key = context
+    ? JSON.stringify([context.environment, context.userId, context.generation])
+    : "";
+  const run = () => mergeWithRemoteGamesRetrying(undefined, context);
+  const merge = plainMerges.get(key);
+  if (!merge) return startPlainMerge(key, run);
+
+  // A caller arriving mid-run must see data newer than its request, so it waits for one follow-up.
+  merge.next ??= merge.running.then(
+    () => startPlainMerge(key, run),
+    () => startPlainMerge(key, run)
+  );
+  return merge.next;
 };
 
 // Emulator imports already have catalogue assets and ROM metadata locally.
