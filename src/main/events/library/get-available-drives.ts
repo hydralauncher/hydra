@@ -62,7 +62,7 @@ async function getDriveInfo(root: string): Promise<DriveInfo | null> {
   }
 }
 
-async function queryWindowsDrives(): Promise<DriveInfo[]> {
+export async function queryWindowsDrives(): Promise<DriveInfo[]> {
   const driveChecks = DRIVE_LETTERS.map((letter) =>
     getDriveInfo(getDriveRoot(letter))
   );

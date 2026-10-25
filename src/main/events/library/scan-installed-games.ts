@@ -5,6 +5,7 @@ import { chunk } from "lodash-es";
 import { registerEvent } from "../register-event";
 import { getGameAssets } from "../catalogue/get-game-assets";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
+import { queryWindowsDrives } from "./get-available-drives";
 import {
   isRedistributableDirectory,
   isRedistributablePath,
@@ -171,6 +172,17 @@ const isWithin = (child: string, parent: string) => {
   );
 };
 
+const getMountedDriveGamesDirectories = async () => {
+  if (process.platform !== "win32") return [];
+
+  const drives = await queryWindowsDrives().catch((err) => {
+    logger.error("[ScanInstalledGames] Failed to enumerate drives:", err);
+    return [];
+  });
+
+  return drives.map((drive) => path.join(drive.root, "Games"));
+};
+
 const getDefaultScanDirectories = async (
   steamFallbackDirectories: string[]
 ) => {
@@ -182,8 +194,11 @@ const getDefaultScanDirectories = async (
     return null;
   });
 
+  const mountedDriveGamesDirectories = await getMountedDriveGamesDirectories();
+
   return [
     ...SCAN_DIRECTORIES,
+    ...mountedDriveGamesDirectories,
     ...steamFallbackDirectories,
     ...(downloadsPath ? [downloadsPath] : []),
   ];
