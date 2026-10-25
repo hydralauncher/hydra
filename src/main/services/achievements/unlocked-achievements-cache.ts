@@ -5,6 +5,8 @@ import {
 } from "./achievement-memory-store.js";
 
 export const UNLOCKED_ACHIEVEMENTS_CACHE_TTL_MS = 30_000;
+export const UNLOCKED_ACHIEVEMENTS_MAX_CONCURRENT_LOADS = 4;
+export const UNLOCKED_ACHIEVEMENTS_LOAD_SLOT_LEASE_MS = 10_000;
 
 interface MemoryDependency {
   shop: GameShop;
@@ -31,6 +33,41 @@ const pending = new Map<string, PendingLoad>();
 const invalidatedAt = new Map<string, number>();
 let clearedAt = 0;
 let clock = 0;
+let activeLoads = 0;
+const waitingLoads: (() => void)[] = [];
+
+const acquireLoadSlot = async () => {
+  if (activeLoads < UNLOCKED_ACHIEVEMENTS_MAX_CONCURRENT_LOADS) {
+    activeLoads++;
+    return;
+  }
+  await new Promise<void>((resolve) => waitingLoads.push(resolve));
+};
+
+const releaseLoadSlot = () => {
+  // Newest first: the card on screen or the open game page outranks cards scrolled away.
+  const next = waitingLoads.pop();
+  if (next) next();
+  else activeLoads--;
+};
+
+const withLoadSlot = async <T>(task: () => Promise<T>) => {
+  await acquireLoadSlot();
+  let held = true;
+  const release = () => {
+    if (!held) return;
+    held = false;
+    releaseLoadSlot();
+  };
+  // Achievement GETs have no request timeout, so a stalled one must not pin a slot.
+  const lease = setTimeout(release, UNLOCKED_ACHIEVEMENTS_LOAD_SLOT_LEASE_MS);
+  try {
+    return await task();
+  } finally {
+    clearTimeout(lease);
+    release();
+  }
+};
 
 const collectDependencies = (
   shop: GameShop,
@@ -133,12 +170,14 @@ const load = (
   pending.set(key, run);
   run.promise = (async () => {
     try {
-      await prepare();
-      const since = clock;
-      run.readingSince = since;
-      const achievements = await read();
-      store(shop, objectId, achievements, valid, since);
-      return achievements;
+      return await withLoadSlot(async () => {
+        await prepare();
+        const since = clock;
+        run.readingSince = since;
+        const achievements = await read();
+        store(shop, objectId, achievements, valid, since);
+        return achievements;
+      });
     } finally {
       if (pending.get(key) === run) pending.delete(key);
     }

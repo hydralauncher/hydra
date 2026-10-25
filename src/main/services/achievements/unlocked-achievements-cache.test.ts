@@ -4,6 +4,8 @@ import type { UserAchievement } from "@types";
 import { AchievementMemoryStore } from "./achievement-memory-store.js";
 import {
   UNLOCKED_ACHIEVEMENTS_CACHE_TTL_MS,
+  UNLOCKED_ACHIEVEMENTS_LOAD_SLOT_LEASE_MS,
+  UNLOCKED_ACHIEVEMENTS_MAX_CONCURRENT_LOADS,
   UnlockedAchievementsCache,
 } from "./unlocked-achievements-cache.js";
 
@@ -28,6 +30,8 @@ const row = (name: string, extra: Partial<UserAchievement> = {}) =>
   }) as UserAchievement;
 
 const memory = () => ({ achievements: [], unlockedAchievements: [] });
+
+const tick = () => new Promise((resolve) => setImmediate(resolve));
 
 const loader = (rows: () => UserAchievement[], gate?: Promise<void>) => {
   const counts = { prepare: 0, read: 0 };
@@ -104,10 +108,10 @@ describe("UnlockedAchievementsCache", () => {
     const { counts, load } = loader(() => [row("A")], gate.promise);
 
     const stale = load();
-    await new Promise((resolve) => setImmediate(resolve));
+    await tick();
     UnlockedAchievementsCache.invalidate("steam", "10");
     const fresh = load();
-    await new Promise((resolve) => setImmediate(resolve));
+    await tick();
     assert.equal(counts.read, 2);
 
     gate.resolve();
@@ -132,7 +136,7 @@ describe("UnlockedAchievementsCache", () => {
     const { counts, load } = loader(() => [row("OLD")], gate.promise);
 
     const older = load();
-    await new Promise((resolve) => setImmediate(resolve));
+    await tick();
     const since = UnlockedAchievementsCache.invalidate("steam", "10");
     UnlockedAchievementsCache.set(
       "steam",
@@ -196,5 +200,84 @@ describe("UnlockedAchievementsCache", () => {
     UnlockedAchievementsCache.clear();
     await load(() => current);
     assert.equal(counts.read, 4);
+  });
+
+  it("caps concurrent loads and starts the newest waiting one first", async () => {
+    const releases = new Map<string, () => void>();
+    const prepared: string[] = [];
+    const started: string[] = [];
+    const ids = Array.from(
+      { length: UNLOCKED_ACHIEVEMENTS_MAX_CONCURRENT_LOADS + 2 },
+      (_, index) => String(index)
+    );
+    const loads = ids.map((objectId) =>
+      UnlockedAchievementsCache.load(
+        "steam",
+        objectId,
+        () => true,
+        async () => {
+          prepared.push(objectId);
+        },
+        () => {
+          started.push(objectId);
+          return new Promise<UserAchievement[]>((resolve) =>
+            releases.set(objectId, () => resolve([]))
+          );
+        }
+      )
+    );
+    const [oldest, ...rest] = ids;
+    const newest = rest.pop()!;
+    const queued = rest.pop()!;
+
+    await tick();
+    assert.deepEqual(prepared, [oldest, ...rest]);
+    assert.deepEqual(started, [oldest, ...rest]);
+
+    releases.get(oldest)!();
+    await tick();
+    assert.equal(started.at(-1), newest);
+
+    releases.get(newest)!();
+    await tick();
+    assert.equal(started.at(-1), queued);
+
+    for (const release of releases.values()) release();
+    await Promise.all(loads);
+  });
+
+  it("frees the slot of a load that outlives its lease", async () => {
+    mock.timers.enable({ apis: ["setTimeout"] });
+    const releases: (() => void)[] = [];
+    const started: string[] = [];
+    const loads = Array.from(
+      { length: UNLOCKED_ACHIEVEMENTS_MAX_CONCURRENT_LOADS + 1 },
+      (_, index) =>
+        UnlockedAchievementsCache.load(
+          "steam",
+          `stalled-${index}`,
+          () => true,
+          async () => {},
+          () => {
+            started.push(String(index));
+            return new Promise<UserAchievement[]>((resolve) =>
+              releases.push(() => resolve([]))
+            );
+          }
+        )
+    );
+
+    await tick();
+    assert.equal(started.length, UNLOCKED_ACHIEVEMENTS_MAX_CONCURRENT_LOADS);
+
+    mock.timers.tick(UNLOCKED_ACHIEVEMENTS_LOAD_SLOT_LEASE_MS);
+    await tick();
+    assert.equal(
+      started.length,
+      UNLOCKED_ACHIEVEMENTS_MAX_CONCURRENT_LOADS + 1
+    );
+
+    for (const release of releases) release();
+    await Promise.all(loads);
   });
 });
