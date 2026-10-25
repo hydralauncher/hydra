@@ -49,12 +49,13 @@ $leaderboards-streak-to: #b05cff;
   }
 
   &__toggles {
-    width: min(100%, 500px);
+    min-width: min(100%, 500px);
+    max-width: 100%;
     display: flex;
     gap: globals.$spacing-unit;
 
     .leaderboard-controls__segmented {
-      flex: 1;
+      flex: 1 1 auto;
       min-width: 0;
     }
 
