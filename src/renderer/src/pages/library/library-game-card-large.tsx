@@ -32,6 +32,9 @@ import {
 } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card-large.scss";
 
+// Cards scrolled past or remounted within this window never load, keeping scroll bursts off the API.
+const ACHIEVEMENT_PROGRESS_SETTLE_MS = 250;
+
 interface LibraryGameCardLargeProps {
   game: LibraryGame;
   onContextMenu: (
@@ -259,24 +262,30 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
     let isStale = false;
 
-    window.electron
-      .getUnlockedAchievements(game.objectId, game.shop)
-      .then((achievements) => {
-        if (isStale) return;
-        // An empty legacy fallback cannot distinguish unavailable definitions
-        // from an authoritative empty catalogue. Preserve known grouped totals.
-        if ((hasStoreUnion || needsCatalogueTotal) && achievements.length === 0)
-          return;
-        setUnlockedAchievementsCount(
-          achievements.filter((a) => a.unlocked).length
-        );
-        // Both counts must describe the returned list, including a one-store fallback.
-        setTotalAchievementsCount(achievements.length);
-      })
-      .catch(() => void 0);
+    const timer = setTimeout(() => {
+      window.electron
+        .getUnlockedAchievements(game.objectId, game.shop)
+        .then((achievements) => {
+          if (isStale) return;
+          // An empty legacy fallback cannot distinguish unavailable definitions
+          // from an authoritative empty catalogue. Preserve known grouped totals.
+          if (
+            (hasStoreUnion || needsCatalogueTotal) &&
+            achievements.length === 0
+          )
+            return;
+          setUnlockedAchievementsCount(
+            achievements.filter((a) => a.unlocked).length
+          );
+          // Both counts must describe the returned list, including a one-store fallback.
+          setTotalAchievementsCount(achievements.length);
+        })
+        .catch(() => void 0);
+    }, ACHIEVEMENT_PROGRESS_SETTLE_MS);
 
     return () => {
       isStale = true;
+      clearTimeout(timer);
     };
   }, [
     game.achievementCount,

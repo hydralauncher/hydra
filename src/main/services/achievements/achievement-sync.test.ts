@@ -79,6 +79,7 @@ async function fixture(
     "merge-unlocked-achievements",
     "pending-achievement-souvenir-store",
     "game-request-queue",
+    "unlocked-achievements-cache",
   ]);
   if (options.metadata || options.view) actual.add("get-game-achievement-data");
   if (options.reset) actual.add("reset-game-achievements");

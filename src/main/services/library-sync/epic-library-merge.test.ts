@@ -70,6 +70,7 @@ function fixture() {
     ownerReads: 0,
     readGate: Promise.resolve(),
     fetchFail: false,
+    cacheClears: 0,
     ownerStatus: 404,
     activeOwnerReads: 0,
     maxActiveOwnerReads: 0,
@@ -184,6 +185,13 @@ function fixture() {
     },
     "../achievements/achievement-batch-games": {
       trackAchievementBatchGame: () => {},
+    },
+    "../achievements/unlocked-achievements-cache": {
+      UnlockedAchievementsCache: {
+        clear: () => {
+          state.cacheClears++;
+        },
+      },
     },
     "./fetch-remote-profile-games": {
       fetchRemoteProfileGames: async () => {
@@ -519,6 +527,47 @@ test("a connection change invalidates old snapshots inside the write queue", asy
   assert.equal(await result, true);
   assert.equal(f.state.reads, 2);
   assert.equal(f.local.get(key)?.epicPlayTimeInMilliseconds, 0);
+});
+test("a merge drops cached achievement views only when stored totals change", async () => {
+  const f = fixture();
+  assert.equal(await f.merge(), true);
+  assert.equal(f.state.cacheClears, 0);
+  f.state.remote = [
+    { ...remote },
+    { ...remote, id: "Remote2", objectId: "Namespace:Other" },
+  ];
+  assert.equal(await f.merge(), true);
+  assert.equal(f.state.cacheClears, 1);
+});
+test("concurrent plain merges share a run and one follow-up that sees newer data", async () => {
+  const f = fixture();
+  let release!: () => void;
+  f.state.readGate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const first = f.merge();
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  f.state.remote = [
+    {
+      ...remote,
+      runtimeByPlatform: { hydra: 0, steam: 0, epic: 200 },
+      playTimeInMilliseconds: 200000,
+    },
+  ];
+  const queued = [f.merge(), f.merge(undefined, context), f.merge()];
+  const tracked = f.merge(() => {});
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(f.state.reads, 2, "only the progress-tracked merge starts");
+  release();
+  assert.deepEqual(await Promise.all([first, ...queued, tracked]), [
+    true,
+    true,
+    true,
+    true,
+    true,
+  ]);
+  assert.equal(f.state.reads, 3);
+  assert.equal(f.local.get(key)?.epicPlayTimeInMilliseconds, 200000);
 });
 test("a snapshot fetched before Hydra reset cannot restore Hydra hours", async () => {
   const f = fixture();
