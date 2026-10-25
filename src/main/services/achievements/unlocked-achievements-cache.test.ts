@@ -306,6 +306,8 @@ describe("UnlockedAchievementsCache", () => {
 
     releaseStalled();
     await stalled;
+    assert.deepEqual(await load(), [row("A")]);
+    assert.equal(reads, 2);
   });
 
   it("frees the slot of a load that outlives its lease", async () => {

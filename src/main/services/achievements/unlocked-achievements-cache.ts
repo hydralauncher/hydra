@@ -176,6 +176,7 @@ const load = (
 
   const run: PendingLoad = { readingSince: null, promise: Promise.resolve([]) };
   pending.set(key, run);
+  let expired = false;
   run.promise = (async () => {
     try {
       return await withLoadSlot(
@@ -184,10 +185,12 @@ const load = (
           const since = clock;
           run.readingSince = since;
           const achievements = await read();
-          store(shop, objectId, achievements, valid, since);
+          // A retry may already have stored newer results for this game.
+          if (!expired) store(shop, objectId, achievements, valid, since);
           return achievements;
         },
         () => {
+          expired = true;
           if (pending.get(key) === run) pending.delete(key);
         }
       );
