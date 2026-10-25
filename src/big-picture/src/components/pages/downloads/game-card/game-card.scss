@@ -6,6 +6,8 @@
 }
 
 .downloads-game-card__main {
+  min-width: 0;
+  flex: 1;
   width: 100%;
   display: flex;
   align-items: center;
@@ -298,11 +300,6 @@
   .downloads-game-card__progress {
     width: 100%;
   }
-}
-
-.downloads-game-card__main {
-  min-width: 0;
-  flex: 1;
 }
 
 .downloads-game-card--active {

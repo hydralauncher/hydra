@@ -438,21 +438,26 @@ export function useBigPictureDownloadsPageData() {
             download.extractionProgress ??
             0)
           : (packet?.progress ?? download.progress);
+        let statusLabel = "In progress";
+        if (isExtracting) statusLabel = "Extracting";
+        else if (packet?.isReconnecting) statusLabel = "Reconnecting…";
+        else if (packet?.isCheckingFiles) statusLabel = "Checking files";
+        else if (packet?.isDownloadingMetadata)
+          statusLabel = "Downloading metadata";
+
+        const speed =
+          packet?.isCheckingFiles ||
+          packet?.isDownloadingMetadata ||
+          packet?.isReconnecting
+            ? 0
+            : (packet?.downloadSpeed ?? 0);
         return {
           id: game.id,
           title: game.title,
           href: getBigPictureGameDetailsPath(game),
           coverImageUrl: getDownloadCoverImageUrl(game),
           metaLabel: getDownloadMetaLabel(game),
-          statusLabel: isExtracting
-            ? "Extracting"
-            : packet?.isReconnecting
-              ? "Reconnecting…"
-              : packet?.isCheckingFiles
-                ? "Checking files"
-                : packet?.isDownloadingMetadata
-                  ? "Downloading metadata"
-                  : "In progress",
+          statusLabel,
           statusTone: "active",
           progress,
           progressLabel: formatProgress(progress),
@@ -463,14 +468,7 @@ export function useBigPictureDownloadsPageData() {
             ) ?? getDownloadSize(download),
           speedLabel: isExtracting
             ? "Preparing files"
-            : formatSpeed(
-                packet?.isCheckingFiles ||
-                  packet?.isDownloadingMetadata ||
-                  packet?.isReconnecting
-                  ? 0
-                  : (packet?.downloadSpeed ?? 0),
-                userPreferences
-              ),
+            : formatSpeed(speed, userPreferences),
           etaLabel: isExtracting
             ? null
             : getEtaLabel(packet?.timeRemaining, formatDistance),

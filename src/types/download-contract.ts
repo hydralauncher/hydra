@@ -214,7 +214,15 @@ export const getBigPictureDownloadView = (
     };
   }
 
-  const heroId = queueIds[0] ?? pausedIds[0] ?? null;
+  const preferredVisibleDownload = layoutState.preferredHeroId
+    ? visibleDownloads.find(
+        (download) => getDownloadId(download) === layoutState.preferredHeroId
+      )
+    : null;
+  const preferredHeroId = preferredVisibleDownload
+    ? getDownloadId(preferredVisibleDownload)
+    : null;
+  const heroId = preferredHeroId ?? queueIds[0] ?? pausedIds[0] ?? null;
 
   return {
     heroId,

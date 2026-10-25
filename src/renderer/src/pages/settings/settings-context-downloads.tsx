@@ -5,6 +5,11 @@ import { CheckboxField, SelectField, TextField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import type { NetworkInterface, UserPreferences } from "@types";
+import {
+  DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+  MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+  MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+} from "@shared";
 import { SettingsGlobalTrackers } from "./settings-global-trackers";
 
 import "./settings-general.scss";
@@ -25,7 +30,8 @@ const buildForm = (preferences: UserPreferences | null) => ({
     preferences?.showDownloadSpeedInMegabytes ?? false,
   extractFilesByDefault: preferences?.extractFilesByDefault ?? true,
   createStartMenuShortcut: preferences?.createStartMenuShortcut ?? true,
-  maxConcurrentDownloads: preferences?.maxConcurrentDownloads ?? 2,
+  maxConcurrentDownloads:
+    preferences?.maxConcurrentDownloads ?? DEFAULT_MAX_CONCURRENT_DOWNLOADS,
   maxDownloadSpeedMegabytes:
     typeof preferences?.maxDownloadSpeedBytesPerSecond === "number" &&
     preferences.maxDownloadSpeedBytesPerSecond > 0
@@ -186,8 +192,8 @@ export function SettingsContextDownloads() {
           <input
             id="download-concurrency"
             type="range"
-            min="1"
-            max="8"
+            min={MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS}
+            max={MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS}
             value={form.maxConcurrentDownloads}
             onChange={(event) =>
               handleChange({
@@ -197,7 +203,7 @@ export function SettingsContextDownloads() {
             className="settings-general__download-concurrency-slider"
             style={
               {
-                "--download-concurrency-percent": `${((form.maxConcurrentDownloads - 1) / 7) * 100}%`,
+                "--download-concurrency-percent": `${((form.maxConcurrentDownloads - MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS) / (MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS - MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS)) * 100}%`,
               } as React.CSSProperties
             }
           />

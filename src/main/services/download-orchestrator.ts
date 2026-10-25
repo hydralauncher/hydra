@@ -4,7 +4,11 @@ import { DownloadManager } from "./download/download-manager";
 import { isDebridPendingError } from "./download/debrid-files";
 import { WindowManager } from "./window-manager";
 import { logger } from "./logger";
-import { Downloader } from "@shared";
+import {
+  DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+  MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+  Downloader,
+} from "@shared";
 import {
   DEFAULT_DOWNLOAD_LAYOUT_STATE,
   getBigPictureDownloadView,
@@ -30,9 +34,6 @@ import {
 
 export type ResumeDownloadStrategy = "interruptActive" | "queueIfActive";
 type ResumeIntent = ResumeDownloadStrategy | "queue";
-
-const DEFAULT_MAX_CONCURRENT_DOWNLOADS = 2;
-const MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS = 8;
 
 function getGameKey(download: Pick<Download, "shop" | "objectId">) {
   return levelKeys.game(download.shop, download.objectId);
@@ -221,17 +222,23 @@ export class DownloadOrchestrator {
     logger.log(
       "[DownloadOrchestrator] No connection after the grace window; pausing active downloads"
     );
-    for (const downloadId of activeDownloadIds) {
-      const download = await downloadsSublevel
-        .get(downloadId)
-        .catch(() => null);
-      if (!download) continue;
-
-      await this.pauseDownload(download, {
-        reason: "paused",
-        startNextQueued: false,
-      });
-    }
+    const downloads = await Promise.all(
+      activeDownloadIds.map((downloadId) =>
+        downloadsSublevel.get(downloadId).catch(() => null)
+      )
+    );
+    await downloads.reduce(
+      (previous, download) =>
+        previous.then(() =>
+          download
+            ? this.pauseDownload(download, {
+                reason: "paused",
+                startNextQueued: false,
+              }).then(() => undefined)
+            : undefined
+        ),
+      Promise.resolve()
+    );
   }
 
   private static async getAllDownloads() {
@@ -592,12 +599,16 @@ export class DownloadOrchestrator {
         })
         .slice(0, Math.max(0, activeDownloads.length - limit));
 
-      for (const download of downloadsToQueue) {
-        await this.pauseDownload(download, {
-          queueActiveReplacement: true,
-          startNextQueued: false,
-        });
-      }
+      await downloadsToQueue.reduce(
+        (previous, download) =>
+          previous.then(() =>
+            this.pauseDownload(download, {
+              queueActiveReplacement: true,
+              startNextQueued: false,
+            }).then(() => undefined)
+          ),
+        Promise.resolve()
+      );
 
       await this.activateNextQueuedDownload(await this.getAllDownloads());
     });

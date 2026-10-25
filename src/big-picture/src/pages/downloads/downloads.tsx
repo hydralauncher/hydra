@@ -1649,16 +1649,14 @@ export default function Downloads() {
     renderedPausedDownloads,
     renderedQueuedDownloads,
   ]);
-  const firstVisibleListFocusId =
-    otherActiveDownloads[0]?.id != null
-      ? getDownloadMainFocusId(otherActiveDownloads[0].id)
-      : renderedQueuedDownloads[0]?.id != null
-        ? getDownloadMainFocusId(renderedQueuedDownloads[0].id)
-        : renderedPausedDownloads[0]?.id != null
-          ? getDownloadMainFocusId(renderedPausedDownloads[0].id)
-          : completedDownloads[0]?.id != null
-            ? getDownloadMainFocusId(completedDownloads[0].id)
-            : undefined;
+  const firstVisibleDownloadId =
+    otherActiveDownloads[0]?.id ??
+    renderedQueuedDownloads[0]?.id ??
+    renderedPausedDownloads[0]?.id ??
+    completedDownloads[0]?.id;
+  const firstVisibleListFocusId = firstVisibleDownloadId
+    ? getDownloadMainFocusId(firstVisibleDownloadId)
+    : undefined;
   const moveModePreviewPlacement = useMemo(
     () =>
       moveMode ? getPreviewPlacement(moveMode, moveMode.sourceGameId) : null,

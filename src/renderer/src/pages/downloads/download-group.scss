@@ -170,7 +170,9 @@
       text-shadow: 2px 2px 12px rgba(0, 0, 0, 0.9);
       margin: 0;
       cursor: pointer;
-      transition: opacity 0.2s ease;
+      transition:
+        font-size 0.25s ease-in-out,
+        opacity 0.2s ease;
 
       &:hover {
         opacity: 0.8;
@@ -310,10 +312,6 @@
 
   &--collapsed &__hero-logo h1 {
     font-size: 24px;
-  }
-
-  &__hero-logo h1 {
-    transition: font-size 0.25s ease-in-out;
   }
 
   &__details-toggle {
@@ -570,26 +568,33 @@
   }
 
   &__progress-bar {
+    appearance: none;
     width: 100%;
     height: 8px;
+    display: block;
     background-color: rgba(255, 255, 255, 0.08);
     border-radius: 4px;
     overflow: hidden;
     margin-top: calc(globals.$spacing-unit / 2);
 
+    &::-webkit-progress-bar {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &::-webkit-progress-value {
+      background-color: #fff;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    &::-moz-progress-bar {
+      background-color: #fff;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
     &--small {
       height: 6px;
-    }
-  }
-
-  &__progress-fill {
-    height: 100%;
-    background-color: #fff;
-    transition: width 0.3s ease;
-    border-radius: 4px;
-
-    &--extraction {
-      background-color: #fff;
     }
   }
 }
@@ -621,7 +626,7 @@
     &__hero-logo h1,
     &__hero-action-row,
     &__details-chevron,
-    &__progress-fill {
+    &__progress-bar::-webkit-progress-value {
       transition: none;
     }
   }

@@ -355,6 +355,14 @@ function HeroDownloadTime({
   );
 }
 
+function getHeroDetailsLabel(
+  isExpanded: boolean,
+  translate: (key: string) => string
+) {
+  if (isExpanded) return translate("show_less");
+  return translate("show_details");
+}
+
 function HeroDownloadView({
   game,
   isGameDownloading,
@@ -380,7 +388,7 @@ function HeroDownloadView({
   const navigate = useNavigate();
   const detailsId = useId();
   const reduceMotion = useReducedMotion();
-  const detailsLabel = isExpanded ? t("show_less") : t("show_details");
+  const detailsLabel = getHeroDetailsLabel(isExpanded, t);
 
   const handleLogoClick = useCallback(() => {
     navigate(buildGameDetailsPath(game));
@@ -482,21 +490,13 @@ function HeroDownloadView({
                   <AnimatedPercentage value={currentProgress} />
                 </span>
               </div>
-              <div
+              <progress
                 className="download-group__progress-bar"
-                role="progressbar"
                 aria-label={t("download_progress", { title: game.title })}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(currentProgress * 100)}
-              >
-                <div
-                  className={`download-group__progress-fill ${isGameExtracting ? "download-group__progress-fill--extraction" : ""}`}
-                  style={{
-                    width: `${currentProgress * 100}%`,
-                  }}
-                />
-              </div>
+                max={1}
+                value={currentProgress}
+                data-extracting={isGameExtracting}
+              />
             </div>
             {!isGameExtracting && (
               <div className="download-group__hero-buttons">
@@ -1248,13 +1248,16 @@ export function DownloadGroup({
             storedPeak !== undefined && storedPeak > 0
               ? storedPeak
               : downloadSpeed;
-          const currentProgress = isGameExtracting
-            ? extraction?.visibleId === game.id
-              ? extraction.progress
-              : (game.download?.extractionProgress ?? 0)
-            : isGameDownloading && packet
-              ? packet.progress
-              : (game.download?.progress ?? 0);
+          let currentProgress = game.download?.progress ?? 0;
+          if (isGameExtracting) {
+            if (extraction?.visibleId === game.id) {
+              currentProgress = extraction.progress;
+            } else {
+              currentProgress = game.download?.extractionProgress ?? 0;
+            }
+          } else if (isGameDownloading && packet) {
+            currentProgress = packet.progress;
+          }
 
           return (
             <HeroDownloadView

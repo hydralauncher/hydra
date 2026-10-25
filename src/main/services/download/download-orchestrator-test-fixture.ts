@@ -94,7 +94,7 @@ export function fixture() {
     httpPaused: 0,
     writes: [] as Download[],
     preferences: null as UserPreferences | null,
-    beforeRead: async (_id: string) => undefined,
+    beforeRead: (_id: string): void | Promise<void> => undefined,
   };
   const sublevel = {
     get: async (id: string) => {
@@ -102,13 +102,12 @@ export function fixture() {
       const value = downloads.get(id);
       return value ? structuredClone(value) : undefined;
     },
-    put: async (id: string, value: Download) => {
+    put: (id: string, value: Download) => {
       downloads.set(id, structuredClone(value));
       state.writes.push(structuredClone(value));
     },
     values: () => ({
-      all: async () =>
-        [...downloads.values()].map((value) => structuredClone(value)),
+      all: () => [...downloads.values()].map((value) => structuredClone(value)),
     }),
   };
   const windowManager = {
@@ -165,14 +164,14 @@ export function fixture() {
     "node:timers/promises": { setTimeout: sleep },
     "@main/level": {
       downloadsSublevel: sublevel,
-      gamesSublevel: { get: async (id: string) => games.get(id) },
-      db: { get: async () => state.preferences },
+      gamesSublevel: { get: (id: string) => games.get(id) },
+      db: { get: () => state.preferences },
       levelKeys: {
         game: (shop: string, objectId: string) => `${shop}:${objectId}`,
       },
       downloadLayoutStateSublevel: {
-        get: async () => state.layout,
-        put: async (_id: string, value: typeof state.layout) => {
+        get: () => state.layout,
+        put: (_id: string, value: typeof state.layout) => {
           state.layout = structuredClone(value);
         },
       },
@@ -195,20 +194,20 @@ export function fixture() {
     },
     "../torrent-service": {
       TorrentService: {
-        call: async (method: string, params?: Record<string, unknown>) => {
+        call: (method: string, params?: Record<string, unknown>) => {
           state.torrentCalls.push(method);
           if (method === "action" && params) state.torrentActions.push(params);
-          if (method === "status" && params?.game_id)
-            return {
-              data: state.torrentStatuses.get(String(params.game_id)) ?? null,
-            };
-          return { data: null };
+          if (method === "status" && typeof params?.game_id === "string")
+            return Promise.resolve({
+              data: state.torrentStatuses.get(params.game_id) ?? null,
+            });
+          return Promise.resolve({ data: null });
         },
       },
     },
     "./disk-space": {
       DISK_SPACE_CHECK_INTERVAL_MS: 10000,
-      getDownloadDiskSpace: async () => ({
+      getDownloadDiskSpace: () => ({
         hasEnoughSpace: true,
         freeBytes: 10000,
         requiredBytes: 2000,
@@ -241,7 +240,7 @@ export function fixture() {
       searchAndBindExecutable() {
         return undefined;
       }
-      async autoLinkClassicsDiscs() {
+      autoLinkClassicsDiscs() {
         return undefined;
       }
     },
@@ -258,7 +257,7 @@ export function fixture() {
       pauseDownload() {
         state.httpPaused++;
       }
-      async waitForIdle() {
+      waitForIdle() {
         return undefined;
       }
       getDownloadStatus() {
@@ -269,8 +268,22 @@ export function fixture() {
       }
     },
   };
+  const allowedSourceFiles = new Set([
+    "../download-layout-state.ts",
+    "./download-manager.ts",
+    "../download-orchestrator.ts",
+  ]);
+  const sandboxProcess = Object.freeze({
+    platform: process.platform,
+    env: Object.freeze({ ...process.env }),
+  });
+
   function load<T>(file: string): T {
-    const exports = {};
+    assert.ok(allowedSourceFiles.has(file), `Unexpected source file: ${file}`);
+    const exports = Object.create(null) as Record<string, unknown>;
+    const runOptions = {
+      codeGeneration: { strings: false, wasm: false },
+    } as unknown as NonNullable<Parameters<typeof vm.runInNewContext>[2]>;
     vm.runInNewContext(
       ts.transpileModule(
         fs.readFileSync(new URL(file, import.meta.url), "utf8"),
@@ -290,13 +303,14 @@ export function fixture() {
           modules[name] ?? assert.fail(`Unexpected dependency ${name}`),
         Date,
         Math,
-        process,
+        process: sandboxProcess,
         URL,
         structuredClone,
         setTimeout,
         clearTimeout,
         performance,
-      }
+      },
+      runOptions
     );
     return exports as T;
   }

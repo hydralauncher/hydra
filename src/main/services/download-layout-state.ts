@@ -77,18 +77,20 @@ export function normalizeDownloadLayoutState(
     );
   });
 
-  const activeIds = new Set(
-    downloads
-      .filter((download) => isActiveLikeDownload(download))
-      .map((download) => getDownloadId(download))
-  );
+  const preferredHeroDownload = layoutState.preferredHeroId
+    ? downloads.find(
+        (download) => getDownloadId(download) === layoutState.preferredHeroId
+      )
+    : null;
 
   return {
     version: 1,
     queueOrder: mergeIdsWithFallback(queueDownloads, layoutState.queueOrder),
     pausedOrder: mergeIdsWithFallback(pausedDownloads, layoutState.pausedOrder),
     preferredHeroId:
-      layoutState.preferredHeroId && activeIds.has(layoutState.preferredHeroId)
+      preferredHeroDownload &&
+      !isCompletedLikeDownload(preferredHeroDownload) &&
+      preferredHeroDownload.status !== "removed"
         ? layoutState.preferredHeroId
         : null,
   };

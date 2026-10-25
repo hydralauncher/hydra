@@ -17,6 +17,11 @@ import {
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
 import type { UserPreferences } from "@types";
+import {
+  DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+  MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+  MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+} from "@shared";
 
 interface DownloadsBehaviorSectionProps {
   className?: string;
@@ -42,7 +47,7 @@ interface DownloadsBehaviorItem {
 }
 
 const DEFAULT_FORM: DownloadsBehaviorForm = {
-  maxConcurrentDownloads: 2,
+  maxConcurrentDownloads: DEFAULT_MAX_CONCURRENT_DOWNLOADS,
   maxDownloadSpeedMegabytes: "",
   seedAfterDownloadComplete: false,
   showDownloadSpeedInMegabytes: false,
@@ -58,10 +63,12 @@ const buildForm = (
     ? {
         maxConcurrentDownloads:
           Number.isInteger(preferences.maxConcurrentDownloads) &&
-          preferences.maxConcurrentDownloads! >= 1 &&
-          preferences.maxConcurrentDownloads! <= 8
+          preferences.maxConcurrentDownloads! >=
+            MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS &&
+          preferences.maxConcurrentDownloads! <=
+            MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS
             ? preferences.maxConcurrentDownloads!
-            : 2,
+            : DEFAULT_MAX_CONCURRENT_DOWNLOADS,
         maxDownloadSpeedMegabytes:
           typeof preferences.maxDownloadSpeedBytesPerSecond === "number" &&
           preferences.maxDownloadSpeedBytesPerSecond > 0
@@ -81,10 +88,18 @@ const buildForm = (
       }
     : DEFAULT_FORM;
 
-const CONCURRENT_DOWNLOAD_OPTIONS = Array.from({ length: 8 }, (_, index) => ({
-  value: `${index + 1}`,
-  label: `${index + 1}`,
-}));
+const CONCURRENT_DOWNLOAD_OPTIONS = Array.from(
+  {
+    length:
+      MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS -
+      MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS +
+      1,
+  },
+  (_, index) => {
+    const value = MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS + index;
+    return { value: `${value}`, label: `${value}` };
+  }
+);
 
 const formatDownloadSpeedLimit = (value: number, useMegabytes: boolean) => {
   const unitValue = useMegabytes ? value / (1024 * 1024) : (value * 8) / 1e6;
