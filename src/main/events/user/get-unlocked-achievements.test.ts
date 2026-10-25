@@ -80,6 +80,9 @@ for (const ownerChanged of [false, true]) {
               },
             },
           },
+          "@main/services/achievements/unlocked-achievements-cache": {
+            UnlockedAchievementsCache: {},
+          },
           "@main/services/achievements/achievement-souvenir-store": {
             AchievementSouvenirStore: {
               set: () => undefined,

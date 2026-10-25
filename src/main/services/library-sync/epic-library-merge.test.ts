@@ -70,6 +70,7 @@ function fixture() {
     ownerReads: 0,
     readGate: Promise.resolve(),
     fetchFail: false,
+    cacheClears: 0,
     ownerStatus: 404,
     activeOwnerReads: 0,
     maxActiveOwnerReads: 0,
@@ -184,6 +185,13 @@ function fixture() {
     },
     "../achievements/achievement-batch-games": {
       trackAchievementBatchGame: () => {},
+    },
+    "../achievements/unlocked-achievements-cache": {
+      UnlockedAchievementsCache: {
+        clear: () => {
+          state.cacheClears++;
+        },
+      },
     },
     "./fetch-remote-profile-games": {
       fetchRemoteProfileGames: async () => {
@@ -519,6 +527,17 @@ test("a connection change invalidates old snapshots inside the write queue", asy
   assert.equal(await result, true);
   assert.equal(f.state.reads, 2);
   assert.equal(f.local.get(key)?.epicPlayTimeInMilliseconds, 0);
+});
+test("a merge drops cached achievement views only when stored totals change", async () => {
+  const f = fixture();
+  assert.equal(await f.merge(), true);
+  assert.equal(f.state.cacheClears, 0);
+  f.state.remote = [
+    { ...remote },
+    { ...remote, id: "Remote2", objectId: "Namespace:Other" },
+  ];
+  assert.equal(await f.merge(), true);
+  assert.equal(f.state.cacheClears, 1);
 });
 test("a snapshot fetched before Hydra reset cannot restore Hydra hours", async () => {
   const f = fixture();

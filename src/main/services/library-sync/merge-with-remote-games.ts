@@ -45,6 +45,7 @@ import {
   preserveEpicDefaultArtwork,
 } from "@shared";
 import { mergePersistedAchievementTotals } from "../achievements/achievement-memory-store";
+import { UnlockedAchievementsCache } from "../achievements/unlocked-achievements-cache";
 import { trackAchievementBatchGame } from "../achievements/achievement-batch-games";
 import { fetchRemoteProfileGames as fetchProfileGames } from "./fetch-remote-profile-games";
 
@@ -382,6 +383,7 @@ const mergeRemoteGamesChunk = async (
   hydraRevision: number,
   current: () => boolean
 ) => {
+  let achievementTotalsChanged = false;
   const { gameKeys, localGames, artworkSelections } =
     await libraryWriteQueue.run(async () => {
       const gameKeys = remoteGames.map((game) =>
@@ -410,6 +412,12 @@ const mergeRemoteGamesChunk = async (
           localGame,
           canReconcileCustomArtwork
         );
+        if (
+          merged.achievementCount !== localGame?.achievementCount ||
+          merged.unlockedAchievementCount !==
+            localGame?.unlockedAchievementCount
+        )
+          achievementTotalsChanged = true;
         if (localGame && getHydraPlaytimeRevision(gameKey) > hydraRevision) {
           merged.playTimeInMilliseconds = localGame.playTimeInMilliseconds;
           merged.hasManuallyUpdatedPlaytime =
@@ -461,6 +469,7 @@ const mergeRemoteGamesChunk = async (
       await batch.write();
       return { gameKeys, localGames, artworkSelections };
     }, current);
+  if (achievementTotalsChanged) UnlockedAchievementsCache.clear();
 
   for (const [index, selection] of artworkSelections.entries()) {
     if (!selection) continue;
