@@ -17,7 +17,7 @@ ludusavi/**
 native/hydra-native/target/
 native/epic-prerequisite-runner/target/
 binaries/epic-prerequisite-runner/
-
+.hydra-dev-data
 # Sentry Config File
 .env.sentry-build-plugin
 

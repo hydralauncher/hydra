@@ -486,6 +486,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke(
       "getDownloadLayoutState"
     ) as Promise<DownloadLayoutState>,
+  setPreferredDownloadHero: (downloadId: string | null) =>
+    ipcRenderer.invoke("setPreferredDownloadHero", downloadId),
   onDownloadProgress: (cb: (value: DownloadProgress | null) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,

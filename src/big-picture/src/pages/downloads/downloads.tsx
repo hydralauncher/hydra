@@ -22,6 +22,7 @@ import {
   DownloadsProgressStats,
   Typography,
   VerticalFocusGroup,
+  GridFocusGroup,
 } from "../../components";
 import {
   DOWNLOADS_PAGE_REGION_ID,
@@ -277,7 +278,7 @@ function buildPreviewLayoutState(
     return {
       sourceGameId,
       heroId: sourceGameId,
-      queueIds: base.heroId ? [base.heroId, ...baseQueueIds] : baseQueueIds,
+      queueIds: baseQueueIds,
       pausedIds: basePausedIds,
     };
   }
@@ -929,6 +930,7 @@ export default function Downloads() {
   const { currentFocusId, nodes } = useNavigationSnapshot();
   const {
     activeDownload,
+    otherActiveDownloads,
     networkStats,
     queuedDownloads,
     pausedDownloads,
@@ -937,12 +939,12 @@ export default function Downloads() {
     pauseDownload: pauseDownloadNow,
     getPauseWarning,
     resumeDownload,
+    setPreferredHero,
     startNow,
     sendToQueue,
     moveToPaused: moveToPausedNow,
     cancelDownload,
     removeDownload,
-    moveQueuedDownload,
     setQueuedDownloadPosition,
     setPausedDownloadPosition,
     pauseSeeding,
@@ -1330,6 +1332,12 @@ export default function Downloads() {
       sourcePlacement: DragPlacement,
       targetPlacement: PreviewPlacement
     ) => {
+      if (
+        (sourcePlacement === "hero" || targetPlacement.kind === "hero") &&
+        (otherActiveDownloads.length > 0 ||
+          activeDownload?.pauseOrResumeAction === "pause")
+      )
+        return null;
       const layout = buildPreviewLayoutState(
         getBasePreviewLayoutState(sourceGameId),
         sourcePlacement,
@@ -1355,7 +1363,12 @@ export default function Downloads() {
         finalPlacement,
       };
     },
-    [canPromoteToHero, getBasePreviewLayoutState]
+    [
+      canPromoteToHero,
+      getBasePreviewLayoutState,
+      otherActiveDownloads.length,
+      activeDownload?.pauseOrResumeAction,
+    ]
   );
 
   const updateMouseDragPreview = useCallback(
@@ -1593,6 +1606,9 @@ export default function Downloads() {
   );
   const mainNavigationOverridesByFocusId = useMemo(() => {
     const heroFocusIds = displayedHeroSnapshot ? [getHeroPrimaryFocusId()] : [];
+    const activeFocusIds = otherActiveDownloads.map((item) =>
+      getDownloadMainFocusId(item.id)
+    );
     const queueFocusIds = renderedQueuedDownloads.map((item) =>
       getDownloadMainFocusId(item.id)
     );
@@ -1603,26 +1619,46 @@ export default function Downloads() {
       getDownloadMainFocusId(item.id)
     );
 
-    return buildDownloadsMainNavigationOverrides([
+    const overrides = buildDownloadsMainNavigationOverrides([
       heroFocusIds,
+      ...Array.from(
+        { length: Math.ceil(activeFocusIds.length / 2) },
+        (_, index) => activeFocusIds.slice(index * 2, index * 2 + 2)
+      ),
       queueFocusIds,
       pausedFocusIds,
       completedFocusIds,
     ]);
+    activeFocusIds.forEach((focusId, index) => {
+      const previousId = activeFocusIds[index - 2] ?? heroFocusIds[0];
+      const nextId =
+        activeFocusIds[index + 2] ??
+        queueFocusIds[0] ??
+        pausedFocusIds[0] ??
+        completedFocusIds[0];
+      overrides[focusId] = {
+        up: previousId ? { type: "item", itemId: previousId } : undefined,
+        down: nextId ? { type: "item", itemId: nextId } : { type: "block" },
+      };
+    });
+    return overrides;
   }, [
     completedDownloads,
     displayedHeroSnapshot,
+    otherActiveDownloads,
     renderedPausedDownloads,
     renderedQueuedDownloads,
   ]);
   const firstVisibleListFocusId =
-    renderedQueuedDownloads[0]?.id != null
-      ? getDownloadMainFocusId(renderedQueuedDownloads[0].id)
-      : renderedPausedDownloads[0]?.id != null
-        ? getDownloadMainFocusId(renderedPausedDownloads[0].id)
-        : completedDownloads[0]?.id != null
-          ? getDownloadMainFocusId(completedDownloads[0].id)
-          : undefined;
+    otherActiveDownloads[0]?.id != null
+      ? getDownloadMainFocusId(otherActiveDownloads[0].id)
+      : renderedQueuedDownloads[0]?.id != null
+        ? getDownloadMainFocusId(renderedQueuedDownloads[0].id)
+        : renderedPausedDownloads[0]?.id != null
+          ? getDownloadMainFocusId(renderedPausedDownloads[0].id)
+          : completedDownloads[0]?.id != null
+            ? getDownloadMainFocusId(completedDownloads[0].id)
+            : undefined;
   const moveModePreviewPlacement = useMemo(
     () =>
       moveMode ? getPreviewPlacement(moveMode, moveMode.sourceGameId) : null,
@@ -1643,7 +1679,7 @@ export default function Downloads() {
     return previewPlacement.kind === "hero"
       ? getHeroPrimaryFocusId()
       : getDownloadMainFocusId(moveMode.sourceGameId);
-  }, [moveModePreviewPlacement, moveMode?.sourceGameId]);
+  }, [moveModePreviewPlacement, moveMode]);
   const isCrossSectionMoveModePreview = useMemo(() => {
     const previousKind = previousMoveModePlacementKindRef.current;
     const currentKind = moveModePreviewPlacement?.kind ?? null;
@@ -1676,6 +1712,10 @@ export default function Downloads() {
       ids.push(getDownloadMainFocusId(item.id));
     });
 
+    otherActiveDownloads.forEach((item) => {
+      ids.push(getDownloadMainFocusId(item.id));
+    });
+
     renderedPausedDownloads.forEach((item) => {
       ids.push(getDownloadMainFocusId(item.id));
     });
@@ -1688,6 +1728,7 @@ export default function Downloads() {
   }, [
     completedDownloads,
     displayedHeroSnapshot,
+    otherActiveDownloads,
     renderedPausedDownloads,
     renderedQueuedDownloads,
   ]);
@@ -2247,18 +2288,14 @@ export default function Downloads() {
         : []),
     ];
   }, [
-    canPromoteToHero,
     handleCompletedRemoval,
     handleRemovalCancel,
     interactionsLocked,
     menuState.item,
     menuState.section,
-    moveQueuedDownload,
     moveToPaused,
     pauseSeeding,
     resumeSeeding,
-    sendToQueue,
-    startNow,
     navigate,
     t,
   ]);
@@ -2648,7 +2685,68 @@ export default function Downloads() {
           </div>
         </>
 
-        <Section title="Queued" count={renderedQueuedDownloads.length}>
+        {otherActiveDownloads.length > 0 ? (
+          <Section title="Also downloading" count={otherActiveDownloads.length}>
+            <GridFocusGroup className="downloads-page__active-list">
+              {otherActiveDownloads.map((item) => (
+                <DownloadsGameCard
+                  key={item.id}
+                  gameId={item.id}
+                  variant="active"
+                  title={item.title}
+                  coverImageUrl={item.coverImageUrl}
+                  logoImageUrl={getDownloadLogoImageUrl(item.game)}
+                  metaLabel={item.metaLabel}
+                  secondaryLabel={`${item.speedLabel} · ${item.transferLabel}`}
+                  progress={item.progress}
+                  progressLabel={item.progressLabel}
+                  onOpen={() => {
+                    if (!interactionsLocked) void setPreferredHero(item.id);
+                  }}
+                  onPrimaryAction={() => {
+                    if (item.pauseOrResumeAction === "resume") {
+                      void resumeDownload(item.game);
+                    } else {
+                      void pauseDownload(item.game);
+                    }
+                  }}
+                  primaryActionLabel={
+                    item.pauseOrResumeAction === "resume" ? "Resume" : "Pause"
+                  }
+                  onCancel={() => void cancelDownload(item.game)}
+                  primaryActionDisabled={
+                    interactionsLocked || !item.canPauseOrResume
+                  }
+                  optionsDisabled={interactionsLocked}
+                  primaryActionFocusId={getDownloadPrimaryActionFocusId(
+                    item.id
+                  )}
+                  focusId={getDownloadMainFocusId(item.id)}
+                  navigationOverrides={
+                    mainNavigationOverridesByFocusId[
+                      getDownloadMainFocusId(item.id)
+                    ]
+                  }
+                  focusActions={{
+                    primary: moveMode ? "off" : "auto",
+                    press: {
+                      x: () => {
+                        if (!interactionsLocked) void setPreferredHero(item.id);
+                      },
+                    },
+                  }}
+                />
+              ))}
+            </GridFocusGroup>
+          </Section>
+        ) : null}
+
+        <Section
+          title="Waiting downloads"
+          count={
+            renderedQueuedDownloads.length + renderedPausedDownloads.length
+          }
+        >
           <VerticalFocusGroup
             className="downloads-page__list"
             navigationOrder={DOWNLOADS_REGION_NAVIGATION_ORDER.queue}
@@ -2657,7 +2755,8 @@ export default function Downloads() {
             data-drop-placement="queue"
             data-drop-index={renderedQueuedDownloads.length}
           >
-            {renderedQueuedDownloads.length === 0 ? (
+            {renderedQueuedDownloads.length === 0 &&
+            renderedPausedDownloads.length === 0 ? (
               <div
                 className={cx(
                   "downloads-page__drop-target-shell downloads-page__queue-empty-shell",
@@ -2680,7 +2779,7 @@ export default function Downloads() {
                 coverImageUrl={item.coverImageUrl}
                 logoImageUrl={getDownloadLogoImageUrl(item.game)}
                 metaLabel={item.metaLabel}
-                secondaryLabel={item.secondaryLabel}
+                secondaryLabel={`Queued · ${item.secondaryLabel}`}
                 progress={item.progress}
                 progressLabel={item.progressLabel}
                 onOpen={() => handleOpen(item.href)}
@@ -2720,9 +2819,7 @@ export default function Downloads() {
               />
             ))}
           </VerticalFocusGroup>
-        </Section>
 
-        <Section title="Paused" count={renderedPausedDownloads.length}>
           <VerticalFocusGroup
             className="downloads-page__list"
             navigationOrder={DOWNLOADS_REGION_NAVIGATION_ORDER.paused}
@@ -2731,7 +2828,8 @@ export default function Downloads() {
             data-drop-placement="paused"
             data-drop-index={renderedPausedDownloads.length}
           >
-            {renderedPausedDownloads.length === 0 ? (
+            {renderedPausedDownloads.length === 0 &&
+            Boolean(moveMode || dragSource) ? (
               <div
                 className={cx(
                   "downloads-page__drop-target-shell",
@@ -2756,11 +2854,11 @@ export default function Downloads() {
                 coverImageUrl={item.coverImageUrl}
                 logoImageUrl={getDownloadLogoImageUrl(item.game)}
                 metaLabel={item.metaLabel}
-                secondaryLabel={item.secondaryLabel}
+                secondaryLabel={`${item.statusLabel} · ${item.secondaryLabel}`}
                 progress={item.progress}
                 progressLabel={item.progressLabel}
                 onOpen={() => handleOpen(item.href)}
-                onPrimaryAction={() => sendToQueue(item.game)}
+                onPrimaryAction={() => void resumeDownload(item.game)}
                 primaryActionLabel="Resume"
                 primaryActionDisabled={interactionsLocked}
                 onOpenOptions={(event) => {

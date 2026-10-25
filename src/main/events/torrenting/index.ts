@@ -13,4 +13,5 @@ import "./set-download-queue-position";
 import "./set-download-bandwidth-priority";
 import "./update-download-queue-position";
 import "./get-download-layout-state";
+import "./set-preferred-download-hero";
 import "./save-global-trackers";

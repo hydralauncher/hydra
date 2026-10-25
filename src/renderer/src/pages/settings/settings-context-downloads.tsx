@@ -180,7 +180,6 @@ export function SettingsContextDownloads() {
               <label htmlFor="download-concurrency">
                 {t("max_concurrent_downloads")}
               </label>
-              <small>{t("max_concurrent_downloads_hint")}</small>
             </div>
             <span>{form.maxConcurrentDownloads}</span>
           </div>

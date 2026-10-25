@@ -76,7 +76,6 @@ import {
 } from "@phosphor-icons/react";
 
 import "./styles.scss";
-import { readActiveLibraryDownload } from "./download-queue";
 import { EpicInstallModal } from "../epic-install-modal";
 import { epicInstallTiming } from "@renderer/helpers/epic-install-timing";
 import { EpicDownloadOption } from "../../common/download-source-option/epic-download-option";
@@ -1479,7 +1478,6 @@ function DownloadGameOptions({
   const [selectedDownloader, setSelectedDownloader] = useState<string>();
   const [hasDownloaderTabsInteracted, setHasDownloaderTabsInteracted] =
     useState(false);
-  const [hasActiveDownload, setHasActiveDownload] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { features } = useFeature();
   const userPreferences = useUserPreferences();
@@ -1599,36 +1597,6 @@ function DownloadGameOptions({
 
   useEffect(() => {
     if (!visible || !IS_DESKTOP) {
-      setHasActiveDownload(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    const refreshActiveDownloadState = async () => {
-      const activeDownload = await readActiveLibraryDownload(
-        globalThis.window.electron.getLibrary
-      );
-
-      if (cancelled) return;
-
-      setHasActiveDownload(activeDownload);
-    };
-
-    void refreshActiveDownloadState();
-
-    const unsubscribe = globalThis.window.electron.onDownloadsUpdated(() => {
-      void refreshActiveDownloadState();
-    });
-
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [visible]);
-
-  useEffect(() => {
-    if (!visible || !IS_DESKTOP) {
       setSelectedDownloader(undefined);
       setHasDownloaderTabsInteracted(false);
       setIsSubmitting(false);
@@ -1692,16 +1660,12 @@ function DownloadGameOptions({
     } as const;
 
     setIsSubmitting(true);
-    let shouldQueue = hasActiveDownload;
-
     try {
-      shouldQueue = await readActiveLibraryDownload(
-        globalThis.window.electron.getLibrary
-      );
-
-      const response = shouldQueue
-        ? await globalThis.window.electron.addGameToQueue(payload)
-        : await globalThis.window.electron.startGameDownload(payload);
+      // The orchestrator owns the concurrency decision. It starts this
+      // download immediately when a configured slot is available and queues
+      // it only after the concurrent-download limit is reached.
+      const response =
+        await globalThis.window.electron.startGameDownload(payload);
 
       if (response.ok) {
         onClose();
@@ -1718,7 +1682,7 @@ function DownloadGameOptions({
       });
 
       console.error("download-game-modal failed to submit download", {
-        action: shouldQueue ? "queue" : "start",
+        action: "start",
         error: response.error,
         game,
         option,
@@ -1738,7 +1702,7 @@ function DownloadGameOptions({
       });
 
       console.error("download-game-modal failed to submit download", {
-        action: hasActiveDownload ? "queue" : "start",
+        action: "start",
         error,
         game,
         option,
@@ -1872,7 +1836,7 @@ function DownloadGameOptions({
             disabled={isSubmitDisabled}
             onClick={handleStartDownload}
           >
-            {hasActiveDownload ? "Add to Queue" : "Start Download"}
+            Start Download
           </Button>
         </div>
       </VerticalFocusGroup>

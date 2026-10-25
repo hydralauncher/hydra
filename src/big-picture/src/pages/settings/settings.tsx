@@ -290,8 +290,7 @@ export default function Settings() {
             }
           : {
               type: "item",
-              itemId:
-                DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.seedAfterDownloadComplete,
+              itemId: DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.maxConcurrentDownloads,
             };
       case "notifications":
         return {

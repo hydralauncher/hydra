@@ -77,10 +77,20 @@ export function normalizeDownloadLayoutState(
     );
   });
 
+  const activeIds = new Set(
+    downloads
+      .filter((download) => isActiveLikeDownload(download))
+      .map((download) => getDownloadId(download))
+  );
+
   return {
     version: 1,
     queueOrder: mergeIdsWithFallback(queueDownloads, layoutState.queueOrder),
     pausedOrder: mergeIdsWithFallback(pausedDownloads, layoutState.pausedOrder),
+    preferredHeroId:
+      layoutState.preferredHeroId && activeIds.has(layoutState.preferredHeroId)
+        ? layoutState.preferredHeroId
+        : null,
   };
 }
 
@@ -164,10 +174,22 @@ export async function removeDownloadFromLayoutState(
     version: 1,
     queueOrder: layoutState.queueOrder.filter((entryId) => entryId !== id),
     pausedOrder: layoutState.pausedOrder.filter((entryId) => entryId !== id),
+    preferredHeroId: layoutState.preferredHeroId,
   };
 
   await saveDownloadLayoutState(nextState);
 
+  return nextState;
+}
+
+export async function setPreferredDownloadHero(preferredHeroId: string | null) {
+  const layoutState = await getDownloadLayoutStateRecord();
+  const nextState: DownloadLayoutState = {
+    ...layoutState,
+    preferredHeroId,
+  };
+
+  await saveDownloadLayoutState(nextState);
   return nextState;
 }
 
@@ -176,6 +198,7 @@ export async function setDownloadLayoutQueues(
   queueOrder: string[],
   pausedOrder: string[]
 ) {
+  const layoutState = await getDownloadLayoutStateRecord();
   const visibleIds = new Set(
     downloads.map((download) => getDownloadId(download))
   );
@@ -183,6 +206,7 @@ export async function setDownloadLayoutQueues(
     downloads,
     {
       version: 1,
+      preferredHeroId: layoutState.preferredHeroId,
       queueOrder: queueOrder.filter((id) => visibleIds.has(id)),
       pausedOrder: pausedOrder.filter((id) => visibleIds.has(id)),
     }

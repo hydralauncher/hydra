@@ -1,4 +1,5 @@
 .downloads-game-card {
+  display: flex;
   width: 100%;
   align-items: center;
   gap: calc(var(--spacing-unit) * 4);
@@ -205,7 +206,7 @@
 .downloads-game-card__side {
   min-width: 0;
   flex-shrink: 0;
-  width: min(100%, 560px);
+  width: min(50%, 560px);
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -217,6 +218,11 @@
   display: flex;
   align-items: center;
   gap: calc(var(--spacing-unit) * 2);
+}
+
+.downloads-game-card--active .downloads-game-card__actions {
+  flex-direction: column;
+  gap: var(--spacing-unit);
 }
 
 .downloads-game-card__action-button--icon-only {
@@ -289,6 +295,38 @@
     justify-content: flex-end;
   }
 
+  .downloads-game-card__progress {
+    width: 100%;
+  }
+}
+
+.downloads-game-card__main {
+  min-width: 0;
+  flex: 1;
+}
+
+.downloads-game-card--active {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--spacing-unit) * 3);
+  padding: calc(var(--spacing-unit) * 2);
+  gap: calc(var(--spacing-unit) * 2);
+
+  .downloads-game-card__main {
+    gap: calc(var(--spacing-unit) * 2);
+  }
+
+  .downloads-game-card__cover {
+    width: clamp(96px, 10vw, 160px);
+  }
+
+  .downloads-game-card__body {
+    flex-direction: column;
+    align-items: stretch;
+    gap: calc(var(--spacing-unit) * 3);
+  }
+
+  .downloads-game-card__side,
   .downloads-game-card__progress {
     width: 100%;
   }

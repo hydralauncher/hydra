@@ -114,6 +114,8 @@ export const BEHAVIOR_ITEM_FOCUS_IDS = {
 } as const;
 
 export const DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS = {
+  maxConcurrentDownloads: "downloads-behavior-max-concurrent-downloads",
+  maxDownloadSpeed: "downloads-behavior-max-download-speed",
   seedAfterDownloadComplete: "downloads-behavior-seed-after-download-complete",
   showDownloadSpeedInMegabytes:
     "downloads-behavior-show-download-speed-in-megabytes",

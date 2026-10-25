@@ -7,3 +7,5 @@ hydra-python-rpc/
 hydra-native/
 /legendary/
 native/**/target/
+native/torrent-bridge/build/
+native/torrent-bridge/vcpkg_installed/

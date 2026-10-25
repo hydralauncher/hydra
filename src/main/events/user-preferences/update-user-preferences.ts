@@ -170,4 +170,17 @@ const updateUserPreferences = async (
   }
 };
 
-registerEvent("updateUserPreferences", updateUserPreferences);
+// Preference controls can submit concurrently from either application window.
+// Serialize read/merge/write so one update cannot erase another setting.
+let pendingPreferenceUpdate: Promise<unknown> = Promise.resolve();
+
+registerEvent(
+  "updateUserPreferences",
+  (event, preferences: Partial<UserPreferences>) => {
+    const update = pendingPreferenceUpdate.then(() =>
+      updateUserPreferences(event, preferences)
+    );
+    pendingPreferenceUpdate = update.catch(() => undefined);
+    return update;
+  }
+);

@@ -156,6 +156,7 @@ export interface DownloadLayoutState {
   version: 1;
   queueOrder: string[];
   pausedOrder: string[];
+  preferredHeroId?: string | null;
 }
 
 export type AchievementCustomNotificationPosition =

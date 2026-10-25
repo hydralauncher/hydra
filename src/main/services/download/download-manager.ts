@@ -7,7 +7,6 @@ import {
   readRangeState,
   savedRangeBytes,
 } from "./range-download-state";
-import { withDownloadActivation } from "./download-activation";
 import { updateGameRecord } from "@main/services/game-record-updater";
 import { getEpicDownloadService } from "../epic/download";
 import { epicManagedErrorCode } from "../epic/legendary-managed-runtime";
@@ -79,7 +78,6 @@ import {
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 import {
   getDownloadLayoutStateRecord,
-  getNextQueuedDownloadFromLayout,
   setDownloadLayoutQueues,
 } from "../download-layout-state";
 import { shouldFinalizeDownload } from "./download-completion";
@@ -1146,8 +1144,10 @@ export class DownloadManager {
 
     if (
       shouldFinalizeDownload({
-        usingJsDownloader: session ? true : this.usingJsDownloader,
-        usingEpicDownloader: session ? false : this.usingEpicDownloader,
+        usingJsDownloader: session
+          ? session.downloader !== null
+          : this.usingJsDownloader,
+        usingEpicDownloader: session ? session.epic : this.usingEpicDownloader,
         isCheckingFiles: status.isCheckingFiles,
         isDownloadingMetadata: status.isDownloadingMetadata,
         progress,
@@ -1413,6 +1413,9 @@ export class DownloadManager {
       });
       WindowManager.sendDownloadsUpdated();
 
+      // Keep the native handle seeding, but release its transfer slot and stop
+      // polling it as an active download.
+      this.clearSession(gameId, this.getSession(gameId));
       return true;
     } else {
       await downloadsSublevel.put(gameId, {
@@ -1545,24 +1548,11 @@ export class DownloadManager {
   }
 
   private static async processNextQueuedDownload() {
-    if (this.sessions.size > 0) {
-      const { DownloadOrchestrator } = await import("../download-orchestrator");
-      await DownloadOrchestrator.pumpDownloadQueue();
-      return;
-    }
-
-    const failure = await withDownloadActivation(() =>
-      this.activateNextQueueItem()
-    );
-    if (failure)
-      await this.handleRuntimeDownloadError(
-        failure.downloadId,
-        failure.error,
-        failure.generation
-      );
+    const { DownloadOrchestrator } = await import("../download-orchestrator");
+    await DownloadOrchestrator.pumpDownloadQueue();
   }
 
-  private static async shouldHoldQueuedDownload(nextItemOnQueue: Download) {
+  public static async shouldHoldQueuedDownload(nextItemOnQueue: Download) {
     const diskSpace = await getDownloadDiskSpace(nextItemOnQueue);
     if (!diskSpace || diskSpace.hasEnoughSpace) return false;
     if (await this.shouldBypassQueueHoldForVerify(nextItemOnQueue))
@@ -1576,70 +1566,6 @@ export class DownloadManager {
     }
     this.queueHeldForDiskSpace = true;
     return true;
-  }
-
-  private static async activateNextQueueItem(): Promise<
-    { downloadId: string; error: unknown; generation: number } | undefined
-  > {
-    if (
-      this.downloadingGameId &&
-      (this.usingJsDownloader ||
-        this.usingEpicDownloader ||
-        this.isPreparingDownload)
-    )
-      return;
-    const generation = this.startGeneration;
-    const previousDownloadId = this.downloadingGameId;
-    const isCurrent = () =>
-      this.startGeneration === generation &&
-      this.downloadingGameId === previousDownloadId;
-    const downloads = await downloadsSublevel.values().all();
-    if (downloads.some((download) => download.status === "active")) return;
-    const layoutState = await getDownloadLayoutStateRecord();
-    if (!isCurrent()) return;
-    const nextItemOnQueue = getNextQueuedDownloadFromLayout(
-      downloads,
-      layoutState
-    );
-
-    if (!nextItemOnQueue) {
-      if (!isCurrent()) return;
-      this.queueHeldForDiskSpace = false;
-      this.downloadingGameId = null;
-      this.usingJsDownloader = false;
-      this.usingEpicDownloader = false;
-      this.jsDownloader = null;
-      this.jsBatch = null;
-      return;
-    }
-    if (await this.shouldHoldQueuedDownload(nextItemOnQueue)) return;
-    if (!isCurrent()) return;
-    this.queueHeldForDiskSpace = false;
-
-    const nextDownloadId = levelKeys.game(
-      nextItemOnQueue.shop,
-      nextItemOnQueue.objectId
-    );
-    const activeDownload: Download = {
-      ...nextItemOnQueue,
-      status: "active",
-      queued: false,
-      pinnedToHero: false,
-      extracting: false,
-      extractionProgress: 0,
-    };
-    await downloadsSublevel.put(nextDownloadId, activeDownload);
-    WindowManager.sendDownloadsUpdated();
-    try {
-      await this.resumeDownload(activeDownload);
-    } catch (error) {
-      return {
-        downloadId: nextDownloadId,
-        error,
-        generation: this.startGeneration,
-      };
-    }
-    return undefined;
   }
 
   private static getErrorMessage(error: unknown) {

@@ -329,6 +329,7 @@ declare global {
       confirmed?: boolean
     ) => Promise<boolean>;
     getDownloadLayoutState: () => Promise<DownloadLayoutState>;
+    setPreferredDownloadHero: (downloadId: string | null) => Promise<unknown>;
     onDownloadProgress: (
       cb: (value: DownloadProgress | null) => void
     ) => () => Electron.IpcRenderer;
