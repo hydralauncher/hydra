@@ -32,6 +32,7 @@ const previewEmulatorExecutable = async (
 
   const result = await emulators.detectEmulatorWithDownloads(binary, {
     resolveVersion: true,
+    includeDriveRoots: true,
   });
   if (!result) return null;
 

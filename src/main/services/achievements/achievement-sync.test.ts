@@ -71,6 +71,7 @@ async function fixture(
   const outfile = path.join(root, `${key}.mjs`);
   const actual = new Set([
     "merge-achievements",
+    "achievement-unlock-notifications",
     "achievement-memory-store",
     "reconcile-achievement-memory",
     "achievement-sync-coordinator",
@@ -78,6 +79,7 @@ async function fixture(
     "merge-unlocked-achievements",
     "pending-achievement-souvenir-store",
     "game-request-queue",
+    "unlocked-achievements-cache",
   ]);
   if (options.metadata || options.view) actual.add("get-game-achievement-data");
   if (options.reset) actual.add("reset-game-achievements");
