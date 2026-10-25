@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { emulators, logger, retroarch } from "@main/services";
@@ -11,6 +12,10 @@ import type {
 import { resolveEmulatorWrappers } from "./launch-classics-game";
 import { resolveLaunchCommand } from "./resolve-launch-command";
 import { spawnDetachedEmulator } from "./spawn-detached-emulator";
+import {
+  findFlatpakCommand,
+  resolveFlatpakEmulatorLaunch,
+} from "./flatpak-emulator-launch";
 import { prepareEmulatorSouvenirs } from "@main/services/emulators/prepare-emulator-souvenirs";
 import { cleanupEmulatorSouvenirSession } from "@main/services/emulators/emulator-souvenir-config";
 
@@ -97,9 +102,17 @@ export const launchRetroArchGame = async (
     "-f",
   ];
 
+  const flatpakLaunch = resolveFlatpakEmulatorLaunch({
+    executableTarget,
+    args: baseArgs,
+    accessiblePaths: [romPath],
+    flatpakCommand: findFlatpakCommand(),
+    homePath: os.homedir(),
+  });
+
   const resolvedLaunchCommand = resolveLaunchCommand({
-    baseCommand: executableTarget,
-    baseArgs,
+    baseCommand: flatpakLaunch?.command ?? executableTarget,
+    baseArgs: flatpakLaunch?.args ?? baseArgs,
     launchOptions: null,
     wrapperCommands,
   });

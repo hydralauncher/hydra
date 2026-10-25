@@ -33,6 +33,7 @@ import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achie
 import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
 import { ControllerSupportSection } from "./controller-support-section";
+import { LeaderboardSection } from "../leaderboard/leaderboard-section";
 
 const ProtonDBSection = lazy(async () => {
   const mod = await import("./protondb-section");
@@ -305,6 +306,8 @@ export function Sidebar() {
           </ul>
         </SidebarSection>
       )}
+
+      <LeaderboardSection />
 
       {stats && (
         <SidebarSection title={t("stats")}>

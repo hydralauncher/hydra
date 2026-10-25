@@ -1357,11 +1357,16 @@ export function useChat({
   const openFriendIds = conversations
     .map((conversation) => conversation.friend.id)
     .join(",");
+  const openConversationsRef = useRef(conversations);
+  openConversationsRef.current = conversations;
 
   useEffect(() => {
     void electron.setChatWindowState({
       activeFriendId: activeId,
       openFriendIds: openFriendIds ? openFriendIds.split(",") : [],
+      openFriends: openConversationsRef.current.map(
+        (conversation) => conversation.friend
+      ),
     });
   }, [activeId, openFriendIds]);
 

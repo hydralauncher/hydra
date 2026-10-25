@@ -40,7 +40,12 @@ it("refreshes grouped progress on member changes and preserves known offline tot
       isAnimatedCoverCandidate: () => false,
       useAnimatedSourceWarmup: () => {},
     },
-    "./library-category": { getLibraryPresentationBadgeSource: () => "steam" },
+    "./library-category": {
+      getLibraryPresentationImportSources: () => ({
+        steam: true,
+        epic: false,
+      }),
+    },
     "@shared": { getDisplayedPlayTimeInMilliseconds: () => 0 },
     "@renderer/helpers": {
       CLASSICS_PS_PLATFORM_LABELS: {},

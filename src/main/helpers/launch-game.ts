@@ -38,7 +38,11 @@ import { dispatchSteamProtocolLaunch } from "@main/services/steam-integration/st
 import { resolveSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { runAchievementMetadataExport } from "@main/services/achievements/metadata-export";
-import { parseExecutablePath } from "../events/helpers/parse-executable-path";
+import {
+  parseExecutablePath,
+  readExecutableShortcut,
+  type ExecutableShortcut,
+} from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
@@ -114,11 +118,14 @@ const launchNatively = (
   executablePath: string,
   launchOptions?: string | null,
   useMangohud = false,
-  useGamemode = false
+  useGamemode = false,
+  shortcut: ExecutableShortcut | null = null
 ): number | null => {
-  const workingDirectory = path.dirname(executablePath);
+  const workingDirectory =
+    shortcut?.workingDirectory ?? path.dirname(executablePath);
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executablePath,
+    baseArgs: shortcut?.arguments,
     launchOptions,
     wrapperCommands: [
       ...(useGamemode ? ["gamemoderun"] : []),
@@ -614,10 +621,17 @@ const launchResolvedGame = async (
   compatibilityContext: LinuxCompatibilityLaunchContext | null,
   launchOptions: string | null | undefined,
   useMangohud: boolean,
-  useGamemode: boolean
+  useGamemode: boolean,
+  shortcut: ExecutableShortcut | null = null
 ) => {
   if (process.platform !== "linux") {
-    return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
+    return launchNatively(
+      parsedPath,
+      launchOptions,
+      useMangohud,
+      useGamemode,
+      shortcut
+    );
   }
 
   if (isWindowsExecutable(parsedPath)) {
@@ -688,6 +702,7 @@ const launchGameWithCloudSaveChecks = async (
   const { shop, objectId, executablePath, launchOptions } = options;
 
   const parsedPath = parseExecutablePath(executablePath);
+  const shortcut = readExecutableShortcut(executablePath);
 
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
@@ -997,7 +1012,8 @@ const launchGameWithCloudSaveChecks = async (
           compatibilityContext,
           launchOptions,
           useMangohud,
-          useGamemode
+          useGamemode,
+          shortcut
         );
       }
     );
@@ -1029,7 +1045,8 @@ const launchGameWithCloudSaveChecks = async (
     compatibilityContext,
     launchOptions,
     useMangohud,
-    useGamemode
+    useGamemode,
+    shortcut
   );
 };
 
