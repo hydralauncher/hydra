@@ -246,6 +246,68 @@ describe("UnlockedAchievementsCache", () => {
     await Promise.all(loads);
   });
 
+  it("reloads after a locked combined sibling is rewritten in memory", async () => {
+    AchievementMemoryStore.set("steam", "10", memory());
+    AchievementMemoryStore.set("epic", "epic-10", memory());
+    let reads = 0;
+    const load = () =>
+      UnlockedAchievementsCache.load(
+        "steam",
+        "10",
+        () => true,
+        async () => {},
+        async () => {
+          reads++;
+          UnlockedAchievementsCache.recordCombinedMembers("steam", "10", [
+            { shop: "steam", objectId: "10" },
+            { shop: "epic", objectId: "epic-10" },
+          ]);
+          return [row("A", { source: "steam", sourceObjectId: "10" })];
+        }
+      );
+
+    await load();
+    await load();
+    assert.equal(reads, 1);
+
+    AchievementMemoryStore.set("epic", "epic-10", memory());
+    await load();
+    assert.equal(reads, 2);
+  });
+
+  it("lets a later caller retry a load that outlives its lease", async () => {
+    mock.timers.enable({ apis: ["setTimeout"] });
+    let reads = 0;
+    let releaseStalled!: () => void;
+    const load = () =>
+      UnlockedAchievementsCache.load(
+        "steam",
+        "10",
+        () => true,
+        async () => {},
+        () => {
+          reads++;
+          if (reads > 1) return Promise.resolve([row("A")]);
+          return new Promise<UserAchievement[]>((resolve) => {
+            releaseStalled = () => resolve([]);
+          });
+        }
+      );
+
+    const stalled = load();
+    await tick();
+    assert.equal(load(), stalled);
+
+    mock.timers.tick(UNLOCKED_ACHIEVEMENTS_LOAD_SLOT_LEASE_MS);
+    await tick();
+    const retried = await load();
+    assert.equal(reads, 2);
+    assert.deepEqual(retried, [row("A")]);
+
+    releaseStalled();
+    await stalled;
+  });
+
   it("frees the slot of a load that outlives its lease", async () => {
     mock.timers.enable({ apis: ["setTimeout"] });
     const releases: (() => void)[] = [];

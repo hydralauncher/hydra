@@ -30,6 +30,7 @@ const gameKey = (shop: GameShop, objectId: string) => `${shop}:${objectId}`;
 
 const cached = new Map<string, CachedAchievements>();
 const pending = new Map<string, PendingLoad>();
+const combinedMembers = new Map<string, Map<string, [GameShop, string]>>();
 const invalidatedAt = new Map<string, number>();
 let clearedAt = 0;
 let clock = 0;
@@ -51,7 +52,10 @@ const releaseLoadSlot = () => {
   else activeLoads--;
 };
 
-const withLoadSlot = async <T>(task: () => Promise<T>) => {
+const withLoadSlot = async <T>(
+  task: () => Promise<T>,
+  onLeaseExpired: () => void
+) => {
   await acquireLoadSlot();
   let held = true;
   const release = () => {
@@ -60,7 +64,10 @@ const withLoadSlot = async <T>(task: () => Promise<T>) => {
     releaseLoadSlot();
   };
   // Achievement GETs have no request timeout, so a stalled one must not pin a slot.
-  const lease = setTimeout(release, UNLOCKED_ACHIEVEMENTS_LOAD_SLOT_LEASE_MS);
+  const lease = setTimeout(() => {
+    release();
+    onLeaseExpired();
+  }, UNLOCKED_ACHIEVEMENTS_LOAD_SLOT_LEASE_MS);
   try {
     return await task();
   } finally {
@@ -76,6 +83,7 @@ const collectDependencies = (
 ) => {
   const games = new Map<string, [GameShop, string]>([
     [gameKey(shop, objectId), [shop, objectId]],
+    ...(combinedMembers.get(gameKey(shop, objectId)) ?? []),
   ]);
   for (const achievement of achievements) {
     if (
@@ -170,14 +178,19 @@ const load = (
   pending.set(key, run);
   run.promise = (async () => {
     try {
-      return await withLoadSlot(async () => {
-        await prepare();
-        const since = clock;
-        run.readingSince = since;
-        const achievements = await read();
-        store(shop, objectId, achievements, valid, since);
-        return achievements;
-      });
+      return await withLoadSlot(
+        async () => {
+          await prepare();
+          const since = clock;
+          run.readingSince = since;
+          const achievements = await read();
+          store(shop, objectId, achievements, valid, since);
+          return achievements;
+        },
+        () => {
+          if (pending.get(key) === run) pending.delete(key);
+        }
+      );
     } finally {
       if (pending.get(key) === run) pending.delete(key);
     }
@@ -193,10 +206,28 @@ export const UnlockedAchievementsCache = {
 
   invalidate,
 
+  // Locked variants never reach the presented rows, so the whole group is recorded here.
+  recordCombinedMembers(
+    shop: GameShop,
+    objectId: string,
+    members: Iterable<{ shop: GameShop; objectId: string }>
+  ) {
+    combinedMembers.set(
+      gameKey(shop, objectId),
+      new Map(
+        [...members].map((member) => [
+          gameKey(member.shop, member.objectId),
+          [member.shop, member.objectId],
+        ])
+      )
+    );
+  },
+
   clear() {
     clearedAt = ++clock;
     invalidatedAt.clear();
     cached.clear();
     pending.clear();
+    combinedMembers.clear();
   },
 };

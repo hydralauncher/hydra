@@ -87,7 +87,7 @@ const load = (options: {
       },
     },
     "@main/services/achievements/unlocked-achievements-cache": {
-      UnlockedAchievementsCache: {},
+      UnlockedAchievementsCache: { recordCombinedMembers: () => undefined },
     },
     "@main/services/achievements/achievement-souvenir-store": {
       AchievementSouvenirStore: {

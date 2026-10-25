@@ -140,6 +140,11 @@ export const getUnlockedAchievements = async (
       combined?.achievements.length &&
       (includesRequestedCopy || emptyCopyInGroup)
     ) {
+      UnlockedAchievementsCache.recordCombinedMembers(
+        shop,
+        objectId,
+        combined.achievements.flatMap((achievement) => achievement.variants)
+      );
       return presentCombinedAchievements(
         combined,
         (sourceShop, sourceObjectId) =>
