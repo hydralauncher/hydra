@@ -1,4 +1,5 @@
 import "./get-local-screenshots";
+import "./get-screenshots-folder-path";
 import "./upload-local-screenshot";
 import "./delete-local-screenshot";
 import "./open-screenshots-folder";

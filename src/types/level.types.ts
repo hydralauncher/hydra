@@ -251,6 +251,7 @@ export interface UserPreferences {
   autoplayAnimatedArtwork?: boolean;
   persistFiltersAndSorting?: boolean;
   screenshotsEnabled?: boolean;
+  screenshotsFolderPath?: string;
   screenshotHotkey?: ScreenshotHotkeyBinding;
   screenshotGamepadEnabled?: boolean;
   screenshotGamepadCombo?: ScreenshotGamepadButton[];

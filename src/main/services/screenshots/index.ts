@@ -10,7 +10,6 @@ import type {
   UserPreferences,
 } from "@types";
 
-import { getAchievementScreenshotsDirectory } from "../achievement-screenshots-directory";
 import { emulatorSessions } from "../emulators/emulator-session-tracker";
 import { gamesPlaytime } from "../game-running-state";
 import {
@@ -41,7 +40,7 @@ import {
 import { ScreenshotFeedback } from "./screenshot-feedback";
 import { ScreenshotFrameWorker } from "./screenshot-frame-worker";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
-import { getManualScreenshotsDirectory } from "./screenshot-file-path";
+import { getScreenshotsFolder } from "./screenshots-folder";
 import { ScreenshotReviewSession } from "./screenshot-review-session";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
@@ -169,6 +168,8 @@ export const getLocalScreenshotsForGame = async (
     await LocalScreenshotStore.listForGame(shop, objectId)
   );
 
+export const getScreenshotsFolderPath = () => getScreenshotsFolder();
+
 export const getPublishedScreenshotIdsForGame = async (
   shop: GameShop,
   objectId: string
@@ -279,9 +280,7 @@ export const updateLocalScreenshotDraft = (
   );
 
 export const openScreenshotsFolder = async () => {
-  const directory = getManualScreenshotsDirectory(
-    await getAchievementScreenshotsDirectory()
-  );
+  const directory = await getScreenshotsFolder();
   await fs.promises.mkdir(directory, { recursive: true });
   const error = await shell.openPath(directory);
   if (error) logger.error("Failed to open the screenshots folder", error);
