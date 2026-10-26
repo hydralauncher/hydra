@@ -121,7 +121,6 @@ function MyScreenshotsGrid({
             variant="thumbnail"
             navigationOverrides={navigationOverrides}
             onOpen={local.open}
-            onUpload={local.upload}
             onDelete={local.requestDelete}
           />
         );

@@ -1,4 +1,4 @@
-import { CloudArrowUpIcon, ImageIcon, TrashIcon } from "@phosphor-icons/react";
+import { ImageIcon, TrashIcon } from "@phosphor-icons/react";
 import cn from "classnames";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +16,6 @@ interface LocalScreenshotTileProps {
   variant: "thumbnail" | "card";
   navigationOverrides?: FocusOverrides;
   onOpen: (screenshot: LocalScreenshot) => void;
-  onUpload: (screenshot: LocalScreenshot) => void;
   onDelete: (screenshot: LocalScreenshot) => void;
 }
 
@@ -68,14 +67,10 @@ export function LocalScreenshotTile({
   variant,
   navigationOverrides,
   onOpen,
-  onUpload,
   onDelete,
 }: Readonly<LocalScreenshotTileProps>) {
   const { t } = useTranslation("big_picture");
   const [hasFailed, setHasFailed] = useState(false);
-  const upload = () => {
-    if (!isBusy) onUpload(screenshot);
-  };
   const remove = () => {
     if (!isBusy) onDelete(screenshot);
   };
@@ -85,7 +80,7 @@ export function LocalScreenshotTile({
       id={focusId}
       actions={{
         primary: () => onOpen(screenshot),
-        press: { x: upload, y: remove },
+        press: { y: remove },
       }}
       navigationOverrides={navigationOverrides}
       asChild
@@ -123,13 +118,6 @@ export function LocalScreenshotTile({
         </button>
 
         <span className="local-screenshot-tile__actions">
-          <TileAction
-            button={t("screenshots_gamepad_button_x")}
-            label={t("screenshots_review_upload")}
-            icon={<CloudArrowUpIcon size={14} weight="bold" />}
-            disabled={isBusy}
-            onPress={upload}
-          />
           <TileAction
             button={t("screenshots_gamepad_button_y")}
             label={t("screenshots_review_delete")}

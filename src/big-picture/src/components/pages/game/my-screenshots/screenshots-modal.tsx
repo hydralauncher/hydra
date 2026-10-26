@@ -690,7 +690,6 @@ function LocalScreenshotsList({
             isBusy={local.busyIds.has(screenshot.clientId)}
             variant="card"
             onOpen={local.open}
-            onUpload={local.upload}
             onDelete={local.requestDelete}
           />
         </li>

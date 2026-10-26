@@ -62,16 +62,6 @@ export function useLocalScreenshotActions(screenshots: LocalScreenshot[]) {
     });
   }, []);
 
-  const upload = useCallback((screenshot: LocalScreenshot) => {
-    requestScreenshotReview({
-      gameKey: `manual:${screenshot.clientId}`,
-      shop: screenshot.shop,
-      objectId: screenshot.objectId ?? "",
-      gameTitle: getLocalScreenshotTitle(screenshot),
-      clientIds: [screenshot.clientId],
-    });
-  }, []);
-
   const confirmDelete = async () => {
     if (!pendingDelete) return;
     const { clientId } = pendingDelete;
@@ -111,7 +101,6 @@ export function useLocalScreenshotActions(screenshots: LocalScreenshot[]) {
   return {
     busyIds,
     describe,
-    upload,
     requestDelete: setPendingDelete,
     open: (screenshot: LocalScreenshot) => {
       requestScreenshotReview({
