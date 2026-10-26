@@ -436,7 +436,7 @@ export class Umu {
       onStatus?: UmuStatusListener;
       wasGameDetected?: () => boolean;
     }
-  ): Promise<void> {
+  ): Promise<number | undefined> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
     const workingDirectory = path.dirname(executablePath);
     const umuLogPath = getUmuLogPath(options?.gameId);
@@ -530,6 +530,7 @@ export class Umu {
           }),
       });
       child.unref();
+      return child.pid;
     } catch (error) {
       const logLine =
         error instanceof UmuEarlyExitError
