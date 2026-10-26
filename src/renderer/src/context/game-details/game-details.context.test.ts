@@ -124,6 +124,7 @@ async function fixture(
     string,
     (rows: UserAchievement[]) => void
   >();
+  const ipcListeners = new Map<string, Set<(...args: unknown[]) => void>>();
   const resolveAssets = async (request: AssetsRequest) =>
     artworkAssets
       ? artworkAssets(request)
@@ -200,8 +201,15 @@ async function fixture(
       libraryBatchListeners.add(listener);
       return () => libraryBatchListeners.delete(listener);
     },
-    on: unsubscribe,
-    off: unsubscribe,
+    on: (channel: string, listener: (...args: unknown[]) => void) => {
+      // contextBridge gives ipcRenderer a new proxy of the callback on every
+      // call, so only the unsubscribe returned here can remove it.
+      const proxy = (...args: unknown[]) => listener(...args);
+      const listeners = ipcListeners.get(channel) ?? new Set();
+      listeners.add(proxy);
+      ipcListeners.set(channel, listeners);
+      return () => listeners.delete(proxy);
+    },
     hydraApi: { get: async () => [] },
   };
   Object.assign(dom.window, { electron: bridge });
@@ -314,6 +322,16 @@ async function fixture(
     async completeLibraryBatch() {
       await React.act(async () => {
         for (const listener of libraryBatchListeners) listener();
+      });
+    },
+    ipcListenerCount(channel: string) {
+      return ipcListeners.get(channel)?.size ?? 0;
+    },
+    async emitIpc(channel: string, ...args: unknown[]) {
+      await React.act(async () => {
+        for (const listener of ipcListeners.get(channel) ?? []) {
+          listener({}, ...args);
+        }
       });
     },
     async emitAchievements(
@@ -1215,6 +1233,40 @@ describe("Desktop asynchronous requests", () => {
     };
     await assert.rejects(state.details.selectGameExecutable(), error);
   });
+});
+
+it("keeps a single set of transfer listeners when the game reloads", async (t) => {
+  const games = [epic];
+  const state = await fixture(t, games);
+  const channels = [
+    "on-game-transfer-progress",
+    "on-game-transfer-complete",
+    "on-game-transfer-cancelled",
+    "on-game-transfer-error",
+  ];
+  assert.deepEqual(
+    channels.map((channel) => state.ipcListenerCount(channel)),
+    [1, 1, 1, 1]
+  );
+
+  const reloaded = { ...epic };
+  games[0] = reloaded;
+  await state.completeLibraryBatch();
+
+  assert.equal(state.details.game, reloaded);
+  assert.deepEqual(
+    channels.map((channel) => state.ipcListenerCount(channel)),
+    [1, 1, 1, 1]
+  );
+
+  await state.emitIpc(
+    "on-game-transfer-progress",
+    epic.shop,
+    epic.objectId,
+    0.5
+  );
+  assert.equal(state.details.isTransferring, true);
+  assert.equal(state.details.transferProgress, 0.5);
 });
 
 it("handles a failed transfer cancellation for the operational copy", async (t) => {
