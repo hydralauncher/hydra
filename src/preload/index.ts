@@ -107,7 +107,6 @@ import type {
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
   ScreenshotReview,
-  ScreenshotReviewRequest,
   ScreenshotUploadProgress,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
@@ -1543,19 +1542,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-screenshot-upload-progress", listener);
     return () =>
       ipcRenderer.removeListener("on-screenshot-upload-progress", listener);
-  },
-  getPendingScreenshotReviewRequest: () =>
-    ipcRenderer.invoke("getPendingScreenshotReviewRequest"),
-  onScreenshotReviewRequested: (
-    cb: (request: ScreenshotReviewRequest) => void
-  ) => {
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      request: ScreenshotReviewRequest
-    ) => cb(request);
-    ipcRenderer.on("on-screenshot-review-requested", listener);
-    return () =>
-      ipcRenderer.removeListener("on-screenshot-review-requested", listener);
   },
   getScreenshotReview: () => ipcRenderer.invoke("getScreenshotReview"),
   onScreenshotReviewChanged: (
