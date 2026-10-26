@@ -74,8 +74,6 @@ export const SCREENSHOT_SETTINGS_FOCUS_IDS = {
   folderOpen: "screenshot-settings-folder-open",
 } as const;
 
-export const SCREENSHOTS_DEV_ENTRY_FOCUS_ID = "screenshots-dev-game";
-
 const SECTION_REGION_ID = "screenshot-settings-section";
 const navigationService = NavigationService.getInstance();
 const HOTKEY_ERROR_KEYS: Record<ScreenshotHotkeyError, string> = {
@@ -386,12 +384,10 @@ function buildScreenshotSettingsRows(options: ScreenshotSettingsRowsOptions) {
 
 interface ScreenshotSettingsSectionProps {
   upTarget: FocusOverrideTarget;
-  downFocusId?: string | null;
 }
 
 export function ScreenshotSettingsSection({
   upTarget,
-  downFocusId = null,
 }: Readonly<ScreenshotSettingsSectionProps>) {
   const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
@@ -555,13 +551,8 @@ export function ScreenshotSettingsSection({
   );
 
   const navigation = useMemo(
-    () =>
-      buildRowNavigation(
-        rows,
-        upTarget,
-        downFocusId ? { type: "item", itemId: downFocusId } : BLOCK_TARGET
-      ),
-    [downFocusId, rows, upTarget]
+    () => buildRowNavigation(rows, upTarget, BLOCK_TARGET),
+    [rows, upTarget]
   );
 
   const renderCheckbox = (
