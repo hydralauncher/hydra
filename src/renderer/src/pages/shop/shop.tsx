@@ -3,11 +3,7 @@ import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import { LockIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
-import {
-  CoinIcon,
-  FramedAvatar,
-  XpBar,
-} from "@renderer/components/gamification";
+import { CoinIcon, FramedAvatar } from "@renderer/components/gamification";
 import {
   useAppSelector,
   useFormat,
@@ -22,7 +18,7 @@ import {
   type ShopItem,
 } from "./shop-catalog";
 import { ShopItemModal } from "./shop-item-modal";
-import "../profile/profile-hero/profile-gamification-pills.scss";
+import { GamificationPills } from "../profile/profile-hero/profile-gamification-pills";
 import "./shop.scss";
 
 const CATEGORIES: ShopCategory[] = ["all", "animated", "simple"];
@@ -33,7 +29,6 @@ const isInCategory = (item: ShopItem, category: ShopCategory) =>
 // Interface only: there is no shop API yet (LBX-1255), so buying and equipping do nothing.
 export default function Shop() {
   const { t } = useTranslation("shop");
-  const { t: tProfile } = useTranslation("user_profile");
   const { formatNumber } = useFormat();
   const { userDetails } = useUserDetails();
   const { progress } = useGamificationProgress();
@@ -186,34 +181,14 @@ export default function Shop() {
           />
           <div className="shop__featured-who">
             <strong>{userDetails.displayName}</strong>
-            {/* Same level and coins pills as the profile hero. */}
-            <div className="profile-gamification-pills">
-              <div className="profile-gamification-pills__pill profile-gamification-pills__pill--level">
-                <strong>
-                  {tProfile("level_number", { level: progress.level })}
-                </strong>
-                <XpBar
-                  xp={progress.xp}
-                  xpToNextLevel={progress.xpToNextLevel}
-                  className="profile-gamification-pills__bar"
-                />
-                <span>
-                  {progress.xpToNextLevel === null
-                    ? tProfile("max_level")
-                    : tProfile("xp_progress", {
-                        xp: formatNumber(progress.xp),
-                        total: formatNumber(progress.xpToNextLevel),
-                      })}
-                </span>
-              </div>
-              <div className="profile-gamification-pills__pill">
-                <CoinIcon />
-                <span>
-                  <strong>{formatNumber(coins)}</strong>{" "}
-                  {tProfile("coins_label", { count: coins })}
-                </span>
-              </div>
-            </div>
+            <GamificationPills
+              level={{
+                level: progress.level,
+                xp: progress.xp,
+                xpToNextLevel: progress.xpToNextLevel,
+              }}
+              coins={coins}
+            />
           </div>
         </div>
 
