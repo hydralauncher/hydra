@@ -79,7 +79,6 @@ export function useGameLeaderboard({
       period,
       scope: effectiveScope,
       metric: effectiveMetric,
-      isExtended,
       isLoggedIn,
       viewerId,
     };
@@ -122,7 +121,6 @@ export function useGameLeaderboard({
     effectiveMetric,
     effectiveScope,
     isEligible,
-    isExtended,
     isLoggedIn,
     objectId,
     period,
