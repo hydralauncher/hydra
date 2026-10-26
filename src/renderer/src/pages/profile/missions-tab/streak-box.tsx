@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
-import { FlameIcon, rampColor } from "@renderer/components/gamification";
+import {
+  FlameIcon,
+  STREAK_STAGES,
+  getStreakStageIndex,
+  rampColor,
+} from "@renderer/components/gamification";
 import type { LoginStreak } from "@types";
 
 const DAYS_SHOWN = 7;
@@ -33,12 +38,29 @@ export function StreakBox({ streak }: Readonly<{ streak: LoginStreak }>) {
     });
   }, [streak, i18n.language]);
 
+  const stageLabel = (() => {
+    const index = getStreakStageIndex(streak.current);
+    const stage = t(`streak_stage_${STREAK_STAGES[index].key}`);
+    const next = STREAK_STAGES[index + 1];
+
+    if (index === 0) {
+      return t("streak_stage_start", { stage: t("streak_stage_spark") });
+    }
+    if (!next) return t("streak_stage_top", { stage });
+    return t("streak_stage_next", {
+      stage,
+      next: t(`streak_stage_${next.key}`),
+      days: next.minDays,
+    });
+  })();
+
   return (
     <div className="streak-box">
       <div className="streak-box__summary">
-        <FlameIcon size={36} isDim={streak.current === 0} />
+        <FlameIcon size={36} days={streak.current} />
         <div>
           <strong>{t("streak_in_a_row", { count: streak.current })}</strong>
+          <small>{stageLabel}</small>
           <small>{t("streak_record_hint", { count: streak.record })}</small>
         </div>
       </div>

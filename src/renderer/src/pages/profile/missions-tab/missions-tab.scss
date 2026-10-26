@@ -643,6 +643,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     }
 
     small {
+      display: block;
       font-size: globals.$small-font-size;
       color: $muted;
     }

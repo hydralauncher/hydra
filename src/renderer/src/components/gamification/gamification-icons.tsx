@@ -1,11 +1,14 @@
 import { useMemo } from "react";
 import {
   COIN_ROWS,
+  FLAME_CORE_ROWS,
+  FLAME_EMBER_ROWS,
   FLAME_ROWS,
   GAMIFICATION_PALETTE,
 } from "./gamification-art";
 import { DIM_COLOR, mixHex } from "./gamification-colors";
 import { PixelArt } from "./pixel-art";
+import { getStreakStageIndex } from "./streak-stages";
 
 export function CoinIcon({ size = 16 }: Readonly<{ size?: number }>) {
   const colors = useMemo(
@@ -20,14 +23,27 @@ export function CoinIcon({ size = 16 }: Readonly<{ size?: number }>) {
   return <PixelArt rows={COIN_ROWS} colors={colors} size={size} />;
 }
 
-export function FlameIcon({
-  size = 12,
-  isDim = false,
-}: Readonly<{ size?: number; isDim?: boolean }>) {
-  const colors = useMemo(
-    () => ({ "#": isDim ? DIM_COLOR : GAMIFICATION_PALETTE.flame }),
-    [isDim]
-  );
+// Grid and colors per streak stage: dim, ember, flame, then a flame with a lit core.
+const FLAME_STAGE_ART: {
+  rows: readonly string[];
+  colors: Record<string, string>;
+}[] = [
+  { rows: FLAME_ROWS, colors: { "#": DIM_COLOR } },
+  { rows: FLAME_EMBER_ROWS, colors: { "#": "#d0d1d7" } },
+  { rows: FLAME_ROWS, colors: { "#": GAMIFICATION_PALETTE.flame } },
+  {
+    rows: FLAME_CORE_ROWS,
+    colors: { "#": GAMIFICATION_PALETTE.flame, o: "#ffcf4a" },
+  },
+  { rows: FLAME_CORE_ROWS, colors: { "#": "#3d8bff", o: "#d6f1ff" } },
+  { rows: FLAME_CORE_ROWS, colors: { "#": "#a463ff", o: "#ffd9f6" } },
+];
 
-  return <PixelArt rows={FLAME_ROWS} colors={colors} size={size} />;
+export function FlameIcon({
+  days,
+  size = 12,
+}: Readonly<{ days: number; size?: number }>) {
+  const { rows, colors } = FLAME_STAGE_ART[getStreakStageIndex(days)];
+
+  return <PixelArt rows={rows} colors={colors} size={size} />;
 }

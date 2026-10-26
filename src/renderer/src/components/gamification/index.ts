@@ -3,6 +3,7 @@ export * from "./gamification-icons";
 export * from "./gamification-ui";
 export * from "./xp-bar";
 export * from "./streak-fire";
+export * from "./streak-stages";
 export * from "./use-hover-halo";
 export * from "./use-animated-number";
 export { LevelUpModal } from "./level-up/level-up-modal";

@@ -1,15 +1,15 @@
 import { useEffect, useRef } from "react";
-import {
-  BAYER_4X4,
-  mixHex,
-  prefersReducedMotion,
-  rampColor,
-} from "./gamification-colors";
+import { BAYER_4X4, prefersReducedMotion } from "./gamification-colors";
+import { getFirePalette } from "./streak-stages";
 
-/** Streak length where embers turn into a growing fire, and where it starts to glow. */
+/**
+ * Streak length where embers show, where they turn into a growing fire, where it
+ * starts to glow (the Blue flame stage) and where the pill number starts to shake.
+ */
 export const STREAK_EMBERS_DAYS = 7;
 export const STREAK_FIRE_DAYS = 14;
-export const STREAK_GLOW_DAYS = 180;
+export const STREAK_GLOW_DAYS = 100;
+export const STREAK_HOT_DAYS = 180;
 
 const CELL = 2;
 const MAX_HEAT = 36;
@@ -35,7 +35,8 @@ interface Spark {
 
 /**
  * Dithered heat field that rises from the top edge of the streak pill (designer's prototype).
- * Embers from 7 days, a fire that grows with the streak from 14, a glow from 180.
+ * Embers from 7 days, a fire that grows with the streak from 14, a glow from 100.
+ * The colors follow the streak stage (see streak-stages.ts).
  */
 export function StreakFire({ days }: Readonly<{ days: number }>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -47,7 +48,7 @@ export function StreakFire({ days }: Readonly<{ days: number }>) {
 
     const growth = fireGrowth(days);
     const isEmbers = days < STREAK_FIRE_DAYS;
-    const isPurple = days >= STREAK_GLOW_DAYS;
+    const palette = getFirePalette(days);
     const flameHeight = isEmbers ? 14 : Math.round(8 + growth * 20);
     const width = Math.max(40, host.clientWidth);
     const height = Math.round(flameHeight * 1.7) + 8;
@@ -74,18 +75,16 @@ export function StreakFire({ days }: Readonly<{ days: number }>) {
     let animationFrame = 0;
 
     const flameColor = (value: number) => {
-      if (value > 0.5) return "rgba(255, 90, 60, 0.2)";
-      if (value > 0.4) return "#ff5a3c";
-      if (value > 0.3) return isPurple ? rampColor(0.6) : "#ffaa36";
-      return isPurple ? rampColor(0) : "#ffe27a";
+      if (value > 0.5) return palette.background;
+      if (value > 0.4) return palette.mid;
+      if (value > 0.3) return palette.hot;
+      return palette.core;
     };
 
     const sparkColor = (life: number) => {
-      if (life > 0.66) {
-        return isPurple ? mixHex(rampColor(0), "#ffffff", 0.5) : "#ffd84a";
-      }
-      if (life > 0.33) return isPurple ? rampColor(0) : "#ff4fa3";
-      return rampColor(0);
+      if (life > 0.66) return palette.core;
+      if (life > 0.33) return palette.hot;
+      return palette.mid;
     };
 
     const step = () => {

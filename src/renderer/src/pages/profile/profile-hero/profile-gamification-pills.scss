@@ -51,7 +51,7 @@
     &--lit {
       border-top-left-radius: 0;
       border-top-right-radius: 0;
-      background-color: rgba(255, 90, 60, 0.2);
+      background-color: var(--streak-fire-background, rgba(255, 90, 60, 0.2));
     }
 
     &--hot strong {
