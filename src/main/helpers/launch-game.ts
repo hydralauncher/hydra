@@ -453,7 +453,7 @@ const launchWindowsBinaryOnLinux = async (
   void UmuUpdater.checkForUpdates();
 
   try {
-    await Umu.launchExecutable(parsedPath, [], {
+    const pid = await Umu.launchExecutable(parsedPath, [], {
       winePrefixPath,
       protonPath,
       gameId: objectId,
@@ -463,6 +463,7 @@ const launchWindowsBinaryOnLinux = async (
       onStatus: reportUmuStatus,
       wasGameDetected: () => wasGameLauncherGameDetected(gameKey),
     });
+    if (pid !== undefined) launchedGamePids.set(gameKey, pid);
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
   } catch (error) {
