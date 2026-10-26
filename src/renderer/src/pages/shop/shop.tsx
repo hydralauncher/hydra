@@ -255,12 +255,6 @@ export default function Shop() {
             {t("hide_owned")}
             <small className="shop__count">{ownedCount}</small>
           </label>
-
-          <span className="shop__balance">
-            <CoinIcon />
-            <strong>{formatNumber(coins)}</strong>
-            {t("coins", { count: coins })}
-          </span>
         </div>
       </div>
 
