@@ -15,6 +15,9 @@ $locked: #2a2a2e;
 .shop {
   display: flex;
   flex-direction: column;
+  // The app's content column centers its children; the shop spans the full width.
+  width: 100%;
+  box-sizing: border-box;
   padding: calc(globals.$spacing-unit * 3);
 
   // Featured: your banner, your avatar wearing the frame and your display name.
