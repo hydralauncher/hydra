@@ -1154,6 +1154,9 @@ declare global {
     onLocalScreenshotsChange: (
       cb: (screenshots: LocalScreenshot[]) => void
     ) => () => Electron.IpcRenderer;
+    onLocalScreenshotsMissing: (
+      cb: (count: number) => void
+    ) => () => Electron.IpcRenderer;
     onScreenshotUploadProgress: (
       cb: (progress: ScreenshotUploadProgress) => void
     ) => () => Electron.IpcRenderer;
