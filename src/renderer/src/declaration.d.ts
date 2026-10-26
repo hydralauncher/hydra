@@ -4,7 +4,6 @@ import type {
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
   ScreenshotReview,
-  ScreenshotReviewRequest,
   ScreenshotUploadProgress,
   SystemPowerAction,
   AppUpdaterEvent,
@@ -1157,10 +1156,6 @@ declare global {
     ) => () => Electron.IpcRenderer;
     onScreenshotUploadProgress: (
       cb: (progress: ScreenshotUploadProgress) => void
-    ) => () => Electron.IpcRenderer;
-    getPendingScreenshotReviewRequest: () => Promise<ScreenshotReviewRequest | null>;
-    onScreenshotReviewRequested: (
-      cb: (request: ScreenshotReviewRequest) => void
     ) => () => Electron.IpcRenderer;
     getScreenshotReview: () => Promise<ScreenshotReview | null>;
     onScreenshotReviewChanged: (

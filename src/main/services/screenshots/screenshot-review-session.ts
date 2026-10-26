@@ -1,8 +1,4 @@
-import type {
-  LocalScreenshot,
-  ScreenshotReview,
-  ScreenshotReviewRequest,
-} from "@types";
+import type { LocalScreenshot, ScreenshotReview } from "@types";
 
 import { WindowManager } from "../window-manager";
 import { LocalScreenshotStore } from "./local-screenshot-store";
@@ -16,7 +12,6 @@ export interface ScreenshotReviewTarget {
 
 let desktopReview: ScreenshotReview | null = null;
 const closedListeners = new Set<() => void>();
-let pendingBigPictureRequest: ScreenshotReviewRequest | null = null;
 
 const sendDesktopReview = () => {
   const mainWindow = WindowManager.mainWindow;
@@ -133,31 +128,6 @@ export class ScreenshotReviewSession {
   }
 
   public static async releaseBigPictureReview(clientIds: string[]) {
-    if (
-      pendingBigPictureRequest?.clientIds.some((clientId) =>
-        clientIds.includes(clientId)
-      )
-    ) {
-      pendingBigPictureRequest = null;
-    }
     await releaseUnreviewedScreenshots(clientIds);
-  }
-
-  public static async takePendingBigPictureRequest() {
-    const request = pendingBigPictureRequest;
-    if (!request || !WindowManager.bigPictureWindow) {
-      pendingBigPictureRequest = null;
-      return null;
-    }
-
-    const records = await Promise.all(
-      request.clientIds.map((clientId) => LocalScreenshotStore.get(clientId))
-    );
-    const clientIds = request.clientIds.filter(
-      (_, index) => records[index]?.state === "reviewing"
-    );
-    if (pendingBigPictureRequest === request) pendingBigPictureRequest = null;
-
-    return clientIds.length ? { ...request, clientIds } : null;
   }
 }

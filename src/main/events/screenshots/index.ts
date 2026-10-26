@@ -6,7 +6,6 @@ import "./get-screenshot-review";
 import "./open-screenshot-review";
 import "./close-screenshot-review";
 import "./release-big-picture-screenshot-review";
-import "./get-pending-screenshot-review-request";
 import "./update-local-screenshot-draft";
 import "./get-local-screenshots-for-game";
 import "./delete-local-screenshots-for-game";
