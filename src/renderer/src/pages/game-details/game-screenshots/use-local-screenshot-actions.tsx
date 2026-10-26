@@ -5,7 +5,7 @@ import { ConfirmationModal } from "@renderer/components";
 import { useDate, useToast } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import { getLocalScreenshotTitle } from "@shared";
-import type { LocalScreenshot, ScreenshotReviewScope } from "@types";
+import type { LocalScreenshot } from "@types";
 
 export function useLocalScreenshotAlt() {
   const { t } = useTranslation("screenshots");
@@ -31,15 +31,10 @@ const isActiveUploadState = (
 ): state is LocalScreenshotUploadStatus["state"] =>
   state === "queued" || state === "uploading";
 
-const openReview = (
-  screenshot: LocalScreenshot,
-  scope: ScreenshotReviewScope
-) => {
-  window.electron
-    .openScreenshotReview(screenshot.clientId, scope)
-    .catch((error) => {
-      logger.error("Failed to open the screenshot review", error);
-    });
+const openReview = (screenshot: LocalScreenshot) => {
+  window.electron.openScreenshotReview(screenshot.clientId).catch((error) => {
+    logger.error("Failed to open the screenshot review", error);
+  });
 };
 
 export function useLocalScreenshotActions() {
@@ -128,10 +123,8 @@ export function useLocalScreenshotActions() {
     busyIds,
     getUploadStatus,
     describe,
-    upload: (screenshot: LocalScreenshot) =>
-      openReview(screenshot, "screenshot"),
     requestDelete: setPendingDelete,
-    open: (screenshot: LocalScreenshot) => openReview(screenshot, "game"),
+    open: openReview,
     elements,
   };
 }

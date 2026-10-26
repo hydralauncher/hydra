@@ -8,9 +8,15 @@ import {
   UploadIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import type { LocalScreenshot, ProfileVisibility } from "@types";
+import cn from "classnames";
+import type {
+  LocalScreenshot,
+  ProfileVisibility,
+  ScreenshotQuality,
+} from "@types";
 import {
   isScreenshotUploadRetryable,
+  resolveScreenshotUploadQuality,
   sanitizeScreenshotDescriptionInput,
   SCREENSHOT_DESCRIPTION_MAX_LENGTH,
   SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
@@ -21,13 +27,21 @@ import {
   CheckboxField,
   ConfirmationModal,
   InlineEditField,
-  SelectField,
+  HydraCloudBadge,
 } from "@renderer/components";
+import { useUserDetails } from "@renderer/hooks";
+import { useSubscription } from "@renderer/hooks/use-subscription";
 import { logger } from "@renderer/logger";
 
+import {
+  ReviewSegmentedControl,
+  type ReviewSegmentedOption,
+} from "./review-segmented-control";
 import { ScreenshotReviewStatus } from "./screenshot-review-status";
 import {
   getLocalImageSource,
+  isScreenshotUndecided,
+  SCREENSHOT_QUALITY_LABELS,
   isScreenshotAwaitingReview,
   isScreenshotEditable,
   isScreenshotKeptLocally,
@@ -77,6 +91,8 @@ export function ScreenshotReviewItem({
   const prefersReducedMotion = useReducedMotion();
   const [isBusy, setIsBusy] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const { hasActiveSubscription } = useUserDetails();
+  const { showHydraCloudModal } = useSubscription();
 
   const isCustomGame = screenshot.shop === "custom";
   const isTitleEditable = isCustomGame && isScreenshotEditable(screenshot);
@@ -84,6 +100,13 @@ export function ScreenshotReviewItem({
   const capturedAt = new Date(screenshot.capturedAt).toLocaleString(
     i18n.language
   );
+  const uploadQuality = resolveScreenshotUploadQuality(
+    draft.quality,
+    hasActiveSubscription
+  );
+  const badgeQuality = isScreenshotUndecided(screenshot)
+    ? uploadQuality
+    : (screenshot.uploadQuality ?? null);
   const panelTransition = prefersReducedMotion
     ? { duration: 0 }
     : DETAILS_PANEL_SPRING;
@@ -91,11 +114,20 @@ export function ScreenshotReviewItem({
     ? { duration: 0 }
     : { duration: 0.22, ease: "easeOut" as const };
 
-  const visibilityOptions = SCREENSHOT_VISIBILITY_OPTIONS.map((option) => ({
-    key: option,
-    value: option,
-    label: t(VISIBILITY_LABEL_KEYS[option]),
-  }));
+  const visibilityOptions: ReviewSegmentedOption<ProfileVisibility>[] =
+    SCREENSHOT_VISIBILITY_OPTIONS.map((option) => ({
+      value: option,
+      label: t(VISIBILITY_LABEL_KEYS[option]),
+    }));
+  const qualityOptions: ReviewSegmentedOption<ScreenshotQuality>[] = [
+    { value: "STANDARD", label: SCREENSHOT_QUALITY_LABELS.STANDARD },
+    {
+      value: "CLOUD",
+      label: SCREENSHOT_QUALITY_LABELS.CLOUD,
+      isLocked: !hasActiveSubscription,
+      addon: hasActiveSubscription ? null : <HydraCloudBadge />,
+    },
+  ];
 
   const runAction = async (action: () => Promise<unknown>, label: string) => {
     setIsBusy(true);
@@ -113,7 +145,7 @@ export function ScreenshotReviewItem({
       () =>
         window.electron.uploadLocalScreenshot(
           screenshot.clientId,
-          toUploadOptions(screenshot, draft)
+          toUploadOptions(screenshot, draft, hasActiveSubscription)
         ),
       "Failed to upload the screenshot"
     );
@@ -138,13 +170,12 @@ export function ScreenshotReviewItem({
     );
   };
 
-  const handleVisibilityChange = (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const visibility = SCREENSHOT_VISIBILITY_OPTIONS.find(
-      (option) => option === event.target.value
-    );
-    if (visibility) onDraftChange({ ...draft, visibility });
+  const handleQualityChange = (quality: ScreenshotQuality) => {
+    if (quality === "CLOUD" && !hasActiveSubscription) {
+      showHydraCloudModal("achievements");
+      return;
+    }
+    onDraftChange({ ...draft, quality });
   };
 
   const renderDeleteButton = () => (
@@ -232,6 +263,16 @@ export function ScreenshotReviewItem({
             className="screenshot-review-item__image"
             draggable={false}
           />
+          {badgeQuality && (
+            <span
+              className={cn("screenshot-review-item__quality", {
+                "screenshot-review-item__quality--cloud":
+                  badgeQuality === "CLOUD",
+              })}
+            >
+              {SCREENSHOT_QUALITY_LABELS[badgeQuality]}
+            </span>
+          )}
           <span className="screenshot-review-item__expand" aria-hidden>
             <ScreenFullIcon size={16} />
           </span>
@@ -289,6 +330,24 @@ export function ScreenshotReviewItem({
                 onSave={handleDescriptionSave}
               />
 
+              <ReviewSegmentedControl
+                label={t("visibility_label")}
+                options={visibilityOptions}
+                value={draft.visibility}
+                disabled={isFormDisabled}
+                onChange={(visibility) =>
+                  onDraftChange({ ...draft, visibility })
+                }
+              />
+
+              <ReviewSegmentedControl
+                label={t("upload_quality")}
+                options={qualityOptions}
+                value={uploadQuality}
+                disabled={isFormDisabled}
+                onChange={handleQualityChange}
+              />
+
               <div className="screenshot-review-item__checkbox">
                 <CheckboxField
                   label={t("spoiler_label")}
@@ -302,15 +361,6 @@ export function ScreenshotReviewItem({
                   {t("spoiler_hint")}
                 </small>
               </div>
-
-              <SelectField
-                label={t("visibility_label")}
-                value={draft.visibility}
-                options={visibilityOptions}
-                disabled={isFormDisabled}
-                onChange={handleVisibilityChange}
-                theme="dark"
-              />
             </motion.div>
           </motion.aside>
         )}

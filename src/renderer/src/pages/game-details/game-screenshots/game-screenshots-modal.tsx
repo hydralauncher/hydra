@@ -162,7 +162,7 @@ function CommunityScreenshotsPanel({
         scrollableTarget={scrollId}
         style={{ overflow: "visible" }}
       >
-        <ul className="screenshot-grid">
+        <ul className="screenshot-grid screenshot-grid--large">
           {visibleItems.map((screenshot) => (
             <ScreenshotCard
               key={screenshot.id}

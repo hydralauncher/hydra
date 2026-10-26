@@ -13,7 +13,10 @@ import type {
   ScreenshotUploadProgress,
 } from "@types";
 
-import { normalizeScreenshotDescription } from "@shared";
+import {
+  normalizeScreenshotDescription,
+  resolveScreenshotUploadQuality,
+} from "@shared";
 import { GAME_NOT_FOUND_ERROR_CODE } from "../achievements/grouped-souvenir-retry-policy";
 import type { HydraApiAuthContext } from "../hydra-auth-context";
 import { HydraApi } from "../hydra-api";
@@ -169,6 +172,17 @@ class ScreenshotUploadWorker {
     if (screenshot.state === "uploaded") return screenshot;
 
     this.gameWaits.delete(clientId);
+    const quality =
+      options.quality === undefined
+        ? undefined
+        : resolveScreenshotUploadQuality(
+            options.quality,
+            HydraApi.hasActiveSubscription()
+          );
+    const isQualityChange =
+      quality !== undefined &&
+      screenshot.uploadQuality != null &&
+      screenshot.uploadQuality !== quality;
     const updated = await LocalScreenshotStore.update(clientId, {
       ownerId,
       state: "queued",
@@ -186,6 +200,8 @@ class ScreenshotUploadWorker {
       uploadAttempts: 0,
       nextUploadAttemptAt: null,
       lastError: null,
+      ...(quality === undefined ? {} : { uploadQuality: quality }),
+      ...(isQualityChange ? { uploadClientId: randomUUID() } : {}),
     });
 
     emitProgress({ clientId, state: "queued", progress: 0 });

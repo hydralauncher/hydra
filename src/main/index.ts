@@ -30,6 +30,7 @@ import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
 import { flushScreenshotTelemetry } from "./services/screenshots";
+import { isWaylandSession } from "./services/linux-game-capture-session";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
@@ -69,6 +70,9 @@ if (!gotTheLock) app.quit();
 
 if (process.platform === "linux") {
   app.commandLine.appendSwitch("ozone-platform-hint", "auto");
+  if (isWaylandSession()) {
+    app.commandLine.appendSwitch("enable-features", "GlobalShortcutsPortal");
+  }
 }
 
 i18n.init({
