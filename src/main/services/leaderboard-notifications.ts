@@ -96,14 +96,15 @@ export const publishLeaderboardNotifications = async (signal: AbortSignal) => {
   });
   if (fresh.length === 0) return;
 
-  await db.put<string, string[]>(
-    levelKeys.leaderboardNotificationsShown,
-    [
-      ...shown,
-      ...fresh.map(({ notification }) => shownKey(notification)),
-    ].slice(-MAX_SHOWN_KEYS),
-    { valueEncoding: "json" }
-  );
+  const shownLog = [...shown];
+  const markShown = (notification: Notification) => {
+    shownLog.push(shownKey(notification));
+    return db.put<string, string[]>(
+      levelKeys.leaderboardNotificationsShown,
+      shownLog.slice(-MAX_SHOWN_KEYS),
+      { valueEncoding: "json" }
+    );
+  };
 
   for (const { notification, info } of fresh) {
     if (signal.aborted) return;
@@ -111,6 +112,7 @@ export const publishLeaderboardNotifications = async (signal: AbortSignal) => {
       info.direction === "down" &&
       preferences?.leaderboardDropNotificationsEnabled === false
     ) {
+      await markShown(notification);
       continue;
     }
 
@@ -119,11 +121,17 @@ export const publishLeaderboardNotifications = async (signal: AbortSignal) => {
         "on-leaderboard-notification",
         notification
       );
+      await markShown(notification);
       continue;
     }
 
-    await showSystemNotification(notification, info, signal).catch((error) =>
-      logger.error("Failed to show leaderboard notification", error)
-    );
+    try {
+      await showSystemNotification(notification, info, signal);
+    } catch (error) {
+      logger.error("Failed to show leaderboard notification", error);
+      continue;
+    }
+    if (signal.aborted) return;
+    await markShown(notification);
   }
 };

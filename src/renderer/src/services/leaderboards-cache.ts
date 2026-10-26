@@ -13,6 +13,7 @@ export const attributeNextLeaderboardRequest = (
   path: string,
   source: LeaderboardRequestSource
 ) => {
+  leaderboardsCache.evictPath(path);
   pendingSource = {
     path,
     source,

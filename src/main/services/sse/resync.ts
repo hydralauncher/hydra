@@ -4,6 +4,7 @@ import { HydraApi } from "@main/services/hydra-api";
 import { WindowManager } from "@main/services/window-manager";
 import { logger } from "@main/services/logger";
 import { catchUpChatUnread } from "@main/services/chat/chat-unread-catch-up";
+import { publishLeaderboardNotifications } from "@main/services/leaderboard-notifications";
 import { ResyncCoordinator } from "./resync-coordinator";
 import { broadcastFriendsUpdated } from "./friends-updated-broadcast";
 import { summarizeNetworkError } from "../network-error-summary.js";
@@ -63,6 +64,12 @@ const syncNotificationCount = async (signal: AbortSignal) => {
   });
 };
 
+const syncNotifications = async (signal: AbortSignal) => {
+  await syncNotificationCount(signal);
+  if (signal.aborted) return;
+  await publishLeaderboardNotifications(signal);
+};
+
 // Chat events missed while disconnected are never replayed, so open
 // conversations refetch what they missed and badges reload from the server.
 const syncChat = async (signal: AbortSignal) => {
@@ -88,7 +95,7 @@ const SCOPE_TASKS: Record<
   },
   notifications: {
     errorMessage: "Failed to resync notification count:",
-    task: syncNotificationCount,
+    task: syncNotifications,
   },
   chat: {
     errorMessage: "Failed to resync chat:",

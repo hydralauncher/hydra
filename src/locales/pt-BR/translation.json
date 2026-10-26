@@ -2418,7 +2418,6 @@
     "leaderboard_scope_global": "Global",
     "leaderboard_scope_friends": "Amigos",
     "leaderboard_view_ranking": "Ver ranking",
-    "leaderboard_add_photo": "Adicionar foto",
     "leaderboard_close": "Fechar",
     "leaderboard_slam_label": "{{tag}}: posição #{{rank}} em {{board}}"
   },

@@ -2447,7 +2447,6 @@
     "leaderboard_scope_global": "Global",
     "leaderboard_scope_friends": "Friends",
     "leaderboard_view_ranking": "View leaderboard",
-    "leaderboard_add_photo": "Add photo",
     "leaderboard_close": "Close",
     "leaderboard_slam_label": "{{tag}}: rank #{{rank}} in {{board}}"
   },

@@ -2,10 +2,7 @@ export const LEADERBOARD_RANK_CHANGED_NOTIFICATION = "LEADERBOARD_RANK_CHANGED";
 export const LEADERBOARD_MISSING_PHOTO_NOTIFICATION =
   "LEADERBOARD_MISSING_PHOTO";
 
-export const LEADERBOARD_REQUEST_SOURCES = [
-  "rank_notification",
-  "missing_photo_notification",
-] as const;
+export const LEADERBOARD_REQUEST_SOURCES = ["rank_notification"] as const;
 export type LeaderboardRequestSource =
   (typeof LEADERBOARD_REQUEST_SOURCES)[number];
 
