@@ -1914,7 +1914,7 @@
     "souvenir_sync_cleanup_failed": "Could not delete the unsynced souvenirs",
     "enable_achievement_souvenirs": "Enable souvenirs for achievements",
     "wayland_souvenirs_warning_title": "Souvenirs on Wayland",
-    "wayland_souvenirs_warning_description": "Due to the nature of Wayland, Hydra needs to ask which screen it should capture. It asks once when your first game starts and remembers the choice until Hydra is closed. Select the screen your games run on so Hydra can capture souvenirs when you unlock achievements. Without selecting a screen, capturing souvenirs is impossible.",
+    "wayland_souvenirs_warning_description": "Due to the nature of Wayland, Hydra needs to ask which window it should capture every time you open a game. Select the game window so Hydra can capture souvenirs when you unlock achievements. Without selecting a window, capturing souvenirs is impossible.",
     "wayland_souvenirs_warning_cancel": "Cancel",
     "wayland_souvenirs_warning_confirm": "OK",
     "epic_sync_starting": "Preparing Epic sync…",
