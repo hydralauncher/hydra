@@ -199,7 +199,6 @@ function GameScreenshotsBox({
                   isBusy={local.busyIds.has(item.screenshot.clientId)}
                   uploadStatus={local.getUploadStatus(item.screenshot)}
                   onOpen={local.open}
-                  onUpload={local.upload}
                   onDelete={local.requestDelete}
                 />
               )}

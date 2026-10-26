@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { ImageIcon, TrashIcon, UploadIcon } from "@primer/octicons-react";
+import { ImageIcon, TrashIcon } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
 import cn from "classnames";
 
@@ -17,7 +17,6 @@ interface LocalScreenshotTileProps {
   uploadStatus: LocalScreenshotUploadStatus | null;
   className?: string;
   onOpen: (screenshot: LocalScreenshot) => void;
-  onUpload: (screenshot: LocalScreenshot) => void;
   onDelete: (screenshot: LocalScreenshot) => void;
 }
 
@@ -28,14 +27,12 @@ export function LocalScreenshotTile({
   uploadStatus,
   className,
   onOpen,
-  onUpload,
   onDelete,
 }: Readonly<LocalScreenshotTileProps>) {
   const { t } = useTranslation("screenshots");
   const { t: tCapture } = useTranslation("screenshots_capture");
   const tooltipId = useId();
   const [hasFailed, setHasFailed] = useState(false);
-  const uploadLabel = t("upload_screenshot");
   const deleteLabel = t("delete_screenshot");
   const isUploading = uploadStatus !== null;
   const hasUploadFailed = !isUploading && screenshot.state === "failed";
@@ -91,17 +88,6 @@ export function LocalScreenshotTile({
       ) : null}
 
       <div className="local-screenshot-tile__actions" hidden={isUploading}>
-        <button
-          type="button"
-          className="local-screenshot-tile__action"
-          onClick={() => onUpload(screenshot)}
-          disabled={isBusy || isUploading}
-          aria-label={uploadLabel}
-          data-tooltip-id={tooltipId}
-          data-tooltip-content={uploadLabel}
-        >
-          <UploadIcon size={14} />
-        </button>
         <button
           type="button"
           className="local-screenshot-tile__action local-screenshot-tile__action--danger"

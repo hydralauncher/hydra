@@ -232,7 +232,6 @@ export function MyScreenshotsPanel({
             uploadStatus={local.getUploadStatus(screenshot)}
             className="local-screenshot-tile--card"
             onOpen={local.open}
-            onUpload={local.upload}
             onDelete={local.requestDelete}
           />
         </li>
