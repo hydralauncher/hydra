@@ -16,7 +16,6 @@ import type {
   UserPreferences,
 } from "@types";
 
-import { getAchievementScreenshotsDirectory } from "../achievement-screenshots-directory";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import {
@@ -46,6 +45,7 @@ import {
 import { writeScreenshotPreview } from "./screenshot-preview";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { resolveManualScreenshotPath } from "./screenshot-file-path";
+import { getScreenshotsFolder } from "./screenshots-folder";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 
 const CAPTURE_JPEG_QUALITY = 0.95;
@@ -139,11 +139,7 @@ const rejectAdultGameCapture = async (gameTitle: string) => {
 };
 
 const resolveCaptureFilePath = async (gameTitle: string, capturedAt: Date) =>
-  resolveAvailableFilePath(
-    await getAchievementScreenshotsDirectory(),
-    gameTitle,
-    capturedAt
-  );
+  resolveAvailableFilePath(await getScreenshotsFolder(), gameTitle, capturedAt);
 
 interface FinishCaptureOptions {
   target: Pick<ScreenshotGameTarget, "gameKey" | "shop" | "objectId">;

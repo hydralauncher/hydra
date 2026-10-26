@@ -1498,6 +1498,8 @@ contextBridge.exposeInMainWorld("electron", {
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
   getScreenshotsPath: () => ipcRenderer.invoke("getScreenshotsPath"),
+  getScreenshotsFolderPath: () =>
+    ipcRenderer.invoke("getScreenshotsFolderPath"),
   getLocalScreenshots: () => ipcRenderer.invoke("getLocalScreenshots"),
   getLocalScreenshotsForGame: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("getLocalScreenshotsForGame", shop, objectId),
