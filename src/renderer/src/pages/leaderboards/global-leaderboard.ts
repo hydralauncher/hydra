@@ -216,7 +216,7 @@ export const normalizeGlobalLeaderboardResponse = (
 
   const rawEntries = response.entries ?? response.users;
   const leaderboard = normalizeLeaderboardResponse({
-    users: rawEntries,
+    entries: rawEntries,
     viewer: response.viewer,
   });
 
