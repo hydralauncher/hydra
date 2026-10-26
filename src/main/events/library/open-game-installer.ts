@@ -251,49 +251,63 @@ const openUntracked = async (
   return { launched, tracked: false };
 };
 
+const executeWindowsInstaller = async (
+  filePath: string,
+  options: InstallerLaunchOptions
+): Promise<InstallerLaunchResult> => {
+  const direct = await spawnInstaller({
+    command: filePath,
+    args: [],
+    cwd: path.dirname(filePath),
+    failureMessage: "Failed to execute game installer directly",
+    onExit: options.onExit,
+  });
+  if (direct.spawned) return trackedLaunch(filePath, "directly");
+
+  if (direct.errorCode && ELEVATION_ERROR_CODES.has(direct.errorCode)) {
+    const elevated = await launchInstallerElevated(filePath, options);
+    if (elevated.spawned) return trackedLaunch(filePath, "with elevation");
+  }
+
+  return await openUntracked(filePath);
+};
+
+const executeLinuxInstaller = async (
+  filePath: string,
+  options: InstallerLaunchOptions
+): Promise<InstallerLaunchResult> => {
+  try {
+    await launchInstallerWithUmu(filePath, options);
+    return trackedLaunch(filePath, "with umu-run");
+  } catch (error) {
+    logger.error("Failed to execute game installer with umu-run", error);
+  }
+
+  const wine = await spawnInstaller({
+    command: "wine",
+    args: [filePath],
+    cwd: path.dirname(filePath),
+    env: options.winePrefixPath
+      ? { ...process.env, WINEPREFIX: options.winePrefixPath }
+      : undefined,
+    failureMessage: "Failed to execute game installer with wine",
+    onExit: options.onExit,
+  });
+  if (wine.spawned) return trackedLaunch(filePath, "with wine");
+
+  return await openUntracked(filePath);
+};
+
 const executeGameInstaller = async (
   filePath: string,
   options: InstallerLaunchOptions
 ): Promise<InstallerLaunchResult> => {
   if (process.platform === "win32") {
-    const direct = await spawnInstaller({
-      command: filePath,
-      args: [],
-      cwd: path.dirname(filePath),
-      failureMessage: "Failed to execute game installer directly",
-      onExit: options.onExit,
-    });
-    if (direct.spawned) return trackedLaunch(filePath, "directly");
-
-    if (direct.errorCode && ELEVATION_ERROR_CODES.has(direct.errorCode)) {
-      const elevated = await launchInstallerElevated(filePath, options);
-      if (elevated.spawned) return trackedLaunch(filePath, "with elevation");
-    }
-
-    return await openUntracked(filePath);
+    return await executeWindowsInstaller(filePath, options);
   }
 
   if (process.platform === "linux") {
-    try {
-      await launchInstallerWithUmu(filePath, options);
-      return trackedLaunch(filePath, "with umu-run");
-    } catch (error) {
-      logger.error("Failed to execute game installer with umu-run", error);
-
-      const wine = await spawnInstaller({
-        command: "wine",
-        args: [filePath],
-        cwd: path.dirname(filePath),
-        env: options.winePrefixPath
-          ? { ...process.env, WINEPREFIX: options.winePrefixPath }
-          : undefined,
-        failureMessage: "Failed to execute game installer with wine",
-        onExit: options.onExit,
-      });
-      if (wine.spawned) return trackedLaunch(filePath, "with wine");
-
-      return await openUntracked(filePath);
-    }
+    return await executeLinuxInstaller(filePath, options);
   }
 
   return await openUntracked(filePath);
