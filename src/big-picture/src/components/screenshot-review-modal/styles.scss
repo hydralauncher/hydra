@@ -1,3 +1,5 @@
+@use "sass:color";
+
 $screenshot-review-progress-duration: 0.2s;
 $screenshot-review-fade-duration: 0.25s;
 
@@ -20,6 +22,11 @@ $screenshot-review-fade-duration: 0.25s;
 
   .modal__header {
     padding: calc(var(--spacing-unit) * 4) calc(var(--spacing-unit) * 6);
+  }
+
+  .modal__header-close-button {
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   .modal__content {
@@ -48,6 +55,14 @@ $screenshot-review-fade-duration: 0.25s;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+  }
+
+  &__header-position {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 400;
+    white-space: nowrap;
   }
 
   &__header-icon {
@@ -419,4 +434,58 @@ $screenshot-review-fade-duration: 0.25s;
       max-height: 34vh;
     }
   }
+}
+
+.screenshot-review-modal {
+  &__quality {
+    position: absolute;
+    top: calc(var(--spacing-unit) * 3);
+    left: calc(var(--spacing-unit) * 3);
+    padding: calc(var(--spacing-unit) * 1.5) calc(var(--spacing-unit) * 3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(10px);
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    pointer-events: none;
+
+    &--cloud {
+      border-color: rgba(22, 177, 149, 0.6);
+      box-shadow: 0 0 16px rgba(22, 177, 149, 0.3);
+    }
+  }
+
+  &__quality-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--spacing-unit) * 2);
+    width: 100%;
+  }
+
+  &__quality-option--locked &__quality-option-label {
+    opacity: 0.5;
+  }
+
+  &__cloud-badge {
+    padding: 0 var(--spacing-unit);
+    border-radius: 4px;
+    background: linear-gradient(
+      270deg,
+      color.scale(#16b195, $lightness: -30%) 50%,
+      color.scale(#3e62c0, $lightness: -30%) 100%
+    );
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+}
+
+.dropdown-select__value:has(> .screenshot-review-modal__quality-option) {
+  flex: 1;
+  min-width: 0;
 }

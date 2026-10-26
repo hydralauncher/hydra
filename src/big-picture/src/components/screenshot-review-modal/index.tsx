@@ -15,9 +15,12 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import cn from "classnames";
 import type {
   LocalScreenshot,
+  LocalScreenshotUploadOptions,
   ProfileVisibility,
+  ScreenshotQuality,
   ScreenshotReviewRequest,
 } from "@types";
 import {
@@ -27,6 +30,7 @@ import {
   sanitizeScreenshotDescriptionInput,
   isScreenshotUploadRetryable,
   resolveScreenshotPreferences,
+  resolveScreenshotUploadQuality,
 } from "@shared";
 import { logger } from "@renderer/logger";
 import { useReviewDraftSave } from "./use-review-draft-save";
@@ -35,11 +39,13 @@ import {
   BumperBadge,
   Button,
   Checkbox,
+  DropdownSelect,
   FocusItem,
   HorizontalFocusGroup,
   Modal,
   SegmentedControl,
   VerticalFocusGroup,
+  type DropdownSelectOption,
   type SegmentedControlOption,
 } from "../common";
 import { useFocusLayerId } from "../context";
@@ -63,6 +69,7 @@ import {
   useLibrary,
   useNavigation,
   useNavigationScreenActions,
+  useUserDetails,
   useUserPreferences,
 } from "../../hooks";
 import {
@@ -92,6 +99,7 @@ const DESCRIPTION_FOCUS_ID = "screenshot-review-description";
 const PREVIEW_FOCUS_ID = "screenshot-review-preview";
 const SPOILER_FOCUS_ID = "screenshot-review-spoiler";
 const VISIBILITY_FOCUS_ID = "screenshot-review-visibility";
+const QUALITY_FOCUS_ID = "screenshot-review-quality";
 const UPLOAD_FOCUS_ID = "screenshot-review-upload";
 const DELETE_FOCUS_ID = "screenshot-review-delete";
 const NEXT_FOCUS_ID = "screenshot-review-next";
@@ -120,13 +128,19 @@ const FIELD_FOCUS_IDS = new Set([
   DESCRIPTION_FOCUS_ID,
   SPOILER_FOCUS_ID,
   VISIBILITY_FOCUS_ID,
+  QUALITY_FOCUS_ID,
 ]);
+const SCREENSHOT_QUALITY_LABELS: Record<ScreenshotQuality, string> = {
+  STANDARD: "720p",
+  CLOUD: "1080p",
+};
 
 interface ReviewDraft {
   isSpoiler: boolean;
   visibility: ProfileVisibility;
   customGameTitle: string;
   description: string;
+  quality?: ScreenshotQuality;
 }
 
 function getUploadStatusKey(screenshot: LocalScreenshot | undefined) {
@@ -227,6 +241,7 @@ const releaseUndecidedScreenshots = (clientIds: string[]) => {
 interface ReviewPreviewProps {
   screenshot: LocalScreenshot | undefined;
   gameTitle: string;
+  quality: ScreenshotQuality | null;
   rightTarget: FocusOverrideTarget;
   downTarget: FocusOverrideTarget;
 }
@@ -234,6 +249,7 @@ interface ReviewPreviewProps {
 function ReviewPreview({
   screenshot,
   gameTitle,
+  quality,
   rightTarget,
   downTarget,
 }: Readonly<ReviewPreviewProps>) {
@@ -297,6 +313,15 @@ function ReviewPreview({
           ) : (
             <ImageIcon size={48} />
           )}
+          {hasImage && quality ? (
+            <span
+              className={cn("screenshot-review-modal__quality", {
+                "screenshot-review-modal__quality--cloud": quality === "CLOUD",
+              })}
+            >
+              {SCREENSHOT_QUALITY_LABELS[quality]}
+            </span>
+          ) : null}
           {hasImage ? (
             <span className="screenshot-review-modal__expand" aria-hidden>
               <ArrowsOutSimpleIcon size={18} weight="bold" />
@@ -534,7 +559,11 @@ const createReviewDraft = (
   description: record?.description ?? "",
 });
 
-const toUploadOptions = (draft: ReviewDraft, isCustomGame: boolean) => {
+const toUploadOptions = (
+  draft: ReviewDraft,
+  isCustomGame: boolean,
+  hasCloudSubscription: boolean
+): LocalScreenshotUploadOptions => {
   const customGameTitle = draft.customGameTitle.trim();
 
   return {
@@ -542,6 +571,10 @@ const toUploadOptions = (draft: ReviewDraft, isCustomGame: boolean) => {
     visibility: draft.visibility,
     customGameTitle: isCustomGame && customGameTitle ? customGameTitle : null,
     description: normalizeScreenshotDescription(draft.description),
+    quality: resolveScreenshotUploadQuality(
+      draft.quality,
+      hasCloudSubscription
+    ),
   };
 };
 
@@ -562,6 +595,7 @@ export function ScreenshotReviewModal() {
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const { library } = useLibrary();
+  const { hasActiveSubscription } = useUserDetails();
   const prefersReducedMotion = useReducedMotion();
   const {
     schedule: scheduleDraftSave,
@@ -771,7 +805,7 @@ export function ScreenshotReviewModal() {
     void runAction("upload", () =>
       globalThis.window.electron.uploadLocalScreenshot(
         current.clientId,
-        toUploadOptions(draft, isCustomGame)
+        toUploadOptions(draft, isCustomGame, hasActiveSubscription)
       )
     );
   };
@@ -806,6 +840,33 @@ export function ScreenshotReviewModal() {
     [t]
   );
 
+  const qualityOptions = useMemo<DropdownSelectOption<ScreenshotQuality>[]>(
+    () => [
+      { value: "STANDARD", label: SCREENSHOT_QUALITY_LABELS.STANDARD },
+      {
+        value: "CLOUD",
+        label: (
+          <span
+            className={cn("screenshot-review-modal__quality-option", {
+              "screenshot-review-modal__quality-option--locked":
+                !hasActiveSubscription,
+            })}
+          >
+            <span className="screenshot-review-modal__quality-option-label">
+              {SCREENSHOT_QUALITY_LABELS.CLOUD}
+            </span>
+            {hasActiveSubscription ? null : (
+              <span className="screenshot-review-modal__cloud-badge">
+                Hydra Cloud
+              </span>
+            )}
+          </span>
+        ),
+      },
+    ],
+    [hasActiveSubscription]
+  );
+
   if (!current) return null;
 
   const gameTitle =
@@ -820,6 +881,22 @@ export function ScreenshotReviewModal() {
   const isBusy = pendingAction !== null;
   const isLocked = isBusy || !isRecordReady;
   const isSidePanelOpen = isDetailsOpen && !isUploading;
+  const uploadQuality = resolveScreenshotUploadQuality(
+    draft.quality,
+    hasActiveSubscription
+  );
+  const previewQuality = isUploading
+    ? (currentScreenshot?.uploadQuality ?? uploadQuality)
+    : uploadQuality;
+  const selectQuality = (quality: ScreenshotQuality) => {
+    if (quality === "CLOUD" && !hasActiveSubscription) {
+      showErrorToast(t("screenshots_review_quality_cloud_title"), {
+        message: t("screenshots_review_quality_cloud_message"),
+      });
+      return;
+    }
+    updateDraft({ quality });
+  };
   const getFooterEntryFocusId = () => {
     if (!isRecordReady) {
       return hasLoadFailed ? RECORD_RETRY_FOCUS_ID : DETAILS_TOGGLE_FOCUS_ID;
@@ -834,7 +911,7 @@ export function ScreenshotReviewModal() {
       }
     : BLOCK_TARGET;
   const footerUpTarget: FocusOverrideTarget = isSidePanelOpen
-    ? { type: "item", itemId: VISIBILITY_FOCUS_ID }
+    ? { type: "item", itemId: QUALITY_FOCUS_ID }
     : PREVIEW_TARGET;
   const visibleItems = getVisibleReviewItems(queueState);
   const visiblePosition = visibleItems.findIndex(
@@ -876,12 +953,16 @@ export function ScreenshotReviewModal() {
             />
           ) : null}
           <h4>{gameTitle}</h4>
+          {visibleItems.length > 1 ? (
+            <span className="screenshot-review-modal__header-position">
+              {t("screenshots_review_position", {
+                current: visiblePosition + 1,
+                total: visibleItems.length,
+              })}
+            </span>
+          ) : null}
         </div>
       }
-      description={t("screenshots_review_counter", {
-        current: visiblePosition + 1,
-        total: visibleItems.length,
-      })}
       onClose={close}
       closeOnBackdrop={false}
       closeOnB={!isBusy}
@@ -901,6 +982,7 @@ export function ScreenshotReviewModal() {
               key={current.clientId}
               screenshot={currentScreenshot}
               gameTitle={gameTitle}
+              quality={previewQuality}
               rightTarget={sideEntryTarget}
               downTarget={{ type: "item", itemId: getFooterEntryFocusId() }}
             />
@@ -1009,12 +1091,28 @@ export function ScreenshotReviewModal() {
                       focusId={VISIBILITY_FOCUS_ID}
                       navigationOverrides={{
                         up: { type: "item", itemId: SPOILER_FOCUS_ID },
-                        down: { type: "item", itemId: getFooterEntryFocusId() },
+                        down: { type: "item", itemId: QUALITY_FOCUS_ID },
                         left: PREVIEW_TARGET,
                       }}
                       onValueChange={(visibility) =>
                         updateDraft({ visibility })
                       }
+                    />
+
+                    <DropdownSelect
+                      label={t("screenshots_review_quality")}
+                      value={uploadQuality}
+                      options={qualityOptions}
+                      disabled={isLocked}
+                      focusId={QUALITY_FOCUS_ID}
+                      focusNavigationOverrides={{
+                        up: { type: "item", itemId: VISIBILITY_FOCUS_ID },
+                        down: { type: "item", itemId: getFooterEntryFocusId() },
+                        left: PREVIEW_TARGET,
+                        right: BLOCK_TARGET,
+                      }}
+                      className="screenshot-review-modal__quality-select"
+                      onValueChange={selectQuality}
                     />
                   </motion.div>
                 </VerticalFocusGroup>
