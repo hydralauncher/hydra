@@ -988,7 +988,7 @@ test("a parked sync resumes after a restart", async (t) => {
   await f.untilRequest(11);
 });
 
-test("a successful PUT clears server errors inherited by a newer snapshot", async (t) => {
+test("a successful PUT clears failure state inherited by a newer snapshot", async (t) => {
   const f = await fixture(t);
   await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
   await f.untilRequest(1);
@@ -997,9 +997,11 @@ test("a successful PUT clears server errors inherited by a newer snapshot", asyn
   await resend(f);
   await f.mergeAchievements(f.game, [{ name: "B", unlockTime: 2 }], false);
   assert.equal([...f.records.values()][0]!.serverErrors, 9);
+  assert.equal([...f.records.values()][0]!.attempts, 9);
   f.requests.at(-1)!.gate.resolve(undefined);
   await settle();
   assert.equal([...f.records.values()][0]!.serverErrors, 0);
+  assert.equal([...f.records.values()][0]!.attempts, 0);
   await failRepeatedly(f, serverError, 1);
   assert.equal([...f.records.values()][0]!.terminal, false);
 });
