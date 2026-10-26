@@ -123,10 +123,10 @@ export class ScreenshotFeedback {
     achievementNotificationPresenter.releaseWarm();
   }
 
-  public static async playCaptureSound({ force = false } = {}) {
+  public static async playCaptureSound() {
     const userPreferences = await readUserPreferences();
     const preferences = resolveScreenshotPreferences(userPreferences);
-    if (!force && !preferences.captureSoundEnabled) return;
+    if (!preferences.captureSoundEnabled) return;
 
     this.prepare();
     const current = soundWindow;
