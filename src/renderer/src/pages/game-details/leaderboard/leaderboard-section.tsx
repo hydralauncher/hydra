@@ -16,10 +16,16 @@ import { useFeature } from "@renderer/hooks";
 import { AuthPage } from "@shared";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import {
+  buildMetricsRequest,
+  normalizeMetricDefinitions,
+} from "@renderer/pages/leaderboards/global-leaderboard";
+import { useApiResource } from "@renderer/pages/leaderboards/leaderboards-api";
+import {
   buildGameLeaderboardPath,
   buildLeaderboardRows,
   getLeaderboardNudge,
   getLeaderboardState,
+  getServedMetrics,
   LEADERBOARD_CARD_SIZE,
   type LeaderboardMetric,
   type LeaderboardPeriod,
@@ -55,6 +61,23 @@ export function LeaderboardSection() {
   const [selectedMetric, setSelectedMetric] =
     useState<LeaderboardMetric>("playtime");
 
+  const metricsRequest = buildMetricsRequest("game");
+  const metricDefinitions = useApiResource(
+    isExtended ? metricsRequest.path : null,
+    metricsRequest.options,
+    normalizeMetricDefinitions
+  );
+  const servedMetrics = useMemo(
+    () =>
+      getServedMetrics(
+        metricDefinitions.data?.map((definition) => definition.id) ?? null
+      ),
+    [metricDefinitions.data]
+  );
+  const requestedMetric = servedMetrics.includes(selectedMetric)
+    ? selectedMetric
+    : servedMetrics[0];
+
   const {
     leaderboard,
     isLoading,
@@ -73,7 +96,7 @@ export function LeaderboardSection() {
     objectId: catalogueGame.objectId,
     period,
     scope: selectedScope,
-    metric: selectedMetric,
+    metric: requestedMetric,
     isExtended,
   });
 
@@ -115,7 +138,7 @@ export function LeaderboardSection() {
     return (
       <p className="leaderboard-section__nudge">
         <GraphIcon size={14} />
-        <span>{text}</span>
+        <span className="leaderboard-section__nudge-text">{text}</span>
       </p>
     );
   };
@@ -260,7 +283,8 @@ export function LeaderboardSection() {
           scope={scope}
           metric={metric}
           showScope={isExtended && isLoggedIn}
-          showMetrics={isExtended}
+          metrics={servedMetrics}
+          showMetrics={isExtended && servedMetrics.length > 1}
           onPeriodChange={setPeriod}
           onScopeChange={setSelectedScope}
           onMetricChange={setSelectedMetric}

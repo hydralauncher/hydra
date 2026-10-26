@@ -9,7 +9,6 @@ import {
 import { useTranslation } from "react-i18next";
 
 import {
-  LEADERBOARD_METRICS,
   LEADERBOARD_PERIODS,
   LEADERBOARD_SCOPES,
   type LeaderboardMetric,
@@ -147,6 +146,7 @@ export interface LeaderboardControlsProps {
   period: LeaderboardPeriod;
   scope: LeaderboardScope;
   metric: LeaderboardMetric;
+  metrics: readonly LeaderboardMetric[];
   showScope: boolean;
   showMetrics: boolean;
   onPeriodChange: (period: LeaderboardPeriod) => void;
@@ -158,6 +158,7 @@ export function LeaderboardControls({
   period,
   scope,
   metric,
+  metrics,
   showScope,
   showMetrics,
   onPeriodChange,
@@ -205,7 +206,7 @@ export function LeaderboardControls({
           label={t("metric_label")}
           value={metric}
           onChange={onMetricChange}
-          options={LEADERBOARD_METRICS.map((id) => ({
+          options={metrics.map((id) => ({
             id,
             label: t(`metric_${id}`),
           }))}

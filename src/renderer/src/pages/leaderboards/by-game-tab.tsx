@@ -14,6 +14,7 @@ import { Avatar } from "@renderer/components";
 import { useFormat } from "@renderer/hooks";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
+import { buildLeaderboardBoardPath } from "@shared";
 import type { LeaderboardUser } from "../game-details/leaderboard/game-leaderboard";
 import {
   buildMetricsRequest,
@@ -179,7 +180,7 @@ export function ByGameTab({
 
   const board = useApiResource(
     boardGame && metric
-      ? `/games/${boardGame.shop}/${encodeURIComponent(boardGame.objectId)}/leaderboards/${encodeURIComponent(metric.id)}`
+      ? buildLeaderboardBoardPath(metric.id, boardGame)
       : null,
     {
       params: { range: period, scope, take: GLOBAL_LEADERBOARD_TAKE },

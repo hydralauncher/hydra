@@ -52,4 +52,5 @@ export const levelKeys = {
   cloudSavePendingDeletions: "cloud-save-pending-deletions",
   steamSyncRun: "steamSyncRun",
   chatNotificationCursor: "chatNotificationCursor", // Newest chat message already announced
+  leaderboardNotificationsShown: "leaderboardNotificationsShown",
 };
