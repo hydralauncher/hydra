@@ -249,6 +249,7 @@ export interface LocalScreenshotUploadOptions {
   visibility: ProfileVisibility;
   customGameTitle: string | null;
   description?: string | null;
+  quality?: ScreenshotQuality;
 }
 
 export type LocalScreenshotDraft = Partial<LocalScreenshotUploadOptions>;
@@ -258,8 +259,6 @@ export interface ScreenshotUploadProgress {
   state: LocalScreenshotState;
   progress: number | null;
 }
-
-export type ScreenshotReviewScope = "game" | "screenshot";
 
 export interface ScreenshotReview {
   clientIds: string[];

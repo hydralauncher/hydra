@@ -2546,6 +2546,7 @@
     "spoiler_hint": "Los demás la verán difuminada hasta que decidan mostrarla",
     "spoiler_label": "Contiene spoilers",
     "thumbnail_label": "Captura {{index}} de {{count}}",
+    "review_position": "{{index}} de {{count}}",
     "previous_screenshot": "Captura anterior",
     "next_screenshot": "Captura siguiente",
     "upload": "Subir",
@@ -2566,6 +2567,7 @@
     "uploading_title": "Subiendo capturas",
     "visibility_friends": "Solo amigos",
     "visibility_label": "Quién puede verla",
+    "upload_quality": "Calidad de subida",
     "visibility_private": "Solo yo",
     "visibility_public": "Todos"
   },

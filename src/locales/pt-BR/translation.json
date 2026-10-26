@@ -2822,6 +2822,7 @@
     "spoiler_hint": "Os outros verão a imagem desfocada até escolherem revelá-la",
     "spoiler_label": "Contém spoilers",
     "thumbnail_label": "Captura {{index}} de {{count}}",
+    "review_position": "{{index}} de {{count}}",
     "previous_screenshot": "Captura anterior",
     "next_screenshot": "Próxima captura",
     "upload": "Enviar",
@@ -2842,6 +2843,7 @@
     "uploading_title": "Enviando capturas",
     "visibility_friends": "Somente amigos",
     "visibility_label": "Quem pode ver",
+    "upload_quality": "Qualidade do envio",
     "visibility_private": "Somente eu",
     "visibility_public": "Todos"
   },
