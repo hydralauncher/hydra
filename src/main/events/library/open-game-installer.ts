@@ -208,7 +208,11 @@ const launchInstallerElevated = async (
     ],
     failureMessage: "Failed to execute game installer with elevation",
     onExit: (code, output) =>
-      void handleElevatedInstallerExit(code, output, filePath, options),
+      void handleElevatedInstallerExit(code, output, filePath, options).catch(
+        (error) => {
+          logger.error("Failed to handle the elevated installer exit", error);
+        }
+      ),
     env: { ...process.env, HYDRA_INSTALLER_PATH: filePath },
     captureOutput: true,
   });
@@ -459,6 +463,7 @@ const openGameInstaller = async (
   }
 
   let installerFinished = false;
+  let trackingTimeout: NodeJS.Timeout | null = null;
   let markLaunchRecorded = () => {};
   const launchRecorded = new Promise<void>((resolve) => {
     markLaunchRecorded = resolve;
@@ -467,6 +472,7 @@ const openGameInstaller = async (
   const afterLaunchRecorded = (callback: () => Promise<void>) => {
     if (installerFinished) return;
     installerFinished = true;
+    if (trackingTimeout) clearTimeout(trackingTimeout);
     releaseRunningInstaller(gameKey, installerStartedAt);
     endInstallerRun(gameKey, installerStartedAt);
     void launchRecorded.then(callback).catch((error) => {
@@ -514,7 +520,7 @@ const openGameInstaller = async (
 
   if (launched && tracked && !installerFinished) {
     markInstallerRunLive(gameKey, installerStartedAt);
-    setTimeout(() => {
+    trackingTimeout = setTimeout(() => {
       if (installerFinished) return;
 
       logger.info(
@@ -526,7 +532,8 @@ const openGameInstaller = async (
         .catch((error) => {
           logger.error("Failed to update the installer state", error);
         });
-    }, MAX_INSTALLER_TRACKING_MS).unref();
+    }, MAX_INSTALLER_TRACKING_MS);
+    trackingTimeout.unref();
   }
 
   try {

@@ -1134,7 +1134,8 @@ export function DownloadGroup({
         showErrorToast,
         showSuccessToast,
         navigate,
-        onEmulatorAlreadyRunning: () => navigate(detailsPath),
+        onEmulatorAlreadyRunning: () =>
+          showErrorToast(tGameDetails("rpcs3_already_running_title")),
       });
       if (shouldLog) logger.error("Failed to start classics game", error);
     }

@@ -948,6 +948,8 @@ function Section({
   );
 }
 
+const noop = () => undefined;
+
 export default function Downloads() {
   const navigate = useNavigate();
   const { t } = useTranslation("downloads");
@@ -1071,7 +1073,7 @@ export default function Downloads() {
   const interactionsLocked = Boolean(moveMode);
 
   const { showErrorToast } = useBigPictureToast();
-  const launchGame = useLibraryLaunchGame(() => undefined);
+  const launchGame = useLibraryLaunchGame(noop);
   const runningGamesById = useBigPictureRunningGames();
   const installerAvailability = useInstallerAvailability(
     completedDownloads.map((item) => item.game)

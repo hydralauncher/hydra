@@ -15,6 +15,7 @@ export function useDownloadFolderExists(game: LibraryGame | null | undefined) {
   useEffect(() => {
     const electron = globalThis.window?.electron;
     const currentGame = gameRef.current;
+    setFolderExists(null);
 
     if (!requestKey || !currentGame || !electron) {
       setFolderExists(null);

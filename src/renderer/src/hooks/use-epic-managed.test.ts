@@ -2120,7 +2120,11 @@ describe("Epic managed UI lifecycle", () => {
           "react-i18next": {
             useTranslation: () => ({ t: (key: string) => key }),
           },
-          "react-router-dom": { useNavigate: () => () => {} },
+          "react-router-dom": {
+            useNavigate: () => () => {},
+            useLocation: () => ({ pathname: "/", search: "", state: null }),
+          },
+          "@renderer/logger": { logger: { error: () => {} } },
           "@renderer/helpers": {
             canDownloadOnSteam: () => false,
             handleClassicsLaunchError: () => {},

@@ -2,6 +2,7 @@ import type { GameShop } from "@types";
 import { getGameExecutableFilters } from "@shared";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { logger } from "@renderer/logger";
 import { useBigPictureToast } from "../../../hooks";
 import { FileExplorerModal } from "../../common";
 
@@ -29,7 +30,7 @@ const getInitialPath = async (target: ExecutablePickerTarget) => {
 
   return (
     userPreferences?.downloadsPath ??
-    (await globalThis.window.electron.getDefaultDownloadsPath())
+    (await globalThis.window.electron.getDefaultDownloadsPath().catch(() => ""))
   );
 };
 
@@ -77,29 +78,33 @@ export function ExecutablePickerModal({
 
       onClose();
 
-      const gameUsingPath =
-        await globalThis.window.electron.verifyExecutablePathInUse(
+      try {
+        const gameUsingPath =
+          await globalThis.window.electron.verifyExecutablePathInUse(
+            executablePath
+          );
+
+        if (
+          gameUsingPath &&
+          (gameUsingPath.objectId !== target.objectId ||
+            gameUsingPath.shop !== target.shop)
+        ) {
+          showErrorToast(
+            t("executable_path_in_use", { game: gameUsingPath.title })
+          );
+          return;
+        }
+
+        await globalThis.window.electron.updateExecutablePath(
+          target.shop,
+          target.objectId,
           executablePath
         );
-
-      if (
-        gameUsingPath &&
-        (gameUsingPath.objectId !== target.objectId ||
-          gameUsingPath.shop !== target.shop)
-      ) {
-        showErrorToast(
-          t("executable_path_in_use", { game: gameUsingPath.title })
-        );
-        return;
+        globalThis.window.dispatchEvent(new Event("library-update"));
+        onSaved?.();
+      } catch (error) {
+        logger.error("Failed to save the selected executable", error);
       }
-
-      await globalThis.window.electron.updateExecutablePath(
-        target.shop,
-        target.objectId,
-        executablePath
-      );
-      globalThis.window.dispatchEvent(new Event("library-update"));
-      onSaved?.();
     },
     [onClose, onSaved, showErrorToast, t, target]
   );

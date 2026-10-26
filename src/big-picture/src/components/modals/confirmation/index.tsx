@@ -83,6 +83,7 @@ export function ConfirmationModal({
         {sourceArchiveOption && (
           <SourceArchiveOption
             checked={sourceArchiveOption.checked}
+            disabled={loading}
             onChange={sourceArchiveOption.onChange}
           />
         )}
@@ -117,8 +118,9 @@ export function ConfirmationModal({
 
 function SourceArchiveOption({
   checked,
+  disabled,
   onChange,
-}: Readonly<SourceArchiveOptionProps>) {
+}: Readonly<SourceArchiveOptionProps & { disabled: boolean }>) {
   const { t } = useTranslation("downloads");
 
   return (
@@ -126,6 +128,7 @@ function SourceArchiveOption({
       block
       label={t("delete_source_archive")}
       checked={checked}
+      disabled={disabled}
       onChange={onChange}
     />
   );

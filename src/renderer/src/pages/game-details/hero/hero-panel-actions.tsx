@@ -27,8 +27,9 @@ import {
 } from "@renderer/hooks";
 import { useCallback, useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { gameDetailsContext } from "@renderer/context";
+import { logger } from "@renderer/logger";
 import {
   canDownloadOnSteam,
   handleClassicsLaunchError,
@@ -80,8 +81,18 @@ export function HeroPanelActions() {
   const { showSuccessToast, showErrorToast } = useToast();
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [showDiscSelectionModal, setShowDiscSelectionModal] = useState(false);
+
+  useEffect(() => {
+    const state = (location.state as Record<string, unknown> | null) ?? {};
+    if (!state.openDiscSelection) return;
+    if (game?.shop !== "launchbox" || (game?.discs?.length ?? 0) <= 1) return;
+
+    setShowDiscSelectionModal(true);
+    navigate(location.pathname + location.search, { replace: true, state: {} });
+  }, [location, game?.shop, game?.discs?.length, navigate]);
   const [localSaveRetry, setLocalSaveRetry] = useState<LibraryGame | null>(
     null
   );
@@ -450,10 +461,11 @@ export function HeroPanelActions() {
       return (
         <Button
           onClick={async () => {
-            await window.electron.extractGameDownload(
-              downloadGame.shop,
-              downloadGame.objectId
-            );
+            await window.electron
+              .extractGameDownload(downloadGame.shop, downloadGame.objectId)
+              .catch((error) =>
+                logger.error("Failed to start extraction", error)
+              );
             updateLibrary();
           }}
           theme="outline"
@@ -478,10 +490,12 @@ export function HeroPanelActions() {
       return (
         <Button
           onClick={async () => {
-            const opened = await window.electron.openGameInstaller(
-              downloadGame.shop,
-              downloadGame.objectId
-            );
+            const opened = await window.electron
+              .openGameInstaller(downloadGame.shop, downloadGame.objectId)
+              .catch((error) => {
+                logger.error("Failed to open game installer", error);
+                return false;
+              });
 
             if (!opened) {
               showErrorToast(t("installer_launch_failed", { ns: "downloads" }));

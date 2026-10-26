@@ -20,7 +20,7 @@ const WINE_DRIVE_C_GAME_FOLDERS = [
 const MODIFICATION_TIME_TOLERANCE_MS = 2000;
 const MAX_CHANGED_FOLDERS = 10;
 
-const LAUNCHER_FOLDERS = new Set([
+const SKIPPED_FOLDERS = new Set([
   "steam",
   "steamlibrary",
   "steamapps",
@@ -39,6 +39,14 @@ const LAUNCHER_FOLDERS = new Set([
   "xboxgames",
   "windowsapps",
   "hydra",
+  "common files",
+  "internet explorer",
+  "windows media player",
+  "windows nt",
+  "windowspowershell",
+  "microsoft.net",
+  "msbuild",
+  "reference assemblies",
 ]);
 
 const getChangedAt = (stats: fs.Stats) =>
@@ -105,7 +113,7 @@ const listSubfoldersChangedSince = async (directory: string, since: number) => {
     entries
       .filter(
         (entry) =>
-          entry.isDirectory() && !LAUNCHER_FOLDERS.has(entry.name.toLowerCase())
+          entry.isDirectory() && !SKIPPED_FOLDERS.has(entry.name.toLowerCase())
       )
       .map(async (entry) => {
         const folderPath = path.join(directory, entry.name);

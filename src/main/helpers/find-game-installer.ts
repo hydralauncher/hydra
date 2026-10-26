@@ -149,7 +149,11 @@ const ARCHIVE_VOLUME_PATTERNS = [
 const readArchiveVolume = (fileName: string) => {
   for (const pattern of ARCHIVE_VOLUME_PATTERNS) {
     const match = pattern.exec(fileName);
-    if (match) return { pattern, base: match[1].toLowerCase() };
+    if (match) {
+      const base =
+        process.platform === "win32" ? match[1].toLowerCase() : match[1];
+      return { pattern, base };
+    }
   }
 
   return null;
