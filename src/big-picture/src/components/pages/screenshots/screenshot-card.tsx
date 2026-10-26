@@ -18,7 +18,7 @@ import { useScreenshotImageFallback } from "@shared";
 
 import { FocusItem, UserProfileAvatar } from "../../common";
 import type { FocusOverrides } from "../../../services";
-import { Feature, useFeature } from "../../../hooks";
+import { Feature, useDate, useFeature } from "../../../hooks";
 import {
   getScreenshotAltText,
   getScreenshotGameTitle,
@@ -26,11 +26,14 @@ import {
 } from "./helpers";
 import { useRevealedScreenshotSpoilers } from "./use-revealed-spoilers";
 
+export type ScreenshotCardMetaPlacement = "below" | "overlay" | "none";
+
 export interface ScreenshotCardProps {
   screenshot: ProfileScreenshot;
   focusId: string;
   showOwnerDetails: boolean;
   showAuthor: boolean;
+  metaPlacement?: ScreenshotCardMetaPlacement;
   navigationOverrides?: FocusOverrides;
   isLikePending?: boolean;
   onActivate: (screenshot: ProfileScreenshot) => void;
@@ -186,11 +189,46 @@ function ScreenshotCardMeta({
   );
 }
 
+function ScreenshotCardOverlay({
+  screenshot,
+}: Readonly<{ screenshot: ProfileScreenshot }>) {
+  const { t } = useTranslation("screenshots");
+  const { formatDateTime, formatDistance } = useDate();
+  const uploadedAt = new Date(screenshot.createdAt);
+
+  return (
+    <div className="screenshot-card__overlay">
+      <span className="screenshot-card__glass screenshot-card__glass--author">
+        <UserProfileAvatar
+          image={screenshot.owner.profileImageUrl}
+          alt=""
+          className="screenshot-card__author-avatar"
+          fallbackClassName="screenshot-card__author-avatar--fallback"
+          width={22}
+          height={22}
+          iconSize={12}
+        />
+        <span className="screenshot-card__meta-text">
+          {screenshot.owner.displayName}
+        </span>
+      </span>
+      <time
+        className="screenshot-card__glass screenshot-card__glass--date"
+        dateTime={uploadedAt.toISOString()}
+        title={t("uploaded_on", { date: formatDateTime(uploadedAt) })}
+      >
+        {formatDistance(uploadedAt, new Date(), { addSuffix: true })}
+      </time>
+    </div>
+  );
+}
+
 export function ScreenshotCard({
   screenshot,
   focusId,
   showOwnerDetails,
   showAuthor,
+  metaPlacement = "below",
   navigationOverrides,
   isLikePending = false,
   onActivate,
@@ -283,9 +321,15 @@ export function ScreenshotCard({
               ) : null}
             </div>
           </div>
+
+          {metaPlacement === "overlay" ? (
+            <ScreenshotCardOverlay screenshot={screenshot} />
+          ) : null}
         </div>
 
-        <ScreenshotCardMeta screenshot={screenshot} showAuthor={showAuthor} />
+        {metaPlacement === "below" ? (
+          <ScreenshotCardMeta screenshot={screenshot} showAuthor={showAuthor} />
+        ) : null}
       </li>
     </FocusItem>
   );

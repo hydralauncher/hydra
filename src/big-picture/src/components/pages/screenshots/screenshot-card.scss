@@ -142,6 +142,46 @@ $screenshot-card-spoiler-duration: 0.2s;
     padding: 0;
   }
 
+  &__overlay {
+    position: absolute;
+    right: calc(var(--spacing-unit) * 1.5);
+    bottom: calc(var(--spacing-unit) * 1.5);
+    left: calc(var(--spacing-unit) * 1.5);
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-unit);
+    pointer-events: none;
+  }
+
+  &__glass {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-unit);
+    min-width: 0;
+    height: 32px;
+    padding: 0 var(--spacing-unit);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    white-space: nowrap;
+
+    &--author {
+      padding-left: 5px;
+      font-weight: 600;
+    }
+
+    &--date {
+      flex-shrink: 0;
+    }
+  }
+
   &__meta {
     display: flex;
     align-items: center;
