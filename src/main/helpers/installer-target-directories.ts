@@ -11,6 +11,7 @@ export const WINDOWS_GAME_DIRECTORIES = [
 const WINDOWS_DRIVE_GAME_FOLDERS = ["Games", "GOG Games"];
 
 const WINE_DRIVE_C_GAME_FOLDERS = [
+  "",
   "Games",
   "GOG Games",
   "Program Files",
@@ -47,6 +48,24 @@ const SKIPPED_FOLDERS = new Set([
   "microsoft.net",
   "msbuild",
   "reference assemblies",
+  "games",
+  "gog games",
+  "program files",
+  "program files (x86)",
+  "programdata",
+  "users",
+  "windows",
+  "openxr",
+  "vrclient",
+  "proton_shortcuts",
+  "$recycle.bin",
+  "system volume information",
+  "recovery",
+  "perflogs",
+  "msocache",
+  "$windows.~bt",
+  "$windows.~ws",
+  "$winreagent",
 ]);
 
 const getChangedAt = (stats: fs.Stats) =>
@@ -66,6 +85,7 @@ const getWindowsTargetDirectories = (downloadPath: string) => {
 
   return unique([
     ...WINDOWS_GAME_DIRECTORIES,
+    ...drives.map((drive) => `${drive}\\`),
     ...drives.flatMap((drive) =>
       WINDOWS_DRIVE_GAME_FOLDERS.map((folder) =>
         path.win32.join(`${drive}\\`, folder)
