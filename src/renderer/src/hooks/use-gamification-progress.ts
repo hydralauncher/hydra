@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from "./redux";
 import { Feature, readCachedFeatures } from "./use-feature";
 
 const PROGRESS_REFRESH_INTERVAL_MS = 8 * 60 * 60 * 1000;
+const SESSION_SYNC_REFRESH_DELAY_MS = 2000;
 
 export function useGamificationProgress() {
   const dispatch = useAppDispatch();
@@ -86,4 +87,22 @@ export function useGamificationProgressSync() {
 
     return () => clearInterval(interval);
   }, [userId, isEnabled, refreshProgress, dispatch]);
+
+  useEffect(() => {
+    if (!userId || !isEnabled) return;
+
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const unsubscribe = globalThis.window.electron.onGameSessionSynced(() => {
+      clearTimeout(timeout);
+      timeout = setTimeout(
+        () => void refreshProgress(),
+        SESSION_SYNC_REFRESH_DELAY_MS
+      );
+    });
+
+    return () => {
+      clearTimeout(timeout);
+      unsubscribe();
+    };
+  }, [userId, isEnabled, refreshProgress]);
 }
