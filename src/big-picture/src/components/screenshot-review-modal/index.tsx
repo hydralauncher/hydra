@@ -21,7 +21,6 @@ import type {
   LocalScreenshotUploadOptions,
   ProfileVisibility,
   ScreenshotQuality,
-  ScreenshotReviewRequest,
 } from "@types";
 import {
   SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
@@ -634,28 +633,9 @@ export function ScreenshotReviewModal() {
   useEffect(() => {
     if (!IS_DESKTOP) return;
 
-    let isSubscribed = true;
-    const enqueue = (request: ScreenshotReviewRequest) => {
+    return subscribeScreenshotReviewRequests((request) => {
       setQueueState((current) => enqueueReviewRequest(current, request));
-    };
-    const unsubscribe =
-      globalThis.window.electron.onScreenshotReviewRequested(enqueue);
-    const unsubscribeLocal = subscribeScreenshotReviewRequests(enqueue);
-
-    globalThis.window.electron
-      .getPendingScreenshotReviewRequest()
-      .then((request) => {
-        if (isSubscribed && request) enqueue(request);
-      })
-      .catch((error: unknown) => {
-        logger.error("Failed to read the pending screenshot review", error);
-      });
-
-    return () => {
-      isSubscribed = false;
-      unsubscribe();
-      unsubscribeLocal();
-    };
+    });
   }, []);
 
   const current = getCurrentReviewItem(queueState);

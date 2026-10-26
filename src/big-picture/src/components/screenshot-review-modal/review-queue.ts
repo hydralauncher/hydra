@@ -1,4 +1,4 @@
-import type { ScreenshotReviewRequest } from "@types";
+import type { ScreenshotReviewRequest } from "./review-requests";
 
 export type ReviewDecision = "upload" | "delete";
 

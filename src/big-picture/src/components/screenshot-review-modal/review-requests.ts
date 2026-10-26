@@ -1,4 +1,12 @@
-import type { ScreenshotReviewRequest } from "@types";
+import type { ScreenshotShop } from "@types";
+
+export interface ScreenshotReviewRequest {
+  gameKey: string;
+  shop: ScreenshotShop;
+  objectId: string;
+  gameTitle: string;
+  clientIds: string[];
+}
 
 type ReviewRequestListener = (request: ScreenshotReviewRequest) => void;
 
