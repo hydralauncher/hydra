@@ -218,12 +218,19 @@ const deleteGameFolder = async (
       (disc) => disc.path === game.selectedDiscPath
     );
 
+    const executableRemoved =
+      !game.executablePath ||
+      !folderPath ||
+      isWithin(game.executablePath, folderPath);
+
     await gamesSublevel.put(gameKey, {
       ...game,
       installerSizeInBytes: null,
-      executablePath: null,
-      installedSizeInBytes: null,
-      automaticCloudSync: false,
+      ...(executableRemoved && {
+        executablePath: null,
+        installedSizeInBytes: null,
+        automaticCloudSync: false,
+      }),
       ...(hasUnlinkedDiscs && {
         discs: remainingDiscs,
         selectedDiscPath: isSelectedDiscRemaining

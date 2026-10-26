@@ -284,6 +284,9 @@ const executeGameInstaller = async (
         command: "wine",
         args: [filePath],
         cwd: path.dirname(filePath),
+        env: options.winePrefixPath
+          ? { ...process.env, WINEPREFIX: options.winePrefixPath }
+          : undefined,
         failureMessage: "Failed to execute game installer with wine",
         onExit: options.onExit,
       });
@@ -332,6 +335,16 @@ const handleInstallerExit = async (
   );
 
   const gameKey = levelKeys.game(shop, objectId);
+  const download = await downloadsSublevel.get(gameKey);
+
+  if (download?.installerStartedAt !== installerStartedAt) {
+    logger.info(
+      `[GameInstaller] Ignoring the exit of an older installer run for ${objectId}`
+    );
+    return;
+  }
+
+  stopInstalledExecutablePolling(gameKey);
 
   if (!isSuccessfulExit(exitCode)) {
     logger.info(`[GameInstaller] Reset ${objectId} back to Install`);
@@ -477,17 +490,14 @@ const openGameInstaller = async (
       if (installerFinished) return;
 
       logger.info(
-        `[GameInstaller] Stopped tracking the installer for ${objectId} after it ran for two hours`
+        `[GameInstaller] Installer for ${objectId} is still open after two hours, allowing it to be relaunched`
       );
-      afterLaunchRecorded(async () => {
-        await updateInstallerState(gameKey, { installerRunning: false });
-        startInstalledExecutablePolling(
-          shop,
-          objectId,
-          installerStartedAt,
-          winePrefixPath
-        );
-      });
+      runningInstallers.delete(gameKey);
+      void launchRecorded
+        .then(() => updateInstallerState(gameKey, { installerRunning: false }))
+        .catch((error) => {
+          logger.error("Failed to update the installer state", error);
+        });
     }, MAX_INSTALLER_TRACKING_MS).unref();
   }
 

@@ -25,6 +25,8 @@ export function useInstallerAvailability(games: LibraryGame[]) {
   >({});
   const gamesRef = useRef(games);
   gamesRef.current = games;
+  const availabilityRef = useRef(availability);
+  availabilityRef.current = availability;
 
   const requestKey = toRequestKey(games);
 
@@ -51,8 +53,15 @@ export function useInstallerAvailability(games: LibraryGame[]) {
           .catch(() => false);
       });
 
+    const gamesToCheck = finishedGames.filter(
+      (game) =>
+        availabilityRef.current[game.id]?.folderKey !== toFolderKey(game)
+    );
+
+    if (gamesToCheck.length === 0) return;
+
     void Promise.all(
-      finishedGames.map(async (game) => {
+      gamesToCheck.map(async (game) => {
         const hasInstaller = await electron
           .hasGameInstaller(game.shop, game.objectId)
           .catch(() => false);
