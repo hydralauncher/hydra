@@ -22,7 +22,7 @@ import { useScreenshotSpoiler } from "./use-screenshot-spoiler";
 
 import "./screenshot-card.scss";
 
-export type ScreenshotCardVariant = "profile" | "game";
+export type ScreenshotCardVariant = "profile" | "game" | "tile";
 
 interface ScreenshotCardProps {
   screenshot: ProfileScreenshot;
@@ -183,42 +183,49 @@ function ScreenshotCardMedia({
   );
 }
 
-interface ScreenshotCardDetailsProps {
-  screenshot: ProfileScreenshot;
-  variant: ScreenshotCardVariant;
-}
-
 function ScreenshotCardDetails({
   screenshot,
-  variant,
-}: Readonly<ScreenshotCardDetailsProps>) {
+}: Readonly<{ screenshot: ProfileScreenshot }>) {
   const { t } = useTranslation("screenshots");
   const { formatDateTime, formatDistance } = useDate();
-  const isGameFeed = variant === "game";
-  const timestamp = isGameFeed ? screenshot.createdAt : screenshot.capturedAt;
-  const timeTitle = t(isGameFeed ? "uploaded_on" : "captured_on", {
-    date: formatDateTime(timestamp),
-  });
+  const timestamp = screenshot.capturedAt;
 
   return (
     <div className="screenshot-card__details">
-      {isGameFeed ? (
-        <Link
-          className="screenshot-card__author"
-          to={`/profile/${encodeURIComponent(screenshot.owner.id)}`}
-        >
-          <Avatar size={20} src={screenshot.owner.profileImageUrl} alt="" />
-          <span className="screenshot-card__author-name">
-            {screenshot.owner.displayName}
-          </span>
-        </Link>
-      ) : (
-        <ScreenshotGameLabel screenshot={screenshot} />
-      )}
+      <ScreenshotGameLabel screenshot={screenshot} />
       <time
         className="screenshot-card__date"
         dateTime={new Date(timestamp).toISOString()}
-        title={timeTitle}
+        title={t("captured_on", { date: formatDateTime(timestamp) })}
+      >
+        {formatDistance(new Date(timestamp), new Date(), { addSuffix: true })}
+      </time>
+    </div>
+  );
+}
+
+function ScreenshotCardOverlay({
+  screenshot,
+}: Readonly<{ screenshot: ProfileScreenshot }>) {
+  const { t } = useTranslation("screenshots");
+  const { formatDateTime, formatDistance } = useDate();
+  const timestamp = screenshot.createdAt;
+
+  return (
+    <div className="screenshot-card__overlay">
+      <Link
+        className="screenshot-card__glass screenshot-card__glass--author"
+        to={`/profile/${encodeURIComponent(screenshot.owner.id)}`}
+      >
+        <Avatar size={18} src={screenshot.owner.profileImageUrl} alt="" />
+        <span className="screenshot-card__author-name">
+          {screenshot.owner.displayName}
+        </span>
+      </Link>
+      <time
+        className="screenshot-card__glass screenshot-card__glass--date"
+        dateTime={new Date(timestamp).toISOString()}
+        title={t("uploaded_on", { date: formatDateTime(timestamp) })}
       >
         {formatDistance(new Date(timestamp), new Date(), { addSuffix: true })}
       </time>
@@ -246,7 +253,7 @@ export function ScreenshotCard({
   });
 
   return (
-    <li className="screenshot-card">
+    <li className={cn("screenshot-card", `screenshot-card--${variant}`)}>
       <ScreenshotCardMedia
         screenshot={screenshot}
         altText={altText}
@@ -264,7 +271,12 @@ export function ScreenshotCard({
         onLike={onLike}
       />
 
-      <ScreenshotCardDetails screenshot={screenshot} variant={variant} />
+      {variant === "profile" ? (
+        <ScreenshotCardDetails screenshot={screenshot} />
+      ) : null}
+      {variant === "game" ? (
+        <ScreenshotCardOverlay screenshot={screenshot} />
+      ) : null}
     </li>
   );
 }

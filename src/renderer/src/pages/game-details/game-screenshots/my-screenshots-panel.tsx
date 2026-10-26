@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ImageIcon } from "@primer/octicons-react";
 import InfiniteScroll from "react-infinite-scroll-component";
@@ -12,14 +12,10 @@ import {
   useLoadUntilScrollable,
 } from "@renderer/components/screenshots";
 import type { ScreenshotWriteBus } from "@shared";
-import type { GameShop, ProfileScreenshot, ScreenshotSort } from "@types";
+import type { GameShop, LocalScreenshot, ProfileScreenshot } from "@types";
 
 import { GameScreenshotsHotkeyTip } from "./game-screenshots-hotkey-tip";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
-import {
-  ScreenshotSortToggle,
-  SegmentedToggle,
-} from "./screenshot-sort-toggle";
 import {
   groupByCaptureDay,
   useCaptureDayLabel,
@@ -35,7 +31,9 @@ const MY_SCREENSHOTS_PAGE_SIZE = 24;
 const SKELETON_COUNT = 6;
 const INFINITE_SCROLL_THRESHOLD = 0.9;
 
-type MyScreenshotsStatusFilter = "uploaded" | "local";
+type MyScreenshotsEntry =
+  | { kind: "local"; time: number; screenshot: LocalScreenshot }
+  | { kind: "uploaded"; time: number; screenshot: ProfileScreenshot };
 
 interface MyScreenshotsPanelProps {
   visible: boolean;
@@ -92,103 +90,124 @@ export function MyScreenshotsPanel({
   const { t } = useTranslation("screenshots");
   const scrollId = useId();
   const { canFetchPublished } = useCanFetchMyPublishedScreenshots(shop);
-  const [statusFilter, setStatusFilter] =
-    useState<MyScreenshotsStatusFilter>("local");
-  const [sort, setSort] = useState<ScreenshotSort>("recent");
-  const [visitedSorts, setVisitedSorts] = useState<ReadonlySet<ScreenshotSort>>(
-    () => new Set<ScreenshotSort>(["recent"])
-  );
-  useEffect(() => {
-    if (visible) setStatusFilter("local");
-  }, [visible]);
-
-  const activeFilter: MyScreenshotsStatusFilter = canFetchPublished
-    ? statusFilter
-    : "local";
 
   const localState = useMyLocalGameScreenshots({
     shop,
     objectId,
     isEnabled: visible,
   });
-  const publishedOptions = {
+  const published = useMyPublishedGameScreenshots({
     shop,
     objectId,
     take: MY_SCREENSHOTS_PAGE_SIZE,
     writeBus,
     settledCount: localState.settledCount,
-  };
-  const recent = useMyPublishedGameScreenshots({
-    ...publishedOptions,
     sort: "recent",
-    isEnabled: visible && visitedSorts.has("recent"),
+    isEnabled: visible && canFetchPublished,
   });
-  const top = useMyPublishedGameScreenshots({
-    ...publishedOptions,
-    sort: "top",
-    isEnabled: visible && visitedSorts.has("top"),
-  });
-  const published = sort === "top" ? top : recent;
   const { feed, actions, lightbox } = published;
   const local = useLocalScreenshotActions();
   const getDayLabel = useCaptureDayLabel();
 
-  const renderDayGroups = <Item,>(
-    items: Item[],
-    getCapturedAt: (item: Item) => number,
-    renderItem: (item: Item) => ReactNode
-  ) =>
-    groupByCaptureDay(items, getCapturedAt).map((group) => (
-      <section key={group.key} className="game-screenshots-modal__day">
-        <h4 className="game-screenshots-modal__day-title">
-          {getDayLabel(group.dayStart)}
-        </h4>
-        <ul className="screenshot-grid">{group.items.map(renderItem)}</ul>
-      </section>
-    ));
+  const uploadedItems = canFetchPublished ? feed.items : [];
+  const hasMoreUploaded = canFetchPublished && feed.hasMore;
+  const oldestLoadedUpload = uploadedItems.at(-1)?.createdAt ?? null;
+  const entries: MyScreenshotsEntry[] = [
+    ...localState.pendingLocal
+      .filter(
+        (screenshot) =>
+          !hasMoreUploaded ||
+          oldestLoadedUpload === null ||
+          screenshot.capturedAt >= oldestLoadedUpload
+      )
+      .map((screenshot) => ({
+        kind: "local" as const,
+        time: screenshot.capturedAt,
+        screenshot,
+      })),
+    ...uploadedItems.map((screenshot) => ({
+      kind: "uploaded" as const,
+      time: screenshot.createdAt,
+      screenshot,
+    })),
+  ];
+
+  const isLoading =
+    !localState.hasLoaded || (canFetchPublished && !feed.hasLoaded);
+  const hasFailed =
+    localState.hasFailed || (canFetchPublished && feed.hasFailed);
 
   useLoadUntilScrollable({
     scrollTargetId: scrollId,
     canLoadMore:
       visible &&
-      activeFilter === "uploaded" &&
+      canFetchPublished &&
       feed.hasLoaded &&
       feed.hasMore &&
       !feed.isLoading &&
       !feed.hasLoadMoreFailed,
-    itemCount: feed.items.length,
+    itemCount: entries.length,
     loadMore: feed.loadMore,
   });
 
-  const changeSort = (nextSort: ScreenshotSort) => {
-    setVisitedSorts((current) => new Set(current).add(nextSort));
-    setSort(nextSort);
+  const retry = () => {
+    if (localState.hasFailed) localState.retry();
+    if (canFetchPublished && feed.hasFailed) void feed.reload();
   };
 
-  const renderUploadedCard = (screenshot: ProfileScreenshot) => (
-    <ScreenshotCard
-      key={screenshot.id}
-      screenshot={screenshot}
-      variant="profile"
-      isOwner
-      isLiking={actions.likingIds.has(screenshot.id)}
-      showCommentCount={showCommentCount}
-      onOpen={lightbox.open}
-      onLike={(item) => void actions.toggleLike(item)}
-      onImageError={lightbox.refreshScreenshot}
-    />
-  );
+  const renderEntry = (entry: MyScreenshotsEntry) => {
+    if (entry.kind === "uploaded") {
+      return (
+        <ScreenshotCard
+          key={entry.screenshot.id}
+          screenshot={entry.screenshot}
+          variant="tile"
+          isOwner
+          isLiking={actions.likingIds.has(entry.screenshot.id)}
+          showCommentCount={showCommentCount}
+          onOpen={lightbox.open}
+          onLike={(item) => void actions.toggleLike(item)}
+          onImageError={lightbox.refreshScreenshot}
+        />
+      );
+    }
 
-  const renderUploaded = (): ReactNode => {
-    if (feed.hasFailed) return <LoadError onRetry={() => void feed.reload()} />;
-    if (!feed.hasLoaded) return <GridSkeleton />;
-    if (feed.items.length === 0) return <EmptyState />;
+    const { screenshot } = entry;
+    return (
+      <li key={screenshot.clientId} className="screenshot-card">
+        <LocalScreenshotTile
+          screenshot={screenshot}
+          alt={local.describe(screenshot)}
+          isBusy={local.busyIds.has(screenshot.clientId)}
+          uploadStatus={local.getUploadStatus(screenshot)}
+          className="local-screenshot-tile--card"
+          onOpen={local.open}
+          onDelete={local.requestDelete}
+        />
+      </li>
+    );
+  };
+
+  const renderDayGroups = () =>
+    groupByCaptureDay(entries, (entry) => entry.time).map((group) => (
+      <section key={group.key} className="game-screenshots-modal__day">
+        <h4 className="game-screenshots-modal__day-title">
+          {getDayLabel(group.dayStart)}
+        </h4>
+        <ul className="screenshot-grid">{group.items.map(renderEntry)}</ul>
+      </section>
+    ));
+
+  const renderContent = (): ReactNode => {
+    if (hasFailed) return <LoadError onRetry={retry} />;
+    if (isLoading) return <GridSkeleton />;
+    if (entries.length === 0) return <EmptyState />;
 
     return (
       <InfiniteScroll
-        dataLength={feed.items.length}
+        dataLength={entries.length}
         next={() => void feed.loadMore()}
-        hasMore={feed.hasMore && !feed.hasLoadMoreFailed}
+        hasMore={hasMoreUploaded && !feed.hasLoadMoreFailed}
         loader={
           feed.isLoading ? (
             <output className="game-screenshots-modal__loading">
@@ -200,77 +219,25 @@ export function MyScreenshotsPanel({
         scrollableTarget={scrollId}
         style={{ overflow: "visible" }}
       >
-        {sort === "recent" ? (
-          renderDayGroups(
-            feed.items,
-            (screenshot) => screenshot.capturedAt,
-            renderUploadedCard
-          )
-        ) : (
-          <ul className="screenshot-grid">
-            {feed.items.map(renderUploadedCard)}
-          </ul>
-        )}
+        {renderDayGroups()}
       </InfiniteScroll>
-    );
-  };
-
-  const renderLocal = (): ReactNode => {
-    if (localState.hasFailed) return <LoadError onRetry={localState.retry} />;
-    if (!localState.hasLoaded) return <GridSkeleton />;
-    if (localState.pendingLocal.length === 0) return <EmptyState />;
-
-    return renderDayGroups(
-      localState.pendingLocal,
-      (screenshot) => screenshot.capturedAt,
-      (screenshot) => (
-        <li key={screenshot.clientId} className="screenshot-card">
-          <LocalScreenshotTile
-            screenshot={screenshot}
-            alt={local.describe(screenshot)}
-            isBusy={local.busyIds.has(screenshot.clientId)}
-            uploadStatus={local.getUploadStatus(screenshot)}
-            className="local-screenshot-tile--card"
-            onOpen={local.open}
-            onDelete={local.requestDelete}
-          />
-        </li>
-      )
     );
   };
 
   return (
     <div className="game-screenshots-modal__panel">
-      <div className="game-screenshots-modal__toolbar">
-        {canFetchPublished ? (
-          <SegmentedToggle
-            label={t("screenshot_status_filter")}
-            value={activeFilter}
-            options={[
-              { value: "local", label: t("not_uploaded") },
-              { value: "uploaded", label: t("uploaded") },
-            ]}
-            onChange={setStatusFilter}
-          />
-        ) : null}
-        {activeFilter === "uploaded" ? (
-          <ScreenshotSortToggle sort={sort} onChange={changeSort} />
-        ) : null}
-      </div>
-
       <div id={scrollId} className="game-screenshots-modal__scroll">
-        {activeFilter === "uploaded" ? renderUploaded() : renderLocal()}
+        {renderContent()}
 
-        {activeFilter === "uploaded" && feed.hasLoadMoreFailed ? (
+        {canFetchPublished && feed.hasLoadMoreFailed ? (
           <ScreenshotLoadMoreError onRetry={() => void feed.loadMore()} />
         ) : null}
       </div>
 
       <ScreenshotLightbox
-        collection={recent}
-        navigationItems={recent.feed.items}
+        collection={published}
+        navigationItems={uploadedItems}
       />
-      <ScreenshotLightbox collection={top} navigationItems={top.feed.items} />
       {local.elements}
     </div>
   );

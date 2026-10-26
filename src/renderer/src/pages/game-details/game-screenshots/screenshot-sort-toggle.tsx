@@ -17,7 +17,7 @@ interface SegmentedToggleProps<Value extends string> {
   onChange: (value: Value) => void;
 }
 
-export function SegmentedToggle<Value extends string>({
+function SegmentedToggle<Value extends string>({
   label,
   value,
   options,
