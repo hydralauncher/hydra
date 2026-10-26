@@ -427,13 +427,12 @@ const mergeEpicLocalAchievements = async (
   const localAchievements = EpicLocalAchievementStore.getResolved(gameKey);
   if (!localAchievements.length) return 0;
 
-  // The API refuses Hydra unlocks for games imported from the Epic library.
   return mergeAchievementsLocally(
     game,
     localAchievements,
     publishNotification,
     current,
-    game.source === "epic" ? [] : localAchievements
+    localAchievements
   );
 };
 

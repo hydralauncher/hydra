@@ -914,7 +914,7 @@ test("Epic merges without local unlocks never upload account imports", async (t)
   assert.equal(f.records.size, 0);
 });
 
-test("Epic library imports keep local unlocks without uploading them", async (t) => {
+test("Epic library imports upload local unlocks but not account imports", async (t) => {
   const f = await fixture(t);
   const game = epicGame(f, "epic");
 
@@ -922,10 +922,14 @@ test("Epic library imports keep local unlocks without uploading them", async (t)
     await f.mergeAchievements(game, [{ name: "38", unlockTime: 1 }], false),
     1
   );
-  await f.achievementSyncWorker.trigger();
+  await f.untilRequest(1);
 
-  assert.equal(f.requests.length, 0);
-  assert.equal(f.records.size, 0);
+  assert.deepEqual(
+    f.requests[0]!.body.achievements.map(({ name }) => name),
+    ["epic_a"]
+  );
+  f.requests[0]!.gate.resolve(undefined);
+  await acknowledgeAll(f);
 });
 
 test("Epic ids missing from the catalogue merge once the catalogue has them", async (t) => {
