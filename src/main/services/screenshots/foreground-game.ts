@@ -14,6 +14,7 @@ import { getForegroundWindow } from "../screenshot";
 import { Wine } from "../wine";
 import {
   findForegroundGameTarget,
+  findSoleLaunchedTarget,
   isLaunchedForegroundProcess,
   parseNamespacedPids,
   type ForegroundProcess,
@@ -220,18 +221,25 @@ export const resolveForegroundGame = async (): Promise<ForegroundMatch> => {
     if (foreground.processId !== null || !isWaylandSession()) {
       logger.info("Screenshot hotkey ignored: no tracked game in foreground", {
         foregroundProcessId: foreground.processId,
+        clientProcessId: foreground.clientProcessId ?? null,
+        candidates: candidates.map((candidate) => ({
+          gameKey: candidate.target.gameKey,
+          processId: candidate.target.processId ?? null,
+        })),
       });
       return null;
     }
   }
 
-  if (
-    isWaylandSession() &&
-    candidates.length === 1 &&
-    BrowserWindow.getFocusedWindow() === null
-  ) {
-    return { ...candidates[0], foreground: null };
+  if (!isWaylandSession() || BrowserWindow.getFocusedWindow() !== null) {
+    return null;
   }
 
-  return null;
+  const soleTarget = findSoleLaunchedTarget(
+    candidates.map((candidate) => candidate.target)
+  );
+  const soleCandidate = candidates.find(
+    (candidate) => candidate.target === soleTarget
+  );
+  return soleCandidate ? { ...soleCandidate, foreground: null } : null;
 };

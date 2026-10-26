@@ -74,8 +74,14 @@ export const isWaylandCaptureBackend = () => {
   return Boolean(process.env.WAYLAND_DISPLAY);
 };
 
+interface SharedCaptureWindow {
+  window: BrowserWindow;
+  users: Set<object>;
+}
+
 let rememberedScreenSourceId: string | null = null;
-let pendingScreenSourcePick: Promise<string> | null = null;
+let sharedCapture: SharedCaptureWindow | null = null;
+let pendingSharedCapture: Promise<SharedCaptureWindow> | null = null;
 
 const destroyCaptureWindow = (captureWindow: BrowserWindow | null) => {
   if (!captureWindow || captureWindow.isDestroyed()) return;
@@ -157,13 +163,6 @@ const pickScreenSource = async () => {
   return source.id;
 };
 
-const pickScreenSourceOnce = () => {
-  pendingScreenSourcePick ??= pickScreenSource().finally(() => {
-    pendingScreenSourcePick = null;
-  });
-  return pendingScreenSourcePick;
-};
-
 const restoreRememberedScreenCapture = async () => {
   const sourceId = rememberedScreenSourceId;
   if (!sourceId) return null;
@@ -183,10 +182,42 @@ const openScreenCaptureWindow = async () => {
   const restored = await restoreRememberedScreenCapture();
   if (restored) return restored;
 
-  const sourceId = await pickScreenSourceOnce();
+  const sourceId = await pickScreenSource();
   const captureWindow = await createCaptureWindow(sourceId);
   rememberedScreenSourceId = sourceId;
   return captureWindow;
+};
+
+const openSharedCapture = async () => {
+  const capture: SharedCaptureWindow = {
+    window: await openScreenCaptureWindow(),
+    users: new Set(),
+  };
+  sharedCapture = capture;
+  capture.window.once("closed", () => {
+    if (sharedCapture === capture) sharedCapture = null;
+  });
+  return capture;
+};
+
+const acquireCaptureWindow = async (user: object) => {
+  const liveCapture =
+    sharedCapture && !sharedCapture.window.isDestroyed() ? sharedCapture : null;
+  const capture =
+    liveCapture ??
+    (await (pendingSharedCapture ??= openSharedCapture().finally(() => {
+      pendingSharedCapture = null;
+    })));
+  capture.users.add(user);
+  return capture.window;
+};
+
+const releaseCaptureWindow = (user: object) => {
+  const capture = sharedCapture;
+  if (!capture?.users.delete(user) || capture.users.size) return;
+
+  sharedCapture = null;
+  destroyCaptureWindow(capture.window);
 };
 
 export const prepareLinuxGameCaptureSession = async (
@@ -232,10 +263,10 @@ export const prepareLinuxGameCaptureSession = async (
 
     if (sessions.get(gameKey)?.token !== token) return;
 
-    const captureWindow = await openScreenCaptureWindow();
+    const captureWindow = await acquireCaptureWindow(token);
 
     if (sessions.get(gameKey)?.token !== token) {
-      destroyCaptureWindow(captureWindow);
+      releaseCaptureWindow(token);
       return;
     }
 
@@ -389,7 +420,7 @@ export const stopLinuxGameCaptureSession = (
   const pendingCapture = registration.activeCapture ?? Promise.resolve();
   void pendingCapture
     .catch(() => {})
-    .finally(() => destroyCaptureWindow(registration.window));
+    .finally(() => releaseCaptureWindow(registration.token));
 };
 
 export const stopAllLinuxGameCaptureSessions = (
