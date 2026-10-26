@@ -329,9 +329,7 @@ const captureScreenshot = async (
   if (!(await isScreenshotsFeatureEnabled())) return;
   timer.mark("checks");
 
-  const resolved = await resolveForegroundGame({
-    allowSingleGameFallback: source === "deeplink",
-  });
+  const resolved = await resolveForegroundGame();
   timer.mark("foreground");
   if (!resolved) {
     ScreenshotTelemetry.record("capture", "ignored", "no_foreground_game");

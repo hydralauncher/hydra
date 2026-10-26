@@ -21,6 +21,8 @@ import {
   type ScreenshotGameTarget,
 } from "./foreground-game-match";
 
+type ForegroundMatch = ResolvedForegroundGame | null;
+
 export interface ResolvedForegroundGame {
   target: ScreenshotGameTarget;
   game: Game | null;
@@ -176,11 +178,7 @@ const toForegroundProcesses = (
     appImagePath: process.environ?.APPIMAGE ?? null,
   }));
 
-export const resolveForegroundGame = async ({
-  allowSingleGameFallback,
-}: {
-  allowSingleGameFallback: boolean;
-}): Promise<ResolvedForegroundGame | null> => {
+export const resolveForegroundGame = async (): Promise<ForegroundMatch> => {
   const candidates = await getScreenshotGameTargets();
   if (!candidates.length) return null;
 
@@ -227,9 +225,11 @@ export const resolveForegroundGame = async ({
     }
   }
 
-  const canFallBackToOnlyGame =
-    allowSingleGameFallback || BrowserWindow.getFocusedWindow() === null;
-  if (canFallBackToOnlyGame && isWaylandSession() && candidates.length === 1) {
+  if (
+    isWaylandSession() &&
+    candidates.length === 1 &&
+    BrowserWindow.getFocusedWindow() === null
+  ) {
     return { ...candidates[0], foreground: null };
   }
 
