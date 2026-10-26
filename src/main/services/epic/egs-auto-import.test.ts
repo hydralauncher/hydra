@@ -123,7 +123,12 @@ test("Epic Games Store manifests are listed only on Windows and incomplete insta
   await fs.writeFile(path.join(manifests, "broken.item"), "{");
   await item("ignored.json", { AppName: "Ignored", InstallLocation: "C:/x" });
   assert.deepEqual(
-    await listEpicStoreInstallations(undefined, programData, "win32"),
+    await listEpicStoreInstallations(
+      undefined,
+      programData,
+      "win32",
+      programData
+    ),
     [
       {
         artifactId: "Complete",
@@ -134,7 +139,99 @@ test("Epic Games Store manifests are listed only on Windows and incomplete insta
     ]
   );
   assert.deepEqual(
-    await listEpicStoreInstallations(undefined, programData, "linux"),
+    await listEpicStoreInstallations(
+      undefined,
+      programData,
+      "linux",
+      programData
+    ),
     []
+  );
+});
+
+test("new Epic launcher installations are replayed and stale legacy entries are skipped", async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "egs-v2-"));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const programData = path.join(root, "ProgramData");
+  const localAppData = path.join(root, "Local");
+  const dredge = path.join(root, "Games", "Dredge");
+  const legacyOnly = path.join(root, "Games", "LegacyOnly");
+  await fs.mkdir(dredge, { recursive: true });
+  await fs.mkdir(legacyOnly, { recursive: true });
+  await fs.mkdir(path.join(localAppData, "com.epicgames.eglv2"), {
+    recursive: true,
+  });
+  await fs.mkdir(path.join(programData, "Epic", "UnrealEngineLauncher"), {
+    recursive: true,
+  });
+
+  const record = (value: Record<string, unknown>) => JSON.stringify(value);
+  await fs.writeFile(
+    path.join(localAppData, "com.epicgames.eglv2", "installations.jsonl"),
+    [
+      record({ version: 1, entries: 3 }),
+      record({
+        installationId: "dredge",
+        complete: true,
+        dir: dredge,
+        platform: "Windows",
+        namespace: "dredge-namespace",
+        itemId: "dredge-item",
+        artifactId: "Dredge",
+      }),
+      record({
+        installationId: "removed",
+        complete: true,
+        dir: path.join(root, "Games", "Removed"),
+        platform: "Windows",
+        artifactId: "Removed",
+      }),
+      record({ installationId: "removed", deleted: true }),
+      "{",
+    ].join("\n")
+  );
+  await fs.writeFile(
+    path.join(
+      programData,
+      "Epic",
+      "UnrealEngineLauncher",
+      "LauncherInstalled.dat"
+    ),
+    JSON.stringify({
+      InstallationList: [
+        { AppName: "Dredge", InstallLocation: dredge },
+        { AppName: "Removed", InstallLocation: legacyOnly },
+        {
+          AppName: "LegacyOnly",
+          InstallLocation: legacyOnly,
+          NamespaceId: "legacy-namespace",
+          ItemId: "legacy-item",
+        },
+        { AppName: "Missing", InstallLocation: path.join(root, "Gone") },
+      ],
+    })
+  );
+
+  assert.deepEqual(
+    await listEpicStoreInstallations(
+      undefined,
+      programData,
+      "win32",
+      localAppData
+    ),
+    [
+      {
+        artifactId: "Dredge",
+        installLocation: dredge,
+        namespace: "dredge-namespace",
+        itemId: "dredge-item",
+      },
+      {
+        artifactId: "LegacyOnly",
+        installLocation: legacyOnly,
+        namespace: "legacy-namespace",
+        itemId: "legacy-item",
+      },
+    ]
   );
 });

@@ -25,7 +25,7 @@ import {
   useInputModeStore,
   useVirtualKeyboardStore,
 } from "../../../stores";
-import { GamepadButtonType } from "../../../types";
+import { GamepadButtonType, type ScreenActions } from "../../../types";
 
 type EditableTarget = HTMLInputElement | HTMLTextAreaElement | HTMLElement;
 
@@ -666,6 +666,13 @@ function useAcceleratedHoldAction({
   }, [enabled, isPressed]);
 }
 
+function VirtualKeyboardScreenActions({
+  actions,
+}: Readonly<{ actions: ScreenActions }>) {
+  useNavigationScreenActions(actions);
+  return null;
+}
+
 export function VirtualKeyboardProvider() {
   const [target, setTarget] = useState<EditableTarget | null>(null);
   const [isShiftActive, setIsShiftActive] = useState(false);
@@ -705,7 +712,7 @@ export function VirtualKeyboardProvider() {
   );
 
   const closeKeyboard = useCallback(
-    (restoreFocus = true) => {
+    (restoreFocus = true, refocusTarget = restoreFocus) => {
       const currentTarget = target;
       shouldRestoreNavigationFocusOnUnmountRef.current = restoreFocus;
 
@@ -716,6 +723,10 @@ export function VirtualKeyboardProvider() {
 
       if (restoreFocus && currentTarget) {
         suppressedTargetRef.current = currentTarget;
+      }
+
+      if (restoreFocus && !refocusTarget && currentTarget) {
+        currentTarget.blur();
       }
 
       if (!restoreFocus && currentTarget) {
@@ -741,7 +752,7 @@ export function VirtualKeyboardProvider() {
         pulseFrameRef.current = null;
       }
 
-      if (restoreFocus && currentTarget) {
+      if (restoreFocus && refocusTarget && currentTarget) {
         globalThis.requestAnimationFrame(() => {
           if (!globalThis.document.contains(currentTarget)) return;
 
@@ -1015,15 +1026,14 @@ export function VirtualKeyboardProvider() {
     ]
   );
 
-  useNavigationScreenActions(
-    isOpen
-      ? {
-          press: {
-            b: hotkeyBack,
-            y: hotkeySpace,
-          },
-        }
-      : {}
+  const keyboardScreenActions = useMemo(
+    () => ({
+      press: {
+        b: hotkeyBack,
+        y: hotkeySpace,
+      },
+    }),
+    [hotkeyBack, hotkeySpace]
   );
 
   useAcceleratedHoldAction({
@@ -1221,7 +1231,7 @@ export function VirtualKeyboardProvider() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        closeKeyboard();
+        closeKeyboard(true, false);
         return;
       }
 
@@ -1346,6 +1356,9 @@ export function VirtualKeyboardProvider() {
 
   return (
     <FocusRegionContext.Provider value={null}>
+      {isOpen ? (
+        <VirtualKeyboardScreenActions actions={keyboardScreenActions} />
+      ) : null}
       <AnimatePresence>
         {target ? (
           <motion.div

@@ -153,6 +153,8 @@ export function LibraryTab({
   ];
 
   const sortOptions: FilterDropdownOption<SortOption>[] = [
+    { value: "playedRecently", label: t("played_recently"), icon: HistoryIcon },
+    { value: "playtime", label: t("playtime"), icon: ClockIcon },
     ...(hasActiveSubscription
       ? [
           {
@@ -162,8 +164,6 @@ export function LibraryTab({
           },
         ]
       : []),
-    { value: "playedRecently", label: t("played_recently"), icon: HistoryIcon },
-    { value: "playtime", label: t("playtime"), icon: ClockIcon },
   ];
 
   const hasGames = libraryGames.length > 0;

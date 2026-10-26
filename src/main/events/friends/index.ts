@@ -4,3 +4,4 @@ import "./open-add-friend-modal";
 import "./friends-window-controls";
 import "./sync-friend-requests";
 import "./prefetch-friends";
+import "./show-toast-in-main-window";
