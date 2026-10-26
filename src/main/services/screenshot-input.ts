@@ -27,8 +27,10 @@ import {
   type ScreenshotInputNativeEvent,
   type ScreenshotInputNativeStatus,
 } from "./native-addon";
+import { isScreenshotsFeatureEnabled } from "./screenshots/screenshot-feature";
 
 type ScreenshotTriggerListener = (source: ScreenshotTriggerSource) => void;
+type ScreenshotTriggerChannel = "input" | "deeplink";
 type ScreenshotInputStatusListener = (status: ScreenshotInputStatus) => void;
 
 export const SCREENSHOT_TRIGGER_COOLDOWN_MS = 3_000;
@@ -167,7 +169,11 @@ export class ScreenshotInputService {
   private static shuttingDown = false;
   private static listening = false;
   private static gamesRunning = false;
-  private static lastTriggerAt: number | null = null;
+  private static featureEnabled = false;
+  private static readonly lastTriggerAt = new Map<
+    ScreenshotTriggerChannel,
+    number
+  >();
   private static restartAttempts = 0;
   private static listeningSince: number | null = null;
   private static restartTimer: ReturnType<typeof setTimeout> | null = null;
@@ -192,14 +198,17 @@ export class ScreenshotInputService {
   public static trigger(source: ScreenshotTriggerSource) {
     if (!this.settings.enabled) return false;
 
+    const channel: ScreenshotTriggerChannel =
+      source === "deeplink" ? "deeplink" : "input";
     const now = Date.now();
+    const lastTriggerAt = this.lastTriggerAt.get(channel);
     if (
-      this.lastTriggerAt !== null &&
-      now - this.lastTriggerAt < SCREENSHOT_TRIGGER_COOLDOWN_MS
+      lastTriggerAt !== undefined &&
+      now - lastTriggerAt < SCREENSHOT_TRIGGER_COOLDOWN_MS
     ) {
       return false;
     }
-    this.lastTriggerAt = now;
+    this.lastTriggerAt.set(channel, now);
 
     for (const listener of this.listeners) {
       try {
@@ -226,6 +235,7 @@ export class ScreenshotInputService {
       this.unsubscribeGamesRunning = onTrackedGamesRunningChange(() =>
         this.handleTrackedGamesRunningChange()
       );
+      void this.refreshFeatureFlag();
     }
 
     this.reconcile(previous);
@@ -260,12 +270,25 @@ export class ScreenshotInputService {
 
     this.gamesRunning = gamesRunning;
     this.reconcile(this.settings);
+    if (gamesRunning) void this.refreshFeatureFlag();
+  }
+
+  private static async refreshFeatureFlag() {
+    try {
+      const featureEnabled = await isScreenshotsFeatureEnabled();
+      if (featureEnabled === this.featureEnabled) return;
+      this.featureEnabled = featureEnabled;
+      this.reconcile(this.settings);
+    } catch (error) {
+      logger.error("Failed to read the screenshots feature flag", error);
+    }
   }
 
   private static shouldListen() {
     return (
       this.initialized &&
       !this.shuttingDown &&
+      this.featureEnabled &&
       this.settings.enabled &&
       this.gamesRunning
     );

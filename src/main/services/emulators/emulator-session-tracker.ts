@@ -125,11 +125,6 @@ export const startEmulatorSession = async ({
       watcherToken: souvenirWatcherToken,
       logPath: souvenirSession?.logPath ?? undefined,
       logOffset: souvenirSession?.logOffset ?? undefined,
-      screenshotDirectories: souvenirSession
-        ? [souvenirSession.screenshotDirectory].filter(
-            (directory): directory is string => !!directory
-          )
-        : undefined,
     })
       .then(() => {
         if (emulatorSessions.get(gameKey) !== session) {
@@ -159,6 +154,7 @@ export const closeEmulatorSession = (gameKey: string): boolean => {
   if (!session) return false;
 
   const { pid } = session.child;
+  stopLinuxGameCaptureSession(gameKey);
 
   try {
     if (pid && process.platform !== "win32") {

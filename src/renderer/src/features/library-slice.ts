@@ -9,6 +9,7 @@ export interface LibraryState {
   searchQuery: string;
   hasLoaded: boolean;
   isSyncingRemote: boolean;
+  isAwaitingAccountLibrary: boolean;
 }
 
 const initialState: LibraryState = {
@@ -17,6 +18,7 @@ const initialState: LibraryState = {
   searchQuery: "",
   hasLoaded: false,
   isSyncingRemote: false,
+  isAwaitingAccountLibrary: false,
 };
 
 export const librarySlice = createSlice({
@@ -30,6 +32,9 @@ export const librarySlice = createSlice({
     },
     setLibrarySyncingRemote: (state, action: PayloadAction<boolean>) => {
       state.isSyncingRemote = action.payload;
+    },
+    setLibraryAwaitingAccount: (state, action: PayloadAction<boolean>) => {
+      state.isAwaitingAccountLibrary = action.payload;
     },
 
     updateGameNewDownloadOptions: (
@@ -83,6 +88,7 @@ export const librarySlice = createSlice({
 export const {
   setLibrary,
   setLibrarySyncingRemote,
+  setLibraryAwaitingAccount,
   updateGameNewDownloadOptions,
   clearNewDownloadOptions,
   setLibrarySearchQuery,
@@ -91,4 +97,6 @@ export const {
 
 export const selectIsLibraryLoading = (state: { library: LibraryState }) =>
   !state.library.hasLoaded ||
-  (state.library.isSyncingRemote && state.library.value.length === 0);
+  (state.library.isSyncingRemote &&
+    (state.library.value.length === 0 ||
+      state.library.isAwaitingAccountLibrary));
