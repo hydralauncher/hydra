@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import type { KeyboardEvent, PointerEvent, WheelEvent } from "react";
+import { useEffect, useRef } from "react";
+import type { KeyboardEvent, PointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import { LockIcon } from "@primer/octicons-react";
@@ -19,6 +19,8 @@ const MAX_BLUR = 4;
 const OPACITY_STEP = 0.24;
 const HIDDEN_DISTANCE = 3;
 const STEP_PX = 40;
+// One wheel step moves one level, then waits for the item transition before the next one.
+const WHEEL_STEP_COOLDOWN_MS = 300;
 const CURRENT_BAR_BACKGROUND = "linear-gradient(90deg, #22c7ee, #7a7cff)";
 
 /** Amount at `fraction` of a level, so texts match the bar while a celebration replays old progress. */
@@ -56,7 +58,8 @@ export function TrailLevelWheel({
 }: Readonly<TrailLevelWheelProps>) {
   const { t } = useTranslation("user_profile");
   const { formatNumber } = useFormat();
-  const wheelDelta = useRef(0);
+  const wheelRef = useRef<HTMLDivElement>(null);
+  const lastWheelStep = useRef(0);
   const drag = useRef<{ y: number; moved: boolean } | null>(null);
 
   const levels = [...trail.levels].reverse();
@@ -70,14 +73,30 @@ export function TrailLevelWheel({
     if (clamped !== selectedIndex) onSelect(levels[clamped].level);
   };
 
-  const handleWheel = (event: WheelEvent<HTMLDivElement>) => {
-    wheelDelta.current += event.deltaY;
-    const steps = Math.trunc(wheelDelta.current / STEP_PX);
-    if (steps !== 0) {
-      wheelDelta.current -= steps * STEP_PX;
-      selectIndex(selectedIndex + steps);
-    }
-  };
+  const selectIndexRef = useRef(selectIndex);
+  selectIndexRef.current = selectIndex;
+  const selectedIndexRef = useRef(selectedIndex);
+  selectedIndexRef.current = selectedIndex;
+
+  // Native and non-passive, so the wheel never scrolls the page behind it.
+  useEffect(() => {
+    const element = wheelRef.current;
+    if (!element) return;
+
+    const handleWheel = (event: globalThis.WheelEvent) => {
+      event.preventDefault();
+      if (event.deltaY === 0) return;
+      const now = performance.now();
+      if (now - lastWheelStep.current < WHEEL_STEP_COOLDOWN_MS) return;
+      lastWheelStep.current = now;
+      selectIndexRef.current(
+        selectedIndexRef.current + Math.sign(event.deltaY)
+      );
+    };
+
+    element.addEventListener("wheel", handleWheel, { passive: false });
+    return () => element.removeEventListener("wheel", handleWheel);
+  }, []);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "ArrowDown") {
@@ -122,7 +141,7 @@ export function TrailLevelWheel({
                 onClaim(level.level, event.currentTarget);
               }}
             >
-              {t("trail_wheel_claim")}
+              {t("claim_reward")}
             </button>
             <RewardChips xp={level.xp} coins={level.coins} />
           </span>
@@ -167,11 +186,11 @@ export function TrailLevelWheel({
 
   return (
     <div
+      ref={wheelRef}
       className="trail-wheel"
       role="listbox"
       tabIndex={0}
       aria-label={t("trail_wheel_label", { trail: t(`trail_${trail.key}`) })}
-      onWheel={handleWheel}
       onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

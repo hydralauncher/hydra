@@ -1967,7 +1967,6 @@
   },
   "user_profile": {
     "trail_wheel_label": "Níveis de {{trail}}",
-    "trail_wheel_claim": "Resgatar recompensa",
     "trail_wheel_done": "Concluída",
     "trail_wheel_locked": "Bloqueada",
     "trail_wheel_current": "{{percent}}% · faltam {{remaining}}",

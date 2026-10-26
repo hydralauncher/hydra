@@ -1976,7 +1976,6 @@
   },
   "user_profile": {
     "trail_wheel_label": "{{trail}} levels",
-    "trail_wheel_claim": "Claim reward",
     "trail_wheel_done": "Done",
     "trail_wheel_locked": "Locked",
     "trail_wheel_current": "{{percent}}% · {{remaining}} to go",
