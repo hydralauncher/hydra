@@ -579,10 +579,28 @@ const toUploadOptions = (
 
 export { requestScreenshotReview } from "./review-requests";
 
+function useMissingScreenshotsToast() {
+  const { t } = useTranslation("screenshots_capture");
+  const { showErrorToast } = useBigPictureToast();
+
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+
+    return globalThis.window.electron.onLocalScreenshotsMissing((count) => {
+      if (document.visibilityState !== "visible") return;
+      showErrorToast(t("missing_files_title"), {
+        message: t("missing_files_body", { count }),
+        fallbackVisual: "settings",
+      });
+    });
+  }, [showErrorToast, t]);
+}
+
 export function ScreenshotReviewModal() {
   const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
   const { showErrorToast } = useBigPictureToast();
+  useMissingScreenshotsToast();
   const { setFocus } = useNavigation();
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const [queueState, setQueueState] =
@@ -756,6 +774,9 @@ export function ScreenshotReviewModal() {
 
     try {
       const result = await task();
+      const wasRemoved =
+        action === "upload" &&
+        (result as LocalScreenshot | null)?.state === "deleted";
       if (action === "upload" && !result) {
         showErrorToast(t("screenshots_settings_sign_in_to_upload"), {
           fallbackVisual: "settings",
@@ -763,7 +784,11 @@ export function ScreenshotReviewModal() {
         return false;
       }
       setQueueState((state) =>
-        recordReviewDecision(state, current.clientId, action)
+        recordReviewDecision(
+          state,
+          current.clientId,
+          wasRemoved ? "delete" : action
+        )
       );
       return true;
     } catch (error) {
