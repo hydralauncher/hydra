@@ -154,6 +154,12 @@ const ownsForegroundProcess = (
   return collectDescendants(input.processes, target.processId).has(ownerPid);
 };
 
+export const findSoleLaunchedTarget = (targets: ScreenshotGameTarget[]) => {
+  if (targets.length === 1) return targets[0];
+  const launched = targets.filter((target) => target.processId !== undefined);
+  return launched.length === 1 ? launched[0] : null;
+};
+
 export const isLaunchedForegroundProcess = (
   target: ScreenshotGameTarget,
   foreground: ForegroundWindowInfo
@@ -174,7 +180,9 @@ export const findForegroundGameTarget = (
   const owners = candidates.filter((target) =>
     ownsForegroundProcess(input, target)
   );
-  return owners.length === 1 ? owners[0] : null;
+  if (owners.length) return owners.length === 1 ? owners[0] : null;
+
+  return findSoleLaunchedTarget(candidates);
 };
 
 export const parseNamespacedPids = (status: string): number[] | null => {
