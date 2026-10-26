@@ -333,6 +333,7 @@ export interface ChatUnreadSummary {
 export interface ChatUnreadState {
   totalUnread: number;
   byFriend: Record<string, number>;
+  lastMessageAtByFriend?: Record<string, string>;
 }
 
 /* friendId is always the other side of the conversation, even for messages
@@ -372,7 +373,28 @@ export interface ChatMessageRejectedSync {
 export interface ChatWindowState {
   activeFriendId: string | null;
   openFriendIds: string[];
+  openFriends?: UserFriend[];
 }
+
+export type SocialWindowKind = "friends" | "chat";
+
+export interface SocialWindowsSession {
+  friendsWindowOpen: boolean;
+  chatFriends: UserFriend[];
+  activeChatFriendId: string | null;
+  topWindow: SocialWindowKind | null;
+}
+
+export interface SocialWindowBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export type SocialWindowsBounds = Partial<
+  Record<SocialWindowKind, SocialWindowBounds>
+>;
 
 /** A conversation waiting for the chat window to open its tab. */
 export interface PendingChatFriend {

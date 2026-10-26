@@ -146,6 +146,13 @@ declare global {
     export default content;
   }
 
+  type MainWindowToast = {
+    title: string;
+    message?: string;
+    type: "success" | "error" | "warning";
+    duration?: number;
+  };
+
   type FileExplorerEntry = {
     name: string;
     path: string;
@@ -395,6 +402,7 @@ declare global {
       executablePath: string
     ) => Promise<boolean>;
     installGameOnSteam: (steamAppId: string) => Promise<void>;
+    uninstallGameOnSteam: (steamAppId: string) => Promise<void>;
     isMangohudAvailable: () => Promise<boolean>;
     isWinetricksAvailable: () => Promise<boolean>;
     addGameToLibrary: (
@@ -568,7 +576,12 @@ declare global {
         selectedDiscPath?: string | null;
         dontAskDiscSelection?: boolean;
         platform?: string | null;
-        addDisc?: { path: string; label: string; fileName: string };
+        addDisc?: {
+          path: string;
+          label: string;
+          fileName: string;
+          isExecutable?: boolean;
+        };
         removeDiscPath?: string;
       }
     ) => Promise<LibraryGame>;
@@ -676,7 +689,10 @@ declare global {
     ) => Promise<import("@types").Rpcs3DiscIdentityStatus>;
     setRpcs3ConfigRoot: (root: string) => Promise<EmulatorConfig>;
     detectEmulators: () => Promise<EmulatorConfigMap>;
-    detectEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    detectEmulator: (
+      system: EmulatorSystem,
+      options?: { includeDriveRoots?: boolean }
+    ) => Promise<EmulatorConfig>;
     previewEmulatorExecutable: (
       system: EmulatorSystem,
       executablePath?: string | null
@@ -719,7 +735,7 @@ declare global {
     ) => Promise<EmulatorConfig>;
     checkPs3Firmware: (
       executablePath: string | null
-    ) => Promise<{ installed: boolean }>;
+    ) => Promise<{ installed: boolean; path: string | null }>;
     checkEmulatorBios: (
       system: EmulatorSystem,
       executablePath: string | null,
@@ -737,7 +753,9 @@ declare global {
     ) => () => void;
     /* RetroArch */
     getRetroArchConfig: () => Promise<RetroArchConfig>;
-    detectRetroArch: () => Promise<RetroArchConfig>;
+    detectRetroArch: (options?: {
+      includeDriveRoots?: boolean;
+    }) => Promise<RetroArchConfig>;
     previewRetroArchExecutable: (
       executablePath?: string | null
     ) => Promise<RetroArchExecutablePreview | null>;
@@ -816,7 +834,9 @@ declare global {
       scanSubfolders: boolean
     ) => Promise<{ fileCount: number }>;
     checkRetroArchExecutable: () => Promise<{ exists: boolean }>;
-    removeRetroArch: () => Promise<RetroArchConfig>;
+    removeRetroArch: (options?: {
+      removeGames?: boolean;
+    }) => Promise<RetroArchConfig>;
     addRetroArchRomFolder: (
       folderPath: string,
       scanSubfolders: boolean
@@ -845,7 +865,10 @@ declare global {
       gamesYmlPath: string | null;
       gamesYmlEntries: { titleId: string; path: string }[];
     }>;
-    removeEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    removeEmulator: (
+      system: EmulatorSystem,
+      options?: { removeGames?: boolean }
+    ) => Promise<EmulatorConfig>;
     checkEmulatorExecutable: (
       system: EmulatorSystem
     ) => Promise<{ exists: boolean }>;
@@ -1109,6 +1132,7 @@ declare global {
     listDrives: () => Promise<string[]>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
+    getFileIcon: (filePath: string) => Promise<string | null>;
     getProcessedImage: (
       imageUrl: string | null,
       options: { width: number; height: number; preserveAnimation?: boolean }
@@ -1121,6 +1145,7 @@ declare global {
           needsAuth?: boolean;
           needsSubscription?: boolean;
           ifModifiedSince?: Date;
+          timeout?: number;
         }
       ) => Promise<T>;
       post: <T = unknown>(
@@ -1247,6 +1272,10 @@ declare global {
     minimizeRetroAchievementsConnectionWindow: () => Promise<void>;
     closeRetroAchievementsConnectionWindow: () => Promise<void>;
     completeRetroAchievementsConnectionWindow: () => Promise<void>;
+    linkRetroAchievementsEmulatorAccount: (
+      username: string,
+      password: string
+    ) => Promise<boolean>;
     onRetroAchievementsConnected: (
       cb: () => void
     ) => () => Electron.IpcRenderer;
@@ -1434,6 +1463,10 @@ declare global {
     getFriendsSnapshot: () => Promise<FriendsSnapshot | null>;
     openFriendProfileInMainWindow: (userId: string) => Promise<void>;
     openAddFriendModalInMainWindow: () => Promise<void>;
+    showToastInMainWindow: (toast: MainWindowToast) => Promise<boolean>;
+    onShowToast: (
+      cb: (toast: MainWindowToast) => void
+    ) => () => Electron.IpcRenderer;
 
     /* Chat Window */
     openChatWindow: (friend: UserFriend) => Promise<void>;

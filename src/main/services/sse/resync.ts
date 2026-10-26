@@ -5,6 +5,7 @@ import { WindowManager } from "@main/services/window-manager";
 import { logger } from "@main/services/logger";
 import { catchUpChatUnread } from "@main/services/chat/chat-unread-catch-up";
 import { ResyncCoordinator } from "./resync-coordinator";
+import { broadcastFriendsUpdated } from "./friends-updated-broadcast";
 import { summarizeNetworkError } from "../network-error-summary.js";
 
 type ResyncScope = "friends" | "friendRequests" | "notifications" | "chat";
@@ -33,7 +34,7 @@ const sleep = (ms: number, signal: AbortSignal) =>
   });
 
 const broadcastFriendsUpdate = async () => {
-  WindowManager.sendToAppWindows("on-friends-updated");
+  broadcastFriendsUpdated();
 };
 
 const syncFriendRequestCount = async (signal: AbortSignal) => {
