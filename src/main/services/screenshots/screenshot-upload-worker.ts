@@ -29,6 +29,7 @@ import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
 import {
   SCREENSHOT_FEATURE_DISABLED_CODE,
+  SCREENSHOT_MISSING_FILE_CODE,
   getAlreadyUploadedScreenshot,
   getScreenshotUploadFailure,
   planScreenshotUploadRecovery,
@@ -142,6 +143,8 @@ class ScreenshotUploadWorker {
   } | null = null;
   private readonly gameWaits = new Map<string, number>();
   private readonly moderationWaits = new Map<string, number>();
+  private missingFileHandler: ((clientId: string) => Promise<unknown>) | null =
+    null;
   private lastOwnerId: string | null = null;
   private authListenerRegistered = false;
 
@@ -152,6 +155,10 @@ class ScreenshotUploadWorker {
     }
     this.lastOwnerId = getCurrentOwnerId();
     void this.resetInterruptedUploads().then(() => this.trigger());
+  }
+
+  public onMissingFile(handler: (clientId: string) => Promise<unknown>) {
+    this.missingFileHandler = handler;
   }
 
   public async enqueue(
@@ -603,6 +610,17 @@ class ScreenshotUploadWorker {
     }
 
     const failure = getScreenshotUploadFailure(error);
+    if (
+      failure.code === SCREENSHOT_MISSING_FILE_CODE &&
+      this.missingFileHandler
+    ) {
+      this.gameWaits.delete(clientId);
+      this.moderationWaits.delete(clientId);
+      logger.warn("Screenshot file was missing at upload time", { clientId });
+      ScreenshotTelemetry.record("upload", "failed", failure.code);
+      await this.missingFileHandler(clientId);
+      return;
+    }
     if (failure.code === SCREENSHOT_FEATURE_DISABLED_CODE) {
       this.uploadsDisabledThisRun = true;
     }

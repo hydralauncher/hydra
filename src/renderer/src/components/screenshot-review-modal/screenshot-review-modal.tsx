@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import type { LocalScreenshot, ScreenshotReview } from "@types";
 import { Modal } from "@renderer/components";
-import { useAppSelector } from "@renderer/hooks";
+import { useAppSelector, useToast } from "@renderer/hooks";
 import { GalleryLightbox } from "@renderer/pages/game-details/gallery-slider/gallery-lightbox";
 import type { GalleryMediaItem } from "@renderer/pages/game-details/gallery-slider/gallery-slider";
 import { logger } from "@renderer/logger";
@@ -30,8 +30,26 @@ const closeReview = () => {
   });
 };
 
+function useMissingScreenshotsToast() {
+  const { t } = useTranslation("screenshots_capture");
+  const { showErrorToast } = useToast();
+
+  useEffect(
+    () =>
+      window.electron.onLocalScreenshotsMissing((count) => {
+        if (document.visibilityState !== "visible") return;
+        showErrorToast(
+          t("missing_files_title"),
+          t("missing_files_body", { count })
+        );
+      }),
+    [showErrorToast, t]
+  );
+}
+
 export function ScreenshotReviewModal() {
   const [review, setReview] = useState<ScreenshotReview | null>(null);
+  useMissingScreenshotsToast();
 
   useEffect(() => {
     let active = true;

@@ -26,6 +26,10 @@ import { GameContentWarningCache } from "./content-warning-cache";
 import { forgetForegroundGame } from "./foreground-game";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import {
+  pruneMissingLocalScreenshots,
+  removeLocalScreenshotIfMissing,
+} from "./local-screenshot-removal";
+import {
   findLocalScreenshotGameObjectId,
   getPublishedScreenshotIds,
 } from "./local-screenshot-game";
@@ -77,6 +81,8 @@ export const initializeScreenshots = () => {
   LocalScreenshotStore.onChange((screenshots) => {
     WindowManager.sendToAppWindows("on-local-screenshots-change", screenshots);
   });
+
+  screenshotUploadWorker.onMissingFile(removeLocalScreenshotIfMissing);
 
   ScreenshotReviewSession.onClosed(() => {
     void ScreenshotUploadNotifier.refresh();
@@ -152,10 +158,16 @@ export const applyScreenshotsEnabledPreference = async (
   );
 };
 
-export const getLocalScreenshots = () => LocalScreenshotStore.list();
+export const getLocalScreenshots = async () =>
+  pruneMissingLocalScreenshots(await LocalScreenshotStore.list());
 
-export const getLocalScreenshotsForGame = (shop: GameShop, objectId: string) =>
-  LocalScreenshotStore.listForGame(shop, objectId);
+export const getLocalScreenshotsForGame = async (
+  shop: GameShop,
+  objectId: string
+) =>
+  pruneMissingLocalScreenshots(
+    await LocalScreenshotStore.listForGame(shop, objectId)
+  );
 
 export const getPublishedScreenshotIdsForGame = async (
   shop: GameShop,
@@ -202,6 +214,11 @@ export const uploadLocalScreenshot = async (
   const isReviewOrigin =
     ScreenshotReviewSession.isReviewing(clientId) ||
     (!!sender && WindowManager.bigPictureWindow?.webContents === sender);
+  const screenshot = await LocalScreenshotStore.get(clientId);
+  if (screenshot && (await removeLocalScreenshotIfMissing(clientId))) {
+    return { ...screenshot, state: "deleted" as const };
+  }
+
   if (isReviewOrigin) ScreenshotUploadNotifier.markReviewOrigin(clientId);
 
   return screenshotUploadWorker.enqueue(clientId, options);
