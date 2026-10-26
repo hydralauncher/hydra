@@ -1,11 +1,4 @@
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FileDirectoryIcon, HistoryIcon } from "@primer/octicons-react";
 
@@ -35,14 +28,6 @@ import { SettingsScreenshotsHotkey } from "./settings-screenshots-hotkey";
 import { SettingsScreenshotsGamepad } from "./settings-screenshots-gamepad";
 
 import "./settings-context-screenshots.scss";
-
-const SettingsScreenshotsDevTools = import.meta.env.DEV
-  ? lazy(() =>
-      import("./settings-screenshots-dev-tools").then((module) => ({
-        default: module.SettingsScreenshotsDevTools,
-      }))
-    )
-  : null;
 
 const isScreenshotVisibility = (value: string): value is ProfileVisibility =>
   SCREENSHOT_VISIBILITY_OPTIONS.includes(value as ProfileVisibility);
@@ -303,12 +288,6 @@ export function SettingsContextScreenshots() {
           </Button>
         </div>
       </div>
-
-      {SettingsScreenshotsDevTools && (
-        <Suspense fallback={null}>
-          <SettingsScreenshotsDevTools />
-        </Suspense>
-      )}
     </div>
   );
 }

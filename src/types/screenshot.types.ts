@@ -238,7 +238,6 @@ export interface LocalScreenshot {
   uploadAttempts?: number;
   nextUploadAttemptAt?: number | null;
   uploadedAt?: number | null;
-  isDevCapture?: boolean;
   description?: string | null;
   previewPath?: string | null;
   pendingCompleteScreenshotId?: string | null;

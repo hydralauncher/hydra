@@ -1,6 +1,5 @@
 import type { AuthPage, Downloader } from "@shared";
 import type {
-  ScreenshotsDevApi,
   LocalScreenshot,
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
@@ -1121,7 +1120,6 @@ declare global {
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     getScreenshotsPath: () => Promise<string>;
-    screenshotsDev?: ScreenshotsDevApi;
     getLocalScreenshots: () => Promise<LocalScreenshot[]>;
     getLocalScreenshotsForGame: (
       shop: GameShop,

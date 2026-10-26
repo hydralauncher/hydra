@@ -251,33 +251,6 @@ class ScreenshotUploadWorker {
     this.activeUpload?.controller.abort();
   }
 
-  public async applyUploadFailure(clientId: string, error: unknown) {
-    const screenshot = await LocalScreenshotStore.get(clientId);
-    if (!screenshot) return null;
-
-    const attempt = (screenshot.uploadAttempts ?? 0) + 1;
-    const quality: ScreenshotQuality =
-      screenshot.uploadQuality ??
-      (HydraApi.hasActiveSubscription() ? "CLOUD" : "STANDARD");
-    await LocalScreenshotStore.update(clientId, {
-      state: "uploading",
-      uploadAttempts: attempt,
-      uploadQuality: quality,
-    });
-
-    const current = await LocalScreenshotStore.get(clientId);
-    if (!current) return null;
-    await this.handleFailure(
-      current,
-      quality,
-      attempt,
-      error,
-      new AbortController()
-    );
-    void this.trigger();
-    return LocalScreenshotStore.get(clientId);
-  }
-
   public async handleModerationResult(result: ScreenshotModerationState) {
     const screenshot = await LocalScreenshotStore.findByScreenshotId(result.id);
     if (!screenshot) return;
