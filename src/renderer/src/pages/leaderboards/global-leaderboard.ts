@@ -4,6 +4,7 @@ import {
   type LeaderboardRequestOptions,
   type LeaderboardUser,
 } from "../game-details/leaderboard/game-leaderboard.js";
+import { buildLeaderboardBoardPath } from "../../../../shared/leaderboard-notifications.js";
 
 export const GLOBAL_LEADERBOARD_TAKE = 100;
 export const GLOBAL_LEADERBOARD_PAGE_SIZE = 13;
@@ -199,7 +200,7 @@ export const buildGlobalLeaderboardRequest = (
   const scope = query.isLoggedIn ? query.scope : "global";
 
   return {
-    path: `/leaderboards/${encodeURIComponent(query.metric)}`,
+    path: buildLeaderboardBoardPath(query.metric, null),
     options: {
       params: { window: query.period, scope, take: GLOBAL_LEADERBOARD_TAKE },
       needsAuth: query.isLoggedIn,

@@ -17,6 +17,7 @@ import type {
   Theme,
   FriendRequestSync,
   FriendPresenceSync,
+  Notification,
   NotificationSync,
   UserFriend,
   ShortcutLocation,
@@ -1750,6 +1751,15 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-sync-notification-count", listener);
     return () =>
       ipcRenderer.removeListener("on-sync-notification-count", listener);
+  },
+  onLeaderboardNotification: (cb: (notification: Notification) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      notification: Notification
+    ) => cb(notification);
+    ipcRenderer.on("on-leaderboard-notification", listener);
+    return () =>
+      ipcRenderer.removeListener("on-leaderboard-notification", listener);
   },
   syncFriendRequests: (friendRequestCount: number) =>
     ipcRenderer.invoke("syncFriendRequests", friendRequestCount),

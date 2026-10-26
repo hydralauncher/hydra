@@ -93,11 +93,17 @@ export const createResponseCache = (
     cache.delete(getRequestKey(path, options, accountId));
   };
 
+  const evictPath = (path: string) => {
+    for (const key of [...cache.keys()]) {
+      if (key.includes(`|${path}?`)) cache.delete(key);
+    }
+  };
+
   const clear = () => {
     generation += 1;
     cache.clear();
     inFlight.clear();
   };
 
-  return { get: request, peek, evict, clear };
+  return { get: request, peek, evict, evictPath, clear };
 };

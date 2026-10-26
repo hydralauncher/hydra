@@ -18,6 +18,7 @@ import type {
   UserDetails,
   FriendRequestSync,
   FriendPresenceSync,
+  Notification,
   NotificationSync,
   UserFriend,
   GameArtifact,
@@ -1363,6 +1364,9 @@ declare global {
     ) => () => Electron.IpcRenderer;
     onSyncNotificationCount: (
       cb: (notification: NotificationSync) => void
+    ) => () => Electron.IpcRenderer;
+    onLeaderboardNotification: (
+      cb: (notification: Notification) => void
     ) => () => Electron.IpcRenderer;
     onCloudGiftResolved: (
       cb: (giftId: string) => void
