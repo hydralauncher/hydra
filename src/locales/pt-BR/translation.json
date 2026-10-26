@@ -2047,7 +2047,7 @@
     "streak_stage_start": "Jogue 15 min hoje para acender a {{stage}}",
     "streak_stage_next": "{{stage}} · {{next}} aos {{days}} dias",
     "streak_stage_top": "{{stage}} · o estágio mais alto",
-    "last_7_days": "Últimos 7 dias",
+    "streak_days": "Dias da sequência",
     "passive_session": "Jogar 15 minutos de um jogo",
     "passive_session_rule": "Uma vez por jogo",
     "passive_achievement": "Desbloquear uma conquista",

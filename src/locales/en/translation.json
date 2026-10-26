@@ -2054,7 +2054,7 @@
     "streak_stage_start": "Play 15 min today to light the {{stage}}",
     "streak_stage_next": "{{stage}} · {{next}} at {{days}} days",
     "streak_stage_top": "{{stage}} · the highest stage",
-    "last_7_days": "Last 7 days",
+    "streak_days": "Streak days",
     "passive_session": "Play a game for 15 minutes",
     "passive_session_rule": "Once per game",
     "passive_achievement": "Unlock an achievement",
