@@ -401,7 +401,7 @@ export function ScreenshotSettingsSection({
     ...userPreferences,
     ...overrides,
   });
-  const hasCustomFolder = Boolean(userPreferences?.achievementScreenshotsPath);
+  const hasCustomFolder = Boolean(userPreferences?.screenshotsFolderPath);
   const settingsDisabled = !preferences.enabled;
 
   useEffect(() => {
@@ -410,7 +410,9 @@ export function ScreenshotSettingsSection({
 
   const refreshFolderPath = useCallback(async () => {
     try {
-      setFolderPath(await globalThis.window.electron.getScreenshotsPath());
+      setFolderPath(
+        await globalThis.window.electron.getScreenshotsFolderPath()
+      );
     } catch (error) {
       logger.error("Failed to resolve the screenshots folder", error);
     }
@@ -418,7 +420,7 @@ export function ScreenshotSettingsSection({
 
   useEffect(() => {
     void refreshFolderPath();
-  }, [refreshFolderPath, userPreferences?.achievementScreenshotsPath]);
+  }, [refreshFolderPath, userPreferences?.screenshotsFolderPath]);
 
   const update = useCallback(
     async (values: ScreenshotPreferenceUpdate) => {
@@ -469,14 +471,14 @@ export function ScreenshotSettingsSection({
     if (result.canceled || !selectedPath) return;
 
     await globalThis.window.electron.updateUserPreferences({
-      achievementScreenshotsPath: selectedPath,
+      screenshotsFolderPath: selectedPath,
     });
     await refreshFolderPath();
   };
 
   const resetFolder = async () => {
     await globalThis.window.electron.updateUserPreferences({
-      achievementScreenshotsPath: undefined,
+      screenshotsFolderPath: undefined,
     });
     await refreshFolderPath();
   };
