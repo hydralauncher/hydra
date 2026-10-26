@@ -30,6 +30,7 @@ import {
   isSteamSourceRateLimited,
   isSteamSyncConflict,
   withSteamSourceRetry,
+  isSteamRateLimitStatus,
 } from "./steam-source-retry";
 import {
   SteamAccountMismatchError,
@@ -59,6 +60,7 @@ import {
   withSteamAchievementCatalogue,
 } from "../achievements/achievement-memory-store";
 import { mergeUnlockedAchievementLists } from "../achievements/merge-unlocked-achievements";
+import { UnlockedAchievementsCache } from "../achievements/unlocked-achievements-cache";
 import {
   fetchSteamFamilyGroupForUser,
   fetchSteamFamilyPlaytimeSummary,
@@ -807,6 +809,7 @@ class SteamSyncOrchestrator {
               unlockedAchievements
             )
           );
+          UnlockedAchievementsCache.invalidate("steam", game.steamAppId);
 
           await this.persistLocalAchievementCounts(
             game.steamAppId,
@@ -841,7 +844,7 @@ class SteamSyncOrchestrator {
             );
             achievementsByAppId.set(game.steamAppId, undefined);
 
-            if (status === 429) {
+            if (isSteamRateLimitStatus(status)) {
               rateLimited = true;
               if (trackProgress) {
                 this.setState(idleState());

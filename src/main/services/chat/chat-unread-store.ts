@@ -70,6 +70,8 @@ export class ChatUnreadStore {
       this.pendingChanges.set(friendId, change);
     }
 
+    this.recordMessageTime(friendId, createdAt);
+
     if (this.isLoaded) {
       this.unread.set(friendId, (this.unread.get(friendId) ?? 0) + 1);
       this.broadcast();
@@ -154,6 +156,9 @@ export class ChatUnreadStore {
       );
       for (const [friendId, change] of changes) {
         this.applyPendingChange(friendId, change);
+        for (const createdAt of change.incoming) {
+          this.recordMessageTime(friendId, createdAt);
+        }
       }
       this.isLoaded = true;
       this.broadcast();
@@ -186,11 +191,27 @@ export class ChatUnreadStore {
     else this.unread.delete(friendId);
   }
 
+  private static recordMessageTime(friendId: string, createdAt: string) {
+    const current = this.lastMessageAt.get(friendId);
+    if (!current || Date.parse(createdAt) > Date.parse(current)) {
+      this.lastMessageAt.set(friendId, createdAt);
+    }
+  }
+
   private static toState(): ChatUnreadState {
     let totalUnread = 0;
-    for (const count of this.unread.values()) totalUnread += count;
+    const lastMessageAtByFriend: Record<string, string> = {};
+    for (const [friendId, count] of this.unread) {
+      totalUnread += count;
+      const lastMessageAt = this.lastMessageAt.get(friendId);
+      if (lastMessageAt) lastMessageAtByFriend[friendId] = lastMessageAt;
+    }
 
-    return { totalUnread, byFriend: Object.fromEntries(this.unread) };
+    return {
+      totalUnread,
+      byFriend: Object.fromEntries(this.unread),
+      lastMessageAtByFriend,
+    };
   }
 
   private static broadcast() {

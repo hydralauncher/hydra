@@ -24,6 +24,10 @@ import { spawnSupervisedUmu } from "./umu-supervised-process";
 import { EPIC_LINUX_MANAGED_UMU_MAX_BYTES } from "./epic/linux-runtime-constants.js";
 import supervisedRuntimeManifest from "../../shared/epic-linux-runtime-manifest.json";
 export type { UmuProcessHandle } from "./umu-supervised-process";
+import {
+  findFlatpakCompatibilityTools,
+  getFlatpakInstallationRoots,
+} from "./flatpak-compatibility-tools";
 
 export type { UmuStatus } from "./umu-launch-monitor";
 
@@ -268,6 +272,15 @@ export class Umu {
           source: "compatibility_tools",
         });
       }
+    }
+
+    const flatpakTools = await findFlatpakCompatibilityTools(
+      getFlatpakInstallationRoots(homePath),
+      isValidProtonDirectory
+    ).catch(() => []);
+
+    for (const tool of flatpakTools) {
+      versions.push({ ...tool, source: "compatibility_tools" });
     }
 
     const uniqueVersions = new Map<string, ProtonVersion>();

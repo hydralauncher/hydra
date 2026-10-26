@@ -616,8 +616,16 @@ export function HeroPanelActions() {
         />
         <Modal
           visible={!!localSaveRetry}
-          title={t("epic_play_local_saves")}
-          description={t("epic_play_local_saves_description")}
+          title={
+            canRetryLocalSaves
+              ? t("epic_play_local_saves")
+              : t("epic_play_offline_title")
+          }
+          description={
+            canRetryLocalSaves
+              ? t("epic_play_local_saves_description")
+              : t("epic_play_offline_description")
+          }
           onClose={() => setLocalSaveRetry(null)}
         >
           <div className="hero-panel-actions__epic-actions">

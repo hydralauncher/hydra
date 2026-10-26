@@ -30,6 +30,7 @@ export {
   type SteamAutoStartRunStatus,
 } from "./should-auto-start-steam-sync";
 export * from "./steam-session";
+export * from "./leaderboard-notifications";
 export * from "./window-layout";
 export {
   getDisplayedPlayTimeInMilliseconds,
@@ -38,6 +39,8 @@ export {
 } from "./playtime";
 export * from "./cloud-save-access";
 export * from "./cloud-save-emulator-provider";
+export * from "./profile-friends";
+export * from "./classics-disc-label";
 export * from "./controller-support";
 export * from "./artwork-resolver";
 export * from "./library-catalogue";
@@ -51,6 +54,8 @@ export * from "./language-flags";
 export * from "./use-hls-video";
 export * from "./use-souvenir-content-warning";
 export * from "./retroarch-platform";
+export * from "./platform-to-system";
+export * from "./classics-emulator-games";
 export * from "./tracker-list";
 export * from "./souvenirs";
 export * from "./souvenir-sync";

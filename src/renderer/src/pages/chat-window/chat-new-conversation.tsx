@@ -4,6 +4,7 @@ import { PlusIcon, SearchIcon } from "@primer/octicons-react";
 import cn from "classnames";
 
 import type { UserFriend } from "@types";
+import { BACKGROUND_IMAGE_SIZES } from "@renderer/pages/friends-window/friends-window-layout";
 
 import { ChatFriendAvatar, ChatFriendStatus } from "./chat-friend-status";
 
@@ -42,6 +43,124 @@ const highlightMatch = (name: string, query: string) => {
     </>
   );
 };
+
+const PICKER_BANNER_IMAGE_OPTIONS = {
+  ...BACKGROUND_IMAGE_SIZES.friend,
+  preserveAnimation: true,
+};
+
+function usePickerBanner(imageUrl: string | null | undefined) {
+  const [element, setElement] = useState<HTMLElement | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!element || !imageUrl || isVisible) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) setIsVisible(true);
+    });
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [element, imageUrl, isVisible]);
+
+  useEffect(() => {
+    if (!isVisible || !imageUrl) {
+      setBannerUrl(null);
+      return;
+    }
+
+    if (typeof globalThis.electron.getProcessedImage !== "function") {
+      setBannerUrl(imageUrl);
+      return;
+    }
+
+    let cancelled = false;
+    globalThis.electron
+      .getProcessedImage(imageUrl, PICKER_BANNER_IMAGE_OPTIONS)
+      .then((processedUrl) => {
+        if (!cancelled) setBannerUrl(processedUrl ?? imageUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setBannerUrl(imageUrl);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [imageUrl, isVisible]);
+
+  return { observe: setElement, bannerUrl };
+}
+
+interface ChatPickerOptionProps {
+  friend: UserFriend;
+  index: number;
+  isActive: boolean;
+  isOpen: boolean;
+  query: string;
+  openLabel: string;
+  optionRefs: React.MutableRefObject<(HTMLButtonElement | null)[]>;
+  onHover: (index: number) => void;
+  onPick: (friend: UserFriend) => void;
+}
+
+function ChatPickerOption({
+  friend,
+  index,
+  isActive,
+  isOpen,
+  query,
+  openLabel,
+  optionRefs,
+  onHover,
+  onPick,
+}: Readonly<ChatPickerOptionProps>) {
+  const { observe, bannerUrl } = usePickerBanner(friend.backgroundImageUrl);
+  const setButton = useCallback(
+    (element: HTMLButtonElement | null) => {
+      optionRefs.current[index] = element;
+      observe(element);
+    },
+    [index, observe, optionRefs]
+  );
+
+  return (
+    <button
+      ref={setButton}
+      type="button"
+      className={cn("chat-window__picker-option", {
+        "chat-window__picker-option--banner": bannerUrl,
+        "chat-window__picker-option--active": isActive,
+      })}
+      style={
+        {
+          "--chat-picker-option-index": Math.min(index, MAX_STAGGERED_OPTIONS),
+        } as React.CSSProperties
+      }
+      onPointerMove={() => onHover(index)}
+      onClick={() => onPick(friend)}
+    >
+      {bannerUrl && (
+        <img
+          className="chat-window__picker-banner"
+          src={bannerUrl}
+          alt=""
+          decoding="async"
+        />
+      )}
+      <ChatFriendAvatar friend={friend} size={24} />
+      <span className="chat-window__picker-details">
+        <span className="chat-window__picker-name">
+          {highlightMatch(friend.displayName, query)}
+        </span>
+        <ChatFriendStatus friend={friend} />
+      </span>
+      {isOpen && <span className="chat-window__picker-open">{openLabel}</span>}
+    </button>
+  );
+}
 
 export interface ChatNewConversationProps {
   friends: UserFriend[];
@@ -295,37 +414,18 @@ export function ChatNewConversation({
                   aria-hidden="true"
                 />
                 {matches.map((friend, index) => (
-                  <button
+                  <ChatPickerOption
                     key={friend.id}
-                    ref={(element) => {
-                      optionRefs.current[index] = element;
-                    }}
-                    type="button"
-                    className="chat-window__picker-option"
-                    style={
-                      {
-                        "--chat-picker-option-index": Math.min(
-                          index,
-                          MAX_STAGGERED_OPTIONS
-                        ),
-                      } as React.CSSProperties
-                    }
-                    onPointerMove={() => setActiveIndex(index)}
-                    onClick={() => pick(friend)}
-                  >
-                    <ChatFriendAvatar friend={friend} size={24} />
-                    <span className="chat-window__picker-details">
-                      <span className="chat-window__picker-name">
-                        {highlightMatch(friend.displayName, normalizedQuery)}
-                      </span>
-                      <ChatFriendStatus friend={friend} />
-                    </span>
-                    {openFriendIds.has(friend.id) && (
-                      <span className="chat-window__picker-open">
-                        {t("open_tab")}
-                      </span>
-                    )}
-                  </button>
+                    friend={friend}
+                    index={index}
+                    isActive={index === active}
+                    isOpen={openFriendIds.has(friend.id)}
+                    query={normalizedQuery}
+                    openLabel={t("open_tab")}
+                    optionRefs={optionRefs}
+                    onHover={setActiveIndex}
+                    onPick={pick}
+                  />
                 ))}
               </div>
             </div>

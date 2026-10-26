@@ -1634,10 +1634,18 @@ export default function Game() {
         </Modal>
         <Modal
           visible={!!localSaveRetry}
-          title={t("epic_play_local_saves", { ns: "game_details" })}
-          description={t("epic_play_local_saves_description", {
-            ns: "game_details",
-          })}
+          title={t(
+            canRetryLocalSaves
+              ? "epic_play_local_saves"
+              : "epic_play_offline_title",
+            { ns: "game_details" }
+          )}
+          description={t(
+            canRetryLocalSaves
+              ? "epic_play_local_saves_description"
+              : "epic_play_offline_description",
+            { ns: "game_details" }
+          )}
           onClose={() => setLocalSaveRetry(null)}
         >
           <HorizontalFocusGroup>

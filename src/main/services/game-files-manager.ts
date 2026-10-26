@@ -13,6 +13,7 @@ import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
   Downloader,
   FILE_EXTENSIONS_TO_EXTRACT,
+  getNextClassicsDiscLabel,
   removeSymbolsFromName,
 } from "@shared";
 import type {
@@ -483,7 +484,7 @@ export class GameFilesManager {
 
       discs.push({
         path: romPath,
-        label: `Disc ${discs.length + 1}`,
+        label: getNextClassicsDiscLabel(discs),
         fileName: path.basename(romPath),
         sku,
       });
