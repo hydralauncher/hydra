@@ -602,7 +602,7 @@ export interface DownloadGroupProps {
   openDeleteGameModal: (shop: GameShop, objectId: string) => void;
   openGameInstaller: (shop: GameShop, objectId: string) => void;
   seedingStatus: SeedingStatus[];
-  runningGameIds: ReadonlySet<string>;
+  runningGameIds: ReadonlySet<string> | null;
   queuedGameIds?: string[];
 }
 
@@ -1140,7 +1140,7 @@ export function DownloadGroup({
       );
     }
 
-    if (step === "play" && runningGameIds.has(game.id)) {
+    if (step === "play" && runningGameIds?.has(game.id)) {
       return (
         <Button
           theme="outline"
@@ -1159,7 +1159,7 @@ export function DownloadGroup({
         <Button
           theme="primary"
           onClick={() => playGame(game)}
-          disabled={disabled}
+          disabled={disabled || runningGameIds === null}
           className="download-group__simple-action-btn"
         >
           <PlayIcon size={16} />

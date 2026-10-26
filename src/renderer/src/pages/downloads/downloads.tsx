@@ -48,9 +48,8 @@ export default function Downloads() {
   const { lastPacket } = useDownload();
 
   const [seedingStatus, setSeedingStatus] = useState<SeedingStatus[]>([]);
-  const [runningGameIds, setRunningGameIds] = useState<ReadonlySet<string>>(
-    () => new Set()
-  );
+  const [runningGameIds, setRunningGameIds] =
+    useState<ReadonlySet<string> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +60,7 @@ export default function Downloads() {
       setRunningGameIds((previous) => {
         const next = new Set(gamesRunning.map((game) => game.id));
         const unchanged =
+          previous !== null &&
           next.size === previous.size &&
           [...next].every((id) => previous.has(id));
 
@@ -71,7 +71,7 @@ export default function Downloads() {
     window.electron
       .getGamesRunning()
       .then(updateRunningGameIds)
-      .catch(() => {});
+      .catch(() => updateRunningGameIds([]));
 
     const unsubscribe = window.electron.onGamesRunning(updateRunningGameIds);
 
