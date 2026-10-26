@@ -602,6 +602,7 @@ export interface DownloadGroupProps {
   openDeleteGameModal: (shop: GameShop, objectId: string) => void;
   openGameInstaller: (shop: GameShop, objectId: string) => void;
   seedingStatus: SeedingStatus[];
+  runningGameIds: ReadonlySet<string>;
   queuedGameIds?: string[];
 }
 
@@ -611,6 +612,7 @@ export function DownloadGroup({
   openDeleteGameModal,
   openGameInstaller,
   seedingStatus,
+  runningGameIds,
   queuedGameIds = [],
 }: Readonly<DownloadGroupProps>) {
   const { t } = useTranslation("downloads");
@@ -1098,20 +1100,6 @@ export function DownloadGroup({
 
     return step ?? "checking";
   };
-
-  const [runningGameIds, setRunningGameIds] = useState<Set<string>>(
-    () => new Set()
-  );
-
-  useEffect(() => {
-    const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
-      setRunningGameIds(new Set(gamesRunning.map((game) => game.id)));
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
 
   const closeGame = (game: LibraryGame) => {
     window.electron

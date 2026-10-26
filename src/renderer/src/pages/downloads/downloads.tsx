@@ -48,6 +48,38 @@ export default function Downloads() {
   const { lastPacket } = useDownload();
 
   const [seedingStatus, setSeedingStatus] = useState<SeedingStatus[]>([]);
+  const [runningGameIds, setRunningGameIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const updateRunningGameIds = (gamesRunning: { id: string }[]) => {
+      if (cancelled) return;
+
+      setRunningGameIds((previous) => {
+        const next = new Set(gamesRunning.map((game) => game.id));
+        const unchanged =
+          next.size === previous.size &&
+          [...next].every((id) => previous.has(id));
+
+        return unchanged ? previous : next;
+      });
+    };
+
+    window.electron
+      .getGamesRunning()
+      .then(updateRunningGameIds)
+      .catch(() => {});
+
+    const unsubscribe = window.electron.onGamesRunning(updateRunningGameIds);
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     window.electron.onSeedingStatus((value) => setSeedingStatus(value));
@@ -199,6 +231,7 @@ export default function Downloads() {
                 openDeleteGameModal={handleOpenDeleteGameModal}
                 openGameInstaller={handleOpenGameInstaller}
                 seedingStatus={seedingStatus}
+                runningGameIds={runningGameIds}
                 queuedGameIds={group.queuedGameIds}
               />
             ))}
