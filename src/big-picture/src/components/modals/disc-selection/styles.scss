@@ -54,6 +54,15 @@
     color: var(--primary);
   }
 
+  &__disc-type {
+    display: inline-flex;
+    flex: none;
+
+    > svg {
+      opacity: 0.7;
+    }
+  }
+
   &__disc-text {
     display: flex;
     flex: 1;

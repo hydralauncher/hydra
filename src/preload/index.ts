@@ -548,8 +548,10 @@ contextBridge.exposeInMainWorld("electron", {
   setRpcs3ConfigRoot: (root: string) =>
     ipcRenderer.invoke("setRpcs3ConfigRoot", root),
   detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
-  detectEmulator: (system: EmulatorSystem) =>
-    ipcRenderer.invoke("detectEmulator", system),
+  detectEmulator: (
+    system: EmulatorSystem,
+    options?: { includeDriveRoots?: boolean }
+  ) => ipcRenderer.invoke("detectEmulator", system, options),
   previewEmulatorExecutable: (
     system: EmulatorSystem,
     executablePath?: string | null
@@ -624,7 +626,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
   /* RetroArch */
   getRetroArchConfig: () => ipcRenderer.invoke("getRetroArchConfig"),
-  detectRetroArch: () => ipcRenderer.invoke("detectRetroArch"),
+  detectRetroArch: (options?: { includeDriveRoots?: boolean }) =>
+    ipcRenderer.invoke("detectRetroArch", options),
   previewRetroArchExecutable: (executablePath?: string | null) =>
     ipcRenderer.invoke("previewRetroArchExecutable", executablePath ?? null),
   setRetroArchExecutablePath: (executablePath: string | null) =>
@@ -675,7 +678,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("previewRetroArchRomFolder", folderPath, scanSubfolders),
   checkRetroArchExecutable: () =>
     ipcRenderer.invoke("checkRetroArchExecutable"),
-  removeRetroArch: () => ipcRenderer.invoke("removeRetroArch"),
+  removeRetroArch: (options?: { removeGames?: boolean }) =>
+    ipcRenderer.invoke("removeRetroArch", options),
   addRetroArchRomFolder: (folderPath: string, scanSubfolders: boolean) =>
     ipcRenderer.invoke("addRetroArchRomFolder", folderPath, scanSubfolders),
   changeRetroArchRomFolder: (folderId: string, newPath: string) =>
@@ -740,8 +744,10 @@ contextBridge.exposeInMainWorld("electron", {
   addEmulatorRomPath: (system: EmulatorSystem, folderPath: string) =>
     ipcRenderer.invoke("addEmulatorRomPath", system, folderPath),
   getRpcs3DefaultSources: () => ipcRenderer.invoke("getRpcs3DefaultSources"),
-  removeEmulator: (system: EmulatorSystem) =>
-    ipcRenderer.invoke("removeEmulator", system),
+  removeEmulator: (
+    system: EmulatorSystem,
+    options?: { removeGames?: boolean }
+  ) => ipcRenderer.invoke("removeEmulator", system, options),
   checkEmulatorExecutable: (system: EmulatorSystem) =>
     ipcRenderer.invoke("checkEmulatorExecutable", system),
   importLaunchboxRoms: (
@@ -1238,7 +1244,12 @@ contextBridge.exposeInMainWorld("electron", {
       selectedDiscPath?: string | null;
       dontAskDiscSelection?: boolean;
       platform?: string | null;
-      addDisc?: { path: string; label: string; fileName: string };
+      addDisc?: {
+        path: string;
+        label: string;
+        fileName: string;
+        isExecutable?: boolean;
+      };
       removeDiscPath?: string;
     }
   ) => ipcRenderer.invoke("updateClassicsDisc", shop, objectId, patch),
@@ -1542,6 +1553,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("showItemInFolder", path),
   getImageDataUrl: (imageUrl: string) =>
     ipcRenderer.invoke("getImageDataUrl", imageUrl),
+  getFileIcon: (filePath: string) =>
+    ipcRenderer.invoke("getFileIcon", filePath),
   getProcessedImage: (
     imageUrl: string | null,
     options: { width: number; height: number; preserveAnimation?: boolean }
@@ -1554,6 +1567,7 @@ contextBridge.exposeInMainWorld("electron", {
         needsAuth?: boolean;
         needsSubscription?: boolean;
         ifModifiedSince?: Date;
+        timeout?: number;
       }
     ) =>
       ipcRenderer.invoke("hydraApiCall", {
@@ -1564,6 +1578,7 @@ contextBridge.exposeInMainWorld("electron", {
           needsAuth: options?.needsAuth,
           needsSubscription: options?.needsSubscription,
           ifModifiedSince: options?.ifModifiedSince,
+          timeout: options?.timeout,
         },
       }),
     post: (
@@ -1800,6 +1815,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("closeRetroAchievementsConnectionWindow"),
   completeRetroAchievementsConnectionWindow: () =>
     ipcRenderer.invoke("completeRetroAchievementsConnectionWindow"),
+  linkRetroAchievementsEmulatorAccount: (username: string, password: string) =>
+    ipcRenderer.invoke(
+      "linkRetroAchievementsEmulatorAccount",
+      username,
+      password
+    ),
   onRetroAchievementsConnected: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-retroachievements-connected", listener);
@@ -2154,6 +2175,27 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openFriendProfileInMainWindow", userId),
   openAddFriendModalInMainWindow: () =>
     ipcRenderer.invoke("openAddFriendModalInMainWindow"),
+  showToastInMainWindow: (toast: {
+    title: string;
+    message?: string;
+    type: "success" | "error" | "warning";
+    duration?: number;
+  }) => ipcRenderer.invoke("showToastInMainWindow", toast),
+  onShowToast: (
+    cb: (toast: {
+      title: string;
+      message?: string;
+      type: "success" | "error" | "warning";
+      duration?: number;
+    }) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      toast: Parameters<typeof cb>[0]
+    ) => cb(toast);
+    ipcRenderer.on("on-show-toast", listener);
+    return () => ipcRenderer.removeListener("on-show-toast", listener);
+  },
 
   /* Chat */
   openChatWindow: (friend: UserFriend) =>

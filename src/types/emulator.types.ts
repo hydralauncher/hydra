@@ -73,6 +73,7 @@ export interface ClassicsDisc {
   label: string;
   fileName: string;
   sku?: string | null;
+  isExecutable?: boolean;
 }
 
 /** A game save detected inside a PS2 memory card (`.ps2`) image. */

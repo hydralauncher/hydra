@@ -197,6 +197,7 @@ export interface UserPreferences {
   retroAchievementsWebApiKey?: string | null;
   retroAchievementsUsername?: string | null;
   preferQuitInsteadOfHiding?: boolean;
+  openFriendsWindowOnStartup?: boolean;
   runAtStartup?: boolean;
   startMinimized?: boolean;
   launchToLibraryPage?: boolean;

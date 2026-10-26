@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
 import { ProfileReviewItem } from "./profile-review-item";
@@ -64,7 +65,26 @@ export function ReviewsTab({
       aria-hidden={false}
     >
       {isLoadingReviews && (
-        <div className="user-reviews__loading">{t("loading_reviews")}</div>
+        <div
+          className="user-reviews__list"
+          aria-busy="true"
+          aria-label={t("loading_reviews")}
+        >
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="user-reviews__skeleton">
+              <div className="user-reviews__skeleton-header">
+                <Skeleton width={24} height={24} />
+                <Skeleton width={140} height={16} />
+              </div>
+              <Skeleton width={56} height={22} borderRadius={6} />
+              <Skeleton count={2} height={14} />
+              <div className="user-reviews__skeleton-votes">
+                <Skeleton width={52} height={32} borderRadius={6} />
+                <Skeleton width={52} height={32} borderRadius={6} />
+              </div>
+            </div>
+          ))}
+        </div>
       )}
       {!isLoadingReviews && reviews.length === 0 && (
         <div className="user-reviews__empty">
