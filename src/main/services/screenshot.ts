@@ -11,7 +11,7 @@ import { NativeAddon } from "./native-addon";
 import { isLinuxGameWindowProcess } from "./linux-process-match";
 import {
   captureLinuxGameSessionFrame,
-  isWaylandSession,
+  isWaylandCaptureBackend,
 } from "./linux-game-capture-session";
 import {
   getWindowsProcessAncestryDiagnostics,
@@ -372,7 +372,7 @@ export const resolveGameCaptureSourceId = async (
   if (process.platform === "win32") {
     return (await getWindowsGameWindowSource(captureTarget)).id;
   }
-  if (process.platform === "linux" && !isWaylandSession()) {
+  if (process.platform === "linux" && !isWaylandCaptureBackend()) {
     return findX11WindowSourceId(await resolveX11GameWindowId(captureTarget));
   }
   return null;
@@ -381,7 +381,7 @@ export const resolveGameCaptureSourceId = async (
 const captureGameImage = async (
   captureTarget: GameScreenshotCaptureTarget
 ): Promise<Electron.NativeImage> => {
-  if (isWaylandSession()) {
+  if (isWaylandCaptureBackend()) {
     if (!captureTarget.gameKey) {
       throw new Error("No game session available for Wayland capture");
     }

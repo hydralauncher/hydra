@@ -183,6 +183,64 @@ export const isSameScreenshotHotkey = (
   left.alt === right.alt &&
   left.shift === right.shift;
 
+const ACCELERATOR_KEY_NAMES: Readonly<Record<string, string>> = {
+  NumpadAdd: "numadd",
+  NumpadSubtract: "numsub",
+  NumpadMultiply: "nummult",
+  NumpadDivide: "numdiv",
+  NumpadDecimal: "numdec",
+  Backquote: "`",
+  Minus: "-",
+  Equal: "=",
+  BracketLeft: "[",
+  BracketRight: "]",
+  Backslash: "\\",
+  Semicolon: ";",
+  Quote: "'",
+  Comma: ",",
+  Period: ".",
+  Slash: "/",
+  ArrowUp: "Up",
+  ArrowDown: "Down",
+  ArrowLeft: "Left",
+  ArrowRight: "Right",
+  ScrollLock: "Scrolllock",
+};
+
+const PASSTHROUGH_ACCELERATOR_KEYS = new Set([
+  ...FUNCTION_KEYS,
+  ...TYPING_CONTROL_KEYS,
+  ...NAVIGATION_KEYS,
+  "Escape",
+  "PrintScreen",
+]);
+
+const toAcceleratorKey = (key: string) => {
+  if (Object.hasOwn(ACCELERATOR_KEY_NAMES, key))
+    return ACCELERATOR_KEY_NAMES[key];
+  if (PASSTHROUGH_ACCELERATOR_KEYS.has(key)) return key;
+  if (/^Key[A-Z]$/.test(key)) return key.slice(3);
+  if (/^Digit\d$/.test(key)) return key.slice(5);
+  if (/^Numpad\d$/.test(key)) return `num${key.slice(6)}`;
+  return null;
+};
+
+export const toScreenshotHotkeyAccelerator = (
+  binding: ScreenshotHotkeyBinding
+) => {
+  const key = toAcceleratorKey(binding.key);
+  if (!key) return null;
+
+  return [
+    binding.ctrl ? "Control" : null,
+    binding.alt ? "Alt" : null,
+    binding.shift ? "Shift" : null,
+    key,
+  ]
+    .filter(Boolean)
+    .join("+");
+};
+
 export const validateScreenshotGamepadCombo = (
   buttons: readonly string[]
 ): ScreenshotInputValidation<ScreenshotGamepadComboError> => {

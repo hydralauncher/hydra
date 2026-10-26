@@ -1857,7 +1857,7 @@
     "souvenir_sync_cleanup_failed": "Não foi possível excluir as lembranças não sincronizadas",
     "enable_achievement_souvenirs": "Habilitar lembranças para conquistas",
     "wayland_souvenirs_warning_title": "Lembranças no Wayland",
-    "wayland_souvenirs_warning_description": "Devido à natureza do Wayland, o Hydra precisa perguntar qual janela deve ser capturada toda vez que você abrir um jogo. Selecione a janela do jogo para que o Hydra possa capturar lembranças quando você desbloquear conquistas. Sem selecionar uma janela, não é possível capturar lembranças.",
+    "wayland_souvenirs_warning_description": "Devido à natureza do Wayland, o Hydra precisa perguntar qual tela deve ser capturada. Ele pergunta uma vez quando o seu primeiro jogo é iniciado e lembra a escolha até o Hydra ser fechado. Selecione a tela em que seus jogos são executados para que o Hydra possa capturar lembranças quando você desbloquear conquistas. Sem selecionar uma tela, não é possível capturar lembranças.",
     "wayland_souvenirs_warning_cancel": "Cancelar",
     "wayland_souvenirs_warning_confirm": "OK",
     "epic_sync_starting": "Preparando sincronização Epic…",

@@ -21,7 +21,7 @@ import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import {
   grabLinuxGameSessionFrame,
-  isWaylandSession,
+  isWaylandCaptureBackend,
 } from "../linux-game-capture-session";
 import {
   resolveGameCaptureSourceId,
@@ -275,7 +275,7 @@ const grabFromDirectWindowsSource = async (
 const acquireFrame = async (
   captureTarget: GameScreenshotCaptureTarget
 ): Promise<GrabbedScreenshotFrame> => {
-  if (isWaylandSession() && captureTarget.gameKey) {
+  if (isWaylandCaptureBackend() && captureTarget.gameKey) {
     return grabLinuxGameSessionFrame(captureTarget.gameKey, {
       waitForNextFrame: false,
     });

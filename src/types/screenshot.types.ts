@@ -188,6 +188,7 @@ export type ScreenshotInputBackend =
   | "xinput"
   | "x11-xinput2"
   | "evdev"
+  | "global-shortcuts-portal"
   | "unavailable";
 
 export type ScreenshotInputHint =
