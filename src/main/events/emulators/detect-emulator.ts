@@ -4,11 +4,13 @@ import type { EmulatorSystem } from "@types";
 
 const detectEmulatorEvent = async (
   _event: Electron.IpcMainInvokeEvent,
-  system: EmulatorSystem
+  system: EmulatorSystem,
+  options?: { includeDriveRoots?: boolean }
 ) => {
   const binary = emulators.KNOWN_BINARIES[system];
   const result = await emulators.detectEmulatorWithDownloads(binary, {
     resolveVersion: true,
+    includeDriveRoots: options?.includeDriveRoots === true,
   });
 
   return emulators.updateEmulatorConfig(system, (current) => {

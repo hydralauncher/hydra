@@ -10,6 +10,7 @@ import {
   buildGameLeaderboardPath,
   getLeaderboardNudge,
   getLeaderboardState,
+  getServedMetrics,
   isSignedOutError,
   getLeaderboardBoardKey,
   normalizeLeaderboardResponse,
@@ -98,6 +99,19 @@ describe("normalizeLeaderboardResponse", () => {
 
     assert.equal(result.entries[0].user.backgroundImageUrl, "bg.png");
     assert.equal(result.entries[1].user.backgroundImageUrl, null);
+  });
+
+  it("reads the entries shape of the game leaderboard route", () => {
+    const result = normalizeLeaderboardResponse({
+      entries: [{ rank: 1, value: 5, user: user("a") }],
+      viewer: { rank: 2, value: 1 },
+      generatedAt: "2026-10-22T00:00:00.000Z",
+    });
+
+    assert.deepEqual(result, {
+      entries: [{ rank: 1, value: 5, user: user("a") }],
+      viewer: { rank: 2, value: 1 },
+    });
   });
 
   it("prefers value and reads the viewer from the extended shape", () => {
@@ -382,30 +396,39 @@ describe("buildLeaderboardRequest", () => {
     );
   });
 
-  it("sends metric and scope when the flag is on", () => {
+  it("uses the per-metric route when the flag is on", () => {
     assert.deepEqual(
       buildLeaderboardRequest(
         query({
           scope: "friends",
-          metric: "sessions",
+          metric: "souvenirs",
           isExtended: true,
           isLoggedIn: true,
           objectId: "a/b",
         })
       ),
       {
-        path: "/games/steam/a%2Fb/top-users",
+        path: "/games/steam/a%2Fb/leaderboards/souvenirs",
         options: {
-          params: {
-            take: 100,
-            range: "all",
-            metric: "sessions",
-            scope: "friends",
-          },
+          params: { take: 100, range: "all", scope: "friends" },
           needsAuth: true,
         },
       }
     );
+  });
+});
+
+describe("getServedMetrics", () => {
+  it("keeps the launcher order of the metrics the API serves", () => {
+    assert.deepEqual(getServedMetrics(["souvenirs", "playtime", "badges"]), [
+      "playtime",
+      "souvenirs",
+    ]);
+  });
+
+  it("falls back to playtime until the catalogue loads", () => {
+    assert.deepEqual(getServedMetrics(null), ["playtime"]);
+    assert.deepEqual(getServedMetrics([]), ["playtime"]);
   });
 });
 

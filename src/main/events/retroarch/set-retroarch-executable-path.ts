@@ -1,4 +1,5 @@
 import { registerEvent } from "../register-event";
+import { syncRetroAchievementsEmulatorCredentials } from "@main/services/retro-achievements/emulator-credentials/emulator-credential-sync";
 import { emulators, retroarch } from "@main/services";
 import path from "node:path";
 
@@ -22,7 +23,7 @@ const setRetroArchExecutablePath = async (
     ? retroarch.getRetroArchVersion(resolvedPath)
     : null;
 
-  return retroarch.updateRetroArchConfig((current) => {
+  const config = await retroarch.updateRetroArchConfig((current) => {
     const next = {
       ...current,
       executablePath: resolvedPath,
@@ -46,6 +47,10 @@ const setRetroArchExecutablePath = async (
 
     return next;
   });
+
+  if (resolvedPath) void syncRetroAchievementsEmulatorCredentials("retroarch");
+
+  return config;
 };
 
 registerEvent("setRetroArchExecutablePath", setRetroArchExecutablePath);

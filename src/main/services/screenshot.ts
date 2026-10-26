@@ -19,6 +19,7 @@ import {
   isWindowsWindowSource,
 } from "./windows-game-window-match";
 import { captureWindowsGameWindowFrame } from "./windows-game-capture";
+import { cropToWindowClientArea } from "./windows-window-bounds";
 import {
   getBitmapColorRange,
   isMostlyBlackScreenshot,
@@ -87,6 +88,7 @@ export interface GameScreenshotCaptureTarget {
   gameKey?: string;
   windowHandle?: string;
   x11WindowId?: string;
+  cropToClientArea?: boolean;
 }
 
 export interface GameScreenshotOutput {
@@ -391,7 +393,10 @@ const captureGameImage = async (
 
   if (process.platform === "win32") {
     const source = await getGameWindowSource(captureTarget);
-    return captureWindowsGameWindowFrame(source.id);
+    const image = await captureWindowsGameWindowFrame(source.id);
+    return captureTarget.cropToClientArea
+      ? cropToWindowClientArea(image, source.id)
+      : image;
   }
 
   if (process.platform === "linux") {

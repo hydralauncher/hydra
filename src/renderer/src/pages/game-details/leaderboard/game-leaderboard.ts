@@ -20,6 +20,15 @@ export type LeaderboardMetric = (typeof LEADERBOARD_METRICS)[number];
 
 export type LeaderboardShop = Extract<GameShop, "steam" | "epic" | "launchbox">;
 
+export const getServedMetrics = (
+  servedIds: readonly string[] | null
+): LeaderboardMetric[] => {
+  const served = LEADERBOARD_METRICS.filter((metric) =>
+    servedIds?.includes(metric)
+  );
+  return served.length > 0 ? served : ["playtime"];
+};
+
 export interface LeaderboardUser {
   id: string;
   displayName: string;
@@ -187,12 +196,13 @@ export const normalizeLeaderboardResponse = (
   }
 
   const candidate = response as Record<string, unknown>;
-  if (!Array.isArray(candidate.users)) {
+  const items = candidate.entries ?? candidate.users;
+  if (!Array.isArray(items)) {
     throw new TypeError("Invalid leaderboard response");
   }
 
   const seen = new Set<string>();
-  const entries = candidate.users
+  const entries = items
     .flatMap((value) => {
       const entry = normalizeEntry(value);
       return entry ? [entry] : [];
@@ -324,19 +334,22 @@ export const getLeaderboardState = ({
 export const buildLeaderboardRequest = (
   query: LeaderboardQuery
 ): { path: string; options: LeaderboardRequestOptions } => {
-  const params: Record<string, string | number> = {
-    take: LEADERBOARD_TAKE,
-    range: query.period,
-  };
+  const gamePath = `/games/${query.shop}/${encodeURIComponent(query.objectId)}`;
+  const params = { take: LEADERBOARD_TAKE, range: query.period };
 
-  if (query.isExtended) {
-    params.metric = query.metric;
-    params.scope = query.scope;
+  if (!query.isExtended) {
+    return {
+      path: `${gamePath}/top-users`,
+      options: { params, needsAuth: false },
+    };
   }
 
   return {
-    path: `/games/${query.shop}/${encodeURIComponent(query.objectId)}/top-users`,
-    options: { params, needsAuth: query.isExtended && query.isLoggedIn },
+    path: `${gamePath}/leaderboards/${encodeURIComponent(query.metric)}`,
+    options: {
+      params: { ...params, scope: query.scope },
+      needsAuth: query.isLoggedIn,
+    },
   };
 };
 

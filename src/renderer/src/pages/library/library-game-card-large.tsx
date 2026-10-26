@@ -1,5 +1,5 @@
 import cn from "classnames";
-import { getLibraryPresentationBadgeSource } from "./library-category";
+import { getLibraryPresentationImportSources } from "./library-category";
 
 import { LibraryGame } from "@types";
 import {
@@ -31,6 +31,9 @@ import {
   RETROARCH_EMULATOR_ICON,
 } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card-large.scss";
+
+// Cards scrolled past or remounted within this window never load, keeping scroll bursts off the API.
+const ACHIEVEMENT_PROGRESS_SETTLE_MS = 250;
 
 interface LibraryGameCardLargeProps {
   game: LibraryGame;
@@ -94,11 +97,11 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     userPreferences?.hideLibraryReadySizeBadges ?? false;
   const hideClassicsBadges =
     userPreferences?.hideLibraryClassicsBadges ?? false;
-  const badgeSource = getLibraryPresentationBadgeSource(game);
+  const importSources = getLibraryPresentationImportSources(game);
   const showEpicLibraryBadge =
-    badgeSource === "epic" && !userPreferences?.hideEpicLibraryBadges;
+    importSources.epic && !userPreferences?.hideEpicLibraryBadges;
   const showSteamLibraryBadge =
-    badgeSource === "steam" && !userPreferences?.hideSteamLibraryBadges;
+    importSources.steam && !userPreferences?.hideSteamLibraryBadges;
   const hideAchievementProgress =
     userPreferences?.hideLibraryAchievementProgress ?? false;
   const autoplayAnimatedArtwork =
@@ -259,24 +262,30 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
     let isStale = false;
 
-    window.electron
-      .getUnlockedAchievements(game.objectId, game.shop)
-      .then((achievements) => {
-        if (isStale) return;
-        // An empty legacy fallback cannot distinguish unavailable definitions
-        // from an authoritative empty catalogue. Preserve known grouped totals.
-        if ((hasStoreUnion || needsCatalogueTotal) && achievements.length === 0)
-          return;
-        setUnlockedAchievementsCount(
-          achievements.filter((a) => a.unlocked).length
-        );
-        // Both counts must describe the returned list, including a one-store fallback.
-        setTotalAchievementsCount(achievements.length);
-      })
-      .catch(() => void 0);
+    const timer = setTimeout(() => {
+      window.electron
+        .getUnlockedAchievements(game.objectId, game.shop)
+        .then((achievements) => {
+          if (isStale) return;
+          // An empty legacy fallback cannot distinguish unavailable definitions
+          // from an authoritative empty catalogue. Preserve known grouped totals.
+          if (
+            (hasStoreUnion || needsCatalogueTotal) &&
+            achievements.length === 0
+          )
+            return;
+          setUnlockedAchievementsCount(
+            achievements.filter((a) => a.unlocked).length
+          );
+          // Both counts must describe the returned list, including a one-store fallback.
+          setTotalAchievementsCount(achievements.length);
+        })
+        .catch(() => void 0);
+    }, ACHIEVEMENT_PROGRESS_SETTLE_MS);
 
     return () => {
       isStale = true;
+      clearTimeout(timer);
     };
   }, [
     game.achievementCount,
@@ -449,23 +458,22 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
                 </span>
               </div>
             )}
-
-            {showEpicLibraryBadge && (
-              <SteamLibraryBadge
-                source="epic"
-                variant="large"
-                availableShops={game.availableShops}
-                hasActiveSteamImport={game.hasActiveSteamImport}
-                hasActiveEpicImport={game.hasActiveEpicImport}
-              />
-            )}
-            {showSteamLibraryBadge && (
-              <SteamLibraryBadge
-                variant="large"
-                availableShops={game.availableShops}
-                hasActiveSteamImport={game.hasActiveSteamImport}
-                hasActiveEpicImport={game.hasActiveEpicImport}
-              />
+            {(showSteamLibraryBadge || showEpicLibraryBadge) && (
+              <div className="library-game-card-large__import-badges">
+                {showSteamLibraryBadge && (
+                  <SteamLibraryBadge
+                    variant="large"
+                    availableShops={game.availableShops}
+                  />
+                )}
+                {showEpicLibraryBadge && (
+                  <SteamLibraryBadge
+                    source="epic"
+                    variant="large"
+                    availableShops={game.availableShops}
+                  />
+                )}
+              </div>
             )}
 
             {!hideClassicsBadges && classicsPlatformLabel && (

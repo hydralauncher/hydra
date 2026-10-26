@@ -114,6 +114,7 @@ export function ProfileContent() {
     loadMoreLibraryGames,
     hasMoreLibraryGames,
     isLoadingLibraryGames,
+    hasLoadedLibraryGames,
     souvenirs,
     souvenirsTotal,
     hasReachedSouvenirLimit,
@@ -563,7 +564,13 @@ export function ProfileContent() {
                   pinnedGames={pinnedGames}
                   libraryGames={libraryGames}
                   hasMoreLibraryGames={hasMoreLibraryGames}
-                  isAwaitingInitialLibrary={isCorrectingPrefetchedSort}
+                  isAwaitingInitialLibrary={
+                    isCorrectingPrefetchedSort ||
+                    !hasLoadedLibraryGames ||
+                    (isLoadingLibraryGames &&
+                      libraryGames.length === 0 &&
+                      pinnedGames.length === 0)
+                  }
                   statsIndex={statsIndex}
                   userStats={userStats}
                   onLoadMore={handleLoadMore}
