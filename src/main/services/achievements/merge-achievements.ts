@@ -21,6 +21,7 @@ import { db, levelKeys } from "@main/level";
 import { getGameAchievementData } from "./get-game-achievement-data";
 import { AchievementWatcherManager } from "./achievement-watcher-manager";
 import { AchievementMemoryStore } from "./achievement-memory-store";
+import { UnlockedAchievementsCache } from "./unlocked-achievements-cache";
 import { publishAchievementUnlockNotifications } from "./achievement-unlock-notifications";
 import { ScreenshotService } from "../screenshot";
 import { PendingAchievementSouvenirStore } from "./pending-achievement-souvenir-store";
@@ -147,12 +148,20 @@ const saveAchievementsInMemory = async (
     language: gameAchievement?.language,
     catalogueValidator: gameAchievement?.catalogueValidator,
   });
+  const since = UnlockedAchievementsCache.invalidate(shop, objectId);
 
   if (!sendUpdateEvent) return;
 
   return getUnlockedAchievements(objectId, shop, true, current)
     .then((achievements) => {
       if (!current()) return;
+      UnlockedAchievementsCache.set(
+        shop,
+        objectId,
+        achievements,
+        current,
+        since
+      );
       WindowManager.mainWindow?.webContents.send(
         `on-update-achievements-${objectId}-${shop}`,
         achievements

@@ -86,6 +86,9 @@ const load = (options: {
         set: () => assert.fail("must not copy catalogue cache"),
       },
     },
+    "@main/services/achievements/unlocked-achievements-cache": {
+      UnlockedAchievementsCache: { recordCombinedMembers: () => undefined },
+    },
     "@main/services/achievements/achievement-souvenir-store": {
       AchievementSouvenirStore: {
         set: (shop: string) => writes.push(shop),
