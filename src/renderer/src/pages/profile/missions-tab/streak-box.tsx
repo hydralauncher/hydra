@@ -8,9 +8,7 @@ import {
   rampColor,
 } from "@renderer/components/gamification";
 import type { LoginStreak } from "@types";
-
-const DAYS_SHOWN = 7;
-const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+import { STREAK_DAYS_SHOWN, buildStreakDays } from "./streak-days";
 
 export function StreakBox({ streak }: Readonly<{ streak: LoginStreak }>) {
   const { t, i18n } = useTranslation("user_profile");
@@ -18,24 +16,15 @@ export function StreakBox({ streak }: Readonly<{ streak: LoginStreak }>) {
   const days = useMemo(() => {
     const weekdayFormatter = new Intl.DateTimeFormat(i18n.language, {
       weekday: "narrow",
+      timeZone: "UTC",
     });
-    const litCount = Math.min(streak.current, DAYS_SHOWN);
-    // The streak ends today once today counts, otherwise yesterday.
-    const lastLitIndex = streak.hasPlayedToday
-      ? DAYS_SHOWN - 1
-      : DAYS_SHOWN - 2;
 
-    return Array.from({ length: DAYS_SHOWN }, (_, index) => {
-      const date = new Date(
-        Date.now() - (DAYS_SHOWN - 1 - index) * MILLISECONDS_PER_DAY
-      );
-      return {
-        key: index,
-        label: weekdayFormatter.format(date),
-        isLit: index <= lastLitIndex && index > lastLitIndex - litCount,
-        isToday: index === DAYS_SHOWN - 1,
-      };
-    });
+    return buildStreakDays(streak).map((day, index) => ({
+      key: index,
+      label: weekdayFormatter.format(day.date),
+      isLit: day.isLit,
+      isToday: day.isToday,
+    }));
   }, [streak, i18n.language]);
 
   const stageLabel = (() => {
@@ -65,7 +54,7 @@ export function StreakBox({ streak }: Readonly<{ streak: LoginStreak }>) {
         </div>
       </div>
 
-      <div className="streak-box__week" aria-label={t("last_7_days")}>
+      <div className="streak-box__week" aria-label={t("streak_days")}>
         {days.map((day) => (
           <div
             key={day.key}
@@ -77,7 +66,7 @@ export function StreakBox({ streak }: Readonly<{ streak: LoginStreak }>) {
               style={
                 day.isLit
                   ? {
-                      background: `linear-gradient(90deg, ${rampColor(day.key / DAYS_SHOWN)}, ${rampColor((day.key + 1) / DAYS_SHOWN)})`,
+                      background: `linear-gradient(90deg, ${rampColor(day.key / STREAK_DAYS_SHOWN)}, ${rampColor((day.key + 1) / STREAK_DAYS_SHOWN)})`,
                     }
                   : undefined
               }
