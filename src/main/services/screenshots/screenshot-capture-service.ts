@@ -133,22 +133,19 @@ const getGameSessionId = (gameKey: string) => {
   return sessionId;
 };
 
-export const rejectAdultGameCapture = async (gameTitle: string) => {
+const rejectAdultGameCapture = async (gameTitle: string) => {
   ScreenshotTelemetry.record("capture", "blocked", "adult_game");
   await ScreenshotFeedback.showToast({ kind: "disabled_for_game", gameTitle });
 };
 
-export const resolveCaptureFilePath = async (
-  gameTitle: string,
-  capturedAt: Date
-) =>
+const resolveCaptureFilePath = async (gameTitle: string, capturedAt: Date) =>
   resolveAvailableFilePath(
     await getAchievementScreenshotsDirectory(),
     gameTitle,
     capturedAt
   );
 
-export interface FinishCaptureOptions {
+interface FinishCaptureOptions {
   target: Pick<ScreenshotGameTarget, "gameKey" | "shop" | "objectId">;
   gameTitle: string;
   filePath: string;
@@ -159,13 +156,12 @@ export interface FinishCaptureOptions {
   ownerId?: string | null;
   previewPath?: string | null;
   announce?: boolean;
-  extra?: Partial<LocalScreenshot>;
 }
 
 const getSignedInOwnerId = () =>
   HydraApi.isLoggedIn() ? (HydraApi.getAuthContext()?.userId ?? null) : null;
 
-export const finishCapture = async ({
+const finishCapture = async ({
   target,
   gameTitle,
   filePath,
@@ -176,7 +172,6 @@ export const finishCapture = async ({
   ownerId = getSignedInOwnerId(),
   previewPath = null,
   announce = true,
-  extra = {},
 }: FinishCaptureOptions) => {
   if (announce) announceCapture(gameTitle, ownerId);
 
@@ -201,7 +196,6 @@ export const finishCapture = async ({
     lastError: null,
     gameSessionId: getGameSessionId(target.gameKey),
     previewPath,
-    ...extra,
   });
 
   ScreenshotTelemetry.record("capture", "saved", source);

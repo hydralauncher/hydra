@@ -1,4 +1,3 @@
-import type { BrowserWindow } from "electron";
 import type {
   LocalScreenshot,
   ScreenshotReview,
@@ -18,14 +17,6 @@ export interface ScreenshotReviewTarget {
 let desktopReview: ScreenshotReview | null = null;
 const closedListeners = new Set<() => void>();
 let pendingBigPictureRequest: ScreenshotReviewRequest | null = null;
-
-const sendBigPictureRequest = (
-  bigPicture: BrowserWindow,
-  request: ScreenshotReviewRequest
-) => {
-  pendingBigPictureRequest = request;
-  bigPicture.webContents.send("on-screenshot-review-requested", request);
-};
 
 const sendDesktopReview = () => {
   const mainWindow = WindowManager.mainWindow;
@@ -51,28 +42,6 @@ const markAsReviewing = (clientIds: string[]) =>
       )
     )
   );
-
-const watchBigPictureHandoff = (
-  bigPicture: BrowserWindow,
-  clientIds: string[]
-) => {
-  let released = false;
-  const release = () => {
-    if (released) return;
-    released = true;
-    if (
-      pendingBigPictureRequest?.clientIds.some((clientId) =>
-        clientIds.includes(clientId)
-      )
-    ) {
-      pendingBigPictureRequest = null;
-    }
-    void releaseUnreviewedScreenshots(clientIds);
-  };
-
-  bigPicture.once("closed", release);
-  bigPicture.webContents.once("render-process-gone", release);
-};
 
 export class ScreenshotReviewSession {
   public static async releaseStaleReviews(startedAt: number) {
@@ -172,18 +141,6 @@ export class ScreenshotReviewSession {
       pendingBigPictureRequest = null;
     }
     await releaseUnreviewedScreenshots(clientIds);
-  }
-
-  public static async requestBigPictureReview(
-    request: ScreenshotReviewRequest
-  ) {
-    const bigPicture = WindowManager.bigPictureWindow;
-    if (!bigPicture) return false;
-
-    await markAsReviewing(request.clientIds);
-    watchBigPictureHandoff(bigPicture, request.clientIds);
-    sendBigPictureRequest(bigPicture, request);
-    return true;
   }
 
   public static async takePendingBigPictureRequest() {
