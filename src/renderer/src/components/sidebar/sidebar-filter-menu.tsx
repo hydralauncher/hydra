@@ -1,7 +1,7 @@
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
   CheckIcon,
-  ClockIcon,
+  HistoryIcon,
   DeviceDesktopIcon,
   HeartIcon,
   HourglassIcon,
@@ -190,7 +190,7 @@ export function SidebarFilterMenu({
     {
       value: "recently_played",
       label: t("recently_played", { ns: "library" }),
-      icon: <ClockIcon size={14} />,
+      icon: <HistoryIcon size={14} />,
     },
     {
       value: "most_played",

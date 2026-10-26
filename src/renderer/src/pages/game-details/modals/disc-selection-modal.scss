@@ -18,9 +18,7 @@
     border-radius: 8px;
     color: #c0c1c7;
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      border-color 0.15s ease;
+    transition: border-color 0.15s ease;
     text-align: left;
 
     &:hover {

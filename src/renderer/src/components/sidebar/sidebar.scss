@@ -34,9 +34,7 @@
     gap: 6px;
     font-size: 12px;
     -webkit-app-region: no-drag;
-    transition:
-      opacity ease 0.1s,
-      background-color ease 0.1s;
+    transition: opacity ease 0.1s;
 
     &:hover {
       opacity: 1;
@@ -83,6 +81,7 @@
     position: absolute;
     inset: 0 0 6px;
     overflow-y: auto;
+    overflow-anchor: none;
     padding-bottom: calc(globals.$spacing-unit * 2);
   }
 
@@ -113,7 +112,9 @@
   }
 
   &__menu-item {
-    transition: all ease 0.1s;
+    transition:
+      all ease 0.1s,
+      background 0s;
     cursor: pointer;
     text-wrap: nowrap;
     display: flex;
@@ -218,6 +219,16 @@
     border-radius: 4px;
     background-size: cover;
     display: block;
+  }
+
+  &__game-list-rows {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='126'%3E%3Crect x='0' y='11' width='20' height='20' rx='4' fill='%231c1c1c'/%3E%3Crect x='28' y='15' width='132' height='12' rx='4' fill='%231c1c1c'/%3E%3Crect x='0' y='53' width='20' height='20' rx='4' fill='%231c1c1c'/%3E%3Crect x='28' y='57' width='96' height='12' rx='4' fill='%231c1c1c'/%3E%3Crect x='0' y='95' width='20' height='20' rx='4' fill='%231c1c1c'/%3E%3Crect x='28' y='99' width='116' height='12' rx='4' fill='%231c1c1c'/%3E%3C/svg%3E");
+    background-repeat: repeat-y;
+    background-position: globals.$spacing-unit 0;
+  }
+
+  &__game-list-row {
+    background-color: globals.$dark-background-color;
   }
 
   &__game-list-skeleton {

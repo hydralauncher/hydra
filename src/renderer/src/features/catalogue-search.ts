@@ -5,6 +5,14 @@ import type { CatalogueSearchPayload } from "@types";
 
 export type CatalogueMode = "modern" | "classics";
 
+export type CatalogueFilterListKey =
+  | "genres"
+  | "tags"
+  | "downloadSourceFingerprints"
+  | "developers"
+  | "publishers"
+  | "platforms";
+
 export interface CatalogueSearchState {
   filters: CatalogueSearchPayload;
   page: number;
@@ -42,6 +50,24 @@ export const catalogueSearchSlice = createSlice({
       action: PayloadAction<Partial<CatalogueSearchPayload>>
     ) => {
       state.filters = { ...state.filters, ...action.payload };
+      state.page = initialState.page;
+    },
+    toggleFilterValue: (
+      state,
+      action: PayloadAction<{
+        key: CatalogueFilterListKey;
+        value: string | number;
+      }>
+    ) => {
+      const { key, value } = action.payload;
+      const current = (state.filters[key] ?? []) as (string | number)[];
+
+      state.filters = {
+        ...state.filters,
+        [key]: current.includes(value)
+          ? current.filter((item) => item !== value)
+          : [...current, value],
+      };
       state.page = initialState.page;
     },
     clearFilters: (state) => {
@@ -84,6 +110,7 @@ export const catalogueSearchSlice = createSlice({
 
 export const {
   setFilters,
+  toggleFilterValue,
   clearFilters,
   setPage,
   clearPage,

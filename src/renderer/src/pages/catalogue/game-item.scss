@@ -9,6 +9,9 @@
   border-radius: 4px;
   border: 1px solid globals.$border-color;
   min-height: 103px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 105px;
+  container-type: inline-size;
 
   &:hover .game-item__content-link {
     background-color: rgba(255, 255, 255, 0.05);
@@ -27,7 +30,6 @@
     gap: calc(globals.$spacing-unit * 2);
     width: 100%;
     color: inherit;
-    transition: background-color 0.2s ease;
     text-decoration: none;
 
     &:hover,
@@ -73,16 +75,17 @@
   }
 
   &__cover {
-    width: 200px;
+    display: block;
+    width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
   &__cover-wrapper {
     position: relative;
-    width: 200px;
-    min-width: 200px;
-    height: 103px;
+    width: 220px;
+    min-width: 220px;
+    aspect-ratio: 460 / 215;
     overflow: hidden;
     border-right: 1px solid globals.$border-color;
   }
@@ -92,8 +95,8 @@
     align-items: center;
     justify-content: center;
     color: globals.$body-color;
-    width: 200px;
-    height: 103px;
+    width: 100%;
+    height: 100%;
     background: linear-gradient(
       90deg,
       rgba(255, 255, 255, 0.1) 0%,
@@ -165,7 +168,18 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-    padding: calc(globals.$spacing-unit * 2) 0;
+    flex: 1;
+    min-width: 0;
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 4)
+      calc(globals.$spacing-unit * 2) 0;
+  }
+
+  &__title,
+  &__genres {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__genres {
@@ -181,8 +195,20 @@
   }
 
   &__repackers {
-    display: flex;
-    gap: globals.$spacing-unit;
-    flex-wrap: wrap;
+    align-self: stretch;
+  }
+}
+
+@container (max-width: 560px) {
+  .game-item__cover-wrapper {
+    width: 160px;
+    min-width: 160px;
+  }
+}
+
+@container (max-width: 420px) {
+  .game-item__cover-wrapper {
+    width: 120px;
+    min-width: 120px;
   }
 }

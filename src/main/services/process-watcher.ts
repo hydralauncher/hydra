@@ -10,7 +10,7 @@ import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { createGame, trackGamePlaytime } from "./library-sync";
 import type { Game, UserPreferences } from "@types";
 import axios from "axios";
-import { db, gamesSublevel, levelKeys } from "@main/level";
+import { db, gamesSublevel, getGamesSnapshot, levelKeys } from "@main/level";
 import { CloudSync } from "./cloud-sync";
 import { logger, networkLogger } from "./logger";
 import { PowerSaveBlockerManager } from "./power-save-blocker";
@@ -152,6 +152,7 @@ export const getGamesRunning = () => {
 
 const TICKS_TO_UPDATE_API = (3 * 60 * 1000) / INTERVALS.processWatcher; // 3 minutes
 let currentTick = 1;
+let lastGamesRunningBroadcastWasEmpty = false;
 
 const platform = process.platform;
 
@@ -330,17 +331,14 @@ const hasLinuxCompatibilityProcessMatch = (
 export const watchProcesses = async () => {
   startOptionalExecutableCatalogueLoad(() => GameExecutables.ensureLoaded());
 
-  const games = await gamesSublevel
-    .values()
-    .all()
-    .then((results) => {
-      // Finish an already monitored session even if unlinking hides its import.
-      return results.filter(
-        (game) =>
-          game.isDeleted === false ||
-          gamesPlaytime.has(levelKeys.game(game.shop, game.objectId))
-      );
-    });
+  const games = await getGamesSnapshot().then((results) => {
+    // Finish an already monitored session even if unlinking hides its import.
+    return results.filter(
+      (game) =>
+        game.isDeleted === false ||
+        gamesPlaytime.has(levelKeys.game(game.shop, game.objectId))
+    );
+  });
 
   if (!games.length) return;
 
@@ -433,7 +431,11 @@ export const watchProcesses = async () => {
 
   currentTick++;
 
-  WindowManager.sendToAppWindows("on-games-running", getGamesRunning());
+  const gamesRunning = getGamesRunning();
+  if (gamesRunning.length > 0 || !lastGamesRunningBroadcastWasEmpty) {
+    WindowManager.sendToAppWindows("on-games-running", gamesRunning);
+  }
+  lastGamesRunningBroadcastWasEmpty = gamesRunning.length === 0;
 };
 
 async function onOpenGame(game: Game, matchedPath: string) {

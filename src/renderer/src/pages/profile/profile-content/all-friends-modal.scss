@@ -39,7 +39,9 @@
     padding: calc(globals.$spacing-unit * 1.5);
     border-radius: 8px;
     cursor: pointer;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.05);

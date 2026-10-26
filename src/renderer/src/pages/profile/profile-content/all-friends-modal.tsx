@@ -42,6 +42,7 @@ export function AllFriendsModal({
         params.append("take", String(PAGE_SIZE));
         params.append("skip", String(pageNum * PAGE_SIZE));
         params.append("shop", "steam");
+        params.append("shop", "epic");
         params.append("shop", "launchbox");
 
         const basePath = isMe ? "/profile/friends" : `/users/${userId}/friends`;

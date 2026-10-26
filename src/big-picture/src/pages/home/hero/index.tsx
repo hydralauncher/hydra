@@ -21,6 +21,7 @@ import {
   HorizontalFocusGroup,
 } from "../../../components";
 import { useLibraryLaunchGame } from "../../../components/pages/library/use-library-launch-game";
+import { getKnownDownloadSources } from "../home-data";
 import { useHeroBackgroundLayers } from "../../../components/pages/library/hero/use-hero-background-layers";
 import {
   animateNavigationScrollForElement,
@@ -168,26 +169,24 @@ export function HomePageHero({
   };
 
   const addToLibraryNavigationOverrides: FocusOverrides = {
-    left: getItemFocusTarget(HOME_HERO_OPEN_GAME_PAGE_ID),
-    right: {
-      type: "block",
-    },
+    left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
+    right: getItemFocusTarget(HOME_HERO_OPEN_GAME_PAGE_ID),
     up: heroUpNavigationTarget,
     down: heroDownNavigationTarget,
   };
 
   const downloadOrPlayNavigationOverrides: FocusOverrides = {
-    left: getItemFocusTarget(HOME_HERO_OPEN_GAME_PAGE_ID),
-    right: {
-      type: "block",
-    },
+    left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
+    right: getItemFocusTarget(HOME_HERO_OPEN_GAME_PAGE_ID),
     up: heroUpNavigationTarget,
     down: heroDownNavigationTarget,
   };
 
   const openGamePageNavigationOverrides: FocusOverrides = {
-    left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home),
-    right: getItemFocusTarget(secondActionFocusId),
+    left: getItemFocusTarget(secondActionFocusId),
+    right: {
+      type: "block",
+    },
     up: heroUpNavigationTarget,
     down: heroDownNavigationTarget,
   };
@@ -295,6 +294,8 @@ export function HomePageHero({
             className="home-page-hero__actions"
             regionId={HOME_HERO_ACTIONS_REGION_ID}
           >
+            {heroSecondaryAction}
+
             <Button
               focusId={HOME_HERO_OPEN_GAME_PAGE_ID}
               focusNavigationOverrides={openGamePageNavigationOverrides}
@@ -306,8 +307,6 @@ export function HomePageHero({
             >
               View Details
             </Button>
-
-            {heroSecondaryAction}
           </HorizontalFocusGroup>
         </div>
       </div>
@@ -315,7 +314,12 @@ export function HomePageHero({
       <DownloadGameModal
         visible={isDownloadingGame}
         onClose={handleDownloadGameModalClose}
-        game={featuredGame}
+        game={{
+          ...featuredGame,
+          downloadSources: getKnownDownloadSources(
+            featuredGame.downloadSources
+          ),
+        }}
       />
     </section>
   );

@@ -50,9 +50,7 @@
     font-size: globals.$body-font-size;
     line-height: 1.2;
     white-space: nowrap;
-    transition:
-      color 0.2s ease,
-      background-color 0.1s ease;
+    transition: color 0.2s ease;
 
     &:hover {
       background: rgba(255, 255, 255, 0.15);

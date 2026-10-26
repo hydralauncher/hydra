@@ -425,6 +425,13 @@ export function RepacksModal({
               }}
               className="repacks-modal__repack-button"
             >
+              <span
+                className="repacks-modal__availability-orb repacks-modal__availability-orb--online"
+                data-tooltip-id="availability-orb-epic"
+                data-tooltip-content={t("source_online")}
+              />
+              <Tooltip id="availability-orb-epic" />
+
               <p className="repacks-modal__repack-title repacks-modal__steam-title">
                 <EpicLogo width={16} height={16} aria-hidden="true" />
                 {game?.title ?? epicGame.title}

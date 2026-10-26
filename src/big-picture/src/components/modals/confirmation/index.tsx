@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigation } from "../../../hooks";
+import { useNavigationActions } from "../../../hooks";
 import {
   Button,
   HorizontalFocusGroup,
@@ -40,7 +40,7 @@ export function ConfirmationModal({
   closeOnBackdrop = true,
   backdropClassName,
 }: Readonly<ConfirmationModalProps>) {
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
 
   useEffect(() => {
     if (!visible) return;

@@ -232,7 +232,9 @@
     background: rgba(244, 67, 54, 0.1);
     color: #f44336;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition:
+      all 0.2s ease,
+      background 0s;
 
     &:hover {
       background: rgba(244, 67, 54, 0.2);

@@ -7,13 +7,13 @@
   width: 24px;
   height: 24px;
   color: rgba(255, 255, 255, 0.8);
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.62);
   border: solid 1px rgba(255, 255, 255, 0.15);
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: all ease 0.2s;
+  transition:
+    all ease 0.2s,
+    background 0s;
 
   svg {
     display: block;
@@ -34,9 +34,7 @@
     color: #ffffff;
     border: none;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.75);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
     transition: none;
   }

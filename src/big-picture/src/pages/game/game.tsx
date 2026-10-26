@@ -443,6 +443,59 @@ function buildDescriptionSections(document: Document | null) {
   return sections;
 }
 
+const GAME_PAGE_SKELETON_DESCRIPTION_LINES = 6;
+const GAME_PAGE_SKELETON_SIDEBAR_PANELS = 3;
+
+const GAME_PAGE_LOADING_FOCUS_ID = "game-page-loading-focus";
+
+function GamePageSkeleton() {
+  return (
+    <div className="game-page__skeleton" aria-busy="true">
+      <div className="game-page__hero-shell">
+        <Skeleton className="game-page__skeleton-backdrop" />
+        <div className="game-page__hero-overlay">
+          <Skeleton className="game-page__skeleton-logo" />
+          <Skeleton className="game-page__skeleton-line game-page__skeleton-line--wide" />
+          <Skeleton className="game-page__skeleton-line" />
+          <div className="game-page__skeleton-actions">
+            <FocusItem id={GAME_PAGE_LOADING_FOCUS_ID}>
+              <Skeleton className="game-page__skeleton-action game-page__skeleton-action--primary" />
+            </FocusItem>
+            <Skeleton className="game-page__skeleton-action" />
+            <Skeleton className="game-page__skeleton-action" />
+          </div>
+        </div>
+      </div>
+
+      <div className="game-page__content">
+        <div className="game-page__main-layout">
+          <div className="game-page__main-column game-page__skeleton-column">
+            <Skeleton className="game-page__skeleton-media" />
+            {Array.from(
+              { length: GAME_PAGE_SKELETON_DESCRIPTION_LINES },
+              (_, index) => (
+                <Skeleton
+                  key={index}
+                  className="game-page__skeleton-line game-page__skeleton-line--full"
+                />
+              )
+            )}
+          </div>
+
+          <div className="game-page__sidebar">
+            {Array.from(
+              { length: GAME_PAGE_SKELETON_SIDEBAR_PANELS },
+              (_, index) => (
+                <Skeleton key={index} className="game-page__skeleton-panel" />
+              )
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SimilarGamesSkeleton({ title }: Readonly<{ title: string }>) {
   return (
     <section
@@ -530,6 +583,7 @@ export default function Game() {
   const descriptionScrollAnimationFrameRef = useRef<number | null>(null);
   const preserveDescriptionScrollOnNextBodyFocusRef = useRef(false);
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const wasHoldingLoadingFocusRef = useRef(false);
   const navigationNodes = useNavigationStore((state) => state.nodes);
   const navigationRegions = useNavigationStore((state) => state.regions);
   const navigationNodesById = useMemo(
@@ -1545,11 +1599,28 @@ export default function Game() {
     };
   }, [descriptionBlocks]);
 
+  const isPageReady = !isLoading && Boolean(shopDetails);
+
+  useEffect(() => {
+    if (!isPageReady) {
+      wasHoldingLoadingFocusRef.current =
+        currentFocusId === GAME_PAGE_LOADING_FOCUS_ID;
+      return;
+    }
+
+    if (!wasHoldingLoadingFocusRef.current) return;
+    wasHoldingLoadingFocusRef.current = false;
+
+    navigation.setFocusRegion(GAME_PAGE_REGION_ID, "right", {
+      preferRememberedFocus: false,
+    });
+  }, [currentFocusId, isPageReady, navigation]);
+
   if (isLoading || !shopDetails) {
     return (
       <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
         <div className="game-page">
-          <p style={{ color: "white" }}>Loading...</p>
+          <GamePageSkeleton />
         </div>
       </VerticalFocusGroup>
     );

@@ -17,7 +17,9 @@
   &__list-item {
     display: flex;
     flex-direction: column;
-    transition: all ease 0.1s;
+    transition:
+      all ease 0.1s,
+      background 0s;
     color: globals.$muted-color;
     width: 100%;
     overflow: hidden;

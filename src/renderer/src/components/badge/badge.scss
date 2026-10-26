@@ -10,8 +10,8 @@
   gap: 4px;
   align-items: center;
   background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all ease 0.2s;
+  transition:
+    all ease 0.2s,
+    background 0s;
 }

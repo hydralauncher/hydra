@@ -10,7 +10,9 @@
   &__button {
     display: flex;
     cursor: pointer;
-    transition: all ease 0.1s;
+    transition:
+      all ease 0.1s,
+      background 0s;
     color: globals.$muted-color;
     width: 100%;
     overflow: hidden;
@@ -146,7 +148,6 @@
     border-radius: 4px;
     color: globals.$muted-color;
     cursor: pointer;
-    transition: background-color ease 0.1s;
     font-size: globals.$body-font-size;
 
     &:hover {

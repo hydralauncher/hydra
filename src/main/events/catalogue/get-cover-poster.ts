@@ -6,6 +6,7 @@ import sharp from "sharp";
 
 import { registerEvent } from "../register-event";
 import { ASSETS_PATH } from "@main/constants";
+import { getBrowserUserAgent } from "@main/helpers/browser-user-agent";
 import { logger } from "@main/services";
 import { parseCoverPosterRemoteUrl } from "./cover-poster-url";
 
@@ -66,8 +67,10 @@ const downloadRemote = async (
 
   const response = await axios.get<ArrayBuffer>(requestUrl, {
     responseType: "arraybuffer",
-    headers:
-      endByte === undefined ? undefined : { Range: `bytes=0-${endByte}` },
+    headers: {
+      "User-Agent": getBrowserUserAgent(),
+      ...(endByte === undefined ? {} : { Range: `bytes=0-${endByte}` }),
+    },
     maxContentLength: MAX_SOURCE_BYTES,
     maxBodyLength: MAX_SOURCE_BYTES,
     maxRedirects: 0,
@@ -146,20 +149,42 @@ const isAnimatedSource = async (source: AnimatedSource): Promise<boolean> => {
   return Boolean(metadata.pages && metadata.pages > 1);
 };
 
-const buildCoverPoster = async (url: string): Promise<string | null> => {
-  const posterPath = path.join(
-    POSTER_DIR,
-    `${hashUrl(url)}-${POSTER_VERSION}.webp`
-  );
+const fileExists = (filePath: string) =>
+  fs.promises
+    .access(filePath)
+    .then(() => true)
+    .catch(() => false);
 
-  if (fs.existsSync(posterPath)) {
+const markSourceAsStatic = async (staticMarkerPath: string) => {
+  await fs.promises.mkdir(POSTER_DIR, { recursive: true });
+  await fs.promises.writeFile(staticMarkerPath, "");
+};
+
+const buildCoverPoster = async (url: string): Promise<string | null> => {
+  const baseName = `${hashUrl(url)}-${POSTER_VERSION}`;
+  const posterPath = path.join(POSTER_DIR, `${baseName}.webp`);
+  const staticMarkerPath = path.join(POSTER_DIR, `${baseName}.static`);
+
+  if (await fileExists(posterPath)) {
     return `local:${posterPath}`;
   }
 
-  const source = await loadAnimatedSource(url).catch(() => null);
-  if (!source) return null;
+  if (await fileExists(staticMarkerPath)) {
+    return null;
+  }
+
+  const source = await loadAnimatedSource(url).catch(() => undefined);
+  if (source === undefined) return null;
+
+  if (!source) {
+    if (!url.startsWith("local:")) {
+      await markSourceAsStatic(staticMarkerPath).catch(() => {});
+    }
+    return null;
+  }
 
   if (!(await isAnimatedSource(source))) {
+    await markSourceAsStatic(staticMarkerPath).catch(() => {});
     return null;
   }
 

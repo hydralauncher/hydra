@@ -184,6 +184,10 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveV2FileDetails>;
+    getLocalSaveFileDetails: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<CloudSaveV2FileDetails>;
     getRetroArchLocalBatteryCandidates: (
       objectId: string,
       shop: GameShop
@@ -463,6 +467,7 @@ declare global {
       page?: number
     ) => Promise<ArtworkPage | null>;
     getCoverPoster: (url: string) => Promise<string | null>;
+    prefetchCoverThumbnails: (thumbnailUrls: string[]) => Promise<void>;
     getGameArtworkSelection: (
       shop: GameShop,
       objectId: string
@@ -1192,6 +1197,7 @@ declare global {
     };
     canInstallCommonRedist: () => Promise<boolean>;
     installCommonRedist: () => Promise<void>;
+    exportLogs: () => Promise<string | null>;
     installHydraDeckyPlugin: () => Promise<{
       success: boolean;
       path: string;

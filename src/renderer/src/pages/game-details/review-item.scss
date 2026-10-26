@@ -165,7 +165,9 @@
     color: #ccc;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition:
+      all 0.2s ease,
+      background 0s;
 
     &:hover {
       background: rgba(255, 255, 255, 0.1);
@@ -205,7 +207,9 @@
     padding: 6px;
     color: #f44336;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition:
+      all 0.2s ease,
+      background 0s;
     gap: 6px;
 
     &:hover {
@@ -348,7 +352,9 @@
     font-size: 0.875rem;
     cursor: pointer;
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition:
+      all 0.2s ease,
+      background 0s;
 
     &:hover {
       text-decoration: underline;

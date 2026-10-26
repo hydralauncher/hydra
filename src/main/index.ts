@@ -27,6 +27,8 @@ import { TorrentService } from "./services/torrent-service";
 import { DownloadManager } from "./services/download/download-manager";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
+import { COVER_THUMBNAIL_SCHEME } from "@shared";
+import { handleCoverThumbnailRequest } from "./services/cover-thumbnail";
 import { launchGame, openClassicsGame } from "./helpers";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
@@ -97,6 +99,10 @@ protocol.registerSchemesAsPrivileged([
     scheme: "gradient",
     privileges: { supportFetchAPI: true, corsEnabled: true },
   },
+  {
+    scheme: COVER_THUMBNAIL_SCHEME,
+    privileges: { supportFetchAPI: true, corsEnabled: true },
+  },
 ]);
 
 if (process.defaultApp) {
@@ -119,6 +125,8 @@ const initializeApp = async () => {
     const filePath = request.url.slice("local:".length);
     return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
+
+  protocol.handle(COVER_THUMBNAIL_SCHEME, handleCoverThumbnailRequest);
 
   protocol.handle("gradient", (request) => {
     const gradientCss = decodeURIComponent(

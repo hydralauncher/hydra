@@ -234,6 +234,7 @@ async function fetchAchievementGames(
     sortBy: "achievementCount",
   });
   searchParams.append("shop", "steam");
+  searchParams.append("shop", "epic");
   searchParams.append("shop", "launchbox");
 
   const response = await getUserLibrary(targetUserId, searchParams.toString());
@@ -526,8 +527,8 @@ export function useProfileFriends(
 
     let isMounted = true;
     const path = isOwnProfile
-      ? "/profile/friends"
-      : `/users/${targetUserId}/friends`;
+      ? "/profile/friends?shop=steam&shop=epic&shop=launchbox"
+      : `/users/${targetUserId}/friends?shop=steam&shop=epic&shop=launchbox`;
 
     globalThis.window.electron.hydraApi
       .get<UserFriends>(path, { params: { take, skip: 0 } })

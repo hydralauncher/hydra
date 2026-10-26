@@ -31,6 +31,8 @@ function persistUserDetails(userDetails: UserDetails | null) {
 
 interface BigPictureUserDetailsState {
   userDetails: UserDetails | null;
+  isSigningIn: boolean;
+  setIsSigningIn: (isSigningIn: boolean) => void;
   setUserDetails: (userDetails: UserDetails | null) => void;
   clearUserDetails: () => void;
   loadCachedUserDetails: () => UserDetails | null;
@@ -39,6 +41,8 @@ interface BigPictureUserDetailsState {
 export const useBigPictureUserDetailsStore = create<BigPictureUserDetailsState>(
   (set) => ({
     userDetails: getCachedUserDetails(),
+    isSigningIn: false,
+    setIsSigningIn: (isSigningIn) => set({ isSigningIn }),
     setUserDetails: (userDetails) => {
       persistUserDetails(userDetails);
       set({ userDetails });

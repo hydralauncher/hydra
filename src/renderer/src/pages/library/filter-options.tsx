@@ -1,4 +1,11 @@
 import { useTranslation } from "react-i18next";
+import {
+  DownloadIcon,
+  HistoryIcon,
+  HourglassIcon,
+  SortDescIcon,
+  TrophyIcon,
+} from "@primer/octicons-react";
 import { LibrarySelect } from "./library-select";
 import "./filter-options.scss";
 
@@ -7,8 +14,7 @@ export type SortOption =
   | "recently_played"
   | "most_played"
   | "achievements"
-  | "installed_first"
-  | "title_desc";
+  | "installed_first";
 
 interface FilterOptionsProps {
   sortBy: SortOption;
@@ -29,12 +35,31 @@ export function FilterOptions({
         ariaLabel={t("sort_by")}
         onChange={(value) => onSortChange(value as SortOption)}
         options={[
-          { value: "title_asc", label: t("sort_title_asc") },
-          { value: "recently_played", label: t("recently_played") },
-          { value: "most_played", label: t("sort_most_played") },
-          { value: "achievements", label: t("sort_achievements") },
-          { value: "installed_first", label: t("sort_installed_first") },
-          { value: "title_desc", label: t("sort_title_desc") },
+          {
+            value: "title_asc",
+            label: t("sort_title"),
+            icon: <SortDescIcon size={14} />,
+          },
+          {
+            value: "recently_played",
+            label: t("recently_played"),
+            icon: <HistoryIcon size={14} />,
+          },
+          {
+            value: "most_played",
+            label: t("sort_most_played"),
+            icon: <HourglassIcon size={14} />,
+          },
+          {
+            value: "achievements",
+            label: t("sort_achievements"),
+            icon: <TrophyIcon size={14} />,
+          },
+          {
+            value: "installed_first",
+            label: t("sort_installed_first"),
+            icon: <DownloadIcon size={14} />,
+          },
         ]}
       />
     </div>

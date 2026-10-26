@@ -8,7 +8,7 @@ import {
   type TabsItem,
   VerticalFocusGroup,
 } from "../../components";
-import { useGamepad, useNavigation } from "../../hooks";
+import { useGamepad, useNavigationActions } from "../../hooks";
 import {
   NavigationAudioService,
   type FocusOverrideTarget,
@@ -114,7 +114,7 @@ function SettingsTabPanel({
   initialFocusTarget: FocusOverrideTarget | null;
   children: React.JSX.Element;
 }>) {
-  const { setFocus, setFocusRegion } = useNavigation();
+  const { setFocus, setFocusRegion } = useNavigationActions();
 
   useEffect(() => {
     if (!initialFocusTarget) return;

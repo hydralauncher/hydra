@@ -4,7 +4,7 @@ import { CaretRightIcon } from "@phosphor-icons/react";
 import { useCallback, useMemo, useState } from "react";
 
 import { Button } from "../../components";
-import { useNavigation, useUserPreferences } from "../../hooks";
+import { useNavigationActions, useUserPreferences } from "../../hooks";
 import { LanguagePickerModal } from "./language-picker-modal";
 import { LanguageFlag } from "./language-flag";
 import { resolveCurrentLanguageOption } from "./language-options";
@@ -22,7 +22,7 @@ const GITHUB_REPOSITORY_URL = "https://github.com/hydralauncher/hydra";
 
 export function LanguageSection({ className }: Readonly<LanguageSectionProps>) {
   const userPreferences = useUserPreferences();
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const [isLanguagePickerOpen, setIsLanguagePickerOpen] = useState(false);
 
   const currentLanguage = useMemo(() => {

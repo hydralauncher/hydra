@@ -29,7 +29,8 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
   const { loadCollections } = useGameCollections();
   const navigate = useNavigate();
   const location = useLocation();
-  const { openGameOptionsModal } = useGameOptionsModal();
+  const { openGameOptionsModal, openDownloadOptionsModal } =
+    useGameOptionsModal();
   const { removeGameInstaller, removeGameFromLibrary, isGameDeleting } =
     useDownload();
 
@@ -249,21 +250,24 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
   };
 
   const handleOpenDownloadOptions = () => {
-    const path = buildGameDetailsPath({
-      ...game,
-      objectId: game.objectId,
-    });
-    navigate(path, { state: { openRepacks: true } });
+    const isOnGamePage = location.pathname.startsWith(
+      `/game/${game.shop}/${game.objectId}`
+    );
 
-    try {
+    if (isOnGamePage) {
       window.dispatchEvent(
         new CustomEvent("hydra:openRepacks", {
           detail: { objectId: game.objectId },
         })
       );
-    } catch (e) {
-      void e;
+      return;
     }
+
+    openDownloadOptionsModal({
+      objectId: game.objectId,
+      shop: game.shop,
+      title: game.title,
+    });
   };
 
   const handleOpenGameOptions = (initialCategory?: GameSettingsCategoryId) => {

@@ -287,7 +287,60 @@ export const findAchievementFiles = (game: Game) => {
 const steamUserIds = await getSteamUsersIds();
 const steamPath = await getSteamLocation().catch(() => null);
 
-export const findAchievementFileInSteamPath = (game: Game) => {
+const STEAM_LIBRARY_CACHE_REFRESH_MS = 10_000;
+
+let steamLibraryCacheIndex: {
+  loadedAt: number;
+  files: Promise<Set<string>>;
+} | null = null;
+
+const getSteamLibraryCacheDirectory = (steamUserId: number) =>
+  path.join(
+    steamPath ?? "",
+    "userdata",
+    steamUserId.toString(),
+    "config",
+    "librarycache"
+  );
+
+const loadSteamLibraryCacheFiles = async () => {
+  const files = new Set<string>();
+  if (!steamPath) return files;
+
+  await Promise.all(
+    steamUserIds.map(async (steamUserId) => {
+      const directory = getSteamLibraryCacheDirectory(steamUserId);
+      const names = await fs.promises
+        .readdir(directory)
+        .catch((): string[] => []);
+
+      for (const name of names) {
+        if (name.endsWith(".json")) files.add(path.join(directory, name));
+      }
+    })
+  );
+
+  return files;
+};
+
+export const getSteamLibraryCacheFiles = (): Promise<Set<string>> => {
+  if (
+    steamLibraryCacheIndex &&
+    Date.now() - steamLibraryCacheIndex.loadedAt <
+      STEAM_LIBRARY_CACHE_REFRESH_MS
+  ) {
+    return steamLibraryCacheIndex.files;
+  }
+
+  const files = loadSteamLibraryCacheFiles();
+  steamLibraryCacheIndex = { loadedAt: Date.now(), files };
+  return files;
+};
+
+export const findAchievementFileInSteamPath = (
+  game: Game,
+  existingFiles?: Set<string>
+) => {
   if (!steamUserIds.length) {
     return [];
   }
@@ -300,15 +353,15 @@ export const findAchievementFileInSteamPath = (game: Game) => {
 
   for (const steamUserId of steamUserIds) {
     const gameAchievementPath = path.join(
-      steamPath,
-      "userdata",
-      steamUserId.toString(),
-      "config",
-      "librarycache",
+      getSteamLibraryCacheDirectory(steamUserId),
       `${game.objectId}.json`
     );
 
-    if (fs.existsSync(gameAchievementPath)) {
+    const exists = existingFiles
+      ? existingFiles.has(gameAchievementPath)
+      : fs.existsSync(gameAchievementPath);
+
+    if (exists) {
       achievementFiles.push({
         type: Cracker.Steam,
         filePath: gameAchievementPath,

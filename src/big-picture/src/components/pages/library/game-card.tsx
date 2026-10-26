@@ -12,7 +12,7 @@ import {
 } from "../../common";
 import { getBigPictureGameDetailsPath } from "../../../helpers";
 import type { FocusOverrides } from "../../../services";
-import { useRef } from "react";
+import { memo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getLibraryFocusGridItemId,
@@ -107,7 +107,7 @@ function LibraryCatalogueBadge({
   );
 }
 
-export function VerticalLibraryGameCard({
+function VerticalLibraryGameCardView({
   game,
   navigationOverrides,
   contextMenuOpen = false,
@@ -234,7 +234,7 @@ export function VerticalLibraryGameCard({
   );
 }
 
-export function HorizontalLibraryGameListCard({
+function HorizontalLibraryGameListCardView({
   game,
   navigationOverrides,
   contextMenuOpen = false,
@@ -353,3 +353,9 @@ export function HorizontalLibraryGameListCard({
     </FocusItem>
   );
 }
+
+export const VerticalLibraryGameCard = memo(VerticalLibraryGameCardView);
+
+export const HorizontalLibraryGameListCard = memo(
+  HorizontalLibraryGameListCardView
+);

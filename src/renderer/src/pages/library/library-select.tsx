@@ -11,6 +11,7 @@ import "./library-select.scss";
 interface LibrarySelectOption {
   value: string;
   label: string;
+  icon?: React.ReactNode;
 }
 
 interface LibrarySelectProps {
@@ -45,6 +46,9 @@ export function LibrarySelect({
           aria-label={ariaLabel}
           disabled={disabled}
         >
+          {selected?.icon && (
+            <span className="library-select__icon">{selected.icon}</span>
+          )}
           <span className="library-select__trigger-label">
             {selected?.label ?? ""}
           </span>
@@ -72,6 +76,9 @@ export function LibrarySelect({
                 value={option.value}
                 className="library-select__item"
               >
+                {option.icon && (
+                  <span className="library-select__icon">{option.icon}</span>
+                )}
                 <span className="library-select__item-label">
                   {option.label}
                 </span>

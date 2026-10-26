@@ -227,3 +227,22 @@
   top: -5px;
   right: -5px;
 }
+
+.user-profile-content__skeleton-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.user-profile-content__skeleton-name {
+  width: 120px;
+  height: 16px;
+  border-radius: 6px;
+}
+
+.user-profile-content__skeleton-code {
+  width: 80px;
+  height: 12px;
+  margin-top: 6px;
+  border-radius: 6px;
+}

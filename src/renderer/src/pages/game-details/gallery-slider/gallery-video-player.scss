@@ -77,9 +77,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
     color: #fff;
     cursor: pointer;
     animation: gallery-video-pop-in 0.25s $video-ease;
-    transition:
-      transform 0.2s $video-ease,
-      background-color 0.15s ease;
+    transition: transform 0.2s $video-ease;
 
     &:hover {
       transform: scale(1.08);
@@ -447,9 +445,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
     background: transparent;
     color: globals.$muted-color;
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      transform 0.15s ease;
+    transition: transform 0.15s ease;
 
     svg {
       transition: transform 0.3s $video-ease;
@@ -614,7 +610,6 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
     font-size: globals.$body-font-size;
     text-align: left;
     cursor: pointer;
-    transition: background-color 0.12s ease;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.08);

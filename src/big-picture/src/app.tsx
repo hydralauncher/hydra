@@ -1,9 +1,10 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   BIG_PICTURE_APP_LAYER_ID,
   BIG_PICTURE_CONTENT_REGION_ID,
+  BIG_PICTURE_HEADER_REGION_ID,
   BIG_PICTURE_SHELL_REGION_ID,
   getBigPictureContentEntryRegionIdFromPathname,
   BIG_PICTURE_SIDEBAR_ITEM_IDS,
@@ -14,7 +15,12 @@ import {
   Sidebar,
 } from "./layout";
 import { IS_DESKTOP } from "./constants";
-import { useBigPictureToast, useNavigation, useUserPreferences } from "./hooks";
+import {
+  getRememberedFocusId,
+  useBigPictureToast,
+  useNavigation,
+  useUserPreferences,
+} from "./hooks";
 import {
   HorizontalFocusGroup,
   InputModeProvider,
@@ -34,10 +40,16 @@ import {
   initializeBigPictureRunningGamesStore,
   useInputModeStore,
 } from "./stores";
-import { NavigationAudioService, type FocusOverrides } from "./services";
+import {
+  NavigationAudioService,
+  NavigationService,
+  type FocusOverrides,
+} from "./services";
 import { BigPictureI18nBridge, ensureBigPictureI18nResources } from "./i18n";
 
 import "./styles/globals.scss";
+
+const REMEMBERED_FOCUS_WAIT_MS = 2000;
 
 export default function App() {
   ensureBigPictureI18nResources();
@@ -46,12 +58,18 @@ export default function App() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { showErrorToast } = useBigPictureToast();
-  const { nodes, regions, setFocusRegion } = useNavigation();
+  const { currentFocusId, nodes, regions, setFocus, setFocusRegion } =
+    useNavigation();
   const userPreferences = useUserPreferences();
   const inputMode = useInputModeStore((state) => state.mode);
   const [pendingRouteFocusPathname, setPendingRouteFocusPathname] = useState<
     string | null
   >(pathname);
+  const routeFocusResolvedPathnameRef = useRef<string | null>(null);
+  const routeFocusTrackedPathnameRef = useRef<string | null>(null);
+  const releasedRouteFocusIdsRef = useRef(new Set<string>());
+  const routeFocusStartedAtRef = useRef(0);
+  const [routeFocusRetryCount, setRouteFocusRetryCount] = useState(0);
   const activeSidebarItemId = getBigPictureSidebarItemIdFromPathname(pathname);
   const activeGameRoute = getBigPictureGameRouteMatch(pathname);
   const leftSidebarTargetId = activeGameRoute
@@ -135,12 +153,61 @@ export default function App() {
     };
   }, [showErrorToast, t]);
 
+  useLayoutEffect(() => {
+    if (routeFocusTrackedPathnameRef.current !== pathname) {
+      routeFocusTrackedPathnameRef.current = pathname;
+      releasedRouteFocusIdsRef.current.clear();
+    }
+    if (routeFocusResolvedPathnameRef.current === pathname) return;
+    if (!getBigPictureContentEntryRegionIdFromPathname(pathname)) return;
+    if (!currentFocusId) return;
+    if (releasedRouteFocusIdsRef.current.has(currentFocusId)) return;
+
+    const navigation = NavigationService.getInstance();
+    if (navigation.getActiveLayerId() !== BIG_PICTURE_APP_LAYER_ID) return;
+    if (
+      navigation.getNode(currentFocusId)?.regionId !==
+      BIG_PICTURE_HEADER_REGION_ID
+    ) {
+      return;
+    }
+
+    releasedRouteFocusIdsRef.current.add(currentFocusId);
+    navigation.clearFocus();
+  }, [currentFocusId, nodes, pathname]);
+
   useEffect(() => {
     setPendingRouteFocusPathname(pathname);
+    routeFocusStartedAtRef.current = performance.now();
   }, [pathname]);
 
   useEffect(() => {
     if (pendingRouteFocusPathname !== pathname) return;
+    if (!getRememberedFocusId(pathname)) return;
+
+    const timeoutId = globalThis.setTimeout(
+      () => setRouteFocusRetryCount((count) => count + 1),
+      REMEMBERED_FOCUS_WAIT_MS
+    );
+
+    return () => globalThis.clearTimeout(timeoutId);
+  }, [pathname, pendingRouteFocusPathname]);
+
+  useEffect(() => {
+    if (pendingRouteFocusPathname !== pathname) return;
+
+    const rememberedFocusId = getRememberedFocusId(pathname);
+
+    if (rememberedFocusId) {
+      if (setFocus(rememberedFocusId) === rememberedFocusId) {
+        routeFocusResolvedPathnameRef.current = pathname;
+        setPendingRouteFocusPathname(null);
+        return;
+      }
+
+      const elapsedMs = performance.now() - routeFocusStartedAtRef.current;
+      if (elapsedMs < REMEMBERED_FOCUS_WAIT_MS) return;
+    }
 
     const entryRegionId =
       getBigPictureContentEntryRegionIdFromPathname(pathname);
@@ -154,6 +221,7 @@ export default function App() {
     });
 
     if (focusedId) {
+      routeFocusResolvedPathnameRef.current = pathname;
       setPendingRouteFocusPathname(null);
     }
   }, [
@@ -162,6 +230,8 @@ export default function App() {
     pathname,
     pendingRouteFocusPathname,
     regions,
+    routeFocusRetryCount,
+    setFocus,
     setFocusRegion,
   ]);
 

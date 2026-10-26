@@ -1,43 +1,59 @@
 import { CheckboxField } from "@renderer/components/checkbox-field/checkbox-field";
 import { TextField } from "@renderer/components/text-field/text-field";
 import { useFormat } from "@renderer/hooks";
+import type { CatalogueFilterListKey } from "@renderer/features";
 import { ChevronDownIcon } from "@primer/octicons-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import "./filter.scss";
 import List from "rc-virtual-list";
 import { useTranslation } from "react-i18next";
 
+export interface FilterSectionItem {
+  label: string;
+  value: string | number;
+  group?: string;
+}
+
 export interface FilterSectionProps {
   title: string;
-  items: {
-    label: string;
-    value: string | number;
-    checked: boolean;
-    group?: string;
-  }[];
+  sectionKey: CatalogueFilterListKey;
+  items: FilterSectionItem[];
+  selectedValues: readonly (string | number)[];
   groups?: readonly {
     label: string;
     value: string;
   }[];
-  onSelect: (value: string | number) => void;
+  onToggle: (key: CatalogueFilterListKey, value: string | number) => void;
   color: string;
-  onClear: () => void;
+  onClear: (key: CatalogueFilterListKey) => void;
 }
 
-export function FilterSection({
+export const FilterSection = memo(function FilterSection({
   title,
+  sectionKey,
   items,
+  selectedValues,
   groups,
   color,
-  onSelect,
+  onToggle,
   onClear,
 }: FilterSectionProps) {
   const content = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
   const [height, setHeight] = useState(0);
   const { t } = useTranslation("catalogue");
+
+  const selectedSet = useMemo(() => new Set(selectedValues), [selectedValues]);
 
   const availableGroups = useMemo(() => {
     return (groups ?? []).filter((group) =>
@@ -55,12 +71,14 @@ export function FilterSection({
 
     return (
       availableGroups.find((group) =>
-        items.some((item) => item.checked && item.group === group.value)
+        items.some(
+          (item) => item.group === group.value && selectedSet.has(item.value)
+        )
       )?.value ??
       availableGroups[0]?.value ??
       null
     );
-  }, [availableGroups, items, selectedGroup]);
+  }, [availableGroups, items, selectedGroup, selectedSet]);
 
   const visibleItems = useMemo(() => {
     if (!activeGroup) return items;
@@ -68,22 +86,20 @@ export function FilterSection({
   }, [activeGroup, items]);
 
   const filteredItems = useMemo(() => {
-    if (search.length > 0) {
+    if (deferredSearch.length > 0) {
+      const query = deferredSearch.toLowerCase();
       return visibleItems.filter((item) =>
-        item.label.toLowerCase().includes(search.toLowerCase())
+        item.label.toLowerCase().includes(query)
       );
     }
 
     return visibleItems;
-  }, [visibleItems, search]);
+  }, [visibleItems, deferredSearch]);
 
   const selectedItemsCount = useMemo(() => {
-    return items.filter((item) => item.checked).length;
-  }, [items]);
-
-  const onSearch = useCallback((value: string) => {
-    setSearch(value);
-  }, []);
+    if (selectedSet.size === 0) return 0;
+    return items.filter((item) => selectedSet.has(item.value)).length;
+  }, [items, selectedSet]);
 
   const { formatNumber } = useFormat();
 
@@ -93,7 +109,7 @@ export function FilterSection({
     } else if (!isOpen) {
       setHeight(0);
     }
-  }, [isOpen, filteredItems, height, search]);
+  }, [isOpen, filteredItems, height, selectedItemsCount]);
 
   if (!items.length) {
     return null;
@@ -134,7 +150,7 @@ export function FilterSection({
             <button
               type="button"
               className="filter-section__clear-button"
-              onClick={onClear}
+              onClick={() => onClear(sectionKey)}
             >
               {t("clear_filters", {
                 filterCount: formatNumber(selectedItemsCount),
@@ -156,7 +172,8 @@ export function FilterSection({
             >
               {availableGroups.map((group) => {
                 const selectedInGroup = items.filter(
-                  (item) => item.checked && item.group === group.value
+                  (item) =>
+                    item.group === group.value && selectedSet.has(item.value)
                 ).length;
 
                 return (
@@ -189,7 +206,7 @@ export function FilterSection({
 
           <TextField
             placeholder={t("search")}
-            onChange={(e) => onSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             value={search}
             containerProps={{ className: "filter-section__search" }}
             theme="dark"
@@ -216,8 +233,8 @@ export function FilterSection({
               <div key={item.value} className="filter-section__item">
                 <CheckboxField
                   label={item.label}
-                  checked={item.checked}
-                  onChange={() => onSelect(item.value)}
+                  checked={selectedSet.has(item.value)}
+                  onChange={() => onToggle(sectionKey, item.value)}
                 />
               </div>
             )}
@@ -226,4 +243,4 @@ export function FilterSection({
       </div>
     </div>
   );
-}
+});

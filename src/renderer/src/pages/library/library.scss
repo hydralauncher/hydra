@@ -2,6 +2,7 @@
 
 .library {
   &__content {
+    position: relative;
     padding: calc(globals.$spacing-unit * 2) 0 0 calc(globals.$spacing-unit * 2);
     height: 100%;
     width: 100%;
@@ -21,14 +22,41 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    overflow-anchor: none;
+    scrollbar-gutter: stable;
     width: 100%;
-    padding: 4px;
-    margin: -4px;
+    padding: 10px;
+    margin: -10px;
+
+    &::-webkit-scrollbar,
+    &::-webkit-scrollbar-track,
+    &::-webkit-scrollbar-thumb {
+      background: transparent;
+    }
   }
 
+  &__games-grid-virtual {
+    position: relative;
+
+    &--scrolling {
+      pointer-events: none;
+    }
+  }
+
+  &__games-row {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: grid;
+    contain: layout style;
+
+    &--grid .library-game-card__wrapper:hover {
+      transform: scale(1.04);
+    }
+  }
   &__scroll-shadow {
     position: sticky;
-    top: -4px;
+    top: -10px;
     height: 0;
     z-index: 1;
     pointer-events: none;
@@ -37,8 +65,8 @@
       content: "";
       position: absolute;
       top: 0;
-      left: -4px;
-      right: -4px;
+      left: -10px;
+      right: -10px;
       height: 40px;
       background: linear-gradient(
         to bottom,
@@ -128,7 +156,6 @@
     background: rgba(255, 255, 255, 0.04);
     color: globals.$muted-color;
     cursor: pointer;
-    transition: background-color 0.2s ease;
 
     &:hover {
       background: rgba(255, 255, 255, 0.08);

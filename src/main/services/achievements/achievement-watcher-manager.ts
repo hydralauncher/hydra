@@ -1,8 +1,11 @@
 import { achievementSyncWorker } from "./achievement-sync-worker";
 import { parseAchievementFile } from "./parse-achievement-file";
 import { mergeAchievements } from "./merge-achievements";
-import fs, { readdirSync } from "node:fs";
-import { findAllAchievementFiles } from "./find-achievement-files";
+import fs from "node:fs";
+import {
+  findAllAchievementFiles,
+  getSteamLibraryCacheFiles,
+} from "./find-achievement-files";
 import { collectGameAchievementFiles } from "./collect-game-achievement-files";
 import { findNestedAchievementFiles } from "./find-nested-achievement-files";
 import type {
@@ -22,7 +25,7 @@ import {
 } from "./achievement-batch-games";
 import { Cracker } from "@shared";
 import { publishCombinedNewAchievementNotification } from "../notifications";
-import { db, gamesSublevel, levelKeys } from "@main/level";
+import { db, gamesSublevel, getGamesSnapshot, levelKeys } from "@main/level";
 import { setTimeout } from "node:timers/promises";
 import { Wine } from "../wine";
 import { AchievementMemoryStore } from "./achievement-memory-store";
@@ -63,10 +66,9 @@ const getEnableSteamAchievements = async () => {
 };
 
 const getWatchedGames = async (onlyWithWinePrefix = false) => {
-  const games = await gamesSublevel
-    .values()
-    .all()
-    .then((games) => games.filter((game) => !game.isDeleted));
+  const games = await getGamesSnapshot().then((games) =>
+    games.filter((game) => !game.isDeleted)
+  );
 
   if (!onlyWithWinePrefix) return games;
 
@@ -83,12 +85,16 @@ const watchAchievementsWindows = async () => {
   const staticFilesByObjectId = findAllAchievementFiles();
   const nestedFilesByObjectId = await findNestedAchievementFiles();
   const includeSteamCache = await getEnableSteamAchievements();
+  const steamLibraryCacheFiles = includeSteamCache
+    ? await getSteamLibraryCacheFiles()
+    : undefined;
 
   for (const game of games) {
     const gameAchievementFiles = await collectGameAchievementFiles(game, {
       includeSteamCache,
       staticFilesByObjectId,
       nestedFilesByObjectId,
+      steamLibraryCacheFiles,
     });
 
     await processChangedAchievementFiles(game, gameAchievementFiles);
@@ -101,19 +107,25 @@ const watchAchievementsWithWine = async () => {
   if (games.length === 0) return;
 
   const includeSteamCache = await getEnableSteamAchievements();
+  const steamLibraryCacheFiles = includeSteamCache
+    ? await getSteamLibraryCacheFiles()
+    : undefined;
 
   for (const game of games) {
     const gameAchievementFiles = await collectGameAchievementFiles(game, {
       includeSteamCache,
+      steamLibraryCacheFiles,
     });
 
     await processChangedAchievementFiles(game, gameAchievementFiles);
   }
 };
 
-const hasFltFolderChanged = (file: AchievementFile) => {
+const hasFltFolderChanged = async (file: AchievementFile) => {
   try {
-    const currentAchievements = new Set(readdirSync(file.filePath));
+    const currentAchievements = new Set(
+      await fs.promises.readdir(file.filePath)
+    );
     const previousAchievements = fltFiles.get(file.filePath);
 
     fltFiles.set(file.filePath, currentAchievements);
@@ -133,13 +145,13 @@ const hasFltFolderChanged = (file: AchievementFile) => {
   }
 };
 
-const hasAchievementFileChanged = (file: AchievementFile) => {
+const hasAchievementFileChanged = async (file: AchievementFile) => {
   if (file.type === Cracker.flt) {
     return hasFltFolderChanged(file);
   }
 
   try {
-    const currentStat = fs.statSync(file.filePath);
+    const currentStat = await fs.promises.stat(file.filePath);
     const previousStat = fileStats.get(file.filePath);
     fileStats.set(file.filePath, currentStat.mtimeMs);
 
@@ -178,7 +190,10 @@ const processChangedAchievementFiles = async (
   processingGameKeys.add(gameKey);
 
   try {
-    const changedFiles = achievementFiles.filter(hasAchievementFileChanged);
+    const changes = await Promise.all(
+      achievementFiles.map(hasAchievementFileChanged)
+    );
+    const changedFiles = achievementFiles.filter((_, index) => changes[index]);
 
     if (!changedFiles.length) return 0;
 

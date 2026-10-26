@@ -16,7 +16,11 @@ import {
 } from "@renderer/helpers";
 import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
 import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
-import { formatBytes, getDisplayedPlayTimeInMilliseconds } from "@shared";
+import {
+  buildCoverThumbnailUrl,
+  formatBytes,
+  getDisplayedPlayTimeInMilliseconds,
+} from "@shared";
 import {
   ClockIcon,
   AlertFillIcon,
@@ -24,7 +28,15 @@ import {
   FileZipIcon,
   CheckCircleFillIcon,
 } from "@primer/octicons-react";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type SyntheticEvent,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   EMULATOR_ICONS,
@@ -41,11 +53,21 @@ interface LibraryGameCardLargeProps {
     game: LibraryGame,
     position: { x: number; y: number }
   ) => void;
+  thumbnailWidth?: number;
+  logoThumbnailWidth?: number;
 }
 
 const normalizePathForCss = (url: string | null | undefined): string => {
   if (!url) return "";
   return url.replaceAll("\\", "/");
+};
+
+const markLogoLoaded = (event: SyntheticEvent<HTMLImageElement>) => {
+  event.currentTarget.dataset.loaded = "true";
+};
+
+const markLogoLoadedIfComplete = (image: HTMLImageElement | null) => {
+  if (image?.complete && image.naturalWidth > 0) image.dataset.loaded = "true";
 };
 
 interface InstalledBadgeProps {
@@ -84,6 +106,8 @@ function InstalledBadge({ emulatorIcon }: Readonly<InstalledBadgeProps>) {
 export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   game,
   onContextMenu,
+  thumbnailWidth,
+  logoThumbnailWidth,
 }: Readonly<LibraryGameCardLargeProps>) {
   const { t } = useTranslation("library");
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
@@ -190,6 +214,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   );
 
   const [heroIndex, setHeroIndex] = useState(0);
+  const [failedHeroThumbnail, setFailedHeroThumbnail] = useState<string | null>(
+    null
+  );
+  const [isHeroLoaded, setIsHeroLoaded] = useState(false);
+  const [hasLogoFailed, setHasLogoFailed] = useState(false);
+  const [failedLogoThumbnail, setFailedLogoThumbnail] = useState<string | null>(
+    null
+  );
 
   const [unlockedAchievementsCount, setUnlockedAchievementsCount] = useState(
     game.unlockedAchievementCount ?? 0
@@ -217,9 +249,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         )
       : "";
 
-  useEffect(() => {
-    setHeroIndex(0);
-  }, [
+  const artworkKey = [
     game.objectId,
     game.customHeroImageUrl,
     game.libraryHeroImageUrl,
@@ -227,7 +257,17 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     game.coverImageUrl,
     game.libraryImageUrl,
     game.iconUrl,
-  ]);
+  ].join("|");
+  const previousArtworkKey = useRef(artworkKey);
+
+  useEffect(() => {
+    if (previousArtworkKey.current === artworkKey) return;
+    previousArtworkKey.current = artworkKey;
+    setHeroIndex(0);
+    setFailedHeroThumbnail(null);
+    setIsHeroLoaded(false);
+    setHasLogoFailed(false);
+  }, [artworkKey]);
 
   const achievementGameKey = `${game.shop}:${game.objectId}`;
   const previousAchievementGameKey = useRef(achievementGameKey);
@@ -299,30 +339,55 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     achievementGameKey,
   ]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const currentUrl = heroSources[heroIndex];
     if (!currentUrl) return;
 
+    const useThumbnail =
+      Boolean(thumbnailWidth) && failedHeroThumbnail !== currentUrl;
+
     const img = new Image();
-    img.src = normalizePathForCss(currentUrl);
+    img.decoding = "async";
+    img.src =
+      useThumbnail && thumbnailWidth
+        ? buildCoverThumbnailUrl(
+            normalizePathForCss(currentUrl),
+            thumbnailWidth
+          )
+        : normalizePathForCss(currentUrl);
+
+    const markHeroLoaded = () => setIsHeroLoaded(true);
+    img.onload = markHeroLoaded;
+    if (img.complete && img.naturalWidth > 0) markHeroLoaded();
 
     img.onerror = () => {
+      if (useThumbnail) {
+        setFailedHeroThumbnail(currentUrl);
+        return;
+      }
+
       if (heroIndex < heroSources.length - 1) {
         setHeroIndex((prev) => prev + 1);
+      } else {
+        markHeroLoaded();
       }
     };
 
     return () => {
+      img.onload = null;
       img.onerror = null;
     };
-  }, [heroIndex, heroSources]);
+  }, [heroIndex, heroSources, thumbnailWidth, failedHeroThumbnail]);
 
   const rawHeroSource = heroSources[heroIndex];
   const isAnimatedHero = isAnimatedCoverCandidate(rawHeroSource);
   const heroPoster = useCoverPoster(rawHeroSource, isAnimatedHero);
   const shouldHoldHeroFrame =
     isAnimatedHero && !isCoverHovered && !autoplayAnimatedArtwork;
-  const isAwaitingHeroPoster = shouldHoldHeroFrame && heroPoster === undefined;
+  const isAwaitingHeroPoster =
+    !thumbnailWidth && shouldHoldHeroFrame && heroPoster === undefined;
+  const isPlayingAnimatedHero =
+    isAnimatedHero && Boolean(heroPoster) && !shouldHoldHeroFrame;
 
   useAnimatedSourceWarmup(
     normalizePathForCss(rawHeroSource),
@@ -332,6 +397,16 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   let displayHeroSource: string | null | undefined = rawHeroSource;
   if (isAwaitingHeroPoster) {
     displayHeroSource = undefined;
+  } else if (
+    thumbnailWidth &&
+    rawHeroSource &&
+    failedHeroThumbnail !== rawHeroSource &&
+    !isPlayingAnimatedHero
+  ) {
+    displayHeroSource = buildCoverThumbnailUrl(
+      normalizePathForCss(rawHeroSource),
+      thumbnailWidth
+    );
   } else if (shouldHoldHeroFrame && heroPoster) {
     displayHeroSource = heroPoster;
   }
@@ -363,6 +438,11 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   }, [renderClassicsBlurred, activeHeroCandidate, displayHeroSource]);
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
+  const logoSource = logoImage ? normalizePathForCss(logoImage) : "";
+  const displayLogoSource =
+    logoThumbnailWidth && logoSource && failedLogoThumbnail !== logoSource
+      ? buildCoverThumbnailUrl(logoSource, logoThumbnailWidth)
+      : logoSource;
 
   const { label: classicsPlatformLabel, icon: classicsEmulatorIcon } =
     resolveClassicsBadge(
@@ -383,7 +463,12 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   return (
     <button
       type="button"
-      className={`library-game-card-large ${renderClassicsBlurred ? "library-game-card-large--classics" : ""}`}
+      aria-label={game.title}
+      className={cn("library-game-card-large", {
+        "library-game-card-large--classics": renderClassicsBlurred,
+        "library-game-card-large--loading":
+          !isHeroLoaded && heroSources.length > 0,
+      })}
       onMouseEnter={() => setIsCoverHovered(true)}
       onMouseLeave={() => setIsCoverHovered(false)}
       onClick={handleCardClick}
@@ -404,9 +489,11 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       {classicsForegroundUrl && (
         <img
           src={classicsForegroundUrl}
-          alt={game.title}
-          className="library-game-card-large__classics-foreground"
-          loading="lazy"
+          alt=""
+          className={cn("library-game-card-large__classics-foreground", {
+            "library-game-card-large__image--pending": !isHeroLoaded,
+          })}
+          decoding="async"
         />
       )}
       {!hideAchievementProgress &&
@@ -489,11 +576,22 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         </div>
 
         <div className="library-game-card-large__logo-container">
-          {logoImage ? (
+          {logoImage && !hasLogoFailed ? (
             <img
-              src={logoImage}
-              alt={game.title}
+              key={displayLogoSource}
+              ref={markLogoLoadedIfComplete}
+              src={displayLogoSource}
+              alt=""
               className="library-game-card-large__logo"
+              decoding="async"
+              onLoad={markLogoLoaded}
+              onError={() => {
+                if (displayLogoSource !== logoSource) {
+                  setFailedLogoThumbnail(logoSource);
+                } else {
+                  setHasLogoFailed(true);
+                }
+              }}
             />
           ) : (
             <h3 className="library-game-card-large__title">{game.title}</h3>

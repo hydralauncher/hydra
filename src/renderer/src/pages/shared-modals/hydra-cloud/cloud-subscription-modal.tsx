@@ -29,7 +29,12 @@ export function CloudSubscriptionModal({
   const [isClosing, setIsClosing] = useState(false);
   const [cloudIframeUrl, setCloudIframeUrl] = useState("");
   const [isIframeUnavailable, setIsIframeUnavailable] = useState(false);
+  const [hasBeenOpened, setHasBeenOpened] = useState(visible);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    if (visible) setHasBeenOpened(true);
+  }, [visible]);
   const frameRef = useRef<HTMLDivElement>(null);
   const cloudIframeOrigin = cloudIframeUrl
     ? new URL(cloudIframeUrl).origin
@@ -158,9 +163,6 @@ export function CloudSubscriptionModal({
     if (visible) syncIframeState();
   }, [visible, syncIframeState]);
 
-  // The overlay (and the iframe inside it) stays mounted for the lifetime of the
-  // profile so the frame is preloaded; only its visibility is toggled. A hidden
-  // iframe still loads its document, so opening is instant with no layout shift.
   const state = isClosing ? "closing" : visible ? "open" : "hidden";
 
   const handleClickOpenCheckout = () => {
@@ -198,15 +200,17 @@ export function CloudSubscriptionModal({
             <Button onClick={handleClickOpenCheckout}>{t("learn_more")}</Button>
           </div>
         ) : (
-          <iframe
-            ref={iframeRef}
-            title="Hydra Cloud"
-            className="cloud-subscription-modal__iframe"
-            src={iframeSrc}
-            width={CLOUD_DESIGN_WIDTH}
-            height={CLOUD_DESIGN_HEIGHT}
-            onLoad={syncIframeState}
-          />
+          hasBeenOpened && (
+            <iframe
+              ref={iframeRef}
+              title="Hydra Cloud"
+              className="cloud-subscription-modal__iframe"
+              src={iframeSrc}
+              width={CLOUD_DESIGN_WIDTH}
+              height={CLOUD_DESIGN_HEIGHT}
+              onLoad={syncIframeState}
+            />
+          )
         )}
       </div>
     </div>,

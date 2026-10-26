@@ -1,6 +1,7 @@
 export * from "./downloads";
 export * from "./download-layout-state";
 export * from "./games";
+export * from "./games-snapshot";
 export * from "./game-shop-assets";
 export * from "./games-artwork-selection";
 export * from "./game-shop-cache";

@@ -1,0 +1,26 @@
+@use "../../scss/globals.scss";
+
+.library-scrollbar {
+  position: absolute;
+  z-index: 2;
+  display: none;
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+    globals.$dark-background-color;
+
+  &__thumb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border-radius: 24px;
+    background-color: rgba(255, 255, 255, 0.15);
+    will-change: transform;
+    touch-action: none;
+
+    &:hover,
+    &--dragging {
+      background-color: rgba(255, 255, 255, 0.25);
+    }
+  }
+}

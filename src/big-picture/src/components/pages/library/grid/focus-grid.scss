@@ -4,6 +4,14 @@
 }
 
 .library-focus-grid__grid {
+  width: 100%;
+}
+
+.library-focus-grid__row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   display: grid;
   grid-template-columns: repeat(
     var(--library-focus-grid-column-count, 1),
@@ -13,7 +21,7 @@
     --library-focus-grid-column-gap,
     calc(var(--spacing-unit) * 8)
   );
-  row-gap: calc(var(--spacing-unit) * 16);
+  padding-bottom: calc(var(--spacing-unit) * 16);
   justify-content: start;
 }
 

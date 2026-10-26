@@ -13,7 +13,9 @@ $button-transition-duration: 0.2s;
     border: 1px solid globals.$border-color;
     color: rgba(255, 255, 255, 0.9);
     cursor: pointer;
-    transition: all ease $button-transition-duration;
+    transition:
+      all ease $button-transition-duration,
+      background 0s;
 
     &:hover {
       background: rgba(255, 255, 255, 0.08);

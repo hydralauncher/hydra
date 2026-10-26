@@ -8,6 +8,8 @@ import * as React from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import ts from "typescript";
+// @ts-ignore The Node ESM test runner requires the source extension.
+import * as coverThumbnailUrl from "../../../../shared/cover-thumbnail-url.ts";
 
 type TestGame = {
   id: string;
@@ -92,7 +94,6 @@ async function renderLibrary(
   let readVisible = async (): Promise<void> => {};
   let visibleReadCount = 0;
   let remoteRefreshCount = 0;
-  let rowCount = 0;
   const updateLibrary = async () => {
     visibleReadCount++;
     await readVisible();
@@ -101,19 +102,10 @@ async function renderLibrary(
   const collections: unknown[] = [];
   const library: unknown[] = [];
   const searchParams = new URLSearchParams("collection=__hidden__");
-  const virtualizer = {
-    measure: noop,
-    getTotalSize: () => rowCount * 300,
-    getVirtualItems: () =>
-      Array.from({ length: rowCount }, (_, index) => ({
-        key: index,
-        index,
-        start: index * 300,
-      })),
-  };
   Object.defineProperty(dom.window, "electron", {
     value: {
       getHiddenLibrary: () => readHidden(),
+      prefetchCoverThumbnails: async () => {},
       refreshLibraryAssets: async () => {
         remoteRefreshCount++;
         await options.refreshRemote?.();
@@ -127,12 +119,6 @@ async function renderLibrary(
   const gameCard = ({ game }: { game: TestGame }) =>
     React.createElement("span", { "data-hidden-game": game.id }, game.title);
   const stubs: Record<string, unknown> = {
-    "@tanstack/react-virtual": {
-      useVirtualizer: ({ count }: { count: number }) => {
-        rowCount = count;
-        return virtualizer;
-      },
-    },
     "@renderer/hooks": {
       useLibrary: () => ({ library, updateLibrary }),
       useUserDetails: () => ({ userDetails }),
@@ -164,6 +150,7 @@ async function renderLibrary(
     ),
     "react-i18next": { useTranslation: () => ({ t: translate }) },
     "@shared": {
+      ...coverThumbnailUrl,
       AuthPage: { SignIn: "sign-in" },
       groupLibraryGames: (games: TestGame[]) => games,
       removeDiacritics: (value: string) => value,
@@ -178,13 +165,23 @@ async function renderLibrary(
     "@renderer/helpers": {
       getGameCollectionIds: () => [],
       isGameInstalled: () => false,
+      resolveImageSource: (value: string) => value,
       sortLibraryGames: (games: TestGame[]) => games,
     },
     "react-router-dom": {
       useSearchParams: () => [searchParams, noop],
     },
-    "./library-game-card": { LibraryGameCard: gameCard },
-    "./library-game-card-large": { LibraryGameCardLarge: gameCard },
+    "./library-games-grid": {
+      LibraryGamesGrid: ({ games }: { games: TestGame[] }) =>
+        React.createElement(
+          React.Fragment,
+          null,
+          games.map((game) =>
+            React.createElement(gameCard, { key: game.id, game })
+          )
+        ),
+    },
+    "./library-scrollbar": { LibraryScrollbar: () => null },
     "./view-options": { ViewOptions: () => null },
     "./filter-options": { FilterOptions: () => null },
     "./category-filter": { CategoryFilter: () => null },

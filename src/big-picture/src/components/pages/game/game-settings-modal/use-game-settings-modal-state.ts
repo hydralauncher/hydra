@@ -5,12 +5,14 @@ import { useTranslation } from "react-i18next";
 import { platformToSystem } from "@renderer/helpers";
 import { useIsNonSteamExecutable } from "@renderer/hooks/use-non-steam-executable";
 import {
+  findLibraryGamePresentation,
   getGameExecutableFilters,
+  getOfficialStoreMembers,
   getRetroArchRomExtensions,
   platformToRetroArchPlatform,
 } from "@shared";
 import type { FileFilter } from "../../../common";
-import { useBigPictureToast } from "../../../../hooks";
+import { useBigPictureToast, useLibrary } from "../../../../hooks";
 import {
   applyClassicsDiscUpdate,
   buildAddedDiscPayload,
@@ -702,7 +704,19 @@ export function useGameSettingsModalState({
     await updateGame();
   }, [game, updateClassicsDisc, updateGame]);
 
-  const isNonSteamExecutable = useIsNonSteamExecutable(game);
+  const { downloadLibrary } = useLibrary();
+  const epicGame = useMemo(
+    () =>
+      game
+        ? getOfficialStoreMembers(
+            findLibraryGamePresentation(downloadLibrary, game)?.members ?? [
+              game,
+            ]
+          ).epic
+        : null,
+    [downloadLibrary, game]
+  );
+  const isNonSteamExecutable = useIsNonSteamExecutable(game, epicGame);
 
   const handleToggleHydraPlaytimeEnabled = useCallback(
     async (enabled: boolean) => {

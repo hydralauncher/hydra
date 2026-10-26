@@ -51,6 +51,10 @@ export function normalizeShopAssets(value: unknown): ShopAssets | null {
   };
 }
 
+export function getKnownDownloadSources(downloadSources?: string[]) {
+  return downloadSources?.length ? downloadSources : undefined;
+}
+
 export function normalizeShopAssetsList(value: unknown): ShopAssets[] {
   if (!Array.isArray(value)) return [];
 

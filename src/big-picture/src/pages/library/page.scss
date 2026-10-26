@@ -23,3 +23,50 @@
   flex: 1;
   min-height: 300px;
 }
+
+.library-page__empty-state--library {
+  margin: auto;
+}
+
+.library-page__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 8);
+  padding: calc(var(--big-picture-header-height) + var(--spacing-unit) * 8)
+    calc(var(--spacing-unit) * 16) 0;
+}
+
+.library-page__skeleton-hero {
+  width: 100%;
+  height: 360px;
+  border-radius: 16px;
+}
+
+.library-page__skeleton-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: calc(var(--spacing-unit) * 4);
+}
+
+.library-page__skeleton-tabs {
+  width: 420px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+.library-page__skeleton-search {
+  width: 280px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+.library-page__skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: calc(var(--spacing-unit) * 8);
+}
+
+.library-page__skeleton-card {
+  aspect-ratio: 2 / 3;
+  border-radius: 12px;
+}

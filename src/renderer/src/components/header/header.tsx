@@ -86,14 +86,6 @@ export function Header() {
 
   const dispatch = useAppDispatch();
 
-  const debouncedLibrarySearch = useMemo(
-    () =>
-      debounce((value: string) => {
-        dispatch(setLibrarySearchQuery(value));
-      }, 180),
-    [dispatch]
-  );
-
   const debouncedCatalogueSearch = useMemo(
     () =>
       debounce((value: string) => {
@@ -153,10 +145,9 @@ export function Header() {
 
   useEffect(() => {
     return () => {
-      debouncedLibrarySearch.cancel();
       debouncedCatalogueSearch.cancel();
     };
-  }, [debouncedCatalogueSearch, debouncedLibrarySearch]);
+  }, [debouncedCatalogueSearch]);
 
   useTitleSelection(titleRef);
 
@@ -202,7 +193,6 @@ export function Header() {
   };
 
   const handleSearch = (value: string) => {
-    debouncedLibrarySearch.cancel();
     debouncedCatalogueSearch.cancel();
 
     if (isOnLibraryPage) {
@@ -221,9 +211,8 @@ export function Header() {
 
     if (isOnLibraryPage) {
       debouncedCatalogueSearch.cancel();
-      debouncedLibrarySearch(normalizedValue);
+      dispatch(setLibrarySearchQuery(normalizedValue));
     } else {
-      debouncedLibrarySearch.cancel();
       debouncedCatalogueSearch(normalizedValue);
     }
   };
@@ -259,7 +248,6 @@ export function Header() {
   };
 
   const handleClearSearch = () => {
-    debouncedLibrarySearch.cancel();
     debouncedCatalogueSearch.cancel();
 
     setLocalSearchValue("");

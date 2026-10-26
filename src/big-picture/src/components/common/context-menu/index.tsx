@@ -12,7 +12,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { useNavigation, useNavigationScreenActions } from "../../../hooks";
+import {
+  useNavigationActions,
+  useNavigationScreenActions,
+} from "../../../hooks";
 import { FocusRegionContext } from "../../context";
 import { FocusItem } from "../focus-item";
 import { NavigationLayer } from "../navigation-layer";
@@ -63,7 +66,7 @@ export function ContextMenu({
   ariaLabel = "Game context menu",
 }: Readonly<ContextMenuProps>) {
   const generatedId = useId();
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const floatingRef = useRef<HTMLDivElement | null>(null);
   const wasVisibleRef = useRef(false);
   const [resolvedPosition, setResolvedPosition] = useState<{

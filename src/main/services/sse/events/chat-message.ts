@@ -6,7 +6,10 @@ import { ChatUnreadStore } from "@main/services/chat/chat-unread-store";
 import { getChatSenderProfile } from "@main/services/chat/chat-sender-profiles";
 import { shouldNotifyChatMessage } from "@main/services/chat/should-notify-chat-message";
 import { logger } from "@main/services/logger";
-import { publishChatMessageNotification } from "@main/services/notifications";
+import {
+  playChatMessageSound,
+  publishChatMessageNotification,
+} from "@main/services/notifications";
 import { WindowManager } from "@main/services/window-manager";
 import type { ChatMessage } from "../types";
 
@@ -82,9 +85,19 @@ export const chatMessageEvent = async (
     .catch(() => null);
   if (signal.aborted) return;
 
+  const notificationsEnabled =
+    userPreferences?.chatMessageNotificationsEnabled !== false;
+
+  if (
+    notificationsEnabled &&
+    isNewMessage &&
+    !WindowManager.isChatWindowFocused()
+  ) {
+    playChatMessageSound();
+  }
+
   const shouldNotify = shouldNotifyChatMessage({
-    notificationsEnabled:
-      userPreferences?.chatMessageNotificationsEnabled !== false,
+    notificationsEnabled,
     fromMe,
     isNewMessage,
     isOpenInFocusedChatWindow:

@@ -1,0 +1,24 @@
+.source-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+
+  > .badge {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  &__measure {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}

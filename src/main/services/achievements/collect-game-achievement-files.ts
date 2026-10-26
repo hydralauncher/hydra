@@ -17,6 +17,7 @@ interface CollectGameAchievementFilesOptions {
   includeSteamCache?: boolean;
   staticFilesByObjectId?: Map<string, AchievementFile[]>;
   nestedFilesByObjectId?: NestedAchievementFiles;
+  steamLibraryCacheFiles?: Set<string>;
   awaitGameDirectoryLocations?: boolean;
 }
 
@@ -39,6 +40,7 @@ export const collectGameAchievementFiles = async (
     includeSteamCache = false,
     staticFilesByObjectId,
     nestedFilesByObjectId,
+    steamLibraryCacheFiles,
     awaitGameDirectoryLocations = false,
   }: CollectGameAchievementFilesOptions = {}
 ): Promise<AchievementFile[]> => {
@@ -65,7 +67,9 @@ export const collectGameAchievementFiles = async (
   achievementFiles.push(...gameDirectoryFiles);
 
   if (includeSteamCache) {
-    achievementFiles.push(...findAchievementFileInSteamPath(game));
+    achievementFiles.push(
+      ...findAchievementFileInSteamPath(game, steamLibraryCacheFiles)
+    );
   }
 
   return dedupeAchievementFiles(achievementFiles);

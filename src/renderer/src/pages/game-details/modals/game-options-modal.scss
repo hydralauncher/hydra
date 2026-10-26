@@ -35,9 +35,7 @@ $disc-menu-transition-duration: 0.15s;
     cursor: pointer;
     font-size: globals.$body-font-size;
     line-height: 1.2;
-    transition:
-      color 0.2s ease,
-      background-color 0.1s ease;
+    transition: color 0.2s ease;
 
     &:hover {
       background: rgba(255, 255, 255, 0.15);
@@ -303,9 +301,7 @@ $disc-menu-transition-duration: 0.15s;
     color: #c0c1c7;
     cursor: pointer;
     text-align: left;
-    transition:
-      border-color 0.15s ease,
-      background-color 0.15s ease;
+    transition: border-color 0.15s ease;
 
     &:hover {
       border-color: rgba(255, 255, 255, 0.25);
@@ -412,7 +408,6 @@ $disc-menu-transition-duration: 0.15s;
     border-radius: 0;
     cursor: pointer;
     text-align: left;
-    transition: background-color $disc-menu-transition-duration ease;
 
     &:first-child {
       border-radius: 7px 7px 0 0;
@@ -534,9 +529,7 @@ $disc-menu-transition-duration: 0.15s;
   cursor: pointer;
   width: 100%;
   text-align: left;
-  transition:
-    background-color 0.15s,
-    border-color 0.15s;
+  transition: border-color 0.15s;
 
   &:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.08);

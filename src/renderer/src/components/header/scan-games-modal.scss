@@ -31,9 +31,7 @@
     font-size: 14px;
     cursor: pointer;
     border-radius: 4px;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+    transition: color 0.2s ease;
 
     &:hover {
       color: globals.$body-color;
@@ -191,7 +189,6 @@
     font-size: 12px;
     cursor: pointer;
     transition:
-      background-color 0.2s ease,
       color 0.2s ease,
       border-color 0.2s ease;
 

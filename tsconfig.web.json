@@ -23,7 +23,8 @@
       ],
       "@types": ["src/types/index.ts"],
       "@locales": ["src/locales/index.ts"],
-      "@shared": ["src/shared/index.ts"]
+      "@shared": ["src/shared/index.ts"],
+      "@shared/*": ["src/shared/*"]
     }
   }
 }

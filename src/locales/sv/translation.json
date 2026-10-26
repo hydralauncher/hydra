@@ -297,7 +297,7 @@
     "wine_prefix": "Wine-prefix",
     "wine_prefix_description": "Wine-prefixet som används för att köra detta spel",
     "launch_options": "Startalternativ",
-    "launch_options_description": "Avancerade användare kan lägga till modifieringar till sina startalternativ (experimentell funktion)",
+    "launch_options_description": "Avancerade användare kan lägga till modifieringar till sina startalternativ",
     "launch_options_placeholder": "Inga parametrar angivna",
     "no_download_option_info": "Ingen information tillgänglig",
     "backup_deletion_failed": "Misslyckades med att ta bort säkerhetskopian",

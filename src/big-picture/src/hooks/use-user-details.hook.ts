@@ -43,6 +43,12 @@ export function useUserDetails() {
   const clearUserDetails = useBigPictureUserDetailsStore(
     (state) => state.clearUserDetails
   );
+  const isSigningIn = useBigPictureUserDetailsStore(
+    (state) => state.isSigningIn
+  );
+  const setIsSigningIn = useBigPictureUserDetailsStore(
+    (state) => state.setIsSigningIn
+  );
 
   const fetchUserDetails = useCallback(async () => {
     if (!IS_DESKTOP) return null;
@@ -143,7 +149,8 @@ export function useUserDetails() {
         void fetchUserDetails();
       });
     const unsubscribeSignIn = globalThis.window.electron.onSignIn(() => {
-      void fetchUserDetails();
+      setIsSigningIn(true);
+      void fetchUserDetails().finally(() => setIsSigningIn(false));
     });
     const unsubscribeSignOut = globalThis.window.electron.onSignOut(() => {
       clearUserDetails();
@@ -154,7 +161,7 @@ export function useUserDetails() {
       unsubscribeSignIn();
       unsubscribeSignOut();
     };
-  }, [clearUserDetails, fetchUserDetails]);
+  }, [clearUserDetails, fetchUserDetails, setIsSigningIn]);
 
   const hasActiveSubscription = useMemo(() => {
     const expiresAt = new Date(userDetails?.subscription?.expiresAt ?? 0);
@@ -163,6 +170,7 @@ export function useUserDetails() {
 
   return {
     userDetails,
+    isSigningIn,
     hasActiveSubscription,
     fetchUserDetails,
     signOut,

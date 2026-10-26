@@ -7,7 +7,6 @@ import {
   useCallback,
   useRef,
 } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   useLibrary,
   useAppDispatch,
@@ -34,8 +33,8 @@ import {
   sortLibraryGames,
 } from "@renderer/helpers";
 import { useSearchParams } from "react-router-dom";
-import { LibraryGameCard } from "./library-game-card";
-import { LibraryGameCardLarge } from "./library-game-card-large";
+import { LibraryGamesGrid } from "./library-games-grid";
+import { LibraryScrollbar } from "./library-scrollbar";
 import { ViewOptions, ViewMode } from "./view-options";
 import { FilterOptions, SortOption } from "./filter-options";
 import { CategoryFilter, LibraryCategory } from "./category-filter";
@@ -67,9 +66,9 @@ const FAVORITES_COLLECTION_ID = "__favorites__";
 const HIDDEN_COLLECTION_ID = "__hidden__";
 const EMPTY_HIDDEN_GAMES: LibraryGame[] = [];
 const GAP = 16;
+const LARGE_GAP = 20;
 const LARGE_CARD_ESTIMATED_HEIGHT = 300;
 const FALLBACK_ITEM_WIDTH = 150;
-
 const COLUMN_BREAKPOINTS = [3000, 2600, 2000, 1300, 900] as const;
 const COLUMNS: Record<"grid" | "compact", readonly number[]> = {
   grid: [12, 8, 6, 5, 4, 2],
@@ -81,6 +80,14 @@ const getColumnsCount = (width: number, mode: ViewMode): number => {
   const idx = COLUMN_BREAKPOINTS.findIndex((bp) => width >= bp);
   return COLUMNS[mode][idx === -1 ? COLUMN_BREAKPOINTS.length : idx];
 };
+
+const SCROLL_RESTORE_WINDOW_MS = 1000;
+
+let savedLibraryScroll: {
+  viewKey: string;
+  top: number;
+  headerHidden: boolean;
+} | null = null;
 
 const readStoredPlatforms = (): string[] => {
   try {
@@ -102,7 +109,6 @@ const SORT_OPTIONS: SortOption[] = [
   "most_played",
   "achievements",
   "installed_first",
-  "title_desc",
 ];
 
 export default function Library() {
@@ -214,22 +220,59 @@ export default function Library() {
   const classicsOnboardingTriggeredRef = useRef(false);
 
   const gamesScrollRef = useRef<HTMLDivElement>(null);
+  const [isScrollbarDragging, setIsScrollbarDragging] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
   const [isGamesScrolled, setIsGamesScrolled] = useState(false);
-  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
-  const isHeaderHiddenRef = useRef(false);
+  const [isHeaderHidden, setIsHeaderHidden] = useState(
+    () => savedLibraryScroll?.headerHidden ?? false
+  );
+  const isHeaderHiddenRef = useRef(isHeaderHidden);
+
+  const libraryViewKeyRef = useRef("");
+  const scrollRestoreDoneRef = useRef(false);
+
+  const getInitialScrollOffset = useCallback(() => {
+    const saved = savedLibraryScroll;
+    if (
+      scrollRestoreDoneRef.current ||
+      !saved ||
+      saved.viewKey !== libraryViewKeyRef.current
+    ) {
+      return 0;
+    }
+    return saved.top;
+  }, []);
 
   const setHeaderHidden = useCallback((next: boolean) => {
     isHeaderHiddenRef.current = next;
     setIsHeaderHidden(next);
+    if (savedLibraryScroll) {
+      savedLibraryScroll = { ...savedLibraryScroll, headerHidden: next };
+    }
   }, []);
 
   const handleGamesScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
-      setIsGamesScrolled(event.currentTarget.scrollTop > 0);
+      const { scrollTop } = event.currentTarget;
+      setIsGamesScrolled(scrollTop > 0);
+      if (!scrollRestoreDoneRef.current) return;
+      savedLibraryScroll = {
+        viewKey: libraryViewKeyRef.current,
+        top: scrollTop,
+        headerHidden: isHeaderHiddenRef.current,
+      };
     },
     []
   );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (scrollRestoreDoneRef.current) return;
+      scrollRestoreDoneRef.current = true;
+      setHeaderHidden(false);
+    }, SCROLL_RESTORE_WINDOW_MS);
+    return () => window.clearTimeout(timer);
+  }, [setHeaderHidden]);
 
   useEffect(() => {
     const el = gamesScrollRef.current;
@@ -257,11 +300,18 @@ export default function Library() {
     const el = gamesScrollRef.current;
     if (!el) return;
 
-    setContainerWidth(el.getBoundingClientRect().width);
+    const measure = () => {
+      const style = window.getComputedStyle(el);
+      setContainerWidth(
+        el.getBoundingClientRect().width -
+          (el.offsetWidth - el.clientWidth) -
+          (Number.parseFloat(style.paddingLeft) || 0) -
+          (Number.parseFloat(style.paddingRight) || 0)
+      );
+    };
 
-    const ro = new ResizeObserver(([entry]) =>
-      setContainerWidth(entry.contentRect.width)
-    );
+    measure();
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -645,35 +695,31 @@ export default function Library() {
     [containerWidth, viewMode]
   );
 
-  const rows = useMemo(() => {
-    const result: LibraryGame[][] = [];
-    for (let i = 0; i < filteredLibrary.length; i += columnsCount) {
-      result.push(filteredLibrary.slice(i, i + columnsCount));
-    }
-    return result;
-  }, [filteredLibrary, columnsCount]);
+  const gap = viewMode === "large" ? LARGE_GAP : GAP;
+
+  const itemWidth =
+    containerWidth > 0
+      ? (containerWidth - gap * (columnsCount - 1)) / columnsCount
+      : FALLBACK_ITEM_WIDTH;
 
   const estimatedRowHeight = useMemo(() => {
-    if (viewMode === "large") return LARGE_CARD_ESTIMATED_HEIGHT + GAP;
-    const itemWidth =
-      containerWidth > 0
-        ? (containerWidth - GAP * (columnsCount - 1)) / columnsCount
-        : FALLBACK_ITEM_WIDTH;
-    return Math.round((itemWidth * 3) / 2) + GAP;
-  }, [viewMode, containerWidth, columnsCount]);
+    if (viewMode === "large") return LARGE_CARD_ESTIMATED_HEIGHT + gap;
+    return Math.round((itemWidth * 3) / 2) + gap;
+  }, [viewMode, itemWidth, gap]);
 
-  const rowVirtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => gamesScrollRef.current,
-    estimateSize: () => estimatedRowHeight,
-    overscan: 3,
-  });
-
-  useEffect(() => {
-    rowVirtualizer.measure();
-  }, [rowVirtualizer, estimatedRowHeight]);
+  const libraryViewKey = JSON.stringify([
+    effectiveCategory,
+    selectedSources,
+    selectedPlatforms,
+    showInstalledOnly,
+    sortBy,
+    selectedCollectionId,
+    viewMode,
+  ]);
+  libraryViewKeyRef.current = libraryViewKey;
 
   useEffect(() => {
+    if (!scrollRestoreDoneRef.current) return;
     gamesScrollRef.current?.scrollTo({ top: 0 });
     setHeaderHidden(false);
   }, [
@@ -727,6 +773,34 @@ export default function Library() {
       (hiddenGamesLoadFailed || hiddenGamesLoading)
     ) &&
     !shouldShowClassicsImporting;
+
+  const canShowGrid =
+    containerWidth > 0 &&
+    hasGames &&
+    !isLibraryLoading &&
+    !shouldShowFavoritesEmptyState &&
+    !shouldShowCollectionEmptyState &&
+    !shouldShowClassicsImporting &&
+    !shouldShowNoResultsEmptyState;
+
+  useLayoutEffect(() => {
+    if (scrollRestoreDoneRef.current || !canShowGrid) return;
+
+    const saved = savedLibraryScroll;
+    const element = gamesScrollRef.current;
+    if (!saved || !element) {
+      scrollRestoreDoneRef.current = true;
+      return;
+    }
+    scrollRestoreDoneRef.current = true;
+    if (saved.viewKey !== libraryViewKey) {
+      setHeaderHidden(false);
+      return;
+    }
+
+    setHeaderHidden(saved.headerHidden);
+    element.scrollTop = saved.top;
+  }, [canShowGrid, libraryViewKey, setHeaderHidden]);
 
   return (
     <section
@@ -878,56 +952,31 @@ export default function Library() {
               2,
               Math.ceil(window.innerHeight / estimatedRowHeight)
             )}
-            gap={GAP}
+            gap={gap}
           />
         )}
-        {containerWidth > 0 &&
-          hasGames &&
-          !isLibraryLoading &&
-          !shouldShowFavoritesEmptyState &&
-          !shouldShowCollectionEmptyState &&
-          !shouldShowClassicsImporting &&
-          !shouldShowNoResultsEmptyState && (
-            <div
-              style={{
-                height: `${rowVirtualizer.getTotalSize()}px`,
-                position: "relative",
-              }}
-            >
-              {rowVirtualizer.getVirtualItems().map((virtualRow) => (
-                <div
-                  key={virtualRow.key}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: GAP,
-                    transform: `translateY(${virtualRow.start}px)`,
-                    display: "grid",
-                    gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
-                    gap: `${GAP}px`,
-                  }}
-                >
-                  {rows[virtualRow.index].map((game) =>
-                    viewMode === "large" ? (
-                      <LibraryGameCardLarge
-                        key={`${game.shop}-${game.objectId}`}
-                        game={game}
-                        onContextMenu={handleOpenContextMenu}
-                      />
-                    ) : (
-                      <LibraryGameCard
-                        key={`${game.shop}-${game.objectId}`}
-                        game={game}
-                        onContextMenu={handleOpenContextMenu}
-                      />
-                    )
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+        {canShowGrid && (
+          <LibraryGamesGrid
+            games={filteredLibrary}
+            viewMode={viewMode}
+            columnsCount={columnsCount}
+            itemWidth={itemWidth}
+            estimatedRowHeight={estimatedRowHeight}
+            gap={gap}
+            scrollElementRef={gamesScrollRef}
+            getInitialScrollOffset={getInitialScrollOffset}
+            onContextMenu={handleOpenContextMenu}
+            isScrollbarDragging={isScrollbarDragging}
+          />
+        )}
       </div>
+
+      {hasGames && (
+        <LibraryScrollbar
+          scrollElementRef={gamesScrollRef}
+          onDraggingChange={setIsScrollbarDragging}
+        />
+      )}
 
       {gameContextMenu.game && (
         <GameContextMenu

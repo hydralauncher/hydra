@@ -1,13 +1,17 @@
 @use "../../scss/globals.scss";
 
 .catalogue {
+  container: catalogue / inline-size;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 2);
   width: 100%;
   padding: 16px;
-  scroll-behavior: smooth;
+
+  &--scrolling &__games-container {
+    pointer-events: none;
+  }
 
   &__filters-container {
     width: 100%;
@@ -26,16 +30,32 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-
-    &--filters {
-      align-items: flex-start;
-    }
   }
 
   &__header-summary {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
+
+    &--filters {
+      flex: 1;
+      flex-direction: row;
+      align-items: center;
+      gap: 16px;
+
+      .catalogue__result-count {
+        flex-shrink: 0;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  &__active-filters {
+    display: flex;
+    flex: 1;
+    gap: 12px;
+    align-items: center;
     min-width: 0;
   }
 
@@ -168,12 +188,6 @@
     }
   }
 
-  @media (max-width: 1024px) {
-    &__content {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
   @media (max-width: 768px) {
     &__header-row {
       flex-direction: column;
@@ -192,5 +206,80 @@
     &__clear-all-button {
       width: 100%;
     }
+  }
+}
+
+@container catalogue (max-width: 1100px) {
+  .catalogue__content {
+    grid-template-columns: minmax(0, 1fr) 248px;
+  }
+
+  .catalogue__filters-sections {
+    gap: 8px;
+  }
+
+  .catalogue-mode-toggle__option {
+    gap: 6px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .filter-section__button {
+    padding: 12px;
+  }
+
+  .filter-section__title {
+    font-size: 14px;
+  }
+
+  .filter-section__header-count {
+    padding: 2px 6px;
+    font-size: 11px;
+  }
+
+  .filter-section__content-inner {
+    padding: 12px;
+  }
+
+  .filter-section__count,
+  .filter-section__clear-button {
+    font-size: 11px;
+  }
+
+  .filter-section .checkbox-field__label {
+    font-size: 13px;
+  }
+}
+
+@container catalogue (max-width: 820px) {
+  .catalogue__content {
+    grid-template-columns: minmax(0, 1fr) 208px;
+  }
+
+  .catalogue-mode-toggle__option {
+    padding: 6px 4px;
+    font-size: 11px;
+
+    svg {
+      display: none;
+    }
+  }
+
+  .filter-section__title {
+    font-size: 13px;
+  }
+
+  .filter-section .checkbox-field__label {
+    font-size: 12px;
+  }
+
+  .release-year-section__labels {
+    font-size: 11px;
+  }
+}
+
+@container catalogue (max-width: 560px) {
+  .catalogue__content {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

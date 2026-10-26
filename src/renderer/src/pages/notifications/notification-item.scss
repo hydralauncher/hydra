@@ -8,7 +8,9 @@
   background-color: globals.$dark-background-color;
   border: 1px solid globals.$border-color;
   border-radius: 8px;
-  transition: all ease 0.2s;
+  transition:
+    all ease 0.2s,
+    background 0s;
   position: relative;
   opacity: 0.4;
   width: 100%;
@@ -125,7 +127,9 @@
     cursor: pointer;
     padding: calc(globals.$spacing-unit / 2);
     border-radius: 50%;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
     opacity: 0.5;
 
     &:hover {

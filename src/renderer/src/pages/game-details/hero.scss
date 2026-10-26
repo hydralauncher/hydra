@@ -26,7 +26,9 @@ $hero-height: 350px;
     display: flex;
     flex-direction: column;
     position: relative;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
 
     @media (min-width: 1250px) {
       height: 350px;
@@ -322,7 +324,9 @@ $hero-height: 350px;
     background-color: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(20px);
     border-radius: 8px;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -389,7 +393,9 @@ $hero-height: 350px;
     min-height: $hero-height;
     object-fit: cover;
     object-position: top;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
     position: absolute;
     z-index: 0;
     border-radius: 0px 0px 8px 8px;
@@ -458,7 +464,9 @@ $hero-height: 350px;
     background-color: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(20px);
     border-radius: 8px;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -508,7 +516,9 @@ $hero-height: 350px;
     background-color: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(20px);
     border-radius: 8px;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
     cursor: pointer;
     min-height: 40px;
     display: flex;

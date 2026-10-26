@@ -1,10 +1,8 @@
 import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
-import { useId } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Tooltip } from "react-tooltip";
 
 import SteamLogo from "@renderer/assets/bi-steam.svg?react";
+import { BADGE_TOOLTIP_ID } from "../badge-tooltip/badge-tooltip";
 
 import "./steam-library-badge.scss";
 
@@ -41,7 +39,6 @@ export function SteamLibraryBadge({
   className,
 }: SteamLibraryBadgeProps) {
   const { t } = useTranslation("library");
-  const tooltipId = useId();
   const hasBothImports = hasActiveSteamImport && hasActiveEpicImport;
   const badgeSource = hasActiveSteamImport
     ? "steam"
@@ -70,40 +67,29 @@ export function SteamLibraryBadge({
     .join(" ");
 
   return (
-    <>
-      <span
-        className={classes}
-        data-tooltip-id={tooltipId}
-        data-tooltip-content={label}
-        aria-label={label}
-        role="img"
-      >
-        {badgeSource === "epic" ? (
-          <EpicLogo
-            width={variant === "sidebar" ? 8 : 13}
-            height={variant === "sidebar" ? 8 : 13}
-            aria-hidden="true"
-          />
-        ) : (
-          <SteamIcon
-            size={variant === "sidebar" ? 8 : variant === "large" ? 13 : 12}
-          />
-        )}
-        {hasBothImports && (
-          <span className="steam-library-badge__additional" aria-hidden="true">
-            +
-          </span>
-        )}
-      </span>
-      {createPortal(
-        <Tooltip
-          id={tooltipId}
-          place="top"
-          positionStrategy="fixed"
-          style={{ zIndex: 9999 }}
-        />,
-        document.body
+    <span
+      className={classes}
+      data-tooltip-id={BADGE_TOOLTIP_ID}
+      data-tooltip-content={label}
+      aria-label={label}
+      role="img"
+    >
+      {badgeSource === "epic" ? (
+        <EpicLogo
+          width={variant === "sidebar" ? 8 : 13}
+          height={variant === "sidebar" ? 8 : 13}
+          aria-hidden="true"
+        />
+      ) : (
+        <SteamIcon
+          size={variant === "sidebar" ? 8 : variant === "large" ? 13 : 12}
+        />
       )}
-    </>
+      {hasBothImports && (
+        <span className="steam-library-badge__additional" aria-hidden="true">
+          +
+        </span>
+      )}
+    </span>
   );
 }

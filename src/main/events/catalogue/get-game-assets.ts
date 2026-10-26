@@ -4,6 +4,7 @@ import { HydraApi } from "@main/services";
 import {
   gamesArtworkSelectionSublevel,
   gamesShopAssetsSublevel,
+  gamesSublevel,
   levelKeys,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
@@ -20,6 +21,29 @@ const applyArtworkSelection = async <T extends ShopAssets | null>(
   const selection = await gamesArtworkSelectionSublevel.get(gameKey);
 
   return composeAssetsWithArtwork(assets, selection);
+};
+
+const buildEpicFallbackAssets = async (
+  objectId: string,
+  gameKey: string,
+  cachedAssets: ShopAssets | null | undefined
+): Promise<ShopAssets | null> => {
+  const game = await gamesSublevel.get(gameKey).catch(() => null);
+  const title = cachedAssets?.title || game?.title;
+  if (!title) return null;
+
+  return {
+    objectId,
+    shop: "epic",
+    title,
+    iconUrl: null,
+    libraryHeroImageUrl: null,
+    libraryImageUrl: null,
+    logoImageUrl: null,
+    logoPosition: null,
+    coverImageUrl: null,
+    downloadSources: [],
+  };
 };
 
 export const getGameAssets = async (
@@ -68,7 +92,11 @@ export const getGameAssets = async (
     {
       needsAuth: false,
     }
-  ).then(async (assets) => {
+  ).then(async (apiAssets) => {
+    let assets = apiAssets;
+    if (!assets && shop === "epic") {
+      assets = await buildEpicFallbackAssets(objectId, gameKey, cachedAssets);
+    }
     if (!assets) return null;
     if (shop === "epic")
       assets = await resolveEpicDefaultArtwork(

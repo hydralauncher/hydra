@@ -15,7 +15,7 @@ export const CATALOGUE_PAGINATION_FIRST_ID = "catalogue-pagination:first";
 export const CATALOGUE_PAGINATION_PREVIOUS_ID = "catalogue-pagination:previous";
 export const CATALOGUE_PAGINATION_NEXT_ID = "catalogue-pagination:next";
 export const CATALOGUE_PAGINATION_LAST_ID = "catalogue-pagination:last";
-const CATALOGUE_CARD_FOCUS_ID_PREFIX = "catalogue-card:";
+export const CATALOGUE_CARD_FOCUS_ID_PREFIX = "catalogue-card:";
 const CATALOGUE_FILTER_CHIP_FOCUS_ID_PREFIX = "catalogue-filter-chip:";
 
 export function getCatalogueCardFocusId(id: string) {

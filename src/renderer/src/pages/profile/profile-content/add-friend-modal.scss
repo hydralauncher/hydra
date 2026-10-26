@@ -40,7 +40,9 @@
     cursor: pointer;
     padding: calc(globals.$spacing-unit / 2);
     border-radius: 4px;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.1);
@@ -102,7 +104,9 @@
     border-radius: 8px;
     border: none;
     cursor: pointer;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
     text-align: left;
 
     &:hover {

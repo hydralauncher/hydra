@@ -27,7 +27,9 @@
     color: globals.$muted-color;
     flex: 1;
     cursor: pointer;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
     gap: globals.$spacing-unit;
     font-size: globals.$body-font-size;
     font-weight: bold;

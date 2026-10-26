@@ -25,6 +25,7 @@ import { AchievementNotificationInfo, GameRepack } from "@types";
 
 export * from "./archive-org";
 export * from "./constants";
+export * from "./cover-thumbnail-url";
 export {
   shouldAutoStartSteamSync,
   type SteamAutoStartRunStatus,
@@ -49,8 +50,6 @@ export * from "./official-store-options";
 export * from "./download-directories";
 export * from "./html-sanitizer";
 export * from "./language-flags";
-export * from "./use-hls-video";
-export * from "./use-souvenir-content-warning";
 export * from "./retroarch-platform";
 export * from "./platform-to-system";
 export * from "./classics-emulator-games";

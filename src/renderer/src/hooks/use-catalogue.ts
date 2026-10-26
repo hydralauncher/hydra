@@ -13,6 +13,36 @@ const SUPPORTED_STEAM_METADATA_LANGUAGES = new Set([
   "fr",
 ]);
 
+const metadataCache = new Map<string, Promise<unknown>>();
+
+function fetchCached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const cached = metadataCache.get(key);
+  if (cached) return cached as Promise<T>;
+
+  const promise = fetcher().catch((error) => {
+    metadataCache.delete(key);
+    throw error;
+  });
+  metadataCache.set(key, promise);
+  return promise;
+}
+
+const steamListCache: Record<"publishers" | "developers", string[] | null> = {
+  publishers: null,
+  developers: null,
+};
+
+function fetchSteamList(kind: "publishers" | "developers") {
+  return fetchCached(`steam-${kind}`, () =>
+    window.electron.hydraApi
+      .get<string[]>(`/catalogue/steam/${kind}`, { needsAuth: false })
+      .then((list) => {
+        steamListCache[kind] = list;
+        return list;
+      })
+  );
+}
+
 async function getLocalizedSteamMetadata<T>(endpoint: string, locale: string) {
   const language = locale.split("-")[0] || "en";
   const requestLanguage = SUPPORTED_STEAM_METADATA_LANGUAGES.has(language)
@@ -21,10 +51,12 @@ async function getLocalizedSteamMetadata<T>(endpoint: string, locale: string) {
   const languages = requestLanguage === "en" ? ["en"] : ["en", requestLanguage];
   const entries = await Promise.all(
     languages.map(async (currentLanguage) => {
-      const data = await window.electron.hydraApi.get<T>(endpoint, {
-        params: { language: currentLanguage },
-        needsAuth: false,
-      });
+      const data = await fetchCached(`${endpoint}:${currentLanguage}`, () =>
+        window.electron.hydraApi.get<T>(endpoint, {
+          params: { language: currentLanguage },
+          needsAuth: false,
+        })
+      );
 
       return [currentLanguage, data] as const;
     })
@@ -40,9 +72,15 @@ export function useCatalogue() {
   const dispatch = useAppDispatch();
   const { i18n } = useTranslation();
 
-  const [steamPublishers, setSteamPublishers] = useState<string[]>([]);
-  const [steamDevelopers, setSteamDevelopers] = useState<string[]>([]);
+  const [steamPublishers, setSteamPublishers] = useState<string[]>(
+    () => steamListCache.publishers ?? []
+  );
+  const [steamDevelopers, setSteamDevelopers] = useState<string[]>(
+    () => steamListCache.developers ?? []
+  );
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
+  const [hasLoadedDownloadSources, setHasLoadedDownloadSources] =
+    useState(false);
 
   const getSteamFilters = useCallback(async () => {
     const [tags, genres] = await Promise.all([
@@ -60,36 +98,45 @@ export function useCatalogue() {
     dispatch(setGenres(genres));
   }, [dispatch, i18n.language]);
 
-  const getSteamPublishers = useCallback(() => {
-    window.electron.hydraApi
-      .get<string[]>("/catalogue/steam/publishers", { needsAuth: false })
-      .then(setSteamPublishers);
-  }, []);
-
-  const getSteamDevelopers = useCallback(() => {
-    window.electron.hydraApi
-      .get<string[]>("/catalogue/steam/developers", { needsAuth: false })
-      .then(setSteamDevelopers);
-  }, []);
-
   const getDownloadSources = useCallback(() => {
-    levelDBService.values("downloadSources").then((results) => {
-      const sources = results as DownloadSource[];
-      setDownloadSources(sources.filter((source) => !!source.fingerprint));
-    });
+    levelDBService
+      .values("downloadSources")
+      .then((results) => {
+        const sources = results as DownloadSource[];
+        setDownloadSources(sources.filter((source) => !!source.fingerprint));
+      })
+      .finally(() => setHasLoadedDownloadSources(true));
   }, []);
 
   useEffect(() => {
     getSteamFilters();
-    getSteamPublishers();
-    getSteamDevelopers();
     getDownloadSources();
-  }, [
-    getSteamFilters,
-    getSteamPublishers,
-    getSteamDevelopers,
-    getDownloadSources,
-  ]);
+  }, [getSteamFilters, getDownloadSources]);
 
-  return { steamPublishers, downloadSources, steamDevelopers };
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!steamListCache.publishers) {
+      fetchSteamList("publishers").then((list) => {
+        if (!cancelled) setSteamPublishers(list);
+      });
+    }
+
+    if (!steamListCache.developers) {
+      fetchSteamList("developers").then((list) => {
+        if (!cancelled) setSteamDevelopers(list);
+      });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return {
+    steamPublishers,
+    downloadSources,
+    steamDevelopers,
+    hasLoadedDownloadSources,
+  };
 }

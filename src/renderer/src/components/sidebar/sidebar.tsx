@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -277,8 +284,10 @@ export function Sidebar() {
     count: visibleGames.length,
     getScrollElement: () => gameListRef.current,
     estimateSize: () => SIDEBAR_GAME_ITEM_HEIGHT,
-    overscan: 5,
+    overscan: 25,
+    useFlushSync: false,
   });
+  const virtualGameItems = useDeferredValue(virtualizer.getVirtualItems());
 
   useEffect(() => {
     const el = gameListRef.current;
@@ -466,28 +475,32 @@ export function Sidebar() {
     };
   }, [isResizing]);
 
-  const getGameTitle = (game: LibraryGame) => {
-    if (lastPacket?.gameId === game.id) {
-      return t("downloading", {
-        title: game.title,
-        percentage: progress,
-      });
-    }
+  const downloadingGameId = lastPacket?.gameId;
+  const getGameTitle = useCallback(
+    (game: LibraryGame) => {
+      if (downloadingGameId === game.id) {
+        return t("downloading", {
+          title: game.title,
+          percentage: progress,
+        });
+      }
 
-    if (
-      game.download?.queued &&
-      game.download.status !== "removed" &&
-      game.download.status !== "complete" &&
-      game.download.status !== "seeding"
-    ) {
-      return t("queued", { title: game.title });
-    }
+      if (
+        game.download?.queued &&
+        game.download.status !== "removed" &&
+        game.download.status !== "complete" &&
+        game.download.status !== "seeding"
+      ) {
+        return t("queued", { title: game.title });
+      }
 
-    if (game.download?.status === "paused")
-      return t("paused", { title: game.title });
+      if (game.download?.status === "paused")
+        return t("paused", { title: game.title });
 
-    return game.title;
-  };
+      return game.title;
+    },
+    [downloadingGameId, progress, t]
+  );
 
   const handleSidebarItemClick = (path: string) => {
     if (path !== location.pathname) {
@@ -495,15 +508,19 @@ export function Sidebar() {
     }
   };
 
-  const handleSidebarGameClick = (game: LibraryGame) => {
-    const path = buildGameDetailsPath({
-      ...game,
-      ...getGameCatalogueIdentity(game),
-    });
-    if (path !== location.pathname) {
-      navigate(path);
-    }
-  };
+  const currentPathname = location.pathname;
+  const handleSidebarGameClick = useCallback(
+    (game: LibraryGame) => {
+      const path = buildGameDetailsPath({
+        ...game,
+        ...getGameCatalogueIdentity(game),
+      });
+      if (path !== currentPathname) {
+        navigate(path);
+      }
+    },
+    [currentPathname, navigate]
+  );
 
   return (
     <aside
@@ -660,16 +677,19 @@ export function Sidebar() {
                   )}
 
                 <div
+                  className="sidebar__game-list-rows"
                   style={{
                     height: `${virtualizer.getTotalSize()}px`,
                     position: "relative",
                   }}
                 >
-                  {virtualizer.getVirtualItems().map((virtualItem) => {
+                  {virtualGameItems.map((virtualItem) => {
                     const game = visibleGames[virtualItem.index];
+                    if (!game) return null;
                     return (
                       <div
                         key={game.id}
+                        className="sidebar__game-list-row"
                         style={{
                           position: "absolute",
                           top: 0,

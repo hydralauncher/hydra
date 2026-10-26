@@ -557,10 +557,6 @@ export const sortLibraryGames = (
         break;
       }
 
-      case "title_desc": {
-        return compareLibraryGamesByTitle(a, b, false);
-      }
-
       case "title_asc":
       default:
         break;

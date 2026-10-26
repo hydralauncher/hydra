@@ -350,7 +350,7 @@
     "wine_prefix": "Wine predpona",
     "wine_prefix_description": "Wine predpona, uporabljena za zagon te igre",
     "launch_options": "Možnosti zagona",
-    "launch_options_description": "Napredni uporabniki lahko vpišejo spremembe v možnosti zagona (eksperimentalna funkcija)",
+    "launch_options_description": "Napredni uporabniki lahko vpišejo spremembe v možnosti zagona",
     "launch_options_placeholder": "Ni določenega parametra",
     "no_download_option_info": "Ni razpoložljivih informacij",
     "backup_deletion_failed": "Brisanje varnostne kopije ni uspelo",

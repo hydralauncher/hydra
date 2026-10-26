@@ -6,12 +6,15 @@
     overflow: hidden;
     position: relative;
     display: flex;
-    transition: all ease 0.2s;
+    transition:
+      transform 0.12s cubic-bezier(0.2, 0, 0, 1),
+      opacity 0.12s cubic-bezier(0.2, 0, 0, 1);
     cursor: grab;
     container-type: inline-size;
 
     &:hover {
       transform: scale(1.05);
+      z-index: 1;
     }
 
     &:active {
@@ -31,7 +34,7 @@
   }
 
   &__container {
-    transition: all ease 0.2s;
+    transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1);
 
     &:hover {
       transform: scale(1.05);
@@ -74,7 +77,9 @@
     gap: 4px;
     padding: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
 
     &-long {
       display: inline;

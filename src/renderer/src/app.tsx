@@ -124,7 +124,38 @@ export function App() {
     ]).then(([preferences]) => {
       dispatch(setUserPreferences(preferences as UserPreferences | null));
     });
-  }, [navigate, location.pathname, dispatch, updateLibrary]);
+  }, [dispatch, updateLibrary]);
+
+  useEffect(() => {
+    const preloadPages = () => {
+      void import("./pages/settings/settings");
+      void import("./pages/game-details/game-details");
+      void import("./pages/library/library");
+      void import("./pages/downloads/downloads");
+      void import("./pages/catalogue/catalogue");
+      void import("./pages/profile/profile");
+    };
+
+    const handle = globalThis.requestIdleCallback(preloadPages, {
+      timeout: 4000,
+    });
+    return () => globalThis.cancelIdleCallback(handle);
+  }, []);
+
+  useEffect(() => {
+    const pauseMediaWhenHidden = () => {
+      if (document.visibilityState !== "hidden") return;
+
+      document.querySelectorAll("video, audio").forEach((element) => {
+        const media = element as HTMLMediaElement;
+        if (!media.paused) media.pause();
+      });
+    };
+
+    document.addEventListener("visibilitychange", pauseMediaWhenHidden);
+    return () =>
+      document.removeEventListener("visibilitychange", pauseMediaWhenHidden);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = window.electron.onUserPreferencesUpdated(

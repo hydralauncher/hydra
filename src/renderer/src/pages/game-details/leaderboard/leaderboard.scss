@@ -210,7 +210,6 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     white-space: nowrap;
     cursor: pointer;
     outline: none;
-    transition: background-color 0.1s ease-in-out;
 
     &[data-state="checked"] {
       background-color: rgba(255, 255, 255, 0.1);
@@ -311,7 +310,6 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   color: globals.$muted-color;
   text-align: left;
   cursor: pointer;
-  transition: background-color 0.2s ease;
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.05);

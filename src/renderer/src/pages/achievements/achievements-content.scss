@@ -141,7 +141,9 @@ $logo-max-width: 200px;
     overflow: hidden;
     width: 100%;
     height: 100%;
-    transition: all ease 0.3s;
+    transition:
+      all ease 0.3s,
+      background 0s;
 
     &__section {
       width: 100%;
@@ -204,7 +206,9 @@ $logo-max-width: 200px;
           flex-direction: column;
           position: relative;
           z-index: 2;
-          transition: all ease 0.2s;
+          transition:
+            all ease 0.2s,
+            background 0s;
 
           &__content {
             padding: globals.$spacing-unit * 2;
@@ -217,7 +221,9 @@ $logo-max-width: 200px;
               width: $logo-max-width;
               height: $logo-height;
               object-fit: contain;
-              transition: all ease 0.2s;
+              transition:
+                all ease 0.2s,
+                background 0s;
 
               &:hover {
                 transform: scale(1.05);
@@ -234,7 +240,9 @@ $logo-max-width: 200px;
               line-height: 1.1;
               color: #fff;
               text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-              transition: all ease 0.2s;
+              transition:
+                all ease 0.2s,
+                background 0s;
 
               &:hover {
                 transform: scale(1.05);
@@ -261,7 +269,9 @@ $logo-max-width: 200px;
       &__table-header {
         width: 100%;
         background-color: globals.$background-color;
-        transition: all ease 0.2s;
+        transition:
+          all ease 0.2s,
+          background 0s;
         border-bottom: 1px solid globals.$border-color;
         position: sticky;
         top: 0;

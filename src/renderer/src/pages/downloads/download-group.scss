@@ -315,13 +315,49 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    min-width: 0;
+  }
+
+  &__speed-chart-area {
+    position: relative;
+    width: 100%;
   }
 
   &__speed-chart-canvas {
+    display: block;
     width: 100%;
     height: 80px;
     image-rendering: crisp-edges;
+  }
+
+  &__speed-tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 10px;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+    background-color: globals.$dark-background-color;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 2;
+
+    strong {
+      font-size: 13px;
+      color: globals.$muted-color;
+    }
+
+    span {
+      font-size: 11px;
+      color: globals.$body-color;
+      opacity: 0.7;
+      font-variant-numeric: tabular-nums;
+    }
   }
 
   &__stat-item {

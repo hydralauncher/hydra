@@ -85,6 +85,8 @@ describe("Big Picture operational download library", () => {
         },
         onLibraryBatchComplete: subscribe("batch"),
         onDownloadsUpdated: subscribe("downloads"),
+        onSignIn: subscribe("signin"),
+        onSignOut: subscribe("signout"),
       },
     });
 
@@ -141,7 +143,12 @@ describe("Big Picture operational download library", () => {
         else Reflect.deleteProperty(globalThis, key);
       });
     }
-    assert.deepEqual(unsubscribed.sort(), ["batch", "downloads"]);
+    assert.deepEqual(unsubscribed.sort(), [
+      "batch",
+      "downloads",
+      "signin",
+      "signout",
+    ]);
   });
 
   it("shows concealed active, queued, paused and completed downloads", () => {

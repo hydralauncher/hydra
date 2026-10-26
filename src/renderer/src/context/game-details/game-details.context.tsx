@@ -43,6 +43,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   catalogueGame: { shop: "steam", objectId: "" },
   shopDetails: null,
   repacks: [],
+  hasLoadedRepacks: false,
   shop: "steam",
   gameTitle: "",
   isGameRunning: false,
@@ -109,6 +110,7 @@ export function GameDetailsContextProvider({
   const [gameOptionsInitialCategory, setGameOptionsInitialCategory] =
     useState<GameOptionsCategoryId>("general");
   const [repacks, setRepacks] = useState<GameRepack[]>([]);
+  const [hasLoadedRepacks, setHasLoadedRepacks] = useState(false);
 
   const { t, i18n } = useTranslation("game_details");
   const location = useLocation();
@@ -533,9 +535,13 @@ export function GameDetailsContextProvider({
   }, [achievementObjectId, achievementShop, userDetails, presentation]);
 
   useEffect(() => {
-    if (shop === "custom") return;
+    if (shop === "custom") {
+      setHasLoadedRepacks(true);
+      return;
+    }
 
     let cancelled = false;
+    setHasLoadedRepacks(false);
 
     const fetchDownloadSources = async () => {
       try {
@@ -568,6 +574,7 @@ export function GameDetailsContextProvider({
         );
 
         setRepacks(downloadOptions);
+        setHasLoadedRepacks(true);
 
         const results = await fetchHosterAvailability(
           downloadOptions,
@@ -580,6 +587,7 @@ export function GameDetailsContextProvider({
         setRepacks(applyHosterAvailability(downloadOptions, results));
       } catch (error) {
         console.error("Failed to fetch download sources:", error);
+        if (!cancelled) setHasLoadedRepacks(true);
       }
     };
 
@@ -636,6 +644,7 @@ export function GameDetailsContextProvider({
         shopDetails,
         shop: lockAchievementIdentity ? achievementShop : operationalShop,
         repacks,
+        hasLoadedRepacks,
         gameTitle: presentation?.title ?? shopDetails?.name ?? gameTitle,
         isGameRunning,
         isLoading,

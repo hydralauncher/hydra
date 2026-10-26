@@ -4,12 +4,14 @@ import { BellIcon, CheckIcon, CopyIcon, UserIcon } from "@phosphor-icons/react";
 import { type KeyboardEvent, type MouseEvent, type Ref, useState } from "react";
 import type { FocusOverrides } from "../../../services";
 import { FocusItem } from "../focus-item";
+import { Skeleton } from "../skeleton";
 
 export interface UserProfileProps {
   image?: string | null;
   backgroundImageUrl?: string | null;
   name: string;
   friendCode: string;
+  isLoading?: boolean;
   profileFocusId?: string;
   notificationsFocusId?: string;
   notificationsFocusable?: boolean;
@@ -25,6 +27,7 @@ interface UserProfileContentProps {
   image?: string | null;
   name: string;
   friendCode: string;
+  isLoading?: boolean;
   notificationCount?: number;
   focusId?: string;
   focusNavigationOverrides?: FocusOverrides;
@@ -126,6 +129,7 @@ function UserProfileContent({
   image,
   name,
   friendCode,
+  isLoading = false,
   notificationCount = 0,
   focusId,
   focusNavigationOverrides,
@@ -163,15 +167,19 @@ function UserProfileContent({
       onKeyDown={handleProfileKeyDown}
     >
       <div className="user-profile-content__image-container">
-        <UserProfileAvatar
-          image={image}
-          alt={name}
-          className="user-profile-content__image"
-          fallbackClassName="user-profile-content__image--fallback"
-          width={48}
-          height={48}
-          iconSize={30}
-        />
+        {isLoading ? (
+          <Skeleton className="user-profile-content__skeleton-image" />
+        ) : (
+          <UserProfileAvatar
+            image={image}
+            alt={name}
+            className="user-profile-content__image"
+            fallbackClassName="user-profile-content__image--fallback"
+            width={48}
+            height={48}
+            iconSize={30}
+          />
+        )}
 
         {notificationCount > 0 ? (
           <span className="user-profile-content__notification-badge">
@@ -180,26 +188,33 @@ function UserProfileContent({
         ) : null}
       </div>
 
-      <div className="user-profile-content__info">
-        <p className="user-profile-content__info__name">{name}</p>
-        <button
-          className="user-profile-content__info__friend-code"
-          onClick={handleCopy}
-        >
-          {friendCode}
-          {isCopied ? (
-            <CheckIcon
-              size={14}
-              className="user-profile-content__info__friend-code__icon"
-            />
-          ) : (
-            <CopyIcon
-              size={14}
-              className="user-profile-content__info__friend-code__icon"
-            />
-          )}
-        </button>
-      </div>
+      {isLoading ? (
+        <div className="user-profile-content__info" aria-busy="true">
+          <Skeleton className="user-profile-content__skeleton-name" />
+          <Skeleton className="user-profile-content__skeleton-code" />
+        </div>
+      ) : (
+        <div className="user-profile-content__info">
+          <p className="user-profile-content__info__name">{name}</p>
+          <button
+            className="user-profile-content__info__friend-code"
+            onClick={handleCopy}
+          >
+            {friendCode}
+            {isCopied ? (
+              <CheckIcon
+                size={14}
+                className="user-profile-content__info__friend-code__icon"
+              />
+            ) : (
+              <CopyIcon
+                size={14}
+                className="user-profile-content__info__friend-code__icon"
+              />
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 
@@ -222,6 +237,7 @@ export function UserProfile({
   backgroundImageUrl,
   name,
   friendCode,
+  isLoading = false,
   profileFocusId,
   notificationsFocusId,
   notificationsFocusable = true,
@@ -258,6 +274,7 @@ export function UserProfile({
           image={image}
           name={name}
           friendCode={friendCode}
+          isLoading={isLoading}
           notificationCount={notificationCount}
           focusId={profileFocusId}
           focusNavigationOverrides={profileFocusNavigationOverrides}

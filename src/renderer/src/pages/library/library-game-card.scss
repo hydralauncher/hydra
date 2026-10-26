@@ -3,18 +3,20 @@
 .library-game-card {
   &__wrapper {
     cursor: pointer;
-    transition: transform ease 0.2s;
+    transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1);
     box-shadow: 0 8px 10px -2px rgba(0, 0, 0, 0.5);
     width: 100%;
     aspect-ratio: 2 / 3;
     position: relative;
     border: none;
-    background: none;
+    background-color: #1c1c1c;
     padding: 0;
     border-radius: 4px;
     overflow: hidden;
     display: block;
     container-type: inline-size;
+    will-change: transform;
+    backface-visibility: hidden;
 
     &:before {
       content: "";
@@ -31,15 +33,16 @@
         rgba(255, 255, 255, 0.1) 100%
       );
       transition:
-        opacity ease 0.3s,
-        transform ease 0.3s;
+        opacity 0.18s cubic-bezier(0.2, 0, 0, 1),
+        transform 0.18s cubic-bezier(0.2, 0, 0, 1);
       transform: translateY(-36%);
       opacity: 0.5;
       z-index: 1;
     }
 
     &:hover {
-      transform: scale(1.02);
+      transform: scale(1.05);
+      z-index: 1;
     }
 
     &:hover::before {
@@ -100,9 +103,7 @@
 
   &__playtime {
     white-space: nowrap;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.62);
     color: rgba(255, 255, 255, 0.8);
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;
@@ -115,7 +116,6 @@
     line-height: 1;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition:
-      background-color ease 0.2s,
       color ease 0.2s,
       border-color ease 0.2s;
 
@@ -129,7 +129,7 @@
       font-size: 12px;
     }
 
-    @container (max-width: 200px) {
+    @container (max-width: 150px) {
       &-long {
         display: none;
       }
@@ -188,9 +188,7 @@
   }
 
   &__installed-badge {
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.62);
     color: rgba(255, 255, 255, 0.8);
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;
@@ -200,7 +198,6 @@
     padding: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition:
-      background-color ease 0.2s,
       color ease 0.2s,
       border-color ease 0.2s;
   }
@@ -216,8 +213,6 @@
     background:
       linear-gradient(#1c1c1c, #1c1c1c) padding-box,
       globals.$classics-rainbow border-box;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     color: #fafafa;
     gap: 6px;
     padding: 0 8px;
@@ -286,7 +281,6 @@
   &__achievement-progress {
     width: 100%;
     height: 4px;
-    transition: background-color ease 0.2s;
     background-color: rgba(255, 255, 255, 0.15);
     border-radius: 4px;
     overflow: hidden;
@@ -322,9 +316,7 @@
     position: absolute;
     bottom: 8px;
     right: 8px;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.75);
     border: solid 1px rgba(255, 255, 255, 0.2);
     border-radius: 4px;
     width: 40px;
@@ -334,11 +326,10 @@
     justify-content: center;
     cursor: pointer;
     transition:
-      background-color ease 0.2s,
-      border-color ease 0.2s,
-      transform ease 0.2s,
-      box-shadow ease 0.2s,
-      opacity ease 0.2s;
+      border-color 0.12s cubic-bezier(0.2, 0, 0, 1),
+      transform 0.12s cubic-bezier(0.2, 0, 0, 1),
+      box-shadow 0.12s cubic-bezier(0.2, 0, 0, 1),
+      opacity 0.12s cubic-bezier(0.2, 0, 0, 1);
     color: rgba(255, 255, 255, 0.9);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     opacity: 0;
@@ -376,6 +367,12 @@
     top: 0;
     left: 0;
     z-index: 0;
+  }
+
+  &__game-image:not([data-loaded]),
+  &__classics-backdrop:not([data-loaded]),
+  &__classics-image:not([data-loaded]) {
+    visibility: hidden;
   }
 
   &__game-image--contain {

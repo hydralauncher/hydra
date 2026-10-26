@@ -7,7 +7,9 @@
   padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 2);
   display: flex;
   align-items: center;
-  transition: all ease 0.2s;
+  transition:
+    all ease 0.2s,
+    background 0s;
   justify-content: space-between;
   position: relative;
   z-index: globals.$bottom-panel-z-index;

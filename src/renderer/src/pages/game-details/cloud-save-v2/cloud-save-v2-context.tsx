@@ -663,9 +663,7 @@ export function CloudSaveV2Provider({
     setIsModalVisible(false);
     setWasOpenedFromLaunchConflict(false);
     setIsFileBrowserVisible(false);
-    setGameOptionsInitialCategory(
-      isRetroArchGame || isRpcs3Game ? "general" : "locations"
-    );
+    setGameOptionsInitialCategory("general");
     setShowGameOptionsModal(true);
   };
 

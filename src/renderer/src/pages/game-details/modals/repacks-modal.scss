@@ -2,7 +2,9 @@
 
 .repacks-modal {
   &__filter-container {
-    transition: all 0.3s ease;
+    transition:
+      all 0.3s ease,
+      background 0s;
   }
 
   &__filter-top {
@@ -22,7 +24,6 @@
     color: var(--color-text-secondary);
     padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 1.5);
     border-radius: 6px;
-    transition: background-color 0.2s ease;
     white-space: nowrap;
   }
 

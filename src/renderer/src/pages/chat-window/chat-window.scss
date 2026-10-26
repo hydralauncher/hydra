@@ -317,9 +317,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     height: 32px;
     border-radius: 8px;
     background-color: var(--chat-tab-surface);
-    transition:
-      width 0.15s ease,
-      background-color 0.15s ease;
+    transition: width 0.15s ease;
     -webkit-app-region: no-drag;
     // Tabs can be dragged to reorder; pointer events, so no text selection or
     // touch scrolling gets in the way.
@@ -532,7 +530,6 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     color: globals.$body-color;
     opacity: 0;
     transition:
-      background-color 0.15s ease,
       color 0.15s ease,
       opacity 0.15s ease;
 
@@ -597,8 +594,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     .chat-window__tab {
       transition:
         transform 0.15s ease-out,
-        width 0.15s ease,
-        background-color 0.15s ease;
+        width 0.15s ease;
     }
 
     .chat-window__friend-card {
@@ -673,7 +669,6 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     font-size: globals.$small-font-size;
     font-weight: 700;
     cursor: pointer;
-    transition: background-color 0.2s ease;
 
     &:hover,
     &--open {
@@ -726,7 +721,6 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     font-family: inherit;
     text-align: left;
     cursor: pointer;
-    transition: background-color 0.2s ease;
 
     &:hover,
     &:focus-visible {
@@ -774,9 +768,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border-radius: 6px;
     color: $faded-text;
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      color 0.15s ease;
+    transition: color 0.15s ease;
 
     // Only the icon turns into a close mark; the square stays put.
     svg {
@@ -993,9 +985,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border: none;
     color: globals.$muted-color;
     cursor: pointer;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+    transition: color 0.2s ease;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.08);
@@ -1020,9 +1010,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border-radius: 6px;
     color: globals.$body-color;
     cursor: pointer;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+    transition: color 0.2s ease;
 
     &:hover,
     &:focus-visible {
@@ -1258,9 +1246,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border-radius: 3px;
     background-color: rgba(255, 255, 255, 0.22);
     pointer-events: auto;
-    transition:
-      width 0.15s ease,
-      background-color 0.15s ease;
+    transition: width 0.15s ease;
 
     @media (prefers-reduced-motion: reduce) {
       transition: none;
@@ -1528,9 +1514,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border-radius: 6px;
     color: globals.$body-color;
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      color 0.15s ease;
+    transition: color 0.15s ease;
 
     &:hover,
     &:focus-visible {
@@ -1582,7 +1566,6 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     text-align: left;
     white-space: nowrap;
     cursor: pointer;
-    transition: background-color 0.15s ease;
 
     &:hover,
     &:focus-visible {
@@ -2102,9 +2085,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border-radius: 6px;
     color: globals.$background-color;
     cursor: pointer;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+    transition: color 0.2s ease;
 
     &:hover {
       background-color: #dadbe1;
@@ -2429,7 +2410,6 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border-radius: 6px;
     color: globals.$body-color;
     cursor: pointer;
-    transition: background-color 0.15s ease;
     animation: chat-window-reaction-option-in 0.28s
       cubic-bezier(0.34, 1.4, 0.64, 1) both;
 
@@ -2590,9 +2570,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border-radius: 6px;
     color: $meta-text;
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      color 0.15s ease;
+    transition: color 0.15s ease;
 
     &:hover,
     &:focus-visible {
@@ -2645,7 +2623,6 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.1s ease;
 
     .chat-window__emoji-glyph {
       font-size: 22px;
@@ -2723,9 +2700,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border-radius: 6px;
     color: globals.$body-color;
     cursor: pointer;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+    transition: color 0.2s ease;
 
     &:hover,
     &:focus-visible,
@@ -2824,9 +2799,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border: none;
     color: globals.$muted-color;
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      color 0.15s ease;
+    transition: color 0.15s ease;
 
     & + & {
       border-left: 1px solid rgba(255, 255, 255, 0.12);

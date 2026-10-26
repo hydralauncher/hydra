@@ -10,9 +10,10 @@ import {
   TextField,
 } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
-import { useAppSelector } from "@renderer/hooks";
+import { useAppSelector, useToast } from "@renderer/hooks";
 import type { ProtonVersion } from "@types";
 import { DesktopDownloadIcon, LinkExternalIcon } from "@primer/octicons-react";
+import { ClipboardTextIcon } from "@phosphor-icons/react";
 import { logger } from "@renderer/logger";
 import { Tooltip } from "react-tooltip";
 
@@ -35,6 +36,8 @@ export function SettingsContextCompatibility() {
     () => lastKnownCanInstallCommonRedist
   );
   const [installingCommonRedist, setInstallingCommonRedist] = useState(false);
+  const [exportingLogs, setExportingLogs] = useState(false);
+  const { showSuccessToast, showErrorToast } = useToast();
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
   const [selectedDefaultProtonPath, setSelectedDefaultProtonPath] = useState(
@@ -187,6 +190,22 @@ export function SettingsContextCompatibility() {
     } catch (err) {
       logger.error(err);
       setInstallingCommonRedist(false);
+    }
+  };
+
+  const handleExportLogs = async () => {
+    setExportingLogs(true);
+    try {
+      const filePath = await window.electron.exportLogs();
+      if (!filePath) return;
+
+      showSuccessToast(t("logs_exported"));
+      window.electron.showItemInFolder(filePath);
+    } catch (err) {
+      logger.error(err);
+      showErrorToast(t("logs_export_failed"));
+    } finally {
+      setExportingLogs(false);
     }
   };
 
@@ -407,6 +426,23 @@ export function SettingsContextCompatibility() {
           </Button>
         </div>
       )}
+
+      <div className="settings-context-panel__group">
+        <h3>{t("logs")}</h3>
+
+        <p className="settings-general__common-redist-description">
+          {t("export_logs_description")}
+        </p>
+
+        <Button
+          onClick={handleExportLogs}
+          className="settings-general__common-redist-button"
+          disabled={exportingLogs}
+        >
+          <ClipboardTextIcon size={16} />
+          {exportingLogs ? t("exporting_logs") : t("export_logs")}
+        </Button>
+      </div>
     </div>
   );
 }

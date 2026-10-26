@@ -14,7 +14,7 @@ import {
 import { createPortal } from "react-dom";
 import {
   useFloatingPanelPosition,
-  useNavigation,
+  useNavigationActions,
   useNavigationScreenActions,
 } from "../../../hooks";
 import type { FocusOverrides } from "../../../services";
@@ -124,7 +124,7 @@ export function DropdownSelect<TValue extends string = string>({
   ariaLabel,
 }: Readonly<DropdownSelectProps<TValue>>) {
   const generatedId = useId();
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const referenceRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 

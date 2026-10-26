@@ -16,7 +16,7 @@ import {
   Modal,
   VerticalFocusGroup,
 } from "../../../components";
-import { useNavigation } from "../../../hooks";
+import { useNavigationActions } from "../../../hooks";
 import {
   getEmulationCloudRestoreButtonNavigationOverrides,
   getEmulationCloudRestoreTargetFocusId,
@@ -65,7 +65,7 @@ export function EmulationCloudRestoreModal({
   formatPickedPathLabel = basename,
 }: Readonly<EmulationCloudRestoreModalProps>) {
   const { t } = useTranslation("settings");
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const [targets, setTargets] = useState<MemcardRestoreTarget[]>([]);
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] =

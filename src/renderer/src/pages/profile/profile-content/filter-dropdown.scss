@@ -17,9 +17,7 @@
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      border-color 0.15s ease;
+    transition: border-color 0.15s ease;
 
     &:hover {
       background: rgba(255, 255, 255, 0.07);
@@ -89,9 +87,7 @@
     font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
-    transition:
-      background-color 0.12s ease,
-      color 0.12s ease;
+    transition: color 0.12s ease;
 
     &:hover {
       background: rgba(255, 255, 255, 0.06);

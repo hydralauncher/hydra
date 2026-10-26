@@ -20,7 +20,7 @@ import {
   useBigPictureToast,
   useDate,
   useFormat,
-  useNavigation,
+  useNavigationActions,
 } from "../../hooks";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../layout";
 import type { FocusOverrides } from "../../services";
@@ -84,7 +84,7 @@ export function DownloadsSourcesSection({
   const { formatNumber } = useFormat();
   const { t } = useTranslation("big_picture");
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
-  const { setFocus, setFocusRegion } = useNavigation();
+  const { setFocus, setFocusRegion } = useNavigationActions();
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);

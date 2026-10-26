@@ -741,6 +741,17 @@ export class GamepadService {
     };
   }
 
+  public emitKeyboardButtonPress(type: GamepadButtonType): void {
+    const gamepadIndex = this.getActiveGamepadIndex() ?? -1;
+
+    this.triggerButtonPressCallbacks(gamepadIndex, type, {
+      status: "accepted",
+      accepted: true,
+      activeGamepadIndex: gamepadIndex,
+      previousActiveGamepadIndex: gamepadIndex,
+    });
+  }
+
   public onAnyButtonPress(callback: () => void): () => void {
     this.anyButtonPressCallbacks.add(callback);
 

@@ -28,7 +28,7 @@ import {
 import { ConfirmationModal } from "../../../components/modals";
 import {
   useBigPictureToast,
-  useNavigation,
+  useNavigationActions,
   useUserDetails,
 } from "../../../hooks";
 import {
@@ -132,7 +132,7 @@ function RestoreModal({
 
 function RenameModal({ save, onClose, onRenamed }: Readonly<RenameModalProps>) {
   const { t } = useTranslation("settings");
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const [value, setValue] = useState("");
   const [isBusy, setIsBusy] = useState(false);

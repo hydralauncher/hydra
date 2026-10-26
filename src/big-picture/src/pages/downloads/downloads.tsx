@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { type FocusItemActions } from "../../types";
 import type { FocusOverrides } from "../../services";
-import { useNavigation, useNavigationScreenActions } from "../../hooks";
+import { useNavigationActions, useNavigationScreenActions } from "../../hooks";
 import { BIG_PICTURE_HEADER_REGION_ID } from "../../layout";
 import {
   ContextMenu,
@@ -925,7 +925,7 @@ function Section({
 export default function Downloads() {
   const navigate = useNavigate();
   const { t } = useTranslation("downloads");
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const { currentFocusId, nodes } = useNavigationSnapshot();
   const {
     activeDownload,

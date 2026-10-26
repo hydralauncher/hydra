@@ -5,7 +5,9 @@
   background-color: globals.$muted-color;
   border-radius: 8px;
   border: solid 1px transparent;
-  transition: all ease 0.2s;
+  transition:
+    all ease 0.2s,
+    background 0s;
   cursor: pointer;
   min-height: 40px;
   display: flex;

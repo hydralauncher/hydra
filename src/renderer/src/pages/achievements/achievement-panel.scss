@@ -40,7 +40,9 @@
     left: 0;
     width: 100%;
     height: 3px;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
 
     &::-webkit-progress-bar {
       background-color: transparent;

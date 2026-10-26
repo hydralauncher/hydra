@@ -1,5 +1,8 @@
 import { LibraryGame } from "@types";
-import { getDisplayedPlayTimeInMilliseconds } from "@shared";
+import {
+  buildCoverThumbnailUrl,
+  getDisplayedPlayTimeInMilliseconds,
+} from "@shared";
 import cn from "classnames";
 import { getLibraryPresentationImportSources } from "./library-category";
 import {
@@ -16,7 +19,7 @@ import {
 } from "@renderer/helpers";
 import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
 import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState, type SyntheticEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
@@ -37,13 +40,37 @@ interface LibraryGameCardProps {
     game: LibraryGame,
     position: { x: number; y: number }
   ) => void;
+  thumbnailWidth?: number;
   onShowTooltip?: (gameId: string) => void;
   onHideTooltip?: () => void;
 }
 
+const failedCoverSources = new Set<string>();
+const failedCoverThumbnails = new Set<string>();
+
+const markCoverLoaded = (event: SyntheticEvent<HTMLImageElement>) => {
+  event.currentTarget.dataset.loaded = "true";
+};
+
+const markCoverLoadedIfComplete = (image: HTMLImageElement | null) => {
+  if (image?.complete && image.naturalWidth > 0) image.dataset.loaded = "true";
+};
+
+const getNextUsableSourceIndex = (
+  sources: (string | null | undefined)[],
+  fromIndex: number
+) => {
+  for (let index = fromIndex; index < sources.length; index++) {
+    const source = sources[index];
+    if (source && !failedCoverSources.has(source)) return index;
+  }
+  return sources.length;
+};
+
 export const LibraryGameCard = memo(function LibraryGameCard({
   game,
   onContextMenu,
+  thumbnailWidth,
 }: Readonly<LibraryGameCardProps>) {
   const { t } = useTranslation("library");
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
@@ -80,8 +107,13 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const sources = candidates.map(({ url }) => url);
 
-  const [fallbackIndex, setFallbackIndex] = useState(0);
+  const [fallbackIndex, setFallbackIndex] = useState(() =>
+    getNextUsableSourceIndex(sources, 0)
+  );
   const [imageError, setImageError] = useState(false);
+  const [failedThumbnailSource, setFailedThumbnailSource] = useState<
+    string | null
+  >(null);
 
   const resolveImageSource = (imageUrl: string | null | undefined): string => {
     if (!imageUrl) return "";
@@ -122,16 +154,31 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const [isCoverHovered, setIsCoverHovered] = useState(false);
   const shouldHoldFrame =
     isAnimatedCover && !isCoverHovered && !autoplayAnimatedArtwork;
-  const isAwaitingPoster = shouldHoldFrame && coverPoster === undefined;
+  const isAwaitingPoster =
+    !thumbnailWidth && shouldHoldFrame && coverPoster === undefined;
 
   useAnimatedSourceWarmup(
     activeImageSource,
     isAnimatedCover && !autoplayAnimatedArtwork && Boolean(coverPoster)
   );
-  const displayImageSource =
-    shouldHoldFrame && coverPoster
-      ? resolveImageSource(coverPoster)
-      : activeImageSource;
+
+  const isPlayingAnimatedCover =
+    isAnimatedCover && Boolean(coverPoster) && !shouldHoldFrame;
+
+  const canUseThumbnail =
+    Boolean(thumbnailWidth) &&
+    failedThumbnailSource !== activeImageSource &&
+    !failedCoverThumbnails.has(activeImageSource);
+
+  let displayImageSource = activeImageSource;
+  if (thumbnailWidth && canUseThumbnail && !isPlayingAnimatedCover) {
+    displayImageSource = buildCoverThumbnailUrl(
+      activeImageSource,
+      thumbnailWidth
+    );
+  } else if (shouldHoldFrame && coverPoster) {
+    displayImageSource = resolveImageSource(coverPoster);
+  }
 
   const { label: classicsPlatformLabel, icon: classicsEmulatorIcon } =
     resolveClassicsBadge(
@@ -149,21 +196,45 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const showReadyBadge = !hideReadySizeBadges && isInstalled;
 
   const handleImageError = () => {
+    const isThumbnailFailure = displayImageSource !== activeImageSource;
+
     logger.warn(`Image failed to load for ${game.title}`, {
       failedUrl: sources[fallbackIndex],
       level: fallbackIndex,
+      thumbnail: isThumbnailFailure,
     });
 
-    if (fallbackIndex < sources.length - 1) {
-      setFallbackIndex((prevIndex) => prevIndex + 1);
+    if (isThumbnailFailure && thumbnailWidth && canUseThumbnail) {
+      failedCoverThumbnails.add(activeImageSource);
+      setFailedThumbnailSource(activeImageSource);
+      return;
+    }
+
+    const failedSource = sources[fallbackIndex];
+    if (failedSource) failedCoverSources.add(failedSource);
+
+    const nextIndex = getNextUsableSourceIndex(sources, fallbackIndex + 1);
+    if (nextIndex < sources.length) {
+      setFallbackIndex(nextIndex);
     } else {
       setImageError(true);
     }
   };
 
   useEffect(() => {
-    setFallbackIndex(0);
+    setFallbackIndex(
+      getNextUsableSourceIndex(
+        [
+          game.customCoverImageUrl,
+          game.coverImageUrl,
+          game.libraryImageUrl,
+          game.iconUrl,
+        ].filter((url) => url && url.trim() !== ""),
+        0
+      )
+    );
     setImageError(false);
+    setFailedThumbnailSource(null);
   }, [
     game.id,
     game.customCoverImageUrl,
@@ -189,18 +260,24 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       return (
         <div className="library-game-card__classics-cover">
           <img
+            key={`backdrop:${displayImageSource}`}
+            ref={markCoverLoadedIfComplete}
             src={displayImageSource}
             alt=""
             aria-hidden="true"
             className="library-game-card__classics-backdrop"
-            loading="lazy"
+            decoding="async"
+            onLoad={markCoverLoaded}
             onError={handleImageError}
           />
           <img
+            key={displayImageSource}
+            ref={markCoverLoadedIfComplete}
             src={displayImageSource}
-            alt={game.title}
+            alt=""
             className="library-game-card__classics-image"
-            loading="lazy"
+            decoding="async"
+            onLoad={markCoverLoaded}
             onError={handleImageError}
           />
         </div>
@@ -209,12 +286,15 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
     return (
       <img
+        key={displayImageSource}
+        ref={markCoverLoadedIfComplete}
         src={displayImageSource}
-        alt={game.title}
-        className={`library-game-card__game-image ${
-          isChosenCoverActive ? "library-game-card__game-image--contain" : ""
-        }`}
-        loading="lazy"
+        alt=""
+        className={cn("library-game-card__game-image", {
+          "library-game-card__game-image--contain": isChosenCoverActive,
+        })}
+        decoding="async"
+        onLoad={markCoverLoaded}
         onError={handleImageError}
       />
     );
@@ -226,6 +306,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       onMouseEnter={() => setIsCoverHovered(true)}
       onMouseLeave={() => setIsCoverHovered(false)}
       className="library-game-card__wrapper"
+      aria-label={game.title}
       onClick={handleCardClick}
       onContextMenu={handleContextMenuClick}
     >

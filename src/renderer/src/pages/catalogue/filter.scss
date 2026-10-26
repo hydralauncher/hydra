@@ -53,9 +53,7 @@
     border-radius: 0;
     width: 22px;
     height: 22px;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+    transition: color 0.2s ease;
 
     &:hover {
       background-color: transparent;
@@ -89,9 +87,7 @@
     color: globals.$muted-color;
     width: 100%;
     cursor: pointer;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+    transition: color 0.2s ease;
     gap: globals.$spacing-unit;
     font-size: globals.$body-font-size;
     font-weight: bold;
@@ -209,9 +205,7 @@
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition:
-      color 0.15s ease,
-      background-color 0.15s ease;
+    transition: color 0.15s ease;
 
     &:hover {
       color: globals.$body-color;

@@ -80,7 +80,6 @@
     -webkit-appearance: none;
     appearance: none;
     cursor: pointer;
-    transition: background 0.2s;
 
     &::-webkit-slider-thumb {
       -webkit-appearance: none;
@@ -92,7 +91,9 @@
       cursor: pointer;
       border: 2px solid globals.$background-color;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      transition: all 0.2s;
+      transition:
+        all 0.2s,
+        background 0s;
       margin-top: -6px;
 
       &:hover {
@@ -113,7 +114,9 @@
       cursor: pointer;
       border: 2px solid globals.$background-color;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      transition: all 0.2s;
+      transition:
+        all 0.2s,
+        background 0s;
       margin-top: -6px;
 
       &:hover {

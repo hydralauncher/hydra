@@ -201,6 +201,12 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveV2FileDetails>,
+  getLocalSaveFileDetails: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getLocalSaveFileDetails",
+      objectId,
+      shop
+    ) as Promise<CloudSaveV2FileDetails>,
   getRetroArchLocalBatteryCandidates: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
       "getRetroArchLocalBatteryCandidates",
@@ -1083,6 +1089,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameArtwork", shop, objectId, kind, page),
   getCoverPoster: (url: string): Promise<string | null> =>
     ipcRenderer.invoke("getCoverPoster", url),
+  prefetchCoverThumbnails: (thumbnailUrls: string[]): Promise<void> =>
+    ipcRenderer.invoke("prefetchCoverThumbnails", thumbnailUrls),
   getGameArtworkSelection: (
     shop: GameShop,
     objectId: string
@@ -1656,6 +1664,7 @@ contextBridge.exposeInMainWorld("electron", {
   },
   canInstallCommonRedist: () => ipcRenderer.invoke("canInstallCommonRedist"),
   installCommonRedist: () => ipcRenderer.invoke("installCommonRedist"),
+  exportLogs: (): Promise<string | null> => ipcRenderer.invoke("exportLogs"),
   installHydraDeckyPlugin: () => ipcRenderer.invoke("installHydraDeckyPlugin"),
   getHydraDeckyPluginInfo: () => ipcRenderer.invoke("getHydraDeckyPluginInfo"),
   checkHomebrewFolderExists: () =>

@@ -38,7 +38,6 @@
     cursor: pointer;
     padding: calc(globals.$spacing-unit / 1.5);
     border-radius: 6px;
-    transition: background-color ease 0.2s;
     overflow: hidden;
     white-space: nowrap;
     flex-shrink: 0;
@@ -86,7 +85,9 @@
     border: solid 1px globals.$border-color;
     box-shadow: 0px 0px 5px 0px rgba(0, 0, 0, 0.7);
     cursor: pointer;
-    transition: all ease 0.3s;
+    transition:
+      all ease 0.3s,
+      background 0s;
     color: globals.$muted-color;
     position: relative;
 

@@ -30,9 +30,7 @@ $meta-text: rgba(globals.$body-color, 0.6);
     border-radius: 6px;
     color: globals.$body-color;
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      color 0.15s ease;
+    transition: color 0.15s ease;
 
     &:hover,
     &:focus-visible {

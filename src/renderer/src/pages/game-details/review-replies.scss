@@ -28,7 +28,6 @@
     background-clip: content-box;
     box-sizing: content-box;
     cursor: pointer;
-    transition: background-color 0.2s ease;
 
     &:hover:not(:disabled) {
       background-color: rgba(255, 255, 255, 0.32);
@@ -156,7 +155,9 @@
     cursor: pointer;
     padding: 4px 6px;
     border-radius: 6px;
-    transition: all 0.2s ease;
+    transition:
+      all 0.2s ease,
+      background 0s;
 
     &:hover:not(:disabled):not([aria-disabled="true"]) {
       color: #ffffff;
