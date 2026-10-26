@@ -9,12 +9,18 @@ import { ResyncCoordinator } from "./resync-coordinator";
 import { broadcastFriendsUpdated } from "./friends-updated-broadcast";
 import { summarizeNetworkError } from "../network-error-summary.js";
 
-type ResyncScope = "friends" | "friendRequests" | "notifications" | "chat";
+type ResyncScope =
+  | "friends"
+  | "friendRequests"
+  | "notifications"
+  | "leaderboardNotifications"
+  | "chat";
 
 const ALL_SCOPES: ResyncScope[] = [
   "friends",
   "friendRequests",
   "notifications",
+  "leaderboardNotifications",
   "chat",
 ];
 const RESYNC_JITTER_MS = 15_000;
@@ -64,12 +70,6 @@ const syncNotificationCount = async (signal: AbortSignal) => {
   });
 };
 
-const syncNotifications = async (signal: AbortSignal) => {
-  await syncNotificationCount(signal);
-  if (signal.aborted) return;
-  await publishLeaderboardNotifications(signal);
-};
-
 // Chat events missed while disconnected are never replayed, so open
 // conversations refetch what they missed and badges reload from the server.
 const syncChat = async (signal: AbortSignal) => {
@@ -95,7 +95,11 @@ const SCOPE_TASKS: Record<
   },
   notifications: {
     errorMessage: "Failed to resync notification count:",
-    task: syncNotifications,
+    task: syncNotificationCount,
+  },
+  leaderboardNotifications: {
+    errorMessage: "Failed to publish leaderboard notifications:",
+    task: publishLeaderboardNotifications,
   },
   chat: {
     errorMessage: "Failed to resync chat:",
@@ -140,4 +144,4 @@ export const resyncFriendRequests = (signal: AbortSignal) =>
   coordinator.request(["friendRequests"], signal);
 
 export const resyncNotifications = (signal: AbortSignal) =>
-  coordinator.request(["notifications"], signal);
+  coordinator.request(["notifications", "leaderboardNotifications"], signal);

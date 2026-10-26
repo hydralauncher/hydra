@@ -3,7 +3,7 @@ import cn from "classnames";
 import { GlobeIcon, PeopleIcon, TrophyIcon } from "@primer/octicons-react";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
-import { Navigate, useSearchParams } from "react-router-dom";
+import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 
 import { SegmentedControl } from "../game-details/leaderboard/leaderboard-controls";
 import {
@@ -36,6 +36,7 @@ import "./leaderboards.scss";
 function LeaderboardsPage() {
   const { t } = useTranslation("leaderboards");
   const [searchParams, setSearchParams] = useSearchParams();
+  const { key: locationKey } = useLocation();
   const tabParam = searchParams.get("tab");
   const shopParam = searchParams.get("shop");
   const objectIdParam = searchParams.get("objectId");
@@ -105,7 +106,7 @@ function LeaderboardsPage() {
 
   useEffect(() => {
     if (metricParam && !linkedGame) setRequestedMetric(metricParam);
-  }, [metricParam, linkedGame]);
+  }, [metricParam, linkedGame, locationKey]);
 
   useEffect(() => {
     if (
@@ -114,7 +115,16 @@ function LeaderboardsPage() {
       )
     )
       setRequestedScope(scopeParam as GlobalLeaderboardScope);
-  }, [scopeParam]);
+  }, [scopeParam, locationKey]);
+
+  useEffect(() => {
+    if (
+      (GLOBAL_LEADERBOARD_PERIODS as readonly (string | null)[]).includes(
+        periodParam
+      )
+    )
+      setPeriod(periodParam as GlobalLeaderboardPeriod);
+  }, [periodParam, locationKey]);
 
   useEffect(() => {
     if (!sourceParam) return;
