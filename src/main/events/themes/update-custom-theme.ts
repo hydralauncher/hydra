@@ -23,7 +23,7 @@ const updateCustomTheme = async (
   });
 
   if (theme.isActive) {
-    WindowManager.notifyCustomThemeUpdated();
+    WindowManager.sendToAppWindows("on-custom-theme-updated");
     achievementNotificationPresenter.notifyThemeUpdated();
   }
 };

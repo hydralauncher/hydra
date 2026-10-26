@@ -235,19 +235,6 @@ export class WindowManager {
     }
   }
 
-  public static notifyCustomThemeUpdated() {
-    const themedWindows = [
-      this.mainWindow,
-      this.friendsWindow,
-      this.chatWindow,
-    ];
-
-    for (const themedWindow of themedWindows) {
-      if (!themedWindow || themedWindow.isDestroyed()) continue;
-      themedWindow.webContents.send("on-custom-theme-updated");
-    }
-  }
-
   public static sendDownloadsUpdated() {
     this.sendToAppWindows("on-downloads-updated");
   }

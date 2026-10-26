@@ -22,7 +22,7 @@ const toggleCustomTheme = async (
     updatedAt: new Date(),
   });
 
-  WindowManager.notifyCustomThemeUpdated();
+  WindowManager.sendToAppWindows("on-custom-theme-updated");
   achievementNotificationPresenter.notifyThemeUpdated();
 };
 

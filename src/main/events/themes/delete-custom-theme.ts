@@ -11,7 +11,7 @@ const deleteCustomTheme = async (
 ) => {
   await themesSublevel.del(themeId);
 
-  WindowManager.notifyCustomThemeUpdated();
+  WindowManager.sendToAppWindows("on-custom-theme-updated");
   achievementNotificationPresenter.notifyThemeUpdated();
 };
 

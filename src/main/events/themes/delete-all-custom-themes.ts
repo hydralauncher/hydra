@@ -8,7 +8,7 @@ import {
 const deleteAllCustomThemes = async (_event: Electron.IpcMainInvokeEvent) => {
   await themesSublevel.clear();
 
-  WindowManager.notifyCustomThemeUpdated();
+  WindowManager.sendToAppWindows("on-custom-theme-updated");
   achievementNotificationPresenter.notifyThemeUpdated();
 };
 
