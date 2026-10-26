@@ -50,8 +50,8 @@ $leaderboards-streak-to: #b05cff;
 
   &__toggles {
     max-width: 100%;
+    margin-inline-start: auto;
     display: flex;
-    justify-content: flex-end;
     gap: globals.$spacing-unit;
 
     .leaderboard-controls__segmented {
