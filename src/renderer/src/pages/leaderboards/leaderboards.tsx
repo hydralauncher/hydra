@@ -18,7 +18,11 @@ import {
   type LeaderboardPageTab,
 } from "./global-leaderboard";
 import { useGlobalLeaderboardsFeature } from "@renderer/hooks";
-import { leaderboardsCache } from "@renderer/services/leaderboards-cache";
+import {
+  attributeNextLeaderboardRequest,
+  leaderboardsCache,
+} from "@renderer/services/leaderboards-cache";
+import { buildLeaderboardBoardPath, isLeaderboardSourceParam } from "@shared";
 import { useApiResource, useLeaderboardViewer } from "./leaderboards-api";
 import { BadgesSection } from "./badges-section";
 import { ByGameTab, type LinkedGame } from "./by-game-tab";
@@ -31,7 +35,7 @@ import "./leaderboards.scss";
 
 function LeaderboardsPage() {
   const { t } = useTranslation("leaderboards");
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
   const shopParam = searchParams.get("shop");
   const objectIdParam = searchParams.get("objectId");
@@ -53,7 +57,10 @@ function LeaderboardsPage() {
   const [requestedTab, setRequestedTab] = useState<LeaderboardPageTab>(
     linkedTab ?? "ranking"
   );
-  const [requestedMetric, setRequestedMetric] = useState<string | null>(null);
+  const [requestedMetric, setRequestedMetric] = useState<string | null>(
+    linkedGame ? null : metricParam
+  );
+
   const [period, setPeriod] = useState<GlobalLeaderboardPeriod>(() =>
     (GLOBAL_LEADERBOARD_PERIODS as readonly (string | null)[]).includes(
       periodParam
@@ -70,6 +77,45 @@ function LeaderboardsPage() {
         : "global"
   );
   const [generation, setGeneration] = useState(0);
+
+  const sourceParam = searchParams.get("source");
+  const attributedSourceRef = useRef<string | null>(null);
+  if (!sourceParam) attributedSourceRef.current = null;
+  if (
+    isLeaderboardSourceParam(sourceParam) &&
+    metricParam &&
+    attributedSourceRef.current !== searchParams.toString()
+  ) {
+    attributedSourceRef.current = searchParams.toString();
+    attributeNextLeaderboardRequest(
+      buildLeaderboardBoardPath(metricParam, linkedGame),
+      sourceParam
+    );
+  }
+
+  useEffect(() => {
+    if (metricParam && !linkedGame) setRequestedMetric(metricParam);
+  }, [metricParam, linkedGame]);
+
+  useEffect(() => {
+    if (
+      (GLOBAL_LEADERBOARD_SCOPES as readonly (string | null)[]).includes(
+        scopeParam
+      )
+    )
+      setRequestedScope(scopeParam as GlobalLeaderboardScope);
+  }, [scopeParam]);
+
+  useEffect(() => {
+    if (!sourceParam) return;
+    setSearchParams(
+      (params) => {
+        params.delete("source");
+        return params;
+      },
+      { replace: true }
+    );
+  }, [sourceParam, setSearchParams]);
 
   const { viewerUser, isLoggedIn } = useLeaderboardViewer();
   const scope = isLoggedIn ? requestedScope : "global";

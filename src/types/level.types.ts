@@ -212,6 +212,8 @@ export interface UserPreferences {
   friendRequestNotificationsEnabled?: boolean;
   friendStartGameNotificationsEnabled?: boolean;
   chatMessageNotificationsEnabled?: boolean;
+  leaderboardSlamEnabled?: boolean;
+  leaderboardDropNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
   deleteArchiveFilesAfterExtractionByDefault?: boolean;
