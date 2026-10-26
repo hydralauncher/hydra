@@ -607,103 +607,105 @@ export function TrailsBoard({ trails }: Readonly<{ trails: Trail[] }>) {
         </span>
       </header>
 
-      <div className="trails-board__selector">
-        {trails.map((trail) => {
-          const reached = countReached(trail);
-          const hasClaimable = trail.levels.some(
-            (item) => item.isReached && !item.isClaimed
-          );
-          const isSelected = trail.key === selectedTrail.key;
+      <div className="trails-board__wrap">
+        <div className="trails-board__selector">
+          {trails.map((trail) => {
+            const reached = countReached(trail);
+            const hasClaimable = trail.levels.some(
+              (item) => item.isReached && !item.isClaimed
+            );
+            const isSelected = trail.key === selectedTrail.key;
 
-          return (
-            <button
-              key={trail.key}
-              type="button"
-              className={cn("trails-board__trail", {
-                "trails-board__trail--selected": isSelected,
-                "trails-board__trail--complete": trail.isComplete,
-              })}
-              disabled={celebration !== null}
-              onClick={() => setSelectedTrailKey(trail.key)}
-            >
-              {hasClaimable && (
-                <span className="trails-board__claim-badge">
-                  {t("claim_reward")}
+            return (
+              <button
+                key={trail.key}
+                type="button"
+                className={cn("trails-board__trail", {
+                  "trails-board__trail--selected": isSelected,
+                  "trails-board__trail--complete": trail.isComplete,
+                })}
+                disabled={celebration !== null}
+                onClick={() => setSelectedTrailKey(trail.key)}
+              >
+                {hasClaimable && (
+                  <span className="trails-board__claim-badge">
+                    {t("claim_reward")}
+                  </span>
+                )}
+                <span className="trails-board__trail-icon">
+                  <SelectorRing trail={trail} />
+                  <span>
+                    <PixelIcon
+                      name={TRAIL_ICONS[trail.key]}
+                      isDim={!isSelected}
+                    />
+                  </span>
                 </span>
-              )}
-              <span className="trails-board__trail-icon">
-                <SelectorRing trail={trail} />
-                <span>
-                  <PixelIcon
-                    name={TRAIL_ICONS[trail.key]}
-                    isDim={!isSelected}
-                  />
-                </span>
-              </span>
-              <strong>{t(`trail_${trail.key}`)}</strong>
+                <strong>{t(`trail_${trail.key}`)}</strong>
+                <small>
+                  {trail.isComplete
+                    ? t("trail_complete")
+                    : t("trail_level", { level: reached })}
+                </small>
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          className={cn("trails-board", {
+            "trails-board--complete": selectedTrail.isComplete,
+          })}
+        >
+          <div className="trails-board__header">
+            <span className="trails-board__header-icon">
+              <PixelIcon name={TRAIL_ICONS[selectedTrail.key]} />
+            </span>
+            <div>
+              <strong>{t(`trail_${selectedTrail.key}`)}</strong>
               <small>
-                {trail.isComplete
-                  ? t("trail_complete")
-                  : t("trail_level", { level: reached })}
+                {formatAmount(selectedTrail.key, selectedTrail.current)}
+                {selectedTrail.isComplete && ` · ${t("trail_complete")}`}
               </small>
-            </button>
-          );
-        })}
-      </div>
-
-      <div
-        className={cn("trails-board", {
-          "trails-board--complete": selectedTrail.isComplete,
-        })}
-      >
-        <div className="trails-board__header">
-          <span className="trails-board__header-icon">
-            <PixelIcon name={TRAIL_ICONS[selectedTrail.key]} />
-          </span>
-          <div>
-            <strong>{t(`trail_${selectedTrail.key}`)}</strong>
-            <small>
-              {formatAmount(selectedTrail.key, selectedTrail.current)}
-              {selectedTrail.isComplete && ` · ${t("trail_complete")}`}
-            </small>
+            </div>
           </div>
-        </div>
 
-        <div className="trails-board__body">
-          <TrailOrbits
+          <div className="trails-board__body">
+            <TrailOrbits
+              trail={selectedTrail}
+              selectedLevel={level.level}
+              celebration={celebration}
+              getState={getState}
+              getFraction={getFraction}
+              bannerText={formatAmount(
+                selectedTrail.key,
+                celebratedLevel?.threshold ?? 0
+              )}
+              orbitsRef={orbitsRef}
+              onSelect={setSelectedLevel}
+            />
+            <TrailLevelWheel
+              trail={selectedTrail}
+              selectedLevel={level.level}
+              getState={getState}
+              getFraction={getFraction}
+              formatAmount={(amount) => formatAmount(selectedTrail.key, amount)}
+              isClaimDisabled={pendingAction !== null || celebration !== null}
+              onSelect={setSelectedLevel}
+              onClaim={(claimLevel, origin) =>
+                void claimTrail(selectedTrail.key, claimLevel, origin)
+              }
+            />
+          </div>
+
+          <TrailLevelDetail
             trail={selectedTrail}
-            selectedLevel={level.level}
-            celebration={celebration}
-            getState={getState}
-            getFraction={getFraction}
-            bannerText={formatAmount(
-              selectedTrail.key,
-              celebratedLevel?.threshold ?? 0
-            )}
-            orbitsRef={orbitsRef}
-            onSelect={setSelectedLevel}
-          />
-          <TrailLevelWheel
-            trail={selectedTrail}
-            selectedLevel={level.level}
-            getState={getState}
-            getFraction={getFraction}
-            formatAmount={(amount) => formatAmount(selectedTrail.key, amount)}
-            isClaimDisabled={pendingAction !== null || celebration !== null}
-            onSelect={setSelectedLevel}
-            onClaim={(claimLevel, origin) =>
-              void claimTrail(selectedTrail.key, claimLevel, origin)
-            }
+            level={level}
+            state={getState(level)}
+            fraction={getFraction(level)}
+            formatAmount={formatAmount}
           />
         </div>
-
-        <TrailLevelDetail
-          trail={selectedTrail}
-          level={level}
-          state={getState(level)}
-          fraction={getFraction(level)}
-          formatAmount={formatAmount}
-        />
       </div>
     </section>
   );

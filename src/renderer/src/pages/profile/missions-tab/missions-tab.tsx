@@ -40,19 +40,21 @@ export function MissionsTab() {
 
   return (
     <div className="missions-tab">
-      {missions && (
-        <>
-          <DailyMissions
-            period={missions.daily}
-            resetLabel={formatResetLabel(missions.daily.resetsAt, now, false)}
-          />
-          <WeeklyMissions
-            period={missions.weekly}
-            resetLabel={formatResetLabel(missions.weekly.resetsAt, now, true)}
-          />
-        </>
-      )}
-      {trails && <TrailsBoard trails={trails} />}
+      <div className="missions-tab__layout">
+        {missions && (
+          <div className="missions-tab__pair">
+            <DailyMissions
+              period={missions.daily}
+              resetLabel={formatResetLabel(missions.daily.resetsAt, now, false)}
+            />
+            <WeeklyMissions
+              period={missions.weekly}
+              resetLabel={formatResetLabel(missions.weekly.resetsAt, now, true)}
+            />
+          </div>
+        )}
+        {trails && <TrailsBoard trails={trails} />}
+      </div>
     </div>
   );
 }
