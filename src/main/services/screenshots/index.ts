@@ -7,7 +7,6 @@ import type {
   LocalScreenshot,
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
-  ScreenshotReviewScope,
   UserPreferences,
 } from "@types";
 
@@ -15,7 +14,7 @@ import { getAchievementScreenshotsDirectory } from "../achievement-screenshots-d
 import { emulatorSessions } from "../emulators/emulator-session-tracker";
 import { gamesPlaytime } from "../game-running-state";
 import {
-  isWaylandSession,
+  isWaylandCaptureBackend,
   prepareLinuxGameCaptureSession,
   stopAllLinuxGameCaptureSessions,
 } from "../linux-game-capture-session";
@@ -112,7 +111,7 @@ export const onScreenshotGameStarted = async (
     void ScreenshotFeedback.prepareToast().catch((error) => {
       logger.error("Failed to prepare the screenshot toast", error);
     });
-    if (isWaylandSession()) {
+    if (isWaylandCaptureBackend()) {
       void prepareLinuxGameCaptureSession(gameKey, "screenshot");
     } else if (process.platform === "win32" || process.platform === "linux") {
       ScreenshotFrameWorker.prepare();
@@ -221,18 +220,14 @@ const REVIEWABLE_STATES = new Set<LocalScreenshot["state"]>([
   "failed",
 ]);
 
-export const openScreenshotReview = async (
-  clientId: string,
-  scope: ScreenshotReviewScope = "game"
-) => {
+export const openScreenshotReview = async (clientId: string) => {
   const screenshot = await LocalScreenshotStore.get(clientId);
   if (!screenshot) return;
 
   const objectId = screenshot.objectId ?? "";
-  const gameScreenshots =
-    scope === "game" && screenshot.objectId
-      ? await LocalScreenshotStore.listForGame(screenshot.shop, objectId)
-      : [screenshot];
+  const gameScreenshots = screenshot.objectId
+    ? await LocalScreenshotStore.listForGame(screenshot.shop, objectId)
+    : [screenshot];
   const clientIds = gameScreenshots
     .filter(
       (candidate) =>

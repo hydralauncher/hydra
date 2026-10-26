@@ -46,3 +46,4 @@ export * from "./rich-text-editor/use-rich-text-editor";
 export * from "./rich-text-editor/rich-text-limit";
 export * from "./inline-edit-field/inline-edit-field";
 export * from "./rich-text-content/rich-text-content";
+export * from "./hydra-cloud-badge/hydra-cloud-badge";

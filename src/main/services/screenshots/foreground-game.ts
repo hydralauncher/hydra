@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { BrowserWindow } from "electron";
 
 import { gamesSublevel } from "@main/level";
 import type { Game } from "@types";
@@ -226,11 +227,9 @@ export const resolveForegroundGame = async ({
     }
   }
 
-  if (
-    allowSingleGameFallback &&
-    isWaylandSession() &&
-    candidates.length === 1
-  ) {
+  const canFallBackToOnlyGame =
+    allowSingleGameFallback || BrowserWindow.getFocusedWindow() === null;
+  if (canFallBackToOnlyGame && isWaylandSession() && candidates.length === 1) {
     return { ...candidates[0], foreground: null };
   }
 

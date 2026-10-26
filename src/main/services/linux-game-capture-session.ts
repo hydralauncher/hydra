@@ -1,4 +1,4 @@
-import { BrowserWindow, desktopCapturer, nativeImage } from "electron";
+import { app, BrowserWindow, desktopCapturer, nativeImage } from "electron";
 import type { UserPreferences } from "@types";
 import {
   isAchievementSouvenirsEnabled,
@@ -60,6 +60,20 @@ export const isWaylandSession = () =>
   process.platform === "linux" &&
   (process.env.XDG_SESSION_TYPE?.toLowerCase() === "wayland" ||
     Boolean(process.env.WAYLAND_DISPLAY));
+
+export const isWaylandCaptureBackend = () => {
+  if (!isWaylandSession()) return false;
+
+  const forcedPlatform = app.commandLine
+    .getSwitchValue("ozone-platform")
+    .toLowerCase();
+  if (forcedPlatform) return forcedPlatform === "wayland";
+
+  return Boolean(process.env.WAYLAND_DISPLAY);
+};
+
+let rememberedScreenSourceId: string | null = null;
+let pendingScreenSourcePick: Promise<string> | null = null;
 
 const destroyCaptureWindow = (captureWindow: BrowserWindow | null) => {
   if (!captureWindow || captureWindow.isDestroyed()) return;
@@ -125,11 +139,57 @@ const createCaptureWindow = async (sourceId: string) => {
   }
 };
 
+const pickScreenSource = async () => {
+  const sources = await desktopCapturer.getSources({
+    types: ["screen"],
+    thumbnailSize: { width: 0, height: 0 },
+  });
+  const source = sources.length === 1 ? sources[0] : null;
+
+  if (!source?.id.startsWith("screen:")) {
+    throw new Error("No Wayland screen capture source was selected");
+  }
+
+  return source.id;
+};
+
+const pickScreenSourceOnce = () => {
+  pendingScreenSourcePick ??= pickScreenSource().finally(() => {
+    pendingScreenSourcePick = null;
+  });
+  return pendingScreenSourcePick;
+};
+
+const restoreRememberedScreenCapture = async () => {
+  const sourceId = rememberedScreenSourceId;
+  if (!sourceId) return null;
+
+  try {
+    return await createCaptureWindow(sourceId);
+  } catch (error) {
+    logger.warn("Remembered Wayland screen source could not be restored", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    if (rememberedScreenSourceId === sourceId) rememberedScreenSourceId = null;
+    return null;
+  }
+};
+
+const openScreenCaptureWindow = async () => {
+  const restored = await restoreRememberedScreenCapture();
+  if (restored) return restored;
+
+  const sourceId = await pickScreenSourceOnce();
+  const captureWindow = await createCaptureWindow(sourceId);
+  rememberedScreenSourceId = sourceId;
+  return captureWindow;
+};
+
 export const prepareLinuxGameCaptureSession = async (
   gameKey: string,
   reason: CaptureSessionReason = "souvenir"
 ) => {
-  if (!isWaylandSession()) return;
+  if (!isWaylandCaptureBackend()) return;
   if (reason === "souvenir" && !HydraApi.hasActiveSubscription()) return;
 
   const existing = sessions.get(gameKey);
@@ -167,19 +227,7 @@ export const prepareLinuxGameCaptureSession = async (
 
     if (sessions.get(gameKey)?.token !== token) return;
 
-    const sources = await desktopCapturer.getSources({
-      types: ["window"],
-      thumbnailSize: { width: 0, height: 0 },
-    });
-    const source = sources.length === 1 ? sources[0] : null;
-
-    if (!source?.id.startsWith("window:")) {
-      throw new Error("No Wayland window capture source was selected");
-    }
-
-    if (sessions.get(gameKey)?.token !== token) return;
-
-    const captureWindow = await createCaptureWindow(source.id);
+    const captureWindow = await openScreenCaptureWindow();
 
     if (sessions.get(gameKey)?.token !== token) {
       destroyCaptureWindow(captureWindow);
@@ -187,7 +235,7 @@ export const prepareLinuxGameCaptureSession = async (
     }
 
     registration.window = captureWindow;
-    logger.info("Wayland game-window capture was prepared", { gameKey });
+    logger.info("Wayland screen capture was prepared", { gameKey });
     registration.subscriptionTimer = setInterval(() => {
       if (!HydraApi.hasActiveSubscription()) {
         stopLinuxGameCaptureSession(gameKey, "souvenir");
@@ -203,7 +251,7 @@ export const prepareLinuxGameCaptureSession = async (
     });
   })().catch((error) => {
     if (sessions.get(gameKey)?.token === token) {
-      logger.warn("Wayland game-window capture was not prepared", {
+      logger.warn("Wayland screen capture was not prepared", {
         gameKey,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -224,14 +272,14 @@ export const prepareLinuxGameCaptureSession = async (
 export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   const registration = sessions.get(gameKey);
   if (!registration) {
-    throw new Error("No Wayland game-window capture session is available");
+    throw new Error("No Wayland screen capture session is available");
   }
 
   await registration.preparation;
   const captureWindow = registration.window;
 
   if (!captureWindow || captureWindow.isDestroyed()) {
-    throw new Error("Wayland game-window capture session was closed");
+    throw new Error("Wayland screen capture session was closed");
   }
 
   const dataUrl = await captureWindow.webContents.executeJavaScript(`
@@ -239,10 +287,10 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
       const video = globalThis.__hydraSouvenirVideo;
       const track = globalThis.__hydraSouvenirStream?.getVideoTracks()[0];
       if (!track || track.readyState !== "live") {
-        throw new Error("Wayland game-window stream is no longer active");
+        throw new Error("Wayland screen stream is no longer active");
       }
       if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-        throw new Error("Wayland game-window stream has no video frame");
+        throw new Error("Wayland screen stream has no video frame");
       }
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
@@ -255,14 +303,12 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   `);
 
   if (typeof dataUrl !== "string") {
-    throw new TypeError(
-      "Wayland game-window capture returned an invalid frame"
-    );
+    throw new TypeError("Wayland screen capture returned an invalid frame");
   }
 
   const image = nativeImage.createFromDataURL(dataUrl);
   if (image.isEmpty()) {
-    throw new Error("Wayland game-window capture returned an empty frame");
+    throw new Error("Wayland screen capture returned an empty frame");
   }
 
   return image;
@@ -274,28 +320,26 @@ export const grabLinuxGameSessionFrame = async (
 ): Promise<GrabbedScreenshotFrame> => {
   const registration = sessions.get(gameKey);
   if (!registration) {
-    throw new Error("No Wayland game-window capture session is available");
+    throw new Error("No Wayland screen capture session is available");
   }
 
   await registration.preparation;
   const captureWindow = registration.window;
 
   if (!captureWindow || captureWindow.isDestroyed()) {
-    throw new Error("Wayland game-window capture session was closed");
+    throw new Error("Wayland screen capture session was closed");
   }
 
   const runInCaptureWindow = (expression: string) =>
     captureWindow.isDestroyed()
-      ? Promise.reject(
-          new Error("Wayland game-window capture session was closed")
-        )
+      ? Promise.reject(new Error("Wayland screen capture session was closed"))
       : captureWindow.webContents.executeJavaScript(expression);
 
   const info = parseGrabbedFrame(
     await captureWindow.webContents.executeJavaScript(`(async () => {
       const track = globalThis.__hydraSouvenirStream?.getVideoTracks()[0];
       if (!track || track.readyState !== "live") {
-        throw new Error("Wayland game-window stream is no longer active");
+        throw new Error("Wayland screen stream is no longer active");
       }
       return await ${buildGrabFrameExpression("globalThis.__hydraSouvenirVideo", options)};
     })()`)
@@ -303,7 +347,7 @@ export const grabLinuxGameSessionFrame = async (
   const frame = createGrabbedFrame(info, runInCaptureWindow);
   if (info.isBlank) {
     frame.discard();
-    throw new Error("Wayland game-window capture returned a blank frame");
+    throw new Error("Wayland screen capture returned a blank frame");
   }
   return frame;
 };

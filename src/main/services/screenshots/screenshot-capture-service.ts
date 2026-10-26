@@ -21,7 +21,7 @@ import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import {
   grabLinuxGameSessionFrame,
-  isWaylandSession,
+  isWaylandCaptureBackend,
 } from "../linux-game-capture-session";
 import {
   resolveGameCaptureSourceId,
@@ -218,11 +218,19 @@ const showCaptureToast = (
   });
 };
 
-const announceCapture = (gameTitle: string, ownerId: string | null) => {
+const playCaptureSound = () => {
   void ScreenshotFeedback.playCaptureSound().catch((error) => {
     logger.error("Failed to play the screenshot capture sound", error);
   });
+};
+
+const showCapturedToast = (gameTitle: string, ownerId: string | null) => {
   showCaptureToast(ownerId ? "captured" : "saved_locally", gameTitle);
+};
+
+const announceCapture = (gameTitle: string, ownerId: string | null) => {
+  playCaptureSound();
+  showCapturedToast(gameTitle, ownerId);
 };
 
 const wrapNativeImage = (
@@ -267,7 +275,7 @@ const grabFromDirectWindowsSource = async (
 const acquireFrame = async (
   captureTarget: GameScreenshotCaptureTarget
 ): Promise<GrabbedScreenshotFrame> => {
-  if (isWaylandSession() && captureTarget.gameKey) {
+  if (isWaylandCaptureBackend() && captureTarget.gameKey) {
     return grabLinuxGameSessionFrame(captureTarget.gameKey, {
       waitForNextFrame: false,
     });
@@ -344,8 +352,8 @@ const captureScreenshot = async (
   }
 
   const ownerId = getSignedInOwnerId();
-  announceCapture(gameTitle, ownerId);
-  timer.mark("feedback");
+  playCaptureSound();
+  timer.mark("sound");
 
   const failCapture = (error: unknown) => {
     recordCaptureFailure(target.gameKey, error);
@@ -367,6 +375,8 @@ const captureScreenshot = async (
     return;
   }
   timer.mark("frame");
+
+  showCapturedToast(gameTitle, ownerId);
 
   let images: EncodedScreenshotImages;
   try {

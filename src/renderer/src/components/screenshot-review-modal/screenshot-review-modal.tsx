@@ -299,15 +299,15 @@ function ScreenshotReviewContent({
           <span className="screenshot-review-modal__game-title">
             {gameTitle}
           </span>
+          {isMultiple && selectedIndex !== -1 && (
+            <span className="screenshot-review-modal__position">
+              {t("review_position", {
+                index: selectedIndex + 1,
+                count: reviewScreenshots.length,
+              })}
+            </span>
+          )}
         </span>
-      }
-      description={
-        isMultiple && selectedIndex !== -1
-          ? t("thumbnail_label", {
-              index: selectedIndex + 1,
-              count: reviewScreenshots.length,
-            })
-          : undefined
       }
       onClose={closeReview}
       onCloseStart={flushDrafts}

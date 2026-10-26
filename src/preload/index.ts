@@ -108,7 +108,6 @@ import type {
   LocalScreenshotUploadOptions,
   ScreenshotReview,
   ScreenshotReviewRequest,
-  ScreenshotReviewScope,
   ScreenshotUploadProgress,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
@@ -1512,8 +1511,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("updateLocalScreenshotDraft", clientId, draft),
   deleteLocalScreenshot: (clientId: string) =>
     ipcRenderer.invoke("deleteLocalScreenshot", clientId),
-  openScreenshotReview: (clientId: string, scope?: ScreenshotReviewScope) =>
-    ipcRenderer.invoke("openScreenshotReview", clientId, scope),
+  openScreenshotReview: (clientId: string) =>
+    ipcRenderer.invoke("openScreenshotReview", clientId),
   closeScreenshotReview: () => ipcRenderer.invoke("closeScreenshotReview"),
   releaseBigPictureScreenshotReview: (clientIds: string[]) =>
     ipcRenderer.invoke("releaseBigPictureScreenshotReview", clientIds),
