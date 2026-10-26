@@ -26,3 +26,16 @@
     gap: globals.$spacing-unit;
   }
 }
+
+.settings-retroachievements__reconnect-hint {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    text-decoration: underline;
+  }
+}

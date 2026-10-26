@@ -23,7 +23,7 @@ const notifyChatMessage = async (
   await publishChatMessageNotification(
     sender,
     body,
-    () => WindowManager.openChatWindow(sender),
+    () => void WindowManager.openChatWindow(sender),
     signal
   );
 };

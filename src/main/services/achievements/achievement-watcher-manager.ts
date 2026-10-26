@@ -30,6 +30,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { setTimeout } from "node:timers/promises";
 import { Wine } from "../wine";
 import { AchievementMemoryStore } from "./achievement-memory-store";
+import { UnlockedAchievementsCache } from "./unlocked-achievements-cache";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 import { EpicLocalAchievementStore } from "./epic/epic-local-achievement-store";
 
@@ -263,6 +264,7 @@ export class AchievementWatcherManager {
     this.alreadySyncedGames.clear();
     AchievementMemoryStore.clear();
     EpicLocalAchievementStore.clear();
+    UnlockedAchievementsCache.clear();
   }
 
   public static forgetAchievementFiles(gameKey: string, filePaths: string[]) {

@@ -75,7 +75,7 @@ export const INTERVALS = {
   downloadWatcher: 2_000,
   debridReadinessWatcher: 5_000,
   achievementWatcher: 2_000,
-  emulatorSouvenirWatcher: 2_000,
+  emulatorSouvenirWatcher: 500,
   seedStatusWatcher: 2_000,
   updateChecker: 60_000 * 50, // 50 minutes
   powerSaveBlockerSync: 20_000,

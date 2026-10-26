@@ -21,8 +21,15 @@ const setGameVisibility = async (
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
-  if (!game || game.isDeleted || shop === "custom") {
+  if (!game || game.isDeleted) {
     throw new Error("game/not-found-local");
+  }
+
+  if (shop === "custom") {
+    if (field !== "isConcealed") throw new Error("game/not-found-local");
+    const saved = { isHiddenFromOthers: false, isConcealed: value };
+    await gamesSublevel.put(gameKey, { ...game, ...saved });
+    return saved;
   }
 
   const path = `/profile/games/${shop}/${objectId}/${field === "isHiddenFromOthers" ? "hide" : "conceal"}`;

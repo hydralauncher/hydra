@@ -27,6 +27,9 @@ export const levelKeys = {
   retroarch: "retroarch",
   retroArchSouvenirConfigBackups: "retroarch-souvenir-config-backups",
   duckStationSouvenirConfigBackups: "duckstation-souvenir-config-backups",
+  retroAchievementsEmulatorAccount: "retroachievements-emulator-account",
+  socialWindowsSession: "social-windows-session",
+  socialWindowsBounds: "social-windows-bounds",
   pendingAchievementSouvenirs: "pending-achievement-souvenirs",
   pendingGroupedAchievementSouvenirs: "pending-grouped-achievement-souvenirs",
   localSouvenirAssets: "local-souvenir-assets",
@@ -49,4 +52,5 @@ export const levelKeys = {
   cloudSavePendingDeletions: "cloud-save-pending-deletions",
   steamSyncRun: "steamSyncRun",
   chatNotificationCursor: "chatNotificationCursor", // Newest chat message already announced
+  leaderboardNotificationsShown: "leaderboardNotificationsShown",
 };

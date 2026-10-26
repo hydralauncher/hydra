@@ -1,7 +1,17 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { LibraryGame } from "@types";
-import { applyLibraryGroupAction, findLibraryGamePresentation } from "@shared";
+import {
+  applyLibraryGroupAction,
+  findLibraryGamePresentation,
+  getLibraryGameMembers,
+  getOfficialStoreMembers,
+  getRemoveFilesTarget,
+  isLibraryGameDownloading,
+  isSameRemoveFilesTarget,
+  type RemoveFilesTarget,
+} from "@shared";
+import { useIsSteamLibraryExecutable } from "@renderer/hooks/use-steam-library-executable";
 import { Button, VerticalFocusGroup } from "../../../common";
 import { ConfirmationModal } from "../../../modals";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
@@ -12,6 +22,7 @@ import "./danger-zone-tab.scss";
 function getConfirmationConfig(
   pendingAction: DangerAction,
   game: LibraryGame,
+  pendingRemoveFilesTarget: RemoveFilesTarget | null,
   t: (key: string, options?: Record<string, unknown>) => string,
   handleRemoveFromLibrary: () => Promise<void>,
   handleResetAchievements: () => Promise<void>,
@@ -38,9 +49,21 @@ function getConfirmationConfig(
         onConfirm: handleResetAchievements,
       };
     case "remove-files":
+      if (pendingRemoveFilesTarget?.kind === "steam") {
+        return {
+          title: t("remove_game_files_steam_title"),
+          description: t("remove_game_files_steam_description", {
+            game: pendingRemoveFilesTarget.game.title,
+          }),
+          confirmLabel: t("remove_game_files_steam_confirm"),
+          onConfirm: handleRemoveFiles,
+        };
+      }
       return {
         title: t("remove_game_files"),
-        description: t("remove_game_files_description", { game: game.title }),
+        description: t("remove_game_files_description", {
+          game: pendingRemoveFilesTarget?.game.title ?? game.title,
+        }),
         confirmLabel: t("remove_game_files"),
         onConfirm: handleRemoveFiles,
       };
@@ -52,6 +75,7 @@ export const GAME_DANGER_ZONE_PRIMARY_CONTROL_ID =
 
 interface GameDangerZoneSettingsTabProps {
   game: LibraryGame;
+  removeFilesGame?: LibraryGame;
   onClose: () => void;
 }
 
@@ -62,12 +86,55 @@ type DangerAction =
 
 export function GameDangerZoneSettingsTab({
   game,
+  removeFilesGame,
   onClose,
 }: Readonly<GameDangerZoneSettingsTabProps>) {
   const { t } = useTranslation("big_picture");
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
   const [pendingAction, setPendingAction] = useState<DangerAction | null>(null);
+  const [pendingRemoveFilesTarget, setPendingRemoveFilesTarget] =
+    useState<RemoveFilesTarget | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  const steamUninstallAvailable =
+    typeof globalThis.window.electron.uninstallGameOnSteam === "function";
+  const removeFilesSource = useMemo(
+    () => removeFilesGame ?? game,
+    [removeFilesGame, game]
+  );
+  const hydraRemoveFilesTarget = getRemoveFilesTarget(removeFilesSource, false);
+  const steamMember = getOfficialStoreMembers(
+    getLibraryGameMembers(removeFilesSource)
+  ).steam;
+  const isSteamLibraryExecutable = useIsSteamLibraryExecutable(
+    steamMember,
+    hydraRemoveFilesTarget === null
+  );
+  const removeFilesTarget = getRemoveFilesTarget(
+    removeFilesSource,
+    steamUninstallAvailable,
+    isSteamLibraryExecutable === true
+  );
+  const isGameDownloading =
+    removeFilesTarget?.kind === "hydra" &&
+    isLibraryGameDownloading(removeFilesTarget.game);
+  const removeFilesSectionTitle =
+    removeFilesTarget?.kind === "steam"
+      ? t("remove_game_files_steam_title")
+      : t("remove_game_files");
+  const removeFilesSectionDescription =
+    removeFilesTarget?.kind === "steam"
+      ? t("remove_game_files_steam_description", {
+          game: removeFilesTarget.game.title,
+        })
+      : t("remove_game_files_description", {
+          game: removeFilesTarget?.game.title ?? game.title,
+        });
+
+  const clearPendingAction = useCallback(() => {
+    setPendingAction(null);
+    setPendingRemoveFilesTarget(null);
+  }, []);
 
   const handleRemoveFromLibrary = useCallback(async () => {
     setActionLoading(true);
@@ -88,7 +155,7 @@ export function GameDangerZoneSettingsTab({
         );
       });
       showSuccessToast("Game removed from library");
-      setPendingAction(null);
+      clearPendingAction();
       onClose();
     } catch {
       showErrorToast("Failed to remove from library");
@@ -96,7 +163,7 @@ export function GameDangerZoneSettingsTab({
       globalThis.window.dispatchEvent(new Event("library-update"));
       setActionLoading(false);
     }
-  }, [game, onClose, showSuccessToast, showErrorToast]);
+  }, [game, onClose, showSuccessToast, showErrorToast, clearPendingAction]);
 
   const handleResetAchievements = useCallback(async () => {
     setActionLoading(true);
@@ -106,35 +173,81 @@ export function GameDangerZoneSettingsTab({
         game.objectId
       );
       showSuccessToast("Achievements reset");
-      setPendingAction(null);
+      clearPendingAction();
     } catch {
       showErrorToast("Failed to reset achievements");
     } finally {
       setActionLoading(false);
     }
-  }, [game, showSuccessToast, showErrorToast]);
+  }, [game, showSuccessToast, showErrorToast, clearPendingAction]);
 
   const handleRemoveFiles = useCallback(async () => {
+    const pendingTarget = pendingRemoveFilesTarget;
+    if (!pendingTarget) return;
+
     setActionLoading(true);
     try {
+      const liveTarget = getRemoveFilesTarget(
+        removeFilesSource,
+        steamUninstallAvailable,
+        isSteamLibraryExecutable === true
+      );
+      if (!liveTarget || !isSameRemoveFilesTarget(liveTarget, pendingTarget)) {
+        showErrorToast(t("remove_game_files_target_changed"));
+        clearPendingAction();
+        return;
+      }
+
+      if (
+        liveTarget.kind === "hydra" &&
+        isLibraryGameDownloading(liveTarget.game)
+      ) {
+        showErrorToast(t("remove_game_files_downloading"));
+        clearPendingAction();
+        return;
+      }
+
+      if (liveTarget.kind === "steam") {
+        await globalThis.window.electron.uninstallGameOnSteam?.(
+          liveTarget.appId
+        );
+        showSuccessToast(t("steam_uninstall_requested"));
+        clearPendingAction();
+        return;
+      }
+
       await globalThis.window.electron.deleteGameFolder(
-        game.shop,
-        game.objectId
+        liveTarget.game.shop,
+        liveTarget.game.objectId
       );
       showSuccessToast("Game files removed");
-      setPendingAction(null);
+      clearPendingAction();
       globalThis.window.dispatchEvent(new Event("library-update"));
     } catch {
-      showErrorToast("Failed to remove game files");
+      showErrorToast(
+        pendingTarget.kind === "steam"
+          ? t("steam_uninstall_failed")
+          : t("remove_game_files_failed")
+      );
     } finally {
       setActionLoading(false);
     }
-  }, [game, showSuccessToast, showErrorToast]);
+  }, [
+    removeFilesSource,
+    steamUninstallAvailable,
+    isSteamLibraryExecutable,
+    pendingRemoveFilesTarget,
+    t,
+    showSuccessToast,
+    showErrorToast,
+    clearPendingAction,
+  ]);
 
   const confirmationConfig = pendingAction
     ? getConfirmationConfig(
         pendingAction,
         game,
+        pendingRemoveFilesTarget,
         t,
         handleRemoveFromLibrary,
         handleResetAchievements,
@@ -186,16 +299,18 @@ export function GameDangerZoneSettingsTab({
       {game.shop !== "custom" && (
         <SettingsSection
           className="game-danger-zone-settings-tab__section"
-          title={t("remove_game_files")}
-          description={t("remove_game_files_description", {
-            game: game.title,
-          })}
+          title={removeFilesSectionTitle}
+          description={removeFilesSectionDescription}
         >
           <Button
             variant="danger"
             className="game-danger-zone-settings-tab__action-button"
-            disabled={!game.download?.downloadPath}
-            onClick={() => setPendingAction("remove-files")}
+            disabled={!removeFilesTarget || isGameDownloading}
+            onClick={() => {
+              if (!removeFilesTarget || isGameDownloading) return;
+              setPendingRemoveFilesTarget(removeFilesTarget);
+              setPendingAction("remove-files");
+            }}
           >
             {t("remove_game_files")}
           </Button>
@@ -210,7 +325,7 @@ export function GameDangerZoneSettingsTab({
           confirmLabel={confirmationConfig.confirmLabel}
           danger
           loading={actionLoading}
-          onClose={() => setPendingAction(null)}
+          onClose={clearPendingAction}
           onConfirm={confirmationConfig.onConfirm}
         />
       )}

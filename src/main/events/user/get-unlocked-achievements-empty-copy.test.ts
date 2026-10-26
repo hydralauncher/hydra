@@ -123,6 +123,9 @@ for (const scenario of [
           },
         },
       },
+      "@main/services/achievements/unlocked-achievements-cache": {
+        UnlockedAchievementsCache: { recordCombinedMembers: () => undefined },
+      },
       "@main/services/achievements/achievement-souvenir-store": {
         AchievementSouvenirStore: { set: () => {}, invalidate: () => {} },
       },
