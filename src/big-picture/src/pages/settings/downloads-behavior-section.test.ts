@@ -7,6 +7,11 @@ import * as React from "react";
 import { createRoot } from "react-dom/client";
 import ts from "typescript";
 import type { UserPreferences } from "@types";
+import {
+  DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+  MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+  MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+} from "../../../../shared/constants.js";
 
 const requireModule = createRequire(import.meta.url);
 
@@ -46,6 +51,11 @@ test("download settings preserve a speed draft, save concurrency, and convert un
   const checkboxes = new Map<string, CheckboxProps>();
   const children = ({ children }: { children: React.ReactNode }) => children;
   const stubs: Record<string, unknown> = {
+    "@shared": {
+      DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+      MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+      MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+    },
     "./downloads-behavior-section.scss": {},
     "./settings-navigation": {
       DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS: Object.fromEntries(

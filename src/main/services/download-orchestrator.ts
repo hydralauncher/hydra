@@ -76,13 +76,23 @@ function withInsertedId(ids: string[], id: string, targetIndex?: number) {
   return nextIds;
 }
 
+async function forEachInSeries<T>(
+  items: readonly T[],
+  action: (item: T) => Promise<unknown>,
+  index = 0
+): Promise<void> {
+  if (index >= items.length) return;
+  await action(items[index]);
+  await forEachInSeries(items, action, index + 1);
+}
+
 const NO_INTERNET_GRACE_MS = 15000;
 const RECONNECT_DEBOUNCE_MS = 2000;
 const DEBRID_PREPARATION_WINDOW_MS = 5 * 60 * 1000;
 const DEBRID_READINESS_POLL_MS = 5000;
 
 export class DownloadOrchestrator {
-  private static acceptedEpicActivations = new Map<string, object>();
+  private static readonly acceptedEpicActivations = new Map<string, object>();
   static preparesRealDebridInBackground(download: Download): boolean {
     return (
       download.downloader === Downloader.RealDebrid &&
@@ -179,19 +189,17 @@ export class DownloadOrchestrator {
       this.isOnline = false;
       DownloadManager.notifyReconnecting(true);
 
-      if (!this.reconnectGraceTimer) {
-        this.reconnectGraceTimer = setTimeout(() => {
-          this.reconnectGraceTimer = null;
-          if (this.isOnline) return;
+      this.reconnectGraceTimer ??= setTimeout(() => {
+        this.reconnectGraceTimer = null;
+        if (this.isOnline) return;
 
-          if (!DownloadManager.isActiveDownloadReconnecting()) {
-            this.isOnline = true;
-            return;
-          }
+        if (!DownloadManager.isActiveDownloadReconnecting()) {
+          this.isOnline = true;
+          return;
+        }
 
-          void this.stopActiveDownloadForNoNetwork();
-        }, NO_INTERNET_GRACE_MS);
-      }
+        void this.stopActiveDownloadForNoNetwork();
+      }, NO_INTERNET_GRACE_MS);
       return;
     }
 
@@ -227,17 +235,13 @@ export class DownloadOrchestrator {
         downloadsSublevel.get(downloadId).catch(() => null)
       )
     );
-    await downloads.reduce(
-      (previous, download) =>
-        previous.then(() =>
-          download
-            ? this.pauseDownload(download, {
-                reason: "paused",
-                startNextQueued: false,
-              }).then(() => undefined)
-            : undefined
-        ),
-      Promise.resolve()
+    await forEachInSeries(
+      downloads.filter((download): download is Download => download != null),
+      (download) =>
+        this.pauseDownload(download, {
+          reason: "paused",
+          startNextQueued: false,
+        })
     );
   }
 
@@ -274,6 +278,29 @@ export class DownloadOrchestrator {
 
       throw error;
     }
+  }
+
+  private static async handleAcceptedEpicPreparationFailure(
+    activeDownload: Download,
+    acceptedTicket: object,
+    isCurrent: () => boolean,
+    error: unknown
+  ) {
+    const downloadId = getDownloadId(activeDownload);
+    const current = await this.getDownload(
+      activeDownload.shop,
+      activeDownload.objectId
+    );
+    // A failed Epic startup parks its own record as paused; while the
+    // ticket is current no user pause or cancel has replaced it.
+    if (
+      !isCurrent() ||
+      this.acceptedEpicActivations.get(downloadId) !== acceptedTicket ||
+      (current?.status !== "active" && current?.status !== "paused") ||
+      current.timestamp !== activeDownload.timestamp
+    )
+      return;
+    await DownloadManager.handleRuntimeDownloadError(downloadId, error);
   }
 
   private static async activateDownload(
@@ -343,20 +370,12 @@ export class DownloadOrchestrator {
         await DownloadManager.resumeDownload(activeDownload, signal);
       } catch (error) {
         if (acceptedTicket) {
-          const current = await this.getDownload(
-            download.shop,
-            download.objectId
+          await this.handleAcceptedEpicPreparationFailure(
+            activeDownload,
+            acceptedTicket,
+            isCurrent,
+            error
           );
-          // A failed Epic startup parks its own record as paused; while the
-          // ticket is current no user pause or cancel has replaced it.
-          if (
-            !isCurrent() ||
-            this.acceptedEpicActivations.get(downloadId) !== acceptedTicket ||
-            (current?.status !== "active" && current?.status !== "paused") ||
-            current.timestamp !== activeDownload.timestamp
-          )
-            return null;
-          await DownloadManager.handleRuntimeDownloadError(downloadId, error);
           return null;
         }
         if (isDebridPendingError(error, download.downloader)) {
@@ -599,15 +618,11 @@ export class DownloadOrchestrator {
         })
         .slice(0, Math.max(0, activeDownloads.length - limit));
 
-      await downloadsToQueue.reduce(
-        (previous, download) =>
-          previous.then(() =>
-            this.pauseDownload(download, {
-              queueActiveReplacement: true,
-              startNextQueued: false,
-            }).then(() => undefined)
-          ),
-        Promise.resolve()
+      await forEachInSeries(downloadsToQueue, (download) =>
+        this.pauseDownload(download, {
+          queueActiveReplacement: true,
+          startNextQueued: false,
+        })
       );
 
       await this.activateNextQueuedDownload(await this.getAllDownloads());

@@ -6,7 +6,11 @@ import { setTimeout as sleep } from "node:timers/promises";
 import vm from "node:vm";
 import ts from "typescript";
 
-import { Downloader } from "../../../shared/constants.js";
+import {
+  DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+  Downloader,
+  MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+} from "../../../shared/constants.js";
 import * as downloadContract from "../../../types/download-contract.js";
 import type { DownloadProgress } from "../../../types/download.types";
 import type {
@@ -153,7 +157,11 @@ export function fixture() {
     "./range-download-state": { configureRangeStateDirectory: () => {} },
     "../system-path": { SystemPath: { getPath: () => os.tmpdir() } },
     "./download/debrid-files": { isDebridPendingError: () => false },
-    "@shared": { Downloader },
+    "@shared": {
+      DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+      Downloader,
+      MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+    },
     "../../types": downloadContract,
     "./types": downloaderTypes,
     "./download-completion": completion,
@@ -170,7 +178,7 @@ export function fixture() {
         game: (shop: string, objectId: string) => `${shop}:${objectId}`,
       },
       downloadLayoutStateSublevel: {
-        get: () => state.layout,
+        get: () => Promise.resolve(structuredClone(state.layout)),
         put: (_id: string, value: typeof state.layout) => {
           state.layout = structuredClone(value);
         },
@@ -268,64 +276,78 @@ export function fixture() {
       }
     },
   };
-  const allowedSourceFiles = new Set([
+
+  const trustedSourceFiles = [
     "../download-layout-state.ts",
     "./download-manager.ts",
     "../download-orchestrator.ts",
-  ]);
-  const sandboxProcess = Object.freeze({
-    platform: process.platform,
-    env: Object.freeze({ ...process.env }),
-  });
+  ] as const;
+  type TrustedSourceFile = (typeof trustedSourceFiles)[number];
+  const trustedSourceFileSet = new Set<string>(trustedSourceFiles);
 
-  function load<T>(file: string): T {
-    assert.ok(allowedSourceFiles.has(file), `Unexpected source file: ${file}`);
+  function loadTrustedModule<T>(file: TrustedSourceFile): T {
+    assert.ok(
+      trustedSourceFileSet.has(file),
+      `Unexpected source file: ${file}`
+    );
+
+    const sourceUrl = new URL(file, import.meta.url);
+    const realSourcePath = fs.realpathSync(sourceUrl);
+    const trustedRoot = fs.realpathSync(new URL("../", import.meta.url));
+    assert.ok(
+      realSourcePath.startsWith(`${trustedRoot}${path.sep}`),
+      `Source file is outside the trusted services directory: ${file}`
+    );
+    assert.ok(
+      fs.statSync(realSourcePath).isFile(),
+      `Source is not a file: ${file}`
+    );
+
     const exports = Object.create(null) as Record<string, unknown>;
-    const runOptions = {
-      codeGeneration: { strings: false, wasm: false },
-    } as unknown as NonNullable<Parameters<typeof vm.runInNewContext>[2]>;
-    vm.runInNewContext(
-      ts.transpileModule(
-        fs.readFileSync(new URL(file, import.meta.url), "utf8"),
-        {
-          compilerOptions: {
-            module: ts.ModuleKind.CommonJS,
-            target: ts.ScriptTarget.ES2022,
-            esModuleInterop: true,
-          },
-        }
-      ).outputText,
+    // Test-only module loading: file is one of three fixed repository sources,
+    // its real path is checked above, and require rejects unknown dependencies.
+    // The VM provides fresh module state; it is not an untrusted-code sandbox.
+    const script = new vm.Script( // NOSONAR
+      ts.transpileModule(fs.readFileSync(realSourcePath, "utf8"), {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS,
+          target: ts.ScriptTarget.ES2022,
+          esModuleInterop: true,
+        },
+      }).outputText,
+      { filename: realSourcePath }
+    );
+    script.runInNewContext(
       {
         exports,
         AbortController,
         AbortSignal,
         require: (name: string) =>
-          modules[name] ?? assert.fail(`Unexpected dependency ${name}`),
+          Object.hasOwn(modules, name)
+            ? modules[name]
+            : assert.fail(`Unexpected dependency ${name}`),
         Date,
-        Math,
-        process: sandboxProcess,
         URL,
         structuredClone,
         setTimeout,
         clearTimeout,
-        performance,
       },
-      runOptions
+      { timeout: 5_000 }
     );
     return exports as T;
   }
-  const layout = load<typeof import("../download-layout-state")>(
+  const layout = loadTrustedModule<typeof import("../download-layout-state")>(
     "../download-layout-state.ts"
   );
   modules["../download-layout-state"] = layout;
   modules["./download-layout-state"] = layout;
-  const manager = load<typeof import("./download-manager")>(
+  const manager = loadTrustedModule<typeof import("./download-manager")>(
     "./download-manager.ts"
   ).DownloadManager;
   modules["./download/download-manager"] = { DownloadManager: manager };
-  const orchestrator = load<typeof import("../download-orchestrator")>(
-    "../download-orchestrator.ts"
-  ).DownloadOrchestrator;
+  const orchestrator = loadTrustedModule<
+    typeof import("../download-orchestrator")
+  >("../download-orchestrator.ts").DownloadOrchestrator;
   modules["../download-orchestrator"] = { DownloadOrchestrator: orchestrator };
   const add = (download: Download) => {
     downloads.set(key(download), download);
