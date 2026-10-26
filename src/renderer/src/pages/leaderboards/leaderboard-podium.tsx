@@ -41,7 +41,12 @@ export function LeaderboardPodium({
   );
 
   return (
-    <div className="leaderboard-podium">
+    <div
+      className={cn("leaderboard-podium", {
+        "leaderboard-podium--sparse": ordered.length < PODIUM_ORDER.length,
+      })}
+      style={{ "--podium-count": ordered.length } as React.CSSProperties}
+    >
       {ordered.map((entry) => {
         const tier = getRankTier(entry.rank);
         const banner = entry.user.backgroundImageUrl;

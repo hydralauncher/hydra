@@ -49,13 +49,13 @@ $leaderboards-streak-to: #b05cff;
   }
 
   &__toggles {
-    min-width: min(100%, 500px);
     max-width: 100%;
     display: flex;
+    justify-content: flex-end;
     gap: globals.$spacing-unit;
 
     .leaderboard-controls__segmented {
-      flex: 1 1 auto;
+      flex: 0 1 auto;
       min-width: 0;
     }
 
@@ -1311,6 +1311,13 @@ $leaderboards-streak-to: #b05cff;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr);
   gap: calc(globals.$spacing-unit * 1.5);
   align-items: end;
+
+  // With fewer than three entries, keep the cards centred instead of
+  // leaving the empty podium slots on the right.
+  &--sparse {
+    grid-template-columns: repeat(var(--podium-count), minmax(0, 300px));
+    justify-content: center;
+  }
 
   &__card {
     --metal-light: #fff3b0;
