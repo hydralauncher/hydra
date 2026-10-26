@@ -53,6 +53,13 @@ function compareTitles(a: LibraryGame, b: LibraryGame) {
   return a.title.localeCompare(b.title, undefined, TITLE_COMPARE_OPTIONS);
 }
 
+// Cancelled downloads keep their record with status "removed", so treat them as never downloaded.
+function getDownloadTimestamp(game: LibraryGame) {
+  return game.download?.status === "removed"
+    ? 0
+    : (game.download?.timestamp ?? 0);
+}
+
 function getDateTimestamp(value?: Date | string | null) {
   if (!value) return null;
 
@@ -218,7 +225,7 @@ export function sortLibraryGames(
 
     if (sortBy === "recently_downloaded") {
       const downloadDifference =
-        (b.download?.timestamp ?? 0) - (a.download?.timestamp ?? 0);
+        getDownloadTimestamp(b) - getDownloadTimestamp(a);
 
       return downloadDifference !== 0
         ? downloadDifference
