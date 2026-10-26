@@ -5,6 +5,7 @@ import { chunk } from "lodash-es";
 import { registerEvent } from "../register-event";
 import { getGameAssets } from "../catalogue/get-game-assets";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
+import { queryWindowsDrives } from "./get-available-drives";
 import {
   isRedistributableDirectory,
   isRedistributablePath,
@@ -30,8 +31,6 @@ import {
   loadSteamAppInfo,
 } from "@main/services/steam-integration/steam-launch-executables";
 import type { Game, GameShop } from "@types";
-
-const SCAN_DIRECTORIES = [String.raw`C:\Games`, String.raw`D:\Games`];
 
 const DISCOVERED_GAMES_SHOP: GameShop = "steam";
 const DISCOVERED_GAMES_CHUNK_SIZE = 4;
@@ -171,6 +170,39 @@ const isWithin = (child: string, parent: string) => {
   );
 };
 
+// A mapped network drive (e.g. Z: on a NAS) resolves to a UNC path such as
+// \\server\share. Walking one recursively over SMB can make the default scan
+// very slow, so those drives are left out unless the user adds them manually.
+const NETWORK_PATH_REGEX = /^\\\\(?:\?\\UNC\\|(?![?.]\\))/i;
+
+const isNetworkPath = (resolvedPath: string) =>
+  NETWORK_PATH_REGEX.test(resolvedPath);
+
+const isLocalDrive = async (root: string) => {
+  const resolved = await fs.promises.realpath(root).catch(() => null);
+
+  return resolved === null || !isNetworkPath(resolved);
+};
+
+const getMountedDriveGamesDirectories = async () => {
+  if (process.platform !== "win32") return [];
+
+  const drives = await queryWindowsDrives().catch((err) => {
+    logger.error("[ScanInstalledGames] Failed to enumerate drives:", err);
+    return [];
+  });
+
+  const localDrives = await Promise.all(
+    drives.map(async (drive) =>
+      (await isLocalDrive(drive.root)) ? drive : null
+    )
+  );
+
+  return localDrives
+    .filter((drive) => drive !== null)
+    .map((drive) => path.join(drive.root, "Games"));
+};
+
 const getDefaultScanDirectories = async (
   steamFallbackDirectories: string[]
 ) => {
@@ -182,8 +214,10 @@ const getDefaultScanDirectories = async (
     return null;
   });
 
+  const mountedDriveGamesDirectories = await getMountedDriveGamesDirectories();
+
   return [
-    ...SCAN_DIRECTORIES,
+    ...mountedDriveGamesDirectories,
     ...steamFallbackDirectories,
     ...(downloadsPath ? [downloadsPath] : []),
   ];
