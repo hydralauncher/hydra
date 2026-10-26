@@ -342,7 +342,10 @@ const updateInstallerState = async (
   gameKey: string,
   state: Pick<
     Download,
-    "installerLaunched" | "installerRunning" | "installerStartedAt"
+    | "installerLaunched"
+    | "installerRunning"
+    | "installerStartedAt"
+    | "installerPath"
   >
 ) => {
   const download = await downloadsSublevel.get(gameKey);
@@ -542,6 +545,7 @@ const openGameInstaller = async (
         installerLaunched: true,
         installerRunning: tracked && !installerFinished,
         installerStartedAt,
+        installerPath,
       });
     }
   } finally {

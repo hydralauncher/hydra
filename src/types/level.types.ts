@@ -139,6 +139,7 @@ export interface Download {
   installerLaunched?: boolean;
   installerRunning?: boolean;
   installerStartedAt?: number;
+  installerPath?: string;
   hasInstaller?: boolean;
   sourceArchiveName?: string;
   automaticallyExtract: boolean;
