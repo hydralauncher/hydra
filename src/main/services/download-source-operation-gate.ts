@@ -1,17 +1,14 @@
 export class DownloadSourceOperationGate {
-  private active = false;
+  private pending: Promise<void> = Promise.resolve();
 
   public async run<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.active) {
-      throw new Error("download_source_operation_in_progress");
-    }
-
-    this.active = true;
-    try {
-      return await operation();
-    } finally {
-      this.active = false;
-    }
+    const result = this.pending.then(operation);
+    // A failed operation must not prevent the next queued operation from running.
+    this.pending = result.then(
+      () => undefined,
+      () => undefined
+    );
+    return result;
   }
 }
 

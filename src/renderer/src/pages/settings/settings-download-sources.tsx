@@ -30,6 +30,7 @@ import { orderBy } from "lodash-es";
 import "./settings-download-sources.scss";
 import { logger } from "@renderer/logger";
 import { useDownloadSourceTransferStore } from "@renderer/features/download-source-transfer";
+import { getDownloadSourceImportErrorKey } from "./download-source-import-error";
 
 export function SettingsDownloadSources() {
   const [
@@ -187,7 +188,7 @@ export function SettingsDownloadSources() {
       }
     } catch (error) {
       logger.error("Failed to import download sources:", error);
-      showErrorToast(t("download_sources_import_failed"));
+      showErrorToast(t(getDownloadSourceImportErrorKey(error)));
     } finally {
       setActiveTransfer(null);
     }

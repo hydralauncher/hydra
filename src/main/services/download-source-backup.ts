@@ -1,6 +1,7 @@
 import type { DownloadSourceImportResult } from "@types";
 
 export const MAX_DOWNLOAD_SOURCE_BACKUP_BYTES = 1024 * 1024;
+export const MAX_DOWNLOAD_SOURCE_BACKUP_ENTRIES = 200;
 
 interface SourceUrl {
   url: string;
@@ -26,11 +27,17 @@ export const parseDownloadSourceBackup = (contents: string): string[] => {
     throw new Error("Download source backup is too large");
   }
 
-  const backup = JSON.parse(contents.replace(/^\uFEFF/, ""));
+  let backup;
+  try {
+    backup = JSON.parse(contents.replace(/^\uFEFF/, ""));
+  } catch {
+    throw new Error("Invalid download source backup");
+  }
   if (
     backup?.version !== 1 ||
     !Array.isArray(backup.sources) ||
-    backup.sources.length === 0
+    backup.sources.length === 0 ||
+    backup.sources.length > MAX_DOWNLOAD_SOURCE_BACKUP_ENTRIES
   ) {
     throw new Error("Invalid download source backup");
   }
@@ -46,7 +53,11 @@ export const parseDownloadSourceBackup = (contents: string): string[] => {
       throw new Error("Invalid download source backup entry");
     }
     const url = source.url.trim();
-    sourceUrlKey(url);
+    try {
+      sourceUrlKey(url);
+    } catch {
+      throw new Error("Invalid download source backup");
+    }
     return url;
   });
 };

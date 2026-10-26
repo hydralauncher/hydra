@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   MAX_DOWNLOAD_SOURCE_BACKUP_BYTES,
+  MAX_DOWNLOAD_SOURCE_BACKUP_ENTRIES,
   importDownloadSourceUrls,
   parseDownloadSourceBackup,
   serializeDownloadSources,
@@ -69,6 +70,52 @@ describe("download source backups", () => {
     assert.throws(() =>
       parseDownloadSourceBackup("é".repeat(MAX_DOWNLOAD_SOURCE_BACKUP_BYTES))
     );
+  });
+
+  it("accepts a backup at the entry limit", () => {
+    const sources = Array.from(
+      { length: MAX_DOWNLOAD_SOURCE_BACKUP_ENTRIES },
+      (_, index) => ({ url: `https://example.com/${index}.json` })
+    );
+    assert.deepEqual(
+      parseDownloadSourceBackup(serializeDownloadSources(sources)),
+      sources.map(({ url }) => url)
+    );
+  });
+
+  it("rejects too many entries before registering any source, including duplicates", async () => {
+    for (const repeated of [false, true]) {
+      const sources = Array.from(
+        { length: MAX_DOWNLOAD_SOURCE_BACKUP_ENTRIES + 1 },
+        (_, index) => ({
+          url: repeated ? firstUrl : `https://example.com/${index}.json`,
+        })
+      );
+      const contents = serializeDownloadSources(sources);
+      assert(
+        Buffer.byteLength(contents, "utf8") < MAX_DOWNLOAD_SOURCE_BACKUP_BYTES
+      );
+      let additions = 0;
+      await assert.rejects(async () => {
+        const urls = parseDownloadSourceBackup(contents);
+        await importDownloadSourceUrls(urls, [], async () => {
+          additions++;
+        });
+      }, /Invalid download source backup/);
+      assert.equal(additions, 0);
+    }
+  });
+
+  it("reports malformed JSON and URLs with a stable validation error", () => {
+    for (const contents of [
+      "not json",
+      serializeDownloadSources([{ url: "not a URL" }]),
+      serializeDownloadSources([{ url: "file:///C:/save.json" }]),
+    ]) {
+      assert.throws(() => parseDownloadSourceBackup(contents), {
+        message: "Invalid download source backup",
+      });
+    }
   });
 
   it("validates the whole backup before beginning an import", async () => {

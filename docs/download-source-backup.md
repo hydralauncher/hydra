@@ -10,8 +10,9 @@ connection. Existing sources are preserved, and repeated URLs are skipped. The
 result lists added and skipped counts, as well as any failed URLs. Import the
 same file again to retry failures without duplicating successful additions.
 An ongoing transfer stays busy when navigating away from settings and back.
-Conflicting source changes are also blocked in the main process until the active
-source operation finishes.
+Source changes are serialized in the main process: additions, removals, syncs,
+and imports wait for the current operation to finish instead of failing when
+they overlap. A removal queued during an import runs after the entire batch.
 
 The backup contains URLs only; game downloads, cached catalogue data, account
 credentials, and local database IDs are not included. Source URLs are preserved
@@ -26,16 +27,18 @@ as configured, including any query parameters.
 }
 ```
 
-Imports accept version 1, HTTP(S) URLs, and files up to 1 MiB. The entire file
-is validated before any source is added. Unsupported versions, malformed entries,
-and oversized files leave the configured sources unchanged. Cancelling a file
-dialog performs no operation.
+Imports accept version 1, HTTP(S) URLs, files up to 1 MiB, and at most 200 source
+entries (including duplicates). The entire file is validated before any source
+is added. Unsupported versions, malformed entries, and files exceeding either
+limit leave the configured sources unchanged. Cancelling a file dialog performs
+no operation. Import errors distinguish invalid backups from operational failures.
 
 ## Focused tests
 
 ```sh
 node --import ./scripts/register-ts-node.mjs --test src/main/services/download-source-backup.test.ts
 node --import ./scripts/register-ts-node.mjs --test src/main/services/download-source-operation-gate.test.ts src/renderer/src/features/download-source-transfer.test.ts
+node --import ./scripts/register-ts-node.mjs --test src/renderer/src/pages/settings/download-source-import-error.test.ts
 ```
 
 For manual verification, export at least two sources, import that file in a fresh
@@ -46,3 +49,8 @@ should appear in the result.
 During a long import, switch settings categories and return: source controls
 should remain disabled. When it finishes, the full source list and import result
 should be available, and the result button should use the selected language.
+Try a backup with 201 entries and confirm no sources are added. While a pending
+source sync is running, add another source: it should wait and succeed. A removal
+queued during an import should run after the batch and keep the sources removed.
+Check that an unreadable file shows a general import failure, while malformed or
+oversized backups show the file-validation message.
