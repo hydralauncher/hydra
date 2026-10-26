@@ -2,7 +2,10 @@ import { registerEvent } from "../register-event";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { GameFilesManager, logger, Wine, WindowManager } from "@main/services";
 import type { GameShop } from "@types";
-import { isPollingInstalledExecutable } from "@main/helpers/installed-executable-poller";
+import {
+  isInstallerRunLive,
+  isPollingInstalledExecutable,
+} from "@main/helpers/installed-executable-poller";
 
 const RECHECK_INTERVAL_MS = 30_000;
 
@@ -24,7 +27,8 @@ const recheckInstalledExecutable = async (
     download.installerRunning ||
     !download.installerStartedAt ||
     game?.executablePath ||
-    isPollingInstalledExecutable(gameKey)
+    isPollingInstalledExecutable(gameKey) ||
+    isInstallerRunLive(gameKey)
   ) {
     return false;
   }

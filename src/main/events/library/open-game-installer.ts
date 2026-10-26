@@ -19,6 +19,8 @@ import {
   getDownloadFolderPath,
 } from "@main/helpers/find-game-installer";
 import {
+  endInstallerRun,
+  markInstallerRunLive,
   startInstalledExecutablePolling,
   stopInstalledExecutablePolling,
 } from "@main/helpers/installed-executable-poller";
@@ -457,6 +459,7 @@ const openGameInstaller = async (
     if (installerFinished) return;
     installerFinished = true;
     runningInstallers.delete(gameKey);
+    endInstallerRun(gameKey, installerStartedAt);
     void launchRecorded.then(callback).catch((error) => {
       logger.error("Failed to update the installer state", error);
     });
@@ -500,6 +503,7 @@ const openGameInstaller = async (
   if (!launched || !tracked) runningInstallers.delete(gameKey);
 
   if (launched && tracked && !installerFinished) {
+    markInstallerRunLive(gameKey, installerStartedAt);
     setTimeout(() => {
       if (installerFinished) return;
 

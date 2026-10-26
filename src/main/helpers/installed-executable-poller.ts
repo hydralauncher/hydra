@@ -6,6 +6,26 @@ const POLL_INTERVAL_MS = 30_000;
 const POLL_DURATION_MS = 10 * 60_000;
 
 const pollers = new Map<string, NodeJS.Timeout>();
+const liveInstallerRuns = new Map<string, number>();
+
+export const markInstallerRunLive = (
+  gameKey: string,
+  installerStartedAt: number
+) => {
+  liveInstallerRuns.set(gameKey, installerStartedAt);
+};
+
+export const endInstallerRun = (
+  gameKey: string,
+  installerStartedAt: number
+) => {
+  if (liveInstallerRuns.get(gameKey) === installerStartedAt) {
+    liveInstallerRuns.delete(gameKey);
+  }
+};
+
+export const isInstallerRunLive = (gameKey: string) =>
+  liveInstallerRuns.has(gameKey);
 
 export const stopInstalledExecutablePolling = (gameKey: string) => {
   const timer = pollers.get(gameKey);
