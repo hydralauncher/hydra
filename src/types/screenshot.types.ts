@@ -293,14 +293,6 @@ export interface ScreenshotReview {
   selectedClientId: string | null;
 }
 
-export interface ScreenshotReviewRequest {
-  gameKey: string;
-  shop: ScreenshotShop;
-  objectId: string;
-  gameTitle: string;
-  clientIds: string[];
-}
-
 export type ScreenshotTelemetryEventType = "capture" | "upload" | "review";
 
 export interface ScreenshotTelemetryEvent {
