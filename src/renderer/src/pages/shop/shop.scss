@@ -67,17 +67,25 @@ $locked: #2a2a2e;
     mask-image: linear-gradient(90deg, #000 30%, transparent 80%);
   }
 
+  // Avatar wearing the frame, then your name with the profile pills below it.
   &__featured-avatar {
     position: relative;
     z-index: 2;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 22px;
+    gap: 24px;
     padding: 0 24px;
+  }
 
-    > span:last-child {
-      font-size: 14px;
+  &__featured-who {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+
+    > strong {
+      font-size: 22px;
+      line-height: 28px;
       font-weight: 700;
       color: $ink;
     }
