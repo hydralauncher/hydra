@@ -6,7 +6,7 @@ import {
 } from "@shared";
 import capturePagePath from "@resources/linux-game-capture.html?asset";
 
-import { db, levelKeys } from "@main/level";
+import { db, gamesSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 import {
@@ -24,6 +24,7 @@ import {
 
 interface CaptureSessionRegistration {
   token: object;
+  shareKey: string | null;
   window: BrowserWindow | null;
   subscriptionTimer: ReturnType<typeof setInterval> | null;
   preparation: Promise<void>;
@@ -79,9 +80,8 @@ interface SharedCaptureWindow {
   users: Set<object>;
 }
 
-let rememberedScreenSourceId: string | null = null;
-let sharedCapture: SharedCaptureWindow | null = null;
-let pendingSharedCapture: Promise<SharedCaptureWindow> | null = null;
+const sharedCaptures = new Map<string, SharedCaptureWindow>();
+const pendingSharedCaptures = new Map<string, Promise<SharedCaptureWindow>>();
 
 const destroyCaptureWindow = (captureWindow: BrowserWindow | null) => {
   if (!captureWindow || captureWindow.isDestroyed()) return;
@@ -149,74 +149,65 @@ const createCaptureWindow = async (sourceId: string) => {
   }
 };
 
-const pickScreenSource = async () => {
+const pickGameWindowSource = async () => {
   const sources = await desktopCapturer.getSources({
-    types: ["screen"],
+    types: ["window"],
     thumbnailSize: { width: 0, height: 0 },
   });
   const source = sources.length === 1 ? sources[0] : null;
 
-  if (!source?.id.startsWith("screen:")) {
-    throw new Error("No Wayland screen capture source was selected");
+  if (!source?.id.startsWith("window:")) {
+    throw new Error("No Wayland game window capture source was selected");
   }
 
   return source.id;
 };
 
-const restoreRememberedScreenCapture = async () => {
-  const sourceId = rememberedScreenSourceId;
-  if (!sourceId) return null;
-
-  try {
-    return await createCaptureWindow(sourceId);
-  } catch (error) {
-    logger.warn("Remembered Wayland screen source could not be restored", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    if (rememberedScreenSourceId === sourceId) rememberedScreenSourceId = null;
-    return null;
-  }
+const getCaptureShareKey = async (gameKey: string) => {
+  const game = await gamesSublevel.get(gameKey).catch(() => null);
+  return game?.executablePath || gameKey;
 };
 
-const openScreenCaptureWindow = async () => {
-  const restored = await restoreRememberedScreenCapture();
-  if (restored) return restored;
-
-  const sourceId = await pickScreenSource();
-  const captureWindow = await createCaptureWindow(sourceId);
-  rememberedScreenSourceId = sourceId;
-  return captureWindow;
-};
-
-const openSharedCapture = async () => {
+const openSharedCapture = async (shareKey: string) => {
   const capture: SharedCaptureWindow = {
-    window: await openScreenCaptureWindow(),
+    window: await createCaptureWindow(await pickGameWindowSource()),
     users: new Set(),
   };
-  sharedCapture = capture;
+  sharedCaptures.set(shareKey, capture);
   capture.window.once("closed", () => {
-    if (sharedCapture === capture) sharedCapture = null;
+    if (sharedCaptures.get(shareKey) === capture) {
+      sharedCaptures.delete(shareKey);
+    }
   });
   return capture;
 };
 
-const acquireCaptureWindow = async (user: object) => {
-  const liveCapture =
-    sharedCapture && !sharedCapture.window.isDestroyed() ? sharedCapture : null;
+const getPendingSharedCapture = (shareKey: string) => {
+  const pending = pendingSharedCaptures.get(shareKey);
+  if (pending) return pending;
+
+  const opening = openSharedCapture(shareKey).finally(() => {
+    pendingSharedCaptures.delete(shareKey);
+  });
+  pendingSharedCaptures.set(shareKey, opening);
+  return opening;
+};
+
+const acquireCaptureWindow = async (shareKey: string, user: object) => {
+  const existing = sharedCaptures.get(shareKey);
   const capture =
-    liveCapture ??
-    (await (pendingSharedCapture ??= openSharedCapture().finally(() => {
-      pendingSharedCapture = null;
-    })));
+    existing && !existing.window.isDestroyed()
+      ? existing
+      : await getPendingSharedCapture(shareKey);
   capture.users.add(user);
   return capture.window;
 };
 
-const releaseCaptureWindow = (user: object) => {
-  const capture = sharedCapture;
+const releaseCaptureWindow = (shareKey: string, user: object) => {
+  const capture = sharedCaptures.get(shareKey);
   if (!capture?.users.delete(user) || capture.users.size) return;
 
-  sharedCapture = null;
+  sharedCaptures.delete(shareKey);
   destroyCaptureWindow(capture.window);
 };
 
@@ -240,6 +231,7 @@ export const prepareLinuxGameCaptureSession = async (
   const token = {};
   const registration: CaptureSessionRegistration = {
     token,
+    shareKey: null,
     window: null,
     subscriptionTimer: null,
     preparation: Promise.resolve(),
@@ -263,15 +255,17 @@ export const prepareLinuxGameCaptureSession = async (
 
     if (sessions.get(gameKey)?.token !== token) return;
 
-    const captureWindow = await acquireCaptureWindow(token);
+    const shareKey = await getCaptureShareKey(gameKey);
+    registration.shareKey = shareKey;
+    const captureWindow = await acquireCaptureWindow(shareKey, token);
 
     if (sessions.get(gameKey)?.token !== token) {
-      releaseCaptureWindow(token);
+      releaseCaptureWindow(shareKey, token);
       return;
     }
 
     registration.window = captureWindow;
-    logger.info("Wayland screen capture was prepared", { gameKey });
+    logger.info("Wayland game window capture was prepared", { gameKey });
     registration.subscriptionTimer = setInterval(() => {
       if (!HydraApi.hasActiveSubscription()) {
         stopLinuxGameCaptureSession(gameKey, "souvenir");
@@ -287,7 +281,7 @@ export const prepareLinuxGameCaptureSession = async (
     });
   })().catch((error) => {
     if (sessions.get(gameKey)?.token === token) {
-      logger.warn("Wayland screen capture was not prepared", {
+      logger.warn("Wayland game window capture was not prepared", {
         gameKey,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -308,14 +302,14 @@ export const prepareLinuxGameCaptureSession = async (
 export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   const registration = sessions.get(gameKey);
   if (!registration) {
-    throw new Error("No Wayland screen capture session is available");
+    throw new Error("No Wayland game window capture session is available");
   }
 
   await registration.preparation;
   const captureWindow = registration.window;
 
   if (!captureWindow || captureWindow.isDestroyed()) {
-    throw new Error("Wayland screen capture session was closed");
+    throw new Error("Wayland game window capture session was closed");
   }
 
   const capture = captureWindow.webContents.executeJavaScript(`
@@ -349,12 +343,14 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   }
 
   if (typeof dataUrl !== "string") {
-    throw new TypeError("Wayland screen capture returned an invalid frame");
+    throw new TypeError(
+      "Wayland game window capture returned an invalid frame"
+    );
   }
 
   const image = nativeImage.createFromDataURL(dataUrl);
   if (image.isEmpty()) {
-    throw new Error("Wayland screen capture returned an empty frame");
+    throw new Error("Wayland game window capture returned an empty frame");
   }
 
   return image;
@@ -366,19 +362,21 @@ export const grabLinuxGameSessionFrame = async (
 ): Promise<GrabbedScreenshotFrame> => {
   const registration = sessions.get(gameKey);
   if (!registration) {
-    throw new Error("No Wayland screen capture session is available");
+    throw new Error("No Wayland game window capture session is available");
   }
 
   await registration.preparation;
   const captureWindow = registration.window;
 
   if (!captureWindow || captureWindow.isDestroyed()) {
-    throw new Error("Wayland screen capture session was closed");
+    throw new Error("Wayland game window capture session was closed");
   }
 
   const runInCaptureWindow = (expression: string) =>
     captureWindow.isDestroyed()
-      ? Promise.reject(new Error("Wayland screen capture session was closed"))
+      ? Promise.reject(
+          new Error("Wayland game window capture session was closed")
+        )
       : captureWindow.webContents.executeJavaScript(expression);
 
   const info = parseGrabbedFrame(
@@ -393,7 +391,7 @@ export const grabLinuxGameSessionFrame = async (
   const frame = createGrabbedFrame(info, runInCaptureWindow);
   if (info.isBlank) {
     frame.discard();
-    throw new Error("Wayland screen capture returned a blank frame");
+    throw new Error("Wayland game window capture returned a blank frame");
   }
   return frame;
 };
@@ -420,7 +418,11 @@ export const stopLinuxGameCaptureSession = (
   const pendingCapture = registration.activeCapture ?? Promise.resolve();
   void pendingCapture
     .catch(() => {})
-    .finally(() => releaseCaptureWindow(registration.token));
+    .finally(() => {
+      if (registration.shareKey) {
+        releaseCaptureWindow(registration.shareKey, registration.token);
+      }
+    });
 };
 
 export const stopAllLinuxGameCaptureSessions = (

@@ -1808,7 +1808,7 @@
     "souvenir_sync_cleanup_failed": "No se pudieron eliminar los recuerdos sin sincronizar",
     "enable_achievement_souvenirs": "Habilitar recuerdos para los logros",
     "wayland_souvenirs_warning_title": "Recuerdos en Wayland",
-    "wayland_souvenirs_warning_description": "Debido al funcionamiento de Wayland, Hydra debe preguntarte qué pantalla quieres capturar. Lo pregunta una vez cuando se inicia tu primer juego y recuerda la elección hasta que cierres Hydra. Selecciona la pantalla en la que se ejecutan tus juegos para que Hydra pueda capturar recuerdos cuando desbloquees logros. Si no seleccionas una pantalla, no se podrán capturar recuerdos.",
+    "wayland_souvenirs_warning_description": "Debido al funcionamiento de Wayland, Hydra debe preguntarte qué ventana quieres capturar cada vez que abres un juego. Selecciona la ventana del juego para que Hydra pueda capturar recuerdos cuando desbloquees logros. Si no seleccionas una ventana, no se podrán capturar recuerdos.",
     "wayland_souvenirs_warning_cancel": "Cancelar",
     "wayland_souvenirs_warning_confirm": "Aceptar",
     "epic_sync_starting": "Preparing Epic sync…",
