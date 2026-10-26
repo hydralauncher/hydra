@@ -38,8 +38,7 @@ export const isInstallerProcess = (
     return path.win32.basename(peExecutable).toLowerCase() === installerName;
   }
 
-  const runsThroughWine =
-    !process.exe || !process.exe.toLowerCase().endsWith(".exe");
+  const runsThroughWine = !process.exe?.toLowerCase().endsWith(".exe");
   const processName = process.name.toLowerCase();
   const nameMatches =
     processName === installerName ||
