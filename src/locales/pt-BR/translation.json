@@ -196,7 +196,8 @@
     "scan_games_folders_title": "Pastas para escanear",
     "scan_games_add_folder": "Adicionar pasta",
     "scan_games_remove_folder": "Remover pasta",
-    "scan_games_folders_hint_manual": "Adicione pelo menos uma pasta para escanear por jogos."
+    "scan_games_folders_hint_manual": "Adicione pelo menos uma pasta para escanear por jogos.",
+    "shop": "Loja"
   },
   "bottom_panel": {
     "reconnecting": "Reconectando {{title}}…",
@@ -2337,7 +2338,8 @@
     "souvenir_visibility_failed": "Não foi possível atualizar a visibilidade da lembrança",
     "souvenirs_visibility_updated": "Visibilidade das lembranças atualizada",
     "souvenirs_visibility_updated_description": "Suas lembranças agora estão como {{visibility}}.",
-    "loading_souvenirs": "Carregando lembranças..."
+    "loading_souvenirs": "Carregando lembranças...",
+    "shop": "Loja"
   },
   "achievement": {
     "achievement_unlocked": "Conquista desbloqueada",
@@ -2737,5 +2739,40 @@
     "next": "Próximo",
     "explore": "Explorar",
     "dont_show_again": "Não mostrar novamente"
+  },
+  "shop": {
+    "featured_chip": "Destaque da semana",
+    "buy_for": "Comprar por",
+    "missing_coins_one": "Falta {{amount}} moeda",
+    "missing_coins_other": "Faltam {{amount}} moedas",
+    "level_required": "Nível {{level}}",
+    "level": "Nível {{level}}",
+    "equip": "Equipar",
+    "remove": "Remover",
+    "equipped_on_profile": "Equipada no seu perfil",
+    "tab_all": "Todas",
+    "tab_animated": "Animadas",
+    "tab_simple": "Simples",
+    "hide_owned": "Esconder as que você já tem",
+    "coins_one": "moeda",
+    "coins_other": "moedas",
+    "empty_category": "Você já tem todas as molduras desta categoria.",
+    "tag_new": "Novo",
+    "tag_equipped": "Equipada",
+    "in_collection": "Na sua coleção",
+    "kind_animated": "Moldura animada",
+    "kind_simple": "Moldura",
+    "price_short": "{{price}} · faltam {{missing}}",
+    "frame_hint": "Aparece em volta do seu avatar em todo o Hydra",
+    "price": "Preço",
+    "current_balance": "Saldo atual",
+    "balance_after": "Saldo depois",
+    "missing": "Faltam",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "buy_for_coins": "Comprar por {{price}} moedas",
+    "short_hint": "Missões diárias e marcos dão moedas. Hoje você ainda pode ganhar {{coins}} moedas com as missões.",
+    "see_missions": "Ver missões",
+    "locked_row": "Disponível a partir do Nível {{level}}. Você está no Nível {{current}}."
   }
 }

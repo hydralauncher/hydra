@@ -190,7 +190,8 @@
     "scan_games_folders_title": "Folders to scan",
     "scan_games_add_folder": "Add folder",
     "scan_games_remove_folder": "Remove folder",
-    "scan_games_folders_hint_manual": "Add at least one folder to scan for games."
+    "scan_games_folders_hint_manual": "Add at least one folder to scan for games.",
+    "shop": "Shop"
   },
   "bottom_panel": {
     "reconnecting": "Reconnecting {{title}}…",
@@ -2340,7 +2341,8 @@
     "souvenir_visibility_failed": "Could not update souvenir visibility",
     "souvenirs_visibility_updated": "Souvenir visibility updated",
     "souvenirs_visibility_updated_description": "Your souvenirs are now {{visibility}}.",
-    "loading_souvenirs": "Loading souvenirs..."
+    "loading_souvenirs": "Loading souvenirs...",
+    "shop": "Shop"
   },
   "library": {
     "library": "Library",
@@ -2728,5 +2730,40 @@
     "show_spoiler_image_of": "Show spoiler image {{index}} of {{count}}",
     "image": "Image",
     "close_image": "Close image"
+  },
+  "shop": {
+    "featured_chip": "Featured this week",
+    "buy_for": "Buy for",
+    "missing_coins_one": "{{amount}} coin short",
+    "missing_coins_other": "{{amount}} coins short",
+    "level_required": "Level {{level}}",
+    "level": "Level {{level}}",
+    "equip": "Equip",
+    "remove": "Remove",
+    "equipped_on_profile": "Equipped on your profile",
+    "tab_all": "All",
+    "tab_animated": "Animated",
+    "tab_simple": "Simple",
+    "hide_owned": "Hide the ones you own",
+    "coins_one": "coin",
+    "coins_other": "coins",
+    "empty_category": "You already own every frame in this category.",
+    "tag_new": "New",
+    "tag_equipped": "Equipped",
+    "in_collection": "In your collection",
+    "kind_animated": "Animated frame",
+    "kind_simple": "Frame",
+    "price_short": "{{price}} · {{missing}} short",
+    "frame_hint": "Shows around your avatar across Hydra",
+    "price": "Price",
+    "current_balance": "Current balance",
+    "balance_after": "Balance after",
+    "missing": "Short by",
+    "cancel": "Cancel",
+    "close": "Close",
+    "buy_for_coins": "Buy for {{price}} coins",
+    "short_hint": "Daily missions and trails give coins. You can still earn {{coins}} coins from missions today.",
+    "see_missions": "See missions",
+    "locked_row": "Available from Level {{level}}. You are Level {{current}}."
   }
 }

@@ -1,0 +1,563 @@
+@use "../../scss/globals.scss";
+
+// Colors from the designer's prototype (v4.2.0), same tokens as the missions tab.
+$ink: #f0f1f7;
+$chrome: #0d0d0d;
+$body: #c0c1c7;
+$muted: #a6a7ad;
+$line: rgba(255, 255, 255, 0.08);
+$line-strong: rgba(255, 255, 255, 0.24);
+$overlay: rgba(255, 255, 255, 0.08);
+$surface: #121212;
+$row: #161618;
+$locked: #2a2a2e;
+
+.shop {
+  display: flex;
+  flex-direction: column;
+  padding: calc(globals.$spacing-unit * 3);
+
+  // Featured: your banner, your avatar wearing the frame and your display name.
+  &__featured {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 260px;
+    margin-bottom: 24px;
+    padding: 32px 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    background:
+      radial-gradient(
+        ellipse 45% 90% at 30% 30%,
+        rgba(70, 100, 160, 0.45),
+        transparent 70%
+      ),
+      linear-gradient(90deg, #2a1a0f, #1a1410 45%, #0f1830);
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(
+        90deg,
+        transparent 35%,
+        rgba(13, 13, 13, 0.45) 60%,
+        transparent 90%
+      );
+      pointer-events: none;
+    }
+
+    &--has-banner {
+      background: none;
+    }
+  }
+
+  &__featured-banner {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    mask-image: linear-gradient(90deg, #000 30%, transparent 80%);
+  }
+
+  &__featured-avatar {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    padding: 0 24px;
+
+    > span:last-child {
+      font-size: 14px;
+      font-weight: 700;
+      color: $ink;
+    }
+  }
+
+  &__featured-text {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(420px, 52%);
+    margin-left: auto;
+
+    h2 {
+      margin: 0;
+      font-size: 32px;
+      line-height: 40px;
+      font-weight: 700;
+      color: $ink;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 22px;
+      color: $body;
+    }
+  }
+
+  &__chip {
+    align-self: flex-start;
+    padding: 0 7px;
+    border-radius: 4px;
+    background-color: $overlay;
+    font-size: globals.$small-font-size;
+    line-height: 18px;
+    color: $ink;
+  }
+
+  &__featured-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+
+    .button {
+      gap: 6px;
+    }
+  }
+
+  &__featured-short {
+    font-size: 12px;
+    color: $muted;
+  }
+
+  &__bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 20px;
+    margin: 4px 0 20px;
+    border-bottom: 1px solid $line;
+  }
+
+  &__tabs {
+    display: flex;
+    gap: 4px;
+  }
+
+  &__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: $muted;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+      color: $ink;
+    }
+
+    &--active {
+      border-bottom-color: $ink;
+      color: $ink;
+    }
+  }
+
+  &__count {
+    padding: 1px 5px;
+    border-radius: 6px;
+    background-color: $overlay;
+    font-size: 10px;
+    color: $ink;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__bar-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding-bottom: 8px;
+  }
+
+  &__toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: $body;
+    cursor: pointer;
+
+    input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
+
+    > span {
+      position: relative;
+      width: 30px;
+      height: 18px;
+      border-radius: 999px;
+      background-color: $locked;
+      transition: background-color 0.2s ease;
+
+      &::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        background-color: $muted;
+        transition:
+          transform 0.2s ease,
+          background-color 0.2s ease;
+      }
+    }
+
+    input:checked + span {
+      background-color: $ink;
+
+      &::after {
+        transform: translateX(12px);
+        background-color: $chrome;
+      }
+    }
+
+    input:focus-visible + span {
+      outline: 2px solid $ink;
+      outline-offset: 2px;
+    }
+  }
+
+  &__balance {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: $muted;
+    font-variant-numeric: tabular-nums;
+
+    strong {
+      color: $ink;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid $line;
+    border-radius: 4px;
+    background-color: $surface;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: $line-strong;
+    }
+  }
+
+  &__item-art {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 140px;
+    background:
+      radial-gradient(circle, rgba(255, 255, 255, 0.04) 0.6px, transparent 1px)
+        0 0 / 8px 8px,
+      $chrome;
+  }
+
+  &__tag {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background-color: $ink;
+    color: $chrome;
+    font-size: 10px;
+    line-height: 14px;
+    font-weight: 700;
+  }
+
+  &__owned-check {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: $ink;
+    color: $chrome;
+
+    svg {
+      width: 12px;
+      height: 12px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  }
+
+  &__item-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 16px 16px;
+
+    small {
+      font-size: 12px;
+      color: $muted;
+    }
+
+    strong {
+      color: $ink;
+    }
+  }
+
+  &__price {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: $ink;
+    font-variant-numeric: tabular-nums;
+
+    &--muted {
+      font-weight: 400;
+      color: $muted;
+    }
+
+    &--equip {
+      align-self: flex-start;
+      height: 28px;
+      padding: 0 10px;
+      border: 1px solid $ink;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+  }
+
+  &__empty {
+    padding: 40px;
+    border: 1px dashed $line;
+    border-radius: 8px;
+    color: $muted;
+    text-align: center;
+  }
+
+  @media (max-width: 760px) {
+    &__featured {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 24px;
+
+      &::after {
+        background: linear-gradient(
+          180deg,
+          transparent 20%,
+          rgba(13, 13, 13, 0.85) 60%
+        );
+      }
+    }
+
+    &__featured-text {
+      width: auto;
+      margin: 16px 0 0;
+    }
+  }
+}
+
+.shop-modal {
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: min(488px, 100%);
+  }
+
+  // Mini profile: your banner, your avatar wearing the frame, name and level.
+  &__profile {
+    position: relative;
+    height: 150px;
+    overflow: hidden;
+    border: 1px solid $line;
+    border-radius: 6px;
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.5)),
+      radial-gradient(
+        ellipse 45% 90% at 78% 30%,
+        rgba(70, 100, 160, 0.5),
+        transparent 70%
+      ),
+      linear-gradient(90deg, #2a1a0f, #1a1410 45%, #0f1830);
+
+    &--has-banner {
+      background: none;
+    }
+  }
+
+  &__banner {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__shade {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.7)),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.4), transparent 60%);
+  }
+
+  &__who {
+    position: absolute;
+    bottom: 18px;
+    left: 20px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  &__who-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    > strong {
+      font-size: 16px;
+      font-weight: 700;
+      color: $ink;
+    }
+  }
+
+  &__level {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid $line;
+    border-radius: 999px;
+    background-color: rgba(13, 13, 13, 0.6);
+    font-size: 12px;
+    color: $ink;
+  }
+
+  &__level-bar {
+    width: 56px;
+  }
+
+  &__ticket {
+    position: relative;
+    padding: 6px 16px;
+    border-radius: 6px;
+    background-color: $row;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__ticket-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    font-size: 13px;
+
+    span {
+      color: $muted;
+    }
+
+    strong {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: $ink;
+    }
+
+    &--total strong {
+      font-size: 22px;
+    }
+
+    &--negative strong {
+      color: $muted;
+    }
+  }
+
+  &__ticket-cut {
+    position: relative;
+    height: 1px;
+    margin: 6px -16px;
+    border-top: 1px dashed $line-strong;
+
+    i {
+      position: absolute;
+      top: -7px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background-color: globals.$background-color;
+
+      &:first-child {
+        left: -7px;
+      }
+
+      &:last-child {
+        right: -7px;
+      }
+    }
+  }
+
+  &__hint {
+    margin: 0;
+    font-size: 12px;
+    color: $muted;
+  }
+
+  &__row {
+    padding: 12px 16px;
+    border-radius: 4px;
+    background-color: $row;
+    font-size: 13px;
+    color: $body;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+}

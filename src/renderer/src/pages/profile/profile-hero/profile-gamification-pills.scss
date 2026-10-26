@@ -31,6 +31,8 @@
     }
 
     &--clickable {
+      border: 0;
+      font: inherit;
       cursor: pointer;
 
       &:focus-visible {

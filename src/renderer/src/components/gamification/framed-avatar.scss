@@ -1,0 +1,24 @@
+.framed-avatar {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  line-height: 0;
+
+  &__frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  // Shop cards show only the frame; the photo is already in the item preview.
+  &--frame-only {
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.035);
+
+    .profile-avatar {
+      opacity: 0;
+    }
+  }
+}

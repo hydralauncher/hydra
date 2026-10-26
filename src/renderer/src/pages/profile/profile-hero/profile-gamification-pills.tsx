@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import cn from "classnames";
 import {
   CoinIcon,
@@ -22,6 +23,7 @@ const LEVEL_PILL_HALO_ALPHA = 0.07;
 export function ProfileGamificationPills() {
   const { t } = useTranslation("user_profile");
   const { formatNumber } = useFormat();
+  const navigate = useNavigate();
   const { level, loginStreak, coins, isMe } = useProfileGamification();
   const halo = useHoverHalo<HTMLDivElement>(LEVEL_PILL_HALO_ALPHA);
   const shownCoins = useAnimatedNumber(coins ?? 0);
@@ -105,16 +107,21 @@ export function ProfileGamificationPills() {
       )}
 
       {coins !== null && (
-        <div
-          className="profile-gamification-pills__pill"
+        <button
+          type="button"
+          className={cn(
+            "profile-gamification-pills__pill",
+            "profile-gamification-pills__pill--clickable"
+          )}
           data-gamification-coins
+          onClick={() => navigate("/shop")}
         >
           <CoinIcon />
           <span>
             <strong>{formatNumber(shownCoins)}</strong>{" "}
             {t("coins_label", { count: coins })}
           </span>
-        </div>
+        </button>
       )}
     </div>
   );
