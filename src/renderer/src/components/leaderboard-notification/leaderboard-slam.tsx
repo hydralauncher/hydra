@@ -20,6 +20,7 @@ import "./leaderboard-notification.scss";
 const TAG_GAP = 32;
 const FOOT_GAP = 40;
 const MIN_TOP = 16;
+const APP_ROOT_ID = "root";
 
 const slamTagKey = (info: LeaderboardNotificationInfo) => {
   if (info.moment === "leader") return "leaderboard_slam_leader";
@@ -83,13 +84,51 @@ export function LeaderboardSlam({
     };
     place();
 
-    return () => slam.stop();
+    const observer = new ResizeObserver(() => {
+      slam.resize();
+      place();
+    });
+    observer.observe(root);
+
+    return () => {
+      observer.disconnect();
+      slam.stop();
+    };
   }, [rankText]);
 
   useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const appRoot = document.getElementById(APP_ROOT_ID);
+    appRoot?.setAttribute("inert", "");
     closeRef.current?.focus();
+
+    return () => {
+      appRoot?.removeAttribute("inert");
+      previousFocus?.focus();
+    };
+  }, []);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab" || !rootRef.current) return;
+      const buttons = [...rootRef.current.querySelectorAll("button")];
+      const first = buttons[0];
+      const last = buttons.at(-1);
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      } else if (!rootRef.current.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);

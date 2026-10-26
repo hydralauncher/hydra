@@ -1,35 +1,52 @@
 import type { LeaderboardRequestSource } from "@shared";
-import { createResponseCache, type ApiGet } from "../helpers/response-cache";
+import {
+  createResponseCache,
+  type ApiGet,
+  type ApiRequestOptions,
+} from "../helpers/response-cache";
 
 const SOURCE_ATTRIBUTION_MS = 10_000;
 
-let pendingSource: {
+export interface LeaderboardAttribution {
   path: string;
+  scope: string;
+  period: string;
   source: LeaderboardRequestSource;
-  expiresAt: number;
-} | null = null;
+}
+
+let pendingSource: (LeaderboardAttribution & { expiresAt: number }) | null =
+  null;
 
 export const attributeNextLeaderboardRequest = (
-  path: string,
-  source: LeaderboardRequestSource
+  attribution: LeaderboardAttribution
 ) => {
-  leaderboardsCache.evictPath(path);
+  leaderboardsCache.evictPath(attribution.path);
   pendingSource = {
-    path,
-    source,
+    ...attribution,
     expiresAt: Date.now() + SOURCE_ATTRIBUTION_MS,
   };
 };
 
-const takeSource = (path: string) => {
-  if (!pendingSource || pendingSource.path !== path) return null;
-  const { source, expiresAt } = pendingSource;
+const takeSource = (path: string, { params }: ApiRequestOptions) => {
+  const pending = pendingSource;
+  if (!pending) return null;
+  if (Date.now() > pending.expiresAt) {
+    pendingSource = null;
+    return null;
+  }
+  if (
+    pending.path !== path ||
+    params.scope !== pending.scope ||
+    (params.window ?? params.range) !== pending.period
+  ) {
+    return null;
+  }
   pendingSource = null;
-  return Date.now() <= expiresAt ? source : null;
+  return pending.source;
 };
 
 const leaderboardsGet: ApiGet = (path, options) => {
-  const source = takeSource(path);
+  const source = takeSource(path, options);
   return globalThis.window.electron.hydraApi.get<unknown>(
     path,
     source ? { ...options, params: { ...options.params, source } } : options

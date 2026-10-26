@@ -87,10 +87,20 @@ function LeaderboardsPage() {
     attributedSourceRef.current !== searchParams.toString()
   ) {
     attributedSourceRef.current = searchParams.toString();
-    attributeNextLeaderboardRequest(
-      buildLeaderboardBoardPath(metricParam, linkedGame),
-      sourceParam
-    );
+    attributeNextLeaderboardRequest({
+      path: buildLeaderboardBoardPath(metricParam, linkedGame),
+      scope: (GLOBAL_LEADERBOARD_SCOPES as readonly (string | null)[]).includes(
+        scopeParam
+      )
+        ? (scopeParam as string)
+        : "global",
+      period: (
+        GLOBAL_LEADERBOARD_PERIODS as readonly (string | null)[]
+      ).includes(periodParam)
+        ? (periodParam as string)
+        : "week",
+      source: sourceParam,
+    });
   }
 
   useEffect(() => {
@@ -182,6 +192,19 @@ function LeaderboardsPage() {
     lastWeekKeyRef.current = weekKey;
     setGeneration((value) => value + 1);
   }, [weekKey]);
+
+  const refetchedSourceRef = useRef(attributedSourceRef.current);
+  useEffect(() => {
+    const attributed = attributedSourceRef.current;
+    if (!attributed) {
+      refetchedSourceRef.current = null;
+      return;
+    }
+    if (attributed === refetchedSourceRef.current) return;
+    refetchedSourceRef.current = attributed;
+    setGeneration((value) => value + 1);
+    retry();
+  }, [searchParams, retry]);
 
   const handleWeekEnd = useCallback(() => {
     leaderboardsCache.clear();

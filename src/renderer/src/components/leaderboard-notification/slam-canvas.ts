@@ -20,6 +20,15 @@ const FONT = "900 122px 'Noto Sans', system-ui, sans-serif";
 const ZOOM = 2.3;
 const END_FRAME = 58;
 const FRAMES_PER_SECOND = 25;
+const MAX_DEVICE_PIXEL_RATIO = 2;
+const MAX_FRAME_SECONDS = 0.1;
+const HOVER_IN_SECONDS = 0.24;
+const HOVER_OUT_SECONDS = 0.48;
+const LUT_SMOOTHING_RADIUS = 7;
+const LUT_SMOOTHING_PASSES = 2;
+const QUANTIZE_LEVELS = 6;
+const MIN_EXTRUSION_LAYERS = 12;
+const MAX_EXTRUSION_LAYERS = 110;
 
 const SLAM = {
   W: [
@@ -121,11 +130,15 @@ const buildLut = () => {
     raw.push(c0.map((value, q) => value + (c1[q] - value) * eased) as Rgb);
   }
 
-  for (let pass = 0; pass < 2; pass++) {
+  for (let pass = 0; pass < LUT_SMOOTHING_PASSES; pass++) {
     raw = raw.map((_, i) => {
       const sum: Rgb = [0, 0, 0];
       let count = 0;
-      for (let offset = -7; offset <= 7; offset++) {
+      for (
+        let offset = -LUT_SMOOTHING_RADIUS;
+        offset <= LUT_SMOOTHING_RADIUS;
+        offset++
+      ) {
         const color = raw[Math.max(0, Math.min(255, i + offset))];
         sum[0] += color[0];
         sum[1] += color[1];
@@ -139,13 +152,13 @@ const buildLut = () => {
 };
 
 const buildQuantizeTable = () => {
-  const levels = 6;
   const table = new Uint8ClampedArray(16 * 256);
   for (let k = 0; k < 16; k++) {
     for (let v = 0; v < 256; v++) {
       const q = Math.min(
         1,
-        Math.floor(Math.sqrt(v / 255) * levels + (k + 0.5) / 16) / levels
+        Math.floor(Math.sqrt(v / 255) * QUANTIZE_LEVELS + (k + 0.5) / 16) /
+          QUANTIZE_LEVELS
       );
       table[k * 256 + v] = q * q * 255;
     }
@@ -186,6 +199,7 @@ const windowed = (table: number[], u: number) => {
 
 export interface SlamCanvas {
   setOffsetY: (offsetY: number) => void;
+  resize: () => void;
   stop: () => void;
 }
 
@@ -210,16 +224,21 @@ export const runSlam = (
   const mainCtx = canvas.getContext("2d")!;
   mainCtx.font = FONT;
   const textWidth = mainCtx.measureText(text).width;
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
+  const dpr = Math.min(MAX_DEVICE_PIXEL_RATIO, window.devicePixelRatio || 1);
+  let width = 0;
+  let height = 0;
 
   const extrusionScale = 1 / (2 * dpr);
   const extrusion = document.createElement("canvas");
-  extrusion.width = Math.ceil(canvas.width * extrusionScale);
-  extrusion.height = Math.ceil(canvas.height * extrusionScale);
+  const fitToCanvas = () => {
+    width = canvas.clientWidth;
+    height = canvas.clientHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    extrusion.width = Math.ceil(canvas.width * extrusionScale);
+    extrusion.height = Math.ceil(canvas.height * extrusionScale);
+  };
+  fitToCanvas();
 
   let offsetY = 0;
   let lastKey = "";
@@ -336,8 +355,8 @@ export const runSlam = (
       ctx = extrusionCtx;
 
       const layers = Math.min(
-        110,
-        Math.max(12, Math.ceil((depth / ZOOM) * 0.75))
+        MAX_EXTRUSION_LAYERS,
+        Math.max(MIN_EXTRUSION_LAYERS, Math.ceil((depth / ZOOM) * 0.75))
       );
       for (let i = layers; i >= 0; i--) {
         const layerDepth = (depth * ZOOM * 0.42 * i) / layers;
@@ -427,11 +446,14 @@ export const runSlam = (
 
   const loop = (now: number) => {
     if (!canvas.isConnected) return;
-    const dt = Math.min(0.1, (now - last) / 1000);
+    const dt = Math.min(MAX_FRAME_SECONDS, (now - last) / 1000);
     last = now;
     hover +=
       (hoverTarget - hover) *
-      (1 - Math.exp(-dt / (hoverTarget > hover ? 0.24 : 0.48)));
+      (1 -
+        Math.exp(
+          -dt / (hoverTarget > hover ? HOVER_IN_SECONDS : HOVER_OUT_SECONDS)
+        ));
     const u = reduced
       ? END_FRAME
       : Math.min(
@@ -450,6 +472,11 @@ export const runSlam = (
   return {
     setOffsetY: (value) => {
       offsetY = value;
+      lastKey = "";
+    },
+    resize: () => {
+      mainCtx.font = FONT;
+      fitToCanvas();
       lastKey = "";
     },
     stop: () => {
