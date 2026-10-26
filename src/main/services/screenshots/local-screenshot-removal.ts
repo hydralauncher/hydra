@@ -3,6 +3,7 @@ import fs from "node:fs";
 import type { GameShop, LocalScreenshot } from "@types";
 
 import { logger } from "../logger";
+import { WindowManager } from "../window-manager";
 import {
   isLocalScreenshotFileForGame,
   isPublishedLocalScreenshot,
@@ -21,7 +22,8 @@ const fileExists = (filePath: string) =>
 
 const removeLocalScreenshot = async (
   clientId: string,
-  shouldDelete: (screenshot: LocalScreenshot) => boolean = () => true
+  shouldDelete: (screenshot: LocalScreenshot) => boolean = () => true,
+  telemetryOutcome = "delete"
 ) => {
   const screenshot = await LocalScreenshotStore.get(clientId);
   if (!screenshot || screenshot.state === "deleted") return false;
@@ -40,12 +42,69 @@ const removeLocalScreenshot = async (
     await LocalScreenshotStore.delete(clientId);
   }
   await ScreenshotReviewSession.removeScreenshot(clientId);
-  ScreenshotTelemetry.record("review", "delete");
+  ScreenshotTelemetry.record("review", telemetryOutcome);
   return true;
 };
 
 export const deleteLocalScreenshot = async (clientId: string) => {
   await removeLocalScreenshot(clientId);
+};
+
+const isUnpublishedLocalFile = (screenshot: LocalScreenshot) =>
+  screenshot.state !== "uploaded" && screenshot.state !== "deleted";
+
+const pendingMissingRemovals = new Map<string, Promise<boolean>>();
+
+const removeMissingLocalScreenshot = async (clientId: string) => {
+  const pending = pendingMissingRemovals.get(clientId);
+  if (pending) {
+    await pending;
+    return false;
+  }
+
+  const removal = removeLocalScreenshot(
+    clientId,
+    isUnpublishedLocalFile,
+    "missing_file"
+  ).finally(() => pendingMissingRemovals.delete(clientId));
+  pendingMissingRemovals.set(clientId, removal);
+  return removal;
+};
+
+const announceMissingLocalScreenshots = (count: number) => {
+  if (count === 0) return;
+  WindowManager.sendToAppWindows("on-local-screenshots-missing", count);
+};
+
+export const pruneMissingLocalScreenshots = async (
+  screenshots: LocalScreenshot[]
+) => {
+  const isPresent = await Promise.all(
+    screenshots.map(
+      (screenshot) =>
+        !isUnpublishedLocalFile(screenshot) || fileExists(screenshot.path)
+    )
+  );
+  const missing = screenshots.filter((_, index) => !isPresent[index]);
+  if (!missing.length) return screenshots;
+
+  const removed = await Promise.all(
+    missing.map((screenshot) =>
+      removeMissingLocalScreenshot(screenshot.clientId)
+    )
+  );
+  announceMissingLocalScreenshots(removed.filter(Boolean).length);
+  return screenshots.filter((_, index) => isPresent[index]);
+};
+
+export const removeLocalScreenshotIfMissing = async (clientId: string) => {
+  const screenshot = await LocalScreenshotStore.get(clientId);
+  if (!screenshot || !isUnpublishedLocalFile(screenshot)) return false;
+  if (await fileExists(screenshot.path)) return false;
+
+  const removed = await removeMissingLocalScreenshot(clientId);
+  if (removed) announceMissingLocalScreenshots(1);
+  return removed;
 };
 
 const listLocalScreenshotFilesForGame = async (
