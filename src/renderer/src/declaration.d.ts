@@ -1120,6 +1120,7 @@ declare global {
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     getScreenshotsPath: () => Promise<string>;
+    getScreenshotsFolderPath: () => Promise<string>;
     getLocalScreenshots: () => Promise<LocalScreenshot[]>;
     getLocalScreenshotsForGame: (
       shop: GameShop,

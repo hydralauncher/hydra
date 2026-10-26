@@ -90,7 +90,7 @@ export function SettingsContextScreenshots() {
 
   useEffect(() => {
     window.electron
-      .getScreenshotsPath()
+      .getScreenshotsFolderPath()
       .then(setScreenshotsPath)
       .catch((error) =>
         logger.error("Failed to read the screenshots folder", error)
@@ -133,12 +133,12 @@ export function SettingsContextScreenshots() {
     if (canceled || !selectedPath) return;
 
     setScreenshotsPath(selectedPath);
-    await updateUserPreferences({ achievementScreenshotsPath: selectedPath });
+    await updateUserPreferences({ screenshotsFolderPath: selectedPath });
   };
 
   const handleResetScreenshotsPath = async () => {
-    await updateUserPreferences({ achievementScreenshotsPath: undefined });
-    setScreenshotsPath(await window.electron.getScreenshotsPath());
+    await updateUserPreferences({ screenshotsFolderPath: undefined });
+    setScreenshotsPath(await window.electron.getScreenshotsFolderPath());
   };
 
   const handleOpenScreenshotsFolder = async () => {
@@ -150,7 +150,7 @@ export function SettingsContextScreenshots() {
   };
 
   const hasCustomScreenshotsPath = Boolean(
-    userPreferences?.achievementScreenshotsPath
+    userPreferences?.screenshotsFolderPath
   );
   const isCaptureDisabled = !form.enabled;
 
@@ -254,7 +254,6 @@ export function SettingsContextScreenshots() {
           <TextField
             label={t("screenshots_directory")}
             value={screenshotsPath}
-            hint={t("screenshots_folder_hint")}
             readOnly
             disabled
             rightContent={
