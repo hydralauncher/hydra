@@ -8,6 +8,8 @@ const hasGameInstaller = async (
   shop: GameShop,
   objectId: string
 ): Promise<boolean> => {
+  if (shop === "launchbox") return false;
+
   const download = await downloadsSublevel.get(levelKeys.game(shop, objectId));
 
   return (await findDownloadInstaller(download)) !== null;

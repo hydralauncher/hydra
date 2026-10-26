@@ -7,9 +7,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "esbuild";
 
 type FindGameInstaller = (folderPath: string) => Promise<string | null>;
+type ListArchiveVolumes = (archivePath: string) => Promise<string[]>;
 
 let root: string;
 let findGameInstaller: FindGameInstaller;
+let listArchiveVolumes: ListArchiveVolumes;
 
 const createLayout = async (name: string, files: string[]) => {
   const folder = path.join(root, name);
@@ -66,7 +68,9 @@ before(async () => {
     ],
   });
 
-  ({ findGameInstaller } = await import(pathToFileURL(bundlePath).href));
+  ({ findGameInstaller, listArchiveVolumes } = await import(
+    pathToFileURL(bundlePath).href
+  ));
 });
 
 after(async () => {
@@ -139,6 +143,16 @@ describe("findGameInstaller", () => {
     );
   });
 
+  it("only treats whole-word markers as secondary installers", async () => {
+    assert.equal(
+      await installerIn("post", [
+        "setup_post_void_v1.2.3.exe",
+        "setup_post_void_ost.exe",
+      ]),
+      "setup_post_void_v1.2.3.exe"
+    );
+  });
+
   it("gives up when two installers tie", async () => {
     assert.equal(
       await installerIn("tied", ["Part1/setup.exe", "Part2/setup.exe"]),
@@ -148,5 +162,48 @@ describe("findGameInstaller", () => {
 
   it("does not search deeper than two folders", async () => {
     assert.equal(await installerIn("deep", ["a/b/c/setup.exe"]), null);
+  });
+});
+
+describe("listArchiveVolumes", () => {
+  const volumesOf = async (name: string, archive: string, files: string[]) => {
+    const folder = await createLayout(name, files);
+    const volumes = await listArchiveVolumes(path.join(folder, archive));
+
+    return volumes.map((volume) => path.basename(volume)).sort();
+  };
+
+  const files = [
+    "Game.rar",
+    "Game.r00",
+    "Game.r01",
+    "Game.part1.rar",
+    "Game.part2.rar",
+    "Game.7z.001",
+    "Game.7z.002",
+    "Other.r00",
+    "Game.zip",
+  ];
+
+  it("keeps each naming scheme to its own volumes", async () => {
+    assert.deepEqual(await volumesOf("rar-old", "Game.rar", files), [
+      "Game.r00",
+      "Game.r01",
+      "Game.rar",
+    ]);
+    assert.deepEqual(await volumesOf("rar-part", "Game.part1.rar", files), [
+      "Game.part1.rar",
+      "Game.part2.rar",
+    ]);
+    assert.deepEqual(await volumesOf("seven-zip", "Game.7z.001", files), [
+      "Game.7z.001",
+      "Game.7z.002",
+    ]);
+  });
+
+  it("returns a single archive as is", async () => {
+    assert.deepEqual(await volumesOf("single", "Game.zip", files), [
+      "Game.zip",
+    ]);
   });
 });

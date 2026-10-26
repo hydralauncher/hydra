@@ -40,6 +40,9 @@ export const getFinishedDownloadStep = (
   if (!download) return null;
   if (download.extracting) return "extracting";
   if (game.executablePath) return "play";
+  if (game.shop === "launchbox") {
+    return (game.discs?.length ?? 0) > 0 ? "play" : null;
+  }
   if (isUnextractedArchive(download)) return "extract";
   if (download.installerRunning) return "installing";
   if (hasInstaller && !download.installerLaunched) return "install";

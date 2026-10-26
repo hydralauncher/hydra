@@ -48,7 +48,16 @@ const QUICK_INSTALLER_EXIT_MS = 15_000;
 const MAX_INSTALLER_TRACKING_MS = 2 * 60 * 60_000;
 const ELEVATION_ERROR_CODES = new Set(["EACCES", "UNKNOWN"]);
 
-const runningInstallers = new Set<string>();
+const runningInstallers = new Map<string, number>();
+
+const releaseRunningInstaller = (
+  gameKey: string,
+  installerStartedAt: number
+) => {
+  if (runningInstallers.get(gameKey) === installerStartedAt) {
+    runningInstallers.delete(gameKey);
+  }
+};
 
 const isSuccessfulExit = (exitCode: number | null) =>
   exitCode !== null && SUCCESS_EXIT_CODES.has(exitCode);
@@ -437,18 +446,18 @@ const openGameInstaller = async (
     return true;
   }
 
-  runningInstallers.add(gameKey);
+  const installerStartedAt = Date.now();
+  runningInstallers.set(gameKey, installerStartedAt);
   stopInstalledExecutablePolling(gameKey);
 
   const installerPath = await findDownloadInstaller(download).catch(() => null);
 
   if (!installerPath) {
-    runningInstallers.delete(gameKey);
+    releaseRunningInstaller(gameKey, installerStartedAt);
     shell.openPath(gamePath);
     return true;
   }
 
-  const installerStartedAt = Date.now();
   let installerFinished = false;
   let markLaunchRecorded = () => {};
   const launchRecorded = new Promise<void>((resolve) => {
@@ -458,7 +467,7 @@ const openGameInstaller = async (
   const afterLaunchRecorded = (callback: () => Promise<void>) => {
     if (installerFinished) return;
     installerFinished = true;
-    runningInstallers.delete(gameKey);
+    releaseRunningInstaller(gameKey, installerStartedAt);
     endInstallerRun(gameKey, installerStartedAt);
     void launchRecorded.then(callback).catch((error) => {
       logger.error("Failed to update the installer state", error);
@@ -494,13 +503,14 @@ const openGameInstaller = async (
         })
       ),
   }).catch((error) => {
-    runningInstallers.delete(gameKey);
+    releaseRunningInstaller(gameKey, installerStartedAt);
     markLaunchRecorded();
     throw error;
   });
   const { launched, tracked } = launchResult;
 
-  if (!launched || !tracked) runningInstallers.delete(gameKey);
+  if (!launched || !tracked)
+    releaseRunningInstaller(gameKey, installerStartedAt);
 
   if (launched && tracked && !installerFinished) {
     markInstallerRunLive(gameKey, installerStartedAt);
@@ -510,7 +520,7 @@ const openGameInstaller = async (
       logger.info(
         `[GameInstaller] Installer for ${objectId} is still open after two hours, allowing it to be relaunched`
       );
-      runningInstallers.delete(gameKey);
+      releaseRunningInstaller(gameKey, installerStartedAt);
       void launchRecorded
         .then(() => updateInstallerState(gameKey, { installerRunning: false }))
         .catch((error) => {

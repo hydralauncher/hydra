@@ -8,6 +8,7 @@ import {
 } from "@main/helpers/installed-executable-poller";
 
 const RECHECK_INTERVAL_MS = 30_000;
+const RECHECK_MAX_AGE_MS = 24 * 60 * 60_000;
 
 const lastRecheckAt = new Map<string, number>();
 
@@ -26,6 +27,7 @@ const recheckInstalledExecutable = async (
     !download?.installerLaunched ||
     download.installerRunning ||
     !download.installerStartedAt ||
+    Date.now() - download.installerStartedAt > RECHECK_MAX_AGE_MS ||
     game?.executablePath ||
     isPollingInstalledExecutable(gameKey) ||
     isInstallerRunLive(gameKey)

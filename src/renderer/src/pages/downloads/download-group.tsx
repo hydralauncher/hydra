@@ -9,6 +9,7 @@ import {
 import {
   formatDownloadProgress,
   buildGameDetailsPath,
+  handleClassicsLaunchError,
 } from "@renderer/helpers";
 
 import {
@@ -30,6 +31,7 @@ import {
   useInstallerAvailability,
   useLibrary,
   useDate,
+  useToast,
 } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 
@@ -626,6 +628,7 @@ export function DownloadGroup({
   const extraction = useAppSelector((state) => state.download.extraction);
 
   const { updateLibrary } = useLibrary();
+  const { showErrorToast, showSuccessToast } = useToast();
   const pickGameExecutable = useGameExecutablePicker();
 
   const {
@@ -1094,6 +1097,7 @@ export function DownloadGroup({
     );
 
     if (step === "extracting") return "checking";
+    if (!step && game.shop === "launchbox") return "open-folder";
     if (step === "select-executable" && !(game.id in installerAvailability)) {
       return "checking";
     }
@@ -1107,7 +1111,41 @@ export function DownloadGroup({
       .catch((error) => logger.error("Failed to close game", error));
   };
 
+  const playClassicsGame = async (game: LibraryGame) => {
+    const detailsPath = buildGameDetailsPath(game);
+    const needsDiscSelection =
+      (game.discs?.length ?? 0) > 1 &&
+      !(game.dontAskDiscSelection && game.selectedDiscPath);
+
+    if (needsDiscSelection) {
+      navigate(detailsPath, { state: { openDiscSelection: true } });
+      return;
+    }
+
+    try {
+      await window.electron.openClassicsGame(
+        game.shop,
+        game.objectId,
+        game.selectedDiscPath ?? undefined
+      );
+    } catch (error) {
+      const shouldLog = handleClassicsLaunchError(error, {
+        t: tGameDetails,
+        showErrorToast,
+        showSuccessToast,
+        navigate,
+        onEmulatorAlreadyRunning: () => navigate(detailsPath),
+      });
+      if (shouldLog) logger.error("Failed to start classics game", error);
+    }
+  };
+
   const playGame = (game: LibraryGame) => {
+    if (game.shop === "launchbox") {
+      void playClassicsGame(game);
+      return;
+    }
+
     window.electron
       .openGame(
         game.shop,

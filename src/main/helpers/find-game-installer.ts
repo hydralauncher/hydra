@@ -75,7 +75,8 @@ const collectInstallerCandidates = async (
   return [...candidates, ...nestedCandidates.flat()];
 };
 
-const SECONDARY_INSTALLER_PATTERN = /dlc|patch|update|addon|soundtrack|ost/;
+const SECONDARY_INSTALLER_PATTERN =
+  /(?:^|[_\-. ])(?:dlc|patch|update|addon|soundtrack|ost)(?:[_\-. ]|$)/;
 
 const isSecondaryInstaller = (filePath: string) =>
   SECONDARY_INSTALLER_PATTERN.test(path.basename(filePath).toLowerCase());
@@ -142,21 +143,21 @@ export const findSourceArchiveFile = async (download: Download) => {
 const ARCHIVE_VOLUME_PATTERNS = [
   /^(.*)\.part\d+\.rar$/i,
   /^(.*\.(?:7z|zip|rar))\.\d{3}$/i,
+  /^(.*)\.(?:rar|r\d{2})$/i,
 ];
 
-const isVolumeOf = (fileName: string, archiveBase: string) =>
-  ARCHIVE_VOLUME_PATTERNS.some((pattern) => {
+const readArchiveVolume = (fileName: string) => {
+  for (const pattern of ARCHIVE_VOLUME_PATTERNS) {
     const match = pattern.exec(fileName);
-    return match?.[1].toLowerCase() === archiveBase.toLowerCase();
-  });
+    if (match) return { pattern, base: match[1].toLowerCase() };
+  }
+
+  return null;
+};
 
 export const listArchiveVolumes = async (archivePath: string) => {
-  const archiveName = path.basename(archivePath);
-  const archiveBase = ARCHIVE_VOLUME_PATTERNS.map((pattern) =>
-    pattern.exec(archiveName)
-  ).find(Boolean)?.[1];
-
-  if (!archiveBase) return [archivePath];
+  const archive = readArchiveVolume(path.basename(archivePath));
+  if (!archive) return [archivePath];
 
   const directory = path.dirname(archivePath);
   const entries = await fs.promises
@@ -164,7 +165,13 @@ export const listArchiveVolumes = async (archivePath: string) => {
     .catch(() => []);
 
   const volumes = entries
-    .filter((entry) => entry.isFile() && isVolumeOf(entry.name, archiveBase))
+    .filter((entry) => {
+      if (!entry.isFile()) return false;
+      const volume = readArchiveVolume(entry.name);
+      return (
+        volume?.pattern === archive.pattern && volume.base === archive.base
+      );
+    })
     .map((entry) => path.join(directory, entry.name));
 
   return volumes.length > 0 ? volumes : [archivePath];

@@ -56,6 +56,20 @@ describe("getFinishedDownloadStep", () => {
     );
   });
 
+  it("plays Classics games through their discs and never asks for an executable", () => {
+    const withDiscs = makeGame({ folderName: "Rom.zip" }, {
+      shop: "launchbox",
+      discs: [{ path: "/roms/Rom.zip" }],
+    } as Partial<LibraryGame>);
+    const withoutDiscs = makeGame({ folderName: "Rom.zip" }, {
+      shop: "launchbox",
+      discs: [],
+    } as Partial<LibraryGame>);
+
+    assert.equal(getFinishedDownloadStep(withDiscs, true), "play");
+    assert.equal(getFinishedDownloadStep(withoutDiscs, false), null);
+  });
+
   it("waits for extraction before anything else", () => {
     const game = makeGame(
       { extracting: true },
