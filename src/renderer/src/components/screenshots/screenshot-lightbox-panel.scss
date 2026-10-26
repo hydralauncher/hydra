@@ -372,6 +372,7 @@ $description-outline-fade-duration: 0.15s;
 
   &__header {
     position: relative;
+    isolation: isolate;
     display: flex;
     flex-direction: column;
     justify-content: center;
