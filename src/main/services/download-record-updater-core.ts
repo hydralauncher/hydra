@@ -2,7 +2,7 @@ import type { Download } from "@types";
 
 interface DownloadStore {
   get(key: string): Promise<Download | undefined>;
-  put(key: string, download: Download): Promise<unknown> | unknown;
+  put(key: string, download: Download): Promise<void> | void;
 }
 
 type DownloadPatch =

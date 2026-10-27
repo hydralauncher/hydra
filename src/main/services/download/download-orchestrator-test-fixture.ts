@@ -217,9 +217,13 @@ export function fixture() {
         call: (method: string, params?: Record<string, unknown>) => {
           state.torrentCalls.push(method);
           if (method === "action" && params) state.torrentActions.push(params);
-          if (method === "action" && params?.action === "start")
+          if (
+            method === "action" &&
+            params?.action === "start" &&
+            typeof params.game_id === "string"
+          )
             return state
-              .torrentStart(String(params.game_id))
+              .torrentStart(params.game_id)
               .then(() => ({ data: null }));
           if (method === "status" && typeof params?.game_id === "string")
             return Promise.resolve({

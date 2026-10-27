@@ -786,32 +786,14 @@ export class DownloadManager {
       const effectiveFileSize =
         snapshot.fileSize > 0 ? snapshot.fileSize : download.fileSize;
 
-      // The serialized writer preserves user-owned metadata at commit time.
-      const latestDownload = await downloadsSublevel.get(downloadId);
-      if (!latestDownload || !isCurrent()) return null;
-
-      let updatedDownload: Download = {
-        ...latestDownload,
-        files: snapshot.files,
-        bytesDownloaded: snapshot.bytesDownloaded,
-        fileSize: effectiveFileSize,
-        progress: snapshot.progress,
-        folderName: snapshot.folderName,
-        status:
-          status.status === "complete"
-            ? ("complete" as const)
-            : ("active" as const),
-      };
-
-      if (status.status === "active" || status.status === "complete") {
-        const saved = await this.persistDownloadRecord(
-          downloadId,
-          updatedDownload,
-          isCurrent
-        );
-        if (!saved) return null;
-        updatedDownload = saved;
-      }
+      const updatedDownload = await this.persistJsDownloadStatus(
+        downloadId,
+        status,
+        snapshot,
+        effectiveFileSize,
+        isCurrent
+      );
+      if (!updatedDownload) return null;
 
       if (!isCurrent()) return null;
 
@@ -839,6 +821,39 @@ export class DownloadManager {
       logger.error("[DownloadManager] Error getting JS download status:", err);
       return null;
     }
+  }
+
+  private static async persistJsDownloadStatus(
+    downloadId: string,
+    status: JsHttpDownloaderStatus,
+    snapshot: JsDownloadStatusSnapshot,
+    effectiveFileSize: number | null,
+    isCurrent: () => boolean
+  ): Promise<Download | null> {
+    // The serialized writer preserves user-owned metadata at commit time.
+    const latestDownload = await downloadsSublevel.get(downloadId);
+    if (!latestDownload || !isCurrent()) return null;
+
+    let updatedDownload: Download = {
+      ...latestDownload,
+      files: snapshot.files,
+      bytesDownloaded: snapshot.bytesDownloaded,
+      fileSize: effectiveFileSize,
+      progress: snapshot.progress,
+      folderName: snapshot.folderName,
+      status: status.status === "complete" ? "complete" : "active",
+    };
+
+    if (status.status === "active" || status.status === "complete") {
+      const saved = await this.persistDownloadRecord(
+        downloadId,
+        updatedDownload,
+        isCurrent
+      );
+      if (!saved) return null;
+      updatedDownload = saved;
+    }
+    return updatedDownload;
   }
 
   private static isJsDownloadCurrent(
@@ -1665,18 +1680,17 @@ export class DownloadManager {
 
     logger.log(seedStatus);
 
-    for (const status of seedStatus) {
-      const download = await downloadsSublevel.get(status.gameId);
+    await Promise.all(
+      seedStatus.map(async (status) => {
+        const download = await downloadsSublevel.get(status.gameId);
+        if (!download) return;
 
-      if (!download) continue;
+        const totalSize = await getDirSize(
+          path.join(download.downloadPath, status.folderName)
+        );
+        if (totalSize >= status.fileSize) return;
 
-      const totalSize = await getDirSize(
-        path.join(download.downloadPath, status.folderName)
-      );
-
-      if (totalSize < status.fileSize) {
         await this.pauseSeeding(status.gameId);
-
         await this.persistDownloadRecord(status.gameId, {
           ...download,
           status: "paused",
@@ -1688,10 +1702,9 @@ export class DownloadManager {
               : download.progress,
         });
         WindowManager.sendDownloadsUpdated();
-
         WindowManager.sendToAppWindows("on-hard-delete");
-      }
-    }
+      })
+    );
 
     WindowManager.sendToAppWindows("on-seeding-status", seedStatus);
   }
@@ -3237,8 +3250,7 @@ export class DownloadManager {
     void downloader.startDownload().catch(async (error) => {
       const session = this.getSession(batch.downloadId);
       if (
-        !session ||
-        session.generation !== generation ||
+        session?.generation !== generation ||
         session.downloader !== downloader
       )
         return;
@@ -3374,7 +3386,6 @@ export class DownloadManager {
       if (session.generation !== generation) return;
       session.isPreparing = false;
       this.clearSession(downloadId, session);
-      return;
     }
   }
 

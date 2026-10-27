@@ -221,7 +221,9 @@ export function Sidebar() {
   );
 
   const { packetsById } = useDownload();
-  const activeDownloadIds = Object.keys(packetsById).sort().join(",");
+  const activeDownloadIds = Object.keys(packetsById)
+    .sort((left, right) => left.localeCompare(right))
+    .join(",");
 
   const { showSuccessToast, showErrorToast } = useToast();
 
