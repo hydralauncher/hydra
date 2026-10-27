@@ -6,8 +6,8 @@ import type { LocalScreenshot } from "@types";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { toXmlString } from "../notifications/xml";
+import { WindowManager } from "../window-manager";
 import { LocalScreenshotStore } from "./local-screenshot-store";
-import { ScreenshotReviewSession } from "./screenshot-review-session";
 
 interface UploadBatch {
   clientIds: Set<string>;
@@ -15,7 +15,7 @@ interface UploadBatch {
 }
 
 let batch: UploadBatch | null = null;
-const reviewOriginClientIds = new Set<string>();
+const userUploadClientIds = new Set<string>();
 
 const showNotification = (
   title: string,
@@ -48,11 +48,22 @@ const showNotification = (
 const isActiveState = (state: LocalScreenshot["state"] | undefined) =>
   state === "queued" || state === "uploading";
 
-const pruneReviewOrigins = (byClientId: Map<string, LocalScreenshot>) => {
-  for (const clientId of reviewOriginClientIds) {
+const isMainWindowWatched = () => {
+  const mainWindow = WindowManager.mainWindow;
+  return (
+    !!mainWindow &&
+    !mainWindow.isDestroyed() &&
+    mainWindow.isVisible() &&
+    !mainWindow.isMinimized() &&
+    mainWindow.isFocused()
+  );
+};
+
+const pruneUserUploads = (byClientId: Map<string, LocalScreenshot>) => {
+  for (const clientId of userUploadClientIds) {
     const isActive = isActiveState(byClientId.get(clientId)?.state);
     if (!isActive && !batch?.clientIds.has(clientId)) {
-      reviewOriginClientIds.delete(clientId);
+      userUploadClientIds.delete(clientId);
     }
   }
 };
@@ -106,7 +117,7 @@ const finishBatchIfSettled = (
 
   currentBatch.notification?.close();
   for (const clientId of currentBatch.clientIds) {
-    reviewOriginClientIds.delete(clientId);
+    userUploadClientIds.delete(clientId);
   }
   batch = null;
 
@@ -117,8 +128,8 @@ const finishBatchIfSettled = (
 };
 
 export class ScreenshotUploadNotifier {
-  public static markReviewOrigin(clientId: string) {
-    reviewOriginClientIds.add(clientId);
+  public static markUserUpload(clientId: string) {
+    userUploadClientIds.add(clientId);
   }
 
   public static async refresh() {
@@ -133,15 +144,16 @@ export class ScreenshotUploadNotifier {
     const byClientId = new Map(
       screenshots.map((screenshot) => [screenshot.clientId, screenshot])
     );
+    const isWatched = isMainWindowWatched();
     const unattended = screenshots.filter(
       (screenshot) =>
-        reviewOriginClientIds.has(screenshot.clientId) &&
+        userUploadClientIds.has(screenshot.clientId) &&
         screenshot.ownerId === ownerId &&
         isActiveState(screenshot.state) &&
-        !ScreenshotReviewSession.isScreenshotUnderReview(screenshot.clientId)
+        !isWatched
     );
 
-    pruneReviewOrigins(byClientId);
+    pruneUserUploads(byClientId);
 
     if (!batch) {
       if (unattended.length) startBatch(unattended);

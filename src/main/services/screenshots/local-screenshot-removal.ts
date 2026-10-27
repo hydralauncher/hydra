@@ -10,7 +10,6 @@ import {
 } from "./local-screenshot-game";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { removeScreenshotPreview } from "./screenshot-preview";
-import { ScreenshotReviewSession } from "./screenshot-review-session";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { screenshotUploadWorker } from "./screenshot-upload-worker";
 
@@ -41,7 +40,6 @@ const removeLocalScreenshot = async (
   } else {
     await LocalScreenshotStore.delete(clientId);
   }
-  await ScreenshotReviewSession.removeScreenshot(clientId);
   ScreenshotTelemetry.record("review", telemetryOutcome);
   return true;
 };

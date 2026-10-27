@@ -29,7 +29,7 @@ import {
   type ScreenshotReviewDraft,
 } from "./screenshot-review-state";
 
-import "./screenshot-review-modal.scss";
+import "./screenshot-upload-form.scss";
 
 const VISIBILITY_LABEL_KEYS: Record<ProfileVisibility, string> = {
   PUBLIC: "visibility_public",

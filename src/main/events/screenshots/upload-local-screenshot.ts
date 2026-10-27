@@ -5,8 +5,8 @@ import { registerEvent } from "../register-event";
 registerEvent(
   "uploadLocalScreenshot",
   (
-    event: Electron.IpcMainInvokeEvent,
+    _event: Electron.IpcMainInvokeEvent,
     clientId: string,
     options: LocalScreenshotUploadOptions
-  ) => uploadLocalScreenshot(clientId, options, event.sender)
+  ) => uploadLocalScreenshot(clientId, options)
 );
