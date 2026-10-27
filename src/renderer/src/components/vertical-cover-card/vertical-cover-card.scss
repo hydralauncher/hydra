@@ -13,7 +13,9 @@
   border-radius: 4px;
   box-shadow: 0 8px 10px -2px rgba(0, 0, 0, 0.5);
   cursor: pointer;
-  transition: all ease 0.2s;
+  transition:
+    all ease 0.2s,
+    background 0s;
 
   &:active {
     opacity: globals.$active-opacity;

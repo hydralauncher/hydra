@@ -1,8 +1,6 @@
 import { EyeClosedIcon, LockIcon } from "@primer/octicons-react";
-import { useId } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Tooltip } from "react-tooltip";
+import { BADGE_TOOLTIP_ID } from "../badge-tooltip/badge-tooltip";
 import "./game-visibility-badge.scss";
 
 interface GameVisibilityBadgeProps {
@@ -17,7 +15,6 @@ export function GameVisibilityBadge({
   variant = "default",
 }: Readonly<GameVisibilityBadgeProps>) {
   const { t } = useTranslation("library");
-  const tooltipId = useId();
   if (!isHiddenFromOthers && !isConcealed) return null;
 
   const description = isConcealed
@@ -25,25 +22,14 @@ export function GameVisibilityBadge({
     : t("hidden_from_others_tooltip");
 
   return (
-    <>
-      <span
-        className={`game-visibility-badge${variant === "large" ? " game-visibility-badge--large" : ""}`}
-        data-tooltip-id={tooltipId}
-        data-tooltip-content={description}
-        aria-label={description}
-        role="img"
-      >
-        {isConcealed ? <LockIcon size={11} /> : <EyeClosedIcon size={11} />}
-      </span>
-      {createPortal(
-        <Tooltip
-          id={tooltipId}
-          place="top"
-          positionStrategy="fixed"
-          style={{ zIndex: 9999, maxWidth: 280 }}
-        />,
-        document.body
-      )}
-    </>
+    <span
+      className={`game-visibility-badge${variant === "large" ? " game-visibility-badge--large" : ""}`}
+      data-tooltip-id={BADGE_TOOLTIP_ID}
+      data-tooltip-content={description}
+      aria-label={description}
+      role="img"
+    >
+      {isConcealed ? <LockIcon size={11} /> : <EyeClosedIcon size={11} />}
+    </span>
   );
 }

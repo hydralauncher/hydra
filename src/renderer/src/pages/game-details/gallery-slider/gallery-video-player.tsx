@@ -22,7 +22,7 @@ import {
   SpeakerLow,
   SpeakerX,
 } from "@phosphor-icons/react";
-import { useHlsVideo } from "@shared";
+import { useHlsVideo } from "@shared/use-hls-video";
 import type { GalleryMediaItem, GalleryVideoSource } from "./gallery-slider";
 import { HLS_VIDEO_TYPE } from "./gallery-media-sources";
 import { isPointerActivity } from "./gallery-shortcuts";

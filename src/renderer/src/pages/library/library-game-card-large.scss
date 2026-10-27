@@ -6,15 +6,18 @@
   position: relative;
   border-radius: 8px;
   overflow: hidden;
+  background-color: #1c1c1c;
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition:
-    transform ease 0.2s,
-    box-shadow ease 0.2s,
-    border-color ease 0.2s;
+    transform 0.12s cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 0.12s cubic-bezier(0.2, 0, 0, 1),
+    border-color 0.12s cubic-bezier(0.2, 0, 0, 1);
   cursor: pointer;
   display: flex;
   align-items: center;
   text-align: left;
+  will-change: transform;
+  backface-visibility: hidden;
 
   &:before {
     content: "";
@@ -31,8 +34,8 @@
       rgba(255, 255, 255, 0.1) 100%
     );
     transition:
-      opacity ease 0.3s,
-      transform ease 0.3s;
+      opacity 0.18s cubic-bezier(0.2, 0, 0, 1),
+      transform 0.18s cubic-bezier(0.2, 0, 0, 1);
     transform: translateY(-36%);
     opacity: 0.5;
     z-index: 1;
@@ -43,8 +46,13 @@
     transform: translateY(-20%);
   }
 
+  &--loading {
+    border-color: transparent;
+  }
+
   &:hover {
-    transform: scale(1.01);
+    transform: scale(1.015);
+    z-index: 1;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
     border-color: rgba(255, 255, 255, 0.1);
   }
@@ -141,9 +149,7 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.62);
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;
     padding: 6px 12px;
@@ -180,6 +186,11 @@
     display: flex;
     align-items: center;
     min-width: 0;
+  }
+
+  &__image--pending,
+  &__logo:not([data-loaded]) {
+    visibility: hidden;
   }
 
   &__logo {
@@ -220,9 +231,7 @@
   }
 
   &__installed-badge {
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.62);
     color: rgba(255, 255, 255, 0.95);
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;
@@ -249,8 +258,6 @@
     background:
       linear-gradient(#1c1c1c, #1c1c1c) padding-box,
       globals.$classics-rainbow border-box;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     color: #fafafa;
     padding: 0 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
@@ -268,9 +275,7 @@
   }
 
   &__playtime {
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.62);
     color: rgba(255, 255, 255, 0.95);
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;
@@ -358,7 +363,6 @@
   &__achievement-progress {
     width: 100%;
     height: 4px;
-    transition: background-color ease 0.2s;
     background-color: rgba(255, 255, 255, 0.08);
     border-radius: 4px;
     overflow: hidden;

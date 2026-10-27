@@ -8,18 +8,20 @@ import {
   useRef,
   useState,
 } from "react";
-import { useNavigate } from "react-router-dom";
-import { FolderOpen } from "@phosphor-icons/react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { IS_DESKTOP } from "../../constants";
+import { FolderOpen, GameControllerIcon } from "@phosphor-icons/react";
 import {
   buildLibraryToastOptions,
   getBigPictureGameAchievementsPath,
 } from "../../helpers";
 import {
+  getRememberedScrollTop,
   useBigPictureToast,
   useGameCollections,
   useLibrary,
-  useNavigation,
+  useNavigationActions,
+  useRememberedFocus,
 } from "../../hooks";
 import {
   isBuiltinLibraryTab,
@@ -46,10 +48,14 @@ import {
   useLibraryLaunchGame,
   useLibraryPageData,
   useLibraryPendingAction,
+  Button,
   EmptyState,
+  Skeleton,
 } from "../../components";
 import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
 import {
+  getLibraryFocusGridItemId,
+  getLibraryFocusListItemId,
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
   LIBRARY_HERO_LAUNCH_BUTTON_ID,
   LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID,
@@ -117,14 +123,59 @@ function getInitialLibraryStoredValue<TValue extends string>(
   }
 }
 
+const LIBRARY_GRID_ITEM_FOCUS_PREFIX = getLibraryFocusGridItemId("");
+const LIBRARY_LIST_ITEM_FOCUS_PREFIX = getLibraryFocusListItemId("");
+const LIBRARY_SKELETON_CARD_COUNT = 10;
+
+function isLibraryContentFocusId(focusId: string) {
+  return (
+    focusId.startsWith(LIBRARY_GRID_ITEM_FOCUS_PREFIX) ||
+    focusId.startsWith(LIBRARY_LIST_ITEM_FOCUS_PREFIX)
+  );
+}
+
+function LibraryPageSkeleton() {
+  return (
+    <div className="library-page__skeleton" aria-busy="true">
+      <Skeleton className="library-page__skeleton-hero" />
+      <div className="library-page__skeleton-toolbar">
+        <Skeleton className="library-page__skeleton-tabs" />
+        <Skeleton className="library-page__skeleton-search" />
+      </div>
+      <div className="library-page__skeleton-grid">
+        {Array.from({ length: LIBRARY_SKELETON_CARD_COUNT }, (_, index) => (
+          <Skeleton key={index} className="library-page__skeleton-card" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function LibraryPage() {
+  const pageRef = useRef<HTMLElement | null>(null);
+  const { pathname } = useLocation();
+  useRememberedFocus(isLibraryContentFocusId, pageRef);
+  const initialScrollOffsetRef = useRef<number | null>(
+    getRememberedScrollTop(pathname)
+  );
+  const getInitialScrollOffset = useCallback(() => {
+    const rememberedScrollTop = initialScrollOffsetRef.current;
+
+    if (rememberedScrollTop !== null) {
+      initialScrollOffsetRef.current = null;
+      return rememberedScrollTop;
+    }
+
+    return pageRef.current?.scrollTop ?? 0;
+  }, []);
   const hasMountedContentRef = useRef(false);
   const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
   const settingsModalRestoreFocusIdRef = useRef<string | null>(null);
   const navigate = useNavigate();
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const { showSuccessToast } = useBigPictureToast();
-  const { library, updateLibrary } = useLibrary();
+  const { library, updateLibrary, hasLoadedLibrary, isAwaitingAccountLibrary } =
+    useLibrary();
   const {
     collections,
     hasLoadedCollections,
@@ -325,22 +376,6 @@ export default function LibraryPage() {
   });
 
   useEffect(() => {
-    updateLibrary();
-
-    if (!IS_DESKTOP) return;
-
-    const unsubscribe = globalThis.window.electron.onLibraryBatchComplete(
-      () => {
-        updateLibrary();
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [updateLibrary]);
-
-  useEffect(() => {
     try {
       globalThis.window.localStorage.setItem(
         LIBRARY_VIEW_MODE_STORAGE_KEY,
@@ -414,13 +449,38 @@ export default function LibraryPage() {
     previousContentTransitionKeyRef.current = contentTransitionKey;
   }, [contentTransitionKey]);
 
+  if (!hasLoadedLibrary || (isAwaitingAccountLibrary && library.length === 0)) {
+    return (
+      <section className="library-page">
+        <LibraryPageSkeleton />
+      </section>
+    );
+  }
+
   if (library.length === 0 && lastPlayedGames.length === 0) {
     return (
       <section className="library-page">
-        <VerticalFocusGroup regionId={LIBRARY_PAGE_REGION_ID}>
-          <div className="library-page__empty">
-            <p>No games in library</p>
-          </div>
+        <VerticalFocusGroup
+          regionId={LIBRARY_PAGE_REGION_ID}
+          style={{ flex: 1 }}
+        >
+          <EmptyState
+            className="library-page__empty-state library-page__empty-state--library"
+            icon={<GameControllerIcon size={28} weight="bold" />}
+            title="No games in your library yet"
+            description="Games you add from the catalogue or import from Steam and Epic will show up here."
+            actions={
+              <Button
+                variant="primary"
+                stealFocusOnAppear
+                onClick={() =>
+                  navigate(`${IS_DESKTOP ? "/big-picture" : ""}/catalogue`)
+                }
+              >
+                Browse catalogue
+              </Button>
+            }
+          />
         </VerticalFocusGroup>
       </section>
     );
@@ -428,7 +488,7 @@ export default function LibraryPage() {
 
   return (
     <>
-      <section className="library-page">
+      <section className="library-page" ref={pageRef}>
         <VerticalFocusGroup
           regionId={LIBRARY_PAGE_REGION_ID}
           style={{ flex: 1 }}
@@ -495,6 +555,8 @@ export default function LibraryPage() {
                 {viewMode === "list" ? (
                   <LibraryFocusList
                     games={filteredLibrary}
+                    scrollElementRef={pageRef}
+                    getInitialScrollOffset={getInitialScrollOffset}
                     contextMenuGameId={
                       contextMenuState.visible
                         ? (contextMenuState.game?.id ?? null)
@@ -505,6 +567,8 @@ export default function LibraryPage() {
                 ) : (
                   <LibraryFocusGrid
                     games={filteredLibrary}
+                    scrollElementRef={pageRef}
+                    getInitialScrollOffset={getInitialScrollOffset}
                     contextMenuGameId={
                       contextMenuState.visible
                         ? (contextMenuState.game?.id ?? null)

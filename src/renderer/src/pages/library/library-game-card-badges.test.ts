@@ -56,6 +56,9 @@ function renderCard(
       useFormat: () => ({ numberFormatter: new Intl.NumberFormat("en") }),
     },
     "@shared": { getDisplayedPlayTimeInMilliseconds: () => 0 },
+    "./use-ensure-achievement-progress": {
+      useEnsureAchievementProgress: () => {},
+    },
     "./library-category": libraryCategory,
     "@renderer/helpers": {
       CLASSICS_PS_PLATFORM_LABELS: {},
@@ -153,9 +156,8 @@ function renderCatalogueBadge(
   });
   const exports: Record<string, React.ElementType> = {};
   const stubs: Record<string, unknown> = {
-    "react-dom": { createPortal: (child: React.ReactNode) => child },
-    "react-tooltip": { Tooltip: () => null },
     "react-i18next": { useTranslation: () => ({ t: (key: string) => key }) },
+    "../badge-tooltip/badge-tooltip": { BADGE_TOOLTIP_ID: "badge-tooltip" },
   };
   new Function("exports", "require", "document", outputText)(
     exports,

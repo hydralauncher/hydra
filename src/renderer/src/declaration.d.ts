@@ -1,5 +1,6 @@
 import type { AuthPage, Downloader } from "@shared";
 import type {
+  AchievementProgress,
   SystemPowerAction,
   AppUpdaterEvent,
   GameShop,
@@ -181,6 +182,10 @@ declare global {
       shop: GameShop
     ) => Promise<CloudSaveOverview>;
     getCloudSaveV2FileDetails: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<CloudSaveV2FileDetails>;
+    getLocalSaveFileDetails: (
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveV2FileDetails>;
@@ -463,6 +468,7 @@ declare global {
       page?: number
     ) => Promise<ArtworkPage | null>;
     getCoverPoster: (url: string) => Promise<string | null>;
+    prefetchCoverThumbnails: (thumbnailUrls: string[]) => Promise<void>;
     getGameArtworkSelection: (
       shop: GameShop,
       objectId: string
@@ -531,6 +537,11 @@ declare global {
     ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
     getLibrary: (includeConcealed?: boolean) => Promise<LibraryGame[]>;
+    getLibrarySerialized: (includeConcealed?: boolean) => Promise<string>;
+    getLibraryGames: (
+      keys: string[],
+      includeConcealed?: boolean
+    ) => Promise<LibraryGame[]>;
     getHiddenLibrary: () => Promise<LibraryGame[]>;
     setGameVisibility: (
       shop: GameShop,
@@ -604,6 +615,19 @@ declare global {
       ) => void
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
+    onLibraryGamesUpdated: (
+      cb: (keys: string[]) => void
+    ) => () => Electron.IpcRenderer;
+    onLibraryGameUpdated: (
+      cb: (shop: GameShop, objectId: string) => void
+    ) => () => Electron.IpcRenderer;
+    onLibraryAchievementProgress: (
+      cb: (
+        shop: GameShop,
+        objectId: string,
+        progress: AchievementProgress
+      ) => void
+    ) => () => Electron.IpcRenderer;
     onRemoteLibrarySyncStateChange: (
       cb: (syncing: boolean) => void
     ) => () => Electron.IpcRenderer;
@@ -1192,6 +1216,7 @@ declare global {
     };
     canInstallCommonRedist: () => Promise<boolean>;
     installCommonRedist: () => Promise<void>;
+    exportLogs: () => Promise<string | null>;
     installHydraDeckyPlugin: () => Promise<{
       success: boolean;
       path: string;
@@ -1258,6 +1283,10 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<UserAchievement[]>;
+    ensureAchievementProgress: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<AchievementProgress | null>;
     deleteAchievementSouvenir: (payload: {
       souvenirId: string;
     }) => Promise<void>;

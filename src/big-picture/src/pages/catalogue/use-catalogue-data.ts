@@ -249,6 +249,13 @@ function normalizeLaunchboxFilters(
   };
 }
 
+let cachedCatalogueSearch: {
+  key: string;
+  data: SearchGamesResponseData;
+} | null = null;
+
+let cachedCatalogueDownloadSources: DownloadSource[] | null = null;
+
 export function useCatalogueData() {
   const [searchParams, setSearchParams] = useSearchParams();
   const deferredTitle = useDeferredValue(searchParams.get("title") ?? "");
@@ -260,9 +267,18 @@ export function useCatalogueData() {
   const [steamPublishers, setSteamPublishers] = useState<string[]>([]);
   const [launchboxFilters, setLaunchboxFilters] =
     useState<LaunchboxCatalogueFilters>(DEFAULT_LAUNCHBOX_FILTERS);
-  const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
-  const [searchData, setSearchData] = useState<SearchGamesResponseData>();
-  const [isLoadingSearch, setIsLoadingSearch] = useState(true);
+  const [downloadSources, setDownloadSources] = useState<DownloadSource[]>(
+    () => cachedCatalogueDownloadSources ?? []
+  );
+  const [hasLoadedDownloadSources, setHasLoadedDownloadSources] = useState(
+    () => cachedCatalogueDownloadSources !== null
+  );
+  const [searchData, setSearchData] = useState<
+    SearchGamesResponseData | undefined
+  >(() => cachedCatalogueSearch?.data);
+  const [isLoadingSearch, setIsLoadingSearch] = useState(
+    () => !cachedCatalogueSearch
+  );
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchError, setSearchError] = useState<Error | null>(null);
   const requestIdRef = useRef(0);
@@ -385,7 +401,6 @@ export function useCatalogueData() {
         developersResponse,
         publishersResponse,
         launchboxFiltersResponse,
-        rawDownloadSources,
       ] = await Promise.allSettled([
         globalThis.window.electron.hydraApi.get<string[]>(
           "/catalogue/steam/genres",
@@ -407,7 +422,6 @@ export function useCatalogueData() {
           "/catalogue/filters?shop=launchbox",
           { needsAuth: false }
         ),
-        levelDBService.values("downloadSources"),
       ]);
 
       if (cancelled) return;
@@ -417,7 +431,6 @@ export function useCatalogueData() {
       logRejectedMetadataRequest("steam-developers", developersResponse);
       logRejectedMetadataRequest("steam-publishers", publishersResponse);
       logRejectedMetadataRequest("launchbox-filters", launchboxFiltersResponse);
-      logRejectedMetadataRequest("download-sources", rawDownloadSources);
 
       if (genresResponse.status === "fulfilled") {
         setSteamGenres(genresResponse.value);
@@ -440,17 +453,42 @@ export function useCatalogueData() {
           normalizeLaunchboxFilters(launchboxFiltersResponse.value)
         );
       }
-
-      if (rawDownloadSources.status === "fulfilled") {
-        setDownloadSources(
-          (rawDownloadSources.value as DownloadSource[]).filter(
-            (source) => !!source.fingerprint
-          )
-        );
-      }
     };
 
     loadMetadata();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    levelDBService
+      .values("downloadSources")
+      .then((rawDownloadSources) => {
+        if (cancelled) return;
+
+        const nextDownloadSources = (
+          rawDownloadSources as DownloadSource[]
+        ).filter((source) => !!source.fingerprint);
+        const isUnchanged =
+          cachedCatalogueDownloadSources !== null &&
+          cachedCatalogueDownloadSources
+            .map((source) => source.id)
+            .join("|") ===
+            nextDownloadSources.map((source) => source.id).join("|");
+
+        cachedCatalogueDownloadSources = nextDownloadSources;
+        if (!isUnchanged) setDownloadSources(nextDownloadSources);
+      })
+      .catch((error) => {
+        logger.warn("[catalogue] failed to load download-sources:", error);
+      })
+      .finally(() => {
+        if (!cancelled) setHasLoadedDownloadSources(true);
+      });
 
     return () => {
       cancelled = true;
@@ -523,18 +561,23 @@ export function useCatalogueData() {
         }
 
         setSearchData((currentData) => {
-          if (mode === "initial") return response;
-
           const currentEdges = currentData?.edges ?? [];
           const currentIds = new Set(currentEdges.map((edge) => edge.id));
-          const nextEdges = response.edges.filter(
-            (edge) => !currentIds.has(edge.id)
-          );
+          const nextData =
+            mode === "initial"
+              ? response
+              : {
+                  count: response.count,
+                  edges: [
+                    ...currentEdges,
+                    ...response.edges.filter(
+                      (edge) => !currentIds.has(edge.id)
+                    ),
+                  ],
+                };
 
-          return {
-            count: response.count,
-            edges: [...currentEdges, ...nextEdges],
-          };
+          cachedCatalogueSearch = { key: requestSearchKey, data: nextData };
+          return nextData;
         });
         setSearchError(null);
       } catch (error) {
@@ -579,13 +622,26 @@ export function useCatalogueData() {
   );
 
   useEffect(() => {
+    if (!hasLoadedDownloadSources) return;
+
     requestIdRef.current += 1;
     activeSearchKeyRef.current = searchKey;
     isFetchingSearchRef.current = false;
-    setSearchData(undefined);
     setSearchError(null);
-    setIsLoadingSearch(true);
     setIsLoadingMore(false);
+
+    if (cachedCatalogueSearch?.key === searchKey) {
+      setSearchData(cachedCatalogueSearch.data);
+      setIsLoadingSearch(false);
+
+      return () => {
+        requestIdRef.current += 1;
+        isFetchingSearchRef.current = false;
+      };
+    }
+
+    setSearchData(undefined);
+    setIsLoadingSearch(true);
 
     const timeoutId = globalThis.window.setTimeout(() => {
       void fetchCataloguePage(0, "initial", searchKey);
@@ -596,7 +652,7 @@ export function useCatalogueData() {
       isFetchingSearchRef.current = false;
       globalThis.window.clearTimeout(timeoutId);
     };
-  }, [fetchCataloguePage, searchKey]);
+  }, [fetchCataloguePage, hasLoadedDownloadSources, searchKey]);
 
   const hasNextPage =
     Boolean(searchData) && searchData!.edges.length < searchData!.count;

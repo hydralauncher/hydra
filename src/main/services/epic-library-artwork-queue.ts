@@ -2,6 +2,7 @@ import type { LibraryGame } from "@types";
 
 export const EPIC_LIBRARY_ARTWORK_RETRY_MS = 5 * 60 * 1000;
 export const EPIC_LIBRARY_ARTWORK_INTERVAL_MS = 6 * 1000;
+export const EPIC_LIBRARY_ARTWORK_NOTIFY_INTERVAL_MS = 60 * 1000;
 const MAX_PENDING_GAMES = 128;
 
 /** Resolve public artwork serially without delaying the library response. */
@@ -12,10 +13,12 @@ export class EpicLibraryArtworkQueue {
   private library: LibraryGame[] = [];
   private cursor = 0;
   private running = false;
+  private changedSince: number | null = null;
+  private readonly changedKeys = new Set<string>();
 
   constructor(
     private readonly refresh: (game: LibraryGame) => Promise<boolean>,
-    private readonly changed: () => void,
+    private readonly changed: (keys: string[]) => void,
     private readonly now = Date.now,
     private readonly pause = (ms: number) =>
       new Promise<void>((resolve) => setTimeout(resolve, ms))
@@ -65,6 +68,14 @@ export class EpicLibraryArtworkQueue {
     }
   }
 
+  private flushChanges() {
+    if (this.changedSince === null) return;
+    const keys = [...this.changedKeys];
+    this.changedSince = null;
+    this.changedKeys.clear();
+    this.changed(keys);
+  }
+
   private async drain() {
     this.running = true;
     try {
@@ -72,16 +83,26 @@ export class EpicLibraryArtworkQueue {
         const [key, game] = this.pending.entries().next().value!;
         this.pending.delete(key);
         try {
-          if (await this.refresh(game)) this.changed();
+          if (await this.refresh(game)) {
+            this.changedKeys.add(key);
+            this.changedSince ??= this.now();
+          }
         } catch {
           // The normal library remains usable offline; retry on a later read.
         }
         this.attemptedAt.set(key, this.now());
+        if (
+          this.changedSince !== null &&
+          this.now() - this.changedSince >=
+            EPIC_LIBRARY_ARTWORK_NOTIFY_INTERVAL_MS
+        )
+          this.flushChanges();
         this.fillPending();
         if (this.pending.size)
           await this.pause(EPIC_LIBRARY_ARTWORK_INTERVAL_MS);
       }
     } finally {
+      this.flushChanges();
       this.running = false;
       this.library = [];
       this.cursor = 0;

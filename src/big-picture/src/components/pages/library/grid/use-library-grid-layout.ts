@@ -8,9 +8,15 @@ const GRID_720P_WIDTH = 1280;
 const GRID_1080P_WIDTH = 1920;
 const GRID_1440P_WIDTH = 2560;
 
+const GRID_ROW_GAP = 64;
+const GRID_CARD_COVER_ASPECT_RATIO = 1.5;
+const GRID_CARD_DETAILS_HEIGHT = 72;
+const GRID_FALLBACK_ROW_HEIGHT = 480;
+
 interface LibraryGridLayout {
   columnCount: number;
   columnGap: number;
+  gridWidth?: number;
 }
 
 function getResponsiveColumnCount(width: number) {
@@ -84,12 +90,12 @@ export function useLibraryGridLayout(itemCount: number) {
     if (!(gridElement instanceof HTMLElement)) return;
 
     const updateLayout = () => {
-      setLayout(
-        getLayoutForViewport(
-          globalThis.innerWidth,
-          gridElement.getBoundingClientRect().width
-        )
-      );
+      const gridWidth = gridElement.getBoundingClientRect().width;
+
+      setLayout({
+        ...getLayoutForViewport(globalThis.innerWidth, gridWidth),
+        gridWidth,
+      });
     };
 
     updateLayout();
@@ -104,7 +110,7 @@ export function useLibraryGridLayout(itemCount: number) {
     };
   }, [itemCount]);
 
-  return useMemo(
+  const style = useMemo(
     () =>
       ({
         "--library-focus-grid-column-count": `${layout.columnCount}`,
@@ -112,4 +118,14 @@ export function useLibraryGridLayout(itemCount: number) {
       }) as CSSProperties,
     [layout]
   );
+
+  const estimatedRowHeight = layout.gridWidth
+    ? ((layout.gridWidth - layout.columnGap * (layout.columnCount - 1)) /
+        layout.columnCount) *
+        GRID_CARD_COVER_ASPECT_RATIO +
+      GRID_CARD_DETAILS_HEIGHT +
+      GRID_ROW_GAP
+    : GRID_FALLBACK_ROW_HEIGHT;
+
+  return { style, columnCount: layout.columnCount, estimatedRowHeight };
 }

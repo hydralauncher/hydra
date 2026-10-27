@@ -26,7 +26,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all ease 0.2s;
+  transition:
+    all ease 0.2s,
+    background 0s;
   z-index: 10;
 
   &:hover {

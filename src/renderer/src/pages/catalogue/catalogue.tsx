@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector, useFormat } from "@renderer/hooks";
 import {
   lazy,
   Suspense,
+  useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -19,7 +20,12 @@ import "./catalogue.scss";
 
 import { Button } from "@renderer/components/button/button";
 import { SelectField } from "@renderer/components/select-field/select-field";
-import { setFilters, setPage } from "@renderer/features";
+import {
+  setFilters,
+  setPage,
+  toggleFilterValue,
+  type CatalogueFilterListKey,
+} from "@renderer/features";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { useLaunchboxFilters } from "@renderer/hooks/use-launchbox-filters";
 import { debounce } from "lodash-es";
@@ -33,6 +39,7 @@ import { FilterSection } from "./filter-section";
 import { GameItem } from "./game-item";
 import { GameItemClassics } from "./game-item-classics";
 import { Pagination } from "./pagination";
+import { scrollToTop } from "./scroll-to-top";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
@@ -76,6 +83,7 @@ const classicsPlatformGroups = [
 ] as const;
 
 const PAGE_SIZE = 30;
+const SCROLL_IDLE_DELAY = 150;
 
 const clearAllCategoryFilters = {
   genres: [],
@@ -128,12 +136,41 @@ const areSameValues = (first: string[], second: string[]) =>
   first.length === second.length &&
   first.every((item) => second.includes(item));
 
+const decodeHTML = (s: string) =>
+  s.replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">");
+
+type CatalogueSearchResponse = {
+  edges: CatalogueSearchResult[];
+  count: number;
+};
+
+const SEARCH_CACHE_LIMIT = 50;
+const searchCache = new Map<string, CatalogueSearchResponse>();
+
+const cacheSearchResponse = (
+  key: string,
+  response: CatalogueSearchResponse
+) => {
+  searchCache.delete(key);
+  searchCache.set(key, response);
+
+  if (searchCache.size > SEARCH_CACHE_LIMIT) {
+    const oldestKey = searchCache.keys().next().value;
+    if (oldestKey !== undefined) searchCache.delete(oldestKey);
+  }
+};
+
 export default function Catalogue() {
   const requestSequenceRef = useRef(0);
   const hasResultsRef = useRef(false);
   const cataloguePageRef = useRef<HTMLDivElement>(null);
 
-  const { steamDevelopers, steamPublishers, downloadSources } = useCatalogue();
+  const {
+    steamDevelopers,
+    steamPublishers,
+    downloadSources,
+    hasLoadedDownloadSources,
+  } = useCatalogue();
 
   const { steamGenres, steamUserTags, filters, page, mode } = useAppSelector(
     (state) => state.catalogueSearch
@@ -149,6 +186,9 @@ export default function Catalogue() {
   }, [filters, deferredTitleFilter]);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
+  const lastSearchedTitleRef = useRef(filters.title);
+  const lastSearchCriteriaRef = useRef<string | null>(null);
 
   const [results, setResults] = useState<CatalogueSearchResult[]>([]);
   const [resultsMode, setResultsMode] = useState(mode);
@@ -205,41 +245,95 @@ export default function Catalogue() {
               }
             : baseRequest;
 
-        const response = await window.electron.hydraApi.post<{
-          edges: CatalogueSearchResult[];
-          count: number;
-        }>("/catalogue/search", {
-          data: requestData,
-          needsAuth: false,
-        });
+        const cacheKey = JSON.stringify(requestData);
+        const applyResponse = (response: CatalogueSearchResponse) => {
+          setResults(response.edges);
+          setResultsMode(mode);
+          setItemsCount(response.count);
+          setIsLoading(false);
+          setIsFetching(false);
+        };
 
-        if (requestId !== requestSequenceRef.current) return;
+        const cached = searchCache.get(cacheKey);
+        if (cached) {
+          applyResponse(cached);
+          return;
+        }
 
-        setResults(response.edges);
-        setResultsMode(mode);
-        setItemsCount(response.count);
-        setIsLoading(false);
+        try {
+          const response =
+            await window.electron.hydraApi.post<CatalogueSearchResponse>(
+              "/catalogue/search",
+              {
+                data: requestData,
+                needsAuth: false,
+              }
+            );
+
+          cacheSearchResponse(cacheKey, response);
+
+          if (requestId !== requestSequenceRef.current) return;
+
+          applyResponse(response);
+        } catch (error) {
+          if (requestId !== requestSequenceRef.current) return;
+
+          console.error(error);
+          setIsLoading(false);
+          setIsFetching(false);
+        }
       },
-      500
+      400
     )
   ).current;
-
-  const decodeHTML = (s: string) =>
-    s.replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">");
 
   useEffect(() => {
     hasResultsRef.current = results.length > 0;
   }, [results.length]);
 
+  useEffect(() => {
+    const element = cataloguePageRef.current;
+    if (!element) return;
+
+    let timeout: number | undefined;
+    const handleScroll = () => {
+      element.classList.add("catalogue--scrolling");
+      window.clearTimeout(timeout);
+      timeout = window.setTimeout(() => {
+        element.classList.remove("catalogue--scrolling");
+      }, SCROLL_IDLE_DELAY);
+    };
+
+    element.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      element.removeEventListener("scroll", handleScroll);
+      window.clearTimeout(timeout);
+    };
+  }, []);
+
   const isModeTransitioning = resultsMode !== mode;
-  const showSkeleton = isLoading || isModeTransitioning;
+  const showSkeleton = isLoading || isFetching || isModeTransitioning;
 
   useEffect(() => {
-    const requestId = ++requestSequenceRef.current;
+    if (!hasLoadedDownloadSources) return;
 
-    if (!hasResultsRef.current) {
+    const requestId = ++requestSequenceRef.current;
+    const isTypingTitle =
+      effectiveFilters.title !== lastSearchedTitleRef.current;
+    lastSearchedTitleRef.current = effectiveFilters.title;
+
+    const searchCriteria = JSON.stringify([effectiveFilters, mode]);
+    const isNewSearch = searchCriteria !== lastSearchCriteriaRef.current;
+    lastSearchCriteriaRef.current = searchCriteria;
+
+    if (!hasResultsRef.current || isNewSearch) {
       setIsLoading(true);
     }
+
+    if (isNewSearch && cataloguePageRef.current) {
+      scrollToTop(cataloguePageRef.current);
+    }
+    setIsFetching(true);
 
     debouncedSearch(
       effectiveFilters,
@@ -250,10 +344,21 @@ export default function Catalogue() {
       mode
     );
 
+    if (!isTypingTitle) {
+      debouncedSearch.flush();
+    }
+
     return () => {
       debouncedSearch.cancel();
     };
-  }, [effectiveFilters, downloadSources, page, debouncedSearch, mode]);
+  }, [
+    effectiveFilters,
+    downloadSources,
+    hasLoadedDownloadSources,
+    page,
+    debouncedSearch,
+    mode,
+  ]);
 
   const language = i18n.language.split("-")[0];
 
@@ -272,9 +377,8 @@ export default function Catalogue() {
       .map(([key, value]) => ({
         label: key,
         value: value,
-        checked: filters.genres.includes(value),
       }));
-  }, [steamGenresMapping, filters.genres]);
+  }, [steamGenresMapping]);
 
   const steamUserTagsFilterItems = useMemo(() => {
     if (!steamUserTags[language]) return [];
@@ -284,9 +388,31 @@ export default function Catalogue() {
       .map(([key, value]) => ({
         label: key,
         value: value,
-        checked: filters.tags.includes(value),
       }));
-  }, [steamUserTags, filters.tags, language]);
+  }, [steamUserTags, language]);
+
+  const downloadSourceFilterItems = useMemo(() => {
+    return downloadSources
+      .filter((source) => source.fingerprint)
+      .map((source) => ({
+        label: source.name,
+        value: source.fingerprint!,
+      }));
+  }, [downloadSources]);
+
+  const steamDeveloperFilterItems = useMemo(() => {
+    return steamDevelopers.map((developer) => ({
+      label: developer,
+      value: developer,
+    }));
+  }, [steamDevelopers]);
+
+  const steamPublisherFilterItems = useMemo(() => {
+    return steamPublishers.map((publisher) => ({
+      label: decodeHTML(publisher),
+      value: publisher,
+    }));
+  }, [steamPublishers]);
 
   const classicsPlatforms = useMemo(
     () => filters.platforms ?? [],
@@ -301,7 +427,6 @@ export default function Catalogue() {
         items: launchboxFilters.platforms.map((platform) => ({
           label: platform.name,
           value: platform.key,
-          checked: classicsPlatforms.includes(platform.key),
           group: getClassicsPlatformGroup(platform.name),
         })),
       },
@@ -311,7 +436,6 @@ export default function Catalogue() {
         items: launchboxFilters.genres.map((genre) => ({
           label: genre,
           value: genre,
-          checked: filters.genres.includes(genre),
         })),
       },
       {
@@ -320,7 +444,6 @@ export default function Catalogue() {
         items: launchboxFilters.developers.map((developer) => ({
           label: developer,
           value: developer,
-          checked: filters.developers.includes(developer),
         })),
       },
       {
@@ -329,33 +452,15 @@ export default function Catalogue() {
         items: launchboxFilters.publishers.map((publisher) => ({
           label: decodeHTML(publisher),
           value: publisher,
-          checked: filters.publishers.includes(publisher),
         })),
       },
       {
         title: t("download_sources"),
         key: "downloadSourceFingerprints" as const,
-        items: downloadSources
-          .filter((source) => source.fingerprint)
-          .map((source) => ({
-            label: source.name,
-            value: source.fingerprint!,
-            checked: filters.downloadSourceFingerprints.includes(
-              source.fingerprint!
-            ),
-          })),
+        items: downloadSourceFilterItems,
       },
     ];
-  }, [
-    launchboxFilters,
-    filters.genres,
-    filters.developers,
-    filters.publishers,
-    filters.downloadSourceFingerprints,
-    downloadSources,
-    classicsPlatforms,
-    t,
-  ]);
+  }, [launchboxFilters, downloadSourceFilterItems, t]);
 
   const classicsGroupedFilters = useMemo(() => {
     return [
@@ -522,56 +627,51 @@ export default function Catalogue() {
       {
         title: t("genres"),
         items: steamGenresFilterItems,
-        key: "genres",
+        key: "genres" as const,
       },
       {
         title: t("tags"),
         items: steamUserTagsFilterItems,
-        key: "tags",
+        key: "tags" as const,
       },
       {
         title: t("download_sources"),
-        items: downloadSources
-          .filter((source) => source.fingerprint)
-          .map((source) => ({
-            label: source.name,
-            value: source.fingerprint!,
-            checked: filters.downloadSourceFingerprints.includes(
-              source.fingerprint!
-            ),
-          })),
-        key: "downloadSourceFingerprints",
+        items: downloadSourceFilterItems,
+        key: "downloadSourceFingerprints" as const,
       },
       {
         title: t("developers"),
-        items: steamDevelopers.map((developer) => ({
-          label: developer,
-          value: developer,
-          checked: filters.developers.includes(developer),
-        })),
-        key: "developers",
+        items: steamDeveloperFilterItems,
+        key: "developers" as const,
       },
       {
         title: t("publishers"),
-        items: steamPublishers.map((publisher) => ({
-          label: decodeHTML(publisher),
-          value: publisher,
-          checked: filters.publishers.includes(publisher),
-        })),
-        key: "publishers",
+        items: steamPublisherFilterItems,
+        key: "publishers" as const,
       },
     ];
   }, [
-    downloadSources,
-    filters.developers,
-    filters.downloadSourceFingerprints,
-    filters.publishers,
-    steamDevelopers,
+    downloadSourceFilterItems,
+    steamDeveloperFilterItems,
     steamGenresFilterItems,
-    steamPublishers,
+    steamPublisherFilterItems,
     steamUserTagsFilterItems,
     t,
   ]);
+
+  const handleToggleFilter = useCallback(
+    (key: CatalogueFilterListKey, value: string | number) => {
+      dispatch(toggleFilterValue({ key, value }));
+    },
+    [dispatch]
+  );
+
+  const handleClearFilter = useCallback(
+    (key: CatalogueFilterListKey) => {
+      dispatch(setFilters({ [key]: [] }));
+    },
+    [dispatch]
+  );
 
   const activeGroupedFilters =
     mode === "classics" ? classicsGroupedFilters : groupedFilters;
@@ -637,16 +737,75 @@ export default function Catalogue() {
       />
       <div className="catalogue__header">
         <div className="catalogue__header-row">
-          <div className="catalogue__header-summary">
+          <div
+            className={cn("catalogue__header-summary", {
+              "catalogue__header-summary--filters": selectedFiltersCount > 0,
+            })}
+          >
             <span className="catalogue__result-count">
               {t("result_count", {
                 resultCount: formatNumber(itemsCount),
               })}
             </span>
-            {selectedFiltersCount === 0 && (
+            {selectedFiltersCount === 0 ? (
               <span className="catalogue__filters-hint">
                 {t("filters_sidebar_hint")}
               </span>
+            ) : (
+              <div className="catalogue__active-filters">
+                <span className="catalogue__active-filters-label">
+                  {t("active_filters")}
+                </span>
+
+                <div className="catalogue__filters-wrapper">
+                  <ul className="catalogue__filters-list">
+                    {activeGroupedFilters.map((filter) => (
+                      <li key={`${filter.key}-${filter.value}`}>
+                        <FilterItem
+                          filter={filter.label ?? ""}
+                          filterType={filter.filterType}
+                          orbColor={filter.orbColor}
+                          onRemove={() => {
+                            if (filter.value === "range") {
+                              dispatch(setFilters({ releaseYear: undefined }));
+                              return;
+                            }
+
+                            if (filter.value === "threshold") {
+                              dispatch(setFilters({ [filter.key]: [] }));
+                              return;
+                            }
+
+                            const currentValues =
+                              (filters[filter.key] as
+                                | (string | number)[]
+                                | undefined) ?? [];
+
+                            dispatch(
+                              setFilters({
+                                [filter.key]: currentValues.filter(
+                                  (item) => item !== filter.value
+                                ),
+                              })
+                            );
+                          }}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <Button
+                  type="button"
+                  theme="outline"
+                  className="catalogue__clear-all-button"
+                  onClick={() => dispatch(setFilters(clearAllCategoryFilters))}
+                >
+                  {t("clear_filters", {
+                    filterCount: formatNumber(selectedFiltersCount),
+                  })}
+                </Button>
+              </div>
             )}
           </div>
 
@@ -672,63 +831,6 @@ export default function Catalogue() {
             />
           </div>
         </div>
-
-        {selectedFiltersCount > 0 && (
-          <div className="catalogue__header-row catalogue__header-row--filters">
-            <span className="catalogue__active-filters-label">
-              {t("active_filters")}
-            </span>
-
-            <div className="catalogue__filters-wrapper">
-              <ul className="catalogue__filters-list">
-                {activeGroupedFilters.map((filter) => (
-                  <li key={`${filter.key}-${filter.value}`}>
-                    <FilterItem
-                      filter={filter.label ?? ""}
-                      filterType={filter.filterType}
-                      orbColor={filter.orbColor}
-                      onRemove={() => {
-                        if (filter.value === "range") {
-                          dispatch(setFilters({ releaseYear: undefined }));
-                          return;
-                        }
-
-                        if (filter.value === "threshold") {
-                          dispatch(setFilters({ [filter.key]: [] }));
-                          return;
-                        }
-
-                        const currentValues =
-                          (filters[filter.key] as
-                            | (string | number)[]
-                            | undefined) ?? [];
-
-                        dispatch(
-                          setFilters({
-                            [filter.key]: currentValues.filter(
-                              (item) => item !== filter.value
-                            ),
-                          })
-                        );
-                      }}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <Button
-              type="button"
-              theme="outline"
-              className="catalogue__clear-all-button"
-              onClick={() => dispatch(setFilters(clearAllCategoryFilters))}
-            >
-              {t("clear_filters", {
-                filterCount: formatNumber(selectedFiltersCount),
-              })}
-            </Button>
-          </div>
-        )}
       </div>
 
       <div className="catalogue__content">
@@ -736,6 +838,7 @@ export default function Catalogue() {
           className={cn("catalogue__games-container", {
             "catalogue__games-container--classics": mode === "classics",
           })}
+          aria-busy={isFetching}
         >
           {showSkeleton ? (
             <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
@@ -763,7 +866,7 @@ export default function Catalogue() {
               onPageChange={(page) => {
                 dispatch(setPage(page));
                 if (cataloguePageRef.current) {
-                  cataloguePageRef.current.scrollTop = 0;
+                  scrollToTop(cataloguePageRef.current);
                 }
               }}
             />
@@ -834,67 +937,38 @@ export default function Catalogue() {
               filterSections.map((section) => (
                 <FilterSection
                   key={section.key}
+                  sectionKey={section.key}
                   title={section.title}
-                  onClear={() => dispatch(setFilters({ [section.key]: [] }))}
+                  onClear={handleClearFilter}
                   color={filterCategoryColors[section.key]}
-                  onSelect={(value) => {
-                    if (filters[section.key].includes(value)) {
-                      dispatch(
-                        setFilters({
-                          [section.key]: filters[
-                            section.key as
-                              | "genres"
-                              | "tags"
-                              | "downloadSourceFingerprints"
-                              | "developers"
-                              | "publishers"
-                              | "protondbSupportBadges"
-                              | "deckCompatibility"
-                          ].filter((item) => item !== value),
-                        })
-                      );
-                    } else {
-                      dispatch(
-                        setFilters({
-                          [section.key]: [...filters[section.key], value],
-                        })
-                      );
-                    }
-                  }}
+                  onToggle={handleToggleFilter}
                   items={section.items}
+                  selectedValues={filters[section.key]}
                 />
               ))}
 
             {mode === "classics" &&
-              classicsFilterSections.map((section) => {
-                const currentValues =
-                  section.key === "platforms"
-                    ? classicsPlatforms
-                    : (filters[section.key] as string[]);
-
-                return (
-                  <FilterSection
-                    key={section.key}
-                    title={section.title}
-                    onClear={() => dispatch(setFilters({ [section.key]: [] }))}
-                    color={filterCategoryColors[section.key]}
-                    onSelect={(value) => {
-                      const stringValue = String(value);
-                      const next = currentValues.includes(stringValue)
-                        ? currentValues.filter((item) => item !== stringValue)
-                        : [...currentValues, stringValue];
-
-                      dispatch(setFilters({ [section.key]: next }));
-                    }}
-                    items={section.items}
-                    groups={
-                      section.key === "platforms"
-                        ? classicsPlatformGroups
-                        : undefined
-                    }
-                  />
-                );
-              })}
+              classicsFilterSections.map((section) => (
+                <FilterSection
+                  key={section.key}
+                  sectionKey={section.key}
+                  title={section.title}
+                  onClear={handleClearFilter}
+                  color={filterCategoryColors[section.key]}
+                  onToggle={handleToggleFilter}
+                  items={section.items}
+                  selectedValues={
+                    section.key === "platforms"
+                      ? classicsPlatforms
+                      : filters[section.key]
+                  }
+                  groups={
+                    section.key === "platforms"
+                      ? classicsPlatformGroups
+                      : undefined
+                  }
+                />
+              ))}
           </div>
         </div>
       </div>

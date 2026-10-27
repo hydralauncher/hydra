@@ -45,7 +45,9 @@
     cursor: pointer;
     display: flex;
     justify-content: center;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
     align-items: center;
     border-radius: 4px;
     opacity: 0;

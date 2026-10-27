@@ -36,6 +36,8 @@ const PARTIAL_VISIBLE_SLIDE_RATIO = 0.5;
 const SLIDE_MEASUREMENT_EPSILON_PX = 1;
 const LEFT_INPUT_HELD_THRESHOLD = -0.5;
 const CLICK_DRAG_THRESHOLD_PX = 8;
+const WINDOWED_CAROUSEL_MIN_GAMES = 40;
+const WINDOWED_CAROUSEL_RADIUS = 12;
 
 type FadeSide = "left" | "right";
 type FocusCarouselCardMode = "store" | "library";
@@ -78,6 +80,7 @@ interface FocusCarouselSlideProps {
   game: FocusCarouselGame;
   index: number;
   itemId: string;
+  isRendered: boolean;
   cardMode: FocusCarouselCardMode;
   cardVariant: "vertical" | "horizontal";
   navigationOverrides?: FocusOverrides;
@@ -212,6 +215,40 @@ function getViewportSlideMetrics(emblaApi: ResolvedEmblaApi): {
   };
 }
 
+function getTargetViewportSlideMetrics(emblaApi: ResolvedEmblaApi): {
+  firstVisibleIndex: number;
+  visibleCount: number;
+} | null {
+  const slideNodes = emblaApi.slideNodes();
+
+  if (slideNodes.length === 0) return null;
+
+  const slideRects = slideNodes
+    .slice(0, 2)
+    .map((slideNode) => slideNode.getBoundingClientRect());
+  const slideWidth = slideRects[0]?.width ?? 0;
+  const slideStep = getSlideStep(slideRects);
+
+  if (slideWidth <= 0 || slideStep <= 0) return null;
+
+  const viewportWidth = emblaApi.rootNode().getBoundingClientRect().width;
+  const firstVisibleIndex =
+    emblaApi.internalEngine().slideRegistry[
+      emblaApi.selectedScrollSnap()
+    ]?.[0] ?? 0;
+
+  return {
+    firstVisibleIndex,
+    visibleCount: Math.max(
+      1,
+      Math.min(
+        getVisibleCapacity(viewportWidth, slideWidth, slideStep),
+        slideNodes.length - firstVisibleIndex
+      )
+    ),
+  };
+}
+
 function syncThresholdFocusScroll(
   emblaApi: ResolvedEmblaApi,
   previousFocusedIndex: number | null,
@@ -222,7 +259,7 @@ function syncThresholdFocusScroll(
 
   if (didNotChange) return;
 
-  const viewportMetrics = getViewportSlideMetrics(emblaApi);
+  const viewportMetrics = getTargetViewportSlideMetrics(emblaApi);
 
   if (!viewportMetrics) return;
 
@@ -605,6 +642,7 @@ function FocusCarouselSlide({
   game,
   index,
   itemId,
+  isRendered,
   cardMode,
   cardVariant,
   navigationOverrides,
@@ -632,6 +670,12 @@ function FocusCarouselSlide({
       itemId
     );
   };
+
+  if (!isRendered) {
+    return (
+      <article className="focus-carousel__slide" data-slide-index={index} />
+    );
+  }
 
   return (
     <article className="focus-carousel__slide" data-slide-index={index}>
@@ -714,6 +758,43 @@ export function FocusCarousel({
     emblaApi
   );
   const { canScrollPrev, canScrollNext } = useCarouselControls(emblaApi);
+  const isWindowed = games.length > WINDOWED_CAROUSEL_MIN_GAMES;
+  const [firstSlideInView, setFirstSlideInView] = useState(0);
+  const focusedSlideIndex =
+    isWindowed && getItemId && currentFocusId
+      ? games.findIndex((game) => getItemId(game) === currentFocusId)
+      : -1;
+  const rememberedSlideIndex =
+    isWindowed && getItemId && rememberedFocusId
+      ? games.findIndex((game) => getItemId(game) === rememberedFocusId)
+      : -1;
+  const windowAnchorIndex =
+    focusedSlideIndex === -1 ? rememberedSlideIndex : focusedSlideIndex;
+
+  useEffect(() => {
+    if (!emblaApi || !isWindowed) return;
+
+    const updateFirstSlideInView = () => {
+      const slidesInView = emblaApi.slidesInView();
+      if (slidesInView.length > 0) {
+        setFirstSlideInView(Math.min(...slidesInView));
+      }
+    };
+
+    updateFirstSlideInView();
+    emblaApi.on("slidesInView", updateFirstSlideInView);
+
+    return () => {
+      emblaApi.off("slidesInView", updateFirstSlideInView);
+    };
+  }, [emblaApi, isWindowed]);
+
+  const isSlideRendered = (index: number) =>
+    !isWindowed ||
+    (index >= firstSlideInView - WINDOWED_CAROUSEL_RADIUS &&
+      index <= firstSlideInView + WINDOWED_CAROUSEL_RADIUS * 2) ||
+    (windowAnchorIndex !== -1 &&
+      Math.abs(index - windowAnchorIndex) <= WINDOWED_CAROUSEL_RADIUS);
 
   useEffect(() => {
     const getFocusedIndex = (focusId: string | null) => {
@@ -894,6 +975,7 @@ export function FocusCarousel({
                     game={game}
                     index={index}
                     itemId={itemId}
+                    isRendered={isSlideRendered(index)}
                     cardMode={cardMode}
                     cardVariant={cardVariant}
                     navigationOverrides={navigationOverrides}

@@ -160,4 +160,4 @@ export const NOTIFICATIONS_FETCH_SKIP = 0;
 // The API reports a friend's current game for Steam and Epic only unless asked,
 // so a friend in a Classics (LaunchBox) game would show as merely online.
 export const PROFILE_FRIENDS_PATH =
-  "/profile/friends?shop=steam&shop=launchbox";
+  "/profile/friends?shop=steam&shop=epic&shop=launchbox";

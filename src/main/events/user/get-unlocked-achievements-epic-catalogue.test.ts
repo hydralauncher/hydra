@@ -86,6 +86,9 @@ const load = (options: {
         set: () => assert.fail("must not copy catalogue cache"),
       },
     },
+    "@main/services/achievements/achievement-progress": {
+      recordAchievementProgress: async () => null,
+    },
     "@main/services/achievements/unlocked-achievements-cache": {
       UnlockedAchievementsCache: { recordCombinedMembers: () => undefined },
     },

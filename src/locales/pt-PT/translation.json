@@ -394,7 +394,7 @@
     "wine_prefix": "Prefixo Wine",
     "wine_prefix_description": "O prefixo Wine utilizado para executar este jogo",
     "launch_options": "Opções de Lançamento",
-    "launch_options_description": "Utilizadores avançados podem escolher introduzir modificações nas suas opções de lançamento (funcionalidade experimental)",
+    "launch_options_description": "Utilizadores avançados podem escolher introduzir modificações nas suas opções de lançamento",
     "launch_options_placeholder": "Nenhum parâmetro especificado",
     "no_download_option_info": "Sem informações disponíveis",
     "backup_deletion_failed": "Falha ao apagar o backup",

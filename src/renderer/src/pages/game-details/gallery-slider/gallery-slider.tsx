@@ -380,7 +380,7 @@ export function GallerySlider() {
         className={borrowed ? "gallery-lightbox__frame" : undefined}
         item={item}
         autoPlay={autoplayEnabled && index === firstVideoIndex}
-        loadOnDemand={!autoplayEnabled}
+        loadOnDemand={!autoplayEnabled || index !== firstVideoIndex}
         isFullscreen={borrowed && !!presentation?.isFullscreen}
         controlsHidden={borrowed && !!presentation?.chromeHidden}
         onHoldChromeChange={active ? setVideoHoldsChrome : undefined}

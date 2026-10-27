@@ -32,7 +32,7 @@ import {
 import { ConfirmationModal } from "../../../components/modals";
 import {
   useBigPictureToast,
-  useNavigation,
+  useNavigationActions,
   useUserDetails,
 } from "../../../hooks";
 import { getSkuRegion, getSkuRegionFlag } from "@renderer/helpers";
@@ -155,7 +155,7 @@ function MemoryCardScanModal({
   onClose,
 }: Readonly<MemoryCardScanModalProps>) {
   const { t } = useTranslation("settings");
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const [phase, setPhase] = useState<
     "scanning" | "matching" | "done" | "error"
   >("scanning");

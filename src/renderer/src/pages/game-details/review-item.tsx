@@ -8,7 +8,12 @@ import type { GameReview } from "@types";
 
 import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
 import { Avatar, Button } from "@renderer/components";
-import { useDate, useFormat, useProcessedImage } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useDate,
+  useFormat,
+  useProcessedImage,
+} from "@renderer/hooks";
 import { formatNumber } from "@renderer/helpers";
 import {
   MAX_MINUTES_TO_SHOW_IN_PLAYTIME,
@@ -51,6 +56,84 @@ const getRatingText = (score: number, t: (key: string) => string): string => {
   }
 };
 
+const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
+
+const getLanguageName = (languageCode: string | null, locale: string) => {
+  if (!languageCode) return "";
+  try {
+    const displayNames = new Intl.DisplayNames([locale], {
+      type: "language",
+    });
+    return displayNames.of(languageCode) || languageCode.toUpperCase();
+  } catch {
+    return languageCode.toUpperCase();
+  }
+};
+
+interface ReviewTranslationControlsProps {
+  canTranslate: boolean;
+  isShowingTranslation: boolean;
+  showOriginal: boolean;
+  detectedLanguage: string | null;
+  originalHtml: string;
+  onRequestTranslation: () => void;
+  onToggleOriginal: () => void;
+}
+
+function ReviewTranslationControls({
+  canTranslate,
+  isShowingTranslation,
+  showOriginal,
+  detectedLanguage,
+  originalHtml,
+  onRequestTranslation,
+  onToggleOriginal,
+}: Readonly<ReviewTranslationControlsProps>) {
+  const { t, i18n } = useTranslation("game_details");
+
+  if (!isShowingTranslation) {
+    if (!canTranslate) return null;
+
+    return (
+      <button
+        className="game-details__review-translation-toggle"
+        onClick={onRequestTranslation}
+      >
+        <Languages size={13} />
+        {t("show_translation")}
+      </button>
+    );
+  }
+
+  return (
+    <>
+      <button
+        className="game-details__review-translation-toggle"
+        onClick={onToggleOriginal}
+      >
+        <Languages size={13} />
+        {showOriginal
+          ? t("hide_original")
+          : t("show_original_translated_from", {
+              language: getLanguageName(detectedLanguage, i18n.language),
+            })}
+      </button>
+      {showOriginal && (
+        <div
+          className="game-details__review-content"
+          style={{
+            opacity: 0.6,
+            marginTop: "12px",
+          }}
+          dangerouslySetInnerHTML={{
+            __html: sanitizeHtml(originalHtml),
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 export function ReviewItem({
   review,
   userDetailsId,
@@ -78,28 +161,22 @@ export function ReviewItem({
     REVIEW_BANNER_IMAGE_SIZE
   );
 
-  const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
-
   const isDifferentLanguage =
     getBaseLanguage(review.detectedLanguage) !== getBaseLanguage(i18n.language);
   const reviewTranslationLanguage = getReviewTranslationLanguage(i18n.language);
+
+  const isTranslationDisabled = useAppSelector(
+    (state) => state.userPreferences.value?.disableReviewTranslation === true
+  );
 
   const needsTranslation =
     !isOwnReview &&
     isDifferentLanguage &&
     review.translations[reviewTranslationLanguage];
-
-  const getLanguageName = (languageCode: string | null) => {
-    if (!languageCode) return "";
-    try {
-      const displayNames = new Intl.DisplayNames([i18n.language], {
-        type: "language",
-      });
-      return displayNames.of(languageCode) || languageCode.toUpperCase();
-    } catch {
-      return languageCode.toUpperCase();
-    }
-  };
+  const [isTranslationRequested, setIsTranslationRequested] = useState(false);
+  const isShowingTranslation =
+    Boolean(needsTranslation) &&
+    (!isTranslationDisabled || isTranslationRequested);
 
   // Format playtime similar to hero panel
   const formatPlayTime = (playTimeInSeconds: number) => {
@@ -116,7 +193,7 @@ export function ReviewItem({
   };
 
   // Determine which content to show - always show original for own reviews
-  const displayContent = needsTranslation
+  const displayContent = isShowingTranslation
     ? review.translations[reviewTranslationLanguage]
     : review.reviewHtml;
 
@@ -221,33 +298,21 @@ export function ReviewItem({
             __html: sanitizeHtml(displayContent),
           }}
         />
-        {needsTranslation && (
-          <>
-            <button
-              className="game-details__review-translation-toggle"
-              onClick={() => setShowOriginal(!showOriginal)}
-            >
-              <Languages size={13} />
-              {showOriginal
-                ? t("hide_original")
-                : t("show_original_translated_from", {
-                    language: getLanguageName(review.detectedLanguage),
-                  })}
-            </button>
-            {showOriginal && (
-              <div
-                className="game-details__review-content"
-                style={{
-                  opacity: 0.6,
-                  marginTop: "12px",
-                }}
-                dangerouslySetInnerHTML={{
-                  __html: sanitizeHtml(review.reviewHtml),
-                }}
-              />
-            )}
-          </>
-        )}
+        <ReviewTranslationControls
+          canTranslate={Boolean(needsTranslation)}
+          isShowingTranslation={isShowingTranslation}
+          showOriginal={showOriginal}
+          detectedLanguage={review.detectedLanguage}
+          originalHtml={review.reviewHtml}
+          onRequestTranslation={() => setIsTranslationRequested(true)}
+          onToggleOriginal={() => {
+            if (isTranslationDisabled) {
+              setIsTranslationRequested(false);
+              return;
+            }
+            setShowOriginal(!showOriginal);
+          }}
+        />
       </div>
       <div className="game-details__review-actions">
         <div className="game-details__review-actions-left">

@@ -165,7 +165,9 @@
     background-color: transparent;
     color: globals.$muted-color;
     cursor: pointer;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
 
     &:hover:not(:disabled) {
       background-color: rgba(255, 255, 255, 0.1);
@@ -206,7 +208,6 @@
     background-size: var(--fill, 0%) 100%;
     cursor: pointer;
     outline: none;
-    transition: background-color ease 0.2s;
 
     &:disabled {
       opacity: globals.$disabled-opacity;

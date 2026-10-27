@@ -892,12 +892,19 @@ export type CatalogueSearchResult = {
   skus?: string[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
+export interface AchievementProgress {
+  achievementCount: number;
+  unlockedAchievementCount: number;
+  updatedAt: number;
+}
+
 export type LibraryGame = Game &
   Partial<ShopAssets> & {
     id: string;
     download: Download | null;
     unlockedAchievementCount?: number;
     achievementCount?: number;
+    achievementProgress?: AchievementProgress | null;
   };
 
 /** Read-only catalogue projection; writes must use its original members. */

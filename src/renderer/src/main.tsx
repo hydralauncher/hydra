@@ -1,6 +1,6 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
-import i18n from "i18next";
+import i18n, { type BackendModule } from "i18next";
 import { initReactI18next } from "react-i18next";
 import { Provider } from "react-redux";
 import LanguageDetector from "i18next-browser-languagedetector";
@@ -12,50 +12,88 @@ import "@fontsource/noto-sans/700.css";
 
 import "react-loading-skeleton/dist/skeleton.css";
 import "react-tooltip/dist/react-tooltip.css";
+import "./app.scss";
 
 import { CollectionContextMenuProvider } from "@renderer/context";
 import { GameOptionsModalProvider } from "@renderer/context/game-options-modal/game-options-modal.context";
 
-import { App } from "./app";
-
 import { store } from "./store";
-
-import resources from "@locales";
 
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
 import { clearStateFromPreviousSession } from "./session-state";
 import * as Sentry from "@sentry/react";
 import { ErrorBoundary } from "./components/error-boundary/error-boundary";
+import { BadgeTooltip } from "./components/badge-tooltip/badge-tooltip";
 import { levelDBService } from "./services/leveldb.service";
-import Catalogue from "./pages/catalogue/catalogue";
-import Home from "./pages/home/home";
-import Downloads from "./pages/downloads/downloads";
-import GameDetails from "./pages/game-details/game-details";
-import Settings from "./pages/settings/settings";
-import Profile from "./pages/profile/profile";
-import Achievements from "./pages/achievements/achievements";
-import ThemeEditor from "./pages/theme-editor/theme-editor";
-import Library from "./pages/library/library";
-import Notifications from "./pages/notifications/notifications";
-import Leaderboards from "./pages/leaderboards/leaderboards";
-import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 import { AchievementNotificationOverlay } from "./components/achievements/notification/achievement-notification-overlay";
-import GameLauncher from "./pages/game-launcher/game-launcher";
-import FriendsWindow from "./pages/friends-window/friends-window";
-import ChatWindow from "./pages/chat-window/chat-window";
-import AuthWindow from "./pages/auth-window/auth-window";
-import RetroAchievementsConnectionWindow from "./pages/retroachievements-connection-window/retroachievements-connection-window";
-import BigPictureApp from "../../big-picture/src/app";
-import BigPictureCatalogue from "../../big-picture/src/pages/catalogue/catalogue";
-import BigPictureComponentLab from "../../big-picture/src/pages/component-lab/component-lab";
-import BigPictureDownloads from "../../big-picture/src/pages/downloads/downloads";
-import BigPictureHome from "../../big-picture/src/pages/home/home";
-import BigPictureSettings from "../../big-picture/src/pages/settings/settings";
-import BigPictureLibrary from "../../big-picture/src/pages/library/page";
-import BigPictureGame from "../../big-picture/src/pages/game/game";
-import BigPictureGameAchievements from "../../big-picture/src/pages/game-achievements/game-achievements";
-import BigPictureProfile from "../../big-picture/src/pages/profile/profile";
+
+const App = lazy(() =>
+  import("./app").then((module) => ({ default: module.App }))
+);
+const Catalogue = lazy(() => import("./pages/catalogue/catalogue"));
+const Home = lazy(() => import("./pages/home/home"));
+const Downloads = lazy(() => import("./pages/downloads/downloads"));
+const GameDetails = lazy(() => import("./pages/game-details/game-details"));
+const Settings = lazy(() => import("./pages/settings/settings"));
+const Profile = lazy(() => import("./pages/profile/profile"));
+const Achievements = lazy(() => import("./pages/achievements/achievements"));
+const ThemeEditor = lazy(() => import("./pages/theme-editor/theme-editor"));
+const Library = lazy(() => import("./pages/library/library"));
+const Notifications = lazy(() => import("./pages/notifications/notifications"));
+const Leaderboards = lazy(() => import("./pages/leaderboards/leaderboards"));
+const AchievementNotification = lazy(() =>
+  import("./pages/achievements/notification/achievement-notification").then(
+    (module) => ({ default: module.AchievementNotification })
+  )
+);
+const GameLauncher = lazy(() => import("./pages/game-launcher/game-launcher"));
+const FriendsWindow = lazy(
+  () => import("./pages/friends-window/friends-window")
+);
+const ChatWindow = lazy(() => import("./pages/chat-window/chat-window"));
+const AuthWindow = lazy(() => import("./pages/auth-window/auth-window"));
+const RetroAchievementsConnectionWindow = lazy(
+  () =>
+    import(
+      "./pages/retroachievements-connection-window/retroachievements-connection-window"
+    )
+);
+const BigPictureApp = lazy(() => import("../../big-picture/src/app"));
+const BigPictureCatalogue = lazy(
+  () => import("../../big-picture/src/pages/catalogue/catalogue")
+);
+const BigPictureComponentLab = lazy(
+  () => import("../../big-picture/src/pages/component-lab/component-lab")
+);
+const BigPictureDownloads = lazy(
+  () => import("../../big-picture/src/pages/downloads/downloads")
+);
+const BigPictureHome = lazy(
+  () => import("../../big-picture/src/pages/home/home")
+);
+const BigPictureSettings = lazy(
+  () => import("../../big-picture/src/pages/settings/settings")
+);
+const BigPictureLibrary = lazy(
+  () => import("../../big-picture/src/pages/library/page")
+);
+const BigPictureGame = lazy(
+  () => import("../../big-picture/src/pages/game/game")
+);
+const BigPictureGameAchievements = lazy(
+  () =>
+    import("../../big-picture/src/pages/game-achievements/game-achievements")
+);
+const BigPictureProfile = lazy(
+  () => import("../../big-picture/src/pages/profile/profile")
+);
+
+const page = (Page: React.ComponentType) => (
+  <Suspense fallback={null}>
+    <Page />
+  </Suspense>
+);
 
 console.log = logger.log;
 
@@ -89,11 +127,44 @@ const syncDocumentLanguage = (language: string) => {
   document.documentElement.dir = i18n.dir(language);
 };
 
+const localeLoaders = import.meta.glob<Record<string, object>>(
+  "../../locales/*/translation.json",
+  { import: "default" }
+);
+const localeRequests = new Map<string, Promise<Record<string, object>>>();
+
+const loadLocale = (language: string) => {
+  const loader = localeLoaders[`../../locales/${language}/translation.json`];
+  if (!loader) return Promise.resolve({});
+
+  let request = localeRequests.get(language);
+  if (!request) {
+    request = loader();
+    localeRequests.set(language, request);
+  }
+  return request;
+};
+
+const localeBackend: BackendModule = {
+  type: "backend",
+  init: () => {},
+  read: (language, namespace, callback) => {
+    loadLocale(language)
+      .then((bundles) => callback(null, bundles[namespace] ?? {}))
+      .catch((error) => callback(error, null));
+  },
+};
+
+const englishResources = await loadLocale("en");
+
 await i18n
+  .use(localeBackend)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources,
+    resources: { en: englishResources },
+    partialBundledLanguages: true,
+    ns: Object.keys(englishResources),
     fallbackLng: "en",
     interpolation: {
       escapeValue: false,
@@ -109,6 +180,7 @@ const userPreferences = (await levelDBService.get(
 if (userPreferences?.language) {
   await i18n.changeLanguage(userPreferences.language);
 } else {
+  await i18n.changeLanguage(i18n.language);
   globalThis.electron.updateUserPreferences({ language: i18n.language });
 }
 
@@ -135,58 +207,59 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <CollectionContextMenuProvider>
             <GameOptionsModalProvider>
               <AchievementNotificationOverlay />
+              <BadgeTooltip />
               <Routes>
-                <Route element={<App />}>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/catalogue" element={<Catalogue />} />
-                  <Route path="/library" element={<Library />} />
-                  <Route path="/downloads" element={<Downloads />} />
+                <Route element={page(App)}>
+                  <Route path="/" element={page(Home)} />
+                  <Route path="/catalogue" element={page(Catalogue)} />
+                  <Route path="/library" element={page(Library)} />
+                  <Route path="/downloads" element={page(Downloads)} />
                   <Route
                     path="/game/:shop/:objectId"
-                    element={<GameDetails />}
+                    element={page(GameDetails)}
                   />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/profile/:userId" element={<Profile />} />
-                  <Route path="/achievements" element={<Achievements />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/leaderboards" element={<Leaderboards />} />
+                  <Route path="/settings" element={page(Settings)} />
+                  <Route path="/profile/:userId" element={page(Profile)} />
+                  <Route path="/achievements" element={page(Achievements)} />
+                  <Route path="/notifications" element={page(Notifications)} />
+                  <Route path="/leaderboards" element={page(Leaderboards)} />
                 </Route>
 
-                <Route path="/theme-editor" element={<ThemeEditor />} />
+                <Route path="/theme-editor" element={page(ThemeEditor)} />
                 <Route
                   path="/achievement-notification"
-                  element={<AchievementNotification />}
+                  element={page(AchievementNotification)}
                 />
-                <Route path="/game-launcher" element={<GameLauncher />} />
-                <Route path="/friends-window" element={<FriendsWindow />} />
-                <Route path="/chat-window" element={<ChatWindow />} />
-                <Route path="/auth-window" element={<AuthWindow />} />
+                <Route path="/game-launcher" element={page(GameLauncher)} />
+                <Route path="/friends-window" element={page(FriendsWindow)} />
+                <Route path="/chat-window" element={page(ChatWindow)} />
+                <Route path="/auth-window" element={page(AuthWindow)} />
                 <Route
                   path="/retroachievements-connection"
-                  element={<RetroAchievementsConnectionWindow />}
+                  element={page(RetroAchievementsConnectionWindow)}
                 />
 
-                <Route path="/big-picture" element={<BigPictureApp />}>
-                  <Route index element={<BigPictureHome />} />
-                  <Route path="catalogue" element={<BigPictureCatalogue />} />
+                <Route path="/big-picture" element={page(BigPictureApp)}>
+                  <Route index element={page(BigPictureHome)} />
+                  <Route path="catalogue" element={page(BigPictureCatalogue)} />
                   <Route
                     path="component-lab"
-                    element={<BigPictureComponentLab />}
+                    element={page(BigPictureComponentLab)}
                   />
-                  <Route path="downloads" element={<BigPictureDownloads />} />
-                  <Route path="settings" element={<BigPictureSettings />} />
-                  <Route path="library" element={<BigPictureLibrary />} />
+                  <Route path="downloads" element={page(BigPictureDownloads)} />
+                  <Route path="settings" element={page(BigPictureSettings)} />
+                  <Route path="library" element={page(BigPictureLibrary)} />
                   <Route
                     path="profile/:userId?"
-                    element={<BigPictureProfile />}
+                    element={page(BigPictureProfile)}
                   />
                   <Route
                     path="game/:shop/:objectId"
-                    element={<BigPictureGame />}
+                    element={page(BigPictureGame)}
                   />
                   <Route
                     path="game/:shop/:objectId/achievements"
-                    element={<BigPictureGameAchievements />}
+                    element={page(BigPictureGameAchievements)}
                   />
                 </Route>
               </Routes>

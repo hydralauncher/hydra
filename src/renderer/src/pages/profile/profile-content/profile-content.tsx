@@ -27,8 +27,8 @@ import {
   AuthPage,
   findSouvenirByNotificationTarget,
   isAchievementSouvenirsEnabled,
-  useSouvenirContentWarning,
 } from "@shared";
+import { useSouvenirContentWarning } from "@shared/use-souvenir-content-warning";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { BadgesBox } from "./badges-box";

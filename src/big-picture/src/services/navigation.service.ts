@@ -139,10 +139,12 @@ export class NavigationService {
   private readonly layers = new Map<string, FocusLayerRecord>();
   private layerStack: string[] = [ROOT_NAVIGATION_LAYER_ID];
   private readonly regionChildren = new Map<string, FocusTarget[]>();
+  private readonly regionChildKeys = new Map<string, Set<string>>();
   private readonly regionChildOrder = new Map<string, Map<string, number>>();
   private readonly regionChildOrderCounter = new Map<string, number>();
   private currentFocusId: string | null = null;
   private readonly listeners = new Set<Listener>();
+  private isNotifyScheduled = false;
   private readonly lastFocusedByRegionId = new Map<string, string>();
   private readonly pendingInitialFocusByLayerId = new Map<
     string,
@@ -357,6 +359,7 @@ export class NavigationService {
 
       this.regions.delete(region.id);
       this.regionChildren.delete(region.id);
+      this.regionChildKeys.delete(region.id);
       this.reconcileLayerRootRegion(registeredRegion.layerId);
       this.tryResolvePendingInitialFocus(registeredRegion.layerId);
       this.tryResolvePendingRequestedFocus();
@@ -570,7 +573,9 @@ export class NavigationService {
       navigationOverrides: nextNavigationOverrides,
     });
 
-    this.sortRegionChildren(registeredNode.regionId);
+    if (nextNavigationOrder !== registeredNode.navigationOrder) {
+      this.sortRegionChildren(registeredNode.regionId);
+    }
 
     const resolvedPendingInitialFocus = this.tryResolvePendingInitialFocus(
       registeredNode.layerId
@@ -916,6 +921,10 @@ export class NavigationService {
       this.regionChildren.set(regionId, []);
     }
 
+    if (!this.regionChildKeys.has(regionId)) {
+      this.regionChildKeys.set(regionId, new Set());
+    }
+
     if (!this.regionChildOrder.has(regionId)) {
       this.regionChildOrder.set(regionId, new Map());
     }
@@ -929,17 +938,16 @@ export class NavigationService {
     this.ensureRegionChildren(regionId);
 
     const children = this.regionChildren.get(regionId);
+    const childKeys = this.regionChildKeys.get(regionId);
     const childOrder = this.regionChildOrder.get(regionId);
 
-    if (!children || !childOrder) return;
-
-    const alreadyRegistered = children.some(
-      (child) => child.type === target.type && child.id === target.id
-    );
-
-    if (alreadyRegistered) return;
+    if (!children || !childKeys || !childOrder) return;
 
     const targetKey = this.getTargetKey(target);
+
+    if (childKeys.has(targetKey)) return;
+
+    childKeys.add(targetKey);
 
     if (!childOrder.has(targetKey)) {
       const nextOrder = this.regionChildOrderCounter.get(regionId) ?? 0;
@@ -948,13 +956,27 @@ export class NavigationService {
       this.regionChildOrderCounter.set(regionId, nextOrder + 1);
     }
 
-    children.push(target);
-    this.sortRegionChildren(regionId);
+    let low = 0;
+    let high = children.length;
+
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+
+      if (this.compareRegionChildren(regionId, children[middle], target) <= 0) {
+        low = middle + 1;
+      } else {
+        high = middle;
+      }
+    }
+
+    children.splice(low, 0, target);
   }
 
   private removeChildTarget(regionId: string, target: FocusTarget) {
     const children = this.regionChildren.get(regionId);
     const childOrder = this.regionChildOrder.get(regionId);
+
+    this.regionChildKeys.get(regionId)?.delete(this.getTargetKey(target));
 
     if (!children) return;
 
@@ -985,36 +1007,44 @@ export class NavigationService {
     );
   }
 
+  private compareRegionChildren(
+    regionId: string,
+    left: FocusTarget,
+    right: FocusTarget
+  ) {
+    const leftNavigationOrder = this.getNavigationOrderForTarget(left);
+    const rightNavigationOrder = this.getNavigationOrderForTarget(right);
+
+    if (
+      leftNavigationOrder != null &&
+      rightNavigationOrder != null &&
+      leftNavigationOrder !== rightNavigationOrder
+    ) {
+      return leftNavigationOrder - rightNavigationOrder;
+    }
+
+    if (leftNavigationOrder != null && rightNavigationOrder == null) {
+      return -1;
+    }
+
+    if (leftNavigationOrder == null && rightNavigationOrder != null) {
+      return 1;
+    }
+
+    return (
+      this.getHistoricalOrderForTarget(regionId, left) -
+      this.getHistoricalOrderForTarget(regionId, right)
+    );
+  }
+
   private sortRegionChildren(regionId: string) {
     const children = this.regionChildren.get(regionId);
 
     if (!children) return;
 
-    children.sort((left, right) => {
-      const leftNavigationOrder = this.getNavigationOrderForTarget(left);
-      const rightNavigationOrder = this.getNavigationOrderForTarget(right);
-
-      if (
-        leftNavigationOrder != null &&
-        rightNavigationOrder != null &&
-        leftNavigationOrder !== rightNavigationOrder
-      ) {
-        return leftNavigationOrder - rightNavigationOrder;
-      }
-
-      if (leftNavigationOrder != null && rightNavigationOrder == null) {
-        return -1;
-      }
-
-      if (leftNavigationOrder == null && rightNavigationOrder != null) {
-        return 1;
-      }
-
-      return (
-        this.getHistoricalOrderForTarget(regionId, left) -
-        this.getHistoricalOrderForTarget(regionId, right)
-      );
-    });
+    children.sort((left, right) =>
+      this.compareRegionChildren(regionId, left, right)
+    );
   }
 
   private hasPendingInitialFocus(layerId: string) {
@@ -1957,6 +1987,12 @@ export class NavigationService {
   }
 
   private notify() {
-    this.listeners.forEach((listener) => listener());
+    if (this.isNotifyScheduled) return;
+
+    this.isNotifyScheduled = true;
+    queueMicrotask(() => {
+      this.isNotifyScheduled = false;
+      this.listeners.forEach((listener) => listener());
+    });
   }
 }

@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import type { GameReviewAnswer } from "@types";
 
 import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
-import { useDate, useProcessedImage } from "@renderer/hooks";
+import { useAppSelector, useDate, useProcessedImage } from "@renderer/hooks";
 import { formatNumber } from "@renderer/helpers";
 import { Avatar } from "@renderer/components";
 import { REVIEW_BANNER_IMAGE_SIZE } from "@renderer/constants";
@@ -46,10 +46,18 @@ export function ReviewReplyItem({
     getBaseLanguage(reply.detectedLanguage) !== getBaseLanguage(i18n.language);
   const replyTranslationLanguage = getReviewTranslationLanguage(i18n.language);
 
+  const isTranslationDisabled = useAppSelector(
+    (state) => state.userPreferences.value?.disableReviewTranslation === true
+  );
+
   const needsTranslation =
     !isOwnReply &&
     isDifferentLanguage &&
     reply.translations[replyTranslationLanguage];
+  const [isTranslationRequested, setIsTranslationRequested] = useState(false);
+  const isShowingTranslation =
+    Boolean(needsTranslation) &&
+    (!isTranslationDisabled || isTranslationRequested);
 
   const getLanguageName = (languageCode: string | null) => {
     if (!languageCode) return "";
@@ -63,7 +71,7 @@ export function ReviewReplyItem({
     }
   };
 
-  const displayContent = needsTranslation
+  const displayContent = isShowingTranslation
     ? reply.translations[replyTranslationLanguage]
     : reply.answerHtml;
 
@@ -130,11 +138,26 @@ export function ReviewReplyItem({
           __html: sanitizeHtml(displayContent),
         }}
       />
-      {needsTranslation && (
+      {needsTranslation && !isShowingTranslation && (
+        <button
+          className="game-details__review-translation-toggle"
+          onClick={() => setIsTranslationRequested(true)}
+        >
+          <Languages size={13} />
+          {t("show_translation")}
+        </button>
+      )}
+      {isShowingTranslation && (
         <>
           <button
             className="game-details__review-translation-toggle"
-            onClick={() => setShowOriginal(!showOriginal)}
+            onClick={() => {
+              if (isTranslationDisabled) {
+                setIsTranslationRequested(false);
+                return;
+              }
+              setShowOriginal(!showOriginal);
+            }}
           >
             <Languages size={13} />
             {showOriginal

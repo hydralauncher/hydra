@@ -27,6 +27,7 @@ import {
 import "./download-group.scss";
 import { useTranslation } from "react-i18next";
 import {
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   useCallback,
   useEffect,
@@ -140,16 +141,62 @@ function AnimatedPercentage({ value }: Readonly<AnimatedPercentageProps>) {
 
 interface SpeedChartProps {
   speeds: number[];
+  timestamps: number[];
   peakSpeed: number;
+  formatSpeed: (speed: number) => string;
   color?: string;
+}
+
+interface SpeedChartHover {
+  index: number;
+  x: number;
+}
+
+function parseChartColor(color: string): [number, number, number] {
+  if (color.startsWith("#")) {
+    let hex = color.replace("#", "");
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    return [
+      Number.parseInt(hex.substring(0, 2), 16) || 255,
+      Number.parseInt(hex.substring(2, 4), 16) || 255,
+      Number.parseInt(hex.substring(4, 6), 16) || 255,
+    ];
+  }
+
+  const matches = color.startsWith("rgb") ? color.match(/\d+/g) : null;
+  if (!matches || matches.length < 3) return [255, 255, 255];
+
+  return [
+    Number.parseInt(matches[0]) || 255,
+    Number.parseInt(matches[1]) || 255,
+    Number.parseInt(matches[2]) || 255,
+  ];
 }
 
 function SpeedChart({
   speeds,
+  timestamps,
   peakSpeed,
+  formatSpeed,
   color = "rgba(255, 255, 255, 1)",
 }: Readonly<SpeedChartProps>) {
+  const { i18n } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const layoutRef = useRef({ barSpacing: 0, barWidth: 4, totalBars: 1 });
+  const hoveredBarRef = useRef<number | null>(null);
+  const [hover, setHover] = useState<SpeedChartHover | null>(null);
+
+  const timeFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(i18n.language, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }),
+    [i18n.language]
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -189,33 +236,20 @@ function SpeedChart({
       const barSpacing =
         totalBars > 1 ? (width - barWidth) / (totalBars - 1) : 0;
       const maxHeight = peakSpeed || Math.max(...speeds, 1);
+      layoutRef.current = { barSpacing, barWidth, totalBars };
 
       ctx.clearRect(0, 0, width, height);
 
-      let r = 255,
-        g = 255,
-        b = 255;
-      if (color.startsWith("#")) {
-        let hex = color.replace("#", "");
-        if (hex.length === 3) {
-          hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-        }
-        r = Number.parseInt(hex.substring(0, 2), 16) || 255;
-        g = Number.parseInt(hex.substring(2, 4), 16) || 255;
-        b = Number.parseInt(hex.substring(4, 6), 16) || 255;
-      } else if (color.startsWith("rgb")) {
-        const matches = color.match(/\d+/g);
-        if (matches && matches.length >= 3) {
-          r = Number.parseInt(matches[0]) || 255;
-          g = Number.parseInt(matches[1]) || 255;
-          b = Number.parseInt(matches[2]) || 255;
-        }
-      }
+      const [r, g, b] = parseChartColor(color);
       const displaySpeeds = speeds.slice(-totalBars);
+      const hoveredBar = hoveredBarRef.current;
 
       for (let i = 0; i < totalBars; i++) {
         const x = i * barSpacing;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+        const isHovered = i === hoveredBar;
+        ctx.fillStyle = isHovered
+          ? "rgba(255, 255, 255, 0.2)"
+          : "rgba(255, 255, 255, 0.08)";
         ctx.beginPath();
         ctx.roundRect(x, 0, barWidth, height, 3);
         ctx.fill();
@@ -233,7 +267,10 @@ function SpeedChart({
             );
 
             gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 1)`);
-            gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.7)`);
+            gradient.addColorStop(
+              1,
+              `rgba(${r}, ${g}, ${b}, ${isHovered ? 1 : 0.7})`
+            );
 
             ctx.fillStyle = gradient;
             ctx.beginPath();
@@ -262,8 +299,63 @@ function SpeedChart({
     };
   }, [speeds, peakSpeed, color]);
 
+  const handleMouseMove = (event: ReactMouseEvent<HTMLCanvasElement>) => {
+    const { barSpacing, barWidth, totalBars } = layoutRef.current;
+    const x = event.clientX - event.currentTarget.getBoundingClientRect().left;
+    const index =
+      barSpacing > 0
+        ? Math.min(
+            totalBars - 1,
+            Math.max(0, Math.round((x - barWidth / 2) / barSpacing))
+          )
+        : 0;
+
+    if (index >= Math.min(speeds.length, totalBars)) {
+      hoveredBarRef.current = null;
+      setHover(null);
+      return;
+    }
+
+    hoveredBarRef.current = index;
+    setHover((current) =>
+      current?.index === index
+        ? current
+        : { index, x: index * barSpacing + barWidth / 2 }
+    );
+  };
+
+  const handleMouseLeave = () => {
+    hoveredBarRef.current = null;
+    setHover(null);
+  };
+
+  const displayedCount = Math.min(speeds.length, layoutRef.current.totalBars);
+  const sampleIndex = hover ? speeds.length - displayedCount + hover.index : -1;
+  const hoveredSpeed = hover ? speeds[sampleIndex] : undefined;
+  const hoveredTimestamp = hover
+    ? timestamps[timestamps.length - speeds.length + sampleIndex]
+    : undefined;
+
   return (
-    <canvas ref={canvasRef} className="download-group__speed-chart-canvas" />
+    <div className="download-group__speed-chart-area">
+      <canvas
+        ref={canvasRef}
+        className="download-group__speed-chart-canvas"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      />
+      {hover && hoveredSpeed !== undefined && (
+        <div
+          className="download-group__speed-tooltip"
+          style={{ left: hover.x }}
+        >
+          <strong>{formatSpeed(hoveredSpeed)}</strong>
+          {hoveredTimestamp !== undefined && (
+            <span>{timeFormatter.format(hoveredTimestamp)}</span>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -278,6 +370,7 @@ interface HeroDownloadViewProps {
   dominantColor: string;
   lastPacket: ReturnType<typeof useDownload>["lastPacket"];
   speedHistory: number[];
+  speedHistoryTimestamps: number[];
   formatSpeed: (speed: number) => string;
   calculateETA: () => string | null;
   pauseDownload: (shop: GameShop, objectId: string) => void;
@@ -353,6 +446,7 @@ function HeroDownloadView({
   dominantColor,
   lastPacket,
   speedHistory,
+  speedHistoryTimestamps,
   formatSpeed,
   calculateETA,
   pauseDownload,
@@ -568,6 +662,8 @@ function HeroDownloadView({
           <div className="download-group__speed-chart">
             <SpeedChart
               speeds={speedHistory}
+              timestamps={speedHistoryTimestamps}
+              formatSpeed={formatSpeed}
               peakSpeed={peakSpeed}
               color={dominantColor}
             />
@@ -676,6 +772,9 @@ export function DownloadGroup({
 
   // Get speed history and peak speeds from Redux (centralized state)
   const speedHistory = useAppSelector((state) => state.download.speedHistory);
+  const speedHistoryTimestamps = useAppSelector(
+    (state) => state.download.speedHistoryTimestamps
+  );
   const peakSpeeds = useAppSelector((state) => state.download.peakSpeeds);
   const [dominantColors, setDominantColors] = useState<Record<string, string>>(
     {}
@@ -1106,6 +1205,7 @@ export function DownloadGroup({
     // Fall back to game.id if lastPacket is not available
     const dataKey = lastPacket?.gameId ?? game.id;
     const gameSpeedHistory = speedHistory[dataKey] ?? [];
+    const gameSpeedHistoryTimestamps = speedHistoryTimestamps[dataKey] ?? [];
     const storedPeak = peakSpeeds[dataKey];
     // Use stored peak if available and > 0, otherwise use current speed as initial value
     const peakSpeed =
@@ -1144,6 +1244,7 @@ export function DownloadGroup({
           dominantColor={dominantColor}
           lastPacket={lastPacket}
           speedHistory={gameSpeedHistory}
+          speedHistoryTimestamps={gameSpeedHistoryTimestamps}
           formatSpeed={formatSpeed}
           calculateETA={calculateETA}
           pauseDownload={pauseDownload}

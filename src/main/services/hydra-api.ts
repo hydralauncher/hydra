@@ -299,8 +299,9 @@ export class HydraApi {
     if (generation !== this.authContexts.generation) return;
     void startEpicSyncOnStartup();
 
+    WindowManager.sendToAppWindows("on-signin");
+
     if (WindowManager.mainWindow) {
-      WindowManager.mainWindow.webContents.send("on-signin");
       void uploadGamesBatch();
 
       SSEClient.close();

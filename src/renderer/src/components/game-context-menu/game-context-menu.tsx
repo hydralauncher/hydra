@@ -331,6 +331,70 @@ export function GameContextMenu({
     },
   ];
 
+  const downloadsSubmenu: ContextMenuItemData[] = [
+    ...(game.executablePath
+      ? [
+          {
+            id: "download-options",
+            label: t("open_download_options"),
+            icon: <DownloadIcon size={16} />,
+            onClick: handleOpenDownloadOptions,
+            disabled:
+              isDeleting ||
+              isDownloadDeleting ||
+              isGameDownloading ||
+              !hasRepacks,
+          },
+        ]
+      : []),
+    ...(game.executablePath
+      ? [
+          {
+            id: "open-folder",
+            label: t("open_folder"),
+            icon: <FileDirectoryIcon size={16} />,
+            onClick: handleOpenFolder,
+            disabled: isDeleting,
+          },
+        ]
+      : []),
+    ...(downloadGame.download?.downloadPath
+      ? [
+          {
+            id: "download-location",
+            label: t("open_download_location"),
+            icon: <FileDirectoryIcon size={16} />,
+            onClick: handleOpenDownloadLocation,
+            disabled: isDeleting || isDownloadDeleting,
+          },
+        ]
+      : []),
+    ...(showRemoveFiles
+      ? [
+          {
+            id: "remove-files",
+            label: t("remove_files"),
+            separator: Boolean(
+              game.executablePath || downloadGame.download?.downloadPath
+            ),
+            icon: <TrashIcon size={16} />,
+            onClick: () => {
+              if (hydraRemoveFilesAvailable) {
+                setShowConfirmRemoveFiles(true);
+                return;
+              }
+              if (steamUninstallTarget) {
+                setPendingSteamUninstallTarget(steamUninstallTarget);
+              }
+            },
+            disabled: removeFilesDisabled,
+            danger: true,
+            closeOnClick: false,
+          },
+        ]
+      : []),
+  ];
+
   const items: ContextMenuItemData[] = [
     {
       id: "play",
@@ -402,6 +466,18 @@ export function GameContextMenu({
         ]
       : []),
 
+    ...(downloadsSubmenu.length > 0
+      ? [
+          {
+            id: "downloads",
+            label: t("downloads", { ns: "sidebar" }),
+            icon: <DownloadIcon size={16} />,
+            disabled: isDeleting,
+            submenu: downloadsSubmenu,
+          },
+        ]
+      : []),
+
     {
       id: "manage",
       label: t("options"),
@@ -457,43 +533,6 @@ export function GameContextMenu({
           closeOnClick: false,
           disabled: isDeleting || isVisibilityPending || !userDetails,
         },
-        ...(game.executablePath
-          ? [
-              {
-                id: "open-folder",
-                label: t("open_folder"),
-                icon: <FileDirectoryIcon size={16} />,
-                onClick: handleOpenFolder,
-                disabled: isDeleting,
-              },
-            ]
-          : []),
-        ...(game.executablePath
-          ? [
-              {
-                id: "download-options",
-                label: t("open_download_options"),
-                icon: <DownloadIcon size={16} />,
-                onClick: handleOpenDownloadOptions,
-                disabled:
-                  isDeleting ||
-                  isDownloadDeleting ||
-                  isGameDownloading ||
-                  !hasRepacks,
-              },
-            ]
-          : []),
-        ...(downloadGame.download?.downloadPath
-          ? [
-              {
-                id: "download-location",
-                label: t("open_download_location"),
-                icon: <FileDirectoryIcon size={16} />,
-                onClick: handleOpenDownloadLocation,
-                disabled: isDeleting || isDownloadDeleting,
-              },
-            ]
-          : []),
 
         {
           id: "remove-library",
@@ -504,27 +543,6 @@ export function GameContextMenu({
           danger: true,
           closeOnClick: false,
         },
-        ...(showRemoveFiles
-          ? [
-              {
-                id: "remove-files",
-                label: t("remove_files"),
-                icon: <TrashIcon size={16} />,
-                onClick: () => {
-                  if (hydraRemoveFilesAvailable) {
-                    setShowConfirmRemoveFiles(true);
-                    return;
-                  }
-                  if (steamUninstallTarget) {
-                    setPendingSteamUninstallTarget(steamUninstallTarget);
-                  }
-                },
-                disabled: removeFilesDisabled,
-                danger: true,
-                closeOnClick: false,
-              },
-            ]
-          : []),
       ],
     },
     {
@@ -538,11 +556,9 @@ export function GameContextMenu({
   ];
 
   let forceOpenSubmenuId: string | undefined;
-  if (
-    showConfirmRemoveLibrary ||
-    showConfirmRemoveFiles ||
-    pendingSteamUninstallTarget !== null
-  ) {
+  if (showConfirmRemoveFiles || pendingSteamUninstallTarget !== null) {
+    forceOpenSubmenuId = "downloads";
+  } else if (showConfirmRemoveLibrary) {
     forceOpenSubmenuId = "manage";
   } else if (isCollectionContextMenuOrModalOpen || showCreateCollectionModal) {
     forceOpenSubmenuId = "collection";

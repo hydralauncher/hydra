@@ -19,7 +19,7 @@ import { getItemFocusTarget } from "../../../helpers";
 import type { FocusOverrides } from "../../../services";
 
 import { FocusItem, GridFocusGroup } from "../../../components";
-import { useNavigation } from "../../../hooks";
+import { useNavigationActions } from "../../../hooks";
 import {
   EMULATION_DETAIL_BACK_BUTTON_ID,
   EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
@@ -237,7 +237,7 @@ export function EmulationSettingsSection({
   const { search } = useLocation();
   const isRetroArchDeepLink = isRetroArchEmulationDeepLink(search);
   const isRpcs3DeepLink = isRpcs3EmulationDeepLink(search);
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const [configs, setConfigs] = useState<EmulatorConfigMap | null>(null);
   const [retroArchConfig, setRetroArchConfig] =
     useState<RetroArchConfig | null>(null);

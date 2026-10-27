@@ -22,6 +22,10 @@ import { getGameAchievementData } from "./get-game-achievement-data";
 import { AchievementWatcherManager } from "./achievement-watcher-manager";
 import { AchievementMemoryStore } from "./achievement-memory-store";
 import { UnlockedAchievementsCache } from "./unlocked-achievements-cache";
+import {
+  forgetAchievementProgress,
+  recordAchievementProgress,
+} from "./achievement-progress";
 import { publishAchievementUnlockNotifications } from "./achievement-unlock-notifications";
 import { ScreenshotService } from "../screenshot";
 import { PendingAchievementSouvenirStore } from "./pending-achievement-souvenir-store";
@@ -166,6 +170,7 @@ const saveAchievementsInMemory = async (
         `on-update-achievements-${objectId}-${shop}`,
         achievements
       );
+      void recordAchievementProgress(shop, objectId, achievements);
     })
     .catch(() => {});
 };
@@ -273,6 +278,9 @@ const mergeAchievementsLocally = async (
     current
   );
   if (!current()) throw new Error("achievement-sync-context-changed");
+  if (newAchievements.length > 0 && !publishNotification) {
+    void forgetAchievementProgress(game.shop, game.objectId);
+  }
   if (shouldSyncWithRemote) {
     const context = HydraApi.getAuthContext();
     if (context)

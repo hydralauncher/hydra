@@ -182,7 +182,9 @@
     align-items: center;
     justify-content: center;
     color: white;
-    transition: all 0.2s ease;
+    transition:
+      all 0.2s ease,
+      background 0s;
     pointer-events: none;
 
     .gallery-slider__preview-button:hover & {
@@ -197,7 +199,9 @@
     transform: translateY(-50%);
     cursor: pointer;
     background-color: rgba(0, 0, 0, 0.4);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+      all 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      background 0s;
     border-radius: 50%;
     color: globals.$muted-color;
     width: 48px;

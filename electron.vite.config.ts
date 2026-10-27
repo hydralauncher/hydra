@@ -55,6 +55,7 @@ export default defineConfig(({ mode }) => {
     renderer: {
       build: {
         sourcemap: true,
+        cssCodeSplit: false,
       },
       esbuild: {
         keepNames: true,

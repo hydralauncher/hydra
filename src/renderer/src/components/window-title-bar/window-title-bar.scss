@@ -40,9 +40,7 @@
     color: globals.$muted-color;
     cursor: pointer;
     outline: none;
-    transition:
-      background-color var(--window-title-bar-transition-duration) ease,
-      color var(--window-title-bar-transition-duration) ease;
+    transition: color var(--window-title-bar-transition-duration) ease;
 
     &:hover {
       background-color: #606060;

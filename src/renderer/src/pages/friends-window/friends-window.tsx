@@ -20,6 +20,8 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
+import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
+import { ClassicsIcon } from "@renderer/pages/library/category-filter";
 import { fetchAllProfileFriends, PROFILE_FRIENDS_PATH } from "@shared";
 import type {
   ChatUnreadState,
@@ -34,9 +36,24 @@ import {
 } from "./friends-window-layout";
 import { useVisibleFriendIds } from "./use-visible-friend-ids";
 import { useAddFriend } from "./use-add-friend";
+import { useSelfRunningGame } from "./use-self-running-game";
 import "./friends-window.scss";
 
-const PAGE_SIZE = 100;
+const highlightMatch = (name: string, query: string) => {
+  const start = query ? name.toLocaleLowerCase().indexOf(query) : -1;
+  if (start === -1) return name;
+
+  const end = start + query.length;
+  return (
+    <>
+      {name.slice(0, start)}
+      <mark className="friends-window__search-match">
+        {name.slice(start, end)}
+      </mark>
+      {name.slice(end)}
+    </>
+  );
+};
 const COPIED_FEEDBACK_MS = 1200;
 const electron = globalThis.electron as Electron;
 
@@ -124,7 +141,6 @@ export default function FriendsWindow() {
   const [isAddMode, setIsAddMode] = useState(false);
   const [sentRequestsCollapsed, setSentRequestsCollapsed] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [searchResults, setSearchResults] = useState<UserFriend[] | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [processedImages, setProcessedImages] = useState<
     Record<string, string>
@@ -250,48 +266,18 @@ export default function FriendsWindow() {
     };
   }, [fetchFriends, fetchFriendRequests, refreshUserDetails]);
 
-  // Debounced friend search
-  useEffect(() => {
-    const query = search.trim();
-
-    if (!query) {
-      setSearchResults(null);
-      return;
-    }
-
-    const timeout = setTimeout(async () => {
-      try {
-        const response = await electron.hydraApi.get<{
-          friends: UserFriend[];
-        }>("/profile/friends/search", {
-          params: { query, take: PAGE_SIZE, skip: 0 },
-        });
-
-        setSearchResults(response.friends);
-      } catch {
-        setSearchResults([]);
-      }
-    }, 300);
-
-    return () => clearTimeout(timeout);
-  }, [search]);
-
-  // /profile/friends/search does not return isOnline, so reuse the presence
-  // info we already have from the full friends list.
-  const onlineMap = useMemo(() => {
-    const map = new Map<string, boolean>();
-    friends.forEach((friend) => map.set(friend.id, Boolean(friend.isOnline)));
-    return map;
-  }, [friends]);
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  const isSearching = normalizedSearch.length > 0;
 
   const displayedFriends = useMemo(() => {
-    if (searchResults === null) return friends;
+    if (!isSearching) return friends;
 
-    return searchResults.map((friend) => ({
-      ...friend,
-      isOnline: friend.isOnline ?? onlineMap.get(friend.id) ?? false,
-    }));
-  }, [searchResults, friends, onlineMap]);
+    return friends.filter(
+      (friend) =>
+        friend.displayName.toLocaleLowerCase().includes(normalizedSearch) ||
+        friend.id.toLocaleLowerCase() === normalizedSearch
+    );
+  }, [friends, isSearching, normalizedSearch]);
 
   const sortedFriends = useMemo(
     () =>
@@ -377,12 +363,6 @@ export default function FriendsWindow() {
       addImage(friend.backgroundImageUrl, BACKGROUND_IMAGE_SIZES.friend);
     }
 
-    for (const friend of searchResults ?? []) {
-      if (!shouldLoadFriendImages(friend.id)) continue;
-      addImage(friend.profileImageUrl, FRIEND_AVATAR_IMAGE_SIZE);
-      addImage(friend.backgroundImageUrl, BACKGROUND_IMAGE_SIZES.friend);
-    }
-
     for (const request of friendRequests) {
       addImage(request.profileImageUrl, FRIEND_AVATAR_IMAGE_SIZE);
       addImage(requestBackgrounds[request.id], BACKGROUND_IMAGE_SIZES.friend);
@@ -442,7 +422,6 @@ export default function FriendsWindow() {
     profile,
     processedImages,
     requestBackgrounds,
-    searchResults,
     shouldLoadFriendImages,
   ]);
 
@@ -462,7 +441,7 @@ export default function FriendsWindow() {
       : imageUrl;
   };
 
-  const selfGame = useAppSelector((state) => state.gameRunning.gameRunning);
+  const selfGame = useSelfRunningGame();
 
   const requestsCollapsed = requestsOverride ?? receivedRequests.length === 0;
 
@@ -531,7 +510,11 @@ export default function FriendsWindow() {
     updateFriendRequestState(userId, "REFUSED").catch(() => {});
   };
 
-  const getGameIcon = (game: { iconUrl: string | null; title: string }) => {
+  const getGameIcon = (game: {
+    iconUrl: string | null;
+    title: string;
+    shop?: string;
+  }) => {
     if (game.iconUrl) {
       return (
         <img
@@ -544,6 +527,8 @@ export default function FriendsWindow() {
       );
     }
 
+    if (game.shop === "launchbox") return <ClassicsIcon size={16} />;
+    if (game.shop === "epic") return <EpicLogo width={16} height={16} />;
     return <SteamLogo width={16} height={16} />;
   };
 
@@ -655,7 +640,7 @@ export default function FriendsWindow() {
 
           <div className="friends-window__friend-details">
             <span className="friends-window__friend-name">
-              {friend.displayName}
+              {highlightMatch(friend.displayName, normalizedSearch)}
             </span>
             {friend.currentGame ? (
               <div className="friends-window__game-info">
@@ -895,7 +880,7 @@ export default function FriendsWindow() {
     );
   };
 
-  const showSkeleton = isLoadingFriends && searchResults === null;
+  const showSkeleton = isLoadingFriends && !isSearching;
 
   const profileBackgroundImageUrl = getProcessedImageUrl(
     profile?.backgroundImageUrl,
@@ -991,10 +976,7 @@ export default function FriendsWindow() {
 
               {selfGame ? (
                 <div className="friends-window__profile-game">
-                  {getGameIcon({
-                    iconUrl: selfGame.iconUrl,
-                    title: selfGame.title,
-                  })}
+                  {getGameIcon(selfGame)}
                   <small>{selfGame.title}</small>
                 </div>
               ) : (
@@ -1103,7 +1085,7 @@ export default function FriendsWindow() {
                 onlineFriends,
                 onlineCollapsed,
                 () => setOnlineOverride(!onlineCollapsed),
-                searchResults === null ? t("no_friends") : t("no_results"),
+                isSearching ? t("no_results") : t("no_friends"),
                 "online"
               )}
 

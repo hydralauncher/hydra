@@ -11,7 +11,9 @@ $logo-max-width: 200px;
   overflow: hidden;
   width: 100%;
   height: 100%;
-  transition: all ease 0.3s;
+  transition:
+    all ease 0.3s,
+    background 0s;
 
   &__hero {
     width: 100%;
@@ -20,7 +22,9 @@ $logo-max-width: 200px;
     display: flex;
     flex-direction: column;
     position: relative;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
 
     &-content {
       padding: globals.$spacing-unit * 2;
@@ -48,7 +52,9 @@ $logo-max-width: 200px;
     width: $logo-max-width;
     height: $logo-height;
     object-fit: contain;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
 
     &:hover {
       transform: scale(1.05);
@@ -67,7 +73,9 @@ $logo-max-width: 200px;
   &__table-header {
     width: 100%;
     background-color: globals.$dark-background-color;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
     border-bottom: solid 1px globals.$border-color;
     position: sticky;
     top: 0;
@@ -91,7 +99,9 @@ $logo-max-width: 200px;
 
   &__item {
     display: flex;
-    transition: all ease 0.1s;
+    transition:
+      all ease 0.1s,
+      background 0s;
     color: globals.$muted-color;
     width: 100%;
     overflow: hidden;
@@ -279,7 +289,9 @@ $logo-max-width: 200px;
   &__progress-bar {
     width: 100%;
     height: 8px;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
 
     &::-webkit-progress-bar {
       background-color: globals.$border-color;

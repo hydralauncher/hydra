@@ -1,6 +1,11 @@
 import "./styles.scss";
 
-import { type ReactNode, useRef, useEffect } from "react";
+import {
+  type MutableRefObject,
+  type ReactNode,
+  useRef,
+  useEffect,
+} from "react";
 import cn from "classnames";
 
 export interface ScrollAreaProps {
@@ -12,6 +17,7 @@ export interface ScrollAreaProps {
     clientHeight: number;
   }) => void;
   showScrollbar?: boolean;
+  viewportRef?: MutableRefObject<HTMLDivElement | null>;
 }
 
 export function ScrollArea({
@@ -19,8 +25,10 @@ export function ScrollArea({
   className,
   onScroll,
   showScrollbar = false,
+  viewportRef,
 }: Readonly<ScrollAreaProps>) {
-  const ref = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement | null>(null);
+  const ref = viewportRef ?? internalRef;
 
   useEffect(() => {
     if (!onScroll) return;
@@ -35,7 +43,7 @@ export function ScrollArea({
 
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
-  }, [onScroll]);
+  }, [onScroll, ref]);
 
   return (
     <div

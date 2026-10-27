@@ -150,9 +150,7 @@
     color: globals.$muted-color;
     cursor: pointer;
     outline: none;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
+    transition: color 0.2s ease;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.08);
@@ -352,9 +350,7 @@
     padding: 0;
     border: 1px solid transparent;
     border-radius: 6px;
-    transition:
-      opacity 0.2s ease,
-      background-color 0.2s ease;
+    transition: opacity 0.2s ease;
 
     &--add {
       background-color: globals.$muted-color;
@@ -614,7 +610,6 @@
     align-items: center;
     flex-shrink: 0;
     border-radius: 6px;
-    transition: background-color 0.2s ease;
     // Skip layout + paint for rows outside the viewport — near-free
     // virtualization for the ~100-row list.
     content-visibility: auto;
@@ -697,7 +692,6 @@
     opacity: 0.7;
     cursor: pointer;
     transition:
-      background-color 0.2s ease,
       color 0.2s ease,
       opacity 0.2s ease;
 
@@ -847,7 +841,6 @@
     color: globals.$body-color;
     cursor: pointer;
     transition:
-      background-color 0.2s ease,
       color 0.2s ease,
       border-color 0.2s ease;
 
@@ -881,4 +874,12 @@
   to {
     background-position: -50% 0;
   }
+}
+
+.friends-window__search-match {
+  background: none;
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

@@ -4,7 +4,7 @@ import { LibraryGame } from "@types";
 import { getGameCatalogueIdentity, getLibraryOperationalGame } from "@shared";
 import cn from "classnames";
 import { useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ConfirmationModal,
@@ -19,13 +19,58 @@ import { getLibraryPresentationBadgeSource } from "@renderer/pages/library/libra
 
 const FAILED_ICON_RETRY_MS = 60_000;
 
+interface SidebarGameLauncherProps {
+  game: LibraryGame;
+  requestId: number;
+  onCannotPlay: () => void;
+}
+
+function SidebarGameLauncher({
+  game,
+  requestId,
+  onCannotPlay,
+}: Readonly<SidebarGameLauncherProps>) {
+  const { t } = useTranslation("game_details");
+  const {
+    canPlay,
+    handlePlayGame,
+    rpcs3ConfirmPending,
+    handleConfirmRpcs3Launch,
+    handleCancelRpcs3Launch,
+  } = useGameActions(game);
+  const handledRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (handledRequestRef.current === requestId) return;
+    handledRequestRef.current = requestId;
+
+    if (canPlay) {
+      void handlePlayGame();
+    } else {
+      onCannotPlay();
+    }
+  });
+
+  return (
+    <ConfirmationModal
+      visible={rpcs3ConfirmPending !== null}
+      title={t("rpcs3_already_running_title")}
+      descriptionText={t("rpcs3_already_running_description")}
+      confirmButtonLabel={t("rpcs3_already_running_confirm")}
+      cancelButtonLabel={t("cancel")}
+      onClose={handleCancelRpcs3Launch}
+      onConfirm={handleConfirmRpcs3Launch}
+    />
+  );
+}
+
 interface SidebarGameItemProps {
   game: LibraryGame;
   handleSidebarGameClick: (game: LibraryGame) => void;
   getGameTitle: (game: LibraryGame) => string;
 }
 
-export function SidebarGameItem({
+export const SidebarGameItem = memo(function SidebarGameItem({
   game,
   handleSidebarGameClick,
   getGameTitle,
@@ -33,13 +78,7 @@ export function SidebarGameItem({
   const location = useLocation();
   const { t } = useTranslation("game_details");
   const { showWarningToast } = useToast();
-  const {
-    canPlay,
-    handlePlayGame,
-    rpcs3ConfirmPending,
-    handleConfirmRpcs3Launch,
-    handleCancelRpcs3Launch,
-  } = useGameActions(getLibraryOperationalGame(game));
+  const [playRequestId, setPlayRequestId] = useState(0);
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -48,15 +87,34 @@ export function SidebarGameItem({
     visible: boolean;
     position: { x: number; y: number };
   }>({ visible: false, position: { x: 0, y: 0 } });
+  const [hasOpenedContextMenu, setHasOpenedContextMenu] = useState(false);
 
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
+    setHasOpenedContextMenu(true);
     setContextMenu({
       visible: true,
       position: { x: event.clientX, y: event.clientY },
     });
+  };
+
+  const showCannotPlayWarning = () => {
+    showWarningToast(
+      game.shop === "launchbox"
+        ? t("game_has_no_disc_hint", {
+            ns: "sidebar",
+            options: t("options"),
+            settings: t("settings", { ns: "sidebar" }),
+            emulation: t("emulation", { ns: "settings" }),
+          })
+        : t("game_has_no_executable_hint", {
+            ns: "sidebar",
+            options: t("options"),
+            locations: t("settings_category_locations"),
+          })
+    );
   };
 
   const handleCloseContextMenu = () => {
@@ -108,24 +166,7 @@ export function SidebarGameItem({
           onClick={(event) => {
             handleSidebarGameClick(game);
             if (event.detail === 2) {
-              if (canPlay) {
-                void handlePlayGame();
-              } else {
-                showWarningToast(
-                  game.shop === "launchbox"
-                    ? t("game_has_no_disc_hint", {
-                        ns: "sidebar",
-                        options: t("options"),
-                        settings: t("settings", { ns: "sidebar" }),
-                        emulation: t("emulation", { ns: "settings" }),
-                      })
-                    : t("game_has_no_executable_hint", {
-                        ns: "sidebar",
-                        options: t("options"),
-                        locations: t("settings_category_locations"),
-                      })
-                );
-              }
+              setPlayRequestId((requestId) => requestId + 1);
             }
           }}
           onContextMenu={handleContextMenu}
@@ -180,23 +221,23 @@ export function SidebarGameItem({
         </button>
       </li>
 
-      <GameContextMenu
-        game={getLibraryOperationalGame(game)}
-        visible={contextMenu.visible}
-        position={contextMenu.position}
-        onClose={handleCloseContextMenu}
-        onCollectionContextMenu={openCollectionContextMenu}
-      />
+      {hasOpenedContextMenu && (
+        <GameContextMenu
+          game={getLibraryOperationalGame(game)}
+          visible={contextMenu.visible}
+          position={contextMenu.position}
+          onClose={handleCloseContextMenu}
+          onCollectionContextMenu={openCollectionContextMenu}
+        />
+      )}
 
-      <ConfirmationModal
-        visible={rpcs3ConfirmPending !== null}
-        title={t("rpcs3_already_running_title")}
-        descriptionText={t("rpcs3_already_running_description")}
-        confirmButtonLabel={t("rpcs3_already_running_confirm")}
-        cancelButtonLabel={t("cancel")}
-        onClose={handleCancelRpcs3Launch}
-        onConfirm={handleConfirmRpcs3Launch}
-      />
+      {playRequestId > 0 && (
+        <SidebarGameLauncher
+          game={getLibraryOperationalGame(game)}
+          requestId={playRequestId}
+          onCannotPlay={showCannotPlayWarning}
+        />
+      )}
     </>
   );
-}
+});

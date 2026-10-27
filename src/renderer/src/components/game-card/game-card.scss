@@ -6,7 +6,9 @@
   box-shadow: 0px 0px 15px 0px #000000;
   overflow: hidden;
   border-radius: 4px;
-  transition: all ease 0.2s;
+  transition:
+    all ease 0.2s,
+    background 0s;
   border: solid 1px globals.$border-color;
   cursor: pointer;
   z-index: 1;
@@ -32,7 +34,9 @@
     object-position: center;
     position: absolute;
     z-index: -1;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
   }
 
   &__content {
@@ -42,7 +46,9 @@
     align-items: flex-start;
     gap: globals.$spacing-unit;
     flex-direction: column;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
     transform: translateY(24px);
   }
 

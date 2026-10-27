@@ -1,7 +1,7 @@
-import { Badge } from "@renderer/components/badge/badge";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useAppSelector, useLibrary } from "@renderer/hooks";
-import { lazy, Suspense, useMemo, useState, useEffect } from "react";
+import { lazy, memo, Suspense, useMemo, useState, useEffect } from "react";
+import { SourceBadges } from "./source-badges";
 import { Link } from "@renderer/components/link/link";
 
 import "./game-item.scss";
@@ -19,7 +19,7 @@ export interface GameItemProps {
   game: CatalogueSearchResult;
 }
 
-export function GameItem({ game }: GameItemProps) {
+export const GameItem = memo(function GameItem({ game }: GameItemProps) {
   const { i18n, t } = useTranslation("game_details");
 
   const language = i18n.language.split("-")[0];
@@ -86,9 +86,10 @@ export function GameItem({ game }: GameItemProps) {
           className="game-item__cover"
           src={game.libraryImageUrl}
           alt={game.title}
-          width={200}
-          height={103}
+          width={460}
+          height={215}
           loading="lazy"
+          decoding="async"
         />
       );
     }
@@ -129,7 +130,7 @@ export function GameItem({ game }: GameItemProps) {
         </div>
 
         <div className="game-item__details">
-          <span>{game.title}</span>
+          <span className="game-item__title">{game.title}</span>
           {genres && genres.length > 0 ? (
             <span className="game-item__genres">{genres.join(", ")}</span>
           ) : (
@@ -138,11 +139,10 @@ export function GameItem({ game }: GameItemProps) {
             </span>
           )}
 
-          <div className="game-item__repackers">
-            {game.downloadSources.map((sourceName) => (
-              <Badge key={sourceName}>{sourceName}</Badge>
-            ))}
-          </div>
+          <SourceBadges
+            sources={game.downloadSources}
+            className="game-item__repackers"
+          />
         </div>
       </Link>
       <button
@@ -159,4 +159,4 @@ export function GameItem({ game }: GameItemProps) {
       </button>
     </article>
   );
-}
+});

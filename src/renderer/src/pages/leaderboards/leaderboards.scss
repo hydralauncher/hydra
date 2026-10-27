@@ -155,9 +155,7 @@ $leaderboards-streak-to: #b05cff;
     color: globals.$body-color;
     text-align: left;
     cursor: pointer;
-    transition:
-      background-color 0.2s ease,
-      border-color 0.2s ease;
+    transition: border-color 0.2s ease;
 
     &:hover {
       border-color: rgba(255, 255, 255, 0.5);
@@ -562,7 +560,6 @@ $leaderboards-streak-to: #b05cff;
     font-weight: 600;
     cursor: pointer;
     transition:
-      background-color 0.2s ease,
       color 0.2s ease,
       border-color 0.2s ease;
 

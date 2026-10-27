@@ -27,6 +27,7 @@ export interface GameDetailsContext {
   catalogueGame: CatalogueGameIdentity;
   shopDetails: ShopDetailsWithAssets | null;
   repacks: GameRepack[];
+  hasLoadedRepacks: boolean;
   shop: GameShop;
   gameTitle: string;
   isGameRunning: boolean;

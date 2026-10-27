@@ -21,6 +21,7 @@ import "./settings-behavior.scss";
 const buildForm = (preferences: UserPreferences | null) => ({
   autoplayGameTrailers: preferences?.autoplayGameTrailers ?? true,
   disableNsfwAlert: preferences?.disableNsfwAlert ?? false,
+  disableReviewTranslation: preferences?.disableReviewTranslation ?? false,
   showHiddenAchievementsDescription:
     preferences?.showHiddenAchievementsDescription ?? false,
   enableSteamAchievements: preferences?.enableSteamAchievements ?? false,
@@ -163,6 +164,16 @@ export function SettingsContextContentGameplay() {
           checked={form.disableNsfwAlert}
           onChange={() =>
             handleChange({ disableNsfwAlert: !form.disableNsfwAlert })
+          }
+        />
+
+        <CheckboxField
+          label={t("disable_review_translation")}
+          checked={form.disableReviewTranslation}
+          onChange={() =>
+            handleChange({
+              disableReviewTranslation: !form.disableReviewTranslation,
+            })
           }
         />
 

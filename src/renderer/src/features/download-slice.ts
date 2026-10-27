@@ -16,6 +16,7 @@ export interface DownloadState {
   extraction: ExtractionInfo | null;
   peakSpeeds: Record<string, number>;
   speedHistory: Record<string, number[]>;
+  speedHistoryTimestamps: Record<string, number[]>;
 }
 
 const initialState: DownloadState = {
@@ -25,40 +26,60 @@ const initialState: DownloadState = {
   extraction: null,
   peakSpeeds: {},
   speedHistory: {},
+  speedHistoryTimestamps: {},
 };
 
 export const downloadSlice = createSlice({
   name: "download",
   initialState,
   reducers: {
-    setLastPacket: (state, action: PayloadAction<DownloadProgress | null>) => {
-      state.lastPacket = action.payload;
-      const payload = action.payload;
-      if (!state.gameId && payload?.gameId) {
-        state.gameId = payload.gameId;
-      }
-      if (
-        payload?.gameId &&
-        payload.downloadSpeed != null &&
-        !payload.isCheckingFiles &&
-        !payload.isDownloadingMetadata
-      ) {
-        const { gameId, downloadSpeed } = payload;
-        const currentPeak = state.peakSpeeds[gameId] || 0;
-        if (downloadSpeed > currentPeak) {
-          state.peakSpeeds[gameId] = downloadSpeed;
+    setLastPacket: {
+      reducer: (
+        state,
+        action: PayloadAction<
+          DownloadProgress | null,
+          string,
+          { receivedAt: number }
+        >
+      ) => {
+        state.lastPacket = action.payload;
+        const payload = action.payload;
+        if (!state.gameId && payload?.gameId) {
+          state.gameId = payload.gameId;
         }
-        if (!state.speedHistory[gameId]) {
-          state.speedHistory[gameId] = [];
-        }
-        state.speedHistory[gameId].push(downloadSpeed);
+        if (
+          payload?.gameId &&
+          payload.downloadSpeed != null &&
+          !payload.isCheckingFiles &&
+          !payload.isDownloadingMetadata
+        ) {
+          const { gameId, downloadSpeed } = payload;
+          const currentPeak = state.peakSpeeds[gameId] || 0;
+          if (downloadSpeed > currentPeak) {
+            state.peakSpeeds[gameId] = downloadSpeed;
+          }
+          if (!state.speedHistory[gameId]) {
+            state.speedHistory[gameId] = [];
+          }
+          state.speedHistory[gameId].push(downloadSpeed);
+          const timestamps = (state.speedHistoryTimestamps[gameId] ??= []);
+          timestamps.push(action.meta.receivedAt);
 
-        const excess =
-          state.speedHistory[gameId].length - MAX_DOWNLOAD_SPEED_HISTORY;
-        if (excess > 0) {
-          state.speedHistory[gameId].splice(0, excess);
+          const excess =
+            state.speedHistory[gameId].length - MAX_DOWNLOAD_SPEED_HISTORY;
+          if (excess > 0) {
+            state.speedHistory[gameId].splice(0, excess);
+          }
+          timestamps.splice(
+            0,
+            timestamps.length - state.speedHistory[gameId].length
+          );
         }
-      }
+      },
+      prepare: (payload: DownloadProgress | null) => ({
+        payload,
+        meta: { receivedAt: Date.now() },
+      }),
     },
     clearDownload: (state) => {
       state.lastPacket = null;
@@ -106,6 +127,7 @@ export const downloadSlice = createSlice({
     clearPeakSpeed: (state, action: PayloadAction<string>) => {
       state.peakSpeeds[action.payload] = 0;
       state.speedHistory[action.payload] = [];
+      state.speedHistoryTimestamps[action.payload] = [];
     },
   },
 });

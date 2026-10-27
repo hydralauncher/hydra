@@ -18,6 +18,7 @@ export * from "./delete-game-cloud-save-data";
 export * from "./download-remote-snapshot-to-temp";
 export * from "./get-cloud-save-overview";
 export * from "./get-cloud-save-v2-file-details";
+export * from "./get-local-save-file-details";
 export * from "./list-remote-game-snapshots";
 export * from "./launch-guard";
 export * from "./operation-gate";

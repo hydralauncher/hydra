@@ -8,7 +8,9 @@
 
   &__text-field {
     display: inline-flex;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
     width: 100%;
     align-items: center;
     border-radius: 8px;

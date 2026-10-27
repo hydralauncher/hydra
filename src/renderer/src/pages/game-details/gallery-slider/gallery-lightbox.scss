@@ -211,9 +211,7 @@ $lightbox-titlebar-height: 35px;
     background-color: rgba(0, 0, 0, 0.5);
     color: globals.$muted-color;
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      transform 0.15s ease;
+    transition: transform 0.15s ease;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.12);
@@ -240,7 +238,6 @@ $lightbox-titlebar-height: 35px;
     cursor: pointer;
     z-index: 2;
     transition:
-      background-color 0.15s ease,
       transform 0.2s $lightbox-ease,
       opacity 0.3s ease;
 

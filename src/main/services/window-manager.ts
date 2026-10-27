@@ -39,7 +39,7 @@ import {
 import { t } from "i18next";
 import { orderBy } from "lodash-es";
 import path from "node:path";
-import UserAgent from "user-agents";
+import { getBrowserUserAgent } from "@main/helpers/browser-user-agent";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 import {
@@ -204,6 +204,7 @@ export class WindowManager {
 
     main.setFocusable(false);
     main.setIgnoreMouseEvents(true);
+    main.webContents.setAudioMuted(true);
     main.hide();
   }
 
@@ -215,6 +216,7 @@ export class WindowManager {
     main.setIgnoreMouseEvents(false);
     main.setFocusable(true);
     main.setSkipTaskbar(false);
+    main.webContents.setAudioMuted(false);
   }
 
   public static get appWindows() {
@@ -376,12 +378,10 @@ export class WindowManager {
           });
         }
 
-        const userAgent = new UserAgent();
-
         callback({
           requestHeaders: {
             ...details.requestHeaders,
-            "user-agent": userAgent.toString(),
+            "user-agent": getBrowserUserAgent(),
           },
         });
       }
@@ -817,19 +817,12 @@ export class WindowManager {
     return showable;
   }
 
-  // Draws attention to a message the user cannot see: a closed chat window
-  // opens in the background on the sender's conversation, an open one flashes
-  // and gets a background tab for a sender without one.
+  // Draws attention to a message the user cannot see: an open chat window
+  // flashes and gets a background tab for a sender without one.
   public static showIncomingChatMessage(friend: UserFriend) {
     const chatWindow = this.chatWindow;
 
-    if (!chatWindow || chatWindow.isDestroyed()) {
-      // A window popping up over Big Picture would cover its fullscreen UI.
-      if (this.bigPicture && !this.bigPicture.isDestroyed()) return;
-
-      void this.openChatWindow(friend, { activate: false });
-      return;
-    }
+    if (!chatWindow || chatWindow.isDestroyed()) return;
 
     if (!this.chatWindowState.openFriendIds.includes(friend.id)) {
       this.pendingChatFriends.push({ friend, isBackground: true });

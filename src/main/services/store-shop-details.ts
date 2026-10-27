@@ -1,5 +1,5 @@
 import type { ShopDetailsWithAssets } from "@types";
-import { JSDOM } from "jsdom";
+import { getJsdom } from "../helpers/jsdom.js";
 import MarkdownIt from "markdown-it";
 
 const epicMarkdown = new MarkdownIt({ html: true });
@@ -137,7 +137,7 @@ function formatEpicRequirements(requirements: string): string {
 }
 
 export function sanitizeEpicHtml(html: string): string {
-  const fragment = JSDOM.fragment(html);
+  const fragment = getJsdom().JSDOM.fragment(html);
   for (const element of fragment.querySelectorAll(
     "script, style, iframe, object, embed, svg, math, form, input, button, textarea, select, template"
   )) {

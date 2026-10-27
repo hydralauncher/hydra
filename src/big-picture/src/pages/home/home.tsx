@@ -8,7 +8,7 @@ import { logger } from "@renderer/logger";
 
 import { HomePageHero } from "./hero";
 import { useFeaturedGame } from "./hero/use-featured-game";
-import { type HomeChallengeGame } from "./home-data";
+import { getKnownDownloadSources, type HomeChallengeGame } from "./home-data";
 import { useHotGames } from "./use-hot-games";
 import { useHomeChallengeGridNavigation } from "./use-home-challenge-grid-navigation";
 import { useHardPlatinums } from "./use-hard-platinums";
@@ -56,7 +56,7 @@ import {
   useBigPictureToast,
   useGameCollections,
   useLibrary,
-  useNavigation,
+  useNavigationActions,
 } from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 
@@ -83,7 +83,7 @@ interface HomeCatalogMenuState {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const { showSuccessToast } = useBigPictureToast();
   const { t } = useTranslation("big_picture");
   const { library, updateLibrary } = useLibrary();
@@ -170,7 +170,10 @@ export default function Home() {
       downloadModalRestoreFocusIdRef.current = restoreFocusId;
 
       globalThis.window.requestAnimationFrame(() => {
-        setDownloadModalGame(game);
+        setDownloadModalGame({
+          ...game,
+          downloadSources: getKnownDownloadSources(game.downloadSources),
+        });
       });
     },
     [menuState.restoreFocusId]

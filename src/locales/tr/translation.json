@@ -297,7 +297,7 @@
     "wine_prefix": "Wine Ön Ek",
     "wine_prefix_description": "Bu oyunu çalıştırmak için kullanılan Wine ön eki",
     "launch_options": "Başlatma Seçenekleri",
-    "launch_options_description": "Gelişmiş kullanıcılar için başlatma parametreleri tanımlayın (deneysel özellik)",
+    "launch_options_description": "Gelişmiş kullanıcılar için başlatma parametreleri tanımlayın",
     "launch_options_placeholder": "Parametre belirtilmedi",
     "no_download_option_info": "Bilgi mevcut değil",
     "backup_deletion_failed": "Yedek silme işlemi başarısız oldu",

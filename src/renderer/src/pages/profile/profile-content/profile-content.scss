@@ -98,9 +98,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition:
-      color ease 0.2s,
-      background-color ease 0.2s;
+    transition: color ease 0.2s;
     flex-shrink: 0;
 
     &:hover {
@@ -237,9 +235,7 @@
     background: transparent;
     color: globals.$body-color;
     cursor: pointer;
-    transition:
-      color 0.2s ease,
-      background-color 0.2s ease;
+    transition: color 0.2s ease;
 
     &:hover {
       background: rgba(255, 255, 255, 0.08);
@@ -700,7 +696,6 @@
     &-action-button {
       cursor: pointer;
       transition:
-        background-color ease 0.2s,
         color ease 0.2s,
         opacity ease 0.2s;
 
@@ -758,9 +753,7 @@
       background: rgba(255, 255, 255, 0.05);
       border: 2px dashed rgba(255, 255, 255, 0.3);
       position: relative;
-      transition:
-        background-color ease 0.2s,
-        border-color ease 0.2s;
+      transition: border-color ease 0.2s;
 
       &::before {
         content: "Drop here to " attr(data-action);
@@ -876,10 +869,24 @@
   gap: calc(globals.$spacing-unit);
 }
 
+.user-reviews__game-icon-frame {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
 .user-reviews__game-icon {
   width: 24px;
   height: 24px;
   object-fit: cover;
+
+  &:not([data-loaded]) {
+    visibility: hidden;
+  }
 }
 
 .user-reviews__game-info {
@@ -1014,7 +1021,6 @@
   font-size: 14px;
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
     border-color 0.2s ease,
     color 0.2s ease;
 

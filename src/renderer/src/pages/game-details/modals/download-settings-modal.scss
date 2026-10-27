@@ -81,9 +81,7 @@
     border-radius: 0;
     background-color: transparent;
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      border-color 0.15s ease;
+    transition: border-color 0.15s ease;
     color: globals.$body-color;
     font-size: 14px;
     text-align: left;

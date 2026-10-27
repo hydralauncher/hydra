@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { ClockIcon } from "@primer/octicons-react";
 import { Star, ThumbsUp, ThumbsDown, TrashIcon, Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type SyntheticEvent } from "react";
 import type { GameShop } from "@types";
 import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
 import { Button } from "@renderer/components";
-import { useDate } from "@renderer/hooks";
+import { useAppSelector, useDate } from "@renderer/hooks";
 import { buildGameDetailsPath, resolveImageSource } from "@renderer/helpers";
 import "./profile-content.scss";
 
@@ -36,6 +36,14 @@ interface UserReview {
   };
   detectedLanguage: string | null;
 }
+
+const markReviewIconLoaded = (event: SyntheticEvent<HTMLImageElement>) => {
+  event.currentTarget.dataset.loaded = "true";
+};
+
+const markReviewIconLoadedIfComplete = (image: HTMLImageElement | null) => {
+  if (image?.complete && image.naturalWidth > 0) image.dataset.loaded = "true";
+};
 
 function useReviewGameIcon(game: UserReview["game"]) {
   const isEpic = game.shop === "epic";
@@ -99,10 +107,18 @@ export function ProfileReviewItem({
     getBaseLanguage(review.detectedLanguage) !== getBaseLanguage(i18n.language);
   const reviewTranslationLanguage = getReviewTranslationLanguage(i18n.language);
 
+  const isTranslationDisabled = useAppSelector(
+    (state) => state.userPreferences.value?.disableReviewTranslation === true
+  );
+
   const needsTranslation =
     !isOwnReview &&
     isDifferentLanguage &&
     review.translations[reviewTranslationLanguage];
+  const [isTranslationRequested, setIsTranslationRequested] = useState(false);
+  const isShowingTranslation =
+    Boolean(needsTranslation) &&
+    (!isTranslationDisabled || isTranslationRequested);
 
   const getLanguageName = (languageCode: string | null) => {
     if (!languageCode) return "";
@@ -116,7 +132,7 @@ export function ProfileReviewItem({
     }
   };
 
-  const displayContent = needsTranslation
+  const displayContent = isShowingTranslation
     ? review.translations[reviewTranslationLanguage]
     : review.reviewHtml;
 
@@ -133,11 +149,18 @@ export function ProfileReviewItem({
           <div className="user-reviews__review-game">
             <div className="user-reviews__game-info">
               <div className="user-reviews__game-details">
-                <img
-                  src={gameIconUrl}
-                  alt={review.game.title}
-                  className="user-reviews__game-icon"
-                />
+                <span className="user-reviews__game-icon-frame">
+                  {gameIconUrl ? (
+                    <img
+                      key={gameIconUrl}
+                      ref={markReviewIconLoadedIfComplete}
+                      src={gameIconUrl}
+                      alt=""
+                      className="user-reviews__game-icon"
+                      onLoad={markReviewIconLoaded}
+                    />
+                  ) : null}
+                </span>
                 <button
                   className="user-reviews__game-title user-reviews__game-title--clickable"
                   onClick={() => navigate(buildGameDetailsPath(review.game))}
@@ -189,11 +212,26 @@ export function ProfileReviewItem({
             __html: sanitizeHtml(displayContent),
           }}
         />
-        {needsTranslation && (
+        {needsTranslation && !isShowingTranslation && (
+          <button
+            className="user-reviews__review-translation-toggle"
+            onClick={() => setIsTranslationRequested(true)}
+          >
+            <Languages size={13} />
+            {tGameDetails("show_translation")}
+          </button>
+        )}
+        {isShowingTranslation && (
           <>
             <button
               className="user-reviews__review-translation-toggle"
-              onClick={() => setShowOriginal(!showOriginal)}
+              onClick={() => {
+                if (isTranslationDisabled) {
+                  setIsTranslationRequested(false);
+                  return;
+                }
+                setShowOriginal(!showOriginal);
+              }}
             >
               <Languages size={13} />
               {showOriginal

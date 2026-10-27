@@ -189,6 +189,50 @@ describe("library catalogue presentation", () => {
     assert.equal(steam.playTimeInMilliseconds, 2000);
   });
 
+  it("shows combined store progress instead of one member's counts", () => {
+    const steam = makeSteamGame({
+      achievementCount: 40,
+      unlockedAchievementCount: 20,
+      achievementProgress: {
+        achievementCount: 45,
+        unlockedAchievementCount: 22,
+        updatedAt: 100,
+      },
+    });
+    const epic = makeGame({
+      executablePath: "epic.exe",
+      achievementCount: 40,
+      unlockedAchievementCount: 3,
+      achievementProgress: {
+        achievementCount: 45,
+        unlockedAchievementCount: 24,
+        updatedAt: 200,
+      },
+    });
+
+    const presentation = group(steam, epic);
+    assert.equal(presentation.achievementCount, 45);
+    assert.equal(presentation.unlockedAchievementCount, 24);
+  });
+
+  it("keeps the operational member's counts without combined progress", () => {
+    const steam = makeSteamGame({
+      achievementCount: 40,
+      unlockedAchievementCount: 20,
+    });
+    const epic = makeGame({
+      executablePath: "epic.exe",
+      achievementCount: 40,
+      unlockedAchievementCount: 3,
+    });
+
+    const presentation = group(steam, epic);
+    assert.equal(
+      presentation.unlockedAchievementCount,
+      presentation.operationalGame.unlockedAchievementCount
+    );
+  });
+
   it("chooses running member, executable member, then Steam, independently of display", () => {
     const epic = makeGame();
     const steam = makeGame({ id: "steam:123", shop: "steam", objectId: "123" });

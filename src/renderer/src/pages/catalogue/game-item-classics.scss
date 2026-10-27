@@ -5,6 +5,8 @@
   border-radius: 8px;
   overflow: hidden;
   color: #fafafa;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 280px;
   transition:
     border-color 0.15s ease,
     transform 0.15s ease;
@@ -33,8 +35,7 @@
     justify-content: center;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.75);
     color: #fafafa;
     padding: 4px;
 
@@ -129,8 +130,7 @@
     font-size: 11px;
     font-weight: 500;
     color: #fafafa;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.75);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 4px;
     line-height: 1.2;
@@ -170,21 +170,6 @@
   }
 
   &__repackers {
-    display: flex;
-    gap: 8px;
-    flex-wrap: nowrap;
-    overflow: hidden;
     margin-top: 4px;
-  }
-
-  &__repackers-measure {
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: flex;
-    gap: 8px;
-    white-space: nowrap;
-    visibility: hidden;
-    pointer-events: none;
   }
 }

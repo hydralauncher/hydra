@@ -34,9 +34,7 @@ $error-text: #fda4af;
     border-radius: 6px;
     color: globals.$body-color;
     cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      color 0.15s ease;
+    transition: color 0.15s ease;
 
     &:hover,
     &:focus-visible {
@@ -100,7 +98,6 @@ $error-text: #fda4af;
     color: globals.$body-color;
     cursor: pointer;
     transition:
-      background-color 0.15s ease,
       border-color 0.15s ease,
       color 0.15s ease;
 

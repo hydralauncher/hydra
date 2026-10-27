@@ -11,7 +11,11 @@ import {
   SquaresFourIcon,
   StarIcon,
 } from "@phosphor-icons/react";
-import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
+import {
+  AuthPage,
+  getDisplayedPlayTimeInMilliseconds,
+  groupLibraryGames,
+} from "@shared";
 import {
   type FocusEvent,
   forwardRef,
@@ -23,11 +27,17 @@ import {
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
+  defaultRangeExtractor,
+  type Range,
+  useVirtualizer,
+} from "@tanstack/react-virtual";
+import {
   Divider,
   FocusItem,
   Input,
   RouteAnchor,
   ScrollArea,
+  Skeleton,
   UserProfile,
   VerticalFocusGroup,
 } from "../../components";
@@ -52,7 +62,11 @@ import {
 } from "../../stores/downloads.store";
 import type { DownloadProgress, LibraryGame } from "@types";
 import type { FocusNode, FocusOverrides, FocusRegion } from "../../services";
-import { useNavigationSnapshot, useVirtualKeyboardStore } from "../../stores";
+import {
+  useNavigationSnapshot,
+  useNavigationStore,
+  useVirtualKeyboardStore,
+} from "../../stores";
 import {
   BIG_PICTURE_SIDEBAR_POWER_ID,
   BIG_PICTURE_SIDEBAR_ITEM_IDS,
@@ -128,6 +142,10 @@ const SIDEBAR_LIBRARY_FILTER_FOCUS_IDS: Record<SidebarLibraryFilter, string> = {
 
 const SIDEBAR_LIBRARY_FILTER_STORAGE_KEY =
   "hydra:big-picture:sidebar-library-filter";
+const SIDEBAR_GAME_ESTIMATED_HEIGHT = 56;
+const SIDEBAR_GAME_GAP = 4;
+const SIDEBAR_GAME_OVERSCAN = 10;
+const SIDEBAR_GAME_SKELETON_COUNT = 8;
 
 function getInitialSidebarLibraryFilter(): SidebarLibraryFilter {
   try {
@@ -476,6 +494,7 @@ type SidebarRunningGamesById = Record<
 
 interface SidebarLibraryProps {
   library: LibraryGame[];
+  isLoading: boolean;
   runningGamesById: SidebarRunningGamesById;
   onOpenContextMenu?: (
     game: LibraryGame,
@@ -486,6 +505,7 @@ interface SidebarLibraryProps {
 
 function SidebarLibrary({
   library,
+  isLoading,
   runningGamesById,
   onOpenContextMenu,
 }: Readonly<SidebarLibraryProps>) {
@@ -524,9 +544,14 @@ function SidebarLibrary({
     initializeBigPictureDownloadsStore();
   }, []);
 
+  const groupedLibrary = useMemo(
+    () => groupLibraryGames(library, runningGameIds),
+    [library, runningGameIds]
+  );
+
   const sidebarLibrary = useMemo(() => {
-    return filterSidebarLibraryGames(library, selectedLibraryFilter);
-  }, [library, selectedLibraryFilter]);
+    return filterSidebarLibraryGames(groupedLibrary, selectedLibraryFilter);
+  }, [groupedLibrary, selectedLibraryFilter]);
 
   const { filteredItems, search, setSearch } = useSearch(sidebarLibrary, [
     "title",
@@ -588,6 +613,60 @@ function SidebarLibrary({
     };
   };
 
+  const gameFocusIds = useMemo(
+    () =>
+      filteredItems.map((game) =>
+        getBigPictureSidebarLibraryGameFocusId({
+          shop: game.shop,
+          objectId: game.objectId,
+        })
+      ),
+    [filteredItems]
+  );
+  const indexByGameFocusId = useMemo(
+    () => new Map(gameFocusIds.map((focusId, index) => [focusId, index])),
+    [gameFocusIds]
+  );
+  const focusedGameFocusId = useNavigationStore((state) =>
+    state.currentFocusId && indexByGameFocusId.has(state.currentFocusId)
+      ? state.currentFocusId
+      : null
+  );
+  const activeGameFocusId = activeGameRoute
+    ? getBigPictureSidebarLibraryGameFocusId(activeGameRoute)
+    : null;
+  const pinnedGameIndexes = useMemo(
+    () =>
+      [focusedGameFocusId, activeGameFocusId]
+        .map((focusId) =>
+          focusId ? indexByGameFocusId.get(focusId) : undefined
+        )
+        .filter((index): index is number => index !== undefined),
+    [activeGameFocusId, focusedGameFocusId, indexByGameFocusId]
+  );
+  const gameListRangeExtractor = useCallback(
+    (range: Range) => {
+      const indexes = defaultRangeExtractor(range);
+      for (const index of pinnedGameIndexes) {
+        if (index < range.count && !indexes.includes(index)) {
+          indexes.push(index);
+        }
+      }
+      return indexes.sort((left, right) => left - right);
+    },
+    [pinnedGameIndexes]
+  );
+  const gameListScrollRef = useRef<HTMLDivElement | null>(null);
+  const gameListVirtualizer = useVirtualizer({
+    count: filteredItems.length,
+    getScrollElement: () => gameListScrollRef.current,
+    estimateSize: () => SIDEBAR_GAME_ESTIMATED_HEIGHT,
+    gap: SIDEBAR_GAME_GAP,
+    overscan: SIDEBAR_GAME_OVERSCAN,
+    rangeExtractor: gameListRangeExtractor,
+    useFlushSync: false,
+  });
+
   const getGameNavigationOverrides = (index: number): FocusOverrides => ({
     right: contentEntryTarget,
     ...(index === 0 && {
@@ -599,6 +678,8 @@ function SidebarLibrary({
       },
     }),
   });
+
+  const showGameSkeleton = filteredItems.length === 0 && isLoading;
 
   return (
     <div className="library-container">
@@ -654,19 +735,35 @@ function SidebarLibrary({
         <VerticalFocusGroup
           regionId={BIG_PICTURE_SIDEBAR_LIBRARY_LIST_REGION_ID}
         >
-          <ScrollArea>
-            {filteredItems.length === 0 ? (
+          <ScrollArea viewportRef={gameListScrollRef}>
+            {showGameSkeleton && (
+              <ul className="library-skeleton-list" aria-busy="true">
+                {Array.from(
+                  { length: SIDEBAR_GAME_SKELETON_COUNT },
+                  (_, index) => (
+                    <li key={index} className="library-skeleton-list__item">
+                      <Skeleton className="library-skeleton-list__icon" />
+                      <Skeleton className="library-skeleton-list__title" />
+                    </li>
+                  )
+                )}
+              </ul>
+            )}
+            {!showGameSkeleton && filteredItems.length === 0 && (
               <div className="library-container__empty">
                 {emptyLibraryMessage}
               </div>
-            ) : (
-              <ul className="library-list">
-                {filteredItems.map((game, index) => {
+            )}
+            {filteredItems.length > 0 && (
+              <ul
+                className="library-list"
+                style={{ height: gameListVirtualizer.getTotalSize() }}
+              >
+                {gameListVirtualizer.getVirtualItems().map((virtualItem) => {
+                  const index = virtualItem.index;
+                  const game = filteredItems[index];
                   const desktopPath = `/big-picture/game/${game.shop}/${game.objectId}`;
-                  const focusId = getBigPictureSidebarLibraryGameFocusId({
-                    shop: game.shop,
-                    objectId: game.objectId,
-                  });
+                  const focusId = gameFocusIds[index];
                   const active =
                     normalizedPathname === desktopPath ||
                     (activeGameRoute?.shop === game.shop &&
@@ -693,7 +790,15 @@ function SidebarLibrary({
                   };
 
                   return (
-                    <li key={game.id} className="library-list__item">
+                    <li
+                      key={game.id}
+                      ref={gameListVirtualizer.measureElement}
+                      data-index={index}
+                      className="library-list__item"
+                      style={{
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                    >
                       <RouteAnchor
                         key={game.id}
                         label={game.title}
@@ -768,7 +873,7 @@ function SidebarProfile({
 }: Readonly<SidebarProfileProps>) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { userDetails } = useUserDetails();
+  const { userDetails, isSigningIn } = useUserDetails();
   const notificationsButtonRef = useRef<HTMLButtonElement>(null);
   const [notificationCount, setNotificationCount] = useState(0);
   const contentEntryTarget =
@@ -829,6 +934,7 @@ function SidebarProfile({
           backgroundImageUrl={runningGameBackgroundImageUrl}
           name={userDetails?.displayName ?? "Sign in"}
           friendCode={userDetails?.id ?? "Not signed in"}
+          isLoading={isSigningIn && !userDetails}
           profileFocusId={BIG_PICTURE_SIDEBAR_PROFILE_ID}
           notificationsFocusId={BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID}
           notificationsFocusable={notificationsFocusable}
@@ -926,7 +1032,8 @@ const SIDEBAR_MENU_DEFAULT_POSITION = { x: 0, y: 0 };
 function Sidebar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { library, updateLibrary } = useLibrary();
+  const { library, updateLibrary, hasLoadedLibrary, isAwaitingAccountLibrary } =
+    useLibrary();
   const runningGamesById = useBigPictureRunningGames();
   const { setFocusRegion } = useNavigationActions();
   const { showSuccessToast } = useBigPictureToast();
@@ -1112,6 +1219,10 @@ function Sidebar() {
           <Divider />
           <SidebarLibrary
             library={library}
+            isLoading={
+              !hasLoadedLibrary ||
+              (isAwaitingAccountLibrary && library.length === 0)
+            }
             runningGamesById={runningGamesById}
             onOpenContextMenu={handleOpenContextMenu}
           />

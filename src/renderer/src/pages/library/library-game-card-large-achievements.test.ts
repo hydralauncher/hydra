@@ -10,7 +10,31 @@ import ts from "typescript";
 
 const requireModule = createRequire(import.meta.url);
 
-it("refreshes grouped progress on member changes and preserves known offline totals", async () => {
+const transpile = (relativePath: string) => {
+  const filename = new URL(relativePath, import.meta.url);
+  return ts.transpileModule(readFileSync(filename, "utf8"), {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      jsx: ts.JsxEmit.ReactJSX,
+      esModuleInterop: true,
+    },
+    fileName: filename.pathname,
+  }).outputText;
+};
+
+const load = (
+  relativePath: string,
+  resolve: (name: string) => unknown
+): Record<string, unknown> => {
+  const exported: Record<string, unknown> = {};
+  new Function("exports", "require", transpile(relativePath))(
+    exported,
+    resolve
+  );
+  return exported;
+};
+
+it("shows stored progress and requests combined progress once instead of fetching achievements", async () => {
   mock.timers.enable({ apis: ["setTimeout"] });
   const dom = new JSDOM("<div id='root'></div>");
   const globals = { window: globalThis.window, document: globalThis.document };
@@ -19,17 +43,25 @@ it("refreshes grouped progress on member changes and preserves known offline tot
     document: dom.window.document,
     IS_REACT_ACT_ENVIRONMENT: true,
   });
-  let calls = 0;
-  let response: Array<{ unlocked: boolean }> = [];
+  let fetches = 0;
+  const ensured: string[] = [];
   Object.assign(dom.window, {
     electron: {
       getUnlockedAchievements: async () => {
-        calls++;
-        return response;
+        fetches++;
+        return [];
+      },
+      ensureAchievementProgress: async (shop: string, objectId: string) => {
+        ensured.push(`${shop}:${objectId}`);
+        return null;
       },
     },
   });
+  const ensureModule = load("./use-ensure-achievement-progress.ts", (name) =>
+    requireModule(name)
+  );
   const stubs: Record<string, unknown> = {
+    "./use-ensure-achievement-progress": ensureModule,
     "@renderer/hooks": {
       useGameCard: () => ({
         formatPlayTime: () => "0",
@@ -64,58 +96,29 @@ it("refreshes grouped progress on member changes and preserves known offline tot
     "@renderer/pages/settings/emulation/emulator-icons": { EMULATOR_ICONS: {} },
     "react-i18next": { useTranslation: () => ({ t: (key: string) => key }) },
   };
-  const filename = new URL("./library-game-card-large.tsx", import.meta.url);
-  const output = ts.transpileModule(readFileSync(filename, "utf8"), {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      jsx: ts.JsxEmit.ReactJSX,
-      esModuleInterop: true,
-    },
-    fileName: filename.pathname,
-  }).outputText;
-  const exported: Record<string, React.ElementType> = {};
-  new Function("exports", "require", output)(exported, (name: string) =>
+  const exported = load("./library-game-card-large.tsx", (name) =>
     name.endsWith(".scss") ? {} : (stubs[name] ?? requireModule(name))
-  );
+  ) as Record<string, React.ElementType>;
   const root = createRoot(dom.window.document.getElementById("root")!);
-  const member = {
-    shop: "epic",
-    objectId: "epic-10",
-    achievementCount: 3,
-    unlockedAchievementCount: 0,
-  };
-  const game = {
-    id: "10",
-    objectId: "10",
-    shop: "steam",
-    title: "Game",
-    achievementCount: 3,
-    unlockedAchievementCount: 1,
-    availableShops: ["steam", "epic"],
-    members: [member],
-  };
-  const mount = (value: typeof game) =>
-    act(async () => {
+  const render = async (game: Record<string, unknown>) => {
+    await act(async () => {
       root.render(
         React.createElement(
           React.StrictMode,
           null,
           React.createElement(exported.LibraryGameCardLarge, {
-            game: value,
+            game,
             onContextMenu: () => {},
           })
         )
       );
     });
-  const render = async (value: typeof game) => {
-    await mount(value);
     await act(async () => mock.timers.tick(1_000));
-    return JSON.parse(
-      dom.window.document.querySelector("output")!.textContent!
-    );
+    const output = dom.window.document.querySelector("output");
+    return output ? JSON.parse(output.textContent!) : null;
   };
   try {
-    const emptyEpic = {
+    const borrowed = await render({
       id: "epic:copy",
       objectId: "copy",
       shop: "epic",
@@ -123,46 +126,68 @@ it("refreshes grouped progress on member changes and preserves known offline tot
       achievementCount: 0,
       unlockedAchievementCount: 0,
       catalogueGame: { shop: "steam", objectId: "752590" },
-    };
-    response = [{ unlocked: true }, { unlocked: false }, { unlocked: false }];
-    const fallback = await render(emptyEpic as unknown as typeof game);
-    assert.equal(calls, 1);
-    assert.equal(fallback.achievementCount, 3);
-    assert.equal(fallback.unlockedAchievementCount, 1);
-    response = [];
-    const unavailable = await render({
-      ...emptyEpic,
-      catalogueGame: { shop: "steam", objectId: "999" },
-    } as unknown as typeof game);
-    assert.equal(calls, 2);
-    assert.deepEqual(unavailable, fallback);
-    await act(async () => root.render(React.createElement("div")));
-    calls = 0;
-    response = [];
-    const first = await render(game);
-    assert.equal(calls, 1);
-    assert.equal(first.achievementCount, 3);
-    assert.equal(first.unlockedAchievementCount, 1);
-    response = [{ unlocked: true }, { unlocked: true }, { unlocked: false }];
-    const updated = {
-      ...game,
-      members: [{ ...member, unlockedAchievementCount: 1 }],
-    };
-    await mount({ ...game, members: [{ ...member, achievementCount: 4 }] });
-    assert.equal(calls, 1);
-    const second = await render(updated);
-    assert.equal(calls, 2);
-    assert.equal(second.achievementCount, 3);
-    assert.equal(second.unlockedAchievementCount, 2);
-    response = [];
-    const offline = await render({
-      ...updated,
-      members: [{ ...member, objectId: "epic-new" }],
     });
-    assert.equal(calls, 3);
-    assert.deepEqual(offline, second);
-    await render({ ...updated, members: [] });
-    assert.equal(calls, 4);
+    assert.equal(borrowed, null);
+    assert.deepEqual(ensured, ["epic:copy"]);
+
+    await render({
+      id: "epic:copy",
+      objectId: "copy",
+      shop: "epic",
+      title: "Epic Copy",
+      achievementCount: 3,
+      unlockedAchievementCount: 1,
+      catalogueGame: { shop: "steam", objectId: "752590" },
+    });
+    assert.deepEqual(ensured, ["epic:copy"]);
+
+    const fresh = await render({
+      id: "10",
+      objectId: "10",
+      shop: "steam",
+      title: "Game",
+      achievementCount: 45,
+      unlockedAchievementCount: 24,
+      availableShops: ["steam", "epic"],
+      achievementProgress: {
+        achievementCount: 45,
+        unlockedAchievementCount: 24,
+        updatedAt: Date.now(),
+      },
+    });
+    assert.equal(fresh.achievementCount, 45);
+    assert.equal(fresh.unlockedAchievementCount, 24);
+    assert.deepEqual(ensured, ["epic:copy"]);
+
+    await render({
+      id: "11",
+      objectId: "11",
+      shop: "steam",
+      title: "Stale",
+      achievementCount: 10,
+      unlockedAchievementCount: 2,
+      availableShops: ["steam", "epic"],
+      achievementProgress: {
+        achievementCount: 10,
+        unlockedAchievementCount: 2,
+        updatedAt: Date.now() - 25 * 60 * 60 * 1000,
+      },
+    });
+    assert.deepEqual(ensured, ["epic:copy", "steam:11"]);
+
+    const plain = await render({
+      id: "12",
+      objectId: "12",
+      shop: "steam",
+      title: "Plain",
+      achievementCount: 8,
+      unlockedAchievementCount: 5,
+      availableShops: ["steam"],
+    });
+    assert.equal(plain.achievementCount, 8);
+    assert.equal(plain.unlockedAchievementCount, 5);
+    assert.deepEqual(ensured, ["epic:copy", "steam:11"]);
+    assert.equal(fetches, 0);
   } finally {
     await act(async () => root.unmount());
     Object.assign(globalThis, globals);

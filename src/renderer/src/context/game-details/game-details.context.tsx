@@ -1,4 +1,11 @@
-import { createContext, useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { setHeaderTitle } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
@@ -43,6 +50,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   catalogueGame: { shop: "steam", objectId: "" },
   shopDetails: null,
   repacks: [],
+  hasLoadedRepacks: false,
   shop: "steam",
   gameTitle: "",
   isGameRunning: false,
@@ -109,6 +117,7 @@ export function GameDetailsContextProvider({
   const [gameOptionsInitialCategory, setGameOptionsInitialCategory] =
     useState<GameOptionsCategoryId>("general");
   const [repacks, setRepacks] = useState<GameRepack[]>([]);
+  const [hasLoadedRepacks, setHasLoadedRepacks] = useState(false);
 
   const { t, i18n } = useTranslation("game_details");
   const location = useLocation();
@@ -432,6 +441,25 @@ export function GameDetailsContextProvider({
     };
   }, [refreshGameDetails]);
 
+  const presentationKeys = useMemo(
+    () =>
+      new Set([
+        `${shop}:${objectId}`,
+        ...(presentation?.members ?? []).map(
+          (member) => `${member.shop}:${member.objectId}`
+        ),
+      ]),
+    [shop, objectId, presentation]
+  );
+
+  useEffect(() => {
+    return window.electron.onLibraryGamesUpdated((keys) => {
+      if (keys.some((key) => presentationKeys.has(key))) {
+        refreshGameDetails().catch(() => {});
+      }
+    });
+  }, [presentationKeys, refreshGameDetails]);
+
   useEffect(() => {
     const handler = (ev: Event) => {
       try {
@@ -533,9 +561,13 @@ export function GameDetailsContextProvider({
   }, [achievementObjectId, achievementShop, userDetails, presentation]);
 
   useEffect(() => {
-    if (shop === "custom") return;
+    if (shop === "custom") {
+      setHasLoadedRepacks(true);
+      return;
+    }
 
     let cancelled = false;
+    setHasLoadedRepacks(false);
 
     const fetchDownloadSources = async () => {
       try {
@@ -568,6 +600,7 @@ export function GameDetailsContextProvider({
         );
 
         setRepacks(downloadOptions);
+        setHasLoadedRepacks(true);
 
         const results = await fetchHosterAvailability(
           downloadOptions,
@@ -580,6 +613,7 @@ export function GameDetailsContextProvider({
         setRepacks(applyHosterAvailability(downloadOptions, results));
       } catch (error) {
         console.error("Failed to fetch download sources:", error);
+        if (!cancelled) setHasLoadedRepacks(true);
       }
     };
 
@@ -636,6 +670,7 @@ export function GameDetailsContextProvider({
         shopDetails,
         shop: lockAchievementIdentity ? achievementShop : operationalShop,
         repacks,
+        hasLoadedRepacks,
         gameTitle: presentation?.title ?? shopDetails?.name ?? gameTitle,
         isGameRunning,
         isLoading,

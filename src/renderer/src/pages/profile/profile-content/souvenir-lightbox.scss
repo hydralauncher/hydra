@@ -54,7 +54,9 @@
     background: rgba(0, 0, 0, 0.65);
     color: globals.$body-color;
     cursor: pointer;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
 
     svg {
       pointer-events: none;
@@ -83,7 +85,6 @@
     opacity: 1;
     transform: translateY(-50%);
     transition:
-      background-color ease 0.2s,
       transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
       opacity 0.2s ease;
 

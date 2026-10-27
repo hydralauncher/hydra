@@ -281,7 +281,9 @@
   &__item {
     display: flex;
     cursor: pointer;
-    transition: all ease 0.1s;
+    transition:
+      all ease 0.1s,
+      background 0s;
     color: globals.$muted-color;
     width: 100%;
     overflow: hidden;

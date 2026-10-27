@@ -30,7 +30,6 @@
       border: 1px solid globals.$border-color;
       border-radius: 12px;
       gap: 4px;
-      transition: background-color 0.2s ease;
       padding: 16px;
       position: relative;
 
@@ -127,7 +126,6 @@
     border: 1px dashed globals.$border-color;
     border-radius: 12px;
     gap: 12px;
-    transition: background-color 0.2s ease;
 
     &:hover {
       background-color: rgba(globals.$border-color, 0.03);

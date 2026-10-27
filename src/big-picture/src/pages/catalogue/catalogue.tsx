@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HorizontalFocusGroup } from "../../components";
 import { cancelNavigationAutoScrollForElement } from "../../helpers";
-import { useHeaderTitle, useNavigationScreenActions } from "../../hooks";
-import { CATALOGUE_PAGE_REGION_ID } from "./navigation";
+import {
+  useHeaderTitle,
+  useNavigationScreenActions,
+  useRememberedFocus,
+} from "../../hooks";
+import {
+  CATALOGUE_CARD_FOCUS_ID_PREFIX,
+  CATALOGUE_PAGE_REGION_ID,
+} from "./navigation";
 import { CatalogueGrid } from "./grid";
 import { CatalogueHeader } from "./header";
 import { CatalogueFiltersModal } from "./filters-modal";
@@ -12,9 +19,14 @@ import "./page.scss";
 
 const POINTER_SCROLL_SUPPRESSION_DURATION_MS = 500;
 
+function isCatalogueCardFocusId(focusId: string) {
+  return focusId.startsWith(CATALOGUE_CARD_FOCUS_ID_PREFIX);
+}
+
 export default function Catalogue() {
   useHeaderTitle("Catalogue");
   const pageRef = useRef<HTMLElement | null>(null);
+  useRememberedFocus(isCatalogueCardFocusId, pageRef);
   const pointerScrollSuppressionTimeoutRef = useRef<ReturnType<
     typeof globalThis.setTimeout
   > | null>(null);
@@ -35,6 +47,7 @@ export default function Catalogue() {
     hasNextPage,
     loadMore,
   } = useCatalogueData();
+  const previousSearchKeyRef = useRef(search.key);
 
   useEffect(() => {
     isLoadingMoreRef.current = search.isLoadingMore;
@@ -95,6 +108,9 @@ export default function Catalogue() {
   }, [isFiltersModalOpen]);
 
   useEffect(() => {
+    if (previousSearchKeyRef.current === search.key) return;
+    previousSearchKeyRef.current = search.key;
+
     restorePointerScrollTopRef.current = null;
     wasLoadingMoreRef.current = false;
     isPointerScrollSuppressedRef.current = false;

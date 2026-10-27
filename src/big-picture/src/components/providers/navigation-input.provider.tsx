@@ -33,6 +33,11 @@ interface NavigationInputProviderProps {
 
 type NavigationKeyDirection = "up" | "down" | "left" | "right";
 
+const KEYBOARD_BUMPERS: Partial<Record<string, GamepadButtonType>> = {
+  q: GamepadButtonType.LEFT_BUMPER,
+  e: GamepadButtonType.RIGHT_BUMPER,
+};
+
 const resolveKeyboardDirection = (
   event: KeyboardEvent
 ): NavigationKeyDirection | null => {
@@ -451,6 +456,13 @@ export function NavigationInputProvider({
       if (event.key === "Escape" && !event.repeat) {
         event.preventDefault();
         triggerBackAction(event);
+      }
+
+      const bumper = KEYBOARD_BUMPERS[key];
+
+      if (bumper && !event.ctrlKey && !event.shiftKey) {
+        event.preventDefault();
+        GamepadService.getInstance().emitKeyboardButtonPress(bumper);
       }
     };
 

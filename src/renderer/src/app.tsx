@@ -33,6 +33,9 @@ import {
   setExtractionProgress,
   setGameRunning,
   setLibrarySyncingRemote,
+  setGameAchievementProgress,
+  setGamePlaytime,
+  upsertLibraryGames,
   setLibraryAwaitingAccount,
   setProfileBackground,
   setUserDetails,
@@ -124,7 +127,38 @@ export function App() {
     ]).then(([preferences]) => {
       dispatch(setUserPreferences(preferences as UserPreferences | null));
     });
-  }, [navigate, location.pathname, dispatch, updateLibrary]);
+  }, [dispatch, updateLibrary]);
+
+  useEffect(() => {
+    const preloadPages = () => {
+      void import("./pages/settings/settings");
+      void import("./pages/game-details/game-details");
+      void import("./pages/library/library");
+      void import("./pages/downloads/downloads");
+      void import("./pages/catalogue/catalogue");
+      void import("./pages/profile/profile");
+    };
+
+    const handle = globalThis.requestIdleCallback(preloadPages, {
+      timeout: 4000,
+    });
+    return () => globalThis.cancelIdleCallback(handle);
+  }, []);
+
+  useEffect(() => {
+    const pauseMediaWhenHidden = () => {
+      if (document.visibilityState !== "hidden") return;
+
+      document.querySelectorAll("video, audio").forEach((element) => {
+        const media = element as HTMLMediaElement;
+        if (!media.paused) media.pause();
+      });
+    };
+
+    document.addEventListener("visibilitychange", pauseMediaWhenHidden);
+    return () =>
+      document.removeEventListener("visibilitychange", pauseMediaWhenHidden);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = window.electron.onUserPreferencesUpdated(
@@ -510,6 +544,36 @@ export function App() {
       window.electron.onLibraryBatchComplete(() => {
         updateLibrary();
       }),
+      window.electron.onLibraryGamesUpdated((keys) => {
+        void window.electron
+          .getLibraryGames(keys, true)
+          .then((games) => dispatch(upsertLibraryGames(games)))
+          .catch(() => {});
+      }),
+      window.electron.onLibraryGameUpdated((shop, objectId) => {
+        void window.electron
+          .getGameByObjectId(shop, objectId)
+          .then((game) => {
+            if (!game) return;
+            dispatch(
+              setGamePlaytime({
+                shop,
+                objectId,
+                playTimeInMilliseconds: game.playTimeInMilliseconds,
+                steamPlayTimeInMilliseconds: game.steamPlayTimeInMilliseconds,
+                epicPlayTimeInMilliseconds: game.epicPlayTimeInMilliseconds,
+                lastTimePlayed: game.lastTimePlayed,
+                hasManuallyUpdatedPlaytime: game.hasManuallyUpdatedPlaytime,
+              })
+            );
+          })
+          .catch(() => {});
+      }),
+      window.electron.onLibraryAchievementProgress(
+        (shop, objectId, progress) => {
+          dispatch(setGameAchievementProgress({ shop, objectId, progress }));
+        }
+      ),
       window.electron.onDownloadsUpdated(() => {
         updateLibrary();
       }),

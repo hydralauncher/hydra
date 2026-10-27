@@ -56,6 +56,11 @@ const processMediaElements = (document: Document) => {
   // Handle videos the same way
   const $videos = Array.from(document.querySelectorAll("video"));
   $videos.forEach(($video) => {
+    if ($video.autoplay) {
+      $video.removeAttribute("autoplay");
+      $video.dataset.playWhenVisible = "true";
+    }
+    $video.preload = "none";
     $video.removeAttribute("width");
     $video.removeAttribute("height");
     $video.removeAttribute("style");
@@ -194,6 +199,31 @@ export function GameDetailsContent() {
       observer.disconnect();
       images.forEach((img) => img.removeEventListener("load", onMediaLoad));
     };
+  }, [aboutTheGame]);
+
+  useEffect(() => {
+    const el = descriptionRef.current;
+    if (!el) return;
+
+    const videos = Array.from(
+      el.querySelectorAll<HTMLVideoElement>("video[data-play-when-visible]")
+    );
+    if (!videos.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const video = entry.target as HTMLVideoElement;
+        if (entry.isIntersecting) {
+          video.muted = true;
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      }
+    });
+
+    videos.forEach((video) => observer.observe(video));
+    return () => observer.disconnect();
   }, [aboutTheGame]);
 
   const handleLegacyCloudSaveButtonClick = () => {

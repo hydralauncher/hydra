@@ -1,6 +1,7 @@
 .downloads-hero {
   position: relative;
-  width: 100%;
+  width: auto;
+  margin: 0 calc(var(--spacing-unit) * -16);
   height: 550px;
   overflow: hidden;
   border: none;
@@ -47,14 +48,14 @@
   position: absolute;
   inset: auto 0 0;
   z-index: 3;
-  padding: 0 0 calc(var(--spacing-unit) * 18);
+  padding: 0 calc(var(--spacing-unit) * 16) calc(var(--spacing-unit) * 16);
 }
 
 .downloads-hero__active {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: calc(var(--spacing-unit) * 12);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(var(--spacing-unit) * 6);
   width: 100%;
 }
 
@@ -113,7 +114,7 @@
 
 .downloads-hero__logo {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: flex-start;
   width: 420px;
   max-width: 100%;
@@ -124,7 +125,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  object-position: left center;
+  object-position: left bottom;
 }
 
 .downloads-hero__logo-fallback {
@@ -139,10 +140,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: calc(var(--spacing-unit) * 4);
-  padding-right: calc(var(--spacing-unit) * 3);
 }
 
 .downloads-hero__action-focus-proxy {
@@ -172,35 +171,13 @@
   gap: calc(var(--spacing-unit) * 1.5);
 }
 
-@media (max-width: 1100px) {
-  .downloads-hero {
-    height: 620px;
-  }
-
-  .downloads-hero__content {
-    padding: 0 0 calc(var(--spacing-unit) * 16);
-  }
-
-  .downloads-hero__active {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: calc(var(--spacing-unit) * 8);
-  }
-}
-
 @media (max-width: 720px) {
   .downloads-hero {
     height: 700px;
   }
 
   .downloads-hero__content {
-    padding: 0 calc(var(--spacing-unit) * 6) calc(var(--spacing-unit) * 6);
-  }
-
-  .downloads-hero__active {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: calc(var(--spacing-unit) * 8);
+    padding: 0 calc(var(--spacing-unit) * 16) calc(var(--spacing-unit) * 6);
   }
 
   .downloads-hero__main {
@@ -217,12 +194,5 @@
     width: min(100%, 360px);
     height: auto;
     aspect-ratio: 2 / 1;
-  }
-
-  .downloads-hero__actions {
-    position: relative;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    padding-right: 0;
   }
 }

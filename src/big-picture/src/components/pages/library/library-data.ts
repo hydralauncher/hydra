@@ -1,5 +1,5 @@
 import type { LibraryGame } from "@types";
-import { getDisplayedPlayTimeInMilliseconds } from "@shared";
+import { getDisplayedPlayTimeInMilliseconds, removeDiacritics } from "@shared";
 
 export const BUILTIN_LIBRARY_TABS = [
   "all",
@@ -105,21 +105,12 @@ export function countGamesInCollection(
 }
 
 export function matchesSearchQuery(game: LibraryGame, searchQuery: string) {
-  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const normalizedQuery = removeDiacritics(searchQuery).trim().toLowerCase();
   if (!normalizedQuery) return true;
 
-  const titleLower = game.title.toLowerCase();
-  let queryIndex = 0;
-
-  for (
-    let titleIndex = 0;
-    titleIndex < titleLower.length && queryIndex < normalizedQuery.length;
-    titleIndex++
-  ) {
-    if (titleLower[titleIndex] === normalizedQuery[queryIndex]) queryIndex++;
-  }
-
-  return queryIndex === normalizedQuery.length;
+  return removeDiacritics(game.title ?? "")
+    .toLowerCase()
+    .includes(normalizedQuery);
 }
 
 export function filterLibraryByTab(

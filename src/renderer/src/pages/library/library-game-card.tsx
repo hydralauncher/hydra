@@ -1,5 +1,8 @@
 import { LibraryGame } from "@types";
-import { getDisplayedPlayTimeInMilliseconds } from "@shared";
+import {
+  buildCoverThumbnailUrl,
+  getDisplayedPlayTimeInMilliseconds,
+} from "@shared";
 import cn from "classnames";
 import { getLibraryPresentationImportSources } from "./library-category";
 import {
@@ -16,7 +19,7 @@ import {
 } from "@renderer/helpers";
 import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
 import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState, type SyntheticEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
@@ -28,6 +31,7 @@ import {
   EMULATOR_ICONS,
   RETROARCH_EMULATOR_ICON,
 } from "@renderer/pages/settings/emulation/emulator-icons";
+import { useEnsureAchievementProgress } from "./use-ensure-achievement-progress";
 import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
 
@@ -37,13 +41,47 @@ interface LibraryGameCardProps {
     game: LibraryGame,
     position: { x: number; y: number }
   ) => void;
+  thumbnailWidth?: number;
   onShowTooltip?: (gameId: string) => void;
   onHideTooltip?: () => void;
 }
 
+const FAILED_COVER_RETRY_MS = 10 * 60 * 1000;
+const failedCoverSources = new Map<string, number>();
+const failedCoverThumbnails = new Map<string, number>();
+
+const hasRecentFailure = (failures: Map<string, number>, source: string) => {
+  const failedAt = failures.get(source);
+  if (failedAt === undefined) return false;
+  if (Date.now() - failedAt < FAILED_COVER_RETRY_MS) return true;
+
+  failures.delete(source);
+  return false;
+};
+
+const markCoverLoaded = (event: SyntheticEvent<HTMLImageElement>) => {
+  event.currentTarget.dataset.loaded = "true";
+};
+
+const markCoverLoadedIfComplete = (image: HTMLImageElement | null) => {
+  if (image?.complete && image.naturalWidth > 0) image.dataset.loaded = "true";
+};
+
+const getNextUsableSourceIndex = (
+  sources: (string | null | undefined)[],
+  fromIndex: number
+) => {
+  for (let index = fromIndex; index < sources.length; index++) {
+    const source = sources[index];
+    if (source && !hasRecentFailure(failedCoverSources, source)) return index;
+  }
+  return sources.length;
+};
+
 export const LibraryGameCard = memo(function LibraryGameCard({
   game,
   onContextMenu,
+  thumbnailWidth,
 }: Readonly<LibraryGameCardProps>) {
   const { t } = useTranslation("library");
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
@@ -64,6 +102,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     importSources.steam && !userPreferences?.hideSteamLibraryBadges;
   const hideAchievementProgress =
     userPreferences?.hideLibraryAchievementProgress ?? false;
+  useEnsureAchievementProgress(game);
   const autoplayAnimatedArtwork =
     userPreferences?.autoplayAnimatedArtwork ?? false;
 
@@ -80,7 +119,9 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const sources = candidates.map(({ url }) => url);
 
-  const [fallbackIndex, setFallbackIndex] = useState(0);
+  const [fallbackIndex, setFallbackIndex] = useState(() =>
+    getNextUsableSourceIndex(sources, 0)
+  );
   const [imageError, setImageError] = useState(false);
 
   const resolveImageSource = (imageUrl: string | null | undefined): string => {
@@ -122,16 +163,30 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const [isCoverHovered, setIsCoverHovered] = useState(false);
   const shouldHoldFrame =
     isAnimatedCover && !isCoverHovered && !autoplayAnimatedArtwork;
-  const isAwaitingPoster = shouldHoldFrame && coverPoster === undefined;
+  const isAwaitingPoster =
+    !thumbnailWidth && shouldHoldFrame && coverPoster === undefined;
 
   useAnimatedSourceWarmup(
     activeImageSource,
     isAnimatedCover && !autoplayAnimatedArtwork && Boolean(coverPoster)
   );
-  const displayImageSource =
-    shouldHoldFrame && coverPoster
-      ? resolveImageSource(coverPoster)
-      : activeImageSource;
+
+  const isPlayingAnimatedCover =
+    isAnimatedCover && Boolean(coverPoster) && !shouldHoldFrame;
+
+  const canUseThumbnail =
+    Boolean(thumbnailWidth) &&
+    !hasRecentFailure(failedCoverThumbnails, activeImageSource);
+
+  let displayImageSource = activeImageSource;
+  if (thumbnailWidth && canUseThumbnail && !isPlayingAnimatedCover) {
+    displayImageSource = buildCoverThumbnailUrl(
+      activeImageSource,
+      thumbnailWidth
+    );
+  } else if (shouldHoldFrame && coverPoster) {
+    displayImageSource = resolveImageSource(coverPoster);
+  }
 
   const { label: classicsPlatformLabel, icon: classicsEmulatorIcon } =
     resolveClassicsBadge(
@@ -149,20 +204,41 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const showReadyBadge = !hideReadySizeBadges && isInstalled;
 
   const handleImageError = () => {
+    const isThumbnailFailure = displayImageSource !== activeImageSource;
+
     logger.warn(`Image failed to load for ${game.title}`, {
       failedUrl: sources[fallbackIndex],
       level: fallbackIndex,
+      thumbnail: isThumbnailFailure,
     });
 
-    if (fallbackIndex < sources.length - 1) {
-      setFallbackIndex((prevIndex) => prevIndex + 1);
+    if (isThumbnailFailure) {
+      failedCoverThumbnails.set(activeImageSource, Date.now());
+    }
+
+    const failedSource = sources[fallbackIndex];
+    if (failedSource) failedCoverSources.set(failedSource, Date.now());
+
+    const nextIndex = getNextUsableSourceIndex(sources, fallbackIndex + 1);
+    if (nextIndex < sources.length) {
+      setFallbackIndex(nextIndex);
     } else {
       setImageError(true);
     }
   };
 
   useEffect(() => {
-    setFallbackIndex(0);
+    setFallbackIndex(
+      getNextUsableSourceIndex(
+        [
+          game.customCoverImageUrl,
+          game.coverImageUrl,
+          game.libraryImageUrl,
+          game.iconUrl,
+        ].filter((url) => url && url.trim() !== ""),
+        0
+      )
+    );
     setImageError(false);
   }, [
     game.id,
@@ -189,18 +265,24 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       return (
         <div className="library-game-card__classics-cover">
           <img
+            key={`backdrop:${displayImageSource}`}
+            ref={markCoverLoadedIfComplete}
             src={displayImageSource}
             alt=""
             aria-hidden="true"
             className="library-game-card__classics-backdrop"
-            loading="lazy"
+            decoding="async"
+            onLoad={markCoverLoaded}
             onError={handleImageError}
           />
           <img
+            key={displayImageSource}
+            ref={markCoverLoadedIfComplete}
             src={displayImageSource}
-            alt={game.title}
+            alt=""
             className="library-game-card__classics-image"
-            loading="lazy"
+            decoding="async"
+            onLoad={markCoverLoaded}
             onError={handleImageError}
           />
         </div>
@@ -209,12 +291,15 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
     return (
       <img
+        key={displayImageSource}
+        ref={markCoverLoadedIfComplete}
         src={displayImageSource}
-        alt={game.title}
-        className={`library-game-card__game-image ${
-          isChosenCoverActive ? "library-game-card__game-image--contain" : ""
-        }`}
-        loading="lazy"
+        alt=""
+        className={cn("library-game-card__game-image", {
+          "library-game-card__game-image--contain": isChosenCoverActive,
+        })}
+        decoding="async"
+        onLoad={markCoverLoaded}
         onError={handleImageError}
       />
     );
@@ -226,6 +311,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       onMouseEnter={() => setIsCoverHovered(true)}
       onMouseLeave={() => setIsCoverHovered(false)}
       className="library-game-card__wrapper"
+      aria-label={game.title}
       onClick={handleCardClick}
       onContextMenu={handleContextMenuClick}
     >

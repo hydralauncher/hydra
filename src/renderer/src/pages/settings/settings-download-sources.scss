@@ -26,7 +26,9 @@
     padding: calc(globals.$spacing-unit * 2);
     gap: globals.$spacing-unit;
     border: solid 1px globals.$border-color;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
 
     &--syncing {
       opacity: globals.$disabled-opacity;

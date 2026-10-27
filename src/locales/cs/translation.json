@@ -295,7 +295,7 @@
     "wine_prefix": "Wine Prefix",
     "wine_prefix_description": "Wine Prefix použit pro spuštění této hry",
     "launch_options": "Možnosti spuštění",
-    "launch_options_description": "Pokročilí uživatelé mohou zadat speciální parametry spuštění (experimentální funkce)",
+    "launch_options_description": "Pokročilí uživatelé mohou zadat speciální parametry spuštění",
     "launch_options_placeholder": "Žádné parametery nebyly specifikovány",
     "no_download_option_info": "Žádné informace nejsou dostupny",
     "backup_deletion_failed": "Nepovedlo se odstranit zálohu",

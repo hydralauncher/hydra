@@ -14,7 +14,9 @@
   top: 0;
   padding: calc(globals.$spacing-unit * 3);
   backdrop-filter: blur(2px);
-  transition: all ease 0.2s;
+  transition:
+    all ease 0.2s,
+    background 0s;
 
   &--closing {
     animation-name: backdrop-fade-out;

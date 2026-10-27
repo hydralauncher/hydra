@@ -2,7 +2,9 @@
 
 .select-field {
   display: inline-flex;
-  transition: all ease 0.2s;
+  transition:
+    all ease 0.2s,
+    background 0s;
   width: fit-content;
   align-items: center;
   border-radius: 8px;

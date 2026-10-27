@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
@@ -41,6 +42,12 @@ export interface ModalProps {
 }
 
 export const MODAL_OWNED_OVERLAY_ATTRIBUTE = "data-hydra-modal-owned-overlay";
+
+function ModalBackAction({ onPress }: Readonly<{ onPress: () => void }>) {
+  const actions = useMemo(() => ({ press: { b: onPress } }), [onPress]);
+  useNavigationScreenActions(actions);
+  return null;
+}
 
 export function Modal({
   visible,
@@ -98,10 +105,6 @@ export function Modal({
     if (!isTopMostModal()) return;
     handleCloseClick();
   }, [handleCloseClick]);
-
-  useNavigationScreenActions(
-    shouldCloseOnB ? { press: { b: handleBPress } } : {}
-  );
 
   useEffect(() => {
     if (!visible) return;
@@ -182,6 +185,7 @@ export function Modal({
 
   return createPortal(
     <FocusRegionContext.Provider value={null}>
+      {shouldCloseOnB ? <ModalBackAction onPress={handleBPress} /> : null}
       <AnimatePresence>
         {visible && (
           <Backdrop className={backdropClassName}>

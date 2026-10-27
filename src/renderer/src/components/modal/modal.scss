@@ -51,7 +51,9 @@
 
   &__close-button {
     cursor: pointer;
-    transition: all ease 0.2s;
+    transition:
+      all ease 0.2s,
+      background 0s;
     align-self: flex-start;
 
     &:hover {

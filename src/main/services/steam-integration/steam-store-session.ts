@@ -14,6 +14,7 @@ import {
   parseSteamCommunityPageSteamId,
   parseSteamStoreSessionConfig,
   resolveSteamCommunityLogin,
+  SteamSessionRequiredError,
   type SteamCommunityLogin,
   type SteamWebApiToken,
 } from "./steam-store-session-config";
@@ -383,10 +384,28 @@ export const readSteamCommunitySession = async (
   };
 };
 
-export const getSteamWebApiToken = (
+const STEAM_STORE_TOKEN_REFRESH_URL = `https://login.steampowered.com/jwt/refresh?redir=${encodeURIComponent(
+  STEAM_STORE_EXPLORE_URL
+)}`;
+
+export const getSteamWebApiToken = async (
+  signal?: AbortSignal
+): Promise<SteamWebApiToken> => {
+  try {
+    return await readSteamWebApiToken(STEAM_STORE_EXPLORE_URL, signal);
+  } catch (error) {
+    if (!(error instanceof SteamSessionRequiredError)) throw error;
+
+    steamSyncLogger.log("Steam Store session expired, refreshing it");
+    return readSteamWebApiToken(STEAM_STORE_TOKEN_REFRESH_URL, signal);
+  }
+};
+
+const readSteamWebApiToken = (
+  url: string,
   signal?: AbortSignal
 ): Promise<SteamWebApiToken> =>
-  loadHiddenSteamPage(STEAM_STORE_EXPLORE_URL, signal, async (window) => {
+  loadHiddenSteamPage(url, signal, async (window) => {
     const currentUrl = window.webContents.getURL();
     const config = (await window.webContents.executeJavaScript(`
       (() => {

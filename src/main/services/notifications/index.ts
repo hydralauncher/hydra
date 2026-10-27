@@ -298,7 +298,7 @@ const CHAT_MESSAGE_SOUND_VOLUME = 0.35;
 // Like the achievement sound, an open window plays it. sound-play, which
 // spawns a process per sound and has no Linux support, only covers the gap
 // before any window has loaded.
-const playChatMessageSound = () => {
+export const playChatMessageSound = () => {
   if (WindowManager.sendToFirstLoadedWindow("on-chat-message-sound")) return;
   if (process.platform === "linux") return;
 
@@ -328,7 +328,8 @@ const showChatNotification = async (
   key: string,
   content: { title: string; body: string; imageUrl: string | null },
   onClick: () => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  playSound = true
 ) => {
   if (signal?.aborted) return;
   const session = chatNotificationSession;
@@ -363,7 +364,9 @@ const showChatNotification = async (
   chatMessageNotifications.set(key, notification);
   notification.show();
 
-  if (!WindowManager.isChatWindowFocused()) playChatMessageSound();
+  if (playSound && !WindowManager.isChatWindowFocused()) {
+    playChatMessageSound();
+  }
 };
 
 type ChatSender = Pick<UserProfile, "id" | "displayName" | "profileImageUrl">;
@@ -385,7 +388,8 @@ export const publishChatMessageNotification = (
       imageUrl: sender.profileImageUrl,
     },
     onClick,
-    signal
+    signal,
+    false
   );
 
 /** Announces messages that arrived while the launcher was closed or offline. */

@@ -460,6 +460,7 @@ export function UserProfileContextProvider({
 
     const profileParams = new URLSearchParams();
     profileParams.append("shop", "steam");
+    profileParams.append("shop", "epic");
     profileParams.append("shop", "launchbox");
 
     return window.electron.hydraApi

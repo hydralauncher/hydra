@@ -6,7 +6,7 @@ export const registerEvent = (
 ) => {
   ipcMain.handle(name, async (event: Electron.IpcMainInvokeEvent, ...args) => {
     return Promise.resolve(listener(event, ...args)).then((result) => {
-      if (!result) return result;
+      if (!result || typeof result === "string") return result;
       return JSON.parse(JSON.stringify(result));
     });
   });

@@ -395,7 +395,7 @@ interface GeneralSettingsSectionProps {
   onOpenGameExecutablePath: () => Promise<void>;
   onAddTrackingExecutable?: () => Promise<void> | void;
   onRemoveTrackingExecutable?: (index: number) => Promise<void> | void;
-  onOpenSaveFolder: () => Promise<void>;
+  onOpenSaveFolder: () => void;
   onCreateShortcut: (location: ShortcutLocation) => Promise<void>;
   onCreateSteamShortcut: () => void;
   onDeleteSteamShortcut: () => Promise<void>;
@@ -741,7 +741,7 @@ export function GeneralSettingsSection({
                     type="button"
                     theme="outline"
                     onClick={onOpenSaveFolder}
-                    disabled={loadingSaveFolder || !saveFolderPath}
+                    disabled={loadingSaveFolder}
                   >
                     <HardDrive size={14} />
                     {loadingSaveFolder
@@ -810,6 +810,38 @@ export function GeneralSettingsSection({
           onToggleHydraPlaytimeEnabled={onToggleHydraPlaytimeEnabled}
         />
       )}
+
+      {/* Shortcuts */}
+      {showShortcutsSection &&
+        (hasShortcutLaunchTarget || steamShortcutExists) && (
+          <div className="game-options-modal__section">
+            <div className="game-options-modal__header">
+              <h2>{t("shortcuts_section_title")}</h2>
+              <h4 className="game-options-modal__header-description">
+                {t("shortcuts_section_description")}
+              </h4>
+            </div>
+            <div className="game-options-modal__row">
+              {hasShortcutLaunchTarget && (
+                <Button
+                  onClick={() => onCreateShortcut("desktop")}
+                  theme="outline"
+                >
+                  {t("create_shortcut")}
+                </Button>
+              )}
+              {steamShortcutButton}
+              {hasShortcutLaunchTarget && shouldShowCreateStartMenuShortcut && (
+                <Button
+                  onClick={() => onCreateShortcut("start_menu")}
+                  theme="outline"
+                >
+                  {t("create_start_menu_shortcut")}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
 
       {/* Drive Selector */}
       {showTransferSection && game.executablePath && !isTransferring && (
@@ -1004,38 +1036,6 @@ export function GeneralSettingsSection({
           </div>
         </div>
       )}
-
-      {/* Shortcuts */}
-      {showShortcutsSection &&
-        (hasShortcutLaunchTarget || steamShortcutExists) && (
-          <div className="game-options-modal__section">
-            <div className="game-options-modal__header">
-              <h2>{t("shortcuts_section_title")}</h2>
-              <h4 className="game-options-modal__header-description">
-                {t("shortcuts_section_description")}
-              </h4>
-            </div>
-            <div className="game-options-modal__row">
-              {hasShortcutLaunchTarget && (
-                <Button
-                  onClick={() => onCreateShortcut("desktop")}
-                  theme="outline"
-                >
-                  {t("create_shortcut")}
-                </Button>
-              )}
-              {steamShortcutButton}
-              {hasShortcutLaunchTarget && shouldShowCreateStartMenuShortcut && (
-                <Button
-                  onClick={() => onCreateShortcut("start_menu")}
-                  theme="outline"
-                >
-                  {t("create_start_menu_shortcut")}
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
 
       {/* Launch options */}
       {showLaunchOptionsSection && (

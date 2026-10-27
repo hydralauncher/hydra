@@ -13,7 +13,34 @@ import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { AlertFillIcon } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
+import { BADGE_TOOLTIP_ID } from "@renderer/components/badge-tooltip/badge-tooltip";
 import "./hero-panel-playtime.scss";
+
+type DurationFormatConstructor = new (
+  locale: string,
+  options: { style: "long" }
+) => { format: (duration: Record<string, number>) => string };
+
+const formatExactPlayTime = (milliseconds: number, locale: string) => {
+  const totalSeconds = Math.round(milliseconds / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const DurationFormat = (
+    Intl as unknown as { DurationFormat?: DurationFormatConstructor }
+  ).DurationFormat;
+
+  if (DurationFormat) {
+    return new DurationFormat(locale, { style: "long" }).format({
+      hours,
+      minutes,
+      seconds,
+    });
+  }
+
+  return `${hours}h ${minutes}m ${seconds}s`;
+};
 
 export function HeroPanelPlaytime() {
   const [lastTimePlayed, setLastTimePlayed] = useState("");
@@ -24,7 +51,7 @@ export function HeroPanelPlaytime() {
     isGameRunning,
   } = useContext(gameDetailsContext);
   const game = presentation ?? operationalGame;
-  const { t } = useTranslation("game_details");
+  const { t, i18n } = useTranslation("game_details");
   const { numberFormatter } = useFormat();
   const { progress, lastPacket } = useDownload();
   const { formatDistance } = useDate();
@@ -66,6 +93,15 @@ export function HeroPanelPlaytime() {
     numberFormatter,
     t,
   ]);
+
+  const exactLastTimePlayed = useMemo(() => {
+    if (!game?.lastTimePlayed) return undefined;
+
+    return new Intl.DateTimeFormat(i18n.language, {
+      dateStyle: "long",
+      timeStyle: "short",
+    }).format(new Date(game.lastTimePlayed));
+  }, [game?.lastTimePlayed, i18n.language]);
 
   if (!game) return null;
 
@@ -136,12 +172,15 @@ export function HeroPanelPlaytime() {
         data-tooltip-content={
           game.hasManuallyUpdatedPlaytime
             ? t("manual_playtime_tooltip")
-            : undefined
+            : formatExactPlayTime(
+                displayedPlayTimeInMilliseconds,
+                i18n.language
+              )
         }
         data-tooltip-id={
           game.hasManuallyUpdatedPlaytime
             ? "manual-playtime-warning"
-            : undefined
+            : BADGE_TOOLTIP_ID
         }
       >
         {game.hasManuallyUpdatedPlaytime && (
@@ -158,7 +197,12 @@ export function HeroPanelPlaytime() {
       {isExtracting && extractionInProgressInfo}
       {!isExtracting && hasDownload && downloadInProgressInfo}
       {!isExtracting && !hasDownload && !!lastTimePlayed && (
-        <p>
+        <p
+          className="hero-panel-playtime__last-played"
+          data-tooltip-id={BADGE_TOOLTIP_ID}
+          data-tooltip-place="right"
+          data-tooltip-content={exactLastTimePlayed}
+        >
           {t("last_time_played", {
             period: lastTimePlayed,
           })}

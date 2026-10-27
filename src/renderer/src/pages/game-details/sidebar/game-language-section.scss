@@ -20,8 +20,10 @@
     padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2.5);
 
     &--center {
-      justify-content: flex-start;
-      flex: 0 0 60px;
+      justify-content: center;
+      flex: 0 0 72px;
+      padding-left: 0;
+      padding-right: 0;
     }
   }
 
@@ -32,7 +34,6 @@
 
   &__row {
     display: flex;
-    transition: background-color 0.2s ease;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 
     &:hover {
@@ -60,17 +61,14 @@
     }
 
     &--center {
-      justify-content: flex-start;
-      flex: 0 0 60px;
+      justify-content: center;
+      flex: 0 0 72px;
+      padding-left: 0;
+      padding-right: 0;
     }
   }
 
   &__check {
-    color: globals.$body-color;
-    opacity: 0.8;
-  }
-
-  &__cross {
     color: globals.$body-color;
     opacity: 0.8;
   }

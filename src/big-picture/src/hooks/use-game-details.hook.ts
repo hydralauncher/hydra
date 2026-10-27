@@ -330,9 +330,14 @@ export function useGameDetails(
       globalThis.window.electron.onLibraryBatchComplete(() => {
         refreshGameDetails().catch(() => {});
       });
+    const unsubscribeLibraryGames =
+      globalThis.window.electron.onLibraryGamesUpdated(() => {
+        refreshGameDetails().catch(() => {});
+      });
 
     return () => {
       unsubscribeLibraryBatch();
+      unsubscribeLibraryGames();
     };
   }, [refreshGameDetails]);
 

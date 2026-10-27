@@ -46,5 +46,5 @@ export const epicLibraryArtworkQueue = new EpicLibraryArtworkQueue(
         displayedArtwork(assets)
     );
   },
-  () => WindowManager.sendToAppWindows("on-library-batch-complete")
+  (keys) => WindowManager.sendToAppWindows("on-library-games-updated", keys)
 );

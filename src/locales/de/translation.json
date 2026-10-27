@@ -297,7 +297,7 @@
     "wine_prefix": "Wine-Präfix",
     "wine_prefix_description": "Das Wine-Präfix, das zum Ausführen dieses Spiels verwendet wird",
     "launch_options": "Startoptionen",
-    "launch_options_description": "Fortgeschrittene Benutzer können Modifikationen ihrer Startoptionen eingeben (experimentelle Funktion)",
+    "launch_options_description": "Fortgeschrittene Benutzer können Modifikationen ihrer Startoptionen eingeben",
     "launch_options_placeholder": "Kein Parameter angegeben",
     "no_download_option_info": "Keine Informationen verfügbar",
     "backup_deletion_failed": "Sicherung konnte nicht gelöscht werden",

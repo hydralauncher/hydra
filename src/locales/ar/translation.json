@@ -295,7 +295,7 @@
     "wine_prefix": "بادئة Wine",
     "wine_prefix_description": "بادئة Wine المستخدمة لتشغيل هذه اللعبة",
     "launch_options": "خيارات التشغيل",
-    "launch_options_description": "يمكن للمستخدمين المتقدمين إدخال تعديلات على خيارات التشغيل (ميزة تجريبية)",
+    "launch_options_description": "يمكن للمستخدمين المتقدمين إدخال تعديلات على خيارات التشغيل",
     "launch_options_placeholder": "لا توجد معلمات محددة",
     "no_download_option_info": "لا توجد معلومات متاحة",
     "backup_deletion_failed": "فشل في حذف النسخة الاحتياطية",

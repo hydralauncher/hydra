@@ -1,12 +1,53 @@
 import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckIcon, XIcon } from "@primer/octicons-react";
+import { CheckIcon } from "@primer/octicons-react";
 import { gameDetailsContext } from "@renderer/context/game-details/game-details.context";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import "./game-language-section.scss";
 
+const normalizeLanguageName = (name: string) =>
+  name
+    .toLowerCase()
+    .replaceAll(/[^\p{L}]+/gu, " ")
+    .trim();
+
+const getDisplayName = (displayLocale: string, languageCode: string) => {
+  try {
+    const name = new Intl.DisplayNames([displayLocale], {
+      type: "language",
+      languageDisplay: "standard",
+    }).of(languageCode);
+    return name ? normalizeLanguageName(name) : null;
+  } catch {
+    return null;
+  }
+};
+
+const findCurrentLanguageIndex = (languageNames: string[], locale: string) => {
+  const baseLanguage = locale.split("-")[0];
+  const fullNames = new Set(
+    [getDisplayName(locale, locale), getDisplayName("en", locale)].filter(
+      Boolean
+    )
+  );
+  const baseNames = [
+    getDisplayName(locale, baseLanguage),
+    getDisplayName("en", baseLanguage),
+  ].filter(Boolean) as string[];
+
+  const normalizedNames = languageNames.map(normalizeLanguageName);
+  const exactIndex = normalizedNames.findIndex((name) => fullNames.has(name));
+  if (exactIndex !== -1) return exactIndex;
+
+  return normalizedNames.findIndex((name) =>
+    baseNames.some(
+      (baseName) => name === baseName || name.startsWith(`${baseName} `)
+    )
+  );
+};
+
 export function GameLanguageSection() {
-  const { t } = useTranslation("game_details");
+  const { t, i18n } = useTranslation("game_details");
   const { shopDetails } = useContext(gameDetailsContext);
 
   const languages = useMemo(() => {
@@ -16,11 +57,22 @@ export function GameLanguageSection() {
     const languagesString = supportedLanguages.split("<br>")[0];
     const languageArray = languagesString?.split(",") || [];
 
-    return languageArray.map((lang) => ({
+    const parsedLanguages = languageArray.map((lang) => ({
       language: lang.replace("<strong>*</strong>", "").trim(),
       hasAudio: lang.includes("*"),
     }));
-  }, [shopDetails?.supported_languages]);
+
+    const currentIndex = findCurrentLanguageIndex(
+      parsedLanguages.map(({ language }) => language),
+      i18n.language
+    );
+    if (currentIndex <= 0) return parsedLanguages;
+
+    return [
+      parsedLanguages[currentIndex],
+      ...parsedLanguages.filter((_, index) => index !== currentIndex),
+    ];
+  }, [shopDetails?.supported_languages, i18n.language]);
 
   if (languages.length === 0) {
     return null;
@@ -54,13 +106,11 @@ export function GameLanguageSection() {
                 <CheckIcon size={14} className="game-language-section__check" />
               </div>
               <div className="game-language-section__cell game-language-section__cell--center">
-                {lang.hasAudio ? (
+                {lang.hasAudio && (
                   <CheckIcon
                     size={14}
                     className="game-language-section__check"
                   />
-                ) : (
-                  <XIcon size={14} className="game-language-section__cross" />
                 )}
               </div>
             </div>

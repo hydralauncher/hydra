@@ -56,8 +56,9 @@ const fetchLaunchboxFilters = async (): Promise<LaunchboxCatalogueFilters> => {
 };
 
 export function useLaunchboxFilters(enabled: boolean) {
-  const [filters, setFilters] =
-    useState<LaunchboxCatalogueFilters>(emptyFilters);
+  const [filters, setFilters] = useState<LaunchboxCatalogueFilters>(
+    () => cachedFilters ?? emptyFilters
+  );
 
   useEffect(() => {
     if (!enabled) return;

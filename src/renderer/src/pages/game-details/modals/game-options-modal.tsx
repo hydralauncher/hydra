@@ -81,6 +81,7 @@ import {
   getCloudSaveVisibility,
   isLegacyCloudSaveSettingsAvailable,
 } from "../cloud-save-visibility";
+import { LocalSaveFilesModal } from "../cloud-save-v2/local-save-files-modal";
 import { LegacySavesSection } from "./game-options-modal/legacy-saves-section";
 import {
   getAvailableGameSettingsCategory,
@@ -273,6 +274,7 @@ export function GameOptionsModal({
     game.platform
   ).settings;
   const { showV2: showCloudSaveV2Settings, legacyPurpose } = cloudSaveSettings;
+  const [showLocalSaveFiles, setShowLocalSaveFiles] = useState(false);
   const showLegacyCloudSaveSettings = isLegacyCloudSaveSettingsAvailable(
     cloudSaveSettings,
     hasActiveSubscription,
@@ -311,7 +313,7 @@ export function GameOptionsModal({
     removeFilesTarget?.kind === "hydra" &&
     isLibraryGameDownloading(removeFilesTarget.game);
 
-  const isNonSteamExecutable = useIsNonSteamExecutable(game);
+  const isNonSteamExecutable = useIsNonSteamExecutable(game, epicGame);
 
   useEffect(() => {
     if (visible) {
@@ -691,14 +693,7 @@ export function GameOptionsModal({
   };
   const handleOpenGameExecutablePath = () =>
     globalThis.window.electron.openGameExecutablePath(game.shop, game.objectId);
-  const handleOpenSaveFolder = async () => {
-    if (saveFolderPath)
-      await globalThis.window.electron.openGameSaveFolder(
-        game.shop,
-        game.objectId,
-        saveFolderPath
-      );
-  };
+  const handleOpenSaveFolder = () => setShowLocalSaveFiles(true);
   const handleClearExecutablePath = async () => {
     await globalThis.window.electron.updateExecutablePath(
       game.shop,
@@ -964,6 +959,7 @@ export function GameOptionsModal({
   };
 
   const isLaunchbox = game.shop === "launchbox";
+  const showLocationsSettings = !isLaunchbox && Boolean(game.executablePath);
   const hasClassicsExecutable = Boolean(
     game.discs?.some((disc) => disc.isExecutable)
   );
@@ -986,7 +982,7 @@ export function GameOptionsModal({
         label: t("settings_category_general"),
         icon: <GearIcon size={16} />,
       },
-      ...(isLaunchbox
+      ...(!showLocationsSettings
         ? []
         : [
             {
@@ -1053,7 +1049,7 @@ export function GameOptionsModal({
     ],
     [
       cloudSaveAccessAction,
-      isLaunchbox,
+      showLocationsSettings,
       legacyPurpose,
       showCloudSaveV2Settings,
       showLegacyCloudSaveSettings,
@@ -1063,6 +1059,12 @@ export function GameOptionsModal({
       t,
     ]
   );
+
+  useEffect(() => {
+    if (selectedCategory === "locations" && !showLocationsSettings) {
+      setSelectedCategory("general");
+    }
+  }, [selectedCategory, showLocationsSettings]);
 
   useEffect(() => {
     const currentInitializationState = { visible, initialCategory };
@@ -1303,6 +1305,13 @@ export function GameOptionsModal({
 
   return (
     <>
+      <LocalSaveFilesModal
+        visible={showLocalSaveFiles}
+        objectId={game.objectId}
+        shop={game.shop}
+        onClose={() => setShowLocalSaveFiles(false)}
+      />
+
       <DeleteGameModal
         visible={pendingRemoveFilesTarget?.kind === "hydra"}
         onClose={() => setPendingRemoveFilesTarget(null)}
@@ -1377,18 +1386,18 @@ export function GameOptionsModal({
             {selectedCategory === "general" && (
               <GeneralSettingsSection
                 {...baseGeneralSettingsProps}
-                showExecutableSection={isLaunchbox}
+                onAddTrackingExecutable={handleAddTrackingExecutable}
+                onRemoveTrackingExecutable={handleRemoveTrackingExecutable}
                 showTransferSection={false}
+                showShortcutsSection={!showLocationsSettings}
                 showLaunchOptionsSection={!isLaunchbox || hasClassicsExecutable}
               />
             )}
-            {selectedCategory === "locations" && (
+            {selectedCategory === "locations" && showLocationsSettings && (
               <GeneralSettingsSection
                 {...baseGeneralSettingsProps}
-                onAddTrackingExecutable={handleAddTrackingExecutable}
-                onRemoveTrackingExecutable={handleRemoveTrackingExecutable}
                 showTitleSection={false}
-                showShortcutsSection={false}
+                showExecutableSection={false}
                 showLaunchOptionsSection={false}
                 showSteamPlaytimeSection={false}
               />
@@ -1403,9 +1412,7 @@ export function GameOptionsModal({
             )}
             {selectedCategory === "hydra_cloud" && showCloudSaveV2Settings && (
               <HydraCloudV2SettingsSection
-                onSelectExecutable={() =>
-                  setSelectedCategory(isLaunchbox ? "general" : "locations")
-                }
+                onSelectExecutable={() => setSelectedCategory("general")}
               />
             )}
             {selectedCategory === "hydra_cloud_legacy" &&

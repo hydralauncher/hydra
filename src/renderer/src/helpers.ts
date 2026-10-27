@@ -527,11 +527,9 @@ const compareLibraryGamesByTitle = (
     ? libraryTitleCollator.compare(a.title ?? "", b.title ?? "")
     : libraryTitleCollator.compare(b.title ?? "", a.title ?? "");
 
-export const sortLibraryGames = (
-  games: LibraryGame[],
-  sortBy: SortOption
-): LibraryGame[] => {
-  return [...games].sort((a, b) => {
+const compareLibraryGames =
+  (sortBy: SortOption) =>
+  (a: LibraryGame, b: LibraryGame): number => {
     switch (sortBy) {
       case "recently_played": {
         const difference = getPlayTimeDifference(a, b);
@@ -557,17 +555,77 @@ export const sortLibraryGames = (
         break;
       }
 
-      case "title_desc": {
-        return compareLibraryGamesByTitle(a, b, false);
-      }
-
       case "title_asc":
       default:
         break;
     }
 
     return compareLibraryGamesByTitle(a, b);
+  };
+
+export const sortLibraryGames = (
+  games: LibraryGame[],
+  sortBy: SortOption
+): LibraryGame[] => [...games].sort(compareLibraryGames(sortBy));
+
+const MAX_INCREMENTAL_SORT_CHANGES = 64;
+
+export interface LibrarySortCache {
+  input: readonly LibraryGame[];
+  output: LibraryGame[];
+  sortBy: SortOption;
+}
+
+const collectSortReplacements = (
+  previous: readonly LibraryGame[],
+  next: readonly LibraryGame[]
+) => {
+  const replacements = new Map<LibraryGame, LibraryGame>();
+  for (let index = 0; index < next.length; index++) {
+    if (previous[index] === next[index]) continue;
+    replacements.set(previous[index], next[index]);
+    if (replacements.size > MAX_INCREMENTAL_SORT_CHANGES) return null;
+  }
+  return replacements;
+};
+
+const keepsSortOrder = (
+  output: LibraryGame[],
+  replaced: Set<LibraryGame>,
+  compare: (a: LibraryGame, b: LibraryGame) => number
+) =>
+  output.every(
+    (game, index) =>
+      !replaced.has(game) ||
+      ((index === 0 || compare(output[index - 1], game) <= 0) &&
+        (index === output.length - 1 || compare(game, output[index + 1]) <= 0))
+  );
+
+export const sortLibraryGamesIncrementally = (
+  cache: LibrarySortCache | null,
+  games: LibraryGame[],
+  sortBy: SortOption
+): LibrarySortCache => {
+  const sortAll = () => ({
+    input: games,
+    output: sortLibraryGames(games, sortBy),
+    sortBy,
   });
+
+  if (cache?.sortBy !== sortBy) return sortAll();
+  if (cache.input === games) return cache;
+  if (cache.input.length !== games.length) return sortAll();
+
+  const replacements = collectSortReplacements(cache.input, games);
+  if (!replacements) return sortAll();
+  if (replacements.size === 0) return { ...cache, input: games };
+
+  const output = cache.output.map((game) => replacements.get(game) ?? game);
+  const replaced = new Set(replacements.values());
+
+  return keepsSortOrder(output, replaced, compareLibraryGames(sortBy))
+    ? { input: games, output, sortBy }
+    : sortAll();
 };
 
 export const getGameCollectionIds = (game: {

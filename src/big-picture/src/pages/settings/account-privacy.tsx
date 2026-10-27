@@ -18,7 +18,7 @@ import {
 import {
   useBigPictureToast,
   useDate,
-  useNavigation,
+  useNavigationActions,
   useUserDetails,
 } from "../../hooks";
 import type { FocusOverrides } from "../../services";
@@ -105,7 +105,7 @@ export function AccountPrivacySettingsSection({
   const { formatDate } = useDate();
   const { t } = useTranslation("settings");
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const { userDetails, hasActiveSubscription, patchUser, unblockUser } =
     useUserDetails();
   const [profileVisibility, setProfileVisibility] =

@@ -125,11 +125,11 @@ import {
   getSouvenirVisualVariant,
   normalizeSouvenirReportValues,
   shouldShowSouvenirContentWarning,
-  useSouvenirContentWarning,
   getDisplayedPlayTimeInMilliseconds,
   groupLibraryGames,
   getGameCatalogueIdentity,
 } from "@shared";
+import { useSouvenirContentWarning } from "@shared/use-souvenir-content-warning";
 
 const SOUVENIR_REPORT_RESPONSE_STATUSES = [201, 400, 404, 429];
 

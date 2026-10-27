@@ -195,6 +195,17 @@ const projectGroup = (
     new Set(members.flatMap((member) => member.availableShops ?? [member.shop]))
   ).sort((a, b) => storePriority(a) - storePriority(b));
   const customCandidates = [operationalGame, presentationGame, ...members];
+  const achievementProgress =
+    availableShops.includes("steam") && availableShops.includes("epic")
+      ? members.reduce<LibraryGame["achievementProgress"]>(
+          (latest, member) =>
+            member.achievementProgress &&
+            (!latest || member.achievementProgress.updatedAt > latest.updatedAt)
+              ? member.achievementProgress
+              : latest,
+          null
+        )
+      : null;
   const custom = <
     K extends
       | "customIconUrl"
@@ -229,8 +240,12 @@ const projectGroup = (
     logoPosition: presentationGame.logoPosition,
     downloadSources: presentationGame.downloadSources,
     selectedArtworkTypes: presentationGame.selectedArtworkTypes,
-    achievementCount: operationalGame.achievementCount,
-    unlockedAchievementCount: operationalGame.unlockedAchievementCount,
+    achievementCount:
+      achievementProgress?.achievementCount ?? operationalGame.achievementCount,
+    unlockedAchievementCount:
+      achievementProgress?.unlockedAchievementCount ??
+      operationalGame.unlockedAchievementCount,
+    achievementProgress,
     customIconUrl: custom("customIconUrl"),
     customLogoImageUrl: custom("customLogoImageUrl"),
     customHeroImageUrl: custom("customHeroImageUrl"),
@@ -259,6 +274,43 @@ const projectGroup = (
       members.map((member) => member.addedToLibraryAt)
     ),
   };
+};
+
+const projectionCache = new WeakMap<
+  LibraryGame,
+  {
+    members: LibraryGame[];
+    runningMask: string;
+    presentation: LibraryGamePresentation;
+  }
+>();
+
+const projectGroupCached = (
+  members: LibraryGame[],
+  running: ReadonlySet<string>
+): LibraryGamePresentation => {
+  const runningMask =
+    running.size === 0
+      ? ""
+      : members
+          .map((member) =>
+            running.has(member.id) || running.has(identityKey(member))
+              ? "1"
+              : "0"
+          )
+          .join("");
+  const cached = projectionCache.get(members[0]);
+  if (
+    cached?.runningMask === runningMask &&
+    cached.members.length === members.length &&
+    cached.members.every((member, index) => member === members[index])
+  ) {
+    return cached.presentation;
+  }
+
+  const presentation = projectGroup(members, running);
+  projectionCache.set(members[0], { members, runningMask, presentation });
+  return presentation;
 };
 
 /** Groups only confirmed catalogue links; never merges the stored records. */
@@ -297,8 +349,9 @@ export const groupLibraryGames = (
     group.push(game);
     groups.set(groupKey, group);
   }
+  const running = new Set(runningIds);
   return [...groups.values()].map((members) =>
-    projectGroup(members, runningIds)
+    projectGroupCached(members, running)
   );
 };
 

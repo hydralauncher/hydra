@@ -224,7 +224,10 @@ export class Umu {
         .catch(() => [] as fs.Dirent[]);
 
       for (const entry of steamCommonEntries) {
-        if (!entry.isDirectory() || !entry.name.startsWith("Proton")) {
+        if (
+          !(entry.isDirectory() || entry.isSymbolicLink()) ||
+          !entry.name.startsWith("Proton")
+        ) {
           continue;
         }
 
@@ -254,7 +257,7 @@ export class Umu {
         .catch(() => [] as fs.Dirent[]);
 
       for (const entry of compatibilityToolEntries) {
-        if (!entry.isDirectory()) {
+        if (!entry.isDirectory() && !entry.isSymbolicLink()) {
           continue;
         }
 

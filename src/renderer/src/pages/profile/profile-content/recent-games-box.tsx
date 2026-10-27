@@ -1,17 +1,32 @@
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { Link } from "@renderer/components";
-import { useCallback, useContext } from "react";
+import { useCallback, useContext, useMemo } from "react";
 import { userProfileContext } from "@renderer/context";
 import { useTranslation } from "react-i18next";
 import { ClockIcon } from "@primer/octicons-react";
-import { useFormat } from "@renderer/hooks";
+import { useAppSelector, useFormat } from "@renderer/hooks";
 import type { UserGame } from "@types";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 import "./recent-games-box.scss";
 
 export function RecentGamesBox() {
-  const { userProfile } = useContext(userProfileContext);
+  const { userProfile, isMe } = useContext(userProfileContext);
+  const library = useAppSelector((state) => state.library.value);
+
+  const localIconByGameKey = useMemo(() => {
+    if (!isMe) return null;
+
+    return new Map(
+      library.map((game) => [
+        `${game.shop}:${game.objectId}`,
+        game.customIconUrl || game.iconUrl,
+      ])
+    );
+  }, [isMe, library]);
+
+  const getGameIconUrl = (game: UserGame) =>
+    localIconByGameKey?.get(`${game.shop}:${game.objectId}`) || game.iconUrl;
 
   const { t } = useTranslation("user_profile");
 
@@ -52,7 +67,7 @@ export function RecentGamesBox() {
               className="recent-games__list-item"
             >
               <img
-                src={game.iconUrl!}
+                src={getGameIconUrl(game)!}
                 alt={game.title}
                 className="recent-games__game-image"
               />

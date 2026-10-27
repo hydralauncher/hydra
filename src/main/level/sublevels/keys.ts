@@ -7,6 +7,7 @@ export const levelKeys = {
   auth: "auth",
   themes: "themes",
   gameShopAssets: "gameShopAssets",
+  achievementProgress: "achievement-progress",
   artworkSelection: "artworkSelection",
   gameStatsCache: "gameStatsAssets",
   gameShopCache: "gameShopCache",
