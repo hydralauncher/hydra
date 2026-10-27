@@ -456,24 +456,6 @@ $local-screenshot-actions-fade-duration: 0.15s;
     font-size: 12px;
   }
 
-  &__sensitive {
-    display: flex;
-    align-items: flex-start;
-    gap: calc(var(--spacing-unit) * 2);
-    margin: 0;
-    padding: calc(var(--spacing-unit) * 3);
-    border: 1px solid rgba(255, 212, 59, 0.45);
-    border-radius: calc(var(--spacing-unit) * 2);
-    background: rgba(255, 184, 0, 0.12);
-    color: #ffd43b;
-    font-size: 13px;
-    line-height: 1.4;
-
-    svg {
-      flex-shrink: 0;
-    }
-  }
-
   &__fields {
     display: flex;
     flex-direction: column;

@@ -1026,7 +1026,6 @@
     "screenshots_sensitive_modal_description": "Ela foi tirada em um jogo para adultos.",
     "screenshots_sensitive_modal_description_spoiler": "Ela foi tirada em um jogo para adultos e também está marcada como spoiler.",
     "screenshots_sensitive_modal_dont_hide": "Não ocultar mais capturas sensíveis",
-    "screenshots_sensitive_local_notice": "Este jogo tem conteúdo adulto, então esta captura ficará desfocada para todos.",
     "screenshots_settings_show_sensitive": "Mostrar capturas sensíveis sem desfoque"
   }
 }
