@@ -240,6 +240,37 @@ export const isScreenshotSpoilerHidden = (
   screenshot: Pick<ProfileScreenshot, "id" | "isSpoiler">
 ) => screenshot.isSpoiler && !isScreenshotSpoilerRevealed(screenshot.id);
 
+const revealedSensitiveIds = new Set<string>();
+const sensitiveRevealListeners = new Set<() => void>();
+
+export const revealSensitiveScreenshot = (screenshotId: string) => {
+  if (revealedSensitiveIds.has(screenshotId)) return;
+
+  revealedSensitiveIds.add(screenshotId);
+  for (const listener of sensitiveRevealListeners) listener();
+};
+
+export const subscribeSensitiveScreenshotReveals = (listener: () => void) => {
+  sensitiveRevealListeners.add(listener);
+  return () => {
+    sensitiveRevealListeners.delete(listener);
+  };
+};
+
+export interface SensitiveScreenshotViewer {
+  viewerId: string | null;
+  showSensitive: boolean;
+}
+
+export const isSensitiveScreenshotHidden = (
+  screenshot: Pick<ProfileScreenshot, "id" | "isSensitive" | "owner">,
+  { viewerId, showSensitive }: SensitiveScreenshotViewer
+) =>
+  screenshot.isSensitive === true &&
+  !showSensitive &&
+  screenshot.owner.id !== viewerId &&
+  !revealedSensitiveIds.has(screenshot.id);
+
 export const getToggledScreenshotLike = (
   screenshot: Pick<ProfileScreenshot, "likeCount" | "likedByMe">
 ): Pick<ProfileScreenshot, "likeCount" | "likedByMe"> => {
