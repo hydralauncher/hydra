@@ -12,6 +12,8 @@ import { useMissionFormat, useNow } from "./use-mission-format";
 import { WeeklyMissions } from "./weekly-missions";
 import "./missions-tab.scss";
 
+const PROGRESS_CHANGE_REFRESH_DELAY_MS = 1000;
+
 export function MissionsTab() {
   const { missions, trails, refreshMissions, refreshTrails } =
     useGamificationMissions();
@@ -22,6 +24,30 @@ export function MissionsTab() {
   useEffect(() => {
     void refreshMissions();
     void refreshTrails();
+  }, [refreshMissions, refreshTrails]);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const scheduleRefresh = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        void refreshMissions();
+        void refreshTrails();
+      }, PROGRESS_CHANGE_REFRESH_DELAY_MS);
+    };
+
+    globalThis.window.addEventListener("focus", scheduleRefresh);
+    const unsubscribeSession =
+      globalThis.window.electron.onGameSessionSynced(scheduleRefresh);
+    const unsubscribePlaytime =
+      globalThis.window.electron.onGamePlaytimeSynced(scheduleRefresh);
+
+    return () => {
+      clearTimeout(timeout);
+      globalThis.window.removeEventListener("focus", scheduleRefresh);
+      unsubscribeSession();
+      unsubscribePlaytime();
+    };
   }, [refreshMissions, refreshTrails]);
 
   // Fetch again once a period rolls over while the tab is open.

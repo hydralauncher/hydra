@@ -651,6 +651,7 @@ function onTickGame(game: Game) {
           method: game.remoteId ? "track" : "create",
           deltaToSync,
         });
+        WindowManager.sendToAppWindows("on-game-playtime-synced");
 
         return persistGamePlaytime(
           levelKeys.game(game.shop, game.objectId),
