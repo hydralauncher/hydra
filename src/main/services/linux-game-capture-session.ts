@@ -30,7 +30,7 @@ interface CaptureSessionRegistration {
   subscriptionTimer: ReturnType<typeof setInterval> | null;
   preparation: Promise<void>;
   reasons: Set<CaptureSessionReason>;
-  activeCapture: Promise<unknown> | null;
+  activeCaptures: Set<Promise<unknown>>;
 }
 
 const sessions = new Map<string, CaptureSessionRegistration>();
@@ -230,7 +230,7 @@ export const prepareLinuxGameCaptureSession = async (
     subscriptionTimer: null,
     preparation: Promise.resolve(),
     reasons: new Set([reason]),
-    activeCapture: null,
+    activeCaptures: new Set(),
   };
 
   registration.preparation = (async () => {
@@ -325,15 +325,13 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
       return canvas.toDataURL("image/png");
     })()
   `);
-  registration.activeCapture = capture;
+  registration.activeCaptures.add(capture);
 
   let dataUrl: unknown;
   try {
     dataUrl = await capture;
   } finally {
-    if (registration.activeCapture === capture) {
-      registration.activeCapture = null;
-    }
+    registration.activeCaptures.delete(capture);
   }
 
   if (typeof dataUrl !== "string") {
@@ -377,12 +375,10 @@ export const grabLinuxGameSessionFrame = async (
   const capture = new Promise<void>((resolve) => {
     releaseCapture = resolve;
   });
-  registration.activeCapture = capture;
+  registration.activeCaptures.add(capture);
   const finishCapture = () => {
     releaseCapture();
-    if (registration.activeCapture === capture) {
-      registration.activeCapture = null;
-    }
+    registration.activeCaptures.delete(capture);
   };
 
   let frame: GrabbedScreenshotFrame;
@@ -435,14 +431,11 @@ export const stopLinuxGameCaptureSession = (
   if (registration.subscriptionTimer) {
     clearInterval(registration.subscriptionTimer);
   }
-  const pendingCapture = registration.activeCapture ?? Promise.resolve();
-  void pendingCapture
-    .catch(() => {})
-    .finally(() => {
-      if (registration.shareKey) {
-        releaseCaptureWindow(registration.shareKey, registration.token);
-      }
-    });
+  void Promise.allSettled([...registration.activeCaptures]).finally(() => {
+    if (registration.shareKey) {
+      releaseCaptureWindow(registration.shareKey, registration.token);
+    }
+  });
 };
 
 export const stopAllLinuxGameCaptureSessions = (

@@ -143,7 +143,7 @@ const withPortalKeyboard = (
 
 const isNativeTriggerSource = (
   source: string
-): source is Exclude<ScreenshotTriggerSource, "deeplink"> =>
+): source is "keyboard" | "gamepad" =>
   source === "keyboard" || source === "gamepad";
 
 const isSameStatus = (
@@ -395,7 +395,7 @@ export class ScreenshotInputService {
     this.unregisterPortalShortcut();
     try {
       const registered = globalShortcut.register(accelerator, () => {
-        if (this.listening) this.trigger("keyboard");
+        if (this.listening) this.trigger("portal");
       });
       if (!registered) {
         logger.warn("Screenshot portal shortcut was not registered", {
