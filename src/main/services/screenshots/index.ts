@@ -268,8 +268,8 @@ export const closeScreenshotReview = () => ScreenshotReviewSession.close();
 export const releaseBigPictureScreenshotReview = (clientIds: string[]) =>
   ScreenshotReviewSession.releaseBigPictureReview(clientIds);
 
-export const getScreenshotReview = () =>
-  ScreenshotReviewSession.getDesktopReview();
+export const getScreenshotReview = (requesterWebContentsId?: number) =>
+  ScreenshotReviewSession.getDesktopReview(requesterWebContentsId);
 
 export const updateLocalScreenshotDraft = (
   clientId: string,
