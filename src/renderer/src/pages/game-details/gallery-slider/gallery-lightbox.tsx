@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -147,7 +148,7 @@ const isInsideScrollable = (target: EventTarget | null) =>
 
 interface StageLayer {
   key: number;
-  index: number;
+  itemId: string | undefined;
   ready: boolean;
 }
 
@@ -308,7 +309,7 @@ function GalleryLightboxContent({
   const [idle, setIdle] = useState(startsChromeHidden);
   const initialChromeHiddenRef = useRef(startsChromeHidden);
   const [layers, setLayers] = useState<StageLayer[]>([
-    { key: 0, index, ready: true },
+    { key: 0, itemId: items[index]?.id, ready: true },
   ]);
 
   const item = items[index];
@@ -378,13 +379,22 @@ function GalleryLightboxContent({
     setIdle(true);
   }, [isFullscreen, isVideo]);
 
+  const currentItemId = item?.id;
+  const itemsById = useMemo(
+    () => new Map(items.map((mediaItem) => [mediaItem.id, mediaItem])),
+    [items]
+  );
+
   useEffect(() => {
     setLayers((current) => {
-      if (current[current.length - 1]?.index === index) return current;
+      if (current[current.length - 1]?.itemId === currentItemId) return current;
       layerKeyRef.current += 1;
-      return [...current, { key: layerKeyRef.current, index, ready: false }];
+      return [
+        ...current,
+        { key: layerKeyRef.current, itemId: currentItemId, ready: false },
+      ];
     });
-  }, [index]);
+  }, [currentItemId]);
 
   useEffect(() => {
     const timers = layerTimersRef.current;
@@ -401,6 +411,12 @@ function GalleryLightboxContent({
     );
   }, []);
 
+  const getLayerItem = useCallback(
+    (layer: StageLayer) =>
+      layer.itemId === undefined ? undefined : itemsById.get(layer.itemId),
+    [itemsById]
+  );
+
   const markLayerReady = useCallback(
     (key: number) => {
       requestAnimationFrame(() =>
@@ -412,11 +428,11 @@ function GalleryLightboxContent({
 
   useEffect(() => {
     layers.forEach((layer) => {
-      if (!layer.ready && items[layer.index]?.type === "video") {
+      if (!layer.ready && getLayerItem(layer)?.type === "video") {
         markLayerReady(layer.key);
       }
     });
-  }, [layers, items, markLayerReady]);
+  }, [layers, getLayerItem, markLayerReady]);
 
   const navigate = useCallback(
     (nextIndex: number) => {
@@ -834,9 +850,8 @@ function GalleryLightboxContent({
 
   const activeVideoId = isVideo && item ? item.id : null;
   const borrowedVideoKey = layers
-    .map((layer) => items[layer.index])
-    .filter((layerItem) => layerItem?.type === "video")
-    .map((layerItem) => layerItem.id)
+    .map(getLayerItem)
+    .flatMap((layerItem) => (layerItem?.type === "video" ? [layerItem.id] : []))
     .join("|");
 
   useEffect(() => {
@@ -897,7 +912,7 @@ function GalleryLightboxContent({
       >
         <div className="gallery-lightbox__stage">
           {layers.map((layer, position) => {
-            const layerItem = items[layer.index];
+            const layerItem = getLayerItem(layer);
             if (!layerItem) return null;
 
             const topLayer = layers[layers.length - 1];
