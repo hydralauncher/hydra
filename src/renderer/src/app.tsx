@@ -51,6 +51,7 @@ import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-moda
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
 import { useMissingScreenshotsToast } from "./hooks/use-missing-screenshots-toast";
+import { useScreenshotUploadFailureToast } from "./hooks/use-screenshot-upload-failure-toast";
 import { playMessageSound } from "./pages/chat-window/chat-sounds";
 
 import type { UserPreferences } from "@types";
@@ -112,6 +113,7 @@ export function App() {
 
   const { showSuccessToast, showErrorToast } = useToast();
   useMissingScreenshotsToast();
+  useScreenshotUploadFailureToast();
 
   const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
     useState(false);

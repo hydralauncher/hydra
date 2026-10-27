@@ -1,7 +1,6 @@
 @use "../../scss/globals.scss";
 
 $review-hover-duration: 0.2s;
-$review-progress-duration: 0.2s;
 $review-segment-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
 
 .screenshot-review-item {
@@ -60,56 +59,6 @@ $review-segment-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
 @keyframes screenshot-review-upload-spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-.screenshot-review-status {
-  display: flex;
-  flex-direction: column;
-  gap: calc(globals.$spacing-unit / 2);
-  min-width: 0;
-
-  &__title {
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    font-weight: 500;
-    line-height: 20px;
-    color: globals.$muted-color;
-
-    svg {
-      flex-shrink: 0;
-    }
-  }
-
-  &__detail {
-    font-size: globals.$small-font-size;
-    line-height: 18px;
-    color: globals.$body-color;
-  }
-
-  &__progress-track {
-    width: 100%;
-    max-width: 320px;
-    height: 6px;
-    overflow: hidden;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-  }
-
-  &__progress-bar {
-    height: 100%;
-    background-color: globals.$muted-color;
-    border-radius: 3px;
-    transition: width $review-progress-duration ease;
-  }
-
-  &--success svg {
-    color: globals.$success-color;
-  }
-
-  &--error svg {
-    color: globals.$error-color;
   }
 }
 
