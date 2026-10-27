@@ -14,7 +14,12 @@ type ProcessedImageOptions = {
 
 const MAX_DIMENSION = 2048;
 const CACHE_VERSION = 2;
+const MAX_CACHE_BYTES = 256 * 1024 * 1024;
+const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
 const inFlight = new Map<string, Promise<string>>();
+// The renderer keeps served paths in memory for the whole session, so the
+// prune never deletes them, even when it is used from the renderer cache.
+const servedThisSession = new Set<string>();
 
 const isHttpUrl = (url: string) =>
   url.startsWith("http://") || url.startsWith("https://");
@@ -76,11 +81,59 @@ const findCachedImage = async (outputBase: string) => {
     const imagePath = `${outputBase}.${extension}`;
 
     if (fs.existsSync(imagePath)) {
+      // Keeps recently used images out of the next prune.
+      const now = new Date();
+      void fs.promises.utimes(imagePath, now, now).catch(() => {});
+      servedThisSession.add(imagePath);
       return imagePath;
     }
   }
 
   return null;
+};
+
+let lastPruneAt = 0;
+
+// Deletes the least recently used images once the cache passes the limit, so
+// browsing many profiles and leaderboards does not grow it without bound.
+const pruneCache = async (cacheDir: string) => {
+  const now = Date.now();
+  if (now - lastPruneAt < PRUNE_INTERVAL_MS) return;
+  lastPruneAt = now;
+
+  const names = await fs.promises.readdir(cacheDir);
+  const files = (
+    await Promise.all(
+      names
+        .filter(
+          (name) =>
+            !name.includes("-tmp") &&
+            !servedThisSession.has(path.join(cacheDir, name))
+        )
+        .map(async (name) => {
+          const filePath = path.join(cacheDir, name);
+          const stats = await fs.promises.stat(filePath).catch(() => null);
+          return stats?.isFile()
+            ? { filePath, size: stats.size, usedAt: stats.mtimeMs }
+            : null;
+        })
+    )
+  ).filter((file) => file !== null);
+
+  let total = files.reduce((sum, file) => sum + file.size, 0);
+  if (total <= MAX_CACHE_BYTES) return;
+
+  files.sort((a, b) => a.usedAt - b.usedAt);
+  const evicted: string[] = [];
+  for (const file of files) {
+    if (total <= MAX_CACHE_BYTES) break;
+    evicted.push(file.filePath);
+    total -= file.size;
+  }
+
+  await Promise.allSettled(
+    evicted.map((filePath) => fs.promises.unlink(filePath))
+  );
 };
 
 const downloadImage = async (imageUrl: string, outputPath: string) => {
@@ -135,6 +188,10 @@ const processAndCacheImage = async (
     const finalPath = `${outputBase}${extension}`;
 
     await fs.promises.rename(processedImage.imagePath, finalPath);
+    servedThisSession.add(finalPath);
+    void pruneCache(cacheDir).catch((error) =>
+      logger.error("Failed to prune processed image cache", error)
+    );
 
     return `local:${finalPath}`;
   } finally {

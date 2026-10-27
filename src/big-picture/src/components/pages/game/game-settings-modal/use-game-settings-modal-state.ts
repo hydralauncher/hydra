@@ -652,11 +652,11 @@ export function useGameSettingsModalState({
   );
 
   const addDiscFromPath = useCallback(
-    async (fullPath: string) => {
+    async (fullPath: string, isExecutable = false) => {
       if (!game) return;
 
       await updateClassicsDisc(
-        buildAddedDiscPayload(fullPath, game.discs?.length ?? 0)
+        buildAddedDiscPayload(fullPath, game.discs ?? [], isExecutable)
       );
     },
     [game, updateClassicsDisc]
@@ -665,6 +665,13 @@ export function useGameSettingsModalState({
   const handleProcessDiscPath = useCallback(
     async (path: string) => {
       await addDiscFromPath(path);
+    },
+    [addDiscFromPath]
+  );
+
+  const handleProcessDiscExecutablePath = useCallback(
+    async (path: string) => {
+      await addDiscFromPath(path, true);
     },
     [addDiscFromPath]
   );
@@ -767,6 +774,7 @@ export function useGameSettingsModalState({
       onSelectDisc: handleSelectDisc,
       onToggleDontAskDiscSelection: handleToggleDontAskDiscSelection,
       onProcessDiscPath: handleProcessDiscPath,
+      onProcessDiscExecutablePath: handleProcessDiscExecutablePath,
       onRemoveSelectedDisc: handleRemoveSelectedDisc,
       onRemoveAllDiscs: handleRemoveAllDiscs,
       onToggleHydraPlaytimeEnabled: handleToggleHydraPlaytimeEnabled,
@@ -785,6 +793,7 @@ export function useGameSettingsModalState({
     handleCreateSteamShortcut,
     handleDeleteSteamShortcut,
     handleProcessDiscPath,
+    handleProcessDiscExecutablePath,
     handleRemoveAllDiscs,
     handleRemoveSelectedDisc,
     handleSelectDisc,

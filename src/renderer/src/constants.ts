@@ -28,6 +28,10 @@ export const REVIEW_PROMPT_DISMISS_TTL_IN_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const REVIEW_BANNER_IMAGE_SIZE = { width: 960, height: 140 };
 
+export const LEADERBOARD_ROW_BANNER_IMAGE_SIZE = { width: 960, height: 112 };
+export const LEADERBOARD_PODIUM_BANNER_IMAGE_SIZE = { width: 640, height: 576 };
+export const LEADERBOARD_HEADER_BANNER_IMAGE_SIZE = { width: 960, height: 240 };
+
 export const MAX_DOWNLOAD_SPEED_HISTORY = 300;
 
 export const THEME_WEB_STORE_URL = "https://hydrathemes.shop";

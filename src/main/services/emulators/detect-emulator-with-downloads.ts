@@ -10,7 +10,7 @@ import {
 
 export const detectEmulatorWithDownloads = async (
   binary: DetectableBinary,
-  options?: { resolveVersion?: boolean }
+  options?: { resolveVersion?: boolean; includeDriveRoots?: boolean }
 ): Promise<DetectionResult | null> => {
   const configuredDownloads = await getDownloadsPath().catch(() => null);
   const defaultDownloads = SystemPath.getPath("downloads");
@@ -24,6 +24,7 @@ export const detectEmulatorWithDownloads = async (
 
   return detectEmulator(binary, {
     resolveVersion: options?.resolveVersion,
+    includeDriveRoots: options?.includeDriveRoots,
     downloadDirectories,
   });
 };
