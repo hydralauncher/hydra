@@ -12,13 +12,14 @@ import {
   getMissionIcon,
   getMissionTitleKey,
 } from "./mission-catalog";
+import { PendingModerationBadge } from "./pending-moderation-badge";
 import { MissionSwapButton } from "./mission-swap-button";
 import { useMissionActions } from "./use-mission-actions";
 import { useMissionFormat } from "./use-mission-format";
 
 function DailyMissionCard({ mission }: Readonly<{ mission: Mission }>) {
   const { t } = useTranslation("user_profile");
-  const { formatMissionStatus } = useMissionFormat();
+  const { formatProgress } = useMissionFormat();
   const { claim, pendingAction } = useMissionActions();
 
   const renderFooter = () => {
@@ -47,7 +48,8 @@ function DailyMissionCard({ mission }: Readonly<{ mission: Mission }>) {
     return (
       <>
         <ProgressIcon />
-        {formatMissionStatus(mission)}
+        {formatProgress(mission)}
+        <PendingModerationBadge count={mission.pending} />
         <MissionSwapButton mission={mission} />
       </>
     );

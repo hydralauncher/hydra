@@ -1,10 +1,15 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useGamificationMissions } from "@renderer/hooks";
+import {
+  useGamificationMissions,
+  useGamificationProgress,
+} from "@renderer/hooks";
 import type { GamificationProgress } from "@types";
 import { ProfileSection } from "../profile-section/profile-section";
 import { LevelBox } from "../profile-content/level-box";
+import { Tooltip } from "react-tooltip";
 import { DailyMissions } from "./daily-missions";
+import { PENDING_MODERATION_TOOLTIP_ID } from "./pending-moderation-badge";
 import { PassivesBox } from "./passives-box";
 import { StreakBox } from "./streak-box";
 import { TrailsBoard } from "./trails-board";
@@ -17,6 +22,7 @@ const PROGRESS_CHANGE_REFRESH_DELAY_MS = 1000;
 export function MissionsTab() {
   const { missions, trails, refreshMissions, refreshTrails } =
     useGamificationMissions();
+  const { refreshProgress } = useGamificationProgress();
   const { formatResetLabel } = useMissionFormat();
   const now = useNow();
   const lastRolloverRef = useRef<string | null>(null);
@@ -28,27 +34,33 @@ export function MissionsTab() {
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout> | undefined;
-    const scheduleRefresh = () => {
+    let includeProgress = false;
+    const scheduleRefresh = (withProgress: boolean) => {
       clearTimeout(timeout);
+      includeProgress ||= withProgress;
       timeout = setTimeout(() => {
         void refreshMissions();
         void refreshTrails();
+        if (includeProgress) void refreshProgress();
+        includeProgress = false;
       }, PROGRESS_CHANGE_REFRESH_DELAY_MS);
     };
+    const onFocus = () => scheduleRefresh(true);
+    const onSync = () => scheduleRefresh(false);
 
-    globalThis.window.addEventListener("focus", scheduleRefresh);
+    globalThis.window.addEventListener("focus", onFocus);
     const unsubscribeSession =
-      globalThis.window.electron.onGameSessionSynced(scheduleRefresh);
+      globalThis.window.electron.onGameSessionSynced(onSync);
     const unsubscribePlaytime =
-      globalThis.window.electron.onGamePlaytimeSynced(scheduleRefresh);
+      globalThis.window.electron.onGamePlaytimeSynced(onSync);
 
     return () => {
       clearTimeout(timeout);
-      globalThis.window.removeEventListener("focus", scheduleRefresh);
+      globalThis.window.removeEventListener("focus", onFocus);
       unsubscribeSession();
       unsubscribePlaytime();
     };
-  }, [refreshMissions, refreshTrails]);
+  }, [refreshMissions, refreshTrails, refreshProgress]);
 
   // Fetch again once a period rolls over while the tab is open.
   useEffect(() => {
@@ -81,6 +93,7 @@ export function MissionsTab() {
         )}
         {trails && <TrailsBoard trails={trails} />}
       </div>
+      <Tooltip id={PENDING_MODERATION_TOOLTIP_ID} />
     </div>
   );
 }

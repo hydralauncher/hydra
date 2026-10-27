@@ -10,13 +10,14 @@ import {
   getMissionDescriptionKey,
   getMissionTitleKey,
 } from "./mission-catalog";
+import { PendingModerationBadge } from "./pending-moderation-badge";
 import { MissionSwapButton } from "./mission-swap-button";
 import { useMissionActions } from "./use-mission-actions";
 import { useMissionFormat } from "./use-mission-format";
 
 function WeeklyMissionRow({ mission }: Readonly<{ mission: Mission }>) {
   const { t } = useTranslation("user_profile");
-  const { formatMissionStatus } = useMissionFormat();
+  const { formatProgress } = useMissionFormat();
   const { claim, pendingAction } = useMissionActions();
   const isReady = mission.isComplete && !mission.isClaimed;
 
@@ -56,9 +57,8 @@ function WeeklyMissionRow({ mission }: Readonly<{ mission: Mission }>) {
 
     return (
       <>
-        <span className="weekly-mission__meta">
-          {formatMissionStatus(mission)}
-        </span>
+        <span className="weekly-mission__meta">{formatProgress(mission)}</span>
+        <PendingModerationBadge count={mission.pending} />
         {reward}
         <MissionSwapButton mission={mission} />
       </>

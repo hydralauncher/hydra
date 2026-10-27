@@ -549,6 +549,7 @@ export interface PassiveProgress {
   xp: number;
   dailyLimit: number;
   today: number;
+  pending: number;
 }
 
 export interface GamificationProgress extends LevelProgress {

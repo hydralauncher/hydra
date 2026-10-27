@@ -1217,3 +1217,12 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     opacity: 0;
   }
 }
+
+.pending-moderation-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  vertical-align: middle;
+  color: globals.$warning-color;
+  cursor: help;
+}
