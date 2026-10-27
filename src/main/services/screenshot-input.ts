@@ -227,6 +227,7 @@ export class ScreenshotInputService {
     if (this.listening) return this.status;
     if (!this.featureEnabled) {
       this.setStatus({ ...INACTIVE_STATUS });
+      void this.refreshFeatureFlag();
       return this.status;
     }
 
@@ -273,6 +274,7 @@ export class ScreenshotInputService {
     if (featureEnabled === this.featureEnabled) return;
     this.featureEnabled = featureEnabled;
     this.reconcile(this.settings);
+    if (!this.listening) this.refreshStatus();
   }
 
   private static shouldListen() {
@@ -328,7 +330,7 @@ export class ScreenshotInputService {
         (event) => this.handleNativeEvent(event)
       );
       this.listening = true;
-      this.listeningSince = Date.now();
+      this.listeningSince = performance.now();
       const status = toScreenshotInputStatus(nativeStatus, this.settings, true);
       logger.info("Screenshot input started", {
         ...status,
@@ -371,7 +373,7 @@ export class ScreenshotInputService {
   private static handleBackendStopped(event: ScreenshotInputNativeEvent) {
     if (
       this.listeningSince !== null &&
-      Date.now() - this.listeningSince >= SCREENSHOT_INPUT_STABLE_RUN_MS
+      performance.now() - this.listeningSince >= SCREENSHOT_INPUT_STABLE_RUN_MS
     ) {
       this.restartAttempts = 0;
     }

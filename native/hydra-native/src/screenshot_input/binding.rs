@@ -618,8 +618,6 @@ pub fn linux_trigger_ranges(
 pub fn windows_scan_code(make_code: u16, flags: u16) -> u16 {
     const RI_KEY_E0: u16 = 2;
     const RI_KEY_E1: u16 = 4;
-    const ALT_PRINT_SCREEN: u16 = 0x54;
-    const CTRL_PAUSE: u16 = 0xE046;
     let make = make_code & 0x7F;
     let scan_code = if flags & RI_KEY_E1 != 0 {
         0xE100 | make
@@ -628,6 +626,13 @@ pub fn windows_scan_code(make_code: u16, flags: u16) -> u16 {
     } else {
         make
     };
+    normalize_windows_scan_code(scan_code)
+}
+
+#[cfg(any(target_os = "windows", test))]
+pub fn normalize_windows_scan_code(scan_code: u16) -> u16 {
+    const ALT_PRINT_SCREEN: u16 = 0x54;
+    const CTRL_PAUSE: u16 = 0xE046;
     match scan_code {
         ALT_PRINT_SCREEN => 0xE037,
         CTRL_PAUSE => 0xE11D,
@@ -859,5 +864,14 @@ mod tests {
             windows_scan_code(0x46, 0),
             find_key("ScrollLock").unwrap().windows
         );
+        assert_eq!(
+            normalize_windows_scan_code(0x54),
+            find_key("PrintScreen").unwrap().windows
+        );
+        assert_eq!(
+            normalize_windows_scan_code(0xE046),
+            find_key("Pause").unwrap().windows
+        );
+        assert_eq!(normalize_windows_scan_code(0x44), 0x44);
     }
 }
