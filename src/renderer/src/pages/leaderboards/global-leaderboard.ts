@@ -307,9 +307,6 @@ export const buildMetricsRequest = (
   options: { params: { scope }, needsAuth: false },
 });
 
-// Merged into "reviews" by the API; hidden until every environment drops it.
-const HIDDEN_METRICS = new Set(["review_upvotes"]);
-
 export const normalizeMetricDefinitions = (
   response: unknown
 ): MetricDefinition[] => {
@@ -320,7 +317,7 @@ export const normalizeMetricDefinitions = (
 
   return items.flatMap((item): MetricDefinition[] => {
     if (!isRecord(item) || typeof item.id !== "string" || !item.id) return [];
-    if (seen.has(item.id) || HIDDEN_METRICS.has(item.id)) return [];
+    if (seen.has(item.id)) return [];
     seen.add(item.id);
 
     return [

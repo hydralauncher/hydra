@@ -132,7 +132,6 @@ describe("metric definitions", () => {
       metrics: [
         { id: "playtime", valueType: "duration", label: "Playtime" },
         { id: "sessions", valueType: "weird" },
-        { id: "review_upvotes", valueType: "count" },
         { id: "playtime", valueType: "count" },
         { id: "" },
         "bad",
