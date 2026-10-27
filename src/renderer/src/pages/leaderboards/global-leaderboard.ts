@@ -292,7 +292,7 @@ export const buildMetricsRequest = (
 });
 
 // Merged into "reviews" by the API (hydra-api#858), so it is never listed.
-// TODO: remove once hydralauncher/hydra-api#858 is live.
+// Transitional: delete once hydralauncher/hydra-api#858 is live.
 const EXCLUDED_METRICS = new Set(["review_upvotes"]);
 
 export const normalizeMetricDefinitions = (
