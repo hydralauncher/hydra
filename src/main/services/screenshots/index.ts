@@ -4,7 +4,6 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { resolveScreenshotPreferences } from "@shared";
 import type {
   GameShop,
-  LocalScreenshot,
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
   UserPreferences,
@@ -41,14 +40,12 @@ import { ScreenshotFeedback } from "./screenshot-feedback";
 import { ScreenshotFrameWorker } from "./screenshot-frame-worker";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { getScreenshotsFolder } from "./screenshots-folder";
-import { ScreenshotReviewSession } from "./screenshot-review-session";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
 import { screenshotUploadWorker } from "./screenshot-upload-worker";
 
 export { LocalScreenshotStore } from "./local-screenshot-store";
 export { screenshotUploadWorker } from "./screenshot-upload-worker";
-export { ScreenshotReviewSession } from "./screenshot-review-session";
 
 const SCREENSHOTS_MODULE_LOADED_AT = Date.now();
 
@@ -69,6 +66,22 @@ const isScreenshotCaptureAvailable = async () => {
 const hasRunningGames = () =>
   gamesPlaytime.size > 0 || emulatorSessions.size > 0;
 
+const releaseStaleReviews = async (startedAt: number) => {
+  const screenshots = await LocalScreenshotStore.list();
+  await Promise.all(
+    screenshots
+      .filter(
+        (screenshot) =>
+          screenshot.state === "reviewing" && screenshot.capturedAt < startedAt
+      )
+      .map(({ clientId }) =>
+        LocalScreenshotStore.update(clientId, (current) =>
+          current.state === "reviewing" ? { state: "local" } : {}
+        )
+      )
+  );
+};
+
 export const initializeScreenshots = () => {
   if (initialized) return;
   initialized = true;
@@ -83,15 +96,11 @@ export const initializeScreenshots = () => {
 
   screenshotUploadWorker.onMissingFile(removeLocalScreenshotIfMissing);
 
-  ScreenshotReviewSession.onClosed(() => {
-    void ScreenshotUploadNotifier.refresh();
-  });
-
   void backfillLocalScreenshotGameIds().catch((error) => {
     logger.error("Failed to back-fill local screenshot game ids", error);
   });
 
-  void ScreenshotReviewSession.releaseStaleReviews(SCREENSHOTS_MODULE_LOADED_AT)
+  void releaseStaleReviews(SCREENSHOTS_MODULE_LOADED_AT)
     .catch((error) => {
       logger.error("Failed to release stale screenshot reviews", error);
     })
@@ -209,18 +218,14 @@ export const flushScreenshotTelemetry = (timeoutMs: number) =>
 
 export const uploadLocalScreenshot = async (
   clientId: string,
-  options: LocalScreenshotUploadOptions,
-  sender?: Electron.WebContents
+  options: LocalScreenshotUploadOptions
 ) => {
-  const isReviewOrigin =
-    ScreenshotReviewSession.isReviewing(clientId) ||
-    (!!sender && WindowManager.bigPictureWindow?.webContents === sender);
   const screenshot = await LocalScreenshotStore.get(clientId);
   if (screenshot && (await removeLocalScreenshotIfMissing(clientId))) {
     return { ...screenshot, state: "deleted" as const };
   }
 
-  if (isReviewOrigin) ScreenshotUploadNotifier.markReviewOrigin(clientId);
+  ScreenshotUploadNotifier.markUserUpload(clientId);
 
   return screenshotUploadWorker.enqueue(clientId, options);
 };
@@ -231,45 +236,6 @@ export {
   deleteLocalScreenshotsForGame,
   forgetPublishedScreenshots,
 } from "./local-screenshot-removal";
-
-const REVIEWABLE_STATES = new Set<LocalScreenshot["state"]>([
-  "local",
-  "reviewing",
-  "failed",
-]);
-
-export const openScreenshotReview = async (clientId: string) => {
-  const screenshot = await LocalScreenshotStore.get(clientId);
-  if (!screenshot) return;
-
-  const objectId = screenshot.objectId ?? "";
-  const gameScreenshots = screenshot.objectId
-    ? await LocalScreenshotStore.listForGame(screenshot.shop, objectId)
-    : [screenshot];
-  const clientIds = gameScreenshots
-    .filter(
-      (candidate) =>
-        candidate.clientId === clientId ||
-        REVIEWABLE_STATES.has(candidate.state)
-    )
-    .toSorted((left, right) => right.capturedAt - left.capturedAt)
-    .map((candidate) => candidate.clientId);
-
-  await ScreenshotReviewSession.open({
-    shop: screenshot.shop,
-    objectId,
-    clientIds,
-    selectedClientId: clientId,
-  });
-};
-
-export const closeScreenshotReview = () => ScreenshotReviewSession.close();
-
-export const releaseBigPictureScreenshotReview = (clientIds: string[]) =>
-  ScreenshotReviewSession.releaseBigPictureReview(clientIds);
-
-export const getScreenshotReview = (requesterWebContentsId?: number) =>
-  ScreenshotReviewSession.getDesktopReview(requesterWebContentsId);
 
 export const updateLocalScreenshotDraft = (
   clientId: string,
