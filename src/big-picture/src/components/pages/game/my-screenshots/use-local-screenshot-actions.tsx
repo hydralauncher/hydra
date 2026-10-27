@@ -7,7 +7,6 @@ import { logger } from "@renderer/logger";
 import { ConfirmationModal } from "../../../modals";
 import { useBigPictureToast } from "../../../../hooks";
 import { formatScreenshotDate } from "../../screenshots";
-import { ScreenshotDialogPresence } from "../../screenshots/screenshot-dialog-presence";
 
 export function useLocalScreenshotAlt() {
   const { t, i18n } = useTranslation("screenshots");
@@ -59,7 +58,6 @@ export function useLocalScreenshotActions() {
 
   const elements = (
     <>
-      <ScreenshotDialogPresence isOpen={pendingDelete !== null} />
       <ConfirmationModal
         visible={pendingDelete !== null}
         backdropClassName="local-screenshot-viewer__confirmation-backdrop"

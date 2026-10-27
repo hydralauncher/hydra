@@ -56,7 +56,6 @@ import type { FocusOverrides, FocusOverrideTarget } from "../../../../services";
 import { getScreenshotErrorKey } from "../helpers";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
 import { ScreenshotCommentBody } from "./comment-body";
-import { ScreenshotDialogPresence } from "../screenshot-dialog-presence";
 import { CommentComposer } from "./comment-composer";
 import {
   COMMENTS_NAVIGATION_ORDER,
@@ -107,11 +106,6 @@ const createPendingComment = (
   canDelete: false,
 });
 
-interface RestoredCommentDraft {
-  key: number;
-  body: string;
-}
-
 function useScreenshotComments(
   screenshot: ProfileScreenshot,
   isAvailable: boolean,
@@ -122,6 +116,7 @@ function useScreenshotComments(
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [status, setStatus] = useState<CommentsStatus>("idle");
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasLoadMoreError, setHasLoadMoreError] = useState(false);
   const generationRef = useRef(0);
   const writeVersionRef = useRef(0);
   const writesRef = useRef<ScreenshotCommentWrite[]>([]);
@@ -187,6 +182,7 @@ function useScreenshotComments(
     setTotal(0);
     setNextCursor(null);
     setIsLoadingMore(false);
+    setHasLoadMoreError(false);
 
     if (!isAvailable) {
       setStatus("ready");
@@ -210,6 +206,7 @@ function useScreenshotComments(
     const generation = generationRef.current;
     const { sinceVersion, epoch } = beginRead();
     setIsLoadingMore(true);
+    setHasLoadMoreError(false);
 
     try {
       const response =
@@ -235,6 +232,7 @@ function useScreenshotComments(
       setNextCursor(response?.nextCursor ?? null);
     } catch (error) {
       logger.error("Failed to load more screenshot comments", error);
+      if (generationRef.current === generation) setHasLoadMoreError(true);
     } finally {
       endRead(epoch);
       if (generationRef.current === generation) setIsLoadingMore(false);
@@ -252,6 +250,7 @@ function useScreenshotComments(
     status,
     hasMore: Boolean(nextCursor),
     isLoadingMore,
+    hasLoadMoreError,
     loadMore,
     retry,
     recordWrite,
@@ -483,6 +482,13 @@ function CommentsListStatus({
   );
 }
 
+function getLoadMoreLabelKey(isLoadingMore: boolean, hasError: boolean) {
+  if (isLoadingMore) return "screenshots_comments_loading";
+  if (hasError) return "screenshots_retry";
+
+  return "screenshots_comments_load_more";
+}
+
 export function ScreenshotCommentsPanel({
   screenshot,
   viewerId,
@@ -505,6 +511,7 @@ export function ScreenshotCommentsPanel({
     status,
     hasMore,
     isLoadingMore,
+    hasLoadMoreError,
     loadMore,
     retry: retryComments,
     recordWrite,
@@ -513,8 +520,7 @@ export function ScreenshotCommentsPanel({
   } = useScreenshotComments(screenshot, isAvailable, Boolean(viewerId));
   const [editingComment, setEditingComment] =
     useState<ScreenshotComment | null>(null);
-  const [restoredDraft, setRestoredDraft] =
-    useState<RestoredCommentDraft | null>(null);
+  const [restoredDraft, setRestoredDraft] = useState<string | null>(null);
   const editVersionsRef = useRef(new Map<string, number>());
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<CommentMenuState | null>(null);
@@ -530,6 +536,8 @@ export function ScreenshotCommentsPanel({
     setEditingComment(null);
     setMenu(null);
   }, [screenshot.id]);
+
+  const clearRestoredDraft = useCallback(() => setRestoredDraft(null), []);
 
   const showError = useCallback(
     (error: unknown) => {
@@ -597,10 +605,7 @@ export function ScreenshotCommentsPanel({
         }
       } catch (error) {
         removePendingComment(pending.id);
-        setRestoredDraft((current) => ({
-          key: (current?.key ?? 0) + 1,
-          body: pending.bodyHtml,
-        }));
+        setRestoredDraft(pending.bodyHtml);
         showError(error);
       }
     },
@@ -770,8 +775,10 @@ export function ScreenshotCommentsPanel({
       setComments((current) =>
         current.filter((comment) => comment.id !== deletingComment.id)
       );
-      setTotal((current) => Math.max(0, current - 1));
-      if (!deletingComment.isHidden) onCommentCountChange(screenshot.id, -1);
+      if (!deletingComment.isHidden) {
+        setTotal((current) => Math.max(0, current - 1));
+        onCommentCountChange(screenshot.id, -1);
+      }
       if (editingComment?.id === deletingComment.id) setEditingComment(null);
       setDeletingComment(null);
       showSuccessToast(t("screenshots_comment_deleted"), {
@@ -935,6 +942,12 @@ export function ScreenshotCommentsPanel({
             </ul>
           ) : null}
 
+          {hasMore && hasLoadMoreError && !isLoadingMore ? (
+            <p className="screenshot-comments__status screenshot-comments__status--error">
+              {t("screenshots_comments_load_more_failed")}
+            </p>
+          ) : null}
+
           {hasMore ? (
             <FocusItem
               id={focusIds.loadMore}
@@ -948,11 +961,7 @@ export function ScreenshotCommentsPanel({
                 disabled={isLoadingMore}
                 onClick={() => void loadMore()}
               >
-                {t(
-                  isLoadingMore
-                    ? "screenshots_comments_loading"
-                    : "screenshots_comments_load_more"
-                )}
+                {t(getLoadMoreLabelKey(isLoadingMore, hasLoadMoreError))}
               </button>
             </FocusItem>
           ) : null}
@@ -966,6 +975,7 @@ export function ScreenshotCommentsPanel({
           leftTarget={leftTarget}
           editingComment={editingComment}
           restoredDraft={restoredDraft}
+          onRestoredDraftApplied={clearRestoredDraft}
           onSubmit={submit}
           onCancelEdit={() => setEditingComment(null)}
         />
@@ -981,7 +991,6 @@ export function ScreenshotCommentsPanel({
           onClose={() => setMenu(null)}
         />
 
-        <ScreenshotDialogPresence isOpen={Boolean(deletingComment)} />
         <ConfirmationModal
           visible={Boolean(deletingComment)}
           backdropClassName="screenshot-lightbox__confirmation-backdrop"

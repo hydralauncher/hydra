@@ -8,7 +8,14 @@ import {
 } from "@phosphor-icons/react";
 import { EditorContent, type Editor } from "@tiptap/react";
 import cn from "classnames";
-import { useEffect, useReducer, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import type { ProfileScreenshot, ScreenshotComment } from "@types";
 import {
@@ -23,6 +30,8 @@ import {
 } from "@renderer/components/rich-text-editor/use-rich-text-editor";
 
 import { Button, FocusItem, HorizontalFocusGroup } from "../../../common";
+import { useFocusLayerId } from "../../../context";
+import { useIsLayerOnTop, useNavigationScreenActions } from "../../../../hooks";
 import { useVirtualKeyboardStore } from "../../../../stores";
 import type { FocusOverrideTarget } from "../../../../services";
 import {
@@ -41,6 +50,32 @@ function useEditorRerender(editor: Editor | null) {
     editor.on("transaction", rerender);
     return () => {
       editor.off("transaction", rerender);
+    };
+  }, [editor]);
+}
+
+function CancelEditBackAction({
+  onCancel,
+}: Readonly<{ onCancel: () => void }>) {
+  const isOnTop = useIsLayerOnTop(useFocusLayerId());
+  useNavigationScreenActions(isOnTop ? { press: { b: onCancel } } : {});
+  return null;
+}
+
+function useEditorDraftSync(
+  editor: Editor | null,
+  onDraftChange: ((html: string) => void) | undefined
+) {
+  const onDraftChangeRef = useRef(onDraftChange);
+  onDraftChangeRef.current = onDraftChange;
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const syncDraft = () => onDraftChangeRef.current?.(editor.getHTML());
+    editor.on("update", syncDraft);
+    return () => {
+      editor.off("update", syncDraft);
     };
   }, [editor]);
 }
@@ -83,6 +118,7 @@ interface CommentEditorFormProps {
   leftTarget: FocusOverrideTarget;
   editingComment: ScreenshotComment | null;
   draftBody: string;
+  onDraftChange?: (html: string) => void;
   onSubmit: (bodyHtml: string) => Promise<boolean>;
   onCancelEdit: () => void;
 }
@@ -92,6 +128,7 @@ function CommentEditorForm({
   leftTarget,
   editingComment,
   draftBody,
+  onDraftChange,
   onSubmit,
   onCancelEdit,
 }: Readonly<CommentEditorFormProps>) {
@@ -110,6 +147,7 @@ function CommentEditorForm({
     measureText: measureCommentText,
   });
   useEditorRerender(editor);
+  useEditorDraftSync(editor, onDraftChange);
 
   const isTooLong =
     charCount > SCREENSHOT_COMMENT_MAX_LENGTH ||
@@ -151,9 +189,12 @@ function CommentEditorForm({
   return (
     <form className="screenshot-comments__composer" onSubmit={handleSubmit}>
       {isEditing ? (
-        <span className="screenshot-comments__editing-label">
-          {t("screenshots_comment_editing")}
-        </span>
+        <>
+          <CancelEditBackAction onCancel={onCancelEdit} />
+          <span className="screenshot-comments__editing-label">
+            {t("screenshots_comment_editing")}
+          </span>
+        </>
       ) : null}
       <FocusItem
         id={focusIds.input}
@@ -253,7 +294,8 @@ export interface CommentComposerProps {
   focusIds: ScreenshotCommentsPanelFocusIds;
   leftTarget: FocusOverrideTarget;
   editingComment: ScreenshotComment | null;
-  restoredDraft: { key: number; body: string } | null;
+  restoredDraft: string | null;
+  onRestoredDraftApplied: () => void;
   onSubmit: (bodyHtml: string) => Promise<boolean>;
   onCancelEdit: () => void;
 }
@@ -266,10 +308,21 @@ export function CommentComposer({
   leftTarget,
   editingComment,
   restoredDraft,
+  onRestoredDraftApplied,
   onSubmit,
   onCancelEdit,
 }: Readonly<CommentComposerProps>) {
   const { t } = useTranslation("big_picture");
+  const newDraftRef = useRef("");
+  const [newEditorKey, setNewEditorKey] = useState(0);
+
+  useEffect(() => {
+    if (restoredDraft === null) return;
+
+    newDraftRef.current = restoredDraft;
+    setNewEditorKey((current) => current + 1);
+    onRestoredDraftApplied();
+  }, [onRestoredDraftApplied, restoredDraft]);
 
   if (!viewerId) {
     return (
@@ -303,13 +356,30 @@ export function CommentComposer({
     );
   }
 
+  if (editingComment) {
+    return (
+      <CommentEditorForm
+        key={`edit:${editingComment.id}`}
+        focusIds={focusIds}
+        leftTarget={leftTarget}
+        editingComment={editingComment}
+        draftBody=""
+        onSubmit={onSubmit}
+        onCancelEdit={onCancelEdit}
+      />
+    );
+  }
+
   return (
     <CommentEditorForm
-      key={editingComment?.id ?? `new:${restoredDraft?.key ?? 0}`}
+      key={`new:${newEditorKey}`}
       focusIds={focusIds}
       leftTarget={leftTarget}
-      editingComment={editingComment}
-      draftBody={restoredDraft?.body ?? ""}
+      editingComment={null}
+      draftBody={newDraftRef.current}
+      onDraftChange={(html) => {
+        newDraftRef.current = html;
+      }}
       onSubmit={onSubmit}
       onCancelEdit={onCancelEdit}
     />

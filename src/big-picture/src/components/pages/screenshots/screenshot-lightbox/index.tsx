@@ -35,7 +35,6 @@ import { resolveImageSource } from "../../../../helpers";
 import { getScreenshotGameTitle, shouldBlurScreenshot } from "../helpers";
 import { ScreenshotManageModal } from "../screenshot-manage-modal";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
-import { ScreenshotDialogPresence } from "../screenshot-dialog-presence";
 import { useRevealedScreenshotSpoilers } from "../use-revealed-spoilers";
 import { getScreenshotCommentsPanelFocusIds } from "./comment-focus-ids";
 import { ScreenshotLightboxSidebar } from "./sidebar";
@@ -161,7 +160,6 @@ function LightboxModals({
         onClose={onCloseModal}
         onSubmit={social.report}
       />
-      <ScreenshotDialogPresence isOpen={openModal === "delete"} />
       <ConfirmationModal
         visible={openModal === "delete"}
         backdropClassName="screenshot-lightbox__confirmation-backdrop"

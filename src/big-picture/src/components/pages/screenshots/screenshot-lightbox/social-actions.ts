@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   ProfileScreenshot,
@@ -31,6 +31,14 @@ const getLikePatch = (
 
 const SETTINGS_TOAST = { fallbackVisual: "settings" as const };
 
+const getFieldVersionKey = (screenshotId: string, field: string) =>
+  `${screenshotId}:${field}`;
+
+const getUpdatedFields = (update: ScreenshotUpdateRequest) =>
+  Object.entries(update)
+    .filter(([, value]) => value !== undefined)
+    .map(([field]) => field);
+
 interface LightboxSocialOptions {
   screenshot: ProfileScreenshot | null;
   isSignedIn: boolean;
@@ -54,6 +62,41 @@ export function useLightboxSocialActions({
   const [isReporting, setIsReporting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const fieldVersionsRef = useRef(new Map<string, number>());
+
+  const claimFieldVersions = useCallback(
+    (screenshotId: string, update: ScreenshotUpdateRequest) => {
+      const claimed = new Map<string, number>();
+      for (const field of getUpdatedFields(update)) {
+        const key = getFieldVersionKey(screenshotId, field);
+        const version = (fieldVersionsRef.current.get(key) ?? 0) + 1;
+        fieldVersionsRef.current.set(key, version);
+        claimed.set(field, version);
+      }
+      return claimed;
+    },
+    []
+  );
+
+  const pickLatestFields = useCallback(
+    (
+      screenshotId: string,
+      update: ScreenshotUpdateRequest,
+      claimed: Map<string, number>
+    ): ScreenshotUpdateRequest | null => {
+      const latestEntries = Object.entries(update).filter(
+        ([field]) =>
+          claimed.has(field) &&
+          fieldVersionsRef.current.get(
+            getFieldVersionKey(screenshotId, field)
+          ) === claimed.get(field)
+      );
+      if (latestEntries.length === 0) return null;
+
+      return Object.fromEntries(latestEntries) as ScreenshotUpdateRequest;
+    },
+    []
+  );
 
   const showError = useCallback(
     (error: unknown) => {
@@ -157,7 +200,11 @@ export function useLightboxSocialActions({
   );
 
   const persistUpdate = useCallback(
-    async (target: ProfileScreenshot, update: ScreenshotUpdateRequest) => {
+    async (
+      target: ProfileScreenshot,
+      update: ScreenshotUpdateRequest,
+      claimed: Map<string, number>
+    ) => {
       setIsSaving(true);
 
       try {
@@ -166,7 +213,13 @@ export function useLightboxSocialActions({
             buildProfileScreenshotPath(target.id),
             { data: update, needsAuth: true }
           );
-        onUpdate(target.id, getEditedScreenshotFields(update, updated ?? null));
+        const latestUpdate = pickLatestFields(target.id, update, claimed);
+        if (latestUpdate) {
+          onUpdate(
+            target.id,
+            getEditedScreenshotFields(latestUpdate, updated ?? null)
+          );
+        }
         const moderation = updated?.textModeration;
         if (moderation?.title === "hidden") {
           showWarningToast(
@@ -182,24 +235,35 @@ export function useLightboxSocialActions({
           showSuccessToast(t("screenshots_saved"), SETTINGS_TOAST);
         }
       } catch (error) {
-        onUpdate(target.id, getEditedScreenshotFields(update, target));
+        const latestUpdate = pickLatestFields(target.id, update, claimed);
+        if (latestUpdate) {
+          onUpdate(target.id, getEditedScreenshotFields(latestUpdate, target));
+        }
         showError(error);
       } finally {
         setIsSaving(false);
       }
     },
-    [onUpdate, showError, showSuccessToast, showWarningToast, t]
+    [
+      onUpdate,
+      pickLatestFields,
+      showError,
+      showSuccessToast,
+      showWarningToast,
+      t,
+    ]
   );
 
   const save = useCallback(
     async (update: ScreenshotUpdateRequest) => {
       if (!screenshot) return false;
 
+      const claimed = claimFieldVersions(screenshot.id, update);
       onUpdate(screenshot.id, getEditedScreenshotFields(update, null));
-      void persistUpdate(screenshot, update);
+      void persistUpdate(screenshot, update, claimed);
       return true;
     },
-    [onUpdate, persistUpdate, screenshot]
+    [claimFieldVersions, onUpdate, persistUpdate, screenshot]
   );
 
   const remove = useCallback(async () => {

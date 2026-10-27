@@ -25,7 +25,6 @@ import {
   VerticalFocusGroup,
   type DropdownSelectOption,
 } from "../../common";
-import { useScreenshotDialogPresence } from "./screenshot-dialog-presence";
 
 const REGION_ID = "screenshot-manage-modal";
 const VISIBILITY_FOCUS_ID = "screenshot-manage-visibility";
@@ -52,7 +51,6 @@ export function ScreenshotManageModal({
   onSave,
 }: Readonly<ScreenshotManageModalProps>) {
   const { t } = useTranslation("big_picture");
-  useScreenshotDialogPresence(visible);
   const [visibility, setVisibility] = useState<ProfileVisibility>("PUBLIC");
   const [isSpoiler, setIsSpoiler] = useState(false);
   const [commentsEnabled, setCommentsEnabled] = useState(true);

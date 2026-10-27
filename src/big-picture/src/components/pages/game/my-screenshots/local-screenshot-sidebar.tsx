@@ -24,7 +24,6 @@ import {
 import type { FocusOverrideTarget } from "../../../../services";
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
 import { formatScreenshotDate } from "../../screenshots";
-import { ScreenshotDialogPresence } from "../../screenshots/screenshot-dialog-presence";
 
 const BLOCK_TARGET: FocusOverrideTarget = { type: "block" };
 const EDITABLE_STATES = new Set<LocalScreenshot["state"]>([
@@ -248,7 +247,6 @@ export function LocalScreenshotSidebar({
           </div>
         </div>
 
-        <ScreenshotDialogPresence isOpen={isDeleteConfirmVisible} />
         <ConfirmationModal
           visible={isDeleteConfirmVisible}
           backdropClassName="screenshot-lightbox__confirmation-backdrop"

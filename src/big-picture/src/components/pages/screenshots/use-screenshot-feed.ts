@@ -124,20 +124,27 @@ export function useScreenshotFeed({
   buildPathRef.current = buildPath;
   itemsRef.current = items;
 
+  const resetKey = `${needsAuth}:${requestKey ?? ""}`;
+  const lastResetKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
     const generation = generationRef.current + 1;
     generationRef.current = generation;
     isLoadingMoreRef.current = false;
     setIsLoadingMore(false);
-    setItems([]);
-    setTotal(null);
-    setHiddenReason(null);
-    setNextCursor(null);
-    setLoadedKey(null);
     setError(null);
     pendingReadsRef.current = 0;
     writesRef.current = [];
-    fetchedAtRef.current.clear();
+
+    if (lastResetKeyRef.current !== resetKey) {
+      lastResetKeyRef.current = resetKey;
+      setItems([]);
+      setTotal(null);
+      setHiddenReason(null);
+      setNextCursor(null);
+      setLoadedKey(null);
+      fetchedAtRef.current.clear();
+    }
 
     if (!requestKey) return;
 
@@ -164,6 +171,10 @@ export function useScreenshotFeed({
         if (generationRef.current !== generation) return;
 
         logger.error("Failed to load screenshots", error);
+        setItems([]);
+        setTotal(null);
+        setHiddenReason(null);
+        setNextCursor(null);
         setError("initial");
       })
       .finally(() => {
@@ -172,7 +183,7 @@ export function useScreenshotFeed({
         endRead();
         setLoadedKey(requestKey);
       });
-  }, [needsAuth, refreshToken, requestKey]);
+  }, [needsAuth, refreshToken, requestKey, resetKey]);
 
   const fetchNextPage = useCallback(async () => {
     if (!requestKey || !nextCursor || isLoadingMoreRef.current) return;
