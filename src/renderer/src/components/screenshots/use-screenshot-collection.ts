@@ -115,6 +115,7 @@ export function useScreenshotCollection({
   const inFlightPatchesRef = useRef(new Map<string, ScreenshotPatch[]>());
   const relativeWritesRef = useRef(new Map<string, number>());
   const imageRefresherRef = useRef(createScreenshotImageRefresher());
+  const lastOpenScreenshotRef = useRef<ProfileScreenshot | null>(null);
 
   const openId = openTarget?.screenshotId ?? null;
   const listItem = useMemo(
@@ -122,7 +123,7 @@ export function useScreenshotCollection({
     [feed.items, openId]
   );
   const detached = openId ? (detachedById[openId] ?? null) : null;
-  const screenshot = pickNewerScreenshot(
+  const freshScreenshot = pickNewerScreenshot(
     listItem,
     listItem
       ? Math.max(
@@ -133,6 +134,12 @@ export function useScreenshotCollection({
     detached,
     detached ? (detachedFetchedAtRef.current.get(detached.id) ?? null) : null
   );
+  const lastOpenScreenshot =
+    lastOpenScreenshotRef.current?.id === openId
+      ? lastOpenScreenshotRef.current
+      : null;
+  const screenshot = freshScreenshot ?? lastOpenScreenshot;
+  lastOpenScreenshotRef.current = screenshot;
   const failure = openId ? (failures[openId] ?? null) : null;
 
   const markFailure = useCallback(

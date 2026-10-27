@@ -346,26 +346,28 @@ export function ScreenshotLightbox({
       status === "ready" ? "loading" : status;
 
     return (
-      <GalleryLightbox
-        visible
-        items={[
-          { id: "screenshot-state", type: "image", alt: t("screenshot") },
-        ]}
-        index={0}
-        showFilmstrip={false}
-        showCounter={false}
-        trapFocus
-        getCaption={() => null}
-        renderImage={(_item, context) => (
-          <ScreenshotStateStage
-            status={placeholderStatus}
-            context={context}
-            onClose={modals.handleClose}
-          />
-        )}
-        onClose={modals.handleClose}
-        onNavigate={() => undefined}
-      />
+      <>
+        <GalleryLightbox
+          visible
+          items={[
+            { id: "screenshot-state", type: "image", alt: t("screenshot") },
+          ]}
+          index={0}
+          showFilmstrip={false}
+          showCounter={false}
+          trapFocus
+          getCaption={() => null}
+          renderImage={(_item, context) => (
+            <ScreenshotStateStage
+              status={placeholderStatus}
+              context={context}
+              onClose={modals.handleClose}
+            />
+          )}
+          onClose={modals.handleClose}
+          onNavigate={() => undefined}
+        />
+      </>
     );
   }
 
