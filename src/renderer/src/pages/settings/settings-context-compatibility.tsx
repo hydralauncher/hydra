@@ -200,7 +200,7 @@ export function SettingsContextCompatibility() {
       if (!filePath) return;
 
       showSuccessToast(t("logs_exported"));
-      window.electron.showItemInFolder(filePath);
+      await window.electron.showItemInFolder(filePath);
     } catch (err) {
       logger.error(err);
       showErrorToast(t("logs_export_failed"));
