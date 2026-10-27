@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import {
+  BOOST_ROWS,
   COIN_ROWS,
   FLAME_CORE_ROWS,
   FLAME_EMBER_ROWS,
@@ -21,6 +22,19 @@ export function CoinIcon({ size = 16 }: Readonly<{ size?: number }>) {
   );
 
   return <PixelArt rows={COIN_ROWS} colors={colors} size={size} />;
+}
+
+export function BoostIcon({ size = 16 }: Readonly<{ size?: number }>) {
+  const colors = useMemo(
+    () => ({
+      "#": mixHex(GAMIFICATION_PALETTE.cloud, "#ffffff", 0.45),
+      "+": GAMIFICATION_PALETTE.cloud,
+      ":": mixHex(GAMIFICATION_PALETTE.cloud, "#000000", 0.45),
+    }),
+    []
+  );
+
+  return <PixelArt rows={BOOST_ROWS} colors={colors} size={size} />;
 }
 
 // Grid and colors per streak stage: dim, ember, flame, then a flame with a lit core.

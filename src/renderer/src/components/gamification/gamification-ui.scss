@@ -5,7 +5,8 @@
   white-space: nowrap;
 
   &__xp,
-  &__coins {
+  &__coins,
+  &__boost {
     display: inline-flex;
     align-items: center;
     height: 20px;
@@ -26,5 +27,12 @@
     padding: 0 6px 0 3px;
     background-color: rgba(47, 155, 255, 0.16);
     color: #8dc8ff;
+  }
+
+  &__boost {
+    gap: 4px;
+    padding: 0 6px 0 3px;
+    background-color: rgba(22, 177, 149, 0.18);
+    color: #7fe3cf;
   }
 }
