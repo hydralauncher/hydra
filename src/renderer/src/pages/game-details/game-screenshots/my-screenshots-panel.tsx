@@ -128,7 +128,7 @@ export function MyScreenshotsPanel({
       time: screenshot.createdAt,
       screenshot,
     })),
-  ];
+  ].toSorted((a, b) => b.time - a.time);
 
   const viewer = useMyScreenshotsViewer({
     lightbox,
