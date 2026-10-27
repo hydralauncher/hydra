@@ -18,6 +18,7 @@ import type {
 
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
+import { getSourceClientAreaCrop } from "../windows-window-bounds";
 import {
   grabLinuxGameSessionFrame,
   isWaylandCaptureBackend,
@@ -252,6 +253,7 @@ const grabFromDirectWindowsSource = async (
   try {
     return await ScreenshotFrameWorker.grab(sourceId, {
       waitForNextFrame: true,
+      crop: getSourceClientAreaCrop(sourceId),
     });
   } catch (error) {
     if (error instanceof BlankScreenshotFrameError) throw error;
@@ -277,7 +279,10 @@ const acquireFrame = async (
 
   const sourceId = await resolveGameCaptureSourceId(captureTarget);
   if (sourceId) {
-    return ScreenshotFrameWorker.grab(sourceId, { waitForNextFrame: true });
+    return ScreenshotFrameWorker.grab(sourceId, {
+      waitForNextFrame: true,
+      crop: getSourceClientAreaCrop(sourceId),
+    });
   }
 
   return wrapNativeImage(

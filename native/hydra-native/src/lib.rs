@@ -4,6 +4,7 @@ mod constants;
 mod linux_process;
 mod screenshot_input;
 mod torrent;
+mod window_bounds;
 mod window_client;
 mod window_order;
 
@@ -90,6 +91,37 @@ pub fn get_windows_foreground_window() -> Option<NativeForegroundWindow> {
             window_handle,
             process_id,
         }
+    })
+}
+
+#[napi(object)]
+pub struct NativeScreenRect {
+    pub left: i32,
+    pub top: i32,
+    pub right: i32,
+    pub bottom: i32,
+}
+
+#[napi(object)]
+pub struct NativeWindowBounds {
+    pub frame: NativeScreenRect,
+    pub client: NativeScreenRect,
+}
+
+fn to_native_rect(rect: window_bounds::ScreenRect) -> NativeScreenRect {
+    NativeScreenRect {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+    }
+}
+
+#[napi]
+pub fn get_windows_window_bounds(window_handle: String) -> Option<NativeWindowBounds> {
+    window_bounds::get_window_bounds(&window_handle).map(|bounds| NativeWindowBounds {
+        frame: to_native_rect(bounds.frame),
+        client: to_native_rect(bounds.client),
     })
 }
 

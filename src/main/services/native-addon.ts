@@ -69,6 +69,18 @@ export interface ScreenshotInputNativeStatus {
   gamepadError?: string | null;
   waylandSession: boolean;
 }
+type NativeScreenRect = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
+type NativeWindowBoundsResponse = {
+  frame: NativeScreenRect;
+  client: NativeScreenRect;
+};
+
 type NativeForegroundWindowResponse = {
   windowHandle?: string;
   window_handle?: string;
@@ -116,6 +128,9 @@ type HydraNativeModule = {
   ) => ScreenshotInputNativeStatus;
   getWindowsForegroundWindow?: () => NativeForegroundWindowResponse | null;
   getLinuxWindowClientPid?: (windowId: string) => number | null;
+  getWindowsWindowBounds?: (
+    windowHandle: string
+  ) => NativeWindowBoundsResponse | null;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
@@ -509,6 +524,17 @@ export class NativeAddon {
     } catch (error) {
       logger.error("Failed to identify the Windows foreground window", error);
       return undefined;
+    }
+  }
+
+  public static getWindowsWindowBounds(windowHandle: string) {
+    if (process.platform !== "win32") return null;
+
+    try {
+      return this.load().getWindowsWindowBounds?.(windowHandle) ?? null;
+    } catch (error) {
+      logger.error("Failed to read the Windows window bounds", error);
+      return null;
     }
   }
 
