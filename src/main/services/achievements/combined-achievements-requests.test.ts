@@ -129,11 +129,16 @@ it("honours Retry-After and caps it at 30 minutes", async () => {
   assert.equal(capped.calls, 2);
 });
 
+// HydraApi rethrows errors without a response this way.
+const requestError = (code: string) =>
+  Object.assign(new Error(`Request failed with ${code} failed`), { code });
+
 it("does not back off on 401, offline errors or cancelled requests", async () => {
   const offline = new axios.AxiosError("Network Error", "ERR_NETWORK");
   for (const error of [
     httpError(401),
     offline,
+    requestError("ERR_NETWORK"),
     new Error("achievement-owner-changed"),
   ]) {
     const requests = load();
@@ -145,12 +150,38 @@ it("does not back off on 401, offline errors or cancelled requests", async () =>
 });
 
 it("backs off after a request timeout", async () => {
+  for (const error of [
+    new axios.AxiosError("timeout", "ECONNABORTED"),
+    requestError("ECONNABORTED"),
+    requestError("ETIMEDOUT"),
+  ]) {
+    const requests = load();
+    const api = counter(() => Promise.reject(error));
+    await requests.fetch(owner, "steam", "10", "en", api.request);
+    await requests.fetch(owner, "steam", "10", "en", api.request);
+    assert.equal(api.calls, 1);
+  }
+});
+
+it("ignores requests that finish after clear()", async () => {
   const requests = load();
-  const api = counter(() =>
-    Promise.reject(new axios.AxiosError("timeout", "ECONNABORTED"))
+  let reject!: (error: unknown) => void;
+  const stale = requests.fetch(
+    owner,
+    "steam",
+    "10",
+    "en",
+    () => new Promise((_, fail) => (reject = fail))
   );
-  await requests.fetch(owner, "steam", "10", "en", api.request);
-  await requests.fetch(owner, "steam", "10", "en", api.request);
+  requests.clear();
+  reject(httpError(503));
+  assert.equal(await stale, null);
+
+  const api = counter(() => Promise.resolve("union"));
+  assert.equal(
+    await requests.fetch(owner, "steam", "10", "en", api.request),
+    "union"
+  );
   assert.equal(api.calls, 1);
 });
 

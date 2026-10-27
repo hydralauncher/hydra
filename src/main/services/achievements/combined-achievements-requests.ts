@@ -18,13 +18,18 @@ interface Failure {
 
 const failures = new Map<string, Failure>();
 const inFlight = new Map<string, Promise<unknown>>();
+let epoch = 0;
+
+const errorCode = (error: unknown) =>
+  error instanceof Error && "code" in error ? error.code : undefined;
 
 // Offline errors never reach the server and 401 already resets the session.
+// HydraApi rethrows errors without a response as plain Errors that keep the code.
 const isServerFailure = (error: unknown) => {
-  if (!isAxiosError(error)) return false;
-  const status = error.response?.status;
+  const status = isAxiosError(error) ? error.response?.status : undefined;
   if (status !== undefined) return status >= 400 && status !== 401;
-  return error.code === "ECONNABORTED" || error.code === "ETIMEDOUT";
+  const code = errorCode(error);
+  return code === "ECONNABORTED" || code === "ETIMEDOUT";
 };
 
 const recordFailure = (
@@ -51,7 +56,8 @@ const recordFailure = (
     "Combined achievements unavailable, backing off",
     shop,
     objectId,
-    isAxiosError(error) ? (error.response?.status ?? error.code) : undefined,
+    (isAxiosError(error) ? error.response?.status : undefined) ??
+      errorCode(error),
     delay
   );
 };
@@ -78,13 +84,16 @@ const fetch = <T>(
   const pending = inFlight.get(requestKey);
   if (pending !== undefined) return pending as Promise<T | null>;
 
+  // A request started before clear() must not touch the new session's state.
+  const startedIn = epoch;
   const promise = request()
     .then((value) => {
-      failures.delete(key);
+      if (startedIn === epoch) failures.delete(key);
       return value;
     })
     .catch((error: unknown) => {
-      if (isServerFailure(error)) recordFailure(key, shop, objectId, error);
+      if (startedIn === epoch && isServerFailure(error))
+        recordFailure(key, shop, objectId, error);
       return null;
     })
     .finally(() => {
@@ -98,6 +107,7 @@ export const CombinedAchievementsRequests = {
   fetch,
 
   clear() {
+    epoch++;
     failures.clear();
     inFlight.clear();
   },
