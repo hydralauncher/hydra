@@ -699,9 +699,11 @@ export function TrailsBoard({ trails }: Readonly<{ trails: Trail[] }>) {
                 onClick={() => setSelectedTrailKey(trail.key)}
               >
                 {hasClaimable && (
-                  <span className="trails-board__claim-badge">
-                    {t("claim_reward")}
-                  </span>
+                  <span
+                    className="trails-board__claim-badge"
+                    role="img"
+                    aria-label={t("trail_status_claimable")}
+                  />
                 )}
                 <span className="trails-board__trail-icon">
                   <SelectorRing trail={trail} />
