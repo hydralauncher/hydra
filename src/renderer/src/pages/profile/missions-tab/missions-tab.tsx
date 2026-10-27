@@ -9,7 +9,7 @@ import { ProfileSection } from "../profile-section/profile-section";
 import { LevelBox } from "../profile-content/level-box";
 import { Tooltip } from "react-tooltip";
 import { DailyMissions } from "./daily-missions";
-import { PENDING_MODERATION_TOOLTIP_ID } from "./pending-moderation-badge";
+import { MISSIONS_TAB_PENDING_TOOLTIP_ID } from "./pending-moderation-badge";
 import { PassivesBox } from "./passives-box";
 import { StreakBox } from "./streak-box";
 import { TrailsBoard } from "./trails-board";
@@ -93,7 +93,7 @@ export function MissionsTab() {
         )}
         {trails && <TrailsBoard trails={trails} />}
       </div>
-      <Tooltip id={PENDING_MODERATION_TOOLTIP_ID} />
+      <Tooltip id={MISSIONS_TAB_PENDING_TOOLTIP_ID} />
     </div>
   );
 }

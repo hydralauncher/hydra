@@ -12,7 +12,10 @@ import {
   getMissionIcon,
   getMissionTitleKey,
 } from "./mission-catalog";
-import { PendingModerationBadge } from "./pending-moderation-badge";
+import {
+  MISSIONS_TAB_PENDING_TOOLTIP_ID,
+  PendingModerationBadge,
+} from "./pending-moderation-badge";
 import { MissionSwapButton } from "./mission-swap-button";
 import { useMissionActions } from "./use-mission-actions";
 import { useMissionFormat } from "./use-mission-format";
@@ -49,7 +52,10 @@ function DailyMissionCard({ mission }: Readonly<{ mission: Mission }>) {
       <>
         <ProgressIcon />
         {formatProgress(mission)}
-        <PendingModerationBadge count={mission.pending} />
+        <PendingModerationBadge
+          count={mission.pending}
+          tooltipId={MISSIONS_TAB_PENDING_TOOLTIP_ID}
+        />
         <MissionSwapButton mission={mission} />
       </>
     );

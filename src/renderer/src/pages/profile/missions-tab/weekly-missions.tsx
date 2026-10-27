@@ -10,7 +10,10 @@ import {
   getMissionDescriptionKey,
   getMissionTitleKey,
 } from "./mission-catalog";
-import { PendingModerationBadge } from "./pending-moderation-badge";
+import {
+  MISSIONS_TAB_PENDING_TOOLTIP_ID,
+  PendingModerationBadge,
+} from "./pending-moderation-badge";
 import { MissionSwapButton } from "./mission-swap-button";
 import { useMissionActions } from "./use-mission-actions";
 import { useMissionFormat } from "./use-mission-format";
@@ -57,8 +60,13 @@ function WeeklyMissionRow({ mission }: Readonly<{ mission: Mission }>) {
 
     return (
       <>
-        <span className="weekly-mission__meta">{formatProgress(mission)}</span>
-        <PendingModerationBadge count={mission.pending} />
+        <span className="weekly-mission__meta">
+          {formatProgress(mission)}
+          <PendingModerationBadge
+            count={mission.pending}
+            tooltipId={MISSIONS_TAB_PENDING_TOOLTIP_ID}
+          />
+        </span>
         {reward}
         <MissionSwapButton mission={mission} />
       </>

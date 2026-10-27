@@ -616,6 +616,7 @@ export interface Trail {
   group: "solo" | "social";
   current: number;
   isComplete: boolean;
+  pending: number;
   levels: TrailLevel[];
 }
 

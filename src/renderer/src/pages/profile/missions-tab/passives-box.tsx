@@ -1,6 +1,11 @@
 import { useTranslation } from "react-i18next";
 import type { PassiveProgress, PassiveType } from "@types";
-import { PendingModerationBadge } from "./pending-moderation-badge";
+import { createPortal } from "react-dom";
+import { Tooltip } from "react-tooltip";
+import {
+  PASSIVES_PENDING_TOOLTIP_ID,
+  PendingModerationBadge,
+} from "./pending-moderation-badge";
 
 const PASSIVE_RULE_KEYS: Partial<Record<PassiveType, string>> = {
   session: "passive_session_rule",
@@ -29,7 +34,10 @@ export function PassivesBox({
                 <span>{t(`passive_${passive.type}`)}</span>
                 <small>
                   {ruleKey ? `${t(ruleKey)} · ${today}` : today}
-                  <PendingModerationBadge count={passive.pending} />
+                  <PendingModerationBadge
+                    count={passive.pending}
+                    tooltipId={PASSIVES_PENDING_TOOLTIP_ID}
+                  />
                 </small>
               </div>
               <span className="passives-box__xp">+{passive.xp} XP</span>
@@ -38,6 +46,10 @@ export function PassivesBox({
         })}
       </ul>
       <p className="passives-box__hint">{t("passives_hint")}</p>
+      {createPortal(
+        <Tooltip id={PASSIVES_PENDING_TOOLTIP_ID} />,
+        document.body
+      )}
     </div>
   );
 }

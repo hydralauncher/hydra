@@ -15,6 +15,10 @@ import {
   getAmountAt,
   type TrailLevelState,
 } from "./trail-level-wheel";
+import {
+  MISSIONS_TAB_PENDING_TOOLTIP_ID,
+  PendingModerationBadge,
+} from "./pending-moderation-badge";
 import { useMissionActions } from "./use-mission-actions";
 
 const ORBIT_SIZE = 300;
@@ -462,7 +466,15 @@ function TrailLevelDetail({
           {t("trail_level", { level: level.level })}
         </span>
         <strong>{formatAmount(trail.key, level.threshold)}</strong>
-        <small>{renderStatus()}</small>
+        <small>
+          {renderStatus()}
+          {state === "current" && (
+            <PendingModerationBadge
+              count={trail.pending}
+              tooltipId={MISSIONS_TAB_PENDING_TOOLTIP_ID}
+            />
+          )}
+        </small>
         {state === "current" && (
           <span className="trails-board__detail-bar">
             <span

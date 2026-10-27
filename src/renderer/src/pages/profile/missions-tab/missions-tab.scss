@@ -259,6 +259,10 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
   }
 
   &__meta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: globals.$spacing-unit;
     min-width: 64px;
     text-align: right;
     font-size: globals.$small-font-size;
@@ -596,6 +600,9 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     }
 
     small {
+      display: flex;
+      align-items: center;
+      gap: globals.$spacing-unit;
       font-size: globals.$small-font-size;
       color: $muted;
     }
@@ -703,6 +710,9 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     }
 
     small {
+      display: flex;
+      align-items: center;
+      gap: globals.$spacing-unit;
       font-size: globals.$small-font-size;
       color: $muted;
     }
@@ -1221,8 +1231,8 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
 .pending-moderation-badge {
   display: inline-flex;
   align-items: center;
-  margin-left: 4px;
-  vertical-align: middle;
+  flex: none;
+  line-height: 0;
   color: globals.$warning-color;
   cursor: help;
 }
