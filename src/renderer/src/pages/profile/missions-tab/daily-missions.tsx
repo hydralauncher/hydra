@@ -18,7 +18,7 @@ import { useMissionFormat } from "./use-mission-format";
 
 function DailyMissionCard({ mission }: Readonly<{ mission: Mission }>) {
   const { t } = useTranslation("user_profile");
-  const { formatProgress } = useMissionFormat();
+  const { formatMissionStatus } = useMissionFormat();
   const { claim, pendingAction } = useMissionActions();
 
   const renderFooter = () => {
@@ -47,7 +47,7 @@ function DailyMissionCard({ mission }: Readonly<{ mission: Mission }>) {
     return (
       <>
         <ProgressIcon />
-        {formatProgress(mission)}
+        {formatMissionStatus(mission)}
         <MissionSwapButton mission={mission} />
       </>
     );

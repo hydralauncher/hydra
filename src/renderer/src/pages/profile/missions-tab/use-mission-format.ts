@@ -57,6 +57,15 @@ export function useMissionFormat() {
     [t, decimalFormatter, formatNumber]
   );
 
+  const formatMissionStatus = useCallback(
+    (mission: Mission) => {
+      const progress = formatProgress(mission);
+      if (mission.pending <= 0) return progress;
+      return `${progress} · ${t("mission_awaiting_review", { count: mission.pending })}`;
+    },
+    [t, formatProgress]
+  );
+
   const formatCountdown = useCallback(
     (remainingMs: number) => {
       const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
@@ -94,5 +103,10 @@ export function useMissionFormat() {
     [t, i18n.language, formatCountdown]
   );
 
-  return { formatProgress, formatCountdown, formatResetLabel };
+  return {
+    formatProgress,
+    formatMissionStatus,
+    formatCountdown,
+    formatResetLabel,
+  };
 }

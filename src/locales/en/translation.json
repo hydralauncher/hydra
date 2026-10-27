@@ -2003,6 +2003,8 @@
     "mission_progress_count": "{{current}} / {{target}}",
     "claim_reward": "Claim",
     "mission_claimed": "Claimed",
+    "mission_awaiting_review_one": "Awaiting review",
+    "mission_awaiting_review_other": "{{count}} awaiting review",
     "swap_free": "Swap for free",
     "swap_paid": "Swap · {{price}}",
     "swap_free_hint": "Swap this mission for another one, for free",

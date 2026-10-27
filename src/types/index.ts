@@ -576,6 +576,7 @@ export interface Mission {
   current: number;
   isComplete: boolean;
   isClaimed: boolean;
+  pending: number;
   xp: number;
   coins: number;
 }

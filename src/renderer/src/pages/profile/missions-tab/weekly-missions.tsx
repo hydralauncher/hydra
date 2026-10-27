@@ -16,7 +16,7 @@ import { useMissionFormat } from "./use-mission-format";
 
 function WeeklyMissionRow({ mission }: Readonly<{ mission: Mission }>) {
   const { t } = useTranslation("user_profile");
-  const { formatProgress } = useMissionFormat();
+  const { formatMissionStatus } = useMissionFormat();
   const { claim, pendingAction } = useMissionActions();
   const isReady = mission.isComplete && !mission.isClaimed;
 
@@ -56,7 +56,9 @@ function WeeklyMissionRow({ mission }: Readonly<{ mission: Mission }>) {
 
     return (
       <>
-        <span className="weekly-mission__meta">{formatProgress(mission)}</span>
+        <span className="weekly-mission__meta">
+          {formatMissionStatus(mission)}
+        </span>
         {reward}
         <MissionSwapButton mission={mission} />
       </>
