@@ -5,8 +5,8 @@ import {
   buildGlobalLeaderboardRequest,
   buildHeatmap,
   buildMetricsRequest,
+  hasReviewData,
   hasStreakData,
-  pickTopReview,
   normalizeMetricDefinitions,
   getBadgeProgress,
   getBoardState,
@@ -76,7 +76,15 @@ describe("normalizeGlobalLeaderboardResponse", () => {
     const board = normalizeGlobalLeaderboardResponse({
       entries: [
         rawEntry(1, "a", { previousRank: 3, streakActive: true }),
-        rawEntry(2, "b"),
+        rawEntry(2, "b", {
+          review: {
+            gameTitle: "Brawlhalla",
+            shop: "steam",
+            objectId: "291550",
+            score: 4,
+            text: "Great",
+          },
+        }),
       ],
       viewer: { rank: 40, value: 12, previousRank: 44 },
       weekStart: "2026-10-19T00:00:00.000Z",
@@ -92,7 +100,10 @@ describe("normalizeGlobalLeaderboardResponse", () => {
     assert.deepEqual(board.extras.a, {
       previousRank: 3,
       streakActive: true,
+      review: null,
     });
+    assert.equal(board.extras.b.review?.gameTitle, "Brawlhalla");
+    assert.equal(board.extras.b.review?.coverImageUrl, null);
     assert.equal(board.extras.b.previousRank, null);
   });
 
@@ -109,6 +120,7 @@ describe("normalizeGlobalLeaderboardResponse", () => {
     assert.deepEqual(board.extras.a, {
       previousRank: null,
       streakActive: null,
+      review: null,
     });
   });
 
@@ -147,15 +159,20 @@ describe("metric definitions", () => {
 });
 
 describe("board data detection", () => {
-  it("detects streak data from the entries", () => {
+  it("detects streak and review data from the entries", () => {
     const streak = normalizeGlobalLeaderboardResponse({
       entries: [rawEntry(1, "a", { streakActive: false })],
+    });
+    const review = normalizeGlobalLeaderboardResponse({
+      entries: [rawEntry(1, "a", { review: { text: "Nice", score: 5 } })],
     });
     const plain = normalizeGlobalLeaderboardResponse({
       entries: [rawEntry(1, "a")],
     });
 
     assert.equal(hasStreakData(streak), true);
+    assert.equal(hasReviewData(streak), false);
+    assert.equal(hasReviewData(review), true);
     assert.equal(hasStreakData(plain), false);
     assert.equal(hasStreakData(null), false);
   });
@@ -446,40 +463,5 @@ describe("profile normalizers", () => {
     assert.equal(getBadgeProgress(badges.badges[1]), 55);
     assert.equal(getBadgeProgress(badges.badges[0]), 0);
     assert.throws(() => normalizeBadges({}), TypeError);
-  });
-});
-
-const userReview = (
-  id: string,
-  upvotes: number,
-  downvotes = 0,
-  createdAt = "2026-10-01T00:00:00.000Z"
-) => ({
-  reviewHtml: `<p>${id}</p>`,
-  score: 5,
-  upvotes,
-  downvotes,
-  createdAt,
-  game: { title: id, iconUrl: null, objectId: id, shop: "steam" },
-});
-
-describe("pickTopReview", () => {
-  it("returns null without reviews", () => {
-    assert.equal(pickTopReview([]), null);
-  });
-
-  it("picks the most upvoted, then fewer downvotes, then the newest", () => {
-    const top = (reviews: ReturnType<typeof userReview>[]) =>
-      pickTopReview(reviews)?.game.title;
-
-    assert.equal(top([userReview("a", 2), userReview("b", 5)]), "b");
-    assert.equal(top([userReview("a", 5, 2), userReview("b", 5, 1)]), "b");
-    assert.equal(
-      top([
-        userReview("a", 5, 1, "2026-10-01T00:00:00.000Z"),
-        userReview("b", 5, 1, "2026-10-20T00:00:00.000Z"),
-      ]),
-      "b"
-    );
   });
 });

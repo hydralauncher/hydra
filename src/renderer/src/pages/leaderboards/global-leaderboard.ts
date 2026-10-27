@@ -61,6 +61,7 @@ export interface LeaderboardReview {
 export interface LeaderboardEntryExtras {
   previousRank: number | null;
   streakActive: boolean | null;
+  review: LeaderboardReview | null;
 }
 
 export interface GlobalLeaderboard extends Leaderboard {
@@ -179,37 +180,19 @@ const normalizeUser = (value: unknown): LeaderboardUser | null => {
   };
 };
 
-export interface UserReviewsResponse {
-  reviews: {
-    reviewHtml: string;
-    score: number;
-    upvotes: number;
-    downvotes: number;
-    createdAt: string;
-    game: {
-      title: string;
-      iconUrl: string | null;
-      objectId: string;
-      shop: string;
-    };
-  }[];
-}
+const normalizeReview = (value: unknown): LeaderboardReview | null => {
+  if (!isRecord(value) || typeof value.text !== "string") return null;
 
-export type UserReview = UserReviewsResponse["reviews"][number];
-
-// Same order as the API's most voted reviews: upvotes, then fewer downvotes,
-// then the newest.
-export const pickTopReview = (reviews: UserReview[]) =>
-  reviews.reduce<UserReview | null>((top, review) => {
-    if (!top) return review;
-    if (review.upvotes !== top.upvotes) {
-      return review.upvotes > top.upvotes ? review : top;
-    }
-    if (review.downvotes !== top.downvotes) {
-      return review.downvotes < top.downvotes ? review : top;
-    }
-    return review.createdAt > top.createdAt ? review : top;
-  }, null);
+  return {
+    gameTitle: typeof value.gameTitle === "string" ? value.gameTitle : "",
+    shop: typeof value.shop === "string" ? value.shop : "",
+    objectId: typeof value.objectId === "string" ? value.objectId : "",
+    coverImageUrl: toStringOrNull(value.coverImageUrl),
+    score: toNonNegativeNumber(value.score),
+    createdAt: toStringOrNull(value.createdAt),
+    text: value.text,
+  };
+};
 
 export const buildGlobalLeaderboardRequest = (
   query: GlobalLeaderboardQuery
@@ -249,6 +232,7 @@ export const normalizeGlobalLeaderboardResponse = (
         previousRank: toPositiveInteger(raw.previousRank),
         streakActive:
           typeof raw.streakActive === "boolean" ? raw.streakActive : null,
+        review: normalizeReview(raw.review),
       };
     });
   }
@@ -342,6 +326,12 @@ export const hasStreakData = (leaderboard: GlobalLeaderboard | null) =>
   Boolean(leaderboard) &&
   Object.values(leaderboard?.extras ?? {}).some(
     (extras) => extras.streakActive !== null
+  );
+
+export const hasReviewData = (leaderboard: GlobalLeaderboard | null) =>
+  Boolean(leaderboard) &&
+  Object.values(leaderboard?.extras ?? {}).some(
+    (extras) => extras.review !== null
   );
 
 export const getRankDelta = (

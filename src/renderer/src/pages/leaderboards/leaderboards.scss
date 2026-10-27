@@ -504,6 +504,52 @@ $leaderboards-streak-to: #b05cff;
     }
   }
 
+  &__review-tip {
+    width: 360px;
+    display: flex;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 1.5);
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background-color: globals.$dark-background-color;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    text-align: left;
+  }
+
+  &__review-tip-cover {
+    width: 48px;
+    height: 72px;
+    flex-shrink: 0;
+    object-fit: cover;
+    border: solid 1px globals.$border-color;
+    border-radius: 4px;
+  }
+
+  &__review-tip-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__review-tip-game {
+    font-size: globals.$hint-font-size;
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__review-tip-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+    font-size: globals.$hint-font-size;
+    line-height: 19px;
+    color: globals.$muted-color;
+  }
+
   &__chips {
     min-width: 0;
     margin: 0;
