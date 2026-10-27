@@ -3,7 +3,6 @@ import type { ProfileVisibility } from "./index";
 
 export type ScreenshotShop = GameShop;
 export type ScreenshotModerationStatus = "PENDING" | "APPROVED" | "BLOCKED";
-export type TextModerationOutcome = "approved" | "hidden" | "unevaluated";
 export type DescriptionModerationStatus = "APPROVED" | "BLOCKED";
 export type ScreenshotQuality = "STANDARD" | "CLOUD";
 export type ScreenshotCommentsPolicy = "EVERYONE" | "FRIENDS" | "NOBODY";
@@ -130,11 +129,6 @@ export interface ScreenshotModerationState {
   moderationReason: string | null;
 }
 
-export interface ScreenshotTextModeration {
-  title?: TextModerationOutcome;
-  description?: TextModerationOutcome;
-}
-
 export type ScreenshotUpdateResponse = ProfileScreenshot & {
   textModeration?: ScreenshotTextModeration;
 };
@@ -152,11 +146,6 @@ export interface ScreenshotLikeResponse {
   likedByMe: boolean;
 }
 
-export interface ScreenshotUnlikeResponse {
-  likeCount?: number;
-  likedByMe: false;
-}
-
 export interface ScreenshotComment {
   id: string;
   bodyHtml: string;
@@ -169,7 +158,7 @@ export interface ScreenshotComment {
   isHidden: boolean;
   isOwn: boolean;
   canDelete: boolean;
-  moderation?: TextModerationOutcome;
+  moderation?: ScreenshotTextModerationVerdict;
 }
 
 export interface ScreenshotCommentsResponse {

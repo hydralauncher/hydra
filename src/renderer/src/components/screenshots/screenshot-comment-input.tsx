@@ -1,19 +1,25 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "../button/button";
 import { RichTextEditorField } from "../rich-text-editor/rich-text-editor";
-import { useRichTextEditor } from "../rich-text-editor/use-rich-text-editor";
+import {
+  isRichTextEditorAvailable,
+  useRichTextEditor,
+} from "../rich-text-editor/use-rich-text-editor";
 import {
   SCREENSHOT_COMMENT_HTML_MAX_LENGTH,
   SCREENSHOT_COMMENT_MAX_LENGTH,
   richTextToPlainText,
 } from "@shared";
 
+import type { RestoredCommentDraft } from "./use-screenshot-comments";
+
 const measureCommentText = (html: string) => richTextToPlainText(html).length;
 
 interface ScreenshotCommentInputProps {
   initialValue?: string;
+  restoredDraft?: RestoredCommentDraft | null;
   placeholder: string;
   submitLabel: string;
   isSubmitting?: boolean;
@@ -24,6 +30,7 @@ interface ScreenshotCommentInputProps {
 
 export function ScreenshotCommentInput({
   initialValue = "",
+  restoredDraft = null,
   placeholder,
   submitLabel,
   isSubmitting = false,
@@ -55,6 +62,20 @@ export function ScreenshotCommentInput({
     onEscape: onCancel,
     measureText: measureCommentText,
   });
+
+  const appliedDraftKeyRef = useRef(0);
+
+  useEffect(() => {
+    if (!restoredDraft || restoredDraft.key === appliedDraftKeyRef.current) {
+      return;
+    }
+    if (!isRichTextEditorAvailable(editor)) return;
+
+    appliedDraftKeyRef.current = restoredDraft.key;
+    if (editor.getText().trim()) return;
+
+    editor.commands.setContent(restoredDraft.body, { emitUpdate: true });
+  }, [editor, restoredDraft]);
 
   const isDisabled =
     charCount === 0 ||

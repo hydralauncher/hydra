@@ -109,7 +109,7 @@ const createPendingComment = (
   canDelete: false,
 });
 
-interface RestoredCommentDraft {
+export interface RestoredCommentDraft {
   key: number;
   body: string;
 }
