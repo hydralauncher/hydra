@@ -70,6 +70,70 @@ const getLanguageName = (languageCode: string | null, locale: string) => {
   }
 };
 
+interface ReviewTranslationControlsProps {
+  canTranslate: boolean;
+  isShowingTranslation: boolean;
+  showOriginal: boolean;
+  detectedLanguage: string | null;
+  originalHtml: string;
+  onRequestTranslation: () => void;
+  onToggleOriginal: () => void;
+}
+
+function ReviewTranslationControls({
+  canTranslate,
+  isShowingTranslation,
+  showOriginal,
+  detectedLanguage,
+  originalHtml,
+  onRequestTranslation,
+  onToggleOriginal,
+}: Readonly<ReviewTranslationControlsProps>) {
+  const { t, i18n } = useTranslation("game_details");
+
+  if (!isShowingTranslation) {
+    if (!canTranslate) return null;
+
+    return (
+      <button
+        className="game-details__review-translation-toggle"
+        onClick={onRequestTranslation}
+      >
+        <Languages size={13} />
+        {t("show_translation")}
+      </button>
+    );
+  }
+
+  return (
+    <>
+      <button
+        className="game-details__review-translation-toggle"
+        onClick={onToggleOriginal}
+      >
+        <Languages size={13} />
+        {showOriginal
+          ? t("hide_original")
+          : t("show_original_translated_from", {
+              language: getLanguageName(detectedLanguage, i18n.language),
+            })}
+      </button>
+      {showOriginal && (
+        <div
+          className="game-details__review-content"
+          style={{
+            opacity: 0.6,
+            marginTop: "12px",
+          }}
+          dangerouslySetInnerHTML={{
+            __html: sanitizeHtml(originalHtml),
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 export function ReviewItem({
   review,
   userDetailsId,
@@ -234,51 +298,21 @@ export function ReviewItem({
             __html: sanitizeHtml(displayContent),
           }}
         />
-        {needsTranslation && !isShowingTranslation && (
-          <button
-            className="game-details__review-translation-toggle"
-            onClick={() => setIsTranslationRequested(true)}
-          >
-            <Languages size={13} />
-            {t("show_translation")}
-          </button>
-        )}
-        {isShowingTranslation && (
-          <>
-            <button
-              className="game-details__review-translation-toggle"
-              onClick={() => {
-                if (isTranslationDisabled) {
-                  setIsTranslationRequested(false);
-                  return;
-                }
-                setShowOriginal(!showOriginal);
-              }}
-            >
-              <Languages size={13} />
-              {showOriginal
-                ? t("hide_original")
-                : t("show_original_translated_from", {
-                    language: getLanguageName(
-                      review.detectedLanguage,
-                      i18n.language
-                    ),
-                  })}
-            </button>
-            {showOriginal && (
-              <div
-                className="game-details__review-content"
-                style={{
-                  opacity: 0.6,
-                  marginTop: "12px",
-                }}
-                dangerouslySetInnerHTML={{
-                  __html: sanitizeHtml(review.reviewHtml),
-                }}
-              />
-            )}
-          </>
-        )}
+        <ReviewTranslationControls
+          canTranslate={Boolean(needsTranslation)}
+          isShowingTranslation={isShowingTranslation}
+          showOriginal={showOriginal}
+          detectedLanguage={review.detectedLanguage}
+          originalHtml={review.reviewHtml}
+          onRequestTranslation={() => setIsTranslationRequested(true)}
+          onToggleOriginal={() => {
+            if (isTranslationDisabled) {
+              setIsTranslationRequested(false);
+              return;
+            }
+            setShowOriginal(!showOriginal);
+          }}
+        />
       </div>
       <div className="game-details__review-actions">
         <div className="game-details__review-actions-left">
