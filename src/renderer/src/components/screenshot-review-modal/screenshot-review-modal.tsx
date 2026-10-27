@@ -112,7 +112,7 @@ function ScreenshotReviewContent({
 
   useEffect(() => {
     if (review.selectedClientId) setSelectedClientId(review.selectedClientId);
-  }, [review]);
+  }, [review.selectedClientId]);
 
   useEffect(() => {
     let active = true;
@@ -237,17 +237,13 @@ function ScreenshotReviewContent({
 
   const viewerItems = useMemo<GalleryMediaItem[]>(
     () =>
-      selectedScreenshot
-        ? [
-            {
-              id: selectedScreenshot.clientId,
-              type: "image",
-              src: getLocalImageSource(selectedScreenshot.path),
-              alt: selectedScreenshot.gameTitle,
-            },
-          ]
-        : [],
-    [selectedScreenshot]
+      reviewScreenshots.map((screenshot) => ({
+        id: screenshot.clientId,
+        type: "image",
+        src: getLocalImageSource(screenshot.path),
+        alt: screenshot.gameTitle,
+      })),
+    [reviewScreenshots]
   );
 
   const selectedIndex = selectedScreenshot
@@ -369,10 +365,13 @@ function ScreenshotReviewContent({
           visible={isViewerOpen}
           fullscreen
           items={viewerItems}
-          index={0}
+          index={Math.max(selectedIndex, 0)}
           showFilmstrip={false}
           showCounter={false}
-          onNavigate={() => undefined}
+          onNavigate={(nextIndex) => {
+            const nextScreenshot = reviewScreenshots[nextIndex];
+            if (nextScreenshot) selectScreenshot(nextScreenshot.clientId);
+          }}
           onClose={() => setIsViewerOpen(false)}
         />
       )}
