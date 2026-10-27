@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import type {
   ProfileScreenshot,
   ScreenshotLikeResponse,
-  ScreenshotUnlikeResponse,
   ScreenshotReportValues,
   ScreenshotUpdateRequest,
   ScreenshotUpdateResponse,
@@ -23,7 +22,7 @@ import { useBigPictureToast } from "../../../../hooks";
 import { getScreenshotErrorKey } from "../helpers";
 
 const getLikePatch = (
-  response: ScreenshotLikeResponse | ScreenshotUnlikeResponse
+  response: ScreenshotLikeResponse
 ): Partial<ProfileScreenshot> =>
   typeof response.likeCount === "number"
     ? { likedByMe: response.likedByMe, likeCount: response.likeCount }
@@ -140,7 +139,7 @@ export function useLightboxSocialActions({
             path,
             { needsAuth: true }
           )
-        : await globalThis.window.electron.hydraApi.delete<ScreenshotUnlikeResponse>(
+        : await globalThis.window.electron.hydraApi.delete<ScreenshotLikeResponse>(
             path,
             { needsAuth: true }
           );

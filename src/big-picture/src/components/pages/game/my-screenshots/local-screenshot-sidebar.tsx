@@ -26,15 +26,7 @@ import { useBigPictureToast, useUserDetails } from "../../../../hooks";
 import { formatScreenshotDate } from "../../screenshots";
 
 const BLOCK_TARGET: FocusOverrideTarget = { type: "block" };
-const EDITABLE_STATES = new Set<LocalScreenshot["state"]>([
-  "local",
-  "reviewing",
-  "failed",
-]);
-const UNDECIDED_STATES = new Set<LocalScreenshot["state"]>([
-  "local",
-  "reviewing",
-]);
+const EDITABLE_STATES = new Set<LocalScreenshot["state"]>(["local", "failed"]);
 
 const getFieldFocusIds = (clientId: string): ReviewFieldFocusIds => ({
   title: `local-screenshot-sidebar-title:${clientId}`,
@@ -87,7 +79,7 @@ export function LocalScreenshotSidebar({
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
   const { clientId } = screenshot;
   const isCustomGame = screenshot.shop === "custom";
-  const isUndecided = UNDECIDED_STATES.has(screenshot.state);
+  const isUndecided = screenshot.state === "local";
   const canRetry =
     screenshot.state === "failed" &&
     isScreenshotUploadRetryable(screenshot.lastError);
