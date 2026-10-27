@@ -58,6 +58,18 @@ const getRatingText = (score: number, t: (key: string) => string): string => {
 
 const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
 
+const getLanguageName = (languageCode: string | null, locale: string) => {
+  if (!languageCode) return "";
+  try {
+    const displayNames = new Intl.DisplayNames([locale], {
+      type: "language",
+    });
+    return displayNames.of(languageCode) || languageCode.toUpperCase();
+  } catch {
+    return languageCode.toUpperCase();
+  }
+};
+
 export function ReviewItem({
   review,
   userDetailsId,
@@ -101,18 +113,6 @@ export function ReviewItem({
   const isShowingTranslation =
     Boolean(needsTranslation) &&
     (!isTranslationDisabled || isTranslationRequested);
-
-  const getLanguageName = (languageCode: string | null) => {
-    if (!languageCode) return "";
-    try {
-      const displayNames = new Intl.DisplayNames([i18n.language], {
-        type: "language",
-      });
-      return displayNames.of(languageCode) || languageCode.toUpperCase();
-    } catch {
-      return languageCode.toUpperCase();
-    }
-  };
 
   // Format playtime similar to hero panel
   const formatPlayTime = (playTimeInSeconds: number) => {
@@ -259,7 +259,10 @@ export function ReviewItem({
               {showOriginal
                 ? t("hide_original")
                 : t("show_original_translated_from", {
-                    language: getLanguageName(review.detectedLanguage),
+                    language: getLanguageName(
+                      review.detectedLanguage,
+                      i18n.language
+                    ),
                   })}
             </button>
             {showOriginal && (
