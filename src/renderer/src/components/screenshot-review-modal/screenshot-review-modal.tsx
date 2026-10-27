@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import type { LocalScreenshot, ScreenshotReview } from "@types";
@@ -12,17 +12,14 @@ import { ReviewFilmstrip } from "./review-filmstrip";
 import { ScreenshotReviewItem } from "./screenshot-review-item";
 import {
   applyUploadProgress,
-  createReviewDraft,
   getLocalImageSource,
   isScreenshotAwaitingReview,
   isScreenshotUndecided,
   selectReviewScreenshots,
-  type ScreenshotReviewDraft,
 } from "./screenshot-review-state";
+import { useScreenshotReviewDrafts } from "./use-screenshot-review-drafts";
 
 import "./screenshot-review-modal.scss";
-
-const DRAFT_SAVE_DELAY_MS = 300;
 
 const closeReview = () => {
   window.electron.closeScreenshotReview().catch((error) => {
@@ -97,18 +94,10 @@ function ScreenshotReviewContent({
   const [selectedClientId, setSelectedClientId] = useState<string | null>(
     review.selectedClientId
   );
-  const [drafts, setDrafts] = useState<Record<string, ScreenshotReviewDraft>>(
-    {}
-  );
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const library = useAppSelector((state) => state.library.value);
   const hasLiveSnapshot = useRef(false);
-  const draftsRef = useRef(drafts);
-  const draftSaveTimers = useRef(
-    new Map<string, ReturnType<typeof setTimeout>>()
-  );
-  draftsRef.current = drafts;
 
   useEffect(() => {
     if (review.selectedClientId) setSelectedClientId(review.selectedClientId);
@@ -155,19 +144,8 @@ function ScreenshotReviewContent({
     [screenshots, review.clientIds]
   );
 
-  useEffect(() => {
-    setDrafts((current) => {
-      const missing = reviewScreenshots.filter(
-        (screenshot) => !current[screenshot.clientId]
-      );
-      if (!missing.length) return current;
-      const next = { ...current };
-      for (const screenshot of missing) {
-        next[screenshot.clientId] = createReviewDraft(screenshot);
-      }
-      return next;
-    });
-  }, [reviewScreenshots]);
+  const { getDraft, updateDraft, flushDrafts } =
+    useScreenshotReviewDrafts(reviewScreenshots);
 
   const isLoaded = screenshots !== null;
   const pendingScreenshots = reviewScreenshots.filter(
@@ -186,55 +164,6 @@ function ScreenshotReviewContent({
     if (isLoaded && reviewScreenshots.length === 0) closeReview();
   }, [isLoaded, reviewScreenshots.length]);
 
-  const persistDraft = useCallback((clientId: string) => {
-    const timer = draftSaveTimers.current.get(clientId);
-    if (timer) clearTimeout(timer);
-    draftSaveTimers.current.delete(clientId);
-
-    const draft = draftsRef.current[clientId];
-    if (!draft) return;
-
-    window.electron
-      .updateLocalScreenshotDraft(clientId, {
-        isSpoiler: draft.isSpoiler,
-        visibility: draft.visibility,
-        customGameTitle: draft.customGameTitle,
-        description: draft.description,
-      })
-      .catch((error) => {
-        logger.error("Failed to save the screenshot draft", error);
-      });
-  }, []);
-
-  const flushDrafts = useCallback(() => {
-    for (const clientId of draftSaveTimers.current.keys()) {
-      persistDraft(clientId);
-    }
-  }, [persistDraft]);
-
-  const updateDraft = useCallback(
-    (clientId: string, draft: ScreenshotReviewDraft) => {
-      draftsRef.current = { ...draftsRef.current, [clientId]: draft };
-      setDrafts((current) => ({ ...current, [clientId]: draft }));
-
-      const timer = draftSaveTimers.current.get(clientId);
-      if (timer) clearTimeout(timer);
-      draftSaveTimers.current.set(
-        clientId,
-        setTimeout(() => persistDraft(clientId), DRAFT_SAVE_DELAY_MS)
-      );
-    },
-    [persistDraft]
-  );
-
-  useEffect(() => {
-    window.addEventListener("beforeunload", flushDrafts);
-    return () => {
-      window.removeEventListener("beforeunload", flushDrafts);
-      flushDrafts();
-    };
-  }, [flushDrafts]);
-
   const viewerItems = useMemo<GalleryMediaItem[]>(
     () =>
       reviewScreenshots.map((screenshot) => ({
@@ -250,8 +179,7 @@ function ScreenshotReviewContent({
     ? reviewScreenshots.indexOf(selectedScreenshot)
     : -1;
   const selectedDraft = selectedScreenshot
-    ? (drafts[selectedScreenshot.clientId] ??
-      createReviewDraft(selectedScreenshot))
+    ? getDraft(selectedScreenshot)
     : null;
   const libraryGame = selectedScreenshot
     ? library.find(
@@ -337,7 +265,7 @@ function ScreenshotReviewContent({
           <ScreenshotReviewItem
             key={selectedScreenshot.clientId}
             screenshot={selectedScreenshot}
-            draft={selectedDraft ?? createReviewDraft(selectedScreenshot)}
+            draft={getDraft(selectedScreenshot)}
             onDraftCommit={flushDrafts}
             onDraftChange={(draft) =>
               updateDraft(selectedScreenshot.clientId, draft)

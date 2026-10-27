@@ -7,15 +7,17 @@ import Skeleton from "react-loading-skeleton";
 import { Button } from "@renderer/components";
 import {
   ScreenshotCard,
-  ScreenshotLightbox,
   ScreenshotLoadMoreError,
   useLoadUntilScrollable,
 } from "@renderer/components/screenshots";
 import type { ScreenshotWriteBus } from "@shared";
-import type { GameShop, LocalScreenshot, ProfileScreenshot } from "@types";
+import type { GameShop } from "@types";
 
 import { GameScreenshotsHotkeyTip } from "./game-screenshots-hotkey-tip";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
+import type { MyScreenshotsEntry } from "./my-screenshots-entries";
+import { MyScreenshotsLightbox } from "./my-screenshots-lightbox";
+import { useMyScreenshotsViewer } from "./use-my-screenshots-viewer";
 import {
   groupByCaptureDay,
   useCaptureDayLabel,
@@ -30,10 +32,6 @@ import {
 const MY_SCREENSHOTS_PAGE_SIZE = 24;
 const SKELETON_COUNT = 6;
 const INFINITE_SCROLL_THRESHOLD = 0.9;
-
-type MyScreenshotsEntry =
-  | { kind: "local"; time: number; screenshot: LocalScreenshot }
-  | { kind: "uploaded"; time: number; screenshot: ProfileScreenshot };
 
 interface MyScreenshotsPanelProps {
   visible: boolean;
@@ -132,6 +130,14 @@ export function MyScreenshotsPanel({
     })),
   ];
 
+  const viewer = useMyScreenshotsViewer({
+    lightbox,
+    localScreenshots: localState.localScreenshots,
+    hasLocalLoaded: localState.hasLoaded,
+    uploadedItems,
+    getUploadStatus: local.getUploadStatus,
+  });
+
   const isLoading =
     !localState.hasLoaded || (canFetchPublished && !feed.hasLoaded);
   const hasFailed =
@@ -165,7 +171,13 @@ export function MyScreenshotsPanel({
           isOwner
           isLiking={actions.likingIds.has(entry.screenshot.id)}
           showCommentCount={showCommentCount}
-          onOpen={lightbox.open}
+          onOpen={(item) =>
+            viewer.openEntry({
+              kind: "uploaded",
+              time: item.createdAt,
+              screenshot: item,
+            })
+          }
           onLike={(item) => void actions.toggleLike(item)}
           onImageError={lightbox.refreshScreenshot}
         />
@@ -181,7 +193,13 @@ export function MyScreenshotsPanel({
           isBusy={local.busyIds.has(screenshot.clientId)}
           uploadStatus={local.getUploadStatus(screenshot)}
           className="local-screenshot-tile--card"
-          onOpen={local.open}
+          onOpen={(item) =>
+            viewer.openEntry({
+              kind: "local",
+              time: item.capturedAt,
+              screenshot: item,
+            })
+          }
           onDelete={local.requestDelete}
         />
       </li>
@@ -234,9 +252,13 @@ export function MyScreenshotsPanel({
         ) : null}
       </div>
 
-      <ScreenshotLightbox
+      <MyScreenshotsLightbox
         collection={published}
-        navigationItems={uploadedItems}
+        entries={entries}
+        openLocal={viewer.openLocal}
+        describeLocal={local.describe}
+        onOpenEntry={viewer.openEntry}
+        onClose={viewer.close}
       />
       {local.elements}
     </div>

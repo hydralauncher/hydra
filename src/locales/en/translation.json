@@ -2850,6 +2850,7 @@
     "show_details": "Show details",
     "hide_details": "Hide details",
     "saved_locally": "Screenshot saved locally",
+    "not_uploaded": "Not uploaded",
     "screenshot_alt": "Screenshot of {{game}} taken on {{date}}",
     "spoiler_hint": "Others will see it blurred until they choose to reveal it",
     "spoiler_label": "Contains spoilers",
