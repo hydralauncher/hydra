@@ -248,7 +248,7 @@ export const resolveForegroundGame = async (
   }
 
   if (
-    source !== "gamepad" ||
+    (source !== "gamepad" && source !== "portal") ||
     !isWaylandSession() ||
     BrowserWindow.getFocusedWindow() !== null
   ) {

@@ -1,5 +1,6 @@
 use super::binding::{
-    gamepad, windows_scan_code, Backend, ComboMatcher, HotkeyMatcher, Modifiers, TriggerSource,
+    gamepad, normalize_windows_scan_code, windows_scan_code, Backend, ComboMatcher, HotkeyMatcher,
+    Modifiers, TriggerSource,
 };
 use super::{BackendResult, Context, PlatformStatus, StartOptions};
 use std::ffi::c_void;
@@ -289,7 +290,7 @@ fn handle_raw_input(context: &Context, hotkey: &mut HotkeyMatcher, lparam: LPARA
     let keyboard = unsafe { input.data.keyboard };
     let code = if keyboard.MakeCode == 0 || keyboard.MakeCode == KEYBOARD_OVERRUN_MAKE_CODE {
         match scan_code_from_virtual_key(keyboard.VKey) {
-            Some(code) => code,
+            Some(code) => normalize_windows_scan_code(code),
             None => return,
         }
     } else {

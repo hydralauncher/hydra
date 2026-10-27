@@ -466,6 +466,8 @@ class ScreenshotUploadWorker {
 
     await LocalScreenshotStore.update(screenshot.clientId, {
       pendingCompleteScreenshotId: presign.id,
+      moderationStatus: null,
+      moderationReason: null,
       uploadQuality: compressed.quality,
     });
     return presign.id;

@@ -173,7 +173,11 @@ export interface ScreenshotCommentVoteResponse {
   myVote: ScreenshotCommentVoteType | null;
 }
 
-export type ScreenshotTriggerSource = "keyboard" | "gamepad" | "deeplink";
+export type ScreenshotTriggerSource =
+  | "keyboard"
+  | "gamepad"
+  | "portal"
+  | "deeplink";
 
 export interface ScreenshotHotkeyBinding {
   key: string;
