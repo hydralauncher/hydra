@@ -336,6 +336,7 @@ impl Watcher {
 
             if inotify_index.is_some_and(|index| fds[index].revents != 0) {
                 self.drain_inotify();
+                self.ignored.clear();
                 self.scan();
             }
         }
