@@ -174,15 +174,18 @@ export class DownloadSourcesChecker {
         }
       );
 
-      const response: DownloadSourcesChangeResponse[] = [];
-      for (const gamesChunk of chunk(games, CHANGES_REQUEST_MAX_GAMES)) {
-        const chunkResponse = await HydraApi.checkDownloadSourcesChanges(
-          downloadSourceIds,
-          gamesChunk,
-          since
-        );
-        if (Array.isArray(chunkResponse)) response.push(...chunkResponse);
-      }
+      const chunkResponses = await Promise.all(
+        chunk(games, CHANGES_REQUEST_MAX_GAMES).map((gamesChunk) =>
+          HydraApi.checkDownloadSourcesChanges(
+            downloadSourceIds,
+            gamesChunk,
+            since
+          )
+        )
+      );
+      const response: DownloadSourcesChangeResponse[] = chunkResponses.flatMap(
+        (chunkResponse) => (Array.isArray(chunkResponse) ? chunkResponse : [])
+      );
 
       logger.info("API call completed, response:", response);
 
