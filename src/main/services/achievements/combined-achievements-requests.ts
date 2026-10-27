@@ -76,7 +76,7 @@ const fetch = <T>(
 
   const requestKey = JSON.stringify([key, language]);
   const pending = inFlight.get(requestKey);
-  if (pending) return pending as Promise<T | null>;
+  if (pending !== undefined) return pending as Promise<T | null>;
 
   const promise = request()
     .then((value) => {
