@@ -8,7 +8,7 @@ export const DEFAULT_SCREENSHOT_HOTKEY: Readonly<ScreenshotHotkeyBinding> = {
 };
 
 export const DEFAULT_SCREENSHOT_GAMEPAD_COMBO: readonly ScreenshotGamepadButton[] =
-  ["back", "rb"];
+  ["back", "ls"];
 
 export const SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS = 2;
 export const SCREENSHOT_GAMEPAD_COMBO_MAX_BUTTONS = 4;

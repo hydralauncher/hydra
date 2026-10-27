@@ -139,7 +139,7 @@ describe("validateScreenshotGamepadCombo", () => {
 });
 
 describe("normalizeScreenshotGamepadCombo", () => {
-  it("falls back to back+rb for malformed or invalid saved combos", () => {
+  it("falls back to the default combo for malformed or invalid saved combos", () => {
     for (const saved of [
       undefined,
       null,
