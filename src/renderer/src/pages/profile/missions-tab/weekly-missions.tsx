@@ -32,11 +32,11 @@ function WeeklyMissionRow({ mission }: Readonly<{ mission: Mission }>) {
     if (mission.isClaimed) {
       return (
         <>
-          <span className="weekly-mission__meta">
-            <DoneIcon isDim />
-            {t("mission_claimed")}
-          </span>
+          <span className="weekly-mission__meta">{t("mission_claimed")}</span>
           {reward}
+          <span className="weekly-mission__done">
+            <DoneIcon isDim />
+          </span>
         </>
       );
     }

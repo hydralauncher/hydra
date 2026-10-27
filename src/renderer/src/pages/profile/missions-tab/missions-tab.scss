@@ -233,6 +233,17 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     line-height: 0;
   }
 
+  // Same box as the swap button, so the claimed check lines up with it.
+  &__done {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    line-height: 0;
+  }
+
   &__text {
     display: flex;
     flex-direction: column;
