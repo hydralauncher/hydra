@@ -1,12 +1,10 @@
 import { BrowserWindow, Notification } from "electron";
 import { t } from "i18next";
-import fs from "node:fs";
 import { pathToFileURL } from "node:url";
 import icon from "@resources/icon.png?asset";
+import captureSoundPath from "@resources/screenshot.mp3?asset";
 import soundPagePath from "@resources/screenshot-sound.html?asset";
-import { achievementSoundPath } from "@main/constants";
-import { getThemeSoundPath } from "@main/helpers";
-import { db, levelKeys, themesSublevel } from "@main/level";
+import { db, levelKeys } from "@main/level";
 import { resolveScreenshotPreferences } from "@shared";
 import type { ScreenshotFeedbackToast, UserPreferences } from "@types";
 
@@ -71,21 +69,7 @@ const createSoundWindow = (): SoundWindow => {
   return { window, ready };
 };
 
-const resolveCaptureSoundUrl = async () => {
-  try {
-    const themes = await themesSublevel.values().all();
-    const activeTheme = themes.find((theme) => theme.isActive);
-    if (activeTheme?.hasCustomSound) {
-      const soundPath = getThemeSoundPath(activeTheme.id, activeTheme.name);
-      if (soundPath && fs.existsSync(soundPath)) {
-        return pathToFileURL(soundPath).href;
-      }
-    }
-  } catch (error) {
-    logger.warn("Could not resolve the theme capture sound", error);
-  }
-  return pathToFileURL(achievementSoundPath).href;
-};
+const captureSoundUrl = pathToFileURL(captureSoundPath).href;
 
 const showOsNotification = (title: string, body: string) => {
   try {
@@ -132,14 +116,13 @@ export class ScreenshotFeedback {
     const current = soundWindow;
     if (!current) return;
 
-    const soundUrl = await resolveCaptureSoundUrl();
     const volume =
       userPreferences?.achievementSoundVolume ?? DEFAULT_CAPTURE_SOUND_VOLUME;
     if (!(await current.ready) || current.window.isDestroyed()) return;
 
     await current.window.webContents
       .executeJavaScript(
-        `globalThis.hydraScreenshotSound(${JSON.stringify(soundUrl)}, ${JSON.stringify(volume)})`
+        `globalThis.hydraScreenshotSound(${JSON.stringify(captureSoundUrl)}, ${JSON.stringify(volume)})`
       )
       .catch((error) => {
         logger.error("Failed to play the screenshot sound", error);
