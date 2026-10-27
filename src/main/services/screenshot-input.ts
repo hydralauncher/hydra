@@ -27,7 +27,10 @@ import {
   type ScreenshotInputNativeEvent,
   type ScreenshotInputNativeStatus,
 } from "./native-addon";
-import { isScreenshotsFeatureEnabled } from "./screenshots/screenshot-feature";
+import {
+  isScreenshotsFeatureEnabled,
+  onScreenshotsFeatureChange,
+} from "./screenshots/screenshot-feature";
 
 type ScreenshotTriggerListener = (source: ScreenshotTriggerSource) => void;
 type ScreenshotTriggerChannel = "input" | "deeplink";
@@ -79,7 +82,6 @@ export const toScreenshotInputNativeConfig = (
   ctrl: settings.hotkey.ctrl,
   alt: settings.hotkey.alt,
   shift: settings.hotkey.shift,
-  keyboardEnabled: true,
   gamepadEnabled: settings.gamepadEnabled,
   gamepadButtons: [...settings.gamepadCombo],
 });
@@ -126,15 +128,10 @@ export const toScreenshotInputStatus = (
   hint: getScreenshotInputHint(status, settings.gamepadEnabled),
 });
 
-const PORTAL_SHORTCUT_BACKENDS = new Set<ScreenshotInputBackend>([
-  "x11-xinput2",
-  "unavailable",
-]);
-
 const shouldUsePortalShortcut = (status: ScreenshotInputNativeStatus) =>
   process.platform === "linux" &&
   status.waylandSession &&
-  PORTAL_SHORTCUT_BACKENDS.has(toBackend(status.keyboardBackend));
+  toBackend(status.keyboardBackend) === "unavailable";
 
 const withPortalKeyboard = (
   status: ScreenshotInputNativeStatus
@@ -180,6 +177,7 @@ export class ScreenshotInputService {
   private static portalAccelerator: string | null = null;
   private static nativeStatus: ScreenshotInputNativeStatus | null = null;
   private static unsubscribeGamesRunning: (() => void) | null = null;
+  private static unsubscribeFeature: (() => void) | null = null;
 
   public static onTrigger(listener: ScreenshotTriggerListener) {
     this.listeners.add(listener);
@@ -196,11 +194,11 @@ export class ScreenshotInputService {
   }
 
   public static trigger(source: ScreenshotTriggerSource) {
-    if (!this.settings.enabled) return false;
+    if (!this.featureEnabled || !this.settings.enabled) return false;
 
     const channel: ScreenshotTriggerChannel =
       source === "deeplink" ? "deeplink" : "input";
-    const now = Date.now();
+    const now = performance.now();
     const lastTriggerAt = this.lastTriggerAt.get(channel);
     if (
       lastTriggerAt !== undefined &&
@@ -235,7 +233,9 @@ export class ScreenshotInputService {
       this.unsubscribeGamesRunning = onTrackedGamesRunningChange(() =>
         this.handleTrackedGamesRunningChange()
       );
-      void this.refreshFeatureFlag();
+      this.unsubscribeFeature = onScreenshotsFeatureChange((enabled) =>
+        this.applyFeatureFlag(enabled)
+      );
     }
 
     this.reconcile(previous);
@@ -243,6 +243,10 @@ export class ScreenshotInputService {
 
   public static refreshStatus(): ScreenshotInputStatus {
     if (this.listening) return this.status;
+    if (!this.featureEnabled) {
+      this.setStatus({ ...INACTIVE_STATUS });
+      return this.status;
+    }
 
     try {
       const probe = NativeAddon.probeScreenshotInput(
@@ -261,6 +265,8 @@ export class ScreenshotInputService {
     this.cancelRestart();
     this.unsubscribeGamesRunning?.();
     this.unsubscribeGamesRunning = null;
+    this.unsubscribeFeature?.();
+    this.unsubscribeFeature = null;
     this.stopListening();
   }
 
@@ -273,15 +279,18 @@ export class ScreenshotInputService {
     if (gamesRunning) void this.refreshFeatureFlag();
   }
 
-  private static async refreshFeatureFlag() {
+  public static async refreshFeatureFlag() {
     try {
-      const featureEnabled = await isScreenshotsFeatureEnabled();
-      if (featureEnabled === this.featureEnabled) return;
-      this.featureEnabled = featureEnabled;
-      this.reconcile(this.settings);
+      this.applyFeatureFlag(await isScreenshotsFeatureEnabled());
     } catch (error) {
       logger.error("Failed to read the screenshots feature flag", error);
     }
+  }
+
+  private static applyFeatureFlag(featureEnabled: boolean) {
+    if (featureEnabled === this.featureEnabled) return;
+    this.featureEnabled = featureEnabled;
+    this.reconcile(this.settings);
   }
 
   private static shouldListen() {

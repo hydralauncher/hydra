@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { GameShop } from "@types";
 
 import {
@@ -37,26 +37,38 @@ export function useMyGameScreenshotCounts({
     hasPublishedFailed: false,
   });
 
-  const refreshCounts = useCallback(async () => {
-    const [localResult, publishedResult] = await Promise.allSettled([
-      local.countLocalScreenshotFiles(shop, objectId),
-      countPublishedScreenshotsForGame({ shop, objectId }, userId, api, local),
-    ]);
+  const localRequestIdRef = useRef(0);
+  const publishedRequestIdRef = useRef(0);
 
-    if (localResult.status === "fulfilled") {
-      setCounts((current) => ({ ...current, local: localResult.value }));
-    } else {
-      onError?.(localResult.reason);
+  const refreshLocalCount = useCallback(async () => {
+    const requestId = ++localRequestIdRef.current;
+    try {
+      const localFiles = await local.countLocalScreenshotFiles(shop, objectId);
+      if (requestId !== localRequestIdRef.current) return;
+      setCounts((current) => ({ ...current, local: localFiles }));
+    } catch (error) {
+      if (requestId === localRequestIdRef.current) onError?.(error);
     }
+  }, [local, objectId, onError, shop]);
 
-    if (publishedResult.status === "fulfilled") {
+  const refreshPublishedCount = useCallback(async () => {
+    const requestId = ++publishedRequestIdRef.current;
+    try {
+      const published = await countPublishedScreenshotsForGame(
+        { shop, objectId },
+        userId,
+        api,
+        local
+      );
+      if (requestId !== publishedRequestIdRef.current) return;
       setCounts((current) => ({
         ...current,
-        published: publishedResult.value,
+        published,
         hasPublishedFailed: false,
       }));
-    } else {
-      onError?.(publishedResult.reason);
+    } catch (error) {
+      if (requestId !== publishedRequestIdRef.current) return;
+      onError?.(error);
       setCounts((current) => ({
         ...current,
         published: 0,
@@ -65,24 +77,25 @@ export function useMyGameScreenshotCounts({
     }
   }, [api, local, objectId, onError, shop, userId]);
 
+  const refreshCounts = useCallback(async () => {
+    await Promise.all([refreshLocalCount(), refreshPublishedCount()]);
+  }, [refreshLocalCount, refreshPublishedCount]);
+
   useEffect(() => {
     void refreshCounts();
-    const unsubscribeLocal = local.onLocalScreenshotsChange(() => {
-      local
-        .countLocalScreenshotFiles(shop, objectId)
-        .then((localFiles) =>
-          setCounts((current) => ({ ...current, local: localFiles }))
-        )
-        .catch((error) => onError?.(error));
-    });
+    const unsubscribeLocal = local.onLocalScreenshotsChange(
+      () => void refreshLocalCount()
+    );
     const unsubscribeChanged = subscribeMyGameScreenshotsChanged(
       () => void refreshCounts()
     );
     return () => {
+      localRequestIdRef.current += 1;
+      publishedRequestIdRef.current += 1;
       unsubscribeLocal();
       unsubscribeChanged();
     };
-  }, [local, objectId, onError, refreshCounts, shop]);
+  }, [local, refreshCounts, refreshLocalCount]);
 
   return counts;
 }

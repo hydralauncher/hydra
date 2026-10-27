@@ -79,6 +79,7 @@ function CommunityScreenshotsPanel({
   const [isSpoilerPagingOnHold, setIsSpoilerPagingOnHold] = useState(false);
   const loadedCount = feed.items.length;
   const visibleCount = visibleItems.length;
+  const loadMoreFeed = feed.loadMore;
 
   useEffect(() => {
     const paging = trackSpoilerPaging(
@@ -90,8 +91,8 @@ function CommunityScreenshotsPanel({
     const input = { hideSpoilers, canLoadMore, paging };
     setIsSpoilerPagingOnHold(isSpoilerPagingPaused(input));
 
-    if (shouldAutoLoadSpoilerPage(input)) void feed.loadMore();
-  }, [canLoadMore, feed, hideSpoilers, loadedCount, visibleCount]);
+    if (shouldAutoLoadSpoilerPage(input)) void loadMoreFeed();
+  }, [canLoadMore, hideSpoilers, loadMoreFeed, loadedCount, visibleCount]);
 
   useLoadUntilScrollable({
     scrollTargetId: scrollId,

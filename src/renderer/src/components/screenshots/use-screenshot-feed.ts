@@ -160,7 +160,7 @@ export function useScreenshotFeed({
   }, [finishRead]);
 
   const loadMore = useCallback(async () => {
-    if (isLoading || !nextCursor) return;
+    if (isReadPendingRef.current || !nextCursor) return;
 
     const requestId = requestIdRef.current;
     const sinceVersion = writeVersionRef.current;
@@ -193,7 +193,7 @@ export function useScreenshotFeed({
         setIsLoading(false);
       }
     }
-  }, [finishRead, isLoading, nextCursor]);
+  }, [finishRead, nextCursor]);
 
   useEffect(() => {
     requestIdRef.current += 1;

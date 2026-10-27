@@ -3,7 +3,6 @@ import type { LocalScreenshot, LocalScreenshotDraft } from "@types";
 
 const DRAFT_EDITABLE_STATES = new Set<LocalScreenshot["state"]>([
   "local",
-  "reviewing",
   "failed",
 ]);
 

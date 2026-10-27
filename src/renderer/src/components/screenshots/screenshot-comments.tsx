@@ -574,8 +574,7 @@ export function ScreenshotComments({
       <div className="screenshot-comments__composer">
         {composerState === "ready" ? (
           <ScreenshotCommentInput
-            key={restoredDraft?.key ?? 0}
-            initialValue={restoredDraft?.body}
+            restoredDraft={restoredDraft}
             placeholder={t("comment_placeholder")}
             submitLabel={t("post_comment")}
             onSubmit={createComment}

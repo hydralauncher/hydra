@@ -143,6 +143,7 @@ class ScreenshotUploadWorker {
   } | null = null;
   private readonly gameWaits = new Map<string, number>();
   private readonly moderationWaits = new Map<string, number>();
+  private readonly capacityWaits = new Map<string, number>();
   private missingFileHandler: ((clientId: string) => Promise<unknown>) | null =
     null;
   private lastOwnerId: string | null = null;
@@ -179,6 +180,8 @@ class ScreenshotUploadWorker {
     if (screenshot.state === "uploaded") return screenshot;
 
     this.gameWaits.delete(clientId);
+    this.moderationWaits.delete(clientId);
+    this.capacityWaits.delete(clientId);
     const quality =
       options.quality === undefined
         ? undefined
@@ -491,22 +494,36 @@ class ScreenshotUploadWorker {
   ) {
     this.gameWaits.delete(clientId);
     this.moderationWaits.delete(clientId);
+    this.capacityWaits.delete(clientId);
     const moderationStatus = isModerationStatus(result.moderationStatus)
       ? result.moderationStatus
       : "PENDING";
-    await LocalScreenshotStore.update(clientId, {
-      state: "uploaded",
-      screenshotId: result.id,
-      moderationStatus,
-      moderationReason:
-        typeof result.moderationReason === "string"
-          ? result.moderationReason
-          : null,
-      uploadProgress: 1,
-      uploadedAt: Date.now(),
-      nextUploadAttemptAt: null,
-      pendingCompleteScreenshotId: null,
-      lastError: null,
+    const moderationReason =
+      typeof result.moderationReason === "string"
+        ? result.moderationReason
+        : null;
+    await LocalScreenshotStore.update(clientId, (current) => {
+      const hasEarlyVerdict =
+        moderationStatus === "PENDING" &&
+        current.pendingCompleteScreenshotId === result.id &&
+        isModerationStatus(current.moderationStatus) &&
+        current.moderationStatus !== "PENDING";
+
+      return {
+        state: "uploaded",
+        screenshotId: result.id,
+        moderationStatus: hasEarlyVerdict
+          ? current.moderationStatus
+          : moderationStatus,
+        moderationReason: hasEarlyVerdict
+          ? (current.moderationReason ?? null)
+          : moderationReason,
+        uploadProgress: 1,
+        uploadedAt: Date.now(),
+        nextUploadAttemptAt: null,
+        pendingCompleteScreenshotId: null,
+        lastError: null,
+      };
     });
     emitProgress({ clientId, state: "uploaded", progress: 1 });
   }
@@ -537,6 +554,10 @@ class ScreenshotUploadWorker {
     if (failure.action === "moderation_wait") {
       this.moderationWaits.set(current.clientId, moderationWaits + 1);
     }
+    const capacityWaits = this.capacityWaits.get(current.clientId) ?? 0;
+    if (failure.action === "wait") {
+      this.capacityWaits.set(current.clientId, capacityWaits + 1);
+    }
 
     if (failure.code === "screenshots/disabled-for-game" && current.objectId) {
       GameContentWarningCache.markAdult(current.shop, current.objectId);
@@ -544,7 +565,7 @@ class ScreenshotUploadWorker {
 
     return planScreenshotUploadRecovery(
       failure,
-      { uploadAttempts: attempt, gameWaits, moderationWaits },
+      { uploadAttempts: attempt, gameWaits, moderationWaits, capacityWaits },
       quality
     );
   }
@@ -616,6 +637,7 @@ class ScreenshotUploadWorker {
     ) {
       this.gameWaits.delete(clientId);
       this.moderationWaits.delete(clientId);
+      this.capacityWaits.delete(clientId);
       logger.warn("Screenshot file was missing at upload time", { clientId });
       ScreenshotTelemetry.record("upload", "failed", failure.code);
       await this.missingFileHandler(clientId);
@@ -647,6 +669,7 @@ class ScreenshotUploadWorker {
   private async markFailed(clientId: string, failure: ScreenshotUploadFailure) {
     this.gameWaits.delete(clientId);
     this.moderationWaits.delete(clientId);
+    this.capacityWaits.delete(clientId);
     await LocalScreenshotStore.update(clientId, {
       state: "failed",
       uploadProgress: null,

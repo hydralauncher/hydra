@@ -4,12 +4,12 @@ import { pathToFileURL } from "node:url";
 import icon from "@resources/icon.png?asset";
 import captureSoundPath from "@resources/screenshot.mp3?asset";
 import soundPagePath from "@resources/screenshot-sound.html?asset";
-import { db, levelKeys } from "@main/level";
 import { resolveScreenshotPreferences } from "@shared";
 import type { ScreenshotFeedbackToast, UserPreferences } from "@types";
 
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 import { logger } from "../logger";
+import { readUserPreferences } from "./screenshot-user-preferences";
 
 const DEFAULT_CAPTURE_SOUND_VOLUME = 0.15;
 const DEFAULT_TOAST_POSITION = "top-left";
@@ -25,13 +25,6 @@ interface SoundWindow {
 
 let soundWindow: SoundWindow | null = null;
 let soundWindowFailed = false;
-
-const readUserPreferences = () =>
-  db
-    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
-      valueEncoding: "json",
-    })
-    .catch(() => null);
 
 const destroyWindow = (window: BrowserWindow) => {
   if (!window.isDestroyed()) window.destroy();

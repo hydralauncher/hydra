@@ -2,7 +2,7 @@ import fs from "node:fs";
 import { BrowserWindow } from "electron";
 
 import { gamesSublevel } from "@main/level";
-import type { Game } from "@types";
+import type { Game, ScreenshotTriggerSource } from "@types";
 
 import { emulatorSessions } from "../emulators/emulator-session-tracker";
 import { gamesPlaytime } from "../game-running-state";
@@ -54,12 +54,17 @@ const getTrackedGameTarget = (
 
 type ScreenshotGameCandidate = { target: ScreenshotGameTarget; game: Game };
 
-const matchedForegroundProcesses = new Map<number, string>();
+const matchedForegroundProcesses = new Map<
+  number,
+  { gameKey: string; windowKey: string | null }
+>();
+
+const getForegroundWindowKey = (foreground: ForegroundWindowInfo) =>
+  foreground.windowHandle ?? foreground.windowId ?? null;
 
 export const forgetForegroundGame = (gameKey: string) => {
-  for (const [processId, matchedGameKey] of matchedForegroundProcesses) {
-    if (matchedGameKey === gameKey)
-      matchedForegroundProcesses.delete(processId);
+  for (const [processId, match] of matchedForegroundProcesses) {
+    if (match.gameKey === gameKey) matchedForegroundProcesses.delete(processId);
   }
 };
 
@@ -68,10 +73,16 @@ const findRememberedCandidate = (
   foreground: ForegroundWindowInfo
 ) => {
   if (foreground.processId === null) return null;
-  const gameKey = matchedForegroundProcesses.get(foreground.processId);
-  if (!gameKey) return null;
+  const match = matchedForegroundProcesses.get(foreground.processId);
+  if (!match) return null;
+  if (match.windowKey !== getForegroundWindowKey(foreground)) {
+    matchedForegroundProcesses.delete(foreground.processId);
+    return null;
+  }
   return (
-    candidates.find((candidate) => candidate.target.gameKey === gameKey) ?? null
+    candidates.find(
+      (candidate) => candidate.target.gameKey === match.gameKey
+    ) ?? null
   );
 };
 
@@ -179,7 +190,9 @@ const toForegroundProcesses = (
     appImagePath: process.environ?.APPIMAGE ?? null,
   }));
 
-export const resolveForegroundGame = async (): Promise<ForegroundMatch> => {
+export const resolveForegroundGame = async (
+  source: ScreenshotTriggerSource
+): Promise<ForegroundMatch> => {
   const candidates = await getScreenshotGameTargets();
   if (!candidates.length) return null;
 
@@ -209,7 +222,10 @@ export const resolveForegroundGame = async (): Promise<ForegroundMatch> => {
 
     if (target) {
       if (foreground.processId !== null) {
-        matchedForegroundProcesses.set(foreground.processId, target.gameKey);
+        matchedForegroundProcesses.set(foreground.processId, {
+          gameKey: target.gameKey,
+          windowKey: getForegroundWindowKey(foreground),
+        });
       }
       const game =
         candidates.find(
@@ -231,7 +247,11 @@ export const resolveForegroundGame = async (): Promise<ForegroundMatch> => {
     }
   }
 
-  if (!isWaylandSession() || BrowserWindow.getFocusedWindow() !== null) {
+  if (
+    source !== "gamepad" ||
+    !isWaylandSession() ||
+    BrowserWindow.getFocusedWindow() !== null
+  ) {
     return null;
   }
 

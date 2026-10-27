@@ -6,7 +6,7 @@ import {
 } from "@shared";
 import capturePagePath from "@resources/linux-game-capture.html?asset";
 
-import { db, gamesSublevel, levelKeys } from "@main/level";
+import { gamesSublevel } from "@main/level";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 import {
@@ -21,6 +21,7 @@ import {
   removeCaptureSessionReason,
   type CaptureSessionReason,
 } from "./linux-game-capture-session-reasons";
+import { readUserPreferences } from "./screenshots/screenshot-user-preferences";
 
 interface CaptureSessionRegistration {
   token: object;
@@ -51,13 +52,6 @@ const isReasonEligible = (
     )
   );
 };
-
-const readUserPreferences = () =>
-  db
-    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
-      valueEncoding: "json",
-    })
-    .catch(() => null);
 
 export const isWaylandSession = () =>
   process.platform === "linux" &&
@@ -379,21 +373,47 @@ export const grabLinuxGameSessionFrame = async (
         )
       : captureWindow.webContents.executeJavaScript(expression);
 
-  const info = parseGrabbedFrame(
-    await captureWindow.webContents.executeJavaScript(`(async () => {
-      const track = globalThis.__hydraSouvenirStream?.getVideoTracks()[0];
-      if (!track || track.readyState !== "live") {
-        throw new Error("Wayland screen stream is no longer active");
-      }
-      return await ${buildGrabFrameExpression("globalThis.__hydraSouvenirVideo", options)};
-    })()`)
-  );
-  const frame = createGrabbedFrame(info, runInCaptureWindow);
-  if (info.isBlank) {
-    frame.discard();
-    throw new Error("Wayland game window capture returned a blank frame");
+  let releaseCapture = () => {};
+  const capture = new Promise<void>((resolve) => {
+    releaseCapture = resolve;
+  });
+  registration.activeCapture = capture;
+  const finishCapture = () => {
+    releaseCapture();
+    if (registration.activeCapture === capture) {
+      registration.activeCapture = null;
+    }
+  };
+
+  let frame: GrabbedScreenshotFrame;
+  try {
+    const info = parseGrabbedFrame(
+      await captureWindow.webContents.executeJavaScript(`(async () => {
+        const track = globalThis.__hydraSouvenirStream?.getVideoTracks()[0];
+        if (!track || track.readyState !== "live") {
+          throw new Error("Wayland screen stream is no longer active");
+        }
+        return await ${buildGrabFrameExpression("globalThis.__hydraSouvenirVideo", options)};
+      })()`)
+    );
+    frame = createGrabbedFrame(info, runInCaptureWindow);
+    if (info.isBlank) {
+      frame.discard();
+      throw new Error("Wayland game window capture returned a blank frame");
+    }
+  } catch (error) {
+    finishCapture();
+    throw error;
   }
-  return frame;
+
+  return {
+    ...frame,
+    encode: (quality: number) => frame.encode(quality).finally(finishCapture),
+    discard: () => {
+      frame.discard();
+      finishCapture();
+    },
+  };
 };
 
 export const stopLinuxGameCaptureSession = (

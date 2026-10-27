@@ -50,16 +50,10 @@ export const toUploadOptions = (
   };
 };
 
-const EDITABLE_STATES = new Set<LocalScreenshotState>([
-  "local",
-  "reviewing",
-  "failed",
-]);
-
-const UNDECIDED_STATES = new Set<LocalScreenshotState>(["local", "reviewing"]);
+const EDITABLE_STATES = new Set<LocalScreenshotState>(["local", "failed"]);
 
 export const isScreenshotEditable = (screenshot: LocalScreenshot) =>
   EDITABLE_STATES.has(screenshot.state);
 
 export const isScreenshotUndecided = (screenshot: LocalScreenshot) =>
-  UNDECIDED_STATES.has(screenshot.state);
+  screenshot.state === "local";

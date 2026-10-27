@@ -107,7 +107,9 @@ export class LocalScreenshotStore {
     const screenshots = await screenshotsSublevel.values().all();
     return (
       screenshots.find(
-        (screenshot) => screenshot.screenshotId === screenshotId
+        (screenshot) =>
+          screenshot.screenshotId === screenshotId ||
+          screenshot.pendingCompleteScreenshotId === screenshotId
       ) ?? null
     );
   }

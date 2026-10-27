@@ -12,6 +12,8 @@ import {
 } from "@shared";
 import type { ScreenshotHotkeyBinding } from "@types";
 
+const PRINT_SCREEN_CODE = "PrintScreen";
+
 const MODIFIER_CODES = new Set([
   "ControlLeft",
   "ControlRight",
@@ -49,7 +51,7 @@ export function SettingsScreenshotsHotkey({
   useEffect(() => {
     if (!isRecording) return;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const recordKey = (event: KeyboardEvent) => {
       event.preventDefault();
       event.stopPropagation();
 
@@ -81,9 +83,21 @@ export function SettingsScreenshotsHotkey({
       onChange(nextBinding);
     };
 
-    window.addEventListener("keydown", handleKeyDown, true);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== PRINT_SCREEN_CODE) recordKey(event);
+    };
 
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.code === PRINT_SCREEN_CODE) recordKey(event);
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    window.addEventListener("keyup", handleKeyUp, true);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+      window.removeEventListener("keyup", handleKeyUp, true);
+    };
   }, [isRecording, onChange]);
 
   const handleToggleRecording = () => {

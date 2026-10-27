@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { db, levelKeys } from "@main/level";
 import {
   isAdultGameContentWarning,
   resolveScreenshotPreferences,
@@ -13,7 +12,6 @@ import type {
   LocalScreenshot,
   ProfileVisibility,
   ScreenshotTriggerSource,
-  UserPreferences,
 } from "@types";
 
 import { HydraApi } from "../hydra-api";
@@ -48,6 +46,7 @@ import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { resolveManualScreenshotPath } from "./screenshot-file-path";
 import { getScreenshotsFolder } from "./screenshots-folder";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
+import { readUserPreferences } from "./screenshot-user-preferences";
 
 const CAPTURE_JPEG_QUALITY = 0.95;
 const FALLBACK_JPEG_QUALITY = 95;
@@ -58,13 +57,6 @@ const MAX_FILE_NAME_SUFFIX = 50;
 const gameSessionIds = new Map<string, string>();
 let captureInProgress = false;
 let pendingSaves: Promise<void> = Promise.resolve();
-
-const readUserPreferences = () =>
-  db
-    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
-      valueEncoding: "json",
-    })
-    .catch(() => null);
 
 const getContentWarning = async (
   shop: LocalScreenshot["shop"],
@@ -327,7 +319,7 @@ const grabScreenshot = async (
   if (!(await isScreenshotsFeatureEnabled())) return null;
   timer.mark("checks");
 
-  const resolved = await resolveForegroundGame();
+  const resolved = await resolveForegroundGame(source);
   timer.mark("foreground");
   if (!resolved) {
     ScreenshotTelemetry.record("capture", "ignored", "no_foreground_game");
