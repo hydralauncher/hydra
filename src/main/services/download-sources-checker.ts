@@ -1,3 +1,4 @@
+import { chunk } from "lodash-es";
 import { updateGameRecord } from "@main/services/game-record-updater";
 import { HydraApi } from "./hydra-api";
 import {
@@ -19,6 +20,8 @@ interface DownloadSourcesChangeResponse {
   newDownloadOptionsCount: number;
   downloadSourceIds: string[];
 }
+
+const CHANGES_REQUEST_MAX_GAMES = 1000;
 
 export class DownloadSourcesChecker {
   private static async clearStaleBadges(
@@ -171,11 +174,15 @@ export class DownloadSourcesChecker {
         }
       );
 
-      const response = await HydraApi.checkDownloadSourcesChanges(
-        downloadSourceIds,
-        games,
-        since
-      );
+      const response: DownloadSourcesChangeResponse[] = [];
+      for (const gamesChunk of chunk(games, CHANGES_REQUEST_MAX_GAMES)) {
+        const chunkResponse = await HydraApi.checkDownloadSourcesChanges(
+          downloadSourceIds,
+          gamesChunk,
+          since
+        );
+        if (Array.isArray(chunkResponse)) response.push(...chunkResponse);
+      }
 
       logger.info("API call completed, response:", response);
 
