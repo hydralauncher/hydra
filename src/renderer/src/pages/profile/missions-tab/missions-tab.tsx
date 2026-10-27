@@ -18,6 +18,7 @@ import { WeeklyMissions } from "./weekly-missions";
 import "./missions-tab.scss";
 
 const PROGRESS_CHANGE_REFRESH_DELAY_MS = 1000;
+const FOCUS_REFRESH_MIN_INTERVAL_MS = 30 * 1000;
 
 export function MissionsTab() {
   const { missions, trails, refreshMissions, refreshTrails } =
@@ -45,7 +46,14 @@ export function MissionsTab() {
         includeProgress = false;
       }, PROGRESS_CHANGE_REFRESH_DELAY_MS);
     };
-    const onFocus = () => scheduleRefresh(true);
+    let lastFocusRefreshAt = Date.now();
+    const onFocus = () => {
+      if (Date.now() - lastFocusRefreshAt < FOCUS_REFRESH_MIN_INTERVAL_MS) {
+        return;
+      }
+      lastFocusRefreshAt = Date.now();
+      scheduleRefresh(true);
+    };
     const onSync = () => scheduleRefresh(false);
 
     globalThis.window.addEventListener("focus", onFocus);
