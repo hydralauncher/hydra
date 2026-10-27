@@ -44,6 +44,7 @@ export interface ProfileScreenshot {
   gameTitle: string | null;
   gameIconUrl: string | null;
   isSpoiler: boolean;
+  isSensitive?: boolean;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
@@ -229,6 +230,7 @@ export interface LocalScreenshot {
   height: number;
   state: LocalScreenshotState;
   isSpoiler: boolean;
+  isSensitive?: boolean;
   visibility: ProfileVisibility;
   screenshotId: string | null;
   moderationStatus: ScreenshotModerationStatus | null;
@@ -274,6 +276,6 @@ export interface ScreenshotTelemetryEvent {
 }
 
 export interface ScreenshotFeedbackToast {
-  kind: "captured" | "saved_locally" | "disabled_for_game" | "capture_failed";
+  kind: "captured" | "saved_locally" | "capture_failed";
   gameTitle: string;
 }

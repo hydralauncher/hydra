@@ -25,6 +25,7 @@ export interface ResolvedScreenshotPreferences {
   captureSoundEnabled: boolean;
   toastEnabled: boolean;
   defaultVisibility: ProfileVisibility;
+  showSensitive: boolean;
 }
 
 export const resolveScreenshotPreferences = (
@@ -39,6 +40,7 @@ export const resolveScreenshotPreferences = (
   captureSoundEnabled: preferences?.screenshotCaptureSoundEnabled ?? true,
   toastEnabled: preferences?.screenshotToastEnabled ?? true,
   defaultVisibility: preferences?.screenshotDefaultVisibility ?? "PUBLIC",
+  showSensitive: preferences?.showSensitiveScreenshots ?? false,
 });
 
 export const formatScreenshotHotkeyKey = (key: string) =>

@@ -2822,8 +2822,6 @@
     "delete_confirm_title": "Excluir esta captura?",
     "description_add": "Adicionar descrição (opcional)",
     "description_label": "Descrição (opcional)",
-    "disabled_for_game": "As capturas de tela estão desativadas para este jogo",
-    "error_disabled_for_game": "Não é possível enviar capturas deste jogo",
     "error_feature_disabled": "O envio de capturas está indisponível no momento. Você pode tentar novamente mais tarde.",
     "error_generic": "Não foi possível enviar. Tente novamente.",
     "error_limit_reached": "Você atingiu o limite de 500 capturas",

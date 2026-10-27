@@ -258,6 +258,7 @@ export interface UserPreferences {
   screenshotCaptureSoundEnabled?: boolean;
   screenshotToastEnabled?: boolean;
   screenshotDefaultVisibility?: ProfileVisibility;
+  showSensitiveScreenshots?: boolean;
 }
 
 export interface NetworkInterface {

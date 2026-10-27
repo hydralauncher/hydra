@@ -127,11 +127,6 @@ const getGameSessionId = (gameKey: string) => {
   return sessionId;
 };
 
-const rejectAdultGameCapture = async (gameTitle: string) => {
-  ScreenshotTelemetry.record("capture", "blocked", "adult_game");
-  await ScreenshotFeedback.showToast({ kind: "disabled_for_game", gameTitle });
-};
-
 const resolveCaptureFilePath = async (gameTitle: string, capturedAt: Date) =>
   resolveAvailableFilePath(await getScreenshotsFolder(), gameTitle, capturedAt);
 
@@ -142,6 +137,7 @@ interface FinishCaptureOptions {
   capturedAt: Date;
   size: { width: number; height: number };
   defaultVisibility: ProfileVisibility;
+  isSensitive: boolean;
   source: ScreenshotTriggerSource;
   ownerId?: string | null;
   previewPath?: string | null;
@@ -158,6 +154,7 @@ const finishCapture = async ({
   capturedAt,
   size,
   defaultVisibility,
+  isSensitive,
   source,
   ownerId = getSignedInOwnerId(),
   previewPath = null,
@@ -178,6 +175,7 @@ const finishCapture = async ({
     height: size.height,
     state: "local",
     isSpoiler: false,
+    isSensitive,
     visibility: defaultVisibility,
     screenshotId: null,
     moderationStatus: null,
@@ -330,14 +328,9 @@ const grabScreenshot = async (
   const gameTitle = resolved.game?.title ?? target.title;
   const capturedAt = new Date();
 
-  if (
-    isAdultGameContentWarning(
-      await getContentWarning(target.shop, target.objectId)
-    )
-  ) {
-    await rejectAdultGameCapture(gameTitle);
-    return null;
-  }
+  const isSensitive = isAdultGameContentWarning(
+    await getContentWarning(target.shop, target.objectId)
+  );
 
   const ownerId = getSignedInOwnerId();
   playCaptureSound();
@@ -402,6 +395,7 @@ const grabScreenshot = async (
       capturedAt,
       size: { width: frame.width, height: frame.height },
       defaultVisibility: preferences.defaultVisibility,
+      isSensitive,
       source,
       ownerId,
       previewPath,

@@ -56,7 +56,6 @@ const RECOVERY_BY_ERROR_CODE: Record<string, ScreenshotUploadRecoveryAction> = {
   "screenshots/moderation-unavailable": "moderation_wait",
   "screenshots/moderation-in-progress": "moderation_wait",
   "screenshots/moderation-rate-limited": "moderation_wait",
-  "screenshots/disabled-for-game": "terminal",
   "screenshots/limit-reached": "terminal",
   "screenshots/blocked-limit-reached": "terminal",
   screenshot_too_large: "terminal",

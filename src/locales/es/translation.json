@@ -2546,8 +2546,6 @@
     "delete_confirm_title": "¿Eliminar esta captura?",
     "description_add": "Añadir descripción (opcional)",
     "description_label": "Descripción (opcional)",
-    "disabled_for_game": "Las capturas están desactivadas para este juego",
-    "error_disabled_for_game": "No se pueden subir capturas de este juego",
     "error_feature_disabled": "La subida de capturas no está disponible ahora mismo. Puedes intentarlo de nuevo más tarde.",
     "error_generic": "No se pudo subir. Inténtalo de nuevo.",
     "error_limit_reached": "Alcanzaste el límite de 500 capturas",
