@@ -947,6 +947,7 @@
     "screenshots_review_action_failed": "Не удалось обновить скриншот. Попробуйте ещё раз.",
     "screenshots_sign_in_to_upload": "Войдите в аккаунт, чтобы загружать скриншоты",
     "screenshots_not_uploaded": "Не загружен",
+    "screenshots_uploading": "Загрузка…",
     "screenshots_review_counter": "Скриншот {{current}} из {{total}}",
     "screenshots_review_position": "{{current}} из {{total}}",
     "screenshots_review_delete": "Удалить",

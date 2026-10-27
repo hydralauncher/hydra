@@ -51,6 +51,11 @@ const getUploadFocusId = (clientId: string) =>
 const getDeleteFocusId = (clientId: string) =>
   `local-screenshot-sidebar-delete:${clientId}`;
 
+const getUploadLabelKey = (isUploading: boolean, canRetry: boolean) => {
+  if (isUploading) return "screenshots_uploading";
+  return canRetry ? "screenshots_review_retry" : "screenshots_review_upload";
+};
+
 export const getLocalScreenshotSidebarEntryFocusId = (
   screenshot: LocalScreenshot
 ) => {
@@ -94,6 +99,11 @@ export function LocalScreenshotSidebar({
   const deleteFocusId = getDeleteFocusId(clientId);
   const fieldFocusIds = getFieldFocusIds(clientId);
   const isEditable = EDITABLE_STATES.has(screenshot.state);
+  const isUploading =
+    pendingAction === "upload" ||
+    screenshot.state === "queued" ||
+    screenshot.state === "uploading";
+  const hasForm = isEditable || isUploading;
 
   const runAction = async (
     action: "upload" | "delete",
@@ -158,13 +168,13 @@ export function LocalScreenshotSidebar({
             </span>
           </div>
 
-          {isEditable ? (
+          {hasForm ? (
             <div className="local-screenshot-sidebar__fields">
               <ReviewFields
                 clientId={clientId}
                 draft={draft}
                 isCustomGame={isCustomGame}
-                disabled={isBusy}
+                disabled={isBusy || isUploading}
                 focusIds={fieldFocusIds}
                 leftTarget={stageTarget}
                 downTarget={{
@@ -177,26 +187,26 @@ export function LocalScreenshotSidebar({
           ) : null}
 
           <div className="local-screenshot-sidebar__footer">
-            {isUndecided ? null : (
+            {isUndecided || isUploading ? null : (
               <ReviewUploadStatus screenshot={screenshot} />
             )}
-            {isEditable ? (
+            {hasForm ? (
               <HorizontalFocusGroup
                 regionId={`local-screenshot-sidebar-actions:${clientId}`}
                 asChild
               >
                 <div className="local-screenshot-sidebar__actions">
-                  {canUpload ? (
+                  {canUpload || isUploading ? (
                     <Button
                       focusId={uploadFocusId}
                       focusNavigationOverrides={{
                         left: stageTarget,
-                        up: isEditable
+                        up: hasForm
                           ? { type: "item", itemId: fieldFocusIds.quality }
                           : BLOCK_TARGET,
                       }}
                       disabled={isBusy}
-                      loading={pendingAction === "upload"}
+                      loading={isUploading}
                       icon={
                         canRetry ? (
                           <ArrowClockwiseIcon size={18} />
@@ -207,11 +217,7 @@ export function LocalScreenshotSidebar({
                       className="local-screenshot-sidebar__upload"
                       onClick={() => void upload()}
                     >
-                      {t(
-                        canRetry
-                          ? "screenshots_review_retry"
-                          : "screenshots_review_upload"
-                      )}
+                      {t(getUploadLabelKey(isUploading, canRetry))}
                     </Button>
                   ) : null}
                   <Button
@@ -219,15 +225,16 @@ export function LocalScreenshotSidebar({
                     size="icon"
                     focusId={deleteFocusId}
                     focusNavigationOverrides={{
-                      left: canUpload
-                        ? { type: "item", itemId: uploadFocusId }
-                        : stageTarget,
+                      left:
+                        canUpload || isUploading
+                          ? { type: "item", itemId: uploadFocusId }
+                          : stageTarget,
                       right: BLOCK_TARGET,
-                      up: isEditable
+                      up: hasForm
                         ? { type: "item", itemId: fieldFocusIds.quality }
                         : BLOCK_TARGET,
                     }}
-                    disabled={isBusy}
+                    disabled={isBusy || isUploading}
                     loading={pendingAction === "delete"}
                     icon={<TrashIcon size={20} />}
                     aria-label={t("screenshots_review_delete")}
