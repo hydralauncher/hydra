@@ -555,10 +555,20 @@
     gap: calc(globals.$spacing-unit * 2);
   }
 
+  &__footer {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    margin-top: auto;
+  }
+
   &__actions {
     display: flex;
     gap: globals.$spacing-unit;
-    margin-top: auto;
+
+    &:empty {
+      display: none;
+    }
 
     .screenshot-review-item__upload {
       flex: 1;

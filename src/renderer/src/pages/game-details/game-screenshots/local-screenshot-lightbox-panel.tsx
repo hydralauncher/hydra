@@ -54,8 +54,6 @@ export function LocalScreenshotLightboxPanel({
         </span>
       </header>
 
-      <ScreenshotReviewStatus screenshot={screenshot} />
-
       <div className="local-screenshot-panel__fields">
         <ScreenshotReviewFields
           screenshot={screenshot}
@@ -66,13 +64,16 @@ export function LocalScreenshotLightboxPanel({
         />
       </div>
 
-      <div className="local-screenshot-panel__actions">
-        <ScreenshotReviewActionButtons
-          screenshot={screenshot}
-          isBusy={isBusy}
-          onUpload={handleUpload}
-          onRequestDelete={requestDelete}
-        />
+      <div className="local-screenshot-panel__footer">
+        <ScreenshotReviewStatus screenshot={screenshot} />
+        <div className="local-screenshot-panel__actions">
+          <ScreenshotReviewActionButtons
+            screenshot={screenshot}
+            isBusy={isBusy}
+            onUpload={handleUpload}
+            onRequestDelete={requestDelete}
+          />
+        </div>
       </div>
 
       {elements}
