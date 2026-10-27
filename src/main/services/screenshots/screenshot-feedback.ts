@@ -14,7 +14,6 @@ import { readUserPreferences } from "./screenshot-user-preferences";
 const DEFAULT_CAPTURE_SOUND_VOLUME = 0.15;
 const DEFAULT_TOAST_POSITION = "top-left";
 const ALWAYS_SHOWN_TOASTS = new Set<ScreenshotFeedbackToast["kind"]>([
-  "disabled_for_game",
   "capture_failed",
 ]);
 
