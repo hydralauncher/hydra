@@ -2675,6 +2675,8 @@
     "uploading_progress": "{{done}} из {{total}}",
     "uploading_title": "Загрузка скриншотов",
     "visibility_friends": "Только друзья",
+    "visibility_friends_short": "Друзья",
+    "upload_sign_in_required": "Войдите в аккаунт, чтобы загружать скриншоты",
     "visibility_label": "Кто может видеть",
     "upload_quality": "Качество загрузки",
     "visibility_private": "Только я",
