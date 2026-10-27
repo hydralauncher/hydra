@@ -21,7 +21,7 @@ interface DownloadSourcesChangeResponse {
   downloadSourceIds: string[];
 }
 
-const CHANGES_REQUEST_MAX_GAMES = 1000;
+const DOWNLOAD_SOURCES_CHANGES_API_MAX_GAMES = 1000;
 
 export class DownloadSourcesChecker {
   private static async clearStaleBadges(
@@ -165,27 +165,31 @@ export class DownloadSourcesChecker {
       logger.info(
         `Checking download sources changes for ${games.length} non-custom games since ${since}`
       );
+      const gamesChunks = chunk(games, DOWNLOAD_SOURCES_CHANGES_API_MAX_GAMES);
+
       logger.info(
-        `Making API call to HydraApi.checkDownloadSourcesChanges with:`,
+        `Making ${gamesChunks.length} sequential API calls to HydraApi.checkDownloadSourcesChanges with:`,
         {
           downloadSourceIds,
           gamesCount: games.length,
+          chunksCount: gamesChunks.length,
           since,
         }
       );
 
-      const chunkResponses = await Promise.all(
-        chunk(games, CHANGES_REQUEST_MAX_GAMES).map((gamesChunk) =>
-          HydraApi.checkDownloadSourcesChanges(
-            downloadSourceIds,
-            gamesChunk,
-            since
-          )
-        )
-      );
-      const response: DownloadSourcesChangeResponse[] = chunkResponses.flatMap(
-        (chunkResponse) => (Array.isArray(chunkResponse) ? chunkResponse : [])
-      );
+      const response = await gamesChunks.reduce<
+        Promise<DownloadSourcesChangeResponse[]>
+      >(async (previousResponses, gamesChunk) => {
+        const mergedResponses = await previousResponses;
+        const chunkResponse = await HydraApi.checkDownloadSourcesChanges(
+          downloadSourceIds,
+          gamesChunk,
+          since
+        );
+        return Array.isArray(chunkResponse)
+          ? [...mergedResponses, ...chunkResponse]
+          : mergedResponses;
+      }, Promise.resolve([]));
 
       logger.info("API call completed, response:", response);
 
