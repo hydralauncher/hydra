@@ -39,6 +39,8 @@ const recordFailure = (
   error: unknown
 ) => {
   const now = Date.now();
+  // Deliberate decay: a game left alone for 30 min past its backoff starts
+  // over at the first step, which also keeps the map small.
   for (const [failureKey, failure] of failures)
     if (failure.retryAt + MAX_BACKOFF_MS <= now) failures.delete(failureKey);
 
@@ -62,7 +64,8 @@ const recordFailure = (
   );
 };
 
-const fetch = <T>(
+// Callers sharing an in-flight request receive the same object; treat it as read-only.
+const fetchCombined = <T>(
   context: HydraApiAuthContext | null,
   shop: GameShop,
   objectId: string,
@@ -104,7 +107,7 @@ const fetch = <T>(
 };
 
 export const CombinedAchievementsRequests = {
-  fetch,
+  fetch: fetchCombined,
 
   clear() {
     epoch++;
