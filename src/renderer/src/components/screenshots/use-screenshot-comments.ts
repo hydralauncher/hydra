@@ -142,6 +142,8 @@ export function useScreenshotComments({
   const [hasFailed, setHasFailed] = useState(false);
   const [restoredDraft, setRestoredDraft] =
     useState<RestoredCommentDraft | null>(null);
+  const restoredDraftKeyRef = useRef(0);
+  const clearRestoredDraft = useCallback(() => setRestoredDraft(null), []);
   const [pendingCommentIds, setPendingCommentIds] = useState<
     ReadonlySet<string>
   >(() => new Set());
@@ -385,10 +387,8 @@ export function useScreenshotComments({
         recordWrite({ kind: "delete", commentId: pendingId });
         setTotal((current) => Math.max(0, (current ?? 1) - 1));
         onPatch(screenshotId, adjustCommentCount(-1));
-        setRestoredDraft((current) => ({
-          key: (current?.key ?? 0) + 1,
-          body: bodyHtml,
-        }));
+        restoredDraftKeyRef.current += 1;
+        setRestoredDraft({ key: restoredDraftKeyRef.current, body: bodyHtml });
         handleWriteError(error, "comment_post_failed");
       } finally {
         setPending(pendingId, false);
@@ -613,6 +613,7 @@ export function useScreenshotComments({
     isLoading,
     hasFailed,
     restoredDraft,
+    clearRestoredDraft,
     pendingCommentIds,
     reportedCommentIds,
     reload,

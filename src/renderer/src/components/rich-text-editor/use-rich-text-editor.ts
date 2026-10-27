@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
 
 import {
   RichTextLimit,
@@ -10,10 +9,7 @@ import {
   pasteWithinRichTextLimit,
 } from "./rich-text-limit";
 
-export const RICH_TEXT_EXTENSIONS = [
-  StarterKit.configure({ link: false }),
-  Underline,
-];
+export const RICH_TEXT_EXTENSIONS = [StarterKit.configure({ link: false })];
 
 export const isRichTextEditorAvailable = (
   editor: Editor | null | undefined
