@@ -984,10 +984,7 @@
     "screenshots_sensitive": "Contenido sensible",
     "screenshots_sensitive_warning": "Esta captura puede contener material sensible",
     "screenshots_sensitive_reveal": "Ver captura",
-    "screenshots_sensitive_modal_title": "Esta captura puede contener material sensible",
     "screenshots_sensitive_modal_description": "Se tomó en un juego para adultos.",
-    "screenshots_sensitive_modal_confirm": "Ver captura",
-    "screenshots_sensitive_modal_cancel": "Cancelar",
     "screenshots_sensitive_modal_dont_hide": "No ocultar más las capturas sensibles",
     "screenshots_sensitive_local_notice": "Este juego tiene contenido para adultos, así que esta captura se mostrará difuminada para todos.",
     "screenshots_settings_show_sensitive": "Mostrar capturas sensibles sin difuminar"

@@ -75,7 +75,7 @@ export function SensitiveScreenshotModal({
     <Modal
       visible={visible}
       onClose={onClose}
-      title={t("screenshots_sensitive_modal_title")}
+      title={t("screenshots_sensitive_warning")}
       description={t("screenshots_sensitive_modal_description")}
       initialFocusId={CANCEL_FOCUS_ID}
       closeOnBackdrop={false}
@@ -116,7 +116,7 @@ export function SensitiveScreenshotModal({
             }}
             onClick={onClose}
           >
-            {t("screenshots_sensitive_modal_cancel")}
+            {t("screenshots_cancel")}
           </Button>
 
           <Button
@@ -131,7 +131,7 @@ export function SensitiveScreenshotModal({
               void confirm();
             }}
           >
-            {t("screenshots_sensitive_modal_confirm")}
+            {t("screenshots_sensitive_reveal")}
           </Button>
         </HorizontalFocusGroup>
       </VerticalFocusGroup>

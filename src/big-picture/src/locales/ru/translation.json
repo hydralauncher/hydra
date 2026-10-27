@@ -1013,10 +1013,7 @@
     "screenshots_sensitive": "Деликатный контент",
     "screenshots_sensitive_warning": "Этот скриншот может содержать деликатные материалы",
     "screenshots_sensitive_reveal": "Посмотреть скриншот",
-    "screenshots_sensitive_modal_title": "Этот скриншот может содержать деликатные материалы",
     "screenshots_sensitive_modal_description": "Он сделан в игре для взрослых.",
-    "screenshots_sensitive_modal_confirm": "Посмотреть скриншот",
-    "screenshots_sensitive_modal_cancel": "Отмена",
     "screenshots_sensitive_modal_dont_hide": "Больше не скрывать деликатные скриншоты",
     "screenshots_sensitive_local_notice": "В этой игре есть контент для взрослых, поэтому скриншот будет размыт для всех.",
     "screenshots_settings_show_sensitive": "Показывать деликатные скриншоты без размытия"
