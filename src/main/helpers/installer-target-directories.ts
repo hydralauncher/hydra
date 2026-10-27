@@ -48,6 +48,9 @@ const SKIPPED_FOLDERS = new Set([
   "microsoft.net",
   "msbuild",
   "reference assemblies",
+]);
+
+const ROOT_SKIPPED_FOLDERS = new Set([
   "games",
   "gog games",
   "program files",
@@ -55,18 +58,42 @@ const SKIPPED_FOLDERS = new Set([
   "programdata",
   "users",
   "windows",
+  "windows.old",
   "openxr",
   "vrclient",
   "proton_shortcuts",
   "$recycle.bin",
+  "$sysreset",
   "system volume information",
   "recovery",
   "perflogs",
   "msocache",
+  "config.msi",
+  "intel",
+  "amd",
+  "nvidia",
+  "onedrivetemp",
   "$windows.~bt",
   "$windows.~ws",
   "$winreagent",
 ]);
+
+const isRootDirectory = (directory: string) =>
+  path.basename(directory).toLowerCase() === "drive_c" ||
+  path.win32.parse(directory).root === directory;
+
+const isSkippedFolder = (directory: string, folderName: string) => {
+  const name = folderName.toLowerCase();
+  return (
+    SKIPPED_FOLDERS.has(name) ||
+    (isRootDirectory(directory) && ROOT_SKIPPED_FOLDERS.has(name))
+  );
+};
+
+const isSameFolder = (first: string, second: string) =>
+  process.platform === "win32"
+    ? path.resolve(first).toLowerCase() === path.resolve(second).toLowerCase()
+    : path.resolve(first) === path.resolve(second);
 
 const getChangedAt = (stats: fs.Stats) =>
   Math.max(stats.birthtimeMs, stats.mtimeMs);
@@ -133,7 +160,7 @@ const listSubfoldersChangedSince = async (directory: string, since: number) => {
     entries
       .filter(
         (entry) =>
-          entry.isDirectory() && !SKIPPED_FOLDERS.has(entry.name.toLowerCase())
+          entry.isDirectory() && !isSkippedFolder(directory, entry.name)
       )
       .map(async (entry) => {
         const folderPath = path.join(directory, entry.name);
@@ -149,7 +176,8 @@ const listSubfoldersChangedSince = async (directory: string, since: number) => {
 
 export const listFoldersChangedSince = async (
   directories: string[],
-  since: number
+  since: number,
+  excludedFolders: string[] = []
 ) => {
   const threshold = since - MODIFICATION_TIME_TOLERANCE_MS;
 
@@ -163,6 +191,12 @@ export const listFoldersChangedSince = async (
 
   return unique(
     changed
+      .filter(
+        ({ folderPath }) =>
+          !excludedFolders.some((excluded) =>
+            isSameFolder(excluded, folderPath)
+          )
+      )
       .sort((a, b) => b.changedAt - a.changedAt)
       .map(({ folderPath }) => folderPath)
   ).slice(0, MAX_CHANGED_FOLDERS);

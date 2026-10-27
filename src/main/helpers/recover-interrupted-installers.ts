@@ -19,6 +19,8 @@ import {
 const RECOVERY_POLL_INTERVAL_MS = 15_000;
 const RECOVERY_MAX_DURATION_MS = 6 * 60 * 60_000;
 const LINUX_PROCESS_NAME_LIMIT = 15;
+const FIRST_CHECK_DELAY_MS = 10_000;
+const WINE_UNIX_DRIVE_PATTERN = /^z:\\/i;
 
 const isSamePath = (first: string, second: string) =>
   process.platform === "win32"
@@ -35,7 +37,13 @@ export const isInstallerProcess = (
 
   const peExecutable = process.peExecutablePath;
   if (peExecutable) {
-    return path.win32.basename(peExecutable).toLowerCase() === installerName;
+    const unixPath = WINE_UNIX_DRIVE_PATTERN.test(peExecutable)
+      ? peExecutable.slice(2).replaceAll("\\", "/")
+      : null;
+
+    return unixPath
+      ? unixPath === installerPath
+      : path.win32.basename(peExecutable).toLowerCase() === installerName;
   }
 
   const runsThroughWine = !process.exe?.toLowerCase().endsWith(".exe");
@@ -71,6 +79,12 @@ const settleInterruptedInstall = async (download: Download) => {
   const gameKey = levelKeys.game(shop, objectId);
   const installerStartedAt = download.installerStartedAt ?? 0;
   const game = await gamesSublevel.get(gameKey).catch(() => null);
+  const catalogueLoaded = await GameExecutables.ensureLoaded().catch(
+    () => false
+  );
+  const canDetectInstall =
+    catalogueLoaded &&
+    (GameExecutables.getExecutablesForGame(objectId)?.length ?? 0) > 0;
 
   const executableFound = await new GameFilesManager(
     shop,
@@ -80,15 +94,25 @@ const settleInterruptedInstall = async (download: Download) => {
     Wine.getEffectivePrefixPath(game?.winePrefixPath, objectId)
   );
 
-  logger.info(
-    executableFound
-      ? `[GameInstaller] Found the executable for ${objectId} after an interrupted install`
-      : `[GameInstaller] Interrupted install for ${objectId} left no executable, back to Install`
-  );
+  const keepInstallerLaunched = executableFound || !canDetectInstall;
+
+  if (executableFound) {
+    logger.info(
+      `[GameInstaller] Found the executable for ${objectId} after an interrupted install`
+    );
+  } else if (canDetectInstall) {
+    logger.info(
+      `[GameInstaller] Interrupted install for ${objectId} left no executable, back to Install`
+    );
+  } else {
+    logger.info(
+      `[GameInstaller] Cannot detect the install for ${objectId}, leaving it on Select executable`
+    );
+  }
 
   await updateDownload(gameKey, {
     installerRunning: false,
-    installerLaunched: executableFound,
+    installerLaunched: keepInstallerLaunched,
   });
 
   WindowManager.sendToAppWindows("on-library-batch-complete");
@@ -140,8 +164,7 @@ const watchInterruptedInstall = (download: Download) => {
 
   const timer = setInterval(() => void check(), RECOVERY_POLL_INTERVAL_MS);
   timer.unref();
-
-  return check();
+  setTimeout(() => void check(), FIRST_CHECK_DELAY_MS).unref();
 };
 
 export const recoverInterruptedInstallers = async () => {
@@ -152,14 +175,10 @@ export const recoverInterruptedInstallers = async () => {
 
   if (interrupted.length === 0) return;
 
-  await GameExecutables.ensureLoaded().catch(() => false);
-
-  await Promise.all(
-    interrupted.map((download) => {
-      logger.info(
-        `[GameInstaller] Hydra stopped while the installer for ${download.objectId} was running, checking how it ended`
-      );
-      return watchInterruptedInstall(download);
-    })
-  );
+  for (const download of interrupted) {
+    logger.info(
+      `[GameInstaller] Hydra stopped while the installer for ${download.objectId} was running, checking how it ended`
+    );
+    watchInterruptedInstall(download);
+  }
 };

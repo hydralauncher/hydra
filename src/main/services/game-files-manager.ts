@@ -595,7 +595,8 @@ export class GameFilesManager {
 
       const changedFolders = await listFoldersChangedSince(
         getInstallerTargetDirectories(download.downloadPath, winePrefixPath),
-        installerStartedAt
+        installerStartedAt,
+        [download.downloadPath]
       );
 
       const matches = await Promise.all(
