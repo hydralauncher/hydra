@@ -27,6 +27,7 @@ const getReadStartedAt = () => performance.now();
 
 interface UseScreenshotFeedOptions {
   feedKey: string | null;
+  refreshKey?: string | number;
   fetchPage: (cursor: string | null) => Promise<ScreenshotFeedPage | null>;
   fetchScreenshot: (
     screenshot: ProfileScreenshot
@@ -36,6 +37,7 @@ interface UseScreenshotFeedOptions {
 
 export function useScreenshotFeed({
   feedKey,
+  refreshKey,
   fetchPage,
   fetchScreenshot,
   onServerTotal,
@@ -214,6 +216,13 @@ export function useScreenshotFeed({
 
     void reload();
   }, [feedKey, reload]);
+
+  const refreshedKeyRef = useRef(refreshKey);
+  useEffect(() => {
+    if (refreshedKeyRef.current === refreshKey) return;
+    refreshedKeyRef.current = refreshKey;
+    if (feedKey !== null) void reload();
+  }, [feedKey, refreshKey, reload]);
 
   useEffect(
     () => () => {

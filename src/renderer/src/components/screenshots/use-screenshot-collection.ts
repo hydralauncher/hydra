@@ -59,6 +59,7 @@ export type ScreenshotLightboxStatus =
 
 interface UseScreenshotCollectionOptions {
   feedKey: string | null;
+  refreshKey?: string | number;
   fetchPage: (cursor: string | null) => Promise<ScreenshotFeedPage | null>;
   onServerTotal?: (total: number) => void;
   onItemRemoved?: (screenshot: ProfileScreenshot) => void;
@@ -72,6 +73,7 @@ interface OpenTarget {
 
 export function useScreenshotCollection({
   feedKey,
+  refreshKey,
   fetchPage,
   onServerTotal,
   onItemRemoved,
@@ -92,6 +94,7 @@ export function useScreenshotCollection({
 
   const feed = useScreenshotFeed({
     feedKey,
+    refreshKey,
     fetchPage,
     fetchScreenshot: (item) => fetchScreenshot(item.owner.id, item.id),
     onServerTotal,
