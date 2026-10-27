@@ -65,11 +65,29 @@ export function GameReviews({
     null
   );
 
-  const playTimeInMilliseconds = getDisplayedPlayTimeInMilliseconds({
-    playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
-    steamPlayTimeInMilliseconds: game?.steamPlayTimeInMilliseconds,
-    epicPlayTimeInMilliseconds: game?.epicPlayTimeInMilliseconds,
-  });
+  const [removedGamePlaytime, setRemovedGamePlaytime] = useState(0);
+  const isInLibrary = game !== null;
+
+  useEffect(() => {
+    setRemovedGamePlaytime(0);
+    if (isInLibrary) return;
+
+    let cancelled = false;
+    window.electron
+      .getGameReviewPlaytime(shop, objectId)
+      .then((playtime) => {
+        if (!cancelled) setRemovedGamePlaytime(playtime);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isInLibrary, shop, objectId]);
+
+  const playTimeInMilliseconds = game
+    ? getDisplayedPlayTimeInMilliseconds(game)
+    : removedGamePlaytime;
   const hasEnoughPlaytime = playTimeInMilliseconds >= REVIEW_MIN_PLAYTIME_IN_MS;
   const isReviewLocked = !userDetailsId || !hasEnoughPlaytime;
   const canReply =

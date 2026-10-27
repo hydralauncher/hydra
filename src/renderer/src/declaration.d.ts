@@ -595,6 +595,10 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<LibraryGame | null>;
+    getGameReviewPlaytime: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<number>;
     getGamesRunning: () => Promise<
       Pick<GameRunning, "id" | "sessionDurationInMillis">[]
     >;
