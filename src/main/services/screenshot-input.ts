@@ -33,7 +33,7 @@ type ScreenshotTriggerListener = (source: ScreenshotTriggerSource) => void;
 type ScreenshotTriggerChannel = "input" | "deeplink";
 type ScreenshotInputStatusListener = (status: ScreenshotInputStatus) => void;
 
-export const SCREENSHOT_TRIGGER_COOLDOWN_MS = 3_000;
+export const SCREENSHOT_TRIGGER_COOLDOWN_MS = 500;
 export const SCREENSHOT_INPUT_RESTART_DELAY_MS = 5_000;
 export const SCREENSHOT_INPUT_MAX_RESTARTS = 3;
 export const SCREENSHOT_INPUT_STABLE_RUN_MS = 60_000;
