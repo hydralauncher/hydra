@@ -488,6 +488,17 @@ $screenshot-lightbox-hover-duration: 0.2s;
     }
   }
 
+  &__notice--sign-in {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+
+    p {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
   &__scroll {
     display: flex;
     flex: 1;

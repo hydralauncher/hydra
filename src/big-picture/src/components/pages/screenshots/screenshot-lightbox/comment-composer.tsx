@@ -273,7 +273,7 @@ export function CommentComposer({
 
   if (!viewerId) {
     return (
-      <div className="screenshot-comments__notice">
+      <div className="screenshot-comments__notice screenshot-comments__notice--sign-in">
         <p>{t("screenshots_comments_sign_in")}</p>
         <Button
           variant="secondary"
