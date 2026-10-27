@@ -106,7 +106,6 @@ import type {
   LocalScreenshot,
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
-  ScreenshotReview,
   ScreenshotUploadProgress,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
@@ -1519,11 +1518,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("updateLocalScreenshotDraft", clientId, draft),
   deleteLocalScreenshot: (clientId: string) =>
     ipcRenderer.invoke("deleteLocalScreenshot", clientId),
-  openScreenshotReview: (clientId: string) =>
-    ipcRenderer.invoke("openScreenshotReview", clientId),
-  closeScreenshotReview: () => ipcRenderer.invoke("closeScreenshotReview"),
-  releaseBigPictureScreenshotReview: (clientIds: string[]) =>
-    ipcRenderer.invoke("releaseBigPictureScreenshotReview", clientIds),
   openScreenshotsFolder: () => ipcRenderer.invoke("openScreenshotsFolder"),
   onLocalScreenshotsChange: (cb: (screenshots: LocalScreenshot[]) => void) => {
     const listener = (
@@ -1552,18 +1546,7 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-screenshot-upload-progress", listener);
   },
-  getScreenshotReview: () => ipcRenderer.invoke("getScreenshotReview"),
-  onScreenshotReviewChanged: (
-    cb: (review: ScreenshotReview | null) => void
-  ) => {
-    const listener = (
-      _event: Electron.IpcRendererEvent,
-      review: ScreenshotReview | null
-    ) => cb(review);
-    ipcRenderer.on("on-screenshot-review-changed", listener);
-    return () =>
-      ipcRenderer.removeListener("on-screenshot-review-changed", listener);
-  },
+
   getAchievementSouvenirSyncStatus: () =>
     ipcRenderer.invoke("getAchievementSouvenirSyncStatus"),
   getAchievementSouvenirSyncDetails: () =>

@@ -3,7 +3,6 @@ import type {
   LocalScreenshot,
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
-  ScreenshotReview,
   ScreenshotUploadProgress,
   SystemPowerAction,
   AppUpdaterEvent,
@@ -1147,9 +1146,6 @@ declare global {
       draft: LocalScreenshotDraft
     ) => Promise<LocalScreenshot | null>;
     deleteLocalScreenshot: (clientId: string) => Promise<void>;
-    openScreenshotReview: (clientId: string) => Promise<void>;
-    closeScreenshotReview: () => Promise<void>;
-    releaseBigPictureScreenshotReview: (clientIds: string[]) => Promise<void>;
     openScreenshotsFolder: () => Promise<void>;
     onLocalScreenshotsChange: (
       cb: (screenshots: LocalScreenshot[]) => void
@@ -1159,10 +1155,6 @@ declare global {
     ) => () => Electron.IpcRenderer;
     onScreenshotUploadProgress: (
       cb: (progress: ScreenshotUploadProgress) => void
-    ) => () => Electron.IpcRenderer;
-    getScreenshotReview: () => Promise<ScreenshotReview | null>;
-    onScreenshotReviewChanged: (
-      cb: (review: ScreenshotReview | null) => void
     ) => () => Electron.IpcRenderer;
     getAchievementSouvenirSyncStatus: () => Promise<AchievementSouvenirSyncStatus>;
     getAchievementSouvenirSyncDetails: () => Promise<AchievementSouvenirSyncDetails>;
