@@ -19,7 +19,6 @@ import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { ScreenshotInputService } from "../screenshot-input";
 import { WindowManager } from "../window-manager";
-import { GameContentWarningCache } from "./content-warning-cache";
 import { forgetForegroundGame } from "./foreground-game";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import {
@@ -80,13 +79,8 @@ const releaseRunningGameResources = () => {
   ScreenshotFrameWorker.release();
 };
 
-export const onScreenshotGameStarted = async (
-  gameKey: string,
-  shop: GameShop,
-  objectId: string
-) => {
+export const onScreenshotGameStarted = async (gameKey: string) => {
   try {
-    void GameContentWarningCache.prefetch(shop, objectId).catch(() => null);
     if (!(await isScreenshotCaptureAvailable())) return;
 
     ScreenshotFeedback.prepare();
@@ -128,7 +122,7 @@ export const applyScreenshotsEnabledPreference = async (
     [...runningGameKeys].map(async (gameKey) => {
       const game = await gamesSublevel.get(gameKey).catch(() => null);
       if (game) {
-        await onScreenshotGameStarted(gameKey, game.shop, game.objectId);
+        await onScreenshotGameStarted(gameKey);
       }
     })
   );

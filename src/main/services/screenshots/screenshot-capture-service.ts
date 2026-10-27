@@ -2,13 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import {
-  isAdultGameContentWarning,
   resolveScreenshotPreferences,
   SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
-  UNKNOWN_GAME_CONTENT_WARNING,
 } from "@shared";
 import type {
-  GameContentWarning,
   LocalScreenshot,
   ProfileVisibility,
   ScreenshotTriggerSource,
@@ -27,7 +24,6 @@ import {
   type GameScreenshotCaptureTarget,
 } from "../screenshot";
 import { buildWindowsWindowSourceId } from "../windows-game-window-match";
-import { GameContentWarningCache } from "./content-warning-cache";
 import { resolveForegroundGame } from "./foreground-game";
 import type { ScreenshotGameTarget } from "./foreground-game-match";
 import { LocalScreenshotStore } from "./local-screenshot-store";
@@ -51,36 +47,11 @@ import { readUserPreferences } from "./screenshot-user-preferences";
 const CAPTURE_JPEG_QUALITY = 0.95;
 const FALLBACK_JPEG_QUALITY = 95;
 const FALLBACK_PREVIEW_JPEG_QUALITY = 85;
-const CONTENT_WARNING_WAIT_MS = 1_500;
 const MAX_FILE_NAME_SUFFIX = 50;
 
 const gameSessionIds = new Map<string, string>();
 let captureInProgress = false;
 let pendingSaves: Promise<void> = Promise.resolve();
-
-const getContentWarning = async (
-  shop: LocalScreenshot["shop"],
-  objectId: string
-): Promise<GameContentWarning> => {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<GameContentWarning>((resolve) => {
-    timer = setTimeout(
-      () => resolve(UNKNOWN_GAME_CONTENT_WARNING),
-      CONTENT_WARNING_WAIT_MS
-    );
-  });
-
-  try {
-    return await Promise.race([
-      GameContentWarningCache.get(shop, objectId),
-      timeout,
-    ]);
-  } catch {
-    return UNKNOWN_GAME_CONTENT_WARNING;
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-};
 
 const resolveAvailableFilePath = async (
   screenshotsRoot: string,
@@ -137,7 +108,6 @@ interface FinishCaptureOptions {
   capturedAt: Date;
   size: { width: number; height: number };
   defaultVisibility: ProfileVisibility;
-  isSensitive: boolean;
   source: ScreenshotTriggerSource;
   ownerId?: string | null;
   previewPath?: string | null;
@@ -154,7 +124,6 @@ const finishCapture = async ({
   capturedAt,
   size,
   defaultVisibility,
-  isSensitive,
   source,
   ownerId = getSignedInOwnerId(),
   previewPath = null,
@@ -175,7 +144,6 @@ const finishCapture = async ({
     height: size.height,
     state: "local",
     isSpoiler: false,
-    isSensitive,
     visibility: defaultVisibility,
     screenshotId: null,
     moderationStatus: null,
@@ -328,10 +296,6 @@ const grabScreenshot = async (
   const gameTitle = resolved.game?.title ?? target.title;
   const capturedAt = new Date();
 
-  const isSensitive = isAdultGameContentWarning(
-    await getContentWarning(target.shop, target.objectId)
-  );
-
   const ownerId = getSignedInOwnerId();
   playCaptureSound();
   timer.mark("sound");
@@ -395,7 +359,6 @@ const grabScreenshot = async (
       capturedAt,
       size: { width: frame.width, height: frame.height },
       defaultVisibility: preferences.defaultVisibility,
-      isSensitive,
       source,
       ownerId,
       previewPath,

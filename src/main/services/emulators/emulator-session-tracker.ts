@@ -103,7 +103,7 @@ export const startEmulatorSession = async ({
 
   emulatorSessions.set(gameKey, session);
   setEmulatorGameRunning(gameKey);
-  void onScreenshotGameStarted(gameKey, game.shop, game.objectId);
+  void onScreenshotGameStarted(gameKey);
 
   if (game.shop !== "custom") {
     void sendPresencePing(gameKey);
