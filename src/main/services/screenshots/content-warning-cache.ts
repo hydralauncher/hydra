@@ -94,15 +94,6 @@ export class GameContentWarningCache {
     return warnings.get(key) ?? (await this.prefetch(shop, objectId));
   }
 
-  public static markAdult(shop: GameShop, objectId: string) {
-    warnings.set(getCacheKey(shop, objectId), {
-      level: "adult",
-      minimumAge: 18,
-      reasons: ["age_restricted"],
-      source: null,
-    });
-  }
-
   public static clear(shop: GameShop, objectId: string) {
     warnings.delete(getCacheKey(shop, objectId));
   }

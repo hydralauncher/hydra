@@ -21,7 +21,6 @@ export const getScreenshotModerationReasonKey = (
     : "generic";
 
 const NON_RETRYABLE_UPLOAD_ERRORS: Record<string, string> = {
-  "screenshots/disabled-for-game": "error_disabled_for_game",
   "screenshots/limit-reached": "error_limit_reached",
   "screenshots/blocked-limit-reached": "error_upload_blocked",
   screenshot_missing: "error_missing_file",

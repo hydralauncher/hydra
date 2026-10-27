@@ -22,7 +22,6 @@ import type { HydraApiAuthContext } from "../hydra-auth-context";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 import { WindowManager } from "../window-manager";
-import { GameContentWarningCache } from "./content-warning-cache";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { compressScreenshotForUpload } from "./screenshot-compression";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
@@ -559,10 +558,6 @@ class ScreenshotUploadWorker {
     const capacityWaits = this.capacityWaits.get(current.clientId) ?? 0;
     if (failure.action === "wait") {
       this.capacityWaits.set(current.clientId, capacityWaits + 1);
-    }
-
-    if (failure.code === "screenshots/disabled-for-game" && current.objectId) {
-      GameContentWarningCache.markAdult(current.shop, current.objectId);
     }
 
     return planScreenshotUploadRecovery(
