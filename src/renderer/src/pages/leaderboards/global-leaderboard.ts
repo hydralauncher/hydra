@@ -307,6 +307,9 @@ export const buildMetricsRequest = (
   options: { params: { scope }, needsAuth: false },
 });
 
+// Merged into "reviews" by the API (hydra-api#858), so it is never listed.
+const EXCLUDED_METRICS = new Set(["review_upvotes"]);
+
 export const normalizeMetricDefinitions = (
   response: unknown
 ): MetricDefinition[] => {
@@ -317,7 +320,7 @@ export const normalizeMetricDefinitions = (
 
   return items.flatMap((item): MetricDefinition[] => {
     if (!isRecord(item) || typeof item.id !== "string" || !item.id) return [];
-    if (seen.has(item.id)) return [];
+    if (seen.has(item.id) || EXCLUDED_METRICS.has(item.id)) return [];
     seen.add(item.id);
 
     return [
