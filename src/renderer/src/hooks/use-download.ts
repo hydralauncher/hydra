@@ -18,14 +18,18 @@ import type {
 import { useDate } from "./use-date";
 import { formatBytes, formatBytesToMbps } from "@shared";
 
-export function useDownload() {
+export function useDownload(gameId?: string) {
   const { updateLibrary } = useLibrary();
   const { formatDistance } = useDate();
 
   const userPrefs = useAppSelector((state) => state.userPreferences.value);
 
-  const { lastPacket, packetsById, gamesWithDeletionInProgress } =
-    useAppSelector((state) => state.download);
+  const { packetsById, gamesWithDeletionInProgress } = useAppSelector(
+    (state) => state.download
+  );
+  const lastPacket = gameId
+    ? (packetsById[gameId] ?? null)
+    : (Object.values(packetsById)[0] ?? null);
   const dispatch = useAppDispatch();
 
   const createAbortError = () => {
@@ -192,6 +196,7 @@ export function useDownload() {
   };
 
   return {
+    formatDownloadSpeed,
     downloadSpeed: formatDownloadSpeed(lastPacket?.downloadSpeed ?? 0),
     progress: formatDownloadProgress(lastPacket?.progress ?? 0),
     lastPacket,

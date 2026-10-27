@@ -174,13 +174,11 @@ function stopManagedEpic(): Promise<void> {
       ]);
       if (stopped.some((result) => result.status === "rejected"))
         throw new EpicIntegrationError("cleanup-failed");
-      const activeId = DownloadManager.getActiveDownloadId();
-      const active = activeId
-        ? await downloadsSublevel.get(activeId)
-        : undefined;
-      if (active?.downloader === Downloader.Epic) {
-        await DownloadManager.pauseDownload(activeId!);
-        WindowManager.sendToAppWindows("on-download-progress", null);
+      for (const activeId of DownloadManager.getActiveDownloadIds()) {
+        const active = await downloadsSublevel.get(activeId);
+        if (active?.downloader === Downloader.Epic) {
+          await DownloadManager.pauseDownload(activeId);
+        }
       }
       for (const download of await downloadsSublevel.values().all()) {
         if (

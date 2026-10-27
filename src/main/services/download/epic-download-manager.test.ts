@@ -26,7 +26,7 @@ test("Epic acceptance returns before preparation and concurrent clicks keep one 
     ]);
     await settle();
     assert.equal(f.requests.length, 1);
-    assert.equal(f.manager.getActiveDownloadId(), key(first));
+    assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(first)]);
     assert.equal(f.downloads.get(key(second))?.queued, true);
   } finally {
     preparation.resolve();
@@ -41,11 +41,11 @@ test("cancel immediately after Epic acknowledgement stops its reserved slot with
   const preparation = deferred<void>();
   f.state.startGate = preparation.promise;
   await f.orchestrator.acceptPreparedEpicDownload(download);
-  assert.equal(f.manager.getActiveDownloadId(), key(download));
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(download)]);
   await f.orchestrator.cancelDownloadById(download.shop, download.objectId);
   preparation.resolve();
   await settle();
-  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], []);
   assert.equal(f.downloads.get(key(download))?.status, "removed");
   assert.equal(f.requests.length, 1);
   assert.equal(f.requests[0].current(), false);
@@ -71,7 +71,7 @@ test("cancel during the acceptance lookup cannot recreate its removed download",
   release.resolve();
   await acceptance;
   await settle();
-  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], []);
   assert.equal(f.downloads.get(key(download))?.status, "removed");
   assert.equal(f.requests.length, 0);
 });
@@ -93,7 +93,7 @@ test("explicit Epic start reserves the selected game without waiting for older q
   f.state.startGate = preparation.promise;
   try {
     await f.orchestrator.acceptPreparedEpicDownload(download);
-    assert.equal(f.manager.getActiveDownloadId(), key(download));
+    assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(download)]);
     assert.equal(f.requests.length, 1);
     assert.equal(f.state.httpStarted.length, 0);
     assert.equal(f.downloads.get(key(older))?.queued, true);
@@ -125,7 +125,7 @@ for (const action of ["cancel-and-start", "pause-and-resume"] as const) {
     else await f.orchestrator.resumeDownload(download.shop, download.objectId);
     fail(new Error("obsolete preparation failed"));
     await settle();
-    assert.equal(f.manager.getActiveDownloadId(), key(download));
+    assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(download)]);
     assert.equal(f.downloads.get(key(download))?.status, "active");
     assert.equal(f.downloads.get(key(download))?.timestamp, 100);
     assert.equal(f.requests.length, 2);
@@ -170,7 +170,7 @@ for (const [code, nextDownloader] of [
     await settle();
     assert.equal(f.downloads.get(key(download))?.status, "error");
     assert.equal(f.downloads.get(key(download))?.epic?.error, code);
-    assert.equal(f.manager.getActiveDownloadId(), key(next));
+    assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(next)]);
     assert.equal(f.downloads.get(key(next))?.status, "active");
     assert.equal(f.downloads.get(key(next))?.queued, false);
     const layout = await f.orchestrator.getLayoutState();
@@ -231,7 +231,10 @@ test("an accepted Epic download starts alongside a concurrently resumed non-Epic
     f.orchestrator.resumeDownload(http.shop, http.objectId),
   ]);
   await settle();
-  assert.equal(f.manager.getActiveDownloadId(), key(http));
+  assert.deepEqual(
+    [...f.manager.getActiveDownloadIds()].sort(),
+    [key(download), key(http)].sort()
+  );
   assert.equal(f.downloads.get(key(download))?.queued, false);
   assert.equal(f.downloads.get(key(download))?.status, "active");
   assert.equal(f.requests.length, 1);
@@ -251,7 +254,7 @@ test("production manager dispatches Epic preparation and retains the slot until 
   f.state.startGate = preparing.promise;
   const start = f.orchestrator.startPreparedDownload(download);
   await settle();
-  assert.equal(f.manager.getActiveDownloadId(), key(download));
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(download)]);
   assert.equal(f.requests.length, 1);
   assert.equal(f.requests[0].download.downloader, Downloader.Epic);
   assert.equal(f.requests[0].current(), true);
@@ -263,12 +266,12 @@ test("production manager dispatches Epic preparation and retains the slot until 
   );
   await settle();
   assert.equal(f.requests[0].current(), false);
-  assert.equal(f.manager.getActiveDownloadId(), key(download));
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(download)]);
   preparing.resolve();
   await start;
   stopped.resolve();
   await pause;
-  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], []);
   assert.equal(f.downloads.get(key(download))?.status, "paused");
   assert.equal(f.state.stopped[0], key(download));
   assert.equal(f.state.torrentCalls.length, 0);
@@ -283,7 +286,7 @@ test("Epic 100 percent telemetry does not complete or advance the queue before v
   await f.orchestrator.startPreparedDownload(first);
   await f.orchestrator.startPreparedDownload(second);
   await f.manager.watchDownloads();
-  assert.equal(f.manager.getActiveDownloadId(), key(first));
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(first)]);
   assert.equal(f.downloads.get(key(first))?.status, "active");
   assert.equal(f.downloads.get(key(second))?.queued, true);
   assert.equal(f.requests.length, 1);
@@ -309,11 +312,11 @@ test("failed Epic startup persists a retryable paused record after confirmed cle
   await settle();
   rejectStart(new Error("session-expired"));
   await settle();
-  assert.equal(f.manager.getActiveDownloadId(), key(download));
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(download)]);
   assert.equal(f.downloads.get(key(download))?.status, "active");
   cleanup.resolve();
   await rejected;
-  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], []);
   assert.equal(f.downloads.get(key(download))?.status, "paused");
   assert.equal(f.downloads.get(key(download))?.queued, false);
 });
@@ -339,11 +342,11 @@ test("verified Epic completion publishes once and starts the next common queued 
   stopped.resolve();
   await settle();
   assert.equal(f.state.notifications.length, 1);
-  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], []);
   notification.resolve();
   await completion;
   assert.equal(f.downloads.get(key(first))?.status, "complete");
-  assert.equal(f.manager.getActiveDownloadId(), key(second));
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(second)]);
   assert.equal(f.requests.length, 2);
   assert.equal(f.downloads.get(key(second))?.status, "active");
   assert.equal(f.downloads.get(key(second))?.queued, false);
@@ -365,12 +368,12 @@ test("Epic completion cannot replace a new active slot while its notification is
   f.state.notificationGate = notification.promise;
   const completion = f.manager.watchDownloads();
   await settle();
-  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], []);
   // Explicit resume claims the slot; prepared downloads preserve queue order.
   await f.orchestrator.resumeDownload(third.shop, third.objectId);
   notification.resolve();
   await completion;
-  assert.equal(f.manager.getActiveDownloadId(), key(third));
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(third)]);
   assert.equal(f.downloads.get(key(second))?.queued, true);
   assert.equal(f.requests.length, 2);
   assert.equal(f.requests[1].download.objectId, third.objectId);
@@ -389,7 +392,7 @@ test("stale Epic error callbacks cannot stop a restarted download with the same 
   await settle();
   assert.equal(old.current(), false);
   assert.equal(f.requests[1].current(), true);
-  assert.equal(f.manager.getActiveDownloadId(), key(download));
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(download)]);
   assert.equal(f.downloads.get(key(download))?.status, "active");
   assert.equal(f.state.stopped.length, stoppedBefore);
 });
@@ -406,13 +409,13 @@ test("Epic runtime failure waits for shutdown then marks error and advances the 
   f.state.stopGate = stopped.promise;
   f.requests[0].failure({ code: "insufficient-space" });
   await settle();
-  assert.equal(f.manager.getActiveDownloadId(), key(first));
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(first)]);
   assert.equal(f.requests.length, 1);
   stopped.resolve();
   await settle();
   assert.equal(f.downloads.get(key(first))?.status, "error");
   assert.equal(f.downloads.get(key(first))?.epic?.error, "insufficient-space");
-  assert.equal(f.manager.getActiveDownloadId(), key(second));
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(second)]);
   assert.equal(f.requests.length, 2);
 });
 
@@ -433,14 +436,14 @@ test("a busy Linux prefix waits for cleanup and resumes finalization at full pro
   f.state.stopGate = stopped.promise;
   f.requests[0].failure({ code: "compatibility-prefix-busy" });
   await settle();
-  assert.equal(f.manager.getActiveDownloadId(), key(download));
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(download)]);
   assert.equal(f.downloads.get(key(download))?.status, "active");
   assert.equal(f.state.notifications.length, 0);
   stopped.resolve();
   await settle();
 
   const failed = f.downloads.get(key(download))!;
-  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], []);
   assert.equal(failed.status, "error");
   assert.equal(failed.epic?.error, "compatibility-prefix-busy");
   assert.equal(failed.progress, download.progress);
@@ -465,5 +468,5 @@ test("a busy Linux prefix waits for cleanup and resumes finalization at full pro
   await f.manager.watchDownloads();
   assert.equal(f.downloads.get(key(download))?.status, "complete");
   assert.equal(f.state.notifications.length, 1);
-  assert.equal(f.manager.getActiveDownloadId(), null);
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], []);
 });

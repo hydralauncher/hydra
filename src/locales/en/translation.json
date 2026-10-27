@@ -195,6 +195,7 @@
     "scan_games_folders_hint_manual": "Add at least one folder to scan for games."
   },
   "bottom_panel": {
+    "downloading_multiple": "Downloading {{count}} games — {{percentage}} — {{speed}}",
     "reconnecting": "Reconnecting {{title}}…",
     "recovering": "Re-downloading the saved portion of {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "No downloads in progress",

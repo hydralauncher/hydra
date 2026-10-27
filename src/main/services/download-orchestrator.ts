@@ -21,6 +21,7 @@ import {
   type UserPreferences,
 } from "../../types";
 import {
+  getDownloadLayoutStateRecord,
   getNormalizedDownloadLayoutState,
   getQueuedDownloadsOrderedByLayout,
   getPausedDownloadsOrderedByLayout,
@@ -300,7 +301,11 @@ export class DownloadOrchestrator {
       current.timestamp !== activeDownload.timestamp
     )
       return;
-    await DownloadManager.handleRuntimeDownloadError(downloadId, error);
+    logger.error("[DownloadOrchestrator] Epic preparation failed", error);
+    await this.setDownloadPausedState(current, { status: "error" });
+    await syncDownloadLayoutState(await this.getAllDownloads());
+    WindowManager.sendDownloadsUpdated();
+    await this.startNextQueuedDownload();
   }
 
   private static async activateDownload(
@@ -609,6 +614,10 @@ export class DownloadOrchestrator {
       const activeDownloads = downloads.filter(this.isTransferActive);
       const limit = await this.getConcurrentDownloadLimit();
       const downloadsToQueue = [...activeDownloads]
+        .filter(
+          (download) =>
+            !DownloadManager.requiresPauseConfirmation(getDownloadId(download))
+        )
         .sort((left, right) => {
           const leftPriority = left.bandwidthPriority === "high" ? 1 : 0;
           const rightPriority = right.bandwidthPriority === "high" ? 1 : 0;
@@ -774,14 +783,16 @@ export class DownloadOrchestrator {
   }
 
   static async bootstrapDownloadsOnStartup() {
-    const downloads = await this.getAllDownloads();
-    let interruptedDownloadId: string | null = null;
+    const downloads = (await this.getAllDownloads()).sort(
+      (a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0)
+    );
+    const interruptedDownloadIds: string[] = [];
 
     const changedDownloads = downloads
       .map((download) => {
         const nextDownload = this.normalizeStartupDownload(download, true);
         if (download.status === "active" && !download.awaitingDebrid)
-          interruptedDownloadId ??= getDownloadId(nextDownload);
+          interruptedDownloadIds.push(getDownloadId(nextDownload));
         return { download, nextDownload };
       })
       .filter(({ download, nextDownload }) =>
@@ -796,8 +807,19 @@ export class DownloadOrchestrator {
     );
 
     const normalizedDownloads = await this.getAllDownloads();
-    await syncDownloadLayoutState(normalizedDownloads);
+    const savedLayout = await getDownloadLayoutStateRecord();
+    await setDownloadLayoutQueues(
+      normalizedDownloads,
+      [
+        ...interruptedDownloadIds,
+        ...savedLayout.queueOrder.filter(
+          (id) => !interruptedDownloadIds.includes(id)
+        ),
+      ],
+      savedLayout.pausedOrder
+    );
 
+    const interruptedDownloadId = interruptedDownloadIds[0];
     if (interruptedDownloadId) {
       return (
         normalizedDownloads.find(

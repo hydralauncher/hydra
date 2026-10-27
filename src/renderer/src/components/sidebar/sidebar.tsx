@@ -220,7 +220,8 @@ export function Sidebar() {
     [orderedLibrary]
   );
 
-  const { lastPacket, progress } = useDownload();
+  const { packetsById } = useDownload();
+  const activeDownloadIds = Object.keys(packetsById).sort().join(",");
 
   const { showSuccessToast, showErrorToast } = useToast();
 
@@ -408,7 +409,7 @@ export function Sidebar() {
 
   useEffect(() => {
     updateLibrary();
-  }, [lastPacket?.gameId, updateLibrary]);
+  }, [activeDownloadIds, updateLibrary]);
 
   useEffect(() => {
     const handlePinToggled = () => {
@@ -467,10 +468,11 @@ export function Sidebar() {
   }, [isResizing]);
 
   const getGameTitle = (game: LibraryGame) => {
-    if (lastPacket?.gameId === game.id) {
+    const packet = packetsById[game.id];
+    if (packet) {
       return t("downloading", {
         title: game.title,
-        percentage: progress,
+        percentage: `${(packet.progress * 100).toFixed(0)}%`,
       });
     }
 

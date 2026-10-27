@@ -18,6 +18,7 @@ import type {
   Game,
   UserPreferences,
 } from "../../../types/level.types";
+import { createDownloadRecordUpdater } from "../download-record-updater-core.js";
 import * as completion from "./download-completion.js";
 import { withDownloadActivation } from "./download-activation.js";
 import * as queueVerify from "./download-queue-verify.js";
@@ -92,12 +93,17 @@ export function fixture() {
     completed: new Set<string>(),
     torrentCalls: [] as string[],
     torrentActions: [] as Array<Record<string, unknown>>,
+    diskChecks: [] as string[],
+    taskbarProgress: [] as number[],
+    torrentStart: async (_id: string) => {},
     torrentStatuses: new Map<string, Record<string, unknown>>(),
     httpStarted: [] as string[],
     httpLimits: [] as Array<number | null>,
     httpPaused: 0,
     writes: [] as Download[],
     preferences: null as UserPreferences | null,
+    beforeWrite: (_id: string, _download: Download): void | Promise<void> =>
+      undefined,
     beforeRead: (_id: string): void | Promise<void> => undefined,
   };
   const sublevel = {
@@ -106,7 +112,8 @@ export function fixture() {
       const value = downloads.get(id);
       return value ? structuredClone(value) : undefined;
     },
-    put: (id: string, value: Download) => {
+    put: async (id: string, value: Download) => {
+      await state.beforeWrite(id, value);
       downloads.set(id, structuredClone(value));
       state.writes.push(structuredClone(value));
     },
@@ -114,8 +121,12 @@ export function fixture() {
       all: () => [...downloads.values()].map((value) => structuredClone(value)),
     }),
   };
+  const updateDownloadRecord = createDownloadRecordUpdater(sublevel);
   const windowManager = {
-    mainWindow: null,
+    mainWindow: {
+      setProgressBar: (progress: number) =>
+        state.taskbarProgress.push(progress),
+    },
     sendDownloadsUpdated: () => {},
     sendToAppWindows: (event: string, payload: unknown) => {
       if (event === "on-download-progress") state.progress.push(payload);
@@ -152,6 +163,7 @@ export function fixture() {
     }),
   };
   const modules: Record<string, unknown> = {
+    "../download-record-updater": { updateDownloadRecord },
     "./download-activation": { withDownloadActivation },
     "./download/download-activation": { withDownloadActivation },
     "./range-download-state": { configureRangeStateDirectory: () => {} },
@@ -205,6 +217,10 @@ export function fixture() {
         call: (method: string, params?: Record<string, unknown>) => {
           state.torrentCalls.push(method);
           if (method === "action" && params) state.torrentActions.push(params);
+          if (method === "action" && params?.action === "start")
+            return state
+              .torrentStart(String(params.game_id))
+              .then(() => ({ data: null }));
           if (method === "status" && typeof params?.game_id === "string")
             return Promise.resolve({
               data: state.torrentStatuses.get(params.game_id) ?? null,
@@ -215,11 +231,10 @@ export function fixture() {
     },
     "./disk-space": {
       DISK_SPACE_CHECK_INTERVAL_MS: 10000,
-      getDownloadDiskSpace: () => ({
-        hasEnoughSpace: true,
-        freeBytes: 10000,
-        requiredBytes: 2000,
-      }),
+      getDownloadDiskSpace: (download: Download) => {
+        state.diskChecks.push(key(download));
+        return { hasEnoughSpace: true, freeBytes: 10000, requiredBytes: 2000 };
+      },
     },
   };
   for (const module of [
@@ -373,6 +388,7 @@ export function fixture() {
   };
   return {
     downloads,
+    updateDownloadRecord,
     state,
     requests,
     manager,

@@ -6,6 +6,7 @@ import {
   fixture,
   http,
   key,
+  settle,
   torrent,
 } from "./download-orchestrator-test-fixture.js";
 
@@ -47,7 +48,7 @@ test("production manager keeps concurrent torrent sessions independently control
       action.game_id,
       action.max_download_speed_bytes_per_second,
     ]);
-  assert.deepEqual(allocations, [
+  assert.deepEqual(allocations.slice(-2), [
     [key(first), 100],
     [key(second), 200],
   ]);
@@ -56,7 +57,9 @@ test("production manager keeps concurrent torrent sessions independently control
   await f.manager.cancelDownload(key(second));
   assert.deepEqual(
     f.state.torrentActions
-      .slice(5)
+      .filter(
+        (action) => action.action === "pause" || action.action === "cancel"
+      )
       .map((action) => [action.action, action.game_id]),
     [
       ["pause", key(first)],
@@ -584,4 +587,232 @@ test("a failed queued start does not strand later eligible downloads", async () 
   assert.equal(f.downloads.get(key(failed))?.status, "error");
   assert.equal(f.downloads.get(key(next))?.status, "active");
   assert.equal(f.manager.getActiveDownloadCount(), 1);
+});
+
+test("restart places interrupted transfers before an existing queue in timestamp order", async () => {
+  const f = fixture();
+  const queued = { ...http("AlreadyQueued"), queued: true, timestamp: 1 };
+  const later = {
+    ...http("LaterInterrupted"),
+    status: "active" as const,
+    timestamp: 3,
+  };
+  const first = {
+    ...http("FirstInterrupted"),
+    status: "active" as const,
+    timestamp: 2,
+  };
+  for (const download of [queued, later, first]) {
+    f.add(download);
+    f.prepareHttp(download);
+  }
+  f.state.layout.queueOrder = [key(queued)];
+  f.state.preferences = { maxConcurrentDownloads: 1 };
+  await f.orchestrator.bootstrapDownloadsOnStartup();
+  assert.deepEqual(f.state.layout.queueOrder, [
+    key(first),
+    key(later),
+    key(queued),
+  ]);
+  await f.orchestrator.pumpDownloadQueue();
+  assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(first)]);
+});
+
+test("resuming a paused torrent after removing the global cap resets its handle limit", async () => {
+  const f = fixture();
+  const download = torrent(
+    "RetainedCap",
+    "0000000000000000000000000000000000000010"
+  );
+  f.add(download);
+  await f.manager.startDownload(download);
+  await f.manager.applyDownloadSpeedLimit(5000000);
+  await f.manager.pauseDownload(key(download));
+  await f.manager.applyDownloadSpeedLimit(null);
+  f.state.torrentActions.length = 0;
+  await f.manager.resumeDownload(download);
+  await settle();
+  assert.ok(
+    f.state.torrentActions.some(
+      (action) =>
+        action.action === "set_game_download_limit" &&
+        action.game_id === key(download) &&
+        action.max_download_speed_bytes_per_second === 0
+    )
+  );
+});
+
+test("a stale torrent start cannot cancel a newer session for the same game", async () => {
+  const f = fixture();
+  const download = torrent(
+    "ReplacedTorrent",
+    "0000000000000000000000000000000000000011"
+  );
+  f.add(download);
+  let release!: () => void;
+  let entered!: () => void;
+  const started = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  f.state.torrentStart = () => {
+    entered();
+    return new Promise<void>((resolve) => {
+      release = resolve;
+    });
+  };
+  const oldStart = f.manager.startDownload(download);
+  await started;
+  await f.manager.pauseDownload(key(download));
+  f.state.torrentStart = async () => {};
+  await f.manager.startDownload(download);
+  f.state.torrentActions.length = 0;
+  release();
+  await oldStart;
+  assert.equal(f.manager.hasRunningDownload(key(download)), true);
+  assert.equal(
+    f.state.torrentActions.some((action) => action.action === "cancel"),
+    false
+  );
+});
+
+test("session polling cancels an orphan without stopping another transfer", async () => {
+  const f = fixture();
+  const orphan = http("Orphan");
+  const survivor = http("Survivor");
+  for (const download of [orphan, survivor]) {
+    f.add(download);
+    f.prepareHttp(download);
+    await f.manager.startDownload(download);
+  }
+  f.downloads.delete(key(orphan));
+  await f.manager.watchDownloads();
+  assert.equal(f.manager.hasRunningDownload(key(orphan)), true);
+  await f.manager.watchDownloads();
+  assert.equal(f.manager.hasRunningDownload(key(orphan)), false);
+  assert.equal(f.manager.hasRunningDownload(key(survivor)), true);
+});
+
+test("concurrent status polling throttles disk checks independently and aggregates taskbar progress", async () => {
+  const f = fixture();
+  const first = torrent("DiskOne", "0000000000000000000000000000000000000012");
+  const second = torrent("DiskTwo", "0000000000000000000000000000000000000013");
+  for (const [download, progress] of [
+    [first, 0.2],
+    [second, 0.8],
+  ] as const) {
+    f.add(download);
+    f.state.torrentStatuses.set(key(download), {
+      progress,
+      bytesDownloaded: progress * 1000,
+      fileSize: 1000,
+      downloadSpeed: 10,
+      numPeers: 1,
+      numSeeds: 1,
+      folderName: "Game",
+      status: 3,
+    });
+    await f.manager.startDownload(download);
+  }
+  await f.manager.watchDownloads();
+  await f.manager.watchDownloads();
+  assert.deepEqual(f.state.diskChecks.sort(), [key(first), key(second)].sort());
+  assert.equal(f.state.taskbarProgress.at(-1), 0.5);
+  await f.manager.pauseDownload(key(first));
+  assert.equal(f.state.taskbarProgress.at(-1), 0.8);
+});
+
+test("lowering concurrency leaves a non-resumable TorBox zip running", async () => {
+  const f = fixture();
+  const first = http("SafeToPause");
+  const protectedDownload = { ...http("TorBoxZip"), timestamp: 2 };
+  for (const download of [first, protectedDownload]) {
+    f.add(download);
+    f.prepareHttp(download);
+    await f.orchestrator.startPreparedDownload(download);
+  }
+  const internals = f.manager as unknown as {
+    sessions: Map<
+      string,
+      { batch: unknown; downloader: { getDownloadStatus: () => unknown } }
+    >;
+  };
+  const session = internals.sessions.get(key(protectedDownload))!;
+  session.batch = {
+    provider: "torBox",
+    currentIndex: 0,
+    entries: [{ isZip: true }],
+  };
+  session.downloader.getDownloadStatus = () => ({
+    resumeCapability: "unsupported",
+  });
+  f.state.preferences = { maxConcurrentDownloads: 1 };
+  await f.orchestrator.reconcileConcurrentDownloadLimit();
+  assert.equal(f.manager.hasRunningDownload(key(protectedDownload)), true);
+  assert.equal(f.manager.hasRunningDownload(key(first)), false);
+});
+
+for (const priorityFirst of [false, true]) {
+  test(`overlapping priority and torrent progress writes preserve both updates (priority first: ${priorityFirst})`, async () => {
+    const f = fixture();
+    const download = torrent(
+      "PriorityRace",
+      "0000000000000000000000000000000000000014"
+    );
+    f.add(download);
+    await f.manager.startDownload(download);
+    f.state.torrentStatuses.set(key(download), {
+      progress: 0.2,
+      bytesDownloaded: 200,
+      fileSize: 1000,
+      downloadSpeed: 10,
+      numPeers: 1,
+      numSeeds: 1,
+      folderName: "Game",
+      status: 3,
+    });
+    let entered!: () => void;
+    const writing = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    f.state.beforeWrite = async () => {
+      f.state.beforeWrite = () => {};
+      entered();
+      await gate;
+    };
+    const setPriority = () =>
+      f.updateDownloadRecord(key(download), { bandwidthPriority: "high" });
+    const first = priorityFirst ? setPriority() : f.manager.watchDownloads();
+    await writing;
+    const second = priorityFirst ? f.manager.watchDownloads() : setPriority();
+    await settle();
+    release();
+    await Promise.all([first, second]);
+    const saved = f.downloads.get(key(download))!;
+    assert.equal(saved.bandwidthPriority, "high");
+    assert.equal(saved.bytesDownloaded, 200);
+    await f.manager.watchDownloads();
+    assert.equal(f.downloads.get(key(download))?.bandwidthPriority, "high");
+  });
+}
+
+test("startup preserves the preferred hero through normalization and queue pumping", async () => {
+  const f = fixture();
+  const download = {
+    ...http("PreferredInterrupted"),
+    status: "active" as const,
+  };
+  f.add(download);
+  f.prepareHttp(download);
+  f.state.layout.preferredHeroId = key(download);
+  await f.orchestrator.bootstrapDownloadsOnStartup();
+  assert.equal(f.state.layout.preferredHeroId, key(download));
+  await f.orchestrator.pumpDownloadQueue();
+  assert.equal(f.state.layout.preferredHeroId, key(download));
+  f.downloads.delete(key(download));
+  await f.orchestrator.getLayoutState();
+  assert.equal(f.state.layout.preferredHeroId, null);
 });

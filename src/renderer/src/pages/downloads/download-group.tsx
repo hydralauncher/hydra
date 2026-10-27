@@ -703,7 +703,6 @@ export function DownloadGroup({
   const { updateLibrary } = useLibrary();
 
   const {
-    lastPacket,
     packetsById,
     pauseDownload: pauseDownloadOriginal,
     resumeDownload: resumeDownloadOriginal,
@@ -813,20 +812,6 @@ export function DownloadGroup({
     [dominantColors]
   );
 
-  // Clear optimistic state when actual download starts or library updates
-  useEffect(() => {
-    if (lastPacket?.gameId) {
-      const gameId = lastPacket.gameId;
-
-      // Clear optimistic state when actual download starts
-      setOptimisticallyResumed((prev) => {
-        const next = { ...prev };
-        delete next[gameId];
-        return next;
-      });
-    }
-  }, [lastPacket?.gameId]);
-
   // Clear optimistic state for games that are no longer active after library update
   useEffect(() => {
     setOptimisticallyResumed((prev) => {
@@ -840,7 +825,7 @@ export function DownloadGroup({
           if (
             !game ||
             game.download?.status !== "active" ||
-            lastPacket?.gameId === gameId
+            !!packetsById[gameId]
           ) {
             delete next[gameId];
             changed = true;
@@ -850,7 +835,7 @@ export function DownloadGroup({
 
       return changed ? next : prev;
     });
-  }, [library, lastPacket?.gameId]);
+  }, [library, packetsById]);
 
   // Speed history and peak speeds are now tracked in Redux (in setLastPacket reducer)
   // No local effect needed - data is updated atomically when packets arrive

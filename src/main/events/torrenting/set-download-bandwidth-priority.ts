@@ -1,6 +1,7 @@
-import { downloadsSublevel, levelKeys } from "@main/level";
+import { levelKeys } from "@main/level";
 import { DownloadManager } from "@main/services";
 import type { GameShop } from "@types";
+import { updateDownloadRecord } from "@main/services/download-record-updater";
 import { registerEvent } from "../register-event";
 
 const setDownloadBandwidthPriority = async (
@@ -14,13 +15,10 @@ const setDownloadBandwidthPriority = async (
   }
 
   const key = levelKeys.game(shop, objectId);
-  const download = await downloadsSublevel.get(key);
-  if (!download) return false;
-
-  await downloadsSublevel.put(key, {
-    ...download,
+  const download = await updateDownloadRecord(key, {
     bandwidthPriority: priority === "high" ? "high" : undefined,
   });
+  if (!download) return false;
   await DownloadManager.rebalanceBandwidth(true);
   return true;
 };

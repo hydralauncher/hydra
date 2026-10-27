@@ -89,6 +89,7 @@ function fixture(
         >[0]
       | null,
     activeDownloadId: null as string | null,
+    otherActiveDownloadIds: [] as string[],
     managedEvents: [] as string[],
     managedStopGate: Promise.resolve(),
     saveStopGate: Promise.resolve(),
@@ -247,8 +248,12 @@ function fixture(
     "../download-orchestrator": { DownloadOrchestrator: {} },
     "../download/download-manager": {
       DownloadManager: {
-        getActiveDownloadId: () => state.activeDownloadId,
-        pauseDownload: async () => {
+        getActiveDownloadIds: () => [
+          ...state.otherActiveDownloadIds,
+          ...(state.activeDownloadId ? [state.activeDownloadId] : []),
+        ],
+        pauseDownload: async (id: string) => {
+          assert.equal(id, state.activeDownloadId);
           state.activeDownloadId = null;
           state.managedEvents.push("slot-released");
         },
@@ -772,6 +777,14 @@ test("shutdown waits for managed processes and saves before clearing credentials
       queued: true,
     },
   ] as Download[];
+  f.state.otherActiveDownloadIds = ["steam:http-first"];
+  f.state.downloads.push({
+    shop: "steam",
+    objectId: "http-first",
+    downloader: Downloader.PixelDrain,
+    status: "active",
+    queued: false,
+  } as Download);
   f.state.activeDownloadId = "epic:ns:active";
   f.state.managedEvents = [];
   const stopped = f.integration.shutdownEpicIntegration();
@@ -790,6 +803,7 @@ test("shutdown waits for managed processes and saves before clearing credentials
       { status: "paused", queued: false },
       { status: "paused", queued: false },
       { status: "paused", queued: true },
+      { status: "active", queued: false },
     ]
   );
   assert.ok(

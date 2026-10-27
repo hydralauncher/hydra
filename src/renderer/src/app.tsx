@@ -83,8 +83,7 @@ export function App() {
 
   const { t } = useTranslation("app");
 
-  const { clearDownload, clearDownloadById, setLastPacket, lastPacket } =
-    useDownload();
+  const { clearDownloadById, setLastPacket, packetsById } = useDownload();
 
   const workwondersRef = useRef<WorkWonders | null>(null);
   const workwondersInitializingRef = useRef(false);
@@ -191,16 +190,12 @@ export function App() {
   }, [updateLibrary]);
 
   useEffect(() => {
-    if (!lastPacket?.gameId) return;
-
-    const activeGame = downloadLibrary.find(
-      (game) => game.id === lastPacket.gameId
-    );
-
-    if (!activeGame || activeGame.download?.status !== "active") {
-      clearDownload();
+    for (const gameId of Object.keys(packetsById)) {
+      const activeGame = downloadLibrary.find((game) => game.id === gameId);
+      if (!activeGame || activeGame.download?.status !== "active")
+        clearDownloadById(gameId);
     }
-  }, [clearDownload, lastPacket?.gameId, downloadLibrary]);
+  }, [clearDownloadById, packetsById, downloadLibrary]);
 
   const setupWorkWonders = useCallback(
     async (token?: string, locale?: string) => {

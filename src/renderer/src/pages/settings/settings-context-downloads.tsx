@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { CheckboxField, SelectField, TextField } from "@renderer/components";
@@ -72,6 +72,15 @@ export function SettingsContextDownloads() {
 
   const [form, setForm] = useState(() => buildForm(userPreferences));
 
+  const committedConcurrency = useRef(form.maxConcurrentDownloads);
+  const commitConcurrency = () => {
+    if (committedConcurrency.current === form.maxConcurrentDownloads) return;
+    committedConcurrency.current = form.maxConcurrentDownloads;
+    updateUserPreferences({
+      maxConcurrentDownloads: form.maxConcurrentDownloads,
+    });
+  };
+
   const [networkInterfaces, setNetworkInterfaces] = useState<
     NetworkInterface[]
   >([]);
@@ -87,6 +96,9 @@ export function SettingsContextDownloads() {
     if (!userPreferences) return;
 
     setForm(buildForm(userPreferences));
+    committedConcurrency.current =
+      userPreferences.maxConcurrentDownloads ??
+      DEFAULT_MAX_CONCURRENT_DOWNLOADS;
   }, [userPreferences]);
 
   const networkInterfaceOptions = useMemo(() => {
@@ -195,11 +207,13 @@ export function SettingsContextDownloads() {
             min={MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS}
             max={MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS}
             value={form.maxConcurrentDownloads}
-            onChange={(event) =>
-              handleChange({
-                maxConcurrentDownloads: Number(event.target.value),
-              })
-            }
+            onChange={(event) => {
+              const maxConcurrentDownloads = Number(event.target.value);
+              setForm((previous) => ({ ...previous, maxConcurrentDownloads }));
+            }}
+            onPointerUp={commitConcurrency}
+            onKeyUp={commitConcurrency}
+            onBlur={commitConcurrency}
             className="settings-general__download-concurrency-slider"
             style={
               {
