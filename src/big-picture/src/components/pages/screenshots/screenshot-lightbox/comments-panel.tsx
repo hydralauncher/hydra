@@ -361,18 +361,7 @@ function CommentItem({
           </div>
         </div>
 
-        {comment.isHidden ? (
-          <p className="screenshot-comments__hidden-notice">
-            {t("screenshots_comment_hidden")}
-          </p>
-        ) : null}
-
-        <ScreenshotCommentBody
-          bodyHtml={comment.bodyHtml}
-          className={cn({
-            "screenshot-comments__body--hidden": comment.isHidden,
-          })}
-        />
+        <ScreenshotCommentBody bodyHtml={comment.bodyHtml} />
       </div>
 
       <HorizontalFocusGroup
@@ -502,8 +491,7 @@ export function ScreenshotCommentsPanel({
   onCommentCountChange,
 }: Readonly<ScreenshotCommentsPanelProps>) {
   const { t, i18n } = useTranslation("big_picture");
-  const { showErrorToast, showSuccessToast, showWarningToast } =
-    useBigPictureToast();
+  const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const { setFocus } = useNavigation();
   const { userDetails } = useUserDetails();
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
@@ -567,12 +555,6 @@ export function ScreenshotCommentsPanel({
     [recordWrite, setComments]
   );
 
-  const showHiddenCommentToast = useCallback(() => {
-    showWarningToast(t("comment_only_visible_to_you", { ns: "screenshots" }), {
-      fallbackVisual: "settings",
-    });
-  }, [showWarningToast, t]);
-
   const removePendingComment = useCallback(
     (pendingId: string) => {
       recordWrite({ kind: "remove", commentId: pendingId, wasCounted: true });
@@ -612,7 +594,6 @@ export function ScreenshotCommentsPanel({
         if (created.isHidden) {
           setTotal((current) => Math.max(0, current - 1));
           onCommentCountChange(screenshot.id, -1);
-          showHiddenCommentToast();
         }
       } catch (error) {
         removePendingComment(pending.id);
@@ -632,7 +613,6 @@ export function ScreenshotCommentsPanel({
       setComments,
       setTotal,
       showError,
-      showHiddenCommentToast,
     ]
   );
 
@@ -658,7 +638,6 @@ export function ScreenshotCommentsPanel({
           setTotal((current) => Math.max(0, current + delta));
           onCommentCountChange(screenshot.id, delta);
         }
-        if (updated?.isHidden) showHiddenCommentToast();
       } catch (error) {
         if (isLatestEdit()) {
           replaceComment(comment.id, {
@@ -676,7 +655,6 @@ export function ScreenshotCommentsPanel({
       screenshot.id,
       setTotal,
       showError,
-      showHiddenCommentToast,
     ]
   );
 

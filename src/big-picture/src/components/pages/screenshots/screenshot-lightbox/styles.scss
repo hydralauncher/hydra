@@ -631,12 +631,6 @@ $screenshot-lightbox-hover-duration: 0.2s;
     white-space: nowrap;
   }
 
-  &__hidden-notice {
-    margin: 0;
-    color: var(--alert);
-    font-size: 12px;
-  }
-
   &__body {
     color: var(--text);
     font-size: 16px;
@@ -684,10 +678,6 @@ $screenshot-lightbox-hover-duration: 0.2s;
     pre {
       margin: 0 0 4px;
       white-space: pre-wrap;
-    }
-
-    &--hidden {
-      opacity: 0.6;
     }
   }
 

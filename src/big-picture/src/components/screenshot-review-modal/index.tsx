@@ -243,6 +243,7 @@ interface ReviewPreviewProps {
   quality: ScreenshotQuality | null;
   rightTarget: FocusOverrideTarget;
   downTarget: FocusOverrideTarget;
+  onOpenFullscreen: () => void;
 }
 
 function ReviewPreview({
@@ -251,33 +252,19 @@ function ReviewPreview({
   quality,
   rightTarget,
   downTarget,
+  onOpenFullscreen,
 }: Readonly<ReviewPreviewProps>) {
   const { t, i18n } = useTranslation("big_picture");
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const [failedPath, setFailedPath] = useState<string | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const source = screenshot
     ? resolveImageSource(screenshot.previewPath ?? screenshot.path)
     : "";
   const hasImage = Boolean(source) && screenshot?.path !== failedPath;
   const alt = t("screenshots_review_preview_alt", { game: gameTitle });
   const openLabel = t("open_screenshot", { ns: "screenshots" });
-  const fullscreenItems = useMemo(
-    () =>
-      screenshot
-        ? [
-            {
-              id: screenshot.clientId,
-              type: "image" as const,
-              src: resolveImageSource(screenshot.path),
-              alt,
-            },
-          ]
-        : [],
-    [alt, screenshot]
-  );
   const openFullscreen = () => {
-    if (hasImage) setIsFullscreen(true);
+    if (hasImage) onOpenFullscreen();
   };
 
   return (
@@ -336,18 +323,6 @@ function ReviewPreview({
           ) : null}
         </button>
       </FocusItem>
-
-      {isFullscreen && fullscreenItems.length > 0 ? (
-        <MediaViewer
-          items={fullscreenItems}
-          index={0}
-          className="screenshot-review-modal__viewer"
-          showFilmstrip={false}
-          showCounter={false}
-          onNavigate={() => undefined}
-          onClose={() => setIsFullscreen(false)}
-        />
-      ) : null}
     </>
   );
 }
@@ -611,8 +586,9 @@ export function ScreenshotReviewModal() {
   );
   const [isDeleteConfirmVisible, setIsDeleteConfirmVisible] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const { library } = useLibrary();
-  const { hasActiveSubscription } = useUserDetails();
+  const { userDetails, hasActiveSubscription } = useUserDetails();
   const prefersReducedMotion = useReducedMotion();
   const {
     schedule: scheduleDraftSave,
@@ -691,6 +667,7 @@ export function ScreenshotReviewModal() {
     setPendingAction(null);
     setIsDeleteConfirmVisible(false);
     setIsDetailsOpen(false);
+    setIsFullscreen(false);
   }, [flushDraftSaves, visible]);
 
   const toggleDetails = useCallback(() => {
@@ -804,6 +781,12 @@ export function ScreenshotReviewModal() {
 
   const upload = () => {
     if (!current || !currentScreenshot) return;
+    if (!userDetails) {
+      showErrorToast(t("screenshots_sign_in_to_upload"), {
+        fallbackVisual: "settings",
+      });
+      return;
+    }
 
     cancelDraftSave(current.clientId);
 
@@ -919,6 +902,25 @@ export function ScreenshotReviewModal() {
     ? { type: "item", itemId: QUALITY_FOCUS_ID }
     : PREVIEW_TARGET;
   const visibleItems = getVisibleReviewItems(queueState);
+  const fullscreenItems = visibleItems.flatMap((item) => {
+    const itemScreenshot = screenshots.find(
+      (candidate) => candidate.clientId === item.clientId
+    );
+    if (!itemScreenshot) return [];
+    return [
+      {
+        id: itemScreenshot.clientId,
+        type: "image" as const,
+        src: resolveImageSource(itemScreenshot.path),
+        alt: t("screenshots_review_preview_alt", {
+          game: itemScreenshot.gameTitle,
+        }),
+      },
+    ];
+  });
+  const fullscreenIndex = fullscreenItems.findIndex(
+    (item) => item.id === current?.clientId
+  );
   const visiblePosition = visibleItems.findIndex(
     (item) => item.clientId === current.clientId
   );
@@ -990,7 +992,22 @@ export function ScreenshotReviewModal() {
               quality={previewQuality}
               rightTarget={sideEntryTarget}
               downTarget={{ type: "item", itemId: getFooterEntryFocusId() }}
+              onOpenFullscreen={() => setIsFullscreen(true)}
             />
+            {isFullscreen && fullscreenItems.length > 0 ? (
+              <MediaViewer
+                items={fullscreenItems}
+                index={Math.max(fullscreenIndex, 0)}
+                className="screenshot-review-modal__viewer"
+                showFilmstrip={false}
+                showCounter={false}
+                onNavigate={(nextIndex) => {
+                  const next = fullscreenItems[nextIndex];
+                  if (next) selectScreenshot(next.id);
+                }}
+                onClose={() => setIsFullscreen(false)}
+              />
+            ) : null}
             <ReviewFilmstrip
               items={visibleItems}
               screenshots={screenshots}
