@@ -1024,6 +1024,7 @@
     "screenshots_sensitive_warning": "This screenshot may contain sensitive material",
     "screenshots_sensitive_reveal": "View screenshot",
     "screenshots_sensitive_modal_description": "It was taken in a game rated for adults.",
+    "screenshots_sensitive_modal_description_spoiler": "It was taken in a game rated for adults, and it's also marked as a spoiler.",
     "screenshots_sensitive_modal_dont_hide": "Don't hide sensitive screenshots from now on",
     "screenshots_sensitive_local_notice": "This game contains adult content, so this screenshot will be blurred for everyone.",
     "screenshots_settings_show_sensitive": "Show sensitive screenshots without blur"

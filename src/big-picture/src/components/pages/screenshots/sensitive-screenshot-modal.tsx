@@ -22,12 +22,14 @@ const CONFIRM_FOCUS_ID = "sensitive-screenshot-modal-confirm";
 
 interface SensitiveScreenshotModalProps {
   visible: boolean;
+  isSpoiler: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
 
 export function SensitiveScreenshotModal({
   visible,
+  isSpoiler,
   onClose,
   onConfirm,
 }: Readonly<SensitiveScreenshotModalProps>) {
@@ -76,7 +78,11 @@ export function SensitiveScreenshotModal({
       visible={visible}
       onClose={onClose}
       title={t("screenshots_sensitive_warning")}
-      description={t("screenshots_sensitive_modal_description")}
+      description={t(
+        isSpoiler
+          ? "screenshots_sensitive_modal_description_spoiler"
+          : "screenshots_sensitive_modal_description"
+      )}
       initialFocusId={CANCEL_FOCUS_ID}
       closeOnBackdrop={false}
       closeOnEscape={!isSaving}

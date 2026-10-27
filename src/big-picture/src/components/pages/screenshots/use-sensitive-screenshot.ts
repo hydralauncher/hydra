@@ -12,7 +12,7 @@ import { useUserDetails, useUserPreferences } from "../../../hooks";
 
 export type SensitiveScreenshotTarget = Pick<
   ProfileScreenshot,
-  "id" | "isSensitive" | "owner"
+  "id" | "isSensitive" | "isSpoiler" | "owner"
 >;
 
 let sensitiveRevealVersion = 0;
