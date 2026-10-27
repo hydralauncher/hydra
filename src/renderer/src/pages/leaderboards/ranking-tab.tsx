@@ -16,14 +16,10 @@ import { Avatar, Button } from "@renderer/components";
 import { useDate, useFormat } from "@renderer/hooks";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
-import type {
-  LeaderboardEntry,
-  LeaderboardUser,
-} from "../game-details/leaderboard/game-leaderboard";
+import type { LeaderboardUser } from "../game-details/leaderboard/game-leaderboard";
 import {
   getBoardState,
   GLOBAL_LEADERBOARD_PAGE_SIZE,
-  hasReviewData,
   hasStreakData,
   type GlobalLeaderboardPeriod,
   type MetricDefinition,
@@ -38,6 +34,7 @@ import {
   type GlobalBoardResults,
 } from "./use-global-leaderboards";
 import { useMetricText } from "./use-global-leaderboard-value";
+import { useTopReview } from "./use-top-review";
 
 const METRIC_CARD_PLACEHOLDERS = Array.from(
   { length: 7 },
@@ -111,16 +108,16 @@ export function RankingTab({
 
   const format = (value: number) =>
     metric ? metricText.format(metric, value) : String(value);
-  const isReviews = hasReviewData(leaderboard);
+  const isReviews = metric?.id === "reviews";
   const leaderId = leaderboard?.entries[0]?.user.id ?? null;
   const selectedReviewerId = reviewerId ?? leaderId;
   const selectedEntry =
     leaderboard?.entries.find(
       (entry) => entry.user.id === selectedReviewerId
     ) ?? null;
-  const selectedReview = selectedEntry
-    ? (leaderboard?.extras[selectedEntry.user.id]?.review ?? null)
-    : null;
+  const selectedReview = useTopReview(
+    isReviews ? (selectedEntry?.user.id ?? null) : null
+  );
 
   const renderLeaderCard = (definition: MetricDefinition) => {
     const { id } = definition;
@@ -178,30 +175,6 @@ export function RankingTab({
         </span>
         <span className="leaderboards__card-leader">{leaderContent}</span>
       </button>
-    );
-  };
-
-  const renderReviewTooltip = (entry: LeaderboardEntry) => {
-    const review = leaderboard?.extras[entry.user.id]?.review;
-    if (!isReviews || !review) return null;
-
-    return (
-      <div className="leaderboards__review-tip">
-        {review.coverImageUrl && (
-          <img
-            className="leaderboards__review-tip-cover"
-            src={review.coverImageUrl}
-            alt=""
-          />
-        )}
-        <div className="leaderboards__review-tip-body">
-          <span className="leaderboards__review-tip-game">
-            {review.gameTitle}
-          </span>
-          <ReviewScore review={review} />
-          <p className="leaderboards__review-tip-text">{review.text}</p>
-        </div>
-      </div>
     );
   };
 
@@ -329,7 +302,6 @@ export function RankingTab({
           onSelect={
             isReviews ? (entry) => setReviewerId(entry.user.id) : undefined
           }
-          renderTooltip={isReviews ? renderReviewTooltip : undefined}
           onVisibleChange={setVisibleRows}
         />
       </>
