@@ -11,7 +11,7 @@ import {
   type ScreenshotCollection,
 } from "@renderer/components/screenshots";
 import { ScreenshotLightboxPanel } from "@renderer/components/screenshots/screenshot-lightbox-panel";
-import { useScreenshotReviewDrafts } from "@renderer/components/screenshot-review-modal/use-screenshot-review-drafts";
+import { useScreenshotReviewDrafts } from "@renderer/components/screenshot-upload-form/use-screenshot-review-drafts";
 import { useDate } from "@renderer/hooks";
 import {
   GalleryLightbox,

@@ -1,10 +1,10 @@
 import { useTranslation } from "react-i18next";
 
-import { ScreenshotReviewActionButtons } from "@renderer/components/screenshot-review-modal/screenshot-review-action-buttons";
-import { ScreenshotReviewFields } from "@renderer/components/screenshot-review-modal/screenshot-review-fields";
-import type { ScreenshotReviewDraft } from "@renderer/components/screenshot-review-modal/screenshot-review-state";
-import { ScreenshotReviewStatus } from "@renderer/components/screenshot-review-modal/screenshot-review-status";
-import { useScreenshotReviewActions } from "@renderer/components/screenshot-review-modal/use-screenshot-review-actions";
+import { ScreenshotReviewActionButtons } from "@renderer/components/screenshot-upload-form/screenshot-review-action-buttons";
+import { ScreenshotReviewFields } from "@renderer/components/screenshot-upload-form/screenshot-review-fields";
+import type { ScreenshotReviewDraft } from "@renderer/components/screenshot-upload-form/screenshot-review-state";
+import { ScreenshotReviewStatus } from "@renderer/components/screenshot-upload-form/screenshot-review-status";
+import { useScreenshotReviewActions } from "@renderer/components/screenshot-upload-form/use-screenshot-review-actions";
 import { useDate } from "@renderer/hooks";
 import { getLocalScreenshotTitle } from "@shared";
 import type { LocalScreenshot } from "@types";
