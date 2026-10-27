@@ -11,6 +11,7 @@ export interface ScreenshotReviewTarget {
 }
 
 let desktopReview: ScreenshotReview | null = null;
+let reviewOwnerWebContentsId: number | null = null;
 const closedListeners = new Set<() => void>();
 
 const sendDesktopReview = () => {
@@ -64,6 +65,7 @@ export class ScreenshotReviewSession {
       clientIds: target.clientIds,
       selectedClientId: target.selectedClientId,
     };
+    reviewOwnerWebContentsId = WindowManager.mainWindow?.webContents.id ?? null;
     await releaseUnreviewedScreenshots(removedIds);
     sendDesktopReview();
   }
@@ -73,12 +75,22 @@ export class ScreenshotReviewSession {
 
     const { clientIds } = desktopReview;
     desktopReview = null;
+    reviewOwnerWebContentsId = null;
     sendDesktopReview();
     await releaseUnreviewedScreenshots(clientIds);
     for (const listener of closedListeners) listener();
   }
 
-  public static getDesktopReview() {
+  public static getDesktopReview(requesterWebContentsId?: number) {
+    if (
+      desktopReview &&
+      requesterWebContentsId !== undefined &&
+      requesterWebContentsId !== reviewOwnerWebContentsId
+    ) {
+      void this.close();
+      return null;
+    }
+
     return desktopReview
       ? { ...desktopReview, clientIds: [...desktopReview.clientIds] }
       : null;
