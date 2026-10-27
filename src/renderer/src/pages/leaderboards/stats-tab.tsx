@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import cn from "classnames";
 import { PeopleIcon } from "@primer/octicons-react";
 import Skeleton from "react-loading-skeleton";
@@ -127,9 +127,15 @@ export function StatsTab({
     [i18n.language]
   );
 
-  const cellTitle = (cell: HeatmapCell) => {
-    const date = cellDateFormatter.format(cell.date);
-    const label = cell.isToday ? t("today_date", { date }) : date;
+  // Days are UTC, so in UTC-3 today's cell is already the next date from
+  // 21:00 on. Naming today and yesterday avoids showing that date.
+  const cellLabel = (cell: HeatmapCell) => {
+    if (cell.isToday) return t("today");
+    if (cell.isYesterday) return t("yesterday");
+    return cellDateFormatter.format(cell.date);
+  };
+
+  const cellSummary = (cell: HeatmapCell) => {
     const totalMinutes = Math.max(
       1,
       Math.round(cell.seconds / SECONDS_PER_MINUTE)
@@ -144,8 +150,20 @@ export function StatsTab({
           : t("duration_minutes", { minutes });
     }
 
-    return [label, time, cell.games.join(", ")].filter(Boolean).join(" · ");
+    return [cellLabel(cell), time].join(" · ");
   };
+
+  const renderCellTip = (cell: HeatmapCell) => (
+    <span className="leaderboards__heat-tip" role="tooltip">
+      {cellSummary(cell)}
+      {cell.games.map((game, index) => (
+        <Fragment key={`${game}-${index}`}>
+          {index === 0 ? " · " : ", "}
+          <span className="leaderboards__heat-tip-game">{game}</span>
+        </Fragment>
+      ))}
+    </span>
+  );
 
   const atRecord =
     activity.data !== null &&
@@ -208,7 +226,13 @@ export function StatsTab({
             {heatmap.map((cell) => (
               <span
                 key={cell.date.toISOString()}
-                title={cell.isFuture ? undefined : cellTitle(cell)}
+                aria-label={
+                  cell.isFuture
+                    ? undefined
+                    : [cellSummary(cell), cell.games.join(", ")]
+                        .filter(Boolean)
+                        .join(" · ")
+                }
                 className={cn(
                   "leaderboards__heat",
                   `leaderboards__heat--${cell.level}`,
@@ -217,7 +241,9 @@ export function StatsTab({
                     "leaderboards__heat--today": cell.isToday,
                   }
                 )}
-              />
+              >
+                {!cell.isFuture && renderCellTip(cell)}
+              </span>
             ))}
           </div>
         </div>
