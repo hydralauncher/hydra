@@ -2676,7 +2676,6 @@
   },
   "leaderboards": {
     "title": "Rankings",
-    "subtitle_week": "Semana {{number}} · {{range}} · Reinicia em {{countdown}}",
     "resets_in": "Reinicia em {{countdown}}",
     "subtitle_all": "Recordes acumulados desde que cada jogador entrou no Hydra",
     "countdown_days": "{{days}} d {{hours}} h",
@@ -2771,7 +2770,6 @@
     "last_weeks": "Últimas {{count}} semanas",
     "legend_min": "0 h",
     "legend_max": "3 h+",
-    "today_date": "Hoje, {{date}}",
     "today": "Hoje",
     "yesterday": "Ontem",
     "not_played": "Não jogou",

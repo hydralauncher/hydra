@@ -40,32 +40,35 @@ const loadTopReview = async (
   };
 };
 
-const getTopReview = (userId: string) => {
-  let review = topReviewByUser.get(userId);
+// Keyed by viewer too: what a user's reviews show depends on who is asking
+// (friends-only profiles), so an account switch must not reuse it.
+const getTopReview = (userId: string, viewerId: string | null) => {
+  const key = `${viewerId ?? ""}:${userId}`;
+  let review = topReviewByUser.get(key);
   if (!review) {
     review = loadTopReview(userId).catch(() => {
-      topReviewByUser.delete(userId);
+      topReviewByUser.delete(key);
       return null;
     });
-    topReviewByUser.set(userId, review);
+    topReviewByUser.set(key, review);
   }
   return review;
 };
 
-export function useTopReview(userId: string | null) {
+export function useTopReview(userId: string | null, viewerId: string | null) {
   const [review, setReview] = useState<LeaderboardReview | null>(null);
 
   useEffect(() => {
     setReview(null);
     if (!userId) return;
     let cancelled = false;
-    void getTopReview(userId).then((result) => {
+    void getTopReview(userId, viewerId).then((result) => {
       if (!cancelled) setReview(result);
     });
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, viewerId]);
 
   return review;
 }

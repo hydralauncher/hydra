@@ -49,7 +49,7 @@ $leaderboards-streak-to: #b05cff;
 
     &--countdown {
       margin-top: -2px;
-      font-size: 12px;
+      font-size: globals.$small-font-size;
       opacity: 0.75;
     }
   }
@@ -70,7 +70,7 @@ $leaderboards-streak-to: #b05cff;
 
     .leaderboard-controls__segment {
       height: 34px;
-      font-size: 12px;
+      font-size: globals.$small-font-size;
     }
   }
 
@@ -1028,6 +1028,17 @@ $leaderboards-streak-to: #b05cff;
     line-height: 18px;
     color: globals.$muted-color;
     pointer-events: none;
+  }
+
+  &__heat-tip--start {
+    left: 0;
+    transform: none;
+  }
+
+  &__heat-tip--end {
+    right: 0;
+    left: auto;
+    transform: none;
   }
 
   &__heat-tip-game {

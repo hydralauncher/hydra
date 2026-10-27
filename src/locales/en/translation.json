@@ -2672,7 +2672,6 @@
   },
   "leaderboards": {
     "title": "Leaderboards",
-    "subtitle_week": "Week {{number}} · {{range}} · Resets in {{countdown}}",
     "resets_in": "Resets in {{countdown}}",
     "subtitle_all": "Records accumulated since each player joined Hydra",
     "countdown_days": "{{days}}d {{hours}}h",
@@ -2767,7 +2766,6 @@
     "last_weeks": "Last {{count}} weeks",
     "legend_min": "0 h",
     "legend_max": "3 h+",
-    "today_date": "Today, {{date}}",
     "today": "Today",
     "yesterday": "Yesterday",
     "not_played": "Didn't play",

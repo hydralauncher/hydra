@@ -116,7 +116,8 @@ export function RankingTab({
       (entry) => entry.user.id === selectedReviewerId
     ) ?? null;
   const selectedReview = useTopReview(
-    isReviews ? (selectedEntry?.user.id ?? null) : null
+    isReviews ? (selectedEntry?.user.id ?? null) : null,
+    viewerId
   );
 
   const renderLeaderCard = (definition: MetricDefinition) => {

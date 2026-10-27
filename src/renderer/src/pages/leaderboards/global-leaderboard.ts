@@ -409,19 +409,6 @@ export const resolveWeekRange = (
   };
 };
 
-export const getIsoWeekNumber = (date: Date) => {
-  const target = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-  );
-  target.setUTCDate(target.getUTCDate() - ((target.getUTCDay() + 6) % 7) + 3);
-  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
-  firstThursday.setUTCDate(
-    firstThursday.getUTCDate() - ((firstThursday.getUTCDay() + 6) % 7) + 3
-  );
-
-  return 1 + Math.round((target.getTime() - firstThursday.getTime()) / WEEK_MS);
-};
-
 export const getCountdownParts = (end: Date, now: number) => {
   const totalMinutes = Math.floor(Math.max(0, end.getTime() - now) / 60_000);
 

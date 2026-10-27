@@ -11,7 +11,6 @@ import {
   getBadgeProgress,
   getBoardState,
   getCountdownParts,
-  getIsoWeekNumber,
   getPlayLevel,
   getRankDelta,
   getRowsBelowPodium,
@@ -296,13 +295,6 @@ describe("week helpers", () => {
       resolveWeekRange(null, now).end.toISOString(),
       "2026-10-26T00:00:00.000Z"
     );
-  });
-
-  it("returns the ISO week number", () => {
-    assert.equal(getIsoWeekNumber(new Date(Date.UTC(2026, 9, 21))), 43);
-    assert.equal(getIsoWeekNumber(new Date(Date.UTC(2026, 0, 1))), 1);
-    assert.equal(getIsoWeekNumber(new Date(Date.UTC(2021, 0, 3))), 53);
-    assert.equal(getIsoWeekNumber(new Date(Date.UTC(2020, 11, 31))), 53);
   });
 
   it("splits the countdown and never goes negative", () => {

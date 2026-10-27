@@ -159,8 +159,18 @@ export function StatsTab({
     return [cellLabel(cell), time].join(" · ");
   };
 
-  const renderCellTip = (cell: HeatmapCell) => (
-    <span className="leaderboards__heat-tip" role="tooltip">
+  const heatmapWeeks = heatmap.length / 7;
+
+  // Tips in the first and last columns open inward so they stay in the card.
+  const renderCellTip = (cell: HeatmapCell, index: number) => (
+    <span
+      className={cn("leaderboards__heat-tip", {
+        "leaderboards__heat-tip--start": Math.floor(index / 7) < 2,
+        "leaderboards__heat-tip--end":
+          Math.floor(index / 7) >= heatmapWeeks - 2,
+      })}
+      role="tooltip"
+    >
       {cellSummary(cell)}
       {cell.games.map((game, index) => (
         <Fragment key={`${game}-${index}`}>
@@ -229,9 +239,10 @@ export function StatsTab({
                 {label}
               </span>
             ))}
-            {heatmap.map((cell) => (
+            {heatmap.map((cell, index) => (
               <span
                 key={cell.date.toISOString()}
+                role={cell.isFuture ? undefined : "img"}
                 aria-label={
                   cell.isFuture
                     ? undefined
@@ -248,7 +259,7 @@ export function StatsTab({
                   }
                 )}
               >
-                {!cell.isFuture && renderCellTip(cell)}
+                {!cell.isFuture && renderCellTip(cell, index)}
               </span>
             ))}
           </div>
