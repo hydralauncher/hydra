@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { Avatar, getRankTier } from "@renderer/components";
+import { LEADERBOARD_PODIUM_BANNER_IMAGE_SIZE } from "@renderer/constants";
+import { useProcessedImage } from "@renderer/hooks";
 import type { LeaderboardEntry } from "../game-details/leaderboard/game-leaderboard";
 import { RankDelta, StreakFlame } from "./leaderboard-bits";
 
@@ -21,6 +23,33 @@ export interface LeaderboardPodiumProps {
 }
 
 const PODIUM_ORDER = [1, 0, 2];
+
+function PodiumBody({
+  bannerUrl,
+  children,
+}: Readonly<{ bannerUrl: string | null; children: React.ReactNode }>) {
+  const banner = useProcessedImage(
+    bannerUrl,
+    LEADERBOARD_PODIUM_BANNER_IMAGE_SIZE
+  );
+
+  return (
+    <span
+      className={cn("leaderboard-podium__body", {
+        "leaderboard-podium__body--banner": banner,
+      })}
+      style={
+        banner
+          ? ({
+              "--leaderboard-podium-banner": `url(${JSON.stringify(banner)})`,
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
+      {children}
+    </span>
+  );
+}
 
 export function LeaderboardPodium({
   entries,
@@ -49,7 +78,6 @@ export function LeaderboardPodium({
     >
       {ordered.map((entry) => {
         const tier = getRankTier(entry.rank);
-        const banner = entry.user.backgroundImageUrl;
         const isViewer = entry.user.id === viewerId;
         const streak = getStreak?.(entry) ?? null;
 
@@ -82,18 +110,7 @@ export function LeaderboardPodium({
               </span>
             </span>
 
-            <span
-              className={cn("leaderboard-podium__body", {
-                "leaderboard-podium__body--banner": banner,
-              })}
-              style={
-                banner
-                  ? ({
-                      "--leaderboard-podium-banner": `url(${JSON.stringify(banner)})`,
-                    } as React.CSSProperties)
-                  : undefined
-              }
-            >
+            <PodiumBody bannerUrl={entry.user.backgroundImageUrl}>
               <Avatar
                 size={entry.rank === 1 ? 64 : 52}
                 src={entry.user.profileImageUrl}
@@ -133,7 +150,7 @@ export function LeaderboardPodium({
                   <RankDelta delta={getDelta?.(entry) ?? null} />
                 </span>
               )}
-            </span>
+            </PodiumBody>
           </button>
         );
       })}

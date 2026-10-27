@@ -2750,6 +2750,7 @@
     "review_open_game": "Ver na página de {{game}}",
     "my_games_title": "Rankings dos seus jogos",
     "search_game": "Buscar jogo",
+    "clear_search": "Limpar busca",
     "search_game_placeholder": "Buscar jogo na biblioteca",
     "games_empty_title": "Nenhum ranking de jogo ainda",
     "games_empty_description": "Jogue algum jogo para aparecer no ranking dele.",

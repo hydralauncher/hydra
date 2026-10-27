@@ -2746,6 +2746,7 @@
     "review_open_game": "View on the {{game}} page",
     "my_games_title": "Your games' rankings",
     "search_game": "Search game",
+    "clear_search": "Clear search",
     "search_game_placeholder": "Search a game in your library",
     "games_empty_title": "No game rankings yet",
     "games_empty_description": "Play a game to show up on its ranking.",

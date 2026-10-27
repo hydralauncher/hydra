@@ -5,6 +5,8 @@ import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 
 import { Avatar, Button } from "@renderer/components";
+import { LEADERBOARD_HEADER_BANNER_IMAGE_SIZE } from "@renderer/constants";
+import { useProcessedImage } from "@renderer/hooks";
 import type { LeaderboardUser } from "../game-details/leaderboard/game-leaderboard";
 import {
   buildHeatmap,
@@ -80,6 +82,10 @@ export function StatsTab({
   const metricText = useMetricText();
   const viewerId = viewerUser?.id ?? null;
   const isWeek = period === "week";
+  const banner = useProcessedImage(
+    viewerUser?.backgroundImageUrl,
+    LEADERBOARD_HEADER_BANNER_IMAGE_SIZE
+  );
 
   const activity = useApiResource(
     "/users/me/play-activity",
@@ -347,13 +353,12 @@ export function StatsTab({
         <section className="leaderboards__mine" aria-labelledby="mine-title">
           <div
             className={cn("leaderboards__mine-header", {
-              "leaderboards__mine-header--banner":
-                viewerUser?.backgroundImageUrl,
+              "leaderboards__mine-header--banner": banner,
             })}
             style={
-              viewerUser?.backgroundImageUrl
+              banner
                 ? ({
-                    "--mine-banner": `url(${JSON.stringify(viewerUser.backgroundImageUrl)})`,
+                    "--mine-banner": `url(${JSON.stringify(banner)})`,
                   } as React.CSSProperties)
                 : undefined
             }
@@ -399,6 +404,11 @@ export function StatsTab({
                     )}
                     {!isPending && !isFailed && (
                       <>
+                        {ranking && (
+                          <span className="leaderboards__mine-value">
+                            {metricText.format(metric, ranking.value)}
+                          </span>
+                        )}
                         <span className="leaderboards__mine-delta">
                           {isWeek && ranking && (
                             <RankDelta delta={ranking.delta} />

@@ -335,7 +335,7 @@ function LeaderboardsPage() {
           )}
 
           {isLoggedIn ? (
-            <BadgesSection />
+            tab === "stats" && <BadgesSection />
           ) : (
             <p className="leaderboards__sign-in">
               <TrophyIcon size={14} />
