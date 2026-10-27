@@ -99,6 +99,7 @@ const resetGameAchievementsNow = async (
     const achievementFiles = await collectGameAchievementFiles(game, {
       includeSteamCache: false,
       awaitGameDirectoryLocations: true,
+      allEpicProfiles: true,
     });
 
     for (const achievementFile of achievementFiles) {

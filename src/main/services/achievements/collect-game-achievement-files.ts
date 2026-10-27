@@ -12,12 +12,15 @@ import {
   findNestedAchievementFiles,
   type NestedAchievementFiles,
 } from "./find-nested-achievement-files";
+import { findEpicAchievementFiles } from "./epic/epic-achievement-files";
 
 interface CollectGameAchievementFilesOptions {
   includeSteamCache?: boolean;
   staticFilesByObjectId?: Map<string, AchievementFile[]>;
   nestedFilesByObjectId?: NestedAchievementFiles;
   awaitGameDirectoryLocations?: boolean;
+  /** Epic: every local profile instead of the one in use, for reset. */
+  allEpicProfiles?: boolean;
 }
 
 const getEffectiveWinePrefixPath = (game: Game) =>
@@ -40,8 +43,12 @@ export const collectGameAchievementFiles = async (
     staticFilesByObjectId,
     nestedFilesByObjectId,
     awaitGameDirectoryLocations = false,
+    allEpicProfiles = false,
   }: CollectGameAchievementFilesOptions = {}
 ): Promise<AchievementFile[]> => {
+  if (game.shop === "epic") {
+    return findEpicAchievementFiles(game, { allProfiles: allEpicProfiles });
+  }
   if (game.shop !== "steam") return [];
 
   const achievementFiles: AchievementFile[] = staticFilesByObjectId

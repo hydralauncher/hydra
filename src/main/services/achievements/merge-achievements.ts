@@ -29,6 +29,8 @@ import { PendingGroupedSouvenirStore } from "./grouped-souvenir-store";
 import { groupedSouvenirWorker } from "./grouped-souvenir-worker";
 import { launchedGamePids } from "../launched-game-pids";
 import { Wine } from "../wine";
+import { resolveEpicAchievementNames } from "./epic/resolve-epic-achievement-names";
+import { EpicLocalAchievementStore } from "./epic/epic-local-achievement-store";
 
 const captureAchievementSouvenirs = async (
   game: Game,
@@ -174,7 +176,8 @@ const mergeAchievementsLocally = async (
   game: Game,
   achievements: UnlockedAchievement[],
   publishNotification: boolean,
-  current: () => boolean
+  current: () => boolean,
+  achievementsToUpload?: UnlockedAchievement[]
 ) => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
 
@@ -273,7 +276,11 @@ const mergeAchievementsLocally = async (
     current
   );
   if (!current()) throw new Error("achievement-sync-context-changed");
-  if (shouldSyncWithRemote) {
+  const uploadAchievements = achievementsToUpload ?? achievementsToSync;
+  if (
+    shouldSyncWithRemote &&
+    (!achievementsToUpload || uploadAchievements.length)
+  ) {
     const context = HydraApi.getAuthContext();
     if (context)
       await achievementSyncWorker.enqueue({
@@ -282,7 +289,7 @@ const mergeAchievementsLocally = async (
         remoteId: game.remoteId!,
         shop: game.shop,
         objectId: game.objectId,
-        achievements: achievementsToSync,
+        achievements: uploadAchievements,
       });
   }
 
@@ -291,12 +298,64 @@ const mergeAchievementsLocally = async (
   return newAchievements.length;
 };
 
+/**
+ * Names from Epic files are Epic ids. Only unlocks read from those files are
+ * uploaded, never the Epic account unlocks already held in memory.
+ */
+const mergeEpicLocalAchievements = async (
+  game: Game,
+  achievements: UnlockedAchievement[],
+  publishNotification: boolean,
+  current: () => boolean
+) => {
+  const gameKey = levelKeys.game(game.shop, game.objectId);
+  const pending = [
+    ...achievements,
+    ...EpicLocalAchievementStore.getUnresolved(gameKey),
+  ];
+
+  if (pending.length) {
+    const definitions = await getGameAchievementData(
+      game.objectId,
+      game.shop,
+      true,
+      current
+    );
+    if (!current()) throw new Error("achievement-sync-context-changed");
+
+    const { resolved, unresolved } = resolveEpicAchievementNames(
+      pending,
+      definitions
+    );
+    EpicLocalAchievementStore.addResolved(gameKey, resolved);
+    EpicLocalAchievementStore.setUnresolved(gameKey, unresolved);
+
+    if (unresolved.length) {
+      achievementsLogger.log(
+        "Epic achievement ids missing from the catalogue",
+        game.objectId,
+        unresolved.map((achievement) => achievement.name)
+      );
+    }
+  }
+
+  const localAchievements = EpicLocalAchievementStore.getResolved(gameKey);
+  if (!localAchievements.length) return 0;
+
+  return mergeAchievementsLocally(
+    game,
+    localAchievements,
+    publishNotification,
+    current,
+    localAchievements
+  );
+};
+
 export const mergeAchievements = async (
   game: Game,
   achievements: UnlockedAchievement[],
   publishNotification: boolean
 ) => {
-  if (game.shop === "epic") return 0;
   const context = HydraApi.getAuthContext();
   const current = () =>
     context
@@ -305,7 +364,19 @@ export const mergeAchievements = async (
   const result = await achievementSyncCoordinator.runMerge(
     levelKeys.game(game.shop, game.objectId),
     (valid) =>
-      mergeAchievementsLocally(game, achievements, publishNotification, valid),
+      game.shop === "epic"
+        ? mergeEpicLocalAchievements(
+            game,
+            achievements,
+            publishNotification,
+            valid
+          )
+        : mergeAchievementsLocally(
+            game,
+            achievements,
+            publishNotification,
+            valid
+          ),
     current
   );
   void achievementSyncWorker.trigger();
