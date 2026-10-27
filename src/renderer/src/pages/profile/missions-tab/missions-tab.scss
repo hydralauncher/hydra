@@ -215,7 +215,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
 
 .weekly-mission {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   margin: 0 -12px;
@@ -228,7 +228,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     background-color: rgba(255, 255, 255, 0.035);
   }
 
-  &__status {
+  &__icon {
     display: flex;
     line-height: 0;
   }
