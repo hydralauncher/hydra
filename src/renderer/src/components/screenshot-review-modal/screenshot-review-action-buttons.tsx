@@ -14,6 +14,7 @@ interface ScreenshotReviewNextAction {
 interface ScreenshotReviewActionButtonsProps {
   screenshot: LocalScreenshot;
   isBusy: boolean;
+  isUploading?: boolean;
   next?: ScreenshotReviewNextAction;
   onUpload: () => void;
   onRequestDelete: () => void;
@@ -22,6 +23,7 @@ interface ScreenshotReviewActionButtonsProps {
 export function ScreenshotReviewActionButtons({
   screenshot,
   isBusy,
+  isUploading = false,
   next,
   onUpload,
   onRequestDelete,
@@ -32,7 +34,7 @@ export function ScreenshotReviewActionButtons({
     <Button
       className="screenshot-review-item__delete"
       theme="danger"
-      disabled={isBusy}
+      disabled={isBusy || isUploading}
       tooltip={t("delete")}
       aria-label={t("delete")}
       onClick={onRequestDelete}
@@ -47,6 +49,21 @@ export function ScreenshotReviewActionButtons({
         {next.hasNext ? t("next") : t("done")}
       </Button>
     ) : null;
+
+  if (isUploading) {
+    return (
+      <>
+        <Button className="screenshot-review-item__upload" disabled aria-busy>
+          <span
+            className="screenshot-review-item__upload-spinner"
+            aria-hidden
+          />
+          {t("uploading_button")}
+        </Button>
+        {deleteButton}
+      </>
+    );
+  }
 
   if (isScreenshotUndecided(screenshot)) {
     return (
