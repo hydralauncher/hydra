@@ -3001,6 +3001,7 @@
     "sensitive_content": "Sensitive content",
     "sensitive_modal_title": "This screenshot may contain sensitive material",
     "sensitive_modal_description": "It was taken in a game rated for adults.",
+    "sensitive_modal_description_spoiler": "It was taken in a game rated for adults, and it's also marked as a spoiler.",
     "sensitive_modal_confirm": "View screenshot",
     "sensitive_modal_always_show": "Don't hide sensitive screenshots from now on",
     "store_epic": "Epic Games",

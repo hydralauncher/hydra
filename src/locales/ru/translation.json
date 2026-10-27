@@ -2802,6 +2802,7 @@
     "sensitive_content": "Деликатный контент",
     "sensitive_modal_title": "Этот скриншот может содержать деликатные материалы",
     "sensitive_modal_description": "Он сделан в игре для взрослых.",
+    "sensitive_modal_description_spoiler": "Он сделан в игре для взрослых и также отмечен как спойлер.",
     "sensitive_modal_confirm": "Показать скриншот",
     "sensitive_modal_always_show": "Больше не скрывать деликатные скриншоты",
     "store_epic": "Epic Games",

@@ -3005,6 +3005,7 @@
     "sensitive_content": "Conteúdo sensível",
     "sensitive_modal_title": "Esta captura pode conter material sensível",
     "sensitive_modal_description": "Ela foi feita em um jogo classificado para adultos.",
+    "sensitive_modal_description_spoiler": "Ela foi tirada em um jogo para adultos e também está marcada como spoiler.",
     "sensitive_modal_confirm": "Ver captura",
     "sensitive_modal_always_show": "Não ocultar mais capturas sensíveis",
     "store_epic": "Epic Games",
