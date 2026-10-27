@@ -223,7 +223,6 @@ export interface ScreenshotInputStatus {
 
 export type LocalScreenshotState =
   | "local"
-  | "reviewing"
   | "queued"
   | "uploading"
   | "uploaded"

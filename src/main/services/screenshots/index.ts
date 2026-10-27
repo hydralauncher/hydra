@@ -1,16 +1,15 @@
 import fs from "node:fs";
 import { shell } from "electron";
-import { db, gamesSublevel, levelKeys } from "@main/level";
+import { gamesSublevel } from "@main/level";
 import { resolveScreenshotPreferences } from "@shared";
 import type {
   GameShop,
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
-  UserPreferences,
 } from "@types";
 
 import { emulatorSessions } from "../emulators/emulator-session-tracker";
-import { gamesPlaytime } from "../game-running-state";
+import { gamesPlaytime, hasTrackedGamesRunning } from "../game-running-state";
 import {
   isWaylandCaptureBackend,
   prepareLinuxGameCaptureSession,
@@ -43,43 +42,16 @@ import { getScreenshotsFolder } from "./screenshots-folder";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
 import { screenshotUploadWorker } from "./screenshot-upload-worker";
+import { readUserPreferences } from "./screenshot-user-preferences";
 
 export { LocalScreenshotStore } from "./local-screenshot-store";
 export { screenshotUploadWorker } from "./screenshot-upload-worker";
 
-const SCREENSHOTS_MODULE_LOADED_AT = Date.now();
-
 let initialized = false;
-
-const readUserPreferences = () =>
-  db
-    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
-      valueEncoding: "json",
-    })
-    .catch(() => null);
 
 const isScreenshotCaptureAvailable = async () => {
   const preferences = resolveScreenshotPreferences(await readUserPreferences());
   return preferences.enabled && (await isScreenshotsFeatureEnabled());
-};
-
-const hasRunningGames = () =>
-  gamesPlaytime.size > 0 || emulatorSessions.size > 0;
-
-const releaseStaleReviews = async (startedAt: number) => {
-  const screenshots = await LocalScreenshotStore.list();
-  await Promise.all(
-    screenshots
-      .filter(
-        (screenshot) =>
-          screenshot.state === "reviewing" && screenshot.capturedAt < startedAt
-      )
-      .map(({ clientId }) =>
-        LocalScreenshotStore.update(clientId, (current) =>
-          current.state === "reviewing" ? { state: "local" } : {}
-        )
-      )
-  );
 };
 
 export const initializeScreenshots = () => {
@@ -100,11 +72,7 @@ export const initializeScreenshots = () => {
     logger.error("Failed to back-fill local screenshot game ids", error);
   });
 
-  void releaseStaleReviews(SCREENSHOTS_MODULE_LOADED_AT)
-    .catch((error) => {
-      logger.error("Failed to release stale screenshot reviews", error);
-    })
-    .finally(() => screenshotUploadWorker.start());
+  screenshotUploadWorker.start();
 };
 
 const releaseRunningGameResources = () => {
@@ -138,7 +106,7 @@ export const onScreenshotGameStarted = async (
 export const onScreenshotGameClosed = (gameKey: string) => {
   clearScreenshotGameSession(gameKey);
   forgetForegroundGame(gameKey);
-  if (!hasRunningGames()) releaseRunningGameResources();
+  if (!hasTrackedGamesRunning()) releaseRunningGameResources();
 };
 
 export const applyScreenshotsEnabledPreference = async (
@@ -150,7 +118,7 @@ export const applyScreenshotsEnabledPreference = async (
     return;
   }
 
-  if (!hasRunningGames()) return;
+  if (!hasTrackedGamesRunning()) return;
 
   const runningGameKeys = new Set([
     ...gamesPlaytime.keys(),

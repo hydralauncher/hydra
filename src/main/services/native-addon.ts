@@ -51,7 +51,6 @@ export interface ScreenshotInputNativeConfig {
   ctrl: boolean;
   alt: boolean;
   shift: boolean;
-  keyboardEnabled: boolean;
   gamepadEnabled: boolean;
   gamepadButtons: string[];
 }

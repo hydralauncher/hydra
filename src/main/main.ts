@@ -127,6 +127,7 @@ export const loadState = async () => {
   void syncRetroAchievementsEmulatorCredentials();
 
   await HydraApi.setupApi().then(async () => {
+    void ScreenshotInputService.refreshFeatureFlag();
     await initializeEpicIntegration();
     uploadGamesBatch();
     void migrateDownloadSources();
