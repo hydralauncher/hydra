@@ -1,0 +1,7 @@
+.sensitive-screenshot-modal {
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 5);
+  }
+}

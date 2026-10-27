@@ -3,7 +3,6 @@ import "./screenshot-card.scss";
 import {
   ChatCircleIcon,
   EyeClosedIcon,
-  EyeSlashIcon,
   GameControllerIcon,
   HeartIcon,
   ImageIcon,
@@ -21,10 +20,13 @@ import type { FocusOverrides } from "../../../services";
 import { Feature, useDate, useFeature } from "../../../hooks";
 import {
   getScreenshotAltText,
+  getScreenshotBlurReason,
   getScreenshotGameTitle,
   shouldBlurScreenshot,
 } from "./helpers";
+import { ScreenshotBlurLabel } from "./screenshot-blur-label";
 import { useRevealedScreenshotSpoilers } from "./use-revealed-spoilers";
+import { useSensitiveScreenshotGate } from "./use-sensitive-screenshot-gate";
 
 export type ScreenshotCardMetaPlacement = "below" | "overlay" | "none";
 
@@ -249,7 +251,13 @@ export function ScreenshotCard({
     imageUrl,
     refreshImage
   );
-  const isBlurred = shouldBlurScreenshot(screenshot, revealedIds);
+  const sensitiveGate = useSensitiveScreenshotGate();
+  const blurReason = getScreenshotBlurReason(
+    sensitiveGate.isHidden(screenshot),
+    shouldBlurScreenshot(screenshot, revealedIds)
+  );
+  const activate = () =>
+    sensitiveGate.guard(screenshot, () => onActivate(screenshot));
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const altText = getScreenshotAltText(screenshot, t, language);
   const isApproved =
@@ -258,79 +266,86 @@ export function ScreenshotCard({
   const canLike = Boolean(onLike) && isApproved && !isLikePending;
 
   return (
-    <FocusItem
-      id={focusId}
-      actions={{
-        primary: () => onActivate(screenshot),
-        secondary: canLike ? () => onLike?.(screenshot) : undefined,
-      }}
-      navigationOverrides={navigationOverrides}
-      asChild
-    >
-      <li className="screenshot-card">
-        <button
-          type="button"
-          className="screenshot-card__open-button"
-          aria-label={altText}
-          tabIndex={-1}
-          onClick={() => onActivate(screenshot)}
-        />
+    <>
+      <FocusItem
+        id={focusId}
+        actions={{
+          primary: activate,
+          secondary: canLike ? () => onLike?.(screenshot) : undefined,
+        }}
+        navigationOverrides={navigationOverrides}
+        asChild
+      >
+        <li className="screenshot-card">
+          <button
+            type="button"
+            className="screenshot-card__open-button"
+            aria-label={altText}
+            tabIndex={-1}
+            onClick={activate}
+          />
 
-        <div className="screenshot-card__frame">
-          {hasImage ? (
-            <img
-              className={cn("screenshot-card__image", {
-                "screenshot-card__image--spoiler": isBlurred,
-              })}
-              src={imageUrl ?? undefined}
-              alt={altText}
-              draggable={false}
-              loading="lazy"
-              onError={() => void handleImageError()}
-            />
-          ) : (
-            <span className="screenshot-card__placeholder">
-              <ImageIcon size={36} />
-            </span>
-          )}
+          <div className="screenshot-card__frame">
+            {hasImage ? (
+              <img
+                className={cn("screenshot-card__image", {
+                  "screenshot-card__image--spoiler": blurReason !== null,
+                })}
+                src={imageUrl ?? undefined}
+                alt={altText}
+                draggable={false}
+                loading="lazy"
+                onError={() => void handleImageError()}
+              />
+            ) : (
+              <span className="screenshot-card__placeholder">
+                <ImageIcon size={36} />
+              </span>
+            )}
 
-          {isBlurred ? (
-            <span className="screenshot-card__spoiler">
-              <EyeSlashIcon size={18} weight="bold" />
-              {t("screenshots_spoiler")}
-            </span>
-          ) : null}
-
-          <div className="screenshot-card__corner">
-            {showOwnerDetails ? (
-              <ScreenshotCardBadges screenshot={screenshot} />
+            {blurReason ? (
+              <ScreenshotBlurLabel
+                className="screenshot-card__spoiler"
+                reason={blurReason}
+                iconSize={18}
+              />
             ) : null}
 
-            <div className="screenshot-card__stats">
-              <ScreenshotCardLike
-                screenshot={screenshot}
-                isPending={isLikePending}
-                canLike={canLike}
-                onLike={onLike}
-              />
-              {isFeatureEnabled(Feature.ScreenshotComments) ? (
-                <span className="screenshot-card__stat">
-                  <ChatCircleIcon size={18} />
-                  {screenshot.commentCount}
-                </span>
+            <div className="screenshot-card__corner">
+              {showOwnerDetails ? (
+                <ScreenshotCardBadges screenshot={screenshot} />
               ) : null}
+
+              <div className="screenshot-card__stats">
+                <ScreenshotCardLike
+                  screenshot={screenshot}
+                  isPending={isLikePending}
+                  canLike={canLike}
+                  onLike={onLike}
+                />
+                {isFeatureEnabled(Feature.ScreenshotComments) ? (
+                  <span className="screenshot-card__stat">
+                    <ChatCircleIcon size={18} />
+                    {screenshot.commentCount}
+                  </span>
+                ) : null}
+              </div>
             </div>
+
+            {metaPlacement === "overlay" ? (
+              <ScreenshotCardOverlay screenshot={screenshot} />
+            ) : null}
           </div>
 
-          {metaPlacement === "overlay" ? (
-            <ScreenshotCardOverlay screenshot={screenshot} />
+          {metaPlacement === "below" ? (
+            <ScreenshotCardMeta
+              screenshot={screenshot}
+              showAuthor={showAuthor}
+            />
           ) : null}
-        </div>
-
-        {metaPlacement === "below" ? (
-          <ScreenshotCardMeta screenshot={screenshot} showAuthor={showAuthor} />
-        ) : null}
-      </li>
-    </FocusItem>
+        </li>
+      </FocusItem>
+      {sensitiveGate.modal}
+    </>
   );
 }

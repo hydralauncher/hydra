@@ -5,12 +5,26 @@ import { useTranslation } from "react-i18next";
 import type { ProfileScreenshot } from "@types";
 import { useScreenshotImageFallback } from "@shared";
 
-import { getScreenshotAltText } from "../helpers";
+import { getScreenshotAltText, type ScreenshotBlurReason } from "../helpers";
+
+const BLUR_COPY: Record<
+  ScreenshotBlurReason,
+  { warning: string; reveal: string }
+> = {
+  sensitive: {
+    warning: "screenshots_sensitive_warning",
+    reveal: "screenshots_sensitive_reveal",
+  },
+  spoiler: {
+    warning: "screenshots_spoiler_warning",
+    reveal: "screenshots_reveal_spoiler",
+  },
+};
 
 interface ScreenshotStageImageProps {
   screenshot: ProfileScreenshot;
   className: string;
-  isBlurred: boolean;
+  blurReason: ScreenshotBlurReason | null;
   onLoad: (event: SyntheticEvent<HTMLImageElement>) => void;
   onError: () => void;
   onReveal: () => void;
@@ -20,7 +34,7 @@ interface ScreenshotStageImageProps {
 export function ScreenshotStageImage({
   screenshot,
   className,
-  isBlurred,
+  blurReason,
   onLoad,
   onError,
   onReveal,
@@ -57,7 +71,7 @@ export function ScreenshotStageImage({
     <>
       <img
         className={cn(className, {
-          "screenshot-viewer__image--spoiler": isBlurred,
+          "screenshot-viewer__image--spoiler": blurReason !== null,
         })}
         src={screenshot.imageUrl ?? undefined}
         alt={getScreenshotAltText(screenshot, t, language)}
@@ -65,9 +79,9 @@ export function ScreenshotStageImage({
         onLoad={onLoad}
         onError={() => void handleImageError()}
       />
-      {isBlurred ? (
+      {blurReason ? (
         <div className="screenshot-viewer__spoiler">
-          <span>{t("screenshots_spoiler_warning")}</span>
+          <span>{t(BLUR_COPY[blurReason].warning)}</span>
           <button
             type="button"
             className="screenshot-viewer__reveal"
@@ -75,7 +89,7 @@ export function ScreenshotStageImage({
             onClick={onReveal}
           >
             <EyeIcon size={18} />
-            {t("screenshots_reveal_spoiler")}
+            {t(BLUR_COPY[blurReason].reveal)}
           </button>
           <span className="screenshot-viewer__reveal-hint">
             {t("screenshots_reveal_spoiler_hint")}

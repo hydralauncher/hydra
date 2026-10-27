@@ -49,6 +49,17 @@ export function shouldBlurScreenshot(
   );
 }
 
+export type ScreenshotBlurReason = "sensitive" | "spoiler";
+
+export function getScreenshotBlurReason(
+  isSensitiveHidden: boolean,
+  isSpoilerBlurred: boolean
+): ScreenshotBlurReason | null {
+  if (isSensitiveHidden) return "sensitive";
+  if (isSpoilerBlurred) return "spoiler";
+  return null;
+}
+
 export function getScreenshotErrorKey(code: string | null) {
   switch (code) {
     case "screenshots/private":

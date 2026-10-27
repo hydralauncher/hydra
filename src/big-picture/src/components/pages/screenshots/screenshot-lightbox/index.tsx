@@ -32,10 +32,15 @@ import {
   MediaViewer,
 } from "../../game/media-viewer";
 import { resolveImageSource } from "../../../../helpers";
-import { getScreenshotGameTitle, shouldBlurScreenshot } from "../helpers";
+import {
+  getScreenshotBlurReason,
+  getScreenshotGameTitle,
+  shouldBlurScreenshot,
+} from "../helpers";
 import { ScreenshotManageModal } from "../screenshot-manage-modal";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
 import { useRevealedScreenshotSpoilers } from "../use-revealed-spoilers";
+import { useSensitiveScreenshotGate } from "../use-sensitive-screenshot-gate";
 import { getScreenshotCommentsPanelFocusIds } from "./comment-focus-ids";
 import { ScreenshotLightboxSidebar } from "./sidebar";
 import {
@@ -243,6 +248,7 @@ function ScreenshotViewer({
     (state) => state.revealedIds
   );
   const revealSpoiler = useRevealedScreenshotSpoilers((state) => state.reveal);
+  const sensitiveGate = useSensitiveScreenshotGate();
   const { list, index } = useMemo(
     () => getViewerEntries(current, entries),
     [current, entries]
@@ -274,8 +280,22 @@ function ScreenshotViewer({
       ),
     [list, t]
   );
-  const isBlurred = (target: ProfileScreenshot) =>
-    shouldBlurScreenshot(target, revealedIds) && Boolean(target.imageUrl);
+  const getBlurReason = (target: ProfileScreenshot) => {
+    if (!target.imageUrl) return null;
+
+    return getScreenshotBlurReason(
+      sensitiveGate.isHidden(target),
+      shouldBlurScreenshot(target, revealedIds)
+    );
+  };
+  const revealTarget = (target: ProfileScreenshot) => {
+    if (getBlurReason(target) === "sensitive") {
+      sensitiveGate.guard(target, () => {});
+      return;
+    }
+
+    revealSpoiler(target.id);
+  };
   const uploaded = current.kind === "uploaded" ? current.screenshot : null;
   const stageNavigationOverrides = useMemo<FocusOverrides | undefined>(() => {
     if (current.kind === "local") {
@@ -315,64 +335,67 @@ function ScreenshotViewer({
   };
 
   return (
-    <MediaViewer
-      items={mediaItems}
-      index={index}
-      className="screenshot-viewer"
-      stageNavigationOverrides={stageNavigationOverrides}
-      showFilmstrip={false}
-      showCounter={false}
-      canNavigatePastEnd={uploaded !== null && canLoadMore}
-      onNavigatePastEnd={onLoadMore}
-      onNavigate={(nextIndex) => {
-        const target = list[nextIndex];
-        if (!target) return;
-        if (localSlot) localSlot.onOpenEntry(target);
-        else if (target.kind === "uploaded") onSelect?.(target.screenshot);
-      }}
-      onClose={onClose}
-      onStagePrimary={() => {
-        if (!uploaded) return;
-        if (isBlurred(uploaded)) revealSpoiler(uploaded.id);
-        else if (hasLoadMoreError) onLoadMore?.();
-      }}
-      renderImage={({ item, className, onLoad, onError }) => {
-        const entry = entriesById.get(item.id);
-        if (!entry) return null;
+    <>
+      <MediaViewer
+        items={mediaItems}
+        index={index}
+        className="screenshot-viewer"
+        stageNavigationOverrides={stageNavigationOverrides}
+        showFilmstrip={false}
+        showCounter={false}
+        canNavigatePastEnd={uploaded !== null && canLoadMore}
+        onNavigatePastEnd={onLoadMore}
+        onNavigate={(nextIndex) => {
+          const target = list[nextIndex];
+          if (!target) return;
+          if (localSlot) localSlot.onOpenEntry(target);
+          else if (target.kind === "uploaded") onSelect?.(target.screenshot);
+        }}
+        onClose={onClose}
+        onStagePrimary={() => {
+          if (!uploaded) return;
+          if (getBlurReason(uploaded)) revealTarget(uploaded);
+          else if (hasLoadMoreError) onLoadMore?.();
+        }}
+        renderImage={({ item, className, onLoad, onError }) => {
+          const entry = entriesById.get(item.id);
+          if (!entry) return null;
 
-        if (entry.kind === "local") {
+          if (entry.kind === "local") {
+            return (
+              <img
+                className={className}
+                src={item.src}
+                alt={item.alt}
+                draggable={false}
+                onLoad={onLoad}
+                onError={onError}
+              />
+            );
+          }
+
+          const target = entry.screenshot;
           return (
-            <img
-              className={className}
-              src={item.src}
-              alt={item.alt}
-              draggable={false}
-              onLoad={onLoad}
-              onError={onError}
-            />
+            <>
+              <ScreenshotStageImage
+                screenshot={target}
+                className={className}
+                blurReason={getBlurReason(target)}
+                onLoad={onLoad}
+                onError={onError}
+                onReveal={() => revealTarget(target)}
+                onRefreshImage={onRefreshImage}
+              />
+              {hasLoadMoreError && target.id === uploaded?.id ? (
+                <LoadMoreErrorNotice onRetry={onLoadMore} />
+              ) : null}
+            </>
           );
-        }
-
-        const target = entry.screenshot;
-        return (
-          <>
-            <ScreenshotStageImage
-              screenshot={target}
-              className={className}
-              isBlurred={isBlurred(target)}
-              onLoad={onLoad}
-              onError={onError}
-              onReveal={() => revealSpoiler(target.id)}
-              onRefreshImage={onRefreshImage}
-            />
-            {hasLoadMoreError && target.id === uploaded?.id ? (
-              <LoadMoreErrorNotice onRetry={onLoadMore} />
-            ) : null}
-          </>
-        );
-      }}
-      sidebar={renderSidebar()}
-    />
+        }}
+        sidebar={renderSidebar()}
+      />
+      {sensitiveGate.modal}
+    </>
   );
 }
 

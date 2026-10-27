@@ -1019,6 +1019,16 @@
     "screenshots_danger_zone_description": "Delete your published screenshots of this game, every screenshot file of it on this computer, or both.",
     "screenshots_browse_community": "Browse community screenshots",
     "media_viewer_hide_sidebar": "Hide sidebar",
-    "media_viewer_show_sidebar": "Show sidebar"
+    "media_viewer_show_sidebar": "Show sidebar",
+    "screenshots_sensitive": "Sensitive content",
+    "screenshots_sensitive_warning": "This screenshot may contain sensitive material",
+    "screenshots_sensitive_reveal": "View screenshot",
+    "screenshots_sensitive_modal_title": "This screenshot may contain sensitive material",
+    "screenshots_sensitive_modal_description": "It was taken in a game rated for adults.",
+    "screenshots_sensitive_modal_confirm": "View screenshot",
+    "screenshots_sensitive_modal_cancel": "Cancel",
+    "screenshots_sensitive_modal_dont_hide": "Don't hide sensitive screenshots from now on",
+    "screenshots_sensitive_local_notice": "This game contains adult content, so this screenshot will be blurred for everyone.",
+    "screenshots_settings_show_sensitive": "Show sensitive screenshots without blur"
   }
 }

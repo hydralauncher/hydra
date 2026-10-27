@@ -2,6 +2,7 @@ import {
   ArrowClockwiseIcon,
   CloudArrowUpIcon,
   TrashIcon,
+  WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -159,6 +160,13 @@ export function LocalScreenshotSidebar({
               {t("screenshots_not_uploaded")}
             </span>
           </div>
+
+          {screenshot.isSensitive ? (
+            <p className="local-screenshot-sidebar__sensitive" role="note">
+              <WarningCircleIcon size={18} weight="bold" />
+              <span>{t("screenshots_sensitive_local_notice")}</span>
+            </p>
+          ) : null}
 
           {hasForm ? (
             <div className="local-screenshot-sidebar__fields">
