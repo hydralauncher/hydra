@@ -247,7 +247,6 @@ export interface LocalScreenshot {
   height: number;
   state: LocalScreenshotState;
   isSpoiler: boolean;
-  isSensitive?: boolean;
   visibility: ProfileVisibility;
   screenshotId: string | null;
   moderationStatus: ScreenshotModerationStatus | null;

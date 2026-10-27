@@ -519,7 +519,7 @@ async function onOpenGame(game: Game, matchedPath: string) {
     matchedPath,
   });
 
-  void onScreenshotGameStarted(gameKey, game.shop, game.objectId);
+  void onScreenshotGameStarted(gameKey);
 
   // On Linux, keep the launcher visible briefly and let it auto-close itself.
   if (process.platform !== "linux") {

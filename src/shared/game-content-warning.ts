@@ -24,13 +24,6 @@ const getPositiveInteger = (value: unknown) => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
-export const UNKNOWN_GAME_CONTENT_WARNING: GameContentWarning = {
-  level: "unknown",
-  minimumAge: null,
-  reasons: [],
-  source: null,
-};
-
 const getDescriptorIds = (contentDescriptors: Record<string, unknown> | null) =>
   new Set(
     Array.isArray(contentDescriptors?.ids)
@@ -114,23 +107,6 @@ export const buildSteamContentWarning = (
     ),
     source: "steam",
   };
-};
-
-const CONTENT_WARNING_LEVELS = new Set<GameContentWarningLevel>([
-  "unknown",
-  "none",
-  "mature",
-  "adult",
-]);
-
-export const isGameContentWarning = (
-  value: unknown
-): value is GameContentWarning => {
-  const record = asRecord(value);
-  return (
-    record !== null &&
-    CONTENT_WARNING_LEVELS.has(record.level as GameContentWarningLevel)
-  );
 };
 
 export const isAdultGameContentWarning = (
