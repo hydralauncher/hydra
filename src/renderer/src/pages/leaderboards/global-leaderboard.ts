@@ -291,6 +291,10 @@ export const buildMetricsRequest = (
   options: { params: { scope }, needsAuth: false },
 });
 
+// Merged into "reviews" by the API (hydra-api#858), so it is never listed.
+// Transitional: delete once hydralauncher/hydra-api#858 is live.
+const EXCLUDED_METRICS = new Set(["review_upvotes"]);
+
 export const normalizeMetricDefinitions = (
   response: unknown
 ): MetricDefinition[] => {
@@ -301,7 +305,7 @@ export const normalizeMetricDefinitions = (
 
   return items.flatMap((item): MetricDefinition[] => {
     if (!isRecord(item) || typeof item.id !== "string" || !item.id) return [];
-    if (seen.has(item.id)) return [];
+    if (seen.has(item.id) || EXCLUDED_METRICS.has(item.id)) return [];
     seen.add(item.id);
 
     return [
@@ -396,19 +400,6 @@ export const resolveWeekRange = (
   };
 };
 
-export const getIsoWeekNumber = (date: Date) => {
-  const target = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-  );
-  target.setUTCDate(target.getUTCDate() - ((target.getUTCDay() + 6) % 7) + 3);
-  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
-  firstThursday.setUTCDate(
-    firstThursday.getUTCDate() - ((firstThursday.getUTCDay() + 6) % 7) + 3
-  );
-
-  return 1 + Math.round((target.getTime() - firstThursday.getTime()) / WEEK_MS);
-};
-
 export const getCountdownParts = (end: Date, now: number) => {
   const totalMinutes = Math.floor(Math.max(0, end.getTime() - now) / 60_000);
 
@@ -434,6 +425,7 @@ export interface HeatmapCell {
   level: number;
   isFuture: boolean;
   isToday: boolean;
+  isYesterday: boolean;
 }
 
 export const buildHeatmap = (
@@ -445,6 +437,7 @@ export const buildHeatmap = (
   const currentWeek = getUtcWeekRange(now).start.getTime();
   const firstDay = currentWeek - (weeks - 1) * WEEK_MS;
   const today = new Date(now).toISOString().slice(0, 10);
+  const yesterday = new Date(now - DAY_MS).toISOString().slice(0, 10);
 
   return Array.from({ length: weeks * 7 }, (_, index) => {
     const date = new Date(firstDay + index * DAY_MS);
@@ -459,6 +452,7 @@ export const buildHeatmap = (
       level: getPlayLevel(seconds),
       isFuture: key > today,
       isToday: key === today,
+      isYesterday: key === yesterday,
     };
   });
 };

@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import cn from "classnames";
 import { PeopleIcon } from "@primer/octicons-react";
 import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 
 import { Avatar, Button } from "@renderer/components";
+import { LEADERBOARD_HEADER_BANNER_IMAGE_SIZE } from "@renderer/constants";
+import { useProcessedImage } from "@renderer/hooks";
 import type { LeaderboardUser } from "../game-details/leaderboard/game-leaderboard";
 import {
   buildHeatmap,
@@ -80,6 +82,10 @@ export function StatsTab({
   const metricText = useMetricText();
   const viewerId = viewerUser?.id ?? null;
   const isWeek = period === "week";
+  const banner = useProcessedImage(
+    viewerUser?.backgroundImageUrl,
+    LEADERBOARD_HEADER_BANNER_IMAGE_SIZE
+  );
 
   const activity = useApiResource(
     "/users/me/play-activity",
@@ -127,9 +133,15 @@ export function StatsTab({
     [i18n.language]
   );
 
-  const cellTitle = (cell: HeatmapCell) => {
-    const date = cellDateFormatter.format(cell.date);
-    const label = cell.isToday ? t("today_date", { date }) : date;
+  // Days are UTC, so in UTC-3 today's cell is already the next date from
+  // 21:00 on. Naming today and yesterday avoids showing that date.
+  const cellLabel = (cell: HeatmapCell) => {
+    if (cell.isToday) return t("today");
+    if (cell.isYesterday) return t("yesterday");
+    return cellDateFormatter.format(cell.date);
+  };
+
+  const cellSummary = (cell: HeatmapCell) => {
     const totalMinutes = Math.max(
       1,
       Math.round(cell.seconds / SECONDS_PER_MINUTE)
@@ -144,8 +156,32 @@ export function StatsTab({
           : t("duration_minutes", { minutes });
     }
 
-    return [label, time, cell.games.join(", ")].filter(Boolean).join(" · ");
+    return [cellLabel(cell), time].join(" · ");
   };
+
+  const heatmapWeeks = heatmap.length / 7;
+
+  // Tips in the first and last columns open inward and tips in the top rows
+  // open below, so they stay in the card.
+  const renderCellTip = (cell: HeatmapCell, index: number) => (
+    <span
+      className={cn("leaderboards__heat-tip", {
+        "leaderboards__heat-tip--start": Math.floor(index / 7) < 2,
+        "leaderboards__heat-tip--end":
+          Math.floor(index / 7) >= heatmapWeeks - 2,
+        "leaderboards__heat-tip--below": index % 7 < 2,
+      })}
+      aria-hidden="true"
+    >
+      {cellSummary(cell)}
+      {cell.games.map((game, index) => (
+        <Fragment key={`${game}-${index}`}>
+          {index === 0 ? " · " : ", "}
+          <span className="leaderboards__heat-tip-game">{game}</span>
+        </Fragment>
+      ))}
+    </span>
+  );
 
   const atRecord =
     activity.data !== null &&
@@ -205,10 +241,17 @@ export function StatsTab({
                 {label}
               </span>
             ))}
-            {heatmap.map((cell) => (
+            {heatmap.map((cell, index) => (
               <span
                 key={cell.date.toISOString()}
-                title={cell.isFuture ? undefined : cellTitle(cell)}
+                role={cell.isFuture ? undefined : "img"}
+                aria-label={
+                  cell.isFuture
+                    ? undefined
+                    : [cellSummary(cell), cell.games.join(", ")]
+                        .filter(Boolean)
+                        .join(" · ")
+                }
                 className={cn(
                   "leaderboards__heat",
                   `leaderboards__heat--${cell.level}`,
@@ -217,7 +260,9 @@ export function StatsTab({
                     "leaderboards__heat--today": cell.isToday,
                   }
                 )}
-              />
+              >
+                {!cell.isFuture && renderCellTip(cell, index)}
+              </span>
             ))}
           </div>
         </div>
@@ -321,13 +366,12 @@ export function StatsTab({
         <section className="leaderboards__mine" aria-labelledby="mine-title">
           <div
             className={cn("leaderboards__mine-header", {
-              "leaderboards__mine-header--banner":
-                viewerUser?.backgroundImageUrl,
+              "leaderboards__mine-header--banner": banner,
             })}
             style={
-              viewerUser?.backgroundImageUrl
+              banner
                 ? ({
-                    "--mine-banner": `url(${JSON.stringify(viewerUser.backgroundImageUrl)})`,
+                    "--mine-banner": `url(${JSON.stringify(banner)})`,
                   } as React.CSSProperties)
                 : undefined
             }
@@ -373,6 +417,11 @@ export function StatsTab({
                     )}
                     {!isPending && !isFailed && (
                       <>
+                        {ranking && (
+                          <span className="leaderboards__mine-value">
+                            {metricText.format(metric, ranking.value)}
+                          </span>
+                        )}
                         <span className="leaderboards__mine-delta">
                           {isWeek && ranking && (
                             <RankDelta delta={ranking.delta} />

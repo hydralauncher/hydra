@@ -113,7 +113,7 @@ export function LeaderboardSection() {
   const rows = useMemo(
     () =>
       buildLeaderboardRows(board, viewerUser, LEADERBOARD_CARD_SIZE, {
-        pinViewer: state !== "empty_friends",
+        pinViewer: state !== "empty_friends" && state !== "solo",
       }),
     [board, state, viewerUser]
   );
@@ -234,6 +234,35 @@ export function LeaderboardSection() {
               {t("find_friends")}
             </Button>
           </div>
+        </>
+      );
+    }
+
+    if (state === "solo") {
+      return (
+        <>
+          <ol className="leaderboard-section__list" aria-busy={isLoading}>
+            {rows.map((row) => (
+              <LeaderboardRow
+                key={row.entry.user.id}
+                row={row}
+                value={formatValue(dataMetric, row.entry.value)}
+                showProgress={false}
+              />
+            ))}
+          </ol>
+          {renderEmpty(
+            <PeopleIcon size={20} />,
+            t("solo_title"),
+            t("solo_description"),
+            <Button
+              theme="outline"
+              size="small"
+              onClick={() => globalThis.window.electron.openFriendsWindow()}
+            >
+              {t("find_friends")}
+            </Button>
+          )}
         </>
       );
     }

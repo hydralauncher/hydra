@@ -5,6 +5,7 @@ import {
   PeopleIcon,
   SearchIcon,
   TrophyIcon,
+  XIcon,
 } from "@primer/octicons-react";
 import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
@@ -389,11 +390,25 @@ export function ByGameTab({
             <SearchIcon size={14} />
             <span className="leaderboards__sr-only">{t("search_game")}</span>
             <input
-              type="search"
+              type="text"
               value={search}
               placeholder={t("search_game_placeholder")}
               onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setSearch("");
+              }}
             />
+            {search && (
+              <button
+                type="button"
+                className="leaderboards__search-clear"
+                onClick={() => setSearch("")}
+                aria-label={t("clear_search")}
+                title={t("clear_search")}
+              >
+                <XIcon size={14} />
+              </button>
+            )}
           </label>
         </div>
         {renderGames()}

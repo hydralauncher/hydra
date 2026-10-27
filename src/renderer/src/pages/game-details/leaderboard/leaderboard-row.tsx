@@ -9,6 +9,8 @@ import {
   RankFrameRing,
   RankMedal,
 } from "@renderer/components";
+import { LEADERBOARD_ROW_BANNER_IMAGE_SIZE } from "@renderer/constants";
+import { useProcessedImage } from "@renderer/hooks";
 import type { LeaderboardRow as LeaderboardRowData } from "./game-leaderboard";
 
 export interface LeaderboardRowProps {
@@ -34,7 +36,10 @@ export function LeaderboardRow({
   const navigate = useNavigate();
   const { entry, isViewer, gapBefore, progress } = row;
   const tier = getRankTier(entry.rank);
-  const banner = entry.user.backgroundImageUrl;
+  const banner = useProcessedImage(
+    entry.user.backgroundImageUrl,
+    LEADERBOARD_ROW_BANNER_IMAGE_SIZE
+  );
 
   return (
     <li

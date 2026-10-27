@@ -46,22 +46,31 @@ $leaderboards-streak-to: #b05cff;
   &__subtitle {
     font-size: globals.$hint-font-size;
     color: $leaderboards-muted-text;
+
+    &--countdown {
+      margin-top: -2px;
+      font-size: globals.$small-font-size;
+      opacity: 0.75;
+    }
   }
 
   &__toggles {
     min-width: min(100%, 500px);
     max-width: 100%;
+    margin-inline-start: auto;
     display: flex;
     gap: globals.$spacing-unit;
 
+    // Same width for both controls, so the longer period labels do not make
+    // the period control larger than the scope one.
     .leaderboard-controls__segmented {
-      flex: 1 1 auto;
+      flex: 1 1 0;
       min-width: 0;
     }
 
     .leaderboard-controls__segment {
       height: 34px;
-      font-size: globals.$hint-font-size;
+      font-size: globals.$small-font-size;
     }
   }
 
@@ -612,13 +621,37 @@ $leaderboards-streak-to: #b05cff;
     }
   }
 
+  &__search-clear {
+    flex-shrink: 0;
+    display: flex;
+    padding: 2px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: $leaderboards-muted-text;
+    cursor: pointer;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+  }
+
   &__games {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(200px, 1fr);
     gap: globals.$spacing-unit;
+    // Room for the card borders, which the scroll container would clip.
+    padding: 2px 2px calc(globals.$spacing-unit * 1.25);
     overflow-x: auto;
-    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background-color: transparent;
+    }
   }
 
   &__game {
@@ -635,11 +668,11 @@ $leaderboards-streak-to: #b05cff;
     cursor: pointer;
     transition:
       border-color 0.2s ease,
-      transform 0.2s ease;
+      background-color 0.2s ease;
 
     &:hover {
-      border-color: rgba(255, 255, 255, 0.5);
-      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.3);
+      background-color: $leaderboards-surface;
     }
 
     &--selected,
@@ -872,6 +905,13 @@ $leaderboards-streak-to: #b05cff;
     color: globals.$muted-color;
   }
 
+  &__mine-value {
+    font-size: globals.$hint-font-size;
+    color: $leaderboards-muted-text;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
   &__mine-delta {
     min-width: 32px;
     text-align: right;
@@ -983,6 +1023,7 @@ $leaderboards-streak-to: #b05cff;
   }
 
   &__heat {
+    position: relative;
     aspect-ratio: 1;
     border: solid 1px transparent;
     border-radius: 3px;
@@ -1009,6 +1050,55 @@ $leaderboards-streak-to: #b05cff;
     &--today {
       border-color: globals.$muted-color;
     }
+
+    &:hover .leaderboards__heat-tip {
+      display: block;
+    }
+  }
+
+  &__heat-tip {
+    position: absolute;
+    z-index: 5;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 280px;
+    display: none;
+    padding: 6px globals.$spacing-unit;
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    background-color: globals.$dark-background-color;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    font-size: 12px;
+    line-height: 18px;
+    color: globals.$muted-color;
+    pointer-events: none;
+  }
+
+  &__heat-tip--below {
+    top: calc(100% + 6px);
+    bottom: auto;
+  }
+
+  &__heat-tip--start {
+    left: 0;
+    transform: none;
+  }
+
+  &__heat-tip--end {
+    right: 0;
+    left: auto;
+    transform: none;
+  }
+
+  &__heat-tip-game {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
   }
 
   &__friend-streaks {
@@ -1312,6 +1402,13 @@ $leaderboards-streak-to: #b05cff;
   gap: calc(globals.$spacing-unit * 1.5);
   align-items: end;
 
+  // With fewer than three entries, keep the cards centred instead of
+  // leaving the empty podium slots on the right.
+  &--sparse {
+    grid-template-columns: repeat(var(--podium-count), minmax(0, 300px));
+    justify-content: center;
+  }
+
   &__card {
     --metal-light: #fff3b0;
     --metal-main: #{globals.$rank-gold-color};
@@ -1426,7 +1523,10 @@ $leaderboards-streak-to: #b05cff;
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
+    // The extra end padding matches the band, so the content is centred on
+    // the whole card rather than on the area beside the band.
+    padding: calc(globals.$spacing-unit * 2) 48px
+      calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
     background-image: linear-gradient(180deg, #262626 0%, #1a1a1a 100%);
 
     &--banner {
@@ -1472,8 +1572,7 @@ $leaderboards-streak-to: #b05cff;
     align-items: center;
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 6px;
-    background-color: rgba(13, 13, 13, 0.55);
-    backdrop-filter: blur(10px);
+    background-color: rgba(13, 13, 13, 0.75);
     font-size: 11px;
     font-weight: 600;
   }

@@ -11,7 +11,6 @@ import {
   getBadgeProgress,
   getBoardState,
   getCountdownParts,
-  getIsoWeekNumber,
   getPlayLevel,
   getRankDelta,
   getRowsBelowPodium,
@@ -144,6 +143,7 @@ describe("metric definitions", () => {
       metrics: [
         { id: "playtime", valueType: "duration", label: "Playtime" },
         { id: "sessions", valueType: "weird" },
+        { id: "review_upvotes", valueType: "count" },
         { id: "playtime", valueType: "count" },
         { id: "" },
         "bad",
@@ -314,13 +314,6 @@ describe("week helpers", () => {
     );
   });
 
-  it("returns the ISO week number", () => {
-    assert.equal(getIsoWeekNumber(new Date(Date.UTC(2026, 9, 21))), 43);
-    assert.equal(getIsoWeekNumber(new Date(Date.UTC(2026, 0, 1))), 1);
-    assert.equal(getIsoWeekNumber(new Date(Date.UTC(2021, 0, 3))), 53);
-    assert.equal(getIsoWeekNumber(new Date(Date.UTC(2020, 11, 31))), 53);
-  });
-
   it("splits the countdown and never goes negative", () => {
     const end = new Date(Date.UTC(2026, 9, 26));
     const now = end.getTime() - ((3 * 24 + 14) * 60 + 5) * 60_000;
@@ -360,6 +353,26 @@ describe("play activity", () => {
     assert.equal(today?.level, 2);
     assert.deepEqual(today?.games, ["Brawlhalla"]);
     assert.equal(cells.filter((cell) => cell.isFuture).length, 4);
+  });
+
+  it("flags today and yesterday by UTC day", () => {
+    const flagged = (now: number) => {
+      const cells = buildHeatmap([], now);
+      return {
+        today: cells.find((cell) => cell.isToday)?.date.toISOString(),
+        yesterday: cells.find((cell) => cell.isYesterday)?.date.toISOString(),
+      };
+    };
+
+    assert.deepEqual(flagged(Date.UTC(2026, 9, 21, 12)), {
+      today: "2026-10-21T00:00:00.000Z",
+      yesterday: "2026-10-20T00:00:00.000Z",
+    });
+    // 22:00 on Oct 26 in UTC-3 is already Oct 27 in UTC.
+    assert.deepEqual(flagged(Date.parse("2026-10-27T01:00:00Z")), {
+      today: "2026-10-27T00:00:00.000Z",
+      yesterday: "2026-10-26T00:00:00.000Z",
+    });
   });
 
   it("normalizes the activity response", () => {
