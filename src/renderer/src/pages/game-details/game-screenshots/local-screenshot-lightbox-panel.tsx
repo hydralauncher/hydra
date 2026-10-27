@@ -24,8 +24,12 @@ export function LocalScreenshotLightboxPanel({
 }: Readonly<LocalScreenshotLightboxPanelProps>) {
   const { t } = useTranslation("screenshots_capture");
   const { formatDateTime } = useDate();
-  const { isBusy, upload, requestDelete, elements } =
+  const { isBusy, isUploadPending, upload, requestDelete, elements } =
     useScreenshotReviewActions(screenshot, draft);
+  const isUploading =
+    isUploadPending ||
+    screenshot.state === "queued" ||
+    screenshot.state === "uploading";
 
   const handleUpload = () => {
     onDraftCommit();
@@ -65,11 +69,14 @@ export function LocalScreenshotLightboxPanel({
       </div>
 
       <div className="local-screenshot-panel__footer">
-        <ScreenshotReviewStatus screenshot={screenshot} />
+        {isUploading ? null : (
+          <ScreenshotReviewStatus screenshot={screenshot} />
+        )}
         <div className="local-screenshot-panel__actions">
           <ScreenshotReviewActionButtons
             screenshot={screenshot}
             isBusy={isBusy}
+            isUploading={isUploading}
             onUpload={handleUpload}
             onRequestDelete={requestDelete}
           />

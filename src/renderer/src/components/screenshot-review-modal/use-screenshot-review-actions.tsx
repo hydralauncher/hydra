@@ -15,19 +15,25 @@ export function useScreenshotReviewActions(
   draft: ScreenshotReviewDraft
 ) {
   const { t } = useTranslation("screenshots_capture");
-  const [isBusy, setIsBusy] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    "upload" | "delete" | null
+  >(null);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showErrorToast } = useToast();
 
-  const runAction = async (action: () => Promise<unknown>, label: string) => {
-    setIsBusy(true);
+  const runAction = async (
+    kind: "upload" | "delete",
+    action: () => Promise<unknown>,
+    label: string
+  ) => {
+    setPendingAction(kind);
     try {
       await action();
     } catch (error) {
       logger.error(label, error);
     } finally {
-      setIsBusy(false);
+      setPendingAction(null);
     }
   };
 
@@ -38,6 +44,7 @@ export function useScreenshotReviewActions(
     }
 
     return runAction(
+      "upload",
       () =>
         window.electron.uploadLocalScreenshot(
           screenshot.clientId,
@@ -50,6 +57,7 @@ export function useScreenshotReviewActions(
   const confirmDelete = () => {
     setIsDeleteModalVisible(false);
     void runAction(
+      "delete",
       () => window.electron.deleteLocalScreenshot(screenshot.clientId),
       "Failed to delete the screenshot"
     );
@@ -69,7 +77,8 @@ export function useScreenshotReviewActions(
   );
 
   return {
-    isBusy,
+    isBusy: pendingAction !== null,
+    isUploadPending: pendingAction === "upload",
     upload,
     requestDelete: () => setIsDeleteModalVisible(true),
     elements,
