@@ -17,7 +17,6 @@ import {
 import { ConfirmationModal } from "../../../modals";
 import {
   ReviewFields,
-  ReviewUploadStatus,
   toUploadOptions,
   type ReviewDraft,
   type ReviewFieldFocusIds,
@@ -102,7 +101,9 @@ export function LocalScreenshotSidebar({
   const isUploading =
     pendingAction === "upload" ||
     screenshot.state === "queued" ||
-    screenshot.state === "uploading";
+    screenshot.state === "uploading" ||
+    (screenshot.state === "uploaded" &&
+      screenshot.moderationStatus !== "BLOCKED");
   const hasForm = isEditable || isUploading;
 
   const runAction = async (
@@ -187,9 +188,6 @@ export function LocalScreenshotSidebar({
           ) : null}
 
           <div className="local-screenshot-sidebar__footer">
-            {isUndecided || isUploading ? null : (
-              <ReviewUploadStatus screenshot={screenshot} />
-            )}
             {hasForm ? (
               <HorizontalFocusGroup
                 regionId={`local-screenshot-sidebar-actions:${clientId}`}

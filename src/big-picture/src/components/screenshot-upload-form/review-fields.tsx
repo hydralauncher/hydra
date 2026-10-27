@@ -1,11 +1,6 @@
 import "./screenshot-upload-form.scss";
 
-import {
-  CheckCircleIcon,
-  PencilSimpleIcon,
-  PlusIcon,
-  WarningCircleIcon,
-} from "@phosphor-icons/react";
+import { PencilSimpleIcon, PlusIcon } from "@phosphor-icons/react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
@@ -31,7 +26,6 @@ import {
   type SegmentedControlOption,
 } from "../common";
 import type { FocusOverrideTarget } from "../../services";
-import { getLocalScreenshotStatusDetail } from "../pages/screenshots";
 import { InlineTextField } from "../pages/screenshots/inline-text-field";
 import { useBigPictureToast, useUserDetails } from "../../hooks";
 
@@ -86,38 +80,6 @@ export const toUploadOptions = (
     ),
   };
 };
-
-function getUploadStatusKey(screenshot: LocalScreenshot) {
-  if (screenshot.state === "failed") return "screenshots_review_upload_failed";
-  if (screenshot.moderationStatus === "BLOCKED")
-    return "screenshots_review_upload_blocked";
-  return screenshot.moderationStatus === "APPROVED"
-    ? "screenshots_review_upload_approved"
-    : "screenshots_review_upload_done";
-}
-
-export function ReviewUploadStatus({
-  screenshot,
-}: Readonly<{ screenshot: LocalScreenshot }>) {
-  const { t } = useTranslation("big_picture");
-  const isFailed = screenshot.state === "failed";
-  const isDone = screenshot.state === "uploaded";
-  const detail = getLocalScreenshotStatusDetail(screenshot, t);
-
-  return (
-    <div className="screenshot-upload-form__status">
-      <div className="screenshot-upload-form__status-line">
-        {isFailed ? <WarningCircleIcon size={20} /> : null}
-        {isDone ? <CheckCircleIcon size={20} /> : null}
-        <span>{t(getUploadStatusKey(screenshot))}</span>
-      </div>
-
-      {detail ? (
-        <span className="screenshot-upload-form__status-detail">{detail}</span>
-      ) : null}
-    </div>
-  );
-}
 
 interface ReviewFieldsProps {
   clientId: string;

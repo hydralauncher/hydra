@@ -28,6 +28,7 @@ import {
   BigPictureToastHost,
   CloudGiftNotificationModal,
   MissingScreenshotsToast,
+  ScreenshotUploadFailureToast,
   VirtualKeyboardProvider,
 } from "./components";
 import { getItemFocusTarget } from "./helpers";
@@ -221,6 +222,7 @@ export default function App() {
           <BigPictureToastHost />
           <CloudGiftNotificationModal />
           <MissingScreenshotsToast />
+          <ScreenshotUploadFailureToast />
         </div>
       </NavigationInputProvider>
     </Fragment>

@@ -5,27 +5,6 @@
     width: 100%;
   }
 
-  &__status {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: var(--spacing-unit);
-    min-width: 0;
-  }
-
-  &__status-line {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-unit);
-    color: var(--text);
-    font-size: 15px;
-  }
-
-  &__status-detail {
-    color: var(--text-secondary);
-    font-size: 13px;
-  }
-
   &__quality-option {
     display: flex;
     align-items: center;
