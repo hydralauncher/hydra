@@ -1100,6 +1100,7 @@
     "downloading_metadata": "Baixando metadados…",
     "delete": "Remover arquivos",
     "delete_modal_description": "Isso removerá do seu computador todos os arquivos deste jogo baixados pelo Hydra",
+    "delete_source_archive": "Excluir também o arquivo compactado original",
     "delete_modal_title": "Tem certeza?",
     "deleting": "Excluindo instalador…",
     "install": "Instalar",
@@ -1136,7 +1137,15 @@
     "extraction_file_not_found_title": "Arquivo não encontrado",
     "extraction_file_not_found_description": "O Hydra não encontrou o arquivo baixado para extrair. Ele pode ter sido movido, renomeado ou excluído.",
     "download_halted_title": "Download interrompido",
-    "download_halted_description": "{{title}} foi interrompido porque a pasta de download ficou sem espaço. Libere espaço e retome o download."
+    "download_halted_description": "{{title}} foi interrompido porque a pasta de download ficou sem espaço. Libere espaço e retome o download.",
+    "select_executable": "Selecionar executável",
+    "run_installer": "Executar instalador",
+    "game_installed_title": "Jogo instalado",
+    "game_installed_description": "O Hydra encontrou o executável do jogo. Já dá para jogar.",
+    "installed_game_not_found_title": "Não foi possível encontrar o jogo instalado",
+    "installed_game_not_found_description": "Selecione o executável do jogo para concluir a configuração.",
+    "installer_launch_failed": "Não foi possível iniciar o instalador",
+    "installing": "Instalando…"
   },
   "settings": {
     "rpcs3_config_title": "Pasta de configuração do RPCS3",
