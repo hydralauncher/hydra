@@ -168,10 +168,9 @@ export function useMyPublishedGameScreenshots({
   return useScreenshotCollection({
     feedKey:
       isEnabled && canFetchPublished
-        ? [userId, shop, objectId, sort, take, reloadKey, settledCount].join(
-            ":"
-          )
+        ? [userId, shop, objectId, sort, take].join(":")
         : null,
+    refreshKey: `${reloadKey}:${settledCount}`,
     fetchPage,
     writeBus,
   });
