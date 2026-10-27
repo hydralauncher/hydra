@@ -126,6 +126,9 @@ export class AchievementNotificationPresenter {
     notification: AchievementNotificationInfo,
     fallback?: NotificationFallback
   ): void {
+    this.queue = this.queue.filter(
+      (item) => item.request.type !== "screenshot"
+    );
     this.queue.push({
       request: {
         id: this.nextRequestId(),
