@@ -4,11 +4,16 @@ import { describe, it } from "node:test";
 import ts from "typescript";
 import type { LibraryGame } from "@types";
 
-const permissiveStub: unknown = new Proxy(function stub() {}, {
-  get: (_target, property) =>
-    property === "__esModule" ? false : permissiveStub,
-  apply: () => permissiveStub,
-});
+const permissiveStub: unknown = new Proxy(
+  function stub() {
+    return undefined;
+  },
+  {
+    get: (_target, property) =>
+      property === "__esModule" ? false : permissiveStub,
+    apply: () => permissiveStub,
+  }
+);
 
 const loadHelpers = () => {
   const filename = new URL("./helpers.ts", import.meta.url);
