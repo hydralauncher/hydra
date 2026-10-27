@@ -8,8 +8,8 @@ import {
 import {
   createReviewDraft,
   type ReviewDraft,
-} from "../../../screenshot-review-modal/review-fields";
-import { useReviewDraftSave } from "../../../screenshot-review-modal/use-review-draft-save";
+} from "../../../screenshot-upload-form/review-fields";
+import { useReviewDraftSave } from "../../../screenshot-upload-form/use-review-draft-save";
 import { useUserPreferences } from "../../../../hooks";
 import type {
   ScreenshotLightboxLocalSlot,

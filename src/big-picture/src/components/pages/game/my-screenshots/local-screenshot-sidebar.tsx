@@ -21,7 +21,7 @@ import {
   toUploadOptions,
   type ReviewDraft,
   type ReviewFieldFocusIds,
-} from "../../../screenshot-review-modal/review-fields";
+} from "../../../screenshot-upload-form/review-fields";
 import type { FocusOverrideTarget } from "../../../../services";
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
 import { formatScreenshotDate } from "../../screenshots";

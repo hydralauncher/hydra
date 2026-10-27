@@ -1,3 +1,5 @@
+import "./screenshot-upload-form.scss";
+
 import {
   CheckCircleIcon,
   PencilSimpleIcon,
@@ -85,50 +87,34 @@ export const toUploadOptions = (
   };
 };
 
-function getUploadStatusKey(screenshot: LocalScreenshot | undefined) {
-  if (!screenshot) return "screenshots_review_upload_queued";
+function getUploadStatusKey(screenshot: LocalScreenshot) {
   if (screenshot.state === "failed") return "screenshots_review_upload_failed";
-  if (screenshot.state === "uploaded") {
-    if (screenshot.moderationStatus === "BLOCKED")
-      return "screenshots_review_upload_blocked";
-    return screenshot.moderationStatus === "APPROVED"
-      ? "screenshots_review_upload_approved"
-      : "screenshots_review_upload_done";
-  }
-  if (screenshot.state === "uploading")
-    return "screenshots_review_upload_progress";
-
-  return "screenshots_review_upload_queued";
+  if (screenshot.moderationStatus === "BLOCKED")
+    return "screenshots_review_upload_blocked";
+  return screenshot.moderationStatus === "APPROVED"
+    ? "screenshots_review_upload_approved"
+    : "screenshots_review_upload_done";
 }
 
 export function ReviewUploadStatus({
   screenshot,
-}: Readonly<{ screenshot: LocalScreenshot | undefined }>) {
+}: Readonly<{ screenshot: LocalScreenshot }>) {
   const { t } = useTranslation("big_picture");
-  const progress = Math.round((screenshot?.uploadProgress ?? 0) * 100);
-  const isFailed = screenshot?.state === "failed";
-  const isDone = screenshot?.state === "uploaded";
+  const isFailed = screenshot.state === "failed";
+  const isDone = screenshot.state === "uploaded";
   const detail = getLocalScreenshotStatusDetail(screenshot, t);
 
   return (
-    <div className="screenshot-review-modal__status">
-      <div className="screenshot-review-modal__status-line">
+    <div className="screenshot-upload-form__status">
+      <div className="screenshot-upload-form__status-line">
         {isFailed ? <WarningCircleIcon size={20} /> : null}
         {isDone ? <CheckCircleIcon size={20} /> : null}
-        <span>{t(getUploadStatusKey(screenshot), { progress })}</span>
+        <span>{t(getUploadStatusKey(screenshot))}</span>
       </div>
 
       {detail ? (
-        <span className="screenshot-review-modal__status-detail">{detail}</span>
+        <span className="screenshot-upload-form__status-detail">{detail}</span>
       ) : null}
-
-      {isFailed || isDone ? null : (
-        <progress
-          className="screenshot-review-modal__progress"
-          value={progress}
-          max={100}
-        />
-      )}
     </div>
   );
 }
@@ -182,16 +168,16 @@ export function ReviewFields({
         value: "CLOUD",
         label: (
           <span
-            className={cn("screenshot-review-modal__quality-option", {
-              "screenshot-review-modal__quality-option--locked":
+            className={cn("screenshot-upload-form__quality-option", {
+              "screenshot-upload-form__quality-option--locked":
                 !hasActiveSubscription,
             })}
           >
-            <span className="screenshot-review-modal__quality-option-label">
+            <span className="screenshot-upload-form__quality-option-label">
               {SCREENSHOT_QUALITY_LABELS.CLOUD}
             </span>
             {hasActiveSubscription ? null : (
-              <span className="screenshot-review-modal__cloud-badge">
+              <span className="screenshot-upload-form__cloud-badge">
                 Hydra Cloud
               </span>
             )}
@@ -223,7 +209,7 @@ export function ReviewFields({
             left: leftTarget,
             right: BLOCK_TARGET,
           }}
-          className="screenshot-review-modal__title-field"
+          className="screenshot-upload-form__title-field"
           label={t("screenshots_custom_title_label")}
           value={draft.customGameTitle.trim()}
           placeholder={t("screenshots_custom_game")}
@@ -248,7 +234,7 @@ export function ReviewFields({
           left: leftTarget,
           right: BLOCK_TARGET,
         }}
-        className="screenshot-review-modal__description-field"
+        className="screenshot-upload-form__description-field"
         label={t("screenshots_description_label")}
         value={draft.description}
         placeholder={t("screenshots_add_description")}
@@ -305,7 +291,7 @@ export function ReviewFields({
           left: leftTarget,
           right: BLOCK_TARGET,
         }}
-        className="screenshot-review-modal__quality-select"
+        className="screenshot-upload-form__quality-select"
         onValueChange={selectQuality}
       />
     </>
