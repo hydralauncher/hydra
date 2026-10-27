@@ -14,18 +14,22 @@ import type { ScreenshotHotkeyBinding } from "@types";
 
 const PRINT_SCREEN_CODE = "PrintScreen";
 
-const MODIFIER_CODES = new Set([
-  "ControlLeft",
-  "ControlRight",
-  "AltLeft",
-  "AltRight",
-  "ShiftLeft",
-  "ShiftRight",
-  "MetaLeft",
-  "MetaRight",
-  "OSLeft",
-  "OSRight",
-  "AltGraph",
+const PRINT_SCREEN_MODIFIER_GRACE_MS = 500;
+
+type HotkeyModifier = "ctrl" | "alt" | "shift" | "meta";
+
+const MODIFIER_CODES = new Map<string, HotkeyModifier>([
+  ["ControlLeft", "ctrl"],
+  ["ControlRight", "ctrl"],
+  ["AltLeft", "alt"],
+  ["AltRight", "alt"],
+  ["ShiftLeft", "shift"],
+  ["ShiftRight", "shift"],
+  ["MetaLeft", "meta"],
+  ["MetaRight", "meta"],
+  ["OSLeft", "meta"],
+  ["OSRight", "meta"],
+  ["AltGraph", "alt"],
 ]);
 
 export interface SettingsScreenshotsHotkeyProps {
@@ -51,9 +55,30 @@ export function SettingsScreenshotsHotkey({
   useEffect(() => {
     if (!isRecording) return;
 
+    const modifierReleasedAt = new Map<HotkeyModifier, number | null>();
+
+    const trackModifier = (event: KeyboardEvent) => {
+      const modifier = MODIFIER_CODES.get(event.code);
+      if (!modifier) return;
+      modifierReleasedAt.set(
+        modifier,
+        event.type === "keydown" ? null : performance.now()
+      );
+    };
+
+    const wasModifierHeld = (modifier: HotkeyModifier) => {
+      const releasedAt = modifierReleasedAt.get(modifier);
+      if (releasedAt === undefined) return false;
+      return (
+        releasedAt === null ||
+        performance.now() - releasedAt <= PRINT_SCREEN_MODIFIER_GRACE_MS
+      );
+    };
+
     const recordKey = (event: KeyboardEvent) => {
       event.preventDefault();
       event.stopPropagation();
+      trackModifier(event);
 
       if (event.repeat || MODIFIER_CODES.has(event.code)) return;
 
@@ -62,18 +87,22 @@ export function SettingsScreenshotsHotkey({
         return;
       }
 
+      const isPrintScreen = event.code === PRINT_SCREEN_CODE;
+      const isHeld = (pressed: boolean, modifier: HotkeyModifier) =>
+        pressed || (isPrintScreen && wasModifierHeld(modifier));
+
       const nextBinding: ScreenshotHotkeyBinding = {
         key: event.code,
-        ctrl: event.ctrlKey,
-        alt: event.altKey,
-        shift: event.shiftKey,
+        ctrl: isHeld(event.ctrlKey, "ctrl"),
+        alt: isHeld(event.altKey, "alt"),
+        shift: isHeld(event.shiftKey, "shift"),
       };
 
       setIsRecording(false);
 
       const validation = validateScreenshotHotkey({
         ...nextBinding,
-        meta: event.metaKey,
+        meta: isHeld(event.metaKey, "meta"),
       });
       if (!validation.valid) {
         setError(validation.error);
@@ -88,7 +117,11 @@ export function SettingsScreenshotsHotkey({
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
-      if (event.code === PRINT_SCREEN_CODE) recordKey(event);
+      if (event.code === PRINT_SCREEN_CODE) {
+        recordKey(event);
+        return;
+      }
+      trackModifier(event);
     };
 
     window.addEventListener("keydown", handleKeyDown, true);

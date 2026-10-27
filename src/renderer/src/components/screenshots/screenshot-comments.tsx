@@ -462,6 +462,7 @@ export function ScreenshotComments({
     isLoading,
     hasFailed,
     restoredDraft,
+    clearRestoredDraft,
     pendingCommentIds,
     reportedCommentIds,
     reload,
@@ -575,6 +576,7 @@ export function ScreenshotComments({
         {composerState === "ready" ? (
           <ScreenshotCommentInput
             restoredDraft={restoredDraft}
+            onRestoredDraftConsumed={clearRestoredDraft}
             placeholder={t("comment_placeholder")}
             submitLabel={t("post_comment")}
             onSubmit={createComment}

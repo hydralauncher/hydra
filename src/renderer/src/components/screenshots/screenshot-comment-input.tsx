@@ -20,6 +20,7 @@ const measureCommentText = (html: string) => richTextToPlainText(html).length;
 interface ScreenshotCommentInputProps {
   initialValue?: string;
   restoredDraft?: RestoredCommentDraft | null;
+  onRestoredDraftConsumed?: () => void;
   placeholder: string;
   submitLabel: string;
   isSubmitting?: boolean;
@@ -31,6 +32,7 @@ interface ScreenshotCommentInputProps {
 export function ScreenshotCommentInput({
   initialValue = "",
   restoredDraft = null,
+  onRestoredDraftConsumed,
   placeholder,
   submitLabel,
   isSubmitting = false,
@@ -51,6 +53,7 @@ export function ScreenshotCommentInput({
     editor,
     charCount,
     htmlLength,
+    isEmpty,
     submit: submitEditor,
   } = useRichTextEditor({
     initialHtml: initialValue,
@@ -69,13 +72,12 @@ export function ScreenshotCommentInput({
     if (!restoredDraft || restoredDraft.key === appliedDraftKeyRef.current) {
       return;
     }
-    if (!isRichTextEditorAvailable(editor)) return;
-
-    appliedDraftKeyRef.current = restoredDraft.key;
-    if (editor.getText().trim()) return;
+    if (!isRichTextEditorAvailable(editor) || !isEmpty) return;
 
     editor.commands.setContent(restoredDraft.body, { emitUpdate: true });
-  }, [editor, restoredDraft]);
+    appliedDraftKeyRef.current = restoredDraft.key;
+    onRestoredDraftConsumed?.();
+  }, [editor, isEmpty, onRestoredDraftConsumed, restoredDraft]);
 
   const isDisabled =
     charCount === 0 ||

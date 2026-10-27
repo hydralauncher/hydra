@@ -75,7 +75,6 @@ function GameScreenshotsBox({
           screenshot: item.screenshot,
         }
   );
-  const hasCommunity = shop !== "custom";
   const hasNoScreenshotsOfMine =
     mine.hasLoaded &&
     !mine.hasFailed &&
@@ -86,7 +85,7 @@ function GameScreenshotsBox({
     objectId,
     sort: "top",
     take: SIDEBAR_SCREENSHOT_COUNT,
-    isEnabled: hasCommunity && hasNoScreenshotsOfMine,
+    isEnabled: hasNoScreenshotsOfMine,
     writeBus,
   });
   const communityItems = community.feed.items.slice(
@@ -121,7 +120,7 @@ function GameScreenshotsBox({
 
   const renderCommunity = () => {
     const isCommunityLoading =
-      hasCommunity && !community.feed.hasLoaded && !community.feed.hasFailed;
+      !community.feed.hasLoaded && !community.feed.hasFailed;
     if (isCommunityLoading && communityItems.length === 0) {
       return renderSkeleton();
     }
@@ -192,7 +191,7 @@ function GameScreenshotsBox({
       return (
         <>
           {partialNotice}
-          {shop === "custom" ? null : viewAllButton}
+          {viewAllButton}
         </>
       );
     }
