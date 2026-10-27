@@ -441,6 +441,12 @@ $local-screenshot-actions-fade-duration: 0.15s;
 }
 
 .local-screenshot-sidebar {
+  .screenshot-viewer-sidebar__details {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
   &__badge {
     align-self: flex-start;
     padding: 2px calc(var(--spacing-unit) * 2);
@@ -459,9 +465,15 @@ $local-screenshot-actions-fade-duration: 0.15s;
   &__actions {
     display: flex;
     gap: calc(var(--spacing-unit) * 2);
+    margin-top: auto;
   }
 
   &__upload {
     flex: 1;
+    min-width: 0;
+  }
+
+  &__delete {
+    flex-shrink: 0;
   }
 }

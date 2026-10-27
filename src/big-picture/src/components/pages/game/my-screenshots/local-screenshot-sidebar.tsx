@@ -231,6 +231,7 @@ export function LocalScreenshotSidebar({
                 icon={<TrashIcon size={20} />}
                 aria-label={t("screenshots_review_delete")}
                 title={t("screenshots_review_delete")}
+                className="local-screenshot-sidebar__delete"
                 onClick={() => setIsDeleteConfirmVisible(true)}
               >
                 {null}
