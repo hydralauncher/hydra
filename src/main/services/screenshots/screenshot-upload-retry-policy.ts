@@ -27,6 +27,7 @@ export interface ScreenshotUploadFailure {
 
 export const SCREENSHOT_UPLOAD_MAX_ATTEMPTS = 6;
 export const SCREENSHOT_UPLOAD_MAX_GAME_WAITS = 30;
+export const SCREENSHOT_UPLOAD_MAX_SERVER_WAITS = 30;
 export const SCREENSHOT_UPLOAD_RETRY_BASE_DELAY_MS = 5_000;
 export const SCREENSHOT_UPLOAD_RETRY_MAX_DELAY_MS = 10 * 60_000;
 export const SCREENSHOT_UPLOAD_GAME_WAIT_DELAY_MS = 30_000;
@@ -130,6 +131,7 @@ export interface ScreenshotUploadRetryState {
   uploadAttempts: number;
   gameWaits: number;
   moderationWaits?: number;
+  capacityWaits?: number;
 }
 
 export type ScreenshotUploadNextStep =
@@ -169,20 +171,24 @@ export const planScreenshotUploadRecovery = (
         ? { kind: "failed" }
         : { kind: "retry_now", rotateClientId: true };
     case "wait":
-      return {
-        kind: "retry_at",
-        delay: SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS,
-        countsAsAttempt: false,
-      };
+      return (state.capacityWaits ?? 0) >= SCREENSHOT_UPLOAD_MAX_SERVER_WAITS
+        ? { kind: "failed" }
+        : {
+            kind: "retry_at",
+            delay: SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS,
+            countsAsAttempt: false,
+          };
     case "moderation_wait":
-      return {
-        kind: "retry_at",
-        delay: getScreenshotModerationWaitDelay(
-          failure,
-          state.moderationWaits ?? 0
-        ),
-        countsAsAttempt: false,
-      };
+      return (state.moderationWaits ?? 0) >= SCREENSHOT_UPLOAD_MAX_SERVER_WAITS
+        ? { kind: "failed" }
+        : {
+            kind: "retry_at",
+            delay: getScreenshotModerationWaitDelay(
+              failure,
+              state.moderationWaits ?? 0
+            ),
+            countsAsAttempt: false,
+          };
     case "retry":
       return state.uploadAttempts >= SCREENSHOT_UPLOAD_MAX_ATTEMPTS
         ? { kind: "failed" }

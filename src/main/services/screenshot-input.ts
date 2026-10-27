@@ -128,15 +128,10 @@ export const toScreenshotInputStatus = (
   hint: getScreenshotInputHint(status, settings.gamepadEnabled),
 });
 
-const PORTAL_SHORTCUT_BACKENDS = new Set<ScreenshotInputBackend>([
-  "x11-xinput2",
-  "unavailable",
-]);
-
 const shouldUsePortalShortcut = (status: ScreenshotInputNativeStatus) =>
   process.platform === "linux" &&
   status.waylandSession &&
-  PORTAL_SHORTCUT_BACKENDS.has(toBackend(status.keyboardBackend));
+  toBackend(status.keyboardBackend) === "unavailable";
 
 const withPortalKeyboard = (
   status: ScreenshotInputNativeStatus

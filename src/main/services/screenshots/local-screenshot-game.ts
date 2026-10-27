@@ -5,11 +5,7 @@ import type {
   LocalScreenshotState,
 } from "@types";
 
-const GAME_PAGE_STATES = new Set<LocalScreenshotState>([
-  "local",
-  "failed",
-  "reviewing",
-]);
+const GAME_PAGE_STATES = new Set<LocalScreenshotState>(["local", "failed"]);
 
 export const isLocalScreenshotForGame = (
   screenshot: LocalScreenshot,
