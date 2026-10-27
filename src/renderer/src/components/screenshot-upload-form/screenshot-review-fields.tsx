@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { ShieldIcon } from "@primer/octicons-react";
 import type {
   LocalScreenshot,
   ProfileVisibility,
@@ -101,6 +102,13 @@ export function ScreenshotReviewFields({
 
   return (
     <>
+      {screenshot.isSensitive ? (
+        <div className="screenshot-review-item__sensitive-notice" role="note">
+          <ShieldIcon size={16} />
+          <span>{t("sensitive_notice")}</span>
+        </div>
+      ) : null}
+
       {isTitleEditable && (
         <InlineEditField
           className="screenshot-review-item__title-field"

@@ -6,6 +6,7 @@ import {
   LockIcon,
   PeopleIcon,
   SearchIcon,
+  ShieldIcon,
 } from "@primer/octicons-react";
 import cn from "classnames";
 
@@ -18,7 +19,9 @@ import type { ProfileScreenshot } from "@types";
 
 import { getScreenshotGameTitle } from "./screenshot-labels";
 import { ScreenshotStats } from "./screenshot-stats";
+import { SensitiveScreenshotModal } from "./sensitive-screenshot-modal";
 import { useScreenshotSpoiler } from "./use-screenshot-spoiler";
+import { useSensitiveScreenshotConfirmation } from "./use-sensitive-screenshot";
 
 import "./screenshot-card.scss";
 
@@ -130,13 +133,27 @@ function ScreenshotCardMedia({
   const { t } = useTranslation("screenshots");
   const { isHidden: isSpoilerHidden, reveal } =
     useScreenshotSpoiler(screenshot);
+  const sensitive = useSensitiveScreenshotConfirmation(screenshot);
   const imageUrl = screenshot.thumbnailUrl ?? screenshot.imageUrl;
   const { hasImage, handleImageError } = useScreenshotImageFallback(
     imageUrl,
     () => onImageError(screenshot)
   );
+  const isBlurred = sensitive.isHidden || isSpoilerHidden;
+  const hiddenLabel = sensitive.isHidden
+    ? t("sensitive_content")
+    : t("spoiler_reveal");
+
+  const openUnlessSpoiler = () => {
+    if (!isSpoilerHidden) onOpen(screenshot);
+  };
 
   const handleClick = () => {
+    if (sensitive.isHidden) {
+      sensitive.requestReveal(openUnlessSpoiler);
+      return;
+    }
+
     if (isSpoilerHidden) {
       reveal();
       return;
@@ -146,40 +163,48 @@ function ScreenshotCardMedia({
   };
 
   return (
-    <button
-      type="button"
-      className={cn("screenshot-card__media", {
-        "screenshot-card__media--spoiler": isSpoilerHidden,
-      })}
-      onClick={handleClick}
-      aria-label={isSpoilerHidden ? t("spoiler_reveal") : altText}
-      title={isSpoilerHidden ? undefined : t("open_screenshot")}
-    >
-      {hasImage ? (
-        <img
-          className="screenshot-card__image"
-          src={imageUrl ?? undefined}
-          alt={altText}
-          loading="lazy"
-          onError={() => void handleImageError()}
-        />
-      ) : (
-        <span className="screenshot-card__placeholder">
-          <ImageIcon size={28} />
-        </span>
-      )}
+    <>
+      <button
+        type="button"
+        className={cn("screenshot-card__media", {
+          "screenshot-card__media--spoiler": isBlurred,
+        })}
+        onClick={handleClick}
+        aria-label={isBlurred ? hiddenLabel : altText}
+        title={isBlurred ? undefined : t("open_screenshot")}
+      >
+        {hasImage ? (
+          <img
+            className="screenshot-card__image"
+            src={imageUrl ?? undefined}
+            alt={altText}
+            loading="lazy"
+            onError={() => void handleImageError()}
+          />
+        ) : (
+          <span className="screenshot-card__placeholder">
+            <ImageIcon size={28} />
+          </span>
+        )}
 
-      {isSpoilerHidden ? (
-        <span className="screenshot-card__spoiler">
-          <EyeClosedIcon size={18} />
-          <span>{t("spoiler_reveal")}</span>
-        </span>
-      ) : (
-        <span className="screenshot-card__hover">
-          <SearchIcon size={22} />
-        </span>
-      )}
-    </button>
+        {isBlurred ? (
+          <span className="screenshot-card__spoiler">
+            {sensitive.isHidden ? (
+              <ShieldIcon size={18} />
+            ) : (
+              <EyeClosedIcon size={18} />
+            )}
+            <span>{hiddenLabel}</span>
+          </span>
+        ) : (
+          <span className="screenshot-card__hover">
+            <SearchIcon size={22} />
+          </span>
+        )}
+      </button>
+
+      <SensitiveScreenshotModal {...sensitive.modalProps} />
+    </>
   );
 }
 

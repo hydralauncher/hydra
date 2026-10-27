@@ -5,6 +5,8 @@ export * from "./screenshot-labels";
 export * from "./use-screenshot-collection";
 export * from "./use-screenshot-feed";
 export * from "./use-screenshot-spoiler";
+export * from "./use-sensitive-screenshot";
+export * from "./sensitive-screenshot-modal";
 export * from "./screenshot-owner-badge";
 export * from "./screenshot-stats";
 export * from "./use-load-until-scrollable";

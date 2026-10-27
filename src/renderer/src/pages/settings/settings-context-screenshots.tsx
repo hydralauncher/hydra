@@ -248,6 +248,21 @@ export function SettingsContextScreenshots() {
       </div>
 
       <div className="settings-context-panel__group">
+        <h3>{t("screenshots_viewing_group")}</h3>
+
+        <CheckboxField
+          label={t("screenshots_show_sensitive")}
+          checked={form.showSensitive}
+          onChange={() =>
+            savePreferences(
+              { showSensitive: !form.showSensitive },
+              { showSensitiveScreenshots: !form.showSensitive }
+            )
+          }
+        />
+      </div>
+
+      <div className="settings-context-panel__group">
         <h3>{t("screenshots_folder_group")}</h3>
 
         <div className="settings-screenshots__folder">

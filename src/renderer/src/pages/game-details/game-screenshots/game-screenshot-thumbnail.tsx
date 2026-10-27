@@ -1,12 +1,14 @@
 import { useTranslation } from "react-i18next";
-import { EyeClosedIcon, ImageIcon } from "@primer/octicons-react";
+import { EyeClosedIcon, ImageIcon, ShieldIcon } from "@primer/octicons-react";
 import cn from "classnames";
 
 import {
   ScreenshotOwnerBadge,
   ScreenshotStats,
+  SensitiveScreenshotModal,
   getScreenshotGameTitle,
   useScreenshotSpoiler,
+  useSensitiveScreenshotConfirmation,
 } from "@renderer/components/screenshots";
 import { useDate } from "@renderer/hooks";
 import { useScreenshotImageFallback } from "@shared";
@@ -35,6 +37,7 @@ export function GameScreenshotThumbnail({
   const { formatDate } = useDate();
   const { isHidden: isSpoilerHidden, reveal } =
     useScreenshotSpoiler(screenshot);
+  const sensitive = useSensitiveScreenshotConfirmation(screenshot);
   const imageUrl = screenshot.thumbnailUrl ?? screenshot.imageUrl;
   const { hasImage, handleImageError } = useScreenshotImageFallback(
     imageUrl,
@@ -45,7 +48,21 @@ export function GameScreenshotThumbnail({
     date: formatDate(screenshot.capturedAt),
   });
 
+  const isBlurred = sensitive.isHidden || isSpoilerHidden;
+  const hiddenLabel = sensitive.isHidden
+    ? t("sensitive_content")
+    : t("spoiler_reveal");
+
+  const openUnlessSpoiler = () => {
+    if (!isSpoilerHidden) onOpen(screenshot);
+  };
+
   const handleClick = () => {
+    if (sensitive.isHidden) {
+      sensitive.requestReveal(openUnlessSpoiler);
+      return;
+    }
+
     if (isSpoilerHidden) {
       reveal();
       return;
@@ -59,11 +76,11 @@ export function GameScreenshotThumbnail({
       <button
         type="button"
         className={cn("game-screenshots-box__thumbnail", {
-          "game-screenshots-box__thumbnail--spoiler": isSpoilerHidden,
+          "game-screenshots-box__thumbnail--spoiler": isBlurred,
         })}
         onClick={handleClick}
-        aria-label={isSpoilerHidden ? t("spoiler_reveal") : altText}
-        title={isSpoilerHidden ? t("spoiler_reveal") : t("open_screenshot")}
+        aria-label={isBlurred ? hiddenLabel : altText}
+        title={isBlurred ? hiddenLabel : t("open_screenshot")}
       >
         {hasImage ? (
           <img
@@ -79,13 +96,21 @@ export function GameScreenshotThumbnail({
           </span>
         )}
 
-        {isSpoilerHidden ? (
+        {sensitive.isHidden ? (
+          <span className="game-screenshots-box__thumbnail-spoiler">
+            <ShieldIcon size={16} />
+            <span>{t("sensitive")}</span>
+          </span>
+        ) : null}
+        {!sensitive.isHidden && isSpoilerHidden ? (
           <span className="game-screenshots-box__thumbnail-spoiler">
             <EyeClosedIcon size={16} />
             <span>{t("spoiler")}</span>
           </span>
         ) : null}
       </button>
+
+      <SensitiveScreenshotModal {...sensitive.modalProps} />
 
       {showOwner ? (
         <ScreenshotOwnerBadge

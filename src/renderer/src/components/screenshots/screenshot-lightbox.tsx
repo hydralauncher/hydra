@@ -5,6 +5,7 @@ import {
   EyeClosedIcon,
   ImageIcon,
   LockIcon,
+  ShieldIcon,
 } from "@primer/octicons-react";
 import cn from "classnames";
 
@@ -28,7 +29,9 @@ import type {
   ScreenshotCollection,
   ScreenshotLightboxStatus,
 } from "./use-screenshot-collection";
+import { SensitiveScreenshotModal } from "./sensitive-screenshot-modal";
 import { useScreenshotSpoiler } from "./use-screenshot-spoiler";
+import { useSensitiveScreenshotConfirmation } from "./use-sensitive-screenshot";
 
 import "./screenshot-lightbox.scss";
 
@@ -53,6 +56,7 @@ export function ScreenshotStage({
   const { t } = useTranslation("screenshots");
   const { isHidden: isSpoilerHidden, reveal } =
     useScreenshotSpoiler(screenshot);
+  const sensitive = useSensitiveScreenshotConfirmation(screenshot);
   const { hasImage, isRefreshing, handleImageError } =
     useScreenshotImageFallback(screenshot.imageUrl, () =>
       onImageError(screenshot)
@@ -80,26 +84,41 @@ export function ScreenshotStage({
   }
 
   return (
-    <GalleryLightboxImage
-      key={screenshot.imageUrl}
-      item={{ ...item, src: screenshot.imageUrl ?? undefined }}
-      imageClassName={cn("screenshot-stage__image", {
-        "screenshot-stage__image--spoiler": isSpoilerHidden,
-      })}
-      onImageError={() => void handleImageError()}
-      {...context}
-    >
-      {isSpoilerHidden ? (
-        <button
-          type="button"
-          className="screenshot-stage__spoiler"
-          onClick={reveal}
-        >
-          <EyeClosedIcon size={24} />
-          <span>{t("spoiler_reveal")}</span>
-        </button>
-      ) : null}
-    </GalleryLightboxImage>
+    <>
+      <GalleryLightboxImage
+        key={screenshot.imageUrl}
+        item={{ ...item, src: screenshot.imageUrl ?? undefined }}
+        imageClassName={cn("screenshot-stage__image", {
+          "screenshot-stage__image--spoiler":
+            sensitive.isHidden || isSpoilerHidden,
+        })}
+        onImageError={() => void handleImageError()}
+        {...context}
+      >
+        {sensitive.isHidden ? (
+          <button
+            type="button"
+            className="screenshot-stage__spoiler"
+            onClick={() => sensitive.requestReveal()}
+          >
+            <ShieldIcon size={24} />
+            <span>{t("sensitive_content")}</span>
+          </button>
+        ) : null}
+        {!sensitive.isHidden && isSpoilerHidden ? (
+          <button
+            type="button"
+            className="screenshot-stage__spoiler"
+            onClick={reveal}
+          >
+            <EyeClosedIcon size={24} />
+            <span>{t("spoiler_reveal")}</span>
+          </button>
+        ) : null}
+      </GalleryLightboxImage>
+
+      <SensitiveScreenshotModal {...sensitive.modalProps} />
+    </>
   );
 }
 
