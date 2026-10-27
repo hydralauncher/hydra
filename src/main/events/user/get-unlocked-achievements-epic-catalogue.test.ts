@@ -7,6 +7,10 @@ import {
   AchievementSyncCancelledError,
 } from "../../services/achievements/achievement-sync-coordinator.ts";
 
+const passthroughCombinedRequest = (
+  ...args: [unknown, string, string, string, () => Promise<unknown>]
+) => args[4]().catch(() => null);
+
 type Row = {
   name: string;
   unlocked: boolean;
@@ -125,6 +129,9 @@ const load = (options: {
     },
     "@main/services/achievements/merge-unlocked-achievements": {
       mergeUnlockedAchievementLists: (remote: unknown[]) => remote,
+    },
+    "@main/services/achievements/combined-achievements-requests": {
+      CombinedAchievementsRequests: { fetch: passthroughCombinedRequest },
     },
     "@main/services/achievements/combined-achievement-presentation": {},
   };
