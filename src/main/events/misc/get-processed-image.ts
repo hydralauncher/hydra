@@ -116,11 +116,16 @@ const pruneCache = async (cacheDir: string) => {
   if (total <= MAX_CACHE_BYTES) return;
 
   files.sort((a, b) => a.usedAt - b.usedAt);
+  const evicted: string[] = [];
   for (const file of files) {
     if (total <= MAX_CACHE_BYTES) break;
-    await fs.promises.unlink(file.filePath).catch(() => {});
+    evicted.push(file.filePath);
     total -= file.size;
   }
+
+  await Promise.allSettled(
+    evicted.map((filePath) => fs.promises.unlink(filePath))
+  );
 };
 
 const downloadImage = async (imageUrl: string, outputPath: string) => {
