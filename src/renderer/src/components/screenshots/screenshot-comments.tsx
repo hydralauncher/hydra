@@ -376,23 +376,13 @@ function ScreenshotCommentItem({
   const { t } = useTranslation("screenshots");
 
   return (
-    <li
-      className={cn("screenshot-comments__item", {
-        "screenshot-comments__item--hidden": comment.isHidden,
-      })}
-    >
+    <li className="screenshot-comments__item">
       <ScreenshotCommentHeader
         comment={comment}
         onAuthorClick={onAuthorClick}
       />
 
       <div className="screenshot-comments__body">
-        {comment.isHidden ? (
-          <p className="screenshot-comments__hidden-notice">
-            {t("comment_hidden_notice")}
-          </p>
-        ) : null}
-
         {isEditing ? (
           <ScreenshotCommentInput
             initialValue={comment.bodyHtml}

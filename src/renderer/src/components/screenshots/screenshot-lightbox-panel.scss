@@ -364,10 +364,6 @@ $description-outline-fade-duration: 0.15s;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.25);
     word-wrap: break-word;
-
-    &--hidden .screenshot-comments__text {
-      opacity: 0.6;
-    }
   }
 
   &__header {
@@ -474,12 +470,6 @@ $description-outline-fade-duration: 0.15s;
 
   &__edited {
     font-style: italic;
-  }
-
-  &__hidden-notice {
-    margin: 0;
-    color: #ffd36d;
-    font-size: globals.$small-font-size;
   }
 
   &__text {

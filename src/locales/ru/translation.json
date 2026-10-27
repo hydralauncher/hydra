@@ -2707,7 +2707,6 @@
     "comment_deleted": "Комментарий удалён",
     "comment_edit_failed": "Не удалось изменить комментарий",
     "comment_edited": "изменено",
-    "comment_hidden_notice": "Этот комментарий видите только вы. Он скрыт модерацией.",
     "comment_not_allowed": "Вы не можете комментировать этот скриншот",
     "comment_placeholder": "Напишите комментарий",
     "comment_post_failed": "Не удалось опубликовать комментарий",
@@ -2850,7 +2849,6 @@
     "screenshots_deleted_count_other": "Удалено {{count}} скриншотов",
     "comments_temporarily_unavailable": "Комментарии временно недоступны, попробуйте ещё раз чуть позже",
     "text_changes_temporarily_unavailable": "Описание и название сейчас нельзя сохранить, попробуйте ещё раз чуть позже",
-    "comment_only_visible_to_you": "Ваш комментарий виден только вам, потому что он не прошёл модерацию",
     "description_only_visible_to_you": "Это описание видите только вы",
     "moderation_in_progress": "Другое изменение ещё проверяется, попробуйте чуть позже"
   }

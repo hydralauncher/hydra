@@ -132,7 +132,7 @@ export function useScreenshotComments({
   onFailure,
 }: UseScreenshotCommentsOptions) {
   const { t } = useTranslation("screenshots");
-  const { showErrorToast, showSuccessToast, showWarningToast } = useToast();
+  const { showErrorToast, showSuccessToast } = useToast();
   const ownerId = screenshot.owner.id;
   const screenshotId = screenshot.id;
   const [comments, setComments] = useState<ScreenshotComment[]>([]);
@@ -379,7 +379,6 @@ export function useScreenshotComments({
         recordWrite({ kind: "replace", commentId: pendingId, comment });
         if (comment.isHidden) {
           onPatch(screenshotId, adjustCommentCount(-1));
-          showWarningToast(t("comment_only_visible_to_you"));
         }
       } catch (error) {
         logger.error("Failed to post screenshot comment", error);
@@ -395,16 +394,7 @@ export function useScreenshotComments({
         setPending(pendingId, false);
       }
     },
-    [
-      handleWriteError,
-      onPatch,
-      ownerId,
-      recordWrite,
-      screenshotId,
-      setPending,
-      showWarningToast,
-      t,
-    ]
+    [handleWriteError, onPatch, ownerId, recordWrite, screenshotId, setPending]
   );
 
   const createComment = useCallback(
@@ -445,9 +435,6 @@ export function useScreenshotComments({
         if (updated && updated.isHidden !== comment.isHidden) {
           onPatch(screenshotId, adjustCommentCount(updated.isHidden ? -1 : 1));
         }
-        if (updated?.isHidden) {
-          showWarningToast(t("comment_only_visible_to_you"));
-        }
       } catch (error) {
         logger.error("Failed to edit screenshot comment", error);
         if (isLatestEdit()) {
@@ -460,15 +447,7 @@ export function useScreenshotComments({
         handleWriteError(error, "comment_edit_failed", comment.id);
       }
     },
-    [
-      handleWriteError,
-      onPatch,
-      ownerId,
-      recordWrite,
-      screenshotId,
-      showWarningToast,
-      t,
-    ]
+    [handleWriteError, onPatch, ownerId, recordWrite, screenshotId]
   );
 
   const editComment = useCallback(

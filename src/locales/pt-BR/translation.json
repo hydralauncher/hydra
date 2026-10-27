@@ -2910,7 +2910,6 @@
     "comment_deleted": "Comentário excluído",
     "comment_edit_failed": "Não foi possível editar o comentário",
     "comment_edited": "editado",
-    "comment_hidden_notice": "Só você pode ver este comentário. Ele foi ocultado pela moderação.",
     "comment_not_allowed": "Você não pode comentar nesta captura de tela",
     "comment_placeholder": "Escreva um comentário",
     "comment_post_failed": "Não foi possível publicar o comentário",
@@ -3049,7 +3048,6 @@
     "screenshots_deleted_count_other": "{{count}} capturas excluídas",
     "comments_temporarily_unavailable": "Os comentários estão temporariamente indisponíveis, tente novamente em instantes",
     "text_changes_temporarily_unavailable": "Não é possível salvar descrições e títulos agora, tente novamente em instantes",
-    "comment_only_visible_to_you": "Seu comentário só está visível para você porque não passou na moderação",
     "description_only_visible_to_you": "Só você pode ver esta descrição",
     "moderation_in_progress": "Outra alteração ainda está sendo verificada, tente novamente em instantes"
   }
