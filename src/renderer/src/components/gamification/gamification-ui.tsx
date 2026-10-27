@@ -103,6 +103,8 @@ export function ProgressIcon({ size = 16 }: Readonly<{ size?: number }>) {
   );
 }
 
+export const CLOUD_BOOST_TOOLTIP_ID = "cloud-boost-tooltip";
+
 export function RewardChips({
   xp,
   coins,
@@ -127,7 +129,12 @@ export function RewardChips({
       {boostPercent !== null && (xp > 0 || coins > 0) && (
         <span
           className="reward-chips__boost"
-          title={t("cloud_boost_chip", { percent: boostPercent })}
+          aria-label={t("cloud_boost_chip", { percent: boostPercent })}
+          data-tooltip-id={CLOUD_BOOST_TOOLTIP_ID}
+          data-tooltip-place="top"
+          data-tooltip-content={t("cloud_boost_chip", {
+            percent: boostPercent,
+          })}
         >
           <BoostIcon />+{boostPercent}%
         </span>
