@@ -368,8 +368,8 @@ describe("play activity", () => {
       today: "2026-10-21T00:00:00.000Z",
       yesterday: "2026-10-20T00:00:00.000Z",
     });
-    // 21:30 on Oct 26 in UTC-3 is already Oct 27 in UTC.
-    assert.deepEqual(flagged(Date.parse("2026-10-27T00:30:00Z")), {
+    // 22:00 on Oct 26 in UTC-3 is already Oct 27 in UTC.
+    assert.deepEqual(flagged(Date.parse("2026-10-27T01:00:00Z")), {
       today: "2026-10-27T00:00:00.000Z",
       yesterday: "2026-10-26T00:00:00.000Z",
     });
