@@ -70,10 +70,6 @@ $leaderboards-streak-to: #b05cff;
 
     .leaderboard-controls__segment {
       height: 34px;
-      font-size: globals.$hint-font-size;
-    }
-
-    .leaderboard-controls__segmented:last-child .leaderboard-controls__segment {
       font-size: 12px;
     }
   }
