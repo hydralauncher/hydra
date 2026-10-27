@@ -4,6 +4,7 @@ import { useAppSelector } from "@renderer/hooks";
 import {
   isSensitiveScreenshotHidden,
   resolveScreenshotPreferences,
+  revealScreenshotSpoiler,
   revealSensitiveScreenshot,
   subscribeSensitiveScreenshotReveals,
 } from "@shared";
@@ -11,7 +12,7 @@ import type { ProfileScreenshot } from "@types";
 
 type SensitiveScreenshotTarget = Pick<
   ProfileScreenshot,
-  "id" | "isSensitive" | "owner"
+  "id" | "isSensitive" | "isSpoiler" | "owner"
 >;
 
 export function useSensitiveScreenshot(
@@ -25,6 +26,7 @@ export function useSensitiveScreenshot(
       resolveScreenshotPreferences(state.userPreferences.value).showSensitive
   );
   const screenshotId = screenshot?.id ?? null;
+  const isSpoiler = screenshot?.isSpoiler ?? false;
 
   const isHidden = useSyncExternalStore(
     subscribeSensitiveScreenshotReveals,
@@ -35,8 +37,10 @@ export function useSensitiveScreenshot(
   );
 
   const reveal = useCallback(() => {
-    if (screenshotId) revealSensitiveScreenshot(screenshotId);
-  }, [screenshotId]);
+    if (!screenshotId) return;
+    revealSensitiveScreenshot(screenshotId);
+    if (isSpoiler) revealScreenshotSpoiler(screenshotId);
+  }, [isSpoiler, screenshotId]);
 
   return { isHidden, reveal };
 }
@@ -71,6 +75,7 @@ export function useSensitiveScreenshotConfirmation(
     requestReveal,
     modalProps: {
       visible: isConfirming,
+      isSpoiler: screenshot?.isSpoiler ?? false,
       onConfirm: handleConfirm,
       onClose: handleClose,
     },

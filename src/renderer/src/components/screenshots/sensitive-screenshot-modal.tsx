@@ -11,12 +11,14 @@ import type { UserPreferences } from "@types";
 
 interface SensitiveScreenshotModalProps {
   visible: boolean;
+  isSpoiler: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }
 
 export function SensitiveScreenshotModal({
   visible,
+  isSpoiler,
   onConfirm,
   onClose,
 }: Readonly<SensitiveScreenshotModalProps>) {
@@ -56,7 +58,11 @@ export function SensitiveScreenshotModal({
     <ConfirmationModal
       visible={visible}
       title={t("sensitive_modal_title")}
-      descriptionText={t("sensitive_modal_description")}
+      descriptionText={t(
+        isSpoiler
+          ? "sensitive_modal_description_spoiler"
+          : "sensitive_modal_description"
+      )}
       confirmButtonLabel={t("sensitive_modal_confirm")}
       cancelButtonLabel={t("cancel")}
       onConfirm={handleConfirm}
