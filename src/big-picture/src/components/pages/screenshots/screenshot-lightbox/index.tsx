@@ -1,12 +1,20 @@
 import "./styles.scss";
 
 import { ArrowClockwiseIcon } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import type { ProfileScreenshot } from "@types";
+import type { LocalScreenshot, ProfileScreenshot } from "@types";
 import {
   AuthPage,
+  getLocalScreenshotTitle,
   SCREENSHOT_REPORT_REASONS,
   type ScreenshotPatch,
 } from "@shared";
@@ -23,6 +31,7 @@ import {
   MEDIA_VIEWER_STAGE_FOCUS_ID,
   MediaViewer,
 } from "../../game/media-viewer";
+import { resolveImageSource } from "../../../../helpers";
 import { getScreenshotGameTitle, shouldBlurScreenshot } from "../helpers";
 import { ScreenshotManageModal } from "../screenshot-manage-modal";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
@@ -43,6 +52,22 @@ export type ScreenshotLightboxStatus =
   | "private"
   | "unavailable";
 
+export type ScreenshotViewerEntry =
+  | { kind: "local"; screenshot: LocalScreenshot }
+  | { kind: "uploaded"; screenshot: ProfileScreenshot };
+
+export interface ScreenshotLightboxLocalSlot {
+  entries: ScreenshotViewerEntry[];
+  openLocal: LocalScreenshot | null;
+  onOpenEntry: (entry: ScreenshotViewerEntry) => void;
+  onClose: () => void;
+  getSidebarEntryFocusId: (screenshot: LocalScreenshot) => string;
+  renderSidebar: (
+    screenshot: LocalScreenshot,
+    stageTarget: FocusOverrideTarget
+  ) => ReactNode;
+}
+
 export interface ScreenshotLightboxProps {
   status: ScreenshotLightboxStatus | null;
   screenshot: ProfileScreenshot | null;
@@ -56,6 +81,7 @@ export interface ScreenshotLightboxProps {
   onRemove: (screenshotId: string, ownerId: string) => void;
   onUnavailable: (screenshotId: string, ownerId: string) => void;
   onRefreshImage?: (screenshot: ProfileScreenshot) => Promise<void>;
+  localSlot?: ScreenshotLightboxLocalSlot;
 }
 
 const STAGE_TARGET: FocusOverrideTarget = {
@@ -78,15 +104,23 @@ const getStageNavigationOverrides = (
   return { right: { type: "item", itemId: focusIds.input } };
 };
 
-const getViewerScreenshots = (
-  screenshot: ProfileScreenshot,
-  items: ProfileScreenshot[]
+const getEntryId = (entry: ScreenshotViewerEntry) =>
+  entry.kind === "local"
+    ? `local:${entry.screenshot.clientId}`
+    : entry.screenshot.id;
+
+const getViewerEntries = (
+  current: ScreenshotViewerEntry,
+  entries: ScreenshotViewerEntry[]
 ) => {
-  const index = items.findIndex((item) => item.id === screenshot.id);
-  if (index < 0) return { list: [screenshot], index: 0 };
+  const currentId = getEntryId(current);
+  const index = entries.findIndex((entry) => getEntryId(entry) === currentId);
+  if (index < 0) return { list: [current], index: 0 };
 
   return {
-    list: items.map((item) => (item.id === screenshot.id ? screenshot : item)),
+    list: entries.map((entry) =>
+      getEntryId(entry) === currentId ? current : entry
+    ),
     index,
   };
 };
@@ -147,8 +181,9 @@ function LightboxModals({
 }
 
 interface ScreenshotViewerProps {
-  screenshot: ProfileScreenshot;
-  items: ProfileScreenshot[];
+  current: ScreenshotViewerEntry;
+  entries: ScreenshotViewerEntry[];
+  localSlot?: ScreenshotLightboxLocalSlot;
   canLoadMore: boolean;
   hasLoadMoreError: boolean;
   viewerId: string | null;
@@ -186,8 +221,9 @@ function LoadMoreErrorNotice({ onRetry }: Readonly<{ onRetry?: () => void }>) {
 }
 
 function ScreenshotViewer({
-  screenshot,
-  items,
+  current,
+  entries,
+  localSlot,
   canLoadMore,
   hasLoadMoreError,
   viewerId,
@@ -210,30 +246,77 @@ function ScreenshotViewer({
   );
   const revealSpoiler = useRevealedScreenshotSpoilers((state) => state.reveal);
   const { list, index } = useMemo(
-    () => getViewerScreenshots(screenshot, items),
-    [items, screenshot]
+    () => getViewerEntries(current, entries),
+    [current, entries]
   );
-  const screenshotsById = useMemo(
-    () => new Map(list.map((item) => [item.id, item])),
+  const entriesById = useMemo(
+    () => new Map(list.map((entry) => [getEntryId(entry), entry])),
     [list]
   );
   const mediaItems = useMemo(
     () =>
-      list.map((item) => ({
-        id: item.id,
-        type: "image" as const,
-        src: item.imageUrl ?? undefined,
-        thumbnail: item.thumbnailUrl ?? undefined,
-        alt: getScreenshotGameTitle(item, t),
-      })),
+      list.map((entry) =>
+        entry.kind === "local"
+          ? {
+              id: getEntryId(entry),
+              type: "image" as const,
+              src: resolveImageSource(entry.screenshot.path),
+              thumbnail: resolveImageSource(
+                entry.screenshot.previewPath ?? entry.screenshot.path
+              ),
+              alt: getLocalScreenshotTitle(entry.screenshot),
+            }
+          : {
+              id: entry.screenshot.id,
+              type: "image" as const,
+              src: entry.screenshot.imageUrl ?? undefined,
+              thumbnail: entry.screenshot.thumbnailUrl ?? undefined,
+              alt: getScreenshotGameTitle(entry.screenshot, t),
+            }
+      ),
     [list, t]
   );
   const isBlurred = (target: ProfileScreenshot) =>
     shouldBlurScreenshot(target, revealedIds) && Boolean(target.imageUrl);
-  const stageNavigationOverrides = useMemo(
-    () => getStageNavigationOverrides(screenshot, viewerId, showComments),
-    [screenshot, viewerId, showComments]
-  );
+  const uploaded = current.kind === "uploaded" ? current.screenshot : null;
+  const stageNavigationOverrides = useMemo<FocusOverrides | undefined>(() => {
+    if (current.kind === "local") {
+      if (!localSlot) return undefined;
+      return {
+        right: {
+          type: "item",
+          itemId: localSlot.getSidebarEntryFocusId(current.screenshot),
+        },
+      };
+    }
+    return getStageNavigationOverrides(
+      current.screenshot,
+      viewerId,
+      showComments
+    );
+  }, [current, localSlot, viewerId, showComments]);
+
+  const renderSidebar = () => {
+    if (current.kind === "local") {
+      return localSlot?.renderSidebar(current.screenshot, STAGE_TARGET) ?? null;
+    }
+
+    return (
+      <ScreenshotLightboxSidebar
+        screenshot={current.screenshot}
+        viewerId={viewerId}
+        isOwner={isOwner}
+        showComments={showComments}
+        social={social}
+        stageTarget={STAGE_TARGET}
+        onUpdate={onUpdate}
+        onRequestReport={onRequestReport}
+        onRequestManage={onRequestManage}
+        onRequestDelete={onRequestDelete}
+        onNavigate={onNavigateAway}
+      />
+    );
+  };
 
   return (
     <MediaViewer
@@ -243,21 +326,38 @@ function ScreenshotViewer({
       stageNavigationOverrides={stageNavigationOverrides}
       showFilmstrip={false}
       showCounter={false}
-      canNavigatePastEnd={canLoadMore}
+      canNavigatePastEnd={uploaded !== null && canLoadMore}
       onNavigatePastEnd={onLoadMore}
       onNavigate={(nextIndex) => {
         const target = list[nextIndex];
-        if (target) onSelect?.(target);
+        if (!target) return;
+        if (localSlot) localSlot.onOpenEntry(target);
+        else if (target.kind === "uploaded") onSelect?.(target.screenshot);
       }}
       onClose={onClose}
       onStagePrimary={() => {
-        if (isBlurred(screenshot)) revealSpoiler(screenshot.id);
+        if (!uploaded) return;
+        if (isBlurred(uploaded)) revealSpoiler(uploaded.id);
         else if (hasLoadMoreError) onLoadMore?.();
       }}
       renderImage={({ item, className, onLoad, onError }) => {
-        const target = screenshotsById.get(item.id);
-        if (!target) return null;
+        const entry = entriesById.get(item.id);
+        if (!entry) return null;
 
+        if (entry.kind === "local") {
+          return (
+            <img
+              className={className}
+              src={item.src}
+              alt={item.alt}
+              draggable={false}
+              onLoad={onLoad}
+              onError={onError}
+            />
+          );
+        }
+
+        const target = entry.screenshot;
         return (
           <>
             <ScreenshotStageImage
@@ -269,27 +369,13 @@ function ScreenshotViewer({
               onReveal={() => revealSpoiler(target.id)}
               onRefreshImage={onRefreshImage}
             />
-            {hasLoadMoreError && target.id === screenshot.id ? (
+            {hasLoadMoreError && target.id === uploaded?.id ? (
               <LoadMoreErrorNotice onRetry={onLoadMore} />
             ) : null}
           </>
         );
       }}
-      sidebar={
-        <ScreenshotLightboxSidebar
-          screenshot={screenshot}
-          viewerId={viewerId}
-          isOwner={isOwner}
-          showComments={showComments}
-          social={social}
-          stageTarget={STAGE_TARGET}
-          onUpdate={onUpdate}
-          onRequestReport={onRequestReport}
-          onRequestManage={onRequestManage}
-          onRequestDelete={onRequestDelete}
-          onNavigate={onNavigateAway}
-        />
-      }
+      sidebar={renderSidebar()}
     />
   );
 }
@@ -307,6 +393,7 @@ export function ScreenshotLightbox({
   onRemove,
   onUnavailable,
   onRefreshImage,
+  localSlot,
 }: Readonly<ScreenshotLightboxProps>) {
   const { userDetails } = useUserDetails();
   const { isFeatureEnabled } = useFeature();
@@ -334,13 +421,29 @@ export function ScreenshotLightbox({
     setOpenModal(null);
   }, [screenshot?.id, status]);
 
-  if (status === null) return null;
+  const openLocal = localSlot?.openLocal ?? null;
+  const closeViewer = localSlot?.onClose ?? onClose;
+  const viewerEntries = useMemo<ScreenshotViewerEntry[]>(
+    () =>
+      localSlot?.entries ??
+      items.map((item) => ({ kind: "uploaded" as const, screenshot: item })),
+    [items, localSlot?.entries]
+  );
 
-  if (status !== "ready" || !screenshot || isViewerCovered) {
+  const getCurrentEntry = (): ScreenshotViewerEntry | null => {
+    if (openLocal) return { kind: "local", screenshot: openLocal };
+    if (status !== "ready" || !screenshot || isViewerCovered) return null;
+    return { kind: "uploaded", screenshot };
+  };
+  const currentEntry = getCurrentEntry();
+
+  if (status === null && !openLocal) return null;
+
+  if (!currentEntry) {
     return (
       <ScreenshotLightboxStatusPanel
-        status={status === "ready" ? "loading" : status}
-        onClose={onClose}
+        status={status === "ready" || status === null ? "loading" : status}
+        onClose={closeViewer}
         onLayerIdChange={reportStatusLayer}
       />
     );
@@ -358,8 +461,9 @@ export function ScreenshotLightbox({
   return (
     <>
       <ScreenshotViewer
-        screenshot={screenshot}
-        items={items}
+        current={currentEntry}
+        entries={viewerEntries}
+        localSlot={localSlot}
         canLoadMore={canLoadMore}
         hasLoadMoreError={hasLoadMoreError}
         viewerId={viewerId}
@@ -368,27 +472,29 @@ export function ScreenshotLightbox({
         social={social}
         onSelect={onSelect}
         onLoadMore={onLoadMore}
-        onClose={onClose}
+        onClose={closeViewer}
         onUpdate={onUpdate}
         onRefreshImage={onRefreshImage}
         onRequestReport={requestReport}
         onRequestManage={() => setOpenModal("manage")}
         onRequestDelete={() => setOpenModal("delete")}
         onNavigateAway={(path) => {
-          onClose();
+          closeViewer();
           navigate(path);
         }}
       />
-      <LightboxModals
-        screenshot={screenshot}
-        openModal={openModal}
-        social={social}
-        onCloseModal={() => setOpenModal(null)}
-        onDeleted={() => {
-          setOpenModal(null);
-          onClose();
-        }}
-      />
+      {!openLocal && screenshot ? (
+        <LightboxModals
+          screenshot={screenshot}
+          openModal={openModal}
+          social={social}
+          onCloseModal={() => setOpenModal(null)}
+          onDeleted={() => {
+            setOpenModal(null);
+            closeViewer();
+          }}
+        />
+      ) : null}
     </>
   );
 }

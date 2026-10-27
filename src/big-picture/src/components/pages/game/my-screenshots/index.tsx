@@ -7,7 +7,7 @@ import {
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { GameShop, ProfileScreenshot } from "@types";
+import type { GameShop, LocalScreenshot, ProfileScreenshot } from "@types";
 import {
   buildGameScreenshotsPath,
   createScreenshotWriteBus,
@@ -25,6 +25,7 @@ import {
   ScreenshotLightbox,
   useScreenshotFeed,
   useScreenshotLightbox,
+  type ScreenshotViewerEntry,
 } from "../../screenshots";
 import { Feature, useFeature, useUserDetails } from "../../../../hooks";
 import type { FocusOverrides, FocusOverrideTarget } from "../../../../services";
@@ -48,6 +49,7 @@ import {
   type LocalScreenshotActions,
 } from "./use-local-screenshot-actions";
 import { useMyGameScreenshots } from "./use-my-game-screenshots";
+import { useMyScreenshotsViewer } from "./use-my-screenshots-viewer";
 
 const SIDEBAR_SCREENSHOT_COUNT = 4;
 const PUBLISHED_WAIT_TIMEOUT_MS = 1_500;
@@ -77,6 +79,7 @@ interface MyScreenshotsGridProps {
   showCommentCount: boolean;
   leftTarget: FocusOverrideTarget;
   onOpen: (screenshot: ProfileScreenshot) => void;
+  onOpenLocal?: (screenshot: LocalScreenshot) => void;
   onRefreshImage: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
@@ -86,6 +89,7 @@ function MyScreenshotsGrid({
   showCommentCount,
   leftTarget,
   onOpen,
+  onOpenLocal,
   onRefreshImage,
 }: Readonly<MyScreenshotsGridProps>) {
   return (
@@ -120,7 +124,7 @@ function MyScreenshotsGrid({
             isBusy={local.busyIds.has(item.screenshot.clientId)}
             variant="thumbnail"
             navigationOverrides={navigationOverrides}
-            onOpen={local.open}
+            onOpen={(screenshot) => onOpenLocal?.(screenshot)}
             onDelete={local.requestDelete}
           />
         );
@@ -279,8 +283,8 @@ export function GameMyScreenshots({
     feedKeySuffix: "sidebar",
   });
   const { feed } = mine;
-  const local = useLocalScreenshotActions(mine.pendingLocal);
-  const { lightboxProps, open } = useScreenshotLightbox({
+  const local = useLocalScreenshotActions();
+  const { lightboxProps, open, close } = useScreenshotLightbox({
     items: feed.items,
     needsAuth: true,
     updateItem: feed.updateItem,
@@ -294,6 +298,19 @@ export function GameMyScreenshots({
     retryLoadMore: feed.retry,
   });
   const items = mine.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
+  const viewer = useMyScreenshotsViewer({
+    entries: mine.items.map(
+      (item): ScreenshotViewerEntry =>
+        item.kind === "local"
+          ? { kind: "local", screenshot: item.screenshot }
+          : { kind: "uploaded", screenshot: item.screenshot }
+    ),
+    localScreenshots: mine.localScreenshots,
+    hasLocalLoaded: mine.hasLoadedLocal,
+    uploadedItems: feed.items,
+    openUploaded: open,
+    closeUploaded: close,
+  });
   const hasWaitedForPublished = useHasWaited(
     `${shop}:${objectId}`,
     PUBLISHED_WAIT_TIMEOUT_MS
@@ -346,7 +363,12 @@ export function GameMyScreenshots({
               local={local}
               showCommentCount={isFeatureEnabled(Feature.ScreenshotComments)}
               leftTarget={leftTarget}
-              onOpen={open}
+              onOpen={(screenshot) =>
+                viewer.openEntry({ kind: "uploaded", screenshot })
+              }
+              onOpenLocal={(screenshot) =>
+                viewer.openEntry({ kind: "local", screenshot })
+              }
               onRefreshImage={feed.refreshImage}
             />
           ) : null}
@@ -397,7 +419,7 @@ export function GameMyScreenshots({
           ) : null}
         </div>
 
-        <ScreenshotLightbox {...lightboxProps} />
+        <ScreenshotLightbox {...lightboxProps} localSlot={viewer.localSlot} />
         <ScreenshotLightbox {...community.lightboxProps} />
         {local.elements}
         <GameScreenshotsModal

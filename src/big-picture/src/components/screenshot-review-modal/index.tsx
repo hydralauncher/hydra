@@ -3,49 +3,41 @@ import "./styles.scss";
 import {
   ArrowClockwiseIcon,
   ArrowsOutSimpleIcon,
-  CheckCircleIcon,
   CloudArrowUpIcon,
   ImageIcon,
-  PencilSimpleIcon,
-  PlusIcon,
   SidebarSimpleIcon,
   TrashIcon,
-  WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
-import type {
-  LocalScreenshot,
-  LocalScreenshotUploadOptions,
-  ProfileVisibility,
-  ScreenshotQuality,
-} from "@types";
+import type { LocalScreenshot, ScreenshotQuality } from "@types";
 import {
-  SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
-  SCREENSHOT_DESCRIPTION_MAX_LENGTH,
   normalizeScreenshotDescription,
-  sanitizeScreenshotDescriptionInput,
   isScreenshotUploadRetryable,
   resolveScreenshotPreferences,
   resolveScreenshotUploadQuality,
 } from "@shared";
 import { logger } from "@renderer/logger";
 import { useReviewDraftSave } from "./use-review-draft-save";
+import {
+  ReviewFields,
+  ReviewUploadStatus,
+  SCREENSHOT_QUALITY_LABELS,
+  createReviewDraft,
+  toUploadOptions,
+  type ReviewDraft,
+  type ReviewFieldFocusIds,
+} from "./review-fields";
 
 import {
   BumperBadge,
   Button,
-  Checkbox,
-  DropdownSelect,
   FocusItem,
   HorizontalFocusGroup,
   Modal,
-  SegmentedControl,
   VerticalFocusGroup,
-  type DropdownSelectOption,
-  type SegmentedControlOption,
 } from "../common";
 import { useFocusLayerId } from "../context";
 import { ConfirmationModal } from "../modals";
@@ -53,12 +45,8 @@ import { IS_DESKTOP } from "../../constants";
 import { getPreferredGameAssets, resolveImageSource } from "../../helpers";
 import { useNavigationStore, useVirtualKeyboardStore } from "../../stores";
 import { NavigationService, type FocusOverrideTarget } from "../../services";
-import {
-  formatScreenshotDate,
-  getLocalScreenshotStatusDetail,
-} from "../pages/screenshots";
+import { formatScreenshotDate } from "../pages/screenshots";
 import { MediaViewer } from "../pages/game/media-viewer";
-import { InlineTextField } from "../pages/screenshots/inline-text-field";
 import { useScreenshotDialogPresenceStore } from "../pages/screenshots/screenshot-dialog-presence";
 import { ReviewFilmstrip } from "./review-filmstrip";
 import { subscribeScreenshotReviewRequests } from "./review-requests";
@@ -122,42 +110,14 @@ const DETAILS_PANEL_SPRING = {
   mass: 0.9,
 } as const;
 const DETAILS_CONTENT_OFFSET = 40;
-const FIELD_FOCUS_IDS = new Set([
-  TITLE_FOCUS_ID,
-  DESCRIPTION_FOCUS_ID,
-  SPOILER_FOCUS_ID,
-  VISIBILITY_FOCUS_ID,
-  QUALITY_FOCUS_ID,
-]);
-const SCREENSHOT_QUALITY_LABELS: Record<ScreenshotQuality, string> = {
-  STANDARD: "720p",
-  CLOUD: "1080p",
+const FIELD_FOCUS: ReviewFieldFocusIds = {
+  title: TITLE_FOCUS_ID,
+  description: DESCRIPTION_FOCUS_ID,
+  spoiler: SPOILER_FOCUS_ID,
+  visibility: VISIBILITY_FOCUS_ID,
+  quality: QUALITY_FOCUS_ID,
 };
-
-interface ReviewDraft {
-  isSpoiler: boolean;
-  visibility: ProfileVisibility;
-  customGameTitle: string;
-  description: string;
-  quality?: ScreenshotQuality;
-}
-
-function getUploadStatusKey(screenshot: LocalScreenshot | undefined) {
-  if (!screenshot) return "screenshots_review_upload_queued";
-  if (screenshot.state === "failed") return "screenshots_review_upload_failed";
-  if (screenshot.state === "uploaded") {
-    if (screenshot.moderationStatus === "BLOCKED")
-      return "screenshots_review_upload_blocked";
-    return screenshot.moderationStatus === "APPROVED"
-      ? "screenshots_review_upload_approved"
-      : "screenshots_review_upload_done";
-  }
-  if (screenshot.state === "uploading")
-    return "screenshots_review_upload_progress";
-
-  return "screenshots_review_upload_queued";
-}
-
+const FIELD_FOCUS_IDS = new Set(Object.values(FIELD_FOCUS));
 function useLocalScreenshots(isActive: boolean, requestCount: number) {
   const [screenshots, setScreenshots] = useState<LocalScreenshot[]>([]);
   const [loadedRequestCount, setLoadedRequestCount] = useState<number | null>(
@@ -327,40 +287,6 @@ function ReviewPreview({
   );
 }
 
-interface UploadStatusProps {
-  screenshot: LocalScreenshot | undefined;
-}
-
-function UploadStatus({ screenshot }: Readonly<UploadStatusProps>) {
-  const { t } = useTranslation("big_picture");
-  const progress = Math.round((screenshot?.uploadProgress ?? 0) * 100);
-  const isFailed = screenshot?.state === "failed";
-  const isDone = screenshot?.state === "uploaded";
-  const detail = getLocalScreenshotStatusDetail(screenshot, t);
-
-  return (
-    <div className="screenshot-review-modal__status">
-      <div className="screenshot-review-modal__status-line">
-        {isFailed ? <WarningCircleIcon size={20} /> : null}
-        {isDone ? <CheckCircleIcon size={20} /> : null}
-        <span>{t(getUploadStatusKey(screenshot), { progress })}</span>
-      </div>
-
-      {detail ? (
-        <span className="screenshot-review-modal__status-detail">{detail}</span>
-      ) : null}
-
-      {isFailed || isDone ? null : (
-        <progress
-          className="screenshot-review-modal__progress"
-          value={progress}
-          max={100}
-        />
-      )}
-    </div>
-  );
-}
-
 const RECORD_RETRY_FOCUS_ID = "screenshot-review-record-retry";
 
 function ReviewRecordStatus({
@@ -522,35 +448,6 @@ function ReviewDetailsShortcut({
 
   return null;
 }
-
-const createReviewDraft = (
-  record: LocalScreenshot | undefined,
-  defaultVisibility: ProfileVisibility
-): ReviewDraft => ({
-  isSpoiler: record?.isSpoiler ?? false,
-  visibility: record?.visibility ?? defaultVisibility,
-  customGameTitle: record?.customGameTitle ?? "",
-  description: record?.description ?? "",
-});
-
-const toUploadOptions = (
-  draft: ReviewDraft,
-  isCustomGame: boolean,
-  hasCloudSubscription: boolean
-): LocalScreenshotUploadOptions => {
-  const customGameTitle = draft.customGameTitle.trim();
-
-  return {
-    isSpoiler: draft.isSpoiler,
-    visibility: draft.visibility,
-    customGameTitle: isCustomGame && customGameTitle ? customGameTitle : null,
-    description: normalizeScreenshotDescription(draft.description),
-    quality: resolveScreenshotUploadQuality(
-      draft.quality,
-      hasCloudSubscription
-    ),
-  };
-};
 
 export { requestScreenshotReview } from "./review-requests";
 
@@ -817,44 +714,6 @@ export function ScreenshotReviewModal() {
     setQueueState(closeReviewQueue);
   };
 
-  const visibilityOptions = useMemo<
-    SegmentedControlOption<ProfileVisibility>[]
-  >(
-    () => [
-      { value: "PUBLIC", label: t("screenshots_visibility_public") },
-      { value: "FRIENDS", label: t("screenshots_visibility_friends") },
-      { value: "PRIVATE", label: t("screenshots_visibility_private") },
-    ],
-    [t]
-  );
-
-  const qualityOptions = useMemo<DropdownSelectOption<ScreenshotQuality>[]>(
-    () => [
-      { value: "STANDARD", label: SCREENSHOT_QUALITY_LABELS.STANDARD },
-      {
-        value: "CLOUD",
-        label: (
-          <span
-            className={cn("screenshot-review-modal__quality-option", {
-              "screenshot-review-modal__quality-option--locked":
-                !hasActiveSubscription,
-            })}
-          >
-            <span className="screenshot-review-modal__quality-option-label">
-              {SCREENSHOT_QUALITY_LABELS.CLOUD}
-            </span>
-            {hasActiveSubscription ? null : (
-              <span className="screenshot-review-modal__cloud-badge">
-                Hydra Cloud
-              </span>
-            )}
-          </span>
-        ),
-      },
-    ],
-    [hasActiveSubscription]
-  );
-
   if (!current) return null;
 
   const gameTitle =
@@ -876,15 +735,6 @@ export function ScreenshotReviewModal() {
   const previewQuality = isUploading
     ? (currentScreenshot?.uploadQuality ?? uploadQuality)
     : uploadQuality;
-  const selectQuality = (quality: ScreenshotQuality) => {
-    if (quality === "CLOUD" && !hasActiveSubscription) {
-      showErrorToast(t("screenshots_review_quality_cloud_title"), {
-        message: t("screenshots_review_quality_cloud_message"),
-      });
-      return;
-    }
-    updateDraft({ quality });
-  };
   const getFooterEntryFocusId = () => {
     if (!isRecordReady) {
       return hasLoadFailed ? RECORD_RETRY_FOCUS_ID : DETAILS_TOGGLE_FOCUS_ID;
@@ -1040,101 +890,18 @@ export function ScreenshotReviewModal() {
                     exit={{ opacity: 0, x: DETAILS_CONTENT_OFFSET }}
                     transition={contentTransition}
                   >
-                    {isCustomGame ? (
-                      <InlineTextField
-                        key={current.clientId}
-                        focusId={TITLE_FOCUS_ID}
-                        navigationOverrides={{
-                          up: BLOCK_TARGET,
-                          left: PREVIEW_TARGET,
-                          right: BLOCK_TARGET,
-                        }}
-                        className="screenshot-review-modal__title-field"
-                        label={t("screenshots_custom_title_label")}
-                        value={draft.customGameTitle.trim()}
-                        placeholder={t("screenshots_custom_game")}
-                        icon={<PencilSimpleIcon size={18} />}
-                        maxLength={SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH}
-                        allowEmpty
-                        disabled={isLocked}
-                        onSave={(customGameTitle) => {
-                          updateDraft({ customGameTitle });
-                          return true;
-                        }}
-                      />
-                    ) : null}
-
-                    <InlineTextField
-                      key={`description:${current.clientId}`}
-                      focusId={DESCRIPTION_FOCUS_ID}
-                      navigationOverrides={{
-                        up: isCustomGame
-                          ? { type: "item", itemId: TITLE_FOCUS_ID }
-                          : BLOCK_TARGET,
-                        left: PREVIEW_TARGET,
-                        right: BLOCK_TARGET,
-                      }}
-                      className="screenshot-review-modal__description-field"
-                      label={t("screenshots_description_label")}
-                      value={draft.description}
-                      placeholder={t("screenshots_add_description")}
-                      icon={<PlusIcon size={18} weight="bold" />}
-                      maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
-                      allowEmpty
+                    <ReviewFields
+                      clientId={current.clientId}
+                      draft={draft}
+                      isCustomGame={isCustomGame}
                       disabled={isLocked}
-                      sanitize={sanitizeScreenshotDescriptionInput}
-                      onSave={(description) => {
-                        updateDraft({ description });
-                        return true;
+                      focusIds={FIELD_FOCUS}
+                      leftTarget={PREVIEW_TARGET}
+                      downTarget={{
+                        type: "item",
+                        itemId: getFooterEntryFocusId(),
                       }}
-                    />
-
-                    <Checkbox
-                      block
-                      label={t("screenshots_mark_spoiler")}
-                      secondaryText={t("screenshots_mark_spoiler_description")}
-                      checked={draft.isSpoiler}
-                      disabled={isLocked}
-                      focusId={SPOILER_FOCUS_ID}
-                      navigationOverrides={{
-                        up: { type: "item", itemId: DESCRIPTION_FOCUS_ID },
-                        down: { type: "item", itemId: VISIBILITY_FOCUS_ID },
-                        left: PREVIEW_TARGET,
-                        right: BLOCK_TARGET,
-                      }}
-                      onChange={(isSpoiler) => updateDraft({ isSpoiler })}
-                    />
-
-                    <SegmentedControl
-                      label={t("screenshots_visibility_label")}
-                      value={draft.visibility}
-                      options={visibilityOptions}
-                      disabled={isLocked}
-                      focusId={VISIBILITY_FOCUS_ID}
-                      navigationOverrides={{
-                        up: { type: "item", itemId: SPOILER_FOCUS_ID },
-                        down: { type: "item", itemId: QUALITY_FOCUS_ID },
-                        left: PREVIEW_TARGET,
-                      }}
-                      onValueChange={(visibility) =>
-                        updateDraft({ visibility })
-                      }
-                    />
-
-                    <DropdownSelect
-                      label={t("screenshots_review_quality")}
-                      value={uploadQuality}
-                      options={qualityOptions}
-                      disabled={isLocked}
-                      focusId={QUALITY_FOCUS_ID}
-                      focusNavigationOverrides={{
-                        up: { type: "item", itemId: VISIBILITY_FOCUS_ID },
-                        down: { type: "item", itemId: getFooterEntryFocusId() },
-                        left: PREVIEW_TARGET,
-                        right: BLOCK_TARGET,
-                      }}
-                      className="screenshot-review-modal__quality-select"
-                      onValueChange={selectQuality}
+                      onChange={updateDraft}
                     />
                   </motion.div>
                 </VerticalFocusGroup>
@@ -1174,7 +941,7 @@ export function ScreenshotReviewModal() {
                   />
                 )}
                 {isRecordReady && isUploading ? (
-                  <UploadStatus screenshot={currentScreenshot} />
+                  <ReviewUploadStatus screenshot={currentScreenshot} />
                 ) : null}
               </div>
 

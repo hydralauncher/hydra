@@ -1,0 +1,145 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { LocalScreenshot, ProfileScreenshot } from "@types";
+import {
+  normalizeScreenshotDescription,
+  resolveScreenshotPreferences,
+} from "@shared";
+
+import {
+  createReviewDraft,
+  type ReviewDraft,
+} from "../../../screenshot-review-modal/review-fields";
+import { useReviewDraftSave } from "../../../screenshot-review-modal/use-review-draft-save";
+import { useUserPreferences } from "../../../../hooks";
+import type {
+  ScreenshotLightboxLocalSlot,
+  ScreenshotViewerEntry,
+} from "../../screenshots";
+import {
+  LocalScreenshotSidebar,
+  getLocalScreenshotSidebarEntryFocusId,
+} from "./local-screenshot-sidebar";
+
+interface UseMyScreenshotsViewerOptions {
+  entries: ScreenshotViewerEntry[];
+  localScreenshots: LocalScreenshot[];
+  hasLocalLoaded: boolean;
+  uploadedItems: ProfileScreenshot[];
+  openUploaded: (screenshot: ProfileScreenshot) => void;
+  closeUploaded: () => void;
+}
+
+export function useMyScreenshotsViewer({
+  entries,
+  localScreenshots,
+  hasLocalLoaded,
+  uploadedItems,
+  openUploaded,
+  closeUploaded,
+}: UseMyScreenshotsViewerOptions) {
+  const userPreferences = useUserPreferences();
+  const defaultVisibility =
+    resolveScreenshotPreferences(userPreferences).defaultVisibility;
+  const [openLocalId, setOpenLocalId] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, ReviewDraft>>({});
+  const {
+    schedule: scheduleDraftSave,
+    cancel: cancelDraftSave,
+    flushAll: flushDraftSaves,
+  } = useReviewDraftSave();
+
+  const openLocal = openLocalId
+    ? (localScreenshots.find(
+        (screenshot) => screenshot.clientId === openLocalId
+      ) ?? null)
+    : null;
+  const uploadedFromLocal =
+    openLocal?.state === "uploaded" && openLocal.screenshotId
+      ? uploadedItems.find((item) => item.id === openLocal.screenshotId)
+      : undefined;
+
+  useEffect(() => {
+    if (!openLocalId) return;
+    if (uploadedFromLocal) {
+      setOpenLocalId(null);
+      openUploaded(uploadedFromLocal);
+      return;
+    }
+    if (hasLocalLoaded && !openLocal) setOpenLocalId(null);
+  }, [hasLocalLoaded, openLocal, openLocalId, openUploaded, uploadedFromLocal]);
+
+  const openEntry = useCallback(
+    (entry: ScreenshotViewerEntry) => {
+      flushDraftSaves();
+      if (entry.kind === "local") {
+        closeUploaded();
+        setOpenLocalId(entry.screenshot.clientId);
+        return;
+      }
+      setOpenLocalId(null);
+      openUploaded(entry.screenshot);
+    },
+    [closeUploaded, flushDraftSaves, openUploaded]
+  );
+
+  const close = useCallback(() => {
+    flushDraftSaves();
+    setOpenLocalId(null);
+    closeUploaded();
+  }, [closeUploaded, flushDraftSaves]);
+
+  const getDraft = useCallback(
+    (screenshot: LocalScreenshot) =>
+      drafts[screenshot.clientId] ??
+      createReviewDraft(screenshot, defaultVisibility),
+    [defaultVisibility, drafts]
+  );
+
+  const updateDraft = useCallback(
+    (screenshot: LocalScreenshot, update: Partial<ReviewDraft>) => {
+      const nextDraft = { ...getDraft(screenshot), ...update };
+      setDrafts((existing) => ({
+        ...existing,
+        [screenshot.clientId]: nextDraft,
+      }));
+      scheduleDraftSave(screenshot.clientId, {
+        isSpoiler: nextDraft.isSpoiler,
+        visibility: nextDraft.visibility,
+        customGameTitle: nextDraft.customGameTitle.trim() || null,
+        description: normalizeScreenshotDescription(nextDraft.description),
+      });
+    },
+    [getDraft, scheduleDraftSave]
+  );
+
+  const localSlot = useMemo<ScreenshotLightboxLocalSlot>(
+    () => ({
+      entries,
+      openLocal,
+      onOpenEntry: openEntry,
+      onClose: close,
+      getSidebarEntryFocusId: getLocalScreenshotSidebarEntryFocusId,
+      renderSidebar: (screenshot, stageTarget) => (
+        <LocalScreenshotSidebar
+          key={screenshot.clientId}
+          screenshot={screenshot}
+          draft={getDraft(screenshot)}
+          stageTarget={stageTarget}
+          onDraftChange={(update) => updateDraft(screenshot, update)}
+          onBeforeUpload={() => cancelDraftSave(screenshot.clientId)}
+        />
+      ),
+    }),
+    [
+      cancelDraftSave,
+      close,
+      entries,
+      getDraft,
+      openEntry,
+      openLocal,
+      updateDraft,
+    ]
+  );
+
+  return { localSlot, openEntry };
+}

@@ -439,3 +439,29 @@ $local-screenshot-actions-fade-duration: 0.15s;
 .local-screenshot-viewer__confirmation-backdrop {
   z-index: 130;
 }
+
+.local-screenshot-sidebar {
+  &__badge {
+    align-self: flex-start;
+    padding: 2px calc(var(--spacing-unit) * 2);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  &__fields {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 4);
+  }
+
+  &__actions {
+    display: flex;
+    gap: calc(var(--spacing-unit) * 2);
+  }
+
+  &__upload {
+    flex: 1;
+  }
+}

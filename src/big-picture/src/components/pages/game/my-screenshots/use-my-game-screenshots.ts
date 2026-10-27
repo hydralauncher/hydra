@@ -89,7 +89,11 @@ export function usePendingLocalScreenshots(
         setScreenshots((current) =>
           current.map((item) =>
             item.clientId === progress.clientId
-              ? { ...item, state: progress.state }
+              ? {
+                  ...item,
+                  state: progress.state,
+                  uploadProgress: progress.progress ?? item.uploadProgress,
+                }
               : item
           )
         );
@@ -107,7 +111,14 @@ export function usePendingLocalScreenshots(
     [objectId, screenshots, shop]
   );
 
-  return { pending, hasLoaded, hasFailed, reload: load, retry };
+  return {
+    all: screenshots,
+    pending,
+    hasLoaded,
+    hasFailed,
+    reload: load,
+    retry,
+  };
 }
 
 export function useMyPublishedScreenshots({
@@ -226,6 +237,7 @@ export function useMyGameScreenshotsState({
 
   return {
     feed,
+    localScreenshots: local.all,
     pendingLocal: local.pending,
     hasLoadedLocal: local.hasLoaded,
     items,

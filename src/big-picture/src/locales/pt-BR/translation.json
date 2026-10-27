@@ -960,6 +960,7 @@
     "screenshots_hotkey_error_unsupported": "Essa tecla não pode ser usada como atalho de captura.",
     "screenshots_review_action_failed": "Não foi possível atualizar a captura. Tente novamente.",
     "screenshots_sign_in_to_upload": "Entre na sua conta para enviar capturas",
+    "screenshots_not_uploaded": "Não enviada",
     "screenshots_review_counter": "Captura {{current}} de {{total}}",
     "screenshots_review_position": "{{current}} de {{total}}",
     "screenshots_review_delete": "Excluir",

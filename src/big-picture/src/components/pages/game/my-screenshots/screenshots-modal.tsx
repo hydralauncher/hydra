@@ -42,6 +42,7 @@ import {
   useScreenshotCardLike,
   useScreenshotFeed,
   useScreenshotLightbox,
+  type ScreenshotViewerEntry,
 } from "../../screenshots";
 import { FocusRegionContext, useFocusLayerId } from "../../../context";
 import { useGamepad, useNavigation, useUserDetails } from "../../../../hooks";
@@ -72,6 +73,7 @@ import {
   useCaptureDayLabel,
 } from "./screenshot-date-groups";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
+import { useMyScreenshotsViewer } from "./use-my-screenshots-viewer";
 import {
   useMyGameScreenshotsState,
   useMyPublishedScreenshots,
@@ -397,6 +399,11 @@ type MyScreenshotsEntry =
   | { kind: "local"; time: number; screenshot: LocalScreenshot }
   | { kind: "uploaded"; time: number; screenshot: ProfileScreenshot };
 
+const toViewerEntry = (entry: MyScreenshotsEntry): ScreenshotViewerEntry =>
+  entry.kind === "local"
+    ? { kind: "local", screenshot: entry.screenshot }
+    : { kind: "uploaded", screenshot: entry.screenshot };
+
 const getEntryFocusId = (entry: MyScreenshotsEntry) =>
   getGameScreenshotsModalItemId(
     entry.kind === "local"
@@ -427,8 +434,8 @@ function useMyScreenshotsTab({
     isEnabled: enabled,
   });
   const { feed } = mine;
-  const local = useLocalScreenshotActions(mine.pendingLocal);
-  const { lightboxProps, open } = useScreenshotLightbox({
+  const local = useLocalScreenshotActions();
+  const { lightboxProps, open, close } = useScreenshotLightbox({
     items: feed.items,
     needsAuth: true,
     updateItem: feed.updateItem,
@@ -464,6 +471,14 @@ function useMyScreenshotsTab({
       screenshot,
     })),
   ].toSorted((a, b) => b.time - a.time);
+  const viewer = useMyScreenshotsViewer({
+    entries: entries.map(toViewerEntry),
+    localScreenshots: mine.localScreenshots,
+    hasLocalLoaded: mine.hasLoadedLocal,
+    uploadedItems,
+    openUploaded: open,
+    closeUploaded: close,
+  });
   const isLoading =
     !mine.hasLoadedLocal || (mine.canFetchPublished && feed.isLoading);
 
@@ -485,8 +500,8 @@ function useMyScreenshotsTab({
     isLoading,
     hasMoreUploaded,
     firstFocusId: entries[0] ? getEntryFocusId(entries[0]) : undefined,
-    lightboxProps,
-    open,
+    lightboxProps: { ...lightboxProps, localSlot: viewer.localSlot },
+    openEntry: viewer.openEntry,
     loadNextPage,
   };
 }
@@ -559,7 +574,7 @@ function MyScreenshotsList({
   tab,
   onBrowseCommunity,
 }: Readonly<MyScreenshotsListProps>) {
-  const { mine, local, entries, open } = tab;
+  const { mine, local, entries, openEntry } = tab;
   const { feed } = mine;
   const cardLike = useScreenshotCardLike(feed.updateItem);
   const getDayLabel = useCaptureDayLabel();
@@ -589,7 +604,9 @@ function MyScreenshotsList({
           showAuthor={false}
           metaPlacement="none"
           isLikePending={cardLike.likingIds.has(entry.screenshot.id)}
-          onActivate={open}
+          onActivate={(item) =>
+            openEntry({ kind: "uploaded", screenshot: item })
+          }
           onLike={(item) => void cardLike.toggleLike(item)}
           onRefreshImage={feed.refreshImage}
         />
@@ -608,7 +625,7 @@ function MyScreenshotsList({
           alt={local.describe(screenshot)}
           isBusy={local.busyIds.has(screenshot.clientId)}
           variant="card"
-          onOpen={local.open}
+          onOpen={(item) => openEntry({ kind: "local", screenshot: item })}
           onDelete={local.requestDelete}
         />
       </li>

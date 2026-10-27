@@ -5,7 +5,6 @@ import { getLocalScreenshotTitle } from "@shared";
 import { logger } from "@renderer/logger";
 
 import { ConfirmationModal } from "../../../modals";
-import { requestScreenshotReview } from "../../../screenshot-review-modal";
 import { useBigPictureToast } from "../../../../hooks";
 import { formatScreenshotDate } from "../../screenshots";
 import { ScreenshotDialogPresence } from "../../screenshots/screenshot-dialog-presence";
@@ -24,27 +23,7 @@ export function useLocalScreenshotAlt() {
   );
 }
 
-const REVIEWABLE_STATES = new Set<LocalScreenshot["state"]>([
-  "local",
-  "reviewing",
-  "failed",
-]);
-
-const getReviewOrder = (
-  screenshots: LocalScreenshot[],
-  selected: LocalScreenshot
-) => [
-  selected.clientId,
-  ...screenshots
-    .filter(
-      (screenshot) =>
-        screenshot.clientId !== selected.clientId &&
-        REVIEWABLE_STATES.has(screenshot.state)
-    )
-    .map((screenshot) => screenshot.clientId),
-];
-
-export function useLocalScreenshotActions(screenshots: LocalScreenshot[]) {
+export function useLocalScreenshotActions() {
   const { t } = useTranslation("big_picture");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const describe = useLocalScreenshotAlt();
@@ -102,15 +81,6 @@ export function useLocalScreenshotActions(screenshots: LocalScreenshot[]) {
     busyIds,
     describe,
     requestDelete: setPendingDelete,
-    open: (screenshot: LocalScreenshot) => {
-      requestScreenshotReview({
-        gameKey: `manual:${screenshot.shop}:${screenshot.objectId ?? ""}`,
-        shop: screenshot.shop,
-        objectId: screenshot.objectId ?? "",
-        gameTitle: getLocalScreenshotTitle(screenshot),
-        clientIds: getReviewOrder(screenshots, screenshot),
-      });
-    },
     elements,
   };
 }

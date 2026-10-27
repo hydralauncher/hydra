@@ -921,6 +921,7 @@
     "screenshots_hotkey_error_unsupported": "Esa tecla no se puede usar como atajo de captura.",
     "screenshots_review_action_failed": "No se pudo actualizar la captura. Inténtalo de nuevo.",
     "screenshots_sign_in_to_upload": "Inicia sesión para subir capturas",
+    "screenshots_not_uploaded": "Sin subir",
     "screenshots_review_counter": "Captura {{current}} de {{total}}",
     "screenshots_review_position": "{{current}} de {{total}}",
     "screenshots_review_delete": "Eliminar",
