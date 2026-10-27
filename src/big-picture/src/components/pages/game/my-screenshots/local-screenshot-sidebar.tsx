@@ -55,9 +55,7 @@ export const getLocalScreenshotSidebarEntryFocusId = (
   screenshot: LocalScreenshot
 ) => {
   const focusIds = getFieldFocusIds(screenshot.clientId);
-  if (!EDITABLE_STATES.has(screenshot.state)) {
-    return getDeleteFocusId(screenshot.clientId);
-  }
+  if (!EDITABLE_STATES.has(screenshot.state)) return null;
   return screenshot.shop === "custom" ? focusIds.title : focusIds.description;
 };
 
@@ -160,8 +158,6 @@ export function LocalScreenshotSidebar({
             </span>
           </div>
 
-          {isUndecided ? null : <ReviewUploadStatus screenshot={screenshot} />}
-
           {isEditable ? (
             <div className="local-screenshot-sidebar__fields">
               <ReviewFields
@@ -180,64 +176,71 @@ export function LocalScreenshotSidebar({
             </div>
           ) : null}
 
-          <HorizontalFocusGroup
-            regionId={`local-screenshot-sidebar-actions:${clientId}`}
-            asChild
-          >
-            <div className="local-screenshot-sidebar__actions">
-              {canUpload ? (
-                <Button
-                  focusId={uploadFocusId}
-                  focusNavigationOverrides={{
-                    left: stageTarget,
-                    up: isEditable
-                      ? { type: "item", itemId: fieldFocusIds.quality }
-                      : BLOCK_TARGET,
-                  }}
-                  disabled={isBusy}
-                  loading={pendingAction === "upload"}
-                  icon={
-                    canRetry ? (
-                      <ArrowClockwiseIcon size={18} />
-                    ) : (
-                      <CloudArrowUpIcon size={18} />
-                    )
-                  }
-                  className="local-screenshot-sidebar__upload"
-                  onClick={() => void upload()}
-                >
-                  {t(
-                    canRetry
-                      ? "screenshots_review_retry"
-                      : "screenshots_review_upload"
-                  )}
-                </Button>
-              ) : null}
-              <Button
-                variant="danger"
-                size="icon"
-                focusId={deleteFocusId}
-                focusNavigationOverrides={{
-                  left: canUpload
-                    ? { type: "item", itemId: uploadFocusId }
-                    : stageTarget,
-                  right: BLOCK_TARGET,
-                  up: isEditable
-                    ? { type: "item", itemId: fieldFocusIds.quality }
-                    : BLOCK_TARGET,
-                }}
-                disabled={isBusy}
-                loading={pendingAction === "delete"}
-                icon={<TrashIcon size={20} />}
-                aria-label={t("screenshots_review_delete")}
-                title={t("screenshots_review_delete")}
-                className="local-screenshot-sidebar__delete"
-                onClick={() => setIsDeleteConfirmVisible(true)}
+          <div className="local-screenshot-sidebar__footer">
+            {isUndecided ? null : (
+              <ReviewUploadStatus screenshot={screenshot} />
+            )}
+            {isEditable ? (
+              <HorizontalFocusGroup
+                regionId={`local-screenshot-sidebar-actions:${clientId}`}
+                asChild
               >
-                {null}
-              </Button>
-            </div>
-          </HorizontalFocusGroup>
+                <div className="local-screenshot-sidebar__actions">
+                  {canUpload ? (
+                    <Button
+                      focusId={uploadFocusId}
+                      focusNavigationOverrides={{
+                        left: stageTarget,
+                        up: isEditable
+                          ? { type: "item", itemId: fieldFocusIds.quality }
+                          : BLOCK_TARGET,
+                      }}
+                      disabled={isBusy}
+                      loading={pendingAction === "upload"}
+                      icon={
+                        canRetry ? (
+                          <ArrowClockwiseIcon size={18} />
+                        ) : (
+                          <CloudArrowUpIcon size={18} />
+                        )
+                      }
+                      className="local-screenshot-sidebar__upload"
+                      onClick={() => void upload()}
+                    >
+                      {t(
+                        canRetry
+                          ? "screenshots_review_retry"
+                          : "screenshots_review_upload"
+                      )}
+                    </Button>
+                  ) : null}
+                  <Button
+                    variant="danger"
+                    size="icon"
+                    focusId={deleteFocusId}
+                    focusNavigationOverrides={{
+                      left: canUpload
+                        ? { type: "item", itemId: uploadFocusId }
+                        : stageTarget,
+                      right: BLOCK_TARGET,
+                      up: isEditable
+                        ? { type: "item", itemId: fieldFocusIds.quality }
+                        : BLOCK_TARGET,
+                    }}
+                    disabled={isBusy}
+                    loading={pendingAction === "delete"}
+                    icon={<TrashIcon size={20} />}
+                    aria-label={t("screenshots_review_delete")}
+                    title={t("screenshots_review_delete")}
+                    className="local-screenshot-sidebar__delete"
+                    onClick={() => setIsDeleteConfirmVisible(true)}
+                  >
+                    {null}
+                  </Button>
+                </div>
+              </HorizontalFocusGroup>
+            ) : null}
+          </div>
         </div>
 
         <ScreenshotDialogPresence isOpen={isDeleteConfirmVisible} />

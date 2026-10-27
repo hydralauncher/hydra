@@ -462,10 +462,16 @@ $local-screenshot-actions-fade-duration: 0.15s;
     gap: calc(var(--spacing-unit) * 4);
   }
 
+  &__footer {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 3);
+    margin-top: auto;
+  }
+
   &__actions {
     display: flex;
     gap: calc(var(--spacing-unit) * 2);
-    margin-top: auto;
   }
 
   &__upload {

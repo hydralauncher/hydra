@@ -61,7 +61,7 @@ export interface ScreenshotLightboxLocalSlot {
   openLocal: LocalScreenshot | null;
   onOpenEntry: (entry: ScreenshotViewerEntry) => void;
   onClose: () => void;
-  getSidebarEntryFocusId: (screenshot: LocalScreenshot) => string;
+  getSidebarEntryFocusId: (screenshot: LocalScreenshot) => string | null;
   renderSidebar: (
     screenshot: LocalScreenshot,
     stageTarget: FocusOverrideTarget
@@ -281,13 +281,11 @@ function ScreenshotViewer({
   const uploaded = current.kind === "uploaded" ? current.screenshot : null;
   const stageNavigationOverrides = useMemo<FocusOverrides | undefined>(() => {
     if (current.kind === "local") {
-      if (!localSlot) return undefined;
-      return {
-        right: {
-          type: "item",
-          itemId: localSlot.getSidebarEntryFocusId(current.screenshot),
-        },
-      };
+      const entryFocusId = localSlot?.getSidebarEntryFocusId(
+        current.screenshot
+      );
+      if (!entryFocusId) return undefined;
+      return { right: { type: "item", itemId: entryFocusId } };
     }
     return getStageNavigationOverrides(
       current.screenshot,
