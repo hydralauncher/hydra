@@ -60,6 +60,7 @@ export * from "./souvenir-sync";
 export * from "./game-content-warning";
 export * from "./screenshot-preferences";
 export * from "./screenshot-moderation";
+export * from "./screenshot-upload-outcome";
 export * from "./screenshots";
 export * from "./screenshot-feed-writes";
 export * from "./screenshot-image-refresh";

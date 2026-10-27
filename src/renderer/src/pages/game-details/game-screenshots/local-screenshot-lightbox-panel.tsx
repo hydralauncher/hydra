@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { ScreenshotReviewActionButtons } from "@renderer/components/screenshot-upload-form/screenshot-review-action-buttons";
 import { ScreenshotReviewFields } from "@renderer/components/screenshot-upload-form/screenshot-review-fields";
 import type { ScreenshotReviewDraft } from "@renderer/components/screenshot-upload-form/screenshot-review-state";
-import { ScreenshotReviewStatus } from "@renderer/components/screenshot-upload-form/screenshot-review-status";
 import { useScreenshotReviewActions } from "@renderer/components/screenshot-upload-form/use-screenshot-review-actions";
 import { useDate } from "@renderer/hooks";
 import { getLocalScreenshotTitle } from "@shared";
@@ -29,7 +28,9 @@ export function LocalScreenshotLightboxPanel({
   const isUploading =
     isUploadPending ||
     screenshot.state === "queued" ||
-    screenshot.state === "uploading";
+    screenshot.state === "uploading" ||
+    (screenshot.state === "uploaded" &&
+      screenshot.moderationStatus !== "BLOCKED");
 
   const handleUpload = () => {
     onDraftCommit();
@@ -69,9 +70,6 @@ export function LocalScreenshotLightboxPanel({
       </div>
 
       <div className="local-screenshot-panel__footer">
-        {isUploading ? null : (
-          <ScreenshotReviewStatus screenshot={screenshot} />
-        )}
         <div className="local-screenshot-panel__actions">
           <ScreenshotReviewActionButtons
             screenshot={screenshot}
