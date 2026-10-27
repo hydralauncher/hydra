@@ -2593,6 +2593,8 @@
     "uploading_progress": "{{done}} de {{total}}",
     "uploading_title": "Subiendo capturas",
     "visibility_friends": "Solo amigos",
+    "visibility_friends_short": "Amigos",
+    "upload_sign_in_required": "Inicia sesión para subir capturas",
     "visibility_label": "Quién puede verla",
     "upload_quality": "Calidad de subida",
     "visibility_private": "Solo yo",

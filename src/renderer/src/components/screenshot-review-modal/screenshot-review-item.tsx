@@ -29,7 +29,7 @@ import {
   InlineEditField,
   HydraCloudBadge,
 } from "@renderer/components";
-import { useUserDetails } from "@renderer/hooks";
+import { useToast, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { logger } from "@renderer/logger";
 
@@ -51,7 +51,7 @@ import {
 
 const VISIBILITY_LABEL_KEYS: Record<ProfileVisibility, string> = {
   PUBLIC: "visibility_public",
-  FRIENDS: "visibility_friends",
+  FRIENDS: "visibility_friends_short",
   PRIVATE: "visibility_private",
 };
 
@@ -91,8 +91,9 @@ export function ScreenshotReviewItem({
   const prefersReducedMotion = useReducedMotion();
   const [isBusy, setIsBusy] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const { hasActiveSubscription } = useUserDetails();
+  const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
+  const { showErrorToast } = useToast();
 
   const isCustomGame = screenshot.shop === "custom";
   const isTitleEditable = isCustomGame && isScreenshotEditable(screenshot);
@@ -140,8 +141,13 @@ export function ScreenshotReviewItem({
     }
   };
 
-  const handleUpload = () =>
-    runAction(
+  const handleUpload = () => {
+    if (!userDetails) {
+      showErrorToast(t("upload_sign_in_required"));
+      return;
+    }
+
+    return runAction(
       () =>
         window.electron.uploadLocalScreenshot(
           screenshot.clientId,
@@ -149,6 +155,7 @@ export function ScreenshotReviewItem({
         ),
       "Failed to upload the screenshot"
     );
+  };
 
   const handleDescriptionSave = (description: string) => {
     onDraftChange({ ...draft, description });

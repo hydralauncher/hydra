@@ -2865,6 +2865,8 @@
     "uploading_progress": "{{done}} of {{total}}",
     "uploading_title": "Uploading screenshots",
     "visibility_friends": "Friends only",
+    "visibility_friends_short": "Friends",
+    "upload_sign_in_required": "Sign in to upload screenshots",
     "visibility_label": "Who can see it",
     "upload_quality": "Upload quality",
     "visibility_private": "Only me",

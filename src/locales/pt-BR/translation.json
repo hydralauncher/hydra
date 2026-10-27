@@ -2869,6 +2869,8 @@
     "uploading_progress": "{{done}} de {{total}}",
     "uploading_title": "Enviando capturas",
     "visibility_friends": "Somente amigos",
+    "visibility_friends_short": "Amigos",
+    "upload_sign_in_required": "Entre na sua conta para enviar capturas",
     "visibility_label": "Quem pode ver",
     "upload_quality": "Qualidade do envio",
     "visibility_private": "Somente eu",
