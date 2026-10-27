@@ -44,6 +44,8 @@ export * from "./classics-disc-label";
 export * from "./controller-support";
 export * from "./artwork-resolver";
 export * from "./library-catalogue";
+export * from "./finished-download-step";
+export * from "./format-bit-rate";
 export * from "./library-group-actions";
 export * from "./official-store-options";
 export * from "./download-directories";
