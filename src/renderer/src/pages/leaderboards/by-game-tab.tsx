@@ -394,6 +394,9 @@ export function ByGameTab({
               value={search}
               placeholder={t("search_game_placeholder")}
               onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setSearch("");
+              }}
             />
             {search && (
               <button

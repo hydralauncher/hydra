@@ -17,6 +17,9 @@ const CACHE_VERSION = 2;
 const MAX_CACHE_BYTES = 256 * 1024 * 1024;
 const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
 const inFlight = new Map<string, Promise<string>>();
+// The renderer keeps served paths in memory for the whole session, so the
+// prune never deletes them, even when it is used from the renderer cache.
+const servedThisSession = new Set<string>();
 
 const isHttpUrl = (url: string) =>
   url.startsWith("http://") || url.startsWith("https://");
@@ -81,6 +84,7 @@ const findCachedImage = async (outputBase: string) => {
       // Keeps recently used images out of the next prune.
       const now = new Date();
       void fs.promises.utimes(imagePath, now, now).catch(() => {});
+      servedThisSession.add(imagePath);
       return imagePath;
     }
   }
@@ -101,7 +105,11 @@ const pruneCache = async (cacheDir: string) => {
   const files = (
     await Promise.all(
       names
-        .filter((name) => !name.includes("-tmp"))
+        .filter(
+          (name) =>
+            !name.includes("-tmp") &&
+            !servedThisSession.has(path.join(cacheDir, name))
+        )
         .map(async (name) => {
           const filePath = path.join(cacheDir, name);
           const stats = await fs.promises.stat(filePath).catch(() => null);
@@ -180,6 +188,7 @@ const processAndCacheImage = async (
     const finalPath = `${outputBase}${extension}`;
 
     await fs.promises.rename(processedImage.imagePath, finalPath);
+    servedThisSession.add(finalPath);
     void pruneCache(cacheDir).catch((error) =>
       logger.error("Failed to prune processed image cache", error)
     );

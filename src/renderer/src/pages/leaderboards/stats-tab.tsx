@@ -161,15 +161,17 @@ export function StatsTab({
 
   const heatmapWeeks = heatmap.length / 7;
 
-  // Tips in the first and last columns open inward so they stay in the card.
+  // Tips in the first and last columns open inward and tips in the top rows
+  // open below, so they stay in the card.
   const renderCellTip = (cell: HeatmapCell, index: number) => (
     <span
       className={cn("leaderboards__heat-tip", {
         "leaderboards__heat-tip--start": Math.floor(index / 7) < 2,
         "leaderboards__heat-tip--end":
           Math.floor(index / 7) >= heatmapWeeks - 2,
+        "leaderboards__heat-tip--below": index % 7 < 2,
       })}
-      role="tooltip"
+      aria-hidden="true"
     >
       {cellSummary(cell)}
       {cell.games.map((game, index) => (

@@ -1076,6 +1076,11 @@ $leaderboards-streak-to: #b05cff;
     pointer-events: none;
   }
 
+  &__heat-tip--below {
+    top: calc(100% + 6px);
+    bottom: auto;
+  }
+
   &__heat-tip--start {
     left: 0;
     transform: none;
