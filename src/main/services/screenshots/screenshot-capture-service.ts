@@ -56,6 +56,7 @@ const MAX_FILE_NAME_SUFFIX = 50;
 
 const gameSessionIds = new Map<string, string>();
 let captureInProgress = false;
+let pendingSaves: Promise<void> = Promise.resolve();
 
 const readUserPreferences = () =>
   db
@@ -308,22 +309,24 @@ const createCaptureTimer = (startedAt: number) => {
   };
 };
 
-const captureScreenshot = async (
+type SaveCapturedScreenshot = () => Promise<void>;
+
+const grabScreenshot = async (
   source: ScreenshotTriggerSource,
   startedAt: number
-) => {
+): Promise<SaveCapturedScreenshot | null> => {
   const timer = createCaptureTimer(startedAt);
   const userPreferences = await readUserPreferences();
   const preferences = resolveScreenshotPreferences(userPreferences);
-  if (!preferences.enabled) return;
-  if (!(await isScreenshotsFeatureEnabled())) return;
+  if (!preferences.enabled) return null;
+  if (!(await isScreenshotsFeatureEnabled())) return null;
   timer.mark("checks");
 
   const resolved = await resolveForegroundGame();
   timer.mark("foreground");
   if (!resolved) {
     ScreenshotTelemetry.record("capture", "ignored", "no_foreground_game");
-    return;
+    return null;
   }
 
   const { target, foreground } = resolved;
@@ -336,7 +339,7 @@ const captureScreenshot = async (
     )
   ) {
     await rejectAdultGameCapture(gameTitle);
-    return;
+    return null;
   }
 
   const ownerId = getSignedInOwnerId();
@@ -360,7 +363,7 @@ const captureScreenshot = async (
     });
   } catch (error) {
     failCapture(error);
-    return;
+    return null;
   }
   timer.mark("frame");
 
@@ -371,43 +374,53 @@ const captureScreenshot = async (
     images = await frame.encode(CAPTURE_JPEG_QUALITY);
   } catch (error) {
     failCapture(error);
-    return;
+    return null;
   } finally {
     frame.discard();
   }
   timer.mark("encoded");
 
-  let filePath: string;
-  try {
-    filePath = await resolveCaptureFilePath(gameTitle, capturedAt);
-    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.promises.writeFile(filePath, images.jpeg);
-  } catch (error) {
-    failCapture(error);
-    return;
-  }
-  const previewPath = await writeScreenshotPreview(images.preview).catch(
-    (error) => {
-      logger.warn("Failed to write the screenshot preview", error);
-      return null;
+  return async () => {
+    let filePath: string;
+    try {
+      filePath = await resolveCaptureFilePath(gameTitle, capturedAt);
+      await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+      await fs.promises.writeFile(filePath, images.jpeg);
+    } catch (error) {
+      failCapture(error);
+      return;
     }
-  );
-  timer.mark("written");
+    const previewPath = await writeScreenshotPreview(images.preview).catch(
+      (error) => {
+        logger.warn("Failed to write the screenshot preview", error);
+        return null;
+      }
+    );
+    timer.mark("written");
 
-  await finishCapture({
-    target,
-    gameTitle,
-    filePath,
-    capturedAt,
-    size: { width: frame.width, height: frame.height },
-    defaultVisibility: preferences.defaultVisibility,
-    source,
-    ownerId,
-    previewPath,
-    announce: false,
+    await finishCapture({
+      target,
+      gameTitle,
+      filePath,
+      capturedAt,
+      size: { width: frame.width, height: frame.height },
+      defaultVisibility: preferences.defaultVisibility,
+      source,
+      ownerId,
+      previewPath,
+      announce: false,
+    });
+    timer.mark("saved");
+    timer.flush(target.gameKey);
+  };
+};
+
+const queueScreenshotSave = (save: SaveCapturedScreenshot) => {
+  const queued = pendingSaves.then(save).catch((error) => {
+    logger.error("Failed to save a captured screenshot", error);
   });
-  timer.mark("saved");
-  timer.flush(target.gameKey);
+  pendingSaves = queued;
+  return queued;
 };
 
 export const handleScreenshotTrigger = async (
@@ -417,13 +430,16 @@ export const handleScreenshotTrigger = async (
   if (captureInProgress) return;
   captureInProgress = true;
 
+  let save: SaveCapturedScreenshot | null = null;
   try {
-    await captureScreenshot(source, startedAt);
+    save = await grabScreenshot(source, startedAt);
   } catch (error) {
     logger.error("Screenshot capture failed", error);
   } finally {
     captureInProgress = false;
   }
+
+  if (save) await queueScreenshotSave(save);
 };
 
 export const clearScreenshotGameSession = (gameKey: string) => {
