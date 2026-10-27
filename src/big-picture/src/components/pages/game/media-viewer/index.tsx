@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -208,7 +209,7 @@ export const MEDIA_VIEWER_STAGE_FOCUS_ID = STAGE_FOCUS_ID;
 
 interface StageLayer {
   key: number;
-  index: number;
+  itemId: string | undefined;
   ready: boolean;
 }
 
@@ -335,7 +336,7 @@ export function MediaViewer({
   const [idle, setIdle] = useState(true);
   const [chromeSuppressed, setChromeSuppressed] = useState(true);
   const [layers, setLayers] = useState<StageLayer[]>([
-    { key: 0, index, ready: true },
+    { key: 0, itemId: items[index]?.id, ready: true },
   ]);
 
   const item = items[index];
@@ -391,13 +392,27 @@ export function MediaViewer({
     };
   }, [wake]);
 
+  const currentItemId = item?.id;
+  const itemsById = useMemo(
+    () => new Map(items.map((mediaItem) => [mediaItem.id, mediaItem])),
+    [items]
+  );
+  const getLayerItem = useCallback(
+    (layer: StageLayer) =>
+      layer.itemId === undefined ? undefined : itemsById.get(layer.itemId),
+    [itemsById]
+  );
+
   useEffect(() => {
     setLayers((current) => {
-      if (current[current.length - 1]?.index === index) return current;
+      if (current[current.length - 1]?.itemId === currentItemId) return current;
       layerKeyRef.current += 1;
-      return [...current, { key: layerKeyRef.current, index, ready: false }];
+      return [
+        ...current,
+        { key: layerKeyRef.current, itemId: currentItemId, ready: false },
+      ];
     });
-  }, [index]);
+  }, [currentItemId]);
 
   const revealLayer = useCallback((key: number) => {
     setLayers((current) => withLayerReady(current, key));
@@ -420,11 +435,11 @@ export function MediaViewer({
 
   useEffect(() => {
     layers.forEach((layer) => {
-      if (!layer.ready && items[layer.index]?.type === "video") {
+      if (!layer.ready && getLayerItem(layer)?.type === "video") {
         markLayerReady(layer.key);
       }
     });
-  }, [layers, items, markLayerReady]);
+  }, [layers, getLayerItem, markLayerReady]);
 
   useEffect(() => {
     [items[index - 1], items[index + 1]].forEach((neighbor) => {
@@ -661,9 +676,8 @@ export function MediaViewer({
   }, [getActiveVideo, onStagePrimary, wake]);
 
   const borrowedVideoKey = layers
-    .map((layer) => items[layer.index])
-    .filter((layerItem) => layerItem?.type === "video")
-    .map((layerItem) => layerItem.id)
+    .map(getLayerItem)
+    .flatMap((layerItem) => (layerItem?.type === "video" ? [layerItem.id] : []))
     .join("|");
 
   useEffect(() => {
@@ -706,7 +720,7 @@ export function MediaViewer({
       >
         <div className="media-viewer__stage">
           {layers.map((layer, position) => {
-            const layerItem = items[layer.index];
+            const layerItem = getLayerItem(layer);
             if (!layerItem) return null;
 
             const topLayer = layers[layers.length - 1];
