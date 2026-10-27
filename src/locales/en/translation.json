@@ -2067,7 +2067,7 @@
     "passive_friend": "Make a new friend",
     "passive_friend_rule": "Once per person",
     "passive_today": "Today {{today}} / {{limit}}",
-    "cloud_boost_chip": "Hydra Cloud perk: your subscription gives you +{{percent}}% XP and coins",
+    "cloud_boost_chip": "+{{percent}}% for Hydra Cloud subscribers",
     "passives_hint": "XP only raises your level. Coins come from missions and trails.",
     "mission_daily_play_any_30m_title": "Warm-up",
     "mission_daily_play_any_30m_description": "Play any game for 30 minutes.",
