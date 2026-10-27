@@ -1089,6 +1089,7 @@
     "delete": "Remover archivos",
     "delete_modal_title": "¿Querés continuar?",
     "delete_modal_description": "Esto eliminará de tu computadora todos los archivos de este juego descargados por Hydra",
+    "delete_source_archive": "Eliminar también el archivo comprimido original",
     "install": "Instalar",
     "download_in_progress": "En progreso",
     "queued_downloads": "Descargas en cola",
@@ -1119,7 +1120,15 @@
     "extraction_failed_title": "Extracción fallida",
     "download_halted_title": "Descarga detenida",
     "download_halted_description": "La descarga de {{title}} se detuvo porque la carpeta de descargas se quedó sin espacio. Libera espacio y reanuda la descarga.",
-    "files": "FILES"
+    "files": "FILES",
+    "select_executable": "Seleccionar ejecutable",
+    "run_installer": "Ejecutar instalador",
+    "game_installed_title": "Juego instalado",
+    "game_installed_description": "Hydra encontró el ejecutable del juego. Ya puedes jugar.",
+    "installed_game_not_found_title": "No se pudo encontrar el juego instalado",
+    "installed_game_not_found_description": "Selecciona el ejecutable del juego para terminar de configurarlo.",
+    "installer_launch_failed": "No se pudo iniciar el instalador",
+    "installing": "Instalando…"
   },
   "settings": {
     "epic_sync_partial": "Juegos y tiempo de juego sincronizados; se volverá a intentar sincronizar los logros de {{count}} juegos.",
