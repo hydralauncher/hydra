@@ -17,10 +17,13 @@ import {
   type GameScreenshotsTab,
 } from "./game-screenshots-modal";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
+import type { MyScreenshotsEntry } from "./my-screenshots-entries";
+import { MyScreenshotsLightbox } from "./my-screenshots-lightbox";
 import { MyScreenshotsPartialNotice } from "./my-screenshots-partial-notice";
 import { useGameScreenshotsCollection } from "./use-game-screenshots-collection";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
 import { useMyGameScreenshots } from "./use-my-game-screenshots";
+import { useMyScreenshotsViewer } from "./use-my-screenshots-viewer";
 
 import "./game-screenshots.scss";
 
@@ -52,6 +55,26 @@ function GameScreenshotsBox({
   const { actions, lightbox } = collection;
   const topItems = mine.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
   const local = useLocalScreenshotActions();
+  const viewer = useMyScreenshotsViewer({
+    lightbox,
+    localScreenshots: mine.localScreenshots,
+    hasLocalLoaded: mine.hasLoaded,
+    uploadedItems: collection.feed.items,
+    getUploadStatus: local.getUploadStatus,
+  });
+  const viewerEntries: MyScreenshotsEntry[] = mine.items.map((item) =>
+    item.kind === "local"
+      ? {
+          kind: "local",
+          time: item.screenshot.capturedAt,
+          screenshot: item.screenshot,
+        }
+      : {
+          kind: "uploaded",
+          time: item.screenshot.createdAt,
+          screenshot: item.screenshot,
+        }
+  );
   const hasCommunity = shop !== "custom";
   const hasNoScreenshotsOfMine =
     mine.hasLoaded &&
@@ -188,7 +211,13 @@ function GameScreenshotsBox({
                   isLiking={actions.likingIds.has(item.screenshot.id)}
                   showCommentCount={showCommentCount}
                   showOwner={false}
-                  onOpen={lightbox.open}
+                  onOpen={(screenshot) =>
+                    viewer.openEntry({
+                      kind: "uploaded",
+                      time: screenshot.createdAt,
+                      screenshot,
+                    })
+                  }
                   onLike={(screenshot) => void actions.toggleLike(screenshot)}
                   onImageError={lightbox.refreshScreenshot}
                 />
@@ -198,7 +227,13 @@ function GameScreenshotsBox({
                   alt={local.describe(item.screenshot)}
                   isBusy={local.busyIds.has(item.screenshot.clientId)}
                   uploadStatus={local.getUploadStatus(item.screenshot)}
-                  onOpen={local.open}
+                  onOpen={(screenshot) =>
+                    viewer.openEntry({
+                      kind: "local",
+                      time: screenshot.capturedAt,
+                      screenshot,
+                    })
+                  }
                   onDelete={local.requestDelete}
                 />
               )}
@@ -215,7 +250,14 @@ function GameScreenshotsBox({
     <SidebarSection title={t("my_screenshots")}>
       <div className="game-screenshots-box">{renderContent()}</div>
 
-      <ScreenshotLightbox collection={collection} />
+      <MyScreenshotsLightbox
+        collection={collection}
+        entries={viewerEntries}
+        openLocal={viewer.openLocal}
+        describeLocal={local.describe}
+        onOpenEntry={viewer.openEntry}
+        onClose={viewer.close}
+      />
       <ScreenshotLightbox collection={community} />
       {local.elements}
 

@@ -116,7 +116,14 @@ export function useMyLocalGameScreenshots({
     setReloadKey((current) => current + 1);
   }, []);
 
-  return { pendingLocal, hasLoaded, hasFailed, settledCount, retry };
+  return {
+    localScreenshots,
+    pendingLocal,
+    hasLoaded,
+    hasFailed,
+    settledCount,
+    retry,
+  };
 }
 
 interface UseMyPublishedGameScreenshotsOptions extends GameTarget {
@@ -233,6 +240,7 @@ export function useMyGameScreenshots({
 
   return {
     collection,
+    localScreenshots: local.localScreenshots,
     pendingLocal: local.pendingLocal,
     items,
     status,

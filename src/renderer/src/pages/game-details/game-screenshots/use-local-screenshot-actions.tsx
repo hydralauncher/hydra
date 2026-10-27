@@ -31,12 +31,6 @@ const isActiveUploadState = (
 ): state is LocalScreenshotUploadStatus["state"] =>
   state === "queued" || state === "uploading";
 
-const openReview = (screenshot: LocalScreenshot) => {
-  window.electron.openScreenshotReview(screenshot.clientId).catch((error) => {
-    logger.error("Failed to open the screenshot review", error);
-  });
-};
-
 export function useLocalScreenshotActions() {
   const { t } = useTranslation("screenshots");
   const { showErrorToast, showSuccessToast } = useToast();
@@ -124,7 +118,6 @@ export function useLocalScreenshotActions() {
     getUploadStatus,
     describe,
     requestDelete: setPendingDelete,
-    open: openReview,
     elements,
   };
 }

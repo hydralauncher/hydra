@@ -2854,6 +2854,7 @@
     "show_details": "Mostrar detalhes",
     "hide_details": "Ocultar detalhes",
     "saved_locally": "Captura salva neste computador",
+    "not_uploaded": "Não enviada",
     "screenshot_alt": "Captura de {{game}} feita em {{date}}",
     "spoiler_hint": "Os outros verão a imagem desfocada até escolherem revelá-la",
     "spoiler_label": "Contém spoilers",

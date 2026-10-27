@@ -44,7 +44,7 @@ interface ScreenshotStageProps {
   onImageError: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
-function ScreenshotStage({
+export function ScreenshotStage({
   screenshot,
   item,
   context,
@@ -155,7 +155,7 @@ interface ScreenshotLightboxModalsProps {
   onDeleted: () => void;
 }
 
-function ScreenshotLightboxModals({
+export function ScreenshotLightboxModals({
   screenshot,
   actions,
   isDeleteConfirmationVisible,
@@ -205,7 +205,7 @@ function ScreenshotLightboxModals({
   );
 }
 
-function useLightboxModals(close: () => void) {
+export function useLightboxModals(close: () => void) {
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
     useState(false);
   const [isReportModalVisible, setIsReportModalVisible] = useState(false);
@@ -278,7 +278,7 @@ function usePageAdvance(
   );
 }
 
-const toGalleryItem = (
+export const toScreenshotGalleryItem = (
   screenshot: ProfileScreenshot,
   alt: string
 ): GalleryMediaItem => ({
@@ -335,7 +335,10 @@ export function ScreenshotLightbox({
   );
 
   const galleryItems = useMemo(
-    () => viewerScreenshots.map((item) => toGalleryItem(item, describe(item))),
+    () =>
+      viewerScreenshots.map((item) =>
+        toScreenshotGalleryItem(item, describe(item))
+      ),
     [describe, viewerScreenshots]
   );
 

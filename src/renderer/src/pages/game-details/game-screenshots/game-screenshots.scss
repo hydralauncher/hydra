@@ -536,3 +536,32 @@
     margin: calc(globals.$spacing-unit * 2) auto 0;
   }
 }
+
+.local-screenshot-panel {
+  padding-bottom: calc(globals.$spacing-unit * 2);
+
+  &__badge {
+    align-self: flex-start;
+    padding: 2px 8px;
+    border: 1px solid globals.$border-color;
+    border-radius: 999px;
+    color: globals.$muted-color;
+    font-size: 12px;
+  }
+
+  &__fields {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    margin-top: auto;
+
+    .screenshot-review-item__upload {
+      flex: 1;
+    }
+  }
+}
