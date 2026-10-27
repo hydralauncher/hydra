@@ -679,6 +679,8 @@ function SidebarLibrary({
     }),
   });
 
+  const showGameSkeleton = filteredItems.length === 0 && isLoading;
+
   return (
     <div className="library-container">
       <div className="library-container__header">
@@ -734,7 +736,7 @@ function SidebarLibrary({
           regionId={BIG_PICTURE_SIDEBAR_LIBRARY_LIST_REGION_ID}
         >
           <ScrollArea viewportRef={gameListScrollRef}>
-            {filteredItems.length === 0 && isLoading ? (
+            {showGameSkeleton && (
               <ul className="library-skeleton-list" aria-busy="true">
                 {Array.from(
                   { length: SIDEBAR_GAME_SKELETON_COUNT },
@@ -746,11 +748,13 @@ function SidebarLibrary({
                   )
                 )}
               </ul>
-            ) : filteredItems.length === 0 ? (
+            )}
+            {!showGameSkeleton && filteredItems.length === 0 && (
               <div className="library-container__empty">
                 {emptyLibraryMessage}
               </div>
-            ) : (
+            )}
+            {filteredItems.length > 0 && (
               <ul
                 className="library-list"
                 style={{ height: gameListVirtualizer.getTotalSize() }}

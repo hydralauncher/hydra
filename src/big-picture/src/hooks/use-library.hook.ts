@@ -59,7 +59,7 @@ function requestLibrary(): Promise<void> {
 }
 
 export function useLibrary() {
-  const [downloadLibrary, setLibrary] = useState<LibraryGame[]>(
+  const [downloadLibrary, setDownloadLibrary] = useState<LibraryGame[]>(
     () => cachedLibrary ?? []
   );
   const [hasLoadedLibrary, setHasLoadedLibrary] = useState(
@@ -80,7 +80,7 @@ export function useLibrary() {
 
   useEffect(() => {
     const handleLibrary: LibraryListener = (nextLibrary) => {
-      setLibrary(nextLibrary);
+      setDownloadLibrary(nextLibrary);
       setHasLoadedLibrary(true);
     };
 

@@ -152,6 +152,29 @@ interface SpeedChartHover {
   x: number;
 }
 
+function parseChartColor(color: string): [number, number, number] {
+  if (color.startsWith("#")) {
+    let hex = color.replace("#", "");
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    return [
+      Number.parseInt(hex.substring(0, 2), 16) || 255,
+      Number.parseInt(hex.substring(2, 4), 16) || 255,
+      Number.parseInt(hex.substring(4, 6), 16) || 255,
+    ];
+  }
+
+  const matches = color.startsWith("rgb") ? color.match(/\d+/g) : null;
+  if (!matches || matches.length < 3) return [255, 255, 255];
+
+  return [
+    Number.parseInt(matches[0]) || 255,
+    Number.parseInt(matches[1]) || 255,
+    Number.parseInt(matches[2]) || 255,
+  ];
+}
+
 function SpeedChart({
   speeds,
   timestamps,
@@ -217,25 +240,7 @@ function SpeedChart({
 
       ctx.clearRect(0, 0, width, height);
 
-      let r = 255,
-        g = 255,
-        b = 255;
-      if (color.startsWith("#")) {
-        let hex = color.replace("#", "");
-        if (hex.length === 3) {
-          hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-        }
-        r = Number.parseInt(hex.substring(0, 2), 16) || 255;
-        g = Number.parseInt(hex.substring(2, 4), 16) || 255;
-        b = Number.parseInt(hex.substring(4, 6), 16) || 255;
-      } else if (color.startsWith("rgb")) {
-        const matches = color.match(/\d+/g);
-        if (matches && matches.length >= 3) {
-          r = Number.parseInt(matches[0]) || 255;
-          g = Number.parseInt(matches[1]) || 255;
-          b = Number.parseInt(matches[2]) || 255;
-        }
-      }
+      const [r, g, b] = parseChartColor(color);
       const displaySpeeds = speeds.slice(-totalBars);
       const hoveredBar = hoveredBarRef.current;
 

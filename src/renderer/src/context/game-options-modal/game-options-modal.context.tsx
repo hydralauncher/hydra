@@ -1,5 +1,6 @@
 import {
   createContext,
+  type ComponentProps,
   useCallback,
   useContext,
   useMemo,
@@ -7,8 +8,8 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 
-import type { GameRepack, GameShop, LibraryGame } from "@types";
-import { Downloader, getDownloadersForUri } from "@shared";
+import type { GameShop, LibraryGame } from "@types";
+import { getDownloadersForUri } from "@shared";
 import { useDownload } from "@renderer/hooks";
 import {
   GameOptionsModal,
@@ -95,16 +96,19 @@ function DownloadOptionsModalHost({
   const { startDownload, addGameToQueue } = useDownload();
 
   const handleStartDownload = async (
-    repack: GameRepack,
-    downloader: Downloader,
-    downloadPath: string,
-    automaticallyExtract: boolean,
-    addToQueueOnly = false,
-    fileIndices?: number[],
-    selectedFilesSize?: number | null,
-    automaticallyDeleteArchiveFiles = false,
-    signal?: AbortSignal
+    ...args: Parameters<ComponentProps<typeof RepacksModal>["startDownload"]>
   ) => {
+    const [
+      repack,
+      downloader,
+      downloadPath,
+      automaticallyExtract,
+      addToQueueOnly = false,
+      fileIndices,
+      selectedFilesSize,
+      automaticallyDeleteArchiveFiles = false,
+      signal,
+    ] = args;
     const payload = {
       objectId: downloadGame?.objectId ?? game?.objectId ?? fallbackObjectId,
       title: gameTitle,

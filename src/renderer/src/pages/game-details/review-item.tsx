@@ -56,6 +56,8 @@ const getRatingText = (score: number, t: (key: string) => string): string => {
   }
 };
 
+const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
+
 export function ReviewItem({
   review,
   userDetailsId,
@@ -82,8 +84,6 @@ export function ReviewItem({
     review.user.backgroundImageUrl,
     REVIEW_BANNER_IMAGE_SIZE
   );
-
-  const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
 
   const isDifferentLanguage =
     getBaseLanguage(review.detectedLanguage) !== getBaseLanguage(i18n.language);

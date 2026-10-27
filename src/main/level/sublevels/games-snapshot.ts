@@ -16,7 +16,7 @@ const invalidate = () => {
 const keyToString = (key: unknown) => {
   if (typeof key === "string") return key;
   if (key instanceof Uint8Array) return Buffer.from(key).toString();
-  return String(key);
+  return "";
 };
 
 db.on("write", (operations) => {

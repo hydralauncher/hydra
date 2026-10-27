@@ -6,7 +6,7 @@ export type CoverThumbnailWidth = (typeof COVER_THUMBNAIL_WIDTHS)[number];
 
 export const pickCoverThumbnailWidth = (pixels: number): CoverThumbnailWidth =>
   COVER_THUMBNAIL_WIDTHS.find((width) => width >= pixels) ??
-  COVER_THUMBNAIL_WIDTHS[COVER_THUMBNAIL_WIDTHS.length - 1];
+  (COVER_THUMBNAIL_WIDTHS.at(-1) as CoverThumbnailWidth);
 
 export const isCoverThumbnailSource = (source: string) =>
   /^https?:\/\//i.test(source) || source.startsWith("local:");
