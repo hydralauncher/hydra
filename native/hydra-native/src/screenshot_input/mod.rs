@@ -28,7 +28,6 @@ pub struct ScreenshotInputConfig {
     pub ctrl: bool,
     pub alt: bool,
     pub shift: bool,
-    pub keyboard_enabled: bool,
     pub gamepad_enabled: bool,
     pub gamepad_buttons: Vec<String>,
 }
@@ -174,7 +173,7 @@ fn parse_config(config: &ScreenshotInputConfig) -> ParsedConfig {
         shift: config.shift,
     });
     let gamepad_mask = gamepad::combo_mask(&config.gamepad_buttons).unwrap_or(0);
-    let keyboard = config.keyboard_enabled && hotkey.is_some();
+    let keyboard = hotkey.is_some();
     let gamepad = config.gamepad_enabled && gamepad_mask != 0;
 
     ParsedConfig {
@@ -183,7 +182,7 @@ fn parse_config(config: &ScreenshotInputConfig) -> ParsedConfig {
             gamepad_mask,
         },
         options: StartOptions { keyboard, gamepad },
-        keyboard_error: (config.keyboard_enabled && hotkey.is_none()).then_some("unsupported-key"),
+        keyboard_error: hotkey.is_none().then_some("unsupported-key"),
         gamepad_error: (config.gamepad_enabled && gamepad_mask == 0).then_some("invalid-combo"),
     }
 }
@@ -293,7 +292,6 @@ mod tests {
             ctrl: false,
             alt: true,
             shift: false,
-            keyboard_enabled: true,
             gamepad_enabled: true,
             gamepad_buttons: buttons.iter().map(|value| value.to_string()).collect(),
         }
@@ -319,9 +317,8 @@ mod tests {
     }
 
     #[test]
-    fn disabled_sources_report_no_error() {
-        let mut value = config("Nope", &[]);
-        value.keyboard_enabled = false;
+    fn disabled_gamepad_reports_no_error() {
+        let mut value = config("F10", &[]);
         value.gamepad_enabled = false;
         let parsed = parse_config(&value);
         assert!(parsed.keyboard_error.is_none() && parsed.gamepad_error.is_none());
