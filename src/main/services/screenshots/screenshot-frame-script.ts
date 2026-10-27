@@ -12,8 +12,18 @@ export const SCREENSHOT_FIRST_FRAME_TIMEOUT_MS = 3_000;
 
 const CAPTURED_FRAME_GLOBAL = "globalThis.__hydraCapturedFrame";
 
+export interface ScreenshotFrameCrop {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  sourceWidth: number;
+  sourceHeight: number;
+}
+
 export interface ScreenshotFrameGrabOptions {
   waitForNextFrame: boolean;
+  crop?: ScreenshotFrameCrop | null;
 }
 
 export interface GrabbedFrameInfo {
@@ -53,13 +63,31 @@ const GRAB_FRAME_FUNCTION = `async (video, options) => {
       video.requestVideoFrameCallback(() => { clearTimeout(timer); resolve(); });
     });
   }
-  const width = video.videoWidth;
-  const height = video.videoHeight;
-  if (!width || !height) throw new Error("Screenshot stream returned an empty frame");
+  const videoWidth = video.videoWidth;
+  const videoHeight = video.videoHeight;
+  if (!videoWidth || !videoHeight) throw new Error("Screenshot stream returned an empty frame");
+  let sourceX = 0;
+  let sourceY = 0;
+  let width = videoWidth;
+  let height = videoHeight;
+  if (options.crop) {
+    const scaleX = videoWidth / options.crop.sourceWidth;
+    const scaleY = videoHeight / options.crop.sourceHeight;
+    sourceX = Math.round(options.crop.x * scaleX);
+    sourceY = Math.round(options.crop.y * scaleY);
+    width = Math.min(videoWidth - sourceX, Math.round(options.crop.width * scaleX));
+    height = Math.min(videoHeight - sourceY, Math.round(options.crop.height * scaleY));
+    if (width <= 0 || height <= 0) {
+      sourceX = 0;
+      sourceY = 0;
+      width = videoWidth;
+      height = videoHeight;
+    }
+  }
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  canvas.getContext("2d").drawImage(video, 0, 0, width, height);
+  canvas.getContext("2d").drawImage(video, sourceX, sourceY, width, height, 0, 0, width, height);
   const sample = document.createElement("canvas");
   sample.width = options.sampleSize;
   sample.height = options.sampleSize;
@@ -109,6 +137,7 @@ export const buildGrabFrameExpression = (
 ) =>
   `(${GRAB_FRAME_FUNCTION})(${videoExpression}, ${JSON.stringify({
     waitForNextFrame: options.waitForNextFrame,
+    crop: options.crop ?? null,
     sampleSize: SCREENSHOT_FRAME_SAMPLE_SIZE,
     nextFrameTimeout: SCREENSHOT_NEXT_FRAME_TIMEOUT_MS,
     firstFrameTimeout: SCREENSHOT_FIRST_FRAME_TIMEOUT_MS,
