@@ -9,6 +9,7 @@ import {
 import { EditorContent, type Editor } from "@tiptap/react";
 import cn from "classnames";
 import {
+  useCallback,
   useEffect,
   useReducer,
   useRef,
@@ -118,6 +119,8 @@ interface CommentEditorFormProps {
   leftTarget: FocusOverrideTarget;
   editingComment: ScreenshotComment | null;
   draftBody: string;
+  pendingDraft?: string | null;
+  onPendingDraftApplied?: () => void;
   onDraftChange?: (html: string) => void;
   onSubmit: (bodyHtml: string) => Promise<boolean>;
   onCancelEdit: () => void;
@@ -128,6 +131,8 @@ function CommentEditorForm({
   leftTarget,
   editingComment,
   draftBody,
+  pendingDraft = null,
+  onPendingDraftApplied,
   onDraftChange,
   onSubmit,
   onCancelEdit,
@@ -148,6 +153,17 @@ function CommentEditorForm({
   });
   useEditorRerender(editor);
   useEditorDraftSync(editor, onDraftChange);
+
+  const isEditorEmpty =
+    isRichTextEditorAvailable(editor) && !editor.getText().trim();
+
+  useEffect(() => {
+    if (pendingDraft === null || !isEditorEmpty) return;
+    if (!isRichTextEditorAvailable(editor)) return;
+
+    editor.commands.setContent(pendingDraft, { emitUpdate: true });
+    onPendingDraftApplied?.();
+  }, [editor, isEditorEmpty, onPendingDraftApplied, pendingDraft]);
 
   const isTooLong =
     charCount > SCREENSHOT_COMMENT_MAX_LENGTH ||
@@ -314,13 +330,13 @@ export function CommentComposer({
 }: Readonly<CommentComposerProps>) {
   const { t } = useTranslation("big_picture");
   const newDraftRef = useRef("");
-  const [newEditorKey, setNewEditorKey] = useState(0);
+  const [pendingDraft, setPendingDraft] = useState<string | null>(null);
+  const clearPendingDraft = useCallback(() => setPendingDraft(null), []);
 
   useEffect(() => {
     if (restoredDraft === null) return;
 
-    newDraftRef.current = restoredDraft;
-    setNewEditorKey((current) => current + 1);
+    setPendingDraft(restoredDraft);
     onRestoredDraftApplied();
   }, [onRestoredDraftApplied, restoredDraft]);
 
@@ -372,11 +388,13 @@ export function CommentComposer({
 
   return (
     <CommentEditorForm
-      key={`new:${newEditorKey}`}
+      key="new"
       focusIds={focusIds}
       leftTarget={leftTarget}
       editingComment={null}
       draftBody={newDraftRef.current}
+      pendingDraft={pendingDraft}
+      onPendingDraftApplied={clearPendingDraft}
       onDraftChange={(html) => {
         newDraftRef.current = html;
       }}

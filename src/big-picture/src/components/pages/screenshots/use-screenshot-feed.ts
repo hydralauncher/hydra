@@ -52,6 +52,7 @@ export function useScreenshotFeed({
   const [error, setError] = useState<ScreenshotFeedError>(null);
   const generationRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
+  const isReadPendingRef = useRef(false);
   const buildPathRef = useRef(buildPath);
   const needsAuthRef = useRef(needsAuth);
   needsAuthRef.current = needsAuth;
@@ -131,6 +132,7 @@ export function useScreenshotFeed({
     const generation = generationRef.current + 1;
     generationRef.current = generation;
     isLoadingMoreRef.current = false;
+    isReadPendingRef.current = Boolean(requestKey);
     setIsLoadingMore(false);
     setError(null);
     pendingReadsRef.current = 0;
@@ -180,13 +182,20 @@ export function useScreenshotFeed({
       .finally(() => {
         if (generationRef.current !== generation) return;
 
+        isReadPendingRef.current = false;
         endRead();
         setLoadedKey(requestKey);
       });
   }, [needsAuth, refreshToken, requestKey, resetKey]);
 
   const fetchNextPage = useCallback(async () => {
-    if (!requestKey || !nextCursor || isLoadingMoreRef.current) return;
+    if (
+      !requestKey ||
+      !nextCursor ||
+      isReadPendingRef.current ||
+      isLoadingMoreRef.current
+    )
+      return;
 
     const generation = generationRef.current;
     isLoadingMoreRef.current = true;
