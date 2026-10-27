@@ -52,12 +52,10 @@ import {
   EmptyState,
   Skeleton,
 } from "../../components";
+import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
 import {
   getLibraryFocusGridItemId,
   getLibraryFocusListItemId,
-} from "../../components/pages/library/navigation";
-import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
-import {
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
   LIBRARY_HERO_LAUNCH_BUTTON_ID,
   LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID,

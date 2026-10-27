@@ -741,7 +741,7 @@ export function GeneralSettingsSection({
                     type="button"
                     theme="outline"
                     onClick={onOpenSaveFolder}
-                    disabled={loadingSaveFolder || !saveFolderPath}
+                    disabled={loadingSaveFolder}
                   >
                     <HardDrive size={14} />
                     {loadingSaveFolder

@@ -576,6 +576,31 @@ export interface LibrarySortCache {
   sortBy: SortOption;
 }
 
+const collectSortReplacements = (
+  previous: readonly LibraryGame[],
+  next: readonly LibraryGame[]
+) => {
+  const replacements = new Map<LibraryGame, LibraryGame>();
+  for (let index = 0; index < next.length; index++) {
+    if (previous[index] === next[index]) continue;
+    replacements.set(previous[index], next[index]);
+    if (replacements.size > MAX_INCREMENTAL_SORT_CHANGES) return null;
+  }
+  return replacements;
+};
+
+const keepsSortOrder = (
+  output: LibraryGame[],
+  replaced: Set<LibraryGame>,
+  compare: (a: LibraryGame, b: LibraryGame) => number
+) =>
+  output.every(
+    (game, index) =>
+      !replaced.has(game) ||
+      ((index === 0 || compare(output[index - 1], game) <= 0) &&
+        (index === output.length - 1 || compare(game, output[index + 1]) <= 0))
+  );
+
 export const sortLibraryGamesIncrementally = (
   cache: LibrarySortCache | null,
   games: LibraryGame[],
@@ -587,37 +612,20 @@ export const sortLibraryGamesIncrementally = (
     sortBy,
   });
 
-  if (!cache || cache.sortBy !== sortBy) return sortAll();
+  if (cache?.sortBy !== sortBy) return sortAll();
   if (cache.input === games) return cache;
   if (cache.input.length !== games.length) return sortAll();
 
-  const replacements = new Map<LibraryGame, LibraryGame>();
-  for (let index = 0; index < games.length; index++) {
-    if (cache.input[index] === games[index]) continue;
-    replacements.set(cache.input[index], games[index]);
-    if (replacements.size > MAX_INCREMENTAL_SORT_CHANGES) return sortAll();
-  }
-
+  const replacements = collectSortReplacements(cache.input, games);
+  if (!replacements) return sortAll();
   if (replacements.size === 0) return { ...cache, input: games };
 
-  const compare = compareLibraryGames(sortBy);
-  const replaced = new Set(replacements.values());
   const output = cache.output.map((game) => replacements.get(game) ?? game);
+  const replaced = new Set(replacements.values());
 
-  for (let index = 0; index < output.length; index++) {
-    if (!replaced.has(output[index])) continue;
-    if (index > 0 && compare(output[index - 1], output[index]) > 0) {
-      return sortAll();
-    }
-    if (
-      index < output.length - 1 &&
-      compare(output[index], output[index + 1]) > 0
-    ) {
-      return sortAll();
-    }
-  }
-
-  return { input: games, output, sortBy };
+  return keepsSortOrder(output, replaced, compareLibraryGames(sortBy))
+    ? { input: games, output, sortBy }
+    : sortAll();
 };
 
 export const getGameCollectionIds = (game: {

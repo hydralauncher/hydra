@@ -33,7 +33,7 @@ gamesSublevel.on("write", invalidate);
 gamesSublevel.on("clear", invalidate);
 
 export const getGamesSnapshot = (): Promise<Game[]> => {
-  if (snapshot) return snapshot;
+  if (snapshot !== null) return snapshot;
 
   const readVersion = version;
   const read = gamesSublevel.values().all();

@@ -561,18 +561,23 @@ export function useCatalogueData() {
         }
 
         setSearchData((currentData) => {
-          if (mode === "initial") return response;
-
           const currentEdges = currentData?.edges ?? [];
           const currentIds = new Set(currentEdges.map((edge) => edge.id));
-          const nextEdges = response.edges.filter(
-            (edge) => !currentIds.has(edge.id)
-          );
+          const nextData =
+            mode === "initial"
+              ? response
+              : {
+                  count: response.count,
+                  edges: [
+                    ...currentEdges,
+                    ...response.edges.filter(
+                      (edge) => !currentIds.has(edge.id)
+                    ),
+                  ],
+                };
 
-          return {
-            count: response.count,
-            edges: [...currentEdges, ...nextEdges],
-          };
+          cachedCatalogueSearch = { key: requestSearchKey, data: nextData };
+          return nextData;
         });
         setSearchError(null);
       } catch (error) {
@@ -648,11 +653,6 @@ export function useCatalogueData() {
       globalThis.window.clearTimeout(timeoutId);
     };
   }, [fetchCataloguePage, hasLoadedDownloadSources, searchKey]);
-
-  useEffect(() => {
-    if (searchData)
-      cachedCatalogueSearch = { key: searchKey, data: searchData };
-  }, [searchData, searchKey]);
 
   const hasNextPage =
     Boolean(searchData) && searchData!.edges.length < searchData!.count;

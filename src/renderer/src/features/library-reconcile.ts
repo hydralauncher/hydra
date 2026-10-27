@@ -24,8 +24,7 @@ const isSameValue = (a: unknown, b: unknown): boolean => {
 
   return aKeys.every(
     (key) =>
-      Object.prototype.hasOwnProperty.call(bRecord, key) &&
-      isSameValue(aRecord[key], bRecord[key])
+      Object.hasOwn(bRecord, key) && isSameValue(aRecord[key], bRecord[key])
   );
 };
 

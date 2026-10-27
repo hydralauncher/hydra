@@ -46,8 +46,18 @@ interface LibraryGameCardProps {
   onHideTooltip?: () => void;
 }
 
-const failedCoverSources = new Set<string>();
-const failedCoverThumbnails = new Set<string>();
+const FAILED_COVER_RETRY_MS = 10 * 60 * 1000;
+const failedCoverSources = new Map<string, number>();
+const failedCoverThumbnails = new Map<string, number>();
+
+const hasRecentFailure = (failures: Map<string, number>, source: string) => {
+  const failedAt = failures.get(source);
+  if (failedAt === undefined) return false;
+  if (Date.now() - failedAt < FAILED_COVER_RETRY_MS) return true;
+
+  failures.delete(source);
+  return false;
+};
 
 const markCoverLoaded = (event: SyntheticEvent<HTMLImageElement>) => {
   event.currentTarget.dataset.loaded = "true";
@@ -63,7 +73,7 @@ const getNextUsableSourceIndex = (
 ) => {
   for (let index = fromIndex; index < sources.length; index++) {
     const source = sources[index];
-    if (source && !failedCoverSources.has(source)) return index;
+    if (source && !hasRecentFailure(failedCoverSources, source)) return index;
   }
   return sources.length;
 };
@@ -165,7 +175,8 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     isAnimatedCover && Boolean(coverPoster) && !shouldHoldFrame;
 
   const canUseThumbnail =
-    Boolean(thumbnailWidth) && !failedCoverThumbnails.has(activeImageSource);
+    Boolean(thumbnailWidth) &&
+    !hasRecentFailure(failedCoverThumbnails, activeImageSource);
 
   let displayImageSource = activeImageSource;
   if (thumbnailWidth && canUseThumbnail && !isPlayingAnimatedCover) {
@@ -201,10 +212,12 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       thumbnail: isThumbnailFailure,
     });
 
-    if (isThumbnailFailure) failedCoverThumbnails.add(activeImageSource);
+    if (isThumbnailFailure) {
+      failedCoverThumbnails.set(activeImageSource, Date.now());
+    }
 
     const failedSource = sources[fallbackIndex];
-    if (failedSource) failedCoverSources.add(failedSource);
+    if (failedSource) failedCoverSources.set(failedSource, Date.now());
 
     const nextIndex = getNextUsableSourceIndex(sources, fallbackIndex + 1);
     if (nextIndex < sources.length) {

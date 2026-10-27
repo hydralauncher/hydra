@@ -9,6 +9,7 @@ import {
 } from "@main/services";
 import { clearGamesPlaytimeState } from "@main/services/game-running-state";
 import {
+  achievementProgressSublevel,
   downloadLayoutStateSublevel,
   downloadsSublevel,
   gamesSublevel,
@@ -26,6 +27,7 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
 
     const results = await Promise.allSettled([
       gamesSublevel.clear(),
+      achievementProgressSublevel.clear(),
       downloadsSublevel.clear(),
       downloadLayoutStateSublevel.clear(),
       emulators.resetEmulatorScanData(),

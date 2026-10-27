@@ -28,6 +28,8 @@ const MISSING_SOURCE_STATUSES = new Set([403, 404, 410]);
 const MISSING_SOURCES_PATH = path.join(THUMBNAIL_DIR, "missing-sources.json");
 const failedSources = new Map<string, number>();
 const PREFETCH_WORKERS = 2;
+const MISSING_SOURCES_SAVE_DELAY_MS = 2000;
+const THUMBNAIL_WEBP_QUALITY = 82;
 const THUMBNAIL_HEADERS = {
   "content-type": "image/webp",
   "cache-control": "public, max-age=31536000, immutable",
@@ -99,7 +101,7 @@ const saveMissingSources = (missingSources: Map<string, number>) => {
         )
       )
       .catch(() => {});
-  }, 2000);
+  }, MISSING_SOURCES_SAVE_DELAY_MS);
 };
 
 const rememberMissingSource = async (source: string) => {
@@ -252,7 +254,7 @@ const buildThumbnail = async (
   try {
     const thumbnail = await sharp(original.buffer, { pages: 1 })
       .resize({ width, withoutEnlargement: true })
-      .webp({ quality: 82 })
+      .webp({ quality: THUMBNAIL_WEBP_QUALITY })
       .toBuffer();
     releaseResizeSlot();
 
@@ -279,7 +281,7 @@ const ensureThumbnail = (
   const thumbnailPath = getThumbnailPath(source, width);
 
   const existing = inflightBuilds.get(thumbnailPath);
-  if (existing) return existing;
+  if (existing !== undefined) return existing;
 
   const build = (async () => {
     const cached = await readCachedThumbnail(thumbnailPath);

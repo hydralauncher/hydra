@@ -3,8 +3,9 @@ import type { LibraryGame } from "@types";
 
 const ACHIEVEMENT_PROGRESS_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const ACHIEVEMENT_PROGRESS_SETTLE_MS = 250;
+const ACHIEVEMENT_PROGRESS_RETRY_MS = 10 * 60 * 1000;
 
-const requestedProgress = new Set<string>();
+const requestedProgressAt = new Map<string, number>();
 
 const needsCombinedProgress = (game: LibraryGame) => {
   const availableShops =
@@ -14,9 +15,7 @@ const needsCombinedProgress = (game: LibraryGame) => {
   const hasStoreUnion =
     availableShops.includes("steam") && availableShops.includes("epic");
   const borrowsSteamCatalogue =
-    game.shop === "epic" &&
-    (game.achievementCount ?? 0) <= 0 &&
-    game.catalogueGame?.shop === "steam";
+    game.shop === "epic" && game.catalogueGame?.shop === "steam";
 
   return hasStoreUnion || borrowsSteamCatalogue;
 };
@@ -31,13 +30,19 @@ export function useEnsureAchievementProgress(game: LibraryGame) {
     if (!needsProgress || isFresh) return;
 
     const key = `${game.shop}:${game.objectId}`;
-    if (requestedProgress.has(key)) return;
+    const requestedAt = requestedProgressAt.get(key);
+    if (
+      requestedAt !== undefined &&
+      Date.now() - requestedAt < ACHIEVEMENT_PROGRESS_RETRY_MS
+    ) {
+      return;
+    }
 
     const timer = setTimeout(() => {
-      requestedProgress.add(key);
+      requestedProgressAt.set(key, Date.now());
       window.electron
         .ensureAchievementProgress(game.shop, game.objectId)
-        .catch(() => requestedProgress.delete(key));
+        .catch(() => requestedProgressAt.delete(key));
     }, ACHIEVEMENT_PROGRESS_SETTLE_MS);
 
     return () => clearTimeout(timer);

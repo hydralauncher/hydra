@@ -237,9 +237,7 @@ export const syncAndGetUnlockedAchievements = (
     () => AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId),
     () => getUnlockedAchievements(objectId, shop, false)
   ).then(async (achievements) => {
-    await recordAchievementProgress(shop, objectId, achievements).catch(
-      () => null
-    );
+    await recordAchievementProgress(shop, objectId, achievements);
     return achievements;
   });
 

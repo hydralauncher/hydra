@@ -25,19 +25,18 @@ const getDisplayName = (displayLocale: string, languageCode: string) => {
 
 const findCurrentLanguageIndex = (languageNames: string[], locale: string) => {
   const baseLanguage = locale.split("-")[0];
-  const fullNames = [
-    getDisplayName(locale, locale),
-    getDisplayName("en", locale),
-  ].filter(Boolean);
+  const fullNames = new Set(
+    [getDisplayName(locale, locale), getDisplayName("en", locale)].filter(
+      Boolean
+    )
+  );
   const baseNames = [
     getDisplayName(locale, baseLanguage),
     getDisplayName("en", baseLanguage),
   ].filter(Boolean) as string[];
 
   const normalizedNames = languageNames.map(normalizeLanguageName);
-  const exactIndex = normalizedNames.findIndex((name) =>
-    fullNames.includes(name)
-  );
+  const exactIndex = normalizedNames.findIndex((name) => fullNames.has(name));
   if (exactIndex !== -1) return exactIndex;
 
   return normalizedNames.findIndex((name) =>

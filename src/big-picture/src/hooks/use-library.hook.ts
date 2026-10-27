@@ -35,7 +35,7 @@ function setAwaitingAccountLibrary(isAwaiting: boolean) {
 }
 
 function requestLibrary(): Promise<void> {
-  if (libraryRequest) {
+  if (libraryRequest !== null) {
     hasQueuedLibraryRequest = true;
     return libraryRequest;
   }

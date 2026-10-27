@@ -1,7 +1,7 @@
 import { registerEvent } from "../register-event";
 import { prefetchCoverThumbnails } from "@main/services/cover-thumbnail";
 
-const prefetchCoverThumbnailsEvent = async (
+const prefetchCoverThumbnailsEvent = (
   _event: Electron.IpcMainInvokeEvent,
   thumbnailUrls: unknown
 ) => {

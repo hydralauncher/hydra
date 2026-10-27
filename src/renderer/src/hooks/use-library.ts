@@ -5,22 +5,29 @@ import type { LibraryGame } from "@types";
 
 type AppDispatch = ReturnType<typeof useAppDispatch>;
 
+const LIBRARY_REQUEST_COALESCE_MS = 100;
+
 let runningLibraryRequest: Promise<void> = Promise.resolve();
 let pendingLibraryRequest: Promise<void> | null = null;
 
+const waitForCoalescedRequests = () =>
+  new Promise<void>((resolve) =>
+    setTimeout(resolve, LIBRARY_REQUEST_COALESCE_MS)
+  );
+
+const fetchLibrary = async (dispatch: AppDispatch) => {
+  const serializedLibrary = await window.electron.getLibrarySerialized(true);
+  dispatch(setLibrary(JSON.parse(serializedLibrary) as LibraryGame[]));
+};
+
 const requestLibraryUpdate = (dispatch: AppDispatch): Promise<void> => {
-  pendingLibraryRequest ??= runningLibraryRequest
-    .catch(() => {})
-    .then(() => new Promise<void>((resolve) => setTimeout(resolve, 100)))
-    .then(() => {
-      pendingLibraryRequest = null;
-      runningLibraryRequest = window.electron
-        .getLibrarySerialized(true)
-        .then((serializedLibrary) => {
-          dispatch(setLibrary(JSON.parse(serializedLibrary) as LibraryGame[]));
-        });
-      return runningLibraryRequest;
-    });
+  pendingLibraryRequest ??= (async () => {
+    await runningLibraryRequest.catch(() => undefined);
+    await waitForCoalescedRequests();
+    pendingLibraryRequest = null;
+    runningLibraryRequest = fetchLibrary(dispatch);
+    return runningLibraryRequest;
+  })();
   return pendingLibraryRequest;
 };
 

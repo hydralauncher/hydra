@@ -18,7 +18,8 @@ const orderAroundIndex = <T,>(items: T[], anchorIndex: number): T[] => {
   const anchor = Math.min(Math.max(anchorIndex, 0), items.length);
   const ordered: T[] = [];
 
-  for (let offset = 0; ordered.length < items.length; offset++) {
+  const maxOffset = Math.max(anchor, items.length - anchor);
+  for (let offset = 0; offset < maxOffset; offset++) {
     const after = anchor + offset;
     if (after < items.length) ordered.push(items[after]);
 

@@ -83,6 +83,107 @@ interface LibrarySources {
   cachedPlatform: (key: string) => Promise<string | null | undefined>;
 }
 
+const resolveAchievementCounts = async (
+  game: Game,
+  achievementProgress: AchievementProgress | null
+) => {
+  const counts = {
+    unlockedAchievementCount: resolveUnlockedAchievementCount(
+      game.shop,
+      game.objectId,
+      game.unlockedAchievementCount
+    ),
+    achievementCount: resolveAchievementCount(
+      game.shop,
+      game.objectId,
+      game.achievementCount
+    ),
+  };
+  // An Epic copy without its own definitions presents its linked Steam catalogue.
+  if (
+    game.shop !== "epic" ||
+    counts.achievementCount !== 0 ||
+    game.catalogueGame?.shop !== "steam"
+  ) {
+    return counts;
+  }
+
+  if (achievementProgress) {
+    return {
+      achievementCount: achievementProgress.achievementCount,
+      unlockedAchievementCount: achievementProgress.unlockedAchievementCount,
+    };
+  }
+
+  const steamGame = await gamesSublevel
+    .get(levelKeys.game("steam", game.catalogueGame.objectId))
+    .catch(() => undefined);
+  return {
+    ...counts,
+    achievementCount: resolveAchievementCount(
+      "steam",
+      game.catalogueGame.objectId,
+      steamGame?.achievementCount
+    ),
+  };
+};
+
+// Verify installer still exists, clear if deleted externally
+const resolveInstallerSize = (
+  key: string,
+  game: Game,
+  download: Download | undefined
+) => {
+  if (!game.installerSizeInBytes || !download?.folderName) {
+    return game.installerSizeInBytes;
+  }
+
+  const installerPath = path.join(download.downloadPath, download.folderName);
+  if (fs.existsSync(installerPath)) return game.installerSizeInBytes;
+
+  updateGameRecord(key, { installerSizeInBytes: null }).catch((error) =>
+    logger.error(`Failed to clear missing installer size for ${key}`, error)
+  );
+  return null;
+};
+
+// Verify installed folder still exists, clear if deleted externally
+const resolveInstalledSize = (
+  key: string,
+  game: Game,
+  installerSizeInBytes: number | null | undefined
+) => {
+  if (!game.installedSizeInBytes || !game.executablePath) {
+    return game.installedSizeInBytes;
+  }
+
+  if (fs.existsSync(path.dirname(game.executablePath))) {
+    return game.installedSizeInBytes;
+  }
+
+  updateGameRecord(key, {
+    installerSizeInBytes,
+    installedSizeInBytes: null,
+  }).catch((error) =>
+    logger.error(`Failed to clear missing installed size for ${key}`, error)
+  );
+  return null;
+};
+
+const restoreCachedPlatform = async (
+  key: string,
+  game: Game,
+  sources: LibrarySources
+) => {
+  if (game.shop !== "launchbox" || game.platform) return;
+
+  const cachedPlatform = await sources.cachedPlatform(key);
+  if (!cachedPlatform) return;
+
+  game.platform = cachedPlatform;
+  updateGameRecord(key, { platform: game.platform }).catch(() => {});
+};
+
 const buildLibraryGame = async (
   key: string,
   storedGame: Game,
@@ -105,73 +206,16 @@ const buildLibraryGame = async (
       : (gameAssets ?? null),
     artworkSelection
   );
-  let unlockedAchievementCount = resolveUnlockedAchievementCount(
-    game.shop,
-    game.objectId,
-    game.unlockedAchievementCount
-  );
-  let achievementCount = resolveAchievementCount(
-    game.shop,
-    game.objectId,
-    game.achievementCount
-  );
   const achievementProgress = (await sources.achievementProgress(key)) ?? null;
-  // An Epic copy without its own definitions presents its linked Steam catalogue.
-  if (
-    game.shop === "epic" &&
-    achievementCount === 0 &&
-    game.catalogueGame?.shop === "steam"
-  ) {
-    const steamGame = await gamesSublevel
-      .get(levelKeys.game("steam", game.catalogueGame.objectId))
-      .catch(() => undefined);
-    achievementCount = resolveAchievementCount(
-      "steam",
-      game.catalogueGame.objectId,
-      steamGame?.achievementCount
-    );
-    if (achievementProgress) {
-      achievementCount = achievementProgress.achievementCount;
-      unlockedAchievementCount = achievementProgress.unlockedAchievementCount;
-    }
-  }
-
-  // Verify installer still exists, clear if deleted externally
-  let installerSizeInBytes = game.installerSizeInBytes;
-  if (installerSizeInBytes && download?.folderName) {
-    const installerPath = path.join(download.downloadPath, download.folderName);
-
-    if (!fs.existsSync(installerPath)) {
-      installerSizeInBytes = null;
-      updateGameRecord(key, { installerSizeInBytes: null }).catch((error) =>
-        logger.error(`Failed to clear missing installer size for ${key}`, error)
-      );
-    }
-  }
-
-  if (game.shop === "launchbox" && (!game.platform || game.platform === null)) {
-    const cachedPlatform = await sources.cachedPlatform(key);
-    if (cachedPlatform) {
-      game.platform = cachedPlatform;
-      updateGameRecord(key, { platform: game.platform }).catch(() => {});
-    }
-  }
-
-  // Verify installed folder still exists, clear if deleted externally
-  let installedSizeInBytes = game.installedSizeInBytes;
-  if (installedSizeInBytes && game.executablePath) {
-    const executableDir = path.dirname(game.executablePath);
-
-    if (!fs.existsSync(executableDir)) {
-      installedSizeInBytes = null;
-      updateGameRecord(key, {
-        installerSizeInBytes,
-        installedSizeInBytes: null,
-      }).catch((error) =>
-        logger.error(`Failed to clear missing installed size for ${key}`, error)
-      );
-    }
-  }
+  const { achievementCount, unlockedAchievementCount } =
+    await resolveAchievementCounts(game, achievementProgress);
+  const installerSizeInBytes = resolveInstallerSize(key, game, download);
+  await restoreCachedPlatform(key, game, sources);
+  const installedSizeInBytes = resolveInstalledSize(
+    key,
+    game,
+    installerSizeInBytes
+  );
 
   return {
     id: key,
@@ -215,10 +259,11 @@ const loadAllLibrarySources = async (): Promise<LibrarySources> => {
   let cachedPlatforms: Promise<Map<string, string>> | null = null;
 
   return {
-    achievementProgress: async (key) => achievementProgressByKey.get(key),
-    download: async (key) => downloadsByKey.get(key),
-    assets: async (key) => assetsByKey.get(key),
-    artworkSelection: async (key) => artworkSelectionByKey.get(key),
+    achievementProgress: (key) =>
+      Promise.resolve(achievementProgressByKey.get(key)),
+    download: (key) => Promise.resolve(downloadsByKey.get(key)),
+    assets: (key) => Promise.resolve(assetsByKey.get(key)),
+    artworkSelection: (key) => Promise.resolve(artworkSelectionByKey.get(key)),
     cachedPlatform: async (key) => {
       cachedPlatforms ??= loadCachedPlatforms();
       return (await cachedPlatforms).get(key);

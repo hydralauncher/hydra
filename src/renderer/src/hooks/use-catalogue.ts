@@ -17,7 +17,7 @@ const metadataCache = new Map<string, Promise<unknown>>();
 
 function fetchCached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   const cached = metadataCache.get(key);
-  if (cached) return cached as Promise<T>;
+  if (cached !== undefined) return cached as Promise<T>;
 
   const promise = fetcher().catch((error) => {
     metadataCache.delete(key);
@@ -99,7 +99,7 @@ export function useCatalogue() {
   }, [dispatch, i18n.language]);
 
   const getDownloadSources = useCallback(() => {
-    levelDBService
+    void levelDBService
       .values("downloadSources")
       .then((results) => {
         const sources = results as DownloadSource[];
@@ -117,15 +117,19 @@ export function useCatalogue() {
     let cancelled = false;
 
     if (!steamListCache.publishers) {
-      fetchSteamList("publishers").then((list) => {
-        if (!cancelled) setSteamPublishers(list);
-      });
+      fetchSteamList("publishers")
+        .then((list) => {
+          if (!cancelled) setSteamPublishers(list);
+        })
+        .catch(() => {});
     }
 
     if (!steamListCache.developers) {
-      fetchSteamList("developers").then((list) => {
-        if (!cancelled) setSteamDevelopers(list);
-      });
+      fetchSteamList("developers")
+        .then((list) => {
+          if (!cancelled) setSteamDevelopers(list);
+        })
+        .catch(() => {});
     }
 
     return () => {

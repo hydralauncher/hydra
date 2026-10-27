@@ -301,8 +301,7 @@ const projectGroupCached = (
           .join("");
   const cached = projectionCache.get(members[0]);
   if (
-    cached &&
-    cached.runningMask === runningMask &&
+    cached?.runningMask === runningMask &&
     cached.members.length === members.length &&
     cached.members.every((member, index) => member === members[index])
   ) {
