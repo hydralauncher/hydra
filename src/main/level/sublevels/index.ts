@@ -3,6 +3,7 @@ export * from "./download-layout-state";
 export * from "./games";
 export * from "./games-snapshot";
 export * from "./game-shop-assets";
+export * from "./achievement-progress";
 export * from "./games-artwork-selection";
 export * from "./game-shop-cache";
 export * from "./game-stats-cache";

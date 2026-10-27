@@ -33,6 +33,9 @@ import {
   setExtractionProgress,
   setGameRunning,
   setLibrarySyncingRemote,
+  setGameAchievementProgress,
+  setGamePlaytime,
+  upsertLibraryGames,
   setLibraryAwaitingAccount,
   setProfileBackground,
   setUserDetails,
@@ -541,6 +544,36 @@ export function App() {
       window.electron.onLibraryBatchComplete(() => {
         updateLibrary();
       }),
+      window.electron.onLibraryGamesUpdated((keys) => {
+        void window.electron
+          .getLibraryGames(keys, true)
+          .then((games) => dispatch(upsertLibraryGames(games)))
+          .catch(() => {});
+      }),
+      window.electron.onLibraryGameUpdated((shop, objectId) => {
+        void window.electron
+          .getGameByObjectId(shop, objectId)
+          .then((game) => {
+            if (!game) return;
+            dispatch(
+              setGamePlaytime({
+                shop,
+                objectId,
+                playTimeInMilliseconds: game.playTimeInMilliseconds,
+                steamPlayTimeInMilliseconds: game.steamPlayTimeInMilliseconds,
+                epicPlayTimeInMilliseconds: game.epicPlayTimeInMilliseconds,
+                lastTimePlayed: game.lastTimePlayed,
+                hasManuallyUpdatedPlaytime: game.hasManuallyUpdatedPlaytime,
+              })
+            );
+          })
+          .catch(() => {});
+      }),
+      window.electron.onLibraryAchievementProgress(
+        (shop, objectId, progress) => {
+          dispatch(setGameAchievementProgress({ shop, objectId, progress }));
+        }
+      ),
       window.electron.onDownloadsUpdated(() => {
         updateLibrary();
       }),

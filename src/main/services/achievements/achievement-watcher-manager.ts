@@ -82,7 +82,7 @@ const watchAchievementsWindows = async () => {
 
   if (games.length === 0) return;
 
-  const staticFilesByObjectId = findAllAchievementFiles();
+  const staticFilesByObjectId = await findAllAchievementFiles();
   const nestedFilesByObjectId = await findNestedAchievementFiles();
   const includeSteamCache = await getEnableSteamAchievements();
   const steamLibraryCacheFiles = includeSteamCache
@@ -571,7 +571,7 @@ export class AchievementWatcherManager {
     const isWindows = process.platform === "win32";
 
     const staticFilesByObjectId = isWindows
-      ? findAllAchievementFiles()
+      ? await findAllAchievementFiles()
       : undefined;
 
     const nestedFilesByObjectId = isWindows

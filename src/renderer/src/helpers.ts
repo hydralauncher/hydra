@@ -527,11 +527,9 @@ const compareLibraryGamesByTitle = (
     ? libraryTitleCollator.compare(a.title ?? "", b.title ?? "")
     : libraryTitleCollator.compare(b.title ?? "", a.title ?? "");
 
-export const sortLibraryGames = (
-  games: LibraryGame[],
-  sortBy: SortOption
-): LibraryGame[] => {
-  return [...games].sort((a, b) => {
+const compareLibraryGames =
+  (sortBy: SortOption) =>
+  (a: LibraryGame, b: LibraryGame): number => {
     switch (sortBy) {
       case "recently_played": {
         const difference = getPlayTimeDifference(a, b);
@@ -563,7 +561,63 @@ export const sortLibraryGames = (
     }
 
     return compareLibraryGamesByTitle(a, b);
+  };
+
+export const sortLibraryGames = (
+  games: LibraryGame[],
+  sortBy: SortOption
+): LibraryGame[] => [...games].sort(compareLibraryGames(sortBy));
+
+const MAX_INCREMENTAL_SORT_CHANGES = 64;
+
+export interface LibrarySortCache {
+  input: readonly LibraryGame[];
+  output: LibraryGame[];
+  sortBy: SortOption;
+}
+
+export const sortLibraryGamesIncrementally = (
+  cache: LibrarySortCache | null,
+  games: LibraryGame[],
+  sortBy: SortOption
+): LibrarySortCache => {
+  const sortAll = () => ({
+    input: games,
+    output: sortLibraryGames(games, sortBy),
+    sortBy,
   });
+
+  if (!cache || cache.sortBy !== sortBy) return sortAll();
+  if (cache.input === games) return cache;
+  if (cache.input.length !== games.length) return sortAll();
+
+  const replacements = new Map<LibraryGame, LibraryGame>();
+  for (let index = 0; index < games.length; index++) {
+    if (cache.input[index] === games[index]) continue;
+    replacements.set(cache.input[index], games[index]);
+    if (replacements.size > MAX_INCREMENTAL_SORT_CHANGES) return sortAll();
+  }
+
+  if (replacements.size === 0) return { ...cache, input: games };
+
+  const compare = compareLibraryGames(sortBy);
+  const replaced = new Set(replacements.values());
+  const output = cache.output.map((game) => replacements.get(game) ?? game);
+
+  for (let index = 0; index < output.length; index++) {
+    if (!replaced.has(output[index])) continue;
+    if (index > 0 && compare(output[index - 1], output[index]) > 0) {
+      return sortAll();
+    }
+    if (
+      index < output.length - 1 &&
+      compare(output[index], output[index + 1]) > 0
+    ) {
+      return sortAll();
+    }
+  }
+
+  return { input: games, output, sortBy };
 };
 
 export const getGameCollectionIds = (game: {

@@ -56,6 +56,9 @@ function renderCard(
       useFormat: () => ({ numberFormatter: new Intl.NumberFormat("en") }),
     },
     "@shared": { getDisplayedPlayTimeInMilliseconds: () => 0 },
+    "./use-ensure-achievement-progress": {
+      useEnsureAchievementProgress: () => {},
+    },
     "./library-category": libraryCategory,
     "@renderer/helpers": {
       CLASSICS_PS_PLATFORM_LABELS: {},

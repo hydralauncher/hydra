@@ -123,6 +123,9 @@ for (const scenario of [
           },
         },
       },
+      "@main/services/achievements/achievement-progress": {
+        recordAchievementProgress: async () => null,
+      },
       "@main/services/achievements/unlocked-achievements-cache": {
         UnlockedAchievementsCache: { recordCombinedMembers: () => undefined },
       },

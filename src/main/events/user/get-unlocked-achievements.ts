@@ -10,6 +10,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 import { UnlockedAchievementsCache } from "@main/services/achievements/unlocked-achievements-cache";
+import { recordAchievementProgress } from "@main/services/achievements/achievement-progress";
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import { fetchRemoteUserGameAchievements } from "@main/services/achievements/get-achievement-souvenirs";
 import { mergeUnlockedAchievementLists } from "@main/services/achievements/merge-unlocked-achievements";
@@ -235,7 +236,12 @@ export const syncAndGetUnlockedAchievements = (
     captureAchievementView(shop, objectId),
     () => AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId),
     () => getUnlockedAchievements(objectId, shop, false)
-  );
+  ).then(async (achievements) => {
+    await recordAchievementProgress(shop, objectId, achievements).catch(
+      () => null
+    );
+    return achievements;
+  });
 
 const getUnlockedAchievementsEvent = async (
   _event: Electron.IpcMainInvokeEvent,

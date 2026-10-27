@@ -381,33 +381,43 @@ const mapFileLocationWithObjectId = (
   );
 };
 
-export const findAllAchievementFiles = () => {
+const pathExists = (filePath: string) =>
+  fs.promises.access(filePath).then(
+    () => true,
+    () => false
+  );
+
+export const findAllAchievementFiles = async () => {
   const gameAchievementFiles = new Map<string, AchievementFile[]>();
 
   for (const cracker of crackers) {
     for (const { folderPath, fileLocation } of getPathFromCracker(cracker)) {
-      if (!fs.existsSync(folderPath)) {
-        continue;
-      }
+      const objectIds = await fs.promises
+        .readdir(folderPath)
+        .catch((): string[] => []);
 
-      const objectIds = fs.readdirSync(folderPath);
+      const foundFiles = await Promise.all(
+        objectIds.map(async (objectId) => {
+          const filePath = path.join(
+            folderPath,
+            ...mapFileLocationWithObjectId(fileLocation, objectId)
+          );
 
-      for (const objectId of objectIds) {
-        const filePath = path.join(
-          folderPath,
-          ...mapFileLocationWithObjectId(fileLocation, objectId)
-        );
+          return (await pathExists(filePath)) ? { objectId, filePath } : null;
+        })
+      );
 
-        if (!fs.existsSync(filePath)) continue;
+      for (const foundFile of foundFiles) {
+        if (!foundFile) continue;
 
         const achivementFile = {
           type: cracker,
-          filePath,
+          filePath: foundFile.filePath,
         };
 
-        gameAchievementFiles.get(objectId)
-          ? gameAchievementFiles.get(objectId)!.push(achivementFile)
-          : gameAchievementFiles.set(objectId, [achivementFile]);
+        gameAchievementFiles.get(foundFile.objectId)
+          ? gameAchievementFiles.get(foundFile.objectId)!.push(achivementFile)
+          : gameAchievementFiles.set(foundFile.objectId, [achivementFile]);
       }
     }
   }

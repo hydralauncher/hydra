@@ -1,4 +1,11 @@
-import { createContext, useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { setHeaderTitle } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
@@ -433,6 +440,25 @@ export function GameDetailsContextProvider({
       unsubscribe();
     };
   }, [refreshGameDetails]);
+
+  const presentationKeys = useMemo(
+    () =>
+      new Set([
+        `${shop}:${objectId}`,
+        ...(presentation?.members ?? []).map(
+          (member) => `${member.shop}:${member.objectId}`
+        ),
+      ]),
+    [shop, objectId, presentation]
+  );
+
+  useEffect(() => {
+    return window.electron.onLibraryGamesUpdated((keys) => {
+      if (keys.some((key) => presentationKeys.has(key))) {
+        refreshGameDetails().catch(() => {});
+      }
+    });
+  }, [presentationKeys, refreshGameDetails]);
 
   useEffect(() => {
     const handler = (ev: Event) => {

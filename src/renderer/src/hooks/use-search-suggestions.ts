@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAppSelector } from "./redux";
 import { debounce } from "lodash-es";
 import { logger } from "@renderer/logger";
+import { removeDiacritics } from "@shared";
 import type { GameShop } from "@types";
 
 export type SuggestionShop = "steam" | "launchbox";
@@ -30,7 +31,7 @@ export function useSearchSuggestions(
       library
         .filter((game) => Boolean(game.title))
         .map((game) => ({
-          titleLower: game.title.toLowerCase(),
+          titleLower: removeDiacritics(game.title).toLowerCase(),
           game,
         })),
     [library]
@@ -38,7 +39,9 @@ export function useSearchSuggestions(
 
   const getLibrarySuggestions = useCallback(
     (searchQuery: string, limit: number = 3): SearchSuggestion[] => {
-      const normalizedQuery = searchQuery.trim().toLowerCase();
+      const normalizedQuery = removeDiacritics(searchQuery)
+        .trim()
+        .toLowerCase();
       if (normalizedQuery.length < 2) return [];
 
       const matches: SearchSuggestion[] = [];
@@ -47,29 +50,6 @@ export function useSearchSuggestions(
         if (matches.length >= limit) break;
 
         if (titleLower.includes(normalizedQuery)) {
-          matches.push({
-            title: game.title,
-            objectId: game.objectId,
-            shop: game.shop,
-            iconUrl: game.iconUrl,
-            source: "library",
-          });
-          continue;
-        }
-
-        let queryIndex = 0;
-
-        for (
-          let index = 0;
-          index < titleLower.length && queryIndex < normalizedQuery.length;
-          index++
-        ) {
-          if (titleLower[index] === normalizedQuery[queryIndex]) {
-            queryIndex++;
-          }
-        }
-
-        if (queryIndex === normalizedQuery.length) {
           matches.push({
             title: game.title,
             objectId: game.objectId,

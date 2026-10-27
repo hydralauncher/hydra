@@ -144,12 +144,25 @@ const charMapPattern = new RegExp(Object.keys(charMap).join("|"), "g");
 
 const COMBINING_MARKS = /[\u0300-\u036f]/g;
 
-export const removeDiacritics = (value: string) =>
-  value
+const REMOVE_DIACRITICS_CACHE_LIMIT = 20_000;
+const removeDiacriticsCache = new Map<string, string>();
+
+export const removeDiacritics = (value: string) => {
+  const cached = removeDiacriticsCache.get(value);
+  if (cached !== undefined) return cached;
+
+  const result = value
     .normalize("NFC")
     .replace(charMapPattern, (match) => charMap[match])
     .normalize("NFD")
     .replace(COMBINING_MARKS, "");
+
+  if (removeDiacriticsCache.size >= REMOVE_DIACRITICS_CACHE_LIMIT) {
+    removeDiacriticsCache.clear();
+  }
+  removeDiacriticsCache.set(value, result);
+  return result;
+};
 
 export const formatName = pipe<string>(
   (str) => str.replace(charMapPattern, (match) => charMap[match]),

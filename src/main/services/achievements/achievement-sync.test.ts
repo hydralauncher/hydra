@@ -93,6 +93,8 @@ async function fixture(
     export const pendingAchievementSouvenirsSublevel = {get: async key => state.pendingSouvenirs.get(key), put: async (key, value) => state.pendingSouvenirs.set(key, value), del: async key => state.pendingSouvenirs.delete(key)};
     export const levelKeys = {game: (shop, id) => shop + ':' + id, userPreferences: 'preferences', language: 'language'};
     export const WindowManager = { mainWindow: { webContents: { send: (channel, achievements) => state.updates.push({channel, achievements}) } } };
+    export const recordAchievementProgress = async () => null;
+    export const forgetAchievementProgress = async () => {};
     export const getUnlockedAchievements = async () => [];
     export const presentCombinedAchievements = () => [];
     export const publishNewAchievementNotification = () => {};

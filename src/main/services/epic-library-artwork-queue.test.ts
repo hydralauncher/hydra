@@ -5,6 +5,7 @@ import {
   EpicLibraryArtworkQueue,
   EPIC_LIBRARY_ARTWORK_RETRY_MS,
   EPIC_LIBRARY_ARTWORK_INTERVAL_MS,
+  EPIC_LIBRARY_ARTWORK_NOTIFY_INTERVAL_MS,
 } from "./epic-library-artwork-queue.js";
 
 const game = (id: string, shop = "epic") =>
@@ -44,8 +45,33 @@ it("hydrates Epic artwork serially, deduplicates reads and notifies changes", as
   release();
   await tick();
   assert.deepEqual(calls, ["one", "two"]);
-  assert.equal(changes, 2);
+  assert.equal(changes, 1);
   assert.deepEqual(delays, [EPIC_LIBRARY_ARTWORK_INTERVAL_MS]);
+});
+
+it("notifies long passes at most once per interval and once at the end", async () => {
+  let now = 0;
+  let changes = 0;
+  const queue = new EpicLibraryArtworkQueue(
+    async () => true,
+    () => {
+      changes++;
+    },
+    () => now,
+    async (ms) => {
+      now += ms;
+    }
+  );
+  const games = Array.from({ length: 25 }, (_, index) => game(`g${index}`));
+  queue.schedule(games);
+  for (let i = 0; i < 30; i++) await tick();
+  assert.equal(
+    changes,
+    Math.floor(
+      ((games.length - 1) * EPIC_LIBRARY_ARTWORK_INTERVAL_MS) /
+        EPIC_LIBRARY_ARTWORK_NOTIFY_INTERVAL_MS
+    ) + 1
+  );
 });
 
 it("retries failures after cooldown without breaking the remaining library", async () => {

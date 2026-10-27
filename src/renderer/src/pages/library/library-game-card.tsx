@@ -31,6 +31,7 @@ import {
   EMULATOR_ICONS,
   RETROARCH_EMULATOR_ICON,
 } from "@renderer/pages/settings/emulation/emulator-icons";
+import { useEnsureAchievementProgress } from "./use-ensure-achievement-progress";
 import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
 
@@ -91,6 +92,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     importSources.steam && !userPreferences?.hideSteamLibraryBadges;
   const hideAchievementProgress =
     userPreferences?.hideLibraryAchievementProgress ?? false;
+  useEnsureAchievementProgress(game);
   const autoplayAnimatedArtwork =
     userPreferences?.autoplayAnimatedArtwork ?? false;
 
@@ -111,9 +113,6 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     getNextUsableSourceIndex(sources, 0)
   );
   const [imageError, setImageError] = useState(false);
-  const [failedThumbnailSource, setFailedThumbnailSource] = useState<
-    string | null
-  >(null);
 
   const resolveImageSource = (imageUrl: string | null | undefined): string => {
     if (!imageUrl) return "";
@@ -166,9 +165,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     isAnimatedCover && Boolean(coverPoster) && !shouldHoldFrame;
 
   const canUseThumbnail =
-    Boolean(thumbnailWidth) &&
-    failedThumbnailSource !== activeImageSource &&
-    !failedCoverThumbnails.has(activeImageSource);
+    Boolean(thumbnailWidth) && !failedCoverThumbnails.has(activeImageSource);
 
   let displayImageSource = activeImageSource;
   if (thumbnailWidth && canUseThumbnail && !isPlayingAnimatedCover) {
@@ -204,11 +201,7 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       thumbnail: isThumbnailFailure,
     });
 
-    if (isThumbnailFailure && thumbnailWidth && canUseThumbnail) {
-      failedCoverThumbnails.add(activeImageSource);
-      setFailedThumbnailSource(activeImageSource);
-      return;
-    }
+    if (isThumbnailFailure) failedCoverThumbnails.add(activeImageSource);
 
     const failedSource = sources[fallbackIndex];
     if (failedSource) failedCoverSources.add(failedSource);
@@ -234,7 +227,6 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       )
     );
     setImageError(false);
-    setFailedThumbnailSource(null);
   }, [
     game.id,
     game.customCoverImageUrl,

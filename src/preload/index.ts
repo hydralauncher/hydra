@@ -4,6 +4,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import { randomUUID } from "node:crypto";
 
 import type {
+  AchievementProgress,
   SystemPowerAction,
   GameShop,
   DownloadProgress,
@@ -1173,8 +1174,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getGameLaunchProtonVersion", shop, objectId),
   verifyExecutablePathInUse: (executablePath: string) =>
     ipcRenderer.invoke("verifyExecutablePathInUse", executablePath),
+  getLibraryGames: (keys: string[], includeConcealed = false) =>
+    ipcRenderer.invoke("getLibraryGames", keys, includeConcealed),
   getLibrary: (includeConcealed = false) =>
     ipcRenderer.invoke("getLibrary", includeConcealed),
+  getLibrarySerialized: (includeConcealed = false) =>
+    ipcRenderer.invoke("getLibrarySerialized", includeConcealed),
   getHiddenLibrary: () => ipcRenderer.invoke("getHiddenLibrary"),
   refreshLibraryAssets: () => ipcRenderer.invoke("refreshLibraryAssets"),
   getRemoteLibrarySyncState: () =>
@@ -1306,6 +1311,40 @@ contextBridge.exposeInMainWorld("electron", {
       cb(gamesRunning);
     ipcRenderer.on("on-games-running", listener);
     return () => ipcRenderer.removeListener("on-games-running", listener);
+  },
+  onLibraryAchievementProgress: (
+    cb: (
+      shop: GameShop,
+      objectId: string,
+      progress: AchievementProgress
+    ) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string,
+      progress: AchievementProgress
+    ) => cb(shop, objectId, progress);
+    ipcRenderer.on("on-library-achievement-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-library-achievement-progress", listener);
+  },
+  onLibraryGameUpdated: (cb: (shop: GameShop, objectId: string) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      shop: GameShop,
+      objectId: string
+    ) => cb(shop, objectId);
+    ipcRenderer.on("on-library-game-updated", listener);
+    return () =>
+      ipcRenderer.removeListener("on-library-game-updated", listener);
+  },
+  onLibraryGamesUpdated: (cb: (keys: string[]) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, keys: string[]) =>
+      cb(keys);
+    ipcRenderer.on("on-library-games-updated", listener);
+    return () =>
+      ipcRenderer.removeListener("on-library-games-updated", listener);
   },
   onLibraryBatchComplete: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
@@ -1794,6 +1833,8 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   getUnlockedAchievements: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getUnlockedAchievements", objectId, shop),
+  ensureAchievementProgress: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("ensureAchievementProgress", shop, objectId),
   deleteAchievementSouvenir: (payload: { souvenirId: string }) =>
     ipcRenderer.invoke("deleteAchievementSouvenir", payload),
   getRetroAchievementsAchievements: (

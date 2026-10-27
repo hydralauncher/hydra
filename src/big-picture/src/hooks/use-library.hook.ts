@@ -106,6 +106,11 @@ export function useLibrary() {
         updateLibrary();
       });
 
+    const unsubscribeLibraryGames =
+      globalThis.window.electron.onLibraryGamesUpdated(() => {
+        updateLibrary();
+      });
+
     const unsubscribeSignIn = globalThis.window.electron.onSignIn(() => {
       setAwaitingAccountLibrary(true);
     });
@@ -124,6 +129,7 @@ export function useLibrary() {
 
     return () => {
       unsubscribeLibraryBatch();
+      unsubscribeLibraryGames();
       unsubscribeSignIn();
       unsubscribeSignOut();
       unsubscribeDownloadsUpdated();

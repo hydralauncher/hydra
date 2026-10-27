@@ -1,6 +1,28 @@
 import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "./redux";
 import { setLibrary } from "@renderer/features";
+import type { LibraryGame } from "@types";
+
+type AppDispatch = ReturnType<typeof useAppDispatch>;
+
+let runningLibraryRequest: Promise<void> = Promise.resolve();
+let pendingLibraryRequest: Promise<void> | null = null;
+
+const requestLibraryUpdate = (dispatch: AppDispatch): Promise<void> => {
+  pendingLibraryRequest ??= runningLibraryRequest
+    .catch(() => {})
+    .then(() => new Promise<void>((resolve) => setTimeout(resolve, 100)))
+    .then(() => {
+      pendingLibraryRequest = null;
+      runningLibraryRequest = window.electron
+        .getLibrarySerialized(true)
+        .then((serializedLibrary) => {
+          dispatch(setLibrary(JSON.parse(serializedLibrary) as LibraryGame[]));
+        });
+      return runningLibraryRequest;
+    });
+  return pendingLibraryRequest;
+};
 
 export function useLibrary() {
   const dispatch = useAppDispatch();
@@ -9,11 +31,10 @@ export function useLibrary() {
     (state) => state.library.downloadLibrary
   );
 
-  const updateLibrary = useCallback(async () => {
-    return window.electron
-      .getLibrary(true)
-      .then((updatedLibrary) => dispatch(setLibrary(updatedLibrary)));
-  }, [dispatch]);
+  const updateLibrary = useCallback(
+    () => requestLibraryUpdate(dispatch),
+    [dispatch]
+  );
 
   return { library, downloadLibrary, updateLibrary };
 }

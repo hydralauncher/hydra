@@ -30,7 +30,11 @@ import { routes } from "./routes";
 
 import "./sidebar.scss";
 
-import { buildGameDetailsPath, sortLibraryGames } from "@renderer/helpers";
+import {
+  buildGameDetailsPath,
+  sortLibraryGamesIncrementally,
+  type LibrarySortCache,
+} from "@renderer/helpers";
 import {
   categoryShowsPlatforms,
   categoryShowsSources,
@@ -186,9 +190,15 @@ export function Sidebar() {
     [hasPlatforms, selectedPlatforms]
   );
 
+  const sidebarSortCacheRef = useRef<LibrarySortCache | null>(null);
   const orderSidebarGames = useCallback(
     (games: LibraryGame[]) => {
-      const sorted = sortLibraryGames(games, sidebarSortBy);
+      sidebarSortCacheRef.current = sortLibraryGamesIncrementally(
+        sidebarSortCacheRef.current,
+        games,
+        sidebarSortBy
+      );
+      const sorted = sidebarSortCacheRef.current.output;
 
       if (!showFavoritesFirst) return sorted;
 

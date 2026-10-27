@@ -12,6 +12,7 @@ import {
   HYDRA_GAME_REQUEST_TIMEOUT_MS,
 } from "../../services/library-sync/game-request-queue";
 import { resetHydraPlaytimeTicks } from "../../services/game-running-state";
+import { notifyLibraryGameUpdated } from "@main/services/library-game-updates";
 
 const changeGamePlaytime = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -52,6 +53,7 @@ const changeGamePlaytime = async (
           });
           markHydraPlaytimeChanged(key);
           resetHydraPlaytimeTicks(key);
+          notifyLibraryGameUpdated(shop, objectId);
         }, current);
       },
       current

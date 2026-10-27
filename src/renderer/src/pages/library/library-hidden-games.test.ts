@@ -111,6 +111,7 @@ async function renderLibrary(
         await options.refreshRemote?.();
       },
       onLibraryBatchComplete: () => noop,
+      onLibraryGamesUpdated: () => noop,
       onClassicsImportStatus: () => noop,
       getClassicsImportStatus: async () => false,
     },
@@ -167,6 +168,11 @@ async function renderLibrary(
       isGameInstalled: () => false,
       resolveImageSource: (value: string) => value,
       sortLibraryGames: (games: TestGame[]) => games,
+      sortLibraryGamesIncrementally: (
+        _cache: unknown,
+        games: TestGame[],
+        sortBy: string
+      ) => ({ input: games, output: games, sortBy }),
     },
     "react-router-dom": {
       useSearchParams: () => [searchParams, noop],

@@ -174,6 +174,7 @@ async function fixture(
       return [];
     },
     hydraApi: { get: async () => null },
+    onLibraryGamesUpdated: () => () => {},
     onLibraryBatchComplete: (handler: () => void) => {
       libraryBatchHandler = handler;
       return () => {

@@ -84,6 +84,7 @@ describe("Big Picture operational download library", () => {
           );
         },
         onLibraryBatchComplete: subscribe("batch"),
+        onLibraryGamesUpdated: () => () => {},
         onDownloadsUpdated: subscribe("downloads"),
         onSignIn: subscribe("signin"),
         onSignOut: subscribe("signout"),

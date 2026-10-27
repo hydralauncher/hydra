@@ -196,6 +196,7 @@ async function fixture(
       return () => achievementListeners.delete(key);
     },
     onGamesRunning: () => unsubscribe,
+    onLibraryGamesUpdated: () => unsubscribe,
     onLibraryBatchComplete: (listener: () => void) => {
       libraryBatchListeners.add(listener);
       return () => libraryBatchListeners.delete(listener);

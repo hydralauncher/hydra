@@ -73,6 +73,7 @@ import {
   interruptManagedEpicPlaytime,
 } from "./epic/launch";
 import { runWithHydraSaveGuard } from "./epic/cloud-saves";
+import { notifyLibraryGameUpdated } from "./library-game-updates";
 
 export { gamesPlaytime };
 export { isGameRunning } from "./game-running-state";
@@ -747,7 +748,9 @@ const onCloseGame = (game: Game) => {
     lastTimePlayed: new Date(),
   };
 
-  void persistGamePlaytime(gameKey, updatedGame, authContext, delta);
+  void persistGamePlaytime(gameKey, updatedGame, authContext, delta).then(() =>
+    notifyLibraryGameUpdated(game.shop, game.objectId)
+  );
 
   if (game.shop === "custom") return;
 

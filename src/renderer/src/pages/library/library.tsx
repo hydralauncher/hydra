@@ -31,6 +31,8 @@ import {
   getGameCollectionIds,
   isGameInstalled,
   sortLibraryGames,
+  sortLibraryGamesIncrementally,
+  type LibrarySortCache,
 } from "@renderer/helpers";
 import { useSearchParams } from "react-router-dom";
 import { LibraryGamesGrid } from "./library-games-grid";
@@ -545,10 +547,15 @@ export default function Library() {
     () => groupLibraryGames(hiddenGames, runningGameId ? [runningGameId] : []),
     [hiddenGames, runningGameId]
   );
-  const sortedLibrary = useMemo(
-    () => sortLibraryGames(groupedLibrary, sortBy),
-    [groupedLibrary, sortBy]
-  );
+  const librarySortCacheRef = useRef<LibrarySortCache | null>(null);
+  const sortedLibrary = useMemo(() => {
+    librarySortCacheRef.current = sortLibraryGamesIncrementally(
+      librarySortCacheRef.current,
+      groupedLibrary,
+      sortBy
+    );
+    return librarySortCacheRef.current.output;
+  }, [groupedLibrary, sortBy]);
 
   const {
     platforms: uniquePlatforms,
@@ -604,26 +611,17 @@ export default function Library() {
       filtered = filtered.filter(isGameInstalled);
     }
 
-    const queryLower = removeDiacritics(deferredSearchQuery).toLowerCase();
+    const queryLower = removeDiacritics(deferredSearchQuery)
+      .toLowerCase()
+      .trim();
 
-    if (!queryLower.trim()) return filtered;
+    if (!queryLower) return filtered;
 
-    return filtered.filter((game) => {
-      const titleLower = removeDiacritics(game.title ?? "").toLowerCase();
-      let queryIndex = 0;
-
-      for (
-        let i = 0;
-        i < titleLower.length && queryIndex < queryLower.length;
-        i++
-      ) {
-        if (titleLower[i] === queryLower[queryIndex]) {
-          queryIndex++;
-        }
-      }
-
-      return queryIndex === queryLower.length;
-    });
+    return filtered.filter((game) =>
+      removeDiacritics(game.title ?? "")
+        .toLowerCase()
+        .includes(queryLower)
+    );
   }, [
     sortedLibrary,
     groupedHiddenGames,

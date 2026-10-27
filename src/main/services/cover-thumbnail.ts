@@ -20,8 +20,12 @@ const THUMBNAIL_DIR = path.join(ASSETS_PATH, "cover-thumbnails");
 const THUMBNAIL_VERSION = "v1";
 const MAX_SOURCE_BYTES = 64 * 1024 * 1024;
 const MAX_CONCURRENT_BUILDS = 6;
-const SOURCE_TIMEOUT_MS = 30_000;
+const MAX_CONCURRENT_RESIZES = 2;
+const SOURCE_TIMEOUT_MS = 10_000;
 const FAILED_SOURCE_RETRY_MS = 10 * 60 * 1000;
+const MISSING_SOURCE_TTL_MS = 24 * 60 * 60 * 1000;
+const MISSING_SOURCE_STATUSES = new Set([403, 404, 410]);
+const MISSING_SOURCES_PATH = path.join(THUMBNAIL_DIR, "missing-sources.json");
 const failedSources = new Map<string, number>();
 const PREFETCH_WORKERS = 2;
 const THUMBNAIL_HEADERS = {
@@ -38,6 +42,81 @@ const inflightBuilds = new Map<string, Promise<ThumbnailResult | null>>();
 const priorityQueue: (() => void)[] = [];
 const backgroundQueue: (() => void)[] = [];
 let activeBuilds = 0;
+let activeResizes = 0;
+const resizeQueue: (() => void)[] = [];
+
+const acquireResizeSlot = () =>
+  new Promise<void>((resolve) => {
+    if (activeResizes < MAX_CONCURRENT_RESIZES) {
+      activeResizes++;
+      resolve();
+      return;
+    }
+
+    resizeQueue.push(resolve);
+  });
+
+const releaseResizeSlot = () => {
+  const next = resizeQueue.shift();
+  if (next) {
+    next();
+  } else {
+    activeResizes--;
+  }
+};
+
+let missingSourcesLoad: Promise<Map<string, number>> | null = null;
+let saveMissingSourcesTimer: NodeJS.Timeout | null = null;
+
+const loadMissingSources = () => {
+  missingSourcesLoad ??= fs.promises
+    .readFile(MISSING_SOURCES_PATH, "utf8")
+    .then((raw) => {
+      const now = Date.now();
+      const entries = Object.entries(
+        JSON.parse(raw) as Record<string, unknown>
+      ).filter(
+        (entry): entry is [string, number] =>
+          typeof entry[1] === "number" && now - entry[1] < MISSING_SOURCE_TTL_MS
+      );
+      return new Map(entries);
+    })
+    .catch(() => new Map<string, number>());
+  return missingSourcesLoad;
+};
+
+const saveMissingSources = (missingSources: Map<string, number>) => {
+  if (saveMissingSourcesTimer) return;
+
+  saveMissingSourcesTimer = setTimeout(() => {
+    saveMissingSourcesTimer = null;
+    void fs.promises
+      .mkdir(THUMBNAIL_DIR, { recursive: true })
+      .then(() =>
+        fs.promises.writeFile(
+          MISSING_SOURCES_PATH,
+          JSON.stringify(Object.fromEntries(missingSources))
+        )
+      )
+      .catch(() => {});
+  }, 2000);
+};
+
+const rememberMissingSource = async (source: string) => {
+  const missingSources = await loadMissingSources();
+  missingSources.set(source, Date.now());
+  saveMissingSources(missingSources);
+};
+
+const isUnavailableSource = async (source: string) => {
+  const failedAt = failedSources.get(source);
+  if (failedAt && Date.now() - failedAt < FAILED_SOURCE_RETRY_MS) return true;
+
+  const missingAt = (await loadMissingSources()).get(source);
+  return (
+    missingAt !== undefined && Date.now() - missingAt < MISSING_SOURCE_TTL_MS
+  );
+};
 
 const acquireSlot = (priority: "high" | "low") =>
   new Promise<void>((resolve) => {
@@ -113,6 +192,9 @@ const readSource = async (source: string): Promise<ThumbnailResult | null> => {
       source,
       status: response.status,
     });
+    if (MISSING_SOURCE_STATUSES.has(response.status)) {
+      void rememberMissingSource(source);
+    }
     return null;
   }
 
@@ -153,9 +235,6 @@ const buildThumbnail = async (
   width: CoverThumbnailWidth,
   thumbnailPath: string
 ): Promise<ThumbnailResult | null> => {
-  const failedAt = failedSources.get(source);
-  if (failedAt && Date.now() - failedAt < FAILED_SOURCE_RETRY_MS) return null;
-
   const original = await readSource(source).catch((error) => {
     logger.warn("Failed to download cover for thumbnail", {
       source,
@@ -169,11 +248,13 @@ const buildThumbnail = async (
   }
   failedSources.delete(source);
 
+  await acquireResizeSlot();
   try {
     const thumbnail = await sharp(original.buffer, { pages: 1 })
       .resize({ width, withoutEnlargement: true })
       .webp({ quality: 82 })
       .toBuffer();
+    releaseResizeSlot();
 
     await writeThumbnail(thumbnailPath, thumbnail).catch((error) => {
       logger.warn("Failed to write cover thumbnail", error);
@@ -181,6 +262,7 @@ const buildThumbnail = async (
 
     return { buffer: thumbnail, contentType: "image/webp" };
   } catch (error) {
+    releaseResizeSlot();
     logger.warn("Failed to build cover thumbnail", {
       source,
       error: error instanceof Error ? error.message : String(error),
@@ -202,6 +284,7 @@ const ensureThumbnail = (
   const build = (async () => {
     const cached = await readCachedThumbnail(thumbnailPath);
     if (cached) return { buffer: cached, contentType: "image/webp" };
+    if (await isUnavailableSource(source)) return null;
 
     await acquireSlot(priority);
     try {

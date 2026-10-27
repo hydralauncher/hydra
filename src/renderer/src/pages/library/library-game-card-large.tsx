@@ -42,10 +42,10 @@ import {
   EMULATOR_ICONS,
   RETROARCH_EMULATOR_ICON,
 } from "@renderer/pages/settings/emulation/emulator-icons";
+import { useEnsureAchievementProgress } from "./use-ensure-achievement-progress";
 import "./library-game-card-large.scss";
 
 // Cards scrolled past or remounted within this window never load, keeping scroll bursts off the API.
-const ACHIEVEMENT_PROGRESS_SETTLE_MS = 250;
 
 interface LibraryGameCardLargeProps {
   game: LibraryGame;
@@ -214,40 +214,12 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   );
 
   const [heroIndex, setHeroIndex] = useState(0);
-  const [failedHeroThumbnail, setFailedHeroThumbnail] = useState<string | null>(
-    null
-  );
   const [isHeroLoaded, setIsHeroLoaded] = useState(false);
   const [hasLogoFailed, setHasLogoFailed] = useState(false);
-  const [failedLogoThumbnail, setFailedLogoThumbnail] = useState<string | null>(
-    null
-  );
 
-  const [unlockedAchievementsCount, setUnlockedAchievementsCount] = useState(
-    game.unlockedAchievementCount ?? 0
-  );
-  const [totalAchievementsCount, setTotalAchievementsCount] = useState(
-    game.achievementCount ?? 0
-  );
-  const hasStoreUnion =
-    "availableShops" in game &&
-    Array.isArray(game.availableShops) &&
-    game.availableShops.includes("steam") &&
-    game.availableShops.includes("epic");
-
-  const achievementMembersKey =
-    "members" in game && Array.isArray(game.members)
-      ? JSON.stringify(
-          (game.members as LibraryGame[])
-            .map((member) => [
-              member.shop,
-              member.objectId,
-              member.achievementCount,
-              member.unlockedAchievementCount,
-            ])
-            .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
-        )
-      : "";
+  const unlockedAchievementsCount = game.unlockedAchievementCount ?? 0;
+  const totalAchievementsCount = game.achievementCount ?? 0;
+  useEnsureAchievementProgress(game);
 
   const artworkKey = [
     game.objectId,
@@ -264,87 +236,15 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     if (previousArtworkKey.current === artworkKey) return;
     previousArtworkKey.current = artworkKey;
     setHeroIndex(0);
-    setFailedHeroThumbnail(null);
     setIsHeroLoaded(false);
     setHasLogoFailed(false);
   }, [artworkKey]);
-
-  const achievementGameKey = `${game.shop}:${game.objectId}`;
-  const previousAchievementGameKey = useRef(achievementGameKey);
-
-  useEffect(() => {
-    const gameChanged =
-      previousAchievementGameKey.current !== achievementGameKey;
-    previousAchievementGameKey.current = achievementGameKey;
-    const needsCatalogueTotal =
-      game.shop === "epic" &&
-      (game.achievementCount ?? 0) <= 0 &&
-      game.catalogueGame?.shop === "steam";
-    if (gameChanged || (!hasStoreUnion && !needsCatalogueTotal)) {
-      setTotalAchievementsCount(game.achievementCount ?? 0);
-      setUnlockedAchievementsCount(game.unlockedAchievementCount ?? 0);
-    }
-    if (
-      game.unlockedAchievementCount != null &&
-      !hasStoreUnion &&
-      !needsCatalogueTotal
-    ) {
-      setUnlockedAchievementsCount(game.unlockedAchievementCount);
-      return;
-    }
-
-    if (
-      (game.achievementCount ?? 0) <= 0 &&
-      !hasStoreUnion &&
-      !needsCatalogueTotal
-    )
-      return;
-
-    let isStale = false;
-
-    const timer = setTimeout(() => {
-      window.electron
-        .getUnlockedAchievements(game.objectId, game.shop)
-        .then((achievements) => {
-          if (isStale) return;
-          // An empty legacy fallback cannot distinguish unavailable definitions
-          // from an authoritative empty catalogue. Preserve known grouped totals.
-          if (
-            (hasStoreUnion || needsCatalogueTotal) &&
-            achievements.length === 0
-          )
-            return;
-          setUnlockedAchievementsCount(
-            achievements.filter((a) => a.unlocked).length
-          );
-          // Both counts must describe the returned list, including a one-store fallback.
-          setTotalAchievementsCount(achievements.length);
-        })
-        .catch(() => void 0);
-    }, ACHIEVEMENT_PROGRESS_SETTLE_MS);
-
-    return () => {
-      isStale = true;
-      clearTimeout(timer);
-    };
-  }, [
-    game.achievementCount,
-    game.catalogueGame?.shop,
-    game.catalogueGame?.objectId,
-    game.objectId,
-    game.shop,
-    game.unlockedAchievementCount,
-    hasStoreUnion,
-    achievementMembersKey,
-    achievementGameKey,
-  ]);
 
   useLayoutEffect(() => {
     const currentUrl = heroSources[heroIndex];
     if (!currentUrl) return;
 
-    const useThumbnail =
-      Boolean(thumbnailWidth) && failedHeroThumbnail !== currentUrl;
+    const useThumbnail = Boolean(thumbnailWidth);
 
     const img = new Image();
     img.decoding = "async";
@@ -361,11 +261,6 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     if (img.complete && img.naturalWidth > 0) markHeroLoaded();
 
     img.onerror = () => {
-      if (useThumbnail) {
-        setFailedHeroThumbnail(currentUrl);
-        return;
-      }
-
       if (heroIndex < heroSources.length - 1) {
         setHeroIndex((prev) => prev + 1);
       } else {
@@ -377,7 +272,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       img.onload = null;
       img.onerror = null;
     };
-  }, [heroIndex, heroSources, thumbnailWidth, failedHeroThumbnail]);
+  }, [heroIndex, heroSources, thumbnailWidth]);
 
   const rawHeroSource = heroSources[heroIndex];
   const isAnimatedHero = isAnimatedCoverCandidate(rawHeroSource);
@@ -397,12 +292,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   let displayHeroSource: string | null | undefined = rawHeroSource;
   if (isAwaitingHeroPoster) {
     displayHeroSource = undefined;
-  } else if (
-    thumbnailWidth &&
-    rawHeroSource &&
-    failedHeroThumbnail !== rawHeroSource &&
-    !isPlayingAnimatedHero
-  ) {
+  } else if (thumbnailWidth && rawHeroSource && !isPlayingAnimatedHero) {
     displayHeroSource = buildCoverThumbnailUrl(
       normalizePathForCss(rawHeroSource),
       thumbnailWidth
@@ -440,7 +330,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
   const logoSource = logoImage ? normalizePathForCss(logoImage) : "";
   const displayLogoSource =
-    logoThumbnailWidth && logoSource && failedLogoThumbnail !== logoSource
+    logoThumbnailWidth && logoSource
       ? buildCoverThumbnailUrl(logoSource, logoThumbnailWidth)
       : logoSource;
 
@@ -585,13 +475,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
               className="library-game-card-large__logo"
               decoding="async"
               onLoad={markLogoLoaded}
-              onError={() => {
-                if (displayLogoSource !== logoSource) {
-                  setFailedLogoThumbnail(logoSource);
-                } else {
-                  setHasLogoFailed(true);
-                }
-              }}
+              onError={() => setHasLogoFailed(true)}
             />
           ) : (
             <h3 className="library-game-card-large__title">{game.title}</h3>
