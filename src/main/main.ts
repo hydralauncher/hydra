@@ -125,9 +125,11 @@ export const loadState = async () => {
 
   await HydraApi.setupApi().then(async () => {
     // Epic is optional; a failure here must not skip the download loop below.
-    await initializeEpicIntegration().catch((err) =>
-      logger.warn("Epic integration initialization failed on startup", err)
-    );
+    try {
+      await initializeEpicIntegration();
+    } catch (err) {
+      logger.warn("Epic integration initialization failed on startup", err);
+    }
     uploadGamesBatch();
     void migrateDownloadSources();
 
