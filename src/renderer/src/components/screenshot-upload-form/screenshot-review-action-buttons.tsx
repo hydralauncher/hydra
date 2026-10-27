@@ -6,16 +6,10 @@ import { Button } from "@renderer/components";
 
 import { isScreenshotUndecided } from "./screenshot-review-state";
 
-interface ScreenshotReviewNextAction {
-  hasNext: boolean;
-  onNext: () => void;
-}
-
 interface ScreenshotReviewActionButtonsProps {
   screenshot: LocalScreenshot;
   isBusy: boolean;
   isUploading?: boolean;
-  next?: ScreenshotReviewNextAction;
   onUpload: () => void;
   onRequestDelete: () => void;
 }
@@ -24,7 +18,6 @@ export function ScreenshotReviewActionButtons({
   screenshot,
   isBusy,
   isUploading = false,
-  next,
   onUpload,
   onRequestDelete,
 }: Readonly<ScreenshotReviewActionButtonsProps>) {
@@ -42,13 +35,6 @@ export function ScreenshotReviewActionButtons({
       <TrashIcon size={16} />
     </Button>
   );
-
-  const renderNextButton = (theme: "primary" | "outline") =>
-    next ? (
-      <Button theme={theme} disabled={isBusy} onClick={next.onNext}>
-        {next.hasNext ? t("next") : t("done")}
-      </Button>
-    ) : null;
 
   if (isUploading) {
     return (
@@ -90,11 +76,10 @@ export function ScreenshotReviewActionButtons({
             {t("retry")}
           </Button>
         )}
-        {renderNextButton(canRetry ? "outline" : "primary")}
         {deleteButton}
       </>
     );
   }
 
-  return renderNextButton("primary");
+  return null;
 }
