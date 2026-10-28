@@ -14,6 +14,11 @@ $inline-text-limit-feedback-duration: var(
   align-items: center;
   min-height: 44px;
 
+  &:focus,
+  &:focus-visible {
+    outline: none;
+  }
+
   &__outline {
     position: absolute;
     inset: 0;
@@ -76,6 +81,7 @@ $inline-text-limit-feedback-duration: var(
 
   &__trigger {
     display: flex;
+    outline: none;
     align-items: center;
     gap: calc(var(--spacing-unit) * 2);
     cursor: pointer;

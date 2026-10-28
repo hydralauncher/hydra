@@ -386,6 +386,11 @@ $screenshot-lightbox-hover-duration: 0.2s;
     background: var(--background);
     cursor: text;
 
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+
     &[data-focused="true"] {
       border-color: rgba(255, 255, 255, 0.6);
     }
