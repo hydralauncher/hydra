@@ -358,9 +358,7 @@ export function EditProfileModal(
                       containerClassName="edit-profile-modal__skeleton-fill"
                     />
                   </span>
-                  <span className="edit-profile-modal__tile-label">
-                    <Skeleton width="60%" height={14} />
-                  </span>
+                  <span className="edit-profile-modal__tile-label" />
                 </div>
               ))}
             {!isLoadingGameBanners &&

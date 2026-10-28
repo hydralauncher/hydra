@@ -7,6 +7,9 @@ $muted: #a6a7ad;
 $line: rgba(255, 255, 255, 0.08);
 $line-strong: rgba(255, 255, 255, 0.24);
 $selected-outline: rgba(255, 255, 255, 0.6);
+$tile-title-line: 16px;
+$tile-hint-line: 14px;
+$tile-label-gap: 1px;
 $hover-transition: 0.15s ease;
 
 .edit-profile-modal {
@@ -211,20 +214,27 @@ $hover-transition: 0.15s ease;
     object-fit: cover;
   }
 
+  // Room for a title and a hint, so tiles with and without a hint (and the
+  // skeletons) are all the same height.
   &__tile-label {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: $tile-label-gap;
+    min-height: calc(
+      $tile-title-line + $tile-label-gap + $tile-hint-line + 18px
+    );
     padding: 8px 10px 10px;
 
     strong {
       font-size: 12px;
+      line-height: $tile-title-line;
       font-weight: 600;
       color: $ink;
     }
 
     small {
       font-size: 11px;
+      line-height: $tile-hint-line;
       color: $muted;
     }
   }
