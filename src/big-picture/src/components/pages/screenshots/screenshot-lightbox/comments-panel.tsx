@@ -67,6 +67,7 @@ import {
   type ScreenshotCommentWrite,
   type ScreenshotCommentWriteInput,
 } from "./comment-writes";
+import { useFailedCommentDrafts } from "./use-failed-comment-drafts";
 
 type CommentsStatus = "idle" | "loading" | "ready" | "error";
 
@@ -520,7 +521,11 @@ export function ScreenshotCommentsPanel({
   } = useScreenshotComments(screenshot, isAvailable, Boolean(viewerId));
   const [editingComment, setEditingComment] =
     useState<ScreenshotComment | null>(null);
-  const [restoredDrafts, setRestoredDrafts] = useState<string[]>([]);
+  const restoredDraft = useFailedCommentDrafts(
+    (state) => state.draftsByScreenshotId[screenshot.id]?.[0] ?? null
+  );
+  const pushRestoredDraft = useFailedCommentDrafts((state) => state.push);
+  const shiftRestoredDrafts = useFailedCommentDrafts((state) => state.shift);
   const editVersionsRef = useRef(new Map<string, number>());
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<CommentMenuState | null>(null);
@@ -538,8 +543,8 @@ export function ScreenshotCommentsPanel({
   }, [screenshot.id]);
 
   const shiftRestoredDraft = useCallback(
-    () => setRestoredDrafts((drafts) => drafts.slice(1)),
-    []
+    () => shiftRestoredDrafts(screenshot.id),
+    [screenshot.id, shiftRestoredDrafts]
   );
 
   const showError = useCallback(
@@ -608,13 +613,14 @@ export function ScreenshotCommentsPanel({
         }
       } catch (error) {
         removePendingComment(pending.id);
-        setRestoredDrafts((drafts) => [...drafts, pending.bodyHtml]);
+        pushRestoredDraft(screenshot.id, pending.bodyHtml);
         showError(error);
       }
     },
     [
       onCommentCountChange,
       ownerId,
+      pushRestoredDraft,
       recordWrite,
       removePendingComment,
       screenshot.id,
@@ -977,7 +983,7 @@ export function ScreenshotCommentsPanel({
           focusIds={focusIds}
           leftTarget={leftTarget}
           editingComment={editingComment}
-          restoredDraft={restoredDrafts[0] ?? null}
+          restoredDraft={restoredDraft}
           onRestoredDraftApplied={shiftRestoredDraft}
           onSubmit={submit}
           onCancelEdit={() => setEditingComment(null)}
