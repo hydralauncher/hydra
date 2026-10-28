@@ -1592,6 +1592,23 @@ contextBridge.exposeInMainWorld("electron", {
           timeout: options?.timeout,
         },
       }),
+    getResponse: <T = unknown>(
+      url: string,
+      options?: {
+        params?: unknown;
+        needsAuth?: boolean;
+        acceptedStatuses?: number[];
+      }
+    ) =>
+      ipcRenderer.invoke("hydraApiCall", {
+        method: "getResponse",
+        url,
+        params: options?.params,
+        options: {
+          needsAuth: options?.needsAuth,
+          acceptedStatuses: options?.acceptedStatuses,
+        },
+      }) as Promise<{ status: number; data: T }>,
     post: (
       url: string,
       options?: {
