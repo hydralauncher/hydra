@@ -18,6 +18,15 @@ ipcMain.handle("setChatWindowState", (_event, state: ChatWindowState) => {
     openFriendIds: Array.isArray(state?.openFriendIds)
       ? state.openFriendIds.filter(isFriendId)
       : [],
+    openFriends: Array.isArray(state?.openFriends)
+      ? state.openFriends.filter(
+          (friend) =>
+            typeof friend === "object" &&
+            friend !== null &&
+            isFriendId(friend.id) &&
+            typeof friend.displayName === "string"
+        )
+      : [],
   });
 });
 

@@ -27,6 +27,7 @@ import {
 
 import "./header.scss";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
+import { useTitleSelection } from "./use-title-selection";
 import { ScanGamesModal, type ScanResult } from "./scan-games-modal";
 import { setFilters, setLibrarySearchQuery } from "@renderer/features";
 import cn from "classnames";
@@ -41,12 +42,14 @@ const pathTitle: Record<string, string> = {
   "/catalogue": "catalogue",
   "/library": "library",
   "/downloads": "downloads",
+  "/leaderboards": "leaderboards",
   "/settings": "settings",
 };
 
 export function Header() {
   const inputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const scanButtonTooltipId = useId();
   const addCustomGameTooltipId = useId();
   const [showAddGameModal, setShowAddGameModal] = useState(false);
@@ -154,6 +157,8 @@ export function Header() {
       debouncedCatalogueSearch.cancel();
     };
   }, [debouncedCatalogueSearch, debouncedLibrarySearch]);
+
+  useTitleSelection(titleRef);
 
   const updateDropdownPosition = () => {
     if (searchContainerRef.current) {
@@ -392,6 +397,7 @@ export function Header() {
           </button>
 
           <h3
+            ref={titleRef}
             className={cn("header__title", {
               "header__title--has-back-button": location.key !== "default",
             })}

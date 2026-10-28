@@ -122,7 +122,7 @@ const announceMissedMessages = async (signal?: AbortSignal) => {
 
     await publishChatUnreadNotification(
       { kind: "friend", sender, messageCount: conversation.unreadCount },
-      () => WindowManager.openChatWindow(sender),
+      () => void WindowManager.openChatWindow(sender),
       signal
     );
     return;
@@ -134,7 +134,7 @@ const announceMissedMessages = async (signal?: AbortSignal) => {
       friendCount: missed.conversations.length,
       messageCount: missed.messageCount,
     },
-    () => WindowManager.openFriendsWindow(),
+    () => void WindowManager.openFriendsWindow(),
     signal
   );
 };
