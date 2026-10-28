@@ -172,6 +172,7 @@ $hover-transition: 0.15s ease;
     display: grid;
     place-items: center;
     height: 92px;
+    border-bottom: 1px solid $line;
     background:
       radial-gradient(circle, rgba(255, 255, 255, 0.04) 0.6px, transparent 1px)
         0 0 / 8px 8px,
