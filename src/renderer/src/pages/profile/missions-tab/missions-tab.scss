@@ -214,22 +214,45 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
 }
 
 .weekly-mission {
+  position: relative;
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   margin: 0 -12px;
   padding: 24px 12px;
-  border-bottom: 1px solid $line;
   border-radius: 6px;
   transition: background-color 0.15s ease;
+
+  // Divider drawn apart from the row, so the row's radius doesn't curve its ends.
+  &::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 1px;
+    background-color: $line;
+    pointer-events: none;
+  }
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.035);
   }
 
-  &__status {
+  &__icon {
     display: flex;
+    line-height: 0;
+  }
+
+  // Same box as the swap button, so the claimed check lines up with it.
+  &__done {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
     line-height: 0;
   }
 
@@ -274,9 +297,12 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     font-weight: 700;
   }
 
-  &--claimed {
+  // Dims the content only, so the divider keeps its color.
+  &--claimed > * {
     opacity: 0.55;
+  }
 
+  &--claimed {
     .weekly-mission__text strong {
       color: $muted;
     }
@@ -761,21 +787,16 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
 }
 
 .weekly-mission--ready {
-  position: relative;
-  border-bottom-color: transparent;
-
   &::after {
     inset: 0;
     background: linear-gradient(to left, $ink 0%, transparent 100%);
   }
 }
 
-.weekly-mission:last-child {
-  border-bottom: 0;
-}
-
-.weekly-mission:has(+ .weekly-mission--ready) {
-  border-bottom-color: transparent;
+.weekly-mission:last-child::before,
+.weekly-mission--ready::before,
+.weekly-mission:has(+ .weekly-mission--ready)::before {
+  display: none;
 }
 
 // Level wheel (prototype v2): the selected level sits large in the center.

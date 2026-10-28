@@ -577,6 +577,7 @@ export interface PassiveProgress {
 
 export interface GamificationProgress extends LevelProgress {
   coins: number;
+  cloudBoostPercent: number | null;
   loginStreak: LoginStreak;
   passives: PassiveProgress[];
 }
@@ -612,6 +613,7 @@ export interface MissionPeriod {
 }
 
 export interface MissionsResponse {
+  cloudBoostPercent: number | null;
   daily: MissionPeriod;
   weekly: MissionPeriod;
   refresh: { isFreeAvailable: boolean; price: number };

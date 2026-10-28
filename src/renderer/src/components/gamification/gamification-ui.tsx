@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { useFormat } from "@renderer/hooks";
+import { useTranslation } from "react-i18next";
+import { useAppSelector, useFormat } from "@renderer/hooks";
 import { PIXEL_ICONS, type PixelIconName } from "./gamification-art";
 import { BAYER_4X4, DIM_COLOR } from "./gamification-colors";
-import { CoinIcon } from "./gamification-icons";
+import { BoostIcon, CoinIcon } from "./gamification-icons";
 import { PixelArt } from "./pixel-art";
 import "./gamification-ui.scss";
 
@@ -102,12 +103,18 @@ export function ProgressIcon({ size = 16 }: Readonly<{ size?: number }>) {
   );
 }
 
+export const CLOUD_BOOST_TOOLTIP_ID = "cloud-boost-tooltip";
+
 export function RewardChips({
   xp,
   coins,
   className,
 }: Readonly<{ xp: number; coins: number; className?: string }>) {
+  const { t } = useTranslation("user_profile");
   const { formatNumber } = useFormat();
+  const boostPercent = useAppSelector(
+    (state) => state.gamification.missions?.cloudBoostPercent ?? null
+  );
 
   return (
     <span className={`reward-chips ${className ?? ""}`}>
@@ -117,6 +124,19 @@ export function RewardChips({
       {coins > 0 && (
         <span className="reward-chips__coins">
           <CoinIcon />+{formatNumber(coins)}
+        </span>
+      )}
+      {boostPercent !== null && (xp > 0 || coins > 0) && (
+        <span
+          className="reward-chips__boost"
+          aria-label={t("cloud_boost_chip", { percent: boostPercent })}
+          data-tooltip-id={CLOUD_BOOST_TOOLTIP_ID}
+          data-tooltip-place="top"
+          data-tooltip-content={t("cloud_boost_chip", {
+            percent: boostPercent,
+          })}
+        >
+          <BoostIcon />+{boostPercent}%
         </span>
       )}
     </span>

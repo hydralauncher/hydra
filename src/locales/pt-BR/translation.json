@@ -2107,6 +2107,7 @@
     "passive_friend": "Fazer um amigo novo",
     "passive_friend_rule": "Uma vez por pessoa",
     "passive_today": "Hoje {{today}} / {{limit}}",
+    "cloud_boost_chip": "+{{percent}}% para assinantes Hydra Cloud",
     "passives_hint": "O XP só sobe o seu nível. As moedas vêm das missões e das trilhas.",
     "mission_daily_play_any_30m_title": "Aquecimento",
     "mission_daily_play_any_30m_description": "Jogue 30 minutos de qualquer jogo.",

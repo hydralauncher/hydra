@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { CLOUD_BOOST_TOOLTIP_ID } from "@renderer/components/gamification";
 import {
   useGamificationMissions,
   useGamificationProgress,
@@ -113,6 +115,7 @@ export function MissionsTab() {
         {trails && <TrailsBoard trails={trails} />}
       </div>
       <Tooltip id={MISSIONS_TAB_PENDING_TOOLTIP_ID} />
+      {createPortal(<Tooltip id={CLOUD_BOOST_TOOLTIP_ID} />, document.body)}
     </div>
   );
 }

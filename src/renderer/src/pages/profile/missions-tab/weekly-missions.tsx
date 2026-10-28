@@ -2,12 +2,14 @@ import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import {
   DoneIcon,
+  PixelIcon,
   ProgressIcon,
   RewardChips,
 } from "@renderer/components/gamification";
 import type { Mission, MissionPeriod } from "@types";
 import {
   getMissionDescriptionKey,
+  getMissionIcon,
   getMissionTitleKey,
 } from "./mission-catalog";
 import {
@@ -24,12 +26,6 @@ function WeeklyMissionRow({ mission }: Readonly<{ mission: Mission }>) {
   const { claim, pendingAction } = useMissionActions();
   const isReady = mission.isComplete && !mission.isClaimed;
 
-  const renderStatusIcon = () => {
-    if (mission.isClaimed) return <DoneIcon isDim />;
-    if (mission.isComplete) return <DoneIcon />;
-    return <ProgressIcon size={20} />;
-  };
-
   const renderRight = () => {
     const reward = <RewardChips xp={mission.xp} coins={mission.coins} />;
 
@@ -38,6 +34,9 @@ function WeeklyMissionRow({ mission }: Readonly<{ mission: Mission }>) {
         <>
           <span className="weekly-mission__meta">{t("mission_claimed")}</span>
           {reward}
+          <span className="weekly-mission__done">
+            <DoneIcon isDim />
+          </span>
         </>
       );
     }
@@ -61,6 +60,7 @@ function WeeklyMissionRow({ mission }: Readonly<{ mission: Mission }>) {
     return (
       <>
         <span className="weekly-mission__meta">
+          <ProgressIcon />
           {formatProgress(mission)}
           <PendingModerationBadge
             count={mission.pending}
@@ -80,7 +80,9 @@ function WeeklyMissionRow({ mission }: Readonly<{ mission: Mission }>) {
         "weekly-mission--claimed": mission.isClaimed,
       })}
     >
-      <span className="weekly-mission__status">{renderStatusIcon()}</span>
+      <span className="weekly-mission__icon">
+        <PixelIcon name={getMissionIcon(mission)} size={24} />
+      </span>
       <div className="weekly-mission__text">
         <strong>{t(getMissionTitleKey(mission))}</strong>
         <small>{t(getMissionDescriptionKey(mission))}</small>
