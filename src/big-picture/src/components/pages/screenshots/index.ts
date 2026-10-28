@@ -1,4 +1,5 @@
 export * from "./helpers";
+export * from "./progressive-screenshot-image";
 export * from "./screenshot-card";
 export * from "./screenshot-row";
 export * from "./screenshot-lightbox";

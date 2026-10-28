@@ -175,6 +175,7 @@ export interface MediaViewerImageRenderProps {
   item: GalleryMediaItem;
   className: string;
   onLoad: (event: SyntheticEvent<HTMLImageElement>) => void;
+  onPreviewReady: (aspectRatio: number) => void;
   onError: () => void;
 }
 
@@ -251,6 +252,7 @@ function MediaViewerImage({
           item,
           className: "media-viewer__image",
           onLoad: handleLoad,
+          onPreviewReady: handleLoaded,
           onError: handleError,
         })
       ) : (

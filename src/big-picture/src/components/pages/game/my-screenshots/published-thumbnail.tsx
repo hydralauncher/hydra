@@ -8,6 +8,7 @@ import { useScreenshotImageFallback } from "@shared";
 import { FocusItem } from "../../../common";
 import type { FocusOverrides } from "../../../../services";
 import {
+  ProgressiveScreenshotImage,
   ScreenshotBlurLabel,
   getScreenshotAltText,
   getScreenshotBlurReason,
@@ -64,14 +65,14 @@ export function PublishedScreenshotThumbnail({
             sensitiveGate.guard(screenshot, () => onOpen(screenshot))
           }
         >
-          {hasImage ? (
-            <img
+          {hasImage && imageUrl ? (
+            <ProgressiveScreenshotImage
               className={cn("game-my-screenshots__image", {
                 "game-my-screenshots__image--spoiler": blurReason !== null,
               })}
-              src={imageUrl ?? undefined}
+              sources={[imageUrl]}
+              placeholder={screenshot.placeholder}
               alt=""
-              draggable={false}
               loading="lazy"
               onError={() => void handleImageError()}
             />

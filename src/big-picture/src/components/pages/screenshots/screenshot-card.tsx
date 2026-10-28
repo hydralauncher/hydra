@@ -24,6 +24,7 @@ import {
   getScreenshotGameTitle,
   shouldBlurScreenshot,
 } from "./helpers";
+import { ProgressiveScreenshotImage } from "./progressive-screenshot-image";
 import { ScreenshotBlurLabel } from "./screenshot-blur-label";
 import { useRevealedScreenshotSpoilers } from "./use-revealed-spoilers";
 import { useSensitiveScreenshotGate } from "./use-sensitive-screenshot-gate";
@@ -286,14 +287,14 @@ export function ScreenshotCard({
           />
 
           <div className="screenshot-card__frame">
-            {hasImage ? (
-              <img
+            {hasImage && imageUrl ? (
+              <ProgressiveScreenshotImage
                 className={cn("screenshot-card__image", {
                   "screenshot-card__image--spoiler": blurReason !== null,
                 })}
-                src={imageUrl ?? undefined}
+                sources={[imageUrl]}
+                placeholder={screenshot.placeholder}
                 alt={altText}
-                draggable={false}
                 loading="lazy"
                 onError={() => void handleImageError()}
               />

@@ -6,6 +6,7 @@ import type { ProfileScreenshot } from "@types";
 import { useScreenshotImageFallback } from "@shared";
 
 import { getScreenshotAltText, type ScreenshotBlurReason } from "../helpers";
+import { ProgressiveScreenshotImage } from "../progressive-screenshot-image";
 
 const BLUR_COPY: Record<
   ScreenshotBlurReason,
@@ -26,6 +27,7 @@ interface ScreenshotStageImageProps {
   className: string;
   blurReason: ScreenshotBlurReason | null;
   onLoad: (event: SyntheticEvent<HTMLImageElement>) => void;
+  onPreviewReady: (aspectRatio: number) => void;
   onError: () => void;
   onReveal: () => void;
   onRefreshImage?: (screenshot: ProfileScreenshot) => Promise<void>;
@@ -36,6 +38,7 @@ export function ScreenshotStageImage({
   className,
   blurReason,
   onLoad,
+  onPreviewReady,
   onError,
   onReveal,
   onRefreshImage,
@@ -56,7 +59,17 @@ export function ScreenshotStageImage({
     if (!hasImage) onErrorRef.current();
   }, [hasImage]);
 
-  if (!hasImage) {
+  const handlePlaceholderLoad = (event: SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = event.currentTarget;
+    const width = screenshot.width || naturalWidth;
+    const height = screenshot.height || naturalHeight;
+    if (width && height) onPreviewReady(width / height);
+  };
+  const handleLayerError = (source: string) => {
+    if (source === screenshot.imageUrl) void handleImageError();
+  };
+
+  if (!hasImage || !screenshot.imageUrl) {
     return (
       <div className="screenshot-viewer__placeholder">
         <ImageIcon size={56} />
@@ -69,15 +82,17 @@ export function ScreenshotStageImage({
 
   return (
     <>
-      <img
+      <ProgressiveScreenshotImage
         className={cn(className, {
           "screenshot-viewer__image--spoiler": blurReason !== null,
         })}
-        src={screenshot.imageUrl ?? undefined}
+        fit="contain"
+        sources={[screenshot.thumbnailUrl ?? "", screenshot.imageUrl]}
+        placeholder={screenshot.placeholder}
         alt={getScreenshotAltText(screenshot, t, language)}
-        draggable={false}
         onLoad={onLoad}
-        onError={() => void handleImageError()}
+        onError={handleLayerError}
+        onPlaceholderLoad={handlePlaceholderLoad}
       />
       {blurReason ? (
         <div className="screenshot-viewer__spoiler">

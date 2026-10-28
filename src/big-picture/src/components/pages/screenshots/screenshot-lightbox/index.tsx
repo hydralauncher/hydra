@@ -357,7 +357,7 @@ function ScreenshotViewer({
           if (getBlurReason(uploaded)) revealTarget(uploaded);
           else if (hasLoadMoreError) onLoadMore?.();
         }}
-        renderImage={({ item, className, onLoad, onError }) => {
+        renderImage={({ item, className, onLoad, onPreviewReady, onError }) => {
           const entry = entriesById.get(item.id);
           if (!entry) return null;
 
@@ -382,6 +382,7 @@ function ScreenshotViewer({
                 className={className}
                 blurReason={getBlurReason(target)}
                 onLoad={onLoad}
+                onPreviewReady={onPreviewReady}
                 onError={onError}
                 onReveal={() => revealTarget(target)}
                 onRefreshImage={onRefreshImage}
