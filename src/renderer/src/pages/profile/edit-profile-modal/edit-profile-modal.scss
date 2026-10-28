@@ -7,6 +7,7 @@ $link: #c0c1c7;
 $muted: #a6a7ad;
 $line: rgba(255, 255, 255, 0.08);
 $line-strong: rgba(255, 255, 255, 0.24);
+$selected-outline: rgba(255, 255, 255, 0.7);
 $hover-transition: 0.15s ease;
 
 .edit-profile-modal {
@@ -168,8 +169,8 @@ $hover-transition: 0.15s ease;
 
     &--selected,
     &--selected:hover {
-      border-color: $ink;
-      box-shadow: 0 0 0 1px $ink;
+      border-color: $selected-outline;
+      box-shadow: 0 0 0 1px $selected-outline;
     }
   }
 
