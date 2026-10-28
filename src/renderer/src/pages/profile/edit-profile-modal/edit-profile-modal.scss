@@ -247,7 +247,8 @@ $hover-transition: 0.15s ease;
     overflow: hidden;
 
     // Absolute, so the image never stretches the 4:1 box.
-    img {
+    img,
+    video {
       position: absolute;
       inset: 0;
       width: 100%;

@@ -289,13 +289,18 @@ export function EditProfileModal(
     </span>
   );
 
-  // SteamGridDB thumbs of animated heroes may be videos; show the image itself.
+  // Animated heroes come with a small video thumb; playing it is far lighter
+  // than decoding the full-size animated image in a 230 px tile.
   const renderGameBannerArt = (banner: TopGameBanner) => {
-    const { thumb, url } = banner.hero;
-    const src = /.(webm|mp4)$/i.test(thumb) ? url : thumb;
+    const { thumb } = banner.hero;
+    const isVideoThumb = /\.(webm|mp4)$/i.test(thumb);
     return (
       <span className="edit-profile-modal__banner-art">
-        <img src={src} alt="" />
+        {isVideoThumb ? (
+          <video src={thumb} autoPlay loop muted playsInline />
+        ) : (
+          <img src={thumb} alt="" />
+        )}
       </span>
     );
   };
