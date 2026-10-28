@@ -257,14 +257,21 @@ const recordCaptureFailure = (gameKey: string, error: unknown) => {
   );
 };
 
-const createCaptureTimer = (startedAt: number) => {
+const createCaptureTimer = (
+  startedAt: number,
+  source: ScreenshotTriggerSource
+) => {
   const marks: Record<string, number> = {};
   return {
     mark: (stage: string) => {
       marks[stage] = Math.round(performance.now() - startedAt);
     },
     flush: (gameKey: string | null) => {
-      logger.debug("Screenshot capture timings in ms", { gameKey, ...marks });
+      logger.debug("Screenshot capture timings in ms", {
+        gameKey,
+        source,
+        ...marks,
+      });
     },
   };
 };
@@ -275,11 +282,17 @@ const grabScreenshot = async (
   source: ScreenshotTriggerSource,
   startedAt: number
 ): Promise<SaveCapturedScreenshot | null> => {
-  const timer = createCaptureTimer(startedAt);
+  const timer = createCaptureTimer(startedAt, source);
   const userPreferences = await readUserPreferences();
   const preferences = resolveScreenshotPreferences(userPreferences);
-  if (!preferences.enabled) return null;
-  if (!(await isScreenshotsFeatureEnabled())) return null;
+  if (!preferences.enabled) {
+    logger.info("Screenshot hotkey ignored: screenshots disabled", { source });
+    return null;
+  }
+  if (!(await isScreenshotsFeatureEnabled())) {
+    logger.info("Screenshot hotkey ignored: feature flag off", { source });
+    return null;
+  }
   timer.mark("checks");
 
   const resolved = await resolveForegroundGame(source);
@@ -378,7 +391,11 @@ export const handleScreenshotTrigger = async (
   source: ScreenshotTriggerSource
 ) => {
   const startedAt = performance.now();
-  if (captureInProgress) return;
+  logger.debug("Screenshot trigger received", { source });
+  if (captureInProgress) {
+    logger.info("Screenshot hotkey ignored: capture in progress", { source });
+    return;
+  }
   captureInProgress = true;
 
   let save: SaveCapturedScreenshot | null = null;
