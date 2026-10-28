@@ -347,7 +347,6 @@ export function EditProfileModal(
         <EditProfileTile
           art={renderBannerArt(null)}
           label={t("no_banner")}
-          hint={t("no_banner_hint")}
           isWide
           isSelected={
             bannerDraft === "none" ||
