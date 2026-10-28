@@ -68,6 +68,7 @@ import {
 } from "../navigation";
 import { ScreenshotHotkeyHint } from "./hotkey-hint";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
+import { MyScreenshotsPartialNotice } from "./partial-notice";
 import {
   groupByCaptureDay,
   useCaptureDayLabel,
@@ -138,6 +139,7 @@ interface LoadMoreButtonProps {
   focusId: string;
   isLoading: boolean;
   hasError: boolean;
+  navigationOrder?: number;
   onPress: () => void;
 }
 
@@ -145,6 +147,7 @@ function LoadMoreButton({
   focusId,
   isLoading,
   hasError,
+  navigationOrder,
   onPress,
 }: Readonly<LoadMoreButtonProps>) {
   const { t } = useTranslation("big_picture");
@@ -154,6 +157,7 @@ function LoadMoreButton({
       variant="secondary"
       size="small"
       focusId={focusId}
+      focusNavigationOrder={navigationOrder}
       className="game-screenshots-modal__load-more"
       loading={isLoading}
       onClick={onPress}
@@ -476,6 +480,7 @@ function useMyScreenshotsTab({
     localScreenshots: mine.localScreenshots,
     hasLocalLoaded: mine.hasLoadedLocal,
     uploadedItems,
+    canResolveUploaded: mine.canFetchPublished,
     openUploaded: open,
     closeUploaded: close,
   });
@@ -579,11 +584,22 @@ function MyScreenshotsList({
   const cardLike = useScreenshotCardLike(feed.updateItem);
   const getDayLabel = useCaptureDayLabel();
 
-  if (mine.hasLocalFailed || mine.hasPublishedFailed) {
+  if (mine.hasFailed) {
     return <MyScreenshotsMessage tab={tab} hasFailed />;
   }
   if (tab.isLoading) return <ScreenshotSkeletonGrid />;
+
+  const partialNotice = (
+    <MyScreenshotsPartialNotice
+      mine={mine}
+      focusId={GAME_SCREENSHOTS_MODAL_MINE_RETRY_ID}
+      className="game-screenshots-modal__notice"
+      navigationOrder={-1}
+    />
+  );
+
   if (entries.length === 0) {
+    if (mine.isPartial) return partialNotice;
     return (
       <MyScreenshotsMessage
         tab={tab}
@@ -632,15 +648,19 @@ function MyScreenshotsList({
     );
   };
 
+  const dayGroups = groupByCaptureDay(entries, (entry) => entry.time);
+
   return (
     <>
-      {groupByCaptureDay(entries, (entry) => entry.time).map((group) => (
+      {partialNotice}
+      {dayGroups.map((group, index) => (
         <section key={group.key} className="game-screenshots-modal__day">
           <h3 className="game-screenshots-modal__day-title">
             {getDayLabel(group.dayStart)}
           </h3>
           <GridFocusGroup
             regionId={`${GAME_SCREENSHOTS_MODAL_MINE_GRID_REGION_ID}:${group.key}`}
+            navigationOrder={index}
             className="game-screenshots-modal__grid"
           >
             <ul className="game-screenshots-modal__list">
@@ -654,6 +674,7 @@ function MyScreenshotsList({
           focusId={GAME_SCREENSHOTS_MODAL_MINE_LOAD_MORE_ID}
           isLoading={feed.isLoadingMore}
           hasError={feed.error === "page"}
+          navigationOrder={dayGroups.length}
           onPress={tab.loadNextPage}
         />
       ) : null}

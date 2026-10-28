@@ -298,16 +298,27 @@ export function GameMyScreenshots({
     retryLoadMore: feed.retry,
   });
   const items = mine.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
+  const hasMoreUploaded = mine.canFetchPublished && feed.hasMore;
+  const oldestLoadedUpload = feed.items.at(-1)?.createdAt ?? null;
   const viewer = useMyScreenshotsViewer({
-    entries: mine.items.map(
-      (item): ScreenshotViewerEntry =>
-        item.kind === "local"
-          ? { kind: "local", screenshot: item.screenshot }
-          : { kind: "uploaded", screenshot: item.screenshot }
-    ),
+    entries: mine.items
+      .filter(
+        (item) =>
+          item.kind !== "local" ||
+          !hasMoreUploaded ||
+          oldestLoadedUpload === null ||
+          item.screenshot.capturedAt >= oldestLoadedUpload
+      )
+      .map(
+        (item): ScreenshotViewerEntry =>
+          item.kind === "local"
+            ? { kind: "local", screenshot: item.screenshot }
+            : { kind: "uploaded", screenshot: item.screenshot }
+      ),
     localScreenshots: mine.localScreenshots,
     hasLocalLoaded: mine.hasLoadedLocal,
     uploadedItems: feed.items,
+    canResolveUploaded: mine.canFetchPublished,
     openUploaded: open,
     closeUploaded: close,
   });

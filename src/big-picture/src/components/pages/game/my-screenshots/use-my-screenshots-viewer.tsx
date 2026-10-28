@@ -25,6 +25,7 @@ interface UseMyScreenshotsViewerOptions {
   localScreenshots: LocalScreenshot[];
   hasLocalLoaded: boolean;
   uploadedItems: ProfileScreenshot[];
+  canResolveUploaded: boolean;
   openUploaded: (screenshot: ProfileScreenshot) => void;
   closeUploaded: () => void;
 }
@@ -34,6 +35,7 @@ export function useMyScreenshotsViewer({
   localScreenshots,
   hasLocalLoaded,
   uploadedItems,
+  canResolveUploaded,
   openUploaded,
   closeUploaded,
 }: UseMyScreenshotsViewerOptions) {
@@ -41,12 +43,25 @@ export function useMyScreenshotsViewer({
   const defaultVisibility =
     resolveScreenshotPreferences(userPreferences).defaultVisibility;
   const [openLocalId, setOpenLocalId] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, ReviewDraft>>({});
+  const [draftEdits, setDraftEdits] = useState<
+    Record<string, Partial<ReviewDraft>>
+  >({});
+  const dropSavedDraftEdits = useCallback((clientId: string) => {
+    setDraftEdits((existing) => {
+      const edits = existing[clientId];
+      if (!edits) return existing;
+
+      const { [clientId]: _saved, ...rest } = existing;
+      return edits.quality
+        ? { ...rest, [clientId]: { quality: edits.quality } }
+        : rest;
+    });
+  }, []);
   const {
     schedule: scheduleDraftSave,
     cancel: cancelDraftSave,
     flushAll: flushDraftSaves,
-  } = useReviewDraftSave();
+  } = useReviewDraftSave(dropSavedDraftEdits);
 
   const openLocal = openLocalId
     ? (localScreenshots.find(
@@ -57,6 +72,10 @@ export function useMyScreenshotsViewer({
     openLocal?.state === "uploaded" && openLocal.screenshotId
       ? uploadedItems.find((item) => item.id === openLocal.screenshotId)
       : undefined;
+  const isUploadedOutsideFeed =
+    !canResolveUploaded &&
+    openLocal?.state === "uploaded" &&
+    openLocal.moderationStatus !== "BLOCKED";
 
   useEffect(() => {
     if (!openLocalId) return;
@@ -65,8 +84,17 @@ export function useMyScreenshotsViewer({
       openUploaded(uploadedFromLocal);
       return;
     }
-    if (hasLocalLoaded && !openLocal) setOpenLocalId(null);
-  }, [hasLocalLoaded, openLocal, openLocalId, openUploaded, uploadedFromLocal]);
+    if (isUploadedOutsideFeed || (hasLocalLoaded && !openLocal)) {
+      setOpenLocalId(null);
+    }
+  }, [
+    hasLocalLoaded,
+    isUploadedOutsideFeed,
+    openLocal,
+    openLocalId,
+    openUploaded,
+    uploadedFromLocal,
+  ]);
 
   const openEntry = useCallback(
     (entry: ScreenshotViewerEntry) => {
@@ -89,18 +117,19 @@ export function useMyScreenshotsViewer({
   }, [closeUploaded, flushDraftSaves]);
 
   const getDraft = useCallback(
-    (screenshot: LocalScreenshot) =>
-      drafts[screenshot.clientId] ??
-      createReviewDraft(screenshot, defaultVisibility),
-    [defaultVisibility, drafts]
+    (screenshot: LocalScreenshot): ReviewDraft => ({
+      ...createReviewDraft(screenshot, defaultVisibility),
+      ...draftEdits[screenshot.clientId],
+    }),
+    [defaultVisibility, draftEdits]
   );
 
   const updateDraft = useCallback(
     (screenshot: LocalScreenshot, update: Partial<ReviewDraft>) => {
       const nextDraft = { ...getDraft(screenshot), ...update };
-      setDrafts((existing) => ({
+      setDraftEdits((existing) => ({
         ...existing,
-        [screenshot.clientId]: nextDraft,
+        [screenshot.clientId]: { ...existing[screenshot.clientId], ...update },
       }));
       scheduleDraftSave(screenshot.clientId, {
         isSpoiler: nextDraft.isSpoiler,

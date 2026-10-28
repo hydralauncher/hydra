@@ -312,6 +312,15 @@ $local-screenshot-actions-fade-duration: 0.15s;
     align-self: center;
   }
 
+  &__notice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 2);
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
   &__message {
     display: flex;
     flex-direction: column;

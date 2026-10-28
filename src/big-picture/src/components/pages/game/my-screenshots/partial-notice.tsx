@@ -10,6 +10,7 @@ interface MyScreenshotsPartialNoticeProps {
   focusId: string;
   className: string;
   navigationOverrides?: FocusOverrides;
+  navigationOrder?: number;
 }
 
 export function MyScreenshotsPartialNotice({
@@ -17,6 +18,7 @@ export function MyScreenshotsPartialNotice({
   focusId,
   className,
   navigationOverrides,
+  navigationOrder,
 }: Readonly<MyScreenshotsPartialNoticeProps>) {
   const { t } = useTranslation("screenshots");
 
@@ -37,6 +39,7 @@ export function MyScreenshotsPartialNotice({
         focusId={focusId}
         icon={<ArrowClockwiseIcon size={18} />}
         focusNavigationOverrides={navigationOverrides}
+        focusNavigationOrder={navigationOrder}
         onClick={mine.retryFailed}
       >
         {t("screenshots_retry", { ns: "big_picture" })}

@@ -9,21 +9,51 @@ interface PendingDraft {
   draft: LocalScreenshotDraft;
 }
 
-export function useReviewDraftSave() {
+export function useReviewDraftSave(onSaved?: (clientId: string) => void) {
   const pendingRef = useRef(new Map<string, PendingDraft>());
+  const inFlightRef = useRef(new Map<string, number>());
+  const onSavedRef = useRef(onSaved);
 
-  const save = useCallback((clientId: string) => {
-    const pending = pendingRef.current.get(clientId);
-    if (!pending) return;
+  useEffect(() => {
+    onSavedRef.current = onSaved;
+  }, [onSaved]);
 
-    clearTimeout(pending.timer);
-    pendingRef.current.delete(clientId);
-    globalThis.window.electron
-      .updateLocalScreenshotDraft(clientId, pending.draft)
-      .catch((error: unknown) => {
-        logger.error("Failed to save the screenshot draft", error);
-      });
+  const settle = useCallback((clientId: string, hasSaved: boolean) => {
+    const remaining = (inFlightRef.current.get(clientId) ?? 1) - 1;
+    if (remaining > 0) {
+      inFlightRef.current.set(clientId, remaining);
+      return;
+    }
+
+    inFlightRef.current.delete(clientId);
+    if (hasSaved && !pendingRef.current.has(clientId)) {
+      onSavedRef.current?.(clientId);
+    }
   }, []);
+
+  const save = useCallback(
+    (clientId: string) => {
+      const pending = pendingRef.current.get(clientId);
+      if (!pending) return;
+
+      clearTimeout(pending.timer);
+      pendingRef.current.delete(clientId);
+      inFlightRef.current.set(
+        clientId,
+        (inFlightRef.current.get(clientId) ?? 0) + 1
+      );
+      globalThis.window.electron
+        .updateLocalScreenshotDraft(clientId, pending.draft)
+        .then(
+          () => settle(clientId, true),
+          (error: unknown) => {
+            logger.error("Failed to save the screenshot draft", error);
+            settle(clientId, false);
+          }
+        );
+    },
+    [settle]
+  );
 
   const schedule = useCallback(
     (clientId: string, draft: LocalScreenshotDraft) => {
