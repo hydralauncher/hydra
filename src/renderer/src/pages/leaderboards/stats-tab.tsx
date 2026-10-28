@@ -39,6 +39,7 @@ import {
   RankDelta,
   StreakFlame,
 } from "./leaderboard-bits";
+import { FriendStreakCard } from "./friend-streak-card";
 import { MetricIcon } from "./metric-icon";
 import {
   EMPTY_BOARD_RESULT,
@@ -46,9 +47,9 @@ import {
 } from "./use-global-leaderboards";
 import { useMetricText } from "./use-global-leaderboard-value";
 
-const FRIEND_SKELETON_ROWS = 6;
+const FRIEND_STREAK_ROWS = 6;
 const FRIEND_SKELETON_KEYS = Array.from(
-  { length: FRIEND_SKELETON_ROWS },
+  { length: FRIEND_STREAK_ROWS },
   (_, index) => `friend-skeleton-${index}`
 );
 
@@ -446,46 +447,12 @@ export function StatsTab({
     return (
       <>
         <div className="leaderboards__friend-streaks">
-          {friends.data.map((item) => (
-            <div
+          {friends.data.slice(0, FRIEND_STREAK_ROWS).map((item) => (
+            <FriendStreakCard
               key={item.user.id}
-              className={cn("leaderboards__friend-streak", {
-                "leaderboards__friend-streak--viewer":
-                  item.user.id === viewerId,
-              })}
-            >
-              <span className="leaderboards__friend-avatar">
-                <Avatar
-                  size={24}
-                  src={item.user.profileImageUrl}
-                  alt={item.user.displayName}
-                />
-                <span
-                  className={cn("leaderboards__presence", {
-                    "leaderboards__presence--online": item.online,
-                  })}
-                  aria-hidden="true"
-                />
-              </span>
-              <span className="leaderboards__friend-text">
-                <span className="leaderboards__friend-name">
-                  {item.user.displayName}
-                </span>
-                <span className="leaderboards__friend-presence">
-                  {t(item.online ? "online" : "offline")}
-                </span>
-              </span>
-              <span className="leaderboards__friend-days">
-                {item.active && (
-                  <StreakFlame
-                    size={14}
-                    flicker={item.days > 0 && item.days === item.bestDays}
-                    label={t("streak_active")}
-                  />
-                )}
-                {t("days_count", { count: item.days })}
-              </span>
-            </div>
+              item={item}
+              isViewer={item.user.id === viewerId}
+            />
           ))}
         </div>
         <button

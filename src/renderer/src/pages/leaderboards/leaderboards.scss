@@ -1095,22 +1095,43 @@ $leaderboards-heat-gap: 3px;
   }
 
   &__friend-streaks {
+    flex: 1;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 4px calc(globals.$spacing-unit * 2);
+    grid-auto-rows: minmax(72px, 1fr);
+    gap: globals.$spacing-unit;
   }
 
   &__friend-streak {
-    height: 40px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: $leaderboards-surface;
+
+    &--banner {
+      background-image:
+        linear-gradient(90deg, rgb(0 0 0 / 75%), rgb(0 0 0 / 30%)),
+        var(--friend-banner);
+      background-size: cover;
+      background-position: center;
+    }
+
+    &--viewer {
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+  }
+
+  &__friend-head {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
-    padding: 0 globals.$spacing-unit;
-    border-radius: 6px;
-
-    &--viewer {
-      background-color: rgba(255, 255, 255, 0.06);
-    }
   }
 
   &__friend-avatar {
@@ -1154,18 +1175,19 @@ $leaderboards-heat-gap: 3px;
   }
 
   &__friend-days {
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: globals.$hint-font-size;
-    font-weight: 700;
+    gap: 6px;
+    font-size: 18px;
+    font-weight: 800;
     color: globals.$muted-color;
     white-space: nowrap;
   }
 
   &__friend-skeleton {
-    height: 40px;
-    border-radius: 6px;
+    height: 72px;
+    border-radius: 8px;
   }
 
   &__badges-section {
