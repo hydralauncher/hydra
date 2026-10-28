@@ -2479,7 +2479,6 @@
     "review_top_week": "Reseña más votada de la semana",
     "review_top_all": "Reseña más votada de la historia",
     "review_top_of": "Reseña más votada de {{name}}",
-    "review_open_game": "Ver en la página de {{game}}",
     "my_games_title": "Clasificaciones de tus juegos",
     "search_game": "Buscar juego",
     "clear_search": "Borrar búsqueda",
@@ -2500,9 +2499,11 @@
     "streak_best": "Récord",
     "days_unit_one": "día",
     "days_unit_other": "días",
-    "last_weeks": "Últimas {{count}} semanas",
-    "legend_min": "0 h",
-    "legend_max": "3 h+",
+    "activity_title": "Actividad",
+    "activity_total_one": "{{hours}} h en {{count}} día",
+    "activity_total_other": "{{hours}} h en {{count}} días",
+    "legend_less": "Menos",
+    "legend_more": "Más",
     "not_played": "No jugó",
     "today": "Hoy",
     "yesterday": "Ayer",
@@ -2531,6 +2532,12 @@
     "chip_days_other": "{{count}} DÍAS",
     "badge_earned_on": "Conseguida el {{date}}",
     "badge_since": "Desde {{date}}",
-    "badge_remaining": "Faltan {{amount}}"
+    "badge_remaining": "Faltan {{amount}}",
+    "badge_amount_sessions_one": "{{amount}} sesión",
+    "badge_amount_sessions_other": "{{amount}} sesiones",
+    "badge_remaining_to_top_rank_one": "Falta {{amount}} para el Top {{value}}",
+    "badge_remaining_to_top_rank_other": "Faltan {{amount}} para el Top {{value}}",
+    "badge_remaining_to_top_percent_one": "Falta {{amount}} para el Top {{value}}%",
+    "badge_remaining_to_top_percent_other": "Faltan {{amount}} para el Top {{value}}%"
   }
 }

@@ -2530,7 +2530,6 @@
     "review_top_week": "Самый популярный обзор недели",
     "review_top_all": "Самый популярный обзор за всё время",
     "review_top_of": "Самый популярный обзор {{name}}",
-    "review_open_game": "Открыть страницу {{game}}",
     "my_games_title": "Рейтинги ваших игр",
     "search_game": "Поиск игры",
     "clear_search": "Очистить поиск",
@@ -2553,9 +2552,13 @@
     "days_unit_few": "дня",
     "days_unit_many": "дней",
     "days_unit_other": "дня",
-    "last_weeks": "Последние {{count}} недель",
-    "legend_min": "0 ч",
-    "legend_max": "3 ч+",
+    "activity_title": "Активность",
+    "activity_total_one": "{{hours}} ч за {{count}} день",
+    "activity_total_few": "{{hours}} ч за {{count}} дня",
+    "activity_total_many": "{{hours}} ч за {{count}} дней",
+    "activity_total_other": "{{hours}} ч за {{count}} дня",
+    "legend_less": "Меньше",
+    "legend_more": "Больше",
     "not_played": "Не играл",
     "today": "Сегодня",
     "yesterday": "Вчера",
@@ -2590,6 +2593,12 @@
     "chip_days_other": "{{count}} ДНЯ",
     "badge_earned_on": "Получен {{date}}",
     "badge_since": "С {{date}}",
-    "badge_remaining": "Осталось {{amount}}"
+    "badge_remaining": "Осталось {{amount}}",
+    "badge_amount_sessions_one": "{{amount}} сессия",
+    "badge_amount_sessions_few": "{{amount}} сессии",
+    "badge_amount_sessions_many": "{{amount}} сессий",
+    "badge_amount_sessions_other": "{{amount}} сессии",
+    "badge_remaining_to_top_rank": "Осталось {{amount}} до Топ {{value}}",
+    "badge_remaining_to_top_percent": "Осталось {{amount}} до Топ {{value}}%"
   }
 }
