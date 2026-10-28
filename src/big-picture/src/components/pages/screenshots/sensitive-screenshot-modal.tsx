@@ -102,6 +102,7 @@ export function SensitiveScreenshotModal({
         <Checkbox
           block
           label={t("screenshots_sensitive_modal_dont_hide")}
+          secondaryText={t("screenshots_sensitive_modal_settings_hint")}
           checked={dontHideAgain}
           disabled={isSaving}
           focusId={ids.checkbox}

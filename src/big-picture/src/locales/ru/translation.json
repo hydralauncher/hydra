@@ -1011,10 +1011,11 @@
     "media_viewer_hide_sidebar": "Скрыть боковую панель",
     "media_viewer_show_sidebar": "Показать боковую панель",
     "screenshots_sensitive": "Деликатный контент",
-    "screenshots_sensitive_warning": "Этот скриншот может содержать деликатные материалы",
-    "screenshots_sensitive_reveal": "Посмотреть скриншот",
-    "screenshots_sensitive_modal_description": "Он сделан в игре для взрослых.",
-    "screenshots_sensitive_modal_description_spoiler": "Он сделан в игре для взрослых и также отмечен как спойлер.",
-    "screenshots_sensitive_modal_dont_hide": "Больше не скрывать деликатные скриншоты"
+    "screenshots_sensitive_warning": "Этот скриншот может не подходить для всех возрастов",
+    "screenshots_sensitive_reveal": "Показать скриншот",
+    "screenshots_sensitive_modal_description": "На нём может быть обнажённость или сексуальный контент.",
+    "screenshots_sensitive_modal_description_spoiler": "На нём может быть обнажённость или сексуальный контент, и он отмечен как спойлер.",
+    "screenshots_sensitive_modal_dont_hide": "Отключить предупреждение о непристойном контенте на скриншотах",
+    "screenshots_sensitive_modal_settings_hint": "Это можно изменить в настройках"
   }
 }

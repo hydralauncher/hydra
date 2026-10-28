@@ -1021,10 +1021,11 @@
     "media_viewer_hide_sidebar": "Ocultar painel lateral",
     "media_viewer_show_sidebar": "Mostrar painel lateral",
     "screenshots_sensitive": "Conteúdo sensível",
-    "screenshots_sensitive_warning": "Esta captura pode conter material sensível",
-    "screenshots_sensitive_reveal": "Ver captura",
-    "screenshots_sensitive_modal_description": "Ela foi tirada em um jogo para adultos.",
-    "screenshots_sensitive_modal_description_spoiler": "Ela foi tirada em um jogo para adultos e também está marcada como spoiler.",
-    "screenshots_sensitive_modal_dont_hide": "Não ocultar mais capturas sensíveis"
+    "screenshots_sensitive_warning": "Esta captura de tela pode não ser apropriada para todas as idades",
+    "screenshots_sensitive_reveal": "Mostrar captura de tela",
+    "screenshots_sensitive_modal_description": "Ela pode mostrar nudez ou conteúdo sexual.",
+    "screenshots_sensitive_modal_description_spoiler": "Ela pode mostrar nudez ou conteúdo sexual e está marcada como spoiler.",
+    "screenshots_sensitive_modal_dont_hide": "Desativar alerta de conteúdo inapropriado nas capturas de tela",
+    "screenshots_sensitive_modal_settings_hint": "Você pode alterar isso em Ajustes"
   }
 }
