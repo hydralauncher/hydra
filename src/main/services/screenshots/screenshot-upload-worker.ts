@@ -638,8 +638,10 @@ class ScreenshotUploadWorker {
       this.moderationWaits.delete(clientId);
       this.capacityWaits.delete(clientId);
       logger.warn("Screenshot file was missing at upload time", { clientId });
-      ScreenshotTelemetry.record("upload", "failed", failure.code);
-      if (await this.missingFileHandler(clientId)) return;
+      if (await this.missingFileHandler(clientId)) {
+        ScreenshotTelemetry.record("upload", "failed", failure.code);
+        return;
+      }
     }
     if (failure.code === SCREENSHOT_FEATURE_DISABLED_CODE) {
       this.uploadsDisabledThisRun = true;
