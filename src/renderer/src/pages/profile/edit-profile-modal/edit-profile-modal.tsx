@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import cn from "classnames";
 
 import { Avatar, Button, Modal, ModalProps } from "@renderer/components";
@@ -17,6 +18,7 @@ import {
   useProfileImagePicker,
   type ProfileImageVariant,
 } from "./use-profile-image-picker";
+import "../profile-content/profile-content.scss";
 import "./edit-profile-modal.scss";
 
 type EditProfileTab = "photo" | "banner" | "frames";
@@ -263,26 +265,37 @@ export function EditProfileModal(
           />
         </div>
 
-        <div className="edit-profile-modal__tabs" role="tablist">
-          {tabs.map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              className={cn("edit-profile-modal__tab", {
-                "edit-profile-modal__tab--active": tab === id,
-              })}
-              onClick={() => setTab(id)}
-            >
-              {t(`edit_profile_tab_${id}`)}
-            </button>
-          ))}
+        {/* Same tabs as the profile page. */}
+        <div className="edit-profile-modal__tabs">
+          <div className="profile-content__tabs">
+            {tabs.map((id) => (
+              <div key={id} className="profile-content__tab-wrapper">
+                <button
+                  type="button"
+                  className={cn("profile-content__tab", {
+                    "profile-content__tab--active": tab === id,
+                  })}
+                  onClick={() => setTab(id)}
+                >
+                  {t(`edit_profile_tab_${id}`)}
+                </button>
+                {tab === id && (
+                  <motion.div
+                    className="profile-content__tab-underline"
+                    layoutId="edit-profile-tab-underline"
+                    transition={{
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 30,
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="edit-profile-modal__pane" role="tabpanel">
-          {panes[tab]()}
-        </div>
+        <div className="edit-profile-modal__pane">{panes[tab]()}</div>
 
         <footer className="edit-profile-modal__footer">
           <span className="edit-profile-modal__dirty">

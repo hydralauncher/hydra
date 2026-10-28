@@ -3,7 +3,6 @@
 // Colors from the designer's prototype (v4.2.0), same tokens as the shop.
 $ink: #f0f1f7;
 $chrome: #0d0d0d;
-$link: #c0c1c7;
 $muted: #a6a7ad;
 $line: rgba(255, 255, 255, 0.08);
 $line-strong: rgba(255, 255, 255, 0.24);
@@ -86,45 +85,13 @@ $hover-transition: 0.15s ease;
     }
   }
 
-  &__preview-level {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 26px;
-    padding: 0 10px;
-    border: 1px solid $line;
-    border-radius: 999px;
-    background-color: rgba(13, 13, 13, 0.6);
-    font-size: 12px;
-    color: $ink;
-  }
-
-  &__preview-level-bar {
-    width: 56px;
-  }
-
+  // The tabs come from the profile page (profile-content__tabs).
   &__tabs {
-    display: flex;
-    gap: 8px;
     margin-top: 12px;
     padding: 0 16px;
-    border-bottom: 1px solid $line;
-  }
 
-  &__tab {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: -1px;
-    padding: 10px 16px;
-    border-bottom: 2px solid transparent;
-    color: $link;
-    cursor: pointer;
-
-    &--active {
-      border-color: $ink;
-      color: $ink;
-      font-weight: 600;
+    .profile-content__tabs {
+      margin-bottom: 0;
     }
   }
 

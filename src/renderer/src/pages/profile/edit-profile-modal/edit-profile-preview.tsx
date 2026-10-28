@@ -1,7 +1,6 @@
-import { useTranslation } from "react-i18next";
 import { Avatar } from "@renderer/components";
-import { XpBar } from "@renderer/components/gamification";
 import { useGamificationProgress } from "@renderer/hooks";
+import { GamificationPills } from "../profile-hero/profile-gamification-pills";
 
 interface EditProfilePreviewProps {
   displayName: string;
@@ -17,7 +16,6 @@ export function EditProfilePreview({
   backgroundImageUrl,
   showLevel,
 }: Readonly<EditProfilePreviewProps>) {
-  const { t } = useTranslation("user_profile");
   const { progress } = useGamificationProgress();
 
   return (
@@ -35,16 +33,7 @@ export function EditProfilePreview({
         <Avatar size={96} src={profileImageUrl} alt={displayName} />
         <div className="edit-profile-modal__preview-text">
           <strong>{displayName}</strong>
-          {showLevel && progress && (
-            <span className="edit-profile-modal__preview-level">
-              <strong>{t("level", { level: progress.level })}</strong>
-              <XpBar
-                xp={progress.xp}
-                xpToNextLevel={progress.xpToNextLevel}
-                className="edit-profile-modal__preview-level-bar"
-              />
-            </span>
-          )}
+          {showLevel && progress && <GamificationPills level={progress} />}
         </div>
       </div>
     </div>
