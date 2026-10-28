@@ -34,7 +34,7 @@ export interface ProfileScreenshot {
   owner: ScreenshotAuthor;
   imageUrl: string | null;
   thumbnailUrl: string | null;
-  placeholder?: string | null;
+  thumbHash?: string | null;
   width: number;
   height: number;
   capturedAt: number;
