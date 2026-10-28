@@ -134,10 +134,9 @@ $hover-transition: 0.15s ease;
       border-color: $line-strong;
     }
 
-    &--selected,
-    &--selected:hover {
-      border-color: $selected-outline;
-      box-shadow: 0 0 0 1px $selected-outline;
+    &--selected {
+      outline: 2px solid $selected-outline;
+      outline-offset: 2px;
     }
   }
 
