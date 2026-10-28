@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ArtworkItem, UserGame } from "@types";
+import { isVideoArtworkUrl } from "@renderer/hooks/game-artwork-utils";
 
 export const TOP_GAMES_COUNT = 6;
 
@@ -44,9 +45,11 @@ export interface TopGameBanner {
   iconUrl: string | null;
   playTimeInSeconds: number;
   hero: ArtworkItem;
+  /** What the tile shows: small, and already decoded. */
+  artUrl: string;
 }
 
-const findHero = async (game: UserGame) => {
+const findHero = async (game: UserGame): Promise<ArtworkItem | null> => {
   for (const parameters of HERO_ATTEMPTS) {
     const page = await window.electron
       .getGameArtwork(game.shop, game.objectId, "heroes", 0, parameters)
@@ -96,58 +99,121 @@ const fetchLibraryPage = async (userId: string, skip: number) => {
   };
 };
 
-/** A SteamGridDB hero for each of the user's most played games. */
+// Chromium decodes animated WebPs frame by frame at full size, so animated
+// heroes show as a small copy made in the main process. Static ones have a
+// small `thumb` already.
+const getArtUrl = async (hero: ArtworkItem) => {
+  if (!isVideoArtworkUrl(hero.thumb)) return hero.thumb || hero.url;
+  return (await window.electron.getBannerThumbnail(hero.url)) ?? hero.url;
+};
+
+// Keeps the decoded images alive, so the tiles paint them right away.
+const decodedImages: HTMLImageElement[] = [];
+
+const decodeImage = async (url: string) => {
+  const image = new Image();
+  image.src = url;
+  await image.decode().catch(() => {});
+  decodedImages.push(image);
+};
+
+const loadTopGameBanners = async (userId: string) => {
+  const found: Omit<TopGameBanner, "artUrl">[] = [];
+  const seen = new Set<string>();
+  let skip = 0;
+
+  // Games without a hero are skipped, so the next most played ones fill
+  // the list, one library page at a time, until there are enough.
+  while (found.length < TOP_GAMES_COUNT) {
+    const page = await fetchLibraryPage(userId, skip);
+    if (!page) return null;
+
+    const games = page.games.filter((game) => {
+      const key = gameKey(game);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    const banners = await Promise.all(
+      games.map(async (game) => {
+        const hero = await findHero(game);
+        return hero
+          ? {
+              key: gameKey(game),
+              title: game.title,
+              iconUrl: game.customIconUrl ?? game.iconUrl ?? null,
+              playTimeInSeconds: game.playTimeInSeconds,
+              hero,
+            }
+          : null;
+      })
+    );
+
+    found.push(...banners.filter((banner) => banner !== null));
+    if (page.isLastPage) break;
+    skip += TOP_GAMES_COUNT;
+  }
+
+  return Promise.all(
+    found.slice(0, TOP_GAMES_COUNT).map(async (banner) => {
+      const artUrl = await getArtUrl(banner.hero);
+      await decodeImage(artUrl);
+      return { ...banner, artUrl };
+    })
+  );
+};
+
+// One load per user and app session, shared by the profile and the modal.
+const bannersByUser = new Map<string, TopGameBanner[]>();
+const inflightLoads = new Map<string, Promise<TopGameBanner[] | null>>();
+
+/** Starts loading the banners, or joins the load already running. */
+export const preloadTopGameBanners = (userId: string) => {
+  const existing = inflightLoads.get(userId);
+  if (existing) return existing;
+
+  const request = loadTopGameBanners(userId)
+    .catch(() => null)
+    .then((banners) => {
+      // A failed load isn't kept, so the next profile visit tries again.
+      if (banners) bannersByUser.set(userId, banners);
+      inflightLoads.delete(userId);
+      return banners;
+    });
+
+  inflightLoads.set(userId, request);
+  return request;
+};
+
+/**
+ * A SteamGridDB hero for each of the user's most played games, loaded and
+ * decoded ahead of time: the own profile starts it, the edit modal shows it.
+ */
 export function useTopGameBanners(userId: string | null) {
-  const [banners, setBanners] = useState<TopGameBanner[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [banners, setBanners] = useState<TopGameBanner[]>(
+    () => (userId && bannersByUser.get(userId)) || []
+  );
+  const [isLoading, setIsLoading] = useState(
+    () => !!userId && !bannersByUser.has(userId)
+  );
 
   useEffect(() => {
     if (!userId) return;
 
+    const cached = bannersByUser.get(userId);
+    if (cached) {
+      setBanners(cached);
+      setIsLoading(false);
+      return;
+    }
+
     let isCancelled = false;
     setIsLoading(true);
-    void (async () => {
-      const found: TopGameBanner[] = [];
-      const seen = new Set<string>();
-      let skip = 0;
-
-      // Games without a hero are skipped, so the next most played ones fill
-      // the list, one library page at a time, until there are enough.
-      while (found.length < TOP_GAMES_COUNT) {
-        const page = await fetchLibraryPage(userId, skip);
-        if (!page || isCancelled) return;
-
-        const games = page.games.filter((game) => {
-          const key = gameKey(game);
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-
-        const banners = await Promise.all(
-          games.map(async (game) => {
-            const hero = await findHero(game);
-            return hero
-              ? {
-                  key: gameKey(game),
-                  title: game.title,
-                  iconUrl: game.customIconUrl ?? game.iconUrl ?? null,
-                  playTimeInSeconds: game.playTimeInSeconds,
-                  hero,
-                }
-              : null;
-          })
-        );
-        if (isCancelled) return;
-
-        found.push(...banners.filter((banner) => banner !== null));
-        if (page.isLastPage) break;
-        skip += TOP_GAMES_COUNT;
-      }
-
-      setBanners(found.slice(0, TOP_GAMES_COUNT));
-    })().finally(() => {
-      if (!isCancelled) setIsLoading(false);
+    void preloadTopGameBanners(userId).then((loaded) => {
+      if (isCancelled) return;
+      setBanners(loaded ?? []);
+      setIsLoading(false);
     });
 
     return () => {

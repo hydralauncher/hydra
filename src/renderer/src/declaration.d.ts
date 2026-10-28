@@ -437,6 +437,7 @@ declare global {
       assetType: "icon" | "logo" | "hero" | "grid"
     ) => Promise<string>;
     downloadGameArtwork: (artworkUrl: string) => Promise<string | null>;
+    getBannerThumbnail: (url: string) => Promise<string | null>;
     cleanupUnusedAssets: () => Promise<{
       deletedCount: number;
       errors: string[];
