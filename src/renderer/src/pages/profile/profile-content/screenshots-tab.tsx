@@ -55,11 +55,13 @@ const TAB_PANEL_TRANSITION_SECONDS = 0.2;
 const getGameFilterValue = (game: ScreenshotGameFilterItem) =>
   game.shop === "custom" ? "custom" : `${game.shop}:${game.objectId}`;
 
-const readStoredGameFilter = () => {
+const getGameFilterStorageKey = (userId: string) =>
+  `${PROFILE_SCREENSHOT_GAME_STORAGE_KEY}:${userId}`;
+
+const readStoredGameFilter = (userId: string) => {
   try {
     return (
-      localStorage.getItem(PROFILE_SCREENSHOT_GAME_STORAGE_KEY) ??
-      ALL_GAMES_FILTER
+      localStorage.getItem(getGameFilterStorageKey(userId)) ?? ALL_GAMES_FILTER
     );
   } catch {
     return ALL_GAMES_FILTER;
@@ -179,7 +181,9 @@ export function ScreenshotsTab({
   const [sort, setSort] = useState<ScreenshotSort>(() =>
     readStoredScreenshotSort(PROFILE_SCREENSHOT_SORT_STORAGE_KEY)
   );
-  const [gameFilter, setGameFilter] = useState(readStoredGameFilter);
+  const [gameFilter, setGameFilter] = useState(() =>
+    readStoredGameFilter(userId)
+  );
   const [games, setGames] = useState<ScreenshotGameFilterItem[]>([]);
   const [hasLoadedGames, setHasLoadedGames] = useState(false);
 
@@ -325,10 +329,7 @@ export function ScreenshotsTab({
             options={gameOptions}
             onChange={(value) => {
               setGameFilter(value);
-              storeScreenshotPreference(
-                PROFILE_SCREENSHOT_GAME_STORAGE_KEY,
-                value
-              );
+              storeScreenshotPreference(getGameFilterStorageKey(userId), value);
             }}
           />
 

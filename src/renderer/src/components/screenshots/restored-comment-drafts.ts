@@ -5,7 +5,7 @@ export interface RestoredCommentDraft {
   body: string;
 }
 
-const draftsByScreenshotId = new Map<string, RestoredCommentDraft[]>();
+const draftsByKey = new Map<string, RestoredCommentDraft[]>();
 const listeners = new Set<() => void>();
 let lastDraftKey = 0;
 
@@ -18,37 +18,31 @@ const subscribe = (listener: () => void) => {
   };
 };
 
-export const queueRestoredCommentDraft = (
-  screenshotId: string,
-  body: string
-) => {
+export const queueRestoredCommentDraft = (draftKey: string, body: string) => {
   lastDraftKey += 1;
-  const queue = draftsByScreenshotId.get(screenshotId) ?? [];
-  draftsByScreenshotId.set(screenshotId, [
-    ...queue,
-    { key: lastDraftKey, body },
-  ]);
+  const queue = draftsByKey.get(draftKey) ?? [];
+  draftsByKey.set(draftKey, [...queue, { key: lastDraftKey, body }]);
   notifyListeners();
 };
 
-const shiftRestoredCommentDraft = (screenshotId: string) => {
-  const queue = draftsByScreenshotId.get(screenshotId);
+const shiftRestoredCommentDraft = (draftKey: string) => {
+  const queue = draftsByKey.get(draftKey);
   if (!queue) return;
 
   const remaining = queue.slice(1);
-  if (remaining.length > 0) draftsByScreenshotId.set(screenshotId, remaining);
-  else draftsByScreenshotId.delete(screenshotId);
+  if (remaining.length > 0) draftsByKey.set(draftKey, remaining);
+  else draftsByKey.delete(draftKey);
   notifyListeners();
 };
 
-export function useRestoredCommentDraft(screenshotId: string) {
+export function useRestoredCommentDraft(draftKey: string) {
   const restoredDraft = useSyncExternalStore(
     subscribe,
-    () => draftsByScreenshotId.get(screenshotId)?.[0] ?? null
+    () => draftsByKey.get(draftKey)?.[0] ?? null
   );
   const clearRestoredDraft = useCallback(
-    () => shiftRestoredCommentDraft(screenshotId),
-    [screenshotId]
+    () => shiftRestoredCommentDraft(draftKey),
+    [draftKey]
   );
 
   return { restoredDraft, clearRestoredDraft };

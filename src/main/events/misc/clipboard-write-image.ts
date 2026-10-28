@@ -13,6 +13,9 @@ const clipboardWriteImage = async (
   try {
     const response = await net.fetch(imageUrl);
     if (!response.ok) return false;
+    if (!response.headers.get("content-type")?.startsWith("image/")) {
+      return false;
+    }
 
     const image = nativeImage.createFromBuffer(
       Buffer.from(await response.arrayBuffer())
