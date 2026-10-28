@@ -572,6 +572,7 @@ export interface PassiveProgress {
   xp: number;
   dailyLimit: number;
   today: number;
+  pending: number;
 }
 
 export interface GamificationProgress extends LevelProgress {
@@ -599,6 +600,7 @@ export interface Mission {
   current: number;
   isComplete: boolean;
   isClaimed: boolean;
+  pending: number;
   xp: number;
   coins: number;
 }
@@ -637,6 +639,7 @@ export interface Trail {
   group: "solo" | "social";
   current: number;
   isComplete: boolean;
+  pending: number;
   levels: TrailLevel[];
 }
 

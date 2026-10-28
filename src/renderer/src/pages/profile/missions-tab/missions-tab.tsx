@@ -1,10 +1,15 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useGamificationMissions } from "@renderer/hooks";
+import {
+  useGamificationMissions,
+  useGamificationProgress,
+} from "@renderer/hooks";
 import type { GamificationProgress } from "@types";
 import { ProfileSection } from "../profile-section/profile-section";
 import { LevelBox } from "../profile-content/level-box";
+import { Tooltip } from "react-tooltip";
 import { DailyMissions } from "./daily-missions";
+import { MISSIONS_TAB_PENDING_TOOLTIP_ID } from "./pending-moderation-badge";
 import { PassivesBox } from "./passives-box";
 import { StreakBox } from "./streak-box";
 import { TrailsBoard } from "./trails-board";
@@ -12,12 +17,15 @@ import { useMissionFormat, useNow } from "./use-mission-format";
 import { WeeklyMissions } from "./weekly-missions";
 import "./missions-tab.scss";
 
+const PROGRESS_CHANGE_REFRESH_DELAY_MS = 1000;
+const FOCUS_REFRESH_MIN_INTERVAL_MS = 30 * 1000;
 // After a failed rollover fetch, wait this long before trying the same period again.
 const ROLLOVER_RETRY_MS = 30_000;
 
 export function MissionsTab() {
   const { missions, trails, refreshMissions, refreshTrails } =
     useGamificationMissions();
+  const { refreshProgress } = useGamificationProgress();
   const { formatResetLabel } = useMissionFormat();
   const now = useNow();
   const lastRolloverRef = useRef<string | null>(null);
@@ -27,6 +35,43 @@ export function MissionsTab() {
     void refreshMissions();
     void refreshTrails();
   }, [refreshMissions, refreshTrails]);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let includeProgress = false;
+    const scheduleRefresh = (withProgress: boolean) => {
+      clearTimeout(timeout);
+      includeProgress ||= withProgress;
+      timeout = setTimeout(() => {
+        void refreshMissions();
+        void refreshTrails();
+        if (includeProgress) void refreshProgress();
+        includeProgress = false;
+      }, PROGRESS_CHANGE_REFRESH_DELAY_MS);
+    };
+    let lastFocusRefreshAt = Date.now();
+    const onFocus = () => {
+      if (Date.now() - lastFocusRefreshAt < FOCUS_REFRESH_MIN_INTERVAL_MS) {
+        return;
+      }
+      lastFocusRefreshAt = Date.now();
+      scheduleRefresh(true);
+    };
+    const onSync = () => scheduleRefresh(false);
+
+    globalThis.window.addEventListener("focus", onFocus);
+    const unsubscribeSession =
+      globalThis.window.electron.onGameSessionSynced(onSync);
+    const unsubscribePlaytime =
+      globalThis.window.electron.onGamePlaytimeSynced(onSync);
+
+    return () => {
+      clearTimeout(timeout);
+      globalThis.window.removeEventListener("focus", onFocus);
+      unsubscribeSession();
+      unsubscribePlaytime();
+    };
+  }, [refreshMissions, refreshTrails, refreshProgress]);
 
   // Fetch again once a period rolls over while the tab is open.
   useEffect(() => {
@@ -67,6 +112,7 @@ export function MissionsTab() {
         )}
         {trails && <TrailsBoard trails={trails} />}
       </div>
+      <Tooltip id={MISSIONS_TAB_PENDING_TOOLTIP_ID} />
     </div>
   );
 }

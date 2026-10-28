@@ -15,6 +15,10 @@ import {
   getAmountAt,
   type TrailLevelState,
 } from "./trail-level-wheel";
+import {
+  MISSIONS_TAB_PENDING_TOOLTIP_ID,
+  PendingModerationBadge,
+} from "./pending-moderation-badge";
 import { useMissionActions } from "./use-mission-actions";
 
 const ORBIT_SIZE = 300;
@@ -464,7 +468,15 @@ function TrailLevelDetail({
           {t("trail_level", { level: level.level })}
         </span>
         <strong>{formatAmount(trail.key, level.threshold)}</strong>
-        <small>{renderStatus()}</small>
+        <small>
+          {renderStatus()}
+          {state === "current" && (
+            <PendingModerationBadge
+              count={trail.pending}
+              tooltipId={MISSIONS_TAB_PENDING_TOOLTIP_ID}
+            />
+          )}
+        </small>
         {state === "current" && (
           <span className="trails-board__detail-bar">
             <span
@@ -689,9 +701,11 @@ export function TrailsBoard({ trails }: Readonly<{ trails: Trail[] }>) {
                 onClick={() => setSelectedTrailKey(trail.key)}
               >
                 {hasClaimable && (
-                  <span className="trails-board__claim-badge">
-                    {t("claim_reward")}
-                  </span>
+                  <span
+                    className="trails-board__claim-badge"
+                    role="img"
+                    aria-label={t("trail_status_claimable")}
+                  />
                 )}
                 <span className="trails-board__trail-icon">
                   <SelectorRing trail={trail} />

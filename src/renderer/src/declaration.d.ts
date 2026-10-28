@@ -615,6 +615,7 @@ declare global {
       ) => void
     ) => () => Electron.IpcRenderer;
     onGameSessionSynced: (cb: () => void) => () => Electron.IpcRenderer;
+    onGamePlaytimeSynced: (cb: () => void) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
     onRemoteLibrarySyncStateChange: (
       cb: (syncing: boolean) => void
