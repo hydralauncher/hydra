@@ -1,11 +1,4 @@
-import {
-  lazy,
-  Suspense,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { lazy, Suspense, useContext, useEffect, useState } from "react";
 import type {
   HowLongToBeatCategory,
   ProtonDBData,
@@ -35,7 +28,6 @@ import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { LaunchboxDetailsSection } from "./launchbox-details-section";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
-import { buildSteamContentWarning, isAdultGameContentWarning } from "@shared";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
 import "./sidebar.scss";
@@ -151,10 +143,6 @@ export function Sidebar() {
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
   const achievementsCount = achievements?.length ?? 0;
-  const isAdultGame = useMemo(
-    () => isAdultGameContentWarning(buildSteamContentWarning(shopDetails)),
-    [shopDetails]
-  );
   const shouldRenderAchievementsSection =
     (!!userDetails && achievementsCount > 0) ||
     (shop === "launchbox" &&
@@ -363,7 +351,6 @@ export function Sidebar() {
         <GameScreenshots
           shop={catalogueGame.shop}
           objectId={catalogueGame.objectId}
-          isAdultGame={isAdultGame}
         />
       ) : null}
 

@@ -276,17 +276,15 @@ function GameScreenshotsBox({
 interface GameScreenshotsProps {
   shop: GameShop;
   objectId: string;
-  isAdultGame: boolean;
 }
 
 export function GameScreenshots({
   shop,
   objectId,
-  isAdultGame,
 }: Readonly<GameScreenshotsProps>) {
   const { isFeatureEnabled, Feature } = useFeature();
 
-  if (isAdultGame || !isFeatureEnabled(Feature.Screenshots)) return null;
+  if (!isFeatureEnabled(Feature.Screenshots)) return null;
 
   return (
     <GameScreenshotsBox
