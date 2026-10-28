@@ -500,7 +500,11 @@ export default function Library() {
     [groupedLibrary, sortBy]
   );
 
-  const { platforms: uniquePlatforms, hasImportedGames } = useMemo(
+  const {
+    platforms: uniquePlatforms,
+    sources: availableSources,
+    hasImportedGames,
+  } = useMemo(
     () =>
       getLibraryFilterOptions(
         selectedCollectionId === HIDDEN_COLLECTION_ID ? hiddenGames : library
@@ -508,6 +512,13 @@ export default function Library() {
     [library, hiddenGames, selectedCollectionId]
   );
   const hasPlatforms = uniquePlatforms.length > 0;
+  const effectiveSources = useMemo(
+    () =>
+      hasImportedGames
+        ? selectedSources.filter((source) => availableSources.includes(source))
+        : [],
+    [hasImportedGames, selectedSources, availableSources]
+  );
   const showSourceFilter =
     categoryShowsSources(effectiveCategory) && hasImportedGames;
   const showPlatformFilter =
@@ -535,7 +546,7 @@ export default function Library() {
 
     filtered = filterLibraryGames(filtered, {
       category: effectiveCategory,
-      sources: hasImportedGames ? selectedSources : [],
+      sources: effectiveSources,
       platforms: hasPlatforms ? selectedPlatforms : [],
     });
 
@@ -571,8 +582,7 @@ export default function Library() {
     deferredSearchQuery,
     selectedCollectionId,
     effectiveCategory,
-    hasImportedGames,
-    selectedSources,
+    effectiveSources,
     hasPlatforms,
     selectedPlatforms,
     showInstalledOnly,
@@ -687,9 +697,13 @@ export default function Library() {
   const isFavoritesCollectionSelected =
     selectedCollectionId === FAVORITES_COLLECTION_ID;
   const shouldShowFavoritesEmptyState =
-    hasGames && isFavoritesCollectionSelected && hasNoFilteredGames;
+    hasGames &&
+    !isLibraryLoading &&
+    isFavoritesCollectionSelected &&
+    hasNoFilteredGames;
   const shouldShowCollectionEmptyState =
     hasGames &&
+    !isLibraryLoading &&
     !shouldShowFavoritesEmptyState &&
     !(
       isHiddenCollectionSelected &&
@@ -704,6 +718,7 @@ export default function Library() {
     hasNoFilteredGames;
   const shouldShowNoResultsEmptyState =
     hasGames &&
+    !isLibraryLoading &&
     hasNoFilteredGames &&
     !shouldShowFavoritesEmptyState &&
     !shouldShowCollectionEmptyState &&
@@ -738,7 +753,8 @@ export default function Library() {
               />
               {showSourceFilter && (
                 <SourceFilter
-                  selectedSources={selectedSources}
+                  sources={availableSources}
+                  selectedSources={effectiveSources}
                   onSourcesChange={handleSourcesChange}
                 />
               )}
@@ -867,6 +883,7 @@ export default function Library() {
         )}
         {containerWidth > 0 &&
           hasGames &&
+          !isLibraryLoading &&
           !shouldShowFavoritesEmptyState &&
           !shouldShowCollectionEmptyState &&
           !shouldShowClassicsImporting &&

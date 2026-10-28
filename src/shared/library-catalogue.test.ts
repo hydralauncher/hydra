@@ -3,9 +3,11 @@ import { describe, it } from "node:test";
 import type { Download, DownloadStatus, LibraryGame } from "@types";
 import {
   findLibraryGamePresentation,
+  getRemoveFilesTarget,
   groupLibraryGames,
-  mergeLibraryCatalogueMetadata,
   isLibraryGameDownloading,
+  isSameRemoveFilesTarget,
+  mergeLibraryCatalogueMetadata,
 } from "./library-catalogue.js";
 import { getDisplayedPlayTimeInMilliseconds } from "./playtime.js";
 
@@ -29,6 +31,25 @@ const makeGame = (overrides: Partial<LibraryGame> = {}): LibraryGame => ({
   availableShops: ["steam", "epic"],
   ...overrides,
 });
+
+const makeSteamGame = (overrides: Partial<LibraryGame> = {}): LibraryGame =>
+  makeGame({
+    id: "steam:123",
+    shop: "steam",
+    objectId: "123",
+    hasActiveSteamImport: true,
+    hasActiveEpicImport: false,
+    ...overrides,
+  });
+
+const makeDownload = (overrides: Partial<Download> = {}): Download =>
+  ({
+    status: "complete",
+    downloadPath: "/games/title",
+    ...overrides,
+  }) as Download;
+
+const group = (...games: LibraryGame[]) => groupLibraryGames(games)[0];
 
 describe("library catalogue presentation", () => {
   it("keeps the downloading Epic member separate from the Steam operational member", () => {
@@ -187,6 +208,17 @@ describe("library catalogue presentation", () => {
     );
   });
 
+  it("takes artwork selections from the member that provides the artwork", () => {
+    const epic = makeGame({
+      executablePath: "epic.exe",
+      selectedArtworkTypes: ["hero", "logo"],
+    });
+    const steam = makeGame({ id: "steam:123", shop: "steam", objectId: "123" });
+    const [group] = groupLibraryGames([epic, steam]);
+    assert.equal(group.operationalGame, epic);
+    assert.equal(group.selectedArtworkTypes, undefined);
+  });
+
   it("keeps Epic-only catalogue and unrelated same-title games separate", () => {
     const epic = makeGame({
       catalogueGame: { shop: "epic", objectId: "namespace:item" },
@@ -293,5 +325,181 @@ describe("library catalogue presentation", () => {
         .availableShops,
       ["epic"]
     );
+  });
+
+  describe("remove files target", () => {
+    it("returns null when the Steam executable is outside the Steam library", () => {
+      const steam = makeSteamGame({ executablePath: "steam.exe" });
+
+      assert.equal(getRemoveFilesTarget(steam, true, false), null);
+    });
+
+    it("targets Steam uninstall when the executable is inside the Steam library", () => {
+      const steam = makeSteamGame({ executablePath: "steam.exe" });
+      const target = getRemoveFilesTarget(steam, true, true);
+
+      assert.deepEqual(target, {
+        kind: "steam",
+        game: steam,
+        appId: "123",
+      });
+    });
+
+    it("targets Hydra removal when a download path exists", () => {
+      const game = makeGame({ download: makeDownload() });
+      const target = getRemoveFilesTarget(game, false);
+
+      assert.deepEqual(target, { kind: "hydra", game });
+    });
+
+    it("returns null when a download record has no path", () => {
+      const game = makeGame({
+        download: makeDownload({ downloadPath: "" }),
+      });
+
+      assert.equal(getRemoveFilesTarget(game, true), null);
+    });
+
+    it("prefers a grouped Hydra download over a grouped Steam import", () => {
+      const steam = makeSteamGame({ executablePath: "steam.exe" });
+      const epic = makeGame({ download: makeDownload() });
+      const presentation = group(steam, epic);
+      const target = getRemoveFilesTarget(presentation, true, true);
+
+      assert.deepEqual(target, { kind: "hydra", game: epic });
+    });
+
+    it("targets the operational Steam member when a group has no Hydra download", () => {
+      const steam = makeSteamGame({ executablePath: "steam.exe" });
+      const epic = makeGame();
+      const presentation = group(steam, epic);
+      const target = getRemoveFilesTarget(presentation, true, true);
+
+      assert.deepEqual(target, {
+        kind: "steam",
+        game: steam,
+        appId: "123",
+      });
+    });
+
+    it("targets a grouped Steam member when Epic is operational", () => {
+      const steam = makeSteamGame({ executablePath: "steam.exe" });
+      const epic = makeGame({ executablePath: "epic.exe" });
+      const presentation = group(steam, epic);
+      const target = getRemoveFilesTarget(presentation, true, true);
+
+      assert.deepEqual(target, {
+        kind: "steam",
+        game: steam,
+        appId: "123",
+      });
+    });
+
+    it("returns null when a group has no Hydra download and no Steam member", () => {
+      const epic = makeGame();
+      const presentation = group(epic);
+
+      assert.equal(getRemoveFilesTarget(presentation, true), null);
+    });
+
+    it("returns null when a non-Steam record carries the Steam import flag", () => {
+      const epic = makeGame({ hasActiveSteamImport: true });
+
+      assert.equal(getRemoveFilesTarget(epic, true), null);
+    });
+
+    it("returns null when the Steam app ID is invalid", () => {
+      const steam = makeSteamGame({
+        executablePath: "steam.exe",
+        objectId: "abc",
+      });
+
+      assert.equal(getRemoveFilesTarget(steam, true, true), null);
+    });
+
+    it("returns null when Steam uninstall is unavailable on the preload", () => {
+      const steam = makeSteamGame({ executablePath: "steam.exe" });
+
+      assert.equal(getRemoveFilesTarget(steam, false, true), null);
+    });
+
+    it("prefers an active grouped download over a paused grouped download", () => {
+      const steam = makeSteamGame({
+        executablePath: "steam.exe",
+        download: makeDownload({ status: "active" }),
+      });
+      const epic = makeGame({
+        download: makeDownload({ status: "paused" }),
+      });
+      const presentation = group(steam, epic);
+      const target = getRemoveFilesTarget(presentation, true, true);
+
+      assert.deepEqual(target, { kind: "hydra", game: steam });
+    });
+
+    it("falls back to a grouped download with a path when the preferred download has none", () => {
+      const steam = makeSteamGame({
+        executablePath: "steam.exe",
+        download: makeDownload({ status: "active", downloadPath: "" }),
+      });
+      const epic = makeGame({
+        download: makeDownload({ status: "paused" }),
+      });
+      const presentation = group(steam, epic);
+      const target = getRemoveFilesTarget(presentation, true, true);
+
+      assert.deepEqual(target, { kind: "hydra", game: epic });
+    });
+
+    it("compares Hydra targets by shop and objectId", () => {
+      const game = makeGame();
+
+      assert.equal(
+        isSameRemoveFilesTarget(
+          { kind: "hydra", game },
+          { kind: "hydra", game: { ...game } }
+        ),
+        true
+      );
+      assert.equal(
+        isSameRemoveFilesTarget(
+          { kind: "hydra", game },
+          { kind: "hydra", game: { ...game, objectId: "other:item" } }
+        ),
+        false
+      );
+    });
+
+    it("compares Steam targets by appId", () => {
+      const steam = makeSteamGame();
+
+      assert.equal(
+        isSameRemoveFilesTarget(
+          { kind: "steam", game: steam, appId: "123" },
+          { kind: "steam", game: { ...steam }, appId: "123" }
+        ),
+        true
+      );
+      assert.equal(
+        isSameRemoveFilesTarget(
+          { kind: "steam", game: steam, appId: "123" },
+          { kind: "steam", game: { ...steam }, appId: "456" }
+        ),
+        false
+      );
+    });
+
+    it("does not match targets from different stores", () => {
+      const game = makeGame();
+      const steam = makeSteamGame();
+
+      assert.equal(
+        isSameRemoveFilesTarget(
+          { kind: "hydra", game },
+          { kind: "steam", game: steam, appId: "123" }
+        ),
+        false
+      );
+    });
   });
 });

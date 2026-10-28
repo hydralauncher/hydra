@@ -8,6 +8,8 @@ export const ACHIEVEMENT_SYNC_RETRY_JITTER_DIVISOR = 4;
 export const ACHIEVEMENT_SYNC_MAX_TIMER_DELAY_MS = 2_147_483_647;
 export const ACHIEVEMENT_SYNC_RETRYABLE_CLIENT_STATUSES = [408, 409, 429];
 export const ACHIEVEMENT_RESET_RETRY_BUDGET_MS = 75_000;
+export const ACHIEVEMENT_SYNC_COALESCE_WINDOW_MS = 5_000;
+export const ACHIEVEMENT_SYNC_MAX_SERVER_ERRORS = 10;
 
 export class AchievementSyncCancelledError extends Error {
   constructor() {

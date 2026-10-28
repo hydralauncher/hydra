@@ -19,6 +19,7 @@ import {
   isWindowsWindowSource,
 } from "./windows-game-window-match";
 import { captureWindowsGameWindowFrame } from "./windows-game-capture";
+import { cropToWindowClientArea } from "./windows-window-bounds";
 import {
   getBitmapColorRange,
   isMostlyBlackScreenshot,
@@ -78,6 +79,7 @@ export interface GameScreenshotCaptureTarget {
   executablePaths?: string[];
   winePrefixPath?: string | null;
   gameKey?: string;
+  cropToClientArea?: boolean;
 }
 
 const getForegroundWindow = async (): Promise<ForegroundWindow | null> => {
@@ -326,6 +328,9 @@ export class ScreenshotService {
     } else if (process.platform === "win32") {
       const source = await getGameWindowSource(captureTarget);
       capturedImage = await captureWindowsGameWindowFrame(source.id);
+      if (captureTarget.cropToClientArea) {
+        capturedImage = await cropToWindowClientArea(capturedImage, source.id);
+      }
     } else {
       capturedImage = (await getGameWindowSource(captureTarget)).thumbnail;
     }

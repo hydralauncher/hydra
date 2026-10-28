@@ -16,6 +16,7 @@ import {
   useDownload,
   useLibrary,
   useToast,
+  useGlobalLeaderboardsFeature,
 } from "@renderer/hooks";
 import { selectIsLibraryLoading } from "@renderer/features";
 import { routes } from "./routes";
@@ -27,6 +28,7 @@ import {
   categoryShowsPlatforms,
   categoryShowsSources,
   filterLibraryGames,
+  getAvailableLibrarySources,
   hasImportedLibraryGames,
   readStoredLibraryFilters,
   type LibraryCategory,
@@ -86,6 +88,8 @@ const readStoredSidebarPlatforms = (): string[] => {
 
 export function Sidebar() {
   const { t } = useTranslation(["sidebar", "library"]);
+  const { isEnabled: isGlobalLeaderboardsEnabled } =
+    useGlobalLeaderboardsFeature();
   const { library, updateLibrary } = useLibrary();
   const isLibraryLoading = useAppSelector(selectIsLibraryLoading);
   const runningGameId = useAppSelector(
@@ -159,9 +163,16 @@ export function Sidebar() {
     [library]
   );
   const hasPlatforms = uniquePlatforms.length > 0;
+  const availableSources = useMemo(
+    () => getAvailableLibrarySources(library),
+    [library]
+  );
   const effectiveSources = useMemo(
-    () => (hasImportedGames ? selectedSources : []),
-    [hasImportedGames, selectedSources]
+    () =>
+      hasImportedGames
+        ? selectedSources.filter((source) => availableSources.includes(source))
+        : [],
+    [hasImportedGames, selectedSources, availableSources]
   );
   const effectivePlatforms = useMemo(
     () => (hasPlatforms ? selectedPlatforms : []),
@@ -231,6 +242,8 @@ export function Sidebar() {
   const isSearching = filterQuery.trim().length > 0;
 
   const visibleGames = useMemo(() => {
+    if (isLibraryLoading) return [];
+
     if (isSearching) {
       const normalizedQuery = removeDiacritics(filterQuery).toLowerCase();
 
@@ -242,7 +255,14 @@ export function Sidebar() {
     return showPlayableOnly
       ? sortedLibrary.filter(isGamePlayable)
       : sortedLibrary;
-  }, [isSearching, filterQuery, searchIndex, showPlayableOnly, sortedLibrary]);
+  }, [
+    isLibraryLoading,
+    isSearching,
+    filterQuery,
+    searchIndex,
+    showPlayableOnly,
+    sortedLibrary,
+  ]);
 
   const hasActiveFilter =
     library.length > 0 &&
@@ -515,23 +535,28 @@ export function Sidebar() {
         <div className="sidebar__content">
           <section className="sidebar__section">
             <ul className="sidebar__menu">
-              {routes.map(({ nameKey, path, render }) => (
-                <li
-                  key={nameKey}
-                  className={cn("sidebar__menu-item", {
-                    "sidebar__menu-item--active": location.pathname === path,
-                  })}
-                >
-                  <button
-                    type="button"
-                    className="sidebar__menu-item-button"
-                    onClick={() => handleSidebarItemClick(path)}
+              {routes
+                .filter(
+                  (route) =>
+                    !route.isGlobalLeaderboards || isGlobalLeaderboardsEnabled
+                )
+                .map(({ nameKey, path, render }) => (
+                  <li
+                    key={nameKey}
+                    className={cn("sidebar__menu-item", {
+                      "sidebar__menu-item--active": location.pathname === path,
+                    })}
                   >
-                    {render()}
-                    <span>{t(nameKey)}</span>
-                  </button>
-                </li>
-              ))}
+                    <button
+                      type="button"
+                      className="sidebar__menu-item-button"
+                      onClick={() => handleSidebarItemClick(path)}
+                    >
+                      {render()}
+                      <span>{t(nameKey)}</span>
+                    </button>
+                  </li>
+                ))}
 
               {window.electron.platform === "linux" && homebrewFolderExists && (
                 <li className="sidebar__menu-item sidebar__menu-item--decky">
@@ -600,7 +625,8 @@ export function Sidebar() {
                 showSources={
                   categoryShowsSources(sidebarCategory) && hasImportedGames
                 }
-                selectedSources={selectedSources}
+                sources={availableSources}
+                selectedSources={effectiveSources}
                 onSourcesChange={handleSelectedSourcesChange}
                 showPlatforms={
                   categoryShowsPlatforms(sidebarCategory) && hasPlatforms
@@ -625,11 +651,13 @@ export function Sidebar() {
               >
                 {isLibraryLoading && <SidebarGameListSkeleton />}
 
-                {hasActiveFilter && visibleGames.length === 0 && (
-                  <p className="sidebar__game-list-empty">
-                    {t("library:no_results")}
-                  </p>
-                )}
+                {!isLibraryLoading &&
+                  hasActiveFilter &&
+                  visibleGames.length === 0 && (
+                    <p className="sidebar__game-list-empty">
+                      {t("library:no_results")}
+                    </p>
+                  )}
 
                 <div
                   style={{

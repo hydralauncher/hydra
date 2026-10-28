@@ -8,6 +8,10 @@ import {
 } from "../../services/achievements/achievement-sync-coordinator.ts";
 import { getMockUnlockPercentage } from "../../services/achievements/mock-unlock-percentage.ts";
 
+const passthroughCombinedRequest = (
+  ...args: [unknown, string, string, string, () => Promise<unknown>]
+) => args[4]().catch(() => null);
+
 type Row = {
   name: string;
   unlocked: boolean;
@@ -87,6 +91,9 @@ const load = (options: {
         set: () => assert.fail("must not copy catalogue cache"),
       },
     },
+    "@main/services/achievements/unlocked-achievements-cache": {
+      UnlockedAchievementsCache: { recordCombinedMembers: () => undefined },
+    },
     "@main/services/achievements/achievement-souvenir-store": {
       AchievementSouvenirStore: {
         set: (shop: string) => writes.push(shop),
@@ -123,6 +130,9 @@ const load = (options: {
     },
     "@main/services/achievements/merge-unlocked-achievements": {
       mergeUnlockedAchievementLists: (remote: unknown[]) => remote,
+    },
+    "@main/services/achievements/combined-achievements-requests": {
+      CombinedAchievementsRequests: { fetch: passthroughCombinedRequest },
     },
     "@main/services/achievements/combined-achievement-presentation": {},
     "@main/services/achievements/mock-unlock-percentage": {

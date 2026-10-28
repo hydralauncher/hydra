@@ -23,6 +23,7 @@ import { WorkWonders } from "workwonders-sdk";
 import {
   clearExtraction,
   closeToast,
+  showToast,
   failClassicsScan,
   failRetroArchScan,
   finishClassicsScan,
@@ -32,6 +33,7 @@ import {
   setExtractionProgress,
   setGameRunning,
   setLibrarySyncingRemote,
+  setLibraryAwaitingAccount,
   setProfileBackground,
   setUserDetails,
   setUserPreferences,
@@ -48,6 +50,7 @@ import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
+import { LeaderboardNotificationLayer } from "./components/leaderboard-notification/leaderboard-notification-layer";
 import { playMessageSound } from "./pages/chat-window/chat-sounds";
 
 import type { UserPreferences } from "@types";
@@ -107,7 +110,7 @@ export function App() {
 
   const toast = useAppSelector((state) => state.toast);
 
-  const { showSuccessToast, showErrorToast } = useToast();
+  const { showSuccessToast, showErrorToast, showWarningToast } = useToast();
 
   const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
     useState(false);
@@ -358,13 +361,14 @@ export function App() {
   }, [setupExternalResources]);
 
   const onSignIn = useCallback(() => {
+    dispatch(setLibraryAwaitingAccount(true));
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
         showSuccessToast(t("successfully_signed_in"));
       }
     });
-  }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
+  }, [dispatch, fetchUserDetails, t, showSuccessToast, updateUserDetails]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
@@ -493,9 +497,10 @@ export function App() {
         return;
       }
 
-      void updateLibrary().finally(() =>
-        dispatch(setLibrarySyncingRemote(false))
-      );
+      void updateLibrary().finally(() => {
+        dispatch(setLibrarySyncingRemote(false));
+        dispatch(setLibraryAwaitingAccount(false));
+      });
     });
   }, [dispatch, updateLibrary]);
 
@@ -564,12 +569,39 @@ export function App() {
         setArchivePaths(paths);
         setShowArchiveDeletionModal(true);
       }),
+      window.electron.onGameInstallerClosed(
+        (_shop, _objectId, executableFound) => {
+          updateLibrary();
+
+          if (executableFound) {
+            showSuccessToast(
+              t("game_installed_title", { ns: "downloads" }),
+              t("game_installed_description", { ns: "downloads" })
+            );
+            return;
+          }
+
+          showWarningToast(
+            t("installed_game_not_found_title", { ns: "downloads" }),
+            t("installed_game_not_found_description", { ns: "downloads" })
+          );
+        }
+      ),
     ];
 
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [onSignIn, updateLibrary, clearUserDetails, dispatch, showErrorToast, t]);
+  }, [
+    onSignIn,
+    updateLibrary,
+    clearUserDetails,
+    dispatch,
+    showErrorToast,
+    showSuccessToast,
+    showWarningToast,
+    t,
+  ]);
 
   useEffect(() => {
     const asyncScrollAndNotify = async () => {
@@ -630,6 +662,14 @@ export function App() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = globalThis.electron.onShowToast((toast) => {
+      dispatch(showToast(toast));
+    });
+
+    return () => unsubscribe();
+  }, [dispatch]);
 
   const playAudio = useCallback(async () => {
     const soundUrl = await getAchievementSoundUrl();
@@ -772,6 +812,8 @@ export function App() {
       />
 
       <CloudGiftNotificationModal />
+
+      <LeaderboardNotificationLayer />
 
       <ArchiveDeletionModal
         visible={showArchiveDeletionModal}

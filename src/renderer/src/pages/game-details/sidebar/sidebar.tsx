@@ -35,6 +35,7 @@ import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
 import { isAchievementConcealed } from "@shared";
 import { ControllerSupportSection } from "./controller-support-section";
+import { LeaderboardSection } from "../leaderboard/leaderboard-section";
 
 const ProtonDBSection = lazy(async () => {
   const mod = await import("./protondb-section");
@@ -140,7 +141,7 @@ export function Sidebar() {
 
   const { showHydraCloudModal } = useSubscription();
   const { t } = useTranslation("game_details");
-  const { formatUnlockDateTime } = useDate();
+  const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
   const achievementsCount = achievements?.length ?? 0;
   const shouldRenderAchievementsSection =
@@ -228,7 +229,7 @@ export function Sidebar() {
                     <p>{achievement.displayName}</p>
                     <small>
                       {achievement.unlockTime != null &&
-                        formatUnlockDateTime(achievement.unlockTime)}
+                        formatDateTime(achievement.unlockTime)}
                     </small>
                   </div>
                 </div>
@@ -302,7 +303,7 @@ export function Sidebar() {
                       </p>
                       <small>
                         {achievement.unlockTime != null &&
-                          formatUnlockDateTime(achievement.unlockTime)}
+                          formatDateTime(achievement.unlockTime)}
                       </small>
                     </div>
                   </Link>
@@ -324,6 +325,8 @@ export function Sidebar() {
           </ul>
         </SidebarSection>
       )}
+
+      <LeaderboardSection />
 
       {stats && (
         <SidebarSection title={t("stats")}>

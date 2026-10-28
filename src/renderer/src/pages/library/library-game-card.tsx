@@ -1,7 +1,7 @@
 import { LibraryGame } from "@types";
 import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import cn from "classnames";
-import { getLibraryPresentationBadgeSource } from "./library-category";
+import { getLibraryPresentationImportSources } from "./library-category";
 import {
   useGameCard,
   useCoverPoster,
@@ -57,11 +57,11 @@ export const LibraryGameCard = memo(function LibraryGameCard({
     userPreferences?.hideLibraryReadySizeBadges ?? false;
   const hideClassicsBadges =
     userPreferences?.hideLibraryClassicsBadges ?? false;
-  const badgeSource = getLibraryPresentationBadgeSource(game);
+  const importSources = getLibraryPresentationImportSources(game);
   const showEpicLibraryBadge =
-    badgeSource === "epic" && !userPreferences?.hideEpicLibraryBadges;
+    importSources.epic && !userPreferences?.hideEpicLibraryBadges;
   const showSteamLibraryBadge =
-    badgeSource === "steam" && !userPreferences?.hideSteamLibraryBadges;
+    importSources.steam && !userPreferences?.hideSteamLibraryBadges;
   const hideAchievementProgress =
     userPreferences?.hideLibraryAchievementProgress ?? false;
   const autoplayAnimatedArtwork =
@@ -273,20 +273,18 @@ export const LibraryGameCard = memo(function LibraryGameCard({
             showPlatformBadge ||
             showReadyBadge) && (
             <div className="library-game-card__top-right">
-              {showEpicLibraryBadge && (
-                <SteamLibraryBadge
-                  source="epic"
-                  availableShops={game.availableShops}
-                  hasActiveSteamImport={game.hasActiveSteamImport}
-                  hasActiveEpicImport={game.hasActiveEpicImport}
-                />
-              )}
-              {showSteamLibraryBadge && (
-                <SteamLibraryBadge
-                  availableShops={game.availableShops}
-                  hasActiveSteamImport={game.hasActiveSteamImport}
-                  hasActiveEpicImport={game.hasActiveEpicImport}
-                />
+              {(showSteamLibraryBadge || showEpicLibraryBadge) && (
+                <div className="library-game-card__import-badges">
+                  {showSteamLibraryBadge && (
+                    <SteamLibraryBadge availableShops={game.availableShops} />
+                  )}
+                  {showEpicLibraryBadge && (
+                    <SteamLibraryBadge
+                      source="epic"
+                      availableShops={game.availableShops}
+                    />
+                  )}
+                </div>
               )}
 
               {showPlatformBadge && (

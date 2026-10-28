@@ -1,6 +1,7 @@
 import { DownloadIcon, PeopleIcon } from "@primer/octicons-react";
 import type { GameStats, ShopAssets } from "@types";
 
+import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 
 import "./game-card.scss";
@@ -21,6 +22,7 @@ export interface GameCardProps
 
 const shopIcon = {
   steam: <SteamLogo className="game-card__shop-icon" />,
+  epic: <EpicLogo className="game-card__shop-icon" />,
 };
 
 export function GameCard({ game, ...props }: GameCardProps) {
