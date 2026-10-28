@@ -29,10 +29,9 @@ import {
 } from "@renderer/components/rich-text-editor/use-rich-text-editor";
 
 import { Button, FocusItem, HorizontalFocusGroup } from "../../../common";
-import { useFocusLayerId } from "../../../context";
-import { useIsLayerOnTop, useNavigationScreenActions } from "../../../../hooks";
 import { useVirtualKeyboardStore } from "../../../../stores";
 import type { FocusOverrideTarget } from "../../../../services";
+import { EditingBackAction } from "../inline-text-field";
 import {
   COMMENTS_NAVIGATION_ORDER,
   type ScreenshotCommentsPanelFocusIds,
@@ -51,14 +50,6 @@ function useEditorRerender(editor: Editor | null) {
       editor.off("transaction", rerender);
     };
   }, [editor]);
-}
-
-function CancelEditBackAction({
-  onCancel,
-}: Readonly<{ onCancel: () => void }>) {
-  const isOnTop = useIsLayerOnTop(useFocusLayerId());
-  useNavigationScreenActions(isOnTop ? { press: { b: onCancel } } : {});
-  return null;
 }
 
 function useEditorDraftSync(
@@ -204,7 +195,7 @@ function CommentEditorForm({
     <form className="screenshot-comments__composer" onSubmit={handleSubmit}>
       {isEditing ? (
         <>
-          <CancelEditBackAction onCancel={onCancelEdit} />
+          <EditingBackAction onBack={onCancelEdit} />
           <span className="screenshot-comments__editing-label">
             {t("screenshots_comment_editing")}
           </span>

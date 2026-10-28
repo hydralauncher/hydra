@@ -9,13 +9,13 @@ import {
   NavigationLayer,
   VerticalFocusGroup,
 } from "../../../common";
-import { FocusRegionContext } from "../../../context";
-import { useInputModeStore } from "../../../../stores";
 import {
-  LightboxBackAction,
-  LightboxLayerReporter,
-  useActiveLayerTracker,
-} from "./lightbox-shortcuts";
+  FocusLayerReporter,
+  FocusRegionContext,
+  useFocusLayerTracker,
+} from "../../../context";
+import { useInputModeStore } from "../../../../stores";
+import { LightboxBackAction } from "./lightbox-shortcuts";
 
 const STATUS_CLOSE_FOCUS_ID = "screenshot-lightbox-status-close";
 const STATUS_REGION_ID = "screenshot-lightbox-status";
@@ -40,7 +40,7 @@ export function ScreenshotLightboxStatusPanel({
   onLayerIdChange,
 }: Readonly<ScreenshotLightboxStatusPanelProps>) {
   const { t } = useTranslation("big_picture");
-  const { layerId, handleLayerChange, isActiveLayer } = useActiveLayerTracker();
+  const { layerId, handleLayerChange, isActiveLayer } = useFocusLayerTracker();
   const reportLayerChange = useCallback(
     (nextLayerId: string | null) => {
       handleLayerChange(nextLayerId);
@@ -88,7 +88,7 @@ export function ScreenshotLightboxStatusPanel({
             initialFocusId={STATUS_CLOSE_FOCUS_ID}
             restoreFocusOnUnmount={shouldRestoreFocus}
           >
-            <LightboxLayerReporter onLayerChange={reportLayerChange} />
+            <FocusLayerReporter onLayerChange={reportLayerChange} />
             <VerticalFocusGroup regionId={STATUS_REGION_ID} asChild>
               <div
                 className="screenshot-lightbox__status"

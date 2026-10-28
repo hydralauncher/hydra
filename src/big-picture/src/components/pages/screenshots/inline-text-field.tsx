@@ -22,7 +22,9 @@ import type { FocusOverrides } from "../../../services";
 
 const LIMIT_FEEDBACK_MS = 300;
 
-function EditingBackAction({ onBack }: Readonly<{ onBack: () => void }>) {
+export function EditingBackAction({
+  onBack,
+}: Readonly<{ onBack: () => void }>) {
   const isOnTop = useIsLayerOnTop(useFocusLayerId());
   useNavigationScreenActions(isOnTop ? { press: { b: onBack } } : {});
   return null;

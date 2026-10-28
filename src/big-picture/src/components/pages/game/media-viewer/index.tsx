@@ -3,7 +3,6 @@ import "./styles.scss";
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -40,7 +39,11 @@ import {
   NavigationLayer,
   VerticalFocusGroup,
 } from "../../../common";
-import { FocusRegionContext, useFocusLayerId } from "../../../context";
+import {
+  FocusLayerReporter,
+  FocusRegionContext,
+  useFocusLayerTracker,
+} from "../../../context";
 import {
   useGamepad,
   useIsLayerOnTop,
@@ -269,23 +272,6 @@ function MediaViewerImage({
   );
 }
 
-interface MediaViewerLayerReporterProps {
-  onLayerChange: (layerId: string | null) => void;
-}
-
-function MediaViewerLayerReporter({
-  onLayerChange,
-}: Readonly<MediaViewerLayerReporterProps>) {
-  const layerId = useFocusLayerId();
-
-  useLayoutEffect(() => {
-    onLayerChange(layerId);
-    return () => onLayerChange(null);
-  }, [layerId, onLayerChange]);
-
-  return null;
-}
-
 export function MediaViewer({
   items,
   index,
@@ -307,19 +293,12 @@ export function MediaViewer({
   stageNavigationOverrides,
 }: Readonly<MediaViewerProps>) {
   const hasSidebar = sidebar !== undefined && sidebar !== null;
-  const layerIdRef = useRef<string | null>(null);
-  const [viewerLayerId, setViewerLayerId] = useState<string | null>(null);
+  const {
+    layerId: viewerLayerId,
+    handleLayerChange,
+    isActiveLayer: isViewerOnTop,
+  } = useFocusLayerTracker();
   const isViewerLayerOnTop = useIsLayerOnTop(viewerLayerId);
-  const handleLayerChange = useCallback((layerId: string | null) => {
-    layerIdRef.current = layerId;
-    setViewerLayerId(layerId);
-  }, []);
-  const isViewerOnTop = useCallback(
-    () =>
-      layerIdRef.current !== null &&
-      navigationService.getActiveLayerId() === layerIdRef.current,
-    []
-  );
   const { t } = useTranslation("game_details");
   const { t: tBigPicture } = useTranslation("big_picture");
   const prefersReducedMotion = useReducedMotion();
@@ -900,7 +879,7 @@ export function MediaViewer({
             initialFocusId={STAGE_FOCUS_ID}
             restoreFocusOnUnmount
           >
-            <MediaViewerLayerReporter onLayerChange={handleLayerChange} />
+            <FocusLayerReporter onLayerChange={handleLayerChange} />
             <HorizontalFocusGroup regionId={SIDEBAR_ROOT_REGION_ID} asChild>
               <div className="media-viewer__layout">
                 <div className="media-viewer__main">
@@ -941,7 +920,7 @@ export function MediaViewer({
               initialFocusId={STAGE_FOCUS_ID}
               restoreFocusOnUnmount
             >
-              <MediaViewerLayerReporter onLayerChange={handleLayerChange} />
+              <FocusLayerReporter onLayerChange={handleLayerChange} />
               {stageRegion}
             </NavigationLayer>
             {chrome}
