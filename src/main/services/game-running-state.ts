@@ -95,8 +95,9 @@ export const resetHydraPlaytimeTicks = (
 export const clearGamesPlaytimeState = () => {
   const hadGamesRunning = hasTrackedGamesRunning();
   mutableGamesPlaytime.clear();
-  emulatorGamesRunning.clear();
-  if (hadGamesRunning) notifyTrackedGamesRunningChange();
+  if (hadGamesRunning !== hasTrackedGamesRunning()) {
+    notifyTrackedGamesRunningChange();
+  }
 };
 
 export const setEmulatorGameRunning = (gameKey: string) => {
