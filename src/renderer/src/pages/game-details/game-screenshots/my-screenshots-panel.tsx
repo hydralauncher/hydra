@@ -10,7 +10,7 @@ import {
   ScreenshotLoadMoreError,
   useLoadUntilScrollable,
 } from "@renderer/components/screenshots";
-import type { ScreenshotWriteBus } from "@shared";
+import { groupByCaptureDay, type ScreenshotWriteBus } from "@shared";
 import type { GameShop } from "@types";
 
 import { GameScreenshotsHotkeyTip } from "./game-screenshots-hotkey-tip";
@@ -18,10 +18,7 @@ import { LocalScreenshotTile } from "./local-screenshot-tile";
 import type { MyScreenshotsEntry } from "./my-screenshots-entries";
 import { MyScreenshotsLightbox } from "./my-screenshots-lightbox";
 import { useMyScreenshotsViewer } from "./use-my-screenshots-viewer";
-import {
-  groupByCaptureDay,
-  useCaptureDayLabel,
-} from "./screenshot-date-groups";
+import { useCaptureDayLabel } from "./screenshot-date-groups";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
 import {
   useCanFetchMyPublishedScreenshots,
