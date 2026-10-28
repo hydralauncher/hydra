@@ -1,4 +1,5 @@
 export * from "./screenshot-card";
+export * from "./progressive-screenshot-image";
 export * from "./screenshot-lightbox";
 export * from "./screenshot-load-more-error";
 export * from "./screenshot-labels";

@@ -21,6 +21,7 @@ import { useDate } from "@renderer/hooks";
 import { useScreenshotImageFallback } from "@shared";
 import type { ProfileScreenshot } from "@types";
 
+import { ProgressiveScreenshotImage } from "./progressive-screenshot-image";
 import { ScreenshotLightboxPanel } from "./screenshot-lightbox-panel";
 import { ScreenshotManageModal } from "./screenshot-manage-modal";
 import { ScreenshotReportModal } from "./screenshot-report-modal";
@@ -88,11 +89,26 @@ export function ScreenshotStage({
       <GalleryLightboxImage
         key={screenshot.imageUrl}
         item={{ ...item, src: screenshot.imageUrl ?? undefined }}
-        imageClassName={cn("screenshot-stage__image", {
-          "screenshot-stage__image--spoiler":
-            sensitive.isHidden || isSpoilerHidden,
-        })}
         onImageError={() => void handleImageError()}
+        renderMedia={(handlers) => (
+          <ProgressiveScreenshotImage
+            className={cn(
+              "gallery-lightbox__image",
+              "screenshot-stage__image",
+              {
+                "screenshot-stage__image--spoiler":
+                  sensitive.isHidden || isSpoilerHidden,
+              }
+            )}
+            fit="contain"
+            placeholder={screenshot.placeholder}
+            sources={[screenshot.thumbnailUrl, screenshot.imageUrl]}
+            alt={item.alt}
+            onBestLayerLoad={handlers.onImageLoad}
+            onError={handlers.onImageError}
+            onDoubleClick={handlers.onDoubleClick}
+          />
+        )}
         {...context}
       >
         {sensitive.isHidden ? (

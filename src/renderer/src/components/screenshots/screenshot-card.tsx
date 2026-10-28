@@ -21,6 +21,7 @@ import {
   getScreenshotGameTitle,
   isScreenshotApproved,
 } from "./screenshot-labels";
+import { ProgressiveScreenshotImage } from "./progressive-screenshot-image";
 import { ScreenshotStats } from "./screenshot-stats";
 import { SensitiveScreenshotModal } from "./sensitive-screenshot-modal";
 import { useScreenshotSpoiler } from "./use-screenshot-spoiler";
@@ -173,9 +174,10 @@ function ScreenshotCardMedia({
         title={isBlurred ? undefined : t("open_screenshot")}
       >
         {hasImage ? (
-          <img
+          <ProgressiveScreenshotImage
             className="screenshot-card__image"
-            src={imageUrl ?? undefined}
+            placeholder={screenshot.placeholder}
+            sources={[imageUrl]}
             alt={altText}
             loading="lazy"
             onError={() => void handleImageError()}

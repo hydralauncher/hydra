@@ -3,6 +3,7 @@ import { EyeClosedIcon, ImageIcon, ShieldIcon } from "@primer/octicons-react";
 import cn from "classnames";
 
 import {
+  ProgressiveScreenshotImage,
   ScreenshotOwnerBadge,
   ScreenshotStats,
   SensitiveScreenshotModal,
@@ -80,9 +81,10 @@ export function GameScreenshotThumbnail({
         title={isBlurred ? hiddenLabel : t("open_screenshot")}
       >
         {hasImage ? (
-          <img
+          <ProgressiveScreenshotImage
             className="game-screenshots-box__thumbnail-image"
-            src={imageUrl ?? undefined}
+            placeholder={screenshot.placeholder}
+            sources={[imageUrl]}
             alt={altText}
             loading="lazy"
             onError={() => void handleImageError()}

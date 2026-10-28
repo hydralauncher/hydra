@@ -152,11 +152,18 @@ interface StageLayer {
   ready: boolean;
 }
 
+export interface GalleryImageMediaHandlers {
+  onImageLoad: (image: HTMLImageElement) => void;
+  onImageError: () => void;
+  onDoubleClick: () => void;
+}
+
 interface GalleryLightboxImageProps extends GalleryImageRenderContext {
   item: GalleryMediaItem;
   imageClassName?: string;
   children?: ReactNode;
   onImageError?: () => void;
+  renderMedia?: (handlers: GalleryImageMediaHandlers) => ReactNode;
 }
 
 const preventFocusOnClick = (event: React.MouseEvent) => event.preventDefault();
@@ -192,6 +199,7 @@ export function GalleryLightboxImage({
   onReady,
   onToggleFullscreen,
   onImageError,
+  renderMedia,
 }: Readonly<GalleryLightboxImageProps>) {
   const { t } = useTranslation("game_details");
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
@@ -200,6 +208,18 @@ export function GalleryLightboxImage({
   const handleLoaded = (ratio: number) => {
     setAspectRatio(ratio);
     onReady();
+  };
+
+  const handleImageLoad = ({ naturalWidth, naturalHeight }: HTMLImageElement) =>
+    handleLoaded(
+      naturalWidth && naturalHeight
+        ? naturalWidth / naturalHeight
+        : DEFAULT_ASPECT_RATIO
+    );
+
+  const handleImageError = () => {
+    handleLoaded(DEFAULT_ASPECT_RATIO);
+    onImageError?.();
   };
 
   return (
@@ -211,25 +231,23 @@ export function GalleryLightboxImage({
         } as React.CSSProperties
       }
     >
-      <img
-        src={item.src}
-        alt={item.alt}
-        draggable={false}
-        className={cn("gallery-lightbox__image", imageClassName)}
-        onLoad={(event) => {
-          const { naturalWidth, naturalHeight } = event.currentTarget;
-          handleLoaded(
-            naturalWidth && naturalHeight
-              ? naturalWidth / naturalHeight
-              : DEFAULT_ASPECT_RATIO
-          );
-        }}
-        onError={() => {
-          handleLoaded(DEFAULT_ASPECT_RATIO);
-          onImageError?.();
-        }}
-        onDoubleClick={onToggleFullscreen}
-      />
+      {renderMedia ? (
+        renderMedia({
+          onImageLoad: handleImageLoad,
+          onImageError: handleImageError,
+          onDoubleClick: onToggleFullscreen,
+        })
+      ) : (
+        <img
+          src={item.src}
+          alt={item.alt}
+          draggable={false}
+          className={cn("gallery-lightbox__image", imageClassName)}
+          onLoad={(event) => handleImageLoad(event.currentTarget)}
+          onError={handleImageError}
+          onDoubleClick={onToggleFullscreen}
+        />
+      )}
 
       {children}
 
