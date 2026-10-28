@@ -57,7 +57,6 @@ export * from "./classics-emulator-games";
 export * from "./tracker-list";
 export * from "./souvenirs";
 export * from "./souvenir-sync";
-export * from "./game-content-warning";
 export * from "./screenshot-preferences";
 export * from "./screenshot-moderation";
 export * from "./screenshot-upload-outcome";
