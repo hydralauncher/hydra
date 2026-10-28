@@ -84,6 +84,36 @@ export class DownloadSourcesChecker {
     return gamesWithNewOptions;
   }
 
+  private static async requestChangesInChunks(
+    downloadSourceIds: string[],
+    gamesChunks: { shop: string; objectId: string }[][],
+    since: string
+  ): Promise<{
+    responses: DownloadSourcesChangeResponse[];
+    allChunksSucceeded: boolean;
+  }> {
+    const responses: DownloadSourcesChangeResponse[] = [];
+
+    for (const [chunkIndex, gamesChunk] of gamesChunks.entries()) {
+      try {
+        const chunkResponse = await HydraApi.checkDownloadSourcesChanges(
+          downloadSourceIds,
+          gamesChunk,
+          since
+        );
+        if (Array.isArray(chunkResponse)) responses.push(...chunkResponse);
+      } catch (error) {
+        logger.error(
+          `Failed to check download sources changes for chunk ${chunkIndex + 1} of ${gamesChunks.length}, keeping the baseline:`,
+          error
+        );
+        return { responses, allChunksSucceeded: false };
+      }
+    }
+
+    return { responses, allChunksSucceeded: true };
+  }
+
   private static sendNewDownloadOptionsEvent(
     clearedPayload: { gameId: string; count: number }[],
     gamesWithNewOptions: { gameId: string; count: number }[]
@@ -177,39 +207,38 @@ export class DownloadSourcesChecker {
         }
       );
 
-      const response = await gamesChunks.reduce<
-        Promise<DownloadSourcesChangeResponse[]>
-      >(async (previousResponses, gamesChunk) => {
-        const mergedResponses = await previousResponses;
-        const chunkResponse = await HydraApi.checkDownloadSourcesChanges(
+      const { responses, allChunksSucceeded } =
+        await this.requestChangesInChunks(
           downloadSourceIds,
-          gamesChunk,
+          gamesChunks,
           since
         );
-        return Array.isArray(chunkResponse)
-          ? [...mergedResponses, ...chunkResponse]
-          : mergedResponses;
-      }, Promise.resolve([]));
 
-      logger.info("API call completed, response:", response);
+      logger.info("API calls completed, responses:", responses);
 
       await updateDownloadSourcesSinceValue(since);
       logger.info(`Saved 'since' value: ${since} (for modal comparison)`);
 
-      const now = new Date().toISOString();
-      await updateDownloadSourcesCheckBaseline(now);
-      logger.info(
-        `Updated baseline to: ${now} (will be 'since' on next app start)`
-      );
+      if (allChunksSucceeded) {
+        const now = new Date().toISOString();
+        await updateDownloadSourcesCheckBaseline(now);
+        logger.info(
+          `Updated baseline to: ${now} (will be 'since' on next app start)`
+        );
+      }
 
       const gamesWithNewOptions = await this.processApiResponse(
-        response,
+        responses,
         nonCustomGames
       );
 
       this.sendNewDownloadOptionsEvent(clearedPayload, gamesWithNewOptions);
 
-      logger.info("Download sources check completed successfully");
+      logger.info(
+        allChunksSucceeded
+          ? "Download sources check completed successfully"
+          : "Download sources check completed partially, will retry from the same baseline on next start"
+      );
     } catch (error) {
       logger.error("Failed to check download sources changes:", error);
     }
