@@ -12,10 +12,16 @@ $surface: #121212;
 $easing: cubic-bezier(0.33, 1, 0.68, 1);
 
 .missions-tab {
-  display: flex;
-  flex-direction: column;
-  gap: 36px;
+  // The layout reflows on wide screens instead of stretching (see the end of this file).
+  container: missions-tab / inline-size;
   padding-top: calc(globals.$spacing-unit * 3);
+
+  &__layout,
+  &__pair {
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+  }
 
   &__section {
     display: flex;
@@ -271,6 +277,12 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
       color: $muted;
     }
   }
+}
+
+.trails-board__wrap {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
 }
 
 .trails-board {
@@ -984,5 +996,184 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
   .trails-board__core--bump,
   .trails-board__banner {
     animation-duration: 0.01s;
+  }
+}
+
+// Wide screens (prototype v4.2.0, "Colunas"). Every 1920 px window gets this,
+// even with the sidebar at its widest.
+@container missions-tab (min-width: 960px) {
+  // Dailies and weeklies side by side.
+  .missions-tab__pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 32px;
+    align-items: stretch;
+  }
+
+  .missions-tab__daily-grid {
+    flex: 1;
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: 1fr;
+    gap: 10px;
+  }
+
+  // Each daily becomes a row: icon, text, reward, footer.
+  .daily-mission {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    min-height: 0;
+    height: 100%;
+    margin-top: 0;
+    padding: 16px 16px 16px 20px;
+    box-sizing: border-box;
+
+    &:hover {
+      transform: none;
+    }
+
+    &__icon {
+      position: static;
+      flex: none;
+
+      canvas {
+        width: 28px !important;
+        height: 28px !important;
+      }
+    }
+
+    &__text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    &__reward {
+      flex: none;
+      margin-top: 0;
+      align-self: center;
+    }
+
+    &__footer {
+      flex: none;
+      min-width: 96px;
+      margin-top: 0;
+      justify-content: flex-end;
+    }
+  }
+
+  .daily-mission--ready::after {
+    background: linear-gradient(to left, $ink 0%, transparent 100%);
+  }
+
+  // Trails: categories in a column, then the board.
+  .trails-board__wrap {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .trails-board__selector {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .trails-board__trail {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 12px;
+    width: auto;
+    padding: 8px 10px;
+    text-align: left;
+
+    strong {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: end;
+      text-align: left;
+    }
+
+    small {
+      grid-column: 2;
+      grid-row: 2;
+      align-self: start;
+    }
+  }
+
+  .trails-board__trail-icon {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    width: 44px;
+    height: 44px;
+
+    > span {
+      width: 32px;
+      height: 32px;
+    }
+
+    canvas {
+      width: 16px !important;
+      height: 16px !important;
+    }
+  }
+
+  .trails-board__selector-ring {
+    width: 100%;
+    height: 100%;
+  }
+
+  .trails-board__claim-badge {
+    position: static;
+    grid-column: 3;
+    grid-row: 1 / 3;
+  }
+
+  // Board: header on top, orbits and wheel on the left, stage details on the right.
+  .trails-board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    align-items: center;
+    column-gap: 24px;
+
+    &__header {
+      grid-column: 1 / -1;
+    }
+
+    &__detail {
+      grid-column: 2;
+      grid-row: 2;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-top: 0;
+    }
+
+    &__detail-reward {
+      flex-wrap: wrap;
+    }
+  }
+}
+
+// Ultrawide: missions on the left, trails in a column of their own.
+@container missions-tab (min-width: 1912px) {
+  .missions-tab__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: start;
+    column-gap: 48px;
+    row-gap: 20px;
+  }
+
+  .missions-tab__pair {
+    display: flex;
+    grid-column: 1;
+    gap: 36px;
+  }
+
+  .missions-tab__layout > .missions-tab__section {
+    grid-column: 2;
+    grid-row: 1;
   }
 }
