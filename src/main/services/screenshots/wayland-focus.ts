@@ -62,10 +62,7 @@ const findHyprlandSocket = (signature: string) => {
   );
 };
 
-const getHyprlandFocus = async (signature: string) => {
-  const socketPath = findHyprlandSocket(signature);
-  if (!socketPath) throw new Error("Hyprland IPC socket was not found");
-
+const getHyprlandFocus = async (socketPath: string) => {
   const response = await requestUnixSocket(
     socketPath,
     Buffer.from("j/activewindow"),
@@ -142,23 +139,37 @@ const readFocus = async (
   }
 };
 
+const readHyprlandFocus = async () => {
+  const signature = process.env.HYPRLAND_INSTANCE_SIGNATURE;
+  const socketPath = signature ? findHyprlandSocket(signature) : undefined;
+  if (!socketPath) return null;
+  return readFocus("hyprland", () => getHyprlandFocus(socketPath));
+};
+
+const readSwayFocus = async () => {
+  const socketPath = process.env.SWAYSOCK;
+  if (!socketPath || !fs.existsSync(socketPath)) return null;
+  return readFocus("sway", () => getSwayFocus(socketPath));
+};
+
+const readKdeFocus = async (): Promise<WaylandFocus | null> => {
+  if (!isKdeSession()) return null;
+  const processId = NativeAddon.getKdeFocusedProcessId();
+  return processId === undefined ? null : { source: "kde", processId };
+};
+
+const focusReaders = [readHyprlandFocus, readSwayFocus, readKdeFocus];
+
 export const getWaylandFocus = async (): Promise<WaylandFocus | null> => {
-  const hyprlandSignature = process.env.HYPRLAND_INSTANCE_SIGNATURE;
-  if (hyprlandSignature) {
-    return readFocus("hyprland", () => getHyprlandFocus(hyprlandSignature));
+  for (const readWaylandFocus of focusReaders) {
+    const focus = await readWaylandFocus();
+    if (focus) return focus;
   }
-
-  const swaySocket = process.env.SWAYSOCK;
-  if (swaySocket) {
-    return readFocus("sway", () => getSwayFocus(swaySocket));
-  }
-
-  if (isKdeSession()) {
-    const processId = NativeAddon.getKdeFocusedProcessId();
-    return processId === undefined ? null : { source: "kde", processId };
-  }
-
   return null;
+};
+
+export const startWaylandFocusWatch = () => {
+  if (isKdeSession()) NativeAddon.startKdeFocusWatch();
 };
 
 export const stopWaylandFocusWatch = () => {

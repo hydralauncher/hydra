@@ -43,9 +43,7 @@ import { ScreenshotFeedback } from "./screenshot-feedback";
 import { ScreenshotFrameWorker } from "./screenshot-frame-worker";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { getScreenshotsFolder } from "./screenshots-folder";
-import { stopWaylandFocusWatch } from "./wayland-focus";
-
-export { stopWaylandFocusWatch };
+import { startWaylandFocusWatch, stopWaylandFocusWatch } from "./wayland-focus";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
 import { screenshotUploadWorker } from "./screenshot-upload-worker";
@@ -53,6 +51,7 @@ import { readUserPreferences } from "./screenshot-user-preferences";
 
 export { LocalScreenshotStore } from "./local-screenshot-store";
 export { screenshotUploadWorker } from "./screenshot-upload-worker";
+export { stopWaylandFocusWatch } from "./wayland-focus";
 
 let initialized = false;
 
@@ -112,6 +111,7 @@ export const onScreenshotGameStarted = async (gameKey: string) => {
       logger.error("Failed to prepare the screenshot toast", error);
     });
     if (isWaylandCaptureBackend()) {
+      startWaylandFocusWatch();
       void prepareLinuxGameCaptureSession(gameKey, "screenshot");
     } else if (process.platform === "win32" || process.platform === "linux") {
       ScreenshotFrameWorker.prepare();
