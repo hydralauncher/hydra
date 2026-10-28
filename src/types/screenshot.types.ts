@@ -43,6 +43,7 @@ export interface ProfileScreenshot {
   owner: ScreenshotAuthor;
   imageUrl: string | null;
   thumbnailUrl: string | null;
+  placeholder?: string | null;
   width: number;
   height: number;
   capturedAt: number;
