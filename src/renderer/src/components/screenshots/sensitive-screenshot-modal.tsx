@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import "./sensitive-screenshot-modal.scss";
 import { CheckboxField } from "../checkbox-field/checkbox-field";
 import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
 import { setUserPreferences } from "@renderer/features";
@@ -68,11 +69,16 @@ export function SensitiveScreenshotModal({
       onConfirm={handleConfirm}
       onClose={onClose}
     >
-      <CheckboxField
-        label={t("sensitive_modal_always_show")}
-        checked={alwaysShow}
-        onChange={(event) => setAlwaysShow(event.target.checked)}
-      />
+      <div className="sensitive-screenshot-modal__preference">
+        <CheckboxField
+          label={t("screenshots_show_sensitive", { ns: "settings" })}
+          checked={alwaysShow}
+          onChange={(event) => setAlwaysShow(event.target.checked)}
+        />
+        <p className="sensitive-screenshot-modal__hint">
+          {t("sensitive_modal_settings_hint")}
+        </p>
+      </div>
     </ConfirmationModal>
   );
 }
