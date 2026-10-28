@@ -23,7 +23,9 @@ export const sanitizePathSegment = (value: string) => {
     .replaceAll(/[<>:"/\\|?*]/g, "_");
 
   return (
-    stripTrailingDotsAndSpaces(sanitizedValue).slice(0, 120).trim() || "unknown"
+    stripTrailingDotsAndSpaces(
+      stripTrailingDotsAndSpaces(sanitizedValue).slice(0, 120)
+    ).trim() || "unknown"
   );
 };
 

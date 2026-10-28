@@ -215,6 +215,7 @@ class ScreenshotUploadWorker {
 
     emitProgress({ clientId, state: "queued", progress: 0 });
     ScreenshotTelemetry.record("review", "upload");
+    await ScreenshotUploadNotifier.refresh();
     void this.trigger();
     return updated;
   }
@@ -309,6 +310,7 @@ class ScreenshotUploadWorker {
       const current = await LocalScreenshotStore.get(screenshot.clientId);
       if (current?.state === "queued" && current.ownerId === ownerId) {
         await this.process(current, authContext);
+        await ScreenshotUploadNotifier.refresh();
       }
     }
 
@@ -511,7 +513,7 @@ class ScreenshotUploadWorker {
         current.moderationStatus !== "PENDING";
 
       return {
-        state: "uploaded",
+        state: current.state === "deleted" ? "deleted" : "uploaded",
         screenshotId: result.id,
         moderationStatus: hasEarlyVerdict
           ? current.moderationStatus

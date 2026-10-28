@@ -480,17 +480,31 @@ impl AxisRange {
 #[derive(Default)]
 pub struct LinuxGamepadState {
     pub buttons: u32,
+    pub analog_triggers: u32,
     pub left_trigger: Option<AxisRange>,
     pub right_trigger: Option<AxisRange>,
+    pub positional_face_buttons: bool,
 }
 
 #[cfg(any(target_os = "linux", test))]
 impl LinuxGamepadState {
-    pub fn key_mask(code: u16) -> u32 {
+    pub fn uses_positional_face_buttons(vendor_id: u16) -> bool {
+        const SONY: u16 = 0x054c;
+        const NINTENDO: u16 = 0x057e;
+        matches!(vendor_id, SONY | NINTENDO)
+    }
+
+    pub fn mask(&self) -> u32 {
+        self.buttons | self.analog_triggers
+    }
+
+    pub fn key_mask(&self, code: u16) -> u32 {
         use evdev_codes::*;
         match code {
             BTN_SOUTH => gamepad::A,
             BTN_EAST => gamepad::B,
+            BTN_X if self.positional_face_buttons => gamepad::Y,
+            BTN_Y if self.positional_face_buttons => gamepad::X,
             BTN_X => gamepad::X,
             BTN_Y => gamepad::Y,
             BTN_TL => gamepad::LB,
@@ -510,7 +524,7 @@ impl LinuxGamepadState {
     }
 
     pub fn apply_key(&mut self, code: u16, value: i32) {
-        let mask = Self::key_mask(code);
+        let mask = self.key_mask(code);
         if mask == 0 {
             return;
         }
@@ -540,10 +554,18 @@ impl LinuxGamepadState {
                     self.buttons |= gamepad::DPAD_DOWN;
                 }
             }
-            ABS_Z => Self::apply_trigger(&mut self.buttons, self.left_trigger, gamepad::LT, value),
-            ABS_RZ => {
-                Self::apply_trigger(&mut self.buttons, self.right_trigger, gamepad::RT, value)
-            }
+            ABS_Z => Self::apply_trigger(
+                &mut self.analog_triggers,
+                self.left_trigger,
+                gamepad::LT,
+                value,
+            ),
+            ABS_RZ => Self::apply_trigger(
+                &mut self.analog_triggers,
+                self.right_trigger,
+                gamepad::RT,
+                value,
+            ),
             _ => {}
         }
     }
@@ -570,7 +592,7 @@ pub struct GamepadTracker {
 impl GamepadTracker {
     pub fn new(state: LinuxGamepadState, combo_mask: u32) -> Self {
         let mut combo = ComboMatcher::default();
-        combo.update(state.buttons, combo_mask);
+        combo.update(state.mask(), combo_mask);
         Self { state, combo }
     }
 
@@ -580,7 +602,7 @@ impl GamepadTracker {
             EV_KEY => self.state.apply_key(code, value),
             EV_ABS => self.state.apply_axis(code, value),
             EV_SYN if code == SYN_REPORT => {
-                return self.combo.update(self.state.buttons, combo_mask);
+                return self.combo.update(self.state.mask(), combo_mask);
             }
             _ => {}
         }
@@ -819,13 +841,53 @@ mod tests {
             ..LinuxGamepadState::default()
         };
         state.apply_axis(ABS_RZ, 60);
-        assert_eq!(state.buttons, 0);
+        assert_eq!(state.mask(), 0);
         state.apply_axis(ABS_RZ, 200);
-        assert_eq!(state.buttons, gamepad::RT);
+        assert_eq!(state.mask(), gamepad::RT);
         state.apply_axis(ABS_RZ, 0);
-        assert_eq!(state.buttons, 0);
+        assert_eq!(state.mask(), 0);
         state.apply_axis(ABS_Z, 255);
-        assert_eq!(state.buttons, gamepad::LT);
+        assert_eq!(state.mask(), gamepad::LT);
+    }
+
+    #[test]
+    fn linux_digital_and_analog_triggers_do_not_clear_each_other() {
+        let range = AxisRange {
+            minimum: 0,
+            maximum: 255,
+        };
+        let mut state = LinuxGamepadState {
+            left_trigger: Some(range),
+            ..LinuxGamepadState::default()
+        };
+        let mut held = Vec::new();
+        for travel in [10, 30, 50, 70, 120] {
+            state.apply_axis(ABS_Z, travel);
+            state.apply_key(BTN_TL2, 1);
+            held.push(state.mask() & gamepad::LT != 0);
+        }
+        assert_eq!(held, [true; 5]);
+        state.apply_key(BTN_TL2, 0);
+        state.apply_axis(ABS_Z, 0);
+        assert_eq!(state.mask(), 0);
+    }
+
+    #[test]
+    fn linux_positional_face_buttons_follow_the_vendor() {
+        assert!(LinuxGamepadState::uses_positional_face_buttons(0x054c));
+        assert!(!LinuxGamepadState::uses_positional_face_buttons(0x045e));
+        let mut sony = LinuxGamepadState {
+            positional_face_buttons: true,
+            ..LinuxGamepadState::default()
+        };
+        sony.apply_key(BTN_X, 1);
+        assert_eq!(sony.mask(), gamepad::Y);
+        sony.apply_key(BTN_X, 0);
+        sony.apply_key(BTN_Y, 1);
+        assert_eq!(sony.mask(), gamepad::X);
+        let mut xpad = LinuxGamepadState::default();
+        xpad.apply_key(BTN_X, 1);
+        assert_eq!(xpad.mask(), gamepad::X);
     }
 
     #[test]

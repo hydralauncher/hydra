@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
+import path from "node:path";
 import type { GameShop, LocalScreenshot } from "@types";
 
 import { logger } from "../logger";
@@ -13,11 +14,29 @@ import { removeScreenshotPreview } from "./screenshot-preview";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { screenshotUploadWorker } from "./screenshot-upload-worker";
 
-const fileExists = (filePath: string) =>
+const isMissingFileError = (error: unknown) =>
+  (error as NodeJS.ErrnoException | null)?.code === "ENOENT";
+
+const pathExists = (filePath: string) =>
   fs.promises.access(filePath).then(
     () => true,
     () => false
   );
+
+const isFileDeleted = async (filePath: string) => {
+  try {
+    await fs.promises.access(filePath);
+    return false;
+  } catch (error) {
+    if (!isMissingFileError(error)) return false;
+    return pathExists(path.dirname(filePath));
+  }
+};
+
+const getTombstoneScreenshotId = (screenshot: LocalScreenshot) => {
+  if (isPublishedLocalScreenshot(screenshot)) return screenshot.screenshotId;
+  return screenshot.pendingCompleteScreenshotId ?? null;
+};
 
 const removeLocalScreenshot = async (
   clientId: string,
@@ -31,9 +50,11 @@ const removeLocalScreenshot = async (
   screenshotUploadWorker.cancel(clientId);
   await fs.promises.rm(screenshot.path, { force: true });
   await removeScreenshotPreview(screenshot.previewPath);
-  if (isPublishedLocalScreenshot(screenshot)) {
+  const tombstoneScreenshotId = getTombstoneScreenshotId(screenshot);
+  if (tombstoneScreenshotId) {
     await LocalScreenshotStore.update(clientId, {
       state: "deleted",
+      screenshotId: tombstoneScreenshotId,
       uploadProgress: null,
       previewPath: null,
     });
@@ -80,7 +101,8 @@ export const pruneMissingLocalScreenshots = async (
   const isPresent = await Promise.all(
     screenshots.map(
       (screenshot) =>
-        !isUnpublishedLocalFile(screenshot) || fileExists(screenshot.path)
+        !isUnpublishedLocalFile(screenshot) ||
+        isFileDeleted(screenshot.path).then((deleted) => !deleted)
     )
   );
   const missing = screenshots.filter((_, index) => !isPresent[index]);
@@ -98,7 +120,7 @@ export const pruneMissingLocalScreenshots = async (
 export const removeLocalScreenshotIfMissing = async (clientId: string) => {
   const screenshot = await LocalScreenshotStore.get(clientId);
   if (!screenshot || !isUnpublishedLocalFile(screenshot)) return false;
-  if (await fileExists(screenshot.path)) return false;
+  if (!(await isFileDeleted(screenshot.path))) return false;
 
   const removed = await removeMissingLocalScreenshot(clientId);
   if (removed) announceMissingLocalScreenshots(1);
@@ -116,7 +138,7 @@ const listLocalScreenshotFilesForGame = async (
   const hasFile = await Promise.all(
     candidates.map(
       (screenshot) =>
-        screenshot.state !== "uploaded" || fileExists(screenshot.path)
+        screenshot.state !== "uploaded" || pathExists(screenshot.path)
     )
   );
   return candidates.filter((_, index) => hasFile[index]);
@@ -166,7 +188,7 @@ const UNPUBLISHED_FIELDS: Partial<LocalScreenshot> = {
 
 const forgetPublishedScreenshot = async (screenshot: LocalScreenshot) => {
   const keepsFile =
-    screenshot.state === "uploaded" && (await fileExists(screenshot.path));
+    screenshot.state === "uploaded" && (await pathExists(screenshot.path));
 
   if (!keepsFile) {
     await removeScreenshotPreview(screenshot.previewPath);
