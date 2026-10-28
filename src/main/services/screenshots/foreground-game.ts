@@ -190,11 +190,42 @@ const toForegroundProcesses = (
     appImagePath: process.environ?.APPIMAGE ?? null,
   }));
 
+const describeForeground = (foreground: ForegroundWindowInfo | null) =>
+  foreground && {
+    processId: foreground.processId,
+    clientProcessId: foreground.clientProcessId ?? null,
+    windowId: foreground.windowId ?? null,
+    windowHandle: foreground.windowHandle ?? null,
+  };
+
+const describeCandidates = (candidates: ScreenshotGameCandidate[]) =>
+  candidates.map((candidate) => ({
+    gameKey: candidate.target.gameKey,
+    processId: candidate.target.processId ?? null,
+  }));
+
+const logForegroundMatch = (
+  source: ScreenshotTriggerSource,
+  matchedBy: string,
+  gameKey: string,
+  foreground: ForegroundWindowInfo | null
+) => {
+  logger.debug("Screenshot foreground game resolved", {
+    source,
+    matchedBy,
+    gameKey,
+    foreground: describeForeground(foreground),
+  });
+};
+
 export const resolveForegroundGame = async (
   source: ScreenshotTriggerSource
 ): Promise<ForegroundMatch> => {
   const candidates = await getScreenshotGameTargets();
-  if (!candidates.length) return null;
+  if (!candidates.length) {
+    logger.info("Screenshot hotkey ignored: no running game", { source });
+    return null;
+  }
 
   const foreground = await resolveForegroundWindow();
 
@@ -203,12 +234,26 @@ export const resolveForegroundGame = async (
     candidates.length === 1 &&
     isLaunchedForegroundProcess(candidates[0].target, foreground)
   ) {
+    logForegroundMatch(
+      source,
+      "launched_process",
+      candidates[0].target.gameKey,
+      foreground
+    );
     return { ...candidates[0], foreground };
   }
 
   if (foreground) {
     const remembered = findRememberedCandidate(candidates, foreground);
-    if (remembered) return { ...remembered, foreground };
+    if (remembered) {
+      logForegroundMatch(
+        source,
+        "remembered_process",
+        remembered.target.gameKey,
+        foreground
+      );
+      return { ...remembered, foreground };
+    }
 
     const processes = toForegroundProcesses(await NativeAddon.listProcesses());
     const target = findForegroundGameTarget({
@@ -231,27 +276,36 @@ export const resolveForegroundGame = async (
         candidates.find(
           (candidate) => candidate.target.gameKey === target.gameKey
         )?.game ?? null;
+      logForegroundMatch(source, "process_tree", target.gameKey, foreground);
       return { target, game, foreground };
     }
 
     if (foreground.processId !== null || !isWaylandSession()) {
       logger.info("Screenshot hotkey ignored: no tracked game in foreground", {
+        source,
         foregroundProcessId: foreground.processId,
         clientProcessId: foreground.clientProcessId ?? null,
-        candidates: candidates.map((candidate) => ({
-          gameKey: candidate.target.gameKey,
-          processId: candidate.target.processId ?? null,
-        })),
+        windowId: foreground.windowId ?? null,
+        candidates: describeCandidates(candidates),
       });
       return null;
     }
   }
 
+  const isWayland = isWaylandSession();
+  const isHydraFocused = BrowserWindow.getFocusedWindow() !== null;
   if (
     (source !== "gamepad" && source !== "portal") ||
-    !isWaylandSession() ||
-    BrowserWindow.getFocusedWindow() !== null
+    !isWayland ||
+    isHydraFocused
   ) {
+    logger.info("Screenshot hotkey ignored: foreground window unresolved", {
+      source,
+      foreground: describeForeground(foreground),
+      isWayland,
+      isHydraFocused,
+      candidates: describeCandidates(candidates),
+    });
     return null;
   }
 
@@ -261,5 +315,18 @@ export const resolveForegroundGame = async (
   const soleCandidate = candidates.find(
     (candidate) => candidate.target === soleTarget
   );
-  return soleCandidate ? { ...soleCandidate, foreground: null } : null;
+  if (!soleCandidate) {
+    logger.info("Screenshot hotkey ignored: no single launched game", {
+      source,
+      candidates: describeCandidates(candidates),
+    });
+    return null;
+  }
+  logForegroundMatch(
+    source,
+    "sole_launched_game",
+    soleCandidate.target.gameKey,
+    null
+  );
+  return { ...soleCandidate, foreground: null };
 };
