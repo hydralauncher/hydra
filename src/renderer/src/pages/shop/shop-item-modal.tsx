@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import cn from "classnames";
@@ -37,14 +37,30 @@ export function ShopItemModal({
   const { missions, refreshMissions } = useGamificationMissions();
   const state = item ? getShopItemState(item, level, coins) : null;
 
-  // The "not enough coins" hint counts today's unclaimed dailies.
+  // The "not enough coins" hint counts today's unclaimed dailies, so cached missions from before
+  // the daily reset are fetched again.
+  const isDailyExpired =
+    !!missions && Date.parse(missions.daily.resetsAt) <= Date.now();
+  // One refetch per expired reset, so a clock ahead of the server cannot loop.
+  const refetchedResetRef = useRef<string | null>(null);
   useEffect(() => {
-    if (state === "short" && !missions) void refreshMissions();
-  }, [state, missions, refreshMissions]);
+    if (state !== "short") return;
+    if (!missions) {
+      void refreshMissions();
+    } else if (
+      isDailyExpired &&
+      refetchedResetRef.current !== missions.daily.resetsAt
+    ) {
+      refetchedResetRef.current = missions.daily.resetsAt;
+      void refreshMissions();
+    }
+  }, [state, missions, isDailyExpired, refreshMissions]);
 
   if (!item || !state || !userDetails) return null;
 
-  const coinsLeftToday = (missions?.daily.missions ?? [])
+  const coinsLeftToday = (
+    isDailyExpired ? [] : (missions?.daily.missions ?? [])
+  )
     .filter((mission) => !mission.isClaimed)
     .reduce((sum, mission) => sum + mission.coins, 0);
 

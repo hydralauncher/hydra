@@ -10,6 +10,7 @@ $line-strong: rgba(255, 255, 255, 0.24);
 $overlay: rgba(255, 255, 255, 0.08);
 $surface: #121212;
 $row: #161618;
+$hover-transition: 0.2s ease;
 $locked: #2a2a2e;
 
 .shop {
@@ -218,7 +219,7 @@ $locked: #2a2a2e;
       height: 18px;
       border-radius: 999px;
       background-color: $locked;
-      transition: background-color 0.2s ease;
+      transition: background-color $hover-transition;
 
       &::after {
         content: "";
@@ -230,8 +231,8 @@ $locked: #2a2a2e;
         border-radius: 999px;
         background-color: $muted;
         transition:
-          transform 0.2s ease,
-          background-color 0.2s ease;
+          transform $hover-transition,
+          background-color $hover-transition;
       }
     }
 
@@ -267,7 +268,7 @@ $locked: #2a2a2e;
     color: inherit;
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.2s ease;
+    transition: border-color $hover-transition;
 
     &:hover {
       border-color: $line-strong;
