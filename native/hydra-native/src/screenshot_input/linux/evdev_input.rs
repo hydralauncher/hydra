@@ -137,6 +137,9 @@ fn initial_gamepad_state(device: &Device, held: &HashSet<u16>) -> LinuxGamepadSt
     let mut state = LinuxGamepadState {
         left_trigger,
         right_trigger,
+        positional_face_buttons: LinuxGamepadState::uses_positional_face_buttons(
+            device.input_id().vendor(),
+        ),
         ..LinuxGamepadState::default()
     };
     for code in held {
