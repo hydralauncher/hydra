@@ -54,7 +54,7 @@ import {
   NavigationService,
   type FocusOverrides,
 } from "../../../../services";
-import { GamepadButtonType } from "../../../../types";
+import { GamepadAxisDirection, GamepadButtonType } from "../../../../types";
 
 export const MEDIA_VIEWER_IDLE_TIMEOUT_MS = 1000;
 export const MEDIA_VIEWER_INDICATOR_TIMEOUT_MS = 800;
@@ -304,7 +304,7 @@ export function MediaViewer({
   const prefersReducedMotion = useReducedMotion();
   const sidebarWidth = useSidebarWidth();
   const [isSidebarHidden, setIsSidebarHidden] = useState(false);
-  const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
+  const { onButtonPressed, onStickMove, isActiveGamepadEvent } = useGamepad();
   const idleTimerRef = useRef<number>();
   const layerKeyRef = useRef(0);
   const layerTimersRef = useRef<number[]>([]);
@@ -639,6 +639,44 @@ export function MediaViewer({
     items,
     navigate,
     onButtonPressed,
+    wake,
+  ]);
+
+  useEffect(() => {
+    if (!hasSidebar) return undefined;
+
+    const wakeOnGamepadInput = (
+      event: Parameters<typeof isActiveGamepadEvent>[0]
+    ) => {
+      if (isActiveGamepadEvent(event) && isViewerOnTop()) wake();
+    };
+
+    const removeListeners = [
+      GamepadButtonType.DPAD_UP,
+      GamepadButtonType.DPAD_DOWN,
+      GamepadButtonType.DPAD_LEFT,
+      GamepadButtonType.DPAD_RIGHT,
+      GamepadButtonType.BUTTON_A,
+    ]
+      .map((button) => onButtonPressed(button, wakeOnGamepadInput))
+      .concat(
+        [
+          GamepadAxisDirection.UP,
+          GamepadAxisDirection.DOWN,
+          GamepadAxisDirection.LEFT,
+          GamepadAxisDirection.RIGHT,
+        ].map((direction) => onStickMove("left", direction, wakeOnGamepadInput))
+      );
+
+    return () => {
+      removeListeners.forEach((removeListener) => removeListener());
+    };
+  }, [
+    hasSidebar,
+    isActiveGamepadEvent,
+    isViewerOnTop,
+    onButtonPressed,
+    onStickMove,
     wake,
   ]);
 
