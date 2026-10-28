@@ -20,6 +20,7 @@ import type { UpdateProfileRequest } from "@types";
 import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
 import { EditProfilePreview } from "./edit-profile-preview";
 import { EditProfileTile, EditProfileUploadTile } from "./edit-profile-tile";
+import { usePixelAvatar } from "./use-pixel-avatar";
 import {
   useProfileImagePicker,
   type ProfileImageVariant,
@@ -29,8 +30,9 @@ import "./edit-profile-modal.scss";
 
 type EditProfileTab = "photo" | "banner" | "frames";
 
-// "current" keeps what the profile has; "none" removes the banner.
-type PhotoDraft = "current" | "new";
+// "current" keeps what the profile has; "none" removes the banner;
+// "pixel" is the API's procedural avatar.
+type PhotoDraft = "current" | "new" | "pixel";
 type BannerDraft = "current" | "new" | "none";
 
 // Same limits as the previous modal and the API (updateUserProfileSchema).
@@ -89,6 +91,10 @@ export function EditProfileModal(
     }
   );
 
+  const { pixelAvatarUrl, savePixelAvatar } = usePixelAvatar(
+    props.visible ? (userDetails?.id ?? null) : null
+  );
+
   if (!userDetails) return null;
 
   const currentPhotoUrl = userDetails.profileImageUrl;
@@ -113,8 +119,11 @@ export function EditProfileModal(
     photoDraft !== "current" ||
     (bannerDraft === "none" ? !!currentBannerUrl : bannerDraft === "new");
 
-  const draftPhotoUrl =
-    photoDraft === "new" ? localUrl(newPhotoPath) : currentPhotoUrl;
+  const draftPhotoUrl = {
+    current: currentPhotoUrl,
+    new: localUrl(newPhotoPath),
+    pixel: pixelAvatarUrl,
+  }[photoDraft];
   const draftBannerUrl = {
     current: currentBannerUrl,
     new: localUrl(newBannerPath),
@@ -133,21 +142,23 @@ export function EditProfileModal(
   const handleSave = async () => {
     if (!isNameValid) return;
 
-    const values: UpdateProfileRequest = {};
-    if (trimmedName !== userDetails.displayName) {
-      values.displayName = trimmedName;
-    }
-    if (photoDraft === "new" && newPhotoPath) {
-      values.profileImageUrl = newPhotoPath;
-    }
-    if (bannerDraft === "new" && newBannerPath) {
-      values.backgroundImageUrl = newBannerPath;
-    } else if (bannerDraft === "none" && currentBannerUrl) {
-      values.backgroundImageUrl = null;
-    }
-
     setIsSaving(true);
     try {
+      const values: UpdateProfileRequest = {};
+      if (trimmedName !== userDetails.displayName) {
+        values.displayName = trimmedName;
+      }
+      if (photoDraft === "new" && newPhotoPath) {
+        values.profileImageUrl = newPhotoPath;
+      } else if (photoDraft === "pixel") {
+        values.profileImageUrl = await savePixelAvatar();
+      }
+      if (bannerDraft === "new" && newBannerPath) {
+        values.backgroundImageUrl = newBannerPath;
+      } else if (bannerDraft === "none" && currentBannerUrl) {
+        values.backgroundImageUrl = null;
+      }
+
       await patchUser(values);
       if (values.backgroundImageUrl !== undefined) {
         setSelectedBackgroundImage(values.backgroundImageUrl ?? "");
@@ -212,6 +223,14 @@ export function EditProfileModal(
           isSelected={photoDraft === "current"}
           onClick={() => setPhotoDraft("current")}
         />
+        {pixelAvatarUrl && (
+          <EditProfileTile
+            art={<Avatar size={64} src={pixelAvatarUrl} />}
+            label={t("pixel_avatar")}
+            isSelected={photoDraft === "pixel"}
+            onClick={() => setPhotoDraft("pixel")}
+          />
+        )}
       </div>
     </>
   );
