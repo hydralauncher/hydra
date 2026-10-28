@@ -1,7 +1,9 @@
-import type { GameShop, UserAchievement } from "@types";
+import type { AchievementSet, GameShop, UserAchievement } from "@types";
 import {
   filterAndSortAchievements,
+  getAchievementSetKey,
   getAchievementStatusCounts,
+  groupAchievementsBySet,
   isAchievementConcealed,
   type AchievementSortOption,
   type AchievementStatusFilter,
@@ -13,6 +15,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { VerticalFocusGroup } from "../../components";
 import {
   AchievementRow,
+  AchievementSetHeader,
   GAME_ACHIEVEMENTS_LIST_REGION_ID,
   GAME_ACHIEVEMENTS_PAGE_REGION_ID,
   GAME_ACHIEVEMENTS_SEARCH_INPUT_ID,
@@ -21,6 +24,7 @@ import {
   GameAchievementsToolbar,
   UserAchievementsSummary,
   getAchievementRowId,
+  getAchievementSetId,
 } from "../../components/pages/game-achievements";
 import {
   useGameDetails,
@@ -31,6 +35,22 @@ import {
   useUserPreferences,
 } from "../../hooks";
 import "./styles.scss";
+
+type AchievementListEntry =
+  | {
+      type: "set";
+      key: string;
+      set: AchievementSet | null;
+      expanded: boolean;
+      totalCount: number;
+      unlockedCount: number;
+    }
+  | { type: "achievement"; achievement: UserAchievement };
+
+const getListEntryId = (entry: AchievementListEntry) =>
+  entry.type === "set"
+    ? getAchievementSetId(entry.key)
+    : getAchievementRowId(entry.achievement.name);
 
 export default function GameAchievements() {
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
@@ -93,8 +113,66 @@ export default function GameAchievements() {
     [achievements]
   );
 
-  const firstAchievementRowId = visibleAchievements[0]
-    ? getAchievementRowId(visibleAchievements[0].name)
+  const setGroups = useMemo(
+    () => groupAchievementsBySet(achievements),
+    [achievements]
+  );
+
+  const [collapsedSetKeys, setCollapsedSetKeys] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  const toggleSet = useCallback((key: string) => {
+    setCollapsedSetKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
+
+  const listEntries = useMemo<AchievementListEntry[]>(() => {
+    if (!setGroups) {
+      return visibleAchievements.map((achievement) => ({
+        type: "achievement",
+        achievement,
+      }));
+    }
+
+    return setGroups.flatMap((group): AchievementListEntry[] => {
+      const visible = visibleAchievements.filter(
+        (achievement) => getAchievementSetKey(achievement) === group.key
+      );
+      if (visible.length === 0) return [];
+
+      const expanded = !collapsedSetKeys.has(group.key);
+
+      return [
+        {
+          type: "set",
+          key: group.key,
+          set: group.set,
+          expanded,
+          totalCount: group.achievements.length,
+          unlockedCount: group.achievements.filter(
+            (achievement) => achievement.unlocked
+          ).length,
+        },
+        ...(expanded
+          ? visible.map((achievement) => ({
+              type: "achievement" as const,
+              achievement,
+            }))
+          : []),
+      ];
+    });
+  }, [collapsedSetKeys, setGroups, visibleAchievements]);
+
+  const firstAchievementRowId = listEntries[0]
+    ? getListEntryId(listEntries[0])
     : null;
 
   const earnedPoints = useMemo(
@@ -204,27 +282,49 @@ export default function GameAchievements() {
                   </li>
                 ) : null}
 
-                {visibleAchievements.map((achievement, index) => (
-                  <AchievementRow
-                    key={achievement.name}
-                    achievement={achievement}
-                    concealed={isConcealed(achievement)}
-                    revealed={achievement.name === lastRevealedName}
-                    showPoints={hasActiveSubscription}
-                    navigationOverrides={
-                      index === 0
-                        ? {
-                            up: {
-                              type: "item",
-                              itemId: GAME_ACHIEVEMENTS_SEARCH_INPUT_ID,
-                            },
-                          }
-                        : undefined
-                    }
-                    onSouvenirActivate={handleSouvenirActivate}
-                    onReveal={handleReveal}
-                  />
-                ))}
+                {listEntries.map((entry, index) => {
+                  const navigationOverrides =
+                    index === 0
+                      ? {
+                          up: {
+                            type: "item" as const,
+                            itemId: GAME_ACHIEVEMENTS_SEARCH_INPUT_ID,
+                          },
+                        }
+                      : undefined;
+
+                  if (entry.type === "set") {
+                    return (
+                      <AchievementSetHeader
+                        key={getListEntryId(entry)}
+                        setKey={entry.key}
+                        set={entry.set}
+                        expanded={entry.expanded}
+                        unlockedCount={entry.unlockedCount}
+                        totalCount={entry.totalCount}
+                        navigationOrder={index}
+                        navigationOverrides={navigationOverrides}
+                        onToggle={() => toggleSet(entry.key)}
+                      />
+                    );
+                  }
+
+                  const { achievement } = entry;
+
+                  return (
+                    <AchievementRow
+                      key={getListEntryId(entry)}
+                      achievement={achievement}
+                      concealed={isConcealed(achievement)}
+                      revealed={achievement.name === lastRevealedName}
+                      showPoints={hasActiveSubscription}
+                      navigationOrder={index}
+                      navigationOverrides={navigationOverrides}
+                      onSouvenirActivate={handleSouvenirActivate}
+                      onReveal={handleReveal}
+                    />
+                  );
+                })}
               </ul>
             </VerticalFocusGroup>
           </section>

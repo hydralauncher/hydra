@@ -306,6 +306,128 @@ $compare-gutter: (globals.$spacing-unit * 3.5 + 1px) * 2;
     color: globals.$body-color;
   }
 
+  &__set {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+
+    & + & {
+      margin-top: globals.$spacing-unit;
+    }
+  }
+
+  &__set-header {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit * 1.5;
+    width: 100%;
+    min-height: 40px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5 + 1px);
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: globals.$muted-color;
+    cursor: pointer;
+    text-align: left;
+
+    &:hover {
+      background-color: globals.$dark-background-color;
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus-visible {
+      box-shadow: inset 0 0 0 1px #dadbe1;
+    }
+
+    &--compare {
+      display: grid;
+      grid-template-columns: $compare-columns;
+      column-gap: globals.$spacing-unit * 2;
+    }
+  }
+
+  &__set-title {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit * 1.5;
+    min-width: 0;
+  }
+
+  &__set-chevron {
+    flex-shrink: 0;
+    color: globals.$body-color;
+    transition: transform ease 0.15s;
+
+    &--collapsed {
+      transform: rotate(-90deg);
+    }
+  }
+
+  &__set-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__set-progress {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: globals.$spacing-unit * 1.5;
+  }
+
+  &__set-count {
+    color: globals.$body-color;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  &__set-progress-track {
+    width: 160px;
+    height: 6px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  &__set-progress-bar {
+    height: 100%;
+    background-color: globals.$muted-color;
+    border-radius: 4px;
+    transition: width 0.2s ease;
+
+    &--platinum {
+      @include globals.platinum-gradient;
+    }
+  }
+
+  &__set-percentage {
+    min-width: 5ch;
+    color: globals.$body-color;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+
+    &--completed {
+      color: globals.$brand-teal;
+    }
+  }
+
+  &__set-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
   &__item {
     display: flex;
     transition: all ease 0.1s;
@@ -383,10 +505,32 @@ $compare-gutter: (globals.$spacing-unit * 3.5 + 1px) * 2;
       height: 64px;
       border-radius: 6px;
       object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.2s ease;
 
       &--locked {
         filter: grayscale(100%);
+      }
+
+      &--loaded {
+        opacity: 1;
+      }
+
+      &--loaded.achievements__item-image--locked {
         opacity: 0.6;
+      }
+
+      &-skeleton {
+        position: absolute;
+        inset: 0;
+        display: block;
+        line-height: 1;
+
+        span {
+          display: block;
+          height: 100%;
+          border-radius: 6px;
+        }
       }
     }
 
@@ -598,6 +742,7 @@ $compare-gutter: (globals.$spacing-unit * 3.5 + 1px) * 2;
   @each $count in 1, 2, 3 {
     @container (max-width: #{compare-layout-min-width($count) - 1px}) {
       &__list-container--stats-#{$count} &__compare-grid,
+      &__list-container--stats-#{$count} &__set-header--compare,
       &__list-container--stats-#{$count} &__item.achievements__compare-row {
         grid-template-columns: $compare-columns-narrow;
         row-gap: globals.$spacing-unit * 1.5;
@@ -626,5 +771,9 @@ $compare-gutter: (globals.$spacing-unit * 3.5 + 1px) * 2;
   .achievements__item--revealed .achievements__item-icon,
   .achievements__item--revealed .achievements__item-content {
     animation: none;
+  }
+
+  .achievements__item-image {
+    transition: none;
   }
 }

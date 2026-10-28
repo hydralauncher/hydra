@@ -21,6 +21,7 @@ export interface AchievementRowProps {
   revealed?: boolean;
   showPoints?: boolean;
   stealFocusOnAppear?: boolean;
+  navigationOrder?: number;
   navigationOverrides?: FocusOverrides;
   onSouvenirActivate?: (achievement: UserAchievement) => void;
   onReveal?: (achievement: UserAchievement) => void;
@@ -32,6 +33,7 @@ export function AchievementRow({
   revealed = false,
   showPoints = false,
   stealFocusOnAppear = false,
+  navigationOrder,
   navigationOverrides,
   onSouvenirActivate,
   onReveal,
@@ -63,6 +65,7 @@ export function AchievementRow({
     <FocusItem
       id={getAchievementRowId(achievement.name)}
       actions={{ primary: getPrimaryAction() }}
+      navigationOrder={navigationOrder}
       navigationOverrides={navigationOverrides}
       stealFocusOnAppear={stealFocusOnAppear}
       asChild

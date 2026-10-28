@@ -85,10 +85,7 @@ async function fixture(
   ]);
   if (options.metadata || options.view) actual.add("get-game-achievement-data");
   if (options.reset) actual.add("reset-game-achievements");
-  if (options.view) {
-    actual.add("get-unlocked-achievements");
-    actual.add("mock-unlock-percentage");
-  }
+  if (options.view) actual.add("get-unlocked-achievements");
   const stub = `const state = globalThis[${JSON.stringify(key)}];
     export const isAxiosError = value => Boolean(value?.isAxiosError);
     export const isAchievementSouvenirsEnabled = () => false;

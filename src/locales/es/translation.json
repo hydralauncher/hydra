@@ -2134,7 +2134,11 @@
     "compare_unlocked_by": "{{name}} lo desbloqueó el {{date}}",
     "compare_locked_for": "{{name}} aún no lo ha desbloqueado",
     "global_stats": "Estadísticas globales",
-    "hydra_points": "Puntos Hydra"
+    "hydra_points": "Puntos Hydra",
+    "compare_with_me": "Comparar conmigo",
+    "stop_comparing": "Dejar de comparar",
+    "achievement_set_base_game": "Juego base",
+    "achievement_set_other": "Otros"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Suscripción Hydra Cloud",

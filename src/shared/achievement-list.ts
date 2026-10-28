@@ -1,4 +1,52 @@
-import type { UserAchievement } from "@types";
+import type {
+  AchievementSet,
+  ComparedAchievements,
+  UserAchievement,
+} from "@types";
+
+export interface AchievementSetGroup<T> {
+  key: string;
+  set: AchievementSet | null;
+  achievements: T[];
+}
+
+const NO_SET_KEY = "none";
+
+export const getAchievementSetKey = (achievement: {
+  set?: AchievementSet | null;
+}) => (achievement.set ? String(achievement.set.id) : NO_SET_KEY);
+
+export const groupAchievementsBySet = <
+  T extends { set?: AchievementSet | null },
+>(
+  achievements: T[]
+): AchievementSetGroup<T>[] | null => {
+  const groups = new Map<string, AchievementSetGroup<T>>();
+
+  for (const achievement of achievements) {
+    const key = getAchievementSetKey(achievement);
+    const group = groups.get(key);
+    if (group) {
+      group.achievements.push(achievement);
+    } else {
+      groups.set(key, {
+        key,
+        set: achievement.set ?? null,
+        achievements: [achievement],
+      });
+    }
+  }
+
+  const sets = [...groups.values()].filter((group) => group.set !== null);
+  if (sets.length < 2) return null;
+
+  const ordered = sets.sort(
+    (a, b) => a.set!.order - b.set!.order || a.set!.id - b.set!.id
+  );
+  const withoutSet = groups.get(NO_SET_KEY);
+
+  return withoutSet ? [...ordered, withoutSet] : ordered;
+};
 
 export type AchievementSortOption = "most_common" | "most_rare";
 
@@ -57,6 +105,37 @@ export const getAchievementComparisonCounts = (
       ).length,
     ])
   ) as Record<AchievementComparisonFilter, number>;
+
+export const getComparedTargetAchievements = (
+  compared: Pick<ComparedAchievements, "achievements">
+): UserAchievement[] =>
+  compared.achievements.map((achievement, index) => ({
+    name: String(index),
+    displayName: achievement.displayName,
+    description: achievement.description,
+    icon: achievement.icon,
+    icongray: achievement.icon,
+    hidden: achievement.hidden,
+    points: achievement.points,
+    globalUnlockPercentage: achievement.globalUnlockPercentage,
+    set: achievement.set ?? null,
+    unlocked: achievement.targetStat.unlocked,
+    unlockTime: achievement.targetStat.unlocked
+      ? achievement.targetStat.unlockTime
+      : null,
+    hardcoreUnlockTime: achievement.targetStat.unlocked
+      ? (achievement.targetStat.hardcoreUnlockTime ?? null)
+      : null,
+  }));
+
+export const getComparedOwnerUnlockedNames = (
+  compared: Pick<ComparedAchievements, "achievements">
+): Set<string> =>
+  new Set(
+    compared.achievements.flatMap((achievement, index) =>
+      achievement.ownerStat?.unlocked ? [String(index)] : []
+    )
+  );
 
 export interface AchievementListOptions {
   search: string;

@@ -14,7 +14,6 @@ import { CombinedAchievementsRequests } from "@main/services/achievements/combin
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import { fetchRemoteUserGameAchievements } from "@main/services/achievements/get-achievement-souvenirs";
 import { mergeUnlockedAchievementLists } from "@main/services/achievements/merge-unlocked-achievements";
-import { getMockUnlockPercentage } from "@main/services/achievements/mock-unlock-percentage";
 import {
   presentCombinedAchievements,
   type CombinedAchievements,
@@ -157,13 +156,18 @@ export const getUnlockedAchievements = async (
         (sourceShop, sourceObjectId) =>
           AchievementMemoryStore.get(sourceShop, sourceObjectId)
             ?.unlockedAchievements ?? [],
-        true
-      ).map((achievement) => ({
-        ...achievement,
-        globalUnlockPercentage:
-          achievement.globalUnlockPercentage ??
-          getMockUnlockPercentage(achievement.points),
-      }));
+        true,
+        (sourceShop, sourceObjectId, name) => {
+          const definitions =
+            sourceShop === shop && sourceObjectId === objectId
+              ? achievementsData
+              : (AchievementMemoryStore.get(sourceShop, sourceObjectId)
+                  ?.achievements ?? []);
+          return definitions.find(
+            (definition) => definition.name.toUpperCase() === name.toUpperCase()
+          );
+        }
+      );
     }
   }
 
@@ -185,14 +189,7 @@ export const getUnlockedAchievements = async (
     }
   }
   return catalogueAchievements
-    .map((catalogueAchievement) => {
-      const achievementData = {
-        ...catalogueAchievement,
-        globalUnlockPercentage:
-          catalogueAchievement.globalUnlockPercentage ??
-          getMockUnlockPercentage(catalogueAchievement.points),
-      };
-
+    .map((achievementData) => {
       const unlockedAchievementData = unlockedAchievements.find(
         (localAchievement) => {
           return (

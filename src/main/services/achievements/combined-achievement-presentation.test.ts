@@ -98,4 +98,38 @@ describe("combined achievement presentation", () => {
       "Ganhe uma vez"
     );
   });
+  it("takes the unlock rate and Steam set from the catalogue definitions", () => {
+    const steamSet = { id: 2, name: "Single Player", order: 0 };
+    const rows = presentCombinedAchievements(
+      response(variant("steam", null), variant("epic", 1)),
+      noLocal,
+      false,
+      (shop) =>
+        shop === "steam"
+          ? { globalUnlockPercentage: 40, set: steamSet }
+          : { globalUnlockPercentage: 12, set: null }
+    );
+    assert.equal(rows[0].source, "epic");
+    assert.equal(rows[0].globalUnlockPercentage, 12);
+    assert.deepEqual(rows[0].set, steamSet);
+  });
+  it("falls back to another store's rate and leaves both empty without definitions", () => {
+    const withFallback = presentCombinedAchievements(
+      response(variant("steam", 1), variant("epic", null)),
+      noLocal,
+      false,
+      (shop) =>
+        shop === "epic" ? { globalUnlockPercentage: 7, set: null } : undefined
+    );
+    assert.equal(withFallback[0].globalUnlockPercentage, 7);
+    assert.equal(withFallback[0].set, null);
+
+    const withoutDefinitions = presentCombinedAchievements(
+      response(variant("steam", 1)),
+      noLocal,
+      false
+    );
+    assert.equal(withoutDefinitions[0].globalUnlockPercentage, null);
+    assert.equal(withoutDefinitions[0].set, null);
+  });
 });

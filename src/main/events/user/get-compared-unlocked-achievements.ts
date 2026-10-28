@@ -4,7 +4,8 @@ import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
 import { db, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
-import { getMockUnlockPercentage } from "@main/services/achievements/mock-unlock-percentage";
+import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
+import { withComparedAchievementDefinitions } from "@main/services/achievements/compared-achievement-definitions";
 
 const getComparedUnlockedAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -21,34 +22,32 @@ const getComparedUnlockedAchievements = async (
     }
   );
 
-  return HydraApi.get<ComparedAchievements>(
-    `/users/${userId}/games/achievements/compare`,
-    {
-      shop,
-      objectId,
-      language: userPreferences?.language ?? "en",
-    }
-  ).then((achievements) => {
-    const sortedAchievements = achievements.achievements.sort((a, b) => {
-      if (a.targetStat.unlocked && !b.targetStat.unlocked) return -1;
-      if (!a.targetStat.unlocked && b.targetStat.unlocked) return 1;
-      if (a.targetStat.unlocked && b.targetStat.unlocked) {
-        return b.targetStat.unlockTime! - a.targetStat.unlockTime!;
+  const [achievements, definitions] = await Promise.all([
+    HydraApi.get<ComparedAchievements>(
+      `/users/${userId}/games/achievements/compare`,
+      {
+        shop,
+        objectId,
+        language: userPreferences?.language ?? "en",
       }
+    ),
+    getGameAchievementData(objectId, shop, true).catch(() => []),
+  ]);
 
-      return Number(a.hidden) - Number(b.hidden);
-    });
+  const sortedAchievements = achievements.achievements.sort((a, b) => {
+    if (a.targetStat.unlocked && !b.targetStat.unlocked) return -1;
+    if (!a.targetStat.unlocked && b.targetStat.unlocked) return 1;
+    if (a.targetStat.unlocked && b.targetStat.unlocked) {
+      return b.targetStat.unlockTime! - a.targetStat.unlockTime!;
+    }
 
-    return {
-      ...achievements,
-      achievements: sortedAchievements.map((achievement) => ({
-        ...achievement,
-        globalUnlockPercentage:
-          achievement.globalUnlockPercentage ??
-          getMockUnlockPercentage(achievement.points),
-      })),
-    } as ComparedAchievements;
+    return Number(a.hidden) - Number(b.hidden);
   });
+
+  return withComparedAchievementDefinitions(
+    { ...achievements, achievements: sortedAchievements },
+    definitions
+  );
 };
 
 registerEvent(

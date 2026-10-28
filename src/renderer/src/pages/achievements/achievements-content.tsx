@@ -1,16 +1,26 @@
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch, useUserDetails } from "@renderer/hooks";
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   buildGameDetailsPath,
   formatDownloadProgress,
   isGameCompleted,
 } from "@renderer/helpers";
-import { LockIcon, PersonIcon, TrophyIcon } from "@primer/octicons-react";
+import {
+  LockIcon,
+  PeopleIcon,
+  PersonIcon,
+  TrophyIcon,
+  XIcon,
+} from "@primer/octicons-react";
 import { gameDetailsContext } from "@renderer/context";
 import type { ComparedAchievements } from "@types";
-import { Link, ProgressBar } from "@renderer/components";
+import {
+  getComparedOwnerUnlockedNames,
+  getComparedTargetAchievements,
+} from "@shared";
+import { Button, Link, ProgressBar } from "@renderer/components";
 import { ComparedAchievementList } from "./compared-achievement-list";
 import { AchievementList } from "./achievement-list";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -27,6 +37,8 @@ interface UserInfo {
 interface AchievementsContentProps {
   otherUser: UserInfo | null;
   comparedAchievements: ComparedAchievements | null;
+  isComparing: boolean;
+  onComparingChange: (isComparing: boolean) => void;
 }
 
 interface AchievementSummaryProps {
@@ -130,15 +142,45 @@ function AchievementSummary({ user, isComparison }: AchievementSummaryProps) {
 export function AchievementsContent({
   otherUser,
   comparedAchievements,
+  isComparing,
+  onComparingChange,
 }: AchievementsContentProps) {
+  const { t } = useTranslation("achievement");
   const { gameTitle, objectId, shop, game, shopDetails, achievements } =
     useContext(gameDetailsContext);
   const dispatch = useAppDispatch();
 
-  const { userDetails } = useUserDetails();
+  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { showHydraCloudModal } = useSubscription();
+
+  const handleCompareClick = () => {
+    if (!isComparing && !hasActiveSubscription) {
+      showHydraCloudModal("achievements");
+      return;
+    }
+
+    onComparingChange(!isComparing);
+  };
+
   useEffect(() => {
     dispatch(setHeaderTitle(gameTitle));
   }, [dispatch, gameTitle]);
+
+  const otherUserAchievements = useMemo(
+    () =>
+      comparedAchievements
+        ? getComparedTargetAchievements(comparedAchievements)
+        : [],
+    [comparedAchievements]
+  );
+
+  const viewerUnlockedNames = useMemo(
+    () =>
+      comparedAchievements
+        ? getComparedOwnerUnlockedNames(comparedAchievements)
+        : new Set<string>(),
+    [comparedAchievements]
+  );
 
   const heroImage =
     game?.customHeroImageUrl || shopDetails?.assets?.libraryHeroImageUrl || "";
@@ -183,39 +225,63 @@ export function AchievementsContent({
                     </span>
                   )}
                 </Link>
+
+                {otherUser && (
+                  <Button
+                    theme="outline"
+                    className="achievements-content__compare-button"
+                    onClick={handleCompareClick}
+                  >
+                    {isComparing ? (
+                      <XIcon size={16} />
+                    ) : (
+                      <PeopleIcon size={16} />
+                    )}
+                    {isComparing ? t("stop_comparing") : t("compare_with_me")}
+                  </Button>
+                )}
               </div>
             </div>
 
             <div className="achievements-content__achievements-list__section__container__achievements-summary-wrapper">
-              <AchievementSummary
-                user={{
-                  ...userDetails,
-                  totalAchievementCount: comparedAchievements
-                    ? comparedAchievements.owner.totalAchievementCount
-                    : achievements!.length,
-                  unlockedAchievementCount: comparedAchievements
-                    ? comparedAchievements.owner.unlockedAchievementCount
-                    : achievements!.filter(
-                        (achievement) => achievement.unlocked
-                      ).length,
-                }}
-                isComparison={otherUser !== null}
-              />
+              {(!otherUser || isComparing) && (
+                <AchievementSummary
+                  user={{
+                    ...userDetails,
+                    totalAchievementCount: comparedAchievements
+                      ? comparedAchievements.owner.totalAchievementCount
+                      : achievements!.length,
+                    unlockedAchievementCount: comparedAchievements
+                      ? comparedAchievements.owner.unlockedAchievementCount
+                      : achievements!.filter(
+                          (achievement) => achievement.unlocked
+                        ).length,
+                  }}
+                  isComparison={otherUser !== null}
+                />
+              )}
 
               {otherUser && <AchievementSummary user={otherUser} />}
             </div>
           </div>
         </div>
 
-        {otherUser ? (
+        {otherUser && isComparing && (
           <ComparedAchievementList
             achievements={comparedAchievements!}
             owner={userDetails}
             target={otherUser}
           />
-        ) : (
-          <AchievementList achievements={achievements!} />
         )}
+
+        {otherUser && !isComparing && (
+          <AchievementList
+            achievements={otherUserAchievements}
+            viewerUnlockedNames={viewerUnlockedNames}
+          />
+        )}
+
+        {!otherUser && <AchievementList achievements={achievements!} />}
       </section>
     </div>
   );

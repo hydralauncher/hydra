@@ -5,6 +5,10 @@ import {
   filterAndSortAchievements,
   formatAchievementUnlockPercentage,
   getAchievementComparisonCounts,
+  getAchievementSetKey,
+  getComparedOwnerUnlockedNames,
+  getComparedTargetAchievements,
+  groupAchievementsBySet,
   matchesAchievementComparisonFilter,
   getAchievementStatusCounts,
   isAchievementConcealed,
@@ -222,5 +226,138 @@ describe("achievement comparison", () => {
       owner: 2,
       target: 3,
     });
+  });
+});
+
+describe("compared achievements for a single user view", () => {
+  const compared = {
+    achievements: [
+      {
+        hidden: false,
+        icon: "a.png",
+        displayName: "First",
+        description: "first",
+        points: 10,
+        globalUnlockPercentage: 50,
+        set: { id: 2, name: "Single Player", order: 0 },
+        ownerStat: { unlocked: true, unlockTime: 100 },
+        targetStat: {
+          unlocked: true,
+          unlockTime: 200,
+          hardcoreUnlockTime: 210,
+        },
+      },
+      {
+        hidden: true,
+        icon: "b.png",
+        displayName: "Secret",
+        description: "secret",
+        targetStat: { unlocked: false, unlockTime: 0 },
+      },
+      {
+        hidden: true,
+        icon: "c.png",
+        displayName: "Spoiler",
+        description: "spoiler",
+        ownerStat: { unlocked: false, unlockTime: 0 },
+        targetStat: { unlocked: true, unlockTime: 300 },
+      },
+    ],
+  };
+
+  it("uses the other user's unlocks", () => {
+    const list = getComparedTargetAchievements(compared);
+
+    assert.deepEqual(
+      list.map(({ name, unlocked, unlockTime, hardcoreUnlockTime }) => ({
+        name,
+        unlocked,
+        unlockTime,
+        hardcoreUnlockTime,
+      })),
+      [
+        { name: "0", unlocked: true, unlockTime: 200, hardcoreUnlockTime: 210 },
+        {
+          name: "1",
+          unlocked: false,
+          unlockTime: null,
+          hardcoreUnlockTime: null,
+        },
+        {
+          name: "2",
+          unlocked: true,
+          unlockTime: 300,
+          hardcoreUnlockTime: null,
+        },
+      ]
+    );
+    assert.equal(list[0].points, 10);
+    assert.equal(list[0].globalUnlockPercentage, 50);
+    assert.deepEqual(list[0].set, {
+      id: 2,
+      name: "Single Player",
+      order: 0,
+    });
+    assert.equal(list[1].set, null);
+    assert.equal(list[2].description, "spoiler");
+  });
+
+  it("lists the achievements the viewer has unlocked", () => {
+    assert.deepEqual([...getComparedOwnerUnlockedNames(compared)], ["0"]);
+  });
+});
+
+describe("achievement sets", () => {
+  const singlePlayer = { id: 2, name: "Single Player", order: 0 };
+  const cooperative = { id: 1, name: "Cooperative", order: 1 };
+  const base = { id: 0, name: null, order: 0 };
+
+  it("returns null when a game has fewer than two sets", () => {
+    assert.equal(groupAchievementsBySet([{ set: null }, {}]), null);
+    assert.equal(
+      groupAchievementsBySet([{ set: singlePlayer }, { set: singlePlayer }]),
+      null
+    );
+  });
+
+  it("groups achievements by set in set order, keeping their order inside", () => {
+    const groups = groupAchievementsBySet([
+      { name: "c1", set: cooperative },
+      { name: "s1", set: singlePlayer },
+      { name: "c2", set: cooperative },
+      { name: "s2", set: singlePlayer },
+    ]);
+
+    assert.deepEqual(
+      groups?.map(({ key, set, achievements }) => ({
+        key,
+        name: set?.name,
+        names: achievements.map(({ name }) => name),
+      })),
+      [
+        { key: "2", name: "Single Player", names: ["s1", "s2"] },
+        { key: "1", name: "Cooperative", names: ["c1", "c2"] },
+      ]
+    );
+  });
+
+  it("keeps the unnamed base set and puts achievements without a set last", () => {
+    const groups = groupAchievementsBySet([
+      { name: "loose", set: null },
+      { name: "co-op", set: cooperative },
+      { name: "base", set: base },
+    ]);
+
+    assert.deepEqual(
+      groups?.map(({ key }) => key),
+      ["0", "1", "none"]
+    );
+    assert.equal(groups?.[0].set?.name, null);
+  });
+
+  it("builds a stable key per set", () => {
+    assert.equal(getAchievementSetKey({ set: cooperative }), "1");
+    assert.equal(getAchievementSetKey({ set: null }), "none");
+    assert.equal(getAchievementSetKey({}), "none");
   });
 });

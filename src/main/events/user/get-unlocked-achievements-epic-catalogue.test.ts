@@ -6,7 +6,6 @@ import {
   achievementSyncCoordinator,
   AchievementSyncCancelledError,
 } from "../../services/achievements/achievement-sync-coordinator.ts";
-import { getMockUnlockPercentage } from "../../services/achievements/mock-unlock-percentage.ts";
 
 const passthroughCombinedRequest = (
   ...args: [unknown, string, string, string, () => Promise<unknown>]
@@ -135,9 +134,6 @@ const load = (options: {
       CombinedAchievementsRequests: { fetch: passthroughCombinedRequest },
     },
     "@main/services/achievements/combined-achievement-presentation": {},
-    "@main/services/achievements/mock-unlock-percentage": {
-      getMockUnlockPercentage,
-    },
   };
   const output = ts.transpileModule(
     readFileSync(

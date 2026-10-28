@@ -4,7 +4,6 @@ import { it } from "node:test";
 import ts from "typescript";
 import { presentCombinedAchievements } from "../../services/achievements/combined-achievement-presentation.ts";
 import { mergeUnlockedAchievementLists } from "../../services/achievements/merge-unlocked-achievements.ts";
-import { getMockUnlockPercentage } from "../../services/achievements/mock-unlock-percentage.ts";
 import {
   achievementSyncCoordinator,
   AchievementSyncCancelledError,
@@ -152,9 +151,6 @@ for (const scenario of [
       },
       "@main/services/achievements/combined-achievement-presentation": {
         presentCombinedAchievements,
-      },
-      "@main/services/achievements/mock-unlock-percentage": {
-        getMockUnlockPercentage,
       },
     };
     const output = ts.transpileModule(

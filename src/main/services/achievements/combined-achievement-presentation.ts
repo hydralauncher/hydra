@@ -1,4 +1,14 @@
-import type { UnlockedAchievement, UserAchievement } from "@types";
+import type {
+  SteamAchievement,
+  UnlockedAchievement,
+  UserAchievement,
+} from "@types";
+
+export type CombinedAchievementDefinitionLookup = (
+  shop: "steam" | "epic",
+  objectId: string,
+  name: string
+) => Pick<SteamAchievement, "globalUnlockPercentage" | "set"> | undefined;
 
 export interface CombinedAchievementVariant {
   shop: "steam" | "epic";
@@ -29,7 +39,8 @@ export function presentCombinedAchievements(
     shop: "steam" | "epic",
     objectId: string
   ) => readonly UnlockedAchievement[],
-  revealHidden: boolean
+  revealHidden: boolean,
+  findDefinition: CombinedAchievementDefinitionLookup = () => undefined
 ): UserAchievement[] {
   return combined.achievements
     .flatMap(({ canonicalAchievementId, variants }) => {
@@ -47,9 +58,24 @@ export function presentCombinedAchievements(
       const selected =
         choices.find((row) => row.shop === "steam") ?? choices[0];
       if (!selected) return [];
+      const definitions = [
+        selected,
+        ...states.filter((row) => row !== selected),
+      ].map((row) => ({
+        shop: row.shop,
+        definition: findDefinition(row.shop, row.objectId, row.name),
+      }));
       return [
         {
           ...selected,
+          globalUnlockPercentage:
+            definitions.find(
+              ({ definition }) => definition?.globalUnlockPercentage != null
+            )?.definition?.globalUnlockPercentage ?? null,
+          set:
+            definitions.find(
+              ({ shop, definition }) => shop === "steam" && definition?.set
+            )?.definition?.set ?? null,
           canonicalAchievementId,
           source: selected.shop,
           sourceObjectId: selected.objectId,

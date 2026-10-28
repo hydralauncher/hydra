@@ -8,3 +8,6 @@ export const GAME_ACHIEVEMENTS_STATUS_SELECT_ID = "game-achievements-status";
 
 export const getAchievementRowId = (achievementName: string) =>
   `achievement-row-${achievementName}`;
+
+export const getAchievementSetId = (setKey: string) =>
+  `achievement-set-${setKey}`;

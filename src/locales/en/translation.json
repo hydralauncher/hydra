@@ -2350,7 +2350,11 @@
     "compare_unlocked_by": "{{name}} unlocked at {{date}}",
     "compare_locked_for": "{{name}} hasn't unlocked this yet",
     "global_stats": "Global stats",
-    "hydra_points": "Hydra points"
+    "hydra_points": "Hydra points",
+    "compare_with_me": "Compare with me",
+    "stop_comparing": "Stop comparing",
+    "achievement_set_base_game": "Base game",
+    "achievement_set_other": "Other"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Subscription",

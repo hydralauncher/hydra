@@ -2254,7 +2254,11 @@
     "compare_unlocked_by": "{{name}} desbloqueou em {{date}}",
     "compare_locked_for": "{{name}} ainda não desbloqueou",
     "global_stats": "Estatísticas globais",
-    "hydra_points": "Pontos Hydra"
+    "hydra_points": "Pontos Hydra",
+    "compare_with_me": "Comparar comigo",
+    "stop_comparing": "Parar de comparar",
+    "achievement_set_base_game": "Jogo base",
+    "achievement_set_other": "Outras"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Assinatura Hydra Cloud",

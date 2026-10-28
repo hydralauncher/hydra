@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { it } from "node:test";
 import ts from "typescript";
 import { mergeUnlockedAchievementLists } from "../../services/achievements/merge-unlocked-achievements.ts";
-import { getMockUnlockPercentage } from "../../services/achievements/mock-unlock-percentage.ts";
 import {
   achievementSyncCoordinator,
   AchievementSyncCancelledError,
@@ -136,9 +135,6 @@ for (const ownerChanged of [false, true]) {
               );
               return [{ name: "EPIC_ONLY", unlocked: true }];
             },
-          },
-          "@main/services/achievements/mock-unlock-percentage": {
-            getMockUnlockPercentage,
           },
         };
         const output = ts.transpileModule(

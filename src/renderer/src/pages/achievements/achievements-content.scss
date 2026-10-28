@@ -70,6 +70,15 @@ $summary-height: 64px;
     }
   }
 
+  &__compare-button {
+    flex-shrink: 0;
+    backdrop-filter: blur(4px);
+
+    &:not(:hover) {
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+  }
+
   &__user-summary {
     display: flex;
     gap: globals.$spacing-unit * 2;

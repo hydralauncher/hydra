@@ -22,7 +22,9 @@ import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achie
 import {
   filterAndSortAchievements,
   formatAchievementUnlockPercentage,
+  getAchievementSetKey,
   getAchievementStatusCounts,
+  groupAchievementsBySet,
   isAchievementConcealed,
   type AchievementSortOption,
   type AchievementStatusFilter,
@@ -31,14 +33,19 @@ import {
   AchievementSelect,
   type AchievementSelectOption,
 } from "./achievement-select";
+import { AchievementSetHeader } from "./achievement-set-header";
+import { AchievementIcon } from "./achievement-icon";
 
 interface AchievementListProps {
   achievements: UserAchievement[];
+  viewerUnlockedNames?: ReadonlySet<string>;
 }
 
 export function AchievementList({
   achievements,
+  viewerUnlockedNames,
 }: Readonly<AchievementListProps>) {
+  const isOtherUser = viewerUnlockedNames !== undefined;
   const { t, i18n } = useTranslation("achievement");
   const { hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
@@ -59,11 +66,24 @@ export function AchievementList({
     alt: string;
   } | null>(null);
 
+  const isUnlockedByViewer = useCallback(
+    (achievement: Pick<UserAchievement, "name" | "unlocked">) =>
+      viewerUnlockedNames
+        ? viewerUnlockedNames.has(achievement.name)
+        : achievement.unlocked,
+    [viewerUnlockedNames]
+  );
+
   const isConcealed = useCallback(
     (achievement: Pick<UserAchievement, "name" | "hidden" | "unlocked">) =>
-      isAchievementConcealed(achievement, showHiddenAchievements) &&
-      !revealedNames.has(achievement.name),
-    [revealedNames, showHiddenAchievements]
+      isAchievementConcealed(
+        {
+          hidden: achievement.hidden,
+          unlocked: isUnlockedByViewer(achievement),
+        },
+        showHiddenAchievements
+      ) && !revealedNames.has(achievement.name),
+    [isUnlockedByViewer, revealedNames, showHiddenAchievements]
   );
 
   const [lastRevealedName, setLastRevealedName] = useState<string | null>(null);
@@ -108,6 +128,45 @@ export function AchievementList({
     [achievements, isConcealed, search, sort, status]
   );
 
+  const setGroups = useMemo(
+    () => groupAchievementsBySet(achievements),
+    [achievements]
+  );
+
+  const visibleSetGroups = useMemo(() => {
+    if (!setGroups) return null;
+
+    return setGroups
+      .map((group) => ({
+        key: group.key,
+        set: group.set,
+        totalCount: group.achievements.length,
+        unlockedCount: group.achievements.filter(
+          (achievement) => achievement.unlocked
+        ).length,
+        achievements: visibleAchievements.filter(
+          (achievement) => getAchievementSetKey(achievement) === group.key
+        ),
+      }))
+      .filter((group) => group.achievements.length > 0);
+  }, [setGroups, visibleAchievements]);
+
+  const [collapsedSetKeys, setCollapsedSetKeys] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  const toggleSet = (key: string) => {
+    setCollapsedSetKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
   const sortOptions: AchievementSelectOption<AchievementSortOption>[] = [
     {
       value: "most_common",
@@ -142,6 +201,177 @@ export function AchievementList({
     },
   ];
 
+  const renderAchievement = (achievement: UserAchievement) => {
+    const concealed = isConcealed(achievement);
+
+    return (
+      <li
+        key={achievement.canonicalAchievementId ?? achievement.name}
+        className={cn("achievements__item", {
+          "achievements__item--unlocked": achievement.unlocked,
+          "achievements__item--concealed": concealed,
+          "achievements__item--revealed": achievement.name === lastRevealedName,
+        })}
+      >
+        {concealed ? (
+          <button
+            type="button"
+            className="achievements__item-reveal"
+            onClick={() => revealAchievement(achievement.name)}
+          >
+            <span className="achievements__item-icon achievements__item-icon--concealed">
+              <EyeClosedIcon size={24} />
+            </span>
+
+            <span className="achievements__item-content">
+              <span className="achievements__item-title">
+                {t("hidden_achievement")}
+              </span>
+              <span className="achievements__item-description">
+                {t("click_to_reveal")}
+              </span>
+            </span>
+          </button>
+        ) : (
+          <>
+            <div className="achievements__item-icon">
+              <AchievementIcon
+                src={achievement.icon}
+                alt={achievement.displayName}
+                locked={!achievement.unlocked}
+              />
+
+              {achievement.unlocked && (
+                <span
+                  className="achievements__item-check"
+                  title={t("unlocked")}
+                >
+                  <CheckCircleFillIcon size={16} />
+                </span>
+              )}
+            </div>
+
+            <div className="achievements__item-content">
+              <h4 className="achievements__item-title">
+                {achievement.hidden && !isUnlockedByViewer(achievement) && (
+                  <span
+                    className="achievements__item-hidden-icon"
+                    title={t("hidden_achievement_tooltip")}
+                  >
+                    <EyeClosedIcon size={12} />
+                  </span>
+                )}
+                {achievement.displayName}
+                {achievement.hardcoreUnlockTime != null && (
+                  <span
+                    className="achievements__item-hardcore-badge"
+                    title={t("hardcore_unlocked_at", {
+                      date: formatUnlockDateTime(
+                        achievement.hardcoreUnlockTime
+                      ),
+                    })}
+                  >
+                    {t("hardcore")}
+                  </span>
+                )}
+              </h4>
+
+              {achievement.description && (
+                <p className="achievements__item-description">
+                  {achievement.description}
+                </p>
+              )}
+
+              {achievement.unlockTime != null && (
+                <small
+                  className="achievements__item-unlock-time"
+                  onMouseEnter={(event) => {
+                    const element = event.currentTarget;
+                    element.title =
+                      element.scrollWidth > element.clientWidth
+                        ? (element.textContent ?? "")
+                        : "";
+                  }}
+                >
+                  {t("unlocked_at", {
+                    date: formatUnlockDateTime(achievement.unlockTime),
+                  })}
+                </small>
+              )}
+            </div>
+          </>
+        )}
+
+        <div className="achievements__item-meta">
+          {achievement.unlocked && achievement.imageUrl && (
+            <button
+              type="button"
+              className="achievements__item-souvenir"
+              onClick={() =>
+                setSouvenir({
+                  src: achievement.imageUrl!,
+                  alt: t("souvenir_alt", {
+                    achievement: achievement.displayName,
+                  }),
+                })
+              }
+              title={t("view_souvenir")}
+            >
+              <img
+                className="achievements__item-souvenir-image"
+                src={achievement.imageUrl}
+                alt={t("souvenir_alt", {
+                  achievement: achievement.displayName,
+                })}
+                loading="lazy"
+              />
+
+              <span className="achievements__item-souvenir-overlay">
+                <SearchIcon size={20} />
+              </span>
+            </button>
+          )}
+
+          <div className="achievements__item-stats">
+            {achievement.globalUnlockPercentage != null && (
+              <span
+                className="achievements__item-percentage"
+                title={t("unlock_percentage_tooltip", {
+                  percentage: formatAchievementUnlockPercentage(
+                    achievement.globalUnlockPercentage,
+                    i18n.language
+                  ),
+                })}
+              >
+                <PeopleIcon size={16} />
+                <span>
+                  {formatAchievementUnlockPercentage(
+                    achievement.globalUnlockPercentage,
+                    i18n.language
+                  )}
+                </span>
+              </span>
+            )}
+
+            {hasActiveSubscription && achievement.points != null && (
+              <div
+                className="achievements__item-points"
+                title={t("achievement_earn_points", {
+                  points: achievement.points,
+                })}
+              >
+                <HydraIcon className="achievements__item-points-icon" />
+                <span className="achievements__item-points-value">
+                  {achievement.points}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </li>
+    );
+  };
+
   return (
     <div className="achievements__list-container">
       <div className="achievements__toolbar">
@@ -171,7 +401,9 @@ export function AchievementList({
         />
 
         <div className="achievements__toolbar-end">
-          <RetroAchievementsConnectBanner className="achievements__toolbar-retro-achievements" />
+          {!isOtherUser && (
+            <RetroAchievementsConnectBanner className="achievements__toolbar-retro-achievements" />
+          )}
 
           {hasActiveSubscription ? (
             <div className="achievements__toolbar-points">
@@ -207,181 +439,29 @@ export function AchievementList({
           <li className="achievements__empty">{t("no_achievements_found")}</li>
         )}
 
-        {visibleAchievements.map((achievement) => {
-          const concealed = isConcealed(achievement);
+        {visibleSetGroups
+          ? visibleSetGroups.map((group) => {
+              const expanded = !collapsedSetKeys.has(group.key);
 
-          return (
-            <li
-              key={achievement.canonicalAchievementId ?? achievement.name}
-              className={cn("achievements__item", {
-                "achievements__item--unlocked": achievement.unlocked,
-                "achievements__item--concealed": concealed,
-                "achievements__item--revealed":
-                  achievement.name === lastRevealedName,
-              })}
-            >
-              {concealed ? (
-                <button
-                  type="button"
-                  className="achievements__item-reveal"
-                  onClick={() => revealAchievement(achievement.name)}
-                >
-                  <span className="achievements__item-icon achievements__item-icon--concealed">
-                    <EyeClosedIcon size={24} />
-                  </span>
+              return (
+                <li key={group.key} className="achievements__set">
+                  <AchievementSetHeader
+                    set={group.set}
+                    expanded={expanded}
+                    onToggle={() => toggleSet(group.key)}
+                    unlockedCount={group.unlockedCount}
+                    totalCount={group.totalCount}
+                  />
 
-                  <span className="achievements__item-content">
-                    <span className="achievements__item-title">
-                      {t("hidden_achievement")}
-                    </span>
-                    <span className="achievements__item-description">
-                      {t("click_to_reveal")}
-                    </span>
-                  </span>
-                </button>
-              ) : (
-                <>
-                  <div className="achievements__item-icon">
-                    <img
-                      className={cn("achievements__item-image", {
-                        "achievements__item-image--locked":
-                          !achievement.unlocked,
-                      })}
-                      src={achievement.icon}
-                      alt={achievement.displayName}
-                      loading="lazy"
-                    />
-
-                    {achievement.unlocked && (
-                      <span
-                        className="achievements__item-check"
-                        title={t("unlocked")}
-                      >
-                        <CheckCircleFillIcon size={16} />
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="achievements__item-content">
-                    <h4 className="achievements__item-title">
-                      {achievement.hidden && !achievement.unlocked && (
-                        <span
-                          className="achievements__item-hidden-icon"
-                          title={t("hidden_achievement_tooltip")}
-                        >
-                          <EyeClosedIcon size={12} />
-                        </span>
-                      )}
-                      {achievement.displayName}
-                      {achievement.hardcoreUnlockTime != null && (
-                        <span
-                          className="achievements__item-hardcore-badge"
-                          title={t("hardcore_unlocked_at", {
-                            date: formatUnlockDateTime(
-                              achievement.hardcoreUnlockTime
-                            ),
-                          })}
-                        >
-                          {t("hardcore")}
-                        </span>
-                      )}
-                    </h4>
-
-                    {achievement.description && (
-                      <p className="achievements__item-description">
-                        {achievement.description}
-                      </p>
-                    )}
-
-                    {achievement.unlockTime != null && (
-                      <small
-                        className="achievements__item-unlock-time"
-                        onMouseEnter={(event) => {
-                          const element = event.currentTarget;
-                          element.title =
-                            element.scrollWidth > element.clientWidth
-                              ? (element.textContent ?? "")
-                              : "";
-                        }}
-                      >
-                        {t("unlocked_at", {
-                          date: formatUnlockDateTime(achievement.unlockTime),
-                        })}
-                      </small>
-                    )}
-                  </div>
-                </>
-              )}
-
-              <div className="achievements__item-meta">
-                {achievement.unlocked && achievement.imageUrl && (
-                  <button
-                    type="button"
-                    className="achievements__item-souvenir"
-                    onClick={() =>
-                      setSouvenir({
-                        src: achievement.imageUrl!,
-                        alt: t("souvenir_alt", {
-                          achievement: achievement.displayName,
-                        }),
-                      })
-                    }
-                    title={t("view_souvenir")}
-                  >
-                    <img
-                      className="achievements__item-souvenir-image"
-                      src={achievement.imageUrl}
-                      alt={t("souvenir_alt", {
-                        achievement: achievement.displayName,
-                      })}
-                      loading="lazy"
-                    />
-
-                    <span className="achievements__item-souvenir-overlay">
-                      <SearchIcon size={20} />
-                    </span>
-                  </button>
-                )}
-
-                <div className="achievements__item-stats">
-                  {achievement.globalUnlockPercentage != null && (
-                    <span
-                      className="achievements__item-percentage"
-                      title={t("unlock_percentage_tooltip", {
-                        percentage: formatAchievementUnlockPercentage(
-                          achievement.globalUnlockPercentage,
-                          i18n.language
-                        ),
-                      })}
-                    >
-                      <PeopleIcon size={16} />
-                      <span>
-                        {formatAchievementUnlockPercentage(
-                          achievement.globalUnlockPercentage,
-                          i18n.language
-                        )}
-                      </span>
-                    </span>
+                  {expanded && (
+                    <ul className="achievements__set-list">
+                      {group.achievements.map(renderAchievement)}
+                    </ul>
                   )}
-
-                  {hasActiveSubscription && achievement.points != null && (
-                    <div
-                      className="achievements__item-points"
-                      title={t("achievement_earn_points", {
-                        points: achievement.points,
-                      })}
-                    >
-                      <HydraIcon className="achievements__item-points-icon" />
-                      <span className="achievements__item-points-value">
-                        {achievement.points}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </li>
-          );
-        })}
+                </li>
+              );
+            })
+          : visibleAchievements.map(renderAchievement)}
       </ul>
 
       <FullscreenMediaModal

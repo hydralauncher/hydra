@@ -1,4 +1,4 @@
-import type { ComparedAchievements } from "@types";
+import type { AchievementSet, ComparedAchievements } from "@types";
 import "./achievements.scss";
 import {
   CheckCircleFillIcon,
@@ -22,6 +22,8 @@ import {
   filterAndSortAchievements,
   formatAchievementUnlockPercentage,
   getAchievementComparisonCounts,
+  getAchievementSetKey,
+  groupAchievementsBySet,
   isAchievementConcealed,
   matchesAchievementComparisonFilter,
   type AchievementComparisonFilter,
@@ -31,6 +33,8 @@ import {
   AchievementSelect,
   type AchievementSelectOption,
 } from "./achievement-select";
+import { ComparedAchievementSetHeader } from "./achievement-set-header";
+import { AchievementIcon } from "./achievement-icon";
 
 interface ComparedUser {
   displayName: string;
@@ -53,6 +57,7 @@ interface ComparedRow {
   unlocked: boolean;
   points?: number;
   globalUnlockPercentage?: number | null;
+  set: AchievementSet | null;
   ownerUnlocked: boolean;
   targetUnlocked: boolean;
   achievement: ComparedAchievement;
@@ -114,6 +119,7 @@ export function ComparedAchievementList({
         unlocked: achievement.targetStat.unlocked,
         points: achievement.points,
         globalUnlockPercentage: achievement.globalUnlockPercentage,
+        set: achievement.set ?? null,
         ownerUnlocked: Boolean(achievement.ownerStat?.unlocked),
         targetUnlocked: achievement.targetStat.unlocked,
         achievement,
@@ -156,6 +162,45 @@ export function ComparedAchievementList({
       ),
     [filter, isConcealed, rows, search, sort]
   );
+
+  const setGroups = useMemo(() => groupAchievementsBySet(rows), [rows]);
+
+  const visibleSetGroups = useMemo(() => {
+    if (!setGroups) return null;
+
+    return setGroups
+      .map((group) => ({
+        key: group.key,
+        set: group.set,
+        totalCount: group.achievements.length,
+        ownerUnlockedCount: group.achievements.filter(
+          (row) => row.ownerUnlocked
+        ).length,
+        targetUnlockedCount: group.achievements.filter(
+          (row) => row.targetUnlocked
+        ).length,
+        rows: visibleRows.filter(
+          (row) => getAchievementSetKey(row) === group.key
+        ),
+      }))
+      .filter((group) => group.rows.length > 0);
+  }, [setGroups, visibleRows]);
+
+  const [collapsedSetKeys, setCollapsedSetKeys] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  const toggleSet = (key: string) => {
+    setCollapsedSetKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
 
   const sortOptions: AchievementSelectOption<AchievementSortOption>[] = [
     {
@@ -240,6 +285,118 @@ export function ComparedAchievementList({
   const gridStyle = {
     "--compare-stat-columns": statColumnCount,
   } as CSSProperties;
+
+  const renderRow = (row: ComparedRow) => {
+    const concealed = isConcealed(row);
+    const { achievement } = row;
+    const unlockedByAnyone = row.ownerUnlocked || row.targetUnlocked;
+
+    return (
+      <li
+        key={row.name}
+        style={gridStyle}
+        className={cn("achievements__item achievements__compare-row", {
+          "achievements__item--unlocked": unlockedByAnyone,
+          "achievements__item--concealed": concealed,
+          "achievements__item--revealed": row.name === lastRevealedName,
+        })}
+      >
+        {concealed ? (
+          <button
+            type="button"
+            className="achievements__item-reveal"
+            onClick={() => revealAchievement(row.name)}
+          >
+            <span className="achievements__item-icon achievements__item-icon--concealed">
+              <EyeClosedIcon size={24} />
+            </span>
+
+            <span className="achievements__item-content">
+              <span className="achievements__item-title">
+                {t("hidden_achievement")}
+              </span>
+              <span className="achievements__item-description">
+                {t("click_to_reveal")}
+              </span>
+            </span>
+          </button>
+        ) : (
+          <div className="achievements__compare-main">
+            <div className="achievements__item-icon">
+              <AchievementIcon
+                src={achievement.icon}
+                alt={achievement.displayName}
+                locked={!unlockedByAnyone}
+              />
+            </div>
+
+            <div className="achievements__item-content">
+              <h4 className="achievements__item-title">
+                {achievement.hidden && !row.ownerUnlocked && (
+                  <span
+                    className="achievements__item-hidden-icon"
+                    title={t("hidden_achievement_tooltip")}
+                  >
+                    <EyeClosedIcon size={12} />
+                  </span>
+                )}
+                {achievement.displayName}
+              </h4>
+
+              {achievement.description && (
+                <p className="achievements__item-description">
+                  {achievement.description}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {hasCommunityStats && (
+          <div className="achievements__compare-cell">
+            <div className="achievements__item-stats">
+              {achievement.globalUnlockPercentage != null && (
+                <span
+                  className="achievements__item-percentage"
+                  title={t("unlock_percentage_tooltip", {
+                    percentage: formatAchievementUnlockPercentage(
+                      achievement.globalUnlockPercentage,
+                      i18n.language
+                    ),
+                  })}
+                >
+                  <PeopleIcon size={16} />
+                  <span>
+                    {formatAchievementUnlockPercentage(
+                      achievement.globalUnlockPercentage,
+                      i18n.language
+                    )}
+                  </span>
+                </span>
+              )}
+
+              {achievement.points != null && (
+                <div
+                  className="achievements__item-points"
+                  title={t("achievement_earn_points", {
+                    points: achievement.points,
+                  })}
+                >
+                  <HydraIcon className="achievements__item-points-icon" />
+                  <span className="achievements__item-points-value">
+                    {achievement.points}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {hasOwnerStats && renderStatus(achievement.ownerStat, owner)}
+        {renderStatus(achievement.targetStat, target)}
+      </li>
+    );
+  };
 
   return (
     <div
@@ -343,120 +500,43 @@ export function ComparedAchievementList({
           <li className="achievements__empty">{t("no_achievements_found")}</li>
         )}
 
-        {visibleRows.map((row) => {
-          const concealed = isConcealed(row);
-          const { achievement } = row;
-          const unlockedByAnyone = row.ownerUnlocked || row.targetUnlocked;
+        {visibleSetGroups
+          ? visibleSetGroups.map((group) => {
+              const expanded = !collapsedSetKeys.has(group.key);
 
-          return (
-            <li
-              key={row.name}
-              style={gridStyle}
-              className={cn("achievements__item achievements__compare-row", {
-                "achievements__item--unlocked": unlockedByAnyone,
-                "achievements__item--concealed": concealed,
-                "achievements__item--revealed": row.name === lastRevealedName,
-              })}
-            >
-              {concealed ? (
-                <button
-                  type="button"
-                  className="achievements__item-reveal"
-                  onClick={() => revealAchievement(row.name)}
-                >
-                  <span className="achievements__item-icon achievements__item-icon--concealed">
-                    <EyeClosedIcon size={24} />
-                  </span>
-
-                  <span className="achievements__item-content">
-                    <span className="achievements__item-title">
-                      {t("hidden_achievement")}
-                    </span>
-                    <span className="achievements__item-description">
-                      {t("click_to_reveal")}
-                    </span>
-                  </span>
-                </button>
-              ) : (
-                <div className="achievements__compare-main">
-                  <div className="achievements__item-icon">
-                    <img
-                      className={cn("achievements__item-image", {
-                        "achievements__item-image--locked": !unlockedByAnyone,
-                      })}
-                      src={achievement.icon}
-                      alt={achievement.displayName}
-                      loading="lazy"
-                    />
-                  </div>
-
-                  <div className="achievements__item-content">
-                    <h4 className="achievements__item-title">
-                      {achievement.hidden && !row.ownerUnlocked && (
-                        <span
-                          className="achievements__item-hidden-icon"
-                          title={t("hidden_achievement_tooltip")}
-                        >
-                          <EyeClosedIcon size={12} />
+              return (
+                <li key={group.key} className="achievements__set">
+                  <ComparedAchievementSetHeader
+                    set={group.set}
+                    expanded={expanded}
+                    onToggle={() => toggleSet(group.key)}
+                    style={gridStyle}
+                    cells={
+                      <>
+                        {hasCommunityStats && (
+                          <span className="achievements__compare-cell" />
+                        )}
+                        {hasOwnerStats && (
+                          <span className="achievements__compare-cell achievements__set-count">
+                            {group.ownerUnlockedCount} / {group.totalCount}
+                          </span>
+                        )}
+                        <span className="achievements__compare-cell achievements__set-count">
+                          {group.targetUnlockedCount} / {group.totalCount}
                         </span>
-                      )}
-                      {achievement.displayName}
-                    </h4>
+                      </>
+                    }
+                  />
 
-                    {achievement.description && (
-                      <p className="achievements__item-description">
-                        {achievement.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {hasCommunityStats && (
-                <div className="achievements__compare-cell">
-                  <div className="achievements__item-stats">
-                    {achievement.globalUnlockPercentage != null && (
-                      <span
-                        className="achievements__item-percentage"
-                        title={t("unlock_percentage_tooltip", {
-                          percentage: formatAchievementUnlockPercentage(
-                            achievement.globalUnlockPercentage,
-                            i18n.language
-                          ),
-                        })}
-                      >
-                        <PeopleIcon size={16} />
-                        <span>
-                          {formatAchievementUnlockPercentage(
-                            achievement.globalUnlockPercentage,
-                            i18n.language
-                          )}
-                        </span>
-                      </span>
-                    )}
-
-                    {achievement.points != null && (
-                      <div
-                        className="achievements__item-points"
-                        title={t("achievement_earn_points", {
-                          points: achievement.points,
-                        })}
-                      >
-                        <HydraIcon className="achievements__item-points-icon" />
-                        <span className="achievements__item-points-value">
-                          {achievement.points}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {hasOwnerStats && renderStatus(achievement.ownerStat, owner)}
-              {renderStatus(achievement.targetStat, target)}
-            </li>
-          );
-        })}
+                  {expanded && (
+                    <ul className="achievements__set-list">
+                      {group.rows.map(renderRow)}
+                    </ul>
+                  )}
+                </li>
+              );
+            })
+          : visibleRows.map(renderRow)}
       </ul>
     </div>
   );

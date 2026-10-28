@@ -19,7 +19,6 @@ import { AchievementMemoryStore } from "../achievements/achievement-memory-store
 import { UnlockedAchievementsCache } from "../achievements/unlocked-achievements-cache";
 import { AchievementSouvenirStore } from "../achievements/achievement-souvenir-store";
 import { getAchievementSouvenirs } from "../achievements/get-achievement-souvenirs";
-import { getMockUnlockPercentage } from "../achievements/mock-unlock-percentage";
 
 const toMillis = (date?: string) => {
   if (!date) return null;
@@ -45,9 +44,6 @@ const buildRetroAchievement = (
 
   return {
     ...achievementData,
-    globalUnlockPercentage:
-      achievementData.globalUnlockPercentage ??
-      getMockUnlockPercentage(achievementData.points),
     unlocked: Boolean(unlocked),
     unlockTime: unlocked?.unlockTime ?? null,
     hardcoreUnlockTime: unlocked?.hardcoreUnlockTime ?? null,
