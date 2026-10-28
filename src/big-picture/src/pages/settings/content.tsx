@@ -39,6 +39,7 @@ interface SettingsSectionProps {
 interface ContentForm {
   autoplayGameTrailers: boolean;
   disableNsfwAlert: boolean;
+  showSensitiveScreenshots: boolean;
   showHiddenAchievementsDescription: boolean;
   enableSteamAchievements: boolean;
   enableAchievementSouvenirs: boolean;
@@ -57,6 +58,7 @@ interface ContentItem {
 const DEFAULT_FORM: ContentForm = {
   autoplayGameTrailers: true,
   disableNsfwAlert: false,
+  showSensitiveScreenshots: false,
   showHiddenAchievementsDescription: false,
   enableSteamAchievements: false,
   enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
@@ -72,6 +74,7 @@ const buildForm = (preferences: UserPreferences | null): ContentForm =>
     ? {
         autoplayGameTrailers: preferences.autoplayGameTrailers ?? true,
         disableNsfwAlert: preferences.disableNsfwAlert ?? false,
+        showSensitiveScreenshots: preferences.showSensitiveScreenshots ?? false,
         showHiddenAchievementsDescription:
           preferences.showHiddenAchievementsDescription ?? false,
         enableSteamAchievements: preferences.enableSteamAchievements ?? false,
@@ -91,8 +94,8 @@ export function ContentSettingsSection({
   const userPreferences = useUserPreferences();
   const { hasActiveSubscription } = useUserDetails();
   const { isFeatureEnabled } = useFeature();
-  const showScreenshotSettings =
-    IS_DESKTOP && isFeatureEnabled(Feature.Screenshots);
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
+  const showScreenshotSettings = IS_DESKTOP && isScreenshotsEnabled;
   const [form, setForm] = useState<ContentForm>(() =>
     buildForm(userPreferences)
   );
@@ -197,6 +200,20 @@ export function ContentSettingsSection({
         onChange: (checked: boolean) =>
           void updateUserPreferences({ disableNsfwAlert: checked }),
       },
+      ...(isScreenshotsEnabled
+        ? [
+            {
+              id: "show-sensitive-screenshots",
+              focusId: CONTENT_ITEM_FOCUS_IDS.showSensitiveScreenshots,
+              label: t("screenshots_show_sensitive"),
+              checked: form.showSensitiveScreenshots,
+              onChange: (checked: boolean) =>
+                void updateUserPreferences({
+                  showSensitiveScreenshots: checked,
+                }),
+            },
+          ]
+        : []),
       {
         id: "show-hidden-achievements-description",
         focusId: CONTENT_ITEM_FOCUS_IDS.showHiddenAchievementsDescription,
@@ -238,6 +255,7 @@ export function ContentSettingsSection({
   }, [
     form,
     handleAchievementSouvenirsChange,
+    isScreenshotsEnabled,
     supportsSouvenirs,
     t,
     updateUserPreferences,

@@ -69,7 +69,6 @@ export const SCREENSHOT_SETTINGS_FOCUS_IDS = {
   captureSound: "screenshot-settings-capture-sound",
   toast: "screenshot-settings-toast",
   defaultVisibility: "screenshot-settings-default-visibility",
-  showSensitive: "screenshot-settings-show-sensitive",
   folder: "screenshot-settings-folder",
   folderReset: "screenshot-settings-folder-reset",
   folderOpen: "screenshot-settings-folder-open",
@@ -98,7 +97,6 @@ type ScreenshotPreferenceUpdate = Pick<
   | "screenshotCaptureSoundEnabled"
   | "screenshotToastEnabled"
   | "screenshotDefaultVisibility"
-  | "showSensitiveScreenshots"
 >;
 
 function withoutPreferenceKeys(
@@ -378,7 +376,6 @@ function buildScreenshotSettingsRows(options: ScreenshotSettingsRowsOptions) {
     [ids.captureSound],
     [ids.toast],
     [ids.defaultVisibility],
-    [ids.showSensitive],
     folderRow,
   ]
     .map((row) => row.filter((focusId) => !inactiveIds.has(focusId)))
@@ -773,15 +770,6 @@ export function ScreenshotSettingsSection({
               void update({ screenshotDefaultVisibility })
             }
           />
-
-          {renderCheckbox(
-            ids.showSensitive,
-            t("screenshots_settings_show_sensitive"),
-            preferences.showSensitive,
-            (showSensitiveScreenshots) =>
-              void update({ showSensitiveScreenshots }),
-            false
-          )}
 
           <div className="screenshot-settings__row">
             <span className="screenshot-settings__label">

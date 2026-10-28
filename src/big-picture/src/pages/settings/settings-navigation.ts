@@ -147,6 +147,7 @@ export const NOTIFICATIONS_ACHIEVEMENTS_ITEM_FOCUS_IDS = {
 export const CONTENT_ITEM_FOCUS_IDS = {
   autoplayGameTrailers: "content-autoplay-game-trailers",
   disableNsfwAlert: "content-disable-nsfw-alert",
+  showSensitiveScreenshots: "content-show-sensitive-screenshots",
   showHiddenAchievementsDescription:
     "content-show-hidden-achievements-description",
   enableSteamAchievements: "content-enable-steam-achievements",

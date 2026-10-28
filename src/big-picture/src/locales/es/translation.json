@@ -985,7 +985,6 @@
     "screenshots_sensitive_reveal": "Ver captura",
     "screenshots_sensitive_modal_description": "Se tomó en un juego para adultos.",
     "screenshots_sensitive_modal_description_spoiler": "Se tomó en un juego para adultos y además está marcada como spoiler.",
-    "screenshots_sensitive_modal_dont_hide": "No ocultar más las capturas sensibles",
-    "screenshots_settings_show_sensitive": "Mostrar capturas sensibles sin difuminar"
+    "screenshots_sensitive_modal_dont_hide": "No ocultar más las capturas sensibles"
   }
 }

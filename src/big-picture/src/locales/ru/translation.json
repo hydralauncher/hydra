@@ -1014,7 +1014,6 @@
     "screenshots_sensitive_reveal": "Посмотреть скриншот",
     "screenshots_sensitive_modal_description": "Он сделан в игре для взрослых.",
     "screenshots_sensitive_modal_description_spoiler": "Он сделан в игре для взрослых и также отмечен как спойлер.",
-    "screenshots_sensitive_modal_dont_hide": "Больше не скрывать деликатные скриншоты",
-    "screenshots_settings_show_sensitive": "Показывать деликатные скриншоты без размытия"
+    "screenshots_sensitive_modal_dont_hide": "Больше не скрывать деликатные скриншоты"
   }
 }
