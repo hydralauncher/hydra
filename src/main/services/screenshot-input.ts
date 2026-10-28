@@ -194,7 +194,14 @@ export class ScreenshotInputService {
   }
 
   public static trigger(source: ScreenshotTriggerSource) {
-    if (!this.featureEnabled || !this.settings.enabled) return false;
+    if (!this.featureEnabled || !this.settings.enabled) {
+      logger.info("Screenshot trigger ignored: input disabled", {
+        source,
+        featureEnabled: this.featureEnabled,
+        settingsEnabled: this.settings.enabled,
+      });
+      return false;
+    }
 
     const channel: ScreenshotTriggerChannel =
       source === "deeplink" ? "deeplink" : "input";
@@ -204,6 +211,10 @@ export class ScreenshotInputService {
       lastTriggerAt !== undefined &&
       now - lastTriggerAt < SCREENSHOT_TRIGGER_COOLDOWN_MS
     ) {
+      logger.info("Screenshot trigger ignored: cooldown", {
+        source,
+        sinceLastTriggerMs: Math.round(now - lastTriggerAt),
+      });
       return false;
     }
     this.lastTriggerAt.set(channel, now);
@@ -443,13 +454,23 @@ export class ScreenshotInputService {
   }
 
   private static handleNativeEvent(event: ScreenshotInputNativeEvent) {
-    if (!this.listening) return;
+    if (!this.listening) {
+      logger.debug("Screenshot native event ignored: not listening", {
+        kind: event.kind,
+        source: event.source,
+      });
+      return;
+    }
 
     if (event.kind === "stopped") {
       this.handleBackendStopped(event);
       return;
     }
 
+    logger.debug("Screenshot native trigger", {
+      source: event.source,
+      backend: event.backend,
+    });
     if (isNativeTriggerSource(event.source)) this.trigger(event.source);
   }
 
