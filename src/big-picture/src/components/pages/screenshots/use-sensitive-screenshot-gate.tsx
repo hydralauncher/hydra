@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { SensitiveScreenshotModal } from "./sensitive-screenshot-modal";
 import { useRevealedScreenshotSpoilers } from "./use-revealed-spoilers";
@@ -7,7 +7,7 @@ import {
   type SensitiveScreenshotTarget,
 } from "./use-sensitive-screenshot";
 
-interface PendingSensitiveReveal {
+interface SensitiveRevealRequest {
   screenshotId: string;
   isSpoiler: boolean;
   continueWith: () => void;
@@ -16,7 +16,9 @@ interface PendingSensitiveReveal {
 export function useSensitiveScreenshotGate() {
   const { isHidden, reveal } = useSensitiveScreenshotViewer();
   const revealSpoiler = useRevealedScreenshotSpoilers((state) => state.reveal);
-  const [pending, setPending] = useState<PendingSensitiveReveal | null>(null);
+  const [request, setRequest] = useState<SensitiveRevealRequest | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const confirmedRef = useRef<(() => void) | null>(null);
 
   const guard = (
     screenshot: SensitiveScreenshotTarget,
@@ -27,30 +29,40 @@ export function useSensitiveScreenshotGate() {
       return;
     }
 
-    setPending({
+    confirmedRef.current = null;
+    setRequest({
       screenshotId: screenshot.id,
       isSpoiler: screenshot.isSpoiler,
       continueWith,
     });
+    setIsVisible(true);
   };
 
   const confirm = () => {
-    if (!pending) return;
+    if (!request || !isVisible) return;
 
-    reveal(pending.screenshotId);
-    if (pending.isSpoiler) revealSpoiler(pending.screenshotId);
-    setPending(null);
-    pending.continueWith();
+    reveal(request.screenshotId);
+    if (request.isSpoiler) revealSpoiler(request.screenshotId);
+    confirmedRef.current = request.continueWith;
+    setIsVisible(false);
   };
 
-  const modal = (
+  const finishExit = () => {
+    const continueWith = confirmedRef.current;
+    confirmedRef.current = null;
+    setRequest(null);
+    continueWith?.();
+  };
+
+  const modal = request ? (
     <SensitiveScreenshotModal
-      visible={pending !== null}
-      isSpoiler={pending?.isSpoiler ?? false}
-      onClose={() => setPending(null)}
+      visible={isVisible}
+      isSpoiler={request.isSpoiler}
+      onClose={() => setIsVisible(false)}
       onConfirm={confirm}
+      onExitComplete={finishExit}
     />
-  );
+  ) : null;
 
   return { isHidden, guard, modal };
 }

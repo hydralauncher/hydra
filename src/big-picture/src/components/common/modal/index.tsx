@@ -39,6 +39,7 @@ export interface ModalProps {
   animateLayout?: boolean;
   initialFocusId?: string;
   layoutTransition?: Transition;
+  onExitComplete?: () => void;
 }
 
 export const MODAL_OWNED_OVERLAY_ATTRIBUTE = "data-hydra-modal-owned-overlay";
@@ -72,6 +73,7 @@ export function Modal({
   animateLayout = false,
   initialFocusId,
   layoutTransition,
+  onExitComplete,
 }: Readonly<ModalProps>) {
   const modalContentRef = useRef<HTMLDivElement | null>(null);
   const virtualKeyboardTarget = useVirtualKeyboardStore(
@@ -194,7 +196,7 @@ export function Modal({
       {visible ? (
         <ModalBackAction enabled={shouldCloseOnB} onBack={handleBPress} />
       ) : null}
-      <AnimatePresence>
+      <AnimatePresence onExitComplete={onExitComplete}>
         {visible && (
           <Backdrop className={backdropClassName}>
             <motion.aside

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { logger } from "@renderer/logger";
 
@@ -9,22 +9,25 @@ import {
   Modal,
   VerticalFocusGroup,
 } from "../../common";
-import { useNavigation } from "../../../hooks";
+import { useNavigationActions } from "../../../hooks";
 
 import "../../modals/confirmation/styles.scss";
 import "./sensitive-screenshot-modal.scss";
 
-const CONTENT_REGION_ID = "sensitive-screenshot-modal-content";
-const ACTIONS_REGION_ID = "sensitive-screenshot-modal-actions";
-const CHECKBOX_FOCUS_ID = "sensitive-screenshot-modal-dont-hide";
-const CANCEL_FOCUS_ID = "sensitive-screenshot-modal-cancel";
-const CONFIRM_FOCUS_ID = "sensitive-screenshot-modal-confirm";
+const getModalIds = (instanceId: string) => ({
+  contentRegion: `sensitive-screenshot-modal-content:${instanceId}`,
+  actionsRegion: `sensitive-screenshot-modal-actions:${instanceId}`,
+  checkbox: `sensitive-screenshot-modal-dont-hide:${instanceId}`,
+  cancel: `sensitive-screenshot-modal-cancel:${instanceId}`,
+  confirm: `sensitive-screenshot-modal-confirm:${instanceId}`,
+});
 
 interface SensitiveScreenshotModalProps {
   visible: boolean;
   isSpoiler: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  onExitComplete?: () => void;
 }
 
 export function SensitiveScreenshotModal({
@@ -32,9 +35,11 @@ export function SensitiveScreenshotModal({
   isSpoiler,
   onClose,
   onConfirm,
+  onExitComplete,
 }: Readonly<SensitiveScreenshotModalProps>) {
   const { t } = useTranslation("big_picture");
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
+  const ids = getModalIds(useId().replaceAll(":", ""));
   const [dontHideAgain, setDontHideAgain] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -45,13 +50,13 @@ export function SensitiveScreenshotModal({
     setIsSaving(false);
 
     const frameId = globalThis.window.requestAnimationFrame(() => {
-      setFocus(CANCEL_FOCUS_ID);
+      setFocus(ids.cancel);
     });
 
     return () => {
       globalThis.window.cancelAnimationFrame(frameId);
     };
-  }, [setFocus, visible]);
+  }, [ids.cancel, setFocus, visible]);
 
   const confirm = async () => {
     if (dontHideAgain) {
@@ -83,14 +88,15 @@ export function SensitiveScreenshotModal({
           ? "screenshots_sensitive_modal_description_spoiler"
           : "screenshots_sensitive_modal_description"
       )}
-      initialFocusId={CANCEL_FOCUS_ID}
+      initialFocusId={ids.cancel}
       closeOnBackdrop={false}
       closeOnEscape={!isSaving}
       closeOnB={!isSaving}
       className="confirmation-modal sensitive-screenshot-modal"
+      onExitComplete={onExitComplete}
     >
       <VerticalFocusGroup
-        regionId={CONTENT_REGION_ID}
+        regionId={ids.contentRegion}
         className="confirmation-modal__content sensitive-screenshot-modal__content"
       >
         <Checkbox
@@ -98,10 +104,10 @@ export function SensitiveScreenshotModal({
           label={t("screenshots_sensitive_modal_dont_hide")}
           checked={dontHideAgain}
           disabled={isSaving}
-          focusId={CHECKBOX_FOCUS_ID}
+          focusId={ids.checkbox}
           navigationOverrides={{
             up: { type: "block" },
-            down: { type: "item", itemId: CANCEL_FOCUS_ID },
+            down: { type: "item", itemId: ids.cancel },
             left: { type: "block" },
             right: { type: "block" },
           }}
@@ -109,15 +115,15 @@ export function SensitiveScreenshotModal({
         />
 
         <HorizontalFocusGroup
-          regionId={ACTIONS_REGION_ID}
+          regionId={ids.actionsRegion}
           className="confirmation-modal__actions"
         >
           <Button
             variant="secondary"
-            focusId={CANCEL_FOCUS_ID}
+            focusId={ids.cancel}
             disabled={isSaving}
             focusNavigationOverrides={{
-              up: { type: "item", itemId: CHECKBOX_FOCUS_ID },
+              up: { type: "item", itemId: ids.checkbox },
               down: { type: "block" },
             }}
             onClick={onClose}
@@ -127,10 +133,10 @@ export function SensitiveScreenshotModal({
 
           <Button
             variant="primary"
-            focusId={CONFIRM_FOCUS_ID}
+            focusId={ids.confirm}
             loading={isSaving}
             focusNavigationOverrides={{
-              up: { type: "item", itemId: CHECKBOX_FOCUS_ID },
+              up: { type: "item", itemId: ids.checkbox },
               down: { type: "block" },
             }}
             onClick={() => {
