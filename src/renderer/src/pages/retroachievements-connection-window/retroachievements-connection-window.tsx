@@ -120,6 +120,13 @@ export default function RetroAchievementsConnectionWindow() {
         })
         .catch(() => {});
 
+      void globalThis.window.electron
+        .linkRetroAchievementsEmulatorAccount(
+          form.username.trim(),
+          form.password
+        )
+        .catch(() => false);
+
       await globalThis.window.electron.completeRetroAchievementsConnectionWindow();
     } catch (error) {
       const message = error instanceof Error ? error.message : undefined;

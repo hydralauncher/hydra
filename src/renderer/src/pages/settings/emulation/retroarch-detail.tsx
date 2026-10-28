@@ -58,6 +58,8 @@ const readStoredTab = (): RetroArchTab => {
     : "emulator";
 };
 
+const RETROARCH_REMOVE_TARGET = { kind: "retroarch" as const };
+
 export function RetroArchDetail({
   config,
   onBack,
@@ -115,17 +117,29 @@ export function RetroArchDetail({
     return unsubscribe;
   }, []);
 
-  const handleConfirmRemoveEmulator = useCallback(async () => {
-    setBusy(true);
-    try {
-      const next = await window.electron.removeRetroArch();
-      onChange(next);
-      setRemoveOpen(false);
-      onBack();
-    } finally {
-      setBusy(false);
-    }
-  }, [onChange, onBack]);
+  const handleConfirmRemoveEmulator = useCallback(
+    async (gamesToRemove: number) => {
+      setBusy(true);
+      try {
+        const next = await window.electron.removeRetroArch({
+          removeGames: gamesToRemove > 0,
+        });
+        onChange(next);
+        setRemoveOpen(false);
+        showSuccessToast(
+          t("remove_emulator_success", { name: RETROARCH_LABEL }),
+          gamesToRemove > 0
+            ? t("remove_emulator_games_removed", { count: gamesToRemove })
+            : undefined
+        );
+
+        onBack();
+      } finally {
+        setBusy(false);
+      }
+    },
+    [onChange, onBack, showSuccessToast, t]
+  );
 
   const handleRedetect = useCallback(async () => {
     setBusy(true);
@@ -134,7 +148,9 @@ export function RetroArchDetail({
         executablePath: config.executablePath,
         detectedVersion: config.detectedVersion,
       };
-      const next = await window.electron.detectRetroArch();
+      const next = await window.electron.detectRetroArch({
+        includeDriveRoots: true,
+      });
       onChange(next);
       notifyRedetectOutcome(
         next,
@@ -580,6 +596,7 @@ export function RetroArchDetail({
 
       <DetailRemoveModals
         emulatorName={RETROARCH_LABEL}
+        removeTarget={RETROARCH_REMOVE_TARGET}
         folderToRemove={folderToRemove}
         removeEmulatorOpen={removeOpen}
         busy={busy}

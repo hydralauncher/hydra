@@ -1,0 +1,325 @@
+$leaderboard-up: #4ade80;
+$leaderboard-down: #ff6b81;
+$leaderboard-text: #f0f1f7;
+$leaderboard-muted: #a6a7ad;
+
+.leaderboard-notification-icon {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+
+  &__tile {
+    box-sizing: border-box;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: $leaderboard-text;
+
+    &--game {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background-color: #141418;
+      background-size: cover;
+      background-position: center;
+
+      img {
+        width: 37px;
+        height: 37px;
+        object-fit: contain;
+      }
+    }
+
+    &--gradient {
+      border: 1px solid transparent;
+      background:
+        linear-gradient(
+            160deg,
+            rgba(58, 209, 255, 0.18),
+            rgba(176, 92, 255, 0.22)
+          )
+          padding-box,
+        linear-gradient(#141418, #141418) padding-box,
+        linear-gradient(135deg, #3ad1ff, #b05cff) border-box;
+    }
+  }
+
+  &__self {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #141418;
+    box-shadow: 0 0 0 1px rgba(176, 92, 255, 0.7);
+    object-fit: cover;
+  }
+
+  &__arrow {
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    box-sizing: border-box;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid #1c1c1c;
+    background: $leaderboard-up;
+    color: #0d0d0d;
+
+    &--down {
+      background: $leaderboard-down;
+
+      svg {
+        transform: rotate(180deg);
+      }
+    }
+  }
+}
+
+.leaderboard-rank-chip {
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  background: rgba(74, 222, 128, 0.12);
+  color: $leaderboard-up;
+  font-size: 12px;
+  font-weight: 700;
+
+  &--down {
+    background: rgba(255, 107, 129, 0.12);
+    color: $leaderboard-down;
+  }
+}
+
+.leaderboard-toast-stack {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.leaderboard-toast {
+  box-sizing: border-box;
+  width: 340px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #1c1c1c;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  text-align: left;
+  cursor: pointer;
+  animation: leaderboard-toast-in 0.5s cubic-bezier(0.2, 1, 0.3, 1) both;
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    b {
+      font-size: 14px;
+      font-weight: 700;
+      color: $leaderboard-text;
+    }
+
+    span {
+      font-size: 12px;
+      color: $leaderboard-muted;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+
+.leaderboard-slam {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at 50% 38%,
+      rgba(34, 199, 238, 0.12),
+      rgba(5, 5, 6, 0.9) 60%
+    ),
+    rgba(5, 5, 6, 0.9);
+  backdrop-filter: blur(8px);
+  animation: leaderboard-fade 0.35s ease-out both;
+
+  &__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    margin: 0;
+  }
+
+  &__tag {
+    position: absolute;
+    left: 50%;
+    top: 30%;
+    transform: translateX(-50%);
+    font-size: 13px;
+    line-height: 22px;
+    padding: 0 9px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: $leaderboard-text;
+    font-weight: 500;
+    animation: leaderboard-fade 0.4s ease-out 1.3s both;
+  }
+
+  &__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  &__foot {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(50% + 160px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  &__rise {
+    animation: leaderboard-rise 0.45s cubic-bezier(0.33, 1, 0.68, 1) 2.02s both;
+
+    &--late {
+      animation-delay: 2.2s;
+    }
+  }
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 22px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(18, 18, 18, 0.9);
+
+    small {
+      font-size: 12px;
+      color: $leaderboard-muted;
+    }
+  }
+
+  &__logo {
+    height: 56px;
+    max-width: 240px;
+    object-fit: contain;
+  }
+
+  &__board {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    b {
+      font-size: 18px;
+      line-height: 26px;
+      font-weight: 700;
+      color: $leaderboard-text;
+    }
+  }
+
+  &__actions {
+    margin-top: 4px;
+    display: flex;
+    gap: 10px;
+  }
+
+  &__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: 1px solid $leaderboard-text;
+    color: $leaderboard-text;
+    background: rgba(13, 13, 13, 0.4);
+    white-space: nowrap;
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    &--primary {
+      background: $leaderboard-text;
+      color: #0d0d0d;
+      font-weight: 600;
+
+      &:hover {
+        background: #ffffff;
+      }
+    }
+  }
+}
+
+@keyframes leaderboard-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes leaderboard-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes leaderboard-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaderboard-slam,
+  .leaderboard-slam__tag,
+  .leaderboard-slam__rise,
+  .leaderboard-toast {
+    animation: none;
+  }
+}

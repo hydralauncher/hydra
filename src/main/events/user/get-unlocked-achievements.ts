@@ -9,6 +9,8 @@ import { getGameAchievementData } from "@main/services/achievements/get-game-ach
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import { UnlockedAchievementsCache } from "@main/services/achievements/unlocked-achievements-cache";
+import { CombinedAchievementsRequests } from "@main/services/achievements/combined-achievements-requests";
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import { fetchRemoteUserGameAchievements } from "@main/services/achievements/get-achievement-souvenirs";
 import { mergeUnlockedAchievementLists } from "@main/services/achievements/merge-unlocked-achievements";
@@ -19,22 +21,24 @@ import {
 
 const COMBINED_ACHIEVEMENTS_TIMEOUT_MS = 5_000;
 
+const captureAchievementView = (shop: GameShop, objectId: string) => {
+  const context = HydraApi.getAuthContext();
+  return achievementSyncCoordinator.captureCurrent(
+    levelKeys.game(shop, objectId),
+    () =>
+      context
+        ? HydraApi.isAuthContextCurrent(context)
+        : HydraApi.getAuthContext() === null
+  );
+};
+
 export const getUnlockedAchievements = async (
   objectId: string,
   shop: GameShop,
   useCachedData: boolean,
   current?: () => boolean
 ): Promise<UserAchievement[]> => {
-  const context = HydraApi.getAuthContext();
-  const valid =
-    current ??
-    achievementSyncCoordinator.captureCurrent(
-      levelKeys.game(shop, objectId),
-      () =>
-        context
-          ? HydraApi.isAuthContextCurrent(context)
-          : HydraApi.getAuthContext() === null
-    );
+  const valid = current ?? captureAchievementView(shop, objectId);
   const assertCurrent = () => {
     if (!valid()) throw new AchievementSyncCancelledError();
   };
@@ -110,11 +114,19 @@ export const getUnlockedAchievements = async (
   // Preserve the selected copy's catalogue/cache refresh and sync side effects.
   // The union is a display projection and must never replace that source state.
   if (shop === "steam" || shop === "epic") {
-    const combined = await HydraApi.get<CombinedAchievements>(
-      "/profile/achievements/combined",
-      { shop, objectId, language: userPreferences?.language ?? "en" },
-      { timeout: COMBINED_ACHIEVEMENTS_TIMEOUT_MS }
-    ).catch(() => null);
+    const language = userPreferences?.language ?? "en";
+    const combined = await CombinedAchievementsRequests.fetch(
+      HydraApi.getAuthContext(),
+      shop,
+      objectId,
+      language,
+      () =>
+        HydraApi.get<CombinedAchievements>(
+          "/profile/achievements/combined",
+          { shop, objectId, language },
+          { timeout: COMBINED_ACHIEVEMENTS_TIMEOUT_MS }
+        )
+    );
     const includesRequestedCopy = combined?.achievements.some((achievement) =>
       achievement.variants.some(
         (variant) => variant.shop === shop && variant.objectId === objectId
@@ -137,6 +149,11 @@ export const getUnlockedAchievements = async (
       combined?.achievements.length &&
       (includesRequestedCopy || emptyCopyInGroup)
     ) {
+      UnlockedAchievementsCache.recordCombinedMembers(
+        shop,
+        objectId,
+        combined.achievements.flatMap((achievement) => achievement.variants)
+      );
       return presentCombinedAchievements(
         combined,
         (sourceShop, sourceObjectId) =>
@@ -217,13 +234,17 @@ export const getUnlockedAchievements = async (
     });
 };
 
-export const syncAndGetUnlockedAchievements = async (
+export const syncAndGetUnlockedAchievements = (
   objectId: string,
   shop: GameShop
-): Promise<UserAchievement[]> => {
-  await AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId);
-  return getUnlockedAchievements(objectId, shop, false);
-};
+): Promise<UserAchievement[]> =>
+  UnlockedAchievementsCache.load(
+    shop,
+    objectId,
+    captureAchievementView(shop, objectId),
+    () => AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId),
+    () => getUnlockedAchievements(objectId, shop, false)
+  );
 
 const getUnlockedAchievementsEvent = async (
   _event: Electron.IpcMainInvokeEvent,
