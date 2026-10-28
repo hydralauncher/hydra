@@ -1,21 +1,11 @@
 import { useEffect, useState } from "react";
 import cn from "classnames";
-import {
-  ArrowRightIcon,
-  ClockIcon,
-  PeopleIcon,
-  StarIcon,
-  ThumbsupIcon,
-  TrophyIcon,
-} from "@primer/octicons-react";
+import { ClockIcon, PeopleIcon, StarIcon } from "@primer/octicons-react";
 import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 
 import { Avatar, Button } from "@renderer/components";
 import { useDate, useFormat } from "@renderer/hooks";
-import { buildGameDetailsPath } from "@renderer/helpers";
-import type { GameShop } from "@types";
 import type {
   LeaderboardEntry,
   LeaderboardUser,
@@ -33,6 +23,7 @@ import {
 import { BoardView } from "./board-view";
 import { BlockError, BlockMessage, BoardSkeleton } from "./leaderboard-bits";
 import { MetricIcon } from "./metric-icon";
+import { ReviewHighlight } from "./review-highlight";
 import {
   EMPTY_BOARD_RESULT,
   type GlobalBoardResults,
@@ -40,7 +31,7 @@ import {
 import { useMetricText } from "./use-global-leaderboard-value";
 
 const METRIC_CARD_PLACEHOLDERS = Array.from(
-  { length: 7 },
+  { length: 8 },
   (_, position) => `metric-placeholder-${position}`
 );
 
@@ -88,7 +79,6 @@ export function RankingTab({
   const { t } = useTranslation("leaderboards");
   const { numberFormatter } = useFormat();
   const metricText = useMetricText();
-  const navigate = useNavigate();
   const [reviewerId, setReviewerId] = useState<string | null>(null);
   const [visibleRows, setVisibleRows] = useState(GLOBAL_LEADERBOARD_PAGE_SIZE);
 
@@ -208,73 +198,7 @@ export function RankingTab({
   const renderSelectedReview = () => {
     if (!isReviews || !selectedEntry || !selectedReview) return null;
 
-    const topTitle = t(isWeek ? "review_top_week" : "review_top_all");
-    const title =
-      selectedEntry.user.id === leaderId
-        ? topTitle
-        : t("review_top_of", { name: selectedEntry.user.displayName });
-
-    return (
-      <article className="leaderboards__review">
-        <div className="leaderboards__review-header">
-          <TrophyIcon size={16} />
-          <span>{title}</span>
-        </div>
-        <div className="leaderboards__review-content">
-          {selectedReview.coverImageUrl && (
-            <img
-              className="leaderboards__review-cover"
-              src={selectedReview.coverImageUrl}
-              alt={selectedReview.gameTitle}
-            />
-          )}
-          <div className="leaderboards__review-body">
-            <h3 className="leaderboards__review-game">
-              {selectedReview.gameTitle}
-            </h3>
-            <div className="leaderboards__review-author">
-              <Avatar
-                size={28}
-                src={selectedEntry.user.profileImageUrl}
-                alt={selectedEntry.user.displayName}
-              />
-              <span className="leaderboards__review-name">
-                {selectedEntry.user.displayName}
-              </span>
-              <ReviewScore review={selectedReview} />
-            </div>
-            <p
-              className="leaderboards__review-text"
-              title={selectedReview.text}
-            >
-              {selectedReview.text}
-            </p>
-            <div className="leaderboards__review-footer">
-              <span className="leaderboards__review-votes">
-                <ThumbsupIcon size={14} />
-                {format(selectedEntry.value)}
-              </span>
-              <button
-                type="button"
-                className="leaderboards__link"
-                onClick={() =>
-                  navigate(
-                    buildGameDetailsPath({
-                      shop: selectedReview.shop as GameShop,
-                      objectId: selectedReview.objectId,
-                      title: selectedReview.gameTitle,
-                    })
-                  )
-                }
-              >
-                {t("review_open_game", { game: selectedReview.gameTitle })}
-                <ArrowRightIcon size={14} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </article>
-    );
+    return <ReviewHighlight entry={selectedEntry} review={selectedReview} />;
   };
 
   const renderBoard = () => {

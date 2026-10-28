@@ -53,16 +53,37 @@ const readCached = <T>(
   }
 };
 
+const readCachedWithFallback = <T>(
+  path: string | null,
+  options: LeaderboardRequestOptions,
+  fallbackOptions: LeaderboardRequestOptions | undefined,
+  accountId: string | null,
+  normalize: (response: unknown) => T
+): T | null =>
+  readCached(path, options, accountId, normalize) ??
+  (fallbackOptions
+    ? readCached(path, fallbackOptions, accountId, normalize)
+    : null);
+
+// The API only reports failures as messages, so any failure of the main
+// request is retried once with `fallbackOptions` when they are given.
 export function useApiResource<T>(
   path: string | null,
   options: LeaderboardRequestOptions,
-  normalize: (response: unknown) => T
+  normalize: (response: unknown) => T,
+  fallbackOptions?: LeaderboardRequestOptions
 ): ApiResource<T> {
   const { viewerUser } = useLeaderboardViewer();
   const accountId = viewerUser?.id ?? null;
   const requestKey = path ? getRequestKey(path, options, accountId) : null;
   const [state, setState] = useState(() => {
-    const data = readCached(path, options, accountId, normalize);
+    const data = readCachedWithFallback(
+      path,
+      options,
+      fallbackOptions,
+      accountId,
+      normalize
+    );
     return {
       key: requestKey,
       data,
@@ -72,14 +93,21 @@ export function useApiResource<T>(
   });
   const [attempt, setAttempt] = useState(0);
   const requestIdRef = useRef(0);
-  const latest = useRef({ path, options, accountId, normalize });
-  latest.current = { path, options, accountId, normalize };
+  const latest = useRef({
+    path,
+    options,
+    fallbackOptions,
+    accountId,
+    normalize,
+  });
+  latest.current = { path, options, fallbackOptions, accountId, normalize };
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
     const {
       path: currentPath,
       options: currentOptions,
+      fallbackOptions: currentFallbackOptions,
       accountId: currentAccountId,
     } = latest.current;
 
@@ -88,9 +116,10 @@ export function useApiResource<T>(
       return;
     }
 
-    const cached = readCached(
+    const cached = readCachedWithFallback(
       currentPath,
       currentOptions,
+      currentFallbackOptions,
       currentAccountId,
       latest.current.normalize
     );
@@ -113,6 +142,14 @@ export function useApiResource<T>(
 
     leaderboardsCache
       .get(currentPath, currentOptions, currentAccountId)
+      .catch((error: unknown) => {
+        if (!currentFallbackOptions) throw error;
+        return leaderboardsCache.get(
+          currentPath,
+          currentFallbackOptions,
+          currentAccountId
+        );
+      })
       .then((response) => {
         if (requestId !== requestIdRef.current) return;
         setState({
@@ -139,7 +176,13 @@ export function useApiResource<T>(
   const isCurrent = state.key === requestKey;
 
   if (!isCurrent) {
-    const pending = readCached(path, options, accountId, normalize);
+    const pending = readCachedWithFallback(
+      path,
+      options,
+      fallbackOptions,
+      accountId,
+      normalize
+    );
     return {
       data: pending,
       isLoading: Boolean(path) && pending === null,

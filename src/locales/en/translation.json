@@ -2748,10 +2748,6 @@
     "find_friends": "Find friends",
     "sign_in_hint": "Sign in to see your position, your games and your friends' ranking.",
     "review_score": "{{score}}/5",
-    "review_top_week": "Most upvoted review of the week",
-    "review_top_all": "Most upvoted review of all time",
-    "review_top_of": "Most upvoted review by {{name}}",
-    "review_open_game": "View on the {{game}} page",
     "my_games_title": "Your games' rankings",
     "search_game": "Search game",
     "clear_search": "Clear search",
@@ -2772,9 +2768,11 @@
     "streak_best": "Record",
     "days_unit_one": "day",
     "days_unit_other": "days",
-    "last_weeks": "Last {{count}} weeks",
-    "legend_min": "0 h",
-    "legend_max": "3 h+",
+    "activity_title": "Activity",
+    "activity_total_one": "{{hours}} h in {{count}} day",
+    "activity_total_other": "{{hours}} h in {{count}} days",
+    "legend_less": "Less",
+    "legend_more": "More",
     "not_played": "Didn't play",
     "today": "Today",
     "yesterday": "Yesterday",
@@ -2803,6 +2801,10 @@
     "chip_days_other": "{{count}} DAYS",
     "badge_earned_on": "Earned on {{date}}",
     "badge_since": "Since {{date}}",
-    "badge_remaining": "{{amount}} to go"
+    "badge_remaining": "{{amount}} to go",
+    "badge_amount_sessions_one": "{{amount}} session",
+    "badge_amount_sessions_other": "{{amount}} sessions",
+    "badge_remaining_to_top_rank": "{{amount}} to go for Top {{value}}",
+    "badge_remaining_to_top_percent": "{{amount}} to go for Top {{value}}%"
   }
 }
