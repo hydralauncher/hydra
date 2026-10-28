@@ -286,7 +286,7 @@ export function EditProfileModal(
         "edit-profile-modal__banner-art--empty": !url,
       })}
     >
-      {url && <img src={url} alt="" />}
+      {url && <img src={url} alt="" decoding="async" />}
     </span>
   );
 

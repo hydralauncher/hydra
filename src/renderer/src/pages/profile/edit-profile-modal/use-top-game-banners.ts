@@ -4,21 +4,39 @@ import type { ArtworkItem, UserGame } from "@types";
 export const TOP_GAMES_COUNT = 6;
 
 // Large, community-made heroes without nsfw, humor or flashing content. The
-// API caches SteamGridDB, and the first result is the best scored one.
+// API caches SteamGridDB and sorts by score; a few candidates per attempt
+// leave room to skip files that are too big.
 const HERO_FILTERS = {
   dimensions: "1920x620,3840x1240",
   nsfw: "false",
   humor: "false",
   epilepsy: "false",
-  limit: "1",
+  limit: "5",
 };
 
-// Animated first; static when the game has none; any style as a last resort.
+// Animated first, as WebP only: the banner crop keeps WebP animation but
+// flattens animated PNGs. Then static; any style as a last resort.
 const HERO_ATTEMPTS: Record<string, string>[] = [
-  { ...HERO_FILTERS, types: "animated", styles: "alternate" },
+  {
+    ...HERO_FILTERS,
+    types: "animated",
+    styles: "alternate",
+    mimes: "image/webp",
+  },
   { ...HERO_FILTERS, types: "static", styles: "alternate" },
   { ...HERO_FILTERS, types: "static" },
 ];
+
+// The artwork download and the API's banner upload both stop at 20 MB.
+const MAX_HERO_SIZE_IN_BYTES = 20 * 1024 * 1024;
+
+const fitsBannerSize = async (url: string) => {
+  const response = await fetch(url, { method: "HEAD" }).catch(() => null);
+  const length = Number(response?.headers.get("content-length"));
+  return Number.isFinite(length) && length > 0
+    ? length <= MAX_HERO_SIZE_IN_BYTES
+    : false;
+};
 
 export interface TopGameBanner {
   key: string;
@@ -33,7 +51,11 @@ const findHero = async (game: UserGame) => {
     const page = await window.electron
       .getGameArtwork(game.shop, game.objectId, "heroes", 0, parameters)
       .catch(() => null);
-    const hero = page?.items[0];
+    const candidates = page?.items ?? [];
+    const fits = await Promise.all(
+      candidates.map((hero) => fitsBannerSize(hero.url))
+    );
+    const hero = candidates.find((_, index) => fits[index]);
     if (hero) return hero;
   }
   return null;
