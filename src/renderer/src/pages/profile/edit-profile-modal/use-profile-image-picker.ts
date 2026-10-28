@@ -26,16 +26,9 @@ export function useProfileImagePicker(
   const { hasActiveSubscription } = useUserDetails();
   const [cropRequest, setCropRequest] = useState<CropRequest | null>(null);
 
-  const pickImage = useCallback(
-    async (variant: ProfileImageVariant) => {
-      const { filePaths } = await window.electron.showOpenDialog({
-        properties: ["openFile"],
-        filters: [{ name: "Image", extensions: IMAGE_EXTENSIONS }],
-      });
-
-      const path = filePaths?.[0];
-      if (!path) return;
-
+  /** Sends a local image through the crop modal, as a picked file would. */
+  const cropImage = useCallback(
+    async (variant: ProfileImageVariant, path: string) => {
       const metadata = await getProfileImageMetadata(path);
 
       if (
@@ -62,6 +55,19 @@ export function useProfileImagePicker(
     [hasActiveSubscription, showErrorToast, t]
   );
 
+  const pickImage = useCallback(
+    async (variant: ProfileImageVariant) => {
+      const { filePaths } = await window.electron.showOpenDialog({
+        properties: ["openFile"],
+        filters: [{ name: "Image", extensions: IMAGE_EXTENSIONS }],
+      });
+
+      const path = filePaths?.[0];
+      if (path) await cropImage(variant, path);
+    },
+    [cropImage]
+  );
+
   const cropModalProps = {
     visible: !!cropRequest,
     imagePath: cropRequest?.path ?? null,
@@ -74,5 +80,5 @@ export function useProfileImagePicker(
     },
   };
 
-  return { pickImage, cropModalProps };
+  return { pickImage, cropImage, cropModalProps };
 }

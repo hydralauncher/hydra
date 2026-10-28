@@ -1078,9 +1078,17 @@ contextBridge.exposeInMainWorld("electron", {
     shop: GameShop,
     objectId: string,
     kind: ArtworkKind,
-    page?: number
+    page?: number,
+    parameters?: Record<string, string>
   ): Promise<ArtworkPage | null> =>
-    ipcRenderer.invoke("getGameArtwork", shop, objectId, kind, page),
+    ipcRenderer.invoke(
+      "getGameArtwork",
+      shop,
+      objectId,
+      kind,
+      page,
+      parameters
+    ),
   getCoverPoster: (url: string): Promise<string | null> =>
     ipcRenderer.invoke("getCoverPoster", url),
   getGameArtworkSelection: (

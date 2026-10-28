@@ -21,6 +21,7 @@ import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image
 import { EditProfilePreview } from "./edit-profile-preview";
 import { EditProfileTile, EditProfileUploadTile } from "./edit-profile-tile";
 import { usePixelAvatar } from "./use-pixel-avatar";
+import { useTopGameBanners, type TopGameBanner } from "./use-top-game-banners";
 import {
   useProfileImagePicker,
   type ProfileImageVariant,
@@ -68,10 +69,16 @@ export function EditProfileModal(
   const [newPhotoPath, setNewPhotoPath] = useState<string | null>(null);
   const [newBannerPath, setNewBannerPath] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  // Game banners load the first time the Banner tab opens.
+  const [hasOpenedBannerTab, setHasOpenedBannerTab] = useState(false);
+  const [downloadingBannerKey, setDownloadingBannerKey] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (!props.visible) return;
     setTab("photo");
+    setHasOpenedBannerTab(false);
     setDisplayName(savedNameRef.current);
     setPhotoDraft("current");
     setBannerDraft("current");
@@ -79,7 +86,7 @@ export function EditProfileModal(
     setNewBannerPath(null);
   }, [props.visible]);
 
-  const { pickImage, cropModalProps } = useProfileImagePicker(
+  const { pickImage, cropImage, cropModalProps } = useProfileImagePicker(
     (variant: ProfileImageVariant, croppedPath: string) => {
       if (variant === "avatar") {
         setNewPhotoPath(croppedPath);
@@ -89,6 +96,10 @@ export function EditProfileModal(
         setBannerDraft("new");
       }
     }
+  );
+
+  const topGameBanners = useTopGameBanners(
+    props.visible && hasOpenedBannerTab ? (userDetails?.id ?? null) : null
   );
 
   const { pixelAvatarUrl, savePixelAvatar } = usePixelAvatar(
@@ -129,6 +140,26 @@ export function EditProfileModal(
     new: localUrl(newBannerPath),
     none: null,
   }[bannerDraft];
+
+  const handleGameBannerClick = async (banner: TopGameBanner) => {
+    // Banners are part of Hydra Cloud's profile customization.
+    if (!hasActiveSubscription) {
+      showHydraCloudModal("customization");
+      return;
+    }
+
+    setDownloadingBannerKey(banner.key);
+    try {
+      const path = await window.electron.downloadGameArtwork(banner.hero.url);
+      if (!path) throw new Error("Hero download failed");
+      // Same crop and upload as a banner picked from the computer.
+      await cropImage("banner", path);
+    } catch {
+      showErrorToast(t("try_again"));
+    } finally {
+      setDownloadingBannerKey(null);
+    }
+  };
 
   const handleUploadBanner = () => {
     // Banners are part of Hydra Cloud's profile customization.
@@ -245,6 +276,24 @@ export function EditProfileModal(
     </span>
   );
 
+  // SteamGridDB thumbs of animated heroes may be videos; show the image itself.
+  const renderGameBannerArt = (banner: TopGameBanner) => {
+    const { thumb, url } = banner.hero;
+    const src = /.(webm|mp4)$/i.test(thumb) ? url : thumb;
+    return (
+      <span className="edit-profile-modal__banner-art">
+        <img src={src} alt="" />
+        {banner.iconUrl && (
+          <img
+            src={banner.iconUrl}
+            alt=""
+            className="edit-profile-modal__banner-icon"
+          />
+        )}
+      </span>
+    );
+  };
+
   const renderBannerPane = () => (
     <>
       <div className="edit-profile-modal__section-header">
@@ -287,6 +336,27 @@ export function EditProfileModal(
           />
         )}
       </div>
+
+      {topGameBanners.length > 0 && (
+        <>
+          <div className="edit-profile-modal__section-header edit-profile-modal__section-header--spaced">
+            <span>{t("from_your_games")}</span>
+            <small>{t("from_your_games_hint")}</small>
+          </div>
+          <div className="edit-profile-modal__grid edit-profile-modal__grid--wide">
+            {topGameBanners.map((banner) => (
+              <EditProfileTile
+                key={banner.key}
+                art={renderGameBannerArt(banner)}
+                label={banner.title}
+                isWide
+                isDisabled={downloadingBannerKey !== null}
+                onClick={() => void handleGameBannerClick(banner)}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 
@@ -348,7 +418,10 @@ export function EditProfileModal(
                   className={cn("profile-content__tab", {
                     "profile-content__tab--active": tab === id,
                   })}
-                  onClick={() => setTab(id)}
+                  onClick={() => {
+                    setTab(id);
+                    if (id === "banner") setHasOpenedBannerTab(true);
+                  }}
                 >
                   {t(`edit_profile_tab_${id}`)}
                 </button>

@@ -460,7 +460,8 @@ declare global {
       shop: GameShop,
       objectId: string,
       kind: ArtworkKind,
-      page?: number
+      page?: number,
+      parameters?: Record<string, string>
     ) => Promise<ArtworkPage | null>;
     getCoverPoster: (url: string) => Promise<string | null>;
     getGameArtworkSelection: (

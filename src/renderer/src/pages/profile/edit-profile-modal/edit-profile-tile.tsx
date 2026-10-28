@@ -8,6 +8,7 @@ interface EditProfileTileProps {
   isSelected?: boolean;
   isUpload?: boolean;
   isWide?: boolean;
+  isDisabled?: boolean;
   onClick: () => void;
 }
 
@@ -18,6 +19,7 @@ export function EditProfileTile({
   isSelected = false,
   isUpload = false,
   isWide = false,
+  isDisabled = false,
   onClick,
 }: Readonly<EditProfileTileProps>) {
   return (
@@ -29,6 +31,7 @@ export function EditProfileTile({
         "edit-profile-modal__tile--wide": isWide,
       })}
       aria-pressed={isUpload ? undefined : isSelected}
+      disabled={isDisabled}
       onClick={onClick}
     >
       <span className="edit-profile-modal__tile-art">{art}</span>

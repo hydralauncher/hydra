@@ -2240,6 +2240,8 @@
     "no_banner_hint": "Default background",
     "new_banner": "New banner",
     "current_banner": "Current banner",
+    "from_your_games": "From your games",
+    "from_your_games_hint": "Banners from the games you played the most.",
     "no_frame": "No frame",
     "see_in_shop": "See in shop",
     "see_in_shop_hint": "More frames",

@@ -105,6 +105,10 @@ $hover-transition: 0.15s ease;
     flex-direction: column;
     gap: globals.$spacing-unit;
     margin-bottom: calc(globals.$spacing-unit * 2);
+
+    &--spaced {
+      margin-top: calc(globals.$spacing-unit * 3);
+    }
   }
 
   &__grid {
@@ -136,6 +140,11 @@ $hover-transition: 0.15s ease;
 
     &:hover {
       border-color: $line-strong;
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: globals.$disabled-opacity;
     }
 
     &--selected {
@@ -200,6 +209,16 @@ $hover-transition: 0.15s ease;
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+
+    // The game's icon in the corner of its banner.
+    img.edit-profile-modal__banner-icon {
+      inset: auto;
+      top: globals.$spacing-unit;
+      left: globals.$spacing-unit;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
     }
 
     &--empty {
