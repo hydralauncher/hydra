@@ -19,6 +19,7 @@ export interface ForegroundWindowInfo {
   windowHandle?: string;
   windowId?: string;
   clientProcessId?: number | null;
+  focusSource?: string;
 }
 
 export interface ForegroundProcess {

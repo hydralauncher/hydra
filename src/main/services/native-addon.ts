@@ -127,6 +127,8 @@ type HydraNativeModule = {
   ) => ScreenshotInputNativeStatus;
   getWindowsForegroundWindow?: () => NativeForegroundWindowResponse | null;
   getLinuxWindowClientPid?: (windowId: string) => number | null;
+  getKdeFocusedProcessId?: () => number | null;
+  stopKdeFocusWatch?: () => void;
   getWindowsWindowBounds?: (
     windowHandle: string
   ) => NativeWindowBoundsResponse | null;
@@ -546,6 +548,23 @@ export class NativeAddon {
       logger.error("Failed to resolve the Linux window client process", error);
       return null;
     }
+  }
+
+  public static getKdeFocusedProcessId() {
+    if (process.platform !== "linux") return undefined;
+
+    try {
+      const getFocusedProcessId = this.load().getKdeFocusedProcessId;
+      if (!getFocusedProcessId) return undefined;
+      return getFocusedProcessId() ?? null;
+    } catch (error) {
+      logger.warn("Failed to read the KWin active window", error);
+      return undefined;
+    }
+  }
+
+  public static stopKdeFocusWatch() {
+    this.nativeModule?.stopKdeFocusWatch?.();
   }
 
   public static getSystemProcessMap(): Promise<SystemProcessMap | null> {
