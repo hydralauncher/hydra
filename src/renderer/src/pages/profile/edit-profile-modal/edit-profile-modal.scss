@@ -95,6 +95,23 @@ $hover-transition: 0.15s ease;
     padding: 16px;
   }
 
+  &__name {
+    margin-bottom: 20px;
+  }
+
+  &__name-hint {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__subheading {
+    margin: 0 0 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: $ink;
+  }
+
   &__hint {
     margin: 0 0 14px;
     font-size: 12px;

@@ -1,10 +1,16 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import cn from "classnames";
 
-import { Avatar, Button, Modal, ModalProps } from "@renderer/components";
+import {
+  Avatar,
+  Button,
+  Modal,
+  ModalProps,
+  TextField,
+} from "@renderer/components";
 import { CoinIcon } from "@renderer/components/gamification";
 import { userProfileContext } from "@renderer/context";
 import { useAppSelector, useToast, useUserDetails } from "@renderer/hooks";
@@ -27,6 +33,10 @@ type EditProfileTab = "photo" | "banner" | "frames";
 type PhotoDraft = "current" | "new";
 type BannerDraft = "current" | "new" | "none";
 
+// Same limits as the API (updateUserProfileSchema).
+const DISPLAY_NAME_MIN = 3;
+const DISPLAY_NAME_MAX = 50;
+
 const localUrl = (path: string | null) => (path ? `local:${path}` : null);
 
 export function EditProfileModal(
@@ -46,6 +56,10 @@ export function EditProfileModal(
   );
 
   const [tab, setTab] = useState<EditProfileTab>("photo");
+  const [displayName, setDisplayName] = useState("");
+  // Read on open only, so a user details refresh doesn't wipe the draft.
+  const savedNameRef = useRef("");
+  savedNameRef.current = userDetails?.displayName ?? "";
   const [photoDraft, setPhotoDraft] = useState<PhotoDraft>("current");
   const [bannerDraft, setBannerDraft] = useState<BannerDraft>("current");
   // Uploads stay local files until Save, so Cancel leaves nothing on the CDN.
@@ -56,6 +70,7 @@ export function EditProfileModal(
   useEffect(() => {
     if (!props.visible) return;
     setTab("photo");
+    setDisplayName(savedNameRef.current);
     setPhotoDraft("current");
     setBannerDraft("current");
     setNewPhotoPath(null);
@@ -79,7 +94,13 @@ export function EditProfileModal(
   const currentPhotoUrl = userDetails.profileImageUrl;
   const currentBannerUrl = userDetails.backgroundImageUrl;
 
+  const trimmedName = displayName.trim();
+  const isNameValid =
+    trimmedName.length >= DISPLAY_NAME_MIN &&
+    trimmedName.length <= DISPLAY_NAME_MAX;
+
   const isDirty =
+    trimmedName !== userDetails.displayName ||
     photoDraft !== "current" ||
     (bannerDraft === "none" ? !!currentBannerUrl : bannerDraft === "new");
 
@@ -101,7 +122,12 @@ export function EditProfileModal(
   };
 
   const handleSave = async () => {
+    if (!isNameValid) return;
+
     const values: UpdateProfileRequest = {};
+    if (trimmedName !== userDetails.displayName) {
+      values.displayName = trimmedName;
+    }
     if (photoDraft === "new" && newPhotoPath) {
       values.profileImageUrl = newPhotoPath;
     }
@@ -131,8 +157,40 @@ export function EditProfileModal(
     ? ["photo", "banner", "frames"]
     : ["photo", "banner"];
 
+  const nameCount = `${displayName.length}/${DISPLAY_NAME_MAX}`;
+
   const renderPhotoPane = () => (
     <>
+      <TextField
+        label={t("display_name")}
+        value={displayName}
+        onChange={(event) => setDisplayName(event.target.value)}
+        maxLength={DISPLAY_NAME_MAX}
+        autoComplete="off"
+        spellCheck={false}
+        containerProps={{ className: "edit-profile-modal__name" }}
+        hint={
+          <span className="edit-profile-modal__name-hint">
+            <span>{t("display_name_hint")}</span>
+            <span>{nameCount}</span>
+          </span>
+        }
+        error={
+          isNameValid ? undefined : (
+            <span className="edit-profile-modal__name-hint">
+              <span>
+                {t("display_name_length", {
+                  min: DISPLAY_NAME_MIN,
+                  max: DISPLAY_NAME_MAX,
+                })}
+              </span>
+              <span>{nameCount}</span>
+            </span>
+          )
+        }
+      />
+
+      <h4 className="edit-profile-modal__subheading">{t("profile_photo")}</h4>
       <p className="edit-profile-modal__hint">{t("photo_tab_hint")}</p>
       <div className="edit-profile-modal__grid">
         <EditProfileUploadTile
@@ -258,7 +316,7 @@ export function EditProfileModal(
       <div className="edit-profile-modal__body">
         <div className="edit-profile-modal__preview-wrapper">
           <EditProfilePreview
-            displayName={userDetails.displayName}
+            displayName={isNameValid ? trimmedName : userDetails.displayName}
             profileImageUrl={draftPhotoUrl}
             backgroundImageUrl={draftBannerUrl}
             showLevel={isGamificationEnabled}
@@ -306,7 +364,7 @@ export function EditProfileModal(
           </Button>
           <Button
             onClick={() => void handleSave()}
-            disabled={!isDirty || isSaving}
+            disabled={!isDirty || !isNameValid || isSaving}
           >
             {isSaving ? t("saving") : t("save_changes")}
           </Button>
