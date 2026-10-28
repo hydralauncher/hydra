@@ -17,7 +17,10 @@ import { useDate } from "@renderer/hooks";
 import { useScreenshotImageFallback } from "@shared";
 import type { ProfileScreenshot } from "@types";
 
-import { getScreenshotGameTitle } from "./screenshot-labels";
+import {
+  getScreenshotGameTitle,
+  isScreenshotApproved,
+} from "./screenshot-labels";
 import { ScreenshotStats } from "./screenshot-stats";
 import { SensitiveScreenshotModal } from "./sensitive-screenshot-modal";
 import { useScreenshotSpoiler } from "./use-screenshot-spoiler";
@@ -144,13 +147,9 @@ function ScreenshotCardMedia({
     ? t("sensitive_content")
     : t("spoiler_reveal");
 
-  const openUnlessSpoiler = () => {
-    if (!isSpoilerHidden) onOpen(screenshot);
-  };
-
   const handleClick = () => {
     if (sensitive.isHidden) {
-      sensitive.requestReveal(openUnlessSpoiler);
+      sensitive.requestReveal(() => onOpen(screenshot));
       return;
     }
 
@@ -270,8 +269,7 @@ export function ScreenshotCard({
 }: Readonly<ScreenshotCardProps>) {
   const { t } = useTranslation("screenshots");
   const { formatDate } = useDate();
-  const isApproved =
-    !screenshot.moderationStatus || screenshot.moderationStatus === "APPROVED";
+  const isApproved = isScreenshotApproved(screenshot);
   const altText = t("screenshot_alt", {
     game: getScreenshotGameTitle(screenshot, t),
     date: formatDate(screenshot.capturedAt),

@@ -21,11 +21,21 @@ export function useScreenshotReviewDrafts(screenshots: LocalScreenshot[]) {
 
   useEffect(() => {
     setDrafts((current) => {
+      const listedIds = new Set(
+        screenshots.map((screenshot) => screenshot.clientId)
+      );
+      const staleIds = Object.keys(current).filter(
+        (clientId) =>
+          !listedIds.has(clientId) && !draftSaveTimers.current.has(clientId)
+      );
       const missing = screenshots.filter(
         (screenshot) => !current[screenshot.clientId]
       );
-      if (!missing.length) return current;
+      if (!missing.length && !staleIds.length) return current;
       const next = { ...current };
+      for (const clientId of staleIds) {
+        delete next[clientId];
+      }
       for (const screenshot of missing) {
         next[screenshot.clientId] = createReviewDraft(screenshot);
       }

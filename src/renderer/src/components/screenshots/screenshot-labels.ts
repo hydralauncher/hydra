@@ -9,3 +9,7 @@ export const getScreenshotGameTitle = (
   if (screenshot.gameTitle) return screenshot.gameTitle;
   return screenshot.isCustomGame ? t("custom_game") : t("unknown_game");
 };
+
+export const isScreenshotApproved = (
+  screenshot: Pick<ProfileScreenshot, "moderationStatus">
+) => !screenshot.moderationStatus || screenshot.moderationStatus === "APPROVED";

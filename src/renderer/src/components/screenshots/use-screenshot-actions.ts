@@ -54,7 +54,9 @@ function usePendingIds() {
     setPendingIds(new Set(pendingRef.current));
   }, []);
 
-  return { pendingIds, start, finish };
+  const isPending = useCallback((id: string) => pendingRef.current.has(id), []);
+
+  return { pendingIds, start, finish, isPending };
 }
 
 export function useScreenshotActions({
@@ -69,11 +71,13 @@ export function useScreenshotActions({
     pendingIds: likingIds,
     start: startLiking,
     finish: finishLiking,
+    isPending: isLikePending,
   } = usePendingIds();
   const {
     pendingIds: updatingIds,
     start: startUpdating,
     finish: finishUpdating,
+    isPending: isUpdatePending,
   } = usePendingIds();
   const {
     pendingIds: deletingIds,
@@ -92,6 +96,12 @@ export function useScreenshotActions({
   } = usePendingIds();
   const [reportedIds, setReportedIds] = useState<ReadonlySet<string>>(
     () => new Set()
+  );
+
+  const hasPendingWrite = useCallback(
+    (screenshotId: string) =>
+      isLikePending(screenshotId) || isUpdatePending(screenshotId),
+    [isLikePending, isUpdatePending]
   );
 
   const markReported = useCallback((screenshotId: string) => {
@@ -341,6 +351,7 @@ export function useScreenshotActions({
     reportingIds,
     copyingIds,
     reportedIds,
+    hasPendingWrite,
     toggleLike,
     updateScreenshot,
     deleteScreenshot,

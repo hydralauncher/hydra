@@ -27,7 +27,10 @@ import {
 import type { ProfileScreenshot } from "@types";
 
 import { ScreenshotComments } from "./screenshot-comments";
-import { getScreenshotGameTitle } from "./screenshot-labels";
+import {
+  getScreenshotGameTitle,
+  isScreenshotApproved,
+} from "./screenshot-labels";
 import type { ScreenshotFailure } from "./use-screenshot-actions";
 import type { ScreenshotPatch } from "@shared";
 import type { ScreenshotCollection } from "./use-screenshot-collection";
@@ -330,8 +333,7 @@ export function ScreenshotLightboxPanel({
   const { isFeatureEnabled, Feature } = useFeature();
   const isOwner = userDetails?.id === screenshot.owner.id;
   const isCommentsEnabled = isFeatureEnabled(Feature.ScreenshotComments);
-  const isApproved =
-    !screenshot.moderationStatus || screenshot.moderationStatus === "APPROVED";
+  const isApproved = isScreenshotApproved(screenshot);
 
   return (
     <aside className="screenshot-lightbox__panel">

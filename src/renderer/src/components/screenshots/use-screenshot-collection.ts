@@ -224,6 +224,7 @@ export function useScreenshotCollection({
     onRemove,
     onFailure: markFailure,
   });
+  const { hasPendingWrite } = actions;
 
   const recountDetached = useCallback(
     async (ownerId: string, screenshotId: string): Promise<void> => {
@@ -334,12 +335,15 @@ export function useScreenshotCollection({
     (item: ProfileScreenshot) =>
       imageRefresherRef.current.run(item.id, async () => {
         const startVersion = writeVersionsRef.current.get(item.id) ?? 0;
+        const startedDuringWrite = hasPendingWrite(item.id);
 
         try {
           const fresh = await fetchScreenshot(item.owner.id, item.id);
           if (!fresh) return;
 
           const hasLocalWrite =
+            startedDuringWrite ||
+            hasPendingWrite(item.id) ||
             (writeVersionsRef.current.get(item.id) ?? 0) !== startVersion;
           onPatch(
             item.id,
@@ -353,7 +357,7 @@ export function useScreenshotCollection({
           if (failure) markFailure(item.id, failure);
         }
       }),
-    [fetchScreenshot, markFailure, onPatch]
+    [fetchScreenshot, hasPendingWrite, markFailure, onPatch]
   );
 
   let status: ScreenshotLightboxStatus = "closed";
