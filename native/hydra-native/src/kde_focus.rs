@@ -108,7 +108,7 @@ mod linux {
             .ok_or("XDG_RUNTIME_DIR is not set")?;
         let process_id = std::process::id();
         let service = format!("{WATCH_INTERFACE}.p{process_id}");
-        let plugin = format!("{SCRIPT_PLUGIN}-{process_id}");
+        let plugin = String::from(SCRIPT_PLUGIN);
         let pid = Arc::new(AtomicI64::new(UNREPORTED));
 
         let connection = connection::Builder::session()
@@ -118,7 +118,7 @@ mod linux {
             .and_then(|builder| builder.build())
             .map_err(|error| error.to_string())?;
 
-        let script_path = runtime_dir.join(format!("{plugin}.js"));
+        let script_path = runtime_dir.join(format!("{plugin}-{process_id}.js"));
         write_private_file(&script_path, &script_source(&service))
             .map_err(|error| error.to_string())?;
 
