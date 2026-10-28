@@ -1,6 +1,8 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  useAppDispatch,
+  useAppSelector,
   useFormat,
   useGamificationMissions,
   useGamificationProgress,
@@ -10,11 +12,19 @@ import {
   celebrateReward,
   launchConfetti,
 } from "@renderer/components/gamification";
+import { setGamificationPendingAction } from "@renderer/features";
 import { logger } from "@renderer/logger";
 import type { Mission, TrailKey } from "@types";
 import { getMissionTitleKey } from "./mission-catalog";
 
 const INSUFFICIENT_COINS_ERROR = "gamification/insufficient-coins";
+
+/**
+ * Every mission card and trail control has its own hook instance, so the lock
+ * lives here: a second claim would let an older response overwrite newer
+ * totals. Redux only mirrors it so the buttons re-render.
+ */
+let runningActionId: string | null = null;
 
 export function useMissionActions() {
   const { t } = useTranslation("user_profile");
@@ -23,7 +33,10 @@ export function useMissionActions() {
   const { missions, claimMission, swapMission, claimTrailLevel } =
     useGamificationMissions();
   const { progress } = useGamificationProgress();
-  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  const pendingAction = useAppSelector(
+    (state) => state.gamification.pendingAction
+  );
 
   const showNoFundsToast = useCallback(() => {
     showErrorToast(
@@ -37,8 +50,9 @@ export function useMissionActions() {
 
   const run = useCallback(
     async (actionId: string, action: () => Promise<void>) => {
-      if (pendingAction) return;
-      setPendingAction(actionId);
+      if (runningActionId) return;
+      runningActionId = actionId;
+      dispatch(setGamificationPendingAction(actionId));
       try {
         await action();
       } catch (error) {
@@ -52,10 +66,11 @@ export function useMissionActions() {
           showErrorToast(t("gamification_action_failed"));
         }
       } finally {
-        setPendingAction(null);
+        runningActionId = null;
+        dispatch(setGamificationPendingAction(null));
       }
     },
-    [pendingAction, showNoFundsToast, showErrorToast, t]
+    [dispatch, showNoFundsToast, showErrorToast, t]
   );
 
   const claim = useCallback(
