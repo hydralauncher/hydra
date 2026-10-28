@@ -24,6 +24,8 @@ export interface TopGameBanner {
   key: string;
   title: string;
   iconUrl: string | null;
+  playTimeInSeconds: number;
+  unlockedAchievementCount: number;
   hero: ArtworkItem;
 }
 
@@ -109,6 +111,8 @@ export function useTopGameBanners(userId: string | null) {
                   key: gameKey(game),
                   title: game.title,
                   iconUrl: game.customIconUrl ?? game.iconUrl ?? null,
+                  playTimeInSeconds: game.playTimeInSeconds,
+                  unlockedAchievementCount: game.unlockedAchievementCount ?? 0,
                   hero,
                 }
               : null;

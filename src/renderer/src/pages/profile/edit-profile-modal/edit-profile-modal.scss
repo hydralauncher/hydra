@@ -183,6 +183,13 @@ $hover-transition: 0.15s ease;
     color: $ink;
   }
 
+  // Banner hints (a game's playtime and achievements) can take two lines.
+  &__tile--wide &__tile-label {
+    min-height: calc(
+      $tile-title-line + $tile-label-gap + 2 * $tile-hint-line + 18px
+    );
+  }
+
   &__tile--wide &__tile-art {
     display: block;
     height: auto;

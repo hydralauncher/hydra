@@ -14,7 +14,13 @@ import {
 } from "@renderer/components";
 import { CoinIcon } from "@renderer/components/gamification";
 import { userProfileContext } from "@renderer/context";
-import { useAppSelector, useToast, useUserDetails } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useFormat,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
+import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import type { UpdateProfileRequest } from "@types";
 
@@ -59,6 +65,7 @@ export function EditProfileModal(
     useContext(userProfileContext);
   const { showHydraCloudModal } = useSubscription();
   const { showSuccessToast, showErrorToast } = useToast();
+  const { numberFormatter } = useFormat();
   const isGamificationEnabled = useAppSelector(
     (state) => state.gamification.isEnabled
   );
@@ -293,6 +300,26 @@ export function EditProfileModal(
     );
   };
 
+  // Same minutes/hours rule as the profile's game lists.
+  const getGameBannerStats = (banner: TopGameBanner) => {
+    const minutes = banner.playTimeInSeconds / 60;
+    const playtime =
+      minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME
+        ? t("minutes_played", {
+            count: Math.round(minutes),
+            amount: minutes.toFixed(0),
+          })
+        : t("hours_played", {
+            count: Math.round(minutes / 60),
+            amount: numberFormatter.format(minutes / 60),
+          });
+    const achievements = t("achievements_unlocked", {
+      count: banner.unlockedAchievementCount,
+      amount: numberFormatter.format(banner.unlockedAchievementCount),
+    });
+    return `${playtime}, ${achievements}`;
+  };
+
   const renderBannerPane = () => (
     <>
       <div className="edit-profile-modal__section-header">
@@ -367,6 +394,7 @@ export function EditProfileModal(
                   key={banner.key}
                   art={renderGameBannerArt(banner)}
                   label={banner.title}
+                  hint={getGameBannerStats(banner)}
                   icon={banner.iconUrl}
                   isWide
                   isDisabled={downloadingBannerKey !== null}
