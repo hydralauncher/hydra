@@ -3,7 +3,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logger } from "@renderer/logger";
 import { useUserDetails } from "@renderer/hooks";
 import { getRequestKey } from "@renderer/helpers/response-cache";
-import { leaderboardsCache } from "@renderer/services/leaderboards-cache";
+import {
+  leaderboardsCache,
+  LeaderboardRequestError,
+} from "@renderer/services/leaderboards-cache";
 import type {
   LeaderboardRequestOptions,
   LeaderboardUser,
@@ -53,25 +56,44 @@ const readCached = <T>(
   }
 };
 
+export interface ApiFallback<T> {
+  options: LeaderboardRequestOptions;
+  normalize: (response: unknown) => T;
+}
+
+// Main requests the API rejected with a 400, so later visits in this session
+// go straight to the fallback instead of failing first.
+const rejectedRequests = new Set<string>();
+
+const isRejected = (
+  path: string | null,
+  options: LeaderboardRequestOptions,
+  accountId: string | null
+) =>
+  path !== null &&
+  rejectedRequests.has(getRequestKey(path, options, accountId));
+
 const readCachedWithFallback = <T>(
   path: string | null,
   options: LeaderboardRequestOptions,
-  fallbackOptions: LeaderboardRequestOptions | undefined,
+  fallback: ApiFallback<T> | undefined,
   accountId: string | null,
   normalize: (response: unknown) => T
 ): T | null =>
-  readCached(path, options, accountId, normalize) ??
-  (fallbackOptions
-    ? readCached(path, fallbackOptions, accountId, normalize)
+  (isRejected(path, options, accountId)
+    ? null
+    : readCached(path, options, accountId, normalize)) ??
+  (fallback
+    ? readCached(path, fallback.options, accountId, fallback.normalize)
     : null);
 
-// The API only reports failures as messages, so any failure of the main
-// request is retried once with `fallbackOptions` when they are given.
+// With `fallback`, a 400 from the main request is retried once with the
+// fallback options, and only a 400: other errors are reported as usual.
 export function useApiResource<T>(
   path: string | null,
   options: LeaderboardRequestOptions,
   normalize: (response: unknown) => T,
-  fallbackOptions?: LeaderboardRequestOptions
+  fallback?: ApiFallback<T>
 ): ApiResource<T> {
   const { viewerUser } = useLeaderboardViewer();
   const accountId = viewerUser?.id ?? null;
@@ -80,7 +102,7 @@ export function useApiResource<T>(
     const data = readCachedWithFallback(
       path,
       options,
-      fallbackOptions,
+      fallback,
       accountId,
       normalize
     );
@@ -93,21 +115,15 @@ export function useApiResource<T>(
   });
   const [attempt, setAttempt] = useState(0);
   const requestIdRef = useRef(0);
-  const latest = useRef({
-    path,
-    options,
-    fallbackOptions,
-    accountId,
-    normalize,
-  });
-  latest.current = { path, options, fallbackOptions, accountId, normalize };
+  const latest = useRef({ path, options, fallback, accountId, normalize });
+  latest.current = { path, options, fallback, accountId, normalize };
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
     const {
       path: currentPath,
       options: currentOptions,
-      fallbackOptions: currentFallbackOptions,
+      fallback: currentFallback,
       accountId: currentAccountId,
     } = latest.current;
 
@@ -119,7 +135,7 @@ export function useApiResource<T>(
     const cached = readCachedWithFallback(
       currentPath,
       currentOptions,
-      currentFallbackOptions,
+      currentFallback,
       currentAccountId,
       latest.current.normalize
     );
@@ -140,24 +156,37 @@ export function useApiResource<T>(
       hasError: false,
     }));
 
-    leaderboardsCache
-      .get(currentPath, currentOptions, currentAccountId)
-      .catch((error: unknown) => {
-        if (!currentFallbackOptions) throw error;
-        return leaderboardsCache.get(
-          currentPath,
-          currentFallbackOptions,
-          currentAccountId
-        );
-      })
-      .then((response) => {
+    const fetchFallback = () => {
+      if (!currentFallback) throw new Error("No fallback request");
+      return leaderboardsCache
+        .get(currentPath, currentFallback.options, currentAccountId)
+        .then(currentFallback.normalize);
+    };
+    const request =
+      currentFallback &&
+      isRejected(currentPath, currentOptions, currentAccountId)
+        ? fetchFallback()
+        : leaderboardsCache
+            .get(currentPath, currentOptions, currentAccountId)
+            .then((response) => latest.current.normalize(response))
+            .catch((error: unknown) => {
+              if (
+                !currentFallback ||
+                !(error instanceof LeaderboardRequestError) ||
+                error.status !== 400
+              ) {
+                throw error;
+              }
+              rejectedRequests.add(
+                getRequestKey(currentPath, currentOptions, currentAccountId)
+              );
+              return fetchFallback();
+            });
+
+    request
+      .then((data) => {
         if (requestId !== requestIdRef.current) return;
-        setState({
-          key: requestKey,
-          data: latest.current.normalize(response),
-          isLoading: false,
-          hasError: false,
-        });
+        setState({ key: requestKey, data, isLoading: false, hasError: false });
       })
       .catch((error) => {
         if (requestId !== requestIdRef.current) return;
@@ -179,7 +208,7 @@ export function useApiResource<T>(
     const pending = readCachedWithFallback(
       path,
       options,
-      fallbackOptions,
+      fallback,
       accountId,
       normalize
     );

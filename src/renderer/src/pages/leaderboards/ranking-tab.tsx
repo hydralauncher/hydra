@@ -198,7 +198,19 @@ export function RankingTab({
   const renderSelectedReview = () => {
     if (!isReviews || !selectedEntry || !selectedReview) return null;
 
-    return <ReviewHighlight entry={selectedEntry} review={selectedReview} />;
+    const topTitle = t(isWeek ? "review_top_week" : "review_top_all");
+    const title =
+      selectedEntry.user.id === leaderId
+        ? topTitle
+        : t("review_top_of", { name: selectedEntry.user.displayName });
+
+    return (
+      <ReviewHighlight
+        title={title}
+        entry={selectedEntry}
+        review={selectedReview}
+      />
+    );
   };
 
   const renderBoard = () => {

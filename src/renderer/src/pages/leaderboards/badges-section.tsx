@@ -103,7 +103,9 @@ export function BadgesSection() {
       case "top_percent":
         return t("chip_top_percent", { percent: badge.value });
       case "top_rank":
-        return t("chip_top_rank", { rank: badge.value });
+        return badge.currentRank && badge.earnedAt
+          ? `#${badge.currentRank}`
+          : t("chip_top_rank", { rank: badge.value });
       case "streak_record":
         return t("chip_days", { count: badge.value });
       default:

@@ -45,12 +45,31 @@ const takeSource = (path: string, { params }: ApiRequestOptions) => {
   return pending.source;
 };
 
+// Errors that cross IPC keep only their message, so a 400 is accepted here
+// and rethrown with its status for callers that react to it.
+export class LeaderboardRequestError extends Error {
+  constructor(readonly status: number) {
+    super(`Leaderboard request failed with status ${status}`);
+  }
+}
+
+const BAD_REQUEST_STATUS = 400;
+
 const leaderboardsGet: ApiGet = (path, options) => {
   const source = takeSource(path, options);
-  return globalThis.window.electron.hydraApi.get<unknown>(
-    path,
-    source ? { ...options, params: { ...options.params, source } } : options
-  );
+  return globalThis.window.electron.hydraApi
+    .getResponse<unknown>(path, {
+      ...(source
+        ? { ...options, params: { ...options.params, source } }
+        : options),
+      acceptedStatuses: [200, BAD_REQUEST_STATUS],
+    })
+    .then(({ status, data }) => {
+      if (status === BAD_REQUEST_STATUS) {
+        throw new LeaderboardRequestError(status);
+      }
+      return data;
+    });
 };
 
 export const leaderboardsCache = createResponseCache(leaderboardsGet);

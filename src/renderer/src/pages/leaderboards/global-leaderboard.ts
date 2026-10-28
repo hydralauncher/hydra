@@ -109,6 +109,8 @@ export interface PlayActivityDay {
 }
 
 export interface PlayActivity {
+  // Weeks the API answered for, which can be fewer than asked for.
+  weeks: number;
   currentStreak: number;
   bestStreak: number;
   playedToday: boolean;
@@ -536,12 +538,16 @@ export const normalizeMyGames = (response: unknown): MyGameRanking[] => {
   });
 };
 
-export const normalizePlayActivity = (response: unknown): PlayActivity => {
+export const normalizePlayActivity = (
+  response: unknown,
+  weeks = PLAY_ACTIVITY_WEEKS
+): PlayActivity => {
   if (!isRecord(response) || !Array.isArray(response.days)) {
     throw new TypeError("Invalid play activity response");
   }
 
   return {
+    weeks,
     currentStreak: toNonNegativeNumber(response.currentStreak),
     bestStreak: toNonNegativeNumber(response.bestStreak),
     playedToday: response.playedToday === true,

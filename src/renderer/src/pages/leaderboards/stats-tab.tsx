@@ -67,9 +67,15 @@ const DAY_LABEL_DATES = [5, 6, 7, 8, 9, 10, 11].map(
 );
 const LABELED_DAYS = new Set([0, 2, 4]);
 const ACTIVITY_PARAMS = { weeks: PLAY_ACTIVITY_WEEKS };
-const ACTIVITY_FALLBACK_OPTIONS = {
-  params: { weeks: PLAY_ACTIVITY_FALLBACK_WEEKS },
-  needsAuth: true,
+// TODO: remove once hydra-api fix/epic-game-leaderboard is deployed.
+// Older APIs answer 400 above 26 weeks; the grid then shows only those.
+const ACTIVITY_FALLBACK = {
+  options: {
+    params: { weeks: PLAY_ACTIVITY_FALLBACK_WEEKS },
+    needsAuth: true,
+  },
+  normalize: (response: unknown) =>
+    normalizePlayActivity(response, PLAY_ACTIVITY_FALLBACK_WEEKS),
 };
 // Tips closer than this to an edge of the graph open inward.
 const HEAT_TIP_EDGE_PX = 150;
@@ -126,7 +132,7 @@ export function StatsTab({
     "/users/me/play-activity",
     { params: ACTIVITY_PARAMS, needsAuth: true },
     normalizePlayActivity,
-    ACTIVITY_FALLBACK_OPTIONS
+    ACTIVITY_FALLBACK
   );
   const friends = useApiResource(
     "/users/me/friends/streaks",
@@ -143,7 +149,12 @@ export function StatsTab({
   });
 
   const heatmap = useMemo(
-    () => buildHeatmap(activity.data?.days ?? [], utcDay),
+    () =>
+      buildHeatmap(
+        activity.data?.days ?? [],
+        utcDay,
+        activity.data?.weeks ?? PLAY_ACTIVITY_WEEKS
+      ),
     [activity.data, utcDay]
   );
 
@@ -224,7 +235,7 @@ export function StatsTab({
   // The tip lives outside the scrolling grid so it is never clipped. Tips
   // near the left and right edges open inward and tips in the top two rows
   // open below, so they stay in the card.
-  const showHeatTip = (event: React.SyntheticEvent<HTMLDivElement>) => {
+  const showHeatTip = (event: React.MouseEvent<HTMLDivElement>) => {
     // The gaps between cells keep the current tip; future cells hide it.
     const target = (event.target as HTMLElement).closest<HTMLElement>(
       ".leaderboards__heat"
@@ -343,8 +354,7 @@ export function StatsTab({
             </div>
             <div
               className="leaderboards__heatmap"
-              onMouseOver={showHeatTip}
-              onFocus={showHeatTip}
+              onMouseMove={showHeatTip}
               onMouseLeave={() => setHeatTip(null)}
             >
               {heatmap.map((cell, index) => (
@@ -375,6 +385,8 @@ export function StatsTab({
         {renderHeatTip()}
         <div className="leaderboards__activity-footer">
           <span>
+            {/* pt-BR has `_zero` forms for this and the day counts:
+                Intl.PluralRules("pt") puts 0 in "one", which read "0 dia". */}
             {t("activity_total", {
               hours: numberFormatter.format(
                 Math.round(heatmapTotal.seconds / SECONDS_PER_HOUR)

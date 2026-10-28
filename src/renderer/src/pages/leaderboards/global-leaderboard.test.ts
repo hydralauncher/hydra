@@ -431,10 +431,29 @@ describe("play activity", () => {
     });
 
     assert.equal(activity.currentStreak, 5);
+    assert.equal(activity.weeks, 53);
     assert.deepEqual(activity.days, [
       { date: "2026-10-21", seconds: 60, games: ["A"] },
     ]);
     assert.throws(() => normalizePlayActivity({}), TypeError);
+  });
+
+  it("sizes the heatmap from the weeks the API answered for", () => {
+    const now = Date.UTC(2026, 9, 21, 12);
+    const activity = normalizePlayActivity(
+      { days: [{ date: "2026-10-20", seconds: 7200, games: [] }] },
+      26
+    );
+    const cells = buildHeatmap(activity.days, now, activity.weeks);
+
+    assert.equal(activity.weeks, 26);
+    assert.equal(cells.length, 182);
+    assert.equal(cells[0].date.toISOString(), "2026-04-27T00:00:00.000Z");
+    assert.deepEqual(sumHeatmap(cells), { seconds: 7200, days: 1 });
+    assert.deepEqual(
+      buildHeatmapMonths(cells).map(({ week }) => week),
+      [1, 5, 10, 14, 19, 23]
+    );
   });
 });
 

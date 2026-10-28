@@ -1,4 +1,4 @@
-import { ArrowRightIcon } from "@primer/octicons-react";
+import { ArrowRightIcon, TrophyIcon } from "@primer/octicons-react";
 import { Star, ThumbsUp } from "lucide-react";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
@@ -23,6 +23,7 @@ const RATING_KEYS: Record<number, string> = {
 };
 
 export interface ReviewHighlightProps {
+  title: string;
   entry: LeaderboardEntry;
   review: LeaderboardReview;
 }
@@ -31,6 +32,7 @@ export interface ReviewHighlightProps {
 // without the vote buttons, replies and translation: the leaderboard payload
 // has no review id. The game is a link line above the text.
 export function ReviewHighlight({
+  title,
   entry,
   review,
 }: Readonly<ReviewHighlightProps>) {
@@ -48,107 +50,113 @@ export function ReviewHighlight({
   const openProfile = () => navigate(`/profile/${entry.user.id}`);
 
   return (
-    <article className="game-details__review-item leaderboards__review">
-      <div
-        className={cn("game-details__review-header", {
-          "game-details__review-header--has-bg": bannerImageUrl,
-        })}
-      >
-        {bannerImageUrl && (
-          <img
-            src={bannerImageUrl}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="game-details__review-banner"
-          />
-        )}
-        <div className="game-details__review-header-top">
-          <div className="game-details__review-user">
-            <button
-              type="button"
-              onClick={openProfile}
-              title={entry.user.displayName}
-            >
-              <Avatar
-                src={entry.user.profileImageUrl}
-                alt={entry.user.displayName}
-                size={56}
-              />
-            </button>
-            <div className="game-details__review-user-info">
-              <div className="game-details__review-name-row">
-                <button
-                  type="button"
-                  className="game-details__review-display-name game-details__review-display-name--clickable"
-                  onClick={openProfile}
-                >
-                  {entry.user.displayName}
-                </button>
-              </div>
-              <div className="game-details__review-meta-row">
-                <div className="game-details__review-meta-left">
-                  <div className="game-details__review-score-stars">
-                    <Star
-                      size={12}
-                      fill="currentColor"
-                      className="game-details__review-star game-details__review-star--filled"
-                    />
-                    <span className="game-details__review-score-text">
-                      {t("review_score", { score: review.score })}
-                    </span>
-                    {ratingKey && (
-                      <span className="leaderboards__review-rating">
-                        {tGame(ratingKey)}
+    <section className="leaderboards__review-highlight">
+      <div className="leaderboards__review-title">
+        <TrophyIcon size={16} />
+        <span>{title}</span>
+      </div>
+      <article className="game-details__review-item leaderboards__review">
+        <div
+          className={cn("game-details__review-header", {
+            "game-details__review-header--has-bg": bannerImageUrl,
+          })}
+        >
+          {bannerImageUrl && (
+            <img
+              src={bannerImageUrl}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="game-details__review-banner"
+            />
+          )}
+          <div className="game-details__review-header-top">
+            <div className="game-details__review-user">
+              <button
+                type="button"
+                onClick={openProfile}
+                title={entry.user.displayName}
+              >
+                <Avatar
+                  src={entry.user.profileImageUrl}
+                  alt={entry.user.displayName}
+                  size={56}
+                />
+              </button>
+              <div className="game-details__review-user-info">
+                <div className="game-details__review-name-row">
+                  <button
+                    type="button"
+                    className="game-details__review-display-name game-details__review-display-name--clickable"
+                    onClick={openProfile}
+                  >
+                    {entry.user.displayName}
+                  </button>
+                </div>
+                <div className="game-details__review-meta-row">
+                  <div className="game-details__review-meta-left">
+                    <div className="game-details__review-score-stars">
+                      <Star
+                        size={12}
+                        fill="currentColor"
+                        className="game-details__review-star game-details__review-star--filled"
+                      />
+                      <span className="game-details__review-score-text">
+                        {t("review_score", { score: review.score })}
                       </span>
-                    )}
+                      {ratingKey && (
+                        <span className="leaderboards__review-rating">
+                          {tGame(ratingKey)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+            {createdAt && (
+              <div
+                className="game-details__review-date"
+                title={formatDateTime(createdAt)}
+              >
+                {formatDistance(createdAt, new Date(), { addSuffix: true })}
+              </div>
+            )}
           </div>
-          {createdAt && (
-            <div
-              className="game-details__review-date"
-              title={formatDateTime(createdAt)}
-            >
-              {formatDistance(createdAt, new Date(), { addSuffix: true })}
+        </div>
+
+        <button
+          type="button"
+          className="leaderboards__link leaderboards__review-game"
+          onClick={() =>
+            navigate(
+              buildGameDetailsPath({
+                shop: review.shop as GameShop,
+                objectId: review.objectId,
+                title: review.gameTitle,
+              })
+            )
+          }
+        >
+          {review.gameTitle}
+          <ArrowRightIcon size={14} />
+        </button>
+
+        <p className="game-details__review-content leaderboards__review-text">
+          {review.text}
+        </p>
+
+        <div className="game-details__review-actions">
+          <div className="game-details__review-actions-left">
+            <div className="game-details__review-votes">
+              <span className="game-details__vote-button leaderboards__review-votes">
+                <ThumbsUp size={16} />
+                <span>{numberFormatter.format(entry.value)}</span>
+              </span>
             </div>
-          )}
-        </div>
-      </div>
-
-      <button
-        type="button"
-        className="leaderboards__link leaderboards__review-game"
-        onClick={() =>
-          navigate(
-            buildGameDetailsPath({
-              shop: review.shop as GameShop,
-              objectId: review.objectId,
-              title: review.gameTitle,
-            })
-          )
-        }
-      >
-        {review.gameTitle}
-        <ArrowRightIcon size={14} />
-      </button>
-
-      <p className="game-details__review-content leaderboards__review-text">
-        {review.text}
-      </p>
-
-      <div className="game-details__review-actions">
-        <div className="game-details__review-actions-left">
-          <div className="game-details__review-votes">
-            <span className="game-details__vote-button leaderboards__review-votes">
-              <ThumbsUp size={16} />
-              <span>{numberFormatter.format(entry.value)}</span>
-            </span>
           </div>
         </div>
-      </div>
-    </article>
+      </article>
+    </section>
   );
 }

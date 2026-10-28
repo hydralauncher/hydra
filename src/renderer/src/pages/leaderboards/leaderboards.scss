@@ -9,7 +9,6 @@ $leaderboards-streak-from: #22c7ee;
 $leaderboards-streak-to: #b05cff;
 $leaderboards-heat-size: 12px;
 $leaderboards-heat-gap: 3px;
-$leaderboards-heat-weeks: 53;
 
 .leaderboards {
   display: flex;
@@ -415,8 +414,33 @@ $leaderboards-heat-weeks: 53;
     font-size: globals.$small-font-size;
   }
 
+  &__review-highlight {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__review-title {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+
+    svg {
+      color: globals.$rank-gold-color;
+    }
+  }
+
+  // Only here: a long review must not push the ranking down. The game page
+  // shows reviews in full.
   &__review-text {
     margin: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+    overflow: hidden;
   }
 
   &__review-votes,
@@ -938,10 +962,8 @@ $leaderboards-heat-weeks: 53;
   &__activity-months {
     grid-area: months;
     display: grid;
-    grid-template-columns: repeat(
-      #{$leaderboards-heat-weeks},
-      $leaderboards-heat-size
-    );
+    // One column per week, like the cells, however many weeks there are.
+    grid-auto-columns: $leaderboards-heat-size;
     column-gap: $leaderboards-heat-gap;
     height: 14px;
   }
