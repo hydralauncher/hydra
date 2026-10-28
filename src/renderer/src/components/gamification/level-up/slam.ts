@@ -60,6 +60,14 @@ export const SLAM_SCALE = 0.8;
 const FONT = "900 122px 'Noto Sans', system-ui, sans-serif";
 const ZOOM = 2.3;
 const QUANT_LEVELS = 6;
+/** Rate at which the animation walks the keyframe tables above. */
+const SLAM_KEYFRAMES_PER_SECOND = 25;
+/** Time constants of the hover glow easing in and out. */
+const HOVER_IN_SECONDS = 0.24;
+const HOVER_OUT_SECONDS = 0.48;
+/** Caps the step after a stalled frame so the hover easing does not jump. */
+const MAX_FRAME_DELTA_SECONDS = 0.1;
+const MAX_PIXEL_RATIO = 2;
 
 type Rgb = [number, number, number];
 
@@ -149,6 +157,8 @@ const windowed = (table: number[], u: number) => {
 
 export interface SlamHandle {
   setOffsetY: (offset: number) => void;
+  /** Re-reads the canvas size, after the window resizes. */
+  resize: () => void;
   /** Jumps straight to the resting frame. */
   skip: () => void;
   stop: () => void;
@@ -164,21 +174,30 @@ export function runSlam(
     lut[Math.max(0, Math.min(255, Math.round(u * 255)))];
   const css = (color: Rgb) => `rgb(${color[0]},${color[1]},${color[2]})`;
 
-  const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
-  canvas.width = width * pixelRatio;
-  canvas.height = height * pixelRatio;
-
   const mainContext = canvas.getContext("2d")!;
   mainContext.font = FONT;
   const textWidth = mainContext.measureText(text).width;
 
   // Body buffer at one pixel per 2 CSS px; the upscale without smoothing gives the dither cells.
-  const bufferScale = 1 / (2 * pixelRatio);
   const body = document.createElement("canvas");
-  body.width = Math.ceil(canvas.width * bufferScale);
-  body.height = Math.ceil(canvas.height * bufferScale);
+  let pixelRatio = 1;
+  let width = 0;
+  let height = 0;
+  let bufferScale = 1;
+  let lastKey = "";
+
+  const fitToCanvas = () => {
+    pixelRatio = Math.min(MAX_PIXEL_RATIO, window.devicePixelRatio || 1);
+    width = canvas.clientWidth;
+    height = canvas.clientHeight;
+    canvas.width = width * pixelRatio;
+    canvas.height = height * pixelRatio;
+    bufferScale = 1 / (2 * pixelRatio);
+    body.width = Math.ceil(canvas.width * bufferScale);
+    body.height = Math.ceil(canvas.height * bufferScale);
+    lastKey = "";
+  };
+  fitToCanvas();
   const quant = new Uint8ClampedArray(16 * 256);
   for (let k = 0; k < 16; k++) {
     for (let v = 0; v < 256; v++) {
@@ -196,7 +215,6 @@ export function runSlam(
   let hoverTarget = 0;
   let last = performance.now();
   const startedAt = last;
-  let lastKey = "";
   let frame = 0;
   let stopped = false;
   let finished = reducedMotion;
@@ -392,14 +410,20 @@ export function runSlam(
 
   const loop = (now: number) => {
     if (stopped) return;
-    const dt = Math.min(0.1, (now - last) / 1000);
+    const dt = Math.min(MAX_FRAME_DELTA_SECONDS, (now - last) / 1000);
     last = now;
     hover +=
       (hoverTarget - hover) *
-      (1 - Math.exp(-dt / (hoverTarget > hover ? 0.24 : 0.48)));
+      (1 -
+        Math.exp(
+          -dt / (hoverTarget > hover ? HOVER_IN_SECONDS : HOVER_OUT_SECONDS)
+        ));
     const u = finished
       ? SLAM.END
-      : Math.min(SLAM.END, bridged(((now - startedAt) / 1000) * 25));
+      : Math.min(
+          SLAM.END,
+          bridged(((now - startedAt) / 1000) * SLAM_KEYFRAMES_PER_SECOND)
+        );
     const key = `${u.toFixed(2)}|${hover.toFixed(3)}|${offsetY}`;
     if (key !== lastKey) {
       lastKey = key;
@@ -416,6 +440,7 @@ export function runSlam(
     setOffsetY: (offset) => {
       offsetY = offset;
     },
+    resize: fitToCanvas,
     stop: () => {
       stopped = true;
       cancelAnimationFrame(frame);

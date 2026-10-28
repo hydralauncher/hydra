@@ -7,8 +7,9 @@ const SECONDS_PER_MINUTE = 60;
 const SECONDS_PER_HOUR = 3600;
 const HOURS_TARGET_FROM_SECONDS = 2 * SECONDS_PER_HOUR;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+const CLOCK_TICK_MS = 1000;
 
-export function useNow(intervalMs = 1000) {
+export function useNow(intervalMs = CLOCK_TICK_MS) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {

@@ -27,6 +27,8 @@ const SELECTOR_SEGMENT_GAP = 6;
 const CURRENT_COLOR = rampColor(0.5);
 const FILL_PHASE_MS = 1100;
 const DONE_PHASE_MS = 2600;
+// With reduced motion the phases still run in order, just without the wait.
+const REDUCED_MOTION_PHASE_MS = 50;
 const SEEN_STORAGE_PREFIX = "hydra:gamification:trails-seen:";
 
 interface Celebration {
@@ -530,7 +532,7 @@ export function TrailsBoard({ trails }: Readonly<{ trails: Trail[] }>) {
             );
           }
         },
-        reduced ? 50 : FILL_PHASE_MS
+        reduced ? REDUCED_MOTION_PHASE_MS : FILL_PHASE_MS
       );
       return () => clearTimeout(timer);
     }
@@ -540,7 +542,7 @@ export function TrailsBoard({ trails }: Readonly<{ trails: Trail[] }>) {
         setSelectedLevel(celebration.level);
         setCelebration(null);
       },
-      reduced ? 50 : DONE_PHASE_MS
+      reduced ? REDUCED_MOTION_PHASE_MS : DONE_PHASE_MS
     );
     return () => clearTimeout(timer);
   }, [celebration, trails, formatAmount, showSuccessToast, t]);

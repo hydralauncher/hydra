@@ -14,6 +14,8 @@ export interface GamificationState {
   trails: Trail[] | null;
   /** Level shown by the level-up overlay, or null when it is closed. */
   levelUpTo: number | null;
+  /** Mission or trail action in flight, shared so only one runs at a time. */
+  pendingAction: string | null;
 }
 
 const initialState: GamificationState = {
@@ -22,6 +24,7 @@ const initialState: GamificationState = {
   missions: null,
   trails: null,
   levelUpTo: null,
+  pendingAction: null,
 };
 
 export const gamificationSlice = createSlice({
@@ -62,6 +65,12 @@ export const gamificationSlice = createSlice({
     dismissLevelUp: (state) => {
       state.levelUpTo = null;
     },
+    setGamificationPendingAction: (
+      state,
+      action: PayloadAction<string | null>
+    ) => {
+      state.pendingAction = action.payload;
+    },
   },
 });
 
@@ -73,4 +82,5 @@ export const {
   setGamificationTrails,
   showLevelUp,
   dismissLevelUp,
+  setGamificationPendingAction,
 } = gamificationSlice.actions;
