@@ -1094,13 +1094,12 @@ $leaderboards-heat-gap: 3px;
     vertical-align: bottom;
   }
 
-  // Friends fill the card side by side; with few friends the cards grow so
-  // the panel does not look empty.
+  // One friend per row; with few friends the rows grow so the panel does not
+  // look empty.
   &__friend-streaks {
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    grid-auto-rows: minmax(120px, 1fr);
+    grid-auto-rows: minmax(72px, 1fr);
     gap: globals.$spacing-unit;
   }
 
@@ -1108,17 +1107,18 @@ $leaderboards-heat-gap: 3px;
     position: relative;
     overflow: hidden;
     display: flex;
-    flex-direction: column;
+    align-items: center;
     justify-content: space-between;
-    gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 1.5);
+    gap: calc(globals.$spacing-unit * 2);
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
     border: solid 1px globals.$border-color;
     border-radius: 8px;
     background-color: $leaderboards-surface;
 
+    // Darker on the left, where the name sits over the banner.
     &--banner {
       background-image:
-        linear-gradient(180deg, rgb(0 0 0 / 35%), rgb(0 0 0 / 75%)),
+        linear-gradient(90deg, rgb(0 0 0 / 75%), rgb(0 0 0 / 30%)),
         var(--friend-banner);
       background-size: cover;
       background-position: center;
@@ -1130,6 +1130,7 @@ $leaderboards-heat-gap: 3px;
   }
 
   &__friend-head {
+    flex: 1;
     min-width: 0;
     display: flex;
     align-items: center;
@@ -1177,7 +1178,7 @@ $leaderboards-heat-gap: 3px;
   }
 
   &__friend-days {
-    align-self: flex-end;
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -1188,7 +1189,7 @@ $leaderboards-heat-gap: 3px;
   }
 
   &__friend-skeleton {
-    height: 120px;
+    height: 72px;
     border-radius: 8px;
   }
 
