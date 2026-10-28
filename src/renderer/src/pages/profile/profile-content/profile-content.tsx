@@ -362,14 +362,34 @@ export function ProfileContent() {
       window.removeEventListener("hydra:game-visibility-updated", refresh);
   }, [getUserProfile, isMe]);
 
+  // Read through a ref so a late feature flag response does not re-run the reset below and wipe
+  // reviews that already loaded.
+  const canShowMissionsRef = useRef(canShowMissions);
+  canShowMissionsRef.current = canShowMissions;
+
   // Clear reviews state and reset tab when switching users
   useEffect(() => {
     setReviews([]);
     setReviewsTotalCount(0);
     setIsLoadingReviews(false);
-    setActiveTab(getRequestedProfileTab(requestedTab, canShowMissions));
+    setActiveTab(
+      getRequestedProfileTab(requestedTab, canShowMissionsRef.current)
+    );
     setPlatform(readStoredProfilePlatform());
-  }, [requestedTab, userProfile?.id, canShowMissions]);
+  }, [requestedTab, userProfile?.id]);
+
+  // The Missions tab follows the flag on its own: open it once a requested ?tab=missions becomes
+  // available, leave it if the flag turns off.
+  useEffect(() => {
+    setActiveTab((current) => {
+      if (canShowMissions) {
+        return requestedTab === "missions" ? "missions" : current;
+      }
+      return current === "missions"
+        ? getRequestedProfileTab(requestedTab, false)
+        : current;
+    });
+  }, [canShowMissions, requestedTab]);
 
   useEffect(() => {
     const openTab = (event: Event) => {
