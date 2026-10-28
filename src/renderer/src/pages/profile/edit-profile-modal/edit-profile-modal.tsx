@@ -27,6 +27,7 @@ import type { UpdateProfileRequest } from "@types";
 import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
 import { EditProfilePreview } from "./edit-profile-preview";
 import { EditProfileTile, EditProfileUploadTile } from "./edit-profile-tile";
+import { LoopingVideo } from "./looping-video";
 import { usePixelAvatar } from "./use-pixel-avatar";
 import {
   TOP_GAMES_COUNT,
@@ -297,7 +298,7 @@ export function EditProfileModal(
     return (
       <span className="edit-profile-modal__banner-art">
         {isVideoThumb ? (
-          <video src={thumb} autoPlay loop muted playsInline />
+          <LoopingVideo src={thumb} />
         ) : (
           <img src={thumb} alt="" />
         )}
