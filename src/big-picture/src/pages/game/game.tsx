@@ -8,11 +8,9 @@ import {
 } from "@renderer/helpers";
 import type { GameShop, ShopAssets, LibraryGame } from "@types";
 import {
-  buildSteamContentWarning,
   hasCloudSaveExecutableSelection,
   getInstalledStoreMembers,
   getOfficialStoreMembers,
-  isAdultGameContentWarning,
 } from "@shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -728,10 +726,6 @@ export default function Game() {
     return buildDescriptionSections(document);
   }, [shopDetails?.detailed_description]);
   const hasDescription = descriptionBlocks.length > 0;
-  const isAdultGame = useMemo(
-    () => isAdultGameContentWarning(buildSteamContentWarning(shopDetails)),
-    [shopDetails]
-  );
   const hasMedia =
     (shopDetails?.movies?.length ?? 0) > 0 ||
     (shopDetails?.screenshots?.length ?? 0) > 0;
@@ -1857,7 +1851,6 @@ export default function Game() {
                 <GameMyScreenshots
                   shop={shop!}
                   objectId={objectId!}
-                  isAdultGame={isAdultGame}
                   navigationOrder={0.5}
                   leftTarget={sidebarCarouselLeftNavigationTarget}
                 />

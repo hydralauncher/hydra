@@ -256,7 +256,6 @@ function MyScreenshotsMessage({
 export interface GameMyScreenshotsProps {
   shop: GameShop;
   objectId: string;
-  isAdultGame: boolean;
   navigationOrder: number;
   leftTarget: FocusOverrideTarget;
 }
@@ -264,7 +263,6 @@ export interface GameMyScreenshotsProps {
 export function GameMyScreenshots({
   shop,
   objectId,
-  isAdultGame,
   navigationOrder,
   leftTarget,
 }: Readonly<GameMyScreenshotsProps>) {
@@ -272,7 +270,7 @@ export function GameMyScreenshots({
   const { isFeatureEnabled } = useFeature();
   const [modalTab, setModalTab] = useState<GameScreenshotsTab | null>(null);
   const [writeBus] = useState(createScreenshotWriteBus);
-  const isEnabled = isFeatureEnabled(Feature.Screenshots) && !isAdultGame;
+  const isEnabled = isFeatureEnabled(Feature.Screenshots);
   const mine = useMyGameScreenshots({
     shop,
     objectId,
