@@ -20,6 +20,15 @@ export type LeaderboardMetric = (typeof LEADERBOARD_METRICS)[number];
 
 export type LeaderboardShop = Extract<GameShop, "steam" | "epic" | "launchbox">;
 
+export const getServedMetrics = (
+  servedIds: readonly string[] | null
+): LeaderboardMetric[] => {
+  const served = LEADERBOARD_METRICS.filter((metric) =>
+    servedIds?.includes(metric)
+  );
+  return served.length > 0 ? served : ["playtime"];
+};
+
 export interface LeaderboardUser {
   id: string;
   displayName: string;
@@ -49,7 +58,6 @@ export interface LeaderboardQuery {
   period: LeaderboardPeriod;
   scope: LeaderboardScope;
   metric: LeaderboardMetric;
-  isExtended: boolean;
   isLoggedIn: boolean;
   viewerId: string | null;
 }
@@ -83,7 +91,8 @@ export type LeaderboardState =
   | "ready"
   | "empty_week"
   | "empty_all"
-  | "empty_friends";
+  | "empty_friends"
+  | "solo";
 
 export interface LoadedLeaderboard {
   boardKey: string;
@@ -147,13 +156,8 @@ const normalizeUser = (value: unknown): LeaderboardUser | null => {
   };
 };
 
-const readValue = (candidate: Record<string, unknown>) => {
-  if (isNonNegativeNumber(candidate.value)) return candidate.value;
-  if (isNonNegativeNumber(candidate.playTimeInSeconds))
-    return candidate.playTimeInSeconds;
-
-  return null;
-};
+const readValue = (candidate: Record<string, unknown>) =>
+  isNonNegativeNumber(candidate.value) ? candidate.value : null;
 
 const normalizeEntry = (value: unknown): LeaderboardEntry | null => {
   if (!value || typeof value !== "object") return null;
@@ -187,12 +191,13 @@ export const normalizeLeaderboardResponse = (
   }
 
   const candidate = response as Record<string, unknown>;
-  if (!Array.isArray(candidate.users)) {
+  const items = candidate.entries;
+  if (!Array.isArray(items)) {
     throw new TypeError("Invalid leaderboard response");
   }
 
   const seen = new Set<string>();
-  const entries = candidate.users
+  const entries = items
     .flatMap((value) => {
       const entry = normalizeEntry(value);
       return entry ? [entry] : [];
@@ -316,7 +321,9 @@ export const getLeaderboardState = ({
   );
 
   if (scope === "friends" && others.length === 0) return "empty_friends";
-  if (leaderboard.entries.length > 0) return "ready";
+  if (leaderboard.entries.length > 0) {
+    return viewerId && others.length === 0 ? "solo" : "ready";
+  }
 
   return period === "week" ? "empty_week" : "empty_all";
 };
@@ -324,19 +331,16 @@ export const getLeaderboardState = ({
 export const buildLeaderboardRequest = (
   query: LeaderboardQuery
 ): { path: string; options: LeaderboardRequestOptions } => {
-  const params: Record<string, string | number> = {
-    take: LEADERBOARD_TAKE,
-    range: query.period,
-  };
-
-  if (query.isExtended) {
-    params.metric = query.metric;
-    params.scope = query.scope;
-  }
-
   return {
-    path: `/games/${query.shop}/${encodeURIComponent(query.objectId)}/top-users`,
-    options: { params, needsAuth: query.isExtended && query.isLoggedIn },
+    path: `/games/${query.shop}/${encodeURIComponent(query.objectId)}/leaderboards/${encodeURIComponent(query.metric)}`,
+    options: {
+      params: {
+        take: LEADERBOARD_TAKE,
+        range: query.period,
+        scope: query.scope,
+      },
+      needsAuth: query.isLoggedIn,
+    },
   };
 };
 

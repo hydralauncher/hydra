@@ -10,6 +10,7 @@ import {
   buildGameLeaderboardPath,
   getLeaderboardNudge,
   getLeaderboardState,
+  getServedMetrics,
   isSignedOutError,
   getLeaderboardBoardKey,
   normalizeLeaderboardResponse,
@@ -43,46 +44,15 @@ const query = (
   period: "all",
   scope: "global",
   metric: "playtime",
-  isExtended: false,
   isLoggedIn: false,
   viewerId: null,
   ...overrides,
 });
 
 describe("normalizeLeaderboardResponse", () => {
-  it("reads the current top-users shape", () => {
-    const result = normalizeLeaderboardResponse({
-      users: [
-        {
-          rank: 1,
-          playTimeInSeconds: 7200,
-          user: { id: "a", displayName: "Ana", profileImageUrl: "a.png" },
-        },
-      ],
-      periodStart: "2026-10-19T00:00:00.000Z",
-      periodEnd: "2026-10-26T00:00:00.000Z",
-    });
-
-    assert.deepEqual(result, {
-      entries: [
-        {
-          rank: 1,
-          value: 7200,
-          user: {
-            id: "a",
-            displayName: "Ana",
-            profileImageUrl: "a.png",
-            backgroundImageUrl: null,
-          },
-        },
-      ],
-      viewer: null,
-    });
-  });
-
   it("reads the profile banner when the API sends one", () => {
     const result = normalizeLeaderboardResponse({
-      users: [
+      entries: [
         {
           rank: 1,
           value: 1,
@@ -100,19 +70,22 @@ describe("normalizeLeaderboardResponse", () => {
     assert.equal(result.entries[1].user.backgroundImageUrl, null);
   });
 
-  it("prefers value and reads the viewer from the extended shape", () => {
+  it("reads the entries shape of the game leaderboard route", () => {
     const result = normalizeLeaderboardResponse({
-      users: [{ rank: 1, value: 12, playTimeInSeconds: 99, user: user("a") }],
-      viewer: { rank: 40, value: 3 },
+      entries: [{ rank: 1, value: 5, user: user("a") }],
+      viewer: { rank: 2, value: 1 },
+      generatedAt: "2026-10-22T00:00:00.000Z",
     });
 
-    assert.equal(result.entries[0].value, 12);
-    assert.deepEqual(result.viewer, { rank: 40, value: 3 });
+    assert.deepEqual(result, {
+      entries: [{ rank: 1, value: 5, user: user("a") }],
+      viewer: { rank: 2, value: 1 },
+    });
   });
 
   it("drops invalid and duplicate entries and sorts by rank", () => {
     const result = normalizeLeaderboardResponse({
-      users: [
+      entries: [
         { rank: 2, value: 5, user: user("b") },
         { rank: 1, value: 9, user: user("a") },
         { rank: 3, value: 4, user: user("a") },
@@ -133,11 +106,18 @@ describe("normalizeLeaderboardResponse", () => {
     assert.equal(result.viewer, null);
   });
 
-  it("rejects responses without a users list", () => {
+  it("rejects responses without an entries list", () => {
     assert.throws(() => normalizeLeaderboardResponse(null), TypeError);
     assert.throws(() => normalizeLeaderboardResponse({}), TypeError);
     assert.throws(
-      () => normalizeLeaderboardResponse({ users: "nope" }),
+      () => normalizeLeaderboardResponse({ entries: "nope" }),
+      TypeError
+    );
+    assert.throws(
+      () =>
+        normalizeLeaderboardResponse({
+          users: [{ rank: 1, playTimeInSeconds: 60, user: user("a") }],
+        }),
       TypeError
     );
   });
@@ -322,6 +302,18 @@ describe("getLeaderboardState", () => {
     assert.equal(getLeaderboardState(base), "ready");
   });
 
+  it("reports a solo board when the viewer is the only entry", () => {
+    assert.equal(getLeaderboardState({ ...base, viewerId: "a" }), "solo");
+    assert.equal(
+      getLeaderboardState({
+        ...base,
+        leaderboard: board(entry(1, "a", 2), entry(2, "b", 1)),
+        viewerId: "a",
+      }),
+      "ready"
+    );
+  });
+
   it("distinguishes empty week and all-time boards", () => {
     assert.equal(
       getLeaderboardState({ ...base, leaderboard: board(), period: "week" }),
@@ -356,52 +348,39 @@ describe("getLeaderboardState", () => {
 });
 
 describe("buildLeaderboardRequest", () => {
-  it("only authenticates extended requests", () => {
+  it("only authenticates signed-in requests", () => {
+    assert.equal(buildLeaderboardRequest(query()).options.needsAuth, false);
     assert.equal(
       buildLeaderboardRequest(query({ isLoggedIn: true, viewerId: "a" }))
         .options.needsAuth,
-      false
-    );
-    assert.equal(
-      buildLeaderboardRequest(
-        query({ isLoggedIn: true, isExtended: true, viewerId: "a" })
-      ).options.needsAuth,
       true
     );
   });
 
-  it("only sends the current API params when the flag is off", () => {
-    assert.deepEqual(
-      buildLeaderboardRequest(
-        query({ period: "week", scope: "friends", metric: "streak" })
-      ),
-      {
-        path: "/games/steam/123/top-users",
-        options: { params: { take: 100, range: "week" }, needsAuth: false },
-      }
-    );
+  it("uses the global playtime board for the default query", () => {
+    assert.deepEqual(buildLeaderboardRequest(query({ period: "week" })), {
+      path: "/games/steam/123/leaderboards/playtime",
+      options: {
+        params: { take: 100, range: "week", scope: "global" },
+        needsAuth: false,
+      },
+    });
   });
 
-  it("sends metric and scope when the flag is on", () => {
+  it("uses the requested metric and scope", () => {
     assert.deepEqual(
       buildLeaderboardRequest(
         query({
           scope: "friends",
-          metric: "sessions",
-          isExtended: true,
+          metric: "souvenirs",
           isLoggedIn: true,
           objectId: "a/b",
         })
       ),
       {
-        path: "/games/steam/a%2Fb/top-users",
+        path: "/games/steam/a%2Fb/leaderboards/souvenirs",
         options: {
-          params: {
-            take: 100,
-            range: "all",
-            metric: "sessions",
-            scope: "friends",
-          },
+          params: { take: 100, range: "all", scope: "friends" },
           needsAuth: true,
         },
       }
@@ -409,9 +388,23 @@ describe("buildLeaderboardRequest", () => {
   });
 });
 
+describe("getServedMetrics", () => {
+  it("keeps the launcher order of the metrics the API serves", () => {
+    assert.deepEqual(getServedMetrics(["souvenirs", "playtime", "badges"]), [
+      "playtime",
+      "souvenirs",
+    ]);
+  });
+
+  it("falls back to playtime until the catalogue loads", () => {
+    assert.deepEqual(getServedMetrics(null), ["playtime"]);
+    assert.deepEqual(getServedMetrics([]), ["playtime"]);
+  });
+});
+
 describe("fetchGameLeaderboard", () => {
   const response = {
-    users: [{ rank: 1, playTimeInSeconds: 60, user: user("a") }],
+    entries: [{ rank: 1, value: 60, user: user("a") }],
   };
 
   it("requests the board and normalizes the response", async () => {
@@ -452,7 +445,7 @@ describe("fetchGameLeaderboard", () => {
         }
         return response;
       },
-      query({ isExtended: true, isLoggedIn: true, viewerId: "a" })
+      query({ isLoggedIn: true, viewerId: "a" })
     );
 
     assert.deepEqual(auth, [true, false]);
@@ -467,7 +460,7 @@ describe("fetchGameLeaderboard", () => {
           calls += 1;
           throw new Error("boom");
         },
-        query({ isExtended: true, isLoggedIn: true, viewerId: "a" })
+        query({ isLoggedIn: true, viewerId: "a" })
       ),
       /boom/
     );

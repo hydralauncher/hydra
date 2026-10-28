@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   buildGlobalLeaderboardRequest,
   buildHeatmap,
+  buildHeatmapMonths,
   buildMetricsRequest,
   hasReviewData,
   hasStreakData,
@@ -11,7 +12,6 @@ import {
   getBadgeProgress,
   getBoardState,
   getCountdownParts,
-  getIsoWeekNumber,
   getPlayLevel,
   getRankDelta,
   getRowsBelowPodium,
@@ -23,6 +23,7 @@ import {
   normalizeMyGames,
   normalizePlayActivity,
   resolveWeekRange,
+  sumHeatmap,
   type GlobalLeaderboardQuery,
 } from "./global-leaderboard.js";
 
@@ -144,6 +145,7 @@ describe("metric definitions", () => {
       metrics: [
         { id: "playtime", valueType: "duration", label: "Playtime" },
         { id: "sessions", valueType: "weird" },
+        { id: "review_upvotes", valueType: "count" },
         { id: "playtime", valueType: "count" },
         { id: "" },
         "bad",
@@ -314,13 +316,6 @@ describe("week helpers", () => {
     );
   });
 
-  it("returns the ISO week number", () => {
-    assert.equal(getIsoWeekNumber(new Date(Date.UTC(2026, 9, 21))), 43);
-    assert.equal(getIsoWeekNumber(new Date(Date.UTC(2026, 0, 1))), 1);
-    assert.equal(getIsoWeekNumber(new Date(Date.UTC(2021, 0, 3))), 53);
-    assert.equal(getIsoWeekNumber(new Date(Date.UTC(2020, 11, 31))), 53);
-  });
-
   it("splits the countdown and never goes negative", () => {
     const end = new Date(Date.UTC(2026, 9, 26));
     const now = end.getTime() - ((3 * 24 + 14) * 60 + 5) * 60_000;
@@ -346,20 +341,85 @@ describe("play activity", () => {
     assert.equal(getPlayLevel(4 * 3600), 3);
   });
 
-  it("builds 15 weeks of cells ending in the current week", () => {
+  it("builds 53 weeks of cells ending in the current week", () => {
     const now = Date.UTC(2026, 9, 21, 12);
     const cells = buildHeatmap(
       [{ date: "2026-10-21", seconds: 5000, games: ["Brawlhalla"] }],
       now
     );
 
-    assert.equal(cells.length, 105);
-    assert.equal(cells[0].date.toISOString(), "2026-07-13T00:00:00.000Z");
+    assert.equal(cells.length, 371);
+    assert.equal(cells[0].date.toISOString(), "2025-10-20T00:00:00.000Z");
+    assert.equal(cells.at(-7)?.date.toISOString(), "2026-10-19T00:00:00.000Z");
 
     const today = cells.find((cell) => cell.isToday);
     assert.equal(today?.level, 2);
     assert.deepEqual(today?.games, ["Brawlhalla"]);
     assert.equal(cells.filter((cell) => cell.isFuture).length, 4);
+  });
+
+  it("labels each month on the first week that starts in it", () => {
+    const labels = (now: number) =>
+      buildHeatmapMonths(buildHeatmap([], now)).map(
+        ({ week, date }) => `${week}:${date.toISOString().slice(0, 10)}`
+      );
+
+    // The first column (Oct 20) is two weeks from November, so it is dropped.
+    assert.deepEqual(labels(Date.UTC(2026, 9, 21, 12)), [
+      "2:2025-11-03",
+      "6:2025-12-01",
+      "11:2026-01-05",
+      "15:2026-02-02",
+      "19:2026-03-02",
+      "24:2026-04-06",
+      "28:2026-05-04",
+      "32:2026-06-01",
+      "37:2026-07-06",
+      "41:2026-08-03",
+      "46:2026-09-07",
+      "50:2026-10-05",
+    ]);
+
+    // The first column keeps its label when the next month is far enough,
+    // and a month starting in the last column has no room for its label.
+    const december = labels(Date.UTC(2026, 10, 30, 12));
+    assert.equal(december[0], "0:2025-12-01");
+    assert.equal(december.at(-1), "48:2026-11-02");
+  });
+
+  it("sums the seconds and played days of the heatmap", () => {
+    const cells = buildHeatmap(
+      [
+        { date: "2026-10-19", seconds: 3600, games: [] },
+        { date: "2026-10-21", seconds: 1800, games: [] },
+        { date: "2026-01-02", seconds: 0, games: [] },
+        { date: "2024-01-01", seconds: 9999, games: [] },
+      ],
+      Date.UTC(2026, 9, 21, 12)
+    );
+
+    assert.deepEqual(sumHeatmap(cells), { seconds: 5400, days: 2 });
+    assert.deepEqual(sumHeatmap([]), { seconds: 0, days: 0 });
+  });
+
+  it("flags today and yesterday by UTC day", () => {
+    const flagged = (now: number) => {
+      const cells = buildHeatmap([], now);
+      return {
+        today: cells.find((cell) => cell.isToday)?.date.toISOString(),
+        yesterday: cells.find((cell) => cell.isYesterday)?.date.toISOString(),
+      };
+    };
+
+    assert.deepEqual(flagged(Date.UTC(2026, 9, 21, 12)), {
+      today: "2026-10-21T00:00:00.000Z",
+      yesterday: "2026-10-20T00:00:00.000Z",
+    });
+    // 22:00 on Oct 26 in UTC-3 is already Oct 27 in UTC.
+    assert.deepEqual(flagged(Date.parse("2026-10-27T01:00:00Z")), {
+      today: "2026-10-27T00:00:00.000Z",
+      yesterday: "2026-10-26T00:00:00.000Z",
+    });
   });
 
   it("normalizes the activity response", () => {
@@ -371,10 +431,29 @@ describe("play activity", () => {
     });
 
     assert.equal(activity.currentStreak, 5);
+    assert.equal(activity.weeks, 53);
     assert.deepEqual(activity.days, [
       { date: "2026-10-21", seconds: 60, games: ["A"] },
     ]);
     assert.throws(() => normalizePlayActivity({}), TypeError);
+  });
+
+  it("sizes the heatmap from the weeks the API answered for", () => {
+    const now = Date.UTC(2026, 9, 21, 12);
+    const activity = normalizePlayActivity(
+      { days: [{ date: "2026-10-20", seconds: 7200, games: [] }] },
+      26
+    );
+    const cells = buildHeatmap(activity.days, now, activity.weeks);
+
+    assert.equal(activity.weeks, 26);
+    assert.equal(cells.length, 182);
+    assert.equal(cells[0].date.toISOString(), "2026-04-27T00:00:00.000Z");
+    assert.deepEqual(sumHeatmap(cells), { seconds: 7200, days: 1 });
+    assert.deepEqual(
+      buildHeatmapMonths(cells).map(({ week }) => week),
+      [1, 5, 10, 14, 19, 23]
+    );
   });
 });
 
@@ -450,5 +529,38 @@ describe("profile normalizers", () => {
     assert.equal(getBadgeProgress(badges.badges[1]), 55);
     assert.equal(getBadgeProgress(badges.badges[0]), 0);
     assert.throws(() => normalizeBadges({}), TypeError);
+  });
+
+  it("reads the target of locked game badges", () => {
+    const { badges } = normalizeBadges({
+      badges: [
+        { id: "a", kind: "top_rank", tier: "bronze", value: 10 },
+        {
+          id: "b",
+          kind: "top_rank",
+          value: 10,
+          target: { kind: "top_percent", value: 5 },
+        },
+        {
+          id: "c",
+          kind: "top_rank",
+          value: 1,
+          earnedAt: "2026-09-03T00:00:00.000Z",
+        },
+        { id: "d", kind: "weekly_leader", value: 1 },
+        { id: "e", kind: "top_rank", target: { kind: "nope", value: 3 } },
+      ],
+    });
+
+    assert.deepEqual(
+      badges.map((badge) => badge.target),
+      [
+        { kind: "top_rank", value: 10 },
+        { kind: "top_percent", value: 5 },
+        null,
+        null,
+        null,
+      ]
+    );
   });
 });

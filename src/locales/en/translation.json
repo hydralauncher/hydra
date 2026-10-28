@@ -1181,7 +1181,15 @@
     "move_down": "Move down",
     "set_priority": "Set priority: High",
     "remove_priority": "Set priority: Normal",
-    "open_download_folder": "Open download folder"
+    "open_download_folder": "Open download folder",
+    "select_executable": "Select executable",
+    "run_installer": "Run installer",
+    "game_installed_title": "Game installed",
+    "game_installed_description": "Hydra found the game's executable. It's ready to play.",
+    "installed_game_not_found_title": "Couldn't find the installed game",
+    "installed_game_not_found_description": "Select the game's executable to finish setting it up.",
+    "installer_launch_failed": "Couldn't start the installer",
+    "installing": "Installing…"
   },
   "settings": {
     "rpcs3_config_title": "RPCS3 configuration folder",

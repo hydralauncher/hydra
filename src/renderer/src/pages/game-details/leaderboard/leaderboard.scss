@@ -63,6 +63,17 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     gap: globals.$spacing-unit;
     font-size: globals.$small-font-size;
     color: globals.$body-color;
+    min-width: 0;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  &__nudge-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__see-all {
@@ -215,7 +226,10 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     --segment-gap: 2px;
 
     position: relative;
-    display: flex;
+    display: grid;
+    grid-auto-flow: column;
+    // The indicator assumes equal-width segments.
+    grid-auto-columns: minmax(0, 1fr);
     gap: var(--segment-gap);
     padding: 2px;
     border: solid 1px globals.$border-color;
@@ -326,8 +340,17 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     background-position: center;
   }
 
+  // A lighter shade instead of a filter, which would repaint animated
+  // banners on every frame.
   &--banner:hover {
-    filter: brightness(1.12);
+    background-image:
+      linear-gradient(
+        90deg,
+        rgba(13, 13, 13, 0.86) 0%,
+        rgba(13, 13, 13, 0.6) 55%,
+        rgba(13, 13, 13, 0.28) 100%
+      ),
+      var(--leaderboard-row-banner);
   }
 
   &#{&}--banner,
@@ -342,8 +365,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   }
 
   &--banner &__you {
-    background-color: rgba(13, 13, 13, 0.55);
-    backdrop-filter: blur(10px);
+    background-color: rgba(13, 13, 13, 0.75);
     color: globals.$muted-color;
   }
 

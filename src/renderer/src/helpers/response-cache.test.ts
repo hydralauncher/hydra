@@ -139,3 +139,25 @@ describe("createResponseCache", () => {
     assert.equal(cache.peek("/c", options), undefined);
   });
 });
+
+describe("evictPath", () => {
+  it("drops every cached request for the path and keeps the others", async () => {
+    const cache = createResponseCache(async (path) => ({ path }));
+    const scoped = { params: { scope: "friends" }, needsAuth: true };
+
+    await cache.get("/leaderboards/playtime", options);
+    await cache.get("/leaderboards/playtime", scoped, "account");
+    await cache.get("/leaderboards/playtime-extra", options);
+
+    cache.evictPath("/leaderboards/playtime");
+
+    assert.equal(cache.peek("/leaderboards/playtime", options), undefined);
+    assert.equal(
+      cache.peek("/leaderboards/playtime", scoped, "account"),
+      undefined
+    );
+    assert.deepEqual(cache.peek("/leaderboards/playtime-extra", options), {
+      path: "/leaderboards/playtime-extra",
+    });
+  });
+});

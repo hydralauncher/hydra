@@ -79,6 +79,9 @@ async function fixture(
     "merge-unlocked-achievements",
     "pending-achievement-souvenir-store",
     "game-request-queue",
+    "unlocked-achievements-cache",
+    "retry-after",
+    "combined-achievements-requests",
   ]);
   if (options.metadata || options.view) actual.add("get-game-achievement-data");
   if (options.reset) actual.add("reset-game-achievements");
@@ -846,4 +849,161 @@ test("a rejected list is not resent in the same session but is retried after a r
   f.requests[1]!.gate.resolve(undefined);
   await acknowledgeAll(f);
   assert.equal(f.records.size, 0);
+});
+
+const serverError = {
+  isAxiosError: true,
+  response: { status: 500, headers: {} },
+};
+
+const SETTLE_EVENT_LOOP_TURNS = 20;
+
+const settle = async () => {
+  for (let round = 0; round < SETTLE_EVENT_LOOP_TURNS; round++)
+    await new Promise((resolve) => setImmediate(resolve));
+};
+
+const resend = async (f: Awaited<ReturnType<typeof fixture>>) => {
+  const sent = f.requests.length;
+  [...f.records.values()][0]!.nextAttemptAt = 0;
+  void f.achievementSyncWorker.trigger();
+  await f.untilRequest(sent + 1);
+};
+
+const rejectLatest = async (
+  f: Awaited<ReturnType<typeof fixture>>,
+  error: unknown
+) => {
+  f.requests.at(-1)!.gate.reject(error);
+  await settle();
+};
+
+const failRepeatedly = async (
+  f: Awaited<ReturnType<typeof fixture>>,
+  error: unknown,
+  count: number
+) => {
+  for (let index = 0; index < count; index++) {
+    await resend(f);
+    await rejectLatest(f, error);
+  }
+};
+
+const parkAfterServerErrors = async (
+  f: Awaited<ReturnType<typeof fixture>>
+) => {
+  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
+  await f.untilRequest(1);
+  await rejectLatest(f, serverError);
+  await failRepeatedly(f, serverError, 9);
+};
+
+test("ten consecutive server errors park the pending sync", async (t) => {
+  const f = await fixture(t);
+  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
+  await f.untilRequest(1);
+  await rejectLatest(f, serverError);
+  await failRepeatedly(f, serverError, 8);
+  assert.equal([...f.records.values()][0]!.terminal, false);
+  await failRepeatedly(f, serverError, 1);
+  const parked = [...f.records.values()][0]!;
+  assert.equal(parked.terminal, true);
+  assert.equal(parked.serverErrors, 10);
+  parked.nextAttemptAt = 0;
+  await f.achievementSyncWorker.trigger();
+  await settle();
+  assert.equal(f.requests.length, 10);
+});
+
+test("failures without a server error keep the server error count", async (t) => {
+  const f = await fixture(t);
+  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
+  await f.untilRequest(1);
+  await rejectLatest(f, serverError);
+  await failRepeatedly(f, serverError, 8);
+  await failRepeatedly(
+    f,
+    { isAxiosError: true, response: { status: 429, headers: {} } },
+    1
+  );
+  await failRepeatedly(f, { isAxiosError: true }, 1);
+  const row = [...f.records.values()][0]!;
+  assert.equal(row.terminal, false);
+  assert.equal(row.serverErrors, 9);
+  await failRepeatedly(f, serverError, 1);
+  assert.equal([...f.records.values()][0]!.terminal, true);
+});
+
+test("network failures alone never park the pending sync", async (t) => {
+  const f = await fixture(t);
+  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
+  await f.untilRequest(1);
+  await rejectLatest(f, { isAxiosError: true });
+  await failRepeatedly(f, { isAxiosError: true }, 29);
+  const row = [...f.records.values()][0]!;
+  assert.equal(row.terminal, false);
+  assert.equal(row.serverErrors, 0);
+});
+
+test("a parked sync stays parked on rewrites and resumes on the next unlock", async (t) => {
+  const f = await fixture(t);
+  await parkAfterServerErrors(f);
+  const parked = [...f.records.values()][0]!;
+  assert.equal(parked.terminal, true);
+  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
+  await settle();
+  assert.equal([...f.records.values()][0], parked);
+  assert.equal(f.requests.length, 10);
+  await f.mergeAchievements(f.game, [{ name: "B", unlockTime: 2 }], false);
+  await settle();
+  const resumed = [...f.records.values()][0]!;
+  assert.equal(resumed.terminal, undefined);
+  assert.equal(resumed.serverErrors, 0);
+  assert.equal(resumed.attempts, 0);
+  await resend(f);
+  assert.deepEqual(
+    f.requests[10]!.body.achievements.map((item) => item.name),
+    ["A", "B"]
+  );
+  await acknowledgeAll(f);
+  assert.equal(f.records.size, 0);
+});
+
+test("a parked sync resumes after a restart", async (t) => {
+  const f = await fixture(t);
+  await parkAfterServerErrors(f);
+  const restarted = new f.AchievementSyncWorker();
+  t.after(() => restarted.stop());
+  await restarted.enqueue({
+    context: f.state.context!,
+    gameKey: "steam:620",
+    remoteId: f.game.remoteId!,
+    shop: "steam",
+    objectId: "620",
+    achievements: [{ name: "A", unlockTime: 1 }],
+  });
+  const resumed = [...f.records.values()][0]!;
+  assert.equal(resumed.terminal, undefined);
+  assert.equal(resumed.serverErrors, 0);
+  resumed.nextAttemptAt = 0;
+  void restarted.trigger();
+  await f.untilRequest(11);
+});
+
+test("a successful PUT clears failure state inherited by a newer snapshot", async (t) => {
+  const f = await fixture(t);
+  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
+  await f.untilRequest(1);
+  await rejectLatest(f, serverError);
+  await failRepeatedly(f, serverError, 8);
+  await resend(f);
+  await f.mergeAchievements(f.game, [{ name: "B", unlockTime: 2 }], false);
+  assert.equal([...f.records.values()][0]!.serverErrors, 9);
+  assert.equal([...f.records.values()][0]!.attempts, 9);
+  f.requests.at(-1)!.gate.resolve(undefined);
+  await settle();
+  assert.equal([...f.records.values()][0]!.serverErrors, 0);
+  assert.equal([...f.records.values()][0]!.attempts, 0);
+  await failRepeatedly(f, serverError, 1);
+  assert.equal([...f.records.values()][0]!.terminal, false);
 });
