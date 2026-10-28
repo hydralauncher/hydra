@@ -1,7 +1,13 @@
 import "./progressive-screenshot-image.scss";
 
 import cn from "classnames";
-import { useLayoutEffect, useRef, useState, type SyntheticEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type SyntheticEvent,
+} from "react";
 
 type LayerState = "pending" | "cached" | "loaded" | "failed";
 
@@ -39,6 +45,7 @@ function ProgressiveLayer({
   onError,
 }: Readonly<ProgressiveLayerProps>) {
   const imageRef = useRef<HTMLImageElement>(null);
+  const [displayedSource, setDisplayedSource] = useState(source);
   const [state, setState] = useState<LayerState>("pending");
   const isVisible = isPlain || state === "loaded" || state === "cached";
 
@@ -46,6 +53,31 @@ function ProgressiveLayer({
     const image = imageRef.current;
     if (image?.complete && image.naturalWidth > 0) setState("cached");
   }, []);
+
+  useEffect(() => {
+    if (source === displayedSource) return;
+
+    if (!isVisible) {
+      setState("pending");
+      setDisplayedSource(source);
+      return;
+    }
+
+    let isCurrent = true;
+    const preload = new Image();
+    const swap = () => {
+      if (isCurrent) setDisplayedSource(source);
+    };
+    preload.addEventListener("load", swap);
+    preload.addEventListener("error", swap);
+    preload.src = source;
+
+    return () => {
+      isCurrent = false;
+      preload.removeEventListener("load", swap);
+      preload.removeEventListener("error", swap);
+    };
+  }, [displayedSource, isVisible, source]);
 
   return (
     <img
@@ -55,7 +87,7 @@ function ProgressiveLayer({
         "progressive-screenshot-image__layer--instant":
           isPlain || state === "cached",
       })}
-      src={source}
+      src={displayedSource}
       alt={isTop ? alt : ""}
       aria-hidden={isTop ? undefined : true}
       draggable={false}
@@ -66,7 +98,7 @@ function ProgressiveLayer({
       }}
       onError={() => {
         setState("failed");
-        onError?.(source);
+        onError?.(displayedSource);
       }}
     />
   );
@@ -115,7 +147,7 @@ export function ProgressiveScreenshotImage({
       ) : null}
       {layers.map((source, position) => (
         <ProgressiveLayer
-          key={source}
+          key={`level-${position}`}
           source={source}
           alt={alt}
           isTop={position === layers.length - 1}
