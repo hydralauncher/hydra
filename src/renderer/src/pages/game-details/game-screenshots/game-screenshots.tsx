@@ -139,9 +139,6 @@ function GameScreenshotsBox({
 
     return (
       <>
-        <span className="game-screenshots-box__caption">
-          {t("community_screenshots_tab")}
-        </span>
         <ul className="game-screenshots-box__grid">
           {communityItems.map((screenshot) => (
             <li key={screenshot.id}>
@@ -149,7 +146,6 @@ function GameScreenshotsBox({
                 screenshot={screenshot}
                 isLiking={community.actions.likingIds.has(screenshot.id)}
                 showCommentCount={showCommentCount}
-                showOwner
                 onOpen={community.lightbox.open}
                 onLike={(item) => void community.actions.toggleLike(item)}
                 onImageError={community.lightbox.refreshScreenshot}
@@ -209,7 +205,6 @@ function GameScreenshotsBox({
                   screenshot={item.screenshot}
                   isLiking={actions.likingIds.has(item.screenshot.id)}
                   showCommentCount={showCommentCount}
-                  showOwner={false}
                   onOpen={(screenshot) =>
                     viewer.openEntry({
                       kind: "uploaded",
@@ -246,7 +241,13 @@ function GameScreenshotsBox({
   };
 
   return (
-    <SidebarSection title={t("my_screenshots")}>
+    <SidebarSection
+      title={
+        hasNoScreenshotsOfMine
+          ? t("community_screenshots_tab")
+          : t("my_screenshots")
+      }
+    >
       <div className="game-screenshots-box">{renderContent()}</div>
 
       <MyScreenshotsLightbox

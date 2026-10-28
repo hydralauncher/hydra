@@ -4,7 +4,6 @@ import cn from "classnames";
 
 import {
   ProgressiveScreenshotImage,
-  ScreenshotOwnerBadge,
   ScreenshotStats,
   SensitiveScreenshotModal,
   getScreenshotGameTitle,
@@ -20,7 +19,6 @@ interface GameScreenshotThumbnailProps {
   screenshot: ProfileScreenshot;
   isLiking: boolean;
   showCommentCount: boolean;
-  showOwner?: boolean;
   onOpen: (screenshot: ProfileScreenshot) => void;
   onLike: (screenshot: ProfileScreenshot) => void;
   onImageError: (screenshot: ProfileScreenshot) => Promise<void>;
@@ -30,7 +28,6 @@ export function GameScreenshotThumbnail({
   screenshot,
   isLiking,
   showCommentCount,
-  showOwner = true,
   onOpen,
   onLike,
   onImageError,
@@ -110,13 +107,6 @@ export function GameScreenshotThumbnail({
       </button>
 
       <SensitiveScreenshotModal {...sensitive.modalProps} />
-
-      {showOwner ? (
-        <ScreenshotOwnerBadge
-          owner={screenshot.owner}
-          className="game-screenshots-box__owner"
-        />
-      ) : null}
 
       <ScreenshotStats
         screenshot={screenshot}

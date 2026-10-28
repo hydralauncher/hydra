@@ -34,15 +34,6 @@
     position: relative;
   }
 
-  &__owner {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    z-index: 2;
-    max-width: calc(100% - 12px);
-    pointer-events: none;
-  }
-
   &__stats {
     position: absolute;
     top: 6px;
@@ -126,14 +117,6 @@
     width: 100%;
     height: 40px;
     border-radius: 8px;
-  }
-
-  &__caption {
-    display: block;
-    margin-bottom: globals.$spacing-unit;
-    color: globals.$muted-color;
-    font-size: 12px;
-    font-weight: 500;
   }
 
   &__empty {
