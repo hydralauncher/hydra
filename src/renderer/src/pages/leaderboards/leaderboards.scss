@@ -443,12 +443,10 @@ $leaderboards-heat-gap: 3px;
     overflow: hidden;
   }
 
-  &__review-votes,
-  &__review-votes:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #cccccc;
+  // A vote count, not a button: keep the game page look without its hover.
+  &__review-votes {
     cursor: default;
+    pointer-events: none;
   }
 
   &__review-score {

@@ -486,7 +486,7 @@ export const buildHeatmapMonths = (cells: HeatmapCell[]): HeatmapMonth[] => {
   for (let week = 0; week < weeks; week++) {
     const date = cells[week * 7].date;
     const previous = week > 0 ? cells[(week - 1) * 7].date : null;
-    if (previous && previous.getUTCMonth() === date.getUTCMonth()) continue;
+    if (previous?.getUTCMonth() === date.getUTCMonth()) continue;
     months.push({ week, date });
   }
 
