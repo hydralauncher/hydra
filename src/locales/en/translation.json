@@ -2226,7 +2226,6 @@
     "edit_profile_tab_photo": "Profile",
     "profile_photo": "Profile photo",
     "display_name_hint": "Shows on your profile, in friend lists and in chat.",
-    "display_name_length": "Use {{min}} to {{max}} characters.",
     "edit_profile_tab_banner": "Banner",
     "edit_profile_tab_frames": "Frames",
     "photo_tab_hint": "Your photo shows on your profile, in friend lists and in chat. JPG, PNG, APNG, GIF or WebP.",

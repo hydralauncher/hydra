@@ -33,7 +33,7 @@ type EditProfileTab = "photo" | "banner" | "frames";
 type PhotoDraft = "current" | "new";
 type BannerDraft = "current" | "new" | "none";
 
-// Same limits as the API (updateUserProfileSchema).
+// Same limits as the previous modal and the API (updateUserProfileSchema).
 const DISPLAY_NAME_MIN = 3;
 const DISPLAY_NAME_MAX = 50;
 
@@ -95,9 +95,18 @@ export function EditProfileModal(
   const currentBannerUrl = userDetails.backgroundImageUrl;
 
   const trimmedName = displayName.trim();
-  const isNameValid =
-    trimmedName.length >= DISPLAY_NAME_MIN &&
-    trimmedName.length <= DISPLAY_NAME_MAX;
+  const getNameError = () => {
+    if (!trimmedName) return t("required_field");
+    if (trimmedName.length < DISPLAY_NAME_MIN) {
+      return t("displayname_min_length");
+    }
+    if (trimmedName.length > DISPLAY_NAME_MAX) {
+      return t("displayname_max_length");
+    }
+    return undefined;
+  };
+  const nameError = getNameError();
+  const isNameValid = !nameError;
 
   const isDirty =
     trimmedName !== userDetails.displayName ||
@@ -157,41 +166,26 @@ export function EditProfileModal(
     ? ["photo", "banner", "frames"]
     : ["photo", "banner"];
 
-  const nameCount = `${displayName.length}/${DISPLAY_NAME_MAX}`;
-
   const renderPhotoPane = () => (
     <>
-      <TextField
-        label={t("display_name")}
-        value={displayName}
-        onChange={(event) => setDisplayName(event.target.value)}
-        maxLength={DISPLAY_NAME_MAX}
-        autoComplete="off"
-        spellCheck={false}
-        containerProps={{ className: "edit-profile-modal__name" }}
-        hint={
-          <span className="edit-profile-modal__name-hint">
-            <span>{t("display_name_hint")}</span>
-            <span>{nameCount}</span>
-          </span>
-        }
-        error={
-          isNameValid ? undefined : (
-            <span className="edit-profile-modal__name-hint">
-              <span>
-                {t("display_name_length", {
-                  min: DISPLAY_NAME_MIN,
-                  max: DISPLAY_NAME_MAX,
-                })}
-              </span>
-              <span>{nameCount}</span>
-            </span>
-          )
-        }
-      />
+      <div className="edit-profile-modal__name">
+        <TextField
+          label={t("display_name")}
+          value={displayName}
+          onChange={(event) => setDisplayName(event.target.value)}
+          maxLength={DISPLAY_NAME_MAX}
+          autoComplete="off"
+          spellCheck={false}
+          hint={t("display_name_hint")}
+          error={nameError}
+        />
+      </div>
 
-      <h4 className="edit-profile-modal__subheading">{t("profile_photo")}</h4>
-      <p className="edit-profile-modal__hint">{t("photo_tab_hint")}</p>
+      {/* Same label and hint layout as the TextField above. */}
+      <div className="edit-profile-modal__section-header">
+        <span>{t("profile_photo")}</span>
+        <small>{t("photo_tab_hint")}</small>
+      </div>
       <div className="edit-profile-modal__grid">
         <EditProfileUploadTile
           label={t("upload_photo")}
@@ -234,7 +228,9 @@ export function EditProfileModal(
 
   const renderBannerPane = () => (
     <>
-      <p className="edit-profile-modal__hint">{t("banner_tab_hint")}</p>
+      <div className="edit-profile-modal__section-header">
+        <small>{t("banner_tab_hint")}</small>
+      </div>
       <div className="edit-profile-modal__grid edit-profile-modal__grid--wide">
         <EditProfileUploadTile
           label={t("upload_banner")}

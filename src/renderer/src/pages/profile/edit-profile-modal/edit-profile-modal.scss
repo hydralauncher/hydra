@@ -96,26 +96,15 @@ $hover-transition: 0.15s ease;
   }
 
   &__name {
-    margin-bottom: 20px;
+    margin-bottom: calc(globals.$spacing-unit * 3);
   }
 
-  &__name-hint {
+  // Mirrors the TextField label and hint.
+  &__section-header {
     display: flex;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  &__subheading {
-    margin: 0 0 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: $ink;
-  }
-
-  &__hint {
-    margin: 0 0 14px;
-    font-size: 12px;
-    color: $muted;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    margin-bottom: calc(globals.$spacing-unit * 2);
   }
 
   &__grid {
