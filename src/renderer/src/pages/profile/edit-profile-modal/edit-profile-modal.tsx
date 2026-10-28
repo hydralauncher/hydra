@@ -43,9 +43,9 @@ import "./edit-profile-modal.scss";
 
 type EditProfileTab = "photo" | "banner" | "frames";
 
-// "current" keeps what the profile has; "none" removes the banner;
+// "current" keeps what the profile has; "none" removes the photo or banner;
 // "pixel" is the API's procedural avatar.
-type PhotoDraft = "current" | "new" | "pixel";
+type PhotoDraft = "current" | "new" | "none" | "pixel";
 type BannerDraft = "current" | "new" | "none";
 
 // Same limits as the previous modal and the API (updateUserProfileSchema).
@@ -141,12 +141,13 @@ export function EditProfileModal(
 
   const isDirty =
     trimmedName !== userDetails.displayName ||
-    photoDraft !== "current" ||
+    (photoDraft === "none" ? !!currentPhotoUrl : photoDraft !== "current") ||
     (bannerDraft === "none" ? !!currentBannerUrl : bannerDraft === "new");
 
   const draftPhotoUrl = {
     current: currentPhotoUrl,
     new: localUrl(newPhotoPath),
+    none: null,
     pixel: pixelAvatarUrl,
   }[photoDraft];
   const draftBannerUrl = {
@@ -197,6 +198,8 @@ export function EditProfileModal(
         values.profileImageUrl = newPhotoPath;
       } else if (photoDraft === "pixel") {
         values.profileImageUrl = await savePixelAvatar();
+      } else if (photoDraft === "none" && currentPhotoUrl) {
+        values.profileImageUrl = null;
       }
       if (bannerDraft === "new" && newBannerPath) {
         values.backgroundImageUrl = newBannerPath;
@@ -256,18 +259,20 @@ export function EditProfileModal(
             onClick={() => setPhotoDraft("new")}
           />
         )}
-        <EditProfileTile
-          art={
-            <Avatar
-              size={64}
-              src={currentPhotoUrl}
-              alt={userDetails.displayName}
-            />
-          }
-          label={t(currentPhotoUrl ? "current_photo" : "no_photo")}
-          isSelected={photoDraft === "current"}
-          onClick={() => setPhotoDraft("current")}
-        />
+        {currentPhotoUrl && (
+          <EditProfileTile
+            art={
+              <Avatar
+                size={64}
+                src={currentPhotoUrl}
+                alt={userDetails.displayName}
+              />
+            }
+            label={t("current_photo")}
+            isSelected={photoDraft === "current"}
+            onClick={() => setPhotoDraft("current")}
+          />
+        )}
         {pixelAvatarUrl && (
           <EditProfileTile
             art={<Avatar size={64} src={pixelAvatarUrl} />}
@@ -276,6 +281,15 @@ export function EditProfileModal(
             onClick={() => setPhotoDraft("pixel")}
           />
         )}
+        <EditProfileTile
+          art={<Avatar size={64} src={null} alt={userDetails.displayName} />}
+          label={t("no_photo")}
+          isSelected={
+            photoDraft === "none" ||
+            (photoDraft === "current" && !currentPhotoUrl)
+          }
+          onClick={() => setPhotoDraft("none")}
+        />
       </div>
     </>
   );
