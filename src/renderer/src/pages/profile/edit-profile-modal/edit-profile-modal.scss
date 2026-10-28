@@ -6,7 +6,7 @@ $chrome: #0d0d0d;
 $muted: #a6a7ad;
 $line: rgba(255, 255, 255, 0.08);
 $line-strong: rgba(255, 255, 255, 0.24);
-$selected-outline: rgba(255, 255, 255, 0.7);
+$selected-outline: rgba(255, 255, 255, 0.6);
 $hover-transition: 0.15s ease;
 
 .edit-profile-modal {
@@ -128,15 +128,19 @@ $hover-transition: 0.15s ease;
     background-color: $chrome;
     text-align: left;
     cursor: pointer;
-    transition: border-color $hover-transition;
+    // A transparent outline on every tile, so selecting one fades it in.
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    transition:
+      border-color $hover-transition,
+      outline-color $hover-transition;
 
     &:hover {
       border-color: $line-strong;
     }
 
     &--selected {
-      outline: 2px solid $selected-outline;
-      outline-offset: 2px;
+      outline-color: $selected-outline;
     }
   }
 
