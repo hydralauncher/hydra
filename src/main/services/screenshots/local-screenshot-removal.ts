@@ -76,7 +76,7 @@ const pendingMissingRemovals = new Map<string, Promise<boolean>>();
 
 const removeMissingLocalScreenshot = async (clientId: string) => {
   const pending = pendingMissingRemovals.get(clientId);
-  if (pending) {
+  if (pending !== undefined) {
     await pending;
     return false;
   }

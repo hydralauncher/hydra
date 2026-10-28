@@ -143,7 +143,7 @@ class ScreenshotUploadWorker {
   private readonly gameWaits = new Map<string, number>();
   private readonly moderationWaits = new Map<string, number>();
   private readonly capacityWaits = new Map<string, number>();
-  private missingFileHandler: ((clientId: string) => Promise<unknown>) | null =
+  private missingFileHandler: ((clientId: string) => Promise<boolean>) | null =
     null;
   private lastOwnerId: string | null = null;
   private authListenerRegistered = false;
@@ -157,7 +157,7 @@ class ScreenshotUploadWorker {
     void this.resetInterruptedUploads().then(() => this.trigger());
   }
 
-  public onMissingFile(handler: (clientId: string) => Promise<unknown>) {
+  public onMissingFile(handler: (clientId: string) => Promise<boolean>) {
     this.missingFileHandler = handler;
   }
 
@@ -639,8 +639,7 @@ class ScreenshotUploadWorker {
       this.capacityWaits.delete(clientId);
       logger.warn("Screenshot file was missing at upload time", { clientId });
       ScreenshotTelemetry.record("upload", "failed", failure.code);
-      await this.missingFileHandler(clientId);
-      return;
+      if (await this.missingFileHandler(clientId)) return;
     }
     if (failure.code === SCREENSHOT_FEATURE_DISABLED_CODE) {
       this.uploadsDisabledThisRun = true;

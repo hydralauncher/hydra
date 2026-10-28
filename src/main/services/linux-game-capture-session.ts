@@ -178,7 +178,7 @@ const openSharedCapture = async (shareKey: string) => {
 
 const getPendingSharedCapture = (shareKey: string) => {
   const pending = pendingSharedCaptures.get(shareKey);
-  if (pending) return pending;
+  if (pending !== undefined) return pending;
 
   const opening = openSharedCapture(shareKey).finally(() => {
     pendingSharedCaptures.delete(shareKey);
