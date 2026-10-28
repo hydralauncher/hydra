@@ -643,6 +643,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     }
 
     small {
+      display: block;
       font-size: globals.$small-font-size;
       color: $muted;
     }
@@ -1175,5 +1176,44 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
   .missions-tab__layout > .missions-tab__section {
     grid-column: 2;
     grid-row: 1;
+  }
+}
+
+// Trail intro: the rings draw themselves inside out when a trail is shown, and
+// the current dot rides the tip of its arc. Timings come from trails-board.tsx.
+.trails-board__intro-draw {
+  animation: trails-board-intro-draw var(--intro-duration)
+    cubic-bezier(0.5, 0, 0.2, 1) var(--intro-delay) both;
+}
+
+.trails-board__intro-ride {
+  animation: trails-board-intro-ride var(--intro-duration)
+    cubic-bezier(0.5, 0, 0.2, 1) var(--intro-delay) both;
+}
+
+.trails-board__intro-fade {
+  animation: trails-board-intro-fade var(--intro-duration) ease
+    var(--intro-delay) both;
+}
+
+@keyframes trails-board-intro-draw {
+  from {
+    stroke-dasharray: 0 var(--circumference);
+  }
+}
+
+@keyframes trails-board-intro-ride {
+  from {
+    transform: rotate(0);
+  }
+
+  to {
+    transform: rotate(var(--intro-angle));
+  }
+}
+
+@keyframes trails-board-intro-fade {
+  from {
+    opacity: 0;
   }
 }

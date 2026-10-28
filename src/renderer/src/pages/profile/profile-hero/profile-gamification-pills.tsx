@@ -5,9 +5,10 @@ import {
   FlameIcon,
   STREAK_EMBERS_DAYS,
   STREAK_FIRE_DAYS,
-  STREAK_GLOW_DAYS,
+  STREAK_HOT_DAYS,
   StreakFire,
   XpBar,
+  getFirePalette,
   useAnimatedNumber,
   useHoverHalo,
 } from "@renderer/components/gamification";
@@ -84,16 +85,21 @@ export function ProfileGamificationPills() {
               "profile-gamification-pills__pill--lit":
                 streakDays >= STREAK_FIRE_DAYS,
               "profile-gamification-pills__pill--hot":
-                streakDays >= STREAK_GLOW_DAYS,
+                streakDays >= STREAK_HOT_DAYS,
             }
           )}
+          style={
+            {
+              "--streak-fire-background": getFirePalette(streakDays).background,
+            } as React.CSSProperties
+          }
           title={t("streak_tooltip", {
             count: streakDays,
             record: loginStreak.record,
           })}
         >
           {streakDays >= STREAK_EMBERS_DAYS && <StreakFire days={streakDays} />}
-          <FlameIcon isDim={streakDays === 0} />
+          <FlameIcon days={streakDays} />
           <strong>{t("streak_days", { count: streakDays })}</strong>
         </div>
       )}

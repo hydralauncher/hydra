@@ -27,6 +27,9 @@ const SELECTOR_SEGMENT_GAP = 6;
 const CURRENT_COLOR = rampColor(0.5);
 const FILL_PHASE_MS = 1100;
 const DONE_PHASE_MS = 2600;
+// Rings draw themselves, inside out, when a trail is shown.
+const INTRO_RING_MS = 600;
+const INTRO_STAGGER_MS = 80;
 // With reduced motion the phases still run in order, just without the wait.
 const REDUCED_MOTION_PHASE_MS = 50;
 const SEEN_STORAGE_PREFIX = "hydra:gamification:trails-seen:";
@@ -193,10 +196,43 @@ function TrailOrbits({
   const { t } = useTranslation("user_profile");
   const total = trail.levels.length;
   const celebrating = celebration?.trail === trail.key ? celebration : null;
+  const [intro, setIntro] = useState(() => ({
+    trail: trail.key,
+    isPlaying: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  }));
+  if (intro.trail !== trail.key) {
+    setIntro({
+      trail: trail.key,
+      isPlaying: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    });
+  }
+  // The level celebration animates these rings itself, so it replaces the intro.
+  const isIntro = intro.isPlaying && !celebrating;
+
+  useEffect(() => {
+    if (!isIntro) return;
+    const timer = setTimeout(
+      () => setIntro((current) => ({ ...current, isPlaying: false })),
+      INTRO_RING_MS + (total - 1) * INTRO_STAGGER_MS
+    );
+    return () => clearTimeout(timer);
+  }, [isIntro, intro.trail, total]);
+
+  useEffect(() => {
+    if (celebrating) setIntro((current) => ({ ...current, isPlaying: false }));
+  }, [celebrating]);
+
+  const introStyle = (index: number, circumference: number) =>
+    ({
+      "--intro-delay": `${index * INTRO_STAGGER_MS}ms`,
+      "--intro-duration": `${INTRO_RING_MS}ms`,
+      "--circumference": `${circumference}`,
+    }) as React.CSSProperties;
 
   return (
     <div className="trails-board__orbits" ref={orbitsRef}>
       <svg
+        key={trail.key}
         width={ORBIT_SIZE}
         height={ORBIT_SIZE}
         viewBox={`0 0 ${ORBIT_SIZE} ${ORBIT_SIZE}`}
@@ -223,11 +259,14 @@ function TrailOrbits({
                   strokeWidth={4}
                 />
                 <circle
-                  className={cn({ "trails-board__arc--filling": isFilling })}
+                  className={cn({
+                    "trails-board__arc--filling": isFilling,
+                    "trails-board__intro-draw": isIntro,
+                  })}
                   style={
                     {
+                      ...introStyle(index, circumference),
                       "--from": `${fraction * circumference}`,
-                      "--circumference": `${circumference}`,
                     } as React.CSSProperties
                   }
                   cx={ORBIT_CENTER}
@@ -248,6 +287,8 @@ function TrailOrbits({
             return (
               <circle
                 key={level.level}
+                className={cn({ "trails-board__intro-fade": isIntro })}
+                style={introStyle(index, circumference)}
                 cx={ORBIT_CENTER}
                 cy={ORBIT_CENTER}
                 r={radius}
@@ -270,7 +311,9 @@ function TrailOrbits({
                 className={cn({
                   "trails-board__ring--just-done": isJustDone,
                   "trails-board__ring--new": isNewTrack,
+                  "trails-board__intro-draw": isIntro,
                 })}
+                style={introStyle(index, circumference)}
                 cx={ORBIT_CENTER}
                 cy={ORBIT_CENTER}
                 r={radius}
@@ -278,6 +321,8 @@ function TrailOrbits({
                 stroke={color}
                 strokeOpacity={0.55}
                 strokeWidth={2}
+                strokeDasharray={`${circumference} ${circumference}`}
+                transform={`rotate(-90 ${ORBIT_CENTER} ${ORBIT_CENTER})`}
               />
               {isJustDone && (
                 <>
@@ -309,13 +354,15 @@ function TrailOrbits({
       {trail.levels.map((level, index) => {
         const radius = ringRadius(index, total);
         const state = getState(level);
-        let angle = -Math.PI / 2;
+        let sweep = 0;
         if (state === "current") {
-          angle += getFraction(level) * 2 * Math.PI;
+          sweep = getFraction(level) * 2 * Math.PI;
         } else if (state === "locked") {
-          angle += LOCKED_DOT_OFFSET;
+          sweep = LOCKED_DOT_OFFSET;
         }
-        const point = pointOn(radius, angle);
+        // During the intro the current dot starts at the top and rides the arc tip.
+        const isRiding = isIntro && state === "current";
+        const point = pointOn(radius, -Math.PI / 2 + (isRiding ? 0 : sweep));
         const isRacing =
           celebrating?.phase === "fill" && celebrating.level === level.level;
         const isPopping =
@@ -323,14 +370,26 @@ function TrailOrbits({
 
         return (
           <button
-            key={level.level}
+            key={`${trail.key}-${level.level}`}
             type="button"
             className={cn("trails-board__dot", `trails-board__dot--${state}`, {
               "trails-board__dot--selected": level.level === selectedLevel,
               "trails-board__dot--racing": isRacing,
               "trails-board__dot--pop": isPopping,
+              "trails-board__intro-ride": isRiding,
+              "trails-board__intro-fade": isIntro && state === "locked",
             })}
-            style={{ left: point.x - 9, top: point.y - 9 }}
+            style={
+              {
+                ...introStyle(index, 0),
+                "--intro-angle": `${sweep}rad`,
+                left: point.x - 9,
+                top: point.y - 9,
+                transformOrigin: isRiding
+                  ? `${ORBIT_CENTER - point.x + 9}px ${ORBIT_CENTER - point.y + 9}px`
+                  : undefined,
+              } as React.CSSProperties
+            }
             onClick={() => onSelect(level.level)}
             aria-label={t("trail_level", { level: level.level })}
           >
