@@ -11,7 +11,6 @@ import {
 export interface MyGameScreenshotCounts {
   local: number;
   published: number;
-  hasPublishedFailed: boolean;
 }
 
 interface UseMyGameScreenshotCountsOptions {
@@ -34,7 +33,6 @@ export function useMyGameScreenshotCounts({
   const [counts, setCounts] = useState<MyGameScreenshotCounts>({
     local: 0,
     published: 0,
-    hasPublishedFailed: false,
   });
 
   const localRequestIdRef = useRef(0);
@@ -61,19 +59,11 @@ export function useMyGameScreenshotCounts({
         local
       );
       if (requestId !== publishedRequestIdRef.current) return;
-      setCounts((current) => ({
-        ...current,
-        published,
-        hasPublishedFailed: false,
-      }));
+      setCounts((current) => ({ ...current, published }));
     } catch (error) {
       if (requestId !== publishedRequestIdRef.current) return;
       onError?.(error);
-      setCounts((current) => ({
-        ...current,
-        published: 0,
-        hasPublishedFailed: true,
-      }));
+      setCounts((current) => ({ ...current, published: 0 }));
     }
   }, [api, local, objectId, onError, shop, userId]);
 
