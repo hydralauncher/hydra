@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import cn from "classnames";
 import { Avatar } from "../avatar/avatar";
 import { prefersReducedMotion } from "./gamification-colors";
@@ -18,6 +18,20 @@ const AURORA_PALETTE: readonly (readonly [number, number, number])[] = [
 ];
 // The avatar takes 72% of the canvas; the frame draws in the margin around it.
 const AVATAR_SHARE = 0.72;
+const MAX_PIXEL_RATIO = 2;
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+// Follows the OS setting live, so frames stop animating as soon as it is turned on.
+function useReducedMotion() {
+  const [isReduced, setIsReduced] = useState(prefersReducedMotion);
+  useEffect(() => {
+    const query = window.matchMedia(REDUCED_MOTION_QUERY);
+    const onChange = () => setIsReduced(query.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+  return isReduced;
+}
 
 interface Geometry {
   size: number;
@@ -173,19 +187,20 @@ export function FramedAvatar({
 }: Readonly<FramedAvatarProps>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasSize = Math.round(size / AVATAR_SHARE);
+  const isReducedMotion = useReducedMotion();
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || isBare) return;
 
-    const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+    const pixelRatio = Math.min(MAX_PIXEL_RATIO, window.devicePixelRatio || 1);
     const pixels = Math.round(canvasSize * pixelRatio);
     canvas.width = pixels;
     canvas.height = pixels;
     const context = canvas.getContext("2d");
     if (!context) return;
 
-    if (prefersReducedMotion()) {
+    if (isReducedMotion) {
       drawAurora(context, pixels, STILL_PHASE);
       return;
     }
@@ -216,7 +231,7 @@ export function FramedAvatar({
       observer.disconnect();
       cancelAnimationFrame(animationFrame);
     };
-  }, [canvasSize, isBare]);
+  }, [canvasSize, isBare, isReducedMotion]);
 
   return (
     <span

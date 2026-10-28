@@ -39,9 +39,18 @@ const FIRE_PALETTES = {
   },
 } as const;
 
+const FIRE_PALETTE_BY_STAGE: Record<
+  StreakStage["key"],
+  (typeof FIRE_PALETTES)[keyof typeof FIRE_PALETTES]
+> = {
+  none: FIRE_PALETTES.orange,
+  spark: FIRE_PALETTES.orange,
+  flame: FIRE_PALETTES.orange,
+  bonfire: FIRE_PALETTES.orange,
+  blue_flame: FIRE_PALETTES.blue,
+  legendary_flame: FIRE_PALETTES.violet,
+};
+
 export function getFirePalette(days: number) {
-  const stage = getStreakStageIndex(days);
-  if (stage >= 5) return FIRE_PALETTES.violet;
-  if (stage === 4) return FIRE_PALETTES.blue;
-  return FIRE_PALETTES.orange;
+  return FIRE_PALETTE_BY_STAGE[STREAK_STAGES[getStreakStageIndex(days)].key];
 }
