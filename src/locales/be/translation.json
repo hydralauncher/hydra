@@ -757,7 +757,7 @@
     "enable_achievement_notifications": "When an achievement is unlocked",
     "launch_minimized": "Launch Hydra minimized",
     "launch_hydra_in_library_page": "Launch Hydra in Library page",
-    "disable_nsfw_alert": "Disable NSFW alert in game pages",
+    "disable_nsfw_alert": "Disable NSFW alert in game pages and souvenirs",
     "seed_after_download_complete": "Seed after download complete",
     "show_hidden_achievement_description": "Show hidden achievements description before unlocking them",
     "account": "Account",

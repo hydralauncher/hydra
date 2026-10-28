@@ -1214,7 +1214,7 @@
     "user_unblocked": "Utilisateur débloqué",
     "enable_achievement_notifications": "Quand un succès est débloqué",
     "launch_minimized": "Lancer Hydra minimisé",
-    "disable_nsfw_alert": "Désactiver l'alerte NSFW sur les pages de jeux",
+    "disable_nsfw_alert": "Désactiver l'alerte NSFW sur les pages de jeux et les souvenirs",
     "seed_after_download_complete": "Partager après téléchargement",
     "show_hidden_achievement_description": "Afficher la description des succès cachés avant de les débloquer",
     "account": "Compte",
