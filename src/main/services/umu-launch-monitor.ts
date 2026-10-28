@@ -26,7 +26,7 @@ export class UmuEarlyExitError extends Error {
   constructor(
     public readonly code: number | null,
     public readonly signal: NodeJS.Signals | null,
-    failureMessage: string | null
+    public readonly failureMessage: string | null
   ) {
     super(
       `umu-run exited early with code=${code ?? "null"} signal=${signal ?? "null"}${

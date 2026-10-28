@@ -2,6 +2,10 @@ import { registerEvent } from "../register-event";
 import { emulators } from "@main/services";
 import type { EmulatorConfig, EmulatorSystem } from "@types";
 import path from "node:path";
+import {
+  getCredentialEmulatorForSystem,
+  syncRetroAchievementsEmulatorCredentials,
+} from "@main/services/retro-achievements/emulator-credentials/emulator-credential-sync";
 
 const setEmulatorExecutablePath = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -34,12 +38,20 @@ const setEmulatorExecutablePath = async (
     return null;
   }
 
-  return emulators.updateEmulatorConfig(system, (current) => ({
+  const config = await emulators.updateEmulatorConfig(system, (current) => ({
     ...current,
     executablePath: resolvedPath,
     detectedVersion: version,
     detectedAt: resolvedPath ? Date.now() : null,
   }));
+
+  if (resolvedPath) {
+    void syncRetroAchievementsEmulatorCredentials(
+      getCredentialEmulatorForSystem(system)
+    );
+  }
+
+  return config;
 };
 
 registerEvent("setEmulatorExecutablePath", setEmulatorExecutablePath);

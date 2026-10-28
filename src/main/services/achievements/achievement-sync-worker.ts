@@ -21,8 +21,10 @@ import {
   ACHIEVEMENT_SYNC_MAX_TIMER_DELAY_MS,
   ACHIEVEMENT_SYNC_RETRYABLE_CLIENT_STATUSES,
   ACHIEVEMENT_SYNC_COALESCE_WINDOW_MS,
+  ACHIEVEMENT_SYNC_MAX_SERVER_ERRORS,
 } from "./achievement-sync-coordinator";
 import { isAxiosError } from "axios";
+import { getRetryAfterMs } from "./retry-after";
 
 export type PendingAchievementSync = {
   revision: string;
@@ -34,6 +36,7 @@ export type PendingAchievementSync = {
   achievements: UnlockedAchievement[];
   attempts: number;
   nextAttemptAt: number;
+  serverErrors?: number;
   terminal?: boolean;
 };
 
@@ -49,18 +52,7 @@ export const getAchievementSyncRetryDelay = (
   error: unknown,
   attempts: number
 ) => {
-  const retryAfter = isAxiosError(error)
-    ? error.response?.headers?.["retry-after"]
-    : undefined;
-  const seconds =
-    typeof retryAfter === "string" || typeof retryAfter === "number"
-      ? Number(retryAfter)
-      : Number.NaN;
-  const date =
-    typeof retryAfter === "string" ? Date.parse(retryAfter) : Number.NaN;
-  let serverDelay = 0;
-  if (Number.isFinite(seconds)) serverDelay = seconds * 1000;
-  else if (Number.isFinite(date)) serverDelay = date - Date.now();
+  const serverDelay = getRetryAfterMs(error);
   const backoff = Math.min(
     ACHIEVEMENT_SYNC_MAX_RETRY_DELAY_MS,
     ACHIEVEMENT_SYNC_RETRY_DELAY_MS *
@@ -111,7 +103,7 @@ export class AchievementSyncWorker {
   async enqueue(
     item: Omit<
       PendingAchievementSync,
-      "revision" | "attempts" | "nextAttemptAt"
+      "revision" | "attempts" | "nextAttemptAt" | "serverErrors"
     >
   ) {
     if (!HydraApi.isAuthContextCurrent(item.context)) return;
@@ -132,6 +124,7 @@ export class AchievementSyncWorker {
       achievements,
       revision: randomUUID(),
       attempts: retry?.attempts ?? 0,
+      serverErrors: retry?.serverErrors ?? 0,
       nextAttemptAt: Math.max(
         retry?.nextAttemptAt ?? 0,
         (this.dispatchedAt.get(key) ?? 0) + ACHIEVEMENT_SYNC_COALESCE_WINDOW_MS
@@ -250,6 +243,8 @@ export class AchievementSyncWorker {
           );
           const latest = await pending.get(key).catch(() => null);
           if (latest?.revision === item.revision) await pending.del(key);
+          else if (latest && !latest.terminal)
+            await pending.put(key, { ...latest, attempts: 0, serverErrors: 0 });
         },
         current
       );
@@ -267,6 +262,7 @@ export class AchievementSyncWorker {
   ): Promise<boolean> {
     const current = () => HydraApi.isAuthContextCurrent(item.context);
     const key = keyOf(item.context, item.gameKey);
+    let parked = false;
     try {
       await achievementSyncCoordinator.runMerge(
         item.gameKey,
@@ -277,11 +273,18 @@ export class AchievementSyncWorker {
           const status = isAxiosError(error)
             ? error.response?.status
             : undefined;
-          const terminal =
+          const rejected =
             status !== undefined && !isRetryableAchievementSyncStatus(status);
+          const serverErrors =
+            (latest.serverErrors ?? 0) +
+            (status !== undefined && status >= 500 ? 1 : 0);
+          const sameRevision = latest.revision === item.revision;
+          parked =
+            sameRevision && serverErrors >= ACHIEVEMENT_SYNC_MAX_SERVER_ERRORS;
           await pending.put(key, {
             ...latest,
-            terminal: latest.revision === item.revision && terminal,
+            terminal: parked || (sameRevision && rejected),
+            serverErrors,
             attempts: attempts + 1,
             nextAttemptAt: Math.max(
               latest.nextAttemptAt,
@@ -298,7 +301,9 @@ export class AchievementSyncWorker {
     }
     if (!current()) return false;
     achievementsLogger.error(
-      "Achievement synchronization retained for retry",
+      parked
+        ? "Achievement synchronization parked after repeated server errors"
+        : "Achievement synchronization retained for retry",
       item.gameKey,
       error
     );

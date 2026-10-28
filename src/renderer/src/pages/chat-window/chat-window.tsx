@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import cn from "classnames";
 
 import { useFeature } from "@renderer/hooks/use-feature";
-import { PROFILE_FRIENDS_PATH } from "@shared";
+import { fetchAllProfileFriends, PROFILE_FRIENDS_PATH } from "@shared";
 import type { ProfileFriends, UserFriend } from "@types";
 
 import { ChatConversationView } from "./chat-conversation";
@@ -16,7 +16,6 @@ import { useChat } from "./use-chat";
 
 import "./chat-window.scss";
 
-const FRIENDS_PAGE_SIZE = 100;
 const electron = globalThis.electron as Electron;
 
 const createConversation = (friend: UserFriend): ChatConversation => ({
@@ -79,9 +78,10 @@ export default function ChatWindow() {
     const requestId = ++friendsRequestIdRef.current;
 
     try {
-      const response = await electron.hydraApi.get<ProfileFriends>(
-        PROFILE_FRIENDS_PATH,
-        { params: { take: FRIENDS_PAGE_SIZE, skip: 0 } }
+      const response = await fetchAllProfileFriends((take, skip) =>
+        electron.hydraApi.get<ProfileFriends>(PROFILE_FRIENDS_PATH, {
+          params: { take, skip },
+        })
       );
       if (requestId !== friendsRequestIdRef.current) return;
 
