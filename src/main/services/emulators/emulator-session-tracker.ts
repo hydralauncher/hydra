@@ -224,12 +224,13 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
     deltaMs + (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);
 
   trackGamePlaytime(updated, pendingDelta, updated.lastTimePlayed!)
-    .then(() =>
-      gamesSublevel.put(gameKey, {
+    .then(() => {
+      WindowManager.sendToAppWindows("on-game-session-synced");
+      return gamesSublevel.put(gameKey, {
         ...updated,
         unsyncedDeltaPlayTimeInMilliseconds: 0,
-      })
-    )
+      });
+    })
     .catch((error) => {
       logger.error("Failed to sync emulator playtime", error);
       return gamesSublevel.put(gameKey, {
