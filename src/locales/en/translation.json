@@ -2246,8 +2246,6 @@
     "minutes_played_other": "{{amount}} minutes played",
     "hours_played_one": "{{amount}} hour played",
     "hours_played_other": "{{amount}} hours played",
-    "achievements_unlocked_one": "{{amount}} achievement unlocked",
-    "achievements_unlocked_other": "{{amount}} achievements unlocked",
     "no_frame": "No frame",
     "see_in_shop": "See in shop",
     "see_in_shop_hint": "More frames",

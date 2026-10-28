@@ -301,23 +301,17 @@ export function EditProfileModal(
   };
 
   // Same minutes/hours rule as the profile's game lists.
-  const getGameBannerStats = (banner: TopGameBanner) => {
+  const getGameBannerPlaytime = (banner: TopGameBanner) => {
     const minutes = banner.playTimeInSeconds / 60;
-    const playtime =
-      minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME
-        ? t("minutes_played", {
-            count: Math.round(minutes),
-            amount: minutes.toFixed(0),
-          })
-        : t("hours_played", {
-            count: Math.round(minutes / 60),
-            amount: numberFormatter.format(minutes / 60),
-          });
-    const achievements = t("achievements_unlocked", {
-      count: banner.unlockedAchievementCount,
-      amount: numberFormatter.format(banner.unlockedAchievementCount),
-    });
-    return `${playtime}, ${achievements}`;
+    return minutes < MAX_MINUTES_TO_SHOW_IN_PLAYTIME
+      ? t("minutes_played", {
+          count: Math.round(minutes),
+          amount: minutes.toFixed(0),
+        })
+      : t("hours_played", {
+          count: Math.round(minutes / 60),
+          amount: numberFormatter.format(minutes / 60),
+        });
   };
 
   const renderBannerPane = () => (
@@ -394,7 +388,7 @@ export function EditProfileModal(
                   key={banner.key}
                   art={renderGameBannerArt(banner)}
                   label={banner.title}
-                  hint={getGameBannerStats(banner)}
+                  hint={getGameBannerPlaytime(banner)}
                   icon={banner.iconUrl}
                   isWide
                   isDisabled={downloadingBannerKey !== null}
