@@ -2,12 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { logger } from "@renderer/logger";
 import {
-  applyScreenshotFeedWrites,
   applyScreenshotPatch,
-  isRelativeScreenshotPatch,
   isScreenshotSort,
   mergeScreenshotPages,
-  type ScreenshotFeedWrite,
+  ScreenshotFeedLedger,
+  type ScreenshotFeedRead,
   type ScreenshotPatch,
 } from "@shared";
 import type {
@@ -22,8 +21,6 @@ export interface ScreenshotFeedPage {
   total?: number;
   hiddenReason?: ScreenshotsHiddenReason;
 }
-
-const getReadStartedAt = () => performance.now();
 
 interface UseScreenshotFeedOptions {
   feedKey: string | null;
@@ -52,11 +49,9 @@ export function useScreenshotFeed({
   const [hasFailed, setHasFailed] = useState(false);
   const [hasLoadMoreFailed, setHasLoadMoreFailed] = useState(false);
   const requestIdRef = useRef(0);
-  const writeVersionRef = useRef(0);
-  const writesRef = useRef<ScreenshotFeedWrite[]>([]);
-  const isReadPendingRef = useRef(false);
-  const fetchedAtRef = useRef(new Map<string, number>());
-  const lastRelativeWriteRef = useRef(new Map<string, number>());
+  const ledgerRef = useRef<ScreenshotFeedLedger | null>(null);
+  ledgerRef.current ??= new ScreenshotFeedLedger();
+  const ledger = ledgerRef.current;
   const fetchPageRef = useRef(fetchPage);
   fetchPageRef.current = fetchPage;
   const fetchScreenshotRef = useRef(fetchScreenshot);
@@ -67,58 +62,37 @@ export function useScreenshotFeed({
     (screenshotId: string, patch: ScreenshotPatch) => void
   >(() => undefined);
 
-  const recountItem = useCallback(async (item: ProfileScreenshot) => {
-    const requestId = requestIdRef.current;
-    const startedVersion = writeVersionRef.current;
-
-    try {
-      const fresh = await fetchScreenshotRef.current(item);
-      if (!fresh || requestId !== requestIdRef.current) return;
-
-      const lastRelativeWrite = lastRelativeWriteRef.current.get(item.id) ?? 0;
-      if (lastRelativeWrite > startedVersion) {
-        void recountItem(item);
-        return;
-      }
-
-      patchItemRef.current(item.id, { commentCount: fresh.commentCount });
-    } catch (error) {
-      logger.warn("Failed to refresh the screenshot comment count", error);
-    }
-  }, []);
-
-  const recordFetchedItems = useCallback(
-    (fetchedItems: ProfileScreenshot[], startedAt: number) => {
-      for (const item of fetchedItems) {
-        fetchedAtRef.current.set(item.id, startedAt);
-      }
+  const recountItem = useCallback(
+    (item: ProfileScreenshot) => {
+      const requestId = requestIdRef.current;
+      ledger
+        .recountComments(item, {
+          fetchScreenshot: (screenshot) =>
+            fetchScreenshotRef.current(screenshot),
+          isCurrent: () => requestId === requestIdRef.current,
+          applyPatch: (screenshotId, patch) =>
+            patchItemRef.current(screenshotId, patch),
+        })
+        .catch((error: unknown) => {
+          logger.warn("Failed to refresh the screenshot comment count", error);
+        });
     },
-    []
+    [ledger]
   );
 
   const finishRead = useCallback(
-    (page: ScreenshotFeedPage, sinceVersion: number, startedAt: number) => {
-      const merged = applyScreenshotFeedWrites(
-        page.items,
-        writesRef.current,
-        sinceVersion
-      );
-      writesRef.current = [];
-      recordFetchedItems(merged.items, startedAt);
-      for (const item of merged.items) {
-        if (merged.recountIds.has(item.id)) void recountItem(item);
-      }
+    (page: ScreenshotFeedPage, read: ScreenshotFeedRead) => {
+      const merged = ledger.acceptPage(page.items, read);
+      merged.recountItems.forEach(recountItem);
       return merged;
     },
-    [recordFetchedItems, recountItem]
+    [ledger, recountItem]
   );
 
   const reload = useCallback(async () => {
     const requestId = ++requestIdRef.current;
-    const sinceVersion = writeVersionRef.current;
-    const startedAt = getReadStartedAt();
+    const read = ledger.beginRead();
     const reportServerTotal = onServerTotalRef.current;
-    isReadPendingRef.current = true;
     setIsLoading(true);
     setHasFailed(false);
     setHasLoadMoreFailed(false);
@@ -127,11 +101,7 @@ export function useScreenshotFeed({
       const page = await fetchPageRef.current(null);
       if (requestId !== requestIdRef.current) return;
 
-      const merged = finishRead(
-        page ?? { items: [], nextCursor: null },
-        sinceVersion,
-        startedAt
-      );
+      const merged = finishRead(page ?? { items: [], nextCursor: null }, read);
       setItems(merged.items);
       setNextCursor(page?.nextCursor ?? null);
       const mergedTotal =
@@ -151,22 +121,20 @@ export function useScreenshotFeed({
       setHiddenReason(null);
       setHasFailed(true);
     } finally {
+      ledger.endRead(read);
       if (requestId === requestIdRef.current) {
-        isReadPendingRef.current = false;
         setIsLoading(false);
         setHasLoaded(true);
       }
     }
-  }, [finishRead]);
+  }, [finishRead, ledger]);
 
   const loadMore = useCallback(async () => {
-    if (isReadPendingRef.current || !nextCursor) return;
+    if (ledger.hasPendingReads || !nextCursor) return;
 
     const requestId = requestIdRef.current;
-    const sinceVersion = writeVersionRef.current;
-    const startedAt = getReadStartedAt();
+    const read = ledger.beginRead();
     const reportServerTotal = onServerTotalRef.current;
-    isReadPendingRef.current = true;
     setIsLoading(true);
     setHasLoadMoreFailed(false);
 
@@ -174,7 +142,7 @@ export function useScreenshotFeed({
       const page = await fetchPageRef.current(nextCursor);
       if (requestId !== requestIdRef.current || !page) return;
 
-      const merged = finishRead(page, sinceVersion, startedAt);
+      const merged = finishRead(page, read);
       setItems((current) => mergeScreenshotPages(current, merged.items));
       setNextCursor(page.nextCursor);
       const pageTotal = page.total;
@@ -188,19 +156,14 @@ export function useScreenshotFeed({
         setHasLoadMoreFailed(true);
       }
     } finally {
-      if (requestId === requestIdRef.current) {
-        isReadPendingRef.current = false;
-        setIsLoading(false);
-      }
+      ledger.endRead(read);
+      if (requestId === requestIdRef.current) setIsLoading(false);
     }
-  }, [finishRead, nextCursor]);
+  }, [finishRead, ledger, nextCursor]);
 
   useEffect(() => {
     requestIdRef.current += 1;
-    isReadPendingRef.current = false;
-    writesRef.current = [];
-    fetchedAtRef.current.clear();
-    lastRelativeWriteRef.current.clear();
+    ledger.reset();
     setItems([]);
     setNextCursor(null);
     setTotal(null);
@@ -215,7 +178,7 @@ export function useScreenshotFeed({
     }
 
     void reload();
-  }, [feedKey, reload]);
+  }, [feedKey, ledger, reload]);
 
   const refreshedKeyRef = useRef(refreshKey);
   useEffect(() => {
@@ -231,50 +194,32 @@ export function useScreenshotFeed({
     []
   );
 
-  const recordWrite = useCallback(
-    (screenshotId: string, patch: ScreenshotPatch | null) => {
-      writeVersionRef.current += 1;
-      if (!isReadPendingRef.current) return;
-
-      writesRef.current.push({
-        version: writeVersionRef.current,
-        screenshotId,
-        patch,
-      });
-    },
-    []
-  );
-
   const getFetchedAt = useCallback(
-    (screenshotId: string) => fetchedAtRef.current.get(screenshotId) ?? null,
-    []
+    (screenshotId: string) => ledger.getFetchedAt(screenshotId),
+    [ledger]
   );
 
   const patchItem = useCallback(
     (screenshotId: string, patch: ScreenshotPatch) => {
-      recordWrite(screenshotId, patch);
-      if (isRelativeScreenshotPatch(patch)) {
-        lastRelativeWriteRef.current.set(screenshotId, writeVersionRef.current);
-      }
+      ledger.recordWrite(screenshotId, patch);
       setItems((current) =>
         current.map((item) =>
           item.id === screenshotId ? applyScreenshotPatch(item, patch) : item
         )
       );
     },
-    [recordWrite]
+    [ledger]
   );
 
   patchItemRef.current = patchItem;
 
   const removeItem = useCallback(
     (screenshotId: string) => {
-      recordWrite(screenshotId, null);
-      fetchedAtRef.current.delete(screenshotId);
+      ledger.recordWrite(screenshotId, null);
       setItems((current) => current.filter((item) => item.id !== screenshotId));
       setTotal((value) => (value === null ? value : Math.max(0, value - 1)));
     },
-    [recordWrite]
+    [ledger]
   );
 
   return {
