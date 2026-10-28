@@ -115,7 +115,7 @@
     "Developed by": "Desenvolvido por",
     "direction is explicitly blocked": "direction is explicitly blocked",
     "Directory actions": "Ações do diretório",
-    "Disable NSFW alert in game pages": "Desativar alerta de conteúdo inapropriado nas páginas de jogos",
+    "Disable NSFW alert in game pages and souvenirs": "Desativar alerta de conteúdo inapropriado nas páginas de jogos e nas lembranças",
     "Disable NSFW alert in screenshots": "Desativar alerta de conteúdo inapropriado nas capturas de tela",
     "Disabled route": "Rota desativada",
     "Dislike comment": "Não curtir comentário",
@@ -1026,6 +1026,6 @@
     "screenshots_sensitive_modal_description": "Ela pode mostrar nudez ou conteúdo sexual.",
     "screenshots_sensitive_modal_description_spoiler": "Ela pode mostrar nudez ou conteúdo sexual e está marcada como spoiler.",
     "screenshots_sensitive_modal_dont_hide": "Desativar alerta de conteúdo inapropriado nas capturas de tela",
-    "screenshots_sensitive_modal_settings_hint": "Você pode alterar isso em Ajustes"
+    "screenshots_sensitive_modal_settings_hint": "Você pode alterar isso em Configurações"
   }
 }
