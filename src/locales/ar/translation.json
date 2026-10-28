@@ -738,7 +738,7 @@
     "user_unblocked": "تم إلغاء حظر المستخدم",
     "enable_achievement_notifications": "عند فتح إنجاز",
     "launch_minimized": "تشغيل Hydra مصغرًا",
-    "disable_nsfw_alert": "تعطيل تنبيهات المحتوى غير اللائق",
+    "disable_nsfw_alert": "تعطيل تنبيهات المحتوى غير اللائق في صفحات الألعاب",
     "seed_after_download_complete": "التوزيع بعد اكتمال التنزيل",
     "show_hidden_achievement_description": "عرض وصف الإنجازات المخفية قبل فتحها",
     "account": "الحساب",
