@@ -21,6 +21,7 @@ import {
   type ForegroundWindowInfo,
   type ScreenshotGameTarget,
 } from "./foreground-game-match";
+import { getWaylandFocus } from "./wayland-focus";
 
 type ForegroundMatch = ResolvedForegroundGame | null;
 
@@ -161,16 +162,27 @@ const resolveWindowsForegroundWindow =
     };
   };
 
-const resolveLinuxForegroundWindow = (): ForegroundWindowInfo | null => {
-  const activeWindow = NativeAddon.getLinuxActiveWindow();
-  if (!activeWindow) return null;
+const resolveLinuxForegroundWindow =
+  async (): Promise<ForegroundWindowInfo | null> => {
+    if (isWaylandSession()) {
+      const focus = await getWaylandFocus();
+      if (focus) {
+        return { processId: focus.processId, focusSource: focus.source };
+      }
+    }
 
-  return {
-    processId: activeWindow.processId,
-    windowId: activeWindow.windowId,
-    clientProcessId: NativeAddon.getLinuxWindowClientPid(activeWindow.windowId),
+    const activeWindow = NativeAddon.getLinuxActiveWindow();
+    if (!activeWindow) return null;
+
+    return {
+      processId: activeWindow.processId,
+      windowId: activeWindow.windowId,
+      clientProcessId: NativeAddon.getLinuxWindowClientPid(
+        activeWindow.windowId
+      ),
+      focusSource: "x11",
+    };
   };
-};
 
 export const resolveForegroundWindow = async () => {
   if (process.platform === "win32") return resolveWindowsForegroundWindow();
@@ -196,6 +208,7 @@ const describeForeground = (foreground: ForegroundWindowInfo | null) =>
     clientProcessId: foreground.clientProcessId ?? null,
     windowId: foreground.windowId ?? null,
     windowHandle: foreground.windowHandle ?? null,
+    focusSource: foreground.focusSource ?? null,
   };
 
 const describeCandidates = (candidates: ScreenshotGameCandidate[]) =>
@@ -294,11 +307,7 @@ export const resolveForegroundGame = async (
 
   const isWayland = isWaylandSession();
   const isHydraFocused = BrowserWindow.getFocusedWindow() !== null;
-  if (
-    (source !== "gamepad" && source !== "portal") ||
-    !isWayland ||
-    isHydraFocused
-  ) {
+  if (!isWayland || isHydraFocused) {
     logger.info("Screenshot hotkey ignored: foreground window unresolved", {
       source,
       foreground: describeForeground(foreground),

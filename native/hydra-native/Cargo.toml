@@ -39,6 +39,7 @@ windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Grap
 evdev = "0.13.2"
 libc = "0.2.183"
 x11rb = { version = "0.13.2", default-features = false, features = ["res", "xinput"] }
+zbus = { version = "5", default-features = false, features = ["blocking-api", "async-io"] }
 
 [dev-dependencies]
 tempfile = "3.27"

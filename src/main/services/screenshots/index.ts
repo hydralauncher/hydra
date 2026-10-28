@@ -43,6 +43,9 @@ import { ScreenshotFeedback } from "./screenshot-feedback";
 import { ScreenshotFrameWorker } from "./screenshot-frame-worker";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { getScreenshotsFolder } from "./screenshots-folder";
+import { stopWaylandFocusWatch } from "./wayland-focus";
+
+export { stopWaylandFocusWatch };
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
 import { screenshotUploadWorker } from "./screenshot-upload-worker";
@@ -97,6 +100,7 @@ export const initializeScreenshots = () => {
 const releaseRunningGameResources = () => {
   ScreenshotFeedback.release();
   ScreenshotFrameWorker.release();
+  stopWaylandFocusWatch();
 };
 
 export const onScreenshotGameStarted = async (gameKey: string) => {

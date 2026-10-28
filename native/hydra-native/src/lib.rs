@@ -1,6 +1,7 @@
 mod active_window;
 mod cloud_save;
 mod constants;
+mod kde_focus;
 mod linux_process;
 mod screenshot_input;
 mod torrent;
@@ -128,6 +129,16 @@ pub fn get_windows_window_bounds(window_handle: String) -> Option<NativeWindowBo
 #[napi]
 pub fn get_linux_window_client_pid(window_id: String) -> Option<u32> {
     window_client::get_window_client_pid(&window_id)
+}
+
+#[napi]
+pub fn get_kde_focused_process_id() -> napi::Result<Option<u32>> {
+    kde_focus::focused_process_id().map_err(Error::from_reason)
+}
+
+#[napi]
+pub fn stop_kde_focus_watch() {
+    kde_focus::stop();
 }
 
 #[napi]

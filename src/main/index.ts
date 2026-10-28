@@ -29,7 +29,10 @@ import { DownloadManager } from "./services/download/download-manager";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
-import { flushScreenshotTelemetry } from "./services/screenshots";
+import {
+  flushScreenshotTelemetry,
+  stopWaylandFocusWatch,
+} from "./services/screenshots";
 import { isWaylandSession } from "./services/linux-game-capture-session";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
@@ -482,6 +485,7 @@ app.on("before-quit", async (e) => {
 
 app.on("will-quit", () => {
   logger.info("Application will quit");
+  stopWaylandFocusWatch();
 });
 
 app.on("activate", () => {
