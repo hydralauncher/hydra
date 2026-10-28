@@ -104,7 +104,15 @@ export function ScreenshotStage({
             placeholder={screenshot.placeholder}
             sources={[screenshot.thumbnailUrl, screenshot.imageUrl]}
             alt={item.alt}
-            onBestLayerLoad={handlers.onImageLoad}
+            onBestLayerLoad={(image) => {
+              if (screenshot.width > 0 && screenshot.height > 0) {
+                handlers.onAspectRatioReady(
+                  screenshot.width / screenshot.height
+                );
+                return;
+              }
+              handlers.onImageLoad(image);
+            }}
             onError={handlers.onImageError}
             onDoubleClick={handlers.onDoubleClick}
           />

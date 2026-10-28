@@ -154,6 +154,7 @@ interface StageLayer {
 
 export interface GalleryImageMediaHandlers {
   onImageLoad: (image: HTMLImageElement) => void;
+  onAspectRatioReady: (aspectRatio: number) => void;
   onImageError: () => void;
   onDoubleClick: () => void;
 }
@@ -234,6 +235,7 @@ export function GalleryLightboxImage({
       {renderMedia ? (
         renderMedia({
           onImageLoad: handleImageLoad,
+          onAspectRatioReady: handleLoaded,
           onImageError: handleImageError,
           onDoubleClick: onToggleFullscreen,
         })
