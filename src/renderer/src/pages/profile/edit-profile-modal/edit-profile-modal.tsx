@@ -283,13 +283,6 @@ export function EditProfileModal(
     return (
       <span className="edit-profile-modal__banner-art">
         <img src={src} alt="" />
-        {banner.iconUrl && (
-          <img
-            src={banner.iconUrl}
-            alt=""
-            className="edit-profile-modal__banner-icon"
-          />
-        )}
       </span>
     );
   };
@@ -349,6 +342,7 @@ export function EditProfileModal(
                 key={banner.key}
                 art={renderGameBannerArt(banner)}
                 label={banner.title}
+                icon={banner.iconUrl}
                 isWide
                 isDisabled={downloadingBannerKey !== null}
                 onClick={() => void handleGameBannerClick(banner)}

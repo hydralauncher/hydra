@@ -5,6 +5,8 @@ interface EditProfileTileProps {
   art: React.ReactNode;
   label: string;
   hint?: string;
+  /** Small image beside the label, such as a game icon. */
+  icon?: string | null;
   isSelected?: boolean;
   isUpload?: boolean;
   isWide?: boolean;
@@ -16,6 +18,7 @@ export function EditProfileTile({
   art,
   label,
   hint,
+  icon,
   isSelected = false,
   isUpload = false,
   isWide = false,
@@ -36,7 +39,12 @@ export function EditProfileTile({
     >
       <span className="edit-profile-modal__tile-art">{art}</span>
       <span className="edit-profile-modal__tile-label">
-        <strong>{label}</strong>
+        <span className="edit-profile-modal__tile-title">
+          {icon && (
+            <img src={icon} alt="" className="edit-profile-modal__tile-icon" />
+          )}
+          <strong>{label}</strong>
+        </span>
         {hint && <small>{hint}</small>}
       </span>
     </button>

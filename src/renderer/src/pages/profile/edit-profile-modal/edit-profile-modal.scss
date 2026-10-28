@@ -177,6 +177,27 @@ $hover-transition: 0.15s ease;
     display: grid;
   }
 
+  &__tile-title {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+
+    strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__tile-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    object-fit: cover;
+  }
+
   &__tile-label {
     display: flex;
     flex-direction: column;
@@ -209,16 +230,6 @@ $hover-transition: 0.15s ease;
       width: 100%;
       height: 100%;
       object-fit: cover;
-    }
-
-    // The game's icon in the corner of its banner.
-    img.edit-profile-modal__banner-icon {
-      inset: auto;
-      top: globals.$spacing-unit;
-      left: globals.$spacing-unit;
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
     }
 
     &--empty {

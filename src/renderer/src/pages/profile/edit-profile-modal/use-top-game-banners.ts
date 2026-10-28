@@ -38,6 +38,41 @@ const findHero = async (game: UserGame) => {
   return null;
 };
 
+const gameKey = (game: UserGame) => `${game.shop}:${game.objectId}`;
+
+/**
+ * One page of the profile library by playtime. Pinned games come apart from
+ * the list, so they join the page whose playtime range they fall in.
+ */
+const fetchLibraryPage = async (userId: string, skip: number) => {
+  const response = await window.electron.hydraApi
+    .get<{
+      library: UserGame[];
+      pinnedGames: UserGame[];
+    }>(`/users/${userId}/library`, {
+      params: { take: TOP_GAMES_COUNT, skip, sortBy: "playtime" },
+      needsAuth: false,
+    })
+    .catch(() => null);
+  if (!response) return null;
+
+  const isLastPage = response.library.length < TOP_GAMES_COUNT;
+  const lowestPlaytime = isLastPage
+    ? 0
+    : (response.library.at(-1)?.playTimeInSeconds ?? 0);
+  const pinned = response.pinnedGames.filter(
+    (game) => game.playTimeInSeconds >= lowestPlaytime
+  );
+
+  return {
+    isLastPage,
+    // Unplayed games still count: they fill the list when needed.
+    games: [...response.library, ...pinned].sort(
+      (a, b) => b.playTimeInSeconds - a.playTimeInSeconds
+    ),
+  };
+};
+
 /** A SteamGridDB hero for each of the user's most played games. */
 export function useTopGameBanners(userId: string | null) {
   const [banners, setBanners] = useState<TopGameBanner[]>([]);
@@ -46,48 +81,45 @@ export function useTopGameBanners(userId: string | null) {
     if (!userId) return;
 
     let isCancelled = false;
-    (async () => {
-      const response = await window.electron.hydraApi
-        .get<{
-          library: UserGame[];
-          pinnedGames: UserGame[];
-        }>(`/users/${userId}/library`, {
-          params: { take: TOP_GAMES_COUNT, skip: 0, sortBy: "playtime" },
-          needsAuth: false,
-        })
-        .catch(() => null);
-      if (!response || isCancelled) return;
+    void (async () => {
+      const found: TopGameBanner[] = [];
+      const seen = new Set<string>();
+      let skip = 0;
 
-      // Pinned games come apart from the library list.
-      const games = [
-        ...new Map(
-          [...response.library, ...response.pinnedGames].map((game) => [
-            `${game.shop}:${game.objectId}`,
-            game,
-          ])
-        ).values(),
-      ]
-        .filter((game) => game.playTimeInSeconds > 0)
-        .sort((a, b) => b.playTimeInSeconds - a.playTimeInSeconds)
-        .slice(0, TOP_GAMES_COUNT);
+      // Games without a hero are skipped, so the next most played ones fill
+      // the list, one library page at a time, until there are enough.
+      while (found.length < TOP_GAMES_COUNT) {
+        const page = await fetchLibraryPage(userId, skip);
+        if (!page || isCancelled) return;
 
-      const results = await Promise.all(
-        games.map(async (game) => {
-          const hero = await findHero(game);
-          return hero
-            ? {
-                key: `${game.shop}:${game.objectId}`,
-                title: game.title,
-                iconUrl: game.customIconUrl ?? game.iconUrl ?? null,
-                hero,
-              }
-            : null;
-        })
-      );
+        const games = page.games.filter((game) => {
+          const key = gameKey(game);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
 
-      if (!isCancelled) {
-        setBanners(results.filter((banner) => banner !== null));
+        const banners = await Promise.all(
+          games.map(async (game) => {
+            const hero = await findHero(game);
+            return hero
+              ? {
+                  key: gameKey(game),
+                  title: game.title,
+                  iconUrl: game.customIconUrl ?? game.iconUrl ?? null,
+                  hero,
+                }
+              : null;
+          })
+        );
+        if (isCancelled) return;
+
+        found.push(...banners.filter((banner) => banner !== null));
+        if (page.isLastPage) break;
+        skip += TOP_GAMES_COUNT;
       }
+
+      setBanners(found.slice(0, TOP_GAMES_COUNT));
     })();
 
     return () => {
