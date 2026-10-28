@@ -279,7 +279,7 @@ function CommunityScreenshotsGrid({
 }: Readonly<{ community: CommunityScreenshots }>) {
   const { t } = useTranslation("big_picture");
   const { feed, visibleItems, open } = community;
-  const cardLike = useScreenshotCardLike(feed.updateItem);
+  const cardLike = useScreenshotCardLike(feed.updateItem, feed.removeItem);
 
   if (visibleItems.length > 0) {
     return (
@@ -579,7 +579,7 @@ function MyScreenshotsList({
 }: Readonly<MyScreenshotsListProps>) {
   const { mine, local, entries, openEntry } = tab;
   const { feed } = mine;
-  const cardLike = useScreenshotCardLike(feed.updateItem);
+  const cardLike = useScreenshotCardLike(feed.updateItem, feed.removeItem);
   const getDayLabel = useCaptureDayLabel();
 
   if (mine.hasFailed) {

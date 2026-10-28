@@ -90,7 +90,7 @@ export function MyScreenshotsDangerSection({
       {
         shop,
         objectId,
-        isSignedIn: Boolean(userId) && !counts.hasPublishedFailed,
+        isSignedIn: Boolean(userId),
       },
       myGameScreenshotsApi,
       myGameScreenshotsLocal

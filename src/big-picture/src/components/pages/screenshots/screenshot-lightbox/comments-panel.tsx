@@ -521,8 +521,9 @@ export function ScreenshotCommentsPanel({
   } = useScreenshotComments(screenshot, isAvailable, Boolean(viewerId));
   const [editingComment, setEditingComment] =
     useState<ScreenshotComment | null>(null);
+  const draftKey = `${viewerId ?? ""}:${screenshot.id}`;
   const restoredDraft = useFailedCommentDrafts(
-    (state) => state.draftsByScreenshotId[screenshot.id]?.[0] ?? null
+    (state) => state.draftsByKey[draftKey]?.[0] ?? null
   );
   const pushRestoredDraft = useFailedCommentDrafts((state) => state.push);
   const shiftRestoredDrafts = useFailedCommentDrafts((state) => state.shift);
@@ -543,8 +544,8 @@ export function ScreenshotCommentsPanel({
   }, [screenshot.id]);
 
   const shiftRestoredDraft = useCallback(
-    () => shiftRestoredDrafts(screenshot.id),
-    [screenshot.id, shiftRestoredDrafts]
+    () => shiftRestoredDrafts(draftKey),
+    [draftKey, shiftRestoredDrafts]
   );
 
   const showError = useCallback(
@@ -613,11 +614,12 @@ export function ScreenshotCommentsPanel({
         }
       } catch (error) {
         removePendingComment(pending.id);
-        pushRestoredDraft(screenshot.id, pending.bodyHtml);
+        pushRestoredDraft(draftKey, pending.bodyHtml);
         showError(error);
       }
     },
     [
+      draftKey,
       onCommentCountChange,
       ownerId,
       pushRestoredDraft,

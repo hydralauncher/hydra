@@ -1,37 +1,31 @@
 import { create } from "zustand";
 
 interface FailedCommentDraftsState {
-  draftsByScreenshotId: Readonly<Record<string, string[]>>;
-  push: (screenshotId: string, bodyHtml: string) => void;
-  shift: (screenshotId: string) => void;
+  draftsByKey: Readonly<Record<string, string[]>>;
+  push: (draftKey: string, bodyHtml: string) => void;
+  shift: (draftKey: string) => void;
 }
 
 export const useFailedCommentDrafts = create<FailedCommentDraftsState>(
   (set) => ({
-    draftsByScreenshotId: {},
-    push: (screenshotId, bodyHtml) =>
+    draftsByKey: {},
+    push: (draftKey, bodyHtml) =>
       set((state) => ({
-        draftsByScreenshotId: {
-          ...state.draftsByScreenshotId,
-          [screenshotId]: [
-            ...(state.draftsByScreenshotId[screenshotId] ?? []),
-            bodyHtml,
-          ],
+        draftsByKey: {
+          ...state.draftsByKey,
+          [draftKey]: [...(state.draftsByKey[draftKey] ?? []), bodyHtml],
         },
       })),
-    shift: (screenshotId) =>
+    shift: (draftKey) =>
       set((state) => {
-        const drafts = state.draftsByScreenshotId[screenshotId];
+        const drafts = state.draftsByKey[draftKey];
         if (!drafts) return state;
 
-        const { [screenshotId]: _applied, ...rest } =
-          state.draftsByScreenshotId;
+        const { [draftKey]: _applied, ...rest } = state.draftsByKey;
         const remaining = drafts.slice(1);
         return {
-          draftsByScreenshotId:
-            remaining.length > 0
-              ? { ...rest, [screenshotId]: remaining }
-              : rest,
+          draftsByKey:
+            remaining.length > 0 ? { ...rest, [draftKey]: remaining } : rest,
         };
       }),
   })

@@ -19,14 +19,7 @@ import {
 import { logger } from "@renderer/logger";
 
 import { useBigPictureToast } from "../../../../hooks";
-import { getScreenshotErrorKey } from "../helpers";
-
-const getLikePatch = (
-  response: ScreenshotLikeResponse
-): Partial<ProfileScreenshot> =>
-  typeof response.likeCount === "number"
-    ? { likedByMe: response.likedByMe, likeCount: response.likeCount }
-    : { likedByMe: response.likedByMe };
+import { getLikePatch, getScreenshotErrorKey } from "../helpers";
 
 const SETTINGS_TOAST = { fallbackVisual: "settings" as const };
 
@@ -59,7 +52,9 @@ export function useLightboxSocialActions({
   const [likingIds, setLikingIds] = useState<Set<string>>(new Set());
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
   const [isReporting, setIsReporting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [savingIds, setSavingIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
   const [isDeleting, setIsDeleting] = useState(false);
   const fieldVersionsRef = useRef(new Map<string, number>());
 
@@ -204,7 +199,7 @@ export function useLightboxSocialActions({
       update: ScreenshotUpdateRequest,
       claimed: Map<string, number>
     ) => {
-      setIsSaving(true);
+      setSavingIds((current) => new Set(current).add(target.id));
 
       try {
         const updated =
@@ -240,7 +235,11 @@ export function useLightboxSocialActions({
         }
         showError(error);
       } finally {
-        setIsSaving(false);
+        setSavingIds((current) => {
+          const next = new Set(current);
+          next.delete(target.id);
+          return next;
+        });
       }
     },
     [
@@ -291,7 +290,7 @@ export function useLightboxSocialActions({
     isLiking: Boolean(screenshot && likingIds.has(screenshot.id)),
     isReported: Boolean(screenshot && reportedIds.has(screenshot.id)),
     isReporting,
-    isSaving,
+    isSaving: Boolean(screenshot && savingIds.has(screenshot.id)),
     isDeleting,
     toggleLike,
     report,

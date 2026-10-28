@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ProfileScreenshot } from "@types";
+import type { ProfileScreenshot, ScreenshotLikeResponse } from "@types";
 import {
   AuthPage,
   buildUserScreenshotLikePath,
@@ -10,10 +10,11 @@ import {
 import { logger } from "@renderer/logger";
 
 import { useBigPictureToast, useUserDetails } from "../../../hooks";
-import { getScreenshotErrorKey } from "./helpers";
+import { getLikePatch, getScreenshotErrorKey } from "./helpers";
 
 export function useScreenshotCardLike(
-  updateItem: (screenshotId: string, update: ScreenshotPatch) => void
+  updateItem: (screenshotId: string, update: ScreenshotPatch) => void,
+  removeItem: (screenshotId: string, ownerId: string) => void
 ) {
   const { t } = useTranslation("big_picture");
   const { showErrorToast } = useBigPictureToast();
@@ -55,27 +56,32 @@ export function useScreenshotCardLike(
       });
 
       try {
-        if (likedByMe) {
-          await globalThis.window.electron.hydraApi.put(path, {
-            needsAuth: true,
-          });
-        } else {
-          await globalThis.window.electron.hydraApi.delete(path, {
-            needsAuth: true,
-          });
-        }
+        const response = likedByMe
+          ? await globalThis.window.electron.hydraApi.put<ScreenshotLikeResponse>(
+              path,
+              { needsAuth: true }
+            )
+          : await globalThis.window.electron.hydraApi.delete<ScreenshotLikeResponse>(
+              path,
+              { needsAuth: true }
+            );
+        if (response) updateItem(screenshot.id, getLikePatch(response));
       } catch (error) {
         logger.error("Failed to update screenshot like", error);
-        updateItem(screenshot.id, previous);
-        showErrorToast(
-          t(getScreenshotErrorKey(getScreenshotApiErrorCode(error))),
-          { fallbackVisual: "settings" }
-        );
+        const code = getScreenshotApiErrorCode(error);
+        if (code === "screenshots/not-found") {
+          removeItem(screenshot.id, screenshot.owner.id);
+        } else {
+          updateItem(screenshot.id, previous);
+        }
+        showErrorToast(t(getScreenshotErrorKey(code)), {
+          fallbackVisual: "settings",
+        });
       } finally {
         setLiking(screenshot.id, false);
       }
     },
-    [isSignedIn, setLiking, showErrorToast, t, updateItem]
+    [isSignedIn, removeItem, setLiking, showErrorToast, t, updateItem]
   );
 
   return { likingIds, toggleLike };

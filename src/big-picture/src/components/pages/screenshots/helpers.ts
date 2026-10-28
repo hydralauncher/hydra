@@ -1,4 +1,8 @@
-import type { LocalScreenshot, ProfileScreenshot } from "@types";
+import type {
+  LocalScreenshot,
+  ProfileScreenshot,
+  ScreenshotLikeResponse,
+} from "@types";
 import {
   getScreenshotModerationReasonKey,
   getScreenshotUploadErrorKey,
@@ -139,3 +143,10 @@ export function getScreenshotOwnerPath(ownerId: string) {
 
   return `${basePath}/profile/${encodeURIComponent(ownerId)}`;
 }
+
+export const getLikePatch = (
+  response: ScreenshotLikeResponse
+): Partial<ProfileScreenshot> =>
+  typeof response.likeCount === "number"
+    ? { likedByMe: response.likedByMe, likeCount: response.likeCount }
+    : { likedByMe: response.likedByMe };

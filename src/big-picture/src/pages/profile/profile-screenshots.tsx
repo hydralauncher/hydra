@@ -61,6 +61,13 @@ function readStoredValue(key: string) {
   }
 }
 
+function readStoredFilterKey(userId: string | null) {
+  if (!userId) return ALL_GAMES_FILTER;
+  return (
+    readStoredValue(`${FILTER_STORAGE_KEY_PREFIX}${userId}`) ?? ALL_GAMES_FILTER
+  );
+}
+
 function writeStoredValue(key: string, value: string) {
   try {
     globalThis.window.localStorage.setItem(key, value);
@@ -127,24 +134,26 @@ export function useProfileScreenshots({
   isSignedIn,
 }: UseProfileScreenshotsOptions) {
   const [sortState, setSortState] = useState<ScreenshotSort>(readStoredSort);
-  const [filterKeyState, setFilterKeyState] = useState(ALL_GAMES_FILTER);
-  const [games, setGames] = useState<ScreenshotGameFilterItem[]>([]);
   const activeUserId = isEnabled ? (targetUserId ?? null) : null;
+  const [filterSelection, setFilterSelection] = useState<{
+    userId: string | null;
+    key: string;
+  } | null>(null);
+  const [gamesState, setGamesState] = useState<{
+    userId: string;
+    items: ScreenshotGameFilterItem[];
+  } | null>(null);
+  const filterKeyState =
+    filterSelection?.userId === activeUserId
+      ? filterSelection.key
+      : readStoredFilterKey(activeUserId);
+  const hasSettledGames = gamesState?.userId === activeUserId;
+  const games = useMemo(
+    () => (hasSettledGames && gamesState ? gamesState.items : []),
+    [gamesState, hasSettledGames]
+  );
 
   useEffect(() => {
-    if (!activeUserId) {
-      setFilterKeyState(ALL_GAMES_FILTER);
-      return;
-    }
-
-    setFilterKeyState(
-      readStoredValue(`${FILTER_STORAGE_KEY_PREFIX}${activeUserId}`) ??
-        ALL_GAMES_FILTER
-    );
-  }, [activeUserId]);
-
-  useEffect(() => {
-    setGames([]);
     if (!activeUserId) return;
 
     let isCurrent = true;
@@ -157,10 +166,13 @@ export function useProfileScreenshots({
         }
       )
       .then((response) => {
-        if (isCurrent) setGames(response?.items ?? []);
+        if (isCurrent) {
+          setGamesState({ userId: activeUserId, items: response?.items ?? [] });
+        }
       })
       .catch((error: unknown) => {
         logger.error("Failed to load screenshot games", error);
+        if (isCurrent) setGamesState({ userId: activeUserId, items: [] });
       });
 
     return () => {
@@ -175,6 +187,8 @@ export function useProfileScreenshots({
     [filterKeyState, games]
   );
   const effectiveFilterKey = activeFilter ? filterKeyState : ALL_GAMES_FILTER;
+  const isWaitingForGames =
+    filterKeyState !== ALL_GAMES_FILTER && !hasSettledGames;
 
   const buildPath = useCallback(
     (cursor: string | null) =>
@@ -189,9 +203,10 @@ export function useProfileScreenshots({
   );
 
   const feed = useScreenshotFeed({
-    requestKey: activeUserId
-      ? `${activeUserId}:${sortState}:${effectiveFilterKey}`
-      : null,
+    requestKey:
+      activeUserId && !isWaitingForGames
+        ? `${activeUserId}:${sortState}:${effectiveFilterKey}`
+        : null,
     buildPath,
     needsAuth: isSignedIn,
   });
@@ -203,7 +218,7 @@ export function useProfileScreenshots({
 
   const setFilterKey = useCallback(
     (nextFilterKey: string) => {
-      setFilterKeyState(nextFilterKey);
+      setFilterSelection({ userId: activeUserId, key: nextFilterKey });
       if (activeUserId)
         writeStoredValue(
           `${FILTER_STORAGE_KEY_PREFIX}${activeUserId}`,
@@ -232,6 +247,7 @@ export function useProfileScreenshots({
 
   return {
     ...feed,
+    isLoading: feed.isLoading || isWaitingForGames,
     removeItem,
     overallTotal,
     isEnabled: Boolean(activeUserId),
@@ -424,7 +440,7 @@ export function ProfileScreenshots({
   downFocusId,
   onActivate,
 }: Readonly<ProfileScreenshotsProps>) {
-  const cardLike = useScreenshotCardLike(state.updateItem);
+  const cardLike = useScreenshotCardLike(state.updateItem, state.removeItem);
   const { t } = useTranslation("big_picture");
   const showControls = shouldShowScreenshotControls(state);
   const firstItem = state.items[0];
