@@ -2,12 +2,13 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import "./profile-content.scss";
 
-export type ProfileTabType = "library" | "reviews" | "souvenirs";
+export type ProfileTabType = "library" | "reviews" | "souvenirs" | "missions";
 
 interface ProfileTabsProps {
   activeTab: ProfileTabType;
   reviewsTotalCount: number;
   souvenirsCount: number;
+  showMissions: boolean;
   onTabChange: (tab: ProfileTabType) => void;
 }
 
@@ -15,6 +16,7 @@ export function ProfileTabs({
   activeTab,
   reviewsTotalCount,
   souvenirsCount,
+  showMissions,
   onTabChange,
 }: Readonly<ProfileTabsProps>) {
   const { t } = useTranslation("user_profile");
@@ -89,6 +91,28 @@ export function ProfileTabs({
           />
         )}
       </div>
+      {showMissions && (
+        <div className="profile-content__tab-wrapper">
+          <button
+            type="button"
+            className={`profile-content__tab ${activeTab === "missions" ? "profile-content__tab--active" : ""}`}
+            onClick={() => onTabChange("missions")}
+          >
+            {t("missions_tab")}
+          </button>
+          {activeTab === "missions" && (
+            <motion.div
+              className="profile-content__tab-underline"
+              layoutId="tab-underline"
+              transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 30,
+              }}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

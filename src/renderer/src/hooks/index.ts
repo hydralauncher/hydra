@@ -29,5 +29,7 @@ export * from "./use-game-artwork-grid";
 export * from "./game-artwork-utils";
 export * from "./use-cover-poster";
 export * from "./use-processed-image";
+export * from "./use-gamification-progress";
+export * from "./use-gamification-missions";
 export * from "./use-file-icons";
 export * from "./use-drag-text-selection";

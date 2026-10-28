@@ -1,0 +1,32 @@
+@use "../../../scss/globals.scss";
+
+.level-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: calc(globals.$spacing-unit * 2);
+
+  &__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+    color: globals.$muted-color;
+
+    strong {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    span {
+      font-size: globals.$small-font-size;
+      color: globals.$body-color;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &__hint {
+    font-size: globals.$small-font-size;
+    color: #a6a7ad;
+  }
+}

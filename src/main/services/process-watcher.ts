@@ -769,6 +769,7 @@ const onCloseGame = (game: Game) => {
         logPlaytimeTrace("close-sync-track-success", game, {
           deltaToSync,
         });
+        WindowManager.sendToAppWindows("on-game-session-synced");
 
         return persistGamePlaytime(
           gameKey,

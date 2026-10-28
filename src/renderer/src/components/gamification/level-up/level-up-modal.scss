@@ -1,0 +1,137 @@
+@use "../../../scss/globals.scss";
+
+// Slam level-up overlay (designer's prototype v2). Sits under toasts and confetti, like the prototype.
+.level-up {
+  position: fixed;
+  inset: 0;
+  z-index: calc(globals.$toast-z-index - 1);
+  overflow: hidden;
+  background-color: rgba(4, 4, 6, 0.94);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  animation: level-up-fade 0.35s ease-out both;
+
+  &__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  &__number {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  &__tag {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    z-index: 1;
+    padding: 0 9px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #f0f1f7;
+    font-size: 13px;
+    line-height: 22px;
+    font-weight: 500;
+    transform: translateX(-50%);
+    animation: level-up-fade 0.4s ease-out 1.3s both;
+  }
+
+  &__footer {
+    position: absolute;
+    right: 0;
+    left: 0;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    animation: level-up-rise 0.45s cubic-bezier(0.33, 1, 0.68, 1) 2.2s both;
+  }
+
+  &__continue {
+    height: 40px;
+    padding: 0 16px;
+    border: 1px solid #f0f1f7;
+    border-radius: 8px;
+    background-color: #f0f1f7;
+    color: #0d0d0d;
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: #dadbe1;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #f0f1f7;
+      outline-offset: 2px;
+    }
+  }
+
+  &__skip {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    color: #6b6c72;
+    font-size: globals.$small-font-size;
+    transform: translateX(-50%);
+    animation: level-up-in 0.3s ease-out 0.4s both;
+  }
+
+  &--skipped {
+    .level-up__skip {
+      display: none;
+    }
+
+    .level-up__tag,
+    .level-up__footer {
+      animation-duration: 0.01s;
+      animation-delay: 0s;
+    }
+  }
+}
+
+@keyframes level-up-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes level-up-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+// Hidden while waiting so the invisible button can't be clicked before it shows up.
+@keyframes level-up-rise {
+  from {
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level-up,
+  .level-up * {
+    animation-duration: 0.01s !important;
+    animation-delay: 0s !important;
+  }
+}

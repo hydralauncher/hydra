@@ -1310,6 +1310,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-games-running", listener);
     return () => ipcRenderer.removeListener("on-games-running", listener);
   },
+  onGameSessionSynced: (cb: () => void) => {
+    const listener = (_event: Electron.IpcRendererEvent) => cb();
+    ipcRenderer.on("on-game-session-synced", listener);
+    return () => ipcRenderer.removeListener("on-game-session-synced", listener);
+  },
   onLibraryBatchComplete: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-library-batch-complete", listener);
