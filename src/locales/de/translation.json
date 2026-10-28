@@ -738,7 +738,7 @@
     "user_unblocked": "Benutzer wurde freigegeben",
     "enable_achievement_notifications": "Wenn ein Erfolg freigeschaltet wird",
     "launch_minimized": "Hydra minimiert starten",
-    "disable_nsfw_alert": "NSFW-Warnung deaktivieren",
+    "disable_nsfw_alert": "NSFW-Warnung auf Spieleseiten deaktivieren",
     "seed_after_download_complete": "Nach Download-Abschluss seeden",
     "show_hidden_achievement_description": "Versteckte Erfolgsbeschreibungen vor dem Freischalten anzeigen",
     "account": "Konto",

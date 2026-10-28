@@ -738,7 +738,7 @@
     "user_unblocked": "Uživatel byl odblokován",
     "enable_achievement_notifications": "Když je odemčen achievement",
     "launch_minimized": "Spustit v minimalizovaném režimu",
-    "disable_nsfw_alert": "Deaktivovat upozornění na nevhodný obsah",
+    "disable_nsfw_alert": "Deaktivovat upozornění na nevhodný obsah na stránkách her",
     "seed_after_download_complete": "Seedovat až skončí stahování",
     "show_hidden_achievement_description": "Zobrazit popisy skrytých achievementů dříve, než jsou odemčeny",
     "account": "Účet",
