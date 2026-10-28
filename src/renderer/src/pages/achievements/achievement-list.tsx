@@ -39,11 +39,13 @@ import { AchievementIcon } from "./achievement-icon";
 interface AchievementListProps {
   achievements: UserAchievement[];
   viewerUnlockedNames?: ReadonlySet<string>;
+  pointsSummary?: { earned: number; total: number };
 }
 
 export function AchievementList({
   achievements,
   viewerUnlockedNames,
+  pointsSummary,
 }: Readonly<AchievementListProps>) {
   const isOtherUser = viewerUnlockedNames !== undefined;
   const { t, i18n } = useTranslation("achievement");
@@ -95,21 +97,23 @@ export function AchievementList({
 
   const earnedPoints = useMemo(
     () =>
+      pointsSummary?.earned ??
       achievements.reduce(
         (sum, achievement) =>
           sum + (achievement.unlocked ? (achievement.points ?? 0) : 0),
         0
       ),
-    [achievements]
+    [achievements, pointsSummary?.earned]
   );
 
   const totalPoints = useMemo(
     () =>
+      pointsSummary?.total ??
       achievements.reduce(
         (sum, achievement) => sum + (achievement.points ?? 0),
         0
       ),
-    [achievements]
+    [achievements, pointsSummary?.total]
   );
 
   const statusCounts = useMemo(

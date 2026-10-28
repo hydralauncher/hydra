@@ -278,6 +278,15 @@ export function AchievementsContent({
           <AchievementList
             achievements={otherUserAchievements}
             viewerUnlockedNames={viewerUnlockedNames}
+            pointsSummary={
+              comparedAchievements
+                ? {
+                    earned:
+                      comparedAchievements.target.achievementsPointsEarnedSum,
+                    total: comparedAchievements.achievementsPointsTotal,
+                  }
+                : undefined
+            }
           />
         )}
 

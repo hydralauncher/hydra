@@ -376,6 +376,14 @@
     }
   }
 
+  &__reveal-button {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
   &__info {
     flex: 1;
     display: flex;

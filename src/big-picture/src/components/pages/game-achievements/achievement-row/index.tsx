@@ -27,6 +27,199 @@ export interface AchievementRowProps {
   onReveal?: (achievement: UserAchievement) => void;
 }
 
+function AchievementRowIcon({
+  achievement,
+  concealed,
+}: Readonly<{ achievement: UserAchievement; concealed: boolean }>) {
+  if (concealed) {
+    return (
+      <span className="game-achievements-row__icon game-achievements-row__icon--concealed">
+        <EyeClosedIcon size={28} />
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={achievement.icon}
+      width={56}
+      height={56}
+      alt={achievement.displayName}
+      loading="lazy"
+      className={cn("game-achievements-row__icon", {
+        "game-achievements-row__icon--locked": !achievement.unlocked,
+      })}
+    />
+  );
+}
+
+function AchievementRowTitle({
+  achievement,
+}: Readonly<{ achievement: UserAchievement }>) {
+  const { t } = useTranslation("achievement");
+
+  return (
+    <Typography className="game-achievements-row__title">
+      {achievement.hidden && !achievement.unlocked ? (
+        <EyeClosedIcon
+          size={16}
+          className="game-achievements-row__hidden-icon"
+        />
+      ) : null}
+      {achievement.displayName}
+      {achievement.hardcoreUnlockTime != null ? (
+        <span className="game-achievements-row__hardcore-badge">
+          {t("hardcore")}
+        </span>
+      ) : null}
+    </Typography>
+  );
+}
+
+function AchievementRowInfo({
+  achievement,
+  concealed,
+  unlockedAt,
+}: Readonly<{
+  achievement: UserAchievement;
+  concealed: boolean;
+  unlockedAt?: string;
+}>) {
+  const { t } = useTranslation("achievement");
+
+  if (concealed) {
+    return (
+      <div className="game-achievements-row__info">
+        <Typography className="game-achievements-row__title">
+          {t("hidden_achievement")}
+        </Typography>
+        <Typography className="game-achievements-row__hidden-note">
+          {t("select_to_reveal")}
+        </Typography>
+      </div>
+    );
+  }
+
+  return (
+    <div className="game-achievements-row__info">
+      <AchievementRowTitle achievement={achievement} />
+
+      {achievement.description ? (
+        <Typography className="game-achievements-row__description">
+          {achievement.description}
+        </Typography>
+      ) : null}
+
+      {unlockedAt ? (
+        <Typography className="game-achievements-row__unlock-time">
+          {t("unlocked_at", { date: unlockedAt })}
+        </Typography>
+      ) : null}
+    </div>
+  );
+}
+
+function AchievementRowSouvenir({
+  achievement,
+  onActivate,
+}: Readonly<{
+  achievement: UserAchievement;
+  onActivate?: (achievement: UserAchievement) => void;
+}>) {
+  const { t } = useTranslation("achievement");
+
+  return (
+    <span className="game-achievements-row__souvenir">
+      <img
+        src={achievement.imageUrl!}
+        alt={t("souvenir_alt", { achievement: achievement.displayName })}
+        loading="lazy"
+        className="game-achievements-row__souvenir-image"
+      />
+
+      {onActivate ? (
+        <>
+          <span className="game-achievements-row__souvenir-overlay">
+            <MagnifyingGlassIcon size={20} />
+          </span>
+
+          <button
+            type="button"
+            className="game-achievements-row__souvenir-button"
+            onClick={() => onActivate(achievement)}
+            aria-label={t("view_souvenir")}
+            tabIndex={-1}
+          />
+        </>
+      ) : null}
+    </span>
+  );
+}
+
+function AchievementRowStats({
+  achievement,
+  showPoints,
+}: Readonly<{ achievement: UserAchievement; showPoints: boolean }>) {
+  const { t, i18n } = useTranslation("achievement");
+  const unlockPercentage =
+    achievement.globalUnlockPercentage == null
+      ? null
+      : formatAchievementUnlockPercentage(
+          achievement.globalUnlockPercentage,
+          i18n.language
+        );
+  const points = showPoints ? achievement.points : undefined;
+
+  if (!unlockPercentage && points == null) return null;
+
+  return (
+    <div className="game-achievements-row__stats">
+      {unlockPercentage ? (
+        <span
+          className="game-achievements-row__percentage"
+          title={t("unlock_percentage_tooltip", {
+            percentage: unlockPercentage,
+          })}
+        >
+          <UsersIcon size={16} weight="fill" />
+          <span>{unlockPercentage}</span>
+        </span>
+      ) : null}
+
+      {points == null ? null : (
+        <div
+          className="game-achievements-row__points"
+          title={t("achievement_earn_points", { points })}
+        >
+          <MedalIcon size={16} weight="fill" />
+          <span>{points}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AchievementRowStatus({
+  unlocked,
+  unlockedAt,
+}: Readonly<{ unlocked: boolean; unlockedAt?: string }>) {
+  return (
+    <div className="game-achievements-row__status">
+      {unlocked ? (
+        <Tooltip
+          content={unlockedAt ?? ""}
+          position="left"
+          active={unlockedAt != undefined}
+        >
+          <CheckCircleIcon size={28} weight="fill" />
+        </Tooltip>
+      ) : (
+        <LockIcon size={24} />
+      )}
+    </div>
+  );
+}
+
 export function AchievementRow({
   achievement,
   concealed = false,
@@ -38,33 +231,24 @@ export function AchievementRow({
   onSouvenirActivate,
   onReveal,
 }: Readonly<AchievementRowProps>) {
-  const { t, i18n } = useTranslation("achievement");
+  const { t } = useTranslation("achievement");
   const { formatDate, formatTime } = useDate();
   const unlockedAt =
-    achievement.unlockTime != null
-      ? `${formatDate(achievement.unlockTime)} · ${formatTime(achievement.unlockTime)}`
-      : undefined;
+    achievement.unlockTime == null
+      ? undefined
+      : `${formatDate(achievement.unlockTime)} · ${formatTime(achievement.unlockTime)}`;
   const hasSouvenir = Boolean(achievement.unlocked && achievement.imageUrl);
-  const canViewSouvenir = hasSouvenir && onSouvenirActivate !== undefined;
-  const canReveal = concealed && onReveal !== undefined;
-  const unlockPercentage =
-    achievement.globalUnlockPercentage != null
-      ? formatAchievementUnlockPercentage(
-          achievement.globalUnlockPercentage,
-          i18n.language
-        )
-      : null;
-
-  const getPrimaryAction = () => {
-    if (canReveal) return () => onReveal(achievement);
-    if (canViewSouvenir) return () => onSouvenirActivate(achievement);
-    return "off" as const;
-  };
+  const revealAchievement =
+    concealed && onReveal ? () => onReveal(achievement) : undefined;
+  const viewSouvenir =
+    hasSouvenir && onSouvenirActivate
+      ? () => onSouvenirActivate(achievement)
+      : undefined;
 
   return (
     <FocusItem
       id={getAchievementRowId(achievement.name)}
-      actions={{ primary: getPrimaryAction() }}
+      actions={{ primary: revealAchievement ?? viewSouvenir ?? "off" }}
       navigationOrder={navigationOrder}
       navigationOverrides={navigationOverrides}
       stealFocusOnAppear={stealFocusOnAppear}
@@ -77,134 +261,42 @@ export function AchievementRow({
           "game-achievements-row--revealed": revealed,
         })}
       >
-        {concealed ? (
-          <span className="game-achievements-row__icon game-achievements-row__icon--concealed">
-            <EyeClosedIcon size={28} />
-          </span>
-        ) : (
-          <img
-            src={achievement.icon}
-            width={56}
-            height={56}
-            alt={achievement.displayName}
-            loading="lazy"
-            className={cn("game-achievements-row__icon", {
-              "game-achievements-row__icon--locked": !achievement.unlocked,
-            })}
-          />
-        )}
+        <AchievementRowIcon achievement={achievement} concealed={concealed} />
 
-        <div className="game-achievements-row__info">
-          <Typography className="game-achievements-row__title">
-            {concealed ? (
-              t("hidden_achievement")
-            ) : (
-              <>
-                {achievement.hidden && !achievement.unlocked ? (
-                  <EyeClosedIcon
-                    size={16}
-                    className="game-achievements-row__hidden-icon"
-                  />
-                ) : null}
-                {achievement.displayName}
-                {achievement.hardcoreUnlockTime != null ? (
-                  <span className="game-achievements-row__hardcore-badge">
-                    {t("hardcore")}
-                  </span>
-                ) : null}
-              </>
-            )}
-          </Typography>
-
-          {concealed ? (
-            <Typography className="game-achievements-row__hidden-note">
-              {t("select_to_reveal")}
-            </Typography>
-          ) : achievement.description ? (
-            <Typography className="game-achievements-row__description">
-              {achievement.description}
-            </Typography>
-          ) : null}
-
-          {!concealed && unlockedAt ? (
-            <Typography className="game-achievements-row__unlock-time">
-              {t("unlocked_at", { date: unlockedAt })}
-            </Typography>
-          ) : null}
-        </div>
+        <AchievementRowInfo
+          achievement={achievement}
+          concealed={concealed}
+          unlockedAt={unlockedAt}
+        />
 
         <div className="game-achievements-row__meta">
           {hasSouvenir ? (
-            <span className="game-achievements-row__souvenir">
-              <img
-                src={achievement.imageUrl!}
-                alt={t("souvenir_alt", {
-                  achievement: achievement.displayName,
-                })}
-                loading="lazy"
-                className="game-achievements-row__souvenir-image"
-              />
-
-              {canViewSouvenir ? (
-                <>
-                  <span className="game-achievements-row__souvenir-overlay">
-                    <MagnifyingGlassIcon size={20} />
-                  </span>
-
-                  <button
-                    type="button"
-                    className="game-achievements-row__souvenir-button"
-                    onClick={() => onSouvenirActivate(achievement)}
-                    aria-label={t("view_souvenir")}
-                    tabIndex={-1}
-                  />
-                </>
-              ) : null}
-            </span>
+            <AchievementRowSouvenir
+              achievement={achievement}
+              onActivate={onSouvenirActivate}
+            />
           ) : null}
 
-          {unlockPercentage || (showPoints && achievement.points != null) ? (
-            <div className="game-achievements-row__stats">
-              {unlockPercentage ? (
-                <span
-                  className="game-achievements-row__percentage"
-                  title={t("unlock_percentage_tooltip", {
-                    percentage: unlockPercentage,
-                  })}
-                >
-                  <UsersIcon size={16} weight="fill" />
-                  <span>{unlockPercentage}</span>
-                </span>
-              ) : null}
+          <AchievementRowStats
+            achievement={achievement}
+            showPoints={showPoints}
+          />
 
-              {showPoints && achievement.points != null ? (
-                <div
-                  className="game-achievements-row__points"
-                  title={t("achievement_earn_points", {
-                    points: achievement.points,
-                  })}
-                >
-                  <MedalIcon size={16} weight="fill" />
-                  <span>{achievement.points}</span>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="game-achievements-row__status">
-            {achievement.unlocked ? (
-              <Tooltip
-                content={unlockedAt ?? ""}
-                position="left"
-                active={unlockedAt != undefined}
-              >
-                <CheckCircleIcon size={28} weight="fill" />
-              </Tooltip>
-            ) : (
-              <LockIcon size={24} />
-            )}
-          </div>
+          <AchievementRowStatus
+            unlocked={achievement.unlocked}
+            unlockedAt={unlockedAt}
+          />
         </div>
+
+        {revealAchievement ? (
+          <button
+            type="button"
+            className="game-achievements-row__reveal-button"
+            onClick={revealAchievement}
+            aria-label={t("select_to_reveal")}
+            tabIndex={-1}
+          />
+        ) : null}
       </li>
     </FocusItem>
   );

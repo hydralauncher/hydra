@@ -148,6 +148,50 @@ describe("filterAndSortAchievements", () => {
     ]);
   });
 
+  it("ranks by percentage for the whole list when only some achievements have one", () => {
+    const list = [
+      achievement("A", { points: 100, globalUnlockPercentage: 90 }),
+      achievement("B", { points: 10, globalUnlockPercentage: 10 }),
+      achievement("C", { points: 50 }),
+    ];
+    const expected = ["A", "B", "C"];
+
+    for (const order of [
+      [0, 1, 2],
+      [2, 1, 0],
+      [1, 2, 0],
+      [2, 0, 1],
+    ]) {
+      const shuffled = order.map((index) => list[index]);
+      assert.deepEqual(
+        names(filterAndSortAchievements(shuffled, defaults)),
+        expected
+      );
+    }
+
+    assert.deepEqual(
+      names(
+        filterAndSortAchievements(list, { ...defaults, sort: "most_rare" })
+      ),
+      ["B", "A", "C"]
+    );
+  });
+
+  it("breaks ties between unrated achievements by points", () => {
+    const list = [
+      achievement("Rated", { points: 10, globalUnlockPercentage: 50 }),
+      achievement("Pricey", { points: 900, unlocked: true }),
+      achievement("Cheap", { points: 10, unlocked: true }),
+    ];
+
+    assert.deepEqual(
+      names(
+        filterAndSortAchievements(list, { ...defaults, status: "unlocked" })
+      ),
+      ["Cheap", "Pricey"]
+    );
+  });
+
   it("does not mutate the input list", () => {
     const list = [...achievements];
     filterAndSortAchievements(list, { ...defaults, sort: "most_rare" });

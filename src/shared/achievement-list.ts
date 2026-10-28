@@ -40,12 +40,10 @@ export const groupAchievementsBySet = <
   const sets = [...groups.values()].filter((group) => group.set !== null);
   if (sets.length < 2) return null;
 
-  const ordered = sets.sort(
-    (a, b) => a.set!.order - b.set!.order || a.set!.id - b.set!.id
-  );
+  sets.sort((a, b) => a.set!.order - b.set!.order || a.set!.id - b.set!.id);
   const withoutSet = groups.get(NO_SET_KEY);
 
-  return withoutSet ? [...ordered, withoutSet] : ordered;
+  return withoutSet ? [...sets, withoutSet] : sets;
 };
 
 export type AchievementSortOption = "most_common" | "most_rare";
@@ -163,11 +161,15 @@ const getAchievementPointsScore = (
   achievement: Pick<UserAchievement, "points">
 ) => (typeof achievement.points === "number" ? achievement.points : null);
 
+const MIN_DISPLAYED_UNLOCK_PERCENTAGE = 0.1;
+
 export const formatAchievementUnlockPercentage = (
   percentage: number,
   locale?: string
 ) => {
-  if (percentage > 0 && percentage < 0.1) return "<0.1%";
+  if (percentage > 0 && percentage < MIN_DISPLAYED_UNLOCK_PERCENTAGE) {
+    return `<${MIN_DISPLAYED_UNLOCK_PERCENTAGE}%`;
+  }
 
   return `${new Intl.NumberFormat(locale, {
     maximumFractionDigits: 1,
@@ -202,26 +204,41 @@ const matchesStatus = (
   return true;
 };
 
-const compareByRarity = (
-  a: ListableAchievement,
-  b: ListableAchievement,
-  sort: AchievementSortOption
-) => {
-  const hasPercentages =
-    getAchievementRarityScore(a) !== null &&
-    getAchievementRarityScore(b) !== null;
-  const getScore = hasPercentages
+type RarityScore = (achievement: ListableAchievement) => number | null;
+
+const getAchievementRarityScorer = (
+  achievements: Pick<UserAchievement, "globalUnlockPercentage">[]
+): RarityScore =>
+  achievements.some(
+    (achievement) => typeof achievement.globalUnlockPercentage === "number"
+  )
     ? getAchievementRarityScore
     : getAchievementPointsScore;
-  const aScore = getScore(a);
-  const bScore = getScore(b);
 
+const compareScores = (
+  aScore: number | null,
+  bScore: number | null,
+  sort: AchievementSortOption
+) => {
   if (aScore === null && bScore === null) return 0;
   if (aScore === null) return 1;
   if (bScore === null) return -1;
 
   return sort === "most_rare" ? bScore - aScore : aScore - bScore;
 };
+
+const compareByRarity = (
+  a: ListableAchievement,
+  b: ListableAchievement,
+  sort: AchievementSortOption,
+  getScore: RarityScore
+) =>
+  compareScores(getScore(a), getScore(b), sort) ||
+  compareScores(
+    getAchievementPointsScore(a),
+    getAchievementPointsScore(b),
+    sort
+  );
 
 export const getAchievementStatusCounts = (
   achievements: Pick<UserAchievement, "unlocked">[]
@@ -242,12 +259,14 @@ export const filterAndSortAchievements = <T extends ListableAchievement>(
   { search, status, sort, isConcealed }: AchievementListOptions
 ): T[] => {
   const normalizedSearch = normalizeSearchText(search.trim());
+  const getScore = getAchievementRarityScorer(achievements);
 
-  return achievements
-    .filter(
-      (achievement) =>
-        matchesStatus(achievement, status) &&
-        matchesSearch(achievement, normalizedSearch, isConcealed(achievement))
-    )
-    .sort((a, b) => compareByRarity(a, b, sort));
+  const visible = achievements.filter(
+    (achievement) =>
+      matchesStatus(achievement, status) &&
+      matchesSearch(achievement, normalizedSearch, isConcealed(achievement))
+  );
+  visible.sort((a, b) => compareByRarity(a, b, sort, getScore));
+
+  return visible;
 };
