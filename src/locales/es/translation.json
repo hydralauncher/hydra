@@ -1293,7 +1293,7 @@
     "launch_minimized": "Iniciar Hydra minimizado",
     "launch_hydra_in_library_page": "Iniciar Hydra en la página de Biblioteca",
     "launch_hydra_in_big_picture": "Iniciar Hydra en el modo Big Picture",
-    "disable_nsfw_alert": "Deshabilitar alerta de NSFW en las páginas de juegos",
+    "disable_nsfw_alert": "Deshabilitar alerta de NSFW en las páginas de juegos y en los recuerdos",
     "seed_after_download_complete": "Sembrar después de completar una descarga",
     "show_hidden_achievement_description": "Mostrar logros ocultos antes de desbloquearlos",
     "account": "Cuenta",
