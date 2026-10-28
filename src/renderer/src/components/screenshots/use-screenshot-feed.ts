@@ -91,6 +91,7 @@ export function useScreenshotFeed({
 
   const reload = useCallback(async () => {
     const requestId = ++requestIdRef.current;
+    ledger.cancelReads();
     const read = ledger.beginRead();
     const reportServerTotal = onServerTotalRef.current;
     setIsLoading(true);
