@@ -19,7 +19,7 @@ $screenshot-lightbox-hover-duration: 0.2s;
 
 .screenshot-viewer {
   &__image--spoiler {
-    filter: blur(28px) brightness(0.5);
+    filter: blur(64px) brightness(0.5);
   }
 
   &__placeholder {

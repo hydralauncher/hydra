@@ -80,7 +80,7 @@ $local-screenshot-actions-fade-duration: 0.15s;
     transition: filter $my-screenshots-spoiler-duration ease;
 
     &--spoiler {
-      filter: blur(18px) brightness(0.55);
+      filter: blur(36px) brightness(0.55);
     }
   }
 

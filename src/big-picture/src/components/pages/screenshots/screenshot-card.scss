@@ -47,7 +47,7 @@ $screenshot-card-spoiler-duration: 0.2s;
       transform $screenshot-card-spoiler-duration ease;
 
     &--spoiler {
-      filter: blur(18px) brightness(0.55);
+      filter: blur(36px) brightness(0.55);
       transform: scale(1.12);
     }
   }
