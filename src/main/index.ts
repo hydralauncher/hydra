@@ -32,6 +32,11 @@ import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
 import {
+  loadSocialWindowsBounds,
+  restoreSocialWindows,
+  saveSocialWindowsSession,
+} from "./services/social-windows-session";
+import {
   closeSteamOpenIdWindow,
   notifySteamConnectError,
   notifySteamConnected,
@@ -216,8 +221,11 @@ const initializeApp = async () => {
   const forceBigPicture = process.argv.includes("--big-picture");
   const isRunDeepLink = deepLinkArg?.startsWith("hydralauncher://run");
 
+  await loadSocialWindowsBounds();
+
   if (!process.argv.includes("--hidden") && !isRunDeepLink) {
     WindowManager.createMainWindow({ forceBigPicture });
+    if (!forceBigPicture) void restoreSocialWindows();
   }
 
   WindowManager.createSystemTray(language || "en");
@@ -404,6 +412,7 @@ app.on("before-quit", async (e) => {
     e.preventDefault();
     if (isAppClosing) return;
     isAppClosing = true;
+    await saveSocialWindowsSession();
     try {
       await shutdownEpicIntegration();
     } catch {

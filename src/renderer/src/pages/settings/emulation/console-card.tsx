@@ -245,7 +245,11 @@ export function ConsoleCard({
       </div>
 
       {emulatorNameTooltip && (
-        <Tooltip id={tooltipId} style={{ zIndex: 9999 }} openOnClick={false} />
+        <Tooltip
+          id={tooltipId}
+          style={{ zIndex: 9999, whiteSpace: "pre-line" }}
+          openOnClick={false}
+        />
       )}
     </div>
   );
