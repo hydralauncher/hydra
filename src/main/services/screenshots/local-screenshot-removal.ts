@@ -9,6 +9,10 @@ import {
   isLocalScreenshotFileForGame,
   isPublishedLocalScreenshot,
 } from "./local-screenshot-game";
+import {
+  filterLocalScreenshotsForSignedInOwner,
+  isLocalScreenshotVisibleToSignedInOwner,
+} from "./local-screenshot-owner";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { removeScreenshotPreview } from "./screenshot-preview";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
@@ -66,7 +70,10 @@ const removeLocalScreenshot = async (
 };
 
 export const deleteLocalScreenshot = async (clientId: string) => {
-  await removeLocalScreenshot(clientId);
+  await removeLocalScreenshot(
+    clientId,
+    isLocalScreenshotVisibleToSignedInOwner
+  );
 };
 
 const isUnpublishedLocalFile = (screenshot: LocalScreenshot) =>
@@ -131,7 +138,9 @@ const listLocalScreenshotFilesForGame = async (
   shop: GameShop,
   objectId: string
 ) => {
-  const screenshots = await LocalScreenshotStore.list();
+  const screenshots = filterLocalScreenshotsForSignedInOwner(
+    await LocalScreenshotStore.list()
+  );
   const candidates = screenshots.filter((screenshot) =>
     isLocalScreenshotFileForGame(screenshot, shop, objectId)
   );
@@ -156,8 +165,11 @@ export const deleteLocalScreenshotsForGame = async (
   const screenshots = await listLocalScreenshotFilesForGame(shop, objectId);
   const results = await Promise.allSettled(
     screenshots.map((screenshot) =>
-      removeLocalScreenshot(screenshot.clientId, (current) =>
-        isLocalScreenshotFileForGame(current, shop, objectId)
+      removeLocalScreenshot(
+        screenshot.clientId,
+        (current) =>
+          isLocalScreenshotVisibleToSignedInOwner(current) &&
+          isLocalScreenshotFileForGame(current, shop, objectId)
       )
     )
   );

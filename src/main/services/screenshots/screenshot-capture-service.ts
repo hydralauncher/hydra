@@ -11,7 +11,7 @@ import type {
   ScreenshotTriggerSource,
 } from "@types";
 
-import { HydraApi } from "../hydra-api";
+import { getSignedInScreenshotOwnerId } from "./local-screenshot-owner";
 import { logger } from "../logger";
 import { getSourceClientAreaCrop } from "../windows-window-bounds";
 import {
@@ -114,9 +114,6 @@ interface FinishCaptureOptions {
   announce?: boolean;
 }
 
-const getSignedInOwnerId = () =>
-  HydraApi.isLoggedIn() ? (HydraApi.getAuthContext()?.userId ?? null) : null;
-
 const finishCapture = async ({
   target,
   gameTitle,
@@ -125,7 +122,7 @@ const finishCapture = async ({
   size,
   defaultVisibility,
   source,
-  ownerId = getSignedInOwnerId(),
+  ownerId = getSignedInScreenshotOwnerId(),
   previewPath = null,
   announce = true,
 }: FinishCaptureOptions) => {
@@ -296,7 +293,7 @@ const grabScreenshot = async (
   const gameTitle = resolved.game?.title ?? target.title;
   const capturedAt = new Date();
 
-  const ownerId = getSignedInOwnerId();
+  const ownerId = getSignedInScreenshotOwnerId();
   playCaptureSound();
   timer.mark("sound");
 
