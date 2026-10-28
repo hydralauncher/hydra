@@ -12,9 +12,11 @@ interface CaptureSessionRegistration {
   window: BrowserWindow | null;
   subscriptionTimer: ReturnType<typeof setInterval> | null;
   preparation: Promise<void>;
+  activeCapture: Promise<unknown> | null;
 }
 
 const sessions = new Map<string, CaptureSessionRegistration>();
+const CAPTURE_TEARDOWN_DELAY_MS = 1_000;
 
 export const isWaylandSession = () =>
   process.platform === "linux" &&
@@ -30,7 +32,9 @@ const destroyCaptureWindow = (captureWindow: BrowserWindow | null) => {
     )
     .catch(() => {})
     .finally(() => {
-      if (!captureWindow.isDestroyed()) captureWindow.destroy();
+      setTimeout(() => {
+        if (!captureWindow.isDestroyed()) captureWindow.destroy();
+      }, CAPTURE_TEARDOWN_DELAY_MS);
     });
 };
 
@@ -95,6 +99,7 @@ export const prepareLinuxGameCaptureSession = async (gameKey: string) => {
     window: null,
     subscriptionTimer: null,
     preparation: Promise.resolve(),
+    activeCapture: null,
   };
 
   registration.preparation = (async () => {
@@ -183,7 +188,7 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
     throw new Error("Wayland game-window capture session was closed");
   }
 
-  const dataUrl = await captureWindow.webContents.executeJavaScript(`
+  const capture = captureWindow.webContents.executeJavaScript(`
     (() => {
       const video = globalThis.__hydraSouvenirVideo;
       const track = globalThis.__hydraSouvenirStream?.getVideoTracks()[0];
@@ -202,6 +207,16 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
       return canvas.toDataURL("image/png");
     })()
   `);
+  registration.activeCapture = capture;
+
+  let dataUrl: unknown;
+  try {
+    dataUrl = await capture;
+  } finally {
+    if (registration.activeCapture === capture) {
+      registration.activeCapture = null;
+    }
+  }
 
   if (typeof dataUrl !== "string") {
     throw new TypeError(
@@ -225,7 +240,10 @@ export const stopLinuxGameCaptureSession = (gameKey: string) => {
   if (registration.subscriptionTimer) {
     clearInterval(registration.subscriptionTimer);
   }
-  destroyCaptureWindow(registration.window);
+  const pendingCapture = registration.activeCapture ?? Promise.resolve();
+  void pendingCapture
+    .catch(() => {})
+    .finally(() => destroyCaptureWindow(registration.window));
 };
 
 export const stopAllLinuxGameCaptureSessions = () => {

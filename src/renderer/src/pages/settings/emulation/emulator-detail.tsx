@@ -76,6 +76,10 @@ export function EmulatorDetail({
   const [romsNonce, setRomsNonce] = useState(0);
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
+  const removeTarget = useMemo(
+    () => ({ kind: "emulator" as const, system: config.system }),
+    [config.system]
+  );
   const [executableExists, setExecutableExists] = useState<boolean>(true);
 
   const hasMemoryCards = supportsMemoryCards(config.system);
@@ -114,17 +118,31 @@ export function EmulatorDetail({
     };
   }, [config.system, config.executablePath]);
 
-  const handleConfirmRemoveEmulator = useCallback(async () => {
-    setBusy(true);
-    try {
-      const next = await window.electron.removeEmulator(config.system);
-      onChange(next);
-      setRemoveOpen(false);
-      onBack();
-    } finally {
-      setBusy(false);
-    }
-  }, [config.system, onChange, onBack]);
+  const handleConfirmRemoveEmulator = useCallback(
+    async (gamesToRemove: number) => {
+      setBusy(true);
+      try {
+        const next = await window.electron.removeEmulator(config.system, {
+          removeGames: gamesToRemove > 0,
+        });
+        onChange(next);
+        setRemoveOpen(false);
+        showSuccessToast(
+          t("remove_emulator_success", {
+            name: KNOWN_BINARY_LABELS[config.binary],
+          }),
+          gamesToRemove > 0
+            ? t("remove_emulator_games_removed", { count: gamesToRemove })
+            : undefined
+        );
+
+        onBack();
+      } finally {
+        setBusy(false);
+      }
+    },
+    [config.binary, config.system, onChange, onBack, showSuccessToast, t]
+  );
 
   const binaryName = KNOWN_BINARY_LABELS[config.binary];
   const binaryIcon = EMULATOR_ICONS[config.binary];
@@ -136,7 +154,9 @@ export function EmulatorDetail({
         executablePath: config.executablePath,
         detectedVersion: config.detectedVersion,
       };
-      const next = await window.electron.detectEmulator(config.system);
+      const next = await window.electron.detectEmulator(config.system, {
+        includeDriveRoots: true,
+      });
       onChange(next);
       notifyRedetectOutcome(
         next,
@@ -448,6 +468,7 @@ export function EmulatorDetail({
 
       <DetailRemoveModals
         emulatorName={binaryName}
+        removeTarget={removeTarget}
         folderToRemove={folderToRemove}
         removeEmulatorOpen={removeOpen}
         busy={busy}

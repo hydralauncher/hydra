@@ -11,6 +11,7 @@ interface HydraApiCallPayload {
     needsSubscription?: boolean;
     ifModifiedSince?: Date;
     acceptedStatuses?: number[];
+    timeout?: number;
   };
 }
 
