@@ -27,6 +27,10 @@ import type {
 } from "@types";
 
 import type { ScreenshotFailure } from "./use-screenshot-actions";
+import {
+  queueRestoredCommentDraft,
+  useRestoredCommentDraft,
+} from "./restored-comment-drafts";
 import type { ScreenshotPatch } from "@shared";
 
 type CommentWrite =
@@ -109,11 +113,6 @@ const createPendingComment = (
   canDelete: false,
 });
 
-export interface RestoredCommentDraft {
-  key: number;
-  body: string;
-}
-
 interface UseScreenshotCommentsOptions {
   screenshot: ProfileScreenshot;
   author: ScreenshotAuthor | null;
@@ -140,15 +139,8 @@ export function useScreenshotComments({
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
-  const [restoredDrafts, setRestoredDrafts] = useState<RestoredCommentDraft[]>(
-    []
-  );
-  const restoredDraft = restoredDrafts[0] ?? null;
-  const restoredDraftKeyRef = useRef(0);
-  const clearRestoredDraft = useCallback(
-    () => setRestoredDrafts((current) => current.slice(1)),
-    []
-  );
+  const { restoredDraft, clearRestoredDraft } =
+    useRestoredCommentDraft(screenshotId);
   const [pendingCommentIds, setPendingCommentIds] = useState<
     ReadonlySet<string>
   >(() => new Set());
@@ -392,12 +384,7 @@ export function useScreenshotComments({
         recordWrite({ kind: "delete", commentId: pendingId });
         setTotal((current) => Math.max(0, (current ?? 1) - 1));
         onPatch(screenshotId, adjustCommentCount(-1));
-        restoredDraftKeyRef.current += 1;
-        const failedDraft = {
-          key: restoredDraftKeyRef.current,
-          body: bodyHtml,
-        };
-        setRestoredDrafts((current) => [...current, failedDraft]);
+        queueRestoredCommentDraft(screenshotId, bodyHtml);
         handleWriteError(error, "comment_post_failed");
       } finally {
         setPending(pendingId, false);

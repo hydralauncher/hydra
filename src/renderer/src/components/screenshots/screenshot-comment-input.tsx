@@ -13,7 +13,7 @@ import {
   richTextToPlainText,
 } from "@shared";
 
-import type { RestoredCommentDraft } from "./use-screenshot-comments";
+import type { RestoredCommentDraft } from "./restored-comment-drafts";
 
 const measureCommentText = (html: string) => richTextToPlainText(html).length;
 

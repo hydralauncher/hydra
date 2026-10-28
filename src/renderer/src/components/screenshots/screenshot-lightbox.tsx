@@ -41,6 +41,8 @@ type ScreenshotPlaceholderStatus = Exclude<
   "closed" | "ready"
 >;
 
+type ThumbnailFallback = "none" | "active" | "failed";
+
 interface ScreenshotStageProps {
   screenshot: ProfileScreenshot;
   item: GalleryMediaItem;
@@ -62,6 +64,12 @@ export function ScreenshotStage({
     useScreenshotImageFallback(screenshot.imageUrl, () =>
       onImageError(screenshot)
     );
+  const [thumbnailFallback, setThumbnailFallback] =
+    useState<ThumbnailFallback>("none");
+  const isShowingThumbnail =
+    !hasImage &&
+    thumbnailFallback === "active" &&
+    Boolean(screenshot.thumbnailUrl);
   const onReadyRef = useRef(context.onReady);
   onReadyRef.current = context.onReady;
 
@@ -69,7 +77,7 @@ export function ScreenshotStage({
     if (!hasImage) onReadyRef.current();
   }, [hasImage]);
 
-  if (!hasImage) {
+  if (!hasImage && !isShowingThumbnail) {
     return (
       <div
         className="screenshot-stage__placeholder"
@@ -87,7 +95,6 @@ export function ScreenshotStage({
   return (
     <>
       <GalleryLightboxImage
-        key={screenshot.imageUrl}
         item={{ ...item, src: screenshot.imageUrl ?? undefined }}
         onImageError={() => void handleImageError()}
         renderMedia={(handlers) => (
@@ -102,7 +109,11 @@ export function ScreenshotStage({
             )}
             fit="contain"
             placeholder={screenshot.placeholder}
-            sources={[screenshot.thumbnailUrl, screenshot.imageUrl]}
+            sources={
+              isShowingThumbnail
+                ? [screenshot.thumbnailUrl]
+                : [screenshot.thumbnailUrl, screenshot.imageUrl]
+            }
             alt={item.alt}
             onBestLayerLoad={(image) => {
               if (screenshot.width > 0 && screenshot.height > 0) {
@@ -113,7 +124,18 @@ export function ScreenshotStage({
               }
               handlers.onImageLoad(image);
             }}
-            onError={handlers.onImageError}
+            onError={(hasLoadedLowerSource) => {
+              if (isShowingThumbnail) {
+                setThumbnailFallback("failed");
+                return;
+              }
+              if (hasLoadedLowerSource && thumbnailFallback !== "failed") {
+                setThumbnailFallback("active");
+                void handleImageError();
+                return;
+              }
+              handlers.onImageError();
+            }}
             onDoubleClick={handlers.onDoubleClick}
           />
         )}
