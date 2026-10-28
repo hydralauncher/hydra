@@ -5,13 +5,6 @@ $local-screenshot-actions-fade-duration: 0.15s;
   display: flex;
   flex-direction: column;
 
-  &__caption {
-    display: block;
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
   &__title {
     display: flex;
     align-items: center;

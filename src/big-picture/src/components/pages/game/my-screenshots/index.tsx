@@ -337,6 +337,12 @@ export function GameMyScreenshots({
     writeBus,
   });
   const showCommunity = hasNoScreenshotsOfMine && community.items.length > 0;
+  const title = t(
+    hasCommunity && hasNoScreenshotsOfMine
+      ? "community_screenshots_tab"
+      : "my_screenshots",
+    { ns: "screenshots" }
+  );
   const showGrid = isSettled && items.length > 0 && !mine.hasFailed;
   const showMessage = !showGrid && !showCommunity && !mine.isPartial;
   const isMessageLoading = !isSettled || community.feed.isLoading;
@@ -360,10 +366,10 @@ export function GameMyScreenshots({
     >
       <section
         className="game-page__sidebar-section game-my-screenshots"
-        aria-label={t("my_screenshots", { ns: "screenshots" })}
+        aria-label={title}
       >
         <div className="game-my-screenshots__title">
-          <Typography>{t("my_screenshots", { ns: "screenshots" })}</Typography>
+          <Typography>{title}</Typography>
         </div>
         <div className="game-my-screenshots__body">
           {showGrid ? (
@@ -382,19 +388,14 @@ export function GameMyScreenshots({
             />
           ) : null}
           {showCommunity ? (
-            <>
-              <span className="game-my-screenshots__caption">
-                {t("community_screenshots_tab", { ns: "screenshots" })}
-              </span>
-              <MyScreenshotsGrid
-                items={community.items}
-                local={local}
-                showCommentCount={isFeatureEnabled(Feature.ScreenshotComments)}
-                leftTarget={leftTarget}
-                onOpen={community.open}
-                onRefreshImage={community.feed.refreshImage}
-              />
-            </>
+            <MyScreenshotsGrid
+              items={community.items}
+              local={local}
+              showCommentCount={isFeatureEnabled(Feature.ScreenshotComments)}
+              leftTarget={leftTarget}
+              onOpen={community.open}
+              onRefreshImage={community.feed.refreshImage}
+            />
           ) : null}
           {showMessage ? (
             <MyScreenshotsMessage
