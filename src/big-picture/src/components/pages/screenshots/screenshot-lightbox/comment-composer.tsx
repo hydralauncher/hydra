@@ -9,11 +9,9 @@ import {
 import { EditorContent, type Editor } from "@tiptap/react";
 import cn from "classnames";
 import {
-  useCallback,
   useEffect,
   useReducer,
   useRef,
-  useState,
   type FormEvent,
   type ReactNode,
 } from "react";
@@ -330,16 +328,6 @@ export function CommentComposer({
 }: Readonly<CommentComposerProps>) {
   const { t } = useTranslation("big_picture");
   const newDraftRef = useRef("");
-  const [pendingDraft, setPendingDraft] = useState<string | null>(null);
-  const clearPendingDraft = useCallback(() => setPendingDraft(null), []);
-
-  useEffect(() => {
-    if (restoredDraft === null) return;
-
-    setPendingDraft(restoredDraft);
-    onRestoredDraftApplied();
-  }, [onRestoredDraftApplied, restoredDraft]);
-
   if (!viewerId) {
     return (
       <div className="screenshot-comments__notice screenshot-comments__notice--sign-in">
@@ -393,8 +381,8 @@ export function CommentComposer({
       leftTarget={leftTarget}
       editingComment={null}
       draftBody={newDraftRef.current}
-      pendingDraft={pendingDraft}
-      onPendingDraftApplied={clearPendingDraft}
+      pendingDraft={restoredDraft}
+      onPendingDraftApplied={onRestoredDraftApplied}
       onDraftChange={(html) => {
         newDraftRef.current = html;
       }}

@@ -520,7 +520,7 @@ export function ScreenshotCommentsPanel({
   } = useScreenshotComments(screenshot, isAvailable, Boolean(viewerId));
   const [editingComment, setEditingComment] =
     useState<ScreenshotComment | null>(null);
-  const [restoredDraft, setRestoredDraft] = useState<string | null>(null);
+  const [restoredDrafts, setRestoredDrafts] = useState<string[]>([]);
   const editVersionsRef = useRef(new Map<string, number>());
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<CommentMenuState | null>(null);
@@ -537,7 +537,10 @@ export function ScreenshotCommentsPanel({
     setMenu(null);
   }, [screenshot.id]);
 
-  const clearRestoredDraft = useCallback(() => setRestoredDraft(null), []);
+  const shiftRestoredDraft = useCallback(
+    () => setRestoredDrafts((drafts) => drafts.slice(1)),
+    []
+  );
 
   const showError = useCallback(
     (error: unknown) => {
@@ -605,7 +608,7 @@ export function ScreenshotCommentsPanel({
         }
       } catch (error) {
         removePendingComment(pending.id);
-        setRestoredDraft(pending.bodyHtml);
+        setRestoredDrafts((drafts) => [...drafts, pending.bodyHtml]);
         showError(error);
       }
     },
@@ -974,8 +977,8 @@ export function ScreenshotCommentsPanel({
           focusIds={focusIds}
           leftTarget={leftTarget}
           editingComment={editingComment}
-          restoredDraft={restoredDraft}
-          onRestoredDraftApplied={clearRestoredDraft}
+          restoredDraft={restoredDrafts[0] ?? null}
+          onRestoredDraftApplied={shiftRestoredDraft}
           onSubmit={submit}
           onCancelEdit={() => setEditingComment(null)}
         />
