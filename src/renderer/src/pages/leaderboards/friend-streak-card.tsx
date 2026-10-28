@@ -2,7 +2,7 @@ import cn from "classnames";
 import { useTranslation } from "react-i18next";
 
 import { Avatar } from "@renderer/components";
-import { LEADERBOARD_PODIUM_BANNER_IMAGE_SIZE } from "@renderer/constants";
+import { LEADERBOARD_ROW_BANNER_IMAGE_SIZE } from "@renderer/constants";
 import { useProcessedImage } from "@renderer/hooks";
 import type { FriendStreak } from "./global-leaderboard";
 import { StreakFlame } from "./leaderboard-bits";
@@ -12,8 +12,6 @@ export interface FriendStreakCardProps {
   isViewer: boolean;
 }
 
-// One friend in "Streaks among friends", over their profile banner like the
-// podium cards.
 export function FriendStreakCard({
   item,
   isViewer,
@@ -21,7 +19,7 @@ export function FriendStreakCard({
   const { t } = useTranslation("leaderboards");
   const banner = useProcessedImage(
     item.user.backgroundImageUrl,
-    LEADERBOARD_PODIUM_BANNER_IMAGE_SIZE
+    LEADERBOARD_ROW_BANNER_IMAGE_SIZE
   );
 
   return (

@@ -47,9 +47,9 @@ import {
 } from "./use-global-leaderboards";
 import { useMetricText } from "./use-global-leaderboard-value";
 
-const FRIEND_SKELETON_ROWS = 6;
+const FRIEND_STREAK_ROWS = 6;
 const FRIEND_SKELETON_KEYS = Array.from(
-  { length: FRIEND_SKELETON_ROWS },
+  { length: FRIEND_STREAK_ROWS },
   (_, index) => `friend-skeleton-${index}`
 );
 
@@ -447,7 +447,7 @@ export function StatsTab({
     return (
       <>
         <div className="leaderboards__friend-streaks">
-          {friends.data.map((item) => (
+          {friends.data.slice(0, FRIEND_STREAK_ROWS).map((item) => (
             <FriendStreakCard
               key={item.user.id}
               item={item}

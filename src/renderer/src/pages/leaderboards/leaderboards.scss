@@ -1094,8 +1094,6 @@ $leaderboards-heat-gap: 3px;
     vertical-align: bottom;
   }
 
-  // One friend per row; with few friends the rows grow so the panel does not
-  // look empty.
   &__friend-streaks {
     flex: 1;
     display: grid;
@@ -1115,7 +1113,6 @@ $leaderboards-heat-gap: 3px;
     border-radius: 8px;
     background-color: $leaderboards-surface;
 
-    // Darker on the left, where the name sits over the banner.
     &--banner {
       background-image:
         linear-gradient(90deg, rgb(0 0 0 / 75%), rgb(0 0 0 / 30%)),
