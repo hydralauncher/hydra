@@ -24,6 +24,10 @@ import { spawnSupervisedUmu } from "./umu-supervised-process";
 import { EPIC_LINUX_MANAGED_UMU_MAX_BYTES } from "./epic/linux-runtime-constants.js";
 import supervisedRuntimeManifest from "../../shared/epic-linux-runtime-manifest.json";
 export type { UmuProcessHandle } from "./umu-supervised-process";
+import {
+  findFlatpakCompatibilityTools,
+  getFlatpakInstallationRoots,
+} from "./flatpak-compatibility-tools";
 
 export type { UmuStatus } from "./umu-launch-monitor";
 
@@ -270,6 +274,15 @@ export class Umu {
       }
     }
 
+    const flatpakTools = await findFlatpakCompatibilityTools(
+      getFlatpakInstallationRoots(homePath),
+      isValidProtonDirectory
+    ).catch(() => []);
+
+    for (const tool of flatpakTools) {
+      versions.push({ ...tool, source: "compatibility_tools" });
+    }
+
     const uniqueVersions = new Map<string, ProtonVersion>();
 
     for (const version of versions) {
@@ -422,6 +435,7 @@ export class Umu {
       useGamemode?: boolean;
       onStatus?: UmuStatusListener;
       wasGameDetected?: () => boolean;
+      onExit?: (exitCode: number | null) => void;
     }
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
@@ -502,6 +516,8 @@ export class Umu {
           },
         }
       );
+
+      if (options?.onExit) child.once("exit", options.onExit);
 
       await observeUmuLaunch({
         child,

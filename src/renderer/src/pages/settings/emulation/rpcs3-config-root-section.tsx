@@ -69,10 +69,16 @@ export function Rpcs3ConfigRootSection({
   const { selectedRoot, roots } = getRpcs3ConfigRootChoices(status);
   const controlsDisabled = disabled || busy || !config.executablePath;
 
+  if (!status || (state === "ready" && roots.length <= 1)) return null;
+
   return (
     <EmulatorResourceRow
       title={t("rpcs3_config_title")}
-      description={t(`rpcs3_config_${state}`)}
+      description={
+        state === "ready"
+          ? t("rpcs3_config_description")
+          : t(`rpcs3_config_${state}`)
+      }
       detected={state === "ready"}
       statusLabel={
         state === "ready" ? t("rpcs3_config_ready") : t("not_detected")

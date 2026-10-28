@@ -38,4 +38,19 @@ describe("account game visibility", () => {
       isConcealed: false,
     });
   });
+
+  it("keeps a local custom game concealed across accounts", () => {
+    const game = {
+      shop: "custom",
+      objectId: "local-game",
+      remoteId: null,
+      isHiddenFromOthers: false,
+      isConcealed: true,
+      isDeleted: false,
+      title: "Homebrew",
+      playTimeInMilliseconds: 0,
+    } as Game;
+
+    assert.equal(resetAccountScopedGameState(game).isConcealed, true);
+  });
 });

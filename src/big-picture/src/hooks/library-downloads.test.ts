@@ -172,7 +172,7 @@ describe("Big Picture operational download library", () => {
         "@shared": {
           Downloader,
           formatBytes: String,
-          formatBytesToMbps: String,
+          formatBitRate: String,
         },
         "@renderer/helpers/epic-managed-error": {
           getEpicManagedError: () =>

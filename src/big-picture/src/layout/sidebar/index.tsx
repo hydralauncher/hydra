@@ -953,6 +953,7 @@ function Sidebar() {
     requestRemoveFromLibrary,
     closePendingAction,
     confirmPendingAction,
+    sourceArchiveOption,
   } = useLibraryPendingAction({
     getRestoreFocusId: useCallback(
       () => contextMenuState.restoreFocusId,
@@ -1167,6 +1168,7 @@ function Sidebar() {
           danger
           onClose={closePendingAction}
           onConfirm={confirmPendingAction}
+          sourceArchiveOption={sourceArchiveOption}
         />
       ) : null}
 
