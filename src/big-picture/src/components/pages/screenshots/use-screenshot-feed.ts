@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProfileScreenshot, ScreenshotsHiddenReason } from "@types";
 import {
-  applyScreenshotFeedWrites,
   applyScreenshotPatch,
   buildUserScreenshotPath,
   createScreenshotImageRefresher,
-  isRelativeScreenshotPatch,
   mergeScreenshotPages,
-  type ScreenshotFeedWrite,
+  ScreenshotFeedLedger,
+  type ScreenshotFeedRead,
   type ScreenshotImageRefresher,
   type ScreenshotBusWrite,
   type ScreenshotPatch,
@@ -58,69 +57,39 @@ export function useScreenshotFeed({
   needsAuthRef.current = needsAuth;
 
   const itemsRef = useRef(items);
-  const writeVersionRef = useRef(0);
-  const writesRef = useRef<ScreenshotFeedWrite[]>([]);
-  const pendingReadsRef = useRef(0);
-  const fetchedAtRef = useRef(new Map<string, number>());
-  const lastDeltaVersionRef = useRef(new Map<string, number>());
+  const ledgerRef = useRef<ScreenshotFeedLedger | null>(null);
+  ledgerRef.current ??= new ScreenshotFeedLedger();
+  const ledger = ledgerRef.current;
 
-  const beginRead = () => {
-    pendingReadsRef.current += 1;
-    return {
-      sinceVersion: writeVersionRef.current,
-      startedAt: performance.now(),
-    };
-  };
+  const recountItem = useCallback(
+    (item: ProfileScreenshot) => {
+      const generation = generationRef.current;
+      ledger
+        .recountComments(item, {
+          fetchScreenshot: (screenshot) =>
+            globalThis.window.electron.hydraApi.get<ProfileScreenshot | null>(
+              buildUserScreenshotPath(screenshot.owner.id, screenshot.id),
+              { needsAuth: needsAuthRef.current }
+            ),
+          isCurrent: () => generationRef.current === generation,
+          applyPatch: (screenshotId, patch) =>
+            updateItemRef.current(screenshotId, patch),
+        })
+        .catch((error: unknown) => {
+          logger.warn("Failed to refresh the screenshot comment count", error);
+        });
+    },
+    [ledger]
+  );
 
-  const endRead = () => {
-    pendingReadsRef.current = Math.max(0, pendingReadsRef.current - 1);
-    if (pendingReadsRef.current === 0) writesRef.current = [];
-  };
-
-  const recountItem = async (item: ProfileScreenshot) => {
-    const generation = generationRef.current;
-    const startedVersion = writeVersionRef.current;
-
-    try {
-      const fresh =
-        await globalThis.window.electron.hydraApi.get<ProfileScreenshot | null>(
-          buildUserScreenshotPath(item.owner.id, item.id),
-          { needsAuth: needsAuthRef.current }
-        );
-      if (!fresh || generationRef.current !== generation) return;
-
-      const lastDeltaVersion = lastDeltaVersionRef.current.get(item.id) ?? 0;
-      if (lastDeltaVersion > startedVersion) {
-        void recountItemRef.current(item);
-        return;
-      }
-
-      updateItemRef.current(item.id, { commentCount: fresh.commentCount });
-    } catch (error) {
-      logger.warn("Failed to refresh the screenshot comment count", error);
-    }
-  };
-
-  const recountItemRef = useRef(recountItem);
-  recountItemRef.current = recountItem;
-
-  const acceptPage = (
-    pageItems: ProfileScreenshot[],
-    read: { sinceVersion: number; startedAt: number }
-  ) => {
-    const merged = applyScreenshotFeedWrites(
-      pageItems,
-      writesRef.current,
-      read.sinceVersion
-    );
-    for (const item of merged.items) {
-      fetchedAtRef.current.set(item.id, read.startedAt);
-    }
-    for (const item of merged.items) {
-      if (merged.recountIds.has(item.id)) void recountItemRef.current(item);
-    }
-    return merged;
-  };
+  const acceptPage = useCallback(
+    (pageItems: ProfileScreenshot[], read: ScreenshotFeedRead) => {
+      const merged = ledger.acceptPage(pageItems, read);
+      merged.recountItems.forEach(recountItem);
+      return merged;
+    },
+    [ledger, recountItem]
+  );
 
   buildPathRef.current = buildPath;
   itemsRef.current = items;
@@ -135,22 +104,22 @@ export function useScreenshotFeed({
     isReadPendingRef.current = Boolean(requestKey);
     setIsLoadingMore(false);
     setError(null);
-    pendingReadsRef.current = 0;
-    writesRef.current = [];
 
-    if (lastResetKeyRef.current !== resetKey) {
+    if (lastResetKeyRef.current === resetKey) {
+      ledger.cancelReads();
+    } else {
       lastResetKeyRef.current = resetKey;
+      ledger.reset();
       setItems([]);
       setTotal(null);
       setHiddenReason(null);
       setNextCursor(null);
       setLoadedKey(null);
-      fetchedAtRef.current.clear();
     }
 
     if (!requestKey) return;
 
-    const read = beginRead();
+    const read = ledger.beginRead();
 
     globalThis.window.electron.hydraApi
       .get<ScreenshotFeedResponse | null>(buildPathRef.current(null), {
@@ -180,13 +149,13 @@ export function useScreenshotFeed({
         setError("initial");
       })
       .finally(() => {
+        ledger.endRead(read);
         if (generationRef.current !== generation) return;
 
         isReadPendingRef.current = false;
-        endRead();
         setLoadedKey(requestKey);
       });
-  }, [needsAuth, refreshToken, requestKey, resetKey]);
+  }, [acceptPage, ledger, needsAuth, refreshToken, requestKey, resetKey]);
 
   const fetchNextPage = useCallback(async () => {
     if (
@@ -200,7 +169,7 @@ export function useScreenshotFeed({
     const generation = generationRef.current;
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
-    const read = beginRead();
+    const read = ledger.beginRead();
 
     try {
       const response =
@@ -221,13 +190,13 @@ export function useScreenshotFeed({
       logger.error("Failed to load more screenshots", loadError);
       if (generationRef.current === generation) setError("page");
     } finally {
+      ledger.endRead(read);
       if (generationRef.current === generation) {
-        endRead();
         isLoadingMoreRef.current = false;
         setIsLoadingMore(false);
       }
     }
-  }, [needsAuth, nextCursor, requestKey]);
+  }, [acceptPage, ledger, needsAuth, nextCursor, requestKey]);
 
   const loadMore = useCallback(async () => {
     if (error) return;
@@ -250,33 +219,16 @@ export function useScreenshotFeed({
     refresh();
   }, [error, fetchNextPage, refresh]);
 
-  const recordWrite = useCallback(
-    (screenshotId: string, patch: ScreenshotPatch | null) => {
-      writeVersionRef.current += 1;
-      if (pendingReadsRef.current === 0) return;
-
-      writesRef.current.push({
-        version: writeVersionRef.current,
-        screenshotId,
-        patch,
-      });
-    },
-    []
-  );
-
   const applyItemPatch = useCallback(
     (screenshotId: string, update: ScreenshotPatch) => {
-      recordWrite(screenshotId, update);
-      if (isRelativeScreenshotPatch(update)) {
-        lastDeltaVersionRef.current.set(screenshotId, writeVersionRef.current);
-      }
+      ledger.recordWrite(screenshotId, update);
       setItems((current) =>
         current.map((item) =>
           item.id === screenshotId ? applyScreenshotPatch(item, update) : item
         )
       );
     },
-    [recordWrite]
+    [ledger]
   );
 
   const publishRef = useRef<((write: ScreenshotBusWrite) => void) | null>(null);
@@ -295,8 +247,7 @@ export function useScreenshotFeed({
 
   const applyItemRemoval = useCallback(
     (screenshotId: string) => {
-      recordWrite(screenshotId, null);
-      fetchedAtRef.current.delete(screenshotId);
+      ledger.recordWrite(screenshotId, null);
       if (!itemsRef.current.some((item) => item.id === screenshotId)) return;
 
       setItems((current) => current.filter((item) => item.id !== screenshotId));
@@ -304,7 +255,7 @@ export function useScreenshotFeed({
         currentTotal === null ? null : Math.max(0, currentTotal - 1)
       );
     },
-    [recordWrite]
+    [ledger]
   );
 
   const removeItem = useCallback(
@@ -352,8 +303,8 @@ export function useScreenshotFeed({
   );
 
   const getFetchedAt = useCallback(
-    (screenshotId: string) => fetchedAtRef.current.get(screenshotId) ?? null,
-    []
+    (screenshotId: string) => ledger.getFetchedAt(screenshotId),
+    [ledger]
   );
 
   const isLoaded = Boolean(requestKey) && loadedKey === requestKey;

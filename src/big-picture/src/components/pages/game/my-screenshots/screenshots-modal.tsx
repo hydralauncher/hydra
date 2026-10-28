@@ -13,6 +13,7 @@ import type {
   ScreenshotSort,
 } from "@types";
 import {
+  groupByCaptureDay,
   INITIAL_SCREENSHOT_SPOILER_PAGING,
   buildGameScreenshotsPath,
   resumeSpoilerPaging,
@@ -21,6 +22,7 @@ import {
   type ScreenshotWriteBus,
 } from "@shared";
 import { logger } from "@renderer/logger";
+import { useCaptureDayLabel } from "@renderer/pages/game-details/game-screenshots/screenshot-date-groups";
 
 import {
   BumperBadge,
@@ -69,10 +71,6 @@ import {
 import { ScreenshotHotkeyHint } from "./hotkey-hint";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
 import { MyScreenshotsPartialNotice } from "./partial-notice";
-import {
-  groupByCaptureDay,
-  useCaptureDayLabel,
-} from "./screenshot-date-groups";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
 import { useMyScreenshotsViewer } from "./use-my-screenshots-viewer";
 import {
