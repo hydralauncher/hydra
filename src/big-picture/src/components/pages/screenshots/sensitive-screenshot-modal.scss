@@ -1,4 +1,8 @@
 .sensitive-screenshot-modal {
+  &__backdrop {
+    z-index: 130;
+  }
+
   &__content {
     display: flex;
     flex-direction: column;

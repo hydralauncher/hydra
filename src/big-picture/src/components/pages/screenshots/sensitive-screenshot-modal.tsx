@@ -93,6 +93,7 @@ export function SensitiveScreenshotModal({
       closeOnEscape={!isSaving}
       closeOnB={!isSaving}
       className="confirmation-modal sensitive-screenshot-modal"
+      backdropClassName="sensitive-screenshot-modal__backdrop"
       onExitComplete={onExitComplete}
     >
       <VerticalFocusGroup
