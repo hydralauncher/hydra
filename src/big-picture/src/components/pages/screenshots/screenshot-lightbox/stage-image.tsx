@@ -88,7 +88,7 @@ export function ScreenshotStageImage({
         })}
         fit="contain"
         sources={[screenshot.thumbnailUrl ?? "", screenshot.imageUrl]}
-        placeholder={screenshot.placeholder}
+        thumbHash={screenshot.thumbHash}
         alt={getScreenshotAltText(screenshot, t, language)}
         onLoad={onLoad}
         onError={handleLayerError}

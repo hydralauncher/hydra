@@ -71,7 +71,7 @@ export function PublishedScreenshotThumbnail({
                 "game-my-screenshots__image--spoiler": blurReason !== null,
               })}
               sources={[imageUrl]}
-              placeholder={screenshot.placeholder}
+              thumbHash={screenshot.thumbHash}
               alt=""
               loading="lazy"
               onError={() => void handleImageError()}

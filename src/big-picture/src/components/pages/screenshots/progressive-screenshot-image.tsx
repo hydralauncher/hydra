@@ -1,9 +1,11 @@
 import "./progressive-screenshot-image.scss";
 
 import cn from "classnames";
+import { getScreenshotThumbHashUrl } from "@shared";
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type SyntheticEvent,
@@ -15,7 +17,7 @@ export type ProgressiveScreenshotImageFit = "cover" | "contain";
 
 export interface ProgressiveScreenshotImageProps {
   sources: string[];
-  placeholder?: string | null;
+  thumbHash?: string | null;
   alt: string;
   className?: string;
   fit?: ProgressiveScreenshotImageFit;
@@ -106,7 +108,7 @@ function ProgressiveLayer({
 
 export function ProgressiveScreenshotImage({
   sources,
-  placeholder,
+  thumbHash,
   alt,
   className,
   fit = "cover",
@@ -115,6 +117,10 @@ export function ProgressiveScreenshotImage({
   onError,
   onPlaceholderLoad,
 }: Readonly<ProgressiveScreenshotImageProps>) {
+  const placeholder = useMemo(
+    () => getScreenshotThumbHashUrl(thumbHash),
+    [thumbHash]
+  );
   const [failedPlaceholder, setFailedPlaceholder] = useState<string | null>(
     null
   );

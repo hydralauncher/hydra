@@ -293,7 +293,7 @@ export function ScreenshotCard({
                   "screenshot-card__image--spoiler": blurReason !== null,
                 })}
                 sources={[imageUrl]}
-                placeholder={screenshot.placeholder}
+                thumbHash={screenshot.thumbHash}
                 alt={altText}
                 loading="lazy"
                 onError={() => void handleImageError()}
