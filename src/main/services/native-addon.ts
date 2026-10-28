@@ -128,6 +128,7 @@ type HydraNativeModule = {
   getWindowsForegroundWindow?: () => NativeForegroundWindowResponse | null;
   getLinuxWindowClientPid?: (windowId: string) => number | null;
   getKdeFocusedProcessId?: () => number | null;
+  startKdeFocusWatch?: () => void;
   stopKdeFocusWatch?: () => void;
   getWindowsWindowBounds?: (
     windowHandle: string
@@ -560,6 +561,16 @@ export class NativeAddon {
     } catch (error) {
       logger.warn("Failed to read the KWin active window", error);
       return undefined;
+    }
+  }
+
+  public static startKdeFocusWatch() {
+    if (process.platform !== "linux") return;
+
+    try {
+      this.load().startKdeFocusWatch?.();
+    } catch (error) {
+      logger.warn("Failed to start the KWin focus watch", error);
     }
   }
 
