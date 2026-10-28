@@ -108,7 +108,7 @@ export function ScreenshotStage({
               }
             )}
             fit="contain"
-            placeholder={screenshot.placeholder}
+            thumbHash={screenshot.thumbHash}
             sources={
               isShowingThumbnail
                 ? [screenshot.thumbnailUrl]

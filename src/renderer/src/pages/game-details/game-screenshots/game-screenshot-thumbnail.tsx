@@ -80,7 +80,7 @@ export function GameScreenshotThumbnail({
         {hasImage ? (
           <ProgressiveScreenshotImage
             className="game-screenshots-box__thumbnail-image"
-            placeholder={screenshot.placeholder}
+            thumbHash={screenshot.thumbHash}
             sources={[imageUrl]}
             alt={altText}
             loading="lazy"
