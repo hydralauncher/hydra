@@ -154,7 +154,7 @@ export function EditProfileModal(
               alt={userDetails.displayName}
             />
           }
-          label={t("current_photo")}
+          label={t(currentPhotoUrl ? "current_photo" : "no_photo")}
           isSelected={photoDraft === "current"}
           onClick={() => setPhotoDraft("current")}
         />
