@@ -137,6 +137,11 @@ pub fn get_kde_focused_process_id() -> napi::Result<Option<u32>> {
 }
 
 #[napi]
+pub fn start_kde_focus_watch() {
+    kde_focus::start_watch();
+}
+
+#[napi]
 pub fn stop_kde_focus_watch() {
     kde_focus::stop();
 }

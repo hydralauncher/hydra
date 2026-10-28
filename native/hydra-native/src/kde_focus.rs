@@ -1,7 +1,10 @@
 #[cfg(target_os = "linux")]
 mod linux {
-    use std::path::PathBuf;
-    use std::sync::atomic::{AtomicI64, Ordering};
+    use std::fs::OpenOptions;
+    use std::io::{ErrorKind, Write};
+    use std::os::unix::fs::OpenOptionsExt;
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
     use std::sync::{Arc, Mutex};
     use std::thread;
     use std::time::{Duration, Instant};
@@ -15,8 +18,7 @@ mod linux {
     const WATCH_INTERFACE: &str = "org.hydralauncher.FocusWatch";
     const SCRIPT_PLUGIN: &str = "hydra-focus-watch";
     const UNREPORTED: i64 = -1;
-    const FIRST_REPORT_TIMEOUT: Duration = Duration::from_millis(300);
-    const FIRST_REPORT_POLL: Duration = Duration::from_millis(10);
+    const METHOD_TIMEOUT: Duration = Duration::from_millis(500);
     const RETRY_AFTER_FAILURE: Duration = Duration::from_secs(10);
 
     struct FocusWatch {
@@ -40,11 +42,13 @@ mod linux {
 
     enum State {
         Idle,
+        Starting(u64),
         Running(Watcher),
         Failed(Instant),
     }
 
     static STATE: Mutex<State> = Mutex::new(State::Idle);
+    static NEXT_ATTEMPT: AtomicU64 = AtomicU64::new(0);
 
     fn script_source(service: &str) -> String {
         format!(
@@ -80,20 +84,43 @@ mod linux {
             .map(|_| ())
     }
 
+    fn write_private_file(path: &Path, contents: &str) -> std::io::Result<()> {
+        let open = || {
+            OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .open(path)
+        };
+        let mut file = match open() {
+            Err(error) if error.kind() == ErrorKind::AlreadyExists => {
+                std::fs::remove_file(path)?;
+                open()?
+            }
+            result => result?,
+        };
+        file.write_all(contents.as_bytes())
+    }
+
     fn start() -> Result<Watcher, String> {
+        let runtime_dir = std::env::var_os("XDG_RUNTIME_DIR")
+            .map(PathBuf::from)
+            .ok_or("XDG_RUNTIME_DIR is not set")?;
         let process_id = std::process::id();
         let service = format!("{WATCH_INTERFACE}.p{process_id}");
-        let plugin = String::from(SCRIPT_PLUGIN);
+        let plugin = format!("{SCRIPT_PLUGIN}-{process_id}");
         let pid = Arc::new(AtomicI64::new(UNREPORTED));
 
         let connection = connection::Builder::session()
             .and_then(|builder| builder.name(service.as_str()))
             .and_then(|builder| builder.serve_at(WATCH_PATH, FocusWatch { pid: pid.clone() }))
+            .map(|builder| builder.method_timeout(METHOD_TIMEOUT))
             .and_then(|builder| builder.build())
             .map_err(|error| error.to_string())?;
 
-        let script_path = std::env::temp_dir().join(format!("{plugin}.js"));
-        std::fs::write(&script_path, script_source(&service)).map_err(|error| error.to_string())?;
+        let script_path = runtime_dir.join(format!("{plugin}.js"));
+        write_private_file(&script_path, &script_source(&service))
+            .map_err(|error| error.to_string())?;
 
         let _ = call_scripting(&connection, "unloadScript", &(plugin.as_str(),));
         let script = script_path.to_string_lossy().into_owned();
@@ -125,41 +152,56 @@ mod linux {
         let _ = std::fs::remove_file(&watcher.script_path);
     }
 
-    fn wait_for_first_report(pid: &AtomicI64) -> i64 {
-        let deadline = Instant::now() + FIRST_REPORT_TIMEOUT;
-        loop {
-            let value = pid.load(Ordering::SeqCst);
-            if value != UNREPORTED || Instant::now() >= deadline {
-                return value;
+    fn finish_start(attempt: u64, result: Result<Watcher, String>) {
+        let Ok(mut state) = STATE.lock() else {
+            if let Ok(watcher) = result {
+                release(watcher);
             }
-            thread::sleep(FIRST_REPORT_POLL);
+            return;
+        };
+        let is_current = matches!(*state, State::Starting(current) if current == attempt);
+        match result {
+            Ok(watcher) if is_current => *state = State::Running(watcher),
+            Ok(watcher) => {
+                drop(state);
+                release(watcher);
+            }
+            Err(_) if is_current => *state = State::Failed(Instant::now()),
+            Err(_) => {}
+        }
+    }
+
+    fn begin_start(state: &mut State) {
+        if let State::Failed(failed_at) = *state {
+            if failed_at.elapsed() < RETRY_AFTER_FAILURE {
+                return;
+            }
+            *state = State::Idle;
+        }
+        if !matches!(*state, State::Idle) {
+            return;
+        }
+        let attempt = NEXT_ATTEMPT.fetch_add(1, Ordering::SeqCst);
+        *state = State::Starting(attempt);
+        thread::spawn(move || finish_start(attempt, start()));
+    }
+
+    pub fn start_watch() {
+        if let Ok(mut state) = STATE.lock() {
+            begin_start(&mut state);
         }
     }
 
     pub fn focused_process_id() -> Result<Option<u32>, String> {
         let mut state = STATE.lock().map_err(|error| error.to_string())?;
-        if let State::Failed(failed_at) = *state {
-            if failed_at.elapsed() < RETRY_AFTER_FAILURE {
-                return Err("KWin focus watch is unavailable".into());
-            }
-            *state = State::Idle;
-        }
-        if matches!(*state, State::Idle) {
-            match start() {
-                Ok(watcher) => *state = State::Running(watcher),
-                Err(error) => {
-                    *state = State::Failed(Instant::now());
-                    return Err(error);
-                }
-            }
-        }
+        begin_start(&mut state);
         let State::Running(watcher) = &*state else {
-            return Err("KWin focus watch is unavailable".into());
+            return Err("KWin focus watch is not running".into());
         };
 
-        let value = wait_for_first_report(&watcher.pid);
+        let value = watcher.pid.load(Ordering::SeqCst);
         if value == UNREPORTED {
-            return Err("KWin did not report the active window".into());
+            return Err("KWin has not reported the active window yet".into());
         }
         Ok(u32::try_from(value).ok().filter(|pid| *pid > 0))
     }
@@ -169,18 +211,22 @@ mod linux {
             return;
         };
         if let State::Running(watcher) = std::mem::replace(&mut *state, State::Idle) {
+            drop(state);
             release(watcher);
         }
     }
 }
 
 #[cfg(target_os = "linux")]
-pub use linux::{focused_process_id, stop};
+pub use linux::{focused_process_id, start_watch, stop};
 
 #[cfg(not(target_os = "linux"))]
 pub fn focused_process_id() -> Result<Option<u32>, String> {
     Err("KWin focus watch is only available on Linux".into())
 }
+
+#[cfg(not(target_os = "linux"))]
+pub fn start_watch() {}
 
 #[cfg(not(target_os = "linux"))]
 pub fn stop() {}
