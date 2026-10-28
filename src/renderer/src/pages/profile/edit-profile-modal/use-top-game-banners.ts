@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ArtworkItem, UserGame } from "@types";
 
-const TOP_GAMES_COUNT = 6;
+export const TOP_GAMES_COUNT = 6;
 
 // Large, community-made heroes without nsfw, humor or flashing content. The
 // API caches SteamGridDB, and the first result is the best scored one.
@@ -76,11 +76,13 @@ const fetchLibraryPage = async (userId: string, skip: number) => {
 /** A SteamGridDB hero for each of the user's most played games. */
 export function useTopGameBanners(userId: string | null) {
   const [banners, setBanners] = useState<TopGameBanner[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
 
     let isCancelled = false;
+    setIsLoading(true);
     void (async () => {
       const found: TopGameBanner[] = [];
       const seen = new Set<string>();
@@ -120,12 +122,14 @@ export function useTopGameBanners(userId: string | null) {
       }
 
       setBanners(found.slice(0, TOP_GAMES_COUNT));
-    })();
+    })().finally(() => {
+      if (!isCancelled) setIsLoading(false);
+    });
 
     return () => {
       isCancelled = true;
     };
   }, [userId]);
 
-  return banners;
+  return { banners, isLoading };
 }

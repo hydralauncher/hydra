@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import cn from "classnames";
+import Skeleton from "react-loading-skeleton";
 
 import {
   Avatar,
@@ -21,7 +22,11 @@ import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image
 import { EditProfilePreview } from "./edit-profile-preview";
 import { EditProfileTile, EditProfileUploadTile } from "./edit-profile-tile";
 import { usePixelAvatar } from "./use-pixel-avatar";
-import { useTopGameBanners, type TopGameBanner } from "./use-top-game-banners";
+import {
+  TOP_GAMES_COUNT,
+  useTopGameBanners,
+  type TopGameBanner,
+} from "./use-top-game-banners";
 import {
   useProfileImagePicker,
   type ProfileImageVariant,
@@ -98,9 +103,10 @@ export function EditProfileModal(
     }
   );
 
-  const topGameBanners = useTopGameBanners(
-    props.visible && hasOpenedBannerTab ? (userDetails?.id ?? null) : null
-  );
+  const { banners: topGameBanners, isLoading: isLoadingGameBanners } =
+    useTopGameBanners(
+      props.visible && hasOpenedBannerTab ? (userDetails?.id ?? null) : null
+    );
 
   const { pixelAvatarUrl, savePixelAvatar } = usePixelAvatar(
     props.visible ? (userDetails?.id ?? null) : null
@@ -330,24 +336,45 @@ export function EditProfileModal(
         )}
       </div>
 
-      {topGameBanners.length > 0 && (
+      {(isLoadingGameBanners || topGameBanners.length > 0) && (
         <>
           <div className="edit-profile-modal__section-header edit-profile-modal__section-header--spaced">
             <span>{t("from_your_games")}</span>
             <small>{t("from_your_games_hint")}</small>
           </div>
           <div className="edit-profile-modal__grid edit-profile-modal__grid--wide">
-            {topGameBanners.map((banner) => (
-              <EditProfileTile
-                key={banner.key}
-                art={renderGameBannerArt(banner)}
-                label={banner.title}
-                icon={banner.iconUrl}
-                isWide
-                isDisabled={downloadingBannerKey !== null}
-                onClick={() => void handleGameBannerClick(banner)}
-              />
-            ))}
+            {isLoadingGameBanners &&
+              Array.from({ length: TOP_GAMES_COUNT }, (_, index) => (
+                <div
+                  key={index}
+                  className="edit-profile-modal__tile edit-profile-modal__tile--wide edit-profile-modal__tile--skeleton"
+                  aria-hidden="true"
+                >
+                  <span className="edit-profile-modal__tile-art">
+                    <Skeleton
+                      width="100%"
+                      height="100%"
+                      borderRadius={0}
+                      containerClassName="edit-profile-modal__skeleton-fill"
+                    />
+                  </span>
+                  <span className="edit-profile-modal__tile-label">
+                    <Skeleton width="60%" height={14} />
+                  </span>
+                </div>
+              ))}
+            {!isLoadingGameBanners &&
+              topGameBanners.map((banner) => (
+                <EditProfileTile
+                  key={banner.key}
+                  art={renderGameBannerArt(banner)}
+                  label={banner.title}
+                  icon={banner.iconUrl}
+                  isWide
+                  isDisabled={downloadingBannerKey !== null}
+                  onClick={() => void handleGameBannerClick(banner)}
+                />
+              ))}
           </div>
         </>
       )}

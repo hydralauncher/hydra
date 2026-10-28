@@ -147,9 +147,22 @@ $hover-transition: 0.15s ease;
       opacity: globals.$disabled-opacity;
     }
 
+    &--skeleton,
+    &--skeleton:hover {
+      border-color: $line;
+      cursor: default;
+    }
+
     &--selected {
       outline-color: $selected-outline;
     }
+  }
+
+  &__skeleton-fill {
+    display: block;
+    width: 100%;
+    height: 100%;
+    line-height: 1;
   }
 
   &__tile-art {
