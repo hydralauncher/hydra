@@ -27,6 +27,7 @@ import type {
 } from "@types";
 
 import { ScreenshotCommentInput } from "./screenshot-comment-input";
+import { isScreenshotApproved } from "./screenshot-labels";
 import { ScreenshotCommentReportModal } from "./screenshot-report-modal";
 import type { ScreenshotFailure } from "./use-screenshot-actions";
 import type { ScreenshotPatch } from "@shared";
@@ -43,9 +44,7 @@ const getComposerState = (
   screenshot: ProfileScreenshot,
   isSignedIn: boolean
 ): ComposerState => {
-  const isApproved =
-    !screenshot.moderationStatus || screenshot.moderationStatus === "APPROVED";
-  if (!isApproved) return "unavailable";
+  if (!isScreenshotApproved(screenshot)) return "unavailable";
   if (!screenshot.commentsEnabled) return "turned_off";
   if (!isSignedIn) return "signed_out";
   if (!screenshot.canComment) return "not_allowed";

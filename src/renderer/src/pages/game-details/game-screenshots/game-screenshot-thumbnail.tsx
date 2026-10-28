@@ -7,6 +7,7 @@ import {
   ScreenshotStats,
   SensitiveScreenshotModal,
   getScreenshotGameTitle,
+  isScreenshotApproved,
   useScreenshotSpoiler,
   useSensitiveScreenshotConfirmation,
 } from "@renderer/components/screenshots";
@@ -53,13 +54,9 @@ export function GameScreenshotThumbnail({
     ? t("sensitive_content")
     : t("spoiler_reveal");
 
-  const openUnlessSpoiler = () => {
-    if (!isSpoilerHidden) onOpen(screenshot);
-  };
-
   const handleClick = () => {
     if (sensitive.isHidden) {
-      sensitive.requestReveal(openUnlessSpoiler);
+      sensitive.requestReveal(() => onOpen(screenshot));
       return;
     }
 
@@ -121,7 +118,7 @@ export function GameScreenshotThumbnail({
 
       <ScreenshotStats
         screenshot={screenshot}
-        isLikeDisabled={isLiking}
+        isLikeDisabled={isLiking || !isScreenshotApproved(screenshot)}
         showCommentCount={showCommentCount}
         className="game-screenshots-box__stats"
         onLike={onLike}
