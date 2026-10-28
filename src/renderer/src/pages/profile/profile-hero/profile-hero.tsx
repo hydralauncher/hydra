@@ -42,6 +42,7 @@ import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
 import { ProfileGamificationPills } from "./profile-gamification-pills";
+import { CoinIcon } from "@renderer/components/gamification";
 import "./profile-hero.scss";
 
 type FriendAction =
@@ -84,6 +85,9 @@ export function ProfileHero() {
   }, [editRequested, isMe, setSearchParams]);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
+  const isGamificationEnabled = useAppSelector(
+    (state) => state.gamification.isEnabled
+  );
   const { refreshProgress } = useGamificationProgress();
 
   useEffect(() => {
@@ -195,6 +199,17 @@ export function ProfileHero() {
     if (isMe) {
       return (
         <>
+          {isGamificationEnabled && (
+            <Button
+              theme="outline"
+              onClick={() => navigate("/shop")}
+              className="profile-hero__button--outline"
+            >
+              <CoinIcon />
+              {t("shop")}
+            </Button>
+          )}
+
           <Button
             theme="outline"
             onClick={() => setShowEditProfileModal(true)}
@@ -306,7 +321,15 @@ export function ProfileHero() {
         </Button>
       </>
     );
-  }, [handleFriendAction, isMe, t, isPerformingAction, userProfile]);
+  }, [
+    handleFriendAction,
+    isMe,
+    t,
+    isPerformingAction,
+    userProfile,
+    isGamificationEnabled,
+    navigate,
+  ]);
 
   const handleAvatarClick = useCallback(() => {
     if (userProfile?.profileImageUrl) {

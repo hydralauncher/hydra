@@ -44,6 +44,7 @@ const pathTitle: Record<string, string> = {
   "/downloads": "downloads",
   "/leaderboards": "leaderboards",
   "/settings": "settings",
+  "/shop": "shop",
 };
 
 export function Header() {

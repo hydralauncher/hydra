@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import cn from "classnames";
 import {
   CoinIcon,
@@ -13,22 +14,62 @@ import {
   useHoverHalo,
 } from "@renderer/components/gamification";
 import { useFormat } from "@renderer/hooks";
+import type { LevelProgress, LoginStreak } from "@types";
 import { openProfileTab } from "../profile-tab-events";
 import { useProfileGamification } from "../use-profile-gamification";
 import "./profile-gamification-pills.scss";
 
 const LEVEL_PILL_HALO_ALPHA = 0.07;
 
+/** The profile hero pills, fed by the viewed profile. */
 export function ProfileGamificationPills() {
-  const { t } = useTranslation("user_profile");
-  const { formatNumber } = useFormat();
+  const navigate = useNavigate();
   const { level, loginStreak, coins, isMe } = useProfileGamification();
-  const halo = useHoverHalo<HTMLDivElement>(LEVEL_PILL_HALO_ALPHA);
-  const shownCoins = useAnimatedNumber(coins ?? 0);
 
   if (!level) return null;
 
+  return (
+    <GamificationPills
+      level={level}
+      loginStreak={loginStreak}
+      coins={coins}
+      onLevelClick={isMe ? () => openProfileTab("missions") : undefined}
+      onCoinsClick={() => navigate("/shop")}
+    />
+  );
+}
+
+interface GamificationPillsProps {
+  level: LevelProgress;
+  loginStreak?: LoginStreak | null;
+  coins?: number | null;
+  onLevelClick?: () => void;
+  onCoinsClick?: () => void;
+}
+
+/** Level, streak and coins pills. Pills without data are left out. */
+export function GamificationPills({
+  level,
+  loginStreak = null,
+  coins = null,
+  onLevelClick,
+  onCoinsClick,
+}: Readonly<GamificationPillsProps>) {
+  const { t } = useTranslation("user_profile");
+  const { formatNumber } = useFormat();
+  const halo = useHoverHalo<HTMLDivElement>(LEVEL_PILL_HALO_ALPHA);
+  const shownCoins = useAnimatedNumber(coins ?? 0);
+
   const streakDays = loginStreak?.current ?? 0;
+  const coinsContent = (
+    <>
+      <CoinIcon />
+      <span>
+        <strong>{formatNumber(shownCoins)}</strong>{" "}
+        {t("coins_label", { count: coins ?? 0 })}
+      </span>
+    </>
+  );
 
   return (
     <div className="profile-gamification-pills">
@@ -37,17 +78,17 @@ export function ProfileGamificationPills() {
         className={cn(
           "profile-gamification-pills__pill",
           "profile-gamification-pills__pill--level",
-          { "profile-gamification-pills__pill--clickable": isMe }
+          { "profile-gamification-pills__pill--clickable": onLevelClick }
         )}
-        role={isMe ? "button" : undefined}
-        tabIndex={isMe ? 0 : undefined}
-        onClick={isMe ? () => openProfileTab("missions") : undefined}
+        role={onLevelClick ? "button" : undefined}
+        tabIndex={onLevelClick ? 0 : undefined}
+        onClick={onLevelClick}
         onKeyDown={
-          isMe
+          onLevelClick
             ? (event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
-                  openProfileTab("missions");
+                  onLevelClick();
                 }
               }
             : undefined
@@ -104,18 +145,27 @@ export function ProfileGamificationPills() {
         </div>
       )}
 
-      {coins !== null && (
-        <div
-          className="profile-gamification-pills__pill"
-          data-gamification-coins
-        >
-          <CoinIcon />
-          <span>
-            <strong>{formatNumber(shownCoins)}</strong>{" "}
-            {t("coins_label", { count: coins })}
-          </span>
-        </div>
-      )}
+      {coins !== null &&
+        (onCoinsClick ? (
+          <button
+            type="button"
+            className={cn(
+              "profile-gamification-pills__pill",
+              "profile-gamification-pills__pill--clickable"
+            )}
+            data-gamification-coins
+            onClick={onCoinsClick}
+          >
+            {coinsContent}
+          </button>
+        ) : (
+          <div
+            className="profile-gamification-pills__pill"
+            data-gamification-coins
+          >
+            {coinsContent}
+          </div>
+        ))}
     </div>
   );
 }
