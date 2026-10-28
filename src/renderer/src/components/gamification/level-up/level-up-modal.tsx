@@ -29,6 +29,7 @@ function SlamOverlay({ level }: Readonly<{ level: number }>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const tagRef = useRef<HTMLSpanElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
+  const continueRef = useRef<HTMLButtonElement>(null);
   const slamRef = useRef<SlamHandle | null>(null);
   const [reduced] = useState(prefersReducedMotion);
   const [isSkipped, setIsSkipped] = useState(reduced);
@@ -46,6 +47,7 @@ function SlamOverlay({ level }: Readonly<{ level: number }>) {
   const layout = useCallback(() => {
     const root = rootRef.current;
     if (!root || !tagRef.current || !footerRef.current) return;
+    slamRef.current?.resize();
     const { tagTop, numberOffset, footerTop } = getSlamLayout(
       root.clientWidth,
       root.clientHeight,
@@ -64,6 +66,17 @@ function SlamOverlay({ level }: Readonly<{ level: number }>) {
     return () => slamRef.current?.stop();
   }, [level, reduced, layout]);
 
+  // The overlay is modal: focus moves in, Tab stays on the Continue button, and focus goes back
+  // to where it was when the overlay closes.
+  useEffect(() => {
+    const previous =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    continueRef.current?.focus({ preventScroll: true });
+    return () => previous?.focus({ preventScroll: true });
+  }, []);
+
   // Clicking anywhere skips the animation. Enter/Space skip it too, then work as "Continue".
   // Esc closes at any time.
   useEffect(() => {
@@ -71,6 +84,9 @@ function SlamOverlay({ level }: Readonly<{ level: number }>) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         close();
+      } else if (event.key === "Tab") {
+        event.preventDefault();
+        continueRef.current?.focus({ preventScroll: true });
       } else if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         if (isSkippedRef.current) close();
@@ -110,6 +126,7 @@ function SlamOverlay({ level }: Readonly<{ level: number }>) {
         }}
       >
         <button
+          ref={continueRef}
           type="button"
           className="level-up__continue"
           onClick={(event) => {
