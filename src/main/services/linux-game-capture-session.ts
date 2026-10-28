@@ -35,6 +35,7 @@ interface CaptureSessionRegistration {
 
 const sessions = new Map<string, CaptureSessionRegistration>();
 const CAPTURE_TEARDOWN_DELAY_MS = 1_000;
+const CAPTURE_PREPARATION_WAIT_MS = 1_500;
 
 const isReasonEligible = (
   reason: CaptureSessionReason,
@@ -357,7 +358,17 @@ export const grabLinuxGameSessionFrame = async (
     throw new Error("No Wayland game window capture session is available");
   }
 
-  await registration.preparation;
+  const isPrepared = await Promise.race([
+    registration.preparation.then(() => true),
+    new Promise<false>((resolve) =>
+      setTimeout(() => resolve(false), CAPTURE_PREPARATION_WAIT_MS)
+    ),
+  ]);
+  if (!isPrepared) {
+    throw new Error(
+      "Wayland game window capture is not ready, the window share was not granted yet"
+    );
+  }
   const captureWindow = registration.window;
 
   if (!captureWindow || captureWindow.isDestroyed()) {
