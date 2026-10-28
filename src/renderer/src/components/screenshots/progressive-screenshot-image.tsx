@@ -1,5 +1,6 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import cn from "classnames";
+import { getScreenshotThumbHashUrl } from "@shared";
 
 import "./progressive-screenshot-image.scss";
 
@@ -8,7 +9,7 @@ type LayerState = "loaded" | "instant" | "failed";
 export type ProgressiveScreenshotImageFit = "cover" | "contain";
 
 export interface ProgressiveScreenshotImageProps {
-  placeholder?: string | null;
+  thumbHash?: string | null;
   sources: (string | null | undefined)[];
   alt: string;
   fit?: ProgressiveScreenshotImageFit;
@@ -53,7 +54,7 @@ const pickPresentLevels = (
 };
 
 export function ProgressiveScreenshotImage({
-  placeholder,
+  thumbHash,
   sources,
   alt,
   fit = "cover",
@@ -63,6 +64,10 @@ export function ProgressiveScreenshotImage({
   onBestLayerLoad,
   onDoubleClick,
 }: Readonly<ProgressiveScreenshotImageProps>) {
+  const placeholder = useMemo(
+    () => getScreenshotThumbHashUrl(thumbHash),
+    [thumbHash]
+  );
   const layers = uniqueSources(sources);
   const layersKey = [placeholder ?? "", ...layers].join("\n");
   const [states, setStates] = useState<Record<number, LayerState>>({});

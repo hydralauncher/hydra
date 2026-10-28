@@ -68,6 +68,7 @@ export * from "./screenshot-spoiler-paging";
 export * from "./screenshot-write-bus";
 export * from "./screenshot-settings";
 export * from "./screenshot-date-groups";
+export * from "./screenshot-thumb-hash";
 export * from "./my-game-screenshots";
 export * from "./use-screenshot-image-fallback";
 export * from "./rich-text";
