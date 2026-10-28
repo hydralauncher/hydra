@@ -12,12 +12,16 @@ import { useMissionFormat, useNow } from "./use-mission-format";
 import { WeeklyMissions } from "./weekly-missions";
 import "./missions-tab.scss";
 
+// After a failed rollover fetch, wait this long before trying the same period again.
+const ROLLOVER_RETRY_MS = 30_000;
+
 export function MissionsTab() {
   const { missions, trails, refreshMissions, refreshTrails } =
     useGamificationMissions();
   const { formatResetLabel } = useMissionFormat();
   const now = useNow();
   const lastRolloverRef = useRef<string | null>(null);
+  const rolloverRetryAtRef = useRef(0);
 
   useEffect(() => {
     void refreshMissions();
@@ -32,9 +36,17 @@ export function MissionsTab() {
       Date.parse(missions.weekly.resetsAt)
     );
     const rolloverKey = `${missions.daily.period}:${missions.weekly.period}`;
-    if (now >= nextReset && lastRolloverRef.current !== rolloverKey) {
+    if (
+      now >= nextReset &&
+      now >= rolloverRetryAtRef.current &&
+      lastRolloverRef.current !== rolloverKey
+    ) {
       lastRolloverRef.current = rolloverKey;
-      void refreshMissions();
+      void refreshMissions().then((isLoaded) => {
+        if (isLoaded) return;
+        lastRolloverRef.current = null;
+        rolloverRetryAtRef.current = Date.now() + ROLLOVER_RETRY_MS;
+      });
     }
   }, [now, missions, refreshMissions]);
 

@@ -27,8 +27,10 @@ export function useGamificationMissions() {
           "/profile/missions"
         );
       dispatch(setGamificationMissions(response));
+      return true;
     } catch (error) {
       logger.error("Failed to load missions", error);
+      return false;
     }
   }, [dispatch]);
 
