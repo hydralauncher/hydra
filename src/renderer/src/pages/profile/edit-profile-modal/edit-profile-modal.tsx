@@ -26,6 +26,7 @@ import { useSubscription } from "@renderer/hooks/use-subscription";
 import type { UpdateProfileRequest } from "@types";
 
 import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
+import { BannerArt } from "./banner-art";
 import { EditProfilePreview } from "./edit-profile-preview";
 import { EditProfileTile, EditProfileUploadTile } from "./edit-profile-tile";
 import { usePixelAvatar } from "./use-pixel-avatar";
@@ -51,6 +52,9 @@ type BannerDraft = "current" | "new" | "none";
 // Same limits as the previous modal and the API (updateUserProfileSchema).
 const DISPLAY_NAME_MIN = 3;
 const DISPLAY_NAME_MAX = 50;
+
+// About the tab underline's spring, so the banners paint after it.
+const BANNER_TAB_SETTLE_MS = 400;
 
 const localUrl = (path: string | null) => (path ? `local:${path}` : null);
 
@@ -84,6 +88,10 @@ export function EditProfileModal(
   const [isSaving, setIsSaving] = useState(false);
   // Game banners load the first time the Banner tab opens.
   const [hasOpenedBannerTab, setHasOpenedBannerTab] = useState(false);
+  // Banners stay as skeletons while the Banner tab switches in, like on the
+  // first opening, so their decoding doesn't stall the tab animation.
+  const [isBannerTabSettling, setIsBannerTabSettling] = useState(false);
+  const settleTimeoutRef = useRef<number>();
   const [downloadingBannerKey, setDownloadingBannerKey] = useState<
     string | null
   >(null);
@@ -92,12 +100,15 @@ export function EditProfileModal(
     if (!props.visible) return;
     setTab("photo");
     setHasOpenedBannerTab(false);
+    setIsBannerTabSettling(false);
     setDisplayName(savedNameRef.current);
     setPhotoDraft("current");
     setBannerDraft("current");
     setNewPhotoPath(null);
     setNewBannerPath(null);
   }, [props.visible]);
+
+  useEffect(() => () => window.clearTimeout(settleTimeoutRef.current), []);
 
   const { pickImage, cropImage, cropModalProps } = useProfileImagePicker(
     (variant: ProfileImageVariant, croppedPath: string) => {
@@ -300,7 +311,7 @@ export function EditProfileModal(
         "edit-profile-modal__banner-art--empty": !url,
       })}
     >
-      {url && <img src={url} alt="" decoding="async" />}
+      {url && <BannerArt src={url} isDeferred={isBannerTabSettling} />}
     </span>
   );
 
@@ -309,11 +320,7 @@ export function EditProfileModal(
     const { src, isVideo } = getArtworkDisplaySource(banner.hero);
     return (
       <span className="edit-profile-modal__banner-art">
-        {isVideo ? (
-          <video src={src} autoPlay loop muted playsInline />
-        ) : (
-          <img src={src} alt="" decoding="async" />
-        )}
+        <BannerArt src={src} isVideo={isVideo} />
       </span>
     );
   };
@@ -331,6 +338,8 @@ export function EditProfileModal(
           amount: numberFormatter.format(minutes / 60),
         });
   };
+
+  const showGameBannerSkeletons = isLoadingGameBanners || isBannerTabSettling;
 
   const renderBannerPane = () => (
     <>
@@ -374,14 +383,14 @@ export function EditProfileModal(
         )}
       </div>
 
-      {(isLoadingGameBanners || topGameBanners.length > 0) && (
+      {(showGameBannerSkeletons || topGameBanners.length > 0) && (
         <>
           <div className="edit-profile-modal__section-header edit-profile-modal__section-header--spaced">
             <span>{t("from_your_games")}</span>
             <small>{t("from_your_games_hint")}</small>
           </div>
           <div className="edit-profile-modal__grid edit-profile-modal__grid--wide">
-            {isLoadingGameBanners &&
+            {showGameBannerSkeletons &&
               Array.from({ length: TOP_GAMES_COUNT }, (_, index) => (
                 <div
                   key={index}
@@ -399,7 +408,7 @@ export function EditProfileModal(
                   <span className="edit-profile-modal__tile-label" />
                 </div>
               ))}
-            {!isLoadingGameBanners &&
+            {!showGameBannerSkeletons &&
               topGameBanners.map((banner) => (
                 <EditProfileTile
                   key={banner.key}
@@ -478,7 +487,15 @@ export function EditProfileModal(
                   })}
                   onClick={() => {
                     setTab(id);
-                    if (id === "banner") setHasOpenedBannerTab(true);
+                    if (id === "banner") {
+                      setHasOpenedBannerTab(true);
+                      setIsBannerTabSettling(true);
+                      window.clearTimeout(settleTimeoutRef.current);
+                      settleTimeoutRef.current = window.setTimeout(
+                        () => setIsBannerTabSettling(false),
+                        BANNER_TAB_SETTLE_MS
+                      );
+                    }
                   }}
                 >
                   {t(`edit_profile_tab_${id}`)}
