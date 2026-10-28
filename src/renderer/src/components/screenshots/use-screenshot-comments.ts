@@ -134,13 +134,14 @@ export function useScreenshotComments({
   const { showErrorToast, showSuccessToast } = useToast();
   const ownerId = screenshot.owner.id;
   const screenshotId = screenshot.id;
+  const draftKey = `${author?.id ?? ""}:${screenshotId}`;
   const [comments, setComments] = useState<ScreenshotComment[]>([]);
   const [total, setTotal] = useState<number | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
   const { restoredDraft, clearRestoredDraft } =
-    useRestoredCommentDraft(screenshotId);
+    useRestoredCommentDraft(draftKey);
   const [pendingCommentIds, setPendingCommentIds] = useState<
     ReadonlySet<string>
   >(() => new Set());
@@ -384,13 +385,21 @@ export function useScreenshotComments({
         recordWrite({ kind: "delete", commentId: pendingId });
         setTotal((current) => Math.max(0, (current ?? 1) - 1));
         onPatch(screenshotId, adjustCommentCount(-1));
-        queueRestoredCommentDraft(screenshotId, bodyHtml);
+        queueRestoredCommentDraft(draftKey, bodyHtml);
         handleWriteError(error, "comment_post_failed");
       } finally {
         setPending(pendingId, false);
       }
     },
-    [handleWriteError, onPatch, ownerId, recordWrite, screenshotId, setPending]
+    [
+      draftKey,
+      handleWriteError,
+      onPatch,
+      ownerId,
+      recordWrite,
+      screenshotId,
+      setPending,
+    ]
   );
 
   const createComment = useCallback(

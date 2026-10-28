@@ -705,6 +705,7 @@ export function ProfileContent() {
 
               {activeTab === "screenshots" && isScreenshotsEnabled && (
                 <ScreenshotsTab
+                  key={userProfile.id}
                   userId={userProfile.id}
                   isMe={isMe}
                   requestedScreenshotId={

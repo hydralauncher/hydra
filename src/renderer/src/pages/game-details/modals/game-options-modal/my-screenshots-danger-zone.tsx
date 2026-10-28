@@ -85,7 +85,7 @@ export function MyScreenshotsDangerZone({
       {
         shop,
         objectId,
-        isSignedIn: Boolean(userId) && !counts.hasPublishedFailed,
+        isSignedIn: Boolean(userId),
       },
       myGameScreenshotsApi,
       myGameScreenshotsLocal
