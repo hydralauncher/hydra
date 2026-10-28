@@ -21,13 +21,13 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import { getArtworkDisplaySource } from "@renderer/hooks/use-game-artwork-grid";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import type { UpdateProfileRequest } from "@types";
 
 import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
 import { EditProfilePreview } from "./edit-profile-preview";
 import { EditProfileTile, EditProfileUploadTile } from "./edit-profile-tile";
-import { LoopingVideo } from "./looping-video";
 import { usePixelAvatar } from "./use-pixel-avatar";
 import {
   TOP_GAMES_COUNT,
@@ -290,17 +290,15 @@ export function EditProfileModal(
     </span>
   );
 
-  // Animated heroes come with a small video thumb; playing it is far lighter
-  // than decoding the full-size animated image in a 230 px tile.
+  // Same media choice as the game settings' artwork picker.
   const renderGameBannerArt = (banner: TopGameBanner) => {
-    const { thumb } = banner.hero;
-    const isVideoThumb = /\.(webm|mp4)$/i.test(thumb);
+    const { src, isVideo } = getArtworkDisplaySource(banner.hero);
     return (
       <span className="edit-profile-modal__banner-art">
-        {isVideoThumb ? (
-          <LoopingVideo src={thumb} />
+        {isVideo ? (
+          <video src={src} autoPlay loop muted playsInline />
         ) : (
-          <img src={thumb} alt="" />
+          <img src={src} alt="" decoding="async" />
         )}
       </span>
     );
