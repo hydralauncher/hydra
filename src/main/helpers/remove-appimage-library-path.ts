@@ -1,21 +1,14 @@
-export const removeAppImageLibraryPath = (
-  env: NodeJS.ProcessEnv = process.env
-) => {
-  const appDir = env.APPDIR;
-  const libraryPath = env.LD_LIBRARY_PATH;
+export const removeAppImageLibraryPath = () => {
+  const { APPIMAGE, APPDIR, LD_LIBRARY_PATH } = process.env;
+  if (!APPIMAGE || !APPDIR || LD_LIBRARY_PATH === undefined) return;
 
-  if (!env.APPIMAGE || !appDir || libraryPath === undefined) return;
-
-  const isInsideAppDir = (entry: string) =>
-    entry === appDir || entry.startsWith(`${appDir}/`);
-
-  const remainingEntries = libraryPath
-    .split(":")
-    .filter((entry) => entry && !isInsideAppDir(entry));
+  const remainingEntries = LD_LIBRARY_PATH.split(":").filter(
+    (entry) => entry && entry !== `${APPDIR}/usr/lib`
+  );
 
   if (remainingEntries.length > 0) {
-    env.LD_LIBRARY_PATH = remainingEntries.join(":");
+    process.env.LD_LIBRARY_PATH = remainingEntries.join(":");
   } else {
-    delete env.LD_LIBRARY_PATH;
+    delete process.env.LD_LIBRARY_PATH;
   }
 };
