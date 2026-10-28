@@ -4,6 +4,7 @@ import { gamesSublevel } from "@main/level";
 import { resolveScreenshotPreferences } from "@shared";
 import type {
   GameShop,
+  LocalScreenshot,
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
 } from "@types";
@@ -20,6 +21,10 @@ import { logger } from "../logger";
 import { ScreenshotInputService } from "../screenshot-input";
 import { WindowManager } from "../window-manager";
 import { forgetForegroundGame } from "./foreground-game";
+import {
+  filterLocalScreenshotsForSignedInOwner,
+  isLocalScreenshotVisibleToSignedInOwner,
+} from "./local-screenshot-owner";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import {
   pruneMissingLocalScreenshots,
@@ -48,6 +53,13 @@ export { screenshotUploadWorker } from "./screenshot-upload-worker";
 
 let initialized = false;
 
+const broadcastLocalScreenshots = (screenshots: LocalScreenshot[]) => {
+  WindowManager.sendToAppWindows(
+    "on-local-screenshots-change",
+    filterLocalScreenshotsForSignedInOwner(screenshots)
+  );
+};
+
 const isScreenshotCaptureAvailable = async () => {
   const preferences = resolveScreenshotPreferences(await readUserPreferences());
   return preferences.enabled && (await isScreenshotsFeatureEnabled());
@@ -61,8 +73,16 @@ export const initializeScreenshots = () => {
     void handleScreenshotTrigger(source);
   });
 
-  LocalScreenshotStore.onChange((screenshots) => {
-    WindowManager.sendToAppWindows("on-local-screenshots-change", screenshots);
+  LocalScreenshotStore.onChange(broadcastLocalScreenshots);
+  HydraApi.onAuthContextChanged(() => {
+    void LocalScreenshotStore.list()
+      .then(broadcastLocalScreenshots)
+      .catch((error: unknown) => {
+        logger.error(
+          "Failed to refresh local screenshots for the account",
+          error
+        );
+      });
   });
 
   screenshotUploadWorker.onMissingFile(removeLocalScreenshotIfMissing);
@@ -129,14 +149,18 @@ export const applyScreenshotsEnabledPreference = async (
 };
 
 export const getLocalScreenshots = async () =>
-  pruneMissingLocalScreenshots(await LocalScreenshotStore.list());
+  pruneMissingLocalScreenshots(
+    filterLocalScreenshotsForSignedInOwner(await LocalScreenshotStore.list())
+  );
 
 export const getLocalScreenshotsForGame = async (
   shop: GameShop,
   objectId: string
 ) =>
   pruneMissingLocalScreenshots(
-    await LocalScreenshotStore.listForGame(shop, objectId)
+    filterLocalScreenshotsForSignedInOwner(
+      await LocalScreenshotStore.listForGame(shop, objectId)
+    )
   );
 
 export const getScreenshotsFolderPath = () => getScreenshotsFolder();
@@ -199,13 +223,17 @@ export {
   forgetPublishedScreenshots,
 } from "./local-screenshot-removal";
 
-export const updateLocalScreenshotDraft = (
+export const updateLocalScreenshotDraft = async (
   clientId: string,
   draft: LocalScreenshotDraft
-) =>
-  LocalScreenshotStore.update(clientId, (current) =>
+) => {
+  const screenshot = await LocalScreenshotStore.get(clientId);
+  if (!isLocalScreenshotVisibleToSignedInOwner(screenshot)) return null;
+
+  return LocalScreenshotStore.update(clientId, (current) =>
     buildLocalScreenshotDraftPatch(current, draft)
   );
+};
 
 export const openScreenshotsFolder = async () => {
   const directory = await getScreenshotsFolder();
