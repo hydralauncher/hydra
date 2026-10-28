@@ -839,22 +839,25 @@ export function MediaViewer({
               >
                 <SidebarSimpleIcon size={30} weight="bold" mirrored />
               </button>
-              <BumperBadge label="Y" />
+              <BumperBadge label="Y" className="bumper-badge--round" />
             </div>
           ) : null}
 
-          <button
-            type="button"
-            className="media-viewer__exit-button"
-            onClick={close}
-            aria-label={t("exit_fullscreen")}
-            tabIndex={-1}
-            data-tooltip-id={GALLERY_VIEWER_TOOLTIP_ID}
-            data-tooltip-content={`${t("exit_fullscreen")} (F)`}
-            data-tooltip-place="top"
-          >
-            <CornersIn size={34} weight="bold" />
-          </button>
+          <div className="media-viewer__exit">
+            <button
+              type="button"
+              className="media-viewer__exit-button"
+              onClick={close}
+              aria-label={t("exit_fullscreen")}
+              tabIndex={-1}
+              data-tooltip-id={GALLERY_VIEWER_TOOLTIP_ID}
+              data-tooltip-content={`${t("exit_fullscreen")} (F)`}
+              data-tooltip-place="top"
+            >
+              <CornersIn size={34} weight="bold" />
+            </button>
+            <BumperBadge label="B" className="bumper-badge--round" />
+          </div>
         </div>
       )}
     </>

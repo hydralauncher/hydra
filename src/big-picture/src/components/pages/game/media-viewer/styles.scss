@@ -294,6 +294,14 @@ $media-viewer-layer-fade: 280ms;
     background-color: var(--secondary);
   }
 
+  &__sidebar-toggle,
+  &__exit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 2.5);
+  }
+
   &__exit-button {
     @include fullscreen-button.look;
     @include fullscreen-button.size(72px);
@@ -339,13 +347,6 @@ $media-viewer-layer-fade: 280ms;
   .media-viewer__footer {
     align-items: flex-start;
     justify-content: flex-end;
-  }
-
-  .media-viewer__sidebar-toggle {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: calc(var(--spacing-unit) * 2.5);
   }
 
   .media-viewer__sidebar-toggle-button {
