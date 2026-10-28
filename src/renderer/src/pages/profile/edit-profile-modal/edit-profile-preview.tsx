@@ -1,4 +1,6 @@
+import { useContext } from "react";
 import { Avatar } from "@renderer/components";
+import { userProfileContext } from "@renderer/context";
 import { useGamificationProgress } from "@renderer/hooks";
 import { GamificationPills } from "../profile-hero/profile-gamification-pills";
 
@@ -17,17 +19,24 @@ export function EditProfilePreview({
   showLevel,
 }: Readonly<EditProfilePreviewProps>) {
   const { progress } = useGamificationProgress();
+  // Same solid color the profile hero uses when there is no banner.
+  const { heroBackground } = useContext(userProfileContext);
 
   return (
-    <div className="edit-profile-modal__preview">
+    <div
+      className="edit-profile-modal__preview"
+      style={{ background: backgroundImageUrl ? undefined : heroBackground }}
+    >
       {backgroundImageUrl && (
-        <img
-          src={backgroundImageUrl}
-          alt=""
-          className="edit-profile-modal__preview-banner"
-        />
+        <>
+          <img
+            src={backgroundImageUrl}
+            alt=""
+            className="edit-profile-modal__preview-banner"
+          />
+          <i className="edit-profile-modal__preview-shade" />
+        </>
       )}
-      <i className="edit-profile-modal__preview-shade" />
 
       <div className="edit-profile-modal__preview-who">
         <Avatar size={96} src={profileImageUrl} alt={displayName} />

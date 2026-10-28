@@ -36,14 +36,7 @@ $hover-transition: 0.15s ease;
     overflow: hidden;
     border: 1px solid $line;
     border-radius: 6px;
-    background:
-      linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.5)),
-      radial-gradient(
-        ellipse 45% 90% at 78% 30%,
-        rgba(70, 100, 160, 0.5),
-        transparent 70%
-      ),
-      linear-gradient(90deg, #2a1a0f, #1a1410 45%, #0f1830);
+    // Without a banner, the solid hero color comes inline, as on the profile.
   }
 
   &__preview-banner {
