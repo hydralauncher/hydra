@@ -36,6 +36,7 @@ export function LocalScreenshotTile({
   const deleteLabel = t("delete_screenshot");
   const isUploading = uploadStatus !== null;
   const hasUploadFailed = !isUploading && screenshot.state === "failed";
+  const canDelete = !isUploading && screenshot.state !== "uploaded";
 
   const getUploadLabel = (status: LocalScreenshotUploadStatus) => {
     if (status.state === "queued") return tCapture("queued");
@@ -87,12 +88,12 @@ export function LocalScreenshotTile({
         </span>
       ) : null}
 
-      <div className="local-screenshot-tile__actions" hidden={isUploading}>
+      <div className="local-screenshot-tile__actions" hidden={!canDelete}>
         <button
           type="button"
           className="local-screenshot-tile__action local-screenshot-tile__action--danger"
           onClick={() => onDelete(screenshot)}
-          disabled={isBusy || isUploading}
+          disabled={isBusy || !canDelete}
           aria-label={deleteLabel}
           data-tooltip-id={tooltipId}
           data-tooltip-content={deleteLabel}
