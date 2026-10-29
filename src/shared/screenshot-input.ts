@@ -38,8 +38,9 @@ const LETTER_KEYS = Array.from(
 );
 const DIGIT_KEYS = Array.from("0123456789", (digit) => `Digit${digit}`);
 const FUNCTION_KEYS = Array.from({ length: 24 }, (_, index) => `F${index + 1}`);
+const NUMPAD_DIGIT_KEYS = Array.from("0123456789", (digit) => `Numpad${digit}`);
 const NUMPAD_KEYS = [
-  ...Array.from("0123456789", (digit) => `Numpad${digit}`),
+  ...NUMPAD_DIGIT_KEYS,
   "NumpadAdd",
   "NumpadSubtract",
   "NumpadMultiply",
@@ -87,6 +88,7 @@ export const SCREENSHOT_HOTKEY_KEYS: readonly string[] = [
 const KEYS_REQUIRING_MODIFIER = new Set([
   ...LETTER_KEYS,
   ...DIGIT_KEYS,
+  ...NUMPAD_DIGIT_KEYS,
   ...PUNCTUATION_KEYS,
   ...TYPING_CONTROL_KEYS,
   ...ARROW_KEYS,
