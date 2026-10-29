@@ -3,6 +3,7 @@ import {
   ImageIcon,
   SortAscendingIcon,
   UsersThreeIcon,
+  XIcon,
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -55,6 +56,7 @@ import {
 } from "../../../../types";
 import {
   GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID,
+  GAME_SCREENSHOTS_MODAL_CLOSE_ID,
   GAME_SCREENSHOTS_MODAL_GRID_REGION_ID,
   GAME_SCREENSHOTS_MODAL_LIST_REGION_ID,
   GAME_SCREENSHOTS_MODAL_LOAD_MORE_ID,
@@ -516,12 +518,14 @@ interface MyScreenshotsMessageProps {
   tab: MyScreenshotsTab;
   hasFailed: boolean;
   onBrowseCommunity?: () => void;
+  onClose: () => void;
 }
 
 function MyScreenshotsMessage({
   tab,
   hasFailed,
   onBrowseCommunity,
+  onClose,
 }: Readonly<MyScreenshotsMessageProps>) {
   const { t } = useTranslation("big_picture");
 
@@ -564,7 +568,17 @@ function MyScreenshotsMessage({
         >
           {t("screenshots_browse_community")}
         </Button>
-      ) : null}
+      ) : (
+        <Button
+          variant="secondary"
+          size="small"
+          focusId={GAME_SCREENSHOTS_MODAL_CLOSE_ID}
+          icon={<XIcon size={18} />}
+          onClick={onClose}
+        >
+          {t("screenshots_close")}
+        </Button>
+      )}
     </div>
   );
 }
@@ -572,11 +586,13 @@ function MyScreenshotsMessage({
 interface MyScreenshotsListProps {
   tab: MyScreenshotsTab;
   onBrowseCommunity?: () => void;
+  onClose: () => void;
 }
 
 function MyScreenshotsList({
   tab,
   onBrowseCommunity,
+  onClose,
 }: Readonly<MyScreenshotsListProps>) {
   const { mine, local, entries, openEntry } = tab;
   const { feed } = mine;
@@ -584,7 +600,7 @@ function MyScreenshotsList({
   const getDayLabel = useCaptureDayLabel();
 
   if (mine.hasFailed) {
-    return <MyScreenshotsMessage tab={tab} hasFailed />;
+    return <MyScreenshotsMessage tab={tab} hasFailed onClose={onClose} />;
   }
   if (tab.isLoading) return <ScreenshotSkeletonGrid />;
 
@@ -604,6 +620,7 @@ function MyScreenshotsList({
         tab={tab}
         hasFailed={false}
         onBrowseCommunity={onBrowseCommunity}
+        onClose={onClose}
       />
     );
   }
@@ -684,6 +701,7 @@ function MyScreenshotsList({
 function MyScreenshotsPanel({
   tab,
   onBrowseCommunity,
+  onClose,
 }: Readonly<MyScreenshotsListProps>) {
   return (
     <VerticalFocusGroup
@@ -692,7 +710,11 @@ function MyScreenshotsPanel({
       asChild
     >
       <div className="game-screenshots-modal__scroll">
-        <MyScreenshotsList tab={tab} onBrowseCommunity={onBrowseCommunity} />
+        <MyScreenshotsList
+          tab={tab}
+          onBrowseCommunity={onBrowseCommunity}
+          onClose={onClose}
+        />
       </div>
     </VerticalFocusGroup>
   );
@@ -788,8 +810,10 @@ export function GameScreenshotsModal({
     setTab(initialTab);
   }, [initialTab, visible]);
 
-  const mineFocusId =
-    mineTab.firstFocusId ?? GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID;
+  const emptyMineFocusId = hasCommunity
+    ? GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID
+    : GAME_SCREENSHOTS_MODAL_CLOSE_ID;
+  const mineFocusId = mineTab.firstFocusId ?? emptyMineFocusId;
   const [mineInitialFocusId, setMineInitialFocusId] = useState<string>();
   const isMineReady = activeTab === "mine" && !mineTab.isLoading;
 
@@ -857,6 +881,7 @@ export function GameScreenshotsModal({
                 onBrowseCommunity={
                   hasCommunity ? () => selectTab("community") : undefined
                 }
+                onClose={onClose}
               />
             ) : (
               <CommunityScreenshotsPanel community={community} />
