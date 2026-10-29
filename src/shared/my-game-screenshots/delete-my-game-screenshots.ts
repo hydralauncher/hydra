@@ -41,6 +41,18 @@ class PartialDeletionError extends Error {
   }
 }
 
+const continueAfterServerDeletion = async <T>(
+  deleted: number,
+  step: () => Promise<T>
+) => {
+  try {
+    return await step();
+  } catch (error) {
+    if (error instanceof PartialDeletionError) throw error;
+    throw new PartialDeletionError(deleted, error);
+  }
+};
+
 const deletePublishedScreenshot = async (
   api: MyGameScreenshotsApi,
   id: string
@@ -94,7 +106,9 @@ const deletePublishedOnServer = async (
 const deletePublished = async (context: DeletionContext) => {
   const ids = await getPublishedIds(context);
   const deleted = await deletePublishedOnServer(context, ids);
-  await forgetPublished(context, ids);
+  await continueAfterServerDeletion(deleted, () =>
+    forgetPublished(context, ids)
+  );
   return deleted;
 };
 
@@ -158,16 +172,16 @@ const deleteAll = async (context: DeletionContext) => {
 
   const published = await deletePublishedOnServer(context, knownIds);
 
-  const local = await deleteLocalFiles(context);
+  const local = await continueAfterServerDeletion(published, () =>
+    deleteLocalFiles(context)
+  );
   const publishedCopies = Math.max(0, local.expected - pendingBefore);
   const unsentDeleted = Math.max(0, local.deleted - publishedCopies);
   const deleted = published + unsentDeleted;
 
-  try {
-    await deleteLatePublished(context, knownIds);
-  } catch (error) {
-    throw new PartialDeletionError(deleted, error);
-  }
+  await continueAfterServerDeletion(deleted, () =>
+    deleteLatePublished(context, knownIds)
+  );
   return { deleted, isComplete: local.isComplete };
 };
 
