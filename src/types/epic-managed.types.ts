@@ -42,7 +42,7 @@ export interface EpicDownloadMetadata {
   phase?: "preparing" | "downloading" | "finalizing" | "prerequisites";
   error?: EpicInstallError;
   selection?: EpicInstallSelection;
-  update?: { fromVersion: string; toVersion: string };
+  update?: { fromVersion: string; toVersion: string; filesChanged?: boolean };
 }
 
 export type EpicInstallError =

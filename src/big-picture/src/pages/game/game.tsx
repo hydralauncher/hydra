@@ -13,6 +13,7 @@ import {
   getInstalledStoreMembers,
   getOfficialStoreMembers,
   isEpicMemberInCurrentScope,
+  getEpicMemberDownload,
   isEpicUpdateInterrupted,
   isLibraryGameDownloading,
 } from "@shared";
@@ -213,19 +214,6 @@ const REGION_LABELS: Record<SkuRegion, string> = {
   KR: "Korea",
   ASIA: "Asia",
 };
-
-function getEpicMemberDownload(
-  member: LibraryGame | null,
-  downloadGame: LibraryGame | null | undefined
-) {
-  if (!member) return null;
-  if (
-    downloadGame?.shop === member.shop &&
-    downloadGame.objectId === member.objectId
-  )
-    return downloadGame.download;
-  return member.download;
-}
 
 function easeOutCubic(progress: number) {
   return 1 - Math.pow(1 - progress, 3);

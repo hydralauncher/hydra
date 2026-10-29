@@ -161,7 +161,18 @@ describe("Epic game updates", () => {
   });
 
   it("treats only a stopped update as interrupted", () => {
-    const update = { fromVersion: "build-1", toVersion: "build-2" };
+    const update = {
+      fromVersion: "build-1",
+      toVersion: "build-2",
+      filesChanged: true,
+    };
+    assert.equal(
+      isEpicUpdateInterrupted({
+        status: "error",
+        epic: { update: { ...update, filesChanged: false } },
+      }),
+      false
+    );
     assert.equal(isEpicUpdateInterrupted(null), false);
     assert.equal(isEpicUpdateInterrupted({ status: "paused" }), false);
     for (const status of ["paused", "error", "removed"])
