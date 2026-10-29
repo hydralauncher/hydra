@@ -108,8 +108,7 @@ const deleteLocalFiles = async ({ target, local }: DeletionContext) => {
   return { deleted, expected, isComplete: deleted >= expected };
 };
 
-const isUnsentLocalFile = ({ state }: LocalScreenshot) =>
-  state === "local" || state === "failed";
+const isUnsentLocalFile = ({ state }: LocalScreenshot) => state !== "uploaded";
 
 const runDeletion = async (
   deletion: MyScreenshotsDeletion,
