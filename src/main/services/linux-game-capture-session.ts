@@ -23,6 +23,7 @@ import {
   type CaptureSessionReason,
 } from "./linux-game-capture-session-reasons";
 import { readUserPreferences } from "./screenshots/screenshot-user-preferences";
+import { isScreenCastPortalAvailable } from "./screencast-portal";
 import {
   executeWhileWindowAlive,
   executeWithinDeadline,
@@ -30,9 +31,15 @@ import {
 
 export type LinuxGameCaptureState = "pending" | "ready" | "failed";
 
+export type LinuxGameCaptureFailure =
+  | "share_cancelled"
+  | "portal_unavailable"
+  | "capture_error";
+
 interface CaptureSessionRegistration {
   token: object;
   state: LinuxGameCaptureState;
+  failure: LinuxGameCaptureFailure | null;
   shareKey: string | null;
   window: BrowserWindow | null;
   subscriptionTimer: ReturnType<typeof setInterval> | null;
@@ -198,18 +205,38 @@ const createCaptureWindow = async (sourceId: string) => {
   }
 };
 
+class WindowShareNotSelectedError extends Error {
+  constructor(cause?: unknown) {
+    super("No Wayland game window capture source was selected", { cause });
+    this.name = "WindowShareNotSelectedError";
+  }
+}
+
 const pickGameWindowSource = async () => {
-  const sources = await desktopCapturer.getSources({
-    types: ["window"],
-    thumbnailSize: { width: 0, height: 0 },
-  });
+  const sources = await desktopCapturer
+    .getSources({
+      types: ["window"],
+      thumbnailSize: { width: 0, height: 0 },
+    })
+    .catch((error) => {
+      throw new WindowShareNotSelectedError(error);
+    });
   const source = sources.length === 1 ? sources[0] : null;
 
   if (!source?.id.startsWith("window:")) {
-    throw new Error("No Wayland game window capture source was selected");
+    throw new WindowShareNotSelectedError();
   }
 
   return source.id;
+};
+
+const classifyPreparationFailure = async (
+  error: unknown
+): Promise<LinuxGameCaptureFailure> => {
+  if (!(error instanceof WindowShareNotSelectedError)) return "capture_error";
+  return (await isScreenCastPortalAvailable()) === false
+    ? "portal_unavailable"
+    : "share_cancelled";
 };
 
 const getCaptureShareKey = async (gameKey: string) => {
@@ -286,6 +313,7 @@ export const prepareLinuxGameCaptureSession = async (
   const registration: CaptureSessionRegistration = {
     token,
     state: "pending",
+    failure: null,
     shareKey: null,
     window: null,
     subscriptionTimer: null,
@@ -335,11 +363,13 @@ export const prepareLinuxGameCaptureSession = async (
       }
       sessions.delete(gameKey);
     });
-  })().catch((error) => {
+  })().catch(async (error) => {
+    registration.failure = await classifyPreparationFailure(error);
     registration.state = "failed";
     if (sessions.get(gameKey)?.token === token) {
       logger.warn("Wayland game window capture was not prepared", {
         gameKey,
+        failure: registration.failure,
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -359,6 +389,9 @@ export const prepareLinuxGameCaptureSession = async (
 export const getLinuxGameCaptureState = (
   gameKey: string
 ): LinuxGameCaptureState => sessions.get(gameKey)?.state ?? "failed";
+
+export const getLinuxGameCaptureFailure = (gameKey: string) =>
+  sessions.get(gameKey)?.failure ?? null;
 
 export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   const registration = sessions.get(gameKey);
