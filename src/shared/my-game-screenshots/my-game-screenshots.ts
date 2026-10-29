@@ -82,6 +82,19 @@ export const mergeMyScreenshots = (
   );
 };
 
+export const selectPendingLocalWithinLoadedUploads = (
+  pendingLocal: LocalScreenshot[],
+  loadedUploads: ProfileScreenshot[],
+  hasMoreUploads: boolean
+) => {
+  const oldestLoadedUpload = loadedUploads.at(-1)?.createdAt;
+  if (!hasMoreUploads || oldestLoadedUpload === undefined) return pendingLocal;
+
+  return pendingLocal.filter(
+    (screenshot) => screenshot.capturedAt >= oldestLoadedUpload
+  );
+};
+
 export const selectPendingLocalScreenshots = (
   screenshots: LocalScreenshot[],
   { shop, objectId }: MyGameScreenshotsTarget

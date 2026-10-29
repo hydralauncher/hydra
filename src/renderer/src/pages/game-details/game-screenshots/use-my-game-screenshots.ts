@@ -10,6 +10,7 @@ import {
   mergeMyScreenshots,
   resolveMyGameScreenshotsStatus,
   selectPendingLocalScreenshots,
+  selectPendingLocalWithinLoadedUploads,
   subscribeMyGameScreenshotsChanged,
   type ScreenshotWriteBus,
 } from "@shared";
@@ -211,10 +212,17 @@ export function useMyGameScreenshots({
   });
   const { feed } = collection;
 
-  const items = useMemo(
-    () => mergeMyScreenshots(feed.items, local.pendingLocal, sort),
-    [feed.items, local.pendingLocal, sort]
-  );
+  const items = useMemo(() => {
+    const visiblePendingLocal =
+      sort === "recent"
+        ? selectPendingLocalWithinLoadedUploads(
+            local.pendingLocal,
+            feed.items,
+            feed.hasMore
+          )
+        : local.pendingLocal;
+    return mergeMyScreenshots(feed.items, visiblePendingLocal, sort);
+  }, [feed.hasMore, feed.items, local.pendingLocal, sort]);
 
   const status = resolveMyGameScreenshotsStatus({
     local: { isLoaded: local.hasLoaded, hasFailed: local.hasFailed },
@@ -248,8 +256,6 @@ export function useMyGameScreenshots({
     hasFailed: status === "failed",
     isPartial: status === "partial",
     hasLocalFailed,
-    hasPublishedFailed,
-    canFetchPublished,
     retry,
     retryFailed,
   };
