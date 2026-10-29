@@ -130,14 +130,22 @@ export const getEpicInstallChoice = (
   const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
   const partial =
     !!option.components && packs.length < option.components.length;
-  const gameDownload = partial
-    ? (option.requiredDownloadSizeInBytes ?? 0) +
-      sum(packs.map((pack) => pack.downloadSizeInBytes))
-    : (option.downloadSizeInBytes ?? null);
-  const gameDisk = partial
-    ? (option.requiredDiskSizeInBytes ?? 0) +
-      sum(packs.map((pack) => pack.diskSizeInBytes))
-    : (option.diskSizeInBytes ?? null);
+  const gameInstalled =
+    option.installed &&
+    !!option.installedVersion &&
+    option.installedVersion === option.publishedVersion;
+  const gameDownload = gameInstalled
+    ? 0
+    : partial
+      ? (option.requiredDownloadSizeInBytes ?? 0) +
+        sum(packs.map((pack) => pack.downloadSizeInBytes))
+      : (option.downloadSizeInBytes ?? null);
+  const gameDisk = gameInstalled
+    ? 0
+    : partial
+      ? (option.requiredDiskSizeInBytes ?? 0) +
+        sum(packs.map((pack) => pack.diskSizeInBytes))
+      : (option.diskSizeInBytes ?? null);
   return {
     ...(option.components ? { components: packs.map((pack) => pack.id) } : {}),
     dlcs: dlcs.map((dlc) => dlc.artifactId),

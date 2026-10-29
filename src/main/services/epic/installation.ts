@@ -47,7 +47,9 @@ export interface EpicSelectivePack {
   downloadSizeInBytes: number;
   diskSizeInBytes: number;
 }
-type EpicDlcScope = { needed: ReadonlySet<string> } | { deadline: number };
+type EpicDlcScope =
+  | { needed: ReadonlySet<string>; required: ReadonlySet<string> }
+  | { deadline: number };
 export interface EpicSelectiveInstall {
   requiredTags: string[];
   downloadSizeInBytes: number;
@@ -811,6 +813,9 @@ export class EpicInstallationService {
   ): Promise<EpicPreparedDlc[]> {
     if (signal.aborted) throw abortError(signal);
     if ("needed" in dlcScope) {
+      const owns = new Set(owned.dlcs.map((dlc) => dlc.artifactId));
+      if ([...dlcScope.required].some((artifactId) => !owns.has(artifactId)))
+        throw new EpicManagedError("not-installable");
       const prepared: EpicPreparedDlc[] = [];
       for (const dlc of owned.dlcs) {
         if (!dlcScope.needed.has(dlc.artifactId)) continue;
@@ -820,7 +825,7 @@ export class EpicInstallationService {
           dlc,
           signal,
           cached,
-          true
+          dlcScope.required.has(dlc.artifactId)
         );
         if (item) prepared.push(item);
       }
@@ -1007,13 +1012,14 @@ export class EpicInstallationService {
     const abort = () => controller.abort(signal?.reason);
     signal?.addEventListener("abort", abort, { once: true });
     if (signal?.aborted) abort();
+    const deadline = Date.now() + EPIC_INSTALL_OPTIONS_TIMEOUT_MS;
     const timer = setTimeout(
       () => controller.abort(new EpicManagedError("timeout")),
       EPIC_INSTALL_OPTIONS_TIMEOUT_MS
     );
     try {
       return await waitWithSignal(
-        this.getOptionsWithSignal(objectId, controller.signal),
+        this.getOptionsWithSignal(objectId, controller.signal, deadline),
         controller.signal
       );
     } catch (error) {
@@ -1025,7 +1031,8 @@ export class EpicInstallationService {
   }
   private async getOptionsWithSignal(
     objectId: string,
-    signal: AbortSignal
+    signal: AbortSignal,
+    deadline: number
   ): Promise<EpicGameInstallOptions> {
     if (signal.aborted) throw abortError(signal);
     this.assertPlatform("Windows");
@@ -1069,7 +1076,8 @@ export class EpicInstallationService {
         key,
         context,
         EPIC_INSTALL_OPTIONS_CACHE_MS,
-        (requestSignal) => this.loadOptions(objectId, requestSignal, context),
+        (requestSignal) =>
+          this.loadOptions(objectId, requestSignal, deadline, context),
         (result) => !result.error && result.options.length > 0
       );
     }
@@ -1134,6 +1142,7 @@ export class EpicInstallationService {
   private async loadOptions(
     objectId: string,
     signal: AbortSignal,
+    deadline: number,
     expectedContext?: EpicSyncContext
   ): Promise<EpicGameInstallOptions> {
     try {
@@ -1151,10 +1160,7 @@ export class EpicInstallationService {
         count: owned.artifactIds.length,
       });
       let invalid: unknown;
-      const dlcDeadline =
-        Date.now() +
-        EPIC_INSTALL_OPTIONS_TIMEOUT_MS -
-        EPIC_DLC_INSPECTION_RESERVE_MS;
+      const dlcDeadline = deadline - EPIC_DLC_INSPECTION_RESERVE_MS;
       for (const artifactId of owned.artifactIds) {
         try {
           const prepared = await withEpicTiming("installation.prepare", () =>

@@ -231,7 +231,9 @@ export function normalizeEpicLibrary(
       const dlcs = normalizeEpicDlcs(entry.dlcs, {
         namespace,
         catalogItemId: id,
-        artifactIds: existing?.artifactIds ?? [artifact],
+        artifactIds: existing
+          ? [...existing.artifactIds, artifact]
+          : [artifact],
       });
       if (existing) {
         if (dlcs.length)

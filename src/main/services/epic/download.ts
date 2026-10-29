@@ -699,19 +699,20 @@ export class EpicDownloadService {
             )
         )
       : new Map<string, string>();
-    const neededDlcs = new Set([
-      ...(Array.isArray(metadata.selection?.dlcs)
-        ? metadata.selection.dlcs
-        : []),
-      ...installedDlcs.keys(),
-    ]);
+    const selectedDlcs = Array.isArray(metadata.selection?.dlcs)
+      ? metadata.selection.dlcs
+      : [];
+    const neededDlcs = new Set([...selectedDlcs, ...installedDlcs.keys()]);
+    const requiredDlcs = new Set(
+      selectedDlcs.filter((artifactId) => !installedDlcs.has(artifactId))
+    );
     const prepared = await withEpicTiming("download.runtime-prepare", () =>
       this.options.installation.prepare(
         owned,
         metadata.artifactId,
         metadata.platform,
         controller.signal,
-        { needed: neededDlcs }
+        { needed: neededDlcs, required: requiredDlcs }
       )
     );
     await this.options.installation.persistPreparation(
@@ -937,7 +938,9 @@ export class EpicDownloadService {
     for (const dlc of pending) {
       const previous = active.currentRunParser.state;
       active.finishedRunsBytes +=
-        previous.fileSize > 0 ? previous.fileSize : previous.bytesDownloaded;
+        active.plannedTotalBytes === null
+          ? previous.bytesDownloaded
+          : previous.fileSize;
       const size =
         update || current.has(dlc.artifactId) ? 0 : dlc.downloadSizeInBytes;
       const resumed = Math.max(
