@@ -336,7 +336,11 @@ export function GameDangerZoneSettingsTab({
       )}
 
       {isFeatureEnabled(Feature.Screenshots) ? (
-        <MyScreenshotsDangerSection shop={game.shop} objectId={game.objectId} />
+        <MyScreenshotsDangerSection
+          shop={game.shop}
+          objectId={game.objectId}
+          fallbackFocusId={GAME_DANGER_ZONE_PRIMARY_CONTROL_ID}
+        />
       ) : null}
 
       {confirmationConfig && (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
 import {
@@ -19,6 +19,7 @@ import { Button, VerticalFocusGroup } from "../../../common";
 import { ConfirmationModal } from "../../../modals";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
+import { NavigationService } from "../../../../services";
 
 const DELETIONS: MyScreenshotsDeletion[] = ["all", "published", "local"];
 
@@ -60,11 +61,13 @@ const logCountError = (error: unknown) => {
 interface MyScreenshotsDangerSectionProps {
   shop: GameShop;
   objectId: string;
+  fallbackFocusId: string;
 }
 
 export function MyScreenshotsDangerSection({
   shop,
   objectId,
+  fallbackFocusId,
 }: Readonly<MyScreenshotsDangerSectionProps>) {
   const { t } = useTranslation("screenshots");
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
@@ -80,6 +83,25 @@ export function MyScreenshotsDangerSection({
   });
   const [pending, setPending] = useState<MyScreenshotsDeletion | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const lastPressedRef = useRef<MyScreenshotsDeletion | null>(null);
+  const [returningTo, setReturningTo] = useState<MyScreenshotsDeletion | null>(
+    null
+  );
+
+  useEffect(() => {
+    if (!returningTo) return;
+    if (!isDeleting && hasSomethingToDelete(returningTo, counts)) return;
+
+    setReturningTo(null);
+    const navigation = NavigationService.getInstance();
+    const focusedId = navigation.getCurrentFocusId();
+    if (
+      focusedId === null ||
+      focusedId === getMyScreenshotsDeleteFocusId(returningTo)
+    ) {
+      navigation.requestFocusWhenAvailable(fallbackFocusId);
+    }
+  }, [counts, fallbackFocusId, isDeleting, returningTo]);
 
   const confirm = async () => {
     if (!pending) return;
@@ -126,7 +148,11 @@ export function MyScreenshotsDangerSection({
             variant="danger"
             className="game-danger-zone-settings-tab__action-button"
             disabled={isDeleting || !hasSomethingToDelete(deletion, counts)}
-            onClick={() => setPending(deletion)}
+            onClick={() => {
+              lastPressedRef.current = deletion;
+              setReturningTo(null);
+              setPending(deletion);
+            }}
           >
             {t(DELETION_LABEL_KEYS[deletion])}
           </Button>
@@ -147,6 +173,7 @@ export function MyScreenshotsDangerSection({
           if (!isDeleting) setPending(null);
         }}
         onConfirm={confirm}
+        onExitComplete={() => setReturningTo(lastPressedRef.current)}
       />
     </SettingsSection>
   );
