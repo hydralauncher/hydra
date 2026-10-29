@@ -25,6 +25,7 @@ import {
   VerticalFocusGroup,
   type DropdownSelectOption,
 } from "../../common";
+import { Feature, useFeature } from "../../../hooks";
 
 const REGION_ID = "screenshot-manage-modal";
 const VISIBILITY_FOCUS_ID = "screenshot-manage-visibility";
@@ -51,6 +52,7 @@ export function ScreenshotManageModal({
   onSave,
 }: Readonly<ScreenshotManageModalProps>) {
   const { t } = useTranslation("big_picture");
+  const { isFeatureEnabled } = useFeature();
   const [visibility, setVisibility] = useState<ProfileVisibility>("PUBLIC");
   const [isSpoiler, setIsSpoiler] = useState(false);
   const [commentsEnabled, setCommentsEnabled] = useState(true);
@@ -165,14 +167,16 @@ export function ScreenshotManageModal({
           onChange={setIsSpoiler}
         />
 
-        <Checkbox
-          block
-          label={t("screenshots_allow_comments")}
-          checked={commentsEnabled}
-          disabled={isSaving}
-          focusId={COMMENTS_FOCUS_ID}
-          onChange={setCommentsEnabled}
-        />
+        {isFeatureEnabled(Feature.ScreenshotComments) && (
+          <Checkbox
+            block
+            label={t("screenshots_allow_comments")}
+            checked={commentsEnabled}
+            disabled={isSaving}
+            focusId={COMMENTS_FOCUS_ID}
+            onChange={setCommentsEnabled}
+          />
+        )}
 
         <HorizontalFocusGroup className="screenshot-manage-modal__actions">
           <Button
