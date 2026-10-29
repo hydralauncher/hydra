@@ -31,20 +31,14 @@ const pathExists = (filePath: string) =>
     () => false
   );
 
-const hasDirectoryEntries = (directory: string) =>
-  fs.promises.readdir(directory).then(
-    (entries) => entries.length > 0,
-    () => false
-  );
-
-const isScreenshotsRootReachable = async (screenshot: LocalScreenshot) => {
+const isOnRecordedFilesystem = async (screenshot: LocalScreenshot) => {
   if (typeof screenshot.rootMarkerId !== "string") {
     return pathExists(path.dirname(screenshot.path));
   }
-  const screenshotsRoot = getScreenshotsRoot(screenshot.path);
-  const rootMarkerId = await readRootMarkerId(screenshotsRoot);
-  if (rootMarkerId === screenshot.rootMarkerId) return true;
-  return hasDirectoryEntries(screenshotsRoot);
+  const rootMarkerId = await readRootMarkerId(
+    getScreenshotsRoot(screenshot.path)
+  );
+  return rootMarkerId === screenshot.rootMarkerId;
 };
 
 const isFileDeleted = async (screenshot: LocalScreenshot) => {
@@ -53,7 +47,7 @@ const isFileDeleted = async (screenshot: LocalScreenshot) => {
     return false;
   } catch (error) {
     if (!isMissingFileError(error)) return false;
-    return isScreenshotsRootReachable(screenshot);
+    return isOnRecordedFilesystem(screenshot);
   }
 };
 
