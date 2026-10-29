@@ -27,6 +27,7 @@ import {
   useScreenshotLightbox,
   type ScreenshotViewerEntry,
 } from "../../screenshots";
+import { getItemFocusTarget } from "../../../../helpers";
 import { Feature, useFeature, useUserDetails } from "../../../../hooks";
 import type { FocusOverrides, FocusOverrideTarget } from "../../../../services";
 import {
@@ -60,17 +61,22 @@ const isFullWidthThumbnail = (index: number, count: number) =>
   count <= 2 || (count === 3 && index === 2);
 
 const getThumbnailNavigation = (
+  items: MyScreenshotItem[],
   index: number,
-  count: number,
   leftTarget: FocusOverrideTarget
 ): FocusOverrides => {
-  if (isFullWidthThumbnail(index, count)) {
+  if (isFullWidthThumbnail(index, items.length)) {
     return { left: leftTarget, right: BLOCK_TARGET };
   }
 
   return index % SIDEBAR_COLUMNS === 0
     ? { left: leftTarget }
-    : { right: BLOCK_TARGET };
+    : {
+        left: getItemFocusTarget(
+          getGameMyScreenshotItemId(items[index - 1].id)
+        ),
+        right: BLOCK_TARGET,
+      };
 };
 
 interface MyScreenshotsGridProps {
@@ -100,8 +106,8 @@ function MyScreenshotsGrid({
       {items.map((item, index) => {
         const focusId = getGameMyScreenshotItemId(item.id);
         const navigationOverrides = getThumbnailNavigation(
+          items,
           index,
-          items.length,
           leftTarget
         );
 

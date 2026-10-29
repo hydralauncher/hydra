@@ -1852,7 +1852,10 @@ export default function Game() {
                   shop={shop!}
                   objectId={objectId!}
                   navigationOrder={0.5}
-                  leftTarget={sidebarCarouselLeftNavigationTarget}
+                  leftTarget={
+                    descriptionEntryTarget ??
+                    sidebarCarouselLeftNavigationTarget
+                  }
                 />
 
                 {(howLongToBeat?.length ?? 0) > 0 && (
