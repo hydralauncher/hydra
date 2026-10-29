@@ -3105,6 +3105,7 @@
     "delete_screenshots_rate_limited_kept": "Você excluiu capturas muitas vezes, então nada foi excluído. Tente novamente em alguns minutos.",
     "delete_screenshots_partial": "Algumas capturas publicadas não foram excluídas. Tente novamente para excluir o restante.",
     "delete_screenshots_local_cleanup_failed": "Suas capturas publicadas foram excluídas, mas alguns arquivos locais não puderam ser removidos. Tente novamente.",
+    "delete_screenshots_published_cleanup_failed": "Suas capturas publicadas foram excluídas, mas o Hydra não conseguiu terminar de atualizar os registros delas. Tente novamente.",
     "screenshots_deleted_count_one": "{{count}} captura excluída",
     "screenshots_deleted_count_other": "{{count}} capturas excluídas",
     "comments_temporarily_unavailable": "Os comentários estão temporariamente indisponíveis, tente novamente em instantes",

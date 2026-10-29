@@ -16,7 +16,8 @@ export type MyScreenshotsDeletion = "all" | "published" | "local";
 export type MyScreenshotsDeletionErrorCode =
   | ScreenshotApiErrorCode
   | "screenshots/local-deletion-incomplete"
-  | "screenshots/local-cleanup-failed";
+  | "screenshots/local-cleanup-failed"
+  | "screenshots/published-cleanup-failed";
 
 export type MyScreenshotsDeletionResult =
   | { ok: true; deleted: number }
@@ -33,7 +34,7 @@ interface DeletionContext {
   local: MyGameScreenshotsLocalBridge;
 }
 
-type DeletionStage = "server" | "local-cleanup";
+type DeletionStage = "server" | "local-cleanup" | "published-cleanup";
 
 class PartialDeletionError extends Error {
   constructor(
@@ -47,13 +48,14 @@ class PartialDeletionError extends Error {
 
 const continueAfterServerDeletion = async <T>(
   deleted: number,
+  stage: Exclude<DeletionStage, "server">,
   step: () => Promise<T>
 ) => {
   try {
     return await step();
   } catch (error) {
     if (error instanceof PartialDeletionError) throw error;
-    throw new PartialDeletionError(deleted, error, "local-cleanup");
+    throw new PartialDeletionError(deleted, error, stage);
   }
 };
 
@@ -123,6 +125,7 @@ const deletePublishedOnServer = async (
 
 const LOCAL_DELETION_INCOMPLETE = "screenshots/local-deletion-incomplete";
 const LOCAL_CLEANUP_FAILED = "screenshots/local-cleanup-failed";
+const PUBLISHED_CLEANUP_FAILED = "screenshots/published-cleanup-failed";
 
 interface DeletionOutcome {
   deleted: number;
@@ -147,29 +150,29 @@ const deleteLatePublished = async (
   deleted: number
 ) => {
   const known = new Set(knownIds);
-  const lateIds = (await getPublishedIds(context)).filter(
-    (id) => !known.has(id)
+  const publishedIds = await continueAfterServerDeletion(
+    deleted,
+    "published-cleanup",
+    () => getPublishedIds(context)
   );
+  const lateIds = publishedIds.filter((id) => !known.has(id));
   const late = await deleteEachPublished(context.api, lateIds);
   const forgottenIds = [...knownIds, ...late.settledIds];
+  const total = deleted + late.deleted;
   if (late.failure) {
     await Promise.allSettled([forgetPublished(context, forgottenIds)]);
-    throw new PartialDeletionError(
-      deleted + late.deleted,
-      late.failure.error,
-      "server"
-    );
+    throw new PartialDeletionError(total, late.failure.error, "server");
   }
-  await forgetPublished(context, forgottenIds);
+  await continueAfterServerDeletion(total, "published-cleanup", () =>
+    forgetPublished(context, forgottenIds)
+  );
   return late.deleted;
 };
 
 const deletePublished = async (context: DeletionContext) => {
   const ids = await getPublishedIds(context);
   const deleted = await deletePublishedOnServer(context, ids);
-  const lateDeleted = await continueAfterServerDeletion(deleted, () =>
-    deleteLatePublished(context, ids, deleted)
-  );
+  const lateDeleted = await deleteLatePublished(context, ids, deleted);
   return deleted + lateDeleted;
 };
 
@@ -195,21 +198,23 @@ const deleteAll = async (context: DeletionContext) => {
 
   const published = await deletePublishedOnServer(context, knownIds);
 
-  const local = await continueAfterServerDeletion(published, async () => {
-    try {
-      return await deleteLocalFiles(context);
-    } catch (error) {
-      await Promise.allSettled([forgetPublished(context, knownIds)]);
-      throw error;
+  const local = await continueAfterServerDeletion(
+    published,
+    "local-cleanup",
+    async () => {
+      try {
+        return await deleteLocalFiles(context);
+      } catch (error) {
+        await Promise.allSettled([forgetPublished(context, knownIds)]);
+        throw error;
+      }
     }
-  });
+  );
   const publishedCopies = Math.max(0, local.expected - pendingBefore);
   const unsentDeleted = Math.max(0, local.deleted - publishedCopies);
   const deleted = published + unsentDeleted;
 
-  await continueAfterServerDeletion(deleted, () =>
-    deleteLatePublished(context, knownIds, deleted)
-  );
+  await deleteLatePublished(context, knownIds, deleted);
   return { deleted, isComplete: local.isComplete };
 };
 
@@ -229,6 +234,15 @@ const runDeletion = async (
   }
 
   return deleteAll(context);
+};
+
+const getPartialDeletionErrorCode = ({
+  stage,
+  reason,
+}: PartialDeletionError): MyScreenshotsDeletionErrorCode | null => {
+  if (stage === "local-cleanup") return LOCAL_CLEANUP_FAILED;
+  if (stage === "published-cleanup") return PUBLISHED_CLEANUP_FAILED;
+  return getScreenshotApiErrorCode(reason);
 };
 
 export const deleteMyGameScreenshots = async (
@@ -262,10 +276,7 @@ export const deleteMyGameScreenshots = async (
     return {
       ok: false,
       deleted: error.deleted,
-      errorCode:
-        error.stage === "local-cleanup"
-          ? LOCAL_CLEANUP_FAILED
-          : getScreenshotApiErrorCode(error.reason),
+      errorCode: getPartialDeletionErrorCode(error),
       error: error.reason,
     };
   }
