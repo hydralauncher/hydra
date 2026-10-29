@@ -1041,6 +1041,8 @@ contextBridge.exposeInMainWorld("electron", {
   ) => ipcRenderer.invoke("copyCustomGameAsset", sourcePath, assetType),
   downloadGameArtwork: (artworkUrl: string): Promise<string | null> =>
     ipcRenderer.invoke("downloadGameArtwork", artworkUrl),
+  getBannerThumbnail: (url: string): Promise<string | null> =>
+    ipcRenderer.invoke("getBannerThumbnail", url),
   saveTempFile: (fileName: string, fileData: Uint8Array) =>
     ipcRenderer.invoke("saveTempFile", fileName, fileData),
   deleteTempFile: (filePath: string) =>
@@ -1078,9 +1080,17 @@ contextBridge.exposeInMainWorld("electron", {
     shop: GameShop,
     objectId: string,
     kind: ArtworkKind,
-    page?: number
+    page?: number,
+    parameters?: Record<string, string>
   ): Promise<ArtworkPage | null> =>
-    ipcRenderer.invoke("getGameArtwork", shop, objectId, kind, page),
+    ipcRenderer.invoke(
+      "getGameArtwork",
+      shop,
+      objectId,
+      kind,
+      page,
+      parameters
+    ),
   getCoverPoster: (url: string): Promise<string | null> =>
     ipcRenderer.invoke("getCoverPoster", url),
   getGameArtworkSelection: (
