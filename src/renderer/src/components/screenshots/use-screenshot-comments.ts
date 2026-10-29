@@ -14,6 +14,7 @@ import {
   mergeScreenshotPages,
   normalizeScreenshotCommentBody,
   normalizeScreenshotReportValues,
+  pickCommentEditPatch,
 } from "@shared";
 import type {
   ProfileScreenshot,
@@ -52,18 +53,6 @@ interface ConfirmedCommentEdit {
 }
 
 const VOTE_UNLOCK_DELAY_MS = 500;
-
-const pickCommentEditPatch = ({
-  bodyHtml,
-  editedAt,
-  isHidden,
-  moderation,
-}: ScreenshotComment): Partial<ScreenshotComment> => ({
-  bodyHtml,
-  editedAt,
-  isHidden,
-  ...(moderation === undefined ? {} : { moderation }),
-});
 
 const adjustCommentCount =
   (delta: number) =>

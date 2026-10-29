@@ -282,6 +282,18 @@ export const getToggledScreenshotLike = (
   };
 };
 
+export const pickCommentEditPatch = ({
+  bodyHtml,
+  editedAt,
+  isHidden,
+  moderation,
+}: ScreenshotComment): Partial<ScreenshotComment> => ({
+  bodyHtml,
+  editedAt,
+  isHidden,
+  ...(moderation === undefined ? {} : { moderation }),
+});
+
 export const getVotedScreenshotComment = (
   comment: Pick<ScreenshotComment, "upvotes" | "downvotes" | "myVote">,
   vote: ScreenshotCommentVoteType
