@@ -2702,7 +2702,6 @@
     "uploading_body_many": "Загружаются {{count}} скриншотов",
     "uploading_body_one": "Загружается {{count}} скриншот",
     "uploading_body_other": "Загружаются {{count}} скриншота",
-    "uploading_progress": "{{done}} из {{total}}",
     "uploading_title": "Загрузка скриншотов",
     "visibility_friends": "Только друзья",
     "visibility_friends_short": "Друзья",

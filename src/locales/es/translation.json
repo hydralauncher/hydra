@@ -2633,7 +2633,6 @@
     "uploading": "Subiendo {{progress}}%",
     "uploading_body_one": "Subiendo {{count}} captura",
     "uploading_body_other": "Subiendo {{count}} capturas",
-    "uploading_progress": "{{done}} de {{total}}",
     "uploading_title": "Subiendo capturas",
     "visibility_friends": "Solo amigos",
     "visibility_friends_short": "Amigos",
