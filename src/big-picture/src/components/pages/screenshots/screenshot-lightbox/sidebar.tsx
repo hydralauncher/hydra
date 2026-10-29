@@ -398,6 +398,7 @@ export function ScreenshotLightboxSidebar({
             isOwner={isOwner}
             leftTarget={stageTarget}
             onCommentCountChange={handleCommentCountChange}
+            onScreenshotUpdate={onUpdate}
           />
         ) : null}
       </div>

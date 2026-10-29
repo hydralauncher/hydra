@@ -33,6 +33,7 @@ import {
   normalizeScreenshotReportValues,
   getScreenshotApiErrorCode,
   getVotedScreenshotComment,
+  type ScreenshotPatch,
 } from "@shared";
 import { logger } from "@renderer/logger";
 
@@ -86,6 +87,7 @@ interface ScreenshotCommentsPanelProps {
   isOwner: boolean;
   leftTarget: FocusOverrideTarget;
   onCommentCountChange: (screenshotId: string, delta: number) => void;
+  onScreenshotUpdate: (screenshotId: string, update: ScreenshotPatch) => void;
 }
 
 const PENDING_COMMENT_ID_PREFIX = "pending:";
@@ -500,6 +502,7 @@ export function ScreenshotCommentsPanel({
   isOwner,
   leftTarget,
   onCommentCountChange,
+  onScreenshotUpdate,
 }: Readonly<ScreenshotCommentsPanelProps>) {
   const { t, i18n } = useTranslation("big_picture");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
@@ -576,6 +579,27 @@ export function ScreenshotCommentsPanel({
     [recordWrite, setComments]
   );
 
+  const dropComment = useCallback(
+    (removed: ScreenshotComment) => {
+      recordWrite({
+        kind: "remove",
+        commentId: removed.id,
+        wasCounted: !removed.isHidden,
+      });
+      setComments((current) =>
+        current.filter((comment) => comment.id !== removed.id)
+      );
+      if (!removed.isHidden) {
+        setTotal((current) => Math.max(0, current - 1));
+        onCommentCountChange(screenshot.id, -1);
+      }
+      setEditingComment((current) =>
+        current?.id === removed.id ? null : current
+      );
+    },
+    [onCommentCountChange, recordWrite, screenshot.id, setComments, setTotal]
+  );
+
   const removePendingComment = useCallback(
     (pendingId: string) => {
       recordWrite({ kind: "remove", commentId: pendingId, wasCounted: true });
@@ -619,12 +643,21 @@ export function ScreenshotCommentsPanel({
       } catch (error) {
         removePendingComment(pending.id);
         pushRestoredDraft(draftKey, pending.bodyHtml);
+        if (
+          getScreenshotApiErrorCode(error) === "screenshots/comments-disabled"
+        ) {
+          onScreenshotUpdate(screenshot.id, {
+            commentsEnabled: false,
+            canComment: false,
+          });
+        }
         showError(error);
       }
     },
     [
       draftKey,
       onCommentCountChange,
+      onScreenshotUpdate,
       ownerId,
       pushRestoredDraft,
       recordWrite,
@@ -659,7 +692,11 @@ export function ScreenshotCommentsPanel({
           onCommentCountChange(screenshot.id, delta);
         }
       } catch (error) {
-        if (isLatestEdit()) {
+        if (
+          getScreenshotApiErrorCode(error) === "screenshots/comment-not-found"
+        ) {
+          dropComment(comment);
+        } else if (isLatestEdit()) {
           replaceComment(comment.id, {
             bodyHtml: comment.bodyHtml,
             editedAt: comment.editedAt,
@@ -669,6 +706,7 @@ export function ScreenshotCommentsPanel({
       }
     },
     [
+      dropComment,
       onCommentCountChange,
       ownerId,
       replaceComment,
@@ -771,6 +809,14 @@ export function ScreenshotCommentsPanel({
   const confirmDelete = useCallback(async () => {
     if (!deletingComment) return;
 
+    const closeAfterRemoval = () => {
+      dropComment(deletingComment);
+      NavigationService.getInstance().requestFocusWhenAvailable(
+        viewerId ? focusIds.input : focusIds.signIn
+      );
+      setDeletingComment(null);
+    };
+
     setIsDeleting(true);
 
     try {
@@ -782,42 +828,27 @@ export function ScreenshotCommentsPanel({
         ),
         { needsAuth: true }
       );
-      recordWrite({
-        kind: "remove",
-        commentId: deletingComment.id,
-        wasCounted: !deletingComment.isHidden,
-      });
-      setComments((current) =>
-        current.filter((comment) => comment.id !== deletingComment.id)
-      );
-      if (!deletingComment.isHidden) {
-        setTotal((current) => Math.max(0, current - 1));
-        onCommentCountChange(screenshot.id, -1);
-      }
-      if (editingComment?.id === deletingComment.id) setEditingComment(null);
-      NavigationService.getInstance().requestFocusWhenAvailable(
-        viewerId ? focusIds.input : focusIds.signIn
-      );
-      setDeletingComment(null);
+      closeAfterRemoval();
       showSuccessToast(t("screenshots_comment_deleted"), {
         fallbackVisual: "settings",
       });
     } catch (error) {
+      if (
+        getScreenshotApiErrorCode(error) === "screenshots/comment-not-found"
+      ) {
+        closeAfterRemoval();
+      }
       showError(error);
     } finally {
       setIsDeleting(false);
     }
   }, [
     deletingComment,
-    editingComment,
-    recordWrite,
+    dropComment,
     focusIds.input,
     focusIds.signIn,
-    onCommentCountChange,
     ownerId,
     screenshot.id,
-    setComments,
-    setTotal,
     showError,
     showSuccessToast,
     t,
