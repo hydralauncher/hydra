@@ -2885,6 +2885,7 @@
     "queued": "Waiting to upload",
     "retry": "Retry",
     "saved_locally": "Screenshot saved locally",
+    "share_pending": "Choose the game window in the screen share prompt first",
     "screenshot_alt": "Screenshot of {{game}} taken on {{date}}",
     "spoiler_hint": "Others will see it blurred until they choose to reveal it",
     "spoiler_label": "Contains spoilers",

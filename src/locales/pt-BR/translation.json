@@ -2894,6 +2894,7 @@
     "queued": "Aguardando envio",
     "retry": "Tentar novamente",
     "saved_locally": "Captura salva neste computador",
+    "share_pending": "Primeiro escolha a janela do jogo no aviso de compartilhamento de tela",
     "screenshot_alt": "Captura de {{game}} feita em {{date}}",
     "spoiler_hint": "Os outros verão a imagem desfocada até escolherem revelá-la",
     "spoiler_label": "Contém spoilers",
