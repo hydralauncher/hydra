@@ -15,7 +15,6 @@ import {
   VerticalFocusGroup,
 } from "../../components";
 import { ConfirmationModal } from "../../components/modals";
-import { IS_DESKTOP } from "../../constants";
 import {
   Feature,
   useFeature,
@@ -95,7 +94,6 @@ export function ContentSettingsSection({
   const { hasActiveSubscription } = useUserDetails();
   const { isFeatureEnabled } = useFeature();
   const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
-  const showScreenshotSettings = IS_DESKTOP && isScreenshotsEnabled;
   const [form, setForm] = useState<ContentForm>(() =>
     buildForm(userPreferences)
   );
@@ -142,8 +140,7 @@ export function ContentSettingsSection({
   }, [updateUserPreferences]);
 
   const supportsSouvenirs = hasActiveSubscription;
-  const showSouvenirScreenshotsDirectory =
-    supportsSouvenirs && !showScreenshotSettings;
+  const showSouvenirScreenshotsDirectory = supportsSouvenirs;
   const canManageScreenshots =
     showSouvenirScreenshotsDirectory && form.enableAchievementSouvenirs;
 
