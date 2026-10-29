@@ -24,6 +24,7 @@ import { BoardView } from "./board-view";
 import { BlockError, BlockMessage, BoardSkeleton } from "./leaderboard-bits";
 import { MetricIcon } from "./metric-icon";
 import { ReviewHighlight } from "./review-highlight";
+import type { ReportBoardContext } from "./report-cheater";
 import {
   EMPTY_BOARD_RESULT,
   type GlobalBoardResults,
@@ -48,6 +49,14 @@ export interface RankingTabProps {
   viewerUser: LeaderboardUser | null;
   onRetry: () => void;
 }
+
+// Outside the component to keep it under the cognitive complexity limit.
+const getReportContext = (
+  metric: MetricDefinition | null,
+  period: GlobalLeaderboardPeriod,
+  scope: GlobalLeaderboardScope
+): ReportBoardContext | null =>
+  metric ? { metric: metric.id, window: period, scope } : null;
 
 // Tooltip text in the app language when the API sent a translation.
 function ReviewTipText({
@@ -234,12 +243,7 @@ export function RankingTab({
     );
   };
 
-  const reportContext = metric
-    ? { metric: metric.id, window: period, scope }
-    : null;
-  const selectReviewer = isReviews
-    ? (entry: LeaderboardEntry) => setReviewerId(entry.user.id)
-    : undefined;
+  const reportContext = getReportContext(metric, period, scope);
 
   const renderBoard = () => {
     if (state === "loading") return <BoardSkeleton />;
@@ -290,7 +294,9 @@ export function RankingTab({
           isStreak={hasStreakData(leaderboard)}
           isLoading={current.isLoading}
           selectedId={isReviews ? selectedReviewerId : undefined}
-          onSelect={selectReviewer}
+          onSelect={
+            isReviews ? (entry) => setReviewerId(entry.user.id) : undefined
+          }
           renderTooltip={isReviews ? renderReviewTooltip : undefined}
           onVisibleChange={setVisibleRows}
           reportContext={reportContext}
