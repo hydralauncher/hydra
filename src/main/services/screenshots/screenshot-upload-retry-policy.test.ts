@@ -54,7 +54,8 @@ describe("screenshot upload failure", () => {
       ["screenshots/cloud-subscription-required", "recompress_standard"],
       ["screenshots/client-id-conflict", "rotate_client_id"],
       ["screenshots/upload-expired", "rotate_client_id"],
-      ["screenshots/upload-incomplete", "retry"],
+      ["screenshots/upload-incomplete", "rotate_client_id"],
+      ["screenshots/upload-mismatch", "rotate_client_id"],
       ["screenshots/upload-rate-limited", "rate_limit_wait"],
       ["screenshots/upload-capacity-reached", "wait"],
       ["screenshots/moderation-in-progress", "moderation_wait"],
@@ -98,7 +99,6 @@ describe("screenshot upload failure", () => {
 
   it("reads retry-after for retries, rate limits and moderation waits", () => {
     for (const code of [
-      "screenshots/upload-incomplete",
       "screenshots/upload-rate-limited",
       "screenshots/moderation-rate-limited",
     ]) {
@@ -109,6 +109,12 @@ describe("screenshot upload failure", () => {
         12_000
       );
     }
+    assert.equal(
+      getScreenshotUploadFailure(
+        axiosError(503, undefined, { "retry-after": "12" })
+      ).retryAfterMs,
+      12_000
+    );
   });
 
   it("ignores retry-after for other actions and invalid values", () => {
