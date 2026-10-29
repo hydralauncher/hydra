@@ -232,7 +232,7 @@ export class GameFilesManager {
     return (
       download?.automaticallyDeleteArchiveFiles ??
       userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
-      false
+      true
     );
   }
 

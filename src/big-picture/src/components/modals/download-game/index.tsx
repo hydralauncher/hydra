@@ -554,7 +554,7 @@ function DownloadGameModalSession({
   const [
     deleteArchiveFilesAfterExtraction,
     setDeleteArchiveFilesAfterExtraction,
-  ] = useState(false);
+  ] = useState(true);
   const [isPreparingOptions, setIsPreparingOptions] = useState(false);
   const stepFrameRef = useRef<HTMLDivElement | null>(null);
   const activeStepRef = useRef<HTMLDivElement | null>(null);
@@ -729,7 +729,7 @@ function DownloadGameModalSession({
 
       if (!deleteArchiveTouchedRef.current) {
         setDeleteArchiveFilesAfterExtraction(
-          userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+          userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? true
         );
       }
 
