@@ -59,6 +59,7 @@ const removeLocalScreenshot = async (
     await LocalScreenshotStore.update(clientId, {
       state: "deleted",
       screenshotId: tombstoneScreenshotId,
+      pendingCompleteScreenshotId: null,
       uploadProgress: null,
       previewPath: null,
     });
