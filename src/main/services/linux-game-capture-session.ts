@@ -87,6 +87,20 @@ const sharedCaptures = new Map<string, SharedCaptureWindow>();
 const pendingSharedCaptures = new Map<string, Promise<SharedCaptureWindow>>();
 
 const CAPTURE_CLOSED_MESSAGE = "Wayland game window capture session was closed";
+const STREAM_ENDED_MESSAGE = "Wayland screen stream is no longer active";
+const SERIALIZED_STREAM_ENDED_MESSAGE = JSON.stringify(STREAM_ENDED_MESSAGE);
+
+const isStreamEndedError = (error: unknown) =>
+  error instanceof Error && error.message.includes(STREAM_ENDED_MESSAGE);
+
+const closeCaptureWindowIfStreamEnded = (
+  captureWindow: BrowserWindow,
+  error: unknown
+) => {
+  if (!isStreamEndedError(error) || captureWindow.isDestroyed()) return;
+  logger.warn("Wayland screen stream ended, closing the capture window");
+  captureWindow.destroy();
+};
 
 const executeInCaptureWindow = (
   captureWindow: BrowserWindow,
@@ -166,6 +180,11 @@ const createCaptureWindow = async (sourceId: string) => {
             video.addEventListener("error", reject, { once: true });
           });
         }
+        stream.getVideoTracks()[0]?.addEventListener(
+          "ended",
+          () => window.close(),
+          { once: true }
+        );
         globalThis.__hydraSouvenirStream = stream;
         globalThis.__hydraSouvenirVideo = video;
       })()
@@ -357,11 +376,11 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   const capture = captureFrameInWindow(
     captureWindow,
     `
-    (() => {
+    (async () => {
       const video = globalThis.__hydraSouvenirVideo;
       const track = globalThis.__hydraSouvenirStream?.getVideoTracks()[0];
       if (!track || track.readyState !== "live") {
-        throw new Error("Wayland screen stream is no longer active");
+        throw new Error(${SERIALIZED_STREAM_ENDED_MESSAGE});
       }
       if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
         throw new Error("Wayland screen stream has no video frame");
@@ -381,6 +400,9 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   let dataUrl: unknown;
   try {
     dataUrl = await capture;
+  } catch (error) {
+    closeCaptureWindowIfStreamEnded(captureWindow, error);
+    throw error;
   } finally {
     registration.activeCaptures.delete(capture);
   }
@@ -444,7 +466,7 @@ export const grabLinuxGameSessionFrame = async (
       await runInCaptureWindow(`(async () => {
         const track = globalThis.__hydraSouvenirStream?.getVideoTracks()[0];
         if (!track || track.readyState !== "live") {
-          throw new Error("Wayland screen stream is no longer active");
+          throw new Error(${SERIALIZED_STREAM_ENDED_MESSAGE});
         }
         return await ${buildGrabFrameExpression("globalThis.__hydraSouvenirVideo", options)};
       })()`)
@@ -456,6 +478,7 @@ export const grabLinuxGameSessionFrame = async (
     }
   } catch (error) {
     finishCapture();
+    closeCaptureWindowIfStreamEnded(captureWindow, error);
     throw error;
   }
 
