@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import type {
   AchievementSet,
   ComparedAchievements,
@@ -124,6 +125,10 @@ export const toggleSetKey = (current: ReadonlySet<string>, key: string) => {
   }
   return next;
 };
+
+export const getAchievementKey = (
+  achievement: Pick<UserAchievement, "name" | "canonicalAchievementId">
+) => achievement.canonicalAchievementId ?? achievement.name;
 
 export type AchievementSortOption = "most_common" | "most_rare";
 
@@ -257,6 +262,20 @@ export const formatAchievementUnlockPercentage = (
   }
 
   return `${formatter.format(percentage)}%`;
+};
+
+export const formatAchievementUnlockDateTime = (
+  date: number | Date | string,
+  language: string
+) => {
+  try {
+    return format(
+      date,
+      language.startsWith("en") ? "MM/dd/yyyy · h:mm a" : "dd/MM/yyyy · HH:mm"
+    );
+  } catch {
+    return "";
+  }
 };
 
 const normalizeSearchText = (value: string) =>

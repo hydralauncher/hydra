@@ -2,6 +2,7 @@ import type { GameShop, UserAchievement } from "@types";
 import {
   buildAchievementListEntries,
   filterAndSortAchievements,
+  getAchievementKey,
   getAchievementStatusCounts,
   getVisibleSetGroups,
   groupAchievementsBySet,
@@ -49,7 +50,7 @@ const OVERSCAN = 6;
 const getListEntryId = (entry: AchievementListEntry<UserAchievement>) =>
   entry.type === "set"
     ? getAchievementSetId(entry.group.key)
-    : getAchievementRowId(entry.achievement.name);
+    : getAchievementRowId(getAchievementKey(entry.achievement));
 
 export default function GameAchievements() {
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
@@ -73,14 +74,20 @@ export default function GameAchievements() {
   const { collapsedSetKeys, toggleSet } = useCollapsedAchievementSets();
 
   const isConcealed = useCallback(
-    (achievement: Pick<UserAchievement, "name" | "hidden" | "unlocked">) =>
+    (
+      achievement: Pick<
+        UserAchievement,
+        "name" | "canonicalAchievementId" | "hidden" | "unlocked"
+      >
+    ) =>
       isAchievementConcealed(achievement, showHiddenAchievements) &&
-      !revealedNames.has(achievement.name),
+      !revealedNames.has(getAchievementKey(achievement)),
     [revealedNames, showHiddenAchievements]
   );
 
   const handleReveal = useCallback(
-    (achievement: UserAchievement) => revealAchievement(achievement.name),
+    (achievement: UserAchievement) =>
+      revealAchievement(getAchievementKey(achievement)),
     [revealAchievement]
   );
 
@@ -300,7 +307,9 @@ export default function GameAchievements() {
                       key={item.key}
                       achievement={achievement}
                       concealed={isConcealed(achievement)}
-                      revealed={achievement.name === lastRevealedName}
+                      revealed={
+                        getAchievementKey(achievement) === lastRevealedName
+                      }
                       showPoints={hasActiveSubscription}
                       navigationOrder={item.index}
                       navigationOverrides={navigationOverrides}

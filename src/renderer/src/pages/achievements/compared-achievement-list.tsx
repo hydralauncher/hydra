@@ -13,7 +13,7 @@ import {
 } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react";
-import { useAppSelector, useDate } from "@renderer/hooks";
+import { useAppSelector } from "@renderer/hooks";
 import { TextField } from "@renderer/components";
 import {
   type CSSProperties,
@@ -29,6 +29,7 @@ import cn from "classnames";
 import {
   buildAchievementListEntries,
   filterAndSortAchievements,
+  formatAchievementUnlockDateTime,
   formatAchievementUnlockPercentage,
   getAchievementComparisonCounts,
   getComparedTargetAchievements,
@@ -98,7 +99,8 @@ export function ComparedAchievementList({
   scrollRef,
 }: Readonly<ComparedAchievementListProps>) {
   const { t, i18n } = useTranslation("achievement");
-  const { formatUnlockDateTime } = useDate();
+  const formatUnlockDateTime = (date: number) =>
+    formatAchievementUnlockDateTime(date, i18n.language);
   const showHiddenAchievements = useAppSelector(
     (state) =>
       state.userPreferences.value?.showHiddenAchievementsDescription ?? false

@@ -4,8 +4,10 @@ import { describe, it } from "node:test";
 import {
   buildAchievementListEntries,
   filterAndSortAchievements,
+  formatAchievementUnlockDateTime,
   formatAchievementUnlockPercentage,
   getAchievementComparisonCounts,
+  getAchievementKey,
   getAchievementSetKey,
   getComparedOwnerUnlockedNames,
   getComparedTargetAchievements,
@@ -502,6 +504,34 @@ describe("achievement list entries", () => {
         buildAchievementListEntries(groups, rows, new Set(["2"]))
       ),
       ["set:1:open", "a", "set:2:closed"]
+    );
+  });
+});
+
+describe("achievement key", () => {
+  it("prefers the canonical id so combined Steam and Epic rows stay unique", () => {
+    assert.equal(
+      getAchievementKey({ name: "WIN", canonicalAchievementId: "steam:WIN" }),
+      "steam:WIN"
+    );
+    assert.equal(getAchievementKey({ name: "WIN" }), "WIN");
+  });
+});
+
+describe("achievement unlock date", () => {
+  const date = new Date(2026, 9, 29, 9, 5);
+
+  it("uses month/day/year and a 12-hour clock for English", () => {
+    assert.equal(
+      formatAchievementUnlockDateTime(date, "en"),
+      "10/29/2026 · 9:05 AM"
+    );
+  });
+
+  it("uses day/month/year and a 24-hour clock for other languages", () => {
+    assert.equal(
+      formatAchievementUnlockDateTime(date, "pt-BR"),
+      "29/10/2026 · 09:05"
     );
   });
 });

@@ -48,13 +48,5 @@ export function useDate() {
     },
 
     formatDate: (date: number | Date | string) => formatDate(date, language),
-
-    formatUnlockDateTime: (date: number | Date | string): string => {
-      return format(
-        date,
-        language == "en" ? "MM-dd-yyyy · hh:mm a" : "dd/MM/yyyy · HH:mm",
-        { locale: getDateLocale(language) }
-      );
-    },
   };
 }

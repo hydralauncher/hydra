@@ -7,6 +7,22 @@ import { AchievementWatcherManager } from "@main/services/achievements/achieveme
 import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
 import { withComparedAchievementDefinitions } from "@main/services/achievements/compared-achievement-definitions";
 
+const ACHIEVEMENT_DEFINITIONS_TIMEOUT_MS = 5_000;
+
+const getAchievementDefinitions = (objectId: string, shop: GameShop) => {
+  let timeout: NodeJS.Timeout | undefined;
+
+  return Promise.race([
+    getGameAchievementData(objectId, shop, true).catch(() => []),
+    new Promise<[]>((resolve) => {
+      timeout = setTimeout(
+        () => resolve([]),
+        ACHIEVEMENT_DEFINITIONS_TIMEOUT_MS
+      );
+    }),
+  ]).finally(() => clearTimeout(timeout));
+};
+
 const getComparedUnlockedAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
   objectId: string,
@@ -31,7 +47,7 @@ const getComparedUnlockedAchievements = async (
         language: userPreferences?.language ?? "en",
       }
     ),
-    getGameAchievementData(objectId, shop, true).catch(() => []),
+    getAchievementDefinitions(objectId, shop),
   ]);
 
   const sortedAchievements = achievements.achievements.sort((a, b) => {

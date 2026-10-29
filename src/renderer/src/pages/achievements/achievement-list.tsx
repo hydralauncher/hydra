@@ -1,4 +1,4 @@
-import { useAppSelector, useDate, useUserDetails } from "@renderer/hooks";
+import { useAppSelector, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import type { UserAchievement } from "@types";
 import { useTranslation } from "react-i18next";
@@ -28,8 +28,10 @@ import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achie
 import {
   buildAchievementListEntries,
   filterAndSortAchievements,
+  formatAchievementUnlockDateTime,
   formatAchievementUnlockPercentage,
   type AchievementListEntry,
+  getAchievementKey,
   getAchievementStatusCounts,
   getVisibleSetGroups,
   groupAchievementsBySet,
@@ -57,7 +59,7 @@ interface AchievementListProps {
 const getEntryKey = (entry: AchievementListEntry<UserAchievement>) =>
   entry.type === "set"
     ? `set-${entry.group.key}`
-    : (entry.achievement.canonicalAchievementId ?? entry.achievement.name);
+    : getAchievementKey(entry.achievement);
 
 export function AchievementList({
   achievements,
@@ -69,7 +71,8 @@ export function AchievementList({
   const { t, i18n } = useTranslation("achievement");
   const { hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
-  const { formatUnlockDateTime } = useDate();
+  const formatUnlockDateTime = (date: number) =>
+    formatAchievementUnlockDateTime(date, i18n.language);
   const showHiddenAchievements = useAppSelector(
     (state) =>
       state.userPreferences.value?.showHiddenAchievementsDescription ?? false
@@ -95,14 +98,19 @@ export function AchievementList({
   );
 
   const isConcealed = useCallback(
-    (achievement: Pick<UserAchievement, "name" | "hidden" | "unlocked">) =>
+    (
+      achievement: Pick<
+        UserAchievement,
+        "name" | "canonicalAchievementId" | "hidden" | "unlocked"
+      >
+    ) =>
       isAchievementConcealed(
         {
           hidden: achievement.hidden,
           unlocked: isUnlockedByViewer(achievement),
         },
         showHiddenAchievements
-      ) && !revealedNames.has(achievement.name),
+      ) && !revealedNames.has(getAchievementKey(achievement)),
     [isUnlockedByViewer, revealedNames, showHiddenAchievements]
   );
 
@@ -217,14 +225,15 @@ export function AchievementList({
         className={cn("achievements__item", {
           "achievements__item--unlocked": achievement.unlocked,
           "achievements__item--concealed": concealed,
-          "achievements__item--revealed": achievement.name === lastRevealedName,
+          "achievements__item--revealed":
+            getAchievementKey(achievement) === lastRevealedName,
         })}
       >
         {concealed ? (
           <button
             type="button"
             className="achievements__item-reveal"
-            onClick={() => revealAchievement(achievement.name)}
+            onClick={() => revealAchievement(getAchievementKey(achievement))}
           >
             <span className="achievements__item-icon achievements__item-icon--concealed">
               <EyeClosedIcon size={24} />

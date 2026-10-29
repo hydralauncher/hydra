@@ -7,11 +7,14 @@ import {
   UsersIcon,
 } from "@phosphor-icons/react";
 import type { UserAchievement } from "@types";
-import { formatAchievementUnlockPercentage } from "@shared";
+import {
+  formatAchievementUnlockDateTime,
+  formatAchievementUnlockPercentage,
+  getAchievementKey,
+} from "@shared";
 import cn from "classnames";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
-import { useDate } from "../../../../hooks";
 import { FocusItem, Tooltip, Typography } from "../../../common";
 import type { FocusOverrides } from "../../../../services";
 import { getAchievementRowId } from "../navigation";
@@ -241,12 +244,11 @@ export function AchievementRow({
   onReveal,
   virtualRow,
 }: Readonly<AchievementRowProps>) {
-  const { t } = useTranslation("achievement");
-  const { formatDate, formatTime } = useDate();
+  const { t, i18n } = useTranslation("achievement");
   const unlockedAt =
     achievement.unlockTime == null
       ? undefined
-      : `${formatDate(achievement.unlockTime)} · ${formatTime(achievement.unlockTime)}`;
+      : formatAchievementUnlockDateTime(achievement.unlockTime, i18n.language);
   const hasSouvenir = Boolean(achievement.unlocked && achievement.imageUrl);
   const revealAchievement =
     concealed && onReveal ? () => onReveal(achievement) : undefined;
@@ -257,7 +259,7 @@ export function AchievementRow({
 
   return (
     <FocusItem
-      id={getAchievementRowId(achievement.name)}
+      id={getAchievementRowId(getAchievementKey(achievement))}
       actions={{ primary: revealAchievement ?? viewSouvenir ?? "off" }}
       navigationOrder={navigationOrder}
       navigationOverrides={navigationOverrides}
