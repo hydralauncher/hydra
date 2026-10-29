@@ -347,6 +347,7 @@ interface ScreenshotCommentItemProps {
   isPending: boolean;
   isReported: boolean;
   isEditing: boolean;
+  isNew: boolean;
   onAuthorClick: () => void;
   onVote: (comment: ScreenshotComment, vote: ScreenshotCommentVoteType) => void;
   onStartEdit: (comment: ScreenshotComment) => void;
@@ -363,6 +364,7 @@ function ScreenshotCommentItem({
   isPending,
   isReported,
   isEditing,
+  isNew,
   onAuthorClick,
   onVote,
   onStartEdit,
@@ -373,9 +375,20 @@ function ScreenshotCommentItem({
   tooltipId,
 }: Readonly<ScreenshotCommentItemProps>) {
   const { t } = useTranslation("screenshots");
+  const itemRef = useRef<HTMLLIElement>(null);
+
+  useEffect(() => {
+    if (!isNew) return;
+    itemRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [isNew]);
 
   return (
-    <li className="screenshot-comments__item">
+    <li
+      ref={itemRef}
+      className={cn("screenshot-comments__item", {
+        "screenshot-comments__item--new": isNew && !isPending,
+      })}
+    >
       <ScreenshotCommentHeader
         comment={comment}
         onAuthorClick={onAuthorClick}
@@ -464,6 +477,7 @@ export function ScreenshotComments({
     clearRestoredDraft,
     pendingCommentIds,
     reportedCommentIds,
+    newCommentId,
     reload,
     loadMore,
     createComment,
@@ -534,6 +548,7 @@ export function ScreenshotComments({
               isPending={pendingCommentIds.has(comment.id)}
               isReported={reportedCommentIds.has(comment.id)}
               isEditing={editingCommentId === comment.id}
+              isNew={newCommentId === comment.id}
               onAuthorClick={onNavigateAway}
               onVote={(item, vote) => void voteComment(item, vote)}
               onStartEdit={(item) => setEditingCommentId(item.id)}

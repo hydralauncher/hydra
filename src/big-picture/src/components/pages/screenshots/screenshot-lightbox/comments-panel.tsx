@@ -286,6 +286,7 @@ interface CommentItemProps {
   isSignedIn: boolean;
   hasMenu: boolean;
   isVoting: boolean;
+  isNew: boolean;
   language: string;
   leftTarget: FocusOverrideTarget;
   navigationOrder: number;
@@ -341,6 +342,7 @@ function CommentItem({
   isSignedIn,
   hasMenu,
   isVoting,
+  isNew,
   language,
   leftTarget,
   navigationOrder,
@@ -350,9 +352,20 @@ function CommentItem({
   const { t } = useTranslation("big_picture");
   const focusIds = getCommentFocusIds(comment.id);
   const moreButtonRef = useRef<HTMLDivElement | null>(null);
+  const itemRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    if (!isNew) return;
+    itemRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [isNew]);
 
   return (
-    <li className="screenshot-comments__item">
+    <li
+      ref={itemRef}
+      className={cn("screenshot-comments__item", {
+        "screenshot-comments__item--new": isNew && !isPendingComment(comment),
+      })}
+    >
       <div className="screenshot-comments__item-top">
         <div className="screenshot-comments__item-header">
           <UserProfileAvatar
@@ -553,6 +566,7 @@ export function ScreenshotCommentsPanel({
   const editVersionsRef = useRef(new Map<string, number>());
   const confirmedEditsRef = useRef(new Map<string, ConfirmedCommentEdit>());
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
+  const [newCommentId, setNewCommentId] = useState<string | null>(null);
   const [menu, setMenu] = useState<CommentMenuState | null>(null);
   const [deletingComment, setDeletingComment] =
     useState<ScreenshotComment | null>(null);
@@ -638,6 +652,7 @@ export function ScreenshotCommentsPanel({
       setComments((current) =>
         current.filter((comment) => comment.id !== pendingId)
       );
+      setNewCommentId((current) => (current === pendingId ? null : current));
       if (isListed) setTotal((current) => Math.max(0, current - 1));
       onCommentCountChange(screenshot.id, -1);
     },
@@ -684,6 +699,18 @@ export function ScreenshotCommentsPanel({
           }
           return [created, ...current];
         });
+        setNewCommentId((current) =>
+          current === pending.id ? created.id : current
+        );
+        const navigation = NavigationService.getInstance();
+        if (
+          !created.isHidden &&
+          navigation.getCurrentFocusId() === focusIds.input
+        ) {
+          navigation.requestFocusWhenAvailable(
+            getCommentFocusIds(created.id).upvote
+          );
+        }
         if (isPendingShown) {
           if (created.isHidden) {
             setTotal((current) => Math.max(0, current - 1));
@@ -710,6 +737,7 @@ export function ScreenshotCommentsPanel({
     },
     [
       draftKey,
+      focusIds.input,
       onCommentCountChange,
       onScreenshotUpdate,
       ownerId,
@@ -830,6 +858,7 @@ export function ScreenshotCommentsPanel({
       });
       recordWrite({ kind: "add", comment: pending });
       setComments((current) => [pending, ...current]);
+      setNewCommentId(pending.id);
       setTotal((current) => current + 1);
       onCommentCountChange(screenshot.id, 1);
       void publishComment(pending);
@@ -1079,6 +1108,7 @@ export function ScreenshotCommentsPanel({
                   isVoting={
                     votingIds.has(comment.id) || isPendingComment(comment)
                   }
+                  isNew={newCommentId === comment.id}
                   language={language}
                   leftTarget={leftTarget}
                   onVote={(target, voteType) => void vote(target, voteType)}

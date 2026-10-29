@@ -164,6 +164,7 @@ export function useScreenshotComments({
   const [reportedCommentIds, setReportedCommentIds] = useState<
     ReadonlySet<string>
   >(() => new Set());
+  const [newCommentId, setNewCommentId] = useState<string | null>(null);
   const requestIdRef = useRef(0);
   const isReadInFlightRef = useRef(false);
   const writeVersionRef = useRef(0);
@@ -318,6 +319,7 @@ export function useScreenshotComments({
     setNextCursor(null);
     setHasFailed(false);
     setIsLoading(false);
+    setNewCommentId(null);
 
     if (isEnabled) void reload();
   }, [isEnabled, reload]);
@@ -400,6 +402,9 @@ export function useScreenshotComments({
             ({ id }) => id === pendingId || id === comment.id
           );
           recordWrite({ kind: "replace", commentId: pendingId, comment });
+          setNewCommentId((current) =>
+            current === pendingId ? comment.id : current
+          );
           if (!isListed && !isReadInFlightRef.current) {
             setTotal((current) => (current ?? 0) + 1);
           }
@@ -413,6 +418,7 @@ export function useScreenshotComments({
           screenshotIdRef.current === screenshotId &&
           commentsRef.current.some(({ id }) => id === pendingId);
         recordWrite({ kind: "delete", commentId: pendingId });
+        setNewCommentId((current) => (current === pendingId ? null : current));
         if (isListed) setTotal((current) => Math.max(0, (current ?? 1) - 1));
         onPatch(screenshotId, adjustCommentCount(-1));
         queueRestoredCommentDraft(draftKey, bodyHtml);
@@ -440,6 +446,7 @@ export function useScreenshotComments({
       const pendingComment = createPendingComment(normalizedBody, author);
       setPending(pendingComment.id, true);
       recordWrite({ kind: "create", comment: pendingComment });
+      setNewCommentId(pendingComment.id);
       setTotal((current) => (current ?? 0) + 1);
       onPatch(screenshotId, adjustCommentCount(1));
       void publishComment(pendingComment.id, normalizedBody);
@@ -671,6 +678,7 @@ export function useScreenshotComments({
     clearRestoredDraft,
     pendingCommentIds,
     reportedCommentIds,
+    newCommentId,
     reload,
     loadMore,
     createComment,

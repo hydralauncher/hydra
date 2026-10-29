@@ -1,4 +1,5 @@
 $screenshot-lightbox-hover-duration: 0.2s;
+$screenshot-comment-highlight-duration: 1.6s;
 
 .screenshot-lightbox__backdrop {
   z-index: 120;
@@ -583,6 +584,12 @@ $screenshot-lightbox-hover-duration: 0.2s;
     gap: 4px;
   }
 
+  &__item--new &__item-top,
+  &__item--new &__item-actions {
+    animation: screenshot-comment-new-highlight
+      $screenshot-comment-highlight-duration ease-out;
+  }
+
   &__item-top,
   &__item-actions {
     background-color: var(--secondary);
@@ -806,5 +813,15 @@ $screenshot-lightbox-hover-duration: 0.2s;
     font-size: 1.25rem;
     font-weight: 700;
     line-height: 1.3;
+  }
+}
+
+@keyframes screenshot-comment-new-highlight {
+  from {
+    background-color: var(--secondary-hover);
+  }
+
+  to {
+    background-color: var(--secondary);
   }
 }
