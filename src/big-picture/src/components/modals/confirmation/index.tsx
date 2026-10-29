@@ -19,6 +19,7 @@ interface ConfirmationModalProps {
   cancelLabel?: string;
   onClose: () => void;
   onConfirm: () => Promise<void> | void;
+  onExitComplete?: () => void;
   loading?: boolean;
   danger?: boolean;
   closeOnBackdrop?: boolean;
@@ -43,6 +44,7 @@ export function ConfirmationModal({
   cancelLabel = "Cancel",
   onClose,
   onConfirm,
+  onExitComplete,
   loading = false,
   danger = false,
   closeOnBackdrop = true,
@@ -75,6 +77,7 @@ export function ConfirmationModal({
       closeOnB={!loading}
       className="confirmation-modal"
       backdropClassName={backdropClassName}
+      onExitComplete={onExitComplete}
     >
       <VerticalFocusGroup
         regionId={CONFIRMATION_MODAL_CONTENT_REGION_ID}

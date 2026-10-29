@@ -136,7 +136,8 @@ interface LightboxModalsProps {
   openModal: LightboxModal;
   social: LightboxSocial;
   onCloseModal: () => void;
-  onDeleted: () => void;
+  onDeleted: (commitRemoval: () => void) => void;
+  onDeleteExitComplete: () => void;
 }
 
 function LightboxModals({
@@ -145,6 +146,7 @@ function LightboxModals({
   social,
   onCloseModal,
   onDeleted,
+  onDeleteExitComplete,
 }: Readonly<LightboxModalsProps>) {
   const { t } = useTranslation("big_picture");
 
@@ -175,8 +177,10 @@ function LightboxModals({
         danger
         loading={social.isDeleting}
         onClose={onCloseModal}
+        onExitComplete={onDeleteExitComplete}
         onConfirm={async () => {
-          if (await social.remove()) onDeleted();
+          const commitRemoval = await social.remove();
+          if (commitRemoval) onDeleted(commitRemoval);
         }}
       />
     </>
@@ -443,6 +447,21 @@ export function ScreenshotLightbox({
 
   const openLocal = localSlot?.openLocal ?? null;
   const closeViewer = localSlot?.onClose ?? onClose;
+  const pendingRemovalRef = useRef<(() => void) | null>(null);
+  const [hasDeleteModalExited, setHasDeleteModalExited] = useState(false);
+
+  useEffect(() => {
+    if (!hasDeleteModalExited) return;
+
+    setHasDeleteModalExited(false);
+    const commitRemoval = pendingRemovalRef.current;
+    pendingRemovalRef.current = null;
+    if (!commitRemoval) return;
+
+    commitRemoval();
+    closeViewer();
+  }, [closeViewer, hasDeleteModalExited]);
+
   const viewerEntries = useMemo<ScreenshotViewerEntry[]>(
     () =>
       localSlot?.entries ??
@@ -509,9 +528,12 @@ export function ScreenshotLightbox({
           openModal={openModal}
           social={social}
           onCloseModal={() => setOpenModal(null)}
-          onDeleted={() => {
+          onDeleted={(commitRemoval) => {
+            pendingRemovalRef.current = commitRemoval;
             setOpenModal(null);
-            closeViewer();
+          }}
+          onDeleteExitComplete={() => {
+            if (pendingRemovalRef.current) setHasDeleteModalExited(true);
           }}
         />
       ) : null}

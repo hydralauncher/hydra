@@ -264,23 +264,24 @@ export function useLightboxSocialActions({
     [claimFieldVersions, onUpdate, persistUpdate, screenshot]
   );
 
-  const remove = useCallback(async () => {
-    if (!screenshot) return false;
+  const remove = useCallback(async (): Promise<(() => void) | null> => {
+    if (!screenshot) return null;
 
+    const screenshotId = screenshot.id;
+    const ownerId = screenshot.owner.id;
     setIsDeleting(true);
 
     try {
       await globalThis.window.electron.hydraApi.delete(
-        buildProfileScreenshotPath(screenshot.id),
+        buildProfileScreenshotPath(screenshotId),
         { needsAuth: true }
       );
-      onRemove(screenshot.id, screenshot.owner.id);
       showSuccessToast(t("screenshots_deleted"), SETTINGS_TOAST);
-      return true;
+      return () => onRemove(screenshotId, ownerId);
     } catch (error) {
       logger.error("Failed to delete screenshot", error);
       showError(error);
-      return false;
+      return null;
     } finally {
       setIsDeleting(false);
     }

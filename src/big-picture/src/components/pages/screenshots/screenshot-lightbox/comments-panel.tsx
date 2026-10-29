@@ -52,7 +52,11 @@ import {
   useNavigation,
   useUserDetails,
 } from "../../../../hooks";
-import type { FocusOverrides, FocusOverrideTarget } from "../../../../services";
+import {
+  NavigationService,
+  type FocusOverrides,
+  type FocusOverrideTarget,
+} from "../../../../services";
 import { getScreenshotErrorKey } from "../helpers";
 import { ScreenshotReportModal } from "../screenshot-report-modal";
 import { ScreenshotCommentBody } from "./comment-body";
@@ -791,12 +795,12 @@ export function ScreenshotCommentsPanel({
         onCommentCountChange(screenshot.id, -1);
       }
       if (editingComment?.id === deletingComment.id) setEditingComment(null);
+      NavigationService.getInstance().requestFocusWhenAvailable(
+        viewerId ? focusIds.input : focusIds.signIn
+      );
       setDeletingComment(null);
       showSuccessToast(t("screenshots_comment_deleted"), {
         fallbackVisual: "settings",
-      });
-      globalThis.window.requestAnimationFrame(() => {
-        setFocus(viewerId ? focusIds.input : focusIds.signIn);
       });
     } catch (error) {
       showError(error);
@@ -813,7 +817,6 @@ export function ScreenshotCommentsPanel({
     ownerId,
     screenshot.id,
     setComments,
-    setFocus,
     setTotal,
     showError,
     showSuccessToast,
