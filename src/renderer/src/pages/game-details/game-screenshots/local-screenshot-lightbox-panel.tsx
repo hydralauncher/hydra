@@ -54,9 +54,11 @@ export function LocalScreenshotLightboxPanel({
             {formatDateTime(screenshot.capturedAt)}
           </time>
         </p>
-        <span className="local-screenshot-panel__badge">
-          {t("not_uploaded")}
-        </span>
+        {screenshot.state === "uploaded" ? null : (
+          <span className="local-screenshot-panel__badge">
+            {t("not_uploaded")}
+          </span>
+        )}
       </header>
 
       <div className="local-screenshot-panel__fields">
