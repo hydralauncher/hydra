@@ -479,6 +479,8 @@ test("an executable match without managed PID ancestry cannot report playtime", 
   assert.equal(f.state.reportsFinished, 1);
 });
 
+const plainArgs = (args: readonly string[]) => [...args];
+
 test("launching an outdated build skips Legendary's version check only when asked", async (t) => {
   const f = await fixture(t);
   await f.exported.prepareManagedEpicLaunch(f.game, f.executable);
@@ -486,14 +488,10 @@ test("launching an outdated build skips Legendary's version check only when aske
   await f.exported.prepareManagedEpicLaunch(f.game, f.executable, {
     epicSkipUpdateCheck: true,
   });
-  // The module runs in its own VM realm; compare contents, not prototypes.
-  assert.deepEqual(
-    f.state.authArgs.map((args) => [...args]),
-    [
-      ["launch", "Artifact", "--json", "--no-wine"],
-      ["launch", "Artifact", "--json", "--no-wine", "--skip-version-check"],
-    ]
-  );
+  assert.deepEqual(f.state.authArgs.map(plainArgs), [
+    ["launch", "Artifact", "--json", "--no-wine"],
+    ["launch", "Artifact", "--json", "--no-wine", "--skip-version-check"],
+  ]);
 });
 
 test("conflict prevents auth launch; offline uses only confirmed local capture and the offline command", async (t) => {

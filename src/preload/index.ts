@@ -1256,7 +1256,7 @@ contextBridge.exposeInMainWorld("electron", {
   deleteGameFolder: (
     shop: GameShop,
     objectId: string,
-    options?: { deleteSourceArchive?: boolean }
+    options?: { deleteSourceArchive?: boolean; keepEpicUpdateFiles?: boolean }
   ) => ipcRenderer.invoke("deleteGameFolder", shop, objectId, options),
   recheckInstalledExecutable: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("recheckInstalledExecutable", shop, objectId),

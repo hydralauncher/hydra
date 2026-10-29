@@ -138,7 +138,7 @@ describe("Epic game updates", () => {
     diskSizeInBytes: 20,
     supportsCloudSaves: false,
     installed: true,
-    version: "build-2",
+    publishedVersion: "build-2",
     installedVersion: "build-1",
     ...overrides,
   });
@@ -151,7 +151,7 @@ describe("Epic game updates", () => {
     for (const overrides of [
       { installedVersion: "build-2" },
       { installed: false },
-      { version: null },
+      { publishedVersion: null },
       { installedVersion: null },
       { artifactId: "OtherArtifact" },
       { platform: "Mac" as const },
@@ -159,14 +159,31 @@ describe("Epic game updates", () => {
       assert.equal(getEpicGameUpdate([option(overrides)], installation), null);
   });
 
-  it("treats an update as interrupted until its download completes", () => {
+  it("treats only a stopped update as interrupted", () => {
     const update = { fromVersion: "build-1", toVersion: "build-2" };
     assert.equal(isEpicUpdateInterrupted(null), false);
     assert.equal(isEpicUpdateInterrupted({ status: "paused" }), false);
-    for (const status of ["paused", "error", "removed", "active"])
+    for (const status of ["paused", "error", "removed"])
       assert.equal(isEpicUpdateInterrupted({ status, epic: { update } }), true);
+    for (const status of ["active", "extracting", "complete"])
+      assert.equal(
+        isEpicUpdateInterrupted({ status, epic: { update } }),
+        false
+      );
     assert.equal(
-      isEpicUpdateInterrupted({ status: "complete", epic: { update } }),
+      isEpicUpdateInterrupted({
+        status: "paused",
+        queued: true,
+        epic: { update },
+      }),
+      false
+    );
+    assert.equal(
+      isEpicUpdateInterrupted({
+        status: "paused",
+        extracting: true,
+        epic: { update },
+      }),
       false
     );
   });
