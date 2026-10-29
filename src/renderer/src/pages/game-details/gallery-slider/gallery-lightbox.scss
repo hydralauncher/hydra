@@ -6,6 +6,10 @@ $lightbox-top-bar-height: 64px;
 $lightbox-filmstrip-height: 104px;
 $lightbox-side-gutter: 88px;
 $lightbox-titlebar-height: 35px;
+$lightbox-sidebar-width: min(400px, 38vw);
+$lightbox-narrow-breakpoint: 900px;
+$lightbox-sheet-height: 45%;
+$lightbox-sidebar-fade-duration: 0.2s;
 
 .gallery-lightbox-dialog {
   display: contents;
@@ -42,6 +46,11 @@ $lightbox-titlebar-height: 35px;
 
   &--chrome-hidden {
     cursor: none;
+  }
+
+  [role="dialog"] {
+    cursor: auto;
+    user-select: text;
   }
 
   &__chrome {
@@ -401,6 +410,70 @@ $lightbox-titlebar-height: 35px;
     background-color: rgba(0, 0, 0, 0.6);
     color: #fff;
     pointer-events: none;
+  }
+}
+
+.gallery-lightbox--with-sidebar {
+  --gallery-sidebar-width: #{$lightbox-sidebar-width};
+
+  .gallery-lightbox__stage,
+  .gallery-lightbox__top-bar,
+  .gallery-lightbox__filmstrip {
+    right: var(--gallery-sidebar-width);
+  }
+
+  .gallery-lightbox__nav-button--right,
+  .gallery-lightbox__corner-button {
+    margin-right: var(--gallery-sidebar-width);
+  }
+}
+
+.gallery-lightbox__sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  width: var(--gallery-sidebar-width);
+  min-height: 0;
+  flex-direction: column;
+  border-left: 1px solid globals.$border-color;
+  background-color: globals.$background-color;
+  cursor: auto;
+  user-select: text;
+  animation: gallery-lightbox-fade-in $lightbox-sidebar-fade-duration ease-out;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.gallery-lightbox--titlebar-offset .gallery-lightbox__sidebar {
+  top: $lightbox-titlebar-height;
+}
+
+@media (max-width: $lightbox-narrow-breakpoint) {
+  .gallery-lightbox--with-sidebar {
+    --gallery-sidebar-width: 0px;
+
+    .gallery-lightbox__stage,
+    .gallery-lightbox__filmstrip {
+      bottom: $lightbox-sheet-height;
+    }
+
+    .gallery-lightbox__nav-button {
+      top: calc((100% - #{$lightbox-sheet-height}) / 2);
+    }
+
+    .gallery-lightbox__sidebar {
+      top: auto;
+      left: 0;
+      width: 100%;
+      height: $lightbox-sheet-height;
+      border-top: 1px solid globals.$border-color;
+      border-left: 0;
+    }
   }
 }
 

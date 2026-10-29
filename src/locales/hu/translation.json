@@ -795,7 +795,7 @@
     "enable_achievement_notifications": "Amikor egy achievement feloldódik",
     "launch_minimized": "Hydra indítása minimalizálva",
     "launch_hydra_in_library_page": "Hydra automatikus indítása a Könyvtár-ba",
-    "disable_nsfw_alert": "NSFW figyelmeztetés kikapcsolása",
+    "disable_nsfw_alert": "NSFW figyelmeztetés kikapcsolása a játékoldalakon és a szuveníreknél",
     "seed_after_download_complete": "Letöltés utáni seedelés",
     "show_hidden_achievement_description": "Rejtett achievementek leírásának megjelenítése feloldás előtt",
     "account": "Fiók",

@@ -963,7 +963,7 @@
     "user_unblocked": "Utente sbloccato",
     "enable_achievement_notifications": "Quando viene sbloccato un obiettivo",
     "launch_minimized": "Avvia Hydra ridotto a icona",
-    "disable_nsfw_alert": "Disabilita avviso NSFW",
+    "disable_nsfw_alert": "Disabilita avviso NSFW nelle pagine dei giochi e nei souvenir",
     "seed_after_download_complete": "Seeding dopo il completamento del download",
     "show_hidden_achievement_description": "Mostra la descrizione degli obiettivi nascosti prima di sbloccarli",
     "account": "Account",

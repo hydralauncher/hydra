@@ -468,6 +468,8 @@ export interface UserDetails {
   allowCloudGifts: boolean;
   allowLeaderboardNotifications?: boolean;
   souvenirsVisibility: ProfileVisibility;
+  screenshotsVisibility?: ProfileVisibility;
+  screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
   bio: string;
   workwondersJwt: string;
   subscription: Subscription | null;
@@ -571,6 +573,8 @@ export interface UpdateProfileRequest {
   displayName?: string;
   profileVisibility?: ProfileVisibility;
   souvenirsVisibility?: ProfileVisibility;
+  screenshotsVisibility?: ProfileVisibility;
+  screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
   profileImageUrl?: string | null;
   backgroundImageUrl?: string | null;
   bio?: string;
@@ -773,6 +777,9 @@ export type NotificationType =
   | "REVIEW_ANSWER"
   | "REVIEW_ANSWER_UPVOTE"
   | "SOUVENIR_LIKE"
+  | "SCREENSHOT_LIKE"
+  | "SCREENSHOT_COMMENT"
+  | "SCREENSHOT_COMMENT_UPVOTE"
   | "RETROACHIEVEMENTS_CREDENTIALS_RESTORED"
   | "RETROACHIEVEMENTS_CREDENTIALS_INVALID"
   | "RETROACHIEVEMENTS_SYNC_FAILED"

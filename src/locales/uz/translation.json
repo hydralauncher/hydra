@@ -701,7 +701,7 @@
     "quit_app_instead_hiding": "Ilovani trayga yig'ish o'rniga yopish",
     "launch_with_system": "Hydra'ni tizim bilan birga ishga tushirish",
     "launch_minimized": "Hydra'ni yig'ilgan holda ishga tushirish",
-    "disable_nsfw_alert": "Noqulay kontent haqida ogohlantirishni o'chirish",
+    "disable_nsfw_alert": "O'yin sahifalarida va suvenirlarda noqulay kontent haqida ogohlantirishni o'chirish",
     "general": "Asosiy",
     "behavior": "Xatti-harakat",
     "download_sources": "Yuklab olish manbalari",

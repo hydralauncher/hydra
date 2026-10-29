@@ -751,7 +751,7 @@
     "user_unblocked": "Kullanıcı engeli kaldırıldı",
     "enable_achievement_notifications": "Bir başarı açıldığında",
     "launch_minimized": "Hydra'yı küçük aç",
-    "disable_nsfw_alert": "NSFW uyarısını devre dışı bırak",
+    "disable_nsfw_alert": "Oyun sayfalarında ve hatıralarda NSFW uyarısını devre dışı bırak",
     "seed_after_download_complete": "İndirme sonrası seed yap",
     "show_hidden_achievement_description": "Açılmadan önce gizli başarı açıklamasını göster",
     "account": "Hesap",

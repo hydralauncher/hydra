@@ -751,7 +751,7 @@
     "user_unblocked": "Користувача було розблоковано",
     "enable_achievement_notifications": "Коли отримано нове досягнення",
     "launch_minimized": "Запустити Hydra у згорнутому вигляді",
-    "disable_nsfw_alert": "Вимкнути сповіщення про NSFW",
+    "disable_nsfw_alert": "Вимкнути сповіщення про NSFW на сторінках ігор і в сувенірах",
     "seed_after_download_complete": "Cідувати по завершенню завантажень",
     "show_hidden_achievement_description": "Показувати опис прихованих досягнень до їх розблокування",
     "account": "Акаунт",

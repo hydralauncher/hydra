@@ -775,7 +775,7 @@
     "delete_all_themes_description": "这将删除所有您的自定义主题",
     "delete_theme": "删除主题",
     "delete_theme_description": "这将删除主题 {{theme}}",
-    "disable_nsfw_alert": "禁用NSFW警告",
+    "disable_nsfw_alert": "在游戏页面和纪念品中禁用NSFW警告",
     "edit_theme": "编辑主题",
     "editor_tab_code": "代码",
     "editor_tab_info": "信息",

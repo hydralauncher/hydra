@@ -1,0 +1,150 @@
+@use "../../scss/globals.scss";
+
+$inline-edit-radius: 10px;
+$inline-edit-editing-radius: 6px;
+$inline-edit-dash: 6px;
+$inline-edit-gap: 5px;
+$inline-edit-join-duration: 0.35s;
+$inline-edit-shape-duration: 0.2s;
+$inline-edit-limit-duration: 0.3s;
+$inline-edit-wiggle-offset: 3px;
+
+.inline-edit-field {
+  position: relative;
+  display: flex;
+  min-height: 40px;
+
+  &__outline {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  &__outline-shape {
+    x: 0.5px;
+    y: 0.5px;
+    width: calc(100% - 1px);
+    height: calc(100% - 1px);
+    rx: $inline-edit-radius;
+    fill: none;
+    stroke: globals.$border-color;
+    stroke-width: 1px;
+    stroke-dasharray: $inline-edit-dash $inline-edit-gap;
+    transition:
+      stroke-dasharray $inline-edit-join-duration ease,
+      rx $inline-edit-shape-duration ease,
+      stroke $inline-edit-shape-duration ease;
+  }
+
+  &:hover:not(&--disabled) &__outline-shape {
+    stroke: rgba(255, 255, 255, 0.5);
+  }
+
+  &--editing &__outline-shape,
+  &--editing:hover &__outline-shape {
+    rx: $inline-edit-editing-radius;
+    stroke: #dadbe1;
+    stroke-dasharray: $inline-edit-dash + $inline-edit-gap 0;
+  }
+
+  &__trigger {
+    flex: 1;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border: 0;
+    background: transparent;
+    color: globals.$body-color;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: globals.$body-font-size;
+    text-align: left;
+
+    &:hover,
+    &--filled {
+      color: globals.$muted-color;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: globals.$disabled-opacity;
+    }
+
+    &:focus-visible {
+      border-radius: $inline-edit-radius;
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 2px;
+    }
+  }
+
+  &__input {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    height: 38px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: globals.$muted-color;
+    font-family: inherit;
+    font-size: globals.$body-font-size;
+  }
+
+  &--multiline {
+    min-height: 76px;
+  }
+
+  &--multiline &__trigger {
+    display: flex;
+    align-items: flex-start;
+    padding-block: calc(globals.$spacing-unit * 1.25);
+    line-height: 20px;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  &--multiline &__input {
+    height: auto;
+    padding-block: calc(globals.$spacing-unit * 1.25);
+    line-height: 20px;
+    resize: none;
+  }
+
+  &--limit {
+    animation: inline-edit-field-wiggle $inline-edit-limit-duration ease;
+  }
+
+  &--limit &__outline-shape,
+  &--limit:hover &__outline-shape {
+    stroke: globals.$error-color;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &--limit {
+      animation: none;
+    }
+
+    &__outline-shape {
+      transition: none;
+    }
+  }
+}
+
+@keyframes inline-edit-field-wiggle {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-$inline-edit-wiggle-offset);
+  }
+
+  40%,
+  80% {
+    transform: translateX($inline-edit-wiggle-offset);
+  }
+}

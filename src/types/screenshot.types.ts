@@ -3,6 +3,7 @@ import type { ProfileVisibility } from "./index";
 
 export type ScreenshotShop = GameShop;
 export type ScreenshotModerationStatus = "PENDING" | "APPROVED" | "BLOCKED";
+export type DescriptionModerationStatus = "APPROVED" | "BLOCKED";
 export type ScreenshotQuality = "STANDARD" | "CLOUD";
 export type ScreenshotCommentsPolicy = "EVERYONE" | "FRIENDS" | "NOBODY";
 export type ScreenshotSort = "recent" | "top";
@@ -23,10 +24,18 @@ export type ScreenshotCommentReportReason = Exclude<
   "not_game_screenshot"
 >;
 
+export interface ScreenshotReportValues<
+  Reason extends ScreenshotReportReason = ScreenshotReportReason,
+> {
+  reason: Reason;
+  description?: string;
+}
+
 export interface ScreenshotAuthor {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
+  backgroundImageUrl?: string | null;
 }
 
 export interface ProfileScreenshot {
@@ -46,6 +55,8 @@ export interface ProfileScreenshot {
   gameIconUrl: string | null;
   isSpoiler: boolean;
   isSensitive?: boolean;
+  description: string | null;
+  descriptionModerationStatus?: DescriptionModerationStatus | null;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
@@ -120,11 +131,16 @@ export interface ScreenshotModerationState {
   moderationReason: string | null;
 }
 
+export type ScreenshotUpdateResponse = ProfileScreenshot & {
+  textModeration?: ScreenshotTextModeration;
+};
+
 export interface ScreenshotUpdateRequest {
   visibility?: ProfileVisibility;
   commentsEnabled?: boolean;
   isSpoiler?: boolean;
   customGameTitle?: string | null;
+  description?: string | null;
 }
 
 export interface ScreenshotLikeResponse {
@@ -134,7 +150,7 @@ export interface ScreenshotLikeResponse {
 
 export interface ScreenshotComment {
   id: string;
-  body: string;
+  bodyHtml: string;
   createdAt: number;
   editedAt: number | null;
   author: ScreenshotAuthor;
@@ -144,6 +160,7 @@ export interface ScreenshotComment {
   isHidden: boolean;
   isOwn: boolean;
   canDelete: boolean;
+  moderation?: ScreenshotTextModerationVerdict;
 }
 
 export interface ScreenshotCommentsResponse {
