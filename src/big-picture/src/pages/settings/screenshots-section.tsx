@@ -42,8 +42,8 @@ import {
   type DropdownSelectOption,
 } from "../../components";
 import {
-  getHotkeyFromKeyboardEvent,
-  isModifierKeyCode,
+  createScreenshotHotkeyRecorder,
+  isPrintScreenKeyCode,
 } from "../../components/pages/screenshots";
 import {
   useBigPictureToast,
@@ -158,6 +158,16 @@ function useHotkeyRecorder(
       if (!isRecordingLayerActive()) setIsRecording(false);
     });
 
+    const recorder = createScreenshotHotkeyRecorder((candidate) => {
+      const validation = validateScreenshotHotkey(candidate);
+      const { meta: _meta, ...binding } = candidate;
+      const error = validation.valid ? null : validation.error;
+
+      setIsRecording(false);
+      onRecorded(error);
+      if (!error) save(binding);
+    });
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (!isRecordingLayerActive()) return;
 
@@ -169,22 +179,26 @@ function useHotkeyRecorder(
         return;
       }
 
-      if (isModifierKeyCode(event.code)) return;
+      recorder.handleKeyDown(event);
+    };
 
-      const candidate = getHotkeyFromKeyboardEvent(event);
-      const validation = validateScreenshotHotkey(candidate);
-      const { meta: _meta, ...binding } = candidate;
-      const error = validation.valid ? null : validation.error;
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (!isRecordingLayerActive()) return;
 
-      setIsRecording(false);
-      onRecorded(error);
-      if (!error) save(binding);
+      if (isPrintScreenKeyCode(event.code)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      recorder.handleKeyUp(event);
     };
 
     globalThis.window.addEventListener("keydown", onKeyDown, true);
+    globalThis.window.addEventListener("keyup", onKeyUp, true);
     return () => {
       unsubscribe();
       globalThis.window.removeEventListener("keydown", onKeyDown, true);
+      globalThis.window.removeEventListener("keyup", onKeyUp, true);
     };
   }, [isRecording, onRecorded, save]);
 
