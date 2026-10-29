@@ -74,6 +74,7 @@ export interface UserProfileContext {
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
 
 const LIBRARY_REQUEST_TIMEOUT_MS = 15_000;
+const PROFILE_LIBRARY_PAGE_SIZE = 48;
 
 const requestLibraryPage = (url: string) =>
   window.electron.hydraApi.get<{
@@ -226,7 +227,7 @@ export function UserProfileContextProvider({
 
       try {
         const params = new URLSearchParams();
-        params.append("take", "12");
+        params.append("take", String(PROFILE_LIBRARY_PAGE_SIZE));
         params.append("skip", "0");
         appendProfileLibraryFilterParams(params, filter);
         if (sortBy) {
@@ -246,7 +247,9 @@ export function UserProfileContextProvider({
         if (response) {
           setLibraryGames(response.library);
           setPinnedGames(response.pinnedGames);
-          setHasMoreLibraryGames(response.library.length === 12);
+          setHasMoreLibraryGames(
+            response.library.length === PROFILE_LIBRARY_PAGE_SIZE
+          );
         } else {
           setLibraryGames([]);
           setPinnedGames([]);
@@ -283,8 +286,8 @@ export function UserProfileContextProvider({
       try {
         const nextPage = libraryPage + 1;
         const params = new URLSearchParams();
-        params.append("take", "12");
-        params.append("skip", String(nextPage * 12));
+        params.append("take", String(PROFILE_LIBRARY_PAGE_SIZE));
+        params.append("skip", String(nextPage * PROFILE_LIBRARY_PAGE_SIZE));
         appendProfileLibraryFilterParams(params, filter);
         if (sortBy) {
           params.append("sortBy", sortBy);
@@ -305,7 +308,9 @@ export function UserProfileContextProvider({
             return [...prev, ...newGames];
           });
           setLibraryPage(nextPage);
-          setHasMoreLibraryGames(response.library.length === 12);
+          setHasMoreLibraryGames(
+            response.library.length === PROFILE_LIBRARY_PAGE_SIZE
+          );
           return true;
         } else {
           setHasMoreLibraryGames(false);
