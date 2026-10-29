@@ -14,6 +14,7 @@ enum Feature {
   GameLeaderboardsExtended = "GAME_LEADERBOARDS_EXTENDED",
   GlobalLeaderboards = "GLOBAL_LEADERBOARDS",
   LeaderboardReports = "LEADERBOARD_REPORTS",
+  LeaderboardBadges = "LEADERBOARD_BADGES",
 }
 
 const readCachedFeatures = (): string[] => {

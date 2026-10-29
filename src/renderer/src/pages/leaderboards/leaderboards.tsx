@@ -17,7 +17,7 @@ import {
   type GlobalLeaderboardScope,
   type LeaderboardPageTab,
 } from "./global-leaderboard";
-import { useGlobalLeaderboardsFeature } from "@renderer/hooks";
+import { useFeature, useGlobalLeaderboardsFeature } from "@renderer/hooks";
 import {
   attributeNextLeaderboardRequest,
   leaderboardsCache,
@@ -138,6 +138,8 @@ function LeaderboardsPage() {
   }, [sourceParam, setSearchParams]);
 
   const { viewerUser, isLoggedIn } = useLeaderboardViewer();
+  const { isFeatureEnabled, Feature } = useFeature();
+  const showBadges = isFeatureEnabled(Feature.LeaderboardBadges);
   const scope = isLoggedIn ? requestedScope : "global";
   const tab = isLoggedIn ? requestedTab : "ranking";
 
@@ -335,7 +337,7 @@ function LeaderboardsPage() {
           )}
 
           {isLoggedIn ? (
-            tab === "stats" && <BadgesSection />
+            tab === "stats" && showBadges && <BadgesSection />
           ) : (
             <p className="leaderboards__sign-in">
               <TrophyIcon size={14} />
