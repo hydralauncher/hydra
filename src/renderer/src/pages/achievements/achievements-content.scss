@@ -3,6 +3,7 @@
 $hero-height: 150px;
 $logo-height: 100px;
 $logo-max-width: 200px;
+$summary-height: 64px;
 
 .achievements-content {
   &__comparison {
@@ -53,17 +54,6 @@ $logo-max-width: 200px;
         margin-bottom: 8px;
       }
     }
-
-    &__small-avatar {
-      height: 32px;
-      width: 32px;
-      border-radius: 4px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-      object-fit: cover;
-    }
   }
 
   &__subscription-required-button {
@@ -80,25 +70,55 @@ $logo-max-width: 200px;
     }
   }
 
+  &__compare-button {
+    flex-shrink: 0;
+    backdrop-filter: blur(4px);
+
+    &:not(:hover) {
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+  }
+
   &__user-summary {
     display: flex;
     gap: globals.$spacing-unit * 2;
     align-items: center;
     padding: globals.$spacing-unit globals.$spacing-unit * 2;
 
+    .achievements-content__profile-avatar {
+      width: $summary-height;
+      height: $summary-height;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
     &__container {
       display: flex;
       flex-direction: column;
+      justify-content: center;
+      gap: 8px;
       width: 100%;
+      min-width: 0;
+      height: $summary-height;
 
       h1 {
-        margin-bottom: 8px;
+        margin: 0;
+        color: globals.$muted-color;
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 24px;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       &__stats {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 8px;
+        align-items: center;
+        height: 16px;
+        line-height: 16px;
         color: globals.$muted-color;
 
         &__percentage {
@@ -114,6 +134,7 @@ $logo-max-width: 200px;
         }
 
         &__progress-track {
+          flex-shrink: 0;
           width: 100%;
           height: 8px;
           background-color: rgba(255, 255, 255, 0.15);
@@ -149,6 +170,7 @@ $logo-max-width: 200px;
       display: flex;
       flex-direction: column;
       overflow: auto;
+      scrollbar-gutter: stable;
       z-index: 1;
 
       &__container {
@@ -257,44 +279,6 @@ $logo-max-width: 200px;
           padding: globals.$spacing-unit;
         }
       }
-
-      &__table-header {
-        width: 100%;
-        background-color: globals.$background-color;
-        transition: all ease 0.2s;
-        border-bottom: 1px solid globals.$border-color;
-        position: sticky;
-        top: 0;
-        z-index: 1;
-
-        &--stuck {
-          box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.8);
-        }
-
-        &__container {
-          display: grid;
-          gap: globals.$spacing-unit * 2;
-          padding: globals.$spacing-unit * 3;
-
-          &--has-no-active-subscription {
-            grid-template-columns: 3fr 2fr;
-          }
-
-          &--has-active-subscription {
-            grid-template-columns: 3fr 1fr 1fr;
-          }
-
-          &__user-avatar {
-            display: flex;
-            justify-content: center;
-          }
-
-          &__other-user-avatar {
-            display: flex;
-            justify-content: center;
-          }
-        }
-      }
     }
   }
 
@@ -308,6 +292,13 @@ $logo-max-width: 200px;
     align-items: center;
     background-color: globals.$background-color;
     position: relative;
+    object-fit: cover;
+  }
+
+  &__profile-avatar-image {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
     object-fit: cover;
   }
 }

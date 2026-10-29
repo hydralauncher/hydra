@@ -8,7 +8,11 @@ import type {
   LibraryCatalogueMetadata,
   Subscription,
 } from "./level.types";
-import type { GameShop, UnlockedAchievement } from "./game.types";
+import type {
+  AchievementSet,
+  GameShop,
+  UnlockedAchievement,
+} from "./game.types";
 import type { ArtworkAssetType } from "./artwork.types";
 import type { GameContentWarning } from "./souvenir.types";
 
@@ -824,13 +828,18 @@ export interface ComparedAchievements {
     icon: string;
     displayName: string;
     description: string;
+    points?: number;
+    globalUnlockPercentage?: number | null;
+    set?: AchievementSet | null;
     ownerStat?: {
       unlocked: boolean;
       unlockTime: number;
+      hardcoreUnlockTime?: number | null;
     };
     targetStat: {
       unlocked: boolean;
       unlockTime: number;
+      hardcoreUnlockTime?: number | null;
     };
   }[];
 }

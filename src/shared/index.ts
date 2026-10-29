@@ -32,6 +32,7 @@ export {
 export * from "./steam-session";
 export * from "./leaderboard-notifications";
 export * from "./window-layout";
+export * from "./review-translation";
 export {
   getDisplayedPlayTimeInMilliseconds,
   getPlayTimeHoursAndMinutes,
@@ -59,6 +60,7 @@ export * from "./classics-emulator-games";
 export * from "./tracker-list";
 export * from "./souvenirs";
 export * from "./souvenir-sync";
+export * from "./achievement-list";
 
 export class UserNotLoggedInError extends Error {
   constructor() {
@@ -326,9 +328,6 @@ export const getDateLocale = (language: string) => {
 
   return enUS;
 };
-
-export const getReviewTranslationLanguage = (language: string) =>
-  language.split("-")[0].toLowerCase();
 
 export const formatDate = (
   date: number | Date | string,
