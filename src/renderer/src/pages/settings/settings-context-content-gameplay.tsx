@@ -6,6 +6,7 @@ import {
   CheckboxField,
   ConfirmationModal,
   GuideLink,
+  HydraCloudBadge,
   TextField,
 } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
@@ -237,9 +238,7 @@ export function SettingsContextContentGameplay() {
               readOnly
             />
 
-            <span className="settings-behavior__hydra-cloud-badge">
-              Hydra Cloud
-            </span>
+            <HydraCloudBadge />
           </button>
         )}
 

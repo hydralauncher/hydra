@@ -11,7 +11,10 @@ export interface EpicConnectedConnection {
   connectedAt: string;
   lastSyncedAt?: string | null;
   latestSyncRun?: EpicSyncRun | null;
-  capabilities?: { achievementsSnapshotVersion?: 1 | null };
+  capabilities?: {
+    achievementsSnapshotVersion?: 1 | null;
+    dlcSnapshotVersion?: 1 | null;
+  };
 }
 
 export type EpicConnection = { connected: false } | EpicConnectedConnection;
@@ -138,6 +141,13 @@ export interface EpicSyncFinished {
   requiresMerge: boolean;
   achievementSummary?: EpicAchievementSummary;
 }
+export interface EpicSnapshotDlc {
+  artifactId: string;
+  namespace: string;
+  catalogItemId: string;
+  name: string;
+}
+
 export interface EpicSnapshotGame {
   namespace: string;
   catalogItemId: string;
@@ -145,4 +155,5 @@ export interface EpicSnapshotGame {
   name: string;
   playTimeInSeconds: number;
   achievements?: EpicSnapshotAchievement[] | null;
+  dlcs?: EpicSnapshotDlc[];
 }

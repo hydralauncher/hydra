@@ -50,6 +50,7 @@ import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
+import { useMissingScreenshotsToast } from "./hooks/use-missing-screenshots-toast";
 import { LeaderboardNotificationLayer } from "./components/leaderboard-notification/leaderboard-notification-layer";
 import { playMessageSound } from "./pages/chat-window/chat-sounds";
 
@@ -111,6 +112,7 @@ export function App() {
   const toast = useAppSelector((state) => state.toast);
 
   const { showSuccessToast, showErrorToast, showWarningToast } = useToast();
+  useMissingScreenshotsToast();
 
   const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
     useState(false);

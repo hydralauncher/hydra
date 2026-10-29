@@ -8,6 +8,7 @@ import type {
   GameShop,
   DownloadProgress,
   UserPreferences,
+  ScreenshotInputStatus,
   AppUpdaterEvent,
   StartGameDownloadPayload,
   GameRunning,
@@ -97,6 +98,7 @@ import type {
   EpicStartAuthResult,
   EpicGameInstallOptions,
   StartEpicGameDownloadPayload,
+  StartEpicGameUpdatePayload,
   EpicManagedOperationResult,
   EpicCloudSaveState,
   EpicCloudSaveSettings,
@@ -517,6 +519,8 @@ contextBridge.exposeInMainWorld("electron", {
   getRandomGame: () => ipcRenderer.invoke("getRandomGame"),
   getGameStats: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke("getGameStats", objectId, shop),
+  getCatalogueNames: (list: "developers" | "publishers") =>
+    ipcRenderer.invoke("getCatalogueNames", list),
   getGameAssets: (
     objectId: string,
     shop: GameShop,
@@ -952,6 +956,19 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-user-preferences-updated", listener);
   },
+  getScreenshotInputStatus: (): Promise<ScreenshotInputStatus> =>
+    ipcRenderer.invoke("getScreenshotInputStatus"),
+  onScreenshotInputStatusChange: (
+    cb: (status: ScreenshotInputStatus) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      status: ScreenshotInputStatus
+    ) => cb(status);
+    ipcRenderer.on("on-screenshot-input-status-change", listener);
+    return () =>
+      ipcRenderer.removeListener("on-screenshot-input-status-change", listener);
+  },
   autoLaunch: (autoLaunchProps: { enabled: boolean; minimized: boolean }) =>
     ipcRenderer.invoke("autoLaunch", autoLaunchProps),
   authenticateRealDebrid: (apiToken: string) =>
@@ -1255,7 +1272,7 @@ contextBridge.exposeInMainWorld("electron", {
   deleteGameFolder: (
     shop: GameShop,
     objectId: string,
-    options?: { deleteSourceArchive?: boolean }
+    options?: { deleteSourceArchive?: boolean; keepEpicUpdateFiles?: boolean }
   ) => ipcRenderer.invoke("deleteGameFolder", shop, objectId, options),
   recheckInstalledExecutable: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("recheckInstalledExecutable", shop, objectId),
@@ -1263,6 +1280,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("hasSourceArchive", shop, objectId),
   getGameByObjectId: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("getGameByObjectId", shop, objectId),
+  getGameReviewPlaytime: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameReviewPlaytime", shop, objectId),
   resetGameAchievements: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resetGameAchievements", shop, objectId),
   changeGamePlayTime: (shop: GameShop, objectId: string, playtime: number) =>
@@ -1504,6 +1523,17 @@ contextBridge.exposeInMainWorld("electron", {
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
   getScreenshotsPath: () => ipcRenderer.invoke("getScreenshotsPath"),
+  getScreenshotsFolderPath: () =>
+    ipcRenderer.invoke("getScreenshotsFolderPath"),
+  openScreenshotsFolder: () => ipcRenderer.invoke("openScreenshotsFolder"),
+  onLocalScreenshotsMissing: (cb: (count: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, count: number) =>
+      cb(count);
+    ipcRenderer.on("on-local-screenshots-missing", listener);
+    return () =>
+      ipcRenderer.removeListener("on-local-screenshots-missing", listener);
+  },
+
   getAchievementSouvenirSyncStatus: () =>
     ipcRenderer.invoke("getAchievementSouvenirSyncStatus"),
   getAchievementSouvenirSyncDetails: () =>
@@ -1883,9 +1913,19 @@ contextBridge.exposeInMainWorld("electron", {
       "cancelEpicGameInstallOptions",
       requestId
     ) as Promise<void>,
+  invalidateEpicGameInstallOptions: (epicObjectId: string) =>
+    ipcRenderer.invoke(
+      "invalidateEpicGameInstallOptions",
+      epicObjectId
+    ) as Promise<void>,
   startEpicGameDownload: (payload: StartEpicGameDownloadPayload) =>
     ipcRenderer.invoke(
       "startEpicGameDownload",
+      payload
+    ) as Promise<EpicManagedOperationResult>,
+  startEpicGameUpdate: (payload: StartEpicGameUpdatePayload) =>
+    ipcRenderer.invoke(
+      "startEpicGameUpdate",
       payload
     ) as Promise<EpicManagedOperationResult>,
   getEpicCloudSaveState: (epicObjectId: string) =>

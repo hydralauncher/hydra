@@ -24,6 +24,7 @@ import "./main-window-controls";
 import "./misc";
 import "./notifications";
 import "./profile";
+import "./screenshots";
 import "./themes";
 import "./torrenting";
 import "./user";
@@ -32,6 +33,7 @@ import "./library/transfer-game-files";
 import "./emulators";
 import "./retroarch";
 import "./epic";
+import "./screenshot-input";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => appVersion);

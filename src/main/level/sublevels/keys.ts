@@ -9,6 +9,7 @@ export const levelKeys = {
   gameShopAssets: "gameShopAssets",
   artworkSelection: "artworkSelection",
   gameStatsCache: "gameStatsAssets",
+  catalogueNamesCache: "catalogueNamesCache",
   gameShopCache: "gameShopCache",
   gameShopCacheItem: (shop: GameShop, objectId: string, language: string) =>
     `${shop}:${objectId}:${language}`,
@@ -33,6 +34,8 @@ export const levelKeys = {
   pendingAchievementSouvenirs: "pending-achievement-souvenirs",
   pendingGroupedAchievementSouvenirs: "pending-grouped-achievement-souvenirs",
   localSouvenirAssets: "local-souvenir-assets",
+  screenshots: "screenshots",
+  screenshotsFeatureEnabled: "screenshotsFeatureEnabled",
   globalTrackersUrlCache: "globalTrackersUrlCache",
   ps2MemoryCardSaves: "ps2MemoryCardSaves",
   ps2MemoryCardSave: (cardFilePath: string, folderName: string) =>

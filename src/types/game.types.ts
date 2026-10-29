@@ -9,6 +9,12 @@ export interface UnlockedAchievement {
   imageKey?: string | null;
 }
 
+export interface AchievementSet {
+  id: number;
+  name: string | null;
+  order: number;
+}
+
 export interface SteamAchievement {
   name: string;
   displayName: string;
@@ -17,6 +23,8 @@ export interface SteamAchievement {
   icongray: string;
   hidden: boolean;
   points?: number;
+  globalUnlockPercentage?: number | null;
+  set?: AchievementSet | null;
   externalSetId?: string;
   externalId?: string;
 }

@@ -16,14 +16,16 @@ const stripTrailingDotsAndSpaces = (value: string) => {
   return value.slice(0, endIndex);
 };
 
-const sanitizePathSegment = (value: string) => {
+export const sanitizePathSegment = (value: string) => {
   const sanitizedValue = Array.from(value)
     .filter((character) => (character.codePointAt(0) ?? 0) > 31)
     .join("")
     .replaceAll(/[<>:"/\\|?*]/g, "_");
 
   return (
-    stripTrailingDotsAndSpaces(sanitizedValue).slice(0, 120).trim() || "unknown"
+    stripTrailingDotsAndSpaces(
+      stripTrailingDotsAndSpaces(sanitizedValue).slice(0, 120).trim()
+    ) || "unknown"
   );
 };
 

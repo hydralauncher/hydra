@@ -395,14 +395,8 @@ export function useCatalogueData() {
           "/catalogue/steam/tags",
           { params: { language: "en" }, needsAuth: false }
         ),
-        globalThis.window.electron.hydraApi.get<string[]>(
-          "/catalogue/steam/developers",
-          { needsAuth: false }
-        ),
-        globalThis.window.electron.hydraApi.get<string[]>(
-          "/catalogue/steam/publishers",
-          { needsAuth: false }
-        ),
+        globalThis.window.electron.getCatalogueNames("developers"),
+        globalThis.window.electron.getCatalogueNames("publishers"),
         globalThis.window.electron.hydraApi.get<LaunchboxFiltersResponse>(
           "/catalogue/filters?shop=launchbox",
           { needsAuth: false }

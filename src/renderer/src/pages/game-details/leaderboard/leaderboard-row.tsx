@@ -59,15 +59,20 @@ export function LeaderboardRow({
   const [tooltipSide, setTooltipSide] = useState<TooltipSide | null>(null);
 
   // Back to the keyboard-focus placement (CSS), without the pointer position.
-  const stopFollowing = useCallback(() => {
+  const stopFollowing = useCallback(() => setTooltipSide(null), []);
+
+  // The inline position is only dropped after the render that hid the
+  // tooltip. Dropping it first leaves a fixed, visible element with no
+  // offsets for one frame, which flashes at the top left of the page.
+  const isFollowing = tooltipSide !== null;
+  useEffect(() => {
+    if (isFollowing) return;
     tooltipRef.current?.style.removeProperty("left");
     tooltipRef.current?.style.removeProperty("top");
-    setTooltipSide(null);
-  }, []);
+  }, [isFollowing]);
 
   // Scrolling moves the row away from a fixed tooltip, so hide it until the
   // pointer moves again.
-  const isFollowing = tooltipSide !== null;
   useEffect(() => {
     if (!isFollowing) return;
     const options = { capture: true, passive: true };

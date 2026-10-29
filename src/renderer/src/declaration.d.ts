@@ -7,6 +7,7 @@ import type {
   DownloadProgress,
   SeedingStatus,
   UserPreferences,
+  ScreenshotInputStatus,
   StartGameDownloadPayload,
   RealDebridUser,
   PremiumizeUser,
@@ -125,6 +126,7 @@ import type {
   EpicStartAuthResult,
   EpicGameInstallOptions,
   StartEpicGameDownloadPayload,
+  StartEpicGameUpdatePayload,
   EpicManagedOperationResult,
   EpicCloudSaveState,
   EpicCloudSaveSettings,
@@ -365,6 +367,7 @@ declare global {
     ) => Promise<ShopDetailsWithAssets | null>;
     getRandomGame: () => Promise<Steam250Game>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
+    getCatalogueNames: (list: "developers" | "publishers") => Promise<string[]>;
     getGameAssets: (
       objectId: string,
       shop: GameShop,
@@ -595,7 +598,7 @@ declare global {
     deleteGameFolder: (
       shop: GameShop,
       objectId: string,
-      options?: { deleteSourceArchive?: boolean }
+      options?: { deleteSourceArchive?: boolean; keepEpicUpdateFiles?: boolean }
     ) => Promise<unknown>;
     hasSourceArchive: (shop: GameShop, objectId: string) => Promise<boolean>;
     recheckInstalledExecutable: (
@@ -606,6 +609,10 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<LibraryGame | null>;
+    getGameReviewPlaytime: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<number>;
     getGamesRunning: () => Promise<
       Pick<GameRunning, "id" | "sessionDurationInMillis">[]
     >;
@@ -975,6 +982,10 @@ declare global {
     onUserPreferencesUpdated: (
       cb: (preferences: UserPreferences | null) => void
     ) => () => Electron.IpcRenderer;
+    getScreenshotInputStatus: () => Promise<ScreenshotInputStatus>;
+    onScreenshotInputStatusChange: (
+      cb: (status: ScreenshotInputStatus) => void
+    ) => () => Electron.IpcRenderer;
     autoLaunch: (autoLaunchProps: {
       enabled: boolean;
       minimized: boolean;
@@ -1124,6 +1135,11 @@ declare global {
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     getScreenshotsPath: () => Promise<string>;
+    getScreenshotsFolderPath: () => Promise<string>;
+    openScreenshotsFolder: () => Promise<void>;
+    onLocalScreenshotsMissing: (
+      cb: (count: number) => void
+    ) => () => Electron.IpcRenderer;
     getAchievementSouvenirSyncStatus: () => Promise<AchievementSouvenirSyncStatus>;
     getAchievementSouvenirSyncDetails: () => Promise<AchievementSouvenirSyncDetails>;
     retryAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncRetryResult>;
@@ -1318,8 +1334,12 @@ declare global {
       requestId?: string
     ) => Promise<EpicGameInstallOptions>;
     cancelEpicGameInstallOptions?: (requestId: string) => Promise<void>;
+    invalidateEpicGameInstallOptions?: (epicObjectId: string) => Promise<void>;
     startEpicGameDownload: (
       payload: StartEpicGameDownloadPayload
+    ) => Promise<EpicManagedOperationResult>;
+    startEpicGameUpdate?: (
+      payload: StartEpicGameUpdatePayload
     ) => Promise<EpicManagedOperationResult>;
     getEpicCloudSaveState: (
       epicObjectId: string

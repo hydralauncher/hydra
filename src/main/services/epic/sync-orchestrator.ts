@@ -310,6 +310,8 @@ export class EpicSyncOrchestrator {
           games,
           await this.deps.playtime(context, controller.signal, true)
         );
+        if (context.connection.capabilities?.dlcSnapshotVersion !== 1)
+          snapshot = snapshot.map(({ dlcs: _dlcs, ...game }) => game);
         this.assert(context);
         if (achievementsRequested && this.deps.achievements) {
           this.publish(operation, "achievements", 0, snapshot.length);
