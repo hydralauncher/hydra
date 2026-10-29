@@ -16,6 +16,7 @@ import {
   resolveDownloadDirectories,
   findLibraryGamePresentation,
   getOfficialStoreMembers,
+  getRepackUriParts,
   isEpicMemberInCurrentScope,
 } from "@shared";
 import { DOWNLOADER_NAME, IS_DESKTOP } from "../../../constants";
@@ -1684,6 +1685,7 @@ function DownloadGameOptions({
       title: game.title,
       shop: game.shop,
       uri: selectedUri,
+      parts: getRepackUriParts(option, selectedUri),
       downloadPath: selectedDownloadPath,
       downloader: resolvedDownloader,
       automaticallyExtract: automaticExtractionEnabled,
