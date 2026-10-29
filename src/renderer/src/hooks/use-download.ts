@@ -166,7 +166,7 @@ export function useDownload() {
     }
 
     updateLibrary();
-    removeGameInstaller(shop, objectId, { keepEpicUpdateFiles: true });
+    await removeGameInstaller(shop, objectId, { keepEpicUpdateFiles: true });
   };
 
   const removeGameFromLibrary = (shop: GameShop, objectId: string) =>
