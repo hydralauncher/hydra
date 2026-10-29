@@ -34,6 +34,7 @@ export const levelKeys = {
   pendingAchievementSouvenirs: "pending-achievement-souvenirs",
   pendingGroupedAchievementSouvenirs: "pending-grouped-achievement-souvenirs",
   localSouvenirAssets: "local-souvenir-assets",
+  screenshotsFeatureEnabled: "screenshotsFeatureEnabled",
   globalTrackersUrlCache: "globalTrackersUrlCache",
   ps2MemoryCardSaves: "ps2MemoryCardSaves",
   ps2MemoryCardSave: (cardFilePath: string, folderName: string) =>

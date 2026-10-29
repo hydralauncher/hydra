@@ -3,6 +3,7 @@ mod cloud_save;
 mod constants;
 mod in_place_extraction;
 mod linux_process;
+mod screenshot_input;
 mod torrent;
 
 pub use cloud_save::hashing::{build_snapshot_aggregate_hash, hash_local_save_file};

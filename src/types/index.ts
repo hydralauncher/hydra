@@ -1,3 +1,4 @@
+import type { ScreenshotCommentsPolicy } from "./screenshot.types";
 import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
 import type {
@@ -544,6 +545,9 @@ export interface UserProfile {
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   souvenirsVisibility: ProfileVisibility;
+  screenshotsVisibility?: ProfileVisibility;
+  screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
+  screenshotCount?: number;
   libraryGames: UserGame[];
   recentGames: UserGame[];
   friends: UserFriend[];
@@ -965,6 +969,7 @@ export * from "./retroarch.types";
 export * from "./artwork.types";
 export * from "./cloud-save.types";
 export * from "./souvenir.types";
+export * from "./screenshot.types";
 
 export type ExtractionFailure =
   | { reason: "unsupported-format"; format: string }

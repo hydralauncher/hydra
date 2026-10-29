@@ -31,6 +31,7 @@ import {
   SSEClient,
   Wine,
   WindowManager,
+  ScreenshotInputService,
   logger,
   migrateCloudSaveAutomaticSyncDefaults,
   groupedSouvenirWorker,
@@ -45,6 +46,7 @@ import { migrateEmulatorCloudSaveDefaults } from "./services/cloud-save/automati
 import { watchSteamLibraries } from "./services/steam-integration/steam-install-watcher";
 import { migrateGameVisibilityFields } from "./services/library-sync/game-visibility-migration";
 import { UmuUpdater } from "./services/umu-updater";
+import { setTrackedGamesRunningListenerErrorReporter } from "./services/game-running-state";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -83,6 +85,10 @@ export const loadState = async () => {
   );
 
   Wine.syncUserPreferences(userPreferences);
+  setTrackedGamesRunningListenerErrorReporter((error) =>
+    logger.error("Tracked games running listener failed", error)
+  );
+  ScreenshotInputService.syncUserPreferences(userPreferences);
 
   await import("./events");
 
@@ -125,6 +131,7 @@ export const loadState = async () => {
   void syncRetroAchievementsEmulatorCredentials();
 
   await HydraApi.setupApi().then(async () => {
+    void ScreenshotInputService.refreshFeatureFlag();
     try {
       await initializeEpicIntegration();
     } catch (err) {

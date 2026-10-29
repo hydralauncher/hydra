@@ -7,6 +7,7 @@ import type {
   DownloadProgress,
   SeedingStatus,
   UserPreferences,
+  ScreenshotInputStatus,
   StartGameDownloadPayload,
   RealDebridUser,
   PremiumizeUser,
@@ -980,6 +981,10 @@ declare global {
     ) => Promise<EmulationCloudSave>;
     onUserPreferencesUpdated: (
       cb: (preferences: UserPreferences | null) => void
+    ) => () => Electron.IpcRenderer;
+    getScreenshotInputStatus: () => Promise<ScreenshotInputStatus>;
+    onScreenshotInputStatusChange: (
+      cb: (status: ScreenshotInputStatus) => void
     ) => () => Electron.IpcRenderer;
     autoLaunch: (autoLaunchProps: {
       enabled: boolean;
