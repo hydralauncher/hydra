@@ -36,6 +36,7 @@ export function Modal({
   className,
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
+  const [portalTarget, setPortalTarget] = useState<Element | null>(null);
   const modalContentRef = useRef<HTMLDivElement | null>(null);
   const descriptionId = useId();
 
@@ -124,6 +125,12 @@ export function Modal({
     return () => {};
   }, [clickOutsideToClose, handleCloseClick]);
 
+  if (visible && portalTarget === null) {
+    setPortalTarget(document.fullscreenElement ?? document.body);
+  } else if (!visible && portalTarget !== null) {
+    setPortalTarget(null);
+  }
+
   if (!visible) return null;
 
   return createPortal(
@@ -172,6 +179,6 @@ export function Modal({
         </div>
       </div>
     </Backdrop>,
-    document.fullscreenElement ?? document.body
+    portalTarget ?? document.body
   );
 }
