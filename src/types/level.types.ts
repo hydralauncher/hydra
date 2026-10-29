@@ -141,6 +141,12 @@ export interface Download {
   timestamp: number;
   extracting: boolean;
   extractionProgress?: number;
+  installerLaunched?: boolean;
+  installerRunning?: boolean;
+  installerStartedAt?: number;
+  installerPath?: string;
+  hasInstaller?: boolean;
+  sourceArchiveName?: string;
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];
@@ -217,6 +223,8 @@ export interface UserPreferences {
   friendRequestNotificationsEnabled?: boolean;
   friendStartGameNotificationsEnabled?: boolean;
   chatMessageNotificationsEnabled?: boolean;
+  leaderboardSlamEnabled?: boolean;
+  leaderboardDropNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
   deleteArchiveFilesAfterExtractionByDefault?: boolean;

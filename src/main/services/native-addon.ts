@@ -179,11 +179,6 @@ export type SystemProcessMap = {
 const WORKER_CODE = `
 const { workerData, parentPort } = require('worker_threads');
 const path = require('path');
-if (process.platform === 'linux' && workerData.addonDir) {
-  process.env.LD_LIBRARY_PATH = process.env.LD_LIBRARY_PATH
-    ? workerData.addonDir + ':' + process.env.LD_LIBRARY_PATH
-    : workerData.addonDir;
-}
 const addon = require(workerData.addonPath);
 const platform = process.platform;
 
@@ -289,16 +284,9 @@ export class NativeAddon {
     if (this.nativeModule) return this.nativeModule;
 
     const addonPath = this.resolveAddonPath();
-    const addonDir = path.dirname(addonPath);
 
     if (!fs.existsSync(addonPath)) {
       throw new Error(`Hydra native addon not found at ${addonPath}`);
-    }
-
-    if (process.platform === "linux") {
-      process.env.LD_LIBRARY_PATH = process.env.LD_LIBRARY_PATH
-        ? `${addonDir}:${process.env.LD_LIBRARY_PATH}`
-        : addonDir;
     }
 
     const require = createRequire(import.meta.url);
@@ -313,7 +301,6 @@ export class NativeAddon {
     if (this.worker) return this.worker;
 
     const addonPath = this.resolveAddonPath();
-    const addonDir = path.dirname(addonPath);
 
     if (!fs.existsSync(addonPath)) {
       throw new Error(`Hydra native addon not found at ${addonPath}`);
@@ -321,7 +308,7 @@ export class NativeAddon {
 
     this.worker = new Worker(WORKER_CODE, {
       eval: true,
-      workerData: { addonPath, addonDir },
+      workerData: { addonPath },
     });
 
     this.worker.on("message", ({ result }) => {

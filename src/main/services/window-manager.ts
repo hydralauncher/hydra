@@ -991,6 +991,17 @@ export class WindowManager {
     return this.openChatWindow(activeFriend, { deferShow });
   }
 
+  public static isMainWindowFocused() {
+    const mainWindow = this.mainWindow;
+    return Boolean(
+      mainWindow &&
+        !mainWindow.isDestroyed() &&
+        mainWindow.isVisible() &&
+        !mainWindow.isMinimized() &&
+        mainWindow.isFocused()
+    );
+  }
+
   public static isChatWindowFocused() {
     const chatWindow = this.chatWindow;
     return Boolean(

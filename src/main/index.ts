@@ -53,6 +53,9 @@ import {
   suspendEpicPlaytime,
   resumeEpicPlaytime,
 } from "./services/epic";
+import { removeAppImageLibraryPath } from "./helpers/remove-appimage-library-path";
+
+if (process.platform === "linux") removeAppImageLibraryPath();
 
 crashReporter.start({
   uploadToServer: false,

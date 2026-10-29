@@ -5,6 +5,7 @@ import {
   PeopleIcon,
   SearchIcon,
   TrophyIcon,
+  XIcon,
 } from "@primer/octicons-react";
 import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
@@ -14,6 +15,7 @@ import { Avatar } from "@renderer/components";
 import { useFormat } from "@renderer/hooks";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
+import { buildLeaderboardBoardPath } from "@shared";
 import type { LeaderboardUser } from "../game-details/leaderboard/game-leaderboard";
 import {
   buildMetricsRequest,
@@ -179,7 +181,7 @@ export function ByGameTab({
 
   const board = useApiResource(
     boardGame && metric
-      ? `/games/${boardGame.shop}/${encodeURIComponent(boardGame.objectId)}/leaderboards/${encodeURIComponent(metric.id)}`
+      ? buildLeaderboardBoardPath(metric.id, boardGame)
       : null,
     {
       params: { range: period, scope, take: GLOBAL_LEADERBOARD_TAKE },
@@ -388,11 +390,25 @@ export function ByGameTab({
             <SearchIcon size={14} />
             <span className="leaderboards__sr-only">{t("search_game")}</span>
             <input
-              type="search"
+              type="text"
               value={search}
               placeholder={t("search_game_placeholder")}
               onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setSearch("");
+              }}
             />
+            {search && (
+              <button
+                type="button"
+                className="leaderboards__search-clear"
+                onClick={() => setSearch("")}
+                aria-label={t("clear_search")}
+                title={t("clear_search")}
+              >
+                <XIcon size={14} />
+              </button>
+            )}
           </label>
         </div>
         {renderGames()}
