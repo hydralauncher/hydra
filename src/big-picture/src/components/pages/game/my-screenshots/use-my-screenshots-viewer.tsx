@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LocalScreenshot, ProfileScreenshot } from "@types";
 import {
   normalizeScreenshotDescription,
@@ -19,6 +19,11 @@ import {
   LocalScreenshotSidebar,
   getLocalScreenshotSidebarEntryFocusId,
 } from "./local-screenshot-sidebar";
+
+interface SavedDraftRecord {
+  record: LocalScreenshot;
+  replaces: LocalScreenshot | undefined;
+}
 
 interface UseMyScreenshotsViewerOptions {
   entries: ScreenshotViewerEntry[];
@@ -48,17 +53,48 @@ export function useMyScreenshotsViewer({
   const [draftEdits, setDraftEdits] = useState<
     Record<string, Partial<ReviewDraft>>
   >({});
-  const dropSavedDraftEdits = useCallback((clientId: string) => {
-    setDraftEdits((existing) => {
-      const edits = existing[clientId];
-      if (!edits) return existing;
+  const [savedRecords, setSavedRecords] = useState<
+    Record<string, SavedDraftRecord>
+  >({});
+  const localScreenshotsRef = useRef(localScreenshots);
+  localScreenshotsRef.current = localScreenshots;
+  const dropSavedDraftEdits = useCallback(
+    (clientId: string, record: LocalScreenshot | null) => {
+      if (record) {
+        const replaces = localScreenshotsRef.current.find(
+          (screenshot) => screenshot.clientId === clientId
+        );
+        setSavedRecords((existing) => ({
+          ...existing,
+          [clientId]: { record, replaces },
+        }));
+      }
+      setDraftEdits((existing) => {
+        const edits = existing[clientId];
+        if (!edits) return existing;
 
-      const { [clientId]: _saved, ...rest } = existing;
-      return edits.quality
-        ? { ...rest, [clientId]: { quality: edits.quality } }
-        : rest;
+        const { [clientId]: _saved, ...rest } = existing;
+        return edits.quality
+          ? { ...rest, [clientId]: { quality: edits.quality } }
+          : rest;
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    setSavedRecords((existing) => {
+      const stillPending = Object.entries(existing).filter(
+        ([clientId, saved]) =>
+          localScreenshots.find(
+            (screenshot) => screenshot.clientId === clientId
+          ) === saved.replaces
+      );
+      return stillPending.length === Object.keys(existing).length
+        ? existing
+        : Object.fromEntries(stillPending);
     });
-  }, []);
+  }, [localScreenshots]);
   const {
     schedule: scheduleDraftSave,
     cancel: cancelDraftSave,
@@ -119,11 +155,16 @@ export function useMyScreenshotsViewer({
   }, [closeUploaded, flushDraftSaves]);
 
   const getDraft = useCallback(
-    (screenshot: LocalScreenshot): ReviewDraft => ({
-      ...createReviewDraft(screenshot, defaultVisibility),
-      ...draftEdits[screenshot.clientId],
-    }),
-    [defaultVisibility, draftEdits]
+    (screenshot: LocalScreenshot): ReviewDraft => {
+      const saved = savedRecords[screenshot.clientId];
+      const record =
+        saved && saved.replaces === screenshot ? saved.record : screenshot;
+      return {
+        ...createReviewDraft(record, defaultVisibility),
+        ...draftEdits[screenshot.clientId],
+      };
+    },
+    [defaultVisibility, draftEdits, savedRecords]
   );
 
   const updateDraft = useCallback(

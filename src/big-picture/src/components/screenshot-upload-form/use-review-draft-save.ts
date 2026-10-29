@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import type { LocalScreenshotDraft } from "@types";
+import type { LocalScreenshot, LocalScreenshotDraft } from "@types";
 import { logger } from "@renderer/logger";
 
 const DRAFT_SAVE_DELAY_MS = 400;
@@ -9,7 +9,9 @@ interface PendingDraft {
   draft: LocalScreenshotDraft;
 }
 
-export function useReviewDraftSave(onSaved?: (clientId: string) => void) {
+export function useReviewDraftSave(
+  onSaved?: (clientId: string, record: LocalScreenshot | null) => void
+) {
   const pendingRef = useRef(new Map<string, PendingDraft>());
   const inFlightRef = useRef(new Map<string, number>());
   const onSavedRef = useRef(onSaved);
@@ -18,18 +20,21 @@ export function useReviewDraftSave(onSaved?: (clientId: string) => void) {
     onSavedRef.current = onSaved;
   }, [onSaved]);
 
-  const settle = useCallback((clientId: string, hasSaved: boolean) => {
-    const remaining = (inFlightRef.current.get(clientId) ?? 1) - 1;
-    if (remaining > 0) {
-      inFlightRef.current.set(clientId, remaining);
-      return;
-    }
+  const settle = useCallback(
+    (clientId: string, saved: { record: LocalScreenshot | null } | null) => {
+      const remaining = (inFlightRef.current.get(clientId) ?? 1) - 1;
+      if (remaining > 0) {
+        inFlightRef.current.set(clientId, remaining);
+        return;
+      }
 
-    inFlightRef.current.delete(clientId);
-    if (hasSaved && !pendingRef.current.has(clientId)) {
-      onSavedRef.current?.(clientId);
-    }
-  }, []);
+      inFlightRef.current.delete(clientId);
+      if (saved && !pendingRef.current.has(clientId)) {
+        onSavedRef.current?.(clientId, saved.record);
+      }
+    },
+    []
+  );
 
   const save = useCallback(
     (clientId: string) => {
@@ -45,10 +50,10 @@ export function useReviewDraftSave(onSaved?: (clientId: string) => void) {
       globalThis.window.electron
         .updateLocalScreenshotDraft(clientId, pending.draft)
         .then(
-          () => settle(clientId, true),
+          (record) => settle(clientId, { record }),
           (error: unknown) => {
             logger.error("Failed to save the screenshot draft", error);
-            settle(clientId, false);
+            settle(clientId, null);
           }
         );
     },
