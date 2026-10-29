@@ -14,16 +14,20 @@ export function ScreenshotUploadFailureToast() {
   useEffect(() => {
     if (!IS_DESKTOP) return;
     const track = createScreenshotUploadOutcomeTracker();
+    let hasSeenChange = false;
 
     globalThis.window.electron
       .getLocalScreenshots()
-      .then(track)
+      .then((screenshots) => {
+        if (!hasSeenChange) track(screenshots);
+      })
       .catch((error: unknown) => {
         logger.error("Failed to load local screenshots", error);
       });
 
     return globalThis.window.electron.onLocalScreenshotsChange(
       (screenshots) => {
+        hasSeenChange = true;
         const problems = track(screenshots);
         if (document.visibilityState !== "visible") return;
 
