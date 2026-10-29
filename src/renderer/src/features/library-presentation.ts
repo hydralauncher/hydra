@@ -7,6 +7,21 @@ interface LibraryPresentationState {
   gameRunning: { gameRunning: { id: string } | null };
 }
 
+interface GroupedLibraryState {
+  library: { value: LibraryGame[] };
+  gameRunning: { gameRunning: { id: string } | null };
+}
+
+/** The sidebar and the library page share one grouping per library update. */
+export const selectGroupedLibrary = createSelector(
+  [
+    (state: GroupedLibraryState) => state.library.value,
+    (state: GroupedLibraryState) => state.gameRunning.gameRunning?.id,
+  ],
+  (library, runningId) =>
+    groupLibraryGames(library, runningId ? [runningId] : [])
+);
+
 /** All visible rows and their menus share one projection per library update. */
 export const selectLibraryPresentationIndex = createSelector(
   [

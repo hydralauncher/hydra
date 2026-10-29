@@ -151,6 +151,7 @@ async function renderLibrary(
     },
     "@renderer/features": {
       selectIsLibraryLoading: () => false,
+      selectGroupedLibrary: () => library,
       setHeaderTitle: noop,
     },
     "@primer/octicons-react": Object.fromEntries(
