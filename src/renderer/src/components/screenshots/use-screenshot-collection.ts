@@ -317,6 +317,7 @@ export function useScreenshotCollection({
   ]);
 
   const open = useCallback((item: ProfileScreenshot) => {
+    setFailures((current) => withoutKey(current, item.id));
     setOpenTarget({ screenshotId: item.id, ownerId: item.owner.id });
   }, []);
 

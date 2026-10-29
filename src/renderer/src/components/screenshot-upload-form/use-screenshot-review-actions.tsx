@@ -10,6 +10,9 @@ import {
   type ScreenshotReviewDraft,
 } from "./screenshot-review-state";
 
+const UPLOAD_SIGNED_OUT_ERROR = "user not logged in";
+const UPLOAD_MISSING_FILE_ERROR = "screenshot_missing";
+
 export function useScreenshotReviewActions(
   screenshot: LocalScreenshot,
   draft: ScreenshotReviewDraft
@@ -25,16 +28,29 @@ export function useScreenshotReviewActions(
   const runAction = async (
     kind: "upload" | "delete",
     action: () => Promise<unknown>,
-    label: string
+    label: string,
+    getErrorMessage: (error: unknown) => string
   ) => {
     setPendingAction(kind);
     try {
       await action();
     } catch (error) {
       logger.error(label, error);
+      showErrorToast(getErrorMessage(error));
     } finally {
       setPendingAction(null);
     }
+  };
+
+  const getUploadErrorMessage = (error: unknown) => {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes(UPLOAD_SIGNED_OUT_ERROR)) {
+      return t("upload_sign_in_required");
+    }
+    if (message.includes(UPLOAD_MISSING_FILE_ERROR)) {
+      return t("error_missing_file");
+    }
+    return t("error_generic");
   };
 
   const upload = () => {
@@ -50,7 +66,8 @@ export function useScreenshotReviewActions(
           screenshot.clientId,
           toUploadOptions(screenshot, draft, hasActiveSubscription)
         ),
-      "Failed to upload the screenshot"
+      "Failed to upload the screenshot",
+      getUploadErrorMessage
     );
   };
 
@@ -59,7 +76,8 @@ export function useScreenshotReviewActions(
     void runAction(
       "delete",
       () => window.electron.deleteLocalScreenshot(screenshot.clientId),
-      "Failed to delete the screenshot"
+      "Failed to delete the screenshot",
+      () => t("delete_failed", { ns: "screenshots" })
     );
   };
 

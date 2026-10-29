@@ -44,7 +44,26 @@ interface VersionedCommentWrite {
   write: CommentWrite;
 }
 
+interface ConfirmedCommentEdit {
+  bodyHtml: string;
+  editedAt: number | null;
+  version: number;
+  inFlight: number;
+}
+
 const VOTE_UNLOCK_DELAY_MS = 500;
+
+const pickCommentEditPatch = ({
+  bodyHtml,
+  editedAt,
+  isHidden,
+  moderation,
+}: ScreenshotComment): Partial<ScreenshotComment> => ({
+  bodyHtml,
+  editedAt,
+  isHidden,
+  ...(moderation === undefined ? {} : { moderation }),
+});
 
 const adjustCommentCount =
   (delta: number) =>
@@ -153,6 +172,7 @@ export function useScreenshotComments({
   const writeVersionRef = useRef(0);
   const writesRef = useRef<VersionedCommentWrite[]>([]);
   const editVersionsRef = useRef(new Map<string, number>());
+  const confirmedEditsRef = useRef(new Map<string, ConfirmedCommentEdit>());
   const commentsRef = useRef(comments);
   commentsRef.current = comments;
 
@@ -422,7 +442,8 @@ export function useScreenshotComments({
     async (
       comment: ScreenshotComment,
       bodyHtml: string,
-      editVersion: number
+      editVersion: number,
+      confirmed: ConfirmedCommentEdit
     ) => {
       const isLatestEdit = () =>
         editVersionsRef.current.get(comment.id) === editVersion;
@@ -433,9 +454,18 @@ export function useScreenshotComments({
           { data: { bodyHtml }, needsAuth: true }
         );
 
+        if (editVersion > confirmed.version) {
+          confirmed.bodyHtml = updated?.bodyHtml ?? bodyHtml;
+          confirmed.editedAt = updated?.editedAt ?? Date.now();
+          confirmed.version = editVersion;
+        }
         if (!isLatestEdit()) return;
         if (updated) {
-          recordWrite({ kind: "patch", commentId: comment.id, patch: updated });
+          recordWrite({
+            kind: "patch",
+            commentId: comment.id,
+            patch: pickCommentEditPatch(updated),
+          });
         }
         if (updated && updated.isHidden !== comment.isHidden) {
           onPatch(screenshotId, adjustCommentCount(updated.isHidden ? -1 : 1));
@@ -446,10 +476,18 @@ export function useScreenshotComments({
           recordWrite({
             kind: "patch",
             commentId: comment.id,
-            patch: { bodyHtml: comment.bodyHtml, editedAt: comment.editedAt },
+            patch: {
+              bodyHtml: confirmed.bodyHtml,
+              editedAt: confirmed.editedAt,
+            },
           });
         }
         handleWriteError(error, "comment_edit_failed", comment.id);
+      } finally {
+        confirmed.inFlight -= 1;
+        if (confirmed.inFlight === 0) {
+          confirmedEditsRef.current.delete(comment.id);
+        }
       }
     },
     [handleWriteError, onPatch, ownerId, recordWrite, screenshotId]
@@ -464,12 +502,20 @@ export function useScreenshotComments({
 
       const editVersion = (editVersionsRef.current.get(comment.id) ?? 0) + 1;
       editVersionsRef.current.set(comment.id, editVersion);
+      const confirmed = confirmedEditsRef.current.get(comment.id) ?? {
+        bodyHtml: comment.bodyHtml,
+        editedAt: comment.editedAt,
+        version: 0,
+        inFlight: 0,
+      };
+      confirmed.inFlight += 1;
+      confirmedEditsRef.current.set(comment.id, confirmed);
       recordWrite({
         kind: "patch",
         commentId: comment.id,
         patch: { bodyHtml: normalizedBody, editedAt: Date.now() },
       });
-      void persistCommentEdit(comment, normalizedBody, editVersion);
+      void persistCommentEdit(comment, normalizedBody, editVersion, confirmed);
       return Promise.resolve(true);
     },
     [pendingCommentIds, persistCommentEdit, recordWrite]

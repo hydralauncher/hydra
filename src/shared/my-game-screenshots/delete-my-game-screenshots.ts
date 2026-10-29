@@ -54,35 +54,48 @@ const deletePublishedScreenshot = async (
   }
 };
 
-const deletePublished = async ({ target, api, local }: DeletionContext) => {
+const forgetPublished = async (
+  { local }: DeletionContext,
+  deletedIds: string[]
+) => {
+  if (deletedIds.length > 0) await local.forgetPublishedScreenshots(deletedIds);
+};
+
+const getPublishedIds = ({ target, local }: DeletionContext) =>
+  local.getPublishedScreenshotIdsForGame(target.shop, target.objectId);
+
+const deletePublishedOnServer = async (
+  context: DeletionContext,
+  ids: string[]
+) => {
+  const { target, api } = context;
   const { shop, objectId } = target;
 
   if (shop !== "custom") {
     const response = await api.delete<{ deleted: number }>(
       buildProfileGameScreenshotsPath({ shop, objectId })
     );
-    const ids = await local.getPublishedScreenshotIdsForGame(shop, objectId);
-    if (ids.length > 0) await local.forgetPublishedScreenshots(ids);
     return response?.deleted ?? 0;
   }
 
-  const ids = await local.getPublishedScreenshotIdsForGame(shop, objectId);
   const deletedIds: string[] = [];
-
   try {
     for (const id of ids) {
       await deletePublishedScreenshot(api, id);
       deletedIds.push(id);
     }
   } catch (error) {
+    await forgetPublished(context, deletedIds);
     throw new PartialDeletionError(deletedIds.length, error);
-  } finally {
-    if (deletedIds.length > 0) {
-      await local.forgetPublishedScreenshots(deletedIds);
-    }
   }
-
   return deletedIds.length;
+};
+
+const deletePublished = async (context: DeletionContext) => {
+  const ids = await getPublishedIds(context);
+  const deleted = await deletePublishedOnServer(context, ids);
+  await forgetPublished(context, ids);
+  return deleted;
 };
 
 const LOCAL_DELETION_INCOMPLETE = "screenshots/local-deletion-incomplete";
@@ -104,30 +117,67 @@ const isUnsentLocalFile = ({
   pendingCompleteScreenshotId,
 }: LocalScreenshot) => state !== "uploaded" && !pendingCompleteScreenshotId;
 
-const deletePublishedAfterLocal = async (
+const deleteLatePublished = async (
   context: DeletionContext,
-  unsentDeleted: number
+  knownIds: string[]
 ) => {
+  const known = new Set(knownIds);
+  const lateIds = (await getPublishedIds(context)).filter(
+    (id) => !known.has(id)
+  );
+  const deletedIds: string[] = [];
   try {
-    return await deletePublished(context);
-  } catch (error) {
-    if (error instanceof PartialDeletionError) {
-      throw new PartialDeletionError(
-        unsentDeleted + error.deleted,
-        error.reason
-      );
+    for (const id of lateIds) {
+      await deletePublishedScreenshot(context.api, id);
+      deletedIds.push(id);
     }
-    throw new PartialDeletionError(unsentDeleted, error);
+  } finally {
+    await forgetPublished(context, [...knownIds, ...deletedIds]);
   }
+};
+
+const deleteAll = async (context: DeletionContext) => {
+  const { shop, objectId } = context.target;
+  const screenshots = await context.local.getLocalScreenshotsForGame(
+    shop,
+    objectId
+  );
+  const pendingBefore = screenshots.filter(isUnsentLocalFile).length;
+  const publishedIds = await getPublishedIds(context);
+  const knownIds =
+    shop === "custom"
+      ? [
+          ...new Set([
+            ...publishedIds,
+            ...screenshots.flatMap(({ pendingCompleteScreenshotId }) =>
+              pendingCompleteScreenshotId ? [pendingCompleteScreenshotId] : []
+            ),
+          ]),
+        ]
+      : publishedIds;
+
+  const published = await deletePublishedOnServer(context, knownIds);
+
+  const local = await deleteLocalFiles(context);
+  const publishedCopies = Math.max(0, local.expected - pendingBefore);
+  const unsentDeleted = Math.max(0, local.deleted - publishedCopies);
+  const deleted = published + unsentDeleted;
+
+  try {
+    await deleteLatePublished(context, knownIds);
+  } catch (error) {
+    throw new PartialDeletionError(deleted, error);
+  }
+  return { deleted, isComplete: local.isComplete };
 };
 
 const runDeletion = async (
   deletion: MyScreenshotsDeletion,
   context: DeletionContext
 ): Promise<DeletionOutcome> => {
-  const { shop, objectId, isSignedIn = true } = context.target;
+  const { isSignedIn = true } = context.target;
 
-  if (deletion === "local") {
+  if (deletion === "local" || (deletion === "all" && !isSignedIn)) {
     const { deleted, isComplete } = await deleteLocalFiles(context);
     return { deleted, isComplete };
   }
@@ -136,22 +186,7 @@ const runDeletion = async (
     return { deleted: await deletePublished(context), isComplete: true };
   }
 
-  if (!isSignedIn) {
-    const { deleted, isComplete } = await deleteLocalFiles(context);
-    return { deleted, isComplete };
-  }
-
-  const pendingBefore = (
-    await context.local.getLocalScreenshotsForGame(shop, objectId)
-  ).filter(isUnsentLocalFile).length;
-  const local = await deleteLocalFiles(context);
-  const publishedCopies = Math.max(0, local.expected - pendingBefore);
-  const unsentDeleted = Math.max(0, local.deleted - publishedCopies);
-  const published = await deletePublishedAfterLocal(context, unsentDeleted);
-  return {
-    deleted: published + unsentDeleted,
-    isComplete: local.isComplete,
-  };
+  return deleteAll(context);
 };
 
 export const deleteMyGameScreenshots = async (

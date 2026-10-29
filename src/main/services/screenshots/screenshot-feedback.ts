@@ -16,6 +16,7 @@ const DEFAULT_TOAST_POSITION = "top-left";
 const ALWAYS_SHOWN_TOASTS = new Set<ScreenshotFeedbackToast["kind"]>([
   "capture_failed",
   "share_pending",
+  "share_unavailable",
 ]);
 
 interface SoundWindow {

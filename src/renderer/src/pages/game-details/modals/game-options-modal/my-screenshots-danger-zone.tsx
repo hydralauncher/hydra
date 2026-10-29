@@ -20,15 +20,20 @@ import {
 } from "../../game-screenshots/my-game-screenshots-bridge";
 
 const getDeletionErrorKey = (
-  errorCode: MyScreenshotsDeletionErrorCode | null
+  deletion: MyScreenshotsDeletion,
+  {
+    errorCode,
+    deleted,
+  }: { errorCode: MyScreenshotsDeletionErrorCode | null; deleted: number }
 ) => {
-  if (errorCode === "screenshots/game-deletion-rate-limited") {
-    return "delete_screenshots_rate_limited";
-  }
   if (errorCode === "screenshots/local-deletion-incomplete") {
     return "delete_screenshots_incomplete";
   }
-  return "delete_screenshots_failed";
+  if (deletion === "local") return "delete_screenshots_failed";
+  if (deleted > 0) return "delete_screenshots_partial";
+  return errorCode === "screenshots/game-deletion-rate-limited"
+    ? "delete_screenshots_rate_limited_kept"
+    : "delete_screenshots_failed_kept";
 };
 
 const logCountError = (error: unknown) =>
@@ -101,7 +106,7 @@ export function MyScreenshotsDangerZone({
     }
 
     logger.error("Failed to delete screenshots for the game", result.error);
-    showErrorToast(t(getDeletionErrorKey(result.errorCode)));
+    showErrorToast(t(getDeletionErrorKey(deletion, result)));
   };
 
   return (

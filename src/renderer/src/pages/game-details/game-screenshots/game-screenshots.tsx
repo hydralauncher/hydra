@@ -71,7 +71,7 @@ function GameScreenshotsBox({
         }
       : {
           kind: "uploaded",
-          time: item.screenshot.createdAt,
+          time: item.screenshot.capturedAt,
           screenshot: item.screenshot,
         }
   );
@@ -208,7 +208,7 @@ function GameScreenshotsBox({
                   onOpen={(screenshot) =>
                     viewer.openEntry({
                       kind: "uploaded",
-                      time: screenshot.createdAt,
+                      time: screenshot.capturedAt,
                       screenshot,
                     })
                   }

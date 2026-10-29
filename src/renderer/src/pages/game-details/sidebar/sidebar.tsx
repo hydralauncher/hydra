@@ -126,6 +126,7 @@ export function Sidebar() {
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
   const {
+    game,
     gameTitle,
     shopDetails,
     objectId,
@@ -134,6 +135,7 @@ export function Sidebar() {
     stats,
     achievements,
   } = useContext(gameDetailsContext);
+  const screenshotsGame = game ?? catalogueGame;
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -347,10 +349,10 @@ export function Sidebar() {
         </SidebarSection>
       )}
 
-      {shop !== "custom" && catalogueGame.objectId ? (
+      {screenshotsGame.shop !== "custom" && screenshotsGame.objectId ? (
         <GameScreenshots
-          shop={catalogueGame.shop}
-          objectId={catalogueGame.objectId}
+          shop={screenshotsGame.shop}
+          objectId={screenshotsGame.objectId}
         />
       ) : null}
 

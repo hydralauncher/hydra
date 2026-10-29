@@ -16,10 +16,12 @@ import { getSignedInScreenshotOwnerId } from "./local-screenshot-owner";
 import { logger } from "../logger";
 import { getSourceClientAreaCrop } from "../windows-window-bounds";
 import {
+  getLinuxGameCaptureFailure,
   getLinuxGameCaptureState,
   grabLinuxGameSessionFrame,
   isWaylandCaptureBackend,
   prepareLinuxGameCaptureSession,
+  type LinuxGameCaptureFailure,
 } from "../linux-game-capture-session";
 import {
   resolveGameCaptureSourceId,
@@ -40,7 +42,10 @@ import {
   BlankScreenshotFrameError,
   ScreenshotFrameWorker,
 } from "./screenshot-frame-worker";
-import { writeScreenshotPreview } from "./screenshot-preview";
+import {
+  removeScreenshotPreview,
+  writeScreenshotPreview,
+} from "./screenshot-preview";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { resolveManualScreenshotPath } from "./screenshot-file-path";
 import { getScreenshotsFolder } from "./screenshots-folder";
@@ -56,6 +61,18 @@ const CAPTURE_JPEG_QUALITY = 0.95;
 const FALLBACK_JPEG_QUALITY = 95;
 const FALLBACK_PREVIEW_JPEG_QUALITY = 85;
 const MAX_FILE_NAME_SUFFIX = 50;
+const WAYLAND_SHARE_PROMPT_WAIT_MS = 1_500;
+
+type CaptureToastKind = ScreenshotFeedbackToast["kind"];
+
+const WAYLAND_SHARE_FAILURE_TOASTS: Record<
+  LinuxGameCaptureFailure,
+  CaptureToastKind
+> = {
+  share_cancelled: "share_pending",
+  portal_unavailable: "share_unavailable",
+  capture_error: "capture_failed",
+};
 
 const gameSessionIds = new Map<string, string>();
 let captureInProgress = false;
@@ -175,10 +192,23 @@ const finishCapture = async ({
   return screenshot;
 };
 
-const showCaptureToast = (
-  kind: ScreenshotFeedbackToast["kind"],
-  gameTitle: string
+const discardUnrecordedCapture = async (
+  filePath: string,
+  previewPath: string | null
 ) => {
+  await Promise.all([
+    fs.promises.rm(filePath, { force: true }),
+    removeScreenshotPreview(previewPath),
+  ]).catch((error) => {
+    logger.warn("Failed to remove an unrecorded screenshot", {
+      filePath,
+      previewPath,
+      error,
+    });
+  });
+};
+
+const showCaptureToast = (kind: CaptureToastKind, gameTitle: string) => {
   void ScreenshotFeedback.showToast({ kind, gameTitle }).catch((error) => {
     logger.error("Failed to show the screenshot toast", error);
   });
@@ -263,32 +293,48 @@ const acquireFrame = async (
   }
 
   return wrapNativeImage(
-    await ScreenshotService.captureRawGameImage(captureTarget)
+    await ScreenshotService.captureRawGameImage({
+      ...captureTarget,
+      cropToClientArea: true,
+    })
   );
 };
 
-const isWaylandShareReady = (
+const waitForWaylandSharePrompt = (gameKey: string) =>
+  Promise.race([
+    prepareLinuxGameCaptureSession(gameKey, "screenshot"),
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, WAYLAND_SHARE_PROMPT_WAIT_MS);
+    }),
+  ]);
+
+const getWaylandShareBlocker = async (
   source: ScreenshotTriggerSource,
   gameKey: string
-) => {
-  if (!isWaylandCaptureBackend()) return true;
+): Promise<CaptureToastKind | null> => {
+  if (!isWaylandCaptureBackend()) return null;
 
-  const state = getLinuxGameCaptureState(gameKey);
-  if (state === "ready") {
+  if (getLinuxGameCaptureState(gameKey) === "ready") {
     void prepareLinuxGameCaptureSession(gameKey, "screenshot");
-    return true;
+    return null;
+  }
+  if (getLinuxGameCaptureState(gameKey) === "failed") {
+    await waitForWaylandSharePrompt(gameKey);
   }
 
+  const state = getLinuxGameCaptureState(gameKey);
+  if (state === "ready") return null;
+
+  const failure =
+    state === "failed" ? getLinuxGameCaptureFailure(gameKey) : null;
   logger.debug("Screenshot hotkey ignored: window share not granted", {
     source,
     gameKey,
     state,
+    failure,
   });
-  ScreenshotTelemetry.record("capture", "ignored", `share_${state}`);
-  if (state === "failed") {
-    void prepareLinuxGameCaptureSession(gameKey, "screenshot");
-  }
-  return false;
+  ScreenshotTelemetry.record("capture", "ignored", `share_${failure ?? state}`);
+  return failure ? WAYLAND_SHARE_FAILURE_TOASTS[failure] : "share_pending";
 };
 
 const recordCaptureFailure = (gameKey: string, error: unknown) => {
@@ -352,8 +398,9 @@ const grabScreenshot = async (
   const gameTitle = resolved.game?.title ?? target.title;
   const capturedAt = new Date();
 
-  if (!isWaylandShareReady(source, target.gameKey)) {
-    showCaptureToast("share_pending", gameTitle);
+  const shareBlocker = await getWaylandShareBlocker(source, target.gameKey);
+  if (shareBlocker) {
+    showCaptureToast(shareBlocker, gameTitle);
     return null;
   }
 
@@ -404,7 +451,6 @@ const grabScreenshot = async (
       failCapture(error);
       return;
     }
-    showCapturedToast(gameTitle, ownerId);
     const previewPath = await writeScreenshotPreview(images.preview).catch(
       (error) => {
         logger.warn("Failed to write the screenshot preview", error);
@@ -413,17 +459,24 @@ const grabScreenshot = async (
     );
     timer.mark("written");
 
-    await finishCapture({
-      target,
-      gameTitle,
-      filePath,
-      capturedAt,
-      size: { width: frame.width, height: frame.height },
-      defaultVisibility: preferences.defaultVisibility,
-      source,
-      ownerId,
-      previewPath,
-    });
+    try {
+      await finishCapture({
+        target,
+        gameTitle,
+        filePath,
+        capturedAt,
+        size: { width: frame.width, height: frame.height },
+        defaultVisibility: preferences.defaultVisibility,
+        source,
+        ownerId,
+        previewPath,
+      });
+    } catch (error) {
+      failCapture(error);
+      await discardUnrecordedCapture(filePath, previewPath);
+      return;
+    }
+    showCapturedToast(gameTitle, ownerId);
     timer.mark("saved");
     timer.flush(target.gameKey);
   };

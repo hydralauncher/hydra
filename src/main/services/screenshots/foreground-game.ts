@@ -327,12 +327,14 @@ export const resolveForegroundGame = async (
 
   const isWayland = isWaylandSession();
   const isHydraFocused = BrowserWindow.getFocusedWindow() !== null;
-  if (!isWayland || isHydraFocused) {
+  const isDeepLink = source === "deeplink";
+  if (!isWayland || isHydraFocused || isDeepLink) {
     logger.debug("Screenshot hotkey ignored: foreground window unresolved", {
       source,
       foreground: describeForeground(foreground),
       isWayland,
       isHydraFocused,
+      isDeepLink,
       candidates: describeCandidates(candidates),
     });
     return null;

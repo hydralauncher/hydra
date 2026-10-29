@@ -34,6 +34,20 @@ export function useCanFetchMyPublishedScreenshots(shop: GameShop) {
   return { userId, canFetchPublished: Boolean(userId) && shop !== "custom" };
 }
 
+interface LoadedLocalScreenshots {
+  targetKey: string | null;
+  localScreenshots: LocalScreenshot[];
+  hasLoaded: boolean;
+  hasFailed: boolean;
+}
+
+const NOT_LOADED_LOCAL_SCREENSHOTS: LoadedLocalScreenshots = {
+  targetKey: null,
+  localScreenshots: [],
+  hasLoaded: false,
+  hasFailed: false,
+};
+
 interface UseMyLocalGameScreenshotsOptions extends GameTarget {
   isEnabled: boolean;
 }
@@ -43,13 +57,15 @@ export function useMyLocalGameScreenshots({
   objectId,
   isEnabled,
 }: UseMyLocalGameScreenshotsOptions) {
-  const [localScreenshots, setLocalScreenshots] = useState<LocalScreenshot[]>(
-    []
+  const targetKey = `${shop}:${objectId}`;
+  const [loaded, setLoaded] = useState<LoadedLocalScreenshots>(
+    NOT_LOADED_LOCAL_SCREENSHOTS
   );
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const [hasFailed, setHasFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [settledCount, setSettledCount] = useState(0);
+  const loadedForTarget =
+    loaded.targetKey === targetKey ? loaded : NOT_LOADED_LOCAL_SCREENSHOTS;
+  const { localScreenshots, hasLoaded, hasFailed } = loadedForTarget;
 
   const pendingLocal = useMemo(
     () => selectPendingLocalScreenshots(localScreenshots, { shop, objectId }),
@@ -77,15 +93,23 @@ export function useMyLocalGameScreenshots({
         .getLocalScreenshotsForGame(shop, objectId)
         .then((screenshots) => {
           if (!isCurrent || !snapshots.isCurrentRead(startedAt)) return;
-          setLocalScreenshots(screenshots);
-          setHasFailed(false);
-          setHasLoaded(true);
+          setLoaded({
+            targetKey,
+            localScreenshots: screenshots,
+            hasLoaded: true,
+            hasFailed: false,
+          });
         })
         .catch((error) => {
           logger.error("Failed to load local screenshots", error);
           if (!isCurrent || !snapshots.isCurrentRead(startedAt)) return;
-          setHasFailed(true);
-          setHasLoaded(true);
+          setLoaded((previous) => ({
+            targetKey,
+            localScreenshots:
+              previous.targetKey === targetKey ? previous.localScreenshots : [],
+            hasLoaded: true,
+            hasFailed: true,
+          }));
         });
     };
 
@@ -93,13 +117,14 @@ export function useMyLocalGameScreenshots({
     const unsubscribeLocal = window.electron.onLocalScreenshotsChange(
       (screenshots) => {
         snapshots.noteSnapshot();
-        setLocalScreenshots(
-          screenshots.filter((screenshot) =>
+        setLoaded({
+          targetKey,
+          localScreenshots: screenshots.filter((screenshot) =>
             isLocalScreenshotForGame(screenshot, shop, objectId)
-          )
-        );
-        setHasFailed(false);
-        setHasLoaded(true);
+          ),
+          hasLoaded: true,
+          hasFailed: false,
+        });
       }
     );
     const unsubscribeChanged = subscribeMyGameScreenshotsChanged(loadLocal);
@@ -109,11 +134,14 @@ export function useMyLocalGameScreenshots({
       unsubscribeLocal();
       unsubscribeChanged();
     };
-  }, [isEnabled, objectId, reloadKey, shop]);
+  }, [isEnabled, objectId, reloadKey, shop, targetKey]);
 
   const retry = useCallback(() => {
-    setHasLoaded(false);
-    setHasFailed(false);
+    setLoaded((previous) => ({
+      ...previous,
+      hasLoaded: false,
+      hasFailed: false,
+    }));
     setReloadKey((current) => current + 1);
   }, []);
 

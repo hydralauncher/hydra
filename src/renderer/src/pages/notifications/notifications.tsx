@@ -3,10 +3,16 @@ import { BellIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@renderer/components";
-import { useAppDispatch, useToast, useUserDetails } from "@renderer/hooks";
+import {
+  useAppDispatch,
+  useFeature,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { logger } from "@renderer/logger";
 import { ensureArray } from "@renderer/helpers";
+import { isScreenshotNotificationType } from "@shared";
 
 import { NotificationItem } from "./notification-item";
 import { LocalNotificationItem } from "./local-notification-item";
@@ -30,6 +36,7 @@ export default function Notifications() {
   const { showSuccessToast, showErrorToast } = useToast();
   const { userDetails } = useUserDetails();
   const dispatch = useAppDispatch();
+  const { isFeatureEnabled, Feature } = useFeature();
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("title")));
@@ -404,6 +411,14 @@ export default function Notifications() {
     showSuccessToast(t("friend_request_refused"));
   }, [showSuccessToast, t]);
 
+  const isNotificationContentEnabled = (type: string) => {
+    if (!isScreenshotNotificationType(type)) return true;
+    if (!isFeatureEnabled(Feature.Screenshots)) return false;
+    return (
+      type === "SCREENSHOT_LIKE" || isFeatureEnabled(Feature.ScreenshotComments)
+    );
+  };
+
   const renderNotification = (notification: MergedNotification) => {
     const key =
       notification.source === "local"
@@ -436,6 +451,7 @@ export default function Notifications() {
             onMarkAsRead={(id) => handleMarkAsRead(id, "api")}
             onAcceptFriendRequest={handleAcceptFriendRequest}
             onRefuseFriendRequest={handleRefuseFriendRequest}
+            isContentEnabled={isNotificationContentEnabled(notification.type)}
           />
         )}
       </motion.div>
