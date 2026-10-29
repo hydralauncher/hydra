@@ -17,6 +17,7 @@ import {
 import { ConfirmationModal } from "../../../modals";
 import {
   ReviewFields,
+  getLastReviewFieldFocusId,
   toUploadOptions,
   type ReviewDraft,
   type ReviewFieldFocusIds,
@@ -94,6 +95,10 @@ export function LocalScreenshotSidebar({
   const uploadFocusId = getUploadFocusId(clientId);
   const deleteFocusId = getDeleteFocusId(clientId);
   const fieldFocusIds = getFieldFocusIds(clientId);
+  const lastFieldFocusId = getLastReviewFieldFocusId(
+    fieldFocusIds,
+    hasActiveSubscription
+  );
   const isEditable = EDITABLE_STATES.has(screenshot.state);
   const isUploading =
     pendingAction === "upload" || isLocalScreenshotUploadInFlight(screenshot);
@@ -204,7 +209,7 @@ export function LocalScreenshotSidebar({
                       focusId={uploadFocusId}
                       focusNavigationOverrides={{
                         left: stageTarget,
-                        up: { type: "item", itemId: fieldFocusIds.quality },
+                        up: { type: "item", itemId: lastFieldFocusId },
                       }}
                       disabled={isBusy}
                       loading={isUploading}
@@ -230,7 +235,7 @@ export function LocalScreenshotSidebar({
                         ? { type: "item", itemId: uploadFocusId }
                         : stageTarget,
                       right: BLOCK_TARGET,
-                      up: { type: "item", itemId: fieldFocusIds.quality },
+                      up: { type: "item", itemId: lastFieldFocusId },
                     }}
                     disabled={isLocked}
                     loading={pendingAction === "delete"}

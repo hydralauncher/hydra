@@ -5,7 +5,6 @@ import type {
   ScreenshotQuality,
 } from "@types";
 import {
-  resolveScreenshotUploadQuality,
   sanitizeScreenshotDescriptionInput,
   SCREENSHOT_DESCRIPTION_MAX_LENGTH,
   SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH,
@@ -59,10 +58,6 @@ export function ScreenshotReviewFields({
   const isTitleEditable =
     screenshot.shop === "custom" && isScreenshotEditable(screenshot);
   const isFormDisabled = isBusy || !isScreenshotEditable(screenshot);
-  const uploadQuality = resolveScreenshotUploadQuality(
-    draft.quality,
-    hasActiveSubscription
-  );
 
   const visibilityOptions: ReviewSegmentedOption<ProfileVisibility>[] =
     SCREENSHOT_VISIBILITY_OPTIONS.map((option) => ({
@@ -74,8 +69,8 @@ export function ScreenshotReviewFields({
     {
       value: "CLOUD",
       label: SCREENSHOT_QUALITY_LABELS.CLOUD,
-      isLocked: !hasActiveSubscription,
-      addon: hasActiveSubscription ? null : <HydraCloudBadge />,
+      isLocked: true,
+      addon: <HydraCloudBadge />,
     },
   ];
 
@@ -92,11 +87,7 @@ export function ScreenshotReviewFields({
   };
 
   const handleQualityChange = (quality: ScreenshotQuality) => {
-    if (quality === "CLOUD" && !hasActiveSubscription) {
-      showHydraCloudModal("achievements");
-      return;
-    }
-    onDraftChange({ ...draft, quality });
+    if (quality === "CLOUD") showHydraCloudModal("achievements");
   };
 
   return (
@@ -135,13 +126,15 @@ export function ScreenshotReviewFields({
         onChange={(visibility) => onDraftChange({ ...draft, visibility })}
       />
 
-      <ReviewSegmentedControl
-        label={t("upload_quality")}
-        options={qualityOptions}
-        value={uploadQuality}
-        disabled={isFormDisabled}
-        onChange={handleQualityChange}
-      />
+      {!hasActiveSubscription && (
+        <ReviewSegmentedControl
+          label={t("upload_quality")}
+          options={qualityOptions}
+          value="STANDARD"
+          disabled={isFormDisabled}
+          onChange={handleQualityChange}
+        />
+      )}
 
       <div className="screenshot-review-item__checkbox">
         <CheckboxField

@@ -70,13 +70,10 @@ export function useMyScreenshotsViewer({
         }));
       }
       setDraftEdits((existing) => {
-        const edits = existing[clientId];
-        if (!edits) return existing;
+        if (!existing[clientId]) return existing;
 
         const { [clientId]: _saved, ...rest } = existing;
-        return edits.quality
-          ? { ...rest, [clientId]: { quality: edits.quality } }
-          : rest;
+        return rest;
       });
     },
     []

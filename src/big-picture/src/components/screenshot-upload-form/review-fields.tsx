@@ -3,7 +3,6 @@ import "./screenshot-upload-form.scss";
 import { PencilSimpleIcon, PlusIcon } from "@phosphor-icons/react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import cn from "classnames";
 import type {
   LocalScreenshot,
   LocalScreenshotUploadOptions,
@@ -36,12 +35,26 @@ export const SCREENSHOT_QUALITY_LABELS: Record<ScreenshotQuality, string> = {
 
 const BLOCK_TARGET: FocusOverrideTarget = { type: "block" };
 
+const QUALITY_OPTIONS: DropdownSelectOption<ScreenshotQuality>[] = [
+  { value: "STANDARD", label: SCREENSHOT_QUALITY_LABELS.STANDARD },
+  {
+    value: "CLOUD",
+    label: (
+      <span className="screenshot-upload-form__quality-option screenshot-upload-form__quality-option--locked">
+        <span className="screenshot-upload-form__quality-option-label">
+          {SCREENSHOT_QUALITY_LABELS.CLOUD}
+        </span>
+        <span className="screenshot-upload-form__cloud-badge">Hydra Cloud</span>
+      </span>
+    ),
+  },
+];
+
 export interface ReviewDraft {
   isSpoiler: boolean;
   visibility: ProfileVisibility;
   customGameTitle: string;
   description: string;
-  quality?: ScreenshotQuality;
 }
 
 export interface ReviewFieldFocusIds {
@@ -74,12 +87,14 @@ export const toUploadOptions = (
     visibility: draft.visibility,
     customGameTitle: isCustomGame && customGameTitle ? customGameTitle : null,
     description: normalizeScreenshotDescription(draft.description),
-    quality: resolveScreenshotUploadQuality(
-      draft.quality,
-      hasCloudSubscription
-    ),
+    quality: resolveScreenshotUploadQuality(hasCloudSubscription),
   };
 };
+
+export const getLastReviewFieldFocusId = (
+  focusIds: ReviewFieldFocusIds,
+  hasCloudSubscription: boolean
+) => (hasCloudSubscription ? focusIds.visibility : focusIds.quality);
 
 interface ReviewFieldsProps {
   clientId: string;
@@ -107,10 +122,6 @@ export function ReviewFields({
   const { t } = useTranslation("big_picture");
   const { showErrorToast } = useBigPictureToast();
   const { hasActiveSubscription } = useUserDetails();
-  const uploadQuality = resolveScreenshotUploadQuality(
-    draft.quality,
-    hasActiveSubscription
-  );
 
   const visibilityOptions = useMemo<
     SegmentedControlOption<ProfileVisibility>[]
@@ -123,41 +134,11 @@ export function ReviewFields({
     [t]
   );
 
-  const qualityOptions = useMemo<DropdownSelectOption<ScreenshotQuality>[]>(
-    () => [
-      { value: "STANDARD", label: SCREENSHOT_QUALITY_LABELS.STANDARD },
-      {
-        value: "CLOUD",
-        label: (
-          <span
-            className={cn("screenshot-upload-form__quality-option", {
-              "screenshot-upload-form__quality-option--locked":
-                !hasActiveSubscription,
-            })}
-          >
-            <span className="screenshot-upload-form__quality-option-label">
-              {SCREENSHOT_QUALITY_LABELS.CLOUD}
-            </span>
-            {hasActiveSubscription ? null : (
-              <span className="screenshot-upload-form__cloud-badge">
-                Hydra Cloud
-              </span>
-            )}
-          </span>
-        ),
-      },
-    ],
-    [hasActiveSubscription]
-  );
-
   const selectQuality = (quality: ScreenshotQuality) => {
-    if (quality === "CLOUD" && !hasActiveSubscription) {
-      showErrorToast(t("screenshots_review_quality_cloud_title"), {
-        message: t("screenshots_review_quality_cloud_message"),
-      });
-      return;
-    }
-    onChange({ quality });
+    if (quality !== "CLOUD") return;
+    showErrorToast(t("screenshots_review_quality_cloud_title"), {
+      message: t("screenshots_review_quality_cloud_message"),
+    });
   };
 
   return (
@@ -235,27 +216,31 @@ export function ReviewFields({
         focusId={focusIds.visibility}
         navigationOverrides={{
           up: { type: "item", itemId: focusIds.spoiler },
-          down: { type: "item", itemId: focusIds.quality },
+          down: hasActiveSubscription
+            ? downTarget
+            : { type: "item", itemId: focusIds.quality },
           left: leftTarget,
         }}
         onValueChange={(visibility) => onChange({ visibility })}
       />
 
-      <DropdownSelect
-        label={t("screenshots_review_quality")}
-        value={uploadQuality}
-        options={qualityOptions}
-        disabled={disabled}
-        focusId={focusIds.quality}
-        focusNavigationOverrides={{
-          up: { type: "item", itemId: focusIds.visibility },
-          down: downTarget,
-          left: leftTarget,
-          right: BLOCK_TARGET,
-        }}
-        className="screenshot-upload-form__quality-select"
-        onValueChange={selectQuality}
-      />
+      {hasActiveSubscription ? null : (
+        <DropdownSelect
+          label={t("screenshots_review_quality")}
+          value="STANDARD"
+          options={QUALITY_OPTIONS}
+          disabled={disabled}
+          focusId={focusIds.quality}
+          focusNavigationOverrides={{
+            up: { type: "item", itemId: focusIds.visibility },
+            down: downTarget,
+            left: leftTarget,
+            right: BLOCK_TARGET,
+          }}
+          className="screenshot-upload-form__quality-select"
+          onValueChange={selectQuality}
+        />
+      )}
     </>
   );
 }

@@ -15,7 +15,6 @@ export interface ScreenshotReviewDraft {
   visibility: ProfileVisibility;
   customGameTitle: string;
   description: string;
-  quality?: ScreenshotQuality;
 }
 
 export const SCREENSHOT_QUALITY_LABELS: Record<ScreenshotQuality, string> = {
@@ -43,10 +42,7 @@ export const toUploadOptions = (
     visibility: draft.visibility,
     customGameTitle: screenshot.shop === "custom" && title ? title : null,
     description: normalizeScreenshotDescription(draft.description),
-    quality: resolveScreenshotUploadQuality(
-      draft.quality,
-      hasCloudSubscription
-    ),
+    quality: resolveScreenshotUploadQuality(hasCloudSubscription),
   };
 };
 
