@@ -74,7 +74,7 @@ export function useMyGameScreenshotCounts({
   useEffect(() => {
     void refreshCounts();
     const unsubscribeLocal = local.onLocalScreenshotsChange(
-      () => void refreshLocalCount()
+      () => void refreshCounts()
     );
     const unsubscribeChanged = subscribeMyGameScreenshotsChanged(
       () => void refreshCounts()
@@ -85,7 +85,7 @@ export function useMyGameScreenshotCounts({
       unsubscribeLocal();
       unsubscribeChanged();
     };
-  }, [local, refreshCounts, refreshLocalCount]);
+  }, [local, refreshCounts]);
 
   return counts;
 }
