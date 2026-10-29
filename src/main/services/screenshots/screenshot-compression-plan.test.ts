@@ -142,6 +142,9 @@ describe("screenshot compression plan", () => {
     for (const message of [
       "vips_tracked: out of memory",
       "VipsImage: memory area too small",
+      "VipsJpeg: Insufficient memory",
+      "jpegload_buffer: out of memory",
+      "Input buffer has corrupt header: vips_malloc: out of memory",
       "Error: spawn EAGAIN",
     ]) {
       assert.equal(isUndecodableImageError(new Error(message)), false, message);

@@ -93,8 +93,11 @@ const UNDECODABLE_IMAGE_ERROR_PATTERNS = [
   /\b(jpeg|png|webp|gif|tiff|heif|bmp|jxl)load/i,
 ];
 
+const RESOURCE_EXHAUSTION_ERROR_PATTERN = /memory|alloc/i;
+
 export const isUndecodableImageError = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
+  if (RESOURCE_EXHAUSTION_ERROR_PATTERN.test(message)) return false;
   return UNDECODABLE_IMAGE_ERROR_PATTERNS.some((pattern) =>
     pattern.test(message)
   );
