@@ -2584,7 +2584,7 @@
     "gamepad_combo_unsupported_button": "Este botón no se puede usar en el combo de captura de pantalla",
     "gamepad_unavailable": "Hydra no puede leer tu mando. Asegúrate de que tu usuario tenga acceso a los dispositivos de entrada.",
     "hotkey_modifier_required": "Añade Ctrl o Alt a esta tecla para que no se active mientras escribes o te mueves",
-    "hotkey_portal_unsupported_key": "Pausa y Enter del teclado numérico no se pueden usar como atajo de captura de pantalla en esta sesión de Wayland. Elige otra tecla o añade tu usuario al grupo input.",
+    "hotkey_portal_unsupported_key": "Pausa y Enter del teclado numérico no se pueden usar como atajo de captura de pantalla en esta sesión de Wayland. Elige otra tecla.",
     "hotkey_reserved": "Este atajo está reservado por el sistema. Elige otro.",
     "hotkey_unavailable": "El atajo de captura de pantalla no está disponible ahora mismo. Puedes asignar hydralauncher://screenshot a un atajo en la configuración del sistema.",
     "hotkey_unavailable_wayland": "Hydra no puede leer el teclado en esta sesión de Wayland. Asigna hydralauncher://screenshot a un atajo en la configuración del escritorio. Añadir tu usuario al grupo input también funciona, pero permite que cualquier aplicación que ejecutes lea todo lo que escribes.",
