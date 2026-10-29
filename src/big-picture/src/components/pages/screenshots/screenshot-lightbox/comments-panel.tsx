@@ -877,7 +877,13 @@ export function ScreenshotCommentsPanel({
           { needsAuth: true }
         );
       } catch (error) {
-        replaceComment(comment.id, previous);
+        if (
+          getScreenshotApiErrorCode(error) === "screenshots/comment-not-found"
+        ) {
+          dropComment(comment.id);
+        } else {
+          replaceComment(comment.id, previous);
+        }
         showError(error);
       } finally {
         setTimeout(() => {
@@ -889,7 +895,15 @@ export function ScreenshotCommentsPanel({
         }, VOTE_UNLOCK_DELAY_MS);
       }
     },
-    [ownerId, replaceComment, screenshot.id, showError, viewerId, votingIds]
+    [
+      dropComment,
+      ownerId,
+      replaceComment,
+      screenshot.id,
+      showError,
+      viewerId,
+      votingIds,
+    ]
   );
 
   const confirmDelete = useCallback(async () => {
