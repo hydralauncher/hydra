@@ -90,47 +90,79 @@ export function useScreenshotFeed({
     [ledger, recountItem]
   );
 
-  const reload = useCallback(async () => {
-    const requestId = ++requestIdRef.current;
-    ledger.cancelReads();
-    const read = ledger.beginRead();
-    const reportServerTotal = onServerTotalRef.current;
-    setIsLoading(true);
-    setHasFailed(false);
-    setHasLoadMoreFailed(false);
+  const loadedPageCountRef = useRef(0);
 
-    try {
-      const page = await fetchPageRef.current(null);
-      if (requestId !== requestIdRef.current) return;
-
-      const merged = finishRead(page ?? { items: [], nextCursor: null }, read);
-      setItems(merged.items);
-      setNextCursor(page?.nextCursor ?? null);
-      const mergedTotal =
-        page?.total === undefined
-          ? null
-          : Math.max(0, page.total + merged.netCountDelta);
-      setTotal(mergedTotal);
-      if (mergedTotal !== null) reportServerTotal?.(mergedTotal);
-      setHiddenReason(page?.hiddenReason ?? null);
-      setLoadedRequestId(requestId);
-    } catch (error) {
-      if (requestId !== requestIdRef.current) return;
-
-      logger.error("Failed to load screenshots", error);
-      setItems([]);
-      setNextCursor(null);
-      setTotal(null);
-      setHiddenReason(null);
-      setHasFailed(true);
-    } finally {
-      ledger.endRead(read);
-      if (requestId === requestIdRef.current) {
-        setIsLoading(false);
-        setHasLoaded(true);
+  const readFirstPages = useCallback(async (pageCount: number) => {
+    let page = await fetchPageRef.current(null);
+    let items = page?.items ?? [];
+    let loadedPageCount = 1;
+    while (page?.nextCursor && loadedPageCount < pageCount) {
+      const nextPage: ScreenshotFeedPage | null = await fetchPageRef.current(
+        page.nextCursor
+      );
+      if (!nextPage) {
+        return { page: { ...page, nextCursor: null }, items, loadedPageCount };
       }
+      items = mergeScreenshotPages(items, nextPage.items);
+      page = nextPage;
+      loadedPageCount += 1;
     }
-  }, [finishRead, ledger]);
+    return { page, items, loadedPageCount };
+  }, []);
+
+  const readPages = useCallback(
+    async (pageCount: number) => {
+      const requestId = ++requestIdRef.current;
+      ledger.cancelReads();
+      const read = ledger.beginRead();
+      const reportServerTotal = onServerTotalRef.current;
+      setIsLoading(true);
+      setHasFailed(false);
+      setHasLoadMoreFailed(false);
+
+      try {
+        const { page, items, loadedPageCount } =
+          await readFirstPages(pageCount);
+        if (requestId !== requestIdRef.current) return;
+
+        const merged = finishRead({ items, nextCursor: null }, read);
+        loadedPageCountRef.current = loadedPageCount;
+        setItems(merged.items);
+        setNextCursor(page?.nextCursor ?? null);
+        const mergedTotal =
+          page?.total === undefined
+            ? null
+            : Math.max(0, page.total + merged.netCountDelta);
+        setTotal(mergedTotal);
+        if (mergedTotal !== null) reportServerTotal?.(mergedTotal);
+        setHiddenReason(page?.hiddenReason ?? null);
+        setLoadedRequestId(requestId);
+      } catch (error) {
+        if (requestId !== requestIdRef.current) return;
+
+        logger.error("Failed to load screenshots", error);
+        setItems([]);
+        setNextCursor(null);
+        setTotal(null);
+        setHiddenReason(null);
+        setHasFailed(true);
+      } finally {
+        ledger.endRead(read);
+        if (requestId === requestIdRef.current) {
+          setIsLoading(false);
+          setHasLoaded(true);
+        }
+      }
+    },
+    [finishRead, ledger, readFirstPages]
+  );
+
+  const reload = useCallback(() => readPages(1), [readPages]);
+
+  const refresh = useCallback(
+    () => readPages(Math.max(1, loadedPageCountRef.current)),
+    [readPages]
+  );
 
   const loadMore = useCallback(async () => {
     if (ledger.hasPendingReads || !nextCursor) return;
@@ -146,6 +178,7 @@ export function useScreenshotFeed({
       if (requestId !== requestIdRef.current || !page) return;
 
       const merged = finishRead(page, read);
+      loadedPageCountRef.current += 1;
       setItems((current) => mergeScreenshotPages(current, merged.items));
       setNextCursor(page.nextCursor);
       const pageTotal = page.total;
@@ -171,6 +204,7 @@ export function useScreenshotFeed({
     setNextCursor(null);
     setTotal(null);
     setHiddenReason(null);
+    loadedPageCountRef.current = 0;
     setHasLoaded(false);
     setHasFailed(false);
     setHasLoadMoreFailed(false);
@@ -187,8 +221,8 @@ export function useScreenshotFeed({
   useEffect(() => {
     if (refreshedKeyRef.current === refreshKey) return;
     refreshedKeyRef.current = refreshKey;
-    if (feedKey !== null) void reload();
-  }, [feedKey, refreshKey, reload]);
+    if (feedKey !== null) void refresh();
+  }, [feedKey, refresh, refreshKey]);
 
   useEffect(
     () => () => {

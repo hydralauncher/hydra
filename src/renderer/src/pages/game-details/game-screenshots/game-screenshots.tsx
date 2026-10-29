@@ -60,6 +60,7 @@ function GameScreenshotsBox({
   const local = useLocalScreenshotActions();
   const viewer = useMyScreenshotsViewer({
     lightbox,
+    feed: collection.feed,
     localScreenshots: mine.localScreenshots,
     hasLocalLoaded: mine.hasLoaded,
     uploadedItems: collection.feed.items,

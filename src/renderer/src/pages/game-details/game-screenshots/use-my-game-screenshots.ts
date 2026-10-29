@@ -100,16 +100,25 @@ export function useMyLocalGameScreenshots({
     () => selectPendingLocalScreenshots(localScreenshots, { shop, objectId }),
     [localScreenshots, objectId, shop]
   );
-  const pendingIdsRef = useRef<string[]>([]);
+  const pendingRef = useRef<{ targetKey: string; clientIds: string[] }>({
+    targetKey,
+    clientIds: [],
+  });
 
   useEffect(() => {
-    const currentIds = pendingLocal.map((item) => item.clientId);
-    const hasSettled = pendingIdsRef.current.some(
-      (clientId) => !currentIds.includes(clientId)
+    const previous = pendingRef.current;
+    pendingRef.current = {
+      targetKey,
+      clientIds: pendingLocal.map((item) => item.clientId),
+    };
+    if (previous.targetKey !== targetKey) return;
+
+    const hasUploaded = localScreenshots.some(
+      (item) =>
+        item.state === "uploaded" && previous.clientIds.includes(item.clientId)
     );
-    pendingIdsRef.current = currentIds;
-    if (hasSettled) setSettledCount((current) => current + 1);
-  }, [pendingLocal]);
+    if (hasUploaded) setSettledCount((current) => current + 1);
+  }, [localScreenshots, pendingLocal, targetKey]);
 
   useEffect(() => {
     if (!isEnabled) return;
