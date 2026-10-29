@@ -9,6 +9,7 @@ import {
 import type { UserAchievement } from "@types";
 import { formatAchievementUnlockPercentage } from "@shared";
 import cn from "classnames";
+import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { useDate } from "../../../../hooks";
 import { FocusItem, Tooltip, Typography } from "../../../common";
@@ -25,6 +26,13 @@ export interface AchievementRowProps {
   navigationOverrides?: FocusOverrides;
   onSouvenirActivate?: (achievement: UserAchievement) => void;
   onReveal?: (achievement: UserAchievement) => void;
+  virtualRow?: VirtualRowProps;
+}
+
+export interface VirtualRowProps {
+  "data-index": number;
+  ref: (element: Element | null) => void;
+  style: CSSProperties;
 }
 
 function AchievementRowIcon({
@@ -35,6 +43,7 @@ function AchievementRowIcon({
     return (
       <span className="game-achievements-row__icon game-achievements-row__icon--concealed">
         <EyeClosedIcon size={28} />
+        <img src={achievement.icon} alt="" aria-hidden="true" hidden />
       </span>
     );
   }
@@ -230,6 +239,7 @@ export function AchievementRow({
   navigationOverrides,
   onSouvenirActivate,
   onReveal,
+  virtualRow,
 }: Readonly<AchievementRowProps>) {
   const { t } = useTranslation("achievement");
   const { formatDate, formatTime } = useDate();
@@ -255,6 +265,7 @@ export function AchievementRow({
       asChild
     >
       <li
+        {...virtualRow}
         className={cn("game-achievements-row", {
           "game-achievements-row--unlocked": achievement.unlocked,
           "game-achievements-row--concealed": concealed,

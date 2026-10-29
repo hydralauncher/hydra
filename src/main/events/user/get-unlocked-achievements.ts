@@ -15,11 +15,21 @@ import { AchievementSouvenirStore } from "@main/services/achievements/achievemen
 import { fetchRemoteUserGameAchievements } from "@main/services/achievements/get-achievement-souvenirs";
 import { mergeUnlockedAchievementLists } from "@main/services/achievements/merge-unlocked-achievements";
 import {
+  createCombinedDefinitionLookup,
   presentCombinedAchievements,
   type CombinedAchievements,
 } from "@main/services/achievements/combined-achievement-presentation";
 
 const COMBINED_ACHIEVEMENTS_TIMEOUT_MS = 5_000;
+
+const indexByUpperCaseName = <T extends { name: string }>(items: T[]) => {
+  const byName = new Map<string, T>();
+  for (const item of items) {
+    const key = item.name.toUpperCase();
+    if (!byName.has(key)) byName.set(key, item);
+  }
+  return byName;
+};
 
 const captureAchievementView = (shop: GameShop, objectId: string) => {
   const context = HydraApi.getAuthContext();
@@ -156,17 +166,12 @@ export const getUnlockedAchievements = async (
         (sourceShop, sourceObjectId) =>
           AchievementMemoryStore.get(sourceShop, sourceObjectId)
             ?.unlockedAchievements ?? [],
-        true,
-        (sourceShop, sourceObjectId, name) => {
-          const definitions =
-            sourceShop === shop && sourceObjectId === objectId
-              ? achievementsData
-              : (AchievementMemoryStore.get(sourceShop, sourceObjectId)
-                  ?.achievements ?? []);
-          return definitions.find(
-            (definition) => definition.name.toUpperCase() === name.toUpperCase()
-          );
-        }
+        createCombinedDefinitionLookup((sourceShop, sourceObjectId) =>
+          sourceShop === shop && sourceObjectId === objectId
+            ? achievementsData
+            : (AchievementMemoryStore.get(sourceShop, sourceObjectId)
+                ?.achievements ?? [])
+        )
       );
     }
   }
@@ -188,35 +193,28 @@ export const getUnlockedAchievements = async (
       if (steamDefinitions.length > 0) catalogueAchievements = steamDefinitions;
     }
   }
+  const unlockedByName = indexByUpperCaseName(unlockedAchievements);
+  const remoteByName = indexByUpperCaseName(remote.achievements);
+
   return catalogueAchievements
     .map((achievementData) => {
-      const unlockedAchievementData = unlockedAchievements.find(
-        (localAchievement) => {
-          return (
-            localAchievement.name.toUpperCase() ==
-            achievementData.name.toUpperCase()
-          );
-        }
-      );
+      const upperCaseName = achievementData.name.toUpperCase();
+      const unlockedAchievementData = unlockedByName.get(upperCaseName);
 
       const icongray = achievementData.icongray.endsWith("/")
         ? achievementData.icon
         : achievementData.icongray;
 
       if (unlockedAchievementData) {
+        const remoteAchievement = remoteByName.get(upperCaseName);
+
         return {
           ...achievementData,
           unlocked: true,
           unlockTime: unlockedAchievementData.unlockTime,
-          source: remote.achievements.find(
-            (item) =>
-              item.name.toUpperCase() === achievementData.name.toUpperCase()
-          )?.source,
-          unlockedOn: remote.achievements.find(
-            (item) =>
-              item.name.toUpperCase() === achievementData.name.toUpperCase()
-          )?.unlockedOn,
-          imageUrl: souvenirs.get(achievementData.name.toUpperCase()) ?? null,
+          source: remoteAchievement?.source,
+          unlockedOn: remoteAchievement?.unlockedOn,
+          imageUrl: souvenirs.get(upperCaseName) ?? null,
         };
       }
 

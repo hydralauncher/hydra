@@ -10,6 +10,32 @@ export type CombinedAchievementDefinitionLookup = (
   name: string
 ) => Pick<SteamAchievement, "globalUnlockPercentage" | "set"> | undefined;
 
+export const createCombinedDefinitionLookup = (
+  getDefinitions: (
+    shop: "steam" | "epic",
+    objectId: string
+  ) => readonly SteamAchievement[]
+): CombinedAchievementDefinitionLookup => {
+  const definitionsBySource = new Map<string, Map<string, SteamAchievement>>();
+
+  return (shop, objectId, name) => {
+    const sourceKey = `${shop}:${objectId}`;
+    let definitions = definitionsBySource.get(sourceKey);
+
+    if (!definitions) {
+      definitions = new Map(
+        getDefinitions(shop, objectId).map((definition) => [
+          definition.name.toUpperCase(),
+          definition,
+        ])
+      );
+      definitionsBySource.set(sourceKey, definitions);
+    }
+
+    return definitions.get(name.toUpperCase());
+  };
+};
+
 export interface CombinedAchievementVariant {
   shop: "steam" | "epic";
   objectId: string;
@@ -39,14 +65,39 @@ export function presentCombinedAchievements(
     shop: "steam" | "epic",
     objectId: string
   ) => readonly UnlockedAchievement[],
-  revealHidden: boolean,
   findDefinition: CombinedAchievementDefinitionLookup = () => undefined
 ): UserAchievement[] {
+  const localUnlocksBySource = new Map<
+    string,
+    Map<string, UnlockedAchievement>
+  >();
+  const findLocalUnlock = (
+    shop: "steam" | "epic",
+    objectId: string,
+    name: string
+  ) => {
+    const sourceKey = `${shop}:${objectId}`;
+    let unlocks = localUnlocksBySource.get(sourceKey);
+
+    if (!unlocks) {
+      unlocks = new Map();
+      for (const unlock of localUnlocks(shop, objectId)) {
+        const key = unlock.name.toUpperCase();
+        if (!unlocks.has(key)) unlocks.set(key, unlock);
+      }
+      localUnlocksBySource.set(sourceKey, unlocks);
+    }
+
+    return unlocks.get(name.toUpperCase());
+  };
+
   return combined.achievements
     .flatMap(({ canonicalAchievementId, variants }) => {
       const states = variants.map((variant) => {
-        const local = localUnlocks(variant.shop, variant.objectId).find(
-          (unlock) => unlock.name.toUpperCase() === variant.name.toUpperCase()
+        const local = findLocalUnlock(
+          variant.shop,
+          variant.objectId,
+          variant.name
         );
         return {
           ...variant,
@@ -80,10 +131,6 @@ export function presentCombinedAchievements(
           source: selected.shop,
           sourceObjectId: selected.objectId,
           unlocked: selected.unlockTime !== null,
-          description:
-            selected.unlockTime !== null || !selected.hidden || revealHidden
-              ? selected.description
-              : undefined,
           icongray: selected.icongray.endsWith("/")
             ? selected.icon
             : selected.icongray,

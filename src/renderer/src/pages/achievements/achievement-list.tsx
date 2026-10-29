@@ -15,17 +15,27 @@ import {
   UnlockIcon,
 } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
-import { useCallback, useMemo, useState } from "react";
+import {
+  Fragment,
+  type RefObject,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import cn from "classnames";
 import { FullscreenMediaModal, TextField } from "@renderer/components";
 import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
 import {
+  buildAchievementListEntries,
   filterAndSortAchievements,
   formatAchievementUnlockPercentage,
-  getAchievementSetKey,
+  type AchievementListEntry,
   getAchievementStatusCounts,
+  getVisibleSetGroups,
   groupAchievementsBySet,
   isAchievementConcealed,
+  useCollapsedAchievementSets,
+  useRevealedAchievements,
   type AchievementSortOption,
   type AchievementStatusFilter,
 } from "@shared";
@@ -34,16 +44,24 @@ import {
   type AchievementSelectOption,
 } from "./achievement-select";
 import { AchievementSetHeader } from "./achievement-set-header";
-import { AchievementIcon } from "./achievement-icon";
+import { AchievementIcon, AchievementIconPreload } from "./achievement-icon";
+import { useVirtualAchievementList } from "./use-virtual-achievement-list";
 
 interface AchievementListProps {
   achievements: UserAchievement[];
+  scrollRef: RefObject<HTMLElement | null>;
   viewerUnlockedNames?: ReadonlySet<string>;
   pointsSummary?: { earned: number; total: number };
 }
 
+const getEntryKey = (entry: AchievementListEntry<UserAchievement>) =>
+  entry.type === "set"
+    ? `set-${entry.group.key}`
+    : (entry.achievement.canonicalAchievementId ?? entry.achievement.name);
+
 export function AchievementList({
   achievements,
+  scrollRef,
   viewerUnlockedNames,
   pointsSummary,
 }: Readonly<AchievementListProps>) {
@@ -60,9 +78,9 @@ export function AchievementList({
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<AchievementStatusFilter>("all");
   const [sort, setSort] = useState<AchievementSortOption>("most_common");
-  const [revealedNames, setRevealedNames] = useState<Set<string>>(
-    () => new Set()
-  );
+  const { revealedNames, lastRevealedName, revealAchievement } =
+    useRevealedAchievements();
+  const { collapsedSetKeys, toggleSet } = useCollapsedAchievementSets();
   const [souvenir, setSouvenir] = useState<{
     src: string;
     alt: string;
@@ -87,13 +105,6 @@ export function AchievementList({
       ) && !revealedNames.has(achievement.name),
     [isUnlockedByViewer, revealedNames, showHiddenAchievements]
   );
-
-  const [lastRevealedName, setLastRevealedName] = useState<string | null>(null);
-
-  const revealAchievement = (name: string) => {
-    setRevealedNames((current) => new Set(current).add(name));
-    setLastRevealedName(name);
-  };
 
   const earnedPoints = useMemo(
     () =>
@@ -137,39 +148,11 @@ export function AchievementList({
     [achievements]
   );
 
-  const visibleSetGroups = useMemo(() => {
-    if (!setGroups) return null;
-
-    return setGroups
-      .map((group) => ({
-        key: group.key,
-        set: group.set,
-        totalCount: group.achievements.length,
-        unlockedCount: group.achievements.filter(
-          (achievement) => achievement.unlocked
-        ).length,
-        achievements: visibleAchievements.filter(
-          (achievement) => getAchievementSetKey(achievement) === group.key
-        ),
-      }))
-      .filter((group) => group.achievements.length > 0);
-  }, [setGroups, visibleAchievements]);
-
-  const [collapsedSetKeys, setCollapsedSetKeys] = useState<Set<string>>(
-    () => new Set()
+  const visibleSetGroups = useMemo(
+    () =>
+      setGroups ? getVisibleSetGroups(setGroups, visibleAchievements) : null,
+    [setGroups, visibleAchievements]
   );
-
-  const toggleSet = (key: string) => {
-    setCollapsedSetKeys((current) => {
-      const next = new Set(current);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  };
 
   const sortOptions: AchievementSelectOption<AchievementSortOption>[] = [
     {
@@ -205,12 +188,32 @@ export function AchievementList({
     },
   ];
 
-  const renderAchievement = (achievement: UserAchievement) => {
+  const entries = useMemo(
+    () =>
+      buildAchievementListEntries(
+        visibleSetGroups,
+        visibleAchievements,
+        collapsedSetKeys
+      ),
+    [collapsedSetKeys, visibleAchievements, visibleSetGroups]
+  );
+
+  const { listRef, virtualizer, getRowProps } = useVirtualAchievementList({
+    count: entries.length,
+    scrollRef,
+    getItemKey: (index) => getEntryKey(entries[index]),
+    isSetHeader: (index) => entries[index]?.type === "set",
+  });
+
+  const renderAchievement = (
+    achievement: UserAchievement,
+    rowProps: ReturnType<typeof getRowProps>
+  ) => {
     const concealed = isConcealed(achievement);
 
     return (
       <li
-        key={achievement.canonicalAchievementId ?? achievement.name}
+        {...rowProps}
         className={cn("achievements__item", {
           "achievements__item--unlocked": achievement.unlocked,
           "achievements__item--concealed": concealed,
@@ -225,6 +228,7 @@ export function AchievementList({
           >
             <span className="achievements__item-icon achievements__item-icon--concealed">
               <EyeClosedIcon size={24} />
+              <AchievementIconPreload src={achievement.icon} />
             </span>
 
             <span className="achievements__item-content">
@@ -438,35 +442,48 @@ export function AchievementList({
         </div>
       </div>
 
-      <ul className="achievements__list">
-        {visibleAchievements.length === 0 && (
+      {entries.length === 0 ? (
+        <ul className="achievements__list">
           <li className="achievements__empty">{t("no_achievements_found")}</li>
-        )}
+        </ul>
+      ) : (
+        <ul
+          ref={listRef}
+          className="achievements__list achievements__list--virtual"
+          style={{ height: virtualizer.getTotalSize() }}
+        >
+          {virtualizer.getVirtualItems().map((item) => {
+            const entry = entries[item.index];
+            const rowProps = getRowProps(item.index, item.start);
 
-        {visibleSetGroups
-          ? visibleSetGroups.map((group) => {
-              const expanded = !collapsedSetKeys.has(group.key);
-
+            if (entry.type === "achievement") {
               return (
-                <li key={group.key} className="achievements__set">
-                  <AchievementSetHeader
-                    set={group.set}
-                    expanded={expanded}
-                    onToggle={() => toggleSet(group.key)}
-                    unlockedCount={group.unlockedCount}
-                    totalCount={group.totalCount}
-                  />
-
-                  {expanded && (
-                    <ul className="achievements__set-list">
-                      {group.achievements.map(renderAchievement)}
-                    </ul>
-                  )}
-                </li>
+                <Fragment key={item.key}>
+                  {renderAchievement(entry.achievement, rowProps)}
+                </Fragment>
               );
-            })
-          : visibleAchievements.map(renderAchievement)}
-      </ul>
+            }
+
+            return (
+              <li
+                key={item.key}
+                {...rowProps}
+                className={cn("achievements__set", {
+                  "achievements__set--spaced": item.index > 0,
+                })}
+              >
+                <AchievementSetHeader
+                  set={entry.group.set}
+                  expanded={entry.expanded}
+                  onToggle={() => toggleSet(entry.group.key)}
+                  unlockedCount={entry.group.unlockedCount}
+                  totalCount={entry.group.totalCount}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       <FullscreenMediaModal
         visible={souvenir !== null}

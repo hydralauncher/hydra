@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { FocusItem } from "../../../common";
 import type { FocusOverrides } from "../../../../services";
 import { getAchievementSetId } from "../navigation";
+import type { VirtualRowProps } from "../achievement-row";
 
 export interface AchievementSetHeaderProps {
   setKey: string;
@@ -14,6 +15,8 @@ export interface AchievementSetHeaderProps {
   totalCount: number;
   navigationOrder?: number;
   navigationOverrides?: FocusOverrides;
+  spaced?: boolean;
+  virtualRow?: VirtualRowProps;
   onToggle: () => void;
 }
 
@@ -30,6 +33,8 @@ export function AchievementSetHeader({
   totalCount,
   navigationOrder,
   navigationOverrides,
+  spaced = false,
+  virtualRow,
   onToggle,
 }: Readonly<AchievementSetHeaderProps>) {
   const { t } = useTranslation("achievement");
@@ -47,8 +52,10 @@ export function AchievementSetHeader({
       asChild
     >
       <li
+        {...virtualRow}
         className={cn("game-achievements-set", {
           "game-achievements-set--collapsed": !expanded,
+          "game-achievements-set--spaced": spaced,
         })}
       >
         <button

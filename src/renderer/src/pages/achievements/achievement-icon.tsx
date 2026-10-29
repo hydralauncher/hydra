@@ -1,6 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Skeleton from "react-loading-skeleton";
 import cn from "classnames";
+
+const preloadedIcons = new Map<string, HTMLImageElement>();
+
+const preloadAchievementIcon = (src: string) => {
+  if (!src || preloadedIcons.has(src)) return;
+
+  const image = new Image();
+  image.decoding = "async";
+  image.src = src;
+  preloadedIcons.set(src, image);
+};
+
+const isIconPreloaded = (src: string) => {
+  const image = preloadedIcons.get(src);
+  return Boolean(image?.complete && image.naturalWidth > 0);
+};
+
+export function AchievementIconPreload({ src }: Readonly<{ src: string }>) {
+  useEffect(() => {
+    preloadAchievementIcon(src);
+  }, [src]);
+
+  return null;
+}
 
 interface AchievementIconProps {
   src: string;
@@ -13,7 +37,9 @@ export function AchievementIcon({
   alt,
   locked,
 }: Readonly<AchievementIconProps>) {
-  const [settledSrc, setSettledSrc] = useState<string | null>(null);
+  const [settledSrc, setSettledSrc] = useState<string | null>(() =>
+    isIconPreloaded(src) ? src : null
+  );
   const isSettled = settledSrc === src;
 
   const settle = () => setSettledSrc(src);
@@ -30,7 +56,7 @@ export function AchievementIcon({
         })}
         src={src}
         alt={alt}
-        loading="lazy"
+        loading={isSettled ? "eager" : "lazy"}
         decoding="async"
         onLoad={settle}
         onError={settle}

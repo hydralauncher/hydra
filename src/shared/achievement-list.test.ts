@@ -2,13 +2,16 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  buildAchievementListEntries,
   filterAndSortAchievements,
   formatAchievementUnlockPercentage,
   getAchievementComparisonCounts,
   getAchievementSetKey,
   getComparedOwnerUnlockedNames,
   getComparedTargetAchievements,
+  getVisibleSetGroups,
   groupAchievementsBySet,
+  toggleSetKey,
   matchesAchievementComparisonFilter,
   getAchievementStatusCounts,
   isAchievementConcealed,
@@ -239,6 +242,13 @@ describe("formatAchievementUnlockPercentage", () => {
   it("collapses tiny percentages", () => {
     assert.equal(formatAchievementUnlockPercentage(0.04, "en"), "<0.1%");
   });
+
+  it("uses the locale's decimal separator for the cutoff too", () => {
+    for (const locale of ["ru", "es", "pt-BR"]) {
+      assert.equal(formatAchievementUnlockPercentage(0.04, locale), "<0,1%");
+      assert.equal(formatAchievementUnlockPercentage(0.4, locale), "0,4%");
+    }
+  });
 });
 
 describe("achievement comparison", () => {
@@ -403,5 +413,95 @@ describe("achievement sets", () => {
     assert.equal(getAchievementSetKey({ set: cooperative }), "1");
     assert.equal(getAchievementSetKey({ set: null }), "none");
     assert.equal(getAchievementSetKey({}), "none");
+  });
+});
+
+describe("visible achievement set groups", () => {
+  const first = { id: 1, name: "First", order: 0 };
+  const second = { id: 2, name: "Second", order: 1 };
+  const rows = [
+    { name: "a", set: first, unlocked: true },
+    { name: "b", set: first, unlocked: false },
+    { name: "c", set: second, unlocked: true },
+  ];
+
+  it("counts the whole set but lists only the visible achievements", () => {
+    const groups = groupAchievementsBySet(rows)!;
+    const visible = getVisibleSetGroups(groups, [rows[1]]);
+
+    assert.deepEqual(visible, [
+      {
+        key: "1",
+        set: first,
+        totalCount: 2,
+        unlockedCount: 1,
+        achievements: [rows[1]],
+      },
+    ]);
+  });
+
+  it("keeps the order of the visible list inside each set", () => {
+    const groups = groupAchievementsBySet(rows)!;
+    const visible = getVisibleSetGroups(groups, [rows[2], rows[1], rows[0]]);
+
+    assert.deepEqual(
+      visible.map(({ key, achievements }) => ({
+        key,
+        names: achievements.map(({ name }) => name),
+      })),
+      [
+        { key: "1", names: ["b", "a"] },
+        { key: "2", names: ["c"] },
+      ]
+    );
+  });
+
+  it("toggles a set key without changing the original set", () => {
+    const original = new Set(["1"]);
+    assert.deepEqual([...toggleSetKey(original, "2")], ["1", "2"]);
+    assert.deepEqual([...toggleSetKey(original, "1")], []);
+    assert.deepEqual([...original], ["1"]);
+  });
+});
+
+describe("achievement list entries", () => {
+  const first = { id: 1, name: "First", order: 0 };
+  const second = { id: 2, name: "Second", order: 1 };
+  const rows = [
+    { name: "a", set: first, unlocked: true },
+    { name: "b", set: second, unlocked: false },
+    { name: "c", set: second, unlocked: true },
+  ];
+  const describeEntries = (
+    entries: ReturnType<
+      typeof buildAchievementListEntries<(typeof rows)[number]>
+    >
+  ) =>
+    entries.map((entry) =>
+      entry.type === "set"
+        ? `set:${entry.group.key}:${entry.expanded ? "open" : "closed"}`
+        : entry.achievement.name
+    );
+
+  it("lists achievements on their own when the game has no sets", () => {
+    assert.deepEqual(
+      describeEntries(buildAchievementListEntries(null, rows, new Set())),
+      ["a", "b", "c"]
+    );
+  });
+
+  it("puts each set header before its achievements and hides collapsed ones", () => {
+    const groups = getVisibleSetGroups(groupAchievementsBySet(rows)!, rows);
+
+    assert.deepEqual(
+      describeEntries(buildAchievementListEntries(groups, rows, new Set())),
+      ["set:1:open", "a", "set:2:open", "b", "c"]
+    );
+    assert.deepEqual(
+      describeEntries(
+        buildAchievementListEntries(groups, rows, new Set(["2"]))
+      ),
+      ["set:1:open", "a", "set:2:closed"]
+    );
   });
 });

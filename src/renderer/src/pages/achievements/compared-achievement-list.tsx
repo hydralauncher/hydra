@@ -1,4 +1,4 @@
-import type { AchievementSet, ComparedAchievements } from "@types";
+import type { ComparedAchievements, UserAchievement } from "@types";
 import "./achievements.scss";
 import {
   CheckCircleFillIcon,
@@ -15,17 +15,29 @@ import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react";
 import { useAppSelector, useDate } from "@renderer/hooks";
 import { TextField } from "@renderer/components";
-import { type CSSProperties, useCallback, useMemo, useState } from "react";
+import {
+  type CSSProperties,
+  Fragment,
+  type RefObject,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
+
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import {
+  buildAchievementListEntries,
   filterAndSortAchievements,
   formatAchievementUnlockPercentage,
   getAchievementComparisonCounts,
-  getAchievementSetKey,
+  getComparedTargetAchievements,
+  getVisibleSetGroups,
   groupAchievementsBySet,
   isAchievementConcealed,
   matchesAchievementComparisonFilter,
+  useCollapsedAchievementSets,
+  useRevealedAchievements,
   type AchievementComparisonFilter,
   type AchievementSortOption,
 } from "@shared";
@@ -34,7 +46,8 @@ import {
   type AchievementSelectOption,
 } from "./achievement-select";
 import { ComparedAchievementSetHeader } from "./achievement-set-header";
-import { AchievementIcon } from "./achievement-icon";
+import { AchievementIcon, AchievementIconPreload } from "./achievement-icon";
+import { useVirtualAchievementList } from "./use-virtual-achievement-list";
 
 interface ComparedUser {
   displayName: string;
@@ -45,23 +58,16 @@ export interface ComparedAchievementListProps {
   achievements: ComparedAchievements;
   owner: ComparedUser;
   target: ComparedUser;
+  scrollRef: RefObject<HTMLElement | null>;
 }
 
 type ComparedAchievement = ComparedAchievements["achievements"][number];
 
-interface ComparedRow {
-  name: string;
-  displayName: string;
-  description: string;
-  hidden: boolean;
-  unlocked: boolean;
-  points?: number;
-  globalUnlockPercentage?: number | null;
-  set: AchievementSet | null;
+type ComparedRow = UserAchievement & {
   ownerUnlocked: boolean;
   targetUnlocked: boolean;
   achievement: ComparedAchievement;
-}
+};
 
 function UserAvatar({
   user,
@@ -89,6 +95,7 @@ export function ComparedAchievementList({
   achievements,
   owner,
   target,
+  scrollRef,
 }: Readonly<ComparedAchievementListProps>) {
   const { t, i18n } = useTranslation("achievement");
   const { formatUnlockDateTime } = useDate();
@@ -100,10 +107,9 @@ export function ComparedAchievementList({
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<AchievementComparisonFilter>("all");
   const [sort, setSort] = useState<AchievementSortOption>("most_common");
-  const [revealedNames, setRevealedNames] = useState<Set<string>>(
-    () => new Set()
-  );
-  const [lastRevealedName, setLastRevealedName] = useState<string | null>(null);
+  const { revealedNames, lastRevealedName, revealAchievement } =
+    useRevealedAchievements();
+  const { collapsedSetKeys, toggleSet } = useCollapsedAchievementSets();
 
   const hasOwnerStats = achievements.achievements.some(
     (achievement) => achievement.ownerStat
@@ -111,43 +117,27 @@ export function ComparedAchievementList({
 
   const rows = useMemo<ComparedRow[]>(
     () =>
-      achievements.achievements.map((achievement, index) => ({
-        name: String(index),
-        displayName: achievement.displayName,
-        description: achievement.description,
-        hidden: achievement.hidden,
-        unlocked: achievement.targetStat.unlocked,
-        points: achievement.points,
-        globalUnlockPercentage: achievement.globalUnlockPercentage,
-        set: achievement.set ?? null,
-        ownerUnlocked: Boolean(achievement.ownerStat?.unlocked),
-        targetUnlocked: achievement.targetStat.unlocked,
-        achievement,
-      })),
+      getComparedTargetAchievements(achievements).map((row, index) => {
+        const achievement = achievements.achievements[index];
+
+        return {
+          ...row,
+          ownerUnlocked: Boolean(achievement.ownerStat?.unlocked),
+          targetUnlocked: row.unlocked,
+          achievement,
+        };
+      }),
     [achievements]
   );
 
-  const ownerUnlockedByName = useMemo(
-    () => new Map(rows.map((row) => [row.name, row.ownerUnlocked])),
-    [rows]
-  );
-
   const isConcealed = useCallback(
-    (row: Pick<ComparedRow, "name" | "hidden">) =>
+    (row: Pick<ComparedRow, "name" | "hidden" | "ownerUnlocked">) =>
       isAchievementConcealed(
-        {
-          hidden: row.hidden,
-          unlocked: ownerUnlockedByName.get(row.name) ?? false,
-        },
+        { hidden: row.hidden, unlocked: row.ownerUnlocked },
         showHiddenAchievements
       ) && !revealedNames.has(row.name),
-    [ownerUnlockedByName, revealedNames, showHiddenAchievements]
+    [revealedNames, showHiddenAchievements]
   );
-
-  const revealAchievement = (name: string) => {
-    setRevealedNames((current) => new Set(current).add(name));
-    setLastRevealedName(name);
-  };
 
   const filterCounts = useMemo(
     () => getAchievementComparisonCounts(rows),
@@ -165,43 +155,21 @@ export function ComparedAchievementList({
 
   const setGroups = useMemo(() => groupAchievementsBySet(rows), [rows]);
 
-  const visibleSetGroups = useMemo(() => {
-    if (!setGroups) return null;
-
-    return setGroups
-      .map((group) => ({
-        key: group.key,
-        set: group.set,
-        totalCount: group.achievements.length,
-        ownerUnlockedCount: group.achievements.filter(
-          (row) => row.ownerUnlocked
-        ).length,
-        targetUnlockedCount: group.achievements.filter(
-          (row) => row.targetUnlocked
-        ).length,
-        rows: visibleRows.filter(
-          (row) => getAchievementSetKey(row) === group.key
-        ),
-      }))
-      .filter((group) => group.rows.length > 0);
-  }, [setGroups, visibleRows]);
-
-  const [collapsedSetKeys, setCollapsedSetKeys] = useState<Set<string>>(
-    () => new Set()
+  const visibleSetGroups = useMemo(
+    () => (setGroups ? getVisibleSetGroups(setGroups, visibleRows) : null),
+    [setGroups, visibleRows]
   );
 
-  const toggleSet = (key: string) => {
-    setCollapsedSetKeys((current) => {
-      const next = new Set(current);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  };
-
+  const ownerUnlockedCountBySet = useMemo(
+    () =>
+      new Map(
+        (setGroups ?? []).map((group) => [
+          group.key,
+          group.achievements.filter((row) => row.ownerUnlocked).length,
+        ])
+      ),
+    [setGroups]
+  );
   const sortOptions: AchievementSelectOption<AchievementSortOption>[] = [
     {
       value: "most_common",
@@ -286,15 +254,36 @@ export function ComparedAchievementList({
     "--compare-stat-columns": statColumnCount,
   } as CSSProperties;
 
-  const renderRow = (row: ComparedRow) => {
+  const entries = buildAchievementListEntries(
+    visibleSetGroups,
+    visibleRows,
+    collapsedSetKeys
+  );
+
+  const { listRef, virtualizer, getRowProps } = useVirtualAchievementList({
+    count: entries.length,
+    scrollRef,
+    getItemKey: (index) => {
+      const entry = entries[index];
+      return entry.type === "set"
+        ? `set-${entry.group.key}`
+        : entry.achievement.name;
+    },
+    isSetHeader: (index) => entries[index]?.type === "set",
+  });
+
+  const renderRow = (
+    row: ComparedRow,
+    rowProps: ReturnType<typeof getRowProps>
+  ) => {
     const concealed = isConcealed(row);
     const { achievement } = row;
     const unlockedByAnyone = row.ownerUnlocked || row.targetUnlocked;
 
     return (
       <li
-        key={row.name}
-        style={gridStyle}
+        {...rowProps}
+        style={{ ...gridStyle, ...rowProps.style }}
         className={cn("achievements__item achievements__compare-row", {
           "achievements__item--unlocked": unlockedByAnyone,
           "achievements__item--concealed": concealed,
@@ -309,6 +298,7 @@ export function ComparedAchievementList({
           >
             <span className="achievements__item-icon achievements__item-icon--concealed">
               <EyeClosedIcon size={24} />
+              <AchievementIconPreload src={achievement.icon} />
             </span>
 
             <span className="achievements__item-content">
@@ -495,49 +485,65 @@ export function ComparedAchievementList({
         </div>
       </div>
 
-      <ul className="achievements__list">
-        {visibleRows.length === 0 && (
+      {entries.length === 0 ? (
+        <ul className="achievements__list">
           <li className="achievements__empty">{t("no_achievements_found")}</li>
-        )}
+        </ul>
+      ) : (
+        <ul
+          ref={listRef}
+          className="achievements__list achievements__list--virtual"
+          style={{ height: virtualizer.getTotalSize() }}
+        >
+          {virtualizer.getVirtualItems().map((item) => {
+            const entry = entries[item.index];
+            const rowProps = getRowProps(item.index, item.start);
 
-        {visibleSetGroups
-          ? visibleSetGroups.map((group) => {
-              const expanded = !collapsedSetKeys.has(group.key);
-
+            if (entry.type === "achievement") {
               return (
-                <li key={group.key} className="achievements__set">
-                  <ComparedAchievementSetHeader
-                    set={group.set}
-                    expanded={expanded}
-                    onToggle={() => toggleSet(group.key)}
-                    style={gridStyle}
-                    cells={
-                      <>
-                        {hasCommunityStats && (
-                          <span className="achievements__compare-cell" />
-                        )}
-                        {hasOwnerStats && (
-                          <span className="achievements__compare-cell achievements__set-count">
-                            {group.ownerUnlockedCount} / {group.totalCount}
-                          </span>
-                        )}
-                        <span className="achievements__compare-cell achievements__set-count">
-                          {group.targetUnlockedCount} / {group.totalCount}
-                        </span>
-                      </>
-                    }
-                  />
-
-                  {expanded && (
-                    <ul className="achievements__set-list">
-                      {group.rows.map(renderRow)}
-                    </ul>
-                  )}
-                </li>
+                <Fragment key={item.key}>
+                  {renderRow(entry.achievement, rowProps)}
+                </Fragment>
               );
-            })
-          : visibleRows.map(renderRow)}
-      </ul>
+            }
+
+            const { group } = entry;
+
+            return (
+              <li
+                key={item.key}
+                {...rowProps}
+                className={cn("achievements__set", {
+                  "achievements__set--spaced": item.index > 0,
+                })}
+              >
+                <ComparedAchievementSetHeader
+                  set={group.set}
+                  expanded={entry.expanded}
+                  onToggle={() => toggleSet(group.key)}
+                  style={gridStyle}
+                  cells={
+                    <>
+                      {hasCommunityStats && (
+                        <span className="achievements__compare-cell" />
+                      )}
+                      {hasOwnerStats && (
+                        <span className="achievements__compare-cell achievements__set-count">
+                          {ownerUnlockedCountBySet.get(group.key) ?? 0} /{" "}
+                          {group.totalCount}
+                        </span>
+                      )}
+                      <span className="achievements__compare-cell achievements__set-count">
+                        {group.unlockedCount} / {group.totalCount}
+                      </span>
+                    </>
+                  }
+                />
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

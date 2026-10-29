@@ -1,14 +1,19 @@
-import type { AchievementSet, GameShop, UserAchievement } from "@types";
+import type { GameShop, UserAchievement } from "@types";
 import {
+  buildAchievementListEntries,
   filterAndSortAchievements,
-  getAchievementSetKey,
   getAchievementStatusCounts,
+  getVisibleSetGroups,
   groupAchievementsBySet,
   isAchievementConcealed,
+  useCollapsedAchievementSets,
+  useRevealedAchievements,
+  type AchievementListEntry,
   type AchievementSortOption,
   type AchievementStatusFilter,
 } from "@shared";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useVirtualList } from "../../../../shared/use-virtual-list";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import { useNavigate, useParams } from "react-router-dom";
@@ -36,20 +41,14 @@ import {
 } from "../../hooks";
 import "./styles.scss";
 
-type AchievementListEntry =
-  | {
-      type: "set";
-      key: string;
-      set: AchievementSet | null;
-      expanded: boolean;
-      totalCount: number;
-      unlockedCount: number;
-    }
-  | { type: "achievement"; achievement: UserAchievement };
+const ESTIMATED_ROW_HEIGHT = 92;
+const ESTIMATED_SET_HEADER_HEIGHT = 72;
+const ROW_GAP = 4;
+const OVERSCAN = 6;
 
-const getListEntryId = (entry: AchievementListEntry) =>
+const getListEntryId = (entry: AchievementListEntry<UserAchievement>) =>
   entry.type === "set"
-    ? getAchievementSetId(entry.key)
+    ? getAchievementSetId(entry.group.key)
     : getAchievementRowId(entry.achievement.name);
 
 export default function GameAchievements() {
@@ -69,9 +68,9 @@ export default function GameAchievements() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<AchievementStatusFilter>("all");
   const [sort, setSort] = useState<AchievementSortOption>("most_common");
-  const [revealedNames, setRevealedNames] = useState<Set<string>>(
-    () => new Set()
-  );
+  const { revealedNames, lastRevealedName, revealAchievement } =
+    useRevealedAchievements();
+  const { collapsedSetKeys, toggleSet } = useCollapsedAchievementSets();
 
   const isConcealed = useCallback(
     (achievement: Pick<UserAchievement, "name" | "hidden" | "unlocked">) =>
@@ -80,12 +79,10 @@ export default function GameAchievements() {
     [revealedNames, showHiddenAchievements]
   );
 
-  const [lastRevealedName, setLastRevealedName] = useState<string | null>(null);
-
-  const handleReveal = useCallback((achievement: UserAchievement) => {
-    setRevealedNames((current) => new Set(current).add(achievement.name));
-    setLastRevealedName(achievement.name);
-  }, []);
+  const handleReveal = useCallback(
+    (achievement: UserAchievement) => revealAchievement(achievement.name),
+    [revealAchievement]
+  );
 
   const statusCounts = useMemo(
     () => getAchievementStatusCounts(achievements),
@@ -118,62 +115,33 @@ export default function GameAchievements() {
     [achievements]
   );
 
-  const [collapsedSetKeys, setCollapsedSetKeys] = useState<Set<string>>(
-    () => new Set()
+  const listEntries = useMemo(
+    () =>
+      buildAchievementListEntries(
+        setGroups ? getVisibleSetGroups(setGroups, visibleAchievements) : null,
+        visibleAchievements,
+        collapsedSetKeys
+      ),
+    [collapsedSetKeys, setGroups, visibleAchievements]
   );
-
-  const toggleSet = useCallback((key: string) => {
-    setCollapsedSetKeys((current) => {
-      const next = new Set(current);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  }, []);
-
-  const listEntries = useMemo<AchievementListEntry[]>(() => {
-    if (!setGroups) {
-      return visibleAchievements.map((achievement) => ({
-        type: "achievement",
-        achievement,
-      }));
-    }
-
-    return setGroups.flatMap((group): AchievementListEntry[] => {
-      const visible = visibleAchievements.filter(
-        (achievement) => getAchievementSetKey(achievement) === group.key
-      );
-      if (visible.length === 0) return [];
-
-      const expanded = !collapsedSetKeys.has(group.key);
-
-      return [
-        {
-          type: "set",
-          key: group.key,
-          set: group.set,
-          expanded,
-          totalCount: group.achievements.length,
-          unlockedCount: group.achievements.filter(
-            (achievement) => achievement.unlocked
-          ).length,
-        },
-        ...(expanded
-          ? visible.map((achievement) => ({
-              type: "achievement" as const,
-              achievement,
-            }))
-          : []),
-      ];
-    });
-  }, [collapsedSetKeys, setGroups, visibleAchievements]);
 
   const firstAchievementRowId = listEntries[0]
     ? getListEntryId(listEntries[0])
     : null;
+
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const { listRef, virtualizer, getRowProps } = useVirtualList({
+    count: listEntries.length,
+    scrollRef,
+    getItemKey: (index) => getListEntryId(listEntries[index]),
+    estimateSize: (index) =>
+      listEntries[index]?.type === "set"
+        ? ESTIMATED_SET_HEADER_HEIGHT
+        : ESTIMATED_ROW_HEIGHT,
+    gap: ROW_GAP,
+    overscan: OVERSCAN,
+  });
 
   const earnedPoints = useMemo(
     () =>
@@ -236,6 +204,7 @@ export default function GameAchievements() {
   return (
     <VerticalFocusGroup regionId={GAME_ACHIEVEMENTS_PAGE_REGION_ID} asChild>
       <div
+        ref={scrollRef}
         className={cn("game-achievements-page", {
           "game-achievements-page--pristine": !hasNavigated,
         })}
@@ -275,16 +244,29 @@ export default function GameAchievements() {
               regionId={GAME_ACHIEVEMENTS_LIST_REGION_ID}
               asChild
             >
-              <ul className="game-achievements-page__list">
-                {visibleAchievements.length === 0 ? (
+              <ul
+                ref={listRef}
+                className={cn("game-achievements-page__list", {
+                  "game-achievements-page__list--virtual":
+                    listEntries.length > 0,
+                })}
+                style={
+                  listEntries.length > 0
+                    ? { height: virtualizer.getTotalSize() }
+                    : undefined
+                }
+              >
+                {listEntries.length === 0 ? (
                   <li className="game-achievements-page__empty">
                     {t("no_achievements_found")}
                   </li>
                 ) : null}
 
-                {listEntries.map((entry, index) => {
+                {virtualizer.getVirtualItems().map((item) => {
+                  const entry = listEntries[item.index];
+                  const virtualRow = getRowProps(item.index, item.start);
                   const navigationOverrides =
-                    index === 0
+                    item.index === 0
                       ? {
                           up: {
                             type: "item" as const,
@@ -296,15 +278,17 @@ export default function GameAchievements() {
                   if (entry.type === "set") {
                     return (
                       <AchievementSetHeader
-                        key={getListEntryId(entry)}
-                        setKey={entry.key}
-                        set={entry.set}
+                        key={item.key}
+                        setKey={entry.group.key}
+                        set={entry.group.set}
                         expanded={entry.expanded}
-                        unlockedCount={entry.unlockedCount}
-                        totalCount={entry.totalCount}
-                        navigationOrder={index}
+                        unlockedCount={entry.group.unlockedCount}
+                        totalCount={entry.group.totalCount}
+                        navigationOrder={item.index}
                         navigationOverrides={navigationOverrides}
-                        onToggle={() => toggleSet(entry.key)}
+                        spaced={item.index > 0}
+                        virtualRow={virtualRow}
+                        onToggle={() => toggleSet(entry.group.key)}
                       />
                     );
                   }
@@ -313,13 +297,14 @@ export default function GameAchievements() {
 
                   return (
                     <AchievementRow
-                      key={getListEntryId(entry)}
+                      key={item.key}
                       achievement={achievement}
                       concealed={isConcealed(achievement)}
                       revealed={achievement.name === lastRevealedName}
                       showPoints={hasActiveSubscription}
-                      navigationOrder={index}
+                      navigationOrder={item.index}
                       navigationOverrides={navigationOverrides}
+                      virtualRow={virtualRow}
                       onSouvenirActivate={handleSouvenirActivate}
                       onReveal={handleReveal}
                     />

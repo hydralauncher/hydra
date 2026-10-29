@@ -46,6 +46,85 @@ export const groupAchievementsBySet = <
   return withoutSet ? [...sets, withoutSet] : sets;
 };
 
+export interface VisibleAchievementSetGroup<T> {
+  key: string;
+  set: AchievementSet | null;
+  totalCount: number;
+  unlockedCount: number;
+  achievements: T[];
+}
+
+export const getVisibleSetGroups = <
+  T extends { set?: AchievementSet | null; unlocked: boolean },
+>(
+  setGroups: AchievementSetGroup<T>[],
+  visible: T[]
+): VisibleAchievementSetGroup<T>[] => {
+  const visibleByKey = new Map<string, T[]>();
+  for (const achievement of visible) {
+    const key = getAchievementSetKey(achievement);
+    const group = visibleByKey.get(key);
+    if (group) {
+      group.push(achievement);
+    } else {
+      visibleByKey.set(key, [achievement]);
+    }
+  }
+
+  return setGroups
+    .map((group) => ({
+      key: group.key,
+      set: group.set,
+      totalCount: group.achievements.length,
+      unlockedCount: group.achievements.filter(
+        (achievement) => achievement.unlocked
+      ).length,
+      achievements: visibleByKey.get(group.key) ?? [],
+    }))
+    .filter((group) => group.achievements.length > 0);
+};
+
+export type AchievementListEntry<T> =
+  | { type: "set"; group: VisibleAchievementSetGroup<T>; expanded: boolean }
+  | { type: "achievement"; achievement: T };
+
+export const buildAchievementListEntries = <T>(
+  setGroups: VisibleAchievementSetGroup<T>[] | null,
+  visible: T[],
+  collapsedSetKeys: ReadonlySet<string>
+): AchievementListEntry<T>[] => {
+  if (!setGroups) {
+    return visible.map((achievement) => ({ type: "achievement", achievement }));
+  }
+
+  return setGroups.flatMap((group): AchievementListEntry<T>[] => {
+    const expanded = !collapsedSetKeys.has(group.key);
+    const header: AchievementListEntry<T> = { type: "set", group, expanded };
+
+    if (!expanded) return [header];
+
+    return [
+      header,
+      ...group.achievements.map(
+        (achievement): AchievementListEntry<T> => ({
+          type: "achievement",
+          achievement,
+        })
+      ),
+    ];
+  });
+};
+
+export const toggleSetKey = (current: ReadonlySet<string>, key: string) => {
+  const next = new Set(current);
+  if (next.has(key)) {
+    next.delete(key);
+  } else {
+    next.add(key);
+  }
+  return next;
+};
+
 export type AchievementSortOption = "most_common" | "most_rare";
 
 export type AchievementStatusFilter = "all" | "unlocked" | "locked";
@@ -135,11 +214,13 @@ export const getComparedOwnerUnlockedNames = (
     )
   );
 
-export interface AchievementListOptions {
+export interface AchievementListOptions<
+  T extends ListableAchievement = ListableAchievement,
+> {
   search: string;
   status: AchievementStatusFilter;
   sort: AchievementSortOption;
-  isConcealed: (achievement: ListableAchievement) => boolean;
+  isConcealed: (achievement: T) => boolean;
 }
 
 export const isAchievementConcealed = (
@@ -167,13 +248,15 @@ export const formatAchievementUnlockPercentage = (
   percentage: number,
   locale?: string
 ) => {
+  const formatter = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 1,
+  });
+
   if (percentage > 0 && percentage < MIN_DISPLAYED_UNLOCK_PERCENTAGE) {
-    return `<${MIN_DISPLAYED_UNLOCK_PERCENTAGE}%`;
+    return `<${formatter.format(MIN_DISPLAYED_UNLOCK_PERCENTAGE)}%`;
   }
 
-  return `${new Intl.NumberFormat(locale, {
-    maximumFractionDigits: 1,
-  }).format(percentage)}%`;
+  return `${formatter.format(percentage)}%`;
 };
 
 const normalizeSearchText = (value: string) =>
@@ -256,7 +339,7 @@ export const getAchievementStatusCounts = (
 
 export const filterAndSortAchievements = <T extends ListableAchievement>(
   achievements: T[],
-  { search, status, sort, isConcealed }: AchievementListOptions
+  { search, status, sort, isConcealed }: AchievementListOptions<T>
 ): T[] => {
   const normalizedSearch = normalizeSearchText(search.trim());
   const getScore = getAchievementRarityScorer(achievements);

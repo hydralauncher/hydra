@@ -241,6 +241,11 @@
     margin: 0;
     padding: 0;
 
+    &--virtual {
+      position: relative;
+      display: block;
+    }
+
     > *:first-child .game-achievements-row {
       border-top-left-radius: 12px;
       border-top-right-radius: 12px;
@@ -475,15 +480,17 @@
 .game-achievements-set {
   position: relative;
   display: flex;
-  border-radius: 12px;
   outline: none;
 
-  &:not(:first-child) {
-    margin-top: calc(var(--spacing-unit) * 4);
+  &--spaced {
+    padding-top: calc(var(--spacing-unit) * 4);
   }
 
   &[data-focused="true"] {
     z-index: 1;
+  }
+
+  &[data-focused="true"] &__button {
     outline: 2px solid #fff;
     outline-offset: 4px;
   }

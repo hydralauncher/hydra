@@ -60,6 +60,7 @@ export * from "./tracker-list";
 export * from "./souvenirs";
 export * from "./souvenir-sync";
 export * from "./achievement-list";
+export * from "./use-achievement-list-state";
 
 export class UserNotLoggedInError extends Error {
   constructor() {
