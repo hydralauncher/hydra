@@ -51,6 +51,8 @@ interface CaptureSessionRegistration {
 const sessions = new Map<string, CaptureSessionRegistration>();
 const CAPTURE_TEARDOWN_DELAY_MS = 1_000;
 const CAPTURE_PREPARATION_WAIT_MS = 1_500;
+const UNCLASSIFIED_PREPARATION_FAILURE: LinuxGameCaptureFailure =
+  "capture_error";
 
 const isReasonEligible = (
   reason: CaptureSessionReason,
@@ -364,8 +366,9 @@ export const prepareLinuxGameCaptureSession = async (
       sessions.delete(gameKey);
     });
   })().catch(async (error) => {
-    registration.failure = await classifyPreparationFailure(error);
     registration.state = "failed";
+    registration.failure = UNCLASSIFIED_PREPARATION_FAILURE;
+    registration.failure = await classifyPreparationFailure(error);
     if (sessions.get(gameKey)?.token === token) {
       logger.warn("Wayland game window capture was not prepared", {
         gameKey,
