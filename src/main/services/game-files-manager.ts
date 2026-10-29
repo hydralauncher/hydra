@@ -1004,6 +1004,14 @@ export class GameFilesManager {
     }
   }
 
+  private async saveExtractedFolder(download: Download, folderName: string) {
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
+      folderName,
+      sourceArchiveName: download.folderName ?? undefined,
+    });
+  }
+
   async extractDownloadedFile() {
     const [download, game] = await Promise.all([
       downloadsSublevel.get(this.gameKey),
@@ -1042,6 +1050,12 @@ export class GameFilesManager {
       );
 
       if (result.success) {
+        // An archive consumed in place can't be extracted again, so a retry
+        // after a failed nested extraction has to start from the folder.
+        if (!fs.existsSync(filePath)) {
+          await this.saveExtractedFolder(download, extractedFolderName);
+        }
+
         const extractedNestedArchives = await this.extractFilesInDirectory(
           extractionPath,
           filePath
@@ -1062,11 +1076,7 @@ export class GameFilesManager {
           }
         }
 
-        await downloadsSublevel.put(this.gameKey, {
-          ...download,
-          folderName: extractedFolderName,
-          sourceArchiveName: download.folderName,
-        });
+        await this.saveExtractedFolder(download, extractedFolderName);
 
         await this.setExtractionComplete();
       } else {

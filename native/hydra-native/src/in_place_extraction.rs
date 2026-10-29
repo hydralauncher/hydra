@@ -22,6 +22,9 @@ use napi_derive::napi;
 /// working while a large archive unpacks.
 const KEEP_FREE_BYTES: u64 = 1 << 30;
 
+/// Most progress updates one extraction sends across the bridge.
+const PROGRESS_UPDATE_STEPS: u64 = 1000;
+
 // Hydra never pauses an extraction; a quit mid-way is resumed from the journal.
 static STOP: AtomicBool = AtomicBool::new(false);
 
@@ -177,9 +180,7 @@ fn extract(
     let extracted = Arc::new(AtomicU64::new(
         journal.total_size.saturating_sub(job.remaining_size()),
     ));
-    // Thousandths already reported, so a large archive sends at most a
-    // thousand updates across the bridge.
-    let reported = Arc::new(AtomicU64::new(0));
+    let reported_steps = Arc::new(AtomicU64::new(0));
     on_progress(extracted.load(Ordering::Relaxed) as f64 / total as f64);
 
     let run = Run {
@@ -190,9 +191,11 @@ fn extract(
         progress: Progress {
             on_bytes: Box::new(move |bytes| {
                 let done = extracted.fetch_add(bytes, Ordering::Relaxed) + bytes;
-                let thousandths = done.saturating_mul(1000) / total;
-                if thousandths > reported.fetch_max(thousandths, Ordering::Relaxed) {
-                    on_progress(thousandths.min(1000) as f64 / 1000.0);
+                let steps = done.saturating_mul(PROGRESS_UPDATE_STEPS) / total;
+                if steps > reported_steps.fetch_max(steps, Ordering::Relaxed) {
+                    on_progress(
+                        steps.min(PROGRESS_UPDATE_STEPS) as f64 / PROGRESS_UPDATE_STEPS as f64,
+                    );
                 }
             }),
             on_commit: Box::new(|_| {}),
