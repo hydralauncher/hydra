@@ -10,7 +10,11 @@ import type {
 } from "@types";
 
 import { emulatorSessions } from "../emulators/emulator-session-tracker";
-import { gamesPlaytime, hasTrackedGamesRunning } from "../game-running-state";
+import {
+  gamesPlaytime,
+  hasTrackedGamesRunning,
+  isTrackedGameKeyRunning,
+} from "../game-running-state";
 import {
   isWaylandCaptureBackend,
   prepareLinuxGameCaptureSession,
@@ -105,6 +109,7 @@ const releaseRunningGameResources = () => {
 export const onScreenshotGameStarted = async (gameKey: string) => {
   try {
     if (!(await isScreenshotCaptureAvailable())) return;
+    if (!isTrackedGameKeyRunning(gameKey)) return;
 
     ScreenshotFeedback.prepare();
     void ScreenshotFeedback.prepareToast().catch((error) => {

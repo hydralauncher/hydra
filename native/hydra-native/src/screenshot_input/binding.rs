@@ -737,9 +737,10 @@ pub fn windows_scan_code(make_code: u16, flags: u16) -> u16 {
 #[cfg(any(target_os = "windows", test))]
 fn normalize_windows_scan_code(scan_code: u16) -> u16 {
     const ALT_PRINT_SCREEN: u16 = 0x54;
+    const EXTENDED_ALT_PRINT_SCREEN: u16 = 0xE054;
     const CTRL_PAUSE: u16 = 0xE046;
     match scan_code {
-        ALT_PRINT_SCREEN => 0xE037,
+        ALT_PRINT_SCREEN | EXTENDED_ALT_PRINT_SCREEN => 0xE037,
         CTRL_PAUSE => 0xE11D,
         other => other,
     }
