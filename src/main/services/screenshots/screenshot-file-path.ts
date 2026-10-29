@@ -4,7 +4,7 @@ import { sanitizePathSegment } from "../achievement-screenshot-path.js";
 
 const MANUAL_SCREENSHOT_EXTENSION = "jpeg";
 const WINDOWS_RESERVED_DEVICE_NAME =
-  /^(con|prn|aux|nul|com[1-9\u00b9\u00b2\u00b3]|lpt[1-9\u00b9\u00b2\u00b3])(?=\.|$)/i;
+  /^(con|prn|aux|nul|conin\$|conout\$|clock\$|com[1-9\u00b9\u00b2\u00b3]|lpt[1-9\u00b9\u00b2\u00b3])(?= *(\.|$))/i;
 
 const toScreenshotFolderName = (gameTitle: string) =>
   sanitizePathSegment(gameTitle.replaceAll(/[#%]/g, "_")).replace(

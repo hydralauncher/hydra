@@ -81,7 +81,14 @@ describe("manual screenshot paths", () => {
     assert.equal(folderOf("nul."), "nul_");
     assert.equal(folderOf("COM1"), "COM1_");
     assert.equal(folderOf("lpt9.remastered"), "lpt9_.remastered");
+    assert.equal(folderOf("CON .x"), "CON_ .x");
+    assert.equal(folderOf("com1   .remastered"), "com1_   .remastered");
+    assert.equal(folderOf("CONIN$"), "CONIN$_");
+    assert.equal(folderOf("conout$ .x"), "conout$_ .x");
+    assert.equal(folderOf("Clock$"), "Clock$_");
     assert.equal(folderOf("Console"), "Console");
+    assert.equal(folderOf("CONINX"), "CONINX");
+    assert.equal(folderOf("Con Air"), "Con Air");
     assert.equal(folderOf("COM10"), "COM10");
   });
 

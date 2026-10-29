@@ -158,8 +158,7 @@ const readKdeFocusNow = (): WaylandFocus | null => {
   return processId === undefined ? null : { source: "kde", processId };
 };
 
-const readKdeFocus = () =>
-  new Promise<WaylandFocus | null>((resolve) => resolve(readKdeFocusNow()));
+const readKdeFocus = async () => readKdeFocusNow();
 
 const focusReaders = [readHyprlandFocus, readSwayFocus, readKdeFocus];
 

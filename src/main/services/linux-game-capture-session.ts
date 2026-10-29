@@ -549,7 +549,7 @@ export const stopLinuxGameCaptureSession = (
   if (registration.subscriptionTimer) {
     clearInterval(registration.subscriptionTimer);
   }
-  void Promise.allSettled([...registration.activeCaptures]).finally(() => {
+  void Promise.allSettled(registration.activeCaptures).finally(() => {
     if (registration.shareKey) {
       releaseCaptureWindow(registration.shareKey, registration.token);
     }
