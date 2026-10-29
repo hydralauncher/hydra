@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
@@ -20,6 +21,7 @@ import { focusWithPhysicalKeyboard } from "../../../helpers/physical-keyboard-fo
 import "./styles.scss";
 import { ArrowLeftIcon, XIcon } from "@phosphor-icons/react";
 import { NavigationLayer } from "../navigation-layer";
+import type { ScreenActions } from "../../../types";
 
 export interface ModalProps {
   visible: boolean;
@@ -46,11 +48,24 @@ export const MODAL_OWNED_OVERLAY_ATTRIBUTE = "data-hydra-modal-owned-overlay";
 
 interface ModalBackActionProps {
   enabled: boolean;
+  isExiting: boolean;
   onBack: () => void;
 }
 
-function ModalBackAction({ enabled, onBack }: Readonly<ModalBackActionProps>) {
-  useNavigationScreenActions(enabled ? { press: { b: onBack } } : {});
+const swallowBPress = () => {};
+
+function getModalBackActions({
+  enabled,
+  isExiting,
+  onBack,
+}: Readonly<ModalBackActionProps>): ScreenActions {
+  if (isExiting) return { press: { b: swallowBPress } };
+  if (enabled) return { press: { b: onBack } };
+  return {};
+}
+
+function ModalBackAction(props: Readonly<ModalBackActionProps>) {
+  useNavigationScreenActions(getModalBackActions(props));
 
   return null;
 }
@@ -80,6 +95,18 @@ export function Modal({
     (state) => state.target
   );
   const isVirtualKeyboardOpen = virtualKeyboardTarget !== null;
+  const [wasVisible, setWasVisible] = useState(visible);
+  const [isExiting, setIsExiting] = useState(false);
+
+  if (wasVisible !== visible) {
+    setWasVisible(visible);
+    setIsExiting(!visible);
+  }
+
+  const handleExitComplete = useCallback(() => {
+    setIsExiting(false);
+    onExitComplete?.();
+  }, [onExitComplete]);
 
   const isTopMostModal = () => {
     const openModals = document.querySelectorAll("[role=dialog], dialog[open]");
@@ -193,10 +220,14 @@ export function Modal({
 
   return createPortal(
     <FocusRegionContext.Provider value={null}>
-      {visible ? (
-        <ModalBackAction enabled={shouldCloseOnB} onBack={handleBPress} />
+      {visible || isExiting ? (
+        <ModalBackAction
+          enabled={shouldCloseOnB}
+          isExiting={isExiting}
+          onBack={handleBPress}
+        />
       ) : null}
-      <AnimatePresence onExitComplete={onExitComplete}>
+      <AnimatePresence onExitComplete={handleExitComplete}>
         {visible && (
           <Backdrop className={backdropClassName}>
             <motion.aside
