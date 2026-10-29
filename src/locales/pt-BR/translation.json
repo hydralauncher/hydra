@@ -2827,8 +2827,8 @@
     "hotkey_modifier_required": "Adicione Ctrl ou Alt a esta tecla para que ela não seja acionada enquanto você digita ou se move",
     "hotkey_reserved": "Este atalho é reservado pelo sistema. Escolha outro.",
     "hotkey_unavailable": "O atalho de captura de tela não está disponível no momento. Você pode associar hydralauncher://screenshot a um atalho nas configurações do sistema.",
-    "hotkey_unavailable_wayland": "O Hydra não consegue ler o teclado nesta sessão Wayland. Adicione o seu usuário ao grupo input ou associe hydralauncher://screenshot a um atalho nas configurações da área de trabalho.",
+    "hotkey_unavailable_wayland": "O Hydra não consegue ler o teclado nesta sessão Wayland. Associe hydralauncher://screenshot a um atalho nas configurações da área de trabalho. Adicionar o seu usuário ao grupo input também funciona, mas permite que qualquer aplicativo que você execute leia tudo o que você digita.",
     "hotkey_unsupported_key": "Esta tecla não pode ser usada para capturas de tela",
-    "hotkey_xwayland_only": "O atalho de captura de tela só funciona em jogos executados pelo XWayland. Adicione o seu usuário ao grupo input para usá-lo em todos os jogos."
+    "hotkey_xwayland_only": "O atalho de captura de tela só funciona em jogos executados pelo XWayland. Para capturar a tela em outros jogos, associe hydralauncher://screenshot a um atalho nas configurações da área de trabalho."
   }
 }
