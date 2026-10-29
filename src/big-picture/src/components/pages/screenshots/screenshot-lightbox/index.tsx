@@ -16,6 +16,7 @@ import {
   AuthPage,
   getLocalScreenshotTitle,
   SCREENSHOT_REPORT_REASONS,
+  toLocalScreenshotUrl,
   type ScreenshotPatch,
 } from "@shared";
 
@@ -31,7 +32,6 @@ import {
   MEDIA_VIEWER_STAGE_FOCUS_ID,
   MediaViewer,
 } from "../../game/media-viewer";
-import { resolveImageSource } from "../../../../helpers";
 import {
   getScreenshotBlurReason,
   getScreenshotGameTitle,
@@ -268,8 +268,8 @@ function ScreenshotViewer({
           ? {
               id: getEntryId(entry),
               type: "image" as const,
-              src: resolveImageSource(entry.screenshot.path),
-              thumbnail: resolveImageSource(
+              src: toLocalScreenshotUrl(entry.screenshot.path),
+              thumbnail: toLocalScreenshotUrl(
                 entry.screenshot.previewPath ?? entry.screenshot.path
               ),
               alt: getLocalScreenshotTitle(entry.screenshot),
