@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  getCountdownParts,
-  getIsoWeekNumber,
-  type WeekRange,
-} from "./global-leaderboard";
+import { getCountdownParts, type WeekRange } from "./global-leaderboard";
 
 const COUNTDOWN_TICK_MS = 30_000;
 const WEEK_END_RETRY_BASE_MS = 30_000;
@@ -63,12 +59,13 @@ export function WeekSubtitle({
   else if (hours > 0) countdown = t("countdown_hours", { hours, minutes });
 
   return (
-    <span className="leaderboards__subtitle">
-      {t("subtitle_week", {
-        number: getIsoWeekNumber(weekRange.start),
-        range: dateFormatter.formatRange(weekRange.start, lastDay),
-        countdown,
-      })}
-    </span>
+    <>
+      <span className="leaderboards__subtitle">
+        {dateFormatter.formatRange(weekRange.start, lastDay)}
+      </span>
+      <span className="leaderboards__subtitle leaderboards__subtitle--countdown">
+        {t("resets_in", { countdown })}
+      </span>
+    </>
   );
 }

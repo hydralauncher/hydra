@@ -87,12 +87,16 @@ function fixture(
         get: async (gameKey: string) =>
           (options.records ?? [[key, game]]).find(([k]) => k === gameKey)?.[1],
       },
-      downloadsSublevel: { get: async () => download },
+      downloadsSublevel: {
+        getMany: async (gameKeys: string[]) => gameKeys.map(() => download),
+      },
       gamesArtworkSelectionSublevel: {
-        get: async (gameKey: string) => selections.get(gameKey) ?? null,
+        getMany: async (gameKeys: string[]) =>
+          gameKeys.map((gameKey) => selections.get(gameKey) ?? null),
       },
       gamesShopAssetsSublevel: {
-        get: async (gameKey: string) => assets.get(gameKey) ?? null,
+        getMany: async (gameKeys: string[]) =>
+          gameKeys.map((gameKey) => assets.get(gameKey) ?? null),
       },
       gamesShopCacheSublevel: { iterator: () => ({ all: async () => [] }) },
     },

@@ -1167,6 +1167,14 @@ declare global {
           timeout?: number;
         }
       ) => Promise<T>;
+      getResponse: <T = unknown>(
+        url: string,
+        options?: {
+          params?: unknown;
+          needsAuth?: boolean;
+          acceptedStatuses?: number[];
+        }
+      ) => Promise<{ status: number; data: T }>;
       post: <T = unknown>(
         url: string,
         options?: {

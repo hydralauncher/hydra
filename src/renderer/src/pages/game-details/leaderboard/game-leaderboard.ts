@@ -91,7 +91,8 @@ export type LeaderboardState =
   | "ready"
   | "empty_week"
   | "empty_all"
-  | "empty_friends";
+  | "empty_friends"
+  | "solo";
 
 export interface LoadedLeaderboard {
   boardKey: string;
@@ -320,7 +321,9 @@ export const getLeaderboardState = ({
   );
 
   if (scope === "friends" && others.length === 0) return "empty_friends";
-  if (leaderboard.entries.length > 0) return "ready";
+  if (leaderboard.entries.length > 0) {
+    return viewerId && others.length === 0 ? "solo" : "ready";
+  }
 
   return period === "week" ? "empty_week" : "empty_all";
 };

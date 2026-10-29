@@ -7,6 +7,8 @@ $leaderboards-down: #ff6b81;
 $leaderboards-ended: #838383;
 $leaderboards-streak-from: #22c7ee;
 $leaderboards-streak-to: #b05cff;
+$leaderboards-heat-size: 12px;
+$leaderboards-heat-gap: 3px;
 
 .leaderboards {
   display: flex;
@@ -46,22 +48,32 @@ $leaderboards-streak-to: #b05cff;
   &__subtitle {
     font-size: globals.$hint-font-size;
     color: $leaderboards-muted-text;
+
+    &--countdown {
+      margin-top: -2px;
+      font-size: globals.$small-font-size;
+      opacity: 0.75;
+    }
   }
 
+  // The heading grows to fill the row, which keeps the toggles on the right;
+  // when they wrap they start under the title instead.
   &__toggles {
     min-width: min(100%, 500px);
     max-width: 100%;
     display: flex;
     gap: globals.$spacing-unit;
 
+    // Same width for both controls, so the longer period labels do not make
+    // the period control larger than the scope one.
     .leaderboard-controls__segmented {
-      flex: 1 1 auto;
+      flex: 1 1 0;
       min-width: 0;
     }
 
     .leaderboard-controls__segment {
       height: 34px;
-      font-size: globals.$hint-font-size;
+      font-size: globals.$small-font-size;
     }
   }
 
@@ -138,8 +150,7 @@ $leaderboards-streak-to: #b05cff;
 
   &__cards {
     display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
     gap: globals.$spacing-unit;
   }
 
@@ -258,12 +269,6 @@ $leaderboards-streak-to: #b05cff;
 
   &__panel {
     padding: calc(globals.$spacing-unit * 2);
-  }
-
-  &__panel-title {
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
   }
 
   &__board-header {
@@ -392,17 +397,30 @@ $leaderboards-streak-to: #b05cff;
     clip: rect(0 0 0 0);
   }
 
+  // The selected review reuses the game page review (review-item.scss); these
+  // only add the game link and the upvote badge.
   &__review {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.5);
-    padding: calc(globals.$spacing-unit * 2);
-    border: solid 1px rgba(243, 198, 17, 0.35);
-    border-radius: 8px;
-    background-color: globals.$dark-background-color;
+    gap: globals.$spacing-unit;
   }
 
-  &__review-header {
+  &__review-rating {
+    margin-left: 2px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  &__review-game {
+    font-size: globals.$small-font-size;
+  }
+
+  &__review-highlight {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__review-title {
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
@@ -414,45 +432,49 @@ $leaderboards-streak-to: #b05cff;
     }
   }
 
-  &__review-content {
-    display: flex;
-    align-items: flex-start;
-    gap: calc(globals.$spacing-unit * 2);
-  }
-
-  &__review-cover {
-    width: 92px;
-    height: 138px;
-    flex-shrink: 0;
-    object-fit: cover;
-    border: solid 1px globals.$border-color;
-    border-radius: 6px;
-    background-color: $leaderboards-surface;
-  }
-
-  &__review-body {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
-  }
-
-  &__review-game {
+  // Only here: a long review must not push the ranking down. The game page
+  // shows reviews in full.
+  &__review-text {
     margin: 0;
-    font-size: globals.$body-font-size;
-    line-height: 20px;
-    font-weight: 700;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+    overflow: hidden;
   }
 
-  &__review-author {
+  // Report as cheater: a bare icon, only shown on hover (leaderboard-row and
+  // leaderboard-podium reveal it).
+  &__report {
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
-    gap: globals.$spacing-unit;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background-color: rgb(0 0 0 / 45%);
+    color: $leaderboards-muted-text;
+    cursor: pointer;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgb(0 0 0 / 70%);
+      color: globals.$muted-color;
+    }
   }
 
-  &__review-name {
-    font-weight: 700;
+  // The upvote count as a badge next to the score, not a vote button.
+  &__review-likes {
+    cursor: default;
+
+    svg {
+      flex-shrink: 0;
+    }
   }
 
   &__review-score {
@@ -463,36 +485,17 @@ $leaderboards-streak-to: #b05cff;
     color: $leaderboards-muted-text;
 
     svg {
-      color: #6a8cff;
+      color: #ffffff;
     }
   }
 
-  &__review-text {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow: hidden;
-    font-size: globals.$hint-font-size;
-    line-height: 20px;
+  &__review-translation-toggle {
+    margin-top: 0;
   }
 
-  &__review-footer {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: globals.$spacing-unit;
-  }
-
-  &__review-votes {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 600;
-
-    svg {
-      color: $leaderboards-streak-from;
-    }
+  &__review-original {
+    margin-top: calc(globals.$spacing-unit * 1.5);
+    opacity: 0.6;
   }
 
   &__review-tip {
@@ -539,6 +542,11 @@ $leaderboards-streak-to: #b05cff;
     font-size: globals.$hint-font-size;
     line-height: 19px;
     color: globals.$muted-color;
+
+    // A translation is HTML and may hold several paragraphs.
+    p {
+      margin: 0;
+    }
   }
 
   &__chips {
@@ -612,13 +620,37 @@ $leaderboards-streak-to: #b05cff;
     }
   }
 
+  &__search-clear {
+    flex-shrink: 0;
+    display: flex;
+    padding: 2px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: $leaderboards-muted-text;
+    cursor: pointer;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+  }
+
   &__games {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(200px, 1fr);
     gap: globals.$spacing-unit;
+    // Room for the card borders, which the scroll container would clip.
+    padding: 2px 2px calc(globals.$spacing-unit * 1.25);
     overflow-x: auto;
-    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background-color: transparent;
+    }
   }
 
   &__game {
@@ -635,11 +667,11 @@ $leaderboards-streak-to: #b05cff;
     cursor: pointer;
     transition:
       border-color 0.2s ease,
-      transform 0.2s ease;
+      background-color 0.2s ease;
 
     &:hover {
-      border-color: rgba(255, 255, 255, 0.5);
-      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.3);
+      background-color: $leaderboards-surface;
     }
 
     &--selected,
@@ -788,13 +820,30 @@ $leaderboards-streak-to: #b05cff;
     .leaderboards__panel {
       justify-content: space-between;
     }
+
+    // Empty states fill the rest of the card and sit in its middle.
+    .leaderboards__panel > .leaderboards__message {
+      flex: 1;
+      justify-content: center;
+    }
   }
 
+  // The border is drawn on top of the content so the banner header cannot
+  // show through or beside it at the rounded edges.
   &__mine {
+    position: relative;
     overflow: hidden;
-    border: solid 1px globals.$border-color;
     border-radius: 8px;
     background-color: globals.$background-color;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: solid 1px globals.$border-color;
+      border-radius: inherit;
+      pointer-events: none;
+    }
   }
 
   &__mine-header {
@@ -872,6 +921,13 @@ $leaderboards-streak-to: #b05cff;
     color: globals.$muted-color;
   }
 
+  &__mine-value {
+    font-size: globals.$hint-font-size;
+    color: $leaderboards-muted-text;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
   &__mine-delta {
     min-width: 32px;
     text-align: right;
@@ -897,95 +953,129 @@ $leaderboards-streak-to: #b05cff;
     padding: 0 globals.$spacing-unit globals.$spacing-unit;
   }
 
-  &__streak-numbers {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: 4px 0;
-  }
-
-  &__streak-number {
+  &__activity-header {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 2px;
-
-    & + & {
-      border-left: solid 1px globals.$border-color;
-    }
+    justify-content: space-between;
+    gap: globals.$spacing-unit calc(globals.$spacing-unit * 2);
   }
 
-  &__streak-label {
+  // Inset by the card padding so the numbers do not touch the right edge.
+  &__activity-streaks {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    padding-inline-end: calc(globals.$spacing-unit * 2);
     font-size: globals.$small-font-size;
     color: $leaderboards-muted-text;
   }
 
-  &__streak-value {
-    display: flex;
+  &__activity-streak {
+    display: inline-flex;
     align-items: baseline;
     gap: 6px;
-    font-size: globals.$body-font-size;
-    color: globals.$body-color;
 
     strong {
-      font-size: 24px;
-      line-height: 30px;
+      font-size: 18px;
+      line-height: 22px;
       font-weight: 800;
       color: globals.$muted-color;
     }
   }
 
-  &__heatmap-block {
+  &__activity-body {
+    position: relative;
+    width: max-content;
+    max-width: 100%;
+    margin-inline: auto;
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
-  &__heatmap-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  &__activity-scroll {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  &__activity-graph {
+    width: max-content;
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      ". months"
+      "days cells";
+    gap: 4px 6px;
+  }
+
+  &__activity-months {
+    grid-area: months;
+    display: grid;
+    // One column per week, like the cells, however many weeks there are.
+    grid-auto-columns: $leaderboards-heat-size;
+    column-gap: $leaderboards-heat-gap;
+    height: 14px;
+  }
+
+  &__activity-month {
+    grid-row: 1;
     font-size: 11px;
+    line-height: 14px;
+    white-space: nowrap;
     color: $leaderboards-muted-text;
   }
 
-  &__heatmap-title {
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+  &__activity-days {
+    grid-area: days;
+    display: grid;
+    grid-template-rows: repeat(7, $leaderboards-heat-size);
+    row-gap: $leaderboards-heat-gap;
+  }
+
+  &__activity-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    font-size: globals.$small-font-size;
+    color: $leaderboards-muted-text;
   }
 
   &__heatmap-legend {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
 
     .leaderboards__heat {
-      width: 10px;
-      height: 10px;
-      border-radius: 2px;
+      width: $leaderboards-heat-size;
+      height: $leaderboards-heat-size;
     }
   }
 
   &__heatmap {
+    grid-area: cells;
     display: grid;
-    grid-template-columns: 12px repeat(15, minmax(0, 1fr));
-    grid-template-rows: repeat(7, auto);
+    grid-template-rows: repeat(7, $leaderboards-heat-size);
+    grid-auto-columns: $leaderboards-heat-size;
     grid-auto-flow: column;
-    gap: 3px;
+    gap: $leaderboards-heat-gap;
   }
 
   &__heatmap-day {
     display: flex;
     align-items: center;
-    font-size: 9px;
+    font-size: 10px;
     line-height: 1;
     color: $leaderboards-muted-text;
   }
 
   &__heat {
-    aspect-ratio: 1;
+    box-sizing: border-box;
     border: solid 1px transparent;
-    border-radius: 3px;
+    border-radius: 2px;
     background-color: rgba(255, 255, 255, 0.06);
 
     &--1 {
@@ -1009,25 +1099,93 @@ $leaderboards-streak-to: #b05cff;
     &--today {
       border-color: globals.$muted-color;
     }
+
+    &[data-heat-index]:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  // Positioned from the hovered cell in stats-tab.tsx; the modifiers only
+  // choose which side of that point the tip opens to.
+  &__heat-tip {
+    --heat-tip-x: -50%;
+    --heat-tip-y: -100%;
+    position: absolute;
+    z-index: 5;
+    transform: translate(var(--heat-tip-x), var(--heat-tip-y));
+    width: max-content;
+    max-width: 280px;
+    padding: 6px globals.$spacing-unit;
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    background-color: globals.$dark-background-color;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    font-size: 12px;
+    line-height: 18px;
+    color: globals.$muted-color;
+    pointer-events: none;
+  }
+
+  &__heat-tip--below {
+    --heat-tip-y: 0;
+  }
+
+  &__heat-tip--start {
+    --heat-tip-x: -12px;
+  }
+
+  &__heat-tip--end {
+    --heat-tip-x: calc(-100% + 12px);
+  }
+
+  &__heat-tip-game {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
   }
 
   &__friend-streaks {
+    flex: 1;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 4px calc(globals.$spacing-unit * 2);
+    grid-auto-rows: minmax(72px, 1fr);
+    gap: globals.$spacing-unit;
   }
 
   &__friend-streak {
-    height: 40px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: $leaderboards-surface;
+    background-clip: padding-box;
+
+    &--banner {
+      background-image:
+        linear-gradient(90deg, rgb(0 0 0 / 75%), rgb(0 0 0 / 30%)),
+        var(--friend-banner);
+      background-size: cover;
+      background-position: center;
+    }
+
+    &--viewer {
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+  }
+
+  &__friend-head {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
-    padding: 0 globals.$spacing-unit;
-    border-radius: 6px;
-
-    &--viewer {
-      background-color: rgba(255, 255, 255, 0.06);
-    }
   }
 
   &__friend-avatar {
@@ -1071,18 +1229,19 @@ $leaderboards-streak-to: #b05cff;
   }
 
   &__friend-days {
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: globals.$hint-font-size;
-    font-weight: 700;
+    gap: 6px;
+    font-size: 18px;
+    font-weight: 800;
     color: globals.$muted-color;
     white-space: nowrap;
   }
 
   &__friend-skeleton {
-    height: 40px;
-    border-radius: 6px;
+    height: 72px;
+    border-radius: 8px;
   }
 
   &__badges-section {
@@ -1312,6 +1471,39 @@ $leaderboards-streak-to: #b05cff;
   gap: calc(globals.$spacing-unit * 1.5);
   align-items: end;
 
+  // With fewer than three entries, keep the cards centred instead of
+  // leaving the empty podium slots on the right.
+  &--sparse {
+    grid-template-columns: repeat(var(--podium-count), minmax(0, 300px));
+    justify-content: center;
+  }
+
+  // Holds the card and its corner action; the card keeps its own height.
+  &__slot {
+    position: relative;
+    min-width: 0;
+    display: flex;
+
+    > .leaderboard-podium__card {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__action {
+    position: absolute;
+    top: globals.$spacing-unit;
+    right: globals.$spacing-unit;
+    display: flex;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &__slot:hover &__action,
+  &__slot:focus-within &__action {
+    opacity: 1;
+  }
+
   &__card {
     --metal-light: #fff3b0;
     --metal-main: #{globals.$rank-gold-color};
@@ -1426,7 +1618,10 @@ $leaderboards-streak-to: #b05cff;
     align-items: center;
     justify-content: flex-end;
     gap: 6px;
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
+    // The extra end padding matches the band, so the content is centred on
+    // the whole card rather than on the area beside the band.
+    padding: calc(globals.$spacing-unit * 2) 48px
+      calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
     background-image: linear-gradient(180deg, #262626 0%, #1a1a1a 100%);
 
     &--banner {
@@ -1472,8 +1667,7 @@ $leaderboards-streak-to: #b05cff;
     align-items: center;
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 6px;
-    background-color: rgba(13, 13, 13, 0.55);
-    backdrop-filter: blur(10px);
+    background-color: rgba(13, 13, 13, 0.75);
     font-size: 11px;
     font-weight: 600;
   }

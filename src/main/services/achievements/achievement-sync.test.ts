@@ -80,6 +80,8 @@ async function fixture(
     "pending-achievement-souvenir-store",
     "game-request-queue",
     "unlocked-achievements-cache",
+    "retry-after",
+    "combined-achievements-requests",
   ]);
   if (options.metadata || options.view) actual.add("get-game-achievement-data");
   if (options.reset) actual.add("reset-game-achievements");
