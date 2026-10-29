@@ -23,6 +23,7 @@ import {
   EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES,
   EPIC_INSTALL_OPTIONS_TIMEOUT_MS,
   EPIC_DLC_INSPECTION_BUDGET_MS,
+  EPIC_DLC_INSPECTION_RESERVE_MS,
   EPIC_IMPORT_VERIFY_TIMEOUT_MS,
 } from "./constants.js";
 import {
@@ -46,6 +47,7 @@ export interface EpicSelectivePack {
   downloadSizeInBytes: number;
   diskSizeInBytes: number;
 }
+type EpicDlcScope = { needed: ReadonlySet<string> } | { deadline: number };
 export interface EpicSelectiveInstall {
   requiredTags: string[];
   downloadSizeInBytes: number;
@@ -723,7 +725,9 @@ export class EpicInstallationService {
     artifactId: string,
     platform: EpicInstallPlatform,
     signal: AbortSignal,
-    neededDlcs?: ReadonlySet<string>
+    dlcScope: EpicDlcScope = {
+      deadline: Date.now() + EPIC_DLC_INSPECTION_BUDGET_MS,
+    }
   ): Promise<EpicPreparedInstallation> {
     const target = epicManagedTarget(owned, artifactId, platform);
     this.assertAlias(owned, target);
@@ -761,10 +765,10 @@ export class EpicInstallationService {
       target,
       signal,
       cached?.dlcs,
-      neededDlcs
+      dlcScope
     );
     if (dlcs.length) prepared.dlcs = dlcs;
-    if (neededDlcs) {
+    if ("needed" in dlcScope) {
       this.folderNameFromMetadata(prepared.metadata, target);
       return prepared;
     }
@@ -802,21 +806,36 @@ export class EpicInstallationService {
     owned: EpicOwnedGame,
     base: EpicManagedTarget,
     signal: AbortSignal,
-    cached?: EpicPreparedDlc[],
-    neededDlcs?: ReadonlySet<string>
+    cached: EpicPreparedDlc[] | undefined,
+    dlcScope: EpicDlcScope
   ): Promise<EpicPreparedDlc[]> {
     if (signal.aborted) throw abortError(signal);
+    if ("needed" in dlcScope) {
+      const prepared: EpicPreparedDlc[] = [];
+      for (const dlc of owned.dlcs) {
+        if (!dlcScope.needed.has(dlc.artifactId)) continue;
+        const item = await this.prepareDlc(
+          owned,
+          base,
+          dlc,
+          signal,
+          cached,
+          true
+        );
+        if (item) prepared.push(item);
+      }
+      return prepared;
+    }
     const budget = new AbortController();
     const stop = () => budget.abort(signal.reason);
     signal.addEventListener("abort", stop, { once: true });
     const timer = setTimeout(
       () => budget.abort(new EpicManagedError("timeout")),
-      EPIC_DLC_INSPECTION_BUDGET_MS
+      Math.max(0, dlcScope.deadline - Date.now())
     );
     const prepared: EpicPreparedDlc[] = [];
     try {
       for (const dlc of owned.dlcs) {
-        if (neededDlcs && !neededDlcs.has(dlc.artifactId)) continue;
         let item: EpicPreparedDlc | null;
         try {
           item = await this.prepareDlc(owned, base, dlc, budget.signal, cached);
@@ -837,7 +856,8 @@ export class EpicInstallationService {
     base: EpicManagedTarget,
     dlc: EpicSnapshotDlc,
     signal: AbortSignal,
-    cached?: EpicPreparedDlc[]
+    cached?: EpicPreparedDlc[],
+    required = false
   ): Promise<EpicPreparedDlc | null> {
     if (signal.aborted) throw abortError(signal);
     const target = epicManagedTarget(owned, dlc.artifactId, base.platform);
@@ -876,6 +896,7 @@ export class EpicInstallationService {
       };
     } catch (error) {
       if (
+        required ||
         signal.aborted ||
         (error instanceof EpicManagedError &&
           ["operation-cancelled", "stale-connection"].includes(error.code))
@@ -1130,10 +1151,16 @@ export class EpicInstallationService {
         count: owned.artifactIds.length,
       });
       let invalid: unknown;
+      const dlcDeadline =
+        Date.now() +
+        EPIC_INSTALL_OPTIONS_TIMEOUT_MS -
+        EPIC_DLC_INSPECTION_RESERVE_MS;
       for (const artifactId of owned.artifactIds) {
         try {
           const prepared = await withEpicTiming("installation.prepare", () =>
-            this.prepare(owned, artifactId, "Windows", signal)
+            this.prepare(owned, artifactId, "Windows", signal, {
+              deadline: dlcDeadline,
+            })
           );
           const installed = await this.readInstalledForRepair(
             prepared.target,

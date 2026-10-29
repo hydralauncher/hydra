@@ -1482,3 +1482,42 @@ test("a stalled DLC inspection still offers the game and the DLC inspected befor
     ["Dlc1"]
   );
 });
+
+test("a selected DLC that cannot be inspected at start fails the run instead of being dropped", async (t) => {
+  const f = await selectionFixture(t);
+  f.setOwnedDlcs([ownedDlc("Dlc1"), ownedDlc("Dlc2")]);
+  assert.deepEqual(
+    await f.service.start({ ...f.payload, dlcs: ["Dlc1", "Dlc2"] }),
+    { ok: true }
+  );
+  let inspectionFails = true;
+  t.mock.method(
+    f.runtime,
+    "inspect",
+    async (target, _id, signal, _cached, base) => {
+      f.runtime.assertCurrent(target, signal);
+      if (!base) return { info: { ...info, sdl }, metadata };
+      if (target.artifactId === "Dlc2" && inspectionFails)
+        throw new EpicManagedError("process-failed");
+      return dlcInfo(target.artifactId);
+    }
+  );
+  await assert.rejects(
+    f.service.startRuntime(f.getDownload()!, () => {}),
+    new EpicManagedError("process-failed")
+  );
+  assert.deepEqual(f.getDownload()?.epic?.selection?.dlcs, ["Dlc1", "Dlc2"]);
+  assert.equal(
+    f.commands.some((args) => args.includes("install")),
+    false
+  );
+  inspectionFails = false;
+  await f.service.startRuntime(f.getDownload()!, () => {});
+  await f.waitForStatus("complete");
+  assert.deepEqual(
+    f.commands
+      .filter((args) => args.includes("install"))
+      .map((args) => args[args.indexOf("install") + 1]),
+    ["Artifact1", "Dlc1", "Dlc2"]
+  );
+});

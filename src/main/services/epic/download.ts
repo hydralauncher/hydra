@@ -197,7 +197,7 @@ export interface ResolvedEpicSelection {
   diskSizeInBytes: number;
 }
 
-const uniqueIds = (values: string[] | undefined) =>
+const hasDuplicateIds = (values: string[] | undefined) =>
   values !== undefined && new Set(values).size !== values.length;
 
 export function installedEpicComponents(
@@ -230,8 +230,13 @@ export function withInstalledEpicDlcs(
   installed: ReadonlyMap<string, string>
 ): string[] | undefined {
   const extra = (prepared.dlcs ?? [])
-    .map((dlc) => dlc.artifactId)
-    .filter((id) => installed.has(id) && !requested?.includes(id));
+    .filter(
+      (dlc) =>
+        installed.has(dlc.artifactId) &&
+        installed.get(dlc.artifactId) !== dlc.version &&
+        !requested?.includes(dlc.artifactId)
+    )
+    .map((dlc) => dlc.artifactId);
   if (!extra.length) return requested;
   return [...(requested ?? []), ...extra];
 }
@@ -240,7 +245,7 @@ export function resolveEpicSelection(
   prepared: EpicPreparedInstallation,
   request: { components?: string[]; dlcs?: string[] }
 ): ResolvedEpicSelection {
-  if (uniqueIds(request.components) || uniqueIds(request.dlcs))
+  if (hasDuplicateIds(request.components) || hasDuplicateIds(request.dlcs))
     throw new EpicManagedError("invalid-selection");
   const selective = prepared.selective;
   const packs = (request.components ?? []).map((id) => {
@@ -687,7 +692,11 @@ export class EpicDownloadService {
     const installedDlcs = download.folderName
       ? await this.options.installation.readInstalledDlcs(
           epicManagedTarget(owned, metadata.artifactId, metadata.platform),
-          path.resolve(download.downloadPath, download.folderName)
+          await fs
+            .realpath(path.resolve(download.downloadPath, download.folderName))
+            .catch(() =>
+              path.resolve(download.downloadPath, download.folderName!)
+            )
         )
       : new Map<string, string>();
     const neededDlcs = new Set([
@@ -702,7 +711,7 @@ export class EpicDownloadService {
         metadata.artifactId,
         metadata.platform,
         controller.signal,
-        neededDlcs
+        { needed: neededDlcs }
       )
     );
     await this.options.installation.persistPreparation(
