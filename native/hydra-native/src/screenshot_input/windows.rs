@@ -385,7 +385,7 @@ fn handle_raw_input(context: &Context, state: &mut KeyboardState, lparam: LPARAM
         return;
     }
     let mut modifiers = state.current_modifiers();
-    if release_without_press {
+    if release_without_press && !binding.matches_modifiers(modifiers) {
         modifiers = modifiers.union(state.modifier_releases.within_grace(Instant::now()));
     }
     let fired = state
