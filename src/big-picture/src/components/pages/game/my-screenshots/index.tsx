@@ -406,6 +406,15 @@ export function GameMyScreenshots({
     return null;
   };
   const viewAllTab = getViewAllTab();
+  const closeModal = () => {
+    setModalTab(null);
+    if (viewAllTab) return;
+
+    const focusId = resolveFocusTargetNodeId(leftTarget);
+    if (focusId) {
+      NavigationService.getInstance().requestFocusWhenAvailable(focusId);
+    }
+  };
 
   if (!isEnabled) return null;
 
@@ -491,7 +500,7 @@ export function GameMyScreenshots({
           objectId={objectId}
           writeBus={writeBus}
           initialTab={modalTab ?? "mine"}
-          onClose={() => setModalTab(null)}
+          onClose={closeModal}
         />
       </section>
     </VerticalFocusGroup>
