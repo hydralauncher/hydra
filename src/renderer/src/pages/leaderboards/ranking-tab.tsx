@@ -24,11 +24,13 @@ import { BoardView } from "./board-view";
 import { BlockError, BlockMessage, BoardSkeleton } from "./leaderboard-bits";
 import { MetricIcon } from "./metric-icon";
 import { ReviewHighlight } from "./review-highlight";
+import type { ReportBoardContext } from "./report-cheater";
 import {
   EMPTY_BOARD_RESULT,
   type GlobalBoardResults,
 } from "./use-global-leaderboards";
 import { useMetricText } from "./use-global-leaderboard-value";
+import { useReviewTranslation } from "./use-review-translation";
 
 const METRIC_CARD_PLACEHOLDERS = Array.from(
   { length: 8 },
@@ -46,6 +48,34 @@ export interface RankingTabProps {
   scope: GlobalLeaderboardScope;
   viewerUser: LeaderboardUser | null;
   onRetry: () => void;
+}
+
+// Outside the component to keep it under the cognitive complexity limit.
+const getReportContext = (
+  metric: MetricDefinition | null,
+  period: GlobalLeaderboardPeriod,
+  scope: GlobalLeaderboardScope
+): ReportBoardContext | null =>
+  metric ? { metric: metric.id, window: period, scope } : null;
+
+// Tooltip text in the app language when the API sent a translation.
+function ReviewTipText({
+  review,
+  authorId,
+}: Readonly<{ review: LeaderboardReview; authorId: string }>) {
+  const { translatedHtml } = useReviewTranslation(review, authorId);
+
+  // A div: the translation is HTML and may carry its own <p>.
+  if (translatedHtml) {
+    return (
+      <div
+        className="leaderboards__review-tip-text"
+        dangerouslySetInnerHTML={{ __html: translatedHtml }}
+      />
+    );
+  }
+
+  return <p className="leaderboards__review-tip-text">{review.text}</p>;
 }
 
 function ReviewScore({ review }: Readonly<{ review: LeaderboardReview }>) {
@@ -189,7 +219,7 @@ export function RankingTab({
             {review.gameTitle}
           </span>
           <ReviewScore review={review} />
-          <p className="leaderboards__review-tip-text">{review.text}</p>
+          <ReviewTipText review={review} authorId={entry.user.id} />
         </div>
       </div>
     );
@@ -212,6 +242,8 @@ export function RankingTab({
       />
     );
   };
+
+  const reportContext = getReportContext(metric, period, scope);
 
   const renderBoard = () => {
     if (state === "loading") return <BoardSkeleton />;
@@ -267,6 +299,7 @@ export function RankingTab({
           }
           renderTooltip={isReviews ? renderReviewTooltip : undefined}
           onVisibleChange={setVisibleRows}
+          reportContext={reportContext}
         />
       </>
     );

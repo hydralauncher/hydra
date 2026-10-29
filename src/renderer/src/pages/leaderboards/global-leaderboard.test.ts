@@ -106,7 +106,27 @@ describe("normalizeGlobalLeaderboardResponse", () => {
     });
     assert.equal(board.extras.b.review?.gameTitle, "Brawlhalla");
     assert.equal(board.extras.b.review?.coverImageUrl, null);
+    assert.deepEqual(board.extras.b.review?.translations, {});
+    assert.equal(board.extras.b.review?.detectedLanguage, null);
     assert.equal(board.extras.b.previousRank, null);
+  });
+
+  it("keeps the review translations and detected language", () => {
+    const board = normalizeGlobalLeaderboardResponse({
+      entries: [
+        rawEntry(1, "a", {
+          review: {
+            text: "Great",
+            score: 5,
+            detectedLanguage: "en",
+            translations: { pt: "Ótimo", es: "", fr: 3 },
+          },
+        }),
+      ],
+    });
+
+    assert.deepEqual(board.extras.a.review?.translations, { pt: "Ótimo" });
+    assert.equal(board.extras.a.review?.detectedLanguage, "en");
   });
 
   it("accepts the legacy users shape and ignores invalid extras", () => {
