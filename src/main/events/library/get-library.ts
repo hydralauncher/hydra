@@ -5,7 +5,7 @@ import { logger } from "@main/services/logger";
 import path from "node:path";
 import fs from "node:fs";
 
-import type { LibraryGame } from "@types";
+import type { Download, Game, LibraryGame } from "@types";
 import { registerEvent } from "../register-event";
 import {
   downloadsSublevel,
@@ -41,6 +41,50 @@ export const lookupCachedPlatform = async (
   } catch {
     return null;
   }
+  return null;
+};
+
+// An Epic copy without its own definitions presents its linked Steam catalogue.
+const resolveLibraryAchievementCount = async (game: Game) => {
+  const achievementCount = resolveAchievementCount(
+    game.shop,
+    game.objectId,
+    game.achievementCount
+  );
+  if (
+    game.shop !== "epic" ||
+    achievementCount !== 0 ||
+    game.catalogueGame?.shop !== "steam"
+  ) {
+    return achievementCount;
+  }
+
+  const steamGame = await gamesSublevel
+    .get(levelKeys.game("steam", game.catalogueGame.objectId))
+    .catch(() => undefined);
+  return resolveAchievementCount(
+    "steam",
+    game.catalogueGame.objectId,
+    steamGame?.achievementCount
+  );
+};
+
+// Clears the installer size when the installer was deleted outside Hydra.
+const resolveInstallerSize = (
+  key: string,
+  game: Game,
+  download: Download | undefined
+) => {
+  if (!game.installerSizeInBytes || !download?.folderName) {
+    return game.installerSizeInBytes;
+  }
+  if (fs.existsSync(path.join(download.downloadPath, download.folderName))) {
+    return game.installerSizeInBytes;
+  }
+
+  updateGameRecord(key, { installerSizeInBytes: null }).catch((error) =>
+    logger.error(`Failed to clear missing installer size for ${key}`, error)
+  );
   return null;
 };
 
@@ -87,45 +131,8 @@ const getLibrary = async (
         game.objectId,
         game.unlockedAchievementCount
       );
-      let achievementCount = resolveAchievementCount(
-        game.shop,
-        game.objectId,
-        game.achievementCount
-      );
-      // An Epic copy without its own definitions presents its linked Steam catalogue.
-      if (
-        game.shop === "epic" &&
-        achievementCount === 0 &&
-        game.catalogueGame?.shop === "steam"
-      ) {
-        const steamGame = await gamesSublevel
-          .get(levelKeys.game("steam", game.catalogueGame.objectId))
-          .catch(() => undefined);
-        achievementCount = resolveAchievementCount(
-          "steam",
-          game.catalogueGame.objectId,
-          steamGame?.achievementCount
-        );
-      }
-
-      // Verify installer still exists, clear if deleted externally
-      let installerSizeInBytes = game.installerSizeInBytes;
-      if (installerSizeInBytes && download?.folderName) {
-        const installerPath = path.join(
-          download.downloadPath,
-          download.folderName
-        );
-
-        if (!fs.existsSync(installerPath)) {
-          installerSizeInBytes = null;
-          updateGameRecord(key, { installerSizeInBytes: null }).catch((error) =>
-            logger.error(
-              `Failed to clear missing installer size for ${key}`,
-              error
-            )
-          );
-        }
-      }
+      const achievementCount = await resolveLibraryAchievementCount(game);
+      const installerSizeInBytes = resolveInstallerSize(key, game, download);
 
       if (
         game.shop === "launchbox" &&

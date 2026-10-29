@@ -29,7 +29,7 @@ const startLibraryUpdate = (dispatch: AppDispatch) => {
  * for one follow-up fetch so it still observes writes made before its call.
  */
 const requestLibraryUpdate = (dispatch: AppDispatch) => {
-  if (!inFlight) return startLibraryUpdate(dispatch);
+  if (inFlight === null) return startLibraryUpdate(dispatch);
 
   trailing ??= inFlight
     .catch(() => undefined)

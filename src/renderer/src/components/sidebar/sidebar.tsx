@@ -615,13 +615,8 @@ export function Sidebar() {
             <SidebarGameList
               games={visibleGames}
               isLoading={isLibraryLoading}
-              emptyLabel={
-                !isLibraryLoading &&
-                hasActiveFilter &&
-                visibleGames.length === 0
-                  ? t("library:no_results")
-                  : null
-              }
+              hasActiveFilter={hasActiveFilter}
+              emptyLabel={t("library:no_results")}
               onGameClick={handleSidebarGameClick}
               getGameTitle={getGameTitle}
             />

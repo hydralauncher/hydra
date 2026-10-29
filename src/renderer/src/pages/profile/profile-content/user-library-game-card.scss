@@ -157,6 +157,10 @@
       animation-name: user-library-game-stats-cycle;
       animation-timing-function: ease-in-out;
       animation-iteration-count: infinite;
+
+      @media (prefers-reduced-motion: reduce) {
+        animation-name: none;
+      }
     }
   }
 

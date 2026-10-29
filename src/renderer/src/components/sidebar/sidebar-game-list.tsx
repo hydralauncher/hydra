@@ -11,7 +11,8 @@ const SIDEBAR_GAME_LIST_RIGHT_GUTTER = 16;
 interface SidebarGameListProps {
   games: LibraryGame[];
   isLoading: boolean;
-  emptyLabel: string | null;
+  hasActiveFilter: boolean;
+  emptyLabel: string;
   onGameClick: (game: LibraryGame) => void;
   getGameTitle: (game: LibraryGame) => string;
 }
@@ -20,6 +21,7 @@ interface SidebarGameListProps {
 export const SidebarGameList = memo(function SidebarGameList({
   games,
   isLoading,
+  hasActiveFilter,
   emptyLabel,
   onGameClick,
   getGameTitle,
@@ -58,7 +60,9 @@ export const SidebarGameList = memo(function SidebarGameList({
       >
         {isLoading && <SidebarGameListSkeleton />}
 
-        {emptyLabel && <p className="sidebar__game-list-empty">{emptyLabel}</p>}
+        {!isLoading && hasActiveFilter && games.length === 0 && (
+          <p className="sidebar__game-list-empty">{emptyLabel}</p>
+        )}
 
         <div
           style={{
