@@ -15,6 +15,7 @@ import { Button } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
 import { REVIEW_MIN_PLAYTIME_IN_MS } from "@renderer/constants";
 import { getDisplayedPlayTimeInMilliseconds } from "@shared";
+import { logger } from "@renderer/logger";
 
 type ReviewSortOption =
   | "newest"
@@ -78,9 +79,7 @@ export function GameReviews({
       .then((playtime) => {
         if (!cancelled) setRemovedGamePlaytime(playtime);
       })
-      .catch((error) =>
-        console.error("Failed to load review playtime:", error)
-      );
+      .catch((error) => logger.error("Failed to load review playtime:", error));
 
     return () => {
       cancelled = true;
