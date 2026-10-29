@@ -302,6 +302,18 @@ describe("getLeaderboardState", () => {
     assert.equal(getLeaderboardState(base), "ready");
   });
 
+  it("reports a solo board when the viewer is the only entry", () => {
+    assert.equal(getLeaderboardState({ ...base, viewerId: "a" }), "solo");
+    assert.equal(
+      getLeaderboardState({
+        ...base,
+        leaderboard: board(entry(1, "a", 2), entry(2, "b", 1)),
+        viewerId: "a",
+      }),
+      "ready"
+    );
+  });
+
   it("distinguishes empty week and all-time boards", () => {
     assert.equal(
       getLeaderboardState({ ...base, leaderboard: board(), period: "week" }),

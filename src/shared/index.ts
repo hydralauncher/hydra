@@ -32,6 +32,7 @@ export {
 export * from "./steam-session";
 export * from "./leaderboard-notifications";
 export * from "./window-layout";
+export * from "./review-translation";
 export {
   getDisplayedPlayTimeInMilliseconds,
   getPlayTimeHoursAndMinutes,
@@ -44,6 +45,8 @@ export * from "./classics-disc-label";
 export * from "./controller-support";
 export * from "./artwork-resolver";
 export * from "./library-catalogue";
+export * from "./finished-download-step";
+export * from "./format-bit-rate";
 export * from "./library-group-actions";
 export * from "./official-store-options";
 export * from "./download-directories";
@@ -324,9 +327,6 @@ export const getDateLocale = (language: string) => {
 
   return enUS;
 };
-
-export const getReviewTranslationLanguage = (language: string) =>
-  language.split("-")[0].toLowerCase();
 
 export const formatDate = (
   date: number | Date | string,

@@ -9,6 +9,10 @@ import {
   AchievementSyncCancelledError,
 } from "../../services/achievements/achievement-sync-coordinator.ts";
 
+const passthroughCombinedRequest = (
+  ...args: [unknown, string, string, string, () => Promise<unknown>]
+) => args[4]().catch(() => null);
+
 for (const scenario of [
   {
     name: "failed local lookup",
@@ -141,6 +145,9 @@ for (const scenario of [
       },
       "@main/services/achievements/merge-unlocked-achievements": {
         mergeUnlockedAchievementLists,
+      },
+      "@main/services/achievements/combined-achievements-requests": {
+        CombinedAchievementsRequests: { fetch: passthroughCombinedRequest },
       },
       "@main/services/achievements/combined-achievement-presentation": {
         presentCombinedAchievements,
