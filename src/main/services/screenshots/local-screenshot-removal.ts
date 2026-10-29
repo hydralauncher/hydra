@@ -33,7 +33,7 @@ const isFileDeleted = async (filePath: string) => {
     return false;
   } catch (error) {
     if (!isMissingFileError(error)) return false;
-    return pathExists(path.dirname(filePath));
+    return pathExists(path.dirname(path.dirname(filePath)));
   }
 };
 
@@ -66,6 +66,7 @@ const removeLocalScreenshot = async (
   } else {
     await LocalScreenshotStore.delete(clientId);
   }
+  screenshotUploadWorker.cancel(clientId);
   ScreenshotTelemetry.record("review", telemetryOutcome);
   return true;
 };

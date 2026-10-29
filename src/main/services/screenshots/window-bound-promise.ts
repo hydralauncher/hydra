@@ -30,15 +30,26 @@ export const executeWhileWindowAlive = (
     window.webContents.executeJavaScript(expression)
   );
 
-export const executeWithinDeadline = (
+export class CaptureCallTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`The capture call did not settle within ${timeoutMs} ms`);
+    this.name = "CaptureCallTimeoutError";
+  }
+}
+
+export const executeWithinDeadline = <T = unknown>(
   window: BrowserWindow,
   closedMessage: string,
   expression: string,
   timeoutMs: number,
   onTimeout: () => void
-) => {
-  const timer = setTimeout(onTimeout, timeoutMs);
-  return executeWhileWindowAlive(window, closedMessage, expression).finally(
-    () => clearTimeout(timer)
-  );
-};
+) =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new CaptureCallTimeoutError(timeoutMs));
+      onTimeout();
+    }, timeoutMs);
+    executeWhileWindowAlive(window, closedMessage, expression)
+      .then(resolve, reject)
+      .finally(() => clearTimeout(timer));
+  });
