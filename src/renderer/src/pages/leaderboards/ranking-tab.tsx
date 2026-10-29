@@ -234,6 +234,13 @@ export function RankingTab({
     );
   };
 
+  const reportContext = metric
+    ? { metric: metric.id, window: period, scope }
+    : null;
+  const selectReviewer = isReviews
+    ? (entry: LeaderboardEntry) => setReviewerId(entry.user.id)
+    : undefined;
+
   const renderBoard = () => {
     if (state === "loading") return <BoardSkeleton />;
     if (state === "error") return <BlockError onRetry={onRetry} />;
@@ -283,14 +290,10 @@ export function RankingTab({
           isStreak={hasStreakData(leaderboard)}
           isLoading={current.isLoading}
           selectedId={isReviews ? selectedReviewerId : undefined}
-          onSelect={
-            isReviews ? (entry) => setReviewerId(entry.user.id) : undefined
-          }
+          onSelect={selectReviewer}
           renderTooltip={isReviews ? renderReviewTooltip : undefined}
           onVisibleChange={setVisibleRows}
-          reportContext={
-            metric ? { metric: metric.id, window: period, scope } : null
-          }
+          reportContext={reportContext}
         />
       </>
     );
