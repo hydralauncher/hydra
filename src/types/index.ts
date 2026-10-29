@@ -62,6 +62,15 @@ export interface ProtonVersion {
   source?: "steam" | "compatibility_tools" | "unknown";
 }
 
+export interface CatalogueImageVariants {
+  base: string;
+  widths: number[];
+  thumbHash: string | null;
+}
+
+/** Resized CDN copies keyed by the original image URL. */
+export type CatalogueImages = Record<string, CatalogueImageVariants>;
+
 export interface ShopAssets {
   objectId: string;
   shop: GameShop;
@@ -77,6 +86,7 @@ export interface ShopAssets {
   epicArtworkUpdatedAtByType?: Partial<
     Record<"icon" | "portrait" | "landscape", number>
   >;
+  images?: CatalogueImages;
 }
 
 export type ShopDetails = SteamAppDetails & {
