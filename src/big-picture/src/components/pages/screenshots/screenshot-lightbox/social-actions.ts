@@ -20,6 +20,11 @@ import { logger } from "@renderer/logger";
 
 import { useBigPictureToast } from "../../../../hooks";
 import { getLikePatch, getScreenshotErrorKey } from "../helpers";
+import {
+  claimScreenshotLike,
+  releaseScreenshotLike,
+  useScreenshotLikesInFlight,
+} from "../screenshot-likes-in-flight";
 
 const SETTINGS_TOAST = { fallbackVisual: "settings" as const };
 
@@ -49,7 +54,7 @@ export function useLightboxSocialActions({
   const { t } = useTranslation("big_picture");
   const { showErrorToast, showSuccessToast, showWarningToast } =
     useBigPictureToast();
-  const [likingIds, setLikingIds] = useState<Set<string>>(new Set());
+  const likingIds = useScreenshotLikesInFlight((state) => state.ids);
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set());
   const [isReporting, setIsReporting] = useState(false);
   const [savingIds, setSavingIds] = useState<ReadonlySet<string>>(
@@ -110,7 +115,7 @@ export function useLightboxSocialActions({
       return;
     }
 
-    if (likingIds.has(screenshot.id)) return;
+    if (!claimScreenshotLike(screenshot.id)) return;
 
     const previous = {
       likeCount: screenshot.likeCount,
@@ -122,7 +127,6 @@ export function useLightboxSocialActions({
       screenshot.id
     );
 
-    setLikingIds((current) => new Set(current).add(screenshot.id));
     onUpdate(screenshot.id, {
       likedByMe,
       likeCount: Math.max(0, screenshot.likeCount + (likedByMe ? 1 : -1)),
@@ -149,13 +153,9 @@ export function useLightboxSocialActions({
       onUpdate(screenshot.id, previous);
       showError(error);
     } finally {
-      setLikingIds((current) => {
-        const next = new Set(current);
-        next.delete(screenshot.id);
-        return next;
-      });
+      releaseScreenshotLike(screenshot.id);
     }
-  }, [isSignedIn, likingIds, onUnavailable, onUpdate, screenshot, showError]);
+  }, [isSignedIn, onUnavailable, onUpdate, screenshot, showError]);
 
   const report = useCallback(
     async (values: ScreenshotReportValues) => {

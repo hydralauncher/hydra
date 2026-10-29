@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import type { ProfileScreenshot, ScreenshotLikeResponse } from "@types";
 import {
@@ -11,6 +11,11 @@ import { logger } from "@renderer/logger";
 
 import { useBigPictureToast, useUserDetails } from "../../../hooks";
 import { getLikePatch, getScreenshotErrorKey } from "./helpers";
+import {
+  claimScreenshotLike,
+  releaseScreenshotLike,
+  useScreenshotLikesInFlight,
+} from "./screenshot-likes-in-flight";
 
 export function useScreenshotCardLike(
   updateItem: (screenshotId: string, update: ScreenshotPatch) => void,
@@ -20,16 +25,7 @@ export function useScreenshotCardLike(
   const { showErrorToast } = useBigPictureToast();
   const { userDetails } = useUserDetails();
   const isSignedIn = Boolean(userDetails);
-  const [likingIds, setLikingIds] = useState<ReadonlySet<string>>(
-    () => new Set()
-  );
-  const likingIdsRef = useRef(new Set<string>());
-
-  const setLiking = useCallback((screenshotId: string, isLiking: boolean) => {
-    if (isLiking) likingIdsRef.current.add(screenshotId);
-    else likingIdsRef.current.delete(screenshotId);
-    setLikingIds(new Set(likingIdsRef.current));
-  }, []);
+  const likingIds = useScreenshotLikesInFlight((state) => state.ids);
 
   const toggleLike = useCallback(
     async (screenshot: ProfileScreenshot) => {
@@ -37,7 +33,7 @@ export function useScreenshotCardLike(
         void globalThis.window.electron.openAuthWindow(AuthPage.SignIn);
         return;
       }
-      if (likingIdsRef.current.has(screenshot.id)) return;
+      if (!claimScreenshotLike(screenshot.id)) return;
 
       const previous = {
         likeCount: screenshot.likeCount,
@@ -49,7 +45,6 @@ export function useScreenshotCardLike(
         screenshot.id
       );
 
-      setLiking(screenshot.id, true);
       updateItem(screenshot.id, {
         likedByMe,
         likeCount: Math.max(0, screenshot.likeCount + (likedByMe ? 1 : -1)),
@@ -78,10 +73,10 @@ export function useScreenshotCardLike(
           fallbackVisual: "settings",
         });
       } finally {
-        setLiking(screenshot.id, false);
+        releaseScreenshotLike(screenshot.id);
       }
     },
-    [isSignedIn, removeItem, setLiking, showErrorToast, t, updateItem]
+    [isSignedIn, removeItem, showErrorToast, t, updateItem]
   );
 
   return { likingIds, toggleLike };
