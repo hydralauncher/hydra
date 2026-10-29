@@ -18,6 +18,7 @@ import {
 } from "@shared";
 import type {
   ClassicsDisc,
+  Download,
   EmulatorSystem,
   ExtractionFailure,
   Game,
@@ -32,6 +33,9 @@ import path from "node:path";
 import pngToIco from "png-to-ico";
 import sharp from "sharp";
 import { ExtractionProgress, SevenZip } from "./7zip";
+import { type ArchiveExtractors, extractArchive } from "./archive-extraction";
+import { NativeAddon } from "./native-addon";
+import { HydraApi } from "./hydra-api";
 import * as emulators from "./emulators";
 import * as retroarch from "./retroarch";
 import { getPathType } from "./extraction-path";
@@ -53,9 +57,52 @@ const MAX_ARCHIVE_EXTRACTION_PASSES = 2;
 
 const INSTALLED_EXECUTABLE_MAX_DEPTH = 4;
 
+const IN_PLACE_EXTRACTION_FEATURE = "IN_PLACE_ARCHIVE_EXTRACTION";
+const FEATURES_REQUEST_TIMEOUT_MS = 10_000;
+
+// Fails closed: without an answer from the API, archives go to 7-Zip.
+const isInPlaceExtractionEnabled = () =>
+  HydraApi.get<string[]>("/features", null, {
+    needsAuth: false,
+    timeout: FEATURES_REQUEST_TIMEOUT_MS,
+  })
+    .then(
+      (features) =>
+        Array.isArray(features) &&
+        features.includes(IN_PLACE_EXTRACTION_FEATURE)
+    )
+    .catch((error) => {
+      logger.warn("[GameFilesManager] Could not load feature flags", error);
+      return false;
+    });
+
+const archiveExtractors: Omit<ArchiveExtractors, "inPlaceEnabled"> = {
+  inPlace: (options, onProgress) =>
+    NativeAddon.extractArchiveInPlace(options, onProgress),
+  hasInPlaceJournal: (archivePath) => {
+    try {
+      return NativeAddon.inPlaceJournalExists(archivePath);
+    } catch {
+      // Without the addon the in-place call fails too, and 7-Zip extracts.
+      return false;
+    }
+  },
+  sevenZip: (options, onProgress) => SevenZip.extractFile(options, onProgress),
+  log: (message) => logger.info(`[GameFilesManager] ${message}`),
+};
+
 export class GameFilesManager {
   private lastProgressUpdateTime = 0;
   private lastProgressUpdateValue = 0;
+  private inPlaceExtractionEnabled: Promise<boolean> | null = null;
+
+  // The flag is read once per extraction run, so every archive of a download
+  // gets the same answer and a slow API only delays the first.
+  private readonly extractors: ArchiveExtractors = {
+    ...archiveExtractors,
+    inPlaceEnabled: () =>
+      (this.inPlaceExtractionEnabled ??= isInPlaceExtractionEnabled()),
+  };
 
   constructor(
     private readonly shop: GameShop,
@@ -176,21 +223,81 @@ export class GameFilesManager {
     this.updateExtractionProgress(progress.percent / 100);
   };
 
+  private async shouldDeleteArchives(download?: Download | null) {
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+
+    return (
+      download?.automaticallyDeleteArchiveFiles ??
+      userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
+      true
+    );
+  }
+
+  private async recordInPlaceStart(archivePath: string) {
+    const download = await downloadsSublevel.get(this.gameKey);
+
+    if (!download) {
+      throw new Error(`No download to record extracting ${archivePath} for`);
+    }
+
+    if (download.inPlaceArchives?.includes(archivePath)) return;
+
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
+      inPlaceArchives: [...(download.inPlaceArchives ?? []), archivePath],
+    });
+  }
+
+  private async forgetInPlaceStart(archivePath: string) {
+    const download = await downloadsSublevel.get(this.gameKey);
+
+    if (!download?.inPlaceArchives?.includes(archivePath)) return;
+
+    const inPlaceArchives = download.inPlaceArchives.filter(
+      (startedArchive) => startedArchive !== archivePath
+    );
+
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
+      inPlaceArchives: inPlaceArchives.length > 0 ? inPlaceArchives : undefined,
+    });
+  }
+
+  private async clearInPlaceArchives() {
+    const download = await downloadsSublevel.get(this.gameKey);
+
+    if (!download?.inPlaceArchives) return;
+
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
+      inPlaceArchives: undefined,
+    });
+  }
+
   private async extractArchivePass(
     directoryPath: string,
     filesToExtract: string[],
     pass: number,
-    extractedFiles: Set<string>
+    extractedFiles: Set<string>,
+    inPlace: boolean,
+    startedInPlace: Set<string>
   ): Promise<boolean> {
     let completedFiles = 0;
     for (const file of filesToExtract) {
       const filePath = path.join(directoryPath, file);
       try {
-        const result = await SevenZip.extractFile(
+        const result = await extractArchive(
+          this.extractors,
           {
             filePath,
-            cwd: path.dirname(filePath),
-            passwords: ["online-fix.me", "steamrip.com"],
+            outputPath: path.dirname(filePath),
+            inPlace,
+            resume: startedInPlace.has(filePath),
+            recordInPlaceStart: () => this.recordInPlaceStart(filePath),
+            forgetInPlaceStart: () => this.forgetInPlaceStart(filePath),
           },
           (progress) => {
             const passProgress =
@@ -240,17 +347,9 @@ export class GameFilesManager {
       .filter((archivePath) => fs.existsSync(archivePath));
 
     if (archivePaths.length > 0) {
-      const [download, userPreferences] = await Promise.all([
-        downloadsSublevel.get(this.gameKey),
-        db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
-          valueEncoding: "json",
-        }),
-      ]);
-
-      const shouldDelete =
-        download?.automaticallyDeleteArchiveFiles ??
-        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
-        false;
+      const shouldDelete = await this.shouldDeleteArchives(
+        await downloadsSublevel.get(this.gameKey)
+      );
 
       if (shouldDelete) {
         for (const archivePath of archivePaths) {
@@ -294,9 +393,19 @@ export class GameFilesManager {
 
     const compressedFiles = new Set<string>();
     const extractedFiles = new Set<string>();
-    // Only multi-part hoster downloads, which need the feature to start, number their first volume part01.
     const download = await downloadsSublevel.get(this.gameKey);
+    // Only multi-part hoster downloads, which need the feature to start, number their first volume part01.
     const firstRarVolume = download?.parts ? /part0*1\.rar$/i : /part1\.rar$/i;
+    // Archives nested in an outer one are kept, so only top-level downloads
+    // that will be deleted anyway are consumed while extracting.
+    const inPlace =
+      !outerArchivePath && (await this.shouldDeleteArchives(download));
+    const startedInPlace = new Set(download?.inPlaceArchives ?? []);
+    // An archive consumed in place is no longer listed, but a run that
+    // stopped before cleaning up still has links and progress files to finish.
+    const unlistedInPlace = [...startedInPlace]
+      .map((archivePath) => path.basename(archivePath))
+      .filter((file) => startedInPlace.has(path.join(directoryPath, file)));
 
     // Only process archives at the extraction root. Archives in game subfolders
     // may be runtime assets and must remain intact.
@@ -312,6 +421,7 @@ export class GameFilesManager {
         return false;
       }
 
+      archives = [...new Set([...archives, ...unlistedInPlace])];
       archives.forEach((file) => compressedFiles.add(file));
       const filesToExtract = archives.filter(
         (file) =>
@@ -328,7 +438,9 @@ export class GameFilesManager {
           directoryPath,
           filesToExtract,
           pass,
-          extractedFiles
+          extractedFiles,
+          inPlace,
+          startedInPlace
         ))
       ) {
         return false;
@@ -341,6 +453,10 @@ export class GameFilesManager {
       compressedFiles,
       extractedFiles
     );
+
+    // With an outer archive, the caller clears them once that is done too.
+    if (!outerArchivePath) await this.clearInPlaceArchives();
+
     return true;
   }
 
@@ -979,12 +1095,6 @@ export class GameFilesManager {
     }
 
     const filePath = path.join(download.downloadPath, download.folderName);
-
-    if (!fs.existsSync(filePath)) {
-      await this.failMissingExtractionSource(filePath);
-      return false;
-    }
-
     const archivePath = path.parse(download.folderName);
     const extractedFolderName = path.join(archivePath.dir, archivePath.name);
     const extractionPath = path.join(
@@ -992,14 +1102,29 @@ export class GameFilesManager {
       extractedFolderName
     );
 
+    // An in-place run Hydra started may have consumed the archive already.
+    // hatchzip then finishes what is left of it, or reports it done, so a
+    // retry after a failed nested archive goes on from there.
+    const resume = download.inPlaceArchives?.includes(filePath) ?? false;
+
+    if (!resume && !fs.existsSync(filePath)) {
+      await this.failMissingExtractionSource(filePath);
+      return false;
+    }
+
     this.updateExtractionProgress(0, true);
 
     try {
-      const result = await SevenZip.extractFile(
+      const shouldDelete = await this.shouldDeleteArchives(download);
+      const result = await extractArchive(
+        this.extractors,
         {
           filePath,
           outputPath: extractionPath,
-          passwords: ["online-fix.me", "steamrip.com"],
+          inPlace: shouldDelete,
+          resume,
+          recordInPlaceStart: () => this.recordInPlaceStart(filePath),
+          forgetInPlaceStart: () => this.forgetInPlaceStart(filePath),
         },
         this.handleProgress
       );
@@ -1014,20 +1139,11 @@ export class GameFilesManager {
           return false;
         }
 
-        if (fs.existsSync(extractionPath) && fs.existsSync(filePath)) {
-          const userPreferences = await db.get<string, UserPreferences | null>(
-            levelKeys.userPreferences,
-            { valueEncoding: "json" }
-          );
-
-          const shouldDelete =
-            download.automaticallyDeleteArchiveFiles ??
-            userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
-            false;
-
+        if (fs.existsSync(extractionPath)) {
           if (shouldDelete) {
+            // Clears the installer size too when the archive went in place.
             await deleteArchiveFile(filePath);
-          } else {
+          } else if (fs.existsSync(filePath)) {
             WindowManager.sendToAppWindows("on-archive-deletion-prompt", [
               filePath,
             ]);
@@ -1038,6 +1154,7 @@ export class GameFilesManager {
           ...download,
           folderName: extractedFolderName,
           sourceArchiveName: download.folderName,
+          inPlaceArchives: undefined,
         });
 
         await this.setExtractionComplete();

@@ -40,6 +40,13 @@ it("refreshes grouped progress on member changes and preserves known offline tot
       useCoverPoster: () => undefined,
       isAnimatedCoverCandidate: () => false,
       useAnimatedSourceWarmup: () => {},
+      useCatalogueImage: () => ({
+        variants: null,
+        placeholderStyle: undefined,
+        markLoaded: () => {},
+        markFailed: () => false,
+      }),
+      useViewportCatalogueImageUrl: () => null,
     },
     "./library-category": {
       getLibraryPresentationImportSources: () => ({
@@ -52,6 +59,10 @@ it("refreshes grouped progress on member changes and preserves known offline tot
       CLASSICS_PS_PLATFORM_LABELS: {},
       isGameReadyToPlay: () => false,
       resolveClassicsBadge: () => ({}),
+    },
+    "@renderer/helpers/catalogue-images": {
+      getCatalogueImageDensitySrcSet: () => "",
+      pickCatalogueImageUrl: () => "",
     },
     "@renderer/components": {
       SteamLibraryBadge: () => null,

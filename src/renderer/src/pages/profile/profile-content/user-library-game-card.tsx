@@ -123,6 +123,7 @@ export const UserLibraryGameCard = memo(function UserLibraryGameCard({
       <VerticalCoverCard
         gameTitle={game.title}
         coverImageUrls={[coverImageUrl]}
+        catalogueImages={game.images}
         useClassicsLayout={
           game.shop === "launchbox" && !game.customLibraryImageUrl
         }
