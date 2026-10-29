@@ -234,9 +234,14 @@ export function useProfileScreenshots({
     feed.total,
     isFiltered
   );
-  const { removeItem: removeFeedItem } = feed;
+  const {
+    removeItem: removeFeedItem,
+    removeDeletedItem: removeDeletedFeedItem,
+  } = feed;
   const activeUserIdRef = useRef(activeUserId);
   activeUserIdRef.current = activeUserId;
+  const isFilteredRef = useRef(isFiltered);
+  isFilteredRef.current = isFiltered;
   const removeItem = useCallback(
     (screenshotId: string, ownerId: string) => {
       removeFeedItem(screenshotId);
@@ -244,11 +249,25 @@ export function useProfileScreenshots({
     },
     [applyRemoval, removeFeedItem]
   );
+  const removeDeletedItem = useCallback(
+    (screenshotId: string, ownerId: string) => {
+      if (ownerId !== activeUserIdRef.current) {
+        removeFeedItem(screenshotId);
+        return;
+      }
+
+      if (isFilteredRef.current) removeFeedItem(screenshotId);
+      else removeDeletedFeedItem(screenshotId);
+      applyRemoval();
+    },
+    [applyRemoval, removeDeletedFeedItem, removeFeedItem]
+  );
 
   return {
     ...feed,
     isLoading: feed.isLoading || isWaitingForGames,
     removeItem,
+    removeDeletedItem,
     overallTotal,
     isEnabled: Boolean(activeUserId),
     sort: sortState,
@@ -290,6 +309,7 @@ export function useProfileScreenshotsSection({
     needsAuth: isSignedIn,
     updateItem: state.updateItem,
     removeItem: state.removeItem,
+    removeDeletedItem: state.removeDeletedItem,
     getFetchedAt: state.getFetchedAt,
     imageRefresher: state.imageRefresher,
     hasMore: state.hasMore,

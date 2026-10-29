@@ -23,6 +23,7 @@ interface UseScreenshotLightboxOptions {
   needsAuth: boolean;
   updateItem: (screenshotId: string, update: ScreenshotPatch) => void;
   removeItem: (screenshotId: string, ownerId: string) => void;
+  removeDeletedItem?: (screenshotId: string, ownerId: string) => void;
   getFetchedAt: (screenshotId: string) => number | null;
   imageRefresher?: ScreenshotImageRefresher;
   subscribeRemoteWrites?: (
@@ -49,6 +50,7 @@ export function useScreenshotLightbox({
   needsAuth,
   updateItem,
   removeItem,
+  removeDeletedItem = removeItem,
   getFetchedAt,
   imageRefresher,
   subscribeRemoteWrites,
@@ -195,12 +197,12 @@ export function useScreenshotLightbox({
 
   const remove = useCallback(
     (screenshotId: string, ownerId: string) => {
-      removeItem(screenshotId, ownerId);
+      removeDeletedItem(screenshotId, ownerId);
       setStandalone((current) =>
         current?.screenshot.id === screenshotId ? null : current
       );
     },
-    [removeItem]
+    [removeDeletedItem]
   );
 
   const markUnavailable = useCallback(

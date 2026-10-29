@@ -283,11 +283,18 @@ export function useScreenshotFeed({
   updateItemRef.current = updateItem;
 
   const applyItemRemoval = useCallback(
-    (screenshotId: string) => {
+    (screenshotId: string, isCountedWhenUnloaded = false) => {
       ledger.recordWrite(screenshotId, null);
-      if (!itemsRef.current.some((item) => item.id === screenshotId)) return;
+      const isLoaded = itemsRef.current.some(
+        (item) => item.id === screenshotId
+      );
+      if (!isLoaded && !isCountedWhenUnloaded) return;
 
-      setItems((current) => current.filter((item) => item.id !== screenshotId));
+      if (isLoaded) {
+        setItems((current) =>
+          current.filter((item) => item.id !== screenshotId)
+        );
+      }
       setTotal((currentTotal) =>
         currentTotal === null ? null : Math.max(0, currentTotal - 1)
       );
@@ -298,6 +305,14 @@ export function useScreenshotFeed({
   const removeItem = useCallback(
     (screenshotId: string) => {
       applyItemRemoval(screenshotId);
+      publishRef.current?.({ screenshotId, patch: null });
+    },
+    [applyItemRemoval]
+  );
+
+  const removeDeletedItem = useCallback(
+    (screenshotId: string) => {
+      applyItemRemoval(screenshotId, true);
       publishRef.current?.({ screenshotId, patch: null });
     },
     [applyItemRemoval]
@@ -363,6 +378,7 @@ export function useScreenshotFeed({
     imageRefresher,
     subscribeRemoteWrites,
     removeItem,
+    removeDeletedItem,
     getFetchedAt,
   };
 }
