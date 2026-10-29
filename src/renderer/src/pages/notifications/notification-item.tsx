@@ -114,6 +114,7 @@ interface NotificationItemProps {
   onMarkAsRead: (id: string) => void;
   onAcceptFriendRequest?: (senderId: string) => void;
   onRefuseFriendRequest?: (senderId: string) => void;
+  isContentEnabled?: boolean;
 }
 
 export function NotificationItem({
@@ -123,6 +124,7 @@ export function NotificationItem({
   onMarkAsRead,
   onAcceptFriendRequest,
   onRefuseFriendRequest,
+  isContentEnabled = true,
 }: Readonly<NotificationItemProps>) {
   const { t } = useTranslation("notifications_page");
   const { formatDistance } = useDate();
@@ -159,8 +161,15 @@ export function NotificationItem({
           userDetails?.id ?? null
         )
       : getNotificationTarget(notification);
-    if (target) navigate(target);
-  }, [notification, onMarkAsRead, navigate, leaderboardInfo, userDetails?.id]);
+    if (target && isContentEnabled) navigate(target);
+  }, [
+    notification,
+    onMarkAsRead,
+    navigate,
+    leaderboardInfo,
+    userDetails?.id,
+    isContentEnabled,
+  ]);
 
   const handleAccept = useCallback(
     async (e: React.MouseEvent) => {
@@ -201,6 +210,8 @@ export function NotificationItem({
     notification.variables.customGameTitle ||
     t("screenshot_custom_game");
 
+  const contentType = isContentEnabled ? notification.type : null;
+
   const getNotificationContent = () => {
     if (leaderboardInfo) {
       return {
@@ -209,7 +220,7 @@ export function NotificationItem({
       };
     }
 
-    switch (notification.type) {
+    switch (contentType) {
       case "FRIEND_REQUEST_RECEIVED":
         return {
           title: t("friend_request_received_title"),
@@ -356,10 +367,9 @@ export function NotificationItem({
   const isReviewAnswerUpvote = notification.type === "REVIEW_ANSWER_UPVOTE";
   const isReview = isReviewUpvote || isReviewAnswer || isReviewAnswerUpvote;
   const isSouvenirLike = notification.type === "SOUVENIR_LIKE";
-  const isScreenshotLike = notification.type === "SCREENSHOT_LIKE";
-  const isScreenshotComment = notification.type === "SCREENSHOT_COMMENT";
-  const isScreenshotCommentUpvote =
-    notification.type === "SCREENSHOT_COMMENT_UPVOTE";
+  const isScreenshotLike = contentType === "SCREENSHOT_LIKE";
+  const isScreenshotComment = contentType === "SCREENSHOT_COMMENT";
+  const isScreenshotCommentUpvote = contentType === "SCREENSHOT_COMMENT_UPVOTE";
 
   const isRetroAchievements =
     notification.type === "RETROACHIEVEMENTS_CREDENTIALS_RESTORED" ||
