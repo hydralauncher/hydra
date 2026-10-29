@@ -409,8 +409,11 @@ export function useScreenshotComments({
         }
       } catch (error) {
         logger.error("Failed to post screenshot comment", error);
+        const isListed =
+          screenshotIdRef.current === screenshotId &&
+          commentsRef.current.some(({ id }) => id === pendingId);
         recordWrite({ kind: "delete", commentId: pendingId });
-        setTotal((current) => Math.max(0, (current ?? 1) - 1));
+        if (isListed) setTotal((current) => Math.max(0, (current ?? 1) - 1));
         onPatch(screenshotId, adjustCommentCount(-1));
         queueRestoredCommentDraft(draftKey, bodyHtml);
         handleWriteError(error, "comment_post_failed");

@@ -155,10 +155,31 @@ export interface ScreenshotUploadRetryState {
 }
 
 export type ScreenshotUploadNextStep =
-  | { kind: "retry_at"; delay: number; countsAsAttempt: boolean }
-  | { kind: "retry_now"; quality?: "STANDARD"; rotateClientId?: boolean }
+  | {
+      kind: "retry_at";
+      delay: number;
+      countsAsAttempt: boolean;
+      rotateClientId?: boolean;
+    }
+  | { kind: "retry_now"; quality?: "STANDARD" }
   | { kind: "failed" }
   | { kind: "stopped" };
+
+const waitUnlessCapped = (
+  waits: number | undefined,
+  delay: number
+): ScreenshotUploadNextStep =>
+  (waits ?? 0) >= SCREENSHOT_UPLOAD_MAX_SERVER_WAITS
+    ? { kind: "failed" }
+    : { kind: "retry_at", delay, countsAsAttempt: false };
+
+const retryUnlessOutOfAttempts = (
+  state: ScreenshotUploadRetryState,
+  step: ScreenshotUploadNextStep
+): ScreenshotUploadNextStep =>
+  state.uploadAttempts >= SCREENSHOT_UPLOAD_MAX_ATTEMPTS
+    ? { kind: "failed" }
+    : step;
 
 export const planScreenshotUploadRecovery = (
   failure: ScreenshotUploadFailure,
@@ -167,9 +188,7 @@ export const planScreenshotUploadRecovery = (
 ): ScreenshotUploadNextStep => {
   switch (failure.action) {
     case "already_uploaded":
-      return state.uploadAttempts >= SCREENSHOT_UPLOAD_MAX_ATTEMPTS
-        ? { kind: "failed" }
-        : { kind: "retry_now" };
+      return retryUnlessOutOfAttempts(state, { kind: "retry_now" });
     case "stop":
       return { kind: "stopped" };
     case "terminal":
@@ -187,51 +206,40 @@ export const planScreenshotUploadRecovery = (
         ? { kind: "retry_now", quality: "STANDARD" }
         : { kind: "failed" };
     case "rotate_client_id":
-      return state.uploadAttempts >= SCREENSHOT_UPLOAD_MAX_ATTEMPTS
-        ? { kind: "failed" }
-        : { kind: "retry_now", rotateClientId: true };
+      return retryUnlessOutOfAttempts(state, {
+        kind: "retry_at",
+        delay: getScreenshotUploadRetryDelay(state.uploadAttempts),
+        countsAsAttempt: true,
+        rotateClientId: true,
+      });
     case "wait":
-      return (state.capacityWaits ?? 0) >= SCREENSHOT_UPLOAD_MAX_SERVER_WAITS
-        ? { kind: "failed" }
-        : {
-            kind: "retry_at",
-            delay: SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS,
-            countsAsAttempt: false,
-          };
+      return waitUnlessCapped(
+        state.capacityWaits,
+        SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS
+      );
     case "rate_limit_wait":
-      return (state.rateLimitWaits ?? 0) >= SCREENSHOT_UPLOAD_MAX_SERVER_WAITS
-        ? { kind: "failed" }
-        : {
-            kind: "retry_at",
-            delay: Math.min(
-              failure.retryAfterMs ??
-                getScreenshotUploadRetryDelay((state.rateLimitWaits ?? 0) + 1),
-              SCREENSHOT_UPLOAD_RETRY_MAX_DELAY_MS
-            ),
-            countsAsAttempt: false,
-          };
+      return waitUnlessCapped(
+        state.rateLimitWaits,
+        Math.min(
+          failure.retryAfterMs ??
+            getScreenshotUploadRetryDelay((state.rateLimitWaits ?? 0) + 1),
+          SCREENSHOT_UPLOAD_RETRY_MAX_DELAY_MS
+        )
+      );
     case "moderation_wait":
-      return (state.moderationWaits ?? 0) >= SCREENSHOT_UPLOAD_MAX_SERVER_WAITS
-        ? { kind: "failed" }
-        : {
-            kind: "retry_at",
-            delay: getScreenshotModerationWaitDelay(
-              failure,
-              state.moderationWaits ?? 0
-            ),
-            countsAsAttempt: false,
-          };
+      return waitUnlessCapped(
+        state.moderationWaits,
+        getScreenshotModerationWaitDelay(failure, state.moderationWaits ?? 0)
+      );
     case "retry":
-      return state.uploadAttempts >= SCREENSHOT_UPLOAD_MAX_ATTEMPTS
-        ? { kind: "failed" }
-        : {
-            kind: "retry_at",
-            delay: Math.min(
-              failure.retryAfterMs ??
-                getScreenshotUploadRetryDelay(state.uploadAttempts),
-              SCREENSHOT_UPLOAD_RETRY_MAX_DELAY_MS
-            ),
-            countsAsAttempt: true,
-          };
+      return retryUnlessOutOfAttempts(state, {
+        kind: "retry_at",
+        delay: Math.min(
+          failure.retryAfterMs ??
+            getScreenshotUploadRetryDelay(state.uploadAttempts),
+          SCREENSHOT_UPLOAD_RETRY_MAX_DELAY_MS
+        ),
+        countsAsAttempt: true,
+      });
   }
 };

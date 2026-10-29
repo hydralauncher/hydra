@@ -99,18 +99,16 @@ export function useLocalScreenshotActions() {
   };
 
   const elements = (
-    <>
-      <ConfirmationModal
-        visible={pendingDelete !== null}
-        title={t("delete_local_screenshot_title")}
-        descriptionText={t("delete_local_screenshot_description")}
-        confirmButtonLabel={t("delete")}
-        cancelButtonLabel={t("cancel")}
-        confirmButtonTheme="danger"
-        onConfirm={() => void confirmDelete()}
-        onClose={() => setPendingDelete(null)}
-      />
-    </>
+    <ConfirmationModal
+      visible={pendingDelete !== null}
+      title={t("delete_local_screenshot_title")}
+      descriptionText={t("delete_local_screenshot_description")}
+      confirmButtonLabel={t("delete")}
+      cancelButtonLabel={t("cancel")}
+      confirmButtonTheme="danger"
+      onConfirm={() => void confirmDelete()}
+      onClose={() => setPendingDelete(null)}
+    />
   );
 
   return {

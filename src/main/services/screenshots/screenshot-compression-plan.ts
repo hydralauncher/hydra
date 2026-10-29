@@ -85,3 +85,17 @@ export const encodeWithinByteCap = async (
 
   throw new Error("screenshot_too_large");
 };
+
+const UNDECODABLE_IMAGE_ERROR_PATTERNS = [
+  /^Input (buffer|image|file)\b/i,
+  /\bVipsForeignLoad\b/i,
+  /\b(vipsjpeg|vipspng|libpng|libjpeg|libwebp|libtiff)\b/i,
+  /\b(jpeg|png|webp|gif|tiff|heif|bmp|jxl)load/i,
+];
+
+export const isUndecodableImageError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  return UNDECODABLE_IMAGE_ERROR_PATTERNS.some((pattern) =>
+    pattern.test(message)
+  );
+};

@@ -124,12 +124,16 @@ export function SettingsScreenshotsHotkey({
       trackModifier(event);
     };
 
+    const forgetModifiers = () => modifierReleasedAt.clear();
+
     window.addEventListener("keydown", handleKeyDown, true);
     window.addEventListener("keyup", handleKeyUp, true);
+    window.addEventListener("blur", forgetModifiers);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown, true);
       window.removeEventListener("keyup", handleKeyUp, true);
+      window.removeEventListener("blur", forgetModifiers);
     };
   }, [isRecording, onChange]);
 

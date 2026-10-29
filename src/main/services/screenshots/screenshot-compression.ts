@@ -5,6 +5,7 @@ import { logger } from "../logger";
 import {
   encodeWithinByteCap,
   fitSizeInsideBox,
+  isUndecodableImageError,
   SCREENSHOT_THUMBNAIL_BOX,
   SCREENSHOT_TIER_BOXES,
   type ScreenshotBox,
@@ -37,6 +38,7 @@ const encodeJpeg = async (
 };
 
 const SCREENSHOT_UNREADABLE_CODE = "screenshot_unreadable";
+const SCREENSHOT_COMPRESSION_FAILED_CODE = "screenshot_compression_failed";
 const KEPT_COMPRESSION_ERRORS = new Set([
   SCREENSHOT_UNREADABLE_CODE,
   "screenshot_too_large",
@@ -82,9 +84,16 @@ export const compressScreenshotForUpload = async (
     if (error instanceof Error && KEPT_COMPRESSION_ERRORS.has(error.message)) {
       throw error;
     }
-    logger.warn("Could not decode a screenshot for upload", {
-      error: error instanceof Error ? error.message : String(error),
+    const message = error instanceof Error ? error.message : String(error);
+    if (isUndecodableImageError(error)) {
+      logger.warn("Could not decode a screenshot for upload", {
+        error: message,
+      });
+      throw new Error(SCREENSHOT_UNREADABLE_CODE, { cause: error });
+    }
+    logger.warn("Could not compress a screenshot for upload", {
+      error: message,
     });
-    throw new Error(SCREENSHOT_UNREADABLE_CODE, { cause: error });
+    throw new Error(SCREENSHOT_COMPRESSION_FAILED_CODE, { cause: error });
   }
 };

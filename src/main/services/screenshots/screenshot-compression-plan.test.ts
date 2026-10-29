@@ -5,6 +5,7 @@ import {
   encodeWithinByteCap,
   fitSizeInsideBox,
   getQualitySteps,
+  isUndecodableImageError,
   MINIMUM_SCREENSHOT_QUALITY,
   SCREENSHOT_THUMBNAIL_BOX,
   SCREENSHOT_TIER_BOXES,
@@ -123,5 +124,27 @@ describe("screenshot compression plan", () => {
       }),
       { message: "screenshot_too_large" }
     );
+  });
+
+  it("treats only decoder errors as undecodable", () => {
+    for (const message of [
+      "Input buffer contains unsupported image format",
+      "Input Buffer is empty",
+      "Input buffer has corrupt header: VipsJpeg: premature end of JPEG image",
+      "Input image exceeds pixel limit",
+      "vipspng: libpng read error",
+      "VipsForeignLoad: buffer is not in a known format",
+      "webpload_buffer: unable to parse image",
+    ]) {
+      assert.equal(isUndecodableImageError(new Error(message)), true, message);
+    }
+
+    for (const message of [
+      "vips_tracked: out of memory",
+      "VipsImage: memory area too small",
+      "Error: spawn EAGAIN",
+    ]) {
+      assert.equal(isUndecodableImageError(new Error(message)), false, message);
+    }
   });
 });

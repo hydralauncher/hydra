@@ -19,6 +19,14 @@ import {
   myGameScreenshotsLocal,
 } from "../../game-screenshots/my-game-screenshots-bridge";
 
+const CLEANUP_ERROR_KEYS: Partial<
+  Record<MyScreenshotsDeletionErrorCode, string>
+> = {
+  "screenshots/local-cleanup-failed": "delete_screenshots_local_cleanup_failed",
+  "screenshots/published-cleanup-failed":
+    "delete_screenshots_published_cleanup_failed",
+};
+
 const getDeletionErrorKey = (
   deletion: MyScreenshotsDeletion,
   {
@@ -30,10 +38,9 @@ const getDeletionErrorKey = (
     return "delete_screenshots_incomplete";
   }
   if (deletion === "local") return "delete_screenshots_failed";
-  if (errorCode === "screenshots/local-cleanup-failed") {
-    return deleted > 0
-      ? "delete_screenshots_local_cleanup_failed"
-      : "delete_screenshots_failed";
+  const cleanupKey = errorCode ? CLEANUP_ERROR_KEYS[errorCode] : undefined;
+  if (cleanupKey) {
+    return deleted > 0 ? cleanupKey : "delete_screenshots_failed";
   }
   if (deleted > 0) return "delete_screenshots_partial";
   return errorCode === "screenshots/game-deletion-rate-limited"

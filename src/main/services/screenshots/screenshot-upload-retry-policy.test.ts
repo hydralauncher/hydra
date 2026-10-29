@@ -319,14 +319,22 @@ describe("screenshot upload recovery plan", () => {
     assert.deepEqual(plan(failure, {}, "STANDARD"), { kind: "failed" });
   });
 
-  it("rotates the client id until the attempt limit", () => {
+  it("rotates the client id with a backoff until the attempt limit", () => {
     const failure: ScreenshotUploadFailure = {
-      code: "screenshots/upload-expired",
+      code: "screenshots/upload-mismatch",
       action: "rotate_client_id",
     };
 
     assert.deepEqual(plan(failure), {
-      kind: "retry_now",
+      kind: "retry_at",
+      delay: getScreenshotUploadRetryDelay(1),
+      countsAsAttempt: true,
+      rotateClientId: true,
+    });
+    assert.deepEqual(plan(failure, { uploadAttempts: 4 }), {
+      kind: "retry_at",
+      delay: getScreenshotUploadRetryDelay(4),
+      countsAsAttempt: true,
       rotateClientId: true,
     });
     assert.deepEqual(
