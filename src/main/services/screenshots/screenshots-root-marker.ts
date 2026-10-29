@@ -39,15 +39,24 @@ export const readRootMarkerId = async (screenshotsRoot: string) => {
   }
 };
 
+const getAttribPath = () => {
+  const systemRoot = process.env.SystemRoot ?? process.env.windir;
+  return systemRoot
+    ? path.win32.join(systemRoot, "System32", "attrib.exe")
+    : null;
+};
+
 const hideMarkerFile = (markerPath: string) => {
   if (process.platform !== "win32" || hiddenMarkerPaths.has(markerPath)) {
     return Promise.resolve();
   }
+  const attribPath = getAttribPath();
+  if (!attribPath) return Promise.resolve();
   hiddenMarkerPaths.add(markerPath);
 
   return new Promise<void>((resolve) => {
     execFile(
-      "attrib",
+      attribPath,
       ["+h", markerPath],
       { timeout: HIDE_MARKER_TIMEOUT_MS, windowsHide: true },
       (error) => {

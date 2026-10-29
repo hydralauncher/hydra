@@ -123,9 +123,9 @@ export const pruneMissingLocalScreenshots = async (
 ) => {
   const isPresent = await Promise.all(
     screenshots.map(
-      (screenshot) =>
+      async (screenshot) =>
         !isUnpublishedLocalFile(screenshot) ||
-        isFileDeleted(screenshot).then((deleted) => !deleted)
+        !(await isFileDeleted(screenshot))
     )
   );
   const missing = screenshots.filter((_, index) => !isPresent[index]);
