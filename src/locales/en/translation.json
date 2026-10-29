@@ -2400,6 +2400,7 @@
     "accept": "Accept",
     "refuse": "Refuse",
     "notification": "Notification",
+    "unsupported_notification_description": "Update your launcher to see this notification",
     "friend_request_received_title": "New friend request!",
     "friend_request_received_description": "{{displayName}} wants to be your friend",
     "friend_request_accepted_title": "Friend request accepted!",

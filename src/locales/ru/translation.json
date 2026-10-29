@@ -2318,6 +2318,7 @@
     "accept": "Принять",
     "refuse": "Отклонить",
     "notification": "Уведомление",
+    "unsupported_notification_description": "Обновите лаунчер, чтобы увидеть это уведомление",
     "friend_request_received_title": "Новый запрос в друзья!",
     "friend_request_received_description": "{{displayName}} хочет добавить вас в друзья",
     "friend_request_accepted_title": "Запрос в друзья принят!",

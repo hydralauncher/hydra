@@ -7,6 +7,7 @@ import {
   HeartFillIcon,
   CommentDiscussionIcon,
   GiftIcon,
+  SyncIcon,
 } from "@primer/octicons-react";
 import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
 import { useTranslation } from "react-i18next";
@@ -24,8 +25,9 @@ import {
   LeaderboardNotificationIcon,
   LeaderboardRankChip,
 } from "@renderer/components/leaderboard-notification/leaderboard-notification-icon";
+import { releasesPageUrl } from "@renderer/components/header/auto-update-sub-header";
 
-import type { Notification, Badge } from "@types";
+import type { Notification, NotificationType, Badge } from "@types";
 import { openCloudGiftModal } from "../shared-modals/cloud-gift-modal.events";
 import "./notification-item.scss";
 
@@ -73,6 +75,31 @@ const getNotificationTarget = (notification: Notification) => {
   return buildSouvenirNotificationTarget(target, notification.variables);
 };
 
+const supportedNotificationTypes = new Set<string>(
+  Object.keys({
+    FRIEND_REQUEST_RECEIVED: true,
+    FRIEND_REQUEST_ACCEPTED: true,
+    BADGE_RECEIVED: true,
+    REVIEW_UPVOTE: true,
+    REVIEW_ANSWER: true,
+    REVIEW_ANSWER_UPVOTE: true,
+    SOUVENIR_LIKE: true,
+    RETROACHIEVEMENTS_CREDENTIALS_RESTORED: true,
+    RETROACHIEVEMENTS_CREDENTIALS_INVALID: true,
+    RETROACHIEVEMENTS_SYNC_FAILED: true,
+    CLOUD_GIFT_RECEIVED: true,
+    LEADERBOARD_RANK_CHANGED: true,
+    LEADERBOARD_MISSING_PHOTO: true,
+  } satisfies Record<NotificationType, true>)
+);
+
+const promptLauncherUpdate = async () => {
+  const isAutoInstallAvailable = await window.electron.checkForUpdates();
+  if (!isAutoInstallAvailable) {
+    await window.electron.openExternal(releasesPageUrl);
+  }
+};
+
 interface NotificationItemProps {
   notification: Notification;
   badges: Badge[];
@@ -105,7 +132,14 @@ export function NotificationItem({
     return badges.find((b) => b.name === notification.variables.badgeName);
   }, [notification, badges]);
 
+  const isUnsupportedType = !supportedNotificationTypes.has(notification.type);
+
   const handleClick = useCallback(() => {
+    if (isUnsupportedType) {
+      promptLauncherUpdate();
+      return;
+    }
+
     if (!notification.isRead) {
       onMarkAsRead(notification.id);
     }
@@ -126,7 +160,14 @@ export function NotificationItem({
         )
       : getNotificationTarget(notification);
     if (target) navigate(target);
-  }, [notification, onMarkAsRead, navigate, leaderboardInfo, userDetails?.id]);
+  }, [
+    notification,
+    onMarkAsRead,
+    navigate,
+    leaderboardInfo,
+    userDetails?.id,
+    isUnsupportedType,
+  ]);
 
   const handleAccept = useCallback(
     async (e: React.MouseEvent) => {
@@ -275,7 +316,9 @@ export function NotificationItem({
       default:
         return {
           title: t("notification"),
-          description: "",
+          description: isUnsupportedType
+            ? t("unsupported_notification_description")
+            : "",
           showActions: false,
         };
     }
@@ -313,6 +356,9 @@ export function NotificationItem({
     if (isSouvenirLike) {
       return <HeartFillIcon size={24} />;
     }
+    if (isUnsupportedType) {
+      return <SyncIcon size={24} />;
+    }
     return <PersonIcon size={24} />;
   };
 
@@ -322,7 +368,8 @@ export function NotificationItem({
       className={cn("notification-item", {
         "notification-item--unread":
           !notification.isRead ||
-          notification.type === "FRIEND_REQUEST_RECEIVED",
+          notification.type === "FRIEND_REQUEST_RECEIVED" ||
+          isUnsupportedType,
       })}
       onClick={handleClick}
     >
