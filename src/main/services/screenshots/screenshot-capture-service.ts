@@ -113,8 +113,9 @@ const resolveAvailableFilePath = async (
 
   return resolveManualScreenshotPath(
     screenshotsRoot,
-    `${gameTitle}-${randomUUID()}`,
-    capturedAt
+    gameTitle,
+    capturedAt,
+    randomUUID()
   );
 };
 

@@ -1,6 +1,7 @@
 import sharp from "sharp";
 import type { ScreenshotQuality } from "@types";
 
+import { logger } from "../logger";
 import {
   encodeWithinByteCap,
   fitSizeInsideBox,
@@ -35,13 +36,19 @@ const encodeJpeg = async (
   return { buffer, ...size };
 };
 
-export const compressScreenshotForUpload = async (
+const SCREENSHOT_UNREADABLE_CODE = "screenshot_unreadable";
+const KEPT_COMPRESSION_ERRORS = new Set([
+  SCREENSHOT_UNREADABLE_CODE,
+  "screenshot_too_large",
+]);
+
+const compress = async (
   original: Buffer,
   quality: ScreenshotQuality
 ): Promise<CompressedScreenshot> => {
   const metadata = await sharp(original).metadata();
   if (!metadata.width || !metadata.height) {
-    throw new Error("screenshot_unreadable");
+    throw new Error(SCREENSHOT_UNREADABLE_CODE);
   }
 
   const sourceSize = { width: metadata.width, height: metadata.height };
@@ -63,4 +70,21 @@ export const compressScreenshotForUpload = async (
     width: image.width,
     height: image.height,
   };
+};
+
+export const compressScreenshotForUpload = async (
+  original: Buffer,
+  quality: ScreenshotQuality
+) => {
+  try {
+    return await compress(original, quality);
+  } catch (error) {
+    if (error instanceof Error && KEPT_COMPRESSION_ERRORS.has(error.message)) {
+      throw error;
+    }
+    logger.warn("Could not decode a screenshot for upload", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error(SCREENSHOT_UNREADABLE_CODE, { cause: error });
+  }
 };
