@@ -263,7 +263,10 @@ const acquireFrame = async (
   }
 
   return wrapNativeImage(
-    await ScreenshotService.captureRawGameImage(captureTarget)
+    await ScreenshotService.captureRawGameImage({
+      ...captureTarget,
+      cropToClientArea: true,
+    })
   );
 };
 

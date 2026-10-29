@@ -394,9 +394,9 @@ const captureGameImage = async (
   if (process.platform === "win32") {
     const source = await getGameWindowSource(captureTarget);
     const image = await captureWindowsGameWindowFrame(source.id);
-    return captureTarget.cropToClientArea === false
-      ? image
-      : cropToWindowClientArea(image, source.id);
+    return captureTarget.cropToClientArea
+      ? cropToWindowClientArea(image, source.id)
+      : image;
   }
 
   if (process.platform === "linux") {
