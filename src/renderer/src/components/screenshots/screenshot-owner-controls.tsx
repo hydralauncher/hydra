@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useFeature } from "@renderer/hooks";
 import { Button } from "../button/button";
 import { CheckboxField } from "../checkbox-field/checkbox-field";
 import { SelectField } from "../select-field/select-field";
@@ -34,6 +35,8 @@ export function ScreenshotOwnerControls({
   onDone,
 }: Readonly<ScreenshotOwnerControlsProps>) {
   const { t } = useTranslation("screenshots");
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isCommentsEnabled = isFeatureEnabled(Feature.ScreenshotComments);
   const [values, setValues] = useState<ScreenshotSettingsValues>(() =>
     readScreenshotSettings(screenshot)
   );
@@ -108,12 +111,16 @@ export function ScreenshotOwnerControls({
         onChange={(event) => setValue("isSpoiler", event.target.checked)}
       />
 
-      <CheckboxField
-        label={t("allow_comments")}
-        checked={values.commentsEnabled}
-        disabled={isUpdating}
-        onChange={(event) => setValue("commentsEnabled", event.target.checked)}
-      />
+      {isCommentsEnabled ? (
+        <CheckboxField
+          label={t("allow_comments")}
+          checked={values.commentsEnabled}
+          disabled={isUpdating}
+          onChange={(event) =>
+            setValue("commentsEnabled", event.target.checked)
+          }
+        />
+      ) : null}
 
       {screenshot.isCustomGame ? (
         <TextField
