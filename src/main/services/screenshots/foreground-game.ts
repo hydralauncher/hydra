@@ -250,7 +250,7 @@ export const resolveForegroundGame = async (
 ): Promise<ForegroundMatch> => {
   const candidates = await getScreenshotGameTargets();
   if (!candidates.length) {
-    logger.info("Screenshot hotkey ignored: no running game", { source });
+    logger.debug("Screenshot hotkey ignored: no running game", { source });
     return null;
   }
 
@@ -314,7 +314,7 @@ export const resolveForegroundGame = async (
     }
 
     if (foreground.processId !== null || !isWaylandSession()) {
-      logger.info("Screenshot hotkey ignored: no tracked game in foreground", {
+      logger.debug("Screenshot hotkey ignored: no tracked game in foreground", {
         source,
         foregroundProcessId: foreground.processId,
         clientProcessId: foreground.clientProcessId ?? null,
@@ -328,7 +328,7 @@ export const resolveForegroundGame = async (
   const isWayland = isWaylandSession();
   const isHydraFocused = BrowserWindow.getFocusedWindow() !== null;
   if (!isWayland || isHydraFocused) {
-    logger.info("Screenshot hotkey ignored: foreground window unresolved", {
+    logger.debug("Screenshot hotkey ignored: foreground window unresolved", {
       source,
       foreground: describeForeground(foreground),
       isWayland,
@@ -345,7 +345,7 @@ export const resolveForegroundGame = async (
     (candidate) => candidate.target === soleTarget
   );
   if (!soleCandidate) {
-    logger.info("Screenshot hotkey ignored: no single launched game", {
+    logger.debug("Screenshot hotkey ignored: no single launched game", {
       source,
       candidates: describeCandidates(candidates),
     });

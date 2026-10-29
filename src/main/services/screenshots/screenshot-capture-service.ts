@@ -279,7 +279,7 @@ const isWaylandShareReady = (
     return true;
   }
 
-  logger.info("Screenshot hotkey ignored: window share not granted", {
+  logger.debug("Screenshot hotkey ignored: window share not granted", {
     source,
     gameKey,
     state,
@@ -332,11 +332,11 @@ const grabScreenshot = async (
   const userPreferences = await readUserPreferences();
   const preferences = resolveScreenshotPreferences(userPreferences);
   if (!preferences.enabled) {
-    logger.info("Screenshot hotkey ignored: screenshots disabled", { source });
+    logger.debug("Screenshot hotkey ignored: screenshots disabled", { source });
     return null;
   }
   if (!(await isScreenshotsFeatureEnabled())) {
-    logger.info("Screenshot hotkey ignored: feature flag off", { source });
+    logger.debug("Screenshot hotkey ignored: feature flag off", { source });
     return null;
   }
   timer.mark("checks");
@@ -443,7 +443,7 @@ export const handleScreenshotTrigger = async (
   const startedAt = performance.now();
   logger.debug("Screenshot trigger received", { source });
   if (captureInProgress) {
-    logger.info("Screenshot hotkey ignored: capture in progress", { source });
+    logger.debug("Screenshot hotkey ignored: capture in progress", { source });
     return;
   }
   captureInProgress = true;
