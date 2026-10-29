@@ -6,6 +6,7 @@ import { logger } from "./logger";
 const execFileAsync = promisify(execFile);
 
 const PROBE_TIMEOUT_MS = 2_000;
+const UNAVAILABLE_VERDICT_TTL_MS = 60_000;
 const PORTAL_DESTINATION = "org.freedesktop.portal.Desktop";
 const PORTAL_OBJECT_PATH = "/org/freedesktop/portal/desktop";
 const SCREENCAST_INTERFACE = "org.freedesktop.portal.ScreenCast";
@@ -45,12 +46,12 @@ const isMissingCommand = (error: unknown) =>
 const isTimedOutProbe = (error: unknown) =>
   error instanceof Error && (error as { killed?: boolean }).killed === true;
 
-let isKnownUnavailable = false;
+let unavailableUntil = 0;
 
 export const isScreenCastPortalAvailable = async (): Promise<
   boolean | null
 > => {
-  if (isKnownUnavailable) return false;
+  if (Date.now() < unavailableUntil) return false;
 
   for (const [command, args] of SCREENCAST_PROBES) {
     try {
@@ -69,7 +70,7 @@ export const isScreenCastPortalAvailable = async (): Promise<
         command,
         error: error instanceof Error ? error.message : String(error),
       });
-      isKnownUnavailable = true;
+      unavailableUntil = Date.now() + UNAVAILABLE_VERDICT_TTL_MS;
       return false;
     }
   }
