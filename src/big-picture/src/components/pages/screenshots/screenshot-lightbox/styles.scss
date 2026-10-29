@@ -395,6 +395,11 @@ $screenshot-lightbox-hover-duration: 0.2s;
       border-color: rgba(255, 255, 255, 0.6);
     }
 
+    &[data-focus-visible="true"] {
+      outline: 1px solid var(--primary);
+      outline-offset: 2px;
+    }
+
     .ProseMirror {
       min-height: 40px;
       color: var(--text);
