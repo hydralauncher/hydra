@@ -377,6 +377,11 @@ export function ByGameTab({
         leaderLabel={t(isWeek ? "leader_of_week" : "record_holder")}
         showDelta={isWeek}
         isLoading={board.isLoading}
+        reportContext={
+          metric && boardGame
+            ? { metric: metric.id, window: period, scope, game: boardGame }
+            : null
+        }
       />
     );
   };
