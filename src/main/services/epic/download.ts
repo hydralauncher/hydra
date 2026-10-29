@@ -200,6 +200,19 @@ export interface ResolvedEpicSelection {
 const uniqueIds = (values: string[] | undefined) =>
   values !== undefined && new Set(values).size !== values.length;
 
+/** Installed DLC is updated with the game, so it belongs to the sized selection. */
+export function withInstalledEpicDlcs(
+  prepared: EpicPreparedInstallation,
+  requested: string[] | undefined,
+  installed: ReadonlyMap<string, string>
+): string[] | undefined {
+  const extra = (prepared.dlcs ?? [])
+    .map((dlc) => dlc.artifactId)
+    .filter((id) => installed.has(id) && !requested?.includes(id));
+  if (!extra.length) return requested;
+  return [...(requested ?? []), ...extra];
+}
+
 /** Validates a selection against the current preparation and sizes it. */
 export function resolveEpicSelection(
   prepared: EpicPreparedInstallation,
@@ -499,7 +512,16 @@ export class EpicDownloadService {
         installed && installed.version !== prepared.version
           ? { fromVersion: installed.version, toVersion: prepared.version }
           : undefined;
-      const resolved = resolveEpicSelection(prepared, payload);
+      const installedDlcs = installed
+        ? await this.options.installation.readInstalledDlcs(
+            prepared.target,
+            installed.installPath
+          )
+        : new Map<string, string>();
+      const resolved = resolveEpicSelection(prepared, {
+        ...payload,
+        dlcs: withInstalledEpicDlcs(prepared, payload.dlcs, installedDlcs),
+      });
       const download: Download = {
         shop: "epic",
         objectId: payload.epicObjectId,

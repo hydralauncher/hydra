@@ -14,6 +14,7 @@ import {
   getReusableEpicDiskBytes,
   quoteWindowsEpicArgument,
   runEpicPrerequisite,
+  withInstalledEpicDlcs,
 } from "./download.js";
 import { EpicInstallationService, epicManagedTarget } from "./installation.js";
 import {
@@ -1421,4 +1422,33 @@ test("a resumed install keeps the tags it started with when the pack definition 
     ["--install-tag=", "--install-tag=chunk0", "--install-tag=voice_de"]
   );
   assert.equal(f.getDownload()?.fileSize, 1.5 * MIB);
+});
+
+test("installed DLC joins the sized selection so updates check its space", () => {
+  const prepared = {
+    dlcs: [
+      { artifactId: "selected" },
+      { artifactId: "installed" },
+      { artifactId: "absent" },
+    ],
+  } as Parameters<typeof withInstalledEpicDlcs>[0];
+  const installed = new Map([
+    ["installed", "1.0"],
+    ["unknown", "1.0"],
+  ]);
+
+  assert.deepEqual(withInstalledEpicDlcs(prepared, ["selected"], installed), [
+    "selected",
+    "installed",
+  ]);
+  assert.deepEqual(withInstalledEpicDlcs(prepared, undefined, installed), [
+    "installed",
+  ]);
+  assert.deepEqual(withInstalledEpicDlcs(prepared, ["installed"], installed), [
+    "installed",
+  ]);
+  assert.equal(
+    withInstalledEpicDlcs(prepared, undefined, new Map()),
+    undefined
+  );
 });
