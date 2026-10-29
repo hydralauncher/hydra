@@ -4,6 +4,24 @@ import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
 import { db, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
+import { getGameAchievementData } from "@main/services/achievements/get-game-achievement-data";
+import { withComparedAchievementDefinitions } from "@main/services/achievements/compared-achievement-definitions";
+
+const ACHIEVEMENT_DEFINITIONS_TIMEOUT_MS = 5_000;
+
+const getAchievementDefinitions = (objectId: string, shop: GameShop) => {
+  let timeout: NodeJS.Timeout | undefined;
+
+  return Promise.race([
+    getGameAchievementData(objectId, shop, true).catch(() => []),
+    new Promise<[]>((resolve) => {
+      timeout = setTimeout(
+        () => resolve([]),
+        ACHIEVEMENT_DEFINITIONS_TIMEOUT_MS
+      );
+    }),
+  ]).finally(() => clearTimeout(timeout));
+};
 
 const getComparedUnlockedAchievements = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -20,52 +38,32 @@ const getComparedUnlockedAchievements = async (
     }
   );
 
-  const showHiddenAchievementsDescription =
-    userPreferences?.showHiddenAchievementsDescription || false;
+  const [achievements, definitions] = await Promise.all([
+    HydraApi.get<ComparedAchievements>(
+      `/users/${userId}/games/achievements/compare`,
+      {
+        shop,
+        objectId,
+        language: userPreferences?.language ?? "en",
+      }
+    ),
+    getAchievementDefinitions(objectId, shop),
+  ]);
 
-  return HydraApi.get<ComparedAchievements>(
-    `/users/${userId}/games/achievements/compare`,
-    {
-      shop,
-      objectId,
-      language: userPreferences?.language ?? "en",
+  const sortedAchievements = achievements.achievements.sort((a, b) => {
+    if (a.targetStat.unlocked && !b.targetStat.unlocked) return -1;
+    if (!a.targetStat.unlocked && b.targetStat.unlocked) return 1;
+    if (a.targetStat.unlocked && b.targetStat.unlocked) {
+      return b.targetStat.unlockTime! - a.targetStat.unlockTime!;
     }
-  ).then((achievements) => {
-    const sortedAchievements = achievements.achievements
-      .sort((a, b) => {
-        if (a.targetStat.unlocked && !b.targetStat.unlocked) return -1;
-        if (!a.targetStat.unlocked && b.targetStat.unlocked) return 1;
-        if (a.targetStat.unlocked && b.targetStat.unlocked) {
-          return b.targetStat.unlockTime! - a.targetStat.unlockTime!;
-        }
 
-        return Number(a.hidden) - Number(b.hidden);
-      })
-      .map((achievement) => {
-        if (!achievement.hidden) return achievement;
-
-        if (!achievement.ownerStat) {
-          return {
-            ...achievement,
-            description: "",
-          };
-        }
-
-        if (!showHiddenAchievementsDescription && achievement.hidden) {
-          return {
-            ...achievement,
-            description: "",
-          };
-        }
-
-        return achievement;
-      });
-
-    return {
-      ...achievements,
-      achievements: sortedAchievements,
-    } as ComparedAchievements;
+    return Number(a.hidden) - Number(b.hidden);
   });
+
+  return withComparedAchievementDefinitions(
+    { ...achievements, achievements: sortedAchievements },
+    definitions
+  );
 };
 
 registerEvent(
