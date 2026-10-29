@@ -90,6 +90,13 @@ interface ScreenshotCommentsPanelProps {
   onScreenshotUpdate: (screenshotId: string, update: ScreenshotPatch) => void;
 }
 
+interface ConfirmedCommentEdit {
+  bodyHtml: string;
+  editedAt: number | null;
+  version: number;
+  inFlight: number;
+}
+
 const PENDING_COMMENT_ID_PREFIX = "pending:";
 const VOTE_UNLOCK_DELAY_MS = 500;
 
@@ -535,6 +542,7 @@ export function ScreenshotCommentsPanel({
   const pushRestoredDraft = useFailedCommentDrafts((state) => state.push);
   const shiftRestoredDrafts = useFailedCommentDrafts((state) => state.shift);
   const editVersionsRef = useRef(new Map<string, number>());
+  const confirmedEditsRef = useRef(new Map<string, ConfirmedCommentEdit>());
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<CommentMenuState | null>(null);
   const [deletingComment, setDeletingComment] =
@@ -673,7 +681,8 @@ export function ScreenshotCommentsPanel({
     async (
       comment: ScreenshotComment,
       bodyHtml: string,
-      editVersion: number
+      editVersion: number,
+      confirmed: ConfirmedCommentEdit
     ) => {
       const isLatestEdit = () =>
         editVersionsRef.current.get(comment.id) === editVersion;
@@ -684,6 +693,11 @@ export function ScreenshotCommentsPanel({
             buildUserScreenshotCommentPath(ownerId, screenshot.id, comment.id),
             { data: { bodyHtml }, needsAuth: true }
           );
+        if (editVersion > confirmed.version) {
+          confirmed.bodyHtml = updated?.bodyHtml ?? bodyHtml;
+          confirmed.editedAt = updated?.editedAt ?? Date.now();
+          confirmed.version = editVersion;
+        }
         if (!isLatestEdit()) return;
         if (updated) replaceComment(comment.id, updated);
         if (updated && updated.isHidden !== comment.isHidden) {
@@ -698,11 +712,16 @@ export function ScreenshotCommentsPanel({
           dropComment(comment);
         } else if (isLatestEdit()) {
           replaceComment(comment.id, {
-            bodyHtml: comment.bodyHtml,
-            editedAt: comment.editedAt,
+            bodyHtml: confirmed.bodyHtml,
+            editedAt: confirmed.editedAt,
           });
         }
         showError(error);
+      } finally {
+        confirmed.inFlight -= 1;
+        if (confirmed.inFlight === 0) {
+          confirmedEditsRef.current.delete(comment.id);
+        }
       }
     },
     [
@@ -726,11 +745,26 @@ export function ScreenshotCommentsPanel({
           const editVersion =
             (editVersionsRef.current.get(editingComment.id) ?? 0) + 1;
           editVersionsRef.current.set(editingComment.id, editVersion);
+          const confirmed = confirmedEditsRef.current.get(
+            editingComment.id
+          ) ?? {
+            bodyHtml: editingComment.bodyHtml,
+            editedAt: editingComment.editedAt,
+            version: 0,
+            inFlight: 0,
+          };
+          confirmed.inFlight += 1;
+          confirmedEditsRef.current.set(editingComment.id, confirmed);
           replaceComment(editingComment.id, {
             bodyHtml,
             editedAt: Date.now(),
           });
-          void persistCommentEdit(editingComment, bodyHtml, editVersion);
+          void persistCommentEdit(
+            editingComment,
+            bodyHtml,
+            editVersion,
+            confirmed
+          );
         }
         setEditingComment(null);
         return true;
