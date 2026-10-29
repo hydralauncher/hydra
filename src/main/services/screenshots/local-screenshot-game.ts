@@ -7,6 +7,8 @@ import type {
 
 const GAME_FILE_STATES = new Set<LocalScreenshotState>([
   "local",
+  "queued",
+  "uploading",
   "failed",
   "uploaded",
 ]);

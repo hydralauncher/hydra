@@ -122,17 +122,10 @@ export class ScreenshotFeedback {
       });
   }
 
-  public static async showToast(
-    toast: ScreenshotFeedbackToast,
-    { ignorePreference = false }: { ignorePreference?: boolean } = {}
-  ) {
+  public static async showToast(toast: ScreenshotFeedbackToast) {
     const userPreferences = await readUserPreferences();
     const preferences = resolveScreenshotPreferences(userPreferences);
-    if (
-      !ignorePreference &&
-      !ALWAYS_SHOWN_TOASTS.has(toast.kind) &&
-      !preferences.toastEnabled
-    ) {
+    if (!ALWAYS_SHOWN_TOASTS.has(toast.kind) && !preferences.toastEnabled) {
       return;
     }
 
