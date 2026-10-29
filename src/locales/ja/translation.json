@@ -795,7 +795,7 @@
     "enable_achievement_notifications": "実績がアンロックされたとき",
     "launch_minimized": "最小化してHydraを起動",
     "launch_hydra_in_library_page": "ライブラリページでHydraを起動",
-    "disable_nsfw_alert": "NSFWアラートを無効にする",
+    "disable_nsfw_alert": "ゲームページとスーベニアのNSFWアラートを無効にする",
     "seed_after_download_complete": "ダウンロード完了後にシーディング",
     "show_hidden_achievement_description": "アンロック前に隠し実績の説明を表示",
     "account": "アカウント",

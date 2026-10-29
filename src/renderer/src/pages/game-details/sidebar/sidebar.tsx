@@ -35,6 +35,7 @@ import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
 import { isAchievementConcealed } from "@shared";
 import { ControllerSupportSection } from "./controller-support-section";
+import { GameScreenshots } from "../game-screenshots/game-screenshots";
 import { LeaderboardSection } from "../leaderboard/leaderboard-section";
 
 const ProtonDBSection = lazy(async () => {
@@ -127,6 +128,7 @@ export function Sidebar() {
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
   const {
+    game,
     gameTitle,
     shopDetails,
     objectId,
@@ -135,6 +137,10 @@ export function Sidebar() {
     stats,
     achievements,
   } = useContext(gameDetailsContext);
+  const myScreenshotsGame = game ?? catalogueGame;
+  const communityScreenshotsGame = catalogueGame.objectId
+    ? catalogueGame
+    : myScreenshotsGame;
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -364,6 +370,13 @@ export function Sidebar() {
           </div>
         </SidebarSection>
       )}
+
+      {myScreenshotsGame.shop !== "custom" && myScreenshotsGame.objectId ? (
+        <GameScreenshots
+          libraryGame={myScreenshotsGame}
+          catalogueGame={communityScreenshotsGame}
+        />
+      ) : null}
 
       {shop === "launchbox" && (
         <LaunchboxDetailsSection

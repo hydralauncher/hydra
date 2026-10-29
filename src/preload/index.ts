@@ -105,6 +105,10 @@ import type {
   ResolveEpicCloudSaveConflictPayload,
   EpicLaunchOptions,
   EpicLinuxCompatibility,
+  LocalScreenshot,
+  LocalScreenshotDraft,
+  LocalScreenshotUploadOptions,
+  ScreenshotUploadProgress,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
 import type { AxiosProgressEvent } from "axios";
@@ -1516,6 +1520,12 @@ contextBridge.exposeInMainWorld("electron", {
   clipboard: {
     writeText: (text: string) =>
       ipcRenderer.invoke("clipboardWriteText", text) as Promise<void>,
+    writeImage: (ownerId: string, screenshotId: string) =>
+      ipcRenderer.invoke(
+        "clipboardWriteImage",
+        ownerId,
+        screenshotId
+      ) as Promise<boolean>,
   },
 
   /* Misc */
@@ -1525,13 +1535,52 @@ contextBridge.exposeInMainWorld("electron", {
   getScreenshotsPath: () => ipcRenderer.invoke("getScreenshotsPath"),
   getScreenshotsFolderPath: () =>
     ipcRenderer.invoke("getScreenshotsFolderPath"),
+  getLocalScreenshots: () => ipcRenderer.invoke("getLocalScreenshots"),
+  getLocalScreenshotsForGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getLocalScreenshotsForGame", shop, objectId),
+  deleteLocalScreenshotsForGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("deleteLocalScreenshotsForGame", shop, objectId),
+  countLocalScreenshotFilesForGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("countLocalScreenshotFilesForGame", shop, objectId),
+  getPublishedScreenshotIdsForGame: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getPublishedScreenshotIdsForGame", shop, objectId),
+  forgetPublishedScreenshots: (screenshotIds: string[]) =>
+    ipcRenderer.invoke("forgetPublishedScreenshots", screenshotIds),
+  uploadLocalScreenshot: (
+    clientId: string,
+    options: LocalScreenshotUploadOptions
+  ) => ipcRenderer.invoke("uploadLocalScreenshot", clientId, options),
+  updateLocalScreenshotDraft: (clientId: string, draft: LocalScreenshotDraft) =>
+    ipcRenderer.invoke("updateLocalScreenshotDraft", clientId, draft),
+  deleteLocalScreenshot: (clientId: string) =>
+    ipcRenderer.invoke("deleteLocalScreenshot", clientId),
   openScreenshotsFolder: () => ipcRenderer.invoke("openScreenshotsFolder"),
+  onLocalScreenshotsChange: (cb: (screenshots: LocalScreenshot[]) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      screenshots: LocalScreenshot[]
+    ) => cb(screenshots);
+    ipcRenderer.on("on-local-screenshots-change", listener);
+    return () =>
+      ipcRenderer.removeListener("on-local-screenshots-change", listener);
+  },
   onLocalScreenshotsMissing: (cb: (count: number) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, count: number) =>
       cb(count);
     ipcRenderer.on("on-local-screenshots-missing", listener);
     return () =>
       ipcRenderer.removeListener("on-local-screenshots-missing", listener);
+  },
+  onScreenshotUploadProgress: (
+    cb: (progress: ScreenshotUploadProgress) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      progress: ScreenshotUploadProgress
+    ) => cb(progress);
+    ipcRenderer.on("on-screenshot-upload-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-screenshot-upload-progress", listener);
   },
 
   getAchievementSouvenirSyncStatus: () =>

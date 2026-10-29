@@ -2,8 +2,8 @@ import { useId } from "react";
 import { Star } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
-import { EditorContent, Editor } from "@tiptap/react";
-import { Button } from "@renderer/components";
+import type { Editor } from "@tiptap/react";
+import { Button, RichTextEditorField } from "@renderer/components";
 import "./review-form.scss";
 
 interface ReviewFormProps {
@@ -65,55 +65,11 @@ export function ReviewForm({
   return (
     <>
       <div className="game-details__review-form">
-        <div className="game-details__review-input-container">
-          <div className="game-details__review-input-header">
-            <div className="game-details__review-editor-toolbar">
-              <button
-                type="button"
-                onClick={() => editor?.chain().focus().toggleBold().run()}
-                className={`game-details__editor-button ${editor?.isActive("bold") ? "is-active" : ""}`}
-                disabled={!editor}
-                data-tooltip-id={tooltipId}
-                data-tooltip-content={t("editor_bold")}
-                data-tooltip-place="top"
-              >
-                <strong>B</strong>
-              </button>
-              <button
-                type="button"
-                onClick={() => editor?.chain().focus().toggleItalic().run()}
-                className={`game-details__editor-button ${editor?.isActive("italic") ? "is-active" : ""}`}
-                disabled={!editor}
-                data-tooltip-id={tooltipId}
-                data-tooltip-content={t("editor_italic")}
-                data-tooltip-place="top"
-              >
-                <em>I</em>
-              </button>
-              <button
-                type="button"
-                onClick={() => editor?.chain().focus().toggleUnderline().run()}
-                className={`game-details__editor-button ${editor?.isActive("underline") ? "is-active" : ""}`}
-                disabled={!editor}
-                data-tooltip-id={tooltipId}
-                data-tooltip-content={t("editor_underline")}
-                data-tooltip-place="top"
-              >
-                <u>U</u>
-              </button>
-            </div>
-            <div className="game-details__review-char-counter">
-              <span
-                className={reviewCharCount > maxReviewChars ? "over-limit" : ""}
-              >
-                {reviewCharCount}/{maxReviewChars}
-              </span>
-            </div>
-          </div>
-          <div className="game-details__review-input">
-            <EditorContent editor={editor} />
-          </div>
-        </div>
+        <RichTextEditorField
+          editor={editor}
+          charCount={reviewCharCount}
+          maxLength={maxReviewChars}
+        />
 
         <div className="game-details__review-form-bottom">
           <div className="game-details__review-score-container">
