@@ -390,6 +390,8 @@ pub mod evdev_codes {
     pub const ABS_RX: u16 = 0x03;
     pub const ABS_RY: u16 = 0x04;
     pub const ABS_RZ: u16 = 0x05;
+    pub const ABS_GAS: u16 = 0x09;
+    pub const ABS_BRAKE: u16 = 0x0a;
     pub const ABS_HAT0X: u16 = 0x10;
     pub const ABS_HAT0Y: u16 = 0x11;
 }
@@ -465,6 +467,13 @@ pub struct AxisRange {
 }
 
 #[cfg(any(target_os = "linux", test))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TriggerAxis {
+    pub code: u16,
+    pub range: AxisRange,
+}
+
+#[cfg(any(target_os = "linux", test))]
 const ANALOG_TRIGGER_PRESS_DIVISOR: i64 = 4;
 
 #[cfg(any(target_os = "linux", test))]
@@ -481,8 +490,8 @@ impl AxisRange {
 pub struct LinuxGamepadState {
     pub buttons: u32,
     pub analog_triggers: u32,
-    pub left_trigger: Option<AxisRange>,
-    pub right_trigger: Option<AxisRange>,
+    pub left_trigger: Option<TriggerAxis>,
+    pub right_trigger: Option<TriggerAxis>,
     pub positional_face_buttons: bool,
 }
 
@@ -554,30 +563,21 @@ impl LinuxGamepadState {
                     self.buttons |= gamepad::DPAD_DOWN;
                 }
             }
-            ABS_Z => Self::apply_trigger(
-                &mut self.analog_triggers,
-                self.left_trigger,
-                gamepad::LT,
-                value,
-            ),
-            ABS_RZ => Self::apply_trigger(
-                &mut self.analog_triggers,
-                self.right_trigger,
-                gamepad::RT,
-                value,
-            ),
-            _ => {}
+            _ => {
+                self.apply_trigger(self.left_trigger, gamepad::LT, code, value);
+                self.apply_trigger(self.right_trigger, gamepad::RT, code, value);
+            }
         }
     }
 
-    fn apply_trigger(buttons: &mut u32, range: Option<AxisRange>, mask: u32, value: i32) {
-        let Some(range) = range else {
+    fn apply_trigger(&mut self, trigger: Option<TriggerAxis>, mask: u32, code: u16, value: i32) {
+        let Some(trigger) = trigger.filter(|trigger| trigger.code == code) else {
             return;
         };
-        if range.is_pressed(value) {
-            *buttons |= mask;
+        if trigger.range.is_pressed(value) {
+            self.analog_triggers |= mask;
         } else {
-            *buttons &= !mask;
+            self.analog_triggers &= !mask;
         }
     }
 }
@@ -623,17 +623,24 @@ pub fn is_linux_gamepad(supports_key: impl Fn(u16) -> bool) -> bool {
 }
 
 #[cfg(any(target_os = "linux", test))]
-pub fn linux_trigger_ranges(
+pub fn linux_trigger_axes(
     supports_axis: impl Fn(u16) -> bool,
     range_of: impl Fn(u16) -> Option<AxisRange>,
-) -> (Option<AxisRange>, Option<AxisRange>) {
+) -> (Option<TriggerAxis>, Option<TriggerAxis>) {
     use evdev_codes::*;
+    let axis = |code: u16| {
+        supports_axis(code)
+            .then(|| range_of(code))
+            .flatten()
+            .map(|range| TriggerAxis { code, range })
+    };
+    if supports_axis(ABS_BRAKE) || supports_axis(ABS_GAS) {
+        return (axis(ABS_BRAKE), axis(ABS_GAS));
+    }
     if !(supports_axis(ABS_RX) && supports_axis(ABS_RY)) {
         return (None, None);
     }
-    let left = supports_axis(ABS_Z).then(|| range_of(ABS_Z)).flatten();
-    let right = supports_axis(ABS_RZ).then(|| range_of(ABS_RZ)).flatten();
-    (left, right)
+    (axis(ABS_Z), axis(ABS_RZ))
 }
 
 #[cfg(any(target_os = "windows", test))]
@@ -827,13 +834,22 @@ mod tests {
             minimum: 0,
             maximum: 255,
         };
-        let generic = linux_trigger_ranges(|axis| axis == ABS_Z || axis == ABS_RZ, |_| Some(range));
+        let generic = linux_trigger_axes(|axis| axis == ABS_Z || axis == ABS_RZ, |_| Some(range));
         assert_eq!(generic, (None, None));
-        let xpad = linux_trigger_ranges(
+        let xpad = linux_trigger_axes(
             |axis| matches!(axis, ABS_Z | ABS_RZ | ABS_RX | ABS_RY),
             |_| Some(range),
         );
-        assert_eq!(xpad, (Some(range), Some(range)));
+        assert_eq!(
+            xpad,
+            (
+                Some(TriggerAxis { code: ABS_Z, range }),
+                Some(TriggerAxis {
+                    code: ABS_RZ,
+                    range
+                })
+            )
+        );
 
         let mut state = LinuxGamepadState {
             left_trigger: xpad.0,
@@ -857,7 +873,7 @@ mod tests {
             maximum: 255,
         };
         let mut state = LinuxGamepadState {
-            left_trigger: Some(range),
+            left_trigger: Some(TriggerAxis { code: ABS_Z, range }),
             ..LinuxGamepadState::default()
         };
         let mut held = Vec::new();
