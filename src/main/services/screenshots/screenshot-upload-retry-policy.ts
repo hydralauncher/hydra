@@ -89,6 +89,22 @@ export const getScreenshotModerationWaitDelay = (
     SCREENSHOT_MODERATION_BACKOFF_MAX_MS
   );
 
+const getRecoveryAction = (
+  code: string,
+  error: unknown
+): ScreenshotUploadRecoveryAction => {
+  const mapped = RECOVERY_BY_ERROR_CODE[code];
+  if (mapped) return mapped;
+  if (isGroupedSouvenirNetworkFailure(error)) return "retry";
+  if (isRejectedGroupedSouvenirRequest(error)) return "terminal";
+  return "retry";
+};
+
+const HONORS_RETRY_AFTER = new Set<ScreenshotUploadRecoveryAction>([
+  "moderation_wait",
+  "retry",
+]);
+
 export const getScreenshotUploadFailure = (
   error: unknown
 ): ScreenshotUploadFailure => {
@@ -97,21 +113,13 @@ export const getScreenshotUploadFailure = (
   }
 
   const code = getSystemErrorCode(error) ?? getGroupedSouvenirErrorCode(error);
-  const mapped = RECOVERY_BY_ERROR_CODE[code];
-  if (mapped === "moderation_wait") {
-    const retryAfterMs = getRetryAfterMs(error);
-    return retryAfterMs === null
-      ? { code, action: mapped }
-      : { code, action: mapped, retryAfterMs };
-  }
-  if (mapped) return { code, action: mapped };
-
-  if (isGroupedSouvenirNetworkFailure(error)) return { code, action: "retry" };
-  if (isRejectedGroupedSouvenirRequest(error)) {
-    return { code, action: "terminal" };
-  }
-
-  return { code, action: "retry" };
+  const action = getRecoveryAction(code, error);
+  const retryAfterMs = HONORS_RETRY_AFTER.has(action)
+    ? getRetryAfterMs(error)
+    : null;
+  return retryAfterMs === null
+    ? { code, action }
+    : { code, action, retryAfterMs };
 };
 
 export const getAlreadyUploadedScreenshot = (error: unknown) => {
@@ -199,7 +207,11 @@ export const planScreenshotUploadRecovery = (
         ? { kind: "failed" }
         : {
             kind: "retry_at",
-            delay: getScreenshotUploadRetryDelay(state.uploadAttempts),
+            delay: Math.min(
+              failure.retryAfterMs ??
+                getScreenshotUploadRetryDelay(state.uploadAttempts),
+              SCREENSHOT_UPLOAD_RETRY_MAX_DELAY_MS
+            ),
             countsAsAttempt: true,
           };
   }
