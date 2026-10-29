@@ -47,6 +47,10 @@ export const ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID =
   "account-privacy-cloud-gifts";
 export const ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID =
   "account-privacy-souvenirs-visibility";
+export const ACCOUNT_PRIVACY_SCREENSHOTS_SELECT_ID =
+  "account-privacy-screenshots-visibility";
+export const ACCOUNT_PRIVACY_SCREENSHOT_COMMENTS_SELECT_ID =
+  "account-privacy-screenshot-comments-policy";
 export const COMPATIBILITY_GAMEMODE_FOCUS_ID = "compatibility-gamemode";
 export const COMPATIBILITY_MANGOHUD_FOCUS_ID = "compatibility-mangohud";
 export const COMPATIBILITY_COMMON_REDIST_BUTTON_ID =
@@ -143,6 +147,7 @@ export const NOTIFICATIONS_ACHIEVEMENTS_ITEM_FOCUS_IDS = {
 export const CONTENT_ITEM_FOCUS_IDS = {
   autoplayGameTrailers: "content-autoplay-game-trailers",
   disableNsfwAlert: "content-disable-nsfw-alert",
+  showSensitiveScreenshots: "content-show-sensitive-screenshots",
   showHiddenAchievementsDescription:
     "content-show-hidden-achievements-description",
   enableSteamAchievements: "content-enable-steam-achievements",
