@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import path from "node:path";
+
 import {
   resolveAchievementScreenshotPath,
   sanitizePathSegment,
 } from "./achievement-screenshot-path.js";
+import { resolveManualScreenshotPath } from "./screenshots/screenshot-file-path.js";
 
 describe("achievement screenshot paths", () => {
   it("keeps games with the same sanitized title separate", () => {
@@ -63,5 +66,22 @@ describe("achievement screenshot paths", () => {
       sanitizePathSegment(`${"x".repeat(118)}.\u3000Part 2`),
       "x".repeat(118)
     );
+  });
+});
+
+describe("manual screenshot paths", () => {
+  const capturedAt = new Date(2026, 9, 29, 12, 0, 0, 0);
+  const folderOf = (gameTitle: string) =>
+    path.basename(
+      path.dirname(resolveManualScreenshotPath("root", gameTitle, capturedAt))
+    );
+
+  it("moves game folders off Windows reserved device names", () => {
+    assert.equal(folderOf("Con"), "Con_");
+    assert.equal(folderOf("nul."), "nul_");
+    assert.equal(folderOf("COM1"), "COM1_");
+    assert.equal(folderOf("lpt9.remastered"), "lpt9_.remastered");
+    assert.equal(folderOf("Console"), "Console");
+    assert.equal(folderOf("COM10"), "COM10");
   });
 });
