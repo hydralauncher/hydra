@@ -542,6 +542,11 @@ $leaderboards-heat-gap: 3px;
     font-size: globals.$hint-font-size;
     line-height: 19px;
     color: globals.$muted-color;
+
+    // A translation is HTML and may hold several paragraphs.
+    p {
+      margin: 0;
+    }
   }
 
   &__chips {

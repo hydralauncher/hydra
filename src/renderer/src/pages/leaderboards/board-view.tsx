@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@renderer/components";
+import { useFeature } from "@renderer/hooks";
 import {
   buildLeaderboardRows,
   type LeaderboardEntry,
@@ -57,7 +58,12 @@ export function BoardView({
   const { t } = useTranslation("leaderboards");
   const [visible, setVisible] = useState(GLOBAL_LEADERBOARD_PAGE_SIZE);
   const [reported, setReported] = useState<LeaderboardEntry | null>(null);
-  const canReport = Boolean(reportContext && viewerUser);
+  const { isFeatureEnabled, Feature } = useFeature();
+  // Behind a flag until the API accepts the "cheating" reason
+  // (hydralauncher/hydra-api#881).
+  const canReport = Boolean(
+    reportContext && viewerUser && isFeatureEnabled(Feature.LeaderboardReports)
+  );
 
   const renderReport = (entry: LeaderboardEntry) =>
     canReport && entry.user.id !== viewerUser?.id ? (

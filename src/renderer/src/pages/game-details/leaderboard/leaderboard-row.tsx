@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -57,6 +57,22 @@ export function LeaderboardRow({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [tooltipPosition, setTooltipPosition] =
     useState<TooltipPosition | null>(null);
+
+  // Scrolling moves the row away from a fixed tooltip, so hide it until the
+  // pointer moves again.
+  const isFollowing = tooltipPosition !== null;
+  useEffect(() => {
+    if (!isFollowing) return;
+    const hide = () => setTooltipPosition(null);
+    const options = { capture: true, passive: true };
+    globalThis.addEventListener("scroll", hide, options);
+    globalThis.addEventListener("wheel", hide, options);
+
+    return () => {
+      globalThis.removeEventListener("scroll", hide, options);
+      globalThis.removeEventListener("wheel", hide, options);
+    };
+  }, [isFollowing]);
 
   // The tooltip sits above and to the right of the pointer, flipped to the
   // other side when that would leave the window.
