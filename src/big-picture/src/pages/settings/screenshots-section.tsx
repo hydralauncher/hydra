@@ -459,24 +459,41 @@ export function ScreenshotSettingsSection({
     saveHotkey
   );
 
-  const chooseFolder = async () => {
-    const result = await globalThis.window.electron.showOpenDialog({
-      defaultPath: folderPath || undefined,
-      properties: ["openDirectory"],
+  const showSaveFailed = (message: string, error: unknown) => {
+    logger.error(message, error);
+    showErrorToast(t("screenshots_settings_save_failed"), {
+      fallbackVisual: "settings",
     });
-    const selectedPath = result.filePaths[0];
-    if (result.canceled || !selectedPath) return;
+  };
 
-    await globalThis.window.electron.updateUserPreferences({
-      screenshotsFolderPath: selectedPath,
-    });
+  const chooseFolder = async () => {
+    try {
+      const result = await globalThis.window.electron.showOpenDialog({
+        defaultPath: folderPath || undefined,
+        properties: ["openDirectory"],
+      });
+      const selectedPath = result.filePaths[0];
+      if (result.canceled || !selectedPath) return;
+
+      await globalThis.window.electron.updateUserPreferences({
+        screenshotsFolderPath: selectedPath,
+      });
+    } catch (error) {
+      showSaveFailed("Failed to change the screenshots folder", error);
+      return;
+    }
     await refreshFolderPath();
   };
 
   const resetFolder = async () => {
-    await globalThis.window.electron.updateUserPreferences({
-      screenshotsFolderPath: undefined,
-    });
+    try {
+      await globalThis.window.electron.updateUserPreferences({
+        screenshotsFolderPath: undefined,
+      });
+    } catch (error) {
+      showSaveFailed("Failed to reset the screenshots folder", error);
+      return;
+    }
     await refreshFolderPath();
   };
 
