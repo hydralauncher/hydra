@@ -87,6 +87,23 @@ type NativeForegroundWindowResponse = {
   process_id?: number;
 };
 
+export type InPlaceExtractionOptions = {
+  archivePath: string;
+  outputPath: string;
+  passwords: string[];
+  allowFresh: boolean;
+  // Hydra recorded starting an in-place extraction of this archive.
+  resume: boolean;
+};
+
+// "unavailable" leaves the archive untouched; "failed" means part of it is
+// already extracted and removed, and only another in-place call resumes it.
+// The call itself only rejects when the addon could not run.
+export type InPlaceExtractionResult = {
+  status: "finished" | "unavailable" | "failed";
+  message?: string | null;
+};
+
 export type NativeProcessPayload = ProcessPayload &
   Pick<
     EpicProcessNode,
@@ -133,6 +150,11 @@ type HydraNativeModule = {
   getWindowsWindowBounds?: (
     windowHandle: string
   ) => NativeWindowBoundsResponse | null;
+  extractArchiveInPlace: (
+    options: InPlaceExtractionOptions,
+    onProgress: (fraction: number) => void
+  ) => Promise<InPlaceExtractionResult>;
+  inPlaceJournalExists: (archivePath: string) => boolean;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
@@ -575,6 +597,17 @@ export class NativeAddon {
         resolve(null);
       }
     });
+  }
+
+  public static extractArchiveInPlace(
+    options: InPlaceExtractionOptions,
+    onProgress: (fraction: number) => void
+  ) {
+    return this.load().extractArchiveInPlace(options, onProgress);
+  }
+
+  public static inPlaceJournalExists(archivePath: string) {
+    return this.load().inPlaceJournalExists(archivePath);
   }
 
   public static buildLocalGameSnapshotPipeline(

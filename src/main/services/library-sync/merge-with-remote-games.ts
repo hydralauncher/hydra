@@ -342,6 +342,7 @@ const buildRemoteGameShopAssets = (
     iconUrl: remoteGame.iconUrl,
     logoPosition: remoteGame.logoPosition,
     downloadSources: remoteGame.downloadSources,
+    images: { ...localShopAssets?.images, ...remoteGame.images },
   };
   return (remoteGame.catalogueGame ?? localGame?.catalogueGame)?.shop ===
     "steam"
@@ -458,6 +459,7 @@ const mergeRemoteGamesChunk = async (
                 logoImageUrl: assets.logoImageUrl,
                 logoPosition: assets.logoPosition,
                 downloadSources: assets.downloadSources,
+                images: assets.images,
               },
               { sublevel: gamesShopAssetsSublevel }
             );

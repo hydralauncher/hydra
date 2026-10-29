@@ -1,21 +1,30 @@
 import { ImageIcon } from "@primer/octicons-react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import type { CatalogueImages } from "@types";
 
 import {
   isAnimatedCoverCandidate,
   useAnimatedSourceWarmup,
   useAppSelector,
+  useCatalogueImage,
   useCoverPoster,
 } from "@renderer/hooks";
+import {
+  getCatalogueImageSrcSet,
+  pickCatalogueImageUrl,
+} from "@renderer/helpers/catalogue-images";
 import { getVerticalCoverCardImageSources } from "./vertical-cover-card-image-sources";
 
 import "./vertical-cover-card.scss";
+
+const COVER_DISPLAY_WIDTH = 300;
 
 export interface VerticalCoverCardProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
   gameTitle: string;
   coverImageUrls: readonly (string | null | undefined)[];
+  catalogueImages?: CatalogueImages;
   children?: ReactNode;
   useClassicsLayout?: boolean;
   showTitleTooltip?: boolean;
@@ -24,6 +33,7 @@ export interface VerticalCoverCardProps
 export function VerticalCoverCard({
   gameTitle,
   coverImageUrls,
+  catalogueImages,
   children,
   useClassicsLayout = false,
   showTitleTooltip = true,
@@ -43,7 +53,13 @@ export function VerticalCoverCard({
   );
   const autoplayAnimatedArtwork =
     userPreferences?.autoplayAnimatedArtwork ?? false;
-  const isAnimatedCover = isAnimatedCoverCandidate(coverImageUrl);
+  const catalogueImage = useCatalogueImage(
+    useClassicsLayout ? null : coverImageUrl,
+    catalogueImages
+  );
+  const coverVariants = catalogueImage.variants;
+  const isAnimatedCover =
+    !coverVariants && isAnimatedCoverCandidate(coverImageUrl);
   const coverPoster = useCoverPoster(coverImageUrl, isAnimatedCover);
   const shouldHoldFrame =
     isAnimatedCover && !isHovered && !autoplayAnimatedArtwork;
@@ -62,6 +78,8 @@ export function VerticalCoverCard({
   }, [imageSourcesKey]);
 
   const handleImageError = () => {
+    if (catalogueImage.markFailed()) return;
+
     if (!coverImageUrl || failedImageSourcesRef.current.has(coverImageUrl)) {
       return;
     }
@@ -109,11 +127,21 @@ export function VerticalCoverCard({
 
     return (
       <img
-        src={displayCoverUrl}
+        src={
+          coverVariants
+            ? pickCatalogueImageUrl(coverVariants, COVER_DISPLAY_WIDTH)
+            : displayCoverUrl
+        }
+        srcSet={
+          coverVariants ? getCatalogueImageSrcSet(coverVariants) : undefined
+        }
+        sizes={coverVariants ? `auto, ${COVER_DISPLAY_WIDTH}px` : undefined}
+        style={catalogueImage.placeholderStyle}
         alt={gameTitle}
         className="vertical-cover-card__image"
         loading="lazy"
         decoding="async"
+        onLoad={catalogueImage.markLoaded}
         onError={handleImageError}
       />
     );
