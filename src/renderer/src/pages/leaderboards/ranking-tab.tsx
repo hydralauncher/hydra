@@ -288,6 +288,9 @@ export function RankingTab({
           }
           renderTooltip={isReviews ? renderReviewTooltip : undefined}
           onVisibleChange={setVisibleRows}
+          reportContext={
+            metric ? { metric: metric.id, window: period, scope } : null
+          }
         />
       </>
     );

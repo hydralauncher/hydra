@@ -443,6 +443,31 @@ $leaderboards-heat-gap: 3px;
     overflow: hidden;
   }
 
+  // Report as cheater: a bare icon, only shown on hover (leaderboard-row and
+  // leaderboard-podium reveal it).
+  &__report {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background-color: rgb(0 0 0 / 45%);
+    color: $leaderboards-muted-text;
+    cursor: pointer;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgb(0 0 0 / 70%);
+      color: globals.$muted-color;
+    }
+  }
+
   // The upvote count as a badge next to the score, not a vote button.
   &__review-likes {
     cursor: default;
@@ -798,12 +823,22 @@ $leaderboards-heat-gap: 3px;
     }
   }
 
+  // The border is drawn on top of the content so the banner header cannot
+  // show through or beside it at the rounded edges.
   &__mine {
+    position: relative;
     overflow: hidden;
-    border: solid 1px globals.$border-color;
     border-radius: 8px;
     background-color: globals.$background-color;
-    background-clip: padding-box;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: solid 1px globals.$border-color;
+      border-radius: inherit;
+      pointer-events: none;
+    }
   }
 
   &__mine-header {
@@ -816,8 +851,6 @@ $leaderboards-heat-gap: 3px;
 
     &--banner {
       border-bottom: 0;
-      border-radius: 7px 7px 0 0;
-      background-clip: padding-box;
       background-image:
         linear-gradient(
           180deg,
@@ -1438,6 +1471,32 @@ $leaderboards-heat-gap: 3px;
   &--sparse {
     grid-template-columns: repeat(var(--podium-count), minmax(0, 300px));
     justify-content: center;
+  }
+
+  // Holds the card and its corner action; the card keeps its own height.
+  &__slot {
+    position: relative;
+    min-width: 0;
+    display: flex;
+
+    > .leaderboard-podium__card {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__action {
+    position: absolute;
+    top: globals.$spacing-unit;
+    right: globals.$spacing-unit;
+    display: flex;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &__slot:hover &__action,
+  &__slot:focus-within &__action {
+    opacity: 1;
   }
 
   &__card {

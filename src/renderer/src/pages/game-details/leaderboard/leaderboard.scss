@@ -375,6 +375,30 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     gap: calc(globals.$spacing-unit / 2);
   }
 
+  &__line {
+    position: relative;
+  }
+
+  &--with-action {
+    padding-right: calc(globals.$spacing-unit * 4.5);
+  }
+
+  // Quiet until the row is hovered or focused.
+  &__action {
+    position: absolute;
+    top: 50%;
+    right: globals.$spacing-unit;
+    display: flex;
+    opacity: 0;
+    transform: translateY(-50%);
+    transition: opacity 0.2s ease;
+  }
+
+  &__line:hover &__action,
+  &__line:focus-within &__action {
+    opacity: 1;
+  }
+
   &__gap {
     height: 20px;
     display: flex;
