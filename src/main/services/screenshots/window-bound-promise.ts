@@ -29,3 +29,16 @@ export const executeWhileWindowAlive = (
   whileWindowAlive(window, closedMessage, () =>
     window.webContents.executeJavaScript(expression)
   );
+
+export const executeWithinDeadline = (
+  window: BrowserWindow,
+  closedMessage: string,
+  expression: string,
+  timeoutMs: number,
+  onTimeout: () => void
+) => {
+  const timer = setTimeout(onTimeout, timeoutMs);
+  return executeWhileWindowAlive(window, closedMessage, expression).finally(
+    () => clearTimeout(timer)
+  );
+};

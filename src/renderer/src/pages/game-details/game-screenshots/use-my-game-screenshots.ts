@@ -249,9 +249,7 @@ export function useMyGameScreenshots({
   return {
     collection,
     localScreenshots: local.localScreenshots,
-    pendingLocal: local.pendingLocal,
     items,
-    status,
     hasLoaded: status !== "loading",
     hasFailed: status === "failed",
     isPartial: status === "partial",
@@ -260,5 +258,3 @@ export function useMyGameScreenshots({
     retryFailed,
   };
 }
-
-export type MyGameScreenshots = ReturnType<typeof useMyGameScreenshots>;

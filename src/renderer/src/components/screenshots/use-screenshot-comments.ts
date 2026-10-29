@@ -596,7 +596,7 @@ export function useScreenshotComments({
         }
 
         handleWriteError(error, "report_failed", comment.id);
-        return false;
+        return code === "screenshots/comment-not-found";
       } finally {
         setPending(comment.id, false);
       }

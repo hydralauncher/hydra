@@ -6,12 +6,13 @@ import {
   buildGrabFrameExpression,
   createGrabbedFrame,
   parseGrabbedFrame,
+  SCREENSHOT_CAPTURE_CALL_TIMEOUT_MS,
   type GrabbedFrameInfo,
   type GrabbedScreenshotFrame,
   type ScreenshotFrameGrabOptions,
 } from "./screenshot-frame-script";
 import {
-  executeWhileWindowAlive,
+  executeWithinDeadline,
   whileWindowAlive,
 } from "./window-bound-promise";
 
@@ -120,7 +121,18 @@ const buildGrabExpression = (
 })()`;
 
 const runInWorker = (current: WorkerWindow, expression: string) =>
-  executeWhileWindowAlive(current.window, WORKER_CLOSED_MESSAGE, expression);
+  executeWithinDeadline(
+    current.window,
+    WORKER_CLOSED_MESSAGE,
+    expression,
+    SCREENSHOT_CAPTURE_CALL_TIMEOUT_MS,
+    () => {
+      logger.warn("Screenshot capture worker timed out, recycling it", {
+        timeoutMs: SCREENSHOT_CAPTURE_CALL_TIMEOUT_MS,
+      });
+      if (worker === current) destroyWorker();
+    }
+  );
 
 const grabFrame = async (
   current: WorkerWindow,
