@@ -245,6 +245,37 @@ const logForegroundMatch = (
   });
 };
 
+const findProcessTreeTarget = async (
+  candidates: ScreenshotGameCandidate[],
+  foreground: ForegroundWindowInfo
+) => {
+  const processes = toForegroundProcesses(await NativeAddon.listProcesses());
+  const matchInput = {
+    platform: process.platform,
+    targets: candidates.map((candidate) => candidate.target),
+    foreground,
+    processes,
+  };
+  const target = findForegroundGameTarget(matchInput);
+  if (target || !needsNamespacedPids(foreground, candidates)) return target;
+
+  return findForegroundGameTarget({
+    ...matchInput,
+    getNamespacedPids: await loadNamespacedPidLookup(processes),
+  });
+};
+
+const rememberForegroundProcess = (
+  foreground: ForegroundWindowInfo,
+  target: ScreenshotGameTarget
+) => {
+  if (foreground.processId === null) return;
+  matchedForegroundProcesses.set(foreground.processId, {
+    gameKey: target.gameKey,
+    windowKey: getForegroundWindowKey(foreground),
+  });
+};
+
 export const resolveForegroundGame = async (
   source: ScreenshotTriggerSource
 ): Promise<ForegroundMatch> => {
@@ -282,29 +313,9 @@ export const resolveForegroundGame = async (
       return { ...remembered, foreground };
     }
 
-    const processes = toForegroundProcesses(await NativeAddon.listProcesses());
-    const matchInput = {
-      platform: process.platform,
-      targets: candidates.map((candidate) => candidate.target),
-      foreground,
-      processes,
-    };
-    const target =
-      findForegroundGameTarget(matchInput) ??
-      (needsNamespacedPids(foreground, candidates)
-        ? findForegroundGameTarget({
-            ...matchInput,
-            getNamespacedPids: await loadNamespacedPidLookup(processes),
-          })
-        : null);
-
+    const target = await findProcessTreeTarget(candidates, foreground);
     if (target) {
-      if (foreground.processId !== null) {
-        matchedForegroundProcesses.set(foreground.processId, {
-          gameKey: target.gameKey,
-          windowKey: getForegroundWindowKey(foreground),
-        });
-      }
+      rememberForegroundProcess(foreground, target);
       const game =
         candidates.find(
           (candidate) => candidate.target.gameKey === target.gameKey
