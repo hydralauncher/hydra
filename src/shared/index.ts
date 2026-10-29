@@ -30,6 +30,7 @@ export {
   type SteamAutoStartRunStatus,
 } from "./should-auto-start-steam-sync";
 export * from "./steam-session";
+export * from "./leaderboard-notifications";
 export * from "./window-layout";
 export {
   getDisplayedPlayTimeInMilliseconds,
@@ -44,6 +45,8 @@ export * from "./classics-disc-label";
 export * from "./controller-support";
 export * from "./artwork-resolver";
 export * from "./library-catalogue";
+export * from "./finished-download-step";
+export * from "./format-bit-rate";
 export * from "./library-group-actions";
 export * from "./official-store-options";
 export * from "./download-directories";

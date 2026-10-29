@@ -10,6 +10,7 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 import { UnlockedAchievementsCache } from "@main/services/achievements/unlocked-achievements-cache";
+import { CombinedAchievementsRequests } from "@main/services/achievements/combined-achievements-requests";
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import { fetchRemoteUserGameAchievements } from "@main/services/achievements/get-achievement-souvenirs";
 import { mergeUnlockedAchievementLists } from "@main/services/achievements/merge-unlocked-achievements";
@@ -113,11 +114,19 @@ export const getUnlockedAchievements = async (
   // Preserve the selected copy's catalogue/cache refresh and sync side effects.
   // The union is a display projection and must never replace that source state.
   if (shop === "steam" || shop === "epic") {
-    const combined = await HydraApi.get<CombinedAchievements>(
-      "/profile/achievements/combined",
-      { shop, objectId, language: userPreferences?.language ?? "en" },
-      { timeout: COMBINED_ACHIEVEMENTS_TIMEOUT_MS }
-    ).catch(() => null);
+    const language = userPreferences?.language ?? "en";
+    const combined = await CombinedAchievementsRequests.fetch(
+      HydraApi.getAuthContext(),
+      shop,
+      objectId,
+      language,
+      () =>
+        HydraApi.get<CombinedAchievements>(
+          "/profile/achievements/combined",
+          { shop, objectId, language },
+          { timeout: COMBINED_ACHIEVEMENTS_TIMEOUT_MS }
+        )
+    );
     const includesRequestedCopy = combined?.achievements.some((achievement) =>
       achievement.variants.some(
         (variant) => variant.shop === shop && variant.objectId === objectId
