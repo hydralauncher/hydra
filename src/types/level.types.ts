@@ -142,6 +142,9 @@ export interface Download {
   installerPath?: string;
   hasInstaller?: boolean;
   sourceArchiveName?: string;
+  // Set while folderName names an archive that was consumed by an in-place
+  // extraction whose nested archives are not extracted yet.
+  extractedInPlace?: boolean;
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];

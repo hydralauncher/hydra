@@ -1004,14 +1004,6 @@ export class GameFilesManager {
     }
   }
 
-  private async saveExtractedFolder(download: Download, folderName: string) {
-    await downloadsSublevel.put(this.gameKey, {
-      ...download,
-      folderName,
-      sourceArchiveName: download.folderName ?? undefined,
-    });
-  }
-
   async extractDownloadedFile() {
     const [download, game] = await Promise.all([
       downloadsSublevel.get(this.gameKey),
@@ -1026,12 +1018,6 @@ export class GameFilesManager {
     }
 
     const filePath = path.join(download.downloadPath, download.folderName);
-
-    if (!fs.existsSync(filePath)) {
-      await this.failMissingExtractionSource(filePath);
-      return false;
-    }
-
     const archivePath = path.parse(download.folderName);
     const extractedFolderName = path.join(archivePath.dir, archivePath.name);
     const extractionPath = path.join(
@@ -1039,21 +1025,34 @@ export class GameFilesManager {
       extractedFolderName
     );
 
+    // The archive is gone after an in-place extraction, so a retry after a
+    // failed nested archive only extracts what is left in the folder.
+    const outerArchiveExtracted =
+      download.extractedInPlace === true && fs.existsSync(extractionPath);
+
+    if (!outerArchiveExtracted && !fs.existsSync(filePath)) {
+      await this.failMissingExtractionSource(filePath);
+      return false;
+    }
+
     this.updateExtractionProgress(0, true);
 
     try {
       const shouldDelete = await this.shouldDeleteArchives(download);
-      const result = await extractArchive(
-        archiveExtractors,
-        { filePath, outputPath: extractionPath, inPlace: shouldDelete },
-        this.handleProgress
-      );
+      const result = outerArchiveExtracted
+        ? { success: true }
+        : await extractArchive(
+            archiveExtractors,
+            { filePath, outputPath: extractionPath, inPlace: shouldDelete },
+            this.handleProgress
+          );
 
       if (result.success) {
-        // An archive consumed in place can't be extracted again, so a retry
-        // after a failed nested extraction has to start from the folder.
-        if (!fs.existsSync(filePath)) {
-          await this.saveExtractedFolder(download, extractedFolderName);
+        if (!outerArchiveExtracted && !fs.existsSync(filePath)) {
+          await downloadsSublevel.put(this.gameKey, {
+            ...download,
+            extractedInPlace: true,
+          });
         }
 
         const extractedNestedArchives = await this.extractFilesInDirectory(
@@ -1076,7 +1075,12 @@ export class GameFilesManager {
           }
         }
 
-        await this.saveExtractedFolder(download, extractedFolderName);
+        await downloadsSublevel.put(this.gameKey, {
+          ...download,
+          folderName: extractedFolderName,
+          sourceArchiveName: download.folderName,
+          extractedInPlace: undefined,
+        });
 
         await this.setExtractionComplete();
       } else {
