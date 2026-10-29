@@ -262,15 +262,12 @@ const wrapNativeImage = (
   return {
     width,
     height,
-    encode: () =>
-      new Promise<EncodedScreenshotImages>((resolve) =>
-        resolve({
-          jpeg: image.toJPEG(FALLBACK_JPEG_QUALITY),
-          preview: image
-            .resize({ width: Math.min(width, SCREENSHOT_PREVIEW_MAX_WIDTH) })
-            .toJPEG(FALLBACK_PREVIEW_JPEG_QUALITY),
-        })
-      ),
+    encode: async (): Promise<EncodedScreenshotImages> => ({
+      jpeg: image.toJPEG(FALLBACK_JPEG_QUALITY),
+      preview: image
+        .resize({ width: Math.min(width, SCREENSHOT_PREVIEW_MAX_WIDTH) })
+        .toJPEG(FALLBACK_PREVIEW_JPEG_QUALITY),
+    }),
     discard: () => {},
   };
 };
@@ -297,7 +294,7 @@ const grabFromDirectWindowsSource = async (
     }
     logger.warn("Direct window capture failed, resolving the window source", {
       gameKey: captureTarget.gameKey,
-      error: error instanceof Error ? error.message : String(error),
+      error: error instanceof Error ? error.message : error,
     });
     return null;
   }
@@ -371,7 +368,7 @@ const getWaylandShareBlocker = async (
 const recordCaptureFailure = (gameKey: string, error: unknown) => {
   logger.error("Failed to capture a manual screenshot", {
     gameKey,
-    error: error instanceof Error ? error.message : String(error),
+    error: error instanceof Error ? error.message : error,
   });
   ScreenshotTelemetry.record(
     "capture",
