@@ -49,7 +49,10 @@ import {
   isVerifyingStatus,
 } from "./types";
 import { calculateETA, getDirSize } from "./helpers";
-import { extractDownloadFilename } from "./download-filename";
+import {
+  extractDownloadFilename,
+  getContentDispositionFilename,
+} from "./download-filename";
 import { RealDebridClient } from "./real-debrid";
 import path from "node:path";
 import fs from "node:fs";
@@ -218,6 +221,7 @@ export class DownloadManager {
     PreparedJsDownload
   >();
   private static readonly PREPARED_JS_DOWNLOAD_TTL_MS = 120_000;
+  private static readonly HOSTER_FILENAME_PROBE_TIMEOUT_MS = 15_000;
 
   public static hasActiveDownload() {
     return this.downloadingGameId !== null;
@@ -3032,11 +3036,31 @@ export class DownloadManager {
       });
       if (!options) throw new Error("The download link is unavailable.");
       entry.headers = options.headers;
-      this.assignHosterPartFilename(batch, entry, options.filename);
+      this.assignHosterPartFilename(
+        batch,
+        entry,
+        entry.filename ? undefined : await this.resolvePartFilename(options)
+      );
       return options.url;
     }
     this.assignHosterPartFilename(batch, entry, undefined);
     return prepared.url;
+  }
+
+  /** Links without a file name in the URL, such as PixelDrain's, name it in Content-Disposition. */
+  private static async resolvePartFilename(
+    options: JsDownloadOptions
+  ): Promise<string | undefined> {
+    if (options.filename) return options.filename;
+    const response = await fetch(options.url, {
+      headers: { ...options.headers, Range: "bytes=0-0" },
+      signal: AbortSignal.timeout(this.HOSTER_FILENAME_PROBE_TIMEOUT_MS),
+    });
+    await response.body?.cancel();
+    if (!response.ok) return undefined;
+    return getContentDispositionFilename(
+      response.headers.get("content-disposition")
+    );
   }
 
   /** Parts without a file name in their link take the resolved name. */
@@ -3075,20 +3099,23 @@ export class DownloadManager {
     );
     const filenameHints = parts.map((uri) => this.extractFilename(uri));
     let firstPartOptions = preparedOptions;
+    let firstPartFilename = filenameHints[0];
     let rootFolderName = download.folderName;
     if (!rootFolderName) {
-      if (!filenameHints[0] && !firstPartOptions) {
+      if (!firstPartFilename && !firstPartOptions) {
         firstPartOptions = await this.getJsDownloadOptions({
           ...download,
           folderName: null,
         });
       }
-      const firstFilename = filenameHints[0] ?? firstPartOptions?.filename;
-      if (!firstFilename) {
+      if (!firstPartFilename && firstPartOptions) {
+        firstPartFilename = await this.resolvePartFilename(firstPartOptions);
+      }
+      if (!firstPartFilename) {
         throw new Error("The first download part has no file name.");
       }
       rootFolderName = this.sanitizeFilename(
-        getMultipartFolderName(firstFilename)
+        getMultipartFolderName(firstPartFilename)
       );
     }
 
@@ -3109,8 +3136,11 @@ export class DownloadManager {
         resolvedAt: Date.now(),
       };
       entries[0].headers = firstPartOptions.headers;
-      if (!entries[0].filename && firstPartOptions.filename) {
-        entries[0].filename = `${rootFolderName}/${this.sanitizeFilename(firstPartOptions.filename)}`;
+      if (!entries[0].filename) {
+        firstPartFilename ??= await this.resolvePartFilename(firstPartOptions);
+        if (firstPartFilename) {
+          entries[0].filename = `${rootFolderName}/${this.sanitizeFilename(firstPartFilename)}`;
+        }
       }
     }
     this.assertUniqueHosterPartFilenames(entries);
