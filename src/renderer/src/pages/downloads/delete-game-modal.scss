@@ -1,6 +1,10 @@
 @use "../../scss/globals.scss";
 
 .delete-game-modal {
+  &__options {
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
   &__actions {
     display: flex;
     width: 100%;

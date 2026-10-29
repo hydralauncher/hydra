@@ -16,10 +16,17 @@ import { Button } from "@renderer/components";
 import { useDate, useUserDetails } from "@renderer/hooks";
 import cn from "classnames";
 import {
+  buildLeaderboardNotificationTarget,
+  buildLeaderboardNotificationText,
   buildScreenshotNotificationTarget,
   buildSouvenirNotificationTarget,
   isScreenshotNotificationType,
+  parseLeaderboardNotification,
 } from "@shared";
+import {
+  LeaderboardNotificationIcon,
+  LeaderboardRankChip,
+} from "@renderer/components/leaderboard-notification/leaderboard-notification-icon";
 
 import type { Notification, Badge } from "@types";
 import { openCloudGiftModal } from "../shared-modals/cloud-gift-modal.events";
@@ -120,7 +127,12 @@ export function NotificationItem({
   const { t } = useTranslation("notifications_page");
   const { formatDistance } = useDate();
   const navigate = useNavigate();
-  const { updateFriendRequestState } = useUserDetails();
+  const { updateFriendRequestState, userDetails } = useUserDetails();
+
+  const leaderboardInfo = useMemo(
+    () => parseLeaderboardNotification(notification),
+    [notification]
+  );
 
   const badge = useMemo(() => {
     if (notification.type !== "BADGE_RECEIVED") return null;
@@ -140,9 +152,15 @@ export function NotificationItem({
       return;
     }
 
-    const target = getNotificationTarget(notification);
+    const target = leaderboardInfo
+      ? buildLeaderboardNotificationTarget(
+          notification.url,
+          leaderboardInfo,
+          userDetails?.id ?? null
+        )
+      : getNotificationTarget(notification);
     if (target) navigate(target);
-  }, [notification, onMarkAsRead, navigate]);
+  }, [notification, onMarkAsRead, navigate, leaderboardInfo, userDetails?.id]);
 
   const handleAccept = useCallback(
     async (e: React.MouseEvent) => {
@@ -184,6 +202,13 @@ export function NotificationItem({
     t("screenshot_custom_game");
 
   const getNotificationContent = () => {
+    if (leaderboardInfo) {
+      return {
+        ...buildLeaderboardNotificationText(t, leaderboardInfo),
+        showActions: false,
+      };
+    }
+
     switch (notification.type) {
       case "FRIEND_REQUEST_RECEIVED":
         return {
@@ -372,15 +397,19 @@ export function NotificationItem({
       })}
       onClick={handleClick}
     >
-      <div
-        className={cn("notification-item__picture", {
-          "notification-item__badge-picture": isBadge,
-          "notification-item__review-picture": isReview,
-          "notification-item__ra-picture": isRetroAchievements,
-        })}
-      >
-        {getIcon()}
-      </div>
+      {leaderboardInfo ? (
+        <LeaderboardNotificationIcon info={leaderboardInfo} />
+      ) : (
+        <div
+          className={cn("notification-item__picture", {
+            "notification-item__badge-picture": isBadge,
+            "notification-item__review-picture": isReview,
+            "notification-item__ra-picture": isRetroAchievements,
+          })}
+        >
+          {getIcon()}
+        </div>
+      )}
 
       <div className="notification-item__content">
         <span className="notification-item__title">{content.title}</span>
@@ -392,6 +421,8 @@ export function NotificationItem({
           {formatDistance(new Date(notification.createdAt), new Date())}
         </span>
       </div>
+
+      {leaderboardInfo && <LeaderboardRankChip info={leaderboardInfo} />}
 
       {content.showActions &&
         notification.type === "FRIEND_REQUEST_RECEIVED" && (

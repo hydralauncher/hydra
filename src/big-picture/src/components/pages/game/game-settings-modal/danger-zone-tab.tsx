@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { LibraryGame } from "@types";
 import {
@@ -14,6 +14,7 @@ import {
 import { useIsSteamLibraryExecutable } from "@renderer/hooks/use-steam-library-executable";
 import { Button, VerticalFocusGroup } from "../../../common";
 import { ConfirmationModal } from "../../../modals";
+import { useSourceArchive } from "@renderer/hooks/use-source-archive";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
 import { useBigPictureToast } from "../../../../hooks/use-big-picture-toast.hook";
 import { Feature, useFeature } from "../../../../hooks";
@@ -98,6 +99,17 @@ export function GameDangerZoneSettingsTab({
   const [pendingRemoveFilesTarget, setPendingRemoveFilesTarget] =
     useState<RemoveFilesTarget | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [deleteSourceArchive, setDeleteSourceArchive] = useState(false);
+  const hasSourceArchive = useSourceArchive(
+    pendingRemoveFilesTarget?.kind === "hydra"
+      ? pendingRemoveFilesTarget.game
+      : null,
+    pendingAction === "remove-files"
+  );
+
+  useEffect(() => {
+    setDeleteSourceArchive(false);
+  }, [pendingAction]);
 
   const steamUninstallAvailable =
     typeof globalThis.window.electron.uninstallGameOnSteam === "function";
@@ -221,7 +233,8 @@ export function GameDangerZoneSettingsTab({
 
       await globalThis.window.electron.deleteGameFolder(
         liveTarget.game.shop,
-        liveTarget.game.objectId
+        liveTarget.game.objectId,
+        { deleteSourceArchive: hasSourceArchive && deleteSourceArchive }
       );
       showSuccessToast("Game files removed");
       clearPendingAction();
@@ -244,6 +257,8 @@ export function GameDangerZoneSettingsTab({
     showSuccessToast,
     showErrorToast,
     clearPendingAction,
+    hasSourceArchive,
+    deleteSourceArchive,
   ]);
 
   const confirmationConfig = pendingAction
@@ -334,6 +349,14 @@ export function GameDangerZoneSettingsTab({
           loading={actionLoading}
           onClose={clearPendingAction}
           onConfirm={confirmationConfig.onConfirm}
+          sourceArchiveOption={
+            pendingAction === "remove-files" && hasSourceArchive
+              ? {
+                  checked: deleteSourceArchive,
+                  onChange: setDeleteSourceArchive,
+                }
+              : null
+          }
         />
       )}
     </VerticalFocusGroup>

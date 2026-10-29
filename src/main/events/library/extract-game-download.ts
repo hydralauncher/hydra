@@ -6,6 +6,8 @@ import { DownloadManager, GameFilesManager, logger } from "@main/services";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { Downloader, FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
 
+const activeExtractions = new Set<string>();
+
 const extractGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
@@ -28,6 +30,9 @@ const extractGameDownload = async (
     return false;
   }
 
+  if (activeExtractions.has(gameKey)) return true;
+  activeExtractions.add(gameKey);
+
   await downloadsSublevel.put(gameKey, {
     ...download,
     extracting: true,
@@ -37,6 +42,7 @@ const extractGameDownload = async (
   const targetFolderName = download.folderName;
 
   if (!targetFolderName) {
+    activeExtractions.delete(gameKey);
     await gameFilesManager.failMissingExtractionSource();
     return false;
   }
@@ -85,6 +91,9 @@ const extractGameDownload = async (
       });
   };
 
+  const runTrackedExtraction = () =>
+    runExtraction().finally(() => activeExtractions.delete(gameKey));
+
   const shouldPauseSeedingForExtraction =
     download.downloader === Downloader.Torrent &&
     download.shouldSeed &&
@@ -98,7 +107,7 @@ const extractGameDownload = async (
       );
     });
 
-    void runExtraction().finally(() => {
+    void runTrackedExtraction().finally(() => {
       DownloadManager.resumeSeeding(download).catch((error) => {
         logger.error(
           "[extractGameDownload] Failed to resume seeding after extraction",
@@ -107,7 +116,7 @@ const extractGameDownload = async (
       });
     });
   } else {
-    void runExtraction();
+    void runTrackedExtraction();
   }
 
   return true;

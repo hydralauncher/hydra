@@ -121,16 +121,19 @@ $frame-spinner-overscan: 64px;
 
   position: relative;
 
+  // A negative delay runs ahead, so the highlight reaches the same spot later
+  // the closer the offset is to a full turn: silver trails gold by one third of
+  // a turn and bronze by two thirds, giving 1st -> 2nd -> 3rd.
   &--silver {
     --rank-frame-color: var(--rank-silver-color, #{globals.$rank-silver-color});
     --rank-frame-soft-amount: 34%;
-    --rank-frame-delay: #{$frame-spin-offset * -1};
+    --rank-frame-delay: #{$frame-spin-offset * -2};
   }
 
   &--bronze {
     --rank-frame-color: var(--rank-bronze-color, #{globals.$rank-bronze-color});
     --rank-frame-soft-amount: 42%;
-    --rank-frame-delay: #{$frame-spin-offset * -2};
+    --rank-frame-delay: #{$frame-spin-offset * -1};
   }
 
   &__ring {
