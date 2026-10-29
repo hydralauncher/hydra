@@ -607,7 +607,6 @@ class ScreenshotUploadWorker {
           nextUploadAttemptAt: null,
           pendingCompleteScreenshotId: null,
           ...(step.quality ? { uploadQuality: step.quality } : {}),
-          ...(step.rotateClientId ? { uploadClientId: randomUUID() } : {}),
         });
         emitProgress({ clientId, state: "queued", progress: 0 });
         this.rerunRequested = true;
@@ -622,6 +621,12 @@ class ScreenshotUploadWorker {
             ? attempt
             : Math.max(0, attempt - 1),
           ...getIncrementedWaitCount(current, failure),
+          ...(step.rotateClientId
+            ? {
+                uploadClientId: randomUUID(),
+                pendingCompleteScreenshotId: null,
+              }
+            : {}),
         }));
         emitProgress({ clientId, state: "queued", progress: 0 });
     }

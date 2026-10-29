@@ -155,8 +155,13 @@ export interface ScreenshotUploadRetryState {
 }
 
 export type ScreenshotUploadNextStep =
-  | { kind: "retry_at"; delay: number; countsAsAttempt: boolean }
-  | { kind: "retry_now"; quality?: "STANDARD"; rotateClientId?: boolean }
+  | {
+      kind: "retry_at";
+      delay: number;
+      countsAsAttempt: boolean;
+      rotateClientId?: boolean;
+    }
+  | { kind: "retry_now"; quality?: "STANDARD" }
   | { kind: "failed" }
   | { kind: "stopped" };
 
@@ -189,7 +194,12 @@ export const planScreenshotUploadRecovery = (
     case "rotate_client_id":
       return state.uploadAttempts >= SCREENSHOT_UPLOAD_MAX_ATTEMPTS
         ? { kind: "failed" }
-        : { kind: "retry_now", rotateClientId: true };
+        : {
+            kind: "retry_at",
+            delay: getScreenshotUploadRetryDelay(state.uploadAttempts),
+            countsAsAttempt: true,
+            rotateClientId: true,
+          };
     case "wait":
       return (state.capacityWaits ?? 0) >= SCREENSHOT_UPLOAD_MAX_SERVER_WAITS
         ? { kind: "failed" }
