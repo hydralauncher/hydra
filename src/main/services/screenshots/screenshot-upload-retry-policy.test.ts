@@ -8,6 +8,7 @@ import {
   planScreenshotUploadRecovery,
   SCREENSHOT_MISSING_FILE_CODE,
   SCREENSHOT_MODERATION_DEFAULT_WAIT_MS,
+  SCREENSHOT_MODERATION_MAX_WAIT_MS,
   SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS,
   SCREENSHOT_UPLOAD_GAME_WAIT_DELAY_MS,
   SCREENSHOT_UPLOAD_MAX_ATTEMPTS,
@@ -54,7 +55,8 @@ describe("screenshot upload failure", () => {
       ["screenshots/cloud-subscription-required", "recompress_standard"],
       ["screenshots/client-id-conflict", "rotate_client_id"],
       ["screenshots/upload-expired", "rotate_client_id"],
-      ["screenshots/upload-incomplete", "retry"],
+      ["screenshots/upload-incomplete", "rotate_client_id"],
+      ["screenshots/upload-mismatch", "rotate_client_id"],
       ["screenshots/upload-rate-limited", "rate_limit_wait"],
       ["screenshots/upload-capacity-reached", "wait"],
       ["screenshots/moderation-in-progress", "moderation_wait"],
@@ -98,7 +100,6 @@ describe("screenshot upload failure", () => {
 
   it("reads retry-after for retries, rate limits and moderation waits", () => {
     for (const code of [
-      "screenshots/upload-incomplete",
       "screenshots/upload-rate-limited",
       "screenshots/moderation-rate-limited",
     ]) {
@@ -109,6 +110,12 @@ describe("screenshot upload failure", () => {
         12_000
       );
     }
+    assert.equal(
+      getScreenshotUploadFailure(
+        axiosError(503, undefined, { "retry-after": "12" })
+      ).retryAfterMs,
+      12_000
+    );
   });
 
   it("ignores retry-after for other actions and invalid values", () => {
@@ -280,6 +287,13 @@ describe("screenshot upload recovery plan", () => {
     assert.equal(
       getScreenshotModerationWaitDelay(failure, 20),
       SCREENSHOT_MODERATION_DEFAULT_WAIT_MS + 60_000
+    );
+    assert.equal(
+      getScreenshotModerationWaitDelay(
+        { ...failure, retryAfterMs: 30 * 24 * 60 * 60_000 },
+        0
+      ),
+      SCREENSHOT_MODERATION_MAX_WAIT_MS
     );
     assert.deepEqual(plan(failure, { moderationWaits: 1 }), {
       kind: "retry_at",
