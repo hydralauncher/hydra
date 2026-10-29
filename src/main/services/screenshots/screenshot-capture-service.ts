@@ -78,45 +78,58 @@ const gameSessionIds = new Map<string, string>();
 let captureInProgress = false;
 let pendingSaves: Promise<void> = Promise.resolve();
 
-const writeScreenshotFile = async (filePath: string, data: Buffer) => {
-  try {
-    await fs.promises.writeFile(filePath, data);
-  } catch (error) {
-    await fs.promises.rm(filePath, { force: true }).catch((removeError) => {
-      logger.warn("Failed to remove a partially written screenshot", {
-        filePath,
-        error: removeError,
-      });
+const removePartialScreenshot = async (filePath: string) => {
+  await fs.promises.rm(filePath, { force: true }).catch((removeError) => {
+    logger.warn("Failed to remove a partially written screenshot", {
+      filePath,
+      error: removeError,
     });
+  });
+};
+
+const writeNewScreenshotFile = async (filePath: string, data: Buffer) => {
+  const handle = await fs.promises.open(filePath, "wx");
+  try {
+    await handle.writeFile(data);
+    await handle.close();
+  } catch (error) {
+    await handle.close().catch(() => undefined);
+    await removePartialScreenshot(filePath);
     throw error;
   }
 };
 
-const resolveAvailableFilePath = async (
+const isFileExistsError = (error: unknown) =>
+  (error as NodeJS.ErrnoException | null)?.code === "EEXIST";
+
+const writeScreenshotToAvailablePath = async (
   screenshotsRoot: string,
   gameTitle: string,
-  capturedAt: Date
+  capturedAt: Date,
+  data: Buffer
 ) => {
-  for (let suffix = 0; suffix <= MAX_FILE_NAME_SUFFIX; suffix++) {
+  const suffixes: (number | string)[] = [
+    ...Array.from({ length: MAX_FILE_NAME_SUFFIX + 1 }, (_, suffix) => suffix),
+    randomUUID(),
+  ];
+  let lastError: unknown = null;
+  for (const suffix of suffixes) {
     const filePath = resolveManualScreenshotPath(
       screenshotsRoot,
       gameTitle,
       capturedAt,
       suffix
     );
-    const exists = await fs.promises
-      .access(filePath)
-      .then(() => true)
-      .catch(() => false);
-    if (!exists) return filePath;
+    try {
+      await writeNewScreenshotFile(filePath, data);
+      return filePath;
+    } catch (error) {
+      if (!isFileExistsError(error)) throw error;
+      lastError = error;
+    }
   }
 
-  return resolveManualScreenshotPath(
-    screenshotsRoot,
-    gameTitle,
-    capturedAt,
-    randomUUID()
-  );
+  throw lastError;
 };
 
 const getDefaultCustomGameTitle = (
@@ -138,8 +151,25 @@ const getGameSessionId = (gameKey: string) => {
   return sessionId;
 };
 
-const resolveCaptureFilePath = async (gameTitle: string, capturedAt: Date) =>
-  resolveAvailableFilePath(await getScreenshotsFolder(), gameTitle, capturedAt);
+const saveCaptureFile = async (
+  gameTitle: string,
+  capturedAt: Date,
+  data: Buffer
+) => {
+  const screenshotsRoot = await getScreenshotsFolder();
+  await fs.promises.mkdir(
+    path.dirname(
+      resolveManualScreenshotPath(screenshotsRoot, gameTitle, capturedAt)
+    ),
+    { recursive: true }
+  );
+  return writeScreenshotToAvailablePath(
+    screenshotsRoot,
+    gameTitle,
+    capturedAt,
+    data
+  );
+};
 
 interface FinishCaptureOptions {
   target: Pick<ScreenshotGameTarget, "gameKey" | "shop" | "objectId">;
@@ -445,9 +475,7 @@ const grabScreenshot = async (
   return async () => {
     let filePath: string;
     try {
-      filePath = await resolveCaptureFilePath(gameTitle, capturedAt);
-      await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-      await writeScreenshotFile(filePath, images.jpeg);
+      filePath = await saveCaptureFile(gameTitle, capturedAt, images.jpeg);
     } catch (error) {
       failCapture(error);
       return;
