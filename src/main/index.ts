@@ -129,9 +129,7 @@ const initializeApp = async () => {
 
   protocol.handle("local", (request) => {
     const filePath = request.url.slice("local:".length);
-    return net.fetch(
-      url.pathToFileURL(decodeURIComponent(filePath)).toString()
-    );
+    return net.fetch(url.pathToFileURL(decodeURI(filePath)).toString());
   });
 
   protocol.handle("gradient", (request) => {
