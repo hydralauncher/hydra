@@ -8,7 +8,13 @@ import {
   useCoverPoster,
   useGameCard,
   useAnimatedSourceWarmup,
+  useCatalogueImage,
+  useViewportCatalogueImageUrl,
 } from "@renderer/hooks";
+import {
+  getCatalogueImageDensitySrcSet,
+  pickCatalogueImageUrl,
+} from "@renderer/helpers/catalogue-images";
 import {
   CLASSICS_PS_PLATFORM_LABELS,
   isGameReadyToPlay,
@@ -34,6 +40,7 @@ import "./library-game-card-large.scss";
 
 // Cards scrolled past or remounted within this window never load, keeping scroll bursts off the API.
 const ACHIEVEMENT_PROGRESS_SETTLE_MS = 250;
+const LOGO_DISPLAY_WIDTH = 400;
 
 interface LibraryGameCardLargeProps {
   game: LibraryGame;
@@ -299,26 +306,34 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     achievementGameKey,
   ]);
 
+  const rawHeroSource = heroSources[heroIndex];
+  const heroImage = useCatalogueImage(rawHeroSource, game.images);
+  const heroVariantUrl = useViewportCatalogueImageUrl(heroImage.variants);
+  const { markLoaded: markHeroLoaded, markFailed: markHeroFailed } = heroImage;
+
   useEffect(() => {
-    const currentUrl = heroSources[heroIndex];
+    const currentUrl = heroVariantUrl ?? heroSources[heroIndex];
     if (!currentUrl) return;
 
     const img = new Image();
     img.src = normalizePathForCss(currentUrl);
 
+    img.onload = markHeroLoaded;
     img.onerror = () => {
+      if (markHeroFailed()) return;
       if (heroIndex < heroSources.length - 1) {
         setHeroIndex((prev) => prev + 1);
       }
     };
 
     return () => {
+      img.onload = null;
       img.onerror = null;
     };
-  }, [heroIndex, heroSources]);
+  }, [heroIndex, heroSources, heroVariantUrl, markHeroLoaded, markHeroFailed]);
 
-  const rawHeroSource = heroSources[heroIndex];
-  const isAnimatedHero = isAnimatedCoverCandidate(rawHeroSource);
+  const isAnimatedHero =
+    !heroImage.variants && isAnimatedCoverCandidate(rawHeroSource);
   const heroPoster = useCoverPoster(rawHeroSource, isAnimatedHero);
   const shouldHoldHeroFrame =
     isAnimatedHero && !isCoverHovered && !autoplayAnimatedArtwork;
@@ -329,7 +344,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     isAnimatedHero && !autoplayAnimatedArtwork && Boolean(heroPoster)
   );
 
-  let displayHeroSource: string | null | undefined = rawHeroSource;
+  let displayHeroSource: string | null | undefined =
+    heroVariantUrl ?? rawHeroSource;
   if (isAwaitingHeroPoster) {
     displayHeroSource = undefined;
   } else if (shouldHoldHeroFrame && heroPoster) {
@@ -346,14 +362,18 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     ? normalizePathForCss(displayHeroSource)
     : "";
 
+  const heroPlaceholder = heroImage.isLoaded ? null : heroImage.placeholder;
   const backgroundStyle = useMemo(
     () =>
       !usesAnimatedHeroLayer && displayHeroSource
         ? {
-            backgroundImage: `url("${normalizePathForCss(displayHeroSource)}")`,
+            backgroundImage: [displayHeroSource, heroPlaceholder]
+              .filter(Boolean)
+              .map((url) => `url("${normalizePathForCss(url)}")`)
+              .join(", "),
           }
         : {},
-    [usesAnimatedHeroLayer, displayHeroSource]
+    [usesAnimatedHeroLayer, displayHeroSource, heroPlaceholder]
   );
 
   const classicsForegroundUrl = useMemo(() => {
@@ -363,6 +383,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   }, [renderClassicsBlurred, activeHeroCandidate, displayHeroSource]);
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
+  const logoCatalogueImage = useCatalogueImage(logoImage, game.images);
+  const logoVariants = logoCatalogueImage.variants;
 
   const { label: classicsPlatformLabel, icon: classicsEmulatorIcon } =
     resolveClassicsBadge(
@@ -491,9 +513,22 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         <div className="library-game-card-large__logo-container">
           {logoImage ? (
             <img
-              src={logoImage}
+              src={
+                logoVariants
+                  ? pickCatalogueImageUrl(logoVariants, LOGO_DISPLAY_WIDTH)
+                  : logoImage
+              }
+              srcSet={
+                logoVariants
+                  ? getCatalogueImageDensitySrcSet(
+                      logoVariants,
+                      LOGO_DISPLAY_WIDTH
+                    )
+                  : undefined
+              }
               alt={game.title}
               className="library-game-card-large__logo"
+              onError={logoCatalogueImage.markFailed}
             />
           ) : (
             <h3 className="library-game-card-large__title">{game.title}</h3>

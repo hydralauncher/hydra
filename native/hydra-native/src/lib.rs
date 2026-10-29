@@ -1,6 +1,7 @@
 mod active_window;
 mod cloud_save;
 mod constants;
+mod in_place_extraction;
 mod kde_focus;
 mod linux_process;
 mod screenshot_input;
