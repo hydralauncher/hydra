@@ -15,7 +15,8 @@ export type MyScreenshotsDeletion = "all" | "published" | "local";
 
 export type MyScreenshotsDeletionErrorCode =
   | ScreenshotApiErrorCode
-  | "screenshots/local-deletion-incomplete";
+  | "screenshots/local-deletion-incomplete"
+  | "screenshots/local-cleanup-failed";
 
 export type MyScreenshotsDeletionResult =
   | { ok: true; deleted: number }
@@ -32,10 +33,13 @@ interface DeletionContext {
   local: MyGameScreenshotsLocalBridge;
 }
 
+type DeletionStage = "server" | "local-cleanup";
+
 class PartialDeletionError extends Error {
   constructor(
     readonly deleted: number,
-    readonly reason: unknown
+    readonly reason: unknown,
+    readonly stage: DeletionStage
   ) {
     super("Screenshot deletion stopped partway");
   }
@@ -49,7 +53,7 @@ const continueAfterServerDeletion = async <T>(
     return await step();
   } catch (error) {
     if (error instanceof PartialDeletionError) throw error;
-    throw new PartialDeletionError(deleted, error);
+    throw new PartialDeletionError(deleted, error, "local-cleanup");
   }
 };
 
@@ -98,7 +102,7 @@ const deletePublishedOnServer = async (
     }
   } catch (error) {
     await forgetPublished(context, deletedIds);
-    throw new PartialDeletionError(deletedIds.length, error);
+    throw new PartialDeletionError(deletedIds.length, error, "server");
   }
   return deletedIds.length;
 };
@@ -113,6 +117,7 @@ const deletePublished = async (context: DeletionContext) => {
 };
 
 const LOCAL_DELETION_INCOMPLETE = "screenshots/local-deletion-incomplete";
+const LOCAL_CLEANUP_FAILED = "screenshots/local-cleanup-failed";
 
 interface DeletionOutcome {
   deleted: number;
@@ -133,7 +138,8 @@ const isUnsentLocalFile = ({
 
 const deleteLatePublished = async (
   context: DeletionContext,
-  knownIds: string[]
+  knownIds: string[],
+  deleted: number
 ) => {
   const known = new Set(knownIds);
   const lateIds = (await getPublishedIds(context)).filter(
@@ -145,9 +151,13 @@ const deleteLatePublished = async (
       await deletePublishedScreenshot(context.api, id);
       deletedIds.push(id);
     }
-  } finally {
-    await forgetPublished(context, [...knownIds, ...deletedIds]);
+  } catch (error) {
+    await Promise.allSettled([
+      forgetPublished(context, [...knownIds, ...deletedIds]),
+    ]);
+    throw new PartialDeletionError(deleted, error, "server");
   }
+  await forgetPublished(context, [...knownIds, ...deletedIds]);
 };
 
 const deleteAll = async (context: DeletionContext) => {
@@ -180,7 +190,7 @@ const deleteAll = async (context: DeletionContext) => {
   const deleted = published + unsentDeleted;
 
   await continueAfterServerDeletion(deleted, () =>
-    deleteLatePublished(context, knownIds)
+    deleteLatePublished(context, knownIds, deleted)
   );
   return { deleted, isComplete: local.isComplete };
 };
@@ -223,12 +233,22 @@ export const deleteMyGameScreenshots = async (
       error: null,
     };
   } catch (error) {
-    const cause = error instanceof PartialDeletionError ? error.reason : error;
+    if (!(error instanceof PartialDeletionError)) {
+      return {
+        ok: false,
+        deleted: 0,
+        errorCode: getScreenshotApiErrorCode(error),
+        error,
+      };
+    }
     return {
       ok: false,
-      deleted: error instanceof PartialDeletionError ? error.deleted : 0,
-      errorCode: getScreenshotApiErrorCode(cause),
-      error: cause,
+      deleted: error.deleted,
+      errorCode:
+        error.stage === "local-cleanup"
+          ? LOCAL_CLEANUP_FAILED
+          : getScreenshotApiErrorCode(error.reason),
+      error: error.reason,
     };
   }
 };

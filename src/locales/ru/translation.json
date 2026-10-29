@@ -2905,6 +2905,7 @@
     "delete_screenshots_failed_kept": "Не удалось удалить опубликованные скриншоты, поэтому ничего не было удалено. Попробуйте снова.",
     "delete_screenshots_rate_limited_kept": "Вы слишком часто удаляете скриншоты, поэтому ничего не было удалено. Попробуйте снова через несколько минут.",
     "delete_screenshots_partial": "Некоторые опубликованные скриншоты не были удалены. Попробуйте снова, чтобы удалить остальные.",
+    "delete_screenshots_local_cleanup_failed": "Опубликованные скриншоты удалены, но некоторые локальные файлы удалить не удалось. Попробуйте снова.",
     "screenshots_deleted_count_one": "Удалён {{count}} скриншот",
     "screenshots_deleted_count_few": "Удалено {{count}} скриншота",
     "screenshots_deleted_count_many": "Удалено {{count}} скриншотов",
