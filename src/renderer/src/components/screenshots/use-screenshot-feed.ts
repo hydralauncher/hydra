@@ -214,9 +214,18 @@ export function useScreenshotFeed({
 
   patchItemRef.current = patchItem;
 
+  const listedItemsRef = useRef(items);
+  listedItemsRef.current = items;
+
   const removeItem = useCallback(
     (screenshotId: string) => {
       ledger.recordWrite(screenshotId, null);
+      const listedItems = listedItemsRef.current;
+      if (!listedItems.some((item) => item.id === screenshotId)) return;
+
+      listedItemsRef.current = listedItems.filter(
+        (item) => item.id !== screenshotId
+      );
       setItems((current) => current.filter((item) => item.id !== screenshotId));
       setTotal((value) => (value === null ? value : Math.max(0, value - 1)));
     },
