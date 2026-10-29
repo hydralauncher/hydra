@@ -47,6 +47,7 @@ import { watchSteamLibraries } from "./services/steam-integration/steam-install-
 import { migrateGameVisibilityFields } from "./services/library-sync/game-visibility-migration";
 import { UmuUpdater } from "./services/umu-updater";
 import { initializeScreenshots } from "./services/screenshots";
+import { setTrackedGamesRunningListenerErrorReporter } from "./services/game-running-state";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -85,6 +86,9 @@ export const loadState = async () => {
   );
 
   Wine.syncUserPreferences(userPreferences);
+  setTrackedGamesRunningListenerErrorReporter((error) =>
+    logger.error("Tracked games running listener failed", error)
+  );
   ScreenshotInputService.syncUserPreferences(userPreferences);
 
   await import("./events");
