@@ -1,0 +1,1750 @@
+@use "../../scss/globals.scss";
+
+$leaderboards-muted-text: #c0c1c7;
+$leaderboards-surface: #1a1a1a;
+$leaderboards-up: #4ade80;
+$leaderboards-down: #ff6b81;
+$leaderboards-ended: #838383;
+$leaderboards-streak-from: #22c7ee;
+$leaderboards-streak-to: #b05cff;
+$leaderboards-heat-size: 12px;
+$leaderboards-heat-gap: 3px;
+
+.leaderboards {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 3);
+  width: 100%;
+  padding: calc(globals.$spacing-unit * 3);
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 3);
+  }
+
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__heading {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__subtitle {
+    font-size: globals.$hint-font-size;
+    color: $leaderboards-muted-text;
+
+    &--countdown {
+      margin-top: -2px;
+      font-size: globals.$small-font-size;
+      opacity: 0.75;
+    }
+  }
+
+  // The heading grows to fill the row, which keeps the toggles on the right;
+  // when they wrap they start under the title instead.
+  &__toggles {
+    min-width: min(100%, 500px);
+    max-width: 100%;
+    display: flex;
+    gap: globals.$spacing-unit;
+
+    // Same width for both controls, so the longer period labels do not make
+    // the period control larger than the scope one.
+    .leaderboard-controls__segmented {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    .leaderboard-controls__segment {
+      height: 34px;
+      font-size: globals.$small-font-size;
+    }
+  }
+
+  &__tabs {
+    margin-top: calc(globals.$spacing-unit * -1);
+    display: flex;
+    gap: calc(globals.$spacing-unit * 3);
+    border-bottom: solid 1px globals.$border-color;
+  }
+
+  &__tab {
+    height: 40px;
+    margin-bottom: -1px;
+    padding: 0 2px;
+    border: 0;
+    border-bottom: solid 2px transparent;
+    background: transparent;
+    color: $leaderboards-muted-text;
+    font-size: globals.$body-font-size;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+      color 0.2s ease,
+      border-color 0.2s ease;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+
+    &--selected {
+      border-bottom-color: globals.$muted-color;
+      color: globals.$muted-color;
+    }
+  }
+
+  &__leaders {
+    margin-bottom: calc(globals.$spacing-unit * -1.75);
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.25);
+  }
+
+  &__section-title {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: $leaderboards-muted-text;
+  }
+
+  &__section-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__heading-2 {
+    flex-grow: 1;
+    margin: 0;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__heading-3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
+    gap: globals.$spacing-unit;
+  }
+
+  &__card {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 1.25);
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$background-color;
+    color: globals.$body-color;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &--selected,
+    &--selected:hover {
+      border-color: globals.$muted-color;
+      background-color: $leaderboards-surface;
+    }
+  }
+
+  &__card-label {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    white-space: nowrap;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  &__card-label-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__card--selected &__card-label {
+    color: globals.$muted-color;
+  }
+
+  &__card-leader {
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+  }
+
+  &__card-leader-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__card-leader-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: globals.$hint-font-size;
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__card-leader-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: globals.$small-font-size;
+    color: $leaderboards-muted-text;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__card-empty {
+    font-size: globals.$small-font-size;
+  }
+
+  &__card-placeholder {
+    display: block;
+    height: 86px;
+    border-radius: 8px;
+  }
+
+  &__card-skeleton {
+    height: 28px;
+  }
+
+  &__board,
+  &__panel {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2.5);
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$background-color;
+    color: globals.$muted-color;
+  }
+
+  &__board--game {
+    overflow: hidden;
+  }
+
+  &__panel {
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__board-header {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.25);
+  }
+
+  &__board-title {
+    flex-grow: 1;
+    margin: 0;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 700;
+  }
+
+  &__board-count {
+    font-size: globals.$small-font-size;
+    color: $leaderboards-muted-text;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__more {
+    display: flex;
+    justify-content: center;
+  }
+
+  &__message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 5) calc(globals.$spacing-unit * 2);
+    text-align: center;
+    color: $leaderboards-muted-text;
+  }
+
+  &__message-title {
+    color: globals.$muted-color;
+    font-size: globals.$hint-font-size;
+    font-weight: 600;
+  }
+
+  &__message-description {
+    max-width: 360px;
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+  }
+
+  &__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__skeleton-podium {
+    display: block;
+    border-radius: 8px;
+  }
+
+  &__skeleton-row {
+    height: 56px;
+    border-radius: 8px;
+  }
+
+  &__block-skeleton {
+    border-radius: 8px;
+  }
+
+  &__sign-in {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    font-size: globals.$small-font-size;
+    color: $leaderboards-muted-text;
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $leaderboards-muted-text;
+    font-size: globals.$body-font-size;
+    cursor: pointer;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+
+    &--padded {
+      padding-top: globals.$spacing-unit;
+      font-size: globals.$hint-font-size;
+    }
+  }
+
+  .leaderboard-row__progress-fill {
+    background-image: linear-gradient(
+      90deg,
+      $leaderboards-streak-from,
+      $leaderboards-streak-to
+    );
+    opacity: 0.55;
+  }
+
+  .leaderboard-row--viewer .leaderboard-row__progress-fill {
+    opacity: 1;
+  }
+
+  &__sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  // The selected review reuses the game page review (review-item.scss); these
+  // only add the game link and the upvote badge.
+  &__review {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__review-rating {
+    margin-left: 2px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  &__review-game {
+    font-size: globals.$small-font-size;
+  }
+
+  &__review-highlight {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__review-title {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+
+    svg {
+      color: globals.$rank-gold-color;
+    }
+  }
+
+  // Only here: a long review must not push the ranking down. The game page
+  // shows reviews in full.
+  &__review-text {
+    margin: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+    overflow: hidden;
+  }
+
+  // Report as cheater: a bare icon, only shown on hover (leaderboard-row and
+  // leaderboard-podium reveal it).
+  &__report {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background-color: rgb(0 0 0 / 45%);
+    color: $leaderboards-muted-text;
+    cursor: pointer;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgb(0 0 0 / 70%);
+      color: globals.$muted-color;
+    }
+  }
+
+  // The upvote count as a badge next to the score, not a vote button.
+  &__review-likes {
+    cursor: default;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  &__review-score {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: globals.$small-font-size;
+    color: $leaderboards-muted-text;
+
+    svg {
+      color: #ffffff;
+    }
+  }
+
+  &__review-translation-toggle {
+    margin-top: 0;
+  }
+
+  &__review-original {
+    margin-top: calc(globals.$spacing-unit * 1.5);
+    opacity: 0.6;
+  }
+
+  &__review-tip {
+    width: 360px;
+    display: flex;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 1.5);
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background-color: globals.$dark-background-color;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    text-align: left;
+  }
+
+  &__review-tip-cover {
+    width: 48px;
+    height: 72px;
+    flex-shrink: 0;
+    object-fit: cover;
+    border: solid 1px globals.$border-color;
+    border-radius: 4px;
+  }
+
+  &__review-tip-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__review-tip-game {
+    font-size: globals.$hint-font-size;
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__review-tip-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+    font-size: globals.$hint-font-size;
+    line-height: 19px;
+    color: globals.$muted-color;
+
+    // A translation is HTML and may hold several paragraphs.
+    p {
+      margin: 0;
+    }
+  }
+
+  &__chips {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: globals.$spacing-unit;
+  }
+
+  &__chip {
+    height: 30px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border: solid 1px globals.$border-color;
+    border-radius: 999px;
+    background: transparent;
+    color: $leaderboards-muted-text;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &--selected,
+    &--selected:hover {
+      border-color: globals.$muted-color;
+      background-color: globals.$muted-color;
+      color: globals.$dark-background-color;
+    }
+  }
+
+  &__my-games {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__search {
+    width: 260px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$background-color;
+    color: $leaderboards-muted-text;
+
+    input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: globals.$muted-color;
+      font-family: inherit;
+      font-size: globals.$hint-font-size;
+
+      &::placeholder {
+        color: $leaderboards-muted-text;
+      }
+    }
+  }
+
+  &__search-clear {
+    flex-shrink: 0;
+    display: flex;
+    padding: 2px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: $leaderboards-muted-text;
+    cursor: pointer;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+  }
+
+  &__games {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(200px, 1fr);
+    gap: globals.$spacing-unit;
+    // Room for the card borders, which the scroll container would clip.
+    padding: 2px 2px calc(globals.$spacing-unit * 1.25);
+    overflow-x: auto;
+
+    &::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background-color: transparent;
+    }
+  }
+
+  &__game {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 1.25);
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$background-color;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      background-color: $leaderboards-surface;
+    }
+
+    &--selected,
+    &--selected:hover {
+      border-color: globals.$muted-color;
+      background-color: $leaderboards-surface;
+    }
+  }
+
+  &__game-cover,
+  &__hero-cover {
+    flex-shrink: 0;
+    border: solid 1px globals.$border-color;
+    border-radius: 4px;
+    background-color: $leaderboards-surface;
+    background-image: var(--cover);
+    background-size: cover;
+    background-position: center;
+  }
+
+  &__game-cover {
+    width: 52px;
+    height: 78px;
+  }
+
+  &__game-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__game-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: globals.$body-font-size;
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__game-rank {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  &__game-position {
+    font-size: 16px;
+    font-weight: 800;
+    color: globals.$muted-color;
+  }
+
+  &__game-total {
+    font-size: globals.$small-font-size;
+    color: $leaderboards-muted-text;
+  }
+
+  &__game-leader {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: $leaderboards-muted-text;
+  }
+
+  &__game-skeleton {
+    height: 100px;
+    border-radius: 8px;
+  }
+
+  &__hero {
+    margin: calc(globals.$spacing-unit * -2.5)
+      calc(globals.$spacing-unit * -2.5) 0;
+    padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 2.5)
+      calc(globals.$spacing-unit * 2.5);
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+
+    &--image {
+      background-image:
+        linear-gradient(
+          180deg,
+          rgba(18, 18, 18, 0.35) 0%,
+          rgba(18, 18, 18, 0.85) 70%,
+          globals.$background-color 100%
+        ),
+        var(--hero);
+      background-size: cover;
+      background-position: center;
+    }
+  }
+
+  &__hero-cover {
+    width: 48px;
+    height: 72px;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  &__hero-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__hero-title {
+    margin: 0;
+    font-size: 18px;
+    line-height: 26px;
+    font-weight: 700;
+  }
+
+  &__hero-subtitle {
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+  }
+
+  &__hero-link {
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background-color: rgba(13, 13, 13, 0.5);
+    color: globals.$muted-color;
+    font-size: globals.$hint-font-size;
+    cursor: pointer;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  &__stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: calc(globals.$spacing-unit * 3);
+    align-items: stretch;
+
+    .leaderboards__panel {
+      justify-content: space-between;
+    }
+
+    // Empty states fill the rest of the card and sit in its middle.
+    .leaderboards__panel > .leaderboards__message {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+
+  // The border is drawn on top of the content so the banner header cannot
+  // show through or beside it at the rounded edges.
+  &__mine {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    background-color: globals.$background-color;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: solid 1px globals.$border-color;
+      border-radius: inherit;
+      pointer-events: none;
+    }
+  }
+
+  &__mine-header {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 2)
+      calc(globals.$spacing-unit * 2);
+    border-bottom: solid 1px globals.$border-color;
+
+    &--banner {
+      border-bottom: 0;
+      background-image:
+        linear-gradient(
+          180deg,
+          rgba(18, 18, 18, 0.15) 0%,
+          rgba(18, 18, 18, 0.85) 75%,
+          globals.$background-color 100%
+        ),
+        var(--mine-banner);
+      background-size: cover;
+      background-position: center;
+    }
+  }
+
+  &__mine-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__mine-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__mine-name {
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+  }
+
+  &__mine-list {
+    list-style: none;
+    margin: 0;
+    padding: globals.$spacing-unit;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__mine-row {
+    width: 100%;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.25);
+    padding: 0 globals.$spacing-unit;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: globals.$body-color;
+    font-size: globals.$hint-font-size;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  &__mine-label {
+    flex: 1;
+    color: globals.$muted-color;
+  }
+
+  &__mine-value {
+    font-size: globals.$hint-font-size;
+    color: $leaderboards-muted-text;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  &__mine-delta {
+    min-width: 32px;
+    text-align: right;
+  }
+
+  &__mine-rank {
+    min-width: 32px;
+    margin-left: 2px;
+    text-align: left;
+    font-weight: 700;
+    color: globals.$muted-color;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__mine-error {
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+  }
+
+  &__mine-retry {
+    display: flex;
+    justify-content: center;
+    padding: 0 globals.$spacing-unit globals.$spacing-unit;
+  }
+
+  &__activity-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+  }
+
+  // Inset by the card padding so the numbers do not touch the right edge.
+  &__activity-streaks {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    padding-inline-end: calc(globals.$spacing-unit * 2);
+    font-size: globals.$small-font-size;
+    color: $leaderboards-muted-text;
+  }
+
+  &__activity-streak {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+
+    strong {
+      font-size: 18px;
+      line-height: 22px;
+      font-weight: 800;
+      color: globals.$muted-color;
+    }
+  }
+
+  &__activity-body {
+    position: relative;
+    width: max-content;
+    max-width: 100%;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__activity-scroll {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  &__activity-graph {
+    width: max-content;
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      ". months"
+      "days cells";
+    gap: 4px 6px;
+  }
+
+  &__activity-months {
+    grid-area: months;
+    display: grid;
+    // One column per week, like the cells, however many weeks there are.
+    grid-auto-columns: $leaderboards-heat-size;
+    column-gap: $leaderboards-heat-gap;
+    height: 14px;
+  }
+
+  &__activity-month {
+    grid-row: 1;
+    font-size: 11px;
+    line-height: 14px;
+    white-space: nowrap;
+    color: $leaderboards-muted-text;
+  }
+
+  &__activity-days {
+    grid-area: days;
+    display: grid;
+    grid-template-rows: repeat(7, $leaderboards-heat-size);
+    row-gap: $leaderboards-heat-gap;
+  }
+
+  &__activity-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    font-size: globals.$small-font-size;
+    color: $leaderboards-muted-text;
+  }
+
+  &__heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+
+    .leaderboards__heat {
+      width: $leaderboards-heat-size;
+      height: $leaderboards-heat-size;
+    }
+  }
+
+  &__heatmap {
+    grid-area: cells;
+    display: grid;
+    grid-template-rows: repeat(7, $leaderboards-heat-size);
+    grid-auto-columns: $leaderboards-heat-size;
+    grid-auto-flow: column;
+    gap: $leaderboards-heat-gap;
+  }
+
+  &__heatmap-day {
+    display: flex;
+    align-items: center;
+    font-size: 10px;
+    line-height: 1;
+    color: $leaderboards-muted-text;
+  }
+
+  &__heat {
+    box-sizing: border-box;
+    border: solid 1px transparent;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, 0.06);
+
+    &--1 {
+      background-color: rgba(34, 199, 238, 0.28);
+    }
+
+    &--2 {
+      background-color: rgba(106, 140, 255, 0.62);
+      box-shadow: 0 0 4px rgba(106, 140, 255, 0.3);
+    }
+
+    &--3 {
+      background-color: #c98dff;
+      box-shadow: 0 0 6px rgba(176, 92, 255, 0.55);
+    }
+
+    &--future {
+      background-color: transparent;
+    }
+
+    &--today {
+      border-color: globals.$muted-color;
+    }
+
+    &[data-heat-index]:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  // Positioned from the hovered cell in stats-tab.tsx; the modifiers only
+  // choose which side of that point the tip opens to.
+  &__heat-tip {
+    --heat-tip-x: -50%;
+    --heat-tip-y: -100%;
+    position: absolute;
+    z-index: 5;
+    transform: translate(var(--heat-tip-x), var(--heat-tip-y));
+    width: max-content;
+    max-width: 280px;
+    padding: 6px globals.$spacing-unit;
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    background-color: globals.$dark-background-color;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    font-size: 12px;
+    line-height: 18px;
+    color: globals.$muted-color;
+    pointer-events: none;
+  }
+
+  &__heat-tip--below {
+    --heat-tip-y: 0;
+  }
+
+  &__heat-tip--start {
+    --heat-tip-x: -12px;
+  }
+
+  &__heat-tip--end {
+    --heat-tip-x: calc(-100% + 12px);
+  }
+
+  &__heat-tip-game {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+
+  &__friend-streaks {
+    flex: 1;
+    display: grid;
+    grid-auto-rows: minmax(72px, 1fr);
+    gap: globals.$spacing-unit;
+  }
+
+  &__friend-streak {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: $leaderboards-surface;
+    background-clip: padding-box;
+
+    &--banner {
+      background-image:
+        linear-gradient(90deg, rgb(0 0 0 / 75%), rgb(0 0 0 / 30%)),
+        var(--friend-banner);
+      background-size: cover;
+      background-position: center;
+    }
+
+    &--viewer {
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+  }
+
+  &__friend-head {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+
+  &__friend-avatar {
+    position: relative;
+    display: flex;
+  }
+
+  &__presence {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 9px;
+    height: 9px;
+    border: solid 2px globals.$background-color;
+    border-radius: 999px;
+    background-color: $leaderboards-ended;
+
+    &--online {
+      background-color: globals.$success-color;
+    }
+  }
+
+  &__friend-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__friend-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: globals.$hint-font-size;
+    color: globals.$muted-color;
+  }
+
+  &__friend-presence {
+    font-size: 11px;
+    color: $leaderboards-muted-text;
+  }
+
+  &__friend-days {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 18px;
+    font-weight: 800;
+    color: globals.$muted-color;
+    white-space: nowrap;
+  }
+
+  &__friend-skeleton {
+    height: 72px;
+    border-radius: 8px;
+  }
+
+  &__badges-section {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__badges {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__badge {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.75);
+    padding: calc(globals.$spacing-unit * 1.75);
+    border: solid 1px rgba(255, 255, 255, 0.34);
+    border-radius: 8px;
+    background-color: globals.$background-color;
+
+    &--gold {
+      --chip-bg: #{globals.$rank-gold-color};
+    }
+
+    &--silver {
+      --chip-bg: #{globals.$rank-silver-color};
+    }
+
+    &--bronze {
+      --chip-bg: #{globals.$rank-bronze-color};
+    }
+
+    &--streak {
+      --chip-bg: linear-gradient(
+        90deg,
+        #{$leaderboards-streak-from},
+        #{$leaderboards-streak-to}
+      );
+    }
+
+    &--streak:not(&--locked) {
+      border-color: transparent;
+      box-shadow: 0 0 24px rgba(106, 140, 255, 0.12);
+
+      &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        padding: 1.5px;
+        border-radius: inherit;
+        background: linear-gradient(
+          90deg,
+          $leaderboards-streak-from,
+          #6a8cff 50%,
+          $leaderboards-streak-to
+        );
+        mask:
+          linear-gradient(#000 0 0) content-box exclude,
+          linear-gradient(#000 0 0);
+        pointer-events: none;
+      }
+    }
+
+    &--ring {
+      border-color: transparent;
+    }
+
+    &--locked {
+      --chip-bg: #262626;
+
+      border-style: dashed;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  &__badge-art {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+  }
+
+  &__badge-cover {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background-color: $leaderboards-surface;
+    background-image: var(--cover);
+    background-size: cover;
+    background-position: center;
+    color: globals.$warning-color;
+  }
+
+  &__badge--locked &__badge-cover {
+    filter: grayscale(1);
+    opacity: 0.45;
+  }
+
+  &__badge-chip {
+    position: absolute;
+    left: 50%;
+    bottom: -8px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: var(--chip-bg);
+    color: globals.$dark-background-color;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+    transform: translateX(-50%);
+  }
+
+  &__badge--locked &__badge-chip {
+    color: $leaderboards-muted-text;
+  }
+
+  &__badge-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__badge-title {
+    font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__badge--locked &__badge-title {
+    color: globals.$body-color;
+  }
+
+  &__badge-subtitle {
+    font-size: globals.$small-font-size;
+    color: $leaderboards-muted-text;
+  }
+
+  &__badge-progress {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    margin-top: 2px;
+  }
+
+  &__badge-bar {
+    flex: 1;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background-color: globals.$border-color;
+
+    span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      background-image: linear-gradient(
+        90deg,
+        $leaderboards-streak-from,
+        $leaderboards-streak-to
+      );
+    }
+  }
+
+  &__badge-meta {
+    font-size: 11px;
+    color: $leaderboards-muted-text;
+    white-space: nowrap;
+
+    &--earned {
+      font-size: globals.$small-font-size;
+      color: globals.$body-color;
+    }
+  }
+
+  &__badge-skeleton {
+    height: 86px;
+    border-radius: 8px;
+  }
+}
+
+.rank-delta {
+  min-height: 13px;
+  font-size: 11px;
+  line-height: 13px;
+  font-weight: 700;
+  color: $leaderboards-muted-text;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 0 6px rgba(0, 0, 0, 0.8);
+
+  &--up {
+    color: $leaderboards-up;
+  }
+
+  &--down {
+    color: $leaderboards-down;
+  }
+}
+
+.streak-flame {
+  flex-shrink: 0;
+  fill: globals.$warning-color;
+
+  &--flicker {
+    transform-origin: 50% 90%;
+    animation: leaderboards-flicker 1.4s ease-in-out infinite;
+  }
+}
+
+.leaderboard-podium {
+  width: 100%;
+  max-width: 840px;
+  margin: 0 auto calc(globals.$spacing-unit * 1.5);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: calc(globals.$spacing-unit * 1.5);
+  align-items: end;
+
+  // With fewer than three entries, keep the cards centred instead of
+  // leaving the empty podium slots on the right.
+  &--sparse {
+    grid-template-columns: repeat(var(--podium-count), minmax(0, 300px));
+    justify-content: center;
+  }
+
+  // Holds the card and its corner action; the card keeps its own height.
+  &__slot {
+    position: relative;
+    min-width: 0;
+    display: flex;
+
+    > .leaderboard-podium__card {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__action {
+    position: absolute;
+    top: globals.$spacing-unit;
+    right: globals.$spacing-unit;
+    display: flex;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &__slot:hover &__action,
+  &__slot:focus-within &__action {
+    opacity: 1;
+  }
+
+  &__card {
+    --metal-light: #fff3b0;
+    --metal-main: #{globals.$rank-gold-color};
+    --metal-dark: #a8740c;
+    --metal-ink: #5a3d00;
+
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    padding: 0;
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: $leaderboards-surface;
+    color: globals.$muted-color;
+    text-align: center;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+
+    &:hover {
+      filter: brightness(1.12);
+    }
+
+    &--gold {
+      height: 288px;
+    }
+
+    &--silver {
+      height: 260px;
+      --metal-light: #ffffff;
+      --metal-main: #{globals.$rank-silver-color};
+      --metal-dark: #7d7e84;
+      --metal-ink: #3a3b40;
+    }
+
+    &--bronze {
+      height: 240px;
+      --metal-light: #f6c49a;
+      --metal-main: #{globals.$rank-bronze-color};
+      --metal-dark: #8a4f24;
+      --metal-ink: #4a2610;
+    }
+
+    &--selected {
+      box-shadow: inset 0 0 0 2px globals.$rank-gold-color;
+    }
+  }
+
+  &__band {
+    position: relative;
+    overflow: hidden;
+    width: 48px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(globals.$spacing-unit * 1.75) 0;
+    background: linear-gradient(
+      180deg,
+      var(--metal-light) 0%,
+      var(--metal-main) 22%,
+      var(--metal-dark) 48%,
+      var(--metal-main) 62%,
+      var(--metal-light) 80%,
+      var(--metal-dark) 100%
+    );
+    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.3);
+    color: var(--metal-ink);
+
+    &::after {
+      content: "";
+      position: absolute;
+      left: -60%;
+      top: 0;
+      width: 220%;
+      height: 36px;
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0.5),
+        rgba(255, 255, 255, 0)
+      );
+      transform: translateY(-60px) skewY(-24deg);
+      animation: leaderboard-podium-glaze 4.8s ease-in-out infinite;
+      will-change: transform;
+      pointer-events: none;
+    }
+  }
+
+  &__rank {
+    position: relative;
+    font-size: 26px;
+    line-height: 1;
+    font-weight: 900;
+  }
+
+  &__metal {
+    position: relative;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    // The extra end padding matches the band, so the content is centred on
+    // the whole card rather than on the area beside the band.
+    padding: calc(globals.$spacing-unit * 2) 48px
+      calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
+    background-image: linear-gradient(180deg, #262626 0%, #1a1a1a 100%);
+
+    &--banner {
+      background-image:
+        linear-gradient(
+          180deg,
+          rgba(13, 13, 13, 0.35) 0%,
+          rgba(13, 13, 13, 0.94) 100%
+        ),
+        var(--leaderboard-podium-banner);
+      background-size: cover;
+      background-position: center;
+    }
+  }
+
+  &__avatar {
+    border: solid 2px rgba(13, 13, 13, 0.9);
+  }
+
+  &__name-line {
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  &__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: globals.$body-font-size;
+    font-weight: 700;
+  }
+
+  &__you {
+    flex-shrink: 0;
+    height: 18px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    background-color: rgba(13, 13, 13, 0.75);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  &__value {
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 16px;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+
+    &--muted {
+      color: $leaderboards-ended;
+    }
+  }
+
+  &__leader,
+  &__foot {
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    color: globals.$body-color;
+  }
+
+  &__leader svg {
+    color: globals.$rank-gold-color;
+  }
+}
+
+@keyframes leaderboard-podium-glaze {
+  0%,
+  55% {
+    transform: translateY(-60px) skewY(-24deg);
+  }
+
+  85%,
+  100% {
+    transform: translateY(340px) skewY(-24deg);
+  }
+}
+
+@keyframes leaderboards-flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(0);
+  }
+
+  25% {
+    transform: scale(1.08, 0.94) rotate(-4deg);
+  }
+
+  50% {
+    transform: scale(0.95, 1.07) rotate(3deg);
+  }
+
+  75% {
+    transform: scale(1.05, 0.97) rotate(-2deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaderboard-podium__band::after {
+    display: none;
+    animation: none;
+  }
+
+  .streak-flame--flicker {
+    animation: none;
+  }
+
+  .leaderboards__game {
+    transition: none;
+  }
+}

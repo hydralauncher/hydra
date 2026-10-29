@@ -45,7 +45,8 @@ export default function App() {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { showErrorToast } = useBigPictureToast();
+  const { showErrorToast, showSuccessToast, showWarningToast } =
+    useBigPictureToast();
   const { nodes, regions, setFocusRegion } = useNavigation();
   const userPreferences = useUserPreferences();
   const inputMode = useInputModeStore((state) => state.mode);
@@ -129,11 +130,35 @@ export default function App() {
         );
       });
 
+    const unsubscribeInstallerClosed =
+      globalThis.window.electron.onGameInstallerClosed(
+        (_shop, _objectId, executableFound) => {
+          if (executableFound) {
+            showSuccessToast(t("game_installed_title", { ns: "downloads" }), {
+              message: t("game_installed_description", { ns: "downloads" }),
+              fallbackVisual: "downloads",
+            });
+            return;
+          }
+
+          showWarningToast(
+            t("installed_game_not_found_title", { ns: "downloads" }),
+            {
+              message: t("installed_game_not_found_description", {
+                ns: "downloads",
+              }),
+              fallbackVisual: "downloads",
+            }
+          );
+        }
+      );
+
     return () => {
       unsubscribeExtractionFailed();
       unsubscribeExecutableNotFound();
+      unsubscribeInstallerClosed();
     };
-  }, [showErrorToast, t]);
+  }, [showErrorToast, showSuccessToast, showWarningToast, t]);
 
   useEffect(() => {
     setPendingRouteFocusPathname(pathname);

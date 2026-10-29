@@ -2,12 +2,19 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { it } from "node:test";
 import ts from "typescript";
-import { presentCombinedAchievements } from "../../services/achievements/combined-achievement-presentation.ts";
+import {
+  createCombinedDefinitionLookup,
+  presentCombinedAchievements,
+} from "../../services/achievements/combined-achievement-presentation.ts";
 import { mergeUnlockedAchievementLists } from "../../services/achievements/merge-unlocked-achievements.ts";
 import {
   achievementSyncCoordinator,
   AchievementSyncCancelledError,
 } from "../../services/achievements/achievement-sync-coordinator.ts";
+
+const passthroughCombinedRequest = (
+  ...args: [unknown, string, string, string, () => Promise<unknown>]
+) => args[4]().catch(() => null);
 
 for (const scenario of [
   {
@@ -123,6 +130,9 @@ for (const scenario of [
           },
         },
       },
+      "@main/services/achievements/unlocked-achievements-cache": {
+        UnlockedAchievementsCache: { recordCombinedMembers: () => undefined },
+      },
       "@main/services/achievements/achievement-souvenir-store": {
         AchievementSouvenirStore: { set: () => {}, invalidate: () => {} },
       },
@@ -139,8 +149,12 @@ for (const scenario of [
       "@main/services/achievements/merge-unlocked-achievements": {
         mergeUnlockedAchievementLists,
       },
+      "@main/services/achievements/combined-achievements-requests": {
+        CombinedAchievementsRequests: { fetch: passthroughCombinedRequest },
+      },
       "@main/services/achievements/combined-achievement-presentation": {
         presentCombinedAchievements,
+        createCombinedDefinitionLookup,
       },
     };
     const output = ts.transpileModule(

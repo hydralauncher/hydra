@@ -1,0 +1,555 @@
+@use "../../../scss/globals.scss";
+
+$leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+.leaderboard-section {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: globals.$spacing-unit;
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0 globals.$spacing-unit;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    padding: 0 calc(globals.$spacing-unit * 2) globals.$spacing-unit;
+  }
+
+  &__skeleton-row {
+    height: 44px;
+    border-radius: 8px;
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 2);
+    text-align: center;
+    color: globals.$body-color;
+  }
+
+  &__empty-title {
+    color: globals.$muted-color;
+    font-weight: 700;
+  }
+
+  &__empty-description {
+    font-size: globals.$small-font-size;
+  }
+
+  &__footer {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    margin-top: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2)
+      globals.$spacing-unit;
+    border-top: solid 1px globals.$border-color;
+  }
+
+  &__nudge {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    min-width: 0;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  &__nudge-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__see-all {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.75);
+    width: fit-content;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: globals.$body-color;
+    font-size: globals.$body-font-size;
+    cursor: pointer;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: globals.$muted-color;
+      text-decoration: underline;
+    }
+  }
+
+  &__sign-in {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    margin: globals.$spacing-unit globals.$spacing-unit 0;
+    padding: calc(globals.$spacing-unit * 1.5);
+    border: dashed 1px rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: globals.$body-color;
+  }
+
+  &__sign-in-text {
+    flex: 1;
+    min-width: 0;
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+  }
+
+  &__sign-in-button {
+    flex-shrink: 0;
+    height: 28px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border: 0;
+    border-radius: 6px;
+    background-color: globals.$muted-color;
+    color: globals.$dark-background-color;
+    font-size: globals.$small-font-size;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 0.85;
+    }
+
+    &:active {
+      opacity: globals.$active-opacity;
+    }
+  }
+}
+
+.leaderboard-controls {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 1.25);
+  padding: calc(globals.$spacing-unit * 2) globals.$spacing-unit
+    calc(globals.$spacing-unit * 1.5);
+
+  &__filters {
+    display: flex;
+    gap: globals.$spacing-unit;
+  }
+
+  &__filter {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.75);
+    min-width: 0;
+    height: 28px;
+    padding: 0 10px;
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$dark-background-color;
+    color: globals.$muted-color;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &[data-state="open"] {
+      border-color: #dadbe1;
+    }
+
+    &[data-state="open"] .leaderboard-controls__filter-chevron {
+      transform: rotate(180deg);
+    }
+  }
+
+  &__filter-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__filter-chevron {
+    flex-shrink: 0;
+    color: globals.$body-color;
+    transition: transform 0.15s ease;
+  }
+
+  &__filter-content {
+    min-width: var(--radix-dropdown-menu-trigger-width);
+    padding: 4px;
+    border: solid 1px globals.$border-color;
+    border-radius: 6px;
+    background-color: globals.$dark-background-color;
+    z-index: globals.$backdrop-z-index;
+    animation: leaderboard-filter-in 0.15s ease-out;
+  }
+
+  &__filter-item {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 4px;
+    color: globals.$muted-color;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.1s ease-in-out;
+
+    &[data-state="checked"] {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    &:hover,
+    &[data-highlighted] {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  &__segmented {
+    --segment-gap: 2px;
+
+    position: relative;
+    display: grid;
+    grid-auto-flow: column;
+    // The indicator assumes equal-width segments.
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--segment-gap);
+    padding: 2px;
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$dark-background-color;
+  }
+
+  &__indicator {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 2px;
+    width: calc(
+      (100% - 4px - (var(--segment-count) - 1) * var(--segment-gap)) /
+        var(--segment-count)
+    );
+    border-radius: 6px;
+    background-color: #262626;
+    transform: translateX(
+      calc(var(--segment-index) * (100% + var(--segment-gap)))
+    );
+    transition: transform 0.46s $leaderboard-ease;
+  }
+
+  &__segment {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    min-width: 0;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(globals.$spacing-unit / 2);
+    padding: 0 calc(globals.$spacing-unit * 0.75);
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: globals.$body-color;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.2s ease 0.15s;
+
+    &--selected {
+      color: globals.$muted-color;
+    }
+  }
+
+  &__segment-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@keyframes leaderboard-filter-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.leaderboard-row {
+  width: 100%;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: calc(globals.$spacing-unit * 1.5);
+  padding: 0 calc(globals.$spacing-unit * 1.5) 0 globals.$spacing-unit;
+  border: 0;
+  border-radius: 8px;
+  background-color: transparent;
+  color: globals.$muted-color;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  &--viewer {
+    background-color: rgba(255, 255, 255, 0.08);
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &--banner,
+  &--banner:hover {
+    background-color: transparent;
+    background-image:
+      linear-gradient(
+        90deg,
+        rgba(13, 13, 13, 0.94) 0%,
+        rgba(13, 13, 13, 0.72) 55%,
+        rgba(13, 13, 13, 0.4) 100%
+      ),
+      var(--leaderboard-row-banner);
+    background-size: cover;
+    background-position: center;
+  }
+
+  // A lighter shade instead of a filter, which would repaint animated
+  // banners on every frame.
+  &--banner:hover {
+    background-image:
+      linear-gradient(
+        90deg,
+        rgba(13, 13, 13, 0.86) 0%,
+        rgba(13, 13, 13, 0.6) 55%,
+        rgba(13, 13, 13, 0.28) 100%
+      ),
+      var(--leaderboard-row-banner);
+  }
+
+  &#{&}--banner,
+  &--banner .rank-medal__number,
+  &--banner &__name,
+  &--banner &__value {
+    color: globals.$muted-color;
+  }
+
+  &--banner &__progress {
+    background-color: color-mix(in srgb, currentColor 28%, transparent);
+  }
+
+  &--banner &__you {
+    background-color: rgba(13, 13, 13, 0.75);
+    color: globals.$muted-color;
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__line {
+    position: relative;
+  }
+
+  &--with-action {
+    padding-right: calc(globals.$spacing-unit * 4.5);
+  }
+
+  // Quiet until the row is hovered or focused.
+  &__action {
+    position: absolute;
+    top: 50%;
+    right: globals.$spacing-unit;
+    display: flex;
+    opacity: 0;
+    transform: translateY(-50%);
+    transition: opacity 0.2s ease;
+  }
+
+  &__line:hover &__action,
+  &__line:focus-within &__action {
+    opacity: 1;
+  }
+
+  &__gap {
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+
+    span {
+      width: 3px;
+      height: 3px;
+      border-radius: 999px;
+      background-color: color-mix(in srgb, currentColor 30%, transparent);
+    }
+  }
+
+  &__rank {
+    width: 28px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 0.75);
+  }
+
+  &__name-line {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 0.75);
+    min-width: 0;
+  }
+
+  &__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+  }
+
+  &__you {
+    flex-shrink: 0;
+    height: 18px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: globals.$body-color;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  &__progress {
+    height: 3px;
+    border-radius: 2px;
+    background-color: color-mix(in srgb, currentColor 16%, transparent);
+    overflow: hidden;
+  }
+
+  &__progress-fill {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background-color: color-mix(in srgb, currentColor 45%, transparent);
+    transition: width 0.46s $leaderboard-ease;
+  }
+
+  &--viewer &__progress-fill {
+    background-color: color-mix(in srgb, currentColor 85%, transparent);
+  }
+
+  &__item--tooltip {
+    position: relative;
+  }
+
+  // Keyboard focus shows the tooltip above the row; the mouse moves it
+  // along the pointer (leaderboard-row.tsx sets the fixed position and the
+  // gap to the pointer in --leaderboard-tooltip-offset).
+  &__tooltip {
+    --leaderboard-tooltip-offset: 12px;
+
+    position: absolute;
+    z-index: 5;
+    right: calc(globals.$spacing-unit * 1.5);
+    bottom: calc(100% + globals.$spacing-unit);
+    display: none;
+    pointer-events: none;
+
+    &--pointer {
+      position: fixed;
+      right: auto;
+      bottom: auto;
+      display: block;
+      transform: translateY(calc(-100% - var(--leaderboard-tooltip-offset)));
+    }
+
+    &--pointer#{&}--flip-x {
+      transform: translate(
+        -100%,
+        calc(-100% - var(--leaderboard-tooltip-offset))
+      );
+    }
+
+    &--pointer#{&}--flip-y {
+      transform: translateY(var(--leaderboard-tooltip-offset));
+    }
+
+    &--pointer#{&}--flip-x#{&}--flip-y {
+      transform: translate(-100%, var(--leaderboard-tooltip-offset));
+    }
+  }
+
+  &__item--tooltip:focus-within &__tooltip {
+    display: block;
+  }
+
+  &__value {
+    flex-shrink: 0;
+    min-width: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    text-align: right;
+    font-size: globals.$body-font-size;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+
+    &--muted {
+      color: #838383;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaderboard-controls__indicator,
+  .leaderboard-controls__segment,
+  .leaderboard-row__progress-fill {
+    transition: none;
+  }
+
+  .leaderboard-controls__filter-content {
+    animation: none;
+  }
+}

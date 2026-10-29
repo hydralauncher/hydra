@@ -2,12 +2,18 @@ import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 import { findGameExecutableInFolder } from "@main/helpers/find-game-executable";
+import { findDownloadInstaller } from "@main/helpers/find-game-installer";
+import {
+  getInstallerTargetDirectories,
+  listFoldersChangedSince,
+} from "@main/helpers/installer-target-directories";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { runAchievementMetadataExport } from "@main/services/achievements/metadata-export";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
   Downloader,
   FILE_EXTENSIONS_TO_EXTRACT,
+  getNextClassicsDiscLabel,
   removeSymbolsFromName,
 } from "@shared";
 import type {
@@ -39,10 +45,13 @@ import { publishExtractionCompleteNotification } from "./notifications";
 import { SystemPath } from "./system-path";
 import { WindowManager } from "./window-manager";
 import { runAutomaticCloudSaveSync } from "./cloud-save";
+import { updateGameRecord } from "./game-record-updater";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
 const MAX_ARCHIVE_EXTRACTION_PASSES = 2;
+
+const INSTALLED_EXECUTABLE_MAX_DEPTH = 4;
 
 export class GameFilesManager {
   private lastProgressUpdateTime = 0;
@@ -91,11 +100,14 @@ export class GameFilesManager {
           : "complete"
         : download.status;
 
+    const hasInstaller = (await findDownloadInstaller(download)) !== null;
+
     await downloadsSublevel.put(this.gameKey, {
       ...download,
       status,
       queued: false,
       extracting: false,
+      hasInstaller,
     });
     WindowManager.sendDownloadsUpdated();
   }
@@ -141,6 +153,8 @@ export class GameFilesManager {
   ) {
     const format = path.extname(filePath).toLowerCase();
 
+    await this.searchAndBindExecutable();
+
     if (notify) {
       await this.setExtractionFailedState(
         new Error(`Unsupported extraction format "${format}" for ${filePath}`),
@@ -154,7 +168,6 @@ export class GameFilesManager {
       await this.resetExtractingState();
     }
 
-    await this.searchAndBindExecutable();
     await this.autoLinkClassicsDiscs();
   }
 
@@ -281,6 +294,9 @@ export class GameFilesManager {
 
     const compressedFiles = new Set<string>();
     const extractedFiles = new Set<string>();
+    // Only multi-part hoster downloads, which need the feature to start, number their first volume part01.
+    const download = await downloadsSublevel.get(this.gameKey);
+    const firstRarVolume = download?.parts ? /part0*1\.rar$/i : /part1\.rar$/i;
 
     // Only process archives at the extraction root. Archives in game subfolders
     // may be runtime assets and must remain intact.
@@ -300,7 +316,7 @@ export class GameFilesManager {
       const filesToExtract = archives.filter(
         (file) =>
           !extractedFiles.has(file) &&
-          (/part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file))
+          (firstRarVolume.test(file) || !/part\d+\.rar$/i.test(file))
       );
 
       if (filesToExtract.length === 0) continue;
@@ -329,6 +345,14 @@ export class GameFilesManager {
   }
 
   async setExtractionComplete(publishNotification = true) {
+    const extractedDownload = await downloadsSublevel.get(this.gameKey);
+
+    if (!extractedDownload) return;
+
+    await this.searchAndBindExecutable();
+    const hasInstaller =
+      (await findDownloadInstaller(extractedDownload)) !== null;
+
     const [download, game] = await Promise.all([
       downloadsSublevel.get(this.gameKey),
       gamesSublevel.get(this.gameKey),
@@ -339,6 +363,7 @@ export class GameFilesManager {
     await downloadsSublevel.put(this.gameKey, {
       ...download,
       extracting: false,
+      hasInstaller,
     });
     WindowManager.sendDownloadsUpdated();
 
@@ -347,10 +372,7 @@ export class GameFilesManager {
       const gamePath = path.join(download.downloadPath, download.folderName);
       const installedSizeInBytes = await getDirectorySize(gamePath);
 
-      await gamesSublevel.put(this.gameKey, {
-        ...game,
-        installedSizeInBytes,
-      });
+      await updateGameRecord(this.gameKey, { installedSizeInBytes });
     }
 
     WindowManager.sendToAppWindows(
@@ -366,7 +388,6 @@ export class GameFilesManager {
     this.lastProgressUpdateTime = 0;
     this.lastProgressUpdateValue = 0;
 
-    await this.searchAndBindExecutable();
     await this.autoLinkClassicsDiscs();
   }
 
@@ -466,7 +487,7 @@ export class GameFilesManager {
 
       discs.push({
         path: romPath,
-        label: `Disc ${discs.length + 1}`,
+        label: getNextClassicsDiscLabel(discs),
         fileName: path.basename(romPath),
         sku,
       });
@@ -513,25 +534,24 @@ export class GameFilesManager {
     }
   }
 
-  async searchAndBindExecutable(): Promise<void> {
+  async searchAndBindExecutable(): Promise<boolean> {
     try {
       const [download, game] = await Promise.all([
         downloadsSublevel.get(this.gameKey),
         gamesSublevel.get(this.gameKey),
       ]);
 
-      if (!download || !game || game.executablePath) {
-        return;
-      }
+      if (!download || !game) return false;
+      if (game.executablePath) return true;
 
       const executables = GameExecutables.getExecutablesForGame(this.objectId);
 
       if (!executables || executables.length === 0) {
-        return;
+        return false;
       }
 
       if (!download.folderName) {
-        return;
+        return false;
       }
 
       const gameFolderPath = path.join(
@@ -540,7 +560,7 @@ export class GameFilesManager {
       );
 
       if (!fs.existsSync(gameFolderPath)) {
-        return;
+        return false;
       }
 
       const foundExePath = await findGameExecutableInFolder(
@@ -548,32 +568,102 @@ export class GameFilesManager {
         executables
       );
 
-      if (foundExePath) {
-        logger.info(
-          `[GameFilesManager] Auto-detected executable for ${this.objectId}: ${foundExePath}`
-        );
+      if (!foundExePath) return false;
 
-        const updatedGame = updateGameExecutablePath(game, foundExePath);
-
-        await gamesSublevel.put(this.gameKey, { ...updatedGame });
-        void runAutomaticCloudSaveSync(
-          this.objectId,
-          this.shop,
-          "environment-changed"
-        );
-
-        void runAchievementMetadataExport(this.gameKey, updatedGame);
-
-        WindowManager.sendToAppWindows("on-library-batch-complete");
-
-        await this.createDesktopShortcutForGame(game.title);
-      }
+      return await this.bindExecutable(foundExePath);
     } catch (err) {
       logger.error(
         `[GameFilesManager] Error searching for executable: ${this.objectId}`,
         err
       );
+      return false;
     }
+  }
+
+  async searchAndBindInstalledExecutable(
+    installerStartedAt: number,
+    winePrefixPath: string | null
+  ): Promise<boolean> {
+    if (await this.searchAndBindExecutable()) return true;
+
+    try {
+      const download = await downloadsSublevel.get(this.gameKey);
+      if (!download) return false;
+
+      const executables = GameExecutables.getExecutablesForGame(this.objectId);
+
+      if (!executables || executables.length === 0) {
+        return false;
+      }
+
+      const changedFolders = await listFoldersChangedSince(
+        getInstallerTargetDirectories(download.downloadPath, winePrefixPath),
+        installerStartedAt,
+        [download.downloadPath]
+      );
+
+      const matches = await Promise.all(
+        changedFolders.map((folderPath) =>
+          findGameExecutableInFolder(
+            folderPath,
+            executables,
+            "installation",
+            INSTALLED_EXECUTABLE_MAX_DEPTH
+          )
+        )
+      );
+      const distinctMatches = [
+        ...new Set(matches.filter((match): match is string => !!match)),
+      ];
+
+      if (distinctMatches.length > 1) {
+        logger.warn(
+          `[GameFilesManager] Not binding ${this.objectId}, several installed copies match: ${distinctMatches.join(", ")}`
+        );
+        return false;
+      }
+
+      if (distinctMatches.length === 0) return false;
+
+      return await this.bindExecutable(distinctMatches[0]);
+    } catch (err) {
+      logger.error(
+        `[GameFilesManager] Error searching for installed executable: ${this.objectId}`,
+        err
+      );
+      return false;
+    }
+  }
+
+  private async bindExecutable(executablePath: string): Promise<boolean> {
+    let bound = false;
+
+    const updatedGame = await updateGameRecord(this.gameKey, (current) => {
+      if (current.executablePath) return {};
+
+      bound = true;
+      return updateGameExecutablePath(current, executablePath);
+    });
+
+    if (!updatedGame) return false;
+    if (!bound) return Boolean(updatedGame.executablePath);
+
+    logger.info(
+      `[GameFilesManager] Auto-detected executable for ${this.objectId}: ${executablePath}`
+    );
+
+    void runAutomaticCloudSaveSync(
+      this.objectId,
+      this.shop,
+      "environment-changed"
+    );
+
+    void runAchievementMetadataExport(this.gameKey, updatedGame);
+
+    WindowManager.sendToAppWindows("on-library-batch-complete");
+
+    await this.createDesktopShortcutForGame(updatedGame.title);
+    return true;
   }
 
   private isValidIconUrl(url: string | null | undefined): url is string {
@@ -947,6 +1037,7 @@ export class GameFilesManager {
         await downloadsSublevel.put(this.gameKey, {
           ...download,
           folderName: extractedFolderName,
+          sourceArchiveName: download.folderName,
         });
 
         await this.setExtractionComplete();

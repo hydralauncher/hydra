@@ -22,7 +22,7 @@ import {
 import { useDownload } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import { GameOptionsModal, RepacksModal } from "./modals";
-import { Downloader, getDownloadersForUri } from "@shared";
+import { Downloader, getDownloadersForUri, getRepackUriParts } from "@shared";
 import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
 import { CloudSaveV2Provider } from "./cloud-save-v2";
 import "./game-details.scss";
@@ -131,6 +131,7 @@ export default function GameDetails() {
               shop: downloadGame?.shop ?? game?.shop ?? shop,
               downloadPath,
               uri,
+              parts: getRepackUriParts(repack, uri),
               automaticallyExtract,
               automaticallyDeleteArchiveFiles,
               fileSize: repack.fileSize,

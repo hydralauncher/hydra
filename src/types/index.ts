@@ -8,7 +8,11 @@ import type {
   LibraryCatalogueMetadata,
   Subscription,
 } from "./level.types";
-import type { GameShop, UnlockedAchievement } from "./game.types";
+import type {
+  AchievementSet,
+  GameShop,
+  UnlockedAchievement,
+} from "./game.types";
 import type { ArtworkAssetType } from "./artwork.types";
 import type { GameContentWarning } from "./souvenir.types";
 
@@ -32,6 +36,8 @@ export interface GameRepack {
   title: string;
   fileSize: string | null;
   uris: string[];
+  /** Mirrors split into parts. Each group lists one hoster's parts in order. */
+  uriGroups?: string[][];
   unavailableUris: string[];
   uploadDate: string | null;
   downloadSourceId: string;
@@ -167,6 +173,7 @@ export interface StartGameDownloadPayload {
   title: string;
   shop: GameShop;
   uri: string;
+  parts?: string[];
   downloadPath: string;
   downloader: Downloader;
   automaticallyExtract: boolean;
@@ -333,6 +340,7 @@ export interface ChatUnreadSummary {
 export interface ChatUnreadState {
   totalUnread: number;
   byFriend: Record<string, number>;
+  lastMessageAtByFriend?: Record<string, string>;
 }
 
 /* friendId is always the other side of the conversation, even for messages
@@ -372,7 +380,28 @@ export interface ChatMessageRejectedSync {
 export interface ChatWindowState {
   activeFriendId: string | null;
   openFriendIds: string[];
+  openFriends?: UserFriend[];
 }
+
+export type SocialWindowKind = "friends" | "chat";
+
+export interface SocialWindowsSession {
+  friendsWindowOpen: boolean;
+  chatFriends: UserFriend[];
+  activeChatFriendId: string | null;
+  topWindow: SocialWindowKind | null;
+}
+
+export interface SocialWindowBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export type SocialWindowsBounds = Partial<
+  Record<SocialWindowKind, SocialWindowBounds>
+>;
 
 /** A conversation waiting for the chat window to open its tab. */
 export interface PendingChatFriend {
@@ -426,6 +455,7 @@ export interface UserDetails {
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   allowCloudGifts: boolean;
+  allowLeaderboardNotifications?: boolean;
   souvenirsVisibility: ProfileVisibility;
   bio: string;
   workwondersJwt: string;
@@ -532,6 +562,7 @@ export interface UpdateProfileRequest {
   bio?: string;
   language?: string;
   allowCloudGifts?: boolean;
+  allowLeaderboardNotifications?: boolean;
 }
 
 export interface OpenCheckoutOptions {
@@ -542,6 +573,7 @@ export interface OpenCheckoutOptions {
 export interface DownloadSourceDownload {
   title: string;
   uris: string[];
+  uriGroups?: string[][];
   uploadDate: string;
   fileSize: string;
 }
@@ -725,7 +757,9 @@ export type NotificationType =
   | "RETROACHIEVEMENTS_CREDENTIALS_RESTORED"
   | "RETROACHIEVEMENTS_CREDENTIALS_INVALID"
   | "RETROACHIEVEMENTS_SYNC_FAILED"
-  | "CLOUD_GIFT_RECEIVED";
+  | "CLOUD_GIFT_RECEIVED"
+  | "LEADERBOARD_RANK_CHANGED"
+  | "LEADERBOARD_MISSING_PHOTO";
 
 export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"
@@ -798,13 +832,18 @@ export interface ComparedAchievements {
     icon: string;
     displayName: string;
     description: string;
+    points?: number;
+    globalUnlockPercentage?: number | null;
+    set?: AchievementSet | null;
     ownerStat?: {
       unlocked: boolean;
       unlockTime: number;
+      hardcoreUnlockTime?: number | null;
     };
     targetStat: {
       unlocked: boolean;
       unlockTime: number;
+      hardcoreUnlockTime?: number | null;
     };
   }[];
 }

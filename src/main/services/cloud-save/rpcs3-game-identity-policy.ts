@@ -20,6 +20,7 @@ import {
 } from "./rpcs3-save-layout.js";
 import {
   expandRpcs3SavedataTitleIds,
+  normalizeRpcs3CatalogueTitleId,
   normalizeRpcs3TitleId,
 } from "./rpcs3-title-ids.js";
 
@@ -44,7 +45,7 @@ export const rpcs3TitleIdsFromCatalogue = (
     : null;
   return new Set(
     (Array.isArray(entry?.skus) ? entry.skus : [])
-      .map(normalizeRpcs3TitleId)
+      .map(normalizeRpcs3CatalogueTitleId)
       .filter((id): id is string => id !== null)
   );
 };

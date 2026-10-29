@@ -7,22 +7,33 @@ import {
   CommentIcon,
   CopyIcon,
   DashIcon,
-  PlusIcon,
+  PersonAddIcon,
   SearchIcon,
   XIcon,
 } from "@primer/octicons-react";
 
-import { Avatar, Button } from "@renderer/components";
-import { setFriendRequests } from "@renderer/features";
+import { Avatar, Button, Toast } from "@renderer/components";
+import { closeToast, setFriendRequests } from "@renderer/features";
 import {
   useAppDispatch,
   useAppSelector,
   useUserDetails,
 } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { PROFILE_FRIENDS_PATH } from "@shared";
-import type { ChatUnreadState, ProfileFriends, UserFriend } from "@types";
+import { fetchAllProfileFriends, PROFILE_FRIENDS_PATH } from "@shared";
+import type {
+  ChatUnreadState,
+  FriendRequest,
+  ProfileFriends,
+  UserFriend,
+} from "@types";
 
+import {
+  BACKGROUND_IMAGE_SIZES,
+  sortFriendsByUnreadMessages,
+} from "./friends-window-layout";
+import { useVisibleFriendIds } from "./use-visible-friend-ids";
+import { useAddFriend } from "./use-add-friend";
 import "./friends-window.scss";
 
 const PAGE_SIZE = 100;
@@ -33,8 +44,6 @@ type FriendImageSize = { width: number; height: number };
 
 const FRIEND_AVATAR_IMAGE_SIZE = { width: 80, height: 80 };
 const PROFILE_AVATAR_IMAGE_SIZE = { width: 112, height: 112 };
-const FRIEND_BACKGROUND_IMAGE_SIZE = { width: 480, height: 96 };
-const PROFILE_BACKGROUND_IMAGE_SIZE = { width: 420, height: 180 };
 const FRIEND_IMAGE_PROCESSING_BATCH_SIZE = 6;
 
 // [name width, status width] per placeholder row; varied so the skeleton reads
@@ -71,7 +80,12 @@ const getProcessedImageKey = (imageUrl: string, size: FriendImageSize) =>
 
 export default function FriendsWindow() {
   const { t } = useTranslation("friends_window");
+  const { t: tProfile } = useTranslation("user_profile");
   const dispatch = useAppDispatch();
+  const toast = useAppSelector((state) => state.toast);
+  const handleToastClose = useCallback(() => {
+    dispatch(closeToast());
+  }, [dispatch]);
 
   const {
     userDetails,
@@ -83,7 +97,6 @@ export default function FriendsWindow() {
   } = useUserDetails();
 
   const [friends, setFriends] = useState<UserFriend[]>([]);
-  const [onlineCount, setOnlineCount] = useState(0);
   const [isLoadingFriends, setIsLoadingFriends] = useState(true);
   const [hasResolvedSnapshot, setHasResolvedSnapshot] = useState(false);
   const [chatUnread, setChatUnread] = useState<ChatUnreadState>({
@@ -108,56 +121,44 @@ export default function FriendsWindow() {
     };
   }, []);
   const [search, setSearch] = useState("");
+  const [isAddMode, setIsAddMode] = useState(false);
+  const [sentRequestsCollapsed, setSentRequestsCollapsed] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchResults, setSearchResults] = useState<UserFriend[] | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [processedImages, setProcessedImages] = useState<
     Record<string, string>
   >({});
+  const { visibleFriendIds, observeFriendElement, isObservationSupported } =
+    useVisibleFriendIds();
+  const shouldLoadFriendImages = useCallback(
+    (friendId: string) =>
+      !isObservationSupported || visibleFriendIds.has(friendId),
+    [isObservationSupported, visibleFriendIds]
+  );
 
   // Presence bursts fire overlapping refetches; only the latest one may write,
-  // so a slow, older response can't roll the list or count back.
+  // so a slow, older response can't roll the list back.
   const friendsRequestIdRef = useRef(0);
-  const countRequestIdRef = useRef(0);
 
   const fetchFriends = useCallback(async () => {
     const requestId = ++friendsRequestIdRef.current;
-    const countRequestId = ++countRequestIdRef.current;
 
     try {
-      const response = await electron.hydraApi.get<ProfileFriends>(
-        PROFILE_FRIENDS_PATH,
-        { params: { take: PAGE_SIZE, skip: 0 } }
+      const response = await fetchAllProfileFriends((take, skip) =>
+        electron.hydraApi.get<ProfileFriends>(PROFILE_FRIENDS_PATH, {
+          params: { take, skip },
+        })
       );
 
       if (requestId === friendsRequestIdRef.current) {
         setFriends(response.friends);
-      }
-      if (countRequestId === countRequestIdRef.current) {
-        setOnlineCount(response.onlineFriends);
       }
     } catch {
       // ignore transient errors; the next refresh will retry
     } finally {
       // Drop the skeleton even on failure so it can't shimmer forever.
       setIsLoadingFriends(false);
-    }
-  }, []);
-
-  const fetchOnlineFriendsCount = useCallback(async () => {
-    const requestId = ++countRequestIdRef.current;
-
-    try {
-      // take: 5 is the API minimum; anything lower is rejected with a 400.
-      const response = await electron.hydraApi.get<ProfileFriends>(
-        "/profile/friends",
-        { params: { take: 5, skip: 0 } }
-      );
-
-      if (requestId === countRequestIdRef.current) {
-        setOnlineCount(response.onlineFriends);
-      }
-    } catch {
-      // ignore transient errors; the next refresh will retry
     }
   }, []);
 
@@ -189,7 +190,6 @@ export default function FriendsWindow() {
 
         if (snapshot) {
           setFriends(snapshot.friends);
-          setOnlineCount(snapshot.onlineFriends);
           dispatch(setFriendRequests(snapshot.friendRequests));
           setIsLoadingFriends(false);
         }
@@ -222,14 +222,11 @@ export default function FriendsWindow() {
     const unsubscribePresence =
       typeof electron.onFriendPresence === "function"
         ? electron.onFriendPresence(({ friendId, isOnline }) => {
-            // Patch the visible page, but refetch the total because this page is
-            // capped and the event can be for an off-page friend.
             setFriends((prev) =>
               prev.map((friend) =>
                 friend.id === friendId ? { ...friend, isOnline } : friend
               )
             );
-            fetchOnlineFriendsCount();
           })
         : () => {
             if (interval) clearInterval(interval);
@@ -251,12 +248,7 @@ export default function FriendsWindow() {
       unsubscribeRequests();
       unsubscribeProfile();
     };
-  }, [
-    fetchFriends,
-    fetchFriendRequests,
-    fetchOnlineFriendsCount,
-    refreshUserDetails,
-  ]);
+  }, [fetchFriends, fetchFriendRequests, refreshUserDetails]);
 
   // Debounced friend search
   useEffect(() => {
@@ -301,8 +293,18 @@ export default function FriendsWindow() {
     }));
   }, [searchResults, friends, onlineMap]);
 
-  const onlineFriends = displayedFriends.filter((friend) => friend.isOnline);
-  const offlineFriends = displayedFriends.filter((friend) => !friend.isOnline);
+  const sortedFriends = useMemo(
+    () =>
+      sortFriendsByUnreadMessages(
+        displayedFriends,
+        chatUnread.byFriend,
+        chatUnread.lastMessageAtByFriend ?? {}
+      ),
+    [displayedFriends, chatUnread]
+  );
+
+  const onlineFriends = sortedFriends.filter((friend) => friend.isOnline);
+  const offlineFriends = sortedFriends.filter((friend) => !friend.isOnline);
 
   // null = follow the default (collapsed when the section is empty); a boolean
   // means the user explicitly toggled it.
@@ -318,6 +320,30 @@ export default function FriendsWindow() {
   const receivedRequests = friendRequests.filter(
     (request) => request.type === "RECEIVED"
   );
+
+  const [requestBackgrounds, setRequestBackgrounds] = useState<
+    Record<string, string | null>
+  >({});
+  const requestedBackgroundIdsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    for (const request of friendRequests) {
+      if (requestedBackgroundIdsRef.current.has(request.id)) continue;
+      requestedBackgroundIdsRef.current.add(request.id);
+
+      electron.hydraApi
+        .get<{ backgroundImageUrl: string | null }>(`/users/${request.id}`)
+        .then(({ backgroundImageUrl }) => {
+          setRequestBackgrounds((current) => ({
+            ...current,
+            [request.id]: backgroundImageUrl ?? null,
+          }));
+        })
+        .catch(() => {
+          requestedBackgroundIdsRef.current.delete(request.id);
+        });
+    }
+  }, [friendRequests]);
 
   const profile = userDetails;
 
@@ -343,20 +369,23 @@ export default function FriendsWindow() {
     };
 
     addImage(profile?.profileImageUrl, PROFILE_AVATAR_IMAGE_SIZE);
-    addImage(profile?.backgroundImageUrl, PROFILE_BACKGROUND_IMAGE_SIZE);
+    addImage(profile?.backgroundImageUrl, BACKGROUND_IMAGE_SIZES.profile);
 
     for (const friend of friends) {
+      if (!shouldLoadFriendImages(friend.id)) continue;
       addImage(friend.profileImageUrl, FRIEND_AVATAR_IMAGE_SIZE);
-      addImage(friend.backgroundImageUrl, FRIEND_BACKGROUND_IMAGE_SIZE);
+      addImage(friend.backgroundImageUrl, BACKGROUND_IMAGE_SIZES.friend);
     }
 
     for (const friend of searchResults ?? []) {
+      if (!shouldLoadFriendImages(friend.id)) continue;
       addImage(friend.profileImageUrl, FRIEND_AVATAR_IMAGE_SIZE);
-      addImage(friend.backgroundImageUrl, FRIEND_BACKGROUND_IMAGE_SIZE);
+      addImage(friend.backgroundImageUrl, BACKGROUND_IMAGE_SIZES.friend);
     }
 
     for (const request of friendRequests) {
       addImage(request.profileImageUrl, FRIEND_AVATAR_IMAGE_SIZE);
+      addImage(requestBackgrounds[request.id], BACKGROUND_IMAGE_SIZES.friend);
     }
 
     if (!pendingImages.size) return;
@@ -407,7 +436,15 @@ export default function FriendsWindow() {
     return () => {
       cancelled = true;
     };
-  }, [friends, friendRequests, profile, processedImages, searchResults]);
+  }, [
+    friends,
+    friendRequests,
+    profile,
+    processedImages,
+    requestBackgrounds,
+    searchResults,
+    shouldLoadFriendImages,
+  ]);
 
   const getProcessedImageUrl = (
     imageUrl: string | null | undefined,
@@ -415,7 +452,14 @@ export default function FriendsWindow() {
   ) => {
     if (!imageUrl) return imageUrl;
 
-    return processedImages[getProcessedImageKey(imageUrl, size)] ?? imageUrl;
+    const processedImageUrl =
+      processedImages[getProcessedImageKey(imageUrl, size)];
+    if (processedImageUrl) return processedImageUrl;
+
+    const canProcessImages = typeof electron.getProcessedImage === "function";
+    return canProcessImages && isRemoteImageUrl(imageUrl)
+      ? undefined
+      : imageUrl;
   };
 
   const selfGame = useAppSelector((state) => state.gameRunning.gameRunning);
@@ -438,10 +482,43 @@ export default function FriendsWindow() {
     void electron.openChatWindow(friend);
   };
 
-  const handleAddFriend = () => {
-    // The add-friend modal is too large for this tiny window, so open it in the
-    // main window instead.
-    electron.openAddFriendModalInMainWindow();
+  const friendIds = useMemo(
+    () => new Set(friends.map((friend) => friend.id)),
+    [friends]
+  );
+  const addFriend = useAddFriend({
+    isFriend: (userId) => friendIds.has(userId),
+    onOpenProfile: handleFriendClick,
+  });
+  const sentRequests = friendRequests.filter(
+    (request) => request.type === "SENT"
+  );
+  const searchFieldValue = isAddMode ? addFriend.friendCode : search;
+
+  const handleSearchFieldChange = (value: string) => {
+    if (isAddMode) addFriend.changeFriendCode(value);
+    else setSearch(value);
+  };
+
+  const handleToggleAddMode = () => {
+    setIsAddMode((current) => !current);
+    addFriend.changeFriendCode("");
+    setSearch("");
+    searchInputRef.current?.focus();
+  };
+
+  const handleSearchFieldKeyDown = (
+    event: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (!isAddMode) return;
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void addFriend.sendRequest();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      handleToggleAddMode();
+    }
   };
 
   const handleAcceptRequest = (userId: string) => {
@@ -470,10 +547,56 @@ export default function FriendsWindow() {
     return <SteamLogo width={16} height={16} />;
   };
 
+  const renderRequest = (request: FriendRequest, actions: React.ReactNode) => {
+    const backgroundImageUrl = getProcessedImageUrl(
+      requestBackgrounds[request.id],
+      BACKGROUND_IMAGE_SIZES.friend
+    );
+
+    return (
+      <li
+        key={request.id}
+        className={`friends-window__friend${
+          backgroundImageUrl ? " friends-window__friend--has-bg" : ""
+        }`}
+      >
+        {backgroundImageUrl && (
+          <img
+            src={backgroundImageUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="friends-window__friend-bg"
+          />
+        )}
+        <button
+          type="button"
+          className="friends-window__friend-button"
+          onClick={() => handleFriendClick(request.id)}
+        >
+          <div className="friends-window__avatar-wrapper">
+            <Avatar
+              size={40}
+              src={getProcessedImageUrl(
+                request.profileImageUrl,
+                FRIEND_AVATAR_IMAGE_SIZE
+              )}
+              alt={request.displayName}
+            />
+          </div>
+          <span className="friends-window__friend-name">
+            {request.displayName}
+          </span>
+        </button>
+        <div className="friends-window__request-actions">{actions}</div>
+      </li>
+    );
+  };
+
   const renderFriend = (friend: UserFriend) => {
     const backgroundImageUrl = getProcessedImageUrl(
       friend.backgroundImageUrl,
-      FRIEND_BACKGROUND_IMAGE_SIZE
+      BACKGROUND_IMAGE_SIZES.friend
     );
     const unreadCount = chatUnread.byFriend[friend.id] ?? 0;
     const messageLabel =
@@ -487,6 +610,8 @@ export default function FriendsWindow() {
     return (
       <li
         key={friend.id}
+        ref={observeFriendElement(friend.id)}
+        data-friend-id={friend.id}
         className={`friends-window__friend${
           backgroundImageUrl ? " friends-window__friend--has-bg" : ""
         }`}
@@ -518,6 +643,8 @@ export default function FriendsWindow() {
                 FRIEND_AVATAR_IMAGE_SIZE
               )}
               alt={friend.displayName}
+              loading="lazy"
+              decoding="async"
             />
             <span
               className={`friends-window__status-orb${
@@ -555,9 +682,11 @@ export default function FriendsWindow() {
           <CommentIcon size={16} />
           {unreadCount > 0 && (
             <span className="friends-window__unread-badge" aria-hidden="true">
-              {unreadCount > MAX_UNREAD_BADGE_COUNT
-                ? `${MAX_UNREAD_BADGE_COUNT}+`
-                : unreadCount}
+              <span className="friends-window__badge-value">
+                {unreadCount > MAX_UNREAD_BADGE_COUNT
+                  ? `${MAX_UNREAD_BADGE_COUNT}+`
+                  : unreadCount}
+              </span>
             </span>
           )}
         </button>
@@ -571,7 +700,7 @@ export default function FriendsWindow() {
         tone ? ` friends-window__count--${tone}` : ""
       }`}
     >
-      {count}
+      <span className="friends-window__badge-value">{count}</span>
     </span>
   );
 
@@ -671,11 +800,106 @@ export default function FriendsWindow() {
     </section>
   );
 
+  const renderSearchControls = () => {
+    const searchPlaceholder = isAddMode
+      ? tProfile("friend_code")
+      : t("search_placeholder");
+    const addFriendToggleLabel = isAddMode ? t("close") : t("add_friend");
+
+    return (
+      <>
+        <div className="friends-window__search-row">
+          <div
+            className={`friends-window__search${
+              isAddMode ? " friends-window__search--add" : ""
+            }`}
+          >
+            {isAddMode ? (
+              <PersonAddIcon
+                size={16}
+                className="friends-window__search-icon"
+              />
+            ) : (
+              <SearchIcon size={16} className="friends-window__search-icon" />
+            )}
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchFieldValue}
+              spellCheck={false}
+              onChange={(event) => handleSearchFieldChange(event.target.value)}
+              onKeyDown={handleSearchFieldKeyDown}
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+              className="friends-window__search-input"
+            />
+            {searchFieldValue && (
+              <button
+                type="button"
+                className="friends-window__search-clear"
+                onClick={() => handleSearchFieldChange("")}
+                title={t("clear_search")}
+                aria-label={t("clear_search")}
+              >
+                <XIcon size={16} />
+              </button>
+            )}
+          </div>
+          <Button
+            theme="primary"
+            className={`friends-window__add-friend${
+              isAddMode ? " friends-window__add-friend--active" : ""
+            }`}
+            onClick={handleToggleAddMode}
+            title={addFriendToggleLabel}
+            aria-label={addFriendToggleLabel}
+            aria-expanded={isAddMode}
+          >
+            <span
+              className="friends-window__add-friend-face friends-window__add-friend-face--add"
+              aria-hidden="true"
+            >
+              <PersonAddIcon size={16} />
+            </span>
+            <span
+              className="friends-window__add-friend-face friends-window__add-friend-face--close"
+              aria-hidden="true"
+            >
+              <XIcon size={16} />
+            </span>
+          </Button>
+        </div>
+
+        {isAddMode && (
+          <div className="friends-window__add-actions">
+            <Button
+              theme="primary"
+              disabled={addFriend.isSending}
+              onClick={() => void addFriend.sendRequest()}
+            >
+              <PersonAddIcon size={16} />
+              {addFriend.isSending
+                ? tProfile("sending")
+                : t("send_friend_request")}
+            </Button>
+            <Button
+              theme="outline"
+              disabled={addFriend.isSending}
+              onClick={() => void addFriend.openProfile()}
+            >
+              {tProfile("see_profile")}
+            </Button>
+          </div>
+        )}
+      </>
+    );
+  };
+
   const showSkeleton = isLoadingFriends && searchResults === null;
 
   const profileBackgroundImageUrl = getProcessedImageUrl(
     profile?.backgroundImageUrl,
-    PROFILE_BACKGROUND_IMAGE_SIZE
+    BACKGROUND_IMAGE_SIZES.profile
   );
 
   return (
@@ -784,37 +1008,7 @@ export default function FriendsWindow() {
       </div>
 
       <div className="friends-window__content">
-        <div className="friends-window__search-row">
-          <div className="friends-window__search">
-            <SearchIcon size={16} className="friends-window__search-icon" />
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={t("search_placeholder")}
-              className="friends-window__search-input"
-            />
-            {search && (
-              <button
-                type="button"
-                className="friends-window__search-clear"
-                onClick={() => setSearch("")}
-                title={t("clear_search")}
-                aria-label={t("clear_search")}
-              >
-                <XIcon size={16} />
-              </button>
-            )}
-          </div>
-          <Button
-            theme="primary"
-            className="friends-window__add-friend"
-            onClick={handleAddFriend}
-          >
-            <PlusIcon size={16} />
-            {t("add_friend")}
-          </Button>
-        </div>
+        {renderSearchControls()}
 
         <div
           className="friends-window__list-container"
@@ -832,6 +1026,38 @@ export default function FriendsWindow() {
             </>
           ) : (
             <>
+              {isAddMode && sentRequests.length > 0 && (
+                <section className="friends-window__section">
+                  {renderSectionHeader(
+                    tProfile("pending"),
+                    sentRequests.length,
+                    sentRequestsCollapsed,
+                    () => setSentRequestsCollapsed((collapsed) => !collapsed)
+                  )}
+
+                  {!sentRequestsCollapsed && (
+                    <ul className="friends-window__list">
+                      {sentRequests.map((request) =>
+                        renderRequest(
+                          request,
+                          <button
+                            type="button"
+                            className="friends-window__request-action friends-window__request-action--refuse"
+                            onClick={() =>
+                              addFriend.cancelSentRequest(request.id)
+                            }
+                            title={tProfile("cancel_request")}
+                            aria-label={tProfile("cancel_request")}
+                          >
+                            <XIcon size={16} />
+                          </button>
+                        )
+                      )}
+                    </ul>
+                  )}
+                </section>
+              )}
+
               {receivedRequests.length > 0 && (
                 <section className="friends-window__section">
                   {renderSectionHeader(
@@ -843,28 +1069,10 @@ export default function FriendsWindow() {
 
                   {!requestsCollapsed && (
                     <ul className="friends-window__list">
-                      {receivedRequests.map((request) => (
-                        <li key={request.id} className="friends-window__friend">
-                          <button
-                            type="button"
-                            className="friends-window__friend-button"
-                            onClick={() => handleFriendClick(request.id)}
-                          >
-                            <div className="friends-window__avatar-wrapper">
-                              <Avatar
-                                size={40}
-                                src={getProcessedImageUrl(
-                                  request.profileImageUrl,
-                                  FRIEND_AVATAR_IMAGE_SIZE
-                                )}
-                                alt={request.displayName}
-                              />
-                            </div>
-                            <span className="friends-window__friend-name">
-                              {request.displayName}
-                            </span>
-                          </button>
-                          <div className="friends-window__request-actions">
+                      {receivedRequests.map((request) =>
+                        renderRequest(
+                          request,
+                          <>
                             <button
                               type="button"
                               className="friends-window__request-action friends-window__request-action--accept"
@@ -881,9 +1089,9 @@ export default function FriendsWindow() {
                             >
                               <XIcon size={16} />
                             </button>
-                          </div>
-                        </li>
-                      ))}
+                          </>
+                        )
+                      )}
                     </ul>
                   )}
                 </section>
@@ -891,8 +1099,7 @@ export default function FriendsWindow() {
 
               {renderCollapsibleSection(
                 t("online"),
-                // The total only describes the unfiltered list.
-                searchResults === null ? onlineCount : onlineFriends.length,
+                onlineFriends.length,
                 onlineFriends,
                 onlineCollapsed,
                 () => setOnlineOverride(!onlineCollapsed),
@@ -914,6 +1121,15 @@ export default function FriendsWindow() {
           )}
         </div>
       </div>
+
+      <Toast
+        visible={toast.visible}
+        title={toast.title}
+        message={toast.message}
+        type={toast.type}
+        duration={toast.duration}
+        onClose={handleToastClose}
+      />
     </div>
   );
 }

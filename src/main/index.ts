@@ -32,6 +32,11 @@ import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
 import {
+  loadSocialWindowsBounds,
+  restoreSocialWindows,
+  saveSocialWindowsSession,
+} from "./services/social-windows-session";
+import {
   closeSteamOpenIdWindow,
   notifySteamConnectError,
   notifySteamConnected,
@@ -47,6 +52,9 @@ import {
   suspendEpicPlaytime,
   resumeEpicPlaytime,
 } from "./services/epic";
+import { removeAppImageLibraryPath } from "./helpers/remove-appimage-library-path";
+
+if (process.platform === "linux") removeAppImageLibraryPath();
 
 crashReporter.start({
   uploadToServer: false,
@@ -186,8 +194,8 @@ const initializeApp = async () => {
     logger.error("Failed to load app state during startup", error);
   }
   // Optional integration failures must not interrupt launcher startup.
-  await initializeEpicIntegration().catch(() => {
-    logger.warn("Epic integration initialization unavailable");
+  await initializeEpicIntegration().catch((error) => {
+    logger.warn("Epic integration initialization unavailable", error);
   });
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
@@ -216,8 +224,11 @@ const initializeApp = async () => {
   const forceBigPicture = process.argv.includes("--big-picture");
   const isRunDeepLink = deepLinkArg?.startsWith("hydralauncher://run");
 
+  await loadSocialWindowsBounds();
+
   if (!process.argv.includes("--hidden") && !isRunDeepLink) {
     WindowManager.createMainWindow({ forceBigPicture });
+    if (!forceBigPicture) void restoreSocialWindows();
   }
 
   WindowManager.createSystemTray(language || "en");
@@ -404,6 +415,7 @@ app.on("before-quit", async (e) => {
     e.preventDefault();
     if (isAppClosing) return;
     isAppClosing = true;
+    await saveSocialWindowsSession();
     try {
       await shutdownEpicIntegration();
     } catch {

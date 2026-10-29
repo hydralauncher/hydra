@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Skeleton from "react-loading-skeleton";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import {
@@ -385,9 +386,24 @@ function SouvenirsEmptyState({
 
   if (isLoading) {
     return (
-      <div className="profile-content__no-games profile-content__souvenirs-empty">
-        <p>{t("loading_souvenirs")}</p>
-      </div>
+      <ul
+        className="profile-content__souvenirs-grid"
+        aria-busy="true"
+        aria-label={t("loading_souvenirs")}
+      >
+        {Array.from({ length: 8 }).map((_, index) => (
+          <li key={index} className="profile-content__souvenir-skeleton">
+            <Skeleton className="profile-content__souvenir-skeleton-image" />
+            <div className="profile-content__souvenir-skeleton-details">
+              <Skeleton circle width={28} height={28} />
+              <div className="profile-content__souvenir-skeleton-text">
+                <Skeleton width="70%" height={14} />
+                <Skeleton width="45%" height={12} />
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
     );
   }
 

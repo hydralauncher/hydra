@@ -123,6 +123,8 @@ export interface Download {
   shop: GameShop;
   objectId: string;
   uri: string;
+  /** Ordered part URIs of a multi-part hoster download. `uri` is the first part. */
+  parts?: string[];
   folderName: string | null;
   downloadPath: string;
   progress: number;
@@ -136,6 +138,12 @@ export interface Download {
   timestamp: number;
   extracting: boolean;
   extractionProgress?: number;
+  installerLaunched?: boolean;
+  installerRunning?: boolean;
+  installerStartedAt?: number;
+  installerPath?: string;
+  hasInstaller?: boolean;
+  sourceArchiveName?: string;
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];
@@ -192,6 +200,7 @@ export interface UserPreferences {
   retroAchievementsWebApiKey?: string | null;
   retroAchievementsUsername?: string | null;
   preferQuitInsteadOfHiding?: boolean;
+  openFriendsWindowOnStartup?: boolean;
   runAtStartup?: boolean;
   startMinimized?: boolean;
   launchToLibraryPage?: boolean;
@@ -211,6 +220,8 @@ export interface UserPreferences {
   friendRequestNotificationsEnabled?: boolean;
   friendStartGameNotificationsEnabled?: boolean;
   chatMessageNotificationsEnabled?: boolean;
+  leaderboardSlamEnabled?: boolean;
+  leaderboardDropNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
   deleteArchiveFilesAfterExtractionByDefault?: boolean;
