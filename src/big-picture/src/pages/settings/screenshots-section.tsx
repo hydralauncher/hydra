@@ -292,7 +292,7 @@ function ScreenshotInputStatusLine({
       <span className="screenshot-settings__hint">
         {t(getInputStatusKey(status))}
       </span>
-      {!status.active && status.hint ? (
+      {status.hint ? (
         <span className="screenshot-settings__hint">
           {t(status.hint, { ns: "screenshots_input" })}
         </span>
