@@ -29,7 +29,11 @@ import {
 } from "../../screenshots";
 import { getItemFocusTarget } from "../../../../helpers";
 import { Feature, useFeature, useUserDetails } from "../../../../hooks";
-import type { FocusOverrides, FocusOverrideTarget } from "../../../../services";
+import {
+  NavigationService,
+  type FocusOverrides,
+  type FocusOverrideTarget,
+} from "../../../../services";
 import {
   GAME_MY_SCREENSHOTS_GRID_REGION_ID,
   GAME_MY_SCREENSHOTS_REGION_ID,
@@ -89,6 +93,30 @@ interface MyScreenshotsGridProps {
   onRefreshImage: (screenshot: ProfileScreenshot) => Promise<void>;
 }
 
+const resolveFocusTargetNodeId = (target: FocusOverrideTarget) => {
+  if (target.type === "item") return target.itemId;
+  if (target.type === "block") return null;
+
+  return (
+    target.initialFocusId ??
+    NavigationService.getInstance()
+      .getNodes()
+      .find((node) => node.regionId === target.regionId)?.id ??
+    null
+  );
+};
+
+const getFocusAfterDeleteId = (
+  items: MyScreenshotItem[],
+  index: number,
+  leftTarget: FocusOverrideTarget
+) => {
+  const neighbour = items[index + 1] ?? items[index - 1];
+  if (neighbour) return getGameMyScreenshotItemId(neighbour.id);
+
+  return resolveFocusTargetNodeId(leftTarget);
+};
+
 function MyScreenshotsGrid({
   items,
   local,
@@ -102,6 +130,7 @@ function MyScreenshotsGrid({
     <GridFocusGroup
       regionId={GAME_MY_SCREENSHOTS_GRID_REGION_ID}
       className="game-my-screenshots__grid"
+      navigationOrder={0}
     >
       {items.map((item, index) => {
         const focusId = getGameMyScreenshotItemId(item.id);
@@ -131,7 +160,12 @@ function MyScreenshotsGrid({
             variant="thumbnail"
             navigationOverrides={navigationOverrides}
             onOpen={(screenshot) => onOpenLocal?.(screenshot)}
-            onDelete={local.requestDelete}
+            onDelete={(screenshot) =>
+              local.requestDelete(
+                screenshot,
+                getFocusAfterDeleteId(items, index, leftTarget)
+              )
+            }
           />
         );
       })}
@@ -233,6 +267,7 @@ function MyScreenshotsMessage({
           focusId={GAME_MY_SCREENSHOTS_RETRY_ID}
           icon={<ArrowClockwiseIcon size={18} />}
           focusNavigationOverrides={{ left: leftTarget, right: BLOCK_TARGET }}
+          focusNavigationOrder={1}
           onClick={onRetry}
         >
           {t("screenshots_retry")}
@@ -416,6 +451,7 @@ export function GameMyScreenshots({
             focusId={GAME_MY_SCREENSHOTS_RETRY_ID}
             className="game-my-screenshots__notice"
             navigationOverrides={{ left: leftTarget, right: BLOCK_TARGET }}
+            navigationOrder={1}
           />
           {viewAllTab ? (
             <Button
@@ -428,6 +464,7 @@ export function GameMyScreenshots({
                 left: leftTarget,
                 right: BLOCK_TARGET,
               }}
+              focusNavigationOrder={2}
               onClick={() => setModalTab(viewAllTab)}
             >
               {t("screenshots_view_all")}

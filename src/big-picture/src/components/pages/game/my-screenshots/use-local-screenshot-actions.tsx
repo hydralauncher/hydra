@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LocalScreenshot } from "@types";
 import { getLocalScreenshotTitle } from "@shared";
@@ -6,6 +6,7 @@ import { logger } from "@renderer/logger";
 
 import { ConfirmationModal } from "../../../modals";
 import { useBigPictureToast } from "../../../../hooks";
+import { NavigationService } from "../../../../services";
 import { formatScreenshotDate } from "../../screenshots";
 
 export function useLocalScreenshotAlt() {
@@ -30,6 +31,15 @@ export function useLocalScreenshotActions() {
   const [pendingDelete, setPendingDelete] = useState<LocalScreenshot | null>(
     null
   );
+  const focusAfterDeleteRef = useRef<string | null>(null);
+
+  const requestDelete = useCallback(
+    (screenshot: LocalScreenshot, focusAfterDeleteId: string | null = null) => {
+      focusAfterDeleteRef.current = focusAfterDeleteId;
+      setPendingDelete(screenshot);
+    },
+    []
+  );
 
   const setBusy = useCallback((clientId: string, isBusy: boolean) => {
     setBusyIds((current) => {
@@ -46,6 +56,13 @@ export function useLocalScreenshotActions() {
     setBusy(clientId, true);
     try {
       await globalThis.window.electron.deleteLocalScreenshot(clientId);
+      const focusAfterDeleteId = focusAfterDeleteRef.current;
+      focusAfterDeleteRef.current = null;
+      if (focusAfterDeleteId) {
+        NavigationService.getInstance().requestFocusWhenAvailable(
+          focusAfterDeleteId
+        );
+      }
       setPendingDelete(null);
       showSuccessToast(t("screenshots_deleted"));
     } catch (error) {
@@ -78,7 +95,7 @@ export function useLocalScreenshotActions() {
   return {
     busyIds,
     describe,
-    requestDelete: setPendingDelete,
+    requestDelete,
     elements,
   };
 }
