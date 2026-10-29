@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GameShop } from "@types";
+import type { GameShop, LocalScreenshot } from "@types";
 
+import { isLocalScreenshotForGame } from "../local-screenshots";
 import {
   countPublishedScreenshotsForGame,
   subscribeMyGameScreenshotsChanged,
@@ -21,6 +22,22 @@ interface UseMyGameScreenshotCountsOptions {
   local: MyGameScreenshotsLocalBridge;
   onError?: (error: unknown) => void;
 }
+
+const getPublishedCopiesKey = (
+  screenshots: LocalScreenshot[],
+  shop: GameShop,
+  objectId: string
+) =>
+  screenshots
+    .flatMap((screenshot) =>
+      screenshot.state === "uploaded" &&
+      screenshot.screenshotId &&
+      isLocalScreenshotForGame(screenshot, shop, objectId)
+        ? [screenshot.screenshotId]
+        : []
+    )
+    .toSorted()
+    .join(",");
 
 export function useMyGameScreenshotCounts({
   userId,
@@ -72,10 +89,18 @@ export function useMyGameScreenshotCounts({
   }, [refreshLocalCount, refreshPublishedCount]);
 
   useEffect(() => {
+    let publishedCopiesKey: string | null = null;
+
+    const handleLocalChange = (screenshots: LocalScreenshot[]) => {
+      const nextKey = getPublishedCopiesKey(screenshots, shop, objectId);
+      const hasPublishedCopiesChanged = nextKey !== publishedCopiesKey;
+      publishedCopiesKey = nextKey;
+      void refreshLocalCount();
+      if (hasPublishedCopiesChanged) void refreshPublishedCount();
+    };
+
     void refreshCounts();
-    const unsubscribeLocal = local.onLocalScreenshotsChange(
-      () => void refreshCounts()
-    );
+    const unsubscribeLocal = local.onLocalScreenshotsChange(handleLocalChange);
     const unsubscribeChanged = subscribeMyGameScreenshotsChanged(
       () => void refreshCounts()
     );
@@ -85,7 +110,14 @@ export function useMyGameScreenshotCounts({
       unsubscribeLocal();
       unsubscribeChanged();
     };
-  }, [local, refreshCounts]);
+  }, [
+    local,
+    objectId,
+    refreshCounts,
+    refreshLocalCount,
+    refreshPublishedCount,
+    shop,
+  ]);
 
   return counts;
 }
