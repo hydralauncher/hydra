@@ -142,9 +142,10 @@ export interface Download {
   installerPath?: string;
   hasInstaller?: boolean;
   sourceArchiveName?: string;
-  // Set while folderName names an archive that was consumed by an in-place
-  // extraction whose nested archives are not extracted yet.
-  extractedInPlace?: boolean;
+  // Archives Hydra started extracting in place, kept until the whole download
+  // is extracted. Only these are resumed, since a progress file next to an
+  // archive may have come with the download.
+  inPlaceArchives?: string[];
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];

@@ -6,7 +6,11 @@
 //! leaves the archive untouched and reports `unavailable`, so the caller can
 //! fall back to 7-Zip. Once the journal exists the archive is partly consumed:
 //! errors report `failed`, and only another call (which resumes) can finish it.
+//!
+//! A journal lies next to the archive, where a download could have brought
+//! one, so it is only followed when Hydra says it started that extraction.
 
+use std::panic::{self, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -38,9 +42,11 @@ pub struct InPlaceExtractionOptions {
     pub output_path: String,
     /// Tried in order when the archive is encrypted.
     pub passwords: Vec<String>,
-    /// Allows starting a new in-place extraction. Without it, only an
-    /// extraction that is already partly done is resumed.
+    /// Allows starting a new in-place extraction.
     pub allow_fresh: bool,
+    /// Hydra recorded starting an in-place extraction of this archive, so a
+    /// journal next to it is Hydra's own and what is left gets finished.
+    pub resume: bool,
 }
 
 #[napi(object)]
@@ -81,9 +87,22 @@ pub async fn extract_archive_in_place(
     on_progress: ThreadsafeFunction<f64, (), f64, Status, false>,
 ) -> napi::Result<InPlaceExtractionResult> {
     tokio::task::spawn_blocking(move || {
-        extract(options, move |fraction| {
+        let archive_path = PathBuf::from(&options.archive_path);
+        let on_progress = move |fraction| {
             on_progress.call(fraction, ThreadsafeFunctionCallMode::NonBlocking);
-        })
+        };
+        // A panic still says whether the archive was touched, so the caller
+        // never hands a partly consumed one to 7-Zip.
+        panic::catch_unwind(AssertUnwindSafe(|| extract(options, on_progress))).unwrap_or_else(
+            |_| {
+                let started = session::locate(&archive_path).is_ok_and(|(_, paths)| paths.exists());
+                if started {
+                    InPlaceExtractionResult::failed("in-place extraction crashed")
+                } else {
+                    InPlaceExtractionResult::unavailable("in-place extraction crashed")
+                }
+            },
+        )
     })
     .await
     .map_err(|err| Error::from_reason(err.to_string()))
@@ -97,9 +116,21 @@ fn extract(
         Ok(located) => located,
         Err(err) => return InPlaceExtractionResult::unavailable(format!("{err:#}")),
     };
-    let resuming = paths.exists();
-    if !resuming && !options.allow_fresh {
-        return InPlaceExtractionResult::unavailable("in-place extraction was not requested");
+    if paths.exists() && !options.resume {
+        return InPlaceExtractionResult::unavailable(format!(
+            "{} was not created by Hydra",
+            paths.journal.display()
+        ));
+    }
+    if !paths.exists() {
+        // Hydra started this run, and both the archive and its journal are
+        // gone, so every file is out.
+        if options.resume && !primary.exists() {
+            return InPlaceExtractionResult::finished();
+        }
+        if !options.allow_fresh {
+            return InPlaceExtractionResult::unavailable("in-place extraction was not requested");
+        }
     }
     let _turn = ONE_AT_A_TIME
         .lock()
@@ -169,7 +200,7 @@ fn extract(
                     engine::human(plan.free)
                 ));
             }
-            match session::begin(&job, &paths, output, false) {
+            match session::begin(&job, &paths, output, false, None) {
                 Ok(journal) => (job, journal),
                 Err(err) => return not_started(format!("{err:#}")),
             }

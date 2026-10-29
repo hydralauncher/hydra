@@ -745,11 +745,13 @@ checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 
 [[package]]
 name = "hatchzip-core"
-version = "0.1.3"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b68d4108bb8092425d493db8f5c4744069da133fe83704866f28516383e4ded0"
+checksum = "a5a32a608e9965b27dcecfe903335d8efd0fe269f4dd79678ed658dd187a18b2"
 dependencies = [
+ "aes",
  "anyhow",
+ "cbc",
  "crc32fast",
  "fs4",
  "libc",

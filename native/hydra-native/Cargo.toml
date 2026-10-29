@@ -15,7 +15,7 @@ globset = "=0.4.15"
 # In-place archive extraction. The `rar` feature compiles UnRAR's C++ source,
 # which is under its own license (LICENSE-UNRAR, shipped with the addon):
 # free for extracting RAR archives, not for building a RAR compressor.
-hatchzip-core = { version = "=0.1.3", features = ["rar"] }
+hatchzip-core = { version = "=0.1.8", features = ["rar"] }
 image = { version = "0.25.8", default-features = false, features = ["gif", "jpeg", "png", "webp"] }
 indexmap = { version = "2.14", features = ["serde"] }
 mime_guess = "2.0.5"

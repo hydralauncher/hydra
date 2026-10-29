@@ -51,10 +51,13 @@ export type InPlaceExtractionOptions = {
   outputPath: string;
   passwords: string[];
   allowFresh: boolean;
+  // Hydra recorded starting an in-place extraction of this archive.
+  resume: boolean;
 };
 
 // "unavailable" leaves the archive untouched; "failed" means part of it is
 // already extracted and removed, and only another in-place call resumes it.
+// The call itself only rejects when the addon could not run.
 export type InPlaceExtractionResult = {
   status: "finished" | "unavailable" | "failed";
   message?: string | null;
