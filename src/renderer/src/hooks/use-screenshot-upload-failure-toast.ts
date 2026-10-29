@@ -17,6 +17,7 @@ export function useScreenshotUploadFailureToast() {
 
   useEffect(() => {
     const track = createScreenshotUploadOutcomeTracker();
+    let hasSeenChange = false;
 
     const showProblem = (screenshot: LocalScreenshot) => {
       if (screenshot.state === "failed") {
@@ -36,12 +37,15 @@ export function useScreenshotUploadFailureToast() {
 
     window.electron
       .getLocalScreenshots()
-      .then(track)
+      .then((screenshots) => {
+        if (!hasSeenChange) track(screenshots);
+      })
       .catch((error) => {
         logger.error("Failed to load local screenshots", error);
       });
 
     return window.electron.onLocalScreenshotsChange((screenshots) => {
+      hasSeenChange = true;
       const problems = track(screenshots);
       if (document.visibilityState !== "visible") return;
       problems.forEach(showProblem);

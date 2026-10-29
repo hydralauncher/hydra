@@ -214,8 +214,8 @@ const deleteAll = async (context: DeletionContext) => {
   const unsentDeleted = Math.max(0, local.deleted - publishedCopies);
   const deleted = published + unsentDeleted;
 
-  await deleteLatePublished(context, knownIds, deleted);
-  return { deleted, isComplete: local.isComplete };
+  const lateDeleted = await deleteLatePublished(context, knownIds, deleted);
+  return { deleted: deleted + lateDeleted, isComplete: local.isComplete };
 };
 
 const runDeletion = async (

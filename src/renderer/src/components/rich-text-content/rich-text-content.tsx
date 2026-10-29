@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import cn from "classnames";
 
-import { sanitizeHtml, toRichTextHtml } from "@shared";
+import { sanitizeCommentHtml, toRichTextHtml } from "@shared";
 
 import "./rich-text-content.scss";
 
@@ -14,7 +14,10 @@ export function RichTextContent({
   html,
   className,
 }: Readonly<RichTextContentProps>) {
-  const safeHtml = useMemo(() => sanitizeHtml(toRichTextHtml(html)), [html]);
+  const safeHtml = useMemo(
+    () => sanitizeCommentHtml(toRichTextHtml(html)),
+    [html]
+  );
 
   return (
     <div
