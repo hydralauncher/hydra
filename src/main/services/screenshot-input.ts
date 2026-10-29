@@ -201,10 +201,6 @@ export class ScreenshotInputService {
     return true;
   }
 
-  public static getStatus(): ScreenshotInputStatus {
-    return this.status;
-  }
-
   public static syncUserPreferences(preferences: UserPreferences | null) {
     const previous = this.settings;
     this.settings = getScreenshotInputSettings(preferences);
