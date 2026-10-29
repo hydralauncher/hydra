@@ -394,6 +394,8 @@ export class GameFilesManager {
     const compressedFiles = new Set<string>();
     const extractedFiles = new Set<string>();
     const download = await downloadsSublevel.get(this.gameKey);
+    // Only multi-part hoster downloads, which need the feature to start, number their first volume part01.
+    const firstRarVolume = download?.parts ? /part0*1\.rar$/i : /part1\.rar$/i;
     // Archives nested in an outer one are kept, so only top-level downloads
     // that will be deleted anyway are consumed while extracting.
     const inPlace =
@@ -424,7 +426,7 @@ export class GameFilesManager {
       const filesToExtract = archives.filter(
         (file) =>
           !extractedFiles.has(file) &&
-          (/part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file))
+          (firstRarVolume.test(file) || !/part\d+\.rar$/i.test(file))
       );
 
       if (filesToExtract.length === 0) continue;
