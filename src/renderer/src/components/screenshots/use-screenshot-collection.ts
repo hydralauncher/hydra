@@ -113,7 +113,6 @@ export function useScreenshotCollection({
   const fetchedIdsRef = useRef(new Set<string>());
   const requestTokensRef = useRef(new Map<string, number>());
   const detachedFetchedAtRef = useRef(new Map<string, number>());
-  const writeVersionsRef = useRef(new Map<string, number>());
   const lastWriteAtRef = useRef(new Map<string, number>());
   const inFlightPatchesRef = useRef(new Map<string, ScreenshotPatch[]>());
   const relativeWritesRef = useRef(new Map<string, number>());
@@ -154,7 +153,6 @@ export function useScreenshotCollection({
 
   const applyPatch = useCallback(
     (screenshotId: string, patch: ScreenshotPatch) => {
-      bumpWriteVersion(writeVersionsRef.current, screenshotId);
       lastWriteAtRef.current.set(screenshotId, performance.now());
       inFlightPatchesRef.current.get(screenshotId)?.push(patch);
       if (isRelativeScreenshotPatch(patch)) {
@@ -224,7 +222,6 @@ export function useScreenshotCollection({
     onRemove,
     onFailure: markFailure,
   });
-  const { hasPendingWrite } = actions;
 
   const recountDetached = useCallback(
     async (ownerId: string, screenshotId: string): Promise<void> => {
@@ -335,30 +332,21 @@ export function useScreenshotCollection({
   const refreshScreenshot = useCallback(
     (item: ProfileScreenshot) =>
       imageRefresherRef.current.run(item.id, async () => {
-        const startVersion = writeVersionsRef.current.get(item.id) ?? 0;
-        const startedDuringWrite = hasPendingWrite(item.id);
-
         try {
           const fresh = await fetchScreenshot(item.owner.id, item.id);
           if (!fresh) return;
 
-          const hasLocalWrite =
-            startedDuringWrite ||
-            hasPendingWrite(item.id) ||
-            (writeVersionsRef.current.get(item.id) ?? 0) !== startVersion;
-          onPatch(
-            item.id,
-            hasLocalWrite
-              ? { imageUrl: fresh.imageUrl, thumbnailUrl: fresh.thumbnailUrl }
-              : fresh
-          );
+          onPatch(item.id, {
+            imageUrl: fresh.imageUrl,
+            thumbnailUrl: fresh.thumbnailUrl,
+          });
         } catch (error) {
           logger.error("Failed to refresh screenshot", error);
           const failure = getScreenshotFailure(error);
           if (failure) markFailure(item.id, failure);
         }
       }),
-    [fetchScreenshot, hasPendingWrite, markFailure, onPatch]
+    [fetchScreenshot, markFailure, onPatch]
   );
 
   let status: ScreenshotLightboxStatus = "closed";

@@ -107,15 +107,6 @@ const deletePublishedOnServer = async (
   return deletedIds.length;
 };
 
-const deletePublished = async (context: DeletionContext) => {
-  const ids = await getPublishedIds(context);
-  const deleted = await deletePublishedOnServer(context, ids);
-  await continueAfterServerDeletion(deleted, () =>
-    forgetPublished(context, ids)
-  );
-  return deleted;
-};
-
 const LOCAL_DELETION_INCOMPLETE = "screenshots/local-deletion-incomplete";
 const LOCAL_CLEANUP_FAILED = "screenshots/local-cleanup-failed";
 
@@ -158,6 +149,16 @@ const deleteLatePublished = async (
     throw new PartialDeletionError(deleted, error, "server");
   }
   await forgetPublished(context, [...knownIds, ...deletedIds]);
+  return deletedIds.length;
+};
+
+const deletePublished = async (context: DeletionContext) => {
+  const ids = await getPublishedIds(context);
+  const deleted = await deletePublishedOnServer(context, ids);
+  const lateDeleted = await continueAfterServerDeletion(deleted, () =>
+    deleteLatePublished(context, ids, deleted)
+  );
+  return deleted + lateDeleted;
 };
 
 const deleteAll = async (context: DeletionContext) => {
