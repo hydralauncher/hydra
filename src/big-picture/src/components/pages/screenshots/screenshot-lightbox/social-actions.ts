@@ -43,6 +43,14 @@ interface ConfirmedField {
   isShown: boolean;
 }
 
+const forgetDeletedScreenshot = (screenshotId: string) => {
+  globalThis.window.electron
+    .forgetPublishedScreenshots([screenshotId])
+    .catch((error: unknown) =>
+      logger.error("Failed to forget the deleted screenshot", error)
+    );
+};
+
 const pickField = (
   update: ScreenshotUpdateRequest,
   field: string
@@ -336,10 +344,15 @@ export function useLightboxSocialActions({
         buildProfileScreenshotPath(screenshotId),
         { needsAuth: true }
       );
+      forgetDeletedScreenshot(screenshotId);
       showSuccessToast(t("screenshots_deleted"), SETTINGS_TOAST);
       return () => onRemove(screenshotId, ownerId);
     } catch (error) {
       logger.error("Failed to delete screenshot", error);
+      if (getScreenshotApiErrorCode(error) === "screenshots/not-found") {
+        forgetDeletedScreenshot(screenshotId);
+        return () => onRemove(screenshotId, ownerId);
+      }
       showError(error);
       return null;
     } finally {
