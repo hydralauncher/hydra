@@ -53,6 +53,8 @@ interface ModalBackActionProps {
 }
 
 const swallowBPress = () => {};
+const BUSY_MODAL_BACK_ACTIONS: ScreenActions = { press: { b: swallowBPress } };
+const IDLE_MODAL_BACK_ACTIONS: ScreenActions = {};
 
 function getModalBackActions({
   enabled,
@@ -131,6 +133,11 @@ export function Modal({
   };
 
   const shouldCloseOnB = visible && closeOnB && !isVirtualKeyboardOpen;
+  const isBusyOnB = visible && !closeOnB && !isVirtualKeyboardOpen;
+
+  useNavigationScreenActions(
+    isBusyOnB ? BUSY_MODAL_BACK_ACTIONS : IDLE_MODAL_BACK_ACTIONS
+  );
   const resolvedLayoutTransition = layoutTransition ?? {
     duration: 0.4,
     ease: "easeInOut",
