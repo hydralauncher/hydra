@@ -10,6 +10,8 @@ mod linux {
     use std::time::{Duration, Instant};
 
     use zbus::blocking::{connection, Connection};
+    use zbus::message::Header;
+    use zbus::names::{BusName, OwnedUniqueName};
 
     const KWIN_SERVICE: &str = "org.kde.KWin";
     const SCRIPTING_PATH: &str = "/Scripting";
@@ -21,13 +23,62 @@ mod linux {
     const METHOD_TIMEOUT: Duration = Duration::from_millis(500);
     const RETRY_AFTER_FAILURE: Duration = Duration::from_secs(10);
 
+    type KwinOwner = Arc<Mutex<Option<OwnedUniqueName>>>;
+
     struct FocusWatch {
         pid: Arc<AtomicI64>,
+        kwin_owner: KwinOwner,
+    }
+
+    fn kwin_bus_name() -> zbus::Result<BusName<'static>> {
+        Ok(BusName::try_from(KWIN_SERVICE)?)
+    }
+
+    fn is_known_kwin_owner(kwin_owner: &KwinOwner, sender: &str) -> bool {
+        kwin_owner
+            .lock()
+            .map(|owner| owner.as_deref().map(|name| name.as_str()) == Some(sender))
+            .unwrap_or(false)
+    }
+
+    async fn refresh_kwin_owner(
+        connection: &zbus::Connection,
+        kwin_owner: &KwinOwner,
+    ) -> zbus::Result<OwnedUniqueName> {
+        let owner = zbus::fdo::DBusProxy::new(connection)
+            .await?
+            .get_name_owner(kwin_bus_name()?)
+            .await?;
+        if let Ok(mut current) = kwin_owner.lock() {
+            *current = Some(owner.clone());
+        }
+        Ok(owner)
+    }
+
+    fn resolve_kwin_owner(connection: &Connection) -> zbus::Result<OwnedUniqueName> {
+        let proxy = zbus::blocking::fdo::DBusProxy::new(connection)?;
+        Ok(proxy.get_name_owner(kwin_bus_name()?)?)
     }
 
     #[zbus::interface(name = "org.hydralauncher.FocusWatch")]
     impl FocusWatch {
-        fn report(&self, pid: String) {
+        async fn report(
+            &self,
+            pid: String,
+            #[zbus(header)] header: Header<'_>,
+            #[zbus(connection)] connection: &zbus::Connection,
+        ) {
+            let Some(sender) = header.sender().map(|name| name.as_str()) else {
+                return;
+            };
+            if !is_known_kwin_owner(&self.kwin_owner, sender) {
+                let Ok(owner) = refresh_kwin_owner(connection, &self.kwin_owner).await else {
+                    return;
+                };
+                if owner.as_str() != sender {
+                    return;
+                }
+            }
             let value = pid.trim().parse::<i64>().unwrap_or(0);
             self.pid.store(value.max(0), Ordering::SeqCst);
         }
@@ -110,13 +161,21 @@ mod linux {
         let service = format!("{WATCH_INTERFACE}.p{process_id}");
         let plugin = String::from(SCRIPT_PLUGIN);
         let pid = Arc::new(AtomicI64::new(UNREPORTED));
+        let kwin_owner: KwinOwner = Arc::new(Mutex::new(None));
+        let focus_watch = FocusWatch {
+            pid: pid.clone(),
+            kwin_owner: kwin_owner.clone(),
+        };
 
         let connection = connection::Builder::session()
             .and_then(|builder| builder.name(service.as_str()))
-            .and_then(|builder| builder.serve_at(WATCH_PATH, FocusWatch { pid: pid.clone() }))
+            .and_then(|builder| builder.serve_at(WATCH_PATH, focus_watch))
             .map(|builder| builder.method_timeout(METHOD_TIMEOUT))
             .and_then(|builder| builder.build())
             .map_err(|error| error.to_string())?;
+
+        let owner = resolve_kwin_owner(&connection).map_err(|error| error.to_string())?;
+        *kwin_owner.lock().map_err(|error| error.to_string())? = Some(owner);
 
         let script_path = runtime_dir.join(format!("{plugin}-{process_id}.js"));
         write_private_file(&script_path, &script_source(&service))
