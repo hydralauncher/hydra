@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -26,6 +26,11 @@ export function useReviewTranslation(
   const { t, i18n } = useTranslation("game_details");
   const { viewerUser } = useLeaderboardViewer();
   const [showOriginal, setShowOriginal] = useState(false);
+
+  // Each review starts translated, also when another entry is selected.
+  useEffect(() => {
+    setShowOriginal(false);
+  }, [review, authorId]);
   const translation = getReviewTranslation({
     translations: review.translations,
     detectedLanguage: review.detectedLanguage,

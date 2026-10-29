@@ -378,7 +378,7 @@ export function ByGameTab({
         showDelta={isWeek}
         isLoading={board.isLoading}
         reportContext={
-          metric
+          metric && boardGame
             ? { metric: metric.id, window: period, scope, game: boardGame }
             : null
         }

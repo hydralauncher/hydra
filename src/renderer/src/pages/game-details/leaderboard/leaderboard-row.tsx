@@ -28,9 +28,10 @@ export interface LeaderboardRowProps {
   reserveAction?: boolean;
 }
 
-interface TooltipPosition {
-  x: number;
-  y: number;
+// Which side of the pointer the tooltip sits on. The position itself is
+// written to the element on each mouse move, outside React, so moving the
+// pointer does not re-render the row.
+interface TooltipSide {
   flipX: boolean;
   flipY: boolean;
 }
@@ -55,15 +56,25 @@ export function LeaderboardRow({
   const { entry, isViewer, gapBefore, progress } = row;
   const tier = getRankTier(entry.rank);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const [tooltipPosition, setTooltipPosition] =
-    useState<TooltipPosition | null>(null);
+  const [tooltipSide, setTooltipSide] = useState<TooltipSide | null>(null);
+
+  // Back to the keyboard-focus placement (CSS), without the pointer position.
+  const stopFollowing = () => {
+    tooltipRef.current?.style.removeProperty("left");
+    tooltipRef.current?.style.removeProperty("top");
+    setTooltipSide(null);
+  };
 
   // Scrolling moves the row away from a fixed tooltip, so hide it until the
   // pointer moves again.
-  const isFollowing = tooltipPosition !== null;
+  const isFollowing = tooltipSide !== null;
   useEffect(() => {
     if (!isFollowing) return;
-    const hide = () => setTooltipPosition(null);
+    const hide = () => {
+      tooltipRef.current?.style.removeProperty("left");
+      tooltipRef.current?.style.removeProperty("top");
+      setTooltipSide(null);
+    };
     const options = { capture: true, passive: true };
     globalThis.addEventListener("scroll", hide, options);
     globalThis.addEventListener("wheel", hide, options);
@@ -77,22 +88,24 @@ export function LeaderboardRow({
   // The tooltip sits above and to the right of the pointer, flipped to the
   // other side when that would leave the window.
   const followPointer = (event: React.MouseEvent) => {
-    if (!tooltip) return;
-    const width = tooltipRef.current?.offsetWidth || TOOLTIP_FALLBACK_WIDTH;
-    const height = tooltipRef.current?.offsetHeight || TOOLTIP_FALLBACK_HEIGHT;
+    const element = tooltipRef.current;
+    if (!tooltip || !element) return;
+    const width = element.offsetWidth || TOOLTIP_FALLBACK_WIDTH;
+    const height = element.offsetHeight || TOOLTIP_FALLBACK_HEIGHT;
     const x = event.clientX;
     const y = event.clientY;
 
     const flipX = x + TOOLTIP_OFFSET + width > window.innerWidth;
     const flipY = y - TOOLTIP_OFFSET - height < 0;
 
-    setTooltipPosition((current) =>
-      current?.x === x &&
-      current.y === y &&
-      current.flipX === flipX &&
-      current.flipY === flipY
+    element.style.left = `${x + (flipX ? -1 : 1) * TOOLTIP_OFFSET}px`;
+    element.style.top = `${y}px`;
+
+    // Same object back when nothing changed, so React skips the render.
+    setTooltipSide((current) =>
+      current?.flipX === flipX && current.flipY === flipY
         ? current
-        : { x, y, flipX, flipY }
+        : { flipX, flipY }
     );
   };
   const banner = useProcessedImage(
@@ -106,26 +119,20 @@ export function LeaderboardRow({
         "leaderboard-row__item--tooltip": tooltip,
       })}
       onMouseMove={tooltip ? followPointer : undefined}
-      onMouseLeave={tooltip ? () => setTooltipPosition(null) : undefined}
+      onMouseLeave={tooltip ? stopFollowing : undefined}
     >
       {tooltip && (
         <div
           ref={tooltipRef}
           className={cn("leaderboard-row__tooltip", {
-            "leaderboard-row__tooltip--pointer": tooltipPosition,
-            "leaderboard-row__tooltip--flip-x": tooltipPosition?.flipX,
-            "leaderboard-row__tooltip--flip-y": tooltipPosition?.flipY,
+            "leaderboard-row__tooltip--pointer": tooltipSide,
+            "leaderboard-row__tooltip--flip-x": tooltipSide?.flipX,
+            "leaderboard-row__tooltip--flip-y": tooltipSide?.flipY,
           })}
           style={
-            tooltipPosition
-              ? ({
-                  "--leaderboard-tooltip-offset": `${TOOLTIP_OFFSET}px`,
-                  left:
-                    tooltipPosition.x +
-                    (tooltipPosition.flipX ? -1 : 1) * TOOLTIP_OFFSET,
-                  top: tooltipPosition.y,
-                } as React.CSSProperties)
-              : undefined
+            {
+              "--leaderboard-tooltip-offset": `${TOOLTIP_OFFSET}px`,
+            } as React.CSSProperties
           }
           role="tooltip"
         >
