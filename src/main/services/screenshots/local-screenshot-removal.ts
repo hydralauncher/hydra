@@ -33,7 +33,7 @@ const isFileDeleted = async (filePath: string) => {
     return false;
   } catch (error) {
     if (!isMissingFileError(error)) return false;
-    return pathExists(path.dirname(filePath));
+    return pathExists(path.dirname(path.dirname(filePath)));
   }
 };
 
