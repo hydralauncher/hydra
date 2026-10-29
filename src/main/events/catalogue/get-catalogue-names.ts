@@ -8,6 +8,10 @@ const getCatalogueNames = async (
   _event: Electron.IpcMainInvokeEvent,
   list: "developers" | "publishers"
 ) => {
+  if (list !== "developers" && list !== "publishers") {
+    throw new Error(`Invalid catalogue list: ${list}`);
+  }
+
   const cacheKey = `steam:${list}`;
   const cached = await catalogueNamesCacheSublevel
     .get(cacheKey)
@@ -24,10 +28,18 @@ const getCatalogueNames = async (
       { needsAuth: false }
     );
 
-    await catalogueNamesCacheSublevel.put(cacheKey, {
-      names,
-      updatedAt: Date.now(),
-    });
+    if (!Array.isArray(names)) {
+      throw new Error(`Invalid catalogue ${list} response`);
+    }
+
+    await catalogueNamesCacheSublevel
+      .put(cacheKey, {
+        names,
+        updatedAt: Date.now(),
+      })
+      .catch((error) => {
+        logger.error(`Failed to cache catalogue ${list}`, error);
+      });
 
     return names;
   } catch (error) {
