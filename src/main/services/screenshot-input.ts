@@ -186,6 +186,9 @@ export class ScreenshotInputService {
   private static restartTimer: ReturnType<typeof setTimeout> | null = null;
   private static portalAccelerator: string | null = null;
   private static nativeStatus: ScreenshotInputNativeStatus | null = null;
+  private static pendingGamesRunningCheck: ReturnType<
+    typeof setImmediate
+  > | null = null;
   private static unsubscribeGamesRunning: (() => void) | null = null;
   private static unsubscribeFeature: (() => void) | null = null;
 
@@ -209,6 +212,12 @@ export class ScreenshotInputService {
         source,
         featureEnabled: this.featureEnabled,
         settingsEnabled: this.settings.enabled,
+      });
+      return false;
+    }
+    if (!hasTrackedGamesRunning()) {
+      logger.info("Screenshot trigger ignored: no tracked game running", {
+        source,
       });
       return false;
     }
@@ -248,7 +257,7 @@ export class ScreenshotInputService {
       this.initialized = true;
       this.gamesRunning = hasTrackedGamesRunning();
       this.unsubscribeGamesRunning = onTrackedGamesRunningChange(() =>
-        this.handleTrackedGamesRunningChange()
+        this.scheduleTrackedGamesRunningCheck()
       );
       this.unsubscribeFeature = onScreenshotsFeatureChange((enabled) =>
         this.applyFeatureFlag(enabled)
@@ -287,11 +296,26 @@ export class ScreenshotInputService {
   public static shutdown() {
     this.shuttingDown = true;
     this.cancelRestart();
+    this.cancelTrackedGamesRunningCheck();
     this.unsubscribeGamesRunning?.();
     this.unsubscribeGamesRunning = null;
     this.unsubscribeFeature?.();
     this.unsubscribeFeature = null;
     this.stopListening();
+  }
+
+  private static scheduleTrackedGamesRunningCheck() {
+    if (this.pendingGamesRunningCheck) return;
+    this.pendingGamesRunningCheck = setImmediate(() => {
+      this.pendingGamesRunningCheck = null;
+      this.handleTrackedGamesRunningChange();
+    });
+  }
+
+  private static cancelTrackedGamesRunningCheck() {
+    if (!this.pendingGamesRunningCheck) return;
+    clearImmediate(this.pendingGamesRunningCheck);
+    this.pendingGamesRunningCheck = null;
   }
 
   private static handleTrackedGamesRunningChange() {

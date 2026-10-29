@@ -2857,9 +2857,9 @@
     "hotkey_portal_unsupported_key": "Pause and Numpad Enter can't be used as the screenshot hotkey in this Wayland session. Choose another key, or add your user to the input group.",
     "hotkey_reserved": "This shortcut is reserved by the system. Choose another one.",
     "hotkey_unavailable": "The screenshot hotkey isn't available right now. You can bind hydralauncher://screenshot to a shortcut in your system settings instead.",
-    "hotkey_unavailable_wayland": "Hydra can't read the keyboard in this Wayland session. Add your user to the input group, or bind hydralauncher://screenshot to a shortcut in your desktop settings.",
+    "hotkey_unavailable_wayland": "Hydra can't read the keyboard in this Wayland session. Bind hydralauncher://screenshot to a shortcut in your desktop settings instead. Adding your user to the input group also works, but it lets every app you run read everything you type.",
     "hotkey_unsupported_key": "This key can't be used for screenshots",
-    "hotkey_xwayland_only": "The screenshot hotkey only works in games running through XWayland. Add your user to the input group to use it everywhere."
+    "hotkey_xwayland_only": "The screenshot hotkey only works in games running through XWayland. To take screenshots in other games, bind hydralauncher://screenshot to a shortcut in your desktop settings."
   },
   "screenshots_capture": {
     "cancel": "Cancel",
