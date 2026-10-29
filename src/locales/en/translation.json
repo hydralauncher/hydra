@@ -2854,6 +2854,7 @@
     "gamepad_combo_unsupported_button": "This button can't be used in the screenshot combo",
     "gamepad_unavailable": "Hydra can't read your controller. Make sure your user has access to input devices.",
     "hotkey_modifier_required": "Add Ctrl or Alt to this key so it doesn't fire while you type or move",
+    "hotkey_portal_unsupported_key": "Pause and Numpad Enter can't be used as the screenshot hotkey in this Wayland session. Choose another key, or add your user to the input group.",
     "hotkey_reserved": "This shortcut is reserved by the system. Choose another one.",
     "hotkey_unavailable": "The screenshot hotkey isn't available right now. You can bind hydralauncher://screenshot to a shortcut in your system settings instead.",
     "hotkey_unavailable_wayland": "Hydra can't read the keyboard in this Wayland session. Add your user to the input group, or bind hydralauncher://screenshot to a shortcut in your desktop settings.",
