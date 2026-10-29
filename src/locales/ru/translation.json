@@ -1065,7 +1065,7 @@
     "epic_play_without_update": "Играть без обновления",
     "epic_update_available": "Доступна версия {{version}}",
     "epic_update_failed": "Не удалось обновить игру",
-    "epic_extras_title": "Дополнительный контент (DLC)",
+    "epic_extras_title": "Дополнительный контент",
     "epic_extras_selected": "Выбрано: {{selected}} из {{total}}",
     "epic_select_all": "Выбрать все",
     "epic_dlc_installed": "Установлено",

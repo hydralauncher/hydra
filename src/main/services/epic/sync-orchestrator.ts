@@ -310,7 +310,6 @@ export class EpicSyncOrchestrator {
           games,
           await this.deps.playtime(context, controller.signal, true)
         );
-        // Strict older APIs reject unknown fields, so DLC waits for the capability.
         if (context.connection.capabilities?.dlcSnapshotVersion !== 1)
           snapshot = snapshot.map(({ dlcs: _dlcs, ...game }) => game);
         this.assert(context);

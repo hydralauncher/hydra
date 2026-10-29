@@ -784,7 +784,7 @@
     "epic_play_without_update": "Παιχνίδι χωρίς ενημέρωση",
     "epic_update_available": "Η έκδοση {{version}} είναι διαθέσιμη",
     "epic_update_failed": "Δεν ήταν δυνατή η ενημέρωση του παιχνιδιού",
-    "epic_extras_title": "Επιπλέον περιεχόμενο (DLC)",
+    "epic_extras_title": "Επιπλέον περιεχόμενο",
     "epic_extras_selected": "Επιλεγμένα: {{selected}} από {{total}}",
     "epic_select_all": "Επιλογή όλων",
     "epic_dlc_installed": "Εγκατεστημένο",

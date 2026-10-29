@@ -579,7 +579,7 @@
     "epic_play_without_update": "بازی بدون به‌روزرسانی",
     "epic_update_available": "نسخهٔ {{version}} در دسترس است",
     "epic_update_failed": "به‌روزرسانی بازی ممکن نشد",
-    "epic_extras_title": "محتوای اضافی (DLC)",
+    "epic_extras_title": "محتوای اضافی",
     "epic_extras_selected": "انتخاب‌شده: {{selected}} از {{total}}",
     "epic_select_all": "انتخاب همه",
     "epic_dlc_installed": "نصب‌شده",

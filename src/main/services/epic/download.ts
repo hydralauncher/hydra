@@ -39,6 +39,8 @@ import {
   type EpicPreparedInstallation,
   EPIC_MAX_INSTALL_TAGS,
   isEpicInstallTag,
+  isEpicSelectionId,
+  isSafeEpicArtifact,
 } from "./installation.js";
 
 const MIB_BYTES = 1024 * 1024;
@@ -156,11 +158,9 @@ interface ActiveEpicDownload {
   controller: AbortController;
   target: EpicManagedTarget;
   download: Download;
-  /** Progress of the current Legendary run: the game, then each DLC. */
-  parser: EpicDownloadProgressParser;
-  /** Bytes of runs that already finished, and the expected total (0 = unknown). */
-  offset: number;
-  total: number;
+  currentRunParser: EpicDownloadProgressParser;
+  finishedRunsBytes: number;
+  plannedTotalBytes: number | null;
   selection: ResolvedEpicSelection;
   done: Promise<void>;
   completed: boolean;
@@ -200,7 +200,30 @@ export interface ResolvedEpicSelection {
 const uniqueIds = (values: string[] | undefined) =>
   values !== undefined && new Set(values).size !== values.length;
 
-/** Installed DLC is updated with the game, so it belongs to the sized selection. */
+export function installedEpicComponents(
+  prepared: EpicPreparedInstallation,
+  installTags: string[]
+): string[] | undefined {
+  const selective = prepared.selective;
+  if (!selective || !installTags.length) return undefined;
+  const tags = new Set(installTags);
+  return selective.packs
+    .filter((pack) => pack.tags.every((tag) => tags.has(tag)))
+    .map((pack) => pack.id);
+}
+
+export function withoutInstalledEpicGame(
+  resolved: ResolvedEpicSelection
+): ResolvedEpicSelection {
+  return {
+    ...resolved,
+    selection: { ...resolved.selection, gameAlreadyInstalled: true },
+    gameDownloadSizeInBytes: 0,
+    downloadSizeInBytes:
+      resolved.downloadSizeInBytes - resolved.gameDownloadSizeInBytes,
+  };
+}
+
 export function withInstalledEpicDlcs(
   prepared: EpicPreparedInstallation,
   requested: string[] | undefined,
@@ -213,7 +236,6 @@ export function withInstalledEpicDlcs(
   return [...(requested ?? []), ...extra];
 }
 
-/** Validates a selection against the current preparation and sizes it. */
 export function resolveEpicSelection(
   prepared: EpicPreparedInstallation,
   request: { components?: string[]; dlcs?: string[] }
@@ -233,12 +255,11 @@ export function resolveEpicSelection(
     if (!dlc) throw new EpicManagedError("invalid-selection");
     return dlc;
   });
-  // Every pack selected is the complete game, including files no pack names.
-  const partial =
+  const skipsSomePack =
     !!selective &&
     request.components !== undefined &&
     packs.length < selective.packs.length;
-  const installTags = partial
+  const installTags = skipsSomePack
     ? [
         ...new Set([
           "",
@@ -248,11 +269,11 @@ export function resolveEpicSelection(
       ]
     : [];
   const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
-  const gameDownloadSizeInBytes = partial
+  const gameDownloadSizeInBytes = skipsSomePack
     ? selective.downloadSizeInBytes +
       sum(packs.map((pack) => pack.downloadSizeInBytes))
     : prepared.downloadSizeInBytes;
-  const gameDiskSizeInBytes = partial
+  const gameDiskSizeInBytes = skipsSomePack
     ? selective.diskSizeInBytes + sum(packs.map((pack) => pack.diskSizeInBytes))
     : prepared.diskSizeInBytes;
   return {
@@ -512,10 +533,17 @@ export class EpicDownloadService {
             installed.installPath
           )
         : new Map<string, string>();
-      const resolved = resolveEpicSelection(prepared, {
-        ...payload,
+      const selection = resolveEpicSelection(prepared, {
+        components: installed
+          ? installedEpicComponents(
+              prepared,
+              epicInstallTags(installed.raw.install_tags)
+            )
+          : payload.components,
         dlcs: withInstalledEpicDlcs(prepared, payload.dlcs, installedDlcs),
       });
+      const resolved =
+        installed && !update ? withoutInstalledEpicGame(selection) : selection;
       const download: Download = {
         shop: "epic",
         objectId: payload.epicObjectId,
@@ -656,12 +684,25 @@ export class EpicDownloadService {
       throw new EpicManagedError("stale-connection");
     if (this.options.isGameRunning(owned.game))
       throw new EpicManagedError("game-running");
+    const installedDlcs = download.folderName
+      ? await this.options.installation.readInstalledDlcs(
+          epicManagedTarget(owned, metadata.artifactId, metadata.platform),
+          path.resolve(download.downloadPath, download.folderName)
+        )
+      : new Map<string, string>();
+    const neededDlcs = new Set([
+      ...(Array.isArray(metadata.selection?.dlcs)
+        ? metadata.selection.dlcs
+        : []),
+      ...installedDlcs.keys(),
+    ]);
     const prepared = await withEpicTiming("download.runtime-prepare", () =>
       this.options.installation.prepare(
         owned,
         metadata.artifactId,
         metadata.platform,
-        controller.signal
+        controller.signal,
+        neededDlcs
       )
     );
     await this.options.installation.persistPreparation(
@@ -683,7 +724,17 @@ export class EpicDownloadService {
     if (folder !== download.folderName)
       throw new EpicManagedError("invalid-path");
     const destination = path.resolve(base, folder);
-    const resolved = resumeEpicSelection(prepared, download);
+    const installed = await this.options.installation.readInstalledForRepair(
+      prepared.target,
+      download.objectId,
+      destination
+    );
+    const selection = resumeEpicSelection(prepared, download);
+    const resolved =
+      selection.selection.gameAlreadyInstalled &&
+      installed?.version === prepared.version
+        ? withoutInstalledEpicGame(selection)
+        : selection;
     await this.validateSpace(destination, base, resolved.diskSizeInBytes);
     if (controller.signal.aborted || !isCurrent())
       throw new EpicManagedError("operation-cancelled");
@@ -709,9 +760,9 @@ export class EpicDownloadService {
             : {}),
         },
       },
-      parser: resume.parser,
-      offset: 0,
-      total: metadata.update ? 0 : resume.fileSize,
+      currentRunParser: resume.parser,
+      finishedRunsBytes: 0,
+      plannedTotalBytes: metadata.update ? null : resume.fileSize,
       selection: resolved,
       done: Promise.resolve(),
       completed: false,
@@ -750,12 +801,12 @@ export class EpicDownloadService {
         !this.options.runtime.current(target)
       )
         return;
-      active.parser.line(line);
-      if (!transferStarted && !active.parser.state.preparing) {
+      active.currentRunParser.line(line);
+      if (!transferStarted && !active.currentRunParser.state.preparing) {
         transferStarted = true;
         markEpicTiming("download.transfer-ready", { first: true });
       }
-      active.download.epic!.phase = active.parser.state.preparing
+      active.download.epic!.phase = active.currentRunParser.state.preparing
         ? "preparing"
         : "downloading";
     };
@@ -776,7 +827,6 @@ export class EpicDownloadService {
             platform: target.platform,
             basePath: active.download.downloadPath,
             folderName: active.download.folderName!,
-            // An update keeps what Legendary installed; a new install uses the selection.
             installTags: existing
               ? epicInstallTags(existing.raw.install_tags)
               : active.selection.selection.installTags,
@@ -785,7 +835,7 @@ export class EpicDownloadService {
         );
       }
       assertActive();
-      if (active.parser.state.failed)
+      if (active.currentRunParser.state.failed)
         throw new EpicManagedError("process-failed");
       active.download.epic!.phase = "finalizing";
       const installed = await this.options.installation.readInstalled(
@@ -820,10 +870,10 @@ export class EpicDownloadService {
       )
         throw new EpicManagedError("operation-cancelled");
       const total = epicDownloadTotal(active);
-      active.offset = total;
-      active.total = total;
-      active.parser = new EpicDownloadProgressParser(0);
-      active.parser.state.progress = 1;
+      active.finishedRunsBytes = total;
+      active.plannedTotalBytes = total;
+      active.currentRunParser = new EpicDownloadProgressParser(0);
+      active.currentRunParser.state.progress = 1;
       active.download = {
         ...current,
         progress: 1,
@@ -847,10 +897,6 @@ export class EpicDownloadService {
       throw error;
     }
   }
-  /**
-   * Installs selected DLC, and updates installed DLC, after the game is bound.
-   * A failure here leaves the game playable and the download resumable.
-   */
   private async installDlcs(
     active: ActiveEpicDownload,
     owned: EpicOwnedGame,
@@ -874,17 +920,16 @@ export class EpicDownloadService {
     );
     const update = !!active.download.epic?.update;
     for (const dlc of pending) {
-      const previous = active.parser.state;
-      // A finished run counts its planned size; an update's run its reported bytes.
-      active.offset +=
+      const previous = active.currentRunParser.state;
+      active.finishedRunsBytes +=
         previous.fileSize > 0 ? previous.fileSize : previous.bytesDownloaded;
       const size =
         update || current.has(dlc.artifactId) ? 0 : dlc.downloadSizeInBytes;
       const resumed = Math.max(
         0,
-        active.download.bytesDownloaded - active.offset
+        active.download.bytesDownloaded - active.finishedRunsBytes
       );
-      active.parser = new EpicDownloadProgressParser(
+      active.currentRunParser = new EpicDownloadProgressParser(
         size,
         Math.min(resumed, size),
         size > 0 ? Math.min(resumed, size) / size : 0
@@ -907,7 +952,7 @@ export class EpicDownloadService {
         }
       );
       assertActive();
-      if (active.parser.state.failed)
+      if (active.currentRunParser.state.failed)
         throw new EpicManagedError("process-failed");
       if ((await read()).get(dlc.artifactId) !== dlc.version)
         throw new EpicManagedError("installation-incomplete");
@@ -971,16 +1016,22 @@ export class EpicDownloadService {
       !this.options.runtime.current(active.target)
     )
       return null;
-    const state = active.parser.state;
+    const state = active.currentRunParser.state;
     const total = epicDownloadTotal(active);
     const progress =
       total > 0
-        ? Math.min(1, (active.offset + state.progress * state.fileSize) / total)
+        ? Math.min(
+            1,
+            (active.finishedRunsBytes + state.progress * state.fileSize) / total
+          )
         : state.progress;
     const current: Download = {
       ...download,
       status: active.completed ? "complete" : "active",
-      bytesDownloaded: Math.min(total, active.offset + state.bytesDownloaded),
+      bytesDownloaded: Math.min(
+        total,
+        active.finishedRunsBytes + state.bytesDownloaded
+      ),
       fileSize: total,
       progress,
       epic: active.download.epic,
@@ -1066,11 +1117,6 @@ export class EpicDownloadService {
   }
 }
 
-/**
- * A started download keeps the tags it began with: a pack definition fetched
- * later may have changed or be unavailable. DLC that can no longer be
- * prepared is skipped instead of failing the game.
- */
 export function resumeEpicSelection(
   prepared: EpicPreparedInstallation,
   download: Download
@@ -1080,7 +1126,12 @@ export function resumeEpicSelection(
   if (
     !Array.isArray(saved.installTags) ||
     saved.installTags.length > EPIC_MAX_INSTALL_TAGS ||
-    !saved.installTags.every(isEpicInstallTag)
+    !saved.installTags.every(isEpicInstallTag) ||
+    !Array.isArray(saved.dlcs) ||
+    !saved.dlcs.every(isSafeEpicArtifact) ||
+    (saved.components !== undefined &&
+      (!Array.isArray(saved.components) ||
+        !saved.components.every(isEpicSelectionId)))
   )
     throw new EpicManagedError("invalid-selection");
   const dlcs = saved.dlcs.filter((artifactId) =>
@@ -1110,7 +1161,6 @@ export function resumeEpicSelection(
   return {
     selection: { ...saved, installTags: [...saved.installTags], dlcs },
     dlcs: preparedDlcs,
-    // Without a matching definition, the saved sizes are the best estimate.
     gameDownloadSizeInBytes:
       fresh?.gameDownloadSizeInBytes ??
       Math.max(0, savedDownload - dlcDownload),
@@ -1122,21 +1172,18 @@ export function resumeEpicSelection(
   };
 }
 
-/** Where a (re)started download picks up: totals, persisted bytes and the first run. */
 function epicRuntimeResume(
   download: Download,
   prepared: EpicPreparedInstallation,
   resolved: ResolvedEpicSelection
 ) {
   const update = download.epic?.update;
-  // A resumed update keeps its persisted delta unless Epic published another build.
   const sameUpdate = update?.toVersion === prepared.version;
   const restarted = !!update && !sameUpdate;
   let fileSize = resolved.downloadSizeInBytes;
   if (update) fileSize = sameUpdate ? (download.fileSize ?? 0) : 0;
   const previousBytes = restarted ? 0 : download.bytesDownloaded;
   const previousProgress = restarted ? 0 : download.progress;
-  // The game is the first run; an update's runs learn their size from Legendary.
   const segmentSize = update ? fileSize : resolved.gameDownloadSizeInBytes;
   const segmentProgress =
     segmentSize > 0
@@ -1154,9 +1201,11 @@ function epicRuntimeResume(
   };
 }
 
-/** The planned total, or what the runs have reported when an update's size is unknown. */
 const epicDownloadTotal = (active: ActiveEpicDownload) =>
-  Math.max(active.total, active.offset + active.parser.state.fileSize);
+  Math.max(
+    active.plannedTotalBytes ?? 0,
+    active.finishedRunsBytes + active.currentRunParser.state.fileSize
+  );
 
 let downloadService: EpicDownloadService | null = null;
 export const setEpicDownloadService = (service: EpicDownloadService) => {

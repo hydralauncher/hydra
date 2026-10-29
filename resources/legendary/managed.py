@@ -90,7 +90,6 @@ def target_from_request(request, key="target"):
 
 
 def base_from_request(request):
-    # A DLC target is installed into the workspace of the game named here.
     if request.get("base") is None:
         return None
     base = target_from_request(request, "base")
@@ -198,7 +197,6 @@ def validate_metadata(metadata, target, base=None):
 def validate_dlc_metadata(metadata, paths, base):
     main = metadata.get("mainGameItem")
     releases = main.get("releaseInfo") if isinstance(main, dict) else None
-    # Legendary installs a DLC into the game named by its first release appId.
     if not isinstance(main, dict) or main.get("id") != base["catalogItemId"] or main.get("namespace", base["namespace"]) != base["namespace"] or not isinstance(releases, list) or not releases or not isinstance(releases[0], dict) or releases[0].get("appId") != base["artifactId"]:
         raise ManagedError("unsupported-game")
     if base["namespace"] == "ue" or "addons" not in paths or "addons/launchable" in paths:
@@ -211,7 +209,6 @@ def sdl_definition(core, artifact):
     if name is None:
         return None
     try:
-        # get_sdl_data needs version.json, which an inspection never receives.
         data = core.lgdapi.get_sdl_config(name)
     except Exception:
         data = None
@@ -235,12 +232,10 @@ def valid_sdl(data):
 
 
 def selective_packs(definition, parsed):
-    """Sizes of each optional pack beyond the files every selection installs."""
     required = set(definition.get("__required", {}).get("tags", []))
     chunks = {chunk.guid_num: chunk.file_size for chunk in parsed.chunk_data_list.elements}
     files = parsed.file_manifest_list.elements
     base_files = [file for file in files if not file.install_tags or required.intersection(file.install_tags)]
-    # Partitioned once: each pack only scans the files outside the required set.
     optional_files = [file for file in files if file.install_tags and not required.intersection(file.install_tags)]
     base_chunks = {part.guid_num for file in base_files for part in file.chunk_parts}
 

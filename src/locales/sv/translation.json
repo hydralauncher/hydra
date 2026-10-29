@@ -583,7 +583,7 @@
     "epic_play_without_update": "Spela utan att uppdatera",
     "epic_update_available": "Version {{version}} är tillgänglig",
     "epic_update_failed": "Det gick inte att uppdatera spelet",
-    "epic_extras_title": "Extra innehåll (DLC)",
+    "epic_extras_title": "Extra innehåll",
     "epic_extras_selected": "Valda: {{selected}} av {{total}}",
     "epic_select_all": "Markera alla",
     "epic_dlc_installed": "Installerad",

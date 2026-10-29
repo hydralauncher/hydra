@@ -583,7 +583,7 @@
     "epic_play_without_update": "Güncellemeden oyna",
     "epic_update_available": "{{version}} sürümü mevcut",
     "epic_update_failed": "Oyun güncellenemedi",
-    "epic_extras_title": "Ek içerik (DLC)",
+    "epic_extras_title": "Ek içerik",
     "epic_extras_selected": "Seçilen: {{selected}} / {{total}}",
     "epic_select_all": "Tümünü seç",
     "epic_dlc_installed": "Yüklendi",

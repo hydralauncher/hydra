@@ -1110,7 +1110,7 @@
     "epic_play_without_update": "Play without updating",
     "epic_update_available": "Version {{version}} is available",
     "epic_update_failed": "Couldn't update the game",
-    "epic_extras_title": "Extra content (DLC)",
+    "epic_extras_title": "Extra content",
     "epic_extras_selected": "Selected: {{selected}} of {{total}}",
     "epic_select_all": "Select all",
     "epic_dlc_installed": "Installed",

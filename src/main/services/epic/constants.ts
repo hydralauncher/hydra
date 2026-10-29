@@ -57,7 +57,6 @@ export const EPIC_LAUNCH_DETECTION_TIMEOUT_MS = 60_000;
 export const EPIC_INSTALL_OPTIONS_CACHE_MS = 5 * 60_000;
 export const EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES = 32;
 export const EPIC_INSTALL_OPTIONS_TIMEOUT_MS = 90_000;
-// Leaves the base game's inspection room inside the options deadline.
 export const EPIC_DLC_INSPECTION_BUDGET_MS = 60_000;
 // Hashing a large store install can take a long time on slow disks.
 export const EPIC_IMPORT_VERIFY_TIMEOUT_MS = 60 * 60_000;

@@ -583,7 +583,7 @@
     "epic_play_without_update": "Pelaa päivittämättä",
     "epic_update_available": "Versio {{version}} on saatavilla",
     "epic_update_failed": "Pelin päivittäminen epäonnistui",
-    "epic_extras_title": "Lisäsisältö (DLC)",
+    "epic_extras_title": "Lisäsisältö",
     "epic_extras_selected": "Valittu: {{selected}}/{{total}}",
     "epic_select_all": "Valitse kaikki",
     "epic_dlc_installed": "Asennettu",

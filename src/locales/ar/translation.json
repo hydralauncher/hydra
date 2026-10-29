@@ -583,7 +583,7 @@
     "epic_play_without_update": "اللعب دون تحديث",
     "epic_update_available": "الإصدار {{version}} متاح",
     "epic_update_failed": "تعذّر تحديث اللعبة",
-    "epic_extras_title": "محتوى إضافي (DLC)",
+    "epic_extras_title": "محتوى إضافي",
     "epic_extras_selected": "المحدد: {{selected}} من {{total}}",
     "epic_select_all": "تحديد الكل",
     "epic_dlc_installed": "مثبت",

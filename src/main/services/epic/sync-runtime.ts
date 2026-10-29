@@ -485,7 +485,6 @@ export class EpicSyncRuntime {
       ...result,
       epicImport: {
         ...result.epicImport,
-        // The API echoes what a snapshot sent; validate it like Legendary output.
         dlcs: parseEpicSnapshotDlcs(result.epicImport.dlcs, {
           namespace,
           catalogItemId,

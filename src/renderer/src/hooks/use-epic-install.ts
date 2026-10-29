@@ -11,7 +11,6 @@ import type {
 } from "@types";
 import { getEpicInstallChoice } from "@shared";
 
-/** A DLC or an optional pack, shown to the user as one kind of extra content. */
 export interface EpicInstallExtra {
   key: string;
   kind: "dlc" | "component";
@@ -49,7 +48,6 @@ export function useEpicInstall(
   const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<EpicSaveError | null>(null);
-  // DLC start selected, like the Epic launcher; optional packs start off, like Legendary.
   const [excludedComponents, setExcludedComponents] = useState<
     ReadonlySet<string>
   >(new Set());
@@ -242,11 +240,17 @@ export function useEpicInstall(
     }
   }, [path]);
 
-  const option =
+  const selectedOption =
     selected === "" ? null : (result?.options[Number(selected)] ?? null);
+  const option = useMemo(
+    () =>
+      selectedOption?.installed
+        ? { ...selectedOption, components: undefined }
+        : selectedOption,
+    [selectedOption]
+  );
   const optionKey = option ? `${option.artifactId}:${option.platform}` : "";
   const [selectionKey, setSelectionKey] = useState(optionKey);
-  // Reset during render so the first paint of a new option already shows its defaults.
   if (selectionKey !== optionKey) {
     setSelectionKey(optionKey);
     setExcludedComponents(
@@ -327,7 +331,6 @@ export function useEpicInstall(
     },
     [option]
   );
-  // Advisory only: the main process subtracts files already in the folder.
   const insufficientSpace =
     diskFreeSpace !== null &&
     choice.diskSizeInBytes !== null &&

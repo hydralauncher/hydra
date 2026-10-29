@@ -582,7 +582,7 @@
     "epic_play_without_update": "Жаңартпай ойнау",
     "epic_update_available": "{{version}} нұсқасы қолжетімді",
     "epic_update_failed": "Ойынды жаңарту мүмкін болмады",
-    "epic_extras_title": "Қосымша мазмұн (DLC)",
+    "epic_extras_title": "Қосымша мазмұн",
     "epic_extras_selected": "Таңдалды: {{selected}} / {{total}}",
     "epic_select_all": "Барлығын таңдау",
     "epic_dlc_installed": "Орнатылған",

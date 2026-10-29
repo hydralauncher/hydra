@@ -784,7 +784,7 @@
     "epic_play_without_update": "Gioca senza aggiornare",
     "epic_update_available": "Versione {{version}} disponibile",
     "epic_update_failed": "Impossibile aggiornare il gioco",
-    "epic_extras_title": "Contenuti aggiuntivi (DLC)",
+    "epic_extras_title": "Contenuti aggiuntivi",
     "epic_extras_selected": "Selezionati: {{selected}} di {{total}}",
     "epic_select_all": "Seleziona tutto",
     "epic_dlc_installed": "Installato",

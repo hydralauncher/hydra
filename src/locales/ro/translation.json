@@ -579,7 +579,7 @@
     "epic_play_without_update": "Joacă fără actualizare",
     "epic_update_available": "Versiunea {{version}} este disponibilă",
     "epic_update_failed": "Jocul nu a putut fi actualizat",
-    "epic_extras_title": "Conținut suplimentar (DLC)",
+    "epic_extras_title": "Conținut suplimentar",
     "epic_extras_selected": "Selectate: {{selected}} din {{total}}",
     "epic_select_all": "Selectează tot",
     "epic_dlc_installed": "Instalat",

@@ -583,7 +583,7 @@
     "epic_play_without_update": "Yangilamasdan o‘ynash",
     "epic_update_available": "{{version}} versiyasi mavjud",
     "epic_update_failed": "O‘yinni yangilab bo‘lmadi",
-    "epic_extras_title": "Qo‘shimcha kontent (DLC)",
+    "epic_extras_title": "Qo‘shimcha kontent",
     "epic_extras_selected": "Tanlangan: {{selected}} / {{total}}",
     "epic_select_all": "Barchasini tanlash",
     "epic_dlc_installed": "O‘rnatilgan",

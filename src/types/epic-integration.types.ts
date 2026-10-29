@@ -155,6 +155,5 @@ export interface EpicSnapshotGame {
   name: string;
   playTimeInSeconds: number;
   achievements?: EpicSnapshotAchievement[] | null;
-  /** Owned DLC with a Windows build; sent only when the API supports it. */
   dlcs?: EpicSnapshotDlc[];
 }

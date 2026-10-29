@@ -583,7 +583,7 @@
     "epic_play_without_update": "Hrát bez aktualizace",
     "epic_update_available": "Je dostupná verze {{version}}",
     "epic_update_failed": "Hru se nepodařilo aktualizovat",
-    "epic_extras_title": "Doplňkový obsah (DLC)",
+    "epic_extras_title": "Doplňkový obsah",
     "epic_extras_selected": "Vybráno: {{selected}} z {{total}}",
     "epic_select_all": "Vybrat vše",
     "epic_dlc_installed": "Nainstalováno",

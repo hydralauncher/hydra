@@ -69,7 +69,6 @@ type EpicDlcOwner = {
   artifactIds: string[];
 };
 
-/** DLC never affects game ownership, so an unexpected row is skipped, not fatal. */
 export function parseEpicSnapshotDlcs(
   value: unknown,
   game: EpicDlcOwner
@@ -96,7 +95,6 @@ export function parseEpicSnapshotDlcs(
   return mergeEpicDlcs([], dlcs);
 }
 
-/** Owned DLC from `legendary list --json` that has a Windows build. */
 export function normalizeEpicDlcs(
   value: unknown,
   game: EpicDlcOwner

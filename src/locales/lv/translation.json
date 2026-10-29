@@ -583,7 +583,7 @@
     "epic_play_without_update": "Spēlēt bez atjaunināšanas",
     "epic_update_available": "Pieejama versija {{version}}",
     "epic_update_failed": "Neizdevās atjaunināt spēli",
-    "epic_extras_title": "Papildu saturs (DLC)",
+    "epic_extras_title": "Papildu saturs",
     "epic_extras_selected": "Atlasīti: {{selected}} no {{total}}",
     "epic_select_all": "Atlasīt visu",
     "epic_dlc_installed": "Instalēts",

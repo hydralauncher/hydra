@@ -583,7 +583,7 @@
     "epic_play_without_update": "不更新直接游玩",
     "epic_update_available": "版本 {{version}} 可用",
     "epic_update_failed": "无法更新游戏",
-    "epic_extras_title": "额外内容 (DLC)",
+    "epic_extras_title": "额外内容",
     "epic_extras_selected": "已选择：{{selected}} / {{total}}",
     "epic_select_all": "全选",
     "epic_dlc_installed": "已安装",

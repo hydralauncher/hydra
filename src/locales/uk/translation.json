@@ -583,7 +583,7 @@
     "epic_play_without_update": "Грати без оновлення",
     "epic_update_available": "Доступна версія {{version}}",
     "epic_update_failed": "Не вдалося оновити гру",
-    "epic_extras_title": "Додатковий вміст (DLC)",
+    "epic_extras_title": "Додатковий вміст",
     "epic_extras_selected": "Вибрано: {{selected}} з {{total}}",
     "epic_select_all": "Вибрати все",
     "epic_dlc_installed": "Встановлено",

@@ -37,7 +37,6 @@ export interface EpicOwnedGame extends EpicSyncContext {
   game: Game;
   owner: EpicLocalOwner;
   artifactIds: string[];
-  /** Owned DLC reported by the API; empty when unknown. */
   dlcs: EpicSnapshotDlc[];
 }
 export interface EpicSelectivePack {
@@ -47,7 +46,6 @@ export interface EpicSelectivePack {
   downloadSizeInBytes: number;
   diskSizeInBytes: number;
 }
-/** Legendary's selective-download packs and the files every selection installs. */
 export interface EpicSelectiveInstall {
   requiredTags: string[];
   downloadSizeInBytes: number;
@@ -363,7 +361,6 @@ export const isEpicSelectionId = (value: unknown): value is string =>
 const isByteCount = (value: unknown): value is number =>
   Number.isSafeInteger(value) && Number(value) >= 0;
 
-/** Optional packs are an enhancement: malformed data means a game without them. */
 export function parseEpicSelectiveInstall(
   value: unknown
 ): EpicSelectiveInstall | undefined {
@@ -413,7 +410,6 @@ export function parseEpicSelectiveInstall(
   };
 }
 
-/** A DLC installs into its game's folder and may never stand alone. */
 export function validateEpicDlcMetadata(
   value: unknown,
   target: EpicManagedTarget,
@@ -726,7 +722,8 @@ export class EpicInstallationService {
     owned: EpicOwnedGame,
     artifactId: string,
     platform: EpicInstallPlatform,
-    signal: AbortSignal
+    signal: AbortSignal,
+    neededDlcs?: ReadonlySet<string>
   ): Promise<EpicPreparedInstallation> {
     const target = epicManagedTarget(owned, artifactId, platform);
     this.assertAlias(owned, target);
@@ -759,8 +756,18 @@ export class EpicInstallationService {
       preparationId: randomUUID(),
       ...(selective ? { selective } : {}),
     };
-    const dlcs = await this.prepareDlcs(owned, target, signal, cached?.dlcs);
+    const dlcs = await this.prepareDlcs(
+      owned,
+      target,
+      signal,
+      cached?.dlcs,
+      neededDlcs
+    );
     if (dlcs.length) prepared.dlcs = dlcs;
+    if (neededDlcs) {
+      this.folderNameFromMetadata(prepared.metadata, target);
+      return prepared;
+    }
     if (
       cached &&
       cached.version === prepared.version &&
@@ -791,16 +798,12 @@ export class EpicInstallationService {
       this.preparations.delete(this.preparations.keys().next().value!);
     return prepared;
   }
-  /**
-   * Inspects each owned DLC in its game's context. A DLC that cannot be
-   * prepared is left out; it never prevents installing the game itself.
-   * DLC still pending when the budget runs out is left out the same way.
-   */
   private async prepareDlcs(
     owned: EpicOwnedGame,
     base: EpicManagedTarget,
     signal: AbortSignal,
-    cached?: EpicPreparedDlc[]
+    cached?: EpicPreparedDlc[],
+    neededDlcs?: ReadonlySet<string>
   ): Promise<EpicPreparedDlc[]> {
     if (signal.aborted) throw abortError(signal);
     const budget = new AbortController();
@@ -812,8 +815,8 @@ export class EpicInstallationService {
     );
     const prepared: EpicPreparedDlc[] = [];
     try {
-      // One Legendary process at a time: a game can own dozens of DLC.
       for (const dlc of owned.dlcs) {
+        if (neededDlcs && !neededDlcs.has(dlc.artifactId)) continue;
         let item: EpicPreparedDlc | null;
         try {
           item = await this.prepareDlc(owned, base, dlc, budget.signal, cached);
@@ -1297,7 +1300,6 @@ export class EpicInstallationService {
       executablePath,
     } as EpicInstalledGame;
   }
-  /** DLC Legendary installed into this game's folder, by artifact and version. */
   async readInstalledDlcs(
     target: EpicManagedTarget,
     installPath: string
@@ -1559,7 +1561,6 @@ export class EpicInstallationService {
   }
 }
 
-/** Removes a game and the DLC Legendary recorded inside its folder. */
 export function forgetEpicInstalledEntries(
   installed: Record<string, unknown>,
   artifactId: string

@@ -583,7 +583,7 @@
     "epic_play_without_update": "Spill uten å oppdatere",
     "epic_update_available": "Versjon {{version}} er tilgjengelig",
     "epic_update_failed": "Kunne ikke oppdatere spillet",
-    "epic_extras_title": "Ekstra innhold (DLC)",
+    "epic_extras_title": "Ekstra innhold",
     "epic_extras_selected": "Valgt: {{selected}} av {{total}}",
     "epic_select_all": "Velg alle",
     "epic_dlc_installed": "Installert",

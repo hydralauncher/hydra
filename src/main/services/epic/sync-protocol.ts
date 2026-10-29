@@ -99,7 +99,6 @@ export function epicSyncHttpError(error: unknown) {
   return "network" as const;
 }
 
-/** Only capabilities this launcher understands are kept with the connection. */
 export const epicConnectionCapabilities = (
   value:
     | { achievementsSnapshotVersion?: unknown; dlcSnapshotVersion?: unknown }

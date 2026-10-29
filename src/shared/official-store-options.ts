@@ -95,15 +95,12 @@ export const getEpicLaunchOptions = (
 };
 
 export interface EpicInstallChoice {
-  /** Selected optional pack ids; undefined when the build has none. */
   components?: string[];
-  /** DLC to install now; already installed DLC are never resent. */
   dlcs: string[];
   downloadSizeInBytes: number | null;
   diskSizeInBytes: number | null;
 }
 
-/** Mirrors the main process: every pack selected is the complete game. */
 export const getEpicInstallChoice = (
   option: EpicGameInstallOption | null,
   excludedComponents: ReadonlySet<string>,

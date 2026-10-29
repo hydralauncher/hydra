@@ -28,7 +28,6 @@ export interface EpicManagedCommand {
   binary: string;
   prefixArgs: string[];
 }
-/** A DLC belongs to, and installs into, the workspace of this game. */
 export interface EpicTargetBase {
   target: EpicManagedTarget;
   objectId: string;
@@ -358,7 +357,6 @@ export class EpicTargetRuntime {
       dlc?: EpicTargetBase;
     }
   ) {
-    // The process runs in the game's workspace; a DLC's receipt and identity are its own.
     const item = options.dlc ?? { target, objectId };
     const baseIdentity = options.dlc ? this.target(target, objectId) : null;
     const controller = new AbortController();

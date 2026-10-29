@@ -1,6 +1,5 @@
 @use "../../../scss/globals.scss";
 
-// Shared by the "select all" row and each extra; both are rows of the panel.
 .epic-install-modal__extras-all,
 .epic-install-modal__extra {
   position: relative;
@@ -24,7 +23,6 @@
     flex: 1;
     min-width: 0;
 
-    // Stretches the label over the row so a click anywhere toggles it.
     &::after {
       content: "";
       position: absolute;

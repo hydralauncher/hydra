@@ -26,14 +26,11 @@ export interface EpicInstallation {
   pendingSaveUpload?: boolean;
 }
 
-/** What a download installs beyond the game's required files. */
 export interface EpicInstallSelection {
-  /** Optional pack ids; absent means the complete game. */
   components?: string[];
-  /** Legendary install tags; empty installs every file. */
   installTags: string[];
-  /** DLC artifact ids installed after the game. */
   dlcs: string[];
+  gameAlreadyInstalled?: boolean;
 }
 
 export interface EpicDownloadMetadata {
@@ -101,7 +98,6 @@ export interface EpicGameInstallOption {
   installed: boolean;
   publishedVersion?: string | null;
   installedVersion?: string | null;
-  /** Optional packs; sizes exclude the files every selection installs. */
   components?: EpicInstallComponent[];
   requiredDownloadSizeInBytes?: number;
   requiredDiskSizeInBytes?: number;
@@ -122,9 +118,7 @@ export interface StartEpicGameDownloadPayload {
   platform: EpicInstallPlatform;
   downloadPath: string;
   addToQueueOnly?: boolean;
-  /** Selected optional pack ids; omitted installs the complete game. */
   components?: string[];
-  /** Selected DLC artifact ids. */
   dlcs?: string[];
 }
 

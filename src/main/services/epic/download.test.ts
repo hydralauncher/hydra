@@ -1186,7 +1186,6 @@ async function selectionFixture(
   const installed: Record<string, unknown> = {};
   const f = await fixture(t, async (directory, options, destination) => {
     const args = f.commands[f.commands.length - 1];
-    // Legendary records nothing for a run that failed.
     if (onInstall?.(args, options) === false) return;
     const artifact = args[args.indexOf("install") + 1];
     options.onLine?.("[cli] INFO: Download size: 1.00 MiB");
@@ -1376,7 +1375,6 @@ test("a failed DLC keeps the game bound and resumes with only the DLC", async (t
   await f.service.stop();
   failDlc = false;
   const before = f.commands.length;
-  // Paused halfway through the DLC: the game's 2 MiB plus 0.5 MiB of DLC.
   await f.service.startRuntime(
     {
       ...f.getDownload()!,

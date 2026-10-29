@@ -585,7 +585,7 @@
     "epic_play_without_update": "Igraj brez posodobitve",
     "epic_update_available": "Na voljo je različica {{version}}",
     "epic_update_failed": "Igre ni bilo mogoče posodobiti",
-    "epic_extras_title": "Dodatna vsebina (DLC)",
+    "epic_extras_title": "Dodatna vsebina",
     "epic_extras_selected": "Izbrano: {{selected}} od {{total}}",
     "epic_select_all": "Izberi vse",
     "epic_dlc_installed": "Nameščeno",

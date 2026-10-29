@@ -755,7 +755,7 @@
     "epic_play_without_update": "Main tanpa memperbarui",
     "epic_update_available": "Versi {{version}} tersedia",
     "epic_update_failed": "Tidak dapat memperbarui game",
-    "epic_extras_title": "Konten tambahan (DLC)",
+    "epic_extras_title": "Konten tambahan",
     "epic_extras_selected": "Dipilih: {{selected}} dari {{total}}",
     "epic_select_all": "Pilih semua",
     "epic_dlc_installed": "Terinstal",

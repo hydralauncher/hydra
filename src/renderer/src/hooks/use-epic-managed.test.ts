@@ -2182,7 +2182,6 @@ describe("Epic managed UI lifecycle", () => {
       })
     );
     assert.match(document.body.textContent!, /epic_not_enough_space/);
-    // Files already in the folder may make it fit; the main process decides.
     assert.equal(
       document.querySelector<HTMLButtonElement>("[data-epic-install-submit]")!
         .disabled,

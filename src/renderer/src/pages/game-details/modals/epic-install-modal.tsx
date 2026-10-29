@@ -27,7 +27,6 @@ import { getEpicManagedError } from "@renderer/helpers/epic-managed-error";
 import { useNavigate } from "react-router-dom";
 import "./download-settings-modal.scss";
 
-/** Shows the full name in a tooltip only while the ellipsis is cutting it. */
 function ExtraName({
   name,
   tooltip,
@@ -86,7 +85,6 @@ function EpicInstallSubmitLabel({
   );
 }
 
-/** Whether a scrollable list still has items below its visible area. */
 function useListHasMore(open: boolean, length: number) {
   const listRef = useRef<HTMLUListElement>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -145,7 +143,6 @@ export function EpicInstallModal({
     !install.result?.connectionId ||
     !install.path;
   const summary = install.extrasSummary;
-  // Keyed by game so reopening the modal for another game starts collapsed.
   const [openExtrasFor, setOpenExtrasFor] = useState<string | null>(null);
   const extrasOpen = !!game && openExtrasFor === game.objectId;
   const extrasPanelId = useId();
