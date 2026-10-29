@@ -63,11 +63,30 @@ const deletePublishedScreenshot = async (
 ) => {
   try {
     await api.delete(buildProfileScreenshotPath(id));
+    return true;
   } catch (error) {
     if (getScreenshotApiErrorCode(error) !== "screenshots/not-found") {
       throw error;
     }
+    return false;
   }
+};
+
+const deleteEachPublished = async (
+  api: MyGameScreenshotsApi,
+  ids: string[]
+) => {
+  const settledIds: string[] = [];
+  let deleted = 0;
+  for (const id of ids) {
+    try {
+      if (await deletePublishedScreenshot(api, id)) deleted += 1;
+    } catch (error) {
+      return { settledIds, deleted, failure: { error } };
+    }
+    settledIds.push(id);
+  }
+  return { settledIds, deleted, failure: null };
 };
 
 const forgetPublished = async (
@@ -94,17 +113,12 @@ const deletePublishedOnServer = async (
     return response?.deleted ?? 0;
   }
 
-  const deletedIds: string[] = [];
-  try {
-    for (const id of ids) {
-      await deletePublishedScreenshot(api, id);
-      deletedIds.push(id);
-    }
-  } catch (error) {
-    await forgetPublished(context, deletedIds);
-    throw new PartialDeletionError(deletedIds.length, error, "server");
+  const { settledIds, deleted, failure } = await deleteEachPublished(api, ids);
+  if (failure) {
+    await Promise.allSettled([forgetPublished(context, settledIds)]);
+    throw new PartialDeletionError(deleted, failure.error, "server");
   }
-  return deletedIds.length;
+  return deleted;
 };
 
 const LOCAL_DELETION_INCOMPLETE = "screenshots/local-deletion-incomplete";
@@ -136,20 +150,18 @@ const deleteLatePublished = async (
   const lateIds = (await getPublishedIds(context)).filter(
     (id) => !known.has(id)
   );
-  const deletedIds: string[] = [];
-  try {
-    for (const id of lateIds) {
-      await deletePublishedScreenshot(context.api, id);
-      deletedIds.push(id);
-    }
-  } catch (error) {
-    await Promise.allSettled([
-      forgetPublished(context, [...knownIds, ...deletedIds]),
-    ]);
-    throw new PartialDeletionError(deleted, error, "server");
+  const late = await deleteEachPublished(context.api, lateIds);
+  const forgottenIds = [...knownIds, ...late.settledIds];
+  if (late.failure) {
+    await Promise.allSettled([forgetPublished(context, forgottenIds)]);
+    throw new PartialDeletionError(
+      deleted + late.deleted,
+      late.failure.error,
+      "server"
+    );
   }
-  await forgetPublished(context, [...knownIds, ...deletedIds]);
-  return deletedIds.length;
+  await forgetPublished(context, forgottenIds);
+  return late.deleted;
 };
 
 const deletePublished = async (context: DeletionContext) => {
