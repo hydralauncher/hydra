@@ -194,13 +194,8 @@ export function useScreenshotFeed({
   }, [acceptPage, ledger, needsAuth, refreshToken, requestKey, resetKey]);
 
   const fetchNextPage = useCallback(async () => {
-    if (
-      !requestKey ||
-      !nextCursor ||
-      isReadPendingRef.current ||
-      isLoadingMoreRef.current
-    )
-      return;
+    if (isLoadingMoreRef.current) return true;
+    if (!requestKey || !nextCursor || isReadPendingRef.current) return false;
 
     const generation = generationRef.current;
     isLoadingMoreRef.current = true;
@@ -214,7 +209,7 @@ export function useScreenshotFeed({
           { needsAuth }
         );
 
-      if (generationRef.current !== generation) return;
+      if (generationRef.current !== generation) return false;
 
       const merged = acceptPage(response?.items ?? [], read);
       setItems((current) => mergeScreenshotPages(current, merged.items));
@@ -233,12 +228,13 @@ export function useScreenshotFeed({
         setIsLoadingMore(false);
       }
     }
+    return true;
   }, [acceptPage, ledger, needsAuth, nextCursor, requestKey]);
 
   const loadMore = useCallback(async () => {
-    if (error === "page") return;
+    if (error === "page") return false;
 
-    await fetchNextPage();
+    return fetchNextPage();
   }, [error, fetchNextPage]);
 
   const refresh = useCallback(() => {

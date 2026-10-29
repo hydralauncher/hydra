@@ -30,7 +30,7 @@ interface UseScreenshotLightboxOptions {
     listener: RemoteScreenshotWriteListener
   ) => () => void;
   hasMore?: boolean;
-  loadMore?: () => Promise<void>;
+  loadMore?: () => Promise<boolean>;
   hasLoadMoreError?: boolean;
   retryLoadMore?: () => void;
 }
@@ -230,14 +230,22 @@ export function useScreenshotLightbox({
   const navigatePastEnd = useCallback(() => {
     if (!loadMore || !screenshot) return;
 
-    setPendingNextAfterId(screenshot.id);
+    const afterId = screenshot.id;
+    setPendingNextAfterId(afterId);
     if (hasLoadMoreError) {
       retryLoadMore?.();
       return;
     }
-    loadMore().catch((error: unknown) => {
-      logger.error("Failed to load more screenshots", error);
-    });
+    loadMore()
+      .then((hasRequestedPage) => {
+        if (hasRequestedPage) return;
+        setPendingNextAfterId((current) =>
+          current === afterId ? null : current
+        );
+      })
+      .catch((error: unknown) => {
+        logger.error("Failed to load more screenshots", error);
+      });
   }, [hasLoadMoreError, loadMore, retryLoadMore, screenshot]);
 
   const lightboxProps = useMemo<ScreenshotLightboxProps>(
