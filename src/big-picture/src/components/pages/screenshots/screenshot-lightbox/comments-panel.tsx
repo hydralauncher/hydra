@@ -10,7 +10,14 @@ import {
   ThumbsUpIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import type {
   ProfileScreenshot,
@@ -533,6 +540,7 @@ export function ScreenshotCommentsPanel({
     setComments,
     setTotal,
   } = useScreenshotComments(screenshot, isAvailable, Boolean(viewerId));
+  const commentsRef = useRef(comments);
   const [editingComment, setEditingComment] =
     useState<ScreenshotComment | null>(null);
   const draftKey = `${viewerId ?? ""}:${screenshot.id}`;
@@ -552,6 +560,10 @@ export function ScreenshotCommentsPanel({
     useState<ScreenshotComment | null>(null);
   const [isReporting, setIsReporting] = useState(false);
   const ownerId = screenshot.owner.id;
+
+  useLayoutEffect(() => {
+    commentsRef.current = comments;
+  }, [comments]);
 
   useEffect(() => {
     setEditingComment(null);
@@ -588,7 +600,15 @@ export function ScreenshotCommentsPanel({
   );
 
   const dropComment = useCallback(
-    (removed: ScreenshotComment) => {
+    (commentId: string) => {
+      const removed = commentsRef.current.find(
+        (comment) => comment.id === commentId
+      );
+      if (!removed) return;
+
+      commentsRef.current = commentsRef.current.filter(
+        (comment) => comment.id !== commentId
+      );
       recordWrite({
         kind: "remove",
         commentId: removed.id,
@@ -709,7 +729,7 @@ export function ScreenshotCommentsPanel({
         if (
           getScreenshotApiErrorCode(error) === "screenshots/comment-not-found"
         ) {
-          dropComment(comment);
+          dropComment(comment.id);
         } else if (isLatestEdit()) {
           replaceComment(comment.id, {
             bodyHtml: confirmed.bodyHtml,
@@ -844,7 +864,7 @@ export function ScreenshotCommentsPanel({
     if (!deletingComment) return;
 
     const closeAfterRemoval = () => {
-      dropComment(deletingComment);
+      dropComment(deletingComment.id);
       NavigationService.getInstance().requestFocusWhenAvailable(
         viewerId ? focusIds.input : focusIds.signIn
       );
