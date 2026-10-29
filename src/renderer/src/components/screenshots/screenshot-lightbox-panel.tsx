@@ -34,6 +34,7 @@ import {
 import type { ScreenshotFailure } from "./use-screenshot-actions";
 import type { ScreenshotPatch } from "@shared";
 import type { ScreenshotCollection } from "./use-screenshot-collection";
+import { useSensitiveScreenshot } from "./use-sensitive-screenshot";
 
 import "./screenshot-lightbox-panel.scss";
 
@@ -205,6 +206,7 @@ function ScreenshotPanelActions({
   const likeLabelKey = screenshot.likedByMe ? "unlike" : "like";
   const likeLabel = t(userDetails ? likeLabelKey : "sign_in_to_like");
   const copyLabel = t("copy_image");
+  const { isHidden: isSensitiveHidden } = useSensitiveScreenshot(screenshot);
   const reportLabel = t(isReported ? "reported" : "report_screenshot");
   const deleteLabel = t("delete_screenshot");
   const manageLabel = t("manage_screenshot");
@@ -246,7 +248,9 @@ function ScreenshotPanelActions({
           className="screenshot-lightbox__action screenshot-lightbox__action--icon screenshot-lightbox__copy"
           onClick={() => void actions.copyImage(screenshot)}
           disabled={
-            !screenshot.imageUrl || actions.copyingIds.has(screenshot.id)
+            !screenshot.imageUrl ||
+            isSensitiveHidden ||
+            actions.copyingIds.has(screenshot.id)
           }
           aria-label={copyLabel}
           data-tooltip-id={tooltipId}
