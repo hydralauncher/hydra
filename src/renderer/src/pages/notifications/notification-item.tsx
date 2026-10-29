@@ -136,7 +136,7 @@ export function NotificationItem({
 
   const handleClick = useCallback(() => {
     if (isUnsupportedType) {
-      promptLauncherUpdate();
+      void promptLauncherUpdate();
       return;
     }
 
