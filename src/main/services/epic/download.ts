@@ -15,7 +15,10 @@ import {
   MINIMUM_FREE_DISK_SPACE_BYTES,
 } from "../../../shared/constants.js";
 import { isRecord } from "./auth-protocol.js";
-import { EPIC_PREREQUISITE_TIMEOUT_MS } from "./constants.js";
+import {
+  EPIC_INSTALL_OPTIONS_TIMEOUT_MS,
+  EPIC_PREREQUISITE_TIMEOUT_MS,
+} from "./constants.js";
 import { markEpicTiming, withEpicTiming } from "./timing.js";
 import {
   EpicManagedError,
@@ -463,10 +466,9 @@ export class EpicDownloadService {
     payload: StartEpicGameUpdatePayload
   ): Promise<EpicManagedOperationResult> {
     try {
-      const signal = new AbortController().signal;
       const owned = await this.options.installation.captureLocal(
         payload.epicObjectId,
-        signal
+        AbortSignal.timeout(EPIC_INSTALL_OPTIONS_TIMEOUT_MS)
       );
       const installation = owned.game.epicInstallation;
       if (!installation) throw new EpicManagedError("installation-missing");
@@ -530,7 +532,13 @@ export class EpicDownloadService {
       this.options.runtime.assertCurrent(prepared.target, controller.signal);
       const update =
         installed && installed.version !== prepared.version
-          ? { fromVersion: installed.version, toVersion: prepared.version }
+          ? {
+              fromVersion: installed.version,
+              toVersion: prepared.version,
+              ...(existing?.epic?.update?.filesChanged
+                ? { filesChanged: true }
+                : {}),
+            }
           : undefined;
       const installedDlcs = installed
         ? await this.options.installation.readInstalledDlcs(

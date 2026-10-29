@@ -439,7 +439,12 @@ export function HeroPanelActions() {
       return;
     }
     try {
-      await resumeDownload(game.shop, game.objectId);
+      const resumed = await resumeDownload(
+        game.shop,
+        game.objectId,
+        lastPacket !== null ? "queueIfActive" : "interruptActive"
+      );
+      if (resumed === false) showErrorToast(t("epic_update_failed"));
     } catch {
       showErrorToast(t("epic_update_failed"));
       await updateLibrary();
@@ -640,7 +645,11 @@ export function HeroPanelActions() {
         );
     }
 
-    if (game?.executablePath && epicUpdate.update && !isGameDownloading) {
+    if (
+      game?.executablePath &&
+      epicUpdate.update &&
+      !isLibraryGameDownloading({ download: epicDownload })
+    ) {
       return (
         <>
           <Button
@@ -660,7 +669,7 @@ export function HeroPanelActions() {
               if (game) void launchMember(game, false, false, true);
             }}
             theme="outline"
-            disabled={deleting}
+            disabled={deleting || epicUpdate.starting}
             className="hero-panel-actions__action"
           >
             <PlayIcon />

@@ -517,7 +517,8 @@ function SimilarGamesEmptyState({
 
 export default function Game() {
   const { t } = useTranslation("big_picture");
-  const { showErrorToast, showSuccessToast } = useBigPictureToast();
+  const { showErrorToast, showSuccessToast, showWarningToast } =
+    useBigPictureToast();
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
   const navigate = useNavigate();
 
@@ -745,7 +746,7 @@ export default function Game() {
     (member: LibraryGame) => {
       setShowStoreSelection(false);
       if (epicUpdateInProgress) {
-        showErrorToast(t("epic_updating", { ns: "game_details" }));
+        showWarningToast(t("epic_updating", { ns: "game_details" }));
         return;
       }
       if (epicUpdate.update || epicUpdateInterrupted) {
@@ -759,7 +760,7 @@ export default function Game() {
       epicUpdateInterrupted,
       epicUpdateInProgress,
       launchMember,
-      showErrorToast,
+      showWarningToast,
       t,
     ]
   );
@@ -787,15 +788,19 @@ export default function Game() {
     }
     setShowEpicUpdate(false);
     try {
-      await window.electron.resumeGameDownload(
+      const resumed = await window.electron.resumeGameDownload(
         installedEpicMember.shop,
-        installedEpicMember.objectId
+        installedEpicMember.objectId,
+        lastPacket !== null ? "queueIfActive" : "interruptActive"
       );
+      if (resumed === false)
+        showErrorToast(t("epic_update_failed", { ns: "game_details" }));
     } catch {
       showErrorToast(t("epic_update_failed", { ns: "game_details" }));
     }
     await updateGame();
   }, [
+    lastPacket,
     installedEpicMember,
     epicDownload?.status,
     startEpicUpdate,
@@ -1786,6 +1791,7 @@ export default function Game() {
                 </Button>
                 <Button
                   variant="secondary"
+                  disabled={epicUpdate.starting}
                   onClick={() => {
                     setShowEpicUpdate(false);
                     const member = installedEpicMember ?? game;

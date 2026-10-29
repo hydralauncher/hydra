@@ -2369,7 +2369,6 @@ describe("Epic managed UI lifecycle", () => {
           "@renderer/hooks/use-epic-game-update": {
             useEpicGameUpdate: () => ({
               update: null,
-              checking: false,
               starting: false,
               start: async () => ({ ok: true }),
               refresh: async () => {},
