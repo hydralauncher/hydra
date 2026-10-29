@@ -40,6 +40,7 @@ import {
   normalizeScreenshotReportValues,
   getScreenshotApiErrorCode,
   getVotedScreenshotComment,
+  pickCommentEditPatch,
   type ScreenshotPatch,
 } from "@shared";
 import { logger } from "@renderer/logger";
@@ -106,18 +107,6 @@ interface ConfirmedCommentEdit {
 
 const PENDING_COMMENT_ID_PREFIX = "pending:";
 const VOTE_UNLOCK_DELAY_MS = 500;
-
-const pickCommentEditPatch = ({
-  bodyHtml,
-  editedAt,
-  isHidden,
-  moderation,
-}: ScreenshotComment): Partial<ScreenshotComment> => ({
-  bodyHtml,
-  editedAt,
-  isHidden,
-  ...(moderation === undefined ? {} : { moderation }),
-});
 
 const isPendingComment = (comment: ScreenshotComment) =>
   comment.id.startsWith(PENDING_COMMENT_ID_PREFIX);
