@@ -46,6 +46,7 @@ import { resolveManualScreenshotPath } from "./screenshot-file-path";
 import { getScreenshotsFolder } from "./screenshots-folder";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { readUserPreferences } from "./screenshot-user-preferences";
+import { CaptureCallTimeoutError } from "./window-bound-promise";
 
 const CAPTURE_JPEG_QUALITY = 0.95;
 const FALLBACK_JPEG_QUALITY = 95;
@@ -228,7 +229,12 @@ const grabFromDirectWindowsSource = async (
       crop: getSourceClientAreaCrop(sourceId),
     });
   } catch (error) {
-    if (error instanceof BlankScreenshotFrameError) throw error;
+    if (
+      error instanceof BlankScreenshotFrameError ||
+      error instanceof CaptureCallTimeoutError
+    ) {
+      throw error;
+    }
     logger.warn("Direct window capture failed, resolving the window source", {
       gameKey: captureTarget.gameKey,
       error: error instanceof Error ? error.message : String(error),
