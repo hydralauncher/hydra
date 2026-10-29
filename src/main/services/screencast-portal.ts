@@ -42,19 +42,34 @@ const SCREENCAST_PROBES: [string, string[]][] = [
 const isMissingCommand = (error: unknown) =>
   error instanceof Error && (error as NodeJS.ErrnoException).code === "ENOENT";
 
+const isTimedOutProbe = (error: unknown) =>
+  error instanceof Error && (error as { killed?: boolean }).killed === true;
+
+let isKnownUnavailable = false;
+
 export const isScreenCastPortalAvailable = async (): Promise<
   boolean | null
 > => {
+  if (isKnownUnavailable) return false;
+
   for (const [command, args] of SCREENCAST_PROBES) {
     try {
       await execFileAsync(command, args, { timeout: PROBE_TIMEOUT_MS });
       return true;
     } catch (error) {
       if (isMissingCommand(error)) continue;
+      if (isTimedOutProbe(error)) {
+        logger.warn("The ScreenCast portal did not answer in time", {
+          command,
+          timeoutMs: PROBE_TIMEOUT_MS,
+        });
+        return null;
+      }
       logger.warn("The ScreenCast portal is not available", {
         command,
         error: error instanceof Error ? error.message : String(error),
       });
+      isKnownUnavailable = true;
       return false;
     }
   }

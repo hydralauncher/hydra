@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { resolveAchievementScreenshotPath } from "./achievement-screenshot-path.js";
+import {
+  resolveAchievementScreenshotPath,
+  sanitizePathSegment,
+} from "./achievement-screenshot-path.js";
 
 describe("achievement screenshot paths", () => {
   it("keeps games with the same sanitized title separate", () => {
@@ -52,5 +55,13 @@ describe("achievement screenshot paths", () => {
     );
 
     assert.doesNotMatch(screenshotPath, /[. ]+-/);
+  });
+
+  it("removes a trailing dot left behind by trimming other whitespace", () => {
+    assert.equal(sanitizePathSegment("Vol.\u00A0"), "Vol");
+    assert.equal(
+      sanitizePathSegment(`${"x".repeat(118)}.\u3000Part 2`),
+      "x".repeat(118)
+    );
   });
 });
