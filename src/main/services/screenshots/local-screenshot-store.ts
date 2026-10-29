@@ -23,7 +23,7 @@ const readAllRecords = async () =>
   new Map(await screenshotsSublevel.iterator().all());
 
 const loadRecords = () => {
-  if (recordsPromise) return recordsPromise;
+  if (recordsPromise !== null) return recordsPromise;
   const loading = readAllRecords().catch((error: unknown) => {
     recordsPromise = null;
     throw error;

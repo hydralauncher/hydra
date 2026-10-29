@@ -201,12 +201,15 @@ const wrapNativeImage = (
   return {
     width,
     height,
-    encode: async () => ({
-      jpeg: image.toJPEG(FALLBACK_JPEG_QUALITY),
-      preview: image
-        .resize({ width: Math.min(width, SCREENSHOT_PREVIEW_MAX_WIDTH) })
-        .toJPEG(FALLBACK_PREVIEW_JPEG_QUALITY),
-    }),
+    encode: () =>
+      new Promise<EncodedScreenshotImages>((resolve) =>
+        resolve({
+          jpeg: image.toJPEG(FALLBACK_JPEG_QUALITY),
+          preview: image
+            .resize({ width: Math.min(width, SCREENSHOT_PREVIEW_MAX_WIDTH) })
+            .toJPEG(FALLBACK_PREVIEW_JPEG_QUALITY),
+        })
+      ),
     discard: () => {},
   };
 };

@@ -129,7 +129,7 @@ const resolveRootMarkerId = async (screenshotsRoot: string) => {
 
 export const ensureRootMarkerId = (screenshotsRoot: string) => {
   const pending = pendingMarkerIds.get(screenshotsRoot);
-  if (pending) return pending;
+  if (pending !== undefined) return pending;
 
   const markerId = resolveRootMarkerId(screenshotsRoot).finally(() => {
     pendingMarkerIds.delete(screenshotsRoot);

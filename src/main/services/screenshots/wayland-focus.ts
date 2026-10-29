@@ -152,11 +152,14 @@ const readSwayFocus = async () => {
   return readFocus("sway", () => getSwayFocus(socketPath));
 };
 
-const readKdeFocus = async (): Promise<WaylandFocus | null> => {
+const readKdeFocusNow = (): WaylandFocus | null => {
   if (!isKdeSession()) return null;
   const processId = NativeAddon.getKdeFocusedProcessId();
   return processId === undefined ? null : { source: "kde", processId };
 };
+
+const readKdeFocus = () =>
+  new Promise<WaylandFocus | null>((resolve) => resolve(readKdeFocusNow()));
 
 const focusReaders = [readHyprlandFocus, readSwayFocus, readKdeFocus];
 
