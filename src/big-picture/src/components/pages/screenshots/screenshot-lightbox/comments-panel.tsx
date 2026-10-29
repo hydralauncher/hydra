@@ -107,6 +107,18 @@ interface ConfirmedCommentEdit {
 const PENDING_COMMENT_ID_PREFIX = "pending:";
 const VOTE_UNLOCK_DELAY_MS = 500;
 
+const pickCommentEditPatch = ({
+  bodyHtml,
+  editedAt,
+  isHidden,
+  moderation,
+}: ScreenshotComment): Partial<ScreenshotComment> => ({
+  bodyHtml,
+  editedAt,
+  isHidden,
+  ...(moderation === undefined ? {} : { moderation }),
+});
+
 const isPendingComment = (comment: ScreenshotComment) =>
   comment.id.startsWith(PENDING_COMMENT_ID_PREFIX);
 
@@ -719,7 +731,7 @@ export function ScreenshotCommentsPanel({
           confirmed.version = editVersion;
         }
         if (!isLatestEdit()) return;
-        if (updated) replaceComment(comment.id, updated);
+        if (updated) replaceComment(comment.id, pickCommentEditPatch(updated));
         if (updated && updated.isHidden !== comment.isHidden) {
           const delta = updated.isHidden ? -1 : 1;
           setTotal((current) => Math.max(0, current + delta));
