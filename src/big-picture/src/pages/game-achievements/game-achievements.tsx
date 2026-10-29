@@ -7,14 +7,16 @@ import {
   getVisibleSetGroups,
   groupAchievementsBySet,
   isAchievementConcealed,
-  useCollapsedAchievementSets,
-  useRevealedAchievements,
   type AchievementListEntry,
   type AchievementSortOption,
   type AchievementStatusFilter,
 } from "@shared";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useVirtualList } from "../../../../shared/use-virtual-list";
+import {
+  useCollapsedAchievementSets,
+  useRevealedAchievements,
+} from "../../../../shared/use-achievement-list-state";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import { useNavigate, useParams } from "react-router-dom";

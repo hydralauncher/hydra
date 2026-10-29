@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import type {
   AchievementSet,
   ComparedAchievements,
@@ -130,7 +129,10 @@ export const getAchievementKey = (
   achievement: Pick<UserAchievement, "name" | "canonicalAchievementId">
 ) => achievement.canonicalAchievementId ?? achievement.name;
 
-export type AchievementSortOption = "most_common" | "most_rare";
+export type AchievementSortOption =
+  | "most_common"
+  | "most_rare"
+  | "recently_unlocked";
 
 export type AchievementStatusFilter = "all" | "unlocked" | "locked";
 
@@ -143,7 +145,8 @@ type ListableAchievement = Pick<
   | "unlocked"
   | "points"
   | "globalUnlockPercentage"
->;
+> &
+  Partial<Pick<UserAchievement, "unlockTime">>;
 
 export type AchievementComparisonFilter =
   | "all"
@@ -265,14 +268,23 @@ export const formatAchievementUnlockPercentage = (
 };
 
 export const formatAchievementUnlockDateTime = (
-  date: number | Date | string,
+  value: number | Date | string,
   language: string
 ) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
   try {
-    return format(
-      date,
-      language.startsWith("en") ? "MM/dd/yyyy · h:mm a" : "dd/MM/yyyy · HH:mm"
-    );
+    const day = new Intl.DateTimeFormat(language, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+    const time = new Intl.DateTimeFormat(language, {
+      timeStyle: "short",
+    }).format(date);
+
+    return `${day} · ${time}`;
   } catch {
     return "";
   }
@@ -342,6 +354,16 @@ const compareByRarity = (
     sort
   );
 
+const compareByUnlockTime = (
+  a: ListableAchievement,
+  b: ListableAchievement
+) => {
+  if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
+  if (!a.unlocked) return 0;
+
+  return (b.unlockTime ?? 0) - (a.unlockTime ?? 0);
+};
+
 export const getAchievementStatusCounts = (
   achievements: Pick<UserAchievement, "unlocked">[]
 ): Record<AchievementStatusFilter, number> => {
@@ -368,7 +390,11 @@ export const filterAndSortAchievements = <T extends ListableAchievement>(
       matchesStatus(achievement, status) &&
       matchesSearch(achievement, normalizedSearch, isConcealed(achievement))
   );
-  visible.sort((a, b) => compareByRarity(a, b, sort, getScore));
+  visible.sort((a, b) =>
+    sort === "recently_unlocked"
+      ? compareByUnlockTime(a, b)
+      : compareByRarity(a, b, sort, getScore)
+  );
 
   return visible;
 };

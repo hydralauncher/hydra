@@ -1,4 +1,5 @@
 import {
+  ClockIcon,
   LockIcon,
   LockOpenIcon,
   MagnifyingGlassIcon,
@@ -34,6 +35,7 @@ const STATUS_ICONS: Record<AchievementStatusFilter, JSX.Element> = {
 const SORT_ICONS: Record<AchievementSortOption, JSX.Element> = {
   most_common: <SortDescendingIcon size={22} />,
   most_rare: <SortAscendingIcon size={22} />,
+  recently_unlocked: <ClockIcon size={22} />,
 };
 
 export interface GameAchievementsToolbarProps {
@@ -67,6 +69,7 @@ export function GameAchievementsToolbar({
       [
         { value: "most_common", label: t("sort_most_common") },
         { value: "most_rare", label: t("sort_most_rare") },
+        { value: "recently_unlocked", label: t("sort_recently_unlocked") },
       ] satisfies Array<DropdownSelectOption<AchievementSortOption>>,
     [t]
   );

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import Skeleton from "react-loading-skeleton";
 import cn from "classnames";
 
+const MAX_PRELOADED_ICONS = 300;
+
 const preloadedIcons = new Map<string, HTMLImageElement>();
 
 const preloadAchievementIcon = (src: string) => {
@@ -11,6 +13,11 @@ const preloadAchievementIcon = (src: string) => {
   image.decoding = "async";
   image.src = src;
   preloadedIcons.set(src, image);
+
+  if (preloadedIcons.size > MAX_PRELOADED_ICONS) {
+    const oldest = preloadedIcons.keys().next().value;
+    if (oldest !== undefined) preloadedIcons.delete(oldest);
+  }
 };
 
 const isIconPreloaded = (src: string) => {

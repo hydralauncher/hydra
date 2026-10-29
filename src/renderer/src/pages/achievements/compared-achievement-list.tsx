@@ -2,6 +2,7 @@ import type { ComparedAchievements, UserAchievement } from "@types";
 import "./achievements.scss";
 import {
   CheckCircleFillIcon,
+  ClockIcon,
   EyeClosedIcon,
   LockIcon,
   PeopleIcon,
@@ -37,8 +38,6 @@ import {
   groupAchievementsBySet,
   isAchievementConcealed,
   matchesAchievementComparisonFilter,
-  useCollapsedAchievementSets,
-  useRevealedAchievements,
   type AchievementComparisonFilter,
   type AchievementSortOption,
 } from "@shared";
@@ -49,6 +48,10 @@ import {
 import { ComparedAchievementSetHeader } from "./achievement-set-header";
 import { AchievementIcon, AchievementIconPreload } from "./achievement-icon";
 import { useVirtualAchievementList } from "./use-virtual-achievement-list";
+import {
+  useCollapsedAchievementSets,
+  useRevealedAchievements,
+} from "../../../../shared/use-achievement-list-state";
 
 interface ComparedUser {
   displayName: string;
@@ -183,6 +186,11 @@ export function ComparedAchievementList({
       label: t("sort_most_rare"),
       icon: <SortAscIcon size={16} />,
     },
+    {
+      value: "recently_unlocked",
+      label: t("sort_recently_unlocked"),
+      icon: <ClockIcon size={16} />,
+    },
   ];
 
   const personOption = (
@@ -207,7 +215,7 @@ export function ComparedAchievementList({
         ? [
             {
               value: "both" as const,
-              label: t("unlocked"),
+              label: t("compare_filter_both"),
               icon: <UnlockIcon size={16} />,
               count: filterCounts.both,
             },
@@ -215,7 +223,7 @@ export function ComparedAchievementList({
         : []),
       {
         value: "neither",
-        label: t("locked"),
+        label: t("compare_filter_neither"),
         icon: <LockIcon size={16} />,
         count: filterCounts.neither,
       },

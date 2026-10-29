@@ -2268,7 +2268,10 @@
     "compare_with_me": "Сравнить со мной",
     "stop_comparing": "Отменить сравнение",
     "achievement_set_base_game": "Основная игра",
-    "achievement_set_other": "Другие"
+    "achievement_set_other": "Другие",
+    "sort_recently_unlocked": "Недавно полученные",
+    "compare_filter_both": "Получены обоими",
+    "compare_filter_neither": "Не получены никем"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Подписка Hydra Cloud",

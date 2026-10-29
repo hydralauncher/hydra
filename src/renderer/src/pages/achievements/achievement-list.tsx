@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import "./achievements.scss";
 import {
   CheckCircleFillIcon,
+  ClockIcon,
   EyeClosedIcon,
   LockIcon,
   PeopleIcon,
@@ -36,8 +37,6 @@ import {
   getVisibleSetGroups,
   groupAchievementsBySet,
   isAchievementConcealed,
-  useCollapsedAchievementSets,
-  useRevealedAchievements,
   type AchievementSortOption,
   type AchievementStatusFilter,
 } from "@shared";
@@ -48,6 +47,10 @@ import {
 import { AchievementSetHeader } from "./achievement-set-header";
 import { AchievementIcon, AchievementIconPreload } from "./achievement-icon";
 import { useVirtualAchievementList } from "./use-virtual-achievement-list";
+import {
+  useCollapsedAchievementSets,
+  useRevealedAchievements,
+} from "../../../../shared/use-achievement-list-state";
 
 interface AchievementListProps {
   achievements: UserAchievement[];
@@ -172,6 +175,11 @@ export function AchievementList({
       value: "most_rare",
       label: t("sort_most_rare"),
       icon: <SortAscIcon size={16} />,
+    },
+    {
+      value: "recently_unlocked",
+      label: t("sort_recently_unlocked"),
+      icon: <ClockIcon size={16} />,
     },
   ];
 

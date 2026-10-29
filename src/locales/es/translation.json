@@ -2138,7 +2138,10 @@
     "compare_with_me": "Comparar conmigo",
     "stop_comparing": "Dejar de comparar",
     "achievement_set_base_game": "Juego base",
-    "achievement_set_other": "Otros"
+    "achievement_set_other": "Otros",
+    "sort_recently_unlocked": "Desbloqueados recientemente",
+    "compare_filter_both": "Desbloqueados por ambos",
+    "compare_filter_neither": "Bloqueados para ambos"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Suscripción Hydra Cloud",

@@ -2258,7 +2258,10 @@
     "compare_with_me": "Comparar comigo",
     "stop_comparing": "Parar de comparar",
     "achievement_set_base_game": "Jogo base",
-    "achievement_set_other": "Outras"
+    "achievement_set_other": "Outras",
+    "sort_recently_unlocked": "Desbloqueadas recentemente",
+    "compare_filter_both": "Desbloqueadas por ambos",
+    "compare_filter_neither": "Bloqueadas para ambos"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Assinatura Hydra Cloud",

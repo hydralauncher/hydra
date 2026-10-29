@@ -520,18 +520,38 @@ describe("achievement key", () => {
 
 describe("achievement unlock date", () => {
   const date = new Date(2026, 9, 29, 9, 5);
+  const format = (language: string) =>
+    formatAchievementUnlockDateTime(date, language).replaceAll(/\s/g, " ");
 
-  it("uses month/day/year and a 12-hour clock for English", () => {
-    assert.equal(
-      formatAchievementUnlockDateTime(date, "en"),
-      "10/29/2026 · 9:05 AM"
-    );
+  it("follows the language's date and clock conventions", () => {
+    assert.equal(format("en"), "10/29/2026 · 9:05 AM");
+    assert.equal(format("pt-BR"), "29/10/2026 · 09:05");
+    assert.equal(format("ru"), "29.10.2026 · 09:05");
   });
 
-  it("uses day/month/year and a 24-hour clock for other languages", () => {
-    assert.equal(
-      formatAchievementUnlockDateTime(date, "pt-BR"),
-      "29/10/2026 · 09:05"
+  it("returns an empty string for invalid dates", () => {
+    assert.equal(formatAchievementUnlockDateTime("not a date", "en"), "");
+  });
+});
+
+describe("recently unlocked sort", () => {
+  it("lists unlocked achievements newest first and keeps locked ones in order", () => {
+    const list = [
+      { ...achievement("LockedA"), unlockTime: null },
+      { ...achievement("Old", { unlocked: true }), unlockTime: 100 },
+      { ...achievement("LockedB"), unlockTime: null },
+      { ...achievement("New", { unlocked: true }), unlockTime: 300 },
+      { ...achievement("Mid", { unlocked: true }), unlockTime: 200 },
+    ];
+
+    assert.deepEqual(
+      names(
+        filterAndSortAchievements(list, {
+          ...defaults,
+          sort: "recently_unlocked",
+        })
+      ),
+      ["New", "Mid", "Old", "LockedA", "LockedB"]
     );
   });
 });

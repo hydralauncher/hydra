@@ -2354,7 +2354,10 @@
     "compare_with_me": "Compare with me",
     "stop_comparing": "Stop comparing",
     "achievement_set_base_game": "Base game",
-    "achievement_set_other": "Other"
+    "achievement_set_other": "Other",
+    "sort_recently_unlocked": "Recently unlocked",
+    "compare_filter_both": "Unlocked by both",
+    "compare_filter_neither": "Locked for both"
   },
   "hydra_cloud": {
     "subscription_tour_title": "Hydra Cloud Subscription",
