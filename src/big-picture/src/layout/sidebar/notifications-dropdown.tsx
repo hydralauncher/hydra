@@ -39,7 +39,9 @@ import { openBigPictureCloudGiftModal } from "../../components/cloud-gift-modal.
 import { FocusRegionContext } from "../../components/context";
 import { IS_DESKTOP } from "../../constants";
 import {
+  Feature,
   useDate,
+  useFeature,
   useLibrary,
   useNavigationActions,
   useNavigationScreenActions,
@@ -129,6 +131,11 @@ function resolveBigPicturePath(path: string) {
   return `/big-picture${path}`;
 }
 
+const GENERIC_NOTIFICATION_CONTENT = {
+  title: "Notification",
+  description: "",
+};
+
 function getApiNotificationContent(
   notification: Notification,
   t: (key: string, options?: Record<string, unknown>) => string
@@ -188,10 +195,7 @@ function getApiNotificationContent(
     case "SCREENSHOT_COMMENT_UPVOTE":
       return getScreenshotNotificationContent(notification, t);
     default:
-      return {
-        title: "Notification",
-        description: "",
-      };
+      return GENERIC_NOTIFICATION_CONTENT;
   }
 }
 
@@ -236,8 +240,10 @@ function getScreenshotNotificationContent(
 
 function getNotificationContent(
   notification: MergedNotification,
-  t: (key: string, options?: Record<string, unknown>) => string
+  t: (key: string, options?: Record<string, unknown>) => string,
+  isContentEnabled: boolean
 ) {
+  if (!isContentEnabled) return GENERIC_NOTIFICATION_CONTENT;
   if (notification.source === "local") {
     return {
       title: notification.title,
@@ -246,6 +252,25 @@ function getNotificationContent(
   }
 
   return getApiNotificationContent(notification, t);
+}
+
+interface ScreenshotFeatureFlags {
+  screenshots: boolean;
+  screenshotComments: boolean;
+}
+
+function isNotificationContentEnabled(
+  notification: MergedNotification,
+  flags: ScreenshotFeatureFlags
+) {
+  if (
+    notification.source !== "api" ||
+    !isScreenshotNotificationType(notification.type)
+  ) {
+    return true;
+  }
+  if (!flags.screenshots) return false;
+  return notification.type === "SCREENSHOT_LIKE" || flags.screenshotComments;
 }
 
 function isHydraNotification(notification: MergedNotification) {
@@ -360,6 +385,11 @@ export function SidebarNotificationsDropdown({
   const { formatDistance } = useDate();
   const { library } = useLibrary();
   const { setFocus } = useNavigationActions();
+  const { isFeatureEnabled } = useFeature();
+  const screenshotFeatureFlags: ScreenshotFeatureFlags = {
+    screenshots: isFeatureEnabled(Feature.Screenshots),
+    screenshotComments: isFeatureEnabled(Feature.ScreenshotComments),
+  };
   const [apiNotifications, setApiNotifications] = useState<Notification[]>([]);
   const [localNotifications, setLocalNotifications] = useState<
     LocalNotification[]
@@ -671,7 +701,12 @@ export function SidebarNotificationsDropdown({
       return;
     }
 
-    const url = getNotificationUrl(notification);
+    const url = isNotificationContentEnabled(
+      notification,
+      screenshotFeatureFlags
+    )
+      ? getNotificationUrl(notification)
+      : null;
     if (url) {
       navigate(resolveBigPicturePath(url));
       closeAndRestoreFocus();
@@ -842,7 +877,10 @@ export function SidebarNotificationsDropdown({
       );
     }
 
-    if (notification.source === "api") {
+    if (
+      notification.source === "api" &&
+      isNotificationContentEnabled(notification, screenshotFeatureFlags)
+    ) {
       const ScreenshotIcon = SCREENSHOT_NOTIFICATION_ICONS[notification.type];
       if (ScreenshotIcon) {
         return (
@@ -932,7 +970,14 @@ export function SidebarNotificationsDropdown({
                   </div>
                 ) : (
                   mergedNotifications.map((notification, index) => {
-                    const content = getNotificationContent(notification, t);
+                    const content = getNotificationContent(
+                      notification,
+                      t,
+                      isNotificationContentEnabled(
+                        notification,
+                        screenshotFeatureFlags
+                      )
+                    );
                     const createdAt = new Date(notification.createdAt);
                     const itemFocusId =
                       getNotificationItemFocusId(notification);
