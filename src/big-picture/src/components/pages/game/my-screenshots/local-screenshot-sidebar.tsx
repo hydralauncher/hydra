@@ -165,9 +165,11 @@ export function LocalScreenshotSidebar({
             <span className="screenshot-lightbox__date">
               {formatScreenshotDate(screenshot.capturedAt, language)}
             </span>
-            <span className="local-screenshot-sidebar__badge">
-              {t("screenshots_not_uploaded")}
-            </span>
+            {screenshot.state === "uploaded" ? null : (
+              <span className="local-screenshot-sidebar__badge">
+                {t("screenshots_not_uploaded")}
+              </span>
+            )}
           </div>
 
           {hasForm ? (
