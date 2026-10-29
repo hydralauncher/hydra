@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ReportIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
@@ -61,14 +61,21 @@ export function ReportCheaterModal({
   const { showSuccessToast, showErrorToast } = useToast();
   const [description, setDescription] = useState("");
   const [isSending, setIsSending] = useState(false);
+  // Bumped whenever the modal closes, so a request that finishes after its
+  // report was closed (and maybe another one opened) leaves the modal alone.
+  const requestRef = useRef(0);
 
   const close = () => {
+    requestRef.current += 1;
     setDescription("");
+    setIsSending(false);
     onClose();
   };
 
   const send = async () => {
     if (!entry) return;
+    const request = requestRef.current;
+    const isCurrent = () => requestRef.current === request;
     setIsSending(true);
 
     try {
@@ -93,7 +100,7 @@ export function ReportCheaterModal({
         }
       );
       showSuccessToast(t("report_cheater_sent"));
-      close();
+      if (isCurrent()) close();
     } catch (error) {
       logger.error("Failed to report leaderboard user", error);
       showErrorToast(
@@ -104,7 +111,7 @@ export function ReportCheaterModal({
         )
       );
     } finally {
-      setIsSending(false);
+      if (isCurrent()) setIsSending(false);
     }
   };
 
