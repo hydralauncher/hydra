@@ -631,11 +631,14 @@ export function ScreenshotCommentsPanel({
 
   const removePendingComment = useCallback(
     (pendingId: string) => {
+      const isListed = commentsRef.current.some(
+        (comment) => comment.id === pendingId
+      );
       recordWrite({ kind: "remove", commentId: pendingId, wasCounted: true });
       setComments((current) =>
         current.filter((comment) => comment.id !== pendingId)
       );
-      setTotal((current) => Math.max(0, current - 1));
+      if (isListed) setTotal((current) => Math.max(0, current - 1));
       onCommentCountChange(screenshot.id, -1);
     },
     [onCommentCountChange, recordWrite, screenshot.id, setComments, setTotal]
