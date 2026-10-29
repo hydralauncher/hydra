@@ -131,9 +131,8 @@ interface FinishCaptureOptions {
   size: { width: number; height: number };
   defaultVisibility: ProfileVisibility;
   source: ScreenshotTriggerSource;
-  ownerId?: string | null;
-  previewPath?: string | null;
-  announce?: boolean;
+  ownerId: string | null;
+  previewPath: string | null;
 }
 
 const finishCapture = async ({
@@ -144,12 +143,9 @@ const finishCapture = async ({
   size,
   defaultVisibility,
   source,
-  ownerId = getSignedInScreenshotOwnerId(),
-  previewPath = null,
-  announce = true,
+  ownerId,
+  previewPath,
 }: FinishCaptureOptions) => {
-  if (announce) announceCapture(gameTitle, ownerId);
-
   const screenshot = await LocalScreenshotStore.put({
     clientId: randomUUID(),
     ownerId,
@@ -196,11 +192,6 @@ const playCaptureSound = () => {
 
 const showCapturedToast = (gameTitle: string, ownerId: string | null) => {
   showCaptureToast(ownerId ? "captured" : "saved_locally", gameTitle);
-};
-
-const announceCapture = (gameTitle: string, ownerId: string | null) => {
-  playCaptureSound();
-  showCapturedToast(gameTitle, ownerId);
 };
 
 const wrapNativeImage = (
@@ -426,7 +417,6 @@ const grabScreenshot = async (
       source,
       ownerId,
       previewPath,
-      announce: false,
     });
     timer.mark("saved");
     timer.flush(target.gameKey);
