@@ -5,26 +5,25 @@ import type {
   LocalScreenshotState,
 } from "@types";
 
-const GAME_PAGE_STATES = new Set<LocalScreenshotState>(["local", "failed"]);
+const GAME_FILE_STATES = new Set<LocalScreenshotState>([
+  "local",
+  "failed",
+  "uploaded",
+]);
 
-export const isLocalScreenshotForGame = (
+export const matchesLocalScreenshotGame = (
   screenshot: LocalScreenshot,
   shop: GameShop,
   objectId: string
-) =>
-  screenshot.shop === shop &&
-  screenshot.objectId === objectId &&
-  GAME_PAGE_STATES.has(screenshot.state);
+) => screenshot.shop === shop && screenshot.objectId === objectId;
 
 export const isLocalScreenshotFileForGame = (
   screenshot: LocalScreenshot,
   shop: GameShop,
   objectId: string
 ) =>
-  isLocalScreenshotForGame(screenshot, shop, objectId) ||
-  (screenshot.shop === shop &&
-    screenshot.objectId === objectId &&
-    screenshot.state === "uploaded");
+  matchesLocalScreenshotGame(screenshot, shop, objectId) &&
+  GAME_FILE_STATES.has(screenshot.state);
 
 export const isPublishedLocalScreenshot = (screenshot: LocalScreenshot) =>
   screenshot.state === "uploaded" && Boolean(screenshot.screenshotId);

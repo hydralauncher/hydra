@@ -15,6 +15,7 @@ import {
 } from "./local-screenshot-owner";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { removeScreenshotPreview } from "./screenshot-preview";
+import { readVolumeId } from "./screenshot-volume";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { screenshotUploadWorker } from "./screenshot-upload-worker";
 
@@ -27,13 +28,20 @@ const pathExists = (filePath: string) =>
     () => false
   );
 
-const isFileDeleted = async (filePath: string) => {
+const isOnRecordedVolume = async (screenshot: LocalScreenshot) => {
+  const gameFolder = path.dirname(screenshot.path);
+  if (typeof screenshot.volumeId !== "number") return pathExists(gameFolder);
+  const rootVolumeId = await readVolumeId(path.dirname(gameFolder));
+  return rootVolumeId === screenshot.volumeId;
+};
+
+const isFileDeleted = async (screenshot: LocalScreenshot) => {
   try {
-    await fs.promises.access(filePath);
+    await fs.promises.access(screenshot.path);
     return false;
   } catch (error) {
     if (!isMissingFileError(error)) return false;
-    return pathExists(path.dirname(path.dirname(filePath)));
+    return isOnRecordedVolume(screenshot);
   }
 };
 
@@ -111,7 +119,7 @@ export const pruneMissingLocalScreenshots = async (
     screenshots.map(
       (screenshot) =>
         !isUnpublishedLocalFile(screenshot) ||
-        isFileDeleted(screenshot.path).then((deleted) => !deleted)
+        isFileDeleted(screenshot).then((deleted) => !deleted)
     )
   );
   const missing = screenshots.filter((_, index) => !isPresent[index]);
@@ -129,7 +137,7 @@ export const pruneMissingLocalScreenshots = async (
 export const removeLocalScreenshotIfMissing = async (clientId: string) => {
   const screenshot = await LocalScreenshotStore.get(clientId);
   if (!screenshot || !isUnpublishedLocalFile(screenshot)) return false;
-  if (!(await isFileDeleted(screenshot.path))) return false;
+  if (!(await isFileDeleted(screenshot))) return false;
 
   const removed = await removeMissingLocalScreenshot(clientId);
   if (removed) announceMissingLocalScreenshots(1);

@@ -44,6 +44,7 @@ import { writeScreenshotPreview } from "./screenshot-preview";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { resolveManualScreenshotPath } from "./screenshot-file-path";
 import { getScreenshotsFolder } from "./screenshots-folder";
+import { readVolumeId } from "./screenshot-volume";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { readUserPreferences } from "./screenshot-user-preferences";
 import { CaptureCallTimeoutError } from "./window-bound-promise";
@@ -166,6 +167,7 @@ const finishCapture = async ({
     uploadProgress: null,
     lastError: null,
     gameSessionId: getGameSessionId(target.gameKey),
+    volumeId: await readVolumeId(filePath),
     previewPath,
   });
 

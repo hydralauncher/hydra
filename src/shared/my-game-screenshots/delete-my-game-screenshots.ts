@@ -4,6 +4,7 @@ import {
   getScreenshotApiErrorCode,
   type ScreenshotApiErrorCode,
 } from "../screenshots";
+import type { LocalScreenshot } from "@types";
 import type {
   MyGameScreenshotsApi,
   MyGameScreenshotsLocalBridge,
@@ -107,6 +108,9 @@ const deleteLocalFiles = async ({ target, local }: DeletionContext) => {
   return { deleted, expected, isComplete: deleted >= expected };
 };
 
+const isUnsentLocalFile = ({ state }: LocalScreenshot) =>
+  state === "local" || state === "failed";
+
 const runDeletion = async (
   deletion: MyScreenshotsDeletion,
   context: DeletionContext
@@ -129,7 +133,7 @@ const runDeletion = async (
 
   const pendingBefore = (
     await context.local.getLocalScreenshotsForGame(shop, objectId)
-  ).length;
+  ).filter(isUnsentLocalFile).length;
   const published = await deletePublished(context);
   const local = await deleteLocalFiles(context);
   const restoredCopies = Math.max(0, local.expected - pendingBefore);
