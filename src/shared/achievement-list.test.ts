@@ -535,23 +535,56 @@ describe("achievement unlock date", () => {
 });
 
 describe("recently unlocked sort", () => {
-  it("lists unlocked achievements newest first and keeps locked ones in order", () => {
+  const recent = { ...defaults, sort: "recently_unlocked" as const };
+
+  it("lists unlocked achievements newest first, then locked ones by most common", () => {
     const list = [
-      { ...achievement("LockedA"), unlockTime: null },
+      {
+        ...achievement("LockedRare", { globalUnlockPercentage: 5 }),
+        unlockTime: null,
+      },
       { ...achievement("Old", { unlocked: true }), unlockTime: 100 },
-      { ...achievement("LockedB"), unlockTime: null },
+      {
+        ...achievement("LockedCommon", { globalUnlockPercentage: 80 }),
+        unlockTime: null,
+      },
       { ...achievement("New", { unlocked: true }), unlockTime: 300 },
       { ...achievement("Mid", { unlocked: true }), unlockTime: 200 },
     ];
 
+    assert.deepEqual(names(filterAndSortAchievements(list, recent)), [
+      "New",
+      "Mid",
+      "Old",
+      "LockedCommon",
+      "LockedRare",
+    ]);
+  });
+
+  it("sorts by most common when nothing is unlocked", () => {
+    const list = [
+      {
+        ...achievement("Rare", { globalUnlockPercentage: 2 }),
+        unlockTime: null,
+      },
+      {
+        ...achievement("Common", { globalUnlockPercentage: 70 }),
+        unlockTime: null,
+      },
+      {
+        ...achievement("Mid", { globalUnlockPercentage: 30 }),
+        unlockTime: null,
+      },
+    ];
+
     assert.deepEqual(
-      names(
-        filterAndSortAchievements(list, {
-          ...defaults,
-          sort: "recently_unlocked",
-        })
-      ),
-      ["New", "Mid", "Old", "LockedA", "LockedB"]
+      names(filterAndSortAchievements(list, recent)),
+      names(filterAndSortAchievements(list, defaults))
     );
+    assert.deepEqual(names(filterAndSortAchievements(list, recent)), [
+      "Common",
+      "Mid",
+      "Rare",
+    ]);
   });
 });

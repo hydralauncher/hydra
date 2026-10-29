@@ -356,10 +356,11 @@ const compareByRarity = (
 
 const compareByUnlockTime = (
   a: ListableAchievement,
-  b: ListableAchievement
+  b: ListableAchievement,
+  getScore: RarityScore
 ) => {
   if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
-  if (!a.unlocked) return 0;
+  if (!a.unlocked) return compareByRarity(a, b, "most_common", getScore);
 
   return (b.unlockTime ?? 0) - (a.unlockTime ?? 0);
 };
@@ -392,7 +393,7 @@ export const filterAndSortAchievements = <T extends ListableAchievement>(
   );
   visible.sort((a, b) =>
     sort === "recently_unlocked"
-      ? compareByUnlockTime(a, b)
+      ? compareByUnlockTime(a, b, getScore)
       : compareByRarity(a, b, sort, getScore)
   );
 
