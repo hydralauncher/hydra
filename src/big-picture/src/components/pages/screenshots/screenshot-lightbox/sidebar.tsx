@@ -57,7 +57,6 @@ interface LightboxSummaryProps {
   focusIds: ReturnType<typeof getLightboxFocusIds>;
   stageTarget: FocusOverrideTarget;
   isOwner: boolean;
-  isSaving: boolean;
   onSaveDescription: (description: string) => Promise<boolean>;
   onNavigate: (path: string) => void;
 }
@@ -91,7 +90,6 @@ function LightboxSummary({
   focusIds,
   stageTarget,
   isOwner,
-  isSaving,
   onSaveDescription,
   onNavigate,
 }: Readonly<LightboxSummaryProps>) {
@@ -122,7 +120,6 @@ function LightboxSummary({
             icon={<PlusIcon size={18} weight="bold" />}
             maxLength={SCREENSHOT_DESCRIPTION_MAX_LENGTH}
             allowEmpty
-            isSaving={isSaving}
             navigationOrder={0}
             navigationOverrides={{ left: stageTarget }}
             sanitize={sanitizeScreenshotDescriptionInput}
@@ -364,7 +361,6 @@ export function ScreenshotLightboxSidebar({
             focusIds={focusIds}
             stageTarget={stageTarget}
             isOwner={isOwner}
-            isSaving={social.isSaving}
             onSaveDescription={(description: string) =>
               social.save(
                 buildScreenshotSettingsUpdate(screenshot, {

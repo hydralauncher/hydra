@@ -38,7 +38,6 @@ export interface InlineTextFieldProps {
   maxLength: number;
   allowEmpty?: boolean;
   disabled?: boolean;
-  isSaving?: boolean;
   className?: string;
   icon?: ReactNode;
   navigationOverrides?: FocusOverrides;
@@ -55,7 +54,6 @@ export function InlineTextField({
   maxLength,
   allowEmpty = false,
   disabled = false,
-  isSaving = false,
   className,
   icon,
   navigationOverrides,
@@ -146,13 +144,13 @@ export function InlineTextField({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!isSaving) void commit();
+    void commit();
   };
 
   const handleBlur = () => {
     const keyboard = useVirtualKeyboardStore.getState();
     if (keyboard.target === inputRef.current) return;
-    if (!isSaving) void commit();
+    void commit();
   };
 
   return (
@@ -194,7 +192,6 @@ export function InlineTextField({
               value={draft}
               placeholder={placeholder}
               aria-label={label}
-              disabled={isSaving}
               onBeforeInput={(event) => {
                 const data = (event.nativeEvent as InputEvent).data;
                 const input = event.currentTarget;
