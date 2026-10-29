@@ -63,7 +63,7 @@ const options = (
       diskSizeInBytes: 20,
       supportsCloudSaves: false,
       installed: true,
-      version: "build-2",
+      publishedVersion: "build-2",
       installedVersion: "build-1",
       ...overrides,
     },
@@ -146,8 +146,7 @@ describe("useEpicGameUpdate", () => {
       },
     });
     await f.render(game);
-    assert.equal(f.current.value?.update?.version, "build-2");
-    assert.equal(f.current.value?.checking, false);
+    assert.equal(f.current.value?.update?.publishedVersion, "build-2");
     let result;
     await React.act(async () => {
       result = await f.current.value!.start(true);
@@ -197,7 +196,7 @@ describe("useEpicGameUpdate", () => {
       getEpicGameInstallOptions: async () => response,
       invalidateEpicGameInstallOptions: async (objectId: string) => {
         invalidated.push(objectId);
-        response = options({ version: "build-3" });
+        response = options({ publishedVersion: "build-3" });
       },
       startEpicGameUpdate: async () => ({ ok: true }),
     });
@@ -205,7 +204,7 @@ describe("useEpicGameUpdate", () => {
     assert.deepEqual(invalidated, []);
     await React.act(async () => f.current.value!.refresh(true));
     assert.deepEqual(invalidated, ["Namespace:Item"]);
-    assert.equal(f.current.value?.update?.version, "build-3");
+    assert.equal(f.current.value?.update?.publishedVersion, "build-3");
   });
 
   it("resumes an interrupted update for the installed artifact without a newer build", async (t) => {
@@ -251,9 +250,9 @@ describe("useEpicGameUpdate", () => {
     const update = () => f.current.value?.update;
     await f.render(game);
     assert.equal(update(), null);
-    response = options({ version: "build-3" });
+    response = options({ publishedVersion: "build-3" });
     await React.act(async () => f.current.value!.refresh());
-    assert.equal(update()?.version, "build-3");
+    assert.equal(update()?.publishedVersion, "build-3");
     let result;
     await React.act(async () => {
       result = await f.current.value!.start();

@@ -6,15 +6,13 @@ import type {
   LibraryGame,
 } from "@types";
 
-/**
- * Compares the installed Epic build with the published one. Opening the page
- * reuses the main process's cached install preview, so no extra Epic request
- * is made while that preview is warm.
- */
-export function useEpicGameUpdate(game: LibraryGame | null, enabled: boolean) {
+export function useEpicGameUpdate(
+  game: LibraryGame | null,
+  enabled: boolean,
+  downloadStatus?: string | null
+) {
   const [update, setUpdate] = useState<EpicGameInstallOption | null>(null);
   const [connectionId, setConnectionId] = useState<string | null>(null);
-  const [checking, setChecking] = useState(false);
   const [starting, setStarting] = useState(false);
   const generation = useRef(0);
   const requestId = useRef<string | null>(null);
@@ -44,9 +42,8 @@ export function useEpicGameUpdate(game: LibraryGame | null, enabled: boolean) {
     cancelRequest();
   }, [cancelRequest]);
 
-  /** `fresh` discards the main process's cached preview first. */
   const refresh = useCallback(
-    async (fresh = false) => {
+    async (discardCachedPreview = false) => {
       const current = ++generation.current;
       cancelRequest();
       if (
@@ -57,14 +54,12 @@ export function useEpicGameUpdate(game: LibraryGame | null, enabled: boolean) {
         typeof window.electron.startEpicGameUpdate !== "function"
       ) {
         setUpdate(null);
-        setChecking(false);
         return;
       }
-      setChecking(true);
       const id = globalThis.crypto.randomUUID();
       requestId.current = id;
       try {
-        if (fresh)
+        if (discardCachedPreview)
           await window.electron
             .invalidateEpicGameInstallOptions?.(objectId)
             .catch(() => undefined);
@@ -74,7 +69,6 @@ export function useEpicGameUpdate(game: LibraryGame | null, enabled: boolean) {
           id
         );
         if (generation.current !== current) return;
-        // Opening a page never reports Epic errors; Play keeps working as before.
         setConnectionId(result?.connectionId ?? null);
         setUpdate(
           result && !result.error
@@ -85,7 +79,6 @@ export function useEpicGameUpdate(game: LibraryGame | null, enabled: boolean) {
         if (generation.current === current) setUpdate(null);
       } finally {
         if (requestId.current === id) requestId.current = null;
-        if (generation.current === current) setChecking(false);
       }
     },
     [objectId, artifactId, platform, cancelRequest]
@@ -103,19 +96,24 @@ export function useEpicGameUpdate(game: LibraryGame | null, enabled: boolean) {
     };
   }, [objectId, refresh, invalidate]);
 
-  /**
-   * `resume` restarts an interrupted update for the installed artifact even
-   * when Legendary already recorded the new build (for example after a
-   * prerequisite failure), so no newer version is reported anymore.
-   */
+  const previousDownloadStatus = useRef(downloadStatus);
+  useEffect(() => {
+    const previous = previousDownloadStatus.current;
+    previousDownloadStatus.current = downloadStatus;
+    if (downloadStatus === "complete" && previous && previous !== "complete")
+      void refresh();
+  }, [downloadStatus, refresh]);
+
   const start = useCallback(
     async (
       addToQueueOnly = false,
-      resume = false
+      allowInstalledTarget = false
     ): Promise<EpicManagedOperationResult> => {
       const target =
         update ??
-        (resume && artifactId && platform ? { artifactId, platform } : null);
+        (allowInstalledTarget && artifactId && platform
+          ? { artifactId, platform }
+          : null);
       if (!objectId || !target || !connectionId)
         return { ok: false, error: "stale-connection" };
       if (starting) return { ok: false, error: "operation-in-progress" };
@@ -141,5 +139,5 @@ export function useEpicGameUpdate(game: LibraryGame | null, enabled: boolean) {
     [objectId, update, connectionId, starting, artifactId, platform]
   );
 
-  return { update, checking, starting, start, refresh };
+  return { update, starting, start, refresh };
 }

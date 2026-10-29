@@ -48,7 +48,6 @@ export const getInstalledStoreMembers = (members: readonly LibraryGame[]) => {
     .sort((a, b) => Number(b.shop === "steam") - Number(a.shop === "steam"));
 };
 
-/** The installed artifact's option when Epic published a different build. */
 export const getEpicGameUpdate = (
   options: readonly EpicGameInstallOption[],
   installation: Pick<EpicInstallation, "artifactId" | "platform"> | null
@@ -60,17 +59,27 @@ export const getEpicGameUpdate = (
         option.artifactId === installation.artifactId &&
         option.platform === installation.platform &&
         option.installed &&
-        !!option.version &&
+        !!option.publishedVersion &&
         !!option.installedVersion &&
-        option.version !== option.installedVersion
+        option.publishedVersion !== option.installedVersion
     ) ?? null
   );
 };
 
-/** An update that stopped before Legendary recorded the new build. */
+const EPIC_UPDATE_STOPPED_STATUSES = new Set(["paused", "error", "removed"]);
+
 export const isEpicUpdateInterrupted = (
-  download: { status?: string | null; epic?: { update?: unknown } } | null
-) => !!download?.epic?.update && download.status !== "complete";
+  download: {
+    status?: string | null;
+    queued?: boolean;
+    extracting?: boolean;
+    epic?: { update?: unknown };
+  } | null
+) =>
+  !!download?.epic?.update &&
+  !download.queued &&
+  !download.extracting &&
+  EPIC_UPDATE_STOPPED_STATUSES.has(download.status ?? "");
 
 export const getEpicLaunchOptions = (
   localOnce: boolean,

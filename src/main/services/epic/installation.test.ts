@@ -313,7 +313,7 @@ test("installation options prove exact alias identity and separate download/disk
         diskSizeInBytes: 1000,
         supportsCloudSaves: true,
         installed: false,
-        version: "build-1",
+        publishedVersion: "build-1",
         installedVersion: null,
       },
     ],

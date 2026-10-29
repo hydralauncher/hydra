@@ -89,8 +89,8 @@ export class EpicDownloadProgressParser {
     const downloadSize = /Download size:\s*([\d.]+)\s*MiB/i.exec(line);
     if (downloadSize) {
       const remaining = Number(downloadSize[1]) * MIB_BYTES;
-      // An update's delta is unknown until Legendary compares both manifests.
-      if (Number.isFinite(remaining) && this.state.fileSize <= 0)
+      const updateDeltaPending = this.state.fileSize <= 0;
+      if (Number.isFinite(remaining) && updateDeltaPending)
         this.state.fileSize = Math.round(remaining);
       if (Number.isFinite(remaining))
         this.reusedBytes = Math.max(0, this.state.fileSize - remaining);
@@ -272,7 +272,6 @@ export function resolveEpicSelection(
   };
 }
 
-/** Legendary's own `install_tags` record; an empty list means every file. */
 export function epicInstallTags(value: unknown): string[] {
   if (value === undefined || value === null) return [];
   if (
@@ -284,10 +283,6 @@ export function epicInstallTags(value: unknown): string[] {
   return [...new Set(value)];
 }
 
-/**
- * The managed workspace rewrites config.ini for every operation, so Legendary
- * never remembers selected tags: every install, resume and update repeats them.
- */
 export function epicInstallArgs(options: {
   artifactId: string;
   platform: string;
@@ -438,7 +433,6 @@ export class EpicDownloadService {
       if (this.enqueues.get(id) === operation) this.enqueues.delete(id);
     }
   }
-  /** Updates reuse the install command; the folder is the existing install's. */
   async startUpdate(
     payload: StartEpicGameUpdatePayload
   ): Promise<EpicManagedOperationResult> {
@@ -531,7 +525,6 @@ export class EpicDownloadService {
         downloader: Downloader.Epic,
         progress: 0,
         bytesDownloaded: 0,
-        // Legendary reports an update's delta once it compares both manifests.
         fileSize: update ? 0 : resolved.downloadSizeInBytes,
         shouldSeed: false,
         status: "paused",

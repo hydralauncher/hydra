@@ -596,7 +596,7 @@ declare global {
     deleteGameFolder: (
       shop: GameShop,
       objectId: string,
-      options?: { deleteSourceArchive?: boolean }
+      options?: { deleteSourceArchive?: boolean; keepEpicUpdateFiles?: boolean }
     ) => Promise<unknown>;
     hasSourceArchive: (shop: GameShop, objectId: string) => Promise<boolean>;
     recheckInstalledExecutable: (

@@ -1069,7 +1069,7 @@
     "epic_play_offline_title": "Jogar offline",
     "epic_play_offline_description": "O Hydra não conseguiu preparar a inicialização pela Epic, então os saves na nuvem não foram restaurados. Você ainda pode iniciar o jogo no modo offline da Epic.",
     "epic_prerequisites_required": "Autorize os pré-requisitos do jogo e tente novamente.",
-    "epic_update_required": "Atualize o jogo pela opção Epic Games, usando a mesma pasta.",
+    "epic_update_required": "Uma nova versão está disponível. Use Atualizar para instalá-la.",
     "epic_update": "Atualizar",
     "epic_update_resume": "Retomar atualização",
     "epic_updating": "Atualizando…",

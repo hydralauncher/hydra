@@ -131,7 +131,6 @@ export function parseEpicDownloadPayload(
   };
 }
 
-/** Updates never accept a folder: main derives it from the installation. */
 export function parseEpicUpdatePayload(
   value: unknown
 ): StartEpicGameUpdatePayload {

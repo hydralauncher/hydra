@@ -969,11 +969,11 @@ export class EpicInstallationService {
       "Windows",
     ]);
   }
-  /** Drops a game's settled preview after Epic reported a newer build. */
   invalidateOptions(objectId: string) {
-    for (const [key, entry] of this.optionsCache)
-      if (entry.settled && JSON.parse(key).at(-2) === objectId)
-        this.optionsCache.delete(key);
+    const context = this.options.captureLocal?.();
+    if (!context) return;
+    const key = this.optionsKey(context, objectId);
+    if (this.optionsCache.get(key)?.settled) this.optionsCache.delete(key);
   }
   async getOptions(
     objectId: string,
@@ -1067,7 +1067,6 @@ export class EpicInstallationService {
     };
     const options = await Promise.all(
       result.options.map(async (option) => {
-        // Callers own the result; never hand out the cached option itself.
         if (!reused) return { ...option };
         const installed = await this.readInstalledForRepair(
           {
@@ -1145,7 +1144,7 @@ export class EpicInstallationService {
             diskSizeInBytes: prepared.diskSizeInBytes,
             supportsCloudSaves: prepared.supportsCloudSaves,
             installed: !!installed,
-            version: prepared.version,
+            publishedVersion: prepared.version,
             installedVersion: installed?.version ?? null,
             ...epicSelectionOptions(
               prepared,

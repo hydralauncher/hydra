@@ -135,7 +135,7 @@ export function useDownload() {
   const removeGameInstaller = async (
     shop: GameShop,
     objectId: string,
-    options?: { deleteSourceArchive?: boolean }
+    options?: { deleteSourceArchive?: boolean; keepEpicUpdateFiles?: boolean }
   ) => {
     dispatch(setGameDeleting(objectId));
 
@@ -158,7 +158,7 @@ export function useDownload() {
     }
 
     updateLibrary();
-    removeGameInstaller(shop, objectId);
+    removeGameInstaller(shop, objectId, { keepEpicUpdateFiles: true });
   };
 
   const removeGameFromLibrary = (shop: GameShop, objectId: string) =>

@@ -1103,7 +1103,7 @@
     "epic_play_offline_title": "Play offline",
     "epic_play_offline_description": "Hydra couldn't prepare this Epic launch, so cloud saves weren't restored. You can still start the game in Epic's offline mode.",
     "epic_prerequisites_required": "The game's dependencies could not be prepared. Try again.",
-    "epic_update_required": "Update the game through the Epic Games option using the same folder.",
+    "epic_update_required": "A new version is available. Use Update to install it.",
     "epic_update": "Update",
     "epic_update_resume": "Resume update",
     "epic_updating": "Updating…",

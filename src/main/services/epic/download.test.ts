@@ -1059,6 +1059,7 @@ test("an Epic update reuses the install command in the installed folder with its
     }
     assert.fail("download did not complete");
   };
+  const releaseRuntimeSlot = () => f.service.stop();
   t.mock.method(
     f.installation,
     "captureLocal",
@@ -1075,8 +1076,7 @@ test("an Epic update reuses the install command in the installed folder with its
     f.failed.resolve(error)
   );
   await waitForComplete();
-  // The download manager releases the runtime slot after each completion.
-  await f.service.stop();
+  await releaseRuntimeSlot();
   const firstInstall = f.commands.filter((args) => args.includes("install"));
   assert.equal(firstInstall.length, 1);
   assert.equal(
@@ -1088,7 +1088,7 @@ test("an Epic update reuses the install command in the installed folder with its
   info.game.version = "build-2";
   const options = await f.service.getOptions(objectId);
   assert.equal(options.options[0].installed, true);
-  assert.equal(options.options[0].version, "build-2");
+  assert.equal(options.options[0].publishedVersion, "build-2");
   assert.equal(options.options[0].installedVersion, "build-1");
   assert.deepEqual(
     await f.service.startUpdate({ ...target, artifactId: "Other" }),

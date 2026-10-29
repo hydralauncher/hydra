@@ -1056,7 +1056,7 @@
     "epic_play_offline_title": "Jugar sin conexión",
     "epic_play_offline_description": "Hydra no pudo preparar el inicio en Epic, así que no se restauraron los guardados en la nube. Aún puedes iniciar el juego en el modo sin conexión de Epic.",
     "epic_prerequisites_required": "Autoriza los requisitos previos del juego e inténtalo de nuevo.",
-    "epic_update_required": "Actualiza el juego desde la opción Epic Games usando la misma carpeta.",
+    "epic_update_required": "Hay una nueva versión disponible. Usa Actualizar para instalarla.",
     "epic_update": "Actualizar",
     "epic_update_resume": "Reanudar actualización",
     "epic_updating": "Actualizando…",
