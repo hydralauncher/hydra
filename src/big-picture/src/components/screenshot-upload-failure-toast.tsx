@@ -4,15 +4,17 @@ import { createScreenshotUploadOutcomeTracker } from "@shared";
 import { logger } from "@renderer/logger";
 
 import { IS_DESKTOP } from "../constants";
-import { useBigPictureToast } from "../hooks";
+import { Feature, useBigPictureToast, useFeature } from "../hooks";
 import { getLocalScreenshotStatusDetail } from "./pages/screenshots";
 
 export function ScreenshotUploadFailureToast() {
   const { t } = useTranslation("big_picture");
   const { showErrorToast } = useBigPictureToast();
+  const { isFeatureEnabled } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
 
   useEffect(() => {
-    if (!IS_DESKTOP) return;
+    if (!IS_DESKTOP || !isScreenshotsEnabled) return;
     const track = createScreenshotUploadOutcomeTracker();
     let hasSeenChange = false;
 
@@ -47,7 +49,7 @@ export function ScreenshotUploadFailureToast() {
         }
       }
     );
-  }, [showErrorToast, t]);
+  }, [isScreenshotsEnabled, showErrorToast, t]);
 
   return null;
 }
