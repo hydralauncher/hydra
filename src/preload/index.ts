@@ -1753,6 +1753,7 @@ contextBridge.exposeInMainWorld("electron", {
   resetCommonRedistPreflight: () =>
     ipcRenderer.invoke("resetCommonRedistPreflight"),
   checkForUpdates: () => ipcRenderer.invoke("checkForUpdates"),
+  isUpdateReadyToInstall: () => ipcRenderer.invoke("isUpdateReadyToInstall"),
   restartAndInstallUpdate: () => ipcRenderer.invoke("restartAndInstallUpdate"),
 
   /* Profile */

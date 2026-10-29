@@ -2249,6 +2249,7 @@
     "refuse": "Rechazar",
     "notification": "Notificación",
     "unsupported_notification_description": "Actualiza el launcher para ver esta notificación",
+    "checking_for_updates": "Buscando actualizaciones",
     "friend_request_received_title": "¡Nueva solicitud de amistad!",
     "friend_request_received_description": "{{displayName}} quiere ser tu amigo",
     "friend_request_accepted_title": "¡Solicitud de amistad aceptada!",

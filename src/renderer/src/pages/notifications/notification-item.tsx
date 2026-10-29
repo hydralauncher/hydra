@@ -13,7 +13,7 @@ import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png"
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@renderer/components";
-import { useDate, useUserDetails } from "@renderer/hooks";
+import { useDate, useToast, useUserDetails } from "@renderer/hooks";
 import cn from "classnames";
 import {
   buildLeaderboardNotificationTarget,
@@ -93,13 +93,6 @@ const supportedNotificationTypes = new Set<string>(
   } satisfies Record<NotificationType, true>)
 );
 
-const promptLauncherUpdate = async () => {
-  const isAutoInstallAvailable = await window.electron.checkForUpdates();
-  if (!isAutoInstallAvailable) {
-    await window.electron.openExternal(releasesPageUrl);
-  }
-};
-
 interface NotificationItemProps {
   notification: Notification;
   badges: Badge[];
@@ -121,6 +114,7 @@ export function NotificationItem({
   const { formatDistance } = useDate();
   const navigate = useNavigate();
   const { updateFriendRequestState, userDetails } = useUserDetails();
+  const { showSuccessToast } = useToast();
 
   const leaderboardInfo = useMemo(
     () => parseLeaderboardNotification(notification),
@@ -133,6 +127,21 @@ export function NotificationItem({
   }, [notification, badges]);
 
   const isUnsupportedType = !supportedNotificationTypes.has(notification.type);
+
+  const promptLauncherUpdate = useCallback(async () => {
+    if (await window.electron.isUpdateReadyToInstall()) {
+      await window.electron.restartAndInstallUpdate();
+      return;
+    }
+
+    const isAutoInstallAvailable = await window.electron.checkForUpdates();
+    if (!isAutoInstallAvailable) {
+      await window.electron.openExternal(releasesPageUrl);
+      return;
+    }
+
+    showSuccessToast(t("checking_for_updates"));
+  }, [showSuccessToast, t]);
 
   const handleClick = useCallback(() => {
     if (isUnsupportedType) {
@@ -167,6 +176,7 @@ export function NotificationItem({
     leaderboardInfo,
     userDetails?.id,
     isUnsupportedType,
+    promptLauncherUpdate,
   ]);
 
   const handleAccept = useCallback(

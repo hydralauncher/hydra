@@ -11,6 +11,11 @@ const sendEventsForDebug = false;
 export class UpdateManager {
   private static hasNotified = false;
   private static newVersion = "";
+  private static isUpdateDownloaded = false;
+
+  public static isUpdateReadyToInstall() {
+    return this.isUpdateDownloaded;
+  }
 
   private static mockValuesForDebug() {
     this.sendEvent({ type: "update-available", info: { version: "3.3.1" } });
@@ -49,6 +54,7 @@ export class UpdateManager {
         this.newVersion = info.version;
       })
       .on("update-downloaded", () => {
+        this.isUpdateDownloaded = true;
         this.sendEvent({ type: "update-downloaded" });
 
         if (!this.hasNotified) {
