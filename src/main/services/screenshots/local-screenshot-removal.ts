@@ -15,7 +15,10 @@ import {
 } from "./local-screenshot-owner";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { removeScreenshotPreview } from "./screenshot-preview";
-import { readVolumeId } from "./screenshot-volume";
+import {
+  getScreenshotsRoot,
+  readRootMarkerId,
+} from "./screenshots-root-marker";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { screenshotUploadWorker } from "./screenshot-upload-worker";
 
@@ -28,11 +31,14 @@ const pathExists = (filePath: string) =>
     () => false
   );
 
-const isOnRecordedVolume = async (screenshot: LocalScreenshot) => {
-  const gameFolder = path.dirname(screenshot.path);
-  if (typeof screenshot.volumeId !== "number") return pathExists(gameFolder);
-  const rootVolumeId = await readVolumeId(path.dirname(gameFolder));
-  return rootVolumeId === screenshot.volumeId;
+const isOnRecordedFilesystem = async (screenshot: LocalScreenshot) => {
+  if (typeof screenshot.rootMarkerId !== "string") {
+    return pathExists(path.dirname(screenshot.path));
+  }
+  const rootMarkerId = await readRootMarkerId(
+    getScreenshotsRoot(screenshot.path)
+  );
+  return rootMarkerId === screenshot.rootMarkerId;
 };
 
 const isFileDeleted = async (screenshot: LocalScreenshot) => {
@@ -41,7 +47,7 @@ const isFileDeleted = async (screenshot: LocalScreenshot) => {
     return false;
   } catch (error) {
     if (!isMissingFileError(error)) return false;
-    return isOnRecordedVolume(screenshot);
+    return isOnRecordedFilesystem(screenshot);
   }
 };
 
