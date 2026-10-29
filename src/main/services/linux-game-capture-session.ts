@@ -297,9 +297,11 @@ export const prepareLinuxGameCaptureSession = async (
   if (reason === "souvenir" && !HydraApi.hasActiveSubscription()) return;
 
   const failed = sessions.get(gameKey);
-  if (failed?.state === "failed" && reason === "screenshot") {
-    sessions.delete(gameKey);
-  }
+  const retriedReasons =
+    failed?.state === "failed" && reason === "screenshot"
+      ? failed.reasons
+      : null;
+  if (retriedReasons) sessions.delete(gameKey);
 
   const existing = sessions.get(gameKey);
   if (existing) {
@@ -320,7 +322,7 @@ export const prepareLinuxGameCaptureSession = async (
     window: null,
     subscriptionTimer: null,
     preparation: Promise.resolve(),
-    reasons: new Set([reason]),
+    reasons: addCaptureSessionReason(retriedReasons ?? new Set(), reason),
     activeCaptures: new Set(),
   };
 
