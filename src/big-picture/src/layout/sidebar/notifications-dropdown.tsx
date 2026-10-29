@@ -295,7 +295,8 @@ function getNotificationUrl(notification: MergedNotification) {
   ) {
     const ownerId = notification.variables.ownerId;
     const baseUrl =
-      notification.url ?? (ownerId ? `/profile/${ownerId}` : null);
+      notification.url ||
+      (ownerId ? `/profile/${encodeURIComponent(ownerId)}` : null);
     if (!baseUrl) return null;
 
     return buildScreenshotNotificationTarget(
