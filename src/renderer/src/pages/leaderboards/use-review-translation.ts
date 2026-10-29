@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
 import type { LeaderboardReview } from "./global-leaderboard";
+import { useLeaderboardViewer } from "./leaderboards-api";
 
 const getBaseLanguage = (language: string | null) =>
   language?.split("-")[0] || "";
@@ -27,18 +28,24 @@ export interface ReviewTranslation {
 }
 
 // Same rule as the game page (review-item.tsx): translate when the detected
-// language differs from the app language and the API sent that translation.
+// language differs from the app language and the API sent that translation,
+// and never the viewer's own review.
 export function useReviewTranslation(
-  review: LeaderboardReview
+  review: LeaderboardReview,
+  authorId: string
 ): ReviewTranslation {
   const { t, i18n } = useTranslation("game_details");
+  const { viewerUser } = useLeaderboardViewer();
+  const isOwnReview = viewerUser?.id === authorId;
   const [showOriginal, setShowOriginal] = useState(false);
   const translation =
     review.translations[getReviewTranslationLanguage(i18n.language)] ?? null;
   const isDifferentLanguage =
     getBaseLanguage(review.detectedLanguage) !== getBaseLanguage(i18n.language);
   const translatedHtml =
-    isDifferentLanguage && translation ? sanitizeHtml(translation) : null;
+    !isOwnReview && isDifferentLanguage && translation
+      ? sanitizeHtml(translation)
+      : null;
 
   return {
     translatedHtml,

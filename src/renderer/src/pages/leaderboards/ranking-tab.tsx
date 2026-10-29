@@ -50,12 +50,16 @@ export interface RankingTabProps {
 }
 
 // Tooltip text in the app language when the API sent a translation.
-function ReviewTipText({ review }: Readonly<{ review: LeaderboardReview }>) {
-  const { translatedHtml } = useReviewTranslation(review);
+function ReviewTipText({
+  review,
+  authorId,
+}: Readonly<{ review: LeaderboardReview; authorId: string }>) {
+  const { translatedHtml } = useReviewTranslation(review, authorId);
 
+  // A div: the translation is HTML and may carry its own <p>.
   if (translatedHtml) {
     return (
-      <p
+      <div
         className="leaderboards__review-tip-text"
         dangerouslySetInnerHTML={{ __html: translatedHtml }}
       />
@@ -206,7 +210,7 @@ export function RankingTab({
             {review.gameTitle}
           </span>
           <ReviewScore review={review} />
-          <ReviewTipText review={review} />
+          <ReviewTipText review={review} authorId={entry.user.id} />
         </div>
       </div>
     );

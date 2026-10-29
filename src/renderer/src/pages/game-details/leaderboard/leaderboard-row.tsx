@@ -61,12 +61,17 @@ export function LeaderboardRow({
     const x = event.clientX;
     const y = event.clientY;
 
-    setTooltipPosition({
-      x,
-      y,
-      flipX: x + TOOLTIP_OFFSET + width > window.innerWidth,
-      flipY: y - TOOLTIP_OFFSET - height < 0,
-    });
+    const flipX = x + TOOLTIP_OFFSET + width > window.innerWidth;
+    const flipY = y - TOOLTIP_OFFSET - height < 0;
+
+    setTooltipPosition((current) =>
+      current?.x === x &&
+      current.y === y &&
+      current.flipX === flipX &&
+      current.flipY === flipY
+        ? current
+        : { x, y, flipX, flipY }
+    );
   };
   const banner = useProcessedImage(
     entry.user.backgroundImageUrl,
@@ -91,12 +96,13 @@ export function LeaderboardRow({
           })}
           style={
             tooltipPosition
-              ? {
+              ? ({
+                  "--leaderboard-tooltip-offset": `${TOOLTIP_OFFSET}px`,
                   left:
                     tooltipPosition.x +
                     (tooltipPosition.flipX ? -1 : 1) * TOOLTIP_OFFSET,
                   top: tooltipPosition.y,
-                }
+                } as React.CSSProperties)
               : undefined
           }
           role="tooltip"

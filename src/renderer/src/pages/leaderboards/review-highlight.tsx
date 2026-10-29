@@ -47,7 +47,7 @@ export function ReviewHighlight({
     entry.user.backgroundImageUrl,
     REVIEW_BANNER_IMAGE_SIZE
   );
-  const translation = useReviewTranslation(review);
+  const translation = useReviewTranslation(review, entry.user.id);
   const createdAt = review.createdAt ? new Date(review.createdAt) : null;
   const ratingKey = RATING_KEYS[Math.round(review.score)];
   const openProfile = () => navigate(`/profile/${entry.user.id}`);
