@@ -28,6 +28,7 @@ interface UseMyScreenshotsViewerOptions {
   canResolveUploaded: boolean;
   openUploaded: (screenshot: ProfileScreenshot) => void;
   closeUploaded: () => void;
+  getFocusAfterLocalDeleteId?: (screenshot: LocalScreenshot) => string | null;
 }
 
 export function useMyScreenshotsViewer({
@@ -38,6 +39,7 @@ export function useMyScreenshotsViewer({
   canResolveUploaded,
   openUploaded,
   closeUploaded,
+  getFocusAfterLocalDeleteId,
 }: UseMyScreenshotsViewerOptions) {
   const userPreferences = useUserPreferences();
   const defaultVisibility =
@@ -154,6 +156,7 @@ export function useMyScreenshotsViewer({
           screenshot={screenshot}
           draft={getDraft(screenshot)}
           stageTarget={stageTarget}
+          focusAfterDeleteId={getFocusAfterLocalDeleteId?.(screenshot) ?? null}
           onDraftChange={(update) => updateDraft(screenshot, update)}
           onBeforeUpload={() => cancelDraftSave(screenshot.clientId)}
         />
@@ -164,6 +167,7 @@ export function useMyScreenshotsViewer({
       close,
       entries,
       getDraft,
+      getFocusAfterLocalDeleteId,
       openEntry,
       openLocal,
       updateDraft,

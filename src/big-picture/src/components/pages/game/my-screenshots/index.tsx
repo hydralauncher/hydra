@@ -360,6 +360,16 @@ export function GameMyScreenshots({
     canResolveUploaded: mine.canFetchPublished,
     openUploaded: open,
     closeUploaded: close,
+    getFocusAfterLocalDeleteId: (screenshot) =>
+      getFocusAfterDeleteId(
+        items,
+        items.findIndex(
+          (item) =>
+            item.kind === "local" &&
+            item.screenshot.clientId === screenshot.clientId
+        ),
+        leftTarget
+      ),
   });
   const hasWaitedForPublished = useHasWaited(
     `${shop}:${objectId}`,

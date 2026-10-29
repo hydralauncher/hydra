@@ -21,7 +21,10 @@ import {
   type ReviewDraft,
   type ReviewFieldFocusIds,
 } from "../../../screenshot-upload-form/review-fields";
-import type { FocusOverrideTarget } from "../../../../services";
+import {
+  NavigationService,
+  type FocusOverrideTarget,
+} from "../../../../services";
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
 import { formatScreenshotDate } from "../../screenshots";
 
@@ -58,6 +61,7 @@ interface LocalScreenshotSidebarProps {
   screenshot: LocalScreenshot;
   draft: ReviewDraft;
   stageTarget: FocusOverrideTarget;
+  focusAfterDeleteId: string | null;
   onDraftChange: (update: Partial<ReviewDraft>) => void;
   onBeforeUpload: () => void;
 }
@@ -66,6 +70,7 @@ export function LocalScreenshotSidebar({
   screenshot,
   draft,
   stageTarget,
+  focusAfterDeleteId,
   onDraftChange,
   onBeforeUpload,
 }: Readonly<LocalScreenshotSidebarProps>) {
@@ -133,9 +138,17 @@ export function LocalScreenshotSidebar({
   };
 
   const remove = async () => {
-    await runAction("delete", () =>
-      globalThis.window.electron.deleteLocalScreenshot(clientId)
-    );
+    const navigation = NavigationService.getInstance();
+    if (focusAfterDeleteId) {
+      navigation.requestFocusWhenAvailable(focusAfterDeleteId);
+    }
+    const isDeleted = await runAction("delete", async () => {
+      await globalThis.window.electron.deleteLocalScreenshot(clientId);
+      return true;
+    });
+    if (!isDeleted && focusAfterDeleteId) {
+      navigation.requestFocusWhenAvailable(deleteFocusId);
+    }
     setIsDeleteConfirmVisible(false);
   };
 
