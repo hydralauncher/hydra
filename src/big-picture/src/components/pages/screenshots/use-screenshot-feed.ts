@@ -124,6 +124,7 @@ export function useScreenshotFeed({
 
     const read = ledger.beginRead();
     const pagesToLoad = Math.max(1, loadedPageCountRef.current);
+    const previousLastId = isRefresh ? itemsRef.current.at(-1)?.id : undefined;
     const fetchPage = (cursor: string | null) =>
       globalThis.window.electron.hydraApi.get<ScreenshotFeedResponse | null>(
         buildPathRef.current(cursor),
@@ -136,7 +137,13 @@ export function useScreenshotFeed({
       let cursor = firstPage?.nextCursor ?? null;
       let pageCount = 1;
 
-      while (cursor && pageCount < pagesToLoad) {
+      const hasReachedPreviousEnd = () =>
+        !previousLastId || pageItems.some((item) => item.id === previousLastId);
+      const needsAnotherPage = () =>
+        pageCount < pagesToLoad ||
+        (pageCount === pagesToLoad && !hasReachedPreviousEnd());
+
+      while (cursor && needsAnotherPage()) {
         if (generationRef.current !== generation) return;
         const page = await fetchPage(cursor);
         pageItems = mergeScreenshotPages(pageItems, page?.items ?? []);
