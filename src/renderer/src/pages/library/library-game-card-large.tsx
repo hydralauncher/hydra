@@ -9,6 +9,7 @@ import {
   useGameCard,
   useAnimatedSourceWarmup,
   useCatalogueImage,
+  useViewportCatalogueImageUrl,
 } from "@renderer/hooks";
 import {
   getCatalogueImageDensitySrcSet,
@@ -307,12 +308,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
   const rawHeroSource = heroSources[heroIndex];
   const heroImage = useCatalogueImage(rawHeroSource, game.images);
-  const heroVariantUrl = heroImage.variants
-    ? pickCatalogueImageUrl(
-        heroImage.variants,
-        globalThis.window.innerWidth * globalThis.window.devicePixelRatio
-      )
-    : null;
+  const heroVariantUrl = useViewportCatalogueImageUrl(heroImage.variants);
   const { markLoaded: markHeroLoaded, markFailed: markHeroFailed } = heroImage;
 
   useEffect(() => {

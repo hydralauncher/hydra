@@ -1,10 +1,37 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import type { CSSProperties } from "react";
-import type { CatalogueImages } from "@types";
+import type { CatalogueImages, CatalogueImageVariants } from "@types";
 import {
   decodeCatalogueThumbHash,
   findCatalogueImageVariants,
+  pickCatalogueImageUrl,
 } from "@renderer/helpers/catalogue-images";
+
+const subscribeToResize = (onResize: () => void) => {
+  globalThis.window.addEventListener("resize", onResize);
+  return () => globalThis.window.removeEventListener("resize", onResize);
+};
+
+/**
+ * Picks the copy that covers the window's width in device pixels. The
+ * component re-renders only when a resize changes the picked copy.
+ */
+export function useViewportCatalogueImageUrl(
+  variants: CatalogueImageVariants | null
+) {
+  const getSnapshot = useCallback(
+    () =>
+      variants
+        ? pickCatalogueImageUrl(
+            variants,
+            globalThis.window.innerWidth * globalThis.window.devicePixelRatio
+          )
+        : null,
+    [variants]
+  );
+
+  return useSyncExternalStore(subscribeToResize, getSnapshot);
+}
 
 /**
  * Resolves the resized CDN copy of an artwork URL. Callers fall back to the
