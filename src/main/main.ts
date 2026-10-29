@@ -125,7 +125,6 @@ export const loadState = async () => {
   void syncRetroAchievementsEmulatorCredentials();
 
   await HydraApi.setupApi().then(async () => {
-    // Epic is optional; a failure here must not skip the download loop below.
     try {
       await initializeEpicIntegration();
     } catch (err) {
