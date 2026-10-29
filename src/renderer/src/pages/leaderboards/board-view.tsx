@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@renderer/components";
+import { useFeature } from "@renderer/hooks";
 import {
   buildLeaderboardRows,
   type LeaderboardEntry,
@@ -18,6 +19,11 @@ import {
 } from "./global-leaderboard";
 import { RankDelta, StreakFlame } from "./leaderboard-bits";
 import { LeaderboardPodium, type StreakStatus } from "./leaderboard-podium";
+import {
+  ReportCheaterButton,
+  ReportCheaterModal,
+  type ReportBoardContext,
+} from "./report-cheater";
 
 export interface BoardViewProps {
   leaderboard: GlobalLeaderboard;
@@ -31,6 +37,8 @@ export interface BoardViewProps {
   onSelect?: (entry: LeaderboardEntry) => void;
   renderTooltip?: (entry: LeaderboardEntry) => React.ReactNode;
   onVisibleChange?: (visible: number) => void;
+  // Shows "report as cheater" on other users' entries when signed in.
+  reportContext?: ReportBoardContext | null;
 }
 
 export function BoardView({
@@ -45,9 +53,22 @@ export function BoardView({
   onSelect,
   renderTooltip,
   onVisibleChange,
+  reportContext = null,
 }: Readonly<BoardViewProps>) {
   const { t } = useTranslation("leaderboards");
   const [visible, setVisible] = useState(GLOBAL_LEADERBOARD_PAGE_SIZE);
+  const [reported, setReported] = useState<LeaderboardEntry | null>(null);
+  const { isFeatureEnabled, Feature } = useFeature();
+  // Behind a flag until the API accepts the "cheating" reason
+  // (hydralauncher/hydra-api#881).
+  const canReport = Boolean(
+    reportContext && viewerUser && isFeatureEnabled(Feature.LeaderboardReports)
+  );
+
+  const renderReport = (entry: LeaderboardEntry) =>
+    canReport && entry.user.id !== viewerUser?.id ? (
+      <ReportCheaterButton entry={entry} onReport={setReported} />
+    ) : null;
 
   useEffect(() => {
     setVisible(GLOBAL_LEADERBOARD_PAGE_SIZE);
@@ -93,6 +114,7 @@ export function BoardView({
         getStreak={getStreak}
         selectedId={selectedId}
         onSelect={onSelect}
+        renderAction={renderReport}
       />
 
       {rows.length > 0 && (
@@ -115,6 +137,8 @@ export function BoardView({
                 }
                 valueMuted={streak === "ended"}
                 tooltip={renderTooltip?.(row.entry)}
+                action={renderReport(row.entry)}
+                reserveAction={canReport}
               />
             );
           })}
@@ -132,6 +156,15 @@ export function BoardView({
             {t("show_more")}
           </Button>
         </div>
+      )}
+
+      {reportContext && (
+        <ReportCheaterModal
+          entry={reported}
+          context={reportContext}
+          formatValue={formatValue}
+          onClose={() => setReported(null)}
+        />
       )}
     </>
   );

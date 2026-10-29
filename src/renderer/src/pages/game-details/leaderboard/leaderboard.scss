@@ -340,8 +340,17 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     background-position: center;
   }
 
+  // A lighter shade instead of a filter, which would repaint animated
+  // banners on every frame.
   &--banner:hover {
-    filter: brightness(1.12);
+    background-image:
+      linear-gradient(
+        90deg,
+        rgba(13, 13, 13, 0.86) 0%,
+        rgba(13, 13, 13, 0.6) 55%,
+        rgba(13, 13, 13, 0.28) 100%
+      ),
+      var(--leaderboard-row-banner);
   }
 
   &#{&}--banner,
@@ -356,8 +365,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   }
 
   &--banner &__you {
-    background-color: rgba(13, 13, 13, 0.55);
-    backdrop-filter: blur(10px);
+    background-color: rgba(13, 13, 13, 0.75);
     color: globals.$muted-color;
   }
 
@@ -365,6 +373,30 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__line {
+    position: relative;
+  }
+
+  &--with-action {
+    padding-right: calc(globals.$spacing-unit * 4.5);
+  }
+
+  // Quiet until the row is hovered or focused.
+  &__action {
+    position: absolute;
+    top: 50%;
+    right: globals.$spacing-unit;
+    display: flex;
+    opacity: 0;
+    transform: translateY(-50%);
+    transition: opacity 0.2s ease;
+  }
+
+  &__line:hover &__action,
+  &__line:focus-within &__action {
+    opacity: 1;
   }
 
   &__gap {
@@ -450,16 +482,43 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     position: relative;
   }
 
+  // Keyboard focus shows the tooltip above the row; the mouse moves it
+  // along the pointer (leaderboard-row.tsx sets the fixed position and the
+  // gap to the pointer in --leaderboard-tooltip-offset).
   &__tooltip {
+    --leaderboard-tooltip-offset: 12px;
+
     position: absolute;
     z-index: 5;
     right: calc(globals.$spacing-unit * 1.5);
     bottom: calc(100% + globals.$spacing-unit);
     display: none;
     pointer-events: none;
+
+    &--pointer {
+      position: fixed;
+      right: auto;
+      bottom: auto;
+      display: block;
+      transform: translateY(calc(-100% - var(--leaderboard-tooltip-offset)));
+    }
+
+    &--pointer#{&}--flip-x {
+      transform: translate(
+        -100%,
+        calc(-100% - var(--leaderboard-tooltip-offset))
+      );
+    }
+
+    &--pointer#{&}--flip-y {
+      transform: translateY(var(--leaderboard-tooltip-offset));
+    }
+
+    &--pointer#{&}--flip-x#{&}--flip-y {
+      transform: translate(-100%, var(--leaderboard-tooltip-offset));
+    }
   }
 
-  &__item--tooltip:hover &__tooltip,
   &__item--tooltip:focus-within &__tooltip {
     display: block;
   }
