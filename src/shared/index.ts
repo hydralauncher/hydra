@@ -60,6 +60,7 @@ export * from "./classics-emulator-games";
 export * from "./tracker-list";
 export * from "./souvenirs";
 export * from "./souvenir-sync";
+export * from "./achievement-list";
 
 export class UserNotLoggedInError extends Error {
   constructor() {
