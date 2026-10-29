@@ -181,7 +181,11 @@ class ScreenshotUploadWorker {
       HydraApi.onAuthContextChanged(() => this.handleAuthContextChange());
     }
     this.lastOwnerId = getCurrentOwnerId();
-    void this.resetInterruptedUploads().then(() => this.trigger());
+    void this.resetInterruptedUploads()
+      .catch((error) => {
+        logger.error("Could not reset interrupted screenshot uploads", error);
+      })
+      .finally(() => void this.trigger());
   }
 
   public onMissingFile(handler: (clientId: string) => Promise<boolean>) {
@@ -275,7 +279,9 @@ class ScreenshotUploadWorker {
           void this.trigger();
           return;
         }
-        void this.scheduleNextRun();
+        void this.scheduleNextRun().catch((error) => {
+          logger.error("Could not schedule the next screenshot upload", error);
+        });
       });
 
     return this.running;
