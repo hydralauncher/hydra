@@ -39,7 +39,7 @@ export const SCREENSHOT_COMMENT_REPORT_REASONS: ScreenshotCommentReportReason[] 
 export const SCREENSHOT_NOTIFICATION_TYPES = [
   "SCREENSHOT_LIKE",
   "SCREENSHOT_COMMENT",
-  "SCREENSHOT_BLOCKED",
+  "SCREENSHOT_COMMENT_UPVOTE",
 ] as const;
 
 export type ScreenshotNotificationType =

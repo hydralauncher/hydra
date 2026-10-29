@@ -7,7 +7,6 @@ import {
   HeartFillIcon,
   CommentDiscussionIcon,
   GiftIcon,
-  BlockedIcon,
 } from "@primer/octicons-react";
 import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
 import { useTranslation } from "react-i18next";
@@ -297,11 +296,13 @@ export function NotificationItem({
           }),
           showActions: false,
         };
-      case "SCREENSHOT_BLOCKED":
+      case "SCREENSHOT_COMMENT_UPVOTE":
         return {
-          title: t("screenshot_blocked_title"),
-          description: t("screenshot_blocked_description", {
+          title: t("screenshot_comment_upvote_title", {
             gameTitle: screenshotGameTitle,
+          }),
+          description: t("screenshot_comment_upvote_description", {
+            count: Number(notification.variables.upvoteCount ?? 1),
           }),
           showActions: false,
         };
@@ -356,6 +357,8 @@ export function NotificationItem({
   const isSouvenirLike = notification.type === "SOUVENIR_LIKE";
   const isScreenshotLike = notification.type === "SCREENSHOT_LIKE";
   const isScreenshotComment = notification.type === "SCREENSHOT_COMMENT";
+  const isScreenshotCommentUpvote =
+    notification.type === "SCREENSHOT_COMMENT_UPVOTE";
 
   const isRetroAchievements =
     notification.type === "RETROACHIEVEMENTS_CREDENTIALS_RESTORED" ||
@@ -369,14 +372,11 @@ export function NotificationItem({
     if (isRetroAchievements) {
       return <img src={retroAchievementsLogo} alt="" />;
     }
-    if (isReviewUpvote || isReviewAnswerUpvote) {
+    if (isReviewUpvote || isReviewAnswerUpvote || isScreenshotCommentUpvote) {
       return <StarFillIcon size={24} />;
     }
     if (isReviewAnswer || isScreenshotComment) {
       return <CommentDiscussionIcon size={24} />;
-    }
-    if (notification.type === "SCREENSHOT_BLOCKED") {
-      return <BlockedIcon size={24} />;
     }
     if (notification.type === "CLOUD_GIFT_RECEIVED") {
       return <GiftIcon size={24} />;
