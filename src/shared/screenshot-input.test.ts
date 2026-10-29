@@ -27,7 +27,7 @@ describe("validateScreenshotHotkey", () => {
     ["default F10", hotkey("F10"), null],
     ["F12 alone", hotkey("F12"), null],
     ["PrintScreen alone", hotkey("PrintScreen"), null],
-    ["numpad key alone", hotkey("Numpad5"), null],
+    ["numpad digit alone", hotkey("Numpad5"), "hotkey_modifier_required"],
     ["Ctrl+Shift+letter", hotkey("KeyP", { ctrl: true, shift: true }), null],
     ["Alt+letter", hotkey("KeyA", { alt: true }), null],
     ["Alt+F4", hotkey("F4", { alt: true }), "hotkey_reserved"],

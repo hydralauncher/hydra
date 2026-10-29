@@ -1515,8 +1515,12 @@ contextBridge.exposeInMainWorld("electron", {
   clipboard: {
     writeText: (text: string) =>
       ipcRenderer.invoke("clipboardWriteText", text) as Promise<void>,
-    writeImage: (imageUrl: string) =>
-      ipcRenderer.invoke("clipboardWriteImage", imageUrl) as Promise<boolean>,
+    writeImage: (ownerId: string, screenshotId: string) =>
+      ipcRenderer.invoke(
+        "clipboardWriteImage",
+        ownerId,
+        screenshotId
+      ) as Promise<boolean>,
   },
 
   /* Misc */

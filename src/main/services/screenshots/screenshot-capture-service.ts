@@ -352,8 +352,6 @@ const grabScreenshot = async (
   }
 
   const ownerId = getSignedInScreenshotOwnerId();
-  playCaptureSound();
-  timer.mark("sound");
 
   const failCapture = (error: unknown) => {
     recordCaptureFailure(target.gameKey, error);
@@ -376,7 +374,8 @@ const grabScreenshot = async (
   }
   timer.mark("frame");
 
-  showCapturedToast(gameTitle, ownerId);
+  playCaptureSound();
+  timer.mark("sound");
 
   let images: EncodedScreenshotImages;
   try {
@@ -399,6 +398,7 @@ const grabScreenshot = async (
       failCapture(error);
       return;
     }
+    showCapturedToast(gameTitle, ownerId);
     const previewPath = await writeScreenshotPreview(images.preview).catch(
       (error) => {
         logger.warn("Failed to write the screenshot preview", error);

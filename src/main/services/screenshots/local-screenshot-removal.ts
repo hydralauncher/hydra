@@ -209,6 +209,9 @@ const UNPUBLISHED_FIELDS: Partial<LocalScreenshot> = {
   uploadProgress: null,
   uploadQuality: null,
   uploadAttempts: 0,
+  uploadGameWaits: 0,
+  uploadModerationWaits: 0,
+  uploadCapacityWaits: 0,
   nextUploadAttemptAt: null,
   uploadedAt: null,
   lastError: null,
@@ -244,6 +247,7 @@ export const forgetPublishedScreenshots = async (screenshotIds: string[]) => {
     (screenshot) =>
       screenshot.screenshotId !== null &&
       ids.has(screenshot.screenshotId) &&
+      isLocalScreenshotVisibleToSignedInOwner(screenshot) &&
       (screenshot.state === "uploaded" || screenshot.state === "deleted")
   );
 

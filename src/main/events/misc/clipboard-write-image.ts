@@ -1,21 +1,30 @@
 import { clipboard, nativeImage, net } from "electron";
 import { registerEvent } from "../register-event";
-import { logger } from "@main/services";
+import { HydraApi, logger } from "@main/services";
+import { buildUserScreenshotPath } from "@shared";
+import type { ProfileScreenshot } from "@types";
 
-const SCREENSHOT_IMAGE_HOST_SUFFIX = ".r2.cloudflarestorage.com";
 const MAX_CLIPBOARD_IMAGE_BYTES = 32 * 1024 * 1024;
 
-const isScreenshotImageUrl = (imageUrl: string) => {
+const isFetchableImageUrl = (imageUrl: string) => {
   try {
     const url = new URL(imageUrl);
-    return (
-      url.protocol === "https:" &&
-      url.port === "" &&
-      url.hostname.endsWith(SCREENSHOT_IMAGE_HOST_SUFFIX)
-    );
+    return url.protocol === "https:" && url.port === "";
   } catch {
     return false;
   }
+};
+
+const resolveScreenshotImageUrl = async (
+  ownerId: string,
+  screenshotId: string
+) => {
+  const screenshot = await HydraApi.get<ProfileScreenshot>(
+    buildUserScreenshotPath(ownerId, screenshotId),
+    undefined,
+    { needsAuth: HydraApi.isLoggedIn() }
+  );
+  return screenshot?.imageUrl ?? null;
 };
 
 const readBoundedBody = async (response: Response) => {
@@ -43,13 +52,17 @@ const readBoundedBody = async (response: Response) => {
 
 const clipboardWriteImage = async (
   _event: Electron.IpcMainInvokeEvent,
-  imageUrl: string
+  ownerId: string,
+  screenshotId: string
 ): Promise<boolean> => {
-  if (typeof imageUrl !== "string" || !isScreenshotImageUrl(imageUrl)) {
+  if (typeof ownerId !== "string" || typeof screenshotId !== "string") {
     return false;
   }
 
   try {
+    const imageUrl = await resolveScreenshotImageUrl(ownerId, screenshotId);
+    if (!imageUrl || !isFetchableImageUrl(imageUrl)) return false;
+
     const response = await net.fetch(imageUrl, { redirect: "error" });
     if (!response.ok) return false;
     if (!response.headers.get("content-type")?.startsWith("image/")) {

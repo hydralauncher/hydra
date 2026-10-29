@@ -9,17 +9,54 @@ type LocalScreenshotChanges =
   | Partial<LocalScreenshot>
   | ((current: LocalScreenshot) => Partial<LocalScreenshot>);
 
+const CHANGE_NOTIFICATION_DELAY_MS = 50;
+
 const listeners = new Set<LocalScreenshotsChangeListener>();
 const pendingWrites = new Map<string, Promise<unknown>>();
 const deletedClientIds = new Set<string>();
 
+let recordsPromise: Promise<Map<string, LocalScreenshot>> | null = null;
+let notificationScheduled = false;
+
+const readAllRecords = async () =>
+  new Map(await screenshotsSublevel.iterator().all());
+
+const loadRecords = () => {
+  if (recordsPromise) return recordsPromise;
+  const loading = readAllRecords().catch((error: unknown) => {
+    recordsPromise = null;
+    throw error;
+  });
+  recordsPromise = loading;
+  return loading;
+};
+
+const cloneAll = (records: Map<string, LocalScreenshot>) =>
+  [...records.values()].map((screenshot) => structuredClone(screenshot));
+
 const sortByCapturedAtDescending = (screenshots: LocalScreenshot[]) =>
   screenshots.toSorted((a, b) => b.capturedAt - a.capturedAt);
 
+const listVisible = async () => {
+  const screenshots = cloneAll(await loadRecords());
+  return sortByCapturedAtDescending(
+    screenshots.filter((screenshot) => screenshot.state !== "deleted")
+  );
+};
+
 const notifyListeners = async () => {
+  notificationScheduled = false;
   if (!listeners.size) return;
-  const screenshots = await LocalScreenshotStore.list();
+  const screenshots = await listVisible();
   for (const listener of listeners) listener(screenshots);
+};
+
+const scheduleNotification = () => {
+  if (notificationScheduled) return;
+  notificationScheduled = true;
+  setTimeout(() => {
+    void notifyListeners().catch(() => undefined);
+  }, CHANGE_NOTIFICATION_DELAY_MS);
 };
 
 const runExclusive = <T>(clientId: string, task: () => Promise<T>) => {
@@ -33,8 +70,10 @@ const runExclusive = <T>(clientId: string, task: () => Promise<T>) => {
   return result;
 };
 
-const readScreenshot = (clientId: string) =>
-  screenshotsSublevel.get(clientId).catch(() => null);
+const readScreenshot = async (clientId: string) => {
+  const screenshot = (await loadRecords()).get(clientId);
+  return screenshot ? structuredClone(screenshot) : null;
+};
 
 export class LocalScreenshotStore {
   public static onChange(listener: LocalScreenshotsChangeListener) {
@@ -44,15 +83,12 @@ export class LocalScreenshotStore {
     };
   }
 
-  public static async list() {
-    const screenshots = await screenshotsSublevel.values().all();
-    return sortByCapturedAtDescending(
-      screenshots.filter((screenshot) => screenshot.state !== "deleted")
-    );
+  public static list() {
+    return listVisible();
   }
 
-  public static listIncludingDeleted() {
-    return screenshotsSublevel.values().all();
+  public static async listIncludingDeleted() {
+    return cloneAll(await loadRecords());
   }
 
   public static async listForGame(shop: GameShop, objectId: string) {
@@ -68,10 +104,12 @@ export class LocalScreenshotStore {
 
   public static async put(screenshot: LocalScreenshot) {
     await runExclusive(screenshot.clientId, async () => {
+      const records = await loadRecords();
       deletedClientIds.delete(screenshot.clientId);
       await screenshotsSublevel.put(screenshot.clientId, screenshot);
+      records.set(screenshot.clientId, structuredClone(screenshot));
     });
-    await notifyListeners();
+    scheduleNotification();
     return screenshot;
   }
 
@@ -82,35 +120,44 @@ export class LocalScreenshotStore {
     const updated = await runExclusive(clientId, async () => {
       if (deletedClientIds.has(clientId)) return null;
 
-      const current = await readScreenshot(clientId);
+      const records = await loadRecords();
+      const current = records.get(clientId);
       if (!current) return null;
 
-      const patch = typeof changes === "function" ? changes(current) : changes;
+      const patch =
+        typeof changes === "function"
+          ? changes(structuredClone(current))
+          : changes;
       const next = { ...current, ...patch, clientId };
       await screenshotsSublevel.put(clientId, next);
+      records.set(clientId, structuredClone(next));
       return next;
     });
 
-    if (updated) await notifyListeners();
+    if (updated) scheduleNotification();
     return updated;
   }
 
   public static async delete(clientId: string) {
     await runExclusive(clientId, async () => {
+      const records = await loadRecords();
       deletedClientIds.add(clientId);
       await screenshotsSublevel.del(clientId);
+      records.delete(clientId);
     });
-    await notifyListeners();
+    scheduleNotification();
   }
 
   public static async findByScreenshotId(screenshotId: string) {
-    const screenshots = await screenshotsSublevel.values().all();
-    return (
-      screenshots.find(
-        (screenshot) =>
-          screenshot.screenshotId === screenshotId ||
-          screenshot.pendingCompleteScreenshotId === screenshotId
-      ) ?? null
-    );
+    const records = await loadRecords();
+    for (const screenshot of records.values()) {
+      if (
+        screenshot.screenshotId === screenshotId ||
+        screenshot.pendingCompleteScreenshotId === screenshotId
+      ) {
+        return structuredClone(screenshot);
+      }
+    }
+    return null;
   }
 }

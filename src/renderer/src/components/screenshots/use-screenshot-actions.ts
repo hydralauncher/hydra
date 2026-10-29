@@ -327,7 +327,8 @@ export function useScreenshotActions({
 
       try {
         const copied = await window.electron.clipboard.writeImage(
-          screenshot.imageUrl
+          screenshot.owner.id,
+          screenshot.id
         );
         if (copied) {
           showSuccessToast(t("image_copied"));

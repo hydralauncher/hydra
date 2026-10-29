@@ -54,18 +54,6 @@ const deletePublishedScreenshot = async (
   }
 };
 
-const deleteSequentially = async (
-  api: MyGameScreenshotsApi,
-  ids: string[],
-  deletedIds: string[]
-): Promise<void> => {
-  const [head, ...tail] = ids;
-  if (head === undefined) return;
-  await deletePublishedScreenshot(api, head);
-  deletedIds.push(head);
-  return deleteSequentially(api, tail, deletedIds);
-};
-
 const deletePublished = async ({ target, api, local }: DeletionContext) => {
   const { shop, objectId } = target;
 
@@ -82,7 +70,10 @@ const deletePublished = async ({ target, api, local }: DeletionContext) => {
   const deletedIds: string[] = [];
 
   try {
-    await deleteSequentially(api, ids, deletedIds);
+    for (const id of ids) {
+      await deletePublishedScreenshot(api, id);
+      deletedIds.push(id);
+    }
   } catch (error) {
     throw new PartialDeletionError(deletedIds.length, error);
   } finally {
