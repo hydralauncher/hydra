@@ -793,30 +793,26 @@ export function ScreenshotCommentsPanel({
       if (!bodyHtml) return false;
 
       if (editingComment) {
-        if (bodyHtml !== editingComment.bodyHtml) {
-          const editVersion =
-            (editVersionsRef.current.get(editingComment.id) ?? 0) + 1;
-          editVersionsRef.current.set(editingComment.id, editVersion);
-          const confirmed = confirmedEditsRef.current.get(
-            editingComment.id
-          ) ?? {
-            bodyHtml: editingComment.bodyHtml,
-            editedAt: editingComment.editedAt,
+        const target =
+          commentsRef.current.find(
+            (comment) => comment.id === editingComment.id
+          ) ?? editingComment;
+        if (bodyHtml !== target.bodyHtml) {
+          const editVersion = (editVersionsRef.current.get(target.id) ?? 0) + 1;
+          editVersionsRef.current.set(target.id, editVersion);
+          const confirmed = confirmedEditsRef.current.get(target.id) ?? {
+            bodyHtml: target.bodyHtml,
+            editedAt: target.editedAt,
             version: 0,
             inFlight: 0,
           };
           confirmed.inFlight += 1;
-          confirmedEditsRef.current.set(editingComment.id, confirmed);
-          replaceComment(editingComment.id, {
+          confirmedEditsRef.current.set(target.id, confirmed);
+          replaceComment(target.id, {
             bodyHtml,
             editedAt: Date.now(),
           });
-          void persistCommentEdit(
-            editingComment,
-            bodyHtml,
-            editVersion,
-            confirmed
-          );
+          void persistCommentEdit(target, bodyHtml, editVersion, confirmed);
         }
         setEditingComment(null);
         return true;
