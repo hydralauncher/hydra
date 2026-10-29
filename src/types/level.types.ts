@@ -144,6 +144,10 @@ export interface Download {
   installerPath?: string;
   hasInstaller?: boolean;
   sourceArchiveName?: string;
+  // Archives Hydra started extracting in place, kept until the whole download
+  // is extracted. Only these are resumed, since a progress file next to an
+  // archive may have come with the download.
+  inPlaceArchives?: string[];
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];
