@@ -2009,6 +2009,7 @@ export class DownloadManager {
       const batch = this.jsBatch;
       const downloader = this.jsDownloader;
       if (!(downloader instanceof JsHttpDownloader)) break;
+      if (batch.provider === "hoster") this.skipCompletedHosterParts(batch);
       const entry = batch.entries[batch.currentIndex];
       if (!entry) break;
       if (!(await this.runJsBatchEntry(batch, downloader, entry))) break;
@@ -3208,14 +3209,20 @@ export class DownloadManager {
       }
       return file;
     });
-    // The last part still runs, so the downloader reports the batch as complete.
-    while (batchState.currentIndex < batchState.entries.length - 1) {
-      const file = download.files[batchState.currentIndex];
-      if (!file.completed) break;
-      batchState.completedBytes += file.size;
-      batchState.currentIndex++;
-    }
+    this.skipCompletedHosterParts(batchState);
     batchState.totalBytes = this.estimateHosterPartsBytes(batchState);
+  }
+
+  /** Finished parts are skipped before their links are resolved, so expired links cannot stop a retry. */
+  private static skipCompletedHosterParts(batch: JsBatchState) {
+    const files = batch.hosterDownload?.files;
+    // The last part still runs, so the downloader reports the batch as complete.
+    while (batch.currentIndex < batch.entries.length - 1) {
+      const file = files?.[batch.currentIndex];
+      if (!file?.completed) break;
+      batch.completedBytes += file.size;
+      batch.currentIndex++;
+    }
   }
 
   private static async startBatchDownload(
