@@ -123,6 +123,23 @@ const getFocusAfterDeleteId = (
   return resolveFocusTargetNodeId(leftTarget);
 };
 
+const getFocusAfterViewerLocalDeleteId = (
+  items: MyScreenshotItem[],
+  screenshot: LocalScreenshot,
+  leftTarget: FocusOverrideTarget
+) => {
+  const index = items.findIndex(
+    (item) =>
+      item.kind === "local" && item.screenshot.clientId === screenshot.clientId
+  );
+  if (index !== -1) return getFocusAfterDeleteId(items, index, leftTarget);
+
+  const lastVisible = items.at(-1);
+  if (lastVisible) return getGameMyScreenshotItemId(lastVisible.id);
+
+  return resolveFocusTargetNodeId(leftTarget);
+};
+
 function MyScreenshotsGrid({
   items,
   local,
@@ -377,15 +394,7 @@ export function GameMyScreenshots({
     openUploaded: open,
     closeUploaded: close,
     getFocusAfterLocalDeleteId: (screenshot) =>
-      getFocusAfterDeleteId(
-        items,
-        items.findIndex(
-          (item) =>
-            item.kind === "local" &&
-            item.screenshot.clientId === screenshot.clientId
-        ),
-        leftTarget
-      ),
+      getFocusAfterViewerLocalDeleteId(items, screenshot, leftTarget),
   });
   const hasWaitedForPublished = useHasWaited(
     `${shop}:${objectId}`,
