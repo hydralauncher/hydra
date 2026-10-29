@@ -56,6 +56,20 @@ const gameSessionIds = new Map<string, string>();
 let captureInProgress = false;
 let pendingSaves: Promise<void> = Promise.resolve();
 
+const writeScreenshotFile = async (filePath: string, data: Buffer) => {
+  try {
+    await fs.promises.writeFile(filePath, data);
+  } catch (error) {
+    await fs.promises.rm(filePath, { force: true }).catch((removeError) => {
+      logger.warn("Failed to remove a partially written screenshot", {
+        filePath,
+        error: removeError,
+      });
+    });
+    throw error;
+  }
+};
+
 const resolveAvailableFilePath = async (
   screenshotsRoot: string,
   gameTitle: string,
@@ -378,7 +392,7 @@ const grabScreenshot = async (
     try {
       filePath = await resolveCaptureFilePath(gameTitle, capturedAt);
       await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-      await fs.promises.writeFile(filePath, images.jpeg);
+      await writeScreenshotFile(filePath, images.jpeg);
     } catch (error) {
       failCapture(error);
       return;

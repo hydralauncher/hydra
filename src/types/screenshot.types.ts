@@ -218,6 +218,7 @@ export type ScreenshotInputHint =
   | "gamepad_unavailable"
   | "hotkey_unavailable"
   | "hotkey_unavailable_wayland"
+  | "hotkey_portal_unsupported_key"
   | "hotkey_xwayland_only";
 
 export interface ScreenshotInputStatus {

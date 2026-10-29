@@ -176,7 +176,9 @@ class ScreenshotUploadWorker {
       throw new Error("screenshot_owner_mismatch");
     }
     if (isActiveUploadState(screenshot.state)) return screenshot;
-    if (screenshot.state === "uploaded") return screenshot;
+    if (screenshot.state === "uploaded" || screenshot.state === "deleted") {
+      return screenshot;
+    }
 
     this.gameWaits.delete(clientId);
     this.moderationWaits.delete(clientId);
@@ -373,14 +375,23 @@ class ScreenshotUploadWorker {
       emitProgress({ clientId, state: "uploading", progress });
     };
 
-    await LocalScreenshotStore.update(clientId, {
-      state: "uploading",
-      uploadAttempts: attempt,
-      uploadProgress: 0,
-      uploadQuality: quality,
-      uploadClientId,
-      lastError: null,
-    });
+    const claimed = await LocalScreenshotStore.update(clientId, (current) =>
+      current.state === "queued"
+        ? {
+            state: "uploading",
+            uploadAttempts: attempt,
+            uploadProgress: 0,
+            uploadQuality: quality,
+            uploadClientId,
+            lastError: null,
+          }
+        : {}
+    );
+    if (claimed?.state !== "uploading") {
+      if (this.activeUpload?.controller === controller)
+        this.activeUpload = null;
+      return;
+    }
     reportProgress(0, true);
 
     try {
