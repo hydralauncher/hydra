@@ -8,6 +8,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import cn from "classnames";
+import { isEqual } from "lodash-es";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -100,13 +101,13 @@ type ScreenshotPreferenceUpdate = Pick<
 
 function withoutPreferenceKeys(
   overrides: ScreenshotPreferenceUpdate,
-  failed: ScreenshotPreferenceUpdate
+  shouldDrop: (key: string, value: unknown) => boolean
 ): ScreenshotPreferenceUpdate {
-  const failedKeys = new Set(Object.keys(failed));
+  const entries = Object.entries(overrides);
+  const kept = entries.filter(([key, value]) => !shouldDrop(key, value));
+  if (kept.length === entries.length) return overrides;
 
-  return Object.fromEntries(
-    Object.entries(overrides).filter(([key]) => !failedKeys.has(key))
-  ) as ScreenshotPreferenceUpdate;
+  return Object.fromEntries(kept) as ScreenshotPreferenceUpdate;
 }
 
 export function buildRowNavigation(
@@ -416,7 +417,11 @@ export function ScreenshotSettingsSection({
   const settingsDisabled = !preferences.enabled;
 
   useEffect(() => {
-    setOverrides({});
+    setOverrides((current) =>
+      withoutPreferenceKeys(current, (key, value) =>
+        isEqual(value, userPreferences?.[key as keyof UserPreferences])
+      )
+    );
   }, [userPreferences]);
 
   const refreshFolderPath = useCallback(async () => {
@@ -441,7 +446,9 @@ export function ScreenshotSettingsSection({
         await globalThis.window.electron.updateUserPreferences(values);
       } catch (error) {
         logger.error("Failed to save screenshot preferences", error);
-        setOverrides((current) => withoutPreferenceKeys(current, values));
+        setOverrides((current) =>
+          withoutPreferenceKeys(current, (key) => Object.hasOwn(values, key))
+        );
         showErrorToast(t("screenshots_settings_save_failed"), {
           fallbackVisual: "settings",
         });
