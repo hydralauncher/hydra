@@ -1,6 +1,6 @@
 import cn from "classnames";
 import { useMemo } from "react";
-import { sanitizeHtml, toRichTextHtml } from "@shared";
+import { sanitizeCommentHtml, toRichTextHtml } from "@shared";
 
 interface ScreenshotCommentBodyProps {
   bodyHtml: string;
@@ -12,7 +12,7 @@ export function ScreenshotCommentBody({
   className,
 }: Readonly<ScreenshotCommentBodyProps>) {
   const safeHtml = useMemo(
-    () => sanitizeHtml(toRichTextHtml(bodyHtml)),
+    () => sanitizeCommentHtml(toRichTextHtml(bodyHtml)),
     [bodyHtml]
   );
 
