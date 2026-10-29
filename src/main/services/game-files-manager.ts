@@ -313,7 +313,7 @@ export class GameFilesManager {
       const filesToExtract = archives.filter(
         (file) =>
           !extractedFiles.has(file) &&
-          (/part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file))
+          (/part0*1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file))
       );
 
       if (filesToExtract.length === 0) continue;

@@ -38,6 +38,7 @@ import {
   FuckingFastApi,
   VikingFileApi,
   RootzApi,
+  FileKeeperApi,
 } from "../hosters";
 import { TorrentService } from "../torrent-service";
 import {
@@ -83,6 +84,10 @@ import {
   setDownloadLayoutQueues,
 } from "../download-layout-state";
 import { shouldFinalizeDownload } from "./download-completion";
+import {
+  estimateMultipartTotalBytes,
+  getMultipartFolderName,
+} from "./download-parts";
 import { describeErrorCause } from "@main/helpers/download-error-handler";
 import {
   DISK_SPACE_CHECK_INTERVAL_MS,
@@ -139,11 +144,14 @@ interface JsBatchEntry {
   fileIndex?: number;
   sourcePath?: string;
   chunks?: number;
+  headers?: Record<string, string>;
 }
 
 interface JsBatchState {
   generation?: number;
-  provider: "allDebrid" | "torBox" | "realDebrid";
+  provider: "allDebrid" | "torBox" | "realDebrid" | "hoster";
+  /** Resolves each hoster part with the single-link downloader options. */
+  hosterDownload?: Download;
   downloadId: string;
   savePath: string;
   entries: JsBatchEntry[];
@@ -578,7 +586,22 @@ export class DownloadManager {
           status.status === "complete";
 
         batchFilesTotal = batch.entries.length;
-        if (batch.provider === "torBox" || batch.provider === "realDebrid") {
+        if (batch.provider === "hoster") {
+          const activeEntry = batch.entries[batch.activeIndex];
+          if (
+            activeEntry &&
+            batch.activeIndex === batch.currentIndex &&
+            status.fileSize > 0
+          ) {
+            activeEntry.size = status.fileSize;
+          }
+          batch.totalBytes = this.estimateHosterPartsBytes(batch);
+        }
+        if (
+          batch.provider === "torBox" ||
+          batch.provider === "realDebrid" ||
+          batch.provider === "hoster"
+        ) {
           files = batch.entries.map((entry, index) => {
             const previous = download.files?.find(
               (file) => file.index === (entry.fileId ?? entry.fileIndex)
@@ -1681,6 +1704,8 @@ export class DownloadManager {
         return this.getVikingFileDownloadOptions(download, resumingFilename);
       case Downloader.Rootz:
         return this.getRootzDownloadOptions(download, resumingFilename);
+      case Downloader.FileKeeper:
+        return this.getFileKeeperDownloadOptions(download, resumingFilename);
       case Downloader.ArchiveOrg:
         return this.getArchiveOrgDownloadOptions(download, resumingFilename);
       default:
@@ -1693,6 +1718,9 @@ export class DownloadManager {
     entry: JsBatchEntry,
     reusePreparedLink = false
   ): Promise<string | undefined> {
+    if (batch.provider === "hoster") {
+      return this.resolveHosterPartUrl(batch, entry, reusePreparedLink);
+    }
     this.assertSafeBatchPath(batch.savePath, entry.filename);
     const url = entry.url;
     if (batch.provider === "torBox") {
@@ -1735,11 +1763,13 @@ export class DownloadManager {
   ): JsHttpDownloaderOptions {
     const torBoxParallel = batch.provider === "torBox" && !entry.isZip;
     const resourceId = this.getBatchResourceId(batch, entry);
+    const filePath = path.join(batch.savePath, entry.filename);
     const options: JsHttpDownloaderOptions = {
       url,
       savePath: batch.savePath,
+      headers: entry.headers,
       allowParallelRanges:
-        batch.provider === "allDebrid"
+        batch.provider === "allDebrid" || batch.provider === "hoster"
           ? undefined
           : !entry.isZip &&
             (batch.provider === "torBox" ||
@@ -1760,15 +1790,18 @@ export class DownloadManager {
         ? TORBOX_MAX_PARALLEL_RANGES
         : undefined,
       preserveFilename: true,
+      // New hoster parts record their source before writing; legacy partials stay unidentified.
       requireResourceIdentity:
-        batch.provider === "realDebrid" &&
-        (entry.isZip === true ||
-          readResourceIdentity(path.join(batch.savePath, entry.filename)) !==
-            null),
+        (batch.provider === "realDebrid" &&
+          (entry.isZip === true || readResourceIdentity(filePath) !== null)) ||
+        (batch.provider === "hoster" &&
+          (!fs.existsSync(filePath) ||
+            readResourceIdentity(filePath) !== null)),
       resourceId,
       beforeComplete:
-        batch.provider === "realDebrid"
-          ? (filePath) => saveCompletedResourceIdentity(filePath, resourceId)
+        batch.provider === "realDebrid" || batch.provider === "hoster"
+          ? (completedPath) =>
+              saveCompletedResourceIdentity(completedPath, resourceId)
           : undefined,
       expectedSize:
         (batch.provider === "torBox" || batch.provider === "realDebrid") &&
@@ -1805,6 +1838,13 @@ export class DownloadManager {
     entry: JsBatchEntry,
     options: JsHttpDownloaderOptions
   ) {
+    if (batch.provider === "hoster") {
+      return async () => {
+        const link = await this.resolveHosterPartUrl(batch, entry);
+        options.headers = entry.headers;
+        return link;
+      };
+    }
     const { torrentId } = batch;
     const { fileId } = entry;
     if (
@@ -1866,6 +1906,13 @@ export class DownloadManager {
     entry: JsBatchEntry,
     status: JsHttpDownloaderStatus
   ): void {
+    if (batch.provider === "hoster") {
+      entry.size = status.bytesDownloaded;
+      batch.completedBytes += status.bytesDownloaded;
+      batch.currentIndex += 1;
+      batch.totalBytes = this.estimateHosterPartsBytes(batch);
+      return;
+    }
     const expectedSize = entry.size ?? 0;
     if (entry.isZip && expectedSize !== status.bytesDownloaded) {
       batch.totalBytes += status.bytesDownloaded - expectedSize;
@@ -2322,6 +2369,23 @@ export class DownloadManager {
     resumingFilename?: string
   ) {
     const downloadUrl = await RootzApi.getDownloadUrl(download.uri);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
+  private static async getFileKeeperDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadUrl = await FileKeeperApi.getDownloadUrl(download.uri);
     const filename = this.resolveFilename(
       resumingFilename,
       download.uri,
@@ -2940,27 +3004,220 @@ export class DownloadManager {
     }
   }
 
+  private static estimateHosterPartsBytes(batch: JsBatchState): number {
+    return estimateMultipartTotalBytes(
+      batch.entries.map((entry) => entry.size),
+      batch.hosterDownload?.fileSize ?? null
+    );
+  }
+
+  private static async resolveHosterPartUrl(
+    batch: JsBatchState,
+    entry: JsBatchEntry,
+    reusePreparedLink = false
+  ): Promise<string> {
+    const prepared = entry.preparedLink;
+    entry.preparedLink = undefined;
+    const age = prepared ? Date.now() - prepared.resolvedAt : Infinity;
+    if (
+      !reusePreparedLink ||
+      !prepared ||
+      age < 0 ||
+      age >= this.PREPARED_JS_DOWNLOAD_TTL_MS
+    ) {
+      const options = await this.getJsDownloadOptions({
+        ...batch.hosterDownload!,
+        uri: entry.url!,
+        folderName: null,
+      });
+      if (!options) throw new Error("The download link is unavailable.");
+      entry.headers = options.headers;
+      this.assignHosterPartFilename(batch, entry, options.filename);
+      return options.url;
+    }
+    this.assignHosterPartFilename(batch, entry, undefined);
+    return prepared.url;
+  }
+
+  /** Parts without a file name in their link take the resolved name. */
+  private static assignHosterPartFilename(
+    batch: JsBatchState,
+    entry: JsBatchEntry,
+    resolvedFilename: string | undefined
+  ) {
+    if (!entry.filename) {
+      if (!resolvedFilename) {
+        throw new Error("A download part has no file name.");
+      }
+      entry.filename = `${batch.rootFolderName}/${this.sanitizeFilename(resolvedFilename)}`;
+      this.assertUniqueHosterPartFilenames(batch.entries);
+    }
+    this.assertSafeBatchPath(batch.savePath, entry.filename);
+  }
+
+  private static assertUniqueHosterPartFilenames(entries: JsBatchEntry[]) {
+    const filenames = entries
+      .map((entry) => entry.filename.toLowerCase())
+      .filter(Boolean);
+    if (new Set(filenames).size !== filenames.length) {
+      throw new Error("Two download parts have the same file name.");
+    }
+  }
+
+  private static async prepareHosterPartsBatch(
+    download: Download,
+    downloadId: string,
+    preparedOptions: JsDownloadOptions | null
+  ): Promise<JsBatchState> {
+    const parts = download.parts!;
+    const savedPaths = new Map(
+      download.files?.map((file) => [file.index, file.path])
+    );
+    const filenameHints = parts.map((uri) => this.extractFilename(uri));
+    let firstPartOptions = preparedOptions;
+    let rootFolderName = download.folderName;
+    if (!rootFolderName) {
+      if (!filenameHints[0] && !firstPartOptions) {
+        firstPartOptions = await this.getJsDownloadOptions({
+          ...download,
+          folderName: null,
+        });
+      }
+      const firstFilename = filenameHints[0] ?? firstPartOptions?.filename;
+      if (!firstFilename) {
+        throw new Error("The first download part has no file name.");
+      }
+      rootFolderName = this.sanitizeFilename(
+        getMultipartFolderName(firstFilename)
+      );
+    }
+
+    const entries: JsBatchEntry[] = parts.map((uri, index) => {
+      const hint = filenameHints[index];
+      return {
+        url: uri,
+        filename:
+          savedPaths.get(index) ||
+          (hint ? `${rootFolderName}/${this.sanitizeFilename(hint)}` : ""),
+        fileIndex: index,
+        resourceId: uri,
+      };
+    });
+    if (firstPartOptions) {
+      entries[0].preparedLink = {
+        url: firstPartOptions.url,
+        resolvedAt: Date.now(),
+      };
+      entries[0].headers = firstPartOptions.headers;
+      if (!entries[0].filename && firstPartOptions.filename) {
+        entries[0].filename = `${rootFolderName}/${this.sanitizeFilename(firstPartOptions.filename)}`;
+      }
+    }
+    this.assertUniqueHosterPartFilenames(entries);
+
+    const batchState: JsBatchState = {
+      provider: "hoster",
+      hosterDownload: download,
+      downloadId,
+      savePath: download.downloadPath,
+      entries,
+      sourceUri: download.uri,
+      rootFolderName,
+      currentIndex: 0,
+      activeIndex: -1,
+      completedBytes: 0,
+      totalBytes: 0,
+      lastSpeedUpdate: Date.now(),
+      bytesAtLastSpeedUpdate: null,
+      batchSpeed: 0,
+    };
+    this.restoreHosterPartsProgress(download, batchState);
+    return batchState;
+  }
+
+  /**
+   * Saved files decide progress. A part counts as done only with a completion
+   * receipt for its own link, so retries skip it without asking the hoster.
+   */
+  private static restoreHosterPartsProgress(
+    download: Download,
+    batchState: JsBatchState
+  ) {
+    const previousSizes = new Map(
+      download.files?.map((file) => [file.index, file.size])
+    );
+    download.files = batchState.entries.map((entry, index) => {
+      const file: DownloadFile = {
+        index,
+        path: entry.filename,
+        size: previousSizes.get(index) ?? 0,
+        bytesDownloaded: 0,
+        completed: false,
+      };
+      if (file.size > 0) entry.size = file.size;
+      if (!entry.filename) return file;
+
+      this.assertSafeBatchPath(batchState.savePath, entry.filename);
+      const filePath = path.join(batchState.savePath, entry.filename);
+      if (!fs.existsSync(filePath)) return file;
+
+      file.bytesDownloaded = getRangeDownloadedBytes(filePath);
+      const identity = getResourceIdentityState(
+        filePath,
+        this.getBatchResourceId(batchState, entry)
+      );
+      if (identity === "changed") {
+        throw new Error(
+          "The completed download file changed. Keeping the saved file."
+        );
+      }
+      if (identity === "complete") {
+        file.size = file.bytesDownloaded;
+        file.completed = true;
+        entry.size = file.size;
+      }
+      return file;
+    });
+    // The last part still runs, so the downloader reports the batch as complete.
+    while (batchState.currentIndex < batchState.entries.length - 1) {
+      const file = download.files[batchState.currentIndex];
+      if (!file.completed) break;
+      batchState.completedBytes += file.size;
+      batchState.currentIndex++;
+    }
+    batchState.totalBytes = this.estimateHosterPartsBytes(batchState);
+  }
+
   private static async startBatchDownload(
     download: Download,
     downloadId: string,
     myGeneration: number,
-    signal: AbortSignal
+    signal: AbortSignal,
+    preparedOptions: JsDownloadOptions | null = null
   ) {
     let batchState: JsBatchState;
-    switch (download.downloader) {
-      case Downloader.TorBox:
-        batchState = await this.prepareTorBoxBatch(download, downloadId);
-        break;
-      case Downloader.AllDebrid:
-        batchState = await this.prepareAllDebridBatch(download, downloadId);
-        break;
-      default:
-        batchState = await this.prepareRealDebridBatch(
-          download,
-          downloadId,
-          myGeneration,
-          signal
-        );
+    if (download.parts) {
+      batchState = await this.prepareHosterPartsBatch(
+        download,
+        downloadId,
+        preparedOptions
+      );
+    } else {
+      switch (download.downloader) {
+        case Downloader.TorBox:
+          batchState = await this.prepareTorBoxBatch(download, downloadId);
+          break;
+        case Downloader.AllDebrid:
+          batchState = await this.prepareAllDebridBatch(download, downloadId);
+          break;
+        default:
+          batchState = await this.prepareRealDebridBatch(
+            download,
+            downloadId,
+            myGeneration,
+            signal
+          );
+      }
     }
     if (!this.isCurrentStart(downloadId, myGeneration, signal)) {
       logger.log(
@@ -2969,13 +3226,17 @@ export class DownloadManager {
       return;
     }
 
-    if (batchState.provider === "torBox") {
+    if (batchState.provider === "torBox" || batchState.provider === "hoster") {
       const record = await downloadsSublevel.get(downloadId);
       if (!record || signal.aborted || this.startGeneration !== myGeneration)
         return;
       await downloadsSublevel.put(downloadId, {
         ...record,
         files: download.files,
+        folderName:
+          batchState.provider === "hoster"
+            ? (batchState.rootFolderName ?? null)
+            : record.folderName,
       });
       if (signal.aborted || this.startGeneration !== myGeneration) return;
     }
@@ -3113,6 +3374,7 @@ export class DownloadManager {
     this.usingJsDownloader = true;
     try {
       const isBatch =
+        Boolean(download.parts) ||
         download.downloader === Downloader.AllDebrid ||
         download.downloader === Downloader.TorBox ||
         (download.downloader === Downloader.RealDebrid &&
@@ -3122,7 +3384,8 @@ export class DownloadManager {
           download,
           downloadId,
           myGeneration,
-          signal
+          signal,
+          preparedOptions
         );
       } else {
         await this.startSingleJsDownload(

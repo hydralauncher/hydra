@@ -6,6 +6,8 @@ import {
   levelKeys,
 } from "@main/level";
 import { DownloadOrchestrator } from "@main/services/download-orchestrator";
+import { getDownloadParts } from "@main/services/download/download-parts";
+import { type Downloader, MULTIPART_DOWNLOADERS } from "@shared";
 import { canDiscardDownload, type GameShop } from "../../types";
 
 interface PrepareGameEntryParams {
@@ -14,6 +16,18 @@ interface PrepareGameEntryParams {
   objectId: string;
   shop: GameShop;
 }
+
+export const getMultipartDownloadParts = (
+  uri: string,
+  parts: unknown,
+  downloader: Downloader
+): string[] | undefined => {
+  const downloadParts = getDownloadParts(uri, parts);
+  if (downloadParts && !MULTIPART_DOWNLOADERS.has(downloader)) {
+    throw new Error("This downloader does not support multi-part downloads.");
+  }
+  return downloadParts;
+};
 
 export const clearFinishedDownload = async (
   shop: GameShop,
