@@ -716,6 +716,7 @@ export interface AchievementNotificationInfo {
   isRare: boolean;
   isPlatinum: boolean;
   points?: number;
+  variant?: "screenshot";
 }
 
 export type AchievementNotificationRequest = {
@@ -730,6 +731,10 @@ export type AchievementNotificationRequest = {
       type: "combined";
       gameCount: number;
       achievementCount: number;
+    }
+  | {
+      type: "screenshot";
+      achievement: AchievementNotificationInfo;
     }
 );
 

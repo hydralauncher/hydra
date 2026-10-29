@@ -68,6 +68,24 @@ export interface ScreenshotInputNativeStatus {
   gamepadError?: string | null;
   waylandSession: boolean;
 }
+type NativeScreenRect = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
+type NativeWindowBoundsResponse = {
+  frame: NativeScreenRect;
+  client: NativeScreenRect;
+};
+
+type NativeForegroundWindowResponse = {
+  windowHandle?: string;
+  window_handle?: string;
+  processId?: number;
+  process_id?: number;
+};
 
 export type InPlaceExtractionOptions = {
   archivePath: string;
@@ -124,6 +142,14 @@ type HydraNativeModule = {
   probeScreenshotInput: (
     config: ScreenshotInputNativeConfig
   ) => ScreenshotInputNativeStatus;
+  getWindowsForegroundWindow?: () => NativeForegroundWindowResponse | null;
+  getLinuxWindowClientPid?: (windowId: string) => number | null;
+  getKdeFocusedProcessId?: () => number | null;
+  startKdeFocusWatch?: () => void;
+  stopKdeFocusWatch?: () => void;
+  getWindowsWindowBounds?: (
+    windowHandle: string
+  ) => NativeWindowBoundsResponse | null;
   extractArchiveInPlace: (
     options: InPlaceExtractionOptions,
     onProgress: (fraction: number) => void
@@ -489,6 +515,76 @@ export class NativeAddon {
 
   public static probeScreenshotInput(config: ScreenshotInputNativeConfig) {
     return this.load().probeScreenshotInput(config);
+  }
+
+  public static getWindowsForegroundWindow() {
+    if (process.platform !== "win32") return null;
+
+    try {
+      const getForegroundWindow = this.load().getWindowsForegroundWindow;
+      if (!getForegroundWindow) return undefined;
+
+      const response = getForegroundWindow();
+      if (!response) return null;
+
+      const windowHandle = response.windowHandle ?? response.window_handle;
+      const processId = response.processId ?? response.process_id;
+      if (!windowHandle || !processId) return null;
+
+      return { windowHandle, processId };
+    } catch (error) {
+      logger.error("Failed to identify the Windows foreground window", error);
+      return undefined;
+    }
+  }
+
+  public static getWindowsWindowBounds(windowHandle: string) {
+    if (process.platform !== "win32") return null;
+
+    try {
+      return this.load().getWindowsWindowBounds?.(windowHandle) ?? null;
+    } catch (error) {
+      logger.error("Failed to read the Windows window bounds", error);
+      return null;
+    }
+  }
+
+  public static getLinuxWindowClientPid(windowId: string) {
+    if (process.platform !== "linux") return null;
+
+    try {
+      return this.load().getLinuxWindowClientPid?.(windowId) ?? null;
+    } catch (error) {
+      logger.error("Failed to resolve the Linux window client process", error);
+      return null;
+    }
+  }
+
+  public static getKdeFocusedProcessId() {
+    if (process.platform !== "linux") return undefined;
+
+    try {
+      const getFocusedProcessId = this.load().getKdeFocusedProcessId;
+      if (!getFocusedProcessId) return undefined;
+      return getFocusedProcessId() ?? null;
+    } catch (error) {
+      logger.warn("Failed to read the KWin active window", error);
+      return undefined;
+    }
+  }
+
+  public static startKdeFocusWatch() {
+    if (process.platform !== "linux") return;
+
+    try {
+      this.load().startKdeFocusWatch?.();
+    } catch (error) {
+      logger.warn("Failed to start the KWin focus watch", error);
+    }
+  }
+
+  public static stopKdeFocusWatch() {
+    this.nativeModule?.stopKdeFocusWatch?.();
   }
 
   public static getSystemProcessMap(): Promise<SystemProcessMap | null> {

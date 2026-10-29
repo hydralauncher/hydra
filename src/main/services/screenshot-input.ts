@@ -1,3 +1,4 @@
+import { globalShortcut } from "electron";
 import type {
   ScreenshotGamepadButton,
   ScreenshotHotkeyBinding,
@@ -12,6 +13,7 @@ import {
   isSameScreenshotHotkey,
   normalizeScreenshotGamepadCombo,
   normalizeScreenshotHotkey,
+  toScreenshotHotkeyAccelerator,
 } from "@shared";
 
 import {
@@ -51,6 +53,7 @@ const SCREENSHOT_INPUT_BACKENDS = new Set<ScreenshotInputBackend>([
   "xinput",
   "x11-xinput2",
   "evdev",
+  "global-shortcuts-portal",
   "unavailable",
 ]);
 
@@ -125,9 +128,32 @@ export const toScreenshotInputStatus = (
   hint: getScreenshotInputHint(status, settings.gamepadEnabled),
 });
 
+const shouldUsePortalShortcut = (status: ScreenshotInputNativeStatus) =>
+  process.platform === "linux" &&
+  status.waylandSession &&
+  toBackend(status.keyboardBackend) === "unavailable";
+
+const withPortalHotkeyHint = (
+  status: ScreenshotInputStatus,
+  nativeStatus: ScreenshotInputNativeStatus,
+  settings: ScreenshotInputSettings
+): ScreenshotInputStatus =>
+  shouldUsePortalShortcut(nativeStatus) &&
+  !toScreenshotHotkeyAccelerator(settings.hotkey)
+    ? { ...status, hint: "hotkey_portal_unsupported_key" }
+    : status;
+
+const withPortalKeyboard = (
+  status: ScreenshotInputNativeStatus
+): ScreenshotInputNativeStatus => ({
+  ...status,
+  keyboardBackend: "global-shortcuts-portal",
+  keyboardError: undefined,
+});
+
 const isNativeTriggerSource = (
   source: string
-): source is Exclude<ScreenshotTriggerSource, "deeplink"> =>
+): source is "keyboard" | "gamepad" =>
   source === "keyboard" || source === "gamepad";
 
 const isSameStatus = (
@@ -159,6 +185,8 @@ export class ScreenshotInputService {
   private static restartAttempts = 0;
   private static listeningSince: number | null = null;
   private static restartTimer: ReturnType<typeof setTimeout> | null = null;
+  private static portalAccelerator: string | null = null;
+  private static nativeStatus: ScreenshotInputNativeStatus | null = null;
   private static pendingGamesRunningCheck: ReturnType<
     typeof setImmediate
   > | null = null;
@@ -180,7 +208,14 @@ export class ScreenshotInputService {
   }
 
   public static trigger(source: ScreenshotTriggerSource) {
-    if (!this.featureEnabled || !this.settings.enabled) return false;
+    if (!this.featureEnabled || !this.settings.enabled) {
+      logger.debug("Screenshot trigger ignored: input disabled", {
+        source,
+        featureEnabled: this.featureEnabled,
+        settingsEnabled: this.settings.enabled,
+      });
+      return false;
+    }
     if (!hasTrackedGamesRunning()) {
       logger.debug("Screenshot trigger ignored: no tracked game running", {
         source,
@@ -196,6 +231,10 @@ export class ScreenshotInputService {
       lastTriggerAt !== undefined &&
       now - lastTriggerAt < SCREENSHOT_TRIGGER_COOLDOWN_MS
     ) {
+      logger.debug("Screenshot trigger ignored: cooldown", {
+        source,
+        sinceLastTriggerMs: Math.round(now - lastTriggerAt),
+      });
       return false;
     }
     this.lastTriggerAt.set(channel, now);
@@ -241,7 +280,13 @@ export class ScreenshotInputService {
       const probe = NativeAddon.probeScreenshotInput(
         toScreenshotInputNativeConfig(this.settings)
       );
-      this.setStatus(toScreenshotInputStatus(probe, this.settings, false));
+      this.setStatus(
+        withPortalHotkeyHint(
+          toScreenshotInputStatus(probe, this.settings, false),
+          probe,
+          this.settings
+        )
+      );
     } catch (error) {
       logger.error("Failed to probe screenshot input backends", error);
     }
@@ -328,6 +373,14 @@ export class ScreenshotInputService {
     }
 
     if (
+      !isSameScreenshotHotkey(previous.hotkey, this.settings.hotkey) &&
+      this.nativeStatus
+    ) {
+      this.unregisterPortalShortcut();
+      this.applyListeningStatus(this.nativeStatus);
+    }
+
+    if (
       !isSameScreenshotHotkey(previous.hotkey, this.settings.hotkey) ||
       !isSameScreenshotGamepadCombo(
         previous.gamepadCombo,
@@ -353,13 +406,13 @@ export class ScreenshotInputService {
       );
       this.listening = true;
       this.listeningSince = performance.now();
-      const status = toScreenshotInputStatus(nativeStatus, this.settings, true);
+      this.nativeStatus = nativeStatus;
+      const status = this.applyListeningStatus(nativeStatus);
       logger.info("Screenshot input started", {
         ...status,
         keyboardError: nativeStatus.keyboardError ?? null,
         gamepadError: nativeStatus.gamepadError ?? null,
       });
-      this.setStatus(status);
     } catch (error) {
       logger.error("Failed to start screenshot input", error);
       this.listening = false;
@@ -367,9 +420,71 @@ export class ScreenshotInputService {
     }
   }
 
+  private static applyListeningStatus(
+    nativeStatus: ScreenshotInputNativeStatus
+  ) {
+    const effectiveStatus =
+      shouldUsePortalShortcut(nativeStatus) && this.registerPortalShortcut()
+        ? withPortalKeyboard(nativeStatus)
+        : nativeStatus;
+    const status = toScreenshotInputStatus(
+      effectiveStatus,
+      this.settings,
+      true
+    );
+    const nextStatus = withPortalHotkeyHint(
+      status,
+      nativeStatus,
+      this.settings
+    );
+    this.setStatus(nextStatus);
+    return nextStatus;
+  }
+
+  private static registerPortalShortcut() {
+    const accelerator = toScreenshotHotkeyAccelerator(this.settings.hotkey);
+    if (!accelerator) return false;
+    if (this.portalAccelerator === accelerator) return true;
+
+    this.unregisterPortalShortcut();
+    try {
+      const registered = globalShortcut.register(accelerator, () => {
+        if (this.listening) this.trigger("portal");
+      });
+      if (!registered) {
+        logger.warn("Screenshot portal shortcut was not registered", {
+          accelerator,
+        });
+        return false;
+      }
+      this.portalAccelerator = accelerator;
+      return true;
+    } catch (error) {
+      logger.error("Failed to register the screenshot portal shortcut", error);
+      return false;
+    }
+  }
+
+  private static unregisterPortalShortcut() {
+    const accelerator = this.portalAccelerator;
+    if (!accelerator) return;
+    this.portalAccelerator = null;
+
+    try {
+      globalShortcut.unregister(accelerator);
+    } catch (error) {
+      logger.error(
+        "Failed to unregister the screenshot portal shortcut",
+        error
+      );
+    }
+  }
+
   private static stopListening() {
     if (!this.listening) return;
     this.listening = false;
+    this.nativeStatus = null;
+    this.unregisterPortalShortcut();
 
     try {
       NativeAddon.stopScreenshotInput();
@@ -385,13 +500,23 @@ export class ScreenshotInputService {
     event: ScreenshotInputNativeEvent,
     generation: number
   ) {
-    if (!this.listening || generation !== this.sessionGeneration) return;
+    if (!this.listening || generation !== this.sessionGeneration) {
+      logger.debug("Screenshot native event ignored: not listening", {
+        kind: event.kind,
+        source: event.source,
+      });
+      return;
+    }
 
     if (event.kind === "stopped") {
       this.handleBackendStopped(event);
       return;
     }
 
+    logger.debug("Screenshot native trigger", {
+      source: event.source,
+      backend: event.backend,
+    });
     if (isNativeTriggerSource(event.source)) this.trigger(event.source);
   }
 

@@ -29,6 +29,11 @@ import { DownloadManager } from "./services/download/download-manager";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
+import {
+  flushScreenshotTelemetry,
+  stopWaylandFocusWatch,
+} from "./services/screenshots";
+import { isWaylandSession } from "./services/linux-game-capture-session";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
@@ -76,6 +81,9 @@ if (!gotTheLock) app.quit();
 
 if (process.platform === "linux") {
   app.commandLine.appendSwitch("ozone-platform-hint", "auto");
+  if (isWaylandSession()) {
+    app.commandLine.appendSwitch("enable-features", "GlobalShortcutsPortal");
+  }
 }
 
 i18n.init({
@@ -429,6 +437,8 @@ app.on("window-all-closed", () => {
   WindowManager.clearMainWindow();
 });
 
+const SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS = 2_000;
+
 let canAppBeClosed = false;
 let isAppClosing = false;
 
@@ -464,6 +474,7 @@ app.on("before-quit", async (e) => {
       TorrentService.shutdown(),
       clearGamesPlaytime(),
       emulators.stopAllEmulatorSouvenirCaptureSessions(),
+      flushScreenshotTelemetry(SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS),
     ]);
     for (const result of results) {
       if (result.status === "rejected") {
@@ -477,6 +488,7 @@ app.on("before-quit", async (e) => {
 
 app.on("will-quit", () => {
   logger.info("Application will quit");
+  stopWaylandFocusWatch();
 });
 
 app.on("activate", () => {

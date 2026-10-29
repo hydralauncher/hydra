@@ -34,6 +34,7 @@ export interface ProfileScreenshot {
   owner: ScreenshotAuthor;
   imageUrl: string | null;
   thumbnailUrl: string | null;
+  thumbHash?: string | null;
   width: number;
   height: number;
   capturedAt: number;
@@ -44,6 +45,7 @@ export interface ProfileScreenshot {
   gameTitle: string | null;
   gameIconUrl: string | null;
   isSpoiler: boolean;
+  isSensitive?: boolean;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
@@ -88,9 +90,20 @@ export interface ScreenshotPresignRequest {
   shop: ScreenshotShop;
   objectId?: string;
   customGameTitle?: string;
+  description?: string;
   capturedAt: number;
   isSpoiler?: boolean;
   visibility?: ProfileVisibility;
+}
+
+export type ScreenshotTextModerationVerdict =
+  | "approved"
+  | "hidden"
+  | "unevaluated";
+
+export interface ScreenshotTextModeration {
+  title?: ScreenshotTextModerationVerdict;
+  description?: ScreenshotTextModerationVerdict;
 }
 
 export interface ScreenshotPresignResponse {
@@ -98,6 +111,7 @@ export interface ScreenshotPresignResponse {
   presignedUrl: string;
   thumbnailPresignedUrl: string;
   expiresAt: number;
+  textModeration?: ScreenshotTextModeration;
 }
 
 export interface ScreenshotModerationState {
@@ -144,7 +158,11 @@ export interface ScreenshotCommentVoteResponse {
   myVote: ScreenshotCommentVoteType | null;
 }
 
-export type ScreenshotTriggerSource = "keyboard" | "gamepad" | "deeplink";
+export type ScreenshotTriggerSource =
+  | "keyboard"
+  | "gamepad"
+  | "portal"
+  | "deeplink";
 
 export interface ScreenshotHotkeyBinding {
   key: string;
@@ -176,12 +194,14 @@ export type ScreenshotInputBackend =
   | "xinput"
   | "x11-xinput2"
   | "evdev"
+  | "global-shortcuts-portal"
   | "unavailable";
 
 export type ScreenshotInputHint =
   | "gamepad_unavailable"
   | "hotkey_unavailable"
   | "hotkey_unavailable_wayland"
+  | "hotkey_portal_unsupported_key"
   | "hotkey_xwayland_only";
 
 export interface ScreenshotInputStatus {
@@ -193,7 +213,6 @@ export interface ScreenshotInputStatus {
 
 export type LocalScreenshotState =
   | "local"
-  | "reviewing"
   | "queued"
   | "uploading"
   | "uploaded"
@@ -220,4 +239,54 @@ export interface LocalScreenshot {
   uploadProgress: number | null;
   lastError: string | null;
   gameSessionId: string | null;
+  rootMarkerId?: string | null;
+  uploadQuality?: ScreenshotQuality | null;
+  uploadClientId?: string | null;
+  uploadAttempts?: number;
+  uploadGameWaits?: number;
+  uploadModerationWaits?: number;
+  uploadCapacityWaits?: number;
+  uploadRateLimitWaits?: number;
+  nextUploadAttemptAt?: number | null;
+  uploadedAt?: number | null;
+  description?: string | null;
+  previewPath?: string | null;
+  pendingCompleteScreenshotId?: string | null;
+  textModeration?: ScreenshotTextModeration | null;
+}
+
+export interface LocalScreenshotUploadOptions {
+  isSpoiler: boolean;
+  visibility: ProfileVisibility;
+  customGameTitle: string | null;
+  description?: string | null;
+  quality?: ScreenshotQuality;
+}
+
+export type LocalScreenshotDraft = Partial<LocalScreenshotUploadOptions>;
+
+export interface ScreenshotUploadProgress {
+  clientId: string;
+  state: LocalScreenshotState;
+  progress: number | null;
+}
+
+export type ScreenshotTelemetryEventType = "capture" | "upload" | "review";
+
+export interface ScreenshotTelemetryEvent {
+  type: ScreenshotTelemetryEventType;
+  outcome: string;
+  reason?: string;
+  platform: "win32" | "linux";
+  count: number;
+}
+
+export interface ScreenshotFeedbackToast {
+  kind:
+    | "captured"
+    | "saved_locally"
+    | "capture_failed"
+    | "share_pending"
+    | "share_unavailable";
+  gameTitle: string;
 }

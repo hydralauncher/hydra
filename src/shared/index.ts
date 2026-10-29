@@ -70,6 +70,9 @@ export * from "./classics-emulator-games";
 export * from "./tracker-list";
 export * from "./souvenirs";
 export * from "./souvenir-sync";
+export * from "./screenshot-preferences";
+export * from "./screenshot-moderation";
+export * from "./local-screenshots";
 export * from "./achievement-list";
 
 export class UserNotLoggedInError extends Error {

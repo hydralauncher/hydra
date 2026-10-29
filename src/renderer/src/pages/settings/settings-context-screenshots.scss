@@ -1,0 +1,174 @@
+@use "../../scss/globals.scss";
+
+$screenshots-press-duration: 0.08s;
+$screenshots-hover-duration: 0.2s;
+
+.settings-screenshots {
+  min-width: 0;
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+    min-width: 0;
+
+    &--disabled {
+      opacity: globals.$disabled-opacity;
+    }
+  }
+
+  &__field-label {
+    font-size: globals.$body-font-size;
+    color: globals.$muted-color;
+  }
+
+  &__hint {
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    opacity: 0.8;
+  }
+
+  &__error {
+    color: globals.$error-color;
+    font-size: globals.$small-font-size;
+  }
+
+  &__hotkey-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+
+  &__keycap {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border: 1px solid globals.$border-color;
+    border-bottom-width: 3px;
+    border-radius: 6px;
+    background-color: globals.$dark-background-color;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+    color: globals.$muted-color;
+    font-family: inherit;
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      transform $screenshots-press-duration ease,
+      box-shadow $screenshots-press-duration ease,
+      border-color $screenshots-hover-duration ease;
+
+    kbd {
+      font-family: inherit;
+    }
+
+    &:hover:not(:disabled) {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:active:not(:disabled) {
+      border-bottom-width: 1px;
+      box-shadow: 0 0 0 rgba(0, 0, 0, 0.35);
+      transform: translateY(2px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid #dadbe1;
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: globals.$disabled-opacity;
+    }
+
+    &--recording,
+    &--recording:hover:not(:disabled) {
+      border-color: #dadbe1;
+      color: globals.$muted-color;
+    }
+  }
+
+  &__input-status {
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+
+    &--active {
+      color: globals.$brand-teal;
+    }
+
+    &--unavailable {
+      color: globals.$warning-color;
+    }
+  }
+
+  &__input-hint {
+    display: block;
+  }
+
+  &__select {
+    max-width: 320px;
+  }
+
+  &__folder {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+  }
+
+  &__icon-button {
+    min-width: 34px;
+    padding-inline: globals.$spacing-unit;
+  }
+
+  &__open-folder {
+    align-self: flex-start;
+  }
+
+  &__icon-action {
+    width: 28px;
+    min-width: 28px;
+    padding: 0;
+    justify-content: center;
+
+    &--field {
+      width: 40px;
+      min-width: 40px;
+      height: 40px;
+    }
+  }
+
+  &__combo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  &__combo-slot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__combo-select {
+    flex: 0 0 auto;
+  }
+
+  &__combo-plus {
+    color: globals.$body-color;
+    font-weight: 600;
+  }
+
+  &__combo-reset {
+    margin-left: globals.$spacing-unit;
+  }
+}

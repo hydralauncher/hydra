@@ -1135,6 +1135,11 @@ declare global {
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     getScreenshotsPath: () => Promise<string>;
+    getScreenshotsFolderPath: () => Promise<string>;
+    openScreenshotsFolder: () => Promise<void>;
+    onLocalScreenshotsMissing: (
+      cb: (count: number) => void
+    ) => () => Electron.IpcRenderer;
     getAchievementSouvenirSyncStatus: () => Promise<AchievementSouvenirSyncStatus>;
     getAchievementSouvenirSyncDetails: () => Promise<AchievementSouvenirSyncDetails>;
     retryAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncRetryResult>;

@@ -24,6 +24,7 @@ import "./main-window-controls";
 import "./misc";
 import "./notifications";
 import "./profile";
+import "./screenshots";
 import "./themes";
 import "./torrenting";
 import "./user";

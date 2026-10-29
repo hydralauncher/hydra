@@ -265,12 +265,14 @@ export interface UserPreferences {
   autoplayAnimatedArtwork?: boolean;
   persistFiltersAndSorting?: boolean;
   screenshotsEnabled?: boolean;
+  screenshotsFolderPath?: string;
   screenshotHotkey?: ScreenshotHotkeyBinding;
   screenshotGamepadEnabled?: boolean;
   screenshotGamepadCombo?: ScreenshotGamepadButton[];
   screenshotCaptureSoundEnabled?: boolean;
   screenshotToastEnabled?: boolean;
   screenshotDefaultVisibility?: ProfileVisibility;
+  showSensitiveScreenshots?: boolean;
 }
 
 export interface NetworkInterface {

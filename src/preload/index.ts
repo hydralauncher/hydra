@@ -1523,6 +1523,17 @@ contextBridge.exposeInMainWorld("electron", {
   getVersion: () => ipcRenderer.invoke("getVersion"),
   getDefaultDownloadsPath: () => ipcRenderer.invoke("getDefaultDownloadsPath"),
   getScreenshotsPath: () => ipcRenderer.invoke("getScreenshotsPath"),
+  getScreenshotsFolderPath: () =>
+    ipcRenderer.invoke("getScreenshotsFolderPath"),
+  openScreenshotsFolder: () => ipcRenderer.invoke("openScreenshotsFolder"),
+  onLocalScreenshotsMissing: (cb: (count: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, count: number) =>
+      cb(count);
+    ipcRenderer.on("on-local-screenshots-missing", listener);
+    return () =>
+      ipcRenderer.removeListener("on-local-screenshots-missing", listener);
+  },
+
   getAchievementSouvenirSyncStatus: () =>
     ipcRenderer.invoke("getAchievementSouvenirSyncStatus"),
   getAchievementSouvenirSyncDetails: () =>
