@@ -123,29 +123,42 @@ export function useScreenshotFeed({
     if (!requestKey) return;
 
     const read = ledger.beginRead();
+    const pagesToLoad = Math.max(1, loadedPageCountRef.current);
+    const fetchPage = (cursor: string | null) =>
+      globalThis.window.electron.hydraApi.get<ScreenshotFeedResponse | null>(
+        buildPathRef.current(cursor),
+        { needsAuth }
+      );
 
-    globalThis.window.electron.hydraApi
-      .get<ScreenshotFeedResponse | null>(buildPathRef.current(null), {
-        needsAuth,
-      })
-      .then((response) => {
+    const loadPages = async () => {
+      const firstPage = await fetchPage(null);
+      let pageItems = firstPage?.items ?? [];
+      let cursor = firstPage?.nextCursor ?? null;
+      let pageCount = 1;
+
+      while (cursor && pageCount < pagesToLoad) {
         if (generationRef.current !== generation) return;
+        const page = await fetchPage(cursor);
+        pageItems = mergeScreenshotPages(pageItems, page?.items ?? []);
+        cursor = page?.nextCursor ?? null;
+        pageCount += 1;
+      }
 
-        const merged = acceptPage(response?.items ?? [], read);
-        if (loadedPageCountRef.current > 1) {
-          setItems((current) => mergeScreenshotPages(merged.items, current));
-        } else {
-          loadedPageCountRef.current = 1;
-          setItems(merged.items);
-          setNextCursor(response?.nextCursor ?? null);
-        }
-        setTotal(
-          typeof response?.total === "number"
-            ? Math.max(0, response.total + merged.netCountDelta)
-            : null
-        );
-        setHiddenReason(response?.hiddenReason ?? null);
-      })
+      if (generationRef.current !== generation) return;
+
+      const merged = acceptPage(pageItems, read);
+      loadedPageCountRef.current = pageCount;
+      setItems(merged.items);
+      setNextCursor(cursor);
+      setTotal(
+        typeof firstPage?.total === "number"
+          ? Math.max(0, firstPage.total + merged.netCountDelta)
+          : null
+      );
+      setHiddenReason(firstPage?.hiddenReason ?? null);
+    };
+
+    loadPages()
       .catch((error: unknown) => {
         if (generationRef.current !== generation) return;
 
