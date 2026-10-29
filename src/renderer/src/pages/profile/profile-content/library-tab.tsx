@@ -9,17 +9,25 @@ import {
   DeviceDesktopIcon,
 } from "@primer/octicons-react";
 import InfiniteScroll from "react-infinite-scroll-component";
-import { useCallback, useMemo, useState } from "react";
+import { Tooltip } from "react-tooltip";
+import { useCallback, useContext, useMemo, useState } from "react";
 import { useFormat, useLibrary, useToast } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import type { LibraryGame, UserGame } from "@types";
-import { useCollectionContextMenu } from "@renderer/context";
+import {
+  useCollectionContextMenu,
+  userProfileContext,
+} from "@renderer/context";
 import { GameContextMenu } from "@renderer/components";
 import type { GameContextMenuGame } from "@renderer/components/game-context-menu/game-context-menu.types";
 import { ClassicsIcon } from "@renderer/pages/library/category-filter";
 import type { ProfilePlatformFilter } from "@renderer/helpers";
 import { FilterDropdown, type FilterDropdownOption } from "./filter-dropdown";
-import { UserLibraryGameCard } from "./user-library-game-card";
+import {
+  USER_LIBRARY_GAME_TOOLTIP_ID,
+  UserLibraryGameCard,
+} from "./user-library-game-card";
+import { ProfileLibraryGrid } from "./profile-library-grid";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
@@ -34,7 +42,6 @@ interface LibraryTabProps {
   libraryGames: UserGame[];
   hasMoreLibraryGames: boolean;
   isAwaitingInitialLibrary: boolean;
-  statsIndex: number;
   userStats: { libraryCount: number } | null;
   onLoadMore: () => void;
   isMe: boolean;
@@ -53,7 +60,6 @@ export function LibraryTab({
   libraryGames,
   hasMoreLibraryGames,
   isAwaitingInitialLibrary,
-  statsIndex,
   userStats,
   onLoadMore,
   isMe,
@@ -65,6 +71,8 @@ export function LibraryTab({
   const { t } = useTranslation(["user_profile", "library"]);
   const { numberFormatter } = useFormat();
   const { library } = useLibrary();
+  const { userProfile } = useContext(userProfileContext);
+  const profileUserId = userProfile?.id;
   const { openCollectionContextMenu } = useCollectionContextMenu();
   const { showSuccessToast, showErrorToast } = useToast();
   const [contextMenu, setContextMenu] = useState<{
@@ -91,6 +99,24 @@ export function LibraryTab({
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu((prev) => ({ ...prev, visible: false }));
   }, []);
+
+  const renderGame = useCallback(
+    (game: UserGame) => (
+      <UserLibraryGameCard
+        game={game}
+        profileUserId={profileUserId}
+        hasActiveSubscription={hasActiveSubscription}
+        isMe={isMe}
+        onContextMenu={handleOpenContextMenu}
+      />
+    ),
+    [profileUserId, hasActiveSubscription, isMe, handleOpenContextMenu]
+  );
+
+  const getLibraryGameKey = useCallback(
+    (game: UserGame) => `${sortBy}-${game.objectId}`,
+    [sortBy]
+  );
 
   const contextMenuGame = useMemo<GameContextMenuGame | null>(() => {
     const selectedGame = contextMenu.game;
@@ -153,6 +179,8 @@ export function LibraryTab({
   ];
 
   const sortOptions: FilterDropdownOption<SortOption>[] = [
+    { value: "playedRecently", label: t("played_recently"), icon: HistoryIcon },
+    { value: "playtime", label: t("playtime"), icon: ClockIcon },
     ...(hasActiveSubscription
       ? [
           {
@@ -162,8 +190,6 @@ export function LibraryTab({
           },
         ]
       : []),
-    { value: "playedRecently", label: t("played_recently"), icon: HistoryIcon },
-    { value: "playtime", label: t("playtime"), icon: ClockIcon },
   ];
 
   const hasGames = libraryGames.length > 0;
@@ -232,11 +258,7 @@ export function LibraryTab({
               <ul className="profile-content__games-grid">
                 {pinnedGames?.map((game) => (
                   <li key={game.objectId} style={{ listStyle: "none" }}>
-                    <UserLibraryGameCard
-                      game={game}
-                      statIndex={statsIndex}
-                      onContextMenu={handleOpenContextMenu}
-                    />
+                    {renderGame(game)}
                   </li>
                 ))}
               </ul>
@@ -265,27 +287,23 @@ export function LibraryTab({
                 style={{ overflow: "visible" }}
                 scrollableTarget="scrollableDiv"
               >
-                <ul className="profile-content__games-grid">
-                  {libraryGames?.map((game) => {
-                    return (
-                      <li
-                        key={`${sortBy}-${game.objectId}`}
-                        style={{ listStyle: "none" }}
-                      >
-                        <UserLibraryGameCard
-                          game={game}
-                          statIndex={statsIndex}
-                          onContextMenu={handleOpenContextMenu}
-                        />
-                      </li>
-                    );
-                  })}
-                </ul>
+                <ProfileLibraryGrid
+                  games={libraryGames}
+                  scrollContainerId="scrollableDiv"
+                  getKey={getLibraryGameKey}
+                  renderGame={renderGame}
+                />
               </InfiniteScroll>
             </div>
           )}
         </div>
       )}
+
+      <Tooltip
+        id={USER_LIBRARY_GAME_TOOLTIP_ID}
+        style={{ zIndex: 9999 }}
+        openOnClick={false}
+      />
 
       {contextMenuGame && (
         <GameContextMenu

@@ -31,6 +31,7 @@ import { EpicAchievementSource } from "./achievement-source";
 import { parseEpicAchievementTargets } from "./achievement-protocol";
 import { buildEpicSnapshotChunks } from "./sync-snapshot";
 import { AchievementMemoryStore } from "../achievements/achievement-memory-store";
+import { UnlockedAchievementsCache } from "../achievements/unlocked-achievements-cache";
 import { EpicConnectionStore } from "./store";
 import { getEpicDownloadService } from "./download";
 import { scheduleEpicStoreAutoImport } from "./egs-auto-import";
@@ -293,10 +294,12 @@ export class EpicSyncRuntime {
           () => this.current(context)
         ),
       merge: async (context, progress, signal) => {
-        if (this.current(context))
+        if (this.current(context)) {
           for (const [key] of AchievementMemoryStore.all())
             if (key.startsWith("epic:"))
               AchievementMemoryStore.delete("epic", key.slice("epic:".length));
+          UnlockedAchievementsCache.clear();
+        }
         const result = await mergeWithRemoteGames(
           progress,
           context.auth,
@@ -431,6 +434,7 @@ export class EpicSyncRuntime {
     for (const [key] of AchievementMemoryStore.all())
       if (key.startsWith("epic:"))
         AchievementMemoryStore.delete("epic", key.slice("epic:".length));
+    UnlockedAchievementsCache.clear();
     this.aliases.clear();
     for (const entry of this.individual.values()) entry.controller.abort();
     for (const id of this.exitTimers.keys()) this.cancelExit(id);
