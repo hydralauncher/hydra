@@ -28,6 +28,10 @@ export interface EpicManagedCommand {
   binary: string;
   prefixArgs: string[];
 }
+export interface EpicTargetBase {
+  target: EpicManagedTarget;
+  objectId: string;
+}
 export interface EpicTargetInspection {
   info: unknown;
   metadata: Record<string, unknown>;
@@ -178,9 +182,11 @@ export class EpicTargetRuntime {
     target: EpicManagedTarget,
     objectId: string,
     signal: AbortSignal,
-    cached?: { manifest?: unknown }
+    cached?: { manifest?: unknown },
+    base?: EpicTargetBase
   ): Promise<EpicTargetInspection> {
     const directory = this.directory(target);
+    const baseIdentity = base ? this.target(base.target, base.objectId) : null;
     const controller = new AbortController();
     const abort = () => controller.abort();
     signal.addEventListener("abort", abort, { once: true });
@@ -217,6 +223,7 @@ export class EpicTargetRuntime {
                     {
                       operation: "inspect",
                       target: this.target(target, objectId),
+                      ...(baseIdentity ? { base: baseIdentity } : {}),
                       ...(cached?.manifest ? { receipt: cached.manifest } : {}),
                     },
                     controller.signal
@@ -344,8 +351,14 @@ export class EpicTargetRuntime {
     objectId: string,
     prepared: { manifest?: unknown },
     args: string[],
-    options: { signal: AbortSignal; onLine: (line: string) => void }
+    options: {
+      signal: AbortSignal;
+      onLine: (line: string) => void;
+      dlc?: EpicTargetBase;
+    }
   ) {
+    const item = options.dlc ?? { target, objectId };
+    const baseIdentity = options.dlc ? this.target(target, objectId) : null;
     const controller = new AbortController();
     const abort = () => controller.abort();
     options.signal.addEventListener("abort", abort, { once: true });
@@ -357,9 +370,9 @@ export class EpicTargetRuntime {
         let receipt: unknown;
         if (isRecord(prepared.manifest)) {
           await this.validateReceipt(
-            this.directory(target),
+            this.directory(item.target),
             prepared.manifest,
-            this.target(target, objectId)
+            this.target(item.target, item.objectId)
           );
           this.assert(target, controller.signal);
           const from = prepared.manifest.manifestPath as string;
@@ -432,7 +445,8 @@ export class EpicTargetRuntime {
                       directory,
                       {
                         operation: "install",
-                        target: this.target(target, objectId),
+                        target: this.target(item.target, item.objectId),
+                        ...(baseIdentity ? { base: baseIdentity } : {}),
                         args,
                         ...(receipt ? { receipt } : {}),
                       },

@@ -9,7 +9,11 @@ import type {
   LibraryCatalogueMetadata,
   Subscription,
 } from "./level.types";
-import type { GameShop, UnlockedAchievement } from "./game.types";
+import type {
+  AchievementSet,
+  GameShop,
+  UnlockedAchievement,
+} from "./game.types";
 import type { ArtworkAssetType } from "./artwork.types";
 import type { GameContentWarning } from "./souvenir.types";
 
@@ -33,6 +37,8 @@ export interface GameRepack {
   title: string;
   fileSize: string | null;
   uris: string[];
+  /** Mirrors split into parts. Each group lists one hoster's parts in order. */
+  uriGroups?: string[][];
   unavailableUris: string[];
   uploadDate: string | null;
   downloadSourceId: string;
@@ -168,6 +174,7 @@ export interface StartGameDownloadPayload {
   title: string;
   shop: GameShop;
   uri: string;
+  parts?: string[];
   downloadPath: string;
   downloader: Downloader;
   automaticallyExtract: boolean;
@@ -574,6 +581,7 @@ export interface OpenCheckoutOptions {
 export interface DownloadSourceDownload {
   title: string;
   uris: string[];
+  uriGroups?: string[][];
   uploadDate: string;
   fileSize: string;
 }
@@ -840,13 +848,18 @@ export interface ComparedAchievements {
     icon: string;
     displayName: string;
     description: string;
+    points?: number;
+    globalUnlockPercentage?: number | null;
+    set?: AchievementSet | null;
     ownerStat?: {
       unlocked: boolean;
       unlockTime: number;
+      hardcoreUnlockTime?: number | null;
     };
     targetStat: {
       unlocked: boolean;
       unlockTime: number;
+      hardcoreUnlockTime?: number | null;
     };
   }[];
 }

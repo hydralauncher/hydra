@@ -21,6 +21,7 @@ import {
 import { useToast } from "@renderer/hooks";
 import { REVIEW_MIN_PLAYTIME_IN_MS } from "@renderer/constants";
 import { getDisplayedPlayTimeInMilliseconds } from "@shared";
+import { logger } from "@renderer/logger";
 
 type ReviewSortOption =
   | "newest"
@@ -71,11 +72,29 @@ export function GameReviews({
     null
   );
 
-  const playTimeInMilliseconds = getDisplayedPlayTimeInMilliseconds({
-    playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
-    steamPlayTimeInMilliseconds: game?.steamPlayTimeInMilliseconds,
-    epicPlayTimeInMilliseconds: game?.epicPlayTimeInMilliseconds,
-  });
+  const [removedGamePlaytime, setRemovedGamePlaytime] = useState(0);
+  const isInLibrary = game !== null;
+
+  useEffect(() => {
+    setRemovedGamePlaytime(0);
+    if (isInLibrary) return;
+
+    let cancelled = false;
+    window.electron
+      .getGameReviewPlaytime(shop, objectId)
+      .then((playtime) => {
+        if (!cancelled) setRemovedGamePlaytime(playtime);
+      })
+      .catch((error) => logger.error("Failed to load review playtime:", error));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isInLibrary, shop, objectId]);
+
+  const playTimeInMilliseconds = game
+    ? getDisplayedPlayTimeInMilliseconds(game)
+    : removedGamePlaytime;
   const hasEnoughPlaytime = playTimeInMilliseconds >= REVIEW_MIN_PLAYTIME_IN_MS;
   const isReviewLocked = !userDetailsId || !hasEnoughPlaytime;
   const canReply =
