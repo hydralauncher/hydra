@@ -45,10 +45,10 @@ interface VersionedCommentWrite {
 }
 
 interface ConfirmedCommentEdit {
-  bodyHtml: string;
-  editedAt: number | null;
+  patch: Partial<ScreenshotComment>;
   version: number;
-  inFlight: number;
+  shownIsHidden: boolean;
+  pendingVersions: Set<number>;
 }
 
 const VOTE_UNLOCK_DELAY_MS = 500;
@@ -438,6 +438,17 @@ export function useScreenshotComments({
     [author, onPatch, publishComment, recordWrite, screenshotId, setPending]
   );
 
+  const showConfirmedEdit = useCallback(
+    (commentId: string, confirmed: ConfirmedCommentEdit) => {
+      recordWrite({ kind: "patch", commentId, patch: confirmed.patch });
+      const isHidden = confirmed.patch.isHidden ?? confirmed.shownIsHidden;
+      if (isHidden === confirmed.shownIsHidden) return;
+      confirmed.shownIsHidden = isHidden;
+      onPatch(screenshotId, adjustCommentCount(isHidden ? -1 : 1));
+    },
+    [onPatch, recordWrite, screenshotId]
+  );
+
   const persistCommentEdit = useCallback(
     async (
       comment: ScreenshotComment,
@@ -445,9 +456,6 @@ export function useScreenshotComments({
       editVersion: number,
       confirmed: ConfirmedCommentEdit
     ) => {
-      const isLatestEdit = () =>
-        editVersionsRef.current.get(comment.id) === editVersion;
-
       try {
         const updated = await window.electron.hydraApi.patch<ScreenshotComment>(
           buildUserScreenshotCommentPath(ownerId, screenshotId, comment.id),
@@ -455,42 +463,26 @@ export function useScreenshotComments({
         );
 
         if (editVersion > confirmed.version) {
-          confirmed.bodyHtml = updated?.bodyHtml ?? bodyHtml;
-          confirmed.editedAt = updated?.editedAt ?? Date.now();
+          confirmed.patch = updated
+            ? pickCommentEditPatch(updated)
+            : { bodyHtml, editedAt: Date.now() };
           confirmed.version = editVersion;
-        }
-        if (!isLatestEdit()) return;
-        if (updated) {
-          recordWrite({
-            kind: "patch",
-            commentId: comment.id,
-            patch: pickCommentEditPatch(updated),
-          });
-        }
-        if (updated && updated.isHidden !== comment.isHidden) {
-          onPatch(screenshotId, adjustCommentCount(updated.isHidden ? -1 : 1));
         }
       } catch (error) {
         logger.error("Failed to edit screenshot comment", error);
-        if (isLatestEdit()) {
-          recordWrite({
-            kind: "patch",
-            commentId: comment.id,
-            patch: {
-              bodyHtml: confirmed.bodyHtml,
-              editedAt: confirmed.editedAt,
-            },
-          });
-        }
         handleWriteError(error, "comment_edit_failed", comment.id);
       } finally {
-        confirmed.inFlight -= 1;
-        if (confirmed.inFlight === 0) {
+        confirmed.pendingVersions.delete(editVersion);
+        const hasNewerPendingEdit = [...confirmed.pendingVersions].some(
+          (version) => version > editVersion
+        );
+        if (!hasNewerPendingEdit) showConfirmedEdit(comment.id, confirmed);
+        if (confirmed.pendingVersions.size === 0) {
           confirmedEditsRef.current.delete(comment.id);
         }
       }
     },
-    [handleWriteError, onPatch, ownerId, recordWrite, screenshotId]
+    [handleWriteError, ownerId, screenshotId, showConfirmedEdit]
   );
 
   const editComment = useCallback(
@@ -503,12 +495,12 @@ export function useScreenshotComments({
       const editVersion = (editVersionsRef.current.get(comment.id) ?? 0) + 1;
       editVersionsRef.current.set(comment.id, editVersion);
       const confirmed = confirmedEditsRef.current.get(comment.id) ?? {
-        bodyHtml: comment.bodyHtml,
-        editedAt: comment.editedAt,
+        patch: { bodyHtml: comment.bodyHtml, editedAt: comment.editedAt },
         version: 0,
-        inFlight: 0,
+        shownIsHidden: comment.isHidden,
+        pendingVersions: new Set<number>(),
       };
-      confirmed.inFlight += 1;
+      confirmed.pendingVersions.add(editVersion);
       confirmedEditsRef.current.set(comment.id, confirmed);
       recordWrite({
         kind: "patch",
