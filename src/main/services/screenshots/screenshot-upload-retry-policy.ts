@@ -6,7 +6,7 @@ import {
   isGroupedSouvenirNetworkFailure,
   isMissingGroupedSouvenirScreenshot,
   isRejectedGroupedSouvenirRequest,
-} from "../achievements/grouped-souvenir-retry-policy";
+} from "../achievements/grouped-souvenir-retry-policy.js";
 
 export type ScreenshotUploadRecoveryAction =
   | "already_uploaded"
