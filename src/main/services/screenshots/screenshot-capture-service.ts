@@ -42,7 +42,10 @@ import {
   BlankScreenshotFrameError,
   ScreenshotFrameWorker,
 } from "./screenshot-frame-worker";
-import { writeScreenshotPreview } from "./screenshot-preview";
+import {
+  removeScreenshotPreview,
+  writeScreenshotPreview,
+} from "./screenshot-preview";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { resolveManualScreenshotPath } from "./screenshot-file-path";
 import { getScreenshotsFolder } from "./screenshots-folder";
@@ -187,6 +190,22 @@ const finishCapture = async ({
   ScreenshotTelemetry.record("capture", "saved", source);
 
   return screenshot;
+};
+
+const discardUnrecordedCapture = async (
+  filePath: string,
+  previewPath: string | null
+) => {
+  await Promise.all([
+    fs.promises.rm(filePath, { force: true }),
+    removeScreenshotPreview(previewPath),
+  ]).catch((error) => {
+    logger.warn("Failed to remove an unrecorded screenshot", {
+      filePath,
+      previewPath,
+      error,
+    });
+  });
 };
 
 const showCaptureToast = (kind: CaptureToastKind, gameTitle: string) => {
@@ -432,7 +451,6 @@ const grabScreenshot = async (
       failCapture(error);
       return;
     }
-    showCapturedToast(gameTitle, ownerId);
     const previewPath = await writeScreenshotPreview(images.preview).catch(
       (error) => {
         logger.warn("Failed to write the screenshot preview", error);
@@ -441,17 +459,24 @@ const grabScreenshot = async (
     );
     timer.mark("written");
 
-    await finishCapture({
-      target,
-      gameTitle,
-      filePath,
-      capturedAt,
-      size: { width: frame.width, height: frame.height },
-      defaultVisibility: preferences.defaultVisibility,
-      source,
-      ownerId,
-      previewPath,
-    });
+    try {
+      await finishCapture({
+        target,
+        gameTitle,
+        filePath,
+        capturedAt,
+        size: { width: frame.width, height: frame.height },
+        defaultVisibility: preferences.defaultVisibility,
+        source,
+        ownerId,
+        previewPath,
+      });
+    } catch (error) {
+      failCapture(error);
+      await discardUnrecordedCapture(filePath, previewPath);
+      return;
+    }
+    showCapturedToast(gameTitle, ownerId);
     timer.mark("saved");
     timer.flush(target.gameKey);
   };
