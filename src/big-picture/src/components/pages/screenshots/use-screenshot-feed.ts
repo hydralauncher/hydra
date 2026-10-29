@@ -49,6 +49,7 @@ export function useScreenshotFeed({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const [error, setError] = useState<ScreenshotFeedError>(null);
+  const [loadCount, setLoadCount] = useState(0);
   const generationRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
   const isReadPendingRef = useRef(false);
@@ -163,6 +164,7 @@ export function useScreenshotFeed({
           : null
       );
       setHiddenReason(firstPage?.hiddenReason ?? null);
+      setLoadCount((current) => current + 1);
     };
 
     loadPages()
@@ -352,6 +354,7 @@ export function useScreenshotFeed({
     isLoadingMore,
     hasMore: isLoaded && Boolean(nextCursor),
     error: isLoaded ? error : null,
+    loadCount,
     retry,
     loadMore,
     refresh,

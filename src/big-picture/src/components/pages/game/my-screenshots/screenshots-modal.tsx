@@ -76,6 +76,7 @@ import { MyScreenshotsPartialNotice } from "./partial-notice";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
 import { useMyScreenshotsViewer } from "./use-my-screenshots-viewer";
 import {
+  useFocusFollowsPublishedLocal,
   useMyGameScreenshotsState,
   useMyPublishedScreenshots,
   usePendingLocalScreenshots,
@@ -409,12 +410,16 @@ const toViewerEntry = (entry: MyScreenshotsEntry): ScreenshotViewerEntry =>
     ? { kind: "local", screenshot: entry.screenshot }
     : { kind: "uploaded", screenshot: entry.screenshot };
 
+const getLocalEntryFocusId = (clientId: string) =>
+  getGameScreenshotsModalItemId(`mine-local:${clientId}`);
+
+const getUploadedEntryFocusId = (screenshotId: string) =>
+  getGameScreenshotsModalItemId(`mine-${screenshotId}`);
+
 const getEntryFocusId = (entry: MyScreenshotsEntry) =>
-  getGameScreenshotsModalItemId(
-    entry.kind === "local"
-      ? `mine-local:${entry.screenshot.clientId}`
-      : `mine-${entry.screenshot.id}`
-  );
+  entry.kind === "local"
+    ? getLocalEntryFocusId(entry.screenshot.clientId)
+    : getUploadedEntryFocusId(entry.screenshot.id);
 
 interface MyScreenshotsTabOptions extends ScreenshotsSourceOptions {
   emptyFocusId: string;
@@ -444,6 +449,12 @@ function useMyScreenshotsTab({
     isEnabled: enabled,
   });
   const { feed } = mine;
+  useFocusFollowsPublishedLocal(
+    mine.pendingLocal,
+    feed.items.map((item) => item.id),
+    getLocalEntryFocusId,
+    getUploadedEntryFocusId
+  );
   const local = useLocalScreenshotActions();
   const { lightboxProps, open, close } = useScreenshotLightbox({
     items: feed.items,

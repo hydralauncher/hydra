@@ -53,7 +53,10 @@ import {
   useLocalScreenshotActions,
   type LocalScreenshotActions,
 } from "./use-local-screenshot-actions";
-import { useMyGameScreenshots } from "./use-my-game-screenshots";
+import {
+  useFocusFollowsPublishedLocal,
+  useMyGameScreenshots,
+} from "./use-my-game-screenshots";
 import { useMyScreenshotsViewer } from "./use-my-screenshots-viewer";
 
 const SIDEBAR_SCREENSHOT_COUNT = 4;
@@ -105,6 +108,9 @@ const resolveFocusTargetNodeId = (target: FocusOverrideTarget) => {
     null
   );
 };
+
+const getLocalItemFocusId = (clientId: string) =>
+  getGameMyScreenshotItemId(`local:${clientId}`);
 
 const getFocusAfterDeleteId = (
   items: MyScreenshotItem[],
@@ -322,6 +328,12 @@ export function GameMyScreenshots({
     feedKeySuffix: "sidebar",
   });
   const { feed } = mine;
+  useFocusFollowsPublishedLocal(
+    mine.pendingLocal,
+    feed.items.map((item) => item.id),
+    getLocalItemFocusId,
+    getGameMyScreenshotItemId
+  );
   const local = useLocalScreenshotActions();
   const { lightboxProps, open, close } = useScreenshotLightbox({
     items: feed.items,
