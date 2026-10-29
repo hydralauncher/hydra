@@ -29,6 +29,7 @@ import {
   getInstalledStoreMembers,
   getOfficialStoreMembers,
   isEpicMemberInCurrentScope,
+  getEpicMemberDownload,
   isEpicUpdateInterrupted,
 } from "../../../shared/official-store-options.js";
 
@@ -2158,6 +2159,7 @@ describe("Epic managed UI lifecycle", () => {
             getInstalledStoreMembers,
             getOfficialStoreMembers,
             isEpicMemberInCurrentScope,
+            getEpicMemberDownload,
             isEpicUpdateInterrupted,
             isLibraryGameDownloading: () => false,
             applyLibraryGroupAction: async () => {},

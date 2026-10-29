@@ -34,7 +34,7 @@ export interface EpicDownloadMetadata {
   diskSizeInBytes: number;
   phase?: "preparing" | "downloading" | "finalizing" | "prerequisites";
   error?: EpicInstallError;
-  update?: { fromVersion: string; toVersion: string };
+  update?: { fromVersion: string; toVersion: string; filesChanged?: boolean };
 }
 
 export type EpicInstallError =

@@ -47,6 +47,7 @@ import {
   isEpicUpdateInterrupted,
   isLibraryGameDownloading,
   getEpicLaunchOptions,
+  getEpicMemberDownload,
   getOfficialStoreMembers,
 } from "@shared";
 
@@ -79,7 +80,8 @@ export function HeroPanelActions() {
   const isGameDownloading = isLibraryGameDownloading(downloadGame);
   const { installationAvailable: epicInstallationAvailable, connection } =
     useEpicManagedConnection();
-  const epicDownload = game?.shop === "epic" ? downloadGame?.download : null;
+  const epicDownload =
+    game?.shop === "epic" ? getEpicMemberDownload(game, downloadGame) : null;
   const epicUpdate = useEpicGameUpdate(
     game,
     epicInstallationAvailable && isEpicMemberInCurrentScope(game, connection),
@@ -610,7 +612,10 @@ export function HeroPanelActions() {
       game?.shop === "launchbox" && (game?.discs?.length ?? 0) > 0;
 
     if (game?.executablePath && epicDownload?.epic?.update) {
-      if (isGameDownloading || epicDownload.queued)
+      if (
+        isLibraryGameDownloading({ download: epicDownload }) ||
+        epicDownload.queued
+      )
         return (
           <Button
             theme="outline"

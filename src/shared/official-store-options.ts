@@ -66,6 +66,19 @@ export const getEpicGameUpdate = (
   );
 };
 
+export const getEpicMemberDownload = (
+  member: LibraryGame | null,
+  downloadGame: LibraryGame | null | undefined
+) => {
+  if (!member) return null;
+  if (
+    downloadGame?.shop === member.shop &&
+    downloadGame.objectId === member.objectId
+  )
+    return downloadGame.download;
+  return member.download;
+};
+
 const EPIC_UPDATE_STOPPED_STATUSES = new Set(["paused", "error", "removed"]);
 
 export const isEpicUpdateInterrupted = (
@@ -73,10 +86,10 @@ export const isEpicUpdateInterrupted = (
     status?: string | null;
     queued?: boolean;
     extracting?: boolean;
-    epic?: { update?: unknown };
+    epic?: { update?: { filesChanged?: boolean } | null };
   } | null
 ) =>
-  !!download?.epic?.update &&
+  !!download?.epic?.update?.filesChanged &&
   !download.queued &&
   !download.extracting &&
   EPIC_UPDATE_STOPPED_STATUSES.has(download.status ?? "");

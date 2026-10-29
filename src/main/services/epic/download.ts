@@ -655,6 +655,12 @@ export class EpicDownloadService {
       );
       assertActive();
       if (!existing || existing.version !== active.version) {
+        const pendingUpdate = active.download.epic?.update;
+        if (pendingUpdate && !pendingUpdate.filesChanged) {
+          pendingUpdate.filesChanged = true;
+          await this.options.putDownload(active.id, active.download);
+          assertActive();
+        }
         await this.options.runtime.streamInstall(
           target,
           owned.game.objectId,
