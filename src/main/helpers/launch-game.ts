@@ -3,7 +3,8 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { GameShop, type Game, type UserPreferences } from "@types";
-import { db, gamesSublevel, levelKeys } from "@main/level";
+import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { isEpicUpdateInterrupted } from "@shared";
 import { updateGameExecutablePath } from "./update-executable-path";
 import {
   clearCloudSaveLaunchGuard,
@@ -68,6 +69,7 @@ export interface LaunchGameOptions {
   launchOptions?: string | null;
   epicSavePolicy?: "local-once";
   epicOffline?: boolean;
+  epicSkipUpdateCheck?: boolean;
 }
 
 const LAUNCH_DELAY_IN_MS = 2_000;
@@ -915,6 +917,11 @@ const launchGameWithCloudSaveChecks = async (
             winePrefixPath: compatibilityContext?.winePrefixPath,
             epicSavePolicy: options.epicSavePolicy,
             epicOffline: options.epicOffline,
+            epicSkipUpdateCheck:
+              options.epicSkipUpdateCheck &&
+              !isEpicUpdateInterrupted(
+                (await downloadsSublevel.get(gameKey)) ?? null
+              ),
             onStatus: createUmuStatusReporter(gameKey),
             // Runs once the Linux prefix exists, so Hydra restores into it and
             // records its upload guard against the prepared environment.
