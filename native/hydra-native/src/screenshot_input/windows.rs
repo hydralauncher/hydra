@@ -1,6 +1,6 @@
 use super::binding::{
-    gamepad, normalize_windows_scan_code, windows_scan_code, Backend, ComboMatcher, HotkeyMatcher,
-    Modifiers, TriggerSource,
+    gamepad, is_windows_modifier_scan_code, windows_scan_code, windows_virtual_key_scan_code,
+    Backend, ComboMatcher, HotkeyMatcher, Modifiers, TriggerSource, WindowsShiftTracker,
 };
 use super::{BackendResult, Context, PlatformStatus, StartOptions};
 use std::ffi::c_void;
@@ -14,8 +14,8 @@ use windows_sys::Win32::Foundation::{GetLastError, ERROR_CLASS_ALREADY_EXISTS, H
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::System::Threading::GetCurrentThreadId;
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-    GetAsyncKeyState, MapVirtualKeyW, MAPVK_VK_TO_VSC_EX, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN,
-    VK_SHIFT,
+    GetAsyncKeyState, MapVirtualKeyW, MAPVK_VK_TO_VSC_EX, VK_CONTROL, VK_LCONTROL, VK_LMENU,
+    VK_LSHIFT, VK_LWIN, VK_MENU, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN, VK_SHIFT,
 };
 use windows_sys::Win32::UI::Input::XboxController::{XInputGetState, XINPUT_STATE};
 use windows_sys::Win32::UI::Input::{
@@ -222,7 +222,10 @@ fn run_raw_input(
 
     let _ = ready.send(Ok(()));
 
-    let mut hotkey = HotkeyMatcher::default();
+    let mut keyboard = KeyboardState {
+        hotkey: HotkeyMatcher::default(),
+        shift: WindowsShiftTracker::new(key_down(VK_LSHIFT), key_down(VK_RSHIFT)),
+    };
     let failed = loop {
         match unsafe { GetMessageW(&mut message, null_mut(), 0, 0) } {
             0 => break false,
@@ -230,7 +233,7 @@ fn run_raw_input(
             _ => {}
         }
         if message.message == WM_INPUT {
-            handle_raw_input(context, &mut hotkey, message.lParam);
+            handle_raw_input(context, &mut keyboard, message.lParam);
         }
         unsafe { DispatchMessageW(&message) };
     };
@@ -249,29 +252,47 @@ fn key_down(virtual_key: u16) -> bool {
     unsafe { GetAsyncKeyState(i32::from(virtual_key)) as u16 & 0x8000 != 0 }
 }
 
-fn current_modifiers() -> Modifiers {
-    Modifiers {
-        ctrl: key_down(VK_CONTROL),
-        alt: key_down(VK_MENU),
-        shift: key_down(VK_SHIFT),
-        meta: key_down(VK_LWIN) || key_down(VK_RWIN),
+fn is_shift_virtual_key(virtual_key: u16) -> bool {
+    matches!(virtual_key, VK_SHIFT | VK_LSHIFT | VK_RSHIFT)
+}
+
+fn is_modifier_virtual_key(virtual_key: u16) -> bool {
+    is_shift_virtual_key(virtual_key)
+        || matches!(
+            virtual_key,
+            VK_CONTROL
+                | VK_LCONTROL
+                | VK_RCONTROL
+                | VK_MENU
+                | VK_LMENU
+                | VK_RMENU
+                | VK_LWIN
+                | VK_RWIN
+        )
+}
+
+struct KeyboardState {
+    hotkey: HotkeyMatcher,
+    shift: WindowsShiftTracker,
+}
+
+impl KeyboardState {
+    fn current_modifiers(&self) -> Modifiers {
+        Modifiers {
+            ctrl: key_down(VK_CONTROL),
+            alt: key_down(VK_MENU),
+            shift: self.shift.is_held(key_down(VK_SHIFT)),
+            meta: key_down(VK_LWIN) || key_down(VK_RWIN),
+        }
     }
 }
 
-fn scan_code_from_virtual_key(virtual_key: u16) -> Option<u16> {
+fn scan_code_from_virtual_key(virtual_key: u16, flags: u16) -> Option<u16> {
     let mapped = unsafe { MapVirtualKeyW(u32::from(virtual_key), MAPVK_VK_TO_VSC_EX) };
-    let make = (mapped & 0x7F) as u16;
-    if make == 0 {
-        return None;
-    }
-    Some(match mapped >> 8 {
-        0xE0 => 0xE000 | make,
-        0xE1 => 0xE100 | make,
-        _ => make,
-    })
+    windows_virtual_key_scan_code(mapped, flags)
 }
 
-fn handle_raw_input(context: &Context, hotkey: &mut HotkeyMatcher, lparam: LPARAM) {
+fn handle_raw_input(context: &Context, state: &mut KeyboardState, lparam: LPARAM) {
     let mut input: RAWINPUT = unsafe { zeroed() };
     let mut size = size_of::<RAWINPUT>() as u32;
     let read = unsafe {
@@ -289,13 +310,24 @@ fn handle_raw_input(context: &Context, hotkey: &mut HotkeyMatcher, lparam: LPARA
 
     let keyboard = unsafe { input.data.keyboard };
     let code = if keyboard.MakeCode == 0 || keyboard.MakeCode == KEYBOARD_OVERRUN_MAKE_CODE {
-        match scan_code_from_virtual_key(keyboard.VKey) {
-            Some(code) => normalize_windows_scan_code(code),
+        match scan_code_from_virtual_key(keyboard.VKey, keyboard.Flags) {
+            Some(code) => code,
             None => return,
         }
     } else {
         windows_scan_code(keyboard.MakeCode, keyboard.Flags)
     };
+    let pressed = u32::from(keyboard.Flags) & RI_KEY_BREAK == 0;
+
+    if state.shift.on_key(code, pressed) {
+        return;
+    }
+    if is_modifier_virtual_key(keyboard.VKey) && !is_windows_modifier_scan_code(code) {
+        if is_shift_virtual_key(keyboard.VKey) {
+            state.shift.on_system_shift();
+        }
+        return;
+    }
 
     let Some(binding) = context.binding().hotkey else {
         return;
@@ -303,8 +335,10 @@ fn handle_raw_input(context: &Context, hotkey: &mut HotkeyMatcher, lparam: LPARA
     if code != binding.key.platform_code() {
         return;
     }
-    let pressed = u32::from(keyboard.Flags) & RI_KEY_BREAK == 0;
-    if hotkey.on_key(code, pressed, &binding, current_modifiers()) {
+    if state
+        .hotkey
+        .on_key(code, pressed, &binding, state.current_modifiers())
+    {
         context.emit(TriggerSource::Keyboard, Backend::WindowsRawInput);
     }
 }

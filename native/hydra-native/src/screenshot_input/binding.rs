@@ -644,9 +644,85 @@ pub fn linux_trigger_axes(
 }
 
 #[cfg(any(target_os = "windows", test))]
+const RI_KEY_E0: u16 = 2;
+#[cfg(any(target_os = "windows", test))]
+const RI_KEY_E1: u16 = 4;
+#[cfg(target_os = "windows")]
+const WINDOWS_LEFT_SHIFT: u16 = 0x2A;
+#[cfg(target_os = "windows")]
+const WINDOWS_RIGHT_SHIFT: u16 = 0x36;
+#[cfg(target_os = "windows")]
+const WINDOWS_MODIFIER_SCAN_CODES: &[u16] = &[
+    0x1D,
+    0xE01D,
+    0x38,
+    0xE038,
+    WINDOWS_LEFT_SHIFT,
+    WINDOWS_RIGHT_SHIFT,
+    0xE05B,
+    0xE05C,
+];
+
+#[cfg(target_os = "windows")]
+pub fn is_windows_modifier_scan_code(scan_code: u16) -> bool {
+    WINDOWS_MODIFIER_SCAN_CODES.contains(&scan_code)
+}
+
+#[cfg(target_os = "windows")]
+pub struct WindowsShiftTracker {
+    held: u8,
+    released_by_system: bool,
+}
+
+#[cfg(target_os = "windows")]
+impl WindowsShiftTracker {
+    pub fn new(left_held: bool, right_held: bool) -> Self {
+        Self {
+            held: u8::from(left_held) | u8::from(right_held) << 1,
+            released_by_system: false,
+        }
+    }
+
+    pub fn on_key(&mut self, scan_code: u16, pressed: bool) -> bool {
+        let bit = match scan_code {
+            WINDOWS_LEFT_SHIFT => 1,
+            WINDOWS_RIGHT_SHIFT => 2,
+            _ => return false,
+        };
+        if pressed {
+            self.held |= bit;
+        } else {
+            self.held &= !bit;
+        }
+        self.released_by_system = false;
+        true
+    }
+
+    pub fn on_system_shift(&mut self) {
+        self.released_by_system = !self.released_by_system;
+    }
+
+    pub fn is_held(&self, reported_held: bool) -> bool {
+        reported_held || (self.released_by_system && self.held != 0)
+    }
+}
+
+#[cfg(target_os = "windows")]
+pub fn windows_virtual_key_scan_code(mapped: u32, flags: u16) -> Option<u16> {
+    let make = (mapped & 0x7F) as u16;
+    if make == 0 {
+        return None;
+    }
+    let prefix = match mapped >> 8 {
+        0xE0 => RI_KEY_E0,
+        0xE1 => RI_KEY_E1,
+        _ => 0,
+    };
+    Some(windows_scan_code(make, flags | prefix))
+}
+
+#[cfg(any(target_os = "windows", test))]
 pub fn windows_scan_code(make_code: u16, flags: u16) -> u16 {
-    const RI_KEY_E0: u16 = 2;
-    const RI_KEY_E1: u16 = 4;
     let make = make_code & 0x7F;
     let scan_code = if flags & RI_KEY_E1 != 0 {
         0xE100 | make
@@ -659,7 +735,7 @@ pub fn windows_scan_code(make_code: u16, flags: u16) -> u16 {
 }
 
 #[cfg(any(target_os = "windows", test))]
-pub fn normalize_windows_scan_code(scan_code: u16) -> u16 {
+fn normalize_windows_scan_code(scan_code: u16) -> u16 {
     const ALT_PRINT_SCREEN: u16 = 0x54;
     const CTRL_PAUSE: u16 = 0xE046;
     match scan_code {
