@@ -37,10 +37,8 @@ export class CaptureCallTimeoutError extends Error {
   }
 }
 
-export const executeWithinDeadline = <T = unknown>(
-  window: BrowserWindow,
-  closedMessage: string,
-  expression: string,
+export const settleWithinDeadline = <T>(
+  pending: Promise<T>,
   timeoutMs: number,
   onTimeout: () => void
 ) =>
@@ -49,7 +47,18 @@ export const executeWithinDeadline = <T = unknown>(
       reject(new CaptureCallTimeoutError(timeoutMs));
       onTimeout();
     }, timeoutMs);
-    executeWhileWindowAlive(window, closedMessage, expression)
-      .then(resolve, reject)
-      .finally(() => clearTimeout(timer));
+    pending.then(resolve, reject).finally(() => clearTimeout(timer));
   });
+
+export const executeWithinDeadline = <T = unknown>(
+  window: BrowserWindow,
+  closedMessage: string,
+  expression: string,
+  timeoutMs: number,
+  onTimeout: () => void
+) =>
+  settleWithinDeadline<T>(
+    executeWhileWindowAlive(window, closedMessage, expression),
+    timeoutMs,
+    onTimeout
+  );

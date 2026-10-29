@@ -13,6 +13,7 @@ import {
 } from "./screenshot-frame-script";
 import {
   executeWithinDeadline,
+  settleWithinDeadline,
   whileWindowAlive,
 } from "./window-bound-promise";
 
@@ -120,18 +121,28 @@ const buildGrabExpression = (
   }
 })()`;
 
+const recycleTimedOutWorker = (current: WorkerWindow, stage: string) => () => {
+  logger.warn("Screenshot capture worker timed out, recycling it", {
+    stage,
+    timeoutMs: SCREENSHOT_CAPTURE_CALL_TIMEOUT_MS,
+  });
+  if (worker === current) destroyWorker();
+};
+
 const runInWorker = (current: WorkerWindow, expression: string) =>
   executeWithinDeadline(
     current.window,
     WORKER_CLOSED_MESSAGE,
     expression,
     SCREENSHOT_CAPTURE_CALL_TIMEOUT_MS,
-    () => {
-      logger.warn("Screenshot capture worker timed out, recycling it", {
-        timeoutMs: SCREENSHOT_CAPTURE_CALL_TIMEOUT_MS,
-      });
-      if (worker === current) destroyWorker();
-    }
+    recycleTimedOutWorker(current, "call")
+  );
+
+const waitForWorkerPage = (current: WorkerWindow) =>
+  settleWithinDeadline(
+    current.ready,
+    SCREENSHOT_CAPTURE_CALL_TIMEOUT_MS,
+    recycleTimedOutWorker(current, "page_load")
   );
 
 const grabFrame = async (
@@ -186,7 +197,7 @@ export class ScreenshotFrameWorker {
       clearRecycleTimer();
       const current = getWorker();
       try {
-        await current.ready;
+        await waitForWorkerPage(current);
         const info = await grabFrame(current, sourceId, options);
         const frame = createGrabbedFrame(info, (expression) =>
           runInWorker(current, expression)
