@@ -180,6 +180,12 @@ export class ScreenshotInputService {
 
   public static trigger(source: ScreenshotTriggerSource) {
     if (!this.featureEnabled || !this.settings.enabled) return false;
+    if (!hasTrackedGamesRunning()) {
+      logger.info("Screenshot trigger ignored: no tracked game running", {
+        source,
+      });
+      return false;
+    }
 
     const channel: ScreenshotTriggerChannel =
       source === "deeplink" ? "deeplink" : "input";
