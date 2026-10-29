@@ -84,4 +84,19 @@ describe("manual screenshot paths", () => {
     assert.equal(folderOf("Console"), "Console");
     assert.equal(folderOf("COM10"), "COM10");
   });
+
+  it("keeps a string suffix in the file name for long titles", () => {
+    const gameTitle = "x".repeat(130);
+    const first = resolveManualScreenshotPath("root", gameTitle, capturedAt);
+    const fallback = resolveManualScreenshotPath(
+      "root",
+      gameTitle,
+      capturedAt,
+      "unique"
+    );
+
+    assert.notEqual(fallback, first);
+    assert.equal(path.dirname(fallback), path.dirname(first));
+    assert.match(path.basename(fallback), /-unique\.jpeg$/);
+  });
 });

@@ -25,7 +25,7 @@ export const resolveManualScreenshotPath = (
   screenshotsRoot: string,
   gameTitle: string,
   capturedAt: Date,
-  suffix = 0
+  suffix: number | string = 0
 ) => {
   const suffixPart = suffix ? `-${suffix}` : "";
 
