@@ -126,6 +126,21 @@ const SIDEBAR_SPRING = {
   mass: 0.9,
 } as const;
 const SIDEBAR_CONTENT_EASE = [0.22, 1, 0.36, 1] as const;
+const INSTANT_TRANSITION = { duration: 0 };
+const SIDEBAR_CONTENT_TRANSITION = {
+  duration: 0.26,
+  ease: SIDEBAR_CONTENT_EASE,
+};
+
+const getSidebarTransitions = (prefersReducedMotion: boolean | null) =>
+  prefersReducedMotion
+    ? { panel: INSTANT_TRANSITION, content: INSTANT_TRANSITION }
+    : { panel: SIDEBAR_SPRING, content: SIDEBAR_CONTENT_TRANSITION };
+
+const getPortalTarget = () =>
+  document.getElementById("big-picture") ??
+  document.getElementById("root") ??
+  document.body;
 
 const getSidebarWidth = () =>
   Math.round(
@@ -478,7 +493,7 @@ export function MediaViewer({
     ]
   );
 
-  const activeVideoItemId = isVideo && item ? item.id : null;
+  const activeVideoItemId = item?.type === "video" ? item.id : null;
   const getActiveVideo = useCallback(
     () => (activeVideoItemId ? getVideoHandle(activeVideoItemId) : undefined),
     [activeVideoItemId, getVideoHandle]
@@ -712,17 +727,9 @@ export function MediaViewer({
   const sidebarToggleLabel = tBigPicture(
     isSidebarHidden ? "media_viewer_show_sidebar" : "media_viewer_hide_sidebar"
   );
-  const sidebarTransition = prefersReducedMotion
-    ? { duration: 0 }
-    : SIDEBAR_SPRING;
-  const sidebarContentTransition = prefersReducedMotion
-    ? { duration: 0 }
-    : { duration: 0.26, ease: SIDEBAR_CONTENT_EASE };
-
-  const portalTarget =
-    document.getElementById("big-picture") ??
-    document.getElementById("root") ??
-    document.body;
+  const { panel: sidebarTransition, content: sidebarContentTransition } =
+    getSidebarTransitions(prefersReducedMotion);
+  const portalTarget = getPortalTarget();
 
   const stageRegion = (
     <VerticalFocusGroup

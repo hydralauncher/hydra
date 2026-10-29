@@ -98,6 +98,8 @@ export function LocalScreenshotSidebar({
   const isUploading =
     pendingAction === "upload" || isLocalScreenshotUploadInFlight(screenshot);
   const hasForm = isEditable || isUploading;
+  const showsUpload = canUpload || isUploading;
+  const isLocked = isBusy || isUploading;
 
   const runAction = async (
     action: "upload" | "delete",
@@ -178,7 +180,7 @@ export function LocalScreenshotSidebar({
                 clientId={clientId}
                 draft={draft}
                 isCustomGame={isCustomGame}
-                disabled={isBusy || isUploading}
+                disabled={isLocked}
                 focusIds={fieldFocusIds}
                 leftTarget={stageTarget}
                 downTarget={{
@@ -197,14 +199,12 @@ export function LocalScreenshotSidebar({
                 asChild
               >
                 <div className="local-screenshot-sidebar__actions">
-                  {canUpload || isUploading ? (
+                  {showsUpload ? (
                     <Button
                       focusId={uploadFocusId}
                       focusNavigationOverrides={{
                         left: stageTarget,
-                        up: hasForm
-                          ? { type: "item", itemId: fieldFocusIds.quality }
-                          : BLOCK_TARGET,
+                        up: { type: "item", itemId: fieldFocusIds.quality },
                       }}
                       disabled={isBusy}
                       loading={isUploading}
@@ -226,16 +226,13 @@ export function LocalScreenshotSidebar({
                     size="icon"
                     focusId={deleteFocusId}
                     focusNavigationOverrides={{
-                      left:
-                        canUpload || isUploading
-                          ? { type: "item", itemId: uploadFocusId }
-                          : stageTarget,
+                      left: showsUpload
+                        ? { type: "item", itemId: uploadFocusId }
+                        : stageTarget,
                       right: BLOCK_TARGET,
-                      up: hasForm
-                        ? { type: "item", itemId: fieldFocusIds.quality }
-                        : BLOCK_TARGET,
+                      up: { type: "item", itemId: fieldFocusIds.quality },
                     }}
-                    disabled={isBusy || isUploading}
+                    disabled={isLocked}
                     loading={pendingAction === "delete"}
                     icon={<TrashIcon size={20} />}
                     aria-label={t("screenshots_review_delete")}
