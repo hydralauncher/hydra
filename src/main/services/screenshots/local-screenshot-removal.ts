@@ -247,6 +247,7 @@ export const forgetPublishedScreenshots = async (screenshotIds: string[]) => {
     (screenshot) =>
       screenshot.screenshotId !== null &&
       ids.has(screenshot.screenshotId) &&
+      isLocalScreenshotVisibleToSignedInOwner(screenshot) &&
       (screenshot.state === "uploaded" || screenshot.state === "deleted")
   );
 
