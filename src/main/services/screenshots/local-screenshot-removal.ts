@@ -66,6 +66,7 @@ const removeLocalScreenshot = async (
   } else {
     await LocalScreenshotStore.delete(clientId);
   }
+  screenshotUploadWorker.cancel(clientId);
   ScreenshotTelemetry.record("review", telemetryOutcome);
   return true;
 };
