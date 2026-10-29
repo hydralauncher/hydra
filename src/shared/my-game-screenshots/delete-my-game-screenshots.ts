@@ -108,7 +108,27 @@ const deleteLocalFiles = async ({ target, local }: DeletionContext) => {
   return { deleted, expected, isComplete: deleted >= expected };
 };
 
-const isUnsentLocalFile = ({ state }: LocalScreenshot) => state !== "uploaded";
+const isUnsentLocalFile = ({
+  state,
+  pendingCompleteScreenshotId,
+}: LocalScreenshot) => state !== "uploaded" && !pendingCompleteScreenshotId;
+
+const deletePublishedAfterLocal = async (
+  context: DeletionContext,
+  unsentDeleted: number
+) => {
+  try {
+    return await deletePublished(context);
+  } catch (error) {
+    if (error instanceof PartialDeletionError) {
+      throw new PartialDeletionError(
+        unsentDeleted + error.deleted,
+        error.reason
+      );
+    }
+    throw new PartialDeletionError(unsentDeleted, error);
+  }
+};
 
 const runDeletion = async (
   deletion: MyScreenshotsDeletion,
@@ -133,11 +153,12 @@ const runDeletion = async (
   const pendingBefore = (
     await context.local.getLocalScreenshotsForGame(shop, objectId)
   ).filter(isUnsentLocalFile).length;
-  const published = await deletePublished(context);
   const local = await deleteLocalFiles(context);
-  const restoredCopies = Math.max(0, local.expected - pendingBefore);
+  const publishedCopies = Math.max(0, local.expected - pendingBefore);
+  const unsentDeleted = Math.max(0, local.deleted - publishedCopies);
+  const published = await deletePublishedAfterLocal(context, unsentDeleted);
   return {
-    deleted: published + Math.max(0, local.deleted - restoredCopies),
+    deleted: published + unsentDeleted,
     isComplete: local.isComplete,
   };
 };
