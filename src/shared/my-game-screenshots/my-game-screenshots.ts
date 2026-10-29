@@ -54,11 +54,6 @@ export type MyScreenshotItem =
   | { kind: "published"; id: string; screenshot: ProfileScreenshot }
   | { kind: "local"; id: string; screenshot: LocalScreenshot };
 
-const getMyScreenshotSortTime = (item: MyScreenshotItem) =>
-  item.kind === "published"
-    ? item.screenshot.capturedAt
-    : item.screenshot.capturedAt;
-
 export const mergeMyScreenshots = (
   published: ProfileScreenshot[],
   local: LocalScreenshot[],
@@ -78,7 +73,7 @@ export const mergeMyScreenshots = (
   if (sort === "top") return [...localItems, ...publishedItems];
 
   return [...localItems, ...publishedItems].toSorted(
-    (a, b) => getMyScreenshotSortTime(b) - getMyScreenshotSortTime(a)
+    (a, b) => b.screenshot.capturedAt - a.screenshot.capturedAt
   );
 };
 
