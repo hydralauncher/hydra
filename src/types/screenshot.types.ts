@@ -239,6 +239,7 @@ export interface LocalScreenshot {
   uploadProgress: number | null;
   lastError: string | null;
   gameSessionId: string | null;
+  volumeId?: number | null;
   uploadQuality?: ScreenshotQuality | null;
   uploadClientId?: string | null;
   uploadAttempts?: number;
