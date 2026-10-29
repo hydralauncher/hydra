@@ -282,6 +282,11 @@ export interface ScreenshotTelemetryEvent {
 }
 
 export interface ScreenshotFeedbackToast {
-  kind: "captured" | "saved_locally" | "capture_failed" | "share_pending";
+  kind:
+    | "captured"
+    | "saved_locally"
+    | "capture_failed"
+    | "share_pending"
+    | "share_unavailable";
   gameTitle: string;
 }

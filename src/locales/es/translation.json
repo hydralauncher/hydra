@@ -2617,6 +2617,7 @@
     "retry": "Reintentar",
     "saved_locally": "Captura guardada en este equipo",
     "share_pending": "Primero elige la ventana del juego en el aviso para compartir pantalla",
+    "share_unavailable": "Compartir pantalla no está disponible en este sistema",
     "screenshot_alt": "Captura de {{game}} tomada el {{date}}",
     "spoiler_hint": "Los demás la verán difuminada hasta que decidan mostrarla",
     "spoiler_label": "Contiene spoilers",
