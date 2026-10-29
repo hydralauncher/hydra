@@ -67,7 +67,7 @@ export function ScreenshotReportModal({
       onClose={onClose}
       closeOnBackdrop={!isSubmitting}
       closeOnEscape={!isSubmitting}
-      closeOnB={!isSubmitting}
+      busy={isSubmitting}
       initialFocusId={REASON_FOCUS_ID}
       className="screenshot-report-modal"
       backdropClassName="screenshot-report-modal__backdrop"

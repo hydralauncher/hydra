@@ -37,6 +37,7 @@ export interface ModalProps {
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
   closeOnB?: boolean;
+  busy?: boolean;
   ariaLabel?: string;
   animateLayout?: boolean;
   initialFocusId?: string;
@@ -49,19 +50,19 @@ export const MODAL_OWNED_OVERLAY_ATTRIBUTE = "data-hydra-modal-owned-overlay";
 interface ModalBackActionProps {
   enabled: boolean;
   isExiting: boolean;
+  isBusy: boolean;
   onBack: () => void;
 }
 
 const swallowBPress = () => {};
-const BUSY_MODAL_BACK_ACTIONS: ScreenActions = { press: { b: swallowBPress } };
-const IDLE_MODAL_BACK_ACTIONS: ScreenActions = {};
 
 function getModalBackActions({
   enabled,
   isExiting,
+  isBusy,
   onBack,
 }: Readonly<ModalBackActionProps>): ScreenActions {
-  if (isExiting) return { press: { b: swallowBPress } };
+  if (isExiting || isBusy) return { press: { b: swallowBPress } };
   if (enabled) return { press: { b: onBack } };
   return {};
 }
@@ -86,6 +87,7 @@ export function Modal({
   closeOnBackdrop = true,
   closeOnEscape = true,
   closeOnB = true,
+  busy = false,
   ariaLabel = title,
   animateLayout = false,
   initialFocusId,
@@ -132,12 +134,9 @@ export function Modal({
     }
   };
 
-  const shouldCloseOnB = visible && closeOnB && !isVirtualKeyboardOpen;
-  const isBusyOnB = visible && !closeOnB && !isVirtualKeyboardOpen;
+  const shouldCloseOnB = visible && closeOnB && !busy && !isVirtualKeyboardOpen;
+  const isBusyOnB = visible && busy && !isVirtualKeyboardOpen;
 
-  useNavigationScreenActions(
-    isBusyOnB ? BUSY_MODAL_BACK_ACTIONS : IDLE_MODAL_BACK_ACTIONS
-  );
   const resolvedLayoutTransition = layoutTransition ?? {
     duration: 0.4,
     ease: "easeInOut",
@@ -231,6 +230,7 @@ export function Modal({
         <ModalBackAction
           enabled={shouldCloseOnB}
           isExiting={isExiting}
+          isBusy={isBusyOnB}
           onBack={handleBPress}
         />
       ) : null}

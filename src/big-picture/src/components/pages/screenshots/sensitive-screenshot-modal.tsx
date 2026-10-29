@@ -91,7 +91,7 @@ export function SensitiveScreenshotModal({
       initialFocusId={ids.cancel}
       closeOnBackdrop={false}
       closeOnEscape={!isSaving}
-      closeOnB={!isSaving}
+      busy={isSaving}
       className="confirmation-modal sensitive-screenshot-modal"
       backdropClassName="sensitive-screenshot-modal__backdrop"
       onExitComplete={onExitComplete}

@@ -104,7 +104,7 @@ export function ScreenshotManageModal({
       onClose={onClose}
       closeOnBackdrop={!isSaving}
       closeOnEscape={!isSaving}
-      closeOnB={!isSaving}
+      busy={isSaving}
       initialFocusId={VISIBILITY_FOCUS_ID}
       className="screenshot-manage-modal"
       backdropClassName="screenshot-manage-modal__backdrop"

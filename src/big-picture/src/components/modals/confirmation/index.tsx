@@ -74,7 +74,7 @@ export function ConfirmationModal({
       description={description}
       closeOnBackdrop={closeOnBackdrop && !loading}
       closeOnEscape={!loading}
-      closeOnB={!loading}
+      busy={loading}
       className="confirmation-modal"
       backdropClassName={backdropClassName}
       onExitComplete={onExitComplete}
