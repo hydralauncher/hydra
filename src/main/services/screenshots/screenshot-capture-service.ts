@@ -365,16 +365,20 @@ const getWaylandShareBlocker = async (
   return failure ? WAYLAND_SHARE_FAILURE_TOASTS[failure] : "share_pending";
 };
 
-const recordCaptureFailure = (gameKey: string, error: unknown) => {
+type CaptureFailureStage = "frame" | "encode" | "write" | "store";
+
+const recordCaptureFailure = (
+  gameKey: string,
+  stage: CaptureFailureStage,
+  error: unknown
+) => {
   logger.error("Failed to capture a manual screenshot", {
     gameKey,
+    stage,
     error: error instanceof Error ? error.message : error,
   });
-  ScreenshotTelemetry.record(
-    "capture",
-    "failed",
-    error instanceof Error ? error.name : "unknown_error"
-  );
+  const errorName = error instanceof Error ? error.name : "unknown_error";
+  ScreenshotTelemetry.record("capture", "failed", `${stage}_${errorName}`);
 };
 
 const createCaptureTimer = (
@@ -434,8 +438,8 @@ const grabScreenshot = async (
 
   const ownerId = getSignedInScreenshotOwnerId();
 
-  const failCapture = (error: unknown) => {
-    recordCaptureFailure(target.gameKey, error);
+  const failCapture = (stage: CaptureFailureStage, error: unknown) => {
+    recordCaptureFailure(target.gameKey, stage, error);
     showCaptureToast("capture_failed", gameTitle);
   };
 
@@ -450,7 +454,7 @@ const grabScreenshot = async (
       x11WindowId: foreground?.windowId,
     });
   } catch (error) {
-    failCapture(error);
+    failCapture("frame", error);
     return null;
   }
   timer.mark("frame");
@@ -462,7 +466,7 @@ const grabScreenshot = async (
   try {
     images = await frame.encode(CAPTURE_JPEG_QUALITY);
   } catch (error) {
-    failCapture(error);
+    failCapture("encode", error);
     return null;
   } finally {
     frame.discard();
@@ -474,7 +478,7 @@ const grabScreenshot = async (
     try {
       filePath = await saveCaptureFile(gameTitle, capturedAt, images.jpeg);
     } catch (error) {
-      failCapture(error);
+      failCapture("write", error);
       return;
     }
     const previewPath = await writeScreenshotPreview(images.preview).catch(
@@ -498,7 +502,7 @@ const grabScreenshot = async (
         previewPath,
       });
     } catch (error) {
-      failCapture(error);
+      failCapture("store", error);
       await discardUnrecordedCapture(filePath, previewPath);
       return;
     }
