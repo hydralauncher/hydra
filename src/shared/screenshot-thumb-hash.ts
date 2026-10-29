@@ -1,7 +1,7 @@
 import { thumbHashToDataURL } from "thumbhash";
 
 const decodeBase64 = (value: string) =>
-  Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
+  Uint8Array.from(atob(value), (character) => character.codePointAt(0) ?? 0);
 
 export const getScreenshotThumbHashUrl = (
   thumbHash: string | null | undefined

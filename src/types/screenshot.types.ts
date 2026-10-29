@@ -263,6 +263,7 @@ export interface LocalScreenshot {
   uploadGameWaits?: number;
   uploadModerationWaits?: number;
   uploadCapacityWaits?: number;
+  uploadRateLimitWaits?: number;
   nextUploadAttemptAt?: number | null;
   uploadedAt?: number | null;
   description?: string | null;

@@ -79,6 +79,7 @@ impl Runtime {
             let _ = keyboard.handle.join();
         }
         if let Some(gamepad) = self.gamepad {
+            gamepad.thread().unpark();
             let _ = gamepad.join();
         }
     }
@@ -426,6 +427,21 @@ fn run_xinput(context: &Context) {
                 context.emit(TriggerSource::Gamepad, Backend::XInput);
             }
         }
-        thread::sleep(XINPUT_POLL_INTERVAL);
+        thread::park_timeout(xinput_wait(&next_probe, Instant::now()));
     }
+}
+
+fn xinput_wait(next_probe: &[Option<Instant>; XINPUT_USER_COUNT], now: Instant) -> Duration {
+    let mut earliest_probe: Option<Instant> = None;
+    for deadline in next_probe {
+        let Some(deadline) = *deadline else {
+            return XINPUT_POLL_INTERVAL;
+        };
+        earliest_probe = Some(earliest_probe.map_or(deadline, |earliest| earliest.min(deadline)));
+    }
+    earliest_probe.map_or(XINPUT_POLL_INTERVAL, |deadline| {
+        deadline
+            .saturating_duration_since(now)
+            .max(XINPUT_POLL_INTERVAL)
+    })
 }

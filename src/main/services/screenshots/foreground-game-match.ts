@@ -1,7 +1,7 @@
 import type { GameShop } from "@types";
 
-import { isLinuxGameWindowProcess } from "../linux-process-match";
-import { isWindowsGameForegroundProcess } from "../windows-game-window-match";
+import { isLinuxGameWindowProcess } from "../linux-process-match.js";
+import { isWindowsGameForegroundProcess } from "../windows-game-window-match.js";
 
 export interface ScreenshotGameTarget {
   gameKey: string;

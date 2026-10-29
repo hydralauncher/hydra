@@ -208,7 +208,7 @@ export class ScreenshotInputService {
 
   public static trigger(source: ScreenshotTriggerSource) {
     if (!this.featureEnabled || !this.settings.enabled) {
-      logger.info("Screenshot trigger ignored: input disabled", {
+      logger.debug("Screenshot trigger ignored: input disabled", {
         source,
         featureEnabled: this.featureEnabled,
         settingsEnabled: this.settings.enabled,
@@ -216,7 +216,7 @@ export class ScreenshotInputService {
       return false;
     }
     if (!hasTrackedGamesRunning()) {
-      logger.info("Screenshot trigger ignored: no tracked game running", {
+      logger.debug("Screenshot trigger ignored: no tracked game running", {
         source,
       });
       return false;
@@ -230,7 +230,7 @@ export class ScreenshotInputService {
       lastTriggerAt !== undefined &&
       now - lastTriggerAt < SCREENSHOT_TRIGGER_COOLDOWN_MS
     ) {
-      logger.info("Screenshot trigger ignored: cooldown", {
+      logger.debug("Screenshot trigger ignored: cooldown", {
         source,
         sinceLastTriggerMs: Math.round(now - lastTriggerAt),
       });

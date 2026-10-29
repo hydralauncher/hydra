@@ -36,7 +36,7 @@ const getPublishedCopiesKey = (
         ? [screenshot.screenshotId]
         : []
     )
-    .toSorted()
+    .toSorted((left, right) => left.localeCompare(right))
     .join(",");
 
 export function useMyGameScreenshotCounts({

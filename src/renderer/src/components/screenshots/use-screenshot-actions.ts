@@ -223,12 +223,12 @@ export function useScreenshotActions({
   );
 
   const updateScreenshot = useCallback(
-    async (screenshot: ProfileScreenshot, update: ScreenshotUpdateRequest) => {
-      if (!startUpdating(screenshot.id)) return false;
+    (screenshot: ProfileScreenshot, update: ScreenshotUpdateRequest) => {
+      if (!startUpdating(screenshot.id)) return Promise.resolve(false);
 
       onPatch(screenshot.id, getEditedScreenshotFields(update, null));
       void persistScreenshotUpdate(screenshot, update);
-      return true;
+      return Promise.resolve(true);
     },
     [onPatch, persistScreenshotUpdate, startUpdating]
   );
