@@ -43,6 +43,7 @@ const UPLOAD_TIMEOUT_MS = 5 * 60_000;
 const IMAGE_PROGRESS_SHARE = 0.9;
 const THUMBNAIL_PROGRESS_SHARE = 0.07;
 const MIN_SCHEDULED_RUN_DELAY_MS = 1_000;
+const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
 
 class UploadPutError extends Error {
   constructor(cause: unknown) {
@@ -707,7 +708,10 @@ class ScreenshotUploadWorker {
       .toSorted((a, b) => a - b)[0];
     if (nextRetryAt === undefined) return;
 
-    const delay = Math.max(MIN_SCHEDULED_RUN_DELAY_MS, nextRetryAt - now);
+    const delay = Math.min(
+      Math.max(MIN_SCHEDULED_RUN_DELAY_MS, nextRetryAt - now),
+      MAX_TIMER_DELAY_MS
+    );
     this.retryTimer = setTimeout(() => void this.trigger(), delay);
     this.retryTimer.unref?.();
   }

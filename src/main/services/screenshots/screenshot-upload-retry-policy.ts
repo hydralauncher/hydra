@@ -36,6 +36,7 @@ export const SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS = 60_000;
 export const SCREENSHOT_MODERATION_DEFAULT_WAIT_MS = 30_000;
 export const SCREENSHOT_MODERATION_BACKOFF_BASE_MS = 2_000;
 export const SCREENSHOT_MODERATION_BACKOFF_MAX_MS = 60_000;
+export const SCREENSHOT_MODERATION_MAX_WAIT_MS = 24 * 60 * 60_000;
 
 export const SCREENSHOT_MISSING_FILE_CODE = "screenshot_missing";
 export const SCREENSHOT_ALREADY_UPLOADED_CODE = "screenshots/already-uploaded";
@@ -84,10 +85,13 @@ export const getScreenshotModerationWaitDelay = (
   failure: ScreenshotUploadFailure,
   moderationWaits: number
 ) =>
-  (failure.retryAfterMs ?? SCREENSHOT_MODERATION_DEFAULT_WAIT_MS) +
   Math.min(
-    SCREENSHOT_MODERATION_BACKOFF_BASE_MS * 2 ** moderationWaits,
-    SCREENSHOT_MODERATION_BACKOFF_MAX_MS
+    (failure.retryAfterMs ?? SCREENSHOT_MODERATION_DEFAULT_WAIT_MS) +
+      Math.min(
+        SCREENSHOT_MODERATION_BACKOFF_BASE_MS * 2 ** moderationWaits,
+        SCREENSHOT_MODERATION_BACKOFF_MAX_MS
+      ),
+    SCREENSHOT_MODERATION_MAX_WAIT_MS
   );
 
 const getRecoveryAction = (

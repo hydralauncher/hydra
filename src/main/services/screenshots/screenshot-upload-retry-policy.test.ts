@@ -8,6 +8,7 @@ import {
   planScreenshotUploadRecovery,
   SCREENSHOT_MISSING_FILE_CODE,
   SCREENSHOT_MODERATION_DEFAULT_WAIT_MS,
+  SCREENSHOT_MODERATION_MAX_WAIT_MS,
   SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS,
   SCREENSHOT_UPLOAD_GAME_WAIT_DELAY_MS,
   SCREENSHOT_UPLOAD_MAX_ATTEMPTS,
@@ -286,6 +287,13 @@ describe("screenshot upload recovery plan", () => {
     assert.equal(
       getScreenshotModerationWaitDelay(failure, 20),
       SCREENSHOT_MODERATION_DEFAULT_WAIT_MS + 60_000
+    );
+    assert.equal(
+      getScreenshotModerationWaitDelay(
+        { ...failure, retryAfterMs: 30 * 24 * 60 * 60_000 },
+        0
+      ),
+      SCREENSHOT_MODERATION_MAX_WAIT_MS
     );
     assert.deepEqual(plan(failure, { moderationWaits: 1 }), {
       kind: "retry_at",
