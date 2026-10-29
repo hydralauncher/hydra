@@ -13,6 +13,7 @@ import {
   buildGrabFrameExpression,
   createGrabbedFrame,
   parseGrabbedFrame,
+  SCREENSHOT_CAPTURE_CALL_TIMEOUT_MS,
   type GrabbedScreenshotFrame,
   type ScreenshotFrameGrabOptions,
 } from "./screenshots/screenshot-frame-script";
@@ -22,7 +23,10 @@ import {
   type CaptureSessionReason,
 } from "./linux-game-capture-session-reasons";
 import { readUserPreferences } from "./screenshots/screenshot-user-preferences";
-import { executeWhileWindowAlive } from "./screenshots/window-bound-promise";
+import {
+  executeWhileWindowAlive,
+  executeWithinDeadline,
+} from "./screenshots/window-bound-promise";
 
 export type LinuxGameCaptureState = "pending" | "ready" | "failed";
 
@@ -88,6 +92,23 @@ const executeInCaptureWindow = (
   captureWindow: BrowserWindow,
   expression: string
 ) => executeWhileWindowAlive(captureWindow, CAPTURE_CLOSED_MESSAGE, expression);
+
+const captureFrameInWindow = (
+  captureWindow: BrowserWindow,
+  expression: string
+) =>
+  executeWithinDeadline(
+    captureWindow,
+    CAPTURE_CLOSED_MESSAGE,
+    expression,
+    SCREENSHOT_CAPTURE_CALL_TIMEOUT_MS,
+    () => {
+      logger.warn("Wayland game window capture timed out, closing it", {
+        timeoutMs: SCREENSHOT_CAPTURE_CALL_TIMEOUT_MS,
+      });
+      if (!captureWindow.isDestroyed()) captureWindow.destroy();
+    }
+  );
 
 const destroyCaptureWindow = (captureWindow: BrowserWindow | null) => {
   if (!captureWindow || captureWindow.isDestroyed()) return;
@@ -333,7 +354,7 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
     throw new Error(CAPTURE_CLOSED_MESSAGE);
   }
 
-  const capture = executeInCaptureWindow(
+  const capture = captureFrameInWindow(
     captureWindow,
     `
     (() => {
@@ -405,7 +426,7 @@ export const grabLinuxGameSessionFrame = async (
   }
 
   const runInCaptureWindow = (expression: string) =>
-    executeInCaptureWindow(captureWindow, expression);
+    captureFrameInWindow(captureWindow, expression);
 
   let releaseCapture = () => {};
   const capture = new Promise<void>((resolve) => {
