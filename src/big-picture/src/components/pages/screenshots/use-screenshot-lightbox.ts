@@ -211,7 +211,11 @@ export function useScreenshotLightbox({
       setStandalone((current) =>
         current?.screenshot.id === screenshotId ? null : current
       );
-      setState({ screenshotId, status: "unavailable" });
+      setState((current) =>
+        current?.screenshotId === screenshotId
+          ? { screenshotId, status: "unavailable" }
+          : current
+      );
     },
     [removeItem]
   );
