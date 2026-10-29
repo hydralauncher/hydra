@@ -403,9 +403,9 @@ export function useScreenshotComments({
   );
 
   const createComment = useCallback(
-    async (body: string) => {
+    (body: string) => {
       const normalizedBody = normalizeScreenshotCommentBody(body);
-      if (!normalizedBody || !author) return false;
+      if (!normalizedBody || !author) return Promise.resolve(false);
 
       const pendingComment = createPendingComment(normalizedBody, author);
       setPending(pendingComment.id, true);
@@ -413,7 +413,7 @@ export function useScreenshotComments({
       setTotal((current) => (current ?? 0) + 1);
       onPatch(screenshotId, adjustCommentCount(1));
       void publishComment(pendingComment.id, normalizedBody);
-      return true;
+      return Promise.resolve(true);
     },
     [author, onPatch, publishComment, recordWrite, screenshotId, setPending]
   );
@@ -456,11 +456,11 @@ export function useScreenshotComments({
   );
 
   const editComment = useCallback(
-    async (comment: ScreenshotComment, body: string) => {
+    (comment: ScreenshotComment, body: string) => {
       const normalizedBody = normalizeScreenshotCommentBody(body);
-      if (!normalizedBody) return false;
-      if (normalizedBody === comment.bodyHtml) return true;
-      if (pendingCommentIds.has(comment.id)) return false;
+      if (!normalizedBody) return Promise.resolve(false);
+      if (normalizedBody === comment.bodyHtml) return Promise.resolve(true);
+      if (pendingCommentIds.has(comment.id)) return Promise.resolve(false);
 
       const editVersion = (editVersionsRef.current.get(comment.id) ?? 0) + 1;
       editVersionsRef.current.set(comment.id, editVersion);
@@ -470,7 +470,7 @@ export function useScreenshotComments({
         patch: { bodyHtml: normalizedBody, editedAt: Date.now() },
       });
       void persistCommentEdit(comment, normalizedBody, editVersion);
-      return true;
+      return Promise.resolve(true);
     },
     [pendingCommentIds, persistCommentEdit, recordWrite]
   );
