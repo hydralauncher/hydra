@@ -10,13 +10,19 @@ import {
   ScreenshotLoadMoreError,
   useLoadUntilScrollable,
 } from "@renderer/components/screenshots";
-import { groupByCaptureDay, type ScreenshotWriteBus } from "@shared";
+import {
+  groupByCaptureDay,
+  resolveMyGameScreenshotsStatus,
+  selectPendingLocalWithinLoadedUploads,
+  type ScreenshotWriteBus,
+} from "@shared";
 import type { GameShop } from "@types";
 
 import { GameScreenshotsHotkeyTip } from "./game-screenshots-hotkey-tip";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
 import type { MyScreenshotsEntry } from "./my-screenshots-entries";
 import { MyScreenshotsLightbox } from "./my-screenshots-lightbox";
+import { MyScreenshotsPartialNotice } from "./my-screenshots-partial-notice";
 import { useMyScreenshotsViewer } from "./use-my-screenshots-viewer";
 import { useCaptureDayLabel } from "./screenshot-date-groups";
 import { useLocalScreenshotActions } from "./use-local-screenshot-actions";
@@ -106,20 +112,16 @@ export function MyScreenshotsPanel({
 
   const uploadedItems = canFetchPublished ? feed.items : [];
   const hasMoreUploaded = canFetchPublished && feed.hasMore;
-  const oldestLoadedUpload = uploadedItems.at(-1)?.createdAt ?? null;
   const entries: MyScreenshotsEntry[] = [
-    ...localState.pendingLocal
-      .filter(
-        (screenshot) =>
-          !hasMoreUploaded ||
-          oldestLoadedUpload === null ||
-          screenshot.capturedAt >= oldestLoadedUpload
-      )
-      .map((screenshot) => ({
-        kind: "local" as const,
-        time: screenshot.capturedAt,
-        screenshot,
-      })),
+    ...selectPendingLocalWithinLoadedUploads(
+      localState.pendingLocal,
+      uploadedItems,
+      hasMoreUploaded
+    ).map((screenshot) => ({
+      kind: "local" as const,
+      time: screenshot.capturedAt,
+      screenshot,
+    })),
     ...uploadedItems.map((screenshot) => ({
       kind: "uploaded" as const,
       time: screenshot.createdAt,
@@ -135,10 +137,14 @@ export function MyScreenshotsPanel({
     getUploadStatus: local.getUploadStatus,
   });
 
-  const isLoading =
-    !localState.hasLoaded || (canFetchPublished && !feed.hasLoaded);
-  const hasFailed =
-    localState.hasFailed || (canFetchPublished && feed.hasFailed);
+  const status = resolveMyGameScreenshotsStatus({
+    local: { isLoaded: localState.hasLoaded, hasFailed: localState.hasFailed },
+    published: {
+      isEnabled: canFetchPublished,
+      isLoaded: feed.hasLoaded,
+      hasFailed: feed.hasFailed,
+    },
+  });
 
   useLoadUntilScrollable({
     scrollTargetId: scrollId,
@@ -214,9 +220,18 @@ export function MyScreenshotsPanel({
     ));
 
   const renderContent = (): ReactNode => {
-    if (hasFailed) return <LoadError onRetry={retry} />;
-    if (isLoading) return <GridSkeleton />;
-    if (entries.length === 0) return <EmptyState />;
+    if (status === "failed") return <LoadError onRetry={retry} />;
+    if (status === "loading") return <GridSkeleton />;
+
+    const partialNotice =
+      status === "partial" ? (
+        <MyScreenshotsPartialNotice
+          hasLocalFailed={localState.hasFailed}
+          onRetry={retry}
+        />
+      ) : null;
+
+    if (entries.length === 0) return partialNotice ?? <EmptyState />;
 
     return (
       <InfiniteScroll
@@ -234,6 +249,7 @@ export function MyScreenshotsPanel({
         scrollableTarget={scrollId}
         style={{ overflow: "visible" }}
       >
+        {partialNotice}
         {renderDayGroups()}
       </InfiniteScroll>
     );
