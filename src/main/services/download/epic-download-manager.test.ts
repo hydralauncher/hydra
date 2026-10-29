@@ -136,6 +136,9 @@ function fixture() {
     "./types": downloaderTypes,
     "./download-completion": completion,
     "./download-parts": downloadParts,
+    "./multipart-hoster-feature": {
+      assertMultipartHosterDownloadsEnabled: async () => {},
+    },
     "./download-queue-verify": queueVerify,
     "node:path": path,
     "node:fs": fs,

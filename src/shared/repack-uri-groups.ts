@@ -12,10 +12,34 @@ export const MULTIPART_DOWNLOADERS: ReadonlySet<Downloader> = new Set([
   Downloader.FileKeeper,
 ]);
 
+export const MULTIPART_HOSTER_DOWNLOADS_FEATURE = "MULTIPART_HOSTER_DOWNLOADS";
+
+/** Hosts that only the multi-part hoster downloads feature supports. */
+const MULTIPART_FEATURE_URI_PREFIXES = [
+  "https://fuckingfast.net",
+  "https://filekeeper.net/",
+];
+
 interface UriGroupRepack {
   uris: string[];
   uriGroups?: string[][];
 }
+
+/** With the feature off, a repack keeps only the links Hydra supported before it. */
+export const withoutMultipartHosterDownloads = <T extends UriGroupRepack>(
+  repack: T
+): T => ({
+  ...repack,
+  uris: Array.isArray(repack.uris)
+    ? repack.uris.filter(
+        (uri) =>
+          !MULTIPART_FEATURE_URI_PREFIXES.some((prefix) =>
+            uri.startsWith(prefix)
+          )
+      )
+    : repack.uris,
+  uriGroups: undefined,
+});
 
 const isUriGroup = (value: unknown): value is string[] =>
   Array.isArray(value) &&

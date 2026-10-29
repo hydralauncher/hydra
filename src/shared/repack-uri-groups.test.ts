@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Downloader } from "./constants.js";
-import { getUriGroupParts, normalizeUriGroups } from "./repack-uri-groups.js";
+import {
+  getUriGroupParts,
+  normalizeUriGroups,
+  withoutMultipartHosterDownloads,
+} from "./repack-uri-groups.js";
 
 const getDownloadersForUri = (uri: string): Downloader[] => {
   if (uri.startsWith("https://fuckingfast.co")) return [Downloader.FuckingFast];
@@ -71,5 +75,22 @@ describe("normalizeUriGroups", () => {
 
     assert.deepEqual(repack.uris, [fuckingFastParts[1]]);
     assert.deepEqual(repack.uriGroups, []);
+  });
+});
+
+describe("withoutMultipartHosterDownloads", () => {
+  it("drops groups and links only the feature supports", () => {
+    const repack = withoutMultipartHosterDownloads({
+      uris: [
+        "magnet:?xt=1",
+        fuckingFastParts[0],
+        "https://fuckingfast.net/d#Game.rar",
+        "https://filekeeper.net/e/Game.rar",
+      ],
+      uriGroups: [fuckingFastParts],
+    });
+
+    assert.deepEqual(repack.uris, ["magnet:?xt=1", fuckingFastParts[0]]);
+    assert.equal(repack.uriGroups, undefined);
   });
 });

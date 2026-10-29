@@ -32,6 +32,7 @@ import path from "node:path";
 import pngToIco from "png-to-ico";
 import sharp from "sharp";
 import { ExtractionProgress, SevenZip } from "./7zip";
+import { isMultipartHosterDownloadsEnabled } from "./download/multipart-hoster-feature";
 import * as emulators from "./emulators";
 import * as retroarch from "./retroarch";
 import { getPathType } from "./extraction-path";
@@ -294,6 +295,9 @@ export class GameFilesManager {
 
     const compressedFiles = new Set<string>();
     const extractedFiles = new Set<string>();
+    const firstRarVolume = (await isMultipartHosterDownloadsEnabled())
+      ? /part0*1\.rar$/i
+      : /part1\.rar$/i;
 
     // Only process archives at the extraction root. Archives in game subfolders
     // may be runtime assets and must remain intact.
@@ -313,7 +317,7 @@ export class GameFilesManager {
       const filesToExtract = archives.filter(
         (file) =>
           !extractedFiles.has(file) &&
-          (/part0*1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file))
+          (firstRarVolume.test(file) || !/part\d+\.rar$/i.test(file))
       );
 
       if (filesToExtract.length === 0) continue;

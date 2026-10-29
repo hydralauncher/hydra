@@ -91,6 +91,7 @@ import {
   estimateMultipartTotalBytes,
   getMultipartFolderName,
 } from "./download-parts";
+import { assertMultipartHosterDownloadsEnabled } from "./multipart-hoster-feature";
 import { describeErrorCause } from "@main/helpers/download-error-handler";
 import {
   DISK_SPACE_CHECK_INTERVAL_MS,
@@ -2390,6 +2391,7 @@ export class DownloadManager {
     download: Download,
     resumingFilename?: string
   ) {
+    await assertMultipartHosterDownloadsEnabled();
     const downloadUrl = await FileKeeperApi.getDownloadUrl(download.uri);
     const filename = this.resolveFilename(
       resumingFilename,
@@ -3094,6 +3096,7 @@ export class DownloadManager {
     downloadId: string,
     preparedOptions: JsDownloadOptions | null
   ): Promise<JsBatchState> {
+    await assertMultipartHosterDownloadsEnabled();
     const parts = download.parts!;
     const savedPaths = new Map(
       download.files?.map((file) => [file.index, file.path])

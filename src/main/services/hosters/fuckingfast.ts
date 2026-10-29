@@ -2,6 +2,7 @@ import axios from "axios";
 import { BrowserWindow } from "electron";
 import { setTimeout as sleep } from "node:timers/promises";
 import { logger } from "@main/services";
+import { isMultipartHosterDownloadsEnabled } from "../download/multipart-hoster-feature";
 
 export const HOSTER_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0";
@@ -254,7 +255,57 @@ export class FuckingFastApi {
     }
   }
 
+  private static readonly LEGACY_DOMAIN = "fuckingfast.co";
+
+  private static readonly LEGACY_DIRECT_LINK_REGEX =
+    /window\.open\("(https:\/\/fuckingfast\.co\/dl\/[^"]*)"\)/;
+
+  /** Reads the link from the page HTML, as Hydra did before multi-part hoster downloads. */
+  private static async getLegacyDirectLink(url: string): Promise<string> {
+    if (!url.toLowerCase().includes(this.LEGACY_DOMAIN)) {
+      throw new Error(
+        `Unsupported domain. Supported domains: ${this.LEGACY_DOMAIN}`
+      );
+    }
+    try {
+      logger.log(`[FuckingFast] Starting download link extraction for: ${url}`);
+      const response = await axios.get(url, {
+        headers: { "User-Agent": HOSTER_USER_AGENT },
+        timeout: 30000,
+      });
+
+      const html = response.data;
+
+      if (html.toLowerCase().includes("rate limit")) {
+        logger.error(`[FuckingFast] Rate limit detected`);
+        throw new Error(
+          "Rate limit exceeded. Please wait a few minutes and try again."
+        );
+      }
+
+      if (html.includes("File Not Found Or Deleted")) {
+        logger.error(`[FuckingFast] File not found or deleted`);
+        throw new Error("File not found or deleted");
+      }
+
+      const match = this.LEGACY_DIRECT_LINK_REGEX.exec(html);
+      if (!match || !match[1]) {
+        logger.error(`[FuckingFast] Could not extract download link`);
+        throw new Error("Could not extract download link from page");
+      }
+
+      logger.log(`[FuckingFast] Successfully extracted direct link`);
+      return match[1];
+    } catch (error) {
+      logger.error(`[FuckingFast] Error:`, error);
+      handleHosterError(error);
+    }
+  }
+
   public static async getDirectLink(url: string): Promise<string> {
+    if (!(await isMultipartHosterDownloadsEnabled())) {
+      return this.getLegacyDirectLink(url);
+    }
     if (!this.isSupportedHost(url)) {
       throw new Error(
         `Unsupported domain. Supported domains: ${this.FUCKINGFAST_DOMAINS.join(", ")}`

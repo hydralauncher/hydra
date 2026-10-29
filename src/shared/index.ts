@@ -18,7 +18,11 @@ import {
 } from "date-fns/locale";
 
 import { isArchiveOrgFileUri } from "./archive-org";
-import { getUriGroupParts, normalizeUriGroups } from "./repack-uri-groups";
+import {
+  getUriGroupParts,
+  normalizeUriGroups,
+  withoutMultipartHosterDownloads,
+} from "./repack-uri-groups";
 import { charMap } from "./char-map";
 import { Downloader } from "./constants";
 import { format } from "date-fns";
@@ -43,7 +47,10 @@ export * from "./cloud-save-access";
 export * from "./cloud-save-emulator-provider";
 export * from "./profile-friends";
 export * from "./classics-disc-label";
-export { MULTIPART_DOWNLOADERS } from "./repack-uri-groups";
+export {
+  MULTIPART_DOWNLOADERS,
+  MULTIPART_HOSTER_DOWNLOADS_FEATURE,
+} from "./repack-uri-groups";
 export * from "./controller-support";
 export * from "./artwork-resolver";
 export * from "./library-catalogue";
@@ -236,10 +243,15 @@ export const getRepackUriParts = getUriGroupParts;
 export const filterDownloadableRepacks = <
   T extends Pick<GameRepack, "uris" | "uriGroups">,
 >(
-  repacks: T[]
+  repacks: T[],
+  multipartHosterDownloads: boolean
 ) =>
   repacks
-    .map((repack) => normalizeUriGroups(repack, getDownloadersForUri))
+    .map((repack) =>
+      multipartHosterDownloads
+        ? normalizeUriGroups(repack, getDownloadersForUri)
+        : withoutMultipartHosterDownloads(repack)
+    )
     .filter(
       (repack) =>
         Array.isArray(repack.uris) &&

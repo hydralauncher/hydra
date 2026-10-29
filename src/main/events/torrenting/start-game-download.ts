@@ -56,7 +56,7 @@ const startGameDownload = async (
       downloadPath,
       downloader,
       uri,
-      parts: getMultipartDownloadParts(uri, parts, downloader),
+      parts: await getMultipartDownloadParts(uri, parts, downloader),
       folderName: null,
       shouldSeed: false,
       timestamp: Date.now(),

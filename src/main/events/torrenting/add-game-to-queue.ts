@@ -53,7 +53,7 @@ const addGameToQueue = async (
       downloadPath,
       downloader,
       uri,
-      parts: getMultipartDownloadParts(uri, parts, downloader),
+      parts: await getMultipartDownloadParts(uri, parts, downloader),
       folderName: null,
       fileSize: selectedFilesSize ?? parsedFileSize,
       shouldSeed: false,
