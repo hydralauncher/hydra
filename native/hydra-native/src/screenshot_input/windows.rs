@@ -35,6 +35,7 @@ const XINPUT_USER_COUNT: usize = 4;
 const HID_USAGE_PAGE_GENERIC: u16 = 0x01;
 const HID_USAGE_GENERIC_KEYBOARD: u16 = 0x06;
 const KEYBOARD_OVERRUN_MAKE_CODE: u16 = 0xFF;
+const PRINT_SCREEN_SCAN_CODE: u16 = 0xE037;
 
 #[derive(Default)]
 struct RawInputControl {
@@ -225,6 +226,7 @@ fn run_raw_input(
     let mut keyboard = KeyboardState {
         hotkey: HotkeyMatcher::default(),
         shift: WindowsShiftTracker::new(key_down(VK_LSHIFT), key_down(VK_RSHIFT)),
+        print_screen_down: false,
     };
     let failed = loop {
         match unsafe { GetMessageW(&mut message, null_mut(), 0, 0) } {
@@ -274,6 +276,7 @@ fn is_modifier_virtual_key(virtual_key: u16) -> bool {
 struct KeyboardState {
     hotkey: HotkeyMatcher,
     shift: WindowsShiftTracker,
+    print_screen_down: bool,
 }
 
 impl KeyboardState {
@@ -318,6 +321,11 @@ fn handle_raw_input(context: &Context, state: &mut KeyboardState, lparam: LPARAM
         windows_scan_code(keyboard.MakeCode, keyboard.Flags)
     };
     let pressed = u32::from(keyboard.Flags) & RI_KEY_BREAK == 0;
+    let mut release_without_press = false;
+    if code == PRINT_SCREEN_SCAN_CODE {
+        release_without_press = !pressed && !state.print_screen_down;
+        state.print_screen_down = pressed;
+    }
 
     if state.shift.on_key(code, pressed) {
         return;
@@ -335,10 +343,14 @@ fn handle_raw_input(context: &Context, state: &mut KeyboardState, lparam: LPARAM
     if code != binding.key.platform_code() {
         return;
     }
-    if state
+    let modifiers = state.current_modifiers();
+    let fired = state
         .hotkey
-        .on_key(code, pressed, &binding, state.current_modifiers())
-    {
+        .on_key(code, pressed || release_without_press, &binding, modifiers);
+    if release_without_press {
+        state.hotkey.on_key(code, false, &binding, modifiers);
+    }
+    if fired {
         context.emit(TriggerSource::Keyboard, Backend::WindowsRawInput);
     }
 }
