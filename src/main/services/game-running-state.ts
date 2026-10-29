@@ -118,6 +118,8 @@ export const getTrackedGamesRunning = (now = performance.now()) =>
     })
   );
 
+export const isTrackedGameKeyRunning = (gameKey: string) =>
+  mutableGamesPlaytime.has(gameKey) || emulatorGamesRunning.has(gameKey);
+
 export const isGameRunning = (objectId: string, shop: Game["shop"]) =>
-  gamesPlaytime.has(levelKeys.game(shop, objectId)) ||
-  emulatorGamesRunning.has(levelKeys.game(shop, objectId));
+  isTrackedGameKeyRunning(levelKeys.game(shop, objectId));
