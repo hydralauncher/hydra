@@ -15,10 +15,6 @@ export const isRichTextEditorAvailable = (
   editor: Editor | null | undefined
 ): editor is Editor => Boolean(editor && !editor.isDestroyed);
 
-export const clearRichTextEditor = (editor: Editor | null | undefined) => {
-  if (isRichTextEditorAvailable(editor)) editor.commands.clearContent(true);
-};
-
 export const clearRichTextEditorIfUnchanged = (
   editor: Editor | null | undefined,
   sentHtml: string

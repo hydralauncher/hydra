@@ -1,7 +1,7 @@
 import type { UserPreferences } from "@types";
 import { levelDBService } from "./services/leveldb.service";
 import {
-  SESSION_SCOPED_KEY_PREFIXES,
+  getSessionScopedKeyPrefixesToClear,
   getSessionScopedKeysToClear,
 } from "./session-state-keys";
 
@@ -46,10 +46,11 @@ export const clearStateFromPreviousSession = async () => {
       localStorage.removeItem(key);
     }
 
+    const prefixesToClear = getSessionScopedKeyPrefixesToClear(
+      persistFiltersAndSorting
+    );
     for (const key of Object.keys(localStorage)) {
-      if (
-        SESSION_SCOPED_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))
-      ) {
+      if (prefixesToClear.some((prefix) => key.startsWith(prefix))) {
         localStorage.removeItem(key);
       }
     }

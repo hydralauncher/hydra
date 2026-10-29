@@ -496,7 +496,9 @@ export function useScreenshotComments({
       } catch (error) {
         logger.error("Failed to delete screenshot comment", error);
         handleWriteError(error, "comment_delete_failed", comment.id);
-        return false;
+        return (
+          getScreenshotApiErrorCode(error) === "screenshots/comment-not-found"
+        );
       } finally {
         setPending(comment.id, false);
       }
