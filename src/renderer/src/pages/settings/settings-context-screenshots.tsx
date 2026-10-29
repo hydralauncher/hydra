@@ -46,7 +46,9 @@ function ScreenshotInputStatusLine({
     return (
       <small className="settings-screenshots__input-status settings-screenshots__input-status--unavailable">
         {t("screenshots_input_unavailable")}
-        {hint ? ` ${hint}` : ""}
+        {hint && (
+          <span className="settings-screenshots__input-hint">{hint}</span>
+        )}
       </small>
     );
   }
@@ -55,7 +57,9 @@ function ScreenshotInputStatusLine({
     return (
       <small className="settings-screenshots__input-status settings-screenshots__input-status--active">
         {t("screenshots_input_active")}
-        {hint ? ` ${hint}` : ""}
+        {hint && (
+          <span className="settings-screenshots__input-hint">{hint}</span>
+        )}
       </small>
     );
   }
@@ -63,7 +67,7 @@ function ScreenshotInputStatusLine({
   return (
     <small className="settings-screenshots__input-status">
       {t("screenshots_input_idle")}
-      {hint ? ` ${hint}` : ""}
+      {hint && <span className="settings-screenshots__input-hint">{hint}</span>}
     </small>
   );
 }

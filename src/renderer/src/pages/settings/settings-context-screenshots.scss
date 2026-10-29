@@ -105,6 +105,10 @@ $screenshots-hover-duration: 0.2s;
     }
   }
 
+  &__input-hint {
+    display: block;
+  }
+
   &__select {
     max-width: 320px;
   }
