@@ -34,7 +34,7 @@ const buildForm = (preferences: UserPreferences | null) => ({
         )
       : "",
   deleteArchiveFilesAfterExtractionByDefault:
-    preferences?.deleteArchiveFilesAfterExtractionByDefault ?? false,
+    preferences?.deleteArchiveFilesAfterExtractionByDefault ?? true,
   torrentNetworkInterface: preferences?.torrentNetworkInterface ?? "",
 });
 
