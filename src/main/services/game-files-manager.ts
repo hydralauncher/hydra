@@ -79,6 +79,14 @@ const isInPlaceExtractionEnabled = () =>
 const archiveExtractors: Omit<ArchiveExtractors, "inPlaceEnabled"> = {
   inPlace: (options, onProgress) =>
     NativeAddon.extractArchiveInPlace(options, onProgress),
+  hasInPlaceJournal: (archivePath) => {
+    try {
+      return NativeAddon.inPlaceJournalExists(archivePath);
+    } catch {
+      // Without the addon the in-place call fails too, and 7-Zip extracts.
+      return false;
+    }
+  },
   sevenZip: (options, onProgress) => SevenZip.extractFile(options, onProgress),
   log: (message) => logger.info(`[GameFilesManager] ${message}`),
 };
@@ -243,6 +251,21 @@ export class GameFilesManager {
     });
   }
 
+  private async forgetInPlaceStart(archivePath: string) {
+    const download = await downloadsSublevel.get(this.gameKey);
+
+    if (!download?.inPlaceArchives?.includes(archivePath)) return;
+
+    const inPlaceArchives = download.inPlaceArchives.filter(
+      (startedArchive) => startedArchive !== archivePath
+    );
+
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
+      inPlaceArchives: inPlaceArchives.length > 0 ? inPlaceArchives : undefined,
+    });
+  }
+
   private async clearInPlaceArchives() {
     const download = await downloadsSublevel.get(this.gameKey);
 
@@ -274,6 +297,7 @@ export class GameFilesManager {
             inPlace,
             resume: startedInPlace.has(filePath),
             recordInPlaceStart: () => this.recordInPlaceStart(filePath),
+            forgetInPlaceStart: () => this.forgetInPlaceStart(filePath),
           },
           (progress) => {
             const passProgress =
@@ -1098,6 +1122,7 @@ export class GameFilesManager {
           inPlace: shouldDelete,
           resume,
           recordInPlaceStart: () => this.recordInPlaceStart(filePath),
+          forgetInPlaceStart: () => this.forgetInPlaceStart(filePath),
         },
         this.handleProgress
       );

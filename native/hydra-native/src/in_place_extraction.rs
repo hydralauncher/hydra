@@ -80,6 +80,16 @@ impl InPlaceExtractionResult {
     }
 }
 
+/// Whether an in-place extraction journal lies next to the archive.
+#[napi]
+pub fn in_place_journal_exists(archive_path: String) -> bool {
+    journal_exists(Path::new(&archive_path))
+}
+
+fn journal_exists(archive_path: &Path) -> bool {
+    session::locate(archive_path).is_ok_and(|(_, paths)| paths.exists())
+}
+
 /// `on_progress` receives the extracted fraction, from 0 to 1.
 #[napi]
 pub async fn extract_archive_in_place(
@@ -95,8 +105,7 @@ pub async fn extract_archive_in_place(
         // never hands a partly consumed one to 7-Zip.
         panic::catch_unwind(AssertUnwindSafe(|| extract(options, on_progress))).unwrap_or_else(
             |_| {
-                let started = session::locate(&archive_path).is_ok_and(|(_, paths)| paths.exists());
-                if started {
+                if journal_exists(&archive_path) {
                     InPlaceExtractionResult::failed("in-place extraction crashed")
                 } else {
                     InPlaceExtractionResult::unavailable("in-place extraction crashed")

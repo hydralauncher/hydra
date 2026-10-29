@@ -94,6 +94,7 @@ type HydraNativeModule = {
     options: InPlaceExtractionOptions,
     onProgress: (fraction: number) => void
   ) => Promise<InPlaceExtractionResult>;
+  inPlaceJournalExists: (archivePath: string) => boolean;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
@@ -452,6 +453,10 @@ export class NativeAddon {
     onProgress: (fraction: number) => void
   ) {
     return this.load().extractArchiveInPlace(options, onProgress);
+  }
+
+  public static inPlaceJournalExists(archivePath: string) {
+    return this.load().inPlaceJournalExists(archivePath);
   }
 
   public static buildLocalGameSnapshotPipeline(

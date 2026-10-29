@@ -12,6 +12,7 @@ export interface ArchiveExtractors {
     options: InPlaceExtractionOptions,
     onProgress: (fraction: number) => void
   ) => Promise<InPlaceExtractionResult>;
+  hasInPlaceJournal: (archivePath: string) => boolean;
   sevenZip: (
     options: { filePath: string; outputPath: string; passwords: string[] },
     onProgress: (progress: ExtractionProgress) => void
@@ -30,6 +31,8 @@ export interface ArchiveExtractionRequest {
   // Records that an in-place extraction of this archive may start. Runs
   // before hatchzip touches the archive, so a retry knows to resume it.
   recordInPlaceStart: () => Promise<void>;
+  // Drops that record once hatchzip reports the archive untouched.
+  forgetInPlaceStart: () => Promise<void>;
 }
 
 // In place, hatchzip cuts the archive back as files come out, so the disk
@@ -46,6 +49,7 @@ export const extractArchive = async (
     inPlace,
     resume,
     recordInPlaceStart,
+    forgetInPlaceStart,
   }: ArchiveExtractionRequest,
   onProgress: (progress: ExtractionProgress) => void
 ): Promise<{ success: boolean }> => {
@@ -62,6 +66,15 @@ export const extractArchive = async (
   }
 
   if (allowFresh) {
+    // A journal Hydra did not create may have come with the download, and
+    // recording a start now would let a retry follow it.
+    if (extractors.hasInPlaceJournal(filePath)) {
+      extractors.log(
+        `Extracting ${filePath} with 7-Zip, not in place: it has a journal Hydra did not create`
+      );
+      return extractWithSevenZip();
+    }
+
     await recordInPlaceStart();
   }
 
@@ -83,6 +96,7 @@ export const extractArchive = async (
     // left of the archive still can't go to 7-Zip.
     if (resume) throw error;
 
+    await forgetInPlaceStart();
     extractors.log(
       `Extracting ${filePath} with 7-Zip, in-place extraction could not run: ${error}`
     );
@@ -100,6 +114,8 @@ export const extractArchive = async (
     );
   }
 
+  // Nothing was started, so there is nothing for a retry to resume.
+  await forgetInPlaceStart();
   extractors.log(
     `Extracting ${filePath} with 7-Zip, not in place: ${result.message}`
   );
