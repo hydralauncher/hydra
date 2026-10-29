@@ -671,14 +671,36 @@ export function ScreenshotCommentsPanel({
           wasCounted: true,
         });
         if (!created.isHidden) recordWrite({ kind: "add", comment: created });
-        setComments((current) =>
-          current
-            .filter((comment) => comment.id !== created.id)
-            .map((comment) => (comment.id === pending.id ? created : comment))
+        const isPendingShown = commentsRef.current.some(
+          (comment) => comment.id === pending.id
         );
-        if (created.isHidden) {
-          setTotal((current) => Math.max(0, current - 1));
+        const isCreatedShown = commentsRef.current.some(
+          (comment) => comment.id === created.id
+        );
+        setComments((current) => {
+          if (current.some((comment) => comment.id === pending.id)) {
+            return current
+              .filter((comment) => comment.id !== created.id)
+              .map((comment) =>
+                comment.id === pending.id ? created : comment
+              );
+          }
+          if (current.some((comment) => comment.id === created.id)) {
+            return current.map((comment) =>
+              comment.id === created.id ? created : comment
+            );
+          }
+          return [created, ...current];
+        });
+        if (isPendingShown) {
+          if (created.isHidden) {
+            setTotal((current) => Math.max(0, current - 1));
+            onCommentCountChange(screenshot.id, -1);
+          }
+        } else if (created.isHidden) {
           onCommentCountChange(screenshot.id, -1);
+        } else if (!isCreatedShown) {
+          setTotal((current) => current + 1);
         }
       } catch (error) {
         removePendingComment(pending.id);
@@ -753,6 +775,15 @@ export function ScreenshotCommentsPanel({
         confirmed.inFlight -= 1;
         if (confirmed.inFlight === 0) {
           confirmedEditsRef.current.delete(comment.id);
+          const shown = commentsRef.current.find(
+            (current) => current.id === comment.id
+          );
+          if (shown && shown.bodyHtml !== confirmed.bodyHtml) {
+            replaceComment(comment.id, {
+              bodyHtml: confirmed.bodyHtml,
+              editedAt: confirmed.editedAt,
+            });
+          }
         }
       }
     },
