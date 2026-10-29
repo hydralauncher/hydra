@@ -6,11 +6,12 @@ import {
   isGroupedSouvenirNetworkFailure,
   isMissingGroupedSouvenirScreenshot,
   isRejectedGroupedSouvenirRequest,
-} from "../achievements/grouped-souvenir-retry-policy";
+} from "../achievements/grouped-souvenir-retry-policy.js";
 
 export type ScreenshotUploadRecoveryAction =
   | "already_uploaded"
   | "wait"
+  | "rate_limit_wait"
   | "moderation_wait"
   | "retry"
   | "wait_for_game"
@@ -50,7 +51,7 @@ const RECOVERY_BY_ERROR_CODE: Record<string, ScreenshotUploadRecoveryAction> = {
   "screenshots/not-found": "rotate_client_id",
   "screenshots/upload-incomplete": "retry",
   "screenshots/upload-mismatch": "retry",
-  "screenshots/upload-rate-limited": "retry",
+  "screenshots/upload-rate-limited": "rate_limit_wait",
   "screenshots/upload-capacity-reached": "wait",
   "screenshots/text-change-rate-limit-unavailable": "wait",
   "screenshots/moderation-unavailable": "moderation_wait",
@@ -102,6 +103,7 @@ const getRecoveryAction = (
 
 const HONORS_RETRY_AFTER = new Set<ScreenshotUploadRecoveryAction>([
   "moderation_wait",
+  "rate_limit_wait",
   "retry",
 ]);
 
@@ -145,6 +147,7 @@ export interface ScreenshotUploadRetryState {
   gameWaits: number;
   moderationWaits?: number;
   capacityWaits?: number;
+  rateLimitWaits?: number;
 }
 
 export type ScreenshotUploadNextStep =
@@ -189,6 +192,18 @@ export const planScreenshotUploadRecovery = (
         : {
             kind: "retry_at",
             delay: SCREENSHOT_UPLOAD_CAPACITY_WAIT_DELAY_MS,
+            countsAsAttempt: false,
+          };
+    case "rate_limit_wait":
+      return (state.rateLimitWaits ?? 0) >= SCREENSHOT_UPLOAD_MAX_SERVER_WAITS
+        ? { kind: "failed" }
+        : {
+            kind: "retry_at",
+            delay: Math.min(
+              failure.retryAfterMs ??
+                getScreenshotUploadRetryDelay((state.rateLimitWaits ?? 0) + 1),
+              SCREENSHOT_UPLOAD_RETRY_MAX_DELAY_MS
+            ),
             countsAsAttempt: false,
           };
     case "moderation_wait":

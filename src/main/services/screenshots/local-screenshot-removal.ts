@@ -212,6 +212,7 @@ const UNPUBLISHED_FIELDS: Partial<LocalScreenshot> = {
   uploadGameWaits: 0,
   uploadModerationWaits: 0,
   uploadCapacityWaits: 0,
+  uploadRateLimitWaits: 0,
   nextUploadAttemptAt: null,
   uploadedAt: null,
   lastError: null,
