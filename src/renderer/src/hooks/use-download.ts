@@ -126,8 +126,16 @@ export function useDownload() {
     return paused;
   };
 
-  const resumeDownload = async (shop: GameShop, objectId: string) => {
-    const resumed = await window.electron.resumeGameDownload(shop, objectId);
+  const resumeDownload = async (
+    shop: GameShop,
+    objectId: string,
+    strategy?: "interruptActive" | "queueIfActive"
+  ) => {
+    const resumed = await window.electron.resumeGameDownload(
+      shop,
+      objectId,
+      strategy
+    );
     await updateLibrary();
     return resumed;
   };
