@@ -108,13 +108,14 @@ const getArtUrl = async (hero: ArtworkItem) => {
 };
 
 // Keeps the decoded images alive, so the tiles paint them right away.
-const decodedImages: HTMLImageElement[] = [];
+const decodedImages = new Map<string, HTMLImageElement>();
 
 const decodeImage = async (url: string) => {
+  if (decodedImages.has(url)) return;
   const image = new Image();
   image.src = url;
   await image.decode().catch(() => {});
-  decodedImages.push(image);
+  decodedImages.set(url, image);
 };
 
 const loadTopGameBanners = async (userId: string) => {
@@ -171,7 +172,7 @@ const inflightLoads = new Map<string, Promise<TopGameBanner[] | null>>();
 /** Starts loading the banners, or joins the load already running. */
 export const preloadTopGameBanners = (userId: string) => {
   const existing = inflightLoads.get(userId);
-  if (existing) return existing;
+  if (existing !== undefined) return existing;
 
   const request = loadTopGameBanners(userId)
     .catch(() => null)

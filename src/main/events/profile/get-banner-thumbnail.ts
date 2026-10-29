@@ -58,7 +58,7 @@ const getBannerThumbnail = async (
   url: string
 ): Promise<string | null> => {
   const existing = inflightThumbnails.get(url);
-  if (existing) return existing;
+  if (existing !== undefined) return existing;
 
   const request = buildBannerThumbnail(url)
     .catch((error) => {
