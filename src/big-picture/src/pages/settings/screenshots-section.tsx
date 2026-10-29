@@ -194,12 +194,16 @@ function useHotkeyRecorder(
       recorder.handleKeyUp(event);
     };
 
+    const onBlur = () => recorder.forgetModifiers();
+
     globalThis.window.addEventListener("keydown", onKeyDown, true);
     globalThis.window.addEventListener("keyup", onKeyUp, true);
+    globalThis.window.addEventListener("blur", onBlur);
     return () => {
       unsubscribe();
       globalThis.window.removeEventListener("keydown", onKeyDown, true);
       globalThis.window.removeEventListener("keyup", onKeyUp, true);
+      globalThis.window.removeEventListener("blur", onBlur);
     };
   }, [isRecording, onRecorded, save]);
 

@@ -81,5 +81,8 @@ export function createScreenshotHotkeyRecorder(
       trackModifier(event);
       if (isPrintScreenKeyCode(event.code)) record(event);
     },
+    forgetModifiers() {
+      modifierReleasedAt.clear();
+    },
   };
 }
