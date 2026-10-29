@@ -1,4 +1,1 @@
 * text=auto eol=lf
-
-# A fixture archive with rewritten line endings is a corrupt archive.
-*.rar binary

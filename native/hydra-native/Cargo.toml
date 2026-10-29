@@ -44,7 +44,6 @@ x11rb = { version = "0.13.2", default-features = false }
 
 [dev-dependencies]
 tempfile = "3.27"
-zip = { version = "9", default-features = false }
 
 [build-dependencies]
 napi-build = "2.3.1"
