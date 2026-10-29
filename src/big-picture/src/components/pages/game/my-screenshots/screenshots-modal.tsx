@@ -416,12 +416,17 @@ const getEntryFocusId = (entry: MyScreenshotsEntry) =>
       : `mine-${entry.screenshot.id}`
   );
 
+interface MyScreenshotsTabOptions extends ScreenshotsSourceOptions {
+  emptyFocusId: string;
+}
+
 function useMyScreenshotsTab({
   enabled,
   shop,
   objectId,
   writeBus,
-}: ScreenshotsSourceOptions) {
+  emptyFocusId,
+}: MyScreenshotsTabOptions) {
   const pendingLocal = usePendingLocalScreenshots(shop, objectId, enabled);
   const published = useMyPublishedScreenshots({
     shop,
@@ -476,6 +481,18 @@ function useMyScreenshotsTab({
       screenshot,
     })),
   ].toSorted((a, b) => b.time - a.time);
+  const getFocusAfterLocalDeleteId = (screenshot: LocalScreenshot) => {
+    const index = entries.findIndex(
+      (entry) =>
+        entry.kind === "local" &&
+        entry.screenshot.clientId === screenshot.clientId
+    );
+    const neighbour =
+      index === -1 ? undefined : (entries[index + 1] ?? entries[index - 1]);
+    if (neighbour) return getEntryFocusId(neighbour);
+
+    return mine.isPartial ? GAME_SCREENSHOTS_MODAL_MINE_RETRY_ID : emptyFocusId;
+  };
   const viewer = useMyScreenshotsViewer({
     entries: entries.map(toViewerEntry),
     localScreenshots: mine.localScreenshots,
@@ -484,6 +501,7 @@ function useMyScreenshotsTab({
     canResolveUploaded: mine.canFetchPublished,
     openUploaded: open,
     closeUploaded: close,
+    getFocusAfterLocalDeleteId,
   });
   const isLoading =
     !mine.hasLoadedLocal || (mine.canFetchPublished && feed.isLoading);
@@ -508,6 +526,7 @@ function useMyScreenshotsTab({
     firstFocusId: entries[0] ? getEntryFocusId(entries[0]) : undefined,
     lightboxProps: { ...lightboxProps, localSlot: viewer.localSlot },
     openEntry: viewer.openEntry,
+    getFocusAfterLocalDeleteId,
     loadNextPage,
   };
 }
@@ -658,7 +677,9 @@ function MyScreenshotsList({
           isBusy={local.busyIds.has(screenshot.clientId)}
           variant="card"
           onOpen={(item) => openEntry({ kind: "local", screenshot: item })}
-          onDelete={local.requestDelete}
+          onDelete={(item) =>
+            local.requestDelete(item, tab.getFocusAfterLocalDeleteId(item))
+          }
         />
       </li>
     );
@@ -784,11 +805,15 @@ export function GameScreenshotsModal({
   const [hasOpenedCommunity, setHasOpenedCommunity] = useState(false);
   const hasCommunity = shop !== "custom";
   const activeTab = hasCommunity ? tab : "mine";
+  const emptyMineFocusId = hasCommunity
+    ? GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID
+    : GAME_SCREENSHOTS_MODAL_CLOSE_ID;
   const mineTab = useMyScreenshotsTab({
     enabled: visible,
     shop,
     objectId,
     writeBus,
+    emptyFocusId: emptyMineFocusId,
   });
   const community = useCommunityScreenshots({
     enabled: visible && hasCommunity && hasOpenedCommunity,
@@ -810,9 +835,6 @@ export function GameScreenshotsModal({
     setTab(initialTab);
   }, [initialTab, visible]);
 
-  const emptyMineFocusId = hasCommunity
-    ? GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID
-    : GAME_SCREENSHOTS_MODAL_CLOSE_ID;
   const mineFocusId = mineTab.firstFocusId ?? emptyMineFocusId;
   const [mineInitialFocusId, setMineInitialFocusId] = useState<string>();
   const isMineReady = activeTab === "mine" && !mineTab.isLoading;
