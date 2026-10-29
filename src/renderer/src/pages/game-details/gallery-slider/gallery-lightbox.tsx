@@ -920,7 +920,10 @@ function GalleryLightboxContent({
           "gallery-lightbox--with-filmstrip": showFilmstrip,
           "gallery-lightbox--with-sidebar": isSidebarOpen,
           "gallery-lightbox--titlebar-offset":
-            !isFullscreen && (platform === "win32" || platform === "darwin"),
+            !isFullscreen &&
+            (platform === "win32" ||
+              platform === "darwin" ||
+              platform === "linux"),
         })}
         style={
           {
