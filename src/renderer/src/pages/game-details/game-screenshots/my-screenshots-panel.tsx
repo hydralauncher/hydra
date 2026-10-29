@@ -124,7 +124,7 @@ export function MyScreenshotsPanel({
     })),
     ...uploadedItems.map((screenshot) => ({
       kind: "uploaded" as const,
-      time: screenshot.createdAt,
+      time: screenshot.capturedAt,
       screenshot,
     })),
   ].toSorted((a, b) => b.time - a.time);
@@ -177,7 +177,7 @@ export function MyScreenshotsPanel({
           onOpen={(item) =>
             viewer.openEntry({
               kind: "uploaded",
-              time: item.createdAt,
+              time: item.capturedAt,
               screenshot: item,
             })
           }

@@ -110,7 +110,7 @@ export function MyScreenshotsLightbox({
     if (uploadedScreenshot) {
       return {
         kind: "uploaded",
-        time: uploadedScreenshot.createdAt,
+        time: uploadedScreenshot.capturedAt,
         screenshot: uploadedScreenshot,
       };
     }
