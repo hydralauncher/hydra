@@ -40,5 +40,4 @@ export * from "./classics-spinner/classics-spinner";
 export * from "./window-title-bar/window-title-bar";
 export * from "./error-boundary/error-fallback";
 export * from "./error-boundary/error-boundary";
-export * from "./inline-edit-field/inline-edit-field";
 export * from "./hydra-cloud-badge/hydra-cloud-badge";

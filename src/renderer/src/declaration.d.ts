@@ -1,9 +1,5 @@
 import type { AuthPage, Downloader } from "@shared";
 import type {
-  LocalScreenshot,
-  LocalScreenshotDraft,
-  LocalScreenshotUploadOptions,
-  ScreenshotUploadProgress,
   SystemPowerAction,
   AppUpdaterEvent,
   GameShop,
@@ -1134,42 +1130,9 @@ declare global {
     getDefaultDownloadsPath: () => Promise<string>;
     getScreenshotsPath: () => Promise<string>;
     getScreenshotsFolderPath: () => Promise<string>;
-    getLocalScreenshots: () => Promise<LocalScreenshot[]>;
-    getLocalScreenshotsForGame: (
-      shop: GameShop,
-      objectId: string
-    ) => Promise<LocalScreenshot[]>;
-    deleteLocalScreenshotsForGame: (
-      shop: GameShop,
-      objectId: string
-    ) => Promise<number>;
-    countLocalScreenshotFilesForGame: (
-      shop: GameShop,
-      objectId: string
-    ) => Promise<number>;
-    getPublishedScreenshotIdsForGame: (
-      shop: GameShop,
-      objectId: string
-    ) => Promise<string[]>;
-    forgetPublishedScreenshots: (screenshotIds: string[]) => Promise<number>;
-    uploadLocalScreenshot: (
-      clientId: string,
-      options: LocalScreenshotUploadOptions
-    ) => Promise<LocalScreenshot | null>;
-    updateLocalScreenshotDraft: (
-      clientId: string,
-      draft: LocalScreenshotDraft
-    ) => Promise<LocalScreenshot | null>;
-    deleteLocalScreenshot: (clientId: string) => Promise<void>;
     openScreenshotsFolder: () => Promise<void>;
-    onLocalScreenshotsChange: (
-      cb: (screenshots: LocalScreenshot[]) => void
-    ) => () => Electron.IpcRenderer;
     onLocalScreenshotsMissing: (
       cb: (count: number) => void
-    ) => () => Electron.IpcRenderer;
-    onScreenshotUploadProgress: (
-      cb: (progress: ScreenshotUploadProgress) => void
     ) => () => Electron.IpcRenderer;
     getAchievementSouvenirSyncStatus: () => Promise<AchievementSouvenirSyncStatus>;
     getAchievementSouvenirSyncDetails: () => Promise<AchievementSouvenirSyncDetails>;
