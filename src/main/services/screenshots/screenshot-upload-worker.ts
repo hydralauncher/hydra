@@ -135,6 +135,7 @@ const RESET_WAIT_COUNTS = {
   uploadGameWaits: 0,
   uploadModerationWaits: 0,
   uploadCapacityWaits: 0,
+  uploadRateLimitWaits: 0,
 } satisfies Partial<LocalScreenshot>;
 
 const getIncrementedWaitCount = (
@@ -150,6 +151,10 @@ const getIncrementedWaitCount = (
       };
     case "wait":
       return { uploadCapacityWaits: (screenshot.uploadCapacityWaits ?? 0) + 1 };
+    case "rate_limit_wait":
+      return {
+        uploadRateLimitWaits: (screenshot.uploadRateLimitWaits ?? 0) + 1,
+      };
     default:
       return {};
   }
@@ -662,6 +667,7 @@ class ScreenshotUploadWorker {
         gameWaits: current.uploadGameWaits ?? 0,
         moderationWaits: current.uploadModerationWaits ?? 0,
         capacityWaits: current.uploadCapacityWaits ?? 0,
+        rateLimitWaits: current.uploadRateLimitWaits ?? 0,
       },
       quality
     );
