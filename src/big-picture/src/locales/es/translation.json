@@ -939,6 +939,7 @@
     "screenshots_settings_enabled": "Activar capturas",
     "screenshots_settings_folder": "Carpeta de capturas",
     "screenshots_settings_folder_open": "Abrir carpeta",
+    "screenshots_settings_folder_open_failed": "No se pudo abrir la carpeta de capturas",
     "screenshots_settings_folder_reset": "Restablecer la carpeta predeterminada",
     "screenshots_settings_gamepad_combo": "Combinación del mando",
     "screenshots_settings_gamepad_enabled": "Tomar capturas con una combinación del mando",

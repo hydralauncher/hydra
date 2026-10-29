@@ -978,6 +978,7 @@
     "screenshots_settings_enabled": "Ativar capturas",
     "screenshots_settings_folder": "Pasta de capturas",
     "screenshots_settings_folder_open": "Abrir pasta",
+    "screenshots_settings_folder_open_failed": "Não foi possível abrir a pasta de capturas",
     "screenshots_settings_folder_reset": "Voltar para a pasta padrão",
     "screenshots_settings_gamepad_combo": "Combinação do controle",
     "screenshots_settings_gamepad_enabled": "Tirar capturas com uma combinação do controle",

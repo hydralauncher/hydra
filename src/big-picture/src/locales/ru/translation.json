@@ -966,6 +966,7 @@
     "screenshots_settings_enabled": "Включить скриншоты",
     "screenshots_settings_folder": "Папка скриншотов",
     "screenshots_settings_folder_open": "Открыть папку",
+    "screenshots_settings_folder_open_failed": "Не удалось открыть папку со скриншотами",
     "screenshots_settings_folder_reset": "Вернуть папку по умолчанию",
     "screenshots_settings_gamepad_combo": "Сочетание на геймпаде",
     "screenshots_settings_gamepad_enabled": "Делать скриншоты сочетанием кнопок геймпада",

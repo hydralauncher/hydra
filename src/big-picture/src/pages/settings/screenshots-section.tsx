@@ -518,6 +518,17 @@ export function ScreenshotSettingsSection({
     await refreshFolderPath();
   };
 
+  const openFolder = async () => {
+    try {
+      await globalThis.window.electron.openScreenshotsFolder();
+    } catch (error) {
+      logger.error("Failed to open the screenshots folder", error);
+      showErrorToast(t("screenshots_settings_folder_open_failed"), {
+        fallbackVisual: "settings",
+      });
+    }
+  };
+
   const gamepadOptions = useMemo<
     DropdownSelectOption<ScreenshotGamepadButton>[]
   >(
@@ -844,9 +855,7 @@ export function ScreenshotSettingsSection({
                   focusId={ids.folderOpen}
                   icon={<FolderOpenIcon size={18} />}
                   focusNavigationOverrides={navigation[ids.folderOpen]}
-                  onClick={() =>
-                    void globalThis.window.electron.openScreenshotsFolder()
-                  }
+                  onClick={() => void openFolder()}
                 >
                   {t("screenshots_settings_folder_open")}
                 </Button>

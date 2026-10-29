@@ -978,6 +978,7 @@
     "screenshots_settings_enabled": "Enable screenshots",
     "screenshots_settings_folder": "Screenshots folder",
     "screenshots_settings_folder_open": "Open folder",
+    "screenshots_settings_folder_open_failed": "Couldn't open the screenshots folder",
     "screenshots_settings_folder_reset": "Reset to the default folder",
     "screenshots_settings_gamepad_combo": "Controller combo",
     "screenshots_settings_gamepad_enabled": "Take screenshots with a controller combo",
