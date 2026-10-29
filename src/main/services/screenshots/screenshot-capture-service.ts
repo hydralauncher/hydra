@@ -271,7 +271,10 @@ const isWaylandShareReady = (
   if (!isWaylandCaptureBackend()) return true;
 
   const state = getLinuxGameCaptureState(gameKey);
-  if (state === "ready") return true;
+  if (state === "ready") {
+    void prepareLinuxGameCaptureSession(gameKey, "screenshot");
+    return true;
+  }
 
   logger.info("Screenshot hotkey ignored: window share not granted", {
     source,

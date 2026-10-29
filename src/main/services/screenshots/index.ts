@@ -17,7 +17,6 @@ import {
 } from "../game-running-state";
 import {
   isWaylandCaptureBackend,
-  prepareLinuxGameCaptureSession,
   stopAllLinuxGameCaptureSessions,
 } from "../linux-game-capture-session";
 import { HydraApi } from "../hydra-api";
@@ -117,7 +116,6 @@ export const onScreenshotGameStarted = async (gameKey: string) => {
     });
     if (isWaylandCaptureBackend()) {
       startWaylandFocusWatch();
-      void prepareLinuxGameCaptureSession(gameKey, "screenshot");
     } else if (process.platform === "win32" || process.platform === "linux") {
       ScreenshotFrameWorker.prepare();
     }
