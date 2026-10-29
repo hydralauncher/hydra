@@ -8,6 +8,10 @@ import {
   AchievementSyncCancelledError,
 } from "../../services/achievements/achievement-sync-coordinator.ts";
 
+const passthroughCombinedRequest = (
+  ...args: [unknown, string, string, string, () => Promise<unknown>]
+) => args[4]().catch(() => null);
+
 for (const ownerChanged of [false, true]) {
   for (const combinedAvailable of [false, true]) {
     for (const includesRequestedCopy of [false, true]) {
@@ -118,7 +122,11 @@ for (const ownerChanged of [false, true]) {
           "@main/services/achievements/merge-unlocked-achievements": {
             mergeUnlockedAchievementLists,
           },
+          "@main/services/achievements/combined-achievements-requests": {
+            CombinedAchievementsRequests: { fetch: passthroughCombinedRequest },
+          },
           "@main/services/achievements/combined-achievement-presentation": {
+            createCombinedDefinitionLookup: () => () => undefined,
             presentCombinedAchievements() {
               assert.ok(combinedAvailable);
               assert.ok(

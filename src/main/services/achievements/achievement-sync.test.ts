@@ -80,6 +80,8 @@ async function fixture(
     "pending-achievement-souvenir-store",
     "game-request-queue",
     "unlocked-achievements-cache",
+    "retry-after",
+    "combined-achievements-requests",
   ]);
   if (options.metadata || options.view) actual.add("get-game-achievement-data");
   if (options.reset) actual.add("reset-game-achievements");
@@ -95,6 +97,7 @@ async function fixture(
     export const WindowManager = { mainWindow: { webContents: { send: (channel, achievements) => state.updates.push({channel, achievements}) } } };
     export const getUnlockedAchievements = async () => [];
     export const presentCombinedAchievements = () => [];
+    export const createCombinedDefinitionLookup = () => () => undefined;
     export const publishNewAchievementNotification = () => {};
     export const registerEvent = (name, handler) => state.events.set(name, handler);
     export const gamesSublevel = {get: async () => state.game};

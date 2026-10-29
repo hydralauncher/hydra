@@ -123,6 +123,8 @@ export interface Download {
   shop: GameShop;
   objectId: string;
   uri: string;
+  /** Ordered part URIs of a multi-part hoster download. `uri` is the first part. */
+  parts?: string[];
   folderName: string | null;
   downloadPath: string;
   progress: number;
@@ -136,6 +138,12 @@ export interface Download {
   timestamp: number;
   extracting: boolean;
   extractionProgress?: number;
+  installerLaunched?: boolean;
+  installerRunning?: boolean;
+  installerStartedAt?: number;
+  installerPath?: string;
+  hasInstaller?: boolean;
+  sourceArchiveName?: string;
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];

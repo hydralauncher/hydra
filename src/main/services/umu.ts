@@ -435,6 +435,7 @@ export class Umu {
       useGamemode?: boolean;
       onStatus?: UmuStatusListener;
       wasGameDetected?: () => boolean;
+      onExit?: (exitCode: number | null) => void;
     }
   ): Promise<void> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
@@ -515,6 +516,8 @@ export class Umu {
           },
         }
       );
+
+      if (options?.onExit) child.once("exit", options.onExit);
 
       await observeUmuLaunch({
         child,

@@ -3,6 +3,7 @@ import {
   startEpicSyncOnStartup,
 } from "./services/epic";
 import { downloadsSublevel } from "./level/sublevels/downloads";
+import { recoverInterruptedInstallers } from "./helpers/recover-interrupted-installers";
 import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
@@ -124,7 +125,11 @@ export const loadState = async () => {
   void syncRetroAchievementsEmulatorCredentials();
 
   await HydraApi.setupApi().then(async () => {
-    await initializeEpicIntegration();
+    try {
+      await initializeEpicIntegration();
+    } catch (err) {
+      logger.warn("Epic integration initialization failed on startup", err);
+    }
     uploadGamesBatch();
     void migrateDownloadSources();
 
@@ -142,6 +147,13 @@ export const loadState = async () => {
       void startSteamSyncOnStartup();
       void startEpicSyncOnStartup();
     }
+  });
+
+  void recoverInterruptedInstallers().catch((error) => {
+    logger.error(
+      "[GameInstaller] Failed to recover interrupted installs",
+      error
+    );
   });
 
   const downloadToResume =

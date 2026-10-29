@@ -18,6 +18,11 @@ import {
 } from "date-fns/locale";
 
 import { isArchiveOrgFileUri } from "./archive-org";
+import {
+  getUriGroupParts,
+  normalizeUriGroups,
+  withoutMultipartHosterDownloads,
+} from "./repack-uri-groups";
 import { charMap } from "./char-map";
 import { Downloader } from "./constants";
 import { format } from "date-fns";
@@ -32,6 +37,7 @@ export {
 export * from "./steam-session";
 export * from "./leaderboard-notifications";
 export * from "./window-layout";
+export * from "./review-translation";
 export {
   getDisplayedPlayTimeInMilliseconds,
   getPlayTimeHoursAndMinutes,
@@ -41,9 +47,15 @@ export * from "./cloud-save-access";
 export * from "./cloud-save-emulator-provider";
 export * from "./profile-friends";
 export * from "./classics-disc-label";
+export {
+  MULTIPART_DOWNLOADERS,
+  MULTIPART_HOSTER_DOWNLOADS_FEATURE,
+} from "./repack-uri-groups";
 export * from "./controller-support";
 export * from "./artwork-resolver";
 export * from "./library-catalogue";
+export * from "./finished-download-step";
+export * from "./format-bit-rate";
 export * from "./library-group-actions";
 export * from "./official-store-options";
 export * from "./download-directories";
@@ -57,6 +69,7 @@ export * from "./classics-emulator-games";
 export * from "./tracker-list";
 export * from "./souvenirs";
 export * from "./souvenir-sync";
+export * from "./achievement-list";
 
 export class UserNotLoggedInError extends Error {
   constructor() {
@@ -176,7 +189,10 @@ export const getDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://datanodes.to")) return [Downloader.Datanodes];
   if (uri.startsWith("https://www.mediafire.com"))
     return [Downloader.Mediafire];
-  if (uri.startsWith("https://fuckingfast.co")) {
+  if (
+    uri.startsWith("https://fuckingfast.co") ||
+    uri.startsWith("https://fuckingfast.net")
+  ) {
     return [Downloader.FuckingFast];
   }
   if (
@@ -187,6 +203,9 @@ export const getDownloadersForUri = (uri: string) => {
   }
   if (uri.startsWith("https://www.rootz.so")) {
     return [Downloader.Rootz];
+  }
+  if (uri.startsWith("https://filekeeper.net/")) {
+    return [Downloader.FileKeeper];
   }
   if (isArchiveOrgFileUri(uri)) {
     return [Downloader.ArchiveOrg];
@@ -220,14 +239,25 @@ export const getDownloadersForUris = (uris: string[]) => {
   return Array.from(downloadersSet);
 };
 
-export const filterDownloadableRepacks = <T extends Pick<GameRepack, "uris">>(
-  repacks: T[]
+export const getRepackUriParts = getUriGroupParts;
+
+export const filterDownloadableRepacks = <
+  T extends Pick<GameRepack, "uris" | "uriGroups">,
+>(
+  repacks: T[],
+  multipartHosterDownloads: boolean
 ) =>
-  repacks.filter(
-    (repack) =>
-      Array.isArray(repack.uris) &&
-      getDownloadersForUris(repack.uris).length > 0
-  );
+  repacks
+    .map((repack) =>
+      multipartHosterDownloads
+        ? normalizeUriGroups(repack, getDownloadersForUri)
+        : withoutMultipartHosterDownloads(repack)
+    )
+    .filter(
+      (repack) =>
+        Array.isArray(repack.uris) &&
+        getDownloadersForUris(repack.uris).length > 0
+    );
 
 const AVAILABILITY_CHECK_DOWNLOADERS = new Set<Downloader>([
   Downloader.VikingFile,
@@ -324,9 +354,6 @@ export const getDateLocale = (language: string) => {
 
   return enUS;
 };
-
-export const getReviewTranslationLanguage = (language: string) =>
-  language.split("-")[0].toLowerCase();
 
 export const formatDate = (
   date: number | Date | string,
