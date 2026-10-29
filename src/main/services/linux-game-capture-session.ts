@@ -364,8 +364,11 @@ export const prepareLinuxGameCaptureSession = async (
       if (sessions.get(gameKey)?.token !== token) return;
       if (registration.subscriptionTimer) {
         clearInterval(registration.subscriptionTimer);
+        registration.subscriptionTimer = null;
       }
-      sessions.delete(gameKey);
+      registration.window = null;
+      registration.state = "failed";
+      registration.failure = "share_cancelled";
     });
   })().catch(async (error) => {
     registration.state = "failed";
