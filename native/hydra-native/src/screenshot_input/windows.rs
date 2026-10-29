@@ -36,6 +36,7 @@ const HID_USAGE_PAGE_GENERIC: u16 = 0x01;
 const HID_USAGE_GENERIC_KEYBOARD: u16 = 0x06;
 const KEYBOARD_OVERRUN_MAKE_CODE: u16 = 0xFF;
 const PRINT_SCREEN_SCAN_CODE: u16 = 0xE037;
+const PRINT_SCREEN_MODIFIER_GRACE: Duration = Duration::from_millis(500);
 
 #[derive(Default)]
 struct RawInputControl {
@@ -227,6 +228,7 @@ fn run_raw_input(
         hotkey: HotkeyMatcher::default(),
         shift: WindowsShiftTracker::new(key_down(VK_LSHIFT), key_down(VK_RSHIFT)),
         print_screen_down: false,
+        modifier_releases: ModifierReleases::default(),
     };
     let failed = loop {
         match unsafe { GetMessageW(&mut message, null_mut(), 0, 0) } {
@@ -273,10 +275,44 @@ fn is_modifier_virtual_key(virtual_key: u16) -> bool {
         )
 }
 
+#[derive(Default)]
+struct ModifierReleases {
+    ctrl: Option<Instant>,
+    alt: Option<Instant>,
+    shift: Option<Instant>,
+    meta: Option<Instant>,
+}
+
+impl ModifierReleases {
+    fn on_key(&mut self, virtual_key: u16, pressed: bool, now: Instant) {
+        let slot = match virtual_key {
+            VK_CONTROL | VK_LCONTROL | VK_RCONTROL => &mut self.ctrl,
+            VK_MENU | VK_LMENU | VK_RMENU => &mut self.alt,
+            VK_SHIFT | VK_LSHIFT | VK_RSHIFT => &mut self.shift,
+            VK_LWIN | VK_RWIN => &mut self.meta,
+            _ => return,
+        };
+        *slot = if pressed { None } else { Some(now) };
+    }
+
+    fn within_grace(&self, now: Instant) -> Modifiers {
+        let recent = |released: Option<Instant>| {
+            released.is_some_and(|at| now.duration_since(at) <= PRINT_SCREEN_MODIFIER_GRACE)
+        };
+        Modifiers {
+            ctrl: recent(self.ctrl),
+            alt: recent(self.alt),
+            shift: recent(self.shift),
+            meta: recent(self.meta),
+        }
+    }
+}
+
 struct KeyboardState {
     hotkey: HotkeyMatcher,
     shift: WindowsShiftTracker,
     print_screen_down: bool,
+    modifier_releases: ModifierReleases,
 }
 
 impl KeyboardState {
@@ -326,6 +362,11 @@ fn handle_raw_input(context: &Context, state: &mut KeyboardState, lparam: LPARAM
         release_without_press = !pressed && !state.print_screen_down;
         state.print_screen_down = pressed;
     }
+    if is_windows_modifier_scan_code(code) {
+        state
+            .modifier_releases
+            .on_key(keyboard.VKey, pressed, Instant::now());
+    }
 
     if state.shift.on_key(code, pressed) {
         return;
@@ -343,7 +384,10 @@ fn handle_raw_input(context: &Context, state: &mut KeyboardState, lparam: LPARAM
     if code != binding.key.platform_code() {
         return;
     }
-    let modifiers = state.current_modifiers();
+    let mut modifiers = state.current_modifiers();
+    if release_without_press {
+        modifiers = modifiers.union(state.modifier_releases.within_grace(Instant::now()));
+    }
     let fired = state
         .hotkey
         .on_key(code, pressed || release_without_press, &binding, modifiers);
