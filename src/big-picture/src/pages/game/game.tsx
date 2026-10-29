@@ -791,7 +791,7 @@ export default function Game() {
       const resumed = await window.electron.resumeGameDownload(
         installedEpicMember.shop,
         installedEpicMember.objectId,
-        lastPacket !== null ? "queueIfActive" : "interruptActive"
+        "queueIfActive"
       );
       if (resumed === false)
         showErrorToast(t("epic_update_failed", { ns: "game_details" }));
@@ -800,7 +800,6 @@ export default function Game() {
     }
     await updateGame();
   }, [
-    lastPacket,
     installedEpicMember,
     epicDownload?.status,
     startEpicUpdate,
