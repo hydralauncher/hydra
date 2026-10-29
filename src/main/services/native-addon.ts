@@ -46,6 +46,20 @@ type NativeActiveWindowResponse = {
   process_id?: number;
 };
 
+export type InPlaceExtractionOptions = {
+  archivePath: string;
+  outputPath: string;
+  passwords: string[];
+  allowFresh: boolean;
+};
+
+// "unavailable" leaves the archive untouched; "failed" means part of it is
+// already extracted and removed, and only another in-place call resumes it.
+export type InPlaceExtractionResult = {
+  status: "finished" | "unavailable" | "failed";
+  message?: string | null;
+};
+
 export type NativeProcessPayload = ProcessPayload &
   Pick<
     EpicProcessNode,
@@ -73,6 +87,10 @@ type HydraNativeModule = {
   ) => Promise<NativeProcessSizedImageResponse>;
   listProcesses: () => NativeProcessPayload[];
   getLinuxActiveWindow: () => NativeActiveWindowResponse | null;
+  extractArchiveInPlace: (
+    options: InPlaceExtractionOptions,
+    onProgress: (fraction: number) => void
+  ) => Promise<InPlaceExtractionResult>;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
@@ -424,6 +442,13 @@ export class NativeAddon {
         resolve(null);
       }
     });
+  }
+
+  public static extractArchiveInPlace(
+    options: InPlaceExtractionOptions,
+    onProgress: (fraction: number) => void
+  ) {
+    return this.load().extractArchiveInPlace(options, onProgress);
   }
 
   public static buildLocalGameSnapshotPipeline(

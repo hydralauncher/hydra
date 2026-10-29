@@ -12,12 +12,16 @@ blake3 = "=1.8.5"
 filetime = "0.2"
 globetter = "=0.2.0"
 globset = "=0.4.15"
+# In-place archive extraction. The `rar` feature compiles UnRAR's C++ source,
+# which is under its own license (LICENSE-UNRAR, shipped with the addon):
+# free for extracting RAR archives, not for building a RAR compressor.
+hatchzip-core = { version = "=0.1.3", features = ["rar"] }
 image = { version = "0.25.8", default-features = false, features = ["gif", "jpeg", "png", "webp"] }
 indexmap = { version = "2.14", features = ["serde"] }
 mime_guess = "2.0.5"
 napi = { version = "3.5.2", default-features = false, features = ["napi8", "tokio_rt"] }
 napi-derive = "3.3.2"
-rayon = "=1.11.0"
+rayon = "=1.12.0"
 reqwest = { version = "0.13", default-features = false, features = ["stream", "charset", "http2", "system-proxy", "rustls-no-provider"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
 serde = { version = "1.0.228", features = ["derive"] }
@@ -40,6 +44,7 @@ x11rb = { version = "0.13.2", default-features = false }
 
 [dev-dependencies]
 tempfile = "3.27"
+zip = { version = "9", default-features = false }
 
 [build-dependencies]
 napi-build = "2.3.1"

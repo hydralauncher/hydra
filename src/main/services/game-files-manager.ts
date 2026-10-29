@@ -18,6 +18,7 @@ import {
 } from "@shared";
 import type {
   ClassicsDisc,
+  Download,
   EmulatorSystem,
   ExtractionFailure,
   Game,
@@ -32,6 +33,9 @@ import path from "node:path";
 import pngToIco from "png-to-ico";
 import sharp from "sharp";
 import { ExtractionProgress, SevenZip } from "./7zip";
+import { type ArchiveExtractors, extractArchive } from "./archive-extraction";
+import { NativeAddon } from "./native-addon";
+import { HydraApi } from "./hydra-api";
 import * as emulators from "./emulators";
 import * as retroarch from "./retroarch";
 import { getPathType } from "./extraction-path";
@@ -52,6 +56,33 @@ const PROGRESS_THROTTLE_MS = 1000;
 const MAX_ARCHIVE_EXTRACTION_PASSES = 2;
 
 const INSTALLED_EXECUTABLE_MAX_DEPTH = 4;
+
+const IN_PLACE_EXTRACTION_FEATURE = "IN_PLACE_ARCHIVE_EXTRACTION";
+const FEATURES_REQUEST_TIMEOUT_MS = 10_000;
+
+// Fails closed: without an answer from the API, archives go to 7-Zip.
+const isInPlaceExtractionEnabled = () =>
+  HydraApi.get<string[]>("/features", null, {
+    needsAuth: false,
+    timeout: FEATURES_REQUEST_TIMEOUT_MS,
+  })
+    .then(
+      (features) =>
+        Array.isArray(features) &&
+        features.includes(IN_PLACE_EXTRACTION_FEATURE)
+    )
+    .catch((error) => {
+      logger.warn("[GameFilesManager] Could not load feature flags", error);
+      return false;
+    });
+
+const archiveExtractors: ArchiveExtractors = {
+  inPlaceEnabled: isInPlaceExtractionEnabled,
+  inPlace: (options, onProgress) =>
+    NativeAddon.extractArchiveInPlace(options, onProgress),
+  sevenZip: (options, onProgress) => SevenZip.extractFile(options, onProgress),
+  log: (message) => logger.info(`[GameFilesManager] ${message}`),
+};
 
 export class GameFilesManager {
   private lastProgressUpdateTime = 0;
@@ -176,22 +207,33 @@ export class GameFilesManager {
     this.updateExtractionProgress(progress.percent / 100);
   };
 
+  private async shouldDeleteArchives(download?: Download | null) {
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+
+    return (
+      download?.automaticallyDeleteArchiveFiles ??
+      userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
+      false
+    );
+  }
+
   private async extractArchivePass(
     directoryPath: string,
     filesToExtract: string[],
     pass: number,
-    extractedFiles: Set<string>
+    extractedFiles: Set<string>,
+    inPlace: boolean
   ): Promise<boolean> {
     let completedFiles = 0;
     for (const file of filesToExtract) {
       const filePath = path.join(directoryPath, file);
       try {
-        const result = await SevenZip.extractFile(
-          {
-            filePath,
-            cwd: path.dirname(filePath),
-            passwords: ["online-fix.me", "steamrip.com"],
-          },
+        const result = await extractArchive(
+          archiveExtractors,
+          { filePath, outputPath: path.dirname(filePath), inPlace },
           (progress) => {
             const passProgress =
               (completedFiles + progress.percent / 100) / filesToExtract.length;
@@ -240,17 +282,9 @@ export class GameFilesManager {
       .filter((archivePath) => fs.existsSync(archivePath));
 
     if (archivePaths.length > 0) {
-      const [download, userPreferences] = await Promise.all([
-        downloadsSublevel.get(this.gameKey),
-        db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
-          valueEncoding: "json",
-        }),
-      ]);
-
-      const shouldDelete =
-        download?.automaticallyDeleteArchiveFiles ??
-        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
-        false;
+      const shouldDelete = await this.shouldDeleteArchives(
+        await downloadsSublevel.get(this.gameKey)
+      );
 
       if (shouldDelete) {
         for (const archivePath of archivePaths) {
@@ -294,6 +328,13 @@ export class GameFilesManager {
 
     const compressedFiles = new Set<string>();
     const extractedFiles = new Set<string>();
+    // Archives nested in an outer one are kept, so only top-level downloads
+    // that will be deleted anyway are consumed while extracting.
+    const inPlace =
+      !outerArchivePath &&
+      (await this.shouldDeleteArchives(
+        await downloadsSublevel.get(this.gameKey)
+      ));
 
     // Only process archives at the extraction root. Archives in game subfolders
     // may be runtime assets and must remain intact.
@@ -325,7 +366,8 @@ export class GameFilesManager {
           directoryPath,
           filesToExtract,
           pass,
-          extractedFiles
+          extractedFiles,
+          inPlace
         ))
       ) {
         return false;
@@ -992,12 +1034,10 @@ export class GameFilesManager {
     this.updateExtractionProgress(0, true);
 
     try {
-      const result = await SevenZip.extractFile(
-        {
-          filePath,
-          outputPath: extractionPath,
-          passwords: ["online-fix.me", "steamrip.com"],
-        },
+      const shouldDelete = await this.shouldDeleteArchives(download);
+      const result = await extractArchive(
+        archiveExtractors,
+        { filePath, outputPath: extractionPath, inPlace: shouldDelete },
         this.handleProgress
       );
 
@@ -1011,20 +1051,11 @@ export class GameFilesManager {
           return false;
         }
 
-        if (fs.existsSync(extractionPath) && fs.existsSync(filePath)) {
-          const userPreferences = await db.get<string, UserPreferences | null>(
-            levelKeys.userPreferences,
-            { valueEncoding: "json" }
-          );
-
-          const shouldDelete =
-            download.automaticallyDeleteArchiveFiles ??
-            userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
-            false;
-
+        if (fs.existsSync(extractionPath)) {
           if (shouldDelete) {
+            // Clears the installer size too when the archive went in place.
             await deleteArchiveFile(filePath);
-          } else {
+          } else if (fs.existsSync(filePath)) {
             WindowManager.sendToAppWindows("on-archive-deletion-prompt", [
               filePath,
             ]);
