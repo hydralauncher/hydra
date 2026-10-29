@@ -23,8 +23,11 @@ import {
 } from "./linux-game-capture-session-reasons";
 import { readUserPreferences } from "./screenshots/screenshot-user-preferences";
 
+export type LinuxGameCaptureState = "pending" | "ready" | "failed";
+
 interface CaptureSessionRegistration {
   token: object;
+  state: LinuxGameCaptureState;
   shareKey: string | null;
   window: BrowserWindow | null;
   subscriptionTimer: ReturnType<typeof setInterval> | null;
@@ -213,6 +216,11 @@ export const prepareLinuxGameCaptureSession = async (
   if (!isWaylandCaptureBackend()) return;
   if (reason === "souvenir" && !HydraApi.hasActiveSubscription()) return;
 
+  const failed = sessions.get(gameKey);
+  if (failed?.state === "failed" && reason === "screenshot") {
+    sessions.delete(gameKey);
+  }
+
   const existing = sessions.get(gameKey);
   if (existing) {
     const userPreferences = await readUserPreferences();
@@ -226,6 +234,7 @@ export const prepareLinuxGameCaptureSession = async (
   const token = {};
   const registration: CaptureSessionRegistration = {
     token,
+    state: "pending",
     shareKey: null,
     window: null,
     subscriptionTimer: null,
@@ -260,6 +269,7 @@ export const prepareLinuxGameCaptureSession = async (
     }
 
     registration.window = captureWindow;
+    registration.state = "ready";
     logger.info("Wayland game window capture was prepared", { gameKey });
     registration.subscriptionTimer = setInterval(() => {
       if (!HydraApi.hasActiveSubscription()) {
@@ -275,6 +285,7 @@ export const prepareLinuxGameCaptureSession = async (
       sessions.delete(gameKey);
     });
   })().catch((error) => {
+    registration.state = "failed";
     if (sessions.get(gameKey)?.token === token) {
       logger.warn("Wayland game window capture was not prepared", {
         gameKey,
@@ -293,6 +304,10 @@ export const prepareLinuxGameCaptureSession = async (
     // session. It is intentionally not retried on every achievement unlock.
   }
 };
+
+export const getLinuxGameCaptureState = (
+  gameKey: string
+): LinuxGameCaptureState => sessions.get(gameKey)?.state ?? "failed";
 
 export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   const registration = sessions.get(gameKey);

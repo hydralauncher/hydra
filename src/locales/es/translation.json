@@ -2628,6 +2628,7 @@
     "saved_locally": "Captura guardada en este equipo",
     "not_uploaded": "Sin subir",
     "uploading_button": "Subiendo…",
+    "share_pending": "Primero elige la ventana del juego en el aviso para compartir pantalla",
     "screenshot_alt": "Captura de {{game}} tomada el {{date}}",
     "spoiler_hint": "Los demás la verán difuminada hasta que decidan mostrarla",
     "spoiler_label": "Contiene spoilers",

@@ -8,6 +8,7 @@ import {
 import type {
   LocalScreenshot,
   ProfileVisibility,
+  ScreenshotFeedbackToast,
   ScreenshotTriggerSource,
 } from "@types";
 
@@ -15,8 +16,10 @@ import { getSignedInScreenshotOwnerId } from "./local-screenshot-owner";
 import { logger } from "../logger";
 import { getSourceClientAreaCrop } from "../windows-window-bounds";
 import {
+  getLinuxGameCaptureState,
   grabLinuxGameSessionFrame,
   isWaylandCaptureBackend,
+  prepareLinuxGameCaptureSession,
 } from "../linux-game-capture-session";
 import {
   resolveGameCaptureSourceId,
@@ -157,7 +160,7 @@ const finishCapture = async ({
 };
 
 const showCaptureToast = (
-  kind: "captured" | "saved_locally" | "capture_failed",
+  kind: ScreenshotFeedbackToast["kind"],
   gameTitle: string
 ) => {
   void ScreenshotFeedback.showToast({ kind, gameTitle }).catch((error) => {
@@ -245,6 +248,27 @@ const acquireFrame = async (
   );
 };
 
+const isWaylandShareReady = (
+  source: ScreenshotTriggerSource,
+  gameKey: string
+) => {
+  if (!isWaylandCaptureBackend()) return true;
+
+  const state = getLinuxGameCaptureState(gameKey);
+  if (state === "ready") return true;
+
+  logger.info("Screenshot hotkey ignored: window share not granted", {
+    source,
+    gameKey,
+    state,
+  });
+  ScreenshotTelemetry.record("capture", "ignored", `share_${state}`);
+  if (state === "failed") {
+    void prepareLinuxGameCaptureSession(gameKey, "screenshot");
+  }
+  return false;
+};
+
 const recordCaptureFailure = (gameKey: string, error: unknown) => {
   logger.error("Failed to capture a manual screenshot", {
     gameKey,
@@ -305,6 +329,11 @@ const grabScreenshot = async (
   const { target, foreground } = resolved;
   const gameTitle = resolved.game?.title ?? target.title;
   const capturedAt = new Date();
+
+  if (!isWaylandShareReady(source, target.gameKey)) {
+    showCaptureToast("share_pending", gameTitle);
+    return null;
+  }
 
   const ownerId = getSignedInScreenshotOwnerId();
   playCaptureSound();
