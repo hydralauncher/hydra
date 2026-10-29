@@ -1121,7 +1121,7 @@ declare global {
     /* Clipboard */
     clipboard: {
       writeText: (text: string) => Promise<void>;
-      writeImage: (imageUrl: string) => Promise<boolean>;
+      writeImage: (ownerId: string, screenshotId: string) => Promise<boolean>;
     };
 
     /* Misc */
