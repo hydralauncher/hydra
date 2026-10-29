@@ -135,7 +135,10 @@ export function Sidebar() {
     stats,
     achievements,
   } = useContext(gameDetailsContext);
-  const screenshotsGame = game ?? catalogueGame;
+  const myScreenshotsGame = game ?? catalogueGame;
+  const communityScreenshotsGame = catalogueGame.objectId
+    ? catalogueGame
+    : myScreenshotsGame;
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -349,10 +352,10 @@ export function Sidebar() {
         </SidebarSection>
       )}
 
-      {screenshotsGame.shop !== "custom" && screenshotsGame.objectId ? (
+      {myScreenshotsGame.shop !== "custom" && myScreenshotsGame.objectId ? (
         <GameScreenshots
-          shop={screenshotsGame.shop}
-          objectId={screenshotsGame.objectId}
+          libraryGame={myScreenshotsGame}
+          catalogueGame={communityScreenshotsGame}
         />
       ) : null}
 

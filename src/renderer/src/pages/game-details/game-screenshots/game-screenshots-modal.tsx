@@ -224,7 +224,17 @@ function CommunityScreenshotsPanel({
 
 export type GameScreenshotsTab = "mine" | "community";
 
-interface GameScreenshotsModalProps extends ScreenshotsPanelProps {
+export interface ScreenshotsGame {
+  shop: GameShop;
+  objectId: string;
+}
+
+interface GameScreenshotsModalProps {
+  visible: boolean;
+  showCommentCount: boolean;
+  libraryGame: ScreenshotsGame;
+  catalogueGame: ScreenshotsGame;
+  writeBus: ScreenshotWriteBus;
   initialTab?: GameScreenshotsTab;
   onClose: () => void;
 }
@@ -232,8 +242,8 @@ interface GameScreenshotsModalProps extends ScreenshotsPanelProps {
 export function GameScreenshotsModal({
   visible,
   showCommentCount,
-  shop,
-  objectId,
+  libraryGame,
+  catalogueGame,
   writeBus,
   initialTab = "mine",
   onClose,
@@ -278,16 +288,16 @@ export function GameScreenshotsModal({
         <MyScreenshotsPanel
           visible={visible}
           showCommentCount={showCommentCount}
-          shop={shop}
-          objectId={objectId}
+          shop={libraryGame.shop}
+          objectId={libraryGame.objectId}
           writeBus={writeBus}
         />
       ) : (
         <CommunityScreenshotsPanel
           visible={visible}
           showCommentCount={showCommentCount}
-          shop={shop}
-          objectId={objectId}
+          shop={catalogueGame.shop}
+          objectId={catalogueGame.objectId}
           writeBus={writeBus}
         />
       )}
