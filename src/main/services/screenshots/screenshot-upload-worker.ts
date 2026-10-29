@@ -131,6 +131,30 @@ const hasSyncedGame = async (screenshot: LocalScreenshot) => {
 
 const getCurrentOwnerId = () => HydraApi.getAuthContext()?.userId ?? null;
 
+const RESET_WAIT_COUNTS = {
+  uploadGameWaits: 0,
+  uploadModerationWaits: 0,
+  uploadCapacityWaits: 0,
+} satisfies Partial<LocalScreenshot>;
+
+const getIncrementedWaitCount = (
+  screenshot: LocalScreenshot,
+  failure: ScreenshotUploadFailure
+): Partial<LocalScreenshot> => {
+  switch (failure.action) {
+    case "wait_for_game":
+      return { uploadGameWaits: (screenshot.uploadGameWaits ?? 0) + 1 };
+    case "moderation_wait":
+      return {
+        uploadModerationWaits: (screenshot.uploadModerationWaits ?? 0) + 1,
+      };
+    case "wait":
+      return { uploadCapacityWaits: (screenshot.uploadCapacityWaits ?? 0) + 1 };
+    default:
+      return {};
+  }
+};
+
 class ScreenshotUploadWorker {
   private running: Promise<void> | null = null;
   private rerunRequested = false;
@@ -140,9 +164,6 @@ class ScreenshotUploadWorker {
     clientId: string;
     controller: AbortController;
   } | null = null;
-  private readonly gameWaits = new Map<string, number>();
-  private readonly moderationWaits = new Map<string, number>();
-  private readonly capacityWaits = new Map<string, number>();
   private missingFileHandler: ((clientId: string) => Promise<boolean>) | null =
     null;
   private lastOwnerId: string | null = null;
@@ -180,9 +201,6 @@ class ScreenshotUploadWorker {
       return screenshot;
     }
 
-    this.gameWaits.delete(clientId);
-    this.moderationWaits.delete(clientId);
-    this.capacityWaits.delete(clientId);
     const quality =
       options.quality === undefined
         ? undefined
@@ -209,6 +227,7 @@ class ScreenshotUploadWorker {
           : normalizeScreenshotDescription(options.description),
       uploadProgress: 0,
       uploadAttempts: 0,
+      ...RESET_WAIT_COUNTS,
       nextUploadAttemptAt: null,
       lastError: null,
       ...(quality === undefined ? {} : { uploadQuality: quality }),
@@ -226,7 +245,6 @@ class ScreenshotUploadWorker {
     if (this.activeUpload?.clientId === clientId) {
       this.activeUpload.controller.abort();
     }
-    this.gameWaits.delete(clientId);
   }
 
   public trigger() {
@@ -506,9 +524,6 @@ class ScreenshotUploadWorker {
       moderationReason: unknown;
     }
   ) {
-    this.gameWaits.delete(clientId);
-    this.moderationWaits.delete(clientId);
-    this.capacityWaits.delete(clientId);
     const moderationStatus = isModerationStatus(result.moderationStatus)
       ? result.moderationStatus
       : "PENDING";
@@ -533,6 +548,7 @@ class ScreenshotUploadWorker {
           ? (current.moderationReason ?? null)
           : moderationReason,
         uploadProgress: 1,
+        ...RESET_WAIT_COUNTS,
         uploadedAt: Date.now(),
         nextUploadAttemptAt: null,
         pendingCompleteScreenshotId: null,
@@ -551,32 +567,6 @@ class ScreenshotUploadWorker {
             uploadAttempts: Math.max(0, attempt - 1),
           }
         : {}
-    );
-  }
-
-  private planFailureRecovery(
-    current: LocalScreenshot,
-    failure: ScreenshotUploadFailure,
-    quality: ScreenshotQuality,
-    attempt: number
-  ) {
-    const gameWaits = this.gameWaits.get(current.clientId) ?? 0;
-    if (failure.action === "wait_for_game") {
-      this.gameWaits.set(current.clientId, gameWaits + 1);
-    }
-    const moderationWaits = this.moderationWaits.get(current.clientId) ?? 0;
-    if (failure.action === "moderation_wait") {
-      this.moderationWaits.set(current.clientId, moderationWaits + 1);
-    }
-    const capacityWaits = this.capacityWaits.get(current.clientId) ?? 0;
-    if (failure.action === "wait") {
-      this.capacityWaits.set(current.clientId, capacityWaits + 1);
-    }
-
-    return planScreenshotUploadRecovery(
-      failure,
-      { uploadAttempts: attempt, gameWaits, moderationWaits, capacityWaits },
-      quality
     );
   }
 
@@ -611,7 +601,7 @@ class ScreenshotUploadWorker {
         this.rerunRequested = true;
         return;
       case "retry_at":
-        await LocalScreenshotStore.update(clientId, {
+        await LocalScreenshotStore.update(clientId, (current) => ({
           state: "queued",
           uploadProgress: 0,
           lastError: failure.code,
@@ -619,7 +609,8 @@ class ScreenshotUploadWorker {
           uploadAttempts: step.countsAsAttempt
             ? attempt
             : Math.max(0, attempt - 1),
-        });
+          ...getIncrementedWaitCount(current, failure),
+        }));
         emitProgress({ clientId, state: "queued", progress: 0 });
     }
   }
@@ -645,9 +636,6 @@ class ScreenshotUploadWorker {
       failure.code === SCREENSHOT_MISSING_FILE_CODE &&
       this.missingFileHandler
     ) {
-      this.gameWaits.delete(clientId);
-      this.moderationWaits.delete(clientId);
-      this.capacityWaits.delete(clientId);
       logger.warn("Screenshot file was missing at upload time", { clientId });
       if (await this.missingFileHandler(clientId)) {
         ScreenshotTelemetry.record("upload", "failed", failure.code);
@@ -667,7 +655,16 @@ class ScreenshotUploadWorker {
       return;
     }
 
-    const step = this.planFailureRecovery(current, failure, quality, attempt);
+    const step = planScreenshotUploadRecovery(
+      failure,
+      {
+        uploadAttempts: attempt,
+        gameWaits: current.uploadGameWaits ?? 0,
+        moderationWaits: current.uploadModerationWaits ?? 0,
+        capacityWaits: current.uploadCapacityWaits ?? 0,
+      },
+      quality
+    );
     logger.warn("Screenshot upload failed", {
       clientId,
       code: failure.code,
@@ -678,9 +675,6 @@ class ScreenshotUploadWorker {
   }
 
   private async markFailed(clientId: string, failure: ScreenshotUploadFailure) {
-    this.gameWaits.delete(clientId);
-    this.moderationWaits.delete(clientId);
-    this.capacityWaits.delete(clientId);
     await LocalScreenshotStore.update(clientId, {
       state: "failed",
       uploadProgress: null,
