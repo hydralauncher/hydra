@@ -170,17 +170,29 @@ export default function Notifications() {
     };
   }, []);
 
+  const visibleApiNotifications = useMemo(() => {
+    const isShown = ({ type }: Notification) => {
+      if (!isScreenshotNotificationType(type)) return true;
+      if (!isFeatureEnabled(Feature.Screenshots)) return false;
+      return (
+        type === "SCREENSHOT_LIKE" ||
+        isFeatureEnabled(Feature.ScreenshotComments)
+      );
+    };
+    return apiNotifications.filter(isShown);
+  }, [Feature, apiNotifications, isFeatureEnabled]);
+
   const mergedNotifications = useMemo<MergedNotification[]>(() => {
     const sortByDate = (a: MergedNotification, b: MergedNotification) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 
     // High priority notifications (priority === 1) - keep in API order
-    const highPriority: MergedNotification[] = apiNotifications
+    const highPriority: MergedNotification[] = visibleApiNotifications
       .filter((n) => n.priority === 1)
       .map((n) => ({ ...n, source: "api" as const }));
 
     // Low priority: other API notifications + local notifications, merged and sorted by date
-    const lowPriorityApi: MergedNotification[] = apiNotifications
+    const lowPriorityApi: MergedNotification[] = visibleApiNotifications
       .filter((n) => n.priority !== 1)
       .map((n) => ({ ...n, source: "api" as const }));
 
@@ -201,7 +213,7 @@ export default function Notifications() {
     );
 
     return [...highPriority, ...lowPriority];
-  }, [apiNotifications, localNotifications, filter]);
+  }, [visibleApiNotifications, localNotifications, filter]);
 
   const displayedNotifications = useMemo(() => {
     return mergedNotifications;
@@ -411,14 +423,6 @@ export default function Notifications() {
     showSuccessToast(t("friend_request_refused"));
   }, [showSuccessToast, t]);
 
-  const isNotificationContentEnabled = (type: string) => {
-    if (!isScreenshotNotificationType(type)) return true;
-    if (!isFeatureEnabled(Feature.Screenshots)) return false;
-    return (
-      type === "SCREENSHOT_LIKE" || isFeatureEnabled(Feature.ScreenshotComments)
-    );
-  };
-
   const renderNotification = (notification: MergedNotification) => {
     const key =
       notification.source === "local"
@@ -451,7 +455,6 @@ export default function Notifications() {
             onMarkAsRead={(id) => handleMarkAsRead(id, "api")}
             onAcceptFriendRequest={handleAcceptFriendRequest}
             onRefuseFriendRequest={handleRefuseFriendRequest}
-            isContentEnabled={isNotificationContentEnabled(notification.type)}
           />
         )}
       </motion.div>
@@ -459,10 +462,10 @@ export default function Notifications() {
   };
 
   const unreadCount = useMemo(() => {
-    const apiUnread = apiNotifications.filter((n) => !n.isRead).length;
+    const apiUnread = visibleApiNotifications.filter((n) => !n.isRead).length;
     const localUnread = localNotifications.filter((n) => !n.isRead).length;
     return apiUnread + localUnread;
-  }, [apiNotifications, localNotifications]);
+  }, [visibleApiNotifications, localNotifications]);
 
   const renderFilterTabs = () => (
     <div className="notifications__filter-tabs">
