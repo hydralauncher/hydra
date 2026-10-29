@@ -215,7 +215,8 @@ export function useMyGameScreenshotsState({
     [feed.items, local.pending, sort]
   );
 
-  const hasPublishedFailed = canFetchPublished && feed.error === "initial";
+  const hasPublishedFailed =
+    canFetchPublished && (feed.error === "initial" || feed.error === "refresh");
   const status = resolveMyGameScreenshotsStatus({
     local: { isLoaded: local.hasLoaded, hasFailed: local.hasFailed },
     published: {

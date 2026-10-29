@@ -218,7 +218,8 @@ function useCommunityScreenshots({
     hasLoadMoreError: feed.error === "page",
     retryLoadMore: feed.retry,
   });
-  const canLoadMore = feed.hasMore && !feed.isLoadingMore && !feed.error;
+  const canLoadMore =
+    feed.hasMore && !feed.isLoadingMore && feed.error !== "page";
   const { loadMore } = feed;
 
   const requestMore = useCallback(() => {

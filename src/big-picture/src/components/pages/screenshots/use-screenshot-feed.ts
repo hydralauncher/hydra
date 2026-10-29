@@ -23,7 +23,7 @@ interface ScreenshotFeedResponse {
   nextCursor?: string | null;
 }
 
-export type ScreenshotFeedError = "initial" | "page" | null;
+export type ScreenshotFeedError = "initial" | "refresh" | "page" | null;
 
 interface UseScreenshotFeedOptions {
   requestKey: string | null;
@@ -52,6 +52,7 @@ export function useScreenshotFeed({
   const generationRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
   const isReadPendingRef = useRef(false);
+  const loadedPageCountRef = useRef(0);
   const buildPathRef = useRef(buildPath);
   const needsAuthRef = useRef(needsAuth);
   needsAuthRef.current = needsAuth;
@@ -105,10 +106,12 @@ export function useScreenshotFeed({
     setIsLoadingMore(false);
     setError(null);
 
-    if (lastResetKeyRef.current === resetKey) {
+    const isRefresh = lastResetKeyRef.current === resetKey;
+    if (isRefresh) {
       ledger.cancelReads();
     } else {
       lastResetKeyRef.current = resetKey;
+      loadedPageCountRef.current = 0;
       ledger.reset();
       setItems([]);
       setTotal(null);
@@ -129,17 +132,28 @@ export function useScreenshotFeed({
         if (generationRef.current !== generation) return;
 
         const merged = acceptPage(response?.items ?? [], read);
-        setItems(merged.items);
+        if (loadedPageCountRef.current > 1) {
+          setItems((current) => mergeScreenshotPages(merged.items, current));
+        } else {
+          loadedPageCountRef.current = 1;
+          setItems(merged.items);
+          setNextCursor(response?.nextCursor ?? null);
+        }
         setTotal(
           typeof response?.total === "number"
             ? Math.max(0, response.total + merged.netCountDelta)
             : null
         );
         setHiddenReason(response?.hiddenReason ?? null);
-        setNextCursor(response?.nextCursor ?? null);
       })
       .catch((error: unknown) => {
         if (generationRef.current !== generation) return;
+
+        if (isRefresh && loadedPageCountRef.current > 0) {
+          logger.warn("Failed to refresh screenshots", error);
+          setError("refresh");
+          return;
+        }
 
         logger.error("Failed to load screenshots", error);
         setItems([]);
@@ -182,6 +196,7 @@ export function useScreenshotFeed({
 
       const merged = acceptPage(response?.items ?? [], read);
       setItems((current) => mergeScreenshotPages(current, merged.items));
+      loadedPageCountRef.current += 1;
       const incomingTotal = response?.total;
       if (typeof incomingTotal === "number" && !merged.hasLaterWrites)
         setTotal(incomingTotal);
@@ -199,7 +214,7 @@ export function useScreenshotFeed({
   }, [acceptPage, ledger, needsAuth, nextCursor, requestKey]);
 
   const loadMore = useCallback(async () => {
-    if (error) return;
+    if (error === "page") return;
 
     await fetchNextPage();
   }, [error, fetchNextPage]);
