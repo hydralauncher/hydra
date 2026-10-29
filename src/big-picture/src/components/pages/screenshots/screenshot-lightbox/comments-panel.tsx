@@ -975,9 +975,17 @@ export function ScreenshotCommentsPanel({
         });
         return true;
       } catch (error) {
-        const code = getScreenshotApiErrorCode(error);
+        if (
+          getScreenshotApiErrorCode(error) === "screenshots/already-reported"
+        ) {
+          showSuccessToast(t("screenshots_error_already_reported"), {
+            fallbackVisual: "settings",
+          });
+          return true;
+        }
+
         showError(error);
-        return code === "screenshots/already-reported";
+        return false;
       } finally {
         setIsReporting(false);
       }

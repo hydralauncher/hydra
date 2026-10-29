@@ -231,12 +231,17 @@ export function useLightboxSocialActions({
         return true;
       } catch (error) {
         const code = getScreenshotApiErrorCode(error);
-        showError(error);
 
         if (code === "screenshots/already-reported") {
           setReportedIds((current) => new Set(current).add(screenshot.id));
+          showSuccessToast(
+            t("screenshots_error_already_reported"),
+            SETTINGS_TOAST
+          );
           return true;
         }
+
+        showError(error);
 
         if (code === "screenshots/not-found") {
           onUnavailable(screenshot.id, screenshot.owner.id);
