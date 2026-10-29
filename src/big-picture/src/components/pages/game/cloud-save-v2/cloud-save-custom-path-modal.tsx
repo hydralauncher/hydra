@@ -73,7 +73,7 @@ export function BigPictureCloudSaveCustomPathModal({
         onClose={onClose}
         closeOnBackdrop={!isBusy}
         closeOnEscape={!isBusy}
-        closeOnB={!isBusy}
+        busy={isBusy}
         initialFocusId={SELECT_BUTTON_ID}
         className="big-picture-cloud-save-path-modal"
       >

@@ -15,7 +15,12 @@ import {
   VerticalFocusGroup,
 } from "../../components";
 import { ConfirmationModal } from "../../components/modals";
-import { useUserDetails, useUserPreferences } from "../../hooks";
+import {
+  Feature,
+  useFeature,
+  useUserDetails,
+  useUserPreferences,
+} from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
   CONTENT_ITEM_FOCUS_IDS,
@@ -33,6 +38,7 @@ interface SettingsSectionProps {
 interface ContentForm {
   autoplayGameTrailers: boolean;
   disableNsfwAlert: boolean;
+  showSensitiveScreenshots: boolean;
   showHiddenAchievementsDescription: boolean;
   enableSteamAchievements: boolean;
   enableAchievementSouvenirs: boolean;
@@ -51,6 +57,7 @@ interface ContentItem {
 const DEFAULT_FORM: ContentForm = {
   autoplayGameTrailers: true,
   disableNsfwAlert: false,
+  showSensitiveScreenshots: false,
   showHiddenAchievementsDescription: false,
   enableSteamAchievements: false,
   enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
@@ -66,6 +73,7 @@ const buildForm = (preferences: UserPreferences | null): ContentForm =>
     ? {
         autoplayGameTrailers: preferences.autoplayGameTrailers ?? true,
         disableNsfwAlert: preferences.disableNsfwAlert ?? false,
+        showSensitiveScreenshots: preferences.showSensitiveScreenshots ?? false,
         showHiddenAchievementsDescription:
           preferences.showHiddenAchievementsDescription ?? false,
         enableSteamAchievements: preferences.enableSteamAchievements ?? false,
@@ -84,6 +92,8 @@ export function ContentSettingsSection({
   const { t } = useTranslation("settings");
   const userPreferences = useUserPreferences();
   const { hasActiveSubscription } = useUserDetails();
+  const { isFeatureEnabled } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
   const [form, setForm] = useState<ContentForm>(() =>
     buildForm(userPreferences)
   );
@@ -130,8 +140,9 @@ export function ContentSettingsSection({
   }, [updateUserPreferences]);
 
   const supportsSouvenirs = hasActiveSubscription;
+  const showSouvenirScreenshotsDirectory = supportsSouvenirs;
   const canManageScreenshots =
-    supportsSouvenirs && form.enableAchievementSouvenirs;
+    showSouvenirScreenshotsDirectory && form.enableAchievementSouvenirs;
 
   const handleChooseScreenshotsPath = useCallback(async () => {
     if (!canManageScreenshots) return;
@@ -186,6 +197,20 @@ export function ContentSettingsSection({
         onChange: (checked: boolean) =>
           void updateUserPreferences({ disableNsfwAlert: checked }),
       },
+      ...(isScreenshotsEnabled
+        ? [
+            {
+              id: "show-sensitive-screenshots",
+              focusId: CONTENT_ITEM_FOCUS_IDS.showSensitiveScreenshots,
+              label: t("screenshots_show_sensitive"),
+              checked: form.showSensitiveScreenshots,
+              onChange: (checked: boolean) =>
+                void updateUserPreferences({
+                  showSensitiveScreenshots: checked,
+                }),
+            },
+          ]
+        : []),
       {
         id: "show-hidden-achievements-description",
         focusId: CONTENT_ITEM_FOCUS_IDS.showHiddenAchievementsDescription,
@@ -227,6 +252,7 @@ export function ContentSettingsSection({
   }, [
     form,
     handleAchievementSouvenirsChange,
+    isScreenshotsEnabled,
     supportsSouvenirs,
     t,
     updateUserPreferences,
@@ -321,7 +347,7 @@ export function ContentSettingsSection({
           <div className="content-settings-section__content">
             {items.map(renderItem)}
 
-            {supportsSouvenirs && (
+            {showSouvenirScreenshotsDirectory && (
               <div className="content-settings-section__screenshots-directory">
                 <span className="content-settings-section__screenshots-label">
                   {t("screenshots_directory")}

@@ -18,6 +18,7 @@ import {
 
 interface GridFocusGroupProps {
   regionId?: string;
+  navigationOrder?: number;
   navigationOverrides?: FocusOverrides;
   autoScrollMode?: FocusAutoScrollMode;
   getScrollAnchor?: () => HTMLElement | null;
@@ -28,6 +29,7 @@ interface GridFocusGroupProps {
 
 export function GridFocusGroup({
   regionId,
+  navigationOrder,
   navigationOverrides,
   autoScrollMode = "row",
   getScrollAnchor,
@@ -39,6 +41,7 @@ export function GridFocusGroup({
   const parentRegionId = useFocusRegionId();
   const layerId = useFocusLayerId();
   const navigation = NavigationService.getInstance();
+  const initialNavigationOrderRef = useRef(navigationOrder);
   const initialNavigationOverridesRef = useRef(navigationOverrides);
   const initialGetScrollAnchorRef = useRef(getScrollAnchor);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -51,6 +54,7 @@ export function GridFocusGroup({
       parentRegionId,
       orientation: "grid",
       layerId,
+      navigationOrder: initialNavigationOrderRef.current,
       navigationOverrides: initialNavigationOverridesRef.current,
       autoScrollMode,
       isPersistent: Boolean(regionId),
@@ -70,12 +74,14 @@ export function GridFocusGroup({
     navigation.updateRegion(resolvedRegionId, {
       autoScrollMode,
       getScrollAnchor,
+      navigationOrder,
       navigationOverrides,
     });
   }, [
     autoScrollMode,
     getScrollAnchor,
     navigation,
+    navigationOrder,
     navigationOverrides,
     resolvedRegionId,
   ]);

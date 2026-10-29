@@ -14,3 +14,10 @@
 .game-danger-zone-settings-tab__action-button {
   width: 100%;
 }
+
+.game-danger-zone-settings-tab__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 3);
+  width: 100%;
+}
