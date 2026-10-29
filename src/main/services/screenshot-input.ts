@@ -175,6 +175,7 @@ export class ScreenshotInputService {
   private static initialized = false;
   private static shuttingDown = false;
   private static listening = false;
+  private static sessionGeneration = 0;
   private static gamesRunning = false;
   private static featureEnabled = false;
   private static readonly lastTriggerAt = new Map<
@@ -268,7 +269,7 @@ export class ScreenshotInputService {
   }
 
   public static refreshStatus(): ScreenshotInputStatus {
-    if (this.listening) return this.status;
+    if (this.listening || this.shuttingDown) return this.status;
     if (!this.featureEnabled) {
       this.setStatus({ ...INACTIVE_STATUS });
       void this.refreshFeatureFlag();
@@ -336,7 +337,7 @@ export class ScreenshotInputService {
   }
 
   private static applyFeatureFlag(featureEnabled: boolean) {
-    if (featureEnabled === this.featureEnabled) return;
+    if (this.shuttingDown || featureEnabled === this.featureEnabled) return;
     this.featureEnabled = featureEnabled;
     this.reconcile(this.settings);
     if (!this.listening) this.refreshStatus();
@@ -397,10 +398,11 @@ export class ScreenshotInputService {
   }
 
   private static startListening() {
+    const generation = ++this.sessionGeneration;
     try {
       const nativeStatus = NativeAddon.startScreenshotInput(
         toScreenshotInputNativeConfig(this.settings),
-        (event) => this.handleNativeEvent(event)
+        (event) => this.handleNativeEvent(event, generation)
       );
       this.listening = true;
       this.listeningSince = performance.now();
@@ -494,8 +496,11 @@ export class ScreenshotInputService {
     this.setStatus({ ...this.status, active: false });
   }
 
-  private static handleNativeEvent(event: ScreenshotInputNativeEvent) {
-    if (!this.listening) {
+  private static handleNativeEvent(
+    event: ScreenshotInputNativeEvent,
+    generation: number
+  ) {
+    if (!this.listening || generation !== this.sessionGeneration) {
       logger.debug("Screenshot native event ignored: not listening", {
         kind: event.kind,
         source: event.source,
