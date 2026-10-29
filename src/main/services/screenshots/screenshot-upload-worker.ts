@@ -357,7 +357,7 @@ class ScreenshotUploadWorker {
     for (const screenshot of queue) {
       const current = await LocalScreenshotStore.get(screenshot.clientId);
       if (current?.state === "queued") {
-        await this.markFailed(screenshot.clientId, failure);
+        await this.markFailed(screenshot.clientId, failure, "queued");
       }
     }
   }
@@ -570,16 +570,26 @@ class ScreenshotUploadWorker {
     emitProgress({ clientId, state: "uploaded", progress: 1 });
   }
 
+  private async updateInState(
+    clientId: string,
+    expectedState: LocalScreenshot["state"],
+    changes: (current: LocalScreenshot) => Partial<LocalScreenshot>
+  ) {
+    let applied = false;
+    await LocalScreenshotStore.update(clientId, (current) => {
+      if (current.state !== expectedState) return {};
+      applied = true;
+      return changes(current);
+    });
+    return applied;
+  }
+
   private async requeueCancelledUpload(clientId: string, attempt: number) {
-    await LocalScreenshotStore.update(clientId, (current) =>
-      current.state === "uploading"
-        ? {
-            state: "queued",
-            uploadProgress: 0,
-            uploadAttempts: Math.max(0, attempt - 1),
-          }
-        : {}
-    );
+    await this.updateInState(clientId, "uploading", () => ({
+      state: "queued",
+      uploadProgress: 0,
+      uploadAttempts: Math.max(0, attempt - 1),
+    }));
   }
 
   private async applyRecoveryStep(
@@ -590,45 +600,53 @@ class ScreenshotUploadWorker {
   ) {
     switch (step.kind) {
       case "stopped":
-        await LocalScreenshotStore.update(clientId, {
-          state: "queued",
-          uploadProgress: 0,
-          uploadAttempts: Math.max(0, attempt - 1),
-        });
+        await this.requeueCancelledUpload(clientId, attempt);
         return;
       case "failed":
-        await this.markFailed(clientId, failure);
+        await this.markFailed(clientId, failure, "uploading");
         return;
-      case "retry_now":
-        await LocalScreenshotStore.update(clientId, {
-          state: "queued",
-          uploadProgress: 0,
-          lastError: failure.code,
-          nextUploadAttemptAt: null,
-          pendingCompleteScreenshotId: null,
-          ...(step.quality ? { uploadQuality: step.quality } : {}),
-        });
+      case "retry_now": {
+        const requeued = await this.updateInState(
+          clientId,
+          "uploading",
+          () => ({
+            state: "queued",
+            uploadProgress: 0,
+            lastError: failure.code,
+            nextUploadAttemptAt: null,
+            pendingCompleteScreenshotId: null,
+            ...(step.quality ? { uploadQuality: step.quality } : {}),
+          })
+        );
+        if (!requeued) return;
         emitProgress({ clientId, state: "queued", progress: 0 });
         this.rerunRequested = true;
         return;
-      case "retry_at":
-        await LocalScreenshotStore.update(clientId, (current) => ({
-          state: "queued",
-          uploadProgress: 0,
-          lastError: failure.code,
-          nextUploadAttemptAt: Date.now() + step.delay,
-          uploadAttempts: step.countsAsAttempt
-            ? attempt
-            : Math.max(0, attempt - 1),
-          ...getIncrementedWaitCount(current, failure),
-          ...(step.rotateClientId
-            ? {
-                uploadClientId: randomUUID(),
-                pendingCompleteScreenshotId: null,
-              }
-            : {}),
-        }));
+      }
+      case "retry_at": {
+        const requeued = await this.updateInState(
+          clientId,
+          "uploading",
+          (current) => ({
+            state: "queued",
+            uploadProgress: 0,
+            lastError: failure.code,
+            nextUploadAttemptAt: Date.now() + step.delay,
+            uploadAttempts: step.countsAsAttempt
+              ? attempt
+              : Math.max(0, attempt - 1),
+            ...getIncrementedWaitCount(current, failure),
+            ...(step.rotateClientId
+              ? {
+                  uploadClientId: randomUUID(),
+                  pendingCompleteScreenshotId: null,
+                }
+              : {}),
+          })
+        );
+        if (!requeued) return;
         emitProgress({ clientId, state: "queued", progress: 0 });
+      }
     }
   }
 
@@ -692,14 +710,19 @@ class ScreenshotUploadWorker {
     await this.applyRecoveryStep(clientId, failure, step, attempt);
   }
 
-  private async markFailed(clientId: string, failure: ScreenshotUploadFailure) {
-    await LocalScreenshotStore.update(clientId, {
+  private async markFailed(
+    clientId: string,
+    failure: ScreenshotUploadFailure,
+    expectedState: LocalScreenshot["state"]
+  ) {
+    const failed = await this.updateInState(clientId, expectedState, () => ({
       state: "failed",
       uploadProgress: null,
       lastError: failure.code,
       nextUploadAttemptAt: null,
       pendingCompleteScreenshotId: null,
-    });
+    }));
+    if (!failed) return;
     emitProgress({ clientId, state: "failed", progress: null });
     ScreenshotTelemetry.record("upload", "failed", failure.code);
   }

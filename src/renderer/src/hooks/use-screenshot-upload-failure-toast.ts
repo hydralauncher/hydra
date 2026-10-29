@@ -8,14 +8,18 @@ import {
 import type { LocalScreenshot } from "@types";
 import { logger } from "@renderer/logger";
 
+import { useFeature } from "./use-feature";
 import { useToast } from "./use-toast";
 
 export function useScreenshotUploadFailureToast() {
   const { t } = useTranslation("screenshots_capture");
   const { t: tModeration } = useTranslation("screenshots_moderation");
   const { showErrorToast } = useToast();
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
 
   useEffect(() => {
+    if (!isScreenshotsEnabled) return;
     const track = createScreenshotUploadOutcomeTracker();
     let hasSeenChange = false;
 
@@ -50,5 +54,5 @@ export function useScreenshotUploadFailureToast() {
       if (document.visibilityState !== "visible") return;
       problems.forEach(showProblem);
     });
-  }, [showErrorToast, t, tModeration]);
+  }, [isScreenshotsEnabled, showErrorToast, t, tModeration]);
 }

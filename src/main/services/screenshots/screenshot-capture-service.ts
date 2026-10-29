@@ -342,11 +342,15 @@ const getWaylandShareBlocker = async (
 ): Promise<CaptureToastKind | null> => {
   if (!isWaylandCaptureBackend()) return null;
 
-  if (getLinuxGameCaptureState(gameKey) === "ready") {
+  const initialState = getLinuxGameCaptureState(gameKey);
+  if (initialState === "ready") {
     void prepareLinuxGameCaptureSession(gameKey, "screenshot");
     return null;
   }
-  if (getLinuxGameCaptureState(gameKey) === "failed") {
+  if (initialState === "pending") {
+    void prepareLinuxGameCaptureSession(gameKey, "screenshot");
+  }
+  if (initialState === "failed") {
     await waitForWaylandSharePrompt(gameKey);
   }
 

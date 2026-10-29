@@ -137,6 +137,7 @@ export function MyScreenshotsPanel({
 
   const viewer = useMyScreenshotsViewer({
     lightbox,
+    feed,
     localScreenshots: localState.localScreenshots,
     hasLocalLoaded: localState.hasLoaded,
     uploadedItems,
