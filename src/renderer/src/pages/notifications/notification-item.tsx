@@ -7,6 +7,7 @@ import {
   HeartFillIcon,
   CommentDiscussionIcon,
   GiftIcon,
+  ThumbsupIcon,
 } from "@primer/octicons-react";
 import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png";
 import { useTranslation } from "react-i18next";
@@ -372,8 +373,11 @@ export function NotificationItem({
     if (isRetroAchievements) {
       return <img src={retroAchievementsLogo} alt="" />;
     }
-    if (isReviewUpvote || isReviewAnswerUpvote || isScreenshotCommentUpvote) {
+    if (isReviewUpvote || isReviewAnswerUpvote) {
       return <StarFillIcon size={24} />;
+    }
+    if (isScreenshotCommentUpvote) {
+      return <ThumbsupIcon size={24} />;
     }
     if (isReviewAnswer || isScreenshotComment) {
       return <CommentDiscussionIcon size={24} />;
