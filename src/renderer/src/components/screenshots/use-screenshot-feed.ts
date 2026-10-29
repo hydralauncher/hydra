@@ -48,6 +48,7 @@ export function useScreenshotFeed({
   const [hasLoaded, setHasLoaded] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
   const [hasLoadMoreFailed, setHasLoadMoreFailed] = useState(false);
+  const [loadedRequestId, setLoadedRequestId] = useState(0);
   const requestIdRef = useRef(0);
   const ledgerRef = useRef<ScreenshotFeedLedger | null>(null);
   ledgerRef.current ??= new ScreenshotFeedLedger();
@@ -112,6 +113,7 @@ export function useScreenshotFeed({
       setTotal(mergedTotal);
       if (mergedTotal !== null) reportServerTotal?.(mergedTotal);
       setHiddenReason(page?.hiddenReason ?? null);
+      setLoadedRequestId(requestId);
     } catch (error) {
       if (requestId !== requestIdRef.current) return;
 
@@ -195,6 +197,8 @@ export function useScreenshotFeed({
     []
   );
 
+  const getLatestRequestId = useCallback(() => requestIdRef.current, []);
+
   const getFetchedAt = useCallback(
     (screenshotId: string) => ledger.getFetchedAt(screenshotId),
     [ledger]
@@ -241,6 +245,8 @@ export function useScreenshotFeed({
     hasLoaded,
     hasFailed,
     hasLoadMoreFailed,
+    loadedRequestId,
+    getLatestRequestId,
     reload,
     loadMore,
     patchItem,

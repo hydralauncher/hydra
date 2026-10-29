@@ -2828,6 +2828,7 @@
     "delete_screenshots_failed_kept": "No se pudieron eliminar tus capturas publicadas, así que no se eliminó nada. Inténtalo de nuevo.",
     "delete_screenshots_rate_limited_kept": "Has eliminado capturas demasiadas veces, así que no se eliminó nada. Inténtalo de nuevo en unos minutos.",
     "delete_screenshots_partial": "Algunas capturas publicadas no se eliminaron. Inténtalo de nuevo para eliminar el resto.",
+    "delete_screenshots_local_cleanup_failed": "Tus capturas publicadas se eliminaron, pero no se pudieron eliminar algunos archivos locales. Inténtalo de nuevo.",
     "screenshots_deleted_count_one": "Se eliminó {{count}} captura",
     "screenshots_deleted_count_other": "Se eliminaron {{count}} capturas",
     "comments_temporarily_unavailable": "Los comentarios no están disponibles temporalmente, inténtalo de nuevo en un momento",

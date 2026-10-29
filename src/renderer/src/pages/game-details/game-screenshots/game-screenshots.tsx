@@ -7,7 +7,6 @@ import { Button } from "@renderer/components";
 import { ScreenshotLightbox } from "@renderer/components/screenshots";
 import { useFeature } from "@renderer/hooks";
 import { createScreenshotWriteBus } from "@shared";
-import type { GameShop } from "@types";
 
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { GameScreenshotThumbnail } from "./game-screenshot-thumbnail";
@@ -15,6 +14,7 @@ import { GameScreenshotsHotkeyTip } from "./game-screenshots-hotkey-tip";
 import {
   GameScreenshotsModal,
   type GameScreenshotsTab,
+  type ScreenshotsGame,
 } from "./game-screenshots-modal";
 import { LocalScreenshotTile } from "./local-screenshot-tile";
 import type { MyScreenshotsEntry } from "./my-screenshots-entries";
@@ -29,23 +29,26 @@ import "./game-screenshots.scss";
 
 const SIDEBAR_SCREENSHOT_COUNT = 4;
 
-interface GameScreenshotsBoxProps {
-  shop: GameShop;
-  objectId: string;
+interface GameScreenshotsProps {
+  libraryGame: ScreenshotsGame;
+  catalogueGame: ScreenshotsGame;
+}
+
+interface GameScreenshotsBoxProps extends GameScreenshotsProps {
   showCommentCount: boolean;
 }
 
 function GameScreenshotsBox({
-  shop,
-  objectId,
+  libraryGame,
+  catalogueGame,
   showCommentCount,
 }: Readonly<GameScreenshotsBoxProps>) {
   const { t } = useTranslation("screenshots");
   const [modalTab, setModalTab] = useState<GameScreenshotsTab | null>(null);
   const [writeBus] = useState(createScreenshotWriteBus);
   const mine = useMyGameScreenshots({
-    shop,
-    objectId,
+    shop: libraryGame.shop,
+    objectId: libraryGame.objectId,
     sort: "recent",
     take: SIDEBAR_SCREENSHOT_COUNT,
     isEnabled: true,
@@ -81,8 +84,8 @@ function GameScreenshotsBox({
     !mine.isPartial &&
     topItems.length === 0;
   const community = useGameScreenshotsCollection({
-    shop,
-    objectId,
+    shop: catalogueGame.shop,
+    objectId: catalogueGame.objectId,
     sort: "top",
     take: SIDEBAR_SCREENSHOT_COUNT,
     isEnabled: hasNoScreenshotsOfMine,
@@ -264,8 +267,8 @@ function GameScreenshotsBox({
       <GameScreenshotsModal
         visible={modalTab !== null}
         showCommentCount={showCommentCount}
-        shop={shop}
-        objectId={objectId}
+        libraryGame={libraryGame}
+        catalogueGame={catalogueGame}
         writeBus={writeBus}
         initialTab={modalTab ?? "mine"}
         onClose={() => setModalTab(null)}
@@ -274,14 +277,9 @@ function GameScreenshotsBox({
   );
 }
 
-interface GameScreenshotsProps {
-  shop: GameShop;
-  objectId: string;
-}
-
 export function GameScreenshots({
-  shop,
-  objectId,
+  libraryGame,
+  catalogueGame,
 }: Readonly<GameScreenshotsProps>) {
   const { isFeatureEnabled, Feature } = useFeature();
 
@@ -289,8 +287,8 @@ export function GameScreenshots({
 
   return (
     <GameScreenshotsBox
-      shop={shop}
-      objectId={objectId}
+      libraryGame={libraryGame}
+      catalogueGame={catalogueGame}
       showCommentCount={isFeatureEnabled(Feature.ScreenshotComments)}
     />
   );

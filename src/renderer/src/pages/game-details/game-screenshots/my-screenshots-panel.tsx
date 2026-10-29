@@ -30,6 +30,7 @@ import {
   useCanFetchMyPublishedScreenshots,
   useMyLocalGameScreenshots,
   useMyPublishedGameScreenshots,
+  useVisibleLocalScreenshots,
 } from "./use-my-game-screenshots";
 
 const MY_SCREENSHOTS_PAGE_SIZE = 24;
@@ -107,6 +108,11 @@ export function MyScreenshotsPanel({
     isEnabled: visible && canFetchPublished,
   });
   const { feed, actions, lightbox } = published;
+  const visibleLocal = useVisibleLocalScreenshots(
+    localState,
+    feed,
+    canFetchPublished
+  );
   const local = useLocalScreenshotActions();
   const getDayLabel = useCaptureDayLabel();
 
@@ -114,7 +120,7 @@ export function MyScreenshotsPanel({
   const hasMoreUploaded = canFetchPublished && feed.hasMore;
   const entries: MyScreenshotsEntry[] = [
     ...selectPendingLocalWithinLoadedUploads(
-      localState.pendingLocal,
+      visibleLocal,
       uploadedItems,
       hasMoreUploaded
     ).map((screenshot) => ({

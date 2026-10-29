@@ -30,6 +30,11 @@ const getDeletionErrorKey = (
     return "delete_screenshots_incomplete";
   }
   if (deletion === "local") return "delete_screenshots_failed";
+  if (errorCode === "screenshots/local-cleanup-failed") {
+    return deleted > 0
+      ? "delete_screenshots_local_cleanup_failed"
+      : "delete_screenshots_failed";
+  }
   if (deleted > 0) return "delete_screenshots_partial";
   return errorCode === "screenshots/game-deletion-rate-limited"
     ? "delete_screenshots_rate_limited_kept"
