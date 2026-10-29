@@ -11,6 +11,7 @@ import type {
   LeaderboardUser,
 } from "../game-details/leaderboard/game-leaderboard";
 import {
+  formatBoardTotal,
   getBoardState,
   GLOBAL_LEADERBOARD_PAGE_SIZE,
   hasReviewData,
@@ -342,7 +343,10 @@ export function RankingTab({
               {scope === "global" && leaderboard.total !== null
                 ? t("top_of_total", {
                     count: visibleCount,
-                    total: numberFormatter.format(leaderboard.total),
+                    total: formatBoardTotal(
+                      leaderboard.total,
+                      numberFormatter.format
+                    ),
                   })
                 : t("players_count", { count: leaderboard.entries.length })}
             </span>

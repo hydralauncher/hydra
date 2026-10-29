@@ -44,7 +44,18 @@ export function WeekSubtitle({
   }, [endTime]);
 
   if (isAllTime) {
-    return <span className="leaderboards__subtitle">{t("subtitle_all")}</span>;
+    // Same two lines as a week, so the page does not jump on toggle.
+    return (
+      <>
+        <span className="leaderboards__subtitle">{t("subtitle_all")}</span>
+        <span
+          className="leaderboards__subtitle leaderboards__subtitle--countdown"
+          aria-hidden="true"
+        >
+          &nbsp;
+        </span>
+      </>
+    );
   }
 
   const dateFormatter = new Intl.DateTimeFormat(i18n.language, {
