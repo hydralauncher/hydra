@@ -17,6 +17,7 @@ import {
 } from "@shared";
 import { useEpicManagedConnection } from "@renderer/hooks/use-epic-managed";
 import { useEpicGameUpdate } from "@renderer/hooks/use-epic-game-update";
+import { useFinishedDownloadStep } from "@renderer/hooks/use-finished-download-step";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -44,6 +45,8 @@ import {
   ConfirmationModal,
   DiscSelectionModal,
   DownloadGameModal,
+  ExecutablePickerModal,
+  type ExecutablePickerTarget,
 } from "../../components/modals";
 import {
   AchievementsBox,
@@ -1066,6 +1069,53 @@ export default function Game() {
     setIsDownloadModalOpen(true);
   }, []);
 
+  const installStep = useFinishedDownloadStep(downloadGame);
+  const [executablePickerTarget, setExecutablePickerTarget] =
+    useState<ExecutablePickerTarget | null>(null);
+
+  const handleInstall = useCallback(async () => {
+    if (!downloadGame) return;
+
+    const opened = await globalThis.window.electron.openGameInstaller(
+      downloadGame.shop,
+      downloadGame.objectId
+    );
+
+    if (!opened) {
+      showErrorToast(t("installer_launch_failed", { ns: "downloads" }));
+    }
+
+    await refreshGameDetails();
+  }, [downloadGame, refreshGameDetails, showErrorToast, t]);
+
+  const handleExtract = useCallback(async () => {
+    if (!downloadGame) return;
+
+    await globalThis.window.electron.extractGameDownload(
+      downloadGame.shop,
+      downloadGame.objectId
+    );
+    globalThis.window.dispatchEvent(new Event("library-update"));
+    await refreshGameDetails();
+  }, [downloadGame, refreshGameDetails]);
+
+  const handleSelectExecutable = useCallback(() => {
+    if (!downloadGame) return;
+
+    setExecutablePickerTarget({
+      shop: downloadGame.shop,
+      objectId: downloadGame.objectId,
+    });
+  }, [downloadGame]);
+
+  const handleCloseExecutablePicker = useCallback(() => {
+    setExecutablePickerTarget(null);
+  }, []);
+
+  const handleExecutableSaved = useCallback(() => {
+    void refreshGameDetails();
+  }, [refreshGameDetails]);
+
   const handleCloseDownloadModal = useCallback(() => {
     setIsDownloadModalOpen(false);
   }, []);
@@ -1753,10 +1803,18 @@ export default function Game() {
         </Modal>
         <Modal
           visible={!!localSaveRetry}
-          title={t("epic_play_local_saves", { ns: "game_details" })}
-          description={t("epic_play_local_saves_description", {
-            ns: "game_details",
-          })}
+          title={t(
+            canRetryLocalSaves
+              ? "epic_play_local_saves"
+              : "epic_play_offline_title",
+            { ns: "game_details" }
+          )}
+          description={t(
+            canRetryLocalSaves
+              ? "epic_play_local_saves_description"
+              : "epic_play_offline_description",
+            { ns: "game_details" }
+          )}
           onClose={() => setLocalSaveRetry(null)}
         >
           <HorizontalFocusGroup>
@@ -1808,6 +1866,10 @@ export default function Game() {
             toggleFavorite={toggleFavorite}
             onPlay={handlePlayGame}
             onDownload={handleOpenDownloadModal}
+            installStep={installStep}
+            onInstall={() => void handleInstall()}
+            onExtract={() => void handleExtract()}
+            onSelectExecutable={handleSelectExecutable}
             onAddToLibrary={handleAddToLibrary}
             onOpenDownloadOptions={handleOpenDownloadModal}
             onOpenSettings={() => setIsGameSettingsModalOpen(true)}
@@ -1821,6 +1883,7 @@ export default function Game() {
             <GameSettingsModal
               visible={isGameSettingsModalOpen}
               game={game}
+              removeFilesGame={presentationGame ?? game}
               launchSettings={launchSettings}
               customizationSettings={customizationSettings}
               cloudSettings={cloudSettings}
@@ -2177,6 +2240,12 @@ export default function Game() {
             coverImageUrl:
               preferredAssets.coverSrc || preferredAssets.iconSrc || null,
           }}
+        />
+
+        <ExecutablePickerModal
+          target={executablePickerTarget}
+          onClose={handleCloseExecutablePicker}
+          onSaved={handleExecutableSaved}
         />
 
         {game?.shop === "launchbox" ? (

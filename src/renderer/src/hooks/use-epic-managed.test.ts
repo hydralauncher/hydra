@@ -2104,6 +2104,10 @@ describe("Epic managed UI lifecycle", () => {
       }) => (visible ? React.createElement("section", null, children) : null);
       const hooks = {
         useDownload: () => ({ isGameDeleting: () => false }),
+        useGameExecutablePicker: () => async () => false,
+        useInstallerAvailability: () => ({}),
+        useDownloadFolderExists: () => null,
+        useFinishedDownloadStep: () => null,
         useLibrary: () => ({ updateLibrary: async () => {} }),
         useToast: () => ({
           showSuccessToast: () => {},
@@ -2139,7 +2143,11 @@ describe("Epic managed UI lifecycle", () => {
           "react-i18next": {
             useTranslation: () => ({ t: (key: string) => key }),
           },
-          "react-router-dom": { useNavigate: () => () => {} },
+          "react-router-dom": {
+            useNavigate: () => () => {},
+            useLocation: () => ({ pathname: "/", search: "", state: null }),
+          },
+          "@renderer/logger": { logger: { error: () => {} } },
           "@renderer/helpers": {
             canDownloadOnSteam: () => false,
             handleClassicsLaunchError: () => {},
@@ -2153,6 +2161,7 @@ describe("Epic managed UI lifecycle", () => {
             isEpicUpdateInterrupted,
             isLibraryGameDownloading: () => false,
             applyLibraryGroupAction: async () => {},
+            getFinishedDownloadStep: () => null,
           },
           "../modals/disc-selection-modal": { DiscSelectionModal: () => null },
           "../modals/epic-cloud-save-conflict-modal": {

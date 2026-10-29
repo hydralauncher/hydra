@@ -1,5 +1,6 @@
 import {
   DownloadIcon,
+  FileIcon,
   GearIcon,
   HeartFillIcon,
   HeartIcon,
@@ -15,9 +16,11 @@ import {
   getEpicLaunchError,
   getEpicManagedError,
 } from "@renderer/helpers/epic-managed-error";
-import { XCircle } from "lucide-react";
+import { FileArchive, XCircle } from "lucide-react";
 import {
   useDownload,
+  useGameExecutablePicker,
+  useFinishedDownloadStep,
   useLibrary,
   useToast,
   useUserDetails,
@@ -26,8 +29,9 @@ import { useEpicManagedConnection } from "@renderer/hooks/use-epic-managed";
 import { useEpicGameUpdate } from "@renderer/hooks/use-epic-game-update";
 import { useCallback, useContext, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { gameDetailsContext } from "@renderer/context";
+import { logger } from "@renderer/logger";
 import {
   canDownloadOnSteam,
   handleClassicsLaunchError,
@@ -88,13 +92,26 @@ export function HeroPanelActions() {
     if (epicDownloadStatus === "complete") void refreshEpicUpdate();
   }, [epicDownloadStatus, refreshEpicUpdate]);
 
+  const pickGameExecutable = useGameExecutablePicker();
+  const finishedDownloadStep = useFinishedDownloadStep(downloadGame);
+
   const { updateLibrary } = useLibrary();
 
   const { showSuccessToast, showErrorToast } = useToast();
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [showDiscSelectionModal, setShowDiscSelectionModal] = useState(false);
+
+  useEffect(() => {
+    const state = (location.state as Record<string, unknown> | null) ?? {};
+    if (!state.openDiscSelection) return;
+    if (game?.shop !== "launchbox" || (game?.discs?.length ?? 0) <= 1) return;
+
+    setShowDiscSelectionModal(true);
+    navigate(location.pathname + location.search, { replace: true, state: {} });
+  }, [location, game?.shop, game?.discs?.length, navigate]);
   const [localSaveRetry, setLocalSaveRetry] = useState<LibraryGame | null>(
     null
   );
@@ -463,6 +480,107 @@ export function HeroPanelActions() {
     </Button>
   );
 
+  const finishedDownloadButton = () => {
+    if (
+      !downloadGame ||
+      !finishedDownloadStep ||
+      finishedDownloadStep === "play"
+    ) {
+      return null;
+    }
+
+    if (finishedDownloadStep === "checking") {
+      return (
+        <Button theme="outline" disabled className="hero-panel-actions__action">
+          {t("checking_files", { ns: "downloads" })}
+        </Button>
+      );
+    }
+
+    if (finishedDownloadStep === "extracting") {
+      return (
+        <Button theme="outline" disabled className="hero-panel-actions__action">
+          {t("extracting")}
+        </Button>
+      );
+    }
+
+    if (finishedDownloadStep === "extract") {
+      return (
+        <Button
+          onClick={async () => {
+            await window.electron
+              .extractGameDownload(downloadGame.shop, downloadGame.objectId)
+              .catch((error) =>
+                logger.error("Failed to start extraction", error)
+              );
+            updateLibrary();
+          }}
+          theme="outline"
+          disabled={deleting}
+          className="hero-panel-actions__action"
+        >
+          <FileArchive size={16} />
+          {t("extract", { ns: "downloads" })}
+        </Button>
+      );
+    }
+
+    if (finishedDownloadStep === "installing") {
+      return (
+        <Button theme="outline" disabled className="hero-panel-actions__action">
+          {t("installing", { ns: "downloads" })}
+        </Button>
+      );
+    }
+
+    if (finishedDownloadStep === "install") {
+      return (
+        <Button
+          onClick={async () => {
+            const opened = await window.electron
+              .openGameInstaller(downloadGame.shop, downloadGame.objectId)
+              .catch((error) => {
+                logger.error("Failed to open game installer", error);
+                return false;
+              });
+
+            if (!opened) {
+              showErrorToast(t("installer_launch_failed", { ns: "downloads" }));
+            }
+
+            updateLibrary();
+          }}
+          theme="outline"
+          disabled={deleting}
+          className="hero-panel-actions__action"
+        >
+          <DownloadIcon />
+          {t("install")}
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        onClick={async () => {
+          const picked = await pickGameExecutable(
+            downloadGame.shop,
+            downloadGame.objectId
+          );
+
+          if (picked) updateGame();
+        }}
+        theme="outline"
+        disabled={deleting}
+        className="hero-panel-actions__action"
+      >
+        <FileIcon size={16} />
+        {t("select_executable", { ns: "downloads" })}
+      </Button>
+    );
+  };
+
   const gameActionButton = () => {
     if (isTransferring) {
       const percent = Math.round(transferProgress * 100);
@@ -567,6 +685,9 @@ export function HeroPanelActions() {
       );
     }
 
+    const finishedDownloadAction = finishedDownloadButton();
+    if (finishedDownloadAction) return finishedDownloadAction;
+
     return (
       <Button
         onClick={() => setShowRepacksModal(true)}
@@ -599,8 +720,16 @@ export function HeroPanelActions() {
         />
         <Modal
           visible={!!localSaveRetry}
-          title={t("epic_play_local_saves")}
-          description={t("epic_play_local_saves_description")}
+          title={
+            canRetryLocalSaves
+              ? t("epic_play_local_saves")
+              : t("epic_play_offline_title")
+          }
+          description={
+            canRetryLocalSaves
+              ? t("epic_play_local_saves_description")
+              : t("epic_play_offline_description")
+          }
           onClose={() => setLocalSaveRetry(null)}
         >
           <div className="hero-panel-actions__epic-actions">

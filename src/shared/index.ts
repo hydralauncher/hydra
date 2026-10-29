@@ -30,7 +30,9 @@ export {
   type SteamAutoStartRunStatus,
 } from "./should-auto-start-steam-sync";
 export * from "./steam-session";
+export * from "./leaderboard-notifications";
 export * from "./window-layout";
+export * from "./review-translation";
 export {
   getDisplayedPlayTimeInMilliseconds,
   getPlayTimeHoursAndMinutes,
@@ -38,9 +40,13 @@ export {
 } from "./playtime";
 export * from "./cloud-save-access";
 export * from "./cloud-save-emulator-provider";
+export * from "./profile-friends";
+export * from "./classics-disc-label";
 export * from "./controller-support";
 export * from "./artwork-resolver";
 export * from "./library-catalogue";
+export * from "./finished-download-step";
+export * from "./format-bit-rate";
 export * from "./library-group-actions";
 export * from "./official-store-options";
 export * from "./download-directories";
@@ -49,6 +55,8 @@ export * from "./language-flags";
 export * from "./use-hls-video";
 export * from "./use-souvenir-content-warning";
 export * from "./retroarch-platform";
+export * from "./platform-to-system";
+export * from "./classics-emulator-games";
 export * from "./tracker-list";
 export * from "./souvenirs";
 export * from "./souvenir-sync";
@@ -319,9 +327,6 @@ export const getDateLocale = (language: string) => {
 
   return enUS;
 };
-
-export const getReviewTranslationLanguage = (language: string) =>
-  language.split("-")[0].toLowerCase();
 
 export const formatDate = (
   date: number | Date | string,

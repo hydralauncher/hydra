@@ -1,4 +1,5 @@
-import type { LibraryGame } from "@types";
+import { getNextClassicsDiscLabel, stripFileExtension } from "@shared";
+import type { ClassicsDisc, LibraryGame } from "@types";
 
 type ToastOptions = {
   message?: string;
@@ -70,15 +71,21 @@ export async function applyClassicsDiscUpdate(
   }
 }
 
-export function buildAddedDiscPayload(fullPath: string, discCount: number) {
+export function buildAddedDiscPayload(
+  fullPath: string,
+  discs: ClassicsDisc[],
+  isExecutable = false
+) {
   const fileName = fullPath.split(/[\\/]/).pop() ?? fullPath;
-  const nextIndex = discCount + 1;
 
   return {
     addDisc: {
       path: fullPath,
-      label: `Disc ${nextIndex}`,
+      label: isExecutable
+        ? stripFileExtension(fileName)
+        : getNextClassicsDiscLabel(discs),
       fileName,
+      ...(isExecutable ? { isExecutable } : {}),
     },
     selectedDiscPath: fullPath,
   } satisfies ClassicsDiscUpdatePayload;

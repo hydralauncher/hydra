@@ -11,6 +11,9 @@ enum Feature {
   Nimbus = "NIMBUS",
   NimbusPreview = "NIMBUS_PREVIEW",
   ChatImages = "CHAT_IMAGES",
+  GameLeaderboardsExtended = "GAME_LEADERBOARDS_EXTENDED",
+  GlobalLeaderboards = "GLOBAL_LEADERBOARDS",
+  LeaderboardReports = "LEADERBOARD_REPORTS",
 }
 
 const readCachedFeatures = (): string[] => {
@@ -45,6 +48,7 @@ export function useFeature() {
 
   return {
     isFeatureEnabled,
+    isFeaturesLoaded: features !== null,
     Feature,
   };
 }
