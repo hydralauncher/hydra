@@ -138,6 +138,7 @@ import {
   getDisplayedPlayTimeInMilliseconds,
   groupLibraryGames,
   getGameCatalogueIdentity,
+  resolveScreenshotPreferences,
 } from "@shared";
 
 const SOUVENIR_REPORT_RESPONSE_STATUSES = [201, 400, 404, 429];
@@ -3333,7 +3334,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
             <ProfileScreenshots
               state={profileScreenshots}
               isOwnProfile={isOwnProfileTarget}
-              hotkey={userPreferences?.screenshotHotkey}
+              hotkey={resolveScreenshotPreferences(userPreferences).hotkey}
               upFocusId={screenshotsUpFocusId}
               downFocusId={screenshotsDownFocusId}
               onActivate={openScreenshot}
