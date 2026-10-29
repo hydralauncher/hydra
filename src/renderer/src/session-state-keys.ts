@@ -42,13 +42,23 @@ const FILTER_SESSION_SCOPED_KEYS = [
   "profile-souvenir-sort-by",
   "profile-souvenir-grouping",
   PROFILE_SCREENSHOT_SORT_STORAGE_KEY,
-  PROFILE_SCREENSHOT_GAME_STORAGE_KEY,
   GAME_SCREENSHOT_SORT_STORAGE_KEY,
   "hydra:big-picture:library-sort-by",
   "hydra:big-picture:library-filter-by",
   "hydra:big-picture:library-tab",
   "hydra:big-picture:sidebar-library-filter",
 ];
+
+const FILTER_SESSION_SCOPED_KEY_PREFIXES = [
+  `${PROFILE_SCREENSHOT_GAME_STORAGE_KEY}:`,
+];
+
+export const getSessionScopedKeyPrefixesToClear = (
+  persistFiltersAndSorting: boolean
+): string[] =>
+  persistFiltersAndSorting
+    ? [...SESSION_SCOPED_KEY_PREFIXES]
+    : [...SESSION_SCOPED_KEY_PREFIXES, ...FILTER_SESSION_SCOPED_KEY_PREFIXES];
 
 export const getSessionScopedKeysToClear = (
   persistFiltersAndSorting: boolean
