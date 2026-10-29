@@ -137,14 +137,28 @@ export const getScreenshotGameTargets = async () => {
   );
 };
 
-const readNamespacedPids = (hostPid: number) => {
-  try {
-    return parseNamespacedPids(
-      fs.readFileSync(`/proc/${hostPid}/status`, "utf8")
-    );
-  } catch {
-    return null;
-  }
+const readNamespacedPids = (hostPid: number) =>
+  fs.promises
+    .readFile(`/proc/${hostPid}/status`, "utf8")
+    .then(parseNamespacedPids, () => null);
+
+const needsNamespacedPids = (
+  foreground: ForegroundWindowInfo,
+  candidates: ScreenshotGameCandidate[]
+) =>
+  process.platform === "linux" &&
+  foreground.clientProcessId == null &&
+  foreground.processId !== null &&
+  candidates.some((candidate) => candidate.target.processId !== undefined);
+
+const loadNamespacedPidLookup = async (processes: ForegroundProcess[]) => {
+  const entries = await Promise.all(
+    processes.map(
+      async (entry) => [entry.pid, await readNamespacedPids(entry.pid)] as const
+    )
+  );
+  const namespacedPids = new Map(entries);
+  return (hostPid: number) => namespacedPids.get(hostPid) ?? null;
 };
 
 const resolveWindowsForegroundWindow =
@@ -274,8 +288,9 @@ export const resolveForegroundGame = async (
       targets: candidates.map((candidate) => candidate.target),
       foreground,
       processes,
-      getNamespacedPids:
-        process.platform === "linux" ? readNamespacedPids : undefined,
+      getNamespacedPids: needsNamespacedPids(foreground, candidates)
+        ? await loadNamespacedPidLookup(processes)
+        : undefined,
     });
 
     if (target) {
