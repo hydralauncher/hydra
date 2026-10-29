@@ -2752,6 +2752,8 @@
     "find_friends": "Encontrar amigos",
     "sign_in_hint": "Entre para ver sua posição, seus jogos e o ranking dos seus amigos.",
     "review_score": "{{score}}/5",
+    "review_likes_one": "{{count}} voto positivo",
+    "review_likes_other": "{{count}} votos positivos",
     "review_top_week": "Review mais votada da semana",
     "review_top_all": "Review mais votada de todos os tempos",
     "review_top_of": "Review mais votada de {{name}}",

@@ -2748,6 +2748,8 @@
     "find_friends": "Find friends",
     "sign_in_hint": "Sign in to see your position, your games and your friends' ranking.",
     "review_score": "{{score}}/5",
+    "review_likes_one": "{{count}} upvote",
+    "review_likes_other": "{{count}} upvotes",
     "review_top_week": "Most upvoted review of the week",
     "review_top_all": "Most upvoted review of all time",
     "review_top_of": "Most upvoted review by {{name}}",

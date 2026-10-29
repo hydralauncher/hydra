@@ -1,5 +1,5 @@
 import { ArrowRightIcon, TrophyIcon } from "@primer/octicons-react";
-import { Star, ThumbsUp } from "lucide-react";
+import { Languages, Star, ThumbsUp } from "lucide-react";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
 import type { LeaderboardEntry } from "../game-details/leaderboard/game-leaderboard";
 import type { LeaderboardReview } from "./global-leaderboard";
+import { useReviewTranslation } from "./use-review-translation";
 
 import "../game-details/review-item.scss";
 
@@ -29,8 +30,9 @@ export interface ReviewHighlightProps {
 }
 
 // The selected review, drawn like a review on the game page (review-item.tsx)
-// without the vote buttons, replies and translation: the leaderboard payload
-// has no review id. The game is a link line above the text.
+// without the vote buttons and replies: the leaderboard payload has no review
+// id. The upvotes are a badge next to the score and the game is a link line
+// above the text.
 export function ReviewHighlight({
   title,
   entry,
@@ -45,6 +47,7 @@ export function ReviewHighlight({
     entry.user.backgroundImageUrl,
     REVIEW_BANNER_IMAGE_SIZE
   );
+  const translation = useReviewTranslation(review);
   const createdAt = review.createdAt ? new Date(review.createdAt) : null;
   const ratingKey = RATING_KEYS[Math.round(review.score)];
   const openProfile = () => navigate(`/profile/${entry.user.id}`);
@@ -110,6 +113,13 @@ export function ReviewHighlight({
                         </span>
                       )}
                     </div>
+                    <span
+                      className="game-details__review-score-stars leaderboards__review-likes"
+                      title={t("review_likes", { count: entry.value })}
+                    >
+                      <ThumbsUp size={12} />
+                      <span>{numberFormatter.format(entry.value)}</span>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -142,20 +152,34 @@ export function ReviewHighlight({
           <ArrowRightIcon size={14} />
         </button>
 
-        <p className="game-details__review-content leaderboards__review-text">
-          {review.text}
-        </p>
+        {translation.translatedHtml ? (
+          <div
+            className="game-details__review-content leaderboards__review-text"
+            dangerouslySetInnerHTML={{ __html: translation.translatedHtml }}
+          />
+        ) : (
+          <p className="game-details__review-content leaderboards__review-text">
+            {review.text}
+          </p>
+        )}
 
-        <div className="game-details__review-actions">
-          <div className="game-details__review-actions-left">
-            <div className="game-details__review-votes">
-              <span className="game-details__vote-button leaderboards__review-votes">
-                <ThumbsUp size={16} />
-                <span>{numberFormatter.format(entry.value)}</span>
-              </span>
-            </div>
+        {translation.translatedHtml && (
+          <div>
+            <button
+              type="button"
+              className="game-details__review-translation-toggle leaderboards__review-translation-toggle"
+              onClick={translation.toggleOriginal}
+            >
+              <Languages size={13} />
+              {translation.toggleLabel}
+            </button>
+            {translation.showOriginal && (
+              <p className="game-details__review-content leaderboards__review-text leaderboards__review-original">
+                {review.text}
+              </p>
+            )}
           </div>
-        </div>
+        )}
       </article>
     </section>
   );

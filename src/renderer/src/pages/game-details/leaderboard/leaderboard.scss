@@ -458,6 +458,8 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     position: relative;
   }
 
+  // Keyboard focus shows the tooltip above the row; the mouse moves it
+  // along the pointer (leaderboard-row.tsx sets the fixed position).
   &__tooltip {
     position: absolute;
     z-index: 5;
@@ -465,9 +467,28 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     bottom: calc(100% + globals.$spacing-unit);
     display: none;
     pointer-events: none;
+
+    &--pointer {
+      position: fixed;
+      right: auto;
+      bottom: auto;
+      display: block;
+      transform: translateY(calc(-100% - 12px));
+    }
+
+    &--pointer#{&}--flip-x {
+      transform: translate(-100%, calc(-100% - 12px));
+    }
+
+    &--pointer#{&}--flip-y {
+      transform: translateY(12px);
+    }
+
+    &--pointer#{&}--flip-x#{&}--flip-y {
+      transform: translate(-100%, 12px);
+    }
   }
 
-  &__item--tooltip:hover &__tooltip,
   &__item--tooltip:focus-within &__tooltip {
     display: block;
   }

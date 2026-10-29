@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +24,17 @@ export interface LeaderboardRowProps {
   tooltip?: React.ReactNode;
 }
 
+interface TooltipPosition {
+  x: number;
+  y: number;
+  flipX: boolean;
+  flipY: boolean;
+}
+
+const TOOLTIP_FALLBACK_WIDTH = 360;
+const TOOLTIP_FALLBACK_HEIGHT = 120;
+const TOOLTIP_OFFSET = 12;
+
 export function LeaderboardRow({
   row,
   value,
@@ -36,6 +48,26 @@ export function LeaderboardRow({
   const navigate = useNavigate();
   const { entry, isViewer, gapBefore, progress } = row;
   const tier = getRankTier(entry.rank);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [tooltipPosition, setTooltipPosition] =
+    useState<TooltipPosition | null>(null);
+
+  // The tooltip sits above and to the right of the pointer, flipped to the
+  // other side when that would leave the window.
+  const followPointer = (event: React.MouseEvent) => {
+    if (!tooltip) return;
+    const width = tooltipRef.current?.offsetWidth || TOOLTIP_FALLBACK_WIDTH;
+    const height = tooltipRef.current?.offsetHeight || TOOLTIP_FALLBACK_HEIGHT;
+    const x = event.clientX;
+    const y = event.clientY;
+
+    setTooltipPosition({
+      x,
+      y,
+      flipX: x + TOOLTIP_OFFSET + width > window.innerWidth,
+      flipY: y - TOOLTIP_OFFSET - height < 0,
+    });
+  };
   const banner = useProcessedImage(
     entry.user.backgroundImageUrl,
     LEADERBOARD_ROW_BANNER_IMAGE_SIZE
@@ -46,9 +78,29 @@ export function LeaderboardRow({
       className={cn("leaderboard-row__item", {
         "leaderboard-row__item--tooltip": tooltip,
       })}
+      onMouseMove={tooltip ? followPointer : undefined}
+      onMouseLeave={tooltip ? () => setTooltipPosition(null) : undefined}
     >
       {tooltip && (
-        <div className="leaderboard-row__tooltip" role="tooltip">
+        <div
+          ref={tooltipRef}
+          className={cn("leaderboard-row__tooltip", {
+            "leaderboard-row__tooltip--pointer": tooltipPosition,
+            "leaderboard-row__tooltip--flip-x": tooltipPosition?.flipX,
+            "leaderboard-row__tooltip--flip-y": tooltipPosition?.flipY,
+          })}
+          style={
+            tooltipPosition
+              ? {
+                  left:
+                    tooltipPosition.x +
+                    (tooltipPosition.flipX ? -1 : 1) * TOOLTIP_OFFSET,
+                  top: tooltipPosition.y,
+                }
+              : undefined
+          }
+          role="tooltip"
+        >
           {tooltip}
         </div>
       )}

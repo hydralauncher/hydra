@@ -29,6 +29,7 @@ import {
   type GlobalBoardResults,
 } from "./use-global-leaderboards";
 import { useMetricText } from "./use-global-leaderboard-value";
+import { useReviewTranslation } from "./use-review-translation";
 
 const METRIC_CARD_PLACEHOLDERS = Array.from(
   { length: 8 },
@@ -46,6 +47,22 @@ export interface RankingTabProps {
   scope: GlobalLeaderboardScope;
   viewerUser: LeaderboardUser | null;
   onRetry: () => void;
+}
+
+// Tooltip text in the app language when the API sent a translation.
+function ReviewTipText({ review }: Readonly<{ review: LeaderboardReview }>) {
+  const { translatedHtml } = useReviewTranslation(review);
+
+  if (translatedHtml) {
+    return (
+      <p
+        className="leaderboards__review-tip-text"
+        dangerouslySetInnerHTML={{ __html: translatedHtml }}
+      />
+    );
+  }
+
+  return <p className="leaderboards__review-tip-text">{review.text}</p>;
 }
 
 function ReviewScore({ review }: Readonly<{ review: LeaderboardReview }>) {
@@ -189,7 +206,7 @@ export function RankingTab({
             {review.gameTitle}
           </span>
           <ReviewScore review={review} />
-          <p className="leaderboards__review-tip-text">{review.text}</p>
+          <ReviewTipText review={review} />
         </div>
       </div>
     );
