@@ -26,14 +26,31 @@ interface UseMyGameScreenshotsOptions {
   feedKeySuffix: string;
 }
 
+interface LoadedLocalScreenshots {
+  targetKey: string | null;
+  screenshots: LocalScreenshot[];
+  hasLoaded: boolean;
+  hasFailed: boolean;
+}
+
+const NOT_LOADED_LOCAL_SCREENSHOTS: LoadedLocalScreenshots = {
+  targetKey: null,
+  screenshots: [],
+  hasLoaded: false,
+  hasFailed: false,
+};
+
 export function usePendingLocalScreenshots(
   shop: GameShop,
   objectId: string,
   isEnabled: boolean
 ) {
-  const [screenshots, setScreenshots] = useState<LocalScreenshot[]>([]);
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const [hasFailed, setHasFailed] = useState(false);
+  const targetKey = `${shop}:${objectId}`;
+  const [loaded, setLoaded] = useState<LoadedLocalScreenshots>(
+    NOT_LOADED_LOCAL_SCREENSHOTS
+  );
+  const { screenshots, hasLoaded, hasFailed } =
+    loaded.targetKey === targetKey ? loaded : NOT_LOADED_LOCAL_SCREENSHOTS;
   const snapshotGuardRef = useRef(createLocalSnapshotGuard());
 
   const load = useCallback(() => {
@@ -43,21 +60,32 @@ export function usePendingLocalScreenshots(
       .getLocalScreenshotsForGame(shop, objectId)
       .then((items) => {
         if (!snapshots.isCurrentRead(startedAt)) return;
-        setScreenshots(items);
-        setHasFailed(false);
-        setHasLoaded(true);
+        setLoaded({
+          targetKey,
+          screenshots: items,
+          hasLoaded: true,
+          hasFailed: false,
+        });
       })
       .catch((error: unknown) => {
         logger.error("Failed to load local screenshots for the game", error);
         if (!snapshots.isCurrentRead(startedAt)) return;
-        setHasFailed(true);
-        setHasLoaded(true);
+        setLoaded((previous) => ({
+          targetKey,
+          screenshots:
+            previous.targetKey === targetKey ? previous.screenshots : [],
+          hasLoaded: true,
+          hasFailed: true,
+        }));
       });
-  }, [objectId, shop]);
+  }, [objectId, shop, targetKey]);
 
   const retry = useCallback(() => {
-    setHasLoaded(false);
-    setHasFailed(false);
+    setLoaded((previous) => ({
+      ...previous,
+      hasLoaded: false,
+      hasFailed: false,
+    }));
     return load();
   }, [load]);
 
@@ -76,18 +104,22 @@ export function usePendingLocalScreenshots(
       (items) => {
         if (!isCurrent) return;
         snapshots.noteSnapshot();
-        setScreenshots(
-          items.filter((item) => isLocalScreenshotForGame(item, shop, objectId))
-        );
-        setHasFailed(false);
-        setHasLoaded(true);
+        setLoaded({
+          targetKey,
+          screenshots: items.filter((item) =>
+            isLocalScreenshotForGame(item, shop, objectId)
+          ),
+          hasLoaded: true,
+          hasFailed: false,
+        });
       }
     );
     const unsubscribeProgress =
       globalThis.window.electron.onScreenshotUploadProgress((progress) => {
         if (!isCurrent) return;
-        setScreenshots((current) =>
-          current.map((item) =>
+        setLoaded((previous) => ({
+          ...previous,
+          screenshots: previous.screenshots.map((item) =>
             item.clientId === progress.clientId
               ? {
                   ...item,
@@ -95,8 +127,8 @@ export function usePendingLocalScreenshots(
                   uploadProgress: progress.progress ?? item.uploadProgress,
                 }
               : item
-          )
-        );
+          ),
+        }));
       });
 
     return () => {
@@ -104,7 +136,7 @@ export function usePendingLocalScreenshots(
       unsubscribeLocal();
       unsubscribeProgress();
     };
-  }, [isEnabled, load, objectId, shop]);
+  }, [isEnabled, load, objectId, shop, targetKey]);
 
   const pending = useMemo(
     () => selectPendingLocalScreenshots(screenshots, { shop, objectId }),
