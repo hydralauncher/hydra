@@ -1,6 +1,7 @@
 import { screenshotsSublevel } from "@main/level";
 import type { GameShop, LocalScreenshot } from "@types";
 
+import { logger } from "../logger";
 import { matchesLocalScreenshotGame } from "./local-screenshot-game";
 
 type LocalScreenshotsChangeListener = (screenshots: LocalScreenshot[]) => void;
@@ -55,7 +56,9 @@ const scheduleNotification = () => {
   if (notificationScheduled) return;
   notificationScheduled = true;
   setTimeout(() => {
-    void notifyListeners().catch(() => undefined);
+    void notifyListeners().catch((error: unknown) => {
+      logger.warn("Failed to notify local screenshot listeners", error);
+    });
   }, CHANGE_NOTIFICATION_DELAY_MS);
 };
 
