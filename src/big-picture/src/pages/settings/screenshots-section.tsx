@@ -49,7 +49,6 @@ import {
   useBigPictureToast,
   useNavigation,
   useNavigationScreenActions,
-  useUserDetails,
   useUserPreferences,
 } from "../../hooks";
 import {
@@ -310,7 +309,6 @@ interface ScreenshotSettingsRowsOptions {
   isDefaultCombo: boolean;
   settingsDisabled: boolean;
   isGamepadComboDisabled: boolean;
-  isSignedIn: boolean;
 }
 
 const ids = SCREENSHOT_SETTINGS_FOCUS_IDS;
@@ -391,7 +389,6 @@ export function ScreenshotSettingsSection({
 }: Readonly<ScreenshotSettingsSectionProps>) {
   const { t } = useTranslation("big_picture");
   const userPreferences = useUserPreferences();
-  const { userDetails } = useUserDetails();
   const { showErrorToast } = useBigPictureToast();
   const { setFocus } = useNavigation();
   const [overrides, setOverrides] = useState<ScreenshotPreferenceUpdate>({});
@@ -538,7 +535,6 @@ export function ScreenshotSettingsSection({
         isDefaultCombo: gamepadCombo.isDefault,
         settingsDisabled,
         isGamepadComboDisabled,
-        isSignedIn: Boolean(userDetails),
       }),
     [
       gamepadCombo.canAdd,
@@ -548,7 +544,6 @@ export function ScreenshotSettingsSection({
       isDefaultHotkey,
       isGamepadComboDisabled,
       settingsDisabled,
-      userDetails,
     ]
   );
 
