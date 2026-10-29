@@ -18,6 +18,7 @@ import {
 import { CornersIn, CornersOut, Play } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
 import { moveFocusWithinContainer } from "@renderer/hooks/use-focus-trap";
+import { useFeedbackWidgetHidden } from "@renderer/hooks/use-feedback-widget-hidden";
 import {
   FULLSCREEN_IDLE_TIMEOUT_MS,
   GALLERY_VIEWER_TOOLTIP_ID,
@@ -300,6 +301,7 @@ function GalleryLightboxContent({
   onNavigate,
 }: Readonly<Omit<GalleryLightboxProps, "visible">>) {
   const { t } = useTranslation("game_details");
+  useFeedbackWidgetHidden();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
