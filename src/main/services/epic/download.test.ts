@@ -16,6 +16,7 @@ import {
   runEpicPrerequisite,
   withInstalledEpicDlcs,
 } from "./download.js";
+import { EPIC_DLC_INSPECTION_BUDGET_MS } from "./constants.js";
 import { EpicInstallationService, epicManagedTarget } from "./installation.js";
 import {
   EpicManagedError,
@@ -1450,5 +1451,36 @@ test("installed DLC joins the sized selection so updates check its space", () =>
   assert.equal(
     withInstalledEpicDlcs(prepared, undefined, new Map()),
     undefined
+  );
+});
+
+test("a stalled DLC inspection still offers the game and the DLC inspected before it", async (t) => {
+  const f = await selectionFixture(t);
+  f.setOwnedDlcs([ownedDlc("Dlc1"), ownedDlc("Stalled"), ownedDlc("Dlc2")]);
+  const entered = deferred<void>();
+  t.mock.method(
+    f.runtime,
+    "inspect",
+    async (target, _id, signal, _cached, base) => {
+      f.runtime.assertCurrent(target, signal);
+      if (!base) return { info: { ...info, sdl }, metadata };
+      if (target.artifactId !== "Stalled") return dlcInfo(target.artifactId);
+      entered.resolve();
+      return await new Promise<never>((_resolve, reject) =>
+        signal.addEventListener("abort", () => reject(signal.reason), {
+          once: true,
+        })
+      );
+    }
+  );
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const pending = f.service.getOptions(objectId);
+  await entered.promise;
+  t.mock.timers.tick(EPIC_DLC_INSPECTION_BUDGET_MS);
+  const preview = await pending;
+  assert.equal(preview.error, undefined);
+  assert.deepEqual(
+    preview.options[0].dlcs?.map(({ artifactId }) => artifactId),
+    ["Dlc1"]
   );
 });

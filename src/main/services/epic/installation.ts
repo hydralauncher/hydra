@@ -22,6 +22,7 @@ import {
   EPIC_INSTALL_OPTIONS_CACHE_MS,
   EPIC_INSTALL_OPTIONS_CACHE_MAX_ENTRIES,
   EPIC_INSTALL_OPTIONS_TIMEOUT_MS,
+  EPIC_DLC_INSPECTION_BUDGET_MS,
   EPIC_IMPORT_VERIFY_TIMEOUT_MS,
 } from "./constants.js";
 import {
@@ -793,6 +794,7 @@ export class EpicInstallationService {
   /**
    * Inspects each owned DLC in its game's context. A DLC that cannot be
    * prepared is left out; it never prevents installing the game itself.
+   * DLC still pending when the budget runs out is left out the same way.
    */
   private async prepareDlcs(
     owned: EpicOwnedGame,
@@ -800,11 +802,30 @@ export class EpicInstallationService {
     signal: AbortSignal,
     cached?: EpicPreparedDlc[]
   ): Promise<EpicPreparedDlc[]> {
+    if (signal.aborted) throw abortError(signal);
+    const budget = new AbortController();
+    const stop = () => budget.abort(signal.reason);
+    signal.addEventListener("abort", stop, { once: true });
+    const timer = setTimeout(
+      () => budget.abort(new EpicManagedError("timeout")),
+      EPIC_DLC_INSPECTION_BUDGET_MS
+    );
     const prepared: EpicPreparedDlc[] = [];
-    // One Legendary process at a time: a game can own dozens of DLC.
-    for (const dlc of owned.dlcs) {
-      const item = await this.prepareDlc(owned, base, dlc, signal, cached);
-      if (item) prepared.push(item);
+    try {
+      // One Legendary process at a time: a game can own dozens of DLC.
+      for (const dlc of owned.dlcs) {
+        let item: EpicPreparedDlc | null;
+        try {
+          item = await this.prepareDlc(owned, base, dlc, budget.signal, cached);
+        } catch (error) {
+          if (!signal.aborted && budget.signal.aborted) break;
+          throw error;
+        }
+        if (item) prepared.push(item);
+      }
+    } finally {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", stop);
     }
     return prepared;
   }
