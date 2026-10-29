@@ -5,17 +5,18 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import type { GameShop } from "@types";
 
-// Includes soft-deleted records: removing a game keeps its playtime for the review gate.
 const getGameReviewPlaytime = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string
 ) => {
-  const storedGame = await gamesSublevel.get(levelKeys.game(shop, objectId));
-  if (!storedGame) return 0;
+  const recordIncludingRemoved = await gamesSublevel.get(
+    levelKeys.game(shop, objectId)
+  );
+  if (!recordIncludingRemoved) return 0;
 
   return getDisplayedPlayTimeInMilliseconds(
-    getContextualEpicGame(storedGame, HydraApi.getAuthContext())
+    getContextualEpicGame(recordIncludingRemoved, HydraApi.getAuthContext())
   );
 };
 
