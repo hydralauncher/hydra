@@ -24,8 +24,8 @@ export const sanitizePathSegment = (value: string) => {
 
   return (
     stripTrailingDotsAndSpaces(
-      stripTrailingDotsAndSpaces(sanitizedValue).slice(0, 120)
-    ).trim() || "unknown"
+      stripTrailingDotsAndSpaces(sanitizedValue).slice(0, 120).trim()
+    ) || "unknown"
   );
 };
 
