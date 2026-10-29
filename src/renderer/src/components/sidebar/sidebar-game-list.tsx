@@ -5,6 +5,8 @@ import { SidebarGameItem } from "./sidebar-game-item";
 import { SidebarGameListSkeleton } from "./sidebar-game-list-skeleton";
 
 const SIDEBAR_GAME_ITEM_HEIGHT = 42;
+const SIDEBAR_GAME_LIST_OVERSCAN = 5;
+const SIDEBAR_GAME_LIST_RIGHT_GUTTER = 16;
 
 interface SidebarGameListProps {
   games: LibraryGame[];
@@ -30,7 +32,7 @@ export const SidebarGameList = memo(function SidebarGameList({
     count: games.length,
     getScrollElement: () => gameListRef.current,
     estimateSize: () => SIDEBAR_GAME_ITEM_HEIGHT,
-    overscan: 5,
+    overscan: SIDEBAR_GAME_LIST_OVERSCAN,
   });
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export const SidebarGameList = memo(function SidebarGameList({
                   position: "absolute",
                   top: 0,
                   left: 0,
-                  right: 16 - scrollbarWidth,
+                  right: SIDEBAR_GAME_LIST_RIGHT_GUTTER - scrollbarWidth,
                   transform: `translateY(${virtualItem.start}px)`,
                 }}
               >

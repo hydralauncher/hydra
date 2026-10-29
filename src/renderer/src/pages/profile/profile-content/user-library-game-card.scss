@@ -152,9 +152,11 @@
     align-items: center;
     gap: 8px;
 
-    // Keep the duration in sync with USER_LIBRARY_GAME_STATS_CYCLE_MS.
+    // The card sets animation-duration from USER_LIBRARY_GAME_STATS_CYCLE_MS.
     &--cycling {
-      animation: user-library-game-stats-cycle 7s ease-in-out infinite;
+      animation-name: user-library-game-stats-cycle;
+      animation-timing-function: ease-in-out;
+      animation-iteration-count: infinite;
     }
   }
 

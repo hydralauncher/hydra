@@ -5,6 +5,8 @@ import type { UserGame } from "@types";
 
 const GRID_GAP = 16;
 const COVER_ASPECT_RATIO = 3 / 2;
+const UNMEASURED_ROW_HEIGHT = 300;
+const ROW_OVERSCAN = 2;
 
 // Mirrors the container queries on .profile-content__games-grid.
 const GRID_COLUMNS_BY_CONTAINER_WIDTH = [
@@ -90,13 +92,13 @@ export function ProfileLibraryGrid({
           ((listWidth - GRID_GAP * (columns - 1)) / columns) *
             COVER_ASPECT_RATIO
         ) + GRID_GAP
-      : 300;
+      : UNMEASURED_ROW_HEIGHT;
 
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollElement,
     estimateSize: () => estimatedRowHeight,
-    overscan: 2,
+    overscan: ROW_OVERSCAN,
     scrollMargin,
   });
 

@@ -54,7 +54,10 @@ export const UserLibraryGameCard = memo(function UserLibraryGameCard({
     () => `-${Date.now() % USER_LIBRARY_GAME_STATS_CYCLE_MS}ms`
   );
   const statsItemStyle = cyclesStats
-    ? { animationDelay: statsAnimationDelay }
+    ? {
+        animationDuration: `${USER_LIBRARY_GAME_STATS_CYCLE_MS}ms`,
+        animationDelay: statsAnimationDelay,
+      }
     : undefined;
 
   const buildUserGameDetailsPath = useCallback(
