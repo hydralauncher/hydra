@@ -434,9 +434,13 @@ export class HydraApi {
           if (error.request) {
             const errorData = error.toJSON();
             logger.error("Request error:", summarizeNetworkError(error));
+            // Keep the code so callers can tell a timeout from going offline.
             return Promise.reject(
-              new Error(
-                `Request failed with ${errorData.code} ${errorData.message}`
+              Object.assign(
+                new Error(
+                  `Request failed with ${errorData.code} ${errorData.message}`
+                ),
+                { code: errorData.code }
               )
             );
           }

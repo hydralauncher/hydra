@@ -58,7 +58,6 @@ export interface LeaderboardQuery {
   period: LeaderboardPeriod;
   scope: LeaderboardScope;
   metric: LeaderboardMetric;
-  isExtended: boolean;
   isLoggedIn: boolean;
   viewerId: string | null;
 }
@@ -92,7 +91,8 @@ export type LeaderboardState =
   | "ready"
   | "empty_week"
   | "empty_all"
-  | "empty_friends";
+  | "empty_friends"
+  | "solo";
 
 export interface LoadedLeaderboard {
   boardKey: string;
@@ -156,13 +156,8 @@ const normalizeUser = (value: unknown): LeaderboardUser | null => {
   };
 };
 
-const readValue = (candidate: Record<string, unknown>) => {
-  if (isNonNegativeNumber(candidate.value)) return candidate.value;
-  if (isNonNegativeNumber(candidate.playTimeInSeconds))
-    return candidate.playTimeInSeconds;
-
-  return null;
-};
+const readValue = (candidate: Record<string, unknown>) =>
+  isNonNegativeNumber(candidate.value) ? candidate.value : null;
 
 const normalizeEntry = (value: unknown): LeaderboardEntry | null => {
   if (!value || typeof value !== "object") return null;
@@ -196,7 +191,7 @@ export const normalizeLeaderboardResponse = (
   }
 
   const candidate = response as Record<string, unknown>;
-  const items = candidate.entries ?? candidate.users;
+  const items = candidate.entries;
   if (!Array.isArray(items)) {
     throw new TypeError("Invalid leaderboard response");
   }
@@ -326,7 +321,9 @@ export const getLeaderboardState = ({
   );
 
   if (scope === "friends" && others.length === 0) return "empty_friends";
-  if (leaderboard.entries.length > 0) return "ready";
+  if (leaderboard.entries.length > 0) {
+    return viewerId && others.length === 0 ? "solo" : "ready";
+  }
 
   return period === "week" ? "empty_week" : "empty_all";
 };
@@ -334,20 +331,14 @@ export const getLeaderboardState = ({
 export const buildLeaderboardRequest = (
   query: LeaderboardQuery
 ): { path: string; options: LeaderboardRequestOptions } => {
-  const gamePath = `/games/${query.shop}/${encodeURIComponent(query.objectId)}`;
-  const params = { take: LEADERBOARD_TAKE, range: query.period };
-
-  if (!query.isExtended) {
-    return {
-      path: `${gamePath}/top-users`,
-      options: { params, needsAuth: false },
-    };
-  }
-
   return {
-    path: `${gamePath}/leaderboards/${encodeURIComponent(query.metric)}`,
+    path: `/games/${query.shop}/${encodeURIComponent(query.objectId)}/leaderboards/${encodeURIComponent(query.metric)}`,
     options: {
-      params: { ...params, scope: query.scope },
+      params: {
+        take: LEADERBOARD_TAKE,
+        range: query.period,
+        scope: query.scope,
+      },
       needsAuth: query.isLoggedIn,
     },
   };

@@ -132,11 +132,15 @@ export function useDownload() {
     return resumed;
   };
 
-  const removeGameInstaller = async (shop: GameShop, objectId: string) => {
+  const removeGameInstaller = async (
+    shop: GameShop,
+    objectId: string,
+    options?: { deleteSourceArchive?: boolean }
+  ) => {
     dispatch(setGameDeleting(objectId));
 
     try {
-      await window.electron.deleteGameFolder(shop, objectId);
+      await window.electron.deleteGameFolder(shop, objectId, options);
       updateLibrary();
     } finally {
       dispatch(removeGameFromDeleting(objectId));

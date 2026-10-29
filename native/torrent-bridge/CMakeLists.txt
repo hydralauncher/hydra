@@ -15,6 +15,8 @@ set_target_properties(hydra_torrent_bridge PROPERTIES
   BUILD_RPATH "$ORIGIN" INSTALL_RPATH "$ORIGIN")
 if(APPLE)
   set_target_properties(hydra_torrent_bridge PROPERTIES INSTALL_RPATH "@loader_path")
+elseif(UNIX)
+  target_link_options(hydra_torrent_bridge PRIVATE "LINKER:--exclude-libs,ALL")
 endif()
 install(TARGETS hydra_torrent_bridge RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
 include(CTest)

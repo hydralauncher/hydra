@@ -449,6 +449,7 @@ export interface UserDetails {
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   allowCloudGifts: boolean;
+  allowLeaderboardNotifications?: boolean;
   souvenirsVisibility: ProfileVisibility;
   screenshotsVisibility?: ProfileVisibility;
   screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
@@ -562,6 +563,7 @@ export interface UpdateProfileRequest {
   bio?: string;
   language?: string;
   allowCloudGifts?: boolean;
+  allowLeaderboardNotifications?: boolean;
 }
 
 export interface OpenCheckoutOptions {
@@ -763,7 +765,9 @@ export type NotificationType =
   | "RETROACHIEVEMENTS_CREDENTIALS_RESTORED"
   | "RETROACHIEVEMENTS_CREDENTIALS_INVALID"
   | "RETROACHIEVEMENTS_SYNC_FAILED"
-  | "CLOUD_GIFT_RECEIVED";
+  | "CLOUD_GIFT_RECEIVED"
+  | "LEADERBOARD_RANK_CHANGED"
+  | "LEADERBOARD_MISSING_PHOTO";
 
 export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"
