@@ -133,6 +133,16 @@ const shouldUsePortalShortcut = (status: ScreenshotInputNativeStatus) =>
   status.waylandSession &&
   toBackend(status.keyboardBackend) === "unavailable";
 
+const withPortalHotkeyHint = (
+  status: ScreenshotInputStatus,
+  nativeStatus: ScreenshotInputNativeStatus,
+  settings: ScreenshotInputSettings
+): ScreenshotInputStatus =>
+  shouldUsePortalShortcut(nativeStatus) &&
+  !toScreenshotHotkeyAccelerator(settings.hotkey)
+    ? { ...status, hint: "hotkey_portal_unsupported_key" }
+    : status;
+
 const withPortalKeyboard = (
   status: ScreenshotInputNativeStatus
 ): ScreenshotInputNativeStatus => ({
@@ -230,10 +240,6 @@ export class ScreenshotInputService {
     return true;
   }
 
-  public static getStatus(): ScreenshotInputStatus {
-    return this.status;
-  }
-
   public static syncUserPreferences(preferences: UserPreferences | null) {
     const previous = this.settings;
     this.settings = getScreenshotInputSettings(preferences);
@@ -264,7 +270,13 @@ export class ScreenshotInputService {
       const probe = NativeAddon.probeScreenshotInput(
         toScreenshotInputNativeConfig(this.settings)
       );
-      this.setStatus(toScreenshotInputStatus(probe, this.settings, false));
+      this.setStatus(
+        withPortalHotkeyHint(
+          toScreenshotInputStatus(probe, this.settings, false),
+          probe,
+          this.settings
+        )
+      );
     } catch (error) {
       logger.error("Failed to probe screenshot input backends", error);
     }
@@ -394,8 +406,13 @@ export class ScreenshotInputService {
       this.settings,
       true
     );
-    this.setStatus(status);
-    return status;
+    const nextStatus = withPortalHotkeyHint(
+      status,
+      nativeStatus,
+      this.settings
+    );
+    this.setStatus(nextStatus);
+    return nextStatus;
   }
 
   private static registerPortalShortcut() {

@@ -10,6 +10,7 @@ import { WindowManager } from "../window-manager";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 
 interface UploadBatch {
+  ownerId: string;
   clientIds: Set<string>;
   notification: Notification | null;
 }
@@ -17,20 +18,8 @@ interface UploadBatch {
 let batch: UploadBatch | null = null;
 const userUploadClientIds = new Set<string>();
 
-const showNotification = (
-  title: string,
-  body: string,
-  progress?: { value: number; label: string }
-) => {
-  const options = {
-    title,
-    body,
-    icon,
-    silent: true,
-    ...(progress
-      ? { progress: { value: progress.value, valueOverride: progress.label } }
-      : {}),
-  };
+const showNotification = (title: string, body: string) => {
+  const options = { title, body, icon, silent: true };
 
   try {
     const notification = new Notification({
@@ -68,23 +57,21 @@ const pruneUserUploads = (byClientId: Map<string, LocalScreenshot>) => {
   }
 };
 
-const startBatch = (unattended: LocalScreenshot[]) => {
+const closeBatch = () => {
+  batch?.notification?.close();
+  batch = null;
+};
+
+const startBatch = (ownerId: string, unattended: LocalScreenshot[]) => {
   batch = {
+    ownerId,
     clientIds: new Set(unattended.map(({ clientId }) => clientId)),
     notification: showNotification(
       t("uploading_title", { ns: "screenshots_capture" }),
       t("uploading_body", {
         ns: "screenshots_capture",
         count: unattended.length,
-      }),
-      {
-        value: 0,
-        label: t("uploading_progress", {
-          ns: "screenshots_capture",
-          done: 0,
-          total: unattended.length,
-        }),
-      }
+      })
     ),
   };
 };
@@ -134,11 +121,8 @@ export class ScreenshotUploadNotifier {
 
   public static async refresh() {
     const ownerId = HydraApi.getAuthContext()?.userId ?? null;
-    if (!ownerId) {
-      batch?.notification?.close();
-      batch = null;
-      return;
-    }
+    if (batch && batch.ownerId !== ownerId) closeBatch();
+    if (!ownerId) return;
 
     const screenshots = await LocalScreenshotStore.list();
     const byClientId = new Map(
@@ -156,7 +140,7 @@ export class ScreenshotUploadNotifier {
     pruneUserUploads(byClientId);
 
     if (!batch) {
-      if (unattended.length) startBatch(unattended);
+      if (unattended.length) startBatch(ownerId, unattended);
       return;
     }
 

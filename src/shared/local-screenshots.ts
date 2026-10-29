@@ -6,8 +6,11 @@ export const resolveScreenshotUploadQuality = (
 ): ScreenshotQuality =>
   hasCloudSubscription ? (requested ?? "CLOUD") : "STANDARD";
 
+const encodeLocalPath = (path: string) =>
+  path.replaceAll("\\", "/").split("/").map(encodeURIComponent).join("/");
+
 export const toLocalScreenshotUrl = (path: string) =>
-  `local:${path.replaceAll("\\", "/")}`;
+  `local:${encodeLocalPath(path)}`;
 
 const SETTLED_LOCAL_SCREENSHOT_STATES = new Set(["uploaded", "deleted"]);
 

@@ -1,6 +1,7 @@
 use super::super::binding::{
-    evdev_codes, is_linux_gamepad, is_linux_keyboard, linux_trigger_ranges, AxisRange, Backend,
-    GamepadTracker, HotkeyMatcher, LinuxGamepadState, ModifierTracker, Modifiers, TriggerSource,
+    evdev_codes, is_linux_gamepad, is_linux_keyboard, linux_trigger_axes, AxisRange, Backend,
+    GamepadTracker, HotkeyMatcher, LinuxGamepadState, ModifierTracker, Modifiers, TriggerAxis,
+    TriggerSource,
 };
 use super::super::Context;
 use super::{poll_fds, pollfd, WakePipe};
@@ -81,7 +82,7 @@ fn supports_key(device: &Device) -> impl Fn(u16) -> bool + '_ {
     }
 }
 
-fn trigger_ranges(device: &Device) -> (Option<AxisRange>, Option<AxisRange>) {
+fn trigger_axes(device: &Device) -> (Option<TriggerAxis>, Option<TriggerAxis>) {
     let ranges: Vec<(u16, AxisRange)> = device
         .get_absinfo()
         .map(|axes| {
@@ -97,7 +98,7 @@ fn trigger_ranges(device: &Device) -> (Option<AxisRange>, Option<AxisRange>) {
             .collect()
         })
         .unwrap_or_default();
-    linux_trigger_ranges(
+    linux_trigger_axes(
         |code| {
             device
                 .supported_absolute_axes()
@@ -133,7 +134,7 @@ fn held_keys(device: &Device) -> HashSet<u16> {
 }
 
 fn initial_gamepad_state(device: &Device, held: &HashSet<u16>) -> LinuxGamepadState {
-    let (left_trigger, right_trigger) = trigger_ranges(device);
+    let (left_trigger, right_trigger) = trigger_axes(device);
     let mut state = LinuxGamepadState {
         left_trigger,
         right_trigger,

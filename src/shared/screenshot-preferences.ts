@@ -68,11 +68,12 @@ const stripControlCharacters = (value: string) =>
     })
     .join("");
 
+const TRAILING_HIGH_SURROGATE = /[\uD800-\uDBFF]$/;
+
 export const sanitizeScreenshotDescriptionInput = (value: string) =>
-  stripControlCharacters(value.replaceAll(DESCRIPTION_LINE_BREAKS, " ")).slice(
-    0,
-    SCREENSHOT_DESCRIPTION_MAX_LENGTH
-  );
+  stripControlCharacters(value.replaceAll(DESCRIPTION_LINE_BREAKS, " "))
+    .slice(0, SCREENSHOT_DESCRIPTION_MAX_LENGTH)
+    .replace(TRAILING_HIGH_SURROGATE, "");
 
 export const normalizeScreenshotDescription = (
   value: string | null | undefined
