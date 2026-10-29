@@ -797,6 +797,8 @@ export interface GameScreenshotsModalProps {
   visible: boolean;
   shop: GameShop;
   objectId: string;
+  communityShop: GameShop;
+  communityObjectId: string;
   writeBus?: ScreenshotWriteBus;
   initialTab?: GameScreenshotsTab;
   onClose: () => void;
@@ -806,6 +808,8 @@ export function GameScreenshotsModal({
   visible,
   shop,
   objectId,
+  communityShop,
+  communityObjectId,
   writeBus,
   initialTab = "mine",
   onClose,
@@ -814,7 +818,7 @@ export function GameScreenshotsModal({
   const { setFocus } = useNavigation();
   const [tab, setTab] = useState<GameScreenshotsTab>(initialTab);
   const [hasOpenedCommunity, setHasOpenedCommunity] = useState(false);
-  const hasCommunity = shop !== "custom";
+  const hasCommunity = communityShop !== "custom";
   const activeTab = hasCommunity ? tab : "mine";
   const emptyMineFocusId = hasCommunity
     ? GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID
@@ -828,8 +832,8 @@ export function GameScreenshotsModal({
   });
   const community = useCommunityScreenshots({
     enabled: visible && hasCommunity && hasOpenedCommunity,
-    shop,
-    objectId,
+    shop: communityShop,
+    objectId: communityObjectId,
     writeBus,
   });
   const tabItems = useMemo<TabsItem<GameScreenshotsTab>[]>(

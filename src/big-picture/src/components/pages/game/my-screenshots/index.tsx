@@ -303,6 +303,8 @@ function MyScreenshotsMessage({
 export interface GameMyScreenshotsProps {
   shop: GameShop;
   objectId: string;
+  communityShop: GameShop;
+  communityObjectId: string;
   navigationOrder: number;
   leftTarget: FocusOverrideTarget;
 }
@@ -310,6 +312,8 @@ export interface GameMyScreenshotsProps {
 export function GameMyScreenshots({
   shop,
   objectId,
+  communityShop,
+  communityObjectId,
   navigationOrder,
   leftTarget,
 }: Readonly<GameMyScreenshotsProps>) {
@@ -390,13 +394,13 @@ export function GameMyScreenshots({
   const isSettled =
     mine.hasLoaded ||
     (hasWaitedForPublished && mine.hasLoadedLocal && !mine.hasLocalFailed);
-  const hasCommunity = shop !== "custom";
+  const hasCommunity = communityShop !== "custom";
   const hasNoScreenshotsOfMine =
     mine.hasLoaded && !mine.hasFailed && !mine.isPartial && items.length === 0;
   const community = useSidebarCommunityScreenshots({
     enabled: isEnabled && hasCommunity && hasNoScreenshotsOfMine,
-    shop,
-    objectId,
+    shop: communityShop,
+    objectId: communityObjectId,
     writeBus,
   });
   const showCommunity = hasNoScreenshotsOfMine && community.items.length > 0;
@@ -510,6 +514,8 @@ export function GameMyScreenshots({
           visible={modalTab !== null}
           shop={shop}
           objectId={objectId}
+          communityShop={communityShop}
+          communityObjectId={communityObjectId}
           writeBus={writeBus}
           initialTab={modalTab ?? "mine"}
           onClose={closeModal}

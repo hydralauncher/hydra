@@ -1905,6 +1905,8 @@ export default function Game() {
                 <GameMyScreenshots
                   shop={game?.shop ?? shop!}
                   objectId={game?.objectId ?? objectId!}
+                  communityShop={shop!}
+                  communityObjectId={objectId!}
                   navigationOrder={0.5}
                   leftTarget={
                     descriptionEntryTarget ??
