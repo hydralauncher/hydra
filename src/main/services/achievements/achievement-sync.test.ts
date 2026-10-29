@@ -97,6 +97,7 @@ async function fixture(
     export const WindowManager = { mainWindow: { webContents: { send: (channel, achievements) => state.updates.push({channel, achievements}) } } };
     export const getUnlockedAchievements = async () => [];
     export const presentCombinedAchievements = () => [];
+    export const createCombinedDefinitionLookup = () => () => undefined;
     export const publishNewAchievementNotification = () => {};
     export const registerEvent = (name, handler) => state.events.set(name, handler);
     export const gamesSublevel = {get: async () => state.game};

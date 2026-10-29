@@ -133,7 +133,11 @@ export const loadState = async () => {
 
   await HydraApi.setupApi().then(async () => {
     void ScreenshotInputService.refreshFeatureFlag();
-    await initializeEpicIntegration();
+    try {
+      await initializeEpicIntegration();
+    } catch (err) {
+      logger.warn("Epic integration initialization failed on startup", err);
+    }
     uploadGamesBatch();
     void migrateDownloadSources();
 
