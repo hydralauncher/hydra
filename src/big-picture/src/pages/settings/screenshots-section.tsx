@@ -287,9 +287,9 @@ function useScreenshotInputStatus() {
 }
 
 function getInputStatusKey(status: ScreenshotInputStatus) {
-  if (status.active) return "screenshots_input_active";
   if (status.keyboardBackend === "unavailable")
     return "screenshots_input_unavailable";
+  if (status.active) return "screenshots_input_active";
 
   return "screenshots_input_idle";
 }
