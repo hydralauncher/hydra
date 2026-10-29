@@ -8,6 +8,12 @@ import { toLocalScreenshotUrl } from "@shared";
 import { FocusItem } from "../../../common";
 import type { FocusOverrides } from "../../../../services";
 
+export const isLocalScreenshotUploadInFlight = (screenshot: LocalScreenshot) =>
+  screenshot.state === "queued" ||
+  screenshot.state === "uploading" ||
+  (screenshot.state === "uploaded" &&
+    screenshot.moderationStatus !== "BLOCKED");
+
 interface LocalScreenshotTileProps {
   screenshot: LocalScreenshot;
   focusId: string;
@@ -71,8 +77,9 @@ export function LocalScreenshotTile({
 }: Readonly<LocalScreenshotTileProps>) {
   const { t } = useTranslation("big_picture");
   const [hasFailed, setHasFailed] = useState(false);
+  const canDelete = !isBusy && !isLocalScreenshotUploadInFlight(screenshot);
   const remove = () => {
-    if (!isBusy) onDelete(screenshot);
+    if (canDelete) onDelete(screenshot);
   };
 
   return (
@@ -123,7 +130,7 @@ export function LocalScreenshotTile({
             label={t("screenshots_review_delete")}
             icon={<TrashIcon size={14} weight="bold" />}
             isDanger
-            disabled={isBusy}
+            disabled={!canDelete}
             onPress={remove}
           />
         </span>

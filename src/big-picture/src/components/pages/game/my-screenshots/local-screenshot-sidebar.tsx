@@ -27,6 +27,7 @@ import {
 } from "../../../../services";
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
 import { formatScreenshotDate } from "../../screenshots";
+import { isLocalScreenshotUploadInFlight } from "./local-screenshot-tile";
 
 const BLOCK_TARGET: FocusOverrideTarget = { type: "block" };
 const EDITABLE_STATES = new Set<LocalScreenshot["state"]>(["local", "failed"]);
@@ -95,11 +96,7 @@ export function LocalScreenshotSidebar({
   const fieldFocusIds = getFieldFocusIds(clientId);
   const isEditable = EDITABLE_STATES.has(screenshot.state);
   const isUploading =
-    pendingAction === "upload" ||
-    screenshot.state === "queued" ||
-    screenshot.state === "uploading" ||
-    (screenshot.state === "uploaded" &&
-      screenshot.moderationStatus !== "BLOCKED");
+    pendingAction === "upload" || isLocalScreenshotUploadInFlight(screenshot);
   const hasForm = isEditable || isUploading;
 
   const runAction = async (
