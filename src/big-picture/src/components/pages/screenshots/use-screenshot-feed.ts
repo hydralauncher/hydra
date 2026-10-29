@@ -231,11 +231,10 @@ export function useScreenshotFeed({
     return true;
   }, [acceptPage, ledger, needsAuth, nextCursor, requestKey]);
 
-  const loadMore = useCallback(async () => {
-    if (error === "page") return false;
-
-    return fetchNextPage();
-  }, [error, fetchNextPage]);
+  const loadMore = useCallback(
+    () => (error === "page" ? Promise.resolve(false) : fetchNextPage()),
+    [error, fetchNextPage]
+  );
 
   const refresh = useCallback(() => {
     setRefreshToken((current) => current + 1);

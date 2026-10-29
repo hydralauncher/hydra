@@ -74,22 +74,20 @@ export function useLocalScreenshotActions() {
   };
 
   const elements = (
-    <>
-      <ConfirmationModal
-        visible={pendingDelete !== null}
-        backdropClassName="local-screenshot-viewer__confirmation-backdrop"
-        title={t("screenshots_review_delete_title")}
-        description={t("delete_local_screenshot_description", {
-          ns: "screenshots",
-        })}
-        confirmLabel={t("screenshots_review_delete")}
-        cancelLabel={t("screenshots_cancel")}
-        danger
-        loading={pendingDelete ? busyIds.has(pendingDelete.clientId) : false}
-        onClose={() => setPendingDelete(null)}
-        onConfirm={confirmDelete}
-      />
-    </>
+    <ConfirmationModal
+      visible={pendingDelete !== null}
+      backdropClassName="local-screenshot-viewer__confirmation-backdrop"
+      title={t("screenshots_review_delete_title")}
+      description={t("delete_local_screenshot_description", {
+        ns: "screenshots",
+      })}
+      confirmLabel={t("screenshots_review_delete")}
+      cancelLabel={t("screenshots_cancel")}
+      danger
+      loading={pendingDelete ? busyIds.has(pendingDelete.clientId) : false}
+      onClose={() => setPendingDelete(null)}
+      onConfirm={confirmDelete}
+    />
   );
 
   return {

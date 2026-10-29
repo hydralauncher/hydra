@@ -157,8 +157,7 @@ export function useMyScreenshotsViewer({
   const getDraft = useCallback(
     (screenshot: LocalScreenshot): ReviewDraft => {
       const saved = savedRecords[screenshot.clientId];
-      const record =
-        saved && saved.replaces === screenshot ? saved.record : screenshot;
+      const record = saved?.replaces === screenshot ? saved.record : screenshot;
       return {
         ...createReviewDraft(record, defaultVisibility),
         ...draftEdits[screenshot.clientId],
