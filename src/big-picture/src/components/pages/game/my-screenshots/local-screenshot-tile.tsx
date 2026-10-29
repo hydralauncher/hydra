@@ -77,7 +77,10 @@ export function LocalScreenshotTile({
 }: Readonly<LocalScreenshotTileProps>) {
   const { t } = useTranslation("big_picture");
   const [hasFailed, setHasFailed] = useState(false);
-  const canDelete = !isBusy && !isLocalScreenshotUploadInFlight(screenshot);
+  const canDelete =
+    !isBusy &&
+    screenshot.state !== "uploaded" &&
+    !isLocalScreenshotUploadInFlight(screenshot);
   const remove = () => {
     if (canDelete) onDelete(screenshot);
   };
