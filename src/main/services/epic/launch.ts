@@ -125,6 +125,7 @@ export function prepareManagedEpicLaunch(
     winePrefixPath?: string | null;
     epicSavePolicy?: "local-once";
     epicOffline?: boolean;
+    epicSkipUpdateCheck?: boolean;
     onStatus?: UmuStatusListener;
     /** Called with the prepared prefix right before Epic's own save sync. */
     beforeSaveSync?: (winePrefixPath: string | undefined) => Promise<void>;
@@ -220,7 +221,13 @@ async function prepareLaunch(
         })
       : await dependencies.runtime.runJson(
           session.target,
-          ["launch", session.target.artifactId, "--json", "--no-wine"],
+          [
+            "launch",
+            session.target.artifactId,
+            "--json",
+            "--no-wine",
+            ...(options.epicSkipUpdateCheck ? ["--skip-version-check"] : []),
+          ],
           { signal: controller.signal }
         );
     let parameters = parseEpicLaunchParameters(

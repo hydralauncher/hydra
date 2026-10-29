@@ -150,7 +150,7 @@ $leaderboards-heat-gap: 3px;
 
   &__cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
     gap: globals.$spacing-unit;
   }
 
@@ -398,7 +398,7 @@ $leaderboards-heat-gap: 3px;
   }
 
   // The selected review reuses the game page review (review-item.scss); these
-  // only add the game link and the static vote count.
+  // only add the game link and the upvote badge.
   &__review {
     display: flex;
     flex-direction: column;
@@ -443,10 +443,38 @@ $leaderboards-heat-gap: 3px;
     overflow: hidden;
   }
 
-  // A vote count, not a button: keep the game page look without its hover.
-  &__review-votes {
+  // Report as cheater: a bare icon, only shown on hover (leaderboard-row and
+  // leaderboard-podium reveal it).
+  &__report {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background-color: rgb(0 0 0 / 45%);
+    color: $leaderboards-muted-text;
+    cursor: pointer;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgb(0 0 0 / 70%);
+      color: globals.$muted-color;
+    }
+  }
+
+  // The upvote count as a badge next to the score, not a vote button.
+  &__review-likes {
     cursor: default;
-    pointer-events: none;
+
+    svg {
+      flex-shrink: 0;
+    }
   }
 
   &__review-score {
@@ -457,8 +485,17 @@ $leaderboards-heat-gap: 3px;
     color: $leaderboards-muted-text;
 
     svg {
-      color: #6a8cff;
+      color: #ffffff;
     }
+  }
+
+  &__review-translation-toggle {
+    margin-top: 0;
+  }
+
+  &__review-original {
+    margin-top: calc(globals.$spacing-unit * 1.5);
+    opacity: 0.6;
   }
 
   &__review-tip {
@@ -505,6 +542,11 @@ $leaderboards-heat-gap: 3px;
     font-size: globals.$hint-font-size;
     line-height: 19px;
     color: globals.$muted-color;
+
+    // A translation is HTML and may hold several paragraphs.
+    p {
+      margin: 0;
+    }
   }
 
   &__chips {
@@ -786,11 +828,22 @@ $leaderboards-heat-gap: 3px;
     }
   }
 
+  // The border is drawn on top of the content so the banner header cannot
+  // show through or beside it at the rounded edges.
   &__mine {
+    position: relative;
     overflow: hidden;
-    border: solid 1px globals.$border-color;
     border-radius: 8px;
     background-color: globals.$background-color;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: solid 1px globals.$border-color;
+      border-radius: inherit;
+      pointer-events: none;
+    }
   }
 
   &__mine-header {
@@ -1112,6 +1165,7 @@ $leaderboards-heat-gap: 3px;
     border: solid 1px globals.$border-color;
     border-radius: 8px;
     background-color: $leaderboards-surface;
+    background-clip: padding-box;
 
     &--banner {
       background-image:
@@ -1422,6 +1476,32 @@ $leaderboards-heat-gap: 3px;
   &--sparse {
     grid-template-columns: repeat(var(--podium-count), minmax(0, 300px));
     justify-content: center;
+  }
+
+  // Holds the card and its corner action; the card keeps its own height.
+  &__slot {
+    position: relative;
+    min-width: 0;
+    display: flex;
+
+    > .leaderboard-podium__card {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__action {
+    position: absolute;
+    top: globals.$spacing-unit;
+    right: globals.$spacing-unit;
+    display: flex;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &__slot:hover &__action,
+  &__slot:focus-within &__action {
+    opacity: 1;
   }
 
   &__card {

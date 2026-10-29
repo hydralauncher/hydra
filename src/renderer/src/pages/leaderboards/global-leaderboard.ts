@@ -62,6 +62,9 @@ export interface LeaderboardReview {
   score: number;
   createdAt: string | null;
   text: string;
+  // Same shape as GameReview: translated text by base language ("pt").
+  translations: Record<string, string>;
+  detectedLanguage: string | null;
 }
 
 export interface LeaderboardEntryExtras {
@@ -195,6 +198,17 @@ const normalizeUser = (value: unknown): LeaderboardUser | null => {
   };
 };
 
+const normalizeTranslations = (value: unknown): Record<string, string> => {
+  if (!isRecord(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (pair): pair is [string, string] =>
+        typeof pair[1] === "string" && pair[1].length > 0
+    )
+  );
+};
+
 const normalizeReview = (value: unknown): LeaderboardReview | null => {
   if (!isRecord(value) || typeof value.text !== "string") return null;
 
@@ -206,6 +220,8 @@ const normalizeReview = (value: unknown): LeaderboardReview | null => {
     score: toNonNegativeNumber(value.score),
     createdAt: toStringOrNull(value.createdAt),
     text: value.text,
+    translations: normalizeTranslations(value.translations),
+    detectedLanguage: toStringOrNull(value.detectedLanguage),
   };
 };
 

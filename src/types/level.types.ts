@@ -128,6 +128,8 @@ export interface Download {
   shop: GameShop;
   objectId: string;
   uri: string;
+  /** Ordered part URIs of a multi-part hoster download. `uri` is the first part. */
+  parts?: string[];
   folderName: string | null;
   downloadPath: string;
   progress: number;

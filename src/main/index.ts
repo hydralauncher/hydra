@@ -195,8 +195,8 @@ const initializeApp = async () => {
     logger.error("Failed to load app state during startup", error);
   }
   // Optional integration failures must not interrupt launcher startup.
-  await initializeEpicIntegration().catch(() => {
-    logger.warn("Epic integration initialization unavailable");
+  await initializeEpicIntegration().catch((error) => {
+    logger.warn("Epic integration initialization unavailable", error);
   });
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead

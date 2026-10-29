@@ -25,4 +25,5 @@ export const DOWNLOADER_NAME: Record<Downloader, string> = {
   [Downloader.AllDebrid]: "AllDebrid",
   [Downloader.ArchiveOrg]: "Archive.org",
   [Downloader.Epic]: "Epic Games",
+  [Downloader.FileKeeper]: "FileKeeper",
 };
