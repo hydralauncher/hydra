@@ -71,6 +71,14 @@ const applyCommentWrite = (
   }
 
   if (write.kind === "replace") {
+    const hasPlaceholder = comments.some((item) => item.id === write.commentId);
+    if (!hasPlaceholder) {
+      return applyCommentWrite(
+        comments,
+        { kind: "create", comment: write.comment },
+        includeCreated
+      );
+    }
     return comments
       .filter((item) => item.id !== write.comment.id)
       .map((item) => (item.id === write.commentId ? write.comment : item));
@@ -164,6 +172,8 @@ export function useScreenshotComments({
   const confirmedEditsRef = useRef(new Map<string, ConfirmedCommentEdit>());
   const commentsRef = useRef(comments);
   commentsRef.current = comments;
+  const screenshotIdRef = useRef(screenshotId);
+  screenshotIdRef.current = screenshotId;
 
   const setPending = useCallback((commentId: string, isPending: boolean) => {
     setPendingCommentIds((current) => {
@@ -385,7 +395,15 @@ export function useScreenshotComments({
           { data: { bodyHtml }, needsAuth: true }
         );
 
-        recordWrite({ kind: "replace", commentId: pendingId, comment });
+        if (screenshotIdRef.current === screenshotId) {
+          const isListed = commentsRef.current.some(
+            ({ id }) => id === pendingId || id === comment.id
+          );
+          recordWrite({ kind: "replace", commentId: pendingId, comment });
+          if (!isListed && !isReadInFlightRef.current) {
+            setTotal((current) => (current ?? 0) + 1);
+          }
+        }
         if (comment.isHidden) {
           onPatch(screenshotId, adjustCommentCount(-1));
         }
