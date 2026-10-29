@@ -7,7 +7,7 @@ import {
   DownloadSimpleIcon,
   HeartIcon,
   MinusCircleIcon,
-  ProhibitIcon,
+  ThumbsUpIcon,
   TrashIcon,
   TrophyIcon,
   UserCheckIcon,
@@ -120,7 +120,7 @@ const SCREENSHOT_NOTIFICATION_ICONS: Partial<
 > = {
   SCREENSHOT_LIKE: HeartIcon,
   SCREENSHOT_COMMENT: ChatCircleIcon,
-  SCREENSHOT_BLOCKED: ProhibitIcon,
+  SCREENSHOT_COMMENT_UPVOTE: ThumbsUpIcon,
 };
 
 function resolveBigPicturePath(path: string) {
@@ -185,7 +185,7 @@ function getApiNotificationContent(
     }
     case "SCREENSHOT_LIKE":
     case "SCREENSHOT_COMMENT":
-    case "SCREENSHOT_BLOCKED":
+    case "SCREENSHOT_COMMENT_UPVOTE":
       return getScreenshotNotificationContent(notification, t);
     default:
       return {
@@ -197,9 +197,20 @@ function getApiNotificationContent(
 
 function getScreenshotNotificationKeyPrefix(type: Notification["type"]) {
   if (type === "SCREENSHOT_COMMENT") return "screenshots_notification_comment";
-  if (type === "SCREENSHOT_BLOCKED") return "screenshots_notification_blocked";
+  if (type === "SCREENSHOT_COMMENT_UPVOTE")
+    return "screenshots_notification_comment_upvote";
 
   return "screenshots_notification_like";
+}
+
+function getScreenshotNotificationCount(notification: Notification) {
+  if (notification.type === "SCREENSHOT_COMMENT") {
+    return notification.variables.commentCount;
+  }
+  if (notification.type === "SCREENSHOT_COMMENT_UPVOTE") {
+    return notification.variables.upvoteCount;
+  }
+  return notification.variables.likeCount;
 }
 
 function getScreenshotNotificationContent(
@@ -210,11 +221,7 @@ function getScreenshotNotificationContent(
     notification.variables.gameTitle ||
     notification.variables.customGameTitle ||
     t("screenshots_notification_fallback_game", { ns: "big_picture" });
-  const countVariable =
-    notification.type === "SCREENSHOT_COMMENT"
-      ? notification.variables.commentCount
-      : notification.variables.likeCount;
-  const count = Number(countVariable ?? 1);
+  const count = Number(getScreenshotNotificationCount(notification) ?? 1);
   const prefix = getScreenshotNotificationKeyPrefix(notification.type);
 
   return {
