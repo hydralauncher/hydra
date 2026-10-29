@@ -11,6 +11,14 @@ export const GLOBAL_LEADERBOARD_PAGE_SIZE = 13;
 export const GLOBAL_LEADERBOARD_PAGE_STEP = 10;
 export const GLOBAL_LEADERBOARD_PODIUM_SIZE = 3;
 export const PLAY_ACTIVITY_WEEKS = 53;
+// Board sizes are shown as "10,000+" past this, so a big all-time board does
+// not print a huge number next to the rank.
+export const BOARD_TOTAL_CAP = 10_000;
+
+export const formatBoardTotal = (
+  total: number,
+  format: (value: number) => string
+) => (total >= BOARD_TOTAL_CAP ? `${format(BOARD_TOTAL_CAP)}+` : format(total));
 // Older backends cap play activity at 26 weeks and answer 400 above it.
 export const PLAY_ACTIVITY_FALLBACK_WEEKS = 26;
 // A month label needs about two columns, so labels closer than this to the
@@ -101,7 +109,8 @@ export interface MyGameRanking {
   heroImageUrl: string | null;
   rank: number;
   previousRank: number | null;
-  total: number;
+  // Players on the board; null while the API does not know it.
+  total: number | null;
   leader: LeaderboardUser | null;
 }
 
@@ -547,7 +556,14 @@ export const normalizeMyGames = (response: unknown): MyGameRanking[] => {
         heroImageUrl: toStringOrNull(item.heroImageUrl),
         rank,
         previousRank: toPositiveInteger(item.previousRank),
-        total: toNonNegativeNumber(item.total, rank),
+        // The API sends null until the board size is known; a total below
+        // the rank is as good as unknown.
+        total:
+          typeof item.total === "number" &&
+          Number.isFinite(item.total) &&
+          item.total >= rank
+            ? Math.floor(item.total)
+            : null,
         leader: normalizeUser(item.leader),
       },
     ];
@@ -608,15 +624,25 @@ export const normalizeFriendStreaks = (response: unknown): FriendStreak[] => {
     .sort((a, b) => Number(b.active) - Number(a.active) || b.days - a.days);
 };
 
+const isTopBadgeKind = (kind: unknown): kind is BadgeTarget["kind"] =>
+  kind === "top_rank" || kind === "top_percent";
+
+// The N of "Top N" / "Top N%". The API sends it as `threshold`; `value` is
+// the viewer's value on the board, never the N.
+const toBadgeThreshold = (source: Record<string, unknown>) =>
+  toNonNegativeNumber(source.threshold);
+
 // Reads `target` when the API sends it and otherwise falls back to the locked
-// badge itself, whose kind and value already describe the next badge.
+// badge itself, whose kind and threshold already describe the next badge.
 const normalizeBadgeTarget = (
   item: Record<string, unknown>
 ): BadgeTarget | null => {
   if (toStringOrNull(item.earnedAt)) return null;
   const source = isRecord(item.target) ? item.target : item;
-  const value = toNonNegativeNumber(source.value);
-  if (source.kind !== "top_rank" && source.kind !== "top_percent") return null;
+  if (!isTopBadgeKind(source.kind)) return null;
+  const value = isRecord(item.target)
+    ? toNonNegativeNumber(source.value, toBadgeThreshold(source))
+    : toBadgeThreshold(source);
   return value ? { kind: source.kind, value } : null;
 };
 
@@ -648,7 +674,9 @@ export const normalizeBadges = (response: unknown): LeaderboardBadges => {
         scope: item.scope === "friends" ? "friends" : "global",
         gameTitle: toStringOrNull(item.gameTitle),
         coverImageUrl: toStringOrNull(item.coverImageUrl),
-        value: toNonNegativeNumber(item.value),
+        value: isTopBadgeKind(item.kind)
+          ? toBadgeThreshold(item)
+          : toNonNegativeNumber(item.value),
         week: toPositiveInteger(item.week),
         currentRank: toPositiveInteger(item.currentRank),
         earnedAt: toStringOrNull(item.earnedAt),

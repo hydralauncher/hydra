@@ -20,6 +20,7 @@ import {
   normalizeBadges,
   normalizeFriendStreaks,
   normalizeGlobalLeaderboardResponse,
+  formatBoardTotal,
   normalizeMyGames,
   normalizePlayActivity,
   resolveWeekRange,
@@ -490,15 +491,28 @@ describe("profile normalizers", () => {
           total: 12480,
           leader: rawUser("a"),
         },
+        { shop: "steam", objectId: "2", rank: 36, total: null },
+        { shop: "steam", objectId: "3", rank: 36, total: 10 },
         { shop: "steam", objectId: "1", rank: 0 },
         "bad",
       ],
     });
 
-    assert.equal(games.length, 1);
+    assert.equal(games.length, 3);
     assert.equal(games[0].leader?.id, "a");
     assert.equal(games[0].coverImageUrl, null);
+    assert.equal(games[0].total, 12480);
+    // An unknown or impossible total stays unknown, never the rank.
+    assert.equal(games[1].total, null);
+    assert.equal(games[2].total, null);
     assert.throws(() => normalizeMyGames({}), TypeError);
+  });
+
+  it("caps shown board sizes at 10,000+", () => {
+    const format = (value: number) => String(value);
+    assert.equal(formatBoardTotal(9999, format), "9999");
+    assert.equal(formatBoardTotal(10000, format), "10000+");
+    assert.equal(formatBoardTotal(123456, format), "10000+");
   });
 
   it("sorts friend streaks by active first, then by days", () => {
@@ -526,7 +540,8 @@ describe("profile normalizers", () => {
           id: "a",
           kind: "top_percent",
           tier: "gold",
-          value: 1,
+          threshold: 1,
+          value: 765120,
           earnedAt: "2026-09-03T00:00:00.000Z",
         },
         {
@@ -546,6 +561,9 @@ describe("profile normalizers", () => {
     assert.equal(badges.total, 2);
     assert.equal(badges.badges[1].tier, "gold");
     assert.equal(badges.badges[1].scope, "friends");
+    // Top N% reads the threshold, never the viewer's value on the board.
+    assert.equal(badges.badges[0].value, 1);
+    assert.equal(badges.badges[1].value, 1);
     assert.equal(getBadgeProgress(badges.badges[1]), 55);
     assert.equal(getBadgeProgress(badges.badges[0]), 0);
     assert.throws(() => normalizeBadges({}), TypeError);
@@ -554,17 +572,25 @@ describe("profile normalizers", () => {
   it("reads the target of locked game badges", () => {
     const { badges } = normalizeBadges({
       badges: [
-        { id: "a", kind: "top_rank", tier: "bronze", value: 10 },
+        {
+          id: "a",
+          kind: "top_rank",
+          tier: "bronze",
+          threshold: 10,
+          value: 765120,
+        },
         {
           id: "b",
           kind: "top_rank",
-          value: 10,
+          threshold: 10,
+          value: 765120,
           target: { kind: "top_percent", value: 5 },
         },
         {
           id: "c",
           kind: "top_rank",
-          value: 1,
+          threshold: 1,
+          value: 765120,
           earnedAt: "2026-09-03T00:00:00.000Z",
         },
         { id: "d", kind: "weekly_leader", value: 1 },
