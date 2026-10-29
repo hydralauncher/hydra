@@ -10,9 +10,14 @@ import {
   type GrabbedScreenshotFrame,
   type ScreenshotFrameGrabOptions,
 } from "./screenshot-frame-script";
+import {
+  executeWhileWindowAlive,
+  whileWindowAlive,
+} from "./window-bound-promise";
 
 const RECYCLE_AFTER_IDLE_MS = 10_000;
 const MAX_FRAME_ATTEMPTS = 3;
+const WORKER_CLOSED_MESSAGE = "The screenshot capture worker was closed";
 
 interface WorkerWindow {
   window: BrowserWindow;
@@ -47,12 +52,15 @@ const createWorker = (): WorkerWindow => {
   });
   const created: WorkerWindow = {
     window,
-    ready: window.loadFile(capturePagePath).then(() => undefined),
+    ready: whileWindowAlive(window, WORKER_CLOSED_MESSAGE, () =>
+      window.loadFile(capturePagePath)
+    ),
   };
   window.once("closed", () => {
     if (worker === created) worker = null;
   });
   created.ready.catch((error) => {
+    if (window.isDestroyed()) return;
     logger.error("Failed to load the screenshot capture worker", error);
     if (worker === created) destroyWorker();
   });
@@ -111,6 +119,9 @@ const buildGrabExpression = (
   }
 })()`;
 
+const runInWorker = (current: WorkerWindow, expression: string) =>
+  executeWhileWindowAlive(current.window, WORKER_CLOSED_MESSAGE, expression);
+
 const grabFrame = async (
   current: WorkerWindow,
   sourceId: string,
@@ -118,9 +129,7 @@ const grabFrame = async (
   attempt = 1
 ): Promise<GrabbedFrameInfo> => {
   const frame = parseGrabbedFrame(
-    await current.window.webContents.executeJavaScript(
-      buildGrabExpression(sourceId, options)
-    )
+    await runInWorker(current, buildGrabExpression(sourceId, options))
   );
   if (!frame.isBlank) return frame;
 
@@ -130,15 +139,6 @@ const grabFrame = async (
   });
   if (attempt >= MAX_FRAME_ATTEMPTS) throw new BlankScreenshotFrameError();
   return grabFrame(current, sourceId, options, attempt + 1);
-};
-
-const runInWorker = (current: WorkerWindow, expression: string) => {
-  if (current.window.isDestroyed()) {
-    return Promise.reject(
-      new Error("The screenshot capture worker was closed")
-    );
-  }
-  return current.window.webContents.executeJavaScript(expression);
 };
 
 export class ScreenshotFrameWorker {

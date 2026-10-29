@@ -22,6 +22,7 @@ import {
   type CaptureSessionReason,
 } from "./linux-game-capture-session-reasons";
 import { readUserPreferences } from "./screenshots/screenshot-user-preferences";
+import { executeWhileWindowAlive } from "./screenshots/window-bound-promise";
 
 export type LinuxGameCaptureState = "pending" | "ready" | "failed";
 
@@ -81,13 +82,20 @@ interface SharedCaptureWindow {
 const sharedCaptures = new Map<string, SharedCaptureWindow>();
 const pendingSharedCaptures = new Map<string, Promise<SharedCaptureWindow>>();
 
+const CAPTURE_CLOSED_MESSAGE = "Wayland game window capture session was closed";
+
+const executeInCaptureWindow = (
+  captureWindow: BrowserWindow,
+  expression: string
+) => executeWhileWindowAlive(captureWindow, CAPTURE_CLOSED_MESSAGE, expression);
+
 const destroyCaptureWindow = (captureWindow: BrowserWindow | null) => {
   if (!captureWindow || captureWindow.isDestroyed()) return;
 
-  void captureWindow.webContents
-    .executeJavaScript(
-      "globalThis.__hydraSouvenirStream?.getTracks().forEach((track) => track.stop())"
-    )
+  void executeInCaptureWindow(
+    captureWindow,
+    "globalThis.__hydraSouvenirStream?.getTracks().forEach((track) => track.stop())"
+  )
     .catch(() => {})
     .finally(() => {
       setTimeout(() => {
@@ -111,7 +119,9 @@ const createCaptureWindow = async (sourceId: string) => {
     await captureWindow.loadFile(capturePagePath);
 
     const serializedSourceId = JSON.stringify(sourceId);
-    await captureWindow.webContents.executeJavaScript(`
+    await executeInCaptureWindow(
+      captureWindow,
+      `
       (async () => {
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error("MediaDevices is unavailable in the Wayland capture page");
@@ -138,7 +148,8 @@ const createCaptureWindow = async (sourceId: string) => {
         globalThis.__hydraSouvenirStream = stream;
         globalThis.__hydraSouvenirVideo = video;
       })()
-    `);
+    `
+    );
 
     return captureWindow;
   } catch (error) {
@@ -319,10 +330,12 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
   const captureWindow = registration.window;
 
   if (!captureWindow || captureWindow.isDestroyed()) {
-    throw new Error("Wayland game window capture session was closed");
+    throw new Error(CAPTURE_CLOSED_MESSAGE);
   }
 
-  const capture = captureWindow.webContents.executeJavaScript(`
+  const capture = executeInCaptureWindow(
+    captureWindow,
+    `
     (() => {
       const video = globalThis.__hydraSouvenirVideo;
       const track = globalThis.__hydraSouvenirStream?.getVideoTracks()[0];
@@ -340,7 +353,8 @@ export const captureLinuxGameSessionFrame = async (gameKey: string) => {
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       return canvas.toDataURL("image/png");
     })()
-  `);
+  `
+  );
   registration.activeCaptures.add(capture);
 
   let dataUrl: unknown;
@@ -387,15 +401,11 @@ export const grabLinuxGameSessionFrame = async (
   const captureWindow = registration.window;
 
   if (!captureWindow || captureWindow.isDestroyed()) {
-    throw new Error("Wayland game window capture session was closed");
+    throw new Error(CAPTURE_CLOSED_MESSAGE);
   }
 
   const runInCaptureWindow = (expression: string) =>
-    captureWindow.isDestroyed()
-      ? Promise.reject(
-          new Error("Wayland game window capture session was closed")
-        )
-      : captureWindow.webContents.executeJavaScript(expression);
+    executeInCaptureWindow(captureWindow, expression);
 
   let releaseCapture = () => {};
   const capture = new Promise<void>((resolve) => {
@@ -410,7 +420,7 @@ export const grabLinuxGameSessionFrame = async (
   let frame: GrabbedScreenshotFrame;
   try {
     const info = parseGrabbedFrame(
-      await captureWindow.webContents.executeJavaScript(`(async () => {
+      await runInCaptureWindow(`(async () => {
         const track = globalThis.__hydraSouvenirStream?.getVideoTracks()[0];
         if (!track || track.readyState !== "live") {
           throw new Error("Wayland screen stream is no longer active");
