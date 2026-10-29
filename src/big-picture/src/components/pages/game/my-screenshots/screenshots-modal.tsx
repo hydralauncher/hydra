@@ -461,7 +461,7 @@ function useMyScreenshotsTab({
 
   const uploadedItems = mine.canFetchPublished ? feed.items : [];
   const hasMoreUploaded = mine.canFetchPublished && feed.hasMore;
-  const oldestLoadedUpload = uploadedItems.at(-1)?.createdAt ?? null;
+  const oldestLoadedUpload = uploadedItems.at(-1)?.capturedAt ?? null;
   const entries: MyScreenshotsEntry[] = [
     ...mine.pendingLocal
       .filter(
@@ -477,7 +477,7 @@ function useMyScreenshotsTab({
       })),
     ...uploadedItems.map((screenshot) => ({
       kind: "uploaded" as const,
-      time: screenshot.createdAt,
+      time: screenshot.capturedAt,
       screenshot,
     })),
   ].toSorted((a, b) => b.time - a.time);

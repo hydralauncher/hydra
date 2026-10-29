@@ -338,7 +338,7 @@ export function GameMyScreenshots({
   });
   const items = mine.items.slice(0, SIDEBAR_SCREENSHOT_COUNT);
   const hasMoreUploaded = mine.canFetchPublished && feed.hasMore;
-  const oldestLoadedUpload = feed.items.at(-1)?.createdAt ?? null;
+  const oldestLoadedUpload = feed.items.at(-1)?.capturedAt ?? null;
   const viewer = useMyScreenshotsViewer({
     entries: mine.items
       .filter(

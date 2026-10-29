@@ -56,7 +56,7 @@ export type MyScreenshotItem =
 
 const getMyScreenshotSortTime = (item: MyScreenshotItem) =>
   item.kind === "published"
-    ? item.screenshot.createdAt
+    ? item.screenshot.capturedAt
     : item.screenshot.capturedAt;
 
 export const mergeMyScreenshots = (
@@ -87,7 +87,7 @@ export const selectPendingLocalWithinLoadedUploads = (
   loadedUploads: ProfileScreenshot[],
   hasMoreUploads: boolean
 ) => {
-  const oldestLoadedUpload = loadedUploads.at(-1)?.createdAt;
+  const oldestLoadedUpload = loadedUploads.at(-1)?.capturedAt;
   if (!hasMoreUploads || oldestLoadedUpload === undefined) return pendingLocal;
 
   return pendingLocal.filter(
