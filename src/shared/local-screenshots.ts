@@ -6,8 +6,7 @@ export const resolveScreenshotUploadQuality = (
 ): ScreenshotQuality =>
   hasCloudSubscription ? (requested ?? "CLOUD") : "STANDARD";
 
-const encodeLocalPath = (path: string) =>
-  path.replaceAll("\\", "/").split("/").map(encodeURIComponent).join("/");
+const encodeLocalPath = (path: string) => encodeURI(path);
 
 export const toLocalScreenshotUrl = (path: string) =>
   `local:${encodeLocalPath(path)}`;
