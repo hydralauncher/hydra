@@ -442,7 +442,7 @@ export function HeroPanelActions() {
       const resumed = await resumeDownload(
         game.shop,
         game.objectId,
-        lastPacket !== null ? "queueIfActive" : "interruptActive"
+        "queueIfActive"
       );
       if (resumed === false) showErrorToast(t("epic_update_failed"));
     } catch {
