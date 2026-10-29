@@ -125,6 +125,7 @@ import type {
   EpicStartAuthResult,
   EpicGameInstallOptions,
   StartEpicGameDownloadPayload,
+  StartEpicGameUpdatePayload,
   EpicManagedOperationResult,
   EpicCloudSaveState,
   EpicCloudSaveSettings,
@@ -595,7 +596,7 @@ declare global {
     deleteGameFolder: (
       shop: GameShop,
       objectId: string,
-      options?: { deleteSourceArchive?: boolean }
+      options?: { deleteSourceArchive?: boolean; keepEpicUpdateFiles?: boolean }
     ) => Promise<unknown>;
     hasSourceArchive: (shop: GameShop, objectId: string) => Promise<boolean>;
     recheckInstalledExecutable: (
@@ -606,6 +607,10 @@ declare global {
       shop: GameShop,
       objectId: string
     ) => Promise<LibraryGame | null>;
+    getGameReviewPlaytime: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<number>;
     getGamesRunning: () => Promise<
       Pick<GameRunning, "id" | "sessionDurationInMillis">[]
     >;
@@ -1318,8 +1323,12 @@ declare global {
       requestId?: string
     ) => Promise<EpicGameInstallOptions>;
     cancelEpicGameInstallOptions?: (requestId: string) => Promise<void>;
+    invalidateEpicGameInstallOptions?: (epicObjectId: string) => Promise<void>;
     startEpicGameDownload: (
       payload: StartEpicGameDownloadPayload
+    ) => Promise<EpicManagedOperationResult>;
+    startEpicGameUpdate?: (
+      payload: StartEpicGameUpdatePayload
     ) => Promise<EpicManagedOperationResult>;
     getEpicCloudSaveState: (
       epicObjectId: string

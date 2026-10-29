@@ -97,6 +97,7 @@ import type {
   EpicStartAuthResult,
   EpicGameInstallOptions,
   StartEpicGameDownloadPayload,
+  StartEpicGameUpdatePayload,
   EpicManagedOperationResult,
   EpicCloudSaveState,
   EpicCloudSaveSettings,
@@ -1255,7 +1256,7 @@ contextBridge.exposeInMainWorld("electron", {
   deleteGameFolder: (
     shop: GameShop,
     objectId: string,
-    options?: { deleteSourceArchive?: boolean }
+    options?: { deleteSourceArchive?: boolean; keepEpicUpdateFiles?: boolean }
   ) => ipcRenderer.invoke("deleteGameFolder", shop, objectId, options),
   recheckInstalledExecutable: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("recheckInstalledExecutable", shop, objectId),
@@ -1263,6 +1264,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("hasSourceArchive", shop, objectId),
   getGameByObjectId: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("getGameByObjectId", shop, objectId),
+  getGameReviewPlaytime: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("getGameReviewPlaytime", shop, objectId),
   resetGameAchievements: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("resetGameAchievements", shop, objectId),
   changeGamePlayTime: (shop: GameShop, objectId: string, playtime: number) =>
@@ -1883,9 +1886,19 @@ contextBridge.exposeInMainWorld("electron", {
       "cancelEpicGameInstallOptions",
       requestId
     ) as Promise<void>,
+  invalidateEpicGameInstallOptions: (epicObjectId: string) =>
+    ipcRenderer.invoke(
+      "invalidateEpicGameInstallOptions",
+      epicObjectId
+    ) as Promise<void>,
   startEpicGameDownload: (payload: StartEpicGameDownloadPayload) =>
     ipcRenderer.invoke(
       "startEpicGameDownload",
+      payload
+    ) as Promise<EpicManagedOperationResult>,
+  startEpicGameUpdate: (payload: StartEpicGameUpdatePayload) =>
+    ipcRenderer.invoke(
+      "startEpicGameUpdate",
       payload
     ) as Promise<EpicManagedOperationResult>,
   getEpicCloudSaveState: (epicObjectId: string) =>

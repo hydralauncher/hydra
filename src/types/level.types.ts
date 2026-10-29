@@ -123,6 +123,8 @@ export interface Download {
   shop: GameShop;
   objectId: string;
   uri: string;
+  /** Ordered part URIs of a multi-part hoster download. `uri` is the first part. */
+  parts?: string[];
   folderName: string | null;
   downloadPath: string;
   progress: number;
@@ -142,6 +144,10 @@ export interface Download {
   installerPath?: string;
   hasInstaller?: boolean;
   sourceArchiveName?: string;
+  // Archives Hydra started extracting in place, kept until the whole download
+  // is extracted. Only these are resumed, since a progress file next to an
+  // archive may have come with the download.
+  inPlaceArchives?: string[];
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];

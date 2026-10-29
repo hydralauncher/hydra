@@ -1,14 +1,47 @@
 @use "../../../scss/globals.scss";
 
-.epic-install-modal {
-  width: 456px;
-  max-width: 100%;
+.epic-install-modal__extras-all,
+.epic-install-modal__extra {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 4px;
 
+  &:hover:not(:has(input:disabled)) {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .checkbox-field {
+    flex: 1;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .checkbox-field__label {
+    flex: 1;
+    min-width: 0;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+    }
+  }
+}
+
+.epic-install-modal-dialog {
+  width: 600px;
+}
+
+.epic-install-modal {
   &__summary {
     display: flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 1.5);
-    padding: globals.$spacing-unit;
+    gap: 12px;
+    padding: 8px 12px;
     background: rgba(255, 255, 255, 0.04);
     border-radius: 8px;
   }
@@ -18,7 +51,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 48px;
+    width: 56px;
     aspect-ratio: 3 / 4;
     overflow: hidden;
     border-radius: 4px;
@@ -50,6 +83,135 @@
 
   &__size-skeleton {
     line-height: 1;
+  }
+
+  &__extras {
+    border: solid 1px globals.$border-color;
+    border-radius: 6px;
+  }
+
+  &__extras-header {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    width: 100%;
+    min-height: 56px;
+    padding: 12px 16px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: globals.$body-color;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: -2px;
+    }
+  }
+
+  &__extras-heading {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__extras-summary {
+    font-size: calc(globals.$small-font-size + 1px);
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+  }
+
+  &__extras-chevron {
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+
+    &--open {
+      transform: rotate(180deg);
+    }
+  }
+
+  &__extras-panel {
+    padding: 4px 8px 8px;
+    border-top: solid 1px globals.$border-color;
+  }
+
+  &__extras-all {
+    gap: globals.$spacing-unit;
+  }
+
+  &__extras-scroll {
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 32px;
+      background: linear-gradient(transparent, globals.$background-color);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+
+    &--more::after {
+      opacity: 1;
+    }
+  }
+
+  &__extras-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-height: 236px;
+    overflow-y: auto;
+  }
+
+  &__extra-label {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+  }
+
+  &__extra-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    + * {
+      margin-inline-start: auto;
+    }
+  }
+
+  &__extra-badge {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  &__extra-size {
+    flex-shrink: 0;
+    font-size: calc(globals.$small-font-size + 1px);
+    font-variant-numeric: tabular-nums;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  &__warning {
+    color: globals.$warning-color;
   }
 
   @media (max-width: 540px) {

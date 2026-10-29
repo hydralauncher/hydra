@@ -1,4 +1,5 @@
 import {
+  epicConnectionCapabilities,
   parseEpicSyncRun,
   EPIC_LEGACY_RUN_ID_PATTERN,
 } from "./sync-protocol.js";
@@ -90,9 +91,7 @@ const publicConnection = (
   epicAccountId: connection.epicAccountId,
   displayName: connection.displayName,
   connectedAt: connection.connectedAt,
-  ...(connection.capabilities?.achievementsSnapshotVersion === 1
-    ? { capabilities: { achievementsSnapshotVersion: 1 as const } }
-    : {}),
+  ...epicConnectionCapabilities(connection.capabilities),
   lastSyncedAt: connection.lastSyncedAt ?? null,
   latestSyncRun: connection.latestSyncRun
     ? parseEpicSyncRun(connection.latestSyncRun)
