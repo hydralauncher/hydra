@@ -240,14 +240,10 @@ export function GameScreenshotsModal({
 }: Readonly<GameScreenshotsModalProps>) {
   const { t } = useTranslation("screenshots");
   const [tab, setTab] = useState<GameScreenshotsTab>(initialTab);
-  const hasCommunity = shop !== "custom";
-  const activeTab = hasCommunity ? tab : "mine";
-  const tabs: { id: GameScreenshotsTab; label: string }[] = hasCommunity
-    ? [
-        { id: "mine", label: t("my_screenshots") },
-        { id: "community", label: t("community_screenshots_tab") },
-      ]
-    : [{ id: "mine", label: t("my_screenshots") }];
+  const tabs: { id: GameScreenshotsTab; label: string }[] = [
+    { id: "mine", label: t("my_screenshots") },
+    { id: "community", label: t("community_screenshots_tab") },
+  ];
 
   useEffect(() => {
     if (visible) setTab(initialTab);
@@ -263,9 +259,9 @@ export function GameScreenshotsModal({
               key={id}
               type="button"
               role="tab"
-              aria-selected={activeTab === id}
+              aria-selected={tab === id}
               className={cn("game-screenshots-modal__tab", {
-                "game-screenshots-modal__tab--active": activeTab === id,
+                "game-screenshots-modal__tab--active": tab === id,
               })}
               onClick={() => setTab(id)}
             >
@@ -278,7 +274,7 @@ export function GameScreenshotsModal({
       large
       className="game-screenshots-modal"
     >
-      {activeTab === "mine" ? (
+      {tab === "mine" ? (
         <MyScreenshotsPanel
           visible={visible}
           showCommentCount={showCommentCount}
