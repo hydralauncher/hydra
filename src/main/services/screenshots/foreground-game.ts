@@ -283,15 +283,20 @@ export const resolveForegroundGame = async (
     }
 
     const processes = toForegroundProcesses(await NativeAddon.listProcesses());
-    const target = findForegroundGameTarget({
+    const matchInput = {
       platform: process.platform,
       targets: candidates.map((candidate) => candidate.target),
       foreground,
       processes,
-      getNamespacedPids: needsNamespacedPids(foreground, candidates)
-        ? await loadNamespacedPidLookup(processes)
-        : undefined,
-    });
+    };
+    const target =
+      findForegroundGameTarget(matchInput) ??
+      (needsNamespacedPids(foreground, candidates)
+        ? findForegroundGameTarget({
+            ...matchInput,
+            getNamespacedPids: await loadNamespacedPidLookup(processes),
+          })
+        : null);
 
     if (target) {
       if (foreground.processId !== null) {
