@@ -1,7 +1,7 @@
 import { screenshotsSublevel } from "@main/level";
 import type { GameShop, LocalScreenshot } from "@types";
 
-import { isLocalScreenshotForGame } from "./local-screenshot-game";
+import { matchesLocalScreenshotGame } from "./local-screenshot-game";
 
 type LocalScreenshotsChangeListener = (screenshots: LocalScreenshot[]) => void;
 
@@ -58,7 +58,7 @@ export class LocalScreenshotStore {
   public static async listForGame(shop: GameShop, objectId: string) {
     const screenshots = await LocalScreenshotStore.list();
     return screenshots.filter((screenshot) =>
-      isLocalScreenshotForGame(screenshot, shop, objectId)
+      matchesLocalScreenshotGame(screenshot, shop, objectId)
     );
   }
 
