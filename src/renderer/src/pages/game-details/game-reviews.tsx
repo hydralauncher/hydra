@@ -78,7 +78,9 @@ export function GameReviews({
       .then((playtime) => {
         if (!cancelled) setRemovedGamePlaytime(playtime);
       })
-      .catch(() => {});
+      .catch((error) =>
+        console.error("Failed to load review playtime:", error)
+      );
 
     return () => {
       cancelled = true;
