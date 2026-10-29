@@ -26,9 +26,21 @@ const mutableGamesPlaytime = new Map<string, GamePlaytimeState>();
 const emulatorGamesRunning = new Set<string>();
 const trackedGamesRunningListeners = new Set<() => void>();
 
+const logListenerFailure = (error: unknown) => {
+  void import("./logger.js")
+    .then(({ logger }) => {
+      logger.error("Tracked games running listener failed", error);
+    })
+    .catch(() => undefined);
+};
+
 const notifyTrackedGamesRunningChange = () => {
   for (const listener of trackedGamesRunningListeners) {
-    listener();
+    try {
+      listener();
+    } catch (error) {
+      logListenerFailure(error);
+    }
   }
 };
 
