@@ -7,6 +7,7 @@ import {
   buildUserScreenshotsPath,
   createLocalSnapshotGuard,
   isLocalScreenshotForGame,
+  isLocalScreenshotPending,
   mergeMyScreenshots,
   resolveMyGameScreenshotsStatus,
   selectPendingLocalScreenshots,
@@ -17,6 +18,7 @@ import {
 import type {
   GameShop,
   LocalScreenshot,
+  ProfileScreenshot,
   ScreenshotSort,
   ScreenshotsResponse,
 } from "@types";
@@ -37,6 +39,7 @@ export function useCanFetchMyPublishedScreenshots(shop: GameShop) {
 interface LoadedLocalScreenshots {
   targetKey: string | null;
   localScreenshots: LocalScreenshot[];
+  uploadedIds: ReadonlySet<string>;
   hasLoaded: boolean;
   hasFailed: boolean;
 }
@@ -44,8 +47,33 @@ interface LoadedLocalScreenshots {
 const NOT_LOADED_LOCAL_SCREENSHOTS: LoadedLocalScreenshots = {
   targetKey: null,
   localScreenshots: [],
+  uploadedIds: new Set(),
   hasLoaded: false,
   hasFailed: false,
+};
+
+const trackUploadedIds = (
+  previous: LoadedLocalScreenshots,
+  targetKey: string,
+  screenshots: LocalScreenshot[]
+): ReadonlySet<string> => {
+  if (previous.targetKey !== targetKey) return new Set();
+
+  const wasPending = new Set(
+    previous.localScreenshots
+      .filter(isLocalScreenshotPending)
+      .map((item) => item.clientId)
+  );
+  return new Set(
+    screenshots
+      .filter(
+        (item) =>
+          item.state === "uploaded" &&
+          (previous.uploadedIds.has(item.clientId) ||
+            wasPending.has(item.clientId))
+      )
+      .map((item) => item.clientId)
+  );
 };
 
 interface UseMyLocalGameScreenshotsOptions extends GameTarget {
@@ -65,7 +93,8 @@ export function useMyLocalGameScreenshots({
   const [settledCount, setSettledCount] = useState(0);
   const loadedForTarget =
     loaded.targetKey === targetKey ? loaded : NOT_LOADED_LOCAL_SCREENSHOTS;
-  const { localScreenshots, hasLoaded, hasFailed } = loadedForTarget;
+  const { localScreenshots, uploadedIds, hasLoaded, hasFailed } =
+    loadedForTarget;
 
   const pendingLocal = useMemo(
     () => selectPendingLocalScreenshots(localScreenshots, { shop, objectId }),
@@ -93,12 +122,13 @@ export function useMyLocalGameScreenshots({
         .getLocalScreenshotsForGame(shop, objectId)
         .then((screenshots) => {
           if (!isCurrent || !snapshots.isCurrentRead(startedAt)) return;
-          setLoaded({
+          setLoaded((previous) => ({
             targetKey,
             localScreenshots: screenshots,
+            uploadedIds: trackUploadedIds(previous, targetKey, screenshots),
             hasLoaded: true,
             hasFailed: false,
-          });
+          }));
         })
         .catch((error) => {
           logger.error("Failed to load local screenshots", error);
@@ -107,6 +137,10 @@ export function useMyLocalGameScreenshots({
             targetKey,
             localScreenshots:
               previous.targetKey === targetKey ? previous.localScreenshots : [],
+            uploadedIds:
+              previous.targetKey === targetKey
+                ? previous.uploadedIds
+                : new Set(),
             hasLoaded: true,
             hasFailed: true,
           }));
@@ -117,14 +151,16 @@ export function useMyLocalGameScreenshots({
     const unsubscribeLocal = window.electron.onLocalScreenshotsChange(
       (screenshots) => {
         snapshots.noteSnapshot();
-        setLoaded({
+        const forGame = screenshots.filter((screenshot) =>
+          isLocalScreenshotForGame(screenshot, shop, objectId)
+        );
+        setLoaded((previous) => ({
           targetKey,
-          localScreenshots: screenshots.filter((screenshot) =>
-            isLocalScreenshotForGame(screenshot, shop, objectId)
-          ),
+          localScreenshots: forGame,
+          uploadedIds: trackUploadedIds(previous, targetKey, forGame),
           hasLoaded: true,
           hasFailed: false,
-        });
+        }));
       }
     );
     const unsubscribeChanged = subscribeMyGameScreenshotsChanged(loadLocal);
@@ -148,6 +184,7 @@ export function useMyLocalGameScreenshots({
   return {
     localScreenshots,
     pendingLocal,
+    uploadedIds,
     hasLoaded,
     hasFailed,
     settledCount,
@@ -212,6 +249,78 @@ export function useMyPublishedGameScreenshots({
   });
 }
 
+interface LocalScreenshotsState {
+  localScreenshots: LocalScreenshot[];
+  pendingLocal: LocalScreenshot[];
+  uploadedIds: ReadonlySet<string>;
+}
+
+interface PublishedFeedState {
+  items: ProfileScreenshot[];
+  loadedRequestId: number;
+  getLatestRequestId: () => number;
+}
+
+export function useVisibleLocalScreenshots(
+  local: LocalScreenshotsState,
+  feed: PublishedFeedState,
+  canFetchPublished: boolean
+) {
+  const { localScreenshots, pendingLocal, uploadedIds } = local;
+  const { items: feedItems, loadedRequestId, getLatestRequestId } = feed;
+  const [uploadSeenAt, setUploadSeenAt] = useState<ReadonlyMap<string, number>>(
+    () => new Map()
+  );
+
+  useEffect(() => {
+    const hasStaleEntries = [...uploadSeenAt.keys()].some(
+      (clientId) => !uploadedIds.has(clientId)
+    );
+    const unseenIds = [...uploadedIds].filter(
+      (clientId) => !uploadSeenAt.has(clientId)
+    );
+    if (!hasStaleEntries && unseenIds.length === 0) return;
+
+    const requestId = getLatestRequestId();
+    setUploadSeenAt((current) => {
+      const next = new Map(
+        [...current].filter(([clientId]) => uploadedIds.has(clientId))
+      );
+      for (const clientId of unseenIds) next.set(clientId, requestId);
+      return next;
+    });
+  }, [getLatestRequestId, uploadSeenAt, uploadedIds]);
+
+  return useMemo(() => {
+    if (!canFetchPublished || uploadedIds.size === 0) return pendingLocal;
+
+    const feedIds = new Set(feedItems.map((item) => item.id));
+    const hasFeedLoadedSinceUpload = (clientId: string) => {
+      const seenAt = uploadSeenAt.get(clientId);
+      return seenAt !== undefined && loadedRequestId > seenAt;
+    };
+    const awaitingFeed = localScreenshots.filter(
+      (item) =>
+        uploadedIds.has(item.clientId) &&
+        !hasFeedLoadedSinceUpload(item.clientId) &&
+        !(item.screenshotId && feedIds.has(item.screenshotId))
+    );
+    if (awaitingFeed.length === 0) return pendingLocal;
+
+    return [...pendingLocal, ...awaitingFeed].toSorted(
+      (a, b) => b.capturedAt - a.capturedAt
+    );
+  }, [
+    canFetchPublished,
+    feedItems,
+    loadedRequestId,
+    localScreenshots,
+    pendingLocal,
+    uploadSeenAt,
+    uploadedIds,
+  ]);
+}
+
 interface UseMyGameScreenshotsOptions extends GameTarget {
   sort: ScreenshotSort;
   take: number;
@@ -239,18 +348,23 @@ export function useMyGameScreenshots({
     settledCount: local.settledCount,
   });
   const { feed } = collection;
+  const visibleLocal = useVisibleLocalScreenshots(
+    local,
+    feed,
+    canFetchPublished
+  );
 
   const items = useMemo(() => {
-    const visiblePendingLocal =
+    const visibleLocalInRange =
       sort === "recent"
         ? selectPendingLocalWithinLoadedUploads(
-            local.pendingLocal,
+            visibleLocal,
             feed.items,
             feed.hasMore
           )
-        : local.pendingLocal;
-    return mergeMyScreenshots(feed.items, visiblePendingLocal, sort);
-  }, [feed.hasMore, feed.items, local.pendingLocal, sort]);
+        : visibleLocal;
+    return mergeMyScreenshots(feed.items, visibleLocalInRange, sort);
+  }, [feed.hasMore, feed.items, sort, visibleLocal]);
 
   const status = resolveMyGameScreenshotsStatus({
     local: { isLoaded: local.hasLoaded, hasFailed: local.hasFailed },
