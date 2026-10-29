@@ -182,9 +182,14 @@ const deleteAll = async (context: DeletionContext) => {
 
   const published = await deletePublishedOnServer(context, knownIds);
 
-  const local = await continueAfterServerDeletion(published, () =>
-    deleteLocalFiles(context)
-  );
+  const local = await continueAfterServerDeletion(published, async () => {
+    try {
+      return await deleteLocalFiles(context);
+    } catch (error) {
+      await Promise.allSettled([forgetPublished(context, knownIds)]);
+      throw error;
+    }
+  });
   const publishedCopies = Math.max(0, local.expected - pendingBefore);
   const unsentDeleted = Math.max(0, local.deleted - publishedCopies);
   const deleted = published + unsentDeleted;
