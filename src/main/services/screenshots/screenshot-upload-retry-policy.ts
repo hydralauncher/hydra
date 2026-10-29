@@ -73,6 +73,12 @@ const getRetryAfterMs = (error: unknown) => {
   return Number.isFinite(value) && value >= 0 ? value * 1_000 : null;
 };
 
+const getSystemErrorCode = (error: unknown) => {
+  if (!(error instanceof Error) || isAxiosError(error)) return null;
+  const { code } = error as NodeJS.ErrnoException;
+  return typeof code === "string" && code ? code : null;
+};
+
 export const getScreenshotModerationWaitDelay = (
   failure: ScreenshotUploadFailure,
   moderationWaits: number
@@ -90,7 +96,7 @@ export const getScreenshotUploadFailure = (
     return { code: SCREENSHOT_MISSING_FILE_CODE, action: "terminal" };
   }
 
-  const code = getGroupedSouvenirErrorCode(error);
+  const code = getSystemErrorCode(error) ?? getGroupedSouvenirErrorCode(error);
   const mapped = RECOVERY_BY_ERROR_CODE[code];
   if (mapped === "moderation_wait") {
     const retryAfterMs = getRetryAfterMs(error);
