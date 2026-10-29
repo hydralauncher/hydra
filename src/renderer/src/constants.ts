@@ -16,6 +16,7 @@ export const DOWNLOADER_NAME = {
   [Downloader.AllDebrid]: "AllDebrid",
   [Downloader.ArchiveOrg]: "Archive.org",
   [Downloader.Epic]: "Epic Games",
+  [Downloader.FileKeeper]: "FileKeeper",
 };
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
