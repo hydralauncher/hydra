@@ -273,12 +273,10 @@ function LeaderboardsPage() {
     );
   };
 
-  const contentRef = useRef<HTMLDivElement>(null);
-
   const handleViewChange = (value: LeaderboardPageTab) => {
     setRequestedTab(value);
     dropGameLink();
-    contentRef.current?.scrollTo({ top: 0 });
+    document.getElementById("scrollableDiv")?.scrollTo({ top: 0 });
   };
 
   const openMetric = (value: string) => {
@@ -338,6 +336,7 @@ function LeaderboardsPage() {
             hasGamesError={games.hasError}
             isLoggedIn={isLoggedIn}
             isStatsSelected={tab === "stats"}
+            isGameBoardSelected={tab === "games"}
             selectedMetricId={tab === "ranking" ? (metric?.id ?? null) : null}
             selectedGameKey={tab === "games" ? activeGameKey : null}
             onSelectStats={() => handleViewChange("stats")}
@@ -346,11 +345,7 @@ function LeaderboardsPage() {
             onRetryGames={games.retry}
           />
 
-          <div
-            key={generation}
-            ref={contentRef}
-            className="leaderboards__content"
-          >
+          <div key={generation} className="leaderboards__content">
             {tab === "ranking" && (
               <RankingTab
                 results={results}

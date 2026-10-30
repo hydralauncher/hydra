@@ -15,13 +15,11 @@ $leaderboards-heat-gap: 3px;
   display: flex;
   flex-direction: column;
   width: 100%;
-  // The page does not scroll: the sidebar and the content scroll on their own.
-  flex-shrink: 0;
-  height: 100%;
+  // Fills the window when short, and the app's scroll moves the whole page.
+  flex: 1 0 auto;
 
   &__body {
     flex: 1;
-    min-height: 0;
     display: flex;
   }
 
@@ -32,7 +30,6 @@ $leaderboards-heat-gap: 3px;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 3);
     padding: calc(globals.$spacing-unit * 3);
-    overflow-y: auto;
   }
 
   &__sidebar {
@@ -44,7 +41,11 @@ $leaderboards-heat-gap: 3px;
     padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2)
       calc(globals.$spacing-unit * 4);
     border-right: solid 1px globals.$border-color;
-    overflow-y: auto;
+
+    .leaderboards__selector-option {
+      flex: 1;
+      justify-content: center;
+    }
   }
 
   &__side-group {
@@ -56,17 +57,6 @@ $leaderboards-heat-gap: 3px;
       padding-bottom: calc(globals.$spacing-unit * 2);
       border-bottom: solid 1px globals.$border-color;
     }
-  }
-
-  &__side-heading {
-    margin: 0 0 6px;
-    padding: 0 10px;
-    font-size: 11px;
-    line-height: 16px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: globals.$body-color;
   }
 
   &__side-item {

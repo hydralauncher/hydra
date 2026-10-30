@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import cn from "classnames";
 import { GraphIcon } from "@primer/octicons-react";
 import Skeleton from "react-loading-skeleton";
@@ -13,6 +13,7 @@ import {
 import { useFormat, useProcessedImage } from "@renderer/hooks";
 import type { LeaderboardUser } from "../game-details/leaderboard/game-leaderboard";
 import { gameKey } from "./by-game-tab";
+import { HeaderSelector } from "./header-selector";
 import type { MetricDefinition, MyGameRanking } from "./global-leaderboard";
 import { MetricIcon } from "./metric-icon";
 import {
@@ -27,6 +28,8 @@ const GAME_SKELETON_KEYS = Array.from(
   (_, index) => `sidebar-game-skeleton-${index}`
 );
 
+type SidebarList = "categories" | "games";
+
 export interface LeaderboardsSidebarProps {
   results: GlobalBoardResults;
   metrics: MetricDefinition[];
@@ -36,6 +39,7 @@ export interface LeaderboardsSidebarProps {
   hasGamesError: boolean;
   isLoggedIn: boolean;
   isStatsSelected: boolean;
+  isGameBoardSelected: boolean;
   selectedMetricId: string | null;
   selectedGameKey: string | null;
   onSelectStats: () => void;
@@ -117,6 +121,7 @@ export function LeaderboardsSidebar({
   hasGamesError,
   isLoggedIn,
   isStatsSelected,
+  isGameBoardSelected,
   selectedMetricId,
   selectedGameKey,
   onSelectStats,
@@ -129,6 +134,15 @@ export function LeaderboardsSidebar({
   const { numberFormatter } = useFormat();
   const metricText = useMetricText();
   const [search, setSearch] = useState("");
+  // Shows the list of what is on screen. Changing it does not change the board.
+  const [requestedList, setList] = useState<SidebarList>(
+    isGameBoardSelected ? "games" : "categories"
+  );
+  const list = isLoggedIn ? requestedList : "categories";
+
+  useEffect(() => {
+    if (isGameBoardSelected) setList("games");
+  }, [isGameBoardSelected]);
 
   const renderMetric = (definition: MetricDefinition) => {
     const result = results[definition.id] ?? EMPTY_BOARD_RESULT;
@@ -273,23 +287,28 @@ export function LeaderboardsSidebar({
         </div>
       )}
 
-      <div className="leaderboards__side-group">
-        <h2 className="leaderboards__side-heading">
-          {t("sidebar_categories")}
-        </h2>
-        {isMetricsLoading && metrics.length === 0
-          ? GAME_SKELETON_KEYS.map((key) => (
-              <Skeleton key={key} className="leaderboards__side-skeleton" />
-            ))
-          : metrics.map(renderMetric)}
-      </div>
-
       {isLoggedIn && (
-        <div className="leaderboards__side-group">
-          <h2 className="leaderboards__side-heading">{t("tab_games")}</h2>
-          {renderGames()}
-        </div>
+        <HeaderSelector
+          label={t("sidebar_label")}
+          showLabel={false}
+          value={list}
+          onChange={setList}
+          options={[
+            { id: "categories", label: t("sidebar_categories") },
+            { id: "games", label: t("tab_games") },
+          ]}
+        />
       )}
+
+      <div className="leaderboards__side-group">
+        {list === "games" && renderGames()}
+        {list === "categories" &&
+          (isMetricsLoading && metrics.length === 0
+            ? GAME_SKELETON_KEYS.map((key) => (
+                <Skeleton key={key} className="leaderboards__side-skeleton" />
+              ))
+            : metrics.map(renderMetric))}
+      </div>
     </nav>
   );
 }
