@@ -264,8 +264,8 @@ function LeaderboardsPage() {
 
     setSearchParams(
       (params) => {
-        ["tab", "shop", "objectId", "metric"].forEach((name) =>
-          params.delete(name)
+        ["tab", "shop", "objectId", "metric", "period", "scope"].forEach(
+          (name) => params.delete(name)
         );
         return params;
       },
