@@ -2564,8 +2564,6 @@
     "game_metrics_empty_title": "Aún no hay rankings por juego",
     "game_metrics_empty_description": "Los rankings por juego aparecerán aquí pronto.",
     "empty_friends_game_title": "Ninguno de tus amigos juega a este juego",
-    "empty_friend_streaks_title": "Ningún amigo con racha activa",
-    "empty_friend_streaks_description": "Los amigos que juegan dos días seguidos aparecen aquí.",
     "find_friends": "Buscar amigos",
     "sign_in_hint": "Inicia sesión para ver tu posición, tus juegos y la clasificación de tus amigos.",
     "review_score": "{{score}}/5",

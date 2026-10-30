@@ -436,8 +436,8 @@ export function StatsTab({
       return (
         <BlockMessage
           icon={<PeopleIcon size={20} />}
-          title={t("empty_friend_streaks_title")}
-          description={t("empty_friend_streaks_description")}
+          title={t("empty_friends_title")}
+          description={t("empty_friends_description")}
           action={
             <Button
               theme="outline"

@@ -1193,15 +1193,16 @@ $leaderboards-heat-gap: 3px;
     display: flex;
   }
 
+  // Same orb as the friends window (friends-window__status-orb).
   &__presence {
     position: absolute;
-    right: -3px;
-    bottom: -3px;
-    width: 9px;
-    height: 9px;
+    right: 0;
+    bottom: 0;
+    width: 12px;
+    height: 12px;
     border: solid 2px globals.$background-color;
-    border-radius: 999px;
-    background-color: $leaderboards-ended;
+    border-radius: 50%;
+    background-color: #6d6d6d;
 
     &--online {
       background-color: globals.$success-color;
@@ -1225,7 +1226,8 @@ $leaderboards-heat-gap: 3px;
 
   &__friend-presence {
     font-size: 11px;
-    color: $leaderboards-muted-text;
+    color: globals.$body-color;
+    opacity: 0.7;
   }
 
   &__friend-days {
@@ -1237,6 +1239,10 @@ $leaderboards-heat-gap: 3px;
     font-weight: 800;
     color: globals.$muted-color;
     white-space: nowrap;
+
+    &--ended {
+      color: $leaderboards-ended;
+    }
   }
 
   &__friend-skeleton {
