@@ -95,7 +95,12 @@ export interface LeaderboardRow {
 
 export type LeaderboardNudge =
   | { type: "leading" }
-  | { type: "behind"; gap: number; target: LeaderboardUser };
+  | {
+      type: "behind";
+      gap: number;
+      target: LeaderboardUser;
+      targetRank: number;
+    };
 
 export type LeaderboardState =
   | "hidden"
@@ -299,7 +304,7 @@ export const getLeaderboardNudge = (
   const gap = above.value - viewerEntry.value;
   if (gap <= 0) return null;
 
-  return { type: "behind", gap, target: above.user };
+  return { type: "behind", gap, target: above.user, targetRank: above.rank };
 };
 
 export const getLeaderboardState = ({

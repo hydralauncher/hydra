@@ -2524,7 +2524,7 @@
     "value_days_few": "{{count}} дня",
     "value_days_many": "{{count}} дней",
     "value_days_other": "{{count}} дня",
-    "nudge_behind": "Ещё {{amount}}, чтобы обогнать {{name}}",
+    "nudge_behind": "Ещё {{amount}} до #{{rank}}",
     "nudge_leading": "Вы лидируете в этом рейтинге",
     "see_full_ranking": "Полный рейтинг",
     "error_title": "Не удалось загрузить рейтинг",

@@ -2746,7 +2746,7 @@
     "value_minutes": "{{amount}} min",
     "value_days_one": "{{count}} day",
     "value_days_other": "{{count}} days",
-    "nudge_behind": "{{amount}} to pass {{name}}",
+    "nudge_behind": "{{amount}} to reach #{{rank}}",
     "nudge_leading": "You lead this ranking",
     "see_full_ranking": "View full ranking",
     "error_title": "Couldn't load the ranking",

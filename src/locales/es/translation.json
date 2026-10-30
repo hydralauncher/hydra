@@ -2477,7 +2477,7 @@
     "value_minutes": "{{amount}} min",
     "value_days_one": "{{count}} día",
     "value_days_other": "{{count}} días",
-    "nudge_behind": "Faltan {{amount}} para superar a {{name}}",
+    "nudge_behind": "Faltan {{amount}} para el {{rank}}.º",
     "nudge_leading": "Lideras este ranking",
     "see_full_ranking": "Ver ranking completo",
     "error_title": "No se pudo cargar el ranking",

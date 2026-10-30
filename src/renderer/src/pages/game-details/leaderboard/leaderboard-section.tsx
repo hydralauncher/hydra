@@ -1,7 +1,6 @@
 import { useContext, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowRightIcon,
   ClockIcon,
   GraphIcon,
   PeopleIcon,
@@ -37,7 +36,7 @@ import { useLeaderboardValue } from "./use-leaderboard-value";
 import "./leaderboard.scss";
 
 const EMPTY_BOARD = { entries: [], viewer: null };
-const LEADERBOARD_SKELETON_ROWS = 4;
+const LEADERBOARD_SKELETON_ROWS = LEADERBOARD_CARD_SIZE;
 const LEADERBOARD_SKELETON_KEYS = Array.from(
   { length: LEADERBOARD_SKELETON_ROWS },
   (_, index) => `leaderboard-skeleton-${index}`
@@ -126,19 +125,18 @@ export function LeaderboardSection() {
   const renderNudge = () => {
     if (!nudge) return null;
 
-    const text =
-      nudge.type === "leading"
-        ? t("nudge_leading")
-        : t("nudge_behind", {
-            amount: formatValue(dataMetric, nudge.gap),
-            name: nudge.target.displayName,
-          });
-
     return (
-      <p className="leaderboard-section__nudge">
-        <GraphIcon size={14} />
-        <span className="leaderboard-section__nudge-text">{text}</span>
-      </p>
+      <>
+        <GraphIcon size={12} />
+        <span className="leaderboard-row__subtitle-text">
+          {nudge.type === "leading"
+            ? t("nudge_leading")
+            : t("nudge_behind", {
+                amount: formatValue(dataMetric, nudge.gap),
+                rank: nudge.targetRank,
+              })}
+        </span>
+      </>
     );
   };
 
@@ -159,7 +157,11 @@ export function LeaderboardSection() {
   );
 
   const renderBody = () => {
-    if (state === "loading") {
+    // Also while a filter change loads, so the old board does not stay on screen.
+    const isShowingOldBoard =
+      dataPeriod !== period || dataScope !== scope || dataMetric !== metric;
+
+    if (state === "loading" || (state !== "error" && isShowingOldBoard)) {
       return (
         <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
           <div className="leaderboard-section__skeleton" aria-busy="true">
@@ -221,6 +223,7 @@ export function LeaderboardSection() {
                 row={row}
                 value={formatValue(dataMetric, row.entry.value)}
                 showProgress={false}
+                strip
               />
             ))}
           </ol>
@@ -247,6 +250,7 @@ export function LeaderboardSection() {
                 row={row}
                 value={formatValue(dataMetric, row.entry.value)}
                 showProgress={false}
+                strip
               />
             ))}
           </ol>
@@ -274,13 +278,15 @@ export function LeaderboardSection() {
               key={row.entry.user.id}
               row={row}
               value={formatValue(dataMetric, row.entry.value)}
+              showProgress={false}
+              strip
+              subtitle={row.isViewer ? renderNudge() : null}
             />
           ))}
         </ol>
 
-        <div className="leaderboard-section__footer">
-          {renderNudge()}
-          {isGlobalLeaderboardsEnabled && isLoggedIn && (
+        {isGlobalLeaderboardsEnabled && isLoggedIn && (
+          <div className="leaderboard-section__footer">
             <button
               type="button"
               className="leaderboard-section__see-all"
@@ -294,17 +300,21 @@ export function LeaderboardSection() {
                 )
               }
             >
+              <TrophyIcon size={12} />
               {t("see_full_ranking")}
-              <ArrowRightIcon size={14} />
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </>
     );
   };
 
   return (
-    <SidebarSection title={t("title")}>
+    <SidebarSection
+      title={
+        isExtended ? `${t("title")} · ${t(`metric_${metric}`)}` : t("title")
+      }
+    >
       <div className="leaderboard-section">
         <LeaderboardControls
           period={period}

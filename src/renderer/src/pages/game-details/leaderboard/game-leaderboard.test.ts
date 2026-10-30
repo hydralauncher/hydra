@@ -235,6 +235,7 @@ describe("getLeaderboardNudge", () => {
       type: "behind",
       gap: 15,
       target: user("b"),
+      targetRank: 2,
     });
   });
 
@@ -244,7 +245,7 @@ describe("getLeaderboardNudge", () => {
         board(entry(1, "a", 100), entry(1, "b", 100), entry(3, "me", 60)),
         user("me")
       ),
-      { type: "behind", gap: 40, target: user("b") }
+      { type: "behind", gap: 40, target: user("b"), targetRank: 1 }
     );
   });
 

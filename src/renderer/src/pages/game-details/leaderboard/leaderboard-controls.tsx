@@ -1,12 +1,10 @@
-import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import cn from "classnames";
-import {
-  CalendarIcon,
-  ChevronDownIcon,
-  GlobeIcon,
-  PeopleIcon,
-} from "@primer/octicons-react";
+import { GlobeIcon, PeopleIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
+
+import { MetricIcon } from "@renderer/pages/leaderboards/metric-icon";
 
 import {
   LEADERBOARD_PERIODS,
@@ -74,71 +72,132 @@ export function SegmentedControl<T extends string>({
   );
 }
 
-interface FilterOption<T extends string> {
+interface CardSelectorOption<T extends string> {
   id: T;
   label: string;
+  icon?: React.ReactNode;
 }
 
-interface FilterProps<T extends string> {
+interface CardSelectorProps<T extends string> {
   label: string;
-  icon: React.ReactNode;
-  options: FilterOption<T>[];
+  options: CardSelectorOption<T>[];
   value: T;
   onChange: (value: T) => void;
 }
 
-function Filter<T extends string>({
+interface SelectorTooltip {
+  label: string;
+  left: number;
+  top: number;
+  isNearEdge: boolean;
+}
+
+const TOOLTIP_GAP = 8;
+// Closer than this to the window's edge, the tooltip aligns to the option's end.
+const TOOLTIP_EDGE_DISTANCE = 72;
+
+// The compact selector of the game page card. An option with an icon shows only
+// the icon, and its name moves to a tooltip.
+function CardSelector<T extends string>({
   label,
-  icon,
   options,
   value,
   onChange,
-}: Readonly<FilterProps<T>>) {
-  const selected = options.find((option) => option.id === value);
+}: Readonly<CardSelectorProps<T>>) {
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((option) => option.id === value)
+  );
+  const hasIcons = options.some((option) => option.icon);
+  const [tooltip, setTooltip] = useState<SelectorTooltip | null>(null);
+  const hideTooltip = useCallback(() => setTooltip(null), []);
+
+  // The tooltip is fixed to the window, so scrolling would leave it behind.
+  const isTooltipVisible = tooltip !== null;
+  useEffect(() => {
+    if (!isTooltipVisible) return;
+    const options = { capture: true, passive: true };
+    globalThis.addEventListener("scroll", hideTooltip, options);
+
+    return () => globalThis.removeEventListener("scroll", hideTooltip, options);
+  }, [hideTooltip, isTooltipVisible]);
+
+  const showTooltip = (option: HTMLElement, label: string) => {
+    const { left, right, top, width } = option.getBoundingClientRect();
+    const isNearEdge = globalThis.innerWidth - right < TOOLTIP_EDGE_DISTANCE;
+
+    setTooltip({
+      label,
+      isNearEdge,
+      left: isNearEdge ? right : left + width / 2,
+      top: top - TOOLTIP_GAP,
+    });
+  };
 
   return (
-    <DropdownMenuPrimitive.Root modal={false}>
-      <DropdownMenuPrimitive.Trigger asChild>
+    <div
+      role="tablist"
+      aria-label={label}
+      className={cn("leaderboard-controls__selector", {
+        "leaderboard-controls__selector--icons": hasIcons,
+      })}
+      style={
+        {
+          "--segment-count": options.length,
+          "--segment-index": selectedIndex,
+        } as React.CSSProperties
+      }
+    >
+      <span
+        className="leaderboard-controls__selector-indicator"
+        aria-hidden="true"
+      />
+      {options.map((option) => (
         <button
+          key={option.id}
           type="button"
-          className="leaderboard-controls__filter"
-          aria-label={label}
+          role="tab"
+          aria-selected={option.id === value}
+          aria-label={option.icon ? option.label : undefined}
+          onMouseEnter={
+            option.icon
+              ? (event) => showTooltip(event.currentTarget, option.label)
+              : undefined
+          }
+          onMouseLeave={hideTooltip}
+          onFocus={
+            option.icon
+              ? (event) => {
+                  if (event.currentTarget.matches(":focus-visible")) {
+                    showTooltip(event.currentTarget, option.label);
+                  }
+                }
+              : undefined
+          }
+          onBlur={hideTooltip}
+          className={cn("leaderboard-controls__selector-option", {
+            "leaderboard-controls__selector-option--selected":
+              option.id === value,
+          })}
+          onClick={() => onChange(option.id)}
         >
-          {icon}
-          <span className="leaderboard-controls__filter-label">
-            {selected?.label}
-          </span>
-          <ChevronDownIcon
-            size={12}
-            className="leaderboard-controls__filter-chevron"
-          />
+          {option.icon ?? option.label}
         </button>
-      </DropdownMenuPrimitive.Trigger>
-
-      <DropdownMenuPrimitive.Portal>
-        <DropdownMenuPrimitive.Content
-          align="start"
-          sideOffset={6}
-          collisionPadding={16}
-          className="leaderboard-controls__filter-content"
-        >
-          <DropdownMenuPrimitive.RadioGroup
-            value={value}
-            onValueChange={(next) => onChange(next as T)}
+      ))}
+      {tooltip &&
+        createPortal(
+          <span
+            className={cn("leaderboard-controls__tooltip", {
+              "leaderboard-controls__tooltip--near-edge": tooltip.isNearEdge,
+            })}
+            style={{ left: tooltip.left, top: tooltip.top }}
+            aria-hidden="true"
           >
-            {options.map((option) => (
-              <DropdownMenuPrimitive.RadioItem
-                key={option.id}
-                value={option.id}
-                className="leaderboard-controls__filter-item"
-              >
-                {option.label}
-              </DropdownMenuPrimitive.RadioItem>
-            ))}
-          </DropdownMenuPrimitive.RadioGroup>
-        </DropdownMenuPrimitive.Content>
-      </DropdownMenuPrimitive.Portal>
-    </DropdownMenuPrimitive.Root>
+            {tooltip.label}
+          </span>,
+          document.body
+        )}
+    </div>
   );
 }
 
@@ -153,6 +212,11 @@ export interface LeaderboardControlsProps {
   onScopeChange: (scope: LeaderboardScope) => void;
   onMetricChange: (metric: LeaderboardMetric) => void;
 }
+
+const SCOPE_ICONS: Record<LeaderboardScope, React.ReactNode> = {
+  global: <GlobeIcon size={14} />,
+  friends: <PeopleIcon size={14} />,
+};
 
 export function LeaderboardControls({
   period,
@@ -169,46 +233,38 @@ export function LeaderboardControls({
 
   return (
     <div className="leaderboard-controls">
-      <div className="leaderboard-controls__filters">
-        {showScope && (
-          <Filter
-            label={t("scope_label")}
-            icon={
-              scope === "friends" ? (
-                <PeopleIcon size={12} />
-              ) : (
-                <GlobeIcon size={12} />
-              )
-            }
-            value={scope}
-            onChange={onScopeChange}
-            options={LEADERBOARD_SCOPES.map((id) => ({
-              id,
-              label: t(`scope_${id}`),
-            }))}
-          />
-        )}
-
-        <Filter
-          label={t("period_label")}
-          icon={<CalendarIcon size={12} />}
-          value={period}
-          onChange={onPeriodChange}
-          options={LEADERBOARD_PERIODS.map((id) => ({
+      {showScope && (
+        <CardSelector
+          label={t("scope_label")}
+          value={scope}
+          onChange={onScopeChange}
+          options={LEADERBOARD_SCOPES.map((id) => ({
             id,
-            label: t(`period_${id}`),
+            label: t(`scope_${id}`),
+            icon: SCOPE_ICONS[id],
           }))}
         />
-      </div>
+      )}
+
+      <CardSelector
+        label={t("period_label")}
+        value={period}
+        onChange={onPeriodChange}
+        options={LEADERBOARD_PERIODS.map((id) => ({
+          id,
+          label: t(`period_${id}`),
+        }))}
+      />
 
       {showMetrics && (
-        <SegmentedControl
+        <CardSelector
           label={t("metric_label")}
           value={metric}
           onChange={onMetricChange}
           options={metrics.map((id) => ({
             id,
             label: t(`metric_${id}`),
+            icon: <MetricIcon metric={id} size={14} />,
           }))}
         />
       )}

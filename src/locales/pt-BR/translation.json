@@ -2750,7 +2750,7 @@
     "value_minutes": "{{amount}} min",
     "value_days_one": "{{count}} dia",
     "value_days_other": "{{count}} dias",
-    "nudge_behind": "Faltam {{amount}} para você passar {{name}}",
+    "nudge_behind": "Faltam {{amount}} para o {{rank}}º",
     "nudge_leading": "Você lidera este ranking",
     "see_full_ranking": "Ver ranking completo",
     "error_title": "Não foi possível carregar o ranking",
