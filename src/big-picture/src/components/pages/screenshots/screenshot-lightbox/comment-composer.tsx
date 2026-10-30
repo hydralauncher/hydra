@@ -195,6 +195,7 @@ function CommentEditorForm({
     <form
       className="screenshot-comments__composer"
       data-virtual-keyboard-side="left"
+      data-virtual-keyboard-enter="submit"
       onSubmit={handleSubmit}
     >
       {isEditing ? (

@@ -64,6 +64,8 @@ type VirtualKeyboardKeyPosition = {
 
 const VIRTUAL_KEYBOARD_LAYER_ID = "big-picture-virtual-keyboard-layer";
 const VIRTUAL_KEYBOARD_REGION_ID = "big-picture-virtual-keyboard";
+const VIRTUAL_KEYBOARD_SUBMIT_ON_ENTER_ANCHOR =
+  'form[data-virtual-keyboard-enter="submit"]';
 const VIRTUAL_KEYBOARD_LEFT_SIDE_ANCHOR = '[data-virtual-keyboard-side="left"]';
 const VIRTUAL_KEYBOARD_FIRST_KEY_ID = "big-picture-virtual-keyboard-key-1";
 const VIRTUAL_KEYBOARD_BACKSPACE_KEY_ID =
@@ -973,6 +975,14 @@ export function VirtualKeyboardProvider() {
     if (target instanceof HTMLInputElement) {
       submitSingleLineInput(target);
       closeKeyboard();
+      return;
+    }
+
+    const submitOnEnterForm = target.closest<HTMLFormElement>(
+      VIRTUAL_KEYBOARD_SUBMIT_ON_ENTER_ANCHOR
+    );
+    if (submitOnEnterForm) {
+      submitOnEnterForm.requestSubmit();
       return;
     }
 
