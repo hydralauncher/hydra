@@ -1317,13 +1317,16 @@ export function VirtualKeyboardProvider() {
         VIRTUAL_KEYBOARD_HEIGHT_PROPERTY,
         `${dock.getBoundingClientRect().height}px`
       );
-    const observer = new ResizeObserver(publishHeight);
+    const observer =
+      typeof globalThis.ResizeObserver === "function"
+        ? new globalThis.ResizeObserver(publishHeight)
+        : null;
 
     publishHeight();
-    observer.observe(dock);
+    observer?.observe(dock);
 
     return () => {
-      observer.disconnect();
+      observer?.disconnect();
       rootStyle.removeProperty(VIRTUAL_KEYBOARD_HEIGHT_PROPERTY);
     };
   }, [target]);
