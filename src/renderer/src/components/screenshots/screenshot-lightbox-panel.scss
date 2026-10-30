@@ -384,21 +384,34 @@ $description-outline-fade-duration: 0.15s;
     border-color: rgba(255, 255, 255, 0.16);
     border-radius: 14px;
     background: #1c1c1c;
-    transition: border-radius motion.$fast-transition-duration ease;
+    transition:
+      border-color motion.$composer-expand-duration motion.$composer-easing,
+      border-radius motion.$composer-expand-duration motion.$composer-easing;
 
     .rich-text-editor__header {
+      max-height: 48px;
+      overflow: hidden;
       padding: 4px 120px 6px 8px;
       border-bottom: 0;
       background: transparent;
+      transition:
+        max-height motion.$composer-expand-duration motion.$composer-easing,
+        padding motion.$composer-expand-duration motion.$composer-easing,
+        opacity motion.$composer-expand-duration motion.$composer-easing;
     }
 
     .rich-text-editor__input {
       min-height: 44px;
       padding: 10px 14px 4px;
+      transition:
+        min-height motion.$composer-expand-duration motion.$composer-easing,
+        padding motion.$composer-expand-duration motion.$composer-easing;
 
       .ProseMirror {
         min-height: 22px;
         font-size: globals.$body-font-size;
+        transition: min-height motion.$composer-expand-duration
+          motion.$composer-easing;
       }
     }
   }
@@ -407,6 +420,10 @@ $description-outline-fade-duration: 0.15s;
     position: absolute;
     right: 6px;
     bottom: 6px;
+    transition:
+      opacity motion.$composer-expand-duration motion.$composer-easing,
+      transform motion.$composer-expand-duration motion.$composer-easing,
+      visibility 0s linear 0s;
 
     .button {
       height: 28px;
@@ -422,9 +439,22 @@ $description-outline-fade-duration: 0.15s;
       border-radius: 19px;
     }
 
-    .rich-text-editor__header,
+    .rich-text-editor__header {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      opacity: 0;
+    }
+
     .screenshot-comments__input-actions {
-      display: none;
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(4px);
+      pointer-events: none;
+      transition:
+        opacity motion.$composer-expand-duration motion.$composer-easing,
+        transform motion.$composer-expand-duration motion.$composer-easing,
+        visibility 0s linear motion.$composer-expand-duration;
     }
 
     .rich-text-editor__input {
@@ -434,6 +464,19 @@ $description-outline-fade-duration: 0.15s;
       .ProseMirror {
         min-height: 20px;
       }
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__composer &__editor,
+    &__composer &__editor .rich-text-editor__header,
+    &__composer &__editor .rich-text-editor__input,
+    &__composer &__editor .ProseMirror,
+    &__composer &__input-actions,
+    &__composer:not(:focus-within)
+      &__input--empty
+      .screenshot-comments__input-actions {
+      transition: none;
     }
   }
 
