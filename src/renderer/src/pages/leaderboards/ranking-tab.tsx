@@ -3,6 +3,7 @@ import cn from "classnames";
 import { ClockIcon, PeopleIcon, StarIcon } from "@primer/octicons-react";
 import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 import { Avatar, Button } from "@renderer/components";
 import { useDate, useFormat } from "@renderer/hooks";
@@ -21,6 +22,7 @@ import {
   type GlobalLeaderboardScope,
   type LeaderboardReview,
 } from "./global-leaderboard";
+import { requestAddFriendMode } from "../friends-window/add-friend-request";
 import { BoardView } from "./board-view";
 import { BlockError, BlockMessage, BoardSkeleton } from "./leaderboard-bits";
 import { MetricIcon } from "./metric-icon";
@@ -49,6 +51,7 @@ export interface RankingTabProps {
   scope: GlobalLeaderboardScope;
   viewerUser: LeaderboardUser | null;
   onRetry: () => void;
+  onPeriodChange: (period: GlobalLeaderboardPeriod) => void;
 }
 
 // Outside the component to keep it under the cognitive complexity limit.
@@ -106,8 +109,10 @@ export function RankingTab({
   scope,
   viewerUser,
   onRetry,
+  onPeriodChange,
 }: Readonly<RankingTabProps>) {
   const { t } = useTranslation("leaderboards");
+  const navigate = useNavigate();
   const { numberFormatter } = useFormat();
   const metricText = useMetricText();
   const [reviewerId, setReviewerId] = useState<string | null>(null);
@@ -253,11 +258,24 @@ export function RankingTab({
     if (state === "empty") {
       return (
         <BlockMessage
-          icon={<ClockIcon size={24} />}
+          icon={<ClockIcon size={32} />}
           title={t(isWeek ? "empty_week_title" : "empty_all_title")}
           description={t(
-            isWeek ? "empty_week_description" : "empty_all_description"
+            isWeek
+              ? "empty_week_ranking_description"
+              : "empty_all_ranking_description"
           )}
+          action={
+            isWeek ? (
+              <Button theme="primary" onClick={() => onPeriodChange("all")}>
+                {t("see_all_time")}
+              </Button>
+            ) : (
+              <Button theme="primary" onClick={() => navigate("/library")}>
+                {t("go_to_library")}
+              </Button>
+            )
+          }
         />
       );
     }
@@ -265,14 +283,16 @@ export function RankingTab({
     if (state === "empty_friends") {
       return (
         <BlockMessage
-          icon={<PeopleIcon size={24} />}
+          icon={<PeopleIcon size={32} />}
           title={t("empty_friends_title")}
-          description={t("empty_friends_description")}
+          description={t("empty_friends_ranking_description")}
           action={
             <Button
-              theme="outline"
-              size="small"
-              onClick={() => globalThis.window.electron.openFriendsWindow()}
+              theme="primary"
+              onClick={() => {
+                requestAddFriendMode();
+                globalThis.window.electron.openFriendsWindow();
+              }}
             >
               {t("find_friends")}
             </Button>
@@ -332,7 +352,13 @@ export function RankingTab({
         </div>
       </section>
 
-      <section className="leaderboards__board" aria-labelledby="board-title">
+      <section
+        className={cn("leaderboards__board", {
+          "leaderboards__board--empty":
+            state === "empty" || state === "empty_friends",
+        })}
+        aria-labelledby="board-title"
+      >
         <div className="leaderboards__board-header">
           {metric && <MetricIcon metric={metric.id} size={20} />}
           <h2 id="board-title" className="leaderboards__board-title">

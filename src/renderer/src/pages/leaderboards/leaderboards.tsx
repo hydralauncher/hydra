@@ -329,6 +329,7 @@ function LeaderboardsPage() {
               scope={scope}
               viewerUser={viewerUser}
               onRetry={retryAll}
+              onPeriodChange={setPeriod}
             />
           )}
 
@@ -346,6 +347,8 @@ function LeaderboardsPage() {
               initialMetric={linkedGame ? metricParam : null}
               savedGameKey={selectedGameKey}
               onGameSelect={setSelectedGameKey}
+              onScopeChange={setRequestedScope}
+              onPeriodChange={setPeriod}
             />
           )}
 

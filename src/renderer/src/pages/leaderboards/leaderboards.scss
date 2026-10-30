@@ -265,6 +265,16 @@ $leaderboards-heat-gap: 3px;
     overflow: hidden;
   }
 
+  // Fills the page, with the message centered in the space under the chips.
+  &__board--empty {
+    flex: 1;
+
+    > .leaderboards__message {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+
   &__panel {
     padding: calc(globals.$spacing-unit * 2);
   }

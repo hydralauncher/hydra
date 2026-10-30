@@ -61,6 +61,8 @@ export interface ByGameTabProps {
   // The game picked earlier, kept by the page while the viewer changes tabs.
   savedGameKey: string | null;
   onGameSelect: (key: string) => void;
+  onScopeChange: (scope: GlobalLeaderboardScope) => void;
+  onPeriodChange: (period: GlobalLeaderboardPeriod) => void;
 }
 
 interface SelectedGame {
@@ -126,6 +128,8 @@ export function ByGameTab({
   initialMetric = null,
   savedGameKey,
   onGameSelect,
+  onScopeChange,
+  onPeriodChange,
 }: Readonly<ByGameTabProps>) {
   const { t } = useTranslation("leaderboards");
   const navigate = useNavigate();
@@ -349,11 +353,28 @@ export function ByGameTab({
     );
   };
 
+  const openGamePage = () => {
+    if (!boardGame) return;
+
+    navigate(
+      buildGameDetailsPath({
+        shop: boardGame.shop as GameShop,
+        objectId: boardGame.objectId,
+        title: selected?.title ?? "",
+      })
+    );
+  };
+
+  const isBoardEmpty =
+    hasNoGameMetrics ||
+    boardState === "empty" ||
+    boardState === "empty_friends";
+
   const renderBoard = () => {
     if (hasNoGameMetrics) {
       return (
         <BlockMessage
-          icon={<TrophyIcon size={24} />}
+          icon={<TrophyIcon size={32} />}
           title={t("game_metrics_empty_title")}
           description={t("game_metrics_empty_description")}
         />
@@ -375,11 +396,24 @@ export function ByGameTab({
     if (boardState === "empty") {
       return (
         <BlockMessage
-          icon={<TrophyIcon size={24} />}
+          icon={<TrophyIcon size={32} />}
           title={t(isWeek ? "empty_week_title" : "empty_all_title")}
           description={t(
-            isWeek ? "empty_week_description" : "empty_all_description"
+            isWeek
+              ? "empty_week_game_description"
+              : "empty_all_game_description"
           )}
+          action={
+            isWeek ? (
+              <Button theme="primary" onClick={() => onPeriodChange("all")}>
+                {t("see_all_time")}
+              </Button>
+            ) : (
+              <Button theme="primary" onClick={openGamePage}>
+                {t("open_game_page")}
+              </Button>
+            )
+          }
         />
       );
     }
@@ -387,9 +421,14 @@ export function ByGameTab({
     if (boardState === "empty_friends") {
       return (
         <BlockMessage
-          icon={<PeopleIcon size={24} />}
+          icon={<PeopleIcon size={32} />}
           title={t("empty_friends_game_title")}
-          description={t("empty_friends_description")}
+          description={t("empty_friends_game_description")}
+          action={
+            <Button theme="primary" onClick={() => onScopeChange("global")}>
+              {t("see_global_ranking")}
+            </Button>
+          }
         />
       );
     }
@@ -458,7 +497,9 @@ export function ByGameTab({
 
       {boardGame && (
         <section
-          className="leaderboards__board leaderboards__board--game"
+          className={cn("leaderboards__board leaderboards__board--game", {
+            "leaderboards__board--empty": isBoardEmpty,
+          })}
           aria-labelledby="game-board-title"
         >
           <div
@@ -485,15 +526,7 @@ export function ByGameTab({
             <button
               type="button"
               className="leaderboards__hero-link"
-              onClick={() =>
-                navigate(
-                  buildGameDetailsPath({
-                    shop: boardGame.shop as GameShop,
-                    objectId: boardGame.objectId,
-                    title: selected?.title ?? "",
-                  })
-                )
-              }
+              onClick={openGamePage}
             >
               {t("open_game_page")}
               <LinkExternalIcon size={14} />
