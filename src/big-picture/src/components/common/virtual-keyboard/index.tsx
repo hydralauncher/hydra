@@ -57,6 +57,7 @@ type VirtualKeyboardKeyPosition = {
 
 const VIRTUAL_KEYBOARD_LAYER_ID = "big-picture-virtual-keyboard-layer";
 const VIRTUAL_KEYBOARD_REGION_ID = "big-picture-virtual-keyboard";
+const VIRTUAL_KEYBOARD_HEIGHT_PROPERTY = "--virtual-keyboard-height";
 const VIRTUAL_KEYBOARD_FIRST_KEY_ID = "big-picture-virtual-keyboard-key-1";
 const VIRTUAL_KEYBOARD_BACKSPACE_KEY_ID =
   "big-picture-virtual-keyboard-key-backspace";
@@ -1305,6 +1306,27 @@ export function VirtualKeyboardProvider() {
       globalThis.window.clearTimeout(settledLayoutTimeoutId);
     };
   }, [layoutMode, target]);
+
+  useEffect(() => {
+    const dock = dockRef.current;
+    if (!target || !dock) return;
+
+    const rootStyle = globalThis.document.documentElement.style;
+    const publishHeight = () =>
+      rootStyle.setProperty(
+        VIRTUAL_KEYBOARD_HEIGHT_PROPERTY,
+        `${dock.getBoundingClientRect().height}px`
+      );
+    const observer = new ResizeObserver(publishHeight);
+
+    publishHeight();
+    observer.observe(dock);
+
+    return () => {
+      observer.disconnect();
+      rootStyle.removeProperty(VIRTUAL_KEYBOARD_HEIGHT_PROPERTY);
+    };
+  }, [target]);
 
   useEffect(() => {
     if (

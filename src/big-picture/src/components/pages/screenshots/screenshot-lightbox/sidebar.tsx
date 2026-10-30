@@ -132,11 +132,6 @@ function LightboxSummary({
             onSave={onSaveDescription}
           />
         ) : null}
-        {isOwner && screenshot.descriptionModerationStatus === "BLOCKED" ? (
-          <p className="screenshot-lightbox__description-note">
-            {t("description_only_visible_to_you", { ns: "screenshots" })}
-          </p>
-        ) : null}
         {!isOwner && screenshot.description ? (
           <Typography variant="h4" className="screenshot-lightbox__description">
             {screenshot.description}

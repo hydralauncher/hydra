@@ -412,6 +412,7 @@ export function useScreenshotComments({
         if (comment.isHidden) {
           onPatch(screenshotId, adjustCommentCount(-1));
         }
+        showSuccessToast(t("comment_posted"));
       } catch (error) {
         logger.error("Failed to post screenshot comment", error);
         const isListed =
@@ -435,6 +436,8 @@ export function useScreenshotComments({
       recordWrite,
       screenshotId,
       setPending,
+      showSuccessToast,
+      t,
     ]
   );
 

@@ -3009,6 +3009,7 @@
     "comment_not_allowed": "You can't comment on this screenshot",
     "comment_placeholder": "Write a comment",
     "comment_post_failed": "Could not post the comment",
+    "comment_posted": "Comment posted",
     "comment_rate_limited": "You're commenting too fast. Please wait a moment.",
     "comment_reported": "Comment reported",
     "comment_unavailable": "This comment is no longer available",

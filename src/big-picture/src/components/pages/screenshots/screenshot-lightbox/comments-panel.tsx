@@ -713,6 +713,9 @@ export function ScreenshotCommentsPanel({
           wasCounted: true,
         });
         if (!created.isHidden) recordWrite({ kind: "add", comment: created });
+        showSuccessToast(t("screenshots_comment_posted"), {
+          fallbackVisual: "settings",
+        });
         const isPendingShown = commentsRef.current.some(
           (comment) => comment.id === pending.id
         );
@@ -788,6 +791,8 @@ export function ScreenshotCommentsPanel({
       setComments,
       setTotal,
       showError,
+      showSuccessToast,
+      t,
     ]
   );
 
