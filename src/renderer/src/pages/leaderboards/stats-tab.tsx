@@ -39,7 +39,10 @@ import {
   RankDelta,
   StreakFlame,
 } from "./leaderboard-bits";
-import { FriendStreakCard } from "./friend-streak-card";
+import {
+  FRIEND_STREAK_PAGE_SIZE,
+  FriendStreakList,
+} from "./friend-streak-list";
 import { MetricIcon } from "./metric-icon";
 import {
   EMPTY_BOARD_RESULT,
@@ -47,9 +50,8 @@ import {
 } from "./use-global-leaderboards";
 import { useMetricText } from "./use-global-leaderboard-value";
 
-const FRIEND_STREAK_ROWS = 6;
 const FRIEND_SKELETON_KEYS = Array.from(
-  { length: FRIEND_STREAK_ROWS },
+  { length: FRIEND_STREAK_PAGE_SIZE },
   (_, index) => `friend-skeleton-${index}`
 );
 
@@ -436,8 +438,8 @@ export function StatsTab({
       return (
         <BlockMessage
           icon={<PeopleIcon size={20} />}
-          title={t("empty_friends_title")}
-          description={t("empty_friends_description")}
+          title={t("empty_friend_streaks_title")}
+          description={t("empty_friend_streaks_description")}
           action={
             <Button
               theme="outline"
@@ -451,22 +453,7 @@ export function StatsTab({
       );
     }
 
-    return (
-      <>
-        <div className="leaderboards__friend-streaks">
-          {friends.data.slice(0, FRIEND_STREAK_ROWS).map((item) => (
-            <FriendStreakCard key={item.user.id} item={item} />
-          ))}
-        </div>
-        <button
-          type="button"
-          className="leaderboards__link leaderboards__link--padded"
-          onClick={() => globalThis.window.electron.openFriendsWindow()}
-        >
-          {t("see_all_friends")}
-        </button>
-      </>
-    );
+    return <FriendStreakList friends={friends.data} />;
   };
 
   return (

@@ -53,11 +53,7 @@ export function FriendStreakCard({ item }: Readonly<FriendStreakCardProps>) {
           </span>
         </span>
       </div>
-      <span
-        className={cn("leaderboards__friend-days", {
-          "leaderboards__friend-days--ended": !item.active,
-        })}
-      >
+      <span className="leaderboards__friend-days">
         {t("days_count", { count: item.days })}
       </span>
     </div>

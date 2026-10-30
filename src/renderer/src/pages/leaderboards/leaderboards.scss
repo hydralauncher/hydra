@@ -7,6 +7,8 @@ $leaderboards-down: #ff6b81;
 $leaderboards-ended: #838383;
 $leaderboards-streak-from: #22c7ee;
 $leaderboards-streak-to: #b05cff;
+$leaderboards-friend-row-height: 72px;
+$leaderboards-scrollbar-width: 9px;
 $leaderboards-heat-size: 12px;
 $leaderboards-heat-gap: 3px;
 
@@ -367,11 +369,6 @@ $leaderboards-heat-gap: 3px;
 
     &:hover {
       color: globals.$muted-color;
-    }
-
-    &--padded {
-      padding-top: globals.$spacing-unit;
-      font-size: globals.$hint-font-size;
     }
   }
 
@@ -1170,11 +1167,40 @@ $leaderboards-heat-gap: 3px;
     vertical-align: bottom;
   }
 
+  // Takes the height left in the card instead of setting it, and scrolls inside.
+  // The scrollbar's space stays reserved in the card's padding, so showing it
+  // does not move the rows.
   &__friend-streaks {
-    flex: 1;
-    display: grid;
-    grid-auto-rows: minmax(72px, 1fr);
+    position: relative;
+    flex: 1 1 0;
+    height: 0;
+    // Six rows and the button under them, so the button shows without scrolling.
+    min-height: calc(
+      $leaderboards-friend-row-height * 6 + globals.$spacing-unit * 6 + 40px
+    );
+    margin-right: -$leaderboards-scrollbar-width;
+    display: flex;
+    flex-direction: column;
     gap: globals.$spacing-unit;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    scroll-behavior: smooth;
+
+    > * {
+      flex-shrink: 0;
+    }
+
+    .leaderboards__more button {
+      width: 100%;
+    }
+
+    &--more-below {
+      mask-image: linear-gradient(
+        to bottom,
+        #000 calc(100% - $leaderboards-friend-row-height),
+        transparent
+      );
+    }
   }
 
   &__friend-streak {
@@ -1184,6 +1210,7 @@ $leaderboards-heat-gap: 3px;
     align-items: center;
     justify-content: space-between;
     gap: calc(globals.$spacing-unit * 2);
+    height: $leaderboards-friend-row-height;
     padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
     border-radius: 8px;
 
@@ -1255,14 +1282,10 @@ $leaderboards-heat-gap: 3px;
     font-weight: 700;
     color: globals.$muted-color;
     white-space: nowrap;
-
-    &--ended {
-      color: $leaderboards-ended;
-    }
   }
 
   &__friend-skeleton {
-    height: 72px;
+    height: $leaderboards-friend-row-height;
     border-radius: 8px;
   }
 
@@ -1764,6 +1787,10 @@ $leaderboards-heat-gap: 3px;
 
   .streak-flame--flicker {
     animation: none;
+  }
+
+  .leaderboards__friend-streaks {
+    scroll-behavior: auto;
   }
 
   .leaderboards__game {
