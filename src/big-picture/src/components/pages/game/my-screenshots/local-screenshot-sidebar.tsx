@@ -37,6 +37,7 @@ const getFieldFocusIds = (clientId: string): ReviewFieldFocusIds => ({
   title: `local-screenshot-sidebar-title:${clientId}`,
   description: `local-screenshot-sidebar-description:${clientId}`,
   spoiler: `local-screenshot-sidebar-spoiler:${clientId}`,
+  comments: `local-screenshot-sidebar-comments:${clientId}`,
   visibility: `local-screenshot-sidebar-visibility:${clientId}`,
   quality: `local-screenshot-sidebar-quality:${clientId}`,
 });

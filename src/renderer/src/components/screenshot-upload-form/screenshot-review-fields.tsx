@@ -149,6 +149,17 @@ export function ScreenshotReviewFields({
           {t("spoiler_hint")}
         </small>
       </div>
+
+      <div className="screenshot-review-item__checkbox">
+        <CheckboxField
+          label={t("allow_comments", { ns: "screenshots" })}
+          checked={draft.commentsEnabled}
+          disabled={isFormDisabled}
+          onChange={(event) =>
+            onDraftChange({ ...draft, commentsEnabled: event.target.checked })
+          }
+        />
+      </div>
     </>
   );
 }

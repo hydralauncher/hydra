@@ -105,6 +105,7 @@ export interface ScreenshotPresignRequest {
   capturedAt: number;
   isSpoiler?: boolean;
   visibility?: ProfileVisibility;
+  commentsEnabled?: boolean;
 }
 
 export type ScreenshotTextModerationVerdict =
@@ -250,6 +251,7 @@ export interface LocalScreenshot {
   state: LocalScreenshotState;
   isSpoiler: boolean;
   visibility: ProfileVisibility;
+  commentsEnabled?: boolean;
   screenshotId: string | null;
   moderationStatus: ScreenshotModerationStatus | null;
   moderationReason: string | null;
@@ -275,6 +277,7 @@ export interface LocalScreenshot {
 export interface LocalScreenshotUploadOptions {
   isSpoiler: boolean;
   visibility: ProfileVisibility;
+  commentsEnabled?: boolean;
   customGameTitle: string | null;
   description?: string | null;
 }

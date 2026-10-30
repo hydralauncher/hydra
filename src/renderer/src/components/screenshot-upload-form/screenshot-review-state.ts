@@ -10,6 +10,7 @@ import type {
 export interface ScreenshotReviewDraft {
   isSpoiler: boolean;
   visibility: ProfileVisibility;
+  commentsEnabled: boolean;
   customGameTitle: string;
   description: string;
 }
@@ -24,6 +25,7 @@ export const createReviewDraft = (
 ): ScreenshotReviewDraft => ({
   isSpoiler: screenshot.isSpoiler,
   visibility: screenshot.visibility,
+  commentsEnabled: screenshot.commentsEnabled ?? true,
   customGameTitle: screenshot.customGameTitle ?? "",
   description: screenshot.description ?? "",
 });
@@ -36,6 +38,7 @@ export const toUploadOptions = (
   return {
     isSpoiler: draft.isSpoiler,
     visibility: draft.visibility,
+    commentsEnabled: draft.commentsEnabled,
     customGameTitle: screenshot.shop === "custom" && title ? title : null,
     description: normalizeScreenshotDescription(draft.description),
   };

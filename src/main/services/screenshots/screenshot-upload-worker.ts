@@ -94,6 +94,7 @@ const buildPresignRequest = (
     capturedAt: screenshot.capturedAt,
     isSpoiler: screenshot.isSpoiler,
     visibility: screenshot.visibility,
+    commentsEnabled: screenshot.commentsEnabled ?? true,
   };
 };
 
@@ -221,6 +222,8 @@ class ScreenshotUploadWorker {
       state: "queued",
       isSpoiler: options.isSpoiler,
       visibility: options.visibility,
+      commentsEnabled:
+        options.commentsEnabled ?? screenshot.commentsEnabled ?? true,
       customGameTitle:
         screenshot.shop === "custom"
           ? options.customGameTitle?.trim() || null

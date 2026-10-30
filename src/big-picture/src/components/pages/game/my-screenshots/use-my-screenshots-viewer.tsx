@@ -173,6 +173,7 @@ export function useMyScreenshotsViewer({
       scheduleDraftSave(screenshot.clientId, {
         isSpoiler: nextDraft.isSpoiler,
         visibility: nextDraft.visibility,
+        commentsEnabled: nextDraft.commentsEnabled,
         customGameTitle: nextDraft.customGameTitle.trim() || null,
         description: normalizeScreenshotDescription(nextDraft.description),
       });

@@ -52,6 +52,7 @@ const QUALITY_OPTIONS: DropdownSelectOption<ScreenshotQuality>[] = [
 export interface ReviewDraft {
   isSpoiler: boolean;
   visibility: ProfileVisibility;
+  commentsEnabled: boolean;
   customGameTitle: string;
   description: string;
 }
@@ -60,6 +61,7 @@ export interface ReviewFieldFocusIds {
   title: string;
   description: string;
   spoiler: string;
+  comments: string;
   visibility: string;
   quality: string;
 }
@@ -70,6 +72,7 @@ export const createReviewDraft = (
 ): ReviewDraft => ({
   isSpoiler: record?.isSpoiler ?? false,
   visibility: record?.visibility ?? defaultVisibility,
+  commentsEnabled: record?.commentsEnabled ?? true,
   customGameTitle: record?.customGameTitle ?? "",
   description: record?.description ?? "",
 });
@@ -83,6 +86,7 @@ export const toUploadOptions = (
   return {
     isSpoiler: draft.isSpoiler,
     visibility: draft.visibility,
+    commentsEnabled: draft.commentsEnabled,
     customGameTitle: isCustomGame && customGameTitle ? customGameTitle : null,
     description: normalizeScreenshotDescription(draft.description),
   };
@@ -198,11 +202,26 @@ export function ReviewFields({
         focusId={focusIds.spoiler}
         navigationOverrides={{
           up: { type: "item", itemId: focusIds.description },
-          down: { type: "item", itemId: focusIds.visibility },
+          down: { type: "item", itemId: focusIds.comments },
           left: leftTarget,
           right: BLOCK_TARGET,
         }}
         onChange={(isSpoiler) => onChange({ isSpoiler })}
+      />
+
+      <Checkbox
+        block
+        label={t("screenshots_allow_comments")}
+        checked={draft.commentsEnabled}
+        disabled={disabled}
+        focusId={focusIds.comments}
+        navigationOverrides={{
+          up: { type: "item", itemId: focusIds.spoiler },
+          down: { type: "item", itemId: focusIds.visibility },
+          left: leftTarget,
+          right: BLOCK_TARGET,
+        }}
+        onChange={(commentsEnabled) => onChange({ commentsEnabled })}
       />
 
       <SegmentedControl
@@ -212,7 +231,7 @@ export function ReviewFields({
         disabled={disabled}
         focusId={focusIds.visibility}
         navigationOverrides={{
-          up: { type: "item", itemId: focusIds.spoiler },
+          up: { type: "item", itemId: focusIds.comments },
           down: hasActiveSubscription
             ? downTarget
             : { type: "item", itemId: focusIds.quality },
