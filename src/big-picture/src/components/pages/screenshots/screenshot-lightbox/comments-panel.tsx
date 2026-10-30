@@ -675,6 +675,11 @@ export function ScreenshotCommentsPanel({
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
   const [newCommentId, setNewCommentId] = useState<string | null>(null);
   const newCommentIdRef = useRef<string | null>(null);
+  const changeSort = useCallback((nextSort: ScreenshotCommentSort) => {
+    newCommentIdRef.current = null;
+    setNewCommentId(null);
+    setSort(nextSort);
+  }, []);
   const composerDraftRef = useRef("");
   const [menu, setMenu] = useState<CommentMenuState | null>(null);
   const [deletingComment, setDeletingComment] =
@@ -1225,7 +1230,7 @@ export function ScreenshotCommentsPanel({
                 focusId={focusIds.sort}
                 navigationOrder={COMMENTS_NAVIGATION_ORDER.sort}
                 navigationOverrides={{ left: leftTarget }}
-                onValueChange={setSort}
+                onValueChange={changeSort}
               />
             </div>
           ) : null}
