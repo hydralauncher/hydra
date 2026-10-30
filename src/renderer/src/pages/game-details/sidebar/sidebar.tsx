@@ -15,7 +15,6 @@ import {
   useAppSelector,
   useDate,
   useFormat,
-  useGlobalLeaderboardsFeature,
   useUserDetails,
 } from "@renderer/hooks";
 import {
@@ -115,7 +114,6 @@ const achievementsPlaceholder: UserAchievement[] = [
 
 export function Sidebar() {
   const shouldShowProtonFeatures = window.electron.platform === "linux";
-  const { isEnabled: isLeaderboardEnabled } = useGlobalLeaderboardsFeature();
   const [howLongToBeat, setHowLongToBeat] = useState<{
     isLoading: boolean;
     data: HowLongToBeatCategory[] | null;
@@ -334,7 +332,7 @@ export function Sidebar() {
         </SidebarSection>
       )}
 
-      {isLeaderboardEnabled && <LeaderboardSection />}
+      <LeaderboardSection />
 
       {stats && (
         <SidebarSection title={t("stats")}>
