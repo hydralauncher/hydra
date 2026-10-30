@@ -55,6 +55,7 @@ export function useScreenshotReviewDrafts(screenshots: LocalScreenshot[]) {
       .updateLocalScreenshotDraft(clientId, {
         isSpoiler: draft.isSpoiler,
         visibility: draft.visibility,
+        commentsEnabled: draft.commentsEnabled,
         customGameTitle: draft.customGameTitle,
         description: draft.description,
       })

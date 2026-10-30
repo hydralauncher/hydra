@@ -18,6 +18,7 @@ import {
 import { CornersIn, CornersOut, Play } from "@phosphor-icons/react";
 import { Tooltip } from "react-tooltip";
 import { moveFocusWithinContainer } from "@renderer/hooks/use-focus-trap";
+import { useFeedbackWidgetHidden } from "@renderer/hooks/use-feedback-widget-hidden";
 import {
   FULLSCREEN_IDLE_TIMEOUT_MS,
   GALLERY_VIEWER_TOOLTIP_ID,
@@ -300,6 +301,7 @@ function GalleryLightboxContent({
   onNavigate,
 }: Readonly<Omit<GalleryLightboxProps, "visible">>) {
   const { t } = useTranslation("game_details");
+  useFeedbackWidgetHidden();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -324,6 +326,7 @@ function GalleryLightboxContent({
   const [enteringFullscreen, setEnteringFullscreen] = useState(fullscreen);
   const [openFadeDone, setOpenFadeDone] = useState(!fullscreen);
   const isFullscreen = isFullscreenActive || enteringFullscreen;
+  const isLinux = window.electron?.platform === "linux";
   const startsChromeHidden =
     initialChromeHidden || (fullscreen && items[index]?.type === "image");
   const [idle, setIdle] = useState(startsChromeHidden);
@@ -347,8 +350,6 @@ function GalleryLightboxContent({
       rootRef.current?.focus({ preventScroll: true });
     }
   }, [isSidebarOpen]);
-
-  const platform = window.electron?.platform;
 
   isFullscreenRef.current = isFullscreen;
   indexRef.current = index;
@@ -919,8 +920,8 @@ function GalleryLightboxContent({
           "gallery-lightbox--chrome-hidden": chromeHidden,
           "gallery-lightbox--with-filmstrip": showFilmstrip,
           "gallery-lightbox--with-sidebar": isSidebarOpen,
-          "gallery-lightbox--titlebar-offset":
-            !isFullscreen && (platform === "win32" || platform === "darwin"),
+          "gallery-lightbox--titlebar-offset": !isFullscreen && !isLinux,
+          "gallery-lightbox--below-titlebar": !isFullscreen && isLinux,
         })}
         style={
           {

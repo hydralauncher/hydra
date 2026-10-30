@@ -1,7 +1,4 @@
-import {
-  normalizeScreenshotDescription,
-  resolveScreenshotUploadQuality,
-} from "@shared";
+import { normalizeScreenshotDescription } from "@shared";
 import type {
   LocalScreenshot,
   LocalScreenshotUploadOptions,
@@ -13,9 +10,9 @@ import type {
 export interface ScreenshotReviewDraft {
   isSpoiler: boolean;
   visibility: ProfileVisibility;
+  commentsEnabled: boolean;
   customGameTitle: string;
   description: string;
-  quality?: ScreenshotQuality;
 }
 
 export const SCREENSHOT_QUALITY_LABELS: Record<ScreenshotQuality, string> = {
@@ -28,25 +25,22 @@ export const createReviewDraft = (
 ): ScreenshotReviewDraft => ({
   isSpoiler: screenshot.isSpoiler,
   visibility: screenshot.visibility,
+  commentsEnabled: screenshot.commentsEnabled ?? true,
   customGameTitle: screenshot.customGameTitle ?? "",
   description: screenshot.description ?? "",
 });
 
 export const toUploadOptions = (
   screenshot: LocalScreenshot,
-  draft: ScreenshotReviewDraft,
-  hasCloudSubscription: boolean
+  draft: ScreenshotReviewDraft
 ): LocalScreenshotUploadOptions => {
   const title = draft.customGameTitle.trim();
   return {
     isSpoiler: draft.isSpoiler,
     visibility: draft.visibility,
+    commentsEnabled: draft.commentsEnabled,
     customGameTitle: screenshot.shop === "custom" && title ? title : null,
     description: normalizeScreenshotDescription(draft.description),
-    quality: resolveScreenshotUploadQuality(
-      draft.quality,
-      hasCloudSubscription
-    ),
   };
 };
 

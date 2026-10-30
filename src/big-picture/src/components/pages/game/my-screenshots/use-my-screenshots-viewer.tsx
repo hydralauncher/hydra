@@ -70,13 +70,10 @@ export function useMyScreenshotsViewer({
         }));
       }
       setDraftEdits((existing) => {
-        const edits = existing[clientId];
-        if (!edits) return existing;
+        if (!existing[clientId]) return existing;
 
         const { [clientId]: _saved, ...rest } = existing;
-        return edits.quality
-          ? { ...rest, [clientId]: { quality: edits.quality } }
-          : rest;
+        return rest;
       });
     },
     []
@@ -176,6 +173,7 @@ export function useMyScreenshotsViewer({
       scheduleDraftSave(screenshot.clientId, {
         isSpoiler: nextDraft.isSpoiler,
         visibility: nextDraft.visibility,
+        commentsEnabled: nextDraft.commentsEnabled,
         customGameTitle: nextDraft.customGameTitle.trim() || null,
         description: normalizeScreenshotDescription(nextDraft.description),
       });

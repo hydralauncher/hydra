@@ -9,7 +9,7 @@ import {
 import cn from "classnames";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ProfileScreenshot } from "@types";
+import type { ProfileScreenshot, ProfileVisibility } from "@types";
 import {
   SCREENSHOT_DESCRIPTION_MAX_LENGTH,
   buildScreenshotSettingsUpdate,
@@ -85,6 +85,12 @@ function LightboxGameIcon({
   );
 }
 
+const VISIBILITY_LABEL_KEYS: Record<ProfileVisibility, string> = {
+  PUBLIC: "screenshots_visibility_public",
+  FRIENDS: "screenshots_visibility_friends",
+  PRIVATE: "screenshots_visibility_private",
+};
+
 function LightboxSummary({
   screenshot,
   focusIds,
@@ -125,11 +131,6 @@ function LightboxSummary({
             sanitize={sanitizeScreenshotDescriptionInput}
             onSave={onSaveDescription}
           />
-        ) : null}
-        {isOwner && screenshot.descriptionModerationStatus === "BLOCKED" ? (
-          <p className="screenshot-lightbox__description-note">
-            {t("description_only_visible_to_you", { ns: "screenshots" })}
-          </p>
         ) : null}
         {!isOwner && screenshot.description ? (
           <Typography variant="h4" className="screenshot-lightbox__description">
@@ -191,9 +192,16 @@ function LightboxSummary({
             )}
           </div>
         </HorizontalFocusGroup>
-        <span className="screenshot-lightbox__date">
-          {formatScreenshotDate(screenshot.capturedAt, language)}
-        </span>
+        <div className="screenshot-lightbox__date-row">
+          <span className="screenshot-lightbox__date">
+            {formatScreenshotDate(screenshot.capturedAt, language)}
+          </span>
+          {isOwner && screenshot.visibility ? (
+            <span className="screenshot-lightbox__tag">
+              {t(VISIBILITY_LABEL_KEYS[screenshot.visibility])}
+            </span>
+          ) : null}
+        </div>
       </div>
     </VerticalFocusGroup>
   );

@@ -1,50 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { FlameIcon, HistoryIcon } from "@primer/octicons-react";
-import cn from "classnames";
 
+import { ScreenshotSegmentedToggle } from "@renderer/components/screenshots/screenshot-segmented-toggle";
 import type { ScreenshotSort } from "@types";
-
-interface SegmentedOption<Value extends string> {
-  value: Value;
-  label: string;
-  icon?: typeof HistoryIcon;
-}
-
-interface SegmentedToggleProps<Value extends string> {
-  label: string;
-  value: Value;
-  options: SegmentedOption<Value>[];
-  onChange: (value: Value) => void;
-}
-
-function SegmentedToggle<Value extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: Readonly<SegmentedToggleProps<Value>>) {
-  return (
-    <fieldset className="game-screenshots-modal__sort" aria-label={label}>
-      {options.map(({ value: optionValue, label: optionLabel, icon: Icon }) => (
-        <button
-          key={optionValue}
-          type="button"
-          className={cn("game-screenshots-modal__sort-option", {
-            "game-screenshots-modal__sort-option--active":
-              value === optionValue,
-          })}
-          aria-pressed={value === optionValue}
-          onClick={() => {
-            if (optionValue !== value) onChange(optionValue);
-          }}
-        >
-          {Icon ? <Icon size={14} /> : null}
-          {optionLabel}
-        </button>
-      ))}
-    </fieldset>
-  );
-}
 
 interface ScreenshotSortToggleProps {
   sort: ScreenshotSort;
@@ -58,7 +16,7 @@ export function ScreenshotSortToggle({
   const { t } = useTranslation("screenshots");
 
   return (
-    <SegmentedToggle
+    <ScreenshotSegmentedToggle
       label={t("sort_by")}
       value={sort}
       options={[

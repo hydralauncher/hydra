@@ -16,10 +16,12 @@ export interface SegmentedControlOption<TValue extends string = string> {
 
 export interface SegmentedControlProps<TValue extends string = string> {
   label?: string;
+  ariaLabel?: string;
   value: TValue;
   options: SegmentedControlOption<TValue>[];
   disabled?: boolean;
   focusId: string;
+  navigationOrder?: number;
   navigationOverrides?: FocusOverrides;
   onValueChange: (value: TValue) => void;
 }
@@ -28,10 +30,12 @@ const NO_SCREEN_ACTIONS: ScreenActions = {};
 
 export function SegmentedControl<TValue extends string = string>({
   label,
+  ariaLabel,
   value,
   options,
   disabled = false,
   focusId,
+  navigationOrder,
   navigationOverrides,
   onValueChange,
 }: Readonly<SegmentedControlProps<TValue>>) {
@@ -95,6 +99,7 @@ export function SegmentedControl<TValue extends string = string>({
       <FocusItem
         id={focusId}
         navigationState={disabled ? "disabled" : "active"}
+        navigationOrder={navigationOrder}
         navigationOverrides={navigationOverrides}
         actions={{ primary: selectNextWrapping }}
         asChild
@@ -104,6 +109,7 @@ export function SegmentedControl<TValue extends string = string>({
           role="radiogroup"
           tabIndex={-1}
           aria-labelledby={label ? labelId : undefined}
+          aria-label={label ? undefined : ariaLabel}
           aria-disabled={disabled}
         >
           {options.map((option, index) => {

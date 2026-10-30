@@ -15,6 +15,9 @@ export const buildLocalScreenshotDraftPatch = (
   const patch: Partial<LocalScreenshot> = {};
   if (draft.isSpoiler !== undefined) patch.isSpoiler = draft.isSpoiler;
   if (draft.visibility !== undefined) patch.visibility = draft.visibility;
+  if (draft.commentsEnabled !== undefined) {
+    patch.commentsEnabled = draft.commentsEnabled;
+  }
   if (draft.customGameTitle !== undefined && current.shop === "custom") {
     patch.customGameTitle = draft.customGameTitle?.trim() || null;
   }

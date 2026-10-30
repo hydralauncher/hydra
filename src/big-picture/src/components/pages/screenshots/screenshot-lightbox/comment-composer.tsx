@@ -192,7 +192,12 @@ function CommentEditorForm({
   };
 
   return (
-    <form className="screenshot-comments__composer" onSubmit={handleSubmit}>
+    <form
+      className="screenshot-comments__composer"
+      data-virtual-keyboard-side="left"
+      data-virtual-keyboard-enter="submit"
+      onSubmit={handleSubmit}
+    >
       {isEditing ? (
         <>
           <EditingBackAction onBack={onCancelEdit} />
@@ -301,6 +306,7 @@ export interface CommentComposerProps {
   editingComment: ScreenshotComment | null;
   restoredDraft: string | null;
   onRestoredDraftApplied: () => void;
+  onNewDraftChange: (html: string) => void;
   onSubmit: (bodyHtml: string) => Promise<boolean>;
   onCancelEdit: () => void;
 }
@@ -314,6 +320,7 @@ export function CommentComposer({
   editingComment,
   restoredDraft,
   onRestoredDraftApplied,
+  onNewDraftChange,
   onSubmit,
   onCancelEdit,
 }: Readonly<CommentComposerProps>) {
@@ -376,6 +383,7 @@ export function CommentComposer({
       onPendingDraftApplied={onRestoredDraftApplied}
       onDraftChange={(html) => {
         newDraftRef.current = html;
+        onNewDraftChange(html);
       }}
       onSubmit={onSubmit}
       onCancelEdit={onCancelEdit}
