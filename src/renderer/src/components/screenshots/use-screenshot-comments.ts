@@ -32,7 +32,7 @@ import {
   queueRestoredCommentDraft,
   useRestoredCommentDraft,
 } from "./restored-comment-drafts";
-import type { ScreenshotPatch } from "@shared";
+import type { ScreenshotCommentSort, ScreenshotPatch } from "@shared";
 
 type CommentWrite =
   | { kind: "create"; comment: ScreenshotComment }
@@ -134,6 +134,7 @@ interface UseScreenshotCommentsOptions {
   author: ScreenshotAuthor | null;
   isEnabled: boolean;
   isSignedIn: boolean;
+  sort: ScreenshotCommentSort;
   onPatch: (screenshotId: string, patch: ScreenshotPatch) => void;
   onFailure: (screenshotId: string, failure: ScreenshotFailure) => void;
 }
@@ -143,6 +144,7 @@ export function useScreenshotComments({
   author,
   isEnabled,
   isSignedIn,
+  sort,
   onPatch,
   onFailure,
 }: UseScreenshotCommentsOptions) {
@@ -191,10 +193,11 @@ export function useScreenshotComments({
         buildUserScreenshotCommentsPath(ownerId, screenshotId, {
           cursor,
           take: SCREENSHOT_COMMENTS_PAGE_SIZE,
+          sort,
         }),
         { needsAuth: isSignedIn }
       ),
-    [isSignedIn, ownerId, screenshotId]
+    [isSignedIn, ownerId, screenshotId, sort]
   );
 
   const handleAccessError = useCallback(

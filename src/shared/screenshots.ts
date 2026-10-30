@@ -121,19 +121,23 @@ export const buildUserScreenshotReportPath = (
   screenshotId: string
 ) => `${buildUserScreenshotPath(userId, screenshotId)}/report`;
 
+export type ScreenshotCommentSort = "newest" | "top";
+
 export interface ScreenshotCommentsPathOptions {
   cursor?: string | null;
   take?: number;
+  sort?: ScreenshotCommentSort;
 }
 
 export const buildUserScreenshotCommentsPath = (
   userId: string,
   screenshotId: string,
-  { cursor, take }: ScreenshotCommentsPathOptions = {}
+  { cursor, take, sort }: ScreenshotCommentsPathOptions = {}
 ) =>
   withQuery(`${buildUserScreenshotPath(userId, screenshotId)}/comments`, {
     take,
     cursor,
+    sort: sort === "top" ? sort : undefined,
   });
 
 export const buildUserScreenshotCommentPath = (

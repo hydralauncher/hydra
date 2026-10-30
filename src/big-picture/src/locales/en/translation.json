@@ -858,6 +858,8 @@
     "screenshots_comments_loading": "Loading comments...",
     "screenshots_comments_not_allowed": "The owner of this screenshot doesn't accept comments from you.",
     "screenshots_comments_sign_in": "Sign in to comment and vote.",
+    "screenshots_comments_sort_newest": "Newest",
+    "screenshots_comments_sort_top": "Top",
     "screenshots_comments_title": "Comments",
     "screenshots_custom_game": "Custom Game",
     "screenshots_custom_game_tag": "Custom",

@@ -31,7 +31,7 @@ import { ScreenshotCommentInput } from "./screenshot-comment-input";
 import { isScreenshotApproved } from "./screenshot-labels";
 import { ScreenshotCommentReportModal } from "./screenshot-report-modal";
 import type { ScreenshotFailure } from "./use-screenshot-actions";
-import type { ScreenshotPatch } from "@shared";
+import type { ScreenshotCommentSort, ScreenshotPatch } from "@shared";
 import { useScreenshotComments } from "./use-screenshot-comments";
 
 type ComposerState =
@@ -497,6 +497,7 @@ export function ScreenshotComments({
   const [reportTarget, setReportTarget] = useState<ScreenshotComment | null>(
     null
   );
+  const [sort, setSort] = useState<ScreenshotCommentSort>("newest");
   const {
     comments,
     total,
@@ -527,6 +528,7 @@ export function ScreenshotComments({
       : null,
     isEnabled: true,
     isSignedIn,
+    sort,
     onPatch,
     onFailure,
   });
@@ -613,6 +615,20 @@ export function ScreenshotComments({
             ? t("comments_title", { count: commentCount })
             : t("comments")}
         </h3>
+        {commentCount > 1 ? (
+          <label className="screenshot-comments__sort">
+            {t("comments_sort")}
+            <select
+              value={sort}
+              onChange={(event) =>
+                setSort(event.target.value === "top" ? "top" : "newest")
+              }
+            >
+              <option value="newest">{t("comments_sort_newest")}</option>
+              <option value="top">{t("comments_sort_top")}</option>
+            </select>
+          </label>
+        ) : null}
       </div>
 
       <div className="screenshot-comments__feed">{renderList()}</div>

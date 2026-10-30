@@ -20,6 +20,7 @@ export interface SegmentedControlProps<TValue extends string = string> {
   options: SegmentedControlOption<TValue>[];
   disabled?: boolean;
   focusId: string;
+  navigationOrder?: number;
   navigationOverrides?: FocusOverrides;
   onValueChange: (value: TValue) => void;
 }
@@ -32,6 +33,7 @@ export function SegmentedControl<TValue extends string = string>({
   options,
   disabled = false,
   focusId,
+  navigationOrder,
   navigationOverrides,
   onValueChange,
 }: Readonly<SegmentedControlProps<TValue>>) {
@@ -95,6 +97,7 @@ export function SegmentedControl<TValue extends string = string>({
       <FocusItem
         id={focusId}
         navigationState={disabled ? "disabled" : "active"}
+        navigationOrder={navigationOrder}
         navigationOverrides={navigationOverrides}
         actions={{ primary: selectNextWrapping }}
         asChild

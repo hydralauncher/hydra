@@ -359,6 +359,10 @@ $screenshot-comment-highlight-duration: 1.6s;
     }
   }
 
+  &__sort {
+    margin-left: auto;
+  }
+
   &__count {
     display: inline-flex;
     align-items: center;

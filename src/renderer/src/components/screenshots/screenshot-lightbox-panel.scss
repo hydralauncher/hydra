@@ -266,9 +266,46 @@ $description-outline-fade-duration: 0.15s;
   border-top: 1px solid globals.$border-color;
 
   &__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
     flex-shrink: 0;
     padding: calc(globals.$spacing-unit * 1.25) calc(globals.$spacing-unit * 2);
     border-bottom: 1px solid globals.$border-color;
+  }
+
+  &__sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    user-select: none;
+
+    select {
+      padding: 2px 4px;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: globals.$muted-color;
+      font: inherit;
+      cursor: pointer;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      &:focus-visible {
+        outline: 2px solid globals.$muted-color;
+        outline-offset: 1px;
+      }
+    }
+
+    option {
+      background: globals.$dark-background-color;
+      color: globals.$muted-color;
+    }
   }
 
   &__feed {
