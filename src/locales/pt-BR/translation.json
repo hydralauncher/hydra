@@ -3022,6 +3022,7 @@
     "comment_rate_limited": "Você está comentando rápido demais. Aguarde um momento.",
     "comment_reported": "Comentário denunciado",
     "comment_unavailable": "Este comentário não está mais disponível",
+    "comment_updated": "Comentário atualizado",
     "comment_vote_failed": "Não foi possível registrar seu voto",
     "comments": "Comentários",
     "comments_load_failed": "Não foi possível carregar os comentários",

@@ -895,6 +895,9 @@ export function ScreenshotCommentsPanel({
           confirmed.version = editVersion;
         }
         if (!isLatestEdit()) return;
+        showSuccessToast(t("screenshots_comment_updated"), {
+          fallbackVisual: "settings",
+        });
         if (updated) replaceComment(comment.id, pickCommentEditPatch(updated));
         if (updated && updated.isHidden !== comment.isHidden) {
           const delta = updated.isHidden ? -1 : 1;
@@ -937,6 +940,8 @@ export function ScreenshotCommentsPanel({
       screenshot.id,
       setTotal,
       showError,
+      showSuccessToast,
+      t,
     ]
   );
 

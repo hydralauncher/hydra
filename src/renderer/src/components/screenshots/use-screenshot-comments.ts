@@ -492,6 +492,10 @@ export function useScreenshotComments({
             : { bodyHtml, editedAt: Date.now() };
           confirmed.version = editVersion;
         }
+        const hasNewerEdit = [...confirmed.pendingVersions].some(
+          (version) => version > editVersion
+        );
+        if (!hasNewerEdit) showSuccessToast(t("comment_updated"));
       } catch (error) {
         logger.error("Failed to edit screenshot comment", error);
         handleWriteError(error, "comment_edit_failed", comment.id);
@@ -506,7 +510,14 @@ export function useScreenshotComments({
         }
       }
     },
-    [handleWriteError, ownerId, screenshotId, showConfirmedEdit]
+    [
+      handleWriteError,
+      ownerId,
+      screenshotId,
+      showConfirmedEdit,
+      showSuccessToast,
+      t,
+    ]
   );
 
   const editComment = useCallback(

@@ -3013,6 +3013,7 @@
     "comment_rate_limited": "You're commenting too fast. Please wait a moment.",
     "comment_reported": "Comment reported",
     "comment_unavailable": "This comment is no longer available",
+    "comment_updated": "Comment updated",
     "comment_vote_failed": "Could not register your vote",
     "comments": "Comments",
     "comments_load_failed": "Could not load comments",
