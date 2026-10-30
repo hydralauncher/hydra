@@ -1183,8 +1183,6 @@ export class JsHttpDownloader {
       }
       this.folderName = output.filename;
       this.resolvedFilename = output.filename;
-      // The output dir may be a drive root (e.g. "D:\"), where a plain
-      // mkdirSync throws EPERM on Windows.
       ensureDirectorySync(path.dirname(output.filePath));
       logger.log(
         `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`

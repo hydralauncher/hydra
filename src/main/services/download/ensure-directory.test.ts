@@ -19,7 +19,6 @@ describe("ensureDirectorySync", () => {
   });
 
   it("does not throw for an existing filesystem root", () => {
-    // mkdirSync on a Windows drive root throws EPERM; this must not.
     const root = path.parse(process.cwd()).root;
     assert.doesNotThrow(() => ensureDirectorySync(root));
   });
