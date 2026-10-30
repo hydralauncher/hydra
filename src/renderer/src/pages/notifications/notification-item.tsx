@@ -24,7 +24,7 @@ import {
   parseLeaderboardNotification,
 } from "@shared";
 import {
-  LeaderboardNotificationIcon,
+  LeaderboardNotificationPicture,
   LeaderboardRankChip,
 } from "@renderer/components/leaderboard-notification/leaderboard-notification-icon";
 
@@ -401,22 +401,25 @@ export function NotificationItem({
       })}
       onClick={handleClick}
     >
-      {leaderboardInfo ? (
-        <LeaderboardNotificationIcon info={leaderboardInfo} />
-      ) : (
-        <div
-          className={cn("notification-item__picture", {
-            "notification-item__badge-picture": isBadge,
-            "notification-item__review-picture": isReview,
-            "notification-item__ra-picture": isRetroAchievements,
-          })}
-        >
-          {getIcon()}
-        </div>
-      )}
+      <div
+        className={cn("notification-item__picture", {
+          "notification-item__badge-picture": isBadge,
+          "notification-item__review-picture": isReview,
+          "notification-item__ra-picture": isRetroAchievements,
+        })}
+      >
+        {leaderboardInfo ? (
+          <LeaderboardNotificationPicture info={leaderboardInfo} />
+        ) : (
+          getIcon()
+        )}
+      </div>
 
       <div className="notification-item__content">
-        <span className="notification-item__title">{content.title}</span>
+        <span className="notification-item__title-row">
+          <span className="notification-item__title">{content.title}</span>
+          {leaderboardInfo && <LeaderboardRankChip info={leaderboardInfo} />}
+        </span>
         <span className="notification-item__description">
           {content.description}
         </span>
@@ -425,8 +428,6 @@ export function NotificationItem({
           {formatDistance(new Date(notification.createdAt), new Date())}
         </span>
       </div>
-
-      {leaderboardInfo && <LeaderboardRankChip info={leaderboardInfo} />}
 
       {content.showActions &&
         notification.type === "FRIEND_REQUEST_RECEIVED" && (
