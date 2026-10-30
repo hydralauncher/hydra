@@ -196,34 +196,12 @@ describe("buildLeaderboardRows", () => {
     assert.equal(rows[1].progress, 30);
   });
 
-  it("pins the viewer below the top even when listed", () => {
-    const rows = buildLeaderboardRows(top, user("b"), 5, { pinViewer: true });
-    const last = rows.at(-1);
-
-    assert.equal(rows.length, 6);
-    assert.equal(rows[1].isViewer, true);
-    assert.equal(rows[1].isPinned, false);
-    assert.equal(last?.entry.user.id, "b");
-    assert.equal(last?.isPinned, true);
-    assert.equal(last?.gapBefore, true);
-  });
-
-  it("pins the viewer outside the top once", () => {
-    const rows = buildLeaderboardRows(top, user("me"), 5, { pinViewer: true });
-
-    assert.equal(rows.length, 6);
-    assert.equal(rows.filter((row) => row.isViewer).length, 1);
-    assert.equal(rows.at(-1)?.isPinned, true);
-  });
-
-  it("pins nothing without a viewer rank", () => {
-    const rows = buildLeaderboardRows(top, user("ghost"), 5, {
-      pinViewer: true,
-    });
+  it("adds no row for a viewer without a rank", () => {
+    const rows = buildLeaderboardRows(top, user("ghost"), 5);
 
     assert.equal(rows.length, 5);
     assert.equal(
-      rows.some((row) => row.isPinned),
+      rows.some((row) => row.isViewer),
       false
     );
   });

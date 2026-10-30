@@ -111,11 +111,8 @@ export function LeaderboardSection() {
 
   const board = leaderboard ?? EMPTY_BOARD;
   const rows = useMemo(
-    () =>
-      buildLeaderboardRows(board, viewerUser, LEADERBOARD_CARD_SIZE, {
-        pinViewer: state !== "empty_friends" && state !== "solo",
-      }),
-    [board, state, viewerUser]
+    () => buildLeaderboardRows(board, viewerUser, LEADERBOARD_CARD_SIZE),
+    [board, viewerUser]
   );
   const nudge = useMemo(
     () => getLeaderboardNudge(board, viewerUser),
@@ -218,7 +215,7 @@ export function LeaderboardSection() {
           <ol className="leaderboard-section__list">
             {rows.map((row) => (
               <LeaderboardRow
-                key={`${row.entry.user.id}${row.isPinned ? "-pinned" : ""}`}
+                key={row.entry.user.id}
                 row={row}
                 value={formatValue(dataMetric, row.entry.value)}
                 showProgress={false}
@@ -272,7 +269,7 @@ export function LeaderboardSection() {
         <ol className="leaderboard-section__list" aria-busy={isLoading}>
           {rows.map((row) => (
             <LeaderboardRow
-              key={`${row.entry.user.id}${row.isPinned ? "-pinned" : ""}`}
+              key={row.entry.user.id}
               row={row}
               value={formatValue(dataMetric, row.entry.value)}
             />
