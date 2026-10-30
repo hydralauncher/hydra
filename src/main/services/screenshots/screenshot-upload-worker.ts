@@ -94,7 +94,7 @@ const buildPresignRequest = (
     capturedAt: screenshot.capturedAt,
     isSpoiler: screenshot.isSpoiler,
     visibility: screenshot.visibility,
-    commentsEnabled: screenshot.commentsEnabled ?? true,
+    ...(screenshot.commentsEnabled === false ? { commentsEnabled: false } : {}),
   };
 };
 
