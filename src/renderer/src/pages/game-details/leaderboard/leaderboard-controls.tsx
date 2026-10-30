@@ -14,64 +14,6 @@ import {
   type LeaderboardScope,
 } from "./game-leaderboard";
 
-interface SegmentedOption<T extends string> {
-  id: T;
-  label: string;
-  icon?: React.ReactNode;
-}
-
-interface SegmentedControlProps<T extends string> {
-  label: string;
-  options: SegmentedOption<T>[];
-  value: T;
-  onChange: (value: T) => void;
-}
-
-export function SegmentedControl<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: Readonly<SegmentedControlProps<T>>) {
-  const selectedIndex = Math.max(
-    0,
-    options.findIndex((option) => option.id === value)
-  );
-
-  return (
-    <div
-      role="tablist"
-      aria-label={label}
-      className="leaderboard-controls__segmented"
-      style={
-        {
-          "--segment-count": options.length,
-          "--segment-index": selectedIndex,
-        } as React.CSSProperties
-      }
-    >
-      <span className="leaderboard-controls__indicator" aria-hidden="true" />
-      {options.map((option) => (
-        <button
-          key={option.id}
-          type="button"
-          role="tab"
-          aria-selected={option.id === value}
-          className={cn("leaderboard-controls__segment", {
-            "leaderboard-controls__segment--selected": option.id === value,
-          })}
-          onClick={() => onChange(option.id)}
-        >
-          {option.icon}
-          <span className="leaderboard-controls__segment-label">
-            {option.label}
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
 interface CardSelectorOption<T extends string> {
   id: T;
   label: string;

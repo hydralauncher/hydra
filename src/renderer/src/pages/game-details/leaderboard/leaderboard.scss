@@ -208,69 +208,6 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
       transform: translate(-100%, -100%);
     }
   }
-
-  &__segmented {
-    --segment-gap: 2px;
-
-    position: relative;
-    display: grid;
-    grid-auto-flow: column;
-    // The indicator assumes equal-width segments.
-    grid-auto-columns: minmax(0, 1fr);
-    gap: var(--segment-gap);
-    padding: 2px;
-    border: solid 1px globals.$border-color;
-    border-radius: 8px;
-    background-color: globals.$dark-background-color;
-  }
-
-  &__indicator {
-    position: absolute;
-    top: 2px;
-    bottom: 2px;
-    left: 2px;
-    width: calc(
-      (100% - 4px - (var(--segment-count) - 1) * var(--segment-gap)) /
-        var(--segment-count)
-    );
-    border-radius: 6px;
-    background-color: #262626;
-    transform: translateX(
-      calc(var(--segment-index) * (100% + var(--segment-gap)))
-    );
-    transition: transform 0.46s $leaderboard-ease;
-  }
-
-  &__segment {
-    position: relative;
-    z-index: 1;
-    flex: 1;
-    min-width: 0;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: calc(globals.$spacing-unit / 2);
-    padding: 0 calc(globals.$spacing-unit * 0.75);
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: globals.$body-color;
-    font-size: globals.$small-font-size;
-    font-weight: 500;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: color 0.2s ease 0.15s;
-
-    &--selected {
-      color: globals.$muted-color;
-    }
-  }
-
-  &__segment-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
 }
 
 // Registered so the row's banner shade can animate: a gradient itself cannot.
@@ -798,10 +735,8 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     opacity: calc(var(--strip-shine) * 0.35);
   }
 
-  .leaderboard-controls__indicator,
   .leaderboard-controls__selector-indicator,
   .leaderboard-controls__selector-option,
-  .leaderboard-controls__segment,
   .leaderboard-row__progress-fill,
   .leaderboard-row--strip.leaderboard-row--banner {
     transition: none;

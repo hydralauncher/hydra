@@ -72,97 +72,103 @@ export function LeaderboardPodium({
   );
 
   return (
-    <div
-      className={cn("leaderboard-podium", {
-        "leaderboard-podium--sparse": ordered.length < PODIUM_ORDER.length,
-      })}
-      style={{ "--podium-count": ordered.length } as React.CSSProperties}
-    >
-      {ordered.map((entry) => {
-        const tier = getRankTier(entry.rank);
-        const isViewer = entry.user.id === viewerId;
-        const streak = getStreak?.(entry) ?? null;
-        const action = renderAction?.(entry);
+    <div className="leaderboard-podium-wrapper">
+      <div
+        className={cn("leaderboard-podium", {
+          "leaderboard-podium--sparse": ordered.length < PODIUM_ORDER.length,
+        })}
+        style={{ "--podium-count": ordered.length } as React.CSSProperties}
+      >
+        {ordered.map((entry) => {
+          const tier = getRankTier(entry.rank);
+          const isViewer = entry.user.id === viewerId;
+          const streak = getStreak?.(entry) ?? null;
+          const action = renderAction?.(entry);
 
-        return (
-          <div key={entry.user.id} className="leaderboard-podium__slot">
-            <button
-              type="button"
-              className={cn(
-                "leaderboard-podium__card",
-                `leaderboard-podium__card--${tier}`,
-                {
-                  "leaderboard-podium__card--selected":
-                    onSelect && selectedId === entry.user.id,
+          return (
+            <div key={entry.user.id} className="leaderboard-podium__slot">
+              <button
+                type="button"
+                className={cn(
+                  "leaderboard-podium__card",
+                  `leaderboard-podium__card--${tier}`,
+                  {
+                    "leaderboard-podium__card--selected":
+                      onSelect && selectedId === entry.user.id,
+                  }
+                )}
+                onClick={() =>
+                  onSelect
+                    ? onSelect(entry)
+                    : navigate(`/profile/${entry.user.id}`)
                 }
-              )}
-              onClick={() =>
-                onSelect
-                  ? onSelect(entry)
-                  : navigate(`/profile/${entry.user.id}`)
-              }
-              aria-pressed={onSelect ? selectedId === entry.user.id : undefined}
-              aria-current={isViewer ? "true" : undefined}
-            >
-              <span
-                className="leaderboard-podium__band"
-                role="img"
-                aria-label={tLeaderboard(`medal_${tier}`, { rank: entry.rank })}
+                aria-pressed={
+                  onSelect ? selectedId === entry.user.id : undefined
+                }
+                aria-current={isViewer ? "true" : undefined}
               >
-                <span className="leaderboard-podium__rank">{entry.rank}</span>
-                <span className="leaderboard-podium__metal">
-                  {t(`metal_${tier}`)}
-                </span>
-              </span>
-
-              <PodiumBody bannerUrl={entry.user.backgroundImageUrl}>
-                <Avatar
-                  size={entry.rank === 1 ? 64 : 52}
-                  src={entry.user.profileImageUrl}
-                  alt={entry.user.displayName}
-                  className="leaderboard-podium__avatar"
-                />
-
-                <span className="leaderboard-podium__name-line">
-                  <span className="leaderboard-podium__name">
-                    {entry.user.displayName}
-                  </span>
-                  {isViewer && (
-                    <span className="leaderboard-podium__you">
-                      {tLeaderboard("you")}
-                    </span>
-                  )}
-                </span>
-
                 <span
-                  className={cn("leaderboard-podium__value", {
-                    "leaderboard-podium__value--muted": streak === "ended",
+                  className="leaderboard-podium__band"
+                  role="img"
+                  aria-label={tLeaderboard(`medal_${tier}`, {
+                    rank: entry.rank,
                   })}
                 >
-                  {streak === "active" && (
-                    <StreakFlame label={t("streak_active")} />
-                  )}
-                  {formatValue(entry.value)}
+                  <span className="leaderboard-podium__rank">{entry.rank}</span>
+                  <span className="leaderboard-podium__metal">
+                    {t(`metal_${tier}`)}
+                  </span>
                 </span>
 
-                {entry.rank === 1 ? (
-                  <span className="leaderboard-podium__leader">
-                    <TrophyIcon size={14} />
-                    {leaderLabel}
+                <PodiumBody bannerUrl={entry.user.backgroundImageUrl}>
+                  <Avatar
+                    size={entry.rank === 1 ? 64 : 52}
+                    src={entry.user.profileImageUrl}
+                    alt={entry.user.displayName}
+                    className="leaderboard-podium__avatar"
+                  />
+
+                  <span className="leaderboard-podium__name-line">
+                    <span className="leaderboard-podium__name">
+                      {entry.user.displayName}
+                    </span>
+                    {isViewer && (
+                      <span className="leaderboard-podium__you">
+                        {tLeaderboard("you")}
+                      </span>
+                    )}
                   </span>
-                ) : (
-                  <span className="leaderboard-podium__foot">
-                    <RankDelta delta={getDelta?.(entry) ?? null} />
+
+                  <span
+                    className={cn("leaderboard-podium__value", {
+                      "leaderboard-podium__value--muted": streak === "ended",
+                    })}
+                  >
+                    {streak === "active" && (
+                      <StreakFlame label={t("streak_active")} />
+                    )}
+                    {formatValue(entry.value)}
                   </span>
-                )}
-              </PodiumBody>
-            </button>
-            {action && (
-              <span className="leaderboard-podium__action">{action}</span>
-            )}
-          </div>
-        );
-      })}
+
+                  {entry.rank === 1 ? (
+                    <span className="leaderboard-podium__leader">
+                      <TrophyIcon size={14} />
+                      {leaderLabel}
+                    </span>
+                  ) : (
+                    <span className="leaderboard-podium__foot">
+                      <RankDelta delta={getDelta?.(entry) ?? null} />
+                    </span>
+                  )}
+                </PodiumBody>
+              </button>
+              {action && (
+                <span className="leaderboard-podium__action">{action}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

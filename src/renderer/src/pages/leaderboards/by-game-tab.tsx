@@ -1,17 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import cn from "classnames";
 import {
   LinkExternalIcon,
   PeopleIcon,
-  SearchIcon,
   TrophyIcon,
-  XIcon,
 } from "@primer/octicons-react";
-import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import { Avatar, Button } from "@renderer/components";
+import { Button } from "@renderer/components";
 import { useFormat } from "@renderer/hooks";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
@@ -21,12 +18,10 @@ import {
   buildMetricsRequest,
   formatBoardTotal,
   getBoardState,
-  getRankDelta,
   getViewerRanking,
   GLOBAL_LEADERBOARD_TAKE,
   normalizeGlobalLeaderboardResponse,
   normalizeMetricDefinitions,
-  normalizeMyGames,
   type GlobalLeaderboardPeriod,
   type GlobalLeaderboardScope,
   type MyGameRanking,
@@ -34,18 +29,7 @@ import {
 import { useApiResource } from "./leaderboards-api";
 import { BoardView } from "./board-view";
 import { useMetricText } from "./use-global-leaderboard-value";
-import {
-  BlockError,
-  BlockMessage,
-  BoardSkeleton,
-  RankDelta,
-} from "./leaderboard-bits";
-
-const GAME_SKELETON_ROWS = 4;
-const GAME_SKELETON_KEYS = Array.from(
-  { length: GAME_SKELETON_ROWS },
-  (_, index) => `game-skeleton-${index}`
-);
+import { BlockError, BlockMessage, BoardSkeleton } from "./leaderboard-bits";
 
 export interface LinkedGame {
   shop: string;
@@ -58,9 +42,8 @@ export interface ByGameTabProps {
   viewerUser: LeaderboardUser | null;
   initialGame?: LinkedGame | null;
   initialMetric?: string | null;
-  // The game picked earlier, kept by the page while the viewer changes tabs.
-  savedGameKey: string | null;
-  onGameSelect: (key: string) => void;
+  games: MyGameRanking[];
+  selectedKey: string | null;
   onScopeChange: (scope: GlobalLeaderboardScope) => void;
   onPeriodChange: (period: GlobalLeaderboardPeriod) => void;
 }
@@ -80,7 +63,7 @@ const backgroundStyle = (url: string | null, variable: string) =>
     ? ({ [variable]: `url(${JSON.stringify(url)})` } as React.CSSProperties)
     : undefined;
 
-const gameKey = (game: LinkedGame) => `${game.shop}:${game.objectId}`;
+export const gameKey = (game: LinkedGame) => `${game.shop}:${game.objectId}`;
 
 function useLinkedGameAssets(game: LinkedGame | null) {
   const [assets, setAssets] = useState<SelectedGame | null>(null);
@@ -126,8 +109,8 @@ export function ByGameTab({
   viewerUser,
   initialGame = null,
   initialMetric = null,
-  savedGameKey,
-  onGameSelect,
+  games,
+  selectedKey,
   onScopeChange,
   onPeriodChange,
 }: Readonly<ByGameTabProps>) {
@@ -135,10 +118,6 @@ export function ByGameTab({
   const navigate = useNavigate();
   const metricText = useMetricText();
   const { numberFormatter } = useFormat();
-  const [search, setSearch] = useState("");
-  const [selectedKey, setSelectedKey] = useState<string | null>(
-    initialGame ? gameKey(initialGame) : savedGameKey
-  );
   const [requestedMetric, setRequestedMetric] = useState<string | null>(
     initialMetric
   );
@@ -158,36 +137,15 @@ export function ByGameTab({
     gameMetrics[0] ??
     null;
 
-  const games = useApiResource(
-    "/leaderboards/me/games",
-    { params: { window: period, scope }, needsAuth: true },
-    normalizeMyGames
-  );
-
-  const lastGamesRef = useRef(games.data);
-  if (games.data) lastGamesRef.current = games.data;
-  const shownGames =
-    games.data ?? (games.isLoading ? lastGamesRef.current : null);
-  const allGames = useMemo(() => shownGames ?? [], [shownGames]);
-  const listed = allGames.find((game) => gameKey(game) === selectedKey);
+  const listed = games.find((game) => gameKey(game) === selectedKey);
   const linkedGame =
     initialGame && selectedKey === gameKey(initialGame) && !listed
       ? initialGame
       : null;
   const linkedAssets = useLinkedGameAssets(linkedGame);
-  const boardGame: LinkedGame | null =
-    listed ?? linkedGame ?? allGames[0] ?? null;
+  const boardGame: LinkedGame | null = listed ?? linkedGame ?? games[0] ?? null;
   const selected: SelectedGame | MyGameRanking | null =
-    listed ?? linkedAssets ?? (linkedGame ? null : (allGames[0] ?? null));
-
-  const filtered = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase();
-    if (!term) return allGames;
-
-    return allGames.filter((game) =>
-      game.title.toLocaleLowerCase().includes(term)
-    );
-  }, [allGames, search]);
+    listed ?? linkedAssets ?? (linkedGame ? null : (games[0] ?? null));
 
   const board = useApiResource(
     boardGame && metric
@@ -250,108 +208,6 @@ export function ByGameTab({
       ))}
     </fieldset>
   );
-
-  // A game opened from a game page's link is not kept, only one the viewer picks.
-  const selectGame = (key: string) => {
-    onGameSelect(key);
-    setSelectedKey(key);
-  };
-
-  const hasNoGames =
-    !(games.isLoading && !games.data) &&
-    !games.hasError &&
-    allGames.length === 0;
-
-  const renderGames = () => {
-    if (games.isLoading && !games.data) {
-      return (
-        <div className="leaderboards__games">
-          {GAME_SKELETON_KEYS.map((key) => (
-            <Skeleton key={key} className="leaderboards__game-skeleton" />
-          ))}
-        </div>
-      );
-    }
-
-    if (games.hasError) return <BlockError onRetry={games.retry} />;
-
-    if (allGames.length === 0) {
-      return (
-        <BlockMessage
-          icon={<TrophyIcon size={32} />}
-          title={t("games_empty_title")}
-          description={t("games_empty_description")}
-          action={
-            <Button theme="primary" onClick={() => navigate("/library")}>
-              {t("go_to_library")}
-            </Button>
-          }
-        />
-      );
-    }
-
-    if (filtered.length === 0 && search.trim()) {
-      return <BlockMessage title={t("games_search_empty")} />;
-    }
-
-    return (
-      <div className="leaderboards__games">
-        {filtered.map((game) => {
-          const isSelected = boardGame && gameKey(boardGame) === gameKey(game);
-
-          return (
-            <button
-              key={gameKey(game)}
-              type="button"
-              aria-pressed={Boolean(isSelected)}
-              className={cn("leaderboards__game", {
-                "leaderboards__game--selected": isSelected,
-              })}
-              onClick={() => selectGame(gameKey(game))}
-            >
-              <span
-                className="leaderboards__game-cover"
-                style={backgroundStyle(game.coverImageUrl, "--cover")}
-              />
-              <span className="leaderboards__game-body">
-                <span className="leaderboards__game-title">{game.title}</span>
-                <span className="leaderboards__game-rank">
-                  <span className="leaderboards__game-position">
-                    {t("ordinal", { rank: game.rank })}
-                  </span>
-                  {game.total !== null && (
-                    <span className="leaderboards__game-total">
-                      {t("of_total", {
-                        total: formatBoardTotal(
-                          game.total,
-                          numberFormatter.format
-                        ),
-                      })}
-                    </span>
-                  )}
-                  {isWeek && (
-                    <RankDelta
-                      delta={getRankDelta(game.rank, game.previousRank)}
-                    />
-                  )}
-                </span>
-                {game.leader && (
-                  <span className="leaderboards__game-leader">
-                    <Avatar
-                      size={16}
-                      src={game.leader.profileImageUrl}
-                      alt={game.leader.displayName}
-                    />
-                    {t("leader_name", { name: game.leader.displayName })}
-                  </span>
-                )}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    );
-  };
 
   const openGamePage = () => {
     if (!boardGame) return;
@@ -454,47 +310,6 @@ export function ByGameTab({
 
   return (
     <>
-      {!(hasNoGames && boardGame) && (
-        <section
-          className={cn("leaderboards__my-games", {
-            "leaderboards__my-games--empty": hasNoGames,
-          })}
-        >
-          {!hasNoGames && (
-            <div className="leaderboards__section-header">
-              <h2 className="leaderboards__heading-2">{t("my_games_title")}</h2>
-              <label className="leaderboards__search">
-                <SearchIcon size={14} />
-                <span className="leaderboards__sr-only">
-                  {t("search_game")}
-                </span>
-                <input
-                  type="text"
-                  value={search}
-                  placeholder={t("search_game_placeholder")}
-                  onChange={(event) => setSearch(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") setSearch("");
-                  }}
-                />
-                {search && (
-                  <button
-                    type="button"
-                    className="leaderboards__search-clear"
-                    onClick={() => setSearch("")}
-                    aria-label={t("clear_search")}
-                    title={t("clear_search")}
-                  >
-                    <XIcon size={14} />
-                  </button>
-                )}
-              </label>
-            </div>
-          )}
-          {renderGames()}
-        </section>
-      )}
-
       {boardGame && (
         <section
           className={cn("leaderboards__board leaderboards__board--game", {

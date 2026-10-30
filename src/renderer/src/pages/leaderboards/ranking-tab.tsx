@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import cn from "classnames";
 import { ClockIcon, PeopleIcon, StarIcon } from "@primer/octicons-react";
-import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import { Avatar, Button } from "@renderer/components";
+import { Button } from "@renderer/components";
 import { useDate, useFormat } from "@renderer/hooks";
 import type {
   LeaderboardEntry,
@@ -35,18 +34,11 @@ import {
 import { useMetricText } from "./use-global-leaderboard-value";
 import { useReviewTranslation } from "./use-review-translation";
 
-const METRIC_CARD_PLACEHOLDERS = Array.from(
-  { length: 8 },
-  (_, position) => `metric-placeholder-${position}`
-);
-
 export interface RankingTabProps {
   results: GlobalBoardResults;
-  metrics: MetricDefinition[];
   metric: MetricDefinition | null;
   isMetricsLoading: boolean;
   hasMetricsError: boolean;
-  onMetricChange: (metric: string) => void;
   period: GlobalLeaderboardPeriod;
   scope: GlobalLeaderboardScope;
   viewerUser: LeaderboardUser | null;
@@ -100,11 +92,9 @@ function ReviewScore({ review }: Readonly<{ review: LeaderboardReview }>) {
 
 export function RankingTab({
   results,
-  metrics,
   metric,
   isMetricsLoading,
   hasMetricsError,
-  onMetricChange,
   period,
   scope,
   viewerUser,
@@ -147,65 +137,6 @@ export function RankingTab({
   const selectedReview = selectedEntry
     ? (leaderboard?.extras[selectedEntry.user.id]?.review ?? null)
     : null;
-
-  const renderLeaderCard = (definition: MetricDefinition) => {
-    const { id } = definition;
-    const result = results[id] ?? EMPTY_BOARD_RESULT;
-    const leader = result.leaderboard?.entries[0] ?? null;
-
-    let leaderContent: React.ReactNode = (
-      <span className="leaderboards__card-empty">{t("no_leader")}</span>
-    );
-
-    if (result.hasError) {
-      leaderContent = (
-        <span className="leaderboards__card-empty">{t("leader_error")}</span>
-      );
-    } else if (result.isLoading && !result.leaderboard) {
-      leaderContent = (
-        <Skeleton className="leaderboards__card-skeleton" width="100%" />
-      );
-    } else if (leader) {
-      leaderContent = (
-        <>
-          <Avatar
-            size={28}
-            src={leader.user.profileImageUrl}
-            alt={leader.user.displayName}
-          />
-          <span className="leaderboards__card-leader-text">
-            <span className="leaderboards__card-leader-name">
-              {leader.user.displayName}
-            </span>
-            <span className="leaderboards__card-leader-value">
-              {metricText.format(definition, leader.value)}
-            </span>
-          </span>
-        </>
-      );
-    }
-
-    return (
-      <button
-        key={id}
-        type="button"
-        role="tab"
-        aria-selected={id === metric?.id}
-        className={cn("leaderboards__card", {
-          "leaderboards__card--selected": id === metric?.id,
-        })}
-        onClick={() => onMetricChange(id)}
-      >
-        <span className="leaderboards__card-label">
-          <MetricIcon metric={id} />
-          <span className="leaderboards__card-label-text">
-            {metricText.label(definition)}
-          </span>
-        </span>
-        <span className="leaderboards__card-leader">{leaderContent}</span>
-      </button>
-    );
-  };
 
   const renderReviewTooltip = (entry: LeaderboardEntry) => {
     const review = leaderboard?.extras[entry.user.id]?.review;
@@ -332,26 +263,6 @@ export function RankingTab({
 
   return (
     <>
-      <section className="leaderboards__leaders">
-        <h2 className="leaderboards__section-title">
-          {t(isWeek ? "leaders_title" : "leaders_all_title")}
-        </h2>
-        <div
-          className="leaderboards__cards"
-          role="tablist"
-          aria-label={t("metric_label")}
-        >
-          {isMetricsLoading && metrics.length === 0
-            ? METRIC_CARD_PLACEHOLDERS.map((placeholder) => (
-                <Skeleton
-                  key={placeholder}
-                  className="leaderboards__card-placeholder"
-                />
-              ))
-            : metrics.map(renderLeaderCard)}
-        </div>
-      </section>
-
       <section
         className={cn("leaderboards__board", {
           "leaderboards__board--empty":
