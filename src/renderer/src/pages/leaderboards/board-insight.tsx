@@ -40,15 +40,29 @@ export function BoardInsight({
 
   const hasDeadline =
     period === "week" && !METRICS_WITHOUT_DEADLINE.has(metric.id);
-  const line = (key: string, values: Record<string, string>) => (
-    <Trans t={t} i18nKey={key} values={values} components={{ b: <b /> }} />
+  // Display names can contain tags, so they are escaped before the tags in the
+  // sentence are read, and unescaped again when rendered.
+  const line = (
+    key: string,
+    values: Record<string, string>,
+    defaults?: string
+  ) => (
+    <Trans
+      t={t}
+      i18nKey={key}
+      values={values}
+      defaults={defaults}
+      components={{ b: <b /> }}
+      tOptions={{ interpolation: { escapeValue: true } }}
+      shouldUnescape
+    />
   );
 
   let main = line("insight_leading_alone", {});
   let detail: React.ReactNode = null;
 
   if (insight.type === "unranked") {
-    main = line(`insight_unranked_${metric.id}`, {});
+    main = line(`insight_unranked_${metric.id}`, {}, t("insight_unranked"));
   } else if (insight.type === "ranked") {
     main = line("insight_ranked", {
       rank: numberFormatter.format(insight.rank),

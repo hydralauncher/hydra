@@ -2797,6 +2797,7 @@
     "insight_outside": "About <b>{{amount}}</b> more to reach the <b>top {{rank}}</b>.",
     "insight_outside_week": "About <b>{{amount}}</b> more by Sunday to reach the <b>top {{rank}}</b>.",
     "insight_ranked": "You're <b>#{{rank}}</b> on this ranking.",
+    "insight_unranked": "You're not on this ranking yet.",
     "insight_unranked_playtime": "Play through Hydra to join this ranking.",
     "insight_unranked_games": "Open a game through Hydra to join this ranking.",
     "insight_unranked_friends": "Add a friend to join this ranking.",

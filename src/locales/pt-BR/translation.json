@@ -2801,6 +2801,7 @@
     "insight_outside": "Faltam cerca de <b>{{amount}}</b> para entrar no <b>top {{rank}}</b>.",
     "insight_outside_week": "Faltam cerca de <b>{{amount}}</b> até domingo para entrar no <b>top {{rank}}</b>.",
     "insight_ranked": "Você está em <b>{{rank}}º</b> neste ranking.",
+    "insight_unranked": "Você ainda não está neste ranking.",
     "insight_unranked_playtime": "Jogue pelo Hydra para entrar neste ranking.",
     "insight_unranked_games": "Abra um jogo pelo Hydra para entrar neste ranking.",
     "insight_unranked_friends": "Adicione um amigo para entrar neste ranking.",
