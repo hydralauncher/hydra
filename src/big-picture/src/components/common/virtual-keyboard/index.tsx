@@ -1356,23 +1356,38 @@ export function VirtualKeyboardProvider() {
       return;
     }
 
-    const anchorRect = sideAnchor.getBoundingClientRect();
-    const viewportWidth = globalThis.window.innerWidth;
-    const centeredWidth = Math.min(
-      VIRTUAL_KEYBOARD_MAX_WIDTH,
-      viewportWidth - VIRTUAL_KEYBOARD_HORIZONTAL_GUTTER
-    );
-    const centeredLeft = (viewportWidth - centeredWidth) / 2;
-    const centeredTop =
-      globalThis.window.innerHeight - lastDockHeightRef.current;
-    const isCoveredWhenCentered =
-      anchorRect.bottom > centeredTop &&
-      anchorRect.right > centeredLeft &&
-      anchorRect.left < centeredLeft + centeredWidth;
+    const updateSideInset = () => {
+      const anchorRect = sideAnchor.getBoundingClientRect();
+      const viewportWidth = globalThis.window.innerWidth;
+      const centeredWidth = Math.min(
+        VIRTUAL_KEYBOARD_MAX_WIDTH,
+        viewportWidth - VIRTUAL_KEYBOARD_HORIZONTAL_GUTTER
+      );
+      const centeredLeft = (viewportWidth - centeredWidth) / 2;
+      const centeredTop =
+        globalThis.window.innerHeight - lastDockHeightRef.current;
+      const isCoveredWhenCentered =
+        anchorRect.bottom > centeredTop &&
+        anchorRect.right > centeredLeft &&
+        anchorRect.left < centeredLeft + centeredWidth;
 
-    setSideInset(
-      isCoveredWhenCentered ? viewportWidth - anchorRect.left : null
-    );
+      setSideInset(
+        isCoveredWhenCentered ? viewportWidth - anchorRect.left : null
+      );
+    };
+
+    updateSideInset();
+    globalThis.window.addEventListener("resize", updateSideInset);
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(updateSideInset);
+    resizeObserver?.observe(sideAnchor);
+
+    return () => {
+      globalThis.window.removeEventListener("resize", updateSideInset);
+      resizeObserver?.disconnect();
+    };
   }, [sideAnchor]);
 
   useEffect(() => {
