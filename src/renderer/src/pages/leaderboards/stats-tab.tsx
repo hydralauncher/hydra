@@ -32,6 +32,7 @@ import {
   type GlobalLeaderboardPeriod,
   type HeatmapCell,
 } from "./global-leaderboard";
+import { requestAddFriendMode } from "../friends-window/add-friend-request";
 import { useApiResource } from "./leaderboards-api";
 import {
   BlockError,
@@ -419,6 +420,9 @@ export function StatsTab({
     );
   };
 
+  const hasNoFriendStreaks =
+    friends.data?.every((item) => item.user.id === viewerId) ?? false;
+
   const renderFriends = () => {
     if (friends.isLoading && !friends.data) {
       return (
@@ -433,18 +437,19 @@ export function StatsTab({
       return <BlockError onRetry={friends.retry} />;
     }
 
-    const others = friends.data.filter((item) => item.user.id !== viewerId);
-    if (others.length === 0) {
+    if (hasNoFriendStreaks) {
       return (
         <BlockMessage
-          icon={<PeopleIcon size={20} />}
+          icon={<PeopleIcon size={32} />}
           title={t("empty_friend_streaks_title")}
           description={t("empty_friend_streaks_description")}
           action={
             <Button
-              theme="outline"
-              size="small"
-              onClick={() => globalThis.window.electron.openFriendsWindow()}
+              theme="primary"
+              onClick={() => {
+                requestAddFriendMode();
+                globalThis.window.electron.openFriendsWindow();
+              }}
             >
               {t("find_friends")}
             </Button>
@@ -458,19 +463,6 @@ export function StatsTab({
 
   return (
     <>
-      <section
-        className="leaderboards__panel leaderboards__activity"
-        aria-labelledby="activity-title"
-      >
-        <div className="leaderboards__activity-header">
-          <h2 id="activity-title" className="leaderboards__heading-3">
-            {t("activity_title")}
-          </h2>
-          {renderStreak()}
-        </div>
-        {renderActivity()}
-      </section>
-
       <div className="leaderboards__stats-grid">
         <section className="leaderboards__mine" aria-labelledby="mine-title">
           <div
@@ -577,10 +569,25 @@ export function StatsTab({
         </section>
 
         <section className="leaderboards__panel">
-          <h2 className="leaderboards__heading-3">{t("friends_streak")}</h2>
+          {!hasNoFriendStreaks && (
+            <h2 className="leaderboards__heading-3">{t("friends_streak")}</h2>
+          )}
           {renderFriends()}
         </section>
       </div>
+
+      <section
+        className="leaderboards__panel leaderboards__activity"
+        aria-labelledby="activity-title"
+      >
+        <div className="leaderboards__activity-header">
+          <h2 id="activity-title" className="leaderboards__heading-3">
+            {t("activity_title")}
+          </h2>
+          {renderStreak()}
+        </div>
+        {renderActivity()}
+      </section>
     </>
   );
 }

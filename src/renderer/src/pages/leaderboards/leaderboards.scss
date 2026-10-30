@@ -313,6 +313,10 @@ $leaderboards-heat-gap: 3px;
     padding: calc(globals.$spacing-unit * 5) calc(globals.$spacing-unit * 2);
     text-align: center;
     color: $leaderboards-muted-text;
+
+    > button {
+      margin-top: globals.$spacing-unit;
+    }
   }
 
   &__message-title {

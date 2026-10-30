@@ -33,6 +33,7 @@ import {
   sortFriendsByUnreadMessages,
 } from "./friends-window-layout";
 import { useVisibleFriendIds } from "./use-visible-friend-ids";
+import { consumeAddFriendRequest } from "./add-friend-request";
 import { useAddFriend } from "./use-add-friend";
 import "./friends-window.scss";
 
@@ -506,6 +507,19 @@ export default function FriendsWindow() {
     setSearch("");
     searchInputRef.current?.focus();
   };
+
+  useEffect(() => {
+    const openAddMode = () => {
+      if (!consumeAddFriendRequest()) return;
+      setIsAddMode(true);
+      setSearch("");
+      searchInputRef.current?.focus();
+    };
+
+    openAddMode();
+    globalThis.addEventListener("storage", openAddMode);
+    return () => globalThis.removeEventListener("storage", openAddMode);
+  }, []);
 
   const handleSearchFieldKeyDown = (
     event: React.KeyboardEvent<HTMLInputElement>

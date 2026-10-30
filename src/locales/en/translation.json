@@ -2834,7 +2834,7 @@
     "game_metrics_empty_description": "Per-game rankings will show up here soon.",
     "empty_friends_game_title": "None of your friends play this game",
     "empty_friend_streaks_title": "No friend on a streak",
-    "empty_friend_streaks_description": "Friends who play two days in a row show up here.",
+    "empty_friend_streaks_description": "Friends who play two or more days in a row show up here. A day counts after 15 minutes of play.",
     "find_friends": "Find friends",
     "sign_in_hint": "Sign in to see your position, your games and your friends' ranking.",
     "review_score": "{{score}}/5",

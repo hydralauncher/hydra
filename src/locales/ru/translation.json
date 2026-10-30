@@ -2622,7 +2622,7 @@
     "game_metrics_empty_description": "Рейтинги по играм скоро появятся здесь.",
     "empty_friends_game_title": "Никто из ваших друзей не играет в эту игру",
     "empty_friend_streaks_title": "Ни у кого из друзей нет серии",
-    "empty_friend_streaks_description": "Друзья, играющие два дня подряд, появятся здесь.",
+    "empty_friend_streaks_description": "Друзья, играющие два дня подряд или дольше, появятся здесь. День засчитывается после 15 минут игры.",
     "find_friends": "Найти друзей",
     "sign_in_hint": "Войдите, чтобы видеть своё место, свои игры и рейтинг друзей.",
     "review_score": "{{score}}/5",
