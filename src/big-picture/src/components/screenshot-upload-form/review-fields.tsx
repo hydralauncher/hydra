@@ -25,7 +25,12 @@ import {
 } from "../common";
 import type { FocusOverrideTarget } from "../../services";
 import { InlineTextField } from "../pages/screenshots/inline-text-field";
-import { useBigPictureToast, useUserDetails } from "../../hooks";
+import {
+  Feature,
+  useBigPictureToast,
+  useFeature,
+  useUserDetails,
+} from "../../hooks";
 
 export const SCREENSHOT_QUALITY_LABELS: Record<ScreenshotQuality, string> = {
   STANDARD: "720p",
@@ -123,6 +128,14 @@ export function ReviewFields({
   const { t } = useTranslation("big_picture");
   const { showErrorToast } = useBigPictureToast();
   const { hasActiveSubscription } = useUserDetails();
+  const { isFeatureEnabled } = useFeature();
+  const isCommentsEnabled = isFeatureEnabled(Feature.ScreenshotComments);
+  const afterSpoilerFocusId = isCommentsEnabled
+    ? focusIds.comments
+    : focusIds.visibility;
+  const beforeVisibilityFocusId = isCommentsEnabled
+    ? focusIds.comments
+    : focusIds.spoiler;
 
   const visibilityOptions = useMemo<
     SegmentedControlOption<ProfileVisibility>[]
@@ -202,27 +215,29 @@ export function ReviewFields({
         focusId={focusIds.spoiler}
         navigationOverrides={{
           up: { type: "item", itemId: focusIds.description },
-          down: { type: "item", itemId: focusIds.comments },
+          down: { type: "item", itemId: afterSpoilerFocusId },
           left: leftTarget,
           right: BLOCK_TARGET,
         }}
         onChange={(isSpoiler) => onChange({ isSpoiler })}
       />
 
-      <Checkbox
-        block
-        label={t("screenshots_allow_comments")}
-        checked={draft.commentsEnabled}
-        disabled={disabled}
-        focusId={focusIds.comments}
-        navigationOverrides={{
-          up: { type: "item", itemId: focusIds.spoiler },
-          down: { type: "item", itemId: focusIds.visibility },
-          left: leftTarget,
-          right: BLOCK_TARGET,
-        }}
-        onChange={(commentsEnabled) => onChange({ commentsEnabled })}
-      />
+      {isCommentsEnabled ? (
+        <Checkbox
+          block
+          label={t("screenshots_allow_comments")}
+          checked={draft.commentsEnabled}
+          disabled={disabled}
+          focusId={focusIds.comments}
+          navigationOverrides={{
+            up: { type: "item", itemId: focusIds.spoiler },
+            down: { type: "item", itemId: focusIds.visibility },
+            left: leftTarget,
+            right: BLOCK_TARGET,
+          }}
+          onChange={(commentsEnabled) => onChange({ commentsEnabled })}
+        />
+      ) : null}
 
       <SegmentedControl
         label={t("screenshots_visibility_label")}
@@ -231,7 +246,7 @@ export function ReviewFields({
         disabled={disabled}
         focusId={focusIds.visibility}
         navigationOverrides={{
-          up: { type: "item", itemId: focusIds.comments },
+          up: { type: "item", itemId: beforeVisibilityFocusId },
           down: hasActiveSubscription
             ? downTarget
             : { type: "item", itemId: focusIds.quality },

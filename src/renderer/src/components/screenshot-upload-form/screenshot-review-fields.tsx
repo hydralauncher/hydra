@@ -15,7 +15,7 @@ import {
   InlineEditField,
   HydraCloudBadge,
 } from "@renderer/components";
-import { useUserDetails } from "@renderer/hooks";
+import { useFeature, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 
 import {
@@ -54,6 +54,8 @@ export function ScreenshotReviewFields({
   const { t } = useTranslation("screenshots_capture");
   const { hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isCommentsEnabled = isFeatureEnabled(Feature.ScreenshotComments);
 
   const isTitleEditable =
     screenshot.shop === "custom" && isScreenshotEditable(screenshot);
@@ -150,16 +152,18 @@ export function ScreenshotReviewFields({
         </small>
       </div>
 
-      <div className="screenshot-review-item__checkbox">
-        <CheckboxField
-          label={t("allow_comments", { ns: "screenshots" })}
-          checked={draft.commentsEnabled}
-          disabled={isFormDisabled}
-          onChange={(event) =>
-            onDraftChange({ ...draft, commentsEnabled: event.target.checked })
-          }
-        />
-      </div>
+      {isCommentsEnabled && (
+        <div className="screenshot-review-item__checkbox">
+          <CheckboxField
+            label={t("allow_comments", { ns: "screenshots" })}
+            checked={draft.commentsEnabled}
+            disabled={isFormDisabled}
+            onChange={(event) =>
+              onDraftChange({ ...draft, commentsEnabled: event.target.checked })
+            }
+          />
+        </div>
+      )}
     </>
   );
 }
