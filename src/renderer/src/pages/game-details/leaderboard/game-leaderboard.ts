@@ -50,8 +50,6 @@ export interface LeaderboardRankTarget {
 export interface LeaderboardViewer {
   rank: number;
   value: number;
-  /* Precomputed boards: the position right above and the last position of the top, when relevant. */
-  toNext?: LeaderboardRankTarget | null;
   toTop?: LeaderboardRankTarget | null;
 }
 
@@ -193,9 +191,6 @@ const normalizeViewer = (value: unknown): LeaderboardViewer | null => {
     rank: candidate.rank,
     value: viewerValue,
   };
-  // Only precomputed boards send targets; legacy responses keep the plain shape.
-  if ("toNext" in candidate)
-    viewer.toNext = normalizeRankTarget(candidate.toNext);
   if ("toTop" in candidate) viewer.toTop = normalizeRankTarget(candidate.toTop);
   return viewer;
 };
@@ -305,7 +300,8 @@ export const buildLeaderboardRows = (
 
 export const getLeaderboardNudge = (
   leaderboard: Pick<Leaderboard, "entries" | "viewer">,
-  viewerUser: LeaderboardUser | null
+  viewerUser: LeaderboardUser | null,
+  scope: LeaderboardScope = "global"
 ): LeaderboardNudge | null => {
   const viewerEntry = findViewerEntry(leaderboard, viewerUser);
   if (!viewerEntry) return null;
@@ -315,9 +311,8 @@ export const getLeaderboardNudge = (
     (entry) =>
       entry.rank < viewerEntry.rank && entry.user.id !== viewerEntry.user.id
   );
-  // Past the loaded top, the API tells how far the last top position is.
   if (ahead.length === 0 || ahead.length < viewerEntry.rank - 1) {
-    const toTop = leaderboard.viewer?.toTop;
+    const toTop = scope === "global" ? leaderboard.viewer?.toTop : null;
     if (!toTop || toTop.rank >= viewerEntry.rank) return null;
     const gap = toTop.value - viewerEntry.value;
     return gap > 0 ? { type: "to_top", gap, rank: toTop.rank } : null;

@@ -118,8 +118,8 @@ export function LeaderboardSection() {
     [board, state, viewerUser]
   );
   const nudge = useMemo(
-    () => getLeaderboardNudge(board, viewerUser),
-    [board, viewerUser]
+    () => getLeaderboardNudge(board, viewerUser, dataScope),
+    [board, viewerUser, dataScope]
   );
 
   if (state === "hidden") return null;

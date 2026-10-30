@@ -637,22 +637,21 @@ describe("isSignedOutError", () => {
 });
 
 describe("precomputed viewer targets", () => {
-  it("keeps toNext and toTop from the API and drops malformed ones", () => {
-    const result = normalizeLeaderboardResponse({
+  it("keeps toTop from the API and drops a malformed one", () => {
+    const kept = normalizeLeaderboardResponse({
       entries: [],
-      viewer: {
-        rank: 4821,
-        value: 7200,
-        toNext: { rank: 4820, value: 7260 },
-        toTop: { rank: 100, value: "nope" },
-      },
+      viewer: { rank: 4821, value: 7200, toTop: { rank: 100, value: 90000 } },
     });
-    assert.deepEqual(result.viewer, {
+    assert.deepEqual(kept.viewer, {
       rank: 4821,
       value: 7200,
-      toNext: { rank: 4820, value: 7260 },
-      toTop: null,
+      toTop: { rank: 100, value: 90000 },
     });
+    const dropped = normalizeLeaderboardResponse({
+      entries: [],
+      viewer: { rank: 4821, value: 7200, toTop: { rank: 100, value: "nope" } },
+    });
+    assert.deepEqual(dropped.viewer, { rank: 4821, value: 7200, toTop: null });
   });
 
   it("nudges toward the top when the viewer sits past the loaded entries", () => {
