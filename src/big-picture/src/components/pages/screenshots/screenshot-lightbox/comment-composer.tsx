@@ -301,6 +301,7 @@ export interface CommentComposerProps {
   editingComment: ScreenshotComment | null;
   restoredDraft: string | null;
   onRestoredDraftApplied: () => void;
+  onNewDraftChange: (html: string) => void;
   onSubmit: (bodyHtml: string) => Promise<boolean>;
   onCancelEdit: () => void;
 }
@@ -314,6 +315,7 @@ export function CommentComposer({
   editingComment,
   restoredDraft,
   onRestoredDraftApplied,
+  onNewDraftChange,
   onSubmit,
   onCancelEdit,
 }: Readonly<CommentComposerProps>) {
@@ -376,6 +378,7 @@ export function CommentComposer({
       onPendingDraftApplied={onRestoredDraftApplied}
       onDraftChange={(html) => {
         newDraftRef.current = html;
+        onNewDraftChange(html);
       }}
       onSubmit={onSubmit}
       onCancelEdit={onCancelEdit}

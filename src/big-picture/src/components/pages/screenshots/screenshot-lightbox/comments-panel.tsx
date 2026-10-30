@@ -567,6 +567,7 @@ export function ScreenshotCommentsPanel({
   const confirmedEditsRef = useRef(new Map<string, ConfirmedCommentEdit>());
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
   const [newCommentId, setNewCommentId] = useState<string | null>(null);
+  const composerDraftRef = useRef("");
   const [menu, setMenu] = useState<CommentMenuState | null>(null);
   const [deletingComment, setDeletingComment] =
     useState<ScreenshotComment | null>(null);
@@ -705,7 +706,8 @@ export function ScreenshotCommentsPanel({
         const navigation = NavigationService.getInstance();
         if (
           !created.isHidden &&
-          navigation.getCurrentFocusId() === focusIds.input
+          navigation.getCurrentFocusId() === focusIds.input &&
+          !normalizeScreenshotCommentBody(composerDraftRef.current)
         ) {
           navigation.requestFocusWhenAvailable(
             getCommentFocusIds(created.id).upvote
@@ -1158,6 +1160,9 @@ export function ScreenshotCommentsPanel({
           editingComment={editingComment}
           restoredDraft={restoredDraft}
           onRestoredDraftApplied={shiftRestoredDraft}
+          onNewDraftChange={(html) => {
+            composerDraftRef.current = html;
+          }}
           onSubmit={submit}
           onCancelEdit={() => setEditingComment(null)}
         />

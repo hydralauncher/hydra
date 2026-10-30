@@ -350,8 +350,6 @@ function GalleryLightboxContent({
     }
   }, [isSidebarOpen]);
 
-  const platform = window.electron?.platform;
-
   isFullscreenRef.current = isFullscreen;
   indexRef.current = index;
   const renderLayerImage = renderImage ?? renderDefaultImage;
@@ -921,11 +919,7 @@ function GalleryLightboxContent({
           "gallery-lightbox--chrome-hidden": chromeHidden,
           "gallery-lightbox--with-filmstrip": showFilmstrip,
           "gallery-lightbox--with-sidebar": isSidebarOpen,
-          "gallery-lightbox--titlebar-offset":
-            !isFullscreen &&
-            (platform === "win32" ||
-              platform === "darwin" ||
-              platform === "linux"),
+          "gallery-lightbox--titlebar-offset": !isFullscreen,
         })}
         style={
           {

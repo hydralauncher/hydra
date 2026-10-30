@@ -211,10 +211,10 @@ class ScreenshotUploadWorker {
       return screenshot;
     }
 
-    const quality =
-      options.quality === undefined
-        ? undefined
-        : resolveScreenshotUploadQuality(HydraApi.hasActiveSubscription());
+    const isQualityRequested = options.quality !== undefined;
+    const quality = isQualityRequested
+      ? resolveScreenshotUploadQuality(HydraApi.hasActiveSubscription())
+      : undefined;
     const isQualityChange =
       quality !== undefined &&
       screenshot.uploadQuality != null &&
