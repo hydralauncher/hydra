@@ -2748,6 +2748,7 @@
     "value_days_other": "{{count}} days",
     "nudge_behind": "{{amount}} to pass {{name}}",
     "nudge_leading": "You lead this ranking",
+    "nudge_to_top": "{{amount}} to reach the top {{rank}}",
     "see_full_ranking": "View full ranking",
     "error_title": "Couldn't load the ranking",
     "retry": "Try again",
