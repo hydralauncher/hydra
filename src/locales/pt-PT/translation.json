@@ -874,7 +874,6 @@
     "download_sources_export_failed": "Não foi possível exportar as fontes. Tente novamente.",
     "download_sources_import_failed": "Não foi possível importar as fontes de transferência. Tente novamente.",
     "download_sources_import_invalid_file": "Não foi possível importar este ficheiro. Selecione uma cópia de segurança válida de fontes do Hydra (JSON até 1 MB e 200 fontes).",
-    "download_sources_import_in_progress": "Outra operação com fontes de transferência está em curso. Aguarde a conclusão e tente novamente.",
     "download_sources_import_result": "Importação concluída",
     "download_sources_import_summary": "Adicionadas: {{imported}}. Já incluídas: {{skipped}}. Falhas: {{failedCount}}.",
     "download_sources_import_retry": "Não foi possível adicionar estas fontes. Verifique a sua ligação e importe o ficheiro novamente. As fontes já adicionadas serão ignoradas.",

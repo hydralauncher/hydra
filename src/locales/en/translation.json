@@ -1335,7 +1335,6 @@
     "download_sources_export_failed": "Could not export download sources. Please try again.",
     "download_sources_import_failed": "Could not import download sources. Please try again.",
     "download_sources_import_invalid_file": "Could not import this file. Select a valid Hydra source backup (JSON, up to 1 MB and 200 sources).",
-    "download_sources_import_in_progress": "Another download source operation is running. Please wait for it to finish and try again.",
     "download_sources_import_result": "Import complete",
     "download_sources_import_summary": "Added: {{imported}}. Already included: {{skipped}}. Failed: {{failedCount}}.",
     "download_sources_import_retry": "These sources could not be added. Check your connection and try importing the file again. Sources already added will be skipped.",

@@ -38,14 +38,10 @@ const importDownloadSources = async (event: Electron.IpcMainInvokeEvent) => {
   }
 
   const urls = parseDownloadSourceBackup(contents);
-  const existingSources = await downloadSourcesSublevel.values().all();
-  return await importDownloadSourceUrls(
-    urls,
-    existingSources,
-    addDownloadSource
-  );
+  return downloadSourceOperationGate.run(async () => {
+    const existingSources = await downloadSourcesSublevel.values().all();
+    return importDownloadSourceUrls(urls, existingSources, addDownloadSource);
+  });
 };
 
-registerEvent("importDownloadSources", (event) =>
-  downloadSourceOperationGate.run(() => importDownloadSources(event))
-);
+registerEvent("importDownloadSources", importDownloadSources);

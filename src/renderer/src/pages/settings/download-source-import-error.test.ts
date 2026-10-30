@@ -25,18 +25,6 @@ describe("download source import error feedback", () => {
     }
   });
 
-  it("does not describe a busy operation as an invalid file", () => {
-    for (const error of [
-      new Error("download_source_operation_in_progress"),
-      ipcError("download_source_operation_in_progress"),
-    ]) {
-      assert.equal(
-        getDownloadSourceImportErrorKey(error),
-        "download_sources_import_in_progress"
-      );
-    }
-  });
-
   it("uses a generic failure for window, disk and unexpected errors", () => {
     for (const error of [
       ipcError("Source window is not available"),

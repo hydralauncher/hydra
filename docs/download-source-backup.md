@@ -13,6 +13,10 @@ An ongoing transfer stays busy when navigating away from settings and back.
 Source changes are serialized in the main process: additions, removals, syncs,
 and imports wait for the current operation to finish instead of failing when
 they overlap. A removal queued during an import runs after the entire batch.
+Selecting, reading, and validating a backup happen before entering that queue,
+so leaving the file dialog open does not delay source changes from other windows.
+The configured source list is read inside the queue just before registration,
+so additions made while choosing a file are still recognized as duplicates.
 
 The backup contains URLs only; game downloads, cached catalogue data, account
 credentials, and local database IDs are not included. Source URLs are preserved
@@ -38,6 +42,7 @@ no operation. Import errors distinguish invalid backups from operational failure
 ```sh
 node --import ./scripts/register-ts-node.mjs --test src/main/services/download-source-backup.test.ts
 node --import ./scripts/register-ts-node.mjs --test src/main/services/download-source-operation-gate.test.ts src/renderer/src/features/download-source-transfer.test.ts
+node --import ./scripts/register-ts-node.mjs --test src/main/events/download-sources/import-download-sources.test.ts
 node --import ./scripts/register-ts-node.mjs --test src/renderer/src/pages/settings/download-source-import-error.test.ts
 ```
 
@@ -54,3 +59,5 @@ source sync is running, add another source: it should wait and succeed. A remova
 queued during an import should run after the batch and keep the sources removed.
 Check that an unreadable file shows a general import failure, while malformed or
 oversized backups show the file-validation message.
+Leave the import file dialog open and sync or change sources from another window:
+those operations should complete without waiting for a file to be selected.
