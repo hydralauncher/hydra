@@ -72,7 +72,12 @@ export function ScreenshotReviewActionButtons({
     return (
       <>
         {canRetry && (
-          <Button theme="outline" disabled={isBusy} onClick={onUpload}>
+          <Button
+            className="screenshot-review-item__upload"
+            theme="outline"
+            disabled={isBusy}
+            onClick={onUpload}
+          >
             {t("retry")}
           </Button>
         )}
