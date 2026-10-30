@@ -35,8 +35,14 @@ export const buildAchievementNotificationInfo = (
     description: achievement.description,
     points: achievement.points,
     isHidden: achievement.hidden,
-    isRare: achievement.points ? isRareAchievement(achievement.points) : false,
-    isPlatinum: completesGame && index === achievements.length - 1,
+    isRare: achievement.trophyGrade
+      ? false
+      : achievement.points
+        ? isRareAchievement(achievement.points)
+        : false,
+    isPlatinum: achievement.trophyGrade
+      ? achievement.trophyGrade === "platinum"
+      : completesGame && index === achievements.length - 1,
     iconUrl: achievement.icon,
   }));
 

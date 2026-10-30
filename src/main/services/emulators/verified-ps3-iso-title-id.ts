@@ -65,6 +65,38 @@ const findIsoEntry = (
       e.name.toUpperCase() === name.toUpperCase()
   ) ?? null;
 
+/** Read trophy communication IDs from the disc's directory records, never its filename. */
+export const extractTrophySetIdsFromIso = async (
+  isoPath: string
+): Promise<string[]> => {
+  const fh = await fs.open(isoPath, "r");
+  try {
+    const pvd = await readIsoExtent(fh, 16, ISO_SECTOR, ISO_SECTOR);
+    if (pvd[0] !== 1 || pvd.subarray(1, 6).toString("latin1") !== "CD001")
+      return [];
+    let entries = parseIsoDirRecords(
+      await readIsoExtent(
+        fh,
+        pvd.readUInt32LE(158),
+        pvd.readUInt32LE(166),
+        ISO_DIR_READ_CAP
+      )
+    );
+    for (const name of ["PS3_GAME", "TROPDIR"]) {
+      const entry = findIsoEntry(entries, name);
+      if (!entry?.isDir || entry.size > ISO_DIR_READ_CAP) return [];
+      entries = parseIsoDirRecords(
+        await readIsoExtent(fh, entry.lba, entry.size, ISO_DIR_READ_CAP)
+      );
+    }
+    return entries
+      .filter((entry) => entry.isDir && /^NPWR\d{5}_\d{2}$/.test(entry.name))
+      .map((entry) => entry.name);
+  } finally {
+    await fh.close();
+  }
+};
+
 export const extractTitleIdFromIso = async (
   isoPath: string
 ): Promise<string | null> => {

@@ -102,6 +102,15 @@ export const startEmulatorSession = async ({
   };
 
   emulatorSessions.set(gameKey, session);
+  if (system === "ps3") {
+    void import("../achievements/rpcs3/rpcs3-achievements")
+      .then(({ getRpcs3Achievements }) =>
+        getRpcs3Achievements(game.objectId, game.shop)
+      )
+      .catch((error) =>
+        logger.warn("Could not initialize RPCS3 trophies", error)
+      );
+  }
   setEmulatorGameRunning(gameKey);
   void onScreenshotGameStarted(gameKey);
 

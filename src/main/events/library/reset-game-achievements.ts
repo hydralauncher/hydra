@@ -28,6 +28,7 @@ import {
 } from "@main/services/achievements/grouped-souvenir-worker";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { updateGameRecord } from "@main/services/game-record-updater";
+import { isClassicsGameForEmulator } from "../../../shared/classics-emulator-games.js";
 
 const deleteRemoteAchievements = async (
   levelKey: string,
@@ -91,6 +92,8 @@ const resetGameAchievementsNow = async (
 
     assertCurrent();
     if (!game) return;
+    if (isClassicsGameForEmulator(game, { kind: "emulator", system: "ps3" }))
+      throw new Error("RPCS3 trophies are read-only");
 
     await achievementSyncWorker.cancelGame(levelKey);
     await cancelPendingSouvenirsForGame(levelKey);

@@ -29,6 +29,7 @@ import { AchievementMemoryStore } from "./achievement-memory-store";
 import { UnlockedAchievementsCache } from "./unlocked-achievements-cache";
 import { CombinedAchievementsRequests } from "./combined-achievements-requests";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
+import { isClassicsGameForEmulator } from "../../../shared/classics-emulator-games.js";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -67,7 +68,13 @@ const getWatchedGames = async (onlyWithWinePrefix = false) => {
   const games = await gamesSublevel
     .values()
     .all()
-    .then((games) => games.filter((game) => !game.isDeleted));
+    .then((games) =>
+      games.filter(
+        (game) =>
+          !game.isDeleted &&
+          !isClassicsGameForEmulator(game, { kind: "emulator", system: "ps3" })
+      )
+    );
 
   if (!onlyWithWinePrefix) return games;
 
@@ -268,6 +275,17 @@ export class AchievementWatcherManager {
     objectId: string
   ) {
     if (shop === "custom" || shop === "epic") return;
+
+    if (shop === "launchbox") {
+      const game = await gamesSublevel
+        .get(levelKeys.game(shop, objectId))
+        .catch(() => null);
+      if (
+        game &&
+        isClassicsGameForEmulator(game, { kind: "emulator", system: "ps3" })
+      )
+        return;
+    }
 
     const gameKey = levelKeys.game(shop, objectId);
     if (this.alreadySyncedGames.get(gameKey)) return;

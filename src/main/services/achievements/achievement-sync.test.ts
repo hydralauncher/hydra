@@ -22,7 +22,12 @@ const deferred = <T>() => {
 };
 async function fixture(
   t: TestContext,
-  options: { metadata?: boolean; reset?: boolean; view?: boolean } = {}
+  options: {
+    metadata?: boolean;
+    reset?: boolean;
+    retroReset?: boolean;
+    view?: boolean;
+  } = {}
 ) {
   const key = `__achievementSync${randomUUID().replaceAll("-", "")}`;
   const records = new Map<string, PendingAchievementSync>();
@@ -58,6 +63,7 @@ async function fixture(
     resetGate: null as Promise<void> | null,
     remoteGate: null as Promise<unknown> | null,
     deletes: [] as Array<{ url: string; options: unknown }>,
+    collectedFiles: 0,
     deleteFailures: [] as unknown[],
     events: new Map<string, (...args: unknown[]) => Promise<unknown>>(),
     game: null as Game | null,
@@ -85,10 +91,12 @@ async function fixture(
   ]);
   if (options.metadata || options.view) actual.add("get-game-achievement-data");
   if (options.reset) actual.add("reset-game-achievements");
+  if (options.retroReset) actual.add("reset-retroachievements-achievements");
   if (options.view) actual.add("get-unlocked-achievements");
   const stub = `const state = globalThis[${JSON.stringify(key)}];
     export const isAxiosError = value => Boolean(value?.isAxiosError);
     export const isAchievementSouvenirsEnabled = () => false;
+    export const isClassicsGameForEmulator = game => game.shop === 'launchbox' && /playstation 3/i.test(game.platform ?? '');
     export class UserNotLoggedInError extends Error {};
     export const HydraApi = { get: async () => null, getResponse: async () => state.catalogueGate ? await state.catalogueGate : {status:200,data:[],headers:{}}, delete: async (url, options) => {state.deletes.push({url, options}); const failure = state.deleteFailures.shift(); if (failure) throw failure;}, getAuthContext: () => state.context, isAuthContextCurrent: context => Boolean(state.context && state.context.userId === context.userId && state.context.generation === context.generation), put: async (_url, body, options) => { let resolve, reject; const promise = new Promise((done, fail) => {resolve = done; reject = fail;}); state.requests.push({body, options, gate: {promise, resolve, reject}}); return promise; } };
     export const db = { get: async key => { if (state.preferenceGate) await state.preferenceGate; return key === "language" ? "en" : { achievementNotificationsEnabled: false }; }, sublevel: () => ({ get: async key => { const item = state.records.get(key); state.recordReadStarted?.(); if (state.recordReadGate) await state.recordReadGate; if (!item) throw new Error('missing'); return item; }, put: async (key, item) => state.records.set(key, item), del: async key => state.records.delete(key), values: () => ({all: async () => {const rows = [...state.records.values()]; state.recordsReadStarted?.(); if (state.recordsReadGate) await state.recordsReadGate; return rows;}}) }) };
@@ -101,10 +109,12 @@ async function fixture(
     export const publishNewAchievementNotification = () => {};
     export const registerEvent = (name, handler) => state.events.set(name, handler);
     export const gamesSublevel = {get: async () => state.game};
-    export const collectGameAchievementFiles = async () => [];
+    export const collectGameAchievementFiles = async () => {state.collectedFiles++;return [];};
     export const updateGameRecord = async () => {};
     export const cancelPendingSouvenirsForGame = async () => {if (state.resetGate) await state.resetGate;};
     export const deleteLocalSouvenirAssetsForGame = async () => {};
+    export const cancelPendingSouvenirsForShop = async () => {};
+    export const deleteLocalSouvenirAssetsForShop = async () => {};
     export const AchievementSouvenirStore = {invalidate: () => {}, set: () => {}};
     export const fetchRemoteUserGameAchievements = async () => state.remoteGate ? await state.remoteGate : {souvenirs:new Map(),unlocked:[],achievements:[]};
     export const logger = {error: () => {}};
@@ -121,7 +131,7 @@ async function fixture(
   `;
   await build({
     stdin: {
-      contents: `${options.reset ? "import './src/main/events/library/reset-game-achievements.ts';" : ""} ${options.metadata ? "export {getGameAchievementData} from './src/main/services/achievements/get-game-achievement-data.ts';" : ""} ${options.view ? "export {getUnlockedAchievements} from './src/main/events/user/get-unlocked-achievements.ts';" : ""} export { mergeAchievements } from './src/main/services/achievements/merge-achievements.ts'; export { AchievementMemoryStore } from './src/main/services/achievements/achievement-memory-store.ts'; export { achievementSyncWorker, AchievementSyncWorker, getAchievementSyncRetryDelay, toAchievementSyncPayload } from './src/main/services/achievements/achievement-sync-worker.ts'; export { achievementSyncCoordinator } from './src/main/services/achievements/achievement-sync-coordinator.ts';`,
+      contents: `${options.reset ? "import './src/main/events/library/reset-game-achievements.ts';" : ""} ${options.retroReset ? "import './src/main/events/user/reset-retroachievements-achievements.ts';" : ""} ${options.metadata ? "export {getGameAchievementData} from './src/main/services/achievements/get-game-achievement-data.ts';" : ""} ${options.view ? "export {getUnlockedAchievements} from './src/main/events/user/get-unlocked-achievements.ts';" : ""} export { mergeAchievements } from './src/main/services/achievements/merge-achievements.ts'; export { AchievementMemoryStore } from './src/main/services/achievements/achievement-memory-store.ts'; export { achievementSyncWorker, AchievementSyncWorker, getAchievementSyncRetryDelay, toAchievementSyncPayload } from './src/main/services/achievements/achievement-sync-worker.ts'; export { achievementSyncCoordinator } from './src/main/services/achievements/achievement-sync-coordinator.ts';`,
       resolveDir: process.cwd(),
       sourcefile: "fixture.ts",
       loader: "ts",
@@ -506,6 +516,57 @@ test("remote reconciliation refreshes the renderer and preserves newer local unl
   );
   assert.equal(f.state.updates.length, 1);
   assert.equal(f.state.updates[0]?.channel, "on-update-achievements-620-steam");
+});
+
+test("RPCS3 reset is rejected before collecting files or making remote changes", async (t) => {
+  const f = await fixture(t, { reset: true });
+  f.state.game = {
+    ...f.game,
+    shop: "launchbox",
+    platform: "Sony Playstation 3",
+  };
+  await assert.rejects(
+    f.state.events.get("resetGameAchievements")!(null, "launchbox", "620"),
+    /RPCS3 trophies are read-only/
+  );
+  assert.equal(f.state.collectedFiles, 0);
+  assert.equal(f.state.deletes.length, 0);
+  assert.equal(f.requests.length, 0);
+});
+
+test("RetroAchievements reset preserves RPCS3 trophies while clearing its own Classics entries", async (t) => {
+  const f = await fixture(t, { retroReset: true });
+  const local = {
+    achievements: [{ name: "NPWR12345_00:0", trophyGrade: "bronze" }],
+    unlockedAchievements: [{ name: "NPWR12345_00:0", unlockTime: 1 }],
+  };
+  f.AchievementMemoryStore.set("launchbox", "ps3", local);
+  f.AchievementMemoryStore.set("launchbox", "retro", {
+    achievements: [{ name: "RA:0" }],
+    unlockedAchievements: [{ name: "RA:0", unlockTime: 1 }],
+  });
+  await f.state.events.get("resetRetroAchievementsAchievements")!(null);
+  assert.deepEqual(f.AchievementMemoryStore.get("launchbox", "ps3"), local);
+  assert.deepEqual(
+    f.AchievementMemoryStore.get("launchbox", "retro").unlockedAchievements,
+    []
+  );
+  assert.deepEqual(
+    f.state.updates.map((update) => update.channel),
+    ["on-update-achievements-retro-launchbox"]
+  );
+});
+
+test("RPCS3 unlocks do not enter Steam or RetroAchievements upload queues", async (t) => {
+  const f = await fixture(t);
+  const game = { ...f.game, shop: "launchbox", platform: "Sony Playstation 3" };
+  await f.mergeAchievements(
+    game,
+    [{ name: "NPWR12345_00:0", unlockTime: 1 }],
+    true
+  );
+  assert.equal(f.requests.length, 0);
+  assert.equal(f.records.size, 0);
 });
 
 test("reset DELETE shares the HTTP queue and carries its captured account", async (t) => {

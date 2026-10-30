@@ -15,6 +15,7 @@ import { isAchievementSouvenirsEnabled } from "@shared";
 import { randomUUID } from "node:crypto";
 import { WindowManager } from "../window-manager";
 import { HydraApi } from "../hydra-api";
+import { isClassicsGameForEmulator } from "../../../shared/classics-emulator-games.js";
 import { getUnlockedAchievements } from "@main/events/user/get-unlocked-achievements";
 import { achievementsLogger } from "../logger";
 import { db, levelKeys } from "@main/level";
@@ -296,7 +297,11 @@ export const mergeAchievements = async (
   achievements: UnlockedAchievement[],
   publishNotification: boolean
 ) => {
-  if (game.shop === "epic") return 0;
+  if (
+    game.shop === "epic" ||
+    isClassicsGameForEmulator(game, { kind: "emulator", system: "ps3" })
+  )
+    return 0;
   const context = HydraApi.getAuthContext();
   const current = () =>
     context

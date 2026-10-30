@@ -2359,6 +2359,15 @@
     "available_on_epic": "Available on Epic Games"
   },
   "achievement": {
+    "local_trophy_points": "Local trophy score:",
+    "local_trophies": "RPCS3 (local)",
+    "trophy_grade_bronze": "Bronze",
+    "trophy_grade_silver": "Silver",
+    "trophy_grade_gold": "Gold",
+    "trophy_grade_platinum": "Platinum",
+    "sort_trophy_grade_ascending": "Lowest grade first",
+    "sort_trophy_grade_descending": "Highest grade first",
+    "local_trophy_points_tooltip": "Provisional score based on trophy grade ×25. Not credited to your Hydra account.",
     "achievement_unlocked": "Achievement unlocked",
     "user_achievements": "{{displayName}}'s Achievements",
     "your_achievements": "Your Achievements",

@@ -27,13 +27,14 @@ export interface SteamAchievement {
   set?: AchievementSet | null;
   externalSetId?: string;
   externalId?: string;
+  trophyGrade?: "bronze" | "silver" | "gold" | "platinum";
 }
 
 export interface UserAchievement extends SteamAchievement {
   unlocked: boolean;
   unlockTime: number | null;
   hardcoreUnlockTime?: number | null;
-  source?: "steam" | "epic" | "retroachievements";
+  source?: "steam" | "epic" | "retroachievements" | "rpcs3";
   canonicalAchievementId?: string;
   sourceObjectId?: string;
   sources?: Array<{
