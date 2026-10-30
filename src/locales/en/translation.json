@@ -3006,6 +3006,7 @@
     "comment_deleted": "Comment deleted",
     "comment_edit_failed": "Could not edit the comment",
     "comment_edited": "edited",
+    "comment_hidden": "Your comment was hidden by moderation",
     "comment_not_allowed": "You can't comment on this screenshot",
     "comment_placeholder": "Write a comment",
     "comment_post_failed": "Could not post the comment",

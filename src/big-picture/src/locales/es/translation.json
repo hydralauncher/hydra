@@ -973,6 +973,7 @@
     "screenshots_load_more": "Cargar más",
     "screenshots_view_all": "Ver todas",
     "screenshots_comment_bold": "Negrita",
+    "screenshots_comment_hidden": "Tu comentario fue ocultado por la moderación",
     "screenshots_comment_italic": "Cursiva",
     "screenshots_comment_underline": "Subrayado",
     "screenshots_comment_count_one": "{{count}} comentario",

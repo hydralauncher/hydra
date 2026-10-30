@@ -149,7 +149,7 @@ export function useScreenshotComments({
   onFailure,
 }: UseScreenshotCommentsOptions) {
   const { t } = useTranslation("screenshots");
-  const { showErrorToast, showSuccessToast } = useToast();
+  const { showErrorToast, showSuccessToast, showWarningToast } = useToast();
   const ownerId = screenshot.owner.id;
   const screenshotId = screenshot.id;
   const draftKey = `${author?.id ?? ""}:${screenshotId}`;
@@ -413,8 +413,10 @@ export function useScreenshotComments({
         }
         if (comment.isHidden) {
           onPatch(screenshotId, adjustCommentCount(-1));
+          showWarningToast(t("comment_hidden"));
+        } else {
+          showSuccessToast(t("comment_posted"));
         }
-        showSuccessToast(t("comment_posted"));
       } catch (error) {
         logger.error("Failed to post screenshot comment", error);
         const isListed =
@@ -439,6 +441,7 @@ export function useScreenshotComments({
       screenshotId,
       setPending,
       showSuccessToast,
+      showWarningToast,
       t,
     ]
   );
@@ -495,7 +498,9 @@ export function useScreenshotComments({
         const hasNewerEdit = [...confirmed.pendingVersions].some(
           (version) => version > editVersion
         );
-        if (!hasNewerEdit) showSuccessToast(t("comment_updated"));
+        if (hasNewerEdit) return;
+        if (updated?.isHidden) showWarningToast(t("comment_hidden"));
+        else showSuccessToast(t("comment_updated"));
       } catch (error) {
         logger.error("Failed to edit screenshot comment", error);
         handleWriteError(error, "comment_edit_failed", comment.id);
@@ -516,6 +521,7 @@ export function useScreenshotComments({
       screenshotId,
       showConfirmedEdit,
       showSuccessToast,
+      showWarningToast,
       t,
     ]
   );

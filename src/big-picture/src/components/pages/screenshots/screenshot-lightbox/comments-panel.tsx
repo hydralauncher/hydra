@@ -614,7 +614,8 @@ export function ScreenshotCommentsPanel({
   onScreenshotUpdate,
 }: Readonly<ScreenshotCommentsPanelProps>) {
   const { t, i18n } = useTranslation("big_picture");
-  const { showErrorToast, showSuccessToast } = useBigPictureToast();
+  const { showErrorToast, showSuccessToast, showWarningToast } =
+    useBigPictureToast();
   const { setFocus } = useNavigation();
   const { userDetails } = useUserDetails();
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
@@ -790,9 +791,13 @@ export function ScreenshotCommentsPanel({
           wasCounted: true,
         });
         if (!created.isHidden) recordWrite({ kind: "add", comment: created });
-        showSuccessToast(t("screenshots_comment_posted"), {
-          fallbackVisual: "settings",
-        });
+        if (created.isHidden) {
+          showWarningToast(t("screenshots_comment_hidden"));
+        } else {
+          showSuccessToast(t("screenshots_comment_posted"), {
+            fallbackVisual: "settings",
+          });
+        }
         const isPendingShown = commentsRef.current.some(
           (comment) => comment.id === pending.id
         );
@@ -869,6 +874,7 @@ export function ScreenshotCommentsPanel({
       setTotal,
       showError,
       showSuccessToast,
+      showWarningToast,
       t,
     ]
   );
@@ -895,9 +901,13 @@ export function ScreenshotCommentsPanel({
           confirmed.version = editVersion;
         }
         if (!isLatestEdit()) return;
-        showSuccessToast(t("screenshots_comment_updated"), {
-          fallbackVisual: "settings",
-        });
+        if (updated?.isHidden) {
+          showWarningToast(t("screenshots_comment_hidden"));
+        } else {
+          showSuccessToast(t("screenshots_comment_updated"), {
+            fallbackVisual: "settings",
+          });
+        }
         if (updated) replaceComment(comment.id, pickCommentEditPatch(updated));
         if (updated && updated.isHidden !== comment.isHidden) {
           const delta = updated.isHidden ? -1 : 1;
@@ -941,6 +951,7 @@ export function ScreenshotCommentsPanel({
       setTotal,
       showError,
       showSuccessToast,
+      showWarningToast,
       t,
     ]
   );
