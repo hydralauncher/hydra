@@ -696,21 +696,12 @@ $leaderboards-heat-gap: 6px;
     background-color: globals.$background-color;
   }
 
-  // The date with the game link under it, on the right of the author.
   &__review-game-icon {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     flex-shrink: 0;
     border-radius: 2px;
     object-fit: cover;
-  }
-
-  &__review-side {
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
   }
 
   &__review-quote {
@@ -726,8 +717,21 @@ $leaderboards-heat-gap: 6px;
     color: rgba(255, 255, 255, 0.7);
   }
 
-  &__review-game {
-    font-size: globals.$small-font-size;
+  // A chip like the score's, in the top right corner of the banner.
+  &__review-game.game-details__review-score-stars {
+    position: absolute;
+    z-index: 2;
+    top: globals.$spacing-unit;
+    right: globals.$spacing-unit;
+    max-width: 50%;
+    overflow: hidden;
+    gap: 6px;
+    height: 30px;
+    padding: 2px 10px 2px 6px;
+    font-size: globals.$body-font-size;
+    color: inherit;
+    white-space: nowrap;
+    cursor: pointer;
   }
 
   &__review-title {
@@ -748,6 +752,19 @@ $leaderboards-heat-gap: 6px;
     -webkit-line-clamp: 5;
     line-clamp: 5;
     overflow: hidden;
+    white-space: pre-line;
+
+    &--expanded {
+      display: block;
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+    }
+  }
+
+  &__review-more {
+    margin-top: globals.$spacing-unit;
+    font-size: globals.$small-font-size;
+    font-style: normal;
   }
 
   // Report as cheater: a bare icon, only shown on hover (leaderboard-row and

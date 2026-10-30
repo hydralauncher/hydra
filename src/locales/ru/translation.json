@@ -2576,6 +2576,8 @@
     "insight_outside": "Ещё примерно <b>{{amount}}</b>, чтобы попасть в <b>топ {{rank}}</b>.",
     "insight_outside_week": "Ещё примерно <b>{{amount}}</b> до воскресенья, чтобы попасть в <b>топ {{rank}}</b>.",
     "insight_ranked": "Вы на <b>#{{rank}}</b> месте в этом рейтинге.",
+    "review_read_more": "Читать далее",
+    "review_read_less": "Свернуть",
     "insight_unranked": "Вас пока нет в этом рейтинге.",
     "insight_unranked_playtime": "Играйте через Hydra, чтобы попасть в этот рейтинг.",
     "insight_unranked_games": "Запустите игру через Hydra, чтобы попасть в этот рейтинг.",
