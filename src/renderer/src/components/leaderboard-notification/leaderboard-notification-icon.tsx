@@ -108,11 +108,7 @@ export function LeaderboardNotificationIcon({
     );
   };
 
-  return (
-    <div className="leaderboard-notification-icon">
-      {renderTile()}
-    </div>
-  );
+  return <div className="leaderboard-notification-icon">{renderTile()}</div>;
 }
 
 // For the notifications page: only the image, in the same frame as the others.
