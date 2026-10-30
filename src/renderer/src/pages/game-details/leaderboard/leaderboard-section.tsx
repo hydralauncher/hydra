@@ -48,9 +48,6 @@ export function LeaderboardSection() {
   const navigate = useNavigate();
   const { isFeatureEnabled, Feature } = useFeature();
   const isExtended = isFeatureEnabled(Feature.GameLeaderboardsExtended);
-  const isGlobalLeaderboardsEnabled = isFeatureEnabled(
-    Feature.GlobalLeaderboards
-  );
   const formatValue = useLeaderboardValue();
 
   const {
@@ -286,7 +283,7 @@ export function LeaderboardSection() {
           ))}
         </ol>
 
-        {isGlobalLeaderboardsEnabled && isLoggedIn && (
+        {isLoggedIn && (
           <div className="leaderboard-section__footer">
             <button
               type="button"

@@ -58,9 +58,12 @@ function ReviewText({
     <>
       <div
         ref={textRef}
-        className={cn("game-details__review-content leaderboards__review-text", {
-          "leaderboards__review-text--expanded": isExpanded,
-        })}
+        className={cn(
+          "game-details__review-content leaderboards__review-text",
+          {
+            "leaderboards__review-text--expanded": isExpanded,
+          }
+        )}
         {...(html
           ? { dangerouslySetInnerHTML: { __html: html } }
           : { children: text })}
