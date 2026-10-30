@@ -19,13 +19,13 @@ import {
   buildHeatmap,
   buildHeatmapMonths,
   DAY_MS,
+  getHeatmapTotalDisplay,
   getViewerRanking,
   normalizeFriendStreaks,
   normalizePlayActivity,
   PLAY_ACTIVITY_FALLBACK_WEEKS,
   PLAY_ACTIVITY_WEEKS,
   MINUTES_PER_HOUR,
-  SECONDS_PER_HOUR,
   SECONDS_PER_MINUTE,
   sumHeatmap,
   type MetricDefinition,
@@ -319,6 +319,22 @@ export function StatsTab({
     );
   };
 
+  const renderActivityTotal = () => {
+    const total = getHeatmapTotalDisplay(heatmapTotal);
+    if (total.unit === "none") return t("activity_empty");
+    if (total.unit === "minutes") {
+      return t("activity_total_minutes", {
+        minutes: total.amount,
+        count: heatmapTotal.days,
+      });
+    }
+
+    return t("activity_total", {
+      hours: numberFormatter.format(total.amount),
+      count: heatmapTotal.days,
+    });
+  };
+
   const renderActivity = () => {
     if (activity.isLoading && !activity.data) {
       return <Skeleton height={150} className="leaderboards__block-skeleton" />;
@@ -385,16 +401,7 @@ export function StatsTab({
         </div>
         {renderHeatTip()}
         <div className="leaderboards__activity-footer">
-          <span>
-            {/* pt-BR has `_zero` forms for this and the day counts:
-                Intl.PluralRules("pt") puts 0 in "one", which read "0 dia". */}
-            {t("activity_total", {
-              hours: numberFormatter.format(
-                Math.round(heatmapTotal.seconds / SECONDS_PER_HOUR)
-              ),
-              count: heatmapTotal.days,
-            })}
-          </span>
+          <span>{renderActivityTotal()}</span>
           <span className="leaderboards__heatmap-legend">
             {t("legend_less")}
             {[0, 1, 2, 3].map((level) => (

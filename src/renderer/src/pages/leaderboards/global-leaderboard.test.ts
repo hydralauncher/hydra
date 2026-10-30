@@ -24,6 +24,7 @@ import {
   normalizeMyGames,
   normalizePlayActivity,
   resolveWeekRange,
+  getHeatmapTotalDisplay,
   sumHeatmap,
   type GlobalLeaderboardQuery,
 } from "./global-leaderboard.js";
@@ -421,6 +422,28 @@ describe("play activity", () => {
 
     assert.deepEqual(sumHeatmap(cells), { seconds: 5400, days: 2 });
     assert.deepEqual(sumHeatmap([]), { seconds: 0, days: 0 });
+  });
+
+  it("shows the heatmap total as nothing, minutes or hours", () => {
+    assert.deepEqual(getHeatmapTotalDisplay({ seconds: 0, days: 0 }), {
+      unit: "none",
+    });
+    assert.deepEqual(getHeatmapTotalDisplay({ seconds: 20, days: 1 }), {
+      unit: "minutes",
+      amount: 1,
+    });
+    assert.deepEqual(getHeatmapTotalDisplay({ seconds: 300, days: 1 }), {
+      unit: "minutes",
+      amount: 5,
+    });
+    assert.deepEqual(getHeatmapTotalDisplay({ seconds: 3580, days: 1 }), {
+      unit: "hours",
+      amount: 1,
+    });
+    assert.deepEqual(getHeatmapTotalDisplay({ seconds: 460800, days: 74 }), {
+      unit: "hours",
+      amount: 128,
+    });
   });
 
   it("flags today and yesterday by UTC day", () => {

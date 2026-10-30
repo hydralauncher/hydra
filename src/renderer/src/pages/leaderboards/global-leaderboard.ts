@@ -532,6 +532,26 @@ export const sumHeatmap = (cells: HeatmapCell[]) =>
     { seconds: 0, days: 0 }
   );
 
+export type HeatmapTotalDisplay =
+  | { unit: "none" }
+  | { unit: "minutes" | "hours"; amount: number };
+
+// Under an hour the total is in minutes, so a short session does not read "0 h".
+export const getHeatmapTotalDisplay = ({
+  seconds,
+  days,
+}: {
+  seconds: number;
+  days: number;
+}): HeatmapTotalDisplay => {
+  if (days === 0) return { unit: "none" };
+
+  const minutes = Math.max(1, Math.round(seconds / SECONDS_PER_MINUTE));
+  if (minutes < MINUTES_PER_HOUR) return { unit: "minutes", amount: minutes };
+
+  return { unit: "hours", amount: Math.round(seconds / SECONDS_PER_HOUR) };
+};
+
 export const normalizeMyGames = (response: unknown): MyGameRanking[] => {
   const items = isRecord(response) ? response.games : response;
   if (!Array.isArray(items)) throw new TypeError("Invalid games response");
