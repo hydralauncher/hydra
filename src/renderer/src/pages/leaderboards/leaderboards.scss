@@ -1745,6 +1745,30 @@ $leaderboards-heat-gap: 3px;
 }
 
 // Three cards do not fit next to the sidebar in a narrow window.
+// On large screens the layout grows with the space. The podium keeps its shape:
+// the heights follow the same proportions as the column widths.
+@media (min-width: 2000px) {
+  .leaderboards__sidebar {
+    width: 380px;
+  }
+
+  .leaderboards__board {
+    max-width: 1680px;
+  }
+
+  .leaderboard-podium__card--gold {
+    height: 400px;
+  }
+
+  .leaderboard-podium__card--silver {
+    height: 370px;
+  }
+
+  .leaderboard-podium__card--bronze {
+    height: 340px;
+  }
+}
+
 @container board-header (max-width: 900px) {
   .leaderboards__selector--collapsible {
     .leaderboards__selector-option {
