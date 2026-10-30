@@ -44,6 +44,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useSubscription } from "./hooks/use-subscription";
+import { useCustomTheme } from "./hooks/use-custom-theme";
 import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-modal";
 import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
@@ -57,12 +58,7 @@ import { playMessageSound } from "./pages/chat-window/chat-sounds";
 
 import type { UserPreferences } from "@types";
 import "./app.scss";
-import {
-  getAchievementSoundUrl,
-  getAchievementSoundVolume,
-  injectCustomCss,
-  removeCustomCss,
-} from "./helpers";
+import { getAchievementSoundUrl, getAchievementSoundVolume } from "./helpers";
 import { levelDBService } from "./services/leveldb.service";
 
 export interface AppProps {
@@ -626,30 +622,7 @@ export function App() {
     });
   }, [dispatch, draggingDisabled]);
 
-  const loadAndApplyTheme = useCallback(async () => {
-    const allThemes = (await levelDBService.values("themes")) as {
-      isActive?: boolean;
-      code?: string;
-    }[];
-    const activeTheme = allThemes.find((theme) => theme.isActive);
-    if (activeTheme?.code) {
-      injectCustomCss(activeTheme.code);
-    } else {
-      removeCustomCss();
-    }
-  }, []);
-
-  useEffect(() => {
-    loadAndApplyTheme();
-  }, [loadAndApplyTheme]);
-
-  useEffect(() => {
-    const unsubscribe = window.electron.onCustomThemeUpdated(() => {
-      loadAndApplyTheme();
-    });
-
-    return () => unsubscribe();
-  }, [loadAndApplyTheme]);
+  useCustomTheme();
 
   useEffect(() => {
     const unsubscribe = globalThis.electron.onNavigate((path) => {
