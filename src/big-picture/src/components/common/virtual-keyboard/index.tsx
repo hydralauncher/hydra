@@ -602,6 +602,23 @@ function moveInputCursor(
   return nextPosition;
 }
 
+function moveContentEditableCursor(direction: "left" | "right") {
+  const selection = globalThis.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+
+  if (!selection.isCollapsed) {
+    if (direction === "left") selection.collapseToStart();
+    else selection.collapseToEnd();
+    return;
+  }
+
+  selection.modify(
+    "move",
+    direction === "left" ? "backward" : "forward",
+    "character"
+  );
+}
+
 function submitSingleLineInput(target: HTMLInputElement) {
   if (target.form) {
     target.form.requestSubmit();
@@ -921,6 +938,7 @@ export function VirtualKeyboardProvider() {
         restoreInputSelectionAfterRender(target, nextCursor);
       } else {
         focusEditableTarget(target);
+        moveContentEditableCursor(direction);
       }
 
       focusEditableTarget(target);

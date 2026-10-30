@@ -620,9 +620,10 @@ export function ScreenshotComments({
             {t("comments_sort")}
             <select
               value={sort}
-              onChange={(event) =>
-                setSort(event.target.value === "top" ? "top" : "newest")
-              }
+              onChange={(event) => {
+                setSort(event.target.value === "top" ? "top" : "newest");
+                event.currentTarget.blur();
+              }}
             >
               <option value="newest">{t("comments_sort_newest")}</option>
               <option value="top">{t("comments_sort_top")}</option>

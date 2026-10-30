@@ -360,7 +360,12 @@ $screenshot-comment-highlight-duration: 1.6s;
   }
 
   &__sort {
+    flex-shrink: 0;
     margin-left: auto;
+
+    .segmented-control__option {
+      flex: 1 0 auto;
+    }
   }
 
   &__count {
