@@ -326,6 +326,7 @@ function GalleryLightboxContent({
   const [enteringFullscreen, setEnteringFullscreen] = useState(fullscreen);
   const [openFadeDone, setOpenFadeDone] = useState(!fullscreen);
   const isFullscreen = isFullscreenActive || enteringFullscreen;
+  const isLinux = window.electron?.platform === "linux";
   const startsChromeHidden =
     initialChromeHidden || (fullscreen && items[index]?.type === "image");
   const [idle, setIdle] = useState(startsChromeHidden);
@@ -919,7 +920,8 @@ function GalleryLightboxContent({
           "gallery-lightbox--chrome-hidden": chromeHidden,
           "gallery-lightbox--with-filmstrip": showFilmstrip,
           "gallery-lightbox--with-sidebar": isSidebarOpen,
-          "gallery-lightbox--titlebar-offset": !isFullscreen,
+          "gallery-lightbox--titlebar-offset": !isFullscreen && !isLinux,
+          "gallery-lightbox--below-titlebar": !isFullscreen && isLinux,
         })}
         style={
           {

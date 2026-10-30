@@ -15,12 +15,14 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__panel--with-comments &__details {
+    flex-shrink: 0;
     max-height: 45%;
   }
 
   &__details {
     display: flex;
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    min-height: 0;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
     padding: calc(globals.$spacing-unit * 2);

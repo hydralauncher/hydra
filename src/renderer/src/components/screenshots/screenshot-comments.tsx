@@ -324,6 +324,7 @@ interface ScreenshotCommentItemProps {
   isEditing: boolean;
   isNew: boolean;
   isScreenshotOwner: boolean;
+  onHighlightEnd: () => void;
   onAuthorClick: () => void;
   onVote: (comment: ScreenshotComment, vote: ScreenshotCommentVoteType) => void;
   onStartEdit: (comment: ScreenshotComment) => void;
@@ -342,6 +343,7 @@ function ScreenshotCommentItem({
   isEditing,
   isNew,
   isScreenshotOwner,
+  onHighlightEnd,
   onAuthorClick,
   onVote,
   onStartEdit,
@@ -370,6 +372,9 @@ function ScreenshotCommentItem({
       className={cn("screenshot-comments__item", {
         "screenshot-comments__item--new": isNew && !isPending,
       })}
+      onAnimationEnd={(event) => {
+        if (isNew && event.target === event.currentTarget) onHighlightEnd();
+      }}
     >
       {bannerImageUrl ? (
         <img
@@ -503,6 +508,7 @@ export function ScreenshotComments({
     pendingCommentIds,
     reportedCommentIds,
     newCommentId,
+    clearNewComment,
     reload,
     loadMore,
     createComment,
@@ -571,6 +577,7 @@ export function ScreenshotComments({
               isEditing={editingCommentId === comment.id}
               isNew={newCommentId === comment.id}
               isScreenshotOwner={comment.author.id === screenshot.owner.id}
+              onHighlightEnd={clearNewComment}
               onAuthorClick={onNavigateAway}
               onVote={(item, vote) => void voteComment(item, vote)}
               onStartEdit={(item) => setEditingCommentId(item.id)}

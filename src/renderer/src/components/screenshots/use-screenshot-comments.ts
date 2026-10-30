@@ -438,6 +438,8 @@ export function useScreenshotComments({
     ]
   );
 
+  const clearNewComment = useCallback(() => setNewCommentId(null), []);
+
   const createComment = useCallback(
     (body: string) => {
       const normalizedBody = normalizeScreenshotCommentBody(body);
@@ -679,6 +681,7 @@ export function useScreenshotComments({
     pendingCommentIds,
     reportedCommentIds,
     newCommentId,
+    clearNewComment,
     reload,
     loadMore,
     createComment,
