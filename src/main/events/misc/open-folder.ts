@@ -2,7 +2,7 @@ import { shell } from "electron";
 import { ensureDirectorySync } from "@main/services/download/ensure-directory";
 import { registerEvent } from "../register-event";
 
-const openFolder = async (
+const openFolder = (
   _event: Electron.IpcMainInvokeEvent,
   folderPath: string
 ) => {
