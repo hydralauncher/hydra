@@ -21,8 +21,9 @@ import {
 } from "./use-global-leaderboards";
 import { useMetricText } from "./use-global-leaderboard-value";
 
+const GAME_SKELETON_COUNT = 4;
 const GAME_SKELETON_KEYS = Array.from(
-  { length: 4 },
+  { length: GAME_SKELETON_COUNT },
   (_, index) => `sidebar-game-skeleton-${index}`
 );
 
