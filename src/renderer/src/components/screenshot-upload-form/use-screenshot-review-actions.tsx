@@ -12,6 +12,7 @@ import {
 
 const UPLOAD_SIGNED_OUT_ERROR = "user not logged in";
 const UPLOAD_MISSING_FILE_ERROR = "screenshot_missing";
+const AWAITED_UPLOAD_STATE_TIMEOUT_MS = 5000;
 
 export function useScreenshotReviewActions(
   screenshot: LocalScreenshot,
@@ -29,12 +30,17 @@ export function useScreenshotReviewActions(
   const { showErrorToast } = useToast();
 
   useEffect(() => {
-    if (
-      awaitedUploadState !== null &&
-      screenshot.state !== awaitedUploadState
-    ) {
+    if (awaitedUploadState === null) return;
+    if (screenshot.state !== awaitedUploadState) {
       setAwaitedUploadState(null);
+      return;
     }
+
+    const timeout = setTimeout(
+      () => setAwaitedUploadState(null),
+      AWAITED_UPLOAD_STATE_TIMEOUT_MS
+    );
+    return () => clearTimeout(timeout);
   }, [awaitedUploadState, screenshot.state]);
 
   const runAction = async (
