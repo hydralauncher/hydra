@@ -17,9 +17,14 @@ $leaderboards-heat-gap: 3px;
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 3);
   width: 100%;
+  // Fills the page so an empty state can center in it. Without flex-shrink: 0,
+  // a long page would shrink to this height instead of scrolling.
+  flex-shrink: 0;
+  min-height: 100%;
   padding: calc(globals.$spacing-unit * 3);
 
   &__content {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 3);
@@ -37,14 +42,6 @@ $leaderboards-heat-gap: 3px;
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit / 2);
-  }
-
-  &__title {
-    margin: 0;
-    font-size: 20px;
-    line-height: 28px;
-    font-weight: 700;
-    color: globals.$muted-color;
   }
 
   &__subtitle {
@@ -590,6 +587,11 @@ $leaderboards-heat-gap: 3px;
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
+
+    &--empty {
+      flex: 1;
+      justify-content: center;
+    }
   }
 
   &__search {

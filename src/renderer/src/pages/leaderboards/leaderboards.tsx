@@ -82,6 +82,7 @@ function LeaderboardsPage() {
       ? (scopeParam as GlobalLeaderboardScope)
       : null,
   });
+  const [selectedGameKey, setSelectedGameKey] = useState<string | null>(null);
   const [generation, setGeneration] = useState(0);
 
   const sourceParam = searchParams.get("source");
@@ -234,6 +235,23 @@ function LeaderboardsPage() {
     friends: <PeopleIcon size={14} />,
   };
 
+  // Leaving the tab drops the game that came from a game page's link, so the
+  // By game tab opens on the viewer's own games when they come back.
+  const handleTabChange = (value: LeaderboardPageTab) => {
+    setRequestedTab(value);
+    if (!linkedGame || value === "games") return;
+
+    setSearchParams(
+      (params) => {
+        ["tab", "shop", "objectId", "metric"].forEach((name) =>
+          params.delete(name)
+        );
+        return params;
+      },
+      { replace: true }
+    );
+  };
+
   const openMetric = (value: string) => {
     setRequestedMetric(value);
     setRequestedTab("ranking");
@@ -244,7 +262,6 @@ function LeaderboardsPage() {
       <section className="leaderboards">
         <header className="leaderboards__header">
           <div className="leaderboards__heading">
-            <h1 className="leaderboards__title">{t("title")}</h1>
             <WeekSubtitle
               weekRange={weekRange}
               isAllTime={period === "all"}
@@ -292,7 +309,7 @@ function LeaderboardsPage() {
               className={cn("leaderboards__tab", {
                 "leaderboards__tab--selected": id === tab,
               })}
-              onClick={() => setRequestedTab(id)}
+              onClick={() => handleTabChange(id)}
             >
               {t(`tab_${id}`)}
             </button>
@@ -327,6 +344,8 @@ function LeaderboardsPage() {
               viewerUser={viewerUser}
               initialGame={linkedGame}
               initialMetric={linkedGame ? metricParam : null}
+              savedGameKey={selectedGameKey}
+              onGameSelect={setSelectedGameKey}
             />
           )}
 

@@ -11,7 +11,7 @@ import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import { Avatar } from "@renderer/components";
+import { Avatar, Button } from "@renderer/components";
 import { useFormat } from "@renderer/hooks";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
@@ -58,6 +58,9 @@ export interface ByGameTabProps {
   viewerUser: LeaderboardUser | null;
   initialGame?: LinkedGame | null;
   initialMetric?: string | null;
+  // The game picked earlier, kept by the page while the viewer changes tabs.
+  savedGameKey: string | null;
+  onGameSelect: (key: string) => void;
 }
 
 interface SelectedGame {
@@ -121,6 +124,8 @@ export function ByGameTab({
   viewerUser,
   initialGame = null,
   initialMetric = null,
+  savedGameKey,
+  onGameSelect,
 }: Readonly<ByGameTabProps>) {
   const { t } = useTranslation("leaderboards");
   const navigate = useNavigate();
@@ -128,7 +133,7 @@ export function ByGameTab({
   const { numberFormatter } = useFormat();
   const [search, setSearch] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(
-    initialGame ? gameKey(initialGame) : null
+    initialGame ? gameKey(initialGame) : savedGameKey
   );
   const [requestedMetric, setRequestedMetric] = useState<string | null>(
     initialMetric
@@ -242,6 +247,17 @@ export function ByGameTab({
     </fieldset>
   );
 
+  // A game opened from a game page's link is not kept, only one the viewer picks.
+  const selectGame = (key: string) => {
+    onGameSelect(key);
+    setSelectedKey(key);
+  };
+
+  const hasNoGames =
+    !(games.isLoading && !games.data) &&
+    !games.hasError &&
+    allGames.length === 0;
+
   const renderGames = () => {
     if (games.isLoading && !games.data) {
       return (
@@ -258,9 +274,14 @@ export function ByGameTab({
     if (allGames.length === 0) {
       return (
         <BlockMessage
-          icon={<TrophyIcon size={24} />}
+          icon={<TrophyIcon size={32} />}
           title={t("games_empty_title")}
           description={t("games_empty_description")}
+          action={
+            <Button theme="primary" onClick={() => navigate("/library")}>
+              {t("go_to_library")}
+            </Button>
+          }
         />
       );
     }
@@ -282,7 +303,7 @@ export function ByGameTab({
               className={cn("leaderboards__game", {
                 "leaderboards__game--selected": isSelected,
               })}
-              onClick={() => setSelectedKey(gameKey(game))}
+              onClick={() => selectGame(gameKey(game))}
             >
               <span
                 className="leaderboards__game-cover"
@@ -394,36 +415,46 @@ export function ByGameTab({
 
   return (
     <>
-      <section className="leaderboards__my-games">
-        <div className="leaderboards__section-header">
-          <h2 className="leaderboards__heading-2">{t("my_games_title")}</h2>
-          <label className="leaderboards__search">
-            <SearchIcon size={14} />
-            <span className="leaderboards__sr-only">{t("search_game")}</span>
-            <input
-              type="text"
-              value={search}
-              placeholder={t("search_game_placeholder")}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") setSearch("");
-              }}
-            />
-            {search && (
-              <button
-                type="button"
-                className="leaderboards__search-clear"
-                onClick={() => setSearch("")}
-                aria-label={t("clear_search")}
-                title={t("clear_search")}
-              >
-                <XIcon size={14} />
-              </button>
-            )}
-          </label>
-        </div>
-        {renderGames()}
-      </section>
+      {!(hasNoGames && boardGame) && (
+        <section
+          className={cn("leaderboards__my-games", {
+            "leaderboards__my-games--empty": hasNoGames,
+          })}
+        >
+          {!hasNoGames && (
+            <div className="leaderboards__section-header">
+              <h2 className="leaderboards__heading-2">{t("my_games_title")}</h2>
+              <label className="leaderboards__search">
+                <SearchIcon size={14} />
+                <span className="leaderboards__sr-only">
+                  {t("search_game")}
+                </span>
+                <input
+                  type="text"
+                  value={search}
+                  placeholder={t("search_game_placeholder")}
+                  onChange={(event) => setSearch(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") setSearch("");
+                  }}
+                />
+                {search && (
+                  <button
+                    type="button"
+                    className="leaderboards__search-clear"
+                    onClick={() => setSearch("")}
+                    aria-label={t("clear_search")}
+                    title={t("clear_search")}
+                  >
+                    <XIcon size={14} />
+                  </button>
+                )}
+              </label>
+            </div>
+          )}
+          {renderGames()}
+        </section>
+      )}
 
       {boardGame && (
         <section
