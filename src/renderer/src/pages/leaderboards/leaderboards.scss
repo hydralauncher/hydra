@@ -39,8 +39,8 @@ $leaderboards-heat-gap: 3px;
 
   &__title {
     margin: 0;
-    font-size: 24px;
-    line-height: 32px;
+    font-size: 20px;
+    line-height: 28px;
     font-weight: 700;
     color: globals.$muted-color;
   }
@@ -73,7 +73,6 @@ $leaderboards-heat-gap: 3px;
 
     .leaderboard-controls__segment {
       height: 34px;
-      font-size: globals.$small-font-size;
     }
   }
 
@@ -93,7 +92,7 @@ $leaderboards-heat-gap: 3px;
     background: transparent;
     color: $leaderboards-muted-text;
     font-size: globals.$body-font-size;
-    font-weight: 700;
+    font-weight: 500;
     cursor: pointer;
     transition:
       color 0.2s ease,
@@ -187,7 +186,7 @@ $leaderboards-heat-gap: 3px;
     align-items: center;
     gap: 6px;
     font-size: globals.$small-font-size;
-    font-weight: 600;
+    font-weight: 500;
     white-space: nowrap;
 
     svg {
@@ -317,7 +316,7 @@ $leaderboards-heat-gap: 3px;
   &__message-title {
     color: globals.$muted-color;
     font-size: globals.$hint-font-size;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   &__message-description {
@@ -425,7 +424,7 @@ $leaderboards-heat-gap: 3px;
     align-items: center;
     gap: globals.$spacing-unit;
     font-size: globals.$body-font-size;
-    font-weight: 600;
+    font-weight: 500;
 
     svg {
       color: globals.$rank-gold-color;
@@ -567,7 +566,7 @@ $leaderboards-heat-gap: 3px;
     background: transparent;
     color: $leaderboards-muted-text;
     font-size: globals.$small-font-size;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     transition:
       background-color 0.2s ease,
@@ -721,8 +720,8 @@ $leaderboards-heat-gap: 3px;
   }
 
   &__game-position {
-    font-size: 16px;
-    font-weight: 800;
+    font-size: globals.$body-font-size;
+    font-weight: 700;
     color: globals.$muted-color;
   }
 
@@ -783,8 +782,8 @@ $leaderboards-heat-gap: 3px;
 
   &__hero-title {
     margin: 0;
-    font-size: 18px;
-    line-height: 26px;
+    font-size: 16px;
+    line-height: 24px;
     font-weight: 700;
   }
 
@@ -978,9 +977,9 @@ $leaderboards-heat-gap: 3px;
     gap: 6px;
 
     strong {
-      font-size: 18px;
+      font-size: globals.$body-font-size;
       line-height: 22px;
-      font-weight: 800;
+      font-weight: 700;
       color: globals.$muted-color;
     }
   }
@@ -1067,7 +1066,7 @@ $leaderboards-heat-gap: 3px;
   &__heatmap-day {
     display: flex;
     align-items: center;
-    font-size: 10px;
+    font-size: 11px;
     line-height: 1;
     color: $leaderboards-muted-text;
   }
@@ -1235,8 +1234,8 @@ $leaderboards-heat-gap: 3px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 18px;
-    font-weight: 800;
+    font-size: globals.$body-font-size;
+    font-weight: 700;
     color: globals.$muted-color;
     white-space: nowrap;
 
@@ -1365,7 +1364,7 @@ $leaderboards-heat-gap: 3px;
     background: var(--chip-bg);
     color: globals.$dark-background-color;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 700;
     white-space: nowrap;
     transform: translateX(-50%);
   }
@@ -1383,7 +1382,7 @@ $leaderboards-heat-gap: 3px;
   }
 
   &__badge-title {
-    font-weight: 700;
+    font-weight: 500;
     color: globals.$muted-color;
   }
 
@@ -1601,9 +1600,9 @@ $leaderboards-heat-gap: 3px;
 
   &__rank {
     position: relative;
-    font-size: 26px;
+    font-size: 20px;
     line-height: 1;
-    font-weight: 900;
+    font-weight: 700;
   }
 
   &__metal {
@@ -1611,7 +1610,7 @@ $leaderboards-heat-gap: 3px;
     writing-mode: vertical-rl;
     transform: rotate(180deg);
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.24em;
     text-transform: uppercase;
   }
@@ -1675,7 +1674,7 @@ $leaderboards-heat-gap: 3px;
     border-radius: 6px;
     background-color: rgba(13, 13, 13, 0.75);
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   &__value {
@@ -1683,8 +1682,8 @@ $leaderboards-heat-gap: 3px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 16px;
-    font-weight: 400;
+    font-size: globals.$body-font-size;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 
@@ -1700,7 +1699,7 @@ $leaderboards-heat-gap: 3px;
     align-items: center;
     gap: 6px;
     font-size: globals.$small-font-size;
-    font-weight: 600;
+    font-weight: 500;
     color: globals.$body-color;
   }
 

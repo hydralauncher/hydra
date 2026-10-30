@@ -160,7 +160,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     background-color: globals.$dark-background-color;
     color: globals.$muted-color;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     transition: border-color 0.2s ease;
 
@@ -269,8 +269,8 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     border-radius: 6px;
     background: transparent;
     color: globals.$body-color;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: globals.$small-font-size;
+    font-weight: 500;
     white-space: nowrap;
     cursor: pointer;
     transition: color 0.2s ease 0.15s;
@@ -443,7 +443,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: globals.$body-font-size;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   &__you {
@@ -456,7 +456,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     border-radius: 6px;
     color: globals.$body-color;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   &__progress {
