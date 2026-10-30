@@ -14,7 +14,6 @@ import {
   SCREENSHOT_DESCRIPTION_MAX_LENGTH,
   normalizeScreenshotDescription,
   sanitizeScreenshotDescriptionInput,
-  resolveScreenshotUploadQuality,
 } from "@shared";
 
 import {
@@ -77,8 +76,7 @@ export const createReviewDraft = (
 
 export const toUploadOptions = (
   draft: ReviewDraft,
-  isCustomGame: boolean,
-  hasCloudSubscription: boolean
+  isCustomGame: boolean
 ): LocalScreenshotUploadOptions => {
   const customGameTitle = draft.customGameTitle.trim();
 
@@ -87,7 +85,6 @@ export const toUploadOptions = (
     visibility: draft.visibility,
     customGameTitle: isCustomGame && customGameTitle ? customGameTitle : null,
     description: normalizeScreenshotDescription(draft.description),
-    quality: resolveScreenshotUploadQuality(hasCloudSubscription),
   };
 };
 

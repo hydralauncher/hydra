@@ -65,7 +65,6 @@ function ScreenshotVisibilityTag({
   return (
     <span
       className="screenshot-lightbox__tag screenshot-lightbox__visibility"
-      aria-label={description}
       data-tooltip-id={tooltipId}
       data-tooltip-content={description}
     >
@@ -391,7 +390,11 @@ export function ScreenshotLightboxPanel({
   const isApproved = isScreenshotApproved(screenshot);
 
   return (
-    <aside className="screenshot-lightbox__panel">
+    <aside
+      className={cn("screenshot-lightbox__panel", {
+        "screenshot-lightbox__panel--with-comments": isCommentsEnabled,
+      })}
+    >
       <div className="screenshot-lightbox__details">
         <ScreenshotPanelInfo
           screenshot={screenshot}

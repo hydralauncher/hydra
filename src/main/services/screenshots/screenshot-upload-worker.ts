@@ -211,14 +211,11 @@ class ScreenshotUploadWorker {
       return screenshot;
     }
 
-    const isQualityRequested = options.quality !== undefined;
-    const quality = isQualityRequested
-      ? resolveScreenshotUploadQuality(HydraApi.hasActiveSubscription())
-      : undefined;
+    const quality = resolveScreenshotUploadQuality(
+      HydraApi.hasActiveSubscription()
+    );
     const isQualityChange =
-      quality !== undefined &&
-      screenshot.uploadQuality != null &&
-      screenshot.uploadQuality !== quality;
+      screenshot.uploadQuality != null && screenshot.uploadQuality !== quality;
     const updated = await LocalScreenshotStore.update(clientId, {
       ownerId,
       state: "queued",
@@ -237,7 +234,7 @@ class ScreenshotUploadWorker {
       ...RESET_WAIT_COUNTS,
       nextUploadAttemptAt: null,
       lastError: null,
-      ...(quality === undefined ? {} : { uploadQuality: quality }),
+      uploadQuality: quality,
       ...(isQualityChange ? { uploadClientId: randomUUID() } : {}),
     });
 

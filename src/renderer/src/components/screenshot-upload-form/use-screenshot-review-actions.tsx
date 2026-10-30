@@ -22,7 +22,7 @@ export function useScreenshotReviewActions(
     "upload" | "delete" | null
   >(null);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { userDetails } = useUserDetails();
   const { showErrorToast } = useToast();
 
   const runAction = async (
@@ -64,7 +64,7 @@ export function useScreenshotReviewActions(
       () =>
         window.electron.uploadLocalScreenshot(
           screenshot.clientId,
-          toUploadOptions(screenshot, draft, hasActiveSubscription)
+          toUploadOptions(screenshot, draft)
         ),
       "Failed to upload the screenshot",
       getUploadErrorMessage

@@ -136,7 +136,7 @@ export function LocalScreenshotSidebar({
     await runAction("upload", () =>
       globalThis.window.electron.uploadLocalScreenshot(
         clientId,
-        toUploadOptions(draft, isCustomGame, hasActiveSubscription)
+        toUploadOptions(draft, isCustomGame)
       )
     );
   };

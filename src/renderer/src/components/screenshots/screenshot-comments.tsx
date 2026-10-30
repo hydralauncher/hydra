@@ -369,7 +369,6 @@ function ScreenshotCommentItem({
       ref={itemRef}
       className={cn("screenshot-comments__item", {
         "screenshot-comments__item--new": isNew && !isPending,
-        "screenshot-comments__item--has-bg": bannerImageUrl,
       })}
     >
       {bannerImageUrl ? (

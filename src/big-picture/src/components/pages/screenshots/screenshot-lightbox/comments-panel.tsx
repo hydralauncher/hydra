@@ -585,6 +585,8 @@ export function ScreenshotCommentsPanel({
   const commentsRef = useRef(comments);
   const [editingComment, setEditingComment] =
     useState<ScreenshotComment | null>(null);
+  const editingCommentRef = useRef(editingComment);
+  editingCommentRef.current = editingComment;
   const draftKey = `${viewerId ?? ""}:${screenshot.id}`;
   const restoredDraft = useFailedCommentDrafts(
     (state) => state.draftsByKey[draftKey]?.[0] ?? null
@@ -740,6 +742,7 @@ export function ScreenshotCommentsPanel({
         const navigation = NavigationService.getInstance();
         if (
           isNewestComment &&
+          !editingCommentRef.current &&
           !created.isHidden &&
           navigation.getCurrentFocusId() === focusIds.input &&
           !normalizeScreenshotCommentBody(composerDraftRef.current)

@@ -14,12 +14,15 @@ $description-outline-fade-duration: 0.15s;
     overflow: hidden;
   }
 
+  &__panel--with-comments &__details {
+    max-height: 45%;
+  }
+
   &__details {
     display: flex;
     flex-shrink: 0;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
-    max-height: 45%;
     padding: calc(globals.$spacing-unit * 2);
     overflow-x: hidden;
     overflow-y: auto;

@@ -277,7 +277,6 @@ export interface LocalScreenshotUploadOptions {
   visibility: ProfileVisibility;
   customGameTitle: string | null;
   description?: string | null;
-  quality?: ScreenshotQuality;
 }
 
 export type LocalScreenshotDraft = Partial<LocalScreenshotUploadOptions>;

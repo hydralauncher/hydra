@@ -1,7 +1,4 @@
-import {
-  normalizeScreenshotDescription,
-  resolveScreenshotUploadQuality,
-} from "@shared";
+import { normalizeScreenshotDescription } from "@shared";
 import type {
   LocalScreenshot,
   LocalScreenshotUploadOptions,
@@ -33,8 +30,7 @@ export const createReviewDraft = (
 
 export const toUploadOptions = (
   screenshot: LocalScreenshot,
-  draft: ScreenshotReviewDraft,
-  hasCloudSubscription: boolean
+  draft: ScreenshotReviewDraft
 ): LocalScreenshotUploadOptions => {
   const title = draft.customGameTitle.trim();
   return {
@@ -42,7 +38,6 @@ export const toUploadOptions = (
     visibility: draft.visibility,
     customGameTitle: screenshot.shop === "custom" && title ? title : null,
     description: normalizeScreenshotDescription(draft.description),
-    quality: resolveScreenshotUploadQuality(hasCloudSubscription),
   };
 };
 
