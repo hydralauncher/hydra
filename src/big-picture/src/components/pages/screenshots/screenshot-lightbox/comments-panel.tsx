@@ -2,7 +2,9 @@ import {
   ArrowClockwiseIcon,
   ChatCircleIcon,
   ChatsCircleIcon,
+  ClockCounterClockwiseIcon,
   DotsThreeVerticalIcon,
+  FireIcon,
   FlagIcon,
   PencilSimpleIcon,
   TrashIcon,
@@ -623,8 +625,24 @@ export function ScreenshotCommentsPanel({
   const [sort, setSort] = useState<ScreenshotCommentSort>("newest");
   const sortOptions = useMemo<SegmentedControlOption<ScreenshotCommentSort>[]>(
     () => [
-      { value: "newest", label: t("screenshots_comments_sort_newest") },
-      { value: "top", label: t("screenshots_comments_sort_top") },
+      {
+        value: "newest",
+        label: (
+          <span className="screenshot-comments__sort-option">
+            <ClockCounterClockwiseIcon size={16} weight="bold" />
+            {t("screenshots_comments_sort_newest")}
+          </span>
+        ),
+      },
+      {
+        value: "top",
+        label: (
+          <span className="screenshot-comments__sort-option">
+            <FireIcon size={16} weight="bold" />
+            {t("screenshots_comments_sort_top")}
+          </span>
+        ),
+      },
     ],
     [t]
   );

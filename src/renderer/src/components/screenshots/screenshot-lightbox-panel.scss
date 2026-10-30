@@ -245,9 +245,11 @@ $description-outline-fade-duration: 0.15s;
 
   &__section-title {
     display: flex;
+    min-width: 0;
     align-items: center;
     gap: globals.$spacing-unit;
     margin: 0;
+    white-space: nowrap;
     color: globals.$muted-color;
     font-size: globals.$body-font-size;
     font-weight: 600;
@@ -276,42 +278,14 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__sort {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: globals.$body-color;
-    font-family: inherit;
-    font-size: globals.$small-font-size;
-    cursor: pointer;
-    user-select: none;
-    transition:
-      background-color motion.$transition-duration ease,
-      color motion.$transition-duration ease;
+    flex-shrink: 0;
 
-    &:hover,
-    [data-state="open"] > & {
-      background: rgba(255, 255, 255, 0.08);
-      color: globals.$muted-color;
+    .screenshot-segmented-toggle__option {
+      gap: 4px;
+      height: 26px;
+      padding: 0 globals.$spacing-unit;
+      font-size: globals.$small-font-size;
     }
-
-    &:focus-visible {
-      outline: 2px solid globals.$muted-color;
-      outline-offset: 1px;
-    }
-  }
-
-  &__sort-menu .dropdown-menu__separator {
-    display: none;
-  }
-
-  &__sort-check {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
   }
 
   &__feed {

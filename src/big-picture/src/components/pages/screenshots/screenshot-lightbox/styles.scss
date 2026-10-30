@@ -363,6 +363,12 @@ $screenshot-comment-highlight-duration: 1.6s;
     }
   }
 
+  &__sort-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
   &__count {
     display: inline-flex;
     align-items: center;

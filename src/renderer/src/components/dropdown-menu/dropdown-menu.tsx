@@ -1,5 +1,4 @@
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
-import cn from "classnames";
 import "./dropdown-menu.scss";
 
 export interface DropdownMenuItem {
@@ -20,7 +19,6 @@ interface DropdownMenuProps {
   align?: "start" | "center" | "end";
   alignOffset?: number;
   collisionPadding?: number;
-  contentClassName?: string;
 }
 
 export function DropdownMenu({
@@ -33,7 +31,6 @@ export function DropdownMenu({
   align = "center",
   alignOffset = 0,
   collisionPadding = 16,
-  contentClassName,
 }: Readonly<DropdownMenuProps>) {
   return (
     <DropdownMenuPrimitive.Root>
@@ -49,7 +46,7 @@ export function DropdownMenu({
           align={align}
           alignOffset={alignOffset}
           collisionPadding={collisionPadding}
-          className={cn("dropdown-menu__content", contentClassName)}
+          className="dropdown-menu__content"
         >
           {title && (
             <DropdownMenuPrimitive.Group className="dropdown-menu__group">

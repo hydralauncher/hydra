@@ -1,10 +1,10 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  CheckIcon,
-  ChevronDownIcon,
   CommentDiscussionIcon,
   CommentIcon,
+  FlameIcon,
+  HistoryIcon,
   PencilIcon,
   ReportIcon,
   TrashIcon,
@@ -18,7 +18,6 @@ import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { Avatar } from "../avatar/avatar";
 import { Button } from "../button/button";
 import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
-import { DropdownMenu } from "../dropdown-menu/dropdown-menu";
 import { Link } from "../link/link";
 import { RichTextContent } from "../rich-text-content/rich-text-content";
 import { REVIEW_BANNER_IMAGE_SIZE } from "@renderer/constants";
@@ -31,6 +30,10 @@ import type {
 } from "@types";
 
 import { ScreenshotCommentInput } from "./screenshot-comment-input";
+import {
+  ScreenshotSegmentedToggle,
+  type ScreenshotSegmentedOption,
+} from "./screenshot-segmented-toggle";
 import { isScreenshotApproved } from "./screenshot-labels";
 import { ScreenshotCommentReportModal } from "./screenshot-report-modal";
 import type { ScreenshotFailure } from "./use-screenshot-actions";
@@ -453,13 +456,11 @@ function ScreenshotCommentItem({
   );
 }
 
-const COMMENT_SORT_OPTIONS: {
-  value: ScreenshotCommentSort;
-  labelKey: string;
-}[] = [
-  { value: "newest", labelKey: "comments_sort_newest" },
-  { value: "top", labelKey: "comments_sort_top" },
-];
+const COMMENT_SORT_OPTIONS: ScreenshotSegmentedOption<ScreenshotCommentSort>[] =
+  [
+    { value: "newest", label: "sort_recent", icon: HistoryIcon },
+    { value: "top", label: "sort_top", icon: FlameIcon },
+  ];
 
 const COMMENT_SKELETON_COUNT = 4;
 
@@ -627,28 +628,16 @@ export function ScreenshotComments({
             : t("comments")}
         </h3>
         {commentCount > 1 ? (
-          <DropdownMenu
-            align="end"
-            contentClassName="screenshot-comments__sort-menu"
-            items={COMMENT_SORT_OPTIONS.map((option) => ({
-              label: t(option.labelKey),
-              icon:
-                option.value === sort ? (
-                  <CheckIcon size={14} />
-                ) : (
-                  <span className="screenshot-comments__sort-check" />
-                ),
-              onClick: () => setSort(option.value),
+          <ScreenshotSegmentedToggle
+            label={t("sort_by")}
+            value={sort}
+            options={COMMENT_SORT_OPTIONS.map((option) => ({
+              ...option,
+              label: t(option.label),
             }))}
-          >
-            <button type="button" className="screenshot-comments__sort">
-              {t(
-                COMMENT_SORT_OPTIONS.find((option) => option.value === sort)
-                  ?.labelKey ?? "comments_sort_newest"
-              )}
-              <ChevronDownIcon size={14} />
-            </button>
-          </DropdownMenu>
+            className="screenshot-comments__sort"
+            onChange={setSort}
+          />
         ) : null}
       </div>
 

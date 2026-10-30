@@ -2968,8 +2968,6 @@
     "screenshots_deleted_count_few": "Удалено {{count}} скриншота",
     "screenshots_deleted_count_many": "Удалено {{count}} скриншотов",
     "screenshots_deleted_count_other": "Удалено {{count}} скриншотов",
-    "comments_sort_newest": "Новые",
-    "comments_sort_top": "Популярные",
     "comments_temporarily_unavailable": "Комментарии временно недоступны, попробуйте ещё раз чуть позже",
     "text_changes_temporarily_unavailable": "Описание и название сейчас нельзя сохранить, попробуйте ещё раз чуть позже",
     "description_only_visible_to_you": "Это описание видите только вы",
