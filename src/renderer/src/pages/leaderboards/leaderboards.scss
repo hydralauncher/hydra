@@ -1577,9 +1577,11 @@ $leaderboards-heat-gap: 6px;
   gap: calc(globals.$spacing-unit * 1.5);
   align-items: end;
 
-  // With fewer than three entries, the cards keep their width on the left.
+  // With fewer than three entries, the cards stay in the center with about the
+  // same shape they have in a full podium.
   &--sparse {
-    grid-template-columns: repeat(var(--podium-count), minmax(0, 300px));
+    grid-template-columns: repeat(var(--podium-count), minmax(0, 420px));
+    justify-content: center;
   }
 
   // Holds the card and its corner action; the card keeps its own height.
@@ -1758,6 +1760,10 @@ $leaderboards-heat-gap: 6px;
 
   .leaderboards__board {
     max-width: 1680px;
+  }
+
+  .leaderboard-podium--sparse {
+    grid-template-columns: repeat(var(--podium-count), minmax(0, 530px));
   }
 
   .leaderboard-podium__card--gold {
