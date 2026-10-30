@@ -3012,6 +3012,7 @@
     "comment_posted": "Comment posted",
     "comment_rate_limited": "You're commenting too fast. Please wait a moment.",
     "comment_reported": "Comment reported",
+    "comment_submit_shortcut": "Ctrl + Enter to send",
     "comment_unavailable": "This comment is no longer available",
     "comment_updated": "Comment updated",
     "comment_vote_failed": "Could not register your vote",

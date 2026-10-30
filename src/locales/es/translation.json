@@ -2745,6 +2745,7 @@
     "comment_posted": "Comentario publicado",
     "comment_rate_limited": "Estás comentando demasiado rápido. Espera un momento.",
     "comment_reported": "Comentario denunciado",
+    "comment_submit_shortcut": "Ctrl + Enter para enviar",
     "comment_unavailable": "Este comentario ya no está disponible",
     "comment_updated": "Comentario actualizado",
     "comment_vote_failed": "No se pudo registrar tu voto",

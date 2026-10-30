@@ -108,6 +108,7 @@ export function ScreenshotCommentInput({
         ) : null}
         <Button
           theme="primary"
+          tooltip={t("comment_submit_shortcut")}
           onClick={() => void submit()}
           disabled={isDisabled}
         >
