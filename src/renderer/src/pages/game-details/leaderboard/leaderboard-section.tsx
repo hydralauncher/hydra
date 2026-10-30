@@ -116,8 +116,8 @@ export function LeaderboardSection() {
     [board, viewerUser]
   );
   const nudge = useMemo(
-    () => getLeaderboardNudge(board, viewerUser),
-    [board, viewerUser]
+    () => getLeaderboardNudge(board, viewerUser, dataScope),
+    [board, viewerUser, dataScope]
   );
 
   if (state === "hidden") return null;
@@ -125,17 +125,18 @@ export function LeaderboardSection() {
   const renderNudge = () => {
     if (!nudge) return null;
 
+    const text =
+      nudge.type === "leading"
+        ? t("nudge_leading")
+        : t(nudge.type === "to_top" ? "nudge_to_top" : "nudge_behind", {
+            amount: formatValue(dataMetric, nudge.gap),
+            rank: nudge.type === "to_top" ? nudge.rank : nudge.targetRank,
+          });
+
     return (
       <>
         <GraphIcon size={12} />
-        <span className="leaderboard-row__subtitle-text">
-          {nudge.type === "leading"
-            ? t("nudge_leading")
-            : t("nudge_behind", {
-                amount: formatValue(dataMetric, nudge.gap),
-                rank: nudge.targetRank,
-              })}
-        </span>
+        <span className="leaderboard-row__subtitle-text">{text}</span>
       </>
     );
   };

@@ -2752,6 +2752,7 @@
     "value_days_other": "{{count}} dias",
     "nudge_behind": "Faltam {{amount}} para o {{rank}}º",
     "nudge_leading": "Você lidera este ranking",
+    "nudge_to_top": "Faltam {{amount}} para você entrar no top {{rank}}",
     "see_full_ranking": "Ver ranking completo",
     "error_title": "Não foi possível carregar o ranking",
     "retry": "Tentar novamente",
