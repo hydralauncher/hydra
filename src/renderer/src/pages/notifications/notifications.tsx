@@ -12,7 +12,10 @@ import {
 import { setHeaderTitle } from "@renderer/features";
 import { logger } from "@renderer/logger";
 import { ensureArray } from "@renderer/helpers";
-import { isScreenshotNotificationType } from "@shared";
+import {
+  isLeaderboardNotificationType,
+  isScreenshotNotificationType,
+} from "@shared";
 
 import { NotificationItem } from "./notification-item";
 import { LocalNotificationItem } from "./local-notification-item";
@@ -172,6 +175,8 @@ export default function Notifications() {
 
   const visibleApiNotifications = useMemo(() => {
     const isShown = ({ type }: Notification) => {
+      if (isLeaderboardNotificationType(type))
+        return isFeatureEnabled(Feature.GlobalLeaderboards);
       if (!isScreenshotNotificationType(type)) return true;
       if (!isFeatureEnabled(Feature.Screenshots)) return false;
       return (

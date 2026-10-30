@@ -50,9 +50,6 @@ export function LeaderboardSection() {
   const navigate = useNavigate();
   const { isFeatureEnabled, Feature } = useFeature();
   const isExtended = isFeatureEnabled(Feature.GameLeaderboardsExtended);
-  const isGlobalLeaderboardsEnabled = isFeatureEnabled(
-    Feature.GlobalLeaderboards
-  );
   const formatValue = useLeaderboardValue();
 
   const [period, setPeriod] = useState<LeaderboardPeriod>("week");
@@ -286,7 +283,7 @@ export function LeaderboardSection() {
 
         <div className="leaderboard-section__footer">
           {renderNudge()}
-          {isGlobalLeaderboardsEnabled && isLoggedIn && (
+          {isLoggedIn && (
             <button
               type="button"
               className="leaderboard-section__see-all"
