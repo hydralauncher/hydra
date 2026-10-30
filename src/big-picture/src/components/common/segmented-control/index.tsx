@@ -16,6 +16,7 @@ export interface SegmentedControlOption<TValue extends string = string> {
 
 export interface SegmentedControlProps<TValue extends string = string> {
   label?: string;
+  ariaLabel?: string;
   value: TValue;
   options: SegmentedControlOption<TValue>[];
   disabled?: boolean;
@@ -29,6 +30,7 @@ const NO_SCREEN_ACTIONS: ScreenActions = {};
 
 export function SegmentedControl<TValue extends string = string>({
   label,
+  ariaLabel,
   value,
   options,
   disabled = false,
@@ -107,6 +109,7 @@ export function SegmentedControl<TValue extends string = string>({
           role="radiogroup"
           tabIndex={-1}
           aria-labelledby={label ? labelId : undefined}
+          aria-label={label ? undefined : ariaLabel}
           aria-disabled={disabled}
         >
           {options.map((option, index) => {

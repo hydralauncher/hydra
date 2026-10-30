@@ -384,6 +384,7 @@ function CommunityScreenshotsPanel({
           />
           <div className="game-screenshots-modal__sort">
             <SegmentedControl
+              ariaLabel={t("screenshots_sort_label")}
               value={community.sort}
               options={sortOptions}
               focusId={GAME_SCREENSHOTS_MODAL_SORT_ID}

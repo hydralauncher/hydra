@@ -1219,6 +1219,7 @@ export function ScreenshotCommentsPanel({
           {total > 1 ? (
             <div className="screenshot-comments__sort">
               <SegmentedControl
+                ariaLabel={t("screenshots_comments_sort_label")}
                 value={sort}
                 options={sortOptions}
                 focusId={focusIds.sort}
