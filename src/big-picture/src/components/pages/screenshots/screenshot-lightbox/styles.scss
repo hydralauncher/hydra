@@ -9,11 +9,6 @@ $screenshot-comment-highlight-duration: 1.6s;
   z-index: 130;
 }
 
-.media-viewer.screenshot-viewer {
-  bottom: var(--virtual-keyboard-height, 0px);
-  height: auto;
-}
-
 .screenshot-lightbox__overlay {
   position: absolute;
   inset: 0;

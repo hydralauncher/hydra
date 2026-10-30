@@ -2,7 +2,14 @@ import "./styles.scss";
 
 import { AnimatePresence, motion } from "framer-motion";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "../button";
 import { GridFocusGroup } from "../grid-focus-group";
 import { NavigationLayer } from "../navigation-layer";
@@ -57,7 +64,7 @@ type VirtualKeyboardKeyPosition = {
 
 const VIRTUAL_KEYBOARD_LAYER_ID = "big-picture-virtual-keyboard-layer";
 const VIRTUAL_KEYBOARD_REGION_ID = "big-picture-virtual-keyboard";
-const VIRTUAL_KEYBOARD_HEIGHT_PROPERTY = "--virtual-keyboard-height";
+const VIRTUAL_KEYBOARD_LEFT_SIDE_ANCHOR = '[data-virtual-keyboard-side="left"]';
 const VIRTUAL_KEYBOARD_FIRST_KEY_ID = "big-picture-virtual-keyboard-key-1";
 const VIRTUAL_KEYBOARD_BACKSPACE_KEY_ID =
   "big-picture-virtual-keyboard-key-backspace";
@@ -697,6 +704,9 @@ export function VirtualKeyboardProvider() {
   const [layer, setLayer] = useState<VirtualKeyboardLayer>("alphabetic");
   const [layoutMode, setLayoutMode] =
     useState<VirtualKeyboardLayoutMode>("floating");
+  const [sideInset, setSideInset] = useState<number | null>(null);
+  const sideAnchor =
+    target?.closest<HTMLElement>(VIRTUAL_KEYBOARD_LEFT_SIDE_ANCHOR) ?? null;
   const [pulsingKeyId, setPulsingKeyId] = useState<string | null>(null);
   const userPreferences = useUserPreferences();
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
@@ -1274,7 +1284,7 @@ export function VirtualKeyboardProvider() {
   }, [closeKeyboard, target]);
 
   useEffect(() => {
-    if (!target || layoutMode !== "floating") return;
+    if (!target || layoutMode !== "floating" || sideAnchor) return;
 
     let secondFrameId: number | null = null;
     const firstFrameId = globalThis.requestAnimationFrame(() => {
@@ -1299,7 +1309,7 @@ export function VirtualKeyboardProvider() {
 
       globalThis.window.clearTimeout(settledLayoutTimeoutId);
     };
-  }, [layoutMode, target]);
+  }, [layoutMode, sideAnchor, target]);
 
   useEffect(() => {
     if (!target || layoutMode !== "avoiding") return;
@@ -1325,29 +1335,13 @@ export function VirtualKeyboardProvider() {
     };
   }, [layoutMode, target]);
 
-  useEffect(() => {
-    const dock = dockRef.current;
-    if (!target || !dock) return;
-
-    const rootStyle = globalThis.document.documentElement.style;
-    const publishHeight = () =>
-      rootStyle.setProperty(
-        VIRTUAL_KEYBOARD_HEIGHT_PROPERTY,
-        `${dock.getBoundingClientRect().height}px`
-      );
-    const observer =
-      typeof globalThis.ResizeObserver === "function"
-        ? new globalThis.ResizeObserver(publishHeight)
-        : null;
-
-    publishHeight();
-    observer?.observe(dock);
-
-    return () => {
-      observer?.disconnect();
-      rootStyle.removeProperty(VIRTUAL_KEYBOARD_HEIGHT_PROPERTY);
-    };
-  }, [target]);
+  useLayoutEffect(() => {
+    setSideInset(
+      sideAnchor
+        ? globalThis.window.innerWidth - sideAnchor.getBoundingClientRect().left
+        : null
+    );
+  }, [sideAnchor]);
 
   useEffect(() => {
     if (
@@ -1408,6 +1402,14 @@ export function VirtualKeyboardProvider() {
             ref={dockRef}
             className="virtual-keyboard-dock"
             data-layout-mode={layoutMode}
+            data-placement={sideInset === null ? undefined : "left"}
+            style={
+              sideInset === null
+                ? undefined
+                : ({
+                    "--virtual-keyboard-side-inset": `${sideInset}px`,
+                  } as CSSProperties)
+            }
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}

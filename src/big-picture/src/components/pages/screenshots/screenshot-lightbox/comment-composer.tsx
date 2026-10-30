@@ -192,7 +192,11 @@ function CommentEditorForm({
   };
 
   return (
-    <form className="screenshot-comments__composer" onSubmit={handleSubmit}>
+    <form
+      className="screenshot-comments__composer"
+      data-virtual-keyboard-side="left"
+      onSubmit={handleSubmit}
+    >
       {isEditing ? (
         <>
           <EditingBackAction onBack={onCancelEdit} />

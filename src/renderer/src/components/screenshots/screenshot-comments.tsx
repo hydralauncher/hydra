@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  CheckIcon,
+  ChevronDownIcon,
   CommentDiscussionIcon,
   CommentIcon,
   PencilIcon,
@@ -16,6 +18,7 @@ import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { Avatar } from "../avatar/avatar";
 import { Button } from "../button/button";
 import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
+import { DropdownMenu } from "../dropdown-menu/dropdown-menu";
 import { Link } from "../link/link";
 import { RichTextContent } from "../rich-text-content/rich-text-content";
 import { REVIEW_BANNER_IMAGE_SIZE } from "@renderer/constants";
@@ -450,6 +453,14 @@ function ScreenshotCommentItem({
   );
 }
 
+const COMMENT_SORT_OPTIONS: {
+  value: ScreenshotCommentSort;
+  labelKey: string;
+}[] = [
+  { value: "newest", labelKey: "comments_sort_newest" },
+  { value: "top", labelKey: "comments_sort_top" },
+];
+
 const COMMENT_SKELETON_COUNT = 4;
 
 function ScreenshotCommentsSkeleton({ label }: Readonly<{ label: string }>) {
@@ -616,19 +627,28 @@ export function ScreenshotComments({
             : t("comments")}
         </h3>
         {commentCount > 1 ? (
-          <label className="screenshot-comments__sort">
-            {t("comments_sort")}
-            <select
-              value={sort}
-              onChange={(event) => {
-                setSort(event.target.value === "top" ? "top" : "newest");
-                event.currentTarget.blur();
-              }}
-            >
-              <option value="newest">{t("comments_sort_newest")}</option>
-              <option value="top">{t("comments_sort_top")}</option>
-            </select>
-          </label>
+          <DropdownMenu
+            title={t("comments_sort")}
+            align="end"
+            items={COMMENT_SORT_OPTIONS.map((option) => ({
+              label: t(option.labelKey),
+              icon:
+                option.value === sort ? (
+                  <CheckIcon size={14} />
+                ) : (
+                  <span className="screenshot-comments__sort-check" />
+                ),
+              onClick: () => setSort(option.value),
+            }))}
+          >
+            <button type="button" className="screenshot-comments__sort">
+              {t(
+                COMMENT_SORT_OPTIONS.find((option) => option.value === sort)
+                  ?.labelKey ?? "comments_sort_newest"
+              )}
+              <ChevronDownIcon size={14} />
+            </button>
+          </DropdownMenu>
         ) : null}
       </div>
 

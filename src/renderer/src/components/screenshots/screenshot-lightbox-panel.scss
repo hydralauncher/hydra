@@ -278,34 +278,36 @@ $description-outline-fade-duration: 0.15s;
   &__sort {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
+    padding: 4px 8px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
     color: globals.$body-color;
+    font-family: inherit;
     font-size: globals.$small-font-size;
+    cursor: pointer;
     user-select: none;
+    transition:
+      background-color motion.$transition-duration ease,
+      color motion.$transition-duration ease;
 
-    select {
-      padding: 2px 4px;
-      border: 0;
-      border-radius: 4px;
-      background: transparent;
-      color: globals.$muted-color;
-      font: inherit;
-      cursor: pointer;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.06);
-      }
-
-      &:focus-visible {
-        outline: 2px solid globals.$muted-color;
-        outline-offset: 1px;
-      }
-    }
-
-    option {
-      background: globals.$dark-background-color;
+    &:hover,
+    [data-state="open"] > & {
+      background: rgba(255, 255, 255, 0.08);
       color: globals.$muted-color;
     }
+
+    &:focus-visible {
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 1px;
+    }
+  }
+
+  &__sort-check {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
   }
 
   &__feed {
