@@ -33,6 +33,7 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__date-row {
+    user-select: none;
     display: flex;
     min-width: 0;
     flex-wrap: wrap;
@@ -155,6 +156,7 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__tag {
+    user-select: none;
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -169,6 +171,7 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__actions {
+    user-select: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -341,6 +344,7 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__input-actions {
+    user-select: none;
     display: flex;
     justify-content: flex-end;
     gap: globals.$spacing-unit;
@@ -497,6 +501,7 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__badge {
+    user-select: none;
     padding: 0 6px;
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.08);
@@ -524,6 +529,7 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__when {
+    user-select: none;
     display: inline-flex;
     flex-shrink: 0;
     align-items: baseline;
@@ -545,6 +551,7 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__actions {
+    user-select: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
