@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import cn from "classnames";
 
 import { Button } from "../button/button";
 import { RichTextEditorField } from "../rich-text-editor/rich-text-editor";
@@ -87,7 +88,11 @@ export function ScreenshotCommentInput({
   isDisabledRef.current = isDisabled;
 
   return (
-    <div className="screenshot-comments__input">
+    <div
+      className={cn("screenshot-comments__input", {
+        "screenshot-comments__input--empty": isEmpty,
+      })}
+    >
       <RichTextEditorField
         editor={editor}
         charCount={charCount}
@@ -103,6 +108,7 @@ export function ScreenshotCommentInput({
         ) : null}
         <Button
           theme="primary"
+          tooltip={t("comment_submit_shortcut")}
           onClick={() => void submit()}
           disabled={isDisabled}
         >

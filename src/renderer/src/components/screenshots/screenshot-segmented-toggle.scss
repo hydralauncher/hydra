@@ -1,0 +1,46 @@
+@use "../../scss/globals.scss";
+@use "./screenshot-motion.scss" as motion;
+
+.screenshot-segmented-toggle {
+  display: inline-flex;
+  min-width: 0;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid globals.$border-color;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+
+  &__option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    user-select: none;
+    transition:
+      background-color motion.$fast-transition-duration ease,
+      color motion.$fast-transition-duration ease;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    &--active {
+      background: rgba(255, 255, 255, 0.1);
+      color: globals.$muted-color;
+    }
+
+    &:focus-visible {
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 1px;
+    }
+  }
+}

@@ -1,7 +1,8 @@
 import {
   ArrowClockwiseIcon,
+  ClockCounterClockwiseIcon,
+  FireIcon,
   ImageIcon,
-  SortAscendingIcon,
   UsersThreeIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -29,14 +30,14 @@ import {
   BumperBadge,
   Button,
   Checkbox,
-  DropdownSelect,
   GridFocusGroup,
   HorizontalFocusGroup,
   Modal,
+  SegmentedControl,
   Skeleton,
   Tabs,
   VerticalFocusGroup,
-  type DropdownSelectOption,
+  type SegmentedControlOption,
   type TabsItem,
 } from "../../../common";
 import {
@@ -112,10 +113,26 @@ const hideSpoilerScreenshots = (
 function useScreenshotSortOptions() {
   const { t } = useTranslation("big_picture");
 
-  return useMemo<DropdownSelectOption<ScreenshotSort>[]>(
+  return useMemo<SegmentedControlOption<ScreenshotSort>[]>(
     () => [
-      { value: "recent", label: t("screenshots_sort_recent") },
-      { value: "top", label: t("screenshots_sort_top") },
+      {
+        value: "recent",
+        label: (
+          <span className="game-screenshots-modal__sort-option">
+            <ClockCounterClockwiseIcon size={16} weight="bold" />
+            {t("screenshots_sort_recent")}
+          </span>
+        ),
+      },
+      {
+        value: "top",
+        label: (
+          <span className="game-screenshots-modal__sort-option">
+            <FireIcon size={16} weight="bold" />
+            {t("screenshots_sort_top")}
+          </span>
+        ),
+      },
     ],
     [t]
   );
@@ -365,17 +382,15 @@ function CommunityScreenshotsPanel({
             focusId={GAME_SCREENSHOTS_MODAL_SPOILERS_ID}
             onChange={community.setHideSpoilers}
           />
-          <DropdownSelect
-            className="game-screenshots-modal__sort"
-            label={t("screenshots_sort_label")}
-            hideLabel
-            leadingIcon={<SortAscendingIcon size={20} />}
-            ariaLabel={t("screenshots_sort_label")}
-            value={community.sort}
-            options={sortOptions}
-            focusId={GAME_SCREENSHOTS_MODAL_SORT_ID}
-            onValueChange={community.changeSort}
-          />
+          <div className="game-screenshots-modal__sort">
+            <SegmentedControl
+              ariaLabel={t("screenshots_sort_label")}
+              value={community.sort}
+              options={sortOptions}
+              focusId={GAME_SCREENSHOTS_MODAL_SORT_ID}
+              onValueChange={community.changeSort}
+            />
+          </div>
         </div>
       </HorizontalFocusGroup>
 

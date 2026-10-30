@@ -121,19 +121,23 @@ export const buildUserScreenshotReportPath = (
   screenshotId: string
 ) => `${buildUserScreenshotPath(userId, screenshotId)}/report`;
 
+export type ScreenshotCommentSort = "newest" | "top";
+
 export interface ScreenshotCommentsPathOptions {
   cursor?: string | null;
   take?: number;
+  sort?: ScreenshotCommentSort;
 }
 
 export const buildUserScreenshotCommentsPath = (
   userId: string,
   screenshotId: string,
-  { cursor, take }: ScreenshotCommentsPathOptions = {}
+  { cursor, take, sort }: ScreenshotCommentsPathOptions = {}
 ) =>
   withQuery(`${buildUserScreenshotPath(userId, screenshotId)}/comments`, {
     take,
     cursor,
+    sort: sort === "top" ? sort : undefined,
   });
 
 export const buildUserScreenshotCommentPath = (
@@ -314,8 +318,29 @@ export const getVotedScreenshotComment = (
   };
 };
 
+const COMMENT_LINE_BREAK_RUN = /(?:<br\s*\/?>\s*){2,}/gi;
+const COMMENT_PARAGRAPH_LEADING_BREAKS = /<p>(?:\s*<br\s*\/?>)+/gi;
+const COMMENT_PARAGRAPH_TRAILING_BREAKS = /(?:<br\s*\/?>\s*)+<\/p>/gi;
+const COMMENT_EMPTY_PARAGRAPH = String.raw`<p>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*`;
+const COMMENT_EMPTY_PARAGRAPH_RUN = new RegExp(
+  `(?:${COMMENT_EMPTY_PARAGRAPH}){2,}`,
+  "gi"
+);
+const COMMENT_EDGE_EMPTY_PARAGRAPHS = new RegExp(
+  `^(?:${COMMENT_EMPTY_PARAGRAPH})+|(?:${COMMENT_EMPTY_PARAGRAPH})+$`,
+  "gi"
+);
+
 export const normalizeScreenshotCommentBody = (body: string) =>
-  body.replaceAll("\r\n", "\n").trim();
+  body
+    .replaceAll("\r\n", "\n")
+    .replaceAll(COMMENT_LINE_BREAK_RUN, "<br>")
+    .replaceAll(COMMENT_PARAGRAPH_LEADING_BREAKS, "<p>")
+    .replaceAll(COMMENT_PARAGRAPH_TRAILING_BREAKS, "</p>")
+    .replaceAll(COMMENT_EMPTY_PARAGRAPH_RUN, "<p></p>")
+    .trim()
+    .replaceAll(COMMENT_EDGE_EMPTY_PARAGRAPHS, "")
+    .trim();
 
 export const normalizeScreenshotReportValues = <
   Reason extends ScreenshotReportReason,

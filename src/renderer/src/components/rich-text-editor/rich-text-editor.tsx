@@ -1,6 +1,6 @@
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { EditorContent, type Editor } from "@tiptap/react";
+import { EditorContent, useEditorState, type Editor } from "@tiptap/react";
 import { Tooltip } from "react-tooltip";
 import cn from "classnames";
 
@@ -25,7 +25,20 @@ export function RichTextEditorField({
 }: Readonly<RichTextEditorFieldProps>) {
   const { t } = useTranslation("game_details");
   const tooltipId = useId();
-  const formats = [
+  const activeFormats = useEditorState({
+    editor,
+    selector: ({ editor: current }) => ({
+      bold: current?.isActive("bold") ?? false,
+      italic: current?.isActive("italic") ?? false,
+      underline: current?.isActive("underline") ?? false,
+    }),
+  });
+  const formats: {
+    key: keyof NonNullable<typeof activeFormats>;
+    label: string;
+    content: ReactNode;
+    run: () => void;
+  }[] = [
     {
       key: "bold",
       label: t("editor_bold"),
@@ -56,11 +69,11 @@ export function RichTextEditorField({
               type="button"
               onClick={format.run}
               className={cn("rich-text-editor__button", {
-                "is-active": editor?.isActive(format.key),
+                "is-active": activeFormats?.[format.key],
               })}
               disabled={!editor}
               aria-label={format.label}
-              aria-pressed={Boolean(editor?.isActive(format.key))}
+              aria-pressed={Boolean(activeFormats?.[format.key])}
               data-tooltip-id={tooltipId}
               data-tooltip-content={format.label}
               data-tooltip-place="top"
