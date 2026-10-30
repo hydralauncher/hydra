@@ -514,6 +514,9 @@ export default function Notifications() {
 
   const hasNoNotifications = mergedNotifications.length === 0;
   const shouldDisableActions = isClearing || hasNoNotifications;
+  const hasApiUnread = apiNotifications.some((n) => !n.isRead);
+  const shouldDisableMarkAllAsRead =
+    isClearing || (hasNoNotifications && !hasApiUnread);
 
   const renderContent = () => {
     if (isInitialLoad && isLoading) {
@@ -532,7 +535,7 @@ export default function Notifications() {
             <Button
               theme="outline"
               onClick={handleMarkAllAsRead}
-              disabled={shouldDisableActions}
+              disabled={shouldDisableMarkAllAsRead}
             >
               {t("mark_all_as_read")}
             </Button>

@@ -26,10 +26,11 @@ const FRESH_MS = 60 * 60 * 1000;
 const MAX_SHOWN_KEYS = 100;
 const FEATURES_REQUEST_TIMEOUT_MS = 10_000;
 
-const isGlobalLeaderboardsEnabled = () =>
+const isGlobalLeaderboardsEnabled = (signal: AbortSignal) =>
   HydraApi.get<string[]>("/features", null, {
     needsAuth: false,
     timeout: FEATURES_REQUEST_TIMEOUT_MS,
+    signal,
   })
     .then(
       (features) =>
@@ -37,7 +38,7 @@ const isGlobalLeaderboardsEnabled = () =>
         features.includes(GLOBAL_LEADERBOARDS_FEATURE)
     )
     .catch((error) => {
-      logger.warn("Could not load feature flags", error);
+      if (!signal.aborted) logger.warn("Could not load feature flags", error);
       return false;
     });
 
@@ -88,7 +89,7 @@ const showSystemNotification = async (
 };
 
 export const publishLeaderboardNotifications = async (signal: AbortSignal) => {
-  if (!(await isGlobalLeaderboardsEnabled()) || signal.aborted) return;
+  if (!(await isGlobalLeaderboardsEnabled(signal)) || signal.aborted) return;
 
   const [response, preferences, shown] = await Promise.all([
     HydraApi.get<NotificationsResponse>(
