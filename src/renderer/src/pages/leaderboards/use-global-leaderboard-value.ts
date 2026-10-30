@@ -43,3 +43,18 @@ export function useMetricText() {
 
   return { label, format };
 }
+
+// The heading of the value column: the unit when it has one, else the metric.
+export function useMetricColumnLabel() {
+  const { t } = useTranslation("leaderboards");
+
+  return useCallback(
+    (metric: MetricDefinition) => {
+      if (metric.valueType === "duration") return t("column_hours");
+      if (metric.valueType === "days") return t("column_days");
+
+      return t(`metric_${metric.id}`, { defaultValue: metric.label });
+    },
+    [t]
+  );
+}
