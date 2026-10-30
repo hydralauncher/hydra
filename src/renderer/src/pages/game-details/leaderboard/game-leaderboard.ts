@@ -20,6 +20,20 @@ export type LeaderboardMetric = (typeof LEADERBOARD_METRICS)[number];
 
 export type LeaderboardShop = Extract<GameShop, "steam" | "epic" | "launchbox">;
 
+export const parseLeaderboardPeriod = (
+  value: string | null
+): LeaderboardPeriod =>
+  (LEADERBOARD_PERIODS as readonly (string | null)[]).includes(value)
+    ? (value as LeaderboardPeriod)
+    : "week";
+
+export const parseLeaderboardScope = (
+  value: string | null
+): LeaderboardScope =>
+  (LEADERBOARD_SCOPES as readonly (string | null)[]).includes(value)
+    ? (value as LeaderboardScope)
+    : "global";
+
 export const getServedMetrics = (
   servedIds: readonly string[] | null
 ): LeaderboardMetric[] => {
@@ -81,14 +95,18 @@ export type LeaderboardGet = (
 export interface LeaderboardRow {
   entry: LeaderboardEntry;
   isViewer: boolean;
-  isPinned: boolean;
   gapBefore: boolean;
   progress: number;
 }
 
 export type LeaderboardNudge =
   | { type: "leading" }
-  | { type: "behind"; gap: number; target: LeaderboardUser }
+  | {
+      type: "behind";
+      gap: number;
+      target: LeaderboardUser;
+      targetRank: number;
+    }
   | { type: "to_top"; gap: number; rank: number };
 
 export type LeaderboardState =
@@ -266,34 +284,26 @@ const getProgress = (value: number, topValue: number) => {
 export const buildLeaderboardRows = (
   leaderboard: Pick<Leaderboard, "entries" | "viewer">,
   viewerUser: LeaderboardUser | null,
-  size: number,
-  { pinViewer = false }: { pinViewer?: boolean } = {}
+  size: number
 ): LeaderboardRow[] => {
   const topValue = leaderboard.entries[0]?.value ?? 0;
   const viewerEntry = findViewerEntry(leaderboard, viewerUser);
 
   const toRow = (
     entry: LeaderboardEntry,
-    gapBefore = false,
-    isPinned = false
+    gapBefore = false
   ): LeaderboardRow => ({
     entry,
     isViewer: entry.user.id === viewerUser?.id,
-    isPinned,
     gapBefore,
     progress: getProgress(entry.value, topValue),
   });
 
   const rows = leaderboard.entries.slice(0, size).map((entry) => toRow(entry));
-  if (!viewerEntry) return rows;
-
-  const isListed = rows.some((row) => row.isViewer);
-  if (isListed && !pinViewer) return rows;
+  if (!viewerEntry || rows.some((row) => row.isViewer)) return rows;
 
   const lastRank = rows.at(-1)?.entry.rank ?? 0;
-  rows.push(
-    toRow(viewerEntry, isListed || viewerEntry.rank > lastRank + 1, pinViewer)
-  );
+  rows.push(toRow(viewerEntry, viewerEntry.rank > lastRank + 1));
 
   return rows;
 };
@@ -323,7 +333,7 @@ export const getLeaderboardNudge = (
   const gap = above.value - viewerEntry.value;
   if (gap <= 0) return null;
 
-  return { type: "behind", gap, target: above.user };
+  return { type: "behind", gap, target: above.user, targetRank: above.rank };
 };
 
 export const getLeaderboardState = ({

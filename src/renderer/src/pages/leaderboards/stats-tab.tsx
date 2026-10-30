@@ -19,27 +19,28 @@ import {
   buildHeatmap,
   buildHeatmapMonths,
   DAY_MS,
+  DAYS_PER_WEEK,
+  getHeatmapLayout,
+  getHeatmapTotalDisplay,
   getViewerRanking,
   normalizeFriendStreaks,
   normalizePlayActivity,
   PLAY_ACTIVITY_FALLBACK_WEEKS,
   PLAY_ACTIVITY_WEEKS,
   MINUTES_PER_HOUR,
-  SECONDS_PER_HOUR,
   SECONDS_PER_MINUTE,
   sumHeatmap,
   type MetricDefinition,
   type GlobalLeaderboardPeriod,
   type HeatmapCell,
 } from "./global-leaderboard";
+import { requestAddFriendMode } from "../friends-window/add-friend-request";
 import { useApiResource } from "./leaderboards-api";
+import { BlockError, BlockMessage } from "./leaderboard-bits";
 import {
-  BlockError,
-  BlockMessage,
-  RankDelta,
-  StreakFlame,
-} from "./leaderboard-bits";
-import { FriendStreakCard } from "./friend-streak-card";
+  FRIEND_STREAK_PAGE_SIZE,
+  FriendStreakList,
+} from "./friend-streak-list";
 import { MetricIcon } from "./metric-icon";
 import {
   EMPTY_BOARD_RESULT,
@@ -47,9 +48,8 @@ import {
 } from "./use-global-leaderboards";
 import { useMetricText } from "./use-global-leaderboard-value";
 
-const FRIEND_STREAK_ROWS = 6;
 const FRIEND_SKELETON_KEYS = Array.from(
-  { length: FRIEND_STREAK_ROWS },
+  { length: FRIEND_STREAK_PAGE_SIZE },
   (_, index) => `friend-skeleton-${index}`
 );
 
@@ -159,18 +159,47 @@ export function StatsTab({
     [activity.data, utcDay]
   );
 
+  const hasActivity = activity.data !== null;
+  const activityAreaRef = useRef<HTMLDivElement>(null);
+  const [activityWidth, setActivityWidth] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const area = activityAreaRef.current;
+    if (!hasActivity || !area) return;
+    setActivityWidth(area.clientWidth);
+
+    const observer = new ResizeObserver(() =>
+      setActivityWidth(area.clientWidth)
+    );
+    observer.observe(area);
+    return () => observer.disconnect();
+  }, [hasActivity]);
+
+  const heatmapLayout = getHeatmapLayout(
+    activityWidth,
+    heatmap.length / DAYS_PER_WEEK
+  );
+  // The newest weeks are the last ones, so a narrow card keeps the recent days.
+  const visibleHeatmap = useMemo(
+    () => heatmap.slice(-heatmapLayout.weeks * DAYS_PER_WEEK),
+    [heatmap, heatmapLayout.weeks]
+  );
+
   const heatmapMonths = useMemo(() => {
     const formatter = new Intl.DateTimeFormat(i18n.language, {
       month: "short",
       timeZone: "UTC",
     });
-    return buildHeatmapMonths(heatmap).map((month) => ({
+    return buildHeatmapMonths(visibleHeatmap).map((month) => ({
       ...month,
       label: capitalize(formatter.format(month.date), i18n.language),
     }));
-  }, [heatmap, i18n.language]);
+  }, [visibleHeatmap, i18n.language]);
 
-  const heatmapTotal = useMemo(() => sumHeatmap(heatmap), [heatmap]);
+  const heatmapTotal = useMemo(
+    () => sumHeatmap(visibleHeatmap),
+    [visibleHeatmap]
+  );
 
   const dayLabels = useMemo(() => {
     const formatter = new Intl.DateTimeFormat(i18n.language, {
@@ -186,15 +215,7 @@ export function StatsTab({
   }, [i18n.language]);
 
   const activityBodyRef = useRef<HTMLDivElement>(null);
-  const activityScrollRef = useRef<HTMLDivElement>(null);
   const [heatTip, setHeatTip] = useState<HeatTip | null>(null);
-  const hasActivity = activity.data !== null;
-
-  // The newest weeks are on the right, so a narrow card starts at today.
-  useLayoutEffect(() => {
-    const scroll = activityScrollRef.current;
-    if (hasActivity && scroll) scroll.scrollLeft = scroll.scrollWidth;
-  }, [hasActivity]);
 
   const cellDateFormatter = useMemo(
     () =>
@@ -233,9 +254,8 @@ export function StatsTab({
     return [cellLabel(cell), time].join(" · ");
   };
 
-  // The tip lives outside the scrolling grid so it is never clipped. Tips
-  // near the left and right edges open inward and tips in the top two rows
-  // open below, so they stay in the card.
+  // Tips near the left and right edges open inward and tips in the top two
+  // rows open below, so they stay in the card.
   const showHeatTip = (event: React.MouseEvent<HTMLDivElement>) => {
     // The gaps between cells keep the current tip; future cells hide it.
     const target = (event.target as HTMLElement).closest<HTMLElement>(
@@ -269,7 +289,7 @@ export function StatsTab({
   };
 
   const renderHeatTip = () => {
-    const cell = heatTip ? heatmap[heatTip.index] : null;
+    const cell = heatTip ? visibleHeatmap[heatTip.index] : null;
     if (!heatTip || !cell || cell.isFuture) return null;
 
     return (
@@ -293,11 +313,6 @@ export function StatsTab({
     );
   };
 
-  const atRecord =
-    activity.data !== null &&
-    activity.data.currentStreak > 0 &&
-    activity.data.currentStreak >= activity.data.bestStreak;
-
   // Current and best streak, in the Activity header.
   const renderStreak = () => {
     if (!activity.data) return null;
@@ -314,9 +329,24 @@ export function StatsTab({
           <strong>{activity.data.bestStreak}</strong>
           {t("days_unit", { count: activity.data.bestStreak })}
         </span>
-        <StreakFlame size={16} flicker={atRecord} label={t("daily_streak")} />
       </div>
     );
+  };
+
+  const renderActivityTotal = () => {
+    const total = getHeatmapTotalDisplay(heatmapTotal);
+    if (total.unit === "none") return t("activity_empty");
+    if (total.unit === "minutes") {
+      return t("activity_total_minutes", {
+        minutes: total.amount,
+        count: heatmapTotal.days,
+      });
+    }
+
+    return t("activity_total", {
+      hours: numberFormatter.format(total.amount),
+      count: heatmapTotal.days,
+    });
   };
 
   const renderActivity = () => {
@@ -328,11 +358,16 @@ export function StatsTab({
     }
 
     return (
-      <div className="leaderboards__activity-body" ref={activityBodyRef}>
+      <div className="leaderboards__activity-area" ref={activityAreaRef}>
         <div
-          className="leaderboards__activity-scroll"
-          ref={activityScrollRef}
-          onScroll={() => setHeatTip(null)}
+          className="leaderboards__activity-body"
+          ref={activityBodyRef}
+          style={
+            {
+              "--heat-size": `${heatmapLayout.cellSize}px`,
+              width: heatmapLayout.width,
+            } as React.CSSProperties
+          }
         >
           <div className="leaderboards__activity-graph">
             <div className="leaderboards__activity-months" aria-hidden="true">
@@ -358,7 +393,7 @@ export function StatsTab({
               onMouseMove={showHeatTip}
               onMouseLeave={() => setHeatTip(null)}
             >
-              {heatmap.map((cell, index) => (
+              {visibleHeatmap.map((cell, index) => (
                 <span
                   key={cell.date.toISOString()}
                   data-heat-index={cell.isFuture ? undefined : index}
@@ -382,33 +417,27 @@ export function StatsTab({
               ))}
             </div>
           </div>
-        </div>
-        {renderHeatTip()}
-        <div className="leaderboards__activity-footer">
-          <span>
-            {/* pt-BR has `_zero` forms for this and the day counts:
-                Intl.PluralRules("pt") puts 0 in "one", which read "0 dia". */}
-            {t("activity_total", {
-              hours: numberFormatter.format(
-                Math.round(heatmapTotal.seconds / SECONDS_PER_HOUR)
-              ),
-              count: heatmapTotal.days,
-            })}
-          </span>
-          <span className="leaderboards__heatmap-legend">
-            {t("legend_less")}
-            {[0, 1, 2, 3].map((level) => (
-              <span
-                key={level}
-                className={`leaderboards__heat leaderboards__heat--${level}`}
-              />
-            ))}
-            {t("legend_more")}
-          </span>
+          {renderHeatTip()}
+          <div className="leaderboards__activity-footer">
+            <span>{renderActivityTotal()}</span>
+            <span className="leaderboards__heatmap-legend">
+              {t("legend_less")}
+              {[0, 1, 2, 3].map((level) => (
+                <span
+                  key={level}
+                  className={`leaderboards__heat leaderboards__heat--${level}`}
+                />
+              ))}
+              {t("legend_more")}
+            </span>
+          </div>
         </div>
       </div>
     );
   };
+
+  const hasNoFriendStreaks =
+    friends.data?.every((item) => item.user.id === viewerId) ?? false;
 
   const renderFriends = () => {
     if (friends.isLoading && !friends.data) {
@@ -424,18 +453,19 @@ export function StatsTab({
       return <BlockError onRetry={friends.retry} />;
     }
 
-    const others = friends.data.filter((item) => item.user.id !== viewerId);
-    if (others.length === 0) {
+    if (hasNoFriendStreaks) {
       return (
         <BlockMessage
-          icon={<PeopleIcon size={20} />}
+          icon={<PeopleIcon size={32} />}
           title={t("empty_friend_streaks_title")}
           description={t("empty_friend_streaks_description")}
           action={
             <Button
-              theme="outline"
-              size="small"
-              onClick={() => globalThis.window.electron.openFriendsWindow()}
+              theme="primary"
+              onClick={() => {
+                requestAddFriendMode();
+                void globalThis.window.electron.openFriendsWindow();
+              }}
             >
               {t("find_friends")}
             </Button>
@@ -445,42 +475,14 @@ export function StatsTab({
     }
 
     return (
-      <>
-        <div className="leaderboards__friend-streaks">
-          {friends.data.slice(0, FRIEND_STREAK_ROWS).map((item) => (
-            <FriendStreakCard
-              key={item.user.id}
-              item={item}
-              isViewer={item.user.id === viewerId}
-            />
-          ))}
-        </div>
-        <button
-          type="button"
-          className="leaderboards__link leaderboards__link--padded"
-          onClick={() => globalThis.window.electron.openFriendsWindow()}
-        >
-          {t("see_all_friends")}
-        </button>
-      </>
+      <FriendStreakList
+        friends={friends.data.filter((item) => item.user.id !== viewerId)}
+      />
     );
   };
 
   return (
     <>
-      <section
-        className="leaderboards__panel leaderboards__activity"
-        aria-labelledby="activity-title"
-      >
-        <div className="leaderboards__activity-header">
-          <h2 id="activity-title" className="leaderboards__heading-3">
-            {t("activity_title")}
-          </h2>
-          {renderStreak()}
-        </div>
-        {renderActivity()}
-      </section>
-
       <div className="leaderboards__stats-grid">
         <section className="leaderboards__mine" aria-labelledby="mine-title">
           <div
@@ -509,53 +511,65 @@ export function StatsTab({
               </span>
             </div>
           </div>
-          <ul className="leaderboards__mine-list">
-            {metrics.map((metric) => {
-              const result = results[metric.id] ?? EMPTY_BOARD_RESULT;
-              const ranking = getViewerRanking(result.leaderboard, viewerId);
-              const isPending = result.isLoading && !result.leaderboard;
-              const isFailed =
-                !result.isLoading && result.hasError && !result.leaderboard;
+          <div className="leaderboards__mine-body">
+            <table className="leaderboards__mine-table">
+              <thead>
+                <tr>
+                  <th scope="col">{t("metric_label")}</th>
+                  <th scope="col">{t("column_value")}</th>
+                  <th scope="col">{t("column_rank")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {metrics.map((metric) => {
+                  const result = results[metric.id] ?? EMPTY_BOARD_RESULT;
+                  const ranking = getViewerRanking(
+                    result.leaderboard,
+                    viewerId
+                  );
+                  const isPending = result.isLoading && !result.leaderboard;
+                  const isFailed =
+                    !result.isLoading && result.hasError && !result.leaderboard;
+                  const placeholder = isPending ? "" : "–";
 
-              return (
-                <li key={metric.id}>
-                  <button
-                    type="button"
-                    className="leaderboards__mine-row"
-                    onClick={() => onOpenMetric(metric.id)}
-                  >
-                    <MetricIcon metric={metric.id} />
-                    <span className="leaderboards__mine-label">
-                      {metricText.label(metric)}
-                    </span>
-                    {isPending && <Skeleton width={48} />}
-                    {isFailed && (
+                  let value: React.ReactNode = placeholder;
+                  if (isPending) value = <Skeleton width={48} />;
+                  else if (isFailed) {
+                    value = (
                       <span className="leaderboards__mine-error">
                         {t("leader_error")}
                       </span>
-                    )}
-                    {!isPending && !isFailed && (
-                      <>
-                        {ranking && (
-                          <span className="leaderboards__mine-value">
-                            {metricText.format(metric, ranking.value)}
-                          </span>
-                        )}
-                        <span className="leaderboards__mine-delta">
-                          {isWeek && ranking && (
-                            <RankDelta delta={ranking.delta} />
-                          )}
-                        </span>
-                        <span className="leaderboards__mine-rank">
-                          {ranking ? t("ordinal", { rank: ranking.rank }) : "–"}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                    );
+                  } else if (ranking) {
+                    value = metricText.format(metric, ranking.value);
+                  }
+
+                  return (
+                    <tr key={metric.id}>
+                      <td>
+                        <button
+                          type="button"
+                          className="leaderboards__mine-metric"
+                          onClick={() => onOpenMetric(metric.id)}
+                        >
+                          <MetricIcon metric={metric.id} />
+                          {metricText.label(metric)}
+                        </button>
+                      </td>
+                      <td>{value}</td>
+                      <td>
+                        {ranking
+                          ? t("ordinal", {
+                              rank: numberFormatter.format(ranking.rank),
+                            })
+                          : placeholder}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           {hasFailedRanking && (
             <div className="leaderboards__mine-retry">
               <Button theme="outline" size="small" onClick={onRetry}>
@@ -566,10 +580,25 @@ export function StatsTab({
         </section>
 
         <section className="leaderboards__panel">
-          <h2 className="leaderboards__heading-3">{t("friends_streak")}</h2>
+          {!hasNoFriendStreaks && (
+            <h2 className="leaderboards__heading-3">{t("friends_streak")}</h2>
+          )}
           {renderFriends()}
         </section>
       </div>
+
+      <section
+        className="leaderboards__panel leaderboards__activity"
+        aria-labelledby="activity-title"
+      >
+        <div className="leaderboards__activity-header">
+          <h2 id="activity-title" className="leaderboards__heading-3">
+            {t("activity_title")}
+          </h2>
+          {renderStreak()}
+        </div>
+        {renderActivity()}
+      </section>
     </>
   );
 }

@@ -44,16 +44,10 @@ export function WeekSubtitle({
   }, [endTime]);
 
   if (isAllTime) {
-    // Same two lines as a week, so the page does not jump on toggle.
     return (
       <>
+        <h1 className="leaderboards__period-title">{t("period_all")}</h1>
         <span className="leaderboards__subtitle">{t("subtitle_all")}</span>
-        <span
-          className="leaderboards__subtitle leaderboards__subtitle--countdown"
-          aria-hidden="true"
-        >
-          &nbsp;
-        </span>
       </>
     );
   }
@@ -71,10 +65,10 @@ export function WeekSubtitle({
 
   return (
     <>
-      <span className="leaderboards__subtitle">
+      <h1 className="leaderboards__period-title">
         {dateFormatter.formatRange(weekRange.start, lastDay)}
-      </span>
-      <span className="leaderboards__subtitle leaderboards__subtitle--countdown">
+      </h1>
+      <span className="leaderboards__subtitle">
         {t("resets_in", { countdown })}
       </span>
     </>
