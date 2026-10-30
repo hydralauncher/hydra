@@ -8,13 +8,9 @@ import type { FriendStreak } from "./global-leaderboard";
 
 export interface FriendStreakCardProps {
   item: FriendStreak;
-  isViewer: boolean;
 }
 
-export function FriendStreakCard({
-  item,
-  isViewer,
-}: Readonly<FriendStreakCardProps>) {
+export function FriendStreakCard({ item }: Readonly<FriendStreakCardProps>) {
   const { t } = useTranslation("leaderboards");
   const banner = useProcessedImage(
     item.user.backgroundImageUrl,
@@ -24,7 +20,6 @@ export function FriendStreakCard({
   return (
     <div
       className={cn("leaderboards__friend-streak", {
-        "leaderboards__friend-streak--viewer": isViewer,
         "leaderboards__friend-streak--banner": banner,
       })}
       style={

@@ -832,6 +832,8 @@ $leaderboards-heat-gap: 3px;
   &__mine {
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
     border-radius: 8px;
     background-color: globals.$background-color;
 
@@ -886,59 +888,81 @@ $leaderboards-heat-gap: 3px;
     color: globals.$body-color;
   }
 
-  &__mine-list {
-    list-style: none;
-    margin: 0;
-    padding: globals.$spacing-unit;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+  &__mine-body {
+    flex: 1;
+    min-height: 0;
+    padding-inline: calc(globals.$spacing-unit * 2);
+    overflow-x: auto;
   }
 
-  &__mine-row {
+  &__mine-table {
     width: 100%;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 1.25);
-    padding: 0 globals.$spacing-unit;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: globals.$body-color;
+    height: 100%;
+    border-collapse: collapse;
     font-size: globals.$hint-font-size;
-    text-align: left;
-    cursor: pointer;
+    font-variant-numeric: tabular-nums;
 
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.06);
+    th,
+    td {
+      padding: 0 calc(globals.$spacing-unit * 2);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      width: 100%;
+      padding-left: 0;
+      text-align: left;
+    }
+
+    th:last-child,
+    td:last-child {
+      padding-right: 0;
+      padding-left: calc(globals.$spacing-unit * 6);
+    }
+
+    th {
+      height: 36px;
+      border-bottom: solid 1px globals.$border-color;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: $leaderboards-muted-text;
+    }
+
+    td {
+      height: 44px;
+      color: $leaderboards-muted-text;
+      transition: color 0.2s ease;
+    }
+
+    tbody tr {
+      border-bottom: solid 1px globals.$border-color;
+      cursor: pointer;
+
+      &:last-child {
+        border-bottom: 0;
+      }
+
+      &:hover td,
+      &:focus-within td {
+        color: #ffffff;
+      }
     }
   }
 
-  &__mine-label {
-    flex: 1;
-    color: globals.$muted-color;
-  }
-
-  &__mine-value {
-    font-size: globals.$hint-font-size;
-    color: $leaderboards-muted-text;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
-  &__mine-delta {
-    min-width: 32px;
-    text-align: right;
-  }
-
-  &__mine-rank {
-    min-width: 32px;
-    margin-left: 2px;
-    text-align: left;
-    font-weight: 700;
-    color: globals.$muted-color;
-    font-variant-numeric: tabular-nums;
+  &__mine-metric {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.25);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: inherit;
+    cursor: pointer;
   }
 
   &__mine-error {
@@ -949,7 +973,7 @@ $leaderboards-heat-gap: 3px;
   &__mine-retry {
     display: flex;
     justify-content: center;
-    padding: 0 globals.$spacing-unit globals.$spacing-unit;
+    padding: globals.$spacing-unit;
   }
 
   &__activity-header {
@@ -1161,10 +1185,7 @@ $leaderboards-heat-gap: 3px;
     justify-content: space-between;
     gap: calc(globals.$spacing-unit * 2);
     padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
-    border: solid 1px globals.$border-color;
     border-radius: 8px;
-    background-color: $leaderboards-surface;
-    background-clip: padding-box;
 
     &--banner {
       background-image:
@@ -1172,10 +1193,6 @@ $leaderboards-heat-gap: 3px;
         var(--friend-banner);
       background-size: cover;
       background-position: center;
-    }
-
-    &--viewer {
-      border-color: rgba(255, 255, 255, 0.35);
     }
   }
 

@@ -455,11 +455,7 @@ export function StatsTab({
       <>
         <div className="leaderboards__friend-streaks">
           {friends.data.slice(0, FRIEND_STREAK_ROWS).map((item) => (
-            <FriendStreakCard
-              key={item.user.id}
-              item={item}
-              isViewer={item.user.id === viewerId}
-            />
+            <FriendStreakCard key={item.user.id} item={item} />
           ))}
         </div>
         <button
@@ -516,53 +512,74 @@ export function StatsTab({
               </span>
             </div>
           </div>
-          <ul className="leaderboards__mine-list">
-            {metrics.map((metric) => {
-              const result = results[metric.id] ?? EMPTY_BOARD_RESULT;
-              const ranking = getViewerRanking(result.leaderboard, viewerId);
-              const isPending = result.isLoading && !result.leaderboard;
-              const isFailed =
-                !result.isLoading && result.hasError && !result.leaderboard;
+          <div className="leaderboards__mine-body">
+            <table className="leaderboards__mine-table">
+              <thead>
+                <tr>
+                  <th scope="col">{t("metric_label")}</th>
+                  <th scope="col">{t("column_value")}</th>
+                  {isWeek && <th scope="col">{t("column_change")}</th>}
+                  <th scope="col">{t("column_rank")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {metrics.map((metric) => {
+                  const result = results[metric.id] ?? EMPTY_BOARD_RESULT;
+                  const ranking = getViewerRanking(
+                    result.leaderboard,
+                    viewerId
+                  );
+                  const isPending = result.isLoading && !result.leaderboard;
+                  const isFailed =
+                    !result.isLoading && result.hasError && !result.leaderboard;
+                  const placeholder = isPending ? "" : "–";
 
-              return (
-                <li key={metric.id}>
-                  <button
-                    type="button"
-                    className="leaderboards__mine-row"
-                    onClick={() => onOpenMetric(metric.id)}
-                  >
-                    <MetricIcon metric={metric.id} />
-                    <span className="leaderboards__mine-label">
-                      {metricText.label(metric)}
-                    </span>
-                    {isPending && <Skeleton width={48} />}
-                    {isFailed && (
+                  let value: React.ReactNode = placeholder;
+                  if (isPending) value = <Skeleton width={48} />;
+                  else if (isFailed) {
+                    value = (
                       <span className="leaderboards__mine-error">
                         {t("leader_error")}
                       </span>
-                    )}
-                    {!isPending && !isFailed && (
-                      <>
-                        {ranking && (
-                          <span className="leaderboards__mine-value">
-                            {metricText.format(metric, ranking.value)}
-                          </span>
-                        )}
-                        <span className="leaderboards__mine-delta">
-                          {isWeek && ranking && (
+                    );
+                  } else if (ranking) {
+                    value = metricText.format(metric, ranking.value);
+                  }
+
+                  return (
+                    <tr key={metric.id} onClick={() => onOpenMetric(metric.id)}>
+                      <td>
+                        <button
+                          type="button"
+                          className="leaderboards__mine-metric"
+                        >
+                          <MetricIcon metric={metric.id} />
+                          {metricText.label(metric)}
+                        </button>
+                      </td>
+                      <td>{value}</td>
+                      {isWeek && (
+                        <td>
+                          {ranking && ranking.delta !== null ? (
                             <RankDelta delta={ranking.delta} />
+                          ) : (
+                            placeholder
                           )}
-                        </span>
-                        <span className="leaderboards__mine-rank">
-                          {ranking ? t("ordinal", { rank: ranking.rank }) : "–"}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                        </td>
+                      )}
+                      <td>
+                        {ranking
+                          ? t("ordinal", {
+                              rank: numberFormatter.format(ranking.rank),
+                            })
+                          : placeholder}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           {hasFailedRanking && (
             <div className="leaderboards__mine-retry">
               <Button theme="outline" size="small" onClick={onRetry}>
