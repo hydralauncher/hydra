@@ -985,8 +985,8 @@ $leaderboards-heat-gap: 3px;
     }
 
     tbody tr {
+      position: relative;
       border-bottom: solid 1px globals.$border-color;
-      cursor: pointer;
 
       &:last-child {
         border-bottom: 0;
@@ -1009,6 +1009,13 @@ $leaderboards-heat-gap: 3px;
     color: inherit;
     font-size: inherit;
     cursor: pointer;
+
+    // Covers the row, so all of it opens the metric through this one button.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+    }
   }
 
   &__mine-error {

@@ -453,7 +453,11 @@ export function StatsTab({
       );
     }
 
-    return <FriendStreakList friends={friends.data} />;
+    return (
+      <FriendStreakList
+        friends={friends.data.filter((item) => item.user.id !== viewerId)}
+      />
+    );
   };
 
   return (
@@ -520,11 +524,12 @@ export function StatsTab({
                   }
 
                   return (
-                    <tr key={metric.id} onClick={() => onOpenMetric(metric.id)}>
+                    <tr key={metric.id}>
                       <td>
                         <button
                           type="button"
                           className="leaderboards__mine-metric"
+                          onClick={() => onOpenMetric(metric.id)}
                         >
                           <MetricIcon metric={metric.id} />
                           {metricText.label(metric)}
