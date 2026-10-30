@@ -26,7 +26,12 @@ import {
   NavigationService,
   type FocusOverrideTarget,
 } from "../../../../services";
-import { useBigPictureToast, useUserDetails } from "../../../../hooks";
+import {
+  Feature,
+  useBigPictureToast,
+  useFeature,
+  useUserDetails,
+} from "../../../../hooks";
 import { formatScreenshotDate } from "../../screenshots";
 import { isLocalScreenshotUploadInFlight } from "./local-screenshot-tile";
 
@@ -81,6 +86,7 @@ export function LocalScreenshotSidebar({
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const { showErrorToast } = useBigPictureToast();
   const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { isFeatureEnabled } = useFeature();
   const [pendingAction, setPendingAction] = useState<
     "upload" | "delete" | null
   >(null);
@@ -135,10 +141,12 @@ export function LocalScreenshotSidebar({
 
     onBeforeUpload();
     await runAction("upload", () =>
-      globalThis.window.electron.uploadLocalScreenshot(
-        clientId,
-        toUploadOptions(draft, isCustomGame)
-      )
+      globalThis.window.electron.uploadLocalScreenshot(clientId, {
+        ...toUploadOptions(draft, isCustomGame),
+        commentsEnabled:
+          draft.commentsEnabled ||
+          !isFeatureEnabled(Feature.ScreenshotComments),
+      })
     );
   };
 

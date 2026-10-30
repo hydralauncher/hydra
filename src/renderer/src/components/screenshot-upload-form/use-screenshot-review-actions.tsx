@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LocalScreenshot } from "@types";
 import { ConfirmationModal } from "@renderer/components";
-import { useToast, useUserDetails } from "@renderer/hooks";
+import { useFeature, useToast, useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 
 import {
@@ -28,6 +28,7 @@ export function useScreenshotReviewActions(
   >(null);
   const { userDetails } = useUserDetails();
   const { showErrorToast } = useToast();
+  const { isFeatureEnabled, Feature } = useFeature();
 
   useEffect(() => {
     if (awaitedUploadState === null) return;
@@ -84,7 +85,12 @@ export function useScreenshotReviewActions(
       async () => {
         const queued = await window.electron.uploadLocalScreenshot(
           screenshot.clientId,
-          toUploadOptions(screenshot, draft)
+          {
+            ...toUploadOptions(screenshot, draft),
+            commentsEnabled:
+              draft.commentsEnabled ||
+              !isFeatureEnabled(Feature.ScreenshotComments),
+          }
         );
         if (queued && queued.state !== requestedFromState) {
           setAwaitedUploadState(requestedFromState);
