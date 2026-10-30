@@ -628,8 +628,8 @@ export function ScreenshotComments({
         </h3>
         {commentCount > 1 ? (
           <DropdownMenu
-            title={t("comments_sort")}
             align="end"
+            contentClassName="screenshot-comments__sort-menu"
             items={COMMENT_SORT_OPTIONS.map((option) => ({
               label: t(option.labelKey),
               icon:

@@ -304,6 +304,10 @@ $description-outline-fade-duration: 0.15s;
     }
   }
 
+  &__sort-menu .dropdown-menu__separator {
+    display: none;
+  }
+
   &__sort-check {
     display: inline-block;
     width: 14px;

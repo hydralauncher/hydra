@@ -3163,7 +3163,6 @@
     "delete_screenshots_published_cleanup_failed": "Suas capturas publicadas foram excluídas, mas o Hydra não conseguiu terminar de atualizar os registros delas. Tente novamente.",
     "screenshots_deleted_count_one": "{{count}} captura excluída",
     "screenshots_deleted_count_other": "{{count}} capturas excluídas",
-    "comments_sort": "Ordenar",
     "comments_sort_newest": "Mais recentes",
     "comments_sort_top": "Mais votados",
     "comments_temporarily_unavailable": "Os comentários estão temporariamente indisponíveis, tente novamente em instantes",
