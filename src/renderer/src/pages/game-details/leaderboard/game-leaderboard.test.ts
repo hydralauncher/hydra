@@ -635,3 +635,54 @@ describe("isSignedOutError", () => {
     assert.equal(isSignedOutError("user not logged in"), false);
   });
 });
+
+describe("precomputed viewer targets", () => {
+  it("keeps toNext and toTop from the API and drops malformed ones", () => {
+    const result = normalizeLeaderboardResponse({
+      entries: [],
+      viewer: {
+        rank: 4821,
+        value: 7200,
+        toNext: { rank: 4820, value: 7260 },
+        toTop: { rank: 100, value: "nope" },
+      },
+    });
+    assert.deepEqual(result.viewer, {
+      rank: 4821,
+      value: 7200,
+      toNext: { rank: 4820, value: 7260 },
+      toTop: null,
+    });
+  });
+
+  it("nudges toward the top when the viewer sits past the loaded entries", () => {
+    const top = board(entry(1, "a", 100), entry(2, "b", 40));
+    assert.deepEqual(
+      getLeaderboardNudge(
+        {
+          ...top,
+          viewer: { rank: 4821, value: 20, toTop: { rank: 100, value: 35 } },
+        },
+        user("me")
+      ),
+      { type: "to_top", gap: 15, rank: 100 }
+    );
+    assert.equal(
+      getLeaderboardNudge(
+        { ...top, viewer: { rank: 4821, value: 20, toTop: null } },
+        user("me")
+      ),
+      null
+    );
+    assert.equal(
+      getLeaderboardNudge(
+        {
+          ...top,
+          viewer: { rank: 50, value: 20, toTop: { rank: 100, value: 35 } },
+        },
+        user("me")
+      ),
+      null
+    );
+  });
+});

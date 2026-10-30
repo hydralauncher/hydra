@@ -130,10 +130,15 @@ export function LeaderboardSection() {
     const text =
       nudge.type === "leading"
         ? t("nudge_leading")
-        : t("nudge_behind", {
-            amount: formatValue(dataMetric, nudge.gap),
-            name: nudge.target.displayName,
-          });
+        : nudge.type === "to_top"
+          ? t("nudge_to_top", {
+              amount: formatValue(dataMetric, nudge.gap),
+              rank: nudge.rank,
+            })
+          : t("nudge_behind", {
+              amount: formatValue(dataMetric, nudge.gap),
+              name: nudge.target.displayName,
+            });
 
     return (
       <p className="leaderboard-section__nudge">

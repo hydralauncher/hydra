@@ -42,9 +42,17 @@ export interface LeaderboardEntry {
   user: LeaderboardUser;
 }
 
+export interface LeaderboardRankTarget {
+  rank: number;
+  value: number;
+}
+
 export interface LeaderboardViewer {
   rank: number;
   value: number;
+  /* Precomputed boards: the position right above and the last position of the top, when relevant. */
+  toNext?: LeaderboardRankTarget | null;
+  toTop?: LeaderboardRankTarget | null;
 }
 
 export interface Leaderboard {
@@ -82,7 +90,8 @@ export interface LeaderboardRow {
 
 export type LeaderboardNudge =
   | { type: "leading" }
-  | { type: "behind"; gap: number; target: LeaderboardUser };
+  | { type: "behind"; gap: number; target: LeaderboardUser }
+  | { type: "to_top"; gap: number; rank: number };
 
 export type LeaderboardState =
   | "hidden"
@@ -180,7 +189,26 @@ const normalizeViewer = (value: unknown): LeaderboardViewer | null => {
 
   if (!isPositiveInteger(candidate.rank) || viewerValue === null) return null;
 
-  return { rank: candidate.rank, value: viewerValue };
+  const viewer: LeaderboardViewer = {
+    rank: candidate.rank,
+    value: viewerValue,
+  };
+  // Only precomputed boards send targets; legacy responses keep the plain shape.
+  if ("toNext" in candidate)
+    viewer.toNext = normalizeRankTarget(candidate.toNext);
+  if ("toTop" in candidate) viewer.toTop = normalizeRankTarget(candidate.toTop);
+  return viewer;
+};
+
+const normalizeRankTarget = (value: unknown): LeaderboardRankTarget | null => {
+  if (!value || typeof value !== "object") return null;
+
+  const candidate = value as Record<string, unknown>;
+  const targetValue = readValue(candidate);
+
+  if (!isPositiveInteger(candidate.rank) || targetValue === null) return null;
+
+  return { rank: candidate.rank, value: targetValue };
 };
 
 export const normalizeLeaderboardResponse = (
@@ -287,7 +315,13 @@ export const getLeaderboardNudge = (
     (entry) =>
       entry.rank < viewerEntry.rank && entry.user.id !== viewerEntry.user.id
   );
-  if (ahead.length === 0 || ahead.length < viewerEntry.rank - 1) return null;
+  // Past the loaded top, the API tells how far the last top position is.
+  if (ahead.length === 0 || ahead.length < viewerEntry.rank - 1) {
+    const toTop = leaderboard.viewer?.toTop;
+    if (!toTop || toTop.rank >= viewerEntry.rank) return null;
+    const gap = toTop.value - viewerEntry.value;
+    return gap > 0 ? { type: "to_top", gap, rank: toTop.rank } : null;
+  }
 
   const above = ahead[ahead.length - 1];
 
