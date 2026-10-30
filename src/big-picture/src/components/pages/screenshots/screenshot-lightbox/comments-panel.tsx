@@ -567,6 +567,7 @@ export function ScreenshotCommentsPanel({
   const confirmedEditsRef = useRef(new Map<string, ConfirmedCommentEdit>());
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
   const [newCommentId, setNewCommentId] = useState<string | null>(null);
+  const newCommentIdRef = useRef<string | null>(null);
   const composerDraftRef = useRef("");
   const [menu, setMenu] = useState<CommentMenuState | null>(null);
   const [deletingComment, setDeletingComment] =
@@ -653,7 +654,10 @@ export function ScreenshotCommentsPanel({
       setComments((current) =>
         current.filter((comment) => comment.id !== pendingId)
       );
-      setNewCommentId((current) => (current === pendingId ? null : current));
+      if (newCommentIdRef.current === pendingId) {
+        newCommentIdRef.current = null;
+        setNewCommentId(null);
+      }
       if (isListed) setTotal((current) => Math.max(0, current - 1));
       onCommentCountChange(screenshot.id, -1);
     },
@@ -700,11 +704,14 @@ export function ScreenshotCommentsPanel({
           }
           return [created, ...current];
         });
-        setNewCommentId((current) =>
-          current === pending.id ? created.id : current
-        );
+        const isNewestComment = newCommentIdRef.current === pending.id;
+        if (isNewestComment) {
+          newCommentIdRef.current = created.id;
+          setNewCommentId(created.id);
+        }
         const navigation = NavigationService.getInstance();
         if (
+          isNewestComment &&
           !created.isHidden &&
           navigation.getCurrentFocusId() === focusIds.input &&
           !normalizeScreenshotCommentBody(composerDraftRef.current)
@@ -860,6 +867,7 @@ export function ScreenshotCommentsPanel({
       });
       recordWrite({ kind: "add", comment: pending });
       setComments((current) => [pending, ...current]);
+      newCommentIdRef.current = pending.id;
       setNewCommentId(pending.id);
       setTotal((current) => current + 1);
       onCommentCountChange(screenshot.id, 1);
