@@ -1,6 +1,6 @@
 import { setHeaderTitle } from "@renderer/features";
 import { useAppDispatch, useUserDetails } from "@renderer/hooks";
-import { useContext, useEffect, useMemo, useRef } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   buildGameDetailsPath,
@@ -152,7 +152,7 @@ export function AchievementsContent({
 
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
-  const scrollRef = useRef<HTMLElement | null>(null);
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
   const handleCompareClick = () => {
     if (!isComparing && !hasActiveSubscription) {
@@ -194,7 +194,7 @@ export function AchievementsContent({
   return (
     <div className="achievements-content__achievements-list">
       <section
-        ref={scrollRef}
+        ref={setScrollElement}
         className="achievements-content__achievements-list__section"
       >
         <div className="achievements-content__achievements-list__section__container">
@@ -272,7 +272,7 @@ export function AchievementsContent({
 
         {otherUser && isComparing && (
           <ComparedAchievementList
-            scrollRef={scrollRef}
+            scrollElement={scrollElement}
             achievements={comparedAchievements!}
             owner={userDetails}
             target={otherUser}
@@ -281,7 +281,7 @@ export function AchievementsContent({
 
         {otherUser && !isComparing && (
           <AchievementList
-            scrollRef={scrollRef}
+            scrollElement={scrollElement}
             achievements={otherUserAchievements}
             viewerUnlockedNames={viewerUnlockedNames}
             pointsSummary={
@@ -297,7 +297,10 @@ export function AchievementsContent({
         )}
 
         {!otherUser && (
-          <AchievementList scrollRef={scrollRef} achievements={achievements!} />
+          <AchievementList
+            scrollElement={scrollElement}
+            achievements={achievements!}
+          />
         )}
       </section>
     </div>

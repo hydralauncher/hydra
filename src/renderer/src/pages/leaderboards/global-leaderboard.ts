@@ -412,6 +412,80 @@ export const getViewerRanking = (
   };
 };
 
+export type BoardInsight =
+  | { type: "leading"; gap: number; target: LeaderboardUser | null }
+  | { type: "outside"; gap: number; lastRank: number }
+  | { type: "ranked"; rank: number }
+  | { type: "unranked" }
+  | {
+      type: "behind";
+      gap: number;
+      target: LeaderboardUser;
+      targetRank: number;
+      next: { goal: "podium" | "lead"; gap: number } | null;
+    };
+
+const BOARD_PODIUM_LAST_RANK = 3;
+
+// What the viewer needs to climb. Without a real amount to show, it still says
+// where they stand or how to join. Returns null only when signed out.
+export const getBoardInsight = (
+  leaderboard: GlobalLeaderboard,
+  viewerId: string | null
+): BoardInsight | null => {
+  if (!viewerId) return null;
+
+  const ranking = getViewerRanking(leaderboard, viewerId);
+  if (!ranking) return { type: "unranked" };
+
+  const ranked: BoardInsight = { type: "ranked", rank: ranking.rank };
+
+  const { entries } = leaderboard;
+  const gapTo = (value: number) => value - ranking.value;
+
+  if (ranking.rank === 1) {
+    const second = entries.find((entry) => entry.user.id !== viewerId) ?? null;
+    if (!second) return { type: "leading", gap: 0, target: null };
+
+    const gap = ranking.value - second.value;
+    return gap > 0 ? { type: "leading", gap, target: second.user } : ranked;
+  }
+
+  const above = entries.findLast((entry) => entry.rank < ranking.rank);
+  if (!above) return ranked;
+
+  // Past the listed players, the next one is unknown: the goal is the list.
+  if (above.rank !== ranking.rank - 1) {
+    const listGap = gapTo(above.value);
+    return listGap > 0
+      ? { type: "outside", gap: listGap, lastRank: above.rank }
+      : ranked;
+  }
+
+  const gap = gapTo(above.value);
+  if (gap <= 0) return ranked;
+
+  const goalEntry =
+    ranking.rank > BOARD_PODIUM_LAST_RANK + 1
+      ? entries.find((entry) => entry.rank === BOARD_PODIUM_LAST_RANK)
+      : entries.find((entry) => entry.rank === 1);
+  const nextGap = ranking.rank > 2 && goalEntry ? gapTo(goalEntry.value) : 0;
+
+  return {
+    type: "behind",
+    gap,
+    target: above.user,
+    targetRank: above.rank,
+    next:
+      nextGap > 0
+        ? {
+            goal: ranking.rank > BOARD_PODIUM_LAST_RANK + 1 ? "podium" : "lead",
+            gap: nextGap,
+          }
+        : null,
+  };
+};
+
 export const getUtcWeekRange = (now: number): WeekRange => {
   const date = new Date(now);
   const daysSinceMonday = (date.getUTCDay() + 6) % 7;
@@ -467,6 +541,38 @@ export interface HeatmapCell {
   isToday: boolean;
   isYesterday: boolean;
 }
+
+export const DAYS_PER_WEEK = 7;
+
+// Keep these in sync with the activity graph in leaderboards.scss.
+const HEATMAP_DAY_LABELS_WIDTH = 36;
+const HEATMAP_GAP = 6;
+const HEATMAP_MIN_CELL_SIZE = 12;
+const HEATMAP_MAX_CELL_SIZE = 32;
+
+// The graph fills the card: the cells grow up to a limit, and a card too narrow
+// for every week at the smallest size shows fewer weeks.
+export const getHeatmapLayout = (width: number | null, totalWeeks: number) => {
+  const available = (width ?? 0) - HEATMAP_DAY_LABELS_WIDTH;
+  const weeksThatFit = Math.floor(
+    (available + HEATMAP_GAP) / (HEATMAP_MIN_CELL_SIZE + HEATMAP_GAP)
+  );
+  const weeks = Math.max(1, Math.min(totalWeeks, weeksThatFit));
+  const cellSize = Math.max(
+    HEATMAP_MIN_CELL_SIZE,
+    Math.min(
+      HEATMAP_MAX_CELL_SIZE,
+      Math.floor((available - HEATMAP_GAP * (weeks - 1)) / weeks)
+    )
+  );
+
+  return {
+    weeks,
+    cellSize,
+    width:
+      HEATMAP_DAY_LABELS_WIDTH + weeks * (cellSize + HEATMAP_GAP) - HEATMAP_GAP,
+  };
+};
 
 export const buildHeatmap = (
   days: PlayActivityDay[],
@@ -531,6 +637,26 @@ export const sumHeatmap = (cells: HeatmapCell[]) =>
     }),
     { seconds: 0, days: 0 }
   );
+
+export type HeatmapTotalDisplay =
+  | { unit: "none" }
+  | { unit: "minutes" | "hours"; amount: number };
+
+// Under an hour the total is in minutes, so a short session does not read "0 h".
+export const getHeatmapTotalDisplay = ({
+  seconds,
+  days,
+}: {
+  seconds: number;
+  days: number;
+}): HeatmapTotalDisplay => {
+  if (days === 0) return { unit: "none" };
+
+  const minutes = Math.max(1, Math.round(seconds / SECONDS_PER_MINUTE));
+  if (minutes < MINUTES_PER_HOUR) return { unit: "minutes", amount: minutes };
+
+  return { unit: "hours", amount: Math.round(seconds / SECONDS_PER_HOUR) };
+};
 
 export const normalizeMyGames = (response: unknown): MyGameRanking[] => {
   const items = isRecord(response) ? response.games : response;

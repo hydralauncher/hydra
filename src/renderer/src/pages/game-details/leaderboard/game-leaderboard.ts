@@ -20,6 +20,20 @@ export type LeaderboardMetric = (typeof LEADERBOARD_METRICS)[number];
 
 export type LeaderboardShop = Extract<GameShop, "steam" | "epic" | "launchbox">;
 
+export const parseLeaderboardPeriod = (
+  value: string | null
+): LeaderboardPeriod =>
+  (LEADERBOARD_PERIODS as readonly (string | null)[]).includes(value)
+    ? (value as LeaderboardPeriod)
+    : "week";
+
+export const parseLeaderboardScope = (
+  value: string | null
+): LeaderboardScope =>
+  (LEADERBOARD_SCOPES as readonly (string | null)[]).includes(value)
+    ? (value as LeaderboardScope)
+    : "global";
+
 export const getServedMetrics = (
   servedIds: readonly string[] | null
 ): LeaderboardMetric[] => {
@@ -42,9 +56,15 @@ export interface LeaderboardEntry {
   user: LeaderboardUser;
 }
 
+export interface LeaderboardRankTarget {
+  rank: number;
+  value: number;
+}
+
 export interface LeaderboardViewer {
   rank: number;
   value: number;
+  toTop?: LeaderboardRankTarget | null;
 }
 
 export interface Leaderboard {
@@ -75,14 +95,19 @@ export type LeaderboardGet = (
 export interface LeaderboardRow {
   entry: LeaderboardEntry;
   isViewer: boolean;
-  isPinned: boolean;
   gapBefore: boolean;
   progress: number;
 }
 
 export type LeaderboardNudge =
   | { type: "leading" }
-  | { type: "behind"; gap: number; target: LeaderboardUser };
+  | {
+      type: "behind";
+      gap: number;
+      target: LeaderboardUser;
+      targetRank: number;
+    }
+  | { type: "to_top"; gap: number; rank: number };
 
 export type LeaderboardState =
   | "hidden"
@@ -180,7 +205,23 @@ const normalizeViewer = (value: unknown): LeaderboardViewer | null => {
 
   if (!isPositiveInteger(candidate.rank) || viewerValue === null) return null;
 
-  return { rank: candidate.rank, value: viewerValue };
+  const viewer: LeaderboardViewer = {
+    rank: candidate.rank,
+    value: viewerValue,
+  };
+  if ("toTop" in candidate) viewer.toTop = normalizeRankTarget(candidate.toTop);
+  return viewer;
+};
+
+const normalizeRankTarget = (value: unknown): LeaderboardRankTarget | null => {
+  if (!value || typeof value !== "object") return null;
+
+  const candidate = value as Record<string, unknown>;
+  const targetValue = readValue(candidate);
+
+  if (!isPositiveInteger(candidate.rank) || targetValue === null) return null;
+
+  return { rank: candidate.rank, value: targetValue };
 };
 
 export const normalizeLeaderboardResponse = (
@@ -243,41 +284,34 @@ const getProgress = (value: number, topValue: number) => {
 export const buildLeaderboardRows = (
   leaderboard: Pick<Leaderboard, "entries" | "viewer">,
   viewerUser: LeaderboardUser | null,
-  size: number,
-  { pinViewer = false }: { pinViewer?: boolean } = {}
+  size: number
 ): LeaderboardRow[] => {
   const topValue = leaderboard.entries[0]?.value ?? 0;
   const viewerEntry = findViewerEntry(leaderboard, viewerUser);
 
   const toRow = (
     entry: LeaderboardEntry,
-    gapBefore = false,
-    isPinned = false
+    gapBefore = false
   ): LeaderboardRow => ({
     entry,
     isViewer: entry.user.id === viewerUser?.id,
-    isPinned,
     gapBefore,
     progress: getProgress(entry.value, topValue),
   });
 
   const rows = leaderboard.entries.slice(0, size).map((entry) => toRow(entry));
-  if (!viewerEntry) return rows;
-
-  const isListed = rows.some((row) => row.isViewer);
-  if (isListed && !pinViewer) return rows;
+  if (!viewerEntry || rows.some((row) => row.isViewer)) return rows;
 
   const lastRank = rows.at(-1)?.entry.rank ?? 0;
-  rows.push(
-    toRow(viewerEntry, isListed || viewerEntry.rank > lastRank + 1, pinViewer)
-  );
+  rows.push(toRow(viewerEntry, viewerEntry.rank > lastRank + 1));
 
   return rows;
 };
 
 export const getLeaderboardNudge = (
   leaderboard: Pick<Leaderboard, "entries" | "viewer">,
-  viewerUser: LeaderboardUser | null
+  viewerUser: LeaderboardUser | null,
+  scope: LeaderboardScope = "global"
 ): LeaderboardNudge | null => {
   const viewerEntry = findViewerEntry(leaderboard, viewerUser);
   if (!viewerEntry) return null;
@@ -287,14 +321,19 @@ export const getLeaderboardNudge = (
     (entry) =>
       entry.rank < viewerEntry.rank && entry.user.id !== viewerEntry.user.id
   );
-  if (ahead.length === 0 || ahead.length < viewerEntry.rank - 1) return null;
+  if (ahead.length === 0 || ahead.length < viewerEntry.rank - 1) {
+    const toTop = scope === "global" ? leaderboard.viewer?.toTop : null;
+    if (!toTop || toTop.rank >= viewerEntry.rank) return null;
+    const gap = toTop.value - viewerEntry.value;
+    return gap > 0 ? { type: "to_top", gap, rank: toTop.rank } : null;
+  }
 
   const above = ahead[ahead.length - 1];
 
   const gap = above.value - viewerEntry.value;
   if (gap <= 0) return null;
 
-  return { type: "behind", gap, target: above.user };
+  return { type: "behind", gap, target: above.user, targetRank: above.rank };
 };
 
 export const getLeaderboardState = ({

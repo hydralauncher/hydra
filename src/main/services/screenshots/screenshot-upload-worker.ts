@@ -94,6 +94,7 @@ const buildPresignRequest = (
     capturedAt: screenshot.capturedAt,
     isSpoiler: screenshot.isSpoiler,
     visibility: screenshot.visibility,
+    ...(screenshot.commentsEnabled === false ? { commentsEnabled: false } : {}),
   };
 };
 
@@ -211,22 +212,22 @@ class ScreenshotUploadWorker {
       return screenshot;
     }
 
-    const quality =
-      options.quality === undefined
-        ? undefined
-        : resolveScreenshotUploadQuality(
-            options.quality,
-            HydraApi.hasActiveSubscription()
-          );
+    const isRetryingStandardFallback =
+      screenshot.state === "failed" &&
+      screenshot.uploadQualityFallback === true &&
+      screenshot.uploadQuality === "STANDARD";
+    const quality = isRetryingStandardFallback
+      ? "STANDARD"
+      : resolveScreenshotUploadQuality(HydraApi.hasActiveSubscription());
     const isQualityChange =
-      quality !== undefined &&
-      screenshot.uploadQuality != null &&
-      screenshot.uploadQuality !== quality;
+      screenshot.uploadQuality != null && screenshot.uploadQuality !== quality;
     const updated = await LocalScreenshotStore.update(clientId, {
       ownerId,
       state: "queued",
       isSpoiler: options.isSpoiler,
       visibility: options.visibility,
+      commentsEnabled:
+        options.commentsEnabled ?? screenshot.commentsEnabled ?? true,
       customGameTitle:
         screenshot.shop === "custom"
           ? options.customGameTitle?.trim() || null
@@ -240,7 +241,8 @@ class ScreenshotUploadWorker {
       ...RESET_WAIT_COUNTS,
       nextUploadAttemptAt: null,
       lastError: null,
-      ...(quality === undefined ? {} : { uploadQuality: quality }),
+      uploadQuality: quality,
+      uploadQualityFallback: isRetryingStandardFallback,
       ...(isQualityChange ? { uploadClientId: randomUUID() } : {}),
     });
 
@@ -615,7 +617,9 @@ class ScreenshotUploadWorker {
             lastError: failure.code,
             nextUploadAttemptAt: null,
             pendingCompleteScreenshotId: null,
-            ...(step.quality ? { uploadQuality: step.quality } : {}),
+            ...(step.quality
+              ? { uploadQuality: step.quality, uploadQualityFallback: true }
+              : {}),
           })
         );
         if (!requeued) return;

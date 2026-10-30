@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import cn from "classnames";
 import { ClockIcon, PeopleIcon, StarIcon } from "@primer/octicons-react";
-import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
-import { Avatar, Button } from "@renderer/components";
+import { Button } from "@renderer/components";
 import { useDate, useFormat } from "@renderer/hooks";
 import type {
   LeaderboardEntry,
@@ -13,14 +13,15 @@ import type {
 import {
   formatBoardTotal,
   getBoardState,
-  GLOBAL_LEADERBOARD_PAGE_SIZE,
   hasReviewData,
-  hasStreakData,
   type GlobalLeaderboardPeriod,
   type MetricDefinition,
   type GlobalLeaderboardScope,
   type LeaderboardReview,
 } from "./global-leaderboard";
+import { requestAddFriendMode } from "../friends-window/add-friend-request";
+import { BoardHeader } from "./board-header";
+import { BoardInsight } from "./board-insight";
 import { BoardView } from "./board-view";
 import { BlockError, BlockMessage, BoardSkeleton } from "./leaderboard-bits";
 import { MetricIcon } from "./metric-icon";
@@ -30,25 +31,22 @@ import {
   EMPTY_BOARD_RESULT,
   type GlobalBoardResults,
 } from "./use-global-leaderboards";
-import { useMetricText } from "./use-global-leaderboard-value";
+import {
+  useMetricColumnLabel,
+  useMetricText,
+} from "./use-global-leaderboard-value";
 import { useReviewTranslation } from "./use-review-translation";
-
-const METRIC_CARD_PLACEHOLDERS = Array.from(
-  { length: 8 },
-  (_, position) => `metric-placeholder-${position}`
-);
 
 export interface RankingTabProps {
   results: GlobalBoardResults;
-  metrics: MetricDefinition[];
   metric: MetricDefinition | null;
   isMetricsLoading: boolean;
   hasMetricsError: boolean;
-  onMetricChange: (metric: string) => void;
   period: GlobalLeaderboardPeriod;
   scope: GlobalLeaderboardScope;
   viewerUser: LeaderboardUser | null;
   onRetry: () => void;
+  onPeriodChange: (period: GlobalLeaderboardPeriod) => void;
 }
 
 // Outside the component to keep it under the cognitive complexity limit.
@@ -97,21 +95,21 @@ function ReviewScore({ review }: Readonly<{ review: LeaderboardReview }>) {
 
 export function RankingTab({
   results,
-  metrics,
   metric,
   isMetricsLoading,
   hasMetricsError,
-  onMetricChange,
   period,
   scope,
   viewerUser,
   onRetry,
+  onPeriodChange,
 }: Readonly<RankingTabProps>) {
   const { t } = useTranslation("leaderboards");
+  const navigate = useNavigate();
   const { numberFormatter } = useFormat();
   const metricText = useMetricText();
+  const metricColumnLabel = useMetricColumnLabel();
   const [reviewerId, setReviewerId] = useState<string | null>(null);
-  const [visibleRows, setVisibleRows] = useState(GLOBAL_LEADERBOARD_PAGE_SIZE);
 
   const current = (metric && results[metric.id]) || EMPTY_BOARD_RESULT;
   const leaderboard = current.leaderboard;
@@ -142,65 +140,6 @@ export function RankingTab({
   const selectedReview = selectedEntry
     ? (leaderboard?.extras[selectedEntry.user.id]?.review ?? null)
     : null;
-
-  const renderLeaderCard = (definition: MetricDefinition) => {
-    const { id } = definition;
-    const result = results[id] ?? EMPTY_BOARD_RESULT;
-    const leader = result.leaderboard?.entries[0] ?? null;
-
-    let leaderContent: React.ReactNode = (
-      <span className="leaderboards__card-empty">{t("no_leader")}</span>
-    );
-
-    if (result.hasError) {
-      leaderContent = (
-        <span className="leaderboards__card-empty">{t("leader_error")}</span>
-      );
-    } else if (result.isLoading && !result.leaderboard) {
-      leaderContent = (
-        <Skeleton className="leaderboards__card-skeleton" width="100%" />
-      );
-    } else if (leader) {
-      leaderContent = (
-        <>
-          <Avatar
-            size={28}
-            src={leader.user.profileImageUrl}
-            alt={leader.user.displayName}
-          />
-          <span className="leaderboards__card-leader-text">
-            <span className="leaderboards__card-leader-name">
-              {leader.user.displayName}
-            </span>
-            <span className="leaderboards__card-leader-value">
-              {metricText.format(definition, leader.value)}
-            </span>
-          </span>
-        </>
-      );
-    }
-
-    return (
-      <button
-        key={id}
-        type="button"
-        role="tab"
-        aria-selected={id === metric?.id}
-        className={cn("leaderboards__card", {
-          "leaderboards__card--selected": id === metric?.id,
-        })}
-        onClick={() => onMetricChange(id)}
-      >
-        <span className="leaderboards__card-label">
-          <MetricIcon metric={id} />
-          <span className="leaderboards__card-label-text">
-            {metricText.label(definition)}
-          </span>
-        </span>
-        <span className="leaderboards__card-leader">{leaderContent}</span>
-      </button>
-    );
-  };
 
   const renderReviewTooltip = (entry: LeaderboardEntry) => {
     const review = leaderboard?.extras[entry.user.id]?.review;
@@ -253,11 +192,24 @@ export function RankingTab({
     if (state === "empty") {
       return (
         <BlockMessage
-          icon={<ClockIcon size={24} />}
+          icon={<ClockIcon size={32} />}
           title={t(isWeek ? "empty_week_title" : "empty_all_title")}
           description={t(
-            isWeek ? "empty_week_description" : "empty_all_description"
+            isWeek
+              ? "empty_week_ranking_description"
+              : "empty_all_ranking_description"
           )}
+          action={
+            isWeek ? (
+              <Button theme="primary" onClick={() => onPeriodChange("all")}>
+                {t("see_all_time")}
+              </Button>
+            ) : (
+              <Button theme="primary" onClick={() => navigate("/library")}>
+                {t("go_to_library")}
+              </Button>
+            )
+          }
         />
       );
     }
@@ -265,14 +217,16 @@ export function RankingTab({
     if (state === "empty_friends") {
       return (
         <BlockMessage
-          icon={<PeopleIcon size={24} />}
+          icon={<PeopleIcon size={32} />}
           title={t("empty_friends_title")}
-          description={t("empty_friends_description")}
+          description={t("empty_friends_ranking_description")}
           action={
             <Button
-              theme="outline"
-              size="small"
-              onClick={() => globalThis.window.electron.openFriendsWindow()}
+              theme="primary"
+              onClick={() => {
+                requestAddFriendMode();
+                void globalThis.window.electron.openFriendsWindow();
+              }}
             >
               {t("find_friends")}
             </Button>
@@ -285,73 +239,68 @@ export function RankingTab({
 
     return (
       <>
-        {renderSelectedReview()}
+        {metric && (
+          <BoardInsight
+            leaderboard={leaderboard}
+            viewerId={viewerId}
+            metric={metric}
+            period={period}
+          />
+        )}
         <BoardView
           leaderboard={leaderboard}
           viewerUser={viewerUser}
           formatValue={format}
-          leaderLabel={t(isWeek ? "leader_of_week" : "record_holder")}
           showDelta={isWeek}
-          isStreak={hasStreakData(leaderboard)}
           isLoading={current.isLoading}
           selectedId={isReviews ? selectedReviewerId : undefined}
           onSelect={
             isReviews ? (entry) => setReviewerId(entry.user.id) : undefined
           }
           renderTooltip={isReviews ? renderReviewTooltip : undefined}
-          onVisibleChange={setVisibleRows}
+          belowPodium={renderSelectedReview()}
+          metricColumn={metric ? metricColumnLabel(metric) : ""}
           reportContext={reportContext}
         />
       </>
     );
   };
 
-  const visibleCount = leaderboard
-    ? Math.min(leaderboard.entries.length, visibleRows)
-    : 0;
-
   return (
     <>
-      <section className="leaderboards__leaders">
-        <h2 className="leaderboards__section-title">
-          {t(isWeek ? "leaders_title" : "leaders_all_title")}
-        </h2>
-        <div
-          className="leaderboards__cards"
-          role="tablist"
-          aria-label={t("metric_label")}
-        >
-          {isMetricsLoading && metrics.length === 0
-            ? METRIC_CARD_PLACEHOLDERS.map((placeholder) => (
-                <Skeleton
-                  key={placeholder}
-                  className="leaderboards__card-placeholder"
-                />
-              ))
-            : metrics.map(renderLeaderCard)}
-        </div>
-      </section>
-
-      <section className="leaderboards__board" aria-labelledby="board-title">
-        <div className="leaderboards__board-header">
-          {metric && <MetricIcon metric={metric.id} size={20} />}
-          <h2 id="board-title" className="leaderboards__board-title">
-            {metric ? metricText.label(metric) : ""}
-          </h2>
-          {state === "ready" && leaderboard && (
-            <span className="leaderboards__board-count">
-              {scope === "global" && leaderboard.total !== null
-                ? t("top_of_total", {
-                    count: visibleCount,
-                    total: formatBoardTotal(
-                      leaderboard.total,
-                      numberFormatter.format
-                    ),
-                  })
-                : t("players_count", { count: leaderboard.entries.length })}
-            </span>
-          )}
-        </div>
+      <section
+        className={cn("leaderboards__board", {
+          "leaderboards__board--empty":
+            state === "empty" || state === "empty_friends",
+        })}
+        aria-labelledby="board-title"
+      >
+        <BoardHeader
+          id="board-title"
+          title={metric ? metricText.label(metric) : ""}
+          description={
+            metric
+              ? t(`metric_description_${metric.id}`, { defaultValue: "" })
+              : undefined
+          }
+          icon={metric && <MetricIcon metric={metric.id} size={20} />}
+          aside={
+            state === "ready" &&
+            leaderboard && (
+              <span className="leaderboards__board-count">
+                {scope === "global" && leaderboard.total !== null
+                  ? t("players_total", {
+                      count: leaderboard.total,
+                      total: formatBoardTotal(
+                        leaderboard.total,
+                        numberFormatter.format
+                      ),
+                    })
+                  : t("players_count", { count: leaderboard.entries.length })}
+              </span>
+            )
+          }
+        />
 
         {renderBoard()}
       </section>

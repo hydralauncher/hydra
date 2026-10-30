@@ -108,22 +108,19 @@ export function LeaderboardNotificationIcon({
     );
   };
 
-  return (
-    <div className="leaderboard-notification-icon">
-      {renderTile()}
-      <span
-        aria-hidden="true"
-        className={cn("leaderboard-notification-icon__arrow", {
-          "leaderboard-notification-icon__arrow--down":
-            info.direction === "down",
-        })}
-      >
-        <svg width="10" height="10" viewBox="0 0 10 10">
-          <path d="M5 1.5 8.5 6H6.2v2.5H3.8V6H1.5z" fill="currentColor" />
-        </svg>
-      </span>
-    </div>
-  );
+  return <div className="leaderboard-notification-icon">{renderTile()}</div>;
+}
+
+// For the notifications page: only the image, in the same frame as the others.
+export function LeaderboardNotificationPicture({
+  info,
+}: Readonly<{ info: LeaderboardNotificationInfo }>) {
+  const assets = useGameAssets(info.game);
+  const gameImage = assets?.iconUrl ?? assets?.coverImageUrl;
+
+  if (info.kind === "missing_photo") return <DeviceCameraIcon size={24} />;
+  if (info.game && gameImage) return <img src={gameImage} alt="" />;
+  return <MetricIcon metric={info.metric} size={24} />;
 }
 
 export function LeaderboardRankChip({

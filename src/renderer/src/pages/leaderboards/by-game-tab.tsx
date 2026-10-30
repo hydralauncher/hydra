@@ -1,51 +1,36 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import cn from "classnames";
-import {
-  LinkExternalIcon,
-  PeopleIcon,
-  SearchIcon,
-  TrophyIcon,
-  XIcon,
-} from "@primer/octicons-react";
-import Skeleton from "react-loading-skeleton";
+import { PeopleIcon, TrophyIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import { Avatar } from "@renderer/components";
-import { useFormat } from "@renderer/hooks";
+import { Button } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
 import { buildLeaderboardBoardPath } from "@shared";
 import type { LeaderboardUser } from "../game-details/leaderboard/game-leaderboard";
 import {
   buildMetricsRequest,
-  formatBoardTotal,
   getBoardState,
-  getRankDelta,
-  getViewerRanking,
   GLOBAL_LEADERBOARD_TAKE,
   normalizeGlobalLeaderboardResponse,
   normalizeMetricDefinitions,
-  normalizeMyGames,
   type GlobalLeaderboardPeriod,
   type GlobalLeaderboardScope,
   type MyGameRanking,
 } from "./global-leaderboard";
 import { useApiResource } from "./leaderboards-api";
+import { BoardHeader } from "./board-header";
+import { BoardInsight } from "./board-insight";
 import { BoardView } from "./board-view";
-import { useMetricText } from "./use-global-leaderboard-value";
+import { HeaderSelector } from "./header-selector";
+import { MetricIcon } from "./metric-icon";
+import { useGameIcon } from "./use-game-icon";
 import {
-  BlockError,
-  BlockMessage,
-  BoardSkeleton,
-  RankDelta,
-} from "./leaderboard-bits";
-
-const GAME_SKELETON_ROWS = 4;
-const GAME_SKELETON_KEYS = Array.from(
-  { length: GAME_SKELETON_ROWS },
-  (_, index) => `game-skeleton-${index}`
-);
+  useMetricColumnLabel,
+  useMetricText,
+} from "./use-global-leaderboard-value";
+import { BlockError, BlockMessage, BoardSkeleton } from "./leaderboard-bits";
 
 export interface LinkedGame {
   shop: string;
@@ -58,6 +43,10 @@ export interface ByGameTabProps {
   viewerUser: LeaderboardUser | null;
   initialGame?: LinkedGame | null;
   initialMetric?: string | null;
+  games: MyGameRanking[];
+  selectedKey: string | null;
+  onScopeChange: (scope: GlobalLeaderboardScope) => void;
+  onPeriodChange: (period: GlobalLeaderboardPeriod) => void;
 }
 
 interface SelectedGame {
@@ -70,12 +59,7 @@ interface SelectedGame {
   total: number | null;
 }
 
-const backgroundStyle = (url: string | null, variable: string) =>
-  url
-    ? ({ [variable]: `url(${JSON.stringify(url)})` } as React.CSSProperties)
-    : undefined;
-
-const gameKey = (game: LinkedGame) => `${game.shop}:${game.objectId}`;
+export const gameKey = (game: LinkedGame) => `${game.shop}:${game.objectId}`;
 
 function useLinkedGameAssets(game: LinkedGame | null) {
   const [assets, setAssets] = useState<SelectedGame | null>(null);
@@ -121,15 +105,15 @@ export function ByGameTab({
   viewerUser,
   initialGame = null,
   initialMetric = null,
+  games,
+  selectedKey,
+  onScopeChange,
+  onPeriodChange,
 }: Readonly<ByGameTabProps>) {
   const { t } = useTranslation("leaderboards");
   const navigate = useNavigate();
   const metricText = useMetricText();
-  const { numberFormatter } = useFormat();
-  const [search, setSearch] = useState("");
-  const [selectedKey, setSelectedKey] = useState<string | null>(
-    initialGame ? gameKey(initialGame) : null
-  );
+  const metricColumnLabel = useMetricColumnLabel();
   const [requestedMetric, setRequestedMetric] = useState<string | null>(
     initialMetric
   );
@@ -149,36 +133,15 @@ export function ByGameTab({
     gameMetrics[0] ??
     null;
 
-  const games = useApiResource(
-    "/leaderboards/me/games",
-    { params: { window: period, scope }, needsAuth: true },
-    normalizeMyGames
-  );
-
-  const lastGamesRef = useRef(games.data);
-  if (games.data) lastGamesRef.current = games.data;
-  const shownGames =
-    games.data ?? (games.isLoading ? lastGamesRef.current : null);
-  const allGames = useMemo(() => shownGames ?? [], [shownGames]);
-  const listed = allGames.find((game) => gameKey(game) === selectedKey);
+  const listed = games.find((game) => gameKey(game) === selectedKey);
   const linkedGame =
     initialGame && selectedKey === gameKey(initialGame) && !listed
       ? initialGame
       : null;
   const linkedAssets = useLinkedGameAssets(linkedGame);
-  const boardGame: LinkedGame | null =
-    listed ?? linkedGame ?? allGames[0] ?? null;
+  const boardGame: LinkedGame | null = listed ?? linkedGame ?? games[0] ?? null;
   const selected: SelectedGame | MyGameRanking | null =
-    listed ?? linkedAssets ?? (linkedGame ? null : (allGames[0] ?? null));
-
-  const filtered = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase();
-    if (!term) return allGames;
-
-    return allGames.filter((game) =>
-      game.title.toLocaleLowerCase().includes(term)
-    );
-  }, [allGames, search]);
+    listed ?? linkedAssets ?? (linkedGame ? null : (games[0] ?? null));
 
   const board = useApiResource(
     boardGame && metric
@@ -204,135 +167,45 @@ export function ByGameTab({
   const formatValue = (value: number) =>
     metric ? metricText.format(metric, value) : String(value);
 
-  const viewerRanking = getViewerRanking(board.data, viewerId);
-  const heroRank = board.data
-    ? (viewerRanking?.rank ?? null)
-    : (selected?.rank ?? null);
-  const heroTotal = board.data
-    ? (board.data.total ?? null)
-    : (selected?.total ?? null);
-  let heroSubtitle = "";
-  if (heroRank !== null && heroTotal !== null) {
-    heroSubtitle = t("game_ranking_subtitle", {
-      total: formatBoardTotal(heroTotal, numberFormatter.format),
-      rank: heroRank,
-    });
-  } else if (heroRank !== null) {
-    heroSubtitle = t("you_are_at", { rank: heroRank });
-  } else if (heroTotal !== null) {
-    heroSubtitle = t("players_count", { count: heroTotal });
-  }
-
-  const metricChips = (
-    <fieldset className="leaderboards__chips">
-      <legend className="leaderboards__sr-only">{t("metric_label")}</legend>
-      {gameMetrics.map((definition) => (
-        <button
-          key={definition.id}
-          type="button"
-          aria-pressed={definition.id === metric?.id}
-          className={cn("leaderboards__chip", {
-            "leaderboards__chip--selected": definition.id === metric?.id,
-          })}
-          onClick={() => setRequestedMetric(definition.id)}
-        >
-          {metricText.label(definition)}
-        </button>
-      ))}
-    </fieldset>
+  const metricTabs = metric && (
+    <HeaderSelector
+      label={t("metric_label")}
+      showLabel={false}
+      collapsible
+      value={metric.id}
+      onChange={setRequestedMetric}
+      options={gameMetrics.map((definition) => ({
+        id: definition.id,
+        label: metricText.label(definition),
+        icon: <MetricIcon metric={definition.id} size={14} />,
+      }))}
+    />
   );
 
-  const renderGames = () => {
-    if (games.isLoading && !games.data) {
-      return (
-        <div className="leaderboards__games">
-          {GAME_SKELETON_KEYS.map((key) => (
-            <Skeleton key={key} className="leaderboards__game-skeleton" />
-          ))}
-        </div>
-      );
-    }
+  const gameIcon = useGameIcon(boardGame?.shop, boardGame?.objectId);
 
-    if (games.hasError) return <BlockError onRetry={games.retry} />;
+  const openGamePage = () => {
+    if (!boardGame) return;
 
-    if (allGames.length === 0) {
-      return (
-        <BlockMessage
-          icon={<TrophyIcon size={24} />}
-          title={t("games_empty_title")}
-          description={t("games_empty_description")}
-        />
-      );
-    }
-
-    if (filtered.length === 0 && search.trim()) {
-      return <BlockMessage title={t("games_search_empty")} />;
-    }
-
-    return (
-      <div className="leaderboards__games">
-        {filtered.map((game) => {
-          const isSelected = boardGame && gameKey(boardGame) === gameKey(game);
-
-          return (
-            <button
-              key={gameKey(game)}
-              type="button"
-              aria-pressed={Boolean(isSelected)}
-              className={cn("leaderboards__game", {
-                "leaderboards__game--selected": isSelected,
-              })}
-              onClick={() => setSelectedKey(gameKey(game))}
-            >
-              <span
-                className="leaderboards__game-cover"
-                style={backgroundStyle(game.coverImageUrl, "--cover")}
-              />
-              <span className="leaderboards__game-body">
-                <span className="leaderboards__game-title">{game.title}</span>
-                <span className="leaderboards__game-rank">
-                  <span className="leaderboards__game-position">
-                    {t("ordinal", { rank: game.rank })}
-                  </span>
-                  {game.total !== null && (
-                    <span className="leaderboards__game-total">
-                      {t("of_total", {
-                        total: formatBoardTotal(
-                          game.total,
-                          numberFormatter.format
-                        ),
-                      })}
-                    </span>
-                  )}
-                  {isWeek && (
-                    <RankDelta
-                      delta={getRankDelta(game.rank, game.previousRank)}
-                    />
-                  )}
-                </span>
-                {game.leader && (
-                  <span className="leaderboards__game-leader">
-                    <Avatar
-                      size={16}
-                      src={game.leader.profileImageUrl}
-                      alt={game.leader.displayName}
-                    />
-                    {t("leader_name", { name: game.leader.displayName })}
-                  </span>
-                )}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+    navigate(
+      buildGameDetailsPath({
+        shop: boardGame.shop as GameShop,
+        objectId: boardGame.objectId,
+        title: selected?.title ?? "",
+      })
     );
   };
+
+  const isBoardEmpty =
+    hasNoGameMetrics ||
+    boardState === "empty" ||
+    boardState === "empty_friends";
 
   const renderBoard = () => {
     if (hasNoGameMetrics) {
       return (
         <BlockMessage
-          icon={<TrophyIcon size={24} />}
+          icon={<TrophyIcon size={32} />}
           title={t("game_metrics_empty_title")}
           description={t("game_metrics_empty_description")}
         />
@@ -354,11 +227,24 @@ export function ByGameTab({
     if (boardState === "empty") {
       return (
         <BlockMessage
-          icon={<TrophyIcon size={24} />}
+          icon={<TrophyIcon size={32} />}
           title={t(isWeek ? "empty_week_title" : "empty_all_title")}
           description={t(
-            isWeek ? "empty_week_description" : "empty_all_description"
+            isWeek
+              ? "empty_week_game_description"
+              : "empty_all_game_description"
           )}
+          action={
+            isWeek ? (
+              <Button theme="primary" onClick={() => onPeriodChange("all")}>
+                {t("see_all_time")}
+              </Button>
+            ) : (
+              <Button theme="primary" onClick={openGamePage}>
+                {t("open_game_page")}
+              </Button>
+            )
+          }
         />
       );
     }
@@ -366,9 +252,14 @@ export function ByGameTab({
     if (boardState === "empty_friends") {
       return (
         <BlockMessage
-          icon={<PeopleIcon size={24} />}
+          icon={<PeopleIcon size={32} />}
           title={t("empty_friends_game_title")}
-          description={t("empty_friends_description")}
+          description={t("empty_friends_game_description")}
+          action={
+            <Button theme="primary" onClick={() => onScopeChange("global")}>
+              {t("see_global_ranking")}
+            </Button>
+          }
         />
       );
     }
@@ -376,100 +267,60 @@ export function ByGameTab({
     if (!board.data || !boardGame) return null;
 
     return (
-      <BoardView
-        leaderboard={board.data}
-        viewerUser={viewerUser}
-        formatValue={formatValue}
-        leaderLabel={t(isWeek ? "leader_of_week" : "record_holder")}
-        showDelta={isWeek}
-        isLoading={board.isLoading}
-        reportContext={
-          metric && boardGame
-            ? { metric: metric.id, window: period, scope, game: boardGame }
-            : null
-        }
-      />
+      <>
+        {metric && (
+          <BoardInsight
+            leaderboard={board.data}
+            viewerId={viewerId}
+            metric={metric}
+            period={period}
+          />
+        )}
+        <BoardView
+          leaderboard={board.data}
+          viewerUser={viewerUser}
+          formatValue={formatValue}
+          metricColumn={metric ? metricColumnLabel(metric) : ""}
+          showDelta={isWeek}
+          isLoading={board.isLoading}
+          reportContext={
+            metric && boardGame
+              ? { metric: metric.id, window: period, scope, game: boardGame }
+              : null
+          }
+        />
+      </>
     );
   };
 
   return (
     <>
-      <section className="leaderboards__my-games">
-        <div className="leaderboards__section-header">
-          <h2 className="leaderboards__heading-2">{t("my_games_title")}</h2>
-          <label className="leaderboards__search">
-            <SearchIcon size={14} />
-            <span className="leaderboards__sr-only">{t("search_game")}</span>
-            <input
-              type="text"
-              value={search}
-              placeholder={t("search_game_placeholder")}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Escape") setSearch("");
-              }}
-            />
-            {search && (
-              <button
-                type="button"
-                className="leaderboards__search-clear"
-                onClick={() => setSearch("")}
-                aria-label={t("clear_search")}
-                title={t("clear_search")}
-              >
-                <XIcon size={14} />
-              </button>
-            )}
-          </label>
-        </div>
-        {renderGames()}
-      </section>
-
       {boardGame && (
         <section
-          className="leaderboards__board leaderboards__board--game"
+          className={cn("leaderboards__board leaderboards__board--game", {
+            "leaderboards__board--empty": isBoardEmpty,
+          })}
           aria-labelledby="game-board-title"
         >
-          <div
-            className={cn("leaderboards__hero", {
-              "leaderboards__hero--image": selected?.heroImageUrl,
-            })}
-            style={backgroundStyle(selected?.heroImageUrl ?? null, "--hero")}
-          >
-            <span
-              className="leaderboards__hero-cover"
-              style={backgroundStyle(
-                selected?.coverImageUrl ?? null,
-                "--cover"
-              )}
-            />
-            <div className="leaderboards__hero-text">
-              <h2 id="game-board-title" className="leaderboards__hero-title">
-                {t("game_ranking_title", { game: selected?.title ?? "" })}
-              </h2>
-              <span className="leaderboards__hero-subtitle">
-                {heroSubtitle}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="leaderboards__hero-link"
-              onClick={() =>
-                navigate(
-                  buildGameDetailsPath({
-                    shop: boardGame.shop as GameShop,
-                    objectId: boardGame.objectId,
-                    title: selected?.title ?? "",
+          <BoardHeader
+            id="game-board-title"
+            title={selected?.title ?? ""}
+            description={
+              metric
+                ? t(`game_metric_description_${metric.id}`, {
+                    defaultValue: "",
                   })
-                )
-              }
-            >
-              {t("open_game_page")}
-              <LinkExternalIcon size={14} />
-            </button>
-          </div>
+                : undefined
+            }
+            imageUrl={
+              gameIcon === undefined
+                ? null
+                : (gameIcon ?? selected?.coverImageUrl ?? null)
+            }
+            onOpen={openGamePage}
+            aside={!hasNoGameMetrics && metricTabs}
+          />
 
-          {!hasNoGameMetrics && metricChips}
           {renderBoard()}
         </section>
       )}
