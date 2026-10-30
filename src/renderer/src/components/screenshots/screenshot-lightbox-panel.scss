@@ -11,8 +11,21 @@ $description-outline-fade-duration: 0.15s;
     min-height: 0;
     flex: 1;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
-    padding: 0 calc(globals.$spacing-unit * 2);
+    overflow: hidden;
+  }
+
+  &__panel--with-comments &__details {
+    flex-shrink: 0;
+    max-height: 45%;
+  }
+
+  &__details {
+    display: flex;
+    flex: 0 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 2);
     overflow-x: hidden;
     overflow-y: auto;
   }
@@ -22,7 +35,19 @@ $description-outline-fade-duration: 0.15s;
     flex-shrink: 0;
     flex-direction: column;
     gap: 6px;
-    padding-top: calc(globals.$spacing-unit * 2);
+  }
+
+  &__date-row {
+    user-select: none;
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+
+  &__visibility {
+    cursor: default;
   }
 
   &__description {
@@ -136,6 +161,7 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__tag {
+    user-select: none;
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -150,6 +176,7 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__actions {
+    user-select: none;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -218,9 +245,11 @@ $description-outline-fade-duration: 0.15s;
 
   &__section-title {
     display: flex;
+    min-width: 0;
     align-items: center;
     gap: globals.$spacing-unit;
     margin: 0;
+    white-space: nowrap;
     color: globals.$muted-color;
     font-size: globals.$body-font-size;
     font-weight: 600;
@@ -233,29 +262,50 @@ $description-outline-fade-duration: 0.15s;
 
 .screenshot-comments {
   display: flex;
-  flex: 1 0 auto;
+  flex: 1;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 1.5);
-  min-height: 240px;
-  padding-top: calc(globals.$spacing-unit * 2);
+  min-height: 160px;
   border-top: 1px solid globals.$border-color;
+
+  &__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+    flex-shrink: 0;
+    padding: calc(globals.$spacing-unit * 1.25) calc(globals.$spacing-unit * 2);
+    border-bottom: 1px solid globals.$border-color;
+  }
+
+  &__sort {
+    flex-shrink: 0;
+
+    .screenshot-segmented-toggle__option {
+      gap: 4px;
+      height: 26px;
+      padding: 0 globals.$spacing-unit;
+      font-size: globals.$small-font-size;
+    }
+  }
 
   &__feed {
     display: flex;
-    flex: 1 0 auto;
+    flex: 1;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.5);
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   &__composer {
-    position: sticky;
-    bottom: 0;
-    z-index: 1;
-    margin: 0 calc(globals.$spacing-unit * -2);
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2)
-      calc(globals.$spacing-unit * 2);
+    flex-shrink: 0;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
     border-top: 1px solid globals.$border-color;
     background: globals.$background-color;
+  }
+
+  &__loading {
+    display: block;
   }
 
   &__empty-state {
@@ -316,9 +366,118 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__input-actions {
+    user-select: none;
     display: flex;
     justify-content: flex-end;
     gap: globals.$spacing-unit;
+  }
+
+  &__composer &__input {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    gap: 0;
+  }
+
+  &__composer &__editor {
+    flex-direction: column-reverse;
+    border-color: rgba(255, 255, 255, 0.16);
+    border-radius: 14px;
+    background: #1c1c1c;
+    transition:
+      border-color motion.$composer-expand-duration motion.$composer-easing,
+      border-radius motion.$composer-expand-duration motion.$composer-easing;
+
+    .rich-text-editor__header {
+      max-height: 48px;
+      overflow: hidden;
+      padding: 4px 120px 6px 8px;
+      border-bottom: 0;
+      background: transparent;
+      transition:
+        max-height motion.$composer-expand-duration motion.$composer-easing,
+        padding motion.$composer-expand-duration motion.$composer-easing,
+        opacity motion.$composer-expand-duration motion.$composer-easing;
+    }
+
+    .rich-text-editor__input {
+      min-height: 44px;
+      padding: 10px 14px 4px;
+      transition:
+        min-height motion.$composer-expand-duration motion.$composer-easing,
+        padding motion.$composer-expand-duration motion.$composer-easing;
+
+      .ProseMirror {
+        min-height: 22px;
+        font-size: globals.$body-font-size;
+        transition: min-height motion.$composer-expand-duration
+          motion.$composer-easing;
+      }
+    }
+  }
+
+  &__composer &__input-actions {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    transition:
+      opacity motion.$composer-expand-duration motion.$composer-easing,
+      transform motion.$composer-expand-duration motion.$composer-easing,
+      visibility 0s linear 0s;
+
+    .button {
+      height: 28px;
+      padding: 0 14px;
+      border-radius: 14px;
+      font-size: globals.$small-font-size;
+    }
+  }
+
+  &__composer:not(:focus-within) &__input--empty {
+    .rich-text-editor {
+      border-color: globals.$border-color;
+      border-radius: 19px;
+    }
+
+    .rich-text-editor__header {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      opacity: 0;
+    }
+
+    .screenshot-comments__input-actions {
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(4px);
+      pointer-events: none;
+      transition:
+        opacity motion.$composer-expand-duration motion.$composer-easing,
+        transform motion.$composer-expand-duration motion.$composer-easing,
+        visibility 0s linear motion.$composer-expand-duration;
+    }
+
+    .rich-text-editor__input {
+      min-height: 38px;
+      padding: 8px 14px;
+
+      .ProseMirror {
+        min-height: 20px;
+      }
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__composer &__editor,
+    &__composer &__editor .rich-text-editor__header,
+    &__composer &__editor .rich-text-editor__input,
+    &__composer &__editor .ProseMirror,
+    &__composer &__input-actions,
+    &__composer:not(:focus-within)
+      &__input--empty
+      .screenshot-comments__input-actions {
+      transition: none;
+    }
   }
 
   &__notice {
@@ -340,6 +499,7 @@ $description-outline-fade-duration: 0.15s;
     align-items: flex-start;
     gap: globals.$spacing-unit;
     margin: 0;
+    padding: calc(globals.$spacing-unit * 2);
     color: globals.$body-color;
     font-size: globals.$small-font-size;
     opacity: 0.8;
@@ -352,77 +512,42 @@ $description-outline-fade-duration: 0.15s;
   &__list {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
     margin: 0;
     padding: 0;
     list-style: none;
   }
 
   &__item {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.25);
-    word-wrap: break-word;
-  }
-
-  &__header {
     position: relative;
     isolation: isolate;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    min-width: 0;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    word-wrap: break-word;
 
-    &--has-bg {
-      box-sizing: border-box;
-      width: 100%;
-      aspect-ratio: 388 / 56;
-      min-height: 64px;
-      max-height: 112px;
-      padding: calc(globals.$spacing-unit * 1.25);
-      border-radius: 8px;
-
-      &::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-        border-radius: inherit;
-        background: linear-gradient(135deg, rgb(0 0 0 / 25%), rgb(0 0 0 / 18%));
-        pointer-events: none;
-      }
-
-      .screenshot-comments__author,
-      .screenshot-comments__when {
-        color: #ffffff;
-        opacity: 1;
-        text-shadow: 0 0 5px rgb(0 0 0 / 60%);
-      }
+    &--new {
+      animation: screenshot-comment-new-highlight
+        motion.$new-comment-highlight-duration ease-out;
     }
   }
 
   &__banner {
     position: absolute;
     inset: 0;
-    z-index: 0;
+    z-index: -1;
     width: 100%;
     height: 100%;
-    border-radius: inherit;
     object-fit: cover;
+    opacity: 0.3;
     pointer-events: none;
-  }
-
-  &__header-top {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 1.25);
   }
 
   &__avatar {
     flex-shrink: 0;
+    align-self: flex-start;
     border-radius: 4px;
 
     &:focus-visible {
@@ -434,34 +559,45 @@ $description-outline-fade-duration: 0.15s;
   &__name-row {
     display: flex;
     min-width: 0;
-    flex: 1;
+    flex-wrap: wrap;
     align-items: baseline;
-    gap: globals.$spacing-unit;
+    gap: 6px;
+  }
+
+  &__badge {
+    user-select: none;
+    padding: 0 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    color: globals.$muted-color;
+    font-size: 11px;
+    font-weight: 600;
   }
 
   &__body {
     display: flex;
     min-width: 0;
+    flex: 1;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 0.75);
+    gap: 4px;
   }
 
   &__author {
     min-width: 0;
     overflow: hidden;
     color: globals.$muted-color;
-    font-size: globals.$body-font-size;
+    font-size: 13px;
     font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   &__when {
+    user-select: none;
     display: inline-flex;
     flex-shrink: 0;
     align-items: baseline;
     gap: 4px;
-    margin-left: auto;
     color: globals.$body-color;
     font-size: globals.$small-font-size;
     opacity: 0.7;
@@ -474,30 +610,34 @@ $description-outline-fade-duration: 0.15s;
 
   &__text {
     color: globals.$muted-color;
-    line-height: 1.45;
+    font-size: globals.$body-font-size;
+    line-height: 1.5;
   }
 
   &__actions {
+    user-select: none;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: globals.$spacing-unit;
-    margin-top: 4px;
+    margin-left: -6px;
   }
 
   &__votes,
   &__tools {
     display: flex;
     align-items: center;
-    gap: globals.$spacing-unit;
+    gap: 2px;
   }
 
   &__vote {
     @extend %vote-button;
 
-    padding: 4px 10px;
+    padding: 2px 6px;
+    border-color: transparent;
+    background: transparent;
     font-family: inherit;
+    font-size: globals.$small-font-size;
 
     &--active {
       @extend %vote-button-active;
@@ -515,37 +655,55 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__tool {
-    width: 30px;
+    display: inline-flex;
+    width: 26px;
+    height: 26px;
+    align-items: center;
+    justify-content: center;
     padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: globals.$body-color;
+    cursor: pointer;
+    opacity: 0.72;
+    transition:
+      background-color motion.$transition-duration ease,
+      opacity motion.$transition-duration ease;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      opacity: 1;
+    }
+
+    &--danger:hover:not(:disabled) {
+      color: globals.$error-color;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: globals.$disabled-opacity;
+    }
+
+    &:focus-visible {
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 1px;
+      opacity: 1;
+    }
   }
 
   &__load-more {
     align-self: center;
+    margin: calc(globals.$spacing-unit * 1.5) 0;
   }
 }
 
 @media (max-height: 560px) {
   .screenshot-comments {
-    min-height: 160px;
+    min-height: 120px;
 
     &__composer {
       padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
-    }
-
-    &__composer .screenshot-comments__editor .rich-text-editor__input {
-      min-height: 36px;
-      padding-block: 6px;
-
-      .ProseMirror {
-        min-height: 22px;
-      }
-    }
-
-    &__composer:not(:focus-within) {
-      .rich-text-editor__header,
-      .screenshot-comments__input-actions {
-        display: none;
-      }
     }
 
     &__empty-state {
@@ -578,5 +736,15 @@ $description-outline-fade-duration: 0.15s;
     display: flex;
     justify-content: flex-end;
     gap: globals.$spacing-unit;
+  }
+}
+
+@keyframes screenshot-comment-new-highlight {
+  from {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
+  to {
+    background-color: transparent;
   }
 }

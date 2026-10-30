@@ -3,7 +3,6 @@ import "./screenshot-upload-form.scss";
 import { PencilSimpleIcon, PlusIcon } from "@phosphor-icons/react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import cn from "classnames";
 import type {
   LocalScreenshot,
   LocalScreenshotUploadOptions,
@@ -15,7 +14,6 @@ import {
   SCREENSHOT_DESCRIPTION_MAX_LENGTH,
   normalizeScreenshotDescription,
   sanitizeScreenshotDescriptionInput,
-  resolveScreenshotUploadQuality,
 } from "@shared";
 
 import {
@@ -27,7 +25,12 @@ import {
 } from "../common";
 import type { FocusOverrideTarget } from "../../services";
 import { InlineTextField } from "../pages/screenshots/inline-text-field";
-import { useBigPictureToast, useUserDetails } from "../../hooks";
+import {
+  Feature,
+  useBigPictureToast,
+  useFeature,
+  useUserDetails,
+} from "../../hooks";
 
 export const SCREENSHOT_QUALITY_LABELS: Record<ScreenshotQuality, string> = {
   STANDARD: "720p",
@@ -36,18 +39,34 @@ export const SCREENSHOT_QUALITY_LABELS: Record<ScreenshotQuality, string> = {
 
 const BLOCK_TARGET: FocusOverrideTarget = { type: "block" };
 
+const QUALITY_OPTIONS: DropdownSelectOption<ScreenshotQuality>[] = [
+  { value: "STANDARD", label: SCREENSHOT_QUALITY_LABELS.STANDARD },
+  {
+    value: "CLOUD",
+    label: (
+      <span className="screenshot-upload-form__quality-option screenshot-upload-form__quality-option--locked">
+        <span className="screenshot-upload-form__quality-option-label">
+          {SCREENSHOT_QUALITY_LABELS.CLOUD}
+        </span>
+        <span className="screenshot-upload-form__cloud-badge">Hydra Cloud</span>
+      </span>
+    ),
+  },
+];
+
 export interface ReviewDraft {
   isSpoiler: boolean;
   visibility: ProfileVisibility;
+  commentsEnabled: boolean;
   customGameTitle: string;
   description: string;
-  quality?: ScreenshotQuality;
 }
 
 export interface ReviewFieldFocusIds {
   title: string;
   description: string;
   spoiler: string;
+  comments: string;
   visibility: string;
   quality: string;
 }
@@ -58,28 +77,30 @@ export const createReviewDraft = (
 ): ReviewDraft => ({
   isSpoiler: record?.isSpoiler ?? false,
   visibility: record?.visibility ?? defaultVisibility,
+  commentsEnabled: record?.commentsEnabled ?? true,
   customGameTitle: record?.customGameTitle ?? "",
   description: record?.description ?? "",
 });
 
 export const toUploadOptions = (
   draft: ReviewDraft,
-  isCustomGame: boolean,
-  hasCloudSubscription: boolean
+  isCustomGame: boolean
 ): LocalScreenshotUploadOptions => {
   const customGameTitle = draft.customGameTitle.trim();
 
   return {
     isSpoiler: draft.isSpoiler,
     visibility: draft.visibility,
+    commentsEnabled: draft.commentsEnabled,
     customGameTitle: isCustomGame && customGameTitle ? customGameTitle : null,
     description: normalizeScreenshotDescription(draft.description),
-    quality: resolveScreenshotUploadQuality(
-      draft.quality,
-      hasCloudSubscription
-    ),
   };
 };
+
+export const getLastReviewFieldFocusId = (
+  focusIds: ReviewFieldFocusIds,
+  hasCloudSubscription: boolean
+) => (hasCloudSubscription ? focusIds.visibility : focusIds.quality);
 
 interface ReviewFieldsProps {
   clientId: string;
@@ -107,10 +128,14 @@ export function ReviewFields({
   const { t } = useTranslation("big_picture");
   const { showErrorToast } = useBigPictureToast();
   const { hasActiveSubscription } = useUserDetails();
-  const uploadQuality = resolveScreenshotUploadQuality(
-    draft.quality,
-    hasActiveSubscription
-  );
+  const { isFeatureEnabled } = useFeature();
+  const isCommentsEnabled = isFeatureEnabled(Feature.ScreenshotComments);
+  const afterSpoilerFocusId = isCommentsEnabled
+    ? focusIds.comments
+    : focusIds.visibility;
+  const beforeVisibilityFocusId = isCommentsEnabled
+    ? focusIds.comments
+    : focusIds.spoiler;
 
   const visibilityOptions = useMemo<
     SegmentedControlOption<ProfileVisibility>[]
@@ -123,41 +148,11 @@ export function ReviewFields({
     [t]
   );
 
-  const qualityOptions = useMemo<DropdownSelectOption<ScreenshotQuality>[]>(
-    () => [
-      { value: "STANDARD", label: SCREENSHOT_QUALITY_LABELS.STANDARD },
-      {
-        value: "CLOUD",
-        label: (
-          <span
-            className={cn("screenshot-upload-form__quality-option", {
-              "screenshot-upload-form__quality-option--locked":
-                !hasActiveSubscription,
-            })}
-          >
-            <span className="screenshot-upload-form__quality-option-label">
-              {SCREENSHOT_QUALITY_LABELS.CLOUD}
-            </span>
-            {hasActiveSubscription ? null : (
-              <span className="screenshot-upload-form__cloud-badge">
-                Hydra Cloud
-              </span>
-            )}
-          </span>
-        ),
-      },
-    ],
-    [hasActiveSubscription]
-  );
-
   const selectQuality = (quality: ScreenshotQuality) => {
-    if (quality === "CLOUD" && !hasActiveSubscription) {
-      showErrorToast(t("screenshots_review_quality_cloud_title"), {
-        message: t("screenshots_review_quality_cloud_message"),
-      });
-      return;
-    }
-    onChange({ quality });
+    if (quality !== "CLOUD") return;
+    showErrorToast(t("screenshots_review_quality_cloud_title"), {
+      message: t("screenshots_review_quality_cloud_message"),
+    });
   };
 
   return (
@@ -220,12 +215,29 @@ export function ReviewFields({
         focusId={focusIds.spoiler}
         navigationOverrides={{
           up: { type: "item", itemId: focusIds.description },
-          down: { type: "item", itemId: focusIds.visibility },
+          down: { type: "item", itemId: afterSpoilerFocusId },
           left: leftTarget,
           right: BLOCK_TARGET,
         }}
         onChange={(isSpoiler) => onChange({ isSpoiler })}
       />
+
+      {isCommentsEnabled ? (
+        <Checkbox
+          block
+          label={t("screenshots_allow_comments")}
+          checked={draft.commentsEnabled}
+          disabled={disabled}
+          focusId={focusIds.comments}
+          navigationOverrides={{
+            up: { type: "item", itemId: focusIds.spoiler },
+            down: { type: "item", itemId: focusIds.visibility },
+            left: leftTarget,
+            right: BLOCK_TARGET,
+          }}
+          onChange={(commentsEnabled) => onChange({ commentsEnabled })}
+        />
+      ) : null}
 
       <SegmentedControl
         label={t("screenshots_visibility_label")}
@@ -234,28 +246,32 @@ export function ReviewFields({
         disabled={disabled}
         focusId={focusIds.visibility}
         navigationOverrides={{
-          up: { type: "item", itemId: focusIds.spoiler },
-          down: { type: "item", itemId: focusIds.quality },
+          up: { type: "item", itemId: beforeVisibilityFocusId },
+          down: hasActiveSubscription
+            ? downTarget
+            : { type: "item", itemId: focusIds.quality },
           left: leftTarget,
         }}
         onValueChange={(visibility) => onChange({ visibility })}
       />
 
-      <DropdownSelect
-        label={t("screenshots_review_quality")}
-        value={uploadQuality}
-        options={qualityOptions}
-        disabled={disabled}
-        focusId={focusIds.quality}
-        focusNavigationOverrides={{
-          up: { type: "item", itemId: focusIds.visibility },
-          down: downTarget,
-          left: leftTarget,
-          right: BLOCK_TARGET,
-        }}
-        className="screenshot-upload-form__quality-select"
-        onValueChange={selectQuality}
-      />
+      {hasActiveSubscription ? null : (
+        <DropdownSelect
+          label={t("screenshots_review_quality")}
+          value="STANDARD"
+          options={QUALITY_OPTIONS}
+          disabled={disabled}
+          focusId={focusIds.quality}
+          focusNavigationOverrides={{
+            up: { type: "item", itemId: focusIds.visibility },
+            down: downTarget,
+            left: leftTarget,
+            right: BLOCK_TARGET,
+          }}
+          className="screenshot-upload-form__quality-select"
+          onValueChange={selectQuality}
+        />
+      )}
     </>
   );
 }

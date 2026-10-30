@@ -3,11 +3,15 @@ import { useTranslation } from "react-i18next";
 import {
   CopyIcon,
   GearIcon,
+  GlobeIcon,
   HeartFillIcon,
   HeartIcon,
   ImageIcon,
+  LockIcon,
+  PeopleIcon,
   ReportIcon,
   TrashIcon,
+  type Icon,
 } from "@primer/octicons-react";
 import cn from "classnames";
 import { Tooltip } from "react-tooltip";
@@ -24,7 +28,7 @@ import {
   readScreenshotSettings,
   sanitizeScreenshotDescriptionInput,
 } from "@shared";
-import type { ProfileScreenshot } from "@types";
+import type { ProfileScreenshot, ProfileVisibility } from "@types";
 
 import { ScreenshotComments } from "./screenshot-comments";
 import {
@@ -39,6 +43,36 @@ import { useSensitiveScreenshot } from "./use-sensitive-screenshot";
 import "./screenshot-lightbox-panel.scss";
 
 type ScreenshotActions = ScreenshotCollection["actions"];
+
+const VISIBILITY_OPTIONS: Record<
+  ProfileVisibility,
+  { labelKey: string; icon: Icon }
+> = {
+  PUBLIC: { labelKey: "visibility_public", icon: GlobeIcon },
+  FRIENDS: { labelKey: "visibility_friends", icon: PeopleIcon },
+  PRIVATE: { labelKey: "visibility_private", icon: LockIcon },
+};
+
+function ScreenshotVisibilityTag({
+  visibility,
+  tooltipId,
+}: Readonly<{ visibility: ProfileVisibility; tooltipId: string }>) {
+  const { t } = useTranslation("screenshots");
+  const { labelKey, icon: VisibilityIcon } = VISIBILITY_OPTIONS[visibility];
+  const label = t(labelKey);
+  const description = `${t("visibility")}: ${label}`;
+
+  return (
+    <span
+      className="screenshot-lightbox__tag screenshot-lightbox__visibility"
+      data-tooltip-id={tooltipId}
+      data-tooltip-content={description}
+    >
+      <VisibilityIcon size={12} />
+      {label}
+    </span>
+  );
+}
 
 function ScreenshotGameIcon({
   screenshot,
@@ -112,6 +146,7 @@ function ScreenshotPanelInfo({
 }: Readonly<ScreenshotPanelInfoProps>) {
   const { t } = useTranslation("screenshots");
   const { formatDateTime } = useDate();
+  const tooltipId = useId();
   const hasDescription = Boolean(screenshot.description);
 
   const saveDescription = (description: string) => {
@@ -143,12 +178,6 @@ function ScreenshotPanelInfo({
         />
       ) : null}
 
-      {isOwner && screenshot.descriptionModerationStatus === "BLOCKED" ? (
-        <p className="screenshot-lightbox__description-note">
-          {t("description_only_visible_to_you")}
-        </p>
-      ) : null}
-
       {!isOwner && hasDescription ? (
         <h2 className="screenshot-lightbox__description">
           {screenshot.description}
@@ -170,12 +199,27 @@ function ScreenshotPanelInfo({
         <ScreenshotGameLink screenshot={screenshot} onNavigateAway={onClose} />
       </p>
 
-      <time
-        className="screenshot-lightbox__date"
-        dateTime={new Date(screenshot.capturedAt).toISOString()}
-      >
-        {t("captured_on", { date: formatDateTime(screenshot.capturedAt) })}
-      </time>
+      <div className="screenshot-lightbox__date-row">
+        <time
+          className="screenshot-lightbox__date"
+          dateTime={new Date(screenshot.capturedAt).toISOString()}
+        >
+          {t("captured_on", { date: formatDateTime(screenshot.capturedAt) })}
+        </time>
+        {isOwner && screenshot.visibility ? (
+          <ScreenshotVisibilityTag
+            visibility={screenshot.visibility}
+            tooltipId={tooltipId}
+          />
+        ) : null}
+      </div>
+
+      <Tooltip
+        id={tooltipId}
+        place="top"
+        positionStrategy="fixed"
+        className="screenshot-lightbox__tooltip"
+      />
     </header>
   );
 }
@@ -340,23 +384,29 @@ export function ScreenshotLightboxPanel({
   const isApproved = isScreenshotApproved(screenshot);
 
   return (
-    <aside className="screenshot-lightbox__panel">
-      <ScreenshotPanelInfo
-        screenshot={screenshot}
-        actions={actions}
-        isOwner={isOwner}
-        onClose={onClose}
-      />
+    <aside
+      className={cn("screenshot-lightbox__panel", {
+        "screenshot-lightbox__panel--with-comments": isCommentsEnabled,
+      })}
+    >
+      <div className="screenshot-lightbox__details">
+        <ScreenshotPanelInfo
+          screenshot={screenshot}
+          actions={actions}
+          isOwner={isOwner}
+          onClose={onClose}
+        />
 
-      <ScreenshotPanelActions
-        screenshot={screenshot}
-        actions={actions}
-        isOwner={isOwner}
-        isApproved={isApproved}
-        onRequestManage={onRequestManage}
-        onRequestDelete={onRequestDelete}
-        onRequestReport={onRequestReport}
-      />
+        <ScreenshotPanelActions
+          screenshot={screenshot}
+          actions={actions}
+          isOwner={isOwner}
+          isApproved={isApproved}
+          onRequestManage={onRequestManage}
+          onRequestDelete={onRequestDelete}
+          onRequestReport={onRequestReport}
+        />
+      </div>
 
       {isCommentsEnabled ? (
         <ScreenshotComments

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LocalScreenshot } from "@types";
 import { ConfirmationModal } from "@renderer/components";
-import { useToast, useUserDetails } from "@renderer/hooks";
+import { useFeature, useToast, useUserDetails } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 
 import {
@@ -12,6 +12,7 @@ import {
 
 const UPLOAD_SIGNED_OUT_ERROR = "user not logged in";
 const UPLOAD_MISSING_FILE_ERROR = "screenshot_missing";
+const AWAITED_UPLOAD_STATE_TIMEOUT_MS = 5000;
 
 export function useScreenshotReviewActions(
   screenshot: LocalScreenshot,
@@ -22,8 +23,26 @@ export function useScreenshotReviewActions(
     "upload" | "delete" | null
   >(null);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const { userDetails, hasActiveSubscription } = useUserDetails();
+  const [awaitedUploadState, setAwaitedUploadState] = useState<
+    LocalScreenshot["state"] | null
+  >(null);
+  const { userDetails } = useUserDetails();
   const { showErrorToast } = useToast();
+  const { isFeatureEnabled, Feature } = useFeature();
+
+  useEffect(() => {
+    if (awaitedUploadState === null) return;
+    if (screenshot.state !== awaitedUploadState) {
+      setAwaitedUploadState(null);
+      return;
+    }
+
+    const timeout = setTimeout(
+      () => setAwaitedUploadState(null),
+      AWAITED_UPLOAD_STATE_TIMEOUT_MS
+    );
+    return () => clearTimeout(timeout);
+  }, [awaitedUploadState, screenshot.state]);
 
   const runAction = async (
     kind: "upload" | "delete",
@@ -59,13 +78,24 @@ export function useScreenshotReviewActions(
       return;
     }
 
+    const requestedFromState = screenshot.state;
+
     return runAction(
       "upload",
-      () =>
-        window.electron.uploadLocalScreenshot(
+      async () => {
+        const queued = await window.electron.uploadLocalScreenshot(
           screenshot.clientId,
-          toUploadOptions(screenshot, draft, hasActiveSubscription)
-        ),
+          {
+            ...toUploadOptions(screenshot, draft),
+            commentsEnabled:
+              draft.commentsEnabled ||
+              !isFeatureEnabled(Feature.ScreenshotComments),
+          }
+        );
+        if (queued && queued.state !== requestedFromState) {
+          setAwaitedUploadState(requestedFromState);
+        }
+      },
       "Failed to upload the screenshot",
       getUploadErrorMessage
     );
@@ -95,8 +125,8 @@ export function useScreenshotReviewActions(
   );
 
   return {
-    isBusy: pendingAction !== null,
-    isUploadPending: pendingAction === "upload",
+    isBusy: pendingAction !== null || awaitedUploadState !== null,
+    isUploadPending: pendingAction === "upload" || awaitedUploadState !== null,
     upload,
     requestDelete: () => setIsDeleteModalVisible(true),
     elements,

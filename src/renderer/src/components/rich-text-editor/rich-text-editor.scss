@@ -11,6 +11,7 @@ $button-transition-duration: 0.2s;
   overflow: hidden;
 
   &__header {
+    user-select: none;
     display: flex;
     justify-content: space-between;
     align-items: center;
