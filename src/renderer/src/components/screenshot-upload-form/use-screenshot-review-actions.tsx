@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LocalScreenshot } from "@types";
 import { ConfirmationModal } from "@renderer/components";
@@ -22,8 +22,20 @@ export function useScreenshotReviewActions(
     "upload" | "delete" | null
   >(null);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [awaitedUploadState, setAwaitedUploadState] = useState<
+    LocalScreenshot["state"] | null
+  >(null);
   const { userDetails } = useUserDetails();
   const { showErrorToast } = useToast();
+
+  useEffect(() => {
+    if (
+      awaitedUploadState !== null &&
+      screenshot.state !== awaitedUploadState
+    ) {
+      setAwaitedUploadState(null);
+    }
+  }, [awaitedUploadState, screenshot.state]);
 
   const runAction = async (
     kind: "upload" | "delete",
@@ -59,13 +71,19 @@ export function useScreenshotReviewActions(
       return;
     }
 
+    const requestedFromState = screenshot.state;
+
     return runAction(
       "upload",
-      () =>
-        window.electron.uploadLocalScreenshot(
+      async () => {
+        const queued = await window.electron.uploadLocalScreenshot(
           screenshot.clientId,
           toUploadOptions(screenshot, draft)
-        ),
+        );
+        if (queued && queued.state !== requestedFromState) {
+          setAwaitedUploadState(requestedFromState);
+        }
+      },
       "Failed to upload the screenshot",
       getUploadErrorMessage
     );
@@ -95,8 +113,8 @@ export function useScreenshotReviewActions(
   );
 
   return {
-    isBusy: pendingAction !== null,
-    isUploadPending: pendingAction === "upload",
+    isBusy: pendingAction !== null || awaitedUploadState !== null,
+    isUploadPending: pendingAction === "upload" || awaitedUploadState !== null,
     upload,
     requestDelete: () => setIsDeleteModalVisible(true),
     elements,
