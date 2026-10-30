@@ -455,6 +455,13 @@ const getPlayTimeDifference = (a: LibraryGame, b: LibraryGame): number => {
   return 0;
 };
 
+// Cancelled downloads keep their record with status "removed", so treat them as never downloaded.
+const getDownloadTimestamp = (game: LibraryGame): number =>
+  game.download?.status === "removed" ? 0 : (game.download?.timestamp ?? 0);
+
+const getDownloadTimeDifference = (a: LibraryGame, b: LibraryGame): number =>
+  getDownloadTimestamp(b) - getDownloadTimestamp(a);
+
 const getMostPlayedDifference = (a: LibraryGame, b: LibraryGame): number =>
   getDisplayedPlayTimeInMilliseconds(b) - getDisplayedPlayTimeInMilliseconds(a);
 
@@ -535,6 +542,12 @@ export const sortLibraryGames = (
     switch (sortBy) {
       case "recently_played": {
         const difference = getPlayTimeDifference(a, b);
+        if (difference !== 0) return difference;
+        break;
+      }
+
+      case "recently_downloaded": {
+        const difference = getDownloadTimeDifference(a, b);
         if (difference !== 0) return difference;
         break;
       }
