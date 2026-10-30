@@ -3,11 +3,15 @@ import { useTranslation } from "react-i18next";
 import {
   CopyIcon,
   GearIcon,
+  GlobeIcon,
   HeartFillIcon,
   HeartIcon,
   ImageIcon,
+  LockIcon,
+  PeopleIcon,
   ReportIcon,
   TrashIcon,
+  type Icon,
 } from "@primer/octicons-react";
 import cn from "classnames";
 import { Tooltip } from "react-tooltip";
@@ -40,11 +44,36 @@ import "./screenshot-lightbox-panel.scss";
 
 type ScreenshotActions = ScreenshotCollection["actions"];
 
-const VISIBILITY_LABEL_KEYS: Record<ProfileVisibility, string> = {
-  PUBLIC: "visibility_public",
-  FRIENDS: "visibility_friends",
-  PRIVATE: "visibility_private",
+const VISIBILITY_OPTIONS: Record<
+  ProfileVisibility,
+  { labelKey: string; icon: Icon }
+> = {
+  PUBLIC: { labelKey: "visibility_public", icon: GlobeIcon },
+  FRIENDS: { labelKey: "visibility_friends", icon: PeopleIcon },
+  PRIVATE: { labelKey: "visibility_private", icon: LockIcon },
 };
+
+function ScreenshotVisibilityTag({
+  visibility,
+  tooltipId,
+}: Readonly<{ visibility: ProfileVisibility; tooltipId: string }>) {
+  const { t } = useTranslation("screenshots");
+  const { labelKey, icon: VisibilityIcon } = VISIBILITY_OPTIONS[visibility];
+  const label = t(labelKey);
+  const description = `${t("visibility")}: ${label}`;
+
+  return (
+    <span
+      className="screenshot-lightbox__tag screenshot-lightbox__visibility"
+      aria-label={description}
+      data-tooltip-id={tooltipId}
+      data-tooltip-content={description}
+    >
+      <VisibilityIcon size={12} />
+      {label}
+    </span>
+  );
+}
 
 function ScreenshotGameIcon({
   screenshot,
@@ -228,19 +257,7 @@ function ScreenshotPanelActions({
 
   return (
     <div className="screenshot-lightbox__actions">
-      {isOwner ? (
-        <div className="screenshot-lightbox__owner-stats">
-          {screenshot.visibility ? (
-            <span className="screenshot-lightbox__tag">
-              {t(VISIBILITY_LABEL_KEYS[screenshot.visibility])}
-            </span>
-          ) : null}
-          <span className="screenshot-lightbox__like-count">
-            <HeartIcon size={14} />
-            {t("likes_count", { count: screenshot.likeCount })}
-          </span>
-        </div>
-      ) : (
+      <div className="screenshot-lightbox__primary-actions">
         <button
           type="button"
           className={cn("screenshot-lightbox__action", {
@@ -260,7 +277,14 @@ function ScreenshotPanelActions({
           )}
           <span>{screenshot.likeCount}</span>
         </button>
-      )}
+
+        {isOwner && screenshot.visibility ? (
+          <ScreenshotVisibilityTag
+            visibility={screenshot.visibility}
+            tooltipId={tooltipId}
+          />
+        ) : null}
+      </div>
 
       <div className="screenshot-lightbox__action-group">
         <button

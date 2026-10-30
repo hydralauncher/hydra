@@ -32,20 +32,15 @@ $description-outline-fade-duration: 0.15s;
     gap: 6px;
   }
 
-  &__owner-stats {
+  &__primary-actions {
     display: flex;
     min-width: 0;
     align-items: center;
     gap: globals.$spacing-unit;
   }
 
-  &__like-count {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: globals.$body-color;
-    font-size: globals.$small-font-size;
-    opacity: 0.8;
+  &__visibility {
+    cursor: default;
   }
 
   &__description {
