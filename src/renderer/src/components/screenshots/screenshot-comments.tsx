@@ -455,7 +455,7 @@ function ScreenshotCommentsSkeleton({ label }: Readonly<{ label: string }>) {
         <ul className="screenshot-comments__list" aria-hidden="true">
           {Array.from({ length: COMMENT_SKELETON_COUNT }, (_, index) => (
             <li key={index} className="screenshot-comments__item">
-              <Skeleton circle width={32} height={32} />
+              <Skeleton width={32} height={32} borderRadius={4} />
               <div className="screenshot-comments__body">
                 <Skeleton width="40%" height={12} borderRadius={4} />
                 <Skeleton height={12} borderRadius={4} />

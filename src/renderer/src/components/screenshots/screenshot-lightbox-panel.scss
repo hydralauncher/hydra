@@ -291,8 +291,6 @@ $description-outline-fade-duration: 0.15s;
     > .profile-avatar {
       flex-shrink: 0;
       margin-top: 5px;
-      overflow: hidden;
-      border-radius: 50%;
     }
   }
 
@@ -493,16 +491,11 @@ $description-outline-fade-duration: 0.15s;
   &__avatar {
     flex-shrink: 0;
     align-self: flex-start;
-
-    .profile-avatar {
-      overflow: hidden;
-      border-radius: 50%;
-    }
+    border-radius: 4px;
 
     &:focus-visible {
       outline: 2px solid globals.$muted-color;
       outline-offset: 2px;
-      border-radius: 50%;
     }
   }
 
