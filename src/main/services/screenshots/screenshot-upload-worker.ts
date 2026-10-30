@@ -213,7 +213,9 @@ class ScreenshotUploadWorker {
     }
 
     const isRetryingStandardFallback =
-      screenshot.state === "failed" && screenshot.uploadQuality === "STANDARD";
+      screenshot.state === "failed" &&
+      screenshot.uploadQualityFallback === true &&
+      screenshot.uploadQuality === "STANDARD";
     const quality = isRetryingStandardFallback
       ? "STANDARD"
       : resolveScreenshotUploadQuality(HydraApi.hasActiveSubscription());
@@ -240,6 +242,7 @@ class ScreenshotUploadWorker {
       nextUploadAttemptAt: null,
       lastError: null,
       uploadQuality: quality,
+      uploadQualityFallback: isRetryingStandardFallback,
       ...(isQualityChange ? { uploadClientId: randomUUID() } : {}),
     });
 
@@ -614,7 +617,9 @@ class ScreenshotUploadWorker {
             lastError: failure.code,
             nextUploadAttemptAt: null,
             pendingCompleteScreenshotId: null,
-            ...(step.quality ? { uploadQuality: step.quality } : {}),
+            ...(step.quality
+              ? { uploadQuality: step.quality, uploadQualityFallback: true }
+              : {}),
           })
         );
         if (!requeued) return;

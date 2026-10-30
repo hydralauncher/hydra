@@ -260,6 +260,7 @@ export interface LocalScreenshot {
   gameSessionId: string | null;
   rootMarkerId?: string | null;
   uploadQuality?: ScreenshotQuality | null;
+  uploadQualityFallback?: boolean;
   uploadClientId?: string | null;
   uploadAttempts?: number;
   uploadGameWaits?: number;
