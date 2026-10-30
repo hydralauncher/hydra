@@ -9,7 +9,7 @@ $leaderboards-streak-to: #b05cff;
 $leaderboards-friend-row-height: 72px;
 $leaderboards-scrollbar-width: 9px;
 $leaderboards-heat-size: 12px;
-$leaderboards-heat-gap: 3px;
+$leaderboards-heat-gap: 6px;
 
 .leaderboards {
   display: flex;
@@ -1061,25 +1061,22 @@ $leaderboards-heat-gap: 3px;
     }
   }
 
+  &__activity-area {
+    width: 100%;
+  }
+
+  // The width and --heat-size come from getHeatmapLayout.
   &__activity-body {
     position: relative;
-    width: max-content;
-    max-width: 100%;
     margin-inline: auto;
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
   }
 
-  &__activity-scroll {
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-
   &__activity-graph {
-    width: max-content;
     display: grid;
-    grid-template-columns: auto auto;
+    grid-template-columns: 30px auto;
     grid-template-areas:
       ". months"
       "days cells";
@@ -1090,7 +1087,7 @@ $leaderboards-heat-gap: 3px;
     grid-area: months;
     display: grid;
     // One column per week, like the cells, however many weeks there are.
-    grid-auto-columns: $leaderboards-heat-size;
+    grid-auto-columns: var(--heat-size);
     column-gap: $leaderboards-heat-gap;
     height: 14px;
   }
@@ -1106,7 +1103,7 @@ $leaderboards-heat-gap: 3px;
   &__activity-days {
     grid-area: days;
     display: grid;
-    grid-template-rows: repeat(7, $leaderboards-heat-size);
+    grid-template-rows: repeat(7, var(--heat-size));
     row-gap: $leaderboards-heat-gap;
   }
 
@@ -1134,8 +1131,8 @@ $leaderboards-heat-gap: 3px;
   &__heatmap {
     grid-area: cells;
     display: grid;
-    grid-template-rows: repeat(7, $leaderboards-heat-size);
-    grid-auto-columns: $leaderboards-heat-size;
+    grid-template-rows: repeat(7, var(--heat-size));
+    grid-auto-columns: var(--heat-size);
     grid-auto-flow: column;
     gap: $leaderboards-heat-gap;
   }

@@ -542,6 +542,38 @@ export interface HeatmapCell {
   isYesterday: boolean;
 }
 
+export const DAYS_PER_WEEK = 7;
+
+// Keep these in sync with the activity graph in leaderboards.scss.
+const HEATMAP_DAY_LABELS_WIDTH = 36;
+const HEATMAP_GAP = 6;
+const HEATMAP_MIN_CELL_SIZE = 12;
+const HEATMAP_MAX_CELL_SIZE = 32;
+
+// The graph fills the card: the cells grow up to a limit, and a card too narrow
+// for every week at the smallest size shows fewer weeks.
+export const getHeatmapLayout = (width: number | null, totalWeeks: number) => {
+  const available = (width ?? 0) - HEATMAP_DAY_LABELS_WIDTH;
+  const weeksThatFit = Math.floor(
+    (available + HEATMAP_GAP) / (HEATMAP_MIN_CELL_SIZE + HEATMAP_GAP)
+  );
+  const weeks = Math.max(1, Math.min(totalWeeks, weeksThatFit));
+  const cellSize = Math.max(
+    HEATMAP_MIN_CELL_SIZE,
+    Math.min(
+      HEATMAP_MAX_CELL_SIZE,
+      Math.floor((available - HEATMAP_GAP * (weeks - 1)) / weeks)
+    )
+  );
+
+  return {
+    weeks,
+    cellSize,
+    width:
+      HEATMAP_DAY_LABELS_WIDTH + weeks * (cellSize + HEATMAP_GAP) - HEATMAP_GAP,
+  };
+};
+
 export const buildHeatmap = (
   days: PlayActivityDay[],
   now: number,

@@ -19,6 +19,8 @@ import {
   buildHeatmap,
   buildHeatmapMonths,
   DAY_MS,
+  DAYS_PER_WEEK,
+  getHeatmapLayout,
   getHeatmapTotalDisplay,
   getViewerRanking,
   normalizeFriendStreaks,
@@ -34,7 +36,7 @@ import {
 } from "./global-leaderboard";
 import { requestAddFriendMode } from "../friends-window/add-friend-request";
 import { useApiResource } from "./leaderboards-api";
-import { BlockError, BlockMessage, StreakFlame } from "./leaderboard-bits";
+import { BlockError, BlockMessage } from "./leaderboard-bits";
 import {
   FRIEND_STREAK_PAGE_SIZE,
   FriendStreakList,
@@ -157,18 +159,47 @@ export function StatsTab({
     [activity.data, utcDay]
   );
 
+  const hasActivity = activity.data !== null;
+  const activityAreaRef = useRef<HTMLDivElement>(null);
+  const [activityWidth, setActivityWidth] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const area = activityAreaRef.current;
+    if (!hasActivity || !area) return;
+    setActivityWidth(area.clientWidth);
+
+    const observer = new ResizeObserver(() =>
+      setActivityWidth(area.clientWidth)
+    );
+    observer.observe(area);
+    return () => observer.disconnect();
+  }, [hasActivity]);
+
+  const heatmapLayout = getHeatmapLayout(
+    activityWidth,
+    heatmap.length / DAYS_PER_WEEK
+  );
+  // The newest weeks are the last ones, so a narrow card keeps the recent days.
+  const visibleHeatmap = useMemo(
+    () => heatmap.slice(-heatmapLayout.weeks * DAYS_PER_WEEK),
+    [heatmap, heatmapLayout.weeks]
+  );
+
   const heatmapMonths = useMemo(() => {
     const formatter = new Intl.DateTimeFormat(i18n.language, {
       month: "short",
       timeZone: "UTC",
     });
-    return buildHeatmapMonths(heatmap).map((month) => ({
+    return buildHeatmapMonths(visibleHeatmap).map((month) => ({
       ...month,
       label: capitalize(formatter.format(month.date), i18n.language),
     }));
-  }, [heatmap, i18n.language]);
+  }, [visibleHeatmap, i18n.language]);
 
-  const heatmapTotal = useMemo(() => sumHeatmap(heatmap), [heatmap]);
+  const heatmapTotal = useMemo(
+    () => sumHeatmap(visibleHeatmap),
+    [visibleHeatmap]
+  );
 
   const dayLabels = useMemo(() => {
     const formatter = new Intl.DateTimeFormat(i18n.language, {
@@ -184,15 +215,7 @@ export function StatsTab({
   }, [i18n.language]);
 
   const activityBodyRef = useRef<HTMLDivElement>(null);
-  const activityScrollRef = useRef<HTMLDivElement>(null);
   const [heatTip, setHeatTip] = useState<HeatTip | null>(null);
-  const hasActivity = activity.data !== null;
-
-  // The newest weeks are on the right, so a narrow card starts at today.
-  useLayoutEffect(() => {
-    const scroll = activityScrollRef.current;
-    if (hasActivity && scroll) scroll.scrollLeft = scroll.scrollWidth;
-  }, [hasActivity]);
 
   const cellDateFormatter = useMemo(
     () =>
@@ -231,9 +254,8 @@ export function StatsTab({
     return [cellLabel(cell), time].join(" · ");
   };
 
-  // The tip lives outside the scrolling grid so it is never clipped. Tips
-  // near the left and right edges open inward and tips in the top two rows
-  // open below, so they stay in the card.
+  // Tips near the left and right edges open inward and tips in the top two
+  // rows open below, so they stay in the card.
   const showHeatTip = (event: React.MouseEvent<HTMLDivElement>) => {
     // The gaps between cells keep the current tip; future cells hide it.
     const target = (event.target as HTMLElement).closest<HTMLElement>(
@@ -267,7 +289,7 @@ export function StatsTab({
   };
 
   const renderHeatTip = () => {
-    const cell = heatTip ? heatmap[heatTip.index] : null;
+    const cell = heatTip ? visibleHeatmap[heatTip.index] : null;
     if (!heatTip || !cell || cell.isFuture) return null;
 
     return (
@@ -291,11 +313,6 @@ export function StatsTab({
     );
   };
 
-  const atRecord =
-    activity.data !== null &&
-    activity.data.currentStreak > 0 &&
-    activity.data.currentStreak >= activity.data.bestStreak;
-
   // Current and best streak, in the Activity header.
   const renderStreak = () => {
     if (!activity.data) return null;
@@ -312,7 +329,6 @@ export function StatsTab({
           <strong>{activity.data.bestStreak}</strong>
           {t("days_unit", { count: activity.data.bestStreak })}
         </span>
-        <StreakFlame size={16} flicker={atRecord} label={t("daily_streak")} />
       </div>
     );
   };
@@ -342,11 +358,16 @@ export function StatsTab({
     }
 
     return (
-      <div className="leaderboards__activity-body" ref={activityBodyRef}>
+      <div className="leaderboards__activity-area" ref={activityAreaRef}>
         <div
-          className="leaderboards__activity-scroll"
-          ref={activityScrollRef}
-          onScroll={() => setHeatTip(null)}
+          className="leaderboards__activity-body"
+          ref={activityBodyRef}
+          style={
+            {
+              "--heat-size": `${heatmapLayout.cellSize}px`,
+              width: heatmapLayout.width,
+            } as React.CSSProperties
+          }
         >
           <div className="leaderboards__activity-graph">
             <div className="leaderboards__activity-months" aria-hidden="true">
@@ -372,7 +393,7 @@ export function StatsTab({
               onMouseMove={showHeatTip}
               onMouseLeave={() => setHeatTip(null)}
             >
-              {heatmap.map((cell, index) => (
+              {visibleHeatmap.map((cell, index) => (
                 <span
                   key={cell.date.toISOString()}
                   data-heat-index={cell.isFuture ? undefined : index}
@@ -396,20 +417,20 @@ export function StatsTab({
               ))}
             </div>
           </div>
-        </div>
-        {renderHeatTip()}
-        <div className="leaderboards__activity-footer">
-          <span>{renderActivityTotal()}</span>
-          <span className="leaderboards__heatmap-legend">
-            {t("legend_less")}
-            {[0, 1, 2, 3].map((level) => (
-              <span
-                key={level}
-                className={`leaderboards__heat leaderboards__heat--${level}`}
-              />
-            ))}
-            {t("legend_more")}
-          </span>
+          {renderHeatTip()}
+          <div className="leaderboards__activity-footer">
+            <span>{renderActivityTotal()}</span>
+            <span className="leaderboards__heatmap-legend">
+              {t("legend_less")}
+              {[0, 1, 2, 3].map((level) => (
+                <span
+                  key={level}
+                  className={`leaderboards__heat leaderboards__heat--${level}`}
+                />
+              ))}
+              {t("legend_more")}
+            </span>
+          </div>
         </div>
       </div>
     );

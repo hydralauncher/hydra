@@ -25,6 +25,7 @@ import {
   normalizePlayActivity,
   resolveWeekRange,
   getBoardInsight,
+  getHeatmapLayout,
   getHeatmapTotalDisplay,
   sumHeatmap,
   type GlobalLeaderboardQuery,
@@ -525,6 +526,20 @@ describe("play activity", () => {
 
     assert.deepEqual(sumHeatmap(cells), { seconds: 5400, days: 2 });
     assert.deepEqual(sumHeatmap([]), { seconds: 0, days: 0 });
+  });
+
+  it("fits the heatmap to the card without overflowing", () => {
+    assert.deepEqual(getHeatmapLayout(1000, 53), {
+      weeks: 53,
+      cellSize: 12,
+      width: 984,
+    });
+    assert.deepEqual(getHeatmapLayout(360, 53), {
+      weeks: 18,
+      cellSize: 12,
+      width: 354,
+    });
+    assert.equal(getHeatmapLayout(4000, 53).cellSize, 32);
   });
 
   it("shows the heatmap total as nothing, minutes or hours", () => {
