@@ -118,8 +118,8 @@ export function LeaderboardSection() {
     [board, state, viewerUser]
   );
   const nudge = useMemo(
-    () => getLeaderboardNudge(board, viewerUser),
-    [board, viewerUser]
+    () => getLeaderboardNudge(board, viewerUser, dataScope),
+    [board, viewerUser, dataScope]
   );
 
   if (state === "hidden") return null;
@@ -130,10 +130,15 @@ export function LeaderboardSection() {
     const text =
       nudge.type === "leading"
         ? t("nudge_leading")
-        : t("nudge_behind", {
-            amount: formatValue(dataMetric, nudge.gap),
-            name: nudge.target.displayName,
-          });
+        : nudge.type === "to_top"
+          ? t("nudge_to_top", {
+              amount: formatValue(dataMetric, nudge.gap),
+              rank: nudge.rank,
+            })
+          : t("nudge_behind", {
+              amount: formatValue(dataMetric, nudge.gap),
+              name: nudge.target.displayName,
+            });
 
     return (
       <p className="leaderboard-section__nudge">
