@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 import {
   buildLeaderboardRequest,
   buildLeaderboardRows,
+  parseLeaderboardPeriod,
+  parseLeaderboardScope,
   fetchGameLeaderboard,
   formatDurationParts,
   getDurationParts,
@@ -120,6 +122,20 @@ describe("normalizeLeaderboardResponse", () => {
         }),
       TypeError
     );
+  });
+});
+
+describe("saved leaderboard filters", () => {
+  it("keeps a valid saved value", () => {
+    assert.equal(parseLeaderboardPeriod("all"), "all");
+    assert.equal(parseLeaderboardScope("friends"), "friends");
+  });
+
+  it("falls back to the defaults for an invalid or missing value", () => {
+    assert.equal(parseLeaderboardPeriod("month"), "week");
+    assert.equal(parseLeaderboardPeriod(null), "week");
+    assert.equal(parseLeaderboardScope("everyone"), "global");
+    assert.equal(parseLeaderboardScope(null), "global");
   });
 });
 

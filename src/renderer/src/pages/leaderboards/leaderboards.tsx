@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 
 import { SegmentedControl } from "../game-details/leaderboard/leaderboard-controls";
+import { useLeaderboardFilters } from "../game-details/leaderboard/use-leaderboard-filters";
 import {
   buildMetricsRequest,
   GLOBAL_LEADERBOARD_PERIODS,
@@ -62,21 +63,25 @@ function LeaderboardsPage() {
     linkedGame ? null : metricParam
   );
 
-  const [period, setPeriod] = useState<GlobalLeaderboardPeriod>(() =>
-    (GLOBAL_LEADERBOARD_PERIODS as readonly (string | null)[]).includes(
+  const {
+    period,
+    scope: requestedScope,
+    setPeriod,
+    setScope: setRequestedScope,
+    showPeriod,
+    showScope,
+  } = useLeaderboardFilters({
+    period: (GLOBAL_LEADERBOARD_PERIODS as readonly (string | null)[]).includes(
       periodParam
     )
       ? (periodParam as GlobalLeaderboardPeriod)
-      : "week"
-  );
-  const [requestedScope, setRequestedScope] = useState<GlobalLeaderboardScope>(
-    () =>
-      (GLOBAL_LEADERBOARD_SCOPES as readonly (string | null)[]).includes(
-        scopeParam
-      )
-        ? (scopeParam as GlobalLeaderboardScope)
-        : "global"
-  );
+      : null,
+    scope: (GLOBAL_LEADERBOARD_SCOPES as readonly (string | null)[]).includes(
+      scopeParam
+    )
+      ? (scopeParam as GlobalLeaderboardScope)
+      : null,
+  });
   const [generation, setGeneration] = useState(0);
 
   const sourceParam = searchParams.get("source");
@@ -114,8 +119,8 @@ function LeaderboardsPage() {
         scopeParam
       )
     )
-      setRequestedScope(scopeParam as GlobalLeaderboardScope);
-  }, [scopeParam, locationKey]);
+      showScope(scopeParam as GlobalLeaderboardScope);
+  }, [scopeParam, locationKey, showScope]);
 
   useEffect(() => {
     if (
@@ -123,8 +128,8 @@ function LeaderboardsPage() {
         periodParam
       )
     )
-      setPeriod(periodParam as GlobalLeaderboardPeriod);
-  }, [periodParam, locationKey]);
+      showPeriod(periodParam as GlobalLeaderboardPeriod);
+  }, [periodParam, locationKey, showPeriod]);
 
   useEffect(() => {
     if (!sourceParam) return;

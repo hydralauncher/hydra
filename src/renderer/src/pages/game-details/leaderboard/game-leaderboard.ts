@@ -20,6 +20,20 @@ export type LeaderboardMetric = (typeof LEADERBOARD_METRICS)[number];
 
 export type LeaderboardShop = Extract<GameShop, "steam" | "epic" | "launchbox">;
 
+export const parseLeaderboardPeriod = (
+  value: string | null
+): LeaderboardPeriod =>
+  (LEADERBOARD_PERIODS as readonly (string | null)[]).includes(value)
+    ? (value as LeaderboardPeriod)
+    : "week";
+
+export const parseLeaderboardScope = (
+  value: string | null
+): LeaderboardScope =>
+  (LEADERBOARD_SCOPES as readonly (string | null)[]).includes(value)
+    ? (value as LeaderboardScope)
+    : "global";
+
 export const getServedMetrics = (
   servedIds: readonly string[] | null
 ): LeaderboardMetric[] => {

@@ -28,12 +28,11 @@ import {
   getServedMetrics,
   LEADERBOARD_CARD_SIZE,
   type LeaderboardMetric,
-  type LeaderboardPeriod,
-  type LeaderboardScope,
 } from "./game-leaderboard";
 import { LeaderboardControls } from "./leaderboard-controls";
 import { LeaderboardRow } from "./leaderboard-row";
 import { useGameLeaderboard } from "./use-game-leaderboard";
+import { useLeaderboardFilters } from "./use-leaderboard-filters";
 import { useLeaderboardValue } from "./use-leaderboard-value";
 import "./leaderboard.scss";
 
@@ -55,9 +54,12 @@ export function LeaderboardSection() {
   );
   const formatValue = useLeaderboardValue();
 
-  const [period, setPeriod] = useState<LeaderboardPeriod>("week");
-  const [selectedScope, setSelectedScope] =
-    useState<LeaderboardScope>("global");
+  const {
+    period,
+    scope: selectedScope,
+    setPeriod,
+    setScope: setSelectedScope,
+  } = useLeaderboardFilters();
   const [selectedMetric, setSelectedMetric] =
     useState<LeaderboardMetric>("playtime");
 
