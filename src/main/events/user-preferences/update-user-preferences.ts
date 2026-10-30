@@ -7,7 +7,7 @@ import i18next from "i18next";
 import { defaultDownloadsPath } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
-import { DownloadManager, Wine } from "@main/services";
+import { DownloadManager, ScreenshotInputService, Wine } from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 import {
@@ -84,7 +84,8 @@ const prepareRunningLinuxCaptureSessions = async () => {
 
   for (const gameKey of runningGameKeys) {
     const game = await gamesSublevel.get(gameKey).catch(() => null);
-    if (game?.remoteId) void prepareLinuxGameCaptureSession(gameKey);
+    if (game?.remoteId)
+      void prepareLinuxGameCaptureSession(gameKey, "souvenir");
   }
 };
 
@@ -122,7 +123,7 @@ const updateEmulatorAchievementTracking = async (
   }
 
   if (Object.hasOwn(preferences, "enableAchievementSouvenirs")) {
-    stopAllLinuxGameCaptureSessions();
+    stopAllLinuxGameCaptureSessions("souvenir");
   }
 
   const tracking = resolveEmulatorAchievementTracking(
@@ -153,6 +154,17 @@ const unlinkRetroAchievementsEmulatorAccount = async (
   }
 
   await deleteRetroAchievementsEmulatorAccount();
+};
+
+const updateScreenshotsPreference = async (
+  preferences: Partial<UserPreferences>
+) => {
+  if (!Object.hasOwn(preferences, "screenshotsEnabled")) return;
+
+  const { applyScreenshotsEnabledPreference } = await import(
+    "@main/services/screenshots"
+  );
+  await applyScreenshotsEnabledPreference(preferences.screenshotsEnabled);
 };
 
 const applyDownloadManagerPreferences = async (
@@ -213,9 +225,11 @@ const updateUserPreferences = async (
   }
 
   Wine.syncUserPreferences(updatedPreferences);
+  ScreenshotInputService.syncUserPreferences(updatedPreferences);
 
   await updateEmulatorAchievementTracking(preferences, updatedPreferences);
   await unlinkRetroAchievementsEmulatorAccount(preferences);
+  await updateScreenshotsPreference(preferences);
 
   WindowManager.sendToAppWindows(
     "on-user-preferences-updated",

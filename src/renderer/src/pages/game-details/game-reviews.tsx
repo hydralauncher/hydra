@@ -11,10 +11,17 @@ import { ReviewGateNotice } from "./review-gate-notice";
 import { ReviewThread } from "./review-thread";
 import { ReviewSortOptions } from "./review-sort-options";
 import "./game-reviews.scss";
-import { Button } from "@renderer/components";
+import {
+  Button,
+  RichTextLimit,
+  clearRichTextEditorIfUnchanged,
+  measureRichTextDocText,
+  pasteWithinRichTextLimit,
+} from "@renderer/components";
 import { useToast } from "@renderer/hooks";
 import { REVIEW_MIN_PLAYTIME_IN_MS } from "@renderer/constants";
 import { getDisplayedPlayTimeInMilliseconds } from "@shared";
+import { logger } from "@renderer/logger";
 
 type ReviewSortOption =
   | "newest"
@@ -65,11 +72,29 @@ export function GameReviews({
     null
   );
 
-  const playTimeInMilliseconds = getDisplayedPlayTimeInMilliseconds({
-    playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
-    steamPlayTimeInMilliseconds: game?.steamPlayTimeInMilliseconds,
-    epicPlayTimeInMilliseconds: game?.epicPlayTimeInMilliseconds,
-  });
+  const [removedGamePlaytime, setRemovedGamePlaytime] = useState(0);
+  const isInLibrary = game !== null;
+
+  useEffect(() => {
+    setRemovedGamePlaytime(0);
+    if (isInLibrary) return;
+
+    let cancelled = false;
+    window.electron
+      .getGameReviewPlaytime(shop, objectId)
+      .then((playtime) => {
+        if (!cancelled) setRemovedGamePlaytime(playtime);
+      })
+      .catch((error) => logger.error("Failed to load review playtime:", error));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isInLibrary, shop, objectId]);
+
+  const playTimeInMilliseconds = game
+    ? getDisplayedPlayTimeInMilliseconds(game)
+    : removedGamePlaytime;
   const hasEnoughPlaytime = playTimeInMilliseconds >= REVIEW_MIN_PLAYTIME_IN_MS;
   const isReviewLocked = !userDetailsId || !hasEnoughPlaytime;
   const canReply =
@@ -86,6 +111,7 @@ export function GameReviews({
         link: false,
       }),
       Underline,
+      RichTextLimit.configure({ maxLength: MAX_REVIEW_CHARS }),
     ],
     content: "",
     editorProps: {
@@ -93,42 +119,16 @@ export function GameReviews({
         class: "game-details__review-editor",
         "data-placeholder": t("write_review_placeholder"),
       },
-      handlePaste: (view, event) => {
-        const htmlContent = event.clipboardData?.getData("text/html") || "";
-        const plainText = event.clipboardData?.getData("text/plain") || "";
-
-        const currentText = view.state.doc.textContent;
-        const remainingChars = MAX_REVIEW_CHARS - currentText.length;
-
-        if ((htmlContent || plainText) && remainingChars > 0) {
-          event.preventDefault();
-
-          if (htmlContent) {
-            const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = htmlContent;
-            const textLength = tempDiv.textContent?.length || 0;
-
-            if (textLength <= remainingChars) {
-              return false;
-            }
-          }
-
-          const truncatedText = plainText.slice(0, remainingChars);
-          view.dispatch(view.state.tr.insertText(truncatedText));
-          return true;
-        }
-        return false;
-      },
+      handlePaste: (view, _event, slice) =>
+        pasteWithinRichTextLimit(
+          view,
+          slice,
+          MAX_REVIEW_CHARS,
+          measureRichTextDocText
+        ),
     },
     onUpdate: ({ editor }) => {
-      const text = editor.getText();
-      setReviewCharCount(text.length);
-
-      if (text.length > MAX_REVIEW_CHARS) {
-        const truncatedContent = text.slice(0, MAX_REVIEW_CHARS);
-        editor.commands.setContent(truncatedContent);
-        setReviewCharCount(MAX_REVIEW_CHARS);
-      }
+      setReviewCharCount(editor.getText().length);
     },
   });
 
@@ -316,7 +316,7 @@ export function GameReviews({
         }
       );
 
-      editor?.commands.clearContent();
+      clearRichTextEditorIfUnchanged(editor, reviewHtml);
       setReviewScore(null);
       showSuccessToast(t("review_submitted_successfully"));
 
@@ -366,8 +366,8 @@ export function GameReviews({
   };
 
   useEffect(() => {
-    editor?.setEditable(!isReviewLocked);
-  }, [editor, isReviewLocked]);
+    editor?.setEditable(!isReviewLocked && !submittingReview);
+  }, [editor, isReviewLocked, submittingReview]);
 
   useEffect(() => {
     if (objectId) {

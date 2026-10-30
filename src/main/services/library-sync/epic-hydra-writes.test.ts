@@ -232,6 +232,10 @@ function fixture() {
             mode === "legacy",
           shouldRunV2AutomaticCloudSave: () => false,
         },
+        "./screenshots": {
+          onScreenshotGameStarted: async () => {},
+          onScreenshotGameClosed: () => {},
+        },
         "./linux-game-capture-session": {
           prepareLinuxGameCaptureSession: async () => {},
           stopLinuxGameCaptureSession: () => {},

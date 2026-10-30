@@ -1,3 +1,4 @@
+import type { ScreenshotCommentsPolicy } from "./screenshot.types";
 import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
 import type {
@@ -8,7 +9,11 @@ import type {
   LibraryCatalogueMetadata,
   Subscription,
 } from "./level.types";
-import type { GameShop, UnlockedAchievement } from "./game.types";
+import type {
+  AchievementSet,
+  GameShop,
+  UnlockedAchievement,
+} from "./game.types";
 import type { ArtworkAssetType } from "./artwork.types";
 import type { GameContentWarning } from "./souvenir.types";
 
@@ -32,6 +37,8 @@ export interface GameRepack {
   title: string;
   fileSize: string | null;
   uris: string[];
+  /** Mirrors split into parts. Each group lists one hoster's parts in order. */
+  uriGroups?: string[][];
   unavailableUris: string[];
   uploadDate: string | null;
   downloadSourceId: string;
@@ -62,6 +69,15 @@ export interface ProtonVersion {
   source?: "steam" | "compatibility_tools" | "unknown";
 }
 
+export interface CatalogueImageVariants {
+  base: string;
+  widths: number[];
+  thumbHash: string | null;
+}
+
+/** Resized CDN copies keyed by the original image URL. */
+export type CatalogueImages = Record<string, CatalogueImageVariants>;
+
 export interface ShopAssets {
   objectId: string;
   shop: GameShop;
@@ -77,6 +93,7 @@ export interface ShopAssets {
   epicArtworkUpdatedAtByType?: Partial<
     Record<"icon" | "portrait" | "landscape", number>
   >;
+  images?: CatalogueImages;
 }
 
 export type ShopDetails = SteamAppDetails & {
@@ -173,6 +190,7 @@ export interface StartGameDownloadPayload {
   title: string;
   shop: GameShop;
   uri: string;
+  parts?: string[];
   downloadPath: string;
   downloader: Downloader;
   automaticallyExtract: boolean;
@@ -456,6 +474,8 @@ export interface UserDetails {
   allowCloudGifts: boolean;
   allowLeaderboardNotifications?: boolean;
   souvenirsVisibility: ProfileVisibility;
+  screenshotsVisibility?: ProfileVisibility;
+  screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
   bio: string;
   workwondersJwt: string;
   subscription: Subscription | null;
@@ -533,6 +553,9 @@ export interface UserProfile {
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   souvenirsVisibility: ProfileVisibility;
+  screenshotsVisibility?: ProfileVisibility;
+  screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
+  screenshotCount?: number;
   libraryGames: UserGame[];
   recentGames: UserGame[];
   friends: UserFriend[];
@@ -556,6 +579,8 @@ export interface UpdateProfileRequest {
   displayName?: string;
   profileVisibility?: ProfileVisibility;
   souvenirsVisibility?: ProfileVisibility;
+  screenshotsVisibility?: ProfileVisibility;
+  screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
   profileImageUrl?: string | null;
   backgroundImageUrl?: string | null;
   bio?: string;
@@ -572,6 +597,7 @@ export interface OpenCheckoutOptions {
 export interface DownloadSourceDownload {
   title: string;
   uris: string[];
+  uriGroups?: string[][];
   uploadDate: string;
   fileSize: string;
 }
@@ -700,6 +726,7 @@ export interface AchievementNotificationInfo {
   isRare: boolean;
   isPlatinum: boolean;
   points?: number;
+  variant?: "screenshot";
 }
 
 export type AchievementNotificationRequest = {
@@ -714,6 +741,10 @@ export type AchievementNotificationRequest = {
       type: "combined";
       gameCount: number;
       achievementCount: number;
+    }
+  | {
+      type: "screenshot";
+      achievement: AchievementNotificationInfo;
     }
 );
 
@@ -752,6 +783,9 @@ export type NotificationType =
   | "REVIEW_ANSWER"
   | "REVIEW_ANSWER_UPVOTE"
   | "SOUVENIR_LIKE"
+  | "SCREENSHOT_LIKE"
+  | "SCREENSHOT_COMMENT"
+  | "SCREENSHOT_COMMENT_UPVOTE"
   | "RETROACHIEVEMENTS_CREDENTIALS_RESTORED"
   | "RETROACHIEVEMENTS_CREDENTIALS_INVALID"
   | "RETROACHIEVEMENTS_SYNC_FAILED"
@@ -830,13 +864,18 @@ export interface ComparedAchievements {
     icon: string;
     displayName: string;
     description: string;
+    points?: number;
+    globalUnlockPercentage?: number | null;
+    set?: AchievementSet | null;
     ownerStat?: {
       unlocked: boolean;
       unlockTime: number;
+      hardcoreUnlockTime?: number | null;
     };
     targetStat: {
       unlocked: boolean;
       unlockTime: number;
+      hardcoreUnlockTime?: number | null;
     };
   }[];
 }
@@ -948,6 +987,7 @@ export * from "./retroarch.types";
 export * from "./artwork.types";
 export * from "./cloud-save.types";
 export * from "./souvenir.types";
+export * from "./screenshot.types";
 
 export type ExtractionFailure =
   | { reason: "unsupported-format"; format: string }

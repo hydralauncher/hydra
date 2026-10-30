@@ -19,6 +19,7 @@ import { buildLeaderboardBoardPath } from "@shared";
 import type { LeaderboardUser } from "../game-details/leaderboard/game-leaderboard";
 import {
   buildMetricsRequest,
+  formatBoardTotal,
   getBoardState,
   getRankDelta,
   getViewerRanking,
@@ -213,7 +214,7 @@ export function ByGameTab({
   let heroSubtitle = "";
   if (heroRank !== null && heroTotal !== null) {
     heroSubtitle = t("game_ranking_subtitle", {
-      total: numberFormatter.format(heroTotal),
+      total: formatBoardTotal(heroTotal, numberFormatter.format),
       rank: heroRank,
     });
   } else if (heroRank !== null) {
@@ -293,11 +294,16 @@ export function ByGameTab({
                   <span className="leaderboards__game-position">
                     {t("ordinal", { rank: game.rank })}
                   </span>
-                  <span className="leaderboards__game-total">
-                    {t("of_total", {
-                      total: numberFormatter.format(game.total),
-                    })}
-                  </span>
+                  {game.total !== null && (
+                    <span className="leaderboards__game-total">
+                      {t("of_total", {
+                        total: formatBoardTotal(
+                          game.total,
+                          numberFormatter.format
+                        ),
+                      })}
+                    </span>
+                  )}
                   {isWeek && (
                     <RankDelta
                       delta={getRankDelta(game.rank, game.previousRank)}
@@ -377,6 +383,11 @@ export function ByGameTab({
         leaderLabel={t(isWeek ? "leader_of_week" : "record_holder")}
         showDelta={isWeek}
         isLoading={board.isLoading}
+        reportContext={
+          metric && boardGame
+            ? { metric: metric.id, window: period, scope, game: boardGame }
+            : null
+        }
       />
     );
   };

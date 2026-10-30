@@ -17,6 +17,7 @@ export * from "./input";
 export * from "./list-card";
 export * from "./modal";
 export * from "./radio";
+export * from "./segmented-control";
 export * from "./route-anchor";
 export * from "./scroll-area";
 export * from "./skeleton";

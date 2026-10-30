@@ -5,6 +5,7 @@ import type {
   EpicConnectionState,
   EpicSyncTrigger,
   EpicSyncRun,
+  EpicSnapshotDlc,
 } from "../../../types/epic-integration.types";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "../hydra-api";
@@ -57,6 +58,7 @@ import {
 } from "./constants";
 import {
   normalizeEpicLibrary,
+  parseEpicSnapshotDlcs,
   getEpicGamePlaytime,
   isEpicObjectId,
 } from "./library-normalizer";
@@ -66,8 +68,19 @@ import {
   epicOwnerMatches,
 } from "./legendary-managed-runtime";
 
+type OwnGameResponse = ImportedProfileGame & {
+  epicImport: {
+    connectionId: string;
+    artifactIds: string[];
+    dlcs?: unknown;
+  } | null;
+};
 type OwnGame = ImportedProfileGame & {
-  epicImport: { connectionId: string; artifactIds: string[] } | null;
+  epicImport: {
+    connectionId: string;
+    artifactIds: string[];
+    dlcs: EpicSnapshotDlc[];
+  } | null;
 };
 interface Individual {
   controller: AbortController;
@@ -439,7 +452,7 @@ export class EpicSyncRuntime {
     objectId: string,
     signal: AbortSignal
   ): Promise<OwnGame | null> {
-    const result = await HydraApi.get<OwnGame>(
+    const result = await HydraApi.get<OwnGameResponse>(
       `/profile/games/epic/${encodeURIComponent(objectId)}`,
       undefined,
       {
@@ -467,7 +480,18 @@ export class EpicSyncRuntime {
       context,
       artifactIds: result.epicImport.artifactIds,
     });
-    return result;
+    const [namespace, catalogItemId] = objectId.split(":");
+    return {
+      ...result,
+      epicImport: {
+        ...result.epicImport,
+        dlcs: parseEpicSnapshotDlcs(result.epicImport.dlcs, {
+          namespace,
+          catalogItemId,
+          artifactIds: result.epicImport.artifactIds,
+        }),
+      },
+    };
   }
   async syncGame(
     objectId: string,

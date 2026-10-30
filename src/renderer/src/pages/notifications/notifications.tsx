@@ -3,10 +3,16 @@ import { BellIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@renderer/components";
-import { useAppDispatch, useToast, useUserDetails } from "@renderer/hooks";
+import {
+  useAppDispatch,
+  useFeature,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { logger } from "@renderer/logger";
 import { ensureArray } from "@renderer/helpers";
+import { isScreenshotNotificationType } from "@shared";
 
 import { NotificationItem } from "./notification-item";
 import { LocalNotificationItem } from "./local-notification-item";
@@ -30,6 +36,7 @@ export default function Notifications() {
   const { showSuccessToast, showErrorToast } = useToast();
   const { userDetails } = useUserDetails();
   const dispatch = useAppDispatch();
+  const { isFeatureEnabled, Feature } = useFeature();
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("title")));
@@ -163,17 +170,29 @@ export default function Notifications() {
     };
   }, []);
 
+  const visibleApiNotifications = useMemo(() => {
+    const isShown = ({ type }: Notification) => {
+      if (!isScreenshotNotificationType(type)) return true;
+      if (!isFeatureEnabled(Feature.Screenshots)) return false;
+      return (
+        type === "SCREENSHOT_LIKE" ||
+        isFeatureEnabled(Feature.ScreenshotComments)
+      );
+    };
+    return apiNotifications.filter(isShown);
+  }, [Feature, apiNotifications, isFeatureEnabled]);
+
   const mergedNotifications = useMemo<MergedNotification[]>(() => {
     const sortByDate = (a: MergedNotification, b: MergedNotification) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 
     // High priority notifications (priority === 1) - keep in API order
-    const highPriority: MergedNotification[] = apiNotifications
+    const highPriority: MergedNotification[] = visibleApiNotifications
       .filter((n) => n.priority === 1)
       .map((n) => ({ ...n, source: "api" as const }));
 
     // Low priority: other API notifications + local notifications, merged and sorted by date
-    const lowPriorityApi: MergedNotification[] = apiNotifications
+    const lowPriorityApi: MergedNotification[] = visibleApiNotifications
       .filter((n) => n.priority !== 1)
       .map((n) => ({ ...n, source: "api" as const }));
 
@@ -194,7 +213,7 @@ export default function Notifications() {
     );
 
     return [...highPriority, ...lowPriority];
-  }, [apiNotifications, localNotifications, filter]);
+  }, [visibleApiNotifications, localNotifications, filter]);
 
   const displayedNotifications = useMemo(() => {
     return mergedNotifications;
@@ -443,10 +462,10 @@ export default function Notifications() {
   };
 
   const unreadCount = useMemo(() => {
-    const apiUnread = apiNotifications.filter((n) => !n.isRead).length;
+    const apiUnread = visibleApiNotifications.filter((n) => !n.isRead).length;
     const localUnread = localNotifications.filter((n) => !n.isRead).length;
     return apiUnread + localUnread;
-  }, [apiNotifications, localNotifications]);
+  }, [visibleApiNotifications, localNotifications]);
 
   const renderFilterTabs = () => (
     <div className="notifications__filter-tabs">

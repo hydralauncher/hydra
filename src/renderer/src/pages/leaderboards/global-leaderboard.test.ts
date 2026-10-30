@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   buildGlobalLeaderboardRequest,
   buildHeatmap,
+  buildHeatmapMonths,
   buildMetricsRequest,
   hasReviewData,
   hasStreakData,
@@ -19,9 +20,11 @@ import {
   normalizeBadges,
   normalizeFriendStreaks,
   normalizeGlobalLeaderboardResponse,
+  formatBoardTotal,
   normalizeMyGames,
   normalizePlayActivity,
   resolveWeekRange,
+  sumHeatmap,
   type GlobalLeaderboardQuery,
 } from "./global-leaderboard.js";
 
@@ -104,7 +107,27 @@ describe("normalizeGlobalLeaderboardResponse", () => {
     });
     assert.equal(board.extras.b.review?.gameTitle, "Brawlhalla");
     assert.equal(board.extras.b.review?.coverImageUrl, null);
+    assert.deepEqual(board.extras.b.review?.translations, {});
+    assert.equal(board.extras.b.review?.detectedLanguage, null);
     assert.equal(board.extras.b.previousRank, null);
+  });
+
+  it("keeps the review translations and detected language", () => {
+    const board = normalizeGlobalLeaderboardResponse({
+      entries: [
+        rawEntry(1, "a", {
+          review: {
+            text: "Great",
+            score: 5,
+            detectedLanguage: "en",
+            translations: { pt: "Ótimo", es: "", fr: 3 },
+          },
+        }),
+      ],
+    });
+
+    assert.deepEqual(board.extras.a.review?.translations, { pt: "Ótimo" });
+    assert.equal(board.extras.a.review?.detectedLanguage, "en");
   });
 
   it("accepts the legacy users shape and ignores invalid extras", () => {
@@ -339,20 +362,65 @@ describe("play activity", () => {
     assert.equal(getPlayLevel(4 * 3600), 3);
   });
 
-  it("builds 15 weeks of cells ending in the current week", () => {
+  it("builds 53 weeks of cells ending in the current week", () => {
     const now = Date.UTC(2026, 9, 21, 12);
     const cells = buildHeatmap(
       [{ date: "2026-10-21", seconds: 5000, games: ["Brawlhalla"] }],
       now
     );
 
-    assert.equal(cells.length, 105);
-    assert.equal(cells[0].date.toISOString(), "2026-07-13T00:00:00.000Z");
+    assert.equal(cells.length, 371);
+    assert.equal(cells[0].date.toISOString(), "2025-10-20T00:00:00.000Z");
+    assert.equal(cells.at(-7)?.date.toISOString(), "2026-10-19T00:00:00.000Z");
 
     const today = cells.find((cell) => cell.isToday);
     assert.equal(today?.level, 2);
     assert.deepEqual(today?.games, ["Brawlhalla"]);
     assert.equal(cells.filter((cell) => cell.isFuture).length, 4);
+  });
+
+  it("labels each month on the first week that starts in it", () => {
+    const labels = (now: number) =>
+      buildHeatmapMonths(buildHeatmap([], now)).map(
+        ({ week, date }) => `${week}:${date.toISOString().slice(0, 10)}`
+      );
+
+    // The first column (Oct 20) is two weeks from November, so it is dropped.
+    assert.deepEqual(labels(Date.UTC(2026, 9, 21, 12)), [
+      "2:2025-11-03",
+      "6:2025-12-01",
+      "11:2026-01-05",
+      "15:2026-02-02",
+      "19:2026-03-02",
+      "24:2026-04-06",
+      "28:2026-05-04",
+      "32:2026-06-01",
+      "37:2026-07-06",
+      "41:2026-08-03",
+      "46:2026-09-07",
+      "50:2026-10-05",
+    ]);
+
+    // The first column keeps its label when the next month is far enough,
+    // and a month starting in the last column has no room for its label.
+    const december = labels(Date.UTC(2026, 10, 30, 12));
+    assert.equal(december[0], "0:2025-12-01");
+    assert.equal(december.at(-1), "48:2026-11-02");
+  });
+
+  it("sums the seconds and played days of the heatmap", () => {
+    const cells = buildHeatmap(
+      [
+        { date: "2026-10-19", seconds: 3600, games: [] },
+        { date: "2026-10-21", seconds: 1800, games: [] },
+        { date: "2026-01-02", seconds: 0, games: [] },
+        { date: "2024-01-01", seconds: 9999, games: [] },
+      ],
+      Date.UTC(2026, 9, 21, 12)
+    );
+
+    assert.deepEqual(sumHeatmap(cells), { seconds: 5400, days: 2 });
+    assert.deepEqual(sumHeatmap([]), { seconds: 0, days: 0 });
   });
 
   it("flags today and yesterday by UTC day", () => {
@@ -384,10 +452,29 @@ describe("play activity", () => {
     });
 
     assert.equal(activity.currentStreak, 5);
+    assert.equal(activity.weeks, 53);
     assert.deepEqual(activity.days, [
       { date: "2026-10-21", seconds: 60, games: ["A"] },
     ]);
     assert.throws(() => normalizePlayActivity({}), TypeError);
+  });
+
+  it("sizes the heatmap from the weeks the API answered for", () => {
+    const now = Date.UTC(2026, 9, 21, 12);
+    const activity = normalizePlayActivity(
+      { days: [{ date: "2026-10-20", seconds: 7200, games: [] }] },
+      26
+    );
+    const cells = buildHeatmap(activity.days, now, activity.weeks);
+
+    assert.equal(activity.weeks, 26);
+    assert.equal(cells.length, 182);
+    assert.equal(cells[0].date.toISOString(), "2026-04-27T00:00:00.000Z");
+    assert.deepEqual(sumHeatmap(cells), { seconds: 7200, days: 1 });
+    assert.deepEqual(
+      buildHeatmapMonths(cells).map(({ week }) => week),
+      [1, 5, 10, 14, 19, 23]
+    );
   });
 });
 
@@ -404,15 +491,28 @@ describe("profile normalizers", () => {
           total: 12480,
           leader: rawUser("a"),
         },
+        { shop: "steam", objectId: "2", rank: 36, total: null },
+        { shop: "steam", objectId: "3", rank: 36, total: 10 },
         { shop: "steam", objectId: "1", rank: 0 },
         "bad",
       ],
     });
 
-    assert.equal(games.length, 1);
+    assert.equal(games.length, 3);
     assert.equal(games[0].leader?.id, "a");
     assert.equal(games[0].coverImageUrl, null);
+    assert.equal(games[0].total, 12480);
+    // An unknown or impossible total stays unknown, never the rank.
+    assert.equal(games[1].total, null);
+    assert.equal(games[2].total, null);
     assert.throws(() => normalizeMyGames({}), TypeError);
+  });
+
+  it("caps shown board sizes at 10,000+", () => {
+    const format = (value: number) => String(value);
+    assert.equal(formatBoardTotal(9999, format), "9999");
+    assert.equal(formatBoardTotal(10000, format), "10000+");
+    assert.equal(formatBoardTotal(123456, format), "10000+");
   });
 
   it("sorts friend streaks by active first, then by days", () => {
@@ -440,7 +540,8 @@ describe("profile normalizers", () => {
           id: "a",
           kind: "top_percent",
           tier: "gold",
-          value: 1,
+          threshold: 1,
+          value: 765120,
           earnedAt: "2026-09-03T00:00:00.000Z",
         },
         {
@@ -460,8 +561,52 @@ describe("profile normalizers", () => {
     assert.equal(badges.total, 2);
     assert.equal(badges.badges[1].tier, "gold");
     assert.equal(badges.badges[1].scope, "friends");
+    // Top N% reads the threshold, never the viewer's value on the board.
+    assert.equal(badges.badges[0].value, 1);
+    assert.equal(badges.badges[1].value, 1);
     assert.equal(getBadgeProgress(badges.badges[1]), 55);
     assert.equal(getBadgeProgress(badges.badges[0]), 0);
     assert.throws(() => normalizeBadges({}), TypeError);
+  });
+
+  it("reads the target of locked game badges", () => {
+    const { badges } = normalizeBadges({
+      badges: [
+        {
+          id: "a",
+          kind: "top_rank",
+          tier: "bronze",
+          threshold: 10,
+          value: 765120,
+        },
+        {
+          id: "b",
+          kind: "top_rank",
+          threshold: 10,
+          value: 765120,
+          target: { kind: "top_percent", value: 5 },
+        },
+        {
+          id: "c",
+          kind: "top_rank",
+          threshold: 1,
+          value: 765120,
+          earnedAt: "2026-09-03T00:00:00.000Z",
+        },
+        { id: "d", kind: "weekly_leader", value: 1 },
+        { id: "e", kind: "top_rank", target: { kind: "nope", value: 3 } },
+      ],
+    });
+
+    assert.deepEqual(
+      badges.map((badge) => badge.target),
+      [
+        { kind: "top_rank", value: 10 },
+        { kind: "top_percent", value: 5 },
+        null,
+        null,
+        null,
+      ]
+    );
   });
 });

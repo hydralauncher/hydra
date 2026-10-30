@@ -3,7 +3,9 @@ import type { LibraryGame } from "@types";
 import { formatBytes } from "@shared";
 import { useEpicInstall } from "@renderer/hooks/use-epic-install";
 import {
+  Accordion,
   Button,
+  Checkbox,
   DropdownSelect,
   Input,
   Modal,
@@ -31,6 +33,7 @@ export function EpicInstallModal({
     !install.option ||
     !install.result?.connectionId ||
     !install.path;
+  const summary = install.extrasSummary;
   return (
     <Modal
       visible={!!game}
@@ -61,15 +64,64 @@ export function EpicInstallModal({
           <p>
             {t("epic_install_sizes", {
               download:
-                install.option.downloadSizeInBytes == null
+                install.choice.downloadSizeInBytes == null
                   ? "—"
-                  : formatBytes(install.option.downloadSizeInBytes),
+                  : formatBytes(install.choice.downloadSizeInBytes),
               disk:
-                install.option.diskSizeInBytes == null
+                install.choice.diskSizeInBytes == null
                   ? "—"
-                  : formatBytes(install.option.diskSizeInBytes),
+                  : formatBytes(install.choice.diskSizeInBytes),
             })}
           </p>
+        )}
+        {install.extras.length > 0 && (
+          <Accordion
+            key={game?.objectId}
+            title={t("epic_extras_title")}
+            hint={[
+              t("epic_extras_selected", {
+                selected: summary.selected,
+                total: summary.total,
+              }),
+              ...(summary.selected > 0
+                ? [`+${formatBytes(summary.selectedDownloadSizeInBytes)}`]
+                : []),
+            ].join(" · ")}
+            focusId="epic-install-extras"
+          >
+            <VerticalFocusGroup>
+              {summary.total > 0 && (
+                <Checkbox
+                  block
+                  label={t("epic_select_all")}
+                  secondaryText={`${summary.selected}/${summary.total}`}
+                  checked={summary.selected === summary.total}
+                  disabled={install.starting}
+                  onChange={install.setAllExtras}
+                />
+              )}
+              {install.extras.map((extra) => (
+                <Checkbox
+                  key={extra.key}
+                  block
+                  label={extra.name}
+                  secondaryText={
+                    extra.installed
+                      ? t("epic_dlc_installed")
+                      : t("epic_selection_size", {
+                          size: formatBytes(extra.downloadSizeInBytes),
+                        })
+                  }
+                  checked={extra.checked}
+                  disabled={extra.installed || install.starting}
+                  onChange={(checked) => install.toggleExtra(extra, checked)}
+                />
+              ))}
+            </VerticalFocusGroup>
+          </Accordion>
+        )}
+        {install.insufficientSpace && (
+          <p role="alert">{t("epic_not_enough_space")}</p>
         )}
         <Input label={t("download_path")} value={install.path} readOnly />
         <Button

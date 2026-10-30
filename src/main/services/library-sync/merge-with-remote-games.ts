@@ -342,6 +342,7 @@ const buildRemoteGameShopAssets = (
     iconUrl: remoteGame.iconUrl,
     logoPosition: remoteGame.logoPosition,
     downloadSources: remoteGame.downloadSources,
+    images: { ...localShopAssets?.images, ...remoteGame.images },
   };
   return (remoteGame.catalogueGame ?? localGame?.catalogueGame)?.shop ===
     "steam"
@@ -458,6 +459,7 @@ const mergeRemoteGamesChunk = async (
                 logoImageUrl: assets.logoImageUrl,
                 logoPosition: assets.logoPosition,
                 downloadSources: assets.downloadSources,
+                images: assets.images,
               },
               { sublevel: gamesShopAssetsSublevel }
             );
@@ -707,6 +709,12 @@ const plainMerges = new Map<
   string,
   { running: Promise<boolean>; next?: Promise<boolean> }
 >();
+const plainMergeCompletedAt = new Map<string, number>();
+
+const getPlainMergeKey = (context: HydraApiAuthContext | undefined) =>
+  context
+    ? JSON.stringify([context.environment, context.userId, context.generation])
+    : "";
 
 const startPlainMerge = (key: string, run: () => Promise<boolean>) => {
   const merge = { running: run() };
@@ -714,7 +722,10 @@ const startPlainMerge = (key: string, run: () => Promise<boolean>) => {
   const settle = () => {
     if (plainMerges.get(key) === merge) plainMerges.delete(key);
   };
-  void merge.running.then(settle, settle);
+  void merge.running.then((merged) => {
+    if (merged) plainMergeCompletedAt.set(key, Date.now());
+    settle();
+  }, settle);
   return merge.running;
 };
 
@@ -726,9 +737,7 @@ export const mergeWithRemoteGames: typeof mergeWithRemoteGamesOnce = (
     return mergeWithRemoteGamesRetrying(...args);
 
   const context = capturedContext ?? HydraApi.getAuthContext() ?? undefined;
-  const key = context
-    ? JSON.stringify([context.environment, context.userId, context.generation])
-    : "";
+  const key = getPlainMergeKey(context);
   const run = () => mergeWithRemoteGamesRetrying(undefined, context);
   const merge = plainMerges.get(key);
   if (!merge) return startPlainMerge(key, run);
@@ -739,6 +748,20 @@ export const mergeWithRemoteGames: typeof mergeWithRemoteGamesOnce = (
     () => startPlainMerge(key, run)
   );
   return merge.next;
+};
+
+/** Reuses a full merge for the current account that finished within `maxAgeMs`. */
+export const mergeWithRemoteGamesUnlessFresh = (maxAgeMs: number) => {
+  const key = getPlainMergeKey(HydraApi.getAuthContext() ?? undefined);
+  const completedAt = plainMergeCompletedAt.get(key);
+  if (
+    !plainMerges.has(key) &&
+    completedAt !== undefined &&
+    Date.now() - completedAt < maxAgeMs
+  ) {
+    return Promise.resolve(true);
+  }
+  return mergeWithRemoteGames();
 };
 
 // Emulator imports already have catalogue assets and ROM metadata locally.

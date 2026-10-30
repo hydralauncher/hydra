@@ -26,6 +26,13 @@ export interface EpicInstallation {
   pendingSaveUpload?: boolean;
 }
 
+export interface EpicInstallSelection {
+  components?: string[];
+  installTags: string[];
+  dlcs: string[];
+  gameAlreadyInstalled?: boolean;
+}
+
 export interface EpicDownloadMetadata {
   owner: EpicLocalOwner;
   connectionId: string;
@@ -34,6 +41,8 @@ export interface EpicDownloadMetadata {
   diskSizeInBytes: number;
   phase?: "preparing" | "downloading" | "finalizing" | "prerequisites";
   error?: EpicInstallError;
+  selection?: EpicInstallSelection;
+  update?: { fromVersion: string; toVersion: string; filesChanged?: boolean };
 }
 
 export type EpicInstallError =
@@ -51,6 +60,7 @@ export type EpicInstallError =
   | "prerequisites-required"
   | "game-running"
   | "update-required"
+  | "invalid-selection"
   | "compatibility-runtime-unavailable"
   | "compatibility-runtime-download-failed"
   | "compatibility-prefix-invalid"
@@ -63,6 +73,21 @@ export interface EpicLinuxCompatibility {
   protonSource: "game" | "global" | "umu";
 }
 
+export interface EpicInstallComponent {
+  id: string;
+  name: string;
+  downloadSizeInBytes: number;
+  diskSizeInBytes: number;
+}
+
+export interface EpicInstallDlc {
+  artifactId: string;
+  name: string;
+  downloadSizeInBytes: number;
+  diskSizeInBytes: number;
+  installed: boolean;
+}
+
 export interface EpicGameInstallOption {
   preparationId?: string;
   artifactId: string;
@@ -71,6 +96,12 @@ export interface EpicGameInstallOption {
   diskSizeInBytes: number | null;
   supportsCloudSaves: boolean;
   installed: boolean;
+  publishedVersion?: string | null;
+  installedVersion?: string | null;
+  components?: EpicInstallComponent[];
+  requiredDownloadSizeInBytes?: number;
+  requiredDiskSizeInBytes?: number;
+  dlcs?: EpicInstallDlc[];
 }
 
 export interface EpicGameInstallOptions {
@@ -87,11 +118,19 @@ export interface StartEpicGameDownloadPayload {
   platform: EpicInstallPlatform;
   downloadPath: string;
   addToQueueOnly?: boolean;
+  components?: string[];
+  dlcs?: string[];
 }
+
+export type StartEpicGameUpdatePayload = Omit<
+  StartEpicGameDownloadPayload,
+  "downloadPath" | "components" | "dlcs"
+>;
 
 export interface EpicLaunchOptions {
   epicSavePolicy?: "local-once";
   epicOffline?: boolean;
+  epicSkipUpdateCheck?: boolean;
 }
 
 export type EpicSaveError =

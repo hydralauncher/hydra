@@ -10,7 +10,21 @@ export const GLOBAL_LEADERBOARD_TAKE = 100;
 export const GLOBAL_LEADERBOARD_PAGE_SIZE = 13;
 export const GLOBAL_LEADERBOARD_PAGE_STEP = 10;
 export const GLOBAL_LEADERBOARD_PODIUM_SIZE = 3;
-export const PLAY_ACTIVITY_WEEKS = 15;
+export const PLAY_ACTIVITY_WEEKS = 53;
+// Board sizes are shown as "10,000+" past this, so a big all-time board does
+// not print a huge number next to the rank.
+export const BOARD_TOTAL_CAP = 10_000;
+
+export const formatBoardTotal = (
+  total: number,
+  format: (value: number) => string
+) => (total >= BOARD_TOTAL_CAP ? `${format(BOARD_TOTAL_CAP)}+` : format(total));
+// Older backends cap play activity at 26 weeks and answer 400 above it.
+export const PLAY_ACTIVITY_FALLBACK_WEEKS = 26;
+// A month label needs about two columns, so labels closer than this to the
+// next one or to the end of the grid are dropped.
+const HEATMAP_MONTH_MIN_WEEKS = 3;
+const HEATMAP_MONTH_END_WEEKS = 2;
 export const BADGES_PAGE_SIZE = 8;
 export const SECONDS_PER_MINUTE = 60;
 export const MINUTES_PER_HOUR = 60;
@@ -56,6 +70,9 @@ export interface LeaderboardReview {
   score: number;
   createdAt: string | null;
   text: string;
+  // Same shape as GameReview: translated text by base language ("pt").
+  translations: Record<string, string>;
+  detectedLanguage: string | null;
 }
 
 export interface LeaderboardEntryExtras {
@@ -92,7 +109,8 @@ export interface MyGameRanking {
   heroImageUrl: string | null;
   rank: number;
   previousRank: number | null;
-  total: number;
+  // Players on the board; null while the API does not know it.
+  total: number | null;
   leader: LeaderboardUser | null;
 }
 
@@ -103,6 +121,8 @@ export interface PlayActivityDay {
 }
 
 export interface PlayActivity {
+  // Weeks the API answered for, which can be fewer than asked for.
+  weeks: number;
   currentStreak: number;
   bestStreak: number;
   playedToday: boolean;
@@ -130,6 +150,12 @@ export const BADGE_TIERS = ["gold", "silver", "bronze", "streak"] as const;
 export type BadgeKind = (typeof BADGE_KINDS)[number];
 export type BadgeTier = (typeof BADGE_TIERS)[number];
 
+// Locked game badges name the badge they lead to ("Top 10", "Top 5%").
+export interface BadgeTarget {
+  kind: "top_rank" | "top_percent";
+  value: number;
+}
+
 export interface LeaderboardBadge {
   id: string;
   kind: BadgeKind;
@@ -143,6 +169,7 @@ export interface LeaderboardBadge {
   currentRank: number | null;
   earnedAt: string | null;
   progress: { current: number; target: number } | null;
+  target: BadgeTarget | null;
 }
 
 export interface LeaderboardBadges {
@@ -180,6 +207,17 @@ const normalizeUser = (value: unknown): LeaderboardUser | null => {
   };
 };
 
+const normalizeTranslations = (value: unknown): Record<string, string> => {
+  if (!isRecord(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (pair): pair is [string, string] =>
+        typeof pair[1] === "string" && pair[1].length > 0
+    )
+  );
+};
+
 const normalizeReview = (value: unknown): LeaderboardReview | null => {
   if (!isRecord(value) || typeof value.text !== "string") return null;
 
@@ -191,6 +229,8 @@ const normalizeReview = (value: unknown): LeaderboardReview | null => {
     score: toNonNegativeNumber(value.score),
     createdAt: toStringOrNull(value.createdAt),
     text: value.text,
+    translations: normalizeTranslations(value.translations),
+    detectedLanguage: toStringOrNull(value.detectedLanguage),
   };
 };
 
@@ -457,6 +497,41 @@ export const buildHeatmap = (
   });
 };
 
+export interface HeatmapMonth {
+  week: number;
+  date: Date;
+}
+
+// Labels each month on the first week that starts in it, like a contribution
+// graph. Cells are week-major, so every seventh cell is a Monday.
+export const buildHeatmapMonths = (cells: HeatmapCell[]): HeatmapMonth[] => {
+  const weeks = Math.floor(cells.length / 7);
+  const months: HeatmapMonth[] = [];
+
+  for (let week = 0; week < weeks; week++) {
+    const date = cells[week * 7].date;
+    const previous = week > 0 ? cells[(week - 1) * 7].date : null;
+    if (previous?.getUTCMonth() === date.getUTCMonth()) continue;
+    months.push({ week, date });
+  }
+
+  return months.filter(
+    (month, index) =>
+      weeks - month.week >= HEATMAP_MONTH_END_WEEKS &&
+      (month.week > 0 ||
+        (months[index + 1]?.week ?? weeks) >= HEATMAP_MONTH_MIN_WEEKS)
+  );
+};
+
+export const sumHeatmap = (cells: HeatmapCell[]) =>
+  cells.reduce(
+    (total, cell) => ({
+      seconds: total.seconds + cell.seconds,
+      days: total.days + (cell.seconds > 0 ? 1 : 0),
+    }),
+    { seconds: 0, days: 0 }
+  );
+
 export const normalizeMyGames = (response: unknown): MyGameRanking[] => {
   const items = isRecord(response) ? response.games : response;
   if (!Array.isArray(items)) throw new TypeError("Invalid games response");
@@ -481,19 +556,30 @@ export const normalizeMyGames = (response: unknown): MyGameRanking[] => {
         heroImageUrl: toStringOrNull(item.heroImageUrl),
         rank,
         previousRank: toPositiveInteger(item.previousRank),
-        total: toNonNegativeNumber(item.total, rank),
+        // The API sends null until the board size is known; a total below
+        // the rank is as good as unknown.
+        total:
+          typeof item.total === "number" &&
+          Number.isFinite(item.total) &&
+          item.total >= rank
+            ? Math.floor(item.total)
+            : null,
         leader: normalizeUser(item.leader),
       },
     ];
   });
 };
 
-export const normalizePlayActivity = (response: unknown): PlayActivity => {
+export const normalizePlayActivity = (
+  response: unknown,
+  weeks = PLAY_ACTIVITY_WEEKS
+): PlayActivity => {
   if (!isRecord(response) || !Array.isArray(response.days)) {
     throw new TypeError("Invalid play activity response");
   }
 
   return {
+    weeks,
     currentStreak: toNonNegativeNumber(response.currentStreak),
     bestStreak: toNonNegativeNumber(response.bestStreak),
     playedToday: response.playedToday === true,
@@ -538,6 +624,28 @@ export const normalizeFriendStreaks = (response: unknown): FriendStreak[] => {
     .sort((a, b) => Number(b.active) - Number(a.active) || b.days - a.days);
 };
 
+const isTopBadgeKind = (kind: unknown): kind is BadgeTarget["kind"] =>
+  kind === "top_rank" || kind === "top_percent";
+
+// The N of "Top N" / "Top N%". The API sends it as `threshold`; `value` is
+// the viewer's value on the board, never the N.
+const toBadgeThreshold = (source: Record<string, unknown>) =>
+  toNonNegativeNumber(source.threshold);
+
+// Reads `target` when the API sends it and otherwise falls back to the locked
+// badge itself, whose kind and threshold already describe the next badge.
+const normalizeBadgeTarget = (
+  item: Record<string, unknown>
+): BadgeTarget | null => {
+  if (toStringOrNull(item.earnedAt)) return null;
+  const source = isRecord(item.target) ? item.target : item;
+  if (!isTopBadgeKind(source.kind)) return null;
+  const value = isRecord(item.target)
+    ? toNonNegativeNumber(source.value, toBadgeThreshold(source))
+    : toBadgeThreshold(source);
+  return value ? { kind: source.kind, value } : null;
+};
+
 export const normalizeBadges = (response: unknown): LeaderboardBadges => {
   if (!isRecord(response) || !Array.isArray(response.badges)) {
     throw new TypeError("Invalid badges response");
@@ -547,6 +655,7 @@ export const normalizeBadges = (response: unknown): LeaderboardBadges => {
     if (!isRecord(item) || typeof item.id !== "string") return [];
     if (!(BADGE_KINDS as readonly unknown[]).includes(item.kind)) return [];
 
+    const target = normalizeBadgeTarget(item);
     const progress = isRecord(item.progress)
       ? {
           current: toNonNegativeNumber(item.progress.current),
@@ -565,11 +674,14 @@ export const normalizeBadges = (response: unknown): LeaderboardBadges => {
         scope: item.scope === "friends" ? "friends" : "global",
         gameTitle: toStringOrNull(item.gameTitle),
         coverImageUrl: toStringOrNull(item.coverImageUrl),
-        value: toNonNegativeNumber(item.value),
+        value: isTopBadgeKind(item.kind)
+          ? toBadgeThreshold(item)
+          : toNonNegativeNumber(item.value),
         week: toPositiveInteger(item.week),
         currentRank: toPositiveInteger(item.currentRank),
         earnedAt: toStringOrNull(item.earnedAt),
         progress,
+        target,
       },
     ];
   });
