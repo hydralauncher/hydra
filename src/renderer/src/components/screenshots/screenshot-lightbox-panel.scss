@@ -32,9 +32,10 @@ $description-outline-fade-duration: 0.15s;
     gap: 6px;
   }
 
-  &__primary-actions {
+  &__date-row {
     display: flex;
     min-width: 0;
+    flex-wrap: wrap;
     align-items: center;
     gap: globals.$spacing-unit;
   }
@@ -278,15 +279,8 @@ $description-outline-fade-duration: 0.15s;
     background: globals.$background-color;
   }
 
-  &__composer-row {
-    display: flex;
-    align-items: flex-start;
-    gap: calc(globals.$spacing-unit * 1.25);
-
-    > .profile-avatar {
-      flex-shrink: 0;
-      margin-top: 5px;
-    }
+  &__loading {
+    display: block;
   }
 
   &__empty-state {

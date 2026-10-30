@@ -450,7 +450,7 @@ const COMMENT_SKELETON_COUNT = 4;
 
 function ScreenshotCommentsSkeleton({ label }: Readonly<{ label: string }>) {
   return (
-    <div role="status" aria-label={label}>
+    <output className="screenshot-comments__loading" aria-label={label}>
       <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
         <ul className="screenshot-comments__list" aria-hidden="true">
           {Array.from({ length: COMMENT_SKELETON_COUNT }, (_, index) => (
@@ -465,7 +465,7 @@ function ScreenshotCommentsSkeleton({ label }: Readonly<{ label: string }>) {
           ))}
         </ul>
       </SkeletonTheme>
-    </div>
+    </output>
   );
 }
 
@@ -613,16 +613,13 @@ export function ScreenshotComments({
 
       <div className="screenshot-comments__composer">
         {composerState === "ready" ? (
-          <div className="screenshot-comments__composer-row">
-            <Avatar size={28} src={userDetails?.profileImageUrl} alt="" />
-            <ScreenshotCommentInput
-              restoredDraft={restoredDraft}
-              onRestoredDraftConsumed={clearRestoredDraft}
-              placeholder={t("comment_placeholder")}
-              submitLabel={t("post_comment")}
-              onSubmit={createComment}
-            />
-          </div>
+          <ScreenshotCommentInput
+            restoredDraft={restoredDraft}
+            onRestoredDraftConsumed={clearRestoredDraft}
+            placeholder={t("comment_placeholder")}
+            submitLabel={t("post_comment")}
+            onSubmit={createComment}
+          />
         ) : (
           <div className="screenshot-comments__notice" role="note">
             <span>{t(COMPOSER_NOTICE_KEYS[composerState])}</span>

@@ -598,6 +598,10 @@ $screenshot-comment-highlight-duration: 1.6s;
       $screenshot-comment-highlight-duration ease-out;
   }
 
+  &__loading {
+    display: block;
+  }
+
   &__skeleton-avatar {
     flex-shrink: 0;
     width: 40px;

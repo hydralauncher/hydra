@@ -147,6 +147,7 @@ function ScreenshotPanelInfo({
 }: Readonly<ScreenshotPanelInfoProps>) {
   const { t } = useTranslation("screenshots");
   const { formatDateTime } = useDate();
+  const tooltipId = useId();
   const hasDescription = Boolean(screenshot.description);
 
   const saveDescription = (description: string) => {
@@ -205,12 +206,27 @@ function ScreenshotPanelInfo({
         <ScreenshotGameLink screenshot={screenshot} onNavigateAway={onClose} />
       </p>
 
-      <time
-        className="screenshot-lightbox__date"
-        dateTime={new Date(screenshot.capturedAt).toISOString()}
-      >
-        {t("captured_on", { date: formatDateTime(screenshot.capturedAt) })}
-      </time>
+      <div className="screenshot-lightbox__date-row">
+        <time
+          className="screenshot-lightbox__date"
+          dateTime={new Date(screenshot.capturedAt).toISOString()}
+        >
+          {t("captured_on", { date: formatDateTime(screenshot.capturedAt) })}
+        </time>
+        {isOwner && screenshot.visibility ? (
+          <ScreenshotVisibilityTag
+            visibility={screenshot.visibility}
+            tooltipId={tooltipId}
+          />
+        ) : null}
+      </div>
+
+      <Tooltip
+        id={tooltipId}
+        place="top"
+        positionStrategy="fixed"
+        className="screenshot-lightbox__tooltip"
+      />
     </header>
   );
 }
@@ -257,34 +273,25 @@ function ScreenshotPanelActions({
 
   return (
     <div className="screenshot-lightbox__actions">
-      <div className="screenshot-lightbox__primary-actions">
-        <button
-          type="button"
-          className={cn("screenshot-lightbox__action", {
-            "screenshot-lightbox__action--active": screenshot.likedByMe,
-          })}
-          onClick={() => void actions.toggleLike(screenshot)}
-          disabled={!isApproved || actions.likingIds.has(screenshot.id)}
-          aria-pressed={screenshot.likedByMe}
-          aria-label={likeLabel}
-          data-tooltip-id={tooltipId}
-          data-tooltip-content={likeLabel}
-        >
-          {screenshot.likedByMe ? (
-            <HeartFillIcon size={16} />
-          ) : (
-            <HeartIcon size={16} />
-          )}
-          <span>{screenshot.likeCount}</span>
-        </button>
-
-        {isOwner && screenshot.visibility ? (
-          <ScreenshotVisibilityTag
-            visibility={screenshot.visibility}
-            tooltipId={tooltipId}
-          />
-        ) : null}
-      </div>
+      <button
+        type="button"
+        className={cn("screenshot-lightbox__action", {
+          "screenshot-lightbox__action--active": screenshot.likedByMe,
+        })}
+        onClick={() => void actions.toggleLike(screenshot)}
+        disabled={!isApproved || actions.likingIds.has(screenshot.id)}
+        aria-pressed={screenshot.likedByMe}
+        aria-label={likeLabel}
+        data-tooltip-id={tooltipId}
+        data-tooltip-content={likeLabel}
+      >
+        {screenshot.likedByMe ? (
+          <HeartFillIcon size={16} />
+        ) : (
+          <HeartIcon size={16} />
+        )}
+        <span>{screenshot.likeCount}</span>
+      </button>
 
       <div className="screenshot-lightbox__action-group">
         <button

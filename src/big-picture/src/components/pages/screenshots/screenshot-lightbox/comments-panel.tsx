@@ -481,7 +481,10 @@ function CommentsListStatus({
 
   if (status === "loading") {
     return (
-      <div role="status" aria-label={t("screenshots_comments_loading")}>
+      <output
+        className="screenshot-comments__loading"
+        aria-label={t("screenshots_comments_loading")}
+      >
         <ul className="screenshot-comments__list" aria-hidden="true">
           {Array.from({ length: COMMENT_SKELETON_COUNT }, (_, index) => (
             <li
@@ -505,7 +508,7 @@ function CommentsListStatus({
             </li>
           ))}
         </ul>
-      </div>
+      </output>
     );
   }
 
