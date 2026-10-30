@@ -414,6 +414,7 @@ $leaderboards-heat-gap: 3px;
   }
 
   &__board-header {
+    container: board-header / inline-size;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -1754,6 +1755,18 @@ $leaderboards-heat-gap: 3px;
 }
 
 // Three cards do not fit next to the sidebar in a narrow window.
+@container board-header (max-width: 900px) {
+  .leaderboards__selector--collapsible {
+    .leaderboards__selector-option {
+      padding: 0 calc(globals.$spacing-unit * 1.25);
+    }
+
+    .leaderboards__selector-option-label {
+      display: none;
+    }
+  }
+}
+
 @container (max-width: 520px) {
   .leaderboard-podium,
   .leaderboard-podium--sparse {

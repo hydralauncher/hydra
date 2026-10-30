@@ -448,7 +448,7 @@ export function StatsTab({
               theme="primary"
               onClick={() => {
                 requestAddFriendMode();
-                globalThis.window.electron.openFriendsWindow();
+                void globalThis.window.electron.openFriendsWindow();
               }}
             >
               {t("find_friends")}

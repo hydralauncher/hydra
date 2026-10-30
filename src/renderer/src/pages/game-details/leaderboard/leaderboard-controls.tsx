@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import cn from "classnames";
-import { GlobeIcon, PeopleIcon } from "@primer/octicons-react";
+import {
+  CalendarIcon,
+  GlobeIcon,
+  InfinityIcon,
+  PeopleIcon,
+} from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 
 import { MetricIcon } from "@renderer/pages/leaderboards/metric-icon";
@@ -13,11 +16,14 @@ import {
   type LeaderboardPeriod,
   type LeaderboardScope,
 } from "./game-leaderboard";
+import { useSelectorTooltip } from "./use-selector-tooltip";
 
 interface CardSelectorOption<T extends string> {
   id: T;
   label: string;
   icon?: React.ReactNode;
+  // Replaces the name only when the card is too narrow for it.
+  collapsedIcon?: React.ReactNode;
 }
 
 interface CardSelectorProps<T extends string> {
@@ -26,17 +32,6 @@ interface CardSelectorProps<T extends string> {
   value: T;
   onChange: (value: T) => void;
 }
-
-interface SelectorTooltip {
-  label: string;
-  left: number;
-  top: number;
-  isNearEdge: boolean;
-}
-
-const TOOLTIP_GAP = 8;
-// Closer than this to the window's edge, the tooltip aligns to the option's end.
-const TOOLTIP_EDGE_DISTANCE = 72;
 
 // The compact selector of the game page card. An option with an icon shows only
 // the icon, and its name moves to a tooltip.
@@ -51,29 +46,21 @@ function CardSelector<T extends string>({
     options.findIndex((option) => option.id === value)
   );
   const hasIcons = options.some((option) => option.icon);
-  const [tooltip, setTooltip] = useState<SelectorTooltip | null>(null);
-  const hideTooltip = useCallback(() => setTooltip(null), []);
+  const hasCollapsedIcons = options.some((option) => option.collapsedIcon);
+  const { showTooltip, hideTooltip, tooltipElement } = useSelectorTooltip();
 
-  // The tooltip is fixed to the window, so scrolling would leave it behind.
-  const isTooltipVisible = tooltip !== null;
-  useEffect(() => {
-    if (!isTooltipVisible) return;
-    const options = { capture: true, passive: true };
-    globalThis.addEventListener("scroll", hideTooltip, options);
+  // The name only needs a tooltip when it is not on screen.
+  const showOptionTooltip = (
+    element: HTMLElement,
+    option: CardSelectorOption<T>
+  ) => {
+    const collapsibleLabel = element.querySelector(
+      ".leaderboard-controls__selector-option-label"
+    );
 
-    return () => globalThis.removeEventListener("scroll", hideTooltip, options);
-  }, [hideTooltip, isTooltipVisible]);
-
-  const showTooltip = (option: HTMLElement, label: string) => {
-    const { left, right, top, width } = option.getBoundingClientRect();
-    const isNearEdge = globalThis.innerWidth - right < TOOLTIP_EDGE_DISTANCE;
-
-    setTooltip({
-      label,
-      isNearEdge,
-      left: isNearEdge ? right : left + width / 2,
-      top: top - TOOLTIP_GAP,
-    });
+    if (option.icon || collapsibleLabel?.getClientRects().length === 0) {
+      showTooltip(element, option.label);
+    }
   };
 
   return (
@@ -82,6 +69,7 @@ function CardSelector<T extends string>({
       aria-label={label}
       className={cn("leaderboard-controls__selector", {
         "leaderboard-controls__selector--icons": hasIcons,
+        "leaderboard-controls__selector--collapsible": hasCollapsedIcons,
       })}
       style={
         {
@@ -100,22 +88,18 @@ function CardSelector<T extends string>({
           type="button"
           role="tab"
           aria-selected={option.id === value}
-          aria-label={option.icon ? option.label : undefined}
-          onMouseEnter={
-            option.icon
-              ? (event) => showTooltip(event.currentTarget, option.label)
-              : undefined
+          aria-label={
+            option.icon || option.collapsedIcon ? option.label : undefined
+          }
+          onMouseEnter={(event) =>
+            showOptionTooltip(event.currentTarget, option)
           }
           onMouseLeave={hideTooltip}
-          onFocus={
-            option.icon
-              ? (event) => {
-                  if (event.currentTarget.matches(":focus-visible")) {
-                    showTooltip(event.currentTarget, option.label);
-                  }
-                }
-              : undefined
-          }
+          onFocus={(event) => {
+            if (event.currentTarget.matches(":focus-visible")) {
+              showOptionTooltip(event.currentTarget, option);
+            }
+          }}
           onBlur={hideTooltip}
           className={cn("leaderboard-controls__selector-option", {
             "leaderboard-controls__selector-option--selected":
@@ -123,22 +107,22 @@ function CardSelector<T extends string>({
           })}
           onClick={() => onChange(option.id)}
         >
-          {option.icon ?? option.label}
+          {option.icon ??
+            (option.collapsedIcon ? (
+              <>
+                <span className="leaderboard-controls__selector-option-icon">
+                  {option.collapsedIcon}
+                </span>
+                <span className="leaderboard-controls__selector-option-label">
+                  {option.label}
+                </span>
+              </>
+            ) : (
+              option.label
+            ))}
         </button>
       ))}
-      {tooltip &&
-        createPortal(
-          <span
-            className={cn("leaderboard-controls__tooltip", {
-              "leaderboard-controls__tooltip--near-edge": tooltip.isNearEdge,
-            })}
-            style={{ left: tooltip.left, top: tooltip.top }}
-            aria-hidden="true"
-          >
-            {tooltip.label}
-          </span>,
-          document.body
-        )}
+      {tooltipElement}
     </div>
   );
 }
@@ -158,6 +142,11 @@ export interface LeaderboardControlsProps {
 const SCOPE_ICONS: Record<LeaderboardScope, React.ReactNode> = {
   global: <GlobeIcon size={14} />,
   friends: <PeopleIcon size={14} />,
+};
+
+const PERIOD_ICONS: Record<LeaderboardPeriod, React.ReactNode> = {
+  week: <CalendarIcon size={14} />,
+  all: <InfinityIcon size={14} />,
 };
 
 export function LeaderboardControls({
@@ -195,6 +184,7 @@ export function LeaderboardControls({
         options={LEADERBOARD_PERIODS.map((id) => ({
           id,
           label: t(`period_${id}`),
+          collapsedIcon: PERIOD_ICONS[id],
         }))}
       />
 

@@ -171,6 +171,7 @@ export function ByGameTab({
     <HeaderSelector
       label={t("metric_label")}
       showLabel={false}
+      collapsible
       value={metric.id}
       onChange={setRequestedMetric}
       options={gameMetrics.map((definition) => ({
