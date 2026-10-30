@@ -328,6 +328,9 @@ $leaderboards-heat-gap: 3px;
   }
 
   &__selector-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     height: 28px;
     padding: 0 calc(globals.$spacing-unit * 1.5);
     border: 0;
@@ -375,7 +378,16 @@ $leaderboards-heat-gap: 3px;
     color: globals.$muted-color;
   }
 
-  &__board,
+  &__board {
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2.5);
+    color: globals.$muted-color;
+  }
+
   &__panel {
     display: flex;
     flex-direction: column;
@@ -387,11 +399,7 @@ $leaderboards-heat-gap: 3px;
     color: globals.$muted-color;
   }
 
-  &__board--game {
-    overflow: hidden;
-  }
-
-  // Fills the page, with the message centered in the space under the chips.
+  // Fills the page, with the message centered in the space under the header.
   &__board--empty {
     flex: 1;
 
@@ -407,21 +415,170 @@ $leaderboards-heat-gap: 3px;
 
   &__board-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 1.25);
+    gap: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+  }
+
+  &__board-icon,
+  &__board-cover {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 4px;
+  }
+
+  &__board-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
+  &__board-cover {
+    display: block;
+    background-color: $leaderboards-surface;
+    object-fit: cover;
+  }
+
+  &__board-media-link,
+  &__board-title-link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  &__board-media-link {
+    flex-shrink: 0;
+    border-radius: 4px;
+    transition: opacity 0.15s ease;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+
+  &__board-title-link:hover {
+    text-decoration: underline;
+  }
+
+  &__board-heading {
+    flex: 1 1 200px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
   &__board-title {
-    flex-grow: 1;
     margin: 0;
-    font-size: 16px;
-    line-height: 24px;
+    font-size: 20px;
+    line-height: 28px;
     font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__board-description {
+    margin: 0;
+    font-size: globals.$hint-font-size;
+    line-height: 18px;
+    color: globals.$body-color;
   }
 
   &__board-count {
     font-size: globals.$small-font-size;
+    white-space: nowrap;
     color: globals.$body-color;
+  }
+
+  &__insight {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+
+  &__insight-icon {
+    flex-shrink: 0;
+    display: flex;
+    color: globals.$body-color;
+  }
+
+  &__insight-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    p {
+      margin: 0;
+      font-size: globals.$body-font-size;
+      line-height: 20px;
+      color: globals.$body-color;
+    }
+
+    b {
+      font-weight: 700;
+      color: globals.$muted-color;
+    }
+
+    small {
+      font-size: globals.$small-font-size;
+      line-height: 16px;
+      color: globals.$body-color;
+    }
+  }
+
+  &__table {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__table-header {
+    height: 24px;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding-right: calc(globals.$spacing-unit * 2);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: globals.$body-color;
+
+    &--with-action {
+      padding-right: calc(globals.$spacing-unit * 4.5);
+    }
+  }
+
+  &__table-rank {
+    width: 40px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+
+  &__table-player {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__table-delta {
+    width: 64px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  &__table-value {
+    width: 96px;
+    flex-shrink: 0;
+    text-align: right;
   }
 
   &__list {
@@ -430,7 +587,7 @@ $leaderboards-heat-gap: 3px;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
+    gap: globals.$spacing-unit;
   }
 
   &__more {
@@ -532,10 +689,45 @@ $leaderboards-heat-gap: 3px;
 
   // The selected review reuses the game page review (review-item.scss); these
   // only add the game link and the upvote badge.
-  &__review {
+  &__review-highlight {
     display: flex;
     flex-direction: column;
     gap: globals.$spacing-unit;
+  }
+
+  &__review {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 2);
+    border: solid 1px rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    background-color: globals.$background-color;
+  }
+
+  // The date with the game link under it, on the right of the author.
+  &__review-game-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    border-radius: 2px;
+    object-fit: cover;
+  }
+
+  &__review-side {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  &__review-quote {
+    margin: 0;
+    padding-left: calc(globals.$spacing-unit * 1.5);
+    border-left: solid 2px rgba(255, 255, 255, 0.15);
+    font-style: italic;
+    color: globals.$body-color;
   }
 
   &__review-rating {
@@ -547,22 +739,13 @@ $leaderboards-heat-gap: 3px;
     font-size: globals.$small-font-size;
   }
 
-  &__review-highlight {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.5);
-  }
-
   &__review-title {
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
     font-size: globals.$body-font-size;
     font-weight: 500;
-
-    svg {
-      color: globals.$rank-gold-color;
-    }
+    color: globals.$body-color;
   }
 
   // Only here: a long review must not push the ranking down. The game page
@@ -679,120 +862,6 @@ $leaderboards-heat-gap: 3px;
     // A translation is HTML and may hold several paragraphs.
     p {
       margin: 0;
-    }
-  }
-
-  &__chips {
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: globals.$spacing-unit;
-  }
-
-  &__chip {
-    height: 30px;
-    padding: 0 calc(globals.$spacing-unit * 1.5);
-    border: solid 1px globals.$border-color;
-    border-radius: 999px;
-    background: transparent;
-    color: globals.$body-color;
-    font-size: globals.$small-font-size;
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease,
-      border-color 0.2s ease;
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.5);
-    }
-
-    &--selected,
-    &--selected:hover {
-      border-color: globals.$muted-color;
-      background-color: globals.$muted-color;
-      color: globals.$dark-background-color;
-    }
-  }
-
-  &__hero-cover {
-    flex-shrink: 0;
-    border: solid 1px globals.$border-color;
-    border-radius: 4px;
-    background-color: $leaderboards-surface;
-    background-image: var(--cover);
-    background-size: cover;
-    background-position: center;
-  }
-
-  &__hero {
-    margin: calc(globals.$spacing-unit * -2.5)
-      calc(globals.$spacing-unit * -2.5) 0;
-    padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 2.5)
-      calc(globals.$spacing-unit * 2.5);
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 2);
-
-    &--image {
-      background-image:
-        linear-gradient(
-          180deg,
-          rgba(18, 18, 18, 0.35) 0%,
-          rgba(18, 18, 18, 0.85) 70%,
-          globals.$background-color 100%
-        ),
-        var(--hero);
-      background-size: cover;
-      background-position: center;
-    }
-  }
-
-  &__hero-cover {
-    width: 48px;
-    height: 72px;
-    border-color: rgba(255, 255, 255, 0.15);
-  }
-
-  &__hero-text {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  &__hero-title {
-    margin: 0;
-    font-size: 16px;
-    line-height: 24px;
-    font-weight: 700;
-  }
-
-  &__hero-subtitle {
-    font-size: globals.$small-font-size;
-    color: globals.$body-color;
-  }
-
-  &__hero-link {
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0 calc(globals.$spacing-unit * 1.5);
-    border: solid 1px rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
-    background-color: rgba(13, 13, 13, 0.5);
-    color: globals.$muted-color;
-    font-size: globals.$hint-font-size;
-    cursor: pointer;
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.5);
     }
   }
 
@@ -1504,19 +1573,18 @@ $leaderboards-heat-gap: 3px;
 }
 
 .leaderboard-podium {
-  width: 100%;
-  max-width: 840px;
-  margin: 0 auto calc(globals.$spacing-unit * 1.5);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr);
+  // The widths follow the card heights below, so all three keep their shape.
+  grid-template-columns:
+    minmax(0, 320fr)
+    minmax(0, 296fr)
+    minmax(0, 272fr);
   gap: calc(globals.$spacing-unit * 1.5);
   align-items: end;
 
-  // With fewer than three entries, keep the cards centred instead of
-  // leaving the empty podium slots on the right.
+  // With fewer than three entries, the cards keep their width on the left.
   &--sparse {
     grid-template-columns: repeat(var(--podium-count), minmax(0, 300px));
-    justify-content: center;
   }
 
   // Holds the card and its corner action; the card keeps its own height.
@@ -1546,11 +1614,6 @@ $leaderboards-heat-gap: 3px;
   }
 
   &__card {
-    --metal-light: #fff3b0;
-    --metal-main: #{globals.$rank-gold-color};
-    --metal-dark: #a8740c;
-    --metal-ink: #5a3d00;
-
     position: relative;
     overflow: hidden;
     display: flex;
@@ -1568,23 +1631,19 @@ $leaderboards-heat-gap: 3px;
     }
 
     &--gold {
-      height: 288px;
+      height: 320px;
     }
 
     &--silver {
-      height: 260px;
-      --metal-light: #ffffff;
-      --metal-main: #{globals.$rank-silver-color};
-      --metal-dark: #7d7e84;
-      --metal-ink: #3a3b40;
+      height: 296px;
     }
 
     &--bronze {
-      height: 240px;
-      --metal-light: #f6c49a;
-      --metal-main: #{globals.$rank-bronze-color};
-      --metal-dark: #8a4f24;
-      --metal-ink: #4a2610;
+      height: 272px;
+    }
+
+    &--viewer {
+      border-color: rgba(255, 255, 255, 0.4);
     }
 
     &--selected {
@@ -1592,9 +1651,8 @@ $leaderboards-heat-gap: 3px;
     }
   }
 
+  // The metal itself comes from leaderboard-row__strip--{tier}.
   &__band {
-    position: relative;
-    overflow: hidden;
     width: 48px;
     flex-shrink: 0;
     display: flex;
@@ -1602,47 +1660,21 @@ $leaderboards-heat-gap: 3px;
     align-items: center;
     justify-content: space-between;
     padding: calc(globals.$spacing-unit * 1.75) 0;
-    background: linear-gradient(
-      180deg,
-      var(--metal-light) 0%,
-      var(--metal-main) 22%,
-      var(--metal-dark) 48%,
-      var(--metal-main) 62%,
-      var(--metal-light) 80%,
-      var(--metal-dark) 100%
-    );
-    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.3);
-    color: var(--metal-ink);
+  }
 
-    &::after {
-      content: "";
-      position: absolute;
-      left: -60%;
-      top: 0;
-      width: 220%;
-      height: 36px;
-      background: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0),
-        rgba(255, 255, 255, 0.5),
-        rgba(255, 255, 255, 0)
-      );
-      transform: translateY(-60px) skewY(-24deg);
-      animation: leaderboard-podium-glaze 4.8s ease-in-out infinite;
-      will-change: transform;
-      pointer-events: none;
-    }
+  &__rank,
+  &__metal {
+    position: relative;
+    z-index: 2;
   }
 
   &__rank {
-    position: relative;
-    font-size: 20px;
+    font-size: 34px;
     line-height: 1;
     font-weight: 700;
   }
 
   &__metal {
-    position: relative;
     writing-mode: vertical-rl;
     transform: rotate(180deg);
     font-size: 11px;
@@ -1657,20 +1689,17 @@ $leaderboards-heat-gap: 3px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 6px;
-    // The extra end padding matches the band, so the content is centred on
-    // the whole card rather than on the area beside the band.
-    padding: calc(globals.$spacing-unit * 2) 48px
-      calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
-    background-image: linear-gradient(180deg, #262626 0%, #1a1a1a 100%);
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
+    background-image: linear-gradient(180deg, #1f1f1f 0%, #161616 100%);
 
     &--banner {
       background-image:
         linear-gradient(
           180deg,
-          rgba(13, 13, 13, 0.35) 0%,
-          rgba(13, 13, 13, 0.94) 100%
+          rgba(18, 18, 18, 0.45) 0%,
+          rgba(18, 18, 18, 0.96) 100%
         ),
         var(--leaderboard-podium-banner);
       background-size: cover;
@@ -1678,21 +1707,34 @@ $leaderboards-heat-gap: 3px;
     }
   }
 
+  &__avatar-wrapper {
+    position: relative;
+    display: inline-flex;
+  }
+
   &__avatar {
     border: solid 2px rgba(13, 13, 13, 0.9);
   }
 
-  &__name-line {
-    height: 22px;
-    display: flex;
+  &__you {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    height: 18px;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-width: 0;
-    max-width: 100%;
+    padding: 0 8px;
+    border-radius: 999px;
+    background-color: #ffffff;
+    color: #000000;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    transform: translate(-50%, 50%);
   }
 
   &__name {
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1700,47 +1742,14 @@ $leaderboards-heat-gap: 3px;
     font-weight: 700;
   }
 
-  &__you {
-    flex-shrink: 0;
-    height: 18px;
-    padding: 0 6px;
-    display: inline-flex;
-    align-items: center;
-    border: solid 1px rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    background-color: rgba(13, 13, 13, 0.75);
-    font-size: 11px;
-    font-weight: 500;
-  }
-
   &__value {
-    height: 28px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: globals.$body-font-size;
+    gap: globals.$spacing-unit;
+    font-size: 20px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-
-    &--muted {
-      color: $leaderboards-ended;
-    }
-  }
-
-  &__leader,
-  &__foot {
-    height: 20px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: globals.$small-font-size;
-    font-weight: 500;
-    color: globals.$body-color;
-  }
-
-  &__leader svg {
-    color: globals.$rank-gold-color;
   }
 }
 
@@ -1759,18 +1768,6 @@ $leaderboards-heat-gap: 3px;
   .leaderboard-podium__card--silver,
   .leaderboard-podium__card--bronze {
     height: 180px;
-  }
-}
-
-@keyframes leaderboard-podium-glaze {
-  0%,
-  55% {
-    transform: translateY(-60px) skewY(-24deg);
-  }
-
-  85%,
-  100% {
-    transform: translateY(340px) skewY(-24deg);
   }
 }
 
@@ -1794,11 +1791,6 @@ $leaderboards-heat-gap: 3px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .leaderboard-podium__band::after {
-    display: none;
-    animation: none;
-  }
-
   .streak-flame--flicker {
     animation: none;
   }

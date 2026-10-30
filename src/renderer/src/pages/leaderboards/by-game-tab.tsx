@@ -1,24 +1,17 @@
 import { useEffect, useState } from "react";
 import cn from "classnames";
-import {
-  LinkExternalIcon,
-  PeopleIcon,
-  TrophyIcon,
-} from "@primer/octicons-react";
+import { PeopleIcon, TrophyIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { Button } from "@renderer/components";
-import { useFormat } from "@renderer/hooks";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
 import { buildLeaderboardBoardPath } from "@shared";
 import type { LeaderboardUser } from "../game-details/leaderboard/game-leaderboard";
 import {
   buildMetricsRequest,
-  formatBoardTotal,
   getBoardState,
-  getViewerRanking,
   GLOBAL_LEADERBOARD_TAKE,
   normalizeGlobalLeaderboardResponse,
   normalizeMetricDefinitions,
@@ -27,8 +20,16 @@ import {
   type MyGameRanking,
 } from "./global-leaderboard";
 import { useApiResource } from "./leaderboards-api";
+import { BoardHeader } from "./board-header";
+import { BoardInsight } from "./board-insight";
 import { BoardView } from "./board-view";
-import { useMetricText } from "./use-global-leaderboard-value";
+import { HeaderSelector } from "./header-selector";
+import { MetricIcon } from "./metric-icon";
+import { useGameIcon } from "./use-game-icon";
+import {
+  useMetricColumnLabel,
+  useMetricText,
+} from "./use-global-leaderboard-value";
 import { BlockError, BlockMessage, BoardSkeleton } from "./leaderboard-bits";
 
 export interface LinkedGame {
@@ -57,11 +58,6 @@ interface SelectedGame {
   rank: number | null;
   total: number | null;
 }
-
-const backgroundStyle = (url: string | null, variable: string) =>
-  url
-    ? ({ [variable]: `url(${JSON.stringify(url)})` } as React.CSSProperties)
-    : undefined;
 
 export const gameKey = (game: LinkedGame) => `${game.shop}:${game.objectId}`;
 
@@ -117,7 +113,7 @@ export function ByGameTab({
   const { t } = useTranslation("leaderboards");
   const navigate = useNavigate();
   const metricText = useMetricText();
-  const { numberFormatter } = useFormat();
+  const metricColumnLabel = useMetricColumnLabel();
   const [requestedMetric, setRequestedMetric] = useState<string | null>(
     initialMetric
   );
@@ -171,43 +167,21 @@ export function ByGameTab({
   const formatValue = (value: number) =>
     metric ? metricText.format(metric, value) : String(value);
 
-  const viewerRanking = getViewerRanking(board.data, viewerId);
-  const heroRank = board.data
-    ? (viewerRanking?.rank ?? null)
-    : (selected?.rank ?? null);
-  const heroTotal = board.data
-    ? (board.data.total ?? null)
-    : (selected?.total ?? null);
-  let heroSubtitle = "";
-  if (heroRank !== null && heroTotal !== null) {
-    heroSubtitle = t("game_ranking_subtitle", {
-      total: formatBoardTotal(heroTotal, numberFormatter.format),
-      rank: heroRank,
-    });
-  } else if (heroRank !== null) {
-    heroSubtitle = t("you_are_at", { rank: heroRank });
-  } else if (heroTotal !== null) {
-    heroSubtitle = t("players_count", { count: heroTotal });
-  }
-
-  const metricChips = (
-    <fieldset className="leaderboards__chips">
-      <legend className="leaderboards__sr-only">{t("metric_label")}</legend>
-      {gameMetrics.map((definition) => (
-        <button
-          key={definition.id}
-          type="button"
-          aria-pressed={definition.id === metric?.id}
-          className={cn("leaderboards__chip", {
-            "leaderboards__chip--selected": definition.id === metric?.id,
-          })}
-          onClick={() => setRequestedMetric(definition.id)}
-        >
-          {metricText.label(definition)}
-        </button>
-      ))}
-    </fieldset>
+  const metricTabs = metric && (
+    <HeaderSelector
+      label={t("metric_label")}
+      showLabel={false}
+      value={metric.id}
+      onChange={setRequestedMetric}
+      options={gameMetrics.map((definition) => ({
+        id: definition.id,
+        label: metricText.label(definition),
+        icon: <MetricIcon metric={definition.id} size={14} />,
+      }))}
+    />
   );
+
+  const gameIcon = useGameIcon(boardGame?.shop, boardGame?.objectId);
 
   const openGamePage = () => {
     if (!boardGame) return;
@@ -292,19 +266,29 @@ export function ByGameTab({
     if (!board.data || !boardGame) return null;
 
     return (
-      <BoardView
-        leaderboard={board.data}
-        viewerUser={viewerUser}
-        formatValue={formatValue}
-        leaderLabel={t(isWeek ? "leader_of_week" : "record_holder")}
-        showDelta={isWeek}
-        isLoading={board.isLoading}
-        reportContext={
-          metric && boardGame
-            ? { metric: metric.id, window: period, scope, game: boardGame }
-            : null
-        }
-      />
+      <>
+        {metric && (
+          <BoardInsight
+            leaderboard={board.data}
+            viewerId={viewerId}
+            metric={metric}
+            period={period}
+          />
+        )}
+        <BoardView
+          leaderboard={board.data}
+          viewerUser={viewerUser}
+          formatValue={formatValue}
+          metricColumn={metric ? metricColumnLabel(metric) : ""}
+          showDelta={isWeek}
+          isLoading={board.isLoading}
+          reportContext={
+            metric && boardGame
+              ? { metric: metric.id, window: period, scope, game: boardGame }
+              : null
+          }
+        />
+      </>
     );
   };
 
@@ -317,38 +301,25 @@ export function ByGameTab({
           })}
           aria-labelledby="game-board-title"
         >
-          <div
-            className={cn("leaderboards__hero", {
-              "leaderboards__hero--image": selected?.heroImageUrl,
-            })}
-            style={backgroundStyle(selected?.heroImageUrl ?? null, "--hero")}
-          >
-            <span
-              className="leaderboards__hero-cover"
-              style={backgroundStyle(
-                selected?.coverImageUrl ?? null,
-                "--cover"
-              )}
-            />
-            <div className="leaderboards__hero-text">
-              <h2 id="game-board-title" className="leaderboards__hero-title">
-                {t("game_ranking_title", { game: selected?.title ?? "" })}
-              </h2>
-              <span className="leaderboards__hero-subtitle">
-                {heroSubtitle}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="leaderboards__hero-link"
-              onClick={openGamePage}
-            >
-              {t("open_game_page")}
-              <LinkExternalIcon size={14} />
-            </button>
-          </div>
+          <BoardHeader
+            id="game-board-title"
+            title={selected?.title ?? ""}
+            description={
+              metric
+                ? t(`game_metric_description_${metric.id}`, {
+                    defaultValue: "",
+                  })
+                : undefined
+            }
+            imageUrl={
+              gameIcon === undefined
+                ? null
+                : (gameIcon ?? selected?.coverImageUrl ?? null)
+            }
+            onOpen={openGamePage}
+            aside={!hasNoGameMetrics && metricTabs}
+          />
 
-          {!hasNoGameMetrics && metricChips}
           {renderBoard()}
         </section>
       )}

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import cn from "classnames";
 import { TrophyIcon } from "@primer/octicons-react";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
@@ -26,6 +25,7 @@ import {
 import { buildLeaderboardBoardPath, isLeaderboardSourceParam } from "@shared";
 import { useApiResource, useLeaderboardViewer } from "./leaderboards-api";
 import { BadgesSection } from "./badges-section";
+import { HeaderSelector } from "./header-selector";
 import { ByGameTab, gameKey, type LinkedGame } from "./by-game-tab";
 import { LeaderboardsSidebar } from "./leaderboards-sidebar";
 import { RankingTab } from "./ranking-tab";
@@ -34,43 +34,6 @@ import { useGlobalLeaderboards } from "./use-global-leaderboards";
 import { WeekSubtitle } from "./week-subtitle";
 import "../game-details/leaderboard/leaderboard.scss";
 import "./leaderboards.scss";
-
-function HeaderSelector<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: Readonly<{
-  label: string;
-  options: { id: T; label: string }[];
-  value: T;
-  onChange: (value: T) => void;
-}>) {
-  return (
-    <div className="leaderboards__selector">
-      <span className="leaderboards__selector-label">{label}</span>
-      <div
-        className="leaderboards__selector-options"
-        role="group"
-        aria-label={label}
-      >
-        {options.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            aria-pressed={option.id === value}
-            className={cn("leaderboards__selector-option", {
-              "leaderboards__selector-option--selected": option.id === value,
-            })}
-            onClick={() => onChange(option.id)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function LeaderboardsPage() {
   const { t } = useTranslation("leaderboards");

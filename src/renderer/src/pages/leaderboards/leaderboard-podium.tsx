@@ -1,5 +1,4 @@
 import cn from "classnames";
-import { TrophyIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -7,23 +6,17 @@ import { Avatar, getRankTier } from "@renderer/components";
 import { LEADERBOARD_PODIUM_BANNER_IMAGE_SIZE } from "@renderer/constants";
 import { useProcessedImage } from "@renderer/hooks";
 import type { LeaderboardEntry } from "../game-details/leaderboard/game-leaderboard";
-import { RankDelta, StreakFlame } from "./leaderboard-bits";
-
-export type StreakStatus = "active" | "ended" | null;
+import { RankDelta } from "./leaderboard-bits";
 
 export interface LeaderboardPodiumProps {
   entries: LeaderboardEntry[];
   viewerId: string | null;
-  leaderLabel: string;
   formatValue: (value: number) => string;
   getDelta?: (entry: LeaderboardEntry) => number | null;
-  getStreak?: (entry: LeaderboardEntry) => StreakStatus;
   selectedId?: string | null;
   onSelect?: (entry: LeaderboardEntry) => void;
   renderAction?: (entry: LeaderboardEntry) => React.ReactNode;
 }
-
-const PODIUM_ORDER = [1, 0, 2];
 
 function PodiumBody({
   bannerUrl,
@@ -55,10 +48,8 @@ function PodiumBody({
 export function LeaderboardPodium({
   entries,
   viewerId,
-  leaderLabel,
   formatValue,
   getDelta,
-  getStreak,
   selectedId,
   onSelect,
   renderAction,
@@ -67,22 +58,17 @@ export function LeaderboardPodium({
   const { t: tLeaderboard } = useTranslation("leaderboard");
   const navigate = useNavigate();
 
-  const ordered = PODIUM_ORDER.flatMap((index) =>
-    entries[index] ? [entries[index]] : []
-  );
-
   return (
     <div className="leaderboard-podium-wrapper">
       <div
         className={cn("leaderboard-podium", {
-          "leaderboard-podium--sparse": ordered.length < PODIUM_ORDER.length,
+          "leaderboard-podium--sparse": entries.length < 3,
         })}
-        style={{ "--podium-count": ordered.length } as React.CSSProperties}
+        style={{ "--podium-count": entries.length } as React.CSSProperties}
       >
-        {ordered.map((entry) => {
+        {entries.map((entry) => {
           const tier = getRankTier(entry.rank);
           const isViewer = entry.user.id === viewerId;
-          const streak = getStreak?.(entry) ?? null;
           const action = renderAction?.(entry);
 
           return (
@@ -93,6 +79,7 @@ export function LeaderboardPodium({
                   "leaderboard-podium__card",
                   `leaderboard-podium__card--${tier}`,
                   {
+                    "leaderboard-podium__card--viewer": isViewer,
                     "leaderboard-podium__card--selected":
                       onSelect && selectedId === entry.user.id,
                   }
@@ -108,7 +95,7 @@ export function LeaderboardPodium({
                 aria-current={isViewer ? "true" : undefined}
               >
                 <span
-                  className="leaderboard-podium__band"
+                  className={`leaderboard-podium__band leaderboard-row__strip--${tier}`}
                   role="img"
                   aria-label={tLeaderboard(`medal_${tier}`, {
                     rank: entry.rank,
@@ -121,17 +108,13 @@ export function LeaderboardPodium({
                 </span>
 
                 <PodiumBody bannerUrl={entry.user.backgroundImageUrl}>
-                  <Avatar
-                    size={entry.rank === 1 ? 64 : 52}
-                    src={entry.user.profileImageUrl}
-                    alt={entry.user.displayName}
-                    className="leaderboard-podium__avatar"
-                  />
-
-                  <span className="leaderboard-podium__name-line">
-                    <span className="leaderboard-podium__name">
-                      {entry.user.displayName}
-                    </span>
+                  <span className="leaderboard-podium__avatar-wrapper">
+                    <Avatar
+                      size={entry.rank === 1 ? 64 : 56}
+                      src={entry.user.profileImageUrl}
+                      alt={entry.user.displayName}
+                      className="leaderboard-podium__avatar"
+                    />
                     {isViewer && (
                       <span className="leaderboard-podium__you">
                         {tLeaderboard("you")}
@@ -139,27 +122,16 @@ export function LeaderboardPodium({
                     )}
                   </span>
 
-                  <span
-                    className={cn("leaderboard-podium__value", {
-                      "leaderboard-podium__value--muted": streak === "ended",
-                    })}
-                  >
-                    {streak === "active" && (
-                      <StreakFlame label={t("streak_active")} />
-                    )}
-                    {formatValue(entry.value)}
+                  <span className="leaderboard-podium__name">
+                    {entry.user.displayName}
                   </span>
 
-                  {entry.rank === 1 ? (
-                    <span className="leaderboard-podium__leader">
-                      <TrophyIcon size={14} />
-                      {leaderLabel}
-                    </span>
-                  ) : (
-                    <span className="leaderboard-podium__foot">
+                  <span className="leaderboard-podium__value">
+                    {formatValue(entry.value)}
+                    {entry.rank > 1 && (
                       <RankDelta delta={getDelta?.(entry) ?? null} />
-                    </span>
-                  )}
+                    )}
+                  </span>
                 </PodiumBody>
               </button>
               {action && (

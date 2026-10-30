@@ -1,4 +1,4 @@
-import { ArrowRightIcon, TrophyIcon } from "@primer/octicons-react";
+import { ClockIcon } from "@primer/octicons-react";
 import { Languages, Star, ThumbsUp } from "lucide-react";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
 import type { LeaderboardEntry } from "../game-details/leaderboard/game-leaderboard";
 import type { LeaderboardReview } from "./global-leaderboard";
+import { useGameIcon } from "./use-game-icon";
 import { useReviewTranslation } from "./use-review-translation";
 
 import "../game-details/review-item.scss";
@@ -48,6 +49,7 @@ export function ReviewHighlight({
     REVIEW_BANNER_IMAGE_SIZE
   );
   const translation = useReviewTranslation(review, entry.user.id);
+  const gameIcon = useGameIcon(review.shop, review.objectId);
   const createdAt = review.createdAt ? new Date(review.createdAt) : null;
   const ratingKey = RATING_KEYS[Math.round(review.score)];
   const openProfile = () => navigate(`/profile/${entry.user.id}`);
@@ -55,7 +57,7 @@ export function ReviewHighlight({
   return (
     <section className="leaderboards__review-highlight">
       <div className="leaderboards__review-title">
-        <TrophyIcon size={16} />
+        <ClockIcon size={16} />
         <span>{title}</span>
       </div>
       <article className="game-details__review-item leaderboards__review">
@@ -124,43 +126,56 @@ export function ReviewHighlight({
                 </div>
               </div>
             </div>
-            {createdAt && (
-              <div
-                className="game-details__review-date"
-                title={formatDateTime(createdAt)}
+            <div className="leaderboards__review-side">
+              {createdAt && (
+                <div
+                  className="game-details__review-date"
+                  title={formatDateTime(createdAt)}
+                >
+                  {formatDistance(createdAt, new Date(), { addSuffix: true })}
+                </div>
+              )}
+              <button
+                type="button"
+                className="leaderboards__link leaderboards__review-game"
+                onClick={() =>
+                  navigate(
+                    buildGameDetailsPath({
+                      shop: review.shop as GameShop,
+                      objectId: review.objectId,
+                      title: review.gameTitle,
+                    })
+                  )
+                }
               >
-                {formatDistance(createdAt, new Date(), { addSuffix: true })}
-              </div>
-            )}
+                {gameIcon && (
+                  <img
+                    className="leaderboards__review-game-icon"
+                    src={gameIcon}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                )}
+                {review.gameTitle}
+              </button>
+            </div>
           </div>
         </div>
 
-        <button
-          type="button"
-          className="leaderboards__link leaderboards__review-game"
-          onClick={() =>
-            navigate(
-              buildGameDetailsPath({
-                shop: review.shop as GameShop,
-                objectId: review.objectId,
-                title: review.gameTitle,
-              })
-            )
-          }
-        >
-          {review.gameTitle}
-          <ArrowRightIcon size={14} />
-        </button>
-
         {translation.translatedHtml ? (
-          <div
-            className="game-details__review-content leaderboards__review-text"
-            dangerouslySetInnerHTML={{ __html: translation.translatedHtml }}
-          />
+          <blockquote className="leaderboards__review-quote">
+            <div
+              className="game-details__review-content leaderboards__review-text"
+              dangerouslySetInnerHTML={{ __html: translation.translatedHtml }}
+            />
+          </blockquote>
         ) : (
-          <p className="game-details__review-content leaderboards__review-text">
-            {review.text}
-          </p>
+          <blockquote className="leaderboards__review-quote">
+            <p className="game-details__review-content leaderboards__review-text">
+              {review.text}
+            </p>
+          </blockquote>
         )}
 
         {translation.translatedHtml && (

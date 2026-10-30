@@ -13,15 +13,15 @@ import type {
 import {
   formatBoardTotal,
   getBoardState,
-  GLOBAL_LEADERBOARD_PAGE_SIZE,
   hasReviewData,
-  hasStreakData,
   type GlobalLeaderboardPeriod,
   type MetricDefinition,
   type GlobalLeaderboardScope,
   type LeaderboardReview,
 } from "./global-leaderboard";
 import { requestAddFriendMode } from "../friends-window/add-friend-request";
+import { BoardHeader } from "./board-header";
+import { BoardInsight } from "./board-insight";
 import { BoardView } from "./board-view";
 import { BlockError, BlockMessage, BoardSkeleton } from "./leaderboard-bits";
 import { MetricIcon } from "./metric-icon";
@@ -31,7 +31,10 @@ import {
   EMPTY_BOARD_RESULT,
   type GlobalBoardResults,
 } from "./use-global-leaderboards";
-import { useMetricText } from "./use-global-leaderboard-value";
+import {
+  useMetricColumnLabel,
+  useMetricText,
+} from "./use-global-leaderboard-value";
 import { useReviewTranslation } from "./use-review-translation";
 
 export interface RankingTabProps {
@@ -105,8 +108,8 @@ export function RankingTab({
   const navigate = useNavigate();
   const { numberFormatter } = useFormat();
   const metricText = useMetricText();
+  const metricColumnLabel = useMetricColumnLabel();
   const [reviewerId, setReviewerId] = useState<string | null>(null);
-  const [visibleRows, setVisibleRows] = useState(GLOBAL_LEADERBOARD_PAGE_SIZE);
 
   const current = (metric && results[metric.id]) || EMPTY_BOARD_RESULT;
   const leaderboard = current.leaderboard;
@@ -236,30 +239,32 @@ export function RankingTab({
 
     return (
       <>
-        {renderSelectedReview()}
+        {metric && (
+          <BoardInsight
+            leaderboard={leaderboard}
+            viewerId={viewerId}
+            metric={metric}
+            period={period}
+          />
+        )}
         <BoardView
           leaderboard={leaderboard}
           viewerUser={viewerUser}
           formatValue={format}
-          leaderLabel={t(isWeek ? "leader_of_week" : "record_holder")}
           showDelta={isWeek}
-          isStreak={hasStreakData(leaderboard)}
           isLoading={current.isLoading}
           selectedId={isReviews ? selectedReviewerId : undefined}
           onSelect={
             isReviews ? (entry) => setReviewerId(entry.user.id) : undefined
           }
           renderTooltip={isReviews ? renderReviewTooltip : undefined}
-          onVisibleChange={setVisibleRows}
+          belowPodium={renderSelectedReview()}
+          metricColumn={metric ? metricColumnLabel(metric) : ""}
           reportContext={reportContext}
         />
       </>
     );
   };
-
-  const visibleCount = leaderboard
-    ? Math.min(leaderboard.entries.length, visibleRows)
-    : 0;
 
   return (
     <>
@@ -270,25 +275,32 @@ export function RankingTab({
         })}
         aria-labelledby="board-title"
       >
-        <div className="leaderboards__board-header">
-          {metric && <MetricIcon metric={metric.id} size={20} />}
-          <h2 id="board-title" className="leaderboards__board-title">
-            {metric ? metricText.label(metric) : ""}
-          </h2>
-          {state === "ready" && leaderboard && (
-            <span className="leaderboards__board-count">
-              {scope === "global" && leaderboard.total !== null
-                ? t("top_of_total", {
-                    count: visibleCount,
-                    total: formatBoardTotal(
-                      leaderboard.total,
-                      numberFormatter.format
-                    ),
-                  })
-                : t("players_count", { count: leaderboard.entries.length })}
-            </span>
-          )}
-        </div>
+        <BoardHeader
+          id="board-title"
+          title={metric ? metricText.label(metric) : ""}
+          description={
+            metric
+              ? t(`metric_description_${metric.id}`, { defaultValue: "" })
+              : undefined
+          }
+          icon={metric && <MetricIcon metric={metric.id} size={20} />}
+          aside={
+            state === "ready" &&
+            leaderboard && (
+              <span className="leaderboards__board-count">
+                {scope === "global" && leaderboard.total !== null
+                  ? t("players_total", {
+                      count: leaderboard.total,
+                      total: formatBoardTotal(
+                        leaderboard.total,
+                        numberFormatter.format
+                      ),
+                    })
+                  : t("players_count", { count: leaderboard.entries.length })}
+              </span>
+            )
+          }
+        />
 
         {renderBoard()}
       </section>

@@ -29,6 +29,9 @@ export interface LeaderboardRowProps {
   // The game page card: a metal strip on the top 3 instead of the medal and frame.
   strip?: boolean;
   subtitle?: React.ReactNode;
+  // The Rankings table: a plain number and the rank change in its own column.
+  isTableRow?: boolean;
+  deltaColumn?: React.ReactNode;
 }
 
 // Which side of the pointer the tooltip sits on. The position itself is
@@ -55,6 +58,8 @@ export function LeaderboardRow({
   reserveAction = false,
   strip = false,
   subtitle,
+  isTableRow = false,
+  deltaColumn,
 }: Readonly<LeaderboardRowProps>) {
   const { t } = useTranslation("leaderboard");
   const navigate = useNavigate();
@@ -161,6 +166,7 @@ export function LeaderboardRow({
             "leaderboard-row--viewer": isViewer,
             "leaderboard-row--banner": banner,
             "leaderboard-row--strip": strip,
+            "leaderboard-row--table": isTableRow,
             [`rank-frame rank-frame--${tier}`]: !strip && isMedalTier(tier),
           })}
           style={
@@ -222,6 +228,10 @@ export function LeaderboardRow({
               </span>
             )}
           </span>
+
+          {isTableRow && deltaColumn !== undefined && (
+            <span className="leaderboard-row__delta">{deltaColumn}</span>
+          )}
 
           <span
             className={cn("leaderboard-row__value", {

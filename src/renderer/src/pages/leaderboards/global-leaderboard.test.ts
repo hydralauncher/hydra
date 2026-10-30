@@ -24,6 +24,7 @@ import {
   normalizeMyGames,
   normalizePlayActivity,
   resolveWeekRange,
+  getBoardInsight,
   getHeatmapTotalDisplay,
   sumHeatmap,
   type GlobalLeaderboardQuery,
@@ -294,6 +295,108 @@ describe("rank deltas and viewer ranking", () => {
     assert.equal(getViewerRanking(missing, "me"), null);
     assert.equal(getViewerRanking(null, "me"), null);
     assert.equal(getViewerRanking(listed, null), null);
+  });
+});
+
+describe("getBoardInsight", () => {
+  const viewerUser = (id: string) => ({
+    id,
+    displayName: id,
+    profileImageUrl: null,
+    backgroundImageUrl: null,
+  });
+  const entry = (rank: number, id: string, value: number) => ({
+    rank,
+    value,
+    user: viewerUser(id),
+  });
+  const board = (
+    entries: ReturnType<typeof entry>[],
+    viewer: { rank: number; value: number } | null = null
+  ) => ({
+    entries,
+    viewer,
+    periodStart: null,
+    periodEnd: null,
+    total: null,
+    viewerPreviousRank: null,
+    extras: {},
+  });
+  const top = [
+    entry(1, "a", 100),
+    entry(2, "b", 80),
+    entry(3, "c", 60),
+    entry(4, "d", 40),
+    entry(5, "me", 30),
+  ];
+
+  it("names the next player and the podium from below it", () => {
+    assert.deepEqual(getBoardInsight(board(top), "me"), {
+      type: "behind",
+      gap: 10,
+      target: viewerUser("d"),
+      targetRank: 4,
+      next: { goal: "podium", gap: 30 },
+    });
+  });
+
+  it("points to the lead from just below the top", () => {
+    const insight = getBoardInsight(board(top), "c");
+
+    assert.equal(insight?.type, "behind");
+    assert.deepEqual(insight?.type === "behind" && insight.next, {
+      goal: "lead",
+      gap: 40,
+    });
+  });
+
+  it("has no extra goal in second place", () => {
+    const insight = getBoardInsight(board(top), "b");
+
+    assert.equal(insight?.type === "behind" && insight.next, null);
+  });
+
+  it("shows the lead over the second place", () => {
+    assert.deepEqual(getBoardInsight(board(top), "a"), {
+      type: "leading",
+      gap: 20,
+      target: viewerUser("b"),
+    });
+  });
+
+  it("handles a leader alone on the board", () => {
+    assert.deepEqual(getBoardInsight(board([entry(1, "me", 5)]), "me"), {
+      type: "leading",
+      gap: 0,
+      target: null,
+    });
+  });
+
+  it("aims at the end of the list from outside it", () => {
+    assert.deepEqual(
+      getBoardInsight(board(top, { rank: 250, value: 3 }), "me2"),
+      { type: "outside", gap: 27, lastRank: 5 }
+    );
+  });
+
+  it("invites a viewer without a position", () => {
+    assert.deepEqual(getBoardInsight(board(top), "ghost"), {
+      type: "unranked",
+    });
+  });
+
+  it("stays quiet when signed out", () => {
+    assert.equal(getBoardInsight(board(top), null), null);
+  });
+
+  it("only states the rank when the difference is not positive", () => {
+    assert.deepEqual(
+      getBoardInsight(
+        board([entry(1, "a", 100), entry(2, "b", 50), entry(3, "me", 60)]),
+        "me"
+      ),
+      { type: "ranked", rank: 3 }
+    );
   });
 });
 
