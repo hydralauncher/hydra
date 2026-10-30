@@ -34,12 +34,7 @@ import {
 } from "./global-leaderboard";
 import { requestAddFriendMode } from "../friends-window/add-friend-request";
 import { useApiResource } from "./leaderboards-api";
-import {
-  BlockError,
-  BlockMessage,
-  RankDelta,
-  StreakFlame,
-} from "./leaderboard-bits";
+import { BlockError, BlockMessage, StreakFlame } from "./leaderboard-bits";
 import {
   FRIEND_STREAK_PAGE_SIZE,
   FriendStreakList,
@@ -497,7 +492,6 @@ export function StatsTab({
                 <tr>
                   <th scope="col">{t("metric_label")}</th>
                   <th scope="col">{t("column_value")}</th>
-                  {isWeek && <th scope="col">{t("column_change")}</th>}
                   <th scope="col">{t("column_rank")}</th>
                 </tr>
               </thead>
@@ -537,15 +531,6 @@ export function StatsTab({
                         </button>
                       </td>
                       <td>{value}</td>
-                      {isWeek && (
-                        <td>
-                          {ranking && ranking.delta !== null ? (
-                            <RankDelta delta={ranking.delta} />
-                          ) : (
-                            placeholder
-                          )}
-                        </td>
-                      )}
                       <td>
                         {ranking
                           ? t("ordinal", {
