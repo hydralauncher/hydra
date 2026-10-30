@@ -149,6 +149,7 @@ function useScreenshotComments(
   const writesRef = useRef<ScreenshotCommentWrite[]>([]);
   const pendingReadsRef = useRef(0);
   const readEpochRef = useRef(0);
+  const countedScreenshotIdRef = useRef<string | null>(null);
   const ownerId = screenshot.owner.id;
   const screenshotId = screenshot.id;
 
@@ -206,7 +207,10 @@ function useScreenshotComments(
     pendingReadsRef.current = 0;
     writesRef.current = [];
     setComments([]);
-    setTotal(0);
+    if (countedScreenshotIdRef.current !== screenshotId) {
+      countedScreenshotIdRef.current = screenshotId;
+      setTotal(0);
+    }
     setNextCursor(null);
     setIsLoadingMore(false);
     setHasLoadMoreError(false);
@@ -218,7 +222,7 @@ function useScreenshotComments(
 
     setStatus("loading");
     void fetchFirstPage();
-  }, [fetchFirstPage, isAvailable]);
+  }, [fetchFirstPage, isAvailable, screenshotId]);
 
   const recordWrite = useCallback((write: ScreenshotCommentWriteInput) => {
     writeVersionRef.current += 1;

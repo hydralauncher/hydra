@@ -156,7 +156,7 @@ export function useScreenshotComments({
   const [comments, setComments] = useState<ScreenshotComment[]>([]);
   const [total, setTotal] = useState<number | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(isEnabled);
   const [hasFailed, setHasFailed] = useState(false);
   const { restoredDraft, clearRestoredDraft } =
     useRestoredCommentDraft(draftKey);
@@ -318,7 +318,6 @@ export function useScreenshotComments({
     isReadInFlightRef.current = false;
     writesRef.current = [];
     setComments([]);
-    setTotal(null);
     setNextCursor(null);
     setHasFailed(false);
     setIsLoading(false);
