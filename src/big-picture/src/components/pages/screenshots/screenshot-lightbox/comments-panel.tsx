@@ -54,6 +54,7 @@ import {
   VerticalFocusGroup,
   type ContextMenuItem,
 } from "../../../common";
+import { Skeleton } from "../../../common/skeleton";
 import { ConfirmationModal } from "../../../modals";
 import { formatRelativeDate } from "../../../../helpers";
 import {
@@ -459,6 +460,8 @@ function CommentItem({
   );
 }
 
+const COMMENT_SKELETON_COUNT = 3;
+
 interface CommentsListStatusProps {
   status: CommentsStatus;
   isEmpty: boolean;
@@ -478,9 +481,31 @@ function CommentsListStatus({
 
   if (status === "loading") {
     return (
-      <p className="screenshot-comments__status">
-        {t("screenshots_comments_loading")}
-      </p>
+      <div role="status" aria-label={t("screenshots_comments_loading")}>
+        <ul className="screenshot-comments__list" aria-hidden="true">
+          {Array.from({ length: COMMENT_SKELETON_COUNT }, (_, index) => (
+            <li
+              key={index}
+              className="screenshot-comments__item screenshot-comments__item--skeleton"
+            >
+              <div className="screenshot-comments__item-top">
+                <div className="screenshot-comments__item-header">
+                  <Skeleton className="screenshot-comments__skeleton-avatar" />
+                  <div className="screenshot-comments__item-heading screenshot-comments__skeleton-heading">
+                    <Skeleton className="screenshot-comments__skeleton-line screenshot-comments__skeleton-line--name" />
+                    <Skeleton className="screenshot-comments__skeleton-line screenshot-comments__skeleton-line--meta" />
+                  </div>
+                </div>
+                <Skeleton className="screenshot-comments__skeleton-line" />
+                <Skeleton className="screenshot-comments__skeleton-line screenshot-comments__skeleton-line--short" />
+              </div>
+              <div className="screenshot-comments__item-actions">
+                <Skeleton className="screenshot-comments__skeleton-votes" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     );
   }
 

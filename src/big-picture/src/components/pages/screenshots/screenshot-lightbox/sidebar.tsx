@@ -9,7 +9,7 @@ import {
 import cn from "classnames";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ProfileScreenshot } from "@types";
+import type { ProfileScreenshot, ProfileVisibility } from "@types";
 import {
   SCREENSHOT_DESCRIPTION_MAX_LENGTH,
   buildScreenshotSettingsUpdate,
@@ -84,6 +84,12 @@ function LightboxGameIcon({
     </span>
   );
 }
+
+const VISIBILITY_LABEL_KEYS: Record<ProfileVisibility, string> = {
+  PUBLIC: "screenshots_visibility_public",
+  FRIENDS: "screenshots_visibility_friends",
+  PRIVATE: "screenshots_visibility_private",
+};
 
 function LightboxSummary({
   screenshot,
@@ -191,9 +197,16 @@ function LightboxSummary({
             )}
           </div>
         </HorizontalFocusGroup>
-        <span className="screenshot-lightbox__date">
-          {formatScreenshotDate(screenshot.capturedAt, language)}
-        </span>
+        <div className="screenshot-lightbox__date-row">
+          <span className="screenshot-lightbox__date">
+            {formatScreenshotDate(screenshot.capturedAt, language)}
+          </span>
+          {isOwner && screenshot.visibility ? (
+            <span className="screenshot-lightbox__tag">
+              {t(VISIBILITY_LABEL_KEYS[screenshot.visibility])}
+            </span>
+          ) : null}
+        </div>
       </div>
     </VerticalFocusGroup>
   );

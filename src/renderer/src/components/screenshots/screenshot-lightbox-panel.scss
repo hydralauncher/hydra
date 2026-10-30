@@ -11,8 +11,16 @@ $description-outline-fade-duration: 0.15s;
     min-height: 0;
     flex: 1;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
-    padding: 0 calc(globals.$spacing-unit * 2);
+    overflow: hidden;
+  }
+
+  &__details {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    max-height: 45%;
+    padding: calc(globals.$spacing-unit * 2);
     overflow-x: hidden;
     overflow-y: auto;
   }
@@ -22,7 +30,22 @@ $description-outline-fade-duration: 0.15s;
     flex-shrink: 0;
     flex-direction: column;
     gap: 6px;
-    padding-top: calc(globals.$spacing-unit * 2);
+  }
+
+  &__owner-stats {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+
+  &__like-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    opacity: 0.8;
   }
 
   &__description {
@@ -233,29 +256,44 @@ $description-outline-fade-duration: 0.15s;
 
 .screenshot-comments {
   display: flex;
-  flex: 1 0 auto;
+  flex: 1;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 1.5);
-  min-height: 240px;
-  padding-top: calc(globals.$spacing-unit * 2);
+  min-height: 160px;
   border-top: 1px solid globals.$border-color;
+
+  &__heading {
+    flex-shrink: 0;
+    padding: calc(globals.$spacing-unit * 1.25) calc(globals.$spacing-unit * 2);
+    border-bottom: 1px solid globals.$border-color;
+  }
 
   &__feed {
     display: flex;
-    flex: 1 0 auto;
+    flex: 1;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.5);
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   &__composer {
-    position: sticky;
-    bottom: 0;
-    z-index: 1;
-    margin: 0 calc(globals.$spacing-unit * -2);
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2)
-      calc(globals.$spacing-unit * 2);
+    flex-shrink: 0;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
     border-top: 1px solid globals.$border-color;
     background: globals.$background-color;
+  }
+
+  &__composer-row {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(globals.$spacing-unit * 1.25);
+
+    > .profile-avatar {
+      flex-shrink: 0;
+      margin-top: 5px;
+      overflow: hidden;
+      border-radius: 50%;
+    }
   }
 
   &__empty-state {
@@ -321,6 +359,71 @@ $description-outline-fade-duration: 0.15s;
     gap: globals.$spacing-unit;
   }
 
+  &__composer &__input {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    gap: 0;
+  }
+
+  &__composer &__editor {
+    flex-direction: column-reverse;
+    border-color: rgba(255, 255, 255, 0.16);
+    border-radius: 14px;
+    background: #1c1c1c;
+    transition: border-radius motion.$fast-transition-duration ease;
+
+    .rich-text-editor__header {
+      padding: 4px 120px 6px 8px;
+      border-bottom: 0;
+      background: transparent;
+    }
+
+    .rich-text-editor__input {
+      min-height: 44px;
+      padding: 10px 14px 4px;
+
+      .ProseMirror {
+        min-height: 22px;
+        font-size: globals.$body-font-size;
+      }
+    }
+  }
+
+  &__composer &__input-actions {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+
+    .button {
+      height: 28px;
+      padding: 0 14px;
+      border-radius: 14px;
+      font-size: globals.$small-font-size;
+    }
+  }
+
+  &__composer:not(:focus-within) &__input--empty {
+    .rich-text-editor {
+      border-color: globals.$border-color;
+      border-radius: 19px;
+    }
+
+    .rich-text-editor__header,
+    .screenshot-comments__input-actions {
+      display: none;
+    }
+
+    .rich-text-editor__input {
+      min-height: 38px;
+      padding: 8px 14px;
+
+      .ProseMirror {
+        min-height: 20px;
+      }
+    }
+  }
+
   &__notice {
     display: flex;
     flex-wrap: wrap;
@@ -340,6 +443,7 @@ $description-outline-fade-duration: 0.15s;
     align-items: flex-start;
     gap: globals.$spacing-unit;
     margin: 0;
+    padding: calc(globals.$spacing-unit * 2);
     color: globals.$body-color;
     font-size: globals.$small-font-size;
     opacity: 0.8;
@@ -352,111 +456,86 @@ $description-outline-fade-duration: 0.15s;
   &__list {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
     margin: 0;
     padding: 0;
     list-style: none;
   }
 
   &__item {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.25);
-    word-wrap: break-word;
-
-    &--new {
-      border-radius: 8px;
-      animation: screenshot-comment-new-highlight
-        motion.$new-comment-highlight-duration ease-out;
-    }
-  }
-
-  &__header {
     position: relative;
     isolation: isolate;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    min-width: 0;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    word-wrap: break-word;
 
-    &--has-bg {
-      box-sizing: border-box;
-      width: 100%;
-      aspect-ratio: 388 / 56;
-      min-height: 64px;
-      max-height: 112px;
-      padding: calc(globals.$spacing-unit * 1.25);
-      border-radius: 8px;
-
-      &::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-        border-radius: inherit;
-        background: linear-gradient(135deg, rgb(0 0 0 / 25%), rgb(0 0 0 / 18%));
-        pointer-events: none;
-      }
-
-      .screenshot-comments__author,
-      .screenshot-comments__when {
-        color: #ffffff;
-        opacity: 1;
-        text-shadow: 0 0 5px rgb(0 0 0 / 60%);
-      }
+    &--new {
+      animation: screenshot-comment-new-highlight
+        motion.$new-comment-highlight-duration ease-out;
     }
   }
 
   &__banner {
     position: absolute;
     inset: 0;
-    z-index: 0;
+    z-index: -1;
     width: 100%;
     height: 100%;
-    border-radius: inherit;
     object-fit: cover;
+    opacity: 0.22;
+    mask-image: linear-gradient(to right, #000 0%, transparent 85%);
     pointer-events: none;
-  }
-
-  &__header-top {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 1.25);
   }
 
   &__avatar {
     flex-shrink: 0;
-    border-radius: 4px;
+    align-self: flex-start;
+
+    .profile-avatar {
+      overflow: hidden;
+      border-radius: 50%;
+    }
 
     &:focus-visible {
       outline: 2px solid globals.$muted-color;
       outline-offset: 2px;
+      border-radius: 50%;
     }
   }
 
   &__name-row {
     display: flex;
     min-width: 0;
-    flex: 1;
+    flex-wrap: wrap;
     align-items: baseline;
-    gap: globals.$spacing-unit;
+    gap: 6px;
+  }
+
+  &__badge {
+    padding: 0 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    color: globals.$muted-color;
+    font-size: 11px;
+    font-weight: 600;
   }
 
   &__body {
     display: flex;
     min-width: 0;
+    flex: 1;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 0.75);
+    gap: 4px;
   }
 
   &__author {
     min-width: 0;
     overflow: hidden;
     color: globals.$muted-color;
-    font-size: globals.$body-font-size;
+    font-size: 13px;
     font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -467,7 +546,6 @@ $description-outline-fade-duration: 0.15s;
     flex-shrink: 0;
     align-items: baseline;
     gap: 4px;
-    margin-left: auto;
     color: globals.$body-color;
     font-size: globals.$small-font-size;
     opacity: 0.7;
@@ -480,30 +558,33 @@ $description-outline-fade-duration: 0.15s;
 
   &__text {
     color: globals.$muted-color;
-    line-height: 1.45;
+    font-size: globals.$body-font-size;
+    line-height: 1.5;
   }
 
   &__actions {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: globals.$spacing-unit;
-    margin-top: 4px;
+    margin-left: -6px;
   }
 
   &__votes,
   &__tools {
     display: flex;
     align-items: center;
-    gap: globals.$spacing-unit;
+    gap: 2px;
   }
 
   &__vote {
     @extend %vote-button;
 
-    padding: 4px 10px;
+    padding: 2px 6px;
+    border-color: transparent;
+    background: transparent;
     font-family: inherit;
+    font-size: globals.$small-font-size;
 
     &--active {
       @extend %vote-button-active;
@@ -521,37 +602,55 @@ $description-outline-fade-duration: 0.15s;
   }
 
   &__tool {
-    width: 30px;
+    display: inline-flex;
+    width: 26px;
+    height: 26px;
+    align-items: center;
+    justify-content: center;
     padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: globals.$body-color;
+    cursor: pointer;
+    opacity: 0.72;
+    transition:
+      background-color motion.$transition-duration ease,
+      opacity motion.$transition-duration ease;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      opacity: 1;
+    }
+
+    &--danger:hover:not(:disabled) {
+      color: globals.$error-color;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: globals.$disabled-opacity;
+    }
+
+    &:focus-visible {
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 1px;
+      opacity: 1;
+    }
   }
 
   &__load-more {
     align-self: center;
+    margin: calc(globals.$spacing-unit * 1.5) 0;
   }
 }
 
 @media (max-height: 560px) {
   .screenshot-comments {
-    min-height: 160px;
+    min-height: 120px;
 
     &__composer {
       padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
-    }
-
-    &__composer .screenshot-comments__editor .rich-text-editor__input {
-      min-height: 36px;
-      padding-block: 6px;
-
-      .ProseMirror {
-        min-height: 22px;
-      }
-    }
-
-    &__composer:not(:focus-within) {
-      .rich-text-editor__header,
-      .screenshot-comments__input-actions {
-        display: none;
-      }
     }
 
     &__empty-state {
@@ -590,11 +689,9 @@ $description-outline-fade-duration: 0.15s;
 @keyframes screenshot-comment-new-highlight {
   from {
     background-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 globals.$spacing-unit rgba(255, 255, 255, 0.08);
   }
 
   to {
     background-color: transparent;
-    box-shadow: 0 0 0 globals.$spacing-unit transparent;
   }
 }

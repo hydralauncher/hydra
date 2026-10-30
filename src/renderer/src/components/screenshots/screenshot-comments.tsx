@@ -11,6 +11,7 @@ import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Tooltip } from "react-tooltip";
 import cn from "classnames";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 
 import { Avatar } from "../avatar/avatar";
 import { Button } from "../button/button";
@@ -63,77 +64,54 @@ interface ScreenshotCommentPartProps {
   tooltipId: string;
 }
 
-function ScreenshotCommentHeader({
+function ScreenshotCommentMeta({
   comment,
+  isScreenshotOwner,
   onAuthorClick,
-}: Readonly<{ comment: ScreenshotComment; onAuthorClick: () => void }>) {
+}: Readonly<{
+  comment: ScreenshotComment;
+  isScreenshotOwner: boolean;
+  onAuthorClick: () => void;
+}>) {
   const { t } = useTranslation("screenshots");
   const { formatDistance, formatDateTime } = useDate();
-  const bannerImageUrl = useProcessedImage(
-    comment.author.backgroundImageUrl ?? null,
-    REVIEW_BANNER_IMAGE_SIZE
-  );
-  const profilePath = `/profile/${encodeURIComponent(comment.author.id)}`;
 
   return (
-    <div
-      className={cn("screenshot-comments__header", {
-        "screenshot-comments__header--has-bg": bannerImageUrl,
-      })}
-    >
-      {bannerImageUrl ? (
-        <img
-          src={bannerImageUrl}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="screenshot-comments__banner"
-        />
-      ) : null}
-
-      <div className="screenshot-comments__header-top">
-        <Link
-          className="screenshot-comments__avatar"
-          to={profilePath}
-          onClick={onAuthorClick}
-          aria-label={comment.author.displayName}
-        >
-          <Avatar size={40} src={comment.author.profileImageUrl} alt="" />
-        </Link>
-
-        <div className="screenshot-comments__name-row">
-          <Link
-            className="screenshot-comments__author"
-            to={profilePath}
-            onClick={onAuthorClick}
-          >
-            {comment.author.displayName}
-          </Link>
-        </div>
-
-        <span className="screenshot-comments__when">
-          <time
-            className="screenshot-comments__time"
-            dateTime={new Date(comment.createdAt).toISOString()}
-            title={formatDateTime(comment.createdAt)}
-          >
-            {formatDistance(new Date(comment.createdAt), new Date(), {
-              addSuffix: true,
-            })}
-          </time>
-          {comment.editedAt ? (
-            <>
-              <span aria-hidden="true">·</span>
-              <span
-                className="screenshot-comments__edited"
-                title={formatDateTime(comment.editedAt)}
-              >
-                {t("comment_edited")}
-              </span>
-            </>
-          ) : null}
+    <div className="screenshot-comments__name-row">
+      <Link
+        className="screenshot-comments__author"
+        to={`/profile/${encodeURIComponent(comment.author.id)}`}
+        onClick={onAuthorClick}
+      >
+        {comment.author.displayName}
+      </Link>
+      {isScreenshotOwner ? (
+        <span className="screenshot-comments__badge">
+          {t("comment_author_badge")}
         </span>
-      </div>
+      ) : null}
+      <span className="screenshot-comments__when">
+        <time
+          className="screenshot-comments__time"
+          dateTime={new Date(comment.createdAt).toISOString()}
+          title={formatDateTime(comment.createdAt)}
+        >
+          {formatDistance(new Date(comment.createdAt), new Date(), {
+            addSuffix: true,
+          })}
+        </time>
+        {comment.editedAt ? (
+          <>
+            <span aria-hidden="true">·</span>
+            <span
+              className="screenshot-comments__edited"
+              title={formatDateTime(comment.editedAt)}
+            >
+              {t("comment_edited")}
+            </span>
+          </>
+        ) : null}
+      </span>
     </div>
   );
 }
@@ -246,7 +224,7 @@ function ScreenshotCommentVotes({
     <div className="screenshot-comments__votes">
       <ScreenshotCommentVoteButton
         kind="upvote"
-        icon={<ThumbsUp size={16} />}
+        icon={<ThumbsUp size={14} />}
         count={comment.upvotes}
         isActive={comment.myVote === "UPVOTE"}
         isPending={isPending}
@@ -257,7 +235,7 @@ function ScreenshotCommentVotes({
       />
       <ScreenshotCommentVoteButton
         kind="downvote"
-        icon={<ThumbsDown size={16} />}
+        icon={<ThumbsDown size={14} />}
         count={comment.downvotes}
         isActive={comment.myVote === "DOWNVOTE"}
         isPending={isPending}
@@ -294,10 +272,9 @@ function ScreenshotCommentTools({
   return (
     <div className="screenshot-comments__tools">
       {comment.isOwn ? (
-        <Button
-          theme="outline"
-          size="small"
-          className="screenshot-comments__tool screenshot-comments__edit"
+        <button
+          type="button"
+          className="screenshot-comments__tool"
           onClick={() => onStartEdit(comment)}
           disabled={isPending}
           aria-label={t("edit_comment")}
@@ -305,29 +282,13 @@ function ScreenshotCommentTools({
           data-tooltip-content={t("edit_comment")}
         >
           <PencilIcon size={14} />
-        </Button>
-      ) : null}
-
-      {comment.canDelete ? (
-        <Button
-          theme="danger"
-          size="small"
-          className="screenshot-comments__tool screenshot-comments__delete"
-          onClick={() => onRequestDelete(comment)}
-          disabled={isPending}
-          aria-label={t("delete_comment")}
-          data-tooltip-id={tooltipId}
-          data-tooltip-content={t("delete_comment")}
-        >
-          <TrashIcon size={14} />
-        </Button>
+        </button>
       ) : null}
 
       {!comment.isOwn && isSignedIn ? (
-        <Button
-          theme="outline"
-          size="small"
-          className="screenshot-comments__tool screenshot-comments__report"
+        <button
+          type="button"
+          className="screenshot-comments__tool"
           onClick={() => onRequestReport(comment)}
           disabled={isPending || isReported}
           aria-label={t(isReported ? "reported" : "report_comment")}
@@ -335,7 +296,21 @@ function ScreenshotCommentTools({
           data-tooltip-content={t(isReported ? "reported" : "report_comment")}
         >
           <ReportIcon size={14} />
-        </Button>
+        </button>
+      ) : null}
+
+      {comment.canDelete ? (
+        <button
+          type="button"
+          className="screenshot-comments__tool screenshot-comments__tool--danger"
+          onClick={() => onRequestDelete(comment)}
+          disabled={isPending}
+          aria-label={t("delete_comment")}
+          data-tooltip-id={tooltipId}
+          data-tooltip-content={t("delete_comment")}
+        >
+          <TrashIcon size={14} />
+        </button>
       ) : null}
     </div>
   );
@@ -348,6 +323,7 @@ interface ScreenshotCommentItemProps {
   isReported: boolean;
   isEditing: boolean;
   isNew: boolean;
+  isScreenshotOwner: boolean;
   onAuthorClick: () => void;
   onVote: (comment: ScreenshotComment, vote: ScreenshotCommentVoteType) => void;
   onStartEdit: (comment: ScreenshotComment) => void;
@@ -365,6 +341,7 @@ function ScreenshotCommentItem({
   isReported,
   isEditing,
   isNew,
+  isScreenshotOwner,
   onAuthorClick,
   onVote,
   onStartEdit,
@@ -376,6 +353,11 @@ function ScreenshotCommentItem({
 }: Readonly<ScreenshotCommentItemProps>) {
   const { t } = useTranslation("screenshots");
   const itemRef = useRef<HTMLLIElement>(null);
+  const bannerImageUrl = useProcessedImage(
+    comment.author.backgroundImageUrl ?? null,
+    REVIEW_BANNER_IMAGE_SIZE
+  );
+  const profilePath = `/profile/${encodeURIComponent(comment.author.id)}`;
 
   useEffect(() => {
     if (!isNew) return;
@@ -387,14 +369,35 @@ function ScreenshotCommentItem({
       ref={itemRef}
       className={cn("screenshot-comments__item", {
         "screenshot-comments__item--new": isNew && !isPending,
+        "screenshot-comments__item--has-bg": bannerImageUrl,
       })}
     >
-      <ScreenshotCommentHeader
-        comment={comment}
-        onAuthorClick={onAuthorClick}
-      />
+      {bannerImageUrl ? (
+        <img
+          src={bannerImageUrl}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="screenshot-comments__banner"
+        />
+      ) : null}
+
+      <Link
+        className="screenshot-comments__avatar"
+        to={profilePath}
+        onClick={onAuthorClick}
+        aria-label={comment.author.displayName}
+      >
+        <Avatar size={32} src={comment.author.profileImageUrl} alt="" />
+      </Link>
 
       <div className="screenshot-comments__body">
+        <ScreenshotCommentMeta
+          comment={comment}
+          isScreenshotOwner={isScreenshotOwner}
+          onAuthorClick={onAuthorClick}
+        />
+
         {isEditing ? (
           <ScreenshotCommentInput
             initialValue={comment.bodyHtml}
@@ -440,6 +443,29 @@ function ScreenshotCommentItem({
         )}
       </div>
     </li>
+  );
+}
+
+const COMMENT_SKELETON_COUNT = 4;
+
+function ScreenshotCommentsSkeleton({ label }: Readonly<{ label: string }>) {
+  return (
+    <div role="status" aria-label={label}>
+      <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
+        <ul className="screenshot-comments__list" aria-hidden="true">
+          {Array.from({ length: COMMENT_SKELETON_COUNT }, (_, index) => (
+            <li key={index} className="screenshot-comments__item">
+              <Skeleton circle width={32} height={32} />
+              <div className="screenshot-comments__body">
+                <Skeleton width="40%" height={12} borderRadius={4} />
+                <Skeleton height={12} borderRadius={4} />
+                <Skeleton width="65%" height={12} borderRadius={4} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </SkeletonTheme>
+    </div>
   );
 }
 
@@ -517,11 +543,7 @@ export function ScreenshotComments({
     }
 
     if (isInitialLoading) {
-      return (
-        <output className="screenshot-comments__empty">
-          {t("loading_comments")}
-        </output>
-      );
+      return <ScreenshotCommentsSkeleton label={t("loading_comments")} />;
     }
 
     if (comments.length === 0) {
@@ -549,6 +571,7 @@ export function ScreenshotComments({
               isReported={reportedCommentIds.has(comment.id)}
               isEditing={editingCommentId === comment.id}
               isNew={newCommentId === comment.id}
+              isScreenshotOwner={comment.author.id === screenshot.owner.id}
               onAuthorClick={onNavigateAway}
               onVote={(item, vote) => void voteComment(item, vote)}
               onStartEdit={(item) => setEditingCommentId(item.id)}
@@ -577,24 +600,29 @@ export function ScreenshotComments({
 
   return (
     <section className="screenshot-comments" aria-label={t("comments")}>
-      {commentCount > 0 ? (
+      <div className="screenshot-comments__heading">
         <h3 className="screenshot-lightbox__section-title">
           <CommentIcon size={16} />
-          {t("comments_title", { count: commentCount })}
+          {commentCount > 0
+            ? t("comments_title", { count: commentCount })
+            : t("comments")}
         </h3>
-      ) : null}
+      </div>
 
       <div className="screenshot-comments__feed">{renderList()}</div>
 
       <div className="screenshot-comments__composer">
         {composerState === "ready" ? (
-          <ScreenshotCommentInput
-            restoredDraft={restoredDraft}
-            onRestoredDraftConsumed={clearRestoredDraft}
-            placeholder={t("comment_placeholder")}
-            submitLabel={t("post_comment")}
-            onSubmit={createComment}
-          />
+          <div className="screenshot-comments__composer-row">
+            <Avatar size={28} src={userDetails?.profileImageUrl} alt="" />
+            <ScreenshotCommentInput
+              restoredDraft={restoredDraft}
+              onRestoredDraftConsumed={clearRestoredDraft}
+              placeholder={t("comment_placeholder")}
+              submitLabel={t("post_comment")}
+              onSubmit={createComment}
+            />
+          </div>
         ) : (
           <div className="screenshot-comments__notice" role="note">
             <span>{t(COMPOSER_NOTICE_KEYS[composerState])}</span>

@@ -24,7 +24,7 @@ import {
   readScreenshotSettings,
   sanitizeScreenshotDescriptionInput,
 } from "@shared";
-import type { ProfileScreenshot } from "@types";
+import type { ProfileScreenshot, ProfileVisibility } from "@types";
 
 import { ScreenshotComments } from "./screenshot-comments";
 import {
@@ -39,6 +39,12 @@ import { useSensitiveScreenshot } from "./use-sensitive-screenshot";
 import "./screenshot-lightbox-panel.scss";
 
 type ScreenshotActions = ScreenshotCollection["actions"];
+
+const VISIBILITY_LABEL_KEYS: Record<ProfileVisibility, string> = {
+  PUBLIC: "visibility_public",
+  FRIENDS: "visibility_friends",
+  PRIVATE: "visibility_private",
+};
 
 function ScreenshotGameIcon({
   screenshot,
@@ -222,25 +228,39 @@ function ScreenshotPanelActions({
 
   return (
     <div className="screenshot-lightbox__actions">
-      <button
-        type="button"
-        className={cn("screenshot-lightbox__action", {
-          "screenshot-lightbox__action--active": screenshot.likedByMe,
-        })}
-        onClick={() => void actions.toggleLike(screenshot)}
-        disabled={!isApproved || actions.likingIds.has(screenshot.id)}
-        aria-pressed={screenshot.likedByMe}
-        aria-label={likeLabel}
-        data-tooltip-id={tooltipId}
-        data-tooltip-content={likeLabel}
-      >
-        {screenshot.likedByMe ? (
-          <HeartFillIcon size={16} />
-        ) : (
-          <HeartIcon size={16} />
-        )}
-        <span>{screenshot.likeCount}</span>
-      </button>
+      {isOwner ? (
+        <div className="screenshot-lightbox__owner-stats">
+          {screenshot.visibility ? (
+            <span className="screenshot-lightbox__tag">
+              {t(VISIBILITY_LABEL_KEYS[screenshot.visibility])}
+            </span>
+          ) : null}
+          <span className="screenshot-lightbox__like-count">
+            <HeartIcon size={14} />
+            {t("likes_count", { count: screenshot.likeCount })}
+          </span>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className={cn("screenshot-lightbox__action", {
+            "screenshot-lightbox__action--active": screenshot.likedByMe,
+          })}
+          onClick={() => void actions.toggleLike(screenshot)}
+          disabled={!isApproved || actions.likingIds.has(screenshot.id)}
+          aria-pressed={screenshot.likedByMe}
+          aria-label={likeLabel}
+          data-tooltip-id={tooltipId}
+          data-tooltip-content={likeLabel}
+        >
+          {screenshot.likedByMe ? (
+            <HeartFillIcon size={16} />
+          ) : (
+            <HeartIcon size={16} />
+          )}
+          <span>{screenshot.likeCount}</span>
+        </button>
+      )}
 
       <div className="screenshot-lightbox__action-group">
         <button
@@ -341,22 +361,24 @@ export function ScreenshotLightboxPanel({
 
   return (
     <aside className="screenshot-lightbox__panel">
-      <ScreenshotPanelInfo
-        screenshot={screenshot}
-        actions={actions}
-        isOwner={isOwner}
-        onClose={onClose}
-      />
+      <div className="screenshot-lightbox__details">
+        <ScreenshotPanelInfo
+          screenshot={screenshot}
+          actions={actions}
+          isOwner={isOwner}
+          onClose={onClose}
+        />
 
-      <ScreenshotPanelActions
-        screenshot={screenshot}
-        actions={actions}
-        isOwner={isOwner}
-        isApproved={isApproved}
-        onRequestManage={onRequestManage}
-        onRequestDelete={onRequestDelete}
-        onRequestReport={onRequestReport}
-      />
+        <ScreenshotPanelActions
+          screenshot={screenshot}
+          actions={actions}
+          isOwner={isOwner}
+          isApproved={isApproved}
+          onRequestManage={onRequestManage}
+          onRequestDelete={onRequestDelete}
+          onRequestReport={onRequestReport}
+        />
+      </div>
 
       {isCommentsEnabled ? (
         <ScreenshotComments

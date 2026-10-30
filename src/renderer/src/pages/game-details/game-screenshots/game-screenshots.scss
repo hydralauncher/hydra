@@ -521,7 +521,9 @@
 }
 
 .local-screenshot-panel {
-  padding-bottom: calc(globals.$spacing-unit * 2);
+  gap: calc(globals.$spacing-unit * 2);
+  padding: calc(globals.$spacing-unit * 2);
+  overflow-y: auto;
 
   &__badge {
     align-self: flex-start;
