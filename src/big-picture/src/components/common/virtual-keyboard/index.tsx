@@ -64,6 +64,10 @@ type VirtualKeyboardKeyPosition = {
 
 const VIRTUAL_KEYBOARD_LAYER_ID = "big-picture-virtual-keyboard-layer";
 const VIRTUAL_KEYBOARD_REGION_ID = "big-picture-virtual-keyboard";
+const VIRTUAL_KEYBOARD_MAX_WIDTH = 1200;
+const VIRTUAL_KEYBOARD_HORIZONTAL_GUTTER = 64;
+const VIRTUAL_KEYBOARD_FALLBACK_DOCK_HEIGHT = 480;
+const VIRTUAL_KEYBOARD_SETTLE_DELAY_MS = 250;
 const VIRTUAL_KEYBOARD_SUBMIT_ON_ENTER_ANCHOR =
   'form[data-virtual-keyboard-enter="submit"]';
 const VIRTUAL_KEYBOARD_LEFT_SIDE_ANCHOR = '[data-virtual-keyboard-side="left"]';
@@ -707,6 +711,7 @@ export function VirtualKeyboardProvider() {
   const [layoutMode, setLayoutMode] =
     useState<VirtualKeyboardLayoutMode>("floating");
   const [sideInset, setSideInset] = useState<number | null>(null);
+  const lastDockHeightRef = useRef(VIRTUAL_KEYBOARD_FALLBACK_DOCK_HEIGHT);
   const sideAnchor =
     target?.closest<HTMLElement>(VIRTUAL_KEYBOARD_LEFT_SIDE_ANCHOR) ?? null;
   const [pulsingKeyId, setPulsingKeyId] = useState<string | null>(null);
@@ -1346,12 +1351,40 @@ export function VirtualKeyboardProvider() {
   }, [layoutMode, target]);
 
   useLayoutEffect(() => {
+    if (!sideAnchor) {
+      setSideInset(null);
+      return;
+    }
+
+    const anchorRect = sideAnchor.getBoundingClientRect();
+    const viewportWidth = globalThis.window.innerWidth;
+    const centeredWidth = Math.min(
+      VIRTUAL_KEYBOARD_MAX_WIDTH,
+      viewportWidth - VIRTUAL_KEYBOARD_HORIZONTAL_GUTTER
+    );
+    const centeredLeft = (viewportWidth - centeredWidth) / 2;
+    const centeredTop =
+      globalThis.window.innerHeight - lastDockHeightRef.current;
+    const isCoveredWhenCentered =
+      anchorRect.bottom > centeredTop &&
+      anchorRect.right > centeredLeft &&
+      anchorRect.left < centeredLeft + centeredWidth;
+
     setSideInset(
-      sideAnchor
-        ? globalThis.window.innerWidth - sideAnchor.getBoundingClientRect().left
-        : null
+      isCoveredWhenCentered ? viewportWidth - anchorRect.left : null
     );
   }, [sideAnchor]);
+
+  useEffect(() => {
+    if (!target) return;
+
+    const timeoutId = globalThis.window.setTimeout(() => {
+      const dockHeight = dockRef.current?.getBoundingClientRect().height;
+      if (dockHeight) lastDockHeightRef.current = dockHeight;
+    }, VIRTUAL_KEYBOARD_SETTLE_DELAY_MS);
+
+    return () => globalThis.window.clearTimeout(timeoutId);
+  }, [target]);
 
   useEffect(() => {
     if (
