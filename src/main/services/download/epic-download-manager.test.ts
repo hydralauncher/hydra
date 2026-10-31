@@ -9,6 +9,7 @@ import {
   fixture,
   key,
   settle,
+  waitFor,
 } from "./download-orchestrator-test-fixture.js";
 
 test("Epic acceptance returns before preparation and concurrent clicks keep one active slot", async () => {
@@ -345,6 +346,7 @@ test("verified Epic completion publishes once and starts the next common queued 
   assert.deepEqual([...f.manager.getActiveDownloadIds()], []);
   notification.resolve();
   await completion;
+  await waitFor(() => f.downloads.get(key(second))?.status === "active");
   assert.equal(f.downloads.get(key(first))?.status, "complete");
   assert.deepEqual([...f.manager.getActiveDownloadIds()], [key(second)]);
   assert.equal(f.requests.length, 2);

@@ -8,6 +8,7 @@ import {
   key,
   settle,
   torrent,
+  waitFor,
 } from "./download-orchestrator-test-fixture.js";
 
 test("production manager keeps concurrent torrent sessions independently controllable", async () => {
@@ -543,6 +544,7 @@ for (const seedAfterDownloadComplete of [false, true]) {
     });
     await f.manager.startDownload(completed);
     await f.manager.watchDownloads();
+    await waitFor(() => f.downloads.get(key(later))?.status === "active");
 
     assert.equal(
       f.downloads.get(key(completed))?.status,
@@ -556,6 +558,80 @@ for (const seedAfterDownloadComplete of [false, true]) {
     assert.deepEqual(f.state.notifications, [completed.objectId]);
   });
 }
+
+test("a slow queue refill does not block polling another download", async () => {
+  const f = fixture();
+  const completed = {
+    ...torrent("Finished", "0000000000000000000000000000000000000021"),
+    status: "active" as const,
+    folderName: null,
+  };
+  const survivor = torrent(
+    "StillDownloading",
+    "0000000000000000000000000000000000000022"
+  );
+  const queued = {
+    ...torrent("SlowStart", "0000000000000000000000000000000000000023"),
+    queued: true,
+  };
+  f.state.preferences = { maxConcurrentDownloads: 2 };
+  for (const download of [completed, survivor, queued]) f.add(download);
+  f.state.layout.queueOrder = [key(queued)];
+  f.state.torrentStatuses.set(key(completed), {
+    progress: 1,
+    bytesDownloaded: 1000,
+    fileSize: 1000,
+    downloadSpeed: 0,
+    numPeers: 0,
+    numSeeds: 0,
+    status: 5,
+  });
+  f.state.torrentStatuses.set(key(survivor), {
+    progress: 0.5,
+    bytesDownloaded: 500,
+    fileSize: 1000,
+    downloadSpeed: 10,
+    numPeers: 1,
+    numSeeds: 1,
+    status: 3,
+  });
+  await f.manager.startDownload(completed);
+  await f.manager.startDownload(survivor);
+
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  f.state.torrentStart = async (id) => {
+    if (id === key(queued)) await gate;
+  };
+
+  try {
+    let firstPollFinished = false;
+    const firstPoll = f.manager.watchDownloads().then(() => {
+      firstPollFinished = true;
+    });
+    await waitFor(() => firstPollFinished);
+    await firstPoll;
+    await waitFor(() =>
+      f.state.torrentActions.some(
+        (action) => action.action === "start" && action.game_id === key(queued)
+      )
+    );
+
+    const progressCount = f.state.progress.length;
+    let secondPollFinished = false;
+    const secondPoll = f.manager.watchDownloads().then(() => {
+      secondPollFinished = true;
+    });
+    await waitFor(() => secondPollFinished);
+    await secondPoll;
+    assert.ok(f.state.progress.length > progressCount);
+    assert.equal(f.downloads.get(key(queued))?.status, "active");
+  } finally {
+    release();
+  }
+});
 
 test("startup queue pumping resumes every available slot and leaves manual pauses alone", async () => {
   const f = fixture();

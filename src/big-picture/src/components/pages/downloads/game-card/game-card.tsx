@@ -102,8 +102,10 @@ function GameCardSide({
   variant,
 }: Readonly<
   Pick<
-  DownloadsGameCardProps, "metaLabel" | "progress" | "progressLabel" | "rightStatusLabel" | "variant">
-  >) {
+    DownloadsGameCardProps,
+    "metaLabel" | "progress" | "progressLabel" | "rightStatusLabel" | "variant"
+  >
+>) {
   const showsProgress = isProgressVariant(variant) && progressLabel != null;
   const showsProgressMeta = showsProgress && metaLabel != null;
   const showsRightMeta = variant === "completed" && metaLabel != null;
@@ -163,19 +165,20 @@ function GameCardActions({
   primaryActionLabel,
   variant,
 }: Readonly<
-Pick<
-  DownloadsGameCardProps,
-  | "onCancel"
-  | "onPrimaryAction"
-  | "onOpenOptions"
-  | "optionsLabel"
-  | "primaryActionDisabled"
-  | "optionsDisabled"
-  | "primaryActionFocusId"
-  | "optionsFocusId"
-  | "primaryActionIcon"
-  | "primaryActionLabel"
-  | "variant">
+  Pick<
+    DownloadsGameCardProps,
+    | "onCancel"
+    | "onPrimaryAction"
+    | "onOpenOptions"
+    | "optionsLabel"
+    | "primaryActionDisabled"
+    | "optionsDisabled"
+    | "primaryActionFocusId"
+    | "optionsFocusId"
+    | "primaryActionIcon"
+    | "primaryActionLabel"
+    | "variant"
+  >
 >) {
   const isLabeledPrimaryAction = variant === "completed";
   const defaultPrimaryActionIcon =

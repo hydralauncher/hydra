@@ -1108,7 +1108,7 @@ export class DownloadManager {
     }
     logger.warn("Cancelling orphaned download", downloadKey);
     await this.cancelDownload(downloadKey);
-    await this.processNextQueuedDownload();
+    this.scheduleNextQueuedDownload();
   }
 
   private static async processDownloadStatus(
@@ -1210,7 +1210,7 @@ export class DownloadManager {
 
     this.lastQueueRetry = now;
 
-    await this.processNextQueuedDownload();
+    this.scheduleNextQueuedDownload();
   }
 
   private static async haltDownloadIfStorageIsFull(
@@ -1282,7 +1282,7 @@ export class DownloadManager {
       );
     });
 
-    await this.processNextQueuedDownload();
+    this.scheduleNextQueuedDownload();
 
     return true;
   }
@@ -1345,7 +1345,7 @@ export class DownloadManager {
             error
           )
         );
-        await this.processNextQueuedDownload();
+        this.scheduleNextQueuedDownload();
       } finally {
         this.epicCompletions.delete(gameId);
       }
@@ -1371,14 +1371,21 @@ export class DownloadManager {
         download.folderName
       );
 
-      getDirectorySize(installerPath).then(async (installerSizeInBytes) => {
-        const currentGame = await gamesSublevel.get(gameId);
-        if (!currentGame) return;
+      getDirectorySize(installerPath)
+        .then(async (installerSizeInBytes) => {
+          const currentGame = await gamesSublevel.get(gameId);
+          if (!currentGame) return;
 
-        await updateGameRecord(gameId, {
-          installerSizeInBytes,
+          await updateGameRecord(gameId, {
+            installerSizeInBytes,
+          });
+        })
+        .catch((error) => {
+          logger.error(
+            "[DownloadManager] Failed to calculate installer size",
+            error
+          );
         });
-      });
     }
 
     if (download.automaticallyExtract) {
@@ -1405,7 +1412,7 @@ export class DownloadManager {
       void gameFilesManager.autoLinkClassicsDiscs();
     }
 
-    await this.processNextQueuedDownload();
+    this.scheduleNextQueuedDownload();
   }
 
   private static async updateDownloadStatus(
@@ -1571,6 +1578,12 @@ export class DownloadManager {
   private static async processNextQueuedDownload() {
     const { DownloadOrchestrator } = await import("../download-orchestrator");
     await DownloadOrchestrator.pumpDownloadQueue();
+  }
+
+  private static scheduleNextQueuedDownload() {
+    void this.processNextQueuedDownload().catch((error) => {
+      logger.error("[DownloadManager] Failed to pump download queue", error);
+    });
   }
 
   public static async shouldHoldQueuedDownload(nextItemOnQueue: Download) {
@@ -2549,173 +2562,224 @@ export class DownloadManager {
 
   private static async getDownloadPayload(download: Download) {
     const downloadId = levelKeys.game(download.shop, download.objectId);
+    const handlers = [
+      [
+        Downloader.Gofile,
+        async () => {
+          const { id, password } = this.parseGofileUri(download.uri);
+          if (!id) {
+            throw new Error("Invalid gofile URL");
+          }
 
-    switch (download.downloader) {
-      case Downloader.Gofile: {
-        const { id, password } = this.parseGofileUri(download.uri);
-        if (!id) {
-          throw new Error("Invalid gofile URL");
-        }
-
-        const { url, headers } = await this.resolveGofileDownload(id, password);
-        const payload = {
-          action: "start" as const,
-          game_id: downloadId,
-          url,
-          save_path: download.downloadPath,
-          allow_multiple_connections: true,
-          connections_limit: 8,
-        };
-
-        if (headers?.Cookie) {
-          return {
-            ...payload,
-            header: `Cookie: ${headers.Cookie}`,
+          const { url, headers } = await this.resolveGofileDownload(
+            id,
+            password
+          );
+          const payload = {
+            action: "start" as const,
+            game_id: downloadId,
+            url,
+            save_path: download.downloadPath,
+            allow_multiple_connections: true,
+            connections_limit: 8,
           };
-        }
 
-        return payload;
-      }
-      case Downloader.PixelDrain: {
-        const downloadUrl = await PixelDrainApi.unlock(download.uri);
+          if (headers?.Cookie) {
+            return {
+              ...payload,
+              header: `Cookie: ${headers.Cookie}`,
+            };
+          }
 
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: downloadUrl,
-          save_path: download.downloadPath,
-        };
-      }
-      case Downloader.Datanodes: {
-        const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri);
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: downloadUrl,
-          save_path: download.downloadPath,
-        };
-      }
-      case Downloader.FuckingFast: {
-        logger.log(
-          `[DownloadManager] Processing FuckingFast download for URI: ${download.uri}`
-        );
-        try {
-          const directUrl = await FuckingFastApi.getDirectLink(download.uri);
-          logger.log(`[DownloadManager] FuckingFast direct URL obtained`);
+          return payload;
+        },
+      ],
+      [
+        Downloader.PixelDrain,
+        async () => {
+          const downloadUrl = await PixelDrainApi.unlock(download.uri);
+
+          return {
+            action: "start",
+            game_id: downloadId,
+            url: downloadUrl,
+            save_path: download.downloadPath,
+          };
+        },
+      ],
+      [
+        Downloader.Datanodes,
+        async () => {
+          const downloadUrl = await DatanodesApi.getDownloadUrl(download.uri);
+          return {
+            action: "start",
+            game_id: downloadId,
+            url: downloadUrl,
+            save_path: download.downloadPath,
+          };
+        },
+      ],
+      [
+        Downloader.FuckingFast,
+        async () => {
+          logger.log(
+            `[DownloadManager] Processing FuckingFast download for URI: ${download.uri}`
+          );
+          try {
+            const directUrl = await FuckingFastApi.getDirectLink(download.uri);
+            logger.log(`[DownloadManager] FuckingFast direct URL obtained`);
+            return this.createDownloadPayload(
+              directUrl,
+              download.uri,
+              downloadId,
+              download.downloadPath
+            );
+          } catch (error) {
+            logger.error(
+              `[DownloadManager] Error processing FuckingFast download:`,
+              error
+            );
+            throw error;
+          }
+        },
+      ],
+      [
+        Downloader.Mediafire,
+        async () => {
+          const downloadUrl = await MediafireApi.getDownloadUrl(download.uri);
+          return {
+            action: "start",
+            game_id: downloadId,
+            url: downloadUrl,
+            save_path: download.downloadPath,
+          };
+        },
+      ],
+      [
+        Downloader.Torrent,
+        () => {
+          const hasSelectedFileIndices =
+            Array.isArray(download.fileIndices) &&
+            download.fileIndices.length > 0;
+
+          return {
+            action: "start",
+            game_id: downloadId,
+            url: download.uri,
+            save_path: download.downloadPath,
+            file_indices: hasSelectedFileIndices
+              ? download.fileIndices
+              : undefined,
+            metadata_timeout_ms: hasSelectedFileIndices
+              ? SELECTIVE_TORRENT_METADATA_TIMEOUT_MS
+              : undefined,
+            trackers: download.customTrackers,
+          };
+        },
+      ],
+      [
+        Downloader.RealDebrid,
+        async () => {
+          const downloadUrl = await RealDebridClient.getDownloadUrl(
+            download.uri
+          );
+          if (!downloadUrl)
+            throw new Error(DownloadError.NotCachedOnRealDebrid);
+
+          return {
+            action: "start",
+            game_id: downloadId,
+            url: downloadUrl,
+            save_path: download.downloadPath,
+            allow_multiple_connections: true,
+          };
+        },
+      ],
+      [
+        Downloader.Premiumize,
+        async () => {
+          const downloadUrl = await PremiumizeClient.getDownloadUrl(
+            download.uri
+          );
+          if (!downloadUrl)
+            throw new Error(DownloadError.NotCachedOnPremiumize);
+
+          return {
+            action: "start",
+            game_id: downloadId,
+            url: downloadUrl,
+            save_path: download.downloadPath,
+            allow_multiple_connections: true,
+          };
+        },
+      ],
+      [
+        Downloader.AllDebrid,
+        async () => {
+          const downloadInfo = await AllDebridClient.getDownloadInfo(
+            download.uri
+          );
+          if (!downloadInfo?.url)
+            throw new Error(DownloadError.NotCachedOnAllDebrid);
+
+          const filename = downloadInfo.filename
+            ? this.sanitizeRelativePath(downloadInfo.filename)
+            : undefined;
+          return {
+            action: "start",
+            game_id: downloadId,
+            url: downloadInfo.url,
+            save_path: download.downloadPath,
+            out: filename,
+            allow_multiple_connections: true,
+          };
+        },
+      ],
+      [
+        Downloader.TorBox,
+        () => {
+          throw new Error("TorBox folders require the HTTP download manager.");
+        },
+      ],
+      [
+        Downloader.Hydra,
+        () => {
+          throw new Error(DownloadError.NotCachedOnHydra);
+        },
+      ],
+      [
+        Downloader.VikingFile,
+        async () => {
+          logger.log(
+            `[DownloadManager] Processing VikingFile download for URI: ${download.uri}`
+          );
+          const downloadUrl = await VikingFileApi.getDownloadUrl(download.uri);
           return this.createDownloadPayload(
-            directUrl,
+            downloadUrl,
             download.uri,
             downloadId,
             download.downloadPath
           );
-        } catch (error) {
-          logger.error(
-            `[DownloadManager] Error processing FuckingFast download:`,
-            error
-          );
-          throw error;
-        }
-      }
-      case Downloader.Mediafire: {
-        const downloadUrl = await MediafireApi.getDownloadUrl(download.uri);
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: downloadUrl,
-          save_path: download.downloadPath,
-        };
-      }
-      case Downloader.Torrent: {
-        const hasSelectedFileIndices =
-          Array.isArray(download.fileIndices) &&
-          download.fileIndices.length > 0;
+        },
+      ],
+      [
+        Downloader.Rootz,
+        async () => {
+          const downloadUrl = await RootzApi.getDownloadUrl(download.uri);
+          return {
+            action: "start",
+            game_id: downloadId,
+            url: downloadUrl,
+            save_path: download.downloadPath,
+          };
+        },
+      ],
+    ] as const;
 
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: download.uri,
-          save_path: download.downloadPath,
-          file_indices: hasSelectedFileIndices
-            ? download.fileIndices
-            : undefined,
-          metadata_timeout_ms: hasSelectedFileIndices
-            ? SELECTIVE_TORRENT_METADATA_TIMEOUT_MS
-            : undefined,
-          trackers: download.customTrackers,
-        };
-      }
-      case Downloader.RealDebrid: {
-        const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
-        if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
-
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: downloadUrl,
-          save_path: download.downloadPath,
-          allow_multiple_connections: true,
-        };
-      }
-      case Downloader.Premiumize: {
-        const downloadUrl = await PremiumizeClient.getDownloadUrl(download.uri);
-        if (!downloadUrl) throw new Error(DownloadError.NotCachedOnPremiumize);
-
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: downloadUrl,
-          save_path: download.downloadPath,
-          allow_multiple_connections: true,
-        };
-      }
-      case Downloader.AllDebrid: {
-        const downloadInfo = await AllDebridClient.getDownloadInfo(
-          download.uri
-        );
-        if (!downloadInfo?.url)
-          throw new Error(DownloadError.NotCachedOnAllDebrid);
-
-        const filename = downloadInfo.filename
-          ? this.sanitizeRelativePath(downloadInfo.filename)
-          : undefined;
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: downloadInfo.url,
-          save_path: download.downloadPath,
-          out: filename,
-          allow_multiple_connections: true,
-        };
-      }
-      case Downloader.TorBox:
-        throw new Error("TorBox folders require the HTTP download manager.");
-      case Downloader.Hydra: {
-        throw new Error(DownloadError.NotCachedOnHydra);
-      }
-      case Downloader.VikingFile: {
-        logger.log(
-          `[DownloadManager] Processing VikingFile download for URI: ${download.uri}`
-        );
-        const downloadUrl = await VikingFileApi.getDownloadUrl(download.uri);
-        return this.createDownloadPayload(
-          downloadUrl,
-          download.uri,
-          downloadId,
-          download.downloadPath
-        );
-      }
-      case Downloader.Rootz: {
-        const downloadUrl = await RootzApi.getDownloadUrl(download.uri);
-        return {
-          action: "start",
-          game_id: downloadId,
-          url: downloadUrl,
-          save_path: download.downloadPath,
-        };
-      }
-      default:
-        return undefined;
-    }
+    const handler = handlers.find(
+      ([downloader]) => downloader === download.downloader
+    )?.[1];
+    return handler?.();
   }
 
   static async validateDownloadUrl(
@@ -3446,126 +3510,147 @@ export class DownloadManager {
     }
   }
 
+  private static async startHttpSession(
+    download: Download,
+    downloadId: string,
+    externalSignal?: AbortSignal
+  ) {
+    const previousSession = this.getSession(downloadId);
+    if (previousSession) {
+      previousSession.preparationController.abort();
+      if (previousSession.downloader) {
+        previousSession.downloader.pauseDownload();
+        await previousSession.downloader.waitForIdle();
+        previousSession.downloader.cancelDownload();
+      }
+      this.clearSession(downloadId, previousSession);
+    }
+
+    const preparationController = new AbortController();
+    const session = this.createSession(downloadId, preparationController);
+    const signal = externalSignal
+      ? AbortSignal.any([externalSignal, preparationController.signal])
+      : preparationController.signal;
+
+    await this.startHttpDownload(
+      download,
+      downloadId,
+      session.generation,
+      signal
+    );
+    this.scheduleBandwidthRebalance(true);
+  }
+
+  private static async startEpicSession(
+    download: Download,
+    downloadId: string,
+    externalSignal?: AbortSignal
+  ) {
+    const previousSession = this.getSession(downloadId);
+    if (previousSession) {
+      previousSession.preparationController.abort();
+      if (previousSession.epic) await getEpicDownloadService().stop(downloadId);
+      else if (previousSession.downloader) {
+        previousSession.downloader.pauseDownload();
+        await previousSession.downloader.waitForIdle();
+        previousSession.downloader.cancelDownload();
+      }
+      this.clearSession(downloadId, previousSession);
+    }
+
+    const preparationController = new AbortController();
+    const session = this.createSession(downloadId, preparationController);
+    session.epic = true;
+    const signal = externalSignal
+      ? AbortSignal.any([externalSignal, preparationController.signal])
+      : preparationController.signal;
+
+    try {
+      await getEpicDownloadService().startRuntime(
+        download,
+        (error) => {
+          if (
+            this.sessions.get(downloadId) !== session ||
+            session.generation !== this.sessionGenerations.get(downloadId) ||
+            session.preparationController.signal.aborted
+          )
+            return;
+          void this.handleRuntimeDownloadError(
+            downloadId,
+            error,
+            session.generation
+          ).catch((error_) =>
+            logger.error(
+              "[DownloadManager] Failed to handle Epic download error",
+              error_
+            )
+          );
+        },
+        () => this.sessions.get(downloadId) === session && !signal.aborted
+      );
+      if (this.sessions.get(downloadId) === session && !signal.aborted)
+        session.isPreparing = false;
+    } catch (error) {
+      if (this.sessions.get(downloadId) === session) {
+        await getEpicDownloadService().stop(downloadId);
+        const current = await downloadsSublevel.get(downloadId);
+        if (
+          current?.downloader === Downloader.Epic &&
+          current.timestamp === download.timestamp &&
+          current.epic
+        ) {
+          await this.persistDownloadRecord(downloadId, {
+            ...current,
+            status: "paused",
+            queued: false,
+            pinnedToHero: false,
+            epic: { ...current.epic, error: epicManagedErrorCode(error) },
+          });
+          WindowManager.sendDownloadsUpdated();
+        }
+        this.clearSession(downloadId, session);
+      }
+      throw error;
+    }
+  }
+
+  private static async startTorrentDownload(
+    download: Download,
+    downloadId: string
+  ) {
+    const previousSession = this.getSession(downloadId);
+    if (previousSession) {
+      previousSession.preparationController.abort();
+      await TorrentService.call("action", {
+        action: "cancel",
+        game_id: downloadId,
+      });
+      this.clearSession(downloadId, previousSession);
+    }
+    const session = this.createSession(downloadId, new AbortController());
+    session.torrent = true;
+    await this.startTorrentSession(download, downloadId, session);
+    this.scheduleBandwidthRebalance(true);
+  }
+
   static async startDownload(download: Download, externalSignal?: AbortSignal) {
     externalSignal?.throwIfAborted();
-    const isHttp = this.isHttpDownloader(download.downloader);
     const downloadId = levelKeys.game(download.shop, download.objectId);
 
     this.queueHeldForDiskSpace = false;
 
-    if (isHttp) {
-      const previousSession = this.getSession(downloadId);
-      if (previousSession) {
-        previousSession.preparationController.abort();
-        if (previousSession.downloader) {
-          previousSession.downloader.pauseDownload();
-          await previousSession.downloader.waitForIdle();
-          previousSession.downloader.cancelDownload();
-        }
-        this.clearSession(downloadId, previousSession);
-      }
-
-      const preparationController = new AbortController();
-      const session = this.createSession(downloadId, preparationController);
-      const signal = externalSignal
-        ? AbortSignal.any([externalSignal, preparationController.signal])
-        : preparationController.signal;
-
-      await this.startHttpDownload(
-        download,
-        downloadId,
-        session.generation,
-        signal
-      );
-      this.scheduleBandwidthRebalance(true);
+    if (this.isHttpDownloader(download.downloader)) {
+      await this.startHttpSession(download, downloadId, externalSignal);
       return;
     }
 
     if (download.downloader === Downloader.Epic) {
-      const previousSession = this.getSession(downloadId);
-      if (previousSession) {
-        previousSession.preparationController.abort();
-        if (previousSession.epic)
-          await getEpicDownloadService().stop(downloadId);
-        else if (previousSession.downloader) {
-          previousSession.downloader.pauseDownload();
-          await previousSession.downloader.waitForIdle();
-          previousSession.downloader.cancelDownload();
-        }
-        this.clearSession(downloadId, previousSession);
-      }
-
-      const preparationController = new AbortController();
-      const session = this.createSession(downloadId, preparationController);
-      session.epic = true;
-      const signal = externalSignal
-        ? AbortSignal.any([externalSignal, preparationController.signal])
-        : preparationController.signal;
-
-      try {
-        await getEpicDownloadService().startRuntime(
-          download,
-          (error) => {
-            if (
-              this.sessions.get(downloadId) !== session ||
-              session.generation !== this.sessionGenerations.get(downloadId) ||
-              session.preparationController.signal.aborted
-            )
-              return;
-            void this.handleRuntimeDownloadError(
-              downloadId,
-              error,
-              session.generation
-            ).catch((failure) =>
-              logger.error(
-                "[DownloadManager] Failed to handle Epic download error",
-                failure
-              )
-            );
-          },
-          () => this.sessions.get(downloadId) === session && !signal.aborted
-        );
-        if (this.sessions.get(downloadId) === session && !signal.aborted)
-          session.isPreparing = false;
-      } catch (error) {
-        if (this.sessions.get(downloadId) === session) {
-          await getEpicDownloadService().stop(downloadId);
-          const current = await downloadsSublevel.get(downloadId);
-          if (
-            current?.downloader === Downloader.Epic &&
-            current.timestamp === download.timestamp &&
-            current.epic
-          ) {
-            await this.persistDownloadRecord(downloadId, {
-              ...current,
-              status: "paused",
-              queued: false,
-              pinnedToHero: false,
-              epic: { ...current.epic, error: epicManagedErrorCode(error) },
-            });
-            WindowManager.sendDownloadsUpdated();
-          }
-          this.clearSession(downloadId, session);
-        }
-        throw error;
-      }
+      await this.startEpicSession(download, downloadId, externalSignal);
       return;
     }
 
     if (download.downloader === Downloader.Torrent) {
-      const previousSession = this.getSession(downloadId);
-      if (previousSession) {
-        previousSession.preparationController.abort();
-        await TorrentService.call("action", {
-          action: "cancel",
-          game_id: downloadId,
-        });
-        this.clearSession(downloadId, previousSession);
-      }
-      const session = this.createSession(downloadId, new AbortController());
-      session.torrent = true;
-      await this.startTorrentSession(download, downloadId, session);
-      this.scheduleBandwidthRebalance(true);
+      await this.startTorrentDownload(download, downloadId);
       return;
     }
 

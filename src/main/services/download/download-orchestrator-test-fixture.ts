@@ -72,6 +72,20 @@ export const http = (objectId: string): Download => ({
 export const settle = () =>
   new Promise<void>((resolve) => setImmediate(resolve));
 
+export async function waitFor(condition: () => boolean) {
+  const deadline = Date.now() + 1000;
+  const check = async (): Promise<void> => {
+    if (condition()) return;
+    assert.ok(
+      Date.now() < deadline,
+      "Timed out waiting for scheduled download work"
+    );
+    await settle();
+    return check();
+  };
+  await check();
+}
+
 /** Exercise the production manager/orchestrator; replace only external I/O ports. */
 export function fixture() {
   const downloads = new Map<string, Download>();
