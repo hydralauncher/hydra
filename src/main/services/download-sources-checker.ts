@@ -1,3 +1,5 @@
+import { chunk } from "lodash-es";
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { HydraApi } from "./hydra-api";
 import {
   gamesSublevel,
@@ -19,6 +21,8 @@ interface DownloadSourcesChangeResponse {
   downloadSourceIds: string[];
 }
 
+const DOWNLOAD_SOURCES_CHANGES_API_MAX_GAMES = 1000;
+
 export class DownloadSourcesChecker {
   private static async clearStaleBadges(
     nonCustomGames: Game[]
@@ -34,8 +38,7 @@ export class DownloadSourcesChecker {
         `Clearing stale newDownloadOptionsCount for ${previouslyFlaggedGames.length} games`
       );
       for (const game of previouslyFlaggedGames) {
-        await gamesSublevel.put(`${game.shop}:${game.objectId}`, {
-          ...game,
+        await updateGameRecord(`${game.shop}:${game.objectId}`, {
           newDownloadOptionsCount: undefined,
         });
         clearedPayload.push({
@@ -66,8 +69,7 @@ export class DownloadSourcesChecker {
         );
 
         if (game) {
-          await gamesSublevel.put(`${game.shop}:${game.objectId}`, {
-            ...game,
+          await updateGameRecord(`${game.shop}:${game.objectId}`, {
             newDownloadOptionsCount: gameUpdate.newDownloadOptionsCount,
           });
 
@@ -80,6 +82,36 @@ export class DownloadSourcesChecker {
     }
 
     return gamesWithNewOptions;
+  }
+
+  private static async requestChangesInChunks(
+    downloadSourceIds: string[],
+    gamesChunks: { shop: string; objectId: string }[][],
+    since: string
+  ): Promise<{
+    responses: DownloadSourcesChangeResponse[];
+    allChunksSucceeded: boolean;
+  }> {
+    const responses: DownloadSourcesChangeResponse[] = [];
+
+    for (const [chunkIndex, gamesChunk] of gamesChunks.entries()) {
+      try {
+        const chunkResponse = await HydraApi.checkDownloadSourcesChanges(
+          downloadSourceIds,
+          gamesChunk,
+          since
+        );
+        if (Array.isArray(chunkResponse)) responses.push(...chunkResponse);
+      } catch (error) {
+        logger.error(
+          `Failed to check download sources changes for chunk ${chunkIndex + 1} of ${gamesChunks.length}, keeping the baseline:`,
+          error
+        );
+        return { responses, allChunksSucceeded: false };
+      }
+    }
+
+    return { responses, allChunksSucceeded: true };
   }
 
   private static sendNewDownloadOptionsEvent(
@@ -163,40 +195,50 @@ export class DownloadSourcesChecker {
       logger.info(
         `Checking download sources changes for ${games.length} non-custom games since ${since}`
       );
+      const gamesChunks = chunk(games, DOWNLOAD_SOURCES_CHANGES_API_MAX_GAMES);
+
       logger.info(
-        `Making API call to HydraApi.checkDownloadSourcesChanges with:`,
+        `Making ${gamesChunks.length} sequential API calls to HydraApi.checkDownloadSourcesChanges with:`,
         {
           downloadSourceIds,
           gamesCount: games.length,
+          chunksCount: gamesChunks.length,
           since,
         }
       );
 
-      const response = await HydraApi.checkDownloadSourcesChanges(
-        downloadSourceIds,
-        games,
-        since
-      );
+      const { responses, allChunksSucceeded } =
+        await this.requestChangesInChunks(
+          downloadSourceIds,
+          gamesChunks,
+          since
+        );
 
-      logger.info("API call completed, response:", response);
+      logger.info("API calls completed, responses:", responses);
 
       await updateDownloadSourcesSinceValue(since);
       logger.info(`Saved 'since' value: ${since} (for modal comparison)`);
 
-      const now = new Date().toISOString();
-      await updateDownloadSourcesCheckBaseline(now);
-      logger.info(
-        `Updated baseline to: ${now} (will be 'since' on next app start)`
-      );
+      if (allChunksSucceeded) {
+        const now = new Date().toISOString();
+        await updateDownloadSourcesCheckBaseline(now);
+        logger.info(
+          `Updated baseline to: ${now} (will be 'since' on next app start)`
+        );
+      }
 
       const gamesWithNewOptions = await this.processApiResponse(
-        response,
+        responses,
         nonCustomGames
       );
 
       this.sendNewDownloadOptionsEvent(clearedPayload, gamesWithNewOptions);
 
-      logger.info("Download sources check completed successfully");
+      logger.info(
+        allChunksSucceeded
+          ? "Download sources check completed successfully"
+          : "Download sources check completed partially, will retry from the same baseline on next start"
+      );
     } catch (error) {
       logger.error("Failed to check download sources changes:", error);
     }

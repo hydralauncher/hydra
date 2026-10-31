@@ -23,7 +23,7 @@ import { CloudSaveWidget } from "./cloud-save-v2";
 import { getCloudSaveVisibility } from "./cloud-save-visibility";
 import { SimilarGames } from "./similar-games/similar-games";
 
-import { AuthPage } from "@shared";
+import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
@@ -83,6 +83,8 @@ export function GameDetailsContent() {
     objectId,
     shopDetails,
     game,
+    presentation,
+    catalogueGame,
     hasNSFWContentBlocked,
     shop,
     setShowGameOptionsModal,
@@ -93,7 +95,9 @@ export function GameDetailsContent() {
   const { library } = useLibrary();
 
   const { getGameArtifacts } = useContext(cloudSyncContext);
-  const cloudSaveVisibility = game ? getCloudSaveVisibility(game.shop) : null;
+  const cloudSaveVisibility = game
+    ? getCloudSaveVisibility(game.shop, game.platform)
+    : null;
 
   const aboutTheGame = useMemo(() => {
     const aboutTheGame = shopDetails?.about_the_game;
@@ -139,7 +143,11 @@ export function GameDetailsContent() {
   const { showPrompt, dismissPrompt } = useReviewPrompt({
     shop,
     objectId,
-    playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
+    playTimeInMilliseconds: getDisplayedPlayTimeInMilliseconds({
+      playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
+      steamPlayTimeInMilliseconds: game?.steamPlayTimeInMilliseconds,
+      epicPlayTimeInMilliseconds: game?.epicPlayTimeInMilliseconds,
+    }),
     userDetailsId: userDetails?.id,
     isGameInLibrary,
     hasUserReviewed,
@@ -230,7 +238,7 @@ export function GameDetailsContent() {
   const heroImage = isCustomGame
     ? game?.libraryHeroImageUrl || game?.iconUrl || ""
     : getImageWithCustomPriority(
-        game?.customHeroImageUrl,
+        (presentation ?? game)?.customHeroImageUrl,
         shopDetails?.assets?.libraryHeroImageUrl
       );
 
@@ -413,7 +421,10 @@ export function GameDetailsContent() {
             <div className="game-details__hero-content">
               {!renderClassicsHero && (
                 <div className="game-details__hero-standard-meta">
-                  <GameLogo game={game} shopDetails={shopDetails} />
+                  <GameLogo
+                    game={presentation ?? game}
+                    shopDetails={shopDetails}
+                  />
                   {classicsChips}
                 </div>
               )}
@@ -472,6 +483,12 @@ export function GameDetailsContent() {
 
             <GallerySlider />
 
+            {shopDetails?.about_the_game && (
+              <h2 className="game-details__description-title">
+                {t("about_this_game")}
+              </h2>
+            )}
+
             <div
               ref={descriptionRef}
               dangerouslySetInnerHTML={{
@@ -497,7 +514,10 @@ export function GameDetailsContent() {
             )}
 
             {shop && objectId && (
-              <SimilarGames objectId={objectId} shop={shop} />
+              <SimilarGames
+                objectId={catalogueGame.objectId}
+                shop={catalogueGame.shop}
+              />
             )}
 
             {shop !== "custom" && shop && objectId && (

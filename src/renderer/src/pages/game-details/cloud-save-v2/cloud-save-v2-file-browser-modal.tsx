@@ -38,6 +38,11 @@ import {
   getCloudSaveOperationPresentation,
   hasCloudSaveDataToDelete,
 } from "./cloud-save-presentation";
+import { CloudSaveCustomPathApprovalModal } from "./cloud-save-custom-path-approval-modal";
+
+type EmulatorDestination = NonNullable<
+  CloudSaveV2FileDetails["emulatorDestinations"]
+>[number];
 
 const getCustomPathSelectionError = (error: unknown) => {
   const message = error instanceof Error ? error.message : "";
@@ -312,13 +317,39 @@ export function CloudSaveV2FileBrowserModal({
   const [removingCustomPath, setRemovingCustomPath] = useState<string | null>(
     null
   );
+  const [bindingEmulatorDestination, setBindingEmulatorDestination] = useState<
+    string | null
+  >(null);
+  const [pendingEmulatorDestination, setPendingEmulatorDestination] =
+    useState<EmulatorDestination | null>(null);
+  const [selectedEmulatorPath, setSelectedEmulatorPath] = useState<
+    string | null
+  >(null);
+  const [isSelectingEmulatorDestination, setIsSelectingEmulatorDestination] =
+    useState(false);
+  const [isConfirmingEmulatorDestination, setIsConfirmingEmulatorDestination] =
+    useState(false);
+  const [didAttemptEmulatorSync, setDidAttemptEmulatorSync] = useState(false);
   const [pendingCustomPathRemoval, setPendingCustomPathRemoval] = useState<
     string | null
   >(null);
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] =
     useState(false);
   const [isDeletingCloudSave, setIsDeletingCloudSave] = useState(false);
+  useEffect(() => {
+    setPendingEmulatorDestination(null);
+    setSelectedEmulatorPath(null);
+    setDidAttemptEmulatorSync(false);
+  }, [visible, objectId, shop]);
   const isConflict = details?.state === "conflict";
+  const pendingEmulatorDestinations =
+    details?.emulatorDestinations?.filter(
+      (destination) => destination.status !== "bound"
+    ) ?? [];
+  const boundEmulatorDestinations =
+    details?.emulatorDestinations?.filter(
+      (destination) => destination.status === "bound"
+    ) ?? [];
   const titleIsConflict = isConflict || overviewState === "conflict";
   const visibleComparisons = useMemo(
     () =>
@@ -468,6 +499,122 @@ export function CloudSaveV2FileBrowserModal({
     }
   };
 
+  const handleSelectEmulatorDestination = async () => {
+    const destination = pendingEmulatorDestination;
+    if (!destination || bindingEmulatorDestination !== null) return;
+    const { rawPath, kind } = destination;
+    setBindingEmulatorDestination(JSON.stringify([rawPath, kind]));
+    setIsSelectingEmulatorDestination(true);
+    try {
+      const result = await window.electron.selectEmulatorDestination(
+        objectId,
+        shop,
+        rawPath,
+        kind
+      );
+      if (result.canceled) return;
+      setSelectedEmulatorPath(destination.pathHint);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      showErrorToast(
+        t("cloud_save_v2_emulator_destination_error_title"),
+        t(
+          message.includes("config_mismatch") ||
+            message.includes("config_unavailable")
+            ? "cloud_save_v2_emulator_destination_config_error"
+            : "cloud_save_v2_emulator_destination_error"
+        )
+      );
+    } finally {
+      setIsSelectingEmulatorDestination(false);
+      setBindingEmulatorDestination(null);
+    }
+  };
+
+  const handleConfirmEmulatorDestination = async () => {
+    const destination = pendingEmulatorDestination;
+    if (!destination || !selectedEmulatorPath || bindingEmulatorDestination) {
+      return;
+    }
+    setBindingEmulatorDestination(
+      JSON.stringify([destination.rawPath, destination.kind])
+    );
+    setIsConfirmingEmulatorDestination(true);
+    setDidAttemptEmulatorSync(true);
+    try {
+      const syncResult = await onSyncAfterCustomPathAdded();
+      if (syncResult.finalState === "conflict") {
+        throw new Error("cloud_save_emulator_destination_sync_conflict");
+      }
+      await onRetry();
+      if (syncResult.finalState !== "synced") {
+        showErrorToast(
+          t("cloud_save_v2_partial"),
+          t("cloud_save_v2_partial_unresolved_description")
+        );
+        return;
+      }
+      setPendingEmulatorDestination(null);
+      setSelectedEmulatorPath(null);
+      setDidAttemptEmulatorSync(false);
+      showSuccessToast(t("cloud_save_v2_emulator_destination_linked"));
+    } catch {
+      showErrorToast(t("cloud_save_v2_emulator_destination_error_title"));
+    } finally {
+      setIsConfirmingEmulatorDestination(false);
+      setBindingEmulatorDestination(null);
+    }
+  };
+
+  const handleCloseEmulatorDestination = async () => {
+    if (bindingEmulatorDestination !== null) return;
+    const destination = pendingEmulatorDestination;
+    const wasBoundHere =
+      selectedEmulatorPath !== null && !didAttemptEmulatorSync;
+    setPendingEmulatorDestination(null);
+    setSelectedEmulatorPath(null);
+    setDidAttemptEmulatorSync(false);
+    if (!destination || !wasBoundHere) return;
+
+    setBindingEmulatorDestination(
+      JSON.stringify([destination.rawPath, destination.kind])
+    );
+    try {
+      await window.electron.removeEmulatorDestination(
+        objectId,
+        shop,
+        destination.rawPath,
+        destination.kind
+      );
+      await onRetry();
+    } catch {
+      showErrorToast(t("cloud_save_v2_emulator_destination_error_title"));
+    } finally {
+      setBindingEmulatorDestination(null);
+    }
+  };
+
+  const handleRemoveEmulatorDestination = async (
+    rawPath: string,
+    kind: "save" | "state"
+  ) => {
+    setBindingEmulatorDestination(JSON.stringify([rawPath, kind]));
+    try {
+      await window.electron.removeEmulatorDestination(
+        objectId,
+        shop,
+        rawPath,
+        kind
+      );
+      await onRetry();
+      showSuccessToast(t("cloud_save_v2_emulator_destination_removed"));
+    } catch {
+      showErrorToast(t("cloud_save_v2_emulator_destination_error_title"));
+    } finally {
+      setBindingEmulatorDestination(null);
+    }
+  };
+
   const handleDeleteCloudSave = async () => {
     if (isDeletingCloudSave || !hasSaveData) return;
 
@@ -500,7 +647,8 @@ export function CloudSaveV2FileBrowserModal({
     getCloudSaveFileBrowserOperationPolicy({
       isAddingCustomPath,
       isRebindingCustomPath: rebindingCustomPath !== null,
-      isRemovingCustomPath: removingCustomPath !== null,
+      isRemovingCustomPath:
+        removingCustomPath !== null || bindingEmulatorDestination !== null,
       isDeletingCloudSave,
       isLoading,
       isGameRunning,
@@ -581,6 +729,70 @@ export function CloudSaveV2FileBrowserModal({
 
           {details && (
             <>
+              {pendingEmulatorDestinations.length > 0 && (
+                <div className="cloud-save-v2__browser-inline-error">
+                  <WarningCircleIcon size={16} />
+                  <div>
+                    <strong>
+                      {t("cloud_save_v2_unresolved_custom_path_name")}
+                    </strong>
+                    <p>{t("cloud_save_v2_partial_unresolved_description")}</p>
+                    {pendingEmulatorDestinations.map((destination) => (
+                      <Button
+                        key={JSON.stringify([
+                          destination.rawPath,
+                          destination.kind,
+                        ])}
+                        theme="outline"
+                        disabled={actionsAreDisabled}
+                        onClick={() => {
+                          setSelectedEmulatorPath(null);
+                          setDidAttemptEmulatorSync(false);
+                          setPendingEmulatorDestination(destination);
+                        }}
+                      >
+                        {t(
+                          destination.kind === "state"
+                            ? "cloud_save_v2_emulator_destination_states"
+                            : "cloud_save_v2_emulator_destination_saves"
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {boundEmulatorDestinations.length > 0 && (
+                <div className="cloud-save-v2__card-sources">
+                  <strong>
+                    {t("cloud_save_v2_emulator_destinations_title")}
+                  </strong>
+                  {boundEmulatorDestinations.map((destination) => (
+                    <div
+                      key={JSON.stringify([
+                        destination.rawPath,
+                        destination.kind,
+                      ])}
+                      className="cloud-save-v2__card-source"
+                    >
+                      <span title={destination.selectedPath ?? undefined}>
+                        {destination.selectedPath}
+                      </span>
+                      <Button
+                        theme="outline"
+                        disabled={actionsAreDisabled}
+                        onClick={() =>
+                          void handleRemoveEmulatorDestination(
+                            destination.rawPath,
+                            destination.kind
+                          )
+                        }
+                      >
+                        {t("remove")}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
               {(activeOperation ||
                 isConflict ||
                 localRoots.length > 0 ||
@@ -704,6 +916,17 @@ export function CloudSaveV2FileBrowserModal({
           )}
         </div>
       </Modal>
+
+      <CloudSaveCustomPathApprovalModal
+        approval={null}
+        emulatorDestination={pendingEmulatorDestination}
+        selectedEmulatorPath={selectedEmulatorPath}
+        isSelecting={isSelectingEmulatorDestination}
+        isConfirming={isConfirmingEmulatorDestination}
+        onSelectPath={() => void handleSelectEmulatorDestination()}
+        onConfirm={() => void handleConfirmEmulatorDestination()}
+        onClose={() => void handleCloseEmulatorDestination()}
+      />
 
       <ConfirmationModal
         visible={pendingCustomPathRemoval !== null}

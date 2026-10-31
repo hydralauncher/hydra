@@ -63,7 +63,7 @@ export function SouvenirReportModal({
       onClose={onClose}
       closeOnBackdrop={!isSubmitting}
       closeOnEscape={!isSubmitting}
-      closeOnB={!isSubmitting}
+      busy={isSubmitting}
       initialFocusId={REPORT_REASON_FOCUS_ID}
       className="big-picture-souvenir-report-modal"
       backdropClassName="big-picture-souvenir-report-modal__backdrop"

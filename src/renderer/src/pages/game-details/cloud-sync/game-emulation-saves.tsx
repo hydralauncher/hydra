@@ -14,7 +14,7 @@ import {
   UploadIcon,
 } from "@primer/octicons-react";
 
-import { Button, ConfirmationModal } from "@renderer/components";
+import { Button, ConfirmationModal, GuideLink } from "@renderer/components";
 import {
   getEmulationSaveMetadataSku,
   getSkuRegion,
@@ -37,7 +37,6 @@ import {
   formatDate,
 } from "../../settings/emulation/emulation-save-modals";
 import { getLocalSaveDeviceLabel } from "./game-emulation-save-presentation";
-import { WiiSavesGuideButton } from "../../settings/emulation/wii-saves-guide-button";
 
 import "./game-emulation-saves.scss";
 
@@ -177,8 +176,19 @@ export function GameEmulationSaves({
       <div className="game-emulation-saves__header">
         <div className="game-emulation-saves__header-text">
           <div className="game-emulation-saves__header-title-row">
-            <h2>{t("cloud_saves_section_title")}</h2>
-            {platform === "wii" && <WiiSavesGuideButton />}
+            <h2>
+              {platform === "wii" ? (
+                <GuideLink
+                  article="wii-saves"
+                  iconSize={16}
+                  title={t("wii_saves_guide")}
+                >
+                  {t("cloud_saves_section_title")}
+                </GuideLink>
+              ) : (
+                t("cloud_saves_section_title")
+              )}
+            </h2>
           </div>
           <p>{t("cloud_saves_section_description")}</p>
         </div>

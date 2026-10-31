@@ -38,11 +38,14 @@ import Achievements from "./pages/achievements/achievements";
 import ThemeEditor from "./pages/theme-editor/theme-editor";
 import Library from "./pages/library/library";
 import Notifications from "./pages/notifications/notifications";
+import Leaderboards from "./pages/leaderboards/leaderboards";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 import { AchievementNotificationOverlay } from "./components/achievements/notification/achievement-notification-overlay";
 import GameLauncher from "./pages/game-launcher/game-launcher";
 import FriendsWindow from "./pages/friends-window/friends-window";
+import ChatWindow from "./pages/chat-window/chat-window";
 import AuthWindow from "./pages/auth-window/auth-window";
+import RetroAchievementsConnectionWindow from "./pages/retroachievements-connection-window/retroachievements-connection-window";
 import BigPictureApp from "../../big-picture/src/app";
 import BigPictureCatalogue from "../../big-picture/src/pages/catalogue/catalogue";
 import BigPictureComponentLab from "../../big-picture/src/pages/component-lab/component-lab";
@@ -146,6 +149,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                   <Route path="/profile/:userId" element={<Profile />} />
                   <Route path="/achievements" element={<Achievements />} />
                   <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/leaderboards" element={<Leaderboards />} />
                 </Route>
 
                 <Route path="/theme-editor" element={<ThemeEditor />} />
@@ -155,7 +159,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 />
                 <Route path="/game-launcher" element={<GameLauncher />} />
                 <Route path="/friends-window" element={<FriendsWindow />} />
+                <Route path="/chat-window" element={<ChatWindow />} />
                 <Route path="/auth-window" element={<AuthWindow />} />
+                <Route
+                  path="/retroachievements-connection"
+                  element={<RetroAchievementsConnectionWindow />}
+                />
 
                 <Route path="/big-picture" element={<BigPictureApp />}>
                   <Route index element={<BigPictureHome />} />

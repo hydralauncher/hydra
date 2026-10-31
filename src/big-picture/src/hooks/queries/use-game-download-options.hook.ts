@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { IS_DESKTOP } from "../../constants";
 import type { DownloadSource, Game, GameRepack } from "@types";
-import { applyHosterAvailability, fetchHosterAvailability } from "@shared";
+import {
+  applyHosterAvailability,
+  fetchHosterAvailability,
+  filterDownloadableRepacks,
+} from "@shared";
 import { orderBy } from "lodash-es";
+import { Feature, useFeature } from "../use-feature.hook";
 
 export type DownloadOptionsEmptyStateReason =
   | "no-configured-sources"
@@ -116,7 +121,8 @@ async function fetchDownloadOptions(
   game: Pick<Game, "objectId" | "shop">,
   signal: { cancelled: boolean },
   setters: DownloadStateSetters,
-  knownGameSourcesEmptyStateReason: DownloadOptionsEmptyStateReason | null
+  knownGameSourcesEmptyStateReason: DownloadOptionsEmptyStateReason | null,
+  multipartHosterDownloads: boolean
 ) {
   resetDownloadOptionsState(signal, setters);
 
@@ -151,21 +157,23 @@ async function fetchDownloadOptions(
   try {
     const endpoint = `/games/${game.shop}/${game.objectId}/download-sources`;
 
-    const options = await globalThis.window.electron.hydraApi.get<GameRepack[]>(
-      endpoint,
-      {
-        params: {
-          take: 100,
-          skip: 0,
-          downloadSourceIds: sortedSources.map((source) => source.id),
-        },
-        needsAuth: false,
-      }
-    );
+    const response = await globalThis.window.electron.hydraApi.get<
+      GameRepack[]
+    >(endpoint, {
+      params: {
+        take: 100,
+        skip: 0,
+        downloadSourceIds: sortedSources.map((source) => source.id),
+      },
+      needsAuth: false,
+    });
+    const options = Array.isArray(response)
+      ? filterDownloadableRepacks(response, multipartHosterDownloads)
+      : [];
 
     setDownloadOptionsSuccessState(signal, setters, options);
 
-    if (signal.cancelled || !Array.isArray(options) || options.length === 0) {
+    if (signal.cancelled || options.length === 0) {
       return;
     }
 
@@ -191,6 +199,10 @@ export function useGameDownloadOptions(
 ) {
   const shouldLoadDownloadOptions =
     visible && IS_DESKTOP && game.shop !== "custom";
+  const { isFeatureEnabled } = useFeature();
+  const multipartHosterDownloads = isFeatureEnabled(
+    Feature.MultipartHosterDownloads
+  );
   const knownGameSourcesEmptyStateReason = getKnownGameSourcesEmptyStateReason(
     game.downloadSources
   );
@@ -243,7 +255,8 @@ export function useGameDownloadOptions(
         setIsLoading,
         setEmptyStateReason,
       },
-      knownGameSourcesEmptyStateReason
+      knownGameSourcesEmptyStateReason,
+      multipartHosterDownloads
     );
 
     return () => {
@@ -254,6 +267,7 @@ export function useGameDownloadOptions(
     game.objectId,
     game.shop,
     knownGameSourcesEmptyStateReason,
+    multipartHosterDownloads,
     shouldLoadDownloadOptions,
   ]);
 

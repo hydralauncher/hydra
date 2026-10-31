@@ -9,8 +9,12 @@ import type {
   SnapshotFile,
 } from "@types";
 
-import { NativeAddon } from "../native-addon";
+import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
+import { assertCloudSaveV2Eligible } from "./assert-cloud-save-executable";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
+import { getCloudSaveCustomPathBindings } from "./custom-path-store";
+import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
+import { getEmulatorSaveProvider } from "./emulator-save-provider";
 import {
   CLOUD_SAVE_HASH_PATTERN,
   cloudSaveFileKey,
@@ -103,17 +107,32 @@ export const createRemoteSnapshotFromLocalState = async (
   localSnapshotContext?: LocalGameSnapshotContext,
   options?: CreateRemoteSnapshotOptions
 ): Promise<RemoteGameSnapshot | null> => {
+  const game = await assertCloudSaveV2Eligible(objectId, shop);
   const resolvedOptions = resolveCreateRemoteSnapshotOptions(options);
   const context =
     localSnapshotContext ??
     (await buildLocalGameSnapshotContext(objectId, shop));
   const variants = resolvedOptions.variants ?? context.variants;
   const files: SnapshotFile[] = resolvedOptions.files ?? context.files;
+  if (getEmulatorSaveProvider(game) === "rpcs3") {
+    const { assertRpcs3DiscIdentity, assertRpcs3SnapshotIdentity } =
+      await import("./rpcs3-game-identity.js");
+    const bindings = await getCloudSaveCustomPathBindings(
+      shop,
+      objectId,
+      cloudSaveCustomPathContextFromPathContext(context.pathContext)
+    );
+    assertRpcs3SnapshotIdentity(
+      files,
+      await assertRpcs3DiscIdentity(game),
+      bindings.ready
+    );
+  }
   const customPathRawPaths =
     resolvedOptions.customPathRawPaths ?? context.customPathRawPaths;
   const expectedAggregateHash =
     resolvedOptions.aggregateHash ??
-    NativeAddon.buildSnapshotAggregateHash({ variants, files });
+    buildCloudSaveAggregateHash({ variants, files });
 
   let committed: CommitSnapshotResponse | null = null;
   for (let prepareAttempt = 0; prepareAttempt < 2; prepareAttempt += 1) {
@@ -126,6 +145,9 @@ export const createRemoteSnapshotFromLocalState = async (
         context,
         {
           ...resolvedOptions,
+          ...(getEmulatorSaveProvider(game) === "retroarch"
+            ? { retroArchFormatVersion: 2 as const }
+            : {}),
           variants,
           files,
           customPathRawPaths,
@@ -173,6 +195,7 @@ export const createRemoteSnapshotFromLocalState = async (
         relativePath: file.relativePath,
         hash: file.hash,
         sizeBytes: file.sizeBytes,
+        ...(file.stateMetadata ? { stateMetadata: file.stateMetadata } : {}),
       })),
       unresolvedRemoteEntryIds: (
         resolvedOptions.unresolvedRemoteEntryIds ?? []

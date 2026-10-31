@@ -18,6 +18,7 @@ import {
   mergeImportedProfileGames,
 } from "@main/services";
 import { clearFinishedDownload, platformToSystem } from "@main/helpers";
+import { mergeScannedDiscs } from "@main/helpers/classics-executable-disc";
 import {
   fetchShopDetailsForSkus,
   normalizeSku,
@@ -219,12 +220,13 @@ export const persistEntryLocally = async (
     if (platform && !existing.platform) {
       existing.platform = platform;
     }
-    existing.discs = discs;
+    const mergedDiscs = mergeScannedDiscs(discs, existing.discs);
+    existing.discs = mergedDiscs;
     if (
       !existing.selectedDiscPath ||
-      !discs.some((d) => d.path === existing.selectedDiscPath)
+      !mergedDiscs.some((d) => d.path === existing.selectedDiscPath)
     ) {
-      existing.selectedDiscPath = discs[0]?.path ?? null;
+      existing.selectedDiscPath = mergedDiscs[0]?.path ?? null;
     }
     existing.romSizeBytes = romSizeBytes ?? existing.romSizeBytes ?? null;
     await gamesSublevel.put(gameKey, existing);

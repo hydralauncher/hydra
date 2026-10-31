@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hydra screenshot sound</title>
+  </head>
+  <body>
+    <script>
+      globalThis.hydraScreenshotSound = (soundUrl, volume) => {
+        const audio = new Audio(soundUrl);
+        audio.volume = volume;
+        return audio.play().then(
+          () => true,
+          () => false
+        );
+      };
+    </script>
+  </body>
+</html>

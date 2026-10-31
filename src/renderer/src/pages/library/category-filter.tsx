@@ -2,7 +2,8 @@ import { StackIcon, DeviceDesktopIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import "./category-filter.scss";
 
-export type LibraryCategory = "all" | "pc" | "classics";
+import type { LibraryCategory } from "./library-category";
+export type { LibraryCategory } from "./library-category";
 
 export function ClassicsIcon({
   size = 14,

@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 import type { LibraryGame } from "@types";
 import { GameOptionsModal } from "@renderer/pages/game-details/modals";
+import { CloudSaveV2Provider } from "@renderer/pages/game-details/cloud-save-v2";
 import type { GameSettingsCategoryId } from "@renderer/pages/game-details/modals/game-options-modal/types";
 
 import { CloudSyncContextProvider } from "../cloud-sync/cloud-sync.context";
@@ -97,19 +98,24 @@ export function GameOptionsModalProvider({
           gameTitle={target.game.title}
           syncHeaderTitle={false}
         >
-          <CloudSyncContextProvider
+          <CloudSaveV2Provider
             objectId={target.game.objectId}
             shop={target.game.shop}
           >
-            <GameOptionsModalHost
-              target={target}
-              onClose={closeGameOptionsModal}
-              onNavigateHome={() => {
-                closeGameOptionsModal();
-                navigate("/");
-              }}
-            />
-          </CloudSyncContextProvider>
+            <CloudSyncContextProvider
+              objectId={target.game.objectId}
+              shop={target.game.shop}
+            >
+              <GameOptionsModalHost
+                target={target}
+                onClose={closeGameOptionsModal}
+                onNavigateHome={() => {
+                  closeGameOptionsModal();
+                  navigate("/");
+                }}
+              />
+            </CloudSyncContextProvider>
+          </CloudSaveV2Provider>
         </GameDetailsContextProvider>
       )}
     </Provider>

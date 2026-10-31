@@ -14,18 +14,38 @@ import {
   Modal,
   TextField,
   CheckboxField,
+  SteamIcon,
 } from "@renderer/components";
 import type { DownloadSource, Game, GameRepack } from "@types";
 
 import { DownloadSettingsModal } from "./download-settings-modal";
 import { gameDetailsContext } from "@renderer/context";
-import { Downloader } from "@shared";
+import {
+  Downloader,
+  getOfficialStoreMembers,
+  isEpicMemberInCurrentScope,
+} from "@shared";
 import { orderBy } from "lodash-es";
-import { useDate, useAppDispatch, useAppSelector } from "@renderer/hooks";
+import {
+  useDate,
+  useAppDispatch,
+  useAppSelector,
+  useIsNonSteamExecutable,
+} from "@renderer/hooks";
 import { clearNewDownloadOptions } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
-import { getGameKey } from "@renderer/helpers";
+import {
+  canDownloadOnSteam,
+  getGameKey,
+  isSteamImportedGame,
+} from "@renderer/helpers";
 import "./repacks-modal.scss";
+import EpicLogo from "@renderer/assets/epic-integration-logo.svg?react";
+import { EpicInstallModal } from "./epic-install-modal";
+import { useEpicManagedConnection } from "@renderer/hooks/use-epic-managed";
+import { useLibrary } from "@renderer/hooks";
+import type { LibraryGame } from "@types";
+import { epicInstallTiming } from "@renderer/helpers/epic-install-timing";
 
 export interface RepacksModalProps {
   visible: boolean;
@@ -65,7 +85,32 @@ export function RepacksModal({
     new Set()
   );
 
-  const { game, repacks } = useContext(gameDetailsContext);
+  const { game, presentation, repacks, updateGame } =
+    useContext(gameDetailsContext);
+  const { steam: steamGame, epic: epicGame } = getOfficialStoreMembers(
+    presentation?.members ?? (game ? [game] : [])
+  );
+  const { installationAvailable: epicAvailable, connection } =
+    useEpicManagedConnection();
+  const { updateLibrary } = useLibrary();
+  const [epicInstallGame, setEpicInstallGame] = useState<LibraryGame | null>(
+    null
+  );
+  const activeEpicInstallGame =
+    epicInstallGame?.epicImportScope &&
+    epicGame &&
+    epicInstallGame.objectId === epicGame.objectId &&
+    epicInstallGame.epicImportScope.environment ===
+      epicGame.epicImportScope?.environment &&
+    epicInstallGame.epicImportScope.userId ===
+      epicGame.epicImportScope?.userId &&
+    epicInstallGame.epicImportScope.connectionId ===
+      epicGame.epicImportScope?.connectionId
+      ? epicInstallGame
+      : null;
+  useEffect(() => {
+    if (epicInstallGame && !activeEpicInstallGame) setEpicInstallGame(null);
+  }, [epicInstallGame, activeEpicInstallGame]);
 
   const { t } = useTranslation("game_details");
 
@@ -233,6 +278,29 @@ export function RepacksModal({
   };
 
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const steamOptionTerm = filterTerm.trim().toLowerCase();
+  const isNonSteamExecutable = useIsNonSteamExecutable(steamGame);
+  const showSteamOption =
+    (canDownloadOnSteam(steamGame) ||
+      (isSteamImportedGame(steamGame) && isNonSteamExecutable)) &&
+    selectedFingerprints.length === 0 &&
+    (!steamOptionTerm ||
+      "steam".includes(steamOptionTerm) ||
+      (game?.title ?? "").toLowerCase().includes(steamOptionTerm));
+  const showEpicOption =
+    epicAvailable &&
+    isEpicMemberInCurrentScope(epicGame, connection) &&
+    selectedFingerprints.length === 0 &&
+    (!steamOptionTerm ||
+      "epic games".includes(steamOptionTerm) ||
+      (game?.title ?? "").toLowerCase().includes(steamOptionTerm));
+
+  const handleSteamOptionClick = () => {
+    if (!steamGame) return;
+
+    void window.electron.installGameOnSteam(steamGame.objectId);
+    onClose();
+  };
 
   useEffect(() => {
     if (!visible) {
@@ -249,6 +317,16 @@ export function RepacksModal({
         onClose={() => setShowSelectFolderModal(false)}
         startDownload={startDownload}
         repack={repack}
+      />
+      <EpicInstallModal
+        game={activeEpicInstallGame}
+        presentationGame={activeEpicInstallGame ? (presentation ?? game) : null}
+        onClose={() => setEpicInstallGame(null)}
+        onStarted={() => {
+          setEpicInstallGame(null);
+          void Promise.all([updateLibrary(), updateGame()]);
+          onClose();
+        }}
       />
 
       <Modal
@@ -314,71 +392,120 @@ export function RepacksModal({
         </div>
 
         <div className="repacks-modal__repacks">
-          {filteredRepacks.length === 0 ? (
-            <div className="repacks-modal__no-results">
-              <div className="repacks-modal__no-results-content">
-                <div className="repacks-modal__no-results-text">
-                  {t("no_repacks_found")}
-                </div>
-                <div className="repacks-modal__no-results-button">
-                  <Button
-                    type="button"
-                    theme="primary"
-                    onClick={() => {
-                      onClose();
-                      navigate("/settings?tab=download_sources");
-                    }}
-                  >
-                    <PlusCircleIcon />
-                    {t("add_download_source", { ns: "settings" })}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            filteredRepacks.map((repack) => {
-              const isLastDownloadedOption =
-                checkIfLastDownloadedOption(repack);
-              const availabilityStatus = getRepackAvailabilityStatus(repack);
-              const tooltipId = `availability-orb-${repack.id}`;
+          {showSteamOption && game && (
+            <Button
+              theme="dark"
+              onClick={handleSteamOptionClick}
+              className="repacks-modal__repack-button"
+            >
+              <span
+                className="repacks-modal__availability-orb repacks-modal__availability-orb--online"
+                data-tooltip-id="availability-orb-steam"
+                data-tooltip-content={t("source_online")}
+              />
+              <Tooltip id="availability-orb-steam" />
 
-              return (
-                <Button
-                  key={repack.id}
-                  theme="dark"
-                  onClick={() => handleRepackClick(repack)}
-                  className="repacks-modal__repack-button"
-                >
-                  <span
-                    className={`repacks-modal__availability-orb repacks-modal__availability-orb--${availabilityStatus}`}
-                    data-tooltip-id={tooltipId}
-                    data-tooltip-content={t(`source_${availabilityStatus}`)}
-                  />
-                  <Tooltip id={tooltipId} />
+              <p className="repacks-modal__repack-title repacks-modal__steam-title">
+                <SteamIcon size={16} />
+                {game.title}
+              </p>
 
-                  <p className="repacks-modal__repack-title">
-                    {repack.title}
-                    {userPreferences?.enableNewDownloadOptionsBadges !==
-                      false &&
-                      isNewRepack(repack) && (
-                        <span className="repacks-modal__new-badge">
-                          {t("new_download_option")}
-                        </span>
-                      )}
-                  </p>
-
-                  {isLastDownloadedOption && (
-                    <Badge>{t("last_downloaded_option")}</Badge>
-                  )}
-
-                  <p className="repacks-modal__repack-info">
-                    {repack.fileSize} - {repack.downloadSourceName} -{" "}
-                    {repack.uploadDate ? formatDate(repack.uploadDate) : ""}
-                  </p>
-                </Button>
-              );
-            })
+              <p className="repacks-modal__repack-info">
+                {t("download_on_steam")}
+              </p>
+            </Button>
           )}
+
+          {showEpicOption && epicGame && (
+            <Button
+              theme="dark"
+              onClick={() => {
+                if (epicGame) epicInstallTiming.beginOptions(epicGame.objectId);
+                setEpicInstallGame(epicGame);
+              }}
+              className="repacks-modal__repack-button"
+            >
+              <p className="repacks-modal__repack-title repacks-modal__steam-title">
+                <EpicLogo width={16} height={16} aria-hidden="true" />
+                {game?.title ?? epicGame.title}
+              </p>
+              <p className="repacks-modal__repack-info">
+                {t("download_on_epic")}
+              </p>
+            </Button>
+          )}
+
+          {(showSteamOption || showEpicOption) &&
+            filteredRepacks.length > 0 && (
+              <div className="repacks-modal__separator" />
+            )}
+
+          {filteredRepacks.length === 0
+            ? !showSteamOption &&
+              !showEpicOption && (
+                <div className="repacks-modal__no-results">
+                  <div className="repacks-modal__no-results-content">
+                    <div className="repacks-modal__no-results-text">
+                      {t("no_repacks_found")}
+                    </div>
+                    <div className="repacks-modal__no-results-button">
+                      <Button
+                        type="button"
+                        theme="primary"
+                        onClick={() => {
+                          onClose();
+                          navigate("/settings?tab=download_sources");
+                        }}
+                      >
+                        <PlusCircleIcon />
+                        {t("add_download_source", { ns: "settings" })}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )
+            : filteredRepacks.map((repack) => {
+                const isLastDownloadedOption =
+                  checkIfLastDownloadedOption(repack);
+                const availabilityStatus = getRepackAvailabilityStatus(repack);
+                const tooltipId = `availability-orb-${repack.id}`;
+
+                return (
+                  <Button
+                    key={repack.id}
+                    theme="dark"
+                    onClick={() => handleRepackClick(repack)}
+                    className="repacks-modal__repack-button"
+                  >
+                    <span
+                      className={`repacks-modal__availability-orb repacks-modal__availability-orb--${availabilityStatus}`}
+                      data-tooltip-id={tooltipId}
+                      data-tooltip-content={t(`source_${availabilityStatus}`)}
+                    />
+                    <Tooltip id={tooltipId} />
+
+                    <p className="repacks-modal__repack-title">
+                      {repack.title}
+                      {userPreferences?.enableNewDownloadOptionsBadges !==
+                        false &&
+                        isNewRepack(repack) && (
+                          <span className="repacks-modal__new-badge">
+                            {t("new_download_option")}
+                          </span>
+                        )}
+                    </p>
+
+                    {isLastDownloadedOption && (
+                      <Badge>{t("last_downloaded_option")}</Badge>
+                    )}
+
+                    <p className="repacks-modal__repack-info">
+                      {repack.fileSize} - {repack.downloadSourceName} -{" "}
+                      {repack.uploadDate ? formatDate(repack.uploadDate) : ""}
+                    </p>
+                  </Button>
+                );
+              })}
         </div>
       </Modal>
     </>

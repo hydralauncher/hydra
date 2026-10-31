@@ -2,6 +2,7 @@ import {
   app,
   BrowserWindow,
   crashReporter,
+  dialog,
   net,
   powerMonitor,
   protocol,
@@ -20,15 +21,46 @@ import {
   DownloadOrchestrator,
   SSEClient,
   emulators,
+  ScreenshotInputService,
 } from "@main/services";
 import resources from "@locales";
-import { PythonRPC } from "./services/python-rpc";
+import { TorrentService } from "./services/torrent-service";
+import { DownloadManager } from "./services/download/download-manager";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
+import {
+  flushScreenshotTelemetry,
+  stopWaylandFocusWatch,
+} from "./services/screenshots";
+import { isWaylandSession } from "./services/linux-game-capture-session";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
+import {
+  loadSocialWindowsBounds,
+  restoreSocialWindows,
+  saveSocialWindowsSession,
+} from "./services/social-windows-session";
+import {
+  closeSteamOpenIdWindow,
+  notifySteamConnectError,
+  notifySteamConnected,
+} from "./services/steam-integration/steam-store-session";
+import {
+  completeSteamOpenIdConnection,
+  parseSteamOpenIdReturn,
+} from "./services/steam-integration/steam-openid-return";
+import { steamSyncOrchestrator } from "./services/steam-integration/steam-sync-orchestrator";
+import {
+  initializeEpicIntegration,
+  shutdownEpicIntegration,
+  suspendEpicPlaytime,
+  resumeEpicPlaytime,
+} from "./services/epic";
+import { removeAppImageLibraryPath } from "./helpers/remove-appimage-library-path";
+
+if (process.platform === "linux") removeAppImageLibraryPath();
 
 crashReporter.start({
   uploadToServer: false,
@@ -47,10 +79,11 @@ autoUpdater.logger = logger;
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) app.quit();
 
-if (process.platform !== "linux") {
-  app.commandLine.appendSwitch("--no-sandbox");
-} else {
+if (process.platform === "linux") {
   app.commandLine.appendSwitch("ozone-platform-hint", "auto");
+  if (isWaylandSession()) {
+    app.commandLine.appendSwitch("enable-features", "GlobalShortcutsPortal");
+  }
 }
 
 i18n.init({
@@ -169,9 +202,15 @@ const initializeApp = async () => {
   } catch (error) {
     logger.error("Failed to load app state during startup", error);
   }
+  // Optional integration failures must not interrupt launcher startup.
+  await initializeEpicIntegration().catch((error) => {
+    logger.warn("Epic integration initialization unavailable", error);
+  });
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
+  powerMonitor.on("suspend", suspendEpicPlaytime);
   powerMonitor.on("resume", () => {
+    resumeEpicPlaytime();
     SSEClient.reconnectNow();
     DownloadOrchestrator.onNetworkStatusChanged({
       online: true,
@@ -192,10 +231,15 @@ const initializeApp = async () => {
     arg.startsWith("hydralauncher://")
   );
   const forceBigPicture = process.argv.includes("--big-picture");
-  const isRunDeepLink = deepLinkArg?.startsWith("hydralauncher://run");
 
-  if (!process.argv.includes("--hidden") && !isRunDeepLink) {
+  await loadSocialWindowsBounds();
+
+  if (
+    !process.argv.includes("--hidden") &&
+    !isBackgroundDeepLink(deepLinkArg, COLD_START_BACKGROUND_DEEP_LINK_HOSTS)
+  ) {
     WindowManager.createMainWindow({ forceBigPicture });
+    if (!forceBigPicture) void restoreSocialWindows();
   }
 
   WindowManager.createSystemTray(language || "en");
@@ -225,6 +269,22 @@ app.on("render-process-gone", (_event, _webContents, details) => {
     exitCode: details.exitCode,
   });
 });
+
+const COLD_START_BACKGROUND_DEEP_LINK_HOSTS = new Set(["run"]);
+const RUNNING_BACKGROUND_DEEP_LINK_HOSTS = new Set(["run", "screenshot"]);
+
+const isBackgroundDeepLink = (
+  uri: string | undefined,
+  backgroundHosts: ReadonlySet<string>
+) => {
+  if (!uri) return false;
+
+  try {
+    return backgroundHosts.has(new URL(uri).host);
+  } catch {
+    return false;
+  }
+};
 
 const handleRunGame = async (shop: GameShop, objectId: string) => {
   const gameKey = levelKeys.game(shop, objectId);
@@ -276,6 +336,11 @@ const handleDeepLinkPath = (uri?: string) => {
   try {
     const url = new URL(uri);
 
+    if (url.host === "screenshot") {
+      ScreenshotInputService.trigger("deeplink");
+      return;
+    }
+
     if (url.host === "run") {
       const shop = url.searchParams.get("shop") as GameShop | null;
       const objectId = url.searchParams.get("objectId");
@@ -315,6 +380,22 @@ const handleDeepLinkPath = (uri?: string) => {
           `settings?theme=${themeName}&authorId=${authorId}&authorName=${authorName}`
         );
       }
+
+      return;
+    }
+
+    if (url.host === "steam-connected") {
+      closeSteamOpenIdWindow();
+      const result = parseSteamOpenIdReturn(uri);
+      if (result?.kind === "error") {
+        notifySteamConnectError(result.code);
+        return;
+      }
+      completeSteamOpenIdConnection({
+        clearReconnectRequired: () =>
+          steamSyncOrchestrator.clearReconnectRequired(),
+        notifyConnected: notifySteamConnected,
+      });
     }
   } catch (error) {
     logger.error("Error handling deep link", uri, error);
@@ -328,9 +409,7 @@ app.on("second-instance", (_event, commandLine) => {
   const forceBigPicture = commandLine.includes("--big-picture");
 
   // Check if this is a "run" deep link - don't show main window in that case
-  const isRunDeepLink = deepLink?.startsWith("hydralauncher://run");
-
-  if (!isRunDeepLink) {
+  if (!isBackgroundDeepLink(deepLink, RUNNING_BACKGROUND_DEEP_LINK_HOSTS)) {
     if (WindowManager.mainWindow) {
       if (WindowManager.mainWindow.isMinimized())
         WindowManager.mainWindow.restore();
@@ -358,20 +437,50 @@ app.on("window-all-closed", () => {
   WindowManager.clearMainWindow();
 });
 
+const SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS = 2_000;
+
 let canAppBeClosed = false;
+let isAppClosing = false;
 
 app.on("before-quit", async (e) => {
-  await Lock.releaseLock();
-
   if (!canAppBeClosed) {
     e.preventDefault();
+    if (isAppClosing) return;
+    isAppClosing = true;
+    await saveSocialWindowsSession();
+    try {
+      await shutdownEpicIntegration();
+    } catch {
+      isAppClosing = false;
+      logger.error(
+        "Epic operation shutdown is unconfirmed; application remains open"
+      );
+      dialog.showErrorBox(
+        i18n.t("settings.epic_games"),
+        i18n.t("settings.epic_shutdown_failed")
+      );
+      return;
+    }
+    DownloadOrchestrator.cancelPendingDebridPreparations();
     PowerSaveBlockerManager.reset();
-    /* Disconnects Python RPC */
-    PythonRPC.kill();
-    await Promise.all([
+    ScreenshotInputService.shutdown();
+    try {
+      await DownloadManager.pauseDownload();
+    } catch (error) {
+      logger.error("Could not save active download before quitting", error);
+    }
+    const results = await Promise.allSettled([
+      Lock.releaseLock(),
+      TorrentService.shutdown(),
       clearGamesPlaytime(),
       emulators.stopAllEmulatorSouvenirCaptureSessions(),
+      flushScreenshotTelemetry(SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS),
     ]);
+    for (const result of results) {
+      if (result.status === "rejected") {
+        logger.error("Application shutdown cleanup failed", result.reason);
+      }
+    }
     canAppBeClosed = true;
     app.quit();
   }
@@ -379,6 +488,7 @@ app.on("before-quit", async (e) => {
 
 app.on("will-quit", () => {
   logger.info("Application will quit");
+  stopWaylandFocusWatch();
 });
 
 app.on("activate", () => {

@@ -1,35 +1,31 @@
 import fs from "node:fs";
-import path from "node:path";
 import { randomUUID } from "node:crypto";
 
-import type { Game, User, UserPreferences } from "@types";
-import { isAchievementSouvenirsEnabled } from "@shared";
+import type { EmulatorSystem, Game, User } from "@types";
+import { EMULATOR_SYSTEMS } from "@shared";
 
 import { INTERVALS } from "@main/constants";
 import { db, levelKeys } from "@main/level";
-import { HydraApi } from "../hydra-api";
 import { achievementsLogger } from "../logger";
-import { BlankScreenshotError, ScreenshotService } from "../screenshot";
+import { ScreenshotService } from "../screenshot";
 import { duckstationLogPath, pcsx2LogPath } from "./emulator-log-paths";
 import type { EmulatorSessionSystem } from "./emulator-session-tracker";
 import { prepareLinuxGameCaptureSession } from "../linux-game-capture-session";
 import { PendingGroupedSouvenirStore } from "../achievements/grouped-souvenir-store";
 import { groupedSouvenirWorker } from "../achievements/grouped-souvenir-worker";
-import { syncRetroAchievements } from "../retro-achievements/retro-achievements-sync";
+import { createRetroAchievementsRealtimeUnlocks } from "../retro-achievements/retro-achievements-realtime-unlocks";
+import { readEmulatorSignedInUsername } from "../retro-achievements/emulator-credentials/emulator-credential-sync";
+import type { DetectedRetroAchievementUnlock } from "../retro-achievements/retro-achievements-unlock-confirmer";
 import {
-  groupRetroArchSouvenirAchievements,
-  partitionHandledRetroArchSouvenirs,
-  type RetroArchSouvenirAchievement,
-} from "./retroarch-souvenir-achievement-group";
-import { getEmulatorAchievementLogFormat } from "./emulator-achievement-log";
+  getEmulatorAchievementLogFormat,
+  parseEmulatorAchievementLogLine,
+} from "./emulator-achievement-log";
+import { isEmulatorAchievementTrackingActive } from "./emulator-achievement-tracking";
+import { loadEmulatorAchievementTracking } from "./load-emulator-achievement-tracking";
 
-const RETROARCH_SOUVENIR = /-cheevo-(\d+)\.[a-z]+$/i;
-const RETROARCH_SCREENSHOT_STABILITY_ATTEMPTS = 5;
-const RETROARCH_SCREENSHOT_STABILITY_DELAY_MS = 100;
-const RETROARCH_RECONCILIATION_ATTEMPTS = 2;
-const RETROARCH_RECONCILIATION_DELAY_MS = 1_000;
-
-type UnlockedAchievement = RetroArchSouvenirAchievement;
+type EmulatorAchievementLogFormat = NonNullable<
+  ReturnType<typeof getEmulatorAchievementLogFormat>
+>;
 
 interface WatcherRegistration {
   token: object;
@@ -38,23 +34,9 @@ interface WatcherRegistration {
 
 const watchers = new Map<string, WatcherRegistration>();
 
-const isSouvenirCaptureEnabled = async () => {
-  if (!HydraApi.hasActiveSubscription()) return false;
-
-  const userPreferences = await db.get<string, UserPreferences | null>(
-    levelKeys.userPreferences,
-    { valueEncoding: "json" }
-  );
-
-  return isAchievementSouvenirsEnabled(
-    userPreferences?.enableAchievementSouvenirs,
-    process.platform
-  );
-};
-
 const queueGroupedSouvenir = async (
   game: Game,
-  achievements: UnlockedAchievement[],
+  achievements: DetectedRetroAchievementUnlock[],
   screenshotPath: string,
   clientId: string,
   capturedAt: number
@@ -80,7 +62,7 @@ const queueGroupedSouvenir = async (
     capturedAt,
     achievements: achievements.map((achievement) => ({
       name: achievement.id,
-      unlockTime: achievement.unlockTime ?? capturedAt,
+      unlockTime: capturedAt,
     })),
     status: "pending",
     attemptCount: 0,
@@ -89,7 +71,7 @@ const queueGroupedSouvenir = async (
   void groupedSouvenirWorker.trigger();
 };
 
-const uniqueUnlocks = (achievements: UnlockedAchievement[]) =>
+const uniqueUnlocks = (achievements: DetectedRetroAchievementUnlock[]) =>
   Array.from(
     new Map(
       achievements.map((achievement) => [
@@ -99,230 +81,16 @@ const uniqueUnlocks = (achievements: UnlockedAchievement[]) =>
     ).values()
   );
 
-const waitForRetroAchievementsReconciliation = () =>
-  new Promise((resolve) => {
-    setTimeout(resolve, RETROARCH_RECONCILIATION_DELAY_MS);
-  });
-
-const reconcileRetroArchAchievements = async (
-  game: Game,
-  detectedAchievements: UnlockedAchievement[]
-) => {
-  let reconciledAchievements = detectedAchievements;
-
-  for (
-    let attempt = 0;
-    attempt < RETROARCH_RECONCILIATION_ATTEMPTS;
-    attempt++
-  ) {
-    if (attempt > 0) await waitForRetroAchievementsReconciliation();
-
-    const result = await syncRetroAchievements({
-      objectId: game.objectId,
-      shop: game.shop,
-    });
-    if (result.status !== "success") return reconciledAchievements;
-
-    reconciledAchievements = groupRetroArchSouvenirAchievements(
-      detectedAchievements,
-      result.achievements
-    );
-    if (reconciledAchievements.length > detectedAchievements.length) {
-      achievementsLogger.info("Grouped simultaneous RetroArch achievements", {
-        objectId: game.objectId,
-        achievementIds: reconciledAchievements.map(({ id }) => id),
-      });
-      return reconciledAchievements;
-    }
-  }
-
-  return reconciledAchievements;
-};
-
-interface RetroArchSouvenirFile {
-  directory: string;
-  entry: string;
-  achievement: UnlockedAchievement;
-}
-
-const waitForRetroArchScreenshot = async (sourcePath: string) => {
-  let previousSize = -1;
-  let previousModifiedAt = -1;
-
-  for (
-    let attempt = 0;
-    attempt < RETROARCH_SCREENSHOT_STABILITY_ATTEMPTS;
-    attempt++
-  ) {
-    const stats = await fs.promises.stat(sourcePath);
-    if (
-      stats.size > 0 &&
-      stats.size === previousSize &&
-      stats.mtimeMs === previousModifiedAt
-    ) {
-      return;
-    }
-
-    previousSize = stats.size;
-    previousModifiedAt = stats.mtimeMs;
-    await new Promise((resolve) => {
-      setTimeout(resolve, RETROARCH_SCREENSHOT_STABILITY_DELAY_MS);
-    });
-  }
-
-  throw new Error(`RetroArch screenshot did not stabilize: ${sourcePath}`);
-};
-
-const removeRetroArchSourceFiles = async (
-  souvenirs: RetroArchSouvenirFile[],
-  seenByDirectory: Map<string, Set<string>>
-) => {
-  for (const { directory, entry } of souvenirs) {
-    await fs.promises.rm(path.join(directory, entry), { force: true });
-    seenByDirectory.get(directory)?.add(entry);
-  }
-};
-
-interface ImportRetroArchScreenshotOptions {
-  gameKey: string;
-  game: Game;
-  processId: number;
-  achievements: UnlockedAchievement[];
-  souvenirs: RetroArchSouvenirFile[];
-  seenByDirectory: Map<string, Set<string>>;
-  clientId: string;
-}
-
-const importRetroArchScreenshot = async ({
-  gameKey,
-  game,
-  processId,
-  achievements,
-  souvenirs,
-  seenByDirectory,
-  clientId,
-}: ImportRetroArchScreenshotOptions) => {
-  const sourcePath = path.join(souvenirs[0].directory, souvenirs[0].entry);
-  await waitForRetroArchScreenshot(sourcePath);
-
-  try {
-    return await ScreenshotService.importGameScreenshot(
-      sourcePath,
-      game.title,
-      achievements[0].title,
-      game.remoteId!,
-      clientId
-    );
-  } catch (error) {
-    if (!(error instanceof BlankScreenshotError)) throw error;
-
-    achievementsLogger.warn("RetroArch produced a blank souvenir screenshot", {
-      objectId: game.objectId,
-      sourcePath,
-    });
-
-    if (process.platform === "win32") {
-      try {
-        const screenshotPath = await ScreenshotService.captureGameScreenshot(
-          game.title,
-          achievements[0].title,
-          game.remoteId!,
-          clientId,
-          { processId, gameKey }
-        );
-        achievementsLogger.info(
-          "Replaced a blank RetroArch souvenir screenshot",
-          { objectId: game.objectId, sourcePath }
-        );
-        return screenshotPath;
-      } catch (fallbackError) {
-        achievementsLogger.warn(
-          "Failed to replace a blank RetroArch souvenir screenshot",
-          { objectId: game.objectId, sourcePath, error: fallbackError }
-        );
-      }
-    }
-
-    await removeRetroArchSourceFiles(souvenirs, seenByDirectory);
-    return null;
-  }
-};
-
-const readRetroArchDirectoryEntries = async (
-  gameObjectId: string,
-  directory: string,
-  unreadableDirectories: Set<string>
-) => {
-  try {
-    const entries = await fs.promises.readdir(directory);
-    unreadableDirectories.delete(directory);
-    return entries;
-  } catch (error) {
-    if (!unreadableDirectories.has(directory)) {
-      achievementsLogger.error(
-        "Failed to read RetroArch screenshot directory",
-        gameObjectId,
-        directory,
-        error
-      );
-      unreadableDirectories.add(directory);
-    }
-
-    return null;
-  }
-};
-
-const getRetroArchSouvenirAchievement = (
-  entry: string
-): UnlockedAchievement | null => {
-  const match = RETROARCH_SOUVENIR.exec(entry);
-  if (!match) return null;
-
-  return { id: match[1], title: match[1] };
-};
-
-const collectNewRetroArchSouvenirs = async (
-  gameObjectId: string,
-  seenByDirectory: Map<string, Set<string>>,
-  unreadableDirectories: Set<string>
-) => {
-  const newSouvenirs: RetroArchSouvenirFile[] = [];
-
-  for (const [directory, seen] of seenByDirectory) {
-    const entries = await readRetroArchDirectoryEntries(
-      gameObjectId,
-      directory,
-      unreadableDirectories
-    );
-    if (!entries) continue;
-
-    for (const entry of entries) {
-      if (seen.has(entry)) continue;
-
-      const achievement = getRetroArchSouvenirAchievement(entry);
-      if (!achievement) {
-        seen.add(entry);
-        continue;
-      }
-
-      newSouvenirs.push({ directory, entry, achievement });
-    }
-  }
-
-  return newSouvenirs;
-};
-
 const createLogTail = (
   logPath: string,
-  pattern: RegExp,
-  titleFirst: boolean,
+  format: EmulatorAchievementLogFormat,
   initialOffset?: number
 ) => {
   let offset =
     initialOffset ?? (fs.existsSync(logPath) ? fs.statSync(logPath).size : 0);
   let remainder = "";
 
-  return async (): Promise<UnlockedAchievement[]> => {
+  return async (): Promise<DetectedRetroAchievementUnlock[]> => {
     const stats = await fs.promises.stat(logPath).catch(() => null);
 
     if (!stats) return [];
@@ -347,121 +115,77 @@ const createLogTail = (
     remainder = lines.pop() ?? "";
 
     return lines
-      .map((line) => pattern.exec(line))
-      .filter((match) => !!match)
-      .map((match) => ({
-        id: titleFirst ? match[2] : match[1],
-        title: titleFirst ? match[1] : match[2],
-      }));
+      .map((line) => parseEmulatorAchievementLogLine(line, format))
+      .filter((achievement) => !!achievement);
   };
 };
 
+const captureEmulatorSouvenir = async (
+  game: Game,
+  gameKey: string,
+  processId: number,
+  achievements: DetectedRetroAchievementUnlock[],
+  cropToClientArea: boolean
+) => {
+  const capturedAt = Date.now();
+  const clientId = randomUUID();
+  const screenshotPath = await ScreenshotService.captureGameScreenshot(
+    game.title,
+    achievements[0].title,
+    game.remoteId!,
+    clientId,
+    { processId, gameKey, cropToClientArea }
+  );
+
+  try {
+    await queueGroupedSouvenir(
+      game,
+      achievements,
+      screenshotPath,
+      clientId,
+      capturedAt
+    );
+  } catch (error) {
+    await ScreenshotService.deleteScreenshot(screenshotPath).catch(() => {});
+    throw error;
+  }
+};
+
 interface StartLogWatcherOptions {
+  getEmulatorUsername: () => Promise<string | null>;
   gameKey: string;
   watcherToken: object;
   game: Game;
   processId: number;
   logPath: string;
-  pattern: RegExp;
-  titleFirst: boolean;
+  format: EmulatorAchievementLogFormat;
   initialOffset?: number;
+  cropToClientArea: boolean;
+  primeRealtimeUnlocks: boolean;
 }
 
 const startLogWatcher = ({
+  getEmulatorUsername,
   gameKey,
   watcherToken,
   game,
   processId,
   logPath,
-  pattern,
-  titleFirst,
+  format,
   initialOffset,
+  cropToClientArea,
+  primeRealtimeUnlocks,
 }: StartLogWatcherOptions) => {
-  const readNewUnlocks = createLogTail(
-    logPath,
-    pattern,
-    titleFirst,
-    initialOffset
-  );
+  const readNewUnlocks = createLogTail(logPath, format, initialOffset);
+  const realtimeUnlocks = createRetroAchievementsRealtimeUnlocks(game, {
+    getEmulatorUsername,
+  });
+  if (primeRealtimeUnlocks) realtimeUnlocks.prime();
   let isProcessing = false;
 
-  const watcher = setInterval(() => {
-    if (isProcessing) return;
-    isProcessing = true;
-
-    void (async () => {
-      if (!(await isSouvenirCaptureEnabled())) return;
-
-      const achievements = uniqueUnlocks(await readNewUnlocks());
-      if (achievements.length === 0) return;
-
-      const capturedAt = Date.now();
-      const clientId = randomUUID();
-      const screenshotPath = await ScreenshotService.captureGameScreenshot(
-        game.title,
-        achievements[0].title,
-        game.remoteId!,
-        clientId,
-        { processId, gameKey }
-      );
-
-      try {
-        await queueGroupedSouvenir(
-          game,
-          achievements,
-          screenshotPath,
-          clientId,
-          capturedAt
-        );
-      } catch (error) {
-        await ScreenshotService.deleteScreenshot(screenshotPath).catch(
-          () => {}
-        );
-        throw error;
-      }
-    })()
-      .catch((error) => {
-        achievementsLogger.error(
-          "Failed to capture emulator souvenir",
-          game.objectId,
-          error
-        );
-      })
-      .finally(() => {
-        isProcessing = false;
-      });
-  }, INTERVALS.emulatorSouvenirWatcher);
-
-  watcher.unref?.();
-  const registration = watchers.get(gameKey);
-
-  if (registration?.token === watcherToken) {
-    registration.timer = watcher;
-  } else {
-    clearInterval(watcher);
-  }
-};
-
-const startRetroArchWatcher = (
-  gameKey: string,
-  watcherToken: object,
-  game: Game,
-  processId: number,
-  screenshotDirectories: string[]
-) => {
-  const seenByDirectory = new Map(
-    screenshotDirectories.map((directory) => [
-      directory,
-      new Set(fs.existsSync(directory) ? fs.readdirSync(directory) : []),
-    ])
-  );
-  const unreadableDirectories = new Set<string>();
-  const handledAchievementIds = new Set<string>();
-  let isProcessing = false;
-
-  achievementsLogger.info("Started RetroArch souvenir watcher", {
+  achievementsLogger.info("Started emulator achievement watcher", {
     objectId: game.objectId,
-    screenshotDirectories,
+    logPath,
   });
 
   const watcher = setInterval(() => {
@@ -469,94 +193,33 @@ const startRetroArchWatcher = (
     isProcessing = true;
 
     void (async () => {
-      if (!(await isSouvenirCaptureEnabled())) return;
-
-      const detectedSouvenirs = await collectNewRetroArchSouvenirs(
-        game.objectId,
-        seenByDirectory,
-        unreadableDirectories
-      );
-      const { handled: redundantSouvenirs, unhandled: newSouvenirs } =
-        partitionHandledRetroArchSouvenirs(
-          detectedSouvenirs,
-          handledAchievementIds
-        );
-
-      if (redundantSouvenirs.length > 0) {
-        await removeRetroArchSourceFiles(redundantSouvenirs, seenByDirectory);
-        achievementsLogger.info(
-          "Removed delayed screenshots for grouped RetroArch achievements",
-          {
-            objectId: game.objectId,
-            achievementIds: redundantSouvenirs.map(
-              ({ achievement }) => achievement.id
-            ),
-          }
-        );
-      }
-
-      const achievements = uniqueUnlocks(
-        newSouvenirs.map(({ achievement }) => achievement)
-      );
+      const achievements = uniqueUnlocks(await readNewUnlocks());
       if (achievements.length === 0) return;
 
-      achievementsLogger.info("Detected RetroArch achievement screenshots", {
+      achievementsLogger.info("Detected emulator achievement unlocks", {
         objectId: game.objectId,
-        files: newSouvenirs.map(({ directory, entry }) =>
-          path.join(directory, entry)
-        ),
+        achievementIds: achievements.map(({ id }) => id),
       });
 
-      const capturedAt = Date.now();
-      const clientId = randomUUID();
-      const screenshotPath = await importRetroArchScreenshot({
-        gameKey,
-        game,
-        processId,
-        achievements,
-        souvenirs: newSouvenirs,
-        seenByDirectory,
-        clientId,
-      });
-      if (!screenshotPath) return;
+      const tracking = await loadEmulatorAchievementTracking();
 
-      let groupedAchievements = achievements;
-      try {
-        groupedAchievements = await reconcileRetroArchAchievements(
+      if (tracking.realtimeUnlocks) {
+        void realtimeUnlocks.enqueue(achievements);
+      }
+
+      if (tracking.souvenirs && game.remoteId) {
+        await captureEmulatorSouvenir(
           game,
-          achievements
-        );
-      } catch (error) {
-        achievementsLogger.warn(
-          "Failed to reconcile simultaneous RetroArch achievements",
-          { objectId: game.objectId, error }
+          gameKey,
+          processId,
+          achievements,
+          cropToClientArea
         );
       }
-
-      try {
-        await queueGroupedSouvenir(
-          game,
-          groupedAchievements,
-          screenshotPath,
-          clientId,
-          capturedAt
-        );
-      } catch (error) {
-        await ScreenshotService.deleteScreenshot(screenshotPath).catch(
-          () => {}
-        );
-        throw error;
-      }
-
-      for (const achievement of groupedAchievements) {
-        handledAchievementIds.add(achievement.id.toLowerCase());
-      }
-
-      await removeRetroArchSourceFiles(newSouvenirs, seenByDirectory);
     })()
       .catch((error) => {
         achievementsLogger.error(
-          "Failed to import RetroArch souvenir",
+          "Failed to handle emulator achievement unlocks",
           game.objectId,
           error
         );
@@ -585,40 +248,7 @@ interface StartEmulatorSouvenirWatcherOptions {
   watcherToken: object;
   logPath?: string;
   logOffset?: number;
-  screenshotDirectories?: string[];
 }
-
-interface StartConfiguredLogWatcherOptions
-  extends Omit<StartLogWatcherOptions, "logPath"> {
-  logPath: string | null;
-}
-
-const startConfiguredLogWatcher = ({
-  gameKey,
-  watcherToken,
-  game,
-  processId,
-  logPath,
-  pattern,
-  titleFirst,
-  initialOffset,
-}: StartConfiguredLogWatcherOptions) => {
-  if (!logPath) {
-    stopEmulatorSouvenirWatcher(gameKey, watcherToken);
-    return;
-  }
-
-  startLogWatcher({
-    gameKey,
-    watcherToken,
-    game,
-    processId,
-    logPath,
-    pattern,
-    titleFirst,
-    initialOffset,
-  });
-};
 
 const configuredLogPathForSystem = (
   system: EmulatorSessionSystem,
@@ -638,66 +268,60 @@ export const startEmulatorSouvenirWatcher = async ({
   watcherToken,
   logPath: sessionLogPath,
   logOffset: sessionLogOffset,
-  screenshotDirectories,
 }: StartEmulatorSouvenirWatcherOptions) => {
   const previousWatcher = watchers.get(gameKey);
   if (previousWatcher?.timer) clearInterval(previousWatcher.timer);
   watchers.set(gameKey, { token: watcherToken, timer: null });
 
-  if (!game.remoteId) {
-    achievementsLogger.warn(
-      "Could not start emulator souvenir watcher because the remote game was not resolved",
-      { objectId: game.objectId, shop: game.shop }
-    );
-    stopEmulatorSouvenirWatcher(gameKey, watcherToken);
-    return;
-  }
-  if (!(await isSouvenirCaptureEnabled())) {
+  const tracking = await loadEmulatorAchievementTracking();
+  if (!isEmulatorAchievementTrackingActive(tracking)) {
     stopEmulatorSouvenirWatcher(gameKey, watcherToken);
     return;
   }
   if (watchers.get(gameKey)?.token !== watcherToken) return;
 
-  if (system === "ps3") {
+  const format = getEmulatorAchievementLogFormat(system);
+  const logPath =
+    sessionLogPath ?? configuredLogPathForSystem(system, executablePath);
+
+  if (!format || !logPath) {
+    if (format) {
+      achievementsLogger.warn(
+        "Could not start emulator achievement watcher without a log path",
+        { objectId: game.objectId, system, executablePath }
+      );
+    }
     stopEmulatorSouvenirWatcher(gameKey, watcherToken);
     return;
   }
 
-  const logFormat = getEmulatorAchievementLogFormat(system);
-  if (logFormat) {
-    const configuredLogPath =
-      sessionLogPath ?? configuredLogPathForSystem(system, executablePath);
-    const capturePreparation = prepareLinuxGameCaptureSession(gameKey);
-    startConfiguredLogWatcher({
-      gameKey,
-      watcherToken,
-      game,
-      processId,
-      logPath: configuredLogPath,
-      pattern: logFormat.pattern,
-      titleFirst: logFormat.titleFirst,
-      initialOffset: sessionLogOffset,
-    });
-    await capturePreparation;
-    return;
-  }
-
-  if (!screenshotDirectories?.length) {
-    achievementsLogger.error(
-      "Could not start RetroArch souvenir watcher because the session directory was not prepared",
-      { objectId: game.objectId, executablePath }
+  if (tracking.souvenirs && !game.remoteId) {
+    achievementsLogger.warn(
+      "Emulator souvenirs are unavailable because the remote game was not resolved",
+      { objectId: game.objectId, shop: game.shop }
     );
-    stopEmulatorSouvenirWatcher(gameKey, watcherToken);
-    return;
   }
 
-  startRetroArchWatcher(
+  const capturePreparation =
+    tracking.souvenirs && game.remoteId
+      ? prepareLinuxGameCaptureSession(gameKey)
+      : null;
+
+  startLogWatcher({
+    getEmulatorUsername: () =>
+      readEmulatorSignedInUsername(system, executablePath),
     gameKey,
     watcherToken,
     game,
     processId,
-    screenshotDirectories
-  );
+    logPath,
+    format,
+    initialOffset: sessionLogOffset,
+    cropToClientArea: !EMULATOR_SYSTEMS.includes(system as EmulatorSystem),
+    primeRealtimeUnlocks: tracking.realtimeUnlocks,
+  });
+
+  await capturePreparation;
 };
 
 export const stopEmulatorSouvenirWatcher = (

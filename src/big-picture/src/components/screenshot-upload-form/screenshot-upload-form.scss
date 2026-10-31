@@ -1,0 +1,38 @@
+@use "sass:color";
+
+.screenshot-upload-form {
+  &__description-field {
+    width: 100%;
+  }
+
+  &__quality-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--spacing-unit) * 2);
+    width: 100%;
+  }
+
+  &__quality-option--locked &__quality-option-label {
+    opacity: 0.5;
+  }
+
+  &__cloud-badge {
+    padding: 0 var(--spacing-unit);
+    border-radius: 4px;
+    background: linear-gradient(
+      270deg,
+      color.scale(#16b195, $lightness: -30%) 50%,
+      color.scale(#3e62c0, $lightness: -30%) 100%
+    );
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+}
+
+.dropdown-select__value:has(> .screenshot-upload-form__quality-option) {
+  flex: 1;
+  min-width: 0;
+}

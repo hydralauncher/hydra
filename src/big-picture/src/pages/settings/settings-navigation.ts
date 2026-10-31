@@ -47,6 +47,10 @@ export const ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID =
   "account-privacy-cloud-gifts";
 export const ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID =
   "account-privacy-souvenirs-visibility";
+export const ACCOUNT_PRIVACY_SCREENSHOTS_SELECT_ID =
+  "account-privacy-screenshots-visibility";
+export const ACCOUNT_PRIVACY_SCREENSHOT_COMMENTS_SELECT_ID =
+  "account-privacy-screenshot-comments-policy";
 export const COMPATIBILITY_GAMEMODE_FOCUS_ID = "compatibility-gamemode";
 export const COMPATIBILITY_MANGOHUD_FOCUS_ID = "compatibility-mangohud";
 export const COMPATIBILITY_GAMESCOPE_FOCUS_ID = "compatibility-gamescope";
@@ -92,6 +96,8 @@ export const EMULATION_DETAIL_EXECUTABLE_BUTTON_ID =
   "emulation-detail-executable-button";
 export const EMULATION_DETAIL_REDETECT_BUTTON_ID =
   "emulation-detail-redetect-button";
+export const EMULATION_DETAIL_RPCS3_ROOT_BROWSE_BUTTON_ID =
+  "emulation-detail-rpcs3-root-browse";
 export const EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID =
   "emulation-detail-add-folder";
 export const EMULATION_DETAIL_RESCAN_BUTTON_ID = "emulation-detail-rescan";
@@ -142,6 +148,7 @@ export const NOTIFICATIONS_ACHIEVEMENTS_ITEM_FOCUS_IDS = {
 export const CONTENT_ITEM_FOCUS_IDS = {
   autoplayGameTrailers: "content-autoplay-game-trailers",
   disableNsfwAlert: "content-disable-nsfw-alert",
+  showSensitiveScreenshots: "content-show-sensitive-screenshots",
   showHiddenAchievementsDescription:
     "content-show-hidden-achievements-description",
   enableSteamAchievements: "content-enable-steam-achievements",
@@ -150,6 +157,7 @@ export const CONTENT_ITEM_FOCUS_IDS = {
   resetScreenshotsDirectory: "content-reset-screenshots-directory",
   openScreenshotsDirectory: "content-open-screenshots-directory",
   autoplayAnimatedArtwork: "content-autoplay-animated-artwork",
+  persistFiltersAndSorting: "content-persist-filters-and-sorting",
 } as const;
 
 export const BIG_PICTURE_ITEM_FOCUS_IDS = {

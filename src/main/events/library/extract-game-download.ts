@@ -1,9 +1,12 @@
 import { registerEvent } from "../register-event";
 import { GameShop } from "@types";
+import fs from "node:fs";
 import path from "node:path";
 import { DownloadManager, GameFilesManager, logger } from "@main/services";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { Downloader, FILE_EXTENSIONS_TO_EXTRACT } from "@shared";
+
+const activeExtractions = new Set<string>();
 
 const extractGameDownload = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -27,6 +30,9 @@ const extractGameDownload = async (
     return false;
   }
 
+  if (activeExtractions.has(gameKey)) return true;
+  activeExtractions.add(gameKey);
+
   await downloadsSublevel.put(gameKey, {
     ...download,
     extracting: true,
@@ -36,9 +42,8 @@ const extractGameDownload = async (
   const targetFolderName = download.folderName;
 
   if (!targetFolderName) {
-    await gameFilesManager.failExtraction(
-      new Error("No downloaded archive was found to extract")
-    );
+    activeExtractions.delete(gameKey);
+    await gameFilesManager.failMissingExtractionSource();
     return false;
   }
 
@@ -55,10 +60,21 @@ const extractGameDownload = async (
       });
     }
 
+    const targetPath = path.join(download.downloadPath, targetFolderName);
+
+    if (fs.existsSync(targetPath) && fs.statSync(targetPath).isFile()) {
+      return gameFilesManager
+        .handleUnsupportedExtraction(targetPath, { notify: true })
+        .catch((error) => {
+          logger.error(
+            "[extractGameDownload] Failed to handle unsupported extraction format",
+            error
+          );
+        });
+    }
+
     return gameFilesManager
-      .extractFilesInDirectory(
-        path.join(download.downloadPath, targetFolderName)
-      )
+      .extractFilesInDirectory(targetPath)
       .then((success) => {
         if (success) {
           return gameFilesManager.setExtractionComplete(false).catch(() => {
@@ -75,6 +91,9 @@ const extractGameDownload = async (
       });
   };
 
+  const runTrackedExtraction = () =>
+    runExtraction().finally(() => activeExtractions.delete(gameKey));
+
   const shouldPauseSeedingForExtraction =
     download.downloader === Downloader.Torrent &&
     download.shouldSeed &&
@@ -88,7 +107,7 @@ const extractGameDownload = async (
       );
     });
 
-    void runExtraction().finally(() => {
+    void runTrackedExtraction().finally(() => {
       DownloadManager.resumeSeeding(download).catch((error) => {
         logger.error(
           "[extractGameDownload] Failed to resume seeding after extraction",
@@ -97,7 +116,7 @@ const extractGameDownload = async (
       });
     });
   } else {
-    void runExtraction();
+    void runTrackedExtraction();
   }
 
   return true;

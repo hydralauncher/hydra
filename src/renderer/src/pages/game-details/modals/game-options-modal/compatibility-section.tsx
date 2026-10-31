@@ -17,6 +17,8 @@ import type { GamescopeSettingKey } from "./types";
 interface CompatibilitySettingsSectionProps {
   game: LibraryGame;
   displayedWinePrefixPath: string | null;
+  winePrefixPlaceholder?: string;
+  effectiveProtonName?: string | null;
   protonVersions: ProtonVersion[];
   selectedProtonPath: string;
   winetricksAvailable: boolean;
@@ -49,6 +51,7 @@ interface CompatibilitySettingsSectionProps {
 interface WinePrefixSectionProps {
   game: LibraryGame;
   displayedWinePrefixPath: string | null;
+  winePrefixPlaceholder?: string;
   winetricksAvailable: boolean;
   onChangeWinePrefixPath: () => Promise<void>;
   onClearWinePrefixPath: () => Promise<void>;
@@ -58,6 +61,7 @@ interface WinePrefixSectionProps {
 function WinePrefixSection({
   game,
   displayedWinePrefixPath,
+  winePrefixPlaceholder,
   winetricksAvailable,
   onChangeWinePrefixPath,
   onClearWinePrefixPath,
@@ -80,7 +84,7 @@ function WinePrefixSection({
         readOnly
         theme="dark"
         disabled
-        placeholder={t("no_directory_selected")}
+        placeholder={winePrefixPlaceholder ?? t("no_directory_selected")}
         rightContent={
           <>
             <Button
@@ -438,6 +442,7 @@ function AdditionalOptionsSection({
 
 interface ProtonVersionSectionProps {
   game: LibraryGame;
+  effectiveProtonName?: string | null;
   protonVersions: ProtonVersion[];
   selectedProtonPath: string;
   onChangeProtonVersion: (value: string) => void;
@@ -445,6 +450,7 @@ interface ProtonVersionSectionProps {
 
 function ProtonVersionSection({
   game,
+  effectiveProtonName,
   protonVersions,
   selectedProtonPath,
   onChangeProtonVersion,
@@ -489,7 +495,7 @@ function ProtonVersionSection({
         onChange={onChangeProtonVersion}
         radioName={`proton-version-${game.objectId}`}
         autoLabel={protonVersionAutoLabel}
-        autoSourceDescription={protonSourceUmuDefault}
+        autoSourceDescription={effectiveProtonName ?? protonSourceUmuDefault}
         steamSourceDescription={protonSourceSteam}
         compatibilityToolsSourceDescription={protonSourceCompatibilityTools}
       />
@@ -500,6 +506,8 @@ function ProtonVersionSection({
 export function CompatibilitySettingsSection({
   game,
   displayedWinePrefixPath,
+  winePrefixPlaceholder,
+  effectiveProtonName,
   protonVersions,
   selectedProtonPath,
   autoRunGamemode,
@@ -533,6 +541,7 @@ export function CompatibilitySettingsSection({
       <WinePrefixSection
         game={game}
         displayedWinePrefixPath={displayedWinePrefixPath}
+        winePrefixPlaceholder={winePrefixPlaceholder}
         winetricksAvailable={winetricksAvailable}
         onChangeWinePrefixPath={onChangeWinePrefixPath}
         onClearWinePrefixPath={onClearWinePrefixPath}
@@ -564,6 +573,7 @@ export function CompatibilitySettingsSection({
 
       <ProtonVersionSection
         game={game}
+        effectiveProtonName={effectiveProtonName}
         protonVersions={protonVersions}
         selectedProtonPath={selectedProtonPath}
         onChangeProtonVersion={onChangeProtonVersion}

@@ -7,14 +7,17 @@ out
 *.log*
 *.tsbuildinfo
 .env
+.env.local
+.env.*.local
 .vite
 ludusavi/**
 !ludusavi/config.yaml
-hydra-python-rpc/
 /hydra-native/
 target/
+/legendary/
 native/hydra-native/target/
-.python-version
+native/epic-prerequisite-runner/target/
+binaries/epic-prerequisite-runner/
 
 # Sentry Config File
 .env.sentry-build-plugin
@@ -24,3 +27,8 @@ Future-updates.md
 TO-DO.md
 .planning/
 .claude/
+.cache/
+native/torrent-bridge/build/
+native/torrent-bridge/vcpkg_installed/
+*.local.ts
+src/renderer/public/*.local/

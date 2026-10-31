@@ -1,4 +1,5 @@
 import type { LibraryGame, ShopAssets } from "@types";
+import { findLibraryGamePresentation } from "@shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEventHandler } from "react";
 import { useNavigate } from "react-router-dom";
@@ -150,6 +151,7 @@ export default function Home() {
     requestRemoveFromLibrary: handleRequestRemoveFromLibraryFromMenu,
     closePendingAction,
     confirmPendingAction,
+    sourceArchiveOption,
   } = useLibraryPendingAction({
     getRestoreFocusId: useCallback(
       () => menuState.restoreFocusId,
@@ -280,10 +282,7 @@ export default function Home() {
 
     if (!target) return undefined;
 
-    return library.find(
-      (entry) =>
-        entry.shop === target.shop && entry.objectId === target.objectId
-    );
+    return findLibraryGamePresentation(library, target);
   }, [library, menuState.catalogGame]);
 
   const menuItems = useMemo(() => {
@@ -649,6 +648,7 @@ export default function Home() {
             loading={isSubmittingAction}
             onClose={closePendingAction}
             onConfirm={confirmPendingAction}
+            sourceArchiveOption={sourceArchiveOption}
           />
         ) : null}
 
