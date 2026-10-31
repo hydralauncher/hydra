@@ -152,10 +152,22 @@ jobs:
           BUILD_FLAVOR: release
         run: node scripts/upload-build.cjs
 
+      # Runs on one matrix leg only; the draft release body is identical either
+      # way, and the other leg's action-gh-release updates the same draft.
+      - name: Generate release notes
+        if: matrix.os == 'ubuntu-latest'
+        id: release-notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # release/v4.3.0 -> v4.3.0; the script falls back to package.json.
+        run: node scripts/release-notes.cjs "${GITHUB_REF_NAME#release/}"
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           draft: true
+          tag_name: ${{ steps.release-notes.outputs.tag_name }}
+          body_path: release-notes.md
           files: |
             dist/*.exe
             dist/*.zip
