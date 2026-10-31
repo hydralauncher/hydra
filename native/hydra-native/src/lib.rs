@@ -1,6 +1,14 @@
 mod active_window;
 mod cloud_save;
 mod constants;
+mod in_place_extraction;
+mod kde_focus;
+mod linux_process;
+mod screenshot_input;
+mod torrent;
+mod window_bounds;
+mod window_client;
+mod window_order;
 
 pub use cloud_save::hashing::{build_snapshot_aggregate_hash, hash_local_save_file};
 pub use cloud_save::local_snapshot::build_local_game_snapshot;
@@ -51,6 +59,11 @@ pub struct NativeProcessPayload {
     pub name: String,
     pub environ: Option<HashMap<String, String>>,
     pub cwd: Option<String>,
+    pub start_time: Option<String>,
+    pub invocation_id: Option<String>,
+    pub wine_prefix_path: Option<String>,
+    pub pe_executable_path: Option<String>,
+    pub inspection_complete: Option<bool>,
 }
 
 #[napi(object)]
@@ -65,6 +78,73 @@ pub fn get_linux_active_window() -> Option<NativeActiveWindow> {
         window_id: window_id.to_string(),
         process_id,
     })
+}
+
+#[napi(object)]
+pub struct NativeForegroundWindow {
+    pub window_handle: String,
+    pub process_id: u32,
+}
+
+#[napi]
+pub fn get_windows_foreground_window() -> Option<NativeForegroundWindow> {
+    window_order::get_foreground_window().map(|(window_handle, process_id)| {
+        NativeForegroundWindow {
+            window_handle,
+            process_id,
+        }
+    })
+}
+
+#[napi(object)]
+pub struct NativeScreenRect {
+    pub left: i32,
+    pub top: i32,
+    pub right: i32,
+    pub bottom: i32,
+}
+
+#[napi(object)]
+pub struct NativeWindowBounds {
+    pub frame: NativeScreenRect,
+    pub client: NativeScreenRect,
+}
+
+fn to_native_rect(rect: window_bounds::ScreenRect) -> NativeScreenRect {
+    NativeScreenRect {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+    }
+}
+
+#[napi]
+pub fn get_windows_window_bounds(window_handle: String) -> Option<NativeWindowBounds> {
+    window_bounds::get_window_bounds(&window_handle).map(|bounds| NativeWindowBounds {
+        frame: to_native_rect(bounds.frame),
+        client: to_native_rect(bounds.client),
+    })
+}
+
+#[napi]
+pub fn get_linux_window_client_pid(window_id: String) -> Option<u32> {
+    window_client::get_window_client_pid(&window_id)
+}
+
+#[napi]
+pub fn get_kde_focused_process_id() -> napi::Result<Option<u32>> {
+    kde_focus::focused_process_id().map_err(Error::from_reason)
+}
+
+#[napi]
+pub fn start_kde_focus_watch() {
+    kde_focus::start_watch();
+}
+
+#[napi]
+pub fn stop_kde_focus_watch() {
+    kde_focus::stop();
 }
 
 #[napi]
@@ -184,6 +264,14 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
         .values()
         .map(|process| {
             let include_linux_extras = !cfg!(target_os = "windows");
+            let linux = cfg!(target_os = "linux").then(|| {
+                linux_process::inspect_process(
+                    process.pid().as_u32(),
+                    process.exe(),
+                    &process.name().to_string_lossy(),
+                    process.cwd(),
+                )
+            });
 
             NativeProcessPayload {
                 exe: process
@@ -200,20 +288,24 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
                     None
                 },
                 environ: if include_linux_extras {
-                    let env_map: HashMap<String, String> = process
-                        .environ()
-                        .iter()
-                        .filter_map(|entry| {
-                            let entry_value = entry.to_string_lossy();
-                            entry_value.split_once('=').and_then(|(key, value)| {
-                                if key.is_empty() {
-                                    None
-                                } else {
-                                    Some((key.to_string(), value.to_string()))
-                                }
+                    let env_map: HashMap<String, String> = if let Some(inspection) = &linux {
+                        inspection.environment.clone()
+                    } else {
+                        process
+                            .environ()
+                            .iter()
+                            .filter_map(|entry| {
+                                let entry_value = entry.to_string_lossy();
+                                entry_value.split_once('=').and_then(|(key, value)| {
+                                    if key.is_empty() {
+                                        None
+                                    } else {
+                                        Some((key.to_string(), value.to_string()))
+                                    }
+                                })
                             })
-                        })
-                        .collect();
+                            .collect()
+                    };
 
                     if env_map.is_empty() {
                         None
@@ -223,6 +315,15 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
                 } else {
                     None
                 },
+                start_time: linux.as_ref().and_then(|value| value.start_time.clone()),
+                invocation_id: linux.as_ref().and_then(|value| value.invocation_id.clone()),
+                wine_prefix_path: linux
+                    .as_ref()
+                    .and_then(|value| value.wine_prefix_path.clone()),
+                pe_executable_path: linux
+                    .as_ref()
+                    .and_then(|value| value.pe_executable_path.clone()),
+                inspection_complete: linux.as_ref().map(|value| value.complete),
             }
         })
         .collect();

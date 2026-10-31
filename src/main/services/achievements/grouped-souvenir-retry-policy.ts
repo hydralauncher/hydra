@@ -7,6 +7,8 @@ export type GroupedSouvenirRecoveryAction =
   | "reauthorize_same_id"
   | "rotate_id_and_reupload"
   | "rebuild"
+  | "terminal"
+  | "pause"
   | "abandon";
 
 export interface GroupedSouvenirFailure {
@@ -15,8 +17,13 @@ export interface GroupedSouvenirFailure {
 }
 
 const TERMINAL_HTTP_STATUSES = new Set([400, 404, 409, 422]);
+const RETRYABLE_CLIENT_ERROR_STATUSES = new Set([401, 408, 429]);
 const SOUVENIR_CONFLICT_CODE = "achievements/souvenir-conflict";
 export const SOUVENIR_LIMIT_ERROR_CODE = "achievements/souvenir-limit-reached";
+export const SOUVENIR_NOT_FOUND_ERROR_CODE = "achievements/souvenir-not-found";
+export const GAME_NOT_FOUND_ERROR_CODE = "game/not-found";
+export const SOUVENIR_SUBSCRIPTION_ERROR_CODE =
+  "subscription/active-subscription-required";
 
 const RECOVERY_BY_REASON: Record<string, GroupedSouvenirRecoveryAction> = {
   reservation_not_found: "reauthorize_same_id",
@@ -29,6 +36,9 @@ const RECOVERY_BY_REASON: Record<string, GroupedSouvenirRecoveryAction> = {
 };
 
 const RECOVERY_BY_ERROR_CODE: Record<string, GroupedSouvenirRecoveryAction> = {
+  [SOUVENIR_NOT_FOUND_ERROR_CODE]: "terminal",
+  [GAME_NOT_FOUND_ERROR_CODE]: "terminal",
+  [SOUVENIR_SUBSCRIPTION_ERROR_CODE]: "pause",
   [SOUVENIR_LIMIT_ERROR_CODE]: "abandon",
   "achievements/souvenir-upload-deleted": "rotate_id_and_reupload",
   "achievements/souvenir-upload-expired": "reauthorize_same_id",
@@ -128,9 +138,27 @@ export const getGroupedSouvenirFailure = (
   return { code, action: "retry" };
 };
 
+export const isRejectedGroupedSouvenirRequest = (error: unknown) => {
+  if (!isAxiosError(error) || !error.response?.status) return false;
+  const { status } = error.response;
+  return (
+    status >= 400 &&
+    status < 500 &&
+    !RETRYABLE_CLIENT_ERROR_STATUSES.has(status)
+  );
+};
+
+export const isGroupedSouvenirNetworkFailure = (error: unknown) =>
+  isAxiosError(error) && !error.response;
+
 export const isTerminalGroupedSouvenirError = (
   error: unknown,
   clientId: string
-) =>
-  getGroupedSouvenirFailure(error, clientId, "synchronization").action ===
-  "abandon";
+) => {
+  const { action } = getGroupedSouvenirFailure(
+    error,
+    clientId,
+    "synchronization"
+  );
+  return action === "abandon" || action === "terminal";
+};

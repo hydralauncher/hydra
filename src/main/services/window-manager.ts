@@ -4,11 +4,23 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import icon from "@resources/icon.png?asset";
 import trayIconDark from "@resources/tray-icon-dark.png?asset";
 import trayIcon from "@resources/tray-icon.png?asset";
-import { AuthPage } from "@shared";
+import {
+  AUTH_WINDOW_CONTENT_HEIGHT,
+  AUTH_WINDOW_CONTENT_WIDTH,
+  AuthPage,
+  CUSTOM_WINDOW_BORDER_WIDTH,
+  CUSTOM_WINDOW_TITLE_BAR_HEIGHT,
+} from "@shared";
 import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
+  ChatWindowState,
+  PendingChatFriend,
   ScreenState,
+  SocialWindowKind,
+  SocialWindowsBounds,
+  SocialWindowsSession,
+  UserFriend,
   UserPreferences,
 } from "@types";
 import {
@@ -34,11 +46,28 @@ import {
   addSteamGridDbCacheControl,
   isSteamGridDbArtworkRequest,
 } from "./steam-grid-db-cache";
+import { getRetroAchievementsConnectionWindowLayout } from "./retroachievements-connection-window-layout";
+import { resolveSocialWindowBounds } from "./social-window-bounds";
+import {
+  getTopSocialWindow,
+  orderChatFriends,
+} from "./social-windows-restore-plan";
 
 const isLinuxWayland =
   process.platform === "linux" &&
   (process.env.XDG_SESSION_TYPE === "wayland" ||
     Boolean(process.env.WAYLAND_DISPLAY));
+
+const EMPTY_CHAT_WINDOW_STATE: ChatWindowState = {
+  activeFriendId: null,
+  openFriendIds: [],
+};
+
+// Upper bound on how long a painted friends window stays hidden while its
+// renderer waits for the cached friends list. Past this it shows the skeleton.
+const FRIENDS_WINDOW_SHOW_FALLBACK_MS = 400;
+const FRIENDS_WINDOW_MIN_SIZE = { width: 260, height: 360 };
+const CHAT_WINDOW_MIN_SIZE = { width: 400, height: 420 };
 
 interface CreateMainWindowOptions {
   forceBigPicture?: boolean;
@@ -50,7 +79,23 @@ export class WindowManager {
     null;
   private static bigPicture: Electron.BrowserWindow | null = null;
   private static friendsWindow: Electron.BrowserWindow | null = null;
+  private static markFriendsWindowReady: (() => void) | null = null;
+  private static chatWindow: Electron.BrowserWindow | null = null;
+  // Held until the chat renderer drains them, so conversations requested while
+  // the window is still loading are not lost.
+  private static pendingChatFriends: PendingChatFriend[] = [];
+  private static chatWindowState: ChatWindowState = EMPTY_CHAT_WINDOW_STATE;
+  private static mainWindowShownResult: boolean | null = null;
+  private static mainWindowShownListeners: Array<(shown: boolean) => void> = [];
+  private static socialWindowsBounds: SocialWindowsBounds = {};
+  private static lastFocusedSocialWindow: SocialWindowKind | null = null;
+  private static readonly deferredSocialWindowShows = new Map<
+    SocialWindowKind,
+    () => void
+  >();
   private static authWindow: Electron.BrowserWindow | null = null;
+  private static retroAchievementsConnectionWindow: Electron.BrowserWindow | null =
+    null;
   private static deferredMainMaximize = false;
 
   private static isArtworkRendererRequest(
@@ -68,6 +113,12 @@ export class WindowManager {
 
   public static get mainWindow(): Electron.BrowserWindow | null {
     return this.mainWindowInstance;
+  }
+
+  public static get bigPictureWindow(): Electron.BrowserWindow | null {
+    return this.bigPicture && !this.bigPicture.isDestroyed()
+      ? this.bigPicture
+      : null;
   }
 
   public static get gameLauncherWindow(): Electron.BrowserWindow | null {
@@ -172,8 +223,17 @@ export class WindowManager {
     main.setSkipTaskbar(false);
   }
 
+  public static get appWindows() {
+    return [this.mainWindow, this.bigPicture];
+  }
+
   public static sendToAppWindows(channel: string, ...args: unknown[]) {
-    const windows = [this.mainWindow, this.bigPicture, this.friendsWindow];
+    const windows = [
+      this.mainWindow,
+      this.bigPicture,
+      this.friendsWindow,
+      this.chatWindow,
+    ];
 
     for (const window of windows) {
       if (!window || window.isDestroyed()) continue;
@@ -390,8 +450,10 @@ export class WindowManager {
         WindowManager.mainWindow?.webContents.openDevTools();
       if (shouldLaunchInBigPicture) {
         void WindowManager.openBigPictureWindow();
+        WindowManager.notifyMainWindowShown(false);
       } else {
         WindowManager.mainWindow?.show();
+        WindowManager.notifyMainWindowShown(true);
       }
     });
 
@@ -434,6 +496,14 @@ export class WindowManager {
       shell.openExternal(handler.url);
       return { action: "deny" };
     });
+  }
+
+  public static isBigPictureSender(sender: Electron.WebContents) {
+    return (
+      this.bigPicture !== null &&
+      !this.bigPicture.isDestroyed() &&
+      this.bigPicture.webContents === sender
+    );
   }
 
   public static async openBigPictureWindow() {
@@ -510,21 +580,22 @@ export class WindowManager {
     });
   }
 
-  public static openFriendsWindow() {
+  public static openFriendsWindow({ deferShow = false } = {}): Promise<void> {
     if (this.friendsWindow) {
+      this.showDeferredSocialWindow("friends");
       if (this.friendsWindow.isMinimized()) {
         this.friendsWindow.restore();
       }
       this.friendsWindow.focus();
-      return;
+      return Promise.resolve();
     }
 
-    this.friendsWindow = new BrowserWindow({
+    const friendsWindow = new BrowserWindow({
       width: 420,
       height: 780,
-      minWidth: 420,
-      maxWidth: 420,
-      minHeight: 560,
+      ...this.getSavedSocialWindowBounds("friends", FRIENDS_WINDOW_MIN_SIZE),
+      minWidth: FRIENDS_WINDOW_MIN_SIZE.width,
+      minHeight: FRIENDS_WINDOW_MIN_SIZE.height,
       maximizable: false,
       backgroundColor: "#1c1c1c",
       // No native frame/controls — the renderer draws its own minimize and
@@ -538,20 +609,90 @@ export class WindowManager {
       show: false,
     });
 
-    this.friendsWindow.removeMenu();
+    this.friendsWindow = friendsWindow;
 
-    this.loadWindowURL(this.friendsWindow, "friends-window");
+    friendsWindow.removeMenu();
 
-    this.friendsWindow.once("ready-to-show", () => {
-      this.friendsWindow?.show();
+    void this.loadWindowURL(friendsWindow, "friends-window");
+
+    // Show only once the renderer has painted its friends list (cached data or
+    // the skeleton), not on its first paint, so the window never opens on an
+    // empty list. The fallback covers a renderer that never reports in.
+    let isPainted = false;
+    let isRendererReady = false;
+    let isShowable = false;
+    let isShown = false;
+    let fallbackTimeout: NodeJS.Timeout | null = null;
+    let resolveShowable: () => void = () => {};
+    const showable = new Promise<void>((resolve) => {
+      resolveShowable = resolve;
+    });
+
+    const show = () => {
+      if (isShown || friendsWindow.isDestroyed()) return;
+      isShown = true;
+
+      friendsWindow.show();
       if (!app.isPackaged || isStaging) {
-        this.friendsWindow?.webContents.openDevTools();
+        friendsWindow.webContents.openDevTools({
+          mode: "detach",
+          activate: false,
+        });
+      }
+    };
+
+    const markShowable = () => {
+      if (isShowable) return;
+      isShowable = true;
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
+
+      if (deferShow) this.deferredSocialWindowShows.set("friends", show);
+      else show();
+      resolveShowable();
+    };
+
+    this.markFriendsWindowReady = () => {
+      isRendererReady = true;
+      if (isPainted) markShowable();
+    };
+
+    friendsWindow.once("ready-to-show", () => {
+      isPainted = true;
+
+      if (isRendererReady) {
+        markShowable();
+      } else {
+        fallbackTimeout = setTimeout(
+          markShowable,
+          FRIENDS_WINDOW_SHOW_FALLBACK_MS
+        );
       }
     });
 
-    this.friendsWindow.on("closed", () => {
-      this.friendsWindow = null;
+    friendsWindow.on("focus", () => {
+      this.lastFocusedSocialWindow = "friends";
     });
+
+    friendsWindow.on("close", () => {
+      this.rememberSocialWindowBounds("friends", friendsWindow);
+    });
+
+    friendsWindow.on("closed", () => {
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
+      resolveShowable();
+      if (this.friendsWindow !== friendsWindow) return;
+
+      this.friendsWindow = null;
+      this.markFriendsWindowReady = null;
+      this.deferredSocialWindowShows.delete("friends");
+    });
+
+    return showable;
+  }
+
+  public static handleFriendsWindowReady(sender: Electron.WebContents) {
+    if (this.friendsWindow?.webContents !== sender) return;
+    this.markFriendsWindowReady?.();
   }
 
   public static minimizeFriendsWindow() {
@@ -565,6 +706,374 @@ export class WindowManager {
       this.friendsWindow.close();
     }
     this.friendsWindow = null;
+    this.markFriendsWindowReady = null;
+  }
+
+  // With activate false the window opens in the background and flashes its
+  // taskbar button instead, so a message never takes focus from a game or
+  // whatever the user is typing in.
+  public static openChatWindow(
+    friend: UserFriend,
+    {
+      activate = true,
+      isBackground = !activate,
+      flash = !activate,
+      deferShow = false,
+    } = {}
+  ): Promise<void> {
+    this.pendingChatFriends.push({ friend, isBackground });
+
+    if (this.chatWindow && !this.chatWindow.isDestroyed()) {
+      if (activate) {
+        this.showDeferredSocialWindow("chat");
+        if (this.chatWindow.isMinimized()) {
+          this.chatWindow.restore();
+        }
+        this.chatWindow.focus();
+      }
+      this.chatWindow.webContents.send("on-chat-friends-pending");
+      return Promise.resolve();
+    }
+
+    const chatWindow = new BrowserWindow({
+      width: 560,
+      height: 560,
+      ...this.getSavedSocialWindowBounds("chat", CHAT_WINDOW_MIN_SIZE),
+      minWidth: CHAT_WINDOW_MIN_SIZE.width,
+      minHeight: CHAT_WINDOW_MIN_SIZE.height,
+      maximizable: false,
+      fullscreenable: false,
+      backgroundColor: "#1c1c1c",
+      // No native frame/controls — the renderer draws its own tab strip and
+      // window controls (see chat-window.tsx).
+      frame: false,
+      icon,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+      show: false,
+    });
+    this.chatWindow = chatWindow;
+
+    this.chatWindow.removeMenu();
+
+    // Message links open in the browser after the renderer's prompt; nothing
+    // may load a site in this window or pop one up from it.
+    this.chatWindow.webContents.setWindowOpenHandler(() => ({
+      action: "deny",
+    }));
+    this.chatWindow.webContents.on("will-navigate", (event) => {
+      event.preventDefault();
+    });
+
+    void this.loadWindowURL(this.chatWindow, "chat-window");
+
+    const show = () => {
+      if (chatWindow.isDestroyed()) return;
+
+      if (activate) {
+        chatWindow.show();
+      } else {
+        chatWindow.showInactive();
+        if (flash) chatWindow.flashFrame(true);
+      }
+      if (!app.isPackaged || isStaging) {
+        // Detached: docked devtools would squeeze the small window. Opening
+        // them focuses the window even with activate false, so a window
+        // opened in the background waits until the user focuses it.
+        const openDevTools = () =>
+          this.chatWindow?.webContents.openDevTools({
+            mode: "detach",
+            activate,
+          });
+
+        if (activate) openDevTools();
+        else this.chatWindow?.once("focus", openDevTools);
+      }
+    };
+
+    const showable = new Promise<void>((resolve) => {
+      chatWindow.once("ready-to-show", () => {
+        if (deferShow) this.deferredSocialWindowShows.set("chat", show);
+        else show();
+        resolve();
+      });
+      chatWindow.once("closed", () => resolve());
+    });
+
+    this.chatWindow.on("focus", () => {
+      this.chatWindow?.flashFrame(false);
+      this.lastFocusedSocialWindow = "chat";
+    });
+
+    this.chatWindow.on("close", () => {
+      this.rememberSocialWindowBounds("chat", chatWindow);
+    });
+
+    this.chatWindow.on("closed", () => {
+      if (this.chatWindow !== chatWindow) return;
+
+      this.chatWindow = null;
+      this.pendingChatFriends = [];
+      this.chatWindowState = EMPTY_CHAT_WINDOW_STATE;
+      this.deferredSocialWindowShows.delete("chat");
+    });
+
+    return showable;
+  }
+
+  // Draws attention to a message the user cannot see: a closed chat window
+  // opens in the background on the sender's conversation, an open one flashes
+  // and gets a background tab for a sender without one.
+  public static showIncomingChatMessage(friend: UserFriend) {
+    const chatWindow = this.chatWindow;
+
+    if (!chatWindow || chatWindow.isDestroyed()) {
+      // A window popping up over Big Picture would cover its fullscreen UI.
+      if (this.bigPicture && !this.bigPicture.isDestroyed()) return;
+
+      void this.openChatWindow(friend, { activate: false });
+      return;
+    }
+
+    if (!this.chatWindowState.openFriendIds.includes(friend.id)) {
+      this.pendingChatFriends.push({ friend, isBackground: true });
+      chatWindow.webContents.send("on-chat-friends-pending");
+    }
+
+    // A window still loading gets focus or a flash once shown (see
+    // openChatWindow).
+    if (chatWindow.isVisible() && !this.isChatWindowFocused()) {
+      chatWindow.flashFrame(true);
+    }
+  }
+
+  public static setChatWindowState(state: ChatWindowState) {
+    this.chatWindowState = state;
+  }
+
+  public static getSocialWindowsSession(): SocialWindowsSession {
+    const isChatWindowOpen = Boolean(
+      this.chatWindow && !this.chatWindow.isDestroyed()
+    );
+    const isFriendsWindowOpen = Boolean(
+      this.friendsWindow && !this.friendsWindow.isDestroyed()
+    );
+
+    return {
+      friendsWindowOpen: isFriendsWindowOpen,
+      chatFriends: isChatWindowOpen
+        ? orderChatFriends(
+            this.chatWindowState.openFriendIds,
+            this.chatWindowState.openFriends ?? []
+          )
+        : [],
+      activeChatFriendId: isChatWindowOpen
+        ? this.chatWindowState.activeFriendId
+        : null,
+      topWindow: getTopSocialWindow(
+        isFriendsWindowOpen,
+        isChatWindowOpen,
+        this.lastFocusedSocialWindow
+      ),
+    };
+  }
+
+  public static waitForMainWindowShown() {
+    if (this.mainWindowShownResult !== null) {
+      return Promise.resolve(this.mainWindowShownResult);
+    }
+
+    return new Promise<boolean>((resolve) => {
+      this.mainWindowShownListeners.push(resolve);
+    });
+  }
+
+  private static notifyMainWindowShown(shown: boolean) {
+    this.mainWindowShownResult = shown;
+    const listeners = this.mainWindowShownListeners;
+    this.mainWindowShownListeners = [];
+    for (const listener of listeners) listener(shown);
+  }
+
+  public static setSocialWindowsBounds(bounds: SocialWindowsBounds | null) {
+    this.socialWindowsBounds = bounds ?? {};
+  }
+
+  private static getSavedSocialWindowBounds(
+    kind: SocialWindowKind,
+    minimumSize: { width: number; height: number }
+  ) {
+    return (
+      resolveSocialWindowBounds(
+        this.socialWindowsBounds[kind],
+        screen.getAllDisplays().map((display) => display.workArea),
+        minimumSize
+      ) ?? {}
+    );
+  }
+
+  private static captureSocialWindowBounds(
+    kind: SocialWindowKind,
+    window: Electron.BrowserWindow | null
+  ) {
+    if (!window || window.isDestroyed()) return;
+
+    this.socialWindowsBounds = {
+      ...this.socialWindowsBounds,
+      [kind]: window.getNormalBounds(),
+    };
+  }
+
+  private static persistSocialWindowsBounds() {
+    return db
+      .put<
+        string,
+        SocialWindowsBounds
+      >(levelKeys.socialWindowsBounds, this.socialWindowsBounds, { valueEncoding: "json" })
+      .catch((error) => {
+        logger.error("Failed to save the window position", error);
+      });
+  }
+
+  private static rememberSocialWindowBounds(
+    kind: SocialWindowKind,
+    window: Electron.BrowserWindow
+  ) {
+    if (window.isDestroyed()) return;
+
+    this.captureSocialWindowBounds(kind, window);
+    void this.persistSocialWindowsBounds();
+  }
+
+  public static async saveOpenSocialWindowsBounds() {
+    if (!this.friendsWindow && !this.chatWindow) return;
+
+    this.captureSocialWindowBounds("friends", this.friendsWindow);
+    this.captureSocialWindowBounds("chat", this.chatWindow);
+    await this.persistSocialWindowsBounds();
+  }
+
+  public static showDeferredSocialWindow(kind: SocialWindowKind) {
+    const show = this.deferredSocialWindowShows.get(kind);
+    if (!show) return;
+
+    this.deferredSocialWindowShows.delete(kind);
+    show();
+  }
+
+  public static discardDeferredSocialWindows() {
+    if (this.deferredSocialWindowShows.has("friends")) {
+      this.closeFriendsWindow();
+    }
+    if (
+      this.deferredSocialWindowShows.has("chat") &&
+      this.chatWindow &&
+      !this.chatWindow.isDestroyed()
+    ) {
+      this.chatWindow.close();
+    }
+    this.deferredSocialWindowShows.clear();
+  }
+
+  public static isBigPictureOpen() {
+    return Boolean(this.bigPicture && !this.bigPicture.isDestroyed());
+  }
+
+  public static restoreChatWindow(
+    friends: UserFriend[],
+    activeFriendId: string | null,
+    { deferShow = false } = {}
+  ) {
+    const activeFriend =
+      friends.find((friend) => friend.id === activeFriendId) ?? friends[0];
+    if (!activeFriend) return Promise.resolve();
+
+    for (const friend of friends) {
+      this.pendingChatFriends.push({ friend, isBackground: false });
+    }
+
+    return this.openChatWindow(activeFriend, { deferShow });
+  }
+
+  public static isMainWindowFocused() {
+    const mainWindow = this.mainWindow;
+    return Boolean(
+      mainWindow &&
+        !mainWindow.isDestroyed() &&
+        mainWindow.isVisible() &&
+        !mainWindow.isMinimized() &&
+        mainWindow.isFocused()
+    );
+  }
+
+  public static isChatWindowFocused() {
+    const chatWindow = this.chatWindow;
+    return Boolean(
+      chatWindow &&
+        !chatWindow.isDestroyed() &&
+        chatWindow.isVisible() &&
+        !chatWindow.isMinimized() &&
+        chatWindow.isFocused()
+    );
+  }
+
+  public static isChatConversationVisible(friendId: string) {
+    return (
+      this.isChatWindowFocused() &&
+      this.chatWindowState.activeFriendId === friendId
+    );
+  }
+
+  public static isChatConversationOpenInFocusedWindow(friendId: string) {
+    return (
+      this.isChatWindowFocused() &&
+      this.chatWindowState.openFriendIds.includes(friendId)
+    );
+  }
+
+  /**
+   * Sends to one window that can handle it right now, the chat window before
+   * the main one. False when neither has finished loading.
+   */
+  public static sendToFirstLoadedWindow(channel: string, ...args: unknown[]) {
+    const window = [this.chatWindow, this.mainWindow].find(
+      (candidate) =>
+        candidate &&
+        !candidate.isDestroyed() &&
+        !candidate.webContents.isLoading()
+    );
+
+    window?.webContents.send(channel, ...args);
+    return Boolean(window);
+  }
+
+  public static sendToChatWindow(channel: string, ...args: unknown[]) {
+    if (this.chatWindow && !this.chatWindow.isDestroyed()) {
+      this.chatWindow.webContents.send(channel, ...args);
+    }
+  }
+
+  public static consumePendingChatFriends() {
+    const friends = this.pendingChatFriends;
+    this.pendingChatFriends = [];
+    return friends;
+  }
+
+  public static minimizeChatWindow() {
+    if (this.chatWindow && !this.chatWindow.isDestroyed()) {
+      this.chatWindow.minimize();
+    }
+  }
+
+  public static closeChatWindow() {
+    if (this.chatWindow && !this.chatWindow.isDestroyed()) {
+      this.chatWindow.close();
+    }
+    this.chatWindow = null;
+    this.pendingChatFriends = [];
+    this.chatWindowState = EMPTY_CHAT_WINDOW_STATE;
   }
 
   public static minimizeMainWindow() {
@@ -613,11 +1122,6 @@ export class WindowManager {
     this.mainWindow?.webContents.send("on-open-add-friend-modal");
   }
 
-  private static readonly AUTH_WINDOW_WIDTH = 600;
-  private static readonly AUTH_WINDOW_HEIGHT = 640;
-  private static readonly AUTH_WINDOW_TITLE_BAR_HEIGHT = 34;
-  private static readonly AUTH_WINDOW_BORDER = 1;
-
   private static bindAuthNavigation(
     contents: Electron.WebContents,
     closeWindow: () => void
@@ -654,8 +1158,8 @@ export class WindowManager {
     }
 
     const authWindow = new BrowserWindow({
-      width: this.AUTH_WINDOW_WIDTH,
-      height: this.AUTH_WINDOW_HEIGHT,
+      width: AUTH_WINDOW_CONTENT_WIDTH,
+      height: AUTH_WINDOW_CONTENT_HEIGHT,
       backgroundColor: "#1c1c1c",
       parent: parentWindow,
       modal: true,
@@ -693,11 +1197,11 @@ export class WindowManager {
     authUrl: string
   ) {
     const authWindow = new BrowserWindow({
-      width: this.AUTH_WINDOW_WIDTH + this.AUTH_WINDOW_BORDER * 2,
+      width: AUTH_WINDOW_CONTENT_WIDTH + CUSTOM_WINDOW_BORDER_WIDTH * 2,
       height:
-        this.AUTH_WINDOW_HEIGHT +
-        this.AUTH_WINDOW_TITLE_BAR_HEIGHT +
-        this.AUTH_WINDOW_BORDER * 2,
+        AUTH_WINDOW_CONTENT_HEIGHT +
+        CUSTOM_WINDOW_TITLE_BAR_HEIGHT +
+        CUSTOM_WINDOW_BORDER_WIDTH * 2,
       parent: parentWindow,
       modal: true,
       show: false,
@@ -725,10 +1229,10 @@ export class WindowManager {
 
     authWindow.contentView.addChildView(authView);
     authView.setBounds({
-      x: this.AUTH_WINDOW_BORDER,
-      y: this.AUTH_WINDOW_BORDER + this.AUTH_WINDOW_TITLE_BAR_HEIGHT,
-      width: this.AUTH_WINDOW_WIDTH,
-      height: this.AUTH_WINDOW_HEIGHT,
+      x: CUSTOM_WINDOW_BORDER_WIDTH,
+      y: CUSTOM_WINDOW_BORDER_WIDTH + CUSTOM_WINDOW_TITLE_BAR_HEIGHT,
+      width: AUTH_WINDOW_CONTENT_WIDTH,
+      height: AUTH_WINDOW_CONTENT_HEIGHT,
     });
 
     this.loadWindowURL(authWindow, "auth-window");
@@ -762,6 +1266,73 @@ export class WindowManager {
     if (this.authWindow && !this.authWindow.isDestroyed()) {
       this.authWindow.close();
     }
+  }
+
+  public static openRetroAchievementsConnectionWindow() {
+    const existingWindow = this.retroAchievementsConnectionWindow;
+    if (existingWindow && !existingWindow.isDestroyed()) {
+      if (existingWindow.isMinimized()) existingWindow.restore();
+      existingWindow.focus();
+      return;
+    }
+
+    const parentWindow = this.mainWindow;
+    if (!parentWindow || parentWindow.isDestroyed()) return;
+
+    const layout = getRetroAchievementsConnectionWindowLayout(process.platform);
+    const connectionWindow = new BrowserWindow({
+      width: layout.width,
+      height: layout.height,
+      title: "Hydra",
+      backgroundColor: "#1c1c1c",
+      parent: parentWindow,
+      modal: true,
+      show: false,
+      maximizable: false,
+      resizable: false,
+      minimizable: layout.minimizable,
+      frame: layout.frame,
+      icon,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+
+    this.retroAchievementsConnectionWindow = connectionWindow;
+    connectionWindow.removeMenu();
+    void this.loadWindowURL(connectionWindow, "retroachievements-connection");
+
+    connectionWindow.once("ready-to-show", () => {
+      connectionWindow.show();
+      if (!app.isPackaged || isStaging) {
+        connectionWindow.webContents.openDevTools();
+      }
+    });
+
+    connectionWindow.once("closed", () => {
+      this.retroAchievementsConnectionWindow = null;
+      if (!parentWindow.isDestroyed()) parentWindow.focus();
+    });
+  }
+
+  public static minimizeRetroAchievementsConnectionWindow() {
+    const connectionWindow = this.retroAchievementsConnectionWindow;
+    if (connectionWindow && !connectionWindow.isDestroyed()) {
+      connectionWindow.minimize();
+    }
+  }
+
+  public static closeRetroAchievementsConnectionWindow() {
+    const connectionWindow = this.retroAchievementsConnectionWindow;
+    if (connectionWindow && !connectionWindow.isDestroyed()) {
+      connectionWindow.close();
+    }
+  }
+
+  public static completeRetroAchievementsConnectionWindow() {
+    this.sendToAppWindows("on-retroachievements-connected");
+    this.closeRetroAchievementsConnectionWindow();
   }
 
   public static sendAchievementToFocusedWindow(

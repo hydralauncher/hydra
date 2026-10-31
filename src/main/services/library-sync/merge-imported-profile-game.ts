@@ -1,14 +1,26 @@
-import type { Game, GameShop } from "@types";
+import type { Game, GameShop, LibraryCatalogueMetadata } from "@types";
+import { mergeLocalAndRemotePlayTime } from "../../../shared/playtime.js";
+import { mergeLibraryCatalogueMetadata } from "../../../shared/library-catalogue.js";
+import { resolveLibraryIsDeleted } from "./resolve-library-source.js";
 
-export interface ImportedProfileGame {
+export interface ImportedProfileGame extends LibraryCatalogueMetadata {
   id: string;
+  source?: string;
   objectId: string;
   shop: GameShop;
   createdAt?: Date | string | null;
   lastTimePlayed?: Date | string | null;
   playTimeInSeconds?: number | null;
+  playTimeInMilliseconds?: number | null;
   runtime?: number | null;
+  runtimeByPlatform?: {
+    hydra?: number | null;
+    epic?: number;
+    steam?: number | null;
+  } | null;
   hasManuallyUpdatedPlaytime?: boolean;
+  hasActiveSteamImport?: boolean;
+  hasActiveEpicImport?: boolean;
   isFavorite?: boolean;
   isPinned?: boolean;
   collectionIds?: string[];
@@ -30,29 +42,33 @@ const latestDate = (
   return local;
 };
 
-const remotePlayTimeInMilliseconds = (
-  remoteGame: ImportedProfileGame
-): number => {
-  const seconds = remoteGame.runtime ?? remoteGame.playTimeInSeconds ?? 0;
-  if (!Number.isFinite(seconds) || seconds < 0) return 0;
-  return seconds * 1000;
-};
-
 export const mergeImportedProfileGame = (
   localGame: Game,
   remoteGame: ImportedProfileGame
 ): Game => ({
   ...localGame,
-  remoteId: remoteGame.id,
+  ...mergeLibraryCatalogueMetadata(localGame, remoteGame),
+  remoteId:
+    localGame.source === "hydra" &&
+    localGame.remoteId === null &&
+    remoteGame.source === "epic"
+      ? null
+      : remoteGame.id,
   addedToLibraryAt:
     localGame.addedToLibraryAt ?? parseDate(remoteGame.createdAt),
   lastTimePlayed: latestDate(
     localGame.lastTimePlayed,
     remoteGame.lastTimePlayed
   ),
-  playTimeInMilliseconds: Math.max(
-    localGame.playTimeInMilliseconds,
-    remotePlayTimeInMilliseconds(remoteGame)
+  ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
+  hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
+  hasActiveEpicImport:
+    remoteGame.hasActiveEpicImport ?? localGame.hasActiveEpicImport ?? false,
+  isDeleted: resolveLibraryIsDeleted(
+    localGame.isDeleted,
+    undefined,
+    remoteGame.hasActiveSteamImport === true,
+    remoteGame.hasActiveEpicImport === true
   ),
   hasManuallyUpdatedPlaytime:
     remoteGame.hasManuallyUpdatedPlaytime ??

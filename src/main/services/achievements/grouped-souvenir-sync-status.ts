@@ -26,7 +26,7 @@ export const getAchievementSouvenirSyncStatusForOwner = (
 export const prepareAchievementSouvenirForRetry = (
   souvenir: PendingAchievementSouvenir
 ): PendingAchievementSouvenir => {
-  if (souvenir.status === "terminal") return souvenir;
+  if (souvenir.status !== "pending") return souvenir;
 
   return {
     ...souvenir,

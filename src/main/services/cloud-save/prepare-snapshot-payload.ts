@@ -13,6 +13,7 @@ export const buildPrepareSnapshotPayload = ({
   hostname,
   snapshotHash,
   baseVersion,
+  retroArchFormatVersion,
   customPathRawPaths,
   variants,
   files,
@@ -39,6 +40,12 @@ export const buildPrepareSnapshotPayload = ({
     ...(hostname ? { hostname } : {}),
     snapshotHash,
     baseVersion,
+    ...(retroArchFormatVersion === 2 ||
+    validatedFiles.some((file) =>
+      file.rawPath.startsWith("<emulator>/retroarch-v2/")
+    )
+      ? { retroArchFormatVersion: 2 as const }
+      : {}),
     customPathRawPaths: validatedCustomPathRawPaths,
     variants: validatedVariants,
     files: validatedFiles,

@@ -1,8 +1,14 @@
+import {
+  initializeEpicIntegration,
+  startEpicSyncOnStartup,
+} from "./services/epic";
 import { downloadsSublevel } from "./level/sublevels/downloads";
+import { recoverInterruptedInstallers } from "./helpers/recover-interrupted-installers";
 import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
 import { refreshGlobalTrackersUrlCache } from "@main/helpers";
+import { syncRetroAchievementsEmulatorCredentials } from "@main/services/retro-achievements/emulator-credentials/emulator-credential-sync";
 import { type Download, type UserPreferences } from "../types";
 import path from "node:path";
 import fs from "node:fs";
@@ -25,14 +31,23 @@ import {
   SSEClient,
   Wine,
   WindowManager,
+  ScreenshotInputService,
   logger,
   migrateCloudSaveAutomaticSyncDefaults,
   groupedSouvenirWorker,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
+import { isDebridPendingError } from "./services/download/debrid-files";
 import { GofileApi } from "./services/hosters";
 import { clearLegacyAchievementPersistence } from "./level/clear-legacy-achievements";
+import { startSteamSyncOnStartup } from "./services/steam-integration/steam-startup-sync";
+import { migrateEmulatorCloudSaveDefaults } from "./services/cloud-save/automatic-sync-emulator-migration";
+import { watchSteamLibraries } from "./services/steam-integration/steam-install-watcher";
+import { migrateGameVisibilityFields } from "./services/library-sync/game-visibility-migration";
+import { UmuUpdater } from "./services/umu-updater";
+import { initializeScreenshots } from "./services/screenshots";
+import { setTrackedGamesRunningListenerErrorReporter } from "./services/game-running-state";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -60,6 +75,8 @@ export const loadState = async () => {
   await Lock.acquireLock();
   await clearLegacyAchievementPersistence();
   await migrateCloudSaveAutomaticSyncDefaults();
+  await migrateEmulatorCloudSaveDefaults();
+  await migrateGameVisibilityFields();
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
@@ -69,6 +86,10 @@ export const loadState = async () => {
   );
 
   Wine.syncUserPreferences(userPreferences);
+  setTrackedGamesRunningListenerErrorReporter((error) =>
+    logger.error("Tracked games running listener failed", error)
+  );
+  ScreenshotInputService.syncUserPreferences(userPreferences);
 
   await import("./events");
 
@@ -104,9 +125,19 @@ export const loadState = async () => {
 
   if (process.platform === "linux") {
     DeckyPlugin.checkAndUpdateIfOutdated();
+    void UmuUpdater.checkForUpdates();
   }
 
+  void watchSteamLibraries();
+  void syncRetroAchievementsEmulatorCredentials();
+
   await HydraApi.setupApi().then(async () => {
+    void ScreenshotInputService.refreshFeatureFlag();
+    try {
+      await initializeEpicIntegration();
+    } catch (err) {
+      logger.warn("Epic integration initialization failed on startup", err);
+    }
     uploadGamesBatch();
     void migrateDownloadSources();
 
@@ -118,10 +149,21 @@ export const loadState = async () => {
       await DownloadSourcesChecker.checkForChanges();
     })();
 
+    initializeScreenshots();
+
     if (HydraApi.isLoggedIn()) {
       SSEClient.connect();
       void groupedSouvenirWorker.trigger();
+      void startSteamSyncOnStartup();
+      void startEpicSyncOnStartup();
     }
+  });
+
+  void recoverInterruptedInstallers().catch((error) => {
+    logger.error(
+      "[GameInstaller] Failed to recover interrupted installs",
+      error
+    );
   });
 
   const downloadToResume =
@@ -178,18 +220,19 @@ export const loadState = async () => {
     );
   }
 
-  // For torrents use Python RPC; HTTP downloads use JS downloader.
+  // Torrents use the native service; HTTP downloads use the JS downloader.
   const isTorrent = downloadToResume?.downloader === Downloader.Torrent;
   if (downloadToResume && !isTorrent) {
-    // Start Python RPC for seeding only, then resume HTTP download with JS
-    await DownloadManager.startRPC(undefined, downloadsToSeed);
-    await DownloadManager.startDownload(downloadToResume).catch((err) => {
-      // If resume fails, just log it - user can manually retry
+    // Initialize torrent seeding, then resume the HTTP download with JS.
+    await DownloadManager.initializeTorrentService(undefined, downloadsToSeed);
+    await DownloadManager.startDownload(downloadToResume).catch(async (err) => {
       logger.error("Failed to auto-resume download:", err);
+      if (isDebridPendingError(err, downloadToResume.downloader)) {
+        await DownloadOrchestrator.saveAwaitingDebridDownload(downloadToResume);
+      }
     });
   } else {
-    // Use Python RPC for everything (torrent or fallback)
-    await DownloadManager.startRPC(
+    await DownloadManager.initializeTorrentService(
       downloadToResume ?? undefined,
       downloadsToSeed
     );

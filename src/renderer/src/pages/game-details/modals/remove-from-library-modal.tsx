@@ -5,7 +5,7 @@ import "./remove-from-library-modal.scss";
 
 interface RemoveGameFromLibraryModalProps {
   visible: boolean;
-  game: Game;
+  game: Pick<Game, "title">;
   onClose: () => void;
   removeGameFromLibrary: () => Promise<void>;
 }
@@ -35,7 +35,7 @@ export function RemoveGameFromLibraryModal({
           {t("cancel")}
         </Button>
 
-        <Button onClick={handleRemoveGame} theme="primary">
+        <Button onClick={handleRemoveGame} theme="danger">
           {t("remove")}
         </Button>
       </div>

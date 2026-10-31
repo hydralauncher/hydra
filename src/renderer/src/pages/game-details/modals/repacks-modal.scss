@@ -82,6 +82,20 @@
     font-size: globals.$small-font-size;
   }
 
+  &__separator {
+    height: 1px;
+    width: 100%;
+    background-color: globals.$border-color;
+  }
+
+  &__steam-title {
+    color: globals.$body-color;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
   &__new-badge {
     background-color: rgba(34, 197, 94, 0.15);
     color: rgb(187, 247, 208);

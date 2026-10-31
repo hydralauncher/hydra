@@ -1,22 +1,28 @@
 import { Trans, useTranslation } from "react-i18next";
 import {
+  getClassicsDiscLabel,
+  getNextClassicsDiscLabel,
   getRetroArchRomExtensions,
+  stripFileExtension,
   platformToRetroArchPlatform,
 } from "@shared";
 import {
   type ReactNode,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { Tooltip } from "react-tooltip";
 import { Button, CheckboxField, TextField } from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
-import { DotIcon, FileIcon } from "@primer/octicons-react";
-import { HardDrive, X, FolderOpen, ChevronDown } from "lucide-react";
+import { FileIcon } from "@primer/octicons-react";
+import { HardDrive, X, FolderOpen, ChevronDown, Disc3 } from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
+import { useFileIcons } from "@renderer/hooks/use-file-icons";
 import {
   getSkuRegion,
   getSkuRegionFlag,
@@ -31,6 +37,9 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
   const { t } = useTranslation("game_details");
   const { updateGame } = useContext(gameDetailsContext);
   const discs: ClassicsDisc[] = game.discs ?? [];
+  const executableIcons = useFileIcons(
+    discs.filter((disc) => disc.isExecutable).map((disc) => disc.path)
+  );
   const system = useMemo(
     () => platformToSystem(game.platform),
     [game.platform]
@@ -38,9 +47,42 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+  const addMenuRef = useRef<HTMLDivElement>(null);
 
   const selectedDisc =
     discs.find((d) => d.path === game.selectedDiscPath) ?? discs[0] ?? null;
+
+  const renderDiscIcon = (disc: ClassicsDisc | null) => {
+    if (disc?.isExecutable) {
+      const fileIcon = executableIcons[disc.path];
+
+      return fileIcon ? (
+        <img
+          src={fileIcon}
+          alt=""
+          width={18}
+          height={18}
+          className="disc-field__icon"
+        />
+      ) : (
+        <FileIcon size={18} className="disc-field__icon" />
+      );
+    }
+
+    const region = disc?.sku ? getSkuRegion(disc.sku) : null;
+
+    if (!region) return <Disc3 size={18} className="disc-field__icon" />;
+
+    return (
+      <img
+        src={getSkuRegionFlag(region)}
+        alt={region}
+        title={region}
+        className="disc-field__flag"
+      />
+    );
+  };
 
   useEffect(() => {
     if (!isDropdownOpen) return undefined;
@@ -58,6 +100,22 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isDropdownOpen]);
 
+  useEffect(() => {
+    if (!isAddMenuOpen) return undefined;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        addMenuRef.current &&
+        !addMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsAddMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isAddMenuOpen]);
+
   const handleSelectDisc = async (path: string) => {
     setIsDropdownOpen(false);
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
@@ -73,21 +131,43 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     await updateGame();
   };
 
-  const addDiscFromPath = async (fullPath: string) => {
+  const addDiscFromPath = async (fullPath: string, isExecutable = false) => {
     const fileName = fullPath.split(/[\\/]/).pop() ?? fullPath;
-    const nextIndex = discs.length + 1;
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
       addDisc: {
         path: fullPath,
-        label: `Disc ${nextIndex}`,
+        label: isExecutable
+          ? stripFileExtension(fileName)
+          : getNextClassicsDiscLabel(discs),
         fileName,
+        ...(isExecutable ? { isExecutable } : {}),
       },
       selectedDiscPath: fullPath,
     });
     await updateGame();
   };
 
+  const handleAddExecutable = async () => {
+    setIsAddMenuOpen(false);
+    const isWindows = window.electron.platform === "win32";
+    const res = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: isWindows
+        ? [
+            {
+              name: t("executable_label"),
+              extensions: ["exe", "bat", "cmd", "lnk"],
+            },
+            { name: t("all_files"), extensions: ["*"] },
+          ]
+        : [{ name: t("all_files"), extensions: ["*"] }],
+    });
+    if (res.canceled || !res.filePaths[0]) return;
+    await addDiscFromPath(res.filePaths[0], true);
+  };
+
   const handleAddDiscFile = async () => {
+    setIsAddMenuOpen(false);
     const retroArchPlatform = platformToRetroArchPlatform(game.platform);
     let extensions = ["*"];
     if (retroArchPlatform) {
@@ -107,6 +187,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
   };
 
   const handleAddDiscFolder = async () => {
+    setIsAddMenuOpen(false);
     const res = await window.electron.showOpenDialog({
       properties: ["openDirectory"],
     });
@@ -143,10 +224,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 className="disc-field__trigger"
                 onClick={() => setIsDropdownOpen((prev) => !prev)}
               >
-                <DotIcon size={18} className="disc-field__icon" />
+                {renderDiscIcon(selectedDisc)}
                 <span className="disc-field__text">
                   <span className="disc-field__label">
-                    {selectedDisc?.label}
+                    {selectedDisc && getClassicsDiscLabel(selectedDisc)}
                   </span>
                   <span className="disc-field__filename">
                     {selectedDisc?.fileName}
@@ -160,58 +241,102 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 />
               </button>
 
-              {isDropdownOpen && (
-                <div className="disc-field__menu">
-                  {discs.map((disc) => {
-                    const isActive = selectedDisc?.path === disc.path;
-                    const region = disc.sku ? getSkuRegion(disc.sku) : null;
-                    return (
-                      <button
-                        key={disc.path}
-                        type="button"
-                        className={`disc-field__option ${
-                          isActive ? "disc-field__option--active" : ""
-                        }`}
-                        onClick={() => void handleSelectDisc(disc.path)}
-                      >
-                        <DotIcon size={18} className="disc-field__icon" />
-                        <span className="disc-field__text">
-                          <span className="disc-field__label">
-                            {disc.label}
-                          </span>
-                          <span className="disc-field__filename">
-                            {disc.fileName}
-                          </span>
+              <div
+                className={`disc-field__menu ${
+                  isDropdownOpen ? "disc-field__menu--open" : ""
+                }`}
+              >
+                {discs.map((disc) => {
+                  const isActive = selectedDisc?.path === disc.path;
+                  return (
+                    <button
+                      key={disc.path}
+                      type="button"
+                      className={`disc-field__option ${
+                        isActive ? "disc-field__option--active" : ""
+                      }`}
+                      onClick={() => void handleSelectDisc(disc.path)}
+                    >
+                      {renderDiscIcon(disc)}
+                      <span className="disc-field__text">
+                        <span className="disc-field__label">
+                          {getClassicsDiscLabel(disc)}
                         </span>
-                        {region && (
-                          <img
-                            src={getSkuRegionFlag(region)}
-                            alt={region}
-                            className="disc-field__flag"
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                        <span className="disc-field__filename">
+                          {disc.fileName}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ) : (
-            <p className="game-options-modal__header-description disc-field__empty">
-              {t("no_discs_found")}
-            </p>
+            <div className="disc-field__dropdown">
+              <TextField
+                value=""
+                readOnly
+                theme="dark"
+                disabled
+                placeholder={t("no_discs_found")}
+              />
+            </div>
           )}
 
-          <Button type="button" theme="outline" onClick={handleAddDiscFile}>
-            <FileIcon />
-            {t("add_disc")}
-          </Button>
-          {system === "ps3" && (
-            <Button type="button" theme="outline" onClick={handleAddDiscFolder}>
-              <FolderOpen size={14} />
-              {t("add_disc_folder")}
+          <div className="disc-field__add" ref={addMenuRef}>
+            <Button
+              type="button"
+              theme="outline"
+              onClick={() => setIsAddMenuOpen((prev) => !prev)}
+            >
+              {t("add_menu")}
+              <ChevronDown
+                size={14}
+                className={`disc-field__chevron ${
+                  isAddMenuOpen ? "disc-field__chevron--open" : ""
+                }`}
+              />
             </Button>
-          )}
+
+            <div
+              className={`disc-field__menu disc-field__menu--add ${
+                isAddMenuOpen ? "disc-field__menu--open" : ""
+              }`}
+            >
+              <button
+                type="button"
+                className="disc-field__option"
+                onClick={() => void handleAddDiscFile()}
+              >
+                <Disc3 size={16} className="disc-field__icon" />
+                <span className="disc-field__label">
+                  {t("add_disc_option")}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="disc-field__option"
+                onClick={() => void handleAddExecutable()}
+              >
+                <FileIcon size={16} className="disc-field__icon" />
+                <span className="disc-field__label">
+                  {t("add_executable_option")}
+                </span>
+              </button>
+              {system === "ps3" && (
+                <button
+                  type="button"
+                  className="disc-field__option"
+                  onClick={() => void handleAddDiscFolder()}
+                >
+                  <FolderOpen size={16} className="disc-field__icon" />
+                  <span className="disc-field__label">
+                    {t("add_folder_option")}
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {selectedDisc && (
@@ -235,11 +360,13 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
           </div>
         )}
 
-        <CheckboxField
-          label={t("dont_ask_disc_again")}
-          checked={Boolean(game.dontAskDiscSelection)}
-          onChange={(e) => void handleToggleDontAsk(e.target.checked)}
-        />
+        {discs.length > 1 && (
+          <CheckboxField
+            label={t("dont_ask_disc_again")}
+            checked={Boolean(game.dontAskDiscSelection)}
+            onChange={(e) => void handleToggleDontAsk(e.target.checked)}
+          />
+        )}
       </div>
     </div>
   );
@@ -277,6 +404,8 @@ interface GeneralSettingsSectionProps {
   onResetGameTitle?: () => void;
   onChangeLaunchOptions: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onClearLaunchOptions: () => Promise<void>;
+  onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
+  isNonSteamExecutable: boolean;
   isTransferring: boolean;
   transferProgress: number;
   drives: DriveInfo[];
@@ -293,6 +422,7 @@ interface GeneralSettingsSectionProps {
   showTransferSection?: boolean;
   showShortcutsSection?: boolean;
   showLaunchOptionsSection?: boolean;
+  showSteamPlaytimeSection?: boolean;
 }
 
 //
@@ -323,6 +453,57 @@ const isBatchExecutable = (executablePath?: string | null) =>
 const supportsTrackingExecutables = (executablePath?: string | null) =>
   !!executablePath && /\.(bat|cmd|exe)$/i.test(executablePath);
 
+interface SteamPlaytimeSectionProps {
+  source?: "steam" | "epic";
+  enableHydraPlaytimeTracking: LibraryGame["enableHydraPlaytimeTracking"];
+  isNonSteamExecutable: boolean;
+  onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
+}
+
+function SteamPlaytimeSection({
+  source = "steam",
+  enableHydraPlaytimeTracking,
+  isNonSteamExecutable,
+  onToggleHydraPlaytimeEnabled,
+}: Readonly<SteamPlaytimeSectionProps>) {
+  const { t } = useTranslation("game_details");
+  const tooltipId = useId();
+
+  return (
+    <div className="game-options-modal__section">
+      <div className="game-options-modal__header">
+        <h2>{t(`${source}_playtime_tracking_title`)}</h2>
+        <h4 className="game-options-modal__header-description">
+          {t(`${source}_playtime_tracking_description`)}
+        </h4>
+      </div>
+
+      <CheckboxField
+        label={
+          <span
+            className="game-options-modal__steam-playtime-label"
+            data-tooltip-id={tooltipId}
+            data-tooltip-content={
+              isNonSteamExecutable
+                ? t("steam_playtime_non_steam_executable_tooltip")
+                : undefined
+            }
+          >
+            {t("enable_hydra_playtime_tracking")}
+          </span>
+        }
+        checked={isNonSteamExecutable || enableHydraPlaytimeTracking === true}
+        disabled={isNonSteamExecutable}
+        onChange={(event) =>
+          void onToggleHydraPlaytimeEnabled(event.target.checked)
+        }
+      />
+
+      {isNonSteamExecutable && <Tooltip id={tooltipId} />}
+    </div>
+  );
+}
+
 export function GeneralSettingsSection({
   game,
   gameTitle,
@@ -348,6 +529,8 @@ export function GeneralSettingsSection({
   onResetGameTitle,
   onChangeLaunchOptions,
   onClearLaunchOptions,
+  onToggleHydraPlaytimeEnabled,
+  isNonSteamExecutable,
   isTransferring,
   transferProgress,
   drives,
@@ -364,6 +547,7 @@ export function GeneralSettingsSection({
   showTransferSection = true,
   showShortcutsSection = true,
   showLaunchOptionsSection = true,
+  showSteamPlaytimeSection = true,
 }: Readonly<GeneralSettingsSectionProps>) {
   const { t } = useTranslation("game_details");
 
@@ -371,6 +555,9 @@ export function GeneralSettingsSection({
   const [customPath, setCustomPath] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
+  const isSteamImport =
+    (game.shop === "steam" && game.hasActiveSteamImport) ||
+    (game.shop === "epic" && game.hasActiveEpicImport);
 
   const gameSize = game.installedSizeInBytes ?? 0;
   const progressPercent = Math.round(transferProgress * 100);
@@ -611,6 +798,17 @@ export function GeneralSettingsSection({
             </div>
           )}
         </div>
+      )}
+
+      {showSteamPlaytimeSection && isSteamImport && (
+        <SteamPlaytimeSection
+          enableHydraPlaytimeTracking={game.enableHydraPlaytimeTracking}
+          isNonSteamExecutable={
+            game.shop === "epic" ? false : isNonSteamExecutable
+          }
+          source={game.shop === "epic" ? "epic" : "steam"}
+          onToggleHydraPlaytimeEnabled={onToggleHydraPlaytimeEnabled}
+        />
       )}
 
       {/* Drive Selector */}

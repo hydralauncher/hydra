@@ -9,6 +9,28 @@ export interface FilterDropdownOption<T extends string> {
   value: T;
   label: string;
   icon: FilterIcon;
+  imageUrl?: string | null;
+}
+
+function FilterOptionIcon<T extends string>({
+  option,
+  className,
+}: Readonly<{ option: FilterDropdownOption<T>; className?: string }>) {
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const Icon = option.icon;
+
+  if (option.imageUrl && option.imageUrl !== failedImageUrl) {
+    return (
+      <img
+        className="filter-dropdown__option-image"
+        src={option.imageUrl}
+        alt=""
+        onError={() => setFailedImageUrl(option.imageUrl ?? null)}
+      />
+    );
+  }
+
+  return <Icon size={14} className={className} />;
 }
 
 interface FilterDropdownProps<T extends string> {
@@ -53,8 +75,6 @@ export function FilterDropdown<T extends string>({
     };
   }, [open]);
 
-  const SelectedIcon = selected?.icon;
-
   return (
     <div className="filter-dropdown" ref={containerRef}>
       <button
@@ -67,8 +87,10 @@ export function FilterDropdown<T extends string>({
         <span className="filter-dropdown__placeholder">{placeholder}</span>
         {selected && (
           <span className="filter-dropdown__value">
-            {SelectedIcon && <SelectedIcon size={14} />}
-            <span>{selected.label}</span>
+            <FilterOptionIcon option={selected} />
+            <span className="filter-dropdown__value-label">
+              {selected.label}
+            </span>
           </span>
         )}
         <ChevronDownIcon size={14} className="filter-dropdown__chevron" />
@@ -77,7 +99,6 @@ export function FilterDropdown<T extends string>({
       {open && (
         <div className="filter-dropdown__menu" role="listbox">
           {options.map((option) => {
-            const OptionIcon = option.icon;
             const isActive = option.value === value;
             return (
               <button
@@ -91,8 +112,8 @@ export function FilterDropdown<T extends string>({
                   setOpen(false);
                 }}
               >
-                <OptionIcon
-                  size={14}
+                <FilterOptionIcon
+                  option={option}
                   className="filter-dropdown__option-icon"
                 />
                 <span className="filter-dropdown__option-label">

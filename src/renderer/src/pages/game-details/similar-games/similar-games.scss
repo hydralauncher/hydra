@@ -1,5 +1,8 @@
 @use "../../../scss/globals.scss";
 
+$card-hover-scale: 1.05;
+$card-hover-transition-duration: 0.2s;
+
 .similar-games {
   display: flex;
   flex-direction: column;
@@ -28,8 +31,16 @@
 
   &__viewport {
     position: relative;
-    overflow: hidden;
+    overflow: clip;
+    overflow-clip-margin: 0px;
     border-radius: 6px;
+    transition: overflow-clip-margin 0s linear $card-hover-transition-duration;
+    transition-behavior: allow-discrete;
+
+    &:has(.similar-games__card:hover) {
+      overflow-clip-margin: calc(globals.$spacing-unit * 1.75);
+      transition-delay: 0s;
+    }
   }
 
   &__container {
@@ -41,6 +52,10 @@
     flex: 0 0 calc(100% / 3);
     min-width: 0;
     padding: 3px globals.$spacing-unit;
+  }
+
+  &__card:hover {
+    transform: scale($card-hover-scale);
   }
 
   &__skeleton {

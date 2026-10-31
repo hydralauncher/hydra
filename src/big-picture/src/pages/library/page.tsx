@@ -1,4 +1,5 @@
 import type { LibraryGame } from "@types";
+import { getGameCatalogueIdentity, getLibraryOperationalGame } from "@shared";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useCallback,
@@ -22,6 +23,7 @@ import {
 } from "../../hooks";
 import {
   isBuiltinLibraryTab,
+  getGameCollectionIds,
   type LibraryViewMode,
   LibraryFocusGrid,
   LibraryFilters,
@@ -32,6 +34,7 @@ import {
   VerticalFocusGroup,
   LIBRARY_SECONDARY_FILTER_STORAGE_KEY,
   LIBRARY_SORT_BY_STORAGE_KEY,
+  LIBRARY_TAB_STORAGE_KEY,
   LIBRARY_VIEW_MODE_STORAGE_KEY,
   type LibrarySecondaryFilter,
   isLibraryViewMode,
@@ -88,6 +91,14 @@ function getInitialLibrarySecondaryFilter(): LibrarySecondaryFilter {
   );
 }
 
+function getInitialLibraryFilterTab(): LibraryFilterTab {
+  return getInitialLibraryStoredValue(
+    LIBRARY_TAB_STORAGE_KEY,
+    (value): value is LibraryFilterTab => Boolean(value),
+    "all"
+  );
+}
+
 function getInitialLibraryStoredValue<TValue extends string>(
   storageKey: string,
   validator: (value: string | null | undefined) => value is TValue,
@@ -114,9 +125,15 @@ export default function LibraryPage() {
   const { setFocus } = useNavigation();
   const { showSuccessToast } = useBigPictureToast();
   const { library, updateLibrary } = useLibrary();
-  const { collections, loadCollections } = useGameCollections();
-  const [selectedFilterTab, setSelectedFilterTab] =
-    useState<LibraryFilterTab>("all");
+  const {
+    collections,
+    hasLoadedCollections,
+    hasFailedToLoadCollections,
+    loadCollections,
+  } = useGameCollections();
+  const [selectedFilterTab, setSelectedFilterTab] = useState<LibraryFilterTab>(
+    getInitialLibraryFilterTab
+  );
   const [viewMode, setViewMode] = useState<LibraryViewMode>(
     getInitialLibraryViewMode
   );
@@ -136,20 +153,28 @@ export default function LibraryPage() {
     });
   const { favoriteLoadingGameId, toggleFavorite } =
     useLibraryFavorite(updateLibrary);
+  const isSelectedFilterTabAvailable =
+    isBuiltinLibraryTab(selectedFilterTab) ||
+    collections.some((collection) => collection.id === selectedFilterTab);
+  const activeFilterTab =
+    isSelectedFilterTabAvailable || !hasFailedToLoadCollections
+      ? selectedFilterTab
+      : "all";
   const {
+    groupedLibrary,
     filteredLibrary,
     filterCounts,
     firstGridItemId,
     firstListItemId,
     lastPlayedGames,
-  } = useLibraryPageData(library, selectedFilterTab, search, sortBy, filterBy);
+  } = useLibraryPageData(library, activeFilterTab, search, sortBy, filterBy);
 
   /** Must change when sorting, secondary filter or search updates so grid/list fades. */
   const deferredSearchTransition = useDeferredValue(search);
 
   const firstContentItemId =
     viewMode === "list" ? firstListItemId : firstGridItemId;
-  const contentTransitionKey = `${selectedFilterTab}:${viewMode}:${sortBy}:${filterBy}:${deferredSearchTransition}`;
+  const contentTransitionKey = `${activeFilterTab}:${viewMode}:${sortBy}:${filterBy}:${deferredSearchTransition}`;
   const previousContentTransitionKeyRef = useRef(contentTransitionKey);
   const shouldAnimateContentChange =
     hasMountedContentRef.current &&
@@ -232,14 +257,14 @@ export default function LibraryPage() {
   const handleOpenHeroSettings = useCallback((game: LibraryGame) => {
     settingsModalRestoreFocusIdRef.current =
       LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID;
-    setSettingsModalGame(game);
+    setSettingsModalGame(getLibraryOperationalGame(game));
     setIsGameSettingsModalOpen(true);
   }, []);
 
   const handleOpenGameSettingsFromContextMenu = useCallback(
     (game: LibraryGame) => {
       settingsModalRestoreFocusIdRef.current = contextMenuState.restoreFocusId;
-      setSettingsModalGame(game);
+      setSettingsModalGame(getLibraryOperationalGame(game));
       setIsGameSettingsModalOpen(true);
     },
     [contextMenuState.restoreFocusId]
@@ -270,7 +295,12 @@ export default function LibraryPage() {
 
   const handleViewAchievements = useCallback(
     (game: LibraryGame) => {
-      navigate(getBigPictureGameAchievementsPath(game));
+      navigate(
+        getBigPictureGameAchievementsPath({
+          ...game,
+          ...getGameCatalogueIdentity(game),
+        })
+      );
     },
     [navigate]
   );
@@ -282,6 +312,7 @@ export default function LibraryPage() {
     requestRemoveFromLibrary,
     closePendingAction,
     confirmPendingAction,
+    sourceArchiveOption,
   } = useLibraryPendingAction({
     getRestoreFocusId: useCallback(
       () => contextMenuState.restoreFocusId,
@@ -333,15 +364,40 @@ export default function LibraryPage() {
   }, [sortBy]);
 
   useEffect(() => {
-    if (
-      isBuiltinLibraryTab(selectedFilterTab) ||
-      collections.some((c) => c.id === selectedFilterTab)
-    ) {
+    try {
+      globalThis.window.localStorage.setItem(
+        LIBRARY_TAB_STORAGE_KEY,
+        selectedFilterTab
+      );
+    } catch {
+      return;
+    }
+  }, [selectedFilterTab]);
+
+  useEffect(() => {
+    if (isSelectedFilterTabAvailable) return;
+
+    if (hasLoadedCollections) {
+      setSelectedFilterTab("all");
       return;
     }
 
-    setSelectedFilterTab("all");
-  }, [collections, selectedFilterTab]);
+    if (!hasFailedToLoadCollections || library.length === 0) return;
+
+    const isCollectionInLibrary = library.some((game) =>
+      getGameCollectionIds(game).includes(selectedFilterTab)
+    );
+
+    if (!isCollectionInLibrary) {
+      setSelectedFilterTab("all");
+    }
+  }, [
+    hasFailedToLoadCollections,
+    hasLoadedCollections,
+    isSelectedFilterTabAvailable,
+    library,
+    selectedFilterTab,
+  ]);
 
   useEffect(() => {
     try {
@@ -387,7 +443,7 @@ export default function LibraryPage() {
           />
 
           <LibraryFilters
-            selectedTab={selectedFilterTab}
+            selectedTab={activeFilterTab}
             onSelectedTabChange={setSelectedFilterTab}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
@@ -398,7 +454,7 @@ export default function LibraryPage() {
             search={search}
             onSearchChange={setSearch}
             counts={filterCounts}
-            library={library}
+            library={groupedLibrary}
             collections={collections}
             firstContentItemId={firstContentItemId}
           />
@@ -499,6 +555,7 @@ export default function LibraryPage() {
           loading={isSubmittingAction}
           onClose={closePendingAction}
           onConfirm={confirmPendingAction}
+          sourceArchiveOption={sourceArchiveOption}
         />
       ) : null}
 

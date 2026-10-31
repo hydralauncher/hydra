@@ -45,6 +45,7 @@ export interface ButtonProps
   /** When false, the control stays clickable but is omitted from gamepad / spatial focus order. */
   focusable?: boolean;
   focusNavigationOverrides?: FocusOverrides;
+  focusNavigationOrder?: number;
   stealFocusOnAppear?: boolean;
 }
 
@@ -71,6 +72,7 @@ export function Button({
   focusId,
   focusable = true,
   focusNavigationOverrides,
+  focusNavigationOrder,
   stealFocusOnAppear = false,
   "aria-label": ariaLabel,
   ...props
@@ -113,6 +115,7 @@ export function Button({
         focusable={focusable}
         navigationState={disabled ? "disabled" : "active"}
         navigationOverrides={focusNavigationOverrides}
+        navigationOrder={focusNavigationOrder}
         stealFocusOnAppear={stealFocusOnAppear}
         asChild
       >
@@ -178,6 +181,7 @@ export function Button({
         focusable={focusable}
         navigationState={disabled ? "disabled" : "active"}
         navigationOverrides={focusNavigationOverrides}
+        navigationOrder={focusNavigationOrder}
         stealFocusOnAppear={stealFocusOnAppear}
         asChild
       >
@@ -203,6 +207,7 @@ export function Button({
       focusable={focusable}
       navigationState={disabled ? "disabled" : "active"}
       navigationOverrides={focusNavigationOverrides}
+      navigationOrder={focusNavigationOrder}
       stealFocusOnAppear={stealFocusOnAppear}
       asChild
     >

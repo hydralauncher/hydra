@@ -66,6 +66,7 @@ export class AchievementNotificationPresenter {
   private generation = 0;
   private creatingHost = false;
   private watchdog: TimeoutHandle | null = null;
+  private warmPosition: AchievementCustomNotificationPosition | null = null;
 
   constructor(
     private readonly dependencies: AchievementNotificationPresenterDependencies
@@ -95,7 +96,7 @@ export class AchievementNotificationPresenter {
       }))
     );
 
-    this.ensureHost();
+    this.present();
   }
 
   public enqueueCombined(
@@ -117,7 +118,46 @@ export class AchievementNotificationPresenter {
       fallback: { callback: fallback, invoked: false },
     });
 
+    this.present();
+  }
+
+  public enqueueScreenshot(
+    position: AchievementCustomNotificationPosition,
+    notification: AchievementNotificationInfo,
+    fallback?: NotificationFallback
+  ): void {
+    this.queue = this.queue.filter(
+      (item) => item.request.type !== "screenshot"
+    );
+    this.queue.push({
+      request: {
+        id: this.nextRequestId(),
+        type: "screenshot",
+        position,
+        achievement: { ...notification, variant: "screenshot" },
+      },
+      fallback: { callback: fallback, invoked: false },
+    });
+
+    this.present();
+  }
+
+  public keepWarm(position: AchievementCustomNotificationPosition): void {
+    this.warmPosition = position;
     this.ensureHost();
+  }
+
+  public releaseWarm(): void {
+    if (!this.warmPosition) return;
+    this.warmPosition = null;
+    if (!this.activeItem && !this.queue.length && this.stage === "ready") {
+      this.destroyHost();
+    }
+  }
+
+  private present(): void {
+    this.ensureHost();
+    if (!this.activeItem) this.processNext();
   }
 
   public notifyThemeUpdated(): void {
@@ -213,6 +253,8 @@ export class AchievementNotificationPresenter {
     if (this.queue.length) {
       this.stage = "ready";
       this.processNext();
+    } else if (this.warmPosition) {
+      this.stage = "ready";
     } else {
       this.destroyHost();
     }
@@ -220,6 +262,7 @@ export class AchievementNotificationPresenter {
 
   public dispose(): void {
     this.generation += 1;
+    this.warmPosition = null;
     this.queue = [];
     this.activeItem = null;
     this.creatingHost = false;
@@ -234,16 +277,20 @@ export class AchievementNotificationPresenter {
   }
 
   private ensureHost(): void {
-    if (this.host || this.creatingHost || !this.queue.length) return;
+    if (this.host || this.creatingHost) return;
+    const position = this.queue[0]?.request.position ?? this.warmPosition;
+    if (!position) return;
 
     const generation = this.generation;
-    const position = this.queue[0].request.position;
     this.creatingHost = true;
 
     void this.dependencies
       .createHost(position)
       .then((host) => {
-        if (generation !== this.generation || !this.queue.length) {
+        if (
+          generation !== this.generation ||
+          (!this.queue.length && !this.warmPosition)
+        ) {
           if (!host.isDestroyed()) host.destroy();
           return;
         }
@@ -280,7 +327,7 @@ export class AchievementNotificationPresenter {
 
     const nextItem = this.queue.shift();
     if (!nextItem) {
-      this.destroyHost();
+      if (!this.warmPosition) this.destroyHost();
       return;
     }
 

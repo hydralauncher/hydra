@@ -482,10 +482,12 @@
     gap: globals.$spacing-unit;
   }
 
+  // The like counter and icon-only delete; text actions use the shared
+  // Button, whose 40px height these match.
   &__action {
     justify-content: center;
     gap: 6px;
-    min-height: 36px;
+    min-height: 40px;
     padding: 0 calc(globals.$spacing-unit * 1.25);
     border: 1px solid globals.$border-color;
     border-radius: 6px;
@@ -508,7 +510,7 @@
     }
 
     &--icon {
-      width: 36px;
+      width: 40px;
       padding: 0;
     }
 

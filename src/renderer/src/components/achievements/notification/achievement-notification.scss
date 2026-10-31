@@ -259,6 +259,19 @@ $margin-bottom: 28px;
     flex: 1;
   }
 
+  &--screenshot &__icon {
+    display: flex;
+    flex: 0 0 64px;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.06);
+    color: globals.$muted-color;
+  }
+
+  &--screenshot &__additional-overlay {
+    display: none;
+  }
+
   &--rare &__icon {
     outline: 1px solid #f4a510;
     box-shadow: 0px 0px 12px 0px rgba(244, 165, 16, 0.25);

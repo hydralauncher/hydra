@@ -1,12 +1,19 @@
+import type { ScreenshotCommentsPolicy } from "./screenshot.types";
 import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
 import type {
   AchievementCustomNotificationPosition,
   Download,
   Game,
+  CatalogueGameIdentity,
+  LibraryCatalogueMetadata,
   Subscription,
 } from "./level.types";
-import type { GameShop, UnlockedAchievement } from "./game.types";
+import type {
+  AchievementSet,
+  GameShop,
+  UnlockedAchievement,
+} from "./game.types";
 import type { ArtworkAssetType } from "./artwork.types";
 import type { GameContentWarning } from "./souvenir.types";
 
@@ -30,6 +37,8 @@ export interface GameRepack {
   title: string;
   fileSize: string | null;
   uris: string[];
+  /** Mirrors split into parts. Each group lists one hoster's parts in order. */
+  uriGroups?: string[][];
   unavailableUris: string[];
   uploadDate: string | null;
   downloadSourceId: string;
@@ -54,6 +63,15 @@ export interface ProtonVersion {
   source?: "steam" | "compatibility_tools" | "unknown";
 }
 
+export interface CatalogueImageVariants {
+  base: string;
+  widths: number[];
+  thumbHash: string | null;
+}
+
+/** Resized CDN copies keyed by the original image URL. */
+export type CatalogueImages = Record<string, CatalogueImageVariants>;
+
 export interface ShopAssets {
   objectId: string;
   shop: GameShop;
@@ -66,6 +84,10 @@ export interface ShopAssets {
   coverImageUrl: string | null;
   downloadSources: string[];
   selectedArtworkTypes?: ArtworkAssetType[];
+  epicArtworkUpdatedAtByType?: Partial<
+    Record<"icon" | "portrait" | "landscape", number>
+  >;
+  images?: CatalogueImages;
 }
 
 export type ShopDetails = SteamAppDetails & {
@@ -91,9 +113,10 @@ export interface TorrentFilesResponse {
   name: string;
   totalSize: number;
   files: TorrentFile[];
+  archiveOnly?: boolean;
 }
 
-export type UserGame = {
+export type UserGame = LibraryCatalogueMetadata & {
   objectId: string;
   shop: GameShop;
   title: string;
@@ -103,7 +126,12 @@ export type UserGame = {
   achievementCount: number;
   achievementsPointsEarnedSum: number;
   hasManuallyUpdatedPlaytime: boolean;
+  hasActiveSteamImport?: boolean;
+  hasActiveEpicImport?: boolean;
+  runtimeByPlatform?: { hydra?: number; steam?: number; epic?: number };
   isFavorite: boolean;
+  isHiddenFromOthers?: boolean;
+  isConcealed?: boolean;
   isPinned: boolean;
   pinnedDate?: Date | null;
   customLibraryImageUrl?: string | null;
@@ -156,6 +184,7 @@ export interface StartGameDownloadPayload {
   title: string;
   shop: GameShop;
   uri: string;
+  parts?: string[];
   downloadPath: string;
   downloader: Downloader;
   automaticallyExtract: boolean;
@@ -189,6 +218,14 @@ export interface ProfileFriends {
   friends: UserFriend[];
 }
 
+// Cached in the main process so the friends window can paint real data on its
+// first frame instead of an empty list.
+export interface FriendsSnapshot {
+  friends: UserFriend[];
+  onlineFriends: number;
+  friendRequests: FriendRequest[];
+}
+
 export interface UserBlocks {
   totalBlocks: number;
   blocks: UserFriend[];
@@ -201,6 +238,187 @@ export interface FriendRequestSync {
 export interface FriendPresenceSync {
   friendId: string;
   isOnline: boolean;
+}
+
+export interface ChatReplyDto {
+  senderId: string;
+  /* Empty when `hidden` is true, or when the message is images only. */
+  body: string;
+  /* Removed by moderation. */
+  hidden?: boolean;
+  /* Images on the replied-to message. */
+  attachmentCount?: number;
+}
+
+export type ChatAttachmentContentType =
+  | "image/jpeg"
+  | "image/png"
+  | "image/gif";
+
+export interface ChatAttachmentDto {
+  id: string;
+  contentType: ChatAttachmentContentType;
+  /* Null while the image is still being checked. */
+  width: number | null;
+  height: number | null;
+  spoiler: boolean;
+  /* Signed for at least a day; null when moderation removed the message. */
+  url: string | null;
+}
+
+export interface ChatMessageDto {
+  seq: number;
+  senderId: string;
+  /* Empty when `hidden` is true, or when the message is images only. */
+  body: string;
+  /* Removed by moderation. Realtime messages leave it out. */
+  hidden?: boolean;
+  clientNonce: string;
+  createdAt: string;
+  /* Seq of the message this one replies to. */
+  replyToSeq?: number | null;
+  /* The replied-to message; null once it is past chat retention. */
+  replyTo?: ChatReplyDto | null;
+  /* Oldest first, at most one per user. Realtime messages leave it out. */
+  reactions?: ChatReactionDto[];
+  /* In the order they were sent. */
+  attachments?: ChatAttachmentDto[];
+}
+
+export type ChatPendingMessageStatus = "checking" | "blocked" | "failed";
+
+/* The user's own message with images, held until the images are checked. */
+export interface ChatPendingMessageDto {
+  clientNonce: string;
+  status: ChatPendingMessageStatus;
+  body: string;
+  replyToSeq: number | null;
+  createdAt: string;
+  attachments: ChatAttachmentDto[];
+}
+
+export interface ChatAttachmentReservation {
+  id: string;
+  uploadUrl: string;
+  expiresAt: string;
+}
+
+export interface ChatAttachmentUploadRequest {
+  friendId: string;
+  /* Chosen by the caller; progress events carry it back. */
+  uploadId: string;
+  contentType: ChatAttachmentContentType;
+  bytes: ArrayBuffer;
+}
+
+export interface ChatAttachmentUploadProgress {
+  uploadId: string;
+  loaded: number;
+  total: number;
+}
+
+export interface ChatReactionDto {
+  userId: string;
+  emoji: string;
+  updatedAt: string;
+}
+
+export interface ChatMessageReactionsDto {
+  seq: number;
+  reactions: ChatReactionDto[];
+}
+
+export interface ChatMessagesPage {
+  messages: ChatMessageDto[];
+  hasMore: boolean;
+  canSend: boolean;
+  lastReadSeq: number;
+  unreadCount: number;
+  /* The user's own held messages, oldest first. Empty for paged requests. */
+  pendingMessages?: ChatPendingMessageDto[];
+}
+
+export interface ChatUnreadSummary {
+  totalUnread: number;
+  conversations: {
+    friendId: string;
+    unreadCount: number;
+    lastMessageAt: string;
+  }[];
+}
+
+/* Unread message counts keyed by friend id, as kept by the main process. */
+export interface ChatUnreadState {
+  totalUnread: number;
+  byFriend: Record<string, number>;
+  lastMessageAtByFriend?: Record<string, string>;
+}
+
+/* friendId is always the other side of the conversation, even for messages
+   the current user sent from another window or device. */
+export interface ChatMessageSync {
+  friendId: string;
+  message: ChatMessageDto;
+}
+
+export interface ChatTypingSync {
+  friendId: string;
+}
+
+/* A reaction set (or removed, with a null emoji) on the message with `seq`. */
+export interface ChatReactionSync {
+  friendId: string;
+  seq: number;
+  fromMe: boolean;
+  emoji: string | null;
+  updatedAt: string;
+}
+
+/* The message with `seq` was removed by moderation, or put back. */
+export interface ChatMessageVisibilitySync {
+  friendId: string;
+  seq: number;
+  hidden: boolean;
+}
+
+/* The user's message with images was not delivered. */
+export interface ChatMessageRejectedSync {
+  friendId: string;
+  clientNonce: string;
+  reason: "blocked" | "failed";
+}
+
+export interface ChatWindowState {
+  activeFriendId: string | null;
+  openFriendIds: string[];
+  openFriends?: UserFriend[];
+}
+
+export type SocialWindowKind = "friends" | "chat";
+
+export interface SocialWindowsSession {
+  friendsWindowOpen: boolean;
+  chatFriends: UserFriend[];
+  activeChatFriendId: string | null;
+  topWindow: SocialWindowKind | null;
+}
+
+export interface SocialWindowBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export type SocialWindowsBounds = Partial<
+  Record<SocialWindowKind, SocialWindowBounds>
+>;
+
+/** A conversation waiting for the chat window to open its tab. */
+export interface PendingChatFriend {
+  friend: UserFriend;
+  /** Opened for a message the user hasn't seen: the tab doesn't take focus. */
+  isBackground: boolean;
 }
 
 export interface NotificationSync {
@@ -223,6 +441,7 @@ export interface UserRelation {
 export type UserProfileCurrentGame = GameRunning &
   ShopAssets & {
     sessionDurationInSeconds: number;
+    isHiddenFromOthers?: boolean;
   };
 
 export type ProfileVisibility = "PUBLIC" | "PRIVATE" | "FRIENDS";
@@ -247,7 +466,10 @@ export interface UserDetails {
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   allowCloudGifts: boolean;
+  allowLeaderboardNotifications?: boolean;
   souvenirsVisibility: ProfileVisibility;
+  screenshotsVisibility?: ProfileVisibility;
+  screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
   bio: string;
   workwondersJwt: string;
   subscription: Subscription | null;
@@ -325,6 +547,9 @@ export interface UserProfile {
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   souvenirsVisibility: ProfileVisibility;
+  screenshotsVisibility?: ProfileVisibility;
+  screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
+  screenshotCount?: number;
   libraryGames: UserGame[];
   recentGames: UserGame[];
   friends: UserFriend[];
@@ -348,11 +573,14 @@ export interface UpdateProfileRequest {
   displayName?: string;
   profileVisibility?: ProfileVisibility;
   souvenirsVisibility?: ProfileVisibility;
+  screenshotsVisibility?: ProfileVisibility;
+  screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
   profileImageUrl?: string | null;
   backgroundImageUrl?: string | null;
   bio?: string;
   language?: string;
   allowCloudGifts?: boolean;
+  allowLeaderboardNotifications?: boolean;
 }
 
 export interface OpenCheckoutOptions {
@@ -363,6 +591,7 @@ export interface OpenCheckoutOptions {
 export interface DownloadSourceDownload {
   title: string;
   uris: string[];
+  uriGroups?: string[][];
   uploadDate: string;
   fileSize: string;
 }
@@ -471,6 +700,10 @@ export interface AchievementMetadataEntry {
 export type GameLauncherStatus =
   | "generating_achievements"
   | "downloading_achievement_icons"
+  | "preparing_compatibility_layer"
+  | "compatibility_layer_ready"
+  | "compatibility_layer_failed"
+  | "game_started"
   | "complete";
 
 export interface GameLauncherStatusPayload {
@@ -487,6 +720,7 @@ export interface AchievementNotificationInfo {
   isRare: boolean;
   isPlatinum: boolean;
   points?: number;
+  variant?: "screenshot";
 }
 
 export type AchievementNotificationRequest = {
@@ -501,6 +735,10 @@ export type AchievementNotificationRequest = {
       type: "combined";
       gameCount: number;
       achievementCount: number;
+    }
+  | {
+      type: "screenshot";
+      achievement: AchievementNotificationInfo;
     }
 );
 
@@ -539,10 +777,15 @@ export type NotificationType =
   | "REVIEW_ANSWER"
   | "REVIEW_ANSWER_UPVOTE"
   | "SOUVENIR_LIKE"
+  | "SCREENSHOT_LIKE"
+  | "SCREENSHOT_COMMENT"
+  | "SCREENSHOT_COMMENT_UPVOTE"
   | "RETROACHIEVEMENTS_CREDENTIALS_RESTORED"
   | "RETROACHIEVEMENTS_CREDENTIALS_INVALID"
   | "RETROACHIEVEMENTS_SYNC_FAILED"
-  | "CLOUD_GIFT_RECEIVED";
+  | "CLOUD_GIFT_RECEIVED"
+  | "LEADERBOARD_RANK_CHANGED"
+  | "LEADERBOARD_MISSING_PHOTO";
 
 export type LocalNotificationType =
   | "EXTRACTION_COMPLETE"
@@ -615,13 +858,18 @@ export interface ComparedAchievements {
     icon: string;
     displayName: string;
     description: string;
+    points?: number;
+    globalUnlockPercentage?: number | null;
+    set?: AchievementSet | null;
     ownerStat?: {
       unlocked: boolean;
       unlockTime: number;
+      hardcoreUnlockTime?: number | null;
     };
     targetStat: {
       unlocked: boolean;
       unlockTime: number;
+      hardcoreUnlockTime?: number | null;
     };
   }[];
 }
@@ -691,6 +939,16 @@ export type LibraryGame = Game &
     achievementCount?: number;
   };
 
+/** Read-only catalogue projection; writes must use its original members. */
+export type LibraryGamePresentation = LibraryGame & {
+  members: LibraryGame[];
+  operationalGame: LibraryGame;
+  achievementGame?: LibraryGame;
+  downloadGame: LibraryGame;
+  catalogueGame: CatalogueGameIdentity;
+  availableShops: GameShop[];
+};
+
 export type UserGameDetails = ShopAssets & {
   id: string;
   playTimeInSeconds: number;
@@ -710,6 +968,9 @@ export type UserGameDetails = ShopAssets & {
 
 export * from "./game.types";
 export * from "./steam.types";
+export * from "./steam-integration.types";
+export * from "./epic-integration.types";
+export * from "./epic-managed.types";
 export * from "./download.types";
 export * from "./ludusavi.types";
 export * from "./how-long-to-beat.types";
@@ -720,3 +981,9 @@ export * from "./retroarch.types";
 export * from "./artwork.types";
 export * from "./cloud-save.types";
 export * from "./souvenir.types";
+export * from "./screenshot.types";
+
+export type ExtractionFailure =
+  | { reason: "unsupported-format"; format: string }
+  | { reason: "file-not-found" };
+export type { SystemPowerAction } from "./system-power";

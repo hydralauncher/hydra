@@ -111,9 +111,7 @@ export function SettingsContextCompatibility() {
   const [
     compatibilityEnvironmentVariables,
     setCompatibilityEnvironmentVariables,
-  ] = useState(
-    () => userPreferences?.compatibilityEnvironmentVariables ?? ""
-  );
+  ] = useState(() => userPreferences?.compatibilityEnvironmentVariables ?? "");
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
 

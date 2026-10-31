@@ -101,6 +101,16 @@ describe("stored cloud save custom path bindings", () => {
     assert.equal(result.bindings.unresolved[0].state, "recoverable");
   });
 
+  it("preserves an explicit file kind when its binding is unresolved", () => {
+    const rawPath = "<custom><linux><home>/Save.srm";
+    const result = resolveStoredCloudSaveCustomPathBindings(
+      [{ rawPath, kind: "file" }],
+      windowsContext
+    );
+
+    assert.equal(result.bindings.unresolved[0].kind, "file");
+  });
+
   it("keeps legacy, foreign and malformed records visible but blocked", () => {
     const entries = [
       {

@@ -8,28 +8,43 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { getCloudSaveEmulatorProvider, isCloudSaveV2Eligible } from "@shared";
 
 import {
   getCloudSaveSyncErrorKind,
   shouldSyncCloudSaveOnGamePage,
 } from "@renderer/pages/game-details/cloud-save-v2/cloud-save-presentation";
 import { useCloudSaveOverview } from "@renderer/pages/game-details/cloud-save-v2/use-cloud-save-overview";
+import { useCloudSaveV2FileDetails } from "@renderer/pages/game-details/cloud-save-v2/use-cloud-save-v2-file-details";
+import {
+  isRetroArchExecutableError,
+  isRetroArchSetupBlocked,
+  RETROARCH_CONFIG_SETTINGS_URL,
+} from "@renderer/pages/game-details/cloud-save-v2/retroarch-executable-status";
+import { useRetroArchExecutableStatus } from "@renderer/pages/game-details/cloud-save-v2/use-retroarch-executable-status";
+import { useRpcs3ConfigStatus } from "@renderer/pages/game-details/cloud-save-v2/use-rpcs3-config-status";
+import { RPCS3_CONFIG_SETTINGS_URL } from "@renderer/pages/game-details/cloud-save-v2/rpcs3-config-presentation";
 import type {
   CloudSaveConflictResolution,
   CloudSaveCustomPathApproval,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
   GameShop,
+  RetroArchLegacyBatteryCandidate,
+  RetroArchLocalBatteryCandidate,
+  Rpcs3DiscIdentityStatus,
 } from "@types";
 
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
 import { BigPictureCloudSaveConflictModal } from "./cloud-save-conflict-modal";
 import { BigPictureCloudSaveCustomPathModal } from "./cloud-save-custom-path-modal";
+import { BigPictureRetroArchBatteryModal } from "./cloud-save-retroarch-battery-modal";
 import {
   BigPictureCloudSaveModal,
   type BigPictureCloudSavePanelProps,
 } from "./cloud-save-modal";
+import { shouldLoadBigPictureEmulatorDetails } from "./cloud-save-v2-presentation";
 
 import "./styles.scss";
 
@@ -132,6 +147,7 @@ interface BigPictureCloudSaveProviderProps {
   children: ReactNode;
   objectId: string;
   shop: GameShop;
+  platform?: string | null;
   hasExecutablePath: boolean;
   isGameRunning: boolean;
   enableGamePageSync?: boolean;
@@ -142,30 +158,96 @@ export function BigPictureCloudSaveProvider({
   children,
   objectId,
   shop,
+  platform,
   hasExecutablePath,
   isGameRunning,
   enableGamePageSync = true,
   onSelectExecutable,
 }: Readonly<BigPictureCloudSaveProviderProps>) {
   const { t } = useTranslation("game_details");
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showErrorToast, showSuccessToast, showWarningToast } =
     useBigPictureToast();
   const canUseCloudSaves = Boolean(userDetails) && hasActiveSubscription;
-  const canCheckCloudSaves =
-    shop === "steam" && canUseCloudSaves && hasExecutablePath;
-  const { overview, isRefreshing, hasRefreshError, refresh } =
+  const eligible = isCloudSaveV2Eligible(shop, platform);
+  const canCheckEmulator = eligible && canUseCloudSaves;
+  const canCheckCloudSaves = canCheckEmulator && hasExecutablePath;
+  const { overview, isRefreshing, hasRefreshError, refreshErrorCode, refresh } =
     useCloudSaveOverview({
       objectId,
       shop,
       enabled: canCheckCloudSaves,
     });
+  const emulatorProvider = getCloudSaveEmulatorProvider(shop, platform);
+  const { details: fileDetails, refresh: refreshFileDetails } =
+    useCloudSaveV2FileDetails({
+      objectId,
+      shop,
+      enabled: shouldLoadBigPictureEmulatorDetails(
+        canCheckCloudSaves,
+        emulatorProvider
+      ),
+    });
 
+  const gameKey = `${shop}:${objectId}`;
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const {
+    status: retroArchExecutableStatus,
+    retry: retryRetroArchExecutableStatus,
+  } = useRetroArchExecutableStatus(
+    emulatorProvider === "retroarch" && canCheckEmulator,
+    gameKey,
+    isModalVisible
+  );
+  const { status: rpcs3ConfigStatus, retry: retryRpcs3Config } =
+    useRpcs3ConfigStatus(
+      emulatorProvider === "rpcs3" && canCheckEmulator,
+      gameKey,
+      isModalVisible
+    );
+  const retryRetroArchExecutable = () => {
+    retryRetroArchExecutableStatus();
+    void refresh().catch(() => undefined);
+  };
+  const openRetroArchSettings = () => {
+    setIsModalVisible(false);
+    navigate(RETROARCH_CONFIG_SETTINGS_URL);
+  };
+  const openRpcs3Settings = () => {
+    setIsModalVisible(false);
+    navigate(RPCS3_CONFIG_SETTINGS_URL);
+  };
+  const [rpcs3DiscStatusEntry, setRpcs3DiscStatusEntry] = useState<{
+    key: string;
+    status: Rpcs3DiscIdentityStatus;
+  } | null>(null);
+  const rpcs3DiscStatus =
+    rpcs3DiscStatusEntry?.key === gameKey ? rpcs3DiscStatusEntry.status : null;
+  const refreshRpcs3DiscStatus = useCallback(async () => {
+    if (emulatorProvider !== "rpcs3" || !canCheckCloudSaves) return;
+    const status = await window.electron.getRpcs3DiscIdentityStatus(
+      objectId,
+      shop
+    );
+    setRpcs3DiscStatusEntry({ key: gameKey, status });
+  }, [canCheckCloudSaves, emulatorProvider, gameKey, objectId, shop]);
   const [wasOpenedFromLaunchConflict, setWasOpenedFromLaunchConflict] =
     useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
+  useEffect(() => {
+    void refreshRpcs3DiscStatus().catch(() =>
+      setRpcs3DiscStatusEntry({
+        key: gameKey,
+        status: {
+          status: "catalogue-unavailable",
+          path: null,
+          titleId: null,
+        },
+      })
+    );
+  }, [refreshRpcs3DiscStatus, gameKey, isModalVisible, isSyncing]);
   const [hasSyncError, setHasSyncError] = useState(false);
   const [progress, setProgress] = useState<CloudSaveSyncProgressPayload | null>(
     null
@@ -179,7 +261,14 @@ export function BigPictureCloudSaveProvider({
   const [isFileExplorerVisible, setIsFileExplorerVisible] = useState(false);
   const [pendingResolution, setPendingResolution] =
     useState<CloudSaveConflictResolution | null>(null);
-  const gameKey = `${shop}:${objectId}`;
+  const [localBatteryCandidates, setLocalBatteryCandidates] = useState<
+    RetroArchLocalBatteryCandidate[]
+  >([]);
+  const [legacyBatteryCandidates, setLegacyBatteryCandidates] = useState<
+    RetroArchLegacyBatteryCandidate[]
+  >([]);
+  const [isBindingEmulatorDestination, setIsBindingEmulatorDestination] =
+    useState(false);
   const activeGameKey = useRef(gameKey);
   const gamePageSyncInFlight = useRef(false);
 
@@ -187,6 +276,46 @@ export function BigPictureCloudSaveProvider({
 
   const showSyncError = useCallback(
     (error: unknown) => {
+      const message = error instanceof Error ? error.message : error;
+      if (
+        emulatorProvider === "retroarch" &&
+        isRetroArchExecutableError(error)
+      ) {
+        retryRetroArchExecutableStatus();
+        return true;
+      }
+      if (emulatorProvider === "retroarch" && typeof message === "string") {
+        if (message.includes("cloud_save_retroarch_battery_local_conflict")) {
+          void window.electron
+            .getRetroArchLocalBatteryCandidates(objectId, shop)
+            .then((candidates) => {
+              if (activeGameKey.current !== gameKey) return;
+              if (candidates.length === 0) {
+                setHasSyncError(true);
+                return;
+              }
+              setLocalBatteryCandidates(candidates);
+              setIsModalVisible(true);
+            })
+            .catch(() => setHasSyncError(true));
+          return true;
+        }
+        if (message.includes("cloud_save_retroarch_legacy_battery_conflict")) {
+          void window.electron
+            .getRetroArchLegacyBatteryCandidates(objectId, shop)
+            .then((candidates) => {
+              if (activeGameKey.current !== gameKey) return;
+              if (candidates.length === 0) {
+                setHasSyncError(true);
+                return;
+              }
+              setLegacyBatteryCandidates(candidates);
+              setIsModalVisible(true);
+            })
+            .catch(() => setHasSyncError(true));
+          return true;
+        }
+      }
       const errorKind = getCloudSaveSyncErrorKind(error);
 
       if (errorKind === "restore-metadata") {
@@ -219,11 +348,21 @@ export function BigPictureCloudSaveProvider({
       });
       return false;
     },
-    [showErrorToast, t]
+    [
+      emulatorProvider,
+      gameKey,
+      objectId,
+      retryRetroArchExecutableStatus,
+      shop,
+      showErrorToast,
+      t,
+    ]
   );
 
   useEffect(() => {
     setIsModalVisible(false);
+    setLocalBatteryCandidates([]);
+    setLegacyBatteryCandidates([]);
     setWasOpenedFromLaunchConflict(false);
     setIsSyncing(false);
     setHasSyncError(false);
@@ -234,11 +373,32 @@ export function BigPictureCloudSaveProvider({
     setIsConfirmingCustomPath(false);
     setIsFileExplorerVisible(false);
     setPendingResolution(null);
+    setIsBindingEmulatorDestination(false);
     gamePageSyncInFlight.current = false;
   }, [gameKey]);
 
   useEffect(() => {
-    if (shop !== "steam" || searchParams.get("openCloudSaveConflict") !== "1") {
+    const kind = searchParams.get("openCloudSaveBatteryConflict");
+    if (
+      emulatorProvider !== "retroarch" ||
+      (kind !== "local" && kind !== "legacy")
+    )
+      return;
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("openCloudSaveBatteryConflict");
+    setSearchParams(nextSearchParams, { replace: true });
+    setIsModalVisible(true);
+    showSyncError(
+      new Error(
+        kind === "local"
+          ? "cloud_save_retroarch_battery_local_conflict"
+          : "cloud_save_retroarch_legacy_battery_conflict"
+      )
+    );
+  }, [emulatorProvider, searchParams, setSearchParams, showSyncError]);
+
+  useEffect(() => {
+    if (!eligible || searchParams.get("openCloudSaveConflict") !== "1") {
       return;
     }
 
@@ -247,13 +407,10 @@ export function BigPictureCloudSaveProvider({
     setSearchParams(nextSearchParams, { replace: true });
     setWasOpenedFromLaunchConflict(true);
     setIsModalVisible(true);
-  }, [searchParams, setSearchParams, shop]);
+  }, [eligible, searchParams, setSearchParams]);
 
   useEffect(() => {
-    if (
-      shop !== "steam" ||
-      searchParams.get("openCloudSavePathApproval") !== "1"
-    ) {
+    if (!eligible || searchParams.get("openCloudSavePathApproval") !== "1") {
       return;
     }
 
@@ -279,7 +436,15 @@ export function BigPictureCloudSaveProvider({
     return () => {
       canceled = true;
     };
-  }, [objectId, searchParams, setSearchParams, shop, showErrorToast, t]);
+  }, [
+    eligible,
+    objectId,
+    searchParams,
+    setSearchParams,
+    shop,
+    showErrorToast,
+    t,
+  ]);
 
   useEffect(() => {
     return globalThis.window.electron.onCloudSaveAutomaticSync((event) => {
@@ -318,13 +483,17 @@ export function BigPictureCloudSaveProvider({
   useEffect(() => {
     if (
       !enableGamePageSync ||
+      (emulatorProvider === "retroarch" && isModalVisible) ||
       customPathApproval !== null ||
+      isBindingEmulatorDestination ||
       searchParams.get("openCloudSavePathApproval") === "1" ||
       !shouldSyncCloudSaveOnGamePage({
         overview,
         shop,
+        platform,
         canUseCloudSaves,
         hasExecutablePath,
+        retroArchExecutableStatus,
         isGameRunning,
         isSyncing,
         isInFlight: gamePageSyncInFlight.current,
@@ -352,12 +521,17 @@ export function BigPictureCloudSaveProvider({
     canUseCloudSaves,
     customPathApproval,
     enableGamePageSync,
+    emulatorProvider,
     gameKey,
     hasExecutablePath,
     isGameRunning,
+    isModalVisible,
+    isBindingEmulatorDestination,
     isSyncing,
     objectId,
     overview,
+    platform,
+    retroArchExecutableStatus,
     searchParams,
     shop,
     showSyncError,
@@ -366,11 +540,16 @@ export function BigPictureCloudSaveProvider({
   const runCloudSaveOperation = useCallback(
     async (resolution?: CloudSaveConflictResolution) => {
       if (
+        emulatorProvider === "retroarch" &&
+        retroArchExecutableStatus !== "ready"
+      )
+        return false;
+      if (
         isGameRunning ||
         isSyncing ||
         !hasExecutablePath ||
         !canUseCloudSaves ||
-        shop !== "steam"
+        !eligible
       ) {
         return false;
       }
@@ -426,18 +605,28 @@ export function BigPictureCloudSaveProvider({
     },
     [
       canUseCloudSaves,
+      emulatorProvider,
       gameKey,
+      eligible,
       hasExecutablePath,
       isGameRunning,
       isSyncing,
       objectId,
       refresh,
+      retroArchExecutableStatus,
       shop,
       showSyncError,
     ]
   );
 
   const handleAutomaticSyncChange = async (enabled: boolean) => {
+    if (
+      enabled &&
+      emulatorProvider === "retroarch" &&
+      retroArchExecutableStatus !== "ready"
+    ) {
+      throw new Error("cloud_save_retroarch_not_configured");
+    }
     if (!canUseCloudSaves) {
       throw new Error("Cloud Saves require an active subscription");
     }
@@ -572,6 +761,65 @@ export function BigPictureCloudSaveProvider({
     });
   };
 
+  const handleSelectEmulatorDestination = async (
+    rawPath: string,
+    kind: "save" | "state"
+  ) => {
+    if (isBindingEmulatorDestination || isSyncing || isGameRunning) return;
+    setIsBindingEmulatorDestination(true);
+    try {
+      const result = await globalThis.window.electron.selectEmulatorDestination(
+        objectId,
+        shop,
+        rawPath,
+        kind
+      );
+      if (result.canceled) return;
+      await refreshFileDetails();
+      const completed = await runCloudSaveOperation();
+      if (completed) {
+        await refreshFileDetails();
+        showSuccessToast(t("cloud_save_v2_emulator_destination_linked"));
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      showErrorToast(t("cloud_save_v2_emulator_destination_error_title"), {
+        message: t(
+          message.includes("config_mismatch") ||
+            message.includes("config_unavailable")
+            ? "cloud_save_v2_emulator_destination_config_error"
+            : "cloud_save_v2_emulator_destination_error"
+        ),
+      });
+    } finally {
+      setIsBindingEmulatorDestination(false);
+    }
+  };
+
+  const handleRemoveEmulatorDestination = async (
+    rawPath: string,
+    kind: "save" | "state"
+  ) => {
+    if (isBindingEmulatorDestination || isSyncing || isGameRunning) return;
+    setIsBindingEmulatorDestination(true);
+    try {
+      await globalThis.window.electron.removeEmulatorDestination(
+        objectId,
+        shop,
+        rawPath,
+        kind
+      );
+      await Promise.all([refreshFileDetails(), refresh()]);
+      showSuccessToast(t("cloud_save_v2_emulator_destination_removed"));
+    } catch {
+      showErrorToast(t("cloud_save_v2_emulator_destination_error_title"), {
+        message: t("cloud_save_v2_emulator_destination_error"),
+      });
+    } finally {
+      setIsBindingEmulatorDestination(false);
+    }
+  };
+
   const customPathErrorKey = getCustomPathApprovalErrorKey(
     customPathApprovalError,
     customPathApproval?.purpose
@@ -589,18 +837,56 @@ export function BigPictureCloudSaveProvider({
   } else if (hasRefreshError) {
     errorMessageKey = "cloud_save_v2_load_error";
   }
+  if (
+    emulatorProvider === "rpcs3" &&
+    rpcs3ConfigStatus &&
+    rpcs3ConfigStatus !== "ready"
+  ) {
+    errorMessageKey = null;
+  }
+  if (
+    emulatorProvider === "rpcs3" &&
+    (refreshErrorCode === "cloud_save_rpcs3_save_wrong_game" ||
+      (rpcs3DiscStatus && rpcs3DiscStatus.status !== "ready"))
+  ) {
+    errorMessageKey = null;
+  }
+  if (
+    emulatorProvider === "retroarch" &&
+    isRetroArchSetupBlocked(retroArchExecutableStatus)
+  ) {
+    errorMessageKey = null;
+  }
   const panelProps = {
     overview,
     isLoading: isRefreshing,
     isSyncing,
     isGameRunning,
     hasExecutablePath,
+    requiresRom: emulatorProvider === "retroarch",
+    requiresDisc: emulatorProvider === "rpcs3",
+    retroArchExecutableStatus,
+    onRetryRetroArchExecutable: retryRetroArchExecutable,
+    onConfigureRetroArch: openRetroArchSettings,
+    rpcs3ConfigStatus,
+    onRetryRpcs3Config: retryRpcs3Config,
+    onConfigureRpcs3: openRpcs3Settings,
+    rpcs3DiscStatus,
+    rpcs3IdentityError: refreshErrorCode === "cloud_save_rpcs3_save_wrong_game",
+    onRetryRpcs3Disc: () =>
+      void Promise.all([refreshRpcs3DiscStatus(), refresh()]),
     hasError,
     errorMessageKey,
     progress,
     onSync: () => void runCloudSaveOperation(),
     onAutomaticSyncChange: handleAutomaticSyncChange,
     onResolveConflict: setPendingResolution,
+    emulatorDestinations: fileDetails?.emulatorDestinations,
+    onSelectEmulatorDestination: (rawPath: string, kind: "save" | "state") =>
+      void handleSelectEmulatorDestination(rawPath, kind),
+    onRemoveEmulatorDestination: (rawPath: string, kind: "save" | "state") =>
+      void handleRemoveEmulatorDestination(rawPath, kind),
+    isBindingEmulatorDestination,
   } satisfies Omit<
     BigPictureCloudSavePanelProps,
     "showLaunchConflictWarning" | "onSelectExecutable"
@@ -673,6 +959,57 @@ export function BigPictureCloudSaveProvider({
         isResolving={isSyncing}
         onClose={() => setPendingResolution(null)}
         onConfirm={handleConfirmResolution}
+      />
+
+      <BigPictureRetroArchBatteryModal
+        choices={
+          localBatteryCandidates.length > 0
+            ? localBatteryCandidates.map((item) => ({
+                key: item.romPath,
+                label: item.romPath,
+              }))
+            : legacyBatteryCandidates.map((item, index) => ({
+                key: item.rawPath,
+                label: t("cloud_save_v2_legacy_battery_candidate", {
+                  index: index + 1,
+                  date: new Date(item.files[0].lastModifiedAt).toLocaleString(),
+                  hash: (
+                    item.files.find(
+                      (file) => file.relativePath === "battery.srm"
+                    ) ?? item.files[0]
+                  ).hash.slice(0, 8),
+                }),
+              }))
+        }
+        legacy={legacyBatteryCandidates.length > 0}
+        isBusy={isSyncing || isGameRunning}
+        onClose={() => {
+          setLocalBatteryCandidates([]);
+          setLegacyBatteryCandidates([]);
+        }}
+        onSelect={(key) => {
+          const local = localBatteryCandidates.find(
+            (item) => item.romPath === key
+          );
+          const selection = local
+            ? window.electron.selectRetroArchLocalBattery(
+                objectId,
+                shop,
+                local.romPath,
+                local.signature
+              )
+            : window.electron.selectRetroArchLegacyBattery(objectId, shop, key);
+          void selection
+            .then(() => {
+              setLocalBatteryCandidates([]);
+              setLegacyBatteryCandidates([]);
+              void runCloudSaveOperation();
+            })
+            .catch((error) => {
+              setHasSyncError(true);
+              showSyncError(error);
+            });
+        }}
       />
     </bigPictureCloudSaveContext.Provider>
   );

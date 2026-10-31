@@ -1,0 +1,74 @@
+@use "../../scss/globals.scss";
+@use "./screenshot-motion.scss" as motion;
+
+.screenshot-stage__image {
+  transition: filter motion.$spoiler-reveal-duration ease;
+
+  &--spoiler {
+    filter: blur(32px) brightness(0.5);
+  }
+}
+
+.screenshot-stage__spoiler {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: globals.$spacing-unit;
+  padding: calc(globals.$spacing-unit * 2);
+  border: 0;
+  background: transparent;
+  color: globals.$muted-color;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: globals.$body-font-size;
+  font-weight: 600;
+
+  &:focus-visible {
+    outline: 2px solid globals.$muted-color;
+    outline-offset: -4px;
+  }
+}
+
+.screenshot-stage__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: globals.$spacing-unit;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.screenshot-lightbox {
+  &__state {
+    display: flex;
+    width: min(420px, 100%);
+    flex-direction: column;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 3);
+    border: 1px solid globals.$border-color;
+    border-radius: 12px;
+    background: globals.$background-color;
+    text-align: center;
+
+    p {
+      margin: 0;
+      color: globals.$muted-color;
+      font-size: 16px;
+      font-weight: 500;
+    }
+  }
+
+  &__state-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    color: globals.$muted-color;
+  }
+}

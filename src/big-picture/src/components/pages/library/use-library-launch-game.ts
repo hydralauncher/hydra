@@ -1,3 +1,4 @@
+import { getLibraryOperationalGame } from "@shared";
 import type { LibraryGame } from "@types";
 import { useCallback } from "react";
 import { getClassicsLaunchErrorCode } from "@renderer/helpers";
@@ -37,7 +38,8 @@ export function useLibraryLaunchGame(
   const { showErrorToast } = useBigPictureToast();
 
   return useCallback(
-    async (game: LibraryGame) => {
+    async (entry: LibraryGame) => {
+      const game = getLibraryOperationalGame(entry);
       if (!IS_DESKTOP) return;
 
       if (game.shop === "launchbox") {

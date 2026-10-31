@@ -5,23 +5,31 @@ import { crc32 } from "crc";
 import WinReg from "winreg";
 import { parseBuffer, writeBuffer } from "steam-shortcut-editor";
 
-import type { SteamAppDetails, SteamShortcut } from "@types";
+import type { SteamShortcut } from "@types";
 
 import { logger } from "./logger";
 import { SystemPath } from "./system-path";
-
-export interface SteamAppDetailsResponse {
-  [key: string]: {
-    success: boolean;
-    data: SteamAppDetails;
-  };
-}
+import {
+  parseSteamAppDetailsResponse,
+  type SteamAppDetailsResponse,
+} from "./steam-app-details";
 
 export const getSteamLocation = async () => {
   if (process.platform === "linux") {
+    const home = SystemPath.getPath("home");
     const possiblePaths = [
-      path.join(SystemPath.getPath("home"), ".steam", "steam"),
-      path.join(SystemPath.getPath("home"), ".local", "share", "Steam"),
+      path.join(home, ".steam", "steam"),
+      path.join(home, ".local", "share", "Steam"),
+      path.join(
+        home,
+        ".var",
+        "app",
+        "com.valvesoftware.Steam",
+        ".local",
+        "share",
+        "Steam"
+      ),
+      path.join(home, "snap", "steam", "common", ".local", "share", "Steam"),
     ];
 
     return possiblePaths.find((p) => fs.existsSync(p)) || possiblePaths[0];
@@ -148,17 +156,7 @@ export const getSteamAppDetails = async (
     .get<SteamAppDetailsResponse>(
       `http://store.steampowered.com/api/appdetails?${searchParams.toString()}`
     )
-    .then((response) => {
-      if (response.data[objectId].success) {
-        const data = response.data[objectId].data;
-        return {
-          ...data,
-          objectId,
-        };
-      }
-
-      return null;
-    })
+    .then((response) => parseSteamAppDetailsResponse(response.data, objectId))
     .catch((err) => {
       logger.error("Error on getSteamAppDetails", {
         message: err?.message,

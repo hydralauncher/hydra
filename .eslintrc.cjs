@@ -1,4 +1,7 @@
 module.exports = {
+  // Worktrees live inside the main checkout; without this, ESLint also loads
+  // the outer config and finds two copies of every plugin.
+  root: true,
   extends: [
     "eslint:recommended",
     "plugin:react/recommended",
