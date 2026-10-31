@@ -837,23 +837,19 @@ export function App() {
       <RetroArchScanModal />
 
       <main>
-        {userPreferences !== null && (
-          <>
-            {userPreferences.hideSidebar !== true && <Sidebar />}
+        {userPreferences?.hideSidebar !== true && <Sidebar />}
 
-            <article className="container">
-              <Header />
+        <article className="container">
+          <Header />
 
-              <section
-                ref={contentRef}
-                id="scrollableDiv"
-                className="container__content"
-              >
-                <Outlet />
-              </section>
-            </article>
-          </>
-        )}
+          <section
+            ref={contentRef}
+            id="scrollableDiv"
+            className="container__content"
+          >
+            <Outlet />
+          </section>
+        </article>
       </main>
 
       <BottomPanel />

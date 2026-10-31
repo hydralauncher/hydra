@@ -89,7 +89,7 @@ export function Header() {
         hideSidebar: !userPreferences.hideSidebar,
       };
       dispatch(setUserPreferences(newPrefs));
-      window.electron.updateUserPreferences({
+      void window.electron.updateUserPreferences({
         hideSidebar: newPrefs.hideSidebar,
       });
     }
@@ -420,9 +420,9 @@ export function Header() {
             data-tooltip-place="bottom"
           >
             {userPreferences?.hideSidebar ? (
-              <SidebarCollapseIcon />
-            ) : (
               <SidebarExpandIcon />
+            ) : (
+              <SidebarCollapseIcon />
             )}
           </button>
 
