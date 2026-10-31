@@ -2497,9 +2497,7 @@ contextBridge.exposeInMainWorld("electron", {
   // Add these to the electron object in contextBridge.exposeInMainWorld
   on: (channel: string, listener: (...args: any[]) => void) => {
     ipcRenderer.on(channel, listener);
-  },
-  off: (channel: string, listener: (...args: any[]) => void) => {
-    ipcRenderer.off(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
   },
   getAvailableDrives: () => ipcRenderer.invoke("getAvailableDrives"),
   transferGameFiles: (shop: GameShop, objectId: string, destParent: string) =>
