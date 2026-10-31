@@ -245,8 +245,18 @@ $local-screenshot-actions-fade-duration: 0.15s;
   }
 
   &__sort {
-    min-width: 200px;
+    flex-shrink: 0;
     margin-left: auto;
+
+    .segmented-control__option {
+      flex: 1 0 auto;
+    }
+  }
+
+  &__sort-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
   &__scroll {

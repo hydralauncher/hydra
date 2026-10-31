@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import cn from "classnames";
-import { GlobeIcon, PeopleIcon, TrophyIcon } from "@primer/octicons-react";
+import { TrophyIcon } from "@primer/octicons-react";
 import { SkeletonTheme } from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 
-import { SegmentedControl } from "../game-details/leaderboard/leaderboard-controls";
+import { useLeaderboardFilters } from "../game-details/leaderboard/use-leaderboard-filters";
 import {
   buildMetricsRequest,
   GLOBAL_LEADERBOARD_PERIODS,
   GLOBAL_LEADERBOARD_SCOPES,
   LEADERBOARD_PAGE_TABS,
   normalizeMetricDefinitions,
+  normalizeMyGames,
   resolveWeekRange,
   type GlobalLeaderboardPeriod,
   type GlobalLeaderboardScope,
@@ -25,7 +25,9 @@ import {
 import { buildLeaderboardBoardPath, isLeaderboardSourceParam } from "@shared";
 import { useApiResource, useLeaderboardViewer } from "./leaderboards-api";
 import { BadgesSection } from "./badges-section";
-import { ByGameTab, type LinkedGame } from "./by-game-tab";
+import { HeaderSelector } from "./header-selector";
+import { ByGameTab, gameKey, type LinkedGame } from "./by-game-tab";
+import { LeaderboardsSidebar } from "./leaderboards-sidebar";
 import { RankingTab } from "./ranking-tab";
 import { StatsTab } from "./stats-tab";
 import { useGlobalLeaderboards } from "./use-global-leaderboards";
@@ -62,20 +64,27 @@ function LeaderboardsPage() {
     linkedGame ? null : metricParam
   );
 
-  const [period, setPeriod] = useState<GlobalLeaderboardPeriod>(() =>
-    (GLOBAL_LEADERBOARD_PERIODS as readonly (string | null)[]).includes(
+  const {
+    period,
+    scope: requestedScope,
+    setPeriod,
+    setScope: setRequestedScope,
+    showPeriod,
+    showScope,
+  } = useLeaderboardFilters({
+    period: (GLOBAL_LEADERBOARD_PERIODS as readonly (string | null)[]).includes(
       periodParam
     )
       ? (periodParam as GlobalLeaderboardPeriod)
-      : "week"
-  );
-  const [requestedScope, setRequestedScope] = useState<GlobalLeaderboardScope>(
-    () =>
-      (GLOBAL_LEADERBOARD_SCOPES as readonly (string | null)[]).includes(
-        scopeParam
-      )
-        ? (scopeParam as GlobalLeaderboardScope)
-        : "global"
+      : null,
+    scope: (GLOBAL_LEADERBOARD_SCOPES as readonly (string | null)[]).includes(
+      scopeParam
+    )
+      ? (scopeParam as GlobalLeaderboardScope)
+      : null,
+  });
+  const [selectedGameKey, setSelectedGameKey] = useState<string | null>(
+    linkedGame ? gameKey(linkedGame) : null
   );
   const [generation, setGeneration] = useState(0);
 
@@ -114,8 +123,8 @@ function LeaderboardsPage() {
         scopeParam
       )
     )
-      setRequestedScope(scopeParam as GlobalLeaderboardScope);
-  }, [scopeParam, locationKey]);
+      showScope(scopeParam as GlobalLeaderboardScope);
+  }, [scopeParam, locationKey, showScope]);
 
   useEffect(() => {
     if (
@@ -123,8 +132,8 @@ function LeaderboardsPage() {
         periodParam
       )
     )
-      setPeriod(periodParam as GlobalLeaderboardPeriod);
-  }, [periodParam, locationKey]);
+      showPeriod(periodParam as GlobalLeaderboardPeriod);
+  }, [periodParam, locationKey, showPeriod]);
 
   useEffect(() => {
     if (!sourceParam) return;
@@ -141,14 +150,38 @@ function LeaderboardsPage() {
   const { isFeatureEnabled, Feature } = useFeature();
   const showBadges = isFeatureEnabled(Feature.LeaderboardBadges);
   const scope = isLoggedIn ? requestedScope : "global";
-  const tab = isLoggedIn ? requestedTab : "ranking";
 
   useEffect(() => {
     if (linkedTab) setRequestedTab(linkedTab);
+    if (linkedGame) setSelectedGameKey(gameKey(linkedGame));
   }, [linkedTab, linkedGame]);
-  const tabs = isLoggedIn
-    ? LEADERBOARD_PAGE_TABS
-    : LEADERBOARD_PAGE_TABS.slice(0, 1);
+
+  const games = useApiResource(
+    isLoggedIn ? "/leaderboards/me/games" : null,
+    { params: { window: period, scope }, needsAuth: true },
+    normalizeMyGames
+  );
+  const lastGamesRef = useRef(games.data);
+  if (games.data) lastGamesRef.current = games.data;
+  const shownGames =
+    games.data ?? (games.isLoading ? lastGamesRef.current : null);
+  const myGames = useMemo(() => shownGames ?? [], [shownGames]);
+
+  // Without a game to show, a filter or a link falls back to the categories.
+  const hasNoGameToShow =
+    !linkedGame && !games.isLoading && myGames.length === 0;
+  let tab: LeaderboardPageTab = isLoggedIn ? requestedTab : "ranking";
+  if (tab === "games" && hasNoGameToShow) tab = "ranking";
+
+  // A linked game outside the viewer's list is not in the sidebar, so nothing
+  // is selected there. Otherwise the first game stands in for an unlisted one.
+  const isSelectedGameListed = myGames.some(
+    (game) => gameKey(game) === selectedGameKey
+  );
+  let activeGameKey = selectedGameKey;
+  if (!isSelectedGameListed) {
+    activeGameKey = linkedGame || !myGames[0] ? null : gameKey(myGames[0]);
+  }
 
   const metricsRequest = buildMetricsRequest("global");
   const metricDefinitions = useApiResource(
@@ -224,14 +257,36 @@ function LeaderboardsPage() {
     retry();
   }, [retry]);
 
-  const scopeIcons: Record<GlobalLeaderboardScope, React.ReactNode> = {
-    global: <GlobeIcon size={14} />,
-    friends: <PeopleIcon size={14} />,
+  // Leaving a game that came from a game page's link drops the link, so it
+  // does not come back when the viewer returns to their own games.
+  const dropGameLink = () => {
+    if (!linkedGame) return;
+
+    setSearchParams(
+      (params) => {
+        ["tab", "shop", "objectId", "metric", "period", "scope"].forEach(
+          (name) => params.delete(name)
+        );
+        return params;
+      },
+      { replace: true }
+    );
+  };
+
+  const handleViewChange = (value: LeaderboardPageTab) => {
+    setRequestedTab(value);
+    dropGameLink();
+    document.getElementById("scrollableDiv")?.scrollTo({ top: 0 });
   };
 
   const openMetric = (value: string) => {
     setRequestedMetric(value);
-    setRequestedTab("ranking");
+    handleViewChange("ranking");
+  };
+
+  const openGame = (key: string) => {
+    setSelectedGameKey(key);
+    handleViewChange("games");
   };
 
   return (
@@ -239,7 +294,6 @@ function LeaderboardsPage() {
       <section className="leaderboards">
         <header className="leaderboards__header">
           <div className="leaderboards__heading">
-            <h1 className="leaderboards__title">{t("title")}</h1>
             <WeekSubtitle
               weekRange={weekRange}
               isAllTime={period === "all"}
@@ -249,19 +303,18 @@ function LeaderboardsPage() {
 
           <div className="leaderboards__toggles">
             {isLoggedIn && (
-              <SegmentedControl
+              <HeaderSelector
                 label={t("scope_label")}
                 value={scope}
                 onChange={setRequestedScope}
                 options={GLOBAL_LEADERBOARD_SCOPES.map((id) => ({
                   id,
                   label: t(`scope_${id}`),
-                  icon: scopeIcons[id],
                 }))}
               />
             )}
 
-            <SegmentedControl
+            <HeaderSelector
               label={t("period_label")}
               value={period}
               onChange={setPeriod}
@@ -273,77 +326,79 @@ function LeaderboardsPage() {
           </div>
         </header>
 
-        <div
-          className="leaderboards__tabs"
-          role="tablist"
-          aria-label={t("tabs_label")}
-        >
-          {tabs.map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={id === tab}
-              className={cn("leaderboards__tab", {
-                "leaderboards__tab--selected": id === tab,
-              })}
-              onClick={() => setRequestedTab(id)}
-            >
-              {t(`tab_${id}`)}
-            </button>
-          ))}
-        </div>
+        <div className="leaderboards__body">
+          <LeaderboardsSidebar
+            results={results}
+            metrics={availableMetrics}
+            isMetricsLoading={metricDefinitions.isLoading}
+            games={myGames}
+            isGamesLoading={games.isLoading}
+            hasGamesError={games.hasError}
+            isLoggedIn={isLoggedIn}
+            isStatsSelected={tab === "stats"}
+            isGameBoardSelected={tab === "games"}
+            selectedMetricId={tab === "ranking" ? (metric?.id ?? null) : null}
+            selectedGameKey={tab === "games" ? activeGameKey : null}
+            onSelectStats={() => handleViewChange("stats")}
+            onSelectMetric={openMetric}
+            onSelectGame={openGame}
+            onRetryGames={games.retry}
+          />
 
-        <div key={generation} className="leaderboards__content">
-          {tab === "ranking" && (
-            <RankingTab
-              results={results}
-              metrics={availableMetrics}
-              metric={metric}
-              isMetricsLoading={metricDefinitions.isLoading}
-              hasMetricsError={metricDefinitions.hasError}
-              onMetricChange={setRequestedMetric}
-              period={period}
-              scope={scope}
-              viewerUser={viewerUser}
-              onRetry={retryAll}
-            />
-          )}
+          <div key={generation} className="leaderboards__content">
+            {tab === "ranking" && (
+              <RankingTab
+                results={results}
+                metric={metric}
+                isMetricsLoading={metricDefinitions.isLoading}
+                hasMetricsError={metricDefinitions.hasError}
+                period={period}
+                scope={scope}
+                viewerUser={viewerUser}
+                onRetry={retryAll}
+                onPeriodChange={setPeriod}
+              />
+            )}
 
-          {tab === "games" && (
-            <ByGameTab
-              key={
-                linkedGame
-                  ? `${linkedGame.shop}:${linkedGame.objectId}`
-                  : "list"
-              }
-              period={period}
-              scope={scope}
-              viewerUser={viewerUser}
-              initialGame={linkedGame}
-              initialMetric={linkedGame ? metricParam : null}
-            />
-          )}
+            {tab === "games" && (
+              <ByGameTab
+                key={
+                  linkedGame
+                    ? `${linkedGame.shop}:${linkedGame.objectId}`
+                    : "list"
+                }
+                period={period}
+                scope={scope}
+                viewerUser={viewerUser}
+                initialGame={linkedGame}
+                initialMetric={linkedGame ? metricParam : null}
+                games={myGames}
+                selectedKey={selectedGameKey}
+                onScopeChange={setRequestedScope}
+                onPeriodChange={setPeriod}
+              />
+            )}
 
-          {tab === "stats" && (
-            <StatsTab
-              results={results}
-              metrics={availableMetrics}
-              period={period}
-              viewerUser={viewerUser}
-              onOpenMetric={openMetric}
-              onRetry={retryAll}
-            />
-          )}
+            {tab === "stats" && (
+              <StatsTab
+                results={results}
+                metrics={availableMetrics}
+                period={period}
+                viewerUser={viewerUser}
+                onOpenMetric={openMetric}
+                onRetry={retryAll}
+              />
+            )}
 
-          {isLoggedIn ? (
-            tab === "stats" && showBadges && <BadgesSection />
-          ) : (
-            <p className="leaderboards__sign-in">
-              <TrophyIcon size={14} />
-              {t("sign_in_hint")}
-            </p>
-          )}
+            {isLoggedIn ? (
+              tab === "stats" && showBadges && <BadgesSection />
+            ) : (
+              <p className="leaderboards__sign-in">
+                <TrophyIcon size={14} />
+                {t("sign_in_hint")}
+              </p>
+            )}
+          </div>
         </div>
       </section>
     </SkeletonTheme>

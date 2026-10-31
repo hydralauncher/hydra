@@ -1,7 +1,6 @@
 import { useContext, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowRightIcon,
   ClockIcon,
   GraphIcon,
   PeopleIcon,
@@ -28,17 +27,16 @@ import {
   getServedMetrics,
   LEADERBOARD_CARD_SIZE,
   type LeaderboardMetric,
-  type LeaderboardPeriod,
-  type LeaderboardScope,
 } from "./game-leaderboard";
 import { LeaderboardControls } from "./leaderboard-controls";
 import { LeaderboardRow } from "./leaderboard-row";
 import { useGameLeaderboard } from "./use-game-leaderboard";
+import { useLeaderboardFilters } from "./use-leaderboard-filters";
 import { useLeaderboardValue } from "./use-leaderboard-value";
 import "./leaderboard.scss";
 
 const EMPTY_BOARD = { entries: [], viewer: null };
-const LEADERBOARD_SKELETON_ROWS = 4;
+const LEADERBOARD_SKELETON_ROWS = LEADERBOARD_CARD_SIZE;
 const LEADERBOARD_SKELETON_KEYS = Array.from(
   { length: LEADERBOARD_SKELETON_ROWS },
   (_, index) => `leaderboard-skeleton-${index}`
@@ -50,14 +48,14 @@ export function LeaderboardSection() {
   const navigate = useNavigate();
   const { isFeatureEnabled, Feature } = useFeature();
   const isExtended = isFeatureEnabled(Feature.GameLeaderboardsExtended);
-  const isGlobalLeaderboardsEnabled = isFeatureEnabled(
-    Feature.GlobalLeaderboards
-  );
   const formatValue = useLeaderboardValue();
 
-  const [period, setPeriod] = useState<LeaderboardPeriod>("week");
-  const [selectedScope, setSelectedScope] =
-    useState<LeaderboardScope>("global");
+  const {
+    period,
+    scope: selectedScope,
+    setPeriod,
+    setScope: setSelectedScope,
+  } = useLeaderboardFilters();
   const [selectedMetric, setSelectedMetric] =
     useState<LeaderboardMetric>("playtime");
 
@@ -111,11 +109,8 @@ export function LeaderboardSection() {
 
   const board = leaderboard ?? EMPTY_BOARD;
   const rows = useMemo(
-    () =>
-      buildLeaderboardRows(board, viewerUser, LEADERBOARD_CARD_SIZE, {
-        pinViewer: state !== "empty_friends" && state !== "solo",
-      }),
-    [board, state, viewerUser]
+    () => buildLeaderboardRows(board, viewerUser, LEADERBOARD_CARD_SIZE),
+    [board, viewerUser]
   );
   const nudge = useMemo(
     () => getLeaderboardNudge(board, viewerUser, dataScope),
@@ -130,21 +125,16 @@ export function LeaderboardSection() {
     const text =
       nudge.type === "leading"
         ? t("nudge_leading")
-        : nudge.type === "to_top"
-          ? t("nudge_to_top", {
-              amount: formatValue(dataMetric, nudge.gap),
-              rank: nudge.rank,
-            })
-          : t("nudge_behind", {
-              amount: formatValue(dataMetric, nudge.gap),
-              name: nudge.target.displayName,
-            });
+        : t(nudge.type === "to_top" ? "nudge_to_top" : "nudge_behind", {
+            amount: formatValue(dataMetric, nudge.gap),
+            rank: nudge.type === "to_top" ? nudge.rank : nudge.targetRank,
+          });
 
     return (
-      <p className="leaderboard-section__nudge">
-        <GraphIcon size={14} />
-        <span className="leaderboard-section__nudge-text">{text}</span>
-      </p>
+      <>
+        <GraphIcon size={12} />
+        <span className="leaderboard-row__subtitle-text">{text}</span>
+      </>
     );
   };
 
@@ -165,7 +155,11 @@ export function LeaderboardSection() {
   );
 
   const renderBody = () => {
-    if (state === "loading") {
+    // Also while a filter change loads, so the old board does not stay on screen.
+    const isShowingOldBoard =
+      dataPeriod !== period || dataScope !== scope || dataMetric !== metric;
+
+    if (state === "loading" || (state !== "error" && isShowingOldBoard)) {
       return (
         <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
           <div className="leaderboard-section__skeleton" aria-busy="true">
@@ -223,10 +217,11 @@ export function LeaderboardSection() {
           <ol className="leaderboard-section__list">
             {rows.map((row) => (
               <LeaderboardRow
-                key={`${row.entry.user.id}${row.isPinned ? "-pinned" : ""}`}
+                key={row.entry.user.id}
                 row={row}
                 value={formatValue(dataMetric, row.entry.value)}
                 showProgress={false}
+                strip
               />
             ))}
           </ol>
@@ -253,6 +248,7 @@ export function LeaderboardSection() {
                 row={row}
                 value={formatValue(dataMetric, row.entry.value)}
                 showProgress={false}
+                strip
               />
             ))}
           </ol>
@@ -277,16 +273,18 @@ export function LeaderboardSection() {
         <ol className="leaderboard-section__list" aria-busy={isLoading}>
           {rows.map((row) => (
             <LeaderboardRow
-              key={`${row.entry.user.id}${row.isPinned ? "-pinned" : ""}`}
+              key={row.entry.user.id}
               row={row}
               value={formatValue(dataMetric, row.entry.value)}
+              showProgress={false}
+              strip
+              subtitle={row.isViewer ? renderNudge() : null}
             />
           ))}
         </ol>
 
-        <div className="leaderboard-section__footer">
-          {renderNudge()}
-          {isGlobalLeaderboardsEnabled && isLoggedIn && (
+        {isLoggedIn && (
+          <div className="leaderboard-section__footer">
             <button
               type="button"
               className="leaderboard-section__see-all"
@@ -300,17 +298,21 @@ export function LeaderboardSection() {
                 )
               }
             >
+              <TrophyIcon size={12} />
               {t("see_full_ranking")}
-              <ArrowRightIcon size={14} />
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </>
     );
   };
 
   return (
-    <SidebarSection title={t("title")}>
+    <SidebarSection
+      title={
+        isExtended ? `${t("title")} · ${t(`metric_${metric}`)}` : t("title")
+      }
+    >
       <div className="leaderboard-section">
         <LeaderboardControls
           period={period}

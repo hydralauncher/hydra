@@ -2,7 +2,14 @@ import "./styles.scss";
 
 import { AnimatePresence, motion } from "framer-motion";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "../button";
 import { GridFocusGroup } from "../grid-focus-group";
 import { NavigationLayer } from "../navigation-layer";
@@ -57,6 +64,13 @@ type VirtualKeyboardKeyPosition = {
 
 const VIRTUAL_KEYBOARD_LAYER_ID = "big-picture-virtual-keyboard-layer";
 const VIRTUAL_KEYBOARD_REGION_ID = "big-picture-virtual-keyboard";
+const VIRTUAL_KEYBOARD_MAX_WIDTH = 1200;
+const VIRTUAL_KEYBOARD_HORIZONTAL_GUTTER = 64;
+const VIRTUAL_KEYBOARD_FALLBACK_DOCK_HEIGHT = 480;
+const VIRTUAL_KEYBOARD_SETTLE_DELAY_MS = 250;
+const VIRTUAL_KEYBOARD_SUBMIT_ON_ENTER_ANCHOR =
+  'form[data-virtual-keyboard-enter="submit"]';
+const VIRTUAL_KEYBOARD_LEFT_SIDE_ANCHOR = '[data-virtual-keyboard-side="left"]';
 const VIRTUAL_KEYBOARD_FIRST_KEY_ID = "big-picture-virtual-keyboard-key-1";
 const VIRTUAL_KEYBOARD_BACKSPACE_KEY_ID =
   "big-picture-virtual-keyboard-key-backspace";
@@ -601,6 +615,23 @@ function moveInputCursor(
   return nextPosition;
 }
 
+function moveContentEditableCursor(direction: "left" | "right") {
+  const selection = globalThis.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+
+  if (!selection.isCollapsed) {
+    if (direction === "left") selection.collapseToStart();
+    else selection.collapseToEnd();
+    return;
+  }
+
+  selection.modify(
+    "move",
+    direction === "left" ? "backward" : "forward",
+    "character"
+  );
+}
+
 function submitSingleLineInput(target: HTMLInputElement) {
   if (target.form) {
     target.form.requestSubmit();
@@ -679,6 +710,10 @@ export function VirtualKeyboardProvider() {
   const [layer, setLayer] = useState<VirtualKeyboardLayer>("alphabetic");
   const [layoutMode, setLayoutMode] =
     useState<VirtualKeyboardLayoutMode>("floating");
+  const [sideInset, setSideInset] = useState<number | null>(null);
+  const lastDockHeightRef = useRef(VIRTUAL_KEYBOARD_FALLBACK_DOCK_HEIGHT);
+  const sideAnchor =
+    target?.closest<HTMLElement>(VIRTUAL_KEYBOARD_LEFT_SIDE_ANCHOR) ?? null;
   const [pulsingKeyId, setPulsingKeyId] = useState<string | null>(null);
   const userPreferences = useUserPreferences();
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
@@ -920,6 +955,7 @@ export function VirtualKeyboardProvider() {
         restoreInputSelectionAfterRender(target, nextCursor);
       } else {
         focusEditableTarget(target);
+        moveContentEditableCursor(direction);
       }
 
       focusEditableTarget(target);
@@ -944,6 +980,14 @@ export function VirtualKeyboardProvider() {
     if (target instanceof HTMLInputElement) {
       submitSingleLineInput(target);
       closeKeyboard();
+      return;
+    }
+
+    const submitOnEnterForm = target.closest<HTMLFormElement>(
+      VIRTUAL_KEYBOARD_SUBMIT_ON_ENTER_ANCHOR
+    );
+    if (submitOnEnterForm) {
+      submitOnEnterForm.requestSubmit();
       return;
     }
 
@@ -1255,7 +1299,7 @@ export function VirtualKeyboardProvider() {
   }, [closeKeyboard, target]);
 
   useEffect(() => {
-    if (!target || layoutMode !== "floating") return;
+    if (!target || layoutMode !== "floating" || sideAnchor) return;
 
     let secondFrameId: number | null = null;
     const firstFrameId = globalThis.requestAnimationFrame(() => {
@@ -1280,7 +1324,7 @@ export function VirtualKeyboardProvider() {
 
       globalThis.window.clearTimeout(settledLayoutTimeoutId);
     };
-  }, [layoutMode, target]);
+  }, [layoutMode, sideAnchor, target]);
 
   useEffect(() => {
     if (!target || layoutMode !== "avoiding") return;
@@ -1305,6 +1349,57 @@ export function VirtualKeyboardProvider() {
       globalThis.window.clearTimeout(settledLayoutTimeoutId);
     };
   }, [layoutMode, target]);
+
+  useLayoutEffect(() => {
+    if (!sideAnchor) {
+      setSideInset(null);
+      return;
+    }
+
+    const updateSideInset = () => {
+      const anchorRect = sideAnchor.getBoundingClientRect();
+      const viewportWidth = globalThis.window.innerWidth;
+      const centeredWidth = Math.min(
+        VIRTUAL_KEYBOARD_MAX_WIDTH,
+        viewportWidth - VIRTUAL_KEYBOARD_HORIZONTAL_GUTTER
+      );
+      const centeredLeft = (viewportWidth - centeredWidth) / 2;
+      const centeredTop =
+        globalThis.window.innerHeight - lastDockHeightRef.current;
+      const isCoveredWhenCentered =
+        anchorRect.bottom > centeredTop &&
+        anchorRect.right > centeredLeft &&
+        anchorRect.left < centeredLeft + centeredWidth;
+
+      setSideInset(
+        isCoveredWhenCentered ? viewportWidth - anchorRect.left : null
+      );
+    };
+
+    updateSideInset();
+    globalThis.window.addEventListener("resize", updateSideInset);
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(updateSideInset);
+    resizeObserver?.observe(sideAnchor);
+
+    return () => {
+      globalThis.window.removeEventListener("resize", updateSideInset);
+      resizeObserver?.disconnect();
+    };
+  }, [sideAnchor]);
+
+  useEffect(() => {
+    if (!target) return;
+
+    const timeoutId = globalThis.window.setTimeout(() => {
+      const dockHeight = dockRef.current?.getBoundingClientRect().height;
+      if (dockHeight) lastDockHeightRef.current = dockHeight;
+    }, VIRTUAL_KEYBOARD_SETTLE_DELAY_MS);
+
+    return () => globalThis.window.clearTimeout(timeoutId);
+  }, [target]);
 
   useEffect(() => {
     if (
@@ -1365,6 +1460,14 @@ export function VirtualKeyboardProvider() {
             ref={dockRef}
             className="virtual-keyboard-dock"
             data-layout-mode={layoutMode}
+            data-placement={sideInset === null ? undefined : "left"}
+            style={
+              sideInset === null
+                ? undefined
+                : ({
+                    "--virtual-keyboard-side-inset": `${sideInset}px`,
+                  } as CSSProperties)
+            }
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}

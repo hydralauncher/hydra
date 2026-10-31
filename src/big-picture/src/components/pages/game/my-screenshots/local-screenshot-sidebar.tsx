@@ -17,6 +17,7 @@ import {
 import { ConfirmationModal } from "../../../modals";
 import {
   ReviewFields,
+  getLastReviewFieldFocusId,
   toUploadOptions,
   type ReviewDraft,
   type ReviewFieldFocusIds,
@@ -25,7 +26,12 @@ import {
   NavigationService,
   type FocusOverrideTarget,
 } from "../../../../services";
-import { useBigPictureToast, useUserDetails } from "../../../../hooks";
+import {
+  Feature,
+  useBigPictureToast,
+  useFeature,
+  useUserDetails,
+} from "../../../../hooks";
 import { formatScreenshotDate } from "../../screenshots";
 import { isLocalScreenshotUploadInFlight } from "./local-screenshot-tile";
 
@@ -36,6 +42,7 @@ const getFieldFocusIds = (clientId: string): ReviewFieldFocusIds => ({
   title: `local-screenshot-sidebar-title:${clientId}`,
   description: `local-screenshot-sidebar-description:${clientId}`,
   spoiler: `local-screenshot-sidebar-spoiler:${clientId}`,
+  comments: `local-screenshot-sidebar-comments:${clientId}`,
   visibility: `local-screenshot-sidebar-visibility:${clientId}`,
   quality: `local-screenshot-sidebar-quality:${clientId}`,
 });
@@ -79,6 +86,7 @@ export function LocalScreenshotSidebar({
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const { showErrorToast } = useBigPictureToast();
   const { userDetails, hasActiveSubscription } = useUserDetails();
+  const { isFeatureEnabled } = useFeature();
   const [pendingAction, setPendingAction] = useState<
     "upload" | "delete" | null
   >(null);
@@ -94,6 +102,10 @@ export function LocalScreenshotSidebar({
   const uploadFocusId = getUploadFocusId(clientId);
   const deleteFocusId = getDeleteFocusId(clientId);
   const fieldFocusIds = getFieldFocusIds(clientId);
+  const lastFieldFocusId = getLastReviewFieldFocusId(
+    fieldFocusIds,
+    hasActiveSubscription
+  );
   const isEditable = EDITABLE_STATES.has(screenshot.state);
   const isUploading =
     pendingAction === "upload" || isLocalScreenshotUploadInFlight(screenshot);
@@ -129,10 +141,12 @@ export function LocalScreenshotSidebar({
 
     onBeforeUpload();
     await runAction("upload", () =>
-      globalThis.window.electron.uploadLocalScreenshot(
-        clientId,
-        toUploadOptions(draft, isCustomGame, hasActiveSubscription)
-      )
+      globalThis.window.electron.uploadLocalScreenshot(clientId, {
+        ...toUploadOptions(draft, isCustomGame),
+        commentsEnabled:
+          draft.commentsEnabled ||
+          !isFeatureEnabled(Feature.ScreenshotComments),
+      })
     );
   };
 
@@ -204,7 +218,7 @@ export function LocalScreenshotSidebar({
                       focusId={uploadFocusId}
                       focusNavigationOverrides={{
                         left: stageTarget,
-                        up: { type: "item", itemId: fieldFocusIds.quality },
+                        up: { type: "item", itemId: lastFieldFocusId },
                       }}
                       disabled={isBusy}
                       loading={isUploading}
@@ -230,7 +244,7 @@ export function LocalScreenshotSidebar({
                         ? { type: "item", itemId: uploadFocusId }
                         : stageTarget,
                       right: BLOCK_TARGET,
-                      up: { type: "item", itemId: fieldFocusIds.quality },
+                      up: { type: "item", itemId: lastFieldFocusId },
                     }}
                     disabled={isLocked}
                     loading={pendingAction === "delete"}

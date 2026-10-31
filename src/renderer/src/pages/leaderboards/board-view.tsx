@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import cn from "classnames";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@renderer/components";
@@ -17,8 +18,8 @@ import {
   GLOBAL_LEADERBOARD_PODIUM_SIZE,
   type GlobalLeaderboard,
 } from "./global-leaderboard";
-import { RankDelta, StreakFlame } from "./leaderboard-bits";
-import { LeaderboardPodium, type StreakStatus } from "./leaderboard-podium";
+import { RankDelta } from "./leaderboard-bits";
+import { LeaderboardPodium } from "./leaderboard-podium";
 import {
   ReportCheaterButton,
   ReportCheaterModal,
@@ -29,14 +30,14 @@ export interface BoardViewProps {
   leaderboard: GlobalLeaderboard;
   viewerUser: LeaderboardUser | null;
   formatValue: (value: number) => string;
-  leaderLabel: string;
   showDelta: boolean;
-  isStreak?: boolean;
   isLoading?: boolean;
   selectedId?: string | null;
   onSelect?: (entry: LeaderboardEntry) => void;
   renderTooltip?: (entry: LeaderboardEntry) => React.ReactNode;
-  onVisibleChange?: (visible: number) => void;
+  // Below the podium, like the selected review.
+  belowPodium?: React.ReactNode;
+  metricColumn: string;
   // Shows "report as cheater" on other users' entries when signed in.
   reportContext?: ReportBoardContext | null;
 }
@@ -45,14 +46,13 @@ export function BoardView({
   leaderboard,
   viewerUser,
   formatValue,
-  leaderLabel,
   showDelta,
-  isStreak = false,
   isLoading = false,
   selectedId,
   onSelect,
   renderTooltip,
-  onVisibleChange,
+  belowPodium,
+  metricColumn,
   reportContext = null,
 }: Readonly<BoardViewProps>) {
   const { t } = useTranslation("leaderboards");
@@ -74,10 +74,6 @@ export function BoardView({
     setVisible(GLOBAL_LEADERBOARD_PAGE_SIZE);
   }, [leaderboard]);
 
-  useEffect(() => {
-    onVisibleChange?.(visible);
-  }, [onVisibleChange, visible]);
-
   const getPreviousRank = (entry: LeaderboardEntry) => {
     const listed = leaderboard.extras[entry.user.id]?.previousRank;
     if (listed !== null && listed !== undefined) return listed;
@@ -90,13 +86,9 @@ export function BoardView({
   const getDelta = (entry: LeaderboardEntry) =>
     showDelta ? getRankDelta(entry.rank, getPreviousRank(entry)) : null;
 
-  const getStreak = (entry: LeaderboardEntry): StreakStatus => {
-    if (!isStreak) return null;
-    const active = leaderboard.extras[entry.user.id]?.streakActive;
-    if (active === null || active === undefined) return null;
-
-    return active ? "active" : "ended";
-  };
+  // The API does not send the previous rank yet, and an empty column says nothing.
+  const showDeltaColumn =
+    showDelta && leaderboard.entries.some((entry) => getDelta(entry) !== null);
 
   const allRows = buildLeaderboardRows(leaderboard, viewerUser, visible);
   const listedCount = Math.min(visible, leaderboard.entries.length);
@@ -108,41 +100,56 @@ export function BoardView({
       <LeaderboardPodium
         entries={leaderboard.entries.slice(0, GLOBAL_LEADERBOARD_PODIUM_SIZE)}
         viewerId={viewerUser?.id ?? null}
-        leaderLabel={leaderLabel}
         formatValue={formatValue}
         getDelta={getDelta}
-        getStreak={getStreak}
         selectedId={selectedId}
         onSelect={onSelect}
         renderAction={renderReport}
       />
 
-      {rows.length > 0 && (
-        <ol className="leaderboards__list" aria-busy={isLoading}>
-          {rows.map((row) => {
-            const streak = getStreak(row.entry);
+      {belowPodium}
 
-            return (
+      {rows.length > 0 && (
+        <div className="leaderboards__table">
+          <div
+            className={cn("leaderboards__table-header", {
+              "leaderboards__table-header--with-action": canReport,
+            })}
+          >
+            <span className="leaderboards__table-rank">
+              {t("column_position")}
+            </span>
+            <span className="leaderboards__table-player">
+              {t("column_player")}
+            </span>
+            {showDeltaColumn && (
+              <span className="leaderboards__table-delta">
+                {t("column_change")}
+              </span>
+            )}
+            <span className="leaderboards__table-value">{metricColumn}</span>
+          </div>
+          <ol className="leaderboards__list" aria-busy={isLoading}>
+            {rows.map((row) => (
               <LeaderboardRow
                 key={row.entry.user.id}
                 row={row}
                 value={formatValue(row.entry.value)}
-                rankAddon={
-                  showDelta ? <RankDelta delta={getDelta(row.entry)} /> : null
+                showProgress={false}
+                strip
+                isTableRow
+                deltaColumn={
+                  showDeltaColumn ? (
+                    <RankDelta delta={getDelta(row.entry)} />
+                  ) : undefined
                 }
-                valuePrefix={
-                  streak === "active" ? (
-                    <StreakFlame label={t("streak_active")} />
-                  ) : null
-                }
-                valueMuted={streak === "ended"}
                 tooltip={renderTooltip?.(row.entry)}
                 action={renderReport(row.entry)}
                 reserveAction={canReport}
               />
-            );
-          })}
-        </ol>
+            ))}
+          </ol>
+        </div>
       )}
 
       {hasMore && (
@@ -153,7 +160,7 @@ export function BoardView({
               setVisible((value) => value + GLOBAL_LEADERBOARD_PAGE_STEP)
             }
           >
-            {t("show_more")}
+            {t("load_more")}
           </Button>
         </div>
       )}

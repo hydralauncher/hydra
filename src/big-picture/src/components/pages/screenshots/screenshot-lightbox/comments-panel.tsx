@@ -2,7 +2,9 @@ import {
   ArrowClockwiseIcon,
   ChatCircleIcon,
   ChatsCircleIcon,
+  ClockCounterClockwiseIcon,
   DotsThreeVerticalIcon,
+  FireIcon,
   FlagIcon,
   PencilSimpleIcon,
   TrashIcon,
@@ -41,6 +43,7 @@ import {
   getScreenshotApiErrorCode,
   getVotedScreenshotComment,
   pickCommentEditPatch,
+  type ScreenshotCommentSort,
   type ScreenshotPatch,
 } from "@shared";
 import { logger } from "@renderer/logger";
@@ -50,10 +53,13 @@ import {
   ContextMenu,
   FocusItem,
   HorizontalFocusGroup,
+  SegmentedControl,
   UserProfileAvatar,
   VerticalFocusGroup,
   type ContextMenuItem,
+  type SegmentedControlOption,
 } from "../../../common";
+import { Skeleton } from "../../../common/skeleton";
 import { ConfirmationModal } from "../../../modals";
 import { formatRelativeDate } from "../../../../helpers";
 import {
@@ -131,7 +137,8 @@ const createPendingComment = (
 function useScreenshotComments(
   screenshot: ProfileScreenshot,
   isAvailable: boolean,
-  needsAuth: boolean
+  needsAuth: boolean,
+  sort: ScreenshotCommentSort
 ) {
   const [comments, setComments] = useState<ScreenshotComment[]>([]);
   const [total, setTotal] = useState(0);
@@ -144,6 +151,7 @@ function useScreenshotComments(
   const writesRef = useRef<ScreenshotCommentWrite[]>([]);
   const pendingReadsRef = useRef(0);
   const readEpochRef = useRef(0);
+  const countedScreenshotIdRef = useRef<string | null>(null);
   const ownerId = screenshot.owner.id;
   const screenshotId = screenshot.id;
 
@@ -169,7 +177,7 @@ function useScreenshotComments(
     try {
       const response =
         await globalThis.window.electron.hydraApi.get<ScreenshotCommentsResponse>(
-          buildUserScreenshotCommentsPath(ownerId, screenshotId),
+          buildUserScreenshotCommentsPath(ownerId, screenshotId, { sort }),
           { needsAuth }
         );
 
@@ -193,7 +201,7 @@ function useScreenshotComments(
     } finally {
       endRead(epoch);
     }
-  }, [needsAuth, ownerId, screenshotId]);
+  }, [needsAuth, ownerId, screenshotId, sort]);
 
   useEffect(() => {
     generationRef.current += 1;
@@ -201,7 +209,10 @@ function useScreenshotComments(
     pendingReadsRef.current = 0;
     writesRef.current = [];
     setComments([]);
-    setTotal(0);
+    if (countedScreenshotIdRef.current !== screenshotId) {
+      countedScreenshotIdRef.current = screenshotId;
+      setTotal(0);
+    }
     setNextCursor(null);
     setIsLoadingMore(false);
     setHasLoadMoreError(false);
@@ -213,7 +224,7 @@ function useScreenshotComments(
 
     setStatus("loading");
     void fetchFirstPage();
-  }, [fetchFirstPage, isAvailable]);
+  }, [fetchFirstPage, isAvailable, screenshotId]);
 
   const recordWrite = useCallback((write: ScreenshotCommentWriteInput) => {
     writeVersionRef.current += 1;
@@ -235,6 +246,7 @@ function useScreenshotComments(
         await globalThis.window.electron.hydraApi.get<ScreenshotCommentsResponse>(
           buildUserScreenshotCommentsPath(ownerId, screenshotId, {
             cursor: nextCursor,
+            sort,
           }),
           { needsAuth }
         );
@@ -259,7 +271,7 @@ function useScreenshotComments(
       endRead(epoch);
       if (generationRef.current === generation) setIsLoadingMore(false);
     }
-  }, [isLoadingMore, needsAuth, nextCursor, ownerId, screenshotId]);
+  }, [isLoadingMore, needsAuth, nextCursor, ownerId, screenshotId, sort]);
 
   const retry = useCallback(() => {
     setStatus("loading");
@@ -281,11 +293,41 @@ function useScreenshotComments(
   };
 }
 
+interface CommentNeighbor {
+  id: string;
+  hasMenu: boolean;
+}
+
+type CommentFocusKey = "upvote" | "downvote" | "more";
+
+const getNeighborFocusTarget = (
+  neighbor: CommentNeighbor | null,
+  key: CommentFocusKey
+): FocusOverrideTarget | null => {
+  if (!neighbor) return null;
+  const neighborFocusIds = getCommentFocusIds(neighbor.id);
+  const itemKey = key === "more" && !neighbor.hasMenu ? "downvote" : key;
+  return { type: "item", itemId: neighborFocusIds[itemKey] };
+};
+
+const getVerticalFocusOverrides = (
+  previous: CommentNeighbor | null,
+  next: CommentNeighbor | null,
+  key: CommentFocusKey
+): FocusOverrides => {
+  const up = getNeighborFocusTarget(previous, key);
+  const down = getNeighborFocusTarget(next, key);
+  return { ...(up ? { up } : {}), ...(down ? { down } : {}) };
+};
+
 interface CommentItemProps {
   comment: ScreenshotComment;
+  previous: CommentNeighbor | null;
+  next: CommentNeighbor | null;
   isSignedIn: boolean;
   hasMenu: boolean;
   isVoting: boolean;
+  isNew: boolean;
   language: string;
   leftTarget: FocusOverrideTarget;
   navigationOrder: number;
@@ -338,9 +380,12 @@ function CommentVoteButton({
 
 function CommentItem({
   comment,
+  previous,
+  next,
   isSignedIn,
   hasMenu,
   isVoting,
+  isNew,
   language,
   leftTarget,
   navigationOrder,
@@ -350,9 +395,20 @@ function CommentItem({
   const { t } = useTranslation("big_picture");
   const focusIds = getCommentFocusIds(comment.id);
   const moreButtonRef = useRef<HTMLDivElement | null>(null);
+  const itemRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    if (!isNew) return;
+    itemRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [isNew]);
 
   return (
-    <li className="screenshot-comments__item">
+    <li
+      ref={itemRef}
+      className={cn("screenshot-comments__item", {
+        "screenshot-comments__item--new": isNew && !isPendingComment(comment),
+      })}
+    >
       <div className="screenshot-comments__item-top">
         <div className="screenshot-comments__item-header">
           <UserProfileAvatar
@@ -403,7 +459,10 @@ function CommentItem({
                   ? "screenshots_comment_upvote"
                   : "screenshots_sign_in_to_vote"
               )}
-              navigationOverrides={{ left: leftTarget }}
+              navigationOverrides={{
+                left: leftTarget,
+                ...getVerticalFocusOverrides(previous, next, "upvote"),
+              }}
               onVote={() => onVote(comment, "UPVOTE")}
             />
             <CommentVoteButton
@@ -416,6 +475,11 @@ function CommentItem({
                 isSignedIn
                   ? "screenshots_comment_downvote"
                   : "screenshots_sign_in_to_vote"
+              )}
+              navigationOverrides={getVerticalFocusOverrides(
+                previous,
+                next,
+                "downvote"
               )}
               onVote={() => onVote(comment, "DOWNVOTE")}
             />
@@ -430,7 +494,10 @@ function CommentItem({
                 icon={<DotsThreeVerticalIcon size={18} weight="bold" />}
                 aria-label={t("screenshots_comment_options")}
                 title={t("screenshots_comment_options")}
-                focusNavigationOverrides={{ right: { type: "block" } }}
+                focusNavigationOverrides={{
+                  right: { type: "block" },
+                  ...getVerticalFocusOverrides(previous, next, "more"),
+                }}
                 onClick={() => {
                   if (moreButtonRef.current)
                     onOpenMenu(comment, moreButtonRef.current);
@@ -445,6 +512,8 @@ function CommentItem({
     </li>
   );
 }
+
+const COMMENT_SKELETON_COUNT = 3;
 
 interface CommentsListStatusProps {
   status: CommentsStatus;
@@ -465,9 +534,34 @@ function CommentsListStatus({
 
   if (status === "loading") {
     return (
-      <p className="screenshot-comments__status">
-        {t("screenshots_comments_loading")}
-      </p>
+      <output
+        className="screenshot-comments__loading"
+        aria-label={t("screenshots_comments_loading")}
+      >
+        <ul className="screenshot-comments__list" aria-hidden="true">
+          {Array.from({ length: COMMENT_SKELETON_COUNT }, (_, index) => (
+            <li
+              key={index}
+              className="screenshot-comments__item screenshot-comments__item--skeleton"
+            >
+              <div className="screenshot-comments__item-top">
+                <div className="screenshot-comments__item-header">
+                  <Skeleton className="screenshot-comments__skeleton-avatar" />
+                  <div className="screenshot-comments__item-heading screenshot-comments__skeleton-heading">
+                    <Skeleton className="screenshot-comments__skeleton-line screenshot-comments__skeleton-line--name" />
+                    <Skeleton className="screenshot-comments__skeleton-line screenshot-comments__skeleton-line--meta" />
+                  </div>
+                </div>
+                <Skeleton className="screenshot-comments__skeleton-line" />
+                <Skeleton className="screenshot-comments__skeleton-line screenshot-comments__skeleton-line--short" />
+              </div>
+              <div className="screenshot-comments__item-actions">
+                <Skeleton className="screenshot-comments__skeleton-votes" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </output>
     );
   }
 
@@ -528,6 +622,30 @@ export function ScreenshotCommentsPanel({
   const isAvailable =
     screenshot.moderationStatus === undefined ||
     screenshot.moderationStatus === "APPROVED";
+  const [sort, setSort] = useState<ScreenshotCommentSort>("newest");
+  const sortOptions = useMemo<SegmentedControlOption<ScreenshotCommentSort>[]>(
+    () => [
+      {
+        value: "newest",
+        label: (
+          <span className="screenshot-comments__sort-option">
+            <ClockCounterClockwiseIcon size={16} weight="bold" />
+            {t("screenshots_comments_sort_newest")}
+          </span>
+        ),
+      },
+      {
+        value: "top",
+        label: (
+          <span className="screenshot-comments__sort-option">
+            <FireIcon size={16} weight="bold" />
+            {t("screenshots_comments_sort_top")}
+          </span>
+        ),
+      },
+    ],
+    [t]
+  );
   const {
     comments,
     total,
@@ -540,10 +658,12 @@ export function ScreenshotCommentsPanel({
     recordWrite,
     setComments,
     setTotal,
-  } = useScreenshotComments(screenshot, isAvailable, Boolean(viewerId));
+  } = useScreenshotComments(screenshot, isAvailable, Boolean(viewerId), sort);
   const commentsRef = useRef(comments);
   const [editingComment, setEditingComment] =
     useState<ScreenshotComment | null>(null);
+  const editingCommentRef = useRef(editingComment);
+  editingCommentRef.current = editingComment;
   const draftKey = `${viewerId ?? ""}:${screenshot.id}`;
   const restoredDraft = useFailedCommentDrafts(
     (state) => state.draftsByKey[draftKey]?.[0] ?? null
@@ -553,6 +673,14 @@ export function ScreenshotCommentsPanel({
   const editVersionsRef = useRef(new Map<string, number>());
   const confirmedEditsRef = useRef(new Map<string, ConfirmedCommentEdit>());
   const [votingIds, setVotingIds] = useState<Set<string>>(new Set());
+  const [newCommentId, setNewCommentId] = useState<string | null>(null);
+  const newCommentIdRef = useRef<string | null>(null);
+  const changeSort = useCallback((nextSort: ScreenshotCommentSort) => {
+    newCommentIdRef.current = null;
+    setNewCommentId(null);
+    setSort(nextSort);
+  }, []);
+  const composerDraftRef = useRef("");
   const [menu, setMenu] = useState<CommentMenuState | null>(null);
   const [deletingComment, setDeletingComment] =
     useState<ScreenshotComment | null>(null);
@@ -638,6 +766,10 @@ export function ScreenshotCommentsPanel({
       setComments((current) =>
         current.filter((comment) => comment.id !== pendingId)
       );
+      if (newCommentIdRef.current === pendingId) {
+        newCommentIdRef.current = null;
+        setNewCommentId(null);
+      }
       if (isListed) setTotal((current) => Math.max(0, current - 1));
       onCommentCountChange(screenshot.id, -1);
     },
@@ -663,6 +795,9 @@ export function ScreenshotCommentsPanel({
           wasCounted: true,
         });
         if (!created.isHidden) recordWrite({ kind: "add", comment: created });
+        showSuccessToast(t("screenshots_comment_posted"), {
+          fallbackVisual: "settings",
+        });
         const isPendingShown = commentsRef.current.some(
           (comment) => comment.id === pending.id
         );
@@ -684,6 +819,23 @@ export function ScreenshotCommentsPanel({
           }
           return [created, ...current];
         });
+        const isNewestComment = newCommentIdRef.current === pending.id;
+        if (isNewestComment) {
+          newCommentIdRef.current = created.id;
+          setNewCommentId(created.id);
+        }
+        const navigation = NavigationService.getInstance();
+        if (
+          isNewestComment &&
+          !editingCommentRef.current &&
+          !created.isHidden &&
+          navigation.getCurrentFocusId() === focusIds.input &&
+          !normalizeScreenshotCommentBody(composerDraftRef.current)
+        ) {
+          navigation.requestFocusWhenAvailable(
+            getCommentFocusIds(created.id).upvote
+          );
+        }
         if (isPendingShown) {
           if (created.isHidden) {
             setTotal((current) => Math.max(0, current - 1));
@@ -710,6 +862,7 @@ export function ScreenshotCommentsPanel({
     },
     [
       draftKey,
+      focusIds.input,
       onCommentCountChange,
       onScreenshotUpdate,
       ownerId,
@@ -720,6 +873,8 @@ export function ScreenshotCommentsPanel({
       setComments,
       setTotal,
       showError,
+      showSuccessToast,
+      t,
     ]
   );
 
@@ -745,6 +900,9 @@ export function ScreenshotCommentsPanel({
           confirmed.version = editVersion;
         }
         if (!isLatestEdit()) return;
+        showSuccessToast(t("screenshots_comment_updated"), {
+          fallbackVisual: "settings",
+        });
         if (updated) replaceComment(comment.id, pickCommentEditPatch(updated));
         if (updated && updated.isHidden !== comment.isHidden) {
           const delta = updated.isHidden ? -1 : 1;
@@ -787,6 +945,8 @@ export function ScreenshotCommentsPanel({
       screenshot.id,
       setTotal,
       showError,
+      showSuccessToast,
+      t,
     ]
   );
 
@@ -830,6 +990,8 @@ export function ScreenshotCommentsPanel({
       });
       recordWrite({ kind: "add", comment: pending });
       setComments((current) => [pending, ...current]);
+      newCommentIdRef.current = pending.id;
+      setNewCommentId(pending.id);
       setTotal((current) => current + 1);
       onCommentCountChange(screenshot.id, 1);
       void publishComment(pending);
@@ -1045,6 +1207,11 @@ export function ScreenshotCommentsPanel({
       comment.canDelete ||
       (!comment.isOwn && Boolean(viewerId)));
 
+  const getCommentNeighbor = (
+    neighbor: ScreenshotComment | undefined
+  ): CommentNeighbor | null =>
+    neighbor ? { id: neighbor.id, hasMenu: hasMenu(neighbor) } : null;
+
   return (
     <VerticalFocusGroup regionId={focusIds.region} asChild>
       <aside className="screenshot-comments">
@@ -1054,6 +1221,19 @@ export function ScreenshotCommentsPanel({
             <ChatCircleIcon size={14} weight="bold" />
             {total}
           </span>
+          {total > 1 ? (
+            <div className="screenshot-comments__sort">
+              <SegmentedControl
+                ariaLabel={t("screenshots_comments_sort_label")}
+                value={sort}
+                options={sortOptions}
+                focusId={focusIds.sort}
+                navigationOrder={COMMENTS_NAVIGATION_ORDER.sort}
+                navigationOverrides={{ left: leftTarget }}
+                onValueChange={changeSort}
+              />
+            </div>
+          ) : null}
         </header>
 
         <div className="screenshot-comments__scroll">
@@ -1071,6 +1251,8 @@ export function ScreenshotCommentsPanel({
                 <CommentItem
                   key={comment.id}
                   comment={comment}
+                  previous={getCommentNeighbor(comments[index - 1])}
+                  next={getCommentNeighbor(comments[index + 1])}
                   navigationOrder={
                     COMMENTS_NAVIGATION_ORDER.firstComment + index
                   }
@@ -1079,6 +1261,7 @@ export function ScreenshotCommentsPanel({
                   isVoting={
                     votingIds.has(comment.id) || isPendingComment(comment)
                   }
+                  isNew={newCommentId === comment.id}
                   language={language}
                   leftTarget={leftTarget}
                   onVote={(target, voteType) => void vote(target, voteType)}
@@ -1128,6 +1311,9 @@ export function ScreenshotCommentsPanel({
           editingComment={editingComment}
           restoredDraft={restoredDraft}
           onRestoredDraftApplied={shiftRestoredDraft}
+          onNewDraftChange={(html) => {
+            composerDraftRef.current = html;
+          }}
           onSubmit={submit}
           onCancelEdit={() => setEditingComment(null)}
         />

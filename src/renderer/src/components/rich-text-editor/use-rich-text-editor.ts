@@ -115,7 +115,7 @@ export function useRichTextEditor({
 
         if (
           event.key !== "Enter" ||
-          event.shiftKey ||
+          !(event.ctrlKey || event.metaKey) ||
           event.isComposing ||
           !onSubmitShortcutRef.current
         ) {

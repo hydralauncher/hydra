@@ -32,7 +32,7 @@ import {
   queueRestoredCommentDraft,
   useRestoredCommentDraft,
 } from "./restored-comment-drafts";
-import type { ScreenshotPatch } from "@shared";
+import type { ScreenshotCommentSort, ScreenshotPatch } from "@shared";
 
 type CommentWrite =
   | { kind: "create"; comment: ScreenshotComment }
@@ -134,6 +134,7 @@ interface UseScreenshotCommentsOptions {
   author: ScreenshotAuthor | null;
   isEnabled: boolean;
   isSignedIn: boolean;
+  sort: ScreenshotCommentSort;
   onPatch: (screenshotId: string, patch: ScreenshotPatch) => void;
   onFailure: (screenshotId: string, failure: ScreenshotFailure) => void;
 }
@@ -143,6 +144,7 @@ export function useScreenshotComments({
   author,
   isEnabled,
   isSignedIn,
+  sort,
   onPatch,
   onFailure,
 }: UseScreenshotCommentsOptions) {
@@ -154,7 +156,7 @@ export function useScreenshotComments({
   const [comments, setComments] = useState<ScreenshotComment[]>([]);
   const [total, setTotal] = useState<number | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(isEnabled);
   const [hasFailed, setHasFailed] = useState(false);
   const { restoredDraft, clearRestoredDraft } =
     useRestoredCommentDraft(draftKey);
@@ -164,6 +166,7 @@ export function useScreenshotComments({
   const [reportedCommentIds, setReportedCommentIds] = useState<
     ReadonlySet<string>
   >(() => new Set());
+  const [newCommentId, setNewCommentId] = useState<string | null>(null);
   const requestIdRef = useRef(0);
   const isReadInFlightRef = useRef(false);
   const writeVersionRef = useRef(0);
@@ -190,10 +193,11 @@ export function useScreenshotComments({
         buildUserScreenshotCommentsPath(ownerId, screenshotId, {
           cursor,
           take: SCREENSHOT_COMMENTS_PAGE_SIZE,
+          sort,
         }),
         { needsAuth: isSignedIn }
       ),
-    [isSignedIn, ownerId, screenshotId]
+    [isSignedIn, ownerId, screenshotId, sort]
   );
 
   const handleAccessError = useCallback(
@@ -314,10 +318,10 @@ export function useScreenshotComments({
     isReadInFlightRef.current = false;
     writesRef.current = [];
     setComments([]);
-    setTotal(null);
     setNextCursor(null);
     setHasFailed(false);
     setIsLoading(false);
+    setNewCommentId(null);
 
     if (isEnabled) void reload();
   }, [isEnabled, reload]);
@@ -400,6 +404,9 @@ export function useScreenshotComments({
             ({ id }) => id === pendingId || id === comment.id
           );
           recordWrite({ kind: "replace", commentId: pendingId, comment });
+          setNewCommentId((current) =>
+            current === pendingId ? comment.id : current
+          );
           if (!isListed && !isReadInFlightRef.current) {
             setTotal((current) => (current ?? 0) + 1);
           }
@@ -407,12 +414,14 @@ export function useScreenshotComments({
         if (comment.isHidden) {
           onPatch(screenshotId, adjustCommentCount(-1));
         }
+        showSuccessToast(t("comment_posted"));
       } catch (error) {
         logger.error("Failed to post screenshot comment", error);
         const isListed =
           screenshotIdRef.current === screenshotId &&
           commentsRef.current.some(({ id }) => id === pendingId);
         recordWrite({ kind: "delete", commentId: pendingId });
+        setNewCommentId((current) => (current === pendingId ? null : current));
         if (isListed) setTotal((current) => Math.max(0, (current ?? 1) - 1));
         onPatch(screenshotId, adjustCommentCount(-1));
         queueRestoredCommentDraft(draftKey, bodyHtml);
@@ -429,8 +438,12 @@ export function useScreenshotComments({
       recordWrite,
       screenshotId,
       setPending,
+      showSuccessToast,
+      t,
     ]
   );
+
+  const clearNewComment = useCallback(() => setNewCommentId(null), []);
 
   const createComment = useCallback(
     (body: string) => {
@@ -440,6 +453,7 @@ export function useScreenshotComments({
       const pendingComment = createPendingComment(normalizedBody, author);
       setPending(pendingComment.id, true);
       recordWrite({ kind: "create", comment: pendingComment });
+      setNewCommentId(pendingComment.id);
       setTotal((current) => (current ?? 0) + 1);
       onPatch(screenshotId, adjustCommentCount(1));
       void publishComment(pendingComment.id, normalizedBody);
@@ -478,6 +492,10 @@ export function useScreenshotComments({
             : { bodyHtml, editedAt: Date.now() };
           confirmed.version = editVersion;
         }
+        const hasNewerEdit = [...confirmed.pendingVersions].some(
+          (version) => version > editVersion
+        );
+        if (!hasNewerEdit) showSuccessToast(t("comment_updated"));
       } catch (error) {
         logger.error("Failed to edit screenshot comment", error);
         handleWriteError(error, "comment_edit_failed", comment.id);
@@ -492,7 +510,14 @@ export function useScreenshotComments({
         }
       }
     },
-    [handleWriteError, ownerId, screenshotId, showConfirmedEdit]
+    [
+      handleWriteError,
+      ownerId,
+      screenshotId,
+      showConfirmedEdit,
+      showSuccessToast,
+      t,
+    ]
   );
 
   const editComment = useCallback(
@@ -671,6 +696,8 @@ export function useScreenshotComments({
     clearRestoredDraft,
     pendingCommentIds,
     reportedCommentIds,
+    newCommentId,
+    clearNewComment,
     reload,
     loadMore,
     createComment,

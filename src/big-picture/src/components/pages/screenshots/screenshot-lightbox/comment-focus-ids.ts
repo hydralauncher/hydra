@@ -10,6 +10,7 @@ export const getScreenshotCommentsPanelFocusIds = (screenshotId: string) => ({
   signIn: `screenshot-comments-sign-in:${screenshotId}`,
   loadMore: `screenshot-comments-load-more:${screenshotId}`,
   retry: `screenshot-comments-retry:${screenshotId}`,
+  sort: `screenshot-comments-sort:${screenshotId}`,
 });
 
 export type ScreenshotCommentsPanelFocusIds = ReturnType<
@@ -17,6 +18,7 @@ export type ScreenshotCommentsPanelFocusIds = ReturnType<
 >;
 
 export const COMMENTS_NAVIGATION_ORDER = {
+  sort: -1,
   status: 0,
   firstComment: 1,
   loadMore: 1_000_000,

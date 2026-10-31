@@ -53,6 +53,10 @@ body.window-rounded {
   }
 }
 
+body.feedback-widget-hidden #workwonders-feedback-widget-trigger {
+  display: none;
+}
+
 button {
   padding: 0;
   background-color: transparent;

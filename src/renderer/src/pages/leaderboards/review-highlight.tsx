@@ -1,4 +1,5 @@
-import { ArrowRightIcon, TrophyIcon } from "@primer/octicons-react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { ClockIcon } from "@primer/octicons-react";
 import { Languages, Star, ThumbsUp } from "lucide-react";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
@@ -11,6 +12,7 @@ import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
 import type { LeaderboardEntry } from "../game-details/leaderboard/game-leaderboard";
 import type { LeaderboardReview } from "./global-leaderboard";
+import { useGameIcon } from "./use-game-icon";
 import { useReviewTranslation } from "./use-review-translation";
 
 import "../game-details/review-item.scss";
@@ -29,10 +31,60 @@ export interface ReviewHighlightProps {
   review: LeaderboardReview;
 }
 
+// Up to five lines, with a button to read the rest when there is more.
+function ReviewText({
+  text,
+  html,
+}: Readonly<{ text: string; html: string | null }>) {
+  const { t } = useTranslation("leaderboards");
+  const textRef = useRef<HTMLDivElement>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = textRef.current;
+    if (!element || isExpanded) return;
+
+    const measure = () =>
+      setIsTruncated(element.scrollHeight > element.clientHeight);
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [isExpanded, text, html]);
+
+  return (
+    <>
+      <div
+        ref={textRef}
+        className={cn(
+          "game-details__review-content leaderboards__review-text",
+          {
+            "leaderboards__review-text--expanded": isExpanded,
+          }
+        )}
+        {...(html
+          ? { dangerouslySetInnerHTML: { __html: html } }
+          : { children: text })}
+      />
+      {isTruncated && (
+        <button
+          type="button"
+          className="leaderboards__link leaderboards__review-more"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          {t(isExpanded ? "review_read_less" : "review_read_more")}
+        </button>
+      )}
+    </>
+  );
+}
+
 // The selected review, drawn like a review on the game page (review-item.tsx)
 // without the vote buttons and replies: the leaderboard payload has no review
-// id. The upvotes are a badge next to the score and the game is a link line
-// above the text.
+// id. The upvotes and the date are chips next to the score, and the game is a
+// chip in the corner of the banner.
 export function ReviewHighlight({
   title,
   entry,
@@ -48,6 +100,7 @@ export function ReviewHighlight({
     REVIEW_BANNER_IMAGE_SIZE
   );
   const translation = useReviewTranslation(review, entry.user.id);
+  const gameIcon = useGameIcon(review.shop, review.objectId);
   const createdAt = review.createdAt ? new Date(review.createdAt) : null;
   const ratingKey = RATING_KEYS[Math.round(review.score)];
   const openProfile = () => navigate(`/profile/${entry.user.id}`);
@@ -55,7 +108,7 @@ export function ReviewHighlight({
   return (
     <section className="leaderboards__review-highlight">
       <div className="leaderboards__review-title">
-        <TrophyIcon size={16} />
+        <ClockIcon size={16} />
         <span>{title}</span>
       </div>
       <article className="game-details__review-item leaderboards__review">
@@ -120,48 +173,57 @@ export function ReviewHighlight({
                       <ThumbsUp size={12} />
                       <span>{numberFormatter.format(entry.value)}</span>
                     </span>
+                    {createdAt && (
+                      <span
+                        className="game-details__review-score-stars leaderboards__review-likes"
+                        title={formatDateTime(createdAt)}
+                      >
+                        <ClockIcon size={12} />
+                        <span>
+                          {formatDistance(createdAt, new Date(), {
+                            addSuffix: true,
+                          })}
+                        </span>
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
-            {createdAt && (
-              <div
-                className="game-details__review-date"
-                title={formatDateTime(createdAt)}
-              >
-                {formatDistance(createdAt, new Date(), { addSuffix: true })}
-              </div>
-            )}
           </div>
+          <button
+            type="button"
+            className="game-details__review-score-stars leaderboards__review-game"
+            onClick={() =>
+              navigate(
+                buildGameDetailsPath({
+                  shop: review.shop as GameShop,
+                  objectId: review.objectId,
+                  title: review.gameTitle,
+                })
+              )
+            }
+          >
+            {gameIcon && (
+              <img
+                className="leaderboards__review-game-icon"
+                src={gameIcon}
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
+            )}
+            {review.gameTitle}
+          </button>
         </div>
 
-        <button
-          type="button"
-          className="leaderboards__link leaderboards__review-game"
-          onClick={() =>
-            navigate(
-              buildGameDetailsPath({
-                shop: review.shop as GameShop,
-                objectId: review.objectId,
-                title: review.gameTitle,
-              })
-            )
-          }
-        >
-          {review.gameTitle}
-          <ArrowRightIcon size={14} />
-        </button>
-
-        {translation.translatedHtml ? (
-          <div
-            className="game-details__review-content leaderboards__review-text"
-            dangerouslySetInnerHTML={{ __html: translation.translatedHtml }}
+        <blockquote className="leaderboards__review-quote">
+          <ReviewText
+            key={`${entry.user.id}:${translation.translatedHtml ?? ""}`}
+            text={review.text}
+            html={translation.translatedHtml}
           />
-        ) : (
-          <p className="game-details__review-content leaderboards__review-text">
-            {review.text}
-          </p>
-        )}
+        </blockquote>
 
         {translation.translatedHtml && (
           <div>
@@ -174,9 +236,9 @@ export function ReviewHighlight({
               {translation.toggleLabel}
             </button>
             {translation.showOriginal && (
-              <p className="game-details__review-content leaderboards__review-text leaderboards__review-original">
-                {review.text}
-              </p>
+              <div className="leaderboards__review-original">
+                <ReviewText text={review.text} html={null} />
+              </div>
             )}
           </div>
         )}

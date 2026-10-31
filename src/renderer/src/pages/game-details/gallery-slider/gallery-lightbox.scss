@@ -40,6 +40,21 @@ $lightbox-sidebar-fade-duration: 0.2s;
     backdrop-filter: none;
   }
 
+  &--below-titlebar {
+    top: $lightbox-titlebar-height;
+    height: auto;
+  }
+
+  &--titlebar-offset::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: $lightbox-titlebar-height;
+    -webkit-app-region: drag;
+  }
+
   &::backdrop {
     background: transparent;
   }
