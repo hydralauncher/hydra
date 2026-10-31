@@ -96,6 +96,21 @@ describe("RPCS3 trophy files", () => {
     const state = stateFile();
     state.writeUInt32BE(2, 80 + 20);
     assert.throws(() => parseTrophyStates(state));
+    const missingTable = stateFile();
+    missingTable.writeUInt32BE(4, 48);
+    assert.throws(
+      () => parseTrophyStates(missingTable),
+      /Missing TROPUSR state table/
+    );
+    const duplicateTable = stateFile([], true);
+    duplicateTable.writeUInt32BE(6, 48);
+    assert.throws(
+      () => parseTrophyStates(duplicateTable),
+      /Duplicate TROPUSR state table/
+    );
+    const invalidStride = stateFile();
+    invalidStride.writeUInt32BE(95, 52);
+    assert.throws(() => parseTrophyStates(invalidStride), /state table bounds/);
   });
   it("validates XML identities, avoids entity expansion and separates collection IDs", () => {
     assert.throws(() =>

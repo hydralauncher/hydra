@@ -12,7 +12,9 @@ This provider reads trophies for PS3 Classics games through Hydra's existing ach
 
 ## Updates
 
-Startup establishes a silent baseline. Directory notifications, filtered to relevant names, detect trophy registration, state-file replacement and user changes. Debouncing and bounded retries accommodate partial writes; the last valid snapshot remains visible while a same-user read is incomplete. Switching users clears the old user's view before reading the new one.
+Startup establishes a silent baseline, using Hydra's existing concurrency helper to initialize at most four games at once. Media discovery and registered-set reads each have a concurrency limit of two. A collection is published only after every set has been read successfully; failed reads drain before retrying. ISO traversal reads parent and child directories in order because their offsets depend on one another.
+
+Directory notifications, filtered to relevant names, detect trophy registration, state-file replacement and user changes. Named debounce and retry settings accommodate partial writes; the last valid snapshot and set watches remain intact while the same game media is temporarily unreadable. Switching media or RPCS3 users clears the old selection before discovery can fail. Hydra sign-in/sign-out preserves these local entries in the existing achievement cache while clearing account-linked entries.
 
 Only previously known locked-to-earned transitions generate notifications. Repeated reads, duplicate watch events and application restarts do not replay an existing unlock. Library refreshes use the existing batch-complete event. There is no periodic polling loop.
 

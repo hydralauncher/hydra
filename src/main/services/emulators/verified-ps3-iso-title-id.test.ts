@@ -57,9 +57,17 @@ it("maps exact collection trophy set directories inside an ISO", async (t) => {
     "NPWR12345_00",
     "NPWR12346_00",
   ]);
+  // A readable ISO without trophy entries is genuinely empty.
+  const empty = Buffer.from(image);
+  empty.fill(0, 22 * SECTOR, 23 * SECTOR);
+  await fs.writeFile(iso, empty);
+  assert.deepEqual(await extractTrophySetIdsFromIso(iso), []);
+  // A short directory read is a failed discovery, not an empty catalogue.
+  await fs.writeFile(iso, image.subarray(0, 22 * SECTOR + 12));
+  await assert.rejects(extractTrophySetIdsFromIso(iso), /Incomplete PS3 ISO/);
   image.write("BROKEN", pvd + 1, "ascii");
   await fs.writeFile(iso, image);
-  assert.deepEqual(await extractTrophySetIdsFromIso(iso), []);
+  await assert.rejects(extractTrophySetIdsFromIso(iso), /Invalid PS3 ISO/);
 });
 
 it("reads TITLE_ID inside ISO metadata and ignores its filename", async () => {

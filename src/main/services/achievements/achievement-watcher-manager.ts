@@ -64,6 +64,16 @@ const getEnableSteamAchievements = async () => {
   return userPreferences?.enableSteamAchievements ?? false;
 };
 
+const isLocalRpcs3Game = async (shop: GameShop, objectId: string) => {
+  if (shop !== "launchbox") return false;
+  const game = await gamesSublevel
+    .get(levelKeys.game(shop, objectId))
+    .catch(() => null);
+  return Boolean(
+    game && isClassicsGameForEmulator(game, { kind: "emulator", system: "ps3" })
+  );
+};
+
 const getWatchedGames = async (onlyWithWinePrefix = false) => {
   const games = await gamesSublevel
     .values()
@@ -247,7 +257,8 @@ export class AchievementWatcherManager {
     achievementSyncWorker.stop();
     void achievementSyncWorker.trigger();
     this.alreadySyncedGames.clear();
-    AchievementMemoryStore.clear();
+    // RPCS3 progress belongs to the local emulator user, not the Hydra account.
+    AchievementMemoryStore.clearAccountEntries();
     UnlockedAchievementsCache.clear();
     CombinedAchievementsRequests.clear();
   }
@@ -276,16 +287,7 @@ export class AchievementWatcherManager {
   ) {
     if (shop === "custom" || shop === "epic") return;
 
-    if (shop === "launchbox") {
-      const game = await gamesSublevel
-        .get(levelKeys.game(shop, objectId))
-        .catch(() => null);
-      if (
-        game &&
-        isClassicsGameForEmulator(game, { kind: "emulator", system: "ps3" })
-      )
-        return;
-    }
+    if (await isLocalRpcs3Game(shop, objectId)) return;
 
     const gameKey = levelKeys.game(shop, objectId);
     if (this.alreadySyncedGames.get(gameKey)) return;

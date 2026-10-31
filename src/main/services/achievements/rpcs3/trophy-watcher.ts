@@ -1,5 +1,10 @@
 import { watch, type FSWatcher } from "node:fs";
 
+const TROPHY_DEBOUNCE_DELAY_MS = 180;
+const TROPHY_MAX_READ_RETRIES = 5;
+const TROPHY_RETRY_BASE_DELAY_MS = 100;
+const TROPHY_RETRY_BACKOFF_MULTIPLIER = 2;
+
 /** Directory watching survives RPCS3 replacing TROPUSR.DAT. Retries are bounded and event-driven. */
 export class TrophyWatcher {
   private watchers: FSWatcher[] = [];
@@ -52,7 +57,7 @@ export class TrophyWatcher {
     if (this.closed) return;
     this.dirty = true;
     this.retries = 0;
-    this.schedule(180);
+    this.schedule(TROPHY_DEBOUNCE_DELAY_MS);
   }
 
   private schedule(delay: number) {
@@ -73,10 +78,14 @@ export class TrophyWatcher {
       this.retries = 0;
     } catch (error) {
       this.onError(error);
-      if (++this.retries <= 5) this.schedule(100 * 2 ** this.retries);
+      if (++this.retries <= TROPHY_MAX_READ_RETRIES)
+        this.schedule(
+          TROPHY_RETRY_BASE_DELAY_MS *
+            TROPHY_RETRY_BACKOFF_MULTIPLIER ** this.retries
+        );
     } finally {
       this.running = false;
-      if (this.dirty && !this.closed) this.schedule(180);
+      if (this.dirty && !this.closed) this.schedule(TROPHY_DEBOUNCE_DELAY_MS);
     }
   }
 

@@ -10,13 +10,28 @@ import { achievementsLogger } from "../../logger";
 import { AchievementMemoryStore } from "../achievement-memory-store";
 import { UnlockedAchievementsCache } from "../unlocked-achievements-cache";
 import { publishAchievementUnlockNotifications } from "../achievement-unlock-notifications";
-import { findGameTrophySetIds, resolveTrophyUser } from "./trophy-discovery.js";
+import {
+  findGameTrophySetIds,
+  getGameTrophyMediaPaths,
+  resolveTrophyUser,
+} from "./trophy-discovery.js";
 import { readTrophySet } from "./trophy-data.js";
 import { TrophyWatcher } from "./trophy-watcher.js";
+import { mapWithConcurrency } from "../../cloud-save/map-with-concurrency.js";
+
+const RPCS3_STARTUP_CONCURRENCY = 4;
+const TROPHY_SET_READ_CONCURRENCY = 2;
+
+interface TrophyProfile {
+  configRoot: string;
+  homeRoot: string;
+  root: string;
+}
 
 interface Monitor {
   game: Game;
   identity: string | null;
+  selectionIdentity: string | null;
   rows: UserAchievement[];
   watcher: TrophyWatcher;
   pending: Promise<UserAchievement[]> | null;
@@ -38,25 +53,15 @@ const clearView = (monitor: Monitor) => {
   const changed = monitor.rows.length > 0;
   monitor.rows = [];
   monitor.identity = null;
+  monitor.selectionIdentity = null;
   AchievementMemoryStore.delete(game.shop, game.objectId);
   UnlockedAchievementsCache.invalidate(game.shop, game.objectId);
   if (changed) publishView(monitor);
 };
 
-const refresh = async (monitor: Monitor): Promise<UserAchievement[]> => {
-  const game = await gamesSublevel.get(
-    levelKeys.game(monitor.game.shop, monitor.game.objectId)
-  );
-  if (
-    !game ||
-    !isClassicsGameForEmulator(game, { kind: "emulator", system: "ps3" })
-  ) {
-    monitor.watcher.close();
-    monitor.closed = true;
-    clearView(monitor);
-    return [];
-  }
-  monitor.game = game;
+const resolveTrophyProfile = async (
+  monitor: Monitor
+): Promise<TrophyProfile | null> => {
   const config = await getEmulatorConfig("ps3");
   const { location } = await resolveRpcs3ConfigRootStatus(
     config.executablePath,
@@ -76,32 +81,42 @@ const refresh = async (monitor: Monitor): Promise<UserAchievement[]> => {
           ]
         : []
     );
-    return [];
+    return null;
   }
-  const root = path.join(location.homeRoot, user, "trophy");
-  const setIds = await findGameTrophySetIds(game);
-  const identity = JSON.stringify([location.configRoot, root, setIds]);
-  const sameIdentity = monitor.identity === identity;
-  // Never retain a different RPCS3 user's data when a new read fails.
-  if (!sameIdentity) {
-    clearView(monitor);
-  }
+  return {
+    configRoot: location.configRoot,
+    homeRoot: location.homeRoot,
+    root: path.join(location.homeRoot, user, "trophy"),
+  };
+};
+
+const getProfileWatchDirectories = ({
+  configRoot,
+  homeRoot,
+  root,
+}: TrophyProfile) => [
+  configRoot,
+  path.join(configRoot, "GuiConfigs"),
+  homeRoot,
+  path.dirname(root),
+  root,
+  path.dirname(homeRoot),
+];
+
+const watchTrophySets = (
+  monitor: Monitor,
+  profile: TrophyProfile,
+  setIds: string[]
+) => {
+  const { configRoot, homeRoot, root } = profile;
   const directories = [
-    location.configRoot,
-    path.join(location.configRoot, "GuiConfigs"),
-    location.homeRoot,
-    path.dirname(root),
-    root,
+    ...getProfileWatchDirectories(profile),
+    ...setIds.map((id) => path.join(root, id)),
   ];
-  directories.push(path.dirname(location.homeRoot));
-  for (const id of setIds) directories.push(path.join(root, id));
   const relevantNames = new Map<string, ReadonlySet<string>>([
-    [location.configRoot, new Set(["vfs.yml", "config.yml", "guiconfigs"])],
-    [
-      path.join(location.configRoot, "GuiConfigs"),
-      new Set(["persistent_settings.dat"]),
-    ],
-    [path.dirname(location.homeRoot), new Set(["home"])],
+    [configRoot, new Set(["vfs.yml", "config.yml", "guiconfigs"])],
+    [path.join(configRoot, "GuiConfigs"), new Set(["persistent_settings.dat"])],
+    [path.dirname(homeRoot), new Set(["home"])],
     [path.dirname(root), new Set(["trophy"])],
     [root, new Set(setIds.map((id) => id.toLowerCase()))],
     ...setIds.map((id): [string, ReadonlySet<string>] => [
@@ -110,16 +125,79 @@ const refresh = async (monitor: Monitor): Promise<UserAchievement[]> => {
     ]),
   ]);
   monitor.watcher.setDirectories(directories, relevantNames);
-  const rows: UserAchievement[] = [];
-  for (const id of setIds) {
-    const directory = path.join(root, id);
-    if (!(await fs.stat(directory).catch(() => null))?.isDirectory()) {
-      if (sameIdentity && monitor.rows.some((row) => row.externalSetId === id))
-        throw new Error("RPCS3 trophy directory temporarily unavailable");
-      continue; // RPCS3 installs each trophy set on its first registration.
-    }
-    rows.push(...(await readTrophySet(directory, id, true)));
+};
+
+const discoverTrophySelection = async (
+  monitor: Monitor,
+  profile: TrophyProfile
+) => {
+  const { game } = monitor;
+  const { configRoot, root } = profile;
+  const selectionIdentity = JSON.stringify([
+    configRoot,
+    root,
+    game.selectedDiscPath,
+    getGameTrophyMediaPaths(game),
+  ]);
+  // Clear another user's or media selection's snapshot before discovery can
+  // fail. For the same selection, leave its snapshot and set watches intact.
+  if (monitor.selectionIdentity !== selectionIdentity) {
+    clearView(monitor);
+    monitor.selectionIdentity = selectionIdentity;
+    monitor.watcher.setDirectories(getProfileWatchDirectories(profile));
   }
+  const setIds = await findGameTrophySetIds(game);
+  const identity = JSON.stringify([configRoot, root, setIds]);
+  const sameIdentity = monitor.identity === identity;
+  // Never retain a different RPCS3 user's data when a new read fails.
+  if (!sameIdentity) {
+    clearView(monitor);
+    monitor.selectionIdentity = selectionIdentity;
+  }
+  watchTrophySets(monitor, profile, setIds);
+  return { setIds, identity, sameIdentity };
+};
+
+const readRegisteredTrophySet = async (
+  root: string,
+  id: string,
+  knownRows: readonly UserAchievement[]
+): Promise<UserAchievement[]> => {
+  const directory = path.join(root, id);
+  if (!(await fs.stat(directory).catch(() => null))?.isDirectory()) {
+    if (knownRows.some((row) => row.externalSetId === id))
+      throw new Error("RPCS3 trophy directory temporarily unavailable");
+    return []; // RPCS3 installs each trophy set on its first registration.
+  }
+  return readTrophySet(directory, id, true);
+};
+
+const refresh = async (monitor: Monitor): Promise<UserAchievement[]> => {
+  const game = await gamesSublevel.get(
+    levelKeys.game(monitor.game.shop, monitor.game.objectId)
+  );
+  if (
+    !game ||
+    !isClassicsGameForEmulator(game, { kind: "emulator", system: "ps3" })
+  ) {
+    monitor.watcher.close();
+    monitor.closed = true;
+    clearView(monitor);
+    return [];
+  }
+  monitor.game = game;
+  const profile = await resolveTrophyProfile(monitor);
+  if (!profile) return [];
+  const { setIds, identity, sameIdentity } = await discoverTrophySelection(
+    monitor,
+    profile
+  );
+  const knownRows = sameIdentity ? monitor.rows : [];
+  const rows = (
+    await mapWithConcurrency(setIds, TROPHY_SET_READ_CONCURRENCY, (id) =>
+      readRegisteredTrophySet(profile.root, id, knownRows)
+    )
+  ).flat();
   if (monitor.closed) return [];
   const old = new Map(monitor.rows.map((row) => [row.name, row]));
   const newUnlocks = sameIdentity
@@ -131,6 +209,7 @@ const refresh = async (monitor: Monitor): Promise<UserAchievement[]> => {
   monitor.rows = rows;
   monitor.identity = identity;
   AchievementMemoryStore.set(game.shop, game.objectId, {
+    source: "rpcs3",
     achievements: rows,
     unlockedAchievements: rows
       .filter((row) => row.unlocked)
@@ -184,6 +263,7 @@ export const getRpcs3Achievements = async (
     const next: Monitor = {
       game,
       identity: null,
+      selectionIdentity: null,
       rows: [],
       pending: null,
       closed: false,
@@ -219,10 +299,7 @@ export const initializeRpcs3Trophies = async () => {
   const games = (await gamesSublevel.values().all()).filter((game) =>
     isClassicsGameForEmulator(game, { kind: "emulator", system: "ps3" })
   );
-  for (let i = 0; i < games.length; i += 4)
-    await Promise.all(
-      games
-        .slice(i, i + 4)
-        .map((game) => getRpcs3Achievements(game.objectId, game.shop))
-    );
+  await mapWithConcurrency(games, RPCS3_STARTUP_CONCURRENCY, (game) =>
+    getRpcs3Achievements(game.objectId, game.shop)
+  );
 };

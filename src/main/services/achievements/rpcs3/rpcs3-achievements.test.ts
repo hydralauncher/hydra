@@ -9,7 +9,7 @@ import { build } from "esbuild";
 
 it(
   "baselines existing trophies, publishes one new unlock, survives partial writes and isolates profile changes",
-  { timeout: 12000 },
+  { timeout: 20000 },
   async (t) => {
     const root = await fs.mkdtemp(
       path.join(os.tmpdir(), "hydra-rpcs3-provider-")
@@ -172,13 +172,131 @@ it(
     assert.equal(state.notifications.length, 2);
     await provider.getRpcs3Achievements("fixture", "launchbox");
     assert.equal(state.notifications.length, 2);
+    await t.test(
+      "never publishes a partial collection when one set fails",
+      async () => {
+        const secondId = "NPWR12346_00";
+        const secondMedia = path.join(
+          game.selectedDiscPath,
+          "TROPDIR",
+          secondId
+        );
+        const secondTrophies = path.join(home, "00000001", "trophy", secondId);
+        await fs.mkdir(secondMedia);
+        await fs.mkdir(secondTrophies);
+        const xml = await fs.readFile(
+          path.join(trophy, "TROPCONF.SFM"),
+          "utf8"
+        );
+        await fs.writeFile(
+          path.join(secondTrophies, "TROPCONF.SFM"),
+          xml.replaceAll(setId, secondId)
+        );
+        await fs.writeFile(
+          path.join(secondTrophies, "TROPUSR.DAT"),
+          data(false)
+        );
+        const complete = await provider.getRpcs3Achievements(
+          "fixture",
+          "launchbox"
+        );
+        assert.equal(complete.length, 4);
+        assert.equal(
+          complete.filter((row: { unlocked: boolean }) => row.unlocked).length,
+          3
+        );
+        const refreshes = state.libraryRefreshes;
+        await fs.writeFile(file, data(false));
+        await fs.writeFile(
+          path.join(secondTrophies, "TROPUSR.DAT"),
+          Buffer.alloc(12)
+        );
+        const retainedCollection = await provider.getRpcs3Achievements(
+          "fixture",
+          "launchbox"
+        );
+        assert.deepEqual(retainedCollection, complete);
+        assert.equal(state.libraryRefreshes, refreshes);
+        await fs.writeFile(
+          path.join(secondTrophies, "TROPUSR.DAT"),
+          data(false)
+        );
+        const recoveredCollection = await provider.getRpcs3Achievements(
+          "fixture",
+          "launchbox"
+        );
+        assert.equal(recoveredCollection.length, 4);
+        assert.equal(
+          recoveredCollection.filter(
+            (row: { unlocked: boolean }) => row.unlocked
+          ).length,
+          2
+        );
+        assert.equal(state.notifications.length, 2);
+        for (const directory of [secondMedia, secondTrophies]) {
+          assert.ok(path.resolve(directory).startsWith(root + path.sep));
+          await fs.rm(directory, { recursive: true });
+        }
+        await provider.getRpcs3Achievements("fixture", "launchbox");
+      }
+    );
+    await t.test(
+      "retains progress and watches while the same media is unavailable, then recovers",
+      async () => {
+        await fs.writeFile(file, data(false));
+        await provider.getRpcs3Achievements("fixture", "launchbox");
+        const media = game.selectedDiscPath;
+        const offline = path.join(root, "offline-media");
+        await fs.rename(media, offline);
+        const refreshes = state.libraryRefreshes;
+        const rows = await provider.getRpcs3Achievements(
+          "fixture",
+          "launchbox"
+        );
+        assert.equal(rows.length, 2);
+        assert.equal(
+          rows.filter((row: { unlocked: boolean }) => row.unlocked).length,
+          1
+        );
+        assert.equal(state.libraryRefreshes, refreshes);
+        const deferred = waitFor("warning");
+        await fs.writeFile(file, data(true));
+        await deferred;
+        assert.equal(state.notifications.length, 2);
+        const recovered = waitFor("update");
+        await fs.rename(offline, media);
+        await recovered;
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        assert.equal(state.notifications.length, 3);
+        await provider.getRpcs3Achievements("fixture", "launchbox");
+        assert.equal(state.notifications.length, 3);
+      }
+    );
+    await t.test(
+      "discards old progress when different media cannot be read",
+      async () => {
+        const media = game.selectedDiscPath;
+        game.selectedDiscPath = path.join(root, "different-unavailable-media");
+        assert.deepEqual(
+          await provider.getRpcs3Achievements("fixture", "launchbox"),
+          []
+        );
+        game.selectedDiscPath = media;
+        assert.equal(
+          (await provider.getRpcs3Achievements("fixture", "launchbox")).length,
+          2
+        );
+        assert.equal(state.notifications.length, 3);
+      }
+    );
     await fs.mkdir(path.join(home, "00000002"));
     await fs.writeFile(settings, "[Users]\nactive_user=00000002\n");
+    await fs.rename(game.selectedDiscPath, path.join(root, "offline-media"));
     assert.deepEqual(
       await provider.getRpcs3Achievements("fixture", "launchbox"),
       []
     );
-    assert.equal(state.notifications.length, 2);
+    assert.equal(state.notifications.length, 3);
     assert.equal(await provider.getRpcs3Achievements("fixture", "steam"), null);
   }
 );

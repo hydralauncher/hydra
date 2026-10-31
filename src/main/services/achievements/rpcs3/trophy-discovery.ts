@@ -3,46 +3,82 @@ import path from "node:path";
 import type { Game } from "@types";
 import { extractTrophySetIdsFromIso } from "../../emulators/verified-ps3-iso-title-id.js";
 import { RPCS3_TROPHY_SET_ID } from "./trophy-data.js";
+import { mapWithConcurrency } from "../../cloud-save/map-with-concurrency.js";
+
+const TROPHY_DISCOVERY_READ_CONCURRENCY = 2;
+
+export const getGameTrophyMediaPaths = (
+  game: Pick<Game, "discs" | "selectedDiscPath">
+): string[] => [
+  ...new Set(
+    [
+      game.selectedDiscPath,
+      ...(game.discs ?? []).map((disc) => disc.path),
+    ].filter((item): item is string => Boolean(item))
+  ),
+];
+
+const getMediaRoot = (media: string, isDirectory: boolean): string | null => {
+  if (isDirectory) return media;
+  if (path.basename(media).toLowerCase() === "eboot.bin")
+    return path.dirname(path.dirname(media));
+  return null;
+};
+
+const readTrophyDirectory = async (directory: string): Promise<string[]> => {
+  const entries = await fs
+    .readdir(directory, { withFileTypes: true })
+    .catch((error: NodeJS.ErrnoException) => {
+      // Either layout can legitimately omit TROPDIR. Other read failures must
+      // reach the provider so it retains the last valid snapshot.
+      if (error.code === "ENOENT") return [];
+      throw error;
+    });
+  return entries
+    .filter(
+      (entry) => entry.isDirectory() && RPCS3_TROPHY_SET_ID.test(entry.name)
+    )
+    .map((entry) => entry.name);
+};
+
+const findMediaTrophySetIds = async (media: string): Promise<string[]> => {
+  const stat = await fs.stat(media);
+  if (stat.isFile() && path.extname(media).toLowerCase() === ".iso")
+    return extractTrophySetIdsFromIso(media);
+  const root = getMediaRoot(media, stat.isDirectory());
+  if (!root) return [];
+  const sets = await mapWithConcurrency(
+    [path.join(root, "TROPDIR"), path.join(root, "PS3_GAME", "TROPDIR")],
+    TROPHY_DISCOVERY_READ_CONCURRENCY,
+    readTrophyDirectory
+  );
+  // A directory disappearing during discovery is not an empty catalogue.
+  await fs.stat(root);
+  return sets.flat();
+};
 
 export const findGameTrophySetIds = async (
   game: Pick<Game, "discs" | "selectedDiscPath">
 ): Promise<string[]> => {
-  const paths = [
-    ...new Set(
-      [
-        game.selectedDiscPath,
-        ...(game.discs ?? []).map((disc) => disc.path),
-      ].filter((item): item is string => Boolean(item))
-    ),
-  ];
-  const ids = new Set<string>();
-  for (const media of paths) {
-    const stat = await fs.stat(media).catch(() => null);
-    if (!stat) continue;
-    if (stat.isFile() && path.extname(media).toLowerCase() === ".iso") {
-      for (const id of await extractTrophySetIdsFromIso(media).catch(() => []))
-        ids.add(id);
-      continue;
-    }
-    const root = stat.isDirectory()
-      ? media
-      : path.basename(media).toLowerCase() === "eboot.bin"
-        ? path.dirname(path.dirname(media))
-        : null;
-    if (!root) continue;
-    for (const trophyDirectory of [
-      path.join(root, "TROPDIR"),
-      path.join(root, "PS3_GAME", "TROPDIR"),
-    ]) {
-      const entries = await fs
-        .readdir(trophyDirectory, { withFileTypes: true })
-        .catch(() => []);
-      for (const entry of entries)
-        if (entry.isDirectory() && RPCS3_TROPHY_SET_ID.test(entry.name))
-          ids.add(entry.name);
-    }
+  const sets = await mapWithConcurrency(
+    getGameTrophyMediaPaths(game),
+    TROPHY_DISCOVERY_READ_CONCURRENCY,
+    findMediaTrophySetIds
+  );
+  return [...new Set(sets.flat())].sort((left, right) =>
+    left.localeCompare(right)
+  );
+};
+
+const readActiveTrophyUser = (settings: string): string | null => {
+  let section = "";
+  for (const line of settings.split(/\r?\n/)) {
+    const heading = /^\s*\[([^\]]+)\]/.exec(line);
+    if (heading) section = heading[1].toLowerCase();
+    const match = /^\s*active_user\s*=\s*"?(\d{1,8})"?\s*$/.exec(line);
+    if (section === "users" && match) return match[1].padStart(8, "0");
   }
-  return [...ids].sort();
+  return null;
 };
 
 /** An explicit active user wins. Only fall back when there is exactly one local user. */
@@ -56,19 +92,12 @@ export const resolveTrophyUser = async (
       "utf8"
     )
     .catch(() => "");
-  let section = "";
-  for (const line of settings.split(/\r?\n/)) {
-    const heading = /^\s*\[([^\]]+)\]/.exec(line);
-    if (heading) section = heading[1].toLowerCase();
-    const match = /^\s*active_user\s*=\s*"?(\d{1,8})"?\s*$/.exec(line);
-    if (section === "users" && match) {
-      const user = match[1].padStart(8, "0");
-      return (
-        await fs.stat(path.join(homeRoot, user)).catch(() => null)
-      )?.isDirectory()
-        ? user
-        : null;
-    }
+  const activeUser = readActiveTrophyUser(settings);
+  if (activeUser) {
+    const directory = await fs
+      .stat(path.join(homeRoot, activeUser))
+      .catch(() => null);
+    return directory?.isDirectory() ? activeUser : null;
   }
   const users = (
     await fs.readdir(homeRoot, { withFileTypes: true }).catch(() => [])

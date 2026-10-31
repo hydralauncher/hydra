@@ -30,21 +30,24 @@ export const buildAchievementNotificationInfo = (
   achievements: SteamAchievement[],
   completesGame: boolean
 ): AchievementNotificationInfo[] =>
-  achievements.map((achievement, index) => ({
-    title: achievement.displayName,
-    description: achievement.description,
-    points: achievement.points,
-    isHidden: achievement.hidden,
-    isRare: achievement.trophyGrade
-      ? false
-      : achievement.points
-        ? isRareAchievement(achievement.points)
-        : false,
-    isPlatinum: achievement.trophyGrade
-      ? achievement.trophyGrade === "platinum"
-      : completesGame && index === achievements.length - 1,
-    iconUrl: achievement.icon,
-  }));
+  achievements.map((achievement, index) => {
+    let isRare = false;
+    if (!achievement.trophyGrade && achievement.points) {
+      isRare = isRareAchievement(achievement.points);
+    }
+
+    return {
+      title: achievement.displayName,
+      description: achievement.description,
+      points: achievement.points,
+      isHidden: achievement.hidden,
+      isRare,
+      isPlatinum: achievement.trophyGrade
+        ? achievement.trophyGrade === "platinum"
+        : completesGame && index === achievements.length - 1,
+      iconUrl: achievement.icon,
+    };
+  });
 
 export const publishAchievementUnlockNotifications = ({
   game,

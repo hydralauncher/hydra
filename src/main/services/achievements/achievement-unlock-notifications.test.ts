@@ -58,4 +58,22 @@ it("keeps grade-based trophy scores separate from rarity and set completion", as
   );
   assert.equal(steam[0].isRare, true);
   assert.equal(steam[0].isPlatinum, true);
+
+  const steamRarity = buildAchievementNotificationInfo(
+    [
+      { displayName: "Missing score" },
+      { displayName: "Zero score", points: 0 },
+      { displayName: "Common unlock", points: 1000 },
+      { displayName: "Exactly ten percent", points: 2025 },
+      { displayName: "Below ten percent", points: 2026 },
+    ],
+    false
+  );
+  assert.deepEqual(
+    steamRarity.map((row: { isRare: boolean }) => row.isRare),
+    [false, false, false, false, true]
+  );
+  assert.ok(
+    steamRarity.every((row: { isPlatinum: boolean }) => !row.isPlatinum)
+  );
 });

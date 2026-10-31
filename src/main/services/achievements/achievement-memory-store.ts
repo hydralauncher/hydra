@@ -1,6 +1,7 @@
 import type { GameShop, SteamAchievement, UnlockedAchievement } from "@types";
 
 export type AchievementMemoryEntry = {
+  source?: "rpcs3";
   achievements: SteamAchievement[];
   unlockedAchievements: UnlockedAchievement[];
   language?: string;
@@ -34,6 +35,12 @@ export const AchievementMemoryStore = {
 
   clear() {
     entries.clear();
+  },
+
+  clearAccountEntries() {
+    for (const [key, entry] of entries) {
+      if (entry.source !== "rpcs3") entries.delete(key);
+    }
   },
 };
 

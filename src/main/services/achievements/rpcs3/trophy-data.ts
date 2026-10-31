@@ -26,8 +26,7 @@ export const trophyTimestampToMillis = (tick: bigint): number | null => {
   return millis <= 8640000000000000n ? Number(millis) : null;
 };
 
-/** Layout follows RPCS3's Loader/TROPUSR.h. Offsets belong to the file, not a fixed two-table layout. */
-export const parseTrophyStates = (data: Buffer): Map<number, TrophyState> => {
+const readTrophyStateTable = (data: Buffer) => {
   if (
     data.length < 48 ||
     data.length > MAX_FILE_SIZE ||
@@ -37,44 +36,49 @@ export const parseTrophyStates = (data: Buffer): Map<number, TrophyState> => {
   const tableCount = data.readUInt32BE(8);
   if (!tableCount || tableCount > 128 || 48 + tableCount * 32 > data.length)
     throw new Error("Invalid TROPUSR table directory");
+  const headers = Array.from(
+    { length: tableCount },
+    (_, i) => 48 + i * 32
+  ).filter((header) => data.readUInt32BE(header) === 6);
+  if (!headers.length) throw new Error("Missing TROPUSR state table");
+  if (headers.length > 1) throw new Error("Duplicate TROPUSR state table");
+  const header = headers[0];
+  const stride = data.readUInt32BE(header + 4) + 16;
+  const count = data.readUInt32BE(header + 12);
+  const offset = data.readBigUInt64BE(header + 16);
+  if (
+    stride !== 112 ||
+    count > MAX_TROPHIES ||
+    offset < BigInt(48 + tableCount * 32) ||
+    offset + BigInt(count * stride) > BigInt(data.length)
+  )
+    throw new Error("Invalid TROPUSR state table bounds");
+  return { stride, count, offset: Number(offset) };
+};
+
+/** Layout follows RPCS3's Loader/TROPUSR.h. Offsets belong to the file, not a fixed two-table layout. */
+export const parseTrophyStates = (data: Buffer): Map<number, TrophyState> => {
+  const { stride, count, offset } = readTrophyStateTable(data);
   const states = new Map<number, TrophyState>();
-  let found = false;
-  for (let i = 0; i < tableCount; i++) {
-    const header = 48 + i * 32;
-    if (data.readUInt32BE(header) !== 6) continue;
-    if (found) throw new Error("Duplicate TROPUSR state table");
-    found = true;
-    const stride = data.readUInt32BE(header + 4) + 16;
-    const count = data.readUInt32BE(header + 12);
-    const offset = data.readBigUInt64BE(header + 16);
+  for (let j = 0; j < count; j++) {
+    const pos = offset + j * stride;
+    const id = data.readUInt32BE(pos + 16);
+    const state = data.readUInt32BE(pos + 20);
     if (
-      stride !== 112 ||
-      count > MAX_TROPHIES ||
-      offset < BigInt(48 + tableCount * 32) ||
-      offset + BigInt(count * stride) > BigInt(data.length)
+      data.readUInt32BE(pos) !== 6 ||
+      data.readUInt32BE(pos + 4) !== 96 ||
+      id >= MAX_TROPHIES ||
+      states.has(id) ||
+      state > 1
     )
-      throw new Error("Invalid TROPUSR state table bounds");
-    for (let j = 0; j < count; j++) {
-      const pos = Number(offset) + j * stride;
-      const id = data.readUInt32BE(pos + 16);
-      const state = data.readUInt32BE(pos + 20);
-      if (
-        data.readUInt32BE(pos) !== 6 ||
-        data.readUInt32BE(pos + 4) !== 96 ||
-        id >= MAX_TROPHIES ||
-        states.has(id) ||
-        state > 1
-      )
-        throw new Error("Invalid TROPUSR state entry");
-      states.set(id, {
-        unlocked: state === 1,
-        unlockTime: state
-          ? trophyTimestampToMillis(data.readBigUInt64BE(pos + 40))
-          : null,
-      });
-    }
+      throw new Error("Invalid TROPUSR state entry");
+    states.set(id, {
+      unlocked: state === 1,
+      unlockTime: state
+        ? trophyTimestampToMillis(data.readBigUInt64BE(pos + 40))
+        : null,
+    });
   }
-  if (!found) throw new Error("Missing TROPUSR state table");
   return states;
 };
 
@@ -119,7 +123,8 @@ export const parseTrophyDefinitions = (
         throw new Error("Invalid trophy definition");
       ids.add(id);
       const state = states.get(id);
-      const icon = `local:${path.join(directory, `TROP${String(id).padStart(3, "0")}.PNG`)}`;
+      const iconFileName = `TROP${String(id).padStart(3, "0")}.PNG`;
+      const icon = `local:${path.join(directory, iconFileName)}`;
       return {
         name: `${setId}:${id}`,
         displayName: text(node, "name"),
