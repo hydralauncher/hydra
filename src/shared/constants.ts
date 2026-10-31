@@ -14,6 +14,7 @@ export enum Downloader {
   AllDebrid = 13,
   ArchiveOrg = 14,
   Epic = 15,
+  FileKeeper = 16,
 }
 
 export enum DownloadSourceStatus {

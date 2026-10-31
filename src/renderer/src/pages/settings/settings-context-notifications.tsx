@@ -10,7 +10,11 @@ import { useTranslation } from "react-i18next";
 
 import { Button, CheckboxField, SelectField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
-import { useAppSelector, useUserDetails } from "@renderer/hooks";
+import {
+  useAppSelector,
+  useGlobalLeaderboardsFeature,
+  useUserDetails,
+} from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import type {
   AchievementCustomNotificationPosition,
@@ -59,6 +63,8 @@ export function SettingsContextNotifications() {
   const [form, setForm] = useState(() => buildForm(userPreferences));
 
   const { userDetails, patchUser } = useUserDetails();
+  const { isEnabled: isGlobalLeaderboardsEnabled } =
+    useGlobalLeaderboardsFeature();
   const savedLeaderboardNotifications =
     userDetails?.allowLeaderboardNotifications ?? true;
   const [leaderboardNotifications, setLeaderboardNotifications] = useState(
@@ -205,7 +211,7 @@ export function SettingsContextNotifications() {
         />
       </div>
 
-      {userDetails && (
+      {userDetails && isGlobalLeaderboardsEnabled && (
         <div className="settings-context-panel__group">
           <h3>{t("leaderboard_notifications")}</h3>
 

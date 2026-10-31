@@ -817,7 +817,8 @@ export function useBigPictureDownloadsPageData() {
 
       await globalThis.window.electron.deleteGameFolder(
         game.shop,
-        game.objectId
+        game.objectId,
+        { keepEpicUpdateFiles: true }
       );
     },
     [lastPacket?.gameId, setLastPacket]

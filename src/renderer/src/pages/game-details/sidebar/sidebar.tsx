@@ -15,11 +15,13 @@ import {
   useAppSelector,
   useDate,
   useFormat,
+  useGlobalLeaderboardsFeature,
   useUserDetails,
 } from "@renderer/hooks";
 import {
   AlertIcon,
   DownloadIcon,
+  EyeClosedIcon,
   LockIcon,
   PeopleIcon,
   StarIcon,
@@ -32,7 +34,9 @@ import { useSubscription } from "@renderer/hooks/use-subscription";
 import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
 import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
+import { isAchievementConcealed } from "@shared";
 import { ControllerSupportSection } from "./controller-support-section";
+import { GameScreenshots } from "../game-screenshots/game-screenshots";
 import { LeaderboardSection } from "../leaderboard/leaderboard-section";
 
 const ProtonDBSection = lazy(async () => {
@@ -125,6 +129,7 @@ export function Sidebar() {
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
   const {
+    game,
     gameTitle,
     shopDetails,
     objectId,
@@ -133,6 +138,10 @@ export function Sidebar() {
     stats,
     achievements,
   } = useContext(gameDetailsContext);
+  const myScreenshotsGame = game ?? catalogueGame;
+  const communityScreenshotsGame = catalogueGame.objectId
+    ? catalogueGame
+    : myScreenshotsGame;
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -141,6 +150,8 @@ export function Sidebar() {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
+  const { isEnabled: isGlobalLeaderboardsEnabled } =
+    useGlobalLeaderboardsFeature();
   const achievementsCount = achievements?.length ?? 0;
   const shouldRenderAchievementsSection =
     (!!userDetails && achievementsCount > 0) ||
@@ -263,34 +274,51 @@ export function Sidebar() {
               </button>
             )}
 
-            {(achievements ?? []).slice(0, 4).map((achievement) => (
-              <li key={achievement.displayName}>
-                <Link
-                  to={buildGameAchievementPath({
-                    shop: shop,
-                    objectId: objectId!,
-                    title: gameTitle,
-                  })}
-                  className="list__item"
-                  title={achievement.description}
-                >
-                  <img
-                    className={`list__item-image ${
-                      achievement.unlocked ? "" : "list__item-image--locked"
-                    }`}
-                    src={achievement.icon}
-                    alt={achievement.displayName}
-                  />
-                  <div>
-                    <p>{achievement.displayName}</p>
-                    <small>
-                      {achievement.unlockTime != null &&
-                        formatDateTime(achievement.unlockTime)}
-                    </small>
-                  </div>
-                </Link>
-              </li>
-            ))}
+            {(achievements ?? []).slice(0, 4).map((achievement) => {
+              const concealed = isAchievementConcealed(
+                achievement,
+                userPreferences?.showHiddenAchievementsDescription ?? false
+              );
+
+              return (
+                <li key={achievement.name}>
+                  <Link
+                    to={buildGameAchievementPath({
+                      shop: shop,
+                      objectId: objectId!,
+                      title: gameTitle,
+                    })}
+                    className="list__item"
+                    title={concealed ? undefined : achievement.description}
+                  >
+                    {concealed ? (
+                      <span className="list__item-image list__item-image--concealed">
+                        <EyeClosedIcon size={20} />
+                      </span>
+                    ) : (
+                      <img
+                        className={`list__item-image ${
+                          achievement.unlocked ? "" : "list__item-image--locked"
+                        }`}
+                        src={achievement.icon}
+                        alt={achievement.displayName}
+                      />
+                    )}
+                    <div>
+                      <p>
+                        {concealed
+                          ? t("hidden_achievement", { ns: "achievement" })
+                          : achievement.displayName}
+                      </p>
+                      <small>
+                        {achievement.unlockTime != null &&
+                          formatDateTime(achievement.unlockTime)}
+                      </small>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
 
             {achievementsCount > 0 && (
               <Link
@@ -307,7 +335,7 @@ export function Sidebar() {
         </SidebarSection>
       )}
 
-      <LeaderboardSection />
+      {isGlobalLeaderboardsEnabled && <LeaderboardSection />}
 
       {stats && (
         <SidebarSection title={t("stats")}>
@@ -345,6 +373,13 @@ export function Sidebar() {
           </div>
         </SidebarSection>
       )}
+
+      {myScreenshotsGame.shop !== "custom" && myScreenshotsGame.objectId ? (
+        <GameScreenshots
+          libraryGame={myScreenshotsGame}
+          catalogueGame={communityScreenshotsGame}
+        />
+      ) : null}
 
       {shop === "launchbox" && (
         <LaunchboxDetailsSection

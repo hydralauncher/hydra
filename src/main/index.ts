@@ -21,6 +21,7 @@ import {
   DownloadOrchestrator,
   SSEClient,
   emulators,
+  ScreenshotInputService,
 } from "@main/services";
 import resources from "@locales";
 import { TorrentService } from "./services/torrent-service";
@@ -28,6 +29,11 @@ import { DownloadManager } from "./services/download/download-manager";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
 import { launchGame, openClassicsGame } from "./helpers";
+import {
+  flushScreenshotTelemetry,
+  stopWaylandFocusWatch,
+} from "./services/screenshots";
+import { isWaylandSession } from "./services/linux-game-capture-session";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
@@ -75,6 +81,9 @@ if (!gotTheLock) app.quit();
 
 if (process.platform === "linux") {
   app.commandLine.appendSwitch("ozone-platform-hint", "auto");
+  if (isWaylandSession()) {
+    app.commandLine.appendSwitch("enable-features", "GlobalShortcutsPortal");
+  }
 }
 
 i18n.init({
@@ -194,8 +203,8 @@ const initializeApp = async () => {
     logger.error("Failed to load app state during startup", error);
   }
   // Optional integration failures must not interrupt launcher startup.
-  await initializeEpicIntegration().catch(() => {
-    logger.warn("Epic integration initialization unavailable");
+  await initializeEpicIntegration().catch((error) => {
+    logger.warn("Epic integration initialization unavailable", error);
   });
 
   // Suspend can outlive the 60s stall watchdog; reconnect right away instead
@@ -222,11 +231,13 @@ const initializeApp = async () => {
     arg.startsWith("hydralauncher://")
   );
   const forceBigPicture = process.argv.includes("--big-picture");
-  const isRunDeepLink = deepLinkArg?.startsWith("hydralauncher://run");
 
   await loadSocialWindowsBounds();
 
-  if (!process.argv.includes("--hidden") && !isRunDeepLink) {
+  if (
+    !process.argv.includes("--hidden") &&
+    !isBackgroundDeepLink(deepLinkArg, COLD_START_BACKGROUND_DEEP_LINK_HOSTS)
+  ) {
     WindowManager.createMainWindow({ forceBigPicture });
     if (!forceBigPicture) void restoreSocialWindows();
   }
@@ -258,6 +269,22 @@ app.on("render-process-gone", (_event, _webContents, details) => {
     exitCode: details.exitCode,
   });
 });
+
+const COLD_START_BACKGROUND_DEEP_LINK_HOSTS = new Set(["run"]);
+const RUNNING_BACKGROUND_DEEP_LINK_HOSTS = new Set(["run", "screenshot"]);
+
+const isBackgroundDeepLink = (
+  uri: string | undefined,
+  backgroundHosts: ReadonlySet<string>
+) => {
+  if (!uri) return false;
+
+  try {
+    return backgroundHosts.has(new URL(uri).host);
+  } catch {
+    return false;
+  }
+};
 
 const handleRunGame = async (shop: GameShop, objectId: string) => {
   const gameKey = levelKeys.game(shop, objectId);
@@ -308,6 +335,11 @@ const handleDeepLinkPath = (uri?: string) => {
 
   try {
     const url = new URL(uri);
+
+    if (url.host === "screenshot") {
+      ScreenshotInputService.trigger("deeplink");
+      return;
+    }
 
     if (url.host === "run") {
       const shop = url.searchParams.get("shop") as GameShop | null;
@@ -377,9 +409,7 @@ app.on("second-instance", (_event, commandLine) => {
   const forceBigPicture = commandLine.includes("--big-picture");
 
   // Check if this is a "run" deep link - don't show main window in that case
-  const isRunDeepLink = deepLink?.startsWith("hydralauncher://run");
-
-  if (!isRunDeepLink) {
+  if (!isBackgroundDeepLink(deepLink, RUNNING_BACKGROUND_DEEP_LINK_HOSTS)) {
     if (WindowManager.mainWindow) {
       if (WindowManager.mainWindow.isMinimized())
         WindowManager.mainWindow.restore();
@@ -407,6 +437,8 @@ app.on("window-all-closed", () => {
   WindowManager.clearMainWindow();
 });
 
+const SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS = 2_000;
+
 let canAppBeClosed = false;
 let isAppClosing = false;
 
@@ -431,6 +463,7 @@ app.on("before-quit", async (e) => {
     }
     DownloadOrchestrator.cancelPendingDebridPreparations();
     PowerSaveBlockerManager.reset();
+    ScreenshotInputService.shutdown();
     const pausedDownloads = await Promise.allSettled(
       DownloadManager.getActiveDownloadIds().map((id) =>
         DownloadManager.pauseDownload(id)
@@ -449,6 +482,7 @@ app.on("before-quit", async (e) => {
       TorrentService.shutdown(),
       clearGamesPlaytime(),
       emulators.stopAllEmulatorSouvenirCaptureSessions(),
+      flushScreenshotTelemetry(SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS),
     ]);
     for (const result of results) {
       if (result.status === "rejected") {
@@ -462,6 +496,7 @@ app.on("before-quit", async (e) => {
 
 app.on("will-quit", () => {
   logger.info("Application will quit");
+  stopWaylandFocusWatch();
 });
 
 app.on("activate", () => {

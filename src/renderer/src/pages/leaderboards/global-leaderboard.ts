@@ -11,6 +11,14 @@ export const GLOBAL_LEADERBOARD_PAGE_SIZE = 13;
 export const GLOBAL_LEADERBOARD_PAGE_STEP = 10;
 export const GLOBAL_LEADERBOARD_PODIUM_SIZE = 3;
 export const PLAY_ACTIVITY_WEEKS = 53;
+// Board sizes are shown as "10,000+" past this, so a big all-time board does
+// not print a huge number next to the rank.
+export const BOARD_TOTAL_CAP = 10_000;
+
+export const formatBoardTotal = (
+  total: number,
+  format: (value: number) => string
+) => (total >= BOARD_TOTAL_CAP ? `${format(BOARD_TOTAL_CAP)}+` : format(total));
 // Older backends cap play activity at 26 weeks and answer 400 above it.
 export const PLAY_ACTIVITY_FALLBACK_WEEKS = 26;
 // A month label needs about two columns, so labels closer than this to the
@@ -62,6 +70,9 @@ export interface LeaderboardReview {
   score: number;
   createdAt: string | null;
   text: string;
+  // Same shape as GameReview: translated text by base language ("pt").
+  translations: Record<string, string>;
+  detectedLanguage: string | null;
 }
 
 export interface LeaderboardEntryExtras {
@@ -98,7 +109,8 @@ export interface MyGameRanking {
   heroImageUrl: string | null;
   rank: number;
   previousRank: number | null;
-  total: number;
+  // Players on the board; null while the API does not know it.
+  total: number | null;
   leader: LeaderboardUser | null;
 }
 
@@ -195,6 +207,17 @@ const normalizeUser = (value: unknown): LeaderboardUser | null => {
   };
 };
 
+const normalizeTranslations = (value: unknown): Record<string, string> => {
+  if (!isRecord(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (pair): pair is [string, string] =>
+        typeof pair[1] === "string" && pair[1].length > 0
+    )
+  );
+};
+
 const normalizeReview = (value: unknown): LeaderboardReview | null => {
   if (!isRecord(value) || typeof value.text !== "string") return null;
 
@@ -206,6 +229,8 @@ const normalizeReview = (value: unknown): LeaderboardReview | null => {
     score: toNonNegativeNumber(value.score),
     createdAt: toStringOrNull(value.createdAt),
     text: value.text,
+    translations: normalizeTranslations(value.translations),
+    detectedLanguage: toStringOrNull(value.detectedLanguage),
   };
 };
 
@@ -387,6 +412,80 @@ export const getViewerRanking = (
   };
 };
 
+export type BoardInsight =
+  | { type: "leading"; gap: number; target: LeaderboardUser | null }
+  | { type: "outside"; gap: number; lastRank: number }
+  | { type: "ranked"; rank: number }
+  | { type: "unranked" }
+  | {
+      type: "behind";
+      gap: number;
+      target: LeaderboardUser;
+      targetRank: number;
+      next: { goal: "podium" | "lead"; gap: number } | null;
+    };
+
+const BOARD_PODIUM_LAST_RANK = 3;
+
+// What the viewer needs to climb. Without a real amount to show, it still says
+// where they stand or how to join. Returns null only when signed out.
+export const getBoardInsight = (
+  leaderboard: GlobalLeaderboard,
+  viewerId: string | null
+): BoardInsight | null => {
+  if (!viewerId) return null;
+
+  const ranking = getViewerRanking(leaderboard, viewerId);
+  if (!ranking) return { type: "unranked" };
+
+  const ranked: BoardInsight = { type: "ranked", rank: ranking.rank };
+
+  const { entries } = leaderboard;
+  const gapTo = (value: number) => value - ranking.value;
+
+  if (ranking.rank === 1) {
+    const second = entries.find((entry) => entry.user.id !== viewerId) ?? null;
+    if (!second) return { type: "leading", gap: 0, target: null };
+
+    const gap = ranking.value - second.value;
+    return gap > 0 ? { type: "leading", gap, target: second.user } : ranked;
+  }
+
+  const above = entries.findLast((entry) => entry.rank < ranking.rank);
+  if (!above) return ranked;
+
+  // Past the listed players, the next one is unknown: the goal is the list.
+  if (above.rank !== ranking.rank - 1) {
+    const listGap = gapTo(above.value);
+    return listGap > 0
+      ? { type: "outside", gap: listGap, lastRank: above.rank }
+      : ranked;
+  }
+
+  const gap = gapTo(above.value);
+  if (gap <= 0) return ranked;
+
+  const goalEntry =
+    ranking.rank > BOARD_PODIUM_LAST_RANK + 1
+      ? entries.find((entry) => entry.rank === BOARD_PODIUM_LAST_RANK)
+      : entries.find((entry) => entry.rank === 1);
+  const nextGap = ranking.rank > 2 && goalEntry ? gapTo(goalEntry.value) : 0;
+
+  return {
+    type: "behind",
+    gap,
+    target: above.user,
+    targetRank: above.rank,
+    next:
+      nextGap > 0
+        ? {
+            goal: ranking.rank > BOARD_PODIUM_LAST_RANK + 1 ? "podium" : "lead",
+            gap: nextGap,
+          }
+        : null,
+  };
+};
+
 export const getUtcWeekRange = (now: number): WeekRange => {
   const date = new Date(now);
   const daysSinceMonday = (date.getUTCDay() + 6) % 7;
@@ -442,6 +541,38 @@ export interface HeatmapCell {
   isToday: boolean;
   isYesterday: boolean;
 }
+
+export const DAYS_PER_WEEK = 7;
+
+// Keep these in sync with the activity graph in leaderboards.scss.
+const HEATMAP_DAY_LABELS_WIDTH = 36;
+const HEATMAP_GAP = 6;
+const HEATMAP_MIN_CELL_SIZE = 12;
+const HEATMAP_MAX_CELL_SIZE = 32;
+
+// The graph fills the card: the cells grow up to a limit, and a card too narrow
+// for every week at the smallest size shows fewer weeks.
+export const getHeatmapLayout = (width: number | null, totalWeeks: number) => {
+  const available = (width ?? 0) - HEATMAP_DAY_LABELS_WIDTH;
+  const weeksThatFit = Math.floor(
+    (available + HEATMAP_GAP) / (HEATMAP_MIN_CELL_SIZE + HEATMAP_GAP)
+  );
+  const weeks = Math.max(1, Math.min(totalWeeks, weeksThatFit));
+  const cellSize = Math.max(
+    HEATMAP_MIN_CELL_SIZE,
+    Math.min(
+      HEATMAP_MAX_CELL_SIZE,
+      Math.floor((available - HEATMAP_GAP * (weeks - 1)) / weeks)
+    )
+  );
+
+  return {
+    weeks,
+    cellSize,
+    width:
+      HEATMAP_DAY_LABELS_WIDTH + weeks * (cellSize + HEATMAP_GAP) - HEATMAP_GAP,
+  };
+};
 
 export const buildHeatmap = (
   days: PlayActivityDay[],
@@ -507,6 +638,26 @@ export const sumHeatmap = (cells: HeatmapCell[]) =>
     { seconds: 0, days: 0 }
   );
 
+export type HeatmapTotalDisplay =
+  | { unit: "none" }
+  | { unit: "minutes" | "hours"; amount: number };
+
+// Under an hour the total is in minutes, so a short session does not read "0 h".
+export const getHeatmapTotalDisplay = ({
+  seconds,
+  days,
+}: {
+  seconds: number;
+  days: number;
+}): HeatmapTotalDisplay => {
+  if (days === 0) return { unit: "none" };
+
+  const minutes = Math.max(1, Math.round(seconds / SECONDS_PER_MINUTE));
+  if (minutes < MINUTES_PER_HOUR) return { unit: "minutes", amount: minutes };
+
+  return { unit: "hours", amount: Math.round(seconds / SECONDS_PER_HOUR) };
+};
+
 export const normalizeMyGames = (response: unknown): MyGameRanking[] => {
   const items = isRecord(response) ? response.games : response;
   if (!Array.isArray(items)) throw new TypeError("Invalid games response");
@@ -531,7 +682,14 @@ export const normalizeMyGames = (response: unknown): MyGameRanking[] => {
         heroImageUrl: toStringOrNull(item.heroImageUrl),
         rank,
         previousRank: toPositiveInteger(item.previousRank),
-        total: toNonNegativeNumber(item.total, rank),
+        // The API sends null until the board size is known; a total below
+        // the rank is as good as unknown.
+        total:
+          typeof item.total === "number" &&
+          Number.isFinite(item.total) &&
+          item.total >= rank
+            ? Math.floor(item.total)
+            : null,
         leader: normalizeUser(item.leader),
       },
     ];
@@ -592,15 +750,25 @@ export const normalizeFriendStreaks = (response: unknown): FriendStreak[] => {
     .sort((a, b) => Number(b.active) - Number(a.active) || b.days - a.days);
 };
 
+const isTopBadgeKind = (kind: unknown): kind is BadgeTarget["kind"] =>
+  kind === "top_rank" || kind === "top_percent";
+
+// The N of "Top N" / "Top N%". The API sends it as `threshold`; `value` is
+// the viewer's value on the board, never the N.
+const toBadgeThreshold = (source: Record<string, unknown>) =>
+  toNonNegativeNumber(source.threshold);
+
 // Reads `target` when the API sends it and otherwise falls back to the locked
-// badge itself, whose kind and value already describe the next badge.
+// badge itself, whose kind and threshold already describe the next badge.
 const normalizeBadgeTarget = (
   item: Record<string, unknown>
 ): BadgeTarget | null => {
   if (toStringOrNull(item.earnedAt)) return null;
   const source = isRecord(item.target) ? item.target : item;
-  const value = toNonNegativeNumber(source.value);
-  if (source.kind !== "top_rank" && source.kind !== "top_percent") return null;
+  if (!isTopBadgeKind(source.kind)) return null;
+  const value = isRecord(item.target)
+    ? toNonNegativeNumber(source.value, toBadgeThreshold(source))
+    : toBadgeThreshold(source);
   return value ? { kind: source.kind, value } : null;
 };
 
@@ -632,7 +800,9 @@ export const normalizeBadges = (response: unknown): LeaderboardBadges => {
         scope: item.scope === "friends" ? "friends" : "global",
         gameTitle: toStringOrNull(item.gameTitle),
         coverImageUrl: toStringOrNull(item.coverImageUrl),
-        value: toNonNegativeNumber(item.value),
+        value: isTopBadgeKind(item.kind)
+          ? toBadgeThreshold(item)
+          : toNonNegativeNumber(item.value),
         week: toPositiveInteger(item.week),
         currentRank: toPositiveInteger(item.currentRank),
         earnedAt: toStringOrNull(item.earnedAt),

@@ -22,6 +22,7 @@ export default function Achievements() {
 
   const [comparedAchievements, setComparedAchievements] =
     useState<ComparedAchievements | null>(null);
+  const [isComparing, setIsComparing] = useState(false);
 
   const dispatch = useAppDispatch();
 
@@ -33,6 +34,7 @@ export default function Achievements() {
 
   useEffect(() => {
     setComparedAchievements(null);
+    setIsComparing(false);
 
     if (userDetails?.id == userId) {
       return;
@@ -82,6 +84,8 @@ export default function Achievements() {
                 <AchievementsContent
                   otherUser={otherUser}
                   comparedAchievements={comparedAchievements!}
+                  isComparing={isComparing}
+                  onComparingChange={setIsComparing}
                 />
               )}
             </SkeletonTheme>

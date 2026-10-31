@@ -1,4 +1,6 @@
 import { DownloadThrottle } from "./download-throttle";
+import { getContentDispositionFilename } from "./download-filename";
+import { ensureDirectorySync } from "./ensure-directory";
 import fs from "node:fs";
 import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
@@ -519,14 +521,8 @@ export class JsHttpDownloader {
     const filePath = path.join(savePath, resolvedFilename);
     this.outputFilePath = filePath;
 
-    if (!fs.existsSync(savePath)) {
-      fs.mkdirSync(savePath, { recursive: true });
-    }
-
-    const targetDir = path.dirname(filePath);
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
-    }
+    ensureDirectorySync(savePath);
+    ensureDirectorySync(path.dirname(filePath));
 
     let startByte = 0;
     if (this.currentOptions?.allowResume !== false && fs.existsSync(filePath)) {
@@ -1187,7 +1183,7 @@ export class JsHttpDownloader {
       }
       this.folderName = output.filename;
       this.resolvedFilename = output.filename;
-      fs.mkdirSync(path.dirname(output.filePath), { recursive: true });
+      ensureDirectorySync(path.dirname(output.filePath));
       logger.log(
         `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`
       );
@@ -1223,50 +1219,9 @@ export class JsHttpDownloader {
   }
 
   private parseContentDisposition(response: Response): string | undefined {
-    const header = response.headers.get("content-disposition");
-    if (!header) return undefined;
-
-    const filenameStarMatch = /filename\*\s*=\s*([^;]+)/i.exec(header);
-    if (filenameStarMatch?.[1]) {
-      const rawValue = filenameStarMatch[1].trim().replace(/^["']|["']$/g, "");
-      const encodedPart = rawValue.includes("''")
-        ? rawValue.split("''").slice(1).join("''")
-        : rawValue;
-      const decoded = this.decodeFilenameValue(encodedPart);
-      if (decoded) return decoded;
-    }
-
-    const filenameMatch = /filename\s*=\s*([^;]+)/i.exec(header);
-    if (filenameMatch?.[1]) {
-      const rawValue = filenameMatch[1].trim().replace(/^["']|["']$/g, "");
-      const decoded = this.decodeFilenameValue(rawValue);
-      if (decoded) return decoded;
-    }
-
-    return undefined;
-  }
-
-  private decodeFilenameValue(value: string): string | undefined {
-    const normalized = value.trim();
-    if (!normalized) return undefined;
-
-    const sanitize = (name: string) =>
-      path
-        .basename(name)
-        .replaceAll(/[<>:"/\\|?*]/g, "_")
-        .split("")
-        .filter((char) => char.charCodeAt(0) >= 32)
-        .join("")
-        .trim();
-
-    try {
-      const decoded = decodeURIComponent(normalized);
-      const sanitized = sanitize(decoded);
-      return sanitized || undefined;
-    } catch {
-      const sanitized = sanitize(normalized);
-      return sanitized || undefined;
-    }
+    return getContentDispositionFilename(
+      response.headers.get("content-disposition")
+    );
   }
 
   private resetRecoveryState(): void {
