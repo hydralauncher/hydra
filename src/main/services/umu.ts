@@ -433,6 +433,8 @@ export class Umu {
       launchOptions?: string | null;
       useMangohud?: boolean;
       useGamemode?: boolean;
+      protonLogEnabled?: boolean;
+      compatibilityEnvironmentVariables?: Record<string, string>;
       onStatus?: UmuStatusListener;
       wasGameDetected?: () => boolean;
       onExit?: (exitCode: number | null) => void;
@@ -458,7 +460,8 @@ export class Umu {
     ensureExecutablePermission(umuBinaryPath);
 
     const launchEnv = {
-      PROTON_LOG: "1",
+      ...options?.compatibilityEnvironmentVariables,
+      PROTON_LOG: options?.protonLogEnabled ? "1" : "0",
       ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
       ...(options?.winePrefixPath
         ? { WINEPREFIX: options.winePrefixPath }

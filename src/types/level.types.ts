@@ -94,6 +94,7 @@ export interface Game extends LibraryCatalogueMetadata {
   launchOptions?: string | null;
   autoRunMangohud?: boolean | null;
   autoRunGamemode?: boolean | null;
+  protonLogEnabled?: boolean | null;
   favorite?: boolean;
   isHiddenFromOthers?: boolean;
   isConcealed?: boolean;
@@ -252,6 +253,9 @@ export interface UserPreferences {
   globalTrackersUrl?: string;
   appendGlobalTrackersUrl?: boolean;
   defaultProtonPath?: string | null;
+  protonLogEnabled?: boolean;
+  compatibilityEnvironmentVariables?: string | null;
+  compatibilityEnvironmentVariablesEnabled?: boolean;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;

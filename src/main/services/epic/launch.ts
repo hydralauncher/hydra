@@ -304,6 +304,8 @@ export async function launchPreparedEpicLinuxGame(
     useGamemode?: boolean;
     useMangohud?: boolean;
     onStatus?: UmuStatusListener;
+    protonLogEnabled?: boolean;
+    compatibilityEnvironmentVariables?: Record<string, string>;
   } = {}
 ): Promise<UmuProcessHandle> {
   const resources = preparedResources.get(session);

@@ -168,6 +168,9 @@ export function GameOptionsModal({
   const [autoRunGamemode, setAutoRunGamemode] = useState<boolean>(
     game.autoRunGamemode === true
   );
+  const [protonLogEnabled, setProtonLogEnabled] = useState<boolean>(
+    game.protonLogEnabled === true
+  );
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
   const [winetricksAvailable, setWinetricksAvailable] = useState(false);
@@ -284,6 +287,7 @@ export function GameOptionsModal({
 
   const globalAutoRunGamemode = userPreferences?.autoRunGamemode === true;
   const globalAutoRunMangohud = userPreferences?.autoRunMangohud === true;
+  const globalProtonLogEnabled = userPreferences?.protonLogEnabled === true;
   const hasAchievements =
     (achievements?.filter((a) => a.unlocked).length ?? 0) > 0;
   const hydraRemoveFilesTarget = useMemo(
@@ -350,6 +354,9 @@ export function GameOptionsModal({
   useEffect(() => {
     setAutoRunGamemode(game.autoRunGamemode === true);
   }, [game.autoRunGamemode]);
+  useEffect(() => {
+    setProtonLogEnabled(game.protonLogEnabled === true);
+  }, [game.protonLogEnabled]);
 
   useEffect(() => {
     if (!visible || globalThis.window.electron.platform !== "linux") return;
@@ -809,6 +816,15 @@ export function GameOptionsModal({
   const handleChangeGamemodeState = async (value: boolean) => {
     setAutoRunGamemode(value);
     await globalThis.window.electron.toggleGameGamemode(
+      game.shop,
+      game.objectId,
+      value
+    );
+    updateGame();
+  };
+  const handleChangeProtonLogState = async (value: boolean) => {
+    setProtonLogEnabled(value);
+    await globalThis.window.electron.toggleGameProtonLog(
       game.shop,
       game.objectId,
       value
@@ -1457,8 +1473,10 @@ export function GameOptionsModal({
                   selectedProtonPath={selectedProtonPath}
                   autoRunGamemode={autoRunGamemode}
                   autoRunMangohud={autoRunMangohud}
+                  protonLogEnabled={protonLogEnabled}
                   globalAutoRunGamemode={globalAutoRunGamemode}
                   globalAutoRunMangohud={globalAutoRunMangohud}
+                  globalProtonLogEnabled={globalProtonLogEnabled}
                   gamemodeAvailable={gamemodeAvailable}
                   mangohudAvailable={mangohudAvailable}
                   winetricksAvailable={winetricksAvailable}
@@ -1469,6 +1487,7 @@ export function GameOptionsModal({
                   onOpenWinetricks={handleOpenWinetricks}
                   onChangeGamemodeState={handleChangeGamemodeState}
                   onChangeMangohudState={handleChangeMangohudState}
+                  onChangeProtonLogState={handleChangeProtonLogState}
                   onChangeProtonVersion={handleChangeProtonVersion}
                 />
               )}
