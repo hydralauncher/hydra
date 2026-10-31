@@ -116,6 +116,7 @@ export const watchSteamLibraries = async () => {
   ];
 
   for (const watchedDirectory of watchedDirectories) {
+    if (!fs.existsSync(watchedDirectory)) continue;
     if (directoryWatchers.has(watchedDirectory)) continue;
 
     try {

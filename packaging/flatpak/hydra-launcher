@@ -1,0 +1,7 @@
+#!/bin/sh
+exec /app/lib/hydra/hydralauncher \
+  --no-sandbox \
+  --enable-gpu-rasterization \
+  --enable-zero-copy \
+  --ignore-gpu-blocklist \
+  "$@"
