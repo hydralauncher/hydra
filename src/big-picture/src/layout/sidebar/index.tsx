@@ -242,7 +242,7 @@ function formatSidebarProgress(progress?: number | null) {
 function getSidebarGameStatus(
   game: LibraryGame,
   runningGameIds: Set<string>,
-  lastDownloadPacket: DownloadProgress | null,
+  packetsByGameId: Record<string, DownloadProgress>,
   extractionProgressByGameId: Record<string, number>
 ) {
   if (runningGameIds.has(game.id)) {
@@ -260,10 +260,7 @@ function getSidebarGameStatus(
   }
 
   if (download.status === "active") {
-    const progress =
-      lastDownloadPacket?.gameId === game.id
-        ? lastDownloadPacket.progress
-        : download.progress;
+    const progress = packetsByGameId[game.id]?.progress ?? download.progress;
 
     return `Downloading - ${formatSidebarProgress(progress)}`;
   }
@@ -490,8 +487,8 @@ function SidebarLibrary({
   onOpenContextMenu,
 }: Readonly<SidebarLibraryProps>) {
   const { pathname } = useLocation();
-  const lastDownloadPacket = useBigPictureDownloadsStore(
-    (state) => state.lastPacket
+  const packetsByGameId = useBigPictureDownloadsStore(
+    (state) => state.packetsByGameId
   );
   const extractionProgressByGameId = useBigPictureDownloadsStore(
     (state) => state.extractionProgressByGameId
@@ -674,7 +671,7 @@ function SidebarLibrary({
                   const status = getSidebarGameStatus(
                     game,
                     runningGameIds,
-                    lastDownloadPacket,
+                    packetsByGameId,
                     extractionProgressByGameId
                   );
 

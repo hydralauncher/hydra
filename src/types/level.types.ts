@@ -165,12 +165,15 @@ export interface Download {
   debridQueuePosition?: number;
   debridPreparationDeadline?: number;
   customTrackers?: string[];
+  /** A user-selected bandwidth preference for active, controllable downloads. */
+  bandwidthPriority?: "normal" | "high";
 }
 
 export interface DownloadLayoutState {
   version: 1;
   queueOrder: string[];
   pausedOrder: string[];
+  preferredHeroId?: string | null;
 }
 
 export type AchievementCustomNotificationPosition =
@@ -246,6 +249,8 @@ export interface UserPreferences {
   bigPictureDiagnosticsEnabled?: boolean;
   bigPictureDiagnosticsPosition?: BigPictureDiagnosticsPosition;
   maxDownloadSpeedBytesPerSecond?: number | null;
+  /** Maximum simultaneous game transfers across all download sources. */
+  maxConcurrentDownloads?: number;
   torrentNetworkInterface?: string | null;
   globalTrackers?: string[];
   appendGlobalTrackers?: boolean;

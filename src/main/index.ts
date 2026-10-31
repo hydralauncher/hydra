@@ -464,10 +464,18 @@ app.on("before-quit", async (e) => {
     DownloadOrchestrator.cancelPendingDebridPreparations();
     PowerSaveBlockerManager.reset();
     ScreenshotInputService.shutdown();
-    try {
-      await DownloadManager.pauseDownload();
-    } catch (error) {
-      logger.error("Could not save active download before quitting", error);
+    const pausedDownloads = await Promise.allSettled(
+      DownloadManager.getActiveDownloadIds().map((id) =>
+        DownloadManager.pauseDownload(id)
+      )
+    );
+    for (const result of pausedDownloads) {
+      if (result.status === "rejected") {
+        logger.error(
+          "Could not save active download before quitting",
+          result.reason
+        );
+      }
     }
     const results = await Promise.allSettled([
       Lock.releaseLock(),

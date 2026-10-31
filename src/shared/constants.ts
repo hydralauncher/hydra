@@ -106,6 +106,10 @@ export enum DownloadError {
 
 export const MINIMUM_FREE_DISK_SPACE_BYTES = 512 * 1024 * 1024;
 
+export const MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS = 1;
+export const MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS = 8;
+export const DEFAULT_MAX_CONCURRENT_DOWNLOADS = 2;
+
 export const FILE_EXTENSIONS_TO_EXTRACT = [".rar", ".zip", ".7z"];
 
 export const WINDOWS_GAME_EXECUTABLE_EXTENSIONS = ["exe", "lnk", "bat", "cmd"];

@@ -38,7 +38,6 @@ import {
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
-import { isDebridPendingError } from "./services/download/debrid-files";
 import { GofileApi } from "./services/hosters";
 import { clearLegacyAchievementPersistence } from "./level/clear-legacy-achievements";
 import { startSteamSyncOnStartup } from "./services/steam-integration/steam-startup-sync";
@@ -72,6 +71,9 @@ const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
 };
 
 export const loadState = async () => {
+  // Migrations below use sublevels immediately. Opening explicitly prevents a
+  // startup race where a deferred sublevel operation is drained after shutdown.
+  await db.open();
   await Lock.acquireLock();
   await clearLegacyAchievementPersistence();
   await migrateCloudSaveAutomaticSyncDefaults();
@@ -166,8 +168,7 @@ export const loadState = async () => {
     );
   });
 
-  const downloadToResume =
-    await DownloadOrchestrator.bootstrapDownloadsOnStartup();
+  await DownloadOrchestrator.bootstrapDownloadsOnStartup();
   const normalizedDownloads = await downloadsSublevel
     .values()
     .all()
@@ -220,23 +221,10 @@ export const loadState = async () => {
     );
   }
 
-  // Torrents use the native service; HTTP downloads use the JS downloader.
-  const isTorrent = downloadToResume?.downloader === Downloader.Torrent;
-  if (downloadToResume && !isTorrent) {
-    // Initialize torrent seeding, then resume the HTTP download with JS.
-    await DownloadManager.initializeTorrentService(undefined, downloadsToSeed);
-    await DownloadManager.startDownload(downloadToResume).catch(async (err) => {
-      logger.error("Failed to auto-resume download:", err);
-      if (isDebridPendingError(err, downloadToResume.downloader)) {
-        await DownloadOrchestrator.saveAwaitingDebridDownload(downloadToResume);
-      }
-    });
-  } else {
-    await DownloadManager.initializeTorrentService(
-      downloadToResume ?? undefined,
-      downloadsToSeed
-    );
-  }
+  await DownloadManager.initializeTorrentService(undefined, downloadsToSeed);
+  await DownloadOrchestrator.pumpDownloadQueue().catch((error) => {
+    logger.error("Failed to auto-resume downloads:", error);
+  });
 
   WindowManager.sendDownloadsUpdated();
 

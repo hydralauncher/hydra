@@ -9,7 +9,10 @@ import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import ts from "typescript";
 import type { LibraryGame } from "@types";
-import { getBigPictureDownloadView } from "../../../types/download-contract.js";
+import {
+  getBigPictureDownloadView,
+  isActiveLikeDownload,
+} from "../../../types/download-contract.js";
 import { readActiveLibraryDownload } from "../components/modals/download-game/download-queue.js";
 import { Downloader } from "../../../shared/constants.js";
 
@@ -55,6 +58,37 @@ function game(
 }
 
 describe("Big Picture operational download library", () => {
+  it("keeps every active transfer visible while reserving the hero for the first one", () => {
+    const first = game("first", "active").download!;
+    const second = game("second", "active").download!;
+    const view = getBigPictureDownloadView([first, second], {
+      version: 1,
+      queueOrder: [],
+      pausedOrder: [],
+    });
+
+    assert.equal(view.heroId, "steam:first");
+    assert.deepEqual(view.activeIds, ["steam:second"]);
+    assert.deepEqual(view.queueIds, []);
+  });
+
+  it("keeps extraction exclusively in the active area and honors a selected hero", () => {
+    const first = game("extracting", "complete", true, {
+      extracting: true,
+    }).download!;
+    const second = game("selected", "active").download!;
+    const view = getBigPictureDownloadView([first, second], {
+      version: 1,
+      queueOrder: [],
+      pausedOrder: [],
+      preferredHeroId: "steam:selected",
+    });
+    assert.equal(view.heroId, "steam:selected");
+    assert.deepEqual(view.activeIds, ["steam:extracting"]);
+    assert.deepEqual(view.completedIds, []);
+    assert.deepEqual(view.pausedIds, []);
+  });
+
   it("refreshes concealed downloads while keeping the visible library filtered", async () => {
     const dom = new JSDOM("<div id='root'></div>");
     const globalKeys = ["window", "document", "IS_REACT_ACT_ENVIRONMENT"];
@@ -147,6 +181,7 @@ describe("Big Picture operational download library", () => {
   it("shows concealed active, queued, paused and completed downloads", () => {
     const games = [
       game("active", "active"),
+      game("secondary", "active"),
       game("queued", "paused", true, { queued: true }),
       game("paused", "paused"),
       game("complete", "complete"),
@@ -154,6 +189,21 @@ describe("Big Picture operational download library", () => {
     ];
     const store = {
       lastPacket: null,
+      packetsByGameId: {
+        "steam:active": {
+          gameId: "steam:active",
+          progress: 0.6,
+          downloadSpeed: 100,
+          download: { bytesDownloaded: 60, fileSize: 100 },
+        },
+        "steam:secondary": {
+          gameId: "steam:secondary",
+          progress: 0.7,
+          downloadSpeed: 900,
+          isCheckingFiles: true,
+          download: { bytesDownloaded: 70, fileSize: 100 },
+        },
+      },
       seedingStatuses: [],
       extractionProgressByGameId: {},
       speedHistoryByGameId: {},
@@ -178,7 +228,10 @@ describe("Big Picture operational download library", () => {
           getEpicManagedError: () =>
             assert.fail("This fixture contains no Epic download errors"),
         },
-        "../../../../types": { getBigPictureDownloadView },
+        "../../../../types": {
+          getBigPictureDownloadView,
+          isActiveLikeDownload,
+        },
         "react-i18next": {
           useTranslation: () => ({ t: (key: string) => key }),
         },
@@ -188,6 +241,7 @@ describe("Big Picture operational download library", () => {
           resolveImageSource: (value: unknown) => value,
         },
         "../../hooks": {
+          useUserPreferences: () => null,
           useLibrary: () => ({
             library: [],
             downloadLibrary: games,
@@ -205,7 +259,14 @@ describe("Big Picture operational download library", () => {
         },
       }
     ).useBigPictureDownloadsPageData as () => {
-      activeDownload: { id: string };
+      activeDownload: {
+        id: string;
+        speedLabel: string;
+        statusLabel: string;
+        progress: number;
+      };
+      otherActiveDownloads: Array<{ id: string; progress: number }>;
+      networkStats: { speedLabel: string };
       queuedDownloads: Array<{ id: string }>;
       pausedDownloads: Array<{ id: string }>;
       completedDownloads: Array<{ id: string }>;
@@ -213,6 +274,12 @@ describe("Big Picture operational download library", () => {
     };
     const result = useDownloadsPageData();
     assert.equal(result.activeDownload.id, "steam:active");
+    assert.equal(result.activeDownload.progress, 0.6);
+    assert.equal(result.activeDownload.statusLabel, "In progress");
+    assert.equal(result.activeDownload.speedLabel, "100");
+    assert.equal(result.networkStats.speedLabel, "100");
+    assert.equal(result.otherActiveDownloads[0].id, "steam:secondary");
+    assert.equal(result.otherActiveDownloads[0].progress, 0.7);
     assert.deepEqual(
       result.queuedDownloads.map((entry) => entry.id),
       ["steam:queued"]

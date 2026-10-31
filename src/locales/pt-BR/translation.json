@@ -201,6 +201,7 @@
     "scan_games_folders_hint_manual": "Adicione pelo menos uma pasta para escanear por jogos."
   },
   "bottom_panel": {
+    "downloading_multiple": "Baixando {{count}} jogos — {{percentage}} — {{speed}}",
     "reconnecting": "Reconectando {{title}}…",
     "recovering": "Baixando novamente a parte já salva de {{title}}… ({{percentage}})",
     "no_downloads_in_progress": "Sem downloads em andamento",
@@ -1094,6 +1095,16 @@
     "loading": "Carregando…"
   },
   "downloads": {
+    "show_details": "Mostrar detalhes",
+    "show_less": "Mostrar menos",
+    "speed_history": "Histórico de velocidade de download",
+    "download_progress": "Progresso do download de {{title}}",
+    "seeds": "Seeds",
+    "peers": "Peers",
+    "high_priority": "Alta prioridade",
+    "set_priority": "Definir prioridade: Alta",
+    "remove_priority": "Definir prioridade: Normal",
+    "open_download_folder": "Abrir pasta de download",
     "reconnecting": "Reconectando…",
     "recovering": "Baixando novamente a parte já salva… {{percentage}}",
     "resume": "Retomar",
@@ -1161,6 +1172,7 @@
     "installing": "Instalando…"
   },
   "settings": {
+    "max_concurrent_downloads": "Downloads simultâneos",
     "rpcs3_config_title": "Pasta de configuração do RPCS3",
     "rpcs3_config_description": "O Hydra encontrou mais de uma pasta de configuração do RPCS3. Escolha a que esta instalação do RPCS3 usa.",
     "rpcs3_config_ready": "Pronta",

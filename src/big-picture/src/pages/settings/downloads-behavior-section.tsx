@@ -1,8 +1,13 @@
 import "./downloads-behavior-section.scss";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Checkbox, VerticalFocusGroup } from "../../components";
+import {
+  Checkbox,
+  DropdownSelect,
+  Input,
+  VerticalFocusGroup,
+} from "../../components";
 import { useUserPreferences } from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 import {
@@ -12,6 +17,11 @@ import {
 } from "./settings-navigation";
 import { SettingsSection } from "./settings-section";
 import type { UserPreferences } from "@types";
+import {
+  DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+  MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+  MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+} from "@shared";
 
 interface DownloadsBehaviorSectionProps {
   className?: string;
@@ -19,6 +29,8 @@ interface DownloadsBehaviorSectionProps {
 }
 
 interface DownloadsBehaviorForm {
+  maxConcurrentDownloads: number;
+  maxDownloadSpeedMegabytes: string;
   seedAfterDownloadComplete: boolean;
   showDownloadSpeedInMegabytes: boolean;
   extractFilesByDefault: boolean;
@@ -35,6 +47,8 @@ interface DownloadsBehaviorItem {
 }
 
 const DEFAULT_FORM: DownloadsBehaviorForm = {
+  maxConcurrentDownloads: DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+  maxDownloadSpeedMegabytes: "",
   seedAfterDownloadComplete: false,
   showDownloadSpeedInMegabytes: false,
   extractFilesByDefault: true,
@@ -47,6 +61,22 @@ const buildForm = (
 ): DownloadsBehaviorForm =>
   preferences
     ? {
+        maxConcurrentDownloads:
+          Number.isInteger(preferences.maxConcurrentDownloads) &&
+          preferences.maxConcurrentDownloads! >=
+            MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS &&
+          preferences.maxConcurrentDownloads! <=
+            MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS
+            ? preferences.maxConcurrentDownloads!
+            : DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+        maxDownloadSpeedMegabytes:
+          typeof preferences.maxDownloadSpeedBytesPerSecond === "number" &&
+          preferences.maxDownloadSpeedBytesPerSecond > 0
+            ? formatDownloadSpeedLimit(
+                preferences.maxDownloadSpeedBytesPerSecond,
+                preferences.showDownloadSpeedInMegabytes ?? false
+              )
+            : "",
         seedAfterDownloadComplete:
           preferences.seedAfterDownloadComplete ?? false,
         showDownloadSpeedInMegabytes:
@@ -58,6 +88,35 @@ const buildForm = (
       }
     : DEFAULT_FORM;
 
+const CONCURRENT_DOWNLOAD_OPTIONS = Array.from(
+  {
+    length:
+      MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS -
+      MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS +
+      1,
+  },
+  (_, index) => {
+    const value = MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS + index;
+    return { value: `${value}`, label: `${value}` };
+  }
+);
+
+const formatDownloadSpeedLimit = (value: number, useMegabytes: boolean) => {
+  const unitValue = useMegabytes ? value / (1024 * 1024) : (value * 8) / 1e6;
+  return Number.isInteger(unitValue)
+    ? `${unitValue}`
+    : `${Number(unitValue.toFixed(6))}`;
+};
+
+const parseDownloadSpeedLimit = (value: string, useMegabytes: boolean) => {
+  const parsed = Number(value.trim());
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+
+  return useMegabytes
+    ? Math.round(parsed * 1024 * 1024)
+    : Math.round((parsed * 1e6) / 8);
+};
+
 export function DownloadsBehaviorSection({
   className,
   lastItemDownTarget,
@@ -67,23 +126,92 @@ export function DownloadsBehaviorSection({
     buildForm(userPreferences)
   );
 
+  const speedInputDirty = useRef(false);
+  const speedLimitBytes = useRef(
+    userPreferences?.maxDownloadSpeedBytesPerSecond ?? null
+  );
+
   useEffect(() => {
     if (!userPreferences) return;
-
-    setForm(buildForm(userPreferences));
+    if (!speedInputDirty.current)
+      speedLimitBytes.current =
+        userPreferences.maxDownloadSpeedBytesPerSecond ?? null;
+    setForm((current) => ({
+      ...buildForm(userPreferences),
+      ...(speedInputDirty.current
+        ? { maxDownloadSpeedMegabytes: current.maxDownloadSpeedMegabytes }
+        : {}),
+    }));
   }, [userPreferences]);
 
   const isWindows = globalThis.window.electron.platform === "win32";
   const isLinux = globalThis.window.electron.platform === "linux";
 
-  const updateUserPreferences = async (
-    values: Partial<DownloadsBehaviorForm>
-  ) => {
-    const nextForm = { ...form, ...values };
-    setForm(nextForm);
+  const updateUserPreferences = useCallback(
+    async (values: Partial<UserPreferences>) => {
+      setForm((current) => ({ ...current, ...values }));
 
-    await globalThis.window.electron.updateUserPreferences(values);
+      try {
+        await globalThis.window.electron.updateUserPreferences(values);
+      } catch (error) {
+        console.error("Failed to update download preferences", error);
+        setForm(buildForm(userPreferences));
+      }
+    },
+    [userPreferences]
+  );
+
+  const handleDownloadSpeedBlur = () => {
+    if (!speedInputDirty.current) return;
+    speedInputDirty.current = false;
+    const maxDownloadSpeedBytesPerSecond = parseDownloadSpeedLimit(
+      form.maxDownloadSpeedMegabytes,
+      form.showDownloadSpeedInMegabytes
+    );
+    const maxDownloadSpeedMegabytes = maxDownloadSpeedBytesPerSecond
+      ? formatDownloadSpeedLimit(
+          maxDownloadSpeedBytesPerSecond,
+          form.showDownloadSpeedInMegabytes
+        )
+      : "";
+
+    speedLimitBytes.current = maxDownloadSpeedBytesPerSecond;
+    setForm((current) => ({ ...current, maxDownloadSpeedMegabytes }));
+    void updateUserPreferences({ maxDownloadSpeedBytesPerSecond });
   };
+
+  const handleSpeedUnitChange = useCallback(
+    (showDownloadSpeedInMegabytes: boolean) => {
+      const maxDownloadSpeedBytesPerSecond = speedInputDirty.current
+        ? parseDownloadSpeedLimit(
+            form.maxDownloadSpeedMegabytes,
+            form.showDownloadSpeedInMegabytes
+          )
+        : speedLimitBytes.current;
+      speedLimitBytes.current = maxDownloadSpeedBytesPerSecond;
+      speedInputDirty.current = false;
+
+      setForm((current) => ({
+        ...current,
+        showDownloadSpeedInMegabytes,
+        maxDownloadSpeedMegabytes: maxDownloadSpeedBytesPerSecond
+          ? formatDownloadSpeedLimit(
+              maxDownloadSpeedBytesPerSecond,
+              showDownloadSpeedInMegabytes
+            )
+          : "",
+      }));
+      void updateUserPreferences({
+        showDownloadSpeedInMegabytes,
+        maxDownloadSpeedBytesPerSecond,
+      });
+    },
+    [
+      form.maxDownloadSpeedMegabytes,
+      form.showDownloadSpeedInMegabytes,
+      updateUserPreferences,
+    ]
+  );
 
   const items = useMemo<DownloadsBehaviorItem[]>(() => {
     const baseItems: DownloadsBehaviorItem[] = [
@@ -108,8 +236,7 @@ export function DownloadsBehaviorSection({
         focusId: DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.showDownloadSpeedInMegabytes,
         label: "Show download speed in megabytes",
         checked: form.showDownloadSpeedInMegabytes,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({ showDownloadSpeedInMegabytes: checked }),
+        onChange: (checked: boolean) => handleSpeedUnitChange(checked),
       },
       {
         id: "delete-archive-files-after-extraction-by-default",
@@ -136,29 +263,33 @@ export function DownloadsBehaviorSection({
     }
 
     return baseItems;
-  }, [form, isWindows, isLinux]);
+  }, [form, handleSpeedUnitChange, isWindows, isLinux, updateUserPreferences]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
   >(() => {
     return Object.fromEntries(
-      items.map((item, index) => {
-        const previousItem = items[index - 1];
-        const nextItem = items[index + 1];
+      [
+        DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.maxConcurrentDownloads,
+        DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.maxDownloadSpeed,
+        ...items.map((item) => item.focusId),
+      ].map((focusId, index, focusIds) => {
+        const previousFocusId = focusIds[index - 1];
+        const nextFocusId = focusIds[index + 1];
 
         return [
-          item.focusId,
+          focusId,
           {
-            up: previousItem
+            up: previousFocusId
               ? {
                   type: "item",
-                  itemId: previousItem.focusId,
+                  itemId: previousFocusId,
                 }
               : SETTINGS_HEADER_RETURN_TARGET,
-            down: nextItem
+            down: nextFocusId
               ? {
                   type: "item",
-                  itemId: nextItem.focusId,
+                  itemId: nextFocusId,
                 }
               : lastItemDownTarget
                 ? lastItemDownTarget
@@ -180,6 +311,45 @@ export function DownloadsBehaviorSection({
         asChild
       >
         <div className="downloads-behavior-section__content">
+          <DropdownSelect
+            label="Simultaneous downloads"
+            value={`${form.maxConcurrentDownloads}`}
+            options={CONCURRENT_DOWNLOAD_OPTIONS}
+            onValueChange={(value) =>
+              void updateUserPreferences({
+                maxConcurrentDownloads: Number(value),
+              })
+            }
+            focusId={DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.maxConcurrentDownloads}
+            focusNavigationOverrides={
+              navigationOverridesByFocusId[
+                DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.maxConcurrentDownloads
+              ]
+            }
+          />
+          <Input
+            type="number"
+            min="0"
+            step="0.1"
+            label={`Maximum download speed (${form.showDownloadSpeedInMegabytes ? "MB/s" : "Mbps"})`}
+            hint="Leave blank for unlimited."
+            placeholder="Unlimited"
+            value={form.maxDownloadSpeedMegabytes}
+            onChange={(event) => {
+              speedInputDirty.current = true;
+              setForm((current) => ({
+                ...current,
+                maxDownloadSpeedMegabytes: event.target.value,
+              }));
+            }}
+            onBlur={handleDownloadSpeedBlur}
+            focusId={DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.maxDownloadSpeed}
+            focusNavigationOverrides={
+              navigationOverridesByFocusId[
+                DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.maxDownloadSpeed
+              ]
+            }
+          />
           {items.map((item) => (
             <Checkbox
               key={item.id}

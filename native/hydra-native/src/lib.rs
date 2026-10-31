@@ -10,6 +10,35 @@ mod window_bounds;
 mod window_client;
 mod window_order;
 
+// `cargo test` links this cdylib as a standalone Rust test binary. Node normally
+// provides these symbols at runtime, but it is not present for that test
+// binary. The tests do not exercise Node-API reference management, so provide
+// minimal test-only implementations to keep the native unit tests linkable.
+#[cfg(test)]
+mod test_napi_symbols {
+    use napi::sys::{napi_env, napi_ref, napi_status};
+
+    #[no_mangle]
+    pub unsafe extern "C" fn napi_reference_unref(
+        _env: napi_env,
+        _reference: napi_ref,
+        result: *mut u32,
+    ) -> napi_status {
+        if !result.is_null() {
+            *result = 0;
+        }
+        0
+    }
+
+    #[no_mangle]
+    pub unsafe extern "C" fn napi_delete_reference(
+        _env: napi_env,
+        _reference: napi_ref,
+    ) -> napi_status {
+        0
+    }
+}
+
 pub use cloud_save::hashing::{build_snapshot_aggregate_hash, hash_local_save_file};
 pub use cloud_save::local_snapshot::build_local_game_snapshot;
 pub use cloud_save::manifest::get_save_rules_for_game;

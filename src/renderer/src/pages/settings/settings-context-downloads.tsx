@@ -1,10 +1,15 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { CheckboxField, SelectField, TextField } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
 import type { NetworkInterface, UserPreferences } from "@types";
+import {
+  DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+  MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+  MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+} from "@shared";
 import { SettingsGlobalTrackers } from "./settings-global-trackers";
 
 import "./settings-general.scss";
@@ -25,6 +30,8 @@ const buildForm = (preferences: UserPreferences | null) => ({
     preferences?.showDownloadSpeedInMegabytes ?? false,
   extractFilesByDefault: preferences?.extractFilesByDefault ?? true,
   createStartMenuShortcut: preferences?.createStartMenuShortcut ?? true,
+  maxConcurrentDownloads:
+    preferences?.maxConcurrentDownloads ?? DEFAULT_MAX_CONCURRENT_DOWNLOADS,
   maxDownloadSpeedMegabytes:
     typeof preferences?.maxDownloadSpeedBytesPerSecond === "number" &&
     preferences.maxDownloadSpeedBytesPerSecond > 0
@@ -65,6 +72,15 @@ export function SettingsContextDownloads() {
 
   const [form, setForm] = useState(() => buildForm(userPreferences));
 
+  const committedConcurrency = useRef(form.maxConcurrentDownloads);
+  const commitConcurrency = () => {
+    if (committedConcurrency.current === form.maxConcurrentDownloads) return;
+    committedConcurrency.current = form.maxConcurrentDownloads;
+    updateUserPreferences({
+      maxConcurrentDownloads: form.maxConcurrentDownloads,
+    });
+  };
+
   const [networkInterfaces, setNetworkInterfaces] = useState<
     NetworkInterface[]
   >([]);
@@ -80,6 +96,9 @@ export function SettingsContextDownloads() {
     if (!userPreferences) return;
 
     setForm(buildForm(userPreferences));
+    committedConcurrency.current =
+      userPreferences.maxConcurrentDownloads ??
+      DEFAULT_MAX_CONCURRENT_DOWNLOADS;
   }, [userPreferences]);
 
   const networkInterfaceOptions = useMemo(() => {
@@ -172,6 +191,37 @@ export function SettingsContextDownloads() {
     <div className="settings-context-panel">
       <div className="settings-context-panel__group">
         <h3>{t("download_behavior")}</h3>
+
+        <div className="settings-general__download-concurrency">
+          <div className="settings-general__download-concurrency-heading">
+            <div>
+              <label htmlFor="download-concurrency">
+                {t("max_concurrent_downloads")}
+              </label>
+            </div>
+            <span>{form.maxConcurrentDownloads}</span>
+          </div>
+          <input
+            id="download-concurrency"
+            type="range"
+            min={MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS}
+            max={MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS}
+            value={form.maxConcurrentDownloads}
+            onChange={(event) => {
+              const maxConcurrentDownloads = Number(event.target.value);
+              setForm((previous) => ({ ...previous, maxConcurrentDownloads }));
+            }}
+            onPointerUp={commitConcurrency}
+            onKeyUp={commitConcurrency}
+            onBlur={commitConcurrency}
+            className="settings-general__download-concurrency-slider"
+            style={
+              {
+                "--download-concurrency-percent": `${((form.maxConcurrentDownloads - MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS) / (MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS - MIN_CONFIGURABLE_CONCURRENT_DOWNLOADS)) * 100}%`,
+              } as React.CSSProperties
+            }
+          />
+        </div>
 
         <TextField
           type="number"

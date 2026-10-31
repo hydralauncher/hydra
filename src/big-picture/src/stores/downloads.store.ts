@@ -5,6 +5,7 @@ const SPEED_HISTORY_SAMPLE_SIZE = 120;
 
 interface BigPictureDownloadsStoreState {
   lastPacket: DownloadProgress | null;
+  packetsByGameId: Record<string, DownloadProgress>;
   seedingStatuses: SeedingStatus[];
   extractionProgressByGameId: Record<string, number>;
   speedHistoryByGameId: Record<string, number[]>;
@@ -22,12 +23,25 @@ interface BigPictureDownloadsStoreState {
 export const useBigPictureDownloadsStore =
   create<BigPictureDownloadsStoreState>((set) => ({
     lastPacket: null,
+    packetsByGameId: {},
     seedingStatuses: [],
     extractionProgressByGameId: {},
     speedHistoryByGameId: {},
     peakSpeedByGameId: {},
     setLastPacket: (packet) => {
       set((state) => {
+        const packetsByGameId = { ...state.packetsByGameId };
+        if (packet?.gameId) {
+          if (
+            packet.progress === 1 &&
+            !packet.isCheckingFiles &&
+            !packet.isDownloadingMetadata
+          ) {
+            delete packetsByGameId[packet.gameId];
+          } else {
+            packetsByGameId[packet.gameId] = packet;
+          }
+        }
         if (
           packet?.progress === 1 &&
           !packet.isCheckingFiles &&
@@ -36,6 +50,7 @@ export const useBigPictureDownloadsStore =
           return {
             ...state,
             lastPacket: null,
+            packetsByGameId,
           };
         }
 
@@ -48,6 +63,7 @@ export const useBigPictureDownloadsStore =
           return {
             ...state,
             lastPacket: packet,
+            packetsByGameId,
           };
         }
 
@@ -63,6 +79,7 @@ export const useBigPictureDownloadsStore =
         return {
           ...state,
           lastPacket: packet,
+          packetsByGameId,
           speedHistoryByGameId: {
             ...state.speedHistoryByGameId,
             [packet.gameId]: nextHistory,

@@ -16,7 +16,7 @@ export function HeroPanel() {
 
   const { game, downloadGame, repacks } = useContext(gameDetailsContext);
 
-  const { lastPacket } = useDownload();
+  const { lastPacket } = useDownload(downloadGame?.id);
 
   const extraction = useAppSelector((state) => state.download.extraction);
 

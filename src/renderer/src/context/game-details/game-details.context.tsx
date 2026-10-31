@@ -116,7 +116,6 @@ export function GameDetailsContextProvider({
 
   const dispatch = useAppDispatch();
 
-  const { lastPacket } = useDownload();
   const { userDetails } = useUserDetails();
   const { isFeatureEnabled, Feature } = useFeature();
   const multipartHosterDownloads = isFeatureEnabled(
@@ -128,6 +127,7 @@ export function GameDetailsContextProvider({
   );
   const presentation = useLibraryGamePresentation({ shop, objectId }, game);
   const downloadGame = presentation?.downloadGame ?? game;
+  const { lastPacket } = useDownload(downloadGame?.id);
   const operationalShop = presentation?.operationalGame.shop ?? shop;
   const operationalObjectId =
     presentation?.operationalGame.objectId ?? objectId;

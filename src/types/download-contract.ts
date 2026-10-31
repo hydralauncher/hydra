@@ -15,6 +15,8 @@ export type RendererDownloadBucket =
 
 export interface BigPictureDownloadView {
   heroId: string | null;
+  /** Active transfers other than the one displayed in the hero. */
+  activeIds: string[];
   queueIds: string[];
   pausedIds: string[];
   completedIds: string[];
@@ -24,6 +26,7 @@ export const DEFAULT_DOWNLOAD_LAYOUT_STATE: DownloadLayoutState = {
   version: 1,
   queueOrder: [],
   pausedOrder: [],
+  preferredHeroId: null,
 };
 
 export const getDownloadId = (
@@ -169,16 +172,23 @@ export const getBigPictureDownloadView = (
   const visibleDownloads = downloads.filter(
     (download) => getDownloadPlacement(download) !== "hidden"
   );
-  const activeDownload =
-    visibleDownloads.find((download) => isActiveLikeDownload(download)) ?? null;
-  const queuedDownloads = visibleDownloads.filter((download) =>
-    isQueuedDownload(download)
+  const activeDownloads = visibleDownloads.filter((download) =>
+    isActiveLikeDownload(download)
   );
-  const pausedDownloads = visibleDownloads.filter((download) =>
-    isPausedDownload(download)
+  const preferredActiveDownload = layoutState.preferredHeroId
+    ? activeDownloads.find(
+        (download) => getDownloadId(download) === layoutState.preferredHeroId
+      )
+    : null;
+  const activeDownload = preferredActiveDownload ?? activeDownloads[0] ?? null;
+  const queuedDownloads = visibleDownloads.filter(
+    (download) => getDownloadPlacement(download) === "queue"
+  );
+  const pausedDownloads = visibleDownloads.filter(
+    (download) => getDownloadPlacement(download) === "paused"
   );
   const completedIds = visibleDownloads
-    .filter((download) => isCompletedLikeDownload(download))
+    .filter((download) => getDownloadPlacement(download) === "completed")
     .map((download) => getDownloadId(download));
   const queueIds = orderIdsByLayoutState(
     queuedDownloads,
@@ -192,16 +202,31 @@ export const getBigPictureDownloadView = (
   if (activeDownload) {
     return {
       heroId: getDownloadId(activeDownload),
+      activeIds: activeDownloads
+        .filter(
+          (download) =>
+            getDownloadId(download) !== getDownloadId(activeDownload)
+        )
+        .map((download) => getDownloadId(download)),
       queueIds,
       pausedIds,
       completedIds,
     };
   }
 
-  const heroId = queueIds[0] ?? pausedIds[0] ?? null;
+  const preferredVisibleDownload = layoutState.preferredHeroId
+    ? visibleDownloads.find(
+        (download) => getDownloadId(download) === layoutState.preferredHeroId
+      )
+    : null;
+  const preferredHeroId = preferredVisibleDownload
+    ? getDownloadId(preferredVisibleDownload)
+    : null;
+  const heroId = preferredHeroId ?? queueIds[0] ?? pausedIds[0] ?? null;
 
   return {
     heroId,
+    activeIds: [],
     queueIds: heroId ? queueIds.filter((id) => id !== heroId) : queueIds,
     pausedIds: heroId ? pausedIds.filter((id) => id !== heroId) : pausedIds,
     completedIds,
