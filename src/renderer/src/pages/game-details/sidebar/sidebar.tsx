@@ -15,6 +15,7 @@ import {
   useAppSelector,
   useDate,
   useFormat,
+  useGlobalLeaderboardsFeature,
   useUserDetails,
 } from "@renderer/hooks";
 import {
@@ -149,6 +150,8 @@ export function Sidebar() {
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
+  const { isEnabled: isGlobalLeaderboardsEnabled } =
+    useGlobalLeaderboardsFeature();
   const achievementsCount = achievements?.length ?? 0;
   const localTrophies = Boolean(
     achievements?.length && achievements.every((row) => row.source === "rpcs3")
@@ -337,7 +340,7 @@ export function Sidebar() {
         </SidebarSection>
       )}
 
-      <LeaderboardSection />
+      {isGlobalLeaderboardsEnabled && <LeaderboardSection />}
 
       {stats && (
         <SidebarSection title={t("stats")}>

@@ -10,10 +10,10 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   &__list {
     list-style: none;
     margin: 0;
-    padding: 0 globals.$spacing-unit;
+    padding: 0 calc(globals.$spacing-unit * 2);
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
+    gap: globals.$spacing-unit;
   }
 
   &__skeleton {
@@ -24,7 +24,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   }
 
   &__skeleton-row {
-    height: 44px;
+    height: 56px;
     border-radius: 8px;
   }
 
@@ -50,30 +50,12 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   &__footer {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: calc(globals.$spacing-unit * 1.5);
     margin-top: globals.$spacing-unit;
     padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2)
       globals.$spacing-unit;
     border-top: solid 1px globals.$border-color;
-  }
-
-  &__nudge {
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    font-size: globals.$small-font-size;
-    color: globals.$body-color;
-    min-width: 0;
-
-    svg {
-      flex-shrink: 0;
-    }
-  }
-
-  &__nudge-text {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   &__see-all {
@@ -137,107 +119,35 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 .leaderboard-controls {
+  container: leaderboard-controls / inline-size;
   display: flex;
-  flex-direction: column;
-  gap: calc(globals.$spacing-unit * 1.25);
-  padding: calc(globals.$spacing-unit * 2) globals.$spacing-unit
+  flex-wrap: wrap;
+  gap: globals.$spacing-unit;
+  padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2)
     calc(globals.$spacing-unit * 1.5);
 
-  &__filters {
-    display: flex;
-    gap: globals.$spacing-unit;
-  }
-
-  &__filter {
-    display: inline-flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 0.75);
-    min-width: 0;
-    height: 28px;
-    padding: 0 10px;
-    border: solid 1px globals.$border-color;
-    border-radius: 8px;
-    background-color: globals.$dark-background-color;
-    color: globals.$muted-color;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.5);
-    }
-
-    &[data-state="open"] {
-      border-color: #dadbe1;
-    }
-
-    &[data-state="open"] .leaderboard-controls__filter-chevron {
-      transform: rotate(180deg);
-    }
-  }
-
-  &__filter-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  &__filter-chevron {
-    flex-shrink: 0;
-    color: globals.$body-color;
-    transition: transform 0.15s ease;
-  }
-
-  &__filter-content {
-    min-width: var(--radix-dropdown-menu-trigger-width);
-    padding: 4px;
-    border: solid 1px globals.$border-color;
-    border-radius: 6px;
-    background-color: globals.$dark-background-color;
-    z-index: globals.$backdrop-z-index;
-    animation: leaderboard-filter-in 0.15s ease-out;
-  }
-
-  &__filter-item {
-    display: flex;
-    align-items: center;
-    height: 30px;
-    padding: 0 10px;
-    border-radius: 4px;
-    color: globals.$muted-color;
-    font-size: 12px;
-    white-space: nowrap;
-    cursor: pointer;
-    outline: none;
-    transition: background-color 0.1s ease-in-out;
-
-    &[data-state="checked"] {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-
-    &:hover,
-    &[data-highlighted] {
-      background-color: rgba(255, 255, 255, 0.15);
-    }
-  }
-
-  &__segmented {
+  &__selector {
     --segment-gap: 2px;
 
     position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
     display: grid;
     grid-auto-flow: column;
-    // The indicator assumes equal-width segments.
     grid-auto-columns: minmax(0, 1fr);
     gap: var(--segment-gap);
     padding: 2px;
     border: solid 1px globals.$border-color;
     border-radius: 8px;
     background-color: globals.$dark-background-color;
+
+    &--icons {
+      flex: 0 0 auto;
+      grid-auto-columns: 32px;
+    }
   }
 
-  &__indicator {
+  &__selector-indicator {
     position: absolute;
     top: 2px;
     bottom: 2px;
@@ -254,48 +164,92 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     transition: transform 0.46s $leaderboard-ease;
   }
 
-  &__segment {
+  &__selector-option {
     position: relative;
     z-index: 1;
-    flex: 1;
     min-width: 0;
     height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: calc(globals.$spacing-unit / 2);
     padding: 0 calc(globals.$spacing-unit * 0.75);
     border: 0;
     border-radius: 6px;
     background: transparent;
     color: globals.$body-color;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: globals.$small-font-size;
+    font-weight: 500;
     white-space: nowrap;
     cursor: pointer;
-    transition: color 0.2s ease 0.15s;
+    transition: color 0.2s ease;
 
+    &:hover,
     &--selected {
       color: globals.$muted-color;
     }
   }
 
-  &__segment-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
+  &__selector-option-icon {
+    display: none;
+  }
+
+  // Rendered in the body and fixed to the window, because the card clips.
+  &__tooltip {
+    position: fixed;
+    z-index: 9999;
+    padding: 6px 10px;
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    background-color: globals.$dark-background-color;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    font-weight: 500;
+    line-height: 16px;
+    white-space: nowrap;
+    transform: translate(-50%, -100%);
+    animation: leaderboard-tooltip-in 0.15s ease 0.25s both;
+    pointer-events: none;
+
+    &--near-edge {
+      transform: translate(-100%, -100%);
+    }
   }
 }
 
-@keyframes leaderboard-filter-in {
-  0% {
-    opacity: 0;
-    transform: translateY(-4px);
+// Above this, there is room for the period names: only the 420px sidebar.
+@container leaderboard-controls (max-width: 360px) {
+  .leaderboard-controls__selector,
+  .leaderboard-controls__selector--collapsible {
+    flex: 1 0 auto;
+    grid-auto-columns: minmax(28px, 1fr);
   }
 
-  100% {
-    opacity: 1;
-    transform: translateY(0);
+  .leaderboard-controls__selector-option-icon {
+    display: flex;
   }
+
+  .leaderboard-controls__selector-option-label {
+    display: none;
+  }
+}
+
+// Registered so the row's banner shade can animate: a gradient itself cannot.
+@property --banner-shade-start {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.9;
+}
+
+@property --banner-shade-middle {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.65;
+}
+
+@property --banner-shade-end {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.35;
 }
 
 .leaderboard-row {
@@ -367,6 +321,277 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   &--banner &__you {
     background-color: rgba(13, 13, 13, 0.75);
     color: globals.$muted-color;
+  }
+
+  // The game page card: a metal strip on the top 3 instead of the medal and frame.
+  &--strip {
+    gap: calc(globals.$spacing-unit * 1.5);
+    overflow: hidden;
+    padding: 0 calc(globals.$spacing-unit * 2) 0 0;
+    position: relative;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.03);
+
+    // Drawn on top of the content, so the banner and the strip cannot show
+    // through or beside it at the rounded corners.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: solid 1px rgba(255, 255, 255, 0.06);
+      border-radius: inherit;
+      pointer-events: none;
+    }
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  &--strip#{&}--viewer {
+    background-color: rgba(255, 255, 255, 0.05);
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  &--strip#{&}--banner {
+    --banner-shade-start: 0.9;
+    --banner-shade-middle: 0.65;
+    --banner-shade-end: 0.35;
+
+    background-image:
+      linear-gradient(
+        90deg,
+        rgba(13, 13, 13, var(--banner-shade-start)) 0%,
+        rgba(13, 13, 13, var(--banner-shade-middle)) 55%,
+        rgba(13, 13, 13, var(--banner-shade-end)) 100%
+      ),
+      var(--leaderboard-row-banner);
+    transition:
+      --banner-shade-start 0.2s ease,
+      --banner-shade-middle 0.2s ease,
+      --banner-shade-end 0.2s ease;
+
+    &:hover {
+      --banner-shade-start: 0.8;
+      --banner-shade-middle: 0.55;
+      --banner-shade-end: 0.25;
+    }
+  }
+
+  &--strip#{&}--with-action {
+    padding-right: calc(globals.$spacing-unit * 4.5);
+  }
+
+  &--table &__strip {
+    background-color: transparent;
+  }
+
+  // Without a banner, a solid fill and a fainter border.
+  &--table:not(&--banner) {
+    background-color: globals.$background-color;
+
+    &::after {
+      border-color: rgba(255, 255, 255, 0.04);
+    }
+
+    &:hover {
+      background-color: #1a1a1a;
+    }
+  }
+
+  &--table#{&}--viewer:not(&--banner),
+  &--table#{&}--viewer:not(&--banner):hover {
+    background-color: #222222;
+  }
+
+  &--table#{&}--viewer &__strip {
+    color: globals.$muted-color;
+  }
+
+  &--table &__value {
+    width: 96px;
+  }
+
+  &__delta {
+    width: 64px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &--strip &__body {
+    gap: 2px;
+  }
+
+  &--strip &__you {
+    padding: 0 8px;
+    border: 0;
+    border-radius: 999px;
+    background-color: #ffffff;
+    color: #000000;
+    font-weight: 700;
+  }
+
+  &__strip {
+    align-self: stretch;
+    width: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #1a1a1a;
+    font-size: 13px;
+    font-weight: 500;
+    color: globals.$body-color;
+
+    &--gold,
+    &--silver,
+    &--bronze {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.25);
+      font-size: 16px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, 0.9);
+
+      // The light rim on the metal's upper edge.
+      &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        padding: 1px;
+        background: linear-gradient(
+          189.6deg,
+          rgba(255, 255, 255, 0.48) 0%,
+          rgba(255, 255, 255, 0.48) 50%,
+          rgba(255, 255, 255, 0) 82%
+        );
+        mask:
+          linear-gradient(#000 0 0) content-box exclude,
+          linear-gradient(#000 0 0);
+        pointer-events: none;
+      }
+
+      // The shine that sweeps down the metal.
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: var(--strip-shine);
+        background-image: linear-gradient(
+          195deg,
+          transparent 40%,
+          var(--strip-shine-edge) 46%,
+          rgba(255, 255, 255, 0.7) 50%,
+          var(--strip-shine-edge) 54%,
+          transparent 60%
+        );
+        background-size: 100% 300%;
+        background-repeat: no-repeat;
+        mix-blend-mode: screen;
+        animation: leaderboard-strip-shine 7s ease-in-out infinite;
+        pointer-events: none;
+      }
+    }
+
+    &--gold {
+      --strip-shine: 1;
+      --strip-shine-edge: rgba(255, 244, 200, 0.35);
+
+      background: linear-gradient(
+        189.58deg,
+        rgb(232, 173, 21) 0.6%,
+        rgb(213, 144, 15) 11.31%,
+        rgb(232, 173, 21) 16.44%,
+        rgb(228, 170, 21) 29.24%,
+        rgb(202, 137, 14) 34.32%,
+        rgb(202, 136, 14) 40.3%,
+        rgb(236, 190, 26) 45.31%,
+        rgb(236, 189, 26) 50.2%,
+        rgb(179, 121, 13) 55.81%,
+        rgb(102, 71, 10) 82.04%,
+        rgb(163, 122, 19) 85.71%,
+        rgb(152, 113, 18) 87.27%,
+        rgb(80, 56, 8) 93.47%,
+        rgb(62, 45, 8) 96.6%
+      );
+    }
+
+    &--silver {
+      --strip-shine: 0.6;
+      --strip-shine-edge: rgba(255, 255, 255, 0.35);
+
+      background: linear-gradient(
+        189.58deg,
+        rgb(227, 227, 227) 0.6%,
+        rgb(205, 205, 205) 11.31%,
+        rgb(232, 232, 232) 16.44%,
+        rgb(226, 226, 226) 29.24%,
+        rgb(190, 190, 190) 34.32%,
+        rgb(189, 189, 189) 40.3%,
+        rgb(238, 238, 238) 45.31%,
+        rgb(226, 226, 226) 50.2%,
+        rgb(167, 167, 167) 55.81%,
+        rgb(98, 98, 98) 82.04%,
+        rgb(175, 175, 175) 85.71%,
+        rgb(151, 151, 151) 87.27%,
+        rgb(70, 70, 70) 93.47%,
+        rgb(54, 54, 54) 96.6%
+      );
+    }
+
+    &--bronze {
+      --strip-shine: 0.35;
+      --strip-shine-edge: rgba(255, 244, 200, 0.35);
+
+      background: linear-gradient(
+        189.65deg,
+        rgb(232, 102, 21) 0.6%,
+        rgb(213, 121, 15) 11.31%,
+        rgb(232, 127, 21) 16.44%,
+        rgb(228, 125, 21) 29.24%,
+        rgb(202, 93, 14) 34.32%,
+        rgb(202, 80, 14) 40.3%,
+        rgb(236, 131, 26) 45.31%,
+        rgb(178, 111, 44) 50.2%,
+        rgb(179, 63, 13) 55.81%,
+        rgb(102, 42, 10) 82.04%,
+        rgb(163, 62, 19) 85.71%,
+        rgb(152, 74, 18) 87.27%,
+        rgb(80, 27, 8) 93.47%,
+        rgb(62, 20, 8) 96.6%
+      );
+    }
+  }
+
+  &__strip-number {
+    position: relative;
+    z-index: 2;
+  }
+
+  &__subtitle {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+    color: globals.$body-color;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  &__subtitle-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__item {
@@ -443,7 +668,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: globals.$body-font-size;
-    font-weight: 600;
+    font-weight: 700;
   }
 
   &__you {
@@ -456,7 +681,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     border-radius: 6px;
     color: globals.$body-color;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   &__progress {
@@ -542,14 +767,44 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .leaderboard-controls__indicator,
-  .leaderboard-controls__segment,
-  .leaderboard-row__progress-fill {
-    transition: none;
+@keyframes leaderboard-tooltip-in {
+  from {
+    opacity: 0;
   }
 
-  .leaderboard-controls__filter-content {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes leaderboard-strip-shine {
+  0% {
+    background-position: 0 160%;
+  }
+
+  55%,
+  100% {
+    background-position: 0 -70%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaderboard-controls__tooltip {
     animation: none;
+  }
+
+  .leaderboard-row__strip--gold::after,
+  .leaderboard-row__strip--silver::after,
+  .leaderboard-row__strip--bronze::after {
+    animation: none;
+    background-position: 0 50%;
+    opacity: calc(var(--strip-shine) * 0.35);
+  }
+
+  .leaderboard-controls__selector-indicator,
+  .leaderboard-controls__selector-option,
+  .leaderboard-row__progress-fill,
+  .leaderboard-row--strip.leaderboard-row--banner {
+    transition: none;
   }
 }
