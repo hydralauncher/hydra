@@ -304,11 +304,19 @@ export function SettingsSteam() {
 
   useEffect(() => {
     const unsubscribe = globalThis.window.electron.onSteamConnectError(
-      (code) => {
+      (code, linkedUsername) => {
+        if (code !== "already-linked") {
+          showErrorToast(t("steam_connect_error"));
+          return;
+        }
+
         showErrorToast(
-          code === "already-linked"
-            ? t("steam_account_already_linked")
-            : t("steam_connect_error")
+          linkedUsername
+            ? t("steam_account_already_linked_to", {
+                username: linkedUsername,
+                interpolation: { escapeValue: false },
+              })
+            : t("steam_account_already_linked")
         );
       }
     );

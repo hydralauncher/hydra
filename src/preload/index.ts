@@ -2111,11 +2111,14 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-steam-connected", listener);
     return () => ipcRenderer.removeListener("on-steam-connected", listener);
   },
-  onSteamConnectError: (cb: (code: SteamConnectErrorCode) => void) => {
+  onSteamConnectError: (
+    cb: (code: SteamConnectErrorCode, linkedUsername?: string) => void
+  ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      code: SteamConnectErrorCode
-    ) => cb(code);
+      code: SteamConnectErrorCode,
+      linkedUsername?: string
+    ) => cb(code, linkedUsername);
     ipcRenderer.on("on-steam-connect-error", listener);
     return () => ipcRenderer.removeListener("on-steam-connect-error", listener);
   },

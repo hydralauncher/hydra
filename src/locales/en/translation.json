@@ -1487,6 +1487,7 @@
     "integration_status_not_connected": "Not connected",
     "steam_account_linked": "Steam account linked",
     "steam_account_already_linked": "This Steam account is already linked to another Hydra account",
+    "steam_account_already_linked_to": "This Steam account is already linked to the Hydra account {{username}}",
     "steam_account_unlinked": "Steam account disconnected",
     "steam_delete_confirm_title": "Disconnect Steam?",
     "steam_delete_confirm_description": "This also removes your imported Steam library, playtime, and achievements from Hydra. You can get them back by connecting Steam again.",

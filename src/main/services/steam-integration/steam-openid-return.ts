@@ -4,7 +4,7 @@ export const STEAM_CONNECTED_DEEP_LINK = "hydralauncher://steam-connected";
 
 export type SteamOpenIdReturn =
   | { kind: "success" }
-  | { kind: "error"; code: SteamConnectErrorCode };
+  | { kind: "error"; code: SteamConnectErrorCode; linkedUsername?: string };
 
 export const completeSteamOpenIdConnection = ({
   clearReconnectRequired,
@@ -30,12 +30,21 @@ export const parseSteamOpenIdErrorBody = (
   text: string
 ): SteamOpenIdReturn | null => {
   try {
-    const parsed = JSON.parse(text) as { message?: unknown };
+    const parsed = JSON.parse(text) as {
+      message?: unknown;
+      linkedUsername?: unknown;
+    };
     if (
       typeof parsed.message === "string" &&
       parsed.message.toLowerCase().includes("already-linked")
     ) {
-      return { kind: "error", code: "already-linked" };
+      return {
+        kind: "error",
+        code: "already-linked",
+        ...(typeof parsed.linkedUsername === "string" && parsed.linkedUsername
+          ? { linkedUsername: parsed.linkedUsername }
+          : {}),
+      };
     }
   } catch {
     return null;

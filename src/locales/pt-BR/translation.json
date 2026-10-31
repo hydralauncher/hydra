@@ -1453,6 +1453,7 @@
     "integration_status_not_connected": "Não conectada",
     "steam_account_linked": "Conta Steam vinculada",
     "steam_account_already_linked": "Esta conta Steam já está vinculada a outra conta Hydra",
+    "steam_account_already_linked_to": "Esta conta Steam já está vinculada à conta Hydra {{username}}",
     "steam_account_unlinked": "Conta Steam desconectada",
     "steam_delete_confirm_title": "Desconectar da Steam?",
     "steam_delete_confirm_description": "Isso também exclui do Hydra a biblioteca, o tempo de jogo e as conquistas importadas da Steam. Você pode recuperá-los conectando a Steam novamente.",

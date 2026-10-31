@@ -100,6 +100,21 @@ describe("completeSteamOpenIdConnection", () => {
 });
 
 describe("parseSteamOpenIdErrorBody", () => {
+  it("reads the linked Hydra username from the API JSON body", () => {
+    assert.deepEqual(
+      parseSteamOpenIdErrorBody(
+        '{"message":"auth/oauth-provider-already-linked","linkedUsername":"eight123"}'
+      ),
+      { kind: "error", code: "already-linked", linkedUsername: "eight123" }
+    );
+    assert.deepEqual(
+      parseSteamOpenIdErrorBody(
+        '{"message":"auth/oauth-provider-already-linked","linkedUsername":7}'
+      ),
+      { kind: "error", code: "already-linked" }
+    );
+  });
+
   it("reads already-linked from the Hydra API JSON body", () => {
     assert.deepEqual(
       parseSteamOpenIdErrorBody(

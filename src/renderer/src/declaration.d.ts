@@ -1320,7 +1320,7 @@ declare global {
     onAccountUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onSteamConnected: (cb: () => void) => () => Electron.IpcRenderer;
     onSteamConnectError: (
-      cb: (code: SteamConnectErrorCode) => void
+      cb: (code: SteamConnectErrorCode, linkedUsername?: string) => void
     ) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 

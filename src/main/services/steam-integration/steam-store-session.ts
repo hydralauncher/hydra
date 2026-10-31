@@ -123,8 +123,15 @@ export const notifySteamConnected = () => {
   WindowManager.redirect("settings?tab=integrations");
 };
 
-export const notifySteamConnectError = (code: SteamConnectErrorCode) => {
-  WindowManager.sendToAppWindows("on-steam-connect-error", code);
+export const notifySteamConnectError = (
+  code: SteamConnectErrorCode,
+  linkedUsername?: string
+) => {
+  WindowManager.sendToAppWindows(
+    "on-steam-connect-error",
+    code,
+    linkedUsername
+  );
   WindowManager.redirect("settings?tab=integrations");
 };
 
@@ -180,11 +187,20 @@ export const openSteamOpenIdWindow = (
     }
   };
 
-  const finishError = (code: SteamConnectErrorCode, url: string) => {
+  const finishError = (
+    code: SteamConnectErrorCode,
+    url: string,
+    linkedUsername?: string
+  ) => {
     if (finished) return;
     finished = true;
-    steamSyncLogger.error("Steam OpenID failed", code, url);
-    notifySteamConnectError(code);
+    steamSyncLogger.error(
+      "Steam OpenID failed",
+      code,
+      linkedUsername ? `linked to ${linkedUsername}` : "",
+      url
+    );
+    notifySteamConnectError(code, linkedUsername);
     if (!window.isDestroyed()) {
       window.close();
     }
@@ -199,7 +215,7 @@ export const openSteamOpenIdWindow = (
       return true;
     }
 
-    finishError(result.code, url);
+    finishError(result.code, url, result.linkedUsername);
     return true;
   };
 
@@ -231,7 +247,11 @@ export const openSteamOpenIdWindow = (
           typeof text === "string" ? text : ""
         );
         if (result?.kind === "error") {
-          finishError(result.code, window.webContents.getURL());
+          finishError(
+            result.code,
+            window.webContents.getURL(),
+            result.linkedUsername
+          );
         }
       })
       .catch((error) => {
