@@ -46,6 +46,12 @@ export interface GameRepack {
   createdAt: string;
 }
 
+export interface DownloadSourceImportResult {
+  imported: number;
+  skipped: number;
+  failed: string[];
+}
+
 export interface DownloadSource {
   id: string;
   name: string;

@@ -1,3 +1,4 @@
+import type { DownloadSourceImportResult } from "@types";
 import type { AuthPage, Downloader } from "@shared";
 import type {
   LocalScreenshot,
@@ -1063,6 +1064,8 @@ declare global {
     checkSteamShortcut: (shop: GameShop, objectId: string) => Promise<boolean>;
 
     /* Download sources */
+    exportDownloadSources: () => Promise<boolean>;
+    importDownloadSources: () => Promise<DownloadSourceImportResult | null>;
     addDownloadSource: (url: string) => Promise<DownloadSource>;
     removeDownloadSource: (
       removeAll = false,

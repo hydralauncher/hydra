@@ -1,0 +1,63 @@
+# Download source backups
+
+In **Settings → Download sources**, choose **Export sources** to save all
+configured source URLs in a JSON file. Keep the file for a reinstall or share it
+with someone who wants to import the same sources.
+
+Choose **Import sources** and select the exported file to add its sources using
+Hydra's normal source registration flow. Importing requires an internet
+connection. Existing sources are preserved, and repeated URLs are skipped. The
+result lists added and skipped counts, as well as any failed URLs. Import the
+same file again to retry failures without duplicating successful additions.
+An ongoing transfer stays busy when navigating away from settings and back.
+Source changes are serialized in the main process: additions, removals, syncs,
+and imports wait for the current operation to finish instead of failing when
+they overlap. A removal queued during an import runs after the entire batch.
+Selecting, reading, and validating a backup happen before entering that queue,
+so leaving the file dialog open does not delay source changes from other windows.
+The configured source list is read inside the queue just before registration,
+so additions made while choosing a file are still recognized as duplicates.
+
+The backup contains URLs only; game downloads, cached catalogue data, account
+credentials, and local database IDs are not included. Source URLs are preserved
+as configured, including any query parameters.
+
+## File format
+
+```json
+{
+  "version": 1,
+  "sources": [{ "url": "https://example.com/source.json" }]
+}
+```
+
+Imports accept version 1, HTTP(S) URLs, files up to 1 MiB, and at most 200 source
+entries (including duplicates). The entire file is validated before any source
+is added. Unsupported versions, malformed entries, and files exceeding either
+limit leave the configured sources unchanged. Cancelling a file dialog performs
+no operation. Import errors distinguish invalid backups from operational failures.
+
+## Focused tests
+
+```sh
+node --import ./scripts/register-ts-node.mjs --test src/main/services/download-source-backup.test.ts
+node --import ./scripts/register-ts-node.mjs --test src/main/services/download-source-operation-gate.test.ts src/renderer/src/features/download-source-transfer.test.ts
+node --import ./scripts/register-ts-node.mjs --test src/main/events/download-sources/import-download-sources.test.ts
+node --import ./scripts/register-ts-node.mjs --test src/renderer/src/pages/settings/download-source-import-error.test.ts
+```
+
+For manual verification, export at least two sources, import that file in a fresh
+profile, then import it again. Check that the second import skips every URL.
+Also check invalid JSON, cancelling both dialogs, and a backup containing an
+unavailable source: other sources should still be added, and the failed URL
+should appear in the result.
+During a long import, switch settings categories and return: source controls
+should remain disabled. When it finishes, the full source list and import result
+should be available, and the result button should use the selected language.
+Try a backup with 201 entries and confirm no sources are added. While a pending
+source sync is running, add another source: it should wait and succeed. A removal
+queued during an import should run after the batch and keep the sources removed.
+Check that an unreadable file shows a general import failure, while malformed or
+oversized backups show the file-validation message.
+Leave the import file dialog open and sync or change sources from another window:
+those operations should complete without waiting for a file to be selected.
