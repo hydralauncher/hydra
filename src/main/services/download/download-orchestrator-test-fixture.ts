@@ -20,6 +20,10 @@ import type {
 } from "../../../types/level.types";
 import { createDownloadRecordUpdater } from "../download-record-updater-core.js";
 import * as completion from "./download-completion.js";
+import {
+  estimateMultipartTotalBytes,
+  getMultipartFolderName,
+} from "./download-parts.js";
 import { withDownloadActivation } from "./download-activation.js";
 import * as queueVerify from "./download-queue-verify.js";
 import * as downloaderTypes from "./types.js";
@@ -191,6 +195,13 @@ export function fixture() {
     "../../types": downloadContract,
     "./types": downloaderTypes,
     "./download-completion": completion,
+    "./download-parts": {
+      estimateMultipartTotalBytes,
+      getMultipartFolderName,
+    },
+    "./multipart-hoster-feature": {
+      assertMultipartHosterDownloadsEnabled: async () => {},
+    },
     "./download-queue-verify": queueVerify,
     "node:path": path,
     "node:fs": fs,

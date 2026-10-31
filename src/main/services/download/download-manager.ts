@@ -1197,7 +1197,7 @@ export class DownloadManager {
   }
 
   public static async watchDownloads() {
-    if (this.queueHeldForDiskSpace) await this.retryQueueHeldForDiskSpace();
+    if (this.queueHeldForDiskSpace) this.retryQueueHeldForDiskSpace();
     const sessionEntries = [...this.sessions.entries()];
     await Promise.all(
       sessionEntries.map(async ([downloadId, session]) => {
@@ -1232,7 +1232,7 @@ export class DownloadManager {
     return this.getDownloadStatusFromJs(downloadId);
   }
 
-  private static async retryQueueHeldForDiskSpace() {
+  private static retryQueueHeldForDiskSpace() {
     const now = Date.now();
 
     if (now - this.lastQueueRetry < DISK_SPACE_CHECK_INTERVAL_MS) return;
@@ -1987,20 +1987,47 @@ export class DownloadManager {
     entry: JsBatchEntry,
     url: string
   ): JsHttpDownloaderOptions {
-    const torBoxParallel = batch.provider === "torBox" && !entry.isZip;
     const resourceId = this.getBatchResourceId(batch, entry);
     const filePath = path.join(batch.savePath, entry.filename);
     const options: JsHttpDownloaderOptions = {
       url,
       savePath: batch.savePath,
       headers: entry.headers,
-      allowParallelRanges:
-        batch.provider === "allDebrid" || batch.provider === "hoster"
-          ? undefined
-          : !entry.isZip &&
-            (batch.provider === "torBox" ||
-              (batch.provider === "realDebrid" &&
-                !isZipDownloadUrl(url, entry.filename))),
+      ...this.getBatchParallelDownloadOptions(batch, entry, url),
+      preserveFilename: true,
+      requireResourceIdentity: this.requiresResourceIdentity(
+        batch,
+        entry,
+        filePath
+      ),
+      resourceId,
+      beforeComplete: this.getSaveResourceIdentityCallback(batch, resourceId),
+      expectedSize: this.getExpectedBatchDownloadSize(batch, entry),
+      requireRangeResume: this.requiresRangeResume(batch, entry),
+      // Verify saved bytes even for single-connection Real-Debrid files.
+      verifyResumePrefix:
+        batch.provider === "realDebrid" || Boolean(entry.isZip),
+      filename: this.getBatchDownloadFilename(batch, entry),
+    };
+    options.refreshUrl = this.getBatchUrlRefresh(batch, entry, options);
+    return options;
+  }
+
+  private static getBatchParallelDownloadOptions(
+    batch: JsBatchState,
+    entry: JsBatchEntry,
+    url: string
+  ): Pick<
+    JsHttpDownloaderOptions,
+    | "allowParallelRanges"
+    | "parallelRangeSize"
+    | "probeUnboundedRange"
+    | "parallelRangeConnections"
+    | "maxParallelRanges"
+  > {
+    const torBoxParallel = batch.provider === "torBox" && !entry.isZip;
+    return {
+      allowParallelRanges: this.getAllowParallelRanges(batch, entry, url),
       parallelRangeSize: torBoxParallel
         ? getRangeSizeForRequestBudget(
             entry.size ?? 0,
@@ -2015,38 +2042,82 @@ export class DownloadManager {
       maxParallelRanges: torBoxParallel
         ? TORBOX_MAX_PARALLEL_RANGES
         : undefined,
-      preserveFilename: true,
-      // New hoster parts record their source before writing; legacy partials stay unidentified.
-      requireResourceIdentity:
-        (batch.provider === "realDebrid" &&
-          (entry.isZip === true || readResourceIdentity(filePath) !== null)) ||
-        (batch.provider === "hoster" &&
-          (!fs.existsSync(filePath) ||
-            readResourceIdentity(filePath) !== null)),
-      resourceId,
-      beforeComplete:
-        batch.provider === "realDebrid" || batch.provider === "hoster"
-          ? (completedPath) =>
-              saveCompletedResourceIdentity(completedPath, resourceId)
-          : undefined,
-      expectedSize:
-        (batch.provider === "torBox" || batch.provider === "realDebrid") &&
-        !entry.isZip
-          ? entry.size
-          : undefined,
-      requireRangeResume:
-        batch.provider === "realDebrid" ||
-        (!entry.isZip && batch.provider === "torBox"),
-      // Verify saved bytes even for single-connection Real-Debrid files.
-      verifyResumePrefix:
-        batch.provider === "realDebrid" || Boolean(entry.isZip),
-      filename:
-        batch.provider === "torBox"
-          ? entry.filename
-          : this.sanitizeRelativePath(entry.filename),
     };
-    options.refreshUrl = this.getBatchUrlRefresh(batch, entry, options);
-    return options;
+  }
+
+  private static getAllowParallelRanges(
+    batch: JsBatchState,
+    entry: JsBatchEntry,
+    url: string
+  ): boolean | undefined {
+    if (batch.provider === "allDebrid" || batch.provider === "hoster") {
+      return undefined;
+    }
+    if (entry.isZip) {
+      return false;
+    }
+    return (
+      batch.provider === "torBox" ||
+      (batch.provider === "realDebrid" &&
+        !isZipDownloadUrl(url, entry.filename))
+    );
+  }
+
+  private static requiresResourceIdentity(
+    batch: JsBatchState,
+    entry: JsBatchEntry,
+    filePath: string
+  ): boolean {
+    // New hoster parts record their source before writing; legacy partials stay unidentified.
+    if (batch.provider === "realDebrid") {
+      return entry.isZip === true || readResourceIdentity(filePath) !== null;
+    }
+    if (batch.provider === "hoster") {
+      return (
+        !fs.existsSync(filePath) || readResourceIdentity(filePath) !== null
+      );
+    }
+    return false;
+  }
+
+  private static getSaveResourceIdentityCallback(
+    batch: JsBatchState,
+    resourceId: string
+  ): JsHttpDownloaderOptions["beforeComplete"] {
+    if (batch.provider !== "realDebrid" && batch.provider !== "hoster") {
+      return undefined;
+    }
+    return (completedPath) =>
+      saveCompletedResourceIdentity(completedPath, resourceId);
+  }
+
+  private static getExpectedBatchDownloadSize(
+    batch: JsBatchState,
+    entry: JsBatchEntry
+  ): number | undefined {
+    return (batch.provider === "torBox" || batch.provider === "realDebrid") &&
+      !entry.isZip
+      ? entry.size
+      : undefined;
+  }
+
+  private static requiresRangeResume(
+    batch: JsBatchState,
+    entry: JsBatchEntry
+  ): boolean {
+    return (
+      batch.provider === "realDebrid" ||
+      (!entry.isZip && batch.provider === "torBox")
+    );
+  }
+
+  private static getBatchDownloadFilename(
+    batch: JsBatchState,
+    entry: JsBatchEntry
+  ): string {
+    return batch.provider === "torBox"
+      ? entry.filename
+      : this.sanitizeRelativePath(entry.filename);
   }
 
   private static getBatchResourceId(

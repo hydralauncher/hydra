@@ -72,7 +72,7 @@ export function useDownload(gameId?: string) {
       throw createAbortError();
     }
 
-    if (response.ok) updateLibrary();
+    if (response.ok) void updateLibrary();
 
     return response;
   };
@@ -109,7 +109,7 @@ export function useDownload(gameId?: string) {
       throw createAbortError();
     }
 
-    if (response.ok) updateLibrary();
+    if (response.ok) void updateLibrary();
 
     return response;
   };
@@ -153,7 +153,7 @@ export function useDownload(gameId?: string) {
 
     try {
       await window.electron.deleteGameFolder(shop, objectId, options);
-      updateLibrary();
+      void updateLibrary();
     } finally {
       dispatch(removeGameFromDeleting(objectId));
     }
@@ -164,13 +164,13 @@ export function useDownload(gameId?: string) {
     await window.electron.cancelGameDownload(shop, objectId);
     dispatch(clearDownloadById(gameId));
 
-    updateLibrary();
+    void updateLibrary();
     await removeGameInstaller(shop, objectId, { keepEpicUpdateFiles: true });
   };
 
   const removeGameFromLibrary = (shop: GameShop, objectId: string) =>
     window.electron.removeGameFromLibrary(shop, objectId).then(() => {
-      updateLibrary();
+      void updateLibrary();
     });
 
   const pauseSeeding = async (shop: GameShop, objectId: string) => {
