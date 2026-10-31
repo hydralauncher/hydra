@@ -423,6 +423,65 @@ export class Umu {
     });
   }
 
+  private static buildLaunchCommand(
+    executablePath: string,
+    launchParameters: string[],
+    options?: {
+      launchOptions?: string | null;
+      useGamemode?: boolean;
+      gamescopeArgs?: string[];
+    }
+  ) {
+    const pythonPath = getCompatiblePythonPath();
+    const umuBinaryPath = getUmuBinaryPath();
+    const executableToSpawn = pythonPath ?? umuBinaryPath;
+    const executableArgs = pythonPath
+      ? [umuBinaryPath, executablePath, ...launchParameters]
+      : [executablePath, ...launchParameters];
+
+    const wrapperCommands: (string | string[])[] = [];
+    if (options?.gamescopeArgs && options.gamescopeArgs.length > 0) {
+      wrapperCommands.push(options.gamescopeArgs);
+    }
+    if (options?.useGamemode) {
+      wrapperCommands.push("gamemoderun");
+    }
+
+    const resolvedLaunchCommand = resolveLaunchCommand({
+      baseCommand: executableToSpawn,
+      baseArgs: executableArgs,
+      launchOptions: options?.launchOptions,
+      wrapperCommands,
+    });
+
+    return {
+      pythonPath,
+      umuBinaryPath,
+      resolvedLaunchCommand,
+    };
+  }
+
+  private static buildLaunchEnv(
+    options?: {
+      gameId?: string | null;
+      winePrefixPath?: string | null;
+      protonPath?: string | null;
+      useMangohud?: boolean;
+    },
+    resolvedEnv?: Record<string, string>
+  ) {
+    return {
+      PROTON_LOG: "1",
+      ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
+      ...(options?.winePrefixPath
+        ? { WINEPREFIX: options.winePrefixPath }
+        : {}),
+      ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
+      ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
+      ...resolvedEnv,
+    };
+  }
+
   public static async launchExecutable(
     executablePath: string,
     launchParameters: string[] = [],
@@ -442,37 +501,13 @@ export class Umu {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
     const workingDirectory = path.dirname(executablePath);
     const umuLogPath = getUmuLogPath(options?.gameId);
-    const umuBinaryPath = getUmuBinaryPath();
-    const pythonPath = getCompatiblePythonPath();
-    const executableToSpawn = pythonPath ?? umuBinaryPath;
-    const executableArgs = pythonPath
-      ? [umuBinaryPath, executablePath, ...launchParameters]
-      : [executablePath, ...launchParameters];
-    const resolvedLaunchCommand = resolveLaunchCommand({
-      baseCommand: executableToSpawn,
-      baseArgs: executableArgs,
-      launchOptions: options?.launchOptions,
-      wrapperCommands: [
-        ...(options?.gamescopeArgs && options.gamescopeArgs.length > 0
-          ? [options.gamescopeArgs]
-          : []),
-        ...(options?.useGamemode ? ["gamemoderun"] : []),
-      ],
-    });
+    const { pythonPath, umuBinaryPath, resolvedLaunchCommand } =
+      Umu.buildLaunchCommand(executablePath, launchParameters, options);
 
     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
     ensureExecutablePermission(umuBinaryPath);
 
-    const launchEnv = {
-      PROTON_LOG: "1",
-      ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
-      ...(options?.winePrefixPath
-        ? { WINEPREFIX: options.winePrefixPath }
-        : {}),
-      ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
-      ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
-      ...resolvedLaunchCommand.env,
-    };
+    const launchEnv = Umu.buildLaunchEnv(options, resolvedLaunchCommand.env);
 
     const envCommandPart = Object.entries(launchEnv)
       .map(([key, value]) => `${key}=${shellQuote(value)}`)

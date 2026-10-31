@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import debounce from "lodash-es/debounce";
 import { useTranslation } from "react-i18next";
 import { FolderOpenIcon, TrashIcon } from "@phosphor-icons/react";
 import type { LibraryGame, ProtonVersion } from "@types";
@@ -274,8 +275,32 @@ export function GameCompatibilitySettingsTab({
     [electron, game.shop, game.objectId]
   );
 
+  const debounceUpdateGamescopeSettings = useRef(
+    debounce(
+      async (
+        shop: LibraryGame["shop"],
+        objectId: string,
+        settings: {
+          gamescopeResolution?: string | null;
+          gamescopeOutputResolution?: string | null;
+          gamescopeUpscaler?: string | null;
+          gamescopeFramerateLimit?: number | null;
+        }
+      ) => {
+        await electron.updateGameGamescopeSettings(shop, objectId, settings);
+      },
+      1000
+    )
+  ).current;
+
+  useEffect(() => {
+    return () => {
+      debounceUpdateGamescopeSettings.flush();
+    };
+  }, [debounceUpdateGamescopeSettings]);
+
   const handleUpdateGamescopeSetting = useCallback(
-    async (
+    (
       key:
         | "gamescopeResolution"
         | "gamescopeOutputResolution"
@@ -314,13 +339,18 @@ export function GameCompatibilitySettingsTab({
         gamescopeFramerateLimit: payloadGamescopeFramerateLimit,
       };
 
-      await electron.updateGameGamescopeSettings(
-        game.shop,
-        game.objectId,
-        payload
-      );
+      if (key === "gamescopeUpscaler") {
+        void electron.updateGameGamescopeSettings(
+          game.shop,
+          game.objectId,
+          payload
+        );
+      } else {
+        debounceUpdateGamescopeSettings(game.shop, game.objectId, payload);
+      }
     },
     [
+      debounceUpdateGamescopeSettings,
       electron,
       game.shop,
       game.objectId,
@@ -520,7 +550,7 @@ export function GameCompatibilitySettingsTab({
                     handleUpdateGamescopeSetting(
                       "gamescopeResolution",
                       e.target.value
-                    ).catch(() => {});
+                    );
                   }}
                   placeholder="e.g. 1280x720"
                 />
@@ -534,7 +564,7 @@ export function GameCompatibilitySettingsTab({
                     handleUpdateGamescopeSetting(
                       "gamescopeOutputResolution",
                       e.target.value
-                    ).catch(() => {});
+                    );
                   }}
                   placeholder="e.g. 1920x1080"
                 />
@@ -552,10 +582,7 @@ export function GameCompatibilitySettingsTab({
                   })}
                   value={gamescopeUpscaler}
                   onValueChange={(value) => {
-                    handleUpdateGamescopeSetting(
-                      "gamescopeUpscaler",
-                      value
-                    ).catch(() => {});
+                    handleUpdateGamescopeSetting("gamescopeUpscaler", value);
                   }}
                   options={[
                     { label: t("none", { defaultValue: "None" }), value: "" },
@@ -577,7 +604,7 @@ export function GameCompatibilitySettingsTab({
                     handleUpdateGamescopeSetting(
                       "gamescopeFramerateLimit",
                       val
-                    ).catch(() => {});
+                    );
                   }}
                   placeholder="e.g. 60"
                 />

@@ -871,18 +871,43 @@ export function GameOptionsModal({
     updateGame();
   };
 
+  const currentGameRef = useRef(game);
+  useEffect(() => {
+    currentGameRef.current = game;
+  }, [game]);
+
   const GAMESCOPE_DEBOUNCE_DELAY = 1000;
 
   const debounceUpdateGamescopeSettings = useRef(
-    debounce(async (shop: GameShop, objectId: string, settings: any) => {
-      await globalThis.window.electron.updateGameGamescopeSettings(
-        shop,
-        objectId,
-        settings
-      );
-      updateGame();
-    }, GAMESCOPE_DEBOUNCE_DELAY)
+    debounce(
+      async (
+        shop: GameShop,
+        objectId: string,
+        settings: Parameters<
+          typeof globalThis.window.electron.updateGameGamescopeSettings
+        >[2]
+      ) => {
+        await globalThis.window.electron.updateGameGamescopeSettings(
+          shop,
+          objectId,
+          settings
+        );
+        if (
+          currentGameRef.current.shop === shop &&
+          currentGameRef.current.objectId === objectId
+        ) {
+          updateGame();
+        }
+      },
+      GAMESCOPE_DEBOUNCE_DELAY
+    )
   ).current;
+
+  useEffect(() => {
+    return () => {
+      debounceUpdateGamescopeSettings.flush();
+    };
+  }, [debounceUpdateGamescopeSettings]);
 
   const handleGamescopeSettingChange = (
     key:
