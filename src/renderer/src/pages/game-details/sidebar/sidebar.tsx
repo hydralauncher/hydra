@@ -153,8 +153,11 @@ export function Sidebar() {
   const { isEnabled: isGlobalLeaderboardsEnabled } =
     useGlobalLeaderboardsFeature();
   const achievementsCount = achievements?.length ?? 0;
+  const localTrophies = Boolean(
+    achievements?.length && achievements.every((row) => row.source === "rpcs3")
+  );
   const shouldRenderAchievementsSection =
-    (!!userDetails && achievementsCount > 0) ||
+    ((!!userDetails || localTrophies) && achievementsCount > 0) ||
     (shop === "launchbox" &&
       !!shopDetails?.retroAchievementsGameId &&
       !userPreferences?.retroAchievementsWebApiKey);
@@ -261,18 +264,20 @@ export function Sidebar() {
           }
         >
           <ul className="list">
-            <RetroAchievementsConnectBanner />
+            {!localTrophies && <RetroAchievementsConnectBanner />}
 
-            {!hasActiveSubscription && achievementsCount > 0 && (
-              <button
-                type="button"
-                className="subscription-required-button"
-                onClick={() => showHydraCloudModal("achievements")}
-              >
-                <AlertIcon size={14} />
-                <span>{t("achievements_not_sync")}</span>
-              </button>
-            )}
+            {!localTrophies &&
+              !hasActiveSubscription &&
+              achievementsCount > 0 && (
+                <button
+                  type="button"
+                  className="subscription-required-button"
+                  onClick={() => showHydraCloudModal("achievements")}
+                >
+                  <AlertIcon size={14} />
+                  <span>{t("achievements_not_sync")}</span>
+                </button>
+              )}
 
             {(achievements ?? []).slice(0, 4).map((achievement) => {
               const concealed = isAchievementConcealed(

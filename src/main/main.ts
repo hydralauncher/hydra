@@ -93,6 +93,12 @@ export const loadState = async () => {
 
   await import("./events");
 
+  void import("./services/achievements/rpcs3/rpcs3-achievements")
+    .then(({ initializeRpcs3Trophies }) => initializeRpcs3Trophies())
+    .catch((error) =>
+      logger.warn("Could not initialize RPCS3 trophies", error)
+    );
+
   if (userPreferences?.realDebridApiToken) {
     RealDebridClient.authorize(userPreferences.realDebridApiToken);
   }

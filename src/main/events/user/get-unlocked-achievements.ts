@@ -53,6 +53,15 @@ export const getUnlockedAchievements = async (
     if (!valid()) throw new AchievementSyncCancelledError();
   };
 
+  if (shop === "launchbox") {
+    const { getRpcs3Achievements } = await import(
+      "@main/services/achievements/rpcs3/rpcs3-achievements"
+    );
+    const local = await getRpcs3Achievements(objectId, shop);
+    assertCurrent();
+    if (local !== null) return local;
+  }
+
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
     {

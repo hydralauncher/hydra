@@ -4,7 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { it } from "node:test";
 
-import { extractTitleIdFromIso } from "./verified-ps3-iso-title-id.js";
+import {
+  extractTitleIdFromIso,
+  extractTrophySetIdsFromIso,
+} from "./verified-ps3-iso-title-id.js";
 
 const SECTOR = 2048;
 const writeEntry = (
@@ -13,9 +16,10 @@ const writeEntry = (
   name: string,
   targetSector: number,
   size: number,
-  isDirectory: boolean
+  isDirectory: boolean,
+  entryOffset = 0
 ) => {
-  const offset = sector * SECTOR;
+  const offset = sector * SECTOR + entryOffset;
   image[offset] = 33 + name.length;
   image.writeUInt32LE(targetSector, offset + 2);
   image.writeUInt32LE(size, offset + 10);
@@ -23,6 +27,48 @@ const writeEntry = (
   image[offset + 32] = name.length;
   image.write(name, offset + 33, "latin1");
 };
+
+it("maps exact collection trophy set directories inside an ISO", async (t) => {
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "hydra-rpcs3-trophy-iso-")
+  );
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const iso = path.join(root, "unrelated-title.iso");
+  const image = Buffer.alloc(25 * SECTOR);
+  const pvd = 16 * SECTOR;
+  image[pvd] = 1;
+  image.write("CD001", pvd + 1, "ascii");
+  image.writeUInt32LE(20, pvd + 158);
+  image.writeUInt32LE(SECTOR, pvd + 166);
+  writeEntry(image, 20, "PS3_GAME", 21, SECTOR, true);
+  writeEntry(image, 21, "TROPDIR", 22, SECTOR, true);
+  let offset = 0;
+  for (const [name, directory] of [
+    ["NPWR12345_00", true],
+    ["NPWR12346_00", true],
+    ["NPWR12347_00", false],
+    ["unrelated", true],
+  ] as const) {
+    writeEntry(image, 22, name, 23, SECTOR, directory, offset);
+    offset += 33 + name.length;
+  }
+  await fs.writeFile(iso, image);
+  assert.deepEqual(await extractTrophySetIdsFromIso(iso), [
+    "NPWR12345_00",
+    "NPWR12346_00",
+  ]);
+  // A readable ISO without trophy entries is genuinely empty.
+  const empty = Buffer.from(image);
+  empty.fill(0, 22 * SECTOR, 23 * SECTOR);
+  await fs.writeFile(iso, empty);
+  assert.deepEqual(await extractTrophySetIdsFromIso(iso), []);
+  // A short directory read is a failed discovery, not an empty catalogue.
+  await fs.writeFile(iso, image.subarray(0, 22 * SECTOR + 12));
+  await assert.rejects(extractTrophySetIdsFromIso(iso), /Incomplete PS3 ISO/);
+  image.write("BROKEN", pvd + 1, "ascii");
+  await fs.writeFile(iso, image);
+  await assert.rejects(extractTrophySetIdsFromIso(iso), /Invalid PS3 ISO/);
+});
 
 it("reads TITLE_ID inside ISO metadata and ignores its filename", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-iso-"));

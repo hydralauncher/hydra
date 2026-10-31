@@ -1,6 +1,7 @@
 import type { GameShop, SteamAchievement, UnlockedAchievement } from "@types";
 
 export type AchievementMemoryEntry = {
+  source?: "rpcs3";
   achievements: SteamAchievement[];
   unlockedAchievements: UnlockedAchievement[];
   language?: string;
@@ -34,6 +35,12 @@ export const AchievementMemoryStore = {
 
   clear() {
     entries.clear();
+  },
+
+  clearAccountEntries() {
+    for (const [key, entry] of entries) {
+      if (entry.source !== "rpcs3") entries.delete(key);
+    }
   },
 };
 
@@ -78,7 +85,13 @@ export const resolveUnlockedAchievementCount = (
   const hasCatalogue = validNames.size > 0;
   const localCount =
     achievements?.unlockedAchievements.filter((unlocked) => {
-      if (unlocked.unlockTime <= 0) return false;
+      if (
+        unlocked.unlockTime <= 0 &&
+        !achievements?.achievements.some(
+          (row) => row.name === unlocked.name && row.trophyGrade
+        )
+      )
+        return false;
       if (!hasCatalogue) return true;
       return validNames.has((unlocked.name ?? "").toUpperCase());
     }).length ?? 0;

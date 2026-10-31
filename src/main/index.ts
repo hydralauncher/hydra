@@ -461,6 +461,10 @@ app.on("before-quit", async (e) => {
       );
       return;
     }
+    const { stopRpcs3TrophyWatchers } = await import(
+      "./services/achievements/rpcs3/rpcs3-achievements"
+    );
+    stopRpcs3TrophyWatchers();
     DownloadOrchestrator.cancelPendingDebridPreparations();
     PowerSaveBlockerManager.reset();
     ScreenshotInputService.shutdown();

@@ -35,6 +35,7 @@ import {
   filterDownloadableRepacks,
   getGameExecutableFilters,
   SteamContentDescriptor,
+  isClassicsGameForEmulator,
 } from "@shared";
 
 export const gameDetailsContext = createContext<GameDetailsContext>({
@@ -145,6 +146,26 @@ export function GameDetailsContextProvider({
     ? objectId
     : (presentation?.achievementGame?.objectId ?? operationalObjectId);
   const pageSyncKey = useRef("");
+
+  useEffect(() => {
+    if (
+      !game ||
+      !isClassicsGameForEmulator(game, { kind: "emulator", system: "ps3" })
+    )
+      return;
+    let cancelled = false;
+    const updateCount = achievementUpdateCountRef.current;
+    void window.electron
+      .getUnlockedAchievements(game.objectId, game.shop)
+      .then((rows) => {
+        if (!cancelled && updateCount === achievementUpdateCountRef.current)
+          setAchievements(rows);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [game]);
 
   useEffect(() => {
     const members = presentation?.members ?? (game ? [game] : []);
@@ -517,7 +538,17 @@ export function GameDetailsContextProvider({
         member.objectId,
         member.shop,
         (achievements) => {
-          if (!userDetails) return;
+          if (
+            !userDetails &&
+            !(
+              game &&
+              isClassicsGameForEmulator(game, {
+                kind: "emulator",
+                system: "ps3",
+              })
+            )
+          )
+            return;
           if (
             (member.objectId !== achievementObjectId ||
               member.shop !== achievementShop) &&
@@ -535,7 +566,7 @@ export function GameDetailsContextProvider({
     return () => {
       unsubscribe.forEach((stop) => stop());
     };
-  }, [achievementObjectId, achievementShop, userDetails, presentation]);
+  }, [achievementObjectId, achievementShop, userDetails, presentation, game]);
 
   useEffect(() => {
     if (shop === "custom") return;
