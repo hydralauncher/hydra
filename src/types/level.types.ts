@@ -94,6 +94,11 @@ export interface Game extends LibraryCatalogueMetadata {
   launchOptions?: string | null;
   autoRunMangohud?: boolean | null;
   autoRunGamemode?: boolean | null;
+  autoRunGamescope?: boolean | null;
+  gamescopeResolution?: string | null;
+  gamescopeOutputResolution?: string | null;
+  gamescopeUpscaler?: string | null;
+  gamescopeFramerateLimit?: number | null;
   favorite?: boolean;
   isHiddenFromOthers?: boolean;
   isConcealed?: boolean;
@@ -254,6 +259,7 @@ export interface UserPreferences {
   defaultProtonPath?: string | null;
   autoRunMangohud?: boolean;
   autoRunGamemode?: boolean;
+  autoRunGamescope?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
   hideLibraryGameBadges?: boolean;

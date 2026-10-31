@@ -62,6 +62,13 @@
     gap: calc(globals.$spacing-unit / 2);
   }
 
+  &__gamescope-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
   &__mangohud-label {
     display: inline-flex;
     align-items: center;
@@ -84,6 +91,17 @@
     }
   }
 
+  &__gamescope-label {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+
+    &--disabled {
+      text-decoration: underline dotted;
+      text-underline-offset: 2px;
+    }
+  }
+
   &__mangohud-link {
     display: inline-flex;
     align-items: center;
@@ -91,6 +109,12 @@
   }
 
   &__gamemode-link {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 3);
+  }
+
+  &__gamescope-link {
     display: inline-flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 3);

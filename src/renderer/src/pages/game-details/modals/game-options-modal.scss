@@ -201,6 +201,17 @@ $disc-menu-transition-duration: 0.15s;
     }
   }
 
+  &__gamescope-label {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+
+    &--disabled {
+      text-decoration: underline dotted;
+      text-underline-offset: 2px;
+    }
+  }
+
   &__steam-playtime-label {
     display: inline-flex;
     align-items: center;
@@ -218,9 +229,23 @@ $disc-menu-transition-duration: 0.15s;
     gap: calc(globals.$spacing-unit / 3);
   }
 
+  &__gamescope-link {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 3);
+  }
+
   &__auto-run-select {
     min-width: 180px;
     flex-shrink: 0;
+  }
+
+  &__gamescope-settings {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding-left: calc(globals.$spacing-unit * 3.5);
+    margin-top: calc(globals.$spacing-unit * 1.5);
   }
 
   &__downloads {

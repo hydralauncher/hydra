@@ -1026,6 +1026,23 @@ contextBridge.exposeInMainWorld("electron", {
     autoRunGamemode: boolean
   ) =>
     ipcRenderer.invoke("toggleGameGamemode", shop, objectId, autoRunGamemode),
+  toggleGameGamescope: (
+    shop: GameShop,
+    objectId: string,
+    autoRunGamescope: boolean
+  ) =>
+    ipcRenderer.invoke("toggleGameGamescope", shop, objectId, autoRunGamescope),
+  updateGameGamescopeSettings: (
+    shop: GameShop,
+    objectId: string,
+    settings: {
+      gamescopeResolution?: string | null;
+      gamescopeOutputResolution?: string | null;
+      gamescopeUpscaler?: string | null;
+      gamescopeFramerateLimit?: number | null;
+    }
+  ) =>
+    ipcRenderer.invoke("updateGameGamescopeSettings", shop, objectId, settings),
   isGamemodeAvailable: () => ipcRenderer.invoke("isGamemodeAvailable"),
   isSteamAppExecutable: (appId: string, executablePath: string) =>
     ipcRenderer.invoke("isSteamAppExecutable", appId, executablePath),
@@ -1034,6 +1051,7 @@ contextBridge.exposeInMainWorld("electron", {
   uninstallGameOnSteam: (steamAppId: string) =>
     ipcRenderer.invoke("uninstallGameOnSteam", steamAppId),
   isMangohudAvailable: () => ipcRenderer.invoke("isMangohudAvailable"),
+  isGamescopeAvailable: () => ipcRenderer.invoke("isGamescopeAvailable"),
   isWinetricksAvailable: () => ipcRenderer.invoke("isWinetricksAvailable"),
   addGameToLibrary: (
     shop: GameShop,
