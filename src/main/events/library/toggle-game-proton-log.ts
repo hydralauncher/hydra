@@ -1,4 +1,5 @@
-import { gamesSublevel, levelKeys } from "@main/level";
+import { updateGameRecord } from "@main/services/game-record-updater";
+import { levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 import { registerEvent } from "../register-event";
 
@@ -9,12 +10,8 @@ const toggleGameProtonLog = async (
   protonLogEnabled: boolean
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
-  const game = await gamesSublevel.get(gameKey);
 
-  if (!game) return;
-
-  await gamesSublevel.put(gameKey, {
-    ...game,
+  await updateGameRecord(gameKey, {
     protonLogEnabled,
   });
 };

@@ -46,11 +46,11 @@ function CompatibilityToggle({
         id={id}
         label={
           <span
-            className={
+            className={`settings-context-compatibility__toggle-label${
               disabled
-                ? "settings-context-compatibility__toggle-label--disabled"
+                ? " settings-context-compatibility__toggle-label--disabled"
                 : ""
-            }
+            }`}
             data-tooltip-id={tooltipId}
             data-tooltip-content={tooltipContent}
           >

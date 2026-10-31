@@ -825,6 +825,15 @@ const launchGameWithCloudSaveChecks = async (
     userPreferences?.protonLogEnabled === true ||
     game?.protonLogEnabled === true;
 
+  const compatibilityEnvironmentVariablesEnabled =
+    userPreferences?.compatibilityEnvironmentVariablesEnabled ?? false;
+  const compatibilityEnvironmentVariables =
+    process.platform === "linux" && compatibilityEnvironmentVariablesEnabled
+      ? parseCompatibilityEnvironmentVariables(
+          userPreferences?.compatibilityEnvironmentVariables
+        )
+      : {};
+
   const steamCompatibilityPrefixPath =
     process.platform === "linux" &&
     isWindowsExecutable(parsedPath) &&
@@ -1028,6 +1037,8 @@ const launchGameWithCloudSaveChecks = async (
                 useGamemode,
                 useMangohud,
                 onStatus: createUmuStatusReporter(gameKey),
+                protonLogEnabled,
+                compatibilityEnvironmentVariables,
               }
             );
             pid = handle.pid;
@@ -1070,15 +1081,6 @@ const launchGameWithCloudSaveChecks = async (
   }
 
   await new Promise((resolve) => setTimeout(resolve, LAUNCH_DELAY_IN_MS));
-
-  const compatibilityEnvironmentVariablesEnabled =
-    userPreferences?.compatibilityEnvironmentVariablesEnabled ?? false;
-  const compatibilityEnvironmentVariables =
-    process.platform === "linux" && compatibilityEnvironmentVariablesEnabled
-      ? parseCompatibilityEnvironmentVariables(
-          userPreferences?.compatibilityEnvironmentVariables
-        )
-      : {};
 
   if (steamProtocolLaunch) {
     if (launchOptions?.includes("%command%") || useMangohud || useGamemode) {

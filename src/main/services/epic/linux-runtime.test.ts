@@ -839,3 +839,45 @@ test("cancellation or lease replacement during fingerprint IO prevents spawning"
   });
   replacement.release();
 });
+
+test("launchEpicLinuxGame forwards compatibility environment variables and proton logging toggle", async (t) => {
+  const f = await fixture(t);
+  const context = await f.api.prepareEpicLinuxRuntime(
+    f.game,
+    f.target,
+    f.options()
+  );
+  const parameters = {
+    executable: "Game.exe",
+    args: [],
+    workingDirectory: f.root,
+    environment: {},
+  };
+  const lease = (await f.api.acquireEpicLinuxPrefixSession(context)) as {
+    release(): void;
+  };
+  const controller = new AbortController();
+  const spawned = gate();
+  const launching = f.api.launchEpicLinuxGame(parameters, context, {
+    lease,
+    signal: controller.signal,
+    protonLogEnabled: true,
+    compatibilityEnvironmentVariables: {
+      CUSTOM_VAR: "custom_value",
+    },
+    onSpawn: () => {
+      spawned.open();
+    },
+  });
+  await spawned.promise;
+  controller.abort();
+  await assert.rejects(launching, { code: "operation-cancelled" });
+  lease.release();
+
+  const spawnCall = f.state.calls.find(
+    (call) => call.environment.CUSTOM_VAR === "custom_value"
+  );
+  assert.ok(spawnCall);
+  assert.equal(spawnCall.environment.PROTON_LOG, "1");
+  assert.equal(spawnCall.environment.CUSTOM_VAR, "custom_value");
+});
