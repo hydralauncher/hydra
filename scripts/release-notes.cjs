@@ -95,6 +95,9 @@ async function generateNotes(tagName, previousTag) {
       body: JSON.stringify({
         tag_name: tagName,
         previous_tag_name: previousTag || undefined,
+        // Generate against the commit being built (a release/** branch), not
+        // the default branch, which is used when the tag doesn't exist yet.
+        target_commitish: process.env.GITHUB_SHA || undefined,
       }),
     }
   );
@@ -105,8 +108,11 @@ async function generateNotes(tagName, previousTag) {
   return (await response.json()).body;
 }
 
-// Tags past releases used "v" + the version in package.json.
+// Tags past releases used "v" + the version in package.json. On a
+// release/v4.3.0 branch the tag is the branch suffix instead.
 function defaultTagName() {
+  const refName = process.env.GITHUB_REF_NAME || "";
+  if (refName.startsWith("release/")) return refName.slice("release/".length);
   const { version } = JSON.parse(fs.readFileSync("package.json", "utf8"));
   return `v${version}`;
 }
