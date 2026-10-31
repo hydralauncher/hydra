@@ -423,6 +423,45 @@ export class Umu {
     });
   }
 
+  private static buildUmuLaunchEnv(
+    options:
+      | {
+          winePrefixPath?: string | null;
+          protonPath?: string | null;
+          gameId?: string | null;
+          useMangohud?: boolean;
+          protonLogEnabled?: boolean;
+          compatibilityEnvironmentVariables?: Record<string, string>;
+        }
+      | undefined,
+    resolvedEnv: Record<string, string>
+  ) {
+    return {
+      ...options?.compatibilityEnvironmentVariables,
+      PROTON_LOG: options?.protonLogEnabled ? "1" : "0",
+      ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
+      ...(options?.winePrefixPath
+        ? { WINEPREFIX: options.winePrefixPath }
+        : {}),
+      ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
+      ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
+      ...resolvedEnv,
+    };
+  }
+
+  private static formatLaunchCommand(
+    launchEnv: Record<string, string>,
+    resolvedLaunchCommand: { command: string; args: string[] }
+  ) {
+    const envPart = Object.entries(launchEnv)
+      .map(([key, value]) => `${key}=${shellQuote(value)}`)
+      .join(" ");
+    const argsPart = resolvedLaunchCommand.args.map(shellQuote).join(" ");
+    return `${envPart} ${shellQuote(resolvedLaunchCommand.command)}${
+      argsPart ? ` ${argsPart}` : ""
+    }`;
+  }
+
   public static async launchExecutable(
     executablePath: string,
     launchParameters: string[] = [],
@@ -459,27 +498,14 @@ export class Umu {
     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
     ensureExecutablePermission(umuBinaryPath);
 
-    const launchEnv = {
-      ...options?.compatibilityEnvironmentVariables,
-      PROTON_LOG: options?.protonLogEnabled ? "1" : "0",
-      ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
-      ...(options?.winePrefixPath
-        ? { WINEPREFIX: options.winePrefixPath }
-        : {}),
-      ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
-      ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
-      ...resolvedLaunchCommand.env,
-    };
-
-    const envCommandPart = Object.entries(launchEnv)
-      .map(([key, value]) => `${key}=${shellQuote(value)}`)
-      .join(" ");
-    const argsCommandPart = resolvedLaunchCommand.args
-      .map(shellQuote)
-      .join(" ");
-    const launchCommand = `${envCommandPart} ${shellQuote(resolvedLaunchCommand.command)}${
-      argsCommandPart ? ` ${argsCommandPart}` : ""
-    }`;
+    const launchEnv = this.buildUmuLaunchEnv(
+      options,
+      resolvedLaunchCommand.env
+    );
+    const launchCommand = this.formatLaunchCommand(
+      launchEnv,
+      resolvedLaunchCommand
+    );
 
     const launchHeader =
       `\n[${new Date().toISOString()}] Launching with umu-run\n` +
