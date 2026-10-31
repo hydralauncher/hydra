@@ -152,7 +152,7 @@ export function GameCompatibilitySettingsTab({
         electron.getInstalledProtonVersions(),
         electron.isGamemodeAvailable(),
         electron.isMangohudAvailable(),
-        electron.isGamescopeAvailable(),
+        electron.isGamescopeAvailable?.() ?? Promise.resolve(false),
       ]);
 
       setProtonVersions(protonVersionsResult);
