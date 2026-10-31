@@ -13,6 +13,8 @@ export enum Downloader {
   Premiumize = 12,
   AllDebrid = 13,
   ArchiveOrg = 14,
+  Epic = 15,
+  FileKeeper = 16,
 }
 
 export enum DownloadSourceStatus {
@@ -63,6 +65,8 @@ export enum AuthPage {
 
 export enum DownloadError {
   NotCachedOnRealDebrid = "download_error_not_cached_on_real_debrid",
+  RealDebridTorrentNotReady = "download_error_real_debrid_torrent_not_ready",
+  RealDebridLinksNotReady = "download_error_real_debrid_links_not_ready",
   NotCachedOnTorBox = "download_error_not_cached_on_torbox",
   GofileQuotaExceeded = "download_error_gofile_quota_exceeded",
   RealDebridAccountNotAuthorized = "download_error_real_debrid_account_not_authorized",
@@ -81,6 +85,7 @@ export enum DownloadError {
   HosterUnlockLoginRequired = "download_error_hoster_unlock_login_required",
   HosterUnlockFileNotFound = "download_error_hoster_unlock_file_not_found",
   HosterUnlockUnavailable = "download_error_hoster_unlock_unavailable",
+  DownloadLinkReturnedWebPage = "download_error_link_returned_web_page",
   InvalidMagnet = "download_error_invalid_magnet",
   TorrentMetadataTimeout = "download_error_torrent_metadata_timeout",
   TorrentMetadataIncomplete = "download_error_torrent_metadata_incomplete",
@@ -144,3 +149,16 @@ export const getGameExecutableFilters = (
 
 export const GAMEMODE_SITE_URL = "https://github.com/FeralInteractive/gamemode";
 export const MANGOHUD_SITE_URL = "https://github.com/flightlessmango/MangoHud";
+
+export const CLOUD_GIFT_RECEIVED_NOTIFICATION = "CLOUD_GIFT_RECEIVED";
+export const CLOUD_GIFT_STATUS_PENDING_ACCEPTANCE = "PENDING_ACCEPTANCE";
+export const CLOUD_GIFT_ID_VARIABLE = "giftId";
+
+export const NOTIFICATIONS_FETCH_FILTER = "all";
+export const NOTIFICATIONS_FETCH_TAKE = 20;
+export const NOTIFICATIONS_FETCH_SKIP = 0;
+
+// The API reports a friend's current game for Steam and Epic only unless asked,
+// so a friend in a Classics (LaunchBox) game would show as merely online.
+export const PROFILE_FRIENDS_PATH =
+  "/profile/friends?shop=steam&shop=launchbox";

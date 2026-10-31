@@ -3,14 +3,25 @@ import { randomInt } from "node:crypto";
 import { HydraApi } from "@main/services/hydra-api";
 import { WindowManager } from "@main/services/window-manager";
 import { logger } from "@main/services/logger";
+import { catchUpChatUnread } from "@main/services/chat/chat-unread-catch-up";
+import { publishLeaderboardNotifications } from "@main/services/leaderboard-notifications";
 import { ResyncCoordinator } from "./resync-coordinator";
+import { broadcastFriendsUpdated } from "./friends-updated-broadcast";
+import { summarizeNetworkError } from "../network-error-summary.js";
 
-type ResyncScope = "friends" | "friendRequests" | "notifications";
+type ResyncScope =
+  | "friends"
+  | "friendRequests"
+  | "notifications"
+  | "leaderboardNotifications"
+  | "chat";
 
 const ALL_SCOPES: ResyncScope[] = [
   "friends",
   "friendRequests",
   "notifications",
+  "leaderboardNotifications",
+  "chat",
 ];
 const RESYNC_JITTER_MS = 15_000;
 
@@ -30,7 +41,7 @@ const sleep = (ms: number, signal: AbortSignal) =>
   });
 
 const broadcastFriendsUpdate = async () => {
-  WindowManager.sendToAppWindows("on-friends-updated");
+  broadcastFriendsUpdated();
 };
 
 const syncFriendRequestCount = async (signal: AbortSignal) => {
@@ -59,6 +70,14 @@ const syncNotificationCount = async (signal: AbortSignal) => {
   });
 };
 
+// Chat events missed while disconnected are never replayed, so open
+// conversations refetch what they missed and badges reload from the server.
+const syncChat = async (signal: AbortSignal) => {
+  await catchUpChatUnread(signal);
+  if (signal.aborted) return;
+  WindowManager.sendToAppWindows("on-chat-resync");
+};
+
 const SCOPE_TASKS: Record<
   ResyncScope,
   {
@@ -77,6 +96,14 @@ const SCOPE_TASKS: Record<
   notifications: {
     errorMessage: "Failed to resync notification count:",
     task: syncNotificationCount,
+  },
+  leaderboardNotifications: {
+    errorMessage: "Failed to publish leaderboard notifications:",
+    task: publishLeaderboardNotifications,
+  },
+  chat: {
+    errorMessage: "Failed to resync chat:",
+    task: syncChat,
   },
 };
 
@@ -98,7 +125,7 @@ const runResync = async (
     } catch (error) {
       if (signal.aborted) return;
       firstError ??= error;
-      logger.error(errorMessage, error);
+      logger.error(errorMessage, summarizeNetworkError(error));
     }
   }
 
@@ -117,4 +144,4 @@ export const resyncFriendRequests = (signal: AbortSignal) =>
   coordinator.request(["friendRequests"], signal);
 
 export const resyncNotifications = (signal: AbortSignal) =>
-  coordinator.request(["notifications"], signal);
+  coordinator.request(["notifications", "leaderboardNotifications"], signal);

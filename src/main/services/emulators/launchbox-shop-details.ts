@@ -66,22 +66,25 @@ const indexEntriesBySku = (
  */
 export const fetchShopDetailsForSkus = async (
   skus: string[],
-  language?: string
+  language?: string,
+  signal?: AbortSignal
 ): Promise<Map<string, LaunchboxShopDetailsEntry>> => {
   const lookup = new Map<string, LaunchboxShopDetailsEntry>();
   if (skus.length === 0) return lookup;
 
   const chunks = chunk(skus, SHOP_DETAILS_CHUNK_SIZE);
   for (const skuChunk of chunks) {
+    if (signal?.aborted) break;
     try {
       const response = await HydraApi.post<LaunchboxShopDetailsEntry[]>(
         "/games/shop-details",
         { shop: "launchbox", skus: skuChunk, language },
-        { needsAuth: false }
+        { needsAuth: false, signal }
       );
 
       if (Array.isArray(response)) indexEntriesBySku(response, lookup);
     } catch (err) {
+      if (signal?.aborted) break;
       logger.error("Failed to fetch launchbox shop-details batch", err);
     }
   }

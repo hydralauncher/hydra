@@ -11,6 +11,7 @@ import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { parseBytes } from "@shared";
 import {
   getGlobalTrackers,
+  getMultipartDownloadParts,
   handleDownloadError,
   isKnownDownloadError,
   prepareGameEntry,
@@ -27,6 +28,7 @@ const addGameToQueue = async (
     downloadPath,
     downloader,
     uri,
+    parts,
     automaticallyExtract,
     automaticallyDeleteArchiveFiles,
     fileSize,
@@ -51,11 +53,12 @@ const addGameToQueue = async (
       downloadPath,
       downloader,
       uri,
+      parts: await getMultipartDownloadParts(uri, parts, downloader),
       folderName: null,
       fileSize: selectedFilesSize ?? parsedFileSize,
       shouldSeed: false,
       timestamp: Date.now(),
-      queued: true,
+      queued: false,
       pinnedToHero: false,
       extracting: false,
       automaticallyExtract,
@@ -65,7 +68,9 @@ const addGameToQueue = async (
       customTrackers: globalTrackers,
     };
 
-    await DownloadManager.validateDownloadUrl(download);
+    if (!DownloadOrchestrator.preparesRealDebridInBackground(download)) {
+      await DownloadOrchestrator.validateDownloadOrMarkPending(download);
+    }
     await prepareGameEntry({ gameKey, title, objectId, shop });
     await DownloadManager.cancelDownload(gameKey).catch(() => null);
   } catch (err: unknown) {

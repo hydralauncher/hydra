@@ -5,16 +5,14 @@ import {
   Button,
   CheckboxField,
   ConfirmationModal,
+  GuideLink,
+  HydraCloudBadge,
   TextField,
 } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
-import { useAppSelector, useUserDetails } from "@renderer/hooks";
+import { useAppSelector, useFeature, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
-import {
-  FileDirectoryIcon,
-  HistoryIcon,
-  QuestionIcon,
-} from "@primer/octicons-react";
+import { FileDirectoryIcon, HistoryIcon } from "@primer/octicons-react";
 import { useLocation } from "react-router-dom";
 import { isAchievementSouvenirsEnabled } from "@shared";
 import type { UserPreferences } from "@types";
@@ -24,6 +22,7 @@ import "./settings-behavior.scss";
 const buildForm = (preferences: UserPreferences | null) => ({
   autoplayGameTrailers: preferences?.autoplayGameTrailers ?? true,
   disableNsfwAlert: preferences?.disableNsfwAlert ?? false,
+  showSensitiveScreenshots: preferences?.showSensitiveScreenshots ?? false,
   showHiddenAchievementsDescription:
     preferences?.showHiddenAchievementsDescription ?? false,
   enableSteamAchievements: preferences?.enableSteamAchievements ?? false,
@@ -36,10 +35,14 @@ const buildForm = (preferences: UserPreferences | null) => ({
   hideClassicsBookmark: preferences?.hideClassicsBookmark ?? false,
   classicsUseHeroLayout: preferences?.classicsUseHeroLayout ?? false,
   hideLibraryGameBadges: preferences?.hideLibraryGameBadges ?? false,
+  hideLibraryReadySizeBadges: preferences?.hideLibraryReadySizeBadges ?? false,
   hideLibraryClassicsBadges: preferences?.hideLibraryClassicsBadges ?? false,
+  hideSteamLibraryBadges: preferences?.hideSteamLibraryBadges ?? false,
+  hideEpicLibraryBadges: preferences?.hideEpicLibraryBadges ?? false,
   hideLibraryAchievementProgress:
     preferences?.hideLibraryAchievementProgress ?? false,
   autoplayAnimatedArtwork: preferences?.autoplayAnimatedArtwork ?? false,
+  persistFiltersAndSorting: preferences?.persistFiltersAndSorting ?? false,
 });
 
 export function SettingsContextContentGameplay() {
@@ -48,6 +51,8 @@ export function SettingsContextContentGameplay() {
   const { hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
   const { hash } = useLocation();
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -165,6 +170,18 @@ export function SettingsContextContentGameplay() {
           }
         />
 
+        {isScreenshotsEnabled && (
+          <CheckboxField
+            label={t("screenshots_show_sensitive")}
+            checked={form.showSensitiveScreenshots}
+            onChange={() =>
+              handleChange({
+                showSensitiveScreenshots: !form.showSensitiveScreenshots,
+              })
+            }
+          />
+        )}
+
         <CheckboxField
           label={t("show_hidden_achievement_description")}
           checked={form.showHiddenAchievementsDescription}
@@ -186,29 +203,34 @@ export function SettingsContextContentGameplay() {
             })
           }
         />
+
+        <CheckboxField
+          label={t("persist_filters_and_sorting")}
+          checked={form.persistFiltersAndSorting}
+          onChange={() =>
+            handleChange({
+              persistFiltersAndSorting: !form.persistFiltersAndSorting,
+            })
+          }
+        />
       </div>
 
       <div className="settings-context-panel__group">
         <h3>{t("gameplay_metadata")}</h3>
 
-        <div className={`settings-behavior__checkbox-container--with-tooltip`}>
-          <CheckboxField
-            label={t("enable_steam_achievements")}
-            checked={form.enableSteamAchievements}
-            onChange={() =>
-              handleChange({
-                enableSteamAchievements: !form.enableSteamAchievements,
-              })
-            }
-          />
-
-          <small
-            className="settings-behavior__checkbox-container--tooltip"
-            data-open-article="steam-achievements"
-          >
-            <QuestionIcon size={12} />
-          </small>
-        </div>
+        <CheckboxField
+          label={
+            <GuideLink article="steam-achievements">
+              {t("enable_steam_achievements")}
+            </GuideLink>
+          }
+          checked={form.enableSteamAchievements}
+          onChange={() =>
+            handleChange({
+              enableSteamAchievements: !form.enableSteamAchievements,
+            })
+          }
+        />
 
         {hasActiveSubscription ? (
           <CheckboxField
@@ -231,9 +253,7 @@ export function SettingsContextContentGameplay() {
               readOnly
             />
 
-            <span className="settings-behavior__hydra-cloud-badge">
-              Hydra Cloud
-            </span>
+            <HydraCloudBadge />
           </button>
         )}
 
@@ -295,12 +315,40 @@ export function SettingsContextContentGameplay() {
         />
 
         <CheckboxField
+          label={t("hide_library_ready_size_badges")}
+          checked={form.hideLibraryReadySizeBadges}
+          onChange={() =>
+            handleChange({
+              hideLibraryReadySizeBadges: !form.hideLibraryReadySizeBadges,
+            })
+          }
+        />
+
+        <CheckboxField
           label={t("hide_library_classics_badges")}
           checked={form.hideLibraryClassicsBadges}
           onChange={() =>
             handleChange({
               hideLibraryClassicsBadges: !form.hideLibraryClassicsBadges,
             })
+          }
+        />
+
+        <CheckboxField
+          label={t("hide_library_steam_badges")}
+          checked={form.hideSteamLibraryBadges}
+          onChange={() =>
+            handleChange({
+              hideSteamLibraryBadges: !form.hideSteamLibraryBadges,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("hide_library_epic_badges")}
+          checked={form.hideEpicLibraryBadges}
+          onChange={() =>
+            handleChange({ hideEpicLibraryBadges: !form.hideEpicLibraryBadges })
           }
         />
 

@@ -227,6 +227,7 @@ export const saveCloudSaveCustomPaths = async (
           ?.syncState ?? ("confirmed" as const),
       storeUserId: customPath.storeUserId,
       localPath: customPath.path,
+      kind: customPath.kind,
     }))
   );
 
@@ -252,10 +253,11 @@ export const registerCloudSaveCustomPaths = async (
     }
     return trackStoredCloudSaveCustomPaths(
       entries,
-      customPaths.map(({ rawPath, storeUserId, path: localPath }) => ({
+      customPaths.map(({ rawPath, storeUserId, path: localPath, kind }) => ({
         rawPath,
         storeUserId,
         localPath,
+        kind,
       })),
       options.syncState
     );
@@ -298,7 +300,7 @@ export const customPathToCloudSaveRule = (
   ruleId: `custom-${createHash("sha256")
     .update(customPath.rawPath)
     .digest("hex")}`,
-  kind: "dir",
+  kind: customPath.kind ?? "dir",
   rawPath: customPath.rawPath,
   source: "custom",
   tags: ["save"],

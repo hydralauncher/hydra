@@ -43,8 +43,14 @@ export const COMPATIBILITY_SECTION_REGION_ID = "compatibility-section-region";
 export const INTEGRATIONS_SECTION_REGION_ID = "integrations-section-region";
 export const ACCOUNT_PRIVACY_PRIVACY_SELECT_ID =
   "account-privacy-profile-visibility";
+export const ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID =
+  "account-privacy-cloud-gifts";
 export const ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID =
   "account-privacy-souvenirs-visibility";
+export const ACCOUNT_PRIVACY_SCREENSHOTS_SELECT_ID =
+  "account-privacy-screenshots-visibility";
+export const ACCOUNT_PRIVACY_SCREENSHOT_COMMENTS_SELECT_ID =
+  "account-privacy-screenshot-comments-policy";
 export const COMPATIBILITY_GAMEMODE_FOCUS_ID = "compatibility-gamemode";
 export const COMPATIBILITY_MANGOHUD_FOCUS_ID = "compatibility-mangohud";
 export const COMPATIBILITY_COMMON_REDIST_BUTTON_ID =
@@ -71,6 +77,8 @@ export const EMULATION_OVERVIEW_CARD_FOCUS_IDS = {
   ps1: "emulation-overview-ps1-card",
   ps2: "emulation-overview-ps2-card",
   ps3: "emulation-overview-ps3-card",
+  psp: "emulation-overview-psp-card",
+  dolphin: "emulation-overview-dolphin-card",
   retroarch: "emulation-overview-retroarch-card",
 } as const;
 export const EMULATION_DETAIL_CORES_REGION_ID = "emulation-detail-cores-region";
@@ -87,6 +95,8 @@ export const EMULATION_DETAIL_EXECUTABLE_BUTTON_ID =
   "emulation-detail-executable-button";
 export const EMULATION_DETAIL_REDETECT_BUTTON_ID =
   "emulation-detail-redetect-button";
+export const EMULATION_DETAIL_RPCS3_ROOT_BROWSE_BUTTON_ID =
+  "emulation-detail-rpcs3-root-browse";
 export const EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID =
   "emulation-detail-add-folder";
 export const EMULATION_DETAIL_RESCAN_BUTTON_ID = "emulation-detail-rescan";
@@ -137,6 +147,7 @@ export const NOTIFICATIONS_ACHIEVEMENTS_ITEM_FOCUS_IDS = {
 export const CONTENT_ITEM_FOCUS_IDS = {
   autoplayGameTrailers: "content-autoplay-game-trailers",
   disableNsfwAlert: "content-disable-nsfw-alert",
+  showSensitiveScreenshots: "content-show-sensitive-screenshots",
   showHiddenAchievementsDescription:
     "content-show-hidden-achievements-description",
   enableSteamAchievements: "content-enable-steam-achievements",
@@ -145,6 +156,7 @@ export const CONTENT_ITEM_FOCUS_IDS = {
   resetScreenshotsDirectory: "content-reset-screenshots-directory",
   openScreenshotsDirectory: "content-open-screenshots-directory",
   autoplayAnimatedArtwork: "content-autoplay-animated-artwork",
+  persistFiltersAndSorting: "content-persist-filters-and-sorting",
 } as const;
 
 export const BIG_PICTURE_ITEM_FOCUS_IDS = {

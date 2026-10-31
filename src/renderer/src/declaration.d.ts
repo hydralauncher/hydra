@@ -1,22 +1,31 @@
-import type { AuthPage } from "@shared";
+import type { AuthPage, Downloader } from "@shared";
 import type {
+  LocalScreenshot,
+  LocalScreenshotDraft,
+  LocalScreenshotUploadOptions,
+  ScreenshotUploadProgress,
+  SystemPowerAction,
   AppUpdaterEvent,
   GameShop,
   Steam250Game,
   DownloadProgress,
   SeedingStatus,
   UserPreferences,
+  ScreenshotInputStatus,
   StartGameDownloadPayload,
   RealDebridUser,
   PremiumizeUser,
   AllDebridUser,
   UserProfile,
   UpdateProfileRequest,
+  OpenCheckoutOptions,
   GameStats,
   UserDetails,
   FriendRequestSync,
   FriendPresenceSync,
+  Notification,
   NotificationSync,
+  UserFriend,
   GameArtifact,
   LudusaviBackup,
   UserAchievement,
@@ -64,6 +73,7 @@ import type {
   RetroArchInstallProgress,
   RetroArchInstallResult,
   EmulationCloudSave,
+  EmulationSaveMetadata,
   EmulationSavePlatform,
   MemcardFormatState,
   MemcardRestoreResult,
@@ -72,10 +82,14 @@ import type {
   ArtworkKind,
   ArtworkPage,
   GameArtworkSelection,
+  GameArtworkOptions,
+  GameAssetsOptions,
   GameLauncherStatusPayload,
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
+  RetroArchLocalBatteryCandidate,
+  RetroArchLegacyBatteryCandidate,
   CloudSaveOverview,
   CloudSaveV2FileDetails,
   AchievementSouvenirSyncCleanupResult,
@@ -93,6 +107,36 @@ import type {
   ConfirmCloudSaveCustomPathRebindApprovalResult,
   LegacySaveExportProgress,
   LegacySaveExportResult,
+  SteamSyncState,
+  SteamSyncFinishedPayload,
+  SteamSyncRunStatus,
+  SteamConnectErrorCode,
+  ExtractionFailure,
+  FriendsSnapshot,
+  ChatAttachmentUploadProgress,
+  ChatAttachmentUploadRequest,
+  ChatMessageRejectedSync,
+  ChatMessageSync,
+  ChatMessageVisibilitySync,
+  ChatReactionSync,
+  ChatTypingSync,
+  ChatUnreadState,
+  ChatWindowState,
+  PendingChatFriend,
+  EpicConnectionState,
+  EpicSyncState,
+  EpicSyncFinished,
+  EpicOperationResult,
+  EpicStartAuthResult,
+  EpicGameInstallOptions,
+  StartEpicGameDownloadPayload,
+  StartEpicGameUpdatePayload,
+  EpicManagedOperationResult,
+  EpicCloudSaveState,
+  EpicCloudSaveSettings,
+  ResolveEpicCloudSaveConflictPayload,
+  EpicLaunchOptions,
+  EpicLinuxCompatibility,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -108,6 +152,13 @@ declare global {
     const content: React.FunctionComponent<React.SVGAttributes<SVGElement>>;
     export default content;
   }
+
+  type MainWindowToast = {
+    title: string;
+    message?: string;
+    type: "success" | "error" | "warning";
+    duration?: number;
+  };
 
   type FileExplorerEntry = {
     name: string;
@@ -139,14 +190,46 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveV2FileDetails>;
+    getRetroArchLocalBatteryCandidates: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<RetroArchLocalBatteryCandidate[]>;
+    selectRetroArchLocalBattery: (
+      objectId: string,
+      shop: GameShop,
+      romPath: string,
+      signature: string
+    ) => Promise<void>;
+    getRetroArchLegacyBatteryCandidates: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<RetroArchLegacyBatteryCandidate[]>;
+    selectRetroArchLegacyBattery: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string
+    ) => Promise<void>;
     deleteGameCloudSaveData: (
       objectId: string,
       shop: GameShop
     ) => Promise<void>;
     selectCloudSaveCustomPath: (
       objectId: string,
-      shop: GameShop
+      shop: GameShop,
+      kind?: "file" | "dir"
     ) => Promise<SelectCloudSaveCustomPathResult>;
+    selectEmulatorDestination: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string,
+      kind: "save" | "state"
+    ) => Promise<{ canceled: boolean }>;
+    removeEmulatorDestination: (
+      objectId: string,
+      shop: GameShop,
+      rawPath: string,
+      kind: "save" | "state"
+    ) => Promise<void>;
     createCloudSaveCustomPathRebindApproval: (
       objectId: string,
       shop: GameShop,
@@ -163,7 +246,8 @@ declare global {
     ) => Promise<CloudSaveCustomPathApproval | null>;
     selectCloudSaveCustomPathApproval: (
       approvalId: string,
-      selectedPath?: string
+      selectedPath?: string,
+      selectionMode?: "file" | "dir"
     ) => Promise<SelectCloudSaveCustomPathApprovalResult>;
     confirmCloudSaveCustomPathApproval: (
       approvalId: string
@@ -214,12 +298,20 @@ declare global {
       payload: StartGameDownloadPayload
     ) => Promise<{ ok: boolean; error?: string }>;
     cancelGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
-    pauseGameDownload: (shop: GameShop, objectId: string) => Promise<void>;
+    pauseGameDownload: (
+      shop: GameShop,
+      objectId: string,
+      confirmed?: boolean
+    ) => Promise<boolean>;
+    getDownloadPauseWarning: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<boolean>;
     resumeGameDownload: (
       shop: GameShop,
       objectId: string,
       strategy?: "interruptActive" | "queueIfActive"
-    ) => Promise<void>;
+    ) => Promise<boolean>;
     pauseGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     resumeGameSeed: (shop: GameShop, objectId: string) => Promise<void>;
     saveGlobalTrackers: (
@@ -247,7 +339,8 @@ declare global {
       shop: GameShop,
       objectId: string,
       targetArea: "hero" | "queue" | "paused",
-      targetIndex?: number
+      targetIndex?: number,
+      confirmed?: boolean
     ) => Promise<boolean>;
     getDownloadLayoutState: () => Promise<DownloadLayoutState>;
     onDownloadProgress: (
@@ -262,19 +355,27 @@ declare global {
     ) => Promise<
       { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
     >;
+    getDebridFiles: (
+      magnet: string,
+      provider: Downloader
+    ) => Promise<
+      { ok: true; data: TorrentFilesResponse } | { ok: false; error: string }
+    >;
 
     /* Catalogue */
     getGameShopDetails: (
       objectId: string,
       shop: GameShop,
-      language: string
+      language: string,
+      options?: GameArtworkOptions
     ) => Promise<ShopDetailsWithAssets | null>;
     getRandomGame: () => Promise<Steam250Game>;
     getGameStats: (objectId: string, shop: GameShop) => Promise<GameStats>;
+    getCatalogueNames: (list: "developers" | "publishers") => Promise<string[]>;
     getGameAssets: (
       objectId: string,
       shop: GameShop,
-      options?: { forceFresh?: boolean }
+      options?: GameAssetsOptions
     ) => Promise<ShopAssets | null>;
     onUpdateAchievements: (
       objectId: string,
@@ -288,6 +389,11 @@ declare global {
       objectId: string,
       automaticCloudSync: boolean
     ) => Promise<void>;
+    setGameHydraPlaytimeEnabled: (
+      shop: GameShop,
+      objectId: string,
+      enabled: boolean
+    ) => Promise<void>;
     toggleGameMangohud: (
       shop: GameShop,
       objectId: string,
@@ -299,6 +405,12 @@ declare global {
       autoRunGamemode: boolean
     ) => Promise<void>;
     isGamemodeAvailable: () => Promise<boolean>;
+    isSteamAppExecutable: (
+      appId: string,
+      executablePath: string
+    ) => Promise<boolean>;
+    installGameOnSteam: (steamAppId: string) => Promise<void>;
+    uninstallGameOnSteam: (steamAppId: string) => Promise<void>;
     isMangohudAvailable: () => Promise<boolean>;
     isWinetricksAvailable: () => Promise<boolean>;
     addGameToLibrary: (
@@ -425,13 +537,23 @@ declare global {
       objectId: string
     ) => Promise<string | null>;
     verifyExecutablePathInUse: (executablePath: string) => Promise<Game>;
-    getLibrary: () => Promise<LibraryGame[]>;
+    getLibrary: (includeConcealed?: boolean) => Promise<LibraryGame[]>;
+    getHiddenLibrary: () => Promise<LibraryGame[]>;
+    setGameVisibility: (
+      shop: GameShop,
+      objectId: string,
+      field: "isHiddenFromOthers" | "isConcealed",
+      value: boolean
+    ) => Promise<{ isHiddenFromOthers: boolean; isConcealed: boolean }>;
     refreshLibraryAssets: () => Promise<void>;
+    getRemoteLibrarySyncState: () => Promise<boolean>;
     openGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
-    getGameInstallerActionType: (
+    hasGameInstaller: (shop: GameShop, objectId: string) => Promise<boolean>;
+    hasDownloadFolder: (shop: GameShop, objectId: string) => Promise<boolean>;
+    getExecutablePickerPath: (
       shop: GameShop,
       objectId: string
-    ) => Promise<"install" | "open-folder">;
+    ) => Promise<string | null>;
     openGameInstallerPath: (shop: GameShop, objectId: string) => Promise<void>;
     openGameWinetricks: (shop: GameShop, objectId: string) => Promise<boolean>;
     openGameExecutablePath: (shop: GameShop, objectId: string) => Promise<void>;
@@ -448,7 +570,8 @@ declare global {
       shop: GameShop,
       objectId: string,
       executablePath: string,
-      launchOptions?: string | null
+      launchOptions?: string | null,
+      epicLaunchOptions?: EpicLaunchOptions
     ) => Promise<void>;
     openClassicsGame: (
       shop: GameShop,
@@ -463,21 +586,37 @@ declare global {
         selectedDiscPath?: string | null;
         dontAskDiscSelection?: boolean;
         platform?: string | null;
-        addDisc?: { path: string; label: string; fileName: string };
+        addDisc?: {
+          path: string;
+          label: string;
+          fileName: string;
+          isExecutable?: boolean;
+        };
         removeDiscPath?: string;
       }
     ) => Promise<LibraryGame>;
-    getEmulatorRomExtensions: (
-      system: "ps1" | "ps2" | "ps3"
-    ) => Promise<string[]>;
+    getEmulatorRomExtensions: (system: EmulatorSystem) => Promise<string[]>;
     closeGame: (shop: GameShop, objectId: string) => Promise<boolean>;
     removeGameFromLibrary: (shop: GameShop, objectId: string) => Promise<void>;
     removeGame: (shop: GameShop, objectId: string) => Promise<void>;
-    deleteGameFolder: (shop: GameShop, objectId: string) => Promise<unknown>;
+    deleteGameFolder: (
+      shop: GameShop,
+      objectId: string,
+      options?: { deleteSourceArchive?: boolean; keepEpicUpdateFiles?: boolean }
+    ) => Promise<unknown>;
+    hasSourceArchive: (shop: GameShop, objectId: string) => Promise<boolean>;
+    recheckInstalledExecutable: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<boolean>;
     getGameByObjectId: (
       shop: GameShop,
       objectId: string
     ) => Promise<LibraryGame | null>;
+    getGameReviewPlaytime: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<number>;
     getGamesRunning: () => Promise<
       Pick<GameRunning, "id" | "sessionDurationInMillis">[]
     >;
@@ -487,6 +626,9 @@ declare global {
       ) => void
     ) => () => Electron.IpcRenderer;
     onLibraryBatchComplete: (cb: () => void) => () => Electron.IpcRenderer;
+    onRemoteLibrarySyncStateChange: (
+      cb: (syncing: boolean) => void
+    ) => () => Electron.IpcRenderer;
     onDownloadsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onClassicsImportStatus: (
       cb: (importing: boolean) => void
@@ -561,8 +703,19 @@ declare global {
     ) => Promise<void>;
     /* Emulators */
     getEmulatorConfigs: () => Promise<EmulatorConfigMap>;
+    getRpcs3ConfigRootStatus: () => Promise<
+      import("@types").Rpcs3ConfigRootStatus
+    >;
+    getRpcs3DiscIdentityStatus: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<import("@types").Rpcs3DiscIdentityStatus>;
+    setRpcs3ConfigRoot: (root: string) => Promise<EmulatorConfig>;
     detectEmulators: () => Promise<EmulatorConfigMap>;
-    detectEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    detectEmulator: (
+      system: EmulatorSystem,
+      options?: { includeDriveRoots?: boolean }
+    ) => Promise<EmulatorConfig>;
     previewEmulatorExecutable: (
       system: EmulatorSystem,
       executablePath?: string | null
@@ -573,7 +726,7 @@ declare global {
     setEmulatorExecutablePath: (
       system: EmulatorSystem,
       executablePath: string | null
-    ) => Promise<EmulatorConfig>;
+    ) => Promise<EmulatorConfig | null>;
     setEmulatorBiosPath: (
       system: EmulatorSystem,
       biosPath: string | null
@@ -605,7 +758,7 @@ declare global {
     ) => Promise<EmulatorConfig>;
     checkPs3Firmware: (
       executablePath: string | null
-    ) => Promise<{ installed: boolean }>;
+    ) => Promise<{ installed: boolean; path: string | null }>;
     checkEmulatorBios: (
       system: EmulatorSystem,
       executablePath: string | null,
@@ -623,7 +776,9 @@ declare global {
     ) => () => void;
     /* RetroArch */
     getRetroArchConfig: () => Promise<RetroArchConfig>;
-    detectRetroArch: () => Promise<RetroArchConfig>;
+    detectRetroArch: (options?: {
+      includeDriveRoots?: boolean;
+    }) => Promise<RetroArchConfig>;
     previewRetroArchExecutable: (
       executablePath?: string | null
     ) => Promise<RetroArchExecutablePreview | null>;
@@ -702,7 +857,9 @@ declare global {
       scanSubfolders: boolean
     ) => Promise<{ fileCount: number }>;
     checkRetroArchExecutable: () => Promise<{ exists: boolean }>;
-    removeRetroArch: () => Promise<RetroArchConfig>;
+    removeRetroArch: (options?: {
+      removeGames?: boolean;
+    }) => Promise<RetroArchConfig>;
     addRetroArchRomFolder: (
       folderPath: string,
       scanSubfolders: boolean
@@ -716,12 +873,11 @@ declare global {
       folderId: string,
       scanSubfolders: boolean
     ) => Promise<RetroArchConfig>;
-    startRomScan: (
+    previewRomFolder: (
       system: EmulatorSystem,
       folderPath: string,
       scanSubfolders: boolean
-    ) => Promise<{ requestId: string }>;
-    cancelRomScan: (requestId: string) => Promise<void>;
+    ) => Promise<{ fileCount: number; sizeBytes: number }>;
     getEmulatorRomPaths: (system: EmulatorSystem) => Promise<string[]>;
     addEmulatorRomPath: (
       system: EmulatorSystem,
@@ -732,25 +888,13 @@ declare global {
       gamesYmlPath: string | null;
       gamesYmlEntries: { titleId: string; path: string }[];
     }>;
-    removeEmulator: (system: EmulatorSystem) => Promise<EmulatorConfig>;
+    removeEmulator: (
+      system: EmulatorSystem,
+      options?: { removeGames?: boolean }
+    ) => Promise<EmulatorConfig>;
     checkEmulatorExecutable: (
       system: EmulatorSystem
     ) => Promise<{ exists: boolean }>;
-    onRomScanProgress: (
-      requestId: string,
-      cb: (
-        payload:
-          | {
-              type: "progress";
-              processed: number;
-              total: number;
-              currentFile: string | null;
-            }
-          | { type: "done"; fileCount: number; sizeBytes: number }
-          | { type: "cancelled"; fileCount: number; sizeBytes: number }
-          | { type: "error"; message: string }
-      ) => void
-    ) => () => Electron.IpcRenderer;
     importLaunchboxRoms: (
       system: EmulatorSystem,
       folders: { path: string; scanSubfolders: boolean }[],
@@ -800,6 +944,10 @@ declare global {
       cardFilePath: string,
       folderName: string
     ) => Promise<EmulationCloudSave>;
+    uploadWiiEmulationSave: (
+      dataBinPath: string,
+      objectId: string
+    ) => Promise<EmulationCloudSave>;
     uploadEmulationSavesForCard: (
       platform: EmulationSavePlatform,
       cardFilePath: string
@@ -812,8 +960,12 @@ declare global {
       platform: EmulationSavePlatform,
       objectId?: string | null
     ) => Promise<EmulationCloudSave[]>;
-    getMemcardRestoreTargets: (
+    listLocalEmulationSaves: (
       platform: EmulationSavePlatform
+    ) => Promise<Ps2MemoryCardSaveRecord[]>;
+    getMemcardRestoreTargets: (
+      platform: EmulationSavePlatform,
+      metadata?: EmulationSaveMetadata | Record<string, unknown> | null
     ) => Promise<MemcardRestoreTarget[]>;
     inspectMemcard: (
       platform: EmulationSavePlatform,
@@ -822,7 +974,9 @@ declare global {
     restoreEmulationSave: (
       platform: EmulationSavePlatform,
       saveId: string,
-      targetCardFilePath: string
+      targetCardFilePath: string,
+      metadata?: EmulationSaveMetadata | Record<string, unknown> | null,
+      sourceFileName?: string
     ) => Promise<MemcardRestoreResult>;
     deleteEmulationSave: (saveId: string) => Promise<void>;
     updateEmulationSaveLabel: (
@@ -831,6 +985,10 @@ declare global {
     ) => Promise<EmulationCloudSave>;
     onUserPreferencesUpdated: (
       cb: (preferences: UserPreferences | null) => void
+    ) => () => Electron.IpcRenderer;
+    getScreenshotInputStatus: () => Promise<ScreenshotInputStatus>;
+    onScreenshotInputStatusChange: (
+      cb: (status: ScreenshotInputStatus) => void
     ) => () => Electron.IpcRenderer;
     autoLaunch: (autoLaunchProps: {
       enabled: boolean;
@@ -860,14 +1018,18 @@ declare global {
       total: number;
     }>;
     cancelScanInstalledGames: (requestId: string) => Promise<void>;
-    addScannedGame: (
-      objectId: string,
-      executablePath: string
-    ) => Promise<{
-      title: string;
-      executablePath: string;
-      iconUrl: string | null;
-    } | null>;
+    addScannedGames: (
+      picks: { objectId: string; executablePath: string }[]
+    ) => Promise<
+      {
+        title: string;
+        executablePath: string;
+        iconUrl: string | null;
+      }[]
+    >;
+    onGameInstallerClosed: (
+      cb: (shop: GameShop, objectId: string, executableFound: boolean) => void
+    ) => () => Electron.IpcRenderer;
     onExtractionComplete: (
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
@@ -875,10 +1037,17 @@ declare global {
       cb: (shop: GameShop, objectId: string, progress: number) => void
     ) => () => Electron.IpcRenderer;
     onExtractionFailed: (
-      cb: (shop: GameShop, objectId: string) => void
+      cb: (
+        shop: GameShop,
+        objectId: string,
+        failure: ExtractionFailure | null
+      ) => void
     ) => () => Electron.IpcRenderer;
     onDownloadHalted: (
       cb: (gameTitle: string) => void
+    ) => () => Electron.IpcRenderer;
+    onGameExecutableNotFound: (
+      cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
     onArchiveDeletionPrompt: (
       cb: (archivePaths: string[]) => void
@@ -958,11 +1127,12 @@ declare global {
     /* Clipboard */
     clipboard: {
       writeText: (text: string) => Promise<void>;
+      writeImage: (ownerId: string, screenshotId: string) => Promise<boolean>;
     };
 
     /* Misc */
     openExternal: (src: string) => Promise<void>;
-    openCheckout: () => Promise<void>;
+    openCheckout: (options?: OpenCheckoutOptions) => Promise<void>;
     getCloudIframeUrl: () => Promise<string>;
     getVersion: () => Promise<string>;
     getAppSessionId: () => Promise<string>;
@@ -970,6 +1140,44 @@ declare global {
     ping: () => string;
     getDefaultDownloadsPath: () => Promise<string>;
     getScreenshotsPath: () => Promise<string>;
+    getScreenshotsFolderPath: () => Promise<string>;
+    getLocalScreenshots: () => Promise<LocalScreenshot[]>;
+    getLocalScreenshotsForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<LocalScreenshot[]>;
+    deleteLocalScreenshotsForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<number>;
+    countLocalScreenshotFilesForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<number>;
+    getPublishedScreenshotIdsForGame: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<string[]>;
+    forgetPublishedScreenshots: (screenshotIds: string[]) => Promise<number>;
+    uploadLocalScreenshot: (
+      clientId: string,
+      options: LocalScreenshotUploadOptions
+    ) => Promise<LocalScreenshot | null>;
+    updateLocalScreenshotDraft: (
+      clientId: string,
+      draft: LocalScreenshotDraft
+    ) => Promise<LocalScreenshot | null>;
+    deleteLocalScreenshot: (clientId: string) => Promise<void>;
+    openScreenshotsFolder: () => Promise<void>;
+    onLocalScreenshotsChange: (
+      cb: (screenshots: LocalScreenshot[]) => void
+    ) => () => Electron.IpcRenderer;
+    onLocalScreenshotsMissing: (
+      cb: (count: number) => void
+    ) => () => Electron.IpcRenderer;
+    onScreenshotUploadProgress: (
+      cb: (progress: ScreenshotUploadProgress) => void
+    ) => () => Electron.IpcRenderer;
     getAchievementSouvenirSyncStatus: () => Promise<AchievementSouvenirSyncStatus>;
     getAchievementSouvenirSyncDetails: () => Promise<AchievementSouvenirSyncDetails>;
     retryAchievementSouvenirSync: () => Promise<AchievementSouvenirSyncRetryResult>;
@@ -993,7 +1201,8 @@ declare global {
     listDrives: () => Promise<string[]>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
-    getProcessedFriendImage: (
+    getFileIcon: (filePath: string) => Promise<string | null>;
+    getProcessedImage: (
       imageUrl: string | null,
       options: { width: number; height: number; preserveAnimation?: boolean }
     ) => Promise<string | null>;
@@ -1005,8 +1214,17 @@ declare global {
           needsAuth?: boolean;
           needsSubscription?: boolean;
           ifModifiedSince?: Date;
+          timeout?: number;
         }
       ) => Promise<T>;
+      getResponse: <T = unknown>(
+        url: string,
+        options?: {
+          params?: unknown;
+          needsAuth?: boolean;
+          acceptedStatuses?: number[];
+        }
+      ) => Promise<{ status: number; data: T }>;
       post: <T = unknown>(
         url: string,
         options?: {
@@ -1074,6 +1292,10 @@ declare global {
     onGameLauncherStatus: (
       cb: (value: GameLauncherStatusPayload) => void
     ) => () => Electron.IpcRenderer;
+    getGameLauncherStatuses: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<GameLauncherStatusPayload[]>;
     resetCommonRedistPreflight: () => Promise<void>;
     saveTempFile: (fileName: string, fileData: Uint8Array) => Promise<string>;
     deleteTempFile: (filePath: string) => Promise<void>;
@@ -1096,6 +1318,10 @@ declare global {
     getSessionHash: () => Promise<string | null>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
     onAccountUpdated: (cb: () => void) => () => Electron.IpcRenderer;
+    onSteamConnected: (cb: () => void) => () => Electron.IpcRenderer;
+    onSteamConnectError: (
+      cb: (code: SteamConnectErrorCode) => void
+    ) => () => Electron.IpcRenderer;
     onSignOut: (cb: () => void) => () => Electron.IpcRenderer;
 
     /* User */
@@ -1119,6 +1345,75 @@ declare global {
     resetRetroAchievementsAchievements: (
       pendingSouvenirsOnly?: boolean
     ) => Promise<void>;
+    openRetroAchievementsConnectionWindow: () => Promise<void>;
+    minimizeRetroAchievementsConnectionWindow: () => Promise<void>;
+    closeRetroAchievementsConnectionWindow: () => Promise<void>;
+    completeRetroAchievementsConnectionWindow: () => Promise<void>;
+    linkRetroAchievementsEmulatorAccount: (
+      username: string,
+      password: string
+    ) => Promise<boolean>;
+    onRetroAchievementsConnected: (
+      cb: () => void
+    ) => () => Electron.IpcRenderer;
+    startEpicSync: (connectionId: string) => Promise<EpicSyncState>;
+    getEpicSyncState: () => Promise<EpicSyncState>;
+    cancelEpicSync: (connectionId: string) => Promise<EpicOperationResult>;
+    syncEpicGameOnGamePage: (objectId: string) => Promise<boolean>;
+    onEpicSyncProgress: (cb: (state: EpicSyncState) => void) => () => void;
+    onEpicSyncFinished: (cb: (result: EpicSyncFinished) => void) => () => void;
+    getEpicConnection: () => Promise<EpicConnectionState>;
+    getGameLinuxCompatibility?: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<EpicLinuxCompatibility | null>;
+    getEpicGameInstallOptions: (
+      epicObjectId: string,
+      requestId?: string
+    ) => Promise<EpicGameInstallOptions>;
+    cancelEpicGameInstallOptions?: (requestId: string) => Promise<void>;
+    invalidateEpicGameInstallOptions?: (epicObjectId: string) => Promise<void>;
+    startEpicGameDownload: (
+      payload: StartEpicGameDownloadPayload
+    ) => Promise<EpicManagedOperationResult>;
+    startEpicGameUpdate?: (
+      payload: StartEpicGameUpdatePayload
+    ) => Promise<EpicManagedOperationResult>;
+    getEpicCloudSaveState: (
+      epicObjectId: string
+    ) => Promise<EpicCloudSaveState>;
+    setEpicCloudSaveSettings: (
+      epicObjectId: string,
+      settings: EpicCloudSaveSettings
+    ) => Promise<EpicManagedOperationResult>;
+    syncEpicCloudSaves: (epicObjectId: string) => Promise<EpicCloudSaveState>;
+    resolveEpicCloudSaveConflict: (
+      payload: ResolveEpicCloudSaveConflictPayload
+    ) => Promise<EpicCloudSaveState>;
+    onEpicCloudSaveStateChanged: (
+      callback: (state: EpicCloudSaveState) => void
+    ) => () => void;
+    startEpicAuth: () => Promise<EpicStartAuthResult>;
+    cancelEpicAuth: (operationId: string) => Promise<EpicOperationResult>;
+    disconnectEpic: (connectionId: string) => Promise<EpicOperationResult>;
+    onEpicConnectionChanged: (
+      cb: (state: EpicConnectionState) => void
+    ) => () => void;
+    startSteamOAuth: (lng: string) => Promise<void>;
+    disconnectSteam: (deleteImportedData: boolean) => Promise<void>;
+    startSteamSync: () => Promise<SteamSyncState>;
+    cancelSteamSync: () => Promise<void>;
+    getSteamSyncState: () => Promise<SteamSyncState>;
+    syncSteamGameOnGamePage: (steamAppId: string) => Promise<boolean>;
+    reconcileSteamSyncRun: (
+      latestSyncRunStatus: SteamSyncRunStatus | null
+    ) => Promise<void>;
+    onSteamSyncProgress: (
+      cb: (state: SteamSyncState) => void
+    ) => () => Electron.IpcRenderer;
+    onSteamSyncFinished: (
+      cb: (payload: SteamSyncFinishedPayload) => void
+    ) => () => Electron.IpcRenderer;
 
     /* Profile */
     getMe: () => Promise<UserDetails | null>;
@@ -1150,6 +1445,13 @@ declare global {
     onSyncNotificationCount: (
       cb: (notification: NotificationSync) => void
     ) => () => Electron.IpcRenderer;
+    onLeaderboardNotification: (
+      cb: (notification: Notification) => void
+    ) => () => Electron.IpcRenderer;
+    onCloudGiftResolved: (
+      cb: (giftId: string) => void
+    ) => () => Electron.IpcRenderer;
+    notifyCloudGiftResolved: (giftId: string) => Promise<void>;
     syncFriendRequests: (friendRequestCount: number) => Promise<void>;
 
     /* Notifications */
@@ -1234,13 +1536,61 @@ declare global {
 
     /* Big Picture Window */
     openBigPictureWindow: () => Promise<void>;
+    executeSystemPowerAction: (action: SystemPowerAction) => Promise<void>;
 
     /* Friends Window */
     openFriendsWindow: () => Promise<void>;
     minimizeFriendsWindow: () => Promise<void>;
     closeFriendsWindow: () => Promise<void>;
+    friendsWindowReady: () => Promise<void>;
+    prefetchFriends: () => Promise<void>;
+    getFriendsSnapshot: () => Promise<FriendsSnapshot | null>;
     openFriendProfileInMainWindow: (userId: string) => Promise<void>;
     openAddFriendModalInMainWindow: () => Promise<void>;
+    showToastInMainWindow: (toast: MainWindowToast) => Promise<boolean>;
+    onShowToast: (
+      cb: (toast: MainWindowToast) => void
+    ) => () => Electron.IpcRenderer;
+
+    /* Chat Window */
+    openChatWindow: (friend: UserFriend) => Promise<void>;
+    minimizeChatWindow: () => Promise<void>;
+    closeChatWindow: () => Promise<void>;
+    openGameInMainWindow: (gamePath: string) => Promise<void>;
+    consumePendingChatFriends: () => Promise<PendingChatFriend[]>;
+    onChatFriendsPending: (cb: () => void) => () => Electron.IpcRenderer;
+    setChatWindowState: (state: ChatWindowState) => Promise<void>;
+    getChatUnreadState: () => Promise<ChatUnreadState>;
+    /** Resolves to false when the read could not be saved. */
+    markChatRead: (friendId: string, seq: number) => Promise<boolean>;
+    onChatMessage: (
+      cb: (sync: ChatMessageSync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatTyping: (
+      cb: (sync: ChatTypingSync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatReaction: (
+      cb: (sync: ChatReactionSync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatMessageVisibility: (
+      cb: (sync: ChatMessageVisibilitySync) => void
+    ) => () => Electron.IpcRenderer;
+    onChatMessageRejected: (
+      cb: (sync: ChatMessageRejectedSync) => void
+    ) => () => Electron.IpcRenderer;
+    /** Reserves an upload and sends the bytes; resolves to the attachment id. */
+    uploadChatAttachment: (
+      request: ChatAttachmentUploadRequest
+    ) => Promise<{ id: string }>;
+    onChatAttachmentUploadProgress: (
+      cb: (progress: ChatAttachmentUploadProgress) => void
+    ) => () => Electron.IpcRenderer;
+    onChatMessageSound: (cb: () => void) => () => Electron.IpcRenderer;
+    onChatUnreadUpdated: (
+      cb: (state: ChatUnreadState) => void
+    ) => () => Electron.IpcRenderer;
+    onChatResync: (cb: () => void) => () => Electron.IpcRenderer;
+
     onOpenAddFriendModal: (cb: () => void) => () => Electron.IpcRenderer;
     onFriendsUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onFriendPresence: (

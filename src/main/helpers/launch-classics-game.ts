@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { emulators, logger } from "@main/services";
@@ -15,7 +16,12 @@ import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
 import { spawnDetachedEmulator } from "./spawn-detached-emulator";
+import {
+  findFlatpakCommand,
+  resolveFlatpakEmulatorLaunch,
+} from "./flatpak-emulator-launch";
 import { prepareEmulatorSouvenirs } from "@main/services/emulators/prepare-emulator-souvenirs";
+import { cleanupEmulatorSouvenirSession } from "@main/services/emulators/emulator-souvenir-config";
 
 export class EmulatorNotConfiguredError extends Error {
   code = "EMULATOR_NOT_CONFIGURED" as const;
@@ -130,6 +136,10 @@ const buildEmulatorArgs = (
       return ["-batch", "-fullscreen", "--", discPath];
     case "rpcs3":
       return ["--no-gui", discPath];
+    case "ppsspp":
+      return ["--pause-menu-exit", "--fullscreen", discPath];
+    case "dolphin":
+      return ["--batch", "--exec", discPath];
   }
 };
 
@@ -235,18 +245,32 @@ export const launchClassicsGame = async (
     });
   }
 
-  const baseArgs = buildEmulatorArgs(config.binary, bootTarget);
+  const souvenirSession = game
+    ? await prepareEmulatorSouvenirs(system, executableTarget)
+    : null;
+  const baseArgs = [
+    ...(souvenirSession?.launchArguments ?? []),
+    ...buildEmulatorArgs(config.binary, bootTarget),
+  ];
+
+  const flatpakLaunch = resolveFlatpakEmulatorLaunch({
+    executableTarget,
+    args: baseArgs,
+    accessiblePaths: [bootTarget],
+    flatpakCommand: findFlatpakCommand(),
+    homePath: os.homedir(),
+  });
 
   const resolvedLaunchCommand = resolveLaunchCommand({
-    baseCommand: executableTarget,
-    baseArgs,
+    baseCommand: flatpakLaunch?.command ?? executableTarget,
+    baseArgs: flatpakLaunch?.args ?? baseArgs,
     launchOptions: null,
     wrapperCommands,
   });
 
   const workingDirectory = path.dirname(executableTarget);
 
-  await prepareEmulatorSouvenirs(system, config.executablePath);
+  let sessionStarted = false;
 
   try {
     const processRef = await spawnDetachedEmulator(
@@ -262,11 +286,16 @@ export const launchClassicsGame = async (
         executablePath: config.executablePath,
         sku: selectedDisc?.sku ?? null,
         child: processRef,
+        souvenirSession,
       });
+      sessionStarted = true;
     }
 
     processRef.unref();
   } catch (error) {
+    if (!sessionStarted) {
+      await cleanupEmulatorSouvenirSession(souvenirSession);
+    }
     logger.error("Failed to spawn classics emulator", error);
     throw error;
   }

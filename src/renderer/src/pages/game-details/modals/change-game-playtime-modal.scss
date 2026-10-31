@@ -29,6 +29,18 @@
     align-items: flex-end;
   }
 
+  &__action-tooltip {
+    display: inline-flex;
+
+    &:has(button:disabled) {
+      cursor: not-allowed;
+    }
+
+    button:disabled {
+      pointer-events: none;
+    }
+  }
+
   &__actions {
     display: flex;
     width: 100%;

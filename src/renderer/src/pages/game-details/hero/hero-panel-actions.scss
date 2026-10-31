@@ -1,6 +1,12 @@
 @use "../../../scss/globals.scss";
 
 .hero-panel-actions {
+  &__epic-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: globals.$spacing-unit;
+  }
+
   &__action {
     border: solid 1px globals.$muted-color;
 

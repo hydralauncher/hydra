@@ -6,21 +6,49 @@ import {
   getSkuRegionFlag,
   type SkuRegion,
 } from "@renderer/helpers";
-import type { GameShop } from "@types";
+import type { GameShop, ShopAssets, LibraryGame } from "@types";
+import {
+  hasCloudSaveExecutableSelection,
+  getEpicLaunchOptions,
+  getInstalledStoreMembers,
+  getOfficialStoreMembers,
+  isEpicMemberInCurrentScope,
+  getEpicMemberDownload,
+  isEpicUpdateInterrupted,
+  isLibraryGameDownloading,
+} from "@shared";
+import { useEpicManagedConnection } from "@renderer/hooks/use-epic-managed";
+import { useEpicGameUpdate } from "@renderer/hooks/use-epic-game-update";
+import { useFinishedDownloadStep } from "@renderer/hooks/use-finished-download-step";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { buildLibraryToastOptions, getItemFocusTarget } from "../../helpers";
+import {
+  buildLibraryToastOptions,
+  getBigPictureGameDetailsPath,
+  getItemFocusTarget,
+} from "../../helpers";
+import {
+  getSimilarGamesSectionState,
+  SIMILAR_GAMES_LIMIT,
+} from "@renderer/hooks/similar-games";
+import { useSimilarGames } from "@renderer/hooks/use-similar-games";
 import type { LibraryToastSource } from "../../helpers/library-toast";
 import {
   Typography,
   VerticalFocusGroup,
   Divider,
   FocusItem,
+  FocusCarousel,
+  Skeleton,
+  EmptyState,
 } from "../../components";
 import {
   ConfirmationModal,
   DiscSelectionModal,
   DownloadGameModal,
+  ExecutablePickerModal,
+  type ExecutablePickerTarget,
 } from "../../components/modals";
 import {
   AchievementsBox,
@@ -33,6 +61,7 @@ import {
   ProtonDBSection,
   RequirementsToPlay,
   ScreenshotCarousel,
+  GameMyScreenshots,
   SupportedLanguages,
 } from "../../components/pages/game";
 import { useGameSettingsModalState } from "../../components/pages/game/game-settings-modal/use-game-settings-modal-state";
@@ -55,6 +84,7 @@ import {
   GAME_HERO_ACTIONS_REGION_ID,
   GAME_MEDIA_CAROUSEL_REGION_ID,
   GAME_PAGE_REGION_ID,
+  GAME_SIMILAR_GAMES_REGION_ID,
   GAME_SIDEBAR_ACHIEVEMENTS_ID,
   GAME_SIDEBAR_CONTROLLER_SUPPORT_ID,
   GAME_SIDEBAR_HLTB_ID,
@@ -64,10 +94,21 @@ import {
   GAME_SIDEBAR_REGION_ID,
   GAME_SIDEBAR_REQUIREMENTS_ID,
   GAME_SIDEBAR_STATS_ID,
+  getGameSimilarGameItemId,
 } from "../../components/pages/game/navigation";
 import { NavigationService, type FocusOverrideTarget } from "../../services";
 import { useNavigationStore } from "../../stores";
+import { useBigPictureDownloadsStore } from "../../stores/downloads.store";
+import { extractGenreNames } from "./game-metadata";
 import "./game.scss";
+import { EpicCloudSaves } from "../../components/pages/game/epic-cloud-saves";
+import { EpicCloudSaveConflictModal } from "../../components/modals/epic-cloud-save-conflict-modal";
+import { Button, Modal, HorizontalFocusGroup } from "../../components/common";
+import {
+  canRetryEpicLaunchWithLocalSaves,
+  getEpicLaunchError,
+  getEpicManagedError,
+} from "@renderer/helpers/epic-managed-error";
 
 const DESCRIPTION_HEADING_SELECTOR = "h1, h2, h3, h4, h5, h6";
 const DESCRIPTION_MEDIA_SELECTOR = "img, video";
@@ -99,7 +140,6 @@ const DESCRIPTION_SCROLL_EDGE_TOLERANCE = 4;
 const DESCRIPTION_FOCUS_ENTRY_MARGIN = 32;
 const DESCRIPTION_SCROLL_ANIMATION_DURATION = 220;
 const DESCRIPTION_RETURN_MIN_VISIBLE_RATIO = 0.5;
-
 type ClassicsLaunchErrorCode = NonNullable<
   ReturnType<typeof getClassicsLaunchErrorCode>
 >;
@@ -415,10 +455,74 @@ function buildDescriptionSections(document: Document | null) {
   return sections;
 }
 
+function SimilarGamesSkeleton({ title }: Readonly<{ title: string }>) {
+  return (
+    <section
+      className="focus-carousel game-page__similar-games-skeleton"
+      data-card-variant="vertical"
+      aria-label={title}
+      aria-busy="true"
+    >
+      <div className="focus-carousel__header">
+        <h2 className="focus-carousel__title">{title}</h2>
+        <div
+          className="game-page__similar-games-skeleton-actions"
+          aria-hidden="true"
+        >
+          <Skeleton />
+          <Skeleton />
+        </div>
+      </div>
+
+      <div className="focus-carousel__viewport-wrapper">
+        <div className="focus-carousel__viewport">
+          <div className="focus-carousel__container">
+            {Array.from({ length: SIMILAR_GAMES_LIMIT }, (_, index) => (
+              <article
+                className="focus-carousel__slide"
+                key={`similar-game-skeleton-${index}`}
+              >
+                <div className="game-page__similar-games-skeleton-card">
+                  <Skeleton className="game-page__similar-games-skeleton-cover" />
+                  <div className="game-page__similar-games-skeleton-body">
+                    <Skeleton className="game-page__similar-games-skeleton-title" />
+                    <Skeleton className="game-page__similar-games-skeleton-subtitle" />
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SimilarGamesEmptyState({
+  title,
+  message,
+}: Readonly<{ title: string; message: string }>) {
+  return (
+    <section className="focus-carousel game-page__similar-games-empty">
+      <div className="focus-carousel__header">
+        <h2 className="focus-carousel__title">{title}</h2>
+      </div>
+
+      <EmptyState
+        className="game-page__similar-games-empty-state"
+        title={message}
+      />
+    </section>
+  );
+}
+
 export default function Game() {
-  const { showErrorToast, showSuccessToast } = useBigPictureToast();
+  const { t } = useTranslation("big_picture");
+  const { showErrorToast, showSuccessToast, showWarningToast } =
+    useBigPictureToast();
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
   const navigate = useNavigate();
+
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isDiscSelectionModalOpen, setIsDiscSelectionModalOpen] =
     useState(false);
@@ -488,6 +592,9 @@ export default function Game() {
   const {
     shopDetails,
     game,
+    presentationGame,
+    downloadGame,
+    catalogueGame,
     stats,
     isGameRunning,
     runningSessionDurationInMillis,
@@ -502,6 +609,205 @@ export default function Game() {
     updateGame,
     refreshGameDetails,
   } = useGameDetails(objectId!, shop!);
+  const members = presentationGame?.members ?? (game ? [game] : []);
+  const installedMembers = getInstalledStoreMembers(members);
+  const epicMember = getOfficialStoreMembers(members).epic;
+  const [showStoreSelection, setShowStoreSelection] = useState(false);
+  const [showEpicUpdate, setShowEpicUpdate] = useState(false);
+  const lastPacket = useBigPictureDownloadsStore((state) => state.lastPacket);
+  const { installationAvailable: epicInstallationAvailable, connection } =
+    useEpicManagedConnection();
+  const installedEpicMember =
+    epicMember?.epicInstallation && epicMember.executablePath
+      ? epicMember
+      : null;
+  const epicDownload = getEpicMemberDownload(installedEpicMember, downloadGame);
+  const epicUpdate = useEpicGameUpdate(
+    installedEpicMember,
+    epicInstallationAvailable &&
+      isEpicMemberInCurrentScope(installedEpicMember, connection),
+    epicDownload?.status
+  );
+  const epicUpdateInterrupted =
+    !!epicDownload && isEpicUpdateInterrupted(epicDownload);
+  const epicUpdateInProgress =
+    !!epicDownload?.epic?.update &&
+    (isLibraryGameDownloading({ download: epicDownload }) ||
+      !!epicDownload.queued);
+  const refreshEpicUpdate = epicUpdate.refresh;
+  const requestEpicUpdate = epicUpdate.start;
+  const [localSaveRetry, setLocalSaveRetry] = useState<{
+    member: LibraryGame;
+    skipUpdateCheck: boolean;
+  } | null>(null);
+  const [epicSaveConflict, setEpicSaveConflict] = useState<LibraryGame | null>(
+    null
+  );
+  const [canRetryOffline, setCanRetryOffline] = useState(false);
+  const [canRetryLocalSaves, setCanRetryLocalSaves] = useState(false);
+  const launchGeneration = useRef(0);
+  const invalidateLaunch = useCallback(() => {
+    launchGeneration.current++;
+  }, []);
+  useEffect(() => {
+    const invalidate = () => {
+      invalidateLaunch();
+      setShowStoreSelection(false);
+      setLocalSaveRetry(null);
+      setEpicSaveConflict(null);
+    };
+    invalidate();
+    const stop = window.electron?.onEpicConnectionChanged?.(invalidate);
+    return () => {
+      invalidateLaunch();
+      stop?.();
+    };
+  }, [shop, objectId, invalidateLaunch]);
+  const offerEpicLaunchRecovery = useCallback(
+    async (
+      member: LibraryGame,
+      generation: number,
+      skipUpdateCheck: boolean
+    ) => {
+      if (typeof window.electron.getEpicCloudSaveState !== "function") return;
+      const state = await window.electron
+        .getEpicCloudSaveState(member.objectId)
+        .catch(() => null);
+      if (generation !== launchGeneration.current) return;
+      if (state?.status === "conflict") {
+        setEpicSaveConflict(member);
+        return;
+      }
+      if (
+        canRetryEpicLaunchWithLocalSaves(state) ||
+        state?.canRunOffline === true
+      ) {
+        setLocalSaveRetry({ member, skipUpdateCheck });
+        setCanRetryOffline(state?.canRunOffline === true);
+        setCanRetryLocalSaves(canRetryEpicLaunchWithLocalSaves(state));
+      }
+    },
+    []
+  );
+  const reportLaunchFailure = useCallback(
+    async (
+      member: LibraryGame,
+      error: unknown,
+      generation: number,
+      skipUpdateCheck: boolean
+    ) => {
+      const code =
+        member.shop === "epic" ? getEpicLaunchError(error) : undefined;
+      if (code === "save-conflict") {
+        setEpicSaveConflict(member);
+        return;
+      }
+      if (code === "update-required") void refreshEpicUpdate(true);
+      const translation = code ? getEpicManagedError(code) : null;
+      showErrorToast(
+        translation
+          ? t(translation.key, { ns: translation.ns })
+          : t("epic_launch_failed", { ns: "game_details" })
+      );
+      if (member.shop === "epic")
+        await offerEpicLaunchRecovery(member, generation, skipUpdateCheck);
+    },
+    [showErrorToast, t, refreshEpicUpdate, offerEpicLaunchRecovery]
+  );
+  const launchMember = useCallback(
+    async (
+      member: LibraryGame,
+      localOnce = false,
+      offline = false,
+      skipUpdateCheck = false
+    ) => {
+      if (!member.executablePath) return;
+      setShowStoreSelection(false);
+      setLocalSaveRetry(null);
+      setEpicSaveConflict(null);
+      setCanRetryOffline(false);
+      setCanRetryLocalSaves(false);
+      const generation = launchGeneration.current;
+      try {
+        await window.electron.openGame(
+          member.shop,
+          member.objectId,
+          member.executablePath,
+          member.launchOptions,
+          getEpicLaunchOptions(localOnce, offline, skipUpdateCheck)
+        );
+      } catch (error) {
+        if (generation !== launchGeneration.current) return;
+        await reportLaunchFailure(member, error, generation, skipUpdateCheck);
+      }
+    },
+    [reportLaunchFailure]
+  );
+  const playEpicMember = useCallback(
+    (member: LibraryGame) => {
+      setShowStoreSelection(false);
+      if (epicUpdateInProgress) {
+        showWarningToast(t("epic_updating", { ns: "game_details" }));
+        return;
+      }
+      if (epicUpdate.update || epicUpdateInterrupted) {
+        setShowEpicUpdate(true);
+        return;
+      }
+      void launchMember(member);
+    },
+    [
+      epicUpdate.update,
+      epicUpdateInterrupted,
+      epicUpdateInProgress,
+      launchMember,
+      showWarningToast,
+      t,
+    ]
+  );
+  const startEpicUpdate = useCallback(
+    async (resume = false) => {
+      setShowEpicUpdate(false);
+      const result = await requestEpicUpdate(lastPacket !== null, resume);
+      if (result.ok) {
+        await updateGame();
+        globalThis.window.dispatchEvent(new Event("library-update"));
+        return;
+      }
+      const translation = getEpicManagedError(result.error);
+      showErrorToast(t("epic_update_failed", { ns: "game_details" }), {
+        message: t(translation.key, { ns: translation.ns }),
+      });
+    },
+    [requestEpicUpdate, lastPacket, updateGame, showErrorToast, t]
+  );
+  const resumeEpicUpdate = useCallback(async () => {
+    if (!installedEpicMember) return;
+    if (epicDownload?.status !== "paused" && epicDownload?.status !== "error") {
+      await startEpicUpdate(true);
+      return;
+    }
+    setShowEpicUpdate(false);
+    try {
+      const resumed = await window.electron.resumeGameDownload(
+        installedEpicMember.shop,
+        installedEpicMember.objectId,
+        "queueIfActive"
+      );
+      if (resumed === false)
+        showErrorToast(t("epic_update_failed", { ns: "game_details" }));
+    } catch {
+      showErrorToast(t("epic_update_failed", { ns: "game_details" }));
+    }
+    await updateGame();
+  }, [
+    installedEpicMember,
+    epicDownload?.status,
+    startEpicUpdate,
+    showErrorToast,
+    t,
+    updateGame,
+  ]);
   const { launchSettings, customizationSettings, cloudSettings } =
     useGameSettingsModalState({
       game,
@@ -549,19 +855,40 @@ export default function Game() {
   const developer = shopDetails?.developers?.[0] ?? "";
   const publisher = shopDetails?.publishers?.[0] ?? "";
   const releaseDate = shopDetails?.release_date?.date ?? "";
-  const launchboxGenres = useMemo(() => {
-    return ((shopDetails?.genres ?? []) as unknown[])
-      .map((genre) => {
-        if (typeof genre === "string") return genre;
-        if (genre && typeof genre === "object" && "name" in genre) {
-          const { name } = genre as { name?: unknown };
-          return typeof name === "string" ? name : "";
-        }
-
-        return "";
-      })
-      .filter((genre) => genre.trim().length > 0);
+  const shopGenres = useMemo(() => {
+    return extractGenreNames(shopDetails?.genres ?? []);
   }, [shopDetails?.genres]);
+  const {
+    games: similarGames,
+    isLoading: areSimilarGamesLoading,
+    isEligible: areSimilarGamesEligible,
+  } = useSimilarGames({
+    objectId: catalogueGame.objectId,
+    shop: catalogueGame.shop,
+  });
+  const similarCarouselGames = useMemo<ShopAssets[]>(
+    () =>
+      similarGames.map((similarGame) => ({
+        objectId: similarGame.objectId,
+        shop: similarGame.shop,
+        title: similarGame.title,
+        iconUrl: similarGame.iconUrl,
+        libraryHeroImageUrl: similarGame.libraryHeroImageUrl,
+        libraryImageUrl: similarGame.libraryImageUrl,
+        logoImageUrl: similarGame.logoImageUrl,
+        logoPosition: null,
+        coverImageUrl: similarGame.coverImageUrl,
+        downloadSources: similarGame.downloadSources,
+      })),
+    [similarGames]
+  );
+  const similarGamesSectionState = getSimilarGamesSectionState(
+    areSimilarGamesEligible,
+    areSimilarGamesLoading,
+    similarCarouselGames.length
+  );
+  const hasSimilarGames = similarGamesSectionState === "ready";
+  const shouldRenderSimilarGames = similarGamesSectionState !== "hidden";
   const launchboxRegions = useMemo(
     () =>
       shopDetails?.skus && shopDetails.skus.length > 0
@@ -593,6 +920,16 @@ export default function Game() {
       preferRememberedFocus: true,
     };
   }, [hasNavigableComments]);
+  const similarGamesEntryTarget = useMemo(() => {
+    if (!hasSimilarGames) return undefined;
+
+    return {
+      type: "region" as const,
+      regionId: GAME_SIMILAR_GAMES_REGION_ID,
+      entryDirection: "down" as const,
+      preferRememberedFocus: true,
+    };
+  }, [hasSimilarGames]);
   const bodyUpNavigationTarget = useMemo<FocusOverrideTarget>(() => {
     if (activeMediaItemId) {
       return getItemFocusTarget(activeMediaItemId);
@@ -636,12 +973,15 @@ export default function Game() {
       };
     }
 
-    return descriptionEntryTarget ?? commentsEntryTarget;
+    return (
+      descriptionEntryTarget ?? similarGamesEntryTarget ?? commentsEntryTarget
+    );
   }, [
     activeMediaItemId,
     commentsEntryTarget,
     descriptionEntryTarget,
     hasMedia,
+    similarGamesEntryTarget,
   ]);
   const sidebarEntryTarget = useMemo(
     () => sidebarStatsEntryTarget,
@@ -657,6 +997,13 @@ export default function Game() {
     []
   );
   const commentsTopNavigationTarget = useMemo(() => {
+    if (similarGamesEntryTarget) {
+      return {
+        ...similarGamesEntryTarget,
+        entryDirection: "up" as const,
+      };
+    }
+
     if (descriptionBottomEntryTarget) {
       return descriptionBottomEntryTarget;
     }
@@ -671,12 +1018,105 @@ export default function Game() {
     descriptionBottomEntryTarget,
     hasMedia,
     heroActionsLeftNavigationTarget,
+    similarGamesEntryTarget,
   ]);
+
+  const similarGamesTopNavigationTarget = useMemo<FocusOverrideTarget>(() => {
+    if (descriptionBottomEntryTarget) return descriptionBottomEntryTarget;
+    if (activeMediaItemId) return getItemFocusTarget(activeMediaItemId);
+
+    if (hasMedia) {
+      return {
+        type: "region",
+        regionId: GAME_MEDIA_CAROUSEL_REGION_ID,
+        entryDirection: "up",
+        preferRememberedFocus: true,
+      };
+    }
+
+    return heroActionsLeftNavigationTarget;
+  }, [
+    activeMediaItemId,
+    descriptionBottomEntryTarget,
+    hasMedia,
+    heroActionsLeftNavigationTarget,
+  ]);
+
+  const getSimilarGameNavigationOverrides = useCallback(
+    (_similarGame: ShopAssets, index: number, games: ShopAssets[]) => ({
+      up: similarGamesTopNavigationTarget,
+      down: commentsEntryTarget ?? ({ type: "block" } as const),
+      ...(index === 0
+        ? { left: getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home) }
+        : {}),
+      ...(index === games.length - 1
+        ? { right: { type: "block" as const } }
+        : {}),
+    }),
+    [commentsEntryTarget, similarGamesTopNavigationTarget]
+  );
+  const getSimilarGameItemId = useCallback(
+    (similarGame: ShopAssets) =>
+      getGameSimilarGameItemId(
+        shop!,
+        objectId!,
+        similarGame.shop,
+        similarGame.objectId
+      ),
+    [objectId, shop]
+  );
   useHeaderTitle(resolvedGameTitle);
 
   const handleOpenDownloadModal = useCallback(() => {
     setIsDownloadModalOpen(true);
   }, []);
+
+  const installStep = useFinishedDownloadStep(downloadGame);
+  const [executablePickerTarget, setExecutablePickerTarget] =
+    useState<ExecutablePickerTarget | null>(null);
+
+  const handleInstall = useCallback(async () => {
+    if (!downloadGame) return;
+
+    const opened = await globalThis.window.electron.openGameInstaller(
+      downloadGame.shop,
+      downloadGame.objectId
+    );
+
+    if (!opened) {
+      showErrorToast(t("installer_launch_failed", { ns: "downloads" }));
+    }
+
+    await refreshGameDetails();
+  }, [downloadGame, refreshGameDetails, showErrorToast, t]);
+
+  const handleExtract = useCallback(async () => {
+    if (!downloadGame) return;
+
+    await globalThis.window.electron.extractGameDownload(
+      downloadGame.shop,
+      downloadGame.objectId
+    );
+    globalThis.window.dispatchEvent(new Event("library-update"));
+    await refreshGameDetails();
+  }, [downloadGame, refreshGameDetails]);
+
+  const handleSelectExecutable = useCallback(() => {
+    if (!downloadGame) return;
+
+    setExecutablePickerTarget({
+      shop: downloadGame.shop,
+      objectId: downloadGame.objectId,
+    });
+  }, [downloadGame]);
+
+  const handleCloseExecutablePicker = useCallback(() => {
+    setExecutablePickerTarget(null);
+  }, []);
+
+  const handleExecutableSaved = useCallback(() => {
+    void refreshGameDetails();
+  }, [refreshGameDetails]);
 
   const handleCloseDownloadModal = useCallback(() => {
     setIsDownloadModalOpen(false);
@@ -773,13 +1213,27 @@ export default function Game() {
     if (!game) return;
 
     if (game.shop !== "launchbox") {
+      if (
+        installedMembers.some((member) => member.shop === "steam") &&
+        installedMembers.some((member) => member.shop === "epic")
+      ) {
+        setShowStoreSelection(true);
+        return;
+      }
+      if (game.shop === "epic" && game.epicInstallation) {
+        playEpicMember(game);
+        return;
+      }
       await openGame();
       return;
     }
 
     const discs = game.discs ?? [];
 
-    if (discs.length <= 1) {
+    if (
+      discs.length === 0 ||
+      (discs.length === 1 && game.selectedDiscPath !== null)
+    ) {
       await launchClassicsWithErrorHandling();
       return;
     }
@@ -790,7 +1244,13 @@ export default function Game() {
     }
 
     setIsDiscSelectionModalOpen(true);
-  }, [game, launchClassicsWithErrorHandling, openGame]);
+  }, [
+    game,
+    installedMembers,
+    launchClassicsWithErrorHandling,
+    openGame,
+    playEpicMember,
+  ]);
 
   const handleDiscSelectionConfirm = useCallback(
     async (discPath: string, dontAskAgain: boolean) => {
@@ -1047,7 +1507,9 @@ export default function Game() {
                 return;
               }
 
-              focusNavigationTarget(commentsEntryTarget);
+              focusNavigationTarget(
+                similarGamesEntryTarget ?? commentsEntryTarget
+              );
             },
             left: () => {
               navigation.setFocus(BIG_PICTURE_SIDEBAR_ITEM_IDS.home);
@@ -1122,6 +1584,10 @@ export default function Game() {
       previousRegionId,
       GAME_COMMENTS_ACTION_ROWS_REGION_ID
     );
+    const enteredFromSimilarGames = isRegionWithinTree(
+      previousRegionId,
+      GAME_SIMILAR_GAMES_REGION_ID
+    );
     const enteredFromSidebar = isRegionWithinTree(
       previousRegionId,
       GAME_SIDEBAR_REGION_ID
@@ -1135,11 +1601,12 @@ export default function Game() {
       return;
     }
 
-    const targetScrollTop = enteredFromComments
-      ? bounds.descriptionBottom -
-        bounds.pageClientHeight +
-        DESCRIPTION_FOCUS_ENTRY_MARGIN
-      : bounds.descriptionTop - DESCRIPTION_FOCUS_ENTRY_MARGIN;
+    const targetScrollTop =
+      enteredFromComments || enteredFromSimilarGames
+        ? bounds.descriptionBottom -
+          bounds.pageClientHeight +
+          DESCRIPTION_FOCUS_ENTRY_MARGIN
+        : bounds.descriptionTop - DESCRIPTION_FOCUS_ENTRY_MARGIN;
     const nextScrollTop = Math.min(
       Math.max(0, targetScrollTop),
       bounds.maxScrollTop
@@ -1260,21 +1727,152 @@ export default function Game() {
   return (
     <VerticalFocusGroup regionId={GAME_PAGE_REGION_ID} asChild>
       <div ref={pageRef} className="game-page">
+        <EpicCloudSaveConflictModal
+          game={epicSaveConflict}
+          isGameRunning={isGameRunning}
+          onClose={() => setEpicSaveConflict(null)}
+        />
+        <Modal
+          visible={showStoreSelection}
+          title={t("choose_game_store", { ns: "game_details" })}
+          onClose={() => setShowStoreSelection(false)}
+        >
+          <HorizontalFocusGroup>
+            {installedMembers.map((member) => (
+              <Button
+                key={member.id}
+                variant="primary"
+                onClick={() =>
+                  member.shop === "epic"
+                    ? playEpicMember(member)
+                    : void launchMember(member)
+                }
+              >
+                {t(member.shop === "steam" ? "play_on_steam" : "play_on_epic", {
+                  ns: "game_details",
+                })}
+              </Button>
+            ))}
+          </HorizontalFocusGroup>
+        </Modal>
+        <Modal
+          visible={showEpicUpdate}
+          title={t(
+            epicUpdateInterrupted ? "epic_update_resume" : "epic_update",
+            { ns: "game_details" }
+          )}
+          description={
+            epicUpdate.update?.publishedVersion
+              ? t("epic_update_available", {
+                  ns: "game_details",
+                  version: epicUpdate.update.publishedVersion,
+                })
+              : undefined
+          }
+          onClose={() => setShowEpicUpdate(false)}
+        >
+          <HorizontalFocusGroup>
+            {epicUpdateInterrupted ? (
+              <Button
+                variant="primary"
+                disabled={epicUpdate.starting}
+                onClick={() => void resumeEpicUpdate()}
+              >
+                {t("epic_update_resume", { ns: "game_details" })}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="primary"
+                  disabled={epicUpdate.starting}
+                  onClick={() => void startEpicUpdate()}
+                >
+                  {t("epic_update", { ns: "game_details" })}
+                </Button>
+                <Button
+                  variant="secondary"
+                  disabled={epicUpdate.starting}
+                  onClick={() => {
+                    setShowEpicUpdate(false);
+                    const member = installedEpicMember ?? game;
+                    if (member) void launchMember(member, false, false, true);
+                  }}
+                >
+                  {t("epic_play_without_update", { ns: "game_details" })}
+                </Button>
+              </>
+            )}
+          </HorizontalFocusGroup>
+        </Modal>
+        <Modal
+          visible={!!localSaveRetry}
+          title={t(
+            canRetryLocalSaves
+              ? "epic_play_local_saves"
+              : "epic_play_offline_title",
+            { ns: "game_details" }
+          )}
+          description={t(
+            canRetryLocalSaves
+              ? "epic_play_local_saves_description"
+              : "epic_play_offline_description",
+            { ns: "game_details" }
+          )}
+          onClose={() => setLocalSaveRetry(null)}
+        >
+          <HorizontalFocusGroup>
+            {canRetryLocalSaves && (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (localSaveRetry)
+                    void launchMember(
+                      localSaveRetry.member,
+                      true,
+                      false,
+                      localSaveRetry.skipUpdateCheck
+                    );
+                }}
+              >
+                {t("epic_play_local_saves", { ns: "game_details" })}
+              </Button>
+            )}
+            {canRetryOffline && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  if (localSaveRetry)
+                    void launchMember(localSaveRetry.member, false, true);
+                }}
+              >
+                {t("epic_play_offline", { ns: "game_details" })}
+              </Button>
+            )}
+          </HorizontalFocusGroup>
+        </Modal>
         <BigPictureCloudSaveProvider
-          objectId={objectId!}
-          shop={shop!}
-          hasExecutablePath={Boolean(game?.executablePath)}
+          objectId={game?.objectId ?? objectId!}
+          shop={game?.shop ?? shop!}
+          platform={game?.platform}
+          hasExecutablePath={
+            game ? hasCloudSaveExecutableSelection(game) : false
+          }
           isGameRunning={isGameRunning}
           onSelectExecutable={() => setIsGameSettingsModalOpen(true)}
         >
           <Hero
             shopDetails={shopDetails}
-            game={game}
+            game={presentationGame ?? game}
+            downloadGame={downloadGame}
             isGameRunning={isGameRunning}
-            isFavorite={game?.favorite ?? false}
+            isFavorite={presentationGame?.favorite ?? game?.favorite ?? false}
             toggleFavorite={toggleFavorite}
             onPlay={handlePlayGame}
             onDownload={handleOpenDownloadModal}
+            installStep={installStep}
+            onInstall={() => void handleInstall()}
+            onExtract={() => void handleExtract()}
+            onSelectExecutable={handleSelectExecutable}
             onAddToLibrary={handleAddToLibrary}
             onOpenDownloadOptions={handleOpenDownloadModal}
             onOpenSettings={() => setIsGameSettingsModalOpen(true)}
@@ -1288,6 +1886,7 @@ export default function Game() {
             <GameSettingsModal
               visible={isGameSettingsModalOpen}
               game={game}
+              removeFilesGame={presentationGame ?? game}
               launchSettings={launchSettings}
               customizationSettings={customizationSettings}
               cloudSettings={cloudSettings}
@@ -1299,9 +1898,11 @@ export default function Game() {
         <section className="game-page__content">
           <PlaytimeBar
             game={game}
+            presentationGame={presentationGame}
             isGameRunning={isGameRunning}
             runningSessionDurationInMillis={runningSessionDurationInMillis}
           />
+          <EpicCloudSaves game={epicMember} isGameRunning={isGameRunning} />
 
           <div className="game-page__main-layout">
             <div className="game-page__main-column">
@@ -1310,7 +1911,9 @@ export default function Game() {
                 screenshots={shopDetails.screenshots ?? []}
                 onActiveItemChange={setActiveMediaItemId}
                 nextContentEntryTarget={
-                  descriptionEntryTarget ?? commentsEntryTarget
+                  descriptionEntryTarget ??
+                  similarGamesEntryTarget ??
+                  commentsEntryTarget
                 }
                 sidebarEntryTarget={sidebarStatsEntryTarget}
               />
@@ -1374,13 +1977,46 @@ export default function Game() {
                 </VerticalFocusGroup>
               )}
 
+              {shouldRenderSimilarGames ? (
+                <>
+                  <Divider />
+                  <div className="game-page__similar-games">
+                    {similarGamesSectionState === "loading" ? (
+                      <SimilarGamesSkeleton title={t("similar_games")} />
+                    ) : null}
+                    {similarGamesSectionState === "empty" ? (
+                      <SimilarGamesEmptyState
+                        title={t("similar_games")}
+                        message={t("no_similar_games")}
+                      />
+                    ) : null}
+                    {similarGamesSectionState === "ready" ? (
+                      <FocusCarousel
+                        title={t("similar_games")}
+                        cardVariant="vertical"
+                        games={similarCarouselGames}
+                        regionId={GAME_SIMILAR_GAMES_REGION_ID}
+                        getItemId={getSimilarGameItemId}
+                        getItemNavigationOverrides={
+                          getSimilarGameNavigationOverrides
+                        }
+                        onItemActivate={(similarGame) =>
+                          navigate(getBigPictureGameDetailsPath(similarGame))
+                        }
+                        showRightFade
+                      />
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
+
               {!isCustomGame && (
                 <>
                   <Divider />
 
                   <GameReviews
-                    shop={shop!}
-                    objectId={objectId!}
+                    shop={game?.shop ?? shop!}
+                    objectId={game?.objectId ?? objectId!}
                     topNavigationTarget={commentsTopNavigationTarget}
                     onHasNavigableActionsChange={setHasNavigableComments}
                   />
@@ -1443,6 +2079,18 @@ export default function Game() {
                   </FocusItem>
                 )}
 
+                <GameMyScreenshots
+                  shop={game?.shop ?? shop!}
+                  objectId={game?.objectId ?? objectId!}
+                  communityShop={shop!}
+                  communityObjectId={objectId!}
+                  navigationOrder={0.5}
+                  leftTarget={
+                    descriptionEntryTarget ??
+                    sidebarCarouselLeftNavigationTarget
+                  }
+                />
+
                 {(howLongToBeat?.length ?? 0) > 0 && (
                   <HowLongToBeatBox
                     howLongToBeat={howLongToBeat ?? []}
@@ -1466,7 +2114,7 @@ export default function Game() {
                 )}
 
                 <ControllerSupportBox
-                  shop={shop}
+                  shop={catalogueGame.shop}
                   shopDetails={shopDetails}
                   focusId={GAME_SIDEBAR_CONTROLLER_SUPPORT_ID}
                   focusNavigationOrder={3}
@@ -1505,13 +2153,13 @@ export default function Game() {
                       </div>
                     ) : null}
 
-                    {isLaunchboxGame && launchboxGenres.length > 0 ? (
+                    {isLaunchboxGame && shopGenres.length > 0 ? (
                       <div className="game-page__metadata-row">
                         <Typography className="game-page__metadata-label">
                           Genres
                         </Typography>
                         <Typography className="game-page__metadata-value">
-                          {launchboxGenres.join(", ")}
+                          {shopGenres.join(", ")}
                         </Typography>
                       </div>
                     ) : null}
@@ -1596,8 +2244,8 @@ export default function Game() {
           visible={isDownloadModalOpen}
           onClose={handleCloseDownloadModal}
           game={{
-            objectId: objectId!,
-            shop: shop!,
+            objectId: downloadGame?.objectId ?? game?.objectId ?? objectId!,
+            shop: downloadGame?.shop ?? game?.shop ?? shop!,
             title: resolvedGameTitle,
             iconUrl: preferredAssets.iconUrl,
             downloadSources:
@@ -1607,6 +2255,12 @@ export default function Game() {
             coverImageUrl:
               preferredAssets.coverSrc || preferredAssets.iconSrc || null,
           }}
+        />
+
+        <ExecutablePickerModal
+          target={executablePickerTarget}
+          onClose={handleCloseExecutablePicker}
+          onSaved={handleExecutableSaved}
         />
 
         {game?.shop === "launchbox" ? (

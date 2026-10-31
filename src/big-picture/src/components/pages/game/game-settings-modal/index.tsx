@@ -64,6 +64,7 @@ const GAME_SETTINGS_TAB_FOCUS_IDS: Record<GameSettingsTabId, string> = {
 interface GameSettingsModalProps {
   visible: boolean;
   game: LibraryGame;
+  removeFilesGame?: LibraryGame;
   launchSettings: GameLaunchSettingsProps;
   customizationSettings: GameCustomizationSettingsProps;
   cloudSettings: GameCloudSettingsProps;
@@ -73,6 +74,7 @@ interface GameSettingsModalProps {
 export function GameSettingsModal({
   visible,
   game,
+  removeFilesGame,
   launchSettings,
   customizationSettings,
   cloudSettings,
@@ -95,7 +97,7 @@ export function GameSettingsModal({
     if (visible) {
       setActiveTabId("launch");
     }
-  }, []);
+  }, [visible]);
 
   const launchContent = useMemo(
     () => <GameLaunchSettingsTab {...launchSettings} />,
@@ -125,8 +127,14 @@ export function GameSettingsModal({
     [game]
   );
   const dangerContent = useMemo(
-    () => <GameDangerZoneSettingsTab game={game} onClose={onClose} />,
-    [game, onClose]
+    () => (
+      <GameDangerZoneSettingsTab
+        game={game}
+        removeFilesGame={removeFilesGame}
+        onClose={onClose}
+      />
+    ),
+    [game, removeFilesGame, onClose]
   );
   const compatibilityContent = useMemo(
     () => <GameCompatibilitySettingsTab game={game} />,
@@ -137,12 +145,14 @@ export function GameSettingsModal({
   const shouldShowCloudV2Tab = shouldShowCloudSaveV2Tab(
     game.shop,
     isSignedIn,
-    hasActiveSubscription
+    hasActiveSubscription,
+    game.platform
   );
   const shouldShowLegacyCloudTab = shouldShowLegacyCloudSaveTab(
     game.shop,
     isSignedIn,
-    hasActiveSubscription
+    hasActiveSubscription,
+    game.platform
   );
 
   useEffect(() => {
@@ -186,7 +196,11 @@ export function GameSettingsModal({
         ? [
             {
               id: "hydra_cloud_legacy",
-              label: t("settings_category_hydra_cloud"),
+              label: t(
+                shouldShowCloudV2Tab
+                  ? "settings_category_legacy_saves"
+                  : "settings_category_hydra_cloud"
+              ),
               content: cloudContent,
             } satisfies SidebarModalTab<GameSettingsTabId>,
           ]

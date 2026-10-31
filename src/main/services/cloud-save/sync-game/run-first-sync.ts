@@ -13,6 +13,7 @@ import {
   uploadLocalState,
 } from "./transfer";
 import { requireCommittedCloudSaveSnapshot } from "./planner.js";
+import { firstSyncRestoreArguments } from "./first-sync-restore-arguments.js";
 
 type CloudSaveAnalysis = Awaited<ReturnType<typeof analyzeCloudSaveState>>;
 
@@ -101,10 +102,7 @@ export const runFirstSync = async (
       remoteSnapshot,
       analysis.localSnapshotContext,
       emitProgress,
-      restoreEntryIds,
-      true,
-      analysis.merge.unresolvedRemoteEntryIds,
-      assertEnvironmentCurrent
+      ...firstSyncRestoreArguments(analysis, assertEnvironmentCurrent)
     );
     return {
       result: {

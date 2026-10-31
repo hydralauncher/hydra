@@ -145,6 +145,24 @@ mod tests {
     }
 
     #[test]
+    fn matches_epic_store_rules_without_matching_steam_rules() {
+        let mut epic = context("windows", false);
+        epic.shop = "epic".into();
+        let steam = context("windows", false);
+
+        assert!(rule_is_applicable(&[condition(None, Some("epic"))], &epic));
+        assert!(rule_is_applicable(&[condition(None, Some("EPIC"))], &epic));
+        assert!(!rule_is_applicable(
+            &[condition(None, Some("steam"))],
+            &epic
+        ));
+        assert!(!rule_is_applicable(
+            &[condition(None, Some("epic"))],
+            &steam
+        ));
+    }
+
+    #[test]
     fn requires_every_field_inside_one_condition() {
         let windows = context("windows", false);
         let linux = context("linux", false);

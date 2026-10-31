@@ -24,8 +24,16 @@ import {
 } from "./emulation-detail-sections";
 import { MemoryCardsSection } from "./memory-cards-section";
 import { CloudSavesSection } from "./cloud-saves-section";
+import { LocalEmulatorSavesSection } from "./local-emulator-saves-section";
 import { RomsDetectedSection } from "./roms-detected-section";
+import { Rpcs3ConfigRootSection } from "./rpcs3-config-root-section";
 import { formatRelativeShort } from "./relative-time";
+import {
+  availableEmulatorTabs,
+  supportsEmulatorSaves,
+  supportsMemoryCards,
+  type EmulatorTab,
+} from "./emulator-detail-tabs";
 
 import "./emulator-detail.scss";
 
@@ -37,29 +45,12 @@ interface EmulatorDetailProps {
   refresh: () => Promise<EmulatorConfig | unknown>;
 }
 
-type EmulatorTab = "emulator" | "rom-folders" | "memory-cards" | "library";
-
-const EMULATOR_TABS: EmulatorTab[] = [
-  "emulator",
-  "rom-folders",
-  "memory-cards",
-  "library",
-];
-
 const emulatorTabStorageKey = (system: EmulatorSystem) =>
   `${SETTINGS_EMULATOR_TAB_STORAGE_KEY}-${system}`;
 
-const availableEmulatorTabs = (supportsMemoryCards: boolean): EmulatorTab[] =>
-  supportsMemoryCards
-    ? EMULATOR_TABS
-    : EMULATOR_TABS.filter((tab) => tab !== "memory-cards");
-
-const readStoredTab = (
-  system: EmulatorSystem,
-  supportsMemoryCards: boolean
-): EmulatorTab => {
+const readStoredTab = (system: EmulatorSystem): EmulatorTab => {
   const stored = localStorage.getItem(emulatorTabStorageKey(system));
-  const available = availableEmulatorTabs(supportsMemoryCards) as string[];
+  const available = availableEmulatorTabs(system) as string[];
 
   return stored && available.includes(stored)
     ? (stored as EmulatorTab)
@@ -85,20 +76,24 @@ export function EmulatorDetail({
   const [romsNonce, setRomsNonce] = useState(0);
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
+  const removeTarget = useMemo(
+    () => ({ kind: "emulator" as const, system: config.system }),
+    [config.system]
+  );
   const [executableExists, setExecutableExists] = useState<boolean>(true);
 
-  const supportsMemoryCards =
-    config.system === "ps2" || config.system === "ps1";
-  const supportsBios = supportsMemoryCards;
+  const hasMemoryCards = supportsMemoryCards(config.system);
+  const hasEmulatorSaves = supportsEmulatorSaves(config.system);
+  const supportsBios = hasMemoryCards;
   const supportsFirmware = config.system === "ps3";
 
   const [activeTab, setActiveTab] = useState<EmulatorTab>(() =>
-    readStoredTab(config.system, supportsMemoryCards)
+    readStoredTab(config.system)
   );
 
   useEffect(() => {
-    setActiveTab(readStoredTab(config.system, supportsMemoryCards));
-  }, [config.system, supportsMemoryCards]);
+    setActiveTab(readStoredTab(config.system));
+  }, [config.system]);
 
   useEffect(() => {
     localStorage.setItem(emulatorTabStorageKey(config.system), activeTab);
@@ -123,17 +118,31 @@ export function EmulatorDetail({
     };
   }, [config.system, config.executablePath]);
 
-  const handleConfirmRemoveEmulator = useCallback(async () => {
-    setBusy(true);
-    try {
-      const next = await window.electron.removeEmulator(config.system);
-      onChange(next);
-      setRemoveOpen(false);
-      onBack();
-    } finally {
-      setBusy(false);
-    }
-  }, [config.system, onChange, onBack]);
+  const handleConfirmRemoveEmulator = useCallback(
+    async (gamesToRemove: number) => {
+      setBusy(true);
+      try {
+        const next = await window.electron.removeEmulator(config.system, {
+          removeGames: gamesToRemove > 0,
+        });
+        onChange(next);
+        setRemoveOpen(false);
+        showSuccessToast(
+          t("remove_emulator_success", {
+            name: KNOWN_BINARY_LABELS[config.binary],
+          }),
+          gamesToRemove > 0
+            ? t("remove_emulator_games_removed", { count: gamesToRemove })
+            : undefined
+        );
+
+        onBack();
+      } finally {
+        setBusy(false);
+      }
+    },
+    [config.binary, config.system, onChange, onBack, showSuccessToast, t]
+  );
 
   const binaryName = KNOWN_BINARY_LABELS[config.binary];
   const binaryIcon = EMULATOR_ICONS[config.binary];
@@ -145,7 +154,9 @@ export function EmulatorDetail({
         executablePath: config.executablePath,
         detectedVersion: config.detectedVersion,
       };
-      const next = await window.electron.detectEmulator(config.system);
+      const next = await window.electron.detectEmulator(config.system, {
+        includeDriveRoots: true,
+      });
       onChange(next);
       notifyRedetectOutcome(
         next,
@@ -187,6 +198,10 @@ export function EmulatorDetail({
         config.system,
         result.filePaths[0]
       );
+      if (!next) {
+        showErrorToast(t("emulator_invalid_executable"));
+        return;
+      }
       onChange(next);
     } finally {
       setBusy(false);
@@ -308,8 +323,11 @@ export function EmulatorDetail({
   const tabs: { id: EmulatorTab; label: string }[] = [
     { id: "emulator", label: t("tab_emulator") },
     { id: "rom-folders", label: t("tab_rom_folders") },
-    ...(supportsMemoryCards
+    ...(hasMemoryCards
       ? [{ id: "memory-cards" as const, label: t("tab_memory_card_backups") }]
+      : []),
+    ...(hasEmulatorSaves
+      ? [{ id: "saves" as const, label: t("tab_saves") }]
       : []),
     { id: "library", label: t("tab_library") },
   ];
@@ -343,11 +361,19 @@ export function EmulatorDetail({
             onBrowse={handleBrowseExecutable}
           />
 
+          {config.system === "ps3" && (
+            <Rpcs3ConfigRootSection
+              config={config}
+              disabled={busy}
+              onChange={onChange}
+            />
+          )}
+
           {supportsBios && (
             <BiosSection config={config} disabled={busy} onChange={onChange} />
           )}
 
-          {!supportsFirmware && (
+          {supportsBios && (
             <p className="emulator-detail__bios-note">
               <InfoIcon size={14} />
               <span>{t("bios_note", { name: binaryName })}</span>
@@ -383,11 +409,21 @@ export function EmulatorDetail({
         />
       )}
 
-      {activeTab === "memory-cards" && supportsMemoryCards && (
+      {activeTab === "memory-cards" && hasMemoryCards && (
         <>
           <MemoryCardsSection
             config={config}
             onUploaded={() => setCloudNonce((n) => n + 1)}
+          />
+          <CloudSavesSection config={config} refreshKey={cloudNonce} />
+        </>
+      )}
+
+      {activeTab === "saves" && hasEmulatorSaves && (
+        <>
+          <LocalEmulatorSavesSection
+            config={config}
+            onUploaded={() => setCloudNonce((nonce) => nonce + 1)}
           />
           <CloudSavesSection config={config} refreshKey={cloudNonce} />
         </>
@@ -432,6 +468,7 @@ export function EmulatorDetail({
 
       <DetailRemoveModals
         emulatorName={binaryName}
+        removeTarget={removeTarget}
         folderToRemove={folderToRemove}
         removeEmulatorOpen={removeOpen}
         busy={busy}

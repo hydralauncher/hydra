@@ -6,7 +6,14 @@ import { logger } from "@main/services/logger";
 import { resolveSniffTarget } from "./sniff-disc-platform";
 import { readChdLeadingData } from "./chd-reader";
 import { readCsoLeadingData } from "./cso-reader";
+import { extractDolphinGameId } from "./dolphin-disc-reader";
 import { normalize } from "./sku-normalize";
+import { parseParamSfo, parseParamSfoValue } from "./param-sfo";
+import { readVerifiedPs3DirectoryTitleId } from "./verified-ps3-directory-title-id";
+import { readVerifiedPs3PkgTitleId } from "./verified-ps3-pkg-title-id";
+import { extractTitleIdFromIso } from "./verified-ps3-iso-title-id";
+
+export { extractTitleIdFromIso };
 import {
   BOOT_SKU_RE,
   ISO_FILENAME_SKU_RE,
@@ -23,6 +30,7 @@ const CHUNK_SIZE = 1024 * 1024;
 const SCAN_LIMIT = 64 * 1024 * 1024;
 
 export { normalize };
+export { parseParamSfo, parseParamSfoValue };
 
 const extractChdSku = async (filePath: string): Promise<string | null> => {
   const data = await readChdLeadingData(filePath);
@@ -159,159 +167,7 @@ const extractPs12Sku = async (filePath: string): Promise<string | null> => {
   return scanTargetForSku(target);
 };
 
-const findKeyOffset = (
-  data: Buffer,
-  keyTableStart: number,
-  keyOffset: number
-): { key: string; nextNull: number } => {
-  const start = keyTableStart + keyOffset;
-  const nextNull = data.indexOf(0, start);
-  const end = nextNull === -1 ? data.length : nextNull;
-  return { key: data.subarray(start, end).toString("ascii"), nextNull: end };
-};
-
-export const parseParamSfo = (data: Buffer): string | null => {
-  if (data.length < 20) return null;
-  if (data.readUInt32LE(0) !== 0x46535000) return null;
-
-  const keyTableStart = data.readUInt32LE(8);
-  const dataTableStart = data.readUInt32LE(12);
-  const numEntries = data.readUInt32LE(16);
-  const indexStart = 20;
-
-  for (let i = 0; i < numEntries; i++) {
-    const off = indexStart + i * 16;
-    if (off + 16 > data.length) break;
-
-    const keyOffset = data.readUInt16LE(off);
-    const dataUsedSize = data.readUInt32LE(off + 4);
-    const dataOffset = data.readUInt32LE(off + 12);
-
-    const { key } = findKeyOffset(data, keyTableStart, keyOffset);
-    if (key === "TITLE_ID") {
-      const valueStart = dataTableStart + dataOffset;
-      const valueEnd = valueStart + dataUsedSize;
-      if (valueEnd > data.length) return null;
-      const raw = data
-        .subarray(valueStart, valueEnd)
-        .toString("ascii")
-        .replace(/\0+$/, "")
-        .trim();
-      return raw.length > 0 ? normalize(raw) : null;
-    }
-  }
-  return null;
-};
-
-const ISO_SECTOR = 2048;
-const ISO_DIR_READ_CAP = 256 * 1024;
 const ISO_SFO_READ_CAP = 1024 * 1024;
-
-interface IsoDirEntry {
-  name: string;
-  lba: number;
-  size: number;
-  isDir: boolean;
-}
-
-const parseIsoDirRecords = (buf: Buffer): IsoDirEntry[] => {
-  const entries: IsoDirEntry[] = [];
-  let pos = 0;
-  while (pos < buf.length) {
-    const recLen = buf[pos];
-    if (recLen === 0) {
-      const next = (Math.floor(pos / ISO_SECTOR) + 1) * ISO_SECTOR;
-      if (next <= pos) break;
-      pos = next;
-      continue;
-    }
-    if (pos + recLen > buf.length || pos + 33 > buf.length) break;
-    const lba = buf.readUInt32LE(pos + 2);
-    const size = buf.readUInt32LE(pos + 10);
-    const flags = buf[pos + 25];
-    const nameLen = buf[pos + 32];
-    const nameRaw = buf.subarray(pos + 33, pos + 33 + nameLen);
-    let name: string;
-    if (nameLen === 1 && (nameRaw[0] === 0 || nameRaw[0] === 1)) {
-      name = nameRaw[0] === 0 ? "." : "..";
-    } else {
-      name = nameRaw.toString("latin1").split(";")[0];
-    }
-    entries.push({ name, lba, size, isDir: (flags & 0x02) !== 0 });
-    pos += recLen;
-  }
-  return entries;
-};
-
-const readIsoExtent = async (
-  fh: import("node:fs/promises").FileHandle,
-  lba: number,
-  byteLength: number,
-  cap: number
-): Promise<Buffer> => {
-  const len = Math.min(byteLength, cap);
-  const buf = Buffer.alloc(len);
-  await fh.read(buf, 0, len, lba * ISO_SECTOR);
-  return buf;
-};
-
-const findIsoEntry = (
-  entries: IsoDirEntry[],
-  name: string
-): IsoDirEntry | null =>
-  entries.find(
-    (e) =>
-      e.name !== "." &&
-      e.name !== ".." &&
-      e.name.toUpperCase() === name.toUpperCase()
-  ) ?? null;
-
-export const extractTitleIdFromIso = async (
-  isoPath: string
-): Promise<string | null> => {
-  let fh: import("node:fs/promises").FileHandle | null = null;
-  try {
-    fh = await fs.open(isoPath, "r");
-
-    const pvd = Buffer.alloc(ISO_SECTOR);
-    const { bytesRead } = await fh.read(pvd, 0, ISO_SECTOR, 16 * ISO_SECTOR);
-    if (bytesRead < 190) return null;
-    if (pvd[0] !== 0x01) return null;
-    if (pvd.subarray(1, 6).toString("latin1") !== "CD001") return null;
-
-    const rootLba = pvd.readUInt32LE(156 + 2);
-    const rootSize = pvd.readUInt32LE(156 + 10);
-    const rootBuf = await readIsoExtent(
-      fh,
-      rootLba,
-      rootSize,
-      ISO_DIR_READ_CAP
-    );
-    const ps3Game = findIsoEntry(parseIsoDirRecords(rootBuf), "PS3_GAME");
-    if (!ps3Game?.isDir) return null;
-
-    const ps3Buf = await readIsoExtent(
-      fh,
-      ps3Game.lba,
-      ps3Game.size,
-      ISO_DIR_READ_CAP
-    );
-    const paramSfo = findIsoEntry(parseIsoDirRecords(ps3Buf), "PARAM.SFO");
-    if (!paramSfo || paramSfo.isDir) return null;
-
-    const sfoBuf = await readIsoExtent(
-      fh,
-      paramSfo.lba,
-      paramSfo.size,
-      ISO_SFO_READ_CAP
-    );
-    return parseParamSfo(sfoBuf);
-  } catch {
-    return null;
-  } finally {
-    await fh?.close();
-  }
-};
 
 const PKG_MAGIC = 0x7f504b47;
 
@@ -414,10 +270,144 @@ const extractPs3TitleId = async (
   }
 };
 
+/** Cloud Save must use metadata from the media, never a filename guess. */
+export const extractVerifiedPs3TitleId = async (
+  primaryPath: string
+): Promise<string | null> => {
+  const stat = await fs.stat(primaryPath).catch(() => null);
+  if (!stat) return null;
+
+  if (stat.isDirectory())
+    return readVerifiedPs3DirectoryTitleId(primaryPath, true);
+
+  if (!stat.isFile()) return null;
+  const extension = path.extname(primaryPath).toLowerCase();
+  if (extension === ".iso") return extractTitleIdFromIso(primaryPath);
+  if (extension === ".pkg") return readVerifiedPs3PkgTitleId(primaryPath);
+  return readVerifiedPs3DirectoryTitleId(primaryPath, false);
+};
+
+const PSP_DISC_ID_RE = /[A-Z]{4}[-_ ]?\d{5}/;
+const PSP_SCAN_TAIL_LENGTH = 16;
+const PSP_RAW_SCAN_LIMIT = 16 * 1024 * 1024;
+const PBP_HEADER_SIZE = 0x28;
+const PBP_MAGIC = Buffer.from([0, 0x50, 0x42, 0x50]);
+const PBP_PARAM_SFO_OFFSET_FIELD = 0x08;
+const PBP_ICON0_OFFSET_FIELD = 0x0c;
+
+const scanChunksForPspDiscId = (chunks: Buffer[]): string | null => {
+  let tail = "";
+  for (const chunk of chunks) {
+    const text = tail + chunk.toString("latin1");
+    const match = PSP_DISC_ID_RE.exec(text);
+    if (match) return normalize(match[0]);
+    tail = text.slice(-PSP_SCAN_TAIL_LENGTH);
+  }
+  return null;
+};
+
+const extractPspDirectoryDiscId = async (primaryPath: string) => {
+  const candidates = [
+    path.join(primaryPath, "PSP_GAME", "PARAM.SFO"),
+    path.join(primaryPath, "PARAM.SFO"),
+  ];
+  for (const candidate of candidates) {
+    const data = await fs.readFile(candidate).catch(() => null);
+    const id = data ? parseParamSfoValue(data, "DISC_ID") : null;
+    if (id) return id;
+  }
+  return null;
+};
+
+const extractPbpDiscId = async (primaryPath: string, fileSize: number) => {
+  const file = await fs.open(primaryPath, "r").catch(() => null);
+  if (!file) return null;
+
+  try {
+    const header = Buffer.alloc(PBP_HEADER_SIZE);
+    const { bytesRead } = await file.read(header, 0, header.length, 0);
+    if (
+      bytesRead !== header.length ||
+      !header.subarray(0, 4).equals(PBP_MAGIC)
+    ) {
+      return null;
+    }
+
+    const start = header.readUInt32LE(PBP_PARAM_SFO_OFFSET_FIELD);
+    const end = Math.min(
+      header.readUInt32LE(PBP_ICON0_OFFSET_FIELD),
+      start + ISO_SFO_READ_CAP
+    );
+    if (start >= end || end > fileSize) return null;
+
+    const data = Buffer.alloc(end - start);
+    await file.read(data, 0, data.length, start);
+    return parseParamSfoValue(data, "DISC_ID");
+  } finally {
+    await file.close();
+  }
+};
+
+const extractCompressedPspDiscId = async (
+  primaryPath: string,
+  extension: string
+) => {
+  const data =
+    extension === ".cso"
+      ? await readCsoLeadingData(primaryPath)
+      : await readChdLeadingData(primaryPath);
+  return data ? scanChunksForPspDiscId(data.chunks) : null;
+};
+
+const extractRawPspDiscId = async (primaryPath: string, fileSize: number) => {
+  const file = await fs.open(primaryPath, "r").catch(() => null);
+  if (!file) return null;
+
+  try {
+    const data = Buffer.alloc(Math.min(fileSize, PSP_RAW_SCAN_LIMIT));
+    const { bytesRead } = await file.read(data, 0, data.length, 0);
+    const match = PSP_DISC_ID_RE.exec(
+      data.subarray(0, bytesRead).toString("latin1")
+    );
+    return match ? normalize(match[0]) : null;
+  } finally {
+    await file.close();
+  }
+};
+
+const extractPspDiscId = async (primaryPath: string) => {
+  const stat = await fs.stat(primaryPath).catch(() => null);
+  if (!stat) return null;
+  if (stat.isDirectory()) return extractPspDirectoryDiscId(primaryPath);
+
+  const extension = path.extname(primaryPath).toLowerCase();
+  let id: string | null = null;
+  if (extension === ".pbp") {
+    id = await extractPbpDiscId(primaryPath, stat.size);
+  } else if (extension === ".cso" || extension === ".chd") {
+    id = await extractCompressedPspDiscId(primaryPath, extension);
+  } else {
+    id = await extractRawPspDiscId(primaryPath, stat.size);
+  }
+  if (id) return id;
+
+  const fallback = PSP_DISC_ID_RE.exec(path.basename(primaryPath));
+  return fallback ? normalize(fallback[0]) : null;
+};
+
 export const extractDiscSku = async (
   primaryPath: string,
   system: EmulatorSystem
 ): Promise<string | null> => {
-  if (system === "ps3") return extractPs3TitleId(primaryPath);
-  return extractPs12Sku(primaryPath);
+  switch (system) {
+    case "ps1":
+    case "ps2":
+      return extractPs12Sku(primaryPath);
+    case "ps3":
+      return extractPs3TitleId(primaryPath);
+    case "psp":
+      return extractPspDiscId(primaryPath);
+    case "dolphin":
+      return extractDolphinGameId(primaryPath);
+  }
 };

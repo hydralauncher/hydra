@@ -35,6 +35,7 @@ export interface FileExplorerModalProps {
   initialPath?: string;
   filters?: FileFilter[];
   selectDirectory?: boolean;
+  selectFileAndDirectory?: boolean;
 }
 
 function resolveStartPath(initialPath?: string): Promise<string> {
@@ -65,6 +66,7 @@ export function useFileExplorer({
   initialPath,
   filters,
   selectDirectory = false,
+  selectFileAndDirectory = false,
 }: Readonly<FileExplorerModalProps>) {
   const { t } = useTranslation("big_picture");
   const [currentPath, setCurrentPath] = useState<string>("");
@@ -202,9 +204,20 @@ export function useFileExplorer({
   const filteredEntries = useMemo(() => {
     if (drives.length > 0 && !currentPath) return [];
     return entries.filter((entry) =>
-      matchesFilters(entry, effectiveFilters, selectDirectory)
+      matchesFilters(
+        entry,
+        effectiveFilters,
+        selectDirectory && !selectFileAndDirectory
+      )
     );
-  }, [entries, effectiveFilters, drives, selectDirectory, currentPath]);
+  }, [
+    entries,
+    effectiveFilters,
+    drives,
+    selectDirectory,
+    selectFileAndDirectory,
+    currentPath,
+  ]);
 
   const handleBPress = useCallback(() => {
     const parent = getParentPath(currentPath);

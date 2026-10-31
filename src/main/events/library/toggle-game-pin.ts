@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { HydraApi, logger } from "@main/services";
@@ -20,16 +21,14 @@ const toggleGamePin = async (
         `/profile/games/${shop}/${objectId}/pin`
       );
 
-      await gamesSublevel.put(gameKey, {
-        ...game,
+      await updateGameRecord(gameKey, {
         isPinned: pin,
         pinnedDate: new Date(response.pinnedDate!),
       });
     } else {
       await HydraApi.put(`/profile/games/${shop}/${objectId}/unpin`);
 
-      await gamesSublevel.put(gameKey, {
-        ...game,
+      await updateGameRecord(gameKey, {
         isPinned: pin,
         pinnedDate: null,
       });

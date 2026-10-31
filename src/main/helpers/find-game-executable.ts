@@ -8,20 +8,47 @@ import {
   type KnownGameExecutable,
 } from "./game-executable-ranking";
 
+const readEntriesUpToDepth = async (
+  folderPath: string,
+  maxDepth: number
+): Promise<fs.Dirent[]> => {
+  const entries = await fs.promises.readdir(folderPath, {
+    withFileTypes: true,
+  });
+  if (maxDepth <= 0) return entries;
+
+  const nested = await Promise.all(
+    entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) =>
+        readEntriesUpToDepth(
+          path.join(folderPath, entry.name),
+          maxDepth - 1
+        ).catch(() => [])
+      )
+  );
+
+  return [...entries, ...nested.flat()];
+};
+
 export const findGameExecutableInFolder = async (
   folderPath: string,
   executables: KnownGameExecutable[],
-  scope: ExecutableSearchScope = "installation"
+  scope: ExecutableSearchScope = "installation",
+  maxDepth?: number
 ): Promise<string | null> => {
   if (executables.length === 0) return null;
 
   let entries: fs.Dirent[];
 
   try {
-    entries = await fs.promises.readdir(folderPath, {
-      withFileTypes: true,
-      recursive: true,
-    });
+    entries =
+      maxDepth === undefined
+        ? await fs.promises.readdir(folderPath, {
+            withFileTypes: true,
+            recursive: true,
+          })
+        : await readEntriesUpToDepth(folderPath, maxDepth);
   } catch (err) {
     logger.error(
       `[findGameExecutableInFolder] Error reading folder ${folderPath}:`,

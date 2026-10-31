@@ -22,7 +22,10 @@ export const getEmulatorPlaytimeFile = (
     const cfg = findExistingConfig(pcsx2ConfigCandidates(executablePath));
     return cfg ? path.join(path.dirname(cfg), "playtime.dat") : null;
   }
-  return findExistingConfig(rpcs3GuiConfigsCandidates(executablePath));
+  if (system === "ps3") {
+    return findExistingConfig(rpcs3GuiConfigsCandidates(executablePath));
+  }
+  return null;
 };
 
 const parsePlaytimeDat = (content: string): Map<string, number> => {

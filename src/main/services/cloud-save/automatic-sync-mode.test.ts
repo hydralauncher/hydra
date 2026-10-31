@@ -72,7 +72,7 @@ describe("cloud save automatic sync mode", () => {
     );
   });
 
-  it("keeps non-Steam games on legacy or disabled", () => {
+  it("keeps custom games on legacy or disabled", () => {
     assert.equal(
       resolveStoredCloudSaveAutomaticSyncModeForShop("custom", true, undefined),
       "legacy"
@@ -85,6 +85,96 @@ describe("cloud save automatic sync mode", () => {
       ),
       "disabled"
     );
+  });
+
+  it("uses Epic V2 by default, honors opt-outs and ignores stale legacy flags", () => {
+    for (const legacy of [false, true]) {
+      assert.equal(
+        resolveStoredCloudSaveAutomaticSyncModeForShop(
+          "epic",
+          legacy,
+          undefined
+        ),
+        "v2"
+      );
+      assert.equal(
+        resolveStoredCloudSaveAutomaticSyncModeForShop("epic", legacy, true),
+        "v2"
+      );
+      assert.equal(
+        resolveStoredCloudSaveAutomaticSyncModeForShop("epic", legacy, false),
+        "disabled"
+      );
+    }
+  });
+
+  it("defaults supported emulator games to V2 and preserves later opt-outs", () => {
+    for (const platform of [
+      "Sony PlayStation 3",
+      "Nintendo Entertainment System",
+      "Super Nintendo Entertainment System",
+      "Nintendo 64",
+      "Nintendo Game Boy",
+      "Nintendo Game Boy Color",
+      "Nintendo Game Boy Advance",
+    ]) {
+      assert.equal(
+        resolveStoredCloudSaveAutomaticSyncModeForShop(
+          "launchbox",
+          true,
+          undefined,
+          platform
+        ),
+        "v2"
+      );
+      assert.equal(
+        resolveStoredCloudSaveAutomaticSyncModeForShop(
+          "launchbox",
+          true,
+          true,
+          platform
+        ),
+        "v2"
+      );
+      assert.equal(
+        resolveStoredCloudSaveAutomaticSyncModeForShop(
+          "launchbox",
+          true,
+          false,
+          platform
+        ),
+        "disabled"
+      );
+    }
+    assert.equal(
+      resolveStoredCloudSaveAutomaticSyncModeForShop(
+        "launchbox",
+        true,
+        undefined,
+        "Atari 2600"
+      ),
+      "legacy"
+    );
+  });
+
+  it("keeps other emulators on legacy even with an old V2 preference", () => {
+    for (const platform of [
+      "Sony PlayStation",
+      "Sony PlayStation 2",
+      "Sony PlayStation Portable",
+      "Nintendo GameCube",
+      "Nintendo Wii",
+    ]) {
+      assert.equal(
+        resolveStoredCloudSaveAutomaticSyncModeForShop(
+          "launchbox",
+          true,
+          true,
+          platform
+        ),
+        "legacy"
+      );
+    }
   });
 
   it("enabling legacy disables V2", () => {

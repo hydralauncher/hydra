@@ -12,6 +12,7 @@ import {
 } from "@renderer/hooks/use-cover-poster";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
   getGameAchievementProgress,
   resolveImageSource,
@@ -64,6 +65,8 @@ export interface LibraryGameCardPresentationSource {
   libraryImageUrl?: string | null;
   logoImageUrl?: string | null;
   playTimeInMilliseconds?: number | null;
+  steamPlayTimeInMilliseconds?: number | null;
+  epicPlayTimeInMilliseconds?: number | null;
   achievementCount?: number | null;
   unlockedAchievementCount?: number | null;
 }
@@ -72,6 +75,8 @@ const PLATFORM_LABELS: Partial<Record<EmulatorSystem, string>> = {
   ps1: "PS",
   ps2: "PS2",
   ps3: "PS3",
+  psp: "PSP",
+  dolphin: "GC/Wii",
 };
 
 function getResolvedImageSources(
@@ -178,6 +183,7 @@ export function useLibraryGameCardPresentation(
   };
 
   return {
+    userPreferences,
     activeImageSource,
     isChosenCoverActive,
     achievementProgress,
@@ -186,9 +192,11 @@ export function useLibraryGameCardPresentation(
     dominantColor,
     handleCoverImageError,
     logoImageUrl,
-    playtimeLabel: game.playTimeInMilliseconds
+    playtimeLabel: getDisplayedPlayTimeInMilliseconds(game)
       ? t("play_time", {
-          amount: formatPlayTime(game.playTimeInMilliseconds / 1000),
+          amount: formatPlayTime(
+            getDisplayedPlayTimeInMilliseconds(game) / 1000
+          ),
         })
       : t("never_played", { ns: "big_picture" }),
   };

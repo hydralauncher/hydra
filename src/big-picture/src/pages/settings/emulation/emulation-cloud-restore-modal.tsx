@@ -3,6 +3,7 @@ import type {
   EmulationSavePlatform,
   MemcardFormatState,
   MemcardRestoreErrorReason,
+  MemcardRestoreResult,
   MemcardRestoreTarget,
 } from "@types";
 import { useCallback, useEffect, useState } from "react";
@@ -24,7 +25,7 @@ import {
 import { basename } from "./shared";
 
 const PICK_FILTERS: Record<
-  EmulationSavePlatform,
+  Extract<EmulationSavePlatform, "ps1" | "ps2">,
   { name: string; extensions: string[] }
 > = {
   ps1: {
@@ -39,7 +40,7 @@ interface EmulationCloudRestoreModalProps {
   platform: EmulationSavePlatform;
   onClose: () => void;
   onRestored: () => void;
-  onRestoreSuccess: () => void;
+  onRestoreSuccess: (result: MemcardRestoreResult) => void;
   onRestoreError: (reason?: MemcardRestoreErrorReason) => void;
   regionId: string;
   actionsRegionId: string;
@@ -70,6 +71,7 @@ export function EmulationCloudRestoreModal({
   const [selectedFormat, setSelectedFormat] =
     useState<MemcardFormatState | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const isMemoryCardPlatform = platform === "ps1" || platform === "ps2";
 
   const unformattedKey =
     platform === "ps2"
@@ -81,7 +83,7 @@ export function EmulationCloudRestoreModal({
 
     let cancelled = false;
     void globalThis.window.electron
-      .getMemcardRestoreTargets(platform)
+      .getMemcardRestoreTargets(platform, save.metadata)
       .then((foundTargets) => {
         if (cancelled) return;
         setTargets(foundTargets);
@@ -99,6 +101,11 @@ export function EmulationCloudRestoreModal({
       return;
     }
 
+    if (!isMemoryCardPlatform) {
+      setSelectedFormat("formatted");
+      return;
+    }
+
     let cancelled = false;
     setSelectedFormat(null);
     globalThis.window.electron
@@ -113,7 +120,7 @@ export function EmulationCloudRestoreModal({
     return () => {
       cancelled = true;
     };
-  }, [platform, selectedTarget]);
+  }, [isMemoryCardPlatform, platform, selectedTarget]);
 
   useEffect(() => {
     if (!save) return;
@@ -132,9 +139,11 @@ export function EmulationCloudRestoreModal({
   }, [pickButtonId, save, selectedTarget, setFocus]);
 
   const handlePickFile = useCallback(async () => {
+    if (!isMemoryCardPlatform) return;
+    const filter = platform === "ps2" ? PICK_FILTERS.ps2 : PICK_FILTERS.ps1;
     const result = await globalThis.window.electron.showOpenDialog({
       properties: ["openFile"],
-      filters: [PICK_FILTERS[platform]],
+      filters: [filter],
     });
 
     if (result.canceled || result.filePaths.length === 0) return;
@@ -152,7 +161,7 @@ export function EmulationCloudRestoreModal({
           ]
     );
     setSelectedTarget(chosenPath);
-  }, [formatPickedPathLabel, platform]);
+  }, [formatPickedPathLabel, isMemoryCardPlatform, platform]);
 
   const handleRestore = useCallback(async () => {
     if (!save || !selectedTarget) return;
@@ -163,11 +172,13 @@ export function EmulationCloudRestoreModal({
       const result = await globalThis.window.electron.restoreEmulationSave(
         platform,
         save.id,
-        selectedTarget
+        selectedTarget,
+        save.metadata,
+        save.fileName
       );
 
       if (result.ok) {
-        onRestoreSuccess();
+        onRestoreSuccess(result);
         onRestored();
         onClose();
       } else {
@@ -189,8 +200,16 @@ export function EmulationCloudRestoreModal({
   return (
     <Modal
       visible={save !== null}
-      title={t("cloud_restore_title")}
-      description={t("cloud_restore_description")}
+      title={t(
+        isMemoryCardPlatform
+          ? "cloud_restore_title"
+          : "cloud_restore_emulator_title"
+      )}
+      description={t(
+        isMemoryCardPlatform
+          ? "cloud_restore_description"
+          : "cloud_restore_emulator_description"
+      )}
       onClose={onClose}
       className={modalClassName}
     >
@@ -201,7 +220,11 @@ export function EmulationCloudRestoreModal({
         <div className="emu-save-modal__targets">
           {targets.length === 0 ? (
             <div className="emu-save-modal__empty">
-              {t("cloud_restore_no_cards")}
+              {t(
+                isMemoryCardPlatform
+                  ? "cloud_restore_no_cards"
+                  : "cloud_restore_no_destination"
+              )}
             </div>
           ) : (
             targets.map((target) => {
@@ -252,17 +275,19 @@ export function EmulationCloudRestoreModal({
           regionId={actionsRegionId}
           className="emu-save-modal__actions"
         >
-          <Button
-            focusId={pickButtonId}
-            focusNavigationOverrides={getEmulationCloudRestoreButtonNavigationOverrides(
-              selectedTarget
-            )}
-            variant="secondary"
-            disabled={isBusy}
-            onClick={handlePickFile}
-          >
-            {t("cloud_restore_pick_file")}
-          </Button>
+          {isMemoryCardPlatform && (
+            <Button
+              focusId={pickButtonId}
+              focusNavigationOverrides={getEmulationCloudRestoreButtonNavigationOverrides(
+                selectedTarget
+              )}
+              variant="secondary"
+              disabled={isBusy}
+              onClick={handlePickFile}
+            >
+              {t("cloud_restore_pick_file")}
+            </Button>
+          )}
           <Button
             focusId={confirmButtonId}
             focusNavigationOverrides={getEmulationCloudRestoreButtonNavigationOverrides(
@@ -276,7 +301,11 @@ export function EmulationCloudRestoreModal({
             }
             onClick={handleRestore}
           >
-            {t("cloud_restore_confirm")}
+            {t(
+              isMemoryCardPlatform
+                ? "cloud_restore_confirm"
+                : "cloud_restore_emulator_confirm"
+            )}
           </Button>
         </HorizontalFocusGroup>
       </VerticalFocusGroup>

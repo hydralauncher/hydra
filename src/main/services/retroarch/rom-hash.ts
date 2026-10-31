@@ -1,6 +1,11 @@
 import { promises as fs } from "node:fs";
 
 import type { RetroArchPlatform } from "@types";
+import {
+  inspectRomArchive,
+  isRetroArchArchive,
+  MAX_ARCHIVED_ROM_BYTES,
+} from "./rom-archive.js";
 
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
@@ -118,10 +123,56 @@ const readExact = async (
   return filled;
 };
 
+export const hashRomBuffer = (
+  buffer: Buffer,
+  platform: RetroArchPlatform
+): string => {
+  const { skip, n64Order } = resolveNormalization(
+    buffer,
+    buffer.length,
+    buffer.length,
+    platform
+  );
+  const content =
+    platform === "n64" && n64Order !== "z64"
+      ? Buffer.from(buffer.subarray(skip))
+      : buffer.subarray(skip);
+  if (platform === "n64") swapChunkInPlace(content, n64Order);
+  return crc32(content);
+};
+
+const hashArchivedRom = async (
+  filePath: string,
+  platform: RetroArchPlatform,
+  signal?: AbortSignal
+): Promise<string | null> => {
+  try {
+    const rom = await inspectRomArchive(filePath, signal);
+    if (rom?.platform !== platform) return null;
+    const { SevenZip } = await import("../7zip");
+    const content = await SevenZip.readEntry(
+      filePath,
+      rom.name,
+      MAX_ARCHIVED_ROM_BYTES,
+      signal
+    );
+    if (content.length !== rom.size) return null;
+    return hashRomBuffer(content, platform);
+  } catch {
+    return null;
+  }
+};
+
 export const hashRomFile = async (
   filePath: string,
-  platform: RetroArchPlatform
+  platform: RetroArchPlatform,
+  signal?: AbortSignal
 ): Promise<string | null> => {
+  if (signal?.aborted) return null;
+  if (isRetroArchArchive(filePath)) {
+    return hashArchivedRom(filePath, platform, signal);
+  }
+
   let handle: fs.FileHandle | null = null;
   try {
     handle = await fs.open(filePath, "r");
@@ -148,6 +199,7 @@ export const hashRomFile = async (
     const chunk = Buffer.alloc(HASH_CHUNK_BYTES);
 
     while (position < size) {
+      if (signal?.aborted) return null;
       const target = Math.min(HASH_CHUNK_BYTES, size - position);
       const filled = await readExact(handle, chunk, target, position);
       if (filled <= 0) break;

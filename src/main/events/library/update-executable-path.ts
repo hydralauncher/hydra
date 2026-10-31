@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import { parseExecutablePath } from "../helpers/parse-executable-path";
 import { getDirectorySize } from "../helpers/get-directory-size";
@@ -30,12 +31,12 @@ const updateExecutablePath = async (
     parsedPath !== null && game.executablePath !== parsedPath;
 
   // Update immediately without size so UI responds fast
-  await gamesSublevel.put(gameKey, {
-    ...updateGameExecutablePath(game, parsedPath),
+  await updateGameRecord(gameKey, (current) => ({
+    ...updateGameExecutablePath(current, parsedPath),
     installedSizeInBytes: parsedPath ? game.installedSizeInBytes : null,
     automaticCloudSync:
       executablePath === null ? false : game.automaticCloudSync,
-  });
+  }));
 
   if (environmentChanged) {
     void runAutomaticCloudSaveSync(objectId, shop, "environment-changed");
@@ -61,10 +62,9 @@ const updateExecutablePath = async (
         const currentGame = await gamesSublevel.get(gameKey);
         if (!currentGame) return;
 
-        await gamesSublevel.put(gameKey, {
-          ...currentGame,
-          installedSizeInBytes,
-        });
+        await updateGameRecord(gameKey, (current) =>
+          current.executablePath === parsedPath ? { installedSizeInBytes } : {}
+        );
       })
       .catch((err) => {
         logger.error(`Failed to calculate game size: ${err}`);
@@ -89,9 +89,8 @@ const updateTrackingExecutablePaths = async (
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
 
-  await gamesSublevel.put(
-    gameKey,
-    updateGameTrackingExecutablePaths(game, parsedPaths)
+  await updateGameRecord(gameKey, (current) =>
+    updateGameTrackingExecutablePaths(current, parsedPaths)
   );
 };
 

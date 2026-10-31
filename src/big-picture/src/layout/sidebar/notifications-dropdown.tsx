@@ -1,10 +1,13 @@
 import "./notifications-dropdown.scss";
 
 import {
+  ChatCircleIcon,
   CheckCircleIcon,
   DotsThreeVerticalIcon,
   DownloadSimpleIcon,
+  HeartIcon,
   MinusCircleIcon,
+  ThumbsUpIcon,
   TrashIcon,
   TrophyIcon,
   UserCheckIcon,
@@ -23,6 +26,7 @@ import {
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ContextMenu,
   FocusItem,
@@ -31,10 +35,13 @@ import {
   ScrollArea,
   VerticalFocusGroup,
 } from "../../components";
+import { openBigPictureCloudGiftModal } from "../../components/cloud-gift-modal.events";
 import { FocusRegionContext } from "../../components/context";
 import { IS_DESKTOP } from "../../constants";
 import {
+  Feature,
   useDate,
+  useFeature,
   useLibrary,
   useNavigationActions,
   useNavigationScreenActions,
@@ -49,7 +56,15 @@ import type {
   NotificationCountResponse,
   NotificationsResponse,
 } from "@types";
-import { buildSouvenirNotificationTarget } from "@shared";
+import {
+  buildScreenshotNotificationTarget,
+  buildSouvenirNotificationTarget,
+  isScreenshotNotificationType,
+  CLOUD_GIFT_ID_VARIABLE,
+  CLOUD_GIFT_RECEIVED_NOTIFICATION,
+  NOTIFICATIONS_FETCH_FILTER,
+  NOTIFICATIONS_FETCH_TAKE,
+} from "@shared";
 
 const hydraIconUrl = new URL("../../assets/hydra-icon.svg", import.meta.url)
   .href;
@@ -102,13 +117,29 @@ function parseApiNotificationPath(notificationUrl: string) {
   return notificationUrl;
 }
 
+const SCREENSHOT_NOTIFICATION_ICONS: Partial<
+  Record<Notification["type"], typeof HeartIcon>
+> = {
+  SCREENSHOT_LIKE: HeartIcon,
+  SCREENSHOT_COMMENT: ChatCircleIcon,
+  SCREENSHOT_COMMENT_UPVOTE: ThumbsUpIcon,
+};
+
 function resolveBigPicturePath(path: string) {
   if (/^(?:[a-z][a-z\d+.-]*:)?\/\//i.test(path)) return path;
   if (path.startsWith("/big-picture")) return path;
   return `/big-picture${path}`;
 }
 
-function getApiNotificationContent(notification: Notification) {
+const GENERIC_NOTIFICATION_CONTENT = {
+  title: "Notification",
+  description: "",
+};
+
+function getApiNotificationContent(
+  notification: Notification,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
   switch (notification.type) {
     case "FRIEND_REQUEST_RECEIVED":
       return {
@@ -140,6 +171,18 @@ function getApiNotificationContent(notification: Notification) {
         title: `Your reply for ${notification.variables.gameTitle ?? "a review"} got an upvote`,
         description: `${notification.variables.upvoteCount ?? "1"} upvotes on your reply.`,
       };
+    case CLOUD_GIFT_RECEIVED_NOTIFICATION: {
+      const durationMonths = Number(notification.variables.durationMonths);
+
+      return {
+        title: Number.isFinite(durationMonths)
+          ? t("cloud_gift_received_title", { count: durationMonths })
+          : t("cloud_gift_received_title"),
+        description: t("cloud_gift_received_description", {
+          displayName: notification.variables.buyerDisplayName,
+        }),
+      };
+    }
     case "SOUVENIR_LIKE": {
       const likeCount = Number(notification.variables.likeCount ?? 1);
       return {
@@ -147,15 +190,60 @@ function getApiNotificationContent(notification: Notification) {
         description: `Your souvenir received ${likeCount} new ${likeCount === 1 ? "like" : "likes"}`,
       };
     }
+    case "SCREENSHOT_LIKE":
+    case "SCREENSHOT_COMMENT":
+    case "SCREENSHOT_COMMENT_UPVOTE":
+      return getScreenshotNotificationContent(notification, t);
     default:
-      return {
-        title: "Notification",
-        description: "",
-      };
+      return GENERIC_NOTIFICATION_CONTENT;
   }
 }
 
-function getNotificationContent(notification: MergedNotification) {
+function getScreenshotNotificationKeyPrefix(type: Notification["type"]) {
+  if (type === "SCREENSHOT_COMMENT") return "screenshots_notification_comment";
+  if (type === "SCREENSHOT_COMMENT_UPVOTE")
+    return "screenshots_notification_comment_upvote";
+
+  return "screenshots_notification_like";
+}
+
+function getScreenshotNotificationCount(notification: Notification) {
+  if (notification.type === "SCREENSHOT_COMMENT") {
+    return notification.variables.commentCount;
+  }
+  if (notification.type === "SCREENSHOT_COMMENT_UPVOTE") {
+    return notification.variables.upvoteCount;
+  }
+  return notification.variables.likeCount;
+}
+
+function getScreenshotNotificationContent(
+  notification: Notification,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  const game =
+    notification.variables.gameTitle ||
+    notification.variables.customGameTitle ||
+    t("screenshots_notification_fallback_game", { ns: "big_picture" });
+  const count = Number(getScreenshotNotificationCount(notification) ?? 1);
+  const prefix = getScreenshotNotificationKeyPrefix(notification.type);
+
+  return {
+    title: t(`${prefix}_title`, { ns: "big_picture", game }),
+    description: t(`${prefix}_description`, {
+      ns: "big_picture",
+      game,
+      count: Number.isFinite(count) ? count : 1,
+    }),
+  };
+}
+
+function getNotificationContent(
+  notification: MergedNotification,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  isContentEnabled: boolean
+) {
+  if (!isContentEnabled) return GENERIC_NOTIFICATION_CONTENT;
   if (notification.source === "local") {
     return {
       title: notification.title,
@@ -163,7 +251,26 @@ function getNotificationContent(notification: MergedNotification) {
     };
   }
 
-  return getApiNotificationContent(notification);
+  return getApiNotificationContent(notification, t);
+}
+
+interface ScreenshotFeatureFlags {
+  screenshots: boolean;
+  screenshotComments: boolean;
+}
+
+function isNotificationContentEnabled(
+  notification: MergedNotification,
+  flags: ScreenshotFeatureFlags
+) {
+  if (
+    notification.source !== "api" ||
+    !isScreenshotNotificationType(notification.type)
+  ) {
+    return true;
+  }
+  if (!flags.screenshots) return false;
+  return notification.type === "SCREENSHOT_LIKE" || flags.screenshotComments;
 }
 
 function isHydraNotification(notification: MergedNotification) {
@@ -182,6 +289,22 @@ function isAchievementNotification(notification: MergedNotification) {
 }
 
 function getNotificationUrl(notification: MergedNotification) {
+  if (
+    notification.source === "api" &&
+    isScreenshotNotificationType(notification.type)
+  ) {
+    const ownerId = notification.variables.ownerId;
+    const baseUrl =
+      notification.url ||
+      (ownerId ? `/profile/${encodeURIComponent(ownerId)}` : null);
+    if (!baseUrl) return null;
+
+    return buildScreenshotNotificationTarget(
+      parseApiNotificationPath(baseUrl),
+      notification.variables
+    );
+  }
+
   if (!notification.url) return null;
   const target =
     notification.source === "api"
@@ -259,9 +382,15 @@ export function SidebarNotificationsDropdown({
   restoreFocusId,
 }: Readonly<SidebarNotificationsDropdownProps>) {
   const navigate = useNavigate();
+  const { t } = useTranslation("notifications_page");
   const { formatDistance } = useDate();
   const { library } = useLibrary();
   const { setFocus } = useNavigationActions();
+  const { isFeatureEnabled } = useFeature();
+  const screenshotFeatureFlags: ScreenshotFeatureFlags = {
+    screenshots: isFeatureEnabled(Feature.Screenshots),
+    screenshotComments: isFeatureEnabled(Feature.ScreenshotComments),
+  };
   const [apiNotifications, setApiNotifications] = useState<Notification[]>([]);
   const [localNotifications, setLocalNotifications] = useState<
     LocalNotification[]
@@ -294,7 +423,11 @@ export function SidebarNotificationsDropdown({
         globalThis.window.electron.hydraApi.get<NotificationsResponse>(
           "/profile/notifications",
           {
-            params: { filter: "all", take: 20, skip: 0 },
+            params: {
+              filter: NOTIFICATIONS_FETCH_FILTER,
+              take: NOTIFICATIONS_FETCH_TAKE,
+              skip: 0,
+            },
             needsAuth: true,
           }
         ),
@@ -373,10 +506,19 @@ export function SidebarNotificationsDropdown({
       source: "local" as const,
     }));
 
-    return [...apiWithSource, ...localWithSource].sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    const sortByDate = (a: MergedNotification, b: MergedNotification) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+
+    const highPriority: MergedNotification[] = apiWithSource.filter(
+      (notification) => notification.priority === 1
     );
+
+    const lowPriority: MergedNotification[] = [
+      ...apiWithSource.filter((notification) => notification.priority !== 1),
+      ...localWithSource,
+    ].sort(sortByDate);
+
+    return [...highPriority, ...lowPriority];
   }, [apiNotifications, apiUnreadOverrides, localNotifications]);
 
   const unreadCount = useMemo(() => {
@@ -550,7 +692,22 @@ export function SidebarNotificationsDropdown({
       await markAsRead(notification);
     }
 
-    const url = getNotificationUrl(notification);
+    if (
+      notification.source === "api" &&
+      notification.type === CLOUD_GIFT_RECEIVED_NOTIFICATION &&
+      notification.variables[CLOUD_GIFT_ID_VARIABLE]
+    ) {
+      openBigPictureCloudGiftModal(notification);
+      closeAndRestoreFocus();
+      return;
+    }
+
+    const url = isNotificationContentEnabled(
+      notification,
+      screenshotFeatureFlags
+    )
+      ? getNotificationUrl(notification)
+      : null;
     if (url) {
       navigate(resolveBigPicturePath(url));
       closeAndRestoreFocus();
@@ -721,6 +878,24 @@ export function SidebarNotificationsDropdown({
       );
     }
 
+    if (
+      notification.source === "api" &&
+      isNotificationContentEnabled(notification, screenshotFeatureFlags)
+    ) {
+      const ScreenshotIcon = SCREENSHOT_NOTIFICATION_ICONS[notification.type];
+      if (ScreenshotIcon) {
+        return (
+          <div className="sidebar-notifications-dropdown__fallback-icon">
+            <ScreenshotIcon
+              size={24}
+              weight="fill"
+              className="sidebar-notifications-dropdown__fallback-symbol"
+            />
+          </div>
+        );
+      }
+    }
+
     if (isHydraNotification(notification)) {
       return (
         <div className="sidebar-notifications-dropdown__fallback-icon">
@@ -796,7 +971,14 @@ export function SidebarNotificationsDropdown({
                   </div>
                 ) : (
                   mergedNotifications.map((notification, index) => {
-                    const content = getNotificationContent(notification);
+                    const content = getNotificationContent(
+                      notification,
+                      t,
+                      isNotificationContentEnabled(
+                        notification,
+                        screenshotFeatureFlags
+                      )
+                    );
                     const createdAt = new Date(notification.createdAt);
                     const itemFocusId =
                       getNotificationItemFocusId(notification);

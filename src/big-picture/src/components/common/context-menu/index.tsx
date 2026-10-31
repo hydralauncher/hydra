@@ -254,7 +254,16 @@ export function ContextMenu({
               const focusId = `${menuRegionId}-${item.id}`;
 
               return (
-                <FocusItem key={item.id} id={focusId} asChild>
+                <FocusItem
+                  key={item.id}
+                  id={focusId}
+                  actions={{
+                    primary: () => {
+                      void handleItemSelect(item);
+                    },
+                  }}
+                  asChild
+                >
                   <button
                     type="button"
                     role="menuitem"

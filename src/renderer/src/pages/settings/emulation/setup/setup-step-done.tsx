@@ -5,6 +5,7 @@ import { Button } from "@renderer/components";
 
 interface Props {
   systemLabel: string;
+  multipleSystems?: boolean;
   gamesAdded: number;
   onBrowse: () => void;
   onManage: () => void;
@@ -12,6 +13,7 @@ interface Props {
 
 export function SetupStepDone({
   systemLabel,
+  multipleSystems = false,
   gamesAdded,
   onBrowse,
   onManage,
@@ -24,7 +26,9 @@ export function SetupStepDone({
         <CheckIcon size={28} />
       </div>
       <h3 className="setup-modal__done-title">
-        {t("setup_done_title", { system: systemLabel })}
+        {t(multipleSystems ? "setup_done_title_plural" : "setup_done_title", {
+          system: systemLabel,
+        })}
       </h3>
       <p className="setup-modal__done-body">
         {t(gamesAdded === 1 ? "setup_done_body_one" : "setup_done_body_other", {

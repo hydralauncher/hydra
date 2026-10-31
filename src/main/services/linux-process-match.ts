@@ -60,24 +60,36 @@ export const hasLaunchedPidMatch = (
   return processReferencesExecutable(matchedProcess, executablePath);
 };
 
+export const doesSteamCompatDataPathMatchWinePrefix = (
+  steamCompatDataPath: string | null | undefined,
+  winePrefixPath: string | null | undefined
+) => {
+  if (!steamCompatDataPath || !winePrefixPath) return false;
+
+  const compatDataPath = path.normalize(steamCompatDataPath).toLowerCase();
+  const prefixPath = path.normalize(winePrefixPath).toLowerCase();
+
+  return (
+    compatDataPath === prefixPath ||
+    path.join(compatDataPath, "pfx") === prefixPath
+  );
+};
+
 const processMatchesWinePrefix = (
   process: LinuxWindowProcess,
   winePrefixPath: string | null | undefined
 ) => {
   if (!winePrefixPath) return false;
 
-  const expectedPrefix = path.normalize(winePrefixPath).toLowerCase();
   const winePrefix = process.environ?.WINEPREFIX;
   const steamCompatDataPath = process.environ?.STEAM_COMPAT_DATA_PATH;
-  const candidatePrefixes = [
-    winePrefix,
-    steamCompatDataPath,
-    steamCompatDataPath && path.join(steamCompatDataPath, "pfx"),
-  ];
+  const expectedPrefix = path.normalize(winePrefixPath).toLowerCase();
 
-  return candidatePrefixes.some(
-    (candidate) =>
-      candidate && path.normalize(candidate).toLowerCase() === expectedPrefix
+  return (
+    Boolean(
+      winePrefix && path.normalize(winePrefix).toLowerCase() === expectedPrefix
+    ) ||
+    doesSteamCompatDataPathMatchWinePrefix(steamCompatDataPath, winePrefixPath)
   );
 };
 

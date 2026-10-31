@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { XIcon } from "@primer/octicons-react";
 
@@ -10,8 +10,9 @@ import cn from "classnames";
 
 export interface ModalProps {
   visible: boolean;
-  title: React.ReactNode;
-  description?: string;
+  title?: React.ReactNode;
+  headerContent?: React.ReactNode;
+  description?: React.ReactNode;
   onClose: () => void;
   onCloseStart?: () => void;
   large?: boolean;
@@ -24,6 +25,7 @@ export interface ModalProps {
 export function Modal({
   visible,
   title,
+  headerContent,
   description,
   onClose,
   onCloseStart,
@@ -34,7 +36,9 @@ export function Modal({
   className,
 }: ModalProps) {
   const [isClosing, setIsClosing] = useState(false);
+  const [portalTarget, setPortalTarget] = useState<Element | null>(null);
   const modalContentRef = useRef<HTMLDivElement | null>(null);
+  const descriptionId = useId();
 
   const { t } = useTranslation("modal");
 
@@ -61,7 +65,7 @@ export function Modal({
     )
       return false;
 
-    const openModals = document.querySelectorAll("[role=dialog]");
+    const openModals = document.querySelectorAll("[role=dialog], dialog[open]");
 
     return (
       openModals.length &&
@@ -121,6 +125,12 @@ export function Modal({
     return () => {};
   }, [clickOutsideToClose, handleCloseClick]);
 
+  if (visible && portalTarget === null) {
+    setPortalTarget(document.fullscreenElement ?? document.body);
+  } else if (!visible && portalTarget !== null) {
+    setPortalTarget(null);
+  }
+
   if (!visible) return null;
 
   return createPortal(
@@ -135,15 +145,21 @@ export function Modal({
           className
         )}
         role="dialog"
-        aria-describedby={description}
+        aria-describedby={description ? descriptionId : undefined}
         ref={modalContentRef}
         data-hydra-dialog
       >
-        <div className="modal__header">
-          <div className="modal__header-title">
-            <h3>{title}</h3>
-            {description && <p>{description}</p>}
-          </div>
+        <div
+          className={cn("modal__header", {
+            "modal__header--custom": headerContent,
+          })}
+        >
+          {headerContent ?? (
+            <div className="modal__header-title">
+              <h3>{title}</h3>
+              {description && <p id={descriptionId}>{description}</p>}
+            </div>
+          )}
 
           <button
             type="button"
@@ -163,6 +179,6 @@ export function Modal({
         </div>
       </div>
     </Backdrop>,
-    document.body
+    portalTarget ?? document.body
   );
 }

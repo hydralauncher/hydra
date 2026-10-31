@@ -45,6 +45,15 @@ describe("grouped souvenir sync status", () => {
     assert.deepEqual(prepareAchievementSouvenirForRetry(failed), failed);
   });
 
+  it("counts paused screenshots as pending and keeps generic retries paused", () => {
+    const paused = createPending("paused", "owner", "paused");
+    assert.equal(
+      getAchievementSouvenirSyncStatusForOwner([paused], "owner").pendingCount,
+      1
+    );
+    assert.equal(prepareAchievementSouvenirForRetry(paused), paused);
+  });
+
   it("makes a pending record immediately retryable", () => {
     const pending = createPending("pending", "owner", "pending");
 

@@ -3,7 +3,7 @@ import "./styles.scss";
 import cn from "classnames";
 
 interface BumperBadgeProps {
-  label: "LB" | "RB";
+  label: "LB" | "RB" | "Y" | "B";
   className?: string;
 }
 

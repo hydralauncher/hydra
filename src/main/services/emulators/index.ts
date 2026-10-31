@@ -1,5 +1,6 @@
 export * from "./known-binaries";
 export * from "./detect-emulator";
+export * from "./detect-emulator-with-downloads";
 export * from "./get-emulator-version";
 export * from "./macos-app-bundle";
 export * from "./validate-emulator-executable";
@@ -20,3 +21,7 @@ export * from "./ps2-memory-card";
 export * from "./ps1-memcard-dirs";
 export * from "./ps1-memory-card";
 export * from "./emulation-cloud-saves";
+export * from "./emulation-file-saves";
+export * from "./emulator-log-paths";
+export * from "./emulator-souvenir-config";
+export * from "./ppsspp-paths";

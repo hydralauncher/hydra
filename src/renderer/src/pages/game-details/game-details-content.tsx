@@ -15,11 +15,15 @@ import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
 import { GameReviews } from "./game-reviews";
+import { ReviewPromptBanner } from "./review-prompt-banner";
+import { useReviewPrompt } from "./use-review-prompt";
+import { useUserReviewStatus } from "./use-user-review-status";
 import { GameLogo } from "./game-logo";
 import { CloudSaveWidget } from "./cloud-save-v2";
 import { getCloudSaveVisibility } from "./cloud-save-visibility";
+import { SimilarGames } from "./similar-games/similar-games";
 
-import { AuthPage } from "@shared";
+import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
@@ -79,6 +83,8 @@ export function GameDetailsContent() {
     objectId,
     shopDetails,
     game,
+    presentation,
+    catalogueGame,
     hasNSFWContentBlocked,
     shop,
     setShowGameOptionsModal,
@@ -89,7 +95,9 @@ export function GameDetailsContent() {
   const { library } = useLibrary();
 
   const { getGameArtifacts } = useContext(cloudSyncContext);
-  const cloudSaveVisibility = game ? getCloudSaveVisibility(game.shop) : null;
+  const cloudSaveVisibility = game
+    ? getCloudSaveVisibility(game.shop, game.platform)
+    : null;
 
   const aboutTheGame = useMemo(() => {
     const aboutTheGame = shopDetails?.about_the_game;
@@ -115,7 +123,6 @@ export function GameDetailsContent() {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
     useState(false);
-  const [hasUserReviewed, setHasUserReviewed] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   // Check if the current game is in the user's library
@@ -125,6 +132,36 @@ export function GameDetailsContent() {
       (libItem) => libItem.shop === shop && libItem.objectId === objectId
     );
   }, [library, shop, objectId]);
+
+  const { hasUserReviewed, isCheckingUserReview, updateHasUserReviewed } =
+    useUserReviewStatus({
+      shop,
+      objectId,
+      userDetailsId: userDetails?.id,
+    });
+
+  const { showPrompt, dismissPrompt } = useReviewPrompt({
+    shop,
+    objectId,
+    playTimeInMilliseconds: getDisplayedPlayTimeInMilliseconds({
+      playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
+      steamPlayTimeInMilliseconds: game?.steamPlayTimeInMilliseconds,
+      epicPlayTimeInMilliseconds: game?.epicPlayTimeInMilliseconds,
+    }),
+    userDetailsId: userDetails?.id,
+    isGameInLibrary,
+    hasUserReviewed,
+    isCheckingUserReview,
+  });
+
+  const handleReviewPromptYes = () => {
+    dismissPrompt({ persist: false });
+    reviewsRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleReviewPromptLater = () => {
+    dismissPrompt({ persist: true });
+  };
 
   useEffect(() => {
     setBackdropOpacity(1);
@@ -201,7 +238,7 @@ export function GameDetailsContent() {
   const heroImage = isCustomGame
     ? game?.libraryHeroImageUrl || game?.iconUrl || ""
     : getImageWithCustomPriority(
-        game?.customHeroImageUrl,
+        (presentation ?? game)?.customHeroImageUrl,
         shopDetails?.assets?.libraryHeroImageUrl
       );
 
@@ -384,7 +421,10 @@ export function GameDetailsContent() {
             <div className="game-details__hero-content">
               {!renderClassicsHero && (
                 <div className="game-details__hero-standard-meta">
-                  <GameLogo game={game} shopDetails={shopDetails} />
+                  <GameLogo
+                    game={presentation ?? game}
+                    shopDetails={shopDetails}
+                  />
                   {classicsChips}
                 </div>
               )}
@@ -433,7 +473,21 @@ export function GameDetailsContent() {
         <div className="game-details__description-container">
           <div className="game-details__description-content">
             <DescriptionHeader />
+
+            {showPrompt && (
+              <ReviewPromptBanner
+                onYesClick={handleReviewPromptYes}
+                onLaterClick={handleReviewPromptLater}
+              />
+            )}
+
             <GallerySlider />
+
+            {shopDetails?.about_the_game && (
+              <h2 className="game-details__description-title">
+                {t("about_this_game")}
+              </h2>
+            )}
 
             <div
               ref={descriptionRef}
@@ -459,6 +513,13 @@ export function GameDetailsContent() {
               </button>
             )}
 
+            {shop && objectId && (
+              <SimilarGames
+                objectId={catalogueGame.objectId}
+                shop={catalogueGame.shop}
+              />
+            )}
+
             {shop !== "custom" && shop && objectId && (
               <div ref={reviewsRef}>
                 <GameReviews
@@ -466,9 +527,9 @@ export function GameDetailsContent() {
                   objectId={objectId}
                   game={game}
                   userDetailsId={userDetails?.id}
-                  isGameInLibrary={isGameInLibrary}
                   hasUserReviewed={hasUserReviewed}
-                  onUserReviewedChange={setHasUserReviewed}
+                  isCheckingUserReview={isCheckingUserReview}
+                  onUserReviewedChange={updateHasUserReviewed}
                 />
               </div>
             )}

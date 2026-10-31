@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   BIG_PICTURE_APP_LAYER_ID,
@@ -13,7 +14,7 @@ import {
   Sidebar,
 } from "./layout";
 import { IS_DESKTOP } from "./constants";
-import { useNavigation, useUserPreferences } from "./hooks";
+import { useBigPictureToast, useNavigation, useUserPreferences } from "./hooks";
 import {
   HorizontalFocusGroup,
   InputModeProvider,
@@ -25,6 +26,9 @@ import {
   NavigationDiagnostics,
   VerticalFocusGroup,
   BigPictureToastHost,
+  CloudGiftNotificationModal,
+  MissingScreenshotsToast,
+  ScreenshotUploadFailureToast,
   VirtualKeyboardProvider,
 } from "./components";
 import { getItemFocusTarget } from "./helpers";
@@ -40,8 +44,11 @@ import "./styles/globals.scss";
 export default function App() {
   ensureBigPictureI18nResources();
 
+  const { t } = useTranslation();
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { showErrorToast, showSuccessToast, showWarningToast } =
+    useBigPictureToast();
   const { nodes, regions, setFocusRegion } = useNavigation();
   const userPreferences = useUserPreferences();
   const inputMode = useInputModeStore((state) => state.mode);
@@ -75,6 +82,85 @@ export default function App() {
       }
     });
   }, [navigate]);
+
+  useEffect(() => {
+    if (!IS_DESKTOP) return;
+
+    const unsubscribeExtractionFailed =
+      globalThis.window.electron.onExtractionFailed(
+        (_shop, _objectId, failure) => {
+          if (failure?.reason === "unsupported-format") {
+            showErrorToast(
+              t("extraction_unsupported_format_title", { ns: "downloads" }),
+              {
+                message: t("extraction_unsupported_format_description", {
+                  ns: "downloads",
+                  format: failure.format,
+                }),
+              }
+            );
+            return;
+          }
+
+          if (failure?.reason === "file-not-found") {
+            showErrorToast(
+              t("extraction_file_not_found_title", { ns: "downloads" }),
+              {
+                message: t("extraction_file_not_found_description", {
+                  ns: "downloads",
+                }),
+              }
+            );
+            return;
+          }
+
+          showErrorToast(t("extraction_failed_title", { ns: "downloads" }), {
+            message: t("extraction_failed_description", { ns: "downloads" }),
+          });
+        }
+      );
+
+    const unsubscribeExecutableNotFound =
+      globalThis.window.electron.onGameExecutableNotFound(() => {
+        showErrorToast(
+          t("executable_not_found_title", { ns: "game_details" }),
+          {
+            message: t("executable_not_found_big_picture_description", {
+              ns: "game_details",
+            }),
+          }
+        );
+      });
+
+    const unsubscribeInstallerClosed =
+      globalThis.window.electron.onGameInstallerClosed(
+        (_shop, _objectId, executableFound) => {
+          if (executableFound) {
+            showSuccessToast(t("game_installed_title", { ns: "downloads" }), {
+              message: t("game_installed_description", { ns: "downloads" }),
+              fallbackVisual: "downloads",
+            });
+            return;
+          }
+
+          showWarningToast(
+            t("installed_game_not_found_title", { ns: "downloads" }),
+            {
+              message: t("installed_game_not_found_description", {
+                ns: "downloads",
+              }),
+              fallbackVisual: "downloads",
+            }
+          );
+        }
+      );
+
+    return () => {
+      unsubscribeExtractionFailed();
+      unsubscribeExecutableNotFound();
+      unsubscribeInstallerClosed();
+    };
+  }, [showErrorToast, showSuccessToast, showWarningToast, t]);
 
   useEffect(() => {
     setPendingRouteFocusPathname(pathname);
@@ -159,6 +245,9 @@ export default function App() {
           <InputModeProvider />
           <NavigationDiagnostics />
           <BigPictureToastHost />
+          <CloudGiftNotificationModal />
+          <MissingScreenshotsToast />
+          <ScreenshotUploadFailureToast />
         </div>
       </NavigationInputProvider>
     </Fragment>

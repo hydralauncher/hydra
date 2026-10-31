@@ -1,0 +1,133 @@
+$inline-text-radius: 10px;
+$inline-text-editing-radius: 6px;
+$inline-text-dash: 6px;
+$inline-text-gap: 5px;
+$inline-text-join-duration: 0.35s;
+$inline-text-shape-duration: 0.2s;
+$inline-text-limit-feedback-duration: var(
+  --inline-text-field-limit-feedback-duration
+);
+
+.inline-text-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+  }
+
+  &__outline {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  &__outline-shape {
+    x: 0.5px;
+    y: 0.5px;
+    width: calc(100% - 1px);
+    height: calc(100% - 1px);
+    rx: $inline-text-radius;
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.3);
+    stroke-width: 1px;
+    stroke-dasharray: $inline-text-dash $inline-text-gap;
+    transition:
+      stroke-dasharray $inline-text-join-duration ease,
+      rx $inline-text-shape-duration ease,
+      stroke $inline-text-shape-duration ease;
+  }
+
+  &[data-focused="true"] &__outline-shape {
+    stroke: #fff;
+  }
+
+  &--editing &__outline-shape {
+    rx: $inline-text-editing-radius;
+    stroke: #dadbe1;
+    stroke-dasharray: $inline-text-dash + $inline-text-gap 0;
+  }
+
+  &--limit &__outline-shape,
+  &--limit[data-focused="true"] &__outline-shape {
+    stroke: var(--error);
+  }
+
+  &--limit {
+    animation: inline-text-field-wiggle $inline-text-limit-feedback-duration
+      ease;
+  }
+
+  &__trigger,
+  &__input {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 calc(var(--spacing-unit) * 3);
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  &__trigger {
+    display: flex;
+    outline: none;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 2);
+    cursor: pointer;
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+  }
+
+  &--filled &__trigger {
+    color: var(--text);
+  }
+
+  &__text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  &__input {
+    color: var(--text);
+    outline: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__outline-shape {
+      transition: none;
+    }
+
+    &--limit {
+      animation: none;
+    }
+  }
+}
+
+@keyframes inline-text-field-wiggle {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-3px);
+  }
+
+  75% {
+    transform: translateX(3px);
+  }
+}
