@@ -175,6 +175,14 @@ const getSteamSyncFailureMessage = (error: unknown): string => {
   return getHydraApiErrorMessage(error) ?? "steam-sync-failed";
 };
 
+const STEAM_SYNC_CANCEL_LABEL = /^[a-z0-9/_-]{1,64}$/;
+
+const steamSyncCancelQuery = (reason: string, stage: string) =>
+  new URLSearchParams({
+    reason: STEAM_SYNC_CANCEL_LABEL.test(reason) ? reason : "steam-sync-failed",
+    stage,
+  }).toString();
+
 const throwIfAborted = (signal: AbortSignal) => {
   if (signal.aborted) {
     throw new SteamSyncAbortedError();
@@ -494,13 +502,19 @@ class SteamSyncOrchestrator {
     }
   }
 
-  private async cancelPendingRun(syncRunId: string) {
+  private async cancelPendingRun(
+    syncRunId: string,
+    reason: string,
+    stage: string
+  ) {
     if (!syncRunId) return;
 
-    steamSyncLogger.log("DELETE pending run", syncRunId);
+    steamSyncLogger.log("DELETE pending run", syncRunId, reason, stage);
 
     try {
-      await HydraApi.delete(`${INTEGRATION_ENDPOINT}/sync/${syncRunId}`);
+      await HydraApi.delete(
+        `${INTEGRATION_ENDPOINT}/sync/${syncRunId}?${steamSyncCancelQuery(reason, stage)}`
+      );
       steamSyncLogger.log("Pending run cancelled", syncRunId);
     } catch (error) {
       steamSyncLogger.error("Failed to cancel pending run", syncRunId, error);
@@ -980,6 +994,7 @@ class SteamSyncOrchestrator {
   private async run(signal: AbortSignal) {
     let syncRunId = "";
     let snapshotPublished = false;
+    let stage = "create-run";
 
     steamSyncLogger.log("Steam sync started");
 
@@ -996,9 +1011,11 @@ class SteamSyncOrchestrator {
         gamesProcessed: 0,
       });
 
+      stage = "store-session";
       const token = await this.resolveSteamSession(signal);
       throwIfAborted(signal);
 
+      stage = "community-session";
       const communitySession = await readSteamCommunitySession(signal);
       const communityLogin = communitySession.login;
       if (communityLogin.status === "logged-out") {
@@ -1016,9 +1033,11 @@ class SteamSyncOrchestrator {
         throw new SteamAccountMismatchError();
       }
 
+      stage = "library";
       const games = await this.fetchLibrary(token, signal);
       throwIfAborted(signal);
 
+      stage = "achievements";
       this.setState({
         status: "running",
         syncRunId,
@@ -1037,6 +1056,7 @@ class SteamSyncOrchestrator {
 
       const snapshot = buildSteamSnapshot(games, achievementsByAppId);
 
+      stage = "publish";
       await this.publishSnapshot(syncRunId, snapshot, signal);
       snapshotPublished = true;
 
@@ -1122,7 +1142,7 @@ class SteamSyncOrchestrator {
       if (aborted) {
         steamSyncLogger.log("Steam sync aborted", syncRunId || "(no run id)");
         if (!snapshotPublished) {
-          await this.cancelPendingRun(syncRunId);
+          await this.cancelPendingRun(syncRunId, "steam-sync-aborted", stage);
         }
         await clearPersistedSyncRunId();
         this.setState(idleState());
@@ -1158,7 +1178,7 @@ class SteamSyncOrchestrator {
         !snapshotPublished &&
         !(error instanceof SteamSyncRunNotPendingError)
       ) {
-        await this.cancelPendingRun(syncRunId);
+        await this.cancelPendingRun(syncRunId, message, stage);
       }
       await clearPersistedSyncRunId();
     }
