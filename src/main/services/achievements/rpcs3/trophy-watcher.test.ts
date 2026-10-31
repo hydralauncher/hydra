@@ -16,8 +16,18 @@ it(
     await fs.writeFile(file, "locked");
     let calls = 0;
     let finish!: () => void;
-    const updated = new Promise<void>((resolve) => {
-      finish = resolve;
+    const updated = new Promise<void>((resolve, reject) => {
+      // Production watches and retry timers are deliberately unreferenced.
+      // Keep this bounded event wait alive even when no filesystem I/O remains.
+      const timeout = setTimeout(
+        () => reject(new Error("No trophy update after atomic replacement")),
+        5000
+      );
+      t.after(() => clearTimeout(timeout));
+      finish = () => {
+        clearTimeout(timeout);
+        resolve();
+      };
     });
     const watcher = new TrophyWatcher(async () => {
       calls++;
