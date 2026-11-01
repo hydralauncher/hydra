@@ -3,9 +3,12 @@
 @import "@fontsource/space-grotesk/500.css";
 @import "@fontsource/space-grotesk/600.css";
 @import "@fontsource/space-grotesk/700.css";
+@import "@fontsource/noto-sans/400.css";
+@import "@fontsource/noto-sans/500.css";
+@import "@fontsource/noto-sans/700.css";
 
 :root {
-  --font-space-grotesk: "Space Grotesk";
+  --font-space-grotesk: "Space Grotesk", "Noto Sans", sans-serif;
   --primary: rgba(255, 255, 255, 1);
   --secondary: rgba(20, 20, 20, 1);
   --tertiary: rgba(185, 2, 2, 1);
