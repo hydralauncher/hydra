@@ -1,5 +1,5 @@
 import type { ShopDetailsWithAssets } from "@types";
-import { getJSDOM } from "@main/helpers/jsdom";
+import { getJSDOM } from "../helpers/jsdom.js";
 import MarkdownIt from "markdown-it";
 
 const epicMarkdown = new MarkdownIt({ html: true });
