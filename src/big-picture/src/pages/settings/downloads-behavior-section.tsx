@@ -1,6 +1,7 @@
 import "./downloads-behavior-section.scss";
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Checkbox, VerticalFocusGroup } from "../../components";
 import { useUserPreferences } from "../../hooks";
@@ -23,6 +24,7 @@ interface DownloadsBehaviorForm {
   showDownloadSpeedInMegabytes: boolean;
   extractFilesByDefault: boolean;
   deleteArchiveFilesAfterExtractionByDefault: boolean;
+  extractInPlaceByDefault: boolean;
   createStartMenuShortcut: boolean;
 }
 
@@ -31,6 +33,7 @@ interface DownloadsBehaviorItem {
   focusId: string;
   label: string;
   checked: boolean;
+  disabled?: boolean;
   onChange: (checked: boolean) => void;
 }
 
@@ -39,6 +42,7 @@ const DEFAULT_FORM: DownloadsBehaviorForm = {
   showDownloadSpeedInMegabytes: false,
   extractFilesByDefault: true,
   deleteArchiveFilesAfterExtractionByDefault: true,
+  extractInPlaceByDefault: true,
   createStartMenuShortcut: true,
 };
 
@@ -54,6 +58,7 @@ const buildForm = (
         extractFilesByDefault: preferences.extractFilesByDefault ?? true,
         deleteArchiveFilesAfterExtractionByDefault:
           preferences.deleteArchiveFilesAfterExtractionByDefault ?? true,
+        extractInPlaceByDefault: preferences.extractInPlaceByDefault ?? true,
         createStartMenuShortcut: preferences.createStartMenuShortcut ?? true,
       }
     : DEFAULT_FORM;
@@ -62,6 +67,7 @@ export function DownloadsBehaviorSection({
   className,
   lastItemDownTarget,
 }: Readonly<DownloadsBehaviorSectionProps>) {
+  const { t } = useTranslation("settings");
   const userPreferences = useUserPreferences();
   const [form, setForm] = useState<DownloadsBehaviorForm>(() =>
     buildForm(userPreferences)
@@ -122,6 +128,19 @@ export function DownloadsBehaviorSection({
             deleteArchiveFilesAfterExtractionByDefault: checked,
           }),
       },
+      {
+        id: "extract-in-place-by-default",
+        focusId: DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.extractInPlaceByDefault,
+        label: t("extract_in_place"),
+        checked:
+          form.deleteArchiveFilesAfterExtractionByDefault &&
+          form.extractInPlaceByDefault,
+        disabled: !form.deleteArchiveFilesAfterExtractionByDefault,
+        onChange: (checked: boolean) =>
+          void updateUserPreferences({
+            extractInPlaceByDefault: checked,
+          }),
+      },
     ];
 
     if (isWindows || isLinux) {
@@ -136,15 +155,17 @@ export function DownloadsBehaviorSection({
     }
 
     return baseItems;
-  }, [form, isWindows, isLinux]);
+  }, [form, isWindows, isLinux, t]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
   >(() => {
+    const enabledItems = items.filter((item) => !item.disabled);
+
     return Object.fromEntries(
-      items.map((item, index) => {
-        const previousItem = items[index - 1];
-        const nextItem = items[index + 1];
+      enabledItems.map((item, index) => {
+        const previousItem = enabledItems[index - 1];
+        const nextItem = enabledItems[index + 1];
 
         return [
           item.focusId,
@@ -186,6 +207,7 @@ export function DownloadsBehaviorSection({
               id={item.id}
               label={item.label}
               checked={item.checked}
+              disabled={item.disabled}
               focusId={item.focusId}
               navigationOverrides={navigationOverridesByFocusId[item.focusId]}
               block
