@@ -26,7 +26,6 @@ import root from "react-shadow";
 const NOTIFICATION_TIMEOUT = 4_000;
 const CLOSING_TIMEOUT = 450;
 const IMAGE_PREPARATION_TIMEOUT = 2_000;
-const VISIBILITY_TIMEOUT = 1_000;
 
 type NotificationPhase = "idle" | "prepared" | "playing" | "closing";
 
@@ -39,49 +38,6 @@ const getErrorMessage = (error: unknown) => {
   } catch {
     return "unknown error";
   }
-};
-
-const waitForVisibleFrame = (): Promise<void> => {
-  return new Promise((resolve) => {
-    let settled = false;
-    let frame = -1;
-    let timeout = 0;
-    let removeListener = () => {};
-
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeout);
-      cancelAnimationFrame(frame);
-      removeListener();
-      resolve();
-    };
-
-    const waitForFrames = () => {
-      frame = requestAnimationFrame(() => {
-        frame = requestAnimationFrame(finish);
-      });
-    };
-
-    timeout = window.setTimeout(finish, VISIBILITY_TIMEOUT);
-
-    if (document.visibilityState === "visible") {
-      waitForFrames();
-      return;
-    }
-
-    const listener = () => {
-      if (document.visibilityState !== "visible") return;
-      removeListener();
-      waitForFrames();
-    };
-
-    document.addEventListener("visibilitychange", listener);
-    removeListener = () => {
-      document.removeEventListener("visibilitychange", listener);
-      removeListener = () => {};
-    };
-  });
 };
 
 const resolveImageUrl = (source: string): Promise<string> => {
@@ -275,18 +231,7 @@ export function AchievementNotification() {
   useLayoutEffect(() => {
     if (!request || !achievement || phase !== "prepared") return;
 
-    let firstFrame = -1;
-    let secondFrame = -1;
-    firstFrame = requestAnimationFrame(() => {
-      secondFrame = requestAnimationFrame(() => {
-        reportContentReady(request.id);
-      });
-    });
-
-    return () => {
-      cancelAnimationFrame(firstFrame);
-      cancelAnimationFrame(secondFrame);
-    };
+    reportContentReady(request.id);
   }, [achievement, phase, request, reportContentReady]);
 
   const finishNotification = useCallback((requestId: string) => {
@@ -316,24 +261,20 @@ export function AchievementNotification() {
 
         clearAnimationTimers();
 
-        void waitForVisibleFrame().then(() => {
+        setPhase("playing");
+        if (
+          !hasPlayedSound.current &&
+          requestRef.current.type !== "screenshot"
+        ) {
+          hasPlayedSound.current = true;
+          void playAudio();
+        }
+
+        displayTimer.current = window.setTimeout(() => {
           if (requestRef.current?.id !== requestId) return;
-
-          setPhase("playing");
-          if (
-            !hasPlayedSound.current &&
-            requestRef.current.type !== "screenshot"
-          ) {
-            hasPlayedSound.current = true;
-            void playAudio();
-          }
-
-          displayTimer.current = window.setTimeout(() => {
-            if (requestRef.current?.id !== requestId) return;
-            setPhase("closing");
-            scheduleClosing(requestId);
-          }, NOTIFICATION_TIMEOUT);
-        });
+          setPhase("closing");
+          scheduleClosing(requestId);
+        }, NOTIFICATION_TIMEOUT);
       }
     );
 
@@ -353,14 +294,15 @@ export function AchievementNotification() {
         {app} {styles}
       </style>
       <section ref={setShadowRootRef}>
-        {request && achievement && phase !== "idle" && (
-          <AchievementNotificationItem
-            achievement={achievement}
-            isClosing={phase === "closing"}
-            isPaused={phase === "prepared"}
-            position={request.position}
-          />
-        )}
+        {request &&
+          achievement &&
+          (phase === "playing" || phase === "closing") && (
+            <AchievementNotificationItem
+              achievement={achievement}
+              isClosing={phase === "closing"}
+              position={request.position}
+            />
+          )}
       </section>
     </root.div>
   );

@@ -12,14 +12,12 @@ interface AchievementNotificationProps {
   position: AchievementCustomNotificationPosition;
   achievement: AchievementNotificationInfo;
   isClosing: boolean;
-  isPaused?: boolean;
 }
 
 export function AchievementNotificationItem({
   position,
   achievement,
   isClosing,
-  isPaused = false,
 }: Readonly<AchievementNotificationProps>) {
   const baseClassName = "achievement-notification";
   const isScreenshot = achievement.variant === "screenshot";
@@ -29,7 +27,6 @@ export function AchievementNotificationItem({
       className={cn("achievement-notification", {
         [`${baseClassName}--${position}`]: true,
         [`${baseClassName}--closing`]: isClosing,
-        [`${baseClassName}--paused`]: isPaused,
         [`${baseClassName}--hidden`]: achievement.isHidden,
         [`${baseClassName}--rare`]: achievement.isRare,
         [`${baseClassName}--platinum`]: achievement.isPlatinum,

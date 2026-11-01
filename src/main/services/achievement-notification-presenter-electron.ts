@@ -8,6 +8,7 @@ import { WindowManager } from "./window-manager";
 
 const NOTIFICATION_WINDOW_WIDTH = 360;
 const NOTIFICATION_WINDOW_HEIGHT = 180;
+const NOTIFICATION_SHOWN_FRAME_TIMEOUT_MS = 250;
 
 const getNotificationWindowPosition = (
   position: AchievementCustomNotificationPosition
@@ -52,6 +53,26 @@ class ElectronAchievementNotificationHost {
 
   public showInactive(): void {
     this.window.showInactive();
+  }
+
+  public async waitForShownFrame(): Promise<void> {
+    if (this.window.isDestroyed()) return;
+
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
+    try {
+      await Promise.race([
+        this.window.webContents.executeJavaScript(
+          "new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined))))"
+        ),
+        new Promise<void>((resolve) => {
+          timeout = setTimeout(resolve, NOTIFICATION_SHOWN_FRAME_TIMEOUT_MS);
+          timeout.unref?.();
+        }),
+      ]);
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
   }
 
   public hide(): void {

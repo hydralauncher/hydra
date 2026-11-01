@@ -534,10 +534,4 @@ $margin-bottom: 28px;
   &--closing *::after {
     animation: none !important;
   }
-
-  &--paused *,
-  &--paused *::before,
-  &--paused *::after {
-    animation-play-state: paused !important;
-  }
 }

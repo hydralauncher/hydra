@@ -20,6 +20,7 @@ export interface AchievementNotificationHost {
   send(channel: string, ...args: unknown[]): void;
   setPosition(position: AchievementCustomNotificationPosition): Promise<void>;
   showInactive(): void;
+  waitForShownFrame(): Promise<void>;
   hide(): void;
   destroy(): void;
   isDestroyed(): boolean;
@@ -55,6 +56,7 @@ type PresenterStage =
   | "ready"
   | "positioning"
   | "preparing"
+  | "showing"
   | "visible";
 
 export class AchievementNotificationPresenter {
@@ -186,7 +188,7 @@ export class AchievementNotificationPresenter {
     const activeRequest = this.activeItem.request;
 
     if (event.type === "content-ready") {
-      this.handleContentReadyEvent(host, activeRequest.id);
+      void this.handleContentReadyEvent(host, activeRequest.id);
       return;
     }
 
@@ -210,26 +212,40 @@ export class AchievementNotificationPresenter {
     this.failHost(event.reason ?? "notification renderer failed");
   }
 
-  private handleContentReadyEvent(
+  private async handleContentReadyEvent(
     host: AchievementNotificationHost,
     requestId: string
-  ): void {
+  ): Promise<void> {
     if (this.stage !== "preparing") return;
 
     this.clearWatchdog();
+    this.stage = "showing";
 
     try {
       host.showInactive();
-      this.stage = "visible";
-      this.dependencies.log(`Achievement notification started: ${requestId}`);
-      host.send("start-achievement-notification", requestId);
-      this.startWatchdog(
-        ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT,
-        "notification animation timed out"
-      );
+      await host.waitForShownFrame();
     } catch (error) {
-      this.failHost("failed to show notification window", error);
+      if (this.host === host) {
+        this.failHost("failed to show notification window", error);
+      }
+      return;
     }
+
+    if (
+      this.host !== host ||
+      this.activeItem?.request.id !== requestId ||
+      this.stage !== "showing"
+    ) {
+      return;
+    }
+
+    this.stage = "visible";
+    this.dependencies.log(`Achievement notification started: ${requestId}`);
+    host.send("start-achievement-notification", requestId);
+    this.startWatchdog(
+      ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT,
+      "notification animation timed out"
+    );
   }
 
   private handleFinishedEvent(host: AchievementNotificationHost): void {

@@ -10,6 +10,9 @@ class FakeHost implements AchievementNotificationHost {
   public readonly webContentsId = 42;
   public loadCount = 0;
   public showInactiveCount = 0;
+  public shownFrameCount = 0;
+  public failShownFrame: Error | null = null;
+  public shownFramePromise: Promise<void> | null = null;
   public hideCount = 0;
   public destroyCount = 0;
   public destroyed = false;
@@ -31,6 +34,12 @@ class FakeHost implements AchievementNotificationHost {
 
   public showInactive(): void {
     this.showInactiveCount += 1;
+  }
+
+  public waitForShownFrame(): Promise<void> {
+    this.shownFrameCount += 1;
+    if (this.failShownFrame) return Promise.reject(this.failShownFrame);
+    return this.shownFramePromise ?? Promise.resolve();
   }
 
   public hide(): void {
@@ -118,7 +127,7 @@ const achievement = (title: string) => ({
 });
 
 describe("AchievementNotificationPresenter", () => {
-  it("creates a hidden host on demand and shows it only after content readiness", async () => {
+  it("shows the host only after content readiness and starts the animation after a painted frame", async () => {
     const harness = new PresenterHarness();
 
     assert.equal(harness.createCount, 0);
@@ -134,13 +143,21 @@ describe("AchievementNotificationPresenter", () => {
     });
     await harness.flush();
 
+    assert.equal(harness.host.showInactiveCount, 0);
     const requestId = harness.latestPreparedRequestId();
+    assert.equal(
+      harness.host.messages.at(-1)?.channel,
+      "prepare-achievement-notification"
+    );
+
     harness.presenter.handleRendererEvent(harness.host.webContentsId, {
       type: "content-ready",
       requestId,
     });
+    await harness.flush();
 
     assert.equal(harness.host.showInactiveCount, 1);
+    assert.equal(harness.host.shownFrameCount, 1);
     assert.deepEqual(harness.host.messages.at(-1), {
       channel: "start-achievement-notification",
       args: [requestId],
@@ -164,6 +181,7 @@ describe("AchievementNotificationPresenter", () => {
       type: "content-ready",
       requestId: firstId,
     });
+    await harness.flush();
     harness.presenter.handleRendererEvent(harness.host.webContentsId, {
       type: "finished",
       requestId: firstId,
@@ -179,6 +197,7 @@ describe("AchievementNotificationPresenter", () => {
       type: "content-ready",
       requestId: secondId,
     });
+    await harness.flush();
     harness.presenter.handleRendererEvent(harness.host.webContentsId, {
       type: "finished",
       requestId: secondId,
@@ -187,6 +206,75 @@ describe("AchievementNotificationPresenter", () => {
     assert.equal(harness.host.showInactiveCount, 2);
     assert.equal(harness.host.destroyCount, 1);
     assert.equal(harness.createCount, 1);
+  });
+
+  it("does not start the animation until the shown frame is reported", async () => {
+    const harness = new PresenterHarness();
+    let resolveShownFrame = () => {};
+    harness.host.shownFramePromise = new Promise<void>((resolve) => {
+      resolveShownFrame = resolve;
+    });
+
+    harness.presenter.enqueueAchievements("top-left", [achievement("first")]);
+    await harness.flush();
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "host-ready",
+    });
+    await harness.flush();
+    const requestId = harness.latestPreparedRequestId();
+
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "content-ready",
+      requestId,
+    });
+    await harness.flush();
+
+    assert.equal(harness.host.shownFrameCount, 1);
+    assert.notEqual(
+      harness.host.messages.at(-1)?.channel,
+      "start-achievement-notification"
+    );
+
+    resolveShownFrame();
+    await harness.flush();
+
+    assert.deepEqual(harness.host.messages.at(-1), {
+      channel: "start-achievement-notification",
+      args: [requestId],
+    });
+  });
+
+  it("falls back when the shown frame cannot be reported", async () => {
+    const harness = new PresenterHarness();
+    let fallbackCount = 0;
+    harness.host.failShownFrame = new Error("shown frame failed");
+
+    harness.presenter.enqueueAchievements(
+      "top-left",
+      [achievement("first")],
+      () => {
+        fallbackCount += 1;
+      }
+    );
+    await harness.flush();
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "host-ready",
+    });
+    await harness.flush();
+    const requestId = harness.latestPreparedRequestId();
+
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "content-ready",
+      requestId,
+    });
+    await harness.flush();
+
+    assert.equal(harness.host.destroyCount, 1);
+    assert.equal(fallbackCount, 1);
+    assert.equal(
+      harness.host.messages.at(-1)?.channel,
+      "prepare-achievement-notification"
+    );
   });
 
   it("ignores stale senders and request acknowledgements", async () => {
