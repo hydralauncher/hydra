@@ -5,6 +5,7 @@ import {
   type LeaderboardUser,
 } from "../game-details/leaderboard/game-leaderboard.js";
 import { buildLeaderboardBoardPath } from "../../../../shared/leaderboard-notifications.js";
+import type { CatalogueImages } from "@types";
 
 export const GLOBAL_LEADERBOARD_TAKE = 100;
 export const GLOBAL_LEADERBOARD_PAGE_SIZE = 13;
@@ -164,6 +165,7 @@ export interface LeaderboardBadge {
   scope: GlobalLeaderboardScope;
   gameTitle: string | null;
   coverImageUrl: string | null;
+  images: CatalogueImages;
   value: number;
   week: number | null;
   currentRank: number | null;
@@ -800,6 +802,7 @@ export const normalizeBadges = (response: unknown): LeaderboardBadges => {
         scope: item.scope === "friends" ? "friends" : "global",
         gameTitle: toStringOrNull(item.gameTitle),
         coverImageUrl: toStringOrNull(item.coverImageUrl),
+        images: isRecord(item.images) ? (item.images as CatalogueImages) : {},
         value: isTopBadgeKind(item.kind)
           ? toBadgeThreshold(item)
           : toNonNegativeNumber(item.value),
