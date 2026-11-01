@@ -579,3 +579,25 @@ test("errors without a response keep their code", async (t) => {
   });
   assert.equal(f.api.isLoggedIn(), true);
 });
+
+test("startup does not wait for a stalled profile refresh", async (t) => {
+  const f = await fixture(t);
+  await f.signIn("A");
+  const started = deferred<void>();
+  const release = deferred<void>();
+  f.hooks.request = async (request) => {
+    if (request.url === "/profile/me") {
+      started.resolve();
+      await release.promise;
+    }
+    return f.respond(request);
+  };
+  Reflect.set(f.api, "STARTUP_USER_DATA_WAIT_MS", 10);
+
+  await f.api.setupApi();
+  await started.promise;
+
+  assert.equal(f.api.isLoggedIn(), true);
+  assert.equal(f.api.getAuthContext()?.userId, "A");
+  release.resolve();
+});
