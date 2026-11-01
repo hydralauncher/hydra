@@ -9,6 +9,7 @@ import {
   mapCommunityHtmlToPlayerstats,
   parseSteamCommunityAchievementHtml,
   parseSteamCommunityAchievementsXml,
+  parseSteamCommunitySsrAchievements,
   parseSteamGameAchievementSchema,
   parseSteamTimezoneOffsetSeconds,
   parseSteamUnlockTimeText,
@@ -191,6 +192,90 @@ describe("Steam community achievement parsers", () => {
         statsHtml
       ),
       false
+    );
+  });
+});
+
+describe("parseSteamCommunitySsrAchievements", () => {
+  const ssrPage = (
+    achievements: Record<string, unknown>,
+    schema = [{ internal_key: 10, api_name: "FIRST_WIN" }]
+  ) =>
+    `<script type="application/json" id="valve-ssr-data" nonce="x">${JSON.stringify(
+      {
+        loaderData: [
+          JSON.stringify({
+            queries: [
+              { state: { data: schema } },
+              {
+                state: {
+                  data: {
+                    appid: 440,
+                    steamid: token.steamId64,
+                    achievements,
+                  },
+                },
+              },
+            ],
+          }),
+        ],
+      }
+    )}</script>`;
+
+  it("reads unlocked achievements from the nested page data", () => {
+    assert.deepEqual(
+      parseSteamCommunitySsrAchievements(
+        ssrPage({
+          "10": { internal_key: 10, unlocked: true, unlock_time: 1700000000 },
+          "11": { internal_key: 11, unlocked: false },
+        }),
+        token.steamId64,
+        "440"
+      ),
+      {
+        playerstats: {
+          achievements: [
+            { apiname: "FIRST_WIN", achieved: 1, unlocktime: 1700000000 },
+          ],
+        },
+      }
+    );
+  });
+
+  it("accepts a player with no unlocks", () => {
+    assert.deepEqual(
+      parseSteamCommunitySsrAchievements(ssrPage({}), token.steamId64, "440"),
+      { playerstats: { achievements: [] } }
+    );
+  });
+
+  it("returns null instead of guessing when the page cannot be trusted", () => {
+    const page = ssrPage({});
+    assert.equal(
+      parseSteamCommunitySsrAchievements(page, "other-player", "440"),
+      null
+    );
+    assert.equal(
+      parseSteamCommunitySsrAchievements(page, token.steamId64, "730"),
+      null
+    );
+    assert.equal(
+      parseSteamCommunitySsrAchievements(
+        "<html></html>",
+        token.steamId64,
+        "440"
+      ),
+      null
+    );
+    assert.equal(
+      parseSteamCommunitySsrAchievements(
+        ssrPage({
+          "99": { internal_key: 99, unlocked: true, unlock_time: 1700000000 },
+        }),
+        token.steamId64,
+        "440"
+      ),
+      null
     );
   });
 });

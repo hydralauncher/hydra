@@ -730,6 +730,7 @@ class SteamSyncOrchestrator {
     let rateLimited = false;
     let communityRateLimited = false;
     let unknownAchievementNames = 0;
+    let unreadableGames = 0;
     let runGone = false;
 
     await mapPool(
@@ -835,6 +836,10 @@ class SteamSyncOrchestrator {
             : { achievements: [] };
 
           if (response === null) {
+            unreadableGames += 1;
+            steamSyncLogger.log(
+              `Keeping previous achievements for ${game.steamAppId} ${game.name}`
+            );
             achievementsByAppId.set(game.steamAppId, undefined);
             return;
           }
@@ -966,6 +971,7 @@ class SteamSyncOrchestrator {
       ...sourceCounts,
       clientSuccessPercentage: steamClientSuccessPercentage(sourceCounts),
       unknownAchievementNames,
+      unreadableGames,
     });
 
     if (runGone) {
@@ -977,7 +983,11 @@ class SteamSyncOrchestrator {
     }
 
     // Publishing now would replace the user's achievements with nothing.
-    if (sourceCounts.client === 0 && sourceCounts.scrape > 0) {
+    if (
+      sourceCounts.client === 0 &&
+      sourceCounts.scrape > 0 &&
+      unreadableGames === sourceCounts.scrape
+    ) {
       throw new SteamClientUnavailableError();
     }
 
