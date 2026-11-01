@@ -26,6 +26,7 @@ import root from "react-shadow";
 const NOTIFICATION_TIMEOUT = 4_000;
 const CLOSING_TIMEOUT = 450;
 const IMAGE_PREPARATION_TIMEOUT = 2_000;
+const IMAGE_DECODE_TIMEOUT = 250;
 
 type NotificationPhase = "idle" | "prepared" | "playing" | "closing";
 
@@ -40,10 +41,25 @@ const getErrorMessage = (error: unknown) => {
   }
 };
 
+const decodeImage = (image: HTMLImageElement): Promise<void> => {
+  return new Promise((resolve) => {
+    const timeout = window.setTimeout(resolve, IMAGE_DECODE_TIMEOUT);
+
+    void image
+      .decode()
+      .catch(() => undefined)
+      .then(() => {
+        window.clearTimeout(timeout);
+        resolve();
+      });
+  });
+};
+
 const resolveImageUrl = (source: string): Promise<string> => {
   return new Promise((resolve) => {
     const image = new Image();
     let settled = false;
+    let loaded = false;
 
     const finish = (url: string) => {
       if (settled) return;
@@ -55,15 +71,13 @@ const resolveImageUrl = (source: string): Promise<string> => {
     };
 
     const timeout = window.setTimeout(
-      () => finish(HydraIconUrl),
+      () => finish(loaded ? source : HydraIconUrl),
       IMAGE_PREPARATION_TIMEOUT
     );
 
     image.onload = () => {
-      void image
-        .decode()
-        .catch(() => undefined)
-        .then(() => finish(source));
+      loaded = true;
+      void decodeImage(image).then(() => finish(source));
     };
     image.onerror = () => finish(HydraIconUrl);
     image.src = source;
