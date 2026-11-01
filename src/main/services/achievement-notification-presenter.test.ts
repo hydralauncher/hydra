@@ -40,7 +40,7 @@ class FakeHost implements AchievementNotificationHost {
     this.showInactiveCount += 1;
   }
 
-  public waitForShownFrame(): Promise<void> {
+  public waitForFramesAfterShow(): Promise<void> {
     this.shownFrameCount += 1;
     if (this.failShownFrame) return Promise.reject(this.failShownFrame);
     return this.shownFramePromise ?? Promise.resolve();
@@ -257,6 +257,60 @@ describe("AchievementNotificationPresenter", () => {
       channel: "start-achievement-notification",
       args: [requestId],
     });
+  });
+
+  it("ignores a duplicate content-ready event while showing", async () => {
+    const harness = new PresenterHarness();
+    let resolveShownFrame = () => {};
+    harness.host.shownFramePromise = new Promise<void>((resolve) => {
+      resolveShownFrame = resolve;
+    });
+
+    const requestId = await harness.prepareAchievement();
+    await harness.contentReady(requestId);
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "content-ready",
+      requestId,
+    });
+    await harness.flush();
+
+    assert.equal(harness.host.shownFrameCount, 1);
+
+    resolveShownFrame();
+    await harness.flush();
+
+    const starts = harness.host.messages.filter(
+      ({ channel }) => channel === "start-achievement-notification"
+    );
+    assert.equal(starts.length, 1);
+    assert.deepEqual(starts[0].args, [requestId]);
+  });
+
+  it("does not start or fall back when disposed during the frame wait", async () => {
+    const harness = new PresenterHarness();
+    let fallbackCount = 0;
+    let resolveShownFrame = () => {};
+    harness.host.shownFramePromise = new Promise<void>((resolve) => {
+      resolveShownFrame = resolve;
+    });
+
+    const requestId = await harness.prepareAchievement(() => {
+      fallbackCount += 1;
+    });
+    await harness.contentReady(requestId);
+
+    harness.presenter.dispose();
+    resolveShownFrame();
+    await harness.flush();
+
+    assert.equal(harness.host.destroyCount, 1);
+    assert.equal(fallbackCount, 0);
+    assert.equal(
+      harness.host.messages.some(
+        ({ channel }) => channel === "start-achievement-notification"
+      ),
+      false
+    );
   });
 
   it("falls back when the shown frame cannot be reported", async () => {

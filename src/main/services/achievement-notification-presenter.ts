@@ -20,7 +20,7 @@ export interface AchievementNotificationHost {
   send(channel: string, ...args: unknown[]): void;
   setPosition(position: AchievementCustomNotificationPosition): Promise<void>;
   showInactive(): void;
-  waitForShownFrame(): Promise<void>;
+  waitForFramesAfterShow(): Promise<void>;
   hide(): void;
   destroy(): void;
   isDestroyed(): boolean;
@@ -223,7 +223,7 @@ export class AchievementNotificationPresenter {
 
     try {
       host.showInactive();
-      await host.waitForShownFrame();
+      await host.waitForFramesAfterShow();
     } catch (error) {
       if (this.host === host) {
         this.failHost("failed to show notification window", error);

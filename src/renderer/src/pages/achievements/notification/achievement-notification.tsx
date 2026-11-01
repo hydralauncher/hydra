@@ -59,7 +59,12 @@ const resolveImageUrl = (source: string): Promise<string> => {
       IMAGE_PREPARATION_TIMEOUT
     );
 
-    image.onload = () => finish(source);
+    image.onload = () => {
+      void image
+        .decode()
+        .catch(() => undefined)
+        .then(() => finish(source));
+    };
     image.onerror = () => finish(HydraIconUrl);
     image.src = source;
   });

@@ -55,7 +55,7 @@ class ElectronAchievementNotificationHost {
     this.window.showInactive();
   }
 
-  public async waitForShownFrame(): Promise<void> {
+  public async waitForFramesAfterShow(): Promise<void> {
     if (this.window.isDestroyed()) return;
 
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -119,9 +119,6 @@ export const achievementNotificationPresenter =
         webPreferences: {
           preload: path.join(__dirname, "../preload/index.mjs"),
           sandbox: false,
-          // The window stays hidden until its content reports ready, and that
-          // handshake runs on requestAnimationFrame, which Chromium throttles
-          // for hidden windows.
           backgroundThrottling: false,
         },
       });
