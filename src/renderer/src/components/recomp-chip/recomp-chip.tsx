@@ -34,7 +34,8 @@ export function RecompChip({ portNames, variant }: Readonly<RecompChipProps>) {
       {createPortal(
         <Tooltip
           id={tooltipId}
-          place="top"
+          // Below the hero chip so it doesn't cover the game title.
+          place={variant === "hero" ? "bottom" : "top"}
           positionStrategy="fixed"
           style={{ zIndex: 9999, maxWidth: 280 }}
         />,

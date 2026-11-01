@@ -303,11 +303,16 @@ function PortDetails({
                           </span>
                         )}
                       </span>
-                      <span
-                        className="recompilation__file-name"
-                        title={file.name}
-                      >
-                        {file.name} · {formatBytes(file.size)}
+                      <span className="recompilation__file-meta">
+                        <span
+                          className="recompilation__file-name"
+                          title={file.name}
+                        >
+                          {file.name}
+                        </span>
+                        <span className="recompilation__file-size">
+                          · {formatBytes(file.size)}
+                        </span>
                       </span>
                     </div>
                     <span

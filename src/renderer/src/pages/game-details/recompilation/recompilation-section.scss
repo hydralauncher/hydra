@@ -240,14 +240,73 @@
     background: linear-gradient(transparent, globals.$dark-background-color);
   }
 
+  // The description's fixed 22px line-height and the global heading/paragraph
+  // margin reset suit store text, but make README headings overlap the next
+  // line. Give README blocks their own rhythm.
   &__readme {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      margin: 1.2em 0 0.5em;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    h1,
+    h2 {
+      padding-bottom: 6px;
+      border-bottom: 1px solid globals.$border-color;
+    }
+
+    h1 {
+      font-size: 24px;
+    }
+
+    h2 {
+      font-size: 20px;
+    }
+
+    h3 {
+      font-size: 16px;
+    }
+
+    h4,
+    h5,
+    h6 {
+      font-size: globals.$body-font-size;
+    }
+
+    > :first-child {
+      margin-top: 0;
+    }
+
+    p,
+    ul,
+    ol,
+    table,
+    pre,
+    blockquote {
+      margin: 0 0 12px;
+    }
+
+    li > ul,
+    li > ol {
+      margin-bottom: 0;
+    }
+
+    pre {
+      overflow-x: auto;
+    }
+
     a {
       text-decoration: underline;
     }
 
     table {
       border-collapse: collapse;
-      margin-bottom: calc(globals.$spacing-unit * 2);
     }
 
     th,
@@ -406,12 +465,24 @@
     line-height: 18px;
   }
 
-  &__file-name {
+  // Name and size share a row: the name ellipsizes, the size always shows.
+  &__file-meta {
+    display: flex;
+    gap: 4px;
+    min-width: 0;
     font-size: globals.$small-font-size;
     color: #8e919b;
+    white-space: nowrap;
+  }
+
+  &__file-name {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+  }
+
+  &__file-size {
+    flex-shrink: 0;
   }
 
   &__file-downloads {
