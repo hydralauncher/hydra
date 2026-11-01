@@ -90,6 +90,28 @@ class PresenterHarness {
     return (message.args[0] as { id: string }).id;
   }
 
+  public async prepareAchievement(fallback?: () => void): Promise<string> {
+    this.presenter.enqueueAchievements(
+      "top-left",
+      [achievement("first")],
+      fallback
+    );
+    await this.flush();
+    this.presenter.handleRendererEvent(this.host.webContentsId, {
+      type: "host-ready",
+    });
+    await this.flush();
+    return this.latestPreparedRequestId();
+  }
+
+  public async contentReady(requestId: string): Promise<void> {
+    this.presenter.handleRendererEvent(this.host.webContentsId, {
+      type: "content-ready",
+      requestId,
+    });
+    await this.flush();
+  }
+
   public runLatestTimer(): void {
     const timer = Array.from(this.timers.entries()).at(-1);
     assert.ok(timer);
@@ -219,19 +241,8 @@ describe("AchievementNotificationPresenter", () => {
       resolveShownFrame = resolve;
     });
 
-    harness.presenter.enqueueAchievements("top-left", [achievement("first")]);
-    await harness.flush();
-    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
-      type: "host-ready",
-    });
-    await harness.flush();
-    const requestId = harness.latestPreparedRequestId();
-
-    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
-      type: "content-ready",
-      requestId,
-    });
-    await harness.flush();
+    const requestId = await harness.prepareAchievement();
+    await harness.contentReady(requestId);
 
     assert.equal(harness.host.shownFrameCount, 1);
     assert.notEqual(
@@ -253,25 +264,10 @@ describe("AchievementNotificationPresenter", () => {
     let fallbackCount = 0;
     harness.host.failShownFrame = new Error("shown frame failed");
 
-    harness.presenter.enqueueAchievements(
-      "top-left",
-      [achievement("first")],
-      () => {
-        fallbackCount += 1;
-      }
-    );
-    await harness.flush();
-    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
-      type: "host-ready",
+    const requestId = await harness.prepareAchievement(() => {
+      fallbackCount += 1;
     });
-    await harness.flush();
-    const requestId = harness.latestPreparedRequestId();
-
-    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
-      type: "content-ready",
-      requestId,
-    });
-    await harness.flush();
+    await harness.contentReady(requestId);
 
     assert.equal(harness.host.destroyCount, 1);
     assert.equal(fallbackCount, 1);
@@ -286,25 +282,10 @@ describe("AchievementNotificationPresenter", () => {
     let fallbackCount = 0;
     harness.host.failStartSend = true;
 
-    harness.presenter.enqueueAchievements(
-      "top-left",
-      [achievement("first")],
-      () => {
-        fallbackCount += 1;
-      }
-    );
-    await harness.flush();
-    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
-      type: "host-ready",
+    const requestId = await harness.prepareAchievement(() => {
+      fallbackCount += 1;
     });
-    await harness.flush();
-    const requestId = harness.latestPreparedRequestId();
-
-    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
-      type: "content-ready",
-      requestId,
-    });
-    await harness.flush();
+    await harness.contentReady(requestId);
 
     assert.equal(harness.host.destroyCount, 1);
     assert.equal(fallbackCount, 1);
