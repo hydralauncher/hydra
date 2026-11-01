@@ -6,6 +6,7 @@ import type {
 
 export const ACHIEVEMENT_NOTIFICATION_HOST_READY_TIMEOUT = 5_000;
 export const ACHIEVEMENT_NOTIFICATION_CONTENT_READY_TIMEOUT = 5_000;
+export const ACHIEVEMENT_NOTIFICATION_SHOW_TIMEOUT = 1_000;
 export const ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT = 6_450;
 
 export type AchievementNotificationRendererEvent =
@@ -223,6 +224,10 @@ export class AchievementNotificationPresenter {
 
     try {
       host.showInactive();
+      this.startWatchdog(
+        ACHIEVEMENT_NOTIFICATION_SHOW_TIMEOUT,
+        "notification window did not show"
+      );
       await host.waitForFramesAfterShow();
     } catch (error) {
       if (this.host === host) {
@@ -239,6 +244,7 @@ export class AchievementNotificationPresenter {
       return;
     }
 
+    this.clearWatchdog();
     this.stage = "visible";
 
     try {

@@ -259,6 +259,29 @@ describe("AchievementNotificationPresenter", () => {
     });
   });
 
+  it("fails closed when the notification window never reports a frame", async () => {
+    const harness = new PresenterHarness();
+    let fallbackCount = 0;
+    harness.host.shownFramePromise = new Promise<void>(() => {});
+
+    const requestId = await harness.prepareAchievement(() => {
+      fallbackCount += 1;
+    });
+    await harness.contentReady(requestId);
+
+    harness.runLatestTimer();
+    await harness.flush();
+
+    assert.equal(harness.host.destroyCount, 1);
+    assert.equal(fallbackCount, 1);
+    assert.equal(
+      harness.host.messages.some(
+        ({ channel }) => channel === "start-achievement-notification"
+      ),
+      false
+    );
+  });
+
   it("ignores a duplicate content-ready event while showing", async () => {
     const harness = new PresenterHarness();
     let resolveShownFrame = () => {};
