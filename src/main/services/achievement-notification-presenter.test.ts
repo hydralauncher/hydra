@@ -12,6 +12,7 @@ class FakeHost implements AchievementNotificationHost {
   public showInactiveCount = 0;
   public shownFrameCount = 0;
   public failShownFrame: Error | null = null;
+  public failStartSend = false;
   public shownFramePromise: Promise<void> | null = null;
   public hideCount = 0;
   public destroyCount = 0;
@@ -25,6 +26,9 @@ class FakeHost implements AchievementNotificationHost {
   }
 
   public send(channel: string, ...args: unknown[]): void {
+    if (this.failStartSend && channel === "start-achievement-notification") {
+      throw new Error("start send failed");
+    }
     this.messages.push({ channel, args });
   }
 
@@ -248,6 +252,39 @@ describe("AchievementNotificationPresenter", () => {
     const harness = new PresenterHarness();
     let fallbackCount = 0;
     harness.host.failShownFrame = new Error("shown frame failed");
+
+    harness.presenter.enqueueAchievements(
+      "top-left",
+      [achievement("first")],
+      () => {
+        fallbackCount += 1;
+      }
+    );
+    await harness.flush();
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "host-ready",
+    });
+    await harness.flush();
+    const requestId = harness.latestPreparedRequestId();
+
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "content-ready",
+      requestId,
+    });
+    await harness.flush();
+
+    assert.equal(harness.host.destroyCount, 1);
+    assert.equal(fallbackCount, 1);
+    assert.equal(
+      harness.host.messages.at(-1)?.channel,
+      "prepare-achievement-notification"
+    );
+  });
+
+  it("falls back when the start message cannot be sent", async () => {
+    const harness = new PresenterHarness();
+    let fallbackCount = 0;
+    harness.host.failStartSend = true;
 
     harness.presenter.enqueueAchievements(
       "top-left",

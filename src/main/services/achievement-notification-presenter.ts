@@ -240,12 +240,19 @@ export class AchievementNotificationPresenter {
     }
 
     this.stage = "visible";
-    this.dependencies.log(`Achievement notification started: ${requestId}`);
-    host.send("start-achievement-notification", requestId);
-    this.startWatchdog(
-      ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT,
-      "notification animation timed out"
-    );
+
+    try {
+      this.dependencies.log(`Achievement notification started: ${requestId}`);
+      host.send("start-achievement-notification", requestId);
+      this.startWatchdog(
+        ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT,
+        "notification animation timed out"
+      );
+    } catch (error) {
+      if (this.host === host) {
+        this.failHost("failed to start notification", error);
+      }
+    }
   }
 
   private handleFinishedEvent(host: AchievementNotificationHost): void {
