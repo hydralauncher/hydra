@@ -445,11 +445,14 @@ export class WindowManager {
     this.loadMainWindowURL(initialHash);
     mainWindow.removeMenu();
 
+    if (shouldLaunchInBigPicture) {
+      void WindowManager.openBigPictureWindow();
+    }
+
     mainWindow.on("ready-to-show", () => {
       if (!app.isPackaged || isStaging)
         WindowManager.mainWindow?.webContents.openDevTools();
       if (shouldLaunchInBigPicture) {
-        void WindowManager.openBigPictureWindow();
         WindowManager.notifyMainWindowShown(false);
       } else {
         WindowManager.mainWindow?.show();
