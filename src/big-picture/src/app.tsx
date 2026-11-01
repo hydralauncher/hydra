@@ -41,7 +41,11 @@ import {
   useInputModeStore,
   useNavigationStore,
 } from "./stores";
-import { NavigationAudioService, type FocusOverrides } from "./services";
+import {
+  NavigationAudioService,
+  NavigationService,
+  type FocusOverrides,
+} from "./services";
 import { BigPictureI18nBridge, ensureBigPictureI18nResources } from "./i18n";
 
 import "./styles/globals.scss";
@@ -54,14 +58,16 @@ export default function App() {
   const navigate = useNavigate();
   const { showErrorToast, showSuccessToast, showWarningToast } =
     useBigPictureToast();
-  const nodes = useNavigationStore((state) => state.nodes);
-  const regions = useNavigationStore((state) => state.regions);
   const { setFocusRegion } = useNavigationActions();
   const userPreferences = useUserPreferences();
   const inputMode = useInputModeStore((state) => state.mode);
   const [pendingRouteFocusPathname, setPendingRouteFocusPathname] = useState<
     string | null
   >(pathname);
+  const isRouteFocusPending = pendingRouteFocusPathname === pathname;
+  const routeFocusStructureVersion = useNavigationStore((state) =>
+    isRouteFocusPending ? state.structureVersion : null
+  );
   const activeSidebarItemId = getBigPictureSidebarItemIdFromPathname(pathname);
   const activeGameRoute = getBigPictureGameRouteMatch(pathname);
   const leftSidebarTargetId = activeGameRoute
@@ -174,13 +180,15 @@ export default function App() {
   }, [pathname]);
 
   useEffect(() => {
-    if (pendingRouteFocusPathname !== pathname) return;
+    if (!isRouteFocusPending || routeFocusStructureVersion === null) return;
 
     const entryRegionId =
       getBigPictureContentEntryRegionIdFromPathname(pathname);
     if (!entryRegionId) return;
 
-    const hasRegion = regions.some((region) => region.id === entryRegionId);
+    const hasRegion = NavigationService.getInstance()
+      .getRegions()
+      .some((region) => region.id === entryRegionId);
     if (!hasRegion) return;
 
     const focusedId = setFocusRegion(entryRegionId, "right", {
@@ -191,11 +199,10 @@ export default function App() {
       setPendingRouteFocusPathname(null);
     }
   }, [
+    isRouteFocusPending,
     leftSidebarTargetId,
-    nodes,
     pathname,
-    pendingRouteFocusPathname,
-    regions,
+    routeFocusStructureVersion,
     setFocusRegion,
   ]);
 

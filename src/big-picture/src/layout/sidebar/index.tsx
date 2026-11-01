@@ -15,6 +15,7 @@ import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
   type FocusEvent,
   forwardRef,
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -484,7 +485,7 @@ interface SidebarLibraryProps {
   ) => void;
 }
 
-function SidebarLibrary({
+const SidebarLibrary = memo(function SidebarLibrary({
   library,
   runningGamesById,
   onOpenContextMenu,
@@ -747,7 +748,7 @@ function SidebarLibrary({
       </div>
     </div>
   );
-}
+});
 
 interface SidebarProfileProps {
   library: LibraryGame[];
@@ -1178,4 +1179,6 @@ function Sidebar() {
   );
 }
 
-export { Sidebar };
+const MemoizedSidebar = memo(Sidebar);
+
+export { MemoizedSidebar as Sidebar };
