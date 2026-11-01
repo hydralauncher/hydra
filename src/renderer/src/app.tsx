@@ -17,7 +17,7 @@ import {
 } from "@renderer/hooks";
 import { useDownloadOptionsListener } from "@renderer/hooks/use-download-options-listener";
 import i18n from "i18next";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { WorkWonders } from "workwonders-sdk";
 
 import {
@@ -844,7 +844,9 @@ export function App() {
             id="scrollableDiv"
             className="container__content"
           >
-            <Outlet />
+            <Suspense fallback={null}>
+              <Outlet />
+            </Suspense>
           </section>
         </article>
       </main>

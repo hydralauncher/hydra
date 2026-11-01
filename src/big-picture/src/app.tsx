@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -246,7 +246,9 @@ export default function App() {
                     <Header />
 
                     <article className="big-picture__content">
-                      <Outlet />
+                      <Suspense fallback={null}>
+                        <Outlet />
+                      </Suspense>
                     </article>
 
                     <VirtualKeyboardProvider />
