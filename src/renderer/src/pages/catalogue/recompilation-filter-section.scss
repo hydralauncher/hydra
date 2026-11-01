@@ -1,0 +1,24 @@
+.recompilation-filter-section {
+  &__option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__option-item {
+    min-height: 28px;
+    width: fit-content;
+    touch-action: manipulation;
+
+    &.radio-field--selected .radio-field__label {
+      color: #ffffff;
+    }
+  }
+
+  &__option-label {
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+}

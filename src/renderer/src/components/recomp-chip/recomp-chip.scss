@@ -1,0 +1,33 @@
+// Same metrics as the Classics platform chip, in blue glass instead of black.
+.recomp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 4px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #fafafa;
+  background: rgba(62, 98, 192, 0.72); // $brand-blue at 72%
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(139, 161, 217, 0.45);
+  border-radius: 4px;
+  line-height: 1.2;
+  white-space: nowrap;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &--cover {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    z-index: 2;
+  }
+
+  // The Classics hero content ignores the pointer; keep the tooltip working.
+  &--hero {
+    height: 24px;
+    pointer-events: auto;
+  }
+}

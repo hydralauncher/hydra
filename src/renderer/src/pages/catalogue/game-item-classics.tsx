@@ -5,9 +5,11 @@ import cn from "classnames";
 
 import { Badge } from "@renderer/components/badge/badge";
 import { Link } from "@renderer/components/link/link";
+import { RecompChip } from "@renderer/components/recomp-chip/recomp-chip";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useAppSelector, useLibrary } from "@renderer/hooks";
 
+import { getRecompilationPortsForGame } from "@shared";
 import type { CatalogueSearchResult } from "@types";
 
 import "./game-item-classics.scss";
@@ -142,11 +144,27 @@ export function GameItemClassics({ game }: GameItemClassicsProps) {
     });
   }, [game.genres, language, steamGenres]);
 
+  const recompilationPortNames = useMemo(
+    () => getRecompilationPortsForGame(game).map((port) => port.name),
+    [game]
+  );
+
+  const linkLabel =
+    recompilationPortNames.length > 0
+      ? t("recomp_link_label", {
+          ns: "catalogue",
+          title: game.title,
+          platform: game.platform,
+          ports: recompilationPortNames.join(", "),
+        })
+      : undefined;
+
   return (
     <article className="game-item-classics">
       <Link
         to={buildGameDetailsPath(game)}
         className="game-item-classics__link"
+        aria-label={linkLabel}
       >
         <div className="game-item-classics__cover">
           {game.libraryImageUrl ? (
@@ -175,6 +193,10 @@ export function GameItemClassics({ game }: GameItemClassicsProps) {
             <span className="game-item-classics__platform-chip">
               {game.platform}
             </span>
+          )}
+
+          {recompilationPortNames.length > 0 && (
+            <RecompChip portNames={recompilationPortNames} variant="cover" />
           )}
         </div>
 

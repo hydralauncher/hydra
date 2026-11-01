@@ -247,7 +247,15 @@
     "no_genres": "No categories",
     "mode_modern_games": "Modern Games",
     "mode_classics": "Classics",
-    "platforms": "Platforms"
+    "platforms": "Platforms",
+    "recompilation": "Recompilation",
+    "recompilation_all": "All",
+    "recompilation_has": "Has recompilation",
+    "recompilation_emulation_only": "Emulation only",
+    "recomp_chip": "Recomp",
+    "recomp_chip_tooltip_one": "Native PC port: {{ports}}",
+    "recomp_chip_tooltip_other": "Native PC ports: {{ports}}",
+    "recomp_link_label": "{{title}}, {{platform}}, has recompilation: {{ports}}"
   },
   "game_details": {
     "bios_not_configured_toast": "BIOS not found. Please add BIOS folder in Emulation settings.",
