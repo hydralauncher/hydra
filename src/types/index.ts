@@ -189,6 +189,7 @@ export interface StartGameDownloadPayload {
   downloader: Downloader;
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
+  extractInPlace?: boolean;
   fileSize?: string | null;
   fileIndices?: number[];
   selectedFilesSize?: number | null;
