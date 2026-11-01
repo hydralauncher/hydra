@@ -6,7 +6,7 @@ import {
 } from "@phosphor-icons/react";
 import { sanitizeHtml } from "@shared";
 import type { GameReview, GameShop } from "@types";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IS_DESKTOP } from "../../../../constants";
 import { getItemFocusTarget } from "../../../../helpers";
@@ -40,7 +40,7 @@ interface GameReviewsProps {
 
 const REVIEWS_PER_PAGE = 24;
 
-export function GameReviews({
+export const GameReviews = memo(function GameReviews({
   shop,
   objectId,
   topNavigationTarget,
@@ -451,4 +451,4 @@ export function GameReviews({
       )}
     </section>
   );
-}
+});
