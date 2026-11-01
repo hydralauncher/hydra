@@ -119,7 +119,6 @@ export const achievementNotificationPresenter =
         webPreferences: {
           preload: path.join(__dirname, "../preload/index.mjs"),
           sandbox: false,
-          backgroundThrottling: false,
         },
       });
 
