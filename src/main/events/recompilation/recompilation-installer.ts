@@ -206,6 +206,8 @@ export const installRecompilation = async (
     `hydra-recompilation-${port.id}-${asset.name}`
   );
 
+  let result: RecompilationInstallResult;
+
   try {
     const installDirectory = await getInstallDirectory(port);
 
@@ -235,20 +237,24 @@ export const installRecompilation = async (
     sendProgress({ portId: port.id, phase: "extracting" });
     await extractRelease(port, asset, archivePath, installDirectory);
 
-    sendProgress({ portId: port.id, phase: "done" });
-    return { ok: true, path: installDirectory };
+    result = { ok: true, path: installDirectory };
   } catch (error) {
     logger.error(`Failed to install recompilation ${port.id}`, error);
-    sendProgress({
-      portId: port.id,
-      phase: "error",
-      reason: "install_failed",
-    });
-    return { ok: false, reason: "install_failed" };
+    result = { ok: false, reason: "install_failed" };
   } finally {
     await removeFileQuietly(archivePath);
     installsInProgress.delete(port.id);
   }
+
+  // Sent only once the port is no longer busy, so a view that refreshes on
+  // this event never reads a stale isInstalling.
+  sendProgress(
+    result.ok
+      ? { portId: port.id, phase: "done" }
+      : { portId: port.id, phase: "error", reason: result.reason }
+  );
+
+  return result;
 };
 
 export const openRecompilationFolder = async (

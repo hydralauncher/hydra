@@ -58,11 +58,12 @@ export const catalogueSearchSlice = createSlice({
         state.recompilationFilter = recompilation;
       }
 
+      // Only request filters go back to the first page: the recompilation
+      // filter works on the page that is already loaded.
       if (Object.keys(filters).length > 0) {
         state.filters = { ...state.filters, ...filters };
+        state.page = initialState.page;
       }
-
-      state.page = initialState.page;
     },
     clearFilters: (state) => {
       state.filters = initialState.filters;
