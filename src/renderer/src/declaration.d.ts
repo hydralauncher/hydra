@@ -61,6 +61,10 @@ import type {
   EmulatorBinary,
   EmulatorInstallProgress,
   EmulatorInstallResult,
+  RecompilationInstallProgress,
+  RecompilationInstallResult,
+  RecompilationInstallState,
+  RecompilationPortId,
   ResolvedInstallOption,
   DetectedRom,
   RetroArchConfig,
@@ -773,6 +777,17 @@ declare global {
     ) => Promise<EmulatorInstallResult>;
     onEmulatorInstallProgress: (
       cb: (payload: EmulatorInstallProgress) => void
+    ) => () => void;
+    /* Recompilations */
+    getRecompilationInstallState: (
+      portId: RecompilationPortId
+    ) => Promise<RecompilationInstallState | null>;
+    installRecompilation: (
+      portId: RecompilationPortId
+    ) => Promise<RecompilationInstallResult>;
+    openRecompilationFolder: (portId: RecompilationPortId) => Promise<string>;
+    onRecompilationInstallProgress: (
+      cb: (payload: RecompilationInstallProgress) => void
     ) => () => void;
     /* RetroArch */
     getRetroArchConfig: () => Promise<RetroArchConfig>;
