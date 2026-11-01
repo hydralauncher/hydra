@@ -10,9 +10,6 @@ export interface AnimatedHeroImageProps
 
 const FALLBACK_BACKGROUND_COLOR = "rgba(8, 8, 8, 1)";
 
-const RGBA_WITH_ALPHA =
-  /^rgba\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*[\d.]+\s*\)$/;
-
 function getBackgroundColor(element: HTMLElement) {
   const elementStyles = globalThis.getComputedStyle(element);
   const rootStyles = globalThis.getComputedStyle(
@@ -28,19 +25,12 @@ function getBackgroundColor(element: HTMLElement) {
 }
 
 function withAlpha(color: string, alpha: number) {
-  const normalizedAlpha = Math.max(0, Math.min(1, alpha));
+  const resolvedColor = globalThis.CSS.supports("color", color)
+    ? color
+    : FALLBACK_BACKGROUND_COLOR;
+  const percentage = Math.max(0, Math.min(1, alpha)) * 100;
 
-  if (color.startsWith("rgb(")) {
-    return color.replace("rgb(", "rgba(").replace(")", `, ${normalizedAlpha})`);
-  }
-
-  const rgbaMatch = RGBA_WITH_ALPHA.exec(color);
-
-  if (rgbaMatch) {
-    return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${normalizedAlpha})`;
-  }
-
-  return FALLBACK_BACKGROUND_COLOR;
+  return `color-mix(in srgb, ${resolvedColor} ${percentage}%, transparent)`;
 }
 
 function getCoverCrop(
