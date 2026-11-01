@@ -155,6 +155,7 @@ export interface Download {
   inPlaceArchives?: string[];
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
+  extractInPlace?: boolean;
   fileIndices?: number[];
   files?: DownloadFile[];
   selectedFilesSize?: number | null;
@@ -234,6 +235,7 @@ export interface UserPreferences {
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
   deleteArchiveFilesAfterExtractionByDefault?: boolean;
+  extractInPlaceByDefault?: boolean;
   enableSteamAchievements?: boolean;
   enableAchievementSouvenirs?: boolean;
   achievementScreenshotsPath?: string;

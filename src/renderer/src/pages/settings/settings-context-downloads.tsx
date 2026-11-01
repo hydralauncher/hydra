@@ -35,6 +35,7 @@ const buildForm = (preferences: UserPreferences | null) => ({
       : "",
   deleteArchiveFilesAfterExtractionByDefault:
     preferences?.deleteArchiveFilesAfterExtractionByDefault ?? true,
+  extractInPlaceByDefault: preferences?.extractInPlaceByDefault ?? true,
   torrentNetworkInterface: preferences?.torrentNetworkInterface ?? "",
 });
 
@@ -243,6 +244,20 @@ export function SettingsContextDownloads() {
             handleChange({
               deleteArchiveFilesAfterExtractionByDefault:
                 !form.deleteArchiveFilesAfterExtractionByDefault,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("extract_in_place")}
+          checked={
+            form.deleteArchiveFilesAfterExtractionByDefault &&
+            form.extractInPlaceByDefault
+          }
+          disabled={!form.deleteArchiveFilesAfterExtractionByDefault}
+          onChange={() =>
+            handleChange({
+              extractInPlaceByDefault: !form.extractInPlaceByDefault,
             })
           }
         />

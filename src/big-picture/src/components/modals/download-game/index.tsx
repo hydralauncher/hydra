@@ -131,9 +131,12 @@ interface DownloadGameOptionsProps {
   selectedDownloadPath: string;
   automaticExtractionEnabled: boolean;
   deleteArchiveFilesAfterExtraction: boolean;
+  extractInPlace: boolean;
+  extractInPlaceTouched: boolean;
   onSelectDownloadPath: (path: string) => void;
   onAutomaticExtractionChange: (checked: boolean) => void;
   onDeleteArchiveFilesAfterExtractionChange: (checked: boolean) => void;
+  onExtractInPlaceChange: (checked: boolean) => void;
 }
 
 interface DownloadDirectorySuggestion {
@@ -173,6 +176,8 @@ const DOWNLOAD_GAME_AUTOMATIC_EXTRACT_CHECKBOX_ID =
   "download-game-modal-automatic-extract";
 const DOWNLOAD_GAME_DELETE_ARCHIVE_CHECKBOX_ID =
   "download-game-modal-delete-archive";
+const DOWNLOAD_GAME_EXTRACT_IN_PLACE_CHECKBOX_ID =
+  "download-game-modal-extract-in-place";
 const DOWNLOAD_GAME_EMPTY_STATE_SETTINGS_BUTTON_ID =
   "download-game-modal-empty-state-settings";
 
@@ -556,6 +561,8 @@ function DownloadGameModalSession({
     deleteArchiveFilesAfterExtraction,
     setDeleteArchiveFilesAfterExtraction,
   ] = useState(true);
+  const [extractInPlace, setExtractInPlace] = useState(true);
+  const [extractInPlaceTouched, setExtractInPlaceTouched] = useState(false);
   const [isPreparingOptions, setIsPreparingOptions] = useState(false);
   const stepFrameRef = useRef<HTMLDivElement | null>(null);
   const activeStepRef = useRef<HTMLDivElement | null>(null);
@@ -564,6 +571,7 @@ function DownloadGameModalSession({
   const downloadPathTouchedRef = useRef(false);
   const automaticExtractionTouchedRef = useRef(false);
   const deleteArchiveTouchedRef = useRef(false);
+  const extractInPlaceTouchedRef = useRef(false);
   const {
     downloadOptions,
     localDownloadSources,
@@ -670,10 +678,13 @@ function DownloadGameModalSession({
       downloadPathTouchedRef.current = false;
       automaticExtractionTouchedRef.current = false;
       deleteArchiveTouchedRef.current = false;
+      extractInPlaceTouchedRef.current = false;
       setDownloadDirectorySuggestions([]);
       setSelectedDownloadPath("");
       setAutomaticExtractionEnabled(true);
       setDeleteArchiveFilesAfterExtraction(false);
+      setExtractInPlace(true);
+      setExtractInPlaceTouched(false);
       setPendingSelectedOption(null);
       setIsPreparingOptions(false);
       if (resetStepFrameHeightTimeoutRef.current !== null) {
@@ -732,6 +743,10 @@ function DownloadGameModalSession({
         setDeleteArchiveFilesAfterExtraction(
           userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? true
         );
+      }
+
+      if (!extractInPlaceTouchedRef.current) {
+        setExtractInPlace(userPreferences?.extractInPlaceByDefault ?? true);
       }
 
       setIsPreparingOptions(false);
@@ -794,6 +809,12 @@ function DownloadGameModalSession({
     },
     []
   );
+
+  const handleExtractInPlaceChange = useCallback((checked: boolean) => {
+    extractInPlaceTouchedRef.current = true;
+    setExtractInPlaceTouched(true);
+    setExtractInPlace(checked);
+  }, []);
 
   const handleToggleSource = useCallback((sourceId: string) => {
     setSelectedSources((previousSources) =>
@@ -863,20 +884,26 @@ function DownloadGameModalSession({
         selectedDownloadPath={selectedDownloadPath}
         automaticExtractionEnabled={automaticExtractionEnabled}
         deleteArchiveFilesAfterExtraction={deleteArchiveFilesAfterExtraction}
+        extractInPlace={extractInPlace}
+        extractInPlaceTouched={extractInPlaceTouched}
         onSelectDownloadPath={handleSelectDownloadPath}
         onAutomaticExtractionChange={handleAutomaticExtractionChange}
         onDeleteArchiveFilesAfterExtractionChange={
           handleDeleteArchiveFilesAfterExtractionChange
         }
+        onExtractInPlaceChange={handleExtractInPlaceChange}
       />
     ),
     [
       automaticExtractionEnabled,
       deleteArchiveFilesAfterExtraction,
       downloadDirectorySuggestions,
+      extractInPlace,
+      extractInPlaceTouched,
       game,
       handleAutomaticExtractionChange,
       handleDeleteArchiveFilesAfterExtractionChange,
+      handleExtractInPlaceChange,
       handleSelectDownloadPath,
       onClose,
       selectedDownloadPath,
@@ -1471,9 +1498,12 @@ function DownloadGameOptions({
   selectedDownloadPath,
   automaticExtractionEnabled,
   deleteArchiveFilesAfterExtraction,
+  extractInPlace,
+  extractInPlaceTouched,
   onSelectDownloadPath,
   onAutomaticExtractionChange,
   onDeleteArchiveFilesAfterExtractionChange,
+  onExtractInPlaceChange,
 }: Readonly<DownloadGameOptionsProps>) {
   const { t } = useTranslation("game_details");
   const { showErrorToast } = useBigPictureToast();
@@ -1690,6 +1720,7 @@ function DownloadGameOptions({
       downloader: resolvedDownloader,
       automaticallyExtract: automaticExtractionEnabled,
       automaticallyDeleteArchiveFiles: deleteArchiveFilesAfterExtraction,
+      extractInPlace: extractInPlaceTouched ? extractInPlace : undefined,
       fileSize: option.fileSize,
     } as const;
 
@@ -1864,6 +1895,17 @@ function DownloadGameOptions({
             checked={deleteArchiveFilesAfterExtraction}
             disabled={isOptionsInteractionLocked}
             onChange={onDeleteArchiveFilesAfterExtractionChange}
+          />
+
+          <Checkbox
+            block
+            focusId={DOWNLOAD_GAME_EXTRACT_IN_PLACE_CHECKBOX_ID}
+            label={t("extract_in_place")}
+            checked={deleteArchiveFilesAfterExtraction && extractInPlace}
+            disabled={
+              isOptionsInteractionLocked || !deleteArchiveFilesAfterExtraction
+            }
+            onChange={onExtractInPlaceChange}
           />
         </div>
 

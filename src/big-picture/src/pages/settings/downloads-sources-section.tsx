@@ -21,6 +21,7 @@ import {
   useDate,
   useFormat,
   useNavigation,
+  useUserPreferences,
 } from "../../hooks";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../layout";
 import type { FocusOverrides } from "../../services";
@@ -85,6 +86,7 @@ export function DownloadsSourcesSection({
   const { t } = useTranslation("big_picture");
   const { showSuccessToast, showErrorToast } = useBigPictureToast();
   const { setFocus, setFocusRegion } = useNavigation();
+  const userPreferences = useUserPreferences();
   const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -126,7 +128,8 @@ export function DownloadsSourcesSection({
     ? getDownloadsSourceRemoveButtonFocusId(downloadSources[0].id)
     : null;
   const lastBehaviorFocusId = getLastDownloadsBehaviorItemFocusId(
-    isWindows || isLinux
+    isWindows || isLinux,
+    userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? true
   );
 
   const actionNavigationOverrides: FocusOverrides = useMemo(

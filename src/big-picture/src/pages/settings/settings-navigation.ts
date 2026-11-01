@@ -124,6 +124,7 @@ export const DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS = {
   extractFilesByDefault: "downloads-behavior-extract-files-by-default",
   deleteArchiveFilesAfterExtractionByDefault:
     "downloads-behavior-delete-archive-files-after-extraction-by-default",
+  extractInPlaceByDefault: "downloads-behavior-extract-in-place-by-default",
   createStartMenuShortcut: "downloads-behavior-create-start-menu-shortcut",
 } as const;
 
@@ -211,10 +212,15 @@ export function getIntegrationProviderSaveButtonFocusId(
 }
 
 export function getLastDownloadsBehaviorItemFocusId(
-  showsShortcutItem: boolean
+  showsShortcutItem: boolean,
+  canExtractInPlace = true
 ) {
-  return showsShortcutItem
-    ? DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.createStartMenuShortcut
+  if (showsShortcutItem) {
+    return DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.createStartMenuShortcut;
+  }
+
+  return canExtractInPlace
+    ? DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.extractInPlaceByDefault
     : DOWNLOADS_BEHAVIOR_ITEM_FOCUS_IDS.deleteArchiveFilesAfterExtractionByDefault;
 }
 

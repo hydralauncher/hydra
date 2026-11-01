@@ -67,7 +67,8 @@ export interface DownloadSettingsModalProps {
     fileIndices?: number[],
     selectedFilesSize?: number | null,
     automaticallyDeleteArchiveFiles?: boolean,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    extractInPlace?: boolean
   ) => Promise<{ ok: boolean; error?: string }>;
   repack: GameRepack | null;
 }
@@ -308,6 +309,10 @@ export function DownloadSettingsModal({
   ] = useState(
     userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? true
   );
+  const [extractInPlace, setExtractInPlace] = useState(
+    userPreferences?.extractInPlaceByDefault ?? true
+  );
+  const [extractInPlaceTouched, setExtractInPlaceTouched] = useState(false);
   const [selectedDownloader, setSelectedDownloader] =
     useState<Downloader | null>(null);
   const [hasWritePermission, setHasWritePermission] = useState<boolean | null>(
@@ -579,9 +584,21 @@ export function DownloadSettingsModal({
       setAutomaticExtractionEnabled(
         userPreferences?.extractFilesByDefault ?? true
       );
+      setExtractInPlace(userPreferences?.extractInPlaceByDefault ?? true);
+      setExtractInPlaceTouched(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
+
+  useEffect(() => {
+    if (visible && !extractInPlaceTouched) {
+      setExtractInPlace(userPreferences?.extractInPlaceByDefault ?? true);
+    }
+  }, [
+    visible,
+    extractInPlaceTouched,
+    userPreferences?.extractInPlaceByDefault,
+  ]);
 
   const torrentFilesByIndex = useMemo(() => {
     const fileMap = new Map<number, TorrentFile>();
@@ -1067,7 +1084,8 @@ export function DownloadSettingsModal({
           selectedFileIndices,
           totalSelectedSize,
           deleteArchiveFilesAfterExtraction,
-          abortController.signal
+          abortController.signal,
+          extractInPlaceTouched ? extractInPlace : undefined
         );
 
         if (
@@ -1580,6 +1598,16 @@ export function DownloadSettingsModal({
               !deleteArchiveFilesAfterExtraction
             )
           }
+        />
+
+        <CheckboxField
+          label={t("extract_in_place")}
+          checked={deleteArchiveFilesAfterExtraction && extractInPlace}
+          disabled={!deleteArchiveFilesAfterExtraction}
+          onChange={() => {
+            setExtractInPlaceTouched(true);
+            setExtractInPlace(!extractInPlace);
+          }}
         />
 
         <Button

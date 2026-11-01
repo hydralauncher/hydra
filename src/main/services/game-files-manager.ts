@@ -33,7 +33,11 @@ import path from "node:path";
 import pngToIco from "png-to-ico";
 import sharp from "sharp";
 import { ExtractionProgress, SevenZip } from "./7zip";
-import { type ArchiveExtractors, extractArchive } from "./archive-extraction";
+import {
+  type ArchiveExtractors,
+  extractArchive,
+  shouldExtractArchiveInPlace,
+} from "./archive-extraction";
 import { NativeAddon } from "./native-addon";
 import { HydraApi } from "./hydra-api";
 import * as emulators from "./emulators";
@@ -101,7 +105,8 @@ export class GameFilesManager {
   private readonly extractors: ArchiveExtractors = {
     ...archiveExtractors,
     inPlaceEnabled: () =>
-      (this.inPlaceExtractionEnabled ??= isInPlaceExtractionEnabled()),
+      (this.inPlaceExtractionEnabled ??=
+        this.resolveInPlaceExtractionEnabled()),
   };
 
   constructor(
@@ -219,9 +224,32 @@ export class GameFilesManager {
   }
 
   private readonly handleProgress = (progress: ExtractionProgress) => {
-    console.log(`handleProgress: ${progress.percent}% - ${progress.file}`);
+    logger.debug(`handleProgress: ${progress.percent}% - ${progress.file}`);
     this.updateExtractionProgress(progress.percent / 100);
   };
+
+  private async resolveInPlaceExtractionEnabled(): Promise<boolean> {
+    try {
+      const [download, userPreferences] = await Promise.all([
+        downloadsSublevel.get(this.gameKey),
+        db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
+          valueEncoding: "json",
+        }),
+      ]);
+
+      if (!shouldExtractArchiveInPlace(download, userPreferences)) {
+        return false;
+      }
+    } catch (error) {
+      logger.warn(
+        "[GameFilesManager] Could not read in-place extraction preference",
+        error
+      );
+      return false;
+    }
+
+    return isInPlaceExtractionEnabled();
+  }
 
   private async shouldDeleteArchives(download?: Download | null) {
     const userPreferences = await db.get<string, UserPreferences | null>(
