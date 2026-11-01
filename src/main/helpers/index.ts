@@ -1,9 +1,9 @@
 import axios from "axios";
-import { JSDOM } from "jsdom";
 import UserAgent from "user-agents";
 import path from "node:path";
 import fs from "node:fs";
 import { THEMES_PATH } from "@main/constants";
+import { getJSDOM } from "./jsdom";
 
 export const getFileBuffer = async (url: string) =>
   fetch(url, { method: "GET" }).then((response) =>
@@ -24,6 +24,7 @@ export const requestWebPage = async (url: string) => {
     })
     .then((response) => response.data);
 
+  const JSDOM = getJSDOM();
   const { window } = new JSDOM(data);
   return window.document;
 };

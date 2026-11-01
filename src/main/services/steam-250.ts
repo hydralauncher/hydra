@@ -1,5 +1,5 @@
 import axios from "axios";
-import { JSDOM } from "jsdom";
+import { getJSDOM } from "@main/helpers/jsdom";
 
 import type { Steam250Game } from "@types";
 
@@ -7,6 +7,7 @@ export const requestSteam250 = async (path: string) => {
   return axios
     .get(`https://steam250.com${path}`)
     .then((response) => {
+      const JSDOM = getJSDOM();
       const { window } = new JSDOM(response.data);
       const { document } = window;
 
