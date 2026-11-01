@@ -6,6 +6,12 @@ import type {
 
 export const ARCHIVE_PASSWORDS = ["online-fix.me", "steamrip.com"];
 
+export const shouldExtractArchiveInPlace = (
+  download?: { extractInPlace?: boolean } | null,
+  userPreferences?: { extractInPlaceByDefault?: boolean } | null
+): boolean =>
+  download?.extractInPlace ?? userPreferences?.extractInPlaceByDefault ?? true;
+
 export interface ArchiveExtractors {
   inPlaceEnabled: () => Promise<boolean>;
   inPlace: (
