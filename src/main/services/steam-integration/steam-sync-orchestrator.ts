@@ -34,6 +34,7 @@ import {
 } from "./steam-source-retry";
 import {
   SteamAccountMismatchError,
+  SteamClientUnavailableError,
   SteamPrivateProfileError,
   SteamRateLimitedError,
   SteamSessionRequiredError,
@@ -54,6 +55,11 @@ import {
   fetchSteamCommunityPlayerAchievements,
   shouldFetchSteamCommunityAchievements,
 } from "./steam-community-achievements";
+import {
+  steamClientSuccessPercentage,
+  type SteamAchievementSourceCounts,
+} from "./steam-client-achievements";
+import { fetchSteamClientAchievements } from "./steam-client-session";
 import {
   AchievementMemoryStore,
   mergePersistedAchievementTotals,
@@ -160,6 +166,7 @@ const steamUnlocksToLocal = (
 const getSteamSyncFailureMessage = (error: unknown): string => {
   if (
     error instanceof SteamPrivateProfileError ||
+    error instanceof SteamClientUnavailableError ||
     error instanceof SteamRateLimitedError ||
     error instanceof SteamSyncRunNotPendingError ||
     error instanceof SteamSessionRequiredError ||
@@ -489,6 +496,15 @@ class SteamSyncOrchestrator {
         throw new SteamSyncInProgressError();
       }
 
+      // A run left behind by a closed app is not in latestSyncRun, only in this response.
+      const activeRunId = (
+        error as { response?: { data?: { syncRunId?: unknown } } }
+      ).response?.data?.syncRunId;
+      if (typeof activeRunId === "string" && activeRunId) {
+        steamSyncLogger.log("Resuming abandoned run", activeRunId);
+        return activeRunId;
+      }
+
       steamSyncLogger.error("409 without a resumable PENDING run", status);
       throw error;
     }
@@ -705,8 +721,15 @@ class SteamSyncOrchestrator {
       string,
       SteamSourceAchievement[] | undefined
     >();
+    const sourceCounts: SteamAchievementSourceCounts = {
+      client: 0,
+      noAchievements: 0,
+      scrape: 0,
+    };
     let gamesProcessed = 0;
     let rateLimited = false;
+    let communityRateLimited = false;
+    let unknownAchievementNames = 0;
     let runGone = false;
 
     await mapPool(
@@ -725,7 +748,7 @@ class SteamSyncOrchestrator {
             return;
           }
 
-          const scrapeCommunity = shouldFetchSteamCommunityAchievements(
+          const fetchUnlocks = shouldFetchSteamCommunityAchievements(
             game.playTimeInSeconds
           );
 
@@ -733,7 +756,7 @@ class SteamSyncOrchestrator {
             `GET Steam achievements ${index + 1}/${games.length}`,
             game.steamAppId,
             game.name,
-            scrapeCommunity ? "community" : "schema only"
+            fetchUnlocks ? "unlocks" : "schema only"
           );
 
           let schemaPayload: unknown;
@@ -746,8 +769,41 @@ class SteamSyncOrchestrator {
             return schemaPayload;
           };
 
-          const response = scrapeCommunity
-            ? await fetchWithRetry(
+          const fetchUnlocksFromClientOrCommunity = async () => {
+            const clientResult = await fetchSteamClientAchievements(
+              game.steamAppId,
+              signal
+            );
+            if (clientResult.kind === "ok") {
+              sourceCounts.client += 1;
+              return {
+                playerstats: { achievements: clientResult.achievements },
+              };
+            }
+
+            const hasCatalogue =
+              catalogueFromSteamSchema(
+                game.steamAppId,
+                await fetchWithRetry(
+                  `schema ${game.steamAppId}`,
+                  () => loadSchema(game.steamAppId),
+                  signal
+                )
+              ).length > 0;
+            if (!hasCatalogue) {
+              sourceCounts.noAchievements += 1;
+              return { achievements: [] };
+            }
+
+            sourceCounts.scrape += 1;
+            steamSyncLogger.log(
+              `Steam client stats unavailable for ${game.steamAppId} ${game.name} (${clientResult.reason})`
+            );
+
+            if (communityRateLimited) return null;
+
+            try {
+              return await fetchWithRetry(
                 `achievements ${game.steamAppId}`,
                 () =>
                   fetchSteamCommunityPlayerAchievements({
@@ -760,8 +816,28 @@ class SteamSyncOrchestrator {
                     loadSchema,
                   }),
                 signal
-              )
+              );
+            } catch (error) {
+              if (!isSteamRateLimitStatus(getSteamSourceHttpStatus(error))) {
+                throw error;
+              }
+
+              communityRateLimited = true;
+              steamSyncLogger.log(
+                "Steam Community rate limited, skipping the scraping fallback"
+              );
+              return null;
+            }
+          };
+
+          const response = fetchUnlocks
+            ? await fetchUnlocksFromClientOrCommunity()
             : { achievements: [] };
+
+          if (response === null) {
+            achievementsByAppId.set(game.steamAppId, undefined);
+            return;
+          }
 
           if (schemaPayload == null) {
             try {
@@ -789,6 +865,12 @@ class SteamSyncOrchestrator {
               : [];
           const schemaCount =
             catalogue.length > 0 ? catalogue.length : achievements.length;
+          const catalogueNames = new Set(catalogue.map((item) => item.name));
+          if (catalogueNames.size > 0) {
+            unknownAchievementNames += achievements.filter(
+              (achievement) => !catalogueNames.has(achievement.name)
+            ).length;
+          }
 
           const current = AchievementMemoryStore.get("steam", game.steamAppId);
           const unlockedAchievements = mergeUnlockedAchievementLists(
@@ -880,12 +962,23 @@ class SteamSyncOrchestrator {
       }
     );
 
+    steamSyncLogger.log("Steam achievement sources", {
+      ...sourceCounts,
+      clientSuccessPercentage: steamClientSuccessPercentage(sourceCounts),
+      unknownAchievementNames,
+    });
+
     if (runGone) {
       throw new SteamSyncRunNotPendingError();
     }
 
     if (rateLimited) {
       throw new SteamRateLimitedError();
+    }
+
+    // Publishing now would replace the user's achievements with nothing.
+    if (sourceCounts.client === 0 && sourceCounts.scrape > 0) {
+      throw new SteamClientUnavailableError();
     }
 
     return achievementsByAppId;

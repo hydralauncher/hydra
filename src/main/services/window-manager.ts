@@ -96,6 +96,7 @@ export class WindowManager {
   private static authWindow: Electron.BrowserWindow | null = null;
   private static retroAchievementsConnectionWindow: Electron.BrowserWindow | null =
     null;
+  private static steamConnectionWindow: Electron.BrowserWindow | null = null;
   private static deferredMainMaximize = false;
 
   private static isArtworkRendererRequest(
@@ -1333,6 +1334,74 @@ export class WindowManager {
   public static completeRetroAchievementsConnectionWindow() {
     this.sendToAppWindows("on-retroachievements-connected");
     this.closeRetroAchievementsConnectionWindow();
+  }
+
+  public static openSteamConnectionWindow(onClosed: () => void) {
+    const existingWindow = this.steamConnectionWindow;
+    if (existingWindow && !existingWindow.isDestroyed()) {
+      if (existingWindow.isMinimized()) existingWindow.restore();
+      existingWindow.focus();
+      return;
+    }
+
+    const parentWindow = this.mainWindow;
+    if (!parentWindow || parentWindow.isDestroyed()) return;
+
+    const layout = getRetroAchievementsConnectionWindowLayout(process.platform);
+    const connectionWindow = new BrowserWindow({
+      width: layout.width,
+      height: layout.height,
+      title: "Hydra",
+      backgroundColor: "#1c1c1c",
+      parent: parentWindow,
+      modal: true,
+      show: false,
+      maximizable: false,
+      resizable: false,
+      minimizable: layout.minimizable,
+      frame: layout.frame,
+      icon,
+      webPreferences: {
+        preload: path.join(__dirname, "../preload/index.mjs"),
+        sandbox: false,
+      },
+    });
+
+    this.steamConnectionWindow = connectionWindow;
+    connectionWindow.removeMenu();
+    void this.loadWindowURL(connectionWindow, "steam-connection");
+
+    connectionWindow.once("ready-to-show", () => {
+      connectionWindow.show();
+    });
+
+    connectionWindow.once("closed", () => {
+      this.steamConnectionWindow = null;
+      onClosed();
+      if (!parentWindow.isDestroyed()) parentWindow.focus();
+    });
+  }
+
+  public static getSteamConnectionWindow() {
+    const connectionWindow = this.steamConnectionWindow;
+    return connectionWindow && !connectionWindow.isDestroyed()
+      ? connectionWindow
+      : null;
+  }
+
+  public static minimizeSteamConnectionWindow() {
+    this.getSteamConnectionWindow()?.minimize();
+  }
+
+  public static closeSteamConnectionWindow() {
+    this.getSteamConnectionWindow()?.close();
+  }
+
+  public static sendToSteamConnectionWindow(
+    channel: string,
+    ...args: unknown[]
+  ) {
+    this.getSteamConnectionWindow()?.webContents.send(channel, ...args);
   }
 
   public static sendAchievementToFocusedWindow(

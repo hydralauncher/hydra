@@ -1,6 +1,11 @@
 import axios from "axios";
 import https from "node:https";
-import { BrowserWindow, session } from "electron";
+import { type BrowserWindow, screen, session, WebContentsView } from "electron";
+
+import {
+  CUSTOM_WINDOW_BORDER_WIDTH,
+  CUSTOM_WINDOW_TITLE_BAR_HEIGHT,
+} from "@shared";
 
 import { steamSyncLogger } from "../logger";
 import { WindowManager } from "../window-manager";
@@ -10,15 +15,11 @@ import {
   parseSteamOpenIdErrorBody,
   parseSteamOpenIdReturn,
 } from "./steam-openid-return";
-import {
-  parseSteamCommunityPageSteamId,
-  parseSteamStoreSessionConfig,
-  resolveSteamCommunityLogin,
-  type SteamCommunityLogin,
-  type SteamWebApiToken,
+import { acquireSteamClientSession } from "./steam-client-session";
+import type {
+  SteamCommunityLogin,
+  SteamWebApiToken,
 } from "./steam-store-session-config";
-import { parseSteamTimezoneOffsetSeconds } from "./steam-community-achievements";
-import { isSteamSyncAbortError } from "./steam-sync-errors";
 
 export { isSteamOpenIdSuccessUrl } from "./steam-openid-return";
 export { STEAM_CONNECTED_DEEP_LINK } from "./steam-openid-return";
@@ -26,10 +27,11 @@ export { parseSteamStoreSessionConfig } from "./steam-store-session-config";
 export type { SteamWebApiToken } from "./steam-store-session-config";
 
 export const STEAM_SESSION_PARTITION = "persist:steam";
-export const STEAM_STORE_EXPLORE_URL =
-  "https://store.steampowered.com/explore/";
-export const STEAM_COMMUNITY_REFRESH_URL = "https://steamcommunity.com/my/";
 export const STEAM_STORE_MAX_REDIRECTS = 5;
+
+const STEAM_OPENID_VIEW_WIDTH = 600;
+const STEAM_OPENID_VIEW_HEIGHT = 800;
+const STEAM_OPENID_SCREEN_MARGIN = 80;
 
 const STEAM_CHROME_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
@@ -110,50 +112,61 @@ export const createSteamCommunityCookieFetch = (
   }) as typeof fetch;
 };
 
-let steamOpenIdWindow: BrowserWindow | null = null;
-
 export const applySteamSessionUserAgent = () => {
   session
     .fromPartition(STEAM_SESSION_PARTITION)
     .setUserAgent(STEAM_CHROME_USER_AGENT);
 };
 
+export const closeSteamOpenIdWindow = () => {
+  WindowManager.closeSteamConnectionWindow();
+};
+
 export const notifySteamConnected = () => {
   WindowManager.sendToAppWindows("on-steam-connected");
   WindowManager.redirect("settings?tab=integrations");
+  closeSteamOpenIdWindow();
 };
 
 export const notifySteamConnectError = (code: SteamConnectErrorCode) => {
   WindowManager.sendToAppWindows("on-steam-connect-error", code);
   WindowManager.redirect("settings?tab=integrations");
+  closeSteamOpenIdWindow();
 };
 
-export const closeSteamOpenIdWindow = () => {
-  if (steamOpenIdWindow && !steamOpenIdWindow.isDestroyed()) {
-    steamOpenIdWindow.close();
-  }
-};
+const showSteamOpenIdView = (host: BrowserWindow, view: WebContentsView) => {
+  const { workArea } = screen.getDisplayMatching(host.getBounds());
+  const height = Math.min(
+    STEAM_OPENID_VIEW_HEIGHT,
+    workArea.height - STEAM_OPENID_SCREEN_MARGIN
+  );
+  const top =
+    process.platform === "linux"
+      ? CUSTOM_WINDOW_TITLE_BAR_HEIGHT + CUSTOM_WINDOW_BORDER_WIDTH
+      : 0;
 
-const parentWindow = () =>
-  WindowManager.mainWindow && !WindowManager.mainWindow.isDestroyed()
-    ? WindowManager.mainWindow
-    : null;
+  host.setContentSize(STEAM_OPENID_VIEW_WIDTH, height + top);
+  host.center();
+  view.setBounds({
+    x: 0,
+    y: top,
+    width: STEAM_OPENID_VIEW_WIDTH,
+    height,
+  });
+  host.contentView.addChildView(view);
+};
 
 export const openSteamOpenIdWindow = (
   authorizationUrl: string,
   clearReconnectRequired: () => void
 ) => {
-  applySteamSessionUserAgent();
-  closeSteamOpenIdWindow();
+  const host = WindowManager.getSteamConnectionWindow();
+  if (!host) return;
 
-  const parent = parentWindow();
-  const window = new BrowserWindow({
-    width: 600,
-    height: 800,
-    parent: parent ?? undefined,
-    modal: Boolean(parent),
-    show: false,
-    autoHideMenuBar: true,
+  applySteamSessionUserAgent();
+
+  // The Steam page must never run with the Hydra preload, so it gets its own view.
+  const view = new WebContentsView({
     webPreferences: {
       partition: STEAM_SESSION_PARTITION,
       sandbox: true,
@@ -161,9 +174,7 @@ export const openSteamOpenIdWindow = (
       contextIsolation: true,
     },
   });
-
-  steamOpenIdWindow = window;
-  window.removeMenu();
+  const { webContents } = view;
 
   let finished = false;
 
@@ -175,9 +186,6 @@ export const openSteamOpenIdWindow = (
       clearReconnectRequired,
       notifyConnected: notifySteamConnected,
     });
-    if (!window.isDestroyed()) {
-      window.close();
-    }
   };
 
   const finishError = (code: SteamConnectErrorCode, url: string) => {
@@ -185,9 +193,6 @@ export const openSteamOpenIdWindow = (
     finished = true;
     steamSyncLogger.error("Steam OpenID failed", code, url);
     notifySteamConnectError(code);
-    if (!window.isDestroyed()) {
-      window.close();
-    }
   };
 
   const interceptSteamReturn = (url: string) => {
@@ -203,35 +208,35 @@ export const openSteamOpenIdWindow = (
     return true;
   };
 
-  window.webContents.on("will-navigate", (event, url) => {
+  webContents.on("will-navigate", (event, url) => {
     if (interceptSteamReturn(url)) {
       event.preventDefault();
     }
   });
 
-  window.webContents.on("will-redirect", (event, url) => {
+  webContents.on("will-redirect", (event, url) => {
     if (interceptSteamReturn(url)) {
       event.preventDefault();
     }
   });
 
-  window.webContents.on("did-navigate", (_event, url) => {
+  webContents.on("did-navigate", (_event, url) => {
     interceptSteamReturn(url);
   });
 
-  window.webContents.on("did-finish-load", () => {
-    if (finished || window.isDestroyed()) return;
+  webContents.on("did-finish-load", () => {
+    if (finished || webContents.isDestroyed()) return;
 
-    void window.webContents
+    void webContents
       .executeJavaScript('document.body?.innerText ?? ""')
       .then((text: unknown) => {
-        if (finished || window.isDestroyed()) return;
+        if (finished || webContents.isDestroyed()) return;
 
         const result = parseSteamOpenIdErrorBody(
           typeof text === "string" ? text : ""
         );
         if (result?.kind === "error") {
-          finishError(result.code, window.webContents.getURL());
+          finishError(result.code, webContents.getURL());
         }
       })
       .catch((error) => {
@@ -239,7 +244,7 @@ export const openSteamOpenIdWindow = (
       });
   });
 
-  window.webContents.setWindowOpenHandler(({ url }) => {
+  webContents.setWindowOpenHandler(({ url }) => {
     if (interceptSteamReturn(url)) {
       return { action: "deny" };
     }
@@ -247,18 +252,19 @@ export const openSteamOpenIdWindow = (
     return { action: "allow" };
   });
 
-  window.once("closed", () => {
-    if (steamOpenIdWindow === window) {
-      steamOpenIdWindow = null;
+  webContents.once("did-finish-load", () => {
+    if (!finished && !host.isDestroyed()) {
+      showSteamOpenIdView(host, view);
     }
   });
 
-  void window.loadURL(authorizationUrl);
-  window.once("ready-to-show", () => {
-    if (!window.isDestroyed()) {
-      window.show();
+  host.once("closed", () => {
+    if (!webContents.isDestroyed()) {
+      webContents.close();
     }
   });
+
+  void webContents.loadURL(authorizationUrl);
 };
 
 export type SteamCommunitySession = {
@@ -267,142 +273,21 @@ export type SteamCommunitySession = {
   timeZoneOffsetSeconds: number;
 };
 
-const loadHiddenSteamPage = async <T>(
-  url: string,
-  signal: AbortSignal | undefined,
-  read: (window: BrowserWindow) => Promise<T>
-): Promise<T> => {
-  applySteamSessionUserAgent();
-
-  const window = new BrowserWindow({
-    show: false,
-    width: 800,
-    height: 600,
-    webPreferences: {
-      partition: STEAM_SESSION_PARTITION,
-      sandbox: true,
-      nodeIntegration: false,
-      contextIsolation: true,
-    },
-  });
-
-  const abort = () => {
-    if (!window.isDestroyed()) {
-      window.destroy();
-    }
-  };
-
-  const abortError = () => {
-    const error = new Error("steam-sync-aborted");
-    error.name = "AbortError";
-    return error;
-  };
-
-  signal?.addEventListener("abort", abort, { once: true });
-
-  try {
-    if (signal?.aborted) {
-      throw abortError();
-    }
-
-    await window.loadURL(url);
-    return await read(window);
-  } catch (error) {
-    // Destroying the window on abort rejects the load with ERR_ABORTED.
-    if (signal?.aborted) {
-      throw abortError();
-    }
-    throw error;
-  } finally {
-    signal?.removeEventListener("abort", abort);
-    if (!window.isDestroyed()) {
-      window.destroy();
-    }
-  }
-};
-
-/**
- * Steam Community access tokens (steamLoginSecure) expire after about a day.
- * Loading a Community page in the Steam partition lets Steam renew it through
- * login.steampowered.com/jwt/refresh before the cookies are copied into the
- * non-browser fetch used for scraping.
- */
-const refreshSteamCommunityLogin = (signal?: AbortSignal) =>
-  loadHiddenSteamPage(STEAM_COMMUNITY_REFRESH_URL, signal, async (window) => {
-    const currentUrl = window.webContents.getURL();
-    const steamIdRaw: unknown = await window.webContents.executeJavaScript(
-      'typeof g_steamID === "undefined" ? null : g_steamID'
-    );
-
-    const steamId64 = parseSteamCommunityPageSteamId({
-      currentUrl,
-      steamIdRaw,
-    });
-    if (!steamId64) {
-      steamSyncLogger.log("Steam Community session is logged out", currentUrl);
-    }
-
-    return steamId64;
-  });
-
 export const readSteamCommunitySession = async (
   signal?: AbortSignal
 ): Promise<SteamCommunitySession> => {
-  let refreshed: { steamId64: string | null } | null = null;
-  try {
-    refreshed = { steamId64: await refreshSteamCommunityLogin(signal) };
-  } catch (error) {
-    if (isSteamSyncAbortError(error)) throw error;
-    steamSyncLogger.error(
-      "Steam Community refresh failed, using stored cookies",
-      error
-    );
-  }
-
-  const steamSession = session.fromPartition(STEAM_SESSION_PARTITION);
-  const [communityCookies, storeCookies] = await Promise.all([
-    steamSession.cookies.get({ url: "https://steamcommunity.com/" }),
-    steamSession.cookies.get({ url: "https://store.steampowered.com/" }),
-  ]);
-  const hasLoginCookie = communityCookies.some(
-    (cookie) => cookie.name === "steamLoginSecure" && cookie.value.length > 0
-  );
-  const login = resolveSteamCommunityLogin({ refreshed, hasLoginCookie });
-  const timezone =
-    communityCookies.find((cookie) => cookie.name === "timezoneOffset") ??
-    storeCookies.find((cookie) => cookie.name === "timezoneOffset");
-  const cookieHeader = communityCookies
-    .filter((cookie) => cookie.value.length > 0)
-    .map((cookie) => `${cookie.name}=${cookie.value}`)
-    .join("; ");
+  const { steamId64, cookieHeader } = await acquireSteamClientSession(signal);
 
   return {
     fetch: createSteamCommunityCookieFetch(cookieHeader),
-    login,
-    timeZoneOffsetSeconds: parseSteamTimezoneOffsetSeconds(timezone?.value),
+    login: { status: "logged-in", steamId64 },
+    timeZoneOffsetSeconds: 0,
   };
 };
 
-export const getSteamWebApiToken = (
+export const getSteamWebApiToken = async (
   signal?: AbortSignal
-): Promise<SteamWebApiToken> =>
-  loadHiddenSteamPage(STEAM_STORE_EXPLORE_URL, signal, async (window) => {
-    const currentUrl = window.webContents.getURL();
-    const config = (await window.webContents.executeJavaScript(`
-      (() => {
-        const el = document.getElementById("application_config");
-        if (!el) {
-          return { userInfoRaw: null, storeConfigRaw: null };
-        }
-        return {
-          userInfoRaw: el.getAttribute("data-userinfo"),
-          storeConfigRaw: el.getAttribute("data-store_user_config"),
-        };
-      })()
-    `)) as { userInfoRaw: string | null; storeConfigRaw: string | null };
-
-    return parseSteamStoreSessionConfig({
-      ...config,
-      currentUrl,
-    });
-  });
+): Promise<SteamWebApiToken> => {
+  const { steamId64, accessToken } = await acquireSteamClientSession(signal);
+  return { steamId64, accessToken };
+};

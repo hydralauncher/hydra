@@ -1,0 +1,212 @@
+@use "../../scss/globals.scss";
+
+@keyframes steam-connection-working {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.steam-connection-window {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: globals.$dark-background-color;
+  color: globals.$muted-color;
+
+  &--linux {
+    border: 1px solid globals.$border-color;
+  }
+
+  &__content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 3);
+    min-height: 0;
+    padding: calc(globals.$spacing-unit * 4);
+    overflow-y: auto;
+  }
+
+  &__heading {
+    display: flex;
+    align-items: flex-start;
+    gap: calc(globals.$spacing-unit * 2);
+
+    svg {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+    }
+
+    h1 {
+      margin: 0 0 globals.$spacing-unit;
+      font-size: 24px;
+    }
+
+    p {
+      margin: 0;
+      color: globals.$body-color;
+      line-height: 1.5;
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+
+    > .text-field-container {
+      flex: 0 0 auto;
+    }
+  }
+
+  &__qr {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 3);
+
+    img,
+    &-placeholder {
+      flex-shrink: 0;
+      width: 200px;
+      height: 200px;
+      border-radius: 4px;
+    }
+
+    &-placeholder {
+      background: globals.$background-color;
+    }
+  }
+
+  &__steps {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+    color: globals.$body-color;
+    line-height: 1.5;
+
+    li {
+      display: flex;
+      gap: calc(globals.$spacing-unit * 1.5);
+      counter-increment: step;
+
+      &::before {
+        content: counter(step);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border: 1px solid globals.$border-color;
+        border-radius: 50%;
+        color: globals.$muted-color;
+        font-size: globals.$small-font-size;
+      }
+    }
+  }
+
+  &__alternative {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+
+    button {
+      flex-shrink: 0;
+    }
+  }
+
+  &__working {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(globals.$spacing-unit * 2);
+    color: globals.$body-color;
+
+    &-track {
+      position: relative;
+      width: 240px;
+      height: 4px;
+      overflow: hidden;
+      border-radius: 2px;
+      background: globals.$border-color;
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        width: 40%;
+        border-radius: 2px;
+        background: globals.$muted-color;
+        animation: steam-connection-working 1.2s ease-in-out infinite;
+      }
+    }
+  }
+
+  &__message {
+    margin: 0;
+    color: globals.$body-color;
+    line-height: 1.5;
+  }
+
+  &__error,
+  &__note {
+    margin: 0;
+    font-size: globals.$small-font-size;
+    line-height: 1.5;
+  }
+
+  &__error {
+    color: globals.$error-color;
+  }
+
+  &__note {
+    color: globals.$body-color;
+  }
+
+  &__divider {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid globals.$border-color;
+  }
+
+  &__switch {
+    align-self: flex-start;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: globals.$spacing-unit;
+    margin-top: auto;
+    padding-top: globals.$spacing-unit;
+  }
+}

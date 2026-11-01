@@ -1,9 +1,6 @@
-import { HydraApi, logger } from "@main/services";
-import { openSteamOpenIdWindow } from "@main/services/steam-integration/steam-store-session";
-import { steamSyncOrchestrator } from "@main/services/steam-integration/steam-sync-orchestrator";
+import { logger } from "@main/services";
+import { startSteamOpenIdLink } from "@main/services/steam-integration/steam-client-login";
 import { registerEvent } from "../register-event";
-
-const STEAM_OAUTH_RETURN_TO = "hydralauncher://steam-connected";
 
 const getErrorMessage = (error: unknown): string | null => {
   if (typeof error === "object" && error !== null) {
@@ -28,17 +25,7 @@ const startSteamOAuth = async (
   lng: string
 ) => {
   try {
-    const { authorizationUrl } = await HydraApi.get<{
-      authorizationUrl: string;
-    }>("/profile/oauth/steam/start", {
-      return_to: STEAM_OAUTH_RETURN_TO,
-      lng,
-    });
-
-    logger.log("Opening Steam OpenID authorization window");
-    openSteamOpenIdWindow(authorizationUrl, () =>
-      steamSyncOrchestrator.clearReconnectRequired()
-    );
+    await startSteamOpenIdLink(lng);
   } catch (error) {
     const message = getErrorMessage(error);
     logger.error("Failed to start Steam OAuth", error);

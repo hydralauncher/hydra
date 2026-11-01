@@ -46,6 +46,7 @@ import FriendsWindow from "./pages/friends-window/friends-window";
 import ChatWindow from "./pages/chat-window/chat-window";
 import AuthWindow from "./pages/auth-window/auth-window";
 import RetroAchievementsConnectionWindow from "./pages/retroachievements-connection-window/retroachievements-connection-window";
+import SteamConnectionWindow from "./pages/steam-connection-window/steam-connection-window";
 import BigPictureApp from "../../big-picture/src/app";
 import BigPictureCatalogue from "../../big-picture/src/pages/catalogue/catalogue";
 import BigPictureComponentLab from "../../big-picture/src/pages/component-lab/component-lab";
@@ -164,6 +165,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 <Route
                   path="/retroachievements-connection"
                   element={<RetroAchievementsConnectionWindow />}
+                />
+                <Route
+                  path="/steam-connection"
+                  element={<SteamConnectionWindow />}
                 />
 
                 <Route path="/big-picture" element={<BigPictureApp />}>

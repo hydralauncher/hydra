@@ -111,6 +111,7 @@ import type {
   SteamSyncFinishedPayload,
   SteamSyncRunStatus,
   SteamConnectErrorCode,
+  SteamLoginState,
   ExtractionFailure,
   FriendsSnapshot,
   ChatAttachmentUploadProgress,
@@ -1400,6 +1401,20 @@ declare global {
       cb: (state: EpicConnectionState) => void
     ) => () => void;
     startSteamOAuth: (lng: string) => Promise<void>;
+    openSteamConnectionWindow: () => Promise<void>;
+    minimizeSteamConnectionWindow: () => Promise<void>;
+    closeSteamConnectionWindow: () => Promise<void>;
+    startSteamQrLogin: (lng: string) => Promise<void>;
+    startSteamCredentialsLogin: (
+      accountName: string,
+      password: string,
+      lng: string
+    ) => Promise<void>;
+    submitSteamLoginGuardCode: (code: string) => Promise<void>;
+    cancelSteamLogin: () => Promise<void>;
+    onSteamLoginState: (
+      cb: (state: SteamLoginState) => void
+    ) => () => Electron.IpcRenderer;
     disconnectSteam: (deleteImportedData: boolean) => Promise<void>;
     startSteamSync: () => Promise<SteamSyncState>;
     cancelSteamSync: () => Promise<void>;
