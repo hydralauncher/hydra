@@ -52,7 +52,7 @@ import {
 } from "../../stores/downloads.store";
 import type { DownloadProgress, LibraryGame } from "@types";
 import type { FocusNode, FocusOverrides, FocusRegion } from "../../services";
-import { useNavigationSnapshot, useVirtualKeyboardStore } from "../../stores";
+import { useNavigationStore, useVirtualKeyboardStore } from "../../stores";
 import {
   BIG_PICTURE_SIDEBAR_POWER_ID,
   BIG_PICTURE_SIDEBAR_ITEM_IDS,
@@ -930,7 +930,6 @@ function Sidebar() {
   const runningGamesById = useBigPictureRunningGames();
   const { setFocusRegion } = useNavigationActions();
   const { showSuccessToast } = useBigPictureToast();
-  const { currentFocusId, nodes, regions } = useNavigationSnapshot();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [restoringNotificationsFocus, setRestoringNotificationsFocus] =
     useState(false);
@@ -968,15 +967,13 @@ function Sidebar() {
     restoreFocusOnConfirm: false,
   });
 
-  const sidebarHasNavigationFocus = useMemo(
-    () =>
-      isFocusedNodeWithinRegion(
-        currentFocusId,
-        nodes,
-        regions,
-        BIG_PICTURE_SIDEBAR_REGION_ID
-      ),
-    [currentFocusId, nodes, regions]
+  const sidebarHasNavigationFocus = useNavigationStore((state) =>
+    isFocusedNodeWithinRegion(
+      state.currentFocusId,
+      state.nodes,
+      state.regions,
+      BIG_PICTURE_SIDEBAR_REGION_ID
+    )
   );
   const virtualKeyboardTarget = useVirtualKeyboardStore(
     (state) => state.target

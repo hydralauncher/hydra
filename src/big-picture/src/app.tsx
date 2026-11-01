@@ -14,7 +14,11 @@ import {
   Sidebar,
 } from "./layout";
 import { IS_DESKTOP } from "./constants";
-import { useBigPictureToast, useNavigation, useUserPreferences } from "./hooks";
+import {
+  useBigPictureToast,
+  useNavigationActions,
+  useUserPreferences,
+} from "./hooks";
 import {
   HorizontalFocusGroup,
   InputModeProvider,
@@ -35,6 +39,7 @@ import { getItemFocusTarget } from "./helpers";
 import {
   initializeBigPictureRunningGamesStore,
   useInputModeStore,
+  useNavigationStore,
 } from "./stores";
 import { NavigationAudioService, type FocusOverrides } from "./services";
 import { BigPictureI18nBridge, ensureBigPictureI18nResources } from "./i18n";
@@ -49,7 +54,9 @@ export default function App() {
   const navigate = useNavigate();
   const { showErrorToast, showSuccessToast, showWarningToast } =
     useBigPictureToast();
-  const { nodes, regions, setFocusRegion } = useNavigation();
+  const nodes = useNavigationStore((state) => state.nodes);
+  const regions = useNavigationStore((state) => state.regions);
+  const { setFocusRegion } = useNavigationActions();
   const userPreferences = useUserPreferences();
   const inputMode = useInputModeStore((state) => state.mode);
   const [pendingRouteFocusPathname, setPendingRouteFocusPathname] = useState<
