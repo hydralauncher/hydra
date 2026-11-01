@@ -142,6 +142,7 @@ export class NavigationService {
   private readonly regionChildOrder = new Map<string, Map<string, number>>();
   private readonly regionChildOrderCounter = new Map<string, number>();
   private currentFocusId: string | null = null;
+  private structureVersion = 0;
   private readonly listeners = new Set<Listener>();
   private readonly lastFocusedByRegionId = new Map<string, string>();
   private readonly pendingInitialFocusByLayerId = new Map<
@@ -217,6 +218,7 @@ export class NavigationService {
     this.reconcileLayerRootRegion(layer.id);
     this.currentFocusId = null;
     this.tryResolvePendingRequestedFocus();
+    this.structureVersion++;
     this.notify();
 
     return () => {
@@ -253,6 +255,7 @@ export class NavigationService {
       }
 
       this.tryResolvePendingRequestedFocus();
+      this.structureVersion++;
       this.notify();
     };
   }
@@ -338,6 +341,7 @@ export class NavigationService {
       this.updateLastFocusedForNode(this.currentFocusId);
     }
 
+    this.structureVersion++;
     this.notify();
 
     return () => {
@@ -379,6 +383,7 @@ export class NavigationService {
         }
       }
 
+      this.structureVersion++;
       this.notify();
     };
   }
@@ -438,6 +443,7 @@ export class NavigationService {
     }
 
     this.tryResolvePendingRequestedFocus();
+    this.structureVersion++;
     this.notify();
   }
 
@@ -504,6 +510,7 @@ export class NavigationService {
       this.updateLastFocusedForNode(nextFocusId);
     }
 
+    this.structureVersion++;
     this.notify();
 
     return () => {
@@ -528,6 +535,7 @@ export class NavigationService {
       }
 
       this.tryResolvePendingRequestedFocus();
+      this.structureVersion++;
       this.notify();
     };
   }
@@ -602,7 +610,12 @@ export class NavigationService {
       this.updateLastFocusedForNode(nextFocusId);
     }
 
+    this.structureVersion++;
     this.notify();
+  }
+
+  public getStructureVersion(): number {
+    return this.structureVersion;
   }
 
   public getCurrentFocusId(): string | null {

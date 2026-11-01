@@ -1,19 +1,9 @@
 import { create } from "zustand";
+import { NavigationService } from "../services";
 import {
-  type FocusLayer,
-  NavigationService,
-  type FocusNode,
-  type FocusRegion,
-  type NavigationDebugSnapshot,
-} from "../services";
-
-interface NavigationStoreSnapshot {
-  currentFocusId: string | null;
-  nodes: FocusNode[];
-  regions: FocusRegion[];
-  layers: FocusLayer[];
-  debugSnapshot: NavigationDebugSnapshot;
-}
+  getNavigationSnapshot,
+  type NavigationStoreSnapshot,
+} from "./navigation-snapshot";
 
 interface NavigationStoreState extends NavigationStoreSnapshot {
   syncFromService: (navigation?: NavigationService) => void;
@@ -22,21 +12,11 @@ interface NavigationStoreState extends NavigationStoreSnapshot {
 
 const navigation = NavigationService.getInstance();
 
-const getSnapshotFromService = (
-  source: NavigationService = navigation
-): NavigationStoreSnapshot => ({
-  currentFocusId: source.getCurrentFocusId(),
-  nodes: source.getNodes(),
-  regions: source.getRegions(),
-  layers: source.getLayers(),
-  debugSnapshot: source.getDebugSnapshot(),
-});
-
-export const useNavigationStore = create<NavigationStoreState>((set) => ({
-  ...getSnapshotFromService(),
+export const useNavigationStore = create<NavigationStoreState>((set, get) => ({
+  ...getNavigationSnapshot(navigation),
 
   syncFromService: (source = navigation) => {
-    set(getSnapshotFromService(source));
+    set(getNavigationSnapshot(source, get()));
   },
 
   syncFromSnapshot: (snapshot) => {
