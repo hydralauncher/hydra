@@ -153,7 +153,7 @@ const achievement = (title: string) => ({
 });
 
 describe("AchievementNotificationPresenter", () => {
-  it("shows the host only after content readiness and starts the animation after a painted frame", async () => {
+  it("shows the host only after content readiness and starts the animation after the post-show frame wait", async () => {
     const harness = new PresenterHarness();
 
     assert.equal(harness.createCount, 0);
