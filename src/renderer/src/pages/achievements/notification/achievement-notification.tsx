@@ -22,11 +22,10 @@ import HydraIconUrl from "@renderer/assets/icons/hydra.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
+import { resolveImageUrl } from "./resolve-image-url";
 
 const NOTIFICATION_TIMEOUT = 4_000;
 const CLOSING_TIMEOUT = 450;
-const IMAGE_PREPARATION_TIMEOUT = 2_000;
-const IMAGE_DECODE_TIMEOUT = 250;
 
 type NotificationPhase = "idle" | "prepared" | "playing" | "closing";
 
@@ -39,49 +38,6 @@ const getErrorMessage = (error: unknown) => {
   } catch {
     return "unknown error";
   }
-};
-
-const decodeImage = (image: HTMLImageElement): Promise<void> => {
-  return new Promise((resolve) => {
-    const timeout = window.setTimeout(resolve, IMAGE_DECODE_TIMEOUT);
-
-    void image
-      .decode()
-      .catch(() => undefined)
-      .then(() => {
-        window.clearTimeout(timeout);
-        resolve();
-      });
-  });
-};
-
-const resolveImageUrl = (source: string): Promise<string> => {
-  return new Promise((resolve) => {
-    const image = new Image();
-    let settled = false;
-    let loaded = false;
-
-    const finish = (url: string) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeout);
-      image.onload = null;
-      image.onerror = null;
-      resolve(url);
-    };
-
-    const timeout = window.setTimeout(
-      () => finish(loaded ? source : HydraIconUrl),
-      IMAGE_PREPARATION_TIMEOUT
-    );
-
-    image.onload = () => {
-      loaded = true;
-      void decodeImage(image).then(() => finish(source));
-    };
-    image.onerror = () => finish(HydraIconUrl);
-    image.src = source;
-  });
 };
 
 export function AchievementNotification() {
@@ -190,9 +146,9 @@ export function AchievementNotification() {
         const resolveIcon = () => {
           if (nextRequest.type === "screenshot") return Promise.resolve("");
           if (nextRequest.type === "combined") {
-            return resolveImageUrl(HydraIconUrl);
+            return resolveImageUrl(HydraIconUrl, HydraIconUrl);
           }
-          return resolveImageUrl(nextRequest.achievement.iconUrl);
+          return resolveImageUrl(nextRequest.achievement.iconUrl, HydraIconUrl);
         };
 
         void resolveIcon()
