@@ -22,6 +22,15 @@ interface DownloadSourcesChangeResponse {
 }
 
 const DOWNLOAD_SOURCES_CHANGES_API_MAX_GAMES = 1000;
+const DOWNLOAD_SOURCE_API_ID_LENGTH = 8;
+
+const hasGameIdentity = (game: Game) =>
+  Boolean(game.shop) &&
+  typeof game.objectId === "string" &&
+  game.objectId !== "";
+
+const isApiDownloadSourceId = (id: unknown) =>
+  typeof id === "string" && id.length === DOWNLOAD_SOURCE_API_ID_LENGTH;
 
 export class DownloadSourcesChecker {
   private static async clearStaleBadges(
@@ -152,7 +161,7 @@ export class DownloadSourcesChecker {
       // Get all installed games (excluding custom games)
       const installedGames = await gamesSublevel.values().all();
       const nonCustomGames = installedGames.filter(
-        (game: Game) => game.shop !== "custom"
+        (game: Game) => game.shop !== "custom" && hasGameIdentity(game)
       );
       logger.info(
         `Found ${installedGames.length} total games, ${nonCustomGames.length} non-custom games`
@@ -166,14 +175,16 @@ export class DownloadSourcesChecker {
       }
 
       const downloadSources = await downloadSourcesSublevel.values().all();
-      const downloadSourceIds = downloadSources.map((source) => source.id);
+      const downloadSourceIds = downloadSources
+        .map((source) => source.id)
+        .filter(isApiDownloadSourceId);
       logger.info(
-        `Found ${downloadSourceIds.length} download sources: ${downloadSourceIds.join(", ")}`
+        `Found ${downloadSources.length} download sources, ${downloadSourceIds.length} usable: ${downloadSourceIds.join(", ")}`
       );
 
       if (downloadSourceIds.length === 0) {
         logger.info(
-          "No download sources found, skipping download sources check"
+          "No usable download sources found, skipping download sources check"
         );
         return;
       }
