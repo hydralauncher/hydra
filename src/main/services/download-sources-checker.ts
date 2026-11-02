@@ -24,7 +24,10 @@ interface DownloadSourcesChangeResponse {
 const DOWNLOAD_SOURCES_CHANGES_API_MAX_GAMES = 1000;
 const DOWNLOAD_SOURCE_API_ID_LENGTH = 8;
 
-const hasGameIdentity = (game: Game) => Boolean(game.shop && game.objectId);
+const hasGameIdentity = (game: Game) =>
+  Boolean(game.shop) &&
+  typeof game.objectId === "string" &&
+  game.objectId !== "";
 
 const isApiDownloadSourceId = (id: unknown) =>
   typeof id === "string" && id.length === DOWNLOAD_SOURCE_API_ID_LENGTH;
@@ -181,7 +184,7 @@ export class DownloadSourcesChecker {
 
       if (downloadSourceIds.length === 0) {
         logger.info(
-          "No download sources found, skipping download sources check"
+          "No usable download sources found, skipping download sources check"
         );
         return;
       }

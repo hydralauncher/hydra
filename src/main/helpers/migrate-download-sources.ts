@@ -1,6 +1,7 @@
 import { downloadSourcesSublevel } from "@main/level";
 import { HydraApi } from "@main/services/hydra-api";
 import { logger } from "@main/services/logger";
+import { summarizeNetworkError } from "@main/services/network-error-summary";
 import { DownloadSource } from "@types";
 
 const MIGRATION_REQUEST_TIMEOUT_MS = 30_000;
@@ -27,7 +28,10 @@ export const migrateDownloadSources = async () => {
 
         await downloadSourcesSublevel.del(key);
       } catch (error) {
-        logger.error(`Failed to migrate download source ${key}:`, error);
+        logger.error(
+          `Failed to migrate download source ${key}:`,
+          summarizeNetworkError(error)
+        );
       }
     }
   }
