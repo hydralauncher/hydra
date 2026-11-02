@@ -47,10 +47,7 @@ import {
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
-import {
-  parseCompatibilityEnvironmentVariables,
-  unquoteEnvValue,
-} from "./parse-compatibility-environment-variables";
+import { parseCompatibilityEnvironmentVariables } from "./parse-compatibility-environment-variables";
 import {
   buildWindowsBatchCommand,
   isWindowsBatchFile,
@@ -120,7 +117,10 @@ const ensureExecutablePermission = (executablePath: string) => {
   }
 };
 
-export { parseCompatibilityEnvironmentVariables, unquoteEnvValue };
+export {
+  parseCompatibilityEnvironmentVariables,
+  unquoteEnvValue,
+} from "./parse-compatibility-environment-variables";
 
 const launchNatively = (
   executablePath: string,
