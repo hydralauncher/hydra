@@ -5,8 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button, RankFrameRing } from "@renderer/components";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
-import { useDate, useFormat } from "@renderer/hooks";
-import { useCatalogueImage } from "@renderer/hooks/use-catalogue-image";
+import { useCatalogueImage, useDate, useFormat } from "@renderer/hooks";
 import {
   getCatalogueImageDensitySrcSet,
   pickCatalogueImageUrl,

@@ -774,6 +774,30 @@ const normalizeBadgeTarget = (
   return value ? { kind: source.kind, value } : null;
 };
 
+const normalizeCatalogueImages = (value: unknown): CatalogueImages => {
+  if (!isRecord(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([url, variants]) =>
+      isRecord(variants) &&
+      typeof variants.base === "string" &&
+      Array.isArray(variants.widths) &&
+      variants.widths.every((width) => typeof width === "number")
+        ? [
+            [
+              url,
+              {
+                base: variants.base,
+                widths: variants.widths as number[],
+                thumbHash: toStringOrNull(variants.thumbHash),
+              },
+            ],
+          ]
+        : []
+    )
+  );
+};
+
 export const normalizeBadges = (response: unknown): LeaderboardBadges => {
   if (!isRecord(response) || !Array.isArray(response.badges)) {
     throw new TypeError("Invalid badges response");
@@ -802,7 +826,7 @@ export const normalizeBadges = (response: unknown): LeaderboardBadges => {
         scope: item.scope === "friends" ? "friends" : "global",
         gameTitle: toStringOrNull(item.gameTitle),
         coverImageUrl: toStringOrNull(item.coverImageUrl),
-        images: isRecord(item.images) ? (item.images as CatalogueImages) : {},
+        images: normalizeCatalogueImages(item.images),
         value: isTopBadgeKind(item.kind)
           ? toBadgeThreshold(item)
           : toNonNegativeNumber(item.value),
