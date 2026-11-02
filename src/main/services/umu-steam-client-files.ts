@@ -14,7 +14,10 @@ const STEAM_CLIENT_FILES: ReadonlyArray<readonly [string, string]> = [
 
 const isUpToDate = (sourcePath: string, targetPath: string) => {
   try {
-    return fs.statSync(sourcePath).size === fs.statSync(targetPath).size;
+    if (fs.statSync(sourcePath).size !== fs.statSync(targetPath).size) {
+      return false;
+    }
+    return fs.readFileSync(sourcePath).equals(fs.readFileSync(targetPath));
   } catch {
     return false;
   }

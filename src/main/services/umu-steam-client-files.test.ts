@@ -85,6 +85,19 @@ describe("seedPrefixSteamClientFiles", () => {
     );
   });
 
+  it("replaces a stale file that has the same size", () => {
+    fs.mkdirSync(prefixSteamPath, { recursive: true });
+    fs.writeFileSync(path.join(prefixSteamPath, "Steam.dll"), "STALE");
+
+    const copied = seedPrefixSteamClientFiles(prefixPath, steamPath);
+
+    assert.ok(copied.includes("Steam.dll"));
+    assert.equal(
+      fs.readFileSync(path.join(prefixSteamPath, "Steam.dll"), "utf8"),
+      "steam"
+    );
+  });
+
   it("seeds a prefix before Proton has created it", () => {
     const copied = seedPrefixSteamClientFiles(prefixPath, steamPath);
 
