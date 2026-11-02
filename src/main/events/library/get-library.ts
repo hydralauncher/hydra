@@ -94,6 +94,7 @@ const resolveInstallerSize = (
 // Clears the executable path and related fields when the file was deleted outside Hydra.
 const resolveExecutable = async (key: string, game: Game) => {
   const { executablePath } = game;
+  
   if (!executablePath || !(await isPathDeleted(executablePath))) {
     return {
       executablePath,
@@ -103,16 +104,34 @@ const resolveExecutable = async (key: string, game: Game) => {
     };
   }
 
+  // Fetch the latest record to avoid a race condition (e.g., user just selected a new executable).
+  const latestGame = await gamesSublevel.get(key).catch(() => undefined);
+  if (latestGame?.executablePath !== executablePath) {
+    // The path changed while we were checking. Do not clear the new path.
+    return {
+      executablePath: latestGame?.executablePath ?? null,
+      executablePathUpdatedAt: latestGame?.executablePathUpdatedAt ?? null,
+      automaticCloudSync: latestGame?.automaticCloudSync ?? false,
+      installedSizeInBytes: latestGame?.installedSizeInBytes ?? null,
+    };
+  }
+
   const cleared = {
     executablePath: null,
     executablePathUpdatedAt: null,
-    automaticCloudSync: false,
     installedSizeInBytes: null,
+    // We intentionally do not set automaticCloudSync to false.
+    // This preserves the user's setting if the missing file was due to an offline drive.
   };
+
   updateGameRecord(key, cleared).catch((error) =>
     logger.error(`Failed to clear missing executable path for ${key}`, error)
   );
-  return cleared;
+  
+  return {
+    ...cleared,
+    automaticCloudSync: game.automaticCloudSync,
+  };
 };
 
 // Drops a finished download whose folder was deleted outside Hydra.
@@ -129,6 +148,12 @@ const resolveActiveDownload = async (
     ))
   ) {
     return download;
+  }
+
+  // Fetch the latest record to avoid a race condition.
+  const latestDownload = await downloadsSublevel.get(key).catch(() => undefined);
+  if (latestDownload?.folderName !== download.folderName) {
+    return latestDownload ?? download;
   }
 
   clearFinishedDownload(game.shop, game.objectId).catch((error) =>

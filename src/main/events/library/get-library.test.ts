@@ -108,6 +108,8 @@ function fixture(
       },
       downloadsSublevel: {
         getMany: async (gameKeys: string[]) => gameKeys.map(() => download),
+        // ADDED FOR RACE CONDITION CHECK
+        get: async (_gameKey: string) => download, 
       },
       gamesArtworkSelectionSublevel: {
         getMany: async (gameKeys: string[]) =>
@@ -400,16 +402,18 @@ describe("externally deleted library paths", () => {
     const [game] = await f.read();
     assert.equal(game.executablePath, null);
     assert.equal(game.executablePathUpdatedAt, null);
-    assert.equal(game.automaticCloudSync, false);
+    // The original value is not forced to false (prevents bugs on offline drives)
+    assert.equal(game.automaticCloudSync, undefined); 
     assert.equal(game.installedSizeInBytes, null);
     assert.equal(game.installerSizeInBytes, f.game.installerSizeInBytes);
+    
+    // The database update should not contain automaticCloudSync: false
     assert.deepEqual(f.writes, [
       {
         key: f.key,
         patch: {
           executablePath: null,
           executablePathUpdatedAt: null,
-          automaticCloudSync: false,
           installedSizeInBytes: null,
         },
       },
