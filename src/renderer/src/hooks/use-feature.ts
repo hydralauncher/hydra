@@ -12,6 +12,7 @@ export enum Feature {
   NimbusPreview = "NIMBUS_PREVIEW",
   ChatImages = "CHAT_IMAGES",
   Gamification = "GAMIFICATION",
+  GamificationShop = "GAMIFICATION_SHOP",
   Screenshots = "SCREENSHOTS",
   ScreenshotComments = "SCREENSHOT_COMMENTS",
   GameLeaderboardsExtended = "GAME_LEADERBOARDS_EXTENDED",

@@ -171,7 +171,10 @@ export function ShopItemModal({
   return (
     <Modal
       visible
-      title={`${t(item.isAnimated ? "kind_animated" : "kind_simple")} ${item.name}`}
+      title={t("modal_title", {
+        kind: t(item.isAnimated ? "kind_animated" : "kind_simple"),
+        name: item.name,
+      })}
       description={t("frame_hint")}
       onClose={onClose}
       className="shop-modal"
