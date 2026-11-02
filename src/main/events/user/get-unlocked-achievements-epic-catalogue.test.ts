@@ -177,7 +177,7 @@ for (const linked of [false, true]) {
         );
         assert.equal(rows[0].description, "visible");
         assert.equal(rows[0].icongray, "gray2");
-        assert.equal(rows[1].description, undefined);
+        assert.equal(rows[1].description, "secret");
         assert.equal(rows[1].icongray, "icon");
       }
     });

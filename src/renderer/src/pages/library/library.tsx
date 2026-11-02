@@ -15,7 +15,11 @@ import {
   useGameCollections,
   useUserDetails,
 } from "@renderer/hooks";
-import { selectIsLibraryLoading, setHeaderTitle } from "@renderer/features";
+import {
+  selectGroupedLibrary,
+  selectIsLibraryLoading,
+  setHeaderTitle,
+} from "@renderer/features";
 import {
   HeartIcon,
   TelescopeIcon,
@@ -487,10 +491,7 @@ export default function Library() {
     userDetails,
   ]);
 
-  const groupedLibrary = useMemo(
-    () => groupLibraryGames(library, runningGameId ? [runningGameId] : []),
-    [library, runningGameId]
-  );
+  const groupedLibrary = useAppSelector(selectGroupedLibrary);
   const groupedHiddenGames = useMemo(
     () => groupLibraryGames(hiddenGames, runningGameId ? [runningGameId] : []),
     [hiddenGames, runningGameId]
