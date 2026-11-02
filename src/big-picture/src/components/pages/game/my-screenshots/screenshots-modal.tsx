@@ -915,10 +915,12 @@ export function GameScreenshotsModal({
   );
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      setHasProceededToCommunity(false);
+      return;
+    }
     if (initialTab === "community") setHasOpenedCommunity(true);
     setTab(initialTab);
-    setHasProceededToCommunity(false);
   }, [initialTab, visible]);
 
   const mineFocusId = mineTab.firstFocusId ?? emptyMineFocusId;
