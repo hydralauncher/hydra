@@ -12,6 +12,8 @@ import {
 import Ellipses from "@renderer/assets/icons/ellipses.png";
 import "./achievement-notification.scss";
 
+const SCREENSHOT_ICON_SIZE = 28;
+
 interface AchievementNotificationProps {
   position: AchievementCustomNotificationPosition;
   achievement: AchievementNotificationInfo;
@@ -58,9 +60,9 @@ export function AchievementNotificationItem({
             {isScreenshot ? (
               <span className="achievement-notification__icon" aria-hidden>
                 {isScreenshotError ? (
-                  <AlertIcon size={28} />
+                  <AlertIcon size={SCREENSHOT_ICON_SIZE} />
                 ) : (
-                  <DeviceCameraIcon size={28} />
+                  <DeviceCameraIcon size={SCREENSHOT_ICON_SIZE} />
                 )}
               </span>
             ) : (

@@ -3,6 +3,9 @@
 $margin-horizontal: 40px;
 $margin-top: 52px;
 $margin-bottom: 28px;
+$screenshot-error-icon-background-opacity: 0.16;
+$screenshot-error-icon-color: #fb7185;
+$screenshot-error-description-max-lines: 3;
 
 @keyframes content-in {
   0% {
@@ -273,8 +276,16 @@ $margin-bottom: 28px;
   }
 
   &--screenshot-error &__icon {
-    background-color: rgba(globals.$error-color, 0.16);
-    color: #fb7185;
+    background-color: rgba(
+      globals.$error-color,
+      $screenshot-error-icon-background-opacity
+    );
+    color: $screenshot-error-icon-color;
+  }
+
+  &--screenshot-error &__description {
+    -webkit-line-clamp: $screenshot-error-description-max-lines;
+    line-clamp: $screenshot-error-description-max-lines;
   }
 
   &--rare &__icon {

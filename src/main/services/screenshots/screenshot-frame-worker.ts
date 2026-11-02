@@ -3,6 +3,7 @@ import capturePagePath from "@resources/linux-game-capture.html?asset";
 
 import { logger } from "../logger";
 import {
+  BlankScreenshotFrameError,
   buildGrabFrameExpression,
   createGrabbedFrame,
   parseGrabbedFrame,
@@ -83,13 +84,6 @@ const scheduleRecycle = () => {
   }, RECYCLE_AFTER_IDLE_MS);
   recycleTimer.unref?.();
 };
-
-export class BlankScreenshotFrameError extends Error {
-  constructor() {
-    super("Screenshot capture returned only blank frames");
-    this.name = "BlankScreenshotFrameError";
-  }
-}
 
 const buildGrabExpression = (
   sourceId: string,

@@ -38,14 +38,12 @@ import type { ScreenshotGameTarget } from "./foreground-game-match";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { ScreenshotFeedback } from "./screenshot-feedback";
 import {
+  BlankScreenshotFrameError,
   SCREENSHOT_PREVIEW_MAX_WIDTH,
   type EncodedScreenshotImages,
   type GrabbedScreenshotFrame,
 } from "./screenshot-frame-script";
-import {
-  BlankScreenshotFrameError,
-  ScreenshotFrameWorker,
-} from "./screenshot-frame-worker";
+import { ScreenshotFrameWorker } from "./screenshot-frame-worker";
 import {
   removeScreenshotPreview,
   writeScreenshotPreview,
