@@ -4,7 +4,7 @@ import {
 } from "@types";
 import cn from "classnames";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
-import { EyeClosedIcon } from "@primer/octicons-react";
+import { DeviceCameraIcon, EyeClosedIcon } from "@primer/octicons-react";
 import Ellipses from "@renderer/assets/icons/ellipses.png";
 import "./achievement-notification.scss";
 
@@ -22,6 +22,7 @@ export function AchievementNotificationItem({
   isPaused = false,
 }: Readonly<AchievementNotificationProps>) {
   const baseClassName = "achievement-notification";
+  const isScreenshot = achievement.variant === "screenshot";
 
   return (
     <div
@@ -32,6 +33,7 @@ export function AchievementNotificationItem({
         [`${baseClassName}--hidden`]: achievement.isHidden,
         [`${baseClassName}--rare`]: achievement.isRare,
         [`${baseClassName}--platinum`]: achievement.isPlatinum,
+        [`${baseClassName}--screenshot`]: isScreenshot,
       })}
     >
       {achievement.points !== undefined && (
@@ -46,11 +48,17 @@ export function AchievementNotificationItem({
       <div className="achievement-notification__outer-container">
         <div className="achievement-notification__container">
           <div className="achievement-notification__content">
-            <img
-              src={achievement.iconUrl}
-              alt={achievement.title}
-              className="achievement-notification__icon"
-            />
+            {isScreenshot ? (
+              <span className="achievement-notification__icon" aria-hidden>
+                <DeviceCameraIcon size={28} />
+              </span>
+            ) : (
+              <img
+                src={achievement.iconUrl}
+                alt={achievement.title}
+                className="achievement-notification__icon"
+              />
+            )}
             <div className="achievement-notification__text-container">
               <p className="achievement-notification__title">
                 {achievement.isHidden && (

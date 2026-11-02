@@ -29,7 +29,7 @@ const deleteGameFolder = async (
   _event: Electron.IpcMainInvokeEvent,
   shop: GameShop,
   objectId: string,
-  options: { deleteSourceArchive?: boolean } = {}
+  options: { deleteSourceArchive?: boolean; keepEpicUpdateFiles?: boolean } = {}
 ): Promise<void> => {
   const gameKey = levelKeys.game(shop, objectId);
   const download = await downloadsSublevel.get(gameKey);
@@ -74,6 +74,10 @@ const deleteGameFolder = async (
     await assertDownload();
     if (!download.folderName || !download.epic)
       throw new EpicManagedError("invalid-path");
+    if (options.keepEpicUpdateFiles && download.epic.update) {
+      await DownloadOrchestrator.syncAfterDownloadRemoved({ shop, objectId });
+      return;
+    }
     const folderName = download.folderName;
     await getEpicDownloadService().forgetInstallation(
       download,

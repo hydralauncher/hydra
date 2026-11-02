@@ -6,7 +6,11 @@ import { useTranslation } from "react-i18next";
 import { useState, type ReactNode } from "react";
 import type { GameReview } from "@types";
 
-import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
+import {
+  getLanguageDisplayName,
+  getReviewTranslation,
+  sanitizeHtml,
+} from "@shared";
 import { Avatar, Button } from "@renderer/components";
 import { useDate, useFormat, useProcessedImage } from "@renderer/hooks";
 import { formatNumber } from "@renderer/helpers";
@@ -78,28 +82,13 @@ export function ReviewItem({
     REVIEW_BANNER_IMAGE_SIZE
   );
 
-  const getBaseLanguage = (lang: string | null) => lang?.split("-")[0] || "";
-
-  const isDifferentLanguage =
-    getBaseLanguage(review.detectedLanguage) !== getBaseLanguage(i18n.language);
-  const reviewTranslationLanguage = getReviewTranslationLanguage(i18n.language);
-
-  const needsTranslation =
-    !isOwnReview &&
-    isDifferentLanguage &&
-    review.translations[reviewTranslationLanguage];
-
-  const getLanguageName = (languageCode: string | null) => {
-    if (!languageCode) return "";
-    try {
-      const displayNames = new Intl.DisplayNames([i18n.language], {
-        type: "language",
-      });
-      return displayNames.of(languageCode) || languageCode.toUpperCase();
-    } catch {
-      return languageCode.toUpperCase();
-    }
-  };
+  const translation = getReviewTranslation({
+    translations: review.translations,
+    detectedLanguage: review.detectedLanguage,
+    language: i18n.language,
+    isOwnReview,
+  });
+  const needsTranslation = translation !== null;
 
   // Format playtime similar to hero panel
   const formatPlayTime = (playTimeInSeconds: number) => {
@@ -115,10 +104,8 @@ export function ReviewItem({
     return t("amount_hours", { amount: numberFormatter.format(hours) });
   };
 
-  // Determine which content to show - always show original for own reviews
-  const displayContent = needsTranslation
-    ? review.translations[reviewTranslationLanguage]
-    : review.reviewHtml;
+  // Own reviews always show the original (getReviewTranslation).
+  const displayContent = translation ?? review.reviewHtml;
 
   if (isBlocked && !isVisible) {
     return (
@@ -231,7 +218,10 @@ export function ReviewItem({
               {showOriginal
                 ? t("hide_original")
                 : t("show_original_translated_from", {
-                    language: getLanguageName(review.detectedLanguage),
+                    language: getLanguageDisplayName(
+                      review.detectedLanguage,
+                      i18n.language
+                    ),
                   })}
             </button>
             {showOriginal && (

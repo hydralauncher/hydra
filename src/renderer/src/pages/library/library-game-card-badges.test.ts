@@ -53,7 +53,17 @@ function renderCard(
       useCoverPoster: () => undefined,
       isAnimatedCoverCandidate: () => false,
       useAnimatedSourceWarmup: () => {},
+      useCatalogueImage: () => ({
+        variants: null,
+        placeholderStyle: undefined,
+        markLoaded: () => {},
+        markFailed: () => false,
+      }),
       useFormat: () => ({ numberFormatter: new Intl.NumberFormat("en") }),
+    },
+    "@renderer/helpers/catalogue-images": {
+      getCatalogueImageSrcSet: () => "",
+      pickCatalogueImageUrl: () => "",
     },
     "@shared": { getDisplayedPlayTimeInMilliseconds: () => 0 },
     "./library-category": libraryCategory,

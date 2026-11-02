@@ -1,4 +1,5 @@
 @use "../../scss/globals.scss";
+@use "../../scss/vote-button.scss";
 
 .game-details {
   &__review-item {
@@ -155,43 +156,10 @@
   }
 
   &__vote-button {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    padding: 6px 12px;
-    color: #ccc;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
-      color: #ffffff;
-    }
+    @extend %vote-button;
 
     &--active {
-      &.game-details__vote-button--upvote {
-        svg {
-          fill: white;
-        }
-      }
-
-      &.game-details__vote-button--downvote {
-        svg {
-          fill: white;
-        }
-      }
-    }
-
-    span {
-      font-weight: 500;
-      display: inline-block;
-      min-width: 1ch;
-      overflow: hidden;
+      @extend %vote-button-active;
     }
   }
 
