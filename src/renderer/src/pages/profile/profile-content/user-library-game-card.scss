@@ -146,12 +146,22 @@
   &__stats-item {
     width: 100%;
     height: 100%;
-    transition: transform 0.5s ease-in-out;
     flex-shrink: 0;
     flex-grow: 0;
     display: flex;
     align-items: center;
     gap: 8px;
+
+    // The card sets animation-duration from USER_LIBRARY_GAME_STATS_CYCLE_MS.
+    &--cycling {
+      animation-name: user-library-game-stats-cycle;
+      animation-timing-function: ease-in-out;
+      animation-iteration-count: infinite;
+
+      @media (prefers-reduced-motion: reduce) {
+        animation-name: none;
+      }
+    }
   }
 
   &__achievements-progress-track {
@@ -171,5 +181,21 @@
     &--platinum {
       @include globals.platinum-gradient;
     }
+  }
+}
+
+@keyframes user-library-game-stats-cycle {
+  0%,
+  50% {
+    transform: translateY(0);
+  }
+
+  57.14%,
+  92.86% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(0);
   }
 }

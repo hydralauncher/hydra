@@ -39,7 +39,7 @@ export function SouvenirSyncCleanupModal({
       onClose={onClose}
       closeOnBackdrop={!isDeleting}
       closeOnEscape={!isDeleting}
-      closeOnB={!isDeleting}
+      busy={isDeleting}
       initialFocusId={CLEANUP_MODAL_CANCEL_FOCUS_ID}
       className="profile-page__souvenirs-cleanup-modal"
     >

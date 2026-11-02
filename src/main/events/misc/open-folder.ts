@@ -1,12 +1,12 @@
 import { shell } from "electron";
-import fs from "node:fs";
+import { ensureDirectorySync } from "@main/services/download/ensure-directory";
 import { registerEvent } from "../register-event";
 
-const openFolder = async (
+const openFolder = (
   _event: Electron.IpcMainInvokeEvent,
   folderPath: string
 ) => {
-  await fs.promises.mkdir(folderPath, { recursive: true });
+  ensureDirectorySync(folderPath);
 
   return shell.openPath(folderPath);
 };
