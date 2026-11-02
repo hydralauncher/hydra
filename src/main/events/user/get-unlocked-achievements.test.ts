@@ -126,6 +126,7 @@ for (const ownerChanged of [false, true]) {
             CombinedAchievementsRequests: { fetch: passthroughCombinedRequest },
           },
           "@main/services/achievements/combined-achievement-presentation": {
+            createCombinedDefinitionLookup: () => () => undefined,
             presentCombinedAchievements() {
               assert.ok(combinedAvailable);
               assert.ok(

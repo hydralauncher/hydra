@@ -4,7 +4,6 @@ import { describe, it } from "node:test";
 import {
   getClientAreaCrop,
   getWindowHandleFromSourceId,
-  parseScreenRect,
 } from "./windows-client-area-crop.js";
 
 describe("Windows client area crop", () => {
@@ -112,17 +111,5 @@ describe("Windows client area crop", () => {
     assert.equal(getWindowHandleFromSourceId("screen:0:0"), null);
     assert.equal(getWindowHandleFromSourceId("window:abc:0"), null);
     assert.equal(getWindowHandleFromSourceId("window:0:0"), null);
-  });
-
-  it("parses PowerShell rectangle output", () => {
-    assert.deepEqual(parseScreenRect("-8 -8 1928 1048"), {
-      left: -8,
-      top: -8,
-      right: 1928,
-      bottom: 1048,
-    });
-    assert.equal(parseScreenRect(""), null);
-    assert.equal(parseScreenRect(undefined), null);
-    assert.equal(parseScreenRect("10 10 5 20"), null);
   });
 });

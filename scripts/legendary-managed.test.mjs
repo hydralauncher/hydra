@@ -47,6 +47,7 @@ test(
       "install-target",
       "access-only",
       "refresh-session",
+      "install-components",
     ]);
     const result = await run(
       binary,
@@ -57,7 +58,7 @@ test(
       ],
       { windowsHide: true, timeout: 20_000 }
     );
-    assert.match(result.stderr, /Ran 22 tests/);
+    assert.match(result.stderr, /Ran 27 tests/);
     assert.match(result.stderr, /\bOK\b/);
   }
 );
