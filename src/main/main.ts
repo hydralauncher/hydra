@@ -138,7 +138,6 @@ export const loadState = async () => {
     } catch (err) {
       logger.warn("Epic integration initialization failed on startup", err);
     }
-    void migrateDownloadSources();
 
     const { syncDownloadSourcesFromApi } = await import("./services/user");
     const startupProfileRefresh = HydraApi.waitForStartupProfileRefresh();
@@ -150,6 +149,9 @@ export const loadState = async () => {
 
     // Check for new download options on startup (if enabled)
     (async () => {
+      await migrateDownloadSources().catch((error) =>
+        logger.error("Failed to migrate download sources", error)
+      );
       await DownloadSourcesChecker.checkForChanges();
     })();
 

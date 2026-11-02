@@ -51,6 +51,7 @@ const Library = lazyPage(() => import("./pages/library/library"));
 const Notifications = lazyPage(
   () => import("./pages/notifications/notifications")
 );
+const Shop = lazyPage(() => import("./pages/shop/shop"));
 const Leaderboards = lazyPage(
   () => import("./pages/leaderboards/leaderboards")
 );
@@ -115,6 +116,7 @@ const mainWindowPages = [
   Profile,
   Achievements,
   Notifications,
+  Shop,
   Leaderboards,
 ];
 const bigPicturePages = [
@@ -128,7 +130,7 @@ const bigPicturePages = [
   BigPictureGameAchievements,
 ];
 const mainWindowRoutePattern =
-  /^#\/(catalogue|library|downloads|game|settings|profile|achievements|notifications|leaderboards)?(\/|$|\?)/;
+  /^#\/(catalogue|library|downloads|game|settings|profile|achievements|notifications|shop|leaderboards)?(\/|$|\?)/;
 
 console.log = logger.log;
 
@@ -223,6 +225,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                     <Route path="/profile/:userId" element={<Profile />} />
                     <Route path="/achievements" element={<Achievements />} />
                     <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/shop" element={<Shop />} />
                     <Route path="/leaderboards" element={<Leaderboards />} />
                   </Route>
 
