@@ -1,7 +1,8 @@
 // Builds the draft release notes for the Release workflow. Asks GitHub for the
 // same auto-generated changelog it produces today, then groups the bullet list
 // into sections by conventional-commit prefix (feat, fix, chore, ci, ...).
-// Bullets without a recognized prefix are kept verbatim under "What's Changed".
+// Bullets without a recognized prefix are kept verbatim under "Other Changes".
+// "## New Contributors" and everything after it is kept verbatim.
 //
 //   node scripts/release-notes.cjs [tag-name] [previous-tag]
 //
@@ -42,13 +43,20 @@ function groupBullets(markdown) {
     sections.get(title).push(line);
   };
 
+  // Once "## New Contributors" shows up its bullets stay verbatim with the
+  // heading: they start with "@user" so bulletPrefix would otherwise drop
+  // them into "Other Changes".
+  let verbatim = false;
   for (const line of lines) {
-    if (!/^\s*[-*]\s+/.test(line)) {
+    if (/^##\s+New Contributors/i.test(line.trim())) verbatim = true;
+    if (!verbatim && !/^\s*[-*]\s+/.test(line)) {
       // Non-bullet lines keep their position, except the now-redundant
-      // "## What's Changed" heading the sections replace, and
-      // "## New Contributors", whose bullets land in "Other Changes".
-      if (!/^##\s+(What's Changed|New Contributors)/i.test(line.trim()))
-        push(null, line);
+      // "## What's Changed" heading the sections replace.
+      if (!/^##\s+What's Changed/i.test(line.trim())) push(null, line);
+      continue;
+    }
+    if (verbatim) {
+      push(null, line);
       continue;
     }
     const prefix = bulletPrefix(line);
@@ -111,9 +119,18 @@ async function generateNotes(tagName, previousTag) {
 // Tags past releases used "v" + the version in package.json. On a
 // release/v4.3.0 branch the tag is the branch suffix instead.
 function defaultTagName() {
-  const refName = process.env.GITHUB_REF_NAME || "";
-  if (refName.startsWith("release/")) return refName.slice("release/".length);
   const { version } = JSON.parse(fs.readFileSync("package.json", "utf8"));
+  const refName = process.env.GITHUB_REF_NAME || "";
+  if (refName.startsWith("release/")) {
+    const tag = refName.slice("release/".length);
+    // A branch/version mismatch would tag the draft with a version its
+    // assets (and latest.yml) do not carry.
+    if (tag !== `v${version}`)
+      throw new Error(
+        `Branch ${refName} does not match package.json version ${version}`
+      );
+    return tag;
+  }
   return `v${version}`;
 }
 
