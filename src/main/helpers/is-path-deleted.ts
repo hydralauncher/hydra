@@ -29,6 +29,15 @@ export const isDirectoryEmpty = async (dirPath: string): Promise<boolean> => {
   }
 };
 
+// Walks up from target until it finds a directory that exists.
+const findExistingAncestor = async (target: string): Promise<string> => {
+  let ancestor = path.dirname(target);
+  while (!(await exists(ancestor)) && ancestor !== path.dirname(ancestor)) {
+    ancestor = path.dirname(ancestor);
+  }
+  return ancestor;
+};
+
 // True only when target is gone while the drive it lived on is still there.
 export const isPathDeleted = async (target: string): Promise<boolean> => {
   try {
@@ -44,16 +53,23 @@ export const isPathDeleted = async (target: string): Promise<boolean> => {
   // Windows: an offline drive or share has no reachable root (E:\, \\server\share\).
   if (!(await exists(path.parse(resolved).root))) return false;
 
+  const parent = path.dirname(resolved);
+  const ancestor = await findExistingAncestor(resolved);
+
   const volumeDepth = REMOVABLE_VOLUME_ROOTS.find(
     ([root]) => resolved === root || resolved.startsWith(root + path.sep)
   )?.[1];
 
-  // If it's not in a recognized removable volume path, treat as deleted.
-  if (volumeDepth === undefined) return true;
+  if (volumeDepth === undefined) {
+    // Not a recognized removable volume. If the parent folder still exists,
+    // the file itself was removed.
+    if (ancestor === parent) return true;
 
-  let ancestor = path.dirname(resolved);
-  while (!(await exists(ancestor)) && ancestor !== path.dirname(ancestor)) {
-    ancestor = path.dirname(ancestor);
+    // The parent is missing. If the nearest existing ancestor is an empty
+    // folder, it is most likely an unmounted mount point, so treat the path
+    // as offline rather than deleted. A non-empty ancestor means the
+    // containing folder was deleted while its siblings remain.
+    return !(await isDirectoryEmpty(ancestor));
   }
 
   const ancestorDepth = depthOf(ancestor);
