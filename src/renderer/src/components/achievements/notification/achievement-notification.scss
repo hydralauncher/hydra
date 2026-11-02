@@ -272,6 +272,11 @@ $margin-bottom: 28px;
     display: none;
   }
 
+  &--screenshot-error &__icon {
+    background-color: rgba(globals.$error-color, 0.16);
+    color: #fb7185;
+  }
+
   &--rare &__icon {
     outline: 1px solid #f4a510;
     box-shadow: 0px 0px 12px 0px rgba(244, 165, 16, 0.25);

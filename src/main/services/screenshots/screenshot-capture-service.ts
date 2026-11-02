@@ -8,6 +8,7 @@ import {
 import type {
   LocalScreenshot,
   ProfileVisibility,
+  ScreenshotFailureKind,
   ScreenshotFeedbackToast,
   ScreenshotTriggerSource,
 } from "@types";
@@ -29,7 +30,10 @@ import {
   type GameScreenshotCaptureTarget,
 } from "../screenshot";
 import { buildWindowsWindowSourceId } from "../windows-game-window-match";
-import { resolveForegroundGame } from "./foreground-game";
+import {
+  getUnresolvedGameFailure,
+  resolveForegroundGame,
+} from "./foreground-game";
 import type { ScreenshotGameTarget } from "./foreground-game-match";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { ScreenshotFeedback } from "./screenshot-feedback";
@@ -63,15 +67,13 @@ const FALLBACK_PREVIEW_JPEG_QUALITY = 85;
 const MAX_FILE_NAME_SUFFIX = 50;
 const WAYLAND_SHARE_PROMPT_WAIT_MS = 1_500;
 
-type CaptureToastKind = ScreenshotFeedbackToast["kind"];
-
-const WAYLAND_SHARE_FAILURE_TOASTS: Record<
+const WAYLAND_SHARE_FAILURES: Record<
   LinuxGameCaptureFailure,
-  CaptureToastKind
+  ScreenshotFailureKind
 > = {
   share_cancelled: "share_pending",
   portal_unavailable: "share_unavailable",
-  capture_error: "capture_failed",
+  capture_error: "window_capture_failed",
 };
 
 const gameSessionIds = new Map<string, string>();
@@ -239,11 +241,38 @@ const discardUnrecordedCapture = async (
   });
 };
 
-const showCaptureToast = (kind: CaptureToastKind, gameTitle: string) => {
+const showCaptureToast = (
+  kind: ScreenshotFeedbackToast["kind"],
+  gameTitle: string
+) => {
   void ScreenshotFeedback.showToast({ kind, gameTitle }).catch((error) => {
     logger.error("Failed to show the screenshot toast", error);
   });
 };
+
+const showCaptureFailure = (
+  kind: ScreenshotFailureKind,
+  gameTitle: string | null
+) => {
+  void ScreenshotFeedback.showFailureToast({ kind, gameTitle }).catch(
+    (error) => {
+      logger.error("Failed to show the screenshot failure toast", error);
+    }
+  );
+  void ScreenshotFeedback.playFailureSound().catch((error) => {
+    logger.error("Failed to play the screenshot failure sound", error);
+  });
+};
+
+const getFrameFailureKind = (error: unknown): ScreenshotFailureKind =>
+  error instanceof BlankScreenshotFrameError
+    ? "blank_frame"
+    : "window_capture_failed";
+
+const getWriteFailureKind = (error: unknown): ScreenshotFailureKind =>
+  (error as NodeJS.ErrnoException | null)?.code === "ENOSPC"
+    ? "disk_full"
+    : "file_write_failed";
 
 const playCaptureSound = () => {
   void ScreenshotFeedback.playCaptureSound().catch((error) => {
@@ -339,7 +368,7 @@ const waitForWaylandSharePrompt = (gameKey: string) =>
 const getWaylandShareBlocker = async (
   source: ScreenshotTriggerSource,
   gameKey: string
-): Promise<CaptureToastKind | null> => {
+): Promise<ScreenshotFailureKind | null> => {
   if (!isWaylandCaptureBackend()) return null;
 
   const initialState = getLinuxGameCaptureState(gameKey);
@@ -366,7 +395,7 @@ const getWaylandShareBlocker = async (
     failure,
   });
   ScreenshotTelemetry.record("capture", "ignored", `share_${failure ?? state}`);
-  return failure ? WAYLAND_SHARE_FAILURE_TOASTS[failure] : "share_pending";
+  return failure ? WAYLAND_SHARE_FAILURES[failure] : "share_pending";
 };
 
 type CaptureFailureStage = "frame" | "encode" | "write" | "store";
@@ -426,7 +455,11 @@ const grabScreenshot = async (
   const resolved = await resolveForegroundGame(source);
   timer.mark("foreground");
   if (!resolved) {
-    ScreenshotTelemetry.record("capture", "ignored", "no_foreground_game");
+    const failure = await getUnresolvedGameFailure();
+    if (failure) {
+      ScreenshotTelemetry.record("capture", "ignored", "no_foreground_game");
+      showCaptureFailure(failure.kind, failure.gameTitle);
+    }
     return null;
   }
 
@@ -436,15 +469,19 @@ const grabScreenshot = async (
 
   const shareBlocker = await getWaylandShareBlocker(source, target.gameKey);
   if (shareBlocker) {
-    showCaptureToast(shareBlocker, gameTitle);
+    showCaptureFailure(shareBlocker, gameTitle);
     return null;
   }
 
   const ownerId = getSignedInScreenshotOwnerId();
 
-  const failCapture = (stage: CaptureFailureStage, error: unknown) => {
+  const failCapture = (
+    stage: CaptureFailureStage,
+    error: unknown,
+    kind: ScreenshotFailureKind
+  ) => {
     recordCaptureFailure(target.gameKey, stage, error);
-    showCaptureToast("capture_failed", gameTitle);
+    showCaptureFailure(kind, gameTitle);
   };
 
   let frame: GrabbedScreenshotFrame;
@@ -458,7 +495,7 @@ const grabScreenshot = async (
       x11WindowId: foreground?.windowId,
     });
   } catch (error) {
-    failCapture("frame", error);
+    failCapture("frame", error, getFrameFailureKind(error));
     return null;
   }
   timer.mark("frame");
@@ -470,7 +507,7 @@ const grabScreenshot = async (
   try {
     images = await frame.encode(CAPTURE_JPEG_QUALITY);
   } catch (error) {
-    failCapture("encode", error);
+    failCapture("encode", error, "save_failed");
     return null;
   } finally {
     frame.discard();
@@ -482,7 +519,7 @@ const grabScreenshot = async (
     try {
       filePath = await saveCaptureFile(gameTitle, capturedAt, images.jpeg);
     } catch (error) {
-      failCapture("write", error);
+      failCapture("write", error, getWriteFailureKind(error));
       return;
     }
     const previewPath = await writeScreenshotPreview(images.preview).catch(
@@ -506,7 +543,7 @@ const grabScreenshot = async (
         previewPath,
       });
     } catch (error) {
-      failCapture("store", error);
+      failCapture("store", error, "save_failed");
       await discardUnrecordedCapture(filePath, previewPath);
       return;
     }
@@ -540,6 +577,7 @@ export const handleScreenshotTrigger = async (
     save = await grabScreenshot(source, startedAt);
   } catch (error) {
     logger.error("Screenshot capture failed", error);
+    showCaptureFailure("game_not_recognized", null);
   } finally {
     captureInProgress = false;
   }

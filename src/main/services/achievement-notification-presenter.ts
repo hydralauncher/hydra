@@ -134,7 +134,7 @@ export class AchievementNotificationPresenter {
         id: this.nextRequestId(),
         type: "screenshot",
         position,
-        achievement: { ...notification, variant: "screenshot" },
+        achievement: { variant: "screenshot", ...notification },
       },
       fallback: { callback: fallback, invoked: false },
     });

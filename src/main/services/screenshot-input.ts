@@ -41,6 +41,8 @@ export const SCREENSHOT_INPUT_RESTART_DELAY_MS = 5_000;
 export const SCREENSHOT_INPUT_MAX_RESTARTS = 3;
 export const SCREENSHOT_INPUT_STABLE_RUN_MS = 60_000;
 
+const LISTENS_WITHOUT_TRACKED_GAME = process.platform === "win32";
+
 export interface ScreenshotInputSettings {
   enabled: boolean;
   hotkey: ScreenshotHotkeyBinding;
@@ -216,7 +218,7 @@ export class ScreenshotInputService {
       });
       return false;
     }
-    if (!hasTrackedGamesRunning()) {
+    if (!LISTENS_WITHOUT_TRACKED_GAME && !hasTrackedGamesRunning()) {
       logger.debug("Screenshot trigger ignored: no tracked game running", {
         source,
       });
@@ -349,7 +351,7 @@ export class ScreenshotInputService {
       !this.shuttingDown &&
       this.featureEnabled &&
       this.settings.enabled &&
-      this.gamesRunning
+      (LISTENS_WITHOUT_TRACKED_GAME || this.gamesRunning)
     );
   }
 

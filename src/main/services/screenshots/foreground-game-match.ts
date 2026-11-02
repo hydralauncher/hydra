@@ -186,6 +186,15 @@ export const findForegroundGameTarget = (
   return findSoleLaunchedTarget(candidates);
 };
 
+export const isWindowCoveringDisplay = (
+  window: { left: number; top: number; right: number; bottom: number },
+  display: { x: number; y: number; width: number; height: number }
+) =>
+  window.left <= display.x &&
+  window.top <= display.y &&
+  window.right >= display.x + display.width &&
+  window.bottom >= display.y + display.height;
+
 export const parseNamespacedPids = (status: string): number[] | null => {
   const line = status
     .split("\n")

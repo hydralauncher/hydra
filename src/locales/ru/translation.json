@@ -2784,6 +2784,13 @@
   "screenshots_capture": {
     "cancel": "Отмена",
     "capture_failed": "Не удалось сделать скриншот",
+    "capture_error_game_not_recognized": "Hydra не удалось распознать запущенную игру",
+    "capture_error_game_not_focused": "Переключитесь на {{game}} и повторите попытку",
+    "capture_error_window_capture_failed": "Hydra не удалось захватить окно {{game}}",
+    "capture_error_blank_frame": "Пустое изображение из {{game}}. Попробуйте режим без рамки",
+    "capture_error_disk_full": "Диск заполнен. Освободите место и повторите попытку",
+    "capture_error_file_write_failed": "Не удалось сохранить файл. Проверьте папку скриншотов",
+    "capture_error_save_failed": "Не удалось сохранить скриншот. Повторите попытку",
     "captured": "Скриншот сделан",
     "custom_game_default_title": "Своя игра",
     "custom_game_title_edit": "Изменить название игры",

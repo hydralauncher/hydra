@@ -2706,6 +2706,13 @@
   "screenshots_capture": {
     "cancel": "Cancelar",
     "capture_failed": "No se pudo hacer la captura",
+    "capture_error_game_not_recognized": "Hydra no pudo reconocer el juego que estás ejecutando",
+    "capture_error_game_not_focused": "Cambia a {{game}} e inténtalo de nuevo",
+    "capture_error_window_capture_failed": "Hydra no pudo capturar la ventana de {{game}}",
+    "capture_error_blank_frame": "{{game}} devolvió una imagen en blanco. Prueba el modo sin bordes",
+    "capture_error_disk_full": "Tu disco está lleno. Libera espacio e inténtalo de nuevo",
+    "capture_error_file_write_failed": "No se pudo guardar el archivo. Revisa tu carpeta de capturas",
+    "capture_error_save_failed": "Algo salió mal al guardarla. Inténtalo de nuevo",
     "captured": "Captura realizada",
     "custom_game_default_title": "Juego personalizado",
     "custom_game_title_edit": "Editar el título del juego",

@@ -1,8 +1,13 @@
 import fs from "node:fs";
-import { BrowserWindow } from "electron";
+import path from "node:path";
+import { BrowserWindow, screen } from "electron";
 
 import { gamesSublevel } from "@main/level";
-import type { Game, ScreenshotTriggerSource } from "@types";
+import type {
+  Game,
+  ScreenshotFailureToast,
+  ScreenshotTriggerSource,
+} from "@types";
 
 import { emulatorSessions } from "../emulators/emulator-session-tracker";
 import { gamesPlaytime } from "../game-running-state";
@@ -16,6 +21,7 @@ import {
   findForegroundGameTarget,
   findSoleLaunchedTarget,
   isLaunchedForegroundProcess,
+  isWindowCoveringDisplay,
   parseNamespacedPids,
   type ForegroundProcess,
   type ForegroundWindowInfo,
@@ -24,6 +30,8 @@ import {
 import { getWaylandFocus } from "./wayland-focus";
 
 type ForegroundMatch = ResolvedForegroundGame | null;
+
+const WINDOWS_DESKTOP_SHELL_EXECUTABLE = "explorer.exe";
 
 export interface ResolvedForegroundGame {
   target: ScreenshotGameTarget;
@@ -372,3 +380,51 @@ export const resolveForegroundGame = async (
   );
   return { ...soleCandidate, foreground: null };
 };
+
+const isWindowsDesktopShell = async (processId: number | null) => {
+  const processes = await NativeAddon.listProcesses();
+  const exe = processes.find((entry) => entry.pid === processId)?.exe;
+  return (
+    exe != null &&
+    path.win32.basename(exe).toLowerCase() === WINDOWS_DESKTOP_SHELL_EXECUTABLE
+  );
+};
+
+const isFullscreenAppInForeground = async () => {
+  if (process.platform !== "win32") return false;
+  const foreground = await resolveForegroundWindow();
+  if (!foreground?.windowHandle || foreground.processId === process.pid) {
+    return false;
+  }
+
+  const bounds = NativeAddon.getWindowsWindowBounds(foreground.windowHandle);
+  if (!bounds) return false;
+
+  const isCoveringDisplay = screen
+    .getAllDisplays()
+    .some((display) =>
+      isWindowCoveringDisplay(
+        bounds.client,
+        screen.dipToScreenRect(null, display.bounds)
+      )
+    );
+
+  return (
+    isCoveringDisplay && !(await isWindowsDesktopShell(foreground.processId))
+  );
+};
+
+export const getUnresolvedGameFailure =
+  async (): Promise<ScreenshotFailureToast | null> => {
+    if (await isFullscreenAppInForeground()) {
+      return { kind: "game_not_recognized", gameTitle: null };
+    }
+
+    const candidates = await getScreenshotGameTargets();
+    if (!candidates.length) return null;
+    if (candidates.length > 1) {
+      return { kind: "game_not_recognized", gameTitle: null };
+    }
+
+    return { kind: "game_not_focused", gameTitle: candidates[0].game.title };
+  };
