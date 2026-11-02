@@ -34,6 +34,7 @@ import "./emulators";
 import "./retroarch";
 import "./epic";
 import "./screenshot-input";
+import "./recompilation";
 
 ipcMain.handle("ping", () => "pong");
 ipcMain.handle("getVersion", () => appVersion);

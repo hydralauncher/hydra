@@ -20,6 +20,7 @@ import "./catalogue.scss";
 import { Button } from "@renderer/components/button/button";
 import { SelectField } from "@renderer/components/select-field/select-field";
 import { setFilters, setPage } from "@renderer/features";
+import type { RecompilationFilter } from "@renderer/features";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { useLaunchboxFilters } from "@renderer/hooks/use-launchbox-filters";
 import { debounce } from "lodash-es";
@@ -33,6 +34,8 @@ import { FilterSection } from "./filter-section";
 import { GameItem } from "./game-item";
 import { GameItemClassics } from "./game-item-classics";
 import { Pagination } from "./pagination";
+import { RecompilationFilterSection } from "./recompilation-filter-section";
+import { hasRecompilation } from "@shared";
 import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
@@ -67,6 +70,7 @@ const filterCategoryColors = {
   deckCompatibility: "#F50057",
   releaseYear: "hsl(38deg 50% 40%)",
   platforms: "hsl(170deg 50% 36%)",
+  recompilation: "#3e62c0",
 };
 
 const classicsPlatformGroups = [
@@ -87,7 +91,17 @@ const clearAllCategoryFilters = {
   deckCompatibility: [],
   releaseYear: undefined,
   platforms: [],
+  recompilation: "all" as RecompilationFilter,
 };
+
+const recompilationFilterOptions: {
+  value: RecompilationFilter;
+  labelKey: string;
+}[] = [
+  { value: "all", labelKey: "recompilation_all" },
+  { value: "has_recompilation", labelKey: "recompilation_has" },
+  { value: "emulation_only", labelKey: "recompilation_emulation_only" },
+];
 
 const sortValues = [
   "popularity:desc",
@@ -135,9 +149,14 @@ export default function Catalogue() {
 
   const { steamDevelopers, steamPublishers, downloadSources } = useCatalogue();
 
-  const { steamGenres, steamUserTags, filters, page, mode } = useAppSelector(
-    (state) => state.catalogueSearch
-  );
+  const {
+    steamGenres,
+    steamUserTags,
+    filters,
+    recompilationFilter,
+    page,
+    mode,
+  } = useAppSelector((state) => state.catalogueSearch);
   const launchboxFilters = useLaunchboxFilters(mode === "classics");
   const deferredTitleFilter = useDeferredValue(filters.title);
 
@@ -357,8 +376,38 @@ export default function Catalogue() {
     t,
   ]);
 
+  // Client-side only: the hardcoded recompilation set filters the current page.
+  const visibleResults = useMemo(() => {
+    if (mode !== "classics" || recompilationFilter === "all") return results;
+
+    const wantsRecompilation = recompilationFilter === "has_recompilation";
+    return results.filter(
+      (game) => hasRecompilation(game) === wantsRecompilation
+    );
+  }, [results, mode, recompilationFilter]);
+
+  const displayedItemsCount =
+    mode === "classics" && recompilationFilter === "has_recompilation"
+      ? visibleResults.length
+      : itemsCount - (results.length - visibleResults.length);
+
   const classicsGroupedFilters = useMemo(() => {
+    const recompilationOption = recompilationFilterOptions.find(
+      (option) => option.value !== "all" && option.value === recompilationFilter
+    );
+
     return [
+      ...(recompilationOption
+        ? [
+            {
+              label: t(recompilationOption.labelKey),
+              filterType: t("recompilation"),
+              orbColor: filterCategoryColors.recompilation,
+              key: "recompilation",
+              value: recompilationOption.value,
+            },
+          ]
+        : []),
       ...classicsPlatforms.map((platform) => ({
         label:
           launchboxFilters.platforms.find((p) => p.key === platform)?.name ??
@@ -400,6 +449,7 @@ export default function Catalogue() {
       })),
     ];
   }, [
+    recompilationFilter,
     classicsPlatforms,
     filters.genres,
     filters.developers,
@@ -640,7 +690,7 @@ export default function Catalogue() {
           <div className="catalogue__header-summary">
             <span className="catalogue__result-count">
               {t("result_count", {
-                resultCount: formatNumber(itemsCount),
+                resultCount: formatNumber(displayedItemsCount),
               })}
             </span>
             {selectedFiltersCount === 0 && (
@@ -688,6 +738,11 @@ export default function Catalogue() {
                       filterType={filter.filterType}
                       orbColor={filter.orbColor}
                       onRemove={() => {
+                        if (filter.key === "recompilation") {
+                          dispatch(setFilters({ recompilation: "all" }));
+                          return;
+                        }
+
                         if (filter.value === "range") {
                           dispatch(setFilters({ releaseYear: undefined }));
                           return;
@@ -749,7 +804,7 @@ export default function Catalogue() {
               ))}
             </SkeletonTheme>
           ) : mode === "classics" ? (
-            results.map((game) => (
+            visibleResults.map((game) => (
               <GameItemClassics key={game.id} game={game} />
             ))
           ) : (
@@ -773,6 +828,21 @@ export default function Catalogue() {
         <div className="catalogue__filters-container">
           <div className="catalogue__filters-sections">
             <CatalogueModeToggle />
+
+            {mode === "classics" && (
+              <RecompilationFilterSection
+                title={t("recompilation")}
+                color={filterCategoryColors.recompilation}
+                value={recompilationFilter}
+                options={recompilationFilterOptions.map((option) => ({
+                  value: option.value,
+                  label: t(option.labelKey),
+                }))}
+                onChange={(value) =>
+                  dispatch(setFilters({ recompilation: value }))
+                }
+              />
+            )}
 
             {mode === "modern" && shouldShowProtonFeatures && (
               <Suspense fallback={null}>

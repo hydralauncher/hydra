@@ -58,6 +58,7 @@ export * from "./library-catalogue";
 export * from "./finished-download-step";
 export * from "./format-bit-rate";
 export * from "./library-group-actions";
+export * from "./recompilations";
 export * from "./official-store-options";
 export * from "./download-directories";
 export * from "./comment-html-sanitizer";

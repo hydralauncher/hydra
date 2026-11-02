@@ -32,6 +32,8 @@ import type {
   EmulatorSystem,
   EmulatorBinary,
   EmulatorInstallProgress,
+  RecompilationInstallProgress,
+  RecompilationPortId,
   RetroArchCoreName,
   RetroArchCoreInstallProgress,
   RetroArchInstallProgress,
@@ -631,6 +633,22 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-emulator-install-progress", listener);
     return () =>
       ipcRenderer.removeListener("on-emulator-install-progress", listener);
+  },
+  /* Recompilations */
+  getRecompilationInstallState: (portId: RecompilationPortId) =>
+    ipcRenderer.invoke("getRecompilationInstallState", portId),
+  installRecompilation: (portId: RecompilationPortId) =>
+    ipcRenderer.invoke("installRecompilation", portId),
+  openRecompilationFolder: (portId: RecompilationPortId) =>
+    ipcRenderer.invoke("openRecompilationFolder", portId),
+  onRecompilationInstallProgress: (
+    cb: (payload: RecompilationInstallProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RecompilationInstallProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-recompilation-install-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-recompilation-install-progress", listener);
   },
   /* RetroArch */
   getRetroArchConfig: () => ipcRenderer.invoke("getRetroArchConfig"),

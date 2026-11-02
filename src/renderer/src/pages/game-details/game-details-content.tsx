@@ -22,13 +22,19 @@ import { GameLogo } from "./game-logo";
 import { CloudSaveWidget } from "./cloud-save-v2";
 import { getCloudSaveVisibility } from "./cloud-save-visibility";
 import { SimilarGames } from "./similar-games/similar-games";
+import { RecompilationSection } from "./recompilation/recompilation-section";
 
-import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
+import {
+  AuthPage,
+  getDisplayedPlayTimeInMilliseconds,
+  getRecompilationPortsForGame,
+} from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import tvEffectVideo from "@renderer/assets/emulation/tv-effect.mp4";
 import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
+import { RecompChip } from "@renderer/components/recomp-chip/recomp-chip";
 import {
   CLASSICS_PS_PLATFORM_LABELS,
   resolveClassicsBadge,
@@ -276,6 +282,16 @@ export function GameDetailsContent() {
 
   const classicsChipLabel = classicsBadge.label ?? launchboxPlatform;
 
+  const recompilationPorts = useMemo(
+    () =>
+      getRecompilationPortsForGame({
+        shop,
+        title: launchboxTitle,
+        platform: launchboxPlatform,
+      }),
+    [shop, launchboxTitle, launchboxPlatform]
+  );
+
   const classicsChips =
     isLaunchboxGame && classicsChipLabel ? (
       <div className="game-details__hero-classics-chips">
@@ -286,6 +302,12 @@ export function GameDetailsContent() {
           <span className="game-details__hero-classics-chip game-details__hero-classics-chip--icon">
             <img src={classicsBadge.icon} alt="" />
           </span>
+        )}
+        {recompilationPorts.length > 0 && (
+          <RecompChip
+            portNames={recompilationPorts.map((port) => port.name)}
+            variant="hero"
+          />
         )}
       </div>
     ) : null;
@@ -469,6 +491,10 @@ export function GameDetailsContent() {
             </div>
           </div>
         </div>
+
+        {recompilationPorts.length > 0 && (
+          <RecompilationSection key={objectId} ports={recompilationPorts} />
+        )}
 
         <div className="game-details__description-container">
           <div className="game-details__description-content">
