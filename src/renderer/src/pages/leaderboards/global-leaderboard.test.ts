@@ -20,7 +20,6 @@ import {
   normalizeBadges,
   normalizeFriendStreaks,
   normalizeGlobalLeaderboardResponse,
-  formatBoardTotal,
   normalizeMyGames,
   normalizePlayActivity,
   resolveWeekRange,
@@ -647,13 +646,6 @@ describe("profile normalizers", () => {
     assert.equal(games[1].total, null);
     assert.equal(games[2].total, null);
     assert.throws(() => normalizeMyGames({}), TypeError);
-  });
-
-  it("caps shown board sizes at 10,000+", () => {
-    const format = (value: number) => String(value);
-    assert.equal(formatBoardTotal(9999, format), "9999");
-    assert.equal(formatBoardTotal(10000, format), "10000+");
-    assert.equal(formatBoardTotal(123456, format), "10000+");
   });
 
   it("sorts friend streaks by active first, then by days", () => {

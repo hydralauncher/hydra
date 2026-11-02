@@ -12,14 +12,6 @@ export const GLOBAL_LEADERBOARD_PAGE_SIZE = 13;
 export const GLOBAL_LEADERBOARD_PAGE_STEP = 10;
 export const GLOBAL_LEADERBOARD_PODIUM_SIZE = 3;
 export const PLAY_ACTIVITY_WEEKS = 53;
-// Board sizes are shown as "10,000+" past this, so a big all-time board does
-// not print a huge number next to the rank.
-export const BOARD_TOTAL_CAP = 10_000;
-
-export const formatBoardTotal = (
-  total: number,
-  format: (value: number) => string
-) => (total >= BOARD_TOTAL_CAP ? `${format(BOARD_TOTAL_CAP)}+` : format(total));
 // Older backends cap play activity at 26 weeks and answer 400 above it.
 export const PLAY_ACTIVITY_FALLBACK_WEEKS = 26;
 // A month label needs about two columns, so labels closer than this to the
