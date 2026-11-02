@@ -230,6 +230,25 @@ export function SettingsContextScreenshots() {
             )
           }
         />
+
+        {window.electron.platform === "win32" && (
+          <>
+            <CheckboxField
+              label={t("screenshots_listen_outside_games")}
+              checked={form.listenOutsideGames}
+              disabled={isCaptureDisabled}
+              onChange={() =>
+                savePreferences(
+                  { listenOutsideGames: !form.listenOutsideGames },
+                  { screenshotListenOutsideGames: !form.listenOutsideGames }
+                )
+              }
+            />
+            <small className="settings-screenshots__hint">
+              {t("screenshots_listen_outside_games_warning")}
+            </small>
+          </>
+        )}
       </div>
 
       <div className="settings-context-panel__group">

@@ -1992,6 +1992,8 @@
     "screenshots_input_unavailable": "The keyboard shortcut isn't available on this system",
     "screenshots_upload_group": "Uploads",
     "screenshots_toast": "Show a notification with a preview",
+    "screenshots_listen_outside_games": "Listen for the shortcut when no game is detected",
+    "screenshots_listen_outside_games_warning": "If you turn this off, Hydra can't tell you when it doesn't recognize your game. The shortcut will do nothing.",
     "screenshots_gamepad_add": "Add a button",
     "screenshots_gamepad_remove": "Remove this button",
     "screenshots_gamepad_duplicate": "Each button can only be used once",

@@ -68,6 +68,7 @@ export const SCREENSHOT_SETTINGS_FOCUS_IDS = {
   gamepadReset: "screenshot-settings-gamepad-reset",
   captureSound: "screenshot-settings-capture-sound",
   toast: "screenshot-settings-toast",
+  listenOutsideGames: "screenshot-settings-listen-outside-games",
   defaultVisibility: "screenshot-settings-default-visibility",
   folder: "screenshot-settings-folder",
   folderReset: "screenshot-settings-folder-reset",
@@ -83,6 +84,9 @@ const HOTKEY_ERROR_KEYS: Record<ScreenshotHotkeyError, string> = {
 };
 const BLOCK_TARGET: FocusOverrideTarget = { type: "block" };
 
+const canListenOutsideGames = () =>
+  globalThis.window.electron.platform === "win32";
+
 const getGamepadSlotFocusId = (index: number) =>
   `screenshot-settings-gamepad-slot:${index}`;
 const getGamepadRemoveFocusId = (index: number) =>
@@ -96,6 +100,7 @@ type ScreenshotPreferenceUpdate = Pick<
   | "screenshotGamepadCombo"
   | "screenshotCaptureSoundEnabled"
   | "screenshotToastEnabled"
+  | "screenshotListenOutsideGames"
   | "screenshotDefaultVisibility"
 >;
 
@@ -355,6 +360,7 @@ function getInactiveFocusIds(
 ) {
   const inactiveIds = new Set<string>();
 
+  if (!canListenOutsideGames()) inactiveIds.add(ids.listenOutsideGames);
   if (options.settingsDisabled) {
     inactiveIds.add(ids.hotkey);
     inactiveIds.add(ids.hotkeyReset);
@@ -392,6 +398,7 @@ function buildScreenshotSettingsRows(options: ScreenshotSettingsRowsOptions) {
     comboActionsRow,
     [ids.captureSound],
     [ids.toast],
+    [ids.listenOutsideGames],
     [ids.defaultVisibility],
     folderRow,
   ]
@@ -805,6 +812,20 @@ export function ScreenshotSettingsSection({
             preferences.toastEnabled,
             (screenshotToastEnabled) => void update({ screenshotToastEnabled })
           )}
+          {canListenOutsideGames() ? (
+            <div className="screenshot-settings__row">
+              {renderCheckbox(
+                ids.listenOutsideGames,
+                t("screenshots_settings_listen_outside_games"),
+                preferences.listenOutsideGames,
+                (screenshotListenOutsideGames) =>
+                  void update({ screenshotListenOutsideGames })
+              )}
+              <span className="screenshot-settings__hint">
+                {t("screenshots_settings_listen_outside_games_warning")}
+              </span>
+            </div>
+          ) : null}
 
           <DropdownSelect
             className="screenshot-settings__visibility"

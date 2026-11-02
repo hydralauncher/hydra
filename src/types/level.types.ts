@@ -271,6 +271,7 @@ export interface UserPreferences {
   screenshotGamepadCombo?: ScreenshotGamepadButton[];
   screenshotCaptureSoundEnabled?: boolean;
   screenshotToastEnabled?: boolean;
+  screenshotListenOutsideGames?: boolean;
   screenshotDefaultVisibility?: ProfileVisibility;
   showSensitiveScreenshots?: boolean;
 }

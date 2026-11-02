@@ -41,13 +41,14 @@ export const SCREENSHOT_INPUT_RESTART_DELAY_MS = 5_000;
 export const SCREENSHOT_INPUT_MAX_RESTARTS = 3;
 export const SCREENSHOT_INPUT_STABLE_RUN_MS = 60_000;
 
-const LISTENS_WITHOUT_TRACKED_GAME = process.platform === "win32";
+const SUPPORTS_LISTENING_OUTSIDE_GAMES = process.platform === "win32";
 
 export interface ScreenshotInputSettings {
   enabled: boolean;
   hotkey: ScreenshotHotkeyBinding;
   gamepadEnabled: boolean;
   gamepadCombo: ScreenshotGamepadButton[];
+  listenOutsideGames: boolean;
 }
 
 const SCREENSHOT_INPUT_BACKENDS = new Set<ScreenshotInputBackend>([
@@ -75,6 +76,9 @@ export const getScreenshotInputSettings = (
   gamepadCombo: normalizeScreenshotGamepadCombo(
     preferences?.screenshotGamepadCombo
   ),
+  listenOutsideGames:
+    SUPPORTS_LISTENING_OUTSIDE_GAMES &&
+    (preferences?.screenshotListenOutsideGames ?? true),
 });
 
 export const toScreenshotInputNativeConfig = (
@@ -219,7 +223,7 @@ export class ScreenshotInputService {
       });
       return false;
     }
-    if (!LISTENS_WITHOUT_TRACKED_GAME && !hasTrackedGamesRunning()) {
+    if (!this.settings.listenOutsideGames && !hasTrackedGamesRunning()) {
       logger.debug("Screenshot trigger ignored: no tracked game running", {
         source,
       });
@@ -359,7 +363,7 @@ export class ScreenshotInputService {
       !this.shuttingDown &&
       this.featureEnabled &&
       this.settings.enabled &&
-      (LISTENS_WITHOUT_TRACKED_GAME || this.gamesRunning)
+      (this.settings.listenOutsideGames || this.gamesRunning)
     );
   }
 

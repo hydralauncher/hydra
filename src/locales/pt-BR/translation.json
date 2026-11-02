@@ -1955,6 +1955,8 @@
     "screenshots_input_unavailable": "O atalho de teclado não está disponível neste sistema",
     "screenshots_upload_group": "Envios",
     "screenshots_toast": "Mostrar uma notificação com prévia",
+    "screenshots_listen_outside_games": "Escutar o atalho quando nenhum jogo for detectado",
+    "screenshots_listen_outside_games_warning": "Se você desativar, o Hydra não poderá avisar quando não reconhecer seu jogo. O atalho não fará nada.",
     "screenshots_gamepad_add": "Adicionar um botão",
     "screenshots_gamepad_remove": "Remover este botão",
     "screenshots_gamepad_duplicate": "Cada botão só pode ser usado uma vez",

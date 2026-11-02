@@ -24,6 +24,7 @@ export interface ResolvedScreenshotPreferences {
   gamepadCombo: ScreenshotGamepadButton[];
   captureSoundEnabled: boolean;
   toastEnabled: boolean;
+  listenOutsideGames: boolean;
   defaultVisibility: ProfileVisibility;
   showSensitive: boolean;
 }
@@ -39,6 +40,7 @@ export const resolveScreenshotPreferences = (
   ),
   captureSoundEnabled: preferences?.screenshotCaptureSoundEnabled ?? true,
   toastEnabled: preferences?.screenshotToastEnabled ?? true,
+  listenOutsideGames: preferences?.screenshotListenOutsideGames ?? true,
   defaultVisibility: preferences?.screenshotDefaultVisibility ?? "PUBLIC",
   showSensitive: preferences?.showSensitiveScreenshots ?? false,
 });
