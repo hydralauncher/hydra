@@ -5,20 +5,13 @@ import {
   type LeaderboardUser,
 } from "../game-details/leaderboard/game-leaderboard.js";
 import { buildLeaderboardBoardPath } from "../../../../shared/leaderboard-notifications.js";
+import type { CatalogueImages } from "@types";
 
 export const GLOBAL_LEADERBOARD_TAKE = 100;
 export const GLOBAL_LEADERBOARD_PAGE_SIZE = 13;
 export const GLOBAL_LEADERBOARD_PAGE_STEP = 10;
 export const GLOBAL_LEADERBOARD_PODIUM_SIZE = 3;
 export const PLAY_ACTIVITY_WEEKS = 53;
-// Board sizes are shown as "10,000+" past this, so a big all-time board does
-// not print a huge number next to the rank.
-export const BOARD_TOTAL_CAP = 10_000;
-
-export const formatBoardTotal = (
-  total: number,
-  format: (value: number) => string
-) => (total >= BOARD_TOTAL_CAP ? `${format(BOARD_TOTAL_CAP)}+` : format(total));
 // Older backends cap play activity at 26 weeks and answer 400 above it.
 export const PLAY_ACTIVITY_FALLBACK_WEEKS = 26;
 // A month label needs about two columns, so labels closer than this to the
@@ -164,6 +157,7 @@ export interface LeaderboardBadge {
   scope: GlobalLeaderboardScope;
   gameTitle: string | null;
   coverImageUrl: string | null;
+  images: CatalogueImages;
   value: number;
   week: number | null;
   currentRank: number | null;
@@ -772,6 +766,30 @@ const normalizeBadgeTarget = (
   return value ? { kind: source.kind, value } : null;
 };
 
+const normalizeCatalogueImages = (value: unknown): CatalogueImages => {
+  if (!isRecord(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([url, variants]) =>
+      isRecord(variants) &&
+      typeof variants.base === "string" &&
+      Array.isArray(variants.widths) &&
+      variants.widths.every((width) => typeof width === "number")
+        ? [
+            [
+              url,
+              {
+                base: variants.base,
+                widths: variants.widths as number[],
+                thumbHash: toStringOrNull(variants.thumbHash),
+              },
+            ],
+          ]
+        : []
+    )
+  );
+};
+
 export const normalizeBadges = (response: unknown): LeaderboardBadges => {
   if (!isRecord(response) || !Array.isArray(response.badges)) {
     throw new TypeError("Invalid badges response");
@@ -800,6 +818,7 @@ export const normalizeBadges = (response: unknown): LeaderboardBadges => {
         scope: item.scope === "friends" ? "friends" : "global",
         gameTitle: toStringOrNull(item.gameTitle),
         coverImageUrl: toStringOrNull(item.coverImageUrl),
+        images: normalizeCatalogueImages(item.images),
         value: isTopBadgeKind(item.kind)
           ? toBadgeThreshold(item)
           : toNonNegativeNumber(item.value),
