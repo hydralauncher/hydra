@@ -238,7 +238,7 @@ export function AchievementNotification() {
     const unsubscribe = window.electron.onStartAchievementNotification(
       (requestId) => {
         const request = requestRef.current;
-        if (!request || request.id !== requestId) return;
+        if (request?.id !== requestId) return;
 
         clearAnimationTimers();
 
@@ -269,14 +269,23 @@ export function AchievementNotification() {
     return () => unsubscribe();
   }, [clearAnimationTimers, playAudio, scheduleClosing]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (phase !== "playing" || !isArming) return;
+
+    const card = shadowRootRef?.querySelector(".achievement-notification");
+    const animations = card?.getAnimations({ subtree: true }) ?? [];
+
+    for (const animation of animations) {
+      animation.pause();
+      animation.currentTime = 0;
+    }
 
     let firstFrame = 0;
     let secondFrame = 0;
 
     firstFrame = window.requestAnimationFrame(() => {
       secondFrame = window.requestAnimationFrame(() => {
+        for (const animation of animations) animation.play();
         setIsArming(false);
       });
     });
@@ -285,7 +294,7 @@ export function AchievementNotification() {
       window.cancelAnimationFrame(firstFrame);
       window.cancelAnimationFrame(secondFrame);
     };
-  }, [isArming, phase]);
+  }, [isArming, phase, shadowRootRef]);
 
   useEffect(() => {
     return () => {
@@ -305,7 +314,6 @@ export function AchievementNotification() {
           (phase === "playing" || phase === "closing") && (
             <AchievementNotificationItem
               achievement={achievement}
-              isArming={phase === "playing" && isArming}
               isClosing={phase === "closing"}
               position={request.position}
             />
