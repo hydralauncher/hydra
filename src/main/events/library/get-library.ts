@@ -95,6 +95,18 @@ const resolveInstallerSize = (
 const resolveExecutable = async (key: string, game: Game) => {
   const { executablePath } = game;
 
+  // Epic-managed installs are reconciled by the Epic flow (installed.json and
+  // epicInstallation). Clearing only the executable here would leave an
+  // installation without an executable, so leave them alone.
+  if (game.epicInstallation) {
+    return {
+      executablePath,
+      executablePathUpdatedAt: game.executablePathUpdatedAt,
+      automaticCloudSync: game.automaticCloudSync,
+      installedSizeInBytes: game.installedSizeInBytes,
+    };
+  }
+
   if (!executablePath || !(await isPathDeleted(executablePath))) {
     return {
       executablePath,
