@@ -20,8 +20,6 @@ const depthOf = (target: string) =>
   target.split(path.sep).filter(Boolean).length;
 
 // True only when target is gone while the drive it lived on is still there.
-// An unplugged drive or offline share fails the same way a deleted file does
-// so those are not treated as deleted.
 export const isPathDeleted = async (target: string): Promise<boolean> => {
   try {
     await fs.promises.access(target);
@@ -36,13 +34,11 @@ export const isPathDeleted = async (target: string): Promise<boolean> => {
   // Windows: an offline drive or share has no reachable root (E:\, \\server\share\).
   if (!(await exists(path.parse(resolved).root))) return false;
 
-  // macOS/Linux: the mount point of an unplugged drive is either gone or an
-  // empty folder. If the closest folder that still exists is the volume itself
-  // (or above it, the drive is missing, not the file.
   const volumeDepth = REMOVABLE_VOLUME_ROOTS.find(
     ([root]) => resolved === root || resolved.startsWith(root + path.sep)
   )?.[1];
 
+  // If it's not in a recognized removable volume path, treat as deleted.
   if (volumeDepth === undefined) return true;
 
   let ancestor = path.dirname(resolved);
@@ -50,5 +46,26 @@ export const isPathDeleted = async (target: string): Promise<boolean> => {
     ancestor = path.dirname(ancestor);
   }
 
-  return depthOf(ancestor) > volumeDepth;
+  const ancestorDepth = depthOf(ancestor);
+
+  if (ancestorDepth > volumeDepth) {
+    // The closest existing parent is a folder inside the volume. File is deleted.
+    return true;
+  }
+
+  if (ancestorDepth === volumeDepth) {
+    // The closest existing parent IS the volume root (e.g., /mnt/disk).
+    // Check if the volume root is empty. An empty directory means the drive is offline.
+    try {
+      const entries = await fs.promises.readdir(ancestor);
+      if (entries.length === 0) {
+        return false; // Drive is offline/unmounted, do not treat file as deleted.
+      }
+    } catch {
+      return false; // Cannot read directory, assume offline.
+    }
+    return true; // Volume has files, so the file was truly deleted.
+  }
+
+  return false;
 };
