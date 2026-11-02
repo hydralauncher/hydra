@@ -17,6 +17,9 @@ export const SCREENSHOT_VISIBILITY_OPTIONS: ProfileVisibility[] = [
 
 export const SCREENSHOT_CUSTOM_GAME_TITLE_MAX_LENGTH = 100;
 
+export const HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID =
+  "hide-community-screenshots";
+
 export interface ResolvedScreenshotPreferences {
   enabled: boolean;
   hotkey: ScreenshotHotkeyBinding;
@@ -27,6 +30,7 @@ export interface ResolvedScreenshotPreferences {
   listenOutsideGames: boolean;
   defaultVisibility: ProfileVisibility;
   showSensitive: boolean;
+  hideCommunity: boolean;
 }
 
 export const resolveScreenshotPreferences = (
@@ -43,6 +47,7 @@ export const resolveScreenshotPreferences = (
   listenOutsideGames: preferences?.screenshotListenOutsideGames ?? true,
   defaultVisibility: preferences?.screenshotDefaultVisibility ?? "PUBLIC",
   showSensitive: preferences?.showSensitiveScreenshots ?? false,
+  hideCommunity: preferences?.hideCommunityScreenshots ?? false,
 });
 
 export const formatScreenshotHotkeyKey = (key: string) =>

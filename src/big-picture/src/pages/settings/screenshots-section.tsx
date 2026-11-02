@@ -70,6 +70,7 @@ export const SCREENSHOT_SETTINGS_FOCUS_IDS = {
   toast: "screenshot-settings-toast",
   listenOutsideGames: "screenshot-settings-listen-outside-games",
   defaultVisibility: "screenshot-settings-default-visibility",
+  hideCommunity: "screenshot-settings-hide-community",
   folder: "screenshot-settings-folder",
   folderReset: "screenshot-settings-folder-reset",
   folderOpen: "screenshot-settings-folder-open",
@@ -102,6 +103,7 @@ type ScreenshotPreferenceUpdate = Pick<
   | "screenshotToastEnabled"
   | "screenshotListenOutsideGames"
   | "screenshotDefaultVisibility"
+  | "hideCommunityScreenshots"
 >;
 
 function withoutPreferenceKeys(
@@ -400,6 +402,7 @@ function buildScreenshotSettingsRows(options: ScreenshotSettingsRowsOptions) {
     [ids.toast],
     [ids.listenOutsideGames],
     [ids.defaultVisibility],
+    [ids.hideCommunity],
     folderRow,
   ]
     .map((row) => row.filter((focusId) => !inactiveIds.has(focusId)))
@@ -839,6 +842,15 @@ export function ScreenshotSettingsSection({
               void update({ screenshotDefaultVisibility })
             }
           />
+
+          {renderCheckbox(
+            ids.hideCommunity,
+            t("screenshots_settings_hide_community"),
+            preferences.hideCommunity,
+            (hideCommunityScreenshots) =>
+              void update({ hideCommunityScreenshots }),
+            false
+          )}
 
           <div className="screenshot-settings__row">
             <span className="screenshot-settings__label">

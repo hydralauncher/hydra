@@ -274,6 +274,7 @@ export interface UserPreferences {
   screenshotListenOutsideGames?: boolean;
   screenshotDefaultVisibility?: ProfileVisibility;
   showSensitiveScreenshots?: boolean;
+  hideCommunityScreenshots?: boolean;
 }
 
 export interface NetworkInterface {
