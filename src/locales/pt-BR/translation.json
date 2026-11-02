@@ -2933,6 +2933,7 @@
     "in_collection": "Na sua coleção",
     "kind_animated": "Moldura animada",
     "kind_simple": "Moldura",
+    "modal_title": "{{kind}} {{name}}",
     "price_short": "{{price}} · faltam {{missing}}",
     "frame_hint": "Aparece em volta do seu avatar em todo o Hydra",
     "price": "Preço",

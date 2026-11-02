@@ -2924,6 +2924,7 @@
     "in_collection": "In your collection",
     "kind_animated": "Animated frame",
     "kind_simple": "Frame",
+    "modal_title": "{{kind}} {{name}}",
     "price_short": "{{price}} · {{missing}} short",
     "frame_hint": "Shows around your avatar across Hydra",
     "price": "Price",
