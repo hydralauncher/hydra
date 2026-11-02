@@ -1,0 +1,126 @@
+.power-menu-backdrop,
+.power-menu-confirmation-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  backdrop-filter: blur(12px);
+}
+
+.power-menu-confirmation-backdrop {
+  z-index: 121;
+
+  .confirmation-modal__actions .button {
+    min-height: 36px;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+}
+
+.power-menu,
+.power-menu-confirmation-backdrop .confirmation-modal {
+  width: min(420px, calc(100vw - calc(var(--spacing-unit) * 8)));
+  background: var(--surface);
+  border: 1px solid var(--secondary-border);
+  border-radius: 16px;
+
+  .modal__header {
+    padding: 24px 24px 16px;
+  }
+
+  .modal__header-title {
+    opacity: 1;
+    font-size: 22px;
+    font-weight: 500;
+  }
+
+  .modal__header-description {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .modal__divider {
+    display: none;
+  }
+
+  .modal__content {
+    padding: 4px 16px 16px;
+  }
+}
+
+.power-menu {
+  --power-menu-option-transition-duration: 150ms;
+
+  &__options {
+    width: 100%;
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 60px;
+    padding: 8px 12px;
+    gap: 12px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    transition:
+      background-color var(--power-menu-option-transition-duration) ease,
+      color var(--power-menu-option-transition-duration) ease;
+
+    &:hover {
+      background: var(--secondary-hover);
+    }
+
+    &:focus-visible,
+    &[data-focus-visible="true"] {
+      outline: 1px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    background: color-mix(in srgb, currentColor 6%, transparent);
+  }
+
+  &__option[data-danger="true"] &__icon {
+    color: var(--error);
+  }
+
+  &__copy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__label {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  &__subtitle {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+  }
+
+  &__chevron {
+    flex-shrink: 0;
+    opacity: 0.5;
+  }
+}

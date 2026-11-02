@@ -1,13 +1,16 @@
 import { useTranslation } from "react-i18next";
 import { Button, Modal, TextField } from "@renderer/components";
 import type { Game } from "@types";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
+import { Tooltip } from "react-tooltip";
 import { AlertIcon } from "@primer/octicons-react";
+import { PlaytimeBreakdownTable } from "./playtime-breakdown-table";
 import "./change-game-playtime-modal.scss";
 
 export interface ChangeGamePlaytimeModalProps {
   visible: boolean;
   game: Game;
+  playtimePreview?: Game | null;
   onClose: () => void;
   changePlaytime: (playTimeInSeconds: number) => Promise<void>;
   onSuccess?: (message: string) => void;
@@ -17,6 +20,7 @@ export interface ChangeGamePlaytimeModalProps {
 export function ChangeGamePlaytimeModal({
   onClose,
   game,
+  playtimePreview,
   visible,
   changePlaytime,
   onSuccess,
@@ -107,6 +111,18 @@ export function ChangeGamePlaytimeModal({
   };
 
   const isValid = hours !== "" || minutes !== "";
+  const tooltipId = useId();
+  const isUnchanged =
+    (Number.parseInt(hours) || 0) * 60 + (Number.parseInt(minutes) || 0) ===
+    Math.floor((game.playTimeInMilliseconds ?? 0) / 60_000);
+  const preview = playtimePreview ?? game;
+  const steamPlayTimeInMilliseconds = preview.steamPlayTimeInMilliseconds ?? 0;
+  const otherHydraPlayTimeInMilliseconds = Math.max(
+    0,
+    preview.playTimeInMilliseconds - game.playTimeInMilliseconds
+  );
+  const nextHydraPlayTimeInMilliseconds =
+    ((parseInt(hours) || 0) * 3600 + (parseInt(minutes) || 0) * 60) * 1000;
 
   return (
     <Modal
@@ -114,7 +130,7 @@ export function ChangeGamePlaytimeModal({
       onClose={onClose}
       title={t("update_playtime_title")}
       description={t("update_playtime_description", {
-        game: game.title,
+        game: preview.title,
       })}
     >
       <div className="change-game-playtime-modal__content">
@@ -148,18 +164,40 @@ export function ChangeGamePlaytimeModal({
           />
         </div>
 
+        {steamPlayTimeInMilliseconds > 0 ||
+        (preview.epicPlayTimeInMilliseconds ?? 0) > 0 ||
+        otherHydraPlayTimeInMilliseconds > 0 ? (
+          <PlaytimeBreakdownTable
+            hydraPlayTimeInMilliseconds={preview.playTimeInMilliseconds ?? 0}
+            nextHydraPlayTimeInMilliseconds={
+              otherHydraPlayTimeInMilliseconds + nextHydraPlayTimeInMilliseconds
+            }
+            steamPlayTimeInMilliseconds={steamPlayTimeInMilliseconds}
+            epicPlayTimeInMilliseconds={preview.epicPlayTimeInMilliseconds ?? 0}
+          />
+        ) : null}
+
         <div className="change-game-playtime-modal__actions">
           <Button onClick={onClose} theme="outline">
             {t("cancel")}
           </Button>
 
-          <Button
-            onClick={handleChangePlaytime}
-            theme="primary"
-            disabled={!isValid || isSubmitting}
+          <span
+            className="change-game-playtime-modal__action-tooltip"
+            data-tooltip-id={isUnchanged ? tooltipId : undefined}
+            data-tooltip-content={
+              isUnchanged ? t("update_playtime_unchanged_tooltip") : undefined
+            }
           >
-            {t("update_playtime")}
-          </Button>
+            <Button
+              onClick={handleChangePlaytime}
+              theme="danger"
+              disabled={!isValid || isUnchanged || isSubmitting}
+            >
+              {t("update_playtime")}
+            </Button>
+          </span>
+          {isUnchanged && <Tooltip id={tooltipId} />}
         </div>
       </div>
     </Modal>

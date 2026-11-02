@@ -36,6 +36,7 @@ import {
   retroArchCoreStatusText,
 } from "./retroarch-meta";
 import { formatRelativeShort } from "./relative-time";
+import { SETTINGS_RETROARCH_TAB_STORAGE_KEY } from "@renderer/session-state";
 
 import "./emulator-detail.scss";
 
@@ -47,6 +48,17 @@ interface RetroArchDetailProps {
 }
 
 type RetroArchTab = "emulator" | "rom-folders" | "library";
+
+const RETROARCH_TABS: RetroArchTab[] = ["emulator", "rom-folders", "library"];
+
+const readStoredTab = (): RetroArchTab => {
+  const stored = localStorage.getItem(SETTINGS_RETROARCH_TAB_STORAGE_KEY);
+  return stored && (RETROARCH_TABS as string[]).includes(stored)
+    ? (stored as RetroArchTab)
+    : "emulator";
+};
+
+const RETROARCH_REMOVE_TARGET = { kind: "retroarch" as const };
 
 export function RetroArchDetail({
   config,
@@ -71,7 +83,11 @@ export function RetroArchDetail({
   >({});
   const [installingCores, setInstallingCores] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<RetroArchTab>("emulator");
+  const [activeTab, setActiveTab] = useState<RetroArchTab>(readStoredTab);
+
+  useEffect(() => {
+    localStorage.setItem(SETTINGS_RETROARCH_TAB_STORAGE_KEY, activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,17 +117,29 @@ export function RetroArchDetail({
     return unsubscribe;
   }, []);
 
-  const handleConfirmRemoveEmulator = useCallback(async () => {
-    setBusy(true);
-    try {
-      const next = await window.electron.removeRetroArch();
-      onChange(next);
-      setRemoveOpen(false);
-      onBack();
-    } finally {
-      setBusy(false);
-    }
-  }, [onChange, onBack]);
+  const handleConfirmRemoveEmulator = useCallback(
+    async (gamesToRemove: number) => {
+      setBusy(true);
+      try {
+        const next = await window.electron.removeRetroArch({
+          removeGames: gamesToRemove > 0,
+        });
+        onChange(next);
+        setRemoveOpen(false);
+        showSuccessToast(
+          t("remove_emulator_success", { name: RETROARCH_LABEL }),
+          gamesToRemove > 0
+            ? t("remove_emulator_games_removed", { count: gamesToRemove })
+            : undefined
+        );
+
+        onBack();
+      } finally {
+        setBusy(false);
+      }
+    },
+    [onChange, onBack, showSuccessToast, t]
+  );
 
   const handleRedetect = useCallback(async () => {
     setBusy(true);
@@ -120,7 +148,9 @@ export function RetroArchDetail({
         executablePath: config.executablePath,
         detectedVersion: config.detectedVersion,
       };
-      const next = await window.electron.detectRetroArch();
+      const next = await window.electron.detectRetroArch({
+        includeDriveRoots: true,
+      });
       onChange(next);
       notifyRedetectOutcome(
         next,
@@ -331,19 +361,25 @@ export function RetroArchDetail({
     );
   }, [config.romFolders, start, showErrorToast, t]);
 
+  const lastSettledNonceRef = useRef(scan.settledNonce);
+  useEffect(() => {
+    if (scan.settledNonce === lastSettledNonceRef.current) return;
+    lastSettledNonceRef.current = scan.settledNonce;
+    void refresh();
+    setRomsNonce((n) => n + 1);
+  }, [scan.settledNonce, refresh]);
+
   const lastScanNonceRef = useRef(scan.completedNonce);
   useEffect(() => {
     if (scan.completedNonce === lastScanNonceRef.current) return;
     lastScanNonceRef.current = scan.completedNonce;
-    void refresh();
-    setRomsNonce((n) => n + 1);
     showSuccessToast(
       t("scan_complete_toast", {
         matched: scan.result?.matched ?? 0,
         unmatched: scan.result?.unmatched ?? 0,
       })
     );
-  }, [scan.completedNonce, scan.result, refresh, showSuccessToast, t]);
+  }, [scan.completedNonce, scan.result, showSuccessToast, t]);
 
   const lastScanErrorRef = useRef(scan.error);
   useEffect(() => {
@@ -413,6 +449,8 @@ export function RetroArchDetail({
         onBack={onBack}
         onRescan={handleRescan}
       />
+
+      <RetroArchScanIndicator variant="section" />
 
       <DetailTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
@@ -527,8 +565,6 @@ export function RetroArchDetail({
               </Button>
             </header>
 
-            <RetroArchScanIndicator variant="section" />
-
             <LibraryStatsGrid
               systemLabel={RETROARCH_LABEL}
               totalFiles={config.totalFiles}
@@ -560,6 +596,7 @@ export function RetroArchDetail({
 
       <DetailRemoveModals
         emulatorName={RETROARCH_LABEL}
+        removeTarget={RETROARCH_REMOVE_TARGET}
         folderToRemove={folderToRemove}
         removeEmulatorOpen={removeOpen}
         busy={busy}

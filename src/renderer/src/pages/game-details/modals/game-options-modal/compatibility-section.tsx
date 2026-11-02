@@ -14,6 +14,8 @@ import { Tooltip } from "react-tooltip";
 interface CompatibilitySettingsSectionProps {
   game: LibraryGame;
   displayedWinePrefixPath: string | null;
+  winePrefixPlaceholder?: string;
+  effectiveProtonName?: string | null;
   protonVersions: ProtonVersion[];
   selectedProtonPath: string;
   autoRunGamemode: boolean;
@@ -36,6 +38,8 @@ interface CompatibilitySettingsSectionProps {
 export function CompatibilitySettingsSection({
   game,
   displayedWinePrefixPath,
+  winePrefixPlaceholder,
+  effectiveProtonName,
   protonVersions,
   selectedProtonPath,
   autoRunGamemode,
@@ -110,7 +114,7 @@ export function CompatibilitySettingsSection({
           readOnly
           theme="dark"
           disabled
-          placeholder={t("no_directory_selected")}
+          placeholder={winePrefixPlaceholder ?? t("no_directory_selected")}
           rightContent={
             <>
               <Button
@@ -270,7 +274,7 @@ export function CompatibilitySettingsSection({
           onChange={onChangeProtonVersion}
           radioName={`proton-version-${game.objectId}`}
           autoLabel={protonVersionAutoLabel}
-          autoSourceDescription={protonSourceUmuDefault}
+          autoSourceDescription={effectiveProtonName ?? protonSourceUmuDefault}
           steamSourceDescription={protonSourceSteam}
           compatibilityToolsSourceDescription={protonSourceCompatibilityTools}
         />

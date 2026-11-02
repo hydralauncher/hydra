@@ -688,28 +688,9 @@
     }
   }
 
+  // Look comes from the shared small Button.
   &__memcard-backup-all {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: transparent;
-    border: 1px solid #1c1c1c;
-    border-radius: 8px;
-    color: #c0c1c7;
-    cursor: pointer;
-    padding: 6px 12px;
-    font-size: 12px;
     flex-shrink: 0;
-
-    &:hover {
-      color: #fafafa;
-      border-color: #2a2a2a;
-    }
-
-    &:disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
   }
 
   &__pagination {
@@ -810,6 +791,10 @@
     justify-content: flex-end;
     gap: 16px;
     overflow: visible;
+  }
+
+  &__cloud-card--with-platform {
+    height: 178px;
   }
 
   &__cloud-card-top {
@@ -1105,6 +1090,16 @@
     }
   }
 
+  &__config-root-select {
+    flex: 1;
+    min-width: 240px;
+
+    .select-field,
+    .select-field__option {
+      width: 100%;
+    }
+  }
+
   &__remove-emulator {
     align-self: flex-start;
     display: inline-flex;
@@ -1147,6 +1142,20 @@
     min-width: 0;
     flex-shrink: 0;
     max-width: 70%;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+
+    &:hover .emulator-detail__rom-title,
+    &:focus-visible .emulator-detail__rom-title {
+      opacity: 1;
+      text-decoration: underline;
+    }
   }
 
   &__rom-cover {
@@ -1155,9 +1164,6 @@
     flex-shrink: 0;
     border-radius: 4px;
     overflow: hidden;
-    background: #050505;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
     img {
       width: 100%;

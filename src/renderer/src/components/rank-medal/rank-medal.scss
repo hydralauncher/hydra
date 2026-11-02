@@ -1,0 +1,199 @@
+@use "sass:math";
+@use "../../scss/globals.scss";
+
+$medal-shine-duration: 3.6s;
+$medal-shine-stagger: 0.35s;
+$medal-shine-travel: 32px;
+$frame-spin-duration: 4.5s;
+$frame-spin-offset: math.div($frame-spin-duration, 3);
+$frame-border-width: 1.5px;
+$frame-spinner-overscan: 64px;
+
+.rank-medal {
+  --rank-medal-color: var(--rank-gold-color, #{globals.$rank-gold-color});
+  --rank-medal-ribbon: var(--rank-gold-ribbon, #{globals.$rank-gold-ribbon});
+
+  position: relative;
+  display: inline-block;
+  width: 24px;
+  height: 26px;
+  flex-shrink: 0;
+
+  &--silver {
+    --rank-medal-color: var(--rank-silver-color, #{globals.$rank-silver-color});
+    --rank-medal-ribbon: var(
+      --rank-silver-ribbon,
+      #{globals.$rank-silver-ribbon}
+    );
+  }
+
+  &--bronze {
+    --rank-medal-color: var(--rank-bronze-color, #{globals.$rank-bronze-color});
+    --rank-medal-ribbon: var(
+      --rank-bronze-ribbon,
+      #{globals.$rank-bronze-ribbon}
+    );
+  }
+
+  &__icon {
+    position: relative;
+    display: block;
+    filter: drop-shadow(
+      0 0 4px color-mix(in srgb, var(--rank-medal-color) 45%, transparent)
+    );
+  }
+
+  &__ribbon {
+    fill: var(--rank-medal-ribbon);
+  }
+
+  &__disc {
+    fill: var(--rank-medal-color);
+  }
+
+  &__rim {
+    fill: none;
+    stroke: rgba(0, 0, 0, 0.22);
+    stroke-width: 1;
+  }
+
+  &__rank {
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    fill: globals.$dark-background-color;
+  }
+
+  &__shine {
+    position: absolute;
+    top: 9px;
+    left: 4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    overflow: hidden;
+    pointer-events: none;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: -4px;
+      bottom: -4px;
+      left: -10px;
+      width: 6px;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0.85),
+        rgba(255, 255, 255, 0)
+      );
+      transform: translateX(0) rotate(20deg);
+      animation: rank-medal-shine $medal-shine-duration ease-in-out infinite;
+      animation-delay: var(--rank-medal-delay, #{$medal-shine-stagger});
+    }
+  }
+
+  &__number {
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(
+      --rank-number-color,
+      color-mix(in srgb, currentColor 55%, transparent)
+    );
+
+    &--top10 {
+      font-weight: 800;
+      color: var(--rank-top10-color, currentColor);
+    }
+
+    &--highlighted {
+      color: var(--rank-top10-color, currentColor);
+    }
+  }
+}
+
+.rank-frame {
+  --rank-frame-color: var(--rank-gold-color, #{globals.$rank-gold-color});
+  --rank-frame-soft-amount: 40%;
+  --rank-frame-delay: 0s;
+
+  position: relative;
+
+  // A negative delay runs ahead, so the highlight reaches the same spot later
+  // the closer the offset is to a full turn: silver trails gold by one third of
+  // a turn and bronze by two thirds, giving 1st -> 2nd -> 3rd.
+  &--silver {
+    --rank-frame-color: var(--rank-silver-color, #{globals.$rank-silver-color});
+    --rank-frame-soft-amount: 34%;
+    --rank-frame-delay: #{$frame-spin-offset * -2};
+  }
+
+  &--bronze {
+    --rank-frame-color: var(--rank-bronze-color, #{globals.$rank-bronze-color});
+    --rank-frame-soft-amount: 42%;
+    --rank-frame-delay: #{$frame-spin-offset * -1};
+  }
+
+  &__ring {
+    position: absolute;
+    inset: 0;
+    padding: $frame-border-width;
+    border-radius: inherit;
+    overflow: hidden;
+    pointer-events: none;
+    background-color: color-mix(
+      in srgb,
+      var(--rank-frame-color) var(--rank-frame-soft-amount),
+      transparent
+    );
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+  }
+
+  &__spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: calc(100% + #{$frame-spinner-overscan});
+    aspect-ratio: 1;
+    background: conic-gradient(
+      transparent 0deg,
+      transparent 190deg,
+      var(--rank-frame-color) 290deg,
+      var(--rank-frame-highlight, #fff) 315deg,
+      var(--rank-frame-color) 335deg,
+      transparent 360deg
+    );
+    transform: translate(-50%, -50%) rotate(0deg);
+    animation: rank-frame-spin $frame-spin-duration linear infinite;
+    animation-delay: var(--rank-frame-delay);
+  }
+}
+
+@keyframes rank-frame-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes rank-medal-shine {
+  0%,
+  62% {
+    transform: translateX(0) rotate(20deg);
+  }
+
+  82%,
+  100% {
+    transform: translateX($medal-shine-travel) rotate(20deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-medal__shine::before,
+  .rank-frame__spinner {
+    animation: none;
+  }
+}

@@ -12,6 +12,8 @@ import { addTrailingSlash, normalizePath } from "@main/helpers";
 import { SystemPath } from "@main/services/system-path";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { requestGameArtifactDownload } from "./game-artifact-download";
+import { pipeline } from "node:stream/promises";
+import { runWithHydraSaveGuard } from "@main/services/epic/cloud-saves";
 
 export const transformLudusaviBackupPathIntoWindowsPath = (
   backupPath: string,
@@ -97,52 +99,45 @@ const downloadGameArtifact = async (
   shop: GameShop,
   gameArtifactId: string
 ) => {
-  try {
-    const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
-    const effectiveWinePrefixPath = Wine.getEffectivePrefixPath(
-      game?.winePrefixPath,
-      objectId
-    );
+  return runWithHydraSaveGuard(async () => {
+    try {
+      const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
+      const effectiveWinePrefixPath = Wine.getEffectivePrefixPath(
+        game?.winePrefixPath,
+        objectId
+      );
 
-    const {
-      downloadUrl,
-      objectKey,
-      homeDir,
-      winePrefixPath: artifactWinePrefixPath,
-    } = await requestGameArtifactDownload(gameArtifactId);
+      const {
+        downloadUrl,
+        objectKey,
+        homeDir,
+        winePrefixPath: artifactWinePrefixPath,
+      } = await requestGameArtifactDownload(gameArtifactId);
 
-    const zipLocation = path.join(SystemPath.getPath("userData"), objectKey);
-    const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
+      const zipLocation = path.join(SystemPath.getPath("userData"), objectKey);
+      const backupPath = path.join(backupsPath, `${shop}-${objectId}`);
 
-    if (fs.existsSync(backupPath)) {
-      fs.rmSync(backupPath, {
-        recursive: true,
-        force: true,
+      if (fs.existsSync(backupPath)) {
+        fs.rmSync(backupPath, {
+          recursive: true,
+          force: true,
+        });
+      }
+
+      const response = await axios.get(downloadUrl, {
+        responseType: "stream",
+        onDownloadProgress: (progressEvent) => {
+          WindowManager.sendToAppWindows(
+            `on-backup-download-progress-${objectId}-${shop}`,
+            progressEvent
+          );
+        },
       });
-    }
 
-    const response = await axios.get(downloadUrl, {
-      responseType: "stream",
-      onDownloadProgress: (progressEvent) => {
-        WindowManager.sendToAppWindows(
-          `on-backup-download-progress-${objectId}-${shop}`,
-          progressEvent
-        );
-      },
-    });
+      const writer = fs.createWriteStream(zipLocation);
 
-    const writer = fs.createWriteStream(zipLocation);
-
-    response.data.pipe(writer);
-
-    writer.on("error", (err) => {
-      logger.error("Failed to write tar file", err);
-      throw err;
-    });
-
-    fs.mkdirSync(backupPath, { recursive: true });
-
-    writer.on("close", async () => {
+      fs.mkdirSync(backupPath, { recursive: true });
+      await pipeline(response.data, writer);
       await tar.x({
         file: zipLocation,
         cwd: backupPath,
@@ -160,15 +155,15 @@ const downloadGameArtifact = async (
         `on-backup-download-complete-${objectId}-${shop}`,
         true
       );
-    });
-  } catch (err) {
-    logger.error("Failed to download game artifact", err);
+    } catch (err) {
+      logger.error("Failed to download game artifact", err);
 
-    WindowManager.sendToAppWindows(
-      `on-backup-download-complete-${objectId}-${shop}`,
-      false
-    );
-  }
+      WindowManager.sendToAppWindows(
+        `on-backup-download-complete-${objectId}-${shop}`,
+        false
+      );
+    }
+  });
 };
 
 registerEvent("downloadGameArtifact", downloadGameArtifact);

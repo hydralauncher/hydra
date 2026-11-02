@@ -1,3 +1,4 @@
+import { applyLibraryGroupAction, getLibraryGameMembers } from "@shared";
 import type { LibraryGame } from "@types";
 import { useCallback, useState } from "react";
 import { IS_DESKTOP } from "../../../constants";
@@ -24,8 +25,14 @@ export function useLibraryFavorite(updateLibrary: () => Promise<void>) {
           ? globalThis.window.electron.removeGameFromFavorites
           : globalThis.window.electron.addGameToFavorites;
 
-        await toggle(game.shop, game.objectId);
-        await updateLibrary();
+        const members = getLibraryGameMembers(game);
+        try {
+          await applyLibraryGroupAction(members, (member) =>
+            toggle(member.shop, member.objectId)
+          );
+        } finally {
+          await updateLibrary();
+        }
         globalThis.window.dispatchEvent(new Event("library-update"));
         const { title, ...toastOptions } = await buildFavoriteToastOptions(
           game,

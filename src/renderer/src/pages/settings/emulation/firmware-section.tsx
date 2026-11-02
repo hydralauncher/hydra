@@ -21,6 +21,7 @@ export function FirmwareSection({
   const { t, i18n } = useTranslation("settings");
   const { showSuccessToast, showErrorToast } = useToast();
   const [installed, setInstalled] = useState<boolean | null>(null);
+  const [firmwarePath, setFirmwarePath] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
 
   const probe = useCallback(async () => {
@@ -30,6 +31,7 @@ export function FirmwareSection({
         config.executablePath
       );
       setInstalled(result.installed);
+      setFirmwarePath(result.path);
       return result.installed;
     } finally {
       setChecking(false);
@@ -52,6 +54,16 @@ export function FirmwareSection({
       description={t("firmware_section_description")}
       detected={!!installed}
       statusLabel={installed ? t("setup_firmware_found") : t("not_detected")}
+      path={{
+        text: firmwarePath,
+        placeholder: t("setup_firmware_not_yet"),
+        disabled: !firmwarePath,
+        title: firmwarePath ?? undefined,
+        onClick: () => {
+          if (firmwarePath)
+            void globalThis.window.electron.openFolder(firmwarePath);
+        },
+      }}
       headerAccessory={
         <button
           type="button"

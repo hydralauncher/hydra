@@ -1,0 +1,22 @@
+.controller-button-glyph {
+  position: relative;
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  overflow: clip;
+}
+
+.controller-button-glyph__group {
+  position: absolute;
+  inset: 12.5%;
+}
+
+.controller-button-glyph__image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}

@@ -10,6 +10,14 @@ enum Feature {
   AllDebrid = "ALLDEBRID",
   Nimbus = "NIMBUS",
   NimbusPreview = "NIMBUS_PREVIEW",
+  ChatImages = "CHAT_IMAGES",
+  Screenshots = "SCREENSHOTS",
+  ScreenshotComments = "SCREENSHOT_COMMENTS",
+  GameLeaderboardsExtended = "GAME_LEADERBOARDS_EXTENDED",
+  GlobalLeaderboards = "GLOBAL_LEADERBOARDS",
+  LeaderboardReports = "LEADERBOARD_REPORTS",
+  MultipartHosterDownloads = "MULTIPART_HOSTER_DOWNLOADS",
+  LeaderboardBadges = "LEADERBOARD_BADGES",
 }
 
 const readCachedFeatures = (): string[] => {
@@ -44,6 +52,7 @@ export function useFeature() {
 
   return {
     isFeatureEnabled,
+    isFeaturesLoaded: features !== null,
     Feature,
   };
 }

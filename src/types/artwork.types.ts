@@ -1,3 +1,4 @@
+import type { CatalogueGameIdentity } from "./level.types";
 import type { GameShop } from "./index";
 
 export type ArtworkKind = "grids" | "heroes" | "logos" | "icons";
@@ -36,6 +37,7 @@ export interface ArtworkPage {
 export interface SelectedArtwork {
   url: string;
   artworkId: number;
+  syncedAt?: number;
 }
 
 export interface GameArtworkSelection {
@@ -43,4 +45,14 @@ export interface GameArtworkSelection {
   shop: GameShop;
   selected: Partial<Record<ArtworkAssetType, SelectedArtwork>>;
   updatedAt: number;
+}
+
+/** Select owned artwork independently of the requested catalogue defaults. */
+export interface GameArtworkOptions {
+  artworkIdentity?: CatalogueGameIdentity;
+}
+
+export interface GameAssetsOptions extends GameArtworkOptions {
+  forceFresh?: boolean;
+  cacheOnly?: boolean;
 }

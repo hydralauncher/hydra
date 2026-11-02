@@ -2,6 +2,7 @@ import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ChevronRightIcon } from "@primer/octicons-react";
+import cn from "classnames";
 
 import { gameDetailsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
@@ -9,7 +10,13 @@ import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png"
 
 import "./retro-achievements-connect-banner.scss";
 
-export function RetroAchievementsConnectBanner() {
+interface RetroAchievementsConnectBannerProps {
+  className?: string;
+}
+
+export function RetroAchievementsConnectBanner({
+  className,
+}: Readonly<RetroAchievementsConnectBannerProps>) {
   const { t } = useTranslation("achievement");
   const navigate = useNavigate();
 
@@ -27,7 +34,7 @@ export function RetroAchievementsConnectBanner() {
   return (
     <button
       type="button"
-      className="retro-achievements-connect-banner"
+      className={cn("retro-achievements-connect-banner", className)}
       onClick={() => navigate("/settings?tab=integrations")}
     >
       <img

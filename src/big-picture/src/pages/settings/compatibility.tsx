@@ -1,6 +1,6 @@
 import "./compatibility.scss";
 
-import type { ProtonVersion } from "@types";
+import type { ProtonVersion, UserPreferences } from "@types";
 import {
   type MouseEvent as ReactMouseEvent,
   useCallback,
@@ -60,6 +60,15 @@ const DEFAULT_FORM: CompatibilityForm = {
   autoRunMangohud: false,
 };
 
+const buildForm = (preferences: UserPreferences | null): CompatibilityForm =>
+  preferences
+    ? {
+        defaultProtonPath: preferences.defaultProtonPath ?? "",
+        autoRunGamemode: preferences.autoRunGamemode ?? false,
+        autoRunMangohud: preferences.autoRunMangohud ?? false,
+      }
+    : DEFAULT_FORM;
+
 function getProtonSourceDescription(version: ProtonVersion | null) {
   if (!version) {
     return "Uses the default UMU-managed Proton version.";
@@ -80,7 +89,9 @@ export function CompatibilitySettingsSection({
 }: Readonly<SettingsSectionProps>) {
   const userPreferences = useUserPreferences();
   const { showSuccessToast } = useBigPictureToast();
-  const [form, setForm] = useState<CompatibilityForm>(DEFAULT_FORM);
+  const [form, setForm] = useState<CompatibilityForm>(() =>
+    buildForm(userPreferences)
+  );
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
@@ -101,11 +112,7 @@ export function CompatibilitySettingsSection({
   useEffect(() => {
     if (!userPreferences) return;
 
-    setForm({
-      defaultProtonPath: userPreferences.defaultProtonPath ?? "",
-      autoRunGamemode: userPreferences.autoRunGamemode ?? false,
-      autoRunMangohud: userPreferences.autoRunMangohud ?? false,
-    });
+    setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
   useEffect(() => {

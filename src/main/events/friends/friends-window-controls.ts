@@ -8,3 +8,7 @@ ipcMain.handle("minimizeFriendsWindow", () => {
 ipcMain.handle("closeFriendsWindow", () => {
   WindowManager.closeFriendsWindow();
 });
+
+ipcMain.handle("friendsWindowReady", (event) => {
+  WindowManager.handleFriendsWindowReady(event.sender);
+});

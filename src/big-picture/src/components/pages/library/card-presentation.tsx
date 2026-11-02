@@ -12,21 +12,35 @@ import {
 } from "@renderer/hooks/use-cover-poster";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
   getGameAchievementProgress,
   resolveImageSource,
 } from "../../../helpers";
-import { useDominantColor, useFormat } from "../../../hooks";
+import {
+  useDominantColor,
+  useFormat,
+  useUserPreferences,
+} from "../../../hooks";
 
 export function useFocusAnimatedCover(
   coverUrl: string | null | undefined,
   isFocused: boolean
 ): string {
+  const userPreferences = useUserPreferences();
+  const autoplay = userPreferences?.autoplayAnimatedArtwork ?? false;
+
   const isAnimated = isAnimatedCoverCandidate(coverUrl);
   const poster = useCoverPoster(coverUrl, isAnimated);
 
-  if (isAnimated && poster && !isFocused) {
+  const shouldHoldFrame = isAnimated && !isFocused && !autoplay;
+
+  if (shouldHoldFrame && poster) {
     return resolveImageSource(poster);
+  }
+
+  if (shouldHoldFrame && poster === undefined) {
+    return "";
   }
 
   return coverUrl ?? "";
@@ -51,6 +65,8 @@ export interface LibraryGameCardPresentationSource {
   libraryImageUrl?: string | null;
   logoImageUrl?: string | null;
   playTimeInMilliseconds?: number | null;
+  steamPlayTimeInMilliseconds?: number | null;
+  epicPlayTimeInMilliseconds?: number | null;
   achievementCount?: number | null;
   unlockedAchievementCount?: number | null;
 }
@@ -59,6 +75,8 @@ const PLATFORM_LABELS: Partial<Record<EmulatorSystem, string>> = {
   ps1: "PS",
   ps2: "PS2",
   ps3: "PS3",
+  psp: "PSP",
+  dolphin: "GC/Wii",
 };
 
 function getResolvedImageSources(
@@ -143,6 +161,9 @@ export function useLibraryGameCardPresentation(
   );
   const dominantColor = useDominantColor(activeImageSource);
   const achievementProgress = getGameAchievementProgress(game);
+  const userPreferences = useUserPreferences();
+  const hideClassicsBadges =
+    userPreferences?.hideLibraryClassicsBadges ?? false;
   const { label: classicsPlatformLabel, icon: classicsEmulatorIcon } =
     resolveClassicsBadge(game.shop, game.platform, PLATFORM_LABELS, {
       emulatorIcons: EMULATOR_ICONS,
@@ -162,17 +183,20 @@ export function useLibraryGameCardPresentation(
   };
 
   return {
+    userPreferences,
     activeImageSource,
     isChosenCoverActive,
     achievementProgress,
     classicsEmulatorIcon,
-    classicsPlatformLabel,
+    classicsPlatformLabel: hideClassicsBadges ? null : classicsPlatformLabel,
     dominantColor,
     handleCoverImageError,
     logoImageUrl,
-    playtimeLabel: game.playTimeInMilliseconds
+    playtimeLabel: getDisplayedPlayTimeInMilliseconds(game)
       ? t("play_time", {
-          amount: formatPlayTime(game.playTimeInMilliseconds / 1000),
+          amount: formatPlayTime(
+            getDisplayedPlayTimeInMilliseconds(game) / 1000
+          ),
         })
       : t("never_played", { ns: "big_picture" }),
   };

@@ -1,7 +1,10 @@
 import type { GameShop, UserAchievement } from "@types";
 import cn from "classnames";
-import { EyeIcon } from "@phosphor-icons/react/dist/ssr";
+import { EyeClosedIcon, EyeIcon } from "@phosphor-icons/react/dist/ssr";
+import { isAchievementConcealed } from "@shared";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
+import { useUserPreferences } from "../../../../hooks";
 import type { FocusOverrides } from "../../../../services";
 import { getBigPictureGameAchievementsPath } from "../../../../helpers";
 import { FocusItem, Typography } from "../../../common";
@@ -20,6 +23,10 @@ export function AchievementsBox({
   focusNavigationOrder,
 }: Readonly<AchievementsBoxProps>) {
   const { shop, objectId } = useParams<{ shop: GameShop; objectId: string }>();
+  const { t } = useTranslation("achievement");
+  const userPreferences = useUserPreferences();
+  const showHiddenAchievements =
+    userPreferences?.showHiddenAchievementsDescription ?? false;
   const unlockedCount = achievements.filter(
     (achievement) => achievement.unlocked
   ).length;
@@ -48,30 +55,48 @@ export function AchievementsBox({
           </Typography>
         </div>
 
-        {achievements.slice(0, 6).map((achievement) => (
-          <div key={achievement.name} className="game-page__achievement">
-            <img
-              src={achievement.icon}
-              width={56}
-              height={56}
-              className={cn("game-page__achievement-icon", {
-                "game-page__achievement-icon--locked": !achievement.unlocked,
-              })}
-              alt={achievement.displayName}
-              loading="lazy"
-            />
+        {achievements.slice(0, 6).map((achievement) => {
+          const concealed = isAchievementConcealed(
+            achievement,
+            showHiddenAchievements
+          );
 
-            <div className="game-page__achievement-info">
-              <Typography className="game-page__achievement-name">
-                {achievement.displayName}
-              </Typography>
+          return (
+            <div key={achievement.name} className="game-page__achievement">
+              {concealed ? (
+                <div className="game-page__achievement-icon-locked">
+                  <EyeClosedIcon size={24} />
+                </div>
+              ) : (
+                <img
+                  src={achievement.icon}
+                  width={56}
+                  height={56}
+                  className={cn("game-page__achievement-icon", {
+                    "game-page__achievement-icon--locked":
+                      !achievement.unlocked,
+                  })}
+                  alt={achievement.displayName}
+                  loading="lazy"
+                />
+              )}
 
-              <Typography className="game-page__achievement-description">
-                {achievement.description}
-              </Typography>
+              <div className="game-page__achievement-info">
+                <Typography className="game-page__achievement-name">
+                  {concealed
+                    ? t("hidden_achievement")
+                    : achievement.displayName}
+                </Typography>
+
+                {concealed ? null : (
+                  <Typography className="game-page__achievement-description">
+                    {achievement.description}
+                  </Typography>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         <div className="game-page__achievement-view-all">
           <div className="game-page__achievement-icon-locked">

@@ -126,8 +126,8 @@ export const saveSteamGridDbArtwork = async (
   objectId: string,
   assetType: ArtworkAssetType,
   url: string
-): Promise<void> => {
-  if (!canSyncArtwork()) return;
+): Promise<boolean> => {
+  if (!canSyncArtwork()) return false;
 
   try {
     const kind = ARTWORK_KIND_BY_ASSET_TYPE[assetType];
@@ -136,11 +136,15 @@ export const saveSteamGridDbArtwork = async (
       { source: "steamgriddb", url },
       SUBSCRIPTION_OPTIONS
     );
+
+    return true;
   } catch (error) {
     logger.error(
       `Failed to sync SteamGridDB artwork for ${shop}/${objectId}:`,
       error
     );
+
+    return false;
   }
 };
 

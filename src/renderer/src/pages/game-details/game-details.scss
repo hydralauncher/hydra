@@ -41,10 +41,26 @@
     min-height: 100%;
     min-width: 0;
     flex: 1;
-    overflow-x: hidden;
+    overflow: clip;
+    overflow-clip-margin: calc(globals.$spacing-unit * 1.5);
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__description-title {
+    font-size: 20px;
+    font-weight: 600;
+    width: 100%;
+    margin: 0 auto;
+
+    @media (min-width: 1280px) {
+      width: 60%;
+    }
+
+    @media (min-width: 1536px) {
+      width: 50%;
+    }
   }
 
   &__description {
@@ -109,6 +125,10 @@
     .bb_tag {
       margin-top: calc(globals.$spacing-unit * 2);
       margin-bottom: calc(globals.$spacing-unit * 2);
+    }
+
+    .bb_paragraph {
+      min-height: 1lh;
     }
   }
 

@@ -4,7 +4,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 
 export interface TooltipProps {
   children: ReactNode;
-  content: string;
+  content: ReactNode;
   position?: "top" | "bottom" | "left" | "right";
   showArrow?: boolean;
   offset?: number;

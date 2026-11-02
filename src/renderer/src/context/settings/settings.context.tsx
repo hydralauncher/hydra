@@ -6,12 +6,15 @@ import { levelDBService } from "@renderer/services/leveldb.service";
 import type { UserBlocks, UserPreferences } from "@types";
 import { useSearchParams } from "react-router-dom";
 
+import { SETTINGS_CATEGORY_STORAGE_KEY } from "@renderer/session-state";
+
 export type SettingsCategoryId =
   | "general"
   | "downloads"
   | "download_sources"
   | "notifications"
   | "content_gameplay"
+  | "screenshots"
   | "integrations"
   | "compatibility"
   | "account_privacy"
@@ -34,6 +37,7 @@ const isSettingsCategoryId = (value: string): value is SettingsCategoryId => {
     "download_sources",
     "notifications",
     "content_gameplay",
+    "screenshots",
     "integrations",
     "compatibility",
     "account_privacy",
@@ -98,7 +102,10 @@ export function SettingsContextProvider({
     authorName: null,
   });
   const [currentCategoryId, setCurrentCategoryId] =
-    useState<SettingsCategoryId>("general");
+    useState<SettingsCategoryId>(() => {
+      const stored = localStorage.getItem(SETTINGS_CATEGORY_STORAGE_KEY);
+      return stored && isSettingsCategoryId(stored) ? stored : "general";
+    });
   const [blockedUsers, setBlockedUsers] = useState<UserBlocks["blocks"]>([]);
 
   const [searchParams] = useSearchParams();
@@ -107,6 +114,10 @@ export function SettingsContextProvider({
   const defaultAppearanceTheme = searchParams.get("theme");
   const defaultAppearanceAuthorId = searchParams.get("authorId");
   const defaultAppearanceAuthorName = searchParams.get("authorName");
+
+  useEffect(() => {
+    localStorage.setItem(SETTINGS_CATEGORY_STORAGE_KEY, currentCategoryId);
+  }, [currentCategoryId]);
 
   useEffect(() => {
     if (sourceUrl) setCurrentCategoryId("download_sources");

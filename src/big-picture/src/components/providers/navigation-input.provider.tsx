@@ -5,6 +5,10 @@ import {
   NavigationService,
 } from "../../services";
 import {
+  GAMEPAD_REPEAT_INITIAL_DELAY,
+  getGamepadRepeatInterval,
+} from "../../helpers/gamepad-repeat";
+import {
   useNavigationHistoryStore,
   useNavigationStore,
   useInputModeStore,
@@ -27,52 +31,77 @@ interface NavigationInputProviderProps {
   children: ReactNode;
 }
 
+type NavigationKeyDirection = "up" | "down" | "left" | "right";
+
+const resolveKeyboardDirection = (
+  event: KeyboardEvent
+): NavigationKeyDirection | null => {
+  const key = event.key.toLowerCase();
+
+  if (event.key === "ArrowUp" || key === "w") return "up";
+  if (event.key === "ArrowDown" || key === "s") return "down";
+  if (event.key === "ArrowLeft" || key === "a") return "left";
+  if (event.key === "ArrowRight" || key === "d") return "right";
+
+  return null;
+};
+
 type HoldManagedButton = "a" | "b" | "x" | "y" | "start" | "select";
 type HoldSession = {
   isPressed: boolean;
   holdTriggered: boolean;
+  pressDispatched: boolean;
   timerId: number | null;
   releaseTimerId: number | null;
 };
 
+// Y has no hold action anywhere in Big Picture, so its action can fire as soon
+// as the button goes down instead of waiting for the release.
+const PRESS_ON_DOWN_BUTTONS = new Set<HoldManagedButton>(["y"]);
+
 const HOLD_THRESHOLD_MS = 400;
-const HOLD_RELEASE_GRACE_MS = 80;
 
 function createInitialHoldSessions(): Record<HoldManagedButton, HoldSession> {
   return {
     a: {
       isPressed: false,
       holdTriggered: false,
+      pressDispatched: false,
       timerId: null,
       releaseTimerId: null,
     },
     b: {
       isPressed: false,
       holdTriggered: false,
+      pressDispatched: false,
       timerId: null,
       releaseTimerId: null,
     },
     x: {
       isPressed: false,
       holdTriggered: false,
+      pressDispatched: false,
       timerId: null,
       releaseTimerId: null,
     },
     y: {
       isPressed: false,
       holdTriggered: false,
+      pressDispatched: false,
       timerId: null,
       releaseTimerId: null,
     },
     start: {
       isPressed: false,
       holdTriggered: false,
+      pressDispatched: false,
       timerId: null,
       releaseTimerId: null,
     },
     select: {
       isPressed: false,
       holdTriggered: false,
+      pressDispatched: false,
       timerId: null,
       releaseTimerId: null,
     },
@@ -92,6 +121,19 @@ function isEditableElement(element: EventTarget | null) {
     tagName === "select" ||
     element.isContentEditable
   );
+}
+
+function handleEscapeInEditable(event: KeyboardEvent) {
+  if (event.key !== "Escape") return false;
+  if (event.defaultPrevented) return true;
+
+  const activeElement = document.activeElement;
+  if (!(activeElement instanceof HTMLElement)) return false;
+  if (!isEditableElement(activeElement)) return false;
+
+  event.preventDefault();
+  activeElement.blur();
+  return true;
 }
 
 function shouldIgnoreKeyboardNavigation(event: KeyboardEvent) {
@@ -330,47 +372,70 @@ export function NavigationInputProvider({
   }, [isInputActive, resetHoldSessions]);
 
   useEffect(() => {
+    let heldDirection: NavigationKeyDirection | null = null;
+    let repeatTimer: number | null = null;
+
+    const stopRepeat = () => {
+      if (repeatTimer !== null) globalThis.window.clearTimeout(repeatTimer);
+      repeatTimer = null;
+      heldDirection = null;
+    };
+
+    const runDirection = (
+      direction: NavigationKeyDirection,
+      originalEvent: KeyboardEvent | null
+    ) => {
+      if (recoverGamepadFocusOrFallback()) return;
+      if (!triggerScreenDirection(direction, originalEvent)) {
+        moveFocus(direction);
+      }
+    };
+
+    const scheduleRepeat = (
+      direction: NavigationKeyDirection,
+      delay: number
+    ) => {
+      repeatTimer = globalThis.window.setTimeout(() => {
+        if (heldDirection !== direction) return;
+
+        if (
+          !isInputActive ||
+          isSystemSwitcherActiveRef.current ||
+          isEditableElement(document.activeElement)
+        ) {
+          stopRepeat();
+          return;
+        }
+
+        runDirection(direction, null);
+        scheduleRepeat(direction, getGamepadRepeatInterval());
+      }, delay);
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isInputActive || isSystemSwitcherActiveRef.current) {
         return;
       }
+
+      if (handleEscapeInEditable(event)) return;
 
       if (shouldIgnoreKeyboardNavigation(event)) {
         return;
       }
 
       const key = event.key.toLowerCase();
+      const direction = resolveKeyboardDirection(event);
 
-      if (event.key === "ArrowUp" || key === "w") {
+      if (direction) {
         event.preventDefault();
-        if (recoverGamepadFocusOrFallback()) return;
-        if (!triggerScreenDirection("up", event)) {
-          moveFocus("up");
-        }
-      }
 
-      if (event.key === "ArrowLeft" || key === "a") {
-        event.preventDefault();
-        if (recoverGamepadFocusOrFallback()) return;
-        if (!triggerScreenDirection("left", event)) {
-          moveFocus("left");
-        }
-      }
+        if (event.repeat || heldDirection === direction) return;
 
-      if (event.key === "ArrowDown" || key === "s") {
-        event.preventDefault();
-        if (recoverGamepadFocusOrFallback()) return;
-        if (!triggerScreenDirection("down", event)) {
-          moveFocus("down");
-        }
-      }
-
-      if (event.key === "ArrowRight" || key === "d") {
-        event.preventDefault();
-        if (recoverGamepadFocusOrFallback()) return;
-        if (!triggerScreenDirection("right", event)) {
-          moveFocus("right");
-        }
+        stopRepeat();
+        heldDirection = direction;
+        runDirection(direction, event);
+        scheduleRepeat(direction, GAMEPAD_REPEAT_INITIAL_DELAY);
+        return;
       }
 
       const isPrimaryKey =
@@ -389,10 +454,20 @@ export function NavigationInputProvider({
       }
     };
 
+    const handleKeyUp = (event: KeyboardEvent) => {
+      const direction = resolveKeyboardDirection(event);
+      if (direction && heldDirection === direction) stopRepeat();
+    };
+
     globalThis.addEventListener("keydown", handleKeyDown);
+    globalThis.addEventListener("keyup", handleKeyUp);
+    globalThis.addEventListener("blur", stopRepeat);
 
     return () => {
       globalThis.removeEventListener("keydown", handleKeyDown);
+      globalThis.removeEventListener("keyup", handleKeyUp);
+      globalThis.removeEventListener("blur", stopRepeat);
+      stopRepeat();
     };
   }, [
     isInputActive,
@@ -626,10 +701,18 @@ export function NavigationInputProvider({
       if (isPressed && !session.isPressed) {
         session.isPressed = true;
         session.holdTriggered = false;
+        session.pressDispatched = false;
         if (session.releaseTimerId !== null) {
           globalThis.window.clearTimeout(session.releaseTimerId);
           session.releaseTimerId = null;
         }
+
+        if (PRESS_ON_DOWN_BUTTONS.has(button)) {
+          dispatchPress(button);
+          session.pressDispatched = true;
+          return;
+        }
+
         session.timerId = globalThis.window.setTimeout(() => {
           const wasHandled = dispatchHold(button);
 
@@ -655,23 +738,16 @@ export function NavigationInputProvider({
             globalThis.window.clearTimeout(session.timerId);
           }
 
-          if (!session.holdTriggered) {
+          if (!session.holdTriggered && !session.pressDispatched) {
             dispatchPress(button);
           }
 
           session.isPressed = false;
           session.holdTriggered = false;
+          session.pressDispatched = false;
           session.timerId = null;
           session.releaseTimerId = null;
         };
-
-        if (button === "y" && session.releaseTimerId === null) {
-          session.releaseTimerId = globalThis.window.setTimeout(() => {
-            finalizeRelease();
-          }, HOLD_RELEASE_GRACE_MS);
-
-          return;
-        }
 
         finalizeRelease();
       }

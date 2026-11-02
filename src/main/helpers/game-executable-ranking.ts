@@ -48,17 +48,20 @@ const basenameOf = (relativePath: string) => toSegments(relativePath).at(-1);
 export const isRedistributableDirectory = (directoryName: string) =>
   REDIST_DIRECTORIES.has(directoryName.toLowerCase());
 
-export const isRedistributablePath = (relativePath: string) => {
+export const isThirdPartyInstallerPath = (relativePath: string) => {
   const segments = toSegments(relativePath);
   const basename = segments.pop() ?? "";
 
   return (
     REDIST_FILE_PATTERN.test(basename) ||
     SHARED_INSTALLER_PATTERN.test(basename) ||
-    SHARED_RUNTIME_FILES.has(basename) ||
     segments.some((segment) => REDIST_DIRECTORIES.has(segment))
   );
 };
+
+export const isRedistributablePath = (relativePath: string) =>
+  isThirdPartyInstallerPath(relativePath) ||
+  SHARED_RUNTIME_FILES.has(basenameOf(relativePath) ?? "");
 
 const directoryOf = (relativePath: string) => {
   const segments = toSegments(relativePath);

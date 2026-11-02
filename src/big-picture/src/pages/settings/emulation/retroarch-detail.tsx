@@ -144,7 +144,9 @@ export function RetroArchEmulationDetail({
         executablePath: config.executablePath,
         detectedVersion: config.detectedVersion,
       };
-      const next = await globalThis.window.electron.detectRetroArch();
+      const next = await globalThis.window.electron.detectRetroArch({
+        includeDriveRoots: true,
+      });
       onChange(next);
       notifyRedetectOutcomeBP(next, previous, {
         showErrorToast,

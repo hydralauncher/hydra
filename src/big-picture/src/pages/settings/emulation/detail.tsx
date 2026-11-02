@@ -14,6 +14,7 @@ import {
   EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
   EMULATION_DETAIL_REGION_ID,
   EMULATION_DETAIL_RESCAN_BUTTON_ID,
+  EMULATION_DETAIL_RPCS3_ROOT_BROWSE_BUTTON_ID,
   SETTINGS_HEADER_RETURN_TARGET,
   getEmulationRomFolderRemoveFocusId,
 } from "../settings-navigation";
@@ -28,6 +29,7 @@ import {
   RomFoldersSectionBP,
 } from "./detail-sections";
 import { MemoryCardsSection } from "./memory-cards-section";
+import { Rpcs3ConfigRootSection } from "./rpcs3-config-root-section";
 import {
   EMULATOR_ICONS,
   KNOWN_BINARY_LABELS,
@@ -125,6 +127,10 @@ export function EmulationDetail({
         config.system,
         result.filePaths[0]
       );
+      if (!next) {
+        showErrorToast("Invalid emulator executable", SETTINGS_TOAST_OPTIONS);
+        return;
+      }
       onChange(next);
       showSuccessToast("Executable path updated", SETTINGS_TOAST_OPTIONS);
     } catch {
@@ -152,7 +158,8 @@ export function EmulationDetail({
         detectedVersion: config.detectedVersion,
       };
       const next = await globalThis.window.electron.detectEmulator(
-        config.system
+        config.system,
+        { includeDriveRoots: true }
       );
       onChange(next);
       notifyRedetectOutcomeBP(next, previous, {
@@ -328,10 +335,12 @@ export function EmulationDetail({
         onRemove={() => setRemoveEmulatorOpen(true)}
       />
 
-      <p className="emulator-detail__bios-note">
-        <InfoIcon size={14} />
-        <span>{t("bios_note", { name: binaryName })}</span>
-      </p>
+      {(config.system === "ps1" || config.system === "ps2") && (
+        <p className="emulator-detail__bios-note">
+          <InfoIcon size={14} />
+          <span>{t("bios_note", { name: binaryName })}</span>
+        </p>
+      )}
 
       <ExecSection
         icon={binaryIcon ?? null}
@@ -340,7 +349,11 @@ export function EmulationDetail({
         executablePath={config.executablePath}
         executableExists={executableExists}
         isBusy={isBusy}
-        execDownTargetId={EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID}
+        execDownTargetId={
+          config.system === "ps3" && config.executablePath
+            ? EMULATION_DETAIL_RPCS3_ROOT_BROWSE_BUTTON_ID
+            : EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID
+        }
         onBrowse={() => {
           void handleBrowseExecutable();
         }}
@@ -348,6 +361,10 @@ export function EmulationDetail({
           void handleRedetect();
         }}
       />
+
+      {config.system === "ps3" && (
+        <Rpcs3ConfigRootSection config={config} onChange={onChange} />
+      )}
 
       <RomFoldersSectionBP
         folders={config.romFolders}
@@ -389,7 +406,9 @@ export function EmulationDetail({
         }}
       />
 
-      {hasMemoryCardsSection ? (
+      {hasMemoryCardsSection ||
+      config.system === "psp" ||
+      config.system === "dolphin" ? (
         <CloudSavesSection
           config={config}
           refreshKey={cloudRefreshKey}

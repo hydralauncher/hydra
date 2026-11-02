@@ -13,6 +13,7 @@ import {
 } from "../../../common";
 import { useUserPreferences } from "../../../../hooks/use-user-preferences.hook";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
+import { useGameLinuxCompatibility } from "@renderer/hooks/use-game-linux-compatibility";
 
 import "./compatibility-tab.scss";
 
@@ -68,6 +69,8 @@ export function GameCompatibilitySettingsTab({
   const userPreferences = useUserPreferences();
   const electron = globalThis.window
     .electron as unknown as ElectronCompatibilityBridge;
+  const { compatibility, refresh: refreshCompatibility } =
+    useGameLinuxCompatibility(game);
 
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
@@ -138,7 +141,8 @@ export function GameCompatibilitySettingsTab({
         focusId: GAME_COMPATIBILITY_SETTINGS_PROTON_AUTO_ID,
         value: "",
         title: t("proton_version_auto"),
-        description: getProtonSourceDescription(null),
+        description:
+          compatibility?.protonName ?? getProtonSourceDescription(null),
       },
     ];
 
@@ -152,27 +156,39 @@ export function GameCompatibilitySettingsTab({
     }
 
     return options;
-  }, [protonVersions, t, getProtonSourceDescription]);
+  }, [
+    protonVersions,
+    t,
+    getProtonSourceDescription,
+    compatibility?.protonName,
+  ]);
+
+  const displayedWinePrefixPath =
+    winePrefixPath ?? compatibility?.winePrefixPath ?? null;
 
   const handleSelectWinePrefix = useCallback(async () => {
     const defaultPath = await electron.getDefaultWinePrefixSelectionPath();
-    setWinePickerInitialPath(winePrefixPath ?? defaultPath ?? undefined);
+    setWinePickerInitialPath(
+      displayedWinePrefixPath ?? defaultPath ?? undefined
+    );
     setWinePickerOpen(true);
-  }, [electron, winePrefixPath]);
+  }, [electron, displayedWinePrefixPath]);
 
   const handleWinePrefixPicked = useCallback(
     async (path: string) => {
       setWinePickerOpen(false);
       await electron.selectGameWinePrefix(game.shop, game.objectId, path);
       setWinePrefixPath(path);
+      await refreshCompatibility();
     },
-    [electron, game.shop, game.objectId]
+    [electron, game.shop, game.objectId, refreshCompatibility]
   );
 
   const handleClearWinePrefix = useCallback(async () => {
     await electron.selectGameWinePrefix(game.shop, game.objectId, null);
     setWinePrefixPath(null);
-  }, [electron, game.shop, game.objectId]);
+    await refreshCompatibility();
+  }, [electron, game.shop, game.objectId, refreshCompatibility]);
 
   const handleChangeProtonVersion = useCallback(
     async (value: string) => {
@@ -182,8 +198,9 @@ export function GameCompatibilitySettingsTab({
         game.objectId,
         value || null
       );
+      await refreshCompatibility();
     },
-    [electron, game.shop, game.objectId]
+    [electron, game.shop, game.objectId, refreshCompatibility]
   );
 
   const handleToggleGamemode = useCallback(
@@ -243,8 +260,12 @@ export function GameCompatibilitySettingsTab({
             <Input
               focusId={GAME_COMPATIBILITY_SETTINGS_PRIMARY_CONTROL_ID}
               className="game-compatibility-settings-tab__wine-prefix-input"
-              value={winePrefixPath ?? ""}
-              placeholder={t("no_directory_selected")}
+              value={displayedWinePrefixPath ?? ""}
+              placeholder={
+                game.shop === "epic"
+                  ? t("epic_compatibility_automatic")
+                  : t("no_directory_selected")
+              }
               readOnly
             />
 

@@ -1,6 +1,29 @@
-import { darkenColor, ensureArray } from "@renderer/helpers";
+import {
+  appendProfileLibraryFilterParams,
+  darkenColor,
+  ensureArray,
+  getProfileLibraryFilter,
+  readStoredProfilePlatform,
+  readStoredProfileSort,
+  readStoredSouvenirSort,
+  type ProfileLibraryFilter,
+} from "@renderer/helpers";
 import { useAppSelector, useToast } from "@renderer/hooks";
-import type { Badge, UserProfile, UserStats, UserGame } from "@types";
+import type {
+  Badge,
+  ProfileSouvenir,
+  SouvenirsHiddenReason,
+  SouvenirsResponse,
+  SouvenirSort,
+  UserProfile,
+  UserStats,
+  UserGame,
+} from "@types";
+import {
+  buildUserSouvenirsPath,
+  getSouvenirKey,
+  normalizeProfileSouvenir,
+} from "@shared";
 import { average } from "color.js";
 
 import { createContext, useCallback, useEffect, useRef, useState } from "react";
@@ -14,13 +37,16 @@ export interface UserProfileContext {
   isMe: boolean;
   userStats: UserStats | null;
   getUserProfile: () => Promise<void>;
-  getUserStats: (shops?: string[]) => Promise<void>;
+  getUserStats: (filter?: ProfileLibraryFilter) => Promise<void>;
   getUserLibraryGames: (
     sortBy?: string,
     reset?: boolean,
-    shops?: string[]
+    filter?: ProfileLibraryFilter
   ) => Promise<void>;
-  loadMoreLibraryGames: (sortBy?: string, shops?: string[]) => Promise<boolean>;
+  loadMoreLibraryGames: (
+    sortBy?: string,
+    filter?: ProfileLibraryFilter
+  ) => Promise<boolean>;
   setSelectedBackgroundImage: React.Dispatch<React.SetStateAction<string>>;
   backgroundImage: string;
   badges: Badge[];
@@ -28,9 +54,36 @@ export interface UserProfileContext {
   pinnedGames: UserGame[];
   hasMoreLibraryGames: boolean;
   isLoadingLibraryGames: boolean;
+  hasLoadedLibraryGames: boolean;
+  souvenirs: ProfileSouvenir[];
+  souvenirsTotal: number;
+  hasReachedSouvenirLimit: boolean;
+  souvenirsHiddenReason: SouvenirsHiddenReason;
+  hasMoreSouvenirs: boolean;
+  isLoadingSouvenirs: boolean;
+  getUserSouvenirs: (sortBy?: SouvenirSort) => Promise<boolean>;
+  loadMoreSouvenirs: (sortBy?: SouvenirSort) => Promise<boolean>;
+  updateSouvenir: (
+    souvenirId: string,
+    update: Partial<ProfileSouvenir>
+  ) => void;
+  removeSouvenir: (souvenirId: string) => Promise<void>;
+  loadedLibrarySortBy: string | null;
 }
 
 export const DEFAULT_USER_PROFILE_BACKGROUND = "#151515B3";
+
+const LIBRARY_REQUEST_TIMEOUT_MS = 15_000;
+const PROFILE_LIBRARY_PAGE_SIZE = 48;
+
+const requestLibraryPage = (url: string) =>
+  window.electron.hydraApi.get<{
+    library: UserGame[];
+    pinnedGames: UserGame[];
+  }>(url, { needsAuth: false, timeout: LIBRARY_REQUEST_TIMEOUT_MS });
+
+const fetchLibraryPage = (url: string) =>
+  requestLibraryPage(url).catch(() => requestLibraryPage(url));
 
 export const userProfileContext = createContext<UserProfileContext>({
   userProfile: null,
@@ -38,13 +91,16 @@ export const userProfileContext = createContext<UserProfileContext>({
   isMe: false,
   userStats: null,
   getUserProfile: async () => {},
-  getUserStats: async (_shops?: string[]) => {},
+  getUserStats: async (_filter?: ProfileLibraryFilter) => {},
   getUserLibraryGames: async (
     _sortBy?: string,
     _reset?: boolean,
-    _shops?: string[]
+    _filter?: ProfileLibraryFilter
   ) => {},
-  loadMoreLibraryGames: async (_sortBy?: string, _shops?: string[]) => false,
+  loadMoreLibraryGames: async (
+    _sortBy?: string,
+    _filter?: ProfileLibraryFilter
+  ) => false,
   setSelectedBackgroundImage: () => {},
   backgroundImage: "",
   badges: [],
@@ -52,10 +108,24 @@ export const userProfileContext = createContext<UserProfileContext>({
   pinnedGames: [],
   hasMoreLibraryGames: false,
   isLoadingLibraryGames: false,
+  hasLoadedLibraryGames: false,
+  souvenirs: [],
+  souvenirsTotal: 0,
+  hasReachedSouvenirLimit: false,
+  souvenirsHiddenReason: null,
+  hasMoreSouvenirs: false,
+  isLoadingSouvenirs: false,
+  getUserSouvenirs: async () => false,
+  loadMoreSouvenirs: async () => false,
+  updateSouvenir: () => {},
+  removeSouvenir: async () => {},
+  loadedLibrarySortBy: null,
 });
 
 const { Provider } = userProfileContext;
 export const { Consumer: UserProfileContextConsumer } = userProfileContext;
+
+const DEFAULT_PROFILE_LIBRARY_FILTER = getProfileLibraryFilter("all");
 
 export interface UserProfileContextProviderProps {
   children: React.ReactNode;
@@ -82,7 +152,20 @@ export function UserProfileContextProvider({
   const [libraryPage, setLibraryPage] = useState(0);
   const [hasMoreLibraryGames, setHasMoreLibraryGames] = useState(true);
   const [isLoadingLibraryGames, setIsLoadingLibraryGames] = useState(false);
+  const [hasLoadedLibraryGames, setHasLoadedLibraryGames] = useState(false);
+  const [souvenirs, setSouvenirs] = useState<ProfileSouvenir[]>([]);
+  const [souvenirsTotal, setSouvenirsTotal] = useState(0);
+  const [hasReachedSouvenirLimit, setHasReachedSouvenirLimit] = useState(false);
+  const [souvenirsHiddenReason, setSouvenirsHiddenReason] =
+    useState<SouvenirsHiddenReason>(null);
+  const [isLoadingSouvenirs, setIsLoadingSouvenirs] = useState(false);
+  const souvenirRequestIdRef = useRef(0);
+  const [loadedLibrarySortBy, setLoadedLibrarySortBy] = useState<string | null>(
+    null
+  );
   const previousUserIdRef = useRef(userId);
+  const userStatsRequestIdRef = useRef(0);
+  const libraryRequestIdRef = useRef(0);
 
   const isMe = userDetails?.id === userProfile?.id;
 
@@ -106,15 +189,19 @@ export function UserProfileContextProvider({
   const navigate = useNavigate();
 
   const getUserStats = useCallback(
-    async (shops = ["steam", "launchbox"]) => {
+    async (filter = DEFAULT_PROFILE_LIBRARY_FILTER) => {
       const params = new URLSearchParams();
-      shops.forEach((shop) => params.append("shop", shop));
+      appendProfileLibraryFilterParams(params, filter);
+
+      const requestId = ++userStatsRequestIdRef.current;
 
       window.electron.hydraApi
         .get<UserStats>(`/users/${userId}/stats?${params.toString()}`, {
           needsAuth: false,
         })
         .then((stats) => {
+          if (requestId !== userStatsRequestIdRef.current) return;
+
           setUserStats(stats);
         });
     },
@@ -122,7 +209,16 @@ export function UserProfileContextProvider({
   );
 
   const getUserLibraryGames = useCallback(
-    async (sortBy?: string, reset = true, shops = ["steam", "launchbox"]) => {
+    async (
+      sortBy?: string,
+      reset = true,
+      filter = DEFAULT_PROFILE_LIBRARY_FILTER
+    ) => {
+      const requestId = reset
+        ? ++libraryRequestIdRef.current
+        : libraryRequestIdRef.current;
+      const isCurrentRequest = () => requestId === libraryRequestIdRef.current;
+
       if (reset) {
         setLibraryPage(0);
         setHasMoreLibraryGames(true);
@@ -131,35 +227,44 @@ export function UserProfileContextProvider({
 
       try {
         const params = new URLSearchParams();
-        params.append("take", "12");
+        params.append("take", String(PROFILE_LIBRARY_PAGE_SIZE));
         params.append("skip", "0");
-        shops.forEach((shop) => params.append("shop", shop));
+        appendProfileLibraryFilterParams(params, filter);
         if (sortBy) {
           params.append("sortBy", sortBy);
         }
 
         const url = `/users/${userId}/library?${params.toString()}`;
 
-        const response = await window.electron.hydraApi.get<{
-          library: UserGame[];
-          pinnedGames: UserGame[];
-        }>(url, { needsAuth: false });
+        const response = await fetchLibraryPage(url);
+
+        if (!isCurrentRequest()) return;
+
+        if (reset) {
+          setLoadedLibrarySortBy(sortBy ?? null);
+        }
 
         if (response) {
           setLibraryGames(response.library);
           setPinnedGames(response.pinnedGames);
-          setHasMoreLibraryGames(response.library.length === 12);
+          setHasMoreLibraryGames(
+            response.library.length === PROFILE_LIBRARY_PAGE_SIZE
+          );
         } else {
           setLibraryGames([]);
           setPinnedGames([]);
           setHasMoreLibraryGames(false);
         }
       } catch (error) {
+        if (!isCurrentRequest()) return;
         setLibraryGames([]);
         setPinnedGames([]);
         setHasMoreLibraryGames(false);
       } finally {
-        setIsLoadingLibraryGames(false);
+        if (isCurrentRequest()) {
+          setIsLoadingLibraryGames(false);
+          if (reset) setHasLoadedLibraryGames(true);
+        }
       }
     },
     [userId]
@@ -168,29 +273,31 @@ export function UserProfileContextProvider({
   const loadMoreLibraryGames = useCallback(
     async (
       sortBy?: string,
-      shops = ["steam", "launchbox"]
+      filter = DEFAULT_PROFILE_LIBRARY_FILTER
     ): Promise<boolean> => {
       if (isLoadingLibraryGames || !hasMoreLibraryGames) {
         return false;
       }
 
+      const requestId = libraryRequestIdRef.current;
+      const isCurrentRequest = () => requestId === libraryRequestIdRef.current;
+
       setIsLoadingLibraryGames(true);
       try {
         const nextPage = libraryPage + 1;
         const params = new URLSearchParams();
-        params.append("take", "12");
-        params.append("skip", String(nextPage * 12));
-        shops.forEach((shop) => params.append("shop", shop));
+        params.append("take", String(PROFILE_LIBRARY_PAGE_SIZE));
+        params.append("skip", String(nextPage * PROFILE_LIBRARY_PAGE_SIZE));
+        appendProfileLibraryFilterParams(params, filter);
         if (sortBy) {
           params.append("sortBy", sortBy);
         }
 
         const url = `/users/${userId}/library?${params.toString()}`;
 
-        const response = await window.electron.hydraApi.get<{
-          library: UserGame[];
-          pinnedGames: UserGame[];
-        }>(url, { needsAuth: false });
+        const response = await fetchLibraryPage(url);
+
+        if (!isCurrentRequest()) return false;
 
         if (response && response.library.length > 0) {
           setLibraryGames((prev) => {
@@ -201,25 +308,160 @@ export function UserProfileContextProvider({
             return [...prev, ...newGames];
           });
           setLibraryPage(nextPage);
-          setHasMoreLibraryGames(response.library.length === 12);
+          setHasMoreLibraryGames(
+            response.library.length === PROFILE_LIBRARY_PAGE_SIZE
+          );
           return true;
         } else {
           setHasMoreLibraryGames(false);
           return false;
         }
       } catch (error) {
-        setHasMoreLibraryGames(false);
+        if (isCurrentRequest()) setHasMoreLibraryGames(false);
         return false;
       } finally {
-        setIsLoadingLibraryGames(false);
+        if (isCurrentRequest()) setIsLoadingLibraryGames(false);
       }
     },
     [userId, libraryPage, hasMoreLibraryGames, isLoadingLibraryGames]
   );
 
+  const fetchSouvenirsPage = useCallback(
+    async (sortBy: SouvenirSort, skip: number) => {
+      const language = i18n.language.split("-")[0];
+      const path = buildUserSouvenirsPath({
+        userId,
+        skip,
+        sortBy,
+        language,
+      });
+
+      return window.electron.hydraApi.get<SouvenirsResponse | null>(path, {
+        needsAuth: Boolean(authUserId),
+      });
+    },
+    [authUserId, i18n.language, userId]
+  );
+
+  const getUserSouvenirs = useCallback(
+    async (sortBy: SouvenirSort = "recent") => {
+      const requestId = ++souvenirRequestIdRef.current;
+      setIsLoadingSouvenirs(true);
+
+      try {
+        const response = await fetchSouvenirsPage(sortBy, 0);
+        if (requestId !== souvenirRequestIdRef.current) return false;
+
+        setSouvenirs(
+          (response?.items ?? []).map((item) => normalizeProfileSouvenir(item))
+        );
+        setSouvenirsTotal(response?.total ?? 0);
+        setHasReachedSouvenirLimit(response?.hasReachedLimit ?? false);
+        setSouvenirsHiddenReason(response?.hiddenReason ?? null);
+        return true;
+      } catch {
+        if (requestId !== souvenirRequestIdRef.current) return false;
+
+        setSouvenirs([]);
+        setSouvenirsTotal(0);
+        setHasReachedSouvenirLimit(false);
+        setSouvenirsHiddenReason(null);
+        return false;
+      } finally {
+        if (requestId === souvenirRequestIdRef.current) {
+          setIsLoadingSouvenirs(false);
+        }
+      }
+    },
+    [fetchSouvenirsPage]
+  );
+
+  const loadMoreSouvenirs = useCallback(
+    async (sortBy: SouvenirSort = "recent") => {
+      if (isLoadingSouvenirs || souvenirs.length >= souvenirsTotal) {
+        return false;
+      }
+
+      const requestId = souvenirRequestIdRef.current;
+      setIsLoadingSouvenirs(true);
+
+      try {
+        const response = await fetchSouvenirsPage(sortBy, souvenirs.length);
+        if (requestId !== souvenirRequestIdRef.current || !response) {
+          return false;
+        }
+
+        setSouvenirs((current) => {
+          const existingKeys = new Set(
+            current.map((souvenir) => getSouvenirKey(souvenir.id))
+          );
+          const nextItems = response.items
+            .map((item) => normalizeProfileSouvenir(item))
+            .filter(
+              (souvenir) => !existingKeys.has(getSouvenirKey(souvenir.id))
+            );
+
+          return [...current, ...nextItems];
+        });
+        setSouvenirsTotal(response.total);
+        setHasReachedSouvenirLimit(response.hasReachedLimit);
+        setSouvenirsHiddenReason(response.hiddenReason);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        if (requestId === souvenirRequestIdRef.current) {
+          setIsLoadingSouvenirs(false);
+        }
+      }
+    },
+    [fetchSouvenirsPage, isLoadingSouvenirs, souvenirs, souvenirsTotal]
+  );
+
+  const updateSouvenir = useCallback(
+    (souvenirId: string, update: Partial<ProfileSouvenir>) => {
+      const key = getSouvenirKey(souvenirId);
+
+      setSouvenirs((current) =>
+        current.map((souvenir) =>
+          getSouvenirKey(souvenir.id) === key
+            ? { ...souvenir, ...update }
+            : souvenir
+        )
+      );
+    },
+    []
+  );
+
+  const removeSouvenir = useCallback(
+    async (souvenirId: string) => {
+      const key = getSouvenirKey(souvenirId);
+      const requestId = souvenirRequestIdRef.current;
+
+      setSouvenirs((current) =>
+        current.filter((souvenir) => getSouvenirKey(souvenir.id) !== key)
+      );
+      setSouvenirsTotal((current) => Math.max(0, current - 1));
+
+      try {
+        const response = await fetchSouvenirsPage("recent", 0);
+        if (requestId !== souvenirRequestIdRef.current || !response) return;
+
+        setHasReachedSouvenirLimit(response.hasReachedLimit);
+      } catch {
+        // Keep the last server-provided value until the next successful refresh.
+      }
+    },
+    [fetchSouvenirsPage]
+  );
+
   const getUserProfile = useCallback(async () => {
-    getUserStats();
-    getUserLibraryGames();
+    const storedFilter = getProfileLibraryFilter(readStoredProfilePlatform());
+
+    getUserStats(storedFilter);
+
+    getUserLibraryGames(readStoredProfileSort(), true, storedFilter);
+    void getUserSouvenirs(readStoredSouvenirSort());
 
     const profileParams = new URLSearchParams();
     profileParams.append("shop", "steam");
@@ -229,7 +471,8 @@ export function UserProfileContextProvider({
       .get<UserProfile>(`/users/${userId}?${profileParams.toString()}`, {
         needsAuth: false,
       })
-      .then((userProfile) => {
+      .then(async (userProfile) => {
+        if (previousUserIdRef.current !== userId) return;
         setUserProfile(userProfile);
 
         if (userProfile.profileImageUrl) {
@@ -239,10 +482,19 @@ export function UserProfileContextProvider({
         }
       })
       .catch(() => {
+        if (previousUserIdRef.current !== userId) return;
         showErrorToast(t("user_not_found"));
         navigate(-1);
       });
-  }, [navigate, getUserStats, getUserLibraryGames, showErrorToast, userId, t]);
+  }, [
+    navigate,
+    getUserStats,
+    getUserLibraryGames,
+    getUserSouvenirs,
+    showErrorToast,
+    userId,
+    t,
+  ]);
 
   const getBadges = useCallback(async () => {
     const language = i18n.language.split("-")[0];
@@ -258,12 +510,20 @@ export function UserProfileContextProvider({
   useEffect(() => {
     if (previousUserIdRef.current !== userId) {
       previousUserIdRef.current = userId;
+      libraryRequestIdRef.current++;
+      userStatsRequestIdRef.current++;
+      setIsLoadingLibraryGames(false);
       setUserProfile(null);
       setLibraryGames([]);
       setPinnedGames([]);
+      setHasLoadedLibraryGames(false);
       setHeroBackground(DEFAULT_USER_PROFILE_BACKGROUND);
       setLibraryPage(0);
       setHasMoreLibraryGames(true);
+      setSouvenirs([]);
+      setSouvenirsTotal(0);
+      setHasReachedSouvenirLimit(false);
+      setSouvenirsHiddenReason(null);
     }
 
     getUserProfile();
@@ -288,6 +548,18 @@ export function UserProfileContextProvider({
         pinnedGames,
         hasMoreLibraryGames,
         isLoadingLibraryGames,
+        hasLoadedLibraryGames,
+        souvenirs,
+        souvenirsTotal,
+        hasReachedSouvenirLimit,
+        souvenirsHiddenReason,
+        hasMoreSouvenirs: souvenirs.length < souvenirsTotal,
+        isLoadingSouvenirs,
+        getUserSouvenirs,
+        loadMoreSouvenirs,
+        updateSouvenir,
+        removeSouvenir,
+        loadedLibrarySortBy,
       }}
     >
       {children}

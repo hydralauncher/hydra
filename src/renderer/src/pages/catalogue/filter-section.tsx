@@ -13,6 +13,11 @@ export interface FilterSectionProps {
     label: string;
     value: string | number;
     checked: boolean;
+    group?: string;
+  }[];
+  groups?: readonly {
+    label: string;
+    value: string;
   }[];
   onSelect: (value: string | number) => void;
   color: string;
@@ -22,25 +27,55 @@ export interface FilterSectionProps {
 export function FilterSection({
   title,
   items,
+  groups,
   color,
   onSelect,
   onClear,
 }: FilterSectionProps) {
   const content = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
   const [height, setHeight] = useState(0);
   const { t } = useTranslation("catalogue");
 
+  const availableGroups = useMemo(() => {
+    return (groups ?? []).filter((group) =>
+      items.some((item) => item.group === group.value)
+    );
+  }, [groups, items]);
+
+  const activeGroup = useMemo(() => {
+    if (
+      selectedGroup &&
+      availableGroups.some((group) => group.value === selectedGroup)
+    ) {
+      return selectedGroup;
+    }
+
+    return (
+      availableGroups.find((group) =>
+        items.some((item) => item.checked && item.group === group.value)
+      )?.value ??
+      availableGroups[0]?.value ??
+      null
+    );
+  }, [availableGroups, items, selectedGroup]);
+
+  const visibleItems = useMemo(() => {
+    if (!activeGroup) return items;
+    return items.filter((item) => item.group === activeGroup);
+  }, [activeGroup, items]);
+
   const filteredItems = useMemo(() => {
     if (search.length > 0) {
-      return items.filter((item) =>
+      return visibleItems.filter((item) =>
         item.label.toLowerCase().includes(search.toLowerCase())
       );
     }
 
-    return items;
-  }, [items, search]);
+    return visibleItems;
+  }, [visibleItems, search]);
 
   const selectedItemsCount = useMemo(() => {
     return items.filter((item) => item.checked).length;
@@ -111,6 +146,45 @@ export function FilterSection({
                 filterCount: formatNumber(items.length),
               })}
             </span>
+          )}
+
+          {availableGroups.length > 1 && (
+            <div
+              className="filter-section__group-tabs"
+              role="tablist"
+              aria-label={title}
+            >
+              {availableGroups.map((group) => {
+                const selectedInGroup = items.filter(
+                  (item) => item.checked && item.group === group.value
+                ).length;
+
+                return (
+                  <button
+                    key={group.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeGroup === group.value}
+                    className={`filter-section__group-tab ${
+                      activeGroup === group.value
+                        ? "filter-section__group-tab--active"
+                        : ""
+                    }`}
+                    onClick={() => {
+                      setSelectedGroup(group.value);
+                      setSearch("");
+                    }}
+                  >
+                    <span>{group.label}</span>
+                    {selectedInGroup > 0 && (
+                      <span className="filter-section__group-tab-count">
+                        {formatNumber(selectedInGroup)}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           )}
 
           <TextField

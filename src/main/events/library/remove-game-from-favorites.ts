@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { HydraApi } from "@main/services";
@@ -20,8 +21,7 @@ const removeGameFromFavorites = async (
   }
 
   try {
-    await gamesSublevel.put(gameKey, {
-      ...game,
+    await updateGameRecord(gameKey, {
       favorite: false,
     });
   } catch (error) {

@@ -1,0 +1,325 @@
+[
+  {
+    "app_name": "Artifact1",
+    "app_title": "Game 1",
+    "metadata": {
+      "namespace": "Namespace1",
+      "id": "Item1",
+      "categories": [
+        {
+          "path": "public"
+        },
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact1",
+        "namespace": "Namespace1",
+        "catalog_item_id": "Item1"
+      }
+    }
+  },
+  {
+    "app_name": "Artifact2",
+    "app_title": "Game 2",
+    "metadata": {
+      "namespace": "Namespace2",
+      "id": "Item2",
+      "categories": [
+        {
+          "path": "public"
+        },
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact2",
+        "namespace": "Namespace2",
+        "catalog_item_id": "Item2"
+      }
+    }
+  },
+  {
+    "app_name": "Artifact3",
+    "app_title": "Game 3",
+    "metadata": {
+      "namespace": "Namespace2",
+      "id": "Item3",
+      "categories": [
+        {
+          "path": "public"
+        },
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact3",
+        "namespace": "Namespace2",
+        "catalog_item_id": "Item3"
+      }
+    }
+  },
+  {
+    "app_name": "Artifact4",
+    "app_title": "Game 4",
+    "metadata": {
+      "namespace": "Namespace3",
+      "id": "Item4",
+      "categories": [
+        {
+          "path": "public"
+        },
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact4",
+        "namespace": "Namespace3",
+        "catalog_item_id": "Item4"
+      }
+    }
+  },
+  {
+    "app_name": "Artifact5",
+    "app_title": "Game 5",
+    "metadata": {
+      "namespace": "Namespace4",
+      "id": "Item5",
+      "categories": [
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact5",
+        "namespace": "Namespace4",
+        "catalog_item_id": "Item5"
+      }
+    }
+  },
+  {
+    "app_name": "Artifact6",
+    "app_title": "Game 6",
+    "metadata": {
+      "namespace": "Namespace5",
+      "id": "Item6",
+      "categories": [
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact6",
+        "namespace": "Namespace5",
+        "catalog_item_id": "Item6"
+      }
+    }
+  },
+  {
+    "app_name": "Artifact7",
+    "app_title": "Game 7",
+    "metadata": {
+      "namespace": "Namespace6",
+      "id": "Item7",
+      "categories": [
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact7",
+        "namespace": "Namespace6",
+        "catalog_item_id": "Item7"
+      }
+    }
+  },
+  {
+    "app_name": "Artifact8",
+    "app_title": "Game 8",
+    "metadata": {
+      "namespace": "Namespace7",
+      "id": "Item8",
+      "categories": [
+        {
+          "path": "public"
+        },
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact8",
+        "namespace": "Namespace7",
+        "catalog_item_id": "Item8"
+      }
+    }
+  },
+  {
+    "app_name": "Artifact9",
+    "app_title": "Game 9",
+    "metadata": {
+      "namespace": "Namespace8",
+      "id": "Item9",
+      "categories": [
+        {
+          "path": "public"
+        },
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact9",
+        "namespace": "Namespace8",
+        "catalog_item_id": "Item9"
+      }
+    }
+  },
+  {
+    "app_name": "Artifact10",
+    "app_title": "Game 10",
+    "metadata": {
+      "namespace": "Namespace9",
+      "id": "Item10",
+      "categories": [
+        {
+          "path": "public"
+        },
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact10",
+        "namespace": "Namespace9",
+        "catalog_item_id": "Item10"
+      }
+    }
+  },
+  {
+    "app_name": "Artifact11",
+    "app_title": "Game 11",
+    "metadata": {
+      "namespace": "Namespace10",
+      "id": "Item11",
+      "categories": [
+        {
+          "path": "public"
+        },
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact11",
+        "namespace": "Namespace10",
+        "catalog_item_id": "Item11"
+      }
+    }
+  },
+  {
+    "app_name": "Artifact12",
+    "app_title": "Game 12",
+    "metadata": {
+      "namespace": "Namespace11",
+      "id": "Item12",
+      "categories": [
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact12",
+        "namespace": "Namespace11",
+        "catalog_item_id": "Item12"
+      }
+    }
+  },
+  {
+    "app_name": "Artifact13",
+    "app_title": "Game 13",
+    "metadata": {
+      "namespace": "Namespace12",
+      "id": "Item13",
+      "categories": [
+        {
+          "path": "games"
+        },
+        {
+          "path": "applications"
+        }
+      ]
+    },
+    "asset_infos": {
+      "Windows": {
+        "app_name": "Artifact13",
+        "namespace": "Namespace12",
+        "catalog_item_id": "Item13"
+      }
+    }
+  }
+]

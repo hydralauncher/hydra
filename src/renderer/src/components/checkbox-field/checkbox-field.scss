@@ -44,6 +44,16 @@
       outline: 2px solid var(--color-primary);
       outline-offset: 1px;
     }
+
+    &--indeterminate::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 2px;
+      background: globals.$dark-background-color;
+      border-radius: 2px;
+      pointer-events: none;
+    }
   }
 
   &__icon {

@@ -219,6 +219,12 @@
   gap: calc(var(--spacing-unit) * 2);
 }
 
+.downloads-game-card__action-label {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 2);
+}
+
 .downloads-game-card__action-button--icon-only {
   .button__icon-container--left::after,
   .button__icon-container--right::before {

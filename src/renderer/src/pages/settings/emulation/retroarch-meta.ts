@@ -27,6 +27,10 @@ export const RETROARCH_CORES_LINE = RETROARCH_CORE_LIST.map(
   (core) => core.label
 ).join(" · ");
 
+export const RETROARCH_CORES_TOOLTIP = RETROARCH_CORE_LIST.map(
+  (core) => `${core.platforms} - ${core.label}`
+).join("\n");
+
 export const RETROARCH_CORES_TAGLINE = `${RETROARCH_CORE_LIST.slice(0, 2)
   .map((core) => core.label)
   .join(" · ")} +${RETROARCH_CORE_LIST.length - 2}`;

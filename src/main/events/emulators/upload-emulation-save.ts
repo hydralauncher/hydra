@@ -1,7 +1,13 @@
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
 import { registerEvent } from "../register-event";
 import { WindowManager, emulators, logger } from "@main/services";
+import { SevenZip } from "@main/services/7zip";
 import {
   levelKeys,
+  gamesShopCacheSublevel,
   ps1MemoryCardSavesSublevel,
   ps2MemoryCardSavesSublevel,
 } from "@main/level";
@@ -9,17 +15,29 @@ import type {
   EmulationBackupProgress,
   EmulationCloudSave,
   EmulationSavePlatform,
+  EmulationSaveMetadata,
   MemoryCardSaveRecord,
 } from "@types";
+import type { DiscoveredEmulationFileSave } from "@main/services/emulators/emulation-file-saves";
+import {
+  buildLocalLaunchboxAssetIndex,
+  findUniqueLocalAssetBySkuPrefix,
+} from "./memcard-local-assets";
 
 const BACKUP_PROGRESS_CHANNEL = "on-emulation-backup-progress";
+const MIN_WII_DATA_BIN_SIZE = 0xf140;
+
+type FileSavePlatform = Extract<
+  EmulationSavePlatform,
+  "psp" | "gamecube" | "wii"
+>;
 
 const activeBackups = new Map<string, EmulationBackupProgress>();
 const backupKey = (platform: EmulationSavePlatform, cardFilePath: string) =>
   `${platform}:${cardFilePath}`;
 
 const sanitize = (name: string): string =>
-  name.replace(/[^A-Za-z0-9._-]/g, "_") || "save";
+  (name.replace(/[^A-Za-z0-9._-]/g, "_") || "save").slice(0, 240);
 
 const getRecord = (
   platform: EmulationSavePlatform,
@@ -34,6 +52,27 @@ const getRecord = (
   return ps1MemoryCardSavesSublevel
     .get(levelKeys.ps1MemoryCardSave(cardFilePath, folderName))
     .catch(() => undefined);
+};
+
+const getFileSaveRecord = async (
+  platform: FileSavePlatform,
+  sourcePath: string,
+  saveIdentity: string
+) => {
+  const config = await emulators.getEmulatorConfig(
+    emulators.emulationSavePlatformToSystem(platform)
+  );
+  if (!config.executablePath) return null;
+  const saves = await emulators.discoverEmulationFileSaves(
+    platform,
+    config.executablePath
+  );
+  return (
+    saves.find(
+      (save) =>
+        save.sourcePath === sourcePath && save.saveIdentity === saveIdentity
+    ) ?? null
+  );
 };
 
 // Build the exportable artifact bytes (.psu for PS2, .mcs for PS1).
@@ -55,11 +94,128 @@ const buildArtifact = async (
   return { buffer: emulators.buildMcsBuffer(contents), ext: "mcs" };
 };
 
+const buildFileSaveArtifact = async (
+  platform: FileSavePlatform,
+  discovered: DiscoveredEmulationFileSave
+): Promise<{ buffer: Buffer; fileName: string }> => {
+  if (platform === "gamecube") {
+    return {
+      buffer: await fs.readFile(discovered.sourcePath),
+      fileName: path.basename(discovered.sourcePath),
+    };
+  }
+
+  if (platform === "wii") {
+    if (discovered.metadata.artifactFormat !== "dolphin-wii-data-bin") {
+      throw new Error("Invalid Dolphin Wii save metadata");
+    }
+    return {
+      buffer: await emulators.buildDolphinWiiDataBin(
+        discovered.sourcePath,
+        discovered.metadata.titleId
+      ),
+      fileName: "data.bin",
+    };
+  }
+
+  if (discovered.metadata.artifactFormat !== "ppsspp-savedata-zip") {
+    throw new Error("Invalid PPSSPP save metadata");
+  }
+
+  const temporaryDirectory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "hydra-ppsspp-save-")
+  );
+  try {
+    const fileName = `${sanitize(discovered.metadata.savedataDirectory)}.zip`;
+    const archivePath = path.join(temporaryDirectory, fileName);
+    const stagingPath = path.join(temporaryDirectory, "staging");
+    await fs.mkdir(stagingPath);
+    await fs.cp(
+      discovered.sourcePath,
+      path.join(stagingPath, discovered.metadata.savedataDirectory),
+      { recursive: true }
+    );
+    await SevenZip.createZip({
+      sourcePath: stagingPath,
+      destinationPath: archivePath,
+    });
+    return { buffer: await fs.readFile(archivePath), fileName };
+  } finally {
+    await fs.rm(temporaryDirectory, { recursive: true, force: true });
+  }
+};
+
+const uploadFileSave = async (
+  platform: FileSavePlatform,
+  sourcePath: string,
+  saveIdentity: string
+): Promise<EmulationCloudSave> => {
+  const discovered = await getFileSaveRecord(
+    platform,
+    sourcePath,
+    saveIdentity
+  );
+  if (!discovered) throw new Error(`Could not find save "${saveIdentity}"`);
+
+  const localAssets = await buildLocalLaunchboxAssetIndex();
+  const normalizedSku = emulators.normalizeSku(discovered.sku);
+  const remoteAssets = localAssets.has(normalizedSku)
+    ? null
+    : await emulators.fetchShopDetailsForSkus([discovered.sku]);
+  const remoteEntry = remoteAssets?.get(normalizedSku);
+  let assets = localAssets.get(normalizedSku);
+  let matchedSku = normalizedSku;
+  if (!assets && platform === "wii") {
+    const candidate = findUniqueLocalAssetBySkuPrefix(
+      localAssets,
+      normalizedSku,
+      6
+    );
+    if (candidate) {
+      assets = candidate.assets;
+      matchedSku = candidate.sku;
+    }
+  }
+  if (!assets && remoteEntry) {
+    assets = emulators.mapEntryToAssets(remoteEntry);
+  }
+  if (!assets) {
+    throw new Error(`Could not map save "${saveIdentity}" to a catalogue game`);
+  }
+
+  const config = await emulators.getEmulatorConfig(
+    emulators.emulationSavePlatformToSystem(platform)
+  );
+  const artifact = await buildFileSaveArtifact(platform, discovered);
+  const metadata =
+    platform === "wii" &&
+    discovered.metadata.artifactFormat === "dolphin-wii-data-bin" &&
+    matchedSku.length === 6
+      ? { ...discovered.metadata, gameId: matchedSku }
+      : discovered.metadata;
+  return emulators.uploadEmulationSave({
+    platform,
+    emulator: emulators.toEmulationSaveEmulator(config.binary),
+    shop: "launchbox",
+    objectId: assets.objectId,
+    saveIdentity: discovered.saveIdentity,
+    fileName: artifact.fileName,
+    label: assets.title || discovered.saveIdentity,
+    localLastModifiedAt: new Date(discovered.modifiedAt).toISOString(),
+    buffer: artifact.buffer,
+    metadata: metadata as EmulationSaveMetadata,
+  });
+};
+
 const uploadOne = async (
   platform: EmulationSavePlatform,
   cardFilePath: string,
   folderName: string
 ): Promise<EmulationCloudSave> => {
+  if (platform === "psp" || platform === "gamecube" || platform === "wii") {
+    return uploadFileSave(platform, cardFilePath, folderName);
+  }
+
   const config = await emulators.getEmulatorConfig(platform);
   const record = await getRecord(platform, cardFilePath, folderName);
   const artifact = await buildArtifact(platform, cardFilePath, folderName);
@@ -88,6 +244,58 @@ const uploadEmulationSave = async (
   folderName: string
 ): Promise<EmulationCloudSave> => {
   return uploadOne(platform, cardFilePath, folderName);
+};
+
+const uploadWiiEmulationSave = async (
+  _event: Electron.IpcMainInvokeEvent,
+  dataBinPath: string,
+  objectId: string
+): Promise<EmulationCloudSave> => {
+  const identity = emulators.parseDolphinWiiExportPath(dataBinPath);
+  if (!identity) {
+    throw new Error(
+      "Select Dolphin's private/wii/title/<game>/data.bin export"
+    );
+  }
+  const stat = await fs.stat(dataBinPath);
+  if (!stat.isFile() || stat.size < MIN_WII_DATA_BIN_SIZE) {
+    throw new Error("The selected Wii data.bin is empty or unreadable");
+  }
+
+  const cachedEntries = await gamesShopCacheSublevel.iterator().all();
+  const details = cachedEntries.find(
+    ([key, value]) =>
+      key.startsWith("launchbox:") && value.objectId === objectId
+  )?.[1];
+  const normalizedSkus = (details?.skus ?? []).map((sku) =>
+    emulators.normalizeSku(sku)
+  );
+  const gameId = normalizedSkus.find(
+    (sku) => sku.length === 6 && sku.startsWith(identity.gameCode)
+  );
+  if (normalizedSkus.some((sku) => sku.length === 6) && !gameId) {
+    throw new Error("The selected Wii save belongs to a different game");
+  }
+
+  const config = await emulators.getEmulatorConfig("dolphin");
+  const metadata: EmulationSaveMetadata = {
+    schemaVersion: 1,
+    artifactFormat: "dolphin-wii-data-bin",
+    titleId: identity.titleId,
+    ...(gameId ? { gameId } : {}),
+  };
+  return emulators.uploadEmulationSave({
+    platform: "wii",
+    emulator: emulators.toEmulationSaveEmulator(config.binary),
+    shop: "launchbox",
+    objectId,
+    saveIdentity: identity.titleId,
+    fileName: `${identity.titleId}.bin`,
+    label: gameId ?? identity.gameCode,
+    localLastModifiedAt: new Date(stat.mtimeMs).toISOString(),
+    buffer: await fs.readFile(dataBinPath),
+    metadata,
+  });
 };
 
 // "Back up all": upload every detected save on one card. Reports counts; per-save
@@ -150,5 +358,6 @@ const getActiveEmulationBackups = async (): Promise<
 > => Array.from(activeBackups.values());
 
 registerEvent("uploadEmulationSave", uploadEmulationSave);
+registerEvent("uploadWiiEmulationSave", uploadWiiEmulationSave);
 registerEvent("uploadEmulationSavesForCard", uploadEmulationSavesForCard);
 registerEvent("getActiveEmulationBackups", getActiveEmulationBackups);

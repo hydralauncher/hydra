@@ -31,6 +31,9 @@ export const consumeCloudSaveLaunchGuard = (
 export const clearCloudSaveLaunchGuard = (objectId: string, shop: GameShop) =>
   guards.delete(getKey(objectId, shop));
 
+export const hasCloudSaveLaunchGuard = (objectId: string, shop: GameShop) =>
+  guards.has(getKey(objectId, shop));
+
 export const canUploadCloudSaveAfterLaunch = (
   guard: CloudSaveLaunchGuard | null,
   currentEnvironmentId: string

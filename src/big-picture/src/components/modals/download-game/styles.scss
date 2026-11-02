@@ -130,6 +130,13 @@
     will-change: opacity, transform;
   }
 
+  &__source-list__separator {
+    flex-shrink: 0;
+    width: 100%;
+    height: 1px;
+    background-color: var(--border);
+  }
+
   &__source-list-empty-state {
     min-height: 100%;
     padding-top: calc(var(--spacing-unit) * 2);

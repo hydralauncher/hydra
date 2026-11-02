@@ -5,8 +5,8 @@ const checkPs3Firmware = async (
   _event: Electron.IpcMainInvokeEvent,
   executablePath: string | null
 ) => {
-  const installed = await emulators.isPs3FirmwareInstalled(executablePath);
-  return { installed };
+  const firmwarePath = await emulators.findPs3FirmwareDirectory(executablePath);
+  return { installed: firmwarePath !== null, path: firmwarePath };
 };
 
 registerEvent("checkPs3Firmware", checkPs3Firmware);

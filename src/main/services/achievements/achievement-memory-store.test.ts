@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-import { AchievementMemoryStore } from "./achievement-memory-store.js";
+import {
+  AchievementMemoryStore,
+  mergePersistedAchievementTotals,
+  resolveAchievementCount,
+  resolveUnlockedAchievementCount,
+  withSteamAchievementCatalogue,
+} from "./achievement-memory-store.js";
 
 const entry = (name: string) => ({
   achievements: [],
@@ -31,5 +37,154 @@ describe("AchievementMemoryStore", () => {
     AchievementMemoryStore.clear();
 
     assert.equal(AchievementMemoryStore.get("steam", "10"), undefined);
+  });
+
+  it("drops only the selected game's achievement state", () => {
+    AchievementMemoryStore.set("steam", "10", entry("STEAM_UNLOCK"));
+    AchievementMemoryStore.set("steam", "20", entry("OTHER_UNLOCK"));
+
+    AchievementMemoryStore.delete("steam", "10");
+
+    assert.equal(AchievementMemoryStore.get("steam", "10"), undefined);
+    assert.deepEqual(
+      AchievementMemoryStore.get("steam", "20")?.unlockedAchievements,
+      [{ name: "OTHER_UNLOCK", unlockTime: 1 }]
+    );
+  });
+
+  it("uses the remote unlock count when local memory is empty", () => {
+    AchievementMemoryStore.set("steam", "10", {
+      achievements: [{ name: "ACH_ONE" } as never],
+      unlockedAchievements: [],
+    });
+
+    assert.equal(resolveUnlockedAchievementCount("steam", "10", 22), 22);
+  });
+
+  it("keeps the larger of local and remote unlock counts", () => {
+    AchievementMemoryStore.set("steam", "10", {
+      achievements: [
+        { name: "ACH_ONE" } as never,
+        { name: "ACH_TWO" } as never,
+      ],
+      unlockedAchievements: [
+        { name: "ACH_ONE", unlockTime: 1 },
+        { name: "ACH_TWO", unlockTime: 2 },
+      ],
+    });
+
+    assert.equal(resolveUnlockedAchievementCount("steam", "10", 1), 2);
+  });
+
+  it("counts steam unlocks when the schema is still empty", () => {
+    AchievementMemoryStore.set("steam", "10", {
+      achievements: [],
+      unlockedAchievements: [
+        { name: "ACH_ONE", unlockTime: 1 },
+        { name: "ACH_TWO", unlockTime: 2 },
+      ],
+    });
+
+    assert.equal(resolveUnlockedAchievementCount("steam", "10", 0), 2);
+  });
+
+  it("uses the schema length when the persisted total is missing", () => {
+    AchievementMemoryStore.set("steam", "10", {
+      achievements: [
+        { name: "ACH_ONE" } as never,
+        { name: "ACH_TWO" } as never,
+        { name: "ACH_THREE" } as never,
+      ],
+      unlockedAchievements: [{ name: "ACH_ONE", unlockTime: 1 }],
+    });
+
+    assert.equal(resolveAchievementCount("steam", "10", 0), 3);
+    assert.equal(resolveAchievementCount("steam", "10", 30), 30);
+  });
+
+  it("keeps local schema totals when remote catalogue count is zero", () => {
+    AchievementMemoryStore.set("steam", "10", {
+      achievements: Array.from({ length: 30 }, (_, index) => ({
+        name: `ACH_${index}`,
+      })) as never,
+      unlockedAchievements: [
+        { name: "ACH_0", unlockTime: 1 },
+        { name: "ACH_1", unlockTime: 2 },
+        { name: "ACH_2", unlockTime: 3 },
+        { name: "ACH_3", unlockTime: 4 },
+        { name: "ACH_4", unlockTime: 5 },
+      ],
+    });
+
+    assert.deepEqual(
+      mergePersistedAchievementTotals(
+        "steam",
+        "10",
+        { achievementCount: 30, unlockedAchievementCount: 5 },
+        { achievementCount: 0, unlockedAchievementCount: 0 }
+      ),
+      { achievementCount: 30, unlockedAchievementCount: 5 }
+    );
+  });
+});
+
+describe("withSteamAchievementCatalogue", () => {
+  const achievement = (name: string, points?: number) => ({
+    name,
+    displayName: name,
+    icon: "",
+    icongray: "",
+    hidden: false,
+    ...(points === undefined ? {} : { points }),
+  });
+  const unlocked = [{ name: "ACH_0", unlockTime: 1 }];
+
+  it("keeps the Hydra catalogue, language and validator", () => {
+    const hydra = {
+      achievements: [achievement("ACH_0", 10)],
+      unlockedAchievements: [],
+      language: "pt-BR",
+      catalogueValidator: '"etag"',
+    };
+
+    assert.deepEqual(
+      withSteamAchievementCatalogue(hydra, [achievement("ACH_0")], unlocked),
+      { ...hydra, unlockedAchievements: unlocked }
+    );
+  });
+
+  it("stores the Steam schema without a language or validator", () => {
+    assert.deepEqual(
+      withSteamAchievementCatalogue(
+        undefined,
+        [achievement("ACH_0")],
+        unlocked
+      ),
+      { achievements: [achievement("ACH_0")], unlockedAchievements: unlocked }
+    );
+  });
+
+  it("replaces an earlier Steam schema", () => {
+    const steam = {
+      achievements: [achievement("OLD")],
+      unlockedAchievements: [],
+    };
+
+    assert.deepEqual(
+      withSteamAchievementCatalogue(steam, [achievement("ACH_0")], unlocked),
+      { achievements: [achievement("ACH_0")], unlockedAchievements: unlocked }
+    );
+  });
+
+  it("keeps the current catalogue when Steam has no schema", () => {
+    const steam = {
+      achievements: [achievement("OLD")],
+      unlockedAchievements: [],
+    };
+
+    assert.deepEqual(withSteamAchievementCatalogue(steam, [], unlocked), {
+      achievements: [achievement("OLD")],
+      unlockedAchievements: unlocked,
+    });
   });
 });

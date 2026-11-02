@@ -10,7 +10,10 @@ import type {
 import {
   buildRestoreReplacements,
   isRestoreReplacementSuccessful,
+  resolveRestoreDownloadSources,
+  selectRestoreFiles,
 } from "./restore-replacements.ts";
+import { cloudSaveFileKey } from "./cloud-save-contract.js";
 
 const hash = "a".repeat(64);
 const target = (
@@ -31,6 +34,105 @@ const target = (
 });
 
 describe("restore replacements", () => {
+  it("keeps exact selection and download identities for existing restore flows", () => {
+    for (const rawPath of [
+      "<home>/Game",
+      "<emulator>/rpcs3/NPUB31848/00000001",
+      "<emulator>/retroarch-v2/snes",
+      "<custom>/folder",
+    ]) {
+      const entry = {
+        ...target(
+          "1".repeat(64),
+          "C:/Game/save.dat",
+          "2026-07-20T10:00:00.000Z",
+          "replace"
+        ),
+        rawPath,
+      };
+      const files = [entry];
+      assert.equal(selectRestoreFiles(files), files);
+      assert.deepEqual(selectRestoreFiles([entry], []), []);
+      assert.deepEqual(
+        selectRestoreFiles(
+          [entry],
+          [cloudSaveFileKey(entry), cloudSaveFileKey(entry)]
+        ),
+        [entry]
+      );
+      assert.throws(
+        () => selectRestoreFiles([entry], ["missing"]),
+        /Requested restore file is missing from manifest/
+      );
+      assert.equal(resolveRestoreDownloadSources([entry])[0], entry);
+      assert.equal(
+        buildRestoreReplacements(
+          [entry],
+          [{ ...entry, tempPath: "C:/Temp/save.blob" }]
+        )[0].action,
+        "restore"
+      );
+    }
+  });
+
+  it("rejects missing mapped sources or downloaded files even when content matches", () => {
+    const entry = target(
+      "1".repeat(64),
+      "C:/Game/save.dat",
+      "2026-07-20T10:00:00.000Z",
+      "replace"
+    );
+    assert.throws(
+      () => resolveRestoreDownloadSources([entry], new Map()),
+      /Missing restore download source file/
+    );
+    const source = { ...entry, rawPath: "<emulator>/retroarch/snes/1234ABCD" };
+    const mapping = new Map([[cloudSaveFileKey(entry), source]]);
+    assert.throws(
+      () =>
+        buildRestoreReplacements(
+          [entry],
+          [{ ...entry, tempPath: "C:/Temp/save.blob" }],
+          mapping
+        ),
+      /Missing downloaded restore file/
+    );
+  });
+
+  it("rejects mapped source and downloaded metadata mismatches", () => {
+    const entry = target(
+      "1".repeat(64),
+      "C:/Game/save.dat",
+      "2026-07-20T10:00:00.000Z",
+      "replace"
+    );
+    const source = { ...entry, rawPath: "<emulator>/retroarch/snes/1234ABCD" };
+    const mapping = new Map([[cloudSaveFileKey(entry), source]]);
+    for (const change of [
+      { hash: "b".repeat(64) },
+      { sizeBytes: 5 },
+      { lastModifiedAt: "2026-07-21T10:00:00.000Z" },
+    ]) {
+      assert.throws(
+        () =>
+          resolveRestoreDownloadSources(
+            [entry],
+            new Map([[cloudSaveFileKey(entry), { ...source, ...change }]])
+          ),
+        /Restore download source file does not match resolved target/
+      );
+      assert.throws(
+        () =>
+          buildRestoreReplacements(
+            [entry],
+            [{ ...source, ...change, tempPath: "C:/Temp/save.blob" }],
+            mapping
+          ),
+        /Downloaded restore file does not match resolved target/
+      );
+    }
+  });
+
   it("preserves identity timestamps when two targets reuse one downloaded blob", () => {
     const first = target(
       "1".repeat(64),
@@ -78,7 +180,7 @@ describe("restore replacements", () => {
       "skip-identical"
     );
 
-    assert.deepEqual(buildRestoreReplacements([skipped], []), [
+    assert.deepEqual(buildRestoreReplacements([skipped], [], new Map()), [
       {
         variantId: skipped.variantId,
         rawPath: skipped.rawPath,

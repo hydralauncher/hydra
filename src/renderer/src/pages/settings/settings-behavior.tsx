@@ -1,11 +1,14 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CheckboxField, ProtonPathPicker } from "@renderer/components";
+import {
+  CheckboxField,
+  GuideLink,
+  ProtonPathPicker,
+} from "@renderer/components";
 import { useAppSelector } from "@renderer/hooks";
 import { settingsContext } from "@renderer/context";
 import "./settings-behavior.scss";
-import { QuestionIcon } from "@primer/octicons-react";
 import type { ProtonVersion } from "@types";
 
 export function SettingsBehavior() {
@@ -13,7 +16,7 @@ export function SettingsBehavior() {
     (state) => state.userPreferences.value
   );
 
-  const [showRunAtStartup, setShowRunAtStartup] = useState(false);
+  const showRunAtStartup = !window.electron.isPortableVersion;
   const [protonVersions, setProtonVersions] = useState<ProtonVersion[]>([]);
   const [protonVersionsLoaded, setProtonVersionsLoaded] = useState(false);
   const [selectedDefaultProtonPath, setSelectedDefaultProtonPath] =
@@ -112,12 +115,6 @@ export function SettingsBehavior() {
       setSelectedDefaultProtonPath("");
     }
   }, [protonVersions, protonVersionsLoaded, selectedDefaultProtonPath]);
-
-  useEffect(() => {
-    window.electron.isPortableVersion().then((isPortableVersion) => {
-      setShowRunAtStartup(!isPortableVersion);
-    });
-  }, []);
 
   const handleChange = (values: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...values }));
@@ -282,24 +279,19 @@ export function SettingsBehavior() {
         }
       />
 
-      <div className={`settings-behavior__checkbox-container--with-tooltip`}>
-        <CheckboxField
-          label={t("enable_steam_achievements")}
-          checked={form.enableSteamAchievements}
-          onChange={() =>
-            handleChange({
-              enableSteamAchievements: !form.enableSteamAchievements,
-            })
-          }
-        />
-
-        <small
-          className="settings-behavior__checkbox-container--tooltip"
-          data-open-article="steam-achievements"
-        >
-          <QuestionIcon size={12} />
-        </small>
-      </div>
+      <CheckboxField
+        label={
+          <GuideLink article="steam-achievements">
+            {t("enable_steam_achievements")}
+          </GuideLink>
+        }
+        checked={form.enableSteamAchievements}
+        onChange={() =>
+          handleChange({
+            enableSteamAchievements: !form.enableSteamAchievements,
+          })
+        }
+      />
 
       <CheckboxField
         label={t("enable_new_download_options_badges")}
