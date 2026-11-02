@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { logger } from "@renderer/logger";
 import { ensureArray } from "@renderer/helpers";
 
-enum Feature {
+export enum Feature {
   CheckDownloadWritePermission = "CHECK_DOWNLOAD_WRITE_PERMISSION",
   TorBox = "TORBOX",
   Premiumize = "PREMIUMIZE",
@@ -11,6 +11,8 @@ enum Feature {
   Nimbus = "NIMBUS",
   NimbusPreview = "NIMBUS_PREVIEW",
   ChatImages = "CHAT_IMAGES",
+  Gamification = "GAMIFICATION",
+  GamificationShop = "GAMIFICATION_SHOP",
   Screenshots = "SCREENSHOTS",
   ScreenshotComments = "SCREENSHOT_COMMENTS",
   GameLeaderboardsExtended = "GAME_LEADERBOARDS_EXTENDED",
@@ -20,7 +22,7 @@ enum Feature {
   LeaderboardBadges = "LEADERBOARD_BADGES",
 }
 
-const readCachedFeatures = (): string[] => {
+export const readCachedFeatures = (): string[] => {
   try {
     const parsed = JSON.parse(localStorage.getItem("features") ?? "[]");
     return Array.isArray(parsed) ? parsed : [];
