@@ -2940,7 +2940,7 @@
     "cancel": "Cancelar",
     "close": "Fechar",
     "buy_for_coins": "Comprar por {{price}} moedas",
-    "short_hint": "Missões diárias e marcos dão moedas. Hoje você ainda pode ganhar {{coins}} moedas com as missões.",
+    "short_hint": "Missões diárias e trilhas dão moedas. Hoje você ainda pode ganhar {{coins}} moedas com as missões.",
     "see_missions": "Ver missões",
     "locked_row": "Disponível a partir do Nível {{level}}. Você está no Nível {{current}}."
   },
