@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import {
@@ -12,7 +13,11 @@ import {
 } from "@primer/octicons-react";
 
 import { Button, CheckboxField, ConfirmationModal } from "@renderer/components";
-import { useFormat } from "@renderer/hooks";
+import { useFormat, useLibrary } from "@renderer/hooks";
+import {
+  isClassicsGameForEmulator,
+  type ClassicsEmulatorTarget,
+} from "@shared";
 import type { RomFolder } from "@types";
 
 import { EmulatorResourceRow } from "./emulator-resource-row";
@@ -425,17 +430,19 @@ export const notifyRedetectOutcome = (
 
 interface DetailRemoveModalsProps {
   emulatorName: string;
+  removeTarget: ClassicsEmulatorTarget;
   folderToRemove: RomFolder | null;
   removeEmulatorOpen: boolean;
   busy: boolean;
   onConfirmRemoveFolder: () => void;
   onCloseRemoveFolder: () => void;
-  onConfirmRemoveEmulator: () => void;
+  onConfirmRemoveEmulator: (gamesToRemove: number) => void;
   onCloseRemoveEmulator: () => void;
 }
 
 export function DetailRemoveModals({
   emulatorName,
+  removeTarget,
   folderToRemove,
   removeEmulatorOpen,
   busy,
@@ -445,6 +452,20 @@ export function DetailRemoveModals({
   onCloseRemoveEmulator,
 }: Readonly<DetailRemoveModalsProps>) {
   const { t } = useTranslation("settings");
+  const { downloadLibrary } = useLibrary();
+  const [removeGames, setRemoveGames] = useState(false);
+
+  const emulatorGamesCount = useMemo(
+    () =>
+      downloadLibrary.filter((game) =>
+        isClassicsGameForEmulator(game, removeTarget)
+      ).length,
+    [downloadLibrary, removeTarget]
+  );
+
+  useEffect(() => {
+    if (removeEmulatorOpen) setRemoveGames(false);
+  }, [removeEmulatorOpen]);
 
   return (
     <>
@@ -467,12 +488,26 @@ export function DetailRemoveModals({
         descriptionText={t("remove_emulator_description", {
           name: emulatorName,
         })}
-        confirmButtonLabel={t("remove")}
+        confirmButtonLabel={busy ? t("remove_emulator_removing") : t("remove")}
         cancelButtonLabel={t("cancel_remove")}
-        onConfirm={onConfirmRemoveEmulator}
+        onConfirm={() =>
+          onConfirmRemoveEmulator(removeGames ? emulatorGamesCount : 0)
+        }
         onClose={onCloseRemoveEmulator}
         buttonsIsDisabled={busy}
-      />
+      >
+        {emulatorGamesCount > 0 && (
+          <CheckboxField
+            label={t("remove_emulator_games", {
+              count: emulatorGamesCount,
+              name: emulatorName,
+            })}
+            checked={removeGames}
+            disabled={busy}
+            onChange={() => setRemoveGames((current) => !current)}
+          />
+        )}
+      </ConfirmationModal>
     </>
   );
 }

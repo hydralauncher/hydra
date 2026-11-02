@@ -1,16 +1,18 @@
 import { useTranslation } from "react-i18next";
 import { LibraryMultiSelect } from "./library-multi-select";
-import { LIBRARY_SOURCES, type LibrarySource } from "./library-category";
+import type { LibrarySource } from "./library-category";
 import { SourceIcon } from "./source-icon";
 import "./source-filter.scss";
 
 interface SourceFilterProps {
+  sources: readonly LibrarySource[];
   selectedSources: LibrarySource[];
   disabled?: boolean;
   onSourcesChange: (sources: LibrarySource[]) => void;
 }
 
 export function SourceFilter({
+  sources,
   selectedSources,
   disabled = false,
   onSourcesChange,
@@ -42,12 +44,10 @@ export function SourceFilter({
         triggerIcon={
           selectedSource ? <SourceIcon source={selectedSource} /> : undefined
         }
-        onChange={(sources) =>
-          onSourcesChange(
-            LIBRARY_SOURCES.filter((source) => sources.includes(source))
-          )
+        onChange={(selected) =>
+          onSourcesChange(sources.filter((source) => selected.includes(source)))
         }
-        options={LIBRARY_SOURCES.map((source) => ({
+        options={sources.map((source) => ({
           value: source,
           label: sourceLabels[source],
           icon: <SourceIcon source={source} />,

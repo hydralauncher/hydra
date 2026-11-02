@@ -87,5 +87,3 @@ export const chevronVariants = {
     },
   },
 } as const;
-
-export const GAME_STATS_ANIMATION_DURATION_IN_MS = 3500;

@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { emulators, logger } from "@main/services";
@@ -15,6 +16,10 @@ import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
 import { spawnDetachedEmulator } from "./spawn-detached-emulator";
+import {
+  findFlatpakCommand,
+  resolveFlatpakEmulatorLaunch,
+} from "./flatpak-emulator-launch";
 import { prepareEmulatorSouvenirs } from "@main/services/emulators/prepare-emulator-souvenirs";
 import { cleanupEmulatorSouvenirSession } from "@main/services/emulators/emulator-souvenir-config";
 
@@ -248,9 +253,17 @@ export const launchClassicsGame = async (
     ...buildEmulatorArgs(config.binary, bootTarget),
   ];
 
+  const flatpakLaunch = resolveFlatpakEmulatorLaunch({
+    executableTarget,
+    args: baseArgs,
+    accessiblePaths: [bootTarget],
+    flatpakCommand: findFlatpakCommand(),
+    homePath: os.homedir(),
+  });
+
   const resolvedLaunchCommand = resolveLaunchCommand({
-    baseCommand: executableTarget,
-    baseArgs,
+    baseCommand: flatpakLaunch?.command ?? executableTarget,
+    baseArgs: flatpakLaunch?.args ?? baseArgs,
     launchOptions: null,
     wrapperCommands,
   });

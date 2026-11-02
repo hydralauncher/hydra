@@ -4,6 +4,7 @@ import { logger } from "../logger";
 import { summarizeNetworkError } from "../network-error-summary.js";
 import { friendRequestEvent } from "./events/friend-request";
 import { friendGameSessionEvent } from "./events/friend-game-session";
+import { broadcastFriendsUpdated } from "./friends-updated-broadcast";
 import { friendPresenceEvent } from "./events/friend-presence";
 import { notificationEvent } from "./events/notification";
 import { chatMessageEvent } from "./events/chat-message";
@@ -11,6 +12,7 @@ import { chatTypingEvent } from "./events/chat-typing";
 import { chatReactionEvent } from "./events/chat-reaction";
 import { chatMessageVisibilityEvent } from "./events/chat-message-visibility";
 import { chatMessageRejectedEvent } from "./events/chat-message-rejected";
+import { screenshotModeratedEvent } from "./events/screenshot-moderated";
 import { resyncAfterEventFailure, resyncAfterReconnect } from "./resync";
 import {
   cancelChatCatchUp,
@@ -31,6 +33,7 @@ import type {
   FriendPresence,
   FriendRequest,
   Notification,
+  ScreenshotModerated,
 } from "./types";
 
 const dispatchEvent = async (
@@ -76,6 +79,12 @@ const dispatchEvent = async (
     case "chatMessageRejected":
       await chatMessageRejectedEvent(
         payload satisfies ChatMessageRejected,
+        signal
+      );
+      break;
+    case "screenshotModerated":
+      await screenshotModeratedEvent(
+        payload satisfies ScreenshotModerated,
         signal
       );
       break;
@@ -126,6 +135,7 @@ export class SSEClient {
     // Sign-out and sign-in both close first; a catch-up still running belongs
     // to the previous account.
     cancelChatCatchUp();
+    broadcastFriendsUpdated.cancel();
   }
 
   static reconnectNow() {

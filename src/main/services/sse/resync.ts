@@ -4,15 +4,23 @@ import { HydraApi } from "@main/services/hydra-api";
 import { WindowManager } from "@main/services/window-manager";
 import { logger } from "@main/services/logger";
 import { catchUpChatUnread } from "@main/services/chat/chat-unread-catch-up";
+import { publishLeaderboardNotifications } from "@main/services/leaderboard-notifications";
 import { ResyncCoordinator } from "./resync-coordinator";
+import { broadcastFriendsUpdated } from "./friends-updated-broadcast";
 import { summarizeNetworkError } from "../network-error-summary.js";
 
-type ResyncScope = "friends" | "friendRequests" | "notifications" | "chat";
+type ResyncScope =
+  | "friends"
+  | "friendRequests"
+  | "notifications"
+  | "leaderboardNotifications"
+  | "chat";
 
 const ALL_SCOPES: ResyncScope[] = [
   "friends",
   "friendRequests",
   "notifications",
+  "leaderboardNotifications",
   "chat",
 ];
 const RESYNC_JITTER_MS = 15_000;
@@ -33,7 +41,7 @@ const sleep = (ms: number, signal: AbortSignal) =>
   });
 
 const broadcastFriendsUpdate = async () => {
-  WindowManager.sendToAppWindows("on-friends-updated");
+  broadcastFriendsUpdated();
 };
 
 const syncFriendRequestCount = async (signal: AbortSignal) => {
@@ -89,6 +97,10 @@ const SCOPE_TASKS: Record<
     errorMessage: "Failed to resync notification count:",
     task: syncNotificationCount,
   },
+  leaderboardNotifications: {
+    errorMessage: "Failed to publish leaderboard notifications:",
+    task: publishLeaderboardNotifications,
+  },
   chat: {
     errorMessage: "Failed to resync chat:",
     task: syncChat,
@@ -132,4 +144,4 @@ export const resyncFriendRequests = (signal: AbortSignal) =>
   coordinator.request(["friendRequests"], signal);
 
 export const resyncNotifications = (signal: AbortSignal) =>
-  coordinator.request(["notifications"], signal);
+  coordinator.request(["notifications", "leaderboardNotifications"], signal);

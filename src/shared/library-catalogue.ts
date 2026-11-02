@@ -6,6 +6,7 @@ import type {
   LibraryGamePresentation,
 } from "@types";
 import { getLibraryCollectionIds } from "./library-group-actions.js";
+import { getOfficialStoreMembers } from "./official-store-options.js";
 
 type RunningGameIds = readonly string[] | ReadonlySet<string>;
 
@@ -88,6 +89,78 @@ export const selectDownloadLibraryGame = (
         identityKey(a).localeCompare(identityKey(b))
     )[0] ?? operationalGame;
 
+export type RemoveFilesTarget =
+  | { kind: "hydra"; game: LibraryGame }
+  | { kind: "steam"; game: LibraryGame; appId: string };
+
+const STEAM_APP_ID_PATTERN = /^[1-9]\d{0,9}$/;
+
+export const isValidSteamAppId = (appId: string) =>
+  STEAM_APP_ID_PATTERN.test(appId);
+
+export const isSameRemoveFilesTarget = (
+  target: RemoveFilesTarget,
+  other: RemoveFilesTarget
+): boolean => {
+  if (target.kind !== other.kind) return false;
+
+  if (target.kind === "hydra" && other.kind === "hydra") {
+    return (
+      target.game.shop === other.game.shop &&
+      target.game.objectId === other.game.objectId
+    );
+  }
+
+  if (target.kind === "steam" && other.kind === "steam") {
+    return target.appId === other.appId;
+  }
+
+  return false;
+};
+
+export const getRemoveFilesTarget = (
+  game: LibraryGame,
+  steamUninstallAvailable: boolean,
+  isSteamLibraryExecutable = false
+): RemoveFilesTarget | null => {
+  const members = getLibraryGameMembers(game);
+  const operationalGame = getLibraryOperationalGame(game);
+  const preferredDownloadGame = selectDownloadLibraryGame(
+    members,
+    operationalGame
+  );
+
+  const hydraMember =
+    (preferredDownloadGame.download?.downloadPath
+      ? preferredDownloadGame
+      : undefined) ??
+    members.find((member) => Boolean(member.download?.downloadPath));
+
+  if (hydraMember) {
+    return { kind: "hydra", game: hydraMember };
+  }
+
+  if (members.some((member) => member.download)) return null;
+
+  if (!steamUninstallAvailable) return null;
+
+  const steamMember = getOfficialStoreMembers(members).steam;
+
+  if (
+    !steamMember ||
+    !isSteamLibraryExecutable ||
+    !isValidSteamAppId(steamMember.objectId)
+  ) {
+    return null;
+  }
+
+  return {
+    kind: "steam",
+    game: steamMember,
+    appId: steamMember.objectId,
+  };
+};
+
 const latestDate = (values: (Date | null)[]): Date | null =>
   values.reduce<Date | null>((latest, value) => {
     if (!value || Number.isNaN(new Date(value).getTime())) return latest;
@@ -155,6 +228,8 @@ const projectGroup = (
     coverImageUrl: presentationGame.coverImageUrl,
     logoPosition: presentationGame.logoPosition,
     downloadSources: presentationGame.downloadSources,
+    selectedArtworkTypes: presentationGame.selectedArtworkTypes,
+    images: presentationGame.images,
     achievementCount: operationalGame.achievementCount,
     unlockedAchievementCount: operationalGame.unlockedAchievementCount,
     customIconUrl: custom("customIconUrl"),

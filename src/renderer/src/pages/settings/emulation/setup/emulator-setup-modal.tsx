@@ -40,7 +40,7 @@ export function EmulatorSetupModal({
   onManage,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
-  const { showErrorToast } = useToast();
+  const { showErrorToast, showSuccessToast } = useToast();
   const { scan, start, cancel } = useClassicsScan();
 
   const [config, setConfig] = useState<EmulatorConfig | null>(initialConfig);
@@ -181,6 +181,27 @@ export function EmulatorSetupModal({
   );
   const currentStep = steps[stepIndex];
   const systemShort = system ? system.toUpperCase() : "";
+  const emulatorName = config
+    ? KNOWN_BINARY_LABELS[config.binary]
+    : systemShort;
+
+  const hasShownSetupToastRef = useRef(false);
+
+  useEffect(() => {
+    if (!visible || currentStep !== "done") {
+      hasShownSetupToastRef.current = false;
+      return;
+    }
+    if (hasShownSetupToastRef.current) return;
+
+    hasShownSetupToastRef.current = true;
+    showSuccessToast(
+      t("setup_emulator_success", { name: emulatorName }),
+      gamesAdded > 0
+        ? t("setup_emulator_games_added", { count: gamesAdded })
+        : undefined
+    );
+  }, [visible, currentStep, gamesAdded, emulatorName, showSuccessToast, t]);
 
   const goNext = useCallback(() => setStepIndex((i) => i + 1), []);
 

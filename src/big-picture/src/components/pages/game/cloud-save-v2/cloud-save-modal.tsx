@@ -703,9 +703,7 @@ export function BigPictureCloudSaveModal({
       closeOnEscape={
         !panelProps.isSyncing && !panelProps.isBindingEmulatorDestination
       }
-      closeOnB={
-        !panelProps.isSyncing && !panelProps.isBindingEmulatorDestination
-      }
+      busy={panelProps.isSyncing || panelProps.isBindingEmulatorDestination}
       initialFocusId={BIG_PICTURE_CLOUD_SAVE_TOGGLE_BUTTON_ID}
       className="big-picture-cloud-save-modal"
     >

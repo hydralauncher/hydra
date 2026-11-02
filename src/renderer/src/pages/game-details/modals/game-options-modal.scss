@@ -245,6 +245,15 @@ $disc-menu-transition-duration: 0.15s;
     }
   }
 
+  &__my-screenshots {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    margin-top: calc(globals.$spacing-unit * 2);
+    padding-top: calc(globals.$spacing-unit * 2);
+    border-top: 1px solid globals.$border-color;
+  }
+
   &__category-note {
     font-size: globals.$small-font-size;
     color: globals.$muted-color;
@@ -389,6 +398,18 @@ $disc-menu-transition-duration: 0.15s;
     }
   }
 
+  &__add {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  &__menu--add {
+    left: auto;
+    right: 0;
+    min-width: 180px;
+  }
+
   &__option {
     display: flex;
     align-items: center;
@@ -522,7 +543,9 @@ $disc-menu-transition-duration: 0.15s;
   cursor: pointer;
   width: 100%;
   text-align: left;
-  transition: all 0.15s;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
 
   &:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.08);

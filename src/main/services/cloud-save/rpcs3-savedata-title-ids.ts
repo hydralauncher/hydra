@@ -1,7 +1,7 @@
 import type { Game } from "@types";
 
 import {
-  normalizeRpcs3TitleId,
+  normalizeRpcs3CatalogueTitleId,
   rpcs3SavedataTitleIdsForGame,
   rpcs3TitleIdsForGame,
 } from "./rpcs3-title-ids.js";
@@ -16,7 +16,7 @@ export const rememberRpcs3CatalogueTitleIds = (
   currentCatalogueIds.set(
     catalogueKey(game),
     [...titleIds]
-      .map(normalizeRpcs3TitleId)
+      .map(normalizeRpcs3CatalogueTitleId)
       .filter((id): id is string => id !== null)
   );
 };
@@ -70,7 +70,7 @@ export const cacheRpcs3CatalogueTitleIds = async (
     .iterator({ gte: prefix, lt: `${prefix}\uffff` })
     .all();
   const skus = [...titleIds]
-    .map(normalizeRpcs3TitleId)
+    .map(normalizeRpcs3CatalogueTitleId)
     .filter((id): id is string => !!id);
   for (const [key, details] of entries) {
     if (details?.objectId !== game.objectId) continue;

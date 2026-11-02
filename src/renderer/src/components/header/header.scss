@@ -23,7 +23,9 @@
   &__search {
     background-color: globals.$background-color;
     display: inline-flex;
-    transition: all ease 0.2s;
+    transition:
+      width ease 0.2s,
+      border-color ease 0.2s;
     width: 200px;
     align-items: center;
     border-radius: 8px;
@@ -60,7 +62,9 @@
     color: inherit;
     cursor: pointer;
     -webkit-app-region: no-drag;
-    transition: all ease 0.2s;
+    transition:
+      color ease 0.2s,
+      border-color ease 0.2s;
     padding: globals.$spacing-unit;
     display: flex;
     align-items: center;
@@ -125,17 +129,30 @@
       opacity: 1;
       pointer-events: all;
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      &,
+      &--enabled {
+        animation: none;
+      }
+    }
   }
 
   &__title {
-    transition: all ease 0.2s;
+    transition:
+      transform ease 0.2s,
+      max-width ease 0.2s;
     overflow: hidden;
     text-overflow: ellipsis;
-    width: 100%;
+    width: fit-content;
+    max-width: 100%;
+    user-select: text;
+    cursor: text;
+    -webkit-app-region: no-drag;
 
     &--has-back-button {
       transform: translateX(28px);
-      width: calc(100% - 28px);
+      max-width: calc(100% - 28px);
     }
   }
 }

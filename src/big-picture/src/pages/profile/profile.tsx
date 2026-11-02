@@ -25,6 +25,7 @@ import type {
   AchievementSouvenirSyncStatus,
   ArtworkAssetType,
   Badge,
+  CatalogueGameIdentity,
   FriendRequestAction,
   ProfileSouvenir,
   SouvenirsHiddenReason,
@@ -73,7 +74,10 @@ import {
 import { useHeroBackgroundLayers } from "../../components/pages/library/hero/use-hero-background-layers";
 import { useFocusAnimatedCover } from "../../components/pages/library/card-presentation";
 import {
+  Feature,
+  useRunningGameIds,
   useBigPictureToast,
+  useFeature,
   useFormat,
   useLibrary,
   useUserDetails,
@@ -112,6 +116,13 @@ import {
 } from "./use-profile-data";
 import { SouvenirLightbox } from "../../components/pages/profile/souvenir-lightbox";
 import { SouvenirSyncCleanupModal } from "./souvenir-sync-cleanup-modal";
+import { ScreenshotLightbox } from "../../components/pages/screenshots";
+import {
+  ProfileScreenshots,
+  getProfileScreenshotCount,
+  getProfileScreenshotsFocusIds,
+  useProfileScreenshotsSection,
+} from "./profile-screenshots";
 import {
   buildProfileSouvenirVisibilityPath,
   buildUserSouvenirLikePath,
@@ -125,6 +136,9 @@ import {
   shouldShowSouvenirContentWarning,
   useSouvenirContentWarning,
   getDisplayedPlayTimeInMilliseconds,
+  groupLibraryGames,
+  getGameCatalogueIdentity,
+  resolveScreenshotPreferences,
 } from "@shared";
 
 const SOUVENIR_REPORT_RESPONSE_STATUSES = [201, 400, 404, 429];
@@ -149,11 +163,14 @@ type ProfileFavoriteGame = {
   libraryImageUrl?: string | null;
   playTimeInSeconds?: number;
   playTimeInMilliseconds?: number;
+  steamPlayTimeInMilliseconds?: number;
+  epicPlayTimeInMilliseconds?: number;
 };
 
 type ProfileActivityGame = {
   objectId: string;
   shop: ShopAssets["shop"];
+  catalogueGame?: CatalogueGameIdentity;
   title: string;
   iconUrl?: string | null;
   coverImageUrl?: string | null;
@@ -168,6 +185,7 @@ type ProfileActivityGame = {
 };
 
 type ProfileLibraryCarouselGame = ShopAssets & {
+  catalogueGame?: CatalogueGameIdentity;
   platform?: string | null;
   customIconUrl?: string | null;
   customHeroImageUrl?: string | null;
@@ -334,7 +352,7 @@ function getFavoriteGamePlaytimeInSeconds(game: ProfileFavoriteGame | null) {
   }
 
   if (typeof game.playTimeInMilliseconds === "number") {
-    return game.playTimeInMilliseconds / 1000;
+    return getDisplayedPlayTimeInMilliseconds(game) / 1000;
   }
 
   return null;
@@ -480,9 +498,10 @@ function getLibraryCarouselPlaytimeInMilliseconds(
 }
 
 function getDefaultCoverImageUrl(game: LibraryGame | UserGame): string | null {
-  if (game.shop !== "steam") return null;
+  const { shop, objectId } = getGameCatalogueIdentity(game);
+  if (shop !== "steam") return null;
 
-  return `https://shared.steamstatic.com/store_item_assets/steam/apps/${game.objectId}/library_600x900_2x.jpg`;
+  return `https://shared.steamstatic.com/store_item_assets/steam/apps/${objectId}/library_600x900_2x.jpg`;
 }
 
 function stripSelectedArtwork<T extends LibraryGame | UserGame>(
@@ -524,6 +543,7 @@ function toProfileLibraryCarouselGame(
   return {
     objectId: game.objectId,
     shop: game.shop,
+    catalogueGame: game.catalogueGame,
     title: game.title,
     iconUrl: game.iconUrl ?? null,
     libraryHeroImageUrl: game.libraryHeroImageUrl ?? null,
@@ -1747,6 +1767,7 @@ interface ProfileGames {
   favoriteGame: ProfileFavoriteGame | null;
   recentActivityGames: ProfileActivityGame[];
   libraryCarouselGames: ProfileLibraryCarouselGame[];
+  localLibraryCount: number;
 }
 
 function useProfileGames(
@@ -1758,17 +1779,22 @@ function useProfileGames(
   remoteFavoriteGame: UserGame | null,
   remoteRecentActivityGames: UserGame[]
 ): ProfileGames {
+  const runningGameIds = useRunningGameIds();
+  const groupedLibrary = useMemo(() => {
+    if (!isOwnProfile) return [];
+    return groupLibraryGames(library, runningGameIds);
+  }, [isOwnProfile, library, runningGameIds]);
   const localFavoriteGame = useMemo(
-    () => getLocalFavoriteGame(library, isOwnProfile),
-    [isOwnProfile, library]
+    () => getLocalFavoriteGame(groupedLibrary, isOwnProfile),
+    [isOwnProfile, groupedLibrary]
   );
   const remoteFavoriteFallback = useMemo(
     () => getRemoteFavoriteGame(remoteLibraryGames),
     [remoteLibraryGames]
   );
   const localRecentGames = useMemo(
-    () => (isOwnProfile ? getRecentGames(library) : []),
-    [isOwnProfile, library]
+    () => (isOwnProfile ? getRecentGames(groupedLibrary) : []),
+    [isOwnProfile, groupedLibrary]
   );
   const remoteRecentFallback = useMemo(
     () => getRecentGames(remoteLibraryGames),
@@ -1782,7 +1808,7 @@ function useProfileGames(
   );
   const libraryCarouselGames = useMemo(() => {
     const sourceGames = profileUser?.isOwnProfile
-      ? library
+      ? groupedLibrary
       : remoteLibraryGames;
     return sourceGames.map((game) =>
       toProfileLibraryCarouselGame(
@@ -1792,13 +1818,14 @@ function useProfileGames(
       )
     );
   }, [
+    groupedLibrary,
     hasActiveSubscription,
-    library,
     profileUser?.isOwnProfile,
     remoteLibraryGames,
   ]);
 
   return {
+    localLibraryCount: groupedLibrary.length,
     favoriteGame: profileUser?.isOwnProfile
       ? localFavoriteGame
       : (remoteFavoriteGame ?? remoteFavoriteFallback),
@@ -2458,6 +2485,8 @@ interface ProfileNavigation {
   libraryUpFocusId: string | null;
   souvenirUpFocusId: string | null;
   souvenirDownFocusId: string | null;
+  screenshotsUpFocusId: string | null;
+  screenshotsDownFocusId: string | null;
   socialUpFocusId: string | null;
 }
 
@@ -2471,6 +2500,7 @@ interface ProfileNavigationInput {
   canFocusRecentAchievements: boolean;
   souvenirSyncStatus: AchievementSouvenirSyncStatus;
   hasActiveSubscription: boolean;
+  screenshotFocusIds: { first: string | null; fromBelow: string | null };
 }
 
 type ProfileFocusIds = Pick<
@@ -2526,7 +2556,7 @@ function getProfileFocusIds({
   canFocusRecentAchievements,
   souvenirSyncStatus,
   hasActiveSubscription,
-}: Omit<ProfileNavigationInput, "profileUser">) {
+}: Omit<ProfileNavigationInput, "profileUser" | "screenshotFocusIds">) {
   const firstActivity = getFirstItem(recentActivityGames);
   const lastActivity = getLastItem(recentActivityGames);
   const firstLibrary = getFirstItem(libraryCarouselGames);
@@ -2578,6 +2608,7 @@ function getProfileNavigation({
   canFocusRecentAchievements,
   souvenirSyncStatus,
   hasActiveSubscription,
+  screenshotFocusIds,
 }: ProfileNavigationInput): ProfileNavigation {
   const focusIds = getProfileFocusIds({
     recentActivityGames,
@@ -2601,6 +2632,10 @@ function getProfileNavigation({
   } = focusIds;
   const firstSocialFocusId = firstAchievementFocusId ?? firstFriendFocusId;
   const heroActionsFocusId = getHeroActionsFocusId(profileUser);
+  const aboveActivityFocusId =
+    screenshotFocusIds.fromBelow ?? firstSouvenirFocusId ?? heroActionsFocusId;
+  const belowScreenshotsFocusId =
+    firstActivityFocusId ?? firstLibraryFocusId ?? firstSocialFocusId;
 
   return {
     firstActivityFocusId,
@@ -2611,22 +2646,20 @@ function getProfileNavigation({
     lastFriendFocusId,
     firstContentFocusId:
       firstSouvenirFocusId ??
+      screenshotFocusIds.first ??
       firstActivityFocusId ??
       firstLibraryFocusId ??
       firstSocialFocusId,
     activityDownFocusId: firstLibraryFocusId ?? firstSocialFocusId,
     libraryDownFocusId: firstSocialFocusId,
-    activityUpFocusId: firstSouvenirFocusId ?? heroActionsFocusId,
-    libraryUpFocusId:
-      lastActivityFocusId ?? firstSouvenirFocusId ?? heroActionsFocusId,
+    activityUpFocusId: aboveActivityFocusId,
+    libraryUpFocusId: lastActivityFocusId ?? aboveActivityFocusId,
     souvenirUpFocusId: heroActionsFocusId,
-    souvenirDownFocusId:
-      firstActivityFocusId ?? firstLibraryFocusId ?? firstSocialFocusId,
+    souvenirDownFocusId: screenshotFocusIds.first ?? belowScreenshotsFocusId,
+    screenshotsUpFocusId: firstSouvenirFocusId ?? heroActionsFocusId,
+    screenshotsDownFocusId: belowScreenshotsFocusId,
     socialUpFocusId:
-      firstLibraryFocusId ??
-      lastActivityFocusId ??
-      firstSouvenirFocusId ??
-      heroActionsFocusId,
+      firstLibraryFocusId ?? lastActivityFocusId ?? aboveActivityFocusId,
   };
 }
 
@@ -2652,6 +2685,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
   } = useUserDetails();
   const { library } = useLibrary();
   const userPreferences = useUserPreferences();
+  const { isFeatureEnabled } = useFeature();
   const disableNsfwAlert = userPreferences?.disableNsfwAlert === true;
   const [isPerformingProfileAction, setIsPerformingProfileAction] =
     useState(false);
@@ -2755,6 +2789,18 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     updateSouvenir,
     removeSouvenir,
   } = useProfileSouvenirs(targetUserId, Boolean(userDetails));
+  const {
+    state: profileScreenshots,
+    openScreenshot,
+    lightboxProps: screenshotLightboxProps,
+  } = useProfileScreenshotsSection({
+    targetUserId,
+    baseTotal: getProfileScreenshotCount(externalProfile, targetUserId),
+    isEnabled: isFeatureEnabled(Feature.Screenshots),
+    isSignedIn: Boolean(userDetails),
+    searchParams,
+    setSearchParams,
+  });
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const [souvenirSyncStatus, setSouvenirSyncStatus] =
     useState<AchievementSouvenirSyncStatus>({
@@ -3185,18 +3231,22 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
       .map((badgeName) => badges.find((badge) => badge.name === badgeName))
       .filter((badge): badge is Badge => Boolean(badge));
   }, [badges, profileUser?.badges]);
-  const { favoriteGame, recentActivityGames, libraryCarouselGames } =
-    useProfileGames(
-      profileUser,
-      isOwnProfileTarget,
-      targetHasActiveSubscription,
-      library,
-      remoteLibraryGames,
-      remoteFavoriteGame,
-      remoteRecentActivityGames
-    );
+  const {
+    favoriteGame,
+    recentActivityGames,
+    libraryCarouselGames,
+    localLibraryCount,
+  } = useProfileGames(
+    profileUser,
+    isOwnProfileTarget,
+    targetHasActiveSubscription,
+    library,
+    remoteLibraryGames,
+    remoteFavoriteGame,
+    remoteRecentActivityGames
+  );
   const totalLibraryGames = profileUser?.isOwnProfile
-    ? library.length
+    ? localLibraryCount
     : (userStats?.libraryCount ?? remoteLibraryTotalCount);
   const canViewRecentAchievements =
     Boolean(profileUser) && targetHasActiveSubscription;
@@ -3214,6 +3264,8 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     libraryUpFocusId,
     souvenirUpFocusId,
     souvenirDownFocusId,
+    screenshotsUpFocusId,
+    screenshotsDownFocusId,
     socialUpFocusId,
   } = getProfileNavigation({
     profileUser,
@@ -3225,6 +3277,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     canFocusRecentAchievements,
     souvenirSyncStatus,
     hasActiveSubscription: targetHasActiveSubscription,
+    screenshotFocusIds: getProfileScreenshotsFocusIds(profileScreenshots),
   });
   const showFriendsViewAll = totalFriends > friends.length;
   const externalProfileActions = useMemo<ProfileHeroAction[]>(() => {
@@ -3278,13 +3331,27 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
               onOpenCleanup={() => void handleOpenSouvenirSyncCleanup()}
             />
 
+            <ProfileScreenshots
+              state={profileScreenshots}
+              isOwnProfile={isOwnProfileTarget}
+              hotkey={resolveScreenshotPreferences(userPreferences).hotkey}
+              upFocusId={screenshotsUpFocusId}
+              downFocusId={screenshotsDownFocusId}
+              onActivate={openScreenshot}
+            />
+
             <ProfileActivity
               games={recentActivityGames}
               preferCustomArtwork={targetHasActiveSubscription}
               upFocusId={activityUpFocusId}
               downFocusId={activityDownFocusId}
               onActivate={(game) =>
-                navigate(getBigPictureGameDetailsPath(game))
+                navigate(
+                  getBigPictureGameDetailsPath({
+                    ...game,
+                    ...getGameCatalogueIdentity(game),
+                  })
+                )
               }
             />
 
@@ -3294,7 +3361,12 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
               upFocusId={libraryUpFocusId}
               downFocusId={libraryDownFocusId}
               onActivate={(game) =>
-                navigate(getBigPictureGameDetailsPath(game))
+                navigate(
+                  getBigPictureGameDetailsPath({
+                    ...game,
+                    ...getGameCatalogueIdentity(game),
+                  })
+                )
               }
             />
 
@@ -3370,6 +3442,8 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
           onDelete={handleSouvenirDelete}
           onReport={handleSouvenirReport}
         />
+
+        <ScreenshotLightbox {...screenshotLightboxProps} />
 
         <SouvenirSyncCleanupModal
           visible={isSouvenirSyncCleanupVisible}

@@ -2,7 +2,10 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
 import { Button, CheckboxField, Modal } from "@renderer/components";
-import { DotIcon } from "@primer/octicons-react";
+import { FileIcon } from "@primer/octicons-react";
+import { Disc3 } from "lucide-react";
+import { getClassicsDiscLabel } from "@shared";
+import { useFileIcons } from "@renderer/hooks/use-file-icons";
 import {
   getSkuRegion,
   getSkuRegionFlag,
@@ -39,6 +42,10 @@ export function DiscSelectionModal({
   const { t } = useTranslation("game_details");
   const tooltipId = useId();
 
+  const executableIcons = useFileIcons(
+    discs.filter((disc) => disc.isExecutable).map((disc) => disc.path)
+  );
+
   const sortedDiscs = useMemo(() => {
     const regionOrder = new Map<string, number>();
     for (const disc of discs) {
@@ -55,6 +62,7 @@ export function DiscSelectionModal({
     };
 
     const numberOf = (disc: ClassicsDisc): number => {
+      if (disc.isExecutable) return Number.MAX_SAFE_INTEGER;
       const match = /\d+/.exec(disc.label);
       return match ? parseInt(match[0], 10) : Number.MAX_SAFE_INTEGER;
     };
@@ -84,6 +92,26 @@ export function DiscSelectionModal({
     onConfirm(selected, dontAsk);
   };
 
+  const renderOptionIcon = (disc: ClassicsDisc) => {
+    if (!disc.isExecutable) {
+      return <Disc3 size={20} className="disc-selection-modal__option-icon" />;
+    }
+
+    const fileIcon = executableIcons[disc.path];
+
+    return fileIcon ? (
+      <img
+        src={fileIcon}
+        alt=""
+        width={20}
+        height={20}
+        className="disc-selection-modal__option-icon"
+      />
+    ) : (
+      <FileIcon size={20} className="disc-selection-modal__option-icon" />
+    );
+  };
+
   return (
     <Modal
       visible={visible}
@@ -103,13 +131,10 @@ export function DiscSelectionModal({
               className={`disc-selection-modal__option ${isActive ? "disc-selection-modal__option--active" : ""}`}
               onClick={() => setSelected(disc.path)}
             >
-              <DotIcon
-                size={20}
-                className="disc-selection-modal__option-icon"
-              />
+              {renderOptionIcon(disc)}
               <div className="disc-selection-modal__option-text">
                 <span className="disc-selection-modal__option-label">
-                  {disc.label}
+                  {getClassicsDiscLabel(disc)}
                 </span>
                 <span className="disc-selection-modal__option-filename">
                   {disc.fileName}

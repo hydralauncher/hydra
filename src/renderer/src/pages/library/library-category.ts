@@ -114,8 +114,22 @@ export const getLibraryGameSource = (
 export const hasSteamLibraryGames = (games: LibraryCategoryGame[]) =>
   games.some(isSteamLibraryGame);
 
+export const getAvailableLibrarySources = (
+  games: LibraryCategoryGame[]
+): LibrarySource[] => {
+  const sources = new Set<LibrarySource>(["hydra"]);
+  for (const game of games) {
+    for (const member of game.members ?? [game]) {
+      sources.add(getLibraryGameSource(member));
+    }
+  }
+
+  return LIBRARY_SOURCES.filter((source) => sources.has(source));
+};
+
 export const getLibraryFilterOptions = (games: LibraryFilterGame[]) => ({
   hasImportedGames: hasImportedLibraryGames(games),
+  sources: getAvailableLibrarySources(games),
   platforms: Array.from(
     new Set(
       games.flatMap((game) =>
@@ -218,6 +232,18 @@ export const hasImportedLibraryGames = (games: LibraryCategoryGame[]) =>
         (member.shop === "epic" && member.hasActiveEpicImport)
     )
   );
+
+export const getLibraryPresentationImportSources = (
+  game: LibraryCategoryGame
+) => {
+  const activeMembers = (game.members ?? [game]).filter(
+    (member) => !member.isDeleted
+  );
+  return {
+    steam: activeMembers.some((member) => member.hasActiveSteamImport === true),
+    epic: activeMembers.some((member) => member.hasActiveEpicImport === true),
+  };
+};
 
 export const getLibraryPresentationBadgeSource = (
   game: LibraryCategoryGame

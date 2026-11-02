@@ -6,8 +6,10 @@ import {
   type SkuRegion,
 } from "@renderer/helpers";
 import type { LibraryGame, ShortcutLocation } from "@types";
-import { DiscIcon } from "@phosphor-icons/react";
-import { FolderOpen, Monitor, Search, Trash } from "lucide-react";
+import { FileIcon } from "@phosphor-icons/react";
+import { getClassicsDiscLabel } from "@shared";
+import { useFileIcons } from "@renderer/hooks/use-file-icons";
+import { Disc3, FolderOpen, Monitor, Search, Trash } from "lucide-react";
 import { useCallback, type ReactNode, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import {
@@ -18,7 +20,6 @@ import {
   FocusItem,
   HorizontalFocusGroup,
   Input,
-  Typography,
   type FileFilter,
   VerticalFocusGroup,
 } from "../../../common";
@@ -43,6 +44,10 @@ const GAME_LAUNCH_SETTINGS_SHORTCUT_START_MENU_ID =
   "game-launch-settings-shortcut-start-menu";
 const GAME_LAUNCH_SETTINGS_ADD_DISC_FILE_ID =
   "game-launch-settings-add-disc-file";
+const GAME_LAUNCH_SETTINGS_ADD_DISC_EXECUTABLE_ID =
+  "game-launch-settings-add-disc-executable";
+const GAME_LAUNCH_SETTINGS_EMPTY_ADD_EXECUTABLE_ID =
+  "game-launch-settings-empty-add-executable";
 const GAME_LAUNCH_SETTINGS_DONT_ASK_DISC_ID =
   "game-launch-settings-dont-ask-disc";
 const GAME_LAUNCH_SETTINGS_EXEC_PATH_SELECT_ID =
@@ -82,6 +87,7 @@ export interface GameLaunchSettingsProps {
   onSelectDisc: (path: string) => Promise<void>;
   onToggleDontAskDiscSelection: (checked: boolean) => Promise<void>;
   onProcessDiscPath: (path: string) => Promise<void>;
+  onProcessDiscExecutablePath: (path: string) => Promise<void>;
   onRemoveSelectedDisc: () => Promise<void>;
   onRemoveAllDiscs: () => Promise<void>;
   onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
@@ -93,6 +99,7 @@ interface LaunchboxDiscsSectionProps {
   dontAskDiscSelection: LibraryGame["dontAskDiscSelection"];
   onSelectDisc: (path: string) => Promise<void>;
   onAddDiscFile: () => void;
+  onAddExecutableFile: () => void;
   onRemoveSelectedDisc: () => Promise<void>;
   onRemoveAllDiscs: () => Promise<void>;
   onToggleDontAskDiscSelection: (checked: boolean) => Promise<void>;
@@ -104,12 +111,16 @@ function LaunchboxDiscsSection({
   dontAskDiscSelection,
   onSelectDisc,
   onAddDiscFile,
+  onAddExecutableFile,
   onRemoveSelectedDisc,
   onRemoveAllDiscs,
   onToggleDontAskDiscSelection,
 }: Readonly<LaunchboxDiscsSectionProps>) {
   const { t } = useTranslation("game_details");
   const hasDiscs = discs && discs.length > 0;
+  const executableIcons = useFileIcons(
+    (discs ?? []).filter((disc) => disc.isExecutable).map((disc) => disc.path)
+  );
 
   return (
     <SettingsSection
@@ -126,17 +137,29 @@ function LaunchboxDiscsSection({
             options={discs.map((disc) => {
               const region = disc.sku ? getSkuRegion(disc.sku) : null;
 
-              return {
-                value: disc.path,
-                label: disc.label,
-                description: disc.fileName,
-                icon: region ? (
+              const executableIcon = executableIcons[disc.path];
+              let icon: ReactNode = <Disc3 size={20} />;
+              if (disc.isExecutable) {
+                icon = executableIcon ? (
+                  <img src={executableIcon} alt="" />
+                ) : (
+                  <FileIcon size={20} />
+                );
+              } else if (region) {
+                icon = (
                   <img
                     src={getSkuRegionFlag(region)}
                     alt={REGION_LABELS[region]}
                     title={REGION_LABELS[region]}
                   />
-                ) : undefined,
+                );
+              }
+
+              return {
+                value: disc.path,
+                label: getClassicsDiscLabel(disc),
+                description: disc.fileName,
+                icon,
               };
             })}
             onValueChange={(value) => {
@@ -145,18 +168,29 @@ function LaunchboxDiscsSection({
           />
         ) : (
           <>
-            <Typography className="game-launch-settings-tab__empty-state">
+            <div className="game-launch-settings-tab__exec-path-button game-launch-settings-tab__exec-path-button--placeholder game-launch-settings-tab__exec-path-button--static">
               {t("no_discs_found")}
-            </Typography>
+            </div>
 
-            <Button
-              focusId={GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID}
-              variant="primary"
-              icon={<DiscIcon size={20} />}
-              onClick={() => onAddDiscFile()}
-            >
-              {t("add_disc")}
-            </Button>
+            <HorizontalFocusGroup className="game-launch-settings-tab__actions game-launch-settings-tab__actions--thirds">
+              <Button
+                focusId={GAME_LAUNCH_SETTINGS_PRIMARY_CONTROL_ID}
+                variant="primary"
+                icon={<Disc3 size={20} />}
+                onClick={() => onAddDiscFile()}
+              >
+                {t("add_disc")}
+              </Button>
+
+              <Button
+                focusId={GAME_LAUNCH_SETTINGS_EMPTY_ADD_EXECUTABLE_ID}
+                variant="secondary"
+                icon={<FileIcon size={20} />}
+                onClick={() => onAddExecutableFile()}
+              >
+                {t("add_executable_option")}
+              </Button>
+            </HorizontalFocusGroup>
           </>
         )}
 
@@ -165,12 +199,25 @@ function LaunchboxDiscsSection({
             <Button
               focusId={GAME_LAUNCH_SETTINGS_ADD_DISC_FILE_ID}
               variant="secondary"
-              icon={<DiscIcon size={20} />}
+              icon={<Disc3 size={20} />}
               onClick={() => onAddDiscFile()}
             >
               {t("add_disc")}
             </Button>
 
+            <Button
+              focusId={GAME_LAUNCH_SETTINGS_ADD_DISC_EXECUTABLE_ID}
+              variant="secondary"
+              icon={<FileIcon size={20} />}
+              onClick={() => onAddExecutableFile()}
+            >
+              {t("add_executable_option")}
+            </Button>
+          </HorizontalFocusGroup>
+        ) : null}
+
+        {hasDiscs ? (
+          <HorizontalFocusGroup className="game-launch-settings-tab__actions game-launch-settings-tab__actions--thirds">
             {selectedDisc ? (
               <Button
                 variant="danger"
@@ -195,7 +242,7 @@ function LaunchboxDiscsSection({
           </HorizontalFocusGroup>
         ) : null}
 
-        {hasDiscs ? (
+        {discs && discs.length > 1 ? (
           <Checkbox
             block
             focusId={GAME_LAUNCH_SETTINGS_DONT_ASK_DISC_ID}
@@ -574,6 +621,7 @@ export function GameLaunchSettingsTab({
   onSelectDisc,
   onToggleDontAskDiscSelection,
   onProcessDiscPath,
+  onProcessDiscExecutablePath,
   onRemoveSelectedDisc,
   onRemoveAllDiscs,
   onToggleHydraPlaytimeEnabled,
@@ -581,6 +629,8 @@ export function GameLaunchSettingsTab({
   const { t } = useTranslation("game_details");
   const [execPickerOpen, setExecPickerOpen] = useState(false);
   const [discPickerOpen, setDiscPickerOpen] = useState(false);
+  const [discExecutablePickerOpen, setDiscExecutablePickerOpen] =
+    useState(false);
   const isCustomGame = game.shop === "custom";
   const discs = game.discs ?? [];
   const selectedDisc =
@@ -619,6 +669,22 @@ export function GameLaunchSettingsTab({
     setDiscPickerOpen(true);
   }, []);
 
+  const handleDiscExecutablePicked = useCallback(
+    (path: string) => {
+      setDiscExecutablePickerOpen(false);
+      void onProcessDiscExecutablePath(path);
+    },
+    [onProcessDiscExecutablePath]
+  );
+
+  const handleDiscExecutablePickerClose = useCallback(() => {
+    setDiscExecutablePickerOpen(false);
+  }, []);
+
+  const handleOpenDiscExecutablePicker = useCallback(() => {
+    setDiscExecutablePickerOpen(true);
+  }, []);
+
   return (
     <>
       <VerticalFocusGroup className="game-launch-settings-tab">
@@ -629,6 +695,7 @@ export function GameLaunchSettingsTab({
             dontAskDiscSelection={game.dontAskDiscSelection}
             onSelectDisc={onSelectDisc}
             onAddDiscFile={handleOpenDiscPicker}
+            onAddExecutableFile={handleOpenDiscExecutablePicker}
             onRemoveSelectedDisc={onRemoveSelectedDisc}
             onRemoveAllDiscs={onRemoveAllDiscs}
             onToggleDontAskDiscSelection={onToggleDontAskDiscSelection}
@@ -694,6 +761,15 @@ export function GameLaunchSettingsTab({
         onSelect={handleDiscPicked}
         title={t("add_disc")}
         filters={discPickerFilters}
+      />
+
+      <FileExplorerModal
+        visible={discExecutablePickerOpen}
+        onClose={handleDiscExecutablePickerClose}
+        onSelect={handleDiscExecutablePicked}
+        title={t("add_executable_option")}
+        initialPath={execPickerInitialPath}
+        filters={execPickerFilters}
       />
     </>
   );

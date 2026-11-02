@@ -312,6 +312,7 @@ export default function LibraryPage() {
     requestRemoveFromLibrary,
     closePendingAction,
     confirmPendingAction,
+    sourceArchiveOption,
   } = useLibraryPendingAction({
     getRestoreFocusId: useCallback(
       () => contextMenuState.restoreFocusId,
@@ -554,6 +555,7 @@ export default function LibraryPage() {
           loading={isSubmittingAction}
           onClose={closePendingAction}
           onConfirm={confirmPendingAction}
+          sourceArchiveOption={sourceArchiveOption}
         />
       ) : null}
 

@@ -67,6 +67,9 @@ const readRetryAfterSeconds = (error: unknown): number | null => {
   );
 };
 
+export const isSteamRateLimitStatus = (status: number | null | undefined) =>
+  status === 429 || status === 420;
+
 export const getSteamSourceRetryDelayMs = (
   error: unknown,
   failedAttempt: number
@@ -74,7 +77,7 @@ export const getSteamSourceRetryDelayMs = (
   const status = getSteamSourceHttpStatus(error);
   const exponent = Math.max(0, failedAttempt - 1);
 
-  if (status === 429) {
+  if (isSteamRateLimitStatus(status)) {
     const retryAfterSeconds = readRetryAfterSeconds(error);
     if (retryAfterSeconds != null) {
       return retryAfterSeconds * 1000;
@@ -103,7 +106,7 @@ export const shouldRetrySteamSource = (
 ): boolean => {
   const status = getSteamSourceHttpStatus(error);
 
-  if (status === 429) {
+  if (isSteamRateLimitStatus(status)) {
     return failedAttempt < STEAM_SOURCE_429_MAX_ATTEMPTS;
   }
 
@@ -195,7 +198,7 @@ export const isSteamSourceAchievementSkippable = (error: unknown) => {
     status === 400 ||
     status === 403 ||
     status === 409 ||
-    status === 429 ||
+    isSteamRateLimitStatus(status) ||
     status === 502 ||
     isSteamSourceTransportError(error)
   );
@@ -212,7 +215,7 @@ export const isSteamRateLimitedPayload = (payload: unknown): boolean => {
 };
 
 export const isSteamSourceRateLimited = (error: unknown) => {
-  if (getSteamSourceHttpStatus(error) === 429) return true;
+  if (isSteamRateLimitStatus(getSteamSourceHttpStatus(error))) return true;
   if (isSteamRateLimitedPayload(error)) return true;
 
   if (isAxiosError(error)) {

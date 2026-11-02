@@ -10,6 +10,9 @@ export interface FriendGameSession {
   objectId: string;
   shop: string;
   friendId: string;
+  displayName?: string;
+  profileImageUrl?: string | null;
+  gameTitle?: string | null;
 }
 
 export interface FriendPresence {
@@ -73,4 +76,10 @@ export interface ChatMessageVisibility {
   senderId: string;
   recipientId: string;
   seq: number;
+}
+
+export interface ScreenshotModerated {
+  screenshotId: string;
+  moderationStatus: "APPROVED" | "BLOCKED";
+  moderationReason: string | null;
 }

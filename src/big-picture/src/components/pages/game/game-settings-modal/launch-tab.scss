@@ -47,6 +47,15 @@
   &--placeholder {
     color: var(--text-secondary);
   }
+
+  &--static {
+    flex: none;
+    cursor: default;
+
+    &:hover {
+      border-color: var(--secondary-border);
+    }
+  }
 }
 
 .game-launch-settings-tab__exec-path-group {
@@ -117,8 +126,7 @@
   font-size: 0.9em;
 }
 
-.game-launch-settings-tab__supporting-copy,
-.game-launch-settings-tab__empty-state {
+.game-launch-settings-tab__supporting-copy {
   margin: 0;
   color: rgba(255, 255, 255, 0.68);
 }

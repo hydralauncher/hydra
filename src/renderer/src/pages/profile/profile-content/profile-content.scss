@@ -26,7 +26,9 @@
     display: flex;
     gap: calc(globals.$spacing-unit * 2);
     flex-direction: column;
-    transition: all ease 0.2s;
+    transition:
+      width ease 0.2s,
+      max-width ease 0.2s;
 
     @media (min-width: 1024px) {
       max-width: 300px;
@@ -96,7 +98,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all ease 0.2s;
+    transition:
+      color ease 0.2s,
+      background-color ease 0.2s;
     flex-shrink: 0;
 
     &:hover {
@@ -177,6 +181,39 @@
       width: 18px;
       height: 18px;
     }
+  }
+
+  &__screenshots-empty {
+    margin-top: calc(36px + globals.$spacing-unit * 2);
+    text-align: center;
+
+    p {
+      max-width: 420px;
+      margin: 0;
+      color: globals.$body-color;
+      line-height: 1.6;
+    }
+  }
+
+  &__screenshots-loading {
+    display: block;
+    padding: calc(globals.$spacing-unit * 2);
+    color: globals.$body-color;
+    text-align: center;
+  }
+
+  &__screenshots-hotkey {
+    display: inline-block;
+    margin: 0 4px;
+    padding: 1px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    color: globals.$muted-color;
+    font-family: inherit;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
   }
 
   &__souvenirs-notice {
@@ -413,6 +450,38 @@
     display: grid;
     gap: calc(globals.$spacing-unit * 1.5);
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+
+  &__souvenir-skeleton {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$background-color;
+  }
+
+  &__souvenir-skeleton-image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  &__souvenir-skeleton-details {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__souvenir-skeleton-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
   }
 
   &__souvenir {
@@ -663,7 +732,10 @@
 
     &-action-button {
       cursor: pointer;
-      transition: all ease 0.2s;
+      transition:
+        background-color ease 0.2s,
+        color ease 0.2s,
+        opacity ease 0.2s;
 
       &:hover:not(:disabled) {
         background: rgba(0, 0, 0, 0.6);
@@ -719,7 +791,9 @@
       background: rgba(255, 255, 255, 0.05);
       border: 2px dashed rgba(255, 255, 255, 0.3);
       position: relative;
-      transition: all ease 0.2s;
+      transition:
+        background-color ease 0.2s,
+        border-color ease 0.2s;
 
       &::before {
         content: "Drop here to " attr(data-action);
@@ -775,6 +849,26 @@
 
 .user-reviews__review-item {
   border-radius: 8px;
+}
+
+.user-reviews__skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: globals.$spacing-unit;
+  padding-bottom: calc(globals.$spacing-unit * 2);
+  border-bottom: solid 1px globals.$border-color;
+
+  > span:not(:first-child) {
+    width: 100%;
+  }
+}
+
+.user-reviews__skeleton-header,
+.user-reviews__skeleton-votes {
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
 }
 
 .user-reviews__review-header {
@@ -919,7 +1013,7 @@
   font-size: 0.875rem;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: color 0.2s ease;
 
   &:hover {
     text-decoration: underline;
@@ -952,7 +1046,10 @@
   color: #ccc;
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.1);
