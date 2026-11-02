@@ -526,6 +526,20 @@ $margin-bottom: 28px;
     }
   }
 
+  &--arming {
+    opacity: 0 !important;
+    animation: none !important;
+  }
+
+  &--arming * {
+    animation: none !important;
+  }
+
+  &--arming *::before,
+  &--arming *::after {
+    animation: none !important;
+  }
+
   &--closing * {
     animation: none;
   }

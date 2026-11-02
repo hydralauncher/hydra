@@ -48,6 +48,7 @@ export function AchievementNotification() {
   const [achievement, setAchievement] =
     useState<AchievementNotificationInfo | null>(null);
   const [phase, setPhase] = useState<NotificationPhase>("idle");
+  const [isArming, setIsArming] = useState(false);
   const [shadowRootRef, setShadowRootRef] = useState<HTMLElement | null>(null);
 
   const requestRef = useRef<AchievementNotificationRequest | null>(null);
@@ -55,7 +56,7 @@ export function AchievementNotification() {
   const hostReadyReported = useRef(false);
   const displayTimer = useRef<number | null>(null);
   const closingTimer = useRef<number | null>(null);
-  const hasPlayedSound = useRef(false);
+  const playedSoundBatch = useRef<string | null>(null);
 
   const clearAnimationTimers = useCallback(() => {
     if (displayTimer.current !== null) {
@@ -77,8 +78,10 @@ export function AchievementNotification() {
       const audio = new Audio(soundUrl);
       audio.volume = volume;
       await audio.play();
+      return true;
     } catch (error) {
       console.error("Failed to play achievement notification sound", error);
+      return false;
     }
   }, []);
 
@@ -141,6 +144,7 @@ export function AchievementNotification() {
         requestRef.current = null;
         setRequest(null);
         setAchievement(null);
+        setIsArming(false);
         setPhase("idle");
 
         const resolveIcon = () => {
@@ -216,6 +220,7 @@ export function AchievementNotification() {
     requestRef.current = null;
     setRequest(null);
     setAchievement(null);
+    setIsArming(false);
     setPhase("idle");
     void window.electron.achievementNotificationFinished(requestId);
   }, []);
@@ -232,17 +237,25 @@ export function AchievementNotification() {
   useEffect(() => {
     const unsubscribe = window.electron.onStartAchievementNotification(
       (requestId) => {
-        if (requestRef.current?.id !== requestId) return;
+        const request = requestRef.current;
+        if (!request || request.id !== requestId) return;
 
         clearAnimationTimers();
 
+        setIsArming(true);
         setPhase("playing");
+
         if (
-          !hasPlayedSound.current &&
-          requestRef.current.type !== "screenshot"
+          request.type !== "screenshot" &&
+          playedSoundBatch.current !== request.batchId
         ) {
-          hasPlayedSound.current = true;
-          void playAudio();
+          const batchId = request.batchId;
+          playedSoundBatch.current = batchId;
+          void playAudio().then((played) => {
+            if (!played && playedSoundBatch.current === batchId) {
+              playedSoundBatch.current = null;
+            }
+          });
         }
 
         displayTimer.current = window.setTimeout(() => {
@@ -255,6 +268,24 @@ export function AchievementNotification() {
 
     return () => unsubscribe();
   }, [clearAnimationTimers, playAudio, scheduleClosing]);
+
+  useEffect(() => {
+    if (phase !== "playing" || !isArming) return;
+
+    let firstFrame = 0;
+    let secondFrame = 0;
+
+    firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        setIsArming(false);
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [isArming, phase]);
 
   useEffect(() => {
     return () => {
@@ -274,6 +305,7 @@ export function AchievementNotification() {
           (phase === "playing" || phase === "closing") && (
             <AchievementNotificationItem
               achievement={achievement}
+              isArming={phase === "playing" && isArming}
               isClosing={phase === "closing"}
               position={request.position}
             />

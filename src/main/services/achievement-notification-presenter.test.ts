@@ -82,12 +82,16 @@ class PresenterHarness {
     await new Promise<void>((resolve) => setImmediate(resolve));
   }
 
-  public latestPreparedRequestId(): string {
+  public latestPreparedRequest(): { id: string; batchId: string } {
     const message = this.host.messages.findLast(
       ({ channel }) => channel === "prepare-achievement-notification"
     );
     assert.ok(message);
-    return (message.args[0] as { id: string }).id;
+    return message.args[0] as { id: string; batchId: string };
+  }
+
+  public latestPreparedRequestId(): string {
+    return this.latestPreparedRequest().id;
   }
 
   public async prepareAchievement(fallback?: () => void): Promise<string> {
@@ -232,6 +236,44 @@ describe("AchievementNotificationPresenter", () => {
     assert.equal(harness.host.showInactiveCount, 2);
     assert.equal(harness.host.destroyCount, 1);
     assert.equal(harness.createCount, 1);
+  });
+
+  it("keeps one batch id across a burst and starts a new batch afterwards", async () => {
+    const harness = new PresenterHarness();
+
+    harness.presenter.enqueueAchievements("top-left", [
+      achievement("first"),
+      achievement("second"),
+    ]);
+    harness.presenter.enqueueAchievements("top-left", [achievement("third")]);
+    await harness.flush();
+
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "host-ready",
+    });
+    await harness.flush();
+
+    const first = harness.latestPreparedRequest();
+    await harness.contentReady(first.id);
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "finished",
+      requestId: first.id,
+    });
+    await harness.flush();
+
+    const second = harness.latestPreparedRequest();
+    assert.equal(second.batchId, first.batchId);
+    assert.notEqual(second.id, first.id);
+
+    await harness.contentReady(second.id);
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "finished",
+      requestId: second.id,
+    });
+    await harness.flush();
+
+    const third = harness.latestPreparedRequest();
+    assert.notEqual(third.batchId, first.batchId);
   });
 
   it("does not start the animation until the shown frame is reported", async () => {

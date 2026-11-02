@@ -66,6 +66,7 @@ export class AchievementNotificationPresenter {
   private host: AchievementNotificationHost | null = null;
   private stage: PresenterStage = "idle";
   private requestSequence = 0;
+  private batchSequence = 0;
   private generation = 0;
   private creatingHost = false;
   private watchdog: TimeoutHandle | null = null;
@@ -86,11 +87,13 @@ export class AchievementNotificationPresenter {
       callback: fallback,
       invoked: false,
     };
+    const batchId = this.nextBatchId();
 
     this.queue.push(
       ...achievements.map((achievement) => ({
         request: {
           id: this.nextRequestId(),
+          batchId,
           type: "achievement" as const,
           position,
           achievement,
@@ -113,6 +116,7 @@ export class AchievementNotificationPresenter {
     this.queue.push({
       request: {
         id: this.nextRequestId(),
+        batchId: this.nextBatchId(),
         type: "combined",
         position,
         gameCount,
@@ -135,6 +139,7 @@ export class AchievementNotificationPresenter {
     this.queue.push({
       request: {
         id: this.nextRequestId(),
+        batchId: this.nextBatchId(),
         type: "screenshot",
         position,
         achievement: { ...notification, variant: "screenshot" },
@@ -303,6 +308,11 @@ export class AchievementNotificationPresenter {
   private nextRequestId(): string {
     this.requestSequence += 1;
     return `achievement-notification-${this.requestSequence}`;
+  }
+
+  private nextBatchId(): string {
+    this.batchSequence += 1;
+    return `achievement-notification-batch-${this.batchSequence}`;
   }
 
   private ensureHost(): void {

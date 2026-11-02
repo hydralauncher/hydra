@@ -11,12 +11,14 @@ import "./achievement-notification.scss";
 interface AchievementNotificationProps {
   position: AchievementCustomNotificationPosition;
   achievement: AchievementNotificationInfo;
+  isArming?: boolean;
   isClosing: boolean;
 }
 
 export function AchievementNotificationItem({
   position,
   achievement,
+  isArming = false,
   isClosing,
 }: Readonly<AchievementNotificationProps>) {
   const baseClassName = "achievement-notification";
@@ -26,6 +28,7 @@ export function AchievementNotificationItem({
     <div
       className={cn("achievement-notification", {
         [`${baseClassName}--${position}`]: true,
+        [`${baseClassName}--arming`]: isArming,
         [`${baseClassName}--closing`]: isClosing,
         [`${baseClassName}--hidden`]: achievement.isHidden,
         [`${baseClassName}--rare`]: achievement.isRare,
