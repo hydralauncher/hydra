@@ -3,6 +3,8 @@ import { HydraApi } from "@main/services/hydra-api";
 import { logger } from "@main/services/logger";
 import { DownloadSource } from "@types";
 
+const MIGRATION_REQUEST_TIMEOUT_MS = 30_000;
+
 export const migrateDownloadSources = async () => {
   const downloadSources = downloadSourcesSublevel.iterator();
 
@@ -14,7 +16,7 @@ export const migrateDownloadSources = async () => {
           {
             url: value.url,
           },
-          { needsAuth: false }
+          { needsAuth: false, timeout: MIGRATION_REQUEST_TIMEOUT_MS }
         );
 
         await downloadSourcesSublevel.put(downloadSource.id, {
