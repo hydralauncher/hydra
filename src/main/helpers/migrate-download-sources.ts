@@ -1,5 +1,6 @@
 import { downloadSourcesSublevel } from "@main/level";
 import { HydraApi } from "@main/services/hydra-api";
+import { logger } from "@main/services/logger";
 import { DownloadSource } from "@types";
 
 export const migrateDownloadSources = async () => {
@@ -7,21 +8,25 @@ export const migrateDownloadSources = async () => {
 
   for await (const [key, value] of downloadSources) {
     if (!value.isRemote) {
-      const downloadSource = await HydraApi.post<DownloadSource>(
-        "/download-sources",
-        {
-          url: value.url,
-        },
-        { needsAuth: false }
-      );
+      try {
+        const downloadSource = await HydraApi.post<DownloadSource>(
+          "/download-sources",
+          {
+            url: value.url,
+          },
+          { needsAuth: false }
+        );
 
-      await downloadSourcesSublevel.put(downloadSource.id, {
-        ...downloadSource,
-        isRemote: true,
-        createdAt: new Date().toISOString(),
-      });
+        await downloadSourcesSublevel.put(downloadSource.id, {
+          ...downloadSource,
+          isRemote: true,
+          createdAt: new Date().toISOString(),
+        });
 
-      await downloadSourcesSublevel.del(key);
+        await downloadSourcesSublevel.del(key);
+      } catch (error) {
+        logger.error(`Failed to migrate download source ${key}:`, error);
+      }
     }
   }
 };

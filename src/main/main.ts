@@ -139,13 +139,13 @@ export const loadState = async () => {
       logger.warn("Epic integration initialization failed on startup", err);
     }
     uploadGamesBatch();
-    void migrateDownloadSources();
 
     const { syncDownloadSourcesFromApi } = await import("./services/user");
     void syncDownloadSourcesFromApi();
 
     // Check for new download options on startup (if enabled)
     (async () => {
+      await migrateDownloadSources();
       await DownloadSourcesChecker.checkForChanges();
     })();
 
