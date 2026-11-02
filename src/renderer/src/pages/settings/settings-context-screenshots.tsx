@@ -113,7 +113,7 @@ export function SettingsContextScreenshots() {
         HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID
       );
       toggle?.scrollIntoView({ block: "center" });
-      toggle?.focus();
+      toggle?.focus({ focusVisible: true } as FocusOptions);
     });
 
     return () => window.cancelAnimationFrame(frameId);
