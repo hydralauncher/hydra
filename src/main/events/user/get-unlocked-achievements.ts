@@ -10,15 +10,26 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 import { UnlockedAchievementsCache } from "@main/services/achievements/unlocked-achievements-cache";
+import { CombinedAchievementsRequests } from "@main/services/achievements/combined-achievements-requests";
 import { AchievementSouvenirStore } from "@main/services/achievements/achievement-souvenir-store";
 import { fetchRemoteUserGameAchievements } from "@main/services/achievements/get-achievement-souvenirs";
 import { mergeUnlockedAchievementLists } from "@main/services/achievements/merge-unlocked-achievements";
 import {
+  createCombinedDefinitionLookup,
   presentCombinedAchievements,
   type CombinedAchievements,
 } from "@main/services/achievements/combined-achievement-presentation";
 
 const COMBINED_ACHIEVEMENTS_TIMEOUT_MS = 5_000;
+
+const indexByUpperCaseName = <T extends { name: string }>(items: T[]) => {
+  const byName = new Map<string, T>();
+  for (const item of items) {
+    const key = item.name.toUpperCase();
+    if (!byName.has(key)) byName.set(key, item);
+  }
+  return byName;
+};
 
 const captureAchievementView = (shop: GameShop, objectId: string) => {
   const context = HydraApi.getAuthContext();
@@ -50,9 +61,6 @@ export const getUnlockedAchievements = async (
   );
 
   assertCurrent();
-
-  const showHiddenAchievementsDescription =
-    userPreferences?.showHiddenAchievementsDescription || false;
 
   const achievementsData = await getGameAchievementData(
     objectId,
@@ -113,11 +121,19 @@ export const getUnlockedAchievements = async (
   // Preserve the selected copy's catalogue/cache refresh and sync side effects.
   // The union is a display projection and must never replace that source state.
   if (shop === "steam" || shop === "epic") {
-    const combined = await HydraApi.get<CombinedAchievements>(
-      "/profile/achievements/combined",
-      { shop, objectId, language: userPreferences?.language ?? "en" },
-      { timeout: COMBINED_ACHIEVEMENTS_TIMEOUT_MS }
-    ).catch(() => null);
+    const language = userPreferences?.language ?? "en";
+    const combined = await CombinedAchievementsRequests.fetch(
+      HydraApi.getAuthContext(),
+      shop,
+      objectId,
+      language,
+      () =>
+        HydraApi.get<CombinedAchievements>(
+          "/profile/achievements/combined",
+          { shop, objectId, language },
+          { timeout: COMBINED_ACHIEVEMENTS_TIMEOUT_MS }
+        )
+    );
     const includesRequestedCopy = combined?.achievements.some((achievement) =>
       achievement.variants.some(
         (variant) => variant.shop === shop && variant.objectId === objectId
@@ -150,7 +166,12 @@ export const getUnlockedAchievements = async (
         (sourceShop, sourceObjectId) =>
           AchievementMemoryStore.get(sourceShop, sourceObjectId)
             ?.unlockedAchievements ?? [],
-        showHiddenAchievementsDescription
+        createCombinedDefinitionLookup((sourceShop, sourceObjectId) =>
+          sourceShop === shop && sourceObjectId === objectId
+            ? achievementsData
+            : (AchievementMemoryStore.get(sourceShop, sourceObjectId)
+                ?.achievements ?? [])
+        )
       );
     }
   }
@@ -172,35 +193,28 @@ export const getUnlockedAchievements = async (
       if (steamDefinitions.length > 0) catalogueAchievements = steamDefinitions;
     }
   }
+  const unlockedByName = indexByUpperCaseName(unlockedAchievements);
+  const remoteByName = indexByUpperCaseName(remote.achievements);
+
   return catalogueAchievements
     .map((achievementData) => {
-      const unlockedAchievementData = unlockedAchievements.find(
-        (localAchievement) => {
-          return (
-            localAchievement.name.toUpperCase() ==
-            achievementData.name.toUpperCase()
-          );
-        }
-      );
+      const upperCaseName = achievementData.name.toUpperCase();
+      const unlockedAchievementData = unlockedByName.get(upperCaseName);
 
       const icongray = achievementData.icongray.endsWith("/")
         ? achievementData.icon
         : achievementData.icongray;
 
       if (unlockedAchievementData) {
+        const remoteAchievement = remoteByName.get(upperCaseName);
+
         return {
           ...achievementData,
           unlocked: true,
           unlockTime: unlockedAchievementData.unlockTime,
-          source: remote.achievements.find(
-            (item) =>
-              item.name.toUpperCase() === achievementData.name.toUpperCase()
-          )?.source,
-          unlockedOn: remote.achievements.find(
-            (item) =>
-              item.name.toUpperCase() === achievementData.name.toUpperCase()
-          )?.unlockedOn,
-          imageUrl: souvenirs.get(achievementData.name.toUpperCase()) ?? null,
+          source: remoteAchievement?.source,
+          unlockedOn: remoteAchievement?.unlockedOn,
+          imageUrl: souvenirs.get(upperCaseName) ?? null,
         };
       }
 
@@ -209,10 +223,6 @@ export const getUnlockedAchievements = async (
         unlocked: false,
         unlockTime: null,
         icongray: icongray,
-        description:
-          !achievementData.hidden || showHiddenAchievementsDescription
-            ? achievementData.description
-            : undefined,
       };
     })
     .sort((a, b) => {

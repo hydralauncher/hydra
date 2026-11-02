@@ -1,4 +1,4 @@
-function removeZalgoText(text: string): string {
+export function removeZalgoText(text: string): string {
   // Match combining characters that are commonly used in Zalgo text
   // Using a more explicit approach to avoid misleading-character-class warning
   const combiningMarks = [

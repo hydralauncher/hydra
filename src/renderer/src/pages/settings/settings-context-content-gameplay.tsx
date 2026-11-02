@@ -6,10 +6,11 @@ import {
   CheckboxField,
   ConfirmationModal,
   GuideLink,
+  HydraCloudBadge,
   TextField,
 } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
-import { useAppSelector, useUserDetails } from "@renderer/hooks";
+import { useAppSelector, useFeature, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { FileDirectoryIcon, HistoryIcon } from "@primer/octicons-react";
 import { useLocation } from "react-router-dom";
@@ -21,6 +22,7 @@ import "./settings-behavior.scss";
 const buildForm = (preferences: UserPreferences | null) => ({
   autoplayGameTrailers: preferences?.autoplayGameTrailers ?? true,
   disableNsfwAlert: preferences?.disableNsfwAlert ?? false,
+  showSensitiveScreenshots: preferences?.showSensitiveScreenshots ?? false,
   showHiddenAchievementsDescription:
     preferences?.showHiddenAchievementsDescription ?? false,
   enableSteamAchievements: preferences?.enableSteamAchievements ?? false,
@@ -49,6 +51,8 @@ export function SettingsContextContentGameplay() {
   const { hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
   const { hash } = useLocation();
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -166,6 +170,18 @@ export function SettingsContextContentGameplay() {
           }
         />
 
+        {isScreenshotsEnabled && (
+          <CheckboxField
+            label={t("screenshots_show_sensitive")}
+            checked={form.showSensitiveScreenshots}
+            onChange={() =>
+              handleChange({
+                showSensitiveScreenshots: !form.showSensitiveScreenshots,
+              })
+            }
+          />
+        )}
+
         <CheckboxField
           label={t("show_hidden_achievement_description")}
           checked={form.showHiddenAchievementsDescription}
@@ -237,9 +253,7 @@ export function SettingsContextContentGameplay() {
               readOnly
             />
 
-            <span className="settings-behavior__hydra-cloud-badge">
-              Hydra Cloud
-            </span>
+            <HydraCloudBadge />
           </button>
         )}
 

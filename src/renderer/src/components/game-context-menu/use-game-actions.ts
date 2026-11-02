@@ -364,7 +364,8 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
   };
 
   const handleRemoveFiles = async (
-    targetGame: GameContextMenuGame = downloadGame
+    targetGame: GameContextMenuGame = downloadGame,
+    deleteSourceArchive = false
   ) => {
     if (
       isLibraryGameDownloading(targetGame) ||
@@ -373,7 +374,9 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
       return;
 
     try {
-      await removeGameInstaller(targetGame.shop, targetGame.objectId);
+      await removeGameInstaller(targetGame.shop, targetGame.objectId, {
+        deleteSourceArchive,
+      });
       await updateLibrary();
       showSuccessToast(t("files_removed_success"));
       try {

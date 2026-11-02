@@ -4,7 +4,12 @@ import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 
 import { Button, RankFrameRing } from "@renderer/components";
-import { useDate, useFormat } from "@renderer/hooks";
+import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import { useCatalogueImage, useDate, useFormat } from "@renderer/hooks";
+import {
+  getCatalogueImageDensitySrcSet,
+  pickCatalogueImageUrl,
+} from "@renderer/helpers/catalogue-images";
 import {
   BADGES_PAGE_SIZE,
   buildMetricsRequest,
@@ -14,11 +19,13 @@ import {
   type LeaderboardBadge,
   type MetricDefinition,
 } from "./global-leaderboard";
+import { getDurationParts } from "../game-details/leaderboard/game-leaderboard";
 import { useApiResource } from "./leaderboards-api";
 import { BlockError, StreakFlame } from "./leaderboard-bits";
 import { useMetricText } from "./use-global-leaderboard-value";
 
 const BADGE_SKELETON_ROWS = 6;
+const BADGE_COVER_SIZE = 56;
 const BADGE_SKELETON_KEYS = Array.from(
   { length: BADGE_SKELETON_ROWS },
   (_, index) => `badge-skeleton-${index}`
@@ -134,7 +141,27 @@ export function BadgesSection() {
 
     const metric = findDefinition(badge.metric);
     if (!metric) return "";
-    const amount = metricText.format(metric, Math.ceil(remaining));
+    const count = Math.ceil(remaining);
+    // Boards show bare session counts; only the badge text names the unit.
+    const amount = t(`badge_amount_${metric.id}`, {
+      count,
+      amount: numberFormatter.format(count),
+      defaultValue: metricText.format(metric, count),
+    });
+
+    // "4 h to go for Top 10", "3 sessions to go for Top 5%". The count is the
+    // number shown, so "1 h" and "1 session" read as singular.
+    if (badge.target) {
+      return t("badge_remaining_to", {
+        context: badge.target.kind,
+        count:
+          metric.valueType === "duration"
+            ? getDurationParts(count, MAX_MINUTES_TO_SHOW_IN_PLAYTIME).amount
+            : count,
+        amount,
+        value: badge.target.value,
+      });
+    }
 
     return t("badge_remaining", { amount });
   };
@@ -158,20 +185,7 @@ export function BadgesSection() {
       >
         {ring && <RankFrameRing />}
         <div className="leaderboards__badge-art">
-          <div
-            className="leaderboards__badge-cover"
-            style={
-              badge.coverImageUrl
-                ? ({
-                    "--cover": `url(${JSON.stringify(badge.coverImageUrl)})`,
-                  } as React.CSSProperties)
-                : undefined
-            }
-          >
-            {badge.kind === "streak_record" && (
-              <StreakFlame size={24} gradient={!locked} />
-            )}
-          </div>
+          <BadgeCover badge={badge} locked={locked} />
           <span className="leaderboards__badge-chip">{getChip(badge)}</span>
         </div>
         <div className="leaderboards__badge-body">
@@ -248,5 +262,41 @@ export function BadgesSection() {
       </div>
       {renderContent()}
     </section>
+  );
+}
+
+function BadgeCover({
+  badge,
+  locked,
+}: Readonly<{ badge: LeaderboardBadge; locked: boolean }>) {
+  const cover = useCatalogueImage(badge.coverImageUrl, badge.images);
+  const variants = cover.variants;
+  const srcSet = variants
+    ? getCatalogueImageDensitySrcSet(variants, BADGE_COVER_SIZE)
+    : undefined;
+
+  return (
+    <div className="leaderboards__badge-cover" style={cover.placeholderStyle}>
+      {badge.coverImageUrl && (
+        <img
+          key={variants ? "variant" : "original"}
+          className="leaderboards__badge-cover-image"
+          src={
+            variants
+              ? pickCatalogueImageUrl(variants, BADGE_COVER_SIZE)
+              : badge.coverImageUrl
+          }
+          srcSet={srcSet}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onLoad={cover.markLoaded}
+          onError={cover.markFailed}
+        />
+      )}
+      {badge.kind === "streak_record" && (
+        <StreakFlame size={24} gradient={!locked} />
+      )}
+    </div>
   );
 }

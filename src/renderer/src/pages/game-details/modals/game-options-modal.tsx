@@ -657,7 +657,7 @@ export function GameOptionsModal({
       downloadGame.shop,
       downloadGame.objectId
     );
-  const handleDeleteGame = async () => {
+  const handleDeleteGame = async (deleteSourceArchive: boolean) => {
     const pendingTarget = pendingRemoveFilesTarget;
     if (pendingTarget?.kind !== "hydra") return;
 
@@ -679,7 +679,13 @@ export function GameOptionsModal({
     }
 
     try {
-      await removeGameInstaller(liveTarget.game.shop, liveTarget.game.objectId);
+      await removeGameInstaller(
+        liveTarget.game.shop,
+        liveTarget.game.objectId,
+        {
+          deleteSourceArchive,
+        }
+      );
       updateGame();
     } catch {
       showErrorToast(t("remove_files_failed"));
@@ -1302,6 +1308,7 @@ export function GameOptionsModal({
       <DeleteGameModal
         visible={pendingRemoveFilesTarget?.kind === "hydra"}
         onClose={() => setPendingRemoveFilesTarget(null)}
+        target={pendingRemoveFilesTarget?.game}
         deleteGame={handleDeleteGame}
       />
       <SteamUninstallModal

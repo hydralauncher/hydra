@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  getCountdownParts,
-  getIsoWeekNumber,
-  type WeekRange,
-} from "./global-leaderboard";
+import { getCountdownParts, type WeekRange } from "./global-leaderboard";
 
 const COUNTDOWN_TICK_MS = 30_000;
 const WEEK_END_RETRY_BASE_MS = 30_000;
@@ -48,7 +44,12 @@ export function WeekSubtitle({
   }, [endTime]);
 
   if (isAllTime) {
-    return <span className="leaderboards__subtitle">{t("subtitle_all")}</span>;
+    return (
+      <>
+        <h1 className="leaderboards__period-title">{t("period_all")}</h1>
+        <span className="leaderboards__subtitle">{t("subtitle_all")}</span>
+      </>
+    );
   }
 
   const dateFormatter = new Intl.DateTimeFormat(i18n.language, {
@@ -63,12 +64,13 @@ export function WeekSubtitle({
   else if (hours > 0) countdown = t("countdown_hours", { hours, minutes });
 
   return (
-    <span className="leaderboards__subtitle">
-      {t("subtitle_week", {
-        number: getIsoWeekNumber(weekRange.start),
-        range: dateFormatter.formatRange(weekRange.start, lastDay),
-        countdown,
-      })}
-    </span>
+    <>
+      <h1 className="leaderboards__period-title">
+        {dateFormatter.formatRange(weekRange.start, lastDay)}
+      </h1>
+      <span className="leaderboards__subtitle">
+        {t("resets_in", { countdown })}
+      </span>
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import {
   BlockedIcon,
@@ -27,9 +27,13 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import { addSeconds } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { AuthPage } from "@shared";
+import {
+  AuthPage,
+  EDIT_PROFILE_SEARCH_PARAM,
+  EDIT_PROFILE_SEARCH_VALUE,
+} from "@shared";
 import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 
 import type { FriendRequestAction } from "@types";
@@ -60,6 +64,22 @@ export function ProfileHero() {
     blockUser,
     userDetails,
   } = useUserDetails();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editRequested =
+    searchParams.get(EDIT_PROFILE_SEARCH_PARAM) === EDIT_PROFILE_SEARCH_VALUE;
+
+  useEffect(() => {
+    if (!editRequested || !isMe) return;
+    setShowEditProfileModal(true);
+    setSearchParams(
+      (params) => {
+        params.delete(EDIT_PROFILE_SEARCH_PARAM);
+        return params;
+      },
+      { replace: true }
+    );
+  }, [editRequested, isMe, setSearchParams]);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
 

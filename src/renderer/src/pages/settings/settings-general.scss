@@ -192,3 +192,14 @@
     }
   }
 }
+
+.settings-general__hinted-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  small {
+    font-size: 12px;
+    opacity: 0.6;
+  }
+}

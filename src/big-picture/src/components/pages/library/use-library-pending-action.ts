@@ -3,9 +3,10 @@ import {
   getLibraryOperationalGame,
   getLibraryGameMembers,
 } from "@shared";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { LibraryGame } from "@types";
 import { logger } from "@renderer/logger";
+import { useSourceArchive } from "@renderer/hooks/use-source-archive";
 import type { BigPictureToastOptions } from "../../../stores";
 import { IS_DESKTOP } from "../../../constants";
 import { useBigPictureToast } from "../../../hooks";
@@ -64,11 +65,20 @@ async function stopGameActivity(action: PendingAction) {
   }
 }
 
-async function executePendingAction(action: PendingAction) {
+async function executePendingAction(
+  action: PendingAction,
+  deleteSourceArchive: boolean
+) {
   const { game, type } = action;
 
   if (type === "remove-files") {
-    await globalThis.window.electron.deleteGameFolder(game.shop, game.objectId);
+    await globalThis.window.electron.deleteGameFolder(
+      game.shop,
+      game.objectId,
+      {
+        deleteSourceArchive,
+      }
+    );
     return;
   }
 
@@ -124,7 +134,18 @@ export function useLibraryPendingAction({
     null
   );
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+  const [deleteSourceArchive, setDeleteSourceArchive] = useState(false);
   const { showErrorToast } = useBigPictureToast();
+  const hasSourceArchive = useSourceArchive(
+    pendingAction?.type === "remove-files"
+      ? getLibraryOperationalGame(pendingAction.game)
+      : null,
+    pendingAction?.type === "remove-files"
+  );
+
+  useEffect(() => {
+    setDeleteSourceArchive(false);
+  }, [pendingAction]);
 
   const requestRemoveFiles = useCallback(
     (game: LibraryGame) => {
@@ -175,7 +196,10 @@ export function useLibraryPendingAction({
         await applyLibraryGroupAction(members, async (game) => {
           const action = { ...currentAction, game };
           await stopGameActivity(action);
-          await executePendingAction(action);
+          await executePendingAction(
+            action,
+            hasSourceArchive && deleteSourceArchive
+          );
         });
       } finally {
         await onDataRefresh();
@@ -212,11 +236,19 @@ export function useLibraryPendingAction({
     fallbackFocusId,
     restoreFocusOnConfirm,
     showErrorToast,
+    hasSourceArchive,
+    deleteSourceArchive,
   ]);
+
+  const sourceArchiveOption =
+    pendingAction?.type === "remove-files" && hasSourceArchive
+      ? { checked: deleteSourceArchive, onChange: setDeleteSourceArchive }
+      : null;
 
   return {
     pendingAction,
     isSubmittingAction,
+    sourceArchiveOption,
     requestRemoveFiles,
     requestRemoveFromLibrary,
     closePendingAction,

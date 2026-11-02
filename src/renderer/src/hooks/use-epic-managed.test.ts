@@ -25,9 +25,13 @@ import type {
   getEpicManagedError,
 } from "../helpers/epic-managed-error";
 import {
+  getEpicInstallChoice,
+  getEpicLaunchOptions,
   getInstalledStoreMembers,
   getOfficialStoreMembers,
   isEpicMemberInCurrentScope,
+  getEpicMemberDownload,
+  isEpicUpdateInterrupted,
 } from "../../../shared/official-store-options.js";
 
 const requireModule = createRequire(import.meta.url);
@@ -58,6 +62,7 @@ function loadModule(filename: string, stubs: Record<string, unknown> = {}) {
 
 function loadInstallHook(downloadsPath?: string | (() => string | undefined)) {
   return loadModule("./use-epic-install.ts", {
+    "@shared": { getEpicInstallChoice },
     "./redux": {
       useAppSelector: (
         select: (state: {
@@ -91,6 +96,24 @@ function loadInstallModal(
         React.createElement("button", props, children),
       Link: ({ to }: { to: string }) =>
         React.createElement("a", { href: to }, "settings"),
+      CheckboxField: ({
+        label,
+        indeterminate,
+        ...props
+      }: React.ComponentProps<"input"> & {
+        label: React.ReactNode;
+        indeterminate?: boolean;
+      }) =>
+        React.createElement(
+          "label",
+          { "data-checkbox": true },
+          React.createElement("input", {
+            type: "checkbox",
+            "data-indeterminate": String(!!indeterminate),
+            ...props,
+          }),
+          label
+        ),
       Modal: ({
         title,
         description,
@@ -153,9 +176,19 @@ function loadInstallModal(
       ),
     "react-i18next": {
       useTranslation: () => ({
-        t: (key: string, values?: { space?: string; size?: string }) =>
+        t: (
+          key: string,
+          values?: {
+            space?: string;
+            size?: string;
+            selected?: number;
+            total?: number;
+          }
+        ) =>
           translations[key] ??
-          (values ? `${key}:${values.space ?? values.size}` : key),
+          (values
+            ? `${key}:${values.space ?? values.size ?? `${values.selected}/${values.total}`}`
+            : key),
       }),
       Trans: ({
         children,
@@ -181,11 +214,18 @@ function loadInstallModal(
             ),
     },
     "@primer/octicons-react": Object.fromEntries(
-      ["DownloadIcon", "ImageIcon", "PlusIcon", "SyncIcon"].map((name) => [
+      [
+        "ChevronDownIcon",
+        "DownloadIcon",
+        "ImageIcon",
+        "PlusIcon",
+        "SyncIcon",
+      ].map((name) => [
         name,
         () => React.createElement("svg", { "data-icon": name }),
       ])
     ),
+    "react-tooltip": { Tooltip: () => null },
     "react-router-dom": { useNavigate: () => () => {} },
     "@shared": { formatBytes: (size: number) => `${size}B` },
     "@renderer/helpers/epic-managed-error": loadModule(
@@ -483,6 +523,19 @@ describe("Epic managed UI lifecycle", () => {
       "epic_compatibility_automatic",
       "epic_finalizing_install",
       "epic_prerequisites_required",
+      "epic_extras_title",
+      "epic_extras_selected",
+      "epic_select_all",
+      "epic_dlc_installed",
+      "epic_selection_size",
+      "epic_not_enough_space",
+      "epic_selection_invalid",
+      "epic_update",
+      "epic_update_resume",
+      "epic_updating",
+      "epic_play_without_update",
+      "epic_update_available",
+      "epic_update_failed",
     ];
     for (const locale of fs.readdirSync(localeRoot, { withFileTypes: true })) {
       if (!locale.isDirectory()) continue;
@@ -2006,6 +2059,197 @@ describe("Epic managed UI lifecycle", () => {
     assert.equal(startCalls, 0);
   });
 
+  it("starts with DLC selected and components off, and sizes the download by the choice", async (t) => {
+    const calls: StartEpicGameDownloadPayload[] = [];
+    let free = 1_000;
+    const { render } = await fixture(t, {
+      getEpicGameInstallOptions: async () => ({
+        connectionId: "confirmed",
+        options: [
+          {
+            artifactId: "Fortnite",
+            platform: "Windows",
+            downloadSizeInBytes: 100,
+            diskSizeInBytes: 200,
+            supportsCloudSaves: false,
+            installed: false,
+            preparationId: "550e8400-e29b-41d4-a716-446655440000",
+            components: [
+              {
+                id: "stw",
+                name: "Save the World",
+                downloadSizeInBytes: 30,
+                diskSizeInBytes: 60,
+              },
+              {
+                id: "hd",
+                name: "HD textures",
+                downloadSizeInBytes: 20,
+                diskSizeInBytes: 40,
+              },
+            ],
+            requiredDownloadSizeInBytes: 50,
+            requiredDiskSizeInBytes: 100,
+            dlcs: [
+              {
+                artifactId: "DlcA",
+                name: "DLC A",
+                downloadSizeInBytes: 5,
+                diskSizeInBytes: 10,
+                installed: false,
+              },
+              {
+                artifactId: "DlcB",
+                name: "DLC B",
+                downloadSizeInBytes: 7,
+                diskSizeInBytes: 14,
+                installed: false,
+              },
+              {
+                artifactId: "DlcC",
+                name: "DLC C",
+                downloadSizeInBytes: 9,
+                diskSizeInBytes: 18,
+                installed: true,
+              },
+            ],
+          },
+        ],
+      }),
+      getDiskFreeSpace: async () => ({ free }),
+      startEpicGameDownload: async (payload: StartEpicGameDownloadPayload) => {
+        calls.push(payload);
+        return { ok: true };
+      },
+    });
+    const Modal = loadInstallModal(loadInstallHook("D:\\configured"));
+    const props = {
+      game: { shop: "epic", objectId: "fn:fortnite" } as LibraryGame,
+      onClose: () => {},
+      onStarted: () => {},
+    };
+    await render(React.createElement(Modal, props));
+    const checkbox = (text: string) =>
+      [...document.querySelectorAll("[data-checkbox]")]
+        .find((label) => label.textContent?.startsWith(text))!
+        .querySelector("input")!;
+    const header = document.querySelector<HTMLButtonElement>(
+      "button[aria-expanded]"
+    )!;
+    assert.equal(header.getAttribute("aria-expanded"), "false");
+    assert.equal(document.querySelectorAll("[data-checkbox]").length, 0);
+    assert.match(header.textContent!, /epic_extras_selected:2\/4/);
+    assert.match(header.textContent!, /\+12B/);
+    assert.match(document.body.textContent!, /download_size:62B/);
+    assert.match(document.body.textContent!, /required_storage_space:124B/);
+    await React.act(async () => header.click());
+    assert.equal(header.getAttribute("aria-expanded"), "true");
+    assert.equal(checkbox("DLC A").checked, true);
+    assert.equal(checkbox("DLC B").checked, true);
+    assert.equal(checkbox("Save the World").checked, false);
+    assert.equal(checkbox("HD textures").checked, false);
+    assert.equal(checkbox("DLC C").disabled, true);
+    assert.match(document.body.textContent!, /epic_dlc_installed/);
+    const selectAll = () => checkbox("epic_select_all");
+    assert.equal(selectAll().checked, false);
+    assert.equal(selectAll().dataset.indeterminate, "true");
+    await React.act(async () => selectAll().click());
+    assert.equal(selectAll().checked, true);
+    assert.equal(checkbox("HD textures").checked, true);
+    assert.match(document.body.textContent!, /download_size:112B/);
+    await React.act(async () => selectAll().click());
+    assert.equal(checkbox("DLC A").checked, false);
+    assert.equal(checkbox("DLC C").checked, true);
+    assert.match(document.body.textContent!, /download_size:50B/);
+    await React.act(async () => checkbox("Save the World").click());
+    await React.act(async () => checkbox("DLC A").click());
+    assert.match(document.body.textContent!, /download_size:85B/);
+    assert.equal(selectAll().dataset.indeterminate, "true");
+    await React.act(async () =>
+      document
+        .querySelector<HTMLButtonElement>("[data-epic-install-submit]")!
+        .click()
+    );
+    assert.deepEqual(
+      { components: calls[0].components, dlcs: calls[0].dlcs },
+      { components: ["stw"], dlcs: ["DlcA"] }
+    );
+    free = 10;
+    await render(React.createElement(Modal, { ...props }));
+    await render(
+      React.createElement(Modal, {
+        ...props,
+        game: { shop: "epic", objectId: "fn:other" } as LibraryGame,
+      })
+    );
+    assert.match(document.body.textContent!, /epic_not_enough_space/);
+    assert.equal(
+      document.querySelector<HTMLButtonElement>("[data-epic-install-submit]")!
+        .disabled,
+      false
+    );
+  });
+
+  it("offers select all even when a single extra is pending", async (t) => {
+    const calls: StartEpicGameDownloadPayload[] = [];
+    const { render } = await fixture(t, {
+      getEpicGameInstallOptions: async () => ({
+        connectionId: "confirmed",
+        options: [
+          {
+            artifactId: "Gotg",
+            platform: "Windows",
+            downloadSizeInBytes: 100,
+            diskSizeInBytes: 200,
+            supportsCloudSaves: false,
+            installed: false,
+            preparationId: "550e8400-e29b-41d4-a716-446655440000",
+            dlcs: [
+              {
+                artifactId: "Outfit",
+                name: "Outfit",
+                downloadSizeInBytes: 5,
+                diskSizeInBytes: 10,
+                installed: false,
+              },
+            ],
+          },
+        ],
+      }),
+      getDiskFreeSpace: async () => ({ free: 1_000 }),
+      startEpicGameDownload: async (payload: StartEpicGameDownloadPayload) => {
+        calls.push(payload);
+        return { ok: true };
+      },
+    });
+    const Modal = loadInstallModal(loadInstallHook("D:\\configured"));
+    await render(
+      React.createElement(Modal, {
+        game: { shop: "epic", objectId: "gotg:gotg" } as LibraryGame,
+        onClose: () => {},
+        onStarted: () => {},
+      })
+    );
+    await React.act(async () =>
+      document
+        .querySelector<HTMLButtonElement>("button[aria-expanded]")!
+        .click()
+    );
+    const selectAll = [...document.querySelectorAll("[data-checkbox]")]
+      .find((label) => label.textContent?.startsWith("epic_select_all"))!
+      .querySelector("input")!;
+    assert.equal(selectAll.checked, true);
+    assert.match(document.body.textContent!, /1\/1/);
+    await React.act(async () => selectAll.click());
+    assert.match(document.body.textContent!, /download_size:100B/);
+    await React.act(async () =>
+      document
+        .querySelector<HTMLButtonElement>("[data-epic-install-submit]")!
+        .click()
+    );
+    assert.equal(calls[0].dlcs, undefined);
+  });
+
   it("remains unavailable on an OTA renderer with no managed Epic bridge", async (t) => {
     const { render } = await fixture(t, {});
     const managed = loadModule("./use-epic-managed.ts");
@@ -2096,6 +2340,10 @@ describe("Epic managed UI lifecycle", () => {
       }) => (visible ? React.createElement("section", null, children) : null);
       const hooks = {
         useDownload: () => ({ isGameDeleting: () => false }),
+        useGameExecutablePicker: () => async () => false,
+        useInstallerAvailability: () => ({}),
+        useDownloadFolderExists: () => null,
+        useFinishedDownloadStep: () => null,
         useLibrary: () => ({ updateLibrary: async () => {} }),
         useToast: () => ({
           showSuccessToast: () => {},
@@ -2112,21 +2360,44 @@ describe("Epic managed UI lifecycle", () => {
             ConfirmationModal: () => null,
           },
           "@renderer/hooks": hooks,
+          "@renderer/hooks/use-epic-managed": {
+            useEpicManagedConnection: () => ({
+              installationAvailable: false,
+              connection: null,
+            }),
+          },
+          "@renderer/hooks/use-epic-game-update": {
+            useEpicGameUpdate: () => ({
+              update: null,
+              starting: false,
+              start: async () => ({ ok: true }),
+              refresh: async () => {},
+            }),
+          },
           "@renderer/context": { gameDetailsContext: context },
           "react-i18next": {
             useTranslation: () => ({ t: (key: string) => key }),
           },
-          "react-router-dom": { useNavigate: () => () => {} },
+          "react-router-dom": {
+            useNavigate: () => () => {},
+            useLocation: () => ({ pathname: "/", search: "", state: null }),
+          },
+          "@renderer/logger": { logger: { error: () => {} } },
           "@renderer/helpers": {
             canDownloadOnSteam: () => false,
             handleClassicsLaunchError: () => {},
           },
           "@renderer/helpers/epic-managed-error": ErrorHelpers,
           "@shared": {
+            getEpicLaunchOptions,
             getInstalledStoreMembers,
             getOfficialStoreMembers,
+            isEpicMemberInCurrentScope,
+            getEpicMemberDownload,
+            isEpicUpdateInterrupted,
             isLibraryGameDownloading: () => false,
             applyLibraryGroupAction: async () => {},
+            getFinishedDownloadStep: () => null,
           },
           "../modals/disc-selection-modal": { DiscSelectionModal: () => null },
           "../modals/epic-cloud-save-conflict-modal": {

@@ -1,8 +1,11 @@
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@renderer/components";
+import { useFeature } from "@renderer/hooks";
 import type { RemoveFilesTarget } from "@shared";
 import type { LibraryGame, UserDetails } from "@types";
+
+import { MyScreenshotsDangerZone } from "./my-screenshots-danger-zone";
 
 interface DangerZoneSectionProps {
   game: LibraryGame;
@@ -34,6 +37,7 @@ export function DangerZoneSection({
   onOpenRemoveFiles,
 }: Readonly<DangerZoneSectionProps>) {
   const { t } = useTranslation("game_details");
+  const { isFeatureEnabled, Feature } = useFeature();
 
   return (
     <div className="game-options-modal__danger-zone">
@@ -88,6 +92,10 @@ export function DangerZoneSection({
           </Button>
         )}
       </div>
+
+      {isFeatureEnabled(Feature.Screenshots) ? (
+        <MyScreenshotsDangerZone shop={game.shop} objectId={game.objectId} />
+      ) : null}
     </div>
   );
 }

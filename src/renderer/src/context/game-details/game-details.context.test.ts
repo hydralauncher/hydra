@@ -258,6 +258,10 @@ async function fixture(
         selector(preferencesState),
       useDownload: () => ({ lastPacket }),
       useUserDetails: () => ({ userDetails }),
+      useFeature: () => ({
+        isFeatureEnabled: () => false,
+        Feature: { MultipartHosterDownloads: "MULTIPART_HOSTER_DOWNLOADS" },
+      }),
       useLibraryGamePresentation: presentationHook.useLibraryGamePresentation,
     },
     "@shared": {
