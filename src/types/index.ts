@@ -207,6 +207,8 @@ export interface UserFriend {
       })
     | null;
   isOnline?: boolean;
+  /* The Hydra team's account: it messages users, nobody messages it. */
+  isOfficial?: boolean;
 }
 
 export interface UserFriends {
@@ -338,6 +340,32 @@ export interface ChatMessagesPage {
   unreadCount: number;
   /* The user's own held messages, oldest first. Empty for paged requests. */
   pendingMessages?: ChatPendingMessageDto[];
+}
+
+/* One row of GET /profile/chats: a conversation with at least one message. */
+export interface ChatConversationDto {
+  friendId: string;
+  /* As in the friends list, whatever the friend's visibility or relationship. */
+  friend: {
+    id: string;
+    displayName: string;
+    profileImageUrl: string | null;
+    isOfficial?: boolean;
+  };
+  lastMessage: ChatReplyDto & {
+    seq: number;
+    createdAt: string;
+  };
+  lastMessageAt: string;
+  lastReadSeq: number;
+  unreadCount: number;
+  canSend: boolean;
+}
+
+export interface ChatConversationsPage {
+  conversations: ChatConversationDto[];
+  /* Null on the last page. */
+  nextCursor: string | null;
 }
 
 export interface ChatUnreadSummary {
@@ -571,6 +599,8 @@ export interface UserProfile {
   hasCompletedWrapped2025: boolean;
   progress?: LevelProgress | null;
   loginStreak?: LoginStreak | null;
+  /* The Hydra team's account (see UserFriend). */
+  isOfficial?: boolean;
 }
 
 export interface LevelProgress {

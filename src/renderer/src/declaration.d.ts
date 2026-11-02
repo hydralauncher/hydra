@@ -1608,6 +1608,7 @@ declare global {
     minimizeChatWindow: () => Promise<void>;
     closeChatWindow: () => Promise<void>;
     openGameInMainWindow: (gamePath: string) => Promise<void>;
+    openChatNotificationSettings: () => Promise<void>;
     consumePendingChatFriends: () => Promise<PendingChatFriend[]>;
     onChatFriendsPending: (cb: () => void) => () => Electron.IpcRenderer;
     setChatWindowState: (state: ChatWindowState) => Promise<void>;

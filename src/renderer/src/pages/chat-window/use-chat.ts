@@ -1164,14 +1164,15 @@ export function useChat({
     [updateConversation]
   );
 
-  // History loads once per tab; later updates come from realtime and resyncs.
+  // History loads once, when the conversation is first shown; later updates
+  // come from realtime and resyncs. The sidebar gets by on the list's
+  // `lastMessage` and `unreadCount` meanwhile.
   useEffect(() => {
-    for (const conversation of conversations) {
-      if (conversation.loadState === "idle") {
-        void loadLatest(conversation.friend.id);
-      }
-    }
-  }, [conversations, loadLatest]);
+    const active = conversations.find(
+      (conversation) => conversation.friend.id === activeId
+    );
+    if (active?.loadState === "idle") void loadLatest(active.friend.id);
+  }, [conversations, activeId, loadLatest]);
 
   useEffect(() => {
     const unsubscribeMessage = electron.onChatMessage(

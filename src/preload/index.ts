@@ -2390,6 +2390,8 @@ contextBridge.exposeInMainWorld("electron", {
   closeChatWindow: () => ipcRenderer.invoke("closeChatWindow"),
   openGameInMainWindow: (gamePath: string) =>
     ipcRenderer.invoke("openGameInMainWindow", gamePath),
+  openChatNotificationSettings: () =>
+    ipcRenderer.invoke("openChatNotificationSettings"),
   consumePendingChatFriends: () =>
     ipcRenderer.invoke("consumePendingChatFriends") as Promise<
       PendingChatFriend[]
