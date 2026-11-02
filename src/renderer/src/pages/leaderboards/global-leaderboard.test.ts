@@ -702,6 +702,28 @@ describe("profile normalizers", () => {
     assert.throws(() => normalizeBadges({}), TypeError);
   });
 
+  it("keeps only valid catalogue images on badges", () => {
+    const { badges } = normalizeBadges({
+      badges: [
+        {
+          id: "a",
+          kind: "streak_record",
+          images: {
+            valid: { base: "https://cdn/a", widths: [64, 128] },
+            noBase: { widths: [64] },
+            badWidths: { base: "https://cdn/b", widths: ["64"] },
+          },
+        },
+        { id: "b", kind: "streak_record", images: "nope" },
+      ],
+    });
+
+    assert.deepEqual(badges[0].images, {
+      valid: { base: "https://cdn/a", widths: [64, 128], thumbHash: null },
+    });
+    assert.deepEqual(badges[1].images, {});
+  });
+
   it("reads the target of locked game badges", () => {
     const { badges } = normalizeBadges({
       badges: [
