@@ -85,6 +85,14 @@ export type RealtimeEnvelope = RealtimeEnvelopeBase &
         event: "chatMessageHidden" | "chatMessageRestored";
         payload: { senderId: string; recipientId: string; seq: number };
       }
+    | {
+        event: "screenshotModerated";
+        payload: {
+          screenshotId: string;
+          moderationStatus: "APPROVED" | "BLOCKED";
+          moderationReason: string | null;
+        };
+      }
   );
 
 export interface RealtimeToken {
@@ -312,6 +320,15 @@ const isValidEnvelopePayload = (
         typeof payload.seq === "number" &&
         Number.isSafeInteger(payload.seq) &&
         payload.seq > 0
+      );
+    case "screenshotModerated":
+      return (
+        typeof payload.screenshotId === "string" &&
+        payload.screenshotId.length > 0 &&
+        (payload.moderationStatus === "APPROVED" ||
+          payload.moderationStatus === "BLOCKED") &&
+        (payload.moderationReason === null ||
+          typeof payload.moderationReason === "string")
       );
     default:
       return false;

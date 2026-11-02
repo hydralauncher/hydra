@@ -28,6 +28,7 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
   const state = {
     current: true,
     authCalls: 0,
+    authArgs: [] as string[][],
     offlineCalls: 0,
     localCaptures: 0,
     closes: 0,
@@ -270,8 +271,9 @@ async function fixture(t: TestContext, options: { linux?: boolean } = {}) {
       assertCurrent: () => {
         if (!state.current) throw new EpicSaveFailure("operation-cancelled");
       },
-      runJson: async () => {
+      runJson: async (_target: unknown, args: string[]) => {
         state.authCalls++;
+        state.authArgs.push(args);
         state.order.push("auth");
         return session.installed.requires_ot
           ? { ...result(), egl_parameters: ["-epicovt=/private/token.ovt"] }
@@ -475,6 +477,21 @@ test("an executable match without managed PID ancestry cannot report playtime", 
   assert.equal(f.state.reportsStarted, 1);
   f.exported.onManagedEpicClosed(f.game);
   assert.equal(f.state.reportsFinished, 1);
+});
+
+const plainArgs = (args: readonly string[]) => [...args];
+
+test("launching an outdated build skips Legendary's version check only when asked", async (t) => {
+  const f = await fixture(t);
+  await f.exported.prepareManagedEpicLaunch(f.game, f.executable);
+  await f.exported.clearManagedEpicSessions();
+  await f.exported.prepareManagedEpicLaunch(f.game, f.executable, {
+    epicSkipUpdateCheck: true,
+  });
+  assert.deepEqual(f.state.authArgs.map(plainArgs), [
+    ["launch", "Artifact", "--json", "--no-wine"],
+    ["launch", "Artifact", "--json", "--no-wine", "--skip-version-check"],
+  ]);
 });
 
 test("conflict prevents auth launch; offline uses only confirmed local capture and the offline command", async (t) => {

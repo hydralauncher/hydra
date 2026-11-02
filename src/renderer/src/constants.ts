@@ -16,6 +16,7 @@ export const DOWNLOADER_NAME = {
   [Downloader.AllDebrid]: "AllDebrid",
   [Downloader.ArchiveOrg]: "Archive.org",
   [Downloader.Epic]: "Epic Games",
+  [Downloader.FileKeeper]: "FileKeeper",
 };
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
@@ -31,6 +32,7 @@ export const REVIEW_BANNER_IMAGE_SIZE = { width: 960, height: 140 };
 export const LEADERBOARD_ROW_BANNER_IMAGE_SIZE = { width: 960, height: 112 };
 export const LEADERBOARD_PODIUM_BANNER_IMAGE_SIZE = { width: 640, height: 576 };
 export const LEADERBOARD_HEADER_BANNER_IMAGE_SIZE = { width: 960, height: 240 };
+export const LEADERBOARD_SIDEBAR_COVER_IMAGE_SIZE = { width: 88, height: 128 };
 
 export const MAX_DOWNLOAD_SPEED_HISTORY = 300;
 
