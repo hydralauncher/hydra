@@ -6,6 +6,7 @@ import path from "node:path";
 import fs from "node:fs";
 
 import type { Download, Game, LibraryGame } from "@types";
+import { canDiscardDownload } from "../../../types";
 import { registerEvent } from "../register-event";
 import {
   downloadsSublevel,
@@ -16,6 +17,8 @@ import {
   levelKeys,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
+import { clearFinishedDownload } from "@main/helpers/download-game-helper";
+import { isPathDeleted } from "@main/helpers/is-path-deleted";
 import { HydraApi } from "@main/services/hydra-api";
 import { belongsToLibraryCollection } from "@main/services/library-sync/game-visibility";
 import {
@@ -88,6 +91,52 @@ const resolveInstallerSize = (
   return null;
 };
 
+// Clears the executable path and related fields when the file was deleted outside Hydra.
+const resolveExecutable = async (key: string, game: Game) => {
+  const { executablePath } = game;
+  if (!executablePath || !(await isPathDeleted(executablePath))) {
+    return {
+      executablePath,
+      executablePathUpdatedAt: game.executablePathUpdatedAt,
+      automaticCloudSync: game.automaticCloudSync,
+      installedSizeInBytes: game.installedSizeInBytes,
+    };
+  }
+
+  const cleared = {
+    executablePath: null,
+    executablePathUpdatedAt: null,
+    automaticCloudSync: false,
+    installedSizeInBytes: null,
+  };
+  updateGameRecord(key, cleared).catch((error) =>
+    logger.error(`Failed to clear missing executable path for ${key}`, error)
+  );
+  return cleared;
+};
+
+// Drops a finished download whose folder was deleted outside Hydra.
+const resolveActiveDownload = async (
+  key: string,
+  game: Game,
+  download: Download | undefined
+) => {
+  if (
+    !download?.folderName ||
+    !canDiscardDownload(download) ||
+    !(await isPathDeleted(
+      path.join(download.downloadPath, download.folderName)
+    ))
+  ) {
+    return download;
+  }
+
+  clearFinishedDownload(game.shop, game.objectId).catch((error) =>
+    logger.error(`Failed to clear missing download folder for ${key}`, error)
+  );
+  return undefined;
+};
+
 const getLibrary = async (
   collection: "visible" | "hidden" | "all" = "visible"
 ): Promise<LibraryGame[]> => {
@@ -133,6 +182,8 @@ const getLibrary = async (
       );
       const achievementCount = await resolveLibraryAchievementCount(game);
       const installerSizeInBytes = resolveInstallerSize(key, game, download);
+      const executable = await resolveExecutable(key, game);
+      const activeDownload = await resolveActiveDownload(key, game, download);
 
       if (
         game.shop === "launchbox" &&
@@ -146,9 +197,9 @@ const getLibrary = async (
       }
 
       // Verify installed folder still exists, clear if deleted externally
-      let installedSizeInBytes = game.installedSizeInBytes;
-      if (installedSizeInBytes && game.executablePath) {
-        const executableDir = path.dirname(game.executablePath);
+      let installedSizeInBytes = executable.installedSizeInBytes;
+      if (installedSizeInBytes && executable.executablePath) {
+        const executableDir = path.dirname(executable.executablePath);
 
         if (!fs.existsSync(executableDir)) {
           installedSizeInBytes = null;
@@ -169,7 +220,10 @@ const getLibrary = async (
         ...game,
         installerSizeInBytes,
         installedSizeInBytes,
-        download: download ?? null,
+        executablePath: executable.executablePath,
+        executablePathUpdatedAt: executable.executablePathUpdatedAt,
+        automaticCloudSync: executable.automaticCloudSync,
+        download: activeDownload ?? null,
         // Spread composed assets last to ensure all image URLs are properly set
         ...composedAssets,
         shop: game.shop,
