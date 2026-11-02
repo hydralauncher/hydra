@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { BrowserWindow, screen } from "electron";
+import { BrowserWindow } from "electron";
 
 import { gamesSublevel } from "@main/level";
 import type {
@@ -21,7 +21,6 @@ import {
   findForegroundGameTarget,
   findSoleLaunchedTarget,
   isLaunchedForegroundProcess,
-  isWindowCoveringDisplay,
   parseNamespacedPids,
   type ForegroundProcess,
   type ForegroundWindowInfo,
@@ -393,44 +392,37 @@ const isWindowsDesktopShell = async (processId: number | null) => {
 const isFullscreenAppInForeground = async (
   foreground: ForegroundWindowInfo | null
 ) => {
-  if (process.platform !== "win32") return false;
   if (!foreground?.windowHandle || foreground.processId === process.pid) {
     return false;
   }
 
-  const bounds = NativeAddon.getWindowsWindowBounds(foreground.windowHandle);
-  if (!bounds) return false;
-
-  const isCoveringDisplay = screen
-    .getAllDisplays()
-    .some((display) =>
-      isWindowCoveringDisplay(
-        bounds.client,
-        screen.dipToScreenRect(null, display.bounds)
-      )
-    );
-
   return (
-    isCoveringDisplay && !(await isWindowsDesktopShell(foreground.processId))
+    NativeAddon.isWindowsWindowFullscreen(foreground.windowHandle) &&
+    !(await isWindowsDesktopShell(foreground.processId))
   );
 };
 
-export const getUnresolvedGameFailure =
-  async (): Promise<ScreenshotFailureToast | null> => {
-    const [candidates, foreground] = await Promise.all([
-      getScreenshotGameTargets(),
-      resolveForegroundWindow(),
-    ]);
-    const notRecognized: ScreenshotFailureToast = {
-      kind: "game_not_recognized",
-      gameTitle: null,
-    };
+export const getUnresolvedGameFailure = async (
+  source: ScreenshotTriggerSource
+): Promise<ScreenshotFailureToast | null> => {
+  const [candidates, foreground] = await Promise.all([
+    getScreenshotGameTargets(),
+    resolveForegroundWindow(),
+  ]);
 
-    if (await isFullscreenAppInForeground(foreground)) return notRecognized;
-    if (!candidates.length) return null;
-    if (candidates.length > 1 || foreground?.processId == null) {
-      return notRecognized;
-    }
+  if (await isFullscreenAppInForeground(foreground)) {
+    return { kind: "game_not_recognized", gameTitle: null };
+  }
+  if (!candidates.length) return null;
 
+  const isFocusUnknown = foreground?.processId == null;
+  if (isFocusUnknown && source === "deeplink") return null;
+
+  const isGameBehindAnotherWindow =
+    !isFocusUnknown || BrowserWindow.getFocusedWindow() !== null;
+  if (candidates.length === 1 && isGameBehindAnotherWindow) {
     return { kind: "game_not_focused", gameTitle: candidates[0].game.title };
-  };
+  }
+
+  return { kind: "game_not_recognized", gameTitle: null };
+};

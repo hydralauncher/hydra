@@ -2976,7 +2976,7 @@
     "cancel": "Cancel",
     "capture_failed": "Screenshot failed",
     "capture_error_game_not_recognized": "Hydra couldn't recognize the game you're running",
-    "capture_error_game_not_focused": "Switch to {{game}} and try again",
+    "capture_error_game_not_focused": "Make sure {{game}} is in front and try again",
     "capture_error_window_capture_failed": "Hydra couldn't capture the {{game}} window",
     "capture_error_blank_frame": "{{game}} returned a blank image. Try borderless mode",
     "capture_error_disk_full": "Your disk is full. Free up space and try again",

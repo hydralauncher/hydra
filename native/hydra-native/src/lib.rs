@@ -120,6 +120,11 @@ fn to_native_rect(rect: window_bounds::ScreenRect) -> NativeScreenRect {
 }
 
 #[napi]
+pub fn is_windows_window_fullscreen(window_handle: String) -> bool {
+    window_bounds::is_window_fullscreen(&window_handle)
+}
+
+#[napi]
 pub fn get_windows_window_bounds(window_handle: String) -> Option<NativeWindowBounds> {
     window_bounds::get_window_bounds(&window_handle).map(|bounds| NativeWindowBounds {
         frame: to_native_rect(bounds.frame),
