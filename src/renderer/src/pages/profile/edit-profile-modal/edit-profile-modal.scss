@@ -1,57 +1,278 @@
 @use "../../../scss/globals.scss";
 
+// Colors from the designer's prototype (v4.2.0), same tokens as the shop.
+$ink: #f0f1f7;
+$chrome: #0d0d0d;
+$muted: #a6a7ad;
+$line: rgba(255, 255, 255, 0.08);
+$line-strong: rgba(255, 255, 255, 0.24);
+$selected-outline: rgba(255, 255, 255, 0.6);
+$tile-title-line: 16px;
+$tile-hint-line: 14px;
+$tile-label-gap: 1px;
+$hover-transition: 0.15s ease;
+
 .edit-profile-modal {
-  &__form {
+  width: min(760px, 100%);
+  max-width: 760px;
+  height: min(760px, 100%);
+
+  .modal__content {
+    display: flex;
+    min-height: 0;
+  }
+
+  &__body {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    width: 350px;
+    flex: 1;
+    min-height: 0;
   }
 
-  &__content {
-    gap: calc(globals.$spacing-unit * 3);
-    display: flex;
-    flex-direction: column;
+  &__preview-wrapper {
+    padding: 16px 16px 0;
   }
 
-  &__hint {
-    margin-top: calc(globals.$spacing-unit * 2);
-  }
-
-  &__submit {
-    align-self: end;
-    margin-top: calc(globals.$spacing-unit * 3);
-    width: 100%;
-  }
-
-  &__avatar-container {
-    align-self: center;
-    display: flex;
-    color: globals.$body-color;
-    justify-content: center;
-    align-items: center;
-    background-color: globals.$background-color;
+  &__preview {
     position: relative;
-    cursor: pointer;
+    height: 200px;
+    overflow: hidden;
+    border: 1px solid $line;
+    border-radius: 6px;
+    // Without a banner, the solid hero color comes inline, as on the profile.
   }
 
-  &__avatar-overlay {
+  &__preview-banner {
     position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: globals.$muted-color;
-    z-index: 1;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    transition: all ease 0.2s;
-    align-items: center;
-    border-radius: 4px;
-    opacity: 0;
+    object-fit: cover;
   }
 
-  &__avatar-container:hover &__avatar-overlay {
-    opacity: 1;
+  &__preview-shade {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.7)),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.4), transparent 60%);
+  }
+
+  &__preview-who {
+    position: absolute;
+    bottom: 24px;
+    left: 28px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+
+  &__preview-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    > strong {
+      font-size: 20px;
+      font-weight: 700;
+      color: $ink;
+    }
+  }
+
+  // The tabs come from the profile page (profile-content__tabs).
+  &__tabs {
+    margin-top: 12px;
+    padding: 0 16px;
+
+    .profile-content__tabs {
+      margin-bottom: 0;
+    }
+  }
+
+  &__pane {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 16px;
+  }
+
+  &__name {
+    margin-bottom: calc(globals.$spacing-unit * 3);
+  }
+
+  // Mirrors the TextField label and hint.
+  &__section-header {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    margin-bottom: calc(globals.$spacing-unit * 2);
+
+    &--spaced {
+      margin-top: calc(globals.$spacing-unit * 3);
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+    gap: 10px;
+
+    &--wide {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+  }
+
+  &__tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid $line;
+    border-radius: 6px;
+    background-color: $chrome;
+    text-align: left;
+    cursor: pointer;
+    // A transparent outline on every tile, so selecting one fades it in.
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    transition:
+      border-color $hover-transition,
+      outline-color $hover-transition;
+
+    &:hover {
+      border-color: $line-strong;
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: globals.$disabled-opacity;
+    }
+
+    &--skeleton,
+    &--skeleton:hover {
+      border-color: $line;
+      cursor: default;
+    }
+
+    &--selected {
+      outline-color: $selected-outline;
+    }
+  }
+
+  &__skeleton-fill {
+    display: block;
+    width: 100%;
+    height: 100%;
+    line-height: 1;
+  }
+
+  &__tile-art {
+    display: grid;
+    place-items: center;
+    height: 92px;
+    border-bottom: 1px solid $line;
+    background:
+      radial-gradient(circle, rgba(255, 255, 255, 0.04) 0.6px, transparent 1px)
+        0 0 / 8px 8px,
+      $chrome;
+  }
+
+  &__tile--upload &__tile-art {
+    border-bottom: 1px dashed $line-strong;
+    color: $ink;
+  }
+
+  &__tile--wide &__tile-art {
+    display: block;
+    height: auto;
+    aspect-ratio: 4 / 1;
+  }
+
+  &__tile--wide#{&}__tile--upload &__tile-art {
+    display: grid;
+  }
+
+  &__tile-title {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+
+    strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__tile-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    object-fit: cover;
+  }
+
+  // Room for a title and a hint, so tiles with and without a hint (and the
+  // skeletons) are all the same height.
+  &__tile-label {
+    display: flex;
+    flex-direction: column;
+    gap: $tile-label-gap;
+    min-height: calc(
+      $tile-title-line + $tile-label-gap + $tile-hint-line + 18px
+    );
+    padding: 8px 10px 10px;
+
+    strong {
+      font-size: 12px;
+      line-height: $tile-title-line;
+      font-weight: 600;
+      color: $ink;
+    }
+
+    small {
+      font-size: 11px;
+      line-height: $tile-hint-line;
+      color: $muted;
+    }
+  }
+
+  &__banner-art {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+
+    // Absolute, so the image never stretches the 4:1 box.
+    img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    &--empty {
+      background: linear-gradient(90deg, #2a1a0f, #1a1410 45%, #0f1830);
+    }
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid $line;
+  }
+
+  &__dirty {
+    margin-right: auto;
+    font-size: 12px;
+    color: $muted;
   }
 }

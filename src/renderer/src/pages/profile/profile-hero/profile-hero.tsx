@@ -39,8 +39,8 @@ import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
+import { preloadTopGameBanners } from "../edit-profile-modal/use-top-game-banners";
 import Skeleton from "react-loading-skeleton";
-import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
 import { ProfileGamificationPills } from "./profile-gamification-pills";
 import { CoinIcon } from "@renderer/components/gamification";
 import "./profile-hero.scss";
@@ -93,6 +93,12 @@ export function ProfileHero() {
   useEffect(() => {
     if (isMe) void refreshProgress();
   }, [isMe, refreshProgress]);
+
+  // The edit modal's game banners are ready before it opens.
+  const userId = userDetails?.id;
+  useEffect(() => {
+    if (isMe && userId) void preloadTopGameBanners(userId);
+  }, [isMe, userId]);
 
   const { t } = useTranslation("user_profile");
   const { formatDistance } = useDate();
@@ -509,8 +515,6 @@ export function ProfileHero() {
                 </div>
               )}
             </div>
-
-            <UploadBackgroundImageButton />
           </div>
         </div>
 
