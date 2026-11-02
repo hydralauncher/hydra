@@ -970,8 +970,8 @@ export async function launchEpicLinuxGame(
       environment: {
         ...process.env,
         ...parameters.environment,
-        ...resolved.env,
         ...options.compatibilityEnvironmentVariables,
+        ...resolved.env,
         ...runtimeEnvironment(context),
         ...(options.protonLogEnabled !== undefined
           ? { PROTON_LOG: options.protonLogEnabled ? "1" : "0" }

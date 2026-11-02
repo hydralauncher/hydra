@@ -90,10 +90,21 @@ async function fixture(t: TestContext) {
       resolveLaunchCommand: ({
         baseCommand,
         baseArgs,
+        launchOptions,
       }: {
         baseCommand: string;
         baseArgs: string[];
-      }) => ({ command: baseCommand, args: baseArgs, env: {} }),
+        launchOptions?: string;
+      }) => {
+        const env: Record<string, string> = {};
+        if (launchOptions) {
+          for (const token of launchOptions.split(" ")) {
+            const eq = token.indexOf("=");
+            if (eq > 0) env[token.slice(0, eq)] = token.slice(eq + 1);
+          }
+        }
+        return { command: baseCommand, args: baseArgs, env };
+      },
     },
     "@main/events/helpers/parse-launch-options": {
       parseLaunchOptions: (input?: string) => input?.split(" ") ?? [],
@@ -861,9 +872,11 @@ test("launchEpicLinuxGame forwards compatibility environment variables and proto
   const launching = f.api.launchEpicLinuxGame(parameters, context, {
     lease,
     signal: controller.signal,
+    launchOptions: "OVERRIDDEN_VAR=per_game_override %command%",
     protonLogEnabled: true,
     compatibilityEnvironmentVariables: {
       CUSTOM_VAR: "custom_value",
+      OVERRIDDEN_VAR: "global_value",
     },
     onSpawn: () => {
       spawned.open();
@@ -880,4 +893,5 @@ test("launchEpicLinuxGame forwards compatibility environment variables and proto
   assert.ok(spawnCall);
   assert.equal(spawnCall.environment.PROTON_LOG, "1");
   assert.equal(spawnCall.environment.CUSTOM_VAR, "custom_value");
+  assert.equal(spawnCall.environment.OVERRIDDEN_VAR, "per_game_override");
 });

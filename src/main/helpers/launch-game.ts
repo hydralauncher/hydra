@@ -46,10 +46,11 @@ import {
 } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
+import { resolveLaunchCommand } from "./resolve-launch-command";
 import {
-  envVariableNameRegex,
-  resolveLaunchCommand,
-} from "./resolve-launch-command";
+  parseCompatibilityEnvironmentVariables,
+  unquoteEnvValue,
+} from "./parse-compatibility-environment-variables";
 import {
   buildWindowsBatchCommand,
   isWindowsBatchFile,
@@ -119,38 +120,7 @@ const ensureExecutablePermission = (executablePath: string) => {
   }
 };
 
-const parseCompatibilityEnvironmentVariables = (
-  rawVariables: string | null | undefined
-): Record<string, string> => {
-  if (!rawVariables) {
-    return {};
-  }
-
-  const environmentVariables: Record<string, string> = {};
-
-  for (const rawLine of rawVariables.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) {
-      continue;
-    }
-
-    const equalsIndex = line.indexOf("=");
-    if (equalsIndex <= 0) {
-      continue;
-    }
-
-    const name = line.slice(0, equalsIndex).trim();
-    const value = line.slice(equalsIndex + 1);
-
-    if (!envVariableNameRegex.test(name)) {
-      continue;
-    }
-
-    environmentVariables[name] = value;
-  }
-
-  return environmentVariables;
-};
+export { parseCompatibilityEnvironmentVariables, unquoteEnvValue };
 
 const launchNatively = (
   executablePath: string,
