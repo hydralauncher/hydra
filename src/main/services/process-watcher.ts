@@ -654,6 +654,7 @@ function onTickGame(game: Game) {
           method: game.remoteId ? "track" : "create",
           deltaToSync,
         });
+        WindowManager.sendToAppWindows("on-game-playtime-synced");
 
         return persistGamePlaytime(
           levelKeys.game(game.shop, game.objectId),
@@ -774,6 +775,7 @@ const onCloseGame = (game: Game, options: { isShutdown?: boolean } = {}) => {
         logPlaytimeTrace("close-sync-track-success", game, {
           deltaToSync,
         });
+        WindowManager.sendToAppWindows("on-game-session-synced");
 
         return persistGamePlaytime(
           gameKey,
