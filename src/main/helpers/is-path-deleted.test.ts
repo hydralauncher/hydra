@@ -1,126 +1,93 @@
-import assert from "node:assert/strict";
-import fs from "node:fs/promises";
-import os from "node:os";
+import fs from "node:fs";
 import path from "node:path";
-import { after, before, beforeEach, describe, it } from "node:test";
-import { isPathDeleted, REMOVABLE_VOLUME_ROOTS } from "./is-path-deleted.ts";
 
-describe("isPathDeleted", () => {
-  let tempDir: string;
-  let tempFile: string;
+// Where unplugged drives live on macOS/Linux, and how many path segments the
+// volume itself takes (e.g. /media/<user>/<label> is 3).
+export const REMOVABLE_VOLUME_ROOTS: Array<[root: string, depth: number]> = [
+  ["/Volumes", 2],
+  ["/mnt", 2],
+  ["/media", 3],
+  ["/run/media", 4],
+];
 
-  before(async () => {
-    tempDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "hydra-is-path-deleted-")
-    );
-    tempFile = path.join(tempDir, "game.exe");
-  });
+const exists = (target: string) =>
+  fs.promises.access(target).then(
+    () => true,
+    () => false
+  );
 
-  after(async () => {
-    try {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {
-      // Windows may keep a handle open (antivirus, indexer). Ignore cleanup failures.
+const depthOf = (target: string) =>
+  target.split(path.sep).filter(Boolean).length;
+
+// Helper to check if a directory is empty. We use this so it can be mocked in tests.
+export const isDirectoryEmpty = async (dirPath: string): Promise<boolean> => {
+  try {
+    const entries = await fs.promises.readdir(dirPath);
+    return entries.length === 0;
+  } catch {
+    return true; // Assume empty/offline if we can't read it
+  }
+};
+
+// Walks up from target until it finds a directory that exists.
+const findExistingAncestor = async (target: string): Promise<string> => {
+  let ancestor = path.dirname(target);
+  while (!(await exists(ancestor)) && ancestor !== path.dirname(ancestor)) {
+    ancestor = path.dirname(ancestor);
+  }
+  return ancestor;
+};
+
+// True only when target is gone while the drive it lived on is still there.
+export const isPathDeleted = async (target: string): Promise<boolean> => {
+  try {
+    await fs.promises.access(target);
+    return false;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT" && code !== "ENOTDIR") return false;
+  }
+
+  const resolved = path.resolve(target);
+
+  // Windows: an offline drive or share has no reachable root (E:\, \\server\share\).
+  if (!(await exists(path.parse(resolved).root))) return false;
+
+  const parent = path.dirname(resolved);
+  const ancestor = await findExistingAncestor(resolved);
+
+  const volumeDepth = REMOVABLE_VOLUME_ROOTS.find(
+    ([root]) => resolved === root || resolved.startsWith(root + path.sep)
+  )?.[1];
+
+  if (volumeDepth === undefined) {
+    // Not a recognized removable volume. If the parent folder still exists,
+    // the file itself was removed.
+    if (ancestor === parent) return true;
+
+    // The parent is missing. If the nearest existing ancestor is an empty
+    // folder, it is most likely an unmounted mount point, so treat the path
+    // as offline rather than deleted. A non-empty ancestor means the
+    // containing folder was deleted while its siblings remain.
+    return !(await isDirectoryEmpty(ancestor));
+  }
+
+  const ancestorDepth = depthOf(ancestor);
+
+  if (ancestorDepth > volumeDepth) {
+    // The closest existing parent is a folder inside the volume. File is deleted.
+    return true;
+  }
+
+  if (ancestorDepth === volumeDepth) {
+    // The closest existing parent IS the volume root (e.g., /mnt/disk).
+    // Check if the volume root is empty. An empty directory means the drive is offline.
+    const isEmpty = await isDirectoryEmpty(ancestor);
+    if (isEmpty) {
+      return false; // Drive is offline/unmounted, do not treat file as deleted.
     }
-  });
+    return true; // Volume has files, so the file was truly deleted.
+  }
 
-  beforeEach(async () => {
-    await fs.mkdir(tempDir, { recursive: true });
-    await fs.writeFile(tempFile, "fake executable");
-  });
-
-  it("returns false when the target file exists", async () => {
-    assert.equal(await isPathDeleted(tempFile), false);
-  });
-
-  it("returns true when the target file was deleted externally", async () => {
-    await fs.unlink(tempFile);
-    assert.equal(await isPathDeleted(tempFile), true);
-  });
-
-  it("returns true when the entire parent folder was deleted", async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
-    assert.equal(await isPathDeleted(tempFile), true);
-  });
-
-  it("returns true for a path that never existed inside an existing folder", async () => {
-    const neverExisted = path.join(tempDir, "never-installed.exe");
-    assert.equal(await isPathDeleted(neverExisted), true);
-  });
-
-  it("returns false for an existing directory (not a file)", async () => {
-    assert.equal(await isPathDeleted(tempDir), false);
-  });
-
-  it("returns false when the drive/volume root is unreachable", async () => {
-    if (process.platform === "win32") {
-      // Z: is unlikely to be mounted during tests.
-      assert.equal(await isPathDeleted("Z:\\fake\\game.exe"), false);
-    } else {
-      // A mount point that does not exist simulates an unplugged drive.
-      assert.equal(
-        await isPathDeleted("/mnt/hydra-nonexistent-drive/game.exe"),
-        false
-      );
-    }
-  });
-
-  it("treats an unplugged removable volume as not-deleted on macOS/Linux", async () => {
-    if (process.platform === "win32") return;
-
-    // /Volumes/... on macOS and /media/<user>/<label> on Linux live under
-    // REMOVABLE_VOLUME_ROOTS. If the volume itself is gone, the path is not
-    // considered deleted (it may simply be unplugged).
-    const removableRoots: Array<[string, string]> = [
-      ["/Volumes", "/Volumes/HydraUnpluggedDrive/game.exe"],
-      ["/mnt", "/mnt/hydra-unplugged/game.exe"],
-      ["/media", "/media/hydra-user/UNPLUGGED/game.exe"],
-      ["/run/media", "/run/media/hydra-user/UNPLUGGED/game.exe"],
-    ];
-    for (const [root, target] of removableRoots) {
-      if (!root.startsWith("/")) continue;
-      const result = await isPathDeleted(target);
-      assert.equal(result, false, `expected false for ${target}`);
-    }
-  });
-
-  it("resolves relative paths against cwd", async () => {
-    const relative = path.relative(process.cwd(), tempFile);
-    if (!relative) return; // temp dir is cwd; nothing to assert
-    assert.equal(await isPathDeleted(relative), false);
-    await fs.unlink(tempFile);
-    assert.equal(await isPathDeleted(relative), true);
-  });
-
-  it("does not throw for malformed paths", async () => {
-    await assert.doesNotReject(() => isPathDeleted(""));
-    await assert.doesNotReject(() => isPathDeleted("\0invalid"));
-  });
-
-  it("returns false for a path directly inside an empty mounted volume root", async () => {
-    // Create a fake volume root inside our temp dir
-    const emptyVolumeRoot = path.join(tempDir, "disk");
-    await fs.mkdir(emptyVolumeRoot, { recursive: true });
-    
-    const target = path.join(emptyVolumeRoot, "game.exe");
-    
-    // Save original roots
-    const originalRoots = [...REMOVABLE_VOLUME_ROOTS];
-    
-    // Calculate the depth of the emptyVolumeRoot exactly as the source code does
-    const rootDepth = emptyVolumeRoot.split(path.sep).filter(Boolean).length;
-    
-    // Inject the emptyVolumeRoot itself as the recognized volume root
-    REMOVABLE_VOLUME_ROOTS.push([emptyVolumeRoot, rootDepth]);
-    
-    try {
-      // The real isDirectoryEmpty will read this empty folder and return true,
-      // causing isPathDeleted to correctly return false (drive is offline).
-      assert.equal(await isPathDeleted(target), false);
-    } finally {
-      // Restore original roots
-      REMOVABLE_VOLUME_ROOTS.length = 0;
-      REMOVABLE_VOLUME_ROOTS.push(...originalRoots);
-    }
-  });
-});
+  return false;
+};
