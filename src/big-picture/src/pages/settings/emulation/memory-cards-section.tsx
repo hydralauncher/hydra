@@ -270,7 +270,7 @@ function MemoryCardScanModal({
       onClose={onClose}
       closeOnBackdrop={!isPending}
       closeOnEscape={!isPending}
-      closeOnB={!isPending}
+      busy={isPending}
       className="emulation-settings__scan-modal-shell"
     >
       <VerticalFocusGroup

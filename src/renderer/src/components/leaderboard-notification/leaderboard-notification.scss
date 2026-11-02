@@ -55,30 +55,6 @@ $leaderboard-muted: #a6a7ad;
     box-shadow: 0 0 0 1px rgba(176, 92, 255, 0.7);
     object-fit: cover;
   }
-
-  &__arrow {
-    position: absolute;
-    right: -5px;
-    bottom: -5px;
-    box-sizing: border-box;
-    width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    border: 2px solid #1c1c1c;
-    background: $leaderboard-up;
-    color: #0d0d0d;
-
-    &--down {
-      background: $leaderboard-down;
-
-      svg {
-        transform: rotate(180deg);
-      }
-    }
-  }
 }
 
 .leaderboard-rank-chip {

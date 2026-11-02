@@ -114,14 +114,16 @@ export function BlockError({ onRetry }: Readonly<{ onRetry: () => void }>) {
 export function BoardSkeleton() {
   return (
     <div className="leaderboards__skeleton" aria-busy="true">
-      <div className="leaderboard-podium">
-        {[260, 288, 240].map((height) => (
-          <Skeleton
-            key={height}
-            height={height}
-            className="leaderboards__skeleton-podium"
-          />
-        ))}
+      <div className="leaderboard-podium-wrapper">
+        <div className="leaderboard-podium">
+          {[320, 296, 272].map((height) => (
+            <Skeleton
+              key={height}
+              height={height}
+              className="leaderboards__skeleton-podium"
+            />
+          ))}
+        </div>
       </div>
       {ROW_SKELETON_KEYS.map((key) => (
         <Skeleton key={key} className="leaderboards__skeleton-row" />

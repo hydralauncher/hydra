@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 import {
   buildLeaderboardRequest,
   buildLeaderboardRows,
+  parseLeaderboardPeriod,
+  parseLeaderboardScope,
   fetchGameLeaderboard,
   formatDurationParts,
   getDurationParts,
@@ -123,6 +125,20 @@ describe("normalizeLeaderboardResponse", () => {
   });
 });
 
+describe("saved leaderboard filters", () => {
+  it("keeps a valid saved value", () => {
+    assert.equal(parseLeaderboardPeriod("all"), "all");
+    assert.equal(parseLeaderboardScope("friends"), "friends");
+  });
+
+  it("falls back to the defaults for an invalid or missing value", () => {
+    assert.equal(parseLeaderboardPeriod("month"), "week");
+    assert.equal(parseLeaderboardPeriod(null), "week");
+    assert.equal(parseLeaderboardScope("everyone"), "global");
+    assert.equal(parseLeaderboardScope(null), "global");
+  });
+});
+
 describe("buildLeaderboardRows", () => {
   const top = board(
     entry(1, "a", 100),
@@ -196,34 +212,12 @@ describe("buildLeaderboardRows", () => {
     assert.equal(rows[1].progress, 30);
   });
 
-  it("pins the viewer below the top even when listed", () => {
-    const rows = buildLeaderboardRows(top, user("b"), 5, { pinViewer: true });
-    const last = rows.at(-1);
-
-    assert.equal(rows.length, 6);
-    assert.equal(rows[1].isViewer, true);
-    assert.equal(rows[1].isPinned, false);
-    assert.equal(last?.entry.user.id, "b");
-    assert.equal(last?.isPinned, true);
-    assert.equal(last?.gapBefore, true);
-  });
-
-  it("pins the viewer outside the top once", () => {
-    const rows = buildLeaderboardRows(top, user("me"), 5, { pinViewer: true });
-
-    assert.equal(rows.length, 6);
-    assert.equal(rows.filter((row) => row.isViewer).length, 1);
-    assert.equal(rows.at(-1)?.isPinned, true);
-  });
-
-  it("pins nothing without a viewer rank", () => {
-    const rows = buildLeaderboardRows(top, user("ghost"), 5, {
-      pinViewer: true,
-    });
+  it("adds no row for a viewer without a rank", () => {
+    const rows = buildLeaderboardRows(top, user("ghost"), 5);
 
     assert.equal(rows.length, 5);
     assert.equal(
-      rows.some((row) => row.isPinned),
+      rows.some((row) => row.isViewer),
       false
     );
   });
@@ -241,6 +235,7 @@ describe("getLeaderboardNudge", () => {
       type: "behind",
       gap: 15,
       target: user("b"),
+      targetRank: 2,
     });
   });
 
@@ -250,7 +245,7 @@ describe("getLeaderboardNudge", () => {
         board(entry(1, "a", 100), entry(1, "b", 100), entry(3, "me", 60)),
         user("me")
       ),
-      { type: "behind", gap: 40, target: user("b") }
+      { type: "behind", gap: 40, target: user("b"), targetRank: 1 }
     );
   });
 
@@ -633,5 +628,55 @@ describe("isSignedOutError", () => {
     );
     assert.equal(isSignedOutError(new Error("boom")), false);
     assert.equal(isSignedOutError("user not logged in"), false);
+  });
+});
+
+describe("precomputed viewer targets", () => {
+  it("keeps toTop from the API and drops a malformed one", () => {
+    const kept = normalizeLeaderboardResponse({
+      entries: [],
+      viewer: { rank: 4821, value: 7200, toTop: { rank: 100, value: 90000 } },
+    });
+    assert.deepEqual(kept.viewer, {
+      rank: 4821,
+      value: 7200,
+      toTop: { rank: 100, value: 90000 },
+    });
+    const dropped = normalizeLeaderboardResponse({
+      entries: [],
+      viewer: { rank: 4821, value: 7200, toTop: { rank: 100, value: "nope" } },
+    });
+    assert.deepEqual(dropped.viewer, { rank: 4821, value: 7200, toTop: null });
+  });
+
+  it("nudges toward the top when the viewer sits past the loaded entries", () => {
+    const top = board(entry(1, "a", 100), entry(2, "b", 40));
+    assert.deepEqual(
+      getLeaderboardNudge(
+        {
+          ...top,
+          viewer: { rank: 4821, value: 20, toTop: { rank: 100, value: 35 } },
+        },
+        user("me")
+      ),
+      { type: "to_top", gap: 15, rank: 100 }
+    );
+    assert.equal(
+      getLeaderboardNudge(
+        { ...top, viewer: { rank: 4821, value: 20, toTop: null } },
+        user("me")
+      ),
+      null
+    );
+    assert.equal(
+      getLeaderboardNudge(
+        {
+          ...top,
+          viewer: { rank: 50, value: 20, toTop: { rank: 100, value: 35 } },
+        },
+        user("me")
+      ),
+      null
+    );
   });
 });

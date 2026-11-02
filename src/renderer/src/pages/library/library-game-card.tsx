@@ -8,7 +8,12 @@ import {
   isAnimatedCoverCandidate,
   useAppSelector,
   useAnimatedSourceWarmup,
+  useCatalogueImage,
 } from "@renderer/hooks";
+import {
+  getCatalogueImageSrcSet,
+  pickCatalogueImageUrl,
+} from "@renderer/helpers/catalogue-images";
 import {
   CLASSICS_PS_PLATFORM_LABELS,
   isGameReadyToPlay,
@@ -30,6 +35,8 @@ import {
 } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
+
+const COVER_DISPLAY_WIDTH = 300;
 
 interface LibraryGameCardProps {
   game: LibraryGame;
@@ -117,7 +124,10 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const isChosenCoverActive = Boolean(candidates[fallbackIndex]?.isChosenCover);
 
   const rawActiveSource = sources[fallbackIndex];
-  const isAnimatedCover = isAnimatedCoverCandidate(rawActiveSource);
+  const catalogueImage = useCatalogueImage(rawActiveSource, game.images);
+  const coverVariants = catalogueImage.variants;
+  const isAnimatedCover =
+    !coverVariants && isAnimatedCoverCandidate(rawActiveSource);
   const coverPoster = useCoverPoster(rawActiveSource, isAnimatedCover);
   const [isCoverHovered, setIsCoverHovered] = useState(false);
   const shouldHoldFrame =
@@ -149,6 +159,8 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const showReadyBadge = !hideReadySizeBadges && isInstalled;
 
   const handleImageError = () => {
+    if (catalogueImage.markFailed()) return;
+
     logger.warn(`Image failed to load for ${game.title}`, {
       failedUrl: sources[fallbackIndex],
       level: fallbackIndex,
@@ -209,12 +221,23 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
     return (
       <img
-        src={displayImageSource}
+        src={
+          coverVariants
+            ? pickCatalogueImageUrl(coverVariants, COVER_DISPLAY_WIDTH)
+            : displayImageSource
+        }
+        srcSet={
+          coverVariants ? getCatalogueImageSrcSet(coverVariants) : undefined
+        }
+        sizes={coverVariants ? `auto, ${COVER_DISPLAY_WIDTH}px` : undefined}
+        style={catalogueImage.placeholderStyle}
         alt={game.title}
         className={`library-game-card__game-image ${
           isChosenCoverActive ? "library-game-card__game-image--contain" : ""
         }`}
         loading="lazy"
+        decoding="async"
+        onLoad={catalogueImage.markLoaded}
         onError={handleImageError}
       />
     );

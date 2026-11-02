@@ -34,6 +34,7 @@ import { getManagedEpicProcessCommand } from "./windows-process-job.js";
 import {
   EpicTargetRuntime,
   type EpicManagedCommand,
+  type EpicTargetBase,
 } from "./target-runtime.js";
 import { queueEpicOperation } from "./operation-queue.js";
 import { markEpicTiming, withEpicTiming } from "./timing.js";
@@ -93,6 +94,7 @@ const classifyLegendaryFailure = (stderr: string): EpicInstallError => {
       "network",
       "operation-cancelled",
       "update-required",
+      "installation-missing",
     ].includes(managed)
   )
     return managed as EpicInstallError;
@@ -491,16 +493,21 @@ export class LegendaryManagedRuntime {
     target: EpicManagedTarget,
     objectId: string,
     signal: AbortSignal,
-    cached?: { manifest?: unknown }
+    cached?: { manifest?: unknown },
+    base?: EpicTargetBase
   ) {
-    return this.targeted.inspect(target, objectId, signal, cached);
+    return this.targeted.inspect(target, objectId, signal, cached, base);
   }
   streamInstall(
     target: EpicManagedTarget,
     objectId: string,
     prepared: { manifest?: unknown },
     args: string[],
-    options: { signal: AbortSignal; onLine: (line: string) => void }
+    options: {
+      signal: AbortSignal;
+      onLine: (line: string) => void;
+      dlc?: EpicTargetBase;
+    }
   ) {
     return this.targeted.streamInstall(
       target,

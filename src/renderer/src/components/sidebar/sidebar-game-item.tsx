@@ -4,7 +4,7 @@ import { LibraryGame } from "@types";
 import { getGameCatalogueIdentity, getLibraryOperationalGame } from "@shared";
 import cn from "classnames";
 import { useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ConfirmationModal,
@@ -25,7 +25,7 @@ interface SidebarGameItemProps {
   getGameTitle: (game: LibraryGame) => string;
 }
 
-export function SidebarGameItem({
+export const SidebarGameItem = memo(function SidebarGameItem({
   game,
   handleSidebarGameClick,
   getGameTitle,
@@ -199,4 +199,4 @@ export function SidebarGameItem({
       />
     </>
   );
-}
+});

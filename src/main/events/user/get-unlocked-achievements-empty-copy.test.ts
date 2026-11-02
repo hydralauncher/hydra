@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { it } from "node:test";
 import ts from "typescript";
-import { presentCombinedAchievements } from "../../services/achievements/combined-achievement-presentation.ts";
+import {
+  createCombinedDefinitionLookup,
+  presentCombinedAchievements,
+} from "../../services/achievements/combined-achievement-presentation.ts";
 import { mergeUnlockedAchievementLists } from "../../services/achievements/merge-unlocked-achievements.ts";
 import {
   achievementSyncCoordinator,
@@ -151,6 +154,7 @@ for (const scenario of [
       },
       "@main/services/achievements/combined-achievement-presentation": {
         presentCombinedAchievements,
+        createCombinedDefinitionLookup,
       },
     };
     const output = ts.transpileModule(

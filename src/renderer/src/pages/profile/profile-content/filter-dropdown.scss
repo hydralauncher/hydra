@@ -39,6 +39,7 @@
 
   &__value {
     display: inline-flex;
+    min-width: 0;
     align-items: center;
     gap: 6px;
     color: rgba(255, 255, 255, 0.95);
@@ -46,6 +47,21 @@
     svg {
       flex-shrink: 0;
     }
+  }
+
+  &__value-label {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__option-image {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    border-radius: 3px;
+    object-fit: cover;
   }
 
   &__chevron {
@@ -64,6 +80,9 @@
     left: 0;
     min-width: 100%;
     width: max-content;
+    max-width: min(360px, calc(100vw - 32px));
+    max-height: min(360px, 60vh);
+    overflow-y: auto;
     background: #1a1a1a;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
@@ -109,7 +128,10 @@
 
   &__option-label {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
     text-align: left;
+    text-overflow: ellipsis;
   }
 
   &__check {

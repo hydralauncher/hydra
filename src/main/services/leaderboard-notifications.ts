@@ -5,6 +5,7 @@ import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 import {
   buildLeaderboardNotificationTarget,
   buildLeaderboardNotificationText,
+  GLOBAL_LEADERBOARDS_FEATURE,
   parseLeaderboardNotification,
   type LeaderboardNotificationInfo,
 } from "@shared";
@@ -23,6 +24,23 @@ import { WindowManager } from "./window-manager";
 const FETCH_TAKE = 20;
 const FRESH_MS = 60 * 60 * 1000;
 const MAX_SHOWN_KEYS = 100;
+const FEATURES_REQUEST_TIMEOUT_MS = 10_000;
+
+const isGlobalLeaderboardsEnabled = (signal: AbortSignal) =>
+  HydraApi.get<string[]>("/features", null, {
+    needsAuth: false,
+    timeout: FEATURES_REQUEST_TIMEOUT_MS,
+    signal,
+  })
+    .then(
+      (features) =>
+        Array.isArray(features) &&
+        features.includes(GLOBAL_LEADERBOARDS_FEATURE)
+    )
+    .catch((error) => {
+      if (!signal.aborted) logger.warn("Could not load feature flags", error);
+      return false;
+    });
 
 const shownKey = (notification: Notification) =>
   `${notification.id}:${notification.createdAt}`;
@@ -71,6 +89,8 @@ const showSystemNotification = async (
 };
 
 export const publishLeaderboardNotifications = async (signal: AbortSignal) => {
+  if (!(await isGlobalLeaderboardsEnabled(signal)) || signal.aborted) return;
+
   const [response, preferences, shown] = await Promise.all([
     HydraApi.get<NotificationsResponse>(
       "/profile/notifications",
