@@ -32,6 +32,8 @@ function fixture(
   options: {
     records?: Array<[string, Game]>;
     queue?: EpicLibraryArtworkQueue;
+    deleted?: string[];
+    discardable?: boolean;
   } = {}
 ) {
   const game: Game = {
@@ -65,11 +67,28 @@ function fixture(
   const handlers = new Map<string, LibraryHandler>();
   const assets = new Map<string, Partial<ShopAssets>>();
   const selections = new Map<string, unknown>();
+  const deleted = new Set(options.deleted ?? []);
+  const cleared: { shop: string; objectId: string }[] = [];
+  const pendingClears: { reject: () => void }[] = [];
   const dependencies: Record<string, unknown> = {
     "@main/services/epic-library-artwork": {
       epicLibraryArtworkQueue: options.queue ?? { schedule: () => {} },
     },
     "node:path": path,
+    "../../../types": {
+      canDiscardDownload: () => options.discardable ?? false,
+    },
+    "@main/helpers/is-path-deleted": {
+      isPathDeleted: async (target: string) => deleted.has(target),
+    },
+    "@main/helpers/download-game-helper": {
+      clearFinishedDownload: (shop: string, objectId: string) => {
+        cleared.push({ shop, objectId });
+        return new Promise<void>((_resolve, reject) => {
+          pendingClears.push({ reject: () => reject(writeError) });
+        });
+      },
+    },
     "node:fs": {
       existsSync: (filePath: string) => !missingPaths.has(filePath),
     },
@@ -156,9 +175,12 @@ function fixture(
     assets,
     selections,
     game,
+    download,
     writeError,
     writes,
     pendingWrites,
+    cleared,
+    pendingClears,
     errors,
     read: () => handlers.get("getLibrary")!({} as IpcMainInvokeEvent),
     readAll: () => handlers.get("getLibrary")!({} as IpcMainInvokeEvent, true),
@@ -357,5 +379,100 @@ describe("library size cleanup", () => {
     );
     assert.equal(game.customHeroImageUrl, "custom-hero");
     assert.equal(f.writes.length, 0);
+  });
+});
+
+describe("externally deleted library paths", () => {
+  const executablePath = path.join("games", "game", "game.exe");
+  const installerFolder = path.join("downloads", "installer");
+  const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+  it("keeps the executable path while the file still exists", async () => {
+    const f = fixture("none");
+    const [game] = await f.read();
+    assert.equal(game.executablePath, f.game.executablePath);
+    assert.equal(game.installedSizeInBytes, f.game.installedSizeInBytes);
+    assert.equal(f.writes.length, 0);
+  });
+
+  it("clears the executable path and related fields when the file was deleted", async () => {
+    const f = fixture("none", {}, { deleted: [executablePath] });
+    const [game] = await f.read();
+    assert.equal(game.executablePath, null);
+    assert.equal(game.executablePathUpdatedAt, null);
+    assert.equal(game.automaticCloudSync, false);
+    assert.equal(game.installedSizeInBytes, null);
+    assert.equal(game.installerSizeInBytes, f.game.installerSizeInBytes);
+    assert.deepEqual(f.writes, [
+      {
+        key: f.key,
+        patch: {
+          executablePath: null,
+          executablePathUpdatedAt: null,
+          automaticCloudSync: false,
+          installedSizeInBytes: null,
+        },
+      },
+    ]);
+  });
+
+  it("logs a rejected executable cleanup while returning the library", async () => {
+    const f = fixture("none", {}, { deleted: [executablePath] });
+    const games = await f.read();
+    assert.equal(games.length, 1);
+    f.pendingWrites.forEach((write) => write.reject());
+    await flush();
+    assert.deepEqual(
+      f.errors.map(({ message }) => message),
+      [`Failed to clear missing executable path for ${f.key}`]
+    );
+    assert.ok(f.errors.every(({ error }) => error === f.writeError));
+  });
+
+  it("drops a finished download whose folder was deleted", async () => {
+    const f = fixture(
+      "none",
+      {},
+      { deleted: [installerFolder], discardable: true }
+    );
+    const [game] = await f.read();
+    assert.equal(game.download, null);
+    assert.deepEqual(f.cleared, [{ shop: "steam", objectId: "123" }]);
+    assert.equal(f.writes.length, 0);
+  });
+
+  it("keeps a download that cannot be discarded even if its folder is gone", async () => {
+    const f = fixture(
+      "none",
+      {},
+      { deleted: [installerFolder], discardable: false }
+    );
+    const [game] = await f.read();
+    assert.deepEqual(game.download, f.download);
+    assert.equal(f.cleared.length, 0);
+  });
+
+  it("keeps a finished download while its folder still exists", async () => {
+    const f = fixture("none", {}, { discardable: true });
+    const [game] = await f.read();
+    assert.deepEqual(game.download, f.download);
+    assert.equal(f.cleared.length, 0);
+  });
+
+  it("logs a rejected download cleanup while returning the library", async () => {
+    const f = fixture(
+      "none",
+      {},
+      { deleted: [installerFolder], discardable: true }
+    );
+    const games = await f.read();
+    assert.equal(games.length, 1);
+    f.pendingClears.forEach((clear) => clear.reject());
+    await flush();
+    assert.deepEqual(
+      f.errors.map(({ message }) => message),
+      [`Failed to clear missing download folder for ${f.key}`]
+    );
+    assert.ok(f.errors.every(({ error }) => error === f.writeError));
   });
 });
