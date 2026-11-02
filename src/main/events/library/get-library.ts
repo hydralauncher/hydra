@@ -94,7 +94,7 @@ const resolveInstallerSize = (
 // Clears the executable path and related fields when the file was deleted outside Hydra.
 const resolveExecutable = async (key: string, game: Game) => {
   const { executablePath } = game;
-  
+
   if (!executablePath || !(await isPathDeleted(executablePath))) {
     return {
       executablePath,
@@ -127,7 +127,7 @@ const resolveExecutable = async (key: string, game: Game) => {
   updateGameRecord(key, cleared).catch((error) =>
     logger.error(`Failed to clear missing executable path for ${key}`, error)
   );
-  
+
   return {
     ...cleared,
     automaticCloudSync: game.automaticCloudSync,
@@ -151,7 +151,9 @@ const resolveActiveDownload = async (
   }
 
   // Fetch the latest record to avoid a race condition.
-  const latestDownload = await downloadsSublevel.get(key).catch(() => undefined);
+  const latestDownload = await downloadsSublevel
+    .get(key)
+    .catch(() => undefined);
   if (latestDownload?.folderName !== download.folderName) {
     return latestDownload ?? download;
   }
