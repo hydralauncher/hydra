@@ -31,6 +31,25 @@ describe("mergeLaunchOptionEnvVars", () => {
     );
   });
 
+  it("keeps quoted values with spaces in one piece", () => {
+    assert.equal(
+      mergeLaunchOptionEnvVars("WINEPREFIX='/home/user/My Prefix' -skipintro", {
+        WINEDLLOVERRIDES: "winmm=n,b",
+      }),
+      "WINEDLLOVERRIDES=winmm=n,b WINEPREFIX='/home/user/My Prefix' %command% -skipintro"
+    );
+  });
+
+  it("replaces an existing quoted value without leaving fragments", () => {
+    assert.equal(
+      mergeLaunchOptionEnvVars(
+        'STEAM_COMPAT_DATA_PATH="/old/My Prefix" %command%',
+        { STEAM_COMPAT_DATA_PATH: "/new/prefix" }
+      ),
+      "STEAM_COMPAT_DATA_PATH=/new/prefix %command%"
+    );
+  });
+
   it("leaves an existing command placeholder where it is", () => {
     assert.equal(
       mergeLaunchOptionEnvVars("gamemoderun %command% -skipintro", {

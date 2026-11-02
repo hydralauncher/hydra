@@ -3,33 +3,71 @@ export const buildWineDllOverridesValue = (dllNames: string[]): string =>
     .map((name) => (name.startsWith("win") ? `${name}=n,b` : `${name}=n`))
     .join(";");
 
-const WINEDLLOVERRIDES_TOKEN_REGEX = /\bWINEDLLOVERRIDES=\S+/i;
+const COMMAND_PLACEHOLDER = "%command%";
+const WINEDLLOVERRIDES = "WINEDLLOVERRIDES";
+const ENV_ASSIGNMENT_NAME_REGEX = /^["']?([A-Za-z_]\w*)=/;
 
-const moveWineDllOverridesToFront = (value: string): string => {
-  const match = WINEDLLOVERRIDES_TOKEN_REGEX.exec(value);
-  if (match?.index === undefined) return value;
+// Splits like the launch option parser, keeping quoted values in one token.
+const splitLaunchOptionTokens = (value: string): string[] => {
+  const tokens: string[] = [];
+  let current = "";
+  let quote: string | null = null;
 
-  const token = match[0];
-  const rest = (
-    value.slice(0, match.index) + value.slice(match.index + token.length)
-  )
-    .replace(/\s+/g, " ")
-    .trim();
+  for (const char of value) {
+    if (quote) {
+      if (char === quote) quote = null;
+      current += char;
+    } else if (char === '"' || char === "'") {
+      quote = char;
+      current += char;
+    } else if (/\s/.test(char)) {
+      if (current) tokens.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
 
-  return rest.length > 0 ? `${token} ${rest}` : token;
+  if (current) tokens.push(current);
+  return tokens;
 };
 
-const LEADING_ENV_ASSIGNMENTS_REGEX =
-  /^(?:(?:"[A-Za-z_]\w*=[^"]*"|[A-Za-z_]\w*=\S*)(?:\s+|$))*/;
+const getEnvAssignmentName = (token: string) =>
+  ENV_ASSIGNMENT_NAME_REGEX.exec(token)?.[1].toUpperCase() ?? null;
+
+const buildEnvAssignmentToken = (name: string, value: string) => {
+  const token = `${name}=${value}`;
+  return /\s/.test(value) ? `"${token}"` : token;
+};
+
+const moveWineDllOverridesToFront = (tokens: string[]): string[] => {
+  const index = tokens.findIndex(
+    (token) => getEnvAssignmentName(token) === WINEDLLOVERRIDES
+  );
+  if (index <= 0) return tokens;
+
+  return [tokens[index], ...tokens.filter((_, i) => i !== index)];
+};
 
 // The placeholder must follow the env assignments but precede any existing
 // game arguments, otherwise the first argument would be run as the program.
-const insertCommandPlaceholder = (value: string): string => {
-  const envPrefix = LEADING_ENV_ASSIGNMENTS_REGEX.exec(value)?.[0] ?? "";
-  const rest = value.slice(envPrefix.length).trim();
+const insertCommandPlaceholder = (tokens: string[]): string[] => {
+  const firstArgumentIndex = tokens.findIndex(
+    (token) => getEnvAssignmentName(token) === null
+  );
+  if (firstArgumentIndex === -1) return [...tokens, COMMAND_PLACEHOLDER];
 
-  return [envPrefix.trim(), "%command%", rest].filter(Boolean).join(" ");
+  return tokens.toSpliced(firstArgumentIndex, 0, COMMAND_PLACEHOLDER);
 };
+
+const hasCommandPlaceholder = (tokens: string[]) =>
+  tokens.some((token) =>
+    [
+      COMMAND_PLACEHOLDER,
+      `"${COMMAND_PLACEHOLDER}"`,
+      `'${COMMAND_PLACEHOLDER}'`,
+    ].includes(token)
+  );
 
 export const mergeLaunchOptionEnvVars = (
   launchOptions: string,
@@ -38,28 +76,27 @@ export const mergeLaunchOptionEnvVars = (
   const entries = Object.entries(envVars);
   if (entries.length === 0) return launchOptions;
 
-  let result = launchOptions.trim();
+  let tokens = splitLaunchOptionTokens(launchOptions);
+  const newTokens: string[] = [];
 
-  const reversedEntries = entries.toReversed();
-
-  for (const [name, value] of reversedEntries) {
-    const rawToken = `${name}=${value}`;
-    const token = /\s/.test(value) ? `"${rawToken}"` : rawToken;
-    const tokenRegex = new RegExp(
-      String.raw`"${name}=[^"]*"|\b${name}=\S+`,
-      "i"
+  for (const [name, value] of entries) {
+    const token = buildEnvAssignmentToken(name, value);
+    const existingIndex = tokens.findIndex(
+      (existing) => getEnvAssignmentName(existing) === name.toUpperCase()
     );
 
-    if (tokenRegex.test(result)) {
-      result = result.replace(tokenRegex, token);
+    if (existingIndex === -1) {
+      newTokens.push(token);
     } else {
-      result = result.length === 0 ? token : `${token} ${result}`;
+      tokens = tokens.with(existingIndex, token);
     }
   }
 
-  result = moveWineDllOverridesToFront(result);
+  tokens = moveWineDllOverridesToFront([...newTokens, ...tokens]);
 
-  return result.includes("%command%")
-    ? result
-    : insertCommandPlaceholder(result);
+  if (!hasCommandPlaceholder(tokens)) {
+    tokens = insertCommandPlaceholder(tokens);
+  }
+
+  return tokens.join(" ");
 };
