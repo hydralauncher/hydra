@@ -145,7 +145,9 @@ export const loadState = async () => {
 
     // Check for new download options on startup (if enabled)
     (async () => {
-      await migrateDownloadSources();
+      await migrateDownloadSources().catch((error) =>
+        logger.error("Failed to migrate download sources", error)
+      );
       await DownloadSourcesChecker.checkForChanges();
     })();
 

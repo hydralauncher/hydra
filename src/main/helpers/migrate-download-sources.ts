@@ -1,6 +1,6 @@
 import { downloadSourcesSublevel } from "@main/level";
 import { HydraApi } from "@main/services/hydra-api";
-import { logger } from "@main/services/logger";
+import { logger } from "@main/services";
 import { summarizeNetworkError } from "@main/services/network-error-summary";
 import { DownloadSource } from "@types";
 
