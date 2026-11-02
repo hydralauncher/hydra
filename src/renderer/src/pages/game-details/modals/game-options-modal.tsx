@@ -956,6 +956,7 @@ export function GameOptionsModal({
   };
 
   const handleClearLaunchOptions = async () => {
+    debounceUpdateLaunchOptions.cancel();
     setLaunchOptions("");
     const gameKey = getGameKey(game.shop, game.objectId);
     const gameData = (await levelDBService.get(
@@ -972,6 +973,9 @@ export function GameOptionsModal({
   };
 
   const handleDetectWineDllOverrides = async () => {
+    // A pending save of earlier text must not overwrite the detected options.
+    debounceUpdateLaunchOptions.cancel();
+
     const { dllNames, steamOverlayEnv } =
       await globalThis.window.electron.detectWineDllOverrides(
         game.shop,
