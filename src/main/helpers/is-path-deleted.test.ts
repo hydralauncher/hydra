@@ -96,4 +96,17 @@ describe("isPathDeleted", () => {
     await assert.doesNotReject(() => isPathDeleted(""));
     await assert.doesNotReject(() => isPathDeleted("\0invalid"));
   });
+
+  it("returns false for a path directly inside an empty mounted volume root", async () => {
+    if (process.platform === "win32") return;
+
+    // Simulate a mounted volume root that exists but is empty (unmounted drive)
+    const emptyVolumeRoot = path.join(tempDir, "mnt", "disk");
+    await fs.mkdir(emptyVolumeRoot, { recursive: true });
+    
+    const target = path.join(emptyVolumeRoot, "game.exe");
+    
+    // The file doesn't exist, but the volume root is empty, so it's considered offline
+    assert.equal(await isPathDeleted(target), false);
+  });
 });
