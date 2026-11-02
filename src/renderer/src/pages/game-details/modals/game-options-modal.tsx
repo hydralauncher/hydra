@@ -973,8 +973,9 @@ export function GameOptionsModal({
   };
 
   const handleDetectWineDllOverrides = async () => {
-    // A pending save of earlier text must not overwrite the detected options.
-    debounceUpdateLaunchOptions.cancel();
+    // Save pending edits first so they neither overwrite the detected options
+    // nor get lost when detection finds nothing to change.
+    await debounceUpdateLaunchOptions.flush();
 
     const { dllNames, steamOverlayEnv } =
       await globalThis.window.electron.detectWineDllOverrides(
