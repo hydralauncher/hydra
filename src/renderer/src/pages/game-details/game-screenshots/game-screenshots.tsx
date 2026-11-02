@@ -91,12 +91,13 @@ function GameScreenshotsBox({
     !mine.hasFailed &&
     !mine.isPartial &&
     topItems.length === 0;
+  const fallsBackToCommunity = hasNoScreenshotsOfMine && !isCommunityHidden;
   const community = useGameScreenshotsCollection({
     shop: catalogueGame.shop,
     objectId: catalogueGame.objectId,
     sort: "top",
     take: SIDEBAR_SCREENSHOT_COUNT,
-    isEnabled: hasNoScreenshotsOfMine && !isCommunityHidden,
+    isEnabled: fallsBackToCommunity,
     writeBus,
   });
   const communityItems = community.feed.items.slice(
@@ -263,7 +264,7 @@ function GameScreenshotsBox({
   return (
     <SidebarSection
       title={
-        hasNoScreenshotsOfMine && !isCommunityHidden
+        fallsBackToCommunity
           ? t("community_screenshots_tab")
           : t("my_screenshots")
       }

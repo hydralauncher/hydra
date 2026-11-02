@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FileDirectoryIcon, HistoryIcon } from "@primer/octicons-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   Button,
@@ -79,7 +79,8 @@ export function SettingsContextScreenshots() {
   const { t: tCapture } = useTranslation("screenshots_capture");
   const { updateUserPreferences } = useContext(settingsContext);
   const inputStatus = useScreenshotInputStatus();
-  const { hash } = useLocation();
+  const { hash, search } = useLocation();
+  const navigate = useNavigate();
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -114,10 +115,11 @@ export function SettingsContextScreenshots() {
       );
       toggle?.scrollIntoView({ block: "center" });
       toggle?.focus({ focusVisible: true } as FocusOptions);
+      navigate({ search }, { replace: true });
     });
 
     return () => window.cancelAnimationFrame(frameId);
-  }, [hash]);
+  }, [hash, navigate, search]);
 
   const savePreferences = useCallback(
     (
