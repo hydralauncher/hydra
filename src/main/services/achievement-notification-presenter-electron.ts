@@ -2,6 +2,7 @@ import { isStaging } from "@main/constants";
 import type { AchievementCustomNotificationPosition } from "@types";
 import { BrowserWindow, app, screen } from "electron";
 import path from "node:path";
+import { waitForAchievementNotificationFrames } from "./achievement-notification-frame-wait";
 import { AchievementNotificationPresenter } from "./achievement-notification-presenter";
 import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
@@ -58,21 +59,10 @@ class ElectronAchievementNotificationHost {
   public async waitForFramesAfterShow(): Promise<void> {
     if (this.window.isDestroyed()) return;
 
-    let timeout: ReturnType<typeof setTimeout> | null = null;
-
-    try {
-      await Promise.race([
-        this.window.webContents.executeJavaScript(
-          "new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined))))"
-        ),
-        new Promise<void>((resolve) => {
-          timeout = setTimeout(resolve, NOTIFICATION_SHOWN_FRAME_TIMEOUT_MS);
-          timeout.unref?.();
-        }),
-      ]);
-    } finally {
-      if (timeout) clearTimeout(timeout);
-    }
+    await waitForAchievementNotificationFrames(
+      this.window.webContents,
+      NOTIFICATION_SHOWN_FRAME_TIMEOUT_MS
+    );
   }
 
   public hide(): void {
