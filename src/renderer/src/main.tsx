@@ -12,6 +12,9 @@ import "@fontsource/noto-sans/700.css";
 
 import "react-loading-skeleton/dist/skeleton.css";
 import "react-tooltip/dist/react-tooltip.css";
+// Global document styles (root height, box-sizing, scrollbars) that every
+// window relies on, including the lazily loaded Big Picture and popup windows.
+import "./app.scss";
 
 import { CollectionContextMenuProvider } from "@renderer/context";
 import { GameOptionsModalProvider } from "@renderer/context/game-options-modal/game-options-modal.context";
