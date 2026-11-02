@@ -30,6 +30,7 @@ const FAILURE_DESCRIPTION_KEYS: Record<ScreenshotFailureKind, string> = {
   disk_full: "capture_error_disk_full",
   file_write_failed: "capture_error_file_write_failed",
   save_failed: "capture_error_save_failed",
+  unexpected_error: "capture_error_unexpected",
   share_pending: "share_pending",
   share_unavailable: "share_unavailable",
 };

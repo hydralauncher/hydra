@@ -33,6 +33,10 @@ type ForegroundMatch = ResolvedForegroundGame | null;
 
 const WINDOWS_DESKTOP_SHELL_EXECUTABLE = "explorer.exe";
 
+export interface UnresolvedGameFailure extends ScreenshotFailureToast {
+  hasTrackedGame: boolean;
+}
+
 export interface ResolvedForegroundGame {
   target: ScreenshotGameTarget;
   game: Game | null;
@@ -390,9 +394,10 @@ const isWindowsDesktopShell = async (processId: number | null) => {
   );
 };
 
-const isFullscreenAppInForeground = async () => {
+const isFullscreenAppInForeground = async (
+  foreground: ForegroundWindowInfo | null
+) => {
   if (process.platform !== "win32") return false;
-  const foreground = await resolveForegroundWindow();
   if (!foreground?.windowHandle || foreground.processId === process.pid) {
     return false;
   }
@@ -415,16 +420,27 @@ const isFullscreenAppInForeground = async () => {
 };
 
 export const getUnresolvedGameFailure =
-  async (): Promise<ScreenshotFailureToast | null> => {
-    if (await isFullscreenAppInForeground()) {
-      return { kind: "game_not_recognized", gameTitle: null };
+  async (): Promise<UnresolvedGameFailure | null> => {
+    const [candidates, foreground] = await Promise.all([
+      getScreenshotGameTargets(),
+      resolveForegroundWindow(),
+    ]);
+    const hasTrackedGame = candidates.length > 0;
+    const notRecognized: UnresolvedGameFailure = {
+      kind: "game_not_recognized",
+      gameTitle: null,
+      hasTrackedGame,
+    };
+
+    if (await isFullscreenAppInForeground(foreground)) return notRecognized;
+    if (!hasTrackedGame) return null;
+    if (candidates.length > 1 || foreground?.processId == null) {
+      return notRecognized;
     }
 
-    const candidates = await getScreenshotGameTargets();
-    if (!candidates.length) return null;
-    if (candidates.length > 1) {
-      return { kind: "game_not_recognized", gameTitle: null };
-    }
-
-    return { kind: "game_not_focused", gameTitle: candidates[0].game.title };
+    return {
+      kind: "game_not_focused",
+      gameTitle: candidates[0].game.title,
+      hasTrackedGame,
+    };
   };

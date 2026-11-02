@@ -314,6 +314,7 @@ export type ScreenshotFailureKind =
   | "disk_full"
   | "file_write_failed"
   | "save_failed"
+  | "unexpected_error"
   | "share_pending"
   | "share_unavailable";
 

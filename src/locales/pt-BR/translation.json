@@ -2988,6 +2988,7 @@
     "capture_error_disk_full": "Seu disco está cheio. Libere espaço e tente novamente",
     "capture_error_file_write_failed": "Não foi possível salvar o arquivo. Verifique sua pasta de capturas",
     "capture_error_save_failed": "Algo deu errado ao salvar. Tente novamente",
+    "capture_error_unexpected": "Algo deu errado. Tente novamente",
     "captured": "Captura de tela feita",
     "custom_game_default_title": "Jogo personalizado",
     "custom_game_title_edit": "Editar o título do jogo",

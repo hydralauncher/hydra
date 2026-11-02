@@ -453,8 +453,11 @@ const grabScreenshot = async (
   const resolved = await resolveForegroundGame(source);
   timer.mark("foreground");
   if (!resolved) {
-    const failure = await getUnresolvedGameFailure();
-    if (failure) {
+    const failure = await getUnresolvedGameFailure().catch((error) => {
+      logger.error("Failed to explain the unresolved screenshot game", error);
+      return null;
+    });
+    if (failure && (failure.hasTrackedGame || preferences.toastEnabled)) {
       ScreenshotTelemetry.record("capture", "ignored", "no_foreground_game");
       showCaptureFailure(failure.kind, failure.gameTitle);
     }
@@ -575,7 +578,7 @@ export const handleScreenshotTrigger = async (
     save = await grabScreenshot(source, startedAt);
   } catch (error) {
     logger.error("Screenshot capture failed", error);
-    showCaptureFailure("game_not_recognized", null);
+    showCaptureFailure("unexpected_error", null);
   } finally {
     captureInProgress = false;
   }

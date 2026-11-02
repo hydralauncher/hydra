@@ -2980,6 +2980,7 @@
     "capture_error_disk_full": "Your disk is full. Free up space and try again",
     "capture_error_file_write_failed": "Couldn't save the file. Check your screenshots folder",
     "capture_error_save_failed": "Something went wrong while saving it. Try again",
+    "capture_error_unexpected": "Something went wrong. Try again",
     "captured": "Screenshot captured",
     "custom_game_default_title": "Custom Game",
     "custom_game_title_edit": "Edit game title",

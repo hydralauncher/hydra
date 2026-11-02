@@ -179,6 +179,7 @@ export class ScreenshotInputService {
   private static listening = false;
   private static sessionGeneration = 0;
   private static gamesRunning = false;
+  private static gamepadListening = false;
   private static featureEnabled = false;
   private static readonly lastTriggerAt = new Map<
     ScreenshotTriggerChannel,
@@ -345,6 +346,13 @@ export class ScreenshotInputService {
     if (!this.listening) this.refreshStatus();
   }
 
+  private static getListeningSettings(): ScreenshotInputSettings {
+    return {
+      ...this.settings,
+      gamepadEnabled: this.settings.gamepadEnabled && this.gamesRunning,
+    };
+  }
+
   private static shouldListen() {
     return (
       this.initialized &&
@@ -368,7 +376,7 @@ export class ScreenshotInputService {
       return;
     }
 
-    if (previous.gamepadEnabled !== this.settings.gamepadEnabled) {
+    if (this.gamepadListening !== this.getListeningSettings().gamepadEnabled) {
       this.stopListening();
       this.startListening();
       return;
@@ -391,7 +399,7 @@ export class ScreenshotInputService {
     ) {
       try {
         NativeAddon.updateScreenshotInputBinding(
-          toScreenshotInputNativeConfig(this.settings)
+          toScreenshotInputNativeConfig(this.getListeningSettings())
         );
       } catch (error) {
         logger.error("Failed to update screenshot input binding", error);
@@ -401,12 +409,14 @@ export class ScreenshotInputService {
 
   private static startListening() {
     const generation = ++this.sessionGeneration;
+    const listeningSettings = this.getListeningSettings();
     try {
       const nativeStatus = NativeAddon.startScreenshotInput(
-        toScreenshotInputNativeConfig(this.settings),
+        toScreenshotInputNativeConfig(listeningSettings),
         (event) => this.handleNativeEvent(event, generation)
       );
       this.listening = true;
+      this.gamepadListening = listeningSettings.gamepadEnabled;
       this.listeningSince = performance.now();
       this.nativeStatus = nativeStatus;
       const status = this.applyListeningStatus(nativeStatus);
@@ -431,7 +441,7 @@ export class ScreenshotInputService {
         : nativeStatus;
     const status = toScreenshotInputStatus(
       effectiveStatus,
-      this.settings,
+      this.getListeningSettings(),
       true
     );
     const nextStatus = withPortalHotkeyHint(

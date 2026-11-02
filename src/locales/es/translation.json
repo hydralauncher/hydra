@@ -2713,6 +2713,7 @@
     "capture_error_disk_full": "Tu disco está lleno. Libera espacio e inténtalo de nuevo",
     "capture_error_file_write_failed": "No se pudo guardar el archivo. Revisa tu carpeta de capturas",
     "capture_error_save_failed": "Algo salió mal al guardarla. Inténtalo de nuevo",
+    "capture_error_unexpected": "Algo salió mal. Inténtalo de nuevo",
     "captured": "Captura realizada",
     "custom_game_default_title": "Juego personalizado",
     "custom_game_title_edit": "Editar el título del juego",

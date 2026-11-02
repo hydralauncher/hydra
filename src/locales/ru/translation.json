@@ -2791,6 +2791,7 @@
     "capture_error_disk_full": "Диск заполнен. Освободите место и повторите попытку",
     "capture_error_file_write_failed": "Не удалось сохранить файл. Проверьте папку скриншотов",
     "capture_error_save_failed": "Не удалось сохранить скриншот. Повторите попытку",
+    "capture_error_unexpected": "Что-то пошло не так. Повторите попытку",
     "captured": "Скриншот сделан",
     "custom_game_default_title": "Своя игра",
     "custom_game_title_edit": "Изменить название игры",
