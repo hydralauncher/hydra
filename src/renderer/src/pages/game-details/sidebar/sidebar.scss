@@ -306,6 +306,15 @@
     &--locked {
       filter: grayscale(100%);
     }
+
+    &--concealed {
+      display: flex;
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
+      color: globals.$body-color;
+      border: dashed 1px globals.$border-color;
+    }
   }
 }
 

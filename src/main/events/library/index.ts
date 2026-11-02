@@ -22,6 +22,7 @@ import "./uninstall-game-on-steam";
 import "./is-mangohud-available";
 import "./is-winetricks-available";
 import "./get-game-by-object-id";
+import "./get-game-review-playtime";
 import "./has-game-installer";
 import "./has-download-folder";
 import "./has-source-archive";

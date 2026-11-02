@@ -12,8 +12,13 @@ export enum Feature {
   NimbusPreview = "NIMBUS_PREVIEW",
   ChatImages = "CHAT_IMAGES",
   Gamification = "GAMIFICATION",
+  Screenshots = "SCREENSHOTS",
+  ScreenshotComments = "SCREENSHOT_COMMENTS",
   GameLeaderboardsExtended = "GAME_LEADERBOARDS_EXTENDED",
   GlobalLeaderboards = "GLOBAL_LEADERBOARDS",
+  LeaderboardReports = "LEADERBOARD_REPORTS",
+  MultipartHosterDownloads = "MULTIPART_HOSTER_DOWNLOADS",
+  LeaderboardBadges = "LEADERBOARD_BADGES",
 }
 
 export const readCachedFeatures = (): string[] => {

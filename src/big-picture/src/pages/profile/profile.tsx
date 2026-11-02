@@ -74,8 +74,10 @@ import {
 import { useHeroBackgroundLayers } from "../../components/pages/library/hero/use-hero-background-layers";
 import { useFocusAnimatedCover } from "../../components/pages/library/card-presentation";
 import {
+  Feature,
   useRunningGameIds,
   useBigPictureToast,
+  useFeature,
   useFormat,
   useLibrary,
   useUserDetails,
@@ -114,6 +116,13 @@ import {
 } from "./use-profile-data";
 import { SouvenirLightbox } from "../../components/pages/profile/souvenir-lightbox";
 import { SouvenirSyncCleanupModal } from "./souvenir-sync-cleanup-modal";
+import { ScreenshotLightbox } from "../../components/pages/screenshots";
+import {
+  ProfileScreenshots,
+  getProfileScreenshotCount,
+  getProfileScreenshotsFocusIds,
+  useProfileScreenshotsSection,
+} from "./profile-screenshots";
 import {
   buildProfileSouvenirVisibilityPath,
   buildUserSouvenirLikePath,
@@ -129,6 +138,7 @@ import {
   getDisplayedPlayTimeInMilliseconds,
   groupLibraryGames,
   getGameCatalogueIdentity,
+  resolveScreenshotPreferences,
 } from "@shared";
 
 const SOUVENIR_REPORT_RESPONSE_STATUSES = [201, 400, 404, 429];
@@ -2475,6 +2485,8 @@ interface ProfileNavigation {
   libraryUpFocusId: string | null;
   souvenirUpFocusId: string | null;
   souvenirDownFocusId: string | null;
+  screenshotsUpFocusId: string | null;
+  screenshotsDownFocusId: string | null;
   socialUpFocusId: string | null;
 }
 
@@ -2488,6 +2500,7 @@ interface ProfileNavigationInput {
   canFocusRecentAchievements: boolean;
   souvenirSyncStatus: AchievementSouvenirSyncStatus;
   hasActiveSubscription: boolean;
+  screenshotFocusIds: { first: string | null; fromBelow: string | null };
 }
 
 type ProfileFocusIds = Pick<
@@ -2543,7 +2556,7 @@ function getProfileFocusIds({
   canFocusRecentAchievements,
   souvenirSyncStatus,
   hasActiveSubscription,
-}: Omit<ProfileNavigationInput, "profileUser">) {
+}: Omit<ProfileNavigationInput, "profileUser" | "screenshotFocusIds">) {
   const firstActivity = getFirstItem(recentActivityGames);
   const lastActivity = getLastItem(recentActivityGames);
   const firstLibrary = getFirstItem(libraryCarouselGames);
@@ -2595,6 +2608,7 @@ function getProfileNavigation({
   canFocusRecentAchievements,
   souvenirSyncStatus,
   hasActiveSubscription,
+  screenshotFocusIds,
 }: ProfileNavigationInput): ProfileNavigation {
   const focusIds = getProfileFocusIds({
     recentActivityGames,
@@ -2618,6 +2632,10 @@ function getProfileNavigation({
   } = focusIds;
   const firstSocialFocusId = firstAchievementFocusId ?? firstFriendFocusId;
   const heroActionsFocusId = getHeroActionsFocusId(profileUser);
+  const aboveActivityFocusId =
+    screenshotFocusIds.fromBelow ?? firstSouvenirFocusId ?? heroActionsFocusId;
+  const belowScreenshotsFocusId =
+    firstActivityFocusId ?? firstLibraryFocusId ?? firstSocialFocusId;
 
   return {
     firstActivityFocusId,
@@ -2628,22 +2646,20 @@ function getProfileNavigation({
     lastFriendFocusId,
     firstContentFocusId:
       firstSouvenirFocusId ??
+      screenshotFocusIds.first ??
       firstActivityFocusId ??
       firstLibraryFocusId ??
       firstSocialFocusId,
     activityDownFocusId: firstLibraryFocusId ?? firstSocialFocusId,
     libraryDownFocusId: firstSocialFocusId,
-    activityUpFocusId: firstSouvenirFocusId ?? heroActionsFocusId,
-    libraryUpFocusId:
-      lastActivityFocusId ?? firstSouvenirFocusId ?? heroActionsFocusId,
+    activityUpFocusId: aboveActivityFocusId,
+    libraryUpFocusId: lastActivityFocusId ?? aboveActivityFocusId,
     souvenirUpFocusId: heroActionsFocusId,
-    souvenirDownFocusId:
-      firstActivityFocusId ?? firstLibraryFocusId ?? firstSocialFocusId,
+    souvenirDownFocusId: screenshotFocusIds.first ?? belowScreenshotsFocusId,
+    screenshotsUpFocusId: firstSouvenirFocusId ?? heroActionsFocusId,
+    screenshotsDownFocusId: belowScreenshotsFocusId,
     socialUpFocusId:
-      firstLibraryFocusId ??
-      lastActivityFocusId ??
-      firstSouvenirFocusId ??
-      heroActionsFocusId,
+      firstLibraryFocusId ?? lastActivityFocusId ?? aboveActivityFocusId,
   };
 }
 
@@ -2669,6 +2685,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
   } = useUserDetails();
   const { library } = useLibrary();
   const userPreferences = useUserPreferences();
+  const { isFeatureEnabled } = useFeature();
   const disableNsfwAlert = userPreferences?.disableNsfwAlert === true;
   const [isPerformingProfileAction, setIsPerformingProfileAction] =
     useState(false);
@@ -2772,6 +2789,18 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     updateSouvenir,
     removeSouvenir,
   } = useProfileSouvenirs(targetUserId, Boolean(userDetails));
+  const {
+    state: profileScreenshots,
+    openScreenshot,
+    lightboxProps: screenshotLightboxProps,
+  } = useProfileScreenshotsSection({
+    targetUserId,
+    baseTotal: getProfileScreenshotCount(externalProfile, targetUserId),
+    isEnabled: isFeatureEnabled(Feature.Screenshots),
+    isSignedIn: Boolean(userDetails),
+    searchParams,
+    setSearchParams,
+  });
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const [souvenirSyncStatus, setSouvenirSyncStatus] =
     useState<AchievementSouvenirSyncStatus>({
@@ -3235,6 +3264,8 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     libraryUpFocusId,
     souvenirUpFocusId,
     souvenirDownFocusId,
+    screenshotsUpFocusId,
+    screenshotsDownFocusId,
     socialUpFocusId,
   } = getProfileNavigation({
     profileUser,
@@ -3246,6 +3277,7 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
     canFocusRecentAchievements,
     souvenirSyncStatus,
     hasActiveSubscription: targetHasActiveSubscription,
+    screenshotFocusIds: getProfileScreenshotsFocusIds(profileScreenshots),
   });
   const showFriendsViewAll = totalFriends > friends.length;
   const externalProfileActions = useMemo<ProfileHeroAction[]>(() => {
@@ -3297,6 +3329,15 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
               onLoadMore={() => void loadMoreSouvenirs()}
               onRetrySync={() => void handleRetrySouvenirSync()}
               onOpenCleanup={() => void handleOpenSouvenirSyncCleanup()}
+            />
+
+            <ProfileScreenshots
+              state={profileScreenshots}
+              isOwnProfile={isOwnProfileTarget}
+              hotkey={resolveScreenshotPreferences(userPreferences).hotkey}
+              upFocusId={screenshotsUpFocusId}
+              downFocusId={screenshotsDownFocusId}
+              onActivate={openScreenshot}
             />
 
             <ProfileActivity
@@ -3401,6 +3442,8 @@ function ProfileContent({ userId }: Readonly<ProfileContentProps>) {
           onDelete={handleSouvenirDelete}
           onReport={handleSouvenirReport}
         />
+
+        <ScreenshotLightbox {...screenshotLightboxProps} />
 
         <SouvenirSyncCleanupModal
           visible={isSouvenirSyncCleanupVisible}

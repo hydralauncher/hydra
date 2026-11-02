@@ -1,71 +1,53 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
-import { logger } from "./logger";
+import { NativeAddon } from "./native-addon";
 import {
   getClientAreaCrop,
   getWindowHandleFromSourceId,
-  parseScreenRect,
+  type ImageCropRect,
 } from "./windows-client-area-crop";
 
-const execFileAsync = promisify(execFile);
+export interface SourceClientAreaCrop extends ImageCropRect {
+  sourceWidth: number;
+  sourceHeight: number;
+}
 
-const WINDOW_BOUNDS_TIMEOUT_MS = 5_000;
+export const getSourceClientAreaCrop = (
+  sourceId: string
+): SourceClientAreaCrop | null => {
+  if (process.platform !== "win32") return null;
 
-const buildWindowBoundsScript = (windowHandle: string) =>
-  [
-    'Add-Type -TypeDefinition \'using System; using System.Runtime.InteropServices; public static class HydraWindowBounds { [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left; public int Top; public int Right; public int Bottom; } [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X; public int Y; } [DllImport("user32.dll")] public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context); [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hWnd, int attribute, out RECT value, int size); [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr hWnd, out RECT rect); [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr hWnd, ref POINT point); }\'',
-    "try { [void][HydraWindowBounds]::SetThreadDpiAwarenessContext([IntPtr](-4)) } catch {}",
-    `$handle = [IntPtr]::new([Int64]${windowHandle})`,
-    "$frame = New-Object HydraWindowBounds+RECT",
-    "$frameBounds = ''",
-    'if ([HydraWindowBounds]::DwmGetWindowAttribute($handle, 9, [ref]$frame, 16) -eq 0) { $frameBounds = "$($frame.Left) $($frame.Top) $($frame.Right) $($frame.Bottom)" }',
-    "$client = New-Object HydraWindowBounds+RECT",
-    "$origin = New-Object HydraWindowBounds+POINT",
-    "$clientBounds = ''",
-    'if ([HydraWindowBounds]::GetClientRect($handle, [ref]$client) -and [HydraWindowBounds]::ClientToScreen($handle, [ref]$origin)) { $clientBounds = "$($origin.X) $($origin.Y) $($origin.X + $client.Right) $($origin.Y + $client.Bottom)" }',
-    "Write-Output $frameBounds",
-    "Write-Output $clientBounds",
-  ].join("; ");
+  const windowHandle = getWindowHandleFromSourceId(sourceId);
+  if (!windowHandle) return null;
 
-export const cropToWindowClientArea = async (
+  const bounds = NativeAddon.getWindowsWindowBounds(windowHandle);
+  if (!bounds) return null;
+
+  const sourceWidth = bounds.frame.right - bounds.frame.left;
+  const sourceHeight = bounds.frame.bottom - bounds.frame.top;
+  const crop = getClientAreaCrop(bounds.frame, bounds.client, {
+    width: sourceWidth,
+    height: sourceHeight,
+  });
+
+  return crop ? { ...crop, sourceWidth, sourceHeight } : null;
+};
+
+export const cropToWindowClientArea = (
   image: Electron.NativeImage,
   sourceId: string
 ) => {
-  const windowHandle = getWindowHandleFromSourceId(sourceId);
-  if (!windowHandle) return image;
+  const crop = getSourceClientAreaCrop(sourceId);
+  if (!crop) return image;
 
-  try {
-    const { stdout } = await execFileAsync(
-      "powershell.exe",
-      [
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        buildWindowBoundsScript(windowHandle),
-      ],
-      { windowsHide: true, timeout: WINDOW_BOUNDS_TIMEOUT_MS }
-    );
-    const [frameBounds, clientBounds] = stdout.split(/\r?\n/);
-    const clientArea = getClientAreaCrop(
-      parseScreenRect(frameBounds),
-      parseScreenRect(clientBounds),
-      image.getSize()
-    );
+  const size = image.getSize();
+  const scaleX = size.width / crop.sourceWidth;
+  const scaleY = size.height / crop.sourceHeight;
+  const x = Math.round(crop.x * scaleX);
+  const y = Math.round(crop.y * scaleY);
 
-    logger.info("Windows window client area resolved", {
-      sourceId,
-      frameBounds,
-      clientBounds,
-      clientArea,
-    });
-
-    return clientArea ? image.crop(clientArea) : image;
-  } catch (error) {
-    logger.warn("Failed to resolve the Windows window client area", {
-      sourceId,
-      error,
-    });
-    return image;
-  }
+  return image.crop({
+    x,
+    y,
+    width: Math.min(size.width - x, Math.round(crop.width * scaleX)),
+    height: Math.min(size.height - y, Math.round(crop.height * scaleY)),
+  });
 };

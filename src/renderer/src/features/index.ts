@@ -11,3 +11,4 @@ export * from "./collections-slice";
 export * from "./classics-scan-slice";
 export * from "./retroarch-scan-slice";
 export * from "./gamification-slice";
+export { selectGroupedLibrary } from "./library-presentation";
