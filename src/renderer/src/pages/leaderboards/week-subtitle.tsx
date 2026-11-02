@@ -44,7 +44,12 @@ export function WeekSubtitle({
   }, [endTime]);
 
   if (isAllTime) {
-    return <span className="leaderboards__subtitle">{t("subtitle_all")}</span>;
+    return (
+      <>
+        <h1 className="leaderboards__period-title">{t("period_all")}</h1>
+        <span className="leaderboards__subtitle">{t("subtitle_all")}</span>
+      </>
+    );
   }
 
   const dateFormatter = new Intl.DateTimeFormat(i18n.language, {
@@ -60,10 +65,10 @@ export function WeekSubtitle({
 
   return (
     <>
-      <span className="leaderboards__subtitle">
+      <h1 className="leaderboards__period-title">
         {dateFormatter.formatRange(weekRange.start, lastDay)}
-      </span>
-      <span className="leaderboards__subtitle leaderboards__subtitle--countdown">
+      </h1>
+      <span className="leaderboards__subtitle">
         {t("resets_in", { countdown })}
       </span>
     </>

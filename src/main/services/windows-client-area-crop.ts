@@ -31,18 +31,6 @@ export const getWindowHandleFromSourceId = (sourceId: string) => {
   }
 };
 
-export const parseScreenRect = (value: string | undefined) => {
-  const parts = value?.trim().split(/\s+/).map(Number);
-  if (parts?.length !== 4 || parts.some((part) => !Number.isFinite(part))) {
-    return null;
-  }
-
-  const [left, top, right, bottom] = parts;
-  if (right <= left || bottom <= top) return null;
-
-  return { left, top, right, bottom };
-};
-
 export const getClientAreaCrop = (
   frame: ScreenRect | null | undefined,
   client: ScreenRect | null | undefined,

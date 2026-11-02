@@ -1,0 +1,26 @@
+.screenshot-manage-modal {
+  width: min(560px, calc(100vw - 64px));
+
+  &__backdrop {
+    z-index: 130;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-unit) * 3);
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: calc(var(--spacing-unit) * 2);
+    margin-top: calc(var(--spacing-unit) * 2);
+  }
+}
+
+.screenshot-manage-modal__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}

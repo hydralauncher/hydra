@@ -4,6 +4,7 @@ import Skeleton from "react-loading-skeleton";
 import { useTranslation } from "react-i18next";
 
 import { Button, RankFrameRing } from "@renderer/components";
+import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { useDate, useFormat } from "@renderer/hooks";
 import {
   BADGES_PAGE_SIZE,
@@ -14,6 +15,7 @@ import {
   type LeaderboardBadge,
   type MetricDefinition,
 } from "./global-leaderboard";
+import { getDurationParts } from "../game-details/leaderboard/game-leaderboard";
 import { useApiResource } from "./leaderboards-api";
 import { BlockError, StreakFlame } from "./leaderboard-bits";
 import { useMetricText } from "./use-global-leaderboard-value";
@@ -134,7 +136,27 @@ export function BadgesSection() {
 
     const metric = findDefinition(badge.metric);
     if (!metric) return "";
-    const amount = metricText.format(metric, Math.ceil(remaining));
+    const count = Math.ceil(remaining);
+    // Boards show bare session counts; only the badge text names the unit.
+    const amount = t(`badge_amount_${metric.id}`, {
+      count,
+      amount: numberFormatter.format(count),
+      defaultValue: metricText.format(metric, count),
+    });
+
+    // "4 h to go for Top 10", "3 sessions to go for Top 5%". The count is the
+    // number shown, so "1 h" and "1 session" read as singular.
+    if (badge.target) {
+      return t("badge_remaining_to", {
+        context: badge.target.kind,
+        count:
+          metric.valueType === "duration"
+            ? getDurationParts(count, MAX_MINUTES_TO_SHOW_IN_PLAYTIME).amount
+            : count,
+        amount,
+        value: badge.target.value,
+      });
+    }
 
     return t("badge_remaining", { amount });
   };

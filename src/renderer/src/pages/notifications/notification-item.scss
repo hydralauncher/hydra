@@ -87,6 +87,18 @@
     gap: calc(globals.$spacing-unit / 2);
   }
 
+  &__title-row {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+
+    .leaderboard-rank-chip {
+      height: 18px;
+      padding: 0 6px;
+      font-size: 11px;
+    }
+  }
+
   &__title {
     font-size: globals.$body-font-size;
     font-weight: 600;
