@@ -1,0 +1,50 @@
+@use "../../scss/globals.scss";
+@use "./screenshot-motion.scss" as motion;
+
+.screenshot-stats {
+  display: flex;
+  align-items: center;
+  gap: calc(globals.$spacing-unit / 2);
+}
+
+.screenshot-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.85);
+  font-family: inherit;
+  font-size: globals.$small-font-size;
+  white-space: nowrap;
+
+  &--button {
+    cursor: pointer;
+    transition:
+      background-color motion.$transition-duration ease,
+      color motion.$transition-duration ease;
+
+    &:hover:not(:disabled) {
+      background: rgba(0, 0, 0, 0.75);
+      color: globals.$muted-color;
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+
+    &:focus-visible {
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 2px;
+    }
+  }
+
+  &--active {
+    color: #fff;
+  }
+}

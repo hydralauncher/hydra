@@ -8,6 +8,7 @@ import {
   parseEpicLaunchOptions,
   parseEpicManagedObjectId,
   parseEpicInstallOptionsRequestId,
+  parseEpicUpdatePayload,
 } from "./managed-ipc-contract.js";
 
 const payload = {
@@ -51,6 +52,52 @@ describe("managed Epic IPC contracts", () => {
     }
   });
 
+  it("accepts a bounded component and DLC selection", () => {
+    const selected = {
+      ...payload,
+      components: ["stw", "lang_de"],
+      dlcs: ["DlcArtifact"],
+    };
+    assert.deepEqual(parseEpicDownloadPayload(selected), selected);
+    assert.deepEqual(
+      parseEpicDownloadPayload({ ...payload, components: [], dlcs: [] }),
+      { ...payload, components: [], dlcs: [] }
+    );
+    for (const overrides of [
+      { components: "stw" },
+      { components: ["stw", "stw"] },
+      { components: ["../x"] },
+      { components: [""] },
+      { components: Array.from({ length: 65 }, (_, i) => `pack${i}`) },
+      { dlcs: ["--with-dlcs"] },
+      { dlcs: [1] },
+      { dlcs: ["Dlc", "Dlc"] },
+    ])
+      assert.throws(() =>
+        parseEpicDownloadPayload({ ...payload, ...overrides })
+      );
+  });
+
+  it("accepts update targets without letting the renderer choose a folder", () => {
+    const { downloadPath: _downloadPath, ...target } = payload;
+    assert.deepEqual(parseEpicUpdatePayload(target), target);
+    const prepared = {
+      ...target,
+      preparationId: "ecb21ce2-bd02-4672-a2fb-ce13f481b00a",
+      addToQueueOnly: true,
+    };
+    assert.deepEqual(parseEpicUpdatePayload(prepared), prepared);
+    for (const overrides of [
+      { downloadPath: os.tmpdir() },
+      { artifactId: "--override-exe" },
+      { platform: "Linux" },
+      { addToQueueOnly: "true" },
+      { installTags: ["voice_de_de"] },
+    ])
+      assert.throws(() => parseEpicUpdatePayload({ ...target, ...overrides }));
+    assert.throws(() => parseEpicUpdatePayload(null));
+  });
+
   it("separates save settings from a single-session launch choice", () => {
     assert.deepEqual(
       parseEpicCloudSaveSettings({ automaticSync: true, savePath: null }),
@@ -74,6 +121,14 @@ describe("managed Epic IPC contracts", () => {
     assert.throws(() =>
       parseEpicLaunchOptions({ extraArguments: "--offline" })
     );
+    assert.deepEqual(parseEpicLaunchOptions({ epicSkipUpdateCheck: true }), {
+      epicSkipUpdateCheck: true,
+    });
+    assert.deepEqual(
+      parseEpicLaunchOptions({ epicSkipUpdateCheck: false }),
+      {}
+    );
+    assert.throws(() => parseEpicLaunchOptions({ epicSkipUpdateCheck: "yes" }));
   });
 
   it("requires a bounded remote version for resolving a save conflict", () => {

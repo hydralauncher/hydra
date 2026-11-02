@@ -1,4 +1,4 @@
-import { Downloader, formatBytes, formatBytesToMbps } from "@shared";
+import { Downloader, formatBitRate, formatBytes } from "@shared";
 import { getEpicManagedError } from "@renderer/helpers/epic-managed-error";
 import type { LibraryGame, UserPreferences } from "../../../../types";
 import { getBigPictureDownloadView } from "../../../../types";
@@ -127,11 +127,9 @@ function formatSpeed(
   value: number,
   userPreferences: UserPreferences | null
 ): string {
-  if (value <= 0) return "0 B/s";
-
   return userPreferences?.showDownloadSpeedInMegabytes
     ? `${formatBytes(value)}/s`
-    : formatBytesToMbps(value);
+    : formatBitRate(value);
 }
 
 function getDownloadSize(download: LibraryGame["download"]) {
@@ -746,7 +744,8 @@ export function useBigPictureDownloadsPageData() {
 
       await globalThis.window.electron.deleteGameFolder(
         game.shop,
-        game.objectId
+        game.objectId,
+        { keepEpicUpdateFiles: true }
       );
     },
     [lastPacket?.gameId]

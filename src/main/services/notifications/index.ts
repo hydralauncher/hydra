@@ -214,6 +214,25 @@ export const publishNotificationUpdateReadyToInstall = async (
   );
 };
 
+export const publishLeaderboardNotification = async (
+  content: { title: string; body: string; imageUrl: string | null },
+  onClick: () => void,
+  signal?: AbortSignal
+) => {
+  const notificationIcon =
+    (await downloadImage(content.imageUrl, signal).catch(() => undefined)) ??
+    trayIcon;
+  if (signal?.aborted) return;
+
+  const notification = new Notification({
+    title: content.title,
+    body: content.body,
+    icon: notificationIcon,
+  });
+  notification.on("click", onClick);
+  notification.show();
+};
+
 export const publishNewFriendRequestNotification = async (
   user: UserProfile,
   signal?: AbortSignal

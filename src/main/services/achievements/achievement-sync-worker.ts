@@ -24,6 +24,7 @@ import {
   ACHIEVEMENT_SYNC_MAX_SERVER_ERRORS,
 } from "./achievement-sync-coordinator";
 import { isAxiosError } from "axios";
+import { getRetryAfterMs } from "./retry-after";
 
 export type PendingAchievementSync = {
   revision: string;
@@ -51,18 +52,7 @@ export const getAchievementSyncRetryDelay = (
   error: unknown,
   attempts: number
 ) => {
-  const retryAfter = isAxiosError(error)
-    ? error.response?.headers?.["retry-after"]
-    : undefined;
-  const seconds =
-    typeof retryAfter === "string" || typeof retryAfter === "number"
-      ? Number(retryAfter)
-      : Number.NaN;
-  const date =
-    typeof retryAfter === "string" ? Date.parse(retryAfter) : Number.NaN;
-  let serverDelay = 0;
-  if (Number.isFinite(seconds)) serverDelay = seconds * 1000;
-  else if (Number.isFinite(date)) serverDelay = date - Date.now();
+  const serverDelay = getRetryAfterMs(error);
   const backoff = Math.min(
     ACHIEVEMENT_SYNC_MAX_RETRY_DELAY_MS,
     ACHIEVEMENT_SYNC_RETRY_DELAY_MS *

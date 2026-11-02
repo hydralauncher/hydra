@@ -1,0 +1,44 @@
+@use "./screenshot-motion.scss" as motion;
+
+.progressive-screenshot-image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+
+  &__layer {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity motion.$fast-transition-duration ease;
+    user-select: none;
+
+    &--placeholder {
+      filter: blur(12px);
+      transform: scale(1.1);
+    }
+
+    &--visible {
+      opacity: 1;
+    }
+
+    &--instant {
+      transition: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  &--cover &__layer {
+    object-fit: cover;
+  }
+
+  &--contain &__layer {
+    object-fit: contain;
+  }
+}

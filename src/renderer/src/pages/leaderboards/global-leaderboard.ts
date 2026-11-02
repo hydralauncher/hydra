@@ -4,12 +4,20 @@ import {
   type LeaderboardRequestOptions,
   type LeaderboardUser,
 } from "../game-details/leaderboard/game-leaderboard.js";
+import { buildLeaderboardBoardPath } from "../../../../shared/leaderboard-notifications.js";
+import type { CatalogueImages } from "@types";
 
 export const GLOBAL_LEADERBOARD_TAKE = 100;
 export const GLOBAL_LEADERBOARD_PAGE_SIZE = 13;
 export const GLOBAL_LEADERBOARD_PAGE_STEP = 10;
 export const GLOBAL_LEADERBOARD_PODIUM_SIZE = 3;
-export const PLAY_ACTIVITY_WEEKS = 15;
+export const PLAY_ACTIVITY_WEEKS = 53;
+// Older backends cap play activity at 26 weeks and answer 400 above it.
+export const PLAY_ACTIVITY_FALLBACK_WEEKS = 26;
+// A month label needs about two columns, so labels closer than this to the
+// next one or to the end of the grid are dropped.
+const HEATMAP_MONTH_MIN_WEEKS = 3;
+const HEATMAP_MONTH_END_WEEKS = 2;
 export const BADGES_PAGE_SIZE = 8;
 export const SECONDS_PER_MINUTE = 60;
 export const MINUTES_PER_HOUR = 60;
@@ -55,6 +63,9 @@ export interface LeaderboardReview {
   score: number;
   createdAt: string | null;
   text: string;
+  // Same shape as GameReview: translated text by base language ("pt").
+  translations: Record<string, string>;
+  detectedLanguage: string | null;
 }
 
 export interface LeaderboardEntryExtras {
@@ -91,7 +102,8 @@ export interface MyGameRanking {
   heroImageUrl: string | null;
   rank: number;
   previousRank: number | null;
-  total: number;
+  // Players on the board; null while the API does not know it.
+  total: number | null;
   leader: LeaderboardUser | null;
 }
 
@@ -102,6 +114,8 @@ export interface PlayActivityDay {
 }
 
 export interface PlayActivity {
+  // Weeks the API answered for, which can be fewer than asked for.
+  weeks: number;
   currentStreak: number;
   bestStreak: number;
   playedToday: boolean;
@@ -129,6 +143,12 @@ export const BADGE_TIERS = ["gold", "silver", "bronze", "streak"] as const;
 export type BadgeKind = (typeof BADGE_KINDS)[number];
 export type BadgeTier = (typeof BADGE_TIERS)[number];
 
+// Locked game badges name the badge they lead to ("Top 10", "Top 5%").
+export interface BadgeTarget {
+  kind: "top_rank" | "top_percent";
+  value: number;
+}
+
 export interface LeaderboardBadge {
   id: string;
   kind: BadgeKind;
@@ -137,11 +157,13 @@ export interface LeaderboardBadge {
   scope: GlobalLeaderboardScope;
   gameTitle: string | null;
   coverImageUrl: string | null;
+  images: CatalogueImages;
   value: number;
   week: number | null;
   currentRank: number | null;
   earnedAt: string | null;
   progress: { current: number; target: number } | null;
+  target: BadgeTarget | null;
 }
 
 export interface LeaderboardBadges {
@@ -179,6 +201,17 @@ const normalizeUser = (value: unknown): LeaderboardUser | null => {
   };
 };
 
+const normalizeTranslations = (value: unknown): Record<string, string> => {
+  if (!isRecord(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (pair): pair is [string, string] =>
+        typeof pair[1] === "string" && pair[1].length > 0
+    )
+  );
+};
+
 const normalizeReview = (value: unknown): LeaderboardReview | null => {
   if (!isRecord(value) || typeof value.text !== "string") return null;
 
@@ -190,6 +223,8 @@ const normalizeReview = (value: unknown): LeaderboardReview | null => {
     score: toNonNegativeNumber(value.score),
     createdAt: toStringOrNull(value.createdAt),
     text: value.text,
+    translations: normalizeTranslations(value.translations),
+    detectedLanguage: toStringOrNull(value.detectedLanguage),
   };
 };
 
@@ -199,7 +234,7 @@ export const buildGlobalLeaderboardRequest = (
   const scope = query.isLoggedIn ? query.scope : "global";
 
   return {
-    path: `/leaderboards/${encodeURIComponent(query.metric)}`,
+    path: buildLeaderboardBoardPath(query.metric, null),
     options: {
       params: { window: query.period, scope, take: GLOBAL_LEADERBOARD_TAKE },
       needsAuth: query.isLoggedIn,
@@ -216,7 +251,7 @@ export const normalizeGlobalLeaderboardResponse = (
 
   const rawEntries = response.entries ?? response.users;
   const leaderboard = normalizeLeaderboardResponse({
-    users: rawEntries,
+    entries: rawEntries,
     viewer: response.viewer,
   });
 
@@ -290,6 +325,10 @@ export const buildMetricsRequest = (
   options: { params: { scope }, needsAuth: false },
 });
 
+// Merged into "reviews" by the API (hydra-api#858), so it is never listed.
+// Transitional: delete once hydralauncher/hydra-api#858 is live.
+const EXCLUDED_METRICS = new Set(["review_upvotes"]);
+
 export const normalizeMetricDefinitions = (
   response: unknown
 ): MetricDefinition[] => {
@@ -300,7 +339,7 @@ export const normalizeMetricDefinitions = (
 
   return items.flatMap((item): MetricDefinition[] => {
     if (!isRecord(item) || typeof item.id !== "string" || !item.id) return [];
-    if (seen.has(item.id)) return [];
+    if (seen.has(item.id) || EXCLUDED_METRICS.has(item.id)) return [];
     seen.add(item.id);
 
     return [
@@ -367,6 +406,80 @@ export const getViewerRanking = (
   };
 };
 
+export type BoardInsight =
+  | { type: "leading"; gap: number; target: LeaderboardUser | null }
+  | { type: "outside"; gap: number; lastRank: number }
+  | { type: "ranked"; rank: number }
+  | { type: "unranked" }
+  | {
+      type: "behind";
+      gap: number;
+      target: LeaderboardUser;
+      targetRank: number;
+      next: { goal: "podium" | "lead"; gap: number } | null;
+    };
+
+const BOARD_PODIUM_LAST_RANK = 3;
+
+// What the viewer needs to climb. Without a real amount to show, it still says
+// where they stand or how to join. Returns null only when signed out.
+export const getBoardInsight = (
+  leaderboard: GlobalLeaderboard,
+  viewerId: string | null
+): BoardInsight | null => {
+  if (!viewerId) return null;
+
+  const ranking = getViewerRanking(leaderboard, viewerId);
+  if (!ranking) return { type: "unranked" };
+
+  const ranked: BoardInsight = { type: "ranked", rank: ranking.rank };
+
+  const { entries } = leaderboard;
+  const gapTo = (value: number) => value - ranking.value;
+
+  if (ranking.rank === 1) {
+    const second = entries.find((entry) => entry.user.id !== viewerId) ?? null;
+    if (!second) return { type: "leading", gap: 0, target: null };
+
+    const gap = ranking.value - second.value;
+    return gap > 0 ? { type: "leading", gap, target: second.user } : ranked;
+  }
+
+  const above = entries.findLast((entry) => entry.rank < ranking.rank);
+  if (!above) return ranked;
+
+  // Past the listed players, the next one is unknown: the goal is the list.
+  if (above.rank !== ranking.rank - 1) {
+    const listGap = gapTo(above.value);
+    return listGap > 0
+      ? { type: "outside", gap: listGap, lastRank: above.rank }
+      : ranked;
+  }
+
+  const gap = gapTo(above.value);
+  if (gap <= 0) return ranked;
+
+  const goalEntry =
+    ranking.rank > BOARD_PODIUM_LAST_RANK + 1
+      ? entries.find((entry) => entry.rank === BOARD_PODIUM_LAST_RANK)
+      : entries.find((entry) => entry.rank === 1);
+  const nextGap = ranking.rank > 2 && goalEntry ? gapTo(goalEntry.value) : 0;
+
+  return {
+    type: "behind",
+    gap,
+    target: above.user,
+    targetRank: above.rank,
+    next:
+      nextGap > 0
+        ? {
+            goal: ranking.rank > BOARD_PODIUM_LAST_RANK + 1 ? "podium" : "lead",
+            gap: nextGap,
+          }
+        : null,
+  };
+};
+
 export const getUtcWeekRange = (now: number): WeekRange => {
   const date = new Date(now);
   const daysSinceMonday = (date.getUTCDay() + 6) % 7;
@@ -395,19 +508,6 @@ export const resolveWeekRange = (
   };
 };
 
-export const getIsoWeekNumber = (date: Date) => {
-  const target = new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
-  );
-  target.setUTCDate(target.getUTCDate() - ((target.getUTCDay() + 6) % 7) + 3);
-  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
-  firstThursday.setUTCDate(
-    firstThursday.getUTCDate() - ((firstThursday.getUTCDay() + 6) % 7) + 3
-  );
-
-  return 1 + Math.round((target.getTime() - firstThursday.getTime()) / WEEK_MS);
-};
-
 export const getCountdownParts = (end: Date, now: number) => {
   const totalMinutes = Math.floor(Math.max(0, end.getTime() - now) / 60_000);
 
@@ -433,7 +533,40 @@ export interface HeatmapCell {
   level: number;
   isFuture: boolean;
   isToday: boolean;
+  isYesterday: boolean;
 }
+
+export const DAYS_PER_WEEK = 7;
+
+// Keep these in sync with the activity graph in leaderboards.scss.
+const HEATMAP_DAY_LABELS_WIDTH = 36;
+const HEATMAP_GAP = 6;
+const HEATMAP_MIN_CELL_SIZE = 12;
+const HEATMAP_MAX_CELL_SIZE = 32;
+
+// The graph fills the card: the cells grow up to a limit, and a card too narrow
+// for every week at the smallest size shows fewer weeks.
+export const getHeatmapLayout = (width: number | null, totalWeeks: number) => {
+  const available = (width ?? 0) - HEATMAP_DAY_LABELS_WIDTH;
+  const weeksThatFit = Math.floor(
+    (available + HEATMAP_GAP) / (HEATMAP_MIN_CELL_SIZE + HEATMAP_GAP)
+  );
+  const weeks = Math.max(1, Math.min(totalWeeks, weeksThatFit));
+  const cellSize = Math.max(
+    HEATMAP_MIN_CELL_SIZE,
+    Math.min(
+      HEATMAP_MAX_CELL_SIZE,
+      Math.floor((available - HEATMAP_GAP * (weeks - 1)) / weeks)
+    )
+  );
+
+  return {
+    weeks,
+    cellSize,
+    width:
+      HEATMAP_DAY_LABELS_WIDTH + weeks * (cellSize + HEATMAP_GAP) - HEATMAP_GAP,
+  };
+};
 
 export const buildHeatmap = (
   days: PlayActivityDay[],
@@ -444,6 +577,7 @@ export const buildHeatmap = (
   const currentWeek = getUtcWeekRange(now).start.getTime();
   const firstDay = currentWeek - (weeks - 1) * WEEK_MS;
   const today = new Date(now).toISOString().slice(0, 10);
+  const yesterday = new Date(now - DAY_MS).toISOString().slice(0, 10);
 
   return Array.from({ length: weeks * 7 }, (_, index) => {
     const date = new Date(firstDay + index * DAY_MS);
@@ -458,8 +592,64 @@ export const buildHeatmap = (
       level: getPlayLevel(seconds),
       isFuture: key > today,
       isToday: key === today,
+      isYesterday: key === yesterday,
     };
   });
+};
+
+export interface HeatmapMonth {
+  week: number;
+  date: Date;
+}
+
+// Labels each month on the first week that starts in it, like a contribution
+// graph. Cells are week-major, so every seventh cell is a Monday.
+export const buildHeatmapMonths = (cells: HeatmapCell[]): HeatmapMonth[] => {
+  const weeks = Math.floor(cells.length / 7);
+  const months: HeatmapMonth[] = [];
+
+  for (let week = 0; week < weeks; week++) {
+    const date = cells[week * 7].date;
+    const previous = week > 0 ? cells[(week - 1) * 7].date : null;
+    if (previous?.getUTCMonth() === date.getUTCMonth()) continue;
+    months.push({ week, date });
+  }
+
+  return months.filter(
+    (month, index) =>
+      weeks - month.week >= HEATMAP_MONTH_END_WEEKS &&
+      (month.week > 0 ||
+        (months[index + 1]?.week ?? weeks) >= HEATMAP_MONTH_MIN_WEEKS)
+  );
+};
+
+export const sumHeatmap = (cells: HeatmapCell[]) =>
+  cells.reduce(
+    (total, cell) => ({
+      seconds: total.seconds + cell.seconds,
+      days: total.days + (cell.seconds > 0 ? 1 : 0),
+    }),
+    { seconds: 0, days: 0 }
+  );
+
+export type HeatmapTotalDisplay =
+  | { unit: "none" }
+  | { unit: "minutes" | "hours"; amount: number };
+
+// Under an hour the total is in minutes, so a short session does not read "0 h".
+export const getHeatmapTotalDisplay = ({
+  seconds,
+  days,
+}: {
+  seconds: number;
+  days: number;
+}): HeatmapTotalDisplay => {
+  if (days === 0) return { unit: "none" };
+
+  const minutes = Math.max(1, Math.round(seconds / SECONDS_PER_MINUTE));
+  if (minutes < MINUTES_PER_HOUR) return { unit: "minutes", amount: minutes };
+
+  return { unit: "hours", amount: Math.round(seconds / SECONDS_PER_HOUR) };
 };
 
 export const normalizeMyGames = (response: unknown): MyGameRanking[] => {
@@ -486,19 +676,30 @@ export const normalizeMyGames = (response: unknown): MyGameRanking[] => {
         heroImageUrl: toStringOrNull(item.heroImageUrl),
         rank,
         previousRank: toPositiveInteger(item.previousRank),
-        total: toNonNegativeNumber(item.total, rank),
+        // The API sends null until the board size is known; a total below
+        // the rank is as good as unknown.
+        total:
+          typeof item.total === "number" &&
+          Number.isFinite(item.total) &&
+          item.total >= rank
+            ? Math.floor(item.total)
+            : null,
         leader: normalizeUser(item.leader),
       },
     ];
   });
 };
 
-export const normalizePlayActivity = (response: unknown): PlayActivity => {
+export const normalizePlayActivity = (
+  response: unknown,
+  weeks = PLAY_ACTIVITY_WEEKS
+): PlayActivity => {
   if (!isRecord(response) || !Array.isArray(response.days)) {
     throw new TypeError("Invalid play activity response");
   }
 
   return {
+    weeks,
     currentStreak: toNonNegativeNumber(response.currentStreak),
     bestStreak: toNonNegativeNumber(response.bestStreak),
     playedToday: response.playedToday === true,
@@ -543,6 +744,52 @@ export const normalizeFriendStreaks = (response: unknown): FriendStreak[] => {
     .sort((a, b) => Number(b.active) - Number(a.active) || b.days - a.days);
 };
 
+const isTopBadgeKind = (kind: unknown): kind is BadgeTarget["kind"] =>
+  kind === "top_rank" || kind === "top_percent";
+
+// The N of "Top N" / "Top N%". The API sends it as `threshold`; `value` is
+// the viewer's value on the board, never the N.
+const toBadgeThreshold = (source: Record<string, unknown>) =>
+  toNonNegativeNumber(source.threshold);
+
+// Reads `target` when the API sends it and otherwise falls back to the locked
+// badge itself, whose kind and threshold already describe the next badge.
+const normalizeBadgeTarget = (
+  item: Record<string, unknown>
+): BadgeTarget | null => {
+  if (toStringOrNull(item.earnedAt)) return null;
+  const source = isRecord(item.target) ? item.target : item;
+  if (!isTopBadgeKind(source.kind)) return null;
+  const value = isRecord(item.target)
+    ? toNonNegativeNumber(source.value, toBadgeThreshold(source))
+    : toBadgeThreshold(source);
+  return value ? { kind: source.kind, value } : null;
+};
+
+const normalizeCatalogueImages = (value: unknown): CatalogueImages => {
+  if (!isRecord(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([url, variants]) =>
+      isRecord(variants) &&
+      typeof variants.base === "string" &&
+      Array.isArray(variants.widths) &&
+      variants.widths.every((width) => typeof width === "number")
+        ? [
+            [
+              url,
+              {
+                base: variants.base,
+                widths: variants.widths as number[],
+                thumbHash: toStringOrNull(variants.thumbHash),
+              },
+            ],
+          ]
+        : []
+    )
+  );
+};
+
 export const normalizeBadges = (response: unknown): LeaderboardBadges => {
   if (!isRecord(response) || !Array.isArray(response.badges)) {
     throw new TypeError("Invalid badges response");
@@ -552,6 +799,7 @@ export const normalizeBadges = (response: unknown): LeaderboardBadges => {
     if (!isRecord(item) || typeof item.id !== "string") return [];
     if (!(BADGE_KINDS as readonly unknown[]).includes(item.kind)) return [];
 
+    const target = normalizeBadgeTarget(item);
     const progress = isRecord(item.progress)
       ? {
           current: toNonNegativeNumber(item.progress.current),
@@ -570,11 +818,15 @@ export const normalizeBadges = (response: unknown): LeaderboardBadges => {
         scope: item.scope === "friends" ? "friends" : "global",
         gameTitle: toStringOrNull(item.gameTitle),
         coverImageUrl: toStringOrNull(item.coverImageUrl),
-        value: toNonNegativeNumber(item.value),
+        images: normalizeCatalogueImages(item.images),
+        value: isTopBadgeKind(item.kind)
+          ? toBadgeThreshold(item)
+          : toNonNegativeNumber(item.value),
         week: toPositiveInteger(item.week),
         currentRank: toPositiveInteger(item.currentRank),
         earnedAt: toStringOrNull(item.earnedAt),
         progress,
+        target,
       },
     ];
   });

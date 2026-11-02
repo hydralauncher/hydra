@@ -561,3 +561,21 @@ test("existing HTTP contracts and optional integration failures preserve Hydra l
   await assert.rejects(f.api.get(endpoint));
   assert.equal(f.api.isLoggedIn(), false);
 });
+
+test("errors without a response keep their code", async (t) => {
+  const f = await fixture(t);
+  await f.signIn("A");
+  f.hooks.request = async (request) => {
+    throw new AxiosError(
+      "timeout of 5000ms exceeded",
+      "ECONNABORTED",
+      request.config,
+      {}
+    );
+  };
+  await assert.rejects(f.api.get(endpoint), {
+    message: "Request failed with ECONNABORTED timeout of 5000ms exceeded",
+    code: "ECONNABORTED",
+  });
+  assert.equal(f.api.isLoggedIn(), true);
+});

@@ -19,6 +19,17 @@
     bottom: auto;
     left: auto;
   }
+
+  &[data-placement="left"] {
+    justify-content: flex-start;
+    padding-right: calc(
+      var(--virtual-keyboard-side-inset) + (var(--spacing-unit) * 4)
+    );
+
+    .virtual-keyboard {
+      width: min(1200px, 100%);
+    }
+  }
 }
 
 .virtual-keyboard {

@@ -5,6 +5,7 @@ import {
   useDownload,
   useDownloadLayout,
   useLibrary,
+  useToast,
 } from "@renderer/hooks";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -31,23 +32,56 @@ export default function Downloads() {
 
   const gameToBeDeleted = useRef<[GameShop, string] | null>(null);
 
+  const { showErrorToast } = useToast();
   const [showBinaryNotFoundModal, setShowBinaryNotFoundModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { removeGameInstaller, pauseSeeding } = useDownload();
 
-  const handleDeleteGame = async () => {
+  const handleDeleteGame = async (deleteSourceArchive: boolean) => {
     if (gameToBeDeleted.current) {
       const [shop, objectId] = gameToBeDeleted.current;
 
       await pauseSeeding(shop, objectId);
-      await removeGameInstaller(shop, objectId);
+      await removeGameInstaller(shop, objectId, { deleteSourceArchive });
     }
   };
 
   const { lastPacket } = useDownload();
 
   const [seedingStatus, setSeedingStatus] = useState<SeedingStatus[]>([]);
+  const [runningGameIds, setRunningGameIds] =
+    useState<ReadonlySet<string> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const updateRunningGameIds = (gamesRunning: { id: string }[]) => {
+      if (cancelled) return;
+
+      setRunningGameIds((previous) => {
+        const next = new Set(gamesRunning.map((game) => game.id));
+        const unchanged =
+          previous !== null &&
+          next.size === previous.size &&
+          [...next].every((id) => previous.has(id));
+
+        return unchanged ? previous : next;
+      });
+    };
+
+    window.electron
+      .getGamesRunning()
+      .then(updateRunningGameIds)
+      .catch(() => updateRunningGameIds([]));
+
+    const unsubscribe = window.electron.onGamesRunning(updateRunningGameIds);
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     window.electron.onSeedingStatus((value) => setSeedingStatus(value));
@@ -63,8 +97,10 @@ export default function Downloads() {
 
   const handleOpenGameInstaller = (shop: GameShop, objectId: string) =>
     window.electron.openGameInstaller(shop, objectId).then((wasOpened) => {
-      if (!wasOpened) {
+      if (!wasOpened && window.electron.platform === "linux") {
         setShowBinaryNotFoundModal(true);
+      } else if (!wasOpened) {
+        showErrorToast(t("installer_launch_failed"));
       }
 
       updateLibrary();
@@ -182,6 +218,14 @@ export default function Downloads() {
       <DeleteGameModal
         visible={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
+        target={
+          showDeleteModal && gameToBeDeleted.current
+            ? {
+                shop: gameToBeDeleted.current[0],
+                objectId: gameToBeDeleted.current[1],
+              }
+            : null
+        }
         deleteGame={handleDeleteGame}
       />
 
@@ -196,6 +240,7 @@ export default function Downloads() {
                 openDeleteGameModal={handleOpenDeleteGameModal}
                 openGameInstaller={handleOpenGameInstaller}
                 seedingStatus={seedingStatus}
+                runningGameIds={runningGameIds}
                 queuedGameIds={group.queuedGameIds}
               />
             ))}

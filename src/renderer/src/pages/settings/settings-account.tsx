@@ -6,7 +6,7 @@ import {
 } from "@renderer/components";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useDate, useToast, useUserDetails } from "@renderer/hooks";
+import { useDate, useFeature, useToast, useUserDetails } from "@renderer/hooks";
 import { useCallback, useContext, useEffect, useState } from "react";
 import {
   CloudIcon,
@@ -17,7 +17,12 @@ import {
 import { settingsContext } from "@renderer/context";
 import { AuthPage } from "@shared";
 import "./settings-account.scss";
-import type { ProfileVisibility } from "@types";
+import { logger } from "@renderer/logger";
+import type {
+  ProfileVisibility,
+  ScreenshotCommentsPolicy,
+  UpdateProfileRequest,
+} from "@types";
 
 interface FormValues {
   profileVisibility: ProfileVisibility;
@@ -25,8 +30,92 @@ interface FormValues {
   souvenirsVisibility: ProfileVisibility;
 }
 
+const SCREENSHOT_COMMENTS_POLICIES: ScreenshotCommentsPolicy[] = [
+  "EVERYONE",
+  "FRIENDS",
+  "NOBODY",
+];
+
+interface ScreenshotPrivacySettingsProps {
+  visibilityOptions: { value: string; label: string }[];
+  showCommentsPolicy: boolean;
+}
+
+function ScreenshotPrivacySettings({
+  visibilityOptions,
+  showCommentsPolicy,
+}: Readonly<ScreenshotPrivacySettingsProps>) {
+  const { t } = useTranslation("settings");
+  const { t: tScreenshots } = useTranslation("screenshots");
+  const { userDetails, patchUser } = useUserDetails();
+  const { showSuccessToast, showErrorToast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+  const screenshotsVisibility = userDetails?.screenshotsVisibility;
+  const screenshotCommentsPolicy = userDetails?.screenshotCommentsPolicy;
+
+  const saveChange = async (update: UpdateProfileRequest) => {
+    setIsSaving(true);
+    try {
+      await patchUser(update);
+      showSuccessToast(t("changes_saved"));
+    } catch (error) {
+      logger.error("Failed to update screenshot privacy", error);
+      showErrorToast(tScreenshots("update_failed"));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <>
+      {screenshotsVisibility ? (
+        <section className="settings-account__section">
+          <SelectField
+            label={tScreenshots("privacy_screenshots_visibility")}
+            value={screenshotsVisibility}
+            onChange={(event) =>
+              void saveChange({
+                screenshotsVisibility: event.target.value as ProfileVisibility,
+              })
+            }
+            options={visibilityOptions.map((visibility) => ({
+              key: visibility.value,
+              value: visibility.value,
+              label: visibility.label,
+            }))}
+            disabled={isSaving}
+          />
+        </section>
+      ) : null}
+
+      {showCommentsPolicy && screenshotCommentsPolicy ? (
+        <section className="settings-account__section">
+          <SelectField
+            label={tScreenshots("privacy_screenshot_comments_policy")}
+            value={screenshotCommentsPolicy}
+            onChange={(event) =>
+              void saveChange({
+                screenshotCommentsPolicy: event.target
+                  .value as ScreenshotCommentsPolicy,
+              })
+            }
+            options={SCREENSHOT_COMMENTS_POLICIES.map((policy) => ({
+              key: policy,
+              value: policy,
+              label: tScreenshots(`comments_policy_${policy.toLowerCase()}`),
+            }))}
+            disabled={isSaving}
+          />
+        </section>
+      ) : null}
+    </>
+  );
+}
+
 export function SettingsAccount() {
   const { t } = useTranslation("settings");
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
 
   const [isUnblocking, setIsUnblocking] = useState(false);
 
@@ -218,6 +307,13 @@ export function SettingsAccount() {
           );
         }}
       />
+
+      {isScreenshotsEnabled ? (
+        <ScreenshotPrivacySettings
+          visibilityOptions={visibilityOptions}
+          showCommentsPolicy={isFeatureEnabled(Feature.ScreenshotComments)}
+        />
+      ) : null}
 
       <section className="settings-account__section">
         <h4>{t("current_username")}</h4>
