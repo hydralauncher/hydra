@@ -3,7 +3,7 @@ import path from "node:path";
 
 // Where unplugged drives live on macOS/Linux, and how many path segments the
 // volume itself takes (e.g. /media/<user>/<label> is 3).
-const REMOVABLE_VOLUME_ROOTS: Array<[root: string, depth: number]> = [
+export const REMOVABLE_VOLUME_ROOTS: Array<[root: string, depth: number]> = [
   ["/Volumes", 2],
   ["/mnt", 2],
   ["/media", 3],
@@ -18,6 +18,16 @@ const exists = (target: string) =>
 
 const depthOf = (target: string) =>
   target.split(path.sep).filter(Boolean).length;
+
+// Helper to check if a directory is empty. We use this so it can be mocked in tests.
+export const isDirectoryEmpty = async (dirPath: string): Promise<boolean> => {
+  try {
+    const entries = await fs.promises.readdir(dirPath);
+    return entries.length === 0;
+  } catch {
+    return true; // Assume empty/offline if we can't read it
+  }
+};
 
 // True only when target is gone while the drive it lived on is still there.
 export const isPathDeleted = async (target: string): Promise<boolean> => {
@@ -56,13 +66,9 @@ export const isPathDeleted = async (target: string): Promise<boolean> => {
   if (ancestorDepth === volumeDepth) {
     // The closest existing parent IS the volume root (e.g., /mnt/disk).
     // Check if the volume root is empty. An empty directory means the drive is offline.
-    try {
-      const entries = await fs.promises.readdir(ancestor);
-      if (entries.length === 0) {
-        return false; // Drive is offline/unmounted, do not treat file as deleted.
-      }
-    } catch {
-      return false; // Cannot read directory, assume offline.
+    const isEmpty = await isDirectoryEmpty(ancestor);
+    if (isEmpty) {
+      return false; // Drive is offline/unmounted, do not treat file as deleted.
     }
     return true; // Volume has files, so the file was truly deleted.
   }

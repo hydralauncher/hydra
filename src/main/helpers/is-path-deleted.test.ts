@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { after, before, beforeEach, describe, it } from "node:test";
-import { isPathDeleted } from "./is-path-deleted.ts";
+import { isPathDeleted, REMOVABLE_VOLUME_ROOTS } from "./is-path-deleted.ts";
 
 describe("isPathDeleted", () => {
   let tempDir: string;
@@ -98,15 +98,29 @@ describe("isPathDeleted", () => {
   });
 
   it("returns false for a path directly inside an empty mounted volume root", async () => {
-    if (process.platform === "win32") return;
-
-    // Simulate a mounted volume root that exists but is empty (unmounted drive)
-    const emptyVolumeRoot = path.join(tempDir, "mnt", "disk");
+    // Create a fake volume root inside our temp dir
+    const emptyVolumeRoot = path.join(tempDir, "disk");
     await fs.mkdir(emptyVolumeRoot, { recursive: true });
     
     const target = path.join(emptyVolumeRoot, "game.exe");
     
-    // The file doesn't exist, but the volume root is empty, so it's considered offline
-    assert.equal(await isPathDeleted(target), false);
+    // Save original roots
+    const originalRoots = [...REMOVABLE_VOLUME_ROOTS];
+    
+    // Calculate the depth of the emptyVolumeRoot exactly as the source code does
+    const rootDepth = emptyVolumeRoot.split(path.sep).filter(Boolean).length;
+    
+    // Inject the emptyVolumeRoot itself as the recognized volume root
+    REMOVABLE_VOLUME_ROOTS.push([emptyVolumeRoot, rootDepth]);
+    
+    try {
+      // The real isDirectoryEmpty will read this empty folder and return true,
+      // causing isPathDeleted to correctly return false (drive is offline).
+      assert.equal(await isPathDeleted(target), false);
+    } finally {
+      // Restore original roots
+      REMOVABLE_VOLUME_ROOTS.length = 0;
+      REMOVABLE_VOLUME_ROOTS.push(...originalRoots);
+    }
   });
 });
