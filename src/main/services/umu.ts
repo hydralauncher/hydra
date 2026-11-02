@@ -495,7 +495,7 @@ export class Umu {
     };
 
     seedSteamClientFilesForLaunch(
-      options?.winePrefixPath,
+      launchEnv.WINEPREFIX,
       resolvedLaunchCommand.env.STEAM_COMPAT_CLIENT_INSTALL_PATH
     );
 
