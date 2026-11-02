@@ -465,6 +465,18 @@
     gap: 24px;
   }
 
+  &__rpcs3-roots {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__rpcs3-root-path {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   &__exec-row {
     align-items: center;
   }
@@ -1018,6 +1030,10 @@
     text-align: left;
   }
 
+  &__cloud-card--with-platform {
+    height: 178px;
+  }
+
   &__cloud-card-top {
     flex-shrink: 0;
     display: flex;
@@ -1061,9 +1077,18 @@
     transform: rotate(90deg);
   }
 
-  &__cloud-card-title {
+  &__cloud-card-title-row {
     flex-shrink: 0;
     align-self: stretch;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  &__cloud-card-title {
+    flex: 0 1 auto;
+    min-width: 0;
     font-size: 18px;
     font-weight: 700;
     letter-spacing: 0.18px;

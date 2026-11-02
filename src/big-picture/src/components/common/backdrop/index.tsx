@@ -5,12 +5,13 @@ import type { ReactNode } from "react";
 
 export interface BackdropProps {
   children: ReactNode;
+  className?: string;
 }
 
-export function Backdrop({ children }: Readonly<BackdropProps>) {
+export function Backdrop({ children, className }: Readonly<BackdropProps>) {
   return (
     <motion.div
-      className="backdrop"
+      className={className ? `backdrop ${className}` : "backdrop"}
       initial={{ backgroundColor: "rgba(0, 0, 0, 0)" }}
       animate={{ backgroundColor: "rgba(0, 0, 0, 0.7)" }}
       exit={{ backgroundColor: "rgba(0, 0, 0, 0)" }}

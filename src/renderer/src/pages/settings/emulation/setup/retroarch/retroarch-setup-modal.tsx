@@ -38,6 +38,7 @@ interface Props {
   initialConfig: RetroArchConfig | null;
   onClose: () => void;
   onComplete: () => void;
+  onManage: () => void;
 }
 
 export function RetroArchSetupModal({
@@ -45,9 +46,10 @@ export function RetroArchSetupModal({
   initialConfig,
   onClose,
   onComplete,
+  onManage,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
-  const { showErrorToast } = useToast();
+  const { showErrorToast, showSuccessToast } = useToast();
   const { scan, start, cancel, reset } = useRetroArchScan();
 
   const [config, setConfig] = useState<RetroArchConfig | null>(initialConfig);
@@ -81,19 +83,26 @@ export function RetroArchSetupModal({
     handleToggleSubfolders,
   } = usePendingRomFolders({ previewFolder });
 
+  const wasVisibleRef = useRef(false);
+
   useEffect(() => {
-    if (visible) {
-      setConfig(initialConfig);
-      setStepIndex(0);
-      setFolders([]);
-      setGamesAdded(0);
-      setScanComplete(false);
-      setShowDownloadHelp(false);
-      autoDetectRef.current = false;
-      scanStartedRef.current = false;
-      persistedExecutableRef.current = false;
-      reset();
+    if (!visible) {
+      wasVisibleRef.current = false;
+      return;
     }
+    if (wasVisibleRef.current) return;
+
+    wasVisibleRef.current = true;
+    setConfig(initialConfig);
+    setStepIndex(0);
+    setFolders([]);
+    setGamesAdded(0);
+    setScanComplete(false);
+    setShowDownloadHelp(false);
+    autoDetectRef.current = false;
+    scanStartedRef.current = false;
+    persistedExecutableRef.current = false;
+    reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, initialConfig]);
 
@@ -128,6 +137,24 @@ export function RetroArchSetupModal({
   }, [visible, initialConfig?.executablePath]);
 
   const currentStep = STEPS[stepIndex];
+
+  const hasShownSetupToastRef = useRef(false);
+
+  useEffect(() => {
+    if (!visible || currentStep !== "done") {
+      hasShownSetupToastRef.current = false;
+      return;
+    }
+    if (hasShownSetupToastRef.current) return;
+
+    hasShownSetupToastRef.current = true;
+    showSuccessToast(
+      t("setup_emulator_success", { name: RETROARCH_LABEL }),
+      gamesAdded > 0
+        ? t("setup_emulator_games_added", { count: gamesAdded })
+        : undefined
+    );
+  }, [visible, currentStep, gamesAdded, showSuccessToast, t]);
 
   const goNext = useCallback(() => setStepIndex((i) => i + 1), []);
   const goBack = useCallback(() => setStepIndex((i) => Math.max(0, i - 1)), []);
@@ -351,6 +378,7 @@ export function RetroArchSetupModal({
               systemLabel={RETROARCH_LABEL}
               gamesAdded={gamesAdded}
               onBrowse={onComplete}
+              onManage={onManage}
             />
           )}
         </div>
@@ -358,13 +386,12 @@ export function RetroArchSetupModal({
         {showDownloadHelp ? (
           <div className="setup-modal__footer">
             <div className="setup-modal__footer-side">
-              <button
-                type="button"
-                className="setup-modal__ghost-button"
+              <Button
+                theme="outline"
                 onClick={() => setShowDownloadHelp(false)}
               >
                 {t("setup_back")}
-              </button>
+              </Button>
             </div>
             <div className="setup-modal__dots" />
             <div className="setup-modal__footer-side setup-modal__footer-side--end">
@@ -382,7 +409,6 @@ export function RetroArchSetupModal({
               currentStep !== "scanning" &&
               currentStep !== "done"
             }
-            showCancel={currentStep === "find_emulator"}
             showSkip={currentStep === "cores" || currentStep === "rom_folder"}
             continueDisabled={continueDisabled}
             continueHidden={continueHidden}
@@ -398,7 +424,6 @@ export function RetroArchSetupModal({
                 : null
             }
             onBack={goBack}
-            onCancel={handleClose}
             onSkip={handleSkip}
             onContinue={handleContinue}
           />

@@ -4,7 +4,10 @@ import {
   getSkuRegionFlag,
   type SkuRegion,
 } from "@renderer/helpers";
-import { CheckCircleIcon, CircleIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, CircleIcon, FileIcon } from "@phosphor-icons/react";
+import { Disc3 } from "lucide-react";
+import { getClassicsDiscLabel } from "@shared";
+import { useFileIcons } from "@renderer/hooks/use-file-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -55,6 +58,21 @@ export function DiscSelectionModal({
   onClose,
   onConfirm,
 }: Readonly<DiscSelectionModalProps>) {
+  const executableIcons = useFileIcons(
+    discs.filter((disc) => disc.isExecutable).map((disc) => disc.path)
+  );
+
+  const renderDiscTypeIcon = (disc: ClassicsDisc) => {
+    if (!disc.isExecutable) return <Disc3 size={20} />;
+
+    const fileIcon = executableIcons[disc.path];
+    return fileIcon ? (
+      <img src={fileIcon} alt="" width={20} height={20} />
+    ) : (
+      <FileIcon size={20} />
+    );
+  };
+
   const sortedDiscs = useMemo(() => {
     const regionOrder = new Map<string, number>();
 
@@ -73,6 +91,7 @@ export function DiscSelectionModal({
     };
 
     const numberOf = (disc: ClassicsDisc): number => {
+      if (disc.isExecutable) return Number.MAX_SAFE_INTEGER;
       const match = /\d+/.exec(disc.label);
       return match ? Number.parseInt(match[0], 10) : Number.MAX_SAFE_INTEGER;
     };
@@ -168,9 +187,13 @@ export function DiscSelectionModal({
                     )}
                   </span>
 
+                  <span className="disc-selection-modal__disc-type">
+                    {renderDiscTypeIcon(disc)}
+                  </span>
+
                   <span className="disc-selection-modal__disc-text">
                     <span className="disc-selection-modal__disc-label">
-                      {disc.label}
+                      {getClassicsDiscLabel(disc)}
                     </span>
                     <span className="disc-selection-modal__disc-file">
                       {disc.fileName}

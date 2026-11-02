@@ -5,6 +5,7 @@ import { Loader2, Trash } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { isVideoArtworkUrl } from "@renderer/hooks";
+import { getGameCatalogueIdentity } from "@shared";
 import {
   BumperBadge,
   FileExplorerModal,
@@ -19,6 +20,7 @@ import {
   resolveImageSource,
   resolvePreferredGameAssets,
 } from "../../../../helpers";
+import { NavigationService } from "../../../../services";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
 import { GameArtworkPicker } from "./artwork-picker";
 
@@ -250,7 +252,10 @@ export function GameCustomizationSettingsTab({
   const [pendingAssetTab, setPendingAssetTab] = useState<AssetTab | null>(null);
   const [assetPickerOpen, setAssetPickerOpen] = useState(false);
   const isCustomGame = game.shop === "custom";
+  const catalogueGame = getGameCatalogueIdentity(game);
+  const artworkRequestRef = useRef(0);
   const refreshArtworkState = useCallback(async () => {
+    const requestId = ++artworkRequestRef.current;
     if (game.shop === "custom") {
       setComposedAssets(null);
       setArtworkSelection(null);
@@ -258,15 +263,20 @@ export function GameCustomizationSettingsTab({
     }
 
     const [assets, selection] = await Promise.all([
-      globalThis.window.electron.getGameAssets(game.objectId, game.shop),
+      globalThis.window.electron.getGameAssets(
+        catalogueGame.objectId,
+        catalogueGame.shop,
+        { artworkIdentity: { shop: game.shop, objectId: game.objectId } }
+      ),
       globalThis.window.electron.getGameArtworkSelection(
         game.shop,
         game.objectId
       ),
     ]);
+    if (requestId !== artworkRequestRef.current) return;
     setComposedAssets(assets);
     setArtworkSelection(selection);
-  }, [game.objectId, game.shop]);
+  }, [catalogueGame.objectId, catalogueGame.shop, game.objectId, game.shop]);
   const assetTabItems = useMemo(() => {
     const items: Array<TabsItem<AssetTab>> = [
       {
@@ -294,6 +304,19 @@ export function GameCustomizationSettingsTab({
   const handleAssetTabChange = useCallback((value: AssetTab) => {
     setSelectedAssetTab(value);
     setHasAssetTabsInteracted(true);
+
+    const navigation = NavigationService.getInstance();
+
+    if (
+      navigation.getCurrentFocusId() ===
+      GAME_CUSTOMIZATION_SETTINGS_PRIMARY_CONTROL_ID
+    ) {
+      return;
+    }
+
+    navigation.requestFocusWhenAvailable(
+      GAME_CUSTOMIZATION_SETTINGS_ASSET_PREVIEW_ID
+    );
   }, []);
   const assetFrameSize = ASSET_FRAME_SIZES[selectedAssetTab];
   const hasCustomAsset = assetPreviewState[selectedAssetTab].hasCustom;
@@ -433,7 +456,12 @@ export function GameCustomizationSettingsTab({
   ]);
 
   useEffect(() => {
+    setComposedAssets(null);
+    setArtworkSelection(null);
     refreshArtworkState().catch(() => {});
+    return () => {
+      artworkRequestRef.current += 1;
+    };
   }, [refreshArtworkState]);
 
   useEffect(() => {

@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import fs from "node:fs";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
 
 import {
   getLastArtworkRowIds,
@@ -55,5 +58,100 @@ describe("artwork pagination gate", () => {
     const lastRowIds = getLastArtworkRowIds(items, 4);
 
     assert.equal(isArtworkRowSettled(lastRowIds, new Set([9, 10])), true);
+  });
+});
+
+describe("catalogue artwork identity", () => {
+  it("browses Steam artwork while selections remain attached to the owned Epic game", async () => {
+    const reads: unknown[][] = [];
+    const writes: unknown[] = [];
+    const selectionReads: unknown[][] = [];
+    const module = {} as typeof import("./use-game-artwork-grid");
+    class LoadedImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_url: string) {
+        this.onload?.();
+      }
+    }
+    runInNewContext(
+      ts.transpileModule(
+        fs.readFileSync(
+          new URL("./use-game-artwork-grid.ts", import.meta.url),
+          "utf8"
+        ),
+        {
+          compilerOptions: {
+            module: ts.ModuleKind.CommonJS,
+            esModuleInterop: true,
+          },
+        }
+      ).outputText,
+      {
+        exports: module,
+        require: (name: string) => {
+          if (name === "react")
+            return {
+              useCallback: (callback: unknown) => callback,
+              useEffect: () => {},
+              useLayoutEffect: () => {},
+              useRef: (current: unknown) => ({ current }),
+              useState: (initial: unknown) => [initial, () => {}],
+            };
+          if (name === "./game-artwork-utils")
+            return { isVideoArtworkUrl: () => false };
+          assert.fail(`Unexpected dependency: ${name}`);
+        },
+        window: {
+          electron: {
+            getGameArtwork: async (...args: unknown[]) => {
+              reads.push(args);
+              return { items: [], hasMore: false };
+            },
+            getGameArtworkSelection: async (...args: unknown[]) => {
+              selectionReads.push(args);
+              return null;
+            },
+            setGameArtworkSelection: async (value: unknown) => {
+              writes.push(value);
+            },
+          },
+        },
+        Image: LoadedImage,
+        setTimeout,
+        clearTimeout,
+      }
+    );
+    const grid = module.useGameArtworkGrid({
+      shop: "epic",
+      objectId: "namespace:item",
+      lookupIdentity: { shop: "steam", objectId: "123" },
+      assetType: "icon",
+      enabled: true,
+      onChanged: () => {},
+      onError: () => assert.fail("Unexpected error"),
+    });
+    grid.reload();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.deepEqual(reads[0], ["steam", "123", "icons", 0]);
+    await grid.pick({
+      id: 7,
+      url: "https://artwork.test/icon.png",
+    } as Parameters<typeof grid.pick>[0]);
+    await grid.clear();
+    assert.deepEqual(selectionReads, [
+      ["epic", "namespace:item"],
+      ["epic", "namespace:item"],
+    ]);
+    assert.equal((writes[0] as { shop: string }).shop, "epic");
+    assert.equal(
+      (writes[0] as { objectId: string }).objectId,
+      "namespace:item"
+    );
+    assert.equal((writes[1] as { shop: string }).shop, "epic");
+    assert.equal(
+      (writes[1] as { objectId: string }).objectId,
+      "namespace:item"
+    );
   });
 });

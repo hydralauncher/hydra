@@ -1,11 +1,28 @@
+import cn from "classnames";
+import { getLibraryPresentationImportSources } from "./library-category";
+
 import { LibraryGame } from "@types";
-import { useGameCard } from "@renderer/hooks";
+import {
+  isAnimatedCoverCandidate,
+  useAppSelector,
+  useCoverPoster,
+  useGameCard,
+  useAnimatedSourceWarmup,
+  useCatalogueImage,
+  useViewportCatalogueImageUrl,
+} from "@renderer/hooks";
+import {
+  getCatalogueImageDensitySrcSet,
+  pickCatalogueImageUrl,
+} from "@renderer/helpers/catalogue-images";
 import {
   CLASSICS_PS_PLATFORM_LABELS,
+  isGameReadyToPlay,
   resolveClassicsBadge,
 } from "@renderer/helpers";
-import { AchievementProgress } from "@renderer/components";
-import { formatBytes } from "@shared";
+import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
+import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
+import { formatBytes, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
   ClockIcon,
   AlertFillIcon,
@@ -13,13 +30,17 @@ import {
   FileZipIcon,
   CheckCircleFillIcon,
 } from "@primer/octicons-react";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   EMULATOR_ICONS,
   RETROARCH_EMULATOR_ICON,
 } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card-large.scss";
+
+// Cards scrolled past or remounted within this window never load, keeping scroll bursts off the API.
+const ACHIEVEMENT_PROGRESS_SETTLE_MS = 250;
+const LOGO_DISPLAY_WIDTH = 400;
 
 interface LibraryGameCardLargeProps {
   game: LibraryGame;
@@ -34,6 +55,39 @@ const normalizePathForCss = (url: string | null | undefined): string => {
   return url.replaceAll("\\", "/");
 };
 
+interface InstalledBadgeProps {
+  emulatorIcon: string | null | undefined;
+}
+
+function InstalledBadge({ emulatorIcon }: Readonly<InstalledBadgeProps>) {
+  const { t } = useTranslation("library");
+
+  return (
+    <div
+      className={cn("library-game-card-large__installed-badge", {
+        "library-game-card-large__installed-badge--classics": emulatorIcon,
+      })}
+      title={t("installed_tooltip")}
+    >
+      {emulatorIcon ? (
+        <img
+          src={emulatorIcon}
+          alt=""
+          className="library-game-card-large__installed-emulator-icon"
+        />
+      ) : (
+        <CheckCircleFillIcon
+          size={12}
+          className="library-game-card-large__installed-icon"
+        />
+      )}
+      <span className="library-game-card-large__installed-text">
+        {t("installed")}
+      </span>
+    </div>
+  );
+}
+
 export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   game,
   onContextMenu,
@@ -42,7 +96,27 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
 
-  const isInstalled = Boolean(game.executablePath);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+  const hideBadges = userPreferences?.hideLibraryGameBadges ?? false;
+  const hideReadySizeBadges =
+    userPreferences?.hideLibraryReadySizeBadges ?? false;
+  const hideClassicsBadges =
+    userPreferences?.hideLibraryClassicsBadges ?? false;
+  const importSources = getLibraryPresentationImportSources(game);
+  const showEpicLibraryBadge =
+    importSources.epic && !userPreferences?.hideEpicLibraryBadges;
+  const showSteamLibraryBadge =
+    importSources.steam && !userPreferences?.hideSteamLibraryBadges;
+  const hideAchievementProgress =
+    userPreferences?.hideLibraryAchievementProgress ?? false;
+  const autoplayAnimatedArtwork =
+    userPreferences?.autoplayAnimatedArtwork ?? false;
+
+  const [isCoverHovered, setIsCoverHovered] = useState(false);
+
+  const isInstalled = isGameReadyToPlay(game);
 
   const sizeBars = useMemo(() => {
     const items: {
@@ -127,6 +201,28 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
   const [unlockedAchievementsCount, setUnlockedAchievementsCount] = useState(
     game.unlockedAchievementCount ?? 0
   );
+  const [totalAchievementsCount, setTotalAchievementsCount] = useState(
+    game.achievementCount ?? 0
+  );
+  const hasStoreUnion =
+    "availableShops" in game &&
+    Array.isArray(game.availableShops) &&
+    game.availableShops.includes("steam") &&
+    game.availableShops.includes("epic");
+
+  const achievementMembersKey =
+    "members" in game && Array.isArray(game.members)
+      ? JSON.stringify(
+          (game.members as LibraryGame[])
+            .map((member) => [
+              member.shop,
+              member.objectId,
+              member.achievementCount,
+              member.unlockedAchievementCount,
+            ])
+            .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
+        )
+      : "";
 
   useEffect(() => {
     setHeroIndex(0);
@@ -140,72 +236,155 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     game.iconUrl,
   ]);
 
+  const achievementGameKey = `${game.shop}:${game.objectId}`;
+  const previousAchievementGameKey = useRef(achievementGameKey);
+
   useEffect(() => {
-    if (game.unlockedAchievementCount != null) {
+    const gameChanged =
+      previousAchievementGameKey.current !== achievementGameKey;
+    previousAchievementGameKey.current = achievementGameKey;
+    const needsCatalogueTotal =
+      game.shop === "epic" &&
+      (game.achievementCount ?? 0) <= 0 &&
+      game.catalogueGame?.shop === "steam";
+    if (gameChanged || (!hasStoreUnion && !needsCatalogueTotal)) {
+      setTotalAchievementsCount(game.achievementCount ?? 0);
+      setUnlockedAchievementsCount(game.unlockedAchievementCount ?? 0);
+    }
+    if (
+      game.unlockedAchievementCount != null &&
+      !hasStoreUnion &&
+      !needsCatalogueTotal
+    ) {
       setUnlockedAchievementsCount(game.unlockedAchievementCount);
       return;
     }
 
-    setUnlockedAchievementsCount(0);
-
-    if ((game.achievementCount ?? 0) <= 0) return;
+    if (
+      (game.achievementCount ?? 0) <= 0 &&
+      !hasStoreUnion &&
+      !needsCatalogueTotal
+    )
+      return;
 
     let isStale = false;
 
-    window.electron
-      .getUnlockedAchievements(game.objectId, game.shop)
-      .then((achievements) => {
-        if (isStale) return;
-        setUnlockedAchievementsCount(
-          achievements.filter((a) => a.unlocked).length
-        );
-      })
-      .catch(() => void 0);
+    const timer = setTimeout(() => {
+      window.electron
+        .getUnlockedAchievements(game.objectId, game.shop)
+        .then((achievements) => {
+          if (isStale) return;
+          // An empty legacy fallback cannot distinguish unavailable definitions
+          // from an authoritative empty catalogue. Preserve known grouped totals.
+          if (
+            (hasStoreUnion || needsCatalogueTotal) &&
+            achievements.length === 0
+          )
+            return;
+          setUnlockedAchievementsCount(
+            achievements.filter((a) => a.unlocked).length
+          );
+          // Both counts must describe the returned list, including a one-store fallback.
+          setTotalAchievementsCount(achievements.length);
+        })
+        .catch(() => void 0);
+    }, ACHIEVEMENT_PROGRESS_SETTLE_MS);
 
     return () => {
       isStale = true;
+      clearTimeout(timer);
     };
   }, [
     game.achievementCount,
+    game.catalogueGame?.shop,
+    game.catalogueGame?.objectId,
     game.objectId,
     game.shop,
     game.unlockedAchievementCount,
+    hasStoreUnion,
+    achievementMembersKey,
+    achievementGameKey,
   ]);
 
+  const rawHeroSource = heroSources[heroIndex];
+  const heroImage = useCatalogueImage(rawHeroSource, game.images);
+  const heroVariantUrl = useViewportCatalogueImageUrl(heroImage.variants);
+  const { markLoaded: markHeroLoaded, markFailed: markHeroFailed } = heroImage;
+
   useEffect(() => {
-    const currentUrl = heroSources[heroIndex];
+    const currentUrl = heroVariantUrl ?? heroSources[heroIndex];
     if (!currentUrl) return;
 
     const img = new Image();
     img.src = normalizePathForCss(currentUrl);
 
+    img.onload = markHeroLoaded;
     img.onerror = () => {
+      if (markHeroFailed()) return;
       if (heroIndex < heroSources.length - 1) {
         setHeroIndex((prev) => prev + 1);
       }
     };
 
     return () => {
+      img.onload = null;
       img.onerror = null;
     };
-  }, [heroIndex, heroSources]);
+  }, [heroIndex, heroSources, heroVariantUrl, markHeroLoaded, markHeroFailed]);
 
-  const backgroundStyle = useMemo(() => {
-    const url = heroSources[heroIndex];
-    return url ? { backgroundImage: `url("${normalizePathForCss(url)}")` } : {};
-  }, [heroIndex, heroSources]);
+  const isAnimatedHero =
+    !heroImage.variants && isAnimatedCoverCandidate(rawHeroSource);
+  const heroPoster = useCoverPoster(rawHeroSource, isAnimatedHero);
+  const shouldHoldHeroFrame =
+    isAnimatedHero && !isCoverHovered && !autoplayAnimatedArtwork;
+  const isAwaitingHeroPoster = shouldHoldHeroFrame && heroPoster === undefined;
+
+  useAnimatedSourceWarmup(
+    normalizePathForCss(rawHeroSource),
+    isAnimatedHero && !autoplayAnimatedArtwork && Boolean(heroPoster)
+  );
+
+  let displayHeroSource: string | null | undefined =
+    heroVariantUrl ?? rawHeroSource;
+  if (isAwaitingHeroPoster) {
+    displayHeroSource = undefined;
+  } else if (shouldHoldHeroFrame && heroPoster) {
+    displayHeroSource = heroPoster;
+  }
 
   const activeHeroCandidate = heroCandidates[heroIndex];
   const isActiveHeroChosen = activeHeroCandidate?.isChosen ?? false;
   const renderClassicsBlurred = isClassics && !isActiveHeroChosen;
 
+  const usesAnimatedHeroLayer = isAnimatedHero && !renderClassicsBlurred;
+
+  const animatedHeroSource = usesAnimatedHeroLayer
+    ? normalizePathForCss(displayHeroSource)
+    : "";
+
+  const heroPlaceholder = heroImage.isLoaded ? null : heroImage.placeholder;
+  const backgroundStyle = useMemo(
+    () =>
+      !usesAnimatedHeroLayer && displayHeroSource
+        ? {
+            backgroundImage: [displayHeroSource, heroPlaceholder]
+              .filter(Boolean)
+              .map((url) => `url("${normalizePathForCss(url)}")`)
+              .join(", "),
+          }
+        : {},
+    [usesAnimatedHeroLayer, displayHeroSource, heroPlaceholder]
+  );
+
   const classicsForegroundUrl = useMemo(() => {
     if (!renderClassicsBlurred || !activeHeroCandidate) return null;
 
-    return normalizePathForCss(activeHeroCandidate.url);
-  }, [renderClassicsBlurred, activeHeroCandidate]);
+    return normalizePathForCss(displayHeroSource);
+  }, [renderClassicsBlurred, activeHeroCandidate, displayHeroSource]);
 
   const logoImage = game.customLogoImageUrl ?? game.logoImageUrl;
+  const logoCatalogueImage = useCatalogueImage(logoImage, game.images);
+  const logoVariants = logoCatalogueImage.variants;
 
   const { label: classicsPlatformLabel, icon: classicsEmulatorIcon } =
     resolveClassicsBadge(
@@ -218,10 +397,17 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
       }
     );
 
+  const installedBadge =
+    !hideReadySizeBadges && isInstalled ? (
+      <InstalledBadge emulatorIcon={classicsEmulatorIcon} />
+    ) : null;
+
   return (
     <button
       type="button"
       className={`library-game-card-large ${renderClassicsBlurred ? "library-game-card-large--classics" : ""}`}
+      onMouseEnter={() => setIsCoverHovered(true)}
+      onMouseLeave={() => setIsCoverHovered(false)}
       onClick={handleCardClick}
       onContextMenu={handleContextMenuClick}
     >
@@ -229,6 +415,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         className="library-game-card-large__background"
         style={backgroundStyle}
       />
+      {usesAnimatedHeroLayer && animatedHeroSource && (
+        <img
+          src={animatedHeroSource}
+          alt=""
+          aria-hidden="true"
+          className="library-game-card-large__animated-hero"
+        />
+      )}
       {classicsForegroundUrl && (
         <img
           src={classicsForegroundUrl}
@@ -237,13 +431,14 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           loading="lazy"
         />
       )}
-      {(game.achievementCount ?? 0) > 0 && (
-        <div className="library-game-card-large__gradient" />
-      )}
+      {!hideAchievementProgress &&
+        (totalAchievementsCount > 0 || unlockedAchievementsCount > 0) && (
+          <div className="library-game-card-large__gradient" />
+        )}
 
       <div className="library-game-card-large__overlay">
         <div className="library-game-card-large__top-section">
-          {sizeBars.length > 0 && (
+          {!hideReadySizeBadges && sizeBars.length > 0 && (
             <div className="library-game-card-large__size-badges">
               {sizeBars.map((bar) => (
                 <div
@@ -265,56 +460,75 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           )}
 
           <div className="library-game-card-large__top-right">
-            {isInstalled && (
-              <div
-                className="library-game-card-large__installed-badge"
-                title={t("installed_tooltip")}
-              >
-                <CheckCircleFillIcon
-                  size={12}
-                  className="library-game-card-large__installed-icon"
-                />
-                <span className="library-game-card-large__installed-text">
-                  {t("installed")}
+            <GameVisibilityBadge
+              variant="large"
+              isHiddenFromOthers={game.isHiddenFromOthers}
+              isConcealed={game.isConcealed}
+            />
+            {!hideBadges && (
+              <div className="library-game-card-large__playtime">
+                {game.hasManuallyUpdatedPlaytime ? (
+                  <AlertFillIcon
+                    size={11}
+                    className="library-game-card-large__manual-playtime"
+                  />
+                ) : (
+                  <ClockIcon size={11} />
+                )}
+                <span className="library-game-card-large__playtime-text">
+                  {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game))}
                 </span>
               </div>
             )}
+            {(showSteamLibraryBadge || showEpicLibraryBadge) && (
+              <div className="library-game-card-large__import-badges">
+                {showSteamLibraryBadge && (
+                  <SteamLibraryBadge
+                    variant="large"
+                    availableShops={game.availableShops}
+                  />
+                )}
+                {showEpicLibraryBadge && (
+                  <SteamLibraryBadge
+                    source="epic"
+                    variant="large"
+                    availableShops={game.availableShops}
+                  />
+                )}
+              </div>
+            )}
 
-            <div className="library-game-card-large__playtime">
-              {game.hasManuallyUpdatedPlaytime ? (
-                <AlertFillIcon
-                  size={11}
-                  className="library-game-card-large__manual-playtime"
-                />
-              ) : (
-                <ClockIcon size={11} />
-              )}
-              <span className="library-game-card-large__playtime-text">
-                {formatPlayTime(game.playTimeInMilliseconds)}
-              </span>
-            </div>
-
-            {classicsPlatformLabel && (
+            {!hideClassicsBadges && classicsPlatformLabel && (
               <div className="library-game-card-large__classics-badges">
                 <span className="library-game-card-large__platform-badge">
                   {classicsPlatformLabel}
                 </span>
-                {classicsEmulatorIcon && (
-                  <span className="library-game-card-large__emulator-badge">
-                    <img src={classicsEmulatorIcon} alt="" />
-                  </span>
-                )}
               </div>
             )}
+
+            {installedBadge}
           </div>
         </div>
 
         <div className="library-game-card-large__logo-container">
           {logoImage ? (
             <img
-              src={logoImage}
+              src={
+                logoVariants
+                  ? pickCatalogueImageUrl(logoVariants, LOGO_DISPLAY_WIDTH)
+                  : logoImage
+              }
+              srcSet={
+                logoVariants
+                  ? getCatalogueImageDensitySrcSet(
+                      logoVariants,
+                      LOGO_DISPLAY_WIDTH
+                    )
+                  : undefined
+              }
               alt={game.title}
               className="library-game-card-large__logo"
+              onError={logoCatalogueImage.markFailed}
             />
           ) : (
             <h3 className="library-game-card-large__title">{game.title}</h3>
@@ -322,15 +536,19 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         </div>
 
         <div className="library-game-card-large__info-bar">
-          {(game.achievementCount ?? 0) > 0 && (
-            <AchievementProgress
-              achievementCount={game.achievementCount ?? 0}
-              unlockedAchievementCount={unlockedAchievementsCount}
-              classNamePrefix="library-game-card-large"
-              label={`${game.title} achievements`}
-              trophyIconSize={14}
-            />
-          )}
+          {!hideAchievementProgress &&
+            (totalAchievementsCount > 0 || unlockedAchievementsCount > 0) && (
+              <AchievementProgress
+                achievementCount={Math.max(
+                  totalAchievementsCount,
+                  unlockedAchievementsCount
+                )}
+                unlockedAchievementCount={unlockedAchievementsCount}
+                classNamePrefix="library-game-card-large"
+                label={`${game.title} achievements`}
+                trophyIconSize={14}
+              />
+            )}
         </div>
       </div>
     </button>

@@ -5,6 +5,7 @@ import axios from "axios";
 import { HydraApi } from "@main/services/hydra-api";
 import type {
   EmulationCloudSave,
+  EmulationSaveMetadata,
   EmulationSaveEmulator,
   EmulationSavePlatform,
   EmulatorBinary,
@@ -26,7 +27,12 @@ const SAVE_KIND = "game_save" as const;
 export const toEmulationSaveEmulator = (
   binary: EmulatorBinary
 ): EmulationSaveEmulator => {
-  if (binary !== "duckstation" && binary !== "pcsx2") {
+  if (
+    binary !== "duckstation" &&
+    binary !== "pcsx2" &&
+    binary !== "ppsspp" &&
+    binary !== "dolphin"
+  ) {
     throw new Error(`Emulator "${binary}" has no cloud emulation saves`);
   }
   return binary;
@@ -44,6 +50,7 @@ export interface UploadEmulationSaveInput {
   label: string;
   localLastModifiedAt: string; // ISO 8601
   buffer: Buffer;
+  metadata?: EmulationSaveMetadata;
 }
 
 /** Create a presigned upload, PUT the bytes, then commit — returns the save. */
@@ -80,6 +87,7 @@ export const uploadEmulationSave = async (
       hostname: os.hostname(),
       localLastModifiedAt: input.localLastModifiedAt,
       label: input.label,
+      ...(input.metadata ? { metadata: input.metadata } : {}),
     },
     SUB
   );

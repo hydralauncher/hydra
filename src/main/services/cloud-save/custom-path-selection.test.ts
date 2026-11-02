@@ -3,11 +3,47 @@ import { describe, it } from "node:test";
 
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
+  assertCloudSaveCustomPathKindAllowed,
   getCloudSaveCustomPathSelectionFailure,
   hasEligibleCloudSaveCustomPathFiles,
 } from "./custom-path-selection-policy.ts";
 
 describe("cloud save custom path selection", () => {
+  it("rejects direct file selection for Steam and unsupported LaunchBox games", () => {
+    assert.throws(
+      () => assertCloudSaveCustomPathKindAllowed("file", "steam"),
+      /cloud_save_custom_path_file_not_supported/
+    );
+    assert.throws(
+      () =>
+        assertCloudSaveCustomPathKindAllowed(
+          "file",
+          "launchbox",
+          "Unsupported Platform"
+        ),
+      /cloud_save_custom_path_file_not_supported/
+    );
+    assert.throws(
+      () =>
+        assertCloudSaveCustomPathKindAllowed(
+          "file",
+          "launchbox",
+          "Sony PlayStation 2"
+        ),
+      /cloud_save_custom_path_file_not_supported/
+    );
+    assert.doesNotThrow(() =>
+      assertCloudSaveCustomPathKindAllowed("dir", "steam")
+    );
+    assert.doesNotThrow(() =>
+      assertCloudSaveCustomPathKindAllowed(
+        "file",
+        "launchbox",
+        "Super Nintendo"
+      )
+    );
+  });
+
   it("requires a file discovered under the selected custom path", () => {
     const rawPath = "<custom><windows><winDocuments>/Game";
 

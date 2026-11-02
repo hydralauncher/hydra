@@ -51,12 +51,12 @@
       color 0.1s ease-in-out;
 
     &:hover:not(&--disabled) {
-      background-color: globals.$background-color;
+      background-color: rgba(255, 255, 255, 0.15);
       color: globals.$body-color;
     }
 
     &:active:not(&--disabled) {
-      background-color: rgba(255, 255, 255, 0.08);
+      background-color: rgba(255, 255, 255, 0.22);
     }
 
     &--disabled {
@@ -70,10 +70,12 @@
 
       &:hover:not(.context-menu__item--disabled) {
         background-color: rgba(225, 29, 72, 0.18);
+        color: globals.$error-color;
       }
 
       &:active:not(.context-menu__item--disabled) {
         background-color: rgba(225, 29, 72, 0.28);
+        color: globals.$error-color;
       }
 
       .context-menu__item-icon {
@@ -86,7 +88,7 @@
     }
 
     &--active {
-      background-color: globals.$background-color;
+      background-color: rgba(255, 255, 255, 0.1);
       color: globals.$body-color;
     }
   }

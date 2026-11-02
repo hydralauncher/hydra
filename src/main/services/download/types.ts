@@ -12,7 +12,29 @@ export enum LibtorrentStatus {
   Downloading = 3,
   Finished = 4,
   Seeding = 5,
+  CheckingResumeData = 7,
 }
+
+export const isVerifyingStatus = (
+  status: LibtorrentStatus | number
+): boolean => {
+  return (
+    status === LibtorrentStatus.CheckingFiles ||
+    status === LibtorrentStatus.CheckingResumeData
+  );
+};
+
+export const isQueueVerifyCandidate = (download: {
+  bytesDownloaded?: number | null;
+  folderName?: string | null;
+  fileIndices?: number[] | null;
+}): download is {
+  bytesDownloaded?: number | null;
+  folderName: string;
+  fileIndices?: number[] | null;
+} => {
+  return (download.bytesDownloaded ?? 0) <= 0 && !!download.folderName;
+};
 
 export interface LibtorrentPayload {
   progress: number;
@@ -30,6 +52,7 @@ export interface LibtorrentPayload {
 export interface ProcessPayload {
   exe: string | null;
   pid: number;
+  parentPid?: number | null;
   name: string;
   environ?: Record<string, string> | null;
   cwd?: string | null;

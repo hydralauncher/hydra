@@ -1,0 +1,224 @@
+@use "../../scss/globals.scss";
+
+$faded-text: rgba(globals.$body-color, 0.7);
+$meta-text: rgba(globals.$body-color, 0.6);
+$pill-border: rgba(255, 255, 255, 0.12);
+// Error text on the tinted banner, at 7:1.
+$error-text: #fda4af;
+
+// Extends `.modal`; the chat window can be narrower than its min-width. It is
+// a native <dialog>, so its default placement and padding are reset.
+.chat-report-modal {
+  position: relative;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  width: 400px;
+  min-width: 0;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+
+  &__close {
+    position: absolute;
+    top: calc(globals.$spacing-unit * 1.5);
+    right: calc(globals.$spacing-unit * 1.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px calc(globals.$spacing-unit * 2)
+      calc(globals.$spacing-unit * 2);
+  }
+
+  &__title {
+    margin: 0;
+    padding-right: 32px;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 24px;
+    color: globals.$muted-color;
+  }
+
+  &__reasons {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  &__label {
+    padding: 0;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    color: globals.$muted-color;
+  }
+
+  &__reasons &__label {
+    margin-bottom: globals.$spacing-unit;
+  }
+
+  &__reason-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  // Selecting a reason only recolors its pill, so the rows never reflow.
+  &__reason {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    box-sizing: border-box;
+    border: 1px solid $pill-border;
+    border-radius: 999px;
+    font-size: 13px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      color: globals.$muted-color;
+    }
+
+    &:has(:focus-visible) {
+      outline: 2px solid globals.$muted-color;
+      outline-offset: 2px;
+    }
+
+    &--selected,
+    &--selected:hover {
+      background-color: globals.$muted-color;
+      border-color: transparent;
+      color: globals.$background-color;
+    }
+  }
+
+  // Visually hidden; the label is the target.
+  &__reason-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &__details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__details-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+  }
+
+  &__optional {
+    font-weight: 400;
+    color: $meta-text;
+  }
+
+  &__counter {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: $meta-text;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__textarea {
+    box-sizing: border-box;
+    width: 100%;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+    resize: none;
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    outline: none;
+    color: globals.$muted-color;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 18px;
+    transition: border-color 0.2s ease;
+
+    &::placeholder {
+      color: $meta-text;
+    }
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:focus {
+      border-color: #dadbe1;
+    }
+  }
+
+  &__error {
+    display: flex;
+    align-items: flex-start;
+    gap: globals.$spacing-unit;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+    background-color: rgba(globals.$error-color, 0.12);
+    border: 1px solid rgba(globals.$error-color, 0.35);
+    border-radius: 8px;
+    color: $error-text;
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+  }
+
+  &__error-icon {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  // Keeps its look while sending, so nothing flickers before the dialog closes.
+  &__send--busy {
+    cursor: default;
+
+    &:active {
+      opacity: 1;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: globals.$spacing-unit;
+    padding-top: 2px;
+
+    > * {
+      flex: 1;
+    }
+  }
+}

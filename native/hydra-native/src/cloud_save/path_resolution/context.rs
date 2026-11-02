@@ -148,11 +148,12 @@ pub fn build_context(input: &ResolveSaveRulesInput) -> Result<PathResolutionCont
         ),
     };
 
-    let derived_steam_root = derived_steam_root(input.executable_path.as_deref());
-    let configured_steam_root = input
-        .steam_path
-        .as_deref()
-        .map(normalize_separators)
+    let derived_steam_root = (!input.shop.eq_ignore_ascii_case("epic"))
+        .then(|| derived_steam_root(input.executable_path.as_deref()))
+        .flatten();
+    let configured_steam_root = (!input.shop.eq_ignore_ascii_case("epic"))
+        .then(|| input.steam_path.as_deref().map(normalize_separators))
+        .flatten()
         .filter(|root| derived_steam_root.as_ref() != Some(root));
     let windows_compatibility = input.platform == "linux"
         && input

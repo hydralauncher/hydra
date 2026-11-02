@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { gamesSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
 import { registerEvent } from "../register-event";
@@ -13,8 +14,7 @@ const toggleGameMangohud = async (
 
   if (!game) return;
 
-  await gamesSublevel.put(gameKey, {
-    ...game,
+  await updateGameRecord(gameKey, {
     autoRunMangohud,
   });
 };

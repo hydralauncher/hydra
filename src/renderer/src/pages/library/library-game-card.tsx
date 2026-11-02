@@ -1,14 +1,26 @@
 import { LibraryGame } from "@types";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
+import cn from "classnames";
+import { getLibraryPresentationImportSources } from "./library-category";
 import {
   useGameCard,
   useCoverPoster,
   isAnimatedCoverCandidate,
+  useAppSelector,
+  useAnimatedSourceWarmup,
+  useCatalogueImage,
 } from "@renderer/hooks";
 import {
+  getCatalogueImageSrcSet,
+  pickCatalogueImageUrl,
+} from "@renderer/helpers/catalogue-images";
+import {
   CLASSICS_PS_PLATFORM_LABELS,
+  isGameReadyToPlay,
   resolveClassicsBadge,
 } from "@renderer/helpers";
-import { AchievementProgress } from "@renderer/components";
+import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
+import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 import { memo, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,6 +35,8 @@ import {
 } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card.scss";
 import { logger } from "@renderer/logger";
+
+const COVER_DISPLAY_WIDTH = 300;
 
 interface LibraryGameCardProps {
   game: LibraryGame;
@@ -42,7 +56,25 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
     useGameCard(game, onContextMenu);
 
-  const isInstalled = Boolean(game.executablePath);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+  const hideBadges = userPreferences?.hideLibraryGameBadges ?? false;
+  const hideReadySizeBadges =
+    userPreferences?.hideLibraryReadySizeBadges ?? false;
+  const hideClassicsBadges =
+    userPreferences?.hideLibraryClassicsBadges ?? false;
+  const importSources = getLibraryPresentationImportSources(game);
+  const showEpicLibraryBadge =
+    importSources.epic && !userPreferences?.hideEpicLibraryBadges;
+  const showSteamLibraryBadge =
+    importSources.steam && !userPreferences?.hideSteamLibraryBadges;
+  const hideAchievementProgress =
+    userPreferences?.hideLibraryAchievementProgress ?? false;
+  const autoplayAnimatedArtwork =
+    userPreferences?.autoplayAnimatedArtwork ?? false;
+
+  const isInstalled = isGameReadyToPlay(game);
 
   const hasPickedCover = Boolean(game.selectedArtworkTypes?.includes("grid"));
 
@@ -92,11 +124,22 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const isChosenCoverActive = Boolean(candidates[fallbackIndex]?.isChosenCover);
 
   const rawActiveSource = sources[fallbackIndex];
-  const isAnimatedCover = isAnimatedCoverCandidate(rawActiveSource);
+  const catalogueImage = useCatalogueImage(rawActiveSource, game.images);
+  const coverVariants = catalogueImage.variants;
+  const isAnimatedCover =
+    !coverVariants && isAnimatedCoverCandidate(rawActiveSource);
   const coverPoster = useCoverPoster(rawActiveSource, isAnimatedCover);
   const [isCoverHovered, setIsCoverHovered] = useState(false);
+  const shouldHoldFrame =
+    isAnimatedCover && !isCoverHovered && !autoplayAnimatedArtwork;
+  const isAwaitingPoster = shouldHoldFrame && coverPoster === undefined;
+
+  useAnimatedSourceWarmup(
+    activeImageSource,
+    isAnimatedCover && !autoplayAnimatedArtwork && Boolean(coverPoster)
+  );
   const displayImageSource =
-    isAnimatedCover && coverPoster && !isCoverHovered
+    shouldHoldFrame && coverPoster
       ? resolveImageSource(coverPoster)
       : activeImageSource;
 
@@ -111,7 +154,13 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       }
     );
 
+  const showPlatformBadge =
+    !hideClassicsBadges && Boolean(classicsPlatformLabel);
+  const showReadyBadge = !hideReadySizeBadges && isInstalled;
+
   const handleImageError = () => {
+    if (catalogueImage.markFailed()) return;
+
     logger.warn(`Image failed to load for ${game.title}`, {
       failedUrl: sources[fallbackIndex],
       level: fallbackIndex,
@@ -144,6 +193,10 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       );
     }
 
+    if (isAwaitingPoster) {
+      return <div className="library-game-card__cover-placeholder" />;
+    }
+
     if (game.shop === "launchbox" && !isChosenCoverActive) {
       return (
         <div className="library-game-card__classics-cover">
@@ -168,12 +221,23 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
     return (
       <img
-        src={displayImageSource}
+        src={
+          coverVariants
+            ? pickCatalogueImageUrl(coverVariants, COVER_DISPLAY_WIDTH)
+            : displayImageSource
+        }
+        srcSet={
+          coverVariants ? getCatalogueImageSrcSet(coverVariants) : undefined
+        }
+        sizes={coverVariants ? `auto, ${COVER_DISPLAY_WIDTH}px` : undefined}
+        style={catalogueImage.placeholderStyle}
         alt={game.title}
         className={`library-game-card__game-image ${
           isChosenCoverActive ? "library-game-card__game-image--contain" : ""
         }`}
         loading="lazy"
+        decoding="async"
+        onLoad={catalogueImage.markLoaded}
         onError={handleImageError}
       />
     );
@@ -185,68 +249,117 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       onMouseEnter={() => setIsCoverHovered(true)}
       onMouseLeave={() => setIsCoverHovered(false)}
       className="library-game-card__wrapper"
-      title={game.title}
       onClick={handleCardClick}
       onContextMenu={handleContextMenuClick}
     >
       <div
-        className={`library-game-card__overlay${game.shop === "launchbox" && !isChosenCoverActive ? " library-game-card__overlay--classics" : ""}${(game.achievementCount ?? 0) > 0 ? "" : " library-game-card__overlay--no-fade"}`}
+        className={cn("library-game-card__overlay", {
+          "library-game-card__overlay--classics":
+            game.shop === "launchbox" && !isChosenCoverActive,
+          "library-game-card__overlay--no-fade":
+            hideAchievementProgress ||
+            ((game.achievementCount ?? 0) === 0 &&
+              (game.unlockedAchievementCount ?? 0) === 0),
+        })}
       >
         <div className="library-game-card__top-section">
-          <div className="library-game-card__playtime">
-            {game.hasManuallyUpdatedPlaytime ? (
-              <AlertFillIcon
-                size={11}
-                className="library-game-card__manual-playtime"
-              />
-            ) : (
-              <ClockIcon size={11} />
+          <div className="library-game-card__top-left">
+            <GameVisibilityBadge
+              isHiddenFromOthers={game.isHiddenFromOthers}
+              isConcealed={game.isConcealed}
+            />
+            {!hideBadges && (
+              <div className="library-game-card__playtime">
+                {game.hasManuallyUpdatedPlaytime ? (
+                  <AlertFillIcon
+                    size={11}
+                    className="library-game-card__manual-playtime"
+                  />
+                ) : (
+                  <ClockIcon size={11} />
+                )}
+                <span className="library-game-card__playtime-long">
+                  {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game))}
+                </span>
+                <span className="library-game-card__playtime-short">
+                  {formatPlayTime(
+                    getDisplayedPlayTimeInMilliseconds(game),
+                    true
+                  )}
+                </span>
+              </div>
             )}
-            <span className="library-game-card__playtime-long">
-              {formatPlayTime(game.playTimeInMilliseconds)}
-            </span>
-            <span className="library-game-card__playtime-short">
-              {formatPlayTime(game.playTimeInMilliseconds, true)}
-            </span>
           </div>
 
-          {classicsPlatformLabel && (
-            <div className="library-game-card__classics-badges">
-              <span className="library-game-card__platform-badge">
-                {classicsPlatformLabel}
-              </span>
-              {classicsEmulatorIcon && (
-                <span className="library-game-card__emulator-badge">
-                  <img src={classicsEmulatorIcon} alt="" />
-                </span>
+          {(showSteamLibraryBadge ||
+            showEpicLibraryBadge ||
+            showPlatformBadge ||
+            showReadyBadge) && (
+            <div className="library-game-card__top-right">
+              {(showSteamLibraryBadge || showEpicLibraryBadge) && (
+                <div className="library-game-card__import-badges">
+                  {showSteamLibraryBadge && (
+                    <SteamLibraryBadge availableShops={game.availableShops} />
+                  )}
+                  {showEpicLibraryBadge && (
+                    <SteamLibraryBadge
+                      source="epic"
+                      availableShops={game.availableShops}
+                    />
+                  )}
+                </div>
               )}
-            </div>
-          )}
 
-          {isInstalled && (
-            <div
-              className="library-game-card__installed-badge"
-              title={t("installed_tooltip")}
-            >
-              <CheckCircleFillIcon
-                size={11}
-                className="library-game-card__installed-icon"
-              />
-              <span className="library-game-card__installed-text">
-                {t("installed")}
-              </span>
+              {showPlatformBadge && (
+                <div className="library-game-card__classics-badges">
+                  <span className="library-game-card__platform-badge">
+                    {classicsPlatformLabel}
+                  </span>
+                </div>
+              )}
+
+              {showReadyBadge && (
+                <div
+                  className={cn("library-game-card__installed-badge", {
+                    "library-game-card__installed-badge--classics":
+                      classicsEmulatorIcon,
+                  })}
+                  title={t("installed_tooltip")}
+                >
+                  {classicsEmulatorIcon ? (
+                    <img
+                      src={classicsEmulatorIcon}
+                      alt=""
+                      className="library-game-card__installed-emulator-icon"
+                    />
+                  ) : (
+                    <CheckCircleFillIcon
+                      size={11}
+                      className="library-game-card__installed-icon"
+                    />
+                  )}
+                  <span className="library-game-card__installed-text">
+                    {t("installed")}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {(game.achievementCount ?? 0) > 0 && (
-          <AchievementProgress
-            achievementCount={game.achievementCount ?? 0}
-            unlockedAchievementCount={game.unlockedAchievementCount ?? 0}
-            classNamePrefix="library-game-card"
-            label={`${game.title} achievements`}
-          />
-        )}
+        {!hideAchievementProgress &&
+          ((game.achievementCount ?? 0) > 0 ||
+            (game.unlockedAchievementCount ?? 0) > 0) && (
+            <AchievementProgress
+              achievementCount={Math.max(
+                game.achievementCount ?? 0,
+                game.unlockedAchievementCount ?? 0
+              )}
+              unlockedAchievementCount={game.unlockedAchievementCount ?? 0}
+              classNamePrefix="library-game-card"
+              label={`${game.title} achievements`}
+            />
+          )}
       </div>
 
       {renderCoverMedia()}

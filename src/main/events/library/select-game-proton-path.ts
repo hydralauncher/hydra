@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import fs from "node:fs";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
@@ -17,8 +18,7 @@ const selectGameProtonPath = async (
   if (!game) return;
 
   if (!protonPath) {
-    await gamesSublevel.put(gameKey, {
-      ...game,
+    await updateGameRecord(gameKey, {
       protonPath: null,
     });
 
@@ -31,8 +31,7 @@ const selectGameProtonPath = async (
     throw new Error("Invalid proton path");
   }
 
-  await gamesSublevel.put(gameKey, {
-    ...game,
+  await updateGameRecord(gameKey, {
     protonPath: realProtonPath,
   });
 };

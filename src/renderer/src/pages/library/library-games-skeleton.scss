@@ -1,0 +1,23 @@
+.library-games-skeleton {
+  display: grid;
+  width: 100%;
+  padding-right: 16px;
+
+  &__item {
+    display: block;
+    line-height: 0;
+  }
+
+  &__card {
+    display: block;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    border-radius: 4px;
+
+    &--large {
+      aspect-ratio: auto;
+      height: 300px;
+      border-radius: 8px;
+    }
+  }
+}

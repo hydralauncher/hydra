@@ -32,19 +32,24 @@ const firmwareSearchDirs = (executablePath: string | null): string[] => {
   return dirs;
 };
 
-export const isPs3FirmwareInstalled = async (
+export const findPs3FirmwareDirectory = async (
   executablePath: string | null
-): Promise<boolean> => {
+): Promise<string | null> => {
   for (const dir of firmwareSearchDirs(executablePath)) {
     if (!existsSync(dir)) continue;
     const sysExternal = path.join(dir, "sys", "external");
     if (!existsSync(sysExternal)) continue;
     try {
       const entries = await fs.readdir(sysExternal);
-      if (entries.length > 0) return true;
+      if (entries.length > 0) return dir;
     } catch {
       // unreadable — keep looking
     }
   }
-  return false;
+  return null;
 };
+
+export const isPs3FirmwareInstalled = async (
+  executablePath: string | null
+): Promise<boolean> =>
+  (await findPs3FirmwareDirectory(executablePath)) !== null;

@@ -1,17 +1,34 @@
 import { registerEvent } from "../register-event";
 import { addGameOutsideLibrary } from "./scan-installed-games";
 import { WindowManager } from "@main/services";
+import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 
-const addScannedGame = async (
+const addScannedGames = async (
   _event: Electron.IpcMainInvokeEvent,
-  objectId: string,
-  executablePath: string
+  picks: { objectId: string; executablePath: string }[]
 ) => {
-  const addedGame = await addGameOutsideLibrary(objectId, executablePath);
+  const addedGames = await AchievementWatcherManager.runBatch(async () => {
+    const results: NonNullable<
+      Awaited<ReturnType<typeof addGameOutsideLibrary>>
+    >[] = [];
 
-  if (addedGame) WindowManager.sendToAppWindows("on-library-batch-complete");
+    for (const { objectId, executablePath } of picks) {
+      const addedGame = await addGameOutsideLibrary(
+        objectId,
+        executablePath
+      ).catch(() => null);
 
-  return addedGame;
+      if (addedGame) results.push(addedGame);
+    }
+
+    return results;
+  });
+
+  if (addedGames.length > 0) {
+    WindowManager.sendToAppWindows("on-library-batch-complete");
+  }
+
+  return addedGames;
 };
 
-registerEvent("addScannedGame", addScannedGame);
+registerEvent("addScannedGames", addScannedGames);

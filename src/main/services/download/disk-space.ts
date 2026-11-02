@@ -1,4 +1,6 @@
-import { MINIMUM_FREE_DISK_SPACE_BYTES } from "@shared";
+import { Downloader, MINIMUM_FREE_DISK_SPACE_BYTES } from "@shared";
+import path from "node:path";
+import { getReusableEpicDiskBytes } from "../epic/download";
 import type { Download } from "@types";
 import { getDiskUsage } from "../disk-usage";
 
@@ -10,25 +12,43 @@ export interface DownloadDiskSpace {
   hasEnoughSpace: boolean;
 }
 
-const getRemainingBytes = (download: Download) => {
-  const fileSize = download.selectedFilesSize ?? download.fileSize ?? 0;
+const getRemainingBytes = (
+  download: Download,
+  live?: { bytesDownloaded?: number | null; fileSize?: number | null }
+) => {
+  const liveSize =
+    live?.fileSize != null && live.fileSize > 0 ? live.fileSize : undefined;
+  const fileSize =
+    download.selectedFilesSize ?? liveSize ?? download.fileSize ?? 0;
 
   if (fileSize <= 0) return 0;
 
-  return Math.max(0, fileSize - (download.bytesDownloaded ?? 0));
+  const bytes = live?.bytesDownloaded ?? download.bytesDownloaded ?? 0;
+
+  return Math.max(0, fileSize - bytes);
 };
 
 export const getDownloadDiskSpace = async (
-  download: Download
+  download: Download,
+  live?: { bytesDownloaded?: number | null; fileSize?: number | null }
 ): Promise<DownloadDiskSpace | null> => {
   const usage = await getDiskUsage(download.downloadPath);
 
   if (!usage) return null;
 
-  const requiredBytes = Math.max(
-    getRemainingBytes(download),
-    MINIMUM_FREE_DISK_SPACE_BYTES
-  );
+  const remaining =
+    download.downloader === Downloader.Epic &&
+    download.epic &&
+    download.folderName
+      ? Math.max(
+          0,
+          download.epic.diskSizeInBytes -
+            (await getReusableEpicDiskBytes(
+              path.join(download.downloadPath, download.folderName)
+            ))
+        )
+      : getRemainingBytes(download, live);
+  const requiredBytes = Math.max(remaining, MINIMUM_FREE_DISK_SPACE_BYTES);
 
   return {
     freeBytes: usage.free,

@@ -6,12 +6,14 @@ export interface CollectionsState {
   items: GameCollection[];
   isLoading: boolean;
   hasLoaded: boolean;
+  hasFailed: boolean;
 }
 
 const initialState: CollectionsState = {
   items: [],
   isLoading: false,
   hasLoaded: false,
+  hasFailed: false,
 };
 
 const sortByName = (collections: GameCollection[]) => {
@@ -26,7 +28,11 @@ export const collectionsSlice = createSlice({
       state.items = [...action.payload];
       sortByName(state.items);
       state.hasLoaded = true;
+      state.hasFailed = false;
       state.isLoading = false;
+    },
+    setCollectionsLoadFailed: (state) => {
+      state.hasFailed = true;
     },
     setCollectionsLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
@@ -82,6 +88,7 @@ export const collectionsSlice = createSlice({
       state.items = [];
       state.isLoading = false;
       state.hasLoaded = false;
+      state.hasFailed = false;
     },
   },
 });
@@ -89,6 +96,7 @@ export const collectionsSlice = createSlice({
 export const {
   setCollections,
   setCollectionsLoading,
+  setCollectionsLoadFailed,
   addCollection,
   applyCollectionAssignment,
   clearCollections,

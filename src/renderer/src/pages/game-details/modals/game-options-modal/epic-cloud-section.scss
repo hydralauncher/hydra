@@ -1,0 +1,91 @@
+@use "../../../../scss/globals.scss";
+
+.epic-cloud-settings {
+  &__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__status-title {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+
+  &__path {
+    margin-top: globals.$spacing-unit;
+    min-width: 0;
+
+    input[readonly] {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__path-hint,
+  &__conflict-description {
+    margin: globals.$spacing-unit 0 0;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    line-height: 1.5;
+  }
+
+  &__error {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    color: globals.$error-color;
+    font-size: globals.$small-font-size;
+    line-height: 1.5;
+  }
+
+  &__error-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: calc(globals.$spacing-unit * 1.5);
+  }
+
+  &__conflict-copies {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: globals.$spacing-unit;
+    margin-top: globals.$spacing-unit;
+  }
+
+  &__conflict-copy {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 1.5);
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    min-width: 0;
+
+    span {
+      color: globals.$muted-color;
+      font-size: globals.$small-font-size;
+    }
+
+    button {
+      margin-top: auto;
+    }
+  }
+
+  @media (max-width: 680px) {
+    &__conflict-copies {
+      grid-template-columns: 1fr;
+    }
+
+    &__path .text-field-container__text-field-wrapper {
+      flex-wrap: wrap;
+
+      > button {
+        width: 100%;
+      }
+    }
+  }
+}

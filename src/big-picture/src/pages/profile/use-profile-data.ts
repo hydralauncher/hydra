@@ -1,6 +1,9 @@
 import type {
   Badge,
   ComparedAchievements,
+  ProfileSouvenir,
+  SouvenirsHiddenReason,
+  SouvenirsResponse,
   UserAchievement,
   UserFriend,
   UserFriends,
@@ -9,8 +12,16 @@ import type {
   UserProfile,
   UserStats,
 } from "@types";
-import { useCallback, useEffect, useState } from "react";
+import {
+  buildUserSouvenirsPath,
+  getSouvenirKey,
+  isAchievementConcealed,
+  normalizeProfileSouvenir,
+  SOUVENIRS_PAGE_SIZE,
+} from "@shared";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getGameIdentityKey } from "../../helpers";
+import { useUserPreferences } from "../../hooks";
 
 const PROFILE_RECENT_ACHIEVEMENT_GROUP_LIMIT = 2;
 const PROFILE_RECENT_ACHIEVEMENTS_PER_GAME = 2;
@@ -60,7 +71,8 @@ function normalizeUserProfile(profile: UserProfile): UserProfile {
 }
 
 function getComparedAchievement(
-  achievement: ProfileComparedAchievement
+  achievement: ProfileComparedAchievement,
+  showHiddenAchievements: boolean
 ): ProfileRecentAchievement | null {
   if (
     !achievement.targetStat.unlocked ||
@@ -73,7 +85,15 @@ function getComparedAchievement(
     key: `${achievement.displayName}-${achievement.targetStat.unlockTime}`,
     icon: achievement.icon,
     displayName: achievement.displayName,
-    description: achievement.description,
+    description: isAchievementConcealed(
+      {
+        hidden: achievement.hidden,
+        unlocked: Boolean(achievement.ownerStat?.unlocked),
+      },
+      showHiddenAchievements
+    )
+      ? ""
+      : achievement.description,
     unlockTime: achievement.targetStat.unlockTime,
   };
 }
@@ -237,7 +257,8 @@ async function fetchAchievementGames(
 async function fetchGameAchievements(
   game: UserGame,
   targetUserId: string,
-  isOwnProfile: boolean
+  isOwnProfile: boolean,
+  showHiddenAchievements: boolean
 ): Promise<AchievementGame> {
   if (isOwnProfile) {
     const achievements =
@@ -267,7 +288,9 @@ async function fetchGameAchievements(
   return {
     game,
     achievements: ensureArray(comparison.achievements)
-      .map(getComparedAchievement)
+      .map((achievement) =>
+        getComparedAchievement(achievement, showHiddenAchievements)
+      )
       .filter(
         (achievement): achievement is ProfileRecentAchievement =>
           achievement !== null
@@ -277,11 +300,19 @@ async function fetchGameAchievements(
 
 async function fetchRecentAchievementGroups(
   targetUserId: string,
-  isOwnProfile: boolean
+  isOwnProfile: boolean,
+  showHiddenAchievements: boolean
 ) {
   const games = await fetchAchievementGames(targetUserId);
   const settled = await Promise.allSettled(
-    games.map((game) => fetchGameAchievements(game, targetUserId, isOwnProfile))
+    games.map((game) =>
+      fetchGameAchievements(
+        game,
+        targetUserId,
+        isOwnProfile,
+        showHiddenAchievements
+      )
+    )
   );
   const achievementsByGame = settled
     .filter(
@@ -553,6 +584,8 @@ export function useRecentAchievements(
 ) {
   const [groups, setGroups] = useState<ProfileRecentAchievementGroup[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const showHiddenAchievements =
+    useUserPreferences()?.showHiddenAchievementsDescription ?? false;
 
   useEffect(() => {
     return globalThis.window.electron.onAchievementUnlocked(() => {
@@ -568,7 +601,11 @@ export function useRecentAchievements(
 
     let isMounted = true;
 
-    fetchRecentAchievementGroups(targetUserId, isOwnProfile)
+    fetchRecentAchievementGroups(
+      targetUserId,
+      isOwnProfile,
+      showHiddenAchievements
+    )
       .then((recentGroups) => {
         if (isMounted) setGroups(recentGroups);
       })
@@ -579,7 +616,177 @@ export function useRecentAchievements(
     return () => {
       isMounted = false;
     };
-  }, [hasActiveSubscription, isOwnProfile, refreshKey, targetUserId]);
+  }, [
+    hasActiveSubscription,
+    isOwnProfile,
+    refreshKey,
+    showHiddenAchievements,
+    targetUserId,
+  ]);
 
   return groups;
+}
+
+export function useProfileSouvenirs(
+  targetUserId: string | undefined,
+  isAuthenticated: boolean
+) {
+  const [souvenirs, setSouvenirs] = useState<ProfileSouvenir[]>([]);
+  const [total, setTotal] = useState(0);
+  const [hiddenReason, setHiddenReason] = useState<SouvenirsHiddenReason>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadedTargetUserId, setLoadedTargetUserId] = useState<string | null>(
+    null
+  );
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const isLoadingMoreRef = useRef(false);
+  const requestGenerationRef = useRef(0);
+
+  useEffect(() => {
+    if (!targetUserId) {
+      requestGenerationRef.current += 1;
+      setSouvenirs([]);
+      setTotal(0);
+      setHiddenReason(null);
+      setIsLoading(false);
+      setLoadedTargetUserId(null);
+      setIsLoadingMore(false);
+      isLoadingMoreRef.current = false;
+      return;
+    }
+
+    const requestGeneration = requestGenerationRef.current + 1;
+    requestGenerationRef.current = requestGeneration;
+    isLoadingMoreRef.current = false;
+    setSouvenirs([]);
+    setTotal(0);
+    setHiddenReason(null);
+    setLoadedTargetUserId(null);
+    setIsLoadingMore(false);
+    setIsLoading(true);
+    let isMounted = true;
+
+    globalThis.window.electron.hydraApi
+      .get<SouvenirsResponse | null>(
+        buildUserSouvenirsPath({ userId: targetUserId }),
+        { needsAuth: isAuthenticated }
+      )
+      .then((response) => {
+        if (isMounted && requestGenerationRef.current === requestGeneration) {
+          setSouvenirs(
+            ensureArray(response?.items).map((item) =>
+              normalizeProfileSouvenir(item)
+            )
+          );
+          setTotal(response?.total ?? 0);
+          setHiddenReason(response?.hiddenReason ?? null);
+        }
+      })
+      .catch(() => {
+        if (isMounted && requestGenerationRef.current === requestGeneration) {
+          setSouvenirs([]);
+          setTotal(0);
+          setHiddenReason(null);
+        }
+      })
+      .finally(() => {
+        if (isMounted && requestGenerationRef.current === requestGeneration) {
+          setIsLoading(false);
+          setLoadedTargetUserId(targetUserId);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, refreshKey, targetUserId]);
+
+  const refresh = useCallback(() => {
+    setRefreshKey((currentKey) => currentKey + 1);
+  }, []);
+
+  const loadMore = useCallback(async () => {
+    if (
+      !targetUserId ||
+      isLoadingMoreRef.current ||
+      souvenirs.length >= total
+    ) {
+      return;
+    }
+
+    const requestGeneration = requestGenerationRef.current;
+    const skip = souvenirs.length;
+    isLoadingMoreRef.current = true;
+    setIsLoadingMore(true);
+
+    try {
+      const response =
+        await globalThis.window.electron.hydraApi.get<SouvenirsResponse | null>(
+          buildUserSouvenirsPath({
+            userId: targetUserId,
+            skip,
+            take: SOUVENIRS_PAGE_SIZE,
+          }),
+          { needsAuth: isAuthenticated }
+        );
+
+      if (requestGenerationRef.current !== requestGeneration) return;
+
+      setSouvenirs((current) => {
+        const knownKeys = new Set(
+          current.map((souvenir) => getSouvenirKey(souvenir.id))
+        );
+        const nextItems = ensureArray(response?.items)
+          .map((item) => normalizeProfileSouvenir(item))
+          .filter((souvenir) => !knownKeys.has(getSouvenirKey(souvenir.id)));
+
+        return [...current, ...nextItems];
+      });
+      setTotal(response?.total ?? total);
+      setHiddenReason(response?.hiddenReason ?? null);
+    } catch {
+      // Keep the already loaded page visible and allow a later retry.
+    } finally {
+      if (requestGenerationRef.current === requestGeneration) {
+        isLoadingMoreRef.current = false;
+        setIsLoadingMore(false);
+      }
+    }
+  }, [isAuthenticated, souvenirs.length, targetUserId, total]);
+
+  const updateSouvenir = useCallback(
+    (souvenirId: string, update: Partial<ProfileSouvenir>) => {
+      setSouvenirs((current) =>
+        current.map((souvenir) =>
+          souvenir.id === souvenirId ? { ...souvenir, ...update } : souvenir
+        )
+      );
+    },
+    []
+  );
+
+  const removeSouvenir = useCallback((souvenirId: string) => {
+    setSouvenirs((current) =>
+      current.filter((souvenir) => souvenir.id !== souvenirId)
+    );
+    setTotal((current) => Math.max(0, current - 1));
+  }, []);
+
+  const hasLoadedTarget = loadedTargetUserId === targetUserId;
+  const visibleSouvenirs = hasLoadedTarget ? souvenirs : [];
+  const visibleTotal = hasLoadedTarget ? total : 0;
+
+  return {
+    souvenirs: visibleSouvenirs,
+    total: visibleTotal,
+    hiddenReason: hasLoadedTarget ? hiddenReason : null,
+    isLoading: Boolean(targetUserId) && (isLoading || !hasLoadedTarget),
+    hasMore: visibleSouvenirs.length < visibleTotal,
+    isLoadingMore,
+    refresh,
+    loadMore,
+    updateSouvenir,
+    removeSouvenir,
+  };
 }

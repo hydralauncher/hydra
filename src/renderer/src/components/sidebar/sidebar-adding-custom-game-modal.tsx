@@ -7,7 +7,7 @@ import { Modal, TextField, Button } from "@renderer/components";
 import { useLibrary, useToast } from "@renderer/hooks";
 import {
   buildGameDetailsPath,
-  generateRandomGradient,
+  getGameTitleFromExecutablePath,
 } from "@renderer/helpers";
 import { LINUX_GAME_EXECUTABLE_EXTENSIONS } from "@shared";
 
@@ -64,12 +64,14 @@ export function SidebarAddingCustomGameModal({
 
     if (filePaths && filePaths.length > 0) {
       const selectedPath = filePaths[0];
+      const previousTitle = executablePath
+        ? getGameTitleFromExecutablePath(executablePath)
+        : "";
+
       setExecutablePath(selectedPath);
 
-      if (!gameName.trim()) {
-        const fileName = selectedPath.split(/[\\/]/).pop() || "";
-        const gameNameFromFile = fileName.replace(/\.[^/.]+$/, "");
-        setGameName(gameNameFromFile);
+      if (!gameName.trim() || gameName === previousTitle) {
+        setGameName(getGameTitleFromExecutablePath(selectedPath));
       }
     }
   };
@@ -87,18 +89,12 @@ export function SidebarAddingCustomGameModal({
     setIsAdding(true);
 
     try {
-      // Generate gradient URL only for hero image
-      const gameNameForSeed = gameName.trim();
-      const iconUrl = ""; // Don't use gradient for icon
-      const logoImageUrl = ""; // Don't use gradient for logo
-      const libraryHeroImageUrl = generateRandomGradient(); // Only use gradient for hero
-
       const newGame = await window.electron.addCustomGameToLibrary(
-        gameNameForSeed,
+        gameName.trim(),
         executablePath,
-        iconUrl,
-        logoImageUrl,
-        libraryHeroImageUrl
+        "",
+        "",
+        ""
       );
 
       showSuccessToast(t("custom_game_modal_success"));

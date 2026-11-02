@@ -317,13 +317,15 @@
     margin-top: calc(globals.$spacing-unit * 2);
   }
 
-  &__missing-executable {
+  &__missing-executable,
+  &__required-setup {
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
   }
 
-  &__missing-executable-copy {
+  &__missing-executable-copy,
+  &__required-setup-copy {
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit / 2);
@@ -339,6 +341,19 @@
       color: globals.$muted-color;
       font-size: globals.$small-font-size;
       line-height: 1.4;
+    }
+  }
+
+  &__required-setup-link {
+    align-self: flex-start;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: globals.$disabled-opacity;
     }
   }
 
@@ -481,6 +496,32 @@
     gap: calc(globals.$spacing-unit * 1.5);
     min-width: 0;
     height: 100%;
+  }
+
+  &__card-sources {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+    font-size: globals.$small-font-size;
+  }
+
+  &__card-source {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    button {
+      flex-shrink: 0;
+    }
   }
 
   &__browser-toolbar {
@@ -955,49 +996,9 @@
     flex-shrink: 0;
   }
 
+  // Look comes from the shared small Button.
   &__browser-path-action {
-    display: inline-flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit / 2);
     flex-shrink: 0;
-    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
-    border: 1px solid globals.$border-color;
-    border-radius: 4px;
-    color: globals.$muted-color;
-    cursor: pointer;
-    font-size: 11px;
-
-    > svg {
-      width: 15px;
-      height: 15px;
-      flex: 0 0 15px;
-    }
-
-    &:hover:not(:disabled) {
-      border-color: rgba(255, 255, 255, 0.18);
-      background: rgba(255, 255, 255, 0.05);
-      color: globals.$body-color;
-    }
-
-    &--remove:hover:not(:disabled) {
-      border-color: rgba(255, 82, 82, 0.35);
-      color: #ff7373;
-    }
-
-    &--rebind:hover:not(:disabled) {
-      border-color: rgba(255, 255, 255, 0.25);
-      color: globals.$body-color;
-    }
-
-    &:disabled {
-      cursor: default;
-      opacity: globals.$disabled-opacity;
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 2px;
-    }
   }
 
   &__browser-missing-side {

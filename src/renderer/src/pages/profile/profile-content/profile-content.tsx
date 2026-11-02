@@ -1,10 +1,35 @@
 import { userProfileContext } from "@renderer/context";
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  getProfileLibraryFilter,
+  readStoredProfilePlatform,
+  readStoredProfileSort,
+  readStoredSouvenirSort,
+} from "@renderer/helpers";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ProfileHero } from "../profile-hero/profile-hero";
-import { useAppDispatch, useFormat, useUserDetails } from "@renderer/hooks";
+import {
+  useAppDispatch,
+  useAppSelector,
+  useFeature,
+  useFormat,
+  useUserDetails,
+} from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { useTranslation } from "react-i18next";
 import type { GameShop } from "@types";
+import {
+  AuthPage,
+  findSouvenirByNotificationTarget,
+  isAchievementSouvenirsEnabled,
+  useSouvenirContentWarning,
+} from "@shared";
 import { LockedProfile } from "./locked-profile";
 import { ReportProfile } from "../report-profile/report-profile";
 import { BadgesBox } from "./badges-box";
@@ -13,17 +38,40 @@ import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
 import { ProfileSection } from "../profile-section/profile-section";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
-import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { ProfileTabs, type ProfileTabType } from "./profile-tabs";
 import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
+import { SouvenirsTab } from "./souvenirs-tab";
+import { ScreenshotsTab } from "./screenshots-tab";
+import {
+  applyProfileScreenshotsTotalUpdate,
+  type ProfileScreenshotsTotalUpdate,
+} from "./screenshots-total";
+import { SouvenirLightbox } from "./souvenir-lightbox";
+import { useSouvenirActions } from "./use-souvenir-actions";
 import type { ProfilePlatform } from "./library-tab";
 import { AnimatePresence } from "framer-motion";
-import { AuthPage } from "@shared";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ConfirmationModal } from "@renderer/components";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
+
+const getRequestedProfileTab = (
+  requestedTab: string | null,
+  hasRequestedScreenshot: boolean,
+  isScreenshotsEnabled: boolean
+): ProfileTabType => {
+  if (requestedTab === "souvenirs") return "souvenirs";
+  if (
+    isScreenshotsEnabled &&
+    (requestedTab === "screenshots" || hasRequestedScreenshot)
+  ) {
+    return "screenshots";
+  }
+  return "library";
+};
 
 interface UserReview {
   id: string;
@@ -81,27 +129,97 @@ export function ProfileContent() {
     libraryGames,
     pinnedGames,
     getUserStats,
+    getUserProfile,
     getUserLibraryGames,
     loadMoreLibraryGames,
     hasMoreLibraryGames,
     isLoadingLibraryGames,
+    hasLoadedLibraryGames,
+    souvenirs,
+    souvenirsTotal,
+    hasReachedSouvenirLimit,
+    souvenirsHiddenReason,
+    hasMoreSouvenirs,
+    isLoadingSouvenirs,
+    getUserSouvenirs,
+    loadMoreSouvenirs,
+    updateSouvenir,
+    removeSouvenir,
+    loadedLibrarySortBy,
   } = useContext(userProfileContext);
   const { userDetails } = useUserDetails();
-  const [statsIndex, setStatsIndex] = useState(0);
-  const [sortBy, setSortBy] = useState<SortOption>("playedRecently");
-  const [platform, setPlatform] = useState<ProfilePlatform>("all");
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const requestedSouvenir = searchParams.get("souvenir");
+  const requestedScreenshot = searchParams.get("screenshot");
+  const { userId: routeUserId } = useParams();
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
+  const attemptedDeepLinkPagesRef = useRef(new Set<string>());
+  const souvenirsEnabled = useAppSelector((state) =>
+    isAchievementSouvenirsEnabled(
+      state.userPreferences.value?.enableAchievementSouvenirs,
+      window.electron.platform
+    )
+  );
+  const disableNsfwAlert = useAppSelector(
+    (state) => state.userPreferences.value?.disableNsfwAlert === true
+  );
+  const [sortBy, setSortBy] = useState<SortOption>(readStoredProfileSort);
+
+  const prefetchedSortBy = useRef(readStoredProfileSort()).current;
+
+  const handleSortChange = useCallback((nextSortBy: SortOption) => {
+    setSortBy(nextSortBy);
+    localStorage.setItem("profile-sort-by", nextSortBy);
+  }, []);
+  const [platform, setPlatform] = useState<ProfilePlatform>(
+    readStoredProfilePlatform
+  );
+
+  const handlePlatformChange = useCallback((nextPlatform: ProfilePlatform) => {
+    setPlatform(nextPlatform);
+    localStorage.setItem("profile-platform", nextPlatform);
+  }, []);
   const effectiveSortBy =
     !userProfile?.hasActiveSubscription && sortBy === "achievementCount"
       ? "playedRecently"
       : sortBy;
 
-  const shops = useMemo<string[]>(() => {
-    if (platform === "pc") return ["steam"];
-    if (platform === "classics") return ["launchbox"];
-    return ["steam", "launchbox"];
-  }, [platform]);
+  const isCorrectingPrefetchedSort =
+    Boolean(userProfile) &&
+    sortBy === prefetchedSortBy &&
+    effectiveSortBy !== prefetchedSortBy &&
+    loadedLibrarySortBy !== effectiveSortBy;
 
-  const [activeTab, setActiveTab] = useState<ProfileTabType>("library");
+  const libraryFilter = useMemo(
+    () => getProfileLibraryFilter(platform),
+    [platform]
+  );
+
+  const [activeTab, setActiveTab] = useState<ProfileTabType>(() =>
+    getRequestedProfileTab(
+      requestedTab,
+      Boolean(requestedScreenshot),
+      isScreenshotsEnabled
+    )
+  );
+  const [screenshotsTotal, setScreenshotsTotal] = useState<number | null>(null);
+  const screenshotsProfileRef = useRef(userProfile);
+  screenshotsProfileRef.current = userProfile;
+  const handleScreenshotsTotalUpdate = useCallback(
+    (update: ProfileScreenshotsTotalUpdate) => {
+      setScreenshotsTotal((current) =>
+        applyProfileScreenshotsTotalUpdate(
+          current,
+          update,
+          screenshotsProfileRef.current
+        )
+      );
+    },
+    []
+  );
 
   // User reviews state
   const [reviews, setReviews] = useState<UserReview[]>([]);
@@ -115,6 +233,94 @@ export function ProfileContent() {
 
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
+  const {
+    likingKeys,
+    visibilityKeys,
+    deletingKeys,
+    reportingKeys,
+    reportedKeys,
+    likeSouvenir,
+    changeSouvenirVisibility,
+    deleteSouvenir,
+    reportSouvenir,
+  } = useSouvenirActions({
+    ownerUserId: userProfile?.id,
+    canLike: Boolean(userDetails),
+    canReport: Boolean(userDetails) && !isMe,
+    updateSouvenir,
+    removeSouvenir,
+  });
+  const {
+    openSouvenirKey,
+    openSouvenirIndex,
+    openSouvenir: souvenir,
+    pendingSouvenir,
+    requestOpenSouvenir,
+    confirmContentWarning,
+    dismissContentWarning,
+    closeSouvenir,
+  } = useSouvenirContentWarning({
+    souvenirs,
+    disableNsfwAlert,
+    ownerUserId: userProfile?.id,
+  });
+
+  const clearRequestedSouvenir = useCallback(() => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("souvenir");
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const clearRequestedScreenshot = useCallback(() => {
+    setSearchParams(
+      (current) => {
+        const nextParams = new URLSearchParams(current);
+        nextParams.delete("screenshot");
+        return nextParams;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
+
+  useEffect(() => {
+    attemptedDeepLinkPagesRef.current.clear();
+  }, [requestedSouvenir, userProfile?.id]);
+
+  useEffect(() => {
+    if (!requestedSouvenir || !userProfile?.id) return;
+
+    setActiveTab("souvenirs");
+    const normalizedTarget = requestedSouvenir.toLowerCase();
+    const match = findSouvenirByNotificationTarget(
+      souvenirs,
+      requestedSouvenir
+    );
+
+    if (match) {
+      requestOpenSouvenir(match);
+      clearRequestedSouvenir();
+      return;
+    }
+
+    if (isLoadingSouvenirs) return;
+    const pageKey = `${normalizedTarget}:${souvenirs.length}`;
+    if (hasMoreSouvenirs && !attemptedDeepLinkPagesRef.current.has(pageKey)) {
+      attemptedDeepLinkPagesRef.current.add(pageKey);
+      void loadMoreSouvenirs(readStoredSouvenirSort());
+      return;
+    }
+
+    clearRequestedSouvenir();
+  }, [
+    clearRequestedSouvenir,
+    hasMoreSouvenirs,
+    isLoadingSouvenirs,
+    loadMoreSouvenirs,
+    requestOpenSouvenir,
+    requestedSouvenir,
+    souvenirs,
+    userProfile?.id,
+  ]);
 
   const formatPlayTime = (playTimeInSeconds: number) => {
     const minutes = playTimeInSeconds / 60;
@@ -139,15 +345,15 @@ export function ProfileContent() {
 
   useEffect(() => {
     if (userProfile) {
-      getUserLibraryGames(effectiveSortBy, true, shops);
+      getUserLibraryGames(effectiveSortBy, true, libraryFilter);
     }
-  }, [effectiveSortBy, shops, getUserLibraryGames, userProfile]);
+  }, [effectiveSortBy, libraryFilter, getUserLibraryGames, userProfile]);
 
   useEffect(() => {
     if (userProfile) {
-      getUserStats(shops);
+      getUserStats(libraryFilter);
     }
-  }, [shops, getUserStats, userProfile]);
+  }, [libraryFilter, getUserStats, userProfile]);
 
   const handleLoadMore = useCallback(() => {
     if (
@@ -155,7 +361,7 @@ export function ProfileContent() {
       hasMoreLibraryGames &&
       !isLoadingLibraryGames
     ) {
-      loadMoreLibraryGames(effectiveSortBy, shops);
+      loadMoreLibraryGames(effectiveSortBy, libraryFilter);
     }
   }, [
     activeTab,
@@ -163,13 +369,13 @@ export function ProfileContent() {
     isLoadingLibraryGames,
     loadMoreLibraryGames,
     effectiveSortBy,
-    shops,
+    libraryFilter,
   ]);
 
   useEffect(() => {
     const handlePinToggled = () => {
       if (userProfile) {
-        getUserLibraryGames(effectiveSortBy, true, shops);
+        getUserLibraryGames(effectiveSortBy, true, libraryFilter);
       }
     };
 
@@ -177,16 +383,46 @@ export function ProfileContent() {
     return () => {
       window.removeEventListener("hydra:game-pin-toggled", handlePinToggled);
     };
-  }, [getUserLibraryGames, effectiveSortBy, shops, userProfile]);
+  }, [getUserLibraryGames, effectiveSortBy, libraryFilter, userProfile]);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (isMe) void getUserProfile();
+    };
+    window.addEventListener("hydra:game-visibility-updated", refresh);
+    return () =>
+      window.removeEventListener("hydra:game-visibility-updated", refresh);
+  }, [getUserProfile, isMe]);
 
   // Clear reviews state and reset tab when switching users
   useEffect(() => {
     setReviews([]);
     setReviewsTotalCount(0);
     setIsLoadingReviews(false);
-    setActiveTab("library");
-    setPlatform("all");
-  }, [userProfile?.id]);
+    setActiveTab(requestedTab === "souvenirs" ? "souvenirs" : "library");
+    setPlatform(readStoredProfilePlatform());
+    setScreenshotsTotal(null);
+  }, [requestedTab, userProfile?.id]);
+
+  useEffect(() => {
+    if (
+      isScreenshotsEnabled &&
+      (requestedScreenshot || requestedTab === "screenshots")
+    ) {
+      setActiveTab("screenshots");
+    }
+  }, [
+    isScreenshotsEnabled,
+    requestedScreenshot,
+    requestedTab,
+    userProfile?.id,
+  ]);
+
+  useEffect(() => {
+    if (!isScreenshotsEnabled && activeTab === "screenshots") {
+      setActiveTab("library");
+    }
+  }, [activeTab, isScreenshotsEnabled]);
 
   const fetchUserReviews = useCallback(async () => {
     if (!userProfile?.id) return;
@@ -348,17 +584,6 @@ export function ProfileContent() {
     }
   };
 
-  useEffect(() => {
-    const interval = window.setInterval(
-      () => setStatsIndex((index) => index + 1),
-      GAME_STATS_ANIMATION_DURATION_IN_MS
-    );
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, []);
-
   const usersAreFriends = useMemo(() => {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
@@ -387,6 +612,11 @@ export function ProfileContent() {
           <ProfileTabs
             activeTab={activeTab}
             reviewsTotalCount={reviewsTotalCount}
+            souvenirsCount={souvenirsTotal}
+            screenshotsCount={
+              screenshotsTotal ?? userProfile.screenshotCount ?? 0
+            }
+            showScreenshots={isScreenshotsEnabled}
             onTabChange={setActiveTab}
           />
 
@@ -395,13 +625,19 @@ export function ProfileContent() {
               {activeTab === "library" && (
                 <LibraryTab
                   sortBy={effectiveSortBy}
-                  onSortChange={setSortBy}
+                  onSortChange={handleSortChange}
                   platform={platform}
-                  onPlatformChange={setPlatform}
+                  onPlatformChange={handlePlatformChange}
                   pinnedGames={pinnedGames}
                   libraryGames={libraryGames}
                   hasMoreLibraryGames={hasMoreLibraryGames}
-                  statsIndex={statsIndex}
+                  isAwaitingInitialLibrary={
+                    isCorrectingPrefetchedSort ||
+                    !hasLoadedLibraryGames ||
+                    (isLoadingLibraryGames &&
+                      libraryGames.length === 0 &&
+                      pinnedGames.length === 0)
+                  }
                   userStats={userStats}
                   onLoadMore={handleLoadMore}
                   isMe={isMe}
@@ -421,6 +657,48 @@ export function ProfileContent() {
                   getRatingText={getRatingText}
                   onVote={handleVoteReview}
                   onDelete={handleDeleteClick}
+                />
+              )}
+
+              {activeTab === "souvenirs" && (
+                <SouvenirsTab
+                  achievements={souvenirs}
+                  hasReachedLimit={hasReachedSouvenirLimit}
+                  hiddenReason={souvenirsHiddenReason}
+                  canLike={Boolean(userDetails)}
+                  hasMore={hasMoreSouvenirs}
+                  isLoading={isLoadingSouvenirs}
+                  isEnabled={souvenirsEnabled}
+                  isMe={isMe}
+                  userId={userProfile.id}
+                  visibility={userProfile.souvenirsVisibility}
+                  hasActiveSubscription={Boolean(
+                    userProfile.hasActiveSubscription
+                  )}
+                  disableNsfwAlert={disableNsfwAlert}
+                  likingKeys={likingKeys}
+                  onSouvenirClick={requestOpenSouvenir}
+                  onLikeClick={(item) => void likeSouvenir(item)}
+                  onReload={getUserSouvenirs}
+                  onLoadMore={loadMoreSouvenirs}
+                  onOpenSettings={() =>
+                    navigate(
+                      "/settings?tab=content_gameplay#achievement-souvenirs"
+                    )
+                  }
+                />
+              )}
+
+              {activeTab === "screenshots" && isScreenshotsEnabled && (
+                <ScreenshotsTab
+                  key={userProfile.id}
+                  userId={userProfile.id}
+                  isMe={isMe}
+                  requestedScreenshotId={
+                    userProfile.id === routeUserId ? requestedScreenshot : null
+                  }
+                  onRequestedScreenshotHandled={clearRequestedScreenshot}
+                  onTotalUpdate={handleScreenshotsTotalUpdate}
                 />
               )}
             </AnimatePresence>
@@ -476,6 +754,54 @@ export function ProfileContent() {
       <ProfileHero />
 
       {content}
+
+      <SouvenirLightbox
+        souvenir={souvenir}
+        items={souvenirs}
+        index={openSouvenirIndex}
+        isOwner={isMe}
+        canLike={Boolean(userDetails)}
+        isLiking={Boolean(openSouvenirKey && likingKeys.has(openSouvenirKey))}
+        isUpdatingVisibility={Boolean(
+          openSouvenirKey && visibilityKeys.has(openSouvenirKey)
+        )}
+        isDeleting={Boolean(
+          openSouvenirKey && deletingKeys.has(openSouvenirKey)
+        )}
+        isReporting={Boolean(
+          openSouvenirKey && reportingKeys.has(openSouvenirKey)
+        )}
+        isReported={Boolean(
+          openSouvenirKey && reportedKeys.has(openSouvenirKey)
+        )}
+        isContentWarningVisible={Boolean(pendingSouvenir)}
+        onClose={closeSouvenir}
+        onNavigate={(index) => {
+          const nextSouvenir = souvenirs[index];
+          return nextSouvenir ? requestOpenSouvenir(nextSouvenir) : false;
+        }}
+        onLike={(item) => void likeSouvenir(item)}
+        onVisibilityChange={(item) => void changeSouvenirVisibility(item)}
+        onDelete={deleteSouvenir}
+        onReport={reportSouvenir}
+      />
+
+      <ConfirmationModal
+        visible={Boolean(pendingSouvenir)}
+        title={t("souvenir_content_warning_title")}
+        descriptionText={t("souvenir_content_warning_description", {
+          title: pendingSouvenir?.gameTitle ?? t("unknown_game"),
+        })}
+        confirmButtonLabel={t("allow_nsfw_content", {
+          ns: "game_details",
+        })}
+        cancelButtonLabel={t("refuse_nsfw_content", {
+          ns: "game_details",
+        })}
+        onConfirm={confirmContentWarning}
+        onClose={dismissContentWarning}
+        clickOutsideToClose={false}
+      />
     </div>
   );
 }

@@ -12,6 +12,8 @@ import type {
 
 import { WindowManager } from "../window-manager";
 import { assertCloudSaveSubscription } from "./cloud-save-access";
+import { assertLegacyCloudSaveWriteAllowed } from "./legacy-cloud-save-policy";
+import { assertCloudSaveV2Eligible } from "./assert-cloud-save-executable";
 import {
   getCloudSaveAutomaticSyncStateForMode,
   getNextCloudSaveAutomaticSyncMode,
@@ -48,10 +50,19 @@ const readCloudSaveAutomaticSyncMode = async (
     gamesSublevel.get(key),
   ]);
   const legacyEnabled = game?.automaticCloudSync === true;
+  // Managed Epic installs start on Epic's own save sync; Hydra is opt-in and
+  // stays off while Epic's sync is on, including values stored before this.
+  const managedEpic = shop === "epic" && !!game?.epicInstallation;
+  const epicSyncEnabled =
+    managedEpic && game?.epicInstallation?.automaticSaveSync !== false;
+  let v2Enabled = storedV2Enabled;
+  if (epicSyncEnabled) v2Enabled = false;
+  else if (managedEpic) v2Enabled = storedV2Enabled ?? false;
   const mode = resolveStoredCloudSaveAutomaticSyncModeForShop(
     shop,
     legacyEnabled,
-    storedV2Enabled
+    v2Enabled,
+    game?.platform
   );
 
   return { game, key, mode };
@@ -98,12 +109,31 @@ export const getCloudSaveAutomaticSyncEnabled = async (
   shop: GameShop
 ) => (await getCloudSaveAutomaticSyncMode(objectId, shop)) === "v2";
 
+const saveProviderLocks = new Map<string, Promise<unknown>>();
+
+/** Serializes the paired Epic/Hydra automatic save toggle writes per game. */
+export const withAutomaticSaveProviderLock = <T>(
+  objectId: string,
+  task: () => Promise<T>
+): Promise<T> => {
+  const previous = saveProviderLocks.get(objectId) ?? Promise.resolve();
+  const result = previous.catch(() => undefined).then(task);
+  const tail = result.catch(() => undefined);
+  saveProviderLocks.set(objectId, tail);
+  void tail.then(() => {
+    if (saveProviderLocks.get(objectId) === tail)
+      saveProviderLocks.delete(objectId);
+  });
+  return result;
+};
+
 export const setCloudSaveAutomaticSyncEnabled = async (
   objectId: string,
   shop: GameShop,
   enabled: boolean
 ) => {
   if (enabled) {
+    await assertCloudSaveV2Eligible(objectId, shop);
     assertCloudSaveSubscription();
   }
 
@@ -127,10 +157,11 @@ export const setLegacyCloudSaveAutomaticSyncEnabled = async (
   shop: GameShop,
   enabled: boolean
 ) => {
-  const { mode: currentMode } = await readCloudSaveAutomaticSyncMode(
+  const { game, mode: currentMode } = await readCloudSaveAutomaticSyncMode(
     objectId,
     shop
   );
+  assertLegacyCloudSaveWriteAllowed(game);
   const nextMode = getNextCloudSaveAutomaticSyncMode(
     currentMode,
     "legacy",

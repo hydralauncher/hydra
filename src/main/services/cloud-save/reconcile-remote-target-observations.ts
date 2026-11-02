@@ -145,6 +145,7 @@ export const reconcileRemoteTargetObservations = (
       hash: target.observedHash,
       sizeBytes: target.observedSizeBytes,
       lastModifiedAt: target.observedLastModifiedAt,
+      ...(remote.stateMetadata ? { stateMetadata: remote.stateMetadata } : {}),
     };
     const ruleId = stableId(["remote-target-rule", remote.rawPath]);
     const source = {

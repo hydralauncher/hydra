@@ -239,6 +239,32 @@ const buildTorrentTreeData = (
   };
 };
 
+const getProviderTorrentFiles = (
+  magnetUri: string,
+  downloader: Downloader | null
+) => {
+  if (downloader === Downloader.Torrent) {
+    return window.electron.getTorrentFiles(magnetUri);
+  }
+
+  return window.electron.getDebridFiles(magnetUri, downloader!);
+};
+
+const MAX_CACHED_TORRENT_MANIFESTS = 20;
+
+const rememberTorrentFiles = (
+  cache: Map<string, TorrentFilesResponse>,
+  downloader: Downloader | null,
+  key: string,
+  files: TorrentFilesResponse
+) => {
+  if (cache.size >= MAX_CACHED_TORRENT_MANIFESTS) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey) cache.delete(oldestKey);
+  }
+  if (downloader === Downloader.Torrent) cache.set(key, files);
+};
+
 export function DownloadSettingsModal({
   visible,
   onClose,
@@ -280,7 +306,7 @@ export function DownloadSettingsModal({
     deleteArchiveFilesAfterExtraction,
     setDeleteArchiveFilesAfterExtraction,
   ] = useState(
-    userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+    userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? true
   );
   const [selectedDownloader, setSelectedDownloader] =
     useState<Downloader | null>(null);
@@ -289,6 +315,9 @@ export function DownloadSettingsModal({
   );
   const [showRealDebridModal, setShowRealDebridModal] = useState(false);
   const [torrentFiles, setTorrentFiles] = useState<TorrentFile[]>([]);
+  const [singleArchiveSelectionKey, setSingleArchiveSelectionKey] = useState<
+    string | null
+  >(null);
   const [torrentFilesLoading, setTorrentFilesLoading] = useState(false);
   const [torrentFilesError, setTorrentFilesError] = useState<string | null>(
     null
@@ -327,7 +356,12 @@ export function DownloadSettingsModal({
   }, [repack, selectedDownloader]);
 
   const selectedMagnetUri = useMemo(() => {
-    if (selectedDownloader !== Downloader.Torrent) return null;
+    if (
+      selectedDownloader !== Downloader.Torrent &&
+      selectedDownloader !== Downloader.TorBox &&
+      selectedDownloader !== Downloader.RealDebrid
+    )
+      return null;
     if (!selectedUri?.startsWith("magnet:")) return null;
     return selectedUri;
   }, [selectedDownloader, selectedUri]);
@@ -386,23 +420,22 @@ export function DownloadSettingsModal({
     }
 
     const allDownloaders = Object.values(Downloader).filter(
-      (value) => typeof value === "number"
+      (value) => typeof value === "number" && value !== Downloader.Epic
     ) as Downloader[];
 
     const getDownloaderPriority = (option: {
       isAvailable: boolean;
-      canHandle: boolean;
       isAvailableButNotConfigured: boolean;
     }) => {
       if (option.isAvailable) return 0;
-      if (option.canHandle && !option.isAvailableButNotConfigured) return 1;
       if (option.isAvailableButNotConfigured) return 2;
-      return 3;
+      return 1;
     };
 
     return allDownloaders
       .filter((downloader) => {
         if (downloader === Downloader.Hydra) return false; // Temporarily comment out Nimbus
+        if (!downloaderMap.has(downloader)) return false;
         if (
           downloader === Downloader.Premiumize &&
           !isFeatureEnabled(Feature.Premiumize)
@@ -421,7 +454,6 @@ export function DownloadSettingsModal({
       })
       .map((downloader) => {
         const status = downloaderMap.get(downloader);
-        const canHandle = status !== undefined;
         const hasAvailableUri = status?.hasAvailable ?? false;
 
         let isConfigured = true;
@@ -440,15 +472,13 @@ export function DownloadSettingsModal({
         //   isConfigured = isFeatureEnabled(Feature.Nimbus);
         // }
 
-        const isAvailableButNotConfigured =
-          hasAvailableUri && !isConfigured && canHandle;
+        const isAvailableButNotConfigured = hasAvailableUri && !isConfigured;
 
         const isAvailable = hasAvailableUri && isConfigured;
 
         return {
           downloader,
           isAvailable,
-          canHandle,
           isAvailableButNotConfigured,
         };
       })
@@ -544,7 +574,7 @@ export function DownloadSettingsModal({
   useEffect(() => {
     if (visible) {
       setDeleteArchiveFilesAfterExtraction(
-        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? true
       );
       setAutomaticExtractionEnabled(
         userPreferences?.extractFilesByDefault ?? true
@@ -776,9 +806,17 @@ export function DownloadSettingsModal({
   ]);
 
   const canOpenTorrentStep =
-    visible && selectedDownloader === Downloader.Torrent && !!selectedMagnetUri;
+    visible &&
+    !!selectedMagnetUri &&
+    (selectedDownloader === Downloader.Torrent ||
+      (selectedDownloader === Downloader.TorBox &&
+        !!userPreferences?.torBoxApiToken) ||
+      (selectedDownloader === Downloader.RealDebrid &&
+        !!userPreferences?.realDebridApiToken));
 
   const shouldShowTorrentFiles = canOpenTorrentStep && showTorrentStepModal;
+  const selectedTorrentKey = `${selectedDownloader}:${selectedMagnetUri}`;
+  const isSingleArchive = singleArchiveSelectionKey === selectedTorrentKey;
 
   const allTorrentFilesSelected =
     torrentFiles.length > 0 &&
@@ -795,28 +833,41 @@ export function DownloadSettingsModal({
     setShowTorrentStepModal(false);
   }, []);
 
-  const fetchTorrentFiles = useCallback(async () => {
+  const fetchTorrentFiles = useCallback(async (): Promise<
+    TorrentFilesResponse | null | undefined
+  > => {
     if (!selectedMagnetUri) {
       return;
     }
 
     const requestId = ++torrentFilesRequestIdRef.current;
     const isRequestOutdated = () =>
-      requestId !== torrentFilesRequestIdRef.current ||
-      !shouldShowTorrentFiles ||
-      selectedMagnetUri === null;
+      requestId !== torrentFilesRequestIdRef.current || !canOpenTorrentStep;
 
-    const cached = torrentFilesCache.current.get(selectedMagnetUri);
-    if (cached) {
-      if (isRequestOutdated()) return;
-      setTorrentFiles(cached.files);
-      setSelectedTorrentIndices(
-        new Set(cached.files.map((file) => file.index))
-      );
+    const cacheKey = `${selectedDownloader}:${selectedMagnetUri}`;
+    const cached =
+      selectedDownloader !== Downloader.Torrent
+        ? undefined
+        : torrentFilesCache.current.get(cacheKey);
+    const setAvailableFiles = (files: TorrentFile[]) => {
+      setTorrentFiles(files);
+      setSelectedTorrentIndices(new Set(files.map((file) => file.index)));
       setExpandedFolderIds(new Set());
       setTorrentFilesError(null);
       setTorrentFilesLoading(false);
-      return;
+    };
+    const setUnavailableFiles = (error: DownloadError) => {
+      setTorrentFiles([]);
+      setSelectedTorrentIndices(new Set());
+      setExpandedFolderIds(new Set());
+      setTorrentFilesError(error);
+      setTorrentFilesLoading(false);
+    };
+
+    if (cached) {
+      if (isRequestOutdated()) return;
+      setAvailableFiles(cached.files);
+      return cached;
     }
 
     setTorrentFilesLoading(true);
@@ -827,56 +878,43 @@ export function DownloadSettingsModal({
       | { ok: false; error: string };
 
     try {
-      response = await window.electron.getTorrentFiles(selectedMagnetUri);
+      response = await getProviderTorrentFiles(
+        selectedMagnetUri,
+        selectedDownloader
+      );
     } catch {
       if (isRequestOutdated()) return;
-      setTorrentFiles([]);
-      setSelectedTorrentIndices(new Set());
-      setExpandedFolderIds(new Set());
-      setTorrentFilesError(DownloadError.TorrentFilesUnavailable);
-      setTorrentFilesLoading(false);
-      return;
+      setUnavailableFiles(DownloadError.TorrentFilesUnavailable);
+      return null;
     }
 
     if (!response.ok) {
       if (isRequestOutdated()) return;
-      setTorrentFiles([]);
-      setSelectedTorrentIndices(new Set());
-      setExpandedFolderIds(new Set());
-      setTorrentFilesError(
-        response.error || DownloadError.TorrentFilesUnavailable
+      setUnavailableFiles(
+        Object.values(DownloadError).includes(response.error as DownloadError)
+          ? (response.error as DownloadError)
+          : DownloadError.TorrentFilesUnavailable
       );
-      setTorrentFilesLoading(false);
-      return;
+      return null;
     }
 
     if (isRequestOutdated()) return;
 
-    if (torrentFilesCache.current.size >= 20) {
-      const oldestKey = torrentFilesCache.current.keys().next().value;
-      if (oldestKey) {
-        torrentFilesCache.current.delete(oldestKey);
-      }
-    }
-
-    torrentFilesCache.current.set(selectedMagnetUri, response.data);
-    setTorrentFiles(response.data.files);
-    setSelectedTorrentIndices(
-      new Set(response.data.files.map((file) => file.index))
+    rememberTorrentFiles(
+      torrentFilesCache.current,
+      selectedDownloader,
+      cacheKey,
+      response.data
     );
-    setExpandedFolderIds(new Set());
-    setTorrentFilesError(null);
-    setTorrentFilesLoading(false);
-  }, [selectedMagnetUri, shouldShowTorrentFiles]);
+    setAvailableFiles(response.data.files);
+    return response.data;
+  }, [canOpenTorrentStep, selectedDownloader, selectedMagnetUri]);
 
   useEffect(() => {
     if (!shouldShowTorrentFiles) {
       resetTorrentStepState();
-      return;
     }
-
-    fetchTorrentFiles().catch(() => undefined);
-  }, [fetchTorrentFiles, resetTorrentStepState, shouldShowTorrentFiles]);
+  }, [resetTorrentStepState, selectedTorrentKey, shouldShowTorrentFiles]);
 
   useEffect(() => {
     if (!visible) {
@@ -884,6 +922,7 @@ export function DownloadSettingsModal({
       startAbortControllerRef.current?.abort();
       startAbortControllerRef.current = null;
       setDownloadStarting(false);
+      setSingleArchiveSelectionKey(null);
       resetTorrentStepState();
     }
   }, [resetTorrentStepState, visible]);
@@ -1086,8 +1125,27 @@ export function DownloadSettingsModal({
     await handleStartClick(selectedFileIndices, selectedTorrentSize);
   };
 
+  const handleOpenTorrentStep = async () => {
+    const response = await fetchTorrentFiles();
+    if (response === undefined) return;
+
+    if (
+      selectedDownloader !== Downloader.Torrent &&
+      response &&
+      (response.archiveOnly ||
+        (response.files.length === 1 &&
+          /\.(zip|rar|7z)$/i.test(response.files[0].path)))
+    ) {
+      setSingleArchiveSelectionKey(selectedTorrentKey);
+      setShowTorrentStepModal(false);
+      return;
+    }
+
+    setShowTorrentStepModal(true);
+  };
+
   const handleRetryFetchTorrentFiles = async () => {
-    await fetchTorrentFiles();
+    await handleOpenTorrentStep();
   };
 
   const toggleAllTorrentFiles = () => {
@@ -1235,24 +1293,27 @@ export function DownloadSettingsModal({
     Math.max(36, filteredTorrentRows.length * 36)
   );
 
-  let torrentRowsContent: ReactNode;
-  if (torrentFilesLoading) {
-    torrentRowsContent = (
-      <div className="download-settings-modal__torrent-files-feedback">
-        {t("loading_torrent_files")}
-      </div>
-    );
-  } else if (torrentFilesError) {
-    torrentRowsContent = (
-      <div className="download-settings-modal__torrent-files-feedback">
-        <span>{t(torrentFilesError)}</span>
-        <Button theme="outline" onClick={handleRetryFetchTorrentFiles}>
-          {t("retry_fetch_torrent_files")}
-        </Button>
-      </div>
-    );
-  } else {
-    torrentRowsContent = (
+  const renderTorrentRowsContent = (): ReactNode => {
+    if (torrentFilesLoading) {
+      return (
+        <div className="download-settings-modal__torrent-files-feedback">
+          {t("loading_torrent_files")}
+        </div>
+      );
+    }
+
+    if (torrentFilesError) {
+      return (
+        <div className="download-settings-modal__torrent-files-feedback">
+          <span>{t(torrentFilesError)}</span>
+          <Button theme="outline" onClick={handleRetryFetchTorrentFiles}>
+            {t("retry_fetch_torrent_files")}
+          </Button>
+        </div>
+      );
+    }
+
+    return (
       <div className="download-settings-modal__torrent-files-list">
         <div
           className="download-settings-modal__torrent-files-scroll"
@@ -1262,24 +1323,29 @@ export function DownloadSettingsModal({
         </div>
       </div>
     );
-  }
+  };
 
-  let downloadPathError: ReactNode;
-  if (hasWritePermission === false) {
-    downloadPathError = (
-      <span
-        className="download-settings-modal__path-error"
-        data-open-article="cannot-write-directory"
-      >
-        {t("no_write_permission")}
-      </span>
-    );
-  } else if (!hasEnoughDiskSpace) {
-    downloadPathError = t("not_enough_space_on_disk", {
-      required: formatBytes(requiredSpace ?? 0),
-      available: formatBytes(diskFreeSpace ?? 0),
-    });
-  }
+  const getDownloadPathError = (): ReactNode => {
+    if (hasWritePermission === false) {
+      return (
+        <span
+          className="download-settings-modal__path-error"
+          data-open-article="cannot-write-directory"
+        >
+          {t("no_write_permission")}
+        </span>
+      );
+    }
+
+    if (!hasEnoughDiskSpace) {
+      return t("not_enough_space_on_disk", {
+        required: formatBytes(requiredSpace ?? 0),
+        available: formatBytes(diskFreeSpace ?? 0),
+      });
+    }
+
+    return undefined;
+  };
 
   return (
     <Modal
@@ -1306,8 +1372,7 @@ export function DownloadSettingsModal({
                 const Indicator = option.isAvailable ? motion.span : "span";
 
                 const isDisabled =
-                  !option.canHandle ||
-                  (!option.isAvailable && !option.isAvailableButNotConfigured);
+                  !option.isAvailable && !option.isAvailableButNotConfigured;
 
                 const getAvailabilityIndicator = () => {
                   if (option.isAvailable) {
@@ -1343,21 +1408,11 @@ export function DownloadSettingsModal({
                     );
                   }
 
-                  if (option.canHandle) {
-                    return (
-                      <span
-                        className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--unavailable`}
-                        data-tooltip-id={tooltipId}
-                        data-tooltip-content={t("downloader_offline")}
-                      />
-                    );
-                  }
-
                   return (
                     <span
-                      className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--not-present`}
+                      className={`download-settings-modal__availability-indicator download-settings-modal__availability-indicator--unavailable`}
                       data-tooltip-id={tooltipId}
-                      data-tooltip-content={t("downloader_not_available")}
+                      data-tooltip-content={t("downloader_offline")}
                     />
                   );
                 };
@@ -1383,10 +1438,7 @@ export function DownloadSettingsModal({
                     );
                   }
 
-                  if (
-                    option.downloader === Downloader.RealDebrid &&
-                    option.canHandle
-                  ) {
+                  if (option.downloader === Downloader.RealDebrid) {
                     return (
                       <div className="download-settings-modal__recommendation-badge">
                         <Badge>{t("recommended")}</Badge>
@@ -1396,7 +1448,7 @@ export function DownloadSettingsModal({
 
                   if (
                     option.downloader === Downloader.VikingFile &&
-                    option.canHandle
+                    option.isAvailableButNotConfigured
                   ) {
                     return (
                       <div className="download-settings-modal__recommendation-badge">
@@ -1462,16 +1514,25 @@ export function DownloadSettingsModal({
             </div>
           </div>
 
-          {canOpenTorrentStep && (
+          {canOpenTorrentStep && isSingleArchive && (
+            <p className="download-settings-modal__single-archive-notice">
+              {t("single_archive_download_notice")}
+            </p>
+          )}
+          {canOpenTorrentStep && !isSingleArchive && (
             <button
               type="button"
               className="download-settings-modal__select-files-link"
-              onClick={() => setShowTorrentStepModal(true)}
-              disabled={downloadStarting}
+              onClick={handleOpenTorrentStep}
+              disabled={downloadStarting || torrentFilesLoading}
             >
               <FileIcon size={12} />
               <span className="download-settings-modal__select-files-link-text">
-                {t("select_files_to_download")}
+                {t(
+                  torrentFilesLoading
+                    ? "loading_torrent_files"
+                    : "select_files_to_download"
+                )}
               </span>
             </button>
           )}
@@ -1483,7 +1544,7 @@ export function DownloadSettingsModal({
             readOnly
             disabled
             label={t("download_path")}
-            error={downloadPathError}
+            error={getDownloadPathError()}
             rightContent={
               <Button
                 className="download-settings-modal__change-path-button"
@@ -1531,9 +1592,7 @@ export function DownloadSettingsModal({
             downloadOptions.some(
               (option) =>
                 option.downloader === selectedDownloader &&
-                (option.isAvailableButNotConfigured ||
-                  (!option.isAvailable && option.canHandle) ||
-                  !option.canHandle)
+                (option.isAvailableButNotConfigured || !option.isAvailable)
             )
           }
         >
@@ -1625,7 +1684,7 @@ export function DownloadSettingsModal({
             </button>
           </div>
 
-          {torrentRowsContent}
+          {renderTorrentRowsContent()}
 
           <div className="download-settings-modal__torrent-files-footer">
             <span className="download-settings-modal__torrent-files-summary">

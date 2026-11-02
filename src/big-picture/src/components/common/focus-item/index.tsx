@@ -171,7 +171,9 @@ export function FocusItem({
 
     const element = ref.current;
 
-    if (!element) return;
+    // Preserve native input focus inside a controller wrapper.
+    if (!element || element.contains(element.ownerDocument.activeElement))
+      return;
 
     try {
       element.focus({ preventScroll: true });

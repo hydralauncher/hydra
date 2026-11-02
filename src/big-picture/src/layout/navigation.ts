@@ -22,7 +22,7 @@ export const BIG_PICTURE_SIDEBAR_ITEM_IDS = {
   componentLab: "big-picture-sidebar-component-lab",
 } as const;
 
-export const BIG_PICTURE_SIDEBAR_EXIT_ID = "big-picture-sidebar-exit";
+export const BIG_PICTURE_SIDEBAR_POWER_ID = "big-picture-sidebar-power";
 export const BIG_PICTURE_SIDEBAR_PROFILE_ID = "big-picture-sidebar-profile";
 export const BIG_PICTURE_SIDEBAR_NOTIFICATIONS_ID =
   "big-picture-sidebar-notifications";

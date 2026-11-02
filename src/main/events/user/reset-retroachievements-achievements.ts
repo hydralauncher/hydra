@@ -2,10 +2,22 @@ import type { UserAchievement } from "@types";
 import { registerEvent } from "../register-event";
 import { WindowManager } from "@main/services";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import { UnlockedAchievementsCache } from "@main/services/achievements/unlocked-achievements-cache";
+import {
+  cancelPendingSouvenirsForShop,
+  deleteLocalSouvenirAssetsForShop,
+} from "@main/services/achievements/grouped-souvenir-worker";
 
 const LAUNCHBOX_KEY_PREFIX = "launchbox:";
 
-const resetRetroAchievementsAchievements = async () => {
+const resetRetroAchievementsAchievements = async (
+  _event: Electron.IpcMainInvokeEvent,
+  pendingSouvenirsOnly = false
+) => {
+  await cancelPendingSouvenirsForShop("launchbox");
+  if (pendingSouvenirsOnly) return;
+  await deleteLocalSouvenirAssetsForShop("launchbox");
+
   for (const [key, gameAchievement] of AchievementMemoryStore.all()) {
     if (!key.startsWith(LAUNCHBOX_KEY_PREFIX)) continue;
 
@@ -14,6 +26,7 @@ const resetRetroAchievementsAchievements = async () => {
       ...gameAchievement,
       unlockedAchievements: [],
     });
+    UnlockedAchievementsCache.invalidate("launchbox", objectId);
 
     const lockedAchievements: UserAchievement[] = (
       gameAchievement.achievements ?? []

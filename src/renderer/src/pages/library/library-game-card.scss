@@ -3,7 +3,7 @@
 .library-game-card {
   &__wrapper {
     cursor: pointer;
-    transition: all ease 0.2s;
+    transition: transform ease 0.2s;
     box-shadow: 0 8px 10px -2px rgba(0, 0, 0, 0.5);
     width: 100%;
     aspect-ratio: 2 / 3;
@@ -30,7 +30,9 @@
         rgba(255, 255, 255, 0.15) 64%,
         rgba(255, 255, 255, 0.1) 100%
       );
-      transition: all ease 0.3s;
+      transition:
+        opacity ease 0.3s,
+        transform ease 0.3s;
       transform: translateY(-36%);
       opacity: 0.5;
       z-index: 1;
@@ -43,6 +45,10 @@
     &:hover::before {
       opacity: 1;
       transform: translateY(-20%);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
     }
   }
 
@@ -78,9 +84,22 @@
     align-items: center;
     gap: 4px;
     width: 100%;
+
+    @container (max-width: 260px) {
+      align-items: flex-start;
+    }
+  }
+
+  &__top-left {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
   }
 
   &__playtime {
+    white-space: nowrap;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -95,7 +114,10 @@
     box-sizing: border-box;
     line-height: 1;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: all ease 0.2s;
+    transition:
+      background-color ease 0.2s,
+      color ease 0.2s,
+      border-color ease 0.2s;
 
     &-long {
       display: inline;
@@ -120,6 +142,19 @@
 
   &__manual-playtime {
     color: globals.$warning-color;
+  }
+
+  &__top-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    margin-left: auto;
+
+    @container (max-width: 260px) {
+      flex-direction: column-reverse;
+      align-items: flex-end;
+    }
   }
 
   &__classics-badges {
@@ -152,33 +187,6 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
   }
 
-  &__emulator-badge {
-    flex-shrink: 0;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    background:
-      linear-gradient(#1c1c1c, #1c1c1c) padding-box,
-      globals.$classics-rainbow border-box;
-    width: 24px;
-    height: 24px;
-    box-sizing: border-box;
-    position: relative;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
-
-    img {
-      position: absolute;
-      inset: 0;
-      margin: auto;
-      width: 15px;
-      height: 15px;
-      object-fit: contain;
-      border-radius: 3px;
-      display: block;
-      transform: translateZ(0);
-      backface-visibility: hidden;
-    }
-  }
-
   &__installed-badge {
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
@@ -191,12 +199,46 @@
     gap: 4px;
     padding: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: all ease 0.2s;
+    transition:
+      background-color ease 0.2s,
+      color ease 0.2s,
+      border-color ease 0.2s;
   }
 
   &__installed-icon {
     color: #fff;
     flex-shrink: 0;
+  }
+
+  &__installed-badge--classics {
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background:
+      linear-gradient(#1c1c1c, #1c1c1c) padding-box,
+      globals.$classics-rainbow border-box;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    color: #fafafa;
+    gap: 6px;
+    padding: 0 8px;
+    height: 24px;
+    box-sizing: border-box;
+    line-height: 1;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+
+    .library-game-card__installed-text {
+      font-size: 11px;
+    }
+  }
+
+  &__installed-emulator-icon {
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    object-fit: contain;
+    border-radius: 3px;
+    display: block;
   }
 
   &__installed-text {
@@ -214,7 +256,9 @@
     flex-direction: column;
     opacity: 1;
     transform: translateY(0);
-    transition: all ease 0.2s;
+    transition:
+      opacity ease 0.2s,
+      transform ease 0.2s;
     pointer-events: auto;
     width: 100%;
   }
@@ -242,7 +286,7 @@
   &__achievement-progress {
     width: 100%;
     height: 4px;
-    transition: all ease 0.2s;
+    transition: background-color ease 0.2s;
     background-color: rgba(255, 255, 255, 0.15);
     border-radius: 4px;
     overflow: hidden;
@@ -289,7 +333,12 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all ease 0.2s;
+    transition:
+      background-color ease 0.2s,
+      border-color ease 0.2s,
+      transform ease 0.2s,
+      box-shadow ease 0.2s,
+      opacity ease 0.2s;
     color: rgba(255, 255, 255, 0.9);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     opacity: 0;
@@ -304,6 +353,10 @@
 
     &:active {
       transform: scale(0.95);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
     }
   }
 
@@ -390,6 +443,12 @@
     align-items: center;
     justify-content: center;
     z-index: 0;
+  }
+
+  &__import-badges {
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 }
 

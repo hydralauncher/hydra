@@ -23,6 +23,7 @@ const previewRetroArchExecutable = async (
 
   const result = await retroarch.detectRetroArchWithFallback({
     resolveVersion: true,
+    includeDriveRoots: true,
   });
   if (!result) return null;
 

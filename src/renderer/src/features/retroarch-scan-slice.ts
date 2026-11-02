@@ -27,6 +27,7 @@ export interface RetroArchScanState {
   result: RetroArchScanResult | null;
   error: string | null;
   completedNonce: number;
+  settledNonce: number;
 }
 
 const baseState = {
@@ -49,6 +50,7 @@ const baseState = {
 const initialState: RetroArchScanState = {
   ...baseState,
   completedNonce: 0,
+  settledNonce: 0,
 };
 
 interface ProgressPayload {
@@ -142,6 +144,7 @@ export const retroarchScanSlice = createSlice({
       state.matched = action.payload.result.matched;
       state.sizeBytes = action.payload.result.sizeBytes;
       state.result = action.payload.result;
+      state.settledNonce += 1;
       if (!action.payload.cancelled) {
         state.completedNonce += 1;
       } else {
@@ -150,6 +153,7 @@ export const retroarchScanSlice = createSlice({
     },
     failRetroArchScan: (state, action: PayloadAction<string>) => {
       state.active = false;
+      state.settledNonce += 1;
       const { completedNonce } = state;
       Object.assign(state, baseState);
       state.completedNonce = completedNonce;

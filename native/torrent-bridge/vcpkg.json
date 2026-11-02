@@ -1,0 +1,13 @@
+{
+  "name": "hydra-torrent-bridge",
+  "version-string": "0.1.0",
+  "builtin-baseline": "a1cae005c39be7b18ba319fced856b68d7276271",
+  "dependencies": [
+    {
+      "name": "libtorrent",
+      "default-features": false,
+      "features": ["deprfun", "webtorrent"]
+    }
+  ],
+  "overrides": [{ "name": "libtorrent", "version": "2.1.1" }]
+}
