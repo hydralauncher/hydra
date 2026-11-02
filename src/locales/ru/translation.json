@@ -1912,7 +1912,7 @@
     "screenshots_upload_group": "Загрузка",
     "screenshots_toast": "Показывать уведомление с превью",
     "screenshots_listen_outside_games": "Отслеживать сочетание клавиш, когда игра не обнаружена",
-    "screenshots_listen_outside_games_warning": "Если отключить, Hydra не сможет сообщить, что не распознала вашу игру. Сочетание клавиш просто не сработает.",
+    "screenshots_listen_outside_games_warning": "Если отключить, Hydra не сможет сообщить, что не распознала вашу игру. Сочетание клавиш будет работать, только пока Hydra видит запущенную игру.",
     "screenshots_gamepad_add": "Добавить кнопку",
     "screenshots_gamepad_remove": "Убрать эту кнопку",
     "screenshots_gamepad_duplicate": "Каждую кнопку можно использовать только один раз",

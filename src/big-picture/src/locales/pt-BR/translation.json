@@ -996,7 +996,7 @@
     "screenshots_settings_title": "Capturas",
     "screenshots_settings_toast": "Mostrar uma notificação ao capturar",
     "screenshots_settings_listen_outside_games": "Escutar o atalho quando nenhum jogo for detectado",
-    "screenshots_settings_listen_outside_games_warning": "Se você desativar, o Hydra não poderá avisar quando não reconhecer seu jogo. O atalho não fará nada.",
+    "screenshots_settings_listen_outside_games_warning": "Se você desativar, o Hydra não poderá avisar quando não reconhecer seu jogo. O atalho só funcionará enquanto o Hydra detectar um jogo.",
     "screenshots_review_delete_description": "O arquivo da captura será excluído deste computador. Isso não pode ser desfeito.",
     "screenshots_review_delete_title": "Excluir esta captura?",
     "screenshots_load_failed": "Não foi possível carregar as capturas",

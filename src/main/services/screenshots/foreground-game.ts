@@ -33,10 +33,6 @@ type ForegroundMatch = ResolvedForegroundGame | null;
 
 const WINDOWS_DESKTOP_SHELL_EXECUTABLE = "explorer.exe";
 
-export interface UnresolvedGameFailure extends ScreenshotFailureToast {
-  hasTrackedGame: boolean;
-}
-
 export interface ResolvedForegroundGame {
   target: ScreenshotGameTarget;
   game: Game | null;
@@ -420,27 +416,21 @@ const isFullscreenAppInForeground = async (
 };
 
 export const getUnresolvedGameFailure =
-  async (): Promise<UnresolvedGameFailure | null> => {
+  async (): Promise<ScreenshotFailureToast | null> => {
     const [candidates, foreground] = await Promise.all([
       getScreenshotGameTargets(),
       resolveForegroundWindow(),
     ]);
-    const hasTrackedGame = candidates.length > 0;
-    const notRecognized: UnresolvedGameFailure = {
+    const notRecognized: ScreenshotFailureToast = {
       kind: "game_not_recognized",
       gameTitle: null,
-      hasTrackedGame,
     };
 
     if (await isFullscreenAppInForeground(foreground)) return notRecognized;
-    if (!hasTrackedGame) return null;
+    if (!candidates.length) return null;
     if (candidates.length > 1 || foreground?.processId == null) {
       return notRecognized;
     }
 
-    return {
-      kind: "game_not_focused",
-      gameTitle: candidates[0].game.title,
-      hasTrackedGame,
-    };
+    return { kind: "game_not_focused", gameTitle: candidates[0].game.title };
   };

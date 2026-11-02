@@ -426,6 +426,7 @@ export class ScreenshotInputService {
       const status = this.applyListeningStatus(nativeStatus);
       logger.info("Screenshot input started", {
         ...status,
+        gamepadListening: this.gamepadListening,
         keyboardError: nativeStatus.keyboardError ?? null,
         gamepadError: nativeStatus.gamepadError ?? null,
       });
@@ -444,8 +445,8 @@ export class ScreenshotInputService {
         ? withPortalKeyboard(nativeStatus)
         : nativeStatus;
     const status = toScreenshotInputStatus(
-      effectiveStatus,
-      this.getListeningSettings(),
+      this.withIdleGamepadProbe(effectiveStatus),
+      this.settings,
       true
     );
     const nextStatus = withPortalHotkeyHint(
@@ -455,6 +456,24 @@ export class ScreenshotInputService {
     );
     this.setStatus(nextStatus);
     return nextStatus;
+  }
+
+  private static withIdleGamepadProbe(
+    nativeStatus: ScreenshotInputNativeStatus
+  ): ScreenshotInputNativeStatus {
+    if (!this.settings.gamepadEnabled || this.gamepadListening) {
+      return nativeStatus;
+    }
+
+    try {
+      const { gamepadBackend, gamepadError } = NativeAddon.probeScreenshotInput(
+        toScreenshotInputNativeConfig(this.settings)
+      );
+      return { ...nativeStatus, gamepadBackend, gamepadError };
+    } catch (error) {
+      logger.error("Failed to probe the idle gamepad backend", error);
+      return nativeStatus;
+    }
   }
 
   private static registerPortalShortcut() {

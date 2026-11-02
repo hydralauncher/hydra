@@ -984,7 +984,7 @@
     "screenshots_settings_title": "Скриншоты",
     "screenshots_settings_toast": "Показывать уведомление при снимке",
     "screenshots_settings_listen_outside_games": "Отслеживать сочетание клавиш, когда игра не обнаружена",
-    "screenshots_settings_listen_outside_games_warning": "Если отключить, Hydra не сможет сообщить, что не распознала вашу игру. Сочетание клавиш просто не сработает.",
+    "screenshots_settings_listen_outside_games_warning": "Если отключить, Hydra не сможет сообщить, что не распознала вашу игру. Сочетание клавиш будет работать, только пока Hydra видит запущенную игру.",
     "screenshots_review_delete_description": "Файл скриншота будет удалён с этого компьютера. Это действие нельзя отменить.",
     "screenshots_review_delete_title": "Удалить этот скриншот?",
     "screenshots_load_failed": "Не удалось загрузить скриншоты",

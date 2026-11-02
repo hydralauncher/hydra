@@ -457,7 +457,7 @@ const grabScreenshot = async (
       logger.error("Failed to explain the unresolved screenshot game", error);
       return null;
     });
-    if (failure && (failure.hasTrackedGame || preferences.toastEnabled)) {
+    if (failure && preferences.toastEnabled) {
       ScreenshotTelemetry.record("capture", "ignored", "no_foreground_game");
       showCaptureFailure(failure.kind, failure.gameTitle);
     }

@@ -996,7 +996,7 @@
     "screenshots_settings_title": "Screenshots",
     "screenshots_settings_toast": "Show a notification on capture",
     "screenshots_settings_listen_outside_games": "Listen for the shortcut when no game is detected",
-    "screenshots_settings_listen_outside_games_warning": "If you turn this off, Hydra can't tell you when it doesn't recognize your game. The shortcut will do nothing.",
+    "screenshots_settings_listen_outside_games_warning": "If you turn this off, Hydra can't tell you when it doesn't recognize your game. The shortcut will only work while Hydra detects a game.",
     "screenshots_review_delete_description": "The screenshot file will be deleted from this computer. This can't be undone.",
     "screenshots_review_delete_title": "Delete this screenshot?",
     "screenshots_load_failed": "Couldn't load screenshots",
