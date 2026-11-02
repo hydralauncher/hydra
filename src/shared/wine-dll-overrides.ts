@@ -19,6 +19,18 @@ const moveWineDllOverridesToFront = (value: string): string => {
   return rest.length > 0 ? `${token} ${rest}` : token;
 };
 
+const LEADING_ENV_ASSIGNMENTS_REGEX =
+  /^(?:(?:"[A-Za-z_]\w*=[^"]*"|[A-Za-z_]\w*=\S*)(?:\s+|$))*/;
+
+// The placeholder must follow the env assignments but precede any existing
+// game arguments, otherwise the first argument would be run as the program.
+const insertCommandPlaceholder = (value: string): string => {
+  const envPrefix = LEADING_ENV_ASSIGNMENTS_REGEX.exec(value)?.[0] ?? "";
+  const rest = value.slice(envPrefix.length).trim();
+
+  return [envPrefix.trim(), "%command%", rest].filter(Boolean).join(" ");
+};
+
 export const mergeLaunchOptionEnvVars = (
   launchOptions: string,
   envVars: Record<string, string>
@@ -47,5 +59,7 @@ export const mergeLaunchOptionEnvVars = (
 
   result = moveWineDllOverridesToFront(result);
 
-  return result.includes("%command%") ? result : `${result} %command%`;
+  return result.includes("%command%")
+    ? result
+    : insertCommandPlaceholder(result);
 };
