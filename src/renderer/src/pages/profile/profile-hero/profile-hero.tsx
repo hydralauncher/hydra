@@ -85,8 +85,8 @@ export function ProfileHero() {
   }, [editRequested, isMe, setSearchParams]);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
-  const isGamificationEnabled = useAppSelector(
-    (state) => state.gamification.isEnabled
+  const isShopEnabled = useAppSelector(
+    (state) => state.gamification.isEnabled && state.gamification.isShopEnabled
   );
   const { refreshProgress } = useGamificationProgress();
 
@@ -199,7 +199,7 @@ export function ProfileHero() {
     if (isMe) {
       return (
         <>
-          {isGamificationEnabled && (
+          {isShopEnabled && (
             <Button
               theme="outline"
               onClick={() => navigate("/shop")}
@@ -327,7 +327,7 @@ export function ProfileHero() {
     t,
     isPerformingAction,
     userProfile,
-    isGamificationEnabled,
+    isShopEnabled,
     navigate,
   ]);
 

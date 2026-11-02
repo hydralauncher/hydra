@@ -13,7 +13,7 @@ import {
   useAnimatedNumber,
   useHoverHalo,
 } from "@renderer/components/gamification";
-import { useFormat } from "@renderer/hooks";
+import { useAppSelector, useFormat } from "@renderer/hooks";
 import type { LevelProgress, LoginStreak } from "@types";
 import { openProfileTab } from "../profile-tab-events";
 import { useProfileGamification } from "../use-profile-gamification";
@@ -25,6 +25,9 @@ const LEVEL_PILL_HALO_ALPHA = 0.07;
 export function ProfileGamificationPills() {
   const navigate = useNavigate();
   const { level, loginStreak, coins, isMe } = useProfileGamification();
+  const isShopEnabled = useAppSelector(
+    (state) => state.gamification.isShopEnabled
+  );
 
   if (!level) return null;
 
@@ -34,7 +37,7 @@ export function ProfileGamificationPills() {
       loginStreak={loginStreak}
       coins={coins}
       onLevelClick={isMe ? () => openProfileTab("missions") : undefined}
-      onCoinsClick={() => navigate("/shop")}
+      onCoinsClick={isShopEnabled ? () => navigate("/shop") : undefined}
     />
   );
 }
