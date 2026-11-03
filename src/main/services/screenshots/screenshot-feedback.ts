@@ -31,7 +31,6 @@ const FAILURE_DESCRIPTION_KEYS: Record<ScreenshotFailureKind, string> = {
   file_write_failed: "capture_error_file_write_failed",
   save_failed: "capture_error_save_failed",
   unexpected_error: "capture_error_unexpected",
-  share_pending: "share_pending",
   share_unavailable: "share_unavailable",
 };
 
@@ -177,22 +176,25 @@ export class ScreenshotFeedback {
     const preferences = resolveScreenshotPreferences(userPreferences);
     if (!preferences.captureSoundEnabled) return;
 
-    this.prepare();
-    const current = soundWindow;
-    if (!current) return;
+    try {
+      this.prepare();
+      const current = soundWindow;
+      if (!current) return;
 
-    const volume =
-      userPreferences?.achievementSoundVolume ?? DEFAULT_CAPTURE_SOUND_VOLUME;
-    if (!(await current.ready) || current.window.isDestroyed()) return;
+      const volume =
+        userPreferences?.achievementSoundVolume ?? DEFAULT_CAPTURE_SOUND_VOLUME;
+      if (!(await current.ready) || current.window.isDestroyed()) return;
 
-    await current.window.webContents
-      .executeJavaScript(
-        `globalThis.hydraScreenshotSound(${JSON.stringify(soundUrl)}, ${JSON.stringify(volume)})`
-      )
-      .catch((error) => {
-        logger.error("Failed to play the screenshot sound", error);
-      });
-    this.scheduleIdleRelease();
+      await current.window.webContents
+        .executeJavaScript(
+          `globalThis.hydraScreenshotSound(${JSON.stringify(soundUrl)}, ${JSON.stringify(volume)})`
+        )
+        .catch((error) => {
+          logger.error("Failed to play the screenshot sound", error);
+        });
+    } finally {
+      this.scheduleIdleRelease();
+    }
   }
 
   public static async showToast(toast: ScreenshotFeedbackToast) {

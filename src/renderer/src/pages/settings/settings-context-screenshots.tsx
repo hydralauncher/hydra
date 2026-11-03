@@ -16,6 +16,7 @@ import { logger } from "@renderer/logger";
 import {
   HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID,
   SCREENSHOT_VISIBILITY_OPTIONS,
+  canListenOutsideGames,
   resolveScreenshotPreferences,
 } from "@shared";
 import type {
@@ -250,7 +251,7 @@ export function SettingsContextScreenshots() {
           }
         />
 
-        {window.electron.platform === "win32" && (
+        {canListenOutsideGames(window.electron.platform) && (
           <>
             <CheckboxField
               label={t("screenshots_listen_outside_games")}

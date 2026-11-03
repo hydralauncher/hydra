@@ -302,7 +302,7 @@ export interface ScreenshotTelemetryEvent {
 }
 
 export interface ScreenshotFeedbackToast {
-  kind: "captured" | "saved_locally";
+  kind: "captured" | "saved_locally" | "share_pending";
   gameTitle: string;
 }
 
@@ -315,7 +315,6 @@ export type ScreenshotFailureKind =
   | "file_write_failed"
   | "save_failed"
   | "unexpected_error"
-  | "share_pending"
   | "share_unavailable";
 
 export interface ScreenshotFailureToast {

@@ -23,6 +23,7 @@ import {
   SCREENSHOT_GAMEPAD_BUTTONS,
   SCREENSHOT_GAMEPAD_COMBO_MAX_BUTTONS,
   SCREENSHOT_GAMEPAD_COMBO_MIN_BUTTONS,
+  canListenOutsideGames,
   formatScreenshotHotkey,
   isSameScreenshotGamepadCombo,
   isSameScreenshotHotkey,
@@ -85,8 +86,8 @@ const HOTKEY_ERROR_KEYS: Record<ScreenshotHotkeyError, string> = {
 };
 const BLOCK_TARGET: FocusOverrideTarget = { type: "block" };
 
-const canListenOutsideGames = () =>
-  globalThis.window.electron.platform === "win32";
+const isListeningOutsideGamesAvailable = () =>
+  canListenOutsideGames(globalThis.window.electron.platform);
 
 const getGamepadSlotFocusId = (index: number) =>
   `screenshot-settings-gamepad-slot:${index}`;
@@ -362,7 +363,9 @@ function getInactiveFocusIds(
 ) {
   const inactiveIds = new Set<string>();
 
-  if (!canListenOutsideGames()) inactiveIds.add(ids.listenOutsideGames);
+  if (!isListeningOutsideGamesAvailable()) {
+    inactiveIds.add(ids.listenOutsideGames);
+  }
   if (options.settingsDisabled) {
     inactiveIds.add(ids.hotkey);
     inactiveIds.add(ids.hotkeyReset);
@@ -815,7 +818,7 @@ export function ScreenshotSettingsSection({
             preferences.toastEnabled,
             (screenshotToastEnabled) => void update({ screenshotToastEnabled })
           )}
-          {canListenOutsideGames() ? (
+          {isListeningOutsideGamesAvailable() ? (
             <div className="screenshot-settings__row">
               {renderCheckbox(
                 ids.listenOutsideGames,

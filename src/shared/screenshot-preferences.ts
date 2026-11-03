@@ -33,6 +33,8 @@ export interface ResolvedScreenshotPreferences {
   hideCommunity: boolean;
 }
 
+export const canListenOutsideGames = (platform: string) => platform === "win32";
+
 export const resolveScreenshotPreferences = (
   preferences: UserPreferences | null | undefined
 ): ResolvedScreenshotPreferences => ({

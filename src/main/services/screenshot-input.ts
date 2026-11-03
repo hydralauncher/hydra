@@ -9,6 +9,7 @@ import type {
   UserPreferences,
 } from "@types";
 import {
+  canListenOutsideGames,
   isSameScreenshotGamepadCombo,
   isSameScreenshotHotkey,
   normalizeScreenshotGamepadCombo,
@@ -40,8 +41,6 @@ export const SCREENSHOT_TRIGGER_COOLDOWN_MS = 500;
 export const SCREENSHOT_INPUT_RESTART_DELAY_MS = 5_000;
 export const SCREENSHOT_INPUT_MAX_RESTARTS = 3;
 export const SCREENSHOT_INPUT_STABLE_RUN_MS = 60_000;
-
-const SUPPORTS_LISTENING_OUTSIDE_GAMES = process.platform === "win32";
 
 export interface ScreenshotInputSettings {
   enabled: boolean;
@@ -77,7 +76,7 @@ export const getScreenshotInputSettings = (
     preferences?.screenshotGamepadCombo
   ),
   listenOutsideGames:
-    SUPPORTS_LISTENING_OUTSIDE_GAMES &&
+    canListenOutsideGames(process.platform) &&
     (preferences?.screenshotListenOutsideGames ?? true),
 });
 
@@ -428,7 +427,7 @@ export class ScreenshotInputService {
     const gamepadStatus = NativeAddon.updateScreenshotInputGamepad(
       toScreenshotInputNativeConfig(settings)
     );
-    if (!gamepadStatus) return false;
+    if (!gamepadStatus || gamepadStatus.gamepadError) return false;
 
     this.gamepadListening = settings.gamepadEnabled;
     this.nativeStatus = { ...this.nativeStatus, ...gamepadStatus };
@@ -436,7 +435,6 @@ export class ScreenshotInputService {
     logger.info("Screenshot gamepad input changed", {
       ...status,
       gamepadListening: this.gamepadListening,
-      gamepadError: gamepadStatus.gamepadError ?? null,
     });
     return true;
   }

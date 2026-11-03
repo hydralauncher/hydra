@@ -297,17 +297,21 @@ export const resolveForegroundGame = async (
   source: ScreenshotTriggerSource
 ): Promise<ResolvedForegroundGame | UnresolvedForegroundGame> => {
   const candidates = await getScreenshotGameTargets();
+  if (!candidates.length) {
+    logger.debug("Screenshot hotkey ignored: no running game", { source });
+    return {
+      status: "unresolved",
+      candidates,
+      foreground: NativeAddon.getWindowsForegroundWindow() ?? null,
+    };
+  }
+
   const foreground = await resolveForegroundWindow();
   const unresolved: UnresolvedForegroundGame = {
     status: "unresolved",
     candidates,
     foreground,
   };
-
-  if (!candidates.length) {
-    logger.debug("Screenshot hotkey ignored: no running game", { source });
-    return unresolved;
-  }
 
   if (
     foreground &&

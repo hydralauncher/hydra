@@ -69,9 +69,11 @@ const FALLBACK_PREVIEW_JPEG_QUALITY = 85;
 const MAX_FILE_NAME_SUFFIX = 50;
 const WAYLAND_SHARE_PROMPT_WAIT_MS = 1_500;
 
+type WaylandShareBlocker = "share_pending" | ScreenshotFailureKind;
+
 const WAYLAND_SHARE_FAILURES: Record<
   LinuxGameCaptureFailure,
-  ScreenshotFailureKind
+  WaylandShareBlocker
 > = {
   share_cancelled: "share_pending",
   portal_unavailable: "share_unavailable",
@@ -376,7 +378,7 @@ const waitForWaylandSharePrompt = (gameKey: string) =>
 const getWaylandShareBlocker = async (
   source: ScreenshotTriggerSource,
   gameKey: string
-): Promise<ScreenshotFailureKind | null> => {
+): Promise<WaylandShareBlocker | null> => {
   if (!isWaylandCaptureBackend()) return null;
 
   const initialState = getLinuxGameCaptureState(gameKey);
@@ -468,6 +470,10 @@ const grabResolvedGame = async (
   const capturedAt = new Date();
 
   const shareBlocker = await getWaylandShareBlocker(source, target.gameKey);
+  if (shareBlocker === "share_pending") {
+    showCaptureToast(shareBlocker, gameTitle);
+    return null;
+  }
   if (shareBlocker) {
     showCaptureFailure(shareBlocker, gameTitle);
     return null;
