@@ -15,7 +15,7 @@ import {
   getGameTrophyMediaPaths,
   resolveTrophyUser,
 } from "./trophy-discovery.js";
-import { readTrophySet } from "./trophy-data.js";
+import { readTrophySet, TrophyDefinitionCache } from "./trophy-data.js";
 import { TrophyWatcher } from "./trophy-watcher.js";
 import { mapWithConcurrency } from "../../cloud-save/map-with-concurrency.js";
 
@@ -36,6 +36,7 @@ interface Monitor {
   watcher: TrophyWatcher;
   pending: Promise<UserAchievement[]> | null;
   closed: boolean;
+  definitions: TrophyDefinitionCache;
 }
 const monitors = new Map<string, Monitor>();
 
@@ -54,6 +55,7 @@ const clearView = (monitor: Monitor) => {
   monitor.rows = [];
   monitor.identity = null;
   monitor.selectionIdentity = null;
+  monitor.definitions.clear();
   AchievementMemoryStore.delete(game.shop, game.objectId);
   UnlockedAchievementsCache.invalidate(game.shop, game.objectId);
   if (changed) publishView(monitor);
@@ -161,7 +163,8 @@ const discoverTrophySelection = async (
 const readRegisteredTrophySet = async (
   root: string,
   id: string,
-  knownRows: readonly UserAchievement[]
+  knownRows: readonly UserAchievement[],
+  definitions: TrophyDefinitionCache
 ): Promise<UserAchievement[]> => {
   const directory = path.join(root, id);
   if (!(await fs.stat(directory).catch(() => null))?.isDirectory()) {
@@ -169,7 +172,7 @@ const readRegisteredTrophySet = async (
       throw new Error("RPCS3 trophy directory temporarily unavailable");
     return []; // RPCS3 installs each trophy set on its first registration.
   }
-  return readTrophySet(directory, id, true);
+  return readTrophySet(directory, id, true, definitions);
 };
 
 const refresh = async (monitor: Monitor): Promise<UserAchievement[]> => {
@@ -195,7 +198,7 @@ const refresh = async (monitor: Monitor): Promise<UserAchievement[]> => {
   const knownRows = sameIdentity ? monitor.rows : [];
   const rows = (
     await mapWithConcurrency(setIds, TROPHY_SET_READ_CONCURRENCY, (id) =>
-      readRegisteredTrophySet(profile.root, id, knownRows)
+      readRegisteredTrophySet(profile.root, id, knownRows, monitor.definitions)
     )
   ).flat();
   if (monitor.closed) return [];
@@ -267,6 +270,7 @@ export const getRpcs3Achievements = async (
       rows: [],
       pending: null,
       closed: false,
+      definitions: new TrophyDefinitionCache(),
       watcher: null!,
     };
     next.watcher = new TrophyWatcher(

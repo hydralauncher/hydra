@@ -25,6 +25,7 @@ it(
       objectId: "fixture",
       platform: "Sony Playstation 3",
       selectedDiscPath: path.join(root, "media"),
+      discs: [{ path: path.join(root, "moved-secondary.iso") }],
       title: "Fixture",
     };
     const state = {
@@ -136,6 +137,8 @@ it(
       1
     );
     assert.equal(state.notifications.length, 0);
+    // A stale secondary disc must not defer the initial snapshot or start retries.
+    assert.equal(state.warnings, 0);
     assert.equal(state.libraryRefreshes, 1);
     const failedRead = waitFor("warning");
     await fs.writeFile(file, Buffer.alloc(12));

@@ -3,7 +3,7 @@ import { it } from "node:test";
 import path from "node:path";
 import { build } from "esbuild";
 
-it("keeps grade-based trophy scores separate from rarity and set completion", async () => {
+it("omits native trophy points while preserving grade effects and Steam scoring", async () => {
   const result = await build({
     entryPoints: [
       path.resolve(
@@ -40,9 +40,13 @@ it("keeps grade-based trophy scores separate from rarity and set completion", as
     [
       { displayName: "Native platinum", points: 7500, trophyGrade: "platinum" },
       { displayName: "Native bronze", points: 375, trophyGrade: "bronze" },
-      { displayName: "Native gold", points: 2250, trophyGrade: "gold" },
+      { displayName: "Native gold", trophyGrade: "gold" },
     ],
     true
+  );
+  assert.deepEqual(
+    info.map((row: { points?: number }) => row.points),
+    [undefined, undefined, undefined]
   );
   assert.deepEqual(
     info.map((row: { isRare: boolean }) => row.isRare),
@@ -57,6 +61,7 @@ it("keeps grade-based trophy scores separate from rarity and set completion", as
     true
   );
   assert.equal(steam[0].isRare, true);
+  assert.equal(steam[0].points, 2490);
   assert.equal(steam[0].isPlatinum, true);
 
   const steamRarity = buildAchievementNotificationInfo(

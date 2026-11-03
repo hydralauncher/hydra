@@ -146,7 +146,7 @@ type ListableAchievement = Pick<
   | "points"
   | "globalUnlockPercentage"
 > &
-  Partial<Pick<UserAchievement, "unlockTime">>;
+  Partial<Pick<UserAchievement, "unlockTime" | "trophyGrade">>;
 
 export type AchievementComparisonFilter =
   | "all"
@@ -246,9 +246,15 @@ export const getAchievementRarityScore = (
   return null;
 };
 
-const getAchievementPointsScore = (
-  achievement: Pick<UserAchievement, "points">
-) => (typeof achievement.points === "number" ? achievement.points : null);
+const TROPHY_GRADE_ORDER = ["bronze", "silver", "gold", "platinum"] as const;
+
+const getAchievementOrderScore = (
+  achievement: Pick<UserAchievement, "points" | "trophyGrade">
+) => {
+  if (achievement.trophyGrade)
+    return TROPHY_GRADE_ORDER.indexOf(achievement.trophyGrade);
+  return typeof achievement.points === "number" ? achievement.points : null;
+};
 
 const MIN_DISPLAYED_UNLOCK_PERCENTAGE = 0.1;
 
@@ -327,7 +333,7 @@ const getAchievementRarityScorer = (
     (achievement) => typeof achievement.globalUnlockPercentage === "number"
   )
     ? getAchievementRarityScore
-    : getAchievementPointsScore;
+    : getAchievementOrderScore;
 
 const compareScores = (
   aScore: number | null,
@@ -348,11 +354,7 @@ const compareByRarity = (
   getScore: RarityScore
 ) =>
   compareScores(getScore(a), getScore(b), sort) ||
-  compareScores(
-    getAchievementPointsScore(a),
-    getAchievementPointsScore(b),
-    sort
-  );
+  compareScores(getAchievementOrderScore(a), getAchievementOrderScore(b), sort);
 
 const compareByUnlockTime = (
   a: ListableAchievement,

@@ -39,7 +39,7 @@ export const buildAchievementNotificationInfo = (
     return {
       title: achievement.displayName,
       description: achievement.description,
-      points: achievement.points,
+      points: achievement.trophyGrade ? undefined : achievement.points,
       isHidden: achievement.hidden,
       isRare,
       isPlatinum: achievement.trophyGrade

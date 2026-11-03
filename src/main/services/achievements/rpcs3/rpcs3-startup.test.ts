@@ -47,7 +47,7 @@ it(
       "unlocked-achievements-cache": `export const UnlockedAchievementsCache={invalidate:()=>{}};`,
       "achievement-unlock-notifications": `export const publishAchievementUnlockNotifications=()=>{};`,
       "trophy-discovery": `export const findGameTrophySetIds=async()=>[],getGameTrophyMediaPaths=()=>[],resolveTrophyUser=async()=>null;`,
-      "trophy-data": `export const readTrophySet=async()=>[];`,
+      "trophy-data": `export const readTrophySet=async()=>[]; export class TrophyDefinitionCache { clear() {} }`,
     };
     await build({
       entryPoints: [

@@ -66,11 +66,12 @@ it("distinguishes unreadable media from a readable folder without trophies", asy
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-trophy-media-"));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   assert.deepEqual(await findGameTrophySetIds({ selectedDiscPath: root }), []);
-  await assert.rejects(
-    findGameTrophySetIds({
+  assert.deepEqual(
+    await findGameTrophySetIds({
       selectedDiscPath: root,
       discs: [{ path: path.join(root, "offline-disc") }] as never,
-    })
+    }),
+    []
   );
   await assert.rejects(
     findGameTrophySetIds({ selectedDiscPath: path.join(root, "missing") })
@@ -81,4 +82,40 @@ it("distinguishes unreadable media from a readable folder without trophies", asy
   // A present but invalid directory must not be accepted as an empty catalogue.
   await fs.writeFile(path.join(root, "TROPDIR"), "incomplete replacement");
   await assert.rejects(findGameTrophySetIds({ selectedDiscPath: root }));
+});
+
+it("skips absent secondary discs without hiding available collection sets", async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-trophy-discs-"));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const selected = path.join(root, "selected");
+  const secondary = path.join(root, "secondary");
+  await fs.mkdir(path.join(selected, "TROPDIR", "NPWR12345_00"), {
+    recursive: true,
+  });
+  await fs.mkdir(path.join(secondary, "TROPDIR", "NPWR12346_00"), {
+    recursive: true,
+  });
+  const game = {
+    selectedDiscPath: selected,
+    discs: [
+      { path: selected },
+      { path: path.join(root, "missing.iso") },
+      { path: secondary },
+    ] as never,
+  };
+  assert.deepEqual(await findGameTrophySetIds(game), [
+    "NPWR12345_00",
+    "NPWR12346_00",
+  ]);
+  await fs.rename(selected, path.join(root, "offline-selected"));
+  await assert.rejects(findGameTrophySetIds(game), { code: "ENOENT" });
+  await fs.rename(path.join(root, "offline-selected"), selected);
+  const invalid = path.join(root, "invalid.iso");
+  await fs.writeFile(invalid, Buffer.alloc(12));
+  await assert.rejects(
+    findGameTrophySetIds({ ...game, discs: [{ path: invalid }] as never })
+  );
+  await fs.rm(path.join(secondary, "TROPDIR"), { recursive: true });
+  await fs.writeFile(path.join(secondary, "TROPDIR"), "not a directory");
+  await assert.rejects(findGameTrophySetIds(game), { code: "ENOTDIR" });
 });

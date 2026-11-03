@@ -3,16 +3,15 @@ import path from "node:path";
 import { JSDOM } from "jsdom";
 import type { UserAchievement } from "@types";
 
-export const RPCS3_TROPHY_POINTS_MULTIPLIER = 25;
 export const RPCS3_TROPHY_SET_ID = /^NPWR\d{5}_\d{2}$/;
 const MAX_TROPHIES = 4096;
 const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const PS3_UNIX_EPOCH_MICROSECONDS = 62135596800000000n;
 const grades = {
-  B: { grade: "bronze", points: 15 },
-  S: { grade: "silver", points: 30 },
-  G: { grade: "gold", points: 90 },
-  P: { grade: "platinum", points: 300 },
+  B: "bronze",
+  S: "silver",
+  G: "gold",
+  P: "platinum",
 } as const;
 
 export interface TrophyState {
@@ -132,8 +131,7 @@ export const parseTrophyDefinitions = (
         hidden: /^y/i.test(node.getAttribute("hidden") ?? ""),
         icon,
         icongray: icon,
-        trophyGrade: grade.grade,
-        points: grade.points * RPCS3_TROPHY_POINTS_MULTIPLIER,
+        trophyGrade: grade,
         globalUnlockPercentage: null,
         set: { id: setNumber, name: title, order: setNumber },
         externalSetId: setId,
@@ -159,22 +157,81 @@ const readBounded = async (file: string) => {
   }
 };
 
+/** Owned by a game monitor; never caches earned state or crosses profile selections. */
+export class TrophyDefinitionCache {
+  private readonly entries = new Map<
+    string,
+    { fingerprint: string; rows: UserAchievement[] }
+  >();
+
+  constructor(private readonly parse = parseTrophyDefinitions) {}
+
+  clear() {
+    this.entries.clear();
+  }
+
+  async read(directory: string, setId: string): Promise<UserAchievement[]> {
+    const file = path.join(directory, "TROPCONF.SFM");
+    const stat = await fs.stat(file, { bigint: true });
+    // Include replacement identity as well as mtime/size: atomic writes can
+    // preserve the timestamp and length of the old definitions file.
+    const fingerprint = [
+      stat.dev,
+      stat.ino,
+      stat.size,
+      stat.mtimeNs,
+      stat.ctimeNs,
+    ].join(":");
+    const key = JSON.stringify([file, setId]);
+    const cached = this.entries.get(key);
+    if (cached?.fingerprint === fingerprint) return cached.rows;
+    const data = await readBounded(file);
+    const after = await fs.stat(file, { bigint: true });
+    const afterFingerprint = [
+      after.dev,
+      after.ino,
+      after.size,
+      after.mtimeNs,
+      after.ctimeNs,
+    ].join(":");
+    if (fingerprint !== afterFingerprint)
+      throw new Error("RPCS3 trophy definitions changed during read");
+    const rows = this.parse(data, setId, directory, new Map());
+    this.entries.set(key, { fingerprint, rows });
+    return rows;
+  }
+}
+
 export const readTrophySet = async (
   directory: string,
   setId: string,
-  requireState = false
+  requireState = false,
+  cache?: TrophyDefinitionCache
 ) => {
-  const definitions = await readBounded(path.join(directory, "TROPCONF.SFM"));
+  const definitions = cache
+    ? await cache.read(directory, setId)
+    : parseTrophyDefinitions(
+        await readBounded(path.join(directory, "TROPCONF.SFM")),
+        setId,
+        directory,
+        new Map()
+      );
   const data = await readBounded(path.join(directory, "TROPUSR.DAT")).catch(
     (error: NodeJS.ErrnoException) => {
       if (!requireState && error.code === "ENOENT") return null;
       throw error;
     }
   );
-  return parseTrophyDefinitions(
-    definitions,
-    setId,
-    directory,
-    data ? parseTrophyStates(data) : new Map()
-  );
+  const states = data
+    ? parseTrophyStates(data)
+    : new Map<number, TrophyState>();
+  return definitions.map((row) => {
+    const state = states.get(Number(row.externalId));
+    return {
+      ...row,
+      set: row.set ? { ...row.set } : row.set,
+      unlocked: state?.unlocked ?? false,
+      unlockTime: state?.unlocked ? state.unlockTime : null,
+    };
+  });
 };

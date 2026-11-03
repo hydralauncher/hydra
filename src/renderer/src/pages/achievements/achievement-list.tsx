@@ -387,18 +387,14 @@ export function AchievementList({
               </span>
             )}
 
-            {(hasActiveSubscription || localTrophies) &&
+            {!achievement.trophyGrade &&
+              hasActiveSubscription &&
               achievement.points != null && (
                 <div
                   className="achievements__item-points"
-                  title={t(
-                    localTrophies
-                      ? "local_trophy_points_tooltip"
-                      : "achievement_earn_points",
-                    {
-                      points: achievement.points,
-                    }
-                  )}
+                  title={t("achievement_earn_points", {
+                    points: achievement.points,
+                  })}
                 >
                   <HydraIcon className="achievements__item-points-icon" />
                   <span className="achievements__item-points-value">
@@ -445,37 +441,33 @@ export function AchievementList({
             <RetroAchievementsConnectBanner className="achievements__toolbar-retro-achievements" />
           )}
 
-          {hasActiveSubscription || localTrophies ? (
-            <div
-              className="achievements__toolbar-points"
-              title={
-                localTrophies ? t("local_trophy_points_tooltip") : undefined
-              }
-            >
-              <span className="achievements__toolbar-points-label">
-                {t(localTrophies ? "local_trophy_points" : "earned_points")}
-              </span>
-              <HydraIcon className="achievements__toolbar-points-icon" />
-              <span>
-                {earnedPoints} / {totalPoints}
-              </span>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="achievements__toolbar-points achievements__toolbar-points--locked"
-              title={t("how_to_earn_achievements_points")}
-              onClick={() => showHydraCloudModal("achievements-points")}
-            >
-              <span className="achievements__toolbar-points-label">
-                {t("earned_points")}
-              </span>
-              <HydraIcon className="achievements__toolbar-points-icon" />
-              <span className="achievements__toolbar-points-value">
-                ??? / ???
-              </span>
-            </button>
-          )}
+          {!localTrophies &&
+            (hasActiveSubscription ? (
+              <div className="achievements__toolbar-points">
+                <span className="achievements__toolbar-points-label">
+                  {t("earned_points")}
+                </span>
+                <HydraIcon className="achievements__toolbar-points-icon" />
+                <span>
+                  {earnedPoints} / {totalPoints}
+                </span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="achievements__toolbar-points achievements__toolbar-points--locked"
+                title={t("how_to_earn_achievements_points")}
+                onClick={() => showHydraCloudModal("achievements-points")}
+              >
+                <span className="achievements__toolbar-points-label">
+                  {t("earned_points")}
+                </span>
+                <HydraIcon className="achievements__toolbar-points-icon" />
+                <span className="achievements__toolbar-points-value">
+                  ??? / ???
+                </span>
+              </button>
+            ))}
         </div>
       </div>
 

@@ -2263,6 +2263,13 @@
     "loading_souvenirs": "Carregando lembranças..."
   },
   "achievement": {
+    "local_trophies": "RPCS3 (local)",
+    "trophy_grade_bronze": "Bronze",
+    "trophy_grade_silver": "Prata",
+    "trophy_grade_gold": "Ouro",
+    "trophy_grade_platinum": "Platina",
+    "sort_trophy_grade_ascending": "Menor categoria primeiro",
+    "sort_trophy_grade_descending": "Maior categoria primeiro",
     "achievement_unlocked": "Conquista desbloqueada",
     "your_achievements": "Suas Conquistas",
     "connect_retroachievements_prompt": "Conecte o RetroAchievements para acompanhar seu progresso",

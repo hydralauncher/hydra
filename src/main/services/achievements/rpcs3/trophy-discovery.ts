@@ -63,7 +63,20 @@ export const findGameTrophySetIds = async (
   const sets = await mapWithConcurrency(
     getGameTrophyMediaPaths(game),
     TROPHY_DISCOVERY_READ_CONCURRENCY,
-    findMediaTrophySetIds
+    async (media) => {
+      try {
+        return await findMediaTrophySetIds(media);
+      } catch (error) {
+        // A stale optional disc must not hide the selected game's trophies.
+        // Selected media and errors other than absence still defer the refresh.
+        if (
+          media !== game.selectedDiscPath &&
+          (error as NodeJS.ErrnoException).code === "ENOENT"
+        )
+          return [];
+        throw error;
+      }
+    }
   );
   return [...new Set(sets.flat())].sort((left, right) =>
     left.localeCompare(right)
