@@ -22,7 +22,7 @@ import HydraIconUrl from "@renderer/assets/icons/hydra.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
-import { useCancelClosingPseudoAnimations } from "@renderer/helpers/notification-animations";
+import { useClosingPseudoAnimations } from "@renderer/helpers/notification-animations";
 import { armNotificationAnimations } from "./arm-notification-animations";
 import { resolveImageUrl } from "./resolve-image-url";
 
@@ -228,38 +228,38 @@ export function AchievementNotification() {
     [finishNotification]
   );
 
-  const beginPlayback = useCallback(
-    (requestId: string) => {
-      const request = requestRef.current;
-      if (request?.id !== requestId) return;
+  const beginPlayback = useCallback(() => {
+    const request = requestRef.current;
+    if (!request) return;
 
-      if (
-        request.type !== "screenshot" &&
-        playedSoundBatch.current !== request.batchId
-      ) {
-        const batchId = request.batchId;
-        playedSoundBatch.current = batchId;
-        void playAudio().then((played) => {
-          if (!played && playedSoundBatch.current === batchId) {
-            playedSoundBatch.current = null;
-          }
-        });
-      }
+    const requestId = request.id;
 
-      displayTimer.current = window.setTimeout(() => {
-        if (requestRef.current?.id !== requestId) return;
-        setPhase("closing");
-        scheduleClosing(requestId);
-      }, NOTIFICATION_TIMEOUT);
-    },
-    [playAudio, scheduleClosing]
-  );
+    void window.electron.achievementNotificationStarted(requestId);
+
+    if (
+      request.type !== "screenshot" &&
+      playedSoundBatch.current !== request.batchId
+    ) {
+      const batchId = request.batchId;
+      playedSoundBatch.current = batchId;
+      void playAudio().then((played) => {
+        if (!played && playedSoundBatch.current === batchId) {
+          playedSoundBatch.current = null;
+        }
+      });
+    }
+
+    displayTimer.current = window.setTimeout(() => {
+      if (requestRef.current?.id !== requestId) return;
+      setPhase("closing");
+      scheduleClosing(requestId);
+    }, NOTIFICATION_TIMEOUT);
+  }, [playAudio, scheduleClosing]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onStartAchievementNotification(
       (requestId) => {
-        const request = requestRef.current;
-        if (request?.id !== requestId) return;
+        if (requestRef.current?.id !== requestId) return;
 
         clearAnimationTimers();
 
@@ -286,12 +286,7 @@ export function AchievementNotification() {
       timeoutMs: ARMING_TIMEOUT,
       onArmed: () => {
         setPhase("playing");
-
-        const requestId = requestRef.current?.id;
-        if (!requestId) return;
-
-        void window.electron.achievementNotificationStarted(requestId);
-        beginPlayback(requestId);
+        beginPlayback();
       },
       onTimeout: () => {
         const requestId = requestRef.current?.id;
@@ -305,7 +300,7 @@ export function AchievementNotification() {
     });
   }, [beginPlayback, phase, shadowRootRef]);
 
-  useCancelClosingPseudoAnimations(shadowRootRef, phase === "closing");
+  useClosingPseudoAnimations(shadowRootRef, phase === "closing");
 
   useEffect(() => {
     return () => {

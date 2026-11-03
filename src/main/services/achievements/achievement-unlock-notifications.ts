@@ -1,5 +1,6 @@
 import type {
   AchievementNotificationInfo,
+  AchievementNotificationRequest,
   Game,
   SteamAchievement,
   UserPreferences,
@@ -73,14 +74,25 @@ export const publishAchievementUnlockNotifications = ({
   const position =
     userPreferences?.achievementCustomNotificationPosition ?? "top-left";
 
-  const publishOsNotification = () =>
-    publishNewAchievementNotification({
-      achievements: achievementsInfo,
+  const publishOsNotification = (
+    requests?: AchievementNotificationRequest[]
+  ) => {
+    const remainingAchievements = requests
+      ? requests.flatMap((request) =>
+          request.type === "achievement" ? [request.achievement] : []
+        )
+      : achievementsInfo;
+
+    if (!remainingAchievements.length) return;
+
+    return publishNewAchievementNotification({
+      achievements: remainingAchievements,
       unlockedAchievementCount,
       totalAchievementCount,
       gameTitle: game.title,
       gameIcon: game.iconUrl,
     });
+  };
 
   if (process.platform === "linux") {
     const shownInApp =

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import type { AchievementNotificationRequest } from "@types";
 import type {
   AchievementNotificationHost,
   AchievementNotificationPresenterDependencies,
@@ -382,15 +383,15 @@ describe("AchievementNotificationPresenter", () => {
     assert.equal(harness.host.destroyCount, 0);
   });
 
-  it("does not re-announce a batch after one card finished", async () => {
+  it("falls back only with unshown achievements after a card finished", async () => {
     const harness = new PresenterHarness();
-    let fallbackCount = 0;
+    let fallbackRequests: AchievementNotificationRequest[] = [];
 
     harness.presenter.enqueueAchievements(
       "top-left",
       [achievement("first"), achievement("second")],
-      () => {
-        fallbackCount += 1;
+      (requests) => {
+        fallbackRequests = requests;
       }
     );
     await harness.flush();
@@ -411,7 +412,13 @@ describe("AchievementNotificationPresenter", () => {
     harness.host.fail("window failed after first card");
     await harness.flush();
 
-    assert.equal(fallbackCount, 0);
+    assert.equal(fallbackRequests.length, 1);
+    assert.equal(
+      fallbackRequests[0].type === "achievement"
+        ? fallbackRequests[0].achievement.title
+        : null,
+      "second"
+    );
   });
 
   it("destroys the host and invokes a batch fallback exactly once on failure", async () => {

@@ -8,7 +8,7 @@ import {
   getAchievementSoundUrl,
   getAchievementSoundVolume,
 } from "@renderer/helpers";
-import { useCancelClosingPseudoAnimations } from "@renderer/helpers/notification-animations";
+import { useClosingPseudoAnimations } from "@renderer/helpers/notification-animations";
 import { AchievementNotificationItem } from "./achievement-notification";
 
 const NOTIFICATION_TIMEOUT = 4000;
@@ -123,7 +123,7 @@ export function AchievementNotificationOverlay() {
     }
   }, [achievements]);
 
-  useCancelClosingPseudoAnimations(containerRef.current, isClosing);
+  useClosingPseudoAnimations(containerRef.current, isClosing);
 
   if (!isVisible || !currentAchievement) return null;
 

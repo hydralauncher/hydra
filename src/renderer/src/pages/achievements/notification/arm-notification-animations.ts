@@ -3,9 +3,6 @@ import type {
   NotificationAnimationTarget,
 } from "../../../helpers/notification-animations.js";
 
-export type ArmingAnimation = NotificationAnimation;
-export type ArmingCard = NotificationAnimationTarget;
-
 export interface ArmingScheduler {
   requestFrame(callback: () => void): number;
   cancelFrame(handle: number): void;
@@ -14,7 +11,7 @@ export interface ArmingScheduler {
 }
 
 interface ArmNotificationAnimationsOptions {
-  card: ArmingCard | null;
+  card: NotificationAnimationTarget | null;
   scheduler: ArmingScheduler;
   timeoutMs: number;
   onArmed: () => void;
@@ -29,7 +26,7 @@ export const armNotificationAnimations = ({
   onTimeout,
 }: ArmNotificationAnimationsOptions): (() => void) => {
   const animations = card?.getAnimations({ subtree: true }) ?? [];
-  const paused = new Set<ArmingAnimation>();
+  const paused = new Set<NotificationAnimation>();
 
   for (const animation of animations) {
     if (animation.playState === "paused") continue;

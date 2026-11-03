@@ -28,17 +28,19 @@ export interface AchievementNotificationHost {
 }
 
 type TimeoutHandle = ReturnType<typeof setTimeout>;
-type NotificationFallback = () => void | Promise<void>;
+type NotificationFallback = (
+  requests: AchievementNotificationRequest[]
+) => void | Promise<void>;
 
 interface FallbackReference {
   callback?: NotificationFallback;
   invoked: boolean;
-  shown: boolean;
 }
 
 interface QueueItem {
   request: AchievementNotificationRequest;
   fallback: FallbackReference;
+  shown: boolean;
 }
 
 export interface AchievementNotificationPresenterDependencies {
@@ -85,7 +87,6 @@ export class AchievementNotificationPresenter {
     const fallbackReference: FallbackReference = {
       callback: fallback,
       invoked: false,
-      shown: false,
     };
     const batchId = this.nextBatchId();
 
@@ -99,6 +100,7 @@ export class AchievementNotificationPresenter {
           achievement,
         },
         fallback: fallbackReference,
+        shown: false,
       }))
     );
 
@@ -122,7 +124,8 @@ export class AchievementNotificationPresenter {
         gameCount,
         achievementCount,
       },
-      fallback: { callback: fallback, invoked: false, shown: false },
+      fallback: { callback: fallback, invoked: false },
+      shown: false,
     });
 
     this.present();
@@ -144,7 +147,8 @@ export class AchievementNotificationPresenter {
         position,
         achievement: { ...notification, variant: "screenshot" },
       },
-      fallback: { callback: fallback, invoked: false, shown: false },
+      fallback: { callback: fallback, invoked: false },
+      shown: false,
     });
 
     this.present();
@@ -200,7 +204,7 @@ export class AchievementNotificationPresenter {
 
     if (event.type === "started") {
       if (this.stage !== "visible") return;
-      this.activeItem.fallback.shown = true;
+      this.activeItem.shown = true;
       return;
     }
 
@@ -254,7 +258,7 @@ export class AchievementNotificationPresenter {
     this.dependencies.log(
       `Achievement notification finished: ${this.activeItem?.request.id}`
     );
-    if (this.activeItem) this.activeItem.fallback.shown = true;
+    if (this.activeItem) this.activeItem.shown = true;
     this.clearWatchdog();
     try {
       host.hide();
@@ -419,16 +423,31 @@ export class AchievementNotificationPresenter {
     this.destroyCurrentHost();
     this.stage = "idle";
 
-    const fallbacks = new Set(failedItems.map((item) => item.fallback));
-    for (const fallback of fallbacks) {
-      if (!fallback.callback || fallback.invoked || fallback.shown) continue;
+    const fallbacks = new Map<
+      FallbackReference,
+      AchievementNotificationRequest[]
+    >();
+
+    for (const item of failedItems) {
+      if (!item.fallback.callback || item.fallback.invoked || item.shown) {
+        continue;
+      }
+
+      const requests = fallbacks.get(item.fallback) ?? [];
+      requests.push(item.request);
+      fallbacks.set(item.fallback, requests);
+    }
+
+    for (const [fallback, requests] of fallbacks) {
       fallback.invoked = true;
-      void Promise.resolve(fallback.callback()).catch((fallbackError) => {
-        this.dependencies.logError(
-          "Achievement notification fallback failed",
-          fallbackError
-        );
-      });
+      void Promise.resolve(fallback.callback?.(requests)).catch(
+        (fallbackError) => {
+          this.dependencies.logError(
+            "Achievement notification fallback failed",
+            fallbackError
+          );
+        }
+      );
     }
   }
 

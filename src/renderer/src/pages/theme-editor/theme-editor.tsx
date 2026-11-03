@@ -13,7 +13,7 @@ import {
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import { injectCustomCss, getAchievementSoundVolume } from "@renderer/helpers";
-import { useCancelClosingPseudoAnimations } from "@renderer/helpers/notification-animations";
+import { useClosingPseudoAnimations } from "@renderer/helpers/notification-animations";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { generateAchievementCustomNotificationTest } from "@shared";
 import { CollapsedMenu } from "@renderer/components/collapsed-menu/collapsed-menu";
@@ -60,7 +60,7 @@ export default function ThemeEditor() {
     };
   }, [t, i18n.language, notificationVariation, notificationAlignment]);
 
-  useCancelClosingPseudoAnimations(shadowRootRef, isClosingNotifications);
+  useClosingPseudoAnimations(shadowRootRef, isClosingNotifications);
 
   useEffect(() => {
     window.document.title = "Hydra - Theme Editor";

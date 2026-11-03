@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { cancelNotificationPseudoAnimations } from "../../../helpers/notification-animations.js";
+import {
+  pauseNotificationPseudoAnimations,
+  resumeNotificationAnimations,
+  type NotificationAnimation,
+} from "../../../helpers/notification-animations.js";
 import {
   armNotificationAnimations,
-  type ArmingAnimation,
   type ArmingScheduler,
 } from "./arm-notification-animations.js";
 
-class FakeAnimation implements ArmingAnimation {
+class FakeAnimation implements NotificationAnimation {
   public currentTime: unknown = null;
   public cancelCount = 0;
   public pauseCount = 0;
@@ -93,7 +96,7 @@ class FakeCard {
 
   constructor(private readonly batches: FakeAnimation[][]) {}
 
-  public getAnimations(): readonly ArmingAnimation[] {
+  public getAnimations(): readonly NotificationAnimation[] {
     const batch = this.batches[this.index] ?? [];
     this.index += 1;
     return batch;
@@ -189,7 +192,7 @@ describe("armNotificationAnimations", () => {
     assert.equal(replacement.currentTime, 0);
   });
 
-  it("cancels only pseudo-element closing animations", () => {
+  it("pauses and resumes only pseudo-element closing animations", () => {
     const pseudo = new FakeAnimation("theme-loop", {
       pseudoElement: "::before",
     });
@@ -197,11 +200,18 @@ describe("armNotificationAnimations", () => {
     const transition = new FakeAnimation();
     const card = new FakeCard([[pseudo, closing, transition]]);
 
-    cancelNotificationPseudoAnimations(card);
+    const paused = pauseNotificationPseudoAnimations(card);
 
-    assert.equal(pseudo.cancelCount, 1);
-    assert.equal(closing.cancelCount, 0);
-    assert.equal(transition.cancelCount, 0);
+    assert.equal(pseudo.pauseCount, 1);
+    assert.equal(closing.pauseCount, 0);
+    assert.equal(transition.pauseCount, 0);
+
+    resumeNotificationAnimations(paused);
+
+    assert.equal(pseudo.playCount, 1);
+    assert.equal(pseudo.currentTime, 0);
+    assert.equal(closing.playCount, 0);
+    assert.equal(transition.playCount, 0);
   });
 
   it("leaves animations paused by the theme paused", () => {
