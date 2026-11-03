@@ -4,6 +4,7 @@ import { Downloader } from "./constants.js";
 import {
   getUriGroupParts,
   normalizeUriGroups,
+  selectUriForDownloader,
   withoutMultipartHosterDownloads,
 } from "./repack-uri-groups.js";
 
@@ -92,5 +93,61 @@ describe("withoutMultipartHosterDownloads", () => {
 
     assert.deepEqual(repack.uris, ["magnet:?xt=1", fuckingFastParts[0]]);
     assert.equal(repack.uriGroups, undefined);
+  });
+});
+
+describe("selectUriForDownloader", () => {
+  const deadGofile = "https://gofile.io/d/dead";
+  const liveGofile = "https://gofile.io/d/live";
+  const magnet = "magnet:?xt=1";
+
+  it("skips an unavailable first link for a working one", () => {
+    assert.equal(
+      selectUriForDownloader(
+        {
+          uris: [deadGofile, magnet, liveGofile],
+          unavailableUris: [deadGofile],
+        },
+        Downloader.Gofile,
+        getDownloadersForUri
+      ),
+      liveGofile
+    );
+  });
+
+  it("falls back to the first match when every match is unavailable", () => {
+    assert.equal(
+      selectUriForDownloader(
+        {
+          uris: [deadGofile, liveGofile],
+          unavailableUris: [deadGofile, liveGofile],
+        },
+        Downloader.Gofile,
+        getDownloadersForUri
+      ),
+      deadGofile
+    );
+  });
+
+  it("takes the first match when no link is marked unavailable", () => {
+    assert.equal(
+      selectUriForDownloader(
+        { uris: [deadGofile, liveGofile] },
+        Downloader.Gofile,
+        getDownloadersForUri
+      ),
+      deadGofile
+    );
+  });
+
+  it("returns null when no link fits the downloader", () => {
+    assert.equal(
+      selectUriForDownloader(
+        { uris: [magnet], unavailableUris: [] },
+        Downloader.Gofile,
+        getDownloadersForUri
+      ),
+      null
+    );
   });
 });

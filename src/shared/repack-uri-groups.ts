@@ -89,6 +89,28 @@ export const normalizeUriGroups = <T extends UriGroupRepack>(
   };
 };
 
+/**
+ * The link a downloader starts from: the first match not marked unavailable,
+ * else the first match, so the availability UI still decides when every
+ * link for the downloader is down.
+ */
+export const selectUriForDownloader = (
+  repack: { uris: string[]; unavailableUris?: string[] },
+  downloader: Downloader,
+  getDownloadersForUri: (uri: string) => Downloader[]
+): string | null => {
+  const matchingUris = repack.uris.filter((uri) =>
+    getDownloadersForUri(uri).includes(downloader)
+  );
+  const unavailableUris = new Set(repack.unavailableUris ?? []);
+
+  return (
+    matchingUris.find((uri) => !unavailableUris.has(uri)) ??
+    matchingUris[0] ??
+    null
+  );
+};
+
 export const getUriGroupParts = (
   repack: Pick<UriGroupRepack, "uriGroups">,
   uri: string

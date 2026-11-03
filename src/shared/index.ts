@@ -21,6 +21,7 @@ import { isArchiveOrgFileUri } from "./archive-org";
 import {
   getUriGroupParts,
   normalizeUriGroups,
+  selectUriForDownloader,
   withoutMultipartHosterDownloads,
 } from "./repack-uri-groups";
 import { charMap } from "./char-map";
@@ -259,23 +260,10 @@ export const getDownloadersForUris = (uris: string[]) => {
 
 export const getRepackUriParts = getUriGroupParts;
 
-// Prefers a link not marked unavailable; falls back to the first match so the
-// availability UI still decides when every link for the downloader is down.
 export const selectRepackUri = (
   repack: Pick<GameRepack, "uris" | "unavailableUris">,
   downloader: Downloader
-): string | null => {
-  const matchingUris = repack.uris.filter((uri) =>
-    getDownloadersForUri(uri).includes(downloader)
-  );
-  const unavailableUris = new Set(repack.unavailableUris ?? []);
-
-  return (
-    matchingUris.find((uri) => !unavailableUris.has(uri)) ??
-    matchingUris[0] ??
-    null
-  );
-};
+) => selectUriForDownloader(repack, downloader, getDownloadersForUri);
 
 export const filterDownloadableRepacks = <
   T extends Pick<GameRepack, "uris" | "uriGroups">,
