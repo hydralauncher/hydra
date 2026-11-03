@@ -1,10 +1,7 @@
 @use "../../scss/globals.scss";
 
 .recompilation-install {
-  // The shell's min-height fits the emulator steps; these steps are short.
   min-height: 0;
-  // Same width on every step, so the modal does not jump between them. The
-  // max-width leaves room for the scrollbar when the source list is long.
   width: 560px;
   max-width: 100%;
 
@@ -19,7 +16,6 @@
     gap: globals.$spacing-unit;
   }
 
-  // Same surface as the rows of the download options list.
   &__choice,
   &__picked,
   &__location {
@@ -36,8 +32,6 @@
     text-align: left;
   }
 
-  // Half the lightness the cards had over the modal (#262626 and #2e2e2e on
-  // #121212), as white overlays, plus a faint border.
   &__choice,
   &__picked {
     background: rgba(255, 255, 255, 0.04);
@@ -126,8 +120,6 @@
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 2);
 
-  // The list scrolls on its own, so the modal keeps its size and never gets
-  // a second scrollbar of its own.
   .repacks-modal__repacks {
     max-height: 360px;
     overflow-y: auto;
@@ -135,14 +127,12 @@
     padding-right: 4px;
   }
 
-  // The list's own gap already separates the filters from the rows.
   .repacks-modal__filter-top {
     margin-bottom: 0;
   }
 
   .repacks-modal__repack-button {
     flex-shrink: 0;
-    // Room on the right for the availability orb.
     padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 4)
       calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
   }

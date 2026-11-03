@@ -635,7 +635,6 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-emulator-install-progress", listener);
   },
-  /* Recompilations */
   getRecompilationInstallState: (ref: RecompilationRef) =>
     ipcRenderer.invoke("getRecompilationInstallState", ref),
   installRecompilation: (ref: RecompilationRef) =>

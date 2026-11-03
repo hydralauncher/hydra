@@ -2964,6 +2964,7 @@
     "size_of_total": "{{loaded}} de {{total}}",
     "install_failed": "No se pudo instalar. Inténtalo de nuevo.",
     "install_no_executable": "No se encontró el juego en esta versión. Inténtalo más tarde.",
+    "install_running": "Cierra el juego antes de actualizarlo.",
     "play_failed": "No se pudo abrir el juego.",
     "close_failed": "No se pudo cerrar el juego.",
     "uninstall_failed": "No se pudo desinstalar.",

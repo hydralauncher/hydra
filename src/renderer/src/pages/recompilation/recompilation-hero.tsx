@@ -79,17 +79,18 @@ export function RecompilationHero({
     updateLibrary();
   };
 
+  const installErrorMessage = (reason?: string) => {
+    if (reason === "running") return t("install_running");
+    if (reason === "no_executable") return t("install_no_executable");
+    return t("install_failed");
+  };
+
   const runInstall = async () => {
-    await addBaseGameToLibrary().catch(() => {});
+    void addBaseGameToLibrary().catch(() => {});
     const result = await install.install();
-    if (result.ok || result.reason === "running") return;
-    showErrorToast(
-      t(
-        result.reason === "no_executable"
-          ? "install_no_executable"
-          : "install_failed"
-      )
-    );
+    if (!result.ok && result.reason !== "already_installing") {
+      showErrorToast(installErrorMessage(result.reason));
+    }
   };
 
   const runPlay = async () => {
@@ -162,7 +163,7 @@ export function RecompilationHero({
 
     return (
       <>
-        {hasUpdate && !install.isRunning && (
+        {hasUpdate && !install.isRunning && !install.isLaunching && (
           <Button onClick={runInstall}>
             <SyncIcon />
             {t("update")}

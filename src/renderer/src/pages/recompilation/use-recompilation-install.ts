@@ -78,8 +78,16 @@ export function useRecompilationInstall(
 
   const install = useCallback(async () => {
     setProgress({ slug, phase: "downloading", loaded: 0 });
-    return window.electron.installRecompilation({ objectId, slug });
-  }, [objectId, slug]);
+    const result = await window.electron.installRecompilation({
+      objectId,
+      slug,
+    });
+    if (!result.ok) {
+      setProgress(null);
+      await refresh();
+    }
+    return result;
+  }, [objectId, slug, refresh]);
 
   const uninstall = useCallback(async () => {
     const result = await window.electron.uninstallRecompilation({

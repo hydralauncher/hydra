@@ -3441,6 +3441,7 @@
     "size_of_total": "{{loaded}} of {{total}}",
     "install_failed": "Couldn't install. Try again.",
     "install_no_executable": "Couldn't find the game in this release. Try again later.",
+    "install_running": "Close the game before updating it.",
     "play_failed": "Couldn't open the game.",
     "close_failed": "Couldn't close the game.",
     "uninstall_failed": "Couldn't uninstall.",

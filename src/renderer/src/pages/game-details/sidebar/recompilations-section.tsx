@@ -29,10 +29,8 @@ function RecompilationRow({
 }: Readonly<RecompilationRowProps>) {
   const { t } = useTranslation("recompilation");
   const navigate = useNavigate();
-  const { state, progress, isRunning, play, close } = useRecompilationInstall(
-    objectId,
-    recompilation.slug
-  );
+  const { state, progress, isRunning, isLaunching, play, close } =
+    useRecompilationInstall(objectId, recompilation.slug);
 
   const { showErrorToast } = useToast();
   const rom = useRecompilationRom(objectId, recompilation.slug);
@@ -134,6 +132,7 @@ function RecompilationRow({
           theme={hasUpdate || isRunning ? "outline" : "primary"}
           className="recompilations-section__action"
           onClick={action.onClick}
+          disabled={isLaunching}
         >
           {action.label}
         </Button>

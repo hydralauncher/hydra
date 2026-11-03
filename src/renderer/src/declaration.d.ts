@@ -788,7 +788,6 @@ declare global {
     onEmulatorInstallProgress: (
       cb: (payload: EmulatorInstallProgress) => void
     ) => () => void;
-    /* Recompilations */
     getRecompilationInstallState: (
       ref: RecompilationRef
     ) => Promise<RecompilationInstallState | null>;

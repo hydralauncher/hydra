@@ -42,7 +42,6 @@ import recompilationSaves from "./recompilation-saves.json";
 const INSTALL_MARKER_FILE = ".hydra-recompilation.json";
 const EXECUTABLE_SCAN_DEPTH = 3;
 const ELF_MAGIC = [0x7f, 0x45, 0x4c, 0x46];
-const IN_USE_ERROR_CODES = new Set(["EBUSY", "EPERM", "EACCES"]);
 
 interface InstallMarker {
   slug: string;
@@ -189,8 +188,7 @@ const isExecutableInUse = async (executablePath: string | null) => {
     await handle.close();
     return false;
   } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    return code !== undefined && IN_USE_ERROR_CODES.has(code);
+    return (error as NodeJS.ErrnoException).code === "EBUSY";
   }
 };
 
@@ -231,7 +229,8 @@ const resolveExtractedRoot = async (stagingDirectory: string) => {
 
 const extractRelease = async (
   archivePath: string,
-  installDirectory: string
+  installDirectory: string,
+  portName: string
 ) => {
   const stagingDirectory = `${installDirectory}.partial`;
   await fs.promises.rm(stagingDirectory, { recursive: true, force: true });
@@ -244,6 +243,9 @@ const extractRelease = async (
     await extractNestedTar(stagingDirectory);
     const root = await resolveExtractedRoot(stagingDirectory);
     await restoreExecutableBits(root);
+    if (!(await findExecutable(root, portName))) {
+      throw new RecompilationInstallError("no_executable");
+    }
     await fs.promises.mkdir(installDirectory, { recursive: true });
     await fs.promises.cp(root, installDirectory, {
       recursive: true,
@@ -342,7 +344,7 @@ const downloadAndInstall = async (
   }
 
   sendProgress({ slug: ref.slug, phase: "extracting" });
-  await extractRelease(archivePath, installDirectory);
+  await extractRelease(archivePath, installDirectory, details.name);
 
   const executablePath = await findExecutable(installDirectory, details.name);
   if (!executablePath) throw new RecompilationInstallError("no_executable");
