@@ -238,17 +238,13 @@ export function AchievementNotification() {
         return;
       }
 
-      if (
-        typeof window.electron.achievementNotificationSoundPlayed === "function"
-      ) {
-        try {
-          await window.electron.achievementNotificationSoundPlayed(
-            requestId,
-            batchId
-          );
-        } catch (error) {
-          console.error("Failed to report notification sound", error);
-        }
+      try {
+        await window.electron.achievementNotificationSoundPlayed(
+          requestId,
+          batchId
+        );
+      } catch (error) {
+        console.error("Failed to report notification sound", error);
       }
     },
     [playAudio]
@@ -260,13 +256,11 @@ export function AchievementNotification() {
 
     const requestId = request.id;
 
-    if (typeof window.electron.achievementNotificationStarted === "function") {
-      void window.electron
-        .achievementNotificationStarted(requestId)
-        .catch((error) => {
-          console.error("Failed to report notification start", error);
-        });
-    }
+    void window.electron
+      .achievementNotificationStarted(requestId)
+      .catch((error) => {
+        console.error("Failed to report notification start", error);
+      });
 
     if (
       request.type !== "screenshot" &&

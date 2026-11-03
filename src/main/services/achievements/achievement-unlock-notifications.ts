@@ -28,6 +28,7 @@ export interface AchievementUnlockNotificationOptions {
   unlockedAchievementCount: number;
   totalAchievementCount: number;
   userPreferences: UserPreferences | null;
+  notifyBigPicture?: boolean;
 }
 
 export const buildAchievementNotificationInfo = (
@@ -51,10 +52,13 @@ export const publishAchievementUnlockNotifications = ({
   unlockedAchievementCount,
   totalAchievementCount,
   userPreferences,
+  notifyBigPicture = true,
 }: AchievementUnlockNotificationOptions) => {
   if (!achievements.length) return;
 
-  notifyBigPictureAchievementUnlocked();
+  if (notifyBigPicture) {
+    notifyBigPictureAchievementUnlocked();
+  }
 
   if (userPreferences?.achievementNotificationsEnabled === false) {
     return;

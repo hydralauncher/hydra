@@ -23,6 +23,7 @@ import { AchievementWatcherManager } from "./achievement-watcher-manager";
 import { AchievementMemoryStore } from "./achievement-memory-store";
 import { UnlockedAchievementsCache } from "./unlocked-achievements-cache";
 import { publishAchievementUnlockNotifications } from "./achievement-unlock-notifications";
+import { notifyBigPictureAchievementUnlocked } from "../notifications";
 import { ScreenshotService } from "../screenshot";
 import { PendingAchievementSouvenirStore } from "./pending-achievement-souvenir-store";
 import { PendingGroupedSouvenirStore } from "./grouped-souvenir-store";
@@ -257,6 +258,7 @@ const mergeAchievementsLocally = async (
       unlockedAchievementCount: mergedLocalAchievements.length,
       totalAchievementCount: achievementsData.length,
       userPreferences,
+      notifyBigPicture: false,
     });
   }
 
@@ -284,6 +286,10 @@ const mergeAchievementsLocally = async (
         objectId: game.objectId,
         achievements: achievementsToSync,
       });
+  }
+
+  if (publishNotification) {
+    notifyBigPictureAchievementUnlocked();
   }
 
   if (pendingGroupedSouvenir) void groupedSouvenirWorker.trigger();
