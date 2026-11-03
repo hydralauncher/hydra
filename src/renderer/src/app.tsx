@@ -10,6 +10,8 @@ import {
   useAppDispatch,
   useAppSelector,
   useDownload,
+  useGamificationFeatureSync,
+  useGamificationProgressSync,
   useDragTextSelection,
   useLibrary,
   useToast,
@@ -50,6 +52,7 @@ import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
+import { LevelUpModal } from "./components/gamification";
 import { useMissingScreenshotsToast } from "./hooks/use-missing-screenshots-toast";
 import { useScreenshotUploadFailureToast } from "./hooks/use-screenshot-upload-failure-toast";
 import { LeaderboardNotificationLayer } from "./components/leaderboard-notification/leaderboard-notification-layer";
@@ -97,6 +100,9 @@ export function App() {
     updateUserDetails,
     clearUserDetails,
   } = useUserDetails();
+
+  useGamificationFeatureSync();
+  useGamificationProgressSync();
 
   const { hideHydraCloudModal, isHydraCloudModalVisible, hydraCloudFeature } =
     useSubscription();
@@ -804,6 +810,8 @@ export function App() {
         onClose={handleToastClose}
         duration={toast.duration}
       />
+
+      <LevelUpModal />
 
       <CloudSubscriptionModal
         visible={isHydraCloudModalVisible}

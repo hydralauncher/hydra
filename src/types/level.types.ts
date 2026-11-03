@@ -278,6 +278,7 @@ export interface UserPreferences {
   screenshotToastEnabled?: boolean;
   screenshotDefaultVisibility?: ProfileVisibility;
   showSensitiveScreenshots?: boolean;
+  hideCommunityScreenshots?: boolean;
 }
 
 export interface NetworkInterface {
