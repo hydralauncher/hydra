@@ -43,6 +43,9 @@ export const SCREENSHOT_INPUT_RESTART_DELAY_MS = 5_000;
 export const SCREENSHOT_INPUT_MAX_RESTARTS = 3;
 export const SCREENSHOT_INPUT_STABLE_RUN_MS = 60_000;
 
+const SCREENSHOT_FEATURE_REFRESH_MS = 10 * 60_000;
+const UNSUPPORTED_KEY_ERROR = "unsupported-key";
+
 export interface ScreenshotInputSettings {
   enabled: boolean;
   hotkey: ScreenshotHotkeyBinding;
@@ -192,6 +195,8 @@ export class ScreenshotInputService {
   private static restartAttempts = 0;
   private static listeningSince: number | null = null;
   private static restartTimer: ReturnType<typeof setTimeout> | null = null;
+  private static featureRefreshTimer: ReturnType<typeof setTimeout> | null =
+    null;
   private static portalAccelerator: string | null = null;
   private static nativeStatus: ScreenshotInputNativeStatus | null = null;
   private static pendingGamesRunningCheck: ReturnType<
@@ -306,6 +311,8 @@ export class ScreenshotInputService {
   public static shutdown() {
     this.shuttingDown = true;
     this.cancelRestart();
+    if (this.featureRefreshTimer) clearTimeout(this.featureRefreshTimer);
+    this.featureRefreshTimer = null;
     this.cancelTrackedGamesRunningCheck();
     this.unsubscribeGamesRunning?.();
     this.unsubscribeGamesRunning = null;
@@ -345,6 +352,24 @@ export class ScreenshotInputService {
     } catch (error) {
       logger.error("Failed to read the screenshots feature flag", error);
     }
+    this.scheduleFeatureRefresh();
+  }
+
+  private static scheduleFeatureRefresh() {
+    if (
+      this.featureEnabled ||
+      this.shuttingDown ||
+      this.featureRefreshTimer ||
+      !this.settings.listenOutsideGames
+    ) {
+      return;
+    }
+
+    this.featureRefreshTimer = setTimeout(() => {
+      this.featureRefreshTimer = null;
+      void this.refreshFeatureFlag();
+    }, SCREENSHOT_FEATURE_REFRESH_MS);
+    this.featureRefreshTimer.unref?.();
   }
 
   private static applyFeatureFlag(featureEnabled: boolean) {
@@ -460,11 +485,28 @@ export class ScreenshotInputService {
         keyboardError: nativeStatus.keyboardError ?? null,
         gamepadError: nativeStatus.gamepadError ?? null,
       });
+      this.retryFailedKeyboardStart(nativeStatus);
     } catch (error) {
       logger.error("Failed to start screenshot input", error);
       this.listening = false;
       this.setStatus({ ...INACTIVE_STATUS, hint: "hotkey_unavailable" });
     }
+  }
+
+  private static retryFailedKeyboardStart(
+    nativeStatus: ScreenshotInputNativeStatus
+  ) {
+    if (
+      !this.settings.listenOutsideGames ||
+      !nativeStatus.keyboardError ||
+      nativeStatus.keyboardError === UNSUPPORTED_KEY_ERROR ||
+      this.restartAttempts >= SCREENSHOT_INPUT_MAX_RESTARTS
+    ) {
+      return;
+    }
+
+    this.stopListening();
+    this.scheduleRestart();
   }
 
   private static applyListeningStatus(
@@ -603,6 +645,10 @@ export class ScreenshotInputService {
 
     if (this.restartAttempts >= SCREENSHOT_INPUT_MAX_RESTARTS) return;
 
+    this.scheduleRestart();
+  }
+
+  private static scheduleRestart() {
     this.restartAttempts += 1;
     this.cancelRestart();
     this.restartTimer = setTimeout(() => {
