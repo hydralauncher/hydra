@@ -14,6 +14,7 @@ import {
   isSameScreenshotHotkey,
   normalizeScreenshotGamepadCombo,
   normalizeScreenshotHotkey,
+  resolveScreenshotPreferences,
   toScreenshotHotkeyAccelerator,
 } from "@shared";
 
@@ -77,7 +78,7 @@ export const getScreenshotInputSettings = (
   ),
   listenOutsideGames:
     canListenOutsideGames(process.platform) &&
-    (preferences?.screenshotListenOutsideGames ?? true),
+    resolveScreenshotPreferences(preferences).listenOutsideGames,
 });
 
 export const toScreenshotInputNativeConfig = (
@@ -333,6 +334,7 @@ export class ScreenshotInputService {
 
     this.gamesRunning = gamesRunning;
     this.restartAttempts = 0;
+    if (this.nativeStatus?.keyboardError) this.stopListening();
     this.reconcile(this.settings);
     if (gamesRunning) void this.refreshFeatureFlag();
   }
@@ -422,7 +424,7 @@ export class ScreenshotInputService {
   }
 
   private static updateGamepadListening(settings: ScreenshotInputSettings) {
-    if (!this.nativeStatus || this.nativeStatus.keyboardError) return false;
+    if (!this.nativeStatus) return false;
 
     const gamepadStatus = NativeAddon.updateScreenshotInputGamepad(
       toScreenshotInputNativeConfig(settings)

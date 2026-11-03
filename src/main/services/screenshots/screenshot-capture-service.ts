@@ -278,11 +278,10 @@ const isDiskFullError = (error: unknown) =>
     (error as NodeJS.ErrnoException | null)?.code ?? ""
   );
 
-const getWriteFailureKind = (error: unknown): ScreenshotFailureKind =>
-  isDiskFullError(error) ? "disk_full" : "file_write_failed";
-
-const getStoreFailureKind = (error: unknown): ScreenshotFailureKind =>
-  isDiskFullError(error) ? "disk_full" : "save_failed";
+const getSaveFailureKind = (
+  error: unknown,
+  fallback: ScreenshotFailureKind
+): ScreenshotFailureKind => (isDiskFullError(error) ? "disk_full" : fallback);
 
 const playCaptureSound = () => {
   void ScreenshotFeedback.playCaptureSound().catch((error) => {
@@ -525,7 +524,11 @@ const grabResolvedGame = async (
     try {
       filePath = await saveCaptureFile(gameTitle, capturedAt, images.jpeg);
     } catch (error) {
-      failCapture("write", error, getWriteFailureKind(error));
+      failCapture(
+        "write",
+        error,
+        getSaveFailureKind(error, "file_write_failed")
+      );
       return;
     }
     const previewPath = await writeScreenshotPreview(images.preview).catch(
@@ -549,7 +552,7 @@ const grabResolvedGame = async (
         previewPath,
       });
     } catch (error) {
-      failCapture("store", error, getStoreFailureKind(error));
+      failCapture("store", error, getSaveFailureKind(error, "save_failed"));
       await discardUnrecordedCapture(filePath, previewPath);
       return;
     }
