@@ -288,7 +288,10 @@ export function AchievementNotification() {
         setPhase("playing");
 
         const requestId = requestRef.current?.id;
-        if (requestId) beginPlayback(requestId);
+        if (!requestId) return;
+
+        void window.electron.achievementNotificationStarted(requestId);
+        beginPlayback(requestId);
       },
       onTimeout: () => {
         const requestId = requestRef.current?.id;

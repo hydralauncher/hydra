@@ -304,6 +304,27 @@ describe("AchievementNotificationPresenter", () => {
     assert.equal(fallbackCount, 1);
   });
 
+  it("does not fall back after playback started", async () => {
+    const harness = new PresenterHarness();
+    let fallbackCount = 0;
+
+    const requestId = await harness.prepareAchievement(() => {
+      fallbackCount += 1;
+    });
+    await harness.contentReady(requestId);
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "started",
+      requestId,
+    });
+    await harness.flush();
+
+    harness.runLatestTimer();
+    await harness.flush();
+
+    assert.equal(harness.host.destroyCount, 1);
+    assert.equal(fallbackCount, 0);
+  });
+
   it("fails closed when the completion watchdog expires", async () => {
     const harness = new PresenterHarness();
     let fallbackCount = 0;

@@ -2202,6 +2202,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("achievementNotificationHostReady"),
   achievementNotificationContentReady: (requestId: string) =>
     ipcRenderer.invoke("achievementNotificationContentReady", requestId),
+  achievementNotificationStarted: (requestId: string) =>
+    ipcRenderer.invoke("achievementNotificationStarted", requestId),
   achievementNotificationFinished: (requestId: string) =>
     ipcRenderer.invoke("achievementNotificationFinished", requestId),
   achievementNotificationFailed: (requestId?: string, reason?: string) =>

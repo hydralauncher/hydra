@@ -1486,6 +1486,7 @@ declare global {
     ) => () => Electron.IpcRenderer;
     achievementNotificationHostReady: () => Promise<void>;
     achievementNotificationContentReady: (requestId: string) => Promise<void>;
+    achievementNotificationStarted: (requestId: string) => Promise<void>;
     achievementNotificationFinished: (requestId: string) => Promise<void>;
     achievementNotificationFailed: (
       requestId?: string,

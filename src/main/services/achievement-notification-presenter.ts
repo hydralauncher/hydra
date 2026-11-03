@@ -11,6 +11,7 @@ export const ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT = 8_500;
 export type AchievementNotificationRendererEvent =
   | { type: "host-ready" }
   | { type: "content-ready"; requestId: string }
+  | { type: "started"; requestId: string }
   | { type: "finished"; requestId: string }
   | { type: "failed"; requestId?: string; reason?: string };
 
@@ -194,6 +195,12 @@ export class AchievementNotificationPresenter {
 
     if (event.type === "content-ready") {
       this.handleContentReadyEvent(host, activeRequest.id);
+      return;
+    }
+
+    if (event.type === "started") {
+      if (this.stage !== "visible") return;
+      this.activeItem.fallback.shown = true;
       return;
     }
 
