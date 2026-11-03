@@ -206,7 +206,11 @@ export default function RecompilationPage() {
       </div>
 
       <div className="game-details__description-container">
-        <div className="game-details__description-content">
+        {/* Keyed by tab, so any tab, current or future, fades in on switch. */}
+        <div
+          key={activeTab}
+          className="game-details__description-content recompilation-page__tab-content"
+        >
           {activeTab === "about" && (
             <>
               <RecompilationReadmeSection details={details} readme={readme} />

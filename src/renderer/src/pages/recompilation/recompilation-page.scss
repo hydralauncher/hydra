@@ -164,6 +164,30 @@
   // Room between the tabs and the first title of each tab.
   .game-details__description-container {
     padding-top: calc(globals.$spacing-unit * 4);
+    // The game page gradient, but over a fixed height instead of the
+    // content height, so every tab gets the same background.
+    background: linear-gradient(
+        180deg,
+        globals.$dark-background-color 0,
+        globals.$background-color 800px
+      )
+      globals.$background-color;
+  }
+
+  &__tab-content {
+    animation: recompilation-tab-fade 300ms ease-out both;
+  }
+
+  @keyframes recompilation-tab-fade {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   // Same widths as the description on the game page.
