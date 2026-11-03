@@ -239,7 +239,7 @@ export function AchievementNotification() {
   const beginPlayback = useCallback(
     (requestId: string) => {
       const request = requestRef.current;
-      if (!request || request.id !== requestId) return;
+      if (request?.id !== requestId) return;
 
       if (
         request.type !== "screenshot" &&
