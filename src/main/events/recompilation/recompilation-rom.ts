@@ -268,14 +268,15 @@ export const setRecompilationRom = async (
     return { ok: false, reason: "invalid_rom" };
   }
 
-  // What the port was prepared from is kept: choosing the same ROM again
-  // does not redo the copy or the import.
+  // The copy Hydra made is kept, so choosing the same ROM again does not copy
+  // it twice. The launch marker is not: ports without an import check get
+  // the ROM again on the next launch, which retries a failed import.
   const installDirectory = await getRecompilationInstallDirectory(ref.slug);
   const previous = await readRomChoice(installDirectory);
   await writeRomChoice(installDirectory, {
     preparedFrom: previous?.preparedFrom,
     preparedTarget: previous?.preparedTarget,
-    launched: previous?.launched,
+    launched: false,
     source,
     path: source === "file" ? (romPath as string) : undefined,
   });
