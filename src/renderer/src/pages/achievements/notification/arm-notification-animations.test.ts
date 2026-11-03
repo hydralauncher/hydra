@@ -97,6 +97,25 @@ class FakeCard {
   }
 }
 
+const setupArming = (canPlayWithoutFrames?: () => boolean) => {
+  const animation = new FakeAnimation();
+  const card = new FakeCard([[animation], [animation]]);
+  const scheduler = new FakeScheduler();
+  let armedCount = 0;
+
+  armNotificationAnimations({
+    card,
+    scheduler,
+    timeoutMs: 1000,
+    onArmed: () => {
+      armedCount += 1;
+    },
+    canPlayWithoutFrames,
+  });
+
+  return { animation, scheduler, armedCount: () => armedCount };
+};
+
 describe("armNotificationAnimations", () => {
   it("pauses at zero and resumes after two frames", () => {
     const first = new FakeAnimation();
@@ -137,104 +156,53 @@ describe("armNotificationAnimations", () => {
   });
 
   it("resumes after a frame stall", () => {
-    const animation = new FakeAnimation();
-    const card = new FakeCard([[animation], [animation]]);
-    const scheduler = new FakeScheduler();
-    let armedCount = 0;
-
-    armNotificationAnimations({
-      card,
-      scheduler,
-      timeoutMs: 1000,
-      onArmed: () => {
-        armedCount += 1;
-      },
-    });
+    const { animation, scheduler, armedCount } = setupArming();
 
     scheduler.runFrame();
     scheduler.runTimeout();
 
     assert.equal(animation.playCount, 1);
     assert.equal(animation.currentTime, 0);
-    assert.equal(armedCount, 1);
+    assert.equal(armedCount(), 1);
     assert.equal(scheduler.frameCount, 0);
   });
 
   it("retries the frame wait when the page is visible", () => {
-    const animation = new FakeAnimation();
-    const card = new FakeCard([[animation], [animation]]);
-    const scheduler = new FakeScheduler();
-    let armedCount = 0;
-
-    armNotificationAnimations({
-      card,
-      scheduler,
-      timeoutMs: 1000,
-      onArmed: () => {
-        armedCount += 1;
-      },
-      canPlayWithoutFrames: () => true,
-    });
+    const { animation, scheduler, armedCount } = setupArming(() => true);
 
     scheduler.runTimeout();
 
     assert.equal(animation.playCount, 0);
-    assert.equal(armedCount, 0);
+    assert.equal(armedCount(), 0);
 
     scheduler.runFrame();
     scheduler.runFrame();
 
     assert.equal(animation.playCount, 1);
-    assert.equal(armedCount, 1);
+    assert.equal(armedCount(), 1);
     assert.equal(scheduler.frameCount, 0);
   });
 
   it("resumes when a visible retry also misses frames", () => {
-    const animation = new FakeAnimation();
-    const card = new FakeCard([[animation], [animation]]);
-    const scheduler = new FakeScheduler();
-    let armedCount = 0;
-
-    armNotificationAnimations({
-      card,
-      scheduler,
-      timeoutMs: 1000,
-      onArmed: () => {
-        armedCount += 1;
-      },
-      canPlayWithoutFrames: () => true,
-    });
+    const { animation, scheduler, armedCount } = setupArming(() => true);
 
     scheduler.runTimeout();
     scheduler.runTimeout();
 
     assert.equal(animation.playCount, 1);
-    assert.equal(armedCount, 1);
+    assert.equal(armedCount(), 1);
     assert.equal(scheduler.frameCount, 0);
   });
 
   it("resumes when a visible retry paints one frame before stalling", () => {
-    const animation = new FakeAnimation();
-    const card = new FakeCard([[animation], [animation]]);
-    const scheduler = new FakeScheduler();
-    let armedCount = 0;
-
-    armNotificationAnimations({
-      card,
-      scheduler,
-      timeoutMs: 1000,
-      onArmed: () => {
-        armedCount += 1;
-      },
-      canPlayWithoutFrames: () => true,
-    });
+    const { animation, scheduler, armedCount } = setupArming(() => true);
 
     scheduler.runTimeout();
     scheduler.runFrame();
     scheduler.runTimeout();
 
     assert.equal(animation.playCount, 1);
-    assert.equal(armedCount, 1);
+    assert.equal(armedCount(), 1);
     assert.equal(scheduler.frameCount, 0);
   });
 
