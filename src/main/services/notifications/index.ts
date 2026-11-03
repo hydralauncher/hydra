@@ -489,6 +489,7 @@ export const publishNewAchievementNotification = async (info: {
   totalAchievementCount: number;
   gameTitle: string;
   gameIcon: string | null;
+  suppressSound?: boolean;
 }) => {
   const partialOptions =
     info.achievements.length > 1
@@ -507,6 +508,8 @@ export const publishNewAchievementNotification = async (info: {
           icon: (await downloadImage(info.achievements[0].iconUrl)) ?? icon,
         };
 
+  const suppressSound = info.suppressSound === true;
+
   const options: NotificationOptions = {
     ...partialOptions,
     silent: true,
@@ -524,6 +527,8 @@ export const publishNewAchievementNotification = async (info: {
     ...options,
     toastXml: toXmlString(options),
   }).show();
+
+  if (suppressSound) return;
 
   if (WindowManager.mainWindow) {
     WindowManager.mainWindow.webContents.send("on-achievement-unlocked");

@@ -1487,6 +1487,7 @@ declare global {
     achievementNotificationHostReady: () => Promise<void>;
     achievementNotificationContentReady: (requestId: string) => Promise<void>;
     achievementNotificationStarted: (requestId: string) => Promise<void>;
+    achievementNotificationSoundPlayed: (batchId: string) => Promise<void>;
     achievementNotificationFinished: (requestId: string) => Promise<void>;
     achievementNotificationFailed: (
       requestId?: string,

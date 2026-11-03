@@ -75,7 +75,8 @@ export const publishAchievementUnlockNotifications = ({
     userPreferences?.achievementCustomNotificationPosition ?? "top-left";
 
   const publishOsNotification = (
-    requests?: AchievementNotificationRequest[]
+    requests?: AchievementNotificationRequest[],
+    soundPlayed = false
   ) => {
     const remainingAchievements = requests
       ? requests.flatMap((request) =>
@@ -91,6 +92,7 @@ export const publishAchievementUnlockNotifications = ({
       totalAchievementCount,
       gameTitle: game.title,
       gameIcon: game.iconUrl,
+      suppressSound: soundPlayed,
     });
   };
 

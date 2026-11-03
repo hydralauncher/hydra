@@ -115,7 +115,6 @@ describe("armNotificationAnimations", () => {
       onArmed: () => {
         armedCount += 1;
       },
-      onTimeout: () => {},
     });
 
     assert.equal(first.pauseCount, 1);
@@ -137,7 +136,54 @@ describe("armNotificationAnimations", () => {
     cancel();
   });
 
-  it("reports a timeout without resuming", () => {
+  it("resumes after a frame stall", () => {
+    const animation = new FakeAnimation();
+    const card = new FakeCard([[animation], [animation]]);
+    const scheduler = new FakeScheduler();
+    let armedCount = 0;
+
+    armNotificationAnimations({
+      card,
+      scheduler,
+      timeoutMs: 1000,
+      onArmed: () => {
+        armedCount += 1;
+      },
+    });
+
+    scheduler.runFrame();
+    scheduler.runTimeout();
+
+    assert.equal(animation.playCount, 1);
+    assert.equal(animation.currentTime, 0);
+    assert.equal(armedCount, 1);
+    assert.equal(scheduler.frameCount, 0);
+  });
+
+  it("resumes on timeout when the page is visible", () => {
+    const animation = new FakeAnimation();
+    const card = new FakeCard([[animation], [animation]]);
+    const scheduler = new FakeScheduler();
+    let armedCount = 0;
+
+    armNotificationAnimations({
+      card,
+      scheduler,
+      timeoutMs: 1000,
+      onArmed: () => {
+        armedCount += 1;
+      },
+      canPlayWithoutFrames: () => true,
+    });
+
+    scheduler.runTimeout();
+
+    assert.equal(animation.playCount, 1);
+    assert.equal(armedCount, 1);
+    assert.equal(scheduler.frameCount, 0);
+  });
+
+  it("reports a timeout when no frame painted and the page is hidden", () => {
     const animation = new FakeAnimation();
     const card = new FakeCard([[animation], [animation]]);
     const scheduler = new FakeScheduler();
@@ -175,7 +221,6 @@ describe("armNotificationAnimations", () => {
       scheduler,
       timeoutMs: 1000,
       onArmed: () => {},
-      onTimeout: () => {},
     });
 
     scheduler.runFrame();
@@ -219,7 +264,6 @@ describe("armNotificationAnimations", () => {
       scheduler,
       timeoutMs: 1000,
       onArmed: () => {},
-      onTimeout: () => {},
     });
 
     scheduler.runFrame();
@@ -242,7 +286,6 @@ describe("armNotificationAnimations", () => {
       onArmed: () => {
         armedCount += 1;
       },
-      onTimeout: () => {},
     });
 
     cancel();

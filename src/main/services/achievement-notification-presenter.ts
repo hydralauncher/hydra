@@ -12,6 +12,7 @@ export type AchievementNotificationRendererEvent =
   | { type: "host-ready" }
   | { type: "content-ready"; requestId: string }
   | { type: "started"; requestId: string }
+  | { type: "sound-played"; batchId: string }
   | { type: "finished"; requestId: string }
   | { type: "failed"; requestId?: string; reason?: string };
 
@@ -29,12 +30,14 @@ export interface AchievementNotificationHost {
 
 type TimeoutHandle = ReturnType<typeof setTimeout>;
 type NotificationFallback = (
-  requests: AchievementNotificationRequest[]
+  requests: AchievementNotificationRequest[],
+  soundPlayed: boolean
 ) => void | Promise<void>;
 
 interface FallbackReference {
   callback?: NotificationFallback;
   invoked: boolean;
+  soundPlayed: boolean;
 }
 
 interface QueueItem {
@@ -87,6 +90,7 @@ export class AchievementNotificationPresenter {
     const fallbackReference: FallbackReference = {
       callback: fallback,
       invoked: false,
+      soundPlayed: false,
     };
     const batchId = this.nextBatchId();
 
@@ -124,7 +128,7 @@ export class AchievementNotificationPresenter {
         gameCount,
         achievementCount,
       },
-      fallback: { callback: fallback, invoked: false },
+      fallback: { callback: fallback, invoked: false, soundPlayed: false },
       shown: false,
     });
 
@@ -147,7 +151,7 @@ export class AchievementNotificationPresenter {
         position,
         achievement: { ...notification, variant: "screenshot" },
       },
-      fallback: { callback: fallback, invoked: false },
+      fallback: { callback: fallback, invoked: false, soundPlayed: false },
       shown: false,
     });
 
@@ -191,6 +195,12 @@ export class AchievementNotificationPresenter {
 
     if (event.type === "failed") {
       this.handleFailedEvent(event);
+      return;
+    }
+
+    if (event.type === "sound-played") {
+      if (this.activeItem?.request.batchId !== event.batchId) return;
+      this.activeItem.fallback.soundPlayed = true;
       return;
     }
 
@@ -258,7 +268,6 @@ export class AchievementNotificationPresenter {
     this.dependencies.log(
       `Achievement notification finished: ${this.activeItem?.request.id}`
     );
-    if (this.activeItem) this.activeItem.shown = true;
     this.clearWatchdog();
     try {
       host.hide();
@@ -425,22 +434,29 @@ export class AchievementNotificationPresenter {
 
     const fallbacks = new Map<
       FallbackReference,
-      AchievementNotificationRequest[]
+      {
+        callback: NotificationFallback;
+        requests: AchievementNotificationRequest[];
+      }
     >();
 
     for (const item of failedItems) {
-      if (!item.fallback.callback || item.fallback.invoked || item.shown) {
+      const callback = item.fallback.callback;
+      if (!callback || item.fallback.invoked || item.shown) {
         continue;
       }
 
-      const requests = fallbacks.get(item.fallback) ?? [];
-      requests.push(item.request);
-      fallbacks.set(item.fallback, requests);
+      const group = fallbacks.get(item.fallback) ?? {
+        callback,
+        requests: [],
+      };
+      group.requests.push(item.request);
+      fallbacks.set(item.fallback, group);
     }
 
-    for (const [fallback, requests] of fallbacks) {
+    for (const [fallback, { callback, requests }] of fallbacks) {
       fallback.invoked = true;
-      void Promise.resolve(fallback.callback?.(requests)).catch(
+      void Promise.resolve(callback(requests, fallback.soundPlayed)).catch(
         (fallbackError) => {
           this.dependencies.logError(
             "Achievement notification fallback failed",

@@ -24,6 +24,16 @@ registerEvent("achievementNotificationStarted", (event, requestId: string) => {
   });
 });
 
+registerEvent(
+  "achievementNotificationSoundPlayed",
+  (event, batchId: string) => {
+    achievementNotificationPresenter.handleRendererEvent(event.sender.id, {
+      type: "sound-played",
+      batchId,
+    });
+  }
+);
+
 registerEvent("achievementNotificationFinished", (event, requestId: string) => {
   achievementNotificationPresenter.handleRendererEvent(event.sender.id, {
     type: "finished",

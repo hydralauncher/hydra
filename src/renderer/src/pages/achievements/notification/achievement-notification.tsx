@@ -233,9 +233,11 @@ export function AchievementNotification() {
 
     const requestId = request.id;
 
-    void window.electron
-      .achievementNotificationStarted(requestId)
-      .catch(() => undefined);
+    if (typeof window.electron.achievementNotificationStarted === "function") {
+      void window.electron
+        .achievementNotificationStarted(requestId)
+        .catch(() => undefined);
+    }
 
     if (
       request.type !== "screenshot" &&
@@ -244,8 +246,20 @@ export function AchievementNotification() {
       const batchId = request.batchId;
       playedSoundBatch.current = batchId;
       void playAudio().then((played) => {
-        if (!played && playedSoundBatch.current === batchId) {
-          playedSoundBatch.current = null;
+        if (!played) {
+          if (playedSoundBatch.current === batchId) {
+            playedSoundBatch.current = null;
+          }
+          return;
+        }
+
+        if (
+          typeof window.electron.achievementNotificationSoundPlayed ===
+          "function"
+        ) {
+          void window.electron
+            .achievementNotificationSoundPlayed(batchId)
+            .catch(() => undefined);
         }
       });
     }
@@ -289,6 +303,7 @@ export function AchievementNotification() {
         setPhase("playing");
         beginPlayback();
       },
+      canPlayWithoutFrames: () => document.visibilityState === "visible",
       onTimeout: () => {
         const requestId = requestRef.current?.id;
         if (!requestId) return;

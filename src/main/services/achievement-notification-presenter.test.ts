@@ -386,12 +386,14 @@ describe("AchievementNotificationPresenter", () => {
   it("falls back only with unshown achievements after a card finished", async () => {
     const harness = new PresenterHarness();
     let fallbackRequests: AchievementNotificationRequest[] = [];
+    let fallbackSoundPlayed = false;
 
     harness.presenter.enqueueAchievements(
       "top-left",
       [achievement("first"), achievement("second")],
-      (requests) => {
+      (requests, soundPlayed) => {
         fallbackRequests = requests;
+        fallbackSoundPlayed = soundPlayed;
       }
     );
     await harness.flush();
@@ -401,11 +403,19 @@ describe("AchievementNotificationPresenter", () => {
     });
     await harness.flush();
 
-    const firstId = harness.latestPreparedRequestId();
-    await harness.contentReady(firstId);
+    const first = harness.latestPreparedRequest();
+    await harness.contentReady(first.id);
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "started",
+      requestId: first.id,
+    });
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "sound-played",
+      batchId: first.batchId,
+    });
     harness.presenter.handleRendererEvent(harness.host.webContentsId, {
       type: "finished",
-      requestId: firstId,
+      requestId: first.id,
     });
     await harness.flush();
 
@@ -413,12 +423,85 @@ describe("AchievementNotificationPresenter", () => {
     await harness.flush();
 
     assert.equal(fallbackRequests.length, 1);
+    assert.equal(fallbackSoundPlayed, true);
     assert.equal(
       fallbackRequests[0].type === "achievement"
         ? fallbackRequests[0].achievement.title
         : null,
       "second"
     );
+  });
+
+  it("does not suppress fallback sound before audio succeeds", async () => {
+    const harness = new PresenterHarness();
+    let fallbackSoundPlayed: boolean | null = null;
+
+    harness.presenter.enqueueAchievements(
+      "top-left",
+      [achievement("first"), achievement("second")],
+      (_requests, soundPlayed) => {
+        fallbackSoundPlayed = soundPlayed;
+      }
+    );
+    await harness.flush();
+
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "host-ready",
+    });
+    await harness.flush();
+
+    const first = harness.latestPreparedRequest();
+    await harness.contentReady(first.id);
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "started",
+      requestId: first.id,
+    });
+
+    harness.host.fail("window failed before audio settled");
+    await harness.flush();
+
+    assert.equal(fallbackSoundPlayed, false);
+  });
+
+  it("accepts a late sound report while the next batch card is preparing", async () => {
+    const harness = new PresenterHarness();
+    let fallbackSoundPlayed: boolean | null = null;
+
+    harness.presenter.enqueueAchievements(
+      "top-left",
+      [achievement("first"), achievement("second")],
+      (_requests, soundPlayed) => {
+        fallbackSoundPlayed = soundPlayed;
+      }
+    );
+    await harness.flush();
+
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "host-ready",
+    });
+    await harness.flush();
+
+    const first = harness.latestPreparedRequest();
+    await harness.contentReady(first.id);
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "started",
+      requestId: first.id,
+    });
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "finished",
+      requestId: first.id,
+    });
+    await harness.flush();
+
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "sound-played",
+      batchId: first.batchId,
+    });
+
+    harness.host.fail("window failed while preparing the next card");
+    await harness.flush();
+
+    assert.equal(fallbackSoundPlayed, true);
   });
 
   it("destroys the host and invokes a batch fallback exactly once on failure", async () => {

@@ -1,6 +1,7 @@
-import type {
-  NotificationAnimation,
-  NotificationAnimationTarget,
+import {
+  resumeNotificationAnimations,
+  type NotificationAnimation,
+  type NotificationAnimationTarget,
 } from "../../../helpers/notification-animations.js";
 
 export interface ArmingScheduler {
@@ -15,7 +16,8 @@ interface ArmNotificationAnimationsOptions {
   scheduler: ArmingScheduler;
   timeoutMs: number;
   onArmed: () => void;
-  onTimeout: () => void;
+  onTimeout?: () => void;
+  canPlayWithoutFrames?: () => boolean;
 }
 
 export const armNotificationAnimations = ({
@@ -23,7 +25,8 @@ export const armNotificationAnimations = ({
   scheduler,
   timeoutMs,
   onArmed,
-  onTimeout,
+  onTimeout = () => {},
+  canPlayWithoutFrames = () => false,
 }: ArmNotificationAnimationsOptions): (() => void) => {
   const animations = card?.getAnimations({ subtree: true }) ?? [];
   const paused = new Set<NotificationAnimation>();
@@ -36,6 +39,7 @@ export const armNotificationAnimations = ({
   }
 
   let done = false;
+  let firstFrameSeen = false;
   let firstFrame = 0;
   let secondFrame = 0;
   let timeout = 0;
@@ -52,26 +56,29 @@ export const armNotificationAnimations = ({
     clearScheduled();
 
     const currentAnimations = card?.getAnimations({ subtree: true }) ?? [];
+    const animationsToResume = currentAnimations.filter(
+      (animation) => animation.playState !== "paused" || paused.has(animation)
+    );
 
-    for (const animation of currentAnimations) {
-      if (animation.playState === "paused" && !paused.has(animation)) {
-        continue;
-      }
-
-      animation.currentTime = 0;
-      animation.play();
-    }
+    resumeNotificationAnimations(animationsToResume);
 
     onArmed();
   };
 
   timeout = scheduler.setTimeout(() => {
     if (done) return;
+
+    if (firstFrameSeen || canPlayWithoutFrames()) {
+      finishFrames();
+      return;
+    }
+
     done = true;
     clearScheduled();
     onTimeout();
   }, timeoutMs);
   firstFrame = scheduler.requestFrame(() => {
+    firstFrameSeen = true;
     secondFrame = scheduler.requestFrame(finishFrames);
   });
 

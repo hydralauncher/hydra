@@ -530,6 +530,7 @@ $margin-bottom: 28px;
     animation: none;
   }
 
+  &--closing &__container::before,
   &--closing *::before,
   &--closing *::after {
     animation: none;
