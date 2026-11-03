@@ -22,7 +22,6 @@ import HydraIconUrl from "@renderer/assets/icons/hydra.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
-import { useClosingPseudoAnimations } from "@renderer/helpers/notification-animations";
 import { armNotificationAnimations } from "./arm-notification-animations";
 import { resolveImageUrl } from "./resolve-image-url";
 
@@ -301,8 +300,6 @@ export function AchievementNotification() {
       },
     });
   }, [beginPlayback, phase, shadowRootRef]);
-
-  useClosingPseudoAnimations(shadowRootRef, phase === "closing");
 
   useEffect(() => {
     return () => {

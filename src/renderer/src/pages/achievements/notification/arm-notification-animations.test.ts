@@ -12,7 +12,6 @@ import {
 
 class FakeAnimation implements NotificationAnimation {
   public currentTime: unknown = null;
-  public cancelCount = 0;
   public pauseCount = 0;
   public playCount = 0;
   public playState = "running";
@@ -21,11 +20,6 @@ class FakeAnimation implements NotificationAnimation {
     public readonly animationName?: string,
     public readonly effect: object | null = null
   ) {}
-
-  public cancel(): void {
-    this.cancelCount += 1;
-    this.playState = "idle";
-  }
 
   public pause(): void {
     this.pauseCount += 1;

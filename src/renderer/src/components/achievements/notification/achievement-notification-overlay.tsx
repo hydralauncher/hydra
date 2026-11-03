@@ -8,7 +8,6 @@ import {
   getAchievementSoundUrl,
   getAchievementSoundVolume,
 } from "@renderer/helpers";
-import { useClosingPseudoAnimations } from "@renderer/helpers/notification-animations";
 import { AchievementNotificationItem } from "./achievement-notification";
 
 const NOTIFICATION_TIMEOUT = 4000;
@@ -39,7 +38,6 @@ export function AchievementNotificationOverlay() {
   const achievementAnimation = useRef(-1);
   const closingAnimation = useRef(-1);
   const pendingCount = useRef(0);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const playAudio = useCallback(async () => {
     const soundUrl = await getAchievementSoundUrl();
@@ -123,13 +121,10 @@ export function AchievementNotificationOverlay() {
     }
   }, [achievements]);
 
-  useClosingPseudoAnimations(containerRef.current, isClosing);
-
   if (!isVisible || !currentAchievement) return null;
 
   return (
     <div
-      ref={containerRef}
       style={{
         position: "fixed",
         inset: 0,

@@ -6,6 +6,12 @@ import cn from "classnames";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
 import { DeviceCameraIcon, EyeClosedIcon } from "@primer/octicons-react";
 import Ellipses from "@renderer/assets/icons/ellipses.png";
+import { useLayoutEffect, useRef } from "react";
+import {
+  pauseNotificationPseudoAnimations,
+  resumeNotificationAnimations,
+  type NotificationAnimation,
+} from "@renderer/helpers/notification-animations";
 import "./achievement-notification.scss";
 
 interface AchievementNotificationProps {
@@ -21,9 +27,27 @@ export function AchievementNotificationItem({
 }: Readonly<AchievementNotificationProps>) {
   const baseClassName = "achievement-notification";
   const isScreenshot = achievement.variant === "screenshot";
+  const cardRef = useRef<HTMLDivElement>(null);
+  const pausedAnimations = useRef<NotificationAnimation[]>([]);
+
+  useLayoutEffect(() => {
+    if (isClosing) {
+      pausedAnimations.current = pauseNotificationPseudoAnimations(
+        cardRef.current
+      );
+      return;
+    }
+
+    if (!pausedAnimations.current.length) return;
+
+    const animations = pausedAnimations.current;
+    pausedAnimations.current = [];
+    resumeNotificationAnimations(animations);
+  }, [isClosing]);
 
   return (
     <div
+      ref={cardRef}
       className={cn("achievement-notification", {
         [`${baseClassName}--${position}`]: true,
         [`${baseClassName}--closing`]: isClosing,
