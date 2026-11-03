@@ -100,6 +100,28 @@ class PresenterHarness {
     return this.latestPreparedRequestId();
   }
 
+  public async prepareAchievementBatch(
+    fallback: (
+      requests: AchievementNotificationRequest[],
+      soundPlayed: boolean
+    ) => void
+  ): Promise<{ id: string; batchId: string }> {
+    this.presenter.enqueueAchievements(
+      "top-left",
+      [achievement("first"), achievement("second")],
+      fallback
+    );
+    await this.flush();
+    this.presenter.handleRendererEvent(this.host.webContentsId, {
+      type: "host-ready",
+    });
+    await this.flush();
+
+    const first = this.latestPreparedRequest();
+    await this.contentReady(first.id);
+    return first;
+  }
+
   public async contentReady(requestId: string): Promise<void> {
     this.presenter.handleRendererEvent(this.host.webContentsId, {
       type: "content-ready",
@@ -388,23 +410,12 @@ describe("AchievementNotificationPresenter", () => {
     let fallbackRequests: AchievementNotificationRequest[] = [];
     let fallbackSoundPlayed = false;
 
-    harness.presenter.enqueueAchievements(
-      "top-left",
-      [achievement("first"), achievement("second")],
+    const first = await harness.prepareAchievementBatch(
       (requests, soundPlayed) => {
         fallbackRequests = requests;
         fallbackSoundPlayed = soundPlayed;
       }
     );
-    await harness.flush();
-
-    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
-      type: "host-ready",
-    });
-    await harness.flush();
-
-    const first = harness.latestPreparedRequest();
-    await harness.contentReady(first.id);
     harness.presenter.handleRendererEvent(harness.host.webContentsId, {
       type: "started",
       requestId: first.id,
@@ -436,22 +447,11 @@ describe("AchievementNotificationPresenter", () => {
     const harness = new PresenterHarness();
     let fallbackSoundPlayed: boolean | null = null;
 
-    harness.presenter.enqueueAchievements(
-      "top-left",
-      [achievement("first"), achievement("second")],
+    const first = await harness.prepareAchievementBatch(
       (_requests, soundPlayed) => {
         fallbackSoundPlayed = soundPlayed;
       }
     );
-    await harness.flush();
-
-    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
-      type: "host-ready",
-    });
-    await harness.flush();
-
-    const first = harness.latestPreparedRequest();
-    await harness.contentReady(first.id);
     harness.presenter.handleRendererEvent(harness.host.webContentsId, {
       type: "started",
       requestId: first.id,
@@ -467,22 +467,11 @@ describe("AchievementNotificationPresenter", () => {
     const harness = new PresenterHarness();
     let fallbackSoundPlayed: boolean | null = null;
 
-    harness.presenter.enqueueAchievements(
-      "top-left",
-      [achievement("first"), achievement("second")],
+    const first = await harness.prepareAchievementBatch(
       (_requests, soundPlayed) => {
         fallbackSoundPlayed = soundPlayed;
       }
     );
-    await harness.flush();
-
-    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
-      type: "host-ready",
-    });
-    await harness.flush();
-
-    const first = harness.latestPreparedRequest();
-    await harness.contentReady(first.id);
     harness.presenter.handleRendererEvent(harness.host.webContentsId, {
       type: "started",
       requestId: first.id,

@@ -237,13 +237,18 @@ describe("armNotificationAnimations", () => {
     });
     const closing = new FakeAnimation("my-exit");
     const transition = new FakeAnimation();
-    const card = new FakeCard([[pseudo, closing, transition]]);
+    const cancelled = new FakeAnimation("theme-loop", {
+      pseudoElement: "::before",
+    });
+    cancelled.playState = "idle";
+    const card = new FakeCard([[pseudo, closing, transition, cancelled]]);
 
     const paused = pauseNotificationPseudoAnimations(card);
 
     assert.equal(pseudo.pauseCount, 1);
     assert.equal(closing.pauseCount, 0);
     assert.equal(transition.pauseCount, 0);
+    assert.equal(cancelled.pauseCount, 0);
 
     resumeNotificationAnimations(paused);
 
@@ -251,6 +256,19 @@ describe("armNotificationAnimations", () => {
     assert.equal(pseudo.currentTime, 0);
     assert.equal(closing.playCount, 0);
     assert.equal(transition.playCount, 0);
+    assert.equal(cancelled.playCount, 0);
+  });
+
+  it("does not resume cancelled animations", () => {
+    const cancelled = new FakeAnimation("theme-loop", {
+      pseudoElement: "::before",
+    });
+    cancelled.playState = "idle";
+
+    resumeNotificationAnimations([cancelled]);
+
+    assert.equal(cancelled.playCount, 0);
+    assert.equal(cancelled.currentTime, null);
   });
 
   it("leaves animations paused by the theme paused", () => {

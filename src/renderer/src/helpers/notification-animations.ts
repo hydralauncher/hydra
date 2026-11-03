@@ -28,7 +28,8 @@ export const pauseNotificationPseudoAnimations = (
     if (
       animation.animationName === undefined ||
       !effect?.pseudoElement ||
-      animation.playState === "paused"
+      animation.playState === "paused" ||
+      animation.playState === "idle"
     ) {
       continue;
     }
@@ -44,6 +45,7 @@ export const resumeNotificationAnimations = (
   animations: readonly NotificationAnimation[]
 ): void => {
   for (const animation of animations) {
+    if (animation.playState === "idle") continue;
     animation.currentTime = 0;
     animation.play();
   }

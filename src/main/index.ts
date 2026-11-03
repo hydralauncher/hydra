@@ -52,6 +52,7 @@ import {
   parseSteamOpenIdReturn,
 } from "./services/steam-integration/steam-openid-return";
 import { steamSyncOrchestrator } from "./services/steam-integration/steam-sync-orchestrator";
+import { achievementNotificationPresenter } from "./services/achievement-notification-presenter-electron";
 import {
   initializeEpicIntegration,
   shutdownEpicIntegration,
@@ -447,6 +448,7 @@ app.on("before-quit", async (e) => {
     e.preventDefault();
     if (isAppClosing) return;
     isAppClosing = true;
+    achievementNotificationPresenter.dispose();
     await saveSocialWindowsSession();
     try {
       await shutdownEpicIntegration();
