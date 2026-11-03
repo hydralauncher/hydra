@@ -36,18 +36,21 @@
     text-align: left;
   }
 
+  // Half the lightness the cards had over the modal (#262626 and #2e2e2e on
+  // #121212), as white overlays, plus a faint border.
+  &__choice,
+  &__picked {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
   &__choice {
-    background: #262626;
     cursor: pointer;
     transition: background-color ease 0.2s;
 
     &:hover {
-      background: #2e2e2e;
+      background: rgba(255, 255, 255, 0.06);
     }
-  }
-
-  &__picked {
-    background: #262626;
   }
 
   &__location {
