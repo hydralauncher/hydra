@@ -15,9 +15,9 @@ import { firmwarePageUrl } from "./ps-firmware-url";
 import {
   ExternalLinkCard,
   InstallLoadingCard,
-  InstallProgressBar,
   installStatusText,
 } from "./install-progress";
+import { InstallProgressBar } from "@renderer/components/setup-modal/install-progress-bar";
 
 interface Props {
   binary: EmulatorBinary;

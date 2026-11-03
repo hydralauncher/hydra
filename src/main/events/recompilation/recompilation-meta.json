@@ -1,0 +1,98 @@
+{
+  "dusklight": {
+    "rom": {
+      "path": {
+        "arg": ["--dvd", "{rom}"]
+      },
+      "extensions": [
+        ".iso",
+        ".gcm",
+        ".ciso",
+        ".gcz",
+        ".nfs",
+        ".rvz",
+        ".wbfs",
+        ".wia",
+        ".tgc"
+      ]
+    }
+  },
+  "ico-pc": {
+    "rom": {
+      "path": {
+        "arg": ["--iso", "{rom}"]
+      },
+      "extensions": [".iso", ".chd", ".bin", ".cue"]
+    }
+  },
+  "super-mario-bros-remastered-public": {
+    "rom": {
+      "path": {
+        "arg": ["-rom", "{rom}"]
+      },
+      "extensions": [".nes"]
+    }
+  },
+  "shipwright": {
+    "rom": {
+      "path": {
+        "arg": ["{rom}"]
+      },
+      "once": true,
+      "extensions": [".z64", ".n64", ".v64"]
+    }
+  },
+  "ghostship": {
+    "rom": {
+      "path": {
+        "arg": ["{rom}"]
+      },
+      "once": true,
+      "extensions": [".z64", ".n64", ".v64"],
+      "format": "z64"
+    }
+  },
+  "gen1recomp": {
+    "rom": {
+      "path": {
+        "env": {
+          "POKEPORT_IMPORT_ROM": "{rom}"
+        }
+      },
+      "once": true,
+      "extensions": [".gb"]
+    }
+  },
+  "tenkaichi3decomp": {
+    "rom": {
+      "path": {
+        "installer": ["Tenkaichi3Decomp-setup", "--install", "{rom}"]
+      },
+      "once": true,
+      "extensions": [".iso"]
+    }
+  },
+  "zelda64recomp": {
+    "rom": {
+      "copyTo": {
+        "win32": "<winLocalAppData>/Zelda64Recompiled/mm.n64.us.1.0.z64",
+        "linux": "<home>/.config/Zelda64Recompiled/mm.n64.us.1.0.z64"
+      },
+      "format": "z64",
+      "extensions": [".z64", ".n64", ".v64"]
+    }
+  },
+  "silent-hill-decomp": {
+    "rom": {
+      "copyTo": {
+        "win32": "<base>/gamedata/{romName}",
+        "linux": "<base>/gamedata/{romName}",
+        "darwin": "<base>/gamedata/{romName}"
+      },
+      "extensions": [".bin"]
+    }
+  },
+  "spaghettikart": {
+    "rom": null
+  }
+}

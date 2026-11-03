@@ -14,6 +14,8 @@ interface SetupFooterProps {
   showSkip: boolean;
   continueDisabled: boolean;
   continueHidden?: boolean;
+  /** Replaces the default "Continue" label. */
+  continueLabel?: React.ReactNode;
   endAction?: FooterEndAction | null;
   onBack: () => void;
   onSkip: () => void;
@@ -27,6 +29,7 @@ export function SetupFooter({
   showSkip,
   continueDisabled,
   continueHidden,
+  continueLabel,
   endAction,
   onBack,
   onSkip,
@@ -72,7 +75,7 @@ export function SetupFooter({
             onClick={onContinue}
             disabled={continueDisabled}
           >
-            {t("setup_continue")}
+            {continueLabel ?? t("setup_continue")}
           </Button>
         )}
       </div>

@@ -53,6 +53,7 @@ export {
   MULTIPART_HOSTER_DOWNLOADS_FEATURE,
 } from "./repack-uri-groups";
 export * from "./controller-support";
+export * from "./recompilations";
 export * from "./artwork-resolver";
 export * from "./library-catalogue";
 export * from "./finished-download-step";

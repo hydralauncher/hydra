@@ -28,6 +28,7 @@ import {
 } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { LaunchboxDetailsSection } from "./launchbox-details-section";
+import { RecompilationsSection } from "./recompilations-section";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -207,6 +208,10 @@ export function Sidebar() {
 
   return (
     <aside className="content-sidebar">
+      {shop === "launchbox" && catalogueGame.objectId && (
+        <RecompilationsSection objectId={catalogueGame.objectId} />
+      )}
+
       {shouldShowProtonFeatures && (
         <Suspense fallback={null}>
           <ProtonDBSection

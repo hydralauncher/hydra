@@ -32,6 +32,9 @@ import type {
   EmulatorSystem,
   EmulatorBinary,
   EmulatorInstallProgress,
+  RecompilationInstallProgress,
+  RecompilationRef,
+  RecompilationRomSource,
   RetroArchCoreName,
   RetroArchCoreInstallProgress,
   RetroArchInstallProgress,
@@ -631,6 +634,32 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-emulator-install-progress", listener);
     return () =>
       ipcRenderer.removeListener("on-emulator-install-progress", listener);
+  },
+  /* Recompilations */
+  getRecompilationInstallState: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("getRecompilationInstallState", ref),
+  installRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("installRecompilation", ref),
+  uninstallRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("uninstallRecompilation", ref),
+  openRecompilationFolder: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("openRecompilationFolder", ref),
+  playRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("playRecompilation", ref),
+  getRecompilationRomState: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("getRecompilationRomState", ref),
+  setRecompilationRom: (
+    ref: RecompilationRef,
+    choice: { source: RecompilationRomSource; path?: string }
+  ) => ipcRenderer.invoke("setRecompilationRom", ref, choice),
+  onRecompilationInstallProgress: (
+    cb: (payload: RecompilationInstallProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RecompilationInstallProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-recompilation-install-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-recompilation-install-progress", listener);
   },
   /* RetroArch */
   getRetroArchConfig: () => ipcRenderer.invoke("getRetroArchConfig"),

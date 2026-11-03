@@ -60,6 +60,12 @@ import type {
   EmulationBackupProgress,
   EmulatorBinary,
   EmulatorInstallProgress,
+  RecompilationActionResult,
+  RecompilationInstallProgress,
+  RecompilationInstallState,
+  RecompilationRef,
+  RecompilationRomSource,
+  RecompilationRomState,
   EmulatorInstallResult,
   ResolvedInstallOption,
   DetectedRom,
@@ -775,6 +781,32 @@ declare global {
     ) => Promise<EmulatorInstallResult>;
     onEmulatorInstallProgress: (
       cb: (payload: EmulatorInstallProgress) => void
+    ) => () => void;
+    /* Recompilations */
+    getRecompilationInstallState: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationInstallState | null>;
+    installRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    uninstallRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    openRecompilationFolder: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    playRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    getRecompilationRomState: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationRomState | null>;
+    setRecompilationRom: (
+      ref: RecompilationRef,
+      choice: { source: RecompilationRomSource; path?: string }
+    ) => Promise<RecompilationActionResult>;
+    onRecompilationInstallProgress: (
+      cb: (payload: RecompilationInstallProgress) => void
     ) => () => void;
     /* RetroArch */
     getRetroArchConfig: () => Promise<RetroArchConfig>;

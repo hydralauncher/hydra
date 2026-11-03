@@ -1,0 +1,144 @@
+@use "../../scss/globals.scss";
+
+.recompilation-install {
+  // The shell's min-height fits the emulator steps; these steps are short.
+  min-height: 0;
+  // Same width on every step, so the modal does not jump between them. The
+  // max-width leaves room for the scrollbar when the source list is long.
+  width: 560px;
+  max-width: 100%;
+
+  &__strong {
+    color: #fafafa;
+    font-weight: 600;
+  }
+
+  &__choices {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  // Same surface as the rows of the download options list.
+  &__choice,
+  &__picked,
+  &__location {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    width: 100%;
+    padding: calc(globals.$spacing-unit * 2);
+    border: 0;
+    border-radius: 8px;
+    background: globals.$dark-background-color;
+    color: globals.$body-color;
+    font: inherit;
+    text-align: left;
+  }
+
+  &__choice {
+    background: #262626;
+    cursor: pointer;
+    transition: background-color ease 0.2s;
+
+    &:hover {
+      background: #2e2e2e;
+    }
+  }
+
+  &__picked {
+    background: #262626;
+  }
+
+  &__location {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  &__choice-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__choice-title {
+    color: globals.$muted-color;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__choice-info {
+    font-size: globals.$small-font-size;
+    color: #a1a1aa;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__location-path {
+    font-size: 13px;
+    color: globals.$muted-color;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__chevron {
+    flex-shrink: 0;
+    color: #8e919b;
+  }
+
+  &__status {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    padding: 14px 18px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #121212;
+
+    .setup-modal__progress-bar {
+      margin-top: 0 !important;
+    }
+  }
+
+  &__waiting {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    width: 100%;
+    text-align: left;
+  }
+
+  &__done-check {
+    background: #424244;
+  }
+}
+
+.rom-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+
+  // The list scrolls on its own, so the modal keeps its size and never gets
+  // a second scrollbar of its own.
+  .repacks-modal__repacks {
+    max-height: 360px;
+    overflow-y: auto;
+    gap: globals.$spacing-unit;
+    padding-right: 4px;
+  }
+
+  .repacks-modal__repack-button {
+    flex-shrink: 0;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+  }
+
+  &__empty {
+    margin: 0;
+    color: #a1a1aa;
+  }
+}

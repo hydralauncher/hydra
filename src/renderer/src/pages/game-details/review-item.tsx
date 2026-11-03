@@ -186,6 +186,13 @@ export function ReviewItem({
                       </span>
                     </div>
                   )}
+                  {review.recompilation && (
+                    <div className="game-details__review-recompilation">
+                      {t("review_played_with", {
+                        name: review.recompilation.name,
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

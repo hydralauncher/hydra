@@ -38,6 +38,8 @@ interface GameReviewsProps {
   hasUserReviewed: boolean;
   isCheckingUserReview: boolean;
   onUserReviewedChange: (hasReviewed: boolean) => void;
+  /** Shows and posts only the reviews of this port of the game. */
+  recompilationSlug?: string;
 }
 
 const MAX_REVIEW_CHARS = 1000;
@@ -50,6 +52,7 @@ export function GameReviews({
   hasUserReviewed,
   isCheckingUserReview,
   onUserReviewedChange,
+  recompilationSlug,
 }: Readonly<GameReviewsProps>) {
   const { t, i18n } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
@@ -151,6 +154,9 @@ export function GameReviews({
           skip: skip.toString(),
           sortBy: reviewsSortBy,
         });
+        if (recompilationSlug) {
+          params.set("recompilationSlug", recompilationSlug);
+        }
 
         const response = await window.electron.hydraApi.get(
           `/games/${shop}/${objectId}/reviews?${params.toString()}`,
@@ -186,7 +192,14 @@ export function GameReviews({
         }
       }
     },
-    [objectId, shop, reviewsPage, reviewsSortBy, i18n.language]
+    [
+      objectId,
+      shop,
+      reviewsPage,
+      reviewsSortBy,
+      i18n.language,
+      recompilationSlug,
+    ]
   );
 
   const handleVoteReview = async (
@@ -312,6 +325,7 @@ export function GameReviews({
           data: {
             reviewHtml,
             score: reviewScore,
+            ...(recompilationSlug ? { recompilationSlug } : {}),
           },
         }
       );
