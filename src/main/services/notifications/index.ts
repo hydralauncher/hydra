@@ -433,8 +433,6 @@ export const publishChatUnreadNotification = (
 export const notifyBigPictureAchievementUnlocked = () => {
   WindowManager.bigPictureWindow?.webContents.send(
     "on-achievement-unlocked",
-    undefined,
-    undefined,
     true
   );
 };
@@ -540,8 +538,6 @@ export const publishNewAchievementNotification = async (info: {
   if (WindowManager.mainWindow) {
     WindowManager.mainWindow.webContents.send(
       "on-achievement-unlocked",
-      undefined,
-      undefined,
       suppressSound
     );
   } else if (!suppressSound && process.platform !== "linux") {

@@ -685,7 +685,7 @@ export function App() {
 
   useEffect(() => {
     const unsubscribe = window.electron.onAchievementUnlocked(
-      (_position, _achievements, suppressSound) => {
+      (suppressSound) => {
         if (!suppressSound) playAudio();
       }
     );

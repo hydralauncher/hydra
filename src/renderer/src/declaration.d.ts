@@ -1467,11 +1467,7 @@ declare global {
       cb: (notification: LocalNotification) => void
     ) => () => Electron.IpcRenderer;
     onAchievementUnlocked: (
-      cb: (
-        position?: AchievementCustomNotificationPosition,
-        achievements?: AchievementNotificationInfo[],
-        suppressSound?: boolean
-      ) => void
+      cb: (suppressSound?: boolean) => void
     ) => () => Electron.IpcRenderer;
     onInAppAchievementUnlocked?: (
       cb: (

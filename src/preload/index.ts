@@ -2150,19 +2150,11 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-local-notification-created", listener);
   },
-  onAchievementUnlocked: (
-    cb: (
-      position?: AchievementCustomNotificationPosition,
-      achievements?: AchievementNotificationInfo[],
-      suppressSound?: boolean
-    ) => void
-  ) => {
+  onAchievementUnlocked: (cb: (suppressSound?: boolean) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      position?: AchievementCustomNotificationPosition,
-      achievements?: AchievementNotificationInfo[],
       suppressSound?: boolean
-    ) => cb(position, achievements, suppressSound);
+    ) => cb(suppressSound);
     ipcRenderer.on("on-achievement-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
