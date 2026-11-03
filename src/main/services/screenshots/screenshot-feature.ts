@@ -4,7 +4,7 @@ import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
 
 const SCREENSHOTS_FEATURE = "SCREENSHOTS";
-const FEATURE_CACHE_TTL_MS = 10 * 60_000;
+export const FEATURE_CACHE_TTL_MS = 10 * 60_000;
 const FEATURE_REQUEST_TIMEOUT_MS = 5_000;
 
 type ScreenshotsFeatureListener = (enabled: boolean) => void;

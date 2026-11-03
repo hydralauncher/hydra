@@ -30,6 +30,7 @@ import {
   type ScreenshotInputNativeStatus,
 } from "./native-addon";
 import {
+  FEATURE_CACHE_TTL_MS,
   isScreenshotsFeatureEnabled,
   onScreenshotsFeatureChange,
 } from "./screenshots/screenshot-feature";
@@ -43,7 +44,7 @@ export const SCREENSHOT_INPUT_RESTART_DELAY_MS = 5_000;
 export const SCREENSHOT_INPUT_MAX_RESTARTS = 3;
 export const SCREENSHOT_INPUT_STABLE_RUN_MS = 60_000;
 
-const SCREENSHOT_FEATURE_REFRESH_MS = 10 * 60_000;
+const SCREENSHOT_FEATURE_REFRESH_MS = FEATURE_CACHE_TTL_MS + 60_000;
 const UNSUPPORTED_KEY_ERROR = "unsupported-key";
 
 export interface ScreenshotInputSettings {
@@ -436,6 +437,7 @@ export class ScreenshotInputService {
       this.nativeStatus?.keyboardError &&
       !shouldUsePortalShortcut(this.nativeStatus)
     ) {
+      this.restartAttempts = 0;
       this.stopListening();
       this.startListening();
       return;
