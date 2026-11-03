@@ -422,7 +422,7 @@ export class ScreenshotInputService {
   }
 
   private static updateGamepadListening(settings: ScreenshotInputSettings) {
-    if (!this.nativeStatus) return false;
+    if (!this.nativeStatus || this.nativeStatus.keyboardError) return false;
 
     const gamepadStatus = NativeAddon.updateScreenshotInputGamepad(
       toScreenshotInputNativeConfig(settings)
