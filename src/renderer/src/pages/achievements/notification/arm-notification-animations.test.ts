@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   pauseNotificationPseudoAnimations,
-  resumeNotificationAnimations,
+  restartNotificationAnimations,
   type NotificationAnimation,
 } from "../../../helpers/notification-animations.js";
 import {
@@ -273,7 +273,7 @@ describe("armNotificationAnimations", () => {
     assert.equal(transition.pauseCount, 0);
     assert.equal(cancelled.pauseCount, 0);
 
-    resumeNotificationAnimations(paused);
+    restartNotificationAnimations(paused);
 
     assert.equal(pseudo.playCount, 1);
     assert.equal(pseudo.currentTime, 0);
@@ -288,7 +288,7 @@ describe("armNotificationAnimations", () => {
     });
     cancelled.playState = "idle";
 
-    resumeNotificationAnimations([cancelled]);
+    restartNotificationAnimations([cancelled]);
 
     assert.equal(cancelled.playCount, 0);
     assert.equal(cancelled.currentTime, null);

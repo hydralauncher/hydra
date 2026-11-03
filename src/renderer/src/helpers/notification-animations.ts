@@ -41,7 +41,7 @@ export const pauseNotificationPseudoAnimations = (
   return paused;
 };
 
-export const resumeNotificationAnimations = (
+export const restartNotificationAnimations = (
   animations: readonly NotificationAnimation[]
 ): void => {
   for (const animation of animations) {

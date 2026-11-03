@@ -6,10 +6,7 @@ import type {
   UserPreferences,
 } from "@types";
 import { WindowManager } from "../window-manager";
-import {
-  notifyBigPictureAchievementUnlocked,
-  publishNewAchievementNotification,
-} from "../notifications";
+import { publishNewAchievementNotification } from "../notifications";
 import { achievementsLogger } from "../logger";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 
@@ -28,7 +25,6 @@ export interface AchievementUnlockNotificationOptions {
   unlockedAchievementCount: number;
   totalAchievementCount: number;
   userPreferences: UserPreferences | null;
-  notifyBigPicture?: boolean;
 }
 
 export const buildAchievementNotificationInfo = (
@@ -52,15 +48,11 @@ export const publishAchievementUnlockNotifications = ({
   unlockedAchievementCount,
   totalAchievementCount,
   userPreferences,
-  notifyBigPicture = true,
 }: AchievementUnlockNotificationOptions) => {
-  if (!achievements.length) return;
-
-  if (notifyBigPicture) {
-    notifyBigPictureAchievementUnlocked();
-  }
-
-  if (userPreferences?.achievementNotificationsEnabled === false) {
+  if (
+    !achievements.length ||
+    userPreferences?.achievementNotificationsEnabled === false
+  ) {
     return;
   }
 

@@ -1,5 +1,5 @@
 import {
-  resumeNotificationAnimations,
+  restartNotificationAnimations,
   type NotificationAnimation,
   type NotificationAnimationTarget,
 } from "../../../helpers/notification-animations.js";
@@ -69,7 +69,7 @@ export const armNotificationAnimations = ({
       (animation) => animation.playState !== "paused" || paused.has(animation)
     );
 
-    resumeNotificationAnimations(animationsToResume);
+    restartNotificationAnimations(animationsToResume);
 
     onArmed();
   };

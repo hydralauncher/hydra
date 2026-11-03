@@ -258,7 +258,6 @@ const mergeAchievementsLocally = async (
       unlockedAchievementCount: mergedLocalAchievements.length,
       totalAchievementCount: achievementsData.length,
       userPreferences,
-      notifyBigPicture: false,
     });
   }
 

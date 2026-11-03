@@ -9,7 +9,7 @@ import Ellipses from "@renderer/assets/icons/ellipses.png";
 import { useLayoutEffect, useRef } from "react";
 import {
   pauseNotificationPseudoAnimations,
-  resumeNotificationAnimations,
+  restartNotificationAnimations,
   type NotificationAnimation,
 } from "@renderer/helpers/notification-animations";
 import "./achievement-notification.scss";
@@ -42,7 +42,7 @@ export function AchievementNotificationItem({
 
     const animations = pausedAnimations.current;
     pausedAnimations.current = [];
-    resumeNotificationAnimations(animations);
+    restartNotificationAnimations(animations);
   }, [isClosing]);
 
   return (
