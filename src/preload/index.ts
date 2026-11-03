@@ -2153,14 +2153,16 @@ contextBridge.exposeInMainWorld("electron", {
   onAchievementUnlocked: (
     cb: (
       position?: AchievementCustomNotificationPosition,
-      achievements?: AchievementNotificationInfo[]
+      achievements?: AchievementNotificationInfo[],
+      suppressSound?: boolean
     ) => void
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
       position?: AchievementCustomNotificationPosition,
-      achievements?: AchievementNotificationInfo[]
-    ) => cb(position, achievements);
+      achievements?: AchievementNotificationInfo[],
+      suppressSound?: boolean
+    ) => cb(position, achievements, suppressSound);
     ipcRenderer.on("on-achievement-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
@@ -2204,8 +2206,12 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("achievementNotificationContentReady", requestId),
   achievementNotificationStarted: (requestId: string) =>
     ipcRenderer.invoke("achievementNotificationStarted", requestId),
-  achievementNotificationSoundPlayed: (batchId: string) =>
-    ipcRenderer.invoke("achievementNotificationSoundPlayed", batchId),
+  achievementNotificationSoundPlayed: (requestId: string, batchId: string) =>
+    ipcRenderer.invoke(
+      "achievementNotificationSoundPlayed",
+      requestId,
+      batchId
+    ),
   achievementNotificationFinished: (requestId: string) =>
     ipcRenderer.invoke("achievementNotificationFinished", requestId),
   achievementNotificationFailed: (requestId?: string, reason?: string) =>

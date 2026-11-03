@@ -448,7 +448,6 @@ app.on("before-quit", async (e) => {
     e.preventDefault();
     if (isAppClosing) return;
     isAppClosing = true;
-    achievementNotificationPresenter.dispose();
     await saveSocialWindowsSession();
     try {
       await shutdownEpicIntegration();
@@ -483,6 +482,7 @@ app.on("before-quit", async (e) => {
         logger.error("Application shutdown cleanup failed", result.reason);
       }
     }
+    achievementNotificationPresenter.shutdown();
     canAppBeClosed = true;
     app.quit();
   }

@@ -422,6 +422,7 @@ describe("AchievementNotificationPresenter", () => {
     });
     harness.presenter.handleRendererEvent(harness.host.webContentsId, {
       type: "sound-played",
+      requestId: first.id,
       batchId: first.batchId,
     });
     harness.presenter.handleRendererEvent(harness.host.webContentsId, {
@@ -431,6 +432,36 @@ describe("AchievementNotificationPresenter", () => {
     await harness.flush();
 
     harness.host.fail("window failed after first card");
+    await harness.flush();
+
+    assert.equal(fallbackRequests.length, 1);
+    assert.equal(fallbackSoundPlayed, true);
+    assert.equal(
+      fallbackRequests[0].type === "achievement"
+        ? fallbackRequests[0].achievement.title
+        : null,
+      "second"
+    );
+  });
+
+  it("treats a sound confirmation as shown when started is lost", async () => {
+    const harness = new PresenterHarness();
+    let fallbackRequests: AchievementNotificationRequest[] = [];
+    let fallbackSoundPlayed = false;
+
+    const first = await harness.prepareAchievementBatch(
+      (requests, soundPlayed) => {
+        fallbackRequests = requests;
+        fallbackSoundPlayed = soundPlayed;
+      }
+    );
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "sound-played",
+      requestId: first.id,
+      batchId: first.batchId,
+    });
+
+    harness.host.fail("window failed after audio started");
     await harness.flush();
 
     assert.equal(fallbackRequests.length, 1);
@@ -484,6 +515,7 @@ describe("AchievementNotificationPresenter", () => {
 
     harness.presenter.handleRendererEvent(harness.host.webContentsId, {
       type: "sound-played",
+      requestId: first.id,
       batchId: first.batchId,
     });
 
@@ -527,6 +559,47 @@ describe("AchievementNotificationPresenter", () => {
 
     assert.equal(harness.host.destroyCount, 1);
     assert.equal(fallbackCount, 1);
+  });
+
+  it("continues other fallbacks when one throws synchronously", async () => {
+    const harness = new PresenterHarness();
+    let fallbackCount = 0;
+
+    harness.presenter.enqueueAchievements(
+      "top-left",
+      [achievement("first")],
+      () => {
+        throw new Error("fallback failed");
+      }
+    );
+    harness.presenter.enqueueAchievements(
+      "top-left",
+      [achievement("second")],
+      () => {
+        fallbackCount += 1;
+      }
+    );
+    await harness.flush();
+
+    harness.host.fail("window failed");
+    await harness.flush();
+
+    assert.equal(fallbackCount, 1);
+    assert.ok(
+      harness.errors.includes("Achievement notification fallback failed")
+    );
+  });
+
+  it("ignores new work after shutdown", async () => {
+    const harness = new PresenterHarness();
+
+    harness.presenter.shutdown();
+    harness.presenter.enqueueAchievements("top-left", [achievement("first")]);
+    harness.presenter.keepWarm("top-left");
+    await harness.flush();
+
+    assert.equal(harness.createCount, 0);
+    assert.equal(harness.host.messages.length, 0);
   });
 
   it("disposes queued work without invoking fallback", async () => {

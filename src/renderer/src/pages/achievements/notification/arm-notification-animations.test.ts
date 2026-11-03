@@ -160,7 +160,7 @@ describe("armNotificationAnimations", () => {
     assert.equal(scheduler.frameCount, 0);
   });
 
-  it("resumes on timeout when the page is visible", () => {
+  it("retries the frame wait when the page is visible", () => {
     const animation = new FakeAnimation();
     const card = new FakeCard([[animation], [animation]]);
     const scheduler = new FakeScheduler();
@@ -176,6 +176,62 @@ describe("armNotificationAnimations", () => {
       canPlayWithoutFrames: () => true,
     });
 
+    scheduler.runTimeout();
+
+    assert.equal(animation.playCount, 0);
+    assert.equal(armedCount, 0);
+
+    scheduler.runFrame();
+    scheduler.runFrame();
+
+    assert.equal(animation.playCount, 1);
+    assert.equal(armedCount, 1);
+    assert.equal(scheduler.frameCount, 0);
+  });
+
+  it("fails when a visible retry also misses frames", () => {
+    const animation = new FakeAnimation();
+    const card = new FakeCard([[animation], [animation]]);
+    const scheduler = new FakeScheduler();
+    let timeoutCount = 0;
+
+    armNotificationAnimations({
+      card,
+      scheduler,
+      timeoutMs: 1000,
+      onArmed: () => {},
+      onTimeout: () => {
+        timeoutCount += 1;
+      },
+      canPlayWithoutFrames: () => true,
+    });
+
+    scheduler.runTimeout();
+    scheduler.runTimeout();
+
+    assert.equal(animation.playCount, 0);
+    assert.equal(timeoutCount, 1);
+    assert.equal(scheduler.frameCount, 0);
+  });
+
+  it("resumes when a visible retry paints one frame before stalling", () => {
+    const animation = new FakeAnimation();
+    const card = new FakeCard([[animation], [animation]]);
+    const scheduler = new FakeScheduler();
+    let armedCount = 0;
+
+    armNotificationAnimations({
+      card,
+      scheduler,
+      timeoutMs: 1000,
+      onArmed: () => {
+        armedCount += 1;
+      },
+      canPlayWithoutFrames: () => true,
+    });
+
+    scheduler.runTimeout();
+    scheduler.runFrame();
     scheduler.runTimeout();
 
     assert.equal(animation.playCount, 1);

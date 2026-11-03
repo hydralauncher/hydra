@@ -26,9 +26,10 @@ registerEvent("achievementNotificationStarted", (event, requestId: string) => {
 
 registerEvent(
   "achievementNotificationSoundPlayed",
-  (event, batchId: string) => {
+  (event, requestId: string, batchId: string) => {
     achievementNotificationPresenter.handleRendererEvent(event.sender.id, {
       type: "sound-played",
+      requestId,
       batchId,
     });
   }

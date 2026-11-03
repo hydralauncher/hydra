@@ -12,7 +12,7 @@ export type AchievementNotificationRendererEvent =
   | { type: "host-ready" }
   | { type: "content-ready"; requestId: string }
   | { type: "started"; requestId: string }
-  | { type: "sound-played"; batchId: string }
+  | { type: "sound-played"; requestId: string; batchId: string }
   | { type: "finished"; requestId: string }
   | { type: "failed"; requestId?: string; reason?: string };
 
@@ -75,6 +75,7 @@ export class AchievementNotificationPresenter {
   private creatingHost = false;
   private watchdog: TimeoutHandle | null = null;
   private warmPosition: AchievementCustomNotificationPosition | null = null;
+  private shutdownRequested = false;
 
   constructor(
     private readonly dependencies: AchievementNotificationPresenterDependencies
@@ -85,7 +86,7 @@ export class AchievementNotificationPresenter {
     achievements: AchievementNotificationInfo[],
     fallback?: NotificationFallback
   ): void {
-    if (!achievements.length) return;
+    if (this.shutdownRequested || !achievements.length) return;
 
     const fallbackReference: FallbackReference = {
       callback: fallback,
@@ -117,7 +118,9 @@ export class AchievementNotificationPresenter {
     achievementCount: number,
     fallback?: NotificationFallback
   ): void {
-    if (gameCount <= 0 || achievementCount <= 0) return;
+    if (this.shutdownRequested || gameCount <= 0 || achievementCount <= 0) {
+      return;
+    }
 
     this.queue.push({
       request: {
@@ -140,6 +143,8 @@ export class AchievementNotificationPresenter {
     notification: AchievementNotificationInfo,
     fallback?: NotificationFallback
   ): void {
+    if (this.shutdownRequested) return;
+
     this.queue = this.queue.filter(
       (item) => item.request.type !== "screenshot"
     );
@@ -159,6 +164,7 @@ export class AchievementNotificationPresenter {
   }
 
   public keepWarm(position: AchievementCustomNotificationPosition): void {
+    if (this.shutdownRequested) return;
     this.warmPosition = position;
     this.ensureHost();
   }
@@ -201,6 +207,9 @@ export class AchievementNotificationPresenter {
     if (event.type === "sound-played") {
       if (this.activeItem?.request.batchId !== event.batchId) return;
       this.activeItem.fallback.soundPlayed = true;
+      if (this.activeItem.request.id === event.requestId) {
+        this.activeItem.shown = true;
+      }
       return;
     }
 
@@ -299,6 +308,11 @@ export class AchievementNotificationPresenter {
     this.clearWatchdog();
     this.destroyCurrentHost();
     this.stage = "idle";
+  }
+
+  public shutdown(): void {
+    this.shutdownRequested = true;
+    this.dispose();
   }
 
   private nextRequestId(): string {
@@ -456,14 +470,14 @@ export class AchievementNotificationPresenter {
 
     for (const [fallback, { callback, requests }] of fallbacks) {
       fallback.invoked = true;
-      void Promise.resolve(callback(requests, fallback.soundPlayed)).catch(
-        (fallbackError) => {
+      void Promise.resolve()
+        .then(() => callback(requests, fallback.soundPlayed))
+        .catch((fallbackError) => {
           this.dependencies.logError(
             "Achievement notification fallback failed",
             fallbackError
           );
-        }
-      );
+        });
     }
   }
 

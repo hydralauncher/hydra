@@ -40,6 +40,7 @@ export const armNotificationAnimations = ({
 
   let done = false;
   let firstFrameSeen = false;
+  let retried = false;
   let firstFrame = 0;
   let secondFrame = 0;
   let timeout = 0;
@@ -48,6 +49,14 @@ export const armNotificationAnimations = ({
     scheduler.clearTimeout(timeout);
     scheduler.cancelFrame(firstFrame);
     scheduler.cancelFrame(secondFrame);
+  };
+
+  const waitForFrames = () => {
+    scheduler.cancelFrame(firstFrame);
+    firstFrame = scheduler.requestFrame(() => {
+      firstFrameSeen = true;
+      secondFrame = scheduler.requestFrame(finishFrames);
+    });
   };
 
   const finishFrames = () => {
@@ -65,22 +74,28 @@ export const armNotificationAnimations = ({
     onArmed();
   };
 
-  timeout = scheduler.setTimeout(() => {
+  const handleTimeout = () => {
     if (done) return;
 
-    if (firstFrameSeen || canPlayWithoutFrames()) {
+    if (firstFrameSeen) {
       finishFrames();
       return;
     }
 
-    done = true;
-    clearScheduled();
-    onTimeout();
-  }, timeoutMs);
-  firstFrame = scheduler.requestFrame(() => {
-    firstFrameSeen = true;
-    secondFrame = scheduler.requestFrame(finishFrames);
-  });
+    if (retried || !canPlayWithoutFrames()) {
+      done = true;
+      clearScheduled();
+      onTimeout();
+      return;
+    }
+
+    retried = true;
+    waitForFrames();
+    timeout = scheduler.setTimeout(handleTimeout, timeoutMs);
+  };
+
+  timeout = scheduler.setTimeout(handleTimeout, timeoutMs);
+  waitForFrames();
 
   return () => {
     if (done) return;

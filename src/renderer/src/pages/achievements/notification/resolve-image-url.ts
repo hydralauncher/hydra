@@ -20,7 +20,17 @@ export const resolveImageUrl = (
 
     const timeout = setTimeout(() => finish(fallbackUrl), preparationTimeout);
 
-    image.onload = () => finish(source);
+    image.onload = () => {
+      if (typeof image.decode !== "function") {
+        finish(source);
+        return;
+      }
+
+      void image.decode().then(
+        () => finish(source),
+        () => finish(source)
+      );
+    };
     image.onerror = () => finish(fallbackUrl);
     image.src = source;
   });

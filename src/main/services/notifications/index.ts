@@ -528,12 +528,22 @@ export const publishNewAchievementNotification = async (info: {
     toastXml: toXmlString(options),
   }).show();
 
-  if (suppressSound) return;
-
   if (WindowManager.mainWindow) {
-    WindowManager.mainWindow.webContents.send("on-achievement-unlocked");
-  } else if (process.platform !== "linux") {
+    WindowManager.mainWindow.webContents.send(
+      "on-achievement-unlocked",
+      undefined,
+      undefined,
+      suppressSound
+    );
+  } else if (!suppressSound && process.platform !== "linux") {
     const soundPath = await getAchievementSoundPath();
     sound.play(soundPath);
   }
+
+  WindowManager.bigPictureWindow?.webContents.send(
+    "on-achievement-unlocked",
+    undefined,
+    undefined,
+    true
+  );
 };

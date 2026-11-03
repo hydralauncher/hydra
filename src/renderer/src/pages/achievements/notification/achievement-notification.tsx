@@ -227,6 +227,33 @@ export function AchievementNotification() {
     [finishNotification]
   );
 
+  const playAchievementSound = useCallback(
+    async (requestId: string, batchId: string) => {
+      playedSoundBatch.current = batchId;
+      const played = await playAudio();
+      if (!played) {
+        if (playedSoundBatch.current === batchId) {
+          playedSoundBatch.current = null;
+        }
+        return;
+      }
+
+      if (
+        typeof window.electron.achievementNotificationSoundPlayed === "function"
+      ) {
+        try {
+          await window.electron.achievementNotificationSoundPlayed(
+            requestId,
+            batchId
+          );
+        } catch (error) {
+          console.error("Failed to report notification sound", error);
+        }
+      }
+    },
+    [playAudio]
+  );
+
   const beginPlayback = useCallback(() => {
     const request = requestRef.current;
     if (!request) return;
@@ -236,32 +263,16 @@ export function AchievementNotification() {
     if (typeof window.electron.achievementNotificationStarted === "function") {
       void window.electron
         .achievementNotificationStarted(requestId)
-        .catch(() => undefined);
+        .catch((error) => {
+          console.error("Failed to report notification start", error);
+        });
     }
 
     if (
       request.type !== "screenshot" &&
       playedSoundBatch.current !== request.batchId
     ) {
-      const batchId = request.batchId;
-      playedSoundBatch.current = batchId;
-      void playAudio().then((played) => {
-        if (!played) {
-          if (playedSoundBatch.current === batchId) {
-            playedSoundBatch.current = null;
-          }
-          return;
-        }
-
-        if (
-          typeof window.electron.achievementNotificationSoundPlayed ===
-          "function"
-        ) {
-          void window.electron
-            .achievementNotificationSoundPlayed(batchId)
-            .catch(() => undefined);
-        }
-      });
+      void playAchievementSound(requestId, request.batchId);
     }
 
     displayTimer.current = window.setTimeout(() => {
@@ -269,7 +280,7 @@ export function AchievementNotification() {
       setPhase("closing");
       scheduleClosing(requestId);
     }, NOTIFICATION_TIMEOUT);
-  }, [playAudio, scheduleClosing]);
+  }, [playAchievementSound, scheduleClosing]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onStartAchievementNotification(

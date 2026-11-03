@@ -7,6 +7,7 @@ class FakeImage {
   public onload: (() => void) | null = null;
   public onerror: (() => void) | null = null;
   public src = "";
+  public decode = () => Promise.resolve();
 
   constructor() {
     FakeImage.instances.push(this);
@@ -33,6 +34,15 @@ const latestImage = () => {
 describe("resolveImageUrl", () => {
   it("keeps the source when the image loads before the timeout", async () => {
     const promise = resolveImageUrl("icon", "hydra", 100);
+
+    latestImage().onload?.();
+
+    assert.equal(await promise, "icon");
+  });
+
+  it("keeps the source when decoding fails", async () => {
+    const promise = resolveImageUrl("icon", "hydra", 100);
+    latestImage().decode = () => Promise.reject(new Error("decode failed"));
 
     latestImage().onload?.();
 

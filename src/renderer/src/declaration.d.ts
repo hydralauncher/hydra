@@ -1469,7 +1469,8 @@ declare global {
     onAchievementUnlocked: (
       cb: (
         position?: AchievementCustomNotificationPosition,
-        achievements?: AchievementNotificationInfo[]
+        achievements?: AchievementNotificationInfo[],
+        suppressSound?: boolean
       ) => void
     ) => () => Electron.IpcRenderer;
     onInAppAchievementUnlocked?: (
@@ -1487,7 +1488,10 @@ declare global {
     achievementNotificationHostReady: () => Promise<void>;
     achievementNotificationContentReady: (requestId: string) => Promise<void>;
     achievementNotificationStarted: (requestId: string) => Promise<void>;
-    achievementNotificationSoundPlayed: (batchId: string) => Promise<void>;
+    achievementNotificationSoundPlayed: (
+      requestId: string,
+      batchId: string
+    ) => Promise<void>;
     achievementNotificationFinished: (requestId: string) => Promise<void>;
     achievementNotificationFailed: (
       requestId?: string,
