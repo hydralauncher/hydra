@@ -26,6 +26,7 @@ import { formatBytes, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
   ClockIcon,
   AlertFillIcon,
+  AlertIcon,
   DatabaseIcon,
   FileZipIcon,
   CheckCircleFillIcon,
@@ -38,7 +39,6 @@ import {
 } from "@renderer/pages/settings/emulation/emulator-icons";
 import "./library-game-card-large.scss";
 
-// Cards scrolled past or remounted within this window never load, keeping scroll bursts off the API.
 const ACHIEVEMENT_PROGRESS_SETTLE_MS = 250;
 const LOGO_DISPLAY_WIDTH = 400;
 
@@ -149,10 +149,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
 
     if (items.length === 0) return [];
 
-    // Sort by size descending (larger first)
     items.sort((a, b) => b.bytes - a.bytes);
 
-    // Calculate proportional widths in pixels (max bar is 80px)
     const maxBytes = items[0].bytes;
     const maxWidth = 80;
     return items.map((item) => ({
@@ -274,8 +272,6 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
         .getUnlockedAchievements(game.objectId, game.shop)
         .then((achievements) => {
           if (isStale) return;
-          // An empty legacy fallback cannot distinguish unavailable definitions
-          // from an authoritative empty catalogue. Preserve known grouped totals.
           if (
             (hasStoreUnion || needsCatalogueTotal) &&
             achievements.length === 0
@@ -284,7 +280,6 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
           setUnlockedAchievementsCount(
             achievements.filter((a) => a.unlocked).length
           );
-          // Both counts must describe the returned list, including a one-store fallback.
           setTotalAchievementsCount(achievements.length);
         })
         .catch(() => void 0);
@@ -398,8 +393,24 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     );
 
   const installedBadge =
-    !hideReadySizeBadges && isInstalled ? (
+    !hideReadySizeBadges && isInstalled && !game.executableMissing ? (
       <InstalledBadge emulatorIcon={classicsEmulatorIcon} />
+    ) : null;
+
+  const missingBadge =
+    !hideReadySizeBadges && game.executableMissing ? (
+      <div
+        className="library-game-card-large__missing-badge"
+        title={t("not_installed_tooltip")}
+      >
+        <AlertIcon
+          size={12}
+          className="library-game-card-large__missing-icon"
+        />
+        <span className="library-game-card-large__missing-text">
+          {t("not_installed")}
+        </span>
+      </div>
     ) : null;
 
   return (
@@ -506,6 +517,7 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
               </div>
             )}
 
+            {missingBadge}
             {installedBadge}
           </div>
         </div>

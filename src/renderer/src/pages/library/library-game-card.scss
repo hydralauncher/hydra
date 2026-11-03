@@ -205,6 +205,34 @@
       border-color ease 0.2s;
   }
 
+  &__missing-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 4px;
+    line-height: 1;
+    color: globals.$warning-color;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(globals.$warning-color, 0.45);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  &__missing-icon {
+    flex-shrink: 0;
+  }
+
+  &__missing-text {
+    font-size: 12px;
+    display: inline;
+
+    @container (max-width: 140px) {
+      display: none;
+    }
+  }
+
   &__installed-icon {
     color: #fff;
     flex-shrink: 0;

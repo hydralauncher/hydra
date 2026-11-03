@@ -14,6 +14,7 @@ export interface GameContextMenuGame {
   favorite?: boolean;
   isPinned?: boolean;
   isHiddenFromOthers?: boolean;
+  executableMissing?: boolean;
   isConcealed?: boolean;
   collectionIds?: string[];
   discs?: { path: string }[];

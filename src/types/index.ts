@@ -1122,6 +1122,13 @@ export type LibraryGame = Game &
     download: Download | null;
     unlockedAchievementCount?: number;
     achievementCount?: number;
+     // True when the stored `executablePath` points to a file that no longer
+     // exists while the game's folder is still present (e.g. an antivirus
+     // quarantine, or an updater temporarily replacing the binary). The UI
+     // should show the game as "not installed" and offer a "locate" action,
+     // while the stored `executablePath` is preserved so the user can restore
+     // the file.
+    executableMissing?: boolean;
   };
 
 /** Read-only catalogue projection; writes must use its original members. */
