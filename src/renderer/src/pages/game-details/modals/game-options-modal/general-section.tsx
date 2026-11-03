@@ -19,7 +19,7 @@ import { Tooltip } from "react-tooltip";
 import { Button, CheckboxField, TextField } from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
-import { FileIcon } from "@primer/octicons-react";
+import { AlertIcon, FileIcon } from "@primer/octicons-react";
 import { HardDrive, X, FolderOpen, ChevronDown, Disc3 } from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
@@ -724,12 +724,20 @@ export function GeneralSettingsSection({
               }
             />
 
+            {game.executableMissing && (
+              <div className="game-options-modal__missing-executable-warning">
+                <AlertIcon size={16} />
+                <span>{t("executable_missing_description")}</span>
+              </div>
+            )}
+
             <div className="game-options-modal__executable-field-buttons">
               {game.executablePath && (
                 <Button
                   type="button"
                   theme="outline"
                   onClick={onOpenGameExecutablePath}
+                  disabled={game.executableMissing}
                 >
                   <FolderOpen size={14} />
                   {t("open_folder")}

@@ -19,6 +19,7 @@ import {
   PencilIcon,
   FileDirectoryIcon,
   FileDirectoryFillIcon,
+  FileIcon,
   LinkIcon,
   TrashIcon,
   XIcon,
@@ -45,6 +46,7 @@ import {
   useLibrary,
   useLibraryGamePresentation,
   useSteamUninstallAction,
+  useGameExecutablePicker,
 } from "@renderer/hooks";
 import { useCollectionContextMenu } from "@renderer/context";
 import { getGameCollectionIds } from "@renderer/helpers";
@@ -138,6 +140,7 @@ export function GameContextMenu({
   const { isGameDeleting } = useDownload();
   const { isCollectionContextMenuOrModalOpen } = useCollectionContextMenu();
   const selectedCollectionId = searchParams.get("collection");
+  const pickGameExecutable = useGameExecutablePicker();
 
   const targetSource =
     group ??
@@ -277,6 +280,15 @@ export function GameContextMenu({
     }
   };
 
+  const handleLocateExecutable = async () => {
+    const picked = await pickGameExecutable(game.shop, game.objectId);
+
+    if (picked) {
+      await updateLibrary();
+      onClose();
+    }
+  };
+
   const collectionSubmenu: ContextMenuItemData[] = [
     {
       id: "favorite",
@@ -357,6 +369,19 @@ export function GameContextMenu({
           !isGameRunning &&
           (isDownloadDeleting || isGameDownloading)),
     },
+    ...(preferenceGame.executableMissing
+      ? [
+          {
+            id: "locate-executable",
+            label: t("locate_executable"),
+            icon: <FileIcon size={16} />,
+            onClick: () => {
+              void handleLocateExecutable();
+            },
+            disabled: isDeleting,
+          },
+        ]
+      : []),
     {
       id: "collection",
       label: t("collection"),
@@ -375,7 +400,7 @@ export function GameContextMenu({
           ]
         : collectionSubmenu,
     },
-    ...(game.executablePath
+    ...(game.executablePath && !preferenceGame.executableMissing
       ? [
           {
             id: "shortcuts",
@@ -457,7 +482,7 @@ export function GameContextMenu({
           closeOnClick: false,
           disabled: isDeleting || isVisibilityPending || !userDetails,
         },
-        ...(game.executablePath
+        ...(game.executablePath && !preferenceGame.executableMissing
           ? [
               {
                 id: "open-folder",
@@ -468,7 +493,7 @@ export function GameContextMenu({
               },
             ]
           : []),
-        ...(game.executablePath
+        ...(game.executablePath && !preferenceGame.executableMissing
           ? [
               {
                 id: "download-options",

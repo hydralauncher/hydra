@@ -108,7 +108,6 @@ function fixture(
       },
       downloadsSublevel: {
         getMany: async (gameKeys: string[]) => gameKeys.map(() => download),
-        // ADDED FOR RACE CONDITION CHECK
         get: async (_gameKey: string) => download,
       },
       gamesArtworkSelectionSublevel: {
@@ -392,45 +391,81 @@ describe("externally deleted library paths", () => {
   it("keeps the executable path while the file still exists", async () => {
     const f = fixture("none");
     const [game] = await f.read();
+    assert.equal(game.executableMissing, false);
     assert.equal(game.executablePath, f.game.executablePath);
     assert.equal(game.installedSizeInBytes, f.game.installedSizeInBytes);
     assert.equal(f.writes.length, 0);
   });
 
-  it("clears the executable path and related fields when the file was deleted", async () => {
-    const f = fixture("none", {}, { deleted: [executablePath] });
+  it("reports the executable as missing while keeping its path and related fields when the file was deleted", async () => {
+    const f = fixture(
+      "none",
+      { automaticCloudSync: true },
+      { deleted: [executablePath] }
+    );
     const [game] = await f.read();
-    assert.equal(game.executablePath, null);
-    assert.equal(game.executablePathUpdatedAt, null);
-    // The original value is not forced to false (prevents bugs on offline drives)
-    assert.equal(game.automaticCloudSync, undefined);
-    assert.equal(game.installedSizeInBytes, null);
-    assert.equal(game.installerSizeInBytes, f.game.installerSizeInBytes);
 
-    // The database update should not contain automaticCloudSync: false
-    assert.deepEqual(f.writes, [
-      {
-        key: f.key,
-        patch: {
-          executablePath: null,
-          executablePathUpdatedAt: null,
-          installedSizeInBytes: null,
-        },
-      },
-    ]);
+    // The UI is told the executable is missing so it can show the game as
+    // "not installed" and offer a "locate" action.
+    assert.equal(game.executableMissing, true);
+
+    // Nothing is persisted from a read: the stored values survive so the
+    // user can restore the file (e.g. an antivirus quarantine) and keep
+    // playing without re-picking the path.
+    assert.equal(game.executablePath, f.game.executablePath);
+    assert.equal(game.executablePathUpdatedAt, f.game.executablePathUpdatedAt);
+    assert.equal(game.installedSizeInBytes, f.game.installedSizeInBytes);
+    assert.equal(game.installerSizeInBytes, f.game.installerSizeInBytes);
+    // The user's setting is not forced to false on a missing file.
+    assert.equal(game.automaticCloudSync, true);
+
+    assert.equal(f.writes.length, 0);
+    assert.equal(f.pendingWrites.length, 0);
+    assert.equal(f.errors.length, 0);
   });
 
-  it("logs a rejected executable cleanup while returning the library", async () => {
+  it("keeps the executable path when the file is gone but its folder still exists (antivirus quarantine)", async () => {
+    // Reproduces the Windows Defender quarantine scenario: the .exe is moved
+    // to quarantine while its folder stays in place. isPathDeleted returns
+    // true (file missing, folder exists), but the path must survive in the
+    // database — otherwise restoring the file leaves the user without a path.
     const f = fixture("none", {}, { deleted: [executablePath] });
-    const games = await f.read();
-    assert.equal(games.length, 1);
-    f.pendingWrites.forEach((write) => write.reject());
+    const [game] = await f.read();
+
+    assert.equal(game.executableMissing, true);
+    assert.equal(game.executablePath, f.game.executablePath);
+    assert.equal(f.writes.length, 0);
+    assert.equal(f.errors.length, 0);
+  });
+
+  it("does not persist anything when the executable is reported missing", async () => {
+    const f = fixture("none", {}, { deleted: [executablePath] });
+    await f.read();
     await flush();
-    assert.deepEqual(
-      f.errors.map(({ message }) => message),
-      [`Failed to clear missing executable path for ${f.key}`]
+
+    // No updateGameRecord was scheduled and nothing errored out — the read
+    // path must be side-effect free for the executable.
+    assert.equal(f.writes.length, 0);
+    assert.equal(f.pendingWrites.length, 0);
+    assert.equal(f.errors.length, 0);
+  });
+
+  it("skips executable checks for Epic-managed installs", async () => {
+    // Epic has its own install verification (installed.json and
+    // epicInstallation). Clearing only the executable here would leave an
+    // installation without an executable, so the whole check is skipped.
+    const f = fixture(
+      "none",
+      { epicInstallation: { epicAppName: "test" } as any },
+      { deleted: [executablePath] }
     );
-    assert.ok(f.errors.every(({ error }) => error === f.writeError));
+    const [game] = await f.read();
+
+    assert.equal(game.executableMissing, false);
+    assert.equal(game.executablePath, f.game.executablePath);
+    assert.equal(game.installedSizeInBytes, f.game.installedSizeInBytes);
+    assert.equal(f.writes.length, 0);
+    assert.equal(f.errors.length, 0);
   });
 
   it("drops a finished download whose folder was deleted", async () => {

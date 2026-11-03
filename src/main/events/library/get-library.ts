@@ -91,7 +91,11 @@ const resolveInstallerSize = (
   return null;
 };
 
-// Clears the executable path and related fields when the file was deleted outside Hydra.
+// Reports whether the executable is missing instead of clearing it from the
+// database. A missing file whose parent folder still exists is reported as
+// "missing" (e.g. an antivirus quarantine, or an updater swapping the binary
+// during a library refresh), so the UI can show the game as not installed and
+// offer a "locate" action. The stored `executablePath` is always preserved.
 const resolveExecutable = async (key: string, game: Game) => {
   const { executablePath } = game;
 
@@ -104,6 +108,7 @@ const resolveExecutable = async (key: string, game: Game) => {
       executablePathUpdatedAt: game.executablePathUpdatedAt,
       automaticCloudSync: game.automaticCloudSync,
       installedSizeInBytes: game.installedSizeInBytes,
+      executableMissing: false,
     };
   }
 
@@ -113,36 +118,30 @@ const resolveExecutable = async (key: string, game: Game) => {
       executablePathUpdatedAt: game.executablePathUpdatedAt,
       automaticCloudSync: game.automaticCloudSync,
       installedSizeInBytes: game.installedSizeInBytes,
+      executableMissing: false,
     };
   }
 
-  // Fetch the latest record to avoid a race condition (e.g., user just selected a new executable).
+  // Fetch the latest record to avoid reporting a stale path if the user just
+  // selected a new executable while we were checking.
   const latestGame = await gamesSublevel.get(key).catch(() => undefined);
-  if (latestGame?.executablePath !== executablePath) {
-    // The path changed while we were checking. Do not clear the new path.
-    return {
-      executablePath: latestGame?.executablePath ?? null,
-      executablePathUpdatedAt: latestGame?.executablePathUpdatedAt ?? null,
-      automaticCloudSync: latestGame?.automaticCloudSync ?? false,
-      installedSizeInBytes: latestGame?.installedSizeInBytes ?? null,
-    };
-  }
+  const effectiveExecutablePath =
+    latestGame?.executablePath ?? executablePath;
 
-  const cleared = {
-    executablePath: null,
-    executablePathUpdatedAt: null,
-    installedSizeInBytes: null,
-    // We intentionally do not set automaticCloudSync to false.
-    // This preserves the user's setting if the missing file was due to an offline drive.
-  };
-
-  updateGameRecord(key, cleared).catch((error) =>
-    logger.error(`Failed to clear missing executable path for ${key}`, error)
-  );
+  // Re-evaluate against the latest path: the user may have already pointed the
+  // game at a new executable. Nothing is written to the database here.
+  const executableMissing =
+    !!effectiveExecutablePath && (await isPathDeleted(effectiveExecutablePath));
 
   return {
-    ...cleared,
-    automaticCloudSync: game.automaticCloudSync,
+    executablePath: effectiveExecutablePath,
+    executablePathUpdatedAt:
+      latestGame?.executablePathUpdatedAt ?? game.executablePathUpdatedAt,
+    automaticCloudSync:
+      latestGame?.automaticCloudSync ?? game.automaticCloudSync,
+    installedSizeInBytes:
+      latestGame?.installedSizeInBytes ?? game.installedSizeInBytes,
+    executableMissing,
   };
 };
 
@@ -262,6 +261,7 @@ const getLibrary = async (
         executablePath: executable.executablePath,
         executablePathUpdatedAt: executable.executablePathUpdatedAt,
         automaticCloudSync: executable.automaticCloudSync,
+        executableMissing: executable.executableMissing,
         download: activeDownload ?? null,
         // Spread composed assets last to ensure all image URLs are properly set
         ...composedAssets,

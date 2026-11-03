@@ -1,4 +1,5 @@
 import {
+  AlertIcon,
   DownloadIcon,
   FileIcon,
   GearIcon,
@@ -333,7 +334,7 @@ export function HeroPanelActions() {
       });
       updateGame();
     } catch (error) {
-      // non-fatal; still try to launch
+      void error;
     }
     await launchClassicsWithErrorHandling(discPath);
   };
@@ -360,6 +361,17 @@ export function HeroPanelActions() {
         game.launchOptions
       );
   };
+
+  const handleLocateExecutable = async () => {
+    if (!game) return;
+
+    const picked = await pickGameExecutable(game.shop, game.objectId);
+
+    if (picked) {
+      await Promise.all([updateLibrary(), updateGame()]);
+    }
+  };
+
   const launchMember = async (
     member: LibraryGame,
     localOnce = false,
@@ -610,6 +622,32 @@ export function HeroPanelActions() {
           <XCircle size={18} />
           {t("close")}
         </Button>
+      );
+    }
+
+    if (presentation?.executableMissing || game?.executableMissing) {
+      return (
+        <>
+          <div
+            className="hero-panel-actions__missing-badge"
+            title={t("executable_missing_description")}
+          >
+            <AlertIcon size={16} />
+            <span className="hero-panel-actions__missing-text">
+              {t("not_installed", { ns: "library" })}
+            </span>
+          </div>
+          <Button
+            onClick={handleLocateExecutable}
+            theme="outline"
+            disabled={deleting}
+            className="hero-panel-actions__action"
+            title={t("executable_missing_description")}
+          >
+            <FileIcon size={18} />
+            {t("locate_executable")}
+          </Button>
+        </>
       );
     }
 
