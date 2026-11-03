@@ -12,7 +12,7 @@ import {
   toRecompilationCloudSaveObjectId,
 } from "@shared";
 
-import { useAppDispatch, useUserDetails } from "@renderer/hooks";
+import { useAppDispatch, useFeature, useUserDetails } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { logger } from "@renderer/logger";
 import { CloudSaveV2Provider } from "../game-details/cloud-save-v2";
@@ -45,6 +45,9 @@ export default function RecompilationPage() {
   const { objectId = "", slug = "" } = useParams();
   const { t } = useTranslation("recompilation");
   const { userDetails } = useUserDetails();
+  const { isFeatureEnabled, isFeaturesLoaded, Feature } = useFeature();
+  const isRecompilationsEnabled = isFeatureEnabled(Feature.Recompilations);
+  const isCloudSaveEnabled = isFeatureEnabled(Feature.RecompilationCloudSaves);
 
   const [details, setDetails] = useState<RecompilationDetails | null>(null);
   const [readme, setReadme] = useState<RecompilationReadme | null>(null);
@@ -160,6 +163,7 @@ export default function RecompilationPage() {
   const installState = install.state;
   const cloudSaveGame = useMemo<LibraryGame | null>(() => {
     if (
+      !isCloudSaveEnabled ||
       !details ||
       !installState?.installed ||
       !installState.hasCloudSaves ||
@@ -182,7 +186,7 @@ export default function RecompilationPage() {
       executablePath: installState.executablePath,
       download: null,
     };
-  }, [details, installState, cloudSaveObjectId]);
+  }, [isCloudSaveEnabled, details, installState, cloudSaveObjectId]);
 
   const { hasUserReviewed, isCheckingUserReview, updateHasUserReviewed } =
     useUserReviewStatus({
@@ -192,7 +196,11 @@ export default function RecompilationPage() {
       recompilationSlug: slug,
     });
 
-  if (isNotFound) {
+  if (!isRecompilationsEnabled && !isFeaturesLoaded) {
+    return <div className="recompilation-page" aria-busy="true" />;
+  }
+
+  if (isNotFound || !isRecompilationsEnabled) {
     return (
       <div className="recompilation-page recompilation-page--empty">
         <p>{t("not_found")}</p>

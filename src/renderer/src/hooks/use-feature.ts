@@ -20,6 +20,8 @@ export enum Feature {
   LeaderboardReports = "LEADERBOARD_REPORTS",
   MultipartHosterDownloads = "MULTIPART_HOSTER_DOWNLOADS",
   LeaderboardBadges = "LEADERBOARD_BADGES",
+  Recompilations = "RECOMPILATIONS",
+  RecompilationCloudSaves = "RECOMPILATION_CLOUD_SAVES",
 }
 
 export const readCachedFeatures = (): string[] => {

@@ -14,6 +14,7 @@ import { gameDetailsContext } from "@renderer/context";
 import {
   useAppSelector,
   useDate,
+  useFeature,
   useFormat,
   useGlobalLeaderboardsFeature,
   useUserDetails,
@@ -148,6 +149,7 @@ export function Sidebar() {
   );
 
   const { showHydraCloudModal } = useSubscription();
+  const { isFeatureEnabled, Feature } = useFeature();
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
@@ -208,9 +210,11 @@ export function Sidebar() {
 
   return (
     <aside className="content-sidebar">
-      {shop === "launchbox" && catalogueGame.objectId && (
-        <RecompilationsSection objectId={catalogueGame.objectId} />
-      )}
+      {shop === "launchbox" &&
+        catalogueGame.objectId &&
+        isFeatureEnabled(Feature.Recompilations) && (
+          <RecompilationsSection objectId={catalogueGame.objectId} />
+        )}
 
       {shouldShowProtonFeatures && (
         <Suspense fallback={null}>

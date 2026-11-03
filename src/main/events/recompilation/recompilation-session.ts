@@ -24,6 +24,7 @@ import { HydraApi } from "@main/services/hydra-api";
 import { createGame, trackGamePlaytime } from "@main/services/library-sync";
 import { logger } from "@main/services/logger";
 import { WindowManager } from "@main/services/window-manager";
+import { isRecompilationCloudSaveEnabled } from "./recompilation-features";
 
 const SHOP = "launchbox";
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
@@ -49,6 +50,8 @@ const baseKeyOf = (ref: RecompilationRef) => levelKeys.game(SHOP, ref.objectId);
 export const prepareRecompilationCloudSave = async (
   ref: RecompilationRef
 ): Promise<boolean> => {
+  if (!(await isRecompilationCloudSaveEnabled())) return true;
+
   const objectId = cloudSaveObjectId(ref);
   if (!(await canRunAutomaticCloudSaveSync(objectId, SHOP))) return true;
 
