@@ -96,7 +96,9 @@ export const initializeScreenshots = () => {
     logger.error("Failed to back-fill local screenshot game ids", error);
   });
 
-  screenshotUploadWorker.start();
+  void HydraApi.waitForStartupProfileRefresh().then(() =>
+    screenshotUploadWorker.start()
+  );
 };
 
 const releaseRunningGameResources = () => {

@@ -101,6 +101,8 @@
 
   &__item {
     width: 100%;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 48px;
   }
 }
 

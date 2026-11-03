@@ -19,7 +19,7 @@ import {
   useBigPictureToast,
   useGameCollections,
   useLibrary,
-  useNavigation,
+  useNavigationActions,
 } from "../../hooks";
 import {
   isBuiltinLibraryTab,
@@ -122,7 +122,7 @@ export default function LibraryPage() {
   const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
   const settingsModalRestoreFocusIdRef = useRef<string | null>(null);
   const navigate = useNavigate();
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const { showSuccessToast } = useBigPictureToast();
   const { library, updateLibrary } = useLibrary();
   const {

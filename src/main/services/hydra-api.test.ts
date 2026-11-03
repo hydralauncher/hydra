@@ -579,3 +579,61 @@ test("errors without a response keep their code", async (t) => {
   });
   assert.equal(f.api.isLoggedIn(), true);
 });
+
+test("startup does not wait for a stalled profile refresh", async (t) => {
+  const f = await fixture(t);
+  await f.signIn("A");
+  const started = deferred<void>();
+  const release = deferred<void>();
+  f.hooks.request = async (request) => {
+    if (request.url === "/profile/me") {
+      started.resolve();
+      await release.promise;
+    }
+    return f.respond(request);
+  };
+  Reflect.set(f.api, "STARTUP_USER_DATA_WAIT_MS", 10);
+
+  await f.api.setupApi();
+  await started.promise;
+
+  assert.equal(f.api.isLoggedIn(), true);
+  assert.equal(f.api.getAuthContext()?.userId, "A");
+  release.resolve();
+});
+
+test("subscription work can wait for the stalled startup profile refresh", async (t) => {
+  const f = await fixture(t);
+  await f.signIn("A");
+  f.values.set("user", {
+    ...profile("A"),
+    subscription: { expiresAt: new Date(Date.now() - 60_000) },
+  });
+  const renewedExpiresAt = new Date(Date.now() + 86_400_000).toISOString();
+  const release = deferred<void>();
+  f.hooks.request = async (request) => {
+    if (request.url === "/profile/me") {
+      await release.promise;
+      return response({
+        ...profile("A"),
+        subscription: { expiresAt: renewedExpiresAt },
+      });
+    }
+    return f.respond(request);
+  };
+  Reflect.set(f.api, "STARTUP_USER_DATA_WAIT_MS", 10);
+
+  await f.api.setupApi();
+  assert.equal(f.api.hasActiveSubscription(), false);
+
+  let refreshed = false;
+  const waiting = f.api.waitForStartupProfileRefresh().then(() => {
+    refreshed = true;
+  });
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(refreshed, false);
+
+  release.resolve();
+  await waiting;
+  assert.equal(f.api.hasActiveSubscription(), true);
+});

@@ -73,7 +73,9 @@ export function FocusItem({
   const hasReceivedFocusOnCurrentAppearanceRef = useRef(false);
   const resolvedId = id ?? `focus-item-${generatedId.replaceAll(":", "")}`;
   const isFocused = useNavigationIsFocused(resolvedId);
-  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
+  const currentFocusId = useNavigationStore((state) =>
+    stealFocusOnAppear ? state.currentFocusId : null
+  );
   const inputMode = useInputModeStore((state) => state.mode);
   const isMeasurement = useIsMeasurement();
 

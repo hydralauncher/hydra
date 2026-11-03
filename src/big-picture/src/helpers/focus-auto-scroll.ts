@@ -19,6 +19,14 @@ interface ResolvedScrollTarget {
   key: string;
 }
 
+interface RowLayout {
+  nodeById: Map<string, FocusNode>;
+  rows: string[][];
+  rowIndexById: Map<string, number>;
+}
+
+const rowLayoutsByNodes = new WeakMap<FocusNode[], Map<string, RowLayout>>();
+
 function shouldSuppressNavigationAutoScroll(element: HTMLElement) {
   return (
     element.closest("[data-suppress-navigation-autoscroll='true']") !== null
@@ -177,8 +185,13 @@ function animateScroll(
     const progress = clamp(elapsed / SCROLL_ANIMATION_DURATION, 0, 1);
     const easedProgress = easeOutCubic(progress);
 
-    container.scrollLeft = startLeft + distanceLeft * easedProgress;
-    container.scrollTop = startTop + distanceTop * easedProgress;
+    if (distanceLeft !== 0) {
+      container.scrollLeft = startLeft + distanceLeft * easedProgress;
+    }
+
+    if (distanceTop !== 0) {
+      container.scrollTop = startTop + distanceTop * easedProgress;
+    }
 
     if (progress < 1) {
       scrollAnimationFrames.set(
@@ -188,8 +201,8 @@ function animateScroll(
       return;
     }
 
-    container.scrollLeft = target.left;
-    container.scrollTop = target.top;
+    if (distanceLeft !== 0) container.scrollLeft = target.left;
+    if (distanceTop !== 0) container.scrollTop = target.top;
     scrollAnimationFrames.delete(container);
   };
 
@@ -287,6 +300,129 @@ function resolveRegionAnchor(region: FocusRegion): HTMLElement | null {
   return region.getElement?.() ?? null;
 }
 
+function buildRowLayout(regionId: string, nodes: FocusNode[]): RowLayout {
+  const nodeById = new Map<string, FocusNode>();
+  const items: RowItem[] = [];
+
+  for (const candidate of nodes) {
+    if (
+      candidate.regionId !== regionId ||
+      candidate.navigationState !== "active"
+    ) {
+      continue;
+    }
+
+    const rect = candidate.getElement?.()?.getBoundingClientRect() ?? null;
+
+    if (!rect) continue;
+
+    nodeById.set(candidate.id, candidate);
+    items.push({ id: candidate.id, rect });
+  }
+
+  const rows = groupItemsIntoRows(items).map((row) =>
+    row.map((item) => item.id)
+  );
+  const rowIndexById = new Map<string, number>();
+
+  rows.forEach((row, rowIndex) => {
+    row.forEach((id) => rowIndexById.set(id, rowIndex));
+  });
+
+  return { nodeById, rows, rowIndexById };
+}
+
+function measureRowItem(layout: RowLayout, id: string | undefined) {
+  if (!id) return null;
+
+  const rect =
+    layout.nodeById.get(id)?.getElement?.()?.getBoundingClientRect() ?? null;
+
+  return rect ? { id, rect } : null;
+}
+
+function measureRow(layout: RowLayout, rowIndex: number): RowItem[] | null {
+  const row = layout.rows[rowIndex];
+
+  if (!row) return null;
+
+  const items: RowItem[] = [];
+
+  for (const id of row) {
+    const item = measureRowItem(layout, id);
+
+    if (!item) return null;
+
+    items.push(item);
+  }
+
+  return items;
+}
+
+function isMeasuredRowValid(
+  layout: RowLayout,
+  rowIndex: number,
+  rowItems: RowItem[]
+) {
+  const rowTop = rowItems[0]?.rect.top;
+
+  if (rowTop === undefined) return false;
+
+  const isSameRow = (item: RowItem) =>
+    Math.abs(item.rect.top - rowTop) <= ROW_TOLERANCE_PX;
+
+  if (!rowItems.every(isSameRow)) return false;
+
+  const previousRowLastItem = measureRowItem(
+    layout,
+    layout.rows[rowIndex - 1]?.at(-1)
+  );
+  const nextRowFirstItem = measureRowItem(
+    layout,
+    layout.rows[rowIndex + 1]?.[0]
+  );
+
+  return (
+    !(previousRowLastItem && isSameRow(previousRowLastItem)) &&
+    !(nextRowFirstItem && isSameRow(nextRowFirstItem))
+  );
+}
+
+function resolveRowItems(
+  node: FocusNode,
+  region: FocusRegion,
+  nodes: FocusNode[]
+) {
+  let layoutsByRegionId = rowLayoutsByNodes.get(nodes);
+
+  if (!layoutsByRegionId) {
+    layoutsByRegionId = new Map();
+    rowLayoutsByNodes.set(nodes, layoutsByRegionId);
+  }
+
+  const cachedLayout = layoutsByRegionId.get(region.id);
+  const cachedRowIndex = cachedLayout?.rowIndexById.get(node.id);
+
+  if (cachedLayout && cachedRowIndex !== undefined) {
+    const rowItems = measureRow(cachedLayout, cachedRowIndex);
+
+    if (
+      rowItems &&
+      isMeasuredRowValid(cachedLayout, cachedRowIndex, rowItems)
+    ) {
+      return { rowIndex: cachedRowIndex, rowItems };
+    }
+  }
+
+  const layout = buildRowLayout(region.id, nodes);
+  layoutsByRegionId.set(region.id, layout);
+
+  const rowIndex = layout.rowIndexById.get(node.id);
+  const rowItems = rowIndex === undefined ? null : measureRow(layout, rowIndex);
+
+  return rowIndex === undefined || !rowItems ? null : { rowIndex, rowItems };
+}
+
 function resolveRowTarget(
   node: FocusNode,
   region: FocusRegion,
@@ -296,39 +432,14 @@ function resolveRowTarget(
 
   if (!currentElement) return null;
 
-  const container = getScrollContainer(currentElement);
-  const rowItems = nodes
-    .filter(
-      (candidate) =>
-        candidate.regionId === region.id &&
-        candidate.navigationState === "active"
-    )
-    .map((candidate) => {
-      const element = candidate.getElement?.() ?? null;
-      const rect = element?.getBoundingClientRect() ?? null;
+  const row = resolveRowItems(node, region, nodes);
 
-      if (!element || !rect) return null;
-
-      return {
-        id: candidate.id,
-        rect,
-      };
-    })
-    .filter((item): item is RowItem => item !== null);
-
-  if (rowItems.length === 0) return null;
-
-  const rows = groupItemsIntoRows(rowItems);
-  const currentRowIndex = rows.findIndex((row) =>
-    row.some((item) => item.id === node.id)
-  );
-
-  if (currentRowIndex === -1) return null;
+  if (!row) return null;
 
   return {
-    container,
-    rect: toRowRect(rows[currentRowIndex]),
-    key: `row:${region.id}:${currentRowIndex}`,
+    container: getScrollContainer(currentElement),
+    rect: toRowRect(row.rowItems),
+    key: `row:${region.id}:${row.rowIndex}`,
   };
 }
 

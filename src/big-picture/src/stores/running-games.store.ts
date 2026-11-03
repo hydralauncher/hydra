@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { GameRunning } from "@types";
+import { hasSameRunningGames } from "./running-games-equality";
 
 export type BigPictureRunningGame = Pick<
   GameRunning,
@@ -12,9 +13,11 @@ interface BigPictureRunningGamesStoreState {
 }
 
 export const useBigPictureRunningGamesStore =
-  create<BigPictureRunningGamesStoreState>((set) => ({
+  create<BigPictureRunningGamesStoreState>((set, get) => ({
     runningGamesById: {},
     setRunningGames: (games) => {
+      if (hasSameRunningGames(get().runningGamesById, games)) return;
+
       set({
         runningGamesById: Object.fromEntries(
           games.map((game) => [game.id, game])

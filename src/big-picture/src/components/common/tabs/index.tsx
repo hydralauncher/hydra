@@ -22,7 +22,7 @@ import {
   NavigationService,
   type FocusOverrides,
 } from "../../../services";
-import { useNavigationIsFocused, useNavigationStore } from "../../../stores";
+import { useNavigationIsFocused } from "../../../stores";
 import { GamepadButtonType } from "../../../types";
 
 export interface TabsItem<TValue extends string = string> {
@@ -349,9 +349,6 @@ export function Tabs<TValue extends string = string>({
   );
 
   const { onButtonPressed, isActiveGamepadEvent } = useGamepad();
-  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
-  const nodes = useNavigationStore((state) => state.nodes);
-  const regions = useNavigationStore((state) => state.regions);
 
   const findNextEnabledIndex = useCallback(
     (fromIndex: number, direction: 1 | -1): number => {
@@ -367,6 +364,8 @@ export function Tabs<TValue extends string = string>({
   );
 
   const isCurrentFocusInsideTabList = useCallback(() => {
+    const currentFocusId = NavigationService.getInstance().getCurrentFocusId();
+
     if (!currentFocusId) return false;
 
     const tabList = tabListRef.current;
@@ -378,10 +377,11 @@ export function Tabs<TValue extends string = string>({
     return (
       focusedElement instanceof HTMLElement && tabList.contains(focusedElement)
     );
-  }, [currentFocusId]);
+  }, []);
 
   const isRegionWithinParentRegion = useCallback(
     (regionId: string, expectedParentRegionId: string) => {
+      const regions = NavigationService.getInstance().getRegions();
       let currentRegionId: string | null = regionId;
 
       while (currentRegionId) {
@@ -396,7 +396,7 @@ export function Tabs<TValue extends string = string>({
 
       return false;
     },
-    [regions]
+    []
   );
 
   const canHandleBumperPress = useCallback(() => {
@@ -404,11 +404,14 @@ export function Tabs<TValue extends string = string>({
       return true;
     }
 
+    const navigation = NavigationService.getInstance();
+    const currentFocusId = navigation.getCurrentFocusId();
+
     if (itemsFocusable || !currentFocusId || !parentRegionId) {
       return false;
     }
 
-    const focusedNode = nodes.find((node) => node.id === currentFocusId);
+    const focusedNode = navigation.getNode(currentFocusId);
 
     if (focusedNode?.layerId !== layerId) {
       return false;
@@ -416,12 +419,10 @@ export function Tabs<TValue extends string = string>({
 
     return isRegionWithinParentRegion(focusedNode.regionId, parentRegionId);
   }, [
-    currentFocusId,
     isCurrentFocusInsideTabList,
     isRegionWithinParentRegion,
     itemsFocusable,
     layerId,
-    nodes,
     parentRegionId,
   ]);
 

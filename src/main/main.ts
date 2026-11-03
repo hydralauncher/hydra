@@ -138,10 +138,14 @@ export const loadState = async () => {
     } catch (err) {
       logger.warn("Epic integration initialization failed on startup", err);
     }
-    uploadGamesBatch();
 
     const { syncDownloadSourcesFromApi } = await import("./services/user");
-    void syncDownloadSourcesFromApi();
+    const startupProfileRefresh = HydraApi.waitForStartupProfileRefresh();
+
+    void startupProfileRefresh.then(() => {
+      uploadGamesBatch();
+      void syncDownloadSourcesFromApi();
+    });
 
     // Check for new download options on startup (if enabled)
     (async () => {
@@ -156,8 +160,10 @@ export const loadState = async () => {
     if (HydraApi.isLoggedIn()) {
       SSEClient.connect();
       void groupedSouvenirWorker.trigger();
-      void startSteamSyncOnStartup();
-      void startEpicSyncOnStartup();
+      void startupProfileRefresh.then(() => {
+        void startSteamSyncOnStartup();
+        void startEpicSyncOnStartup();
+      });
     }
   });
 

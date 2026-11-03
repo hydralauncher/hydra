@@ -17,9 +17,10 @@ import {
 } from "@renderer/pages/game-details/gallery-slider/gallery-shortcuts";
 import type { SteamMovie, SteamScreenshot } from "@types";
 import useEmblaCarousel from "embla-carousel-react";
-import type { FocusOverrideTarget } from "../../../../services";
+import type { FocusOverrideTarget, FocusOverrides } from "../../../../services";
 import {
   type CSSProperties,
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -70,12 +71,10 @@ interface ScreenshotCarouselSlideProps {
   videoHost?: GalleryVideoHost;
   onFocused: (index: number) => void;
   onSelectItem: (index: number) => void;
-  leftNavigationTarget?: FocusOverrideTarget;
-  downNavigationTarget?: FocusOverrideTarget;
-  rightNavigationTarget?: FocusOverrideTarget;
+  navigationOverrides: FocusOverrides;
 }
 
-function ScreenshotCarouselSlide({
+const ScreenshotCarouselSlide = memo(function ScreenshotCarouselSlide({
   item,
   index,
   autoplayEnabled,
@@ -83,9 +82,7 @@ function ScreenshotCarouselSlide({
   videoHost,
   onFocused,
   onSelectItem,
-  leftNavigationTarget,
-  downNavigationTarget,
-  rightNavigationTarget,
+  navigationOverrides,
 }: Readonly<ScreenshotCarouselSlideProps>) {
   const isFocused = useNavigationIsFocused(item.focusId);
   const surfaceRef = useRef<HTMLButtonElement>(null);
@@ -109,16 +106,7 @@ function ScreenshotCarouselSlide({
     <article className="game-page__media-carousel-slide">
       <FocusItem
         id={item.focusId}
-        navigationOverrides={{
-          left: leftNavigationTarget,
-          right: rightNavigationTarget,
-          up: {
-            type: "region",
-            regionId: GAME_HERO_ACTIONS_REGION_ID,
-            preferRememberedFocus: true,
-          },
-          down: downNavigationTarget ?? { type: "block" },
-        }}
+        navigationOverrides={navigationOverrides}
         asChild
       >
         <button
@@ -144,6 +132,7 @@ function ScreenshotCarouselSlide({
               src={item.src}
               alt={item.alt}
               loading="lazy"
+              decoding="async"
               className="game-page__media-carousel-image"
             />
           )}
@@ -151,9 +140,9 @@ function ScreenshotCarouselSlide({
       </FocusItem>
     </article>
   );
-}
+});
 
-export function ScreenshotCarousel({
+export const ScreenshotCarousel = memo(function ScreenshotCarousel({
   screenshots,
   videos,
   onActiveItemChange,
@@ -172,7 +161,6 @@ export function ScreenshotCarousel({
   const videoHostsRef = useRef(new Map<string, GalleryVideoHost>());
   const isFocusDrivenScrollRef = useRef(false);
   const navigation = NavigationService.getInstance();
-  const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const userPreferences = useUserPreferences();
   const preferencesLoaded = userPreferences != null;
   const autoplayEnabled = preferencesLoaded
@@ -230,6 +218,33 @@ export function ScreenshotCarousel({
     () => mediaItems.map((item) => item.focusId),
     [mediaItems]
   );
+  const itemFocusIdSet = useMemo(() => new Set(itemFocusIds), [itemFocusIds]);
+  const isFocusInsideCarousel = useNavigationStore(
+    (state) =>
+      state.currentFocusId != null && itemFocusIdSet.has(state.currentFocusId)
+  );
+  const slideNavigationOverrides = useMemo(
+    () =>
+      mediaItems.map(
+        (_item, index): FocusOverrides => ({
+          left:
+            index === 0
+              ? getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home)
+              : getItemFocusTarget(mediaItems[index - 1].focusId),
+          right:
+            index === mediaItems.length - 1
+              ? (sidebarEntryTarget ?? { type: "block" })
+              : getItemFocusTarget(mediaItems[index + 1].focusId),
+          up: {
+            type: "region",
+            regionId: GAME_HERO_ACTIONS_REGION_ID,
+            preferRememberedFocus: true,
+          },
+          down: nextContentEntryTarget ?? { type: "block" },
+        })
+      ),
+    [mediaItems, nextContentEntryTarget, sidebarEntryTarget]
+  );
   const dotsStyle = useMemo(() => {
     if (mediaItems.length > 48) {
       return {
@@ -269,8 +284,9 @@ export function ScreenshotCarousel({
     });
   }, []);
 
-  const isFocusInsideCarousel =
-    currentFocusId != null && itemFocusIds.includes(currentFocusId);
+  useEffect(() => {
+    if (isFocusInsideCarousel) scrollIntoView();
+  }, [isFocusInsideCarousel, scrollIntoView]);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -278,9 +294,12 @@ export function ScreenshotCarousel({
     const index = emblaApi.selectedScrollSnap();
     setSelectedIndex(index);
 
+    const currentFocusId = navigation.getCurrentFocusId();
+
     if (
       !isFocusDrivenScrollRef.current &&
-      isFocusInsideCarousel &&
+      currentFocusId != null &&
+      itemFocusIdSet.has(currentFocusId) &&
       itemFocusIds[index] &&
       itemFocusIds[index] !== currentFocusId
     ) {
@@ -288,24 +307,38 @@ export function ScreenshotCarousel({
     }
 
     isFocusDrivenScrollRef.current = false;
-  }, [
-    currentFocusId,
-    emblaApi,
-    isFocusInsideCarousel,
-    itemFocusIds,
-    navigation,
-  ]);
+  }, [emblaApi, itemFocusIdSet, itemFocusIds, navigation]);
 
   useEffect(() => {
     if (!emblaApi) return;
 
     emblaApi.on("select", onSelect);
-    onSelect();
 
     return () => {
       emblaApi.off("select", onSelect);
     };
   }, [emblaApi, onSelect]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+
+    const currentFocusId = navigation.getCurrentFocusId();
+    const focusedIndex = currentFocusId
+      ? itemFocusIds.indexOf(currentFocusId)
+      : -1;
+
+    if (focusedIndex === -1) {
+      setSelectedIndex(emblaApi.selectedScrollSnap());
+      return;
+    }
+
+    setSelectedIndex(focusedIndex);
+
+    if (emblaApi.selectedScrollSnap() !== focusedIndex) {
+      isFocusDrivenScrollRef.current = true;
+      emblaApi.scrollTo(focusedIndex, true);
+    }
+  }, [emblaApi, itemFocusIds, navigation]);
 
   const viewerOpenRef = useRef(false);
   viewerOpenRef.current = viewerIndex !== null;
@@ -344,34 +377,19 @@ export function ScreenshotCarousel({
   }, [mediaItems.length, selectedIndex]);
 
   useEffect(() => {
-    if (!emblaApi || !currentFocusId) return;
-
-    const focusedIndex = itemFocusIds.indexOf(currentFocusId);
-
-    if (focusedIndex === -1) return;
-
-    if (emblaApi.selectedScrollSnap() !== focusedIndex) {
-      emblaApi.scrollTo(focusedIndex);
-      return;
-    }
-
-    if (selectedIndex !== focusedIndex) {
-      setSelectedIndex(focusedIndex);
-    }
-  }, [currentFocusId, emblaApi, itemFocusIds, selectedIndex]);
-
-  useEffect(() => {
     onActiveItemChange?.(itemFocusIds[selectedIndex] ?? null);
   }, [itemFocusIds, onActiveItemChange, selectedIndex]);
 
   const handleSlideFocused = useCallback(
     (index: number) => {
-      isFocusDrivenScrollRef.current = true;
       setSelectedIndex(index);
-      emblaApi?.scrollTo(index);
-      scrollIntoView();
+
+      if (!emblaApi || emblaApi.selectedScrollSnap() === index) return;
+
+      isFocusDrivenScrollRef.current = true;
+      emblaApi.scrollTo(index);
     },
-    [emblaApi, scrollIntoView]
+    [emblaApi]
   );
 
   const handleSelectItem = useCallback(
@@ -423,8 +441,6 @@ export function ScreenshotCarousel({
   );
 
   const inViewRef = useRef(false);
-  const focusIdRef = useRef(currentFocusId);
-  focusIdRef.current = currentFocusId;
 
   useEffect(() => {
     if (viewerIndex !== null) return undefined;
@@ -435,8 +451,9 @@ export function ScreenshotCarousel({
         return;
       }
 
-      const focusedIndex = focusIdRef.current
-        ? itemFocusIds.indexOf(focusIdRef.current)
+      const currentFocusId = navigation.getCurrentFocusId();
+      const focusedIndex = currentFocusId
+        ? itemFocusIds.indexOf(currentFocusId)
         : -1;
       const item = mediaItems[focusedIndex];
       if (item?.type !== "video") return;
@@ -452,7 +469,7 @@ export function ScreenshotCarousel({
     return () => {
       window.removeEventListener("keydown", onSpaceKeyDown, true);
     };
-  }, [itemFocusIds, mediaItems, viewerIndex]);
+  }, [itemFocusIds, mediaItems, navigation, viewerIndex]);
 
   useEffect(() => {
     const container = carouselContainerRef.current;
@@ -508,7 +525,11 @@ export function ScreenshotCarousel({
   }
 
   return (
-    <div ref={carouselContainerRef} className="game-page__media-carousel">
+    <div
+      ref={carouselContainerRef}
+      className="game-page__media-carousel"
+      data-suppress-navigation-autoscroll="true"
+    >
       <div className="game-page__media-carousel-viewport" ref={emblaRef}>
         <HorizontalFocusGroup
           regionId={GAME_MEDIA_CAROUSEL_REGION_ID}
@@ -526,17 +547,7 @@ export function ScreenshotCarousel({
                 videoHost={videoHosts.get(item.id)}
                 onFocused={handleSlideFocused}
                 onSelectItem={handleSelectItem}
-                leftNavigationTarget={
-                  index === 0
-                    ? getItemFocusTarget(BIG_PICTURE_SIDEBAR_ITEM_IDS.home)
-                    : getItemFocusTarget(mediaItems[index - 1].focusId)
-                }
-                downNavigationTarget={nextContentEntryTarget}
-                rightNavigationTarget={
-                  index === mediaItems.length - 1
-                    ? (sidebarEntryTarget ?? { type: "block" })
-                    : getItemFocusTarget(mediaItems[index + 1].focusId)
-                }
+                navigationOverrides={slideNavigationOverrides[index]}
               />
             ))}
           </div>
@@ -607,7 +618,7 @@ export function ScreenshotCarousel({
             interactive={borrowed}
             item={item}
             autoPlay={autoplayEnabled && index === selectedIndex}
-            loadOnDemand={!autoplayEnabled}
+            loadOnDemand={!autoplayEnabled || index !== selectedIndex}
             isFullscreen={borrowed}
             idleTimeoutMs={borrowed ? MEDIA_VIEWER_IDLE_TIMEOUT_MS : undefined}
             indicatorTimeoutMs={
@@ -639,4 +650,4 @@ export function ScreenshotCarousel({
       )}
     </div>
   );
-}
+});

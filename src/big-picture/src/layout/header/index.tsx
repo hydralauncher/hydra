@@ -4,6 +4,7 @@ import cn from "classnames";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   type FormEvent,
+  memo,
   useCallback,
   useEffect,
   useRef,
@@ -382,4 +383,6 @@ function Header() {
   );
 }
 
-export { Header };
+const MemoizedHeader = memo(Header);
+
+export { MemoizedHeader as Header };

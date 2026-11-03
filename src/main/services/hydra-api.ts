@@ -135,6 +135,10 @@ export class HydraApi {
 
   private static readonly EXPIRATION_OFFSET_IN_MS = 1000 * 60 * 5; // 5 minutes
   private static readonly AUTH_REFRESH_TIMEOUT_MS = 20_000;
+  // Startup waits this long for the profile refresh before moving on; the
+  // refresh keeps running and updates the subscription when it settles.
+  private static readonly STARTUP_USER_DATA_WAIT_MS = 1_500;
+  private static startupProfileRefresh: Promise<void> = Promise.resolve();
   private static readonly ADD_LOG_INTERCEPTOR = true;
 
   private static secondsToMilliseconds(seconds: number) {
@@ -474,9 +478,30 @@ export class HydraApi {
       () => generation === this.authContexts.generation
     );
 
-    const updatedUserData = await getUserData();
-    if (generation !== this.authContexts.generation) return;
-    this.updateUserSubscription(updatedUserData?.subscription);
+    const userDataRefresh = getUserData()
+      .then((updatedUserData) => {
+        if (generation !== this.authContexts.generation) return;
+        this.updateUserSubscription(updatedUserData?.subscription);
+      })
+      .catch((error) => {
+        logger.error("Failed to refresh user data on startup", error);
+      });
+    this.startupProfileRefresh = userDataRefresh;
+
+    let waitTimer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      userDataRefresh,
+      new Promise<void>((resolve) => {
+        waitTimer = setTimeout(resolve, this.STARTUP_USER_DATA_WAIT_MS);
+      }),
+    ]);
+    clearTimeout(waitTimer);
+  }
+
+  // Resolves once the startup profile refresh settles, so work that depends
+  // on the subscription can wait for it without delaying the window.
+  public static waitForStartupProfileRefresh() {
+    return this.startupProfileRefresh;
   }
 
   private static sendSignOutEvent() {

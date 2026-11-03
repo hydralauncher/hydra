@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -489,7 +490,23 @@ function syncSourceThresholdFocusScroll(
   }
 }
 
-export function DownloadGameModal({
+function areDownloadGameModalPropsEqual(
+  previous: Readonly<DownloadGameModalProps>,
+  next: Readonly<DownloadGameModalProps>
+) {
+  if (previous.visible !== next.visible || previous.onClose !== next.onClose) {
+    return false;
+  }
+
+  const keys = new Set([
+    ...Object.keys(previous.game),
+    ...Object.keys(next.game),
+  ]) as Set<keyof DownloadGameModalProps["game"]>;
+
+  return [...keys].every((key) => previous.game[key] === next.game[key]);
+}
+
+export const DownloadGameModal = memo(function DownloadGameModal({
   visible,
   onClose,
   game,
@@ -516,7 +533,7 @@ export function DownloadGameModal({
       game={game}
     />
   );
-}
+}, areDownloadGameModalPropsEqual);
 
 function DownloadGameModalSession({
   visible,
