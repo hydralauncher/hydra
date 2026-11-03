@@ -437,6 +437,38 @@ describe("AchievementNotificationPresenter", () => {
     assert.equal(harness.host.destroyCount, 0);
   });
 
+  it("does not re-announce a batch after one card finished", async () => {
+    const harness = new PresenterHarness();
+    let fallbackCount = 0;
+
+    harness.presenter.enqueueAchievements(
+      "top-left",
+      [achievement("first"), achievement("second")],
+      () => {
+        fallbackCount += 1;
+      }
+    );
+    await harness.flush();
+
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "host-ready",
+    });
+    await harness.flush();
+
+    const firstId = harness.latestPreparedRequestId();
+    await harness.contentReady(firstId);
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "finished",
+      requestId: firstId,
+    });
+    await harness.flush();
+
+    harness.host.fail("window failed after first card");
+    await harness.flush();
+
+    assert.equal(fallbackCount, 0);
+  });
+
   it("destroys the host and invokes a batch fallback exactly once on failure", async () => {
     const harness = new PresenterHarness();
     let fallbackCount = 0;

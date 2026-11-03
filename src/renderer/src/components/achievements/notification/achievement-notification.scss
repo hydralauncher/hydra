@@ -529,4 +529,9 @@ $margin-bottom: 28px;
   &--closing * {
     animation: none;
   }
+
+  &--closing *::before,
+  &--closing *::after {
+    animation: none;
+  }
 }

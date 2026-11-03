@@ -22,10 +22,8 @@ import HydraIconUrl from "@renderer/assets/icons/hydra.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
-import {
-  armNotificationAnimations,
-  cancelNotificationAnimations,
-} from "./arm-notification-animations";
+import { cancelNotificationPseudoAnimations } from "@renderer/helpers/notification-animations";
+import { armNotificationAnimations } from "./arm-notification-animations";
 import { resolveImageUrl } from "./resolve-image-url";
 
 const NOTIFICATION_TIMEOUT = 4_000;
@@ -164,7 +162,7 @@ export function AchievementNotification() {
         const resolveIcon = () => {
           if (nextRequest.type === "screenshot") return Promise.resolve("");
           if (nextRequest.type === "combined") {
-            return resolveImageUrl(HydraIconUrl, HydraIconUrl);
+            return Promise.resolve(HydraIconUrl);
           }
           return resolveImageUrl(nextRequest.achievement.iconUrl, HydraIconUrl);
         };
@@ -300,7 +298,7 @@ export function AchievementNotification() {
     if (phase !== "closing") return;
 
     const card = shadowRootRef?.querySelector(".achievement-notification");
-    cancelNotificationAnimations(card ?? null);
+    cancelNotificationPseudoAnimations(card ?? null);
   }, [phase, shadowRootRef]);
 
   useEffect(() => {

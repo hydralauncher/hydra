@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
 import "./theme-editor.scss";
 import Editor from "@monaco-editor/react";
 import { AchievementCustomNotificationPosition, Theme } from "@types";
@@ -13,6 +19,7 @@ import {
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import { injectCustomCss, getAchievementSoundVolume } from "@renderer/helpers";
+import { cancelNotificationPseudoAnimations } from "@renderer/helpers/notification-animations";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { generateAchievementCustomNotificationTest } from "@shared";
 import { CollapsedMenu } from "@renderer/components/collapsed-menu/collapsed-menu";
@@ -58,6 +65,13 @@ export default function ThemeEditor() {
       position: notificationAlignment,
     };
   }, [t, i18n.language, notificationVariation, notificationAlignment]);
+
+  useLayoutEffect(() => {
+    if (!isClosingNotifications) return;
+
+    const card = shadowRootRef?.querySelector(".achievement-notification");
+    cancelNotificationPseudoAnimations(card ?? null);
+  }, [isClosingNotifications, shadowRootRef]);
 
   useEffect(() => {
     window.document.title = "Hydra - Theme Editor";

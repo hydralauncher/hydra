@@ -34,6 +34,7 @@ type NotificationFallback = () => void | Promise<void>;
 interface FallbackReference {
   callback?: NotificationFallback;
   invoked: boolean;
+  shown: boolean;
 }
 
 interface QueueItem {
@@ -86,6 +87,7 @@ export class AchievementNotificationPresenter {
     const fallbackReference: FallbackReference = {
       callback: fallback,
       invoked: false,
+      shown: false,
     };
     const batchId = this.nextBatchId();
 
@@ -122,7 +124,7 @@ export class AchievementNotificationPresenter {
         gameCount,
         achievementCount,
       },
-      fallback: { callback: fallback, invoked: false },
+      fallback: { callback: fallback, invoked: false, shown: false },
     });
 
     this.present();
@@ -144,7 +146,7 @@ export class AchievementNotificationPresenter {
         position,
         achievement: { ...notification, variant: "screenshot" },
       },
-      fallback: { callback: fallback, invoked: false },
+      fallback: { callback: fallback, invoked: false, shown: false },
     });
 
     this.present();
@@ -272,6 +274,7 @@ export class AchievementNotificationPresenter {
     this.dependencies.log(
       `Achievement notification finished: ${this.activeItem?.request.id}`
     );
+    if (this.activeItem) this.activeItem.fallback.shown = true;
     this.clearWatchdog();
     try {
       host.hide();
@@ -438,7 +441,7 @@ export class AchievementNotificationPresenter {
 
     const fallbacks = new Set(failedItems.map((item) => item.fallback));
     for (const fallback of fallbacks) {
-      if (!fallback.callback || fallback.invoked) continue;
+      if (!fallback.callback || fallback.invoked || fallback.shown) continue;
       fallback.invoked = true;
       void Promise.resolve(fallback.callback()).catch((fallbackError) => {
         this.dependencies.logError(

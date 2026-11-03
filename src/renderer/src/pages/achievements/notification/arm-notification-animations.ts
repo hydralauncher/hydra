@@ -1,14 +1,11 @@
-export interface ArmingAnimation {
-  currentTime: unknown;
-  animationName?: string;
-  cancel(): void;
-  pause(): void;
-  play(): void;
-}
+import type {
+  NotificationAnimation,
+  NotificationAnimationTarget,
+} from "../../../helpers/notification-animations.js";
 
-export interface ArmingCard {
-  getAnimations(options: { subtree: boolean }): readonly ArmingAnimation[];
-}
+export type ArmingAnimation = NotificationAnimation;
+export type ArmingCard = NotificationAnimationTarget;
+export { cancelNotificationPseudoAnimations as cancelNotificationAnimations } from "../../../helpers/notification-animations.js";
 
 export interface ArmingScheduler {
   requestFrame(callback: () => void): number;
@@ -24,15 +21,6 @@ interface ArmNotificationAnimationsOptions {
   onArmed: () => void;
 }
 
-export const cancelNotificationAnimations = (card: ArmingCard | null): void => {
-  const animations = card?.getAnimations({ subtree: true }) ?? [];
-
-  for (const animation of animations) {
-    if (animation.animationName === "content-out") continue;
-    animation.cancel();
-  }
-};
-
 export const armNotificationAnimations = ({
   card,
   scheduler,
@@ -40,10 +28,13 @@ export const armNotificationAnimations = ({
   onArmed,
 }: ArmNotificationAnimationsOptions): (() => void) => {
   const animations = card?.getAnimations({ subtree: true }) ?? [];
+  const paused = new Set<ArmingAnimation>();
 
   for (const animation of animations) {
+    if (animation.playState === "paused") continue;
     animation.pause();
     animation.currentTime = 0;
+    paused.add(animation);
   }
 
   let settled = false;
@@ -66,6 +57,10 @@ export const armNotificationAnimations = ({
     const currentAnimations = card?.getAnimations({ subtree: true }) ?? [];
 
     for (const animation of currentAnimations) {
+      if (animation.playState === "paused" && !paused.has(animation)) {
+        continue;
+      }
+
       animation.currentTime = 0;
       animation.play();
     }

@@ -12,19 +12,26 @@ class FakeAnimation implements ArmingAnimation {
   public cancelCount = 0;
   public pauseCount = 0;
   public playCount = 0;
+  public playState = "running";
 
-  constructor(public readonly animationName?: string) {}
+  constructor(
+    public readonly animationName?: string,
+    public readonly effect: object | null = null
+  ) {}
 
   public cancel(): void {
     this.cancelCount += 1;
+    this.playState = "idle";
   }
 
   public pause(): void {
     this.pauseCount += 1;
+    this.playState = "paused";
   }
 
   public play(): void {
     this.playCount += 1;
+    this.playState = "running";
   }
 }
 
@@ -175,15 +182,39 @@ describe("armNotificationAnimations", () => {
     assert.equal(replacement.currentTime, 0);
   });
 
-  it("cancels closing animations except content-out", () => {
-    const closing = new FakeAnimation("content-out");
-    const theme = new FakeAnimation("theme-loop");
-    const card = new FakeCard([[closing, theme]]);
+  it("cancels only pseudo-element closing animations", () => {
+    const pseudo = new FakeAnimation("theme-loop", {
+      pseudoElement: "::before",
+    });
+    const closing = new FakeAnimation("my-exit");
+    const transition = new FakeAnimation();
+    const card = new FakeCard([[pseudo, closing, transition]]);
 
     cancelNotificationAnimations(card);
 
+    assert.equal(pseudo.cancelCount, 1);
     assert.equal(closing.cancelCount, 0);
-    assert.equal(theme.cancelCount, 1);
+    assert.equal(transition.cancelCount, 0);
+  });
+
+  it("leaves animations paused by the theme paused", () => {
+    const themed = new FakeAnimation("theme-paused");
+    themed.playState = "paused";
+    const card = new FakeCard([[themed], [themed]]);
+    const scheduler = new FakeScheduler();
+
+    armNotificationAnimations({
+      card,
+      scheduler,
+      timeoutMs: 1000,
+      onArmed: () => {},
+    });
+
+    scheduler.runFrame();
+    scheduler.runFrame();
+
+    assert.equal(themed.pauseCount, 0);
+    assert.equal(themed.playCount, 0);
   });
 
   it("does not resume after cancellation", () => {
