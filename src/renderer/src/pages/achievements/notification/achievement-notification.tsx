@@ -251,10 +251,10 @@ export function AchievementNotification() {
   );
 
   const beginPlayback = useCallback(() => {
-    const request = requestRef.current;
-    if (!request) return;
+    const activeRequest = requestRef.current;
+    if (!activeRequest) return;
 
-    const requestId = request.id;
+    const requestId = activeRequest.id;
 
     void window.electron
       .achievementNotificationStarted(requestId)
@@ -263,10 +263,10 @@ export function AchievementNotification() {
       });
 
     if (
-      request.type !== "screenshot" &&
-      playedSoundBatch.current !== request.batchId
+      activeRequest.type !== "screenshot" &&
+      playedSoundBatch.current !== activeRequest.batchId
     ) {
-      void playAchievementSound(requestId, request.batchId);
+      void playAchievementSound(requestId, activeRequest.batchId);
     }
 
     displayTimer.current = window.setTimeout(() => {
