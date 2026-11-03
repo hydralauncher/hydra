@@ -283,7 +283,6 @@ const mergeAchievementsLocally = async (
         shop: game.shop,
         objectId: game.objectId,
         achievements: achievementsToSync,
-        notifyBigPicture: publishNotification && newAchievements.length > 0,
       });
   }
 

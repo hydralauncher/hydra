@@ -54,7 +54,6 @@ async function fixture(
     recordReadStarted: null as (() => void) | null,
     requests,
     updates: [] as Array<{ channel: string; achievements: unknown }>,
-    bigPictureRefreshes: 0,
     catalogueGate: null as Promise<unknown> | null,
     resetGate: null as Promise<void> | null,
     remoteGate: null as Promise<unknown> | null,
@@ -100,7 +99,6 @@ async function fixture(
     export const presentCombinedAchievements = () => [];
     export const createCombinedDefinitionLookup = () => () => undefined;
     export const publishNewAchievementNotification = () => {};
-    export const notifyBigPictureAchievementUnlocked = () => { state.bigPictureRefreshes += 1; };
     export const registerEvent = (name, handler) => state.events.set(name, handler);
     export const gamesSublevel = {get: async () => state.game};
     export const collectGameAchievementFiles = async () => [];
@@ -228,49 +226,6 @@ test("sixteen local merges preserve every unlock and coalesce into at most two P
   await f.achievementSyncWorker.trigger();
   assert.equal(f.records.size, 0);
 });
-test("Big Picture refresh is skipped when a merge adds no unlocks", async (t) => {
-  const f = await fixture(t);
-
-  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], true);
-  await f.untilRequest(1);
-  assert.equal(f.state.bigPictureRefreshes, 0);
-  f.requests[0]!.gate.resolve(undefined);
-  await f.achievementSyncWorker.trigger();
-  await new Promise((resolve) => setImmediate(resolve));
-
-  assert.equal(f.state.bigPictureRefreshes, 1);
-
-  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], true);
-  await f.achievementSyncWorker.trigger();
-  await new Promise((resolve) => setImmediate(resolve));
-
-  assert.equal(f.state.bigPictureRefreshes, 1);
-});
-
-test("coalesced unlocks refresh Big Picture only after the final upload", async (t) => {
-  const f = await fixture(t);
-
-  await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], true);
-  await f.untilRequest(1);
-
-  await f.mergeAchievements(f.game, [{ name: "B", unlockTime: 2 }], true);
-  assert.equal(f.state.bigPictureRefreshes, 0);
-
-  f.requests[0]!.gate.resolve(undefined);
-  await f.achievementSyncWorker.trigger();
-  assert.equal(f.state.bigPictureRefreshes, 0);
-
-  const record = [...f.records.values()][0]!;
-  record.nextAttemptAt = 0;
-  const run = f.achievementSyncWorker.trigger();
-  await f.untilRequest(2);
-  f.requests[1]!.gate.resolve(undefined);
-  await run;
-  await new Promise((resolve) => setImmediate(resolve));
-
-  assert.equal(f.state.bigPictureRefreshes, 1);
-});
-
 test("a busy response retains work, respects Retry-After and retries after a worker restart", async (t) => {
   const f = await fixture(t);
   await f.mergeAchievements(f.game, [{ name: "A", unlockTime: 1 }], false);
