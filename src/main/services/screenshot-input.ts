@@ -160,6 +160,10 @@ const withPortalKeyboard = (
   keyboardError: undefined,
 });
 
+const canRetryKeyboardStart = (status: ScreenshotInputNativeStatus | null) =>
+  Boolean(status?.keyboardError) &&
+  status?.keyboardError !== UNSUPPORTED_KEY_ERROR;
+
 const isNativeTriggerSource = (
   source: string
 ): source is "keyboard" | "gamepad" =>
@@ -280,6 +284,7 @@ export class ScreenshotInputService {
     }
 
     this.reconcile(previous);
+    this.scheduleFeatureRefresh();
   }
 
   public static refreshStatus(): ScreenshotInputStatus {
@@ -341,7 +346,7 @@ export class ScreenshotInputService {
 
     this.gamesRunning = gamesRunning;
     this.restartAttempts = 0;
-    if (this.nativeStatus?.keyboardError) this.stopListening();
+    if (canRetryKeyboardStart(this.nativeStatus)) this.stopListening();
     this.reconcile(this.settings);
     if (gamesRunning) void this.refreshFeatureFlag();
   }
@@ -357,9 +362,9 @@ export class ScreenshotInputService {
 
   private static scheduleFeatureRefresh() {
     if (
-      this.featureEnabled ||
       this.shuttingDown ||
       this.featureRefreshTimer ||
+      !this.settings.enabled ||
       !this.settings.listenOutsideGames
     ) {
       return;
@@ -425,6 +430,16 @@ export class ScreenshotInputService {
     );
     const gamepadSettingChanged =
       previous.gamepadEnabled !== this.settings.gamepadEnabled;
+
+    if (
+      hotkeyChanged &&
+      this.nativeStatus?.keyboardError &&
+      !shouldUsePortalShortcut(this.nativeStatus)
+    ) {
+      this.stopListening();
+      this.startListening();
+      return;
+    }
 
     if ((hotkeyChanged || gamepadSettingChanged) && this.nativeStatus) {
       if (hotkeyChanged) this.unregisterPortalShortcut();
@@ -498,8 +513,8 @@ export class ScreenshotInputService {
   ) {
     if (
       !this.settings.listenOutsideGames ||
-      !nativeStatus.keyboardError ||
-      nativeStatus.keyboardError === UNSUPPORTED_KEY_ERROR ||
+      this.gamepadListening ||
+      !canRetryKeyboardStart(nativeStatus) ||
       this.restartAttempts >= SCREENSHOT_INPUT_MAX_RESTARTS
     ) {
       return;
