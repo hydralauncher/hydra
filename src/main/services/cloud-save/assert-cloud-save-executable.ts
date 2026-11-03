@@ -68,8 +68,6 @@ export const assertCloudSaveRuntimeAvailable = async (
       throw new Error("cloud_save_retroarch_rom_missing");
     }
   }
-  // A port's record comes from its install, not the library, so there is
-  // no stored executable to clear: just check it is still there.
   if (parseRecompilationCloudSaveObjectId(shop, objectId)) {
     await access(game.executablePath ?? "").catch(() => {
       throw new Error(CLOUD_SAVE_EXECUTABLE_MISSING_ERROR);

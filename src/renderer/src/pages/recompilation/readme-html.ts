@@ -2,8 +2,6 @@ import MarkdownIt from "markdown-it";
 
 const markdown = new MarkdownIt({ html: true, linkify: true });
 
-// Like GitHub, only link bare URLs that have a protocol: "CONTRIBUTING.md" is
-// a file name, not the .md domain.
 markdown.linkify.set({ fuzzyLink: false, fuzzyEmail: false });
 
 const REMOVED_ELEMENTS =
@@ -46,7 +44,6 @@ const ALLOWED_TAGS = new Set([
   "UL",
 ]);
 
-// GitHub alert blocks: "> [!NOTE]" and friends, with the title GitHub shows.
 const ALERT_TITLES: Record<string, string> = {
   NOTE: "Note",
   TIP: "Tip",
@@ -56,7 +53,6 @@ const ALERT_TITLES: Record<string, string> = {
 };
 const ALERT_MARKER = /^\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i;
 
-/** Turns "> [!NOTE]" blockquotes into titled alerts, like GitHub does. */
 const renderAlerts = (body: HTMLElement) => {
   for (const blockquote of Array.from(body.querySelectorAll("blockquote"))) {
     const paragraph = blockquote.firstElementChild;
@@ -67,7 +63,6 @@ const renderAlerts = (body: HTMLElement) => {
     if (!match) continue;
 
     text.textContent = (text.textContent ?? "").slice(match[0].length);
-    // Drop what the marker line leaves behind: blank text and line breaks.
     while (
       paragraph.firstChild &&
       (paragraph.firstChild.nodeName === "BR" ||
@@ -90,9 +85,7 @@ const renderAlerts = (body: HTMLElement) => {
 };
 
 export interface ReadmeBaseUrls {
-  /** Where relative links point, e.g. https://github.com/owner/repo/blob/main/ */
   links: string;
-  /** Where relative images load from, e.g. https://raw.githubusercontent.com/owner/repo/main/ */
   images: string;
 }
 
@@ -105,7 +98,6 @@ const toHttpsUrl = (value: string, base?: string) => {
   }
 };
 
-/** GitHub URLs a README in this repository and branch resolves against. */
 export const getReadmeBaseUrls = (
   repository: string,
   branch: string
@@ -120,13 +112,6 @@ const URL_ATTRIBUTES: Record<string, string> = {
   SOURCE: "srcset",
 };
 
-/**
- * README HTML comes from GitHub through the Hydra API, so it goes through the
- * same kind of allowlist the store descriptions use: known tags only, no
- * inline styles or handlers, https URLs only, and links open in the browser.
- * Relative URLs resolve against the repository, and in-page anchors are
- * dropped because the README is not rendered with GitHub heading ids.
- */
 export const sanitizeReadmeHtml = (html: string, base?: ReadmeBaseUrls) => {
   const document = new DOMParser().parseFromString(html, "text/html");
 
@@ -175,8 +160,6 @@ export const sanitizeReadmeHtml = (html: string, base?: ReadmeBaseUrls) => {
     }
   }
 
-  // Hydra is always dark: use the dark variant of GitHub <picture> images
-  // instead of following the OS color scheme.
   for (const picture of document.body.querySelectorAll("picture")) {
     const darkSource = picture.querySelector(
       'source[media*="prefers-color-scheme: dark"][srcset]'
@@ -188,12 +171,10 @@ export const sanitizeReadmeHtml = (html: string, base?: ReadmeBaseUrls) => {
     picture.querySelectorAll("source").forEach((source) => source.remove());
   }
 
-  // After the attribute pass, so the classes it adds are kept.
   renderAlerts(document.body);
 
   return document.body.innerHTML;
 };
 
-/** Renders GitHub markdown (README or release notes) to sanitized HTML. */
 export const renderReadmeHtml = (source: string, base?: ReadmeBaseUrls) =>
   sanitizeReadmeHtml(markdown.render(source), base);

@@ -14,10 +14,6 @@ interface RomDownloadModalProps {
   onClose: () => void;
 }
 
-/**
- * The base game's download options for a port's ROM, the same list as the
- * install modal's "Download with Hydra" step.
- */
 export function RomDownloadModal({
   visible,
   objectId,

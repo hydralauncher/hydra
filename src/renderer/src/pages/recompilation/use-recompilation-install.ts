@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type {
+  RecompilationActionResult,
   RecompilationInstallProgress,
   RecompilationInstallState,
 } from "@types";
@@ -8,21 +9,15 @@ export interface RecompilationInstall {
   state: RecompilationInstallState | null;
   progress: RecompilationInstallProgress | null;
   isBusy: boolean;
-  /** True while this port is open. */
   isRunning: boolean;
-  /** True from a Play click until the port starts or fails to. */
   isLaunching: boolean;
-  install: () => Promise<boolean>;
+  install: () => Promise<RecompilationActionResult>;
   uninstall: () => Promise<boolean>;
   play: () => Promise<boolean>;
   close: () => Promise<boolean>;
   openFolder: () => Promise<void>;
 }
 
-/**
- * Install state of one port on this PC, kept current through the install
- * progress events sent by the main process.
- */
 export function useRecompilationInstall(
   objectId: string,
   slug: string
@@ -34,8 +29,6 @@ export function useRecompilationInstall(
   const [isRunning, setIsRunning] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
 
-  // A running port shows in the games running as its base game, tagged with
-  // its slug.
   useEffect(() => {
     const gameId = `launchbox:${objectId}`;
     const update = (
@@ -85,11 +78,7 @@ export function useRecompilationInstall(
 
   const install = useCallback(async () => {
     setProgress({ slug, phase: "downloading", loaded: 0 });
-    const result = await window.electron.installRecompilation({
-      objectId,
-      slug,
-    });
-    return result.ok;
+    return window.electron.installRecompilation({ objectId, slug });
   }, [objectId, slug]);
 
   const uninstall = useCallback(async () => {
@@ -102,13 +91,10 @@ export function useRecompilationInstall(
   }, [objectId, slug, refresh]);
 
   const play = useCallback(async () => {
-    // Preparing the ROM and the cloud save takes a while before the port
-    // shows as running; the Play buttons stay disabled until then.
     setIsLaunching(true);
     const result = await window.electron
       .playRecompilation({ objectId, slug })
       .finally(() => setIsLaunching(false));
-    // A save conflict opens on the page instead of starting: not a failure.
     return result.ok || result.reason === "cloud_save_conflict";
   }, [objectId, slug]);
 

@@ -16,7 +16,7 @@ import { Button } from "@renderer/components/button/button";
 import { ConfirmationModal } from "@renderer/components/confirmation-modal/confirmation-modal";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { InstallProgressBar } from "@renderer/components/setup-modal/install-progress-bar";
-import { useToast } from "@renderer/hooks";
+import { useLibrary, useToast } from "@renderer/hooks";
 import { CloudSaveWidget } from "../game-details/cloud-save-v2";
 import type { RecompilationInstall } from "./use-recompilation-install";
 import type { RecompilationRom } from "./use-recompilation-rom";
@@ -28,11 +28,8 @@ interface RecompilationHeroProps {
   installAsset: RecompilationReleaseAsset | null;
   install: RecompilationInstall;
   rom: RecompilationRom;
-  /** Shows the cloud save widget, for an installed port Hydra has saves for. */
   hasCloudSave: boolean;
-  /** Opens the install modal on step 1 (install) or 2 (ROM). */
   onOpenInstall: () => void;
-  /** Opens the base game download options, for ports Hydra cannot hand a ROM to. */
   onDownloadRom: () => void;
 }
 
@@ -47,11 +44,14 @@ export function RecompilationHero({
 }: Readonly<RecompilationHeroProps>) {
   const { t } = useTranslation("recompilation");
   const { showErrorToast } = useToast();
+  const { updateLibrary } = useLibrary();
   const [isUninstallOpen, setIsUninstallOpen] = useState(false);
 
   const { state, progress } = install;
   const isDownloading = progress?.phase === "downloading";
-  const isExtracting = progress?.phase === "extracting";
+  const isExtracting =
+    progress?.phase === "extracting" ||
+    (Boolean(state?.isInstalling) && !isDownloading);
   const isInstalled = state?.installed === true;
   const hasUpdate = isInstalled && state.version !== details.version;
   const handlesRom = rom.state?.handlesRom === true;
@@ -63,9 +63,33 @@ export function RecompilationHero({
     !rom.state.libraryRomPath &&
     rom.downloadPhase === null;
 
+  const addBaseGameToLibrary = async () => {
+    const { objectId, title, platform } = details.game;
+    const libraryGame = await window.electron
+      .getGameByObjectId("launchbox", objectId)
+      .catch(() => null);
+    if (libraryGame && !libraryGame.isDeleted) return;
+
+    await window.electron.addGameToLibrary(
+      "launchbox",
+      objectId,
+      title,
+      platform
+    );
+    updateLibrary();
+  };
+
   const runInstall = async () => {
-    const ok = await install.install();
-    if (!ok) showErrorToast(t("install_failed"));
+    await addBaseGameToLibrary().catch(() => {});
+    const result = await install.install();
+    if (result.ok || result.reason === "running") return;
+    showErrorToast(
+      t(
+        result.reason === "no_executable"
+          ? "install_no_executable"
+          : "install_failed"
+      )
+    );
   };
 
   const runPlay = async () => {
@@ -110,7 +134,9 @@ export function RecompilationHero({
                 </span>
               )}
           </div>
-          <InstallProgressBar progress={progress} />
+          <InstallProgressBar
+            progress={isDownloading ? progress : { phase: "extracting" }}
+          />
         </div>
       );
     }
@@ -121,7 +147,6 @@ export function RecompilationHero({
           onClick={
             handlesRom
               ? () => {
-                  // The port downloads while the modal asks for the ROM.
                   void runInstall();
                   onOpenInstall();
                 }

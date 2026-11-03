@@ -79,7 +79,6 @@ interface NewsTabProps {
   releases: RecompilationRelease[];
 }
 
-/** DOM id of a release in the feed, so the sidebar can scroll to it. */
 export const releaseAnchor = (tag: string) => `recompilation-release-${tag}`;
 
 const latestOf = (releases: RecompilationRelease[]) =>
@@ -109,7 +108,6 @@ export function RecompilationNewsTab({
     );
   }
 
-  // One entry per release, newest first, like the releases page on GitHub.
   return (
     <>
       {releases.map((release) => (

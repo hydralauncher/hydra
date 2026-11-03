@@ -62,7 +62,6 @@ export default function Downloads() {
       if (cancelled) return;
 
       setRunningGameIds((previous) => {
-        // A port playing the game doesn't make the game's download running.
         const next = new Set(
           gamesRunning
             .filter((game) => !game.recompilationSlug)

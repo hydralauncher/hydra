@@ -7,6 +7,7 @@ import { formatBytes } from "@shared";
 
 import { Button } from "@renderer/components/button/button";
 import { TestedMedal } from "@renderer/components/tested-medal/tested-medal";
+import { useToast } from "@renderer/hooks";
 import { logger } from "@renderer/logger";
 import {
   buildRecompilationPath,
@@ -33,12 +34,17 @@ function RecompilationRow({
     recompilation.slug
   );
 
+  const { showErrorToast } = useToast();
   const rom = useRecompilationRom(objectId, recompilation.slug);
   const isMissingRom =
     rom.state !== null &&
     (rom.state.handlesRom
-      ? !rom.state.romPath
+      ? !rom.state.romPath && !rom.state.isReady
       : !rom.state.libraryRomPath && rom.downloadPhase === null);
+
+  const runPlay = async () => {
+    if (!(await play())) showErrorToast(t("play_failed"));
+  };
 
   const isDownloading = progress?.phase === "downloading";
   const isExtracting = progress?.phase === "extracting";
@@ -56,7 +62,7 @@ function RecompilationRow({
 
   let action: { label: string; onClick: () => void } = {
     label: t("play"),
-    onClick: () => void play(),
+    onClick: () => void runPlay(),
   };
   if (isRunning) {
     action = { label: t("close"), onClick: () => void close() };

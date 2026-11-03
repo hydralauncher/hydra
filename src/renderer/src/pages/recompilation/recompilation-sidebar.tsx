@@ -47,12 +47,10 @@ interface RecompilationSidebarProps {
   installAsset: RecompilationReleaseAsset | null;
   install: RecompilationInstall;
   rom: RecompilationRom;
-  /** Newest first, as the API sends them. */
   releases: RecompilationRelease[];
   onSelectRelease: (tag: string) => void;
 }
 
-/** Same sections on every tab: tested, install, updates, details. */
 export function RecompilationSidebar({
   details,
   installAsset,

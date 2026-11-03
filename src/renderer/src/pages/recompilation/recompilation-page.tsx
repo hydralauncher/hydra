@@ -39,7 +39,6 @@ import "./recompilation-page.scss";
 
 type RecompilationTab = "about" | "news";
 
-/** How long the release feed takes to collapse its notes before a jump. */
 const RELEASE_SCROLL_DELAY_MS = 150;
 
 export default function RecompilationPage() {
@@ -53,13 +52,10 @@ export default function RecompilationPage() {
   const [game, setGame] = useState<LibraryGame | null>(null);
   const [isNotFound, setIsNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<RecompilationTab>("about");
-  // A release picked in the sidebar; scrolled to once the feed has rendered.
   const [scrollToRelease, setScrollToRelease] = useState<string | null>(null);
 
   useEffect(() => {
     if (!scrollToRelease || activeTab !== "news") return;
-    // The notes collapse after their first render, which moves every release
-    // below them, so wait for the feed to settle before scrolling.
     const timeout = window.setTimeout(() => {
       document
         .getElementById(releaseAnchor(scrollToRelease))
@@ -75,13 +71,11 @@ export default function RecompilationPage() {
   const [isInstallOpen, setIsInstallOpen] = useState(false);
   const [isRomDownloadOpen, setIsRomDownloadOpen] = useState(false);
 
-  // Moving to another port reuses this page, so close its modals.
   useEffect(() => {
     setIsInstallOpen(false);
     setIsRomDownloadOpen(false);
   }, [objectId, slug]);
 
-  // The game page sends ?rom=1 when a port has no ROM yet.
   useEffect(() => {
     if (searchParams.get("rom") !== "1") return;
     setIsInstallOpen(true);
@@ -127,9 +121,6 @@ export default function RecompilationPage() {
     };
   }, [objectId, slug]);
 
-  // The base game's playtime unlocks reviews. Playing a port adds the game to
-  // the library and credits its time, so read it again when the library
-  // changes.
   useEffect(() => {
     let cancelled = false;
     const loadGame = () => {
@@ -165,8 +156,6 @@ export default function RecompilationPage() {
     [latestRelease]
   );
 
-  // Ports are not in the library, so cloud save gets a game built from the
-  // install, under the port's own key.
   const cloudSaveObjectId = toRecompilationCloudSaveObjectId(objectId, slug);
   const installState = install.state;
   const cloudSaveGame = useMemo<LibraryGame | null>(() => {
@@ -266,7 +255,6 @@ export default function RecompilationPage() {
         </div>
 
         <div className="game-details__description-container">
-          {/* Keyed by tab, so any tab, current or future, fades in on switch. */}
           <div
             key={activeTab}
             className="game-details__description-content recompilation-page__tab-content"

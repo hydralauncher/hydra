@@ -17,12 +17,12 @@ import {
   parseRecompilationRef,
 } from "./recompilation-paths";
 import recompilationMeta from "./recompilation-meta.json";
+import { toZ64 } from "./n64-rom";
 
 const ROM_META = recompilationMeta as Record<
   string,
   | {
       rom: RecompilationRomMeta | null;
-      /** Ports Hydra cannot hand a ROM to: how to spot it in the library. */
       romExtensions?: string[];
     }
   | undefined
@@ -31,37 +31,26 @@ const ROM_META = recompilationMeta as Record<
 const getRomMetaEntry = (slug: string) =>
   Object.hasOwn(ROM_META, slug) ? ROM_META[slug] : undefined;
 
-/**
- * How a port receives the ROM, or null when Hydra cannot hand it one (the
- * port asks for it itself). Ports missing from the meta file count as null.
- */
 const getRecompilationRomMeta = (slug: string): RecompilationRomMeta | null =>
   getRomMetaEntry(slug)?.rom ?? null;
 
-/** Extensions that identify the port's ROM in the library. */
 const getLibraryRomExtensions = (slug: string) =>
   getRecompilationRomMeta(slug)?.extensions ??
   getRomMetaEntry(slug)?.romExtensions ??
   [];
 
-type MetaPlatform = "win32" | "linux" | "darwin";
+type MetaPlatform = "win32" | "linux";
 
-/** The ROM the user chose for a port. Lives in the port folder. */
 const ROM_CHOICE_FILE = ".hydra-recompilation-rom.json";
-/** Where an archived ROM is extracted, inside the port folder. */
 const EXTRACTED_ROM_FOLDER = ".hydra-rom";
 const ARCHIVE_EXTENSIONS = new Set([".zip", ".7z", ".rar"]);
 const ROM_SCAN_DEPTH = 2;
 
 interface RomChoice {
   source: RecompilationRomSource;
-  /** Only for "file": the file the user picked. */
   path?: string;
-  /** The ROM file the port folder was prepared from (copy or installer). */
   preparedFrom?: string;
-  /** Where that ROM was copied to, for ports that read a copy. */
   preparedTarget?: string;
-  /** Set after the first launch with this ROM, for `once` ports. */
   launched?: boolean;
 }
 
@@ -102,7 +91,6 @@ const writeRomChoice = async (installDirectory: string, choice: RomChoice) => {
   );
 };
 
-/** The biggest file under a folder with one of the port's extensions. */
 const findRomInFolder = async (
   directory: string,
   extensions: string[],
@@ -117,21 +105,21 @@ const findRomInFolder = async (
 
   for (const entry of entries) {
     const entryPath = path.join(directory, entry.name);
-    const candidate = entry.isDirectory()
-      ? await findRomInFolder(entryPath, extensions, depth + 1)
-      : entry.isFile() && hasExtension(entry.name, extensions)
-        ? { path: entryPath, size: (await fs.promises.stat(entryPath)).size }
-        : null;
+    let candidate: { path: string; size: number } | null = null;
+    if (entry.isDirectory()) {
+      candidate = await findRomInFolder(entryPath, extensions, depth + 1);
+    } else if (entry.isFile() && hasExtension(entry.name, extensions)) {
+      candidate = {
+        path: entryPath,
+        size: (await fs.promises.stat(entryPath)).size,
+      };
+    }
     if (candidate && (!best || candidate.size > best.size)) best = candidate;
   }
 
   return best;
 };
 
-/**
- * The base game's ROM in the library: the disc chosen for the Classics game,
- * else the file of a finished download of it.
- */
 const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
   const key = levelKeys.game("launchbox", objectId);
 
@@ -193,10 +181,6 @@ const getCopyTarget = (
     : null;
 };
 
-/**
- * Whether the port already has the game data: one of the files it writes
- * after importing the ROM, or the copy Hydra made for it.
- */
 const isPortReady = async (
   meta: RecompilationRomMeta,
   installDirectory: string,
@@ -268,9 +252,6 @@ export const setRecompilationRom = async (
     return { ok: false, reason: "invalid_rom" };
   }
 
-  // The copy Hydra made is kept, so choosing the same ROM again does not copy
-  // it twice. The launch marker is not: ports without an import check get
-  // the ROM again on the next launch, which retries a failed import.
   const installDirectory = await getRecompilationInstallDirectory(ref.slug);
   const previous = await readRomChoice(installDirectory);
   await writeRomChoice(installDirectory, {
@@ -283,10 +264,6 @@ export const setRecompilationRom = async (
   return { ok: true };
 };
 
-/**
- * A downloaded ROM that is still an archive is extracted once into the port
- * folder. Files picked by the user are never archives.
- */
 const unpackRom = async (
   romPath: string,
   installDirectory: string,
@@ -305,26 +282,27 @@ const unpackRom = async (
   return extracted.path;
 };
 
-/** N64 ROMs come in three byte orders. The .z64 one is big-endian. */
-const toZ64 = (data: Buffer) => {
-  const first = data.readUInt32BE(0);
-  if (first === 0x80371240) return data;
-
-  const out = Buffer.from(data);
-  if (first === 0x37804012) {
-    out.swap16();
-  } else if (first === 0x40123780) {
-    out.swap32();
-  } else {
-    throw new Error("not_n64_rom");
+const writeRomFile = async (
+  source: string,
+  destination: string,
+  format: RecompilationRomMeta["format"]
+) => {
+  if (format === "z64") {
+    const data = await fs.promises.readFile(source);
+    const converted = toZ64(data);
+    if (converted !== data) {
+      await fs.promises.writeFile(destination, converted);
+      return;
+    }
   }
-  return out;
+
+  try {
+    await fs.promises.link(source, destination);
+  } catch {
+    await fs.promises.copyFile(source, destination);
+  }
 };
 
-/**
- * Puts the ROM where the port reads it. Tries a hard link first, so the
- * file is not stored twice when both are on the same drive.
- */
 const copyRom = async (
   source: string,
   target: string,
@@ -333,22 +311,42 @@ const copyRom = async (
   if (path.resolve(source) === path.resolve(target)) return;
 
   await fs.promises.mkdir(path.dirname(target), { recursive: true });
-  await fs.promises.rm(target, { force: true });
-
-  if (format === "z64") {
-    const data = await fs.promises.readFile(source);
-    const converted = toZ64(data);
-    if (converted !== data) {
-      await fs.promises.writeFile(target, converted);
-      return;
-    }
-  }
+  const temporaryTarget = `${target}.hydra-partial`;
+  await fs.promises.rm(temporaryTarget, { force: true });
 
   try {
-    await fs.promises.link(source, target);
-  } catch {
-    await fs.promises.copyFile(source, target);
+    await writeRomFile(source, temporaryTarget, format);
+    await fs.promises.rm(target, { force: true });
+    await fs.promises.rename(temporaryTarget, target);
+  } finally {
+    await fs.promises.rm(temporaryTarget, { force: true });
   }
+};
+
+const fillRomPlaceholders = (value: string, romPath: string) =>
+  value
+    .replaceAll("{rom}", () => romPath)
+    .replaceAll("{romName}", () => path.basename(romPath));
+
+const getRomTarget = (
+  meta: RecompilationRomMeta,
+  installDirectory: string,
+  romPath: string
+) => {
+  const copyTarget = getCopyTarget(
+    meta,
+    installDirectory,
+    path.basename(romPath)
+  );
+  if (copyTarget) return copyTarget;
+  if (meta.format !== "z64" || path.extname(romPath).toLowerCase() === ".z64") {
+    return null;
+  }
+  return path.join(
+    installDirectory,
+    EXTRACTED_ROM_FOLDER,
+    `${path.parse(romPath).name}.z64`
+  );
 };
 
 const runRomInstaller = (
@@ -370,7 +368,7 @@ const runRomInstaller = (
 
     const child = spawn(
       executable,
-      args.map((arg) => arg.replaceAll("{rom}", romPath)),
+      args.map((arg) => fillRomPlaceholders(arg, romPath)),
       { cwd: installDirectory, stdio: "ignore", shell: false }
     );
     child.once("error", reject);
@@ -385,10 +383,6 @@ export type RecompilationLaunch =
   | { ok: true; args: string[]; env: Record<string, string> }
   | { ok: false; reason: string };
 
-/**
- * Gets the port ready to start with the chosen ROM and returns the extra
- * arguments and environment for this launch.
- */
 export const prepareRecompilationRom = async (
   ref: RecompilationRef,
   installDirectory: string
@@ -399,8 +393,6 @@ export const prepareRecompilationRom = async (
   const state = await getRecompilationRomState(ref);
   const choice = await readRomChoice(installDirectory);
 
-  // A port that has the game data starts without the ROM, so the ROM file
-  // can be moved or deleted. A newly chosen ROM is still handed over.
   const isNewRom =
     Boolean(state?.romPath) && choice?.preparedFrom !== state?.romPath;
   if (state?.isReady && !isNewRom) return { ok: true, args: [], env: {} };
@@ -430,22 +422,12 @@ export const prepareRecompilationRom = async (
         (await unpackRom(state.romPath, installDirectory, meta.extensions));
     }
 
-    const target =
-      getCopyTarget(meta, installDirectory, path.basename(romPath)) ??
-      (meta.format === "z64" && path.extname(romPath).toLowerCase() !== ".z64"
-        ? path.join(
-            installDirectory,
-            EXTRACTED_ROM_FOLDER,
-            `${path.parse(romPath).name}.z64`
-          )
-        : null);
+    const target = getRomTarget(meta, installDirectory, romPath);
     if (target && (!isPrepared || !(await fileExists(target)))) {
       await copyRom(romPath, target, meta.format);
     }
     if (target) romPath = target;
 
-    // Reaching here with an import check means the import is not there yet
-    // (or a new ROM was chosen), so the installer runs again.
     if (meta.path?.installer && (!isPrepared || meta.imported)) {
       await runRomInstaller(meta.path.installer, installDirectory, romPath);
     }
@@ -463,15 +445,10 @@ export const prepareRecompilationRom = async (
     return { ok: false, reason: "rom_prepare_failed" };
   }
 
-  // Ports with an import check get the ROM until their import is on disk;
-  // the others only on the first launch with it.
   const passRom =
     meta.imported !== undefined ||
     !(meta.once && isPrepared && choice.launched);
-  const fill = (value: string) =>
-    value
-      .replaceAll("{rom}", romPath)
-      .replaceAll("{romName}", path.basename(romPath));
+  const fill = (value: string) => fillRomPlaceholders(value, romPath);
 
   return {
     ok: true,

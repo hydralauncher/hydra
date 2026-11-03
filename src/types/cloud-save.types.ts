@@ -134,10 +134,6 @@ export type CloudSaveModalSyncResult =
       result: SyncGameCloudSaveResult;
     };
 
-/**
- * One entry of Hydra's recompilation save map. The kind is always explicit,
- * because inference marks any path with a glob as a file.
- */
 export interface RecompilationSaveRule {
   rawPath: string;
   kind: "dir" | "file";
@@ -150,7 +146,6 @@ export interface GetSaveRulesForGameInput extends CloudSaveGameId {
   remoteId?: string;
   userDataPath: string;
   sourceUrl?: string;
-  /** Set for recompilations: these rules replace the Ludusavi manifest. */
   recompilationRules?: RecompilationSaveRule[];
 }
 
@@ -755,7 +750,6 @@ export interface NativeLocalGameSnapshotPipelineResult
 }
 
 export interface PrepareSnapshotRequest extends CloudSaveGameId {
-  /** Set when the save belongs to a recompilation of the game. */
   recompilationSlug?: string;
   platform: CloudSavePathContext["platform"];
   hostname?: string;

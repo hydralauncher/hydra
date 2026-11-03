@@ -2,7 +2,6 @@ import type { GameRepack } from "@types";
 
 export type RepackAvailability = "online" | "partial" | "offline";
 
-/** Whether a download option's links still work, for the availability orb. */
 export const getRepackAvailabilityStatus = (
   repack: GameRepack
 ): RepackAvailability => {

@@ -409,8 +409,6 @@ mod tests {
         );
     }
 
-    // A recompilation's rules come from Hydra's map, never from the manifest,
-    // and only the save folder is picked up from the port's install folder.
     #[tokio::test]
     async fn recompilation_snapshot_uses_its_own_rules_and_skips_the_rest_of_the_port() {
         use crate::cloud_save::manifest::types::{CloudSaveRuleCondition, RecompilationSaveRule};
@@ -429,7 +427,6 @@ mod tests {
             object_id: "204:ghostship".into(),
             title: Some("Super Mario 64".into()),
             remote_id: None,
-            // A recompilation never reads the manifest, so nothing is fetched.
             user_data_path: temp.path().join("user-data").to_string_lossy().into_owned(),
             source_url: Some("https://example.invalid/never-fetched.yaml".into()),
             platform: "windows".into(),

@@ -127,12 +127,6 @@ export const deleteEmulatorGameRunning = (gameKey: string) => {
   if (emulatorGamesRunning.delete(gameKey)) notifyTrackedGamesRunningChange();
 };
 
-/**
- * Running recompilations, by the port's key. Each one plays its base game,
- * which counts as running while any of them is open. Kept apart from the
- * emulator set, so closing a port never ends the base game's emulator
- * session or another port of the same game.
- */
 export const recompilationGameSessions = new Map<
   string,
   { gameKey: string; recompilationSlug: string; startedAt: number }

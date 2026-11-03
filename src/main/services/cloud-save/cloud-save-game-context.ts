@@ -58,7 +58,6 @@ export const getCloudSaveGameContext = async (
   shop: GameShop,
   overrides?: CloudSaveGameContextOverrides
 ) => {
-  // Ports have no library entry; they get a record from their install.
   const game = await getCloudSaveGameRecord(shop, objectId).catch(
     () => undefined
   );

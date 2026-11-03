@@ -6,15 +6,12 @@ import "../game-details/game-details.scss";
 import "./recompilation-markdown.scss";
 import { renderReadmeHtml, type ReadmeBaseUrls } from "./readme-html";
 
-// Keep in sync with the collapsed max-height in recompilation-markdown.scss.
 const COLLAPSED_MAX_HEIGHT = 600;
 
 interface RecompilationMarkdownProps {
   source: string;
   base?: ReadmeBaseUrls;
-  /** Starts closed with a button to open it, like the README in the design. */
   collapsible?: boolean;
-  /** What the toggle opens: the README or the notes of a release. */
   kind?: "readme" | "notes";
 }
 

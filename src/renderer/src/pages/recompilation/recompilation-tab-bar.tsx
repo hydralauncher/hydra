@@ -19,7 +19,6 @@ interface RecompilationTabBarProps<T extends string> {
   onChange: (tab: T) => void;
 }
 
-/** Same tabs as the profile and notifications pages. */
 export function RecompilationTabBar<T extends string>({
   tabs,
   activeTab,

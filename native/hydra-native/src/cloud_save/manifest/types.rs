@@ -43,13 +43,9 @@ pub struct GetSaveRulesForGameInput {
     pub remote_id: Option<String>,
     pub user_data_path: String,
     pub source_url: Option<String>,
-    /// Save rules of a recompilation (community PC port), from Hydra's own
-    /// map. When set, the Ludusavi manifest is not consulted at all.
     pub recompilation_rules: Option<Vec<RecompilationSaveRule>>,
 }
 
-/// One entry of Hydra's recompilation save map. Unlike manifest rules, the
-/// kind is always explicit: inference would mark any glob path as a file.
 #[napi(object)]
 #[derive(Debug, Clone)]
 pub struct RecompilationSaveRule {

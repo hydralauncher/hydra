@@ -300,7 +300,6 @@ export const validateRestoreManifest = (
   const snapshot = response.snapshot as Record<string, unknown> | undefined;
   if (
     !snapshot ||
-    // recompilationSlug is optional: APIs before ports leave it out.
     !hasOnlyKeys(
       snapshot,
       "recompilationSlug" in snapshot
@@ -322,8 +321,6 @@ export const validateRestoreManifest = (
     throw new Error("Invalid restore manifest snapshot");
   }
   const shop = snapshot.shop as GameShop;
-  // A port's save comes back as the base game plus its slug; locally the
-  // port is "<base objectId>:<slug>".
   const objectId = isNonEmptyString(snapshot.recompilationSlug)
     ? toRecompilationCloudSaveObjectId(
         snapshot.objectId,

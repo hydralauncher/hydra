@@ -27,7 +27,6 @@ export interface RecompilationTested {
   }[];
 }
 
-/** GET /games/launchbox/:objectId/recompilations */
 export interface RecompilationSummary {
   slug: string;
   name: string;
@@ -39,7 +38,6 @@ export interface RecompilationSummary {
 
 export type RecompilationOs = "windows" | "linux" | "macos";
 
-/** GET /games/launchbox/:objectId/recompilations/:slug */
 export interface RecompilationDetails extends RecompilationSummary {
   repository: {
     fullName: string;
@@ -71,7 +69,6 @@ export interface RecompilationDetails extends RecompilationSummary {
   };
 }
 
-/** GET /games/launchbox/:objectId/recompilations/:slug/readme */
 export interface RecompilationReadme {
   repository: string;
   defaultBranch: string;
@@ -88,7 +85,6 @@ export interface RecompilationReleaseAsset {
   sha256: string | null;
   os: RecompilationOs;
   arch: string | null;
-  /** The one file Hydra installs on that OS. */
   isInstallTarget: boolean;
 }
 
@@ -103,7 +99,6 @@ export interface RecompilationRelease {
   assets: RecompilationReleaseAsset[];
 }
 
-/** GET /games/launchbox/:objectId/recompilations/:slug/releases */
 export interface RecompilationReleases {
   releases: RecompilationRelease[];
 }
@@ -130,58 +125,33 @@ export interface RecompilationInstallProgress {
 export interface RecompilationInstallState {
   installed: boolean;
   isInstalling: boolean;
-  /** Installed version, or null when not installed. */
   version: string | null;
   installPath: string | null;
   executablePath: string | null;
-  /** True when Hydra knows where this port keeps its saves. */
   hasCloudSaves: boolean;
 }
 
-/**
- * How Hydra hands the game's ROM to a port, from recompilation-meta.json.
- * `{rom}` is the ROM path and `{romName}` its file name.
- */
 export interface RecompilationRomMeta {
   path?: {
-    /** Arguments passed when the port is launched. */
     arg?: string[];
-    /** Environment variables set when the port is launched. */
     env?: Record<string, string>;
-    /** A tool from the port folder, run once before the first launch. */
     installer?: string[];
   };
-  /** Only needed on the first launch (the port keeps what it extracted). */
   once?: boolean;
-  /** Where the port reads the ROM from, per OS. Hydra copies it there. */
-  copyTo?: Partial<Record<"win32" | "linux" | "darwin", string>>;
-  /**
-   * Files the port writes once it has imported the game data, per OS. Any of
-   * them on disk means the port starts without the ROM.
-   */
-  imported?: Partial<Record<"win32" | "linux" | "darwin", string[]>>;
-  /** Byte order the port needs (N64 ROMs); Hydra converts other orders. */
+  copyTo?: Partial<Record<"win32" | "linux", string>>;
+  imported?: Partial<Record<"win32" | "linux", string[]>>;
   format?: "z64";
-  /** File extensions the port reads, lower case with the dot. */
   extensions: string[];
 }
 
 export type RecompilationRomSource = "library" | "file";
 
 export interface RecompilationRomState {
-  /** False for ports Hydra cannot hand a ROM to (no install modal). */
   handlesRom: boolean;
   source: RecompilationRomSource | null;
-  /** The ROM Hydra will use, when it exists on disk. */
   romPath: string | null;
-  /** The base game's ROM in the library, when it exists on disk. */
   libraryRomPath: string | null;
-  /**
-   * The port already has what it needs from the ROM (imported data or the
-   * copy Hydra made), so it starts even if the ROM file is gone.
-   */
   isReady: boolean;
-  /** Extensions the file picker accepts, without the dot. */
   extensions: string[];
 }
 

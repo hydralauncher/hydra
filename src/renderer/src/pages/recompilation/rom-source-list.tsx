@@ -52,8 +52,6 @@ function RomSourceRow({
   const downloadOptions = useDownloadOptions(repack);
   const [isStarting, setIsStarting] = useState(false);
 
-  // No download settings step: the downloader the settings would pick by
-  // default, always extracted, into the folder chosen above the list.
   const start = async () => {
     const downloader = getDefaultDownloader(
       downloadOptions
@@ -119,10 +117,6 @@ function RomSourceRow({
   );
 }
 
-/**
- * The base game's download options, in the install modal itself. Same rows
- * as the game page's "Download options", without its settings step.
- */
 export function RomSourceList(props: Readonly<RomSourceListProps>) {
   const { t } = useTranslation("recompilation");
   const { repacks, isLoading } = useContext(gameDetailsContext);
@@ -144,7 +138,6 @@ export function RomSourceList(props: Readonly<RomSourceListProps>) {
       );
   }, []);
 
-  // Same filters as the game page's "Download options": text, then sources.
   const visibleRepacks = useMemo(() => {
     const term = filter.trim().toLowerCase();
     const selectedNames = new Set(
@@ -232,10 +225,6 @@ export function RomSourceList(props: Readonly<RomSourceListProps>) {
   );
 }
 
-/**
- * "Download to" with a folder picker, then the source list. Used by the
- * install modal and by the "See download options" modal.
- */
 export function RomSourcesPanel({
   objectId,
   gameTitle,

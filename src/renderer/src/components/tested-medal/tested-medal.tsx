@@ -9,7 +9,6 @@ export interface TestedMedalProps {
   className?: string;
 }
 
-/** The RankMedal drawing with a check mark instead of the rank number. */
 export function TestedMedal({
   level,
   size = 12,

@@ -28,8 +28,10 @@ import {
   removeFileQuietly,
 } from "@main/services/download-to-file";
 import {
+  forgetRecompilationInstallDirectory,
   getRecompilationInstallDirectory as getInstallDirectory,
   parseRecompilationRef as parseRef,
+  saveRecompilationInstallDirectory,
 } from "./recompilation-paths";
 import {
   markRecompilationRomLaunched,
@@ -39,6 +41,8 @@ import recompilationSaves from "./recompilation-saves.json";
 
 const INSTALL_MARKER_FILE = ".hydra-recompilation.json";
 const EXECUTABLE_SCAN_DEPTH = 3;
+const ELF_MAGIC = [0x7f, 0x45, 0x4c, 0x46];
+const IN_USE_ERROR_CODES = new Set(["EBUSY", "EPERM", "EACCES"]);
 
 interface InstallMarker {
   slug: string;
@@ -49,7 +53,10 @@ interface InstallMarker {
   installedAt: string;
 }
 
+class RecompilationInstallError extends Error {}
+
 const installsInProgress = new Set<string>();
+const launchesInProgress = new Set<string>();
 
 const sendProgress = (progress: RecompilationInstallProgress) => {
   WindowManager.mainWindow?.webContents.send(
@@ -60,6 +67,8 @@ const sendProgress = (progress: RecompilationInstallProgress) => {
 
 const apiPath = ({ objectId, slug }: RecompilationRef) =>
   `/games/launchbox/${objectId}/recompilations/${slug}`;
+
+const loadSession = () => import("./recompilation-session");
 
 const readInstallMarker = async (
   installDirectory: string
@@ -75,20 +84,16 @@ const readInstallMarker = async (
   }
 };
 
-const EXECUTABLE_MAGIC = [
-  [0x7f, 0x45, 0x4c, 0x46], // ELF
-];
-
 const looksLikeLinuxExecutable = async (filePath: string) => {
   if (filePath.toLowerCase().endsWith(".appimage")) return true;
 
   const handle = await fs.promises.open(filePath, "r");
   try {
-    const header = Buffer.alloc(4);
-    const { bytesRead } = await handle.read(header, 0, 4, 0);
-    if (bytesRead < 4) return false;
-    return EXECUTABLE_MAGIC.some((magic) =>
-      magic.every((byte, index) => header[index] === byte)
+    const header = Buffer.alloc(ELF_MAGIC.length);
+    const { bytesRead } = await handle.read(header, 0, ELF_MAGIC.length, 0);
+    return (
+      bytesRead === ELF_MAGIC.length &&
+      ELF_MAGIC.every((byte, index) => header[index] === byte)
     );
   } finally {
     await handle.close();
@@ -130,10 +135,6 @@ const collectExecutables = async (
   return found;
 };
 
-/**
- * Picks the executable closest to the install root, preferring one whose name
- * shares a word with the port name. Returns null when nothing looks runnable.
- */
 const findExecutable = async (installDirectory: string, portName: string) => {
   const candidates = await collectExecutables(installDirectory);
   if (candidates.length === 0) return null;
@@ -157,15 +158,14 @@ const findExecutable = async (installDirectory: string, portName: string) => {
   );
 };
 
-/** Zip files do not always keep the executable bit, so restore it. */
-const markExecutables = async (directory: string, depth = 0) => {
+const restoreExecutableBits = async (directory: string, depth = 0) => {
   if (process.platform === "win32" || depth > EXECUTABLE_SCAN_DEPTH) return;
 
   const entries = await fs.promises.readdir(directory, { withFileTypes: true });
   for (const entry of entries) {
     const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
-      await markExecutables(entryPath, depth + 1);
+      await restoreExecutableBits(entryPath, depth + 1);
     } else if (entry.isFile() && (await looksLikeLinuxExecutable(entryPath))) {
       const { mode } = await fs.promises.stat(entryPath);
       await fs.promises.chmod(entryPath, mode | 0o111);
@@ -182,25 +182,53 @@ const hashFile = (filePath: string) =>
       .on("end", () => resolve(hash.digest("hex")));
   });
 
-/**
- * When a release zip has a single top-level folder, its contents are the
- * port. Returns the folder that holds the port files.
- */
-const resolveExtractedRoot = async (stagingDirectory: string) => {
-  const entries = await fs.promises.readdir(stagingDirectory, {
-    withFileTypes: true,
-  });
-  if (entries.length === 1 && entries[0].isDirectory()) {
-    return path.join(stagingDirectory, entries[0].name);
+const isExecutableInUse = async (executablePath: string | null) => {
+  if (process.platform !== "win32" || !executablePath) return false;
+  try {
+    const handle = await fs.promises.open(executablePath, "r+");
+    await handle.close();
+    return false;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    return code !== undefined && IN_USE_ERROR_CODES.has(code);
   }
-  return stagingDirectory;
 };
 
-/**
- * Extracts into a staging folder, then copies the files over the install
- * folder. Files the release does not ship (saves, configs, mods that live in
- * the port folder) are kept.
- */
+const isPortRunning = async (
+  ref: RecompilationRef,
+  executablePath: string | null
+) => {
+  if (launchesInProgress.has(ref.slug)) return true;
+  const { isRecompilationRunning } = await loadSession();
+  return isRecompilationRunning(ref) || isExecutableInUse(executablePath);
+};
+
+const getSingleEntry = async (directory: string) => {
+  const entries = await fs.promises.readdir(directory, {
+    withFileTypes: true,
+  });
+  return entries.length === 1 ? entries[0] : null;
+};
+
+const extractNestedTar = async (stagingDirectory: string) => {
+  const entry = await getSingleEntry(stagingDirectory);
+  if (!entry?.isFile() || !entry.name.toLowerCase().endsWith(".tar")) return;
+
+  const tarPath = path.join(stagingDirectory, entry.name);
+  await SevenZip.extractFile({
+    filePath: tarPath,
+    outputPath: stagingDirectory,
+  });
+  await fs.promises.rm(tarPath, { force: true });
+};
+
+const resolveExtractedRoot = async (stagingDirectory: string) => {
+  const entry = await getSingleEntry(stagingDirectory);
+  return entry?.isDirectory()
+    ? path.join(stagingDirectory, entry.name)
+    : stagingDirectory;
+};
+
 const extractRelease = async (
   archivePath: string,
   installDirectory: string
@@ -213,12 +241,14 @@ const extractRelease = async (
       filePath: archivePath,
       outputPath: stagingDirectory,
     });
+    await extractNestedTar(stagingDirectory);
     const root = await resolveExtractedRoot(stagingDirectory);
-    await markExecutables(root);
+    await restoreExecutableBits(root);
     await fs.promises.mkdir(installDirectory, { recursive: true });
     await fs.promises.cp(root, installDirectory, {
       recursive: true,
       force: true,
+      verbatimSymlinks: true,
     });
   } finally {
     await fs.promises.rm(stagingDirectory, { recursive: true, force: true });
@@ -245,109 +275,124 @@ export const getRecompilationInstallState = async (
   };
 };
 
-/**
- * Installs or updates a port. The renderer only sends the game and port ids:
- * the release file, its checksum and the folder are resolved here from the
- * Hydra API, and only files from the port's own GitHub releases are accepted.
- */
+const fetchRelease = async (ref: RecompilationRef) => {
+  const [details, { releases }] = await Promise.all([
+    HydraApi.get<RecompilationDetails>(apiPath(ref), undefined, {
+      needsAuth: false,
+    }),
+    HydraApi.get<RecompilationReleases>(`${apiPath(ref)}/releases`, undefined, {
+      needsAuth: false,
+    }),
+  ]);
+  const release =
+    releases.find((item) => item.isLatest) ?? releases.at(0) ?? null;
+  const asset = release
+    ? pickRecompilationInstallAsset(release.assets, process.platform)
+    : null;
+
+  if (
+    !release ||
+    !asset ||
+    !isRecompilationAssetFromRepository(
+      asset,
+      details.repository.fullName,
+      release.tag
+    )
+  ) {
+    throw new RecompilationInstallError("no_release_file");
+  }
+
+  return { details, release, asset };
+};
+
+const downloadAndInstall = async (
+  ref: RecompilationRef,
+  onArchivePath: (archivePath: string) => void
+) => {
+  const { details, release, asset } = await fetchRelease(ref);
+  const installDirectory = await getInstallDirectory(ref.slug);
+  const archivePath = path.join(
+    SystemPath.getPath("temp"),
+    `hydra-recompilation-${ref.slug}-${path.basename(asset.name)}`
+  );
+  onArchivePath(archivePath);
+
+  sendProgress({
+    slug: ref.slug,
+    phase: "downloading",
+    loaded: 0,
+    total: asset.size,
+  });
+
+  await downloadToFile(asset.url, archivePath, (loaded, total) => {
+    sendProgress({
+      slug: ref.slug,
+      phase: "downloading",
+      loaded,
+      total: total ?? asset.size,
+    });
+  });
+
+  const { size } = await fs.promises.stat(archivePath);
+  if (size !== asset.size) {
+    throw new Error(`Unexpected size for ${asset.name}: ${size}`);
+  }
+  if (asset.sha256 && (await hashFile(archivePath)) !== asset.sha256) {
+    throw new Error(`Checksum mismatch for ${asset.name}`);
+  }
+
+  sendProgress({ slug: ref.slug, phase: "extracting" });
+  await extractRelease(archivePath, installDirectory);
+
+  const executablePath = await findExecutable(installDirectory, details.name);
+  if (!executablePath) throw new RecompilationInstallError("no_executable");
+
+  const marker: InstallMarker = {
+    slug: ref.slug,
+    objectId: ref.objectId,
+    version: release.version,
+    assetName: asset.name,
+    executablePath,
+    installedAt: new Date().toISOString(),
+  };
+  await fs.promises.writeFile(
+    path.join(installDirectory, INSTALL_MARKER_FILE),
+    JSON.stringify(marker, null, 2)
+  );
+  await saveRecompilationInstallDirectory(ref.slug, installDirectory);
+};
+
 export const installRecompilation = async (
   rawRef: unknown
 ): Promise<RecompilationActionResult> => {
   const ref = parseRef(rawRef);
   if (!ref) return { ok: false, reason: "invalid_port" };
-
   if (installsInProgress.has(ref.slug)) {
     return { ok: false, reason: "already_installing" };
   }
 
   installsInProgress.add(ref.slug);
 
-  let archivePath: string | null = null;
+  let archivePath = null as string | null;
   let result: RecompilationActionResult;
 
   try {
-    const [details, { releases }] = await Promise.all([
-      HydraApi.get<RecompilationDetails>(apiPath(ref), undefined, {
-        needsAuth: false,
-      }),
-      HydraApi.get<RecompilationReleases>(
-        `${apiPath(ref)}/releases`,
-        undefined,
-        { needsAuth: false }
-      ),
-    ]);
-    const release =
-      releases.find((item) => item.isLatest) ?? releases.at(0) ?? null;
-    const asset = release
-      ? pickRecompilationInstallAsset(release.assets, process.platform)
-      : null;
-
-    if (
-      !release ||
-      !asset ||
-      !isRecompilationAssetFromRepository(
-        asset,
-        details.repository.fullName,
-        release.tag
-      )
-    ) {
-      throw new Error("no_release_file");
+    const current = await getRecompilationInstallState(ref);
+    if (await isPortRunning(ref, current?.executablePath ?? null)) {
+      return { ok: false, reason: "running" };
     }
 
-    const installDirectory = await getInstallDirectory(ref.slug);
-    archivePath = path.join(
-      SystemPath.getPath("temp"),
-      `hydra-recompilation-${ref.slug}-${path.basename(asset.name)}`
-    );
-
-    sendProgress({
-      slug: ref.slug,
-      phase: "downloading",
-      loaded: 0,
-      total: asset.size,
+    await downloadAndInstall(ref, (downloadPath) => {
+      archivePath = downloadPath;
     });
-
-    await downloadToFile(asset.url, archivePath, (loaded, total) => {
-      sendProgress({
-        slug: ref.slug,
-        phase: "downloading",
-        loaded,
-        total: total ?? asset.size,
-      });
-    });
-
-    const { size } = await fs.promises.stat(archivePath);
-    if (size !== asset.size) {
-      throw new Error(`Unexpected size for ${asset.name}: ${size}`);
-    }
-    if (asset.sha256 && (await hashFile(archivePath)) !== asset.sha256) {
-      throw new Error(`Checksum mismatch for ${asset.name}`);
-    }
-
-    sendProgress({ slug: ref.slug, phase: "extracting" });
-    await extractRelease(archivePath, installDirectory);
-
-    const marker: InstallMarker = {
-      slug: ref.slug,
-      objectId: ref.objectId,
-      version: release.version,
-      assetName: asset.name,
-      executablePath: await findExecutable(installDirectory, details.name),
-      installedAt: new Date().toISOString(),
-    };
-    await fs.promises.writeFile(
-      path.join(installDirectory, INSTALL_MARKER_FILE),
-      JSON.stringify(marker, null, 2)
-    );
-
     result = { ok: true };
   } catch (error) {
     logger.error(`Failed to install recompilation ${ref.slug}`, error);
     result = {
       ok: false,
       reason:
-        error instanceof Error && error.message === "no_release_file"
-          ? "no_release_file"
+        error instanceof RecompilationInstallError
+          ? error.message
           : "install_failed",
     };
   } finally {
@@ -355,8 +400,6 @@ export const installRecompilation = async (
     installsInProgress.delete(ref.slug);
   }
 
-  // Sent once the port is no longer busy, so a view that refreshes on this
-  // event never reads a stale isInstalling.
   sendProgress(
     result.ok
       ? { slug: ref.slug, phase: "done" }
@@ -371,15 +414,20 @@ export const uninstallRecompilation = async (
 ): Promise<RecompilationActionResult> => {
   const ref = parseRef(rawRef);
   if (!ref) return { ok: false, reason: "invalid_port" };
-  if (installsInProgress.has(ref.slug)) {
-    return { ok: false, reason: "already_installing" };
-  }
 
   const installDirectory = await getInstallDirectory(ref.slug);
   const marker = await readInstallMarker(installDirectory);
   if (marker?.slug !== ref.slug) return { ok: false, reason: "not_installed" };
 
+  if (installsInProgress.has(ref.slug)) {
+    return { ok: false, reason: "already_installing" };
+  }
+  if (await isPortRunning(ref, marker.executablePath)) {
+    return { ok: false, reason: "running" };
+  }
+
   await fs.promises.rm(installDirectory, { recursive: true, force: true });
+  await forgetRecompilationInstallDirectory(ref.slug);
   return { ok: true };
 };
 
@@ -393,12 +441,66 @@ export const openRecompilationFolder = async (
   return error ? { ok: false, reason: error } : { ok: true };
 };
 
-/**
- * Ports between a Play request and their session being tracked. Preparing
- * the ROM and the cloud save takes a while, and the running check only sees
- * the port once it has started, so a second request waits for none of it.
- */
-const launchesInProgress = new Set<string>();
+const spawnPort = (
+  executablePath: string,
+  launch: { args: string[]; env: Record<string, string> }
+) =>
+  new Promise<
+    | { ok: true; child: ReturnType<typeof spawn> }
+    | { ok: false; error: unknown }
+  >((resolve) => {
+    const child = spawn(executablePath, launch.args, {
+      cwd: path.dirname(executablePath),
+      env: { ...process.env, ...launch.env },
+      detached: true,
+      stdio: "ignore",
+      shell: false,
+    });
+    child.once("spawn", () => {
+      child.unref();
+      resolve({ ok: true, child });
+    });
+    child.once("error", (error) => resolve({ ok: false, error }));
+  });
+
+const launchRecompilation = async (
+  ref: RecompilationRef
+): Promise<RecompilationActionResult> => {
+  const state = await getRecompilationInstallState(ref);
+  if (!state?.installPath) return { ok: false, reason: "not_installed" };
+  if (!state.executablePath) return { ok: false, reason: "no_executable" };
+
+  const relative = path.relative(state.installPath, state.executablePath);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    return { ok: false, reason: "no_executable" };
+  }
+
+  const {
+    clearRecompilationCloudSaveGuard,
+    isRecompilationRunning,
+    prepareRecompilationCloudSave,
+    startRecompilationSession,
+  } = await loadSession();
+  if (isRecompilationRunning(ref)) return { ok: false, reason: "running" };
+
+  const launch = await prepareRecompilationRom(ref, state.installPath);
+  if (!launch.ok) return { ok: false, reason: launch.reason };
+
+  if (!(await prepareRecompilationCloudSave(ref))) {
+    return { ok: false, reason: "cloud_save_conflict" };
+  }
+
+  const spawned = await spawnPort(state.executablePath, launch);
+  if (!spawned.ok) {
+    logger.error("Failed to launch recompilation", spawned.error);
+    clearRecompilationCloudSaveGuard(ref);
+    return { ok: false, reason: "launch_failed" };
+  }
+
+  void markRecompilationRomLaunched(state.installPath);
+  void startRecompilationSession(ref, spawned.child);
+  return { ok: true };
+};
 
 export const playRecompilation = async (
   rawRef: unknown
@@ -412,61 +514,8 @@ export const playRecompilation = async (
 
   launchesInProgress.add(ref.slug);
   try {
-    return await launchRecompilation(ref, rawRef);
+    return await launchRecompilation(ref);
   } finally {
     launchesInProgress.delete(ref.slug);
   }
-};
-
-const launchRecompilation = async (
-  ref: RecompilationRef,
-  rawRef: unknown
-): Promise<RecompilationActionResult> => {
-  const state = await getRecompilationInstallState(rawRef);
-  if (!state?.installPath) return { ok: false, reason: "not_installed" };
-  if (!state.executablePath) return { ok: false, reason: "no_executable" };
-
-  // The marker lives inside the port folder, so only run a file under it.
-  const relative = path.relative(state.installPath, state.executablePath);
-  if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    return { ok: false, reason: "no_executable" };
-  }
-
-  // Loaded on demand: the session pulls in the cloud save services, which
-  // read port installs back through this module.
-  const {
-    isRecompilationRunning,
-    prepareRecompilationCloudSave,
-    startRecompilationSession,
-  } = await import("./recompilation-session");
-  if (isRecompilationRunning(ref)) return { ok: false, reason: "running" };
-
-  const launch = await prepareRecompilationRom(ref, state.installPath);
-  if (!launch.ok) return { ok: false, reason: launch.reason };
-
-  // Restore the cloud save first. A conflict sends the user to the port's
-  // page to pick a side, so the port does not start.
-  if (!(await prepareRecompilationCloudSave(ref))) {
-    return { ok: false, reason: "cloud_save_conflict" };
-  }
-
-  return new Promise((resolve) => {
-    const child = spawn(state.executablePath!, launch.args, {
-      cwd: path.dirname(state.executablePath!),
-      env: { ...process.env, ...launch.env },
-      detached: true,
-      stdio: "ignore",
-      shell: false,
-    });
-    child.once("spawn", () => {
-      child.unref();
-      void markRecompilationRomLaunched(state.installPath!);
-      void startRecompilationSession(ref, child);
-      resolve({ ok: true });
-    });
-    child.once("error", (error) => {
-      logger.error("Failed to launch recompilation", error);
-      resolve({ ok: false, reason: "launch_failed" });
-    });
-  });
 };

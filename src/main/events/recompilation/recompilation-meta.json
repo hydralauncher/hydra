@@ -103,8 +103,7 @@
     "rom": {
       "copyTo": {
         "win32": "<base>/gamedata/{romName}",
-        "linux": "<base>/gamedata/{romName}",
-        "darwin": "<base>/gamedata/{romName}"
+        "linux": "<base>/gamedata/{romName}"
       },
       "extensions": [".bin"]
     }

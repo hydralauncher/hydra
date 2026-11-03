@@ -3453,6 +3453,7 @@
     "extracting": "Extraindo",
     "size_of_total": "{{loaded}} de {{total}}",
     "install_failed": "Não foi possível instalar. Tente de novo.",
+    "install_no_executable": "Não foi possível encontrar o jogo nesta versão. Tente de novo mais tarde.",
     "play_failed": "Não foi possível abrir o jogo.",
     "close_failed": "Não foi possível fechar o jogo.",
     "uninstall_failed": "Não foi possível desinstalar.",

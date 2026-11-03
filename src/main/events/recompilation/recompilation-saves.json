@@ -21,7 +21,7 @@
   "dusklight": {
     "saves": [
       {
-        "path": "<winAppData>/TwilitRealm/Dusklight/{USA,EUR,JAP}/Card A/",
+        "path": "<winAppData>/TwilitRealm/Dusklight/USA/Card A/",
         "kind": "dir",
         "tags": ["save"],
         "when": [
@@ -31,7 +31,47 @@
         ]
       },
       {
-        "path": "<xdgData>/TwilitRealm/Dusklight/{USA,EUR,JAP}/Card A/",
+        "path": "<winAppData>/TwilitRealm/Dusklight/EUR/Card A/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "windows"
+          }
+        ]
+      },
+      {
+        "path": "<winAppData>/TwilitRealm/Dusklight/JAP/Card A/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "windows"
+          }
+        ]
+      },
+      {
+        "path": "<xdgData>/TwilitRealm/Dusklight/USA/Card A/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "linux"
+          }
+        ]
+      },
+      {
+        "path": "<xdgData>/TwilitRealm/Dusklight/EUR/Card A/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "linux"
+          }
+        ]
+      },
+      {
+        "path": "<xdgData>/TwilitRealm/Dusklight/JAP/Card A/",
         "kind": "dir",
         "tags": ["save"],
         "when": [

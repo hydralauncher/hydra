@@ -4,11 +4,6 @@ import { Downloader, getDownloadersForUri } from "@shared";
 
 import { useAppSelector, useFeature, useUserDetails } from "@renderer/hooks";
 
-/**
- * The downloaders a download option can use, best first: available ones,
- * then ones that need an account set up. Shared by the download settings
- * modal and the recompilation ROM step.
- */
 export function useDownloadOptions(repack: GameRepack | null) {
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -120,7 +115,6 @@ export function useDownloadOptions(repack: GameRepack | null) {
   ]);
 }
 
-/** The downloader picked by default: a debrid service first, when set up. */
 export const getDefaultDownloader = (
   availableDownloaders: Downloader[]
 ): Downloader | null => {

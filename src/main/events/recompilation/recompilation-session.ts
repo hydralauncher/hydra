@@ -7,6 +7,7 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import {
   canCreateCloudSaveUploadGuard,
   canRunAutomaticCloudSaveSync,
+  clearCloudSaveLaunchGuard,
   getCloudSaveGameContext,
   hasCloudSaveLaunchGuard,
   runAutomaticCloudSavePostExit,
@@ -28,24 +29,23 @@ const SHOP = "launchbox";
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
 
 interface RecompilationSession {
+  ref: RecompilationRef;
   child: ChildProcess;
   startedAt: number;
   heartbeat: ReturnType<typeof setInterval> | null;
-  /** Settles once the base game is in the library, to credit playtime. */
   baseGameReady: Promise<void>;
 }
 
-/** Running ports, keyed by the port's cloud save game key. */
 const sessions = new Map<string, RecompilationSession>();
 
 const cloudSaveObjectId = (ref: RecompilationRef) =>
   toRecompilationCloudSaveObjectId(ref.objectId, ref.slug);
 
-/**
- * Restores the port's cloud save before it starts, like the Classics do for
- * an emulator. Returns false when the launch must wait for the user (a save
- * conflict), after sending them to the port's page to resolve it.
- */
+const portKeyOf = (ref: RecompilationRef) =>
+  levelKeys.game(SHOP, cloudSaveObjectId(ref));
+
+const baseKeyOf = (ref: RecompilationRef) => levelKeys.game(SHOP, ref.objectId);
+
 export const prepareRecompilationCloudSave = async (
   ref: RecompilationRef
 ): Promise<boolean> => {
@@ -84,33 +84,36 @@ export const prepareRecompilationCloudSave = async (
   return true;
 };
 
-/**
- * Playing a port is playing the base game: it goes to the library like any
- * game the user plays, so its playtime has somewhere to land.
- */
+export const clearRecompilationCloudSaveGuard = (ref: RecompilationRef) =>
+  clearCloudSaveLaunchGuard(cloudSaveObjectId(ref), SHOP);
+
+const fetchBaseGameDetails = (ref: RecompilationRef) =>
+  HydraApi.get<RecompilationDetails>(
+    `/games/launchbox/${ref.objectId}/recompilations/${ref.slug}`,
+    undefined,
+    { needsAuth: false }
+  )
+    .then((details) => details.game)
+    .catch(() => null);
+
 const getOrAddBaseGame = async (ref: RecompilationRef): Promise<Game> => {
-  const key = levelKeys.game(SHOP, ref.objectId);
+  const key = baseKeyOf(ref);
   const existing = await gamesSublevel.get(key);
   if (existing && !existing.isDeleted) return existing;
 
-  const title =
-    existing?.title ??
-    (
-      await HydraApi.get<RecompilationDetails>(
-        `/games/launchbox/${ref.objectId}/recompilations/${ref.slug}`,
-        undefined,
-        { needsAuth: false }
-      ).catch(() => null)
-    )?.game.title ??
-    ref.slug;
-
+  const details = await fetchBaseGameDetails(ref);
   const game: Game = existing
-    ? { ...existing, isDeleted: false, addedToLibraryAt: new Date() }
+    ? {
+        ...existing,
+        isDeleted: false,
+        addedToLibraryAt: new Date(),
+        platform: existing.platform ?? details?.platform ?? null,
+      }
     : {
-        title,
-        iconUrl: null,
-        libraryHeroImageUrl: null,
-        logoImageUrl: null,
+        title: details?.title ?? ref.slug,
+        iconUrl: details?.iconUrl ?? null,
+        libraryHeroImageUrl: details?.libraryHeroImageUrl ?? null,
+        logoImageUrl: details?.logoImageUrl ?? null,
         objectId: ref.objectId,
         shop: SHOP,
         remoteId: null,
@@ -118,7 +121,7 @@ const getOrAddBaseGame = async (ref: RecompilationRef): Promise<Game> => {
         playTimeInMilliseconds: 0,
         lastTimePlayed: null,
         addedToLibraryAt: new Date(),
-        platform: null,
+        platform: details?.platform ?? null,
         source: "hydra",
       };
   await gamesSublevel.put(key, game);
@@ -135,10 +138,9 @@ const sendPresencePing = async (baseKey: string) => {
   });
 };
 
-/** Adds the session's time to the base game, as the emulator tracker does. */
-const creditPlaytime = async (baseKey: string, deltaMs: number) => {
+const saveLocalPlaytime = async (baseKey: string, deltaMs: number) => {
   const game = await gamesSublevel.get(baseKey);
-  if (!game) return;
+  if (!game) return null;
 
   const updated: Game = {
     ...game,
@@ -146,11 +148,18 @@ const creditPlaytime = async (baseKey: string, deltaMs: number) => {
     lastTimePlayed: new Date(),
   };
   await gamesSublevel.put(baseKey, updated);
-  // Pages showing the base game (its reviews unlock with playtime) reload it.
   WindowManager.sendToAppWindows("on-library-batch-complete");
+  return {
+    updated,
+    pendingDelta: deltaMs + (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0),
+  };
+};
 
-  const pendingDelta =
-    deltaMs + (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);
+const creditPlaytime = async (baseKey: string, deltaMs: number) => {
+  const saved = await saveLocalPlaytime(baseKey, deltaMs);
+  if (!saved) return;
+
+  const { updated, pendingDelta } = saved;
   await trackGamePlaytime(updated, pendingDelta, updated.lastTimePlayed!)
     .then(() => {
       WindowManager.sendToAppWindows("on-game-session-synced");
@@ -168,22 +177,19 @@ const creditPlaytime = async (baseKey: string, deltaMs: number) => {
     });
 };
 
-const finishSession = async (ref: RecompilationRef) => {
-  const objectId = cloudSaveObjectId(ref);
-  const portKey = levelKeys.game(SHOP, objectId);
-  const baseKey = levelKeys.game(SHOP, ref.objectId);
-  const session = sessions.get(portKey);
-  if (!session) return;
-
+const endSession = (session: RecompilationSession) => {
+  const portKey = portKeyOf(session.ref);
   sessions.delete(portKey);
   if (session.heartbeat) clearInterval(session.heartbeat);
   deleteEmulatorGameRunning(portKey);
   deleteRecompilationGameRunning(portKey);
+  return Math.max(0, performance.now() - session.startedAt);
+};
 
-  const deltaMs = Math.max(0, performance.now() - session.startedAt);
+const finishSession = async (session: RecompilationSession) => {
+  const deltaMs = endSession(session);
+  const objectId = cloudSaveObjectId(session.ref);
 
-  // The backup does not wait on the library: a stalled base game lookup
-  // only delays the playtime, which needs the game to land on.
   const backup = hasCloudSaveLaunchGuard(objectId, SHOP)
     ? runAutomaticCloudSavePostExit(objectId, SHOP).catch((error) => {
         logger.error("Failed to sync recompilation save after exit", error);
@@ -191,27 +197,21 @@ const finishSession = async (ref: RecompilationRef) => {
     : Promise.resolve();
 
   await session.baseGameReady;
-  await creditPlaytime(baseKey, deltaMs).catch((error) => {
+  await creditPlaytime(baseKeyOf(session.ref), deltaMs).catch((error) => {
     logger.error("Failed to save recompilation playtime", error);
   });
   await backup;
 };
 
-/**
- * Tracks a running port: it counts as playing the base game (presence and
- * playtime), keeps its own cloud save from syncing mid-session, and backs
- * the save up when the port closes.
- */
 export const startRecompilationSession = async (
   ref: RecompilationRef,
   child: ChildProcess
 ) => {
-  const portKey = levelKeys.game(SHOP, cloudSaveObjectId(ref));
-  const baseKey = levelKeys.game(SHOP, ref.objectId);
+  const portKey = portKeyOf(ref);
+  const baseKey = baseKeyOf(ref);
 
-  // Registered before anything is awaited, so the port counts as running as
-  // soon as its process starts.
   const session: RecompilationSession = {
+    ref,
     child,
     startedAt: performance.now(),
     heartbeat: null,
@@ -225,16 +225,12 @@ export const startRecompilationSession = async (
       }),
   };
   sessions.set(portKey, session);
-  // The port's own key only blocks its cloud save mid-session; the base
-  // game's key is what shows as "playing" in the app.
   setEmulatorGameRunning(portKey);
   setRecompilationGameRunning(portKey, baseKey, ref.slug);
 
-  // Exit tracking comes before the library work, so a port that closes
-  // while the base game is still being added stops counting as running.
   const finish = () => {
     if (sessions.get(portKey) !== session) return;
-    void finishSession(ref);
+    void finishSession(session);
   };
   child.once("exit", finish);
   child.once("error", finish);
@@ -251,14 +247,25 @@ export const startRecompilationSession = async (
 };
 
 export const isRecompilationRunning = (ref: RecompilationRef) =>
-  sessions.has(levelKeys.game(SHOP, cloudSaveObjectId(ref)));
+  sessions.has(portKeyOf(ref));
 
-/**
- * Closes a running port. Its session ends on the process exit, which still
- * saves the playtime and backs the save up.
- */
 export const closeRecompilation = (ref: RecompilationRef) => {
-  const session = sessions.get(levelKeys.game(SHOP, cloudSaveObjectId(ref)));
+  const session = sessions.get(portKeyOf(ref));
   if (!session) return false;
   return session.child.kill();
+};
+
+export const saveRecompilationPlaytimeOnQuit = async () => {
+  await Promise.all(
+    Array.from(sessions.values(), async (session) => {
+      const deltaMs = endSession(session);
+      const baseKey = baseKeyOf(session.ref);
+      const saved = await saveLocalPlaytime(baseKey, deltaMs);
+      if (!saved) return;
+      await gamesSublevel.put(baseKey, {
+        ...saved.updated,
+        unsyncedDeltaPlayTimeInMilliseconds: saved.pendingDelta,
+      });
+    })
+  );
 };

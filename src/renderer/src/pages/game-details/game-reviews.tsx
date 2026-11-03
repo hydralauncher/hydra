@@ -38,7 +38,6 @@ interface GameReviewsProps {
   hasUserReviewed: boolean;
   isCheckingUserReview: boolean;
   onUserReviewedChange: (hasReviewed: boolean) => void;
-  /** Shows and posts only the reviews of this port of the game. */
   recompilationSlug?: string;
 }
 

@@ -170,10 +170,6 @@ interface CloudSaveV2ProviderProps {
   children: React.ReactNode;
   objectId: string;
   shop: GameShop;
-  /**
-   * For pages outside the game page (a recompilation): the game and its
-   * running state, instead of reading them from the game details context.
-   */
   game?: LibraryGame | null;
   isGameRunning?: boolean;
 }

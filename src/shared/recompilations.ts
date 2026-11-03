@@ -19,11 +19,6 @@ export const getRecompilationOs = (
 
 const RECOMPILATION_CLOUD_SAVE_ID = /^(\d{1,20}):([a-z0-9][a-z0-9._-]{0,99})$/i;
 
-/**
- * Cloud saves key everything by shop + objectId. A port keeps its saves apart
- * from the base game's by using "<base objectId>:<slug>" as its objectId,
- * under the base game's shop. Only the API calls split it back.
- */
 export const toRecompilationCloudSaveObjectId = (
   objectId: string,
   slug: string
@@ -38,10 +33,6 @@ export const parseRecompilationCloudSaveObjectId = (
   return match ? { objectId: match[1], slug: match[2] } : null;
 };
 
-/**
- * What the cloud save API takes: the base game, plus the port's slug when the
- * save belongs to a recompilation.
- */
 export const toCloudSaveApiGame = <Shop extends string>(
   shop: Shop,
   objectId: string
@@ -52,7 +43,6 @@ export const toCloudSaveApiGame = <Shop extends string>(
     : { shop, objectId };
 };
 
-/** The release file Hydra installs on this OS, as chosen by the API. */
 export const pickRecompilationInstallAsset = (
   assets: RecompilationReleaseAsset[],
   platform: string
@@ -77,7 +67,6 @@ export const isRecompilationAssetFromRepository = (
     `https://github.com/${repository}/releases/download/${tag}/`
   );
 
-/** How many of the five features passed, for "3 de 5 recursos". */
 export const countWorkingRecompilationFeatures = (
   tested: RecompilationTested
 ) => tested.features.filter((feature) => feature.status === "works").length;

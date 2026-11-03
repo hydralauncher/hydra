@@ -24,7 +24,6 @@ import "./recompilation-install-modal.scss";
 
 type InstallStep = "rom" | "sources" | "done";
 
-/** How long a picked source waits for the download's first report. */
 const ROM_DOWNLOAD_START_TIMEOUT_MS = 10_000;
 
 interface RecompilationInstallModalProps {
@@ -94,8 +93,6 @@ function InstallModalContent({
   const { repacks } = useContext(gameDetailsContext);
 
   const romState = rom.state;
-  // Set when a source is picked, until the download reports back, so the
-  // step shows the download right away instead of the two choices.
   const [isStartingDownload, setIsStartingDownload] = useState(false);
   const isRomDownloading = rom.downloadPhase !== null || isStartingDownload;
   const romPercent = Math.round((rom.downloadProgress ?? 0) * 100);
@@ -104,7 +101,6 @@ function InstallModalContent({
     if (rom.downloadPhase !== null) setIsStartingDownload(false);
   }, [rom.downloadPhase]);
 
-  // A small ROM can finish before the first report arrives; stop waiting.
   useEffect(() => {
     if (!isStartingDownload) return;
     const timeout = window.setTimeout(
@@ -114,7 +110,6 @@ function InstallModalContent({
     return () => window.clearTimeout(timeout);
   }, [isStartingDownload]);
 
-  // The ROM may have changed since the page loaded (a download that ended).
   const { refresh: refreshRom } = rom;
   useEffect(() => {
     void refreshRom();
@@ -124,7 +119,6 @@ function InstallModalContent({
   const [pickedFile, setPickedFile] = useState<string | null>(
     romState?.source === "file" ? romState.romPath : null
   );
-  // The library ROM is offered first; "Change" goes back to the choices.
   const [skipLibrary, setSkipLibrary] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -146,16 +140,15 @@ function InstallModalContent({
     if (filePath) setPickedFile(filePath);
   };
 
-  // The ROM Hydra will hand the port: a picked file, a finished download, or
-  // one still downloading (saved as the library ROM once it lands).
   const libraryRom =
     !pickedFile && !skipLibrary ? (romState?.libraryRomPath ?? null) : null;
   const shownFile = pickedFile ?? libraryRom;
-  const romSource = pickedFile
-    ? "file"
-    : isRomDownloading || libraryRom
-      ? "library"
-      : null;
+  const getRomSource = () => {
+    if (pickedFile) return "file";
+    if (isRomDownloading || libraryRom) return "library";
+    return null;
+  };
+  const romSource = getRomSource();
 
   const saveChoice = async () => {
     if (!romSource) return;
@@ -221,9 +214,6 @@ function InstallModalContent({
 
   const renderRomStatus = () => {
     if (!isRomDownloading) return null;
-    // Before real numbers (right after the click, while Hydra prepares the
-    // download, or an extraction that has not reported yet) the bar runs
-    // without a value instead of sitting at 0%.
     if (rom.downloadPhase === null || romPercent === 0) {
       return (
         <StatusLine
@@ -315,8 +305,6 @@ function InstallModalContent({
         objectId={details.game.objectId}
         gameTitle={details.game.title}
         onStarted={() => {
-          // The new download becomes the library ROM: show it when it lands,
-          // even if "Change" hid the previous one.
           setSkipLibrary(false);
           setIsStartingDownload(true);
           setStep("rom");
@@ -379,10 +367,6 @@ function InstallModalContent({
   );
 }
 
-/**
- * Install flow for ports Hydra hands a ROM to: the port downloads in the
- * background while the user picks the ROM, then the port opens with it.
- */
 export function RecompilationInstallModal({
   visible,
   details,

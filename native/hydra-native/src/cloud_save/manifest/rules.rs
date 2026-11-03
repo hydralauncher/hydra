@@ -7,8 +7,6 @@ use crate::cloud_save::identity::build_rule_id;
 const FILE_RULE_KIND: &str = "file";
 const DIRECTORY_RULE_KIND: &str = "dir";
 const LUDUSAVI_RULE_SOURCE: &str = "ludusavi";
-/// Rule ids hash the source, so recompilation rules never collide with
-/// manifest rules for the same path.
 const RECOMPILATION_RULE_SOURCE: &str = "recomp";
 
 pub(crate) fn infer_rule_kind(raw_path: &str) -> &'static str {
@@ -99,7 +97,6 @@ pub fn build_game_save_rules(
     }
 }
 
-/// Rules for a recompilation, from Hydra's save map instead of the manifest.
 pub fn build_recompilation_save_rules(
     shop: String,
     object_id: String,

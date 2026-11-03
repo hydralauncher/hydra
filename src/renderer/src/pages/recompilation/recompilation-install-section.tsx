@@ -28,7 +28,6 @@ const OS_LABELS: Record<RecompilationReleaseAsset["os"], string> = {
   macos: "macOS",
 };
 
-/** The last two folders of a path, e.g. recompilations\zelda64recomp. */
 const shortPath = (fullPath: string) => {
   const separator = fullPath.includes("\\") ? "\\" : "/";
   return fullPath.split(/[\\/]/).filter(Boolean).slice(-2).join(separator);
@@ -70,7 +69,6 @@ function Row({
   );
 }
 
-/** Cuts long text with "..." and shows the full text as a tooltip only then. */
 function Truncated({
   text,
   fullText = text,
@@ -135,7 +133,6 @@ export function RecompilationInstallSection({
   const romState = rom.state;
   const isRomDownloading = rom.downloadPhase !== null;
   const romPercent = Math.round((rom.downloadProgress ?? 0) * 100);
-  // Ports Hydra cannot hand a ROM to read the base game's ROM from the library.
   const romFile =
     romState?.romPath ??
     (romState && !romState.handlesRom ? romState.libraryRomPath : null);
@@ -214,8 +211,6 @@ export function RecompilationInstallSection({
   const renderRom = () => {
     if (isRomDownloading) {
       const isRomExtracting = rom.downloadPhase === "extracting";
-      // No number yet (download being prepared, extraction not reported):
-      // the bar runs without a value instead of showing 0%.
       const hasPercent = romPercent > 0;
       const romProgress: InstallProgressLike = hasPercent
         ? { phase: "downloading", loaded: romPercent, total: 100 }

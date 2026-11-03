@@ -14,7 +14,6 @@ interface SetupFooterProps {
   showSkip: boolean;
   continueDisabled: boolean;
   continueHidden?: boolean;
-  /** Replaces the default "Continue" label. */
   continueLabel?: React.ReactNode;
   endAction?: FooterEndAction | null;
   onBack: () => void;
