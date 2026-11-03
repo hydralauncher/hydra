@@ -32,9 +32,7 @@ const latestImage = () => {
 
 describe("resolveImageUrl", () => {
   it("keeps the source when the image loads before the timeout", async () => {
-    const promise = resolveImageUrl("icon", "hydra", {
-      preparationTimeout: 100,
-    });
+    const promise = resolveImageUrl("icon", "hydra", 100);
 
     latestImage().onload?.();
 
@@ -42,9 +40,7 @@ describe("resolveImageUrl", () => {
   });
 
   it("falls back when the image fails to load", async () => {
-    const promise = resolveImageUrl("icon", "hydra", {
-      preparationTimeout: 100,
-    });
+    const promise = resolveImageUrl("icon", "hydra", 100);
 
     latestImage().onerror?.();
 
@@ -52,9 +48,7 @@ describe("resolveImageUrl", () => {
   });
 
   it("falls back when the image never loads", { timeout: 1000 }, async () => {
-    const promise = resolveImageUrl("icon", "hydra", {
-      preparationTimeout: 10,
-    });
+    const promise = resolveImageUrl("icon", "hydra", 10);
 
     assert.equal(await promise, "hydra");
   });

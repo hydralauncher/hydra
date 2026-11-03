@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   AchievementCustomNotificationPosition,
@@ -14,7 +8,7 @@ import {
   getAchievementSoundUrl,
   getAchievementSoundVolume,
 } from "@renderer/helpers";
-import { cancelNotificationPseudoAnimations } from "@renderer/helpers/notification-animations";
+import { useCancelClosingPseudoAnimations } from "@renderer/helpers/notification-animations";
 import { AchievementNotificationItem } from "./achievement-notification";
 
 const NOTIFICATION_TIMEOUT = 4000;
@@ -129,14 +123,7 @@ export function AchievementNotificationOverlay() {
     }
   }, [achievements]);
 
-  useLayoutEffect(() => {
-    if (!isClosing) return;
-
-    const card = containerRef.current?.querySelector(
-      ".achievement-notification"
-    );
-    cancelNotificationPseudoAnimations(card ?? null);
-  }, [isClosing]);
+  useCancelClosingPseudoAnimations(containerRef.current, isClosing);
 
   if (!isVisible || !currentAchievement) return null;
 

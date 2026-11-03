@@ -5,7 +5,6 @@ import type {
 
 export type ArmingAnimation = NotificationAnimation;
 export type ArmingCard = NotificationAnimationTarget;
-export { cancelNotificationPseudoAnimations as cancelNotificationAnimations } from "../../../helpers/notification-animations.js";
 
 export interface ArmingScheduler {
   requestFrame(callback: () => void): number;

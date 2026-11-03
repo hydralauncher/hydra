@@ -3,11 +3,8 @@ const IMAGE_PREPARATION_TIMEOUT = 2_000;
 export const resolveImageUrl = (
   source: string,
   fallbackUrl: string,
-  options: { preparationTimeout?: number } = {}
+  preparationTimeout = IMAGE_PREPARATION_TIMEOUT
 ): Promise<string> => {
-  const preparationTimeout =
-    options.preparationTimeout ?? IMAGE_PREPARATION_TIMEOUT;
-
   return new Promise((resolve) => {
     const image = new Image();
     let settled = false;

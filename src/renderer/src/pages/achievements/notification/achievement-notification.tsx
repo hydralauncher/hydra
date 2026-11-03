@@ -22,7 +22,7 @@ import HydraIconUrl from "@renderer/assets/icons/hydra.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
-import { cancelNotificationPseudoAnimations } from "@renderer/helpers/notification-animations";
+import { useCancelClosingPseudoAnimations } from "@renderer/helpers/notification-animations";
 import { armNotificationAnimations } from "./arm-notification-animations";
 import { resolveImageUrl } from "./resolve-image-url";
 
@@ -30,7 +30,7 @@ const NOTIFICATION_TIMEOUT = 4_000;
 const CLOSING_TIMEOUT = 450;
 const ARMING_TIMEOUT = 1_000;
 
-type NotificationPhase = "idle" | "prepared" | "arming" | "playing" | "closing";
+type NotificationPhase = "idle" | "arming" | "playing" | "closing";
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
@@ -193,7 +193,6 @@ export function AchievementNotification() {
             requestRef.current = nextRequest;
             setRequest(nextRequest);
             setAchievement(nextAchievement);
-            setPhase("prepared");
             reportContentReady(nextRequest.id);
           })
           .catch((error) => {
@@ -303,12 +302,7 @@ export function AchievementNotification() {
     });
   }, [beginPlayback, phase, shadowRootRef]);
 
-  useLayoutEffect(() => {
-    if (phase !== "closing") return;
-
-    const card = shadowRootRef?.querySelector(".achievement-notification");
-    cancelNotificationPseudoAnimations(card ?? null);
-  }, [phase, shadowRootRef]);
+  useCancelClosingPseudoAnimations(shadowRootRef, phase === "closing");
 
   useEffect(() => {
     return () => {
@@ -323,7 +317,7 @@ export function AchievementNotification() {
         {app} {styles}
       </style>
       <section ref={setShadowRootRef}>
-        {request && achievement && phase !== "idle" && phase !== "prepared" && (
+        {request && achievement && phase !== "idle" && (
           <AchievementNotificationItem
             achievement={achievement}
             isClosing={phase === "closing"}

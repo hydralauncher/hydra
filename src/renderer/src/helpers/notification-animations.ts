@@ -1,3 +1,5 @@
+import { useLayoutEffect } from "react";
+
 export interface NotificationAnimation {
   currentTime: unknown;
   animationName?: string;
@@ -31,4 +33,16 @@ export const cancelNotificationPseudoAnimations = (
 
     animation.cancel();
   }
+};
+
+export const useCancelClosingPseudoAnimations = (
+  container: ParentNode | null,
+  isClosing: boolean
+): void => {
+  useLayoutEffect(() => {
+    if (!isClosing) return;
+
+    const card = container?.querySelector(".achievement-notification") ?? null;
+    cancelNotificationPseudoAnimations(card);
+  }, [container, isClosing]);
 };

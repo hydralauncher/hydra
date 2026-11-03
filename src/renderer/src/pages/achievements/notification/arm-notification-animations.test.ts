@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { cancelNotificationPseudoAnimations } from "../../../helpers/notification-animations.js";
 import {
   armNotificationAnimations,
-  cancelNotificationAnimations,
   type ArmingAnimation,
   type ArmingScheduler,
 } from "./arm-notification-animations.js";
@@ -197,7 +197,7 @@ describe("armNotificationAnimations", () => {
     const transition = new FakeAnimation();
     const card = new FakeCard([[pseudo, closing, transition]]);
 
-    cancelNotificationAnimations(card);
+    cancelNotificationPseudoAnimations(card);
 
     assert.equal(pseudo.cancelCount, 1);
     assert.equal(closing.cancelCount, 0);
