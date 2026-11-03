@@ -291,6 +291,15 @@ export function AchievementNotification() {
         const requestId = requestRef.current?.id;
         if (requestId) beginPlayback(requestId);
       },
+      onTimeout: () => {
+        const requestId = requestRef.current?.id;
+        if (!requestId) return;
+
+        void window.electron.achievementNotificationFailed(
+          requestId,
+          "notification window did not become visible"
+        );
+      },
     });
   }, [beginPlayback, phase, shadowRootRef]);
 

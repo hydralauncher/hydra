@@ -118,6 +118,7 @@ describe("armNotificationAnimations", () => {
       onArmed: () => {
         armedCount += 1;
       },
+      onTimeout: () => {},
     });
 
     assert.equal(first.pauseCount, 1);
@@ -139,11 +140,12 @@ describe("armNotificationAnimations", () => {
     cancel();
   });
 
-  it("resumes from the timeout when frames never arrive", () => {
+  it("reports a timeout without resuming", () => {
     const animation = new FakeAnimation();
     const card = new FakeCard([[animation], [animation]]);
     const scheduler = new FakeScheduler();
     let armedCount = 0;
+    let timeoutCount = 0;
 
     armNotificationAnimations({
       card,
@@ -152,12 +154,16 @@ describe("armNotificationAnimations", () => {
       onArmed: () => {
         armedCount += 1;
       },
+      onTimeout: () => {
+        timeoutCount += 1;
+      },
     });
 
     scheduler.runTimeout();
 
-    assert.equal(animation.playCount, 1);
-    assert.equal(armedCount, 1);
+    assert.equal(animation.playCount, 0);
+    assert.equal(armedCount, 0);
+    assert.equal(timeoutCount, 1);
     assert.equal(scheduler.frameCount, 0);
   });
 
@@ -172,6 +178,7 @@ describe("armNotificationAnimations", () => {
       scheduler,
       timeoutMs: 1000,
       onArmed: () => {},
+      onTimeout: () => {},
     });
 
     scheduler.runFrame();
@@ -208,6 +215,7 @@ describe("armNotificationAnimations", () => {
       scheduler,
       timeoutMs: 1000,
       onArmed: () => {},
+      onTimeout: () => {},
     });
 
     scheduler.runFrame();
@@ -230,6 +238,7 @@ describe("armNotificationAnimations", () => {
       onArmed: () => {
         armedCount += 1;
       },
+      onTimeout: () => {},
     });
 
     cancel();

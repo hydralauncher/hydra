@@ -6,7 +6,6 @@ import type {
 
 export const ACHIEVEMENT_NOTIFICATION_HOST_READY_TIMEOUT = 5_000;
 export const ACHIEVEMENT_NOTIFICATION_CONTENT_READY_TIMEOUT = 5_000;
-export const ACHIEVEMENT_NOTIFICATION_SHOW_TIMEOUT = 1_500;
 export const ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT = 8_500;
 
 export type AchievementNotificationRendererEvent =
@@ -21,7 +20,6 @@ export interface AchievementNotificationHost {
   send(channel: string, ...args: unknown[]): void;
   setPosition(position: AchievementCustomNotificationPosition): Promise<void>;
   showInactive(): void;
-  waitForFramesAfterShow(): Promise<void>;
   hide(): void;
   destroy(): void;
   isDestroyed(): boolean;
@@ -58,7 +56,6 @@ type PresenterStage =
   | "ready"
   | "positioning"
   | "preparing"
-  | "showing"
   | "visible";
 
 export class AchievementNotificationPresenter {
@@ -196,7 +193,7 @@ export class AchievementNotificationPresenter {
     const activeRequest = this.activeItem.request;
 
     if (event.type === "content-ready") {
-      void this.handleContentReadyEvent(host, activeRequest.id);
+      this.handleContentReadyEvent(host, activeRequest.id);
       return;
     }
 
@@ -220,36 +217,11 @@ export class AchievementNotificationPresenter {
     this.failHost(event.reason ?? "notification renderer failed");
   }
 
-  private async handleContentReadyEvent(
+  private handleContentReadyEvent(
     host: AchievementNotificationHost,
     requestId: string
-  ): Promise<void> {
+  ): void {
     if (this.stage !== "preparing") return;
-
-    this.clearWatchdog();
-    this.stage = "showing";
-
-    try {
-      host.showInactive();
-      this.startWatchdog(
-        ACHIEVEMENT_NOTIFICATION_SHOW_TIMEOUT,
-        "notification window did not show"
-      );
-      await host.waitForFramesAfterShow();
-    } catch (error) {
-      if (this.host === host) {
-        this.failHost("failed to show notification window", error);
-      }
-      return;
-    }
-
-    if (
-      this.host !== host ||
-      this.activeItem?.request.id !== requestId ||
-      this.stage !== "showing"
-    ) {
-      return;
-    }
 
     this.clearWatchdog();
     this.stage = "visible";
@@ -257,6 +229,7 @@ export class AchievementNotificationPresenter {
     try {
       this.dependencies.log(`Achievement notification started: ${requestId}`);
       host.send("start-achievement-notification", requestId);
+      host.showInactive();
       this.startWatchdog(
         ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT,
         "notification animation timed out"

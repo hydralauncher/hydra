@@ -8,8 +8,6 @@ import { WindowManager } from "./window-manager";
 
 const NOTIFICATION_WINDOW_WIDTH = 360;
 const NOTIFICATION_WINDOW_HEIGHT = 180;
-const FRAME_SCRIPT =
-  "new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined))))";
 
 const getNotificationWindowPosition = (
   position: AchievementCustomNotificationPosition
@@ -54,12 +52,6 @@ class ElectronAchievementNotificationHost {
 
   public showInactive(): void {
     this.window.showInactive();
-  }
-
-  public async waitForFramesAfterShow(): Promise<void> {
-    if (this.window.isDestroyed()) return;
-
-    await this.window.webContents.executeJavaScript(FRAME_SCRIPT);
   }
 
   public hide(): void {

@@ -19,6 +19,7 @@ interface ArmNotificationAnimationsOptions {
   scheduler: ArmingScheduler;
   timeoutMs: number;
   onArmed: () => void;
+  onTimeout: () => void;
 }
 
 export const armNotificationAnimations = ({
@@ -26,6 +27,7 @@ export const armNotificationAnimations = ({
   scheduler,
   timeoutMs,
   onArmed,
+  onTimeout,
 }: ArmNotificationAnimationsOptions): (() => void) => {
   const animations = card?.getAnimations({ subtree: true }) ?? [];
   const paused = new Set<ArmingAnimation>();
@@ -49,7 +51,7 @@ export const armNotificationAnimations = ({
     scheduler.cancelFrame(secondFrame);
   };
 
-  const finish = () => {
+  const finishFrames = () => {
     if (settled || cancelled) return;
     settled = true;
     clearScheduled();
@@ -68,9 +70,14 @@ export const armNotificationAnimations = ({
     onArmed();
   };
 
-  timeout = scheduler.setTimeout(finish, timeoutMs);
+  timeout = scheduler.setTimeout(() => {
+    if (settled || cancelled) return;
+    settled = true;
+    clearScheduled();
+    onTimeout();
+  }, timeoutMs);
   firstFrame = scheduler.requestFrame(() => {
-    secondFrame = scheduler.requestFrame(finish);
+    secondFrame = scheduler.requestFrame(finishFrames);
   });
 
   return () => {
