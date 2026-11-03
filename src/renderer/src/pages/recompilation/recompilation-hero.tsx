@@ -4,7 +4,6 @@ import {
   DownloadIcon,
   FileDirectoryIcon,
   KebabHorizontalIcon,
-  MarkGithubIcon,
   PlayIcon,
   SyncIcon,
   TrashIcon,
@@ -57,8 +56,6 @@ export function RecompilationHero({
     !handlesRom &&
     !rom.state.libraryRomPath &&
     rom.downloadPhase === null;
-
-  const openGitHub = () => window.electron.openExternal(details.repository.url);
 
   const runInstall = async () => {
     const ok = await install.install();
@@ -229,10 +226,6 @@ export function RecompilationHero({
 
         <div className="recompilation-page__hero-actions">
           <div className="recompilation-page__hero-buttons">
-            <Button theme="outline" onClick={openGitHub}>
-              <MarkGithubIcon />
-              GitHub
-            </Button>
             {renderPrimary()}
           </div>
         </div>
