@@ -2,14 +2,22 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   armNotificationAnimations,
+  cancelNotificationAnimations,
   type ArmingAnimation,
   type ArmingScheduler,
 } from "./arm-notification-animations.js";
 
 class FakeAnimation implements ArmingAnimation {
   public currentTime: unknown = null;
+  public cancelCount = 0;
   public pauseCount = 0;
   public playCount = 0;
+
+  constructor(public readonly animationName?: string) {}
+
+  public cancel(): void {
+    this.cancelCount += 1;
+  }
 
   public pause(): void {
     this.pauseCount += 1;
@@ -165,6 +173,17 @@ describe("armNotificationAnimations", () => {
     assert.equal(initial.playCount, 0);
     assert.equal(replacement.playCount, 1);
     assert.equal(replacement.currentTime, 0);
+  });
+
+  it("cancels closing animations except content-out", () => {
+    const closing = new FakeAnimation("content-out");
+    const theme = new FakeAnimation("theme-loop");
+    const card = new FakeCard([[closing, theme]]);
+
+    cancelNotificationAnimations(card);
+
+    assert.equal(closing.cancelCount, 0);
+    assert.equal(theme.cancelCount, 1);
   });
 
   it("does not resume after cancellation", () => {

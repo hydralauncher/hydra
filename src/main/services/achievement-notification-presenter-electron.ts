@@ -2,14 +2,14 @@ import { isStaging } from "@main/constants";
 import type { AchievementCustomNotificationPosition } from "@types";
 import { BrowserWindow, app, screen } from "electron";
 import path from "node:path";
-import { waitForAchievementNotificationFrames } from "./achievement-notification-frame-wait";
 import { AchievementNotificationPresenter } from "./achievement-notification-presenter";
 import { logger } from "./logger";
 import { WindowManager } from "./window-manager";
 
 const NOTIFICATION_WINDOW_WIDTH = 360;
 const NOTIFICATION_WINDOW_HEIGHT = 180;
-const NOTIFICATION_SHOWN_FRAME_TIMEOUT_MS = 1_000;
+const FRAME_SCRIPT =
+  "new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined))))";
 
 const getNotificationWindowPosition = (
   position: AchievementCustomNotificationPosition
@@ -59,10 +59,7 @@ class ElectronAchievementNotificationHost {
   public async waitForFramesAfterShow(): Promise<void> {
     if (this.window.isDestroyed()) return;
 
-    await waitForAchievementNotificationFrames(
-      this.window.webContents,
-      NOTIFICATION_SHOWN_FRAME_TIMEOUT_MS
-    );
+    await this.window.webContents.executeJavaScript(FRAME_SCRIPT);
   }
 
   public hide(): void {

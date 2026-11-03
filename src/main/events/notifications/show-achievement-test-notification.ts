@@ -7,6 +7,7 @@ import { db, levelKeys } from "@main/level";
 import { generateAchievementCustomNotificationTest } from "@shared";
 import type { UserPreferences } from "@types";
 import { t } from "i18next";
+import { publishCombinedNewAchievementNotification } from "../../services/notifications";
 
 const showAchievementTestNotification = async (
   _event: Electron.IpcMainInvokeEvent
@@ -37,7 +38,9 @@ const showAchievementTestNotification = async (
   if (process.platform === "win32") {
     achievementNotificationPresenter.enqueueAchievements(
       position,
-      testAchievements
+      testAchievements,
+      () =>
+        publishCombinedNewAchievementNotification(testAchievements.length, 1)
     );
   }
 };

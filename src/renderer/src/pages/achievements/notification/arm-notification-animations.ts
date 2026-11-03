@@ -1,5 +1,7 @@
 export interface ArmingAnimation {
   currentTime: unknown;
+  animationName?: string;
+  cancel(): void;
   pause(): void;
   play(): void;
 }
@@ -21,6 +23,15 @@ interface ArmNotificationAnimationsOptions {
   timeoutMs: number;
   onArmed: () => void;
 }
+
+export const cancelNotificationAnimations = (card: ArmingCard | null): void => {
+  const animations = card?.getAnimations({ subtree: true }) ?? [];
+
+  for (const animation of animations) {
+    if (animation.animationName === "content-out") continue;
+    animation.cancel();
+  }
+};
 
 export const armNotificationAnimations = ({
   card,

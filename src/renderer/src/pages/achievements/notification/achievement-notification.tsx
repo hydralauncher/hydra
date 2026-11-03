@@ -22,14 +22,17 @@ import HydraIconUrl from "@renderer/assets/icons/hydra.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
-import { armNotificationAnimations } from "./arm-notification-animations";
+import {
+  armNotificationAnimations,
+  cancelNotificationAnimations,
+} from "./arm-notification-animations";
 import { resolveImageUrl } from "./resolve-image-url";
 
 const NOTIFICATION_TIMEOUT = 4_000;
 const CLOSING_TIMEOUT = 450;
 const ARMING_TIMEOUT = 1_000;
 
-type NotificationPhase = "idle" | "prepared" | "playing" | "closing";
+type NotificationPhase = "idle" | "prepared" | "arming" | "playing" | "closing";
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
@@ -50,7 +53,6 @@ export function AchievementNotification() {
   const [achievement, setAchievement] =
     useState<AchievementNotificationInfo | null>(null);
   const [phase, setPhase] = useState<NotificationPhase>("idle");
-  const [isArming, setIsArming] = useState(false);
   const [shadowRootRef, setShadowRootRef] = useState<HTMLElement | null>(null);
 
   const requestRef = useRef<AchievementNotificationRequest | null>(null);
@@ -137,6 +139,17 @@ export function AchievementNotification() {
     return () => unsubscribe();
   }, [loadAndApplyTheme]);
 
+  const reportContentReady = useCallback((requestId: string) => {
+    void window.electron
+      .achievementNotificationContentReady(requestId)
+      .catch((error) => {
+        void window.electron.achievementNotificationFailed(
+          requestId,
+          `Failed to report prepared notification: ${getErrorMessage(error)}`
+        );
+      });
+  }, []);
+
   useEffect(() => {
     const unsubscribe = window.electron.onPrepareAchievementNotification(
       (nextRequest) => {
@@ -146,7 +159,6 @@ export function AchievementNotification() {
         requestRef.current = null;
         setRequest(null);
         setAchievement(null);
-        setIsArming(false);
         setPhase("idle");
 
         const resolveIcon = () => {
@@ -184,6 +196,7 @@ export function AchievementNotification() {
             setRequest(nextRequest);
             setAchievement(nextAchievement);
             setPhase("prepared");
+            reportContentReady(nextRequest.id);
           })
           .catch((error) => {
             if (preparationSequence.current !== sequence) return;
@@ -196,24 +209,7 @@ export function AchievementNotification() {
     );
 
     return () => unsubscribe();
-  }, [clearAnimationTimers, t]);
-
-  const reportContentReady = useCallback((requestId: string) => {
-    void window.electron
-      .achievementNotificationContentReady(requestId)
-      .catch((error) => {
-        void window.electron.achievementNotificationFailed(
-          requestId,
-          `Failed to report prepared notification: ${getErrorMessage(error)}`
-        );
-      });
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!request || !achievement || phase !== "prepared") return;
-
-    reportContentReady(request.id);
-  }, [achievement, phase, request, reportContentReady]);
+  }, [clearAnimationTimers, reportContentReady, t]);
 
   const finishNotification = useCallback((requestId: string) => {
     if (requestRef.current?.id !== requestId) return;
@@ -222,7 +218,6 @@ export function AchievementNotification() {
     requestRef.current = null;
     setRequest(null);
     setAchievement(null);
-    setIsArming(false);
     setPhase("idle");
     void window.electron.achievementNotificationFinished(requestId);
   }, []);
@@ -271,8 +266,7 @@ export function AchievementNotification() {
 
         clearAnimationTimers();
 
-        setIsArming(true);
-        setPhase("playing");
+        setPhase("arming");
       }
     );
 
@@ -280,7 +274,7 @@ export function AchievementNotification() {
   }, [clearAnimationTimers]);
 
   useLayoutEffect(() => {
-    if (phase !== "playing" || !isArming) return;
+    if (phase !== "arming") return;
 
     const card = shadowRootRef?.querySelector(".achievement-notification");
 
@@ -294,13 +288,20 @@ export function AchievementNotification() {
       },
       timeoutMs: ARMING_TIMEOUT,
       onArmed: () => {
-        setIsArming(false);
+        setPhase("playing");
 
         const requestId = requestRef.current?.id;
         if (requestId) beginPlayback(requestId);
       },
     });
-  }, [beginPlayback, isArming, phase, shadowRootRef]);
+  }, [beginPlayback, phase, shadowRootRef]);
+
+  useLayoutEffect(() => {
+    if (phase !== "closing") return;
+
+    const card = shadowRootRef?.querySelector(".achievement-notification");
+    cancelNotificationAnimations(card ?? null);
+  }, [phase, shadowRootRef]);
 
   useEffect(() => {
     return () => {
@@ -315,15 +316,13 @@ export function AchievementNotification() {
         {app} {styles}
       </style>
       <section ref={setShadowRootRef}>
-        {request &&
-          achievement &&
-          (phase === "playing" || phase === "closing") && (
-            <AchievementNotificationItem
-              achievement={achievement}
-              isClosing={phase === "closing"}
-              position={request.position}
-            />
-          )}
+        {request && achievement && phase !== "idle" && phase !== "prepared" && (
+          <AchievementNotificationItem
+            achievement={achievement}
+            isClosing={phase === "closing"}
+            position={request.position}
+          />
+        )}
       </section>
     </root.div>
   );

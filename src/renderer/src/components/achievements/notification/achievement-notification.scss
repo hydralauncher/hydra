@@ -529,9 +529,4 @@ $margin-bottom: 28px;
   &--closing * {
     animation: none;
   }
-
-  &--closing.achievement-notification--closing *::before,
-  &--closing.achievement-notification--closing *::after {
-    animation: none;
-  }
 }

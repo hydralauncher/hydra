@@ -93,7 +93,8 @@ export const publishAchievementUnlockNotifications = ({
   } else if (customNotificationsOnly) {
     achievementNotificationPresenter.enqueueAchievements(
       position,
-      achievementsInfo
+      achievementsInfo,
+      publishOsNotification
     );
   } else {
     void publishOsNotification();
