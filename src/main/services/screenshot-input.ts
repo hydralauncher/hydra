@@ -223,7 +223,9 @@ export class ScreenshotInputService {
       });
       return false;
     }
-    if (!this.settings.listenOutsideGames && !hasTrackedGamesRunning()) {
+    const requiresTrackedGame =
+      source === "deeplink" || !this.settings.listenOutsideGames;
+    if (requiresTrackedGame && !hasTrackedGamesRunning()) {
       logger.debug("Screenshot trigger ignored: no tracked game running", {
         source,
       });
@@ -331,6 +333,7 @@ export class ScreenshotInputService {
     if (gamesRunning === this.gamesRunning) return;
 
     this.gamesRunning = gamesRunning;
+    this.restartAttempts = 0;
     this.reconcile(this.settings);
     if (gamesRunning) void this.refreshFeatureFlag();
   }
@@ -386,16 +389,20 @@ export class ScreenshotInputService {
       return;
     }
 
-    if (
-      !isSameScreenshotHotkey(previous.hotkey, this.settings.hotkey) &&
-      this.nativeStatus
-    ) {
-      this.unregisterPortalShortcut();
+    const hotkeyChanged = !isSameScreenshotHotkey(
+      previous.hotkey,
+      this.settings.hotkey
+    );
+    const gamepadSettingChanged =
+      previous.gamepadEnabled !== this.settings.gamepadEnabled;
+
+    if ((hotkeyChanged || gamepadSettingChanged) && this.nativeStatus) {
+      if (hotkeyChanged) this.unregisterPortalShortcut();
       this.applyListeningStatus(this.nativeStatus);
     }
 
     if (
-      !isSameScreenshotHotkey(previous.hotkey, this.settings.hotkey) ||
+      hotkeyChanged ||
       !isSameScreenshotGamepadCombo(
         previous.gamepadCombo,
         this.settings.gamepadCombo

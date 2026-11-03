@@ -126,15 +126,17 @@ export class AchievementNotificationPresenter {
     notification: AchievementNotificationInfo,
     fallback?: NotificationFallback
   ): void {
+    const variant = notification.variant ?? "screenshot";
     this.queue = this.queue.filter(
-      (item) => item.request.type !== "screenshot"
+      ({ request }) =>
+        request.type !== "screenshot" || request.achievement.variant !== variant
     );
     this.queue.push({
       request: {
         id: this.nextRequestId(),
         type: "screenshot",
         position,
-        achievement: { variant: "screenshot", ...notification },
+        achievement: { ...notification, variant },
       },
       fallback: { callback: fallback, invoked: false },
     });

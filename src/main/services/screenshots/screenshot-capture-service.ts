@@ -33,6 +33,8 @@ import { buildWindowsWindowSourceId } from "../windows-game-window-match";
 import {
   getUnresolvedGameFailure,
   resolveForegroundGame,
+  type ResolvedForegroundGame,
+  type UnresolvedForegroundGame,
 } from "./foreground-game";
 import type { ScreenshotGameTarget } from "./foreground-game-match";
 import { LocalScreenshotStore } from "./local-screenshot-store";
@@ -433,39 +435,34 @@ const createCaptureTimer = (
 
 type SaveCapturedScreenshot = () => Promise<void>;
 
-const grabScreenshot = async (
+const reportUnresolvedGame = async (
   source: ScreenshotTriggerSource,
-  startedAt: number
-): Promise<SaveCapturedScreenshot | null> => {
-  const timer = createCaptureTimer(startedAt, source);
-  const userPreferences = await readUserPreferences();
-  const preferences = resolveScreenshotPreferences(userPreferences);
-  if (!preferences.enabled) {
-    logger.debug("Screenshot hotkey ignored: screenshots disabled", { source });
-    return null;
-  }
-  if (!(await isScreenshotsFeatureEnabled())) {
-    logger.debug("Screenshot hotkey ignored: feature flag off", { source });
-    return null;
-  }
-  timer.mark("checks");
+  unresolved: UnresolvedForegroundGame,
+  toastEnabled: boolean
+) => {
+  ScreenshotTelemetry.record(
+    "capture",
+    "ignored",
+    unresolved.candidates.length ? "no_foreground_game" : "no_running_game"
+  );
 
-  const resolved = await resolveForegroundGame(source);
-  timer.mark("foreground");
-  if (!resolved) {
-    const failure = await getUnresolvedGameFailure(source).catch((error) => {
+  const failure = await getUnresolvedGameFailure(source, unresolved).catch(
+    (error) => {
       logger.error("Failed to explain the unresolved screenshot game", error);
       return null;
-    });
-    if (failure) {
-      ScreenshotTelemetry.record("capture", "ignored", "no_foreground_game");
-      if (preferences.toastEnabled) {
-        showCaptureFailure(failure.kind, failure.gameTitle);
-      }
     }
-    return null;
+  );
+  if (failure && toastEnabled) {
+    showCaptureFailure(failure.kind, failure.gameTitle);
   }
+};
 
+const grabResolvedGame = async (
+  resolved: ResolvedForegroundGame,
+  source: ScreenshotTriggerSource,
+  preferences: ReturnType<typeof resolveScreenshotPreferences>,
+  timer: ReturnType<typeof createCaptureTimer>
+): Promise<SaveCapturedScreenshot | null> => {
   const { target, foreground } = resolved;
   const gameTitle = resolved.game?.title ?? target.title;
   const capturedAt = new Date();
@@ -502,9 +499,6 @@ const grabScreenshot = async (
     return null;
   }
   timer.mark("frame");
-
-  playCaptureSound();
-  timer.mark("sound");
 
   let images: EncodedScreenshotImages;
   try {
@@ -550,10 +544,44 @@ const grabScreenshot = async (
       await discardUnrecordedCapture(filePath, previewPath);
       return;
     }
+    playCaptureSound();
     showCapturedToast(gameTitle, ownerId);
     timer.mark("saved");
     timer.flush(target.gameKey);
   };
+};
+
+const grabScreenshot = async (
+  source: ScreenshotTriggerSource,
+  startedAt: number
+): Promise<SaveCapturedScreenshot | null> => {
+  const timer = createCaptureTimer(startedAt, source);
+  const userPreferences = await readUserPreferences();
+  const preferences = resolveScreenshotPreferences(userPreferences);
+  if (!preferences.enabled) {
+    logger.debug("Screenshot hotkey ignored: screenshots disabled", { source });
+    return null;
+  }
+  if (!(await isScreenshotsFeatureEnabled())) {
+    logger.debug("Screenshot hotkey ignored: feature flag off", { source });
+    return null;
+  }
+  timer.mark("checks");
+
+  const lookup = await resolveForegroundGame(source);
+  timer.mark("foreground");
+  if (lookup.status === "unresolved") {
+    await reportUnresolvedGame(source, lookup, preferences.toastEnabled);
+    return null;
+  }
+
+  try {
+    return await grabResolvedGame(lookup, source, preferences, timer);
+  } catch (error) {
+    logger.error("Screenshot capture failed", error);
+    showCaptureFailure("unexpected_error", null);
+    return null;
+  }
 };
 
 const queueScreenshotSave = (save: SaveCapturedScreenshot) => {
@@ -579,8 +607,7 @@ export const handleScreenshotTrigger = async (
   try {
     save = await grabScreenshot(source, startedAt);
   } catch (error) {
-    logger.error("Screenshot capture failed", error);
-    showCaptureFailure("unexpected_error", null);
+    logger.error("Screenshot trigger failed before capture", error);
   } finally {
     captureInProgress = false;
   }

@@ -28,13 +28,21 @@ import {
 } from "./foreground-game-match";
 import { getWaylandFocus } from "./wayland-focus";
 
-type ForegroundMatch = ResolvedForegroundGame | null;
-
-const WINDOWS_DESKTOP_SHELL_EXECUTABLE = "explorer.exe";
+const WINDOWS_SCREEN_CLIPPING_EXECUTABLES = new Set([
+  "screenclippinghost.exe",
+  "snippingtool.exe",
+]);
 
 export interface ResolvedForegroundGame {
+  status: "resolved";
   target: ScreenshotGameTarget;
   game: Game | null;
+  foreground: ForegroundWindowInfo | null;
+}
+
+export interface UnresolvedForegroundGame {
+  status: "unresolved";
+  candidates: ScreenshotGameCandidate[];
   foreground: ForegroundWindowInfo | null;
 }
 
@@ -285,14 +293,19 @@ const rememberForegroundProcess = (
 
 export const resolveForegroundGame = async (
   source: ScreenshotTriggerSource
-): Promise<ForegroundMatch> => {
+): Promise<ResolvedForegroundGame | UnresolvedForegroundGame> => {
   const candidates = await getScreenshotGameTargets();
+  const foreground = await resolveForegroundWindow();
+  const unresolved: UnresolvedForegroundGame = {
+    status: "unresolved",
+    candidates,
+    foreground,
+  };
+
   if (!candidates.length) {
     logger.debug("Screenshot hotkey ignored: no running game", { source });
-    return null;
+    return unresolved;
   }
-
-  const foreground = await resolveForegroundWindow();
 
   if (
     foreground &&
@@ -305,7 +318,7 @@ export const resolveForegroundGame = async (
       candidates[0].target.gameKey,
       foreground
     );
-    return { ...candidates[0], foreground };
+    return { status: "resolved", ...candidates[0], foreground };
   }
 
   if (foreground) {
@@ -317,7 +330,7 @@ export const resolveForegroundGame = async (
         remembered.target.gameKey,
         foreground
       );
-      return { ...remembered, foreground };
+      return { status: "resolved", ...remembered, foreground };
     }
 
     const target = await findProcessTreeTarget(candidates, foreground);
@@ -328,7 +341,7 @@ export const resolveForegroundGame = async (
           (candidate) => candidate.target.gameKey === target.gameKey
         )?.game ?? null;
       logForegroundMatch(source, "process_tree", target.gameKey, foreground);
-      return { target, game, foreground };
+      return { status: "resolved", target, game, foreground };
     }
 
     if (foreground.processId !== null || !isWaylandSession()) {
@@ -339,7 +352,7 @@ export const resolveForegroundGame = async (
         windowId: foreground.windowId ?? null,
         candidates: describeCandidates(candidates),
       });
-      return null;
+      return unresolved;
     }
   }
 
@@ -355,7 +368,7 @@ export const resolveForegroundGame = async (
       isDeepLink,
       candidates: describeCandidates(candidates),
     });
-    return null;
+    return unresolved;
   }
 
   const soleTarget = findSoleLaunchedTarget(
@@ -369,7 +382,7 @@ export const resolveForegroundGame = async (
       source,
       candidates: describeCandidates(candidates),
     });
-    return null;
+    return unresolved;
   }
   logForegroundMatch(
     source,
@@ -377,16 +390,24 @@ export const resolveForegroundGame = async (
     soleCandidate.target.gameKey,
     null
   );
-  return { ...soleCandidate, foreground: null };
+  return { status: "resolved", ...soleCandidate, foreground: null };
 };
 
-const isWindowsDesktopShell = async (processId: number | null) => {
+const isWindowsSystemExecutable = (exe: string) => {
+  const systemRoot = process.env.SystemRoot?.toLowerCase();
+  return (
+    WINDOWS_SCREEN_CLIPPING_EXECUTABLES.has(
+      path.win32.basename(exe).toLowerCase()
+    ) ||
+    (systemRoot !== undefined &&
+      exe.toLowerCase().startsWith(`${systemRoot}\\`))
+  );
+};
+
+const isWindowsSystemProcess = async (processId: number | null) => {
   const processes = await NativeAddon.listProcesses();
   const exe = processes.find((entry) => entry.pid === processId)?.exe;
-  return (
-    exe != null &&
-    path.win32.basename(exe).toLowerCase() === WINDOWS_DESKTOP_SHELL_EXECUTABLE
-  );
+  return exe != null && isWindowsSystemExecutable(exe);
 };
 
 const isFullscreenAppInForeground = async (
@@ -398,22 +419,19 @@ const isFullscreenAppInForeground = async (
 
   return (
     NativeAddon.isWindowsWindowFullscreen(foreground.windowHandle) &&
-    !(await isWindowsDesktopShell(foreground.processId))
+    !(await isWindowsSystemProcess(foreground.processId))
   );
 };
 
 export const getUnresolvedGameFailure = async (
-  source: ScreenshotTriggerSource
+  source: ScreenshotTriggerSource,
+  { candidates, foreground }: UnresolvedForegroundGame
 ): Promise<ScreenshotFailureToast | null> => {
-  const [candidates, foreground] = await Promise.all([
-    getScreenshotGameTargets(),
-    resolveForegroundWindow(),
-  ]);
-
-  if (await isFullscreenAppInForeground(foreground)) {
-    return { kind: "game_not_recognized", gameTitle: null };
+  if (!candidates.length) {
+    return (await isFullscreenAppInForeground(foreground))
+      ? { kind: "game_not_recognized", gameTitle: null }
+      : null;
   }
-  if (!candidates.length) return null;
 
   const isFocusUnknown = foreground?.processId == null;
   if (isFocusUnknown && source === "deeplink") return null;
