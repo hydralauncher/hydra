@@ -202,13 +202,8 @@ export const startRecompilationSession = async (
   const portKey = levelKeys.game(SHOP, cloudSaveObjectId(ref));
   const baseKey = levelKeys.game(SHOP, ref.objectId);
 
-  await getOrAddBaseGame(ref).catch((error) => {
-    logger.error(
-      "Failed to add the recompilation's game to the library",
-      error
-    );
-  });
-
+  // Registered before anything is awaited, so the port counts as running as
+  // soon as its process starts.
   const session: RecompilationSession = {
     child,
     startedAt: performance.now(),
@@ -219,6 +214,13 @@ export const startRecompilationSession = async (
   // game's key is what shows as "playing" in the app.
   setEmulatorGameRunning(portKey);
   setRecompilationGameRunning(portKey, baseKey, ref.slug);
+
+  await getOrAddBaseGame(ref).catch((error) => {
+    logger.error(
+      "Failed to add the recompilation's game to the library",
+      error
+    );
+  });
 
   void sendPresencePing(baseKey);
   session.heartbeat = setInterval(() => {

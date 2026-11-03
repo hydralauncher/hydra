@@ -393,14 +393,37 @@ export const openRecompilationFolder = async (
   return error ? { ok: false, reason: error } : { ok: true };
 };
 
+/**
+ * Ports between a Play request and their session being tracked. Preparing
+ * the ROM and the cloud save takes a while, and the running check only sees
+ * the port once it has started, so a second request waits for none of it.
+ */
+const launchesInProgress = new Set<string>();
+
 export const playRecompilation = async (
   rawRef: unknown
 ): Promise<RecompilationActionResult> => {
   const ref = parseRef(rawRef);
-  const state = await getRecompilationInstallState(rawRef);
-  if (!ref || !state?.installPath) {
-    return { ok: false, reason: "not_installed" };
+  if (!ref) return { ok: false, reason: "not_installed" };
+  if (launchesInProgress.has(ref.slug)) return { ok: false, reason: "running" };
+  if (installsInProgress.has(ref.slug)) {
+    return { ok: false, reason: "already_installing" };
   }
+
+  launchesInProgress.add(ref.slug);
+  try {
+    return await launchRecompilation(ref, rawRef);
+  } finally {
+    launchesInProgress.delete(ref.slug);
+  }
+};
+
+const launchRecompilation = async (
+  ref: RecompilationRef,
+  rawRef: unknown
+): Promise<RecompilationActionResult> => {
+  const state = await getRecompilationInstallState(rawRef);
+  if (!state?.installPath) return { ok: false, reason: "not_installed" };
   if (!state.executablePath) return { ok: false, reason: "no_executable" };
 
   // The marker lives inside the port folder, so only run a file under it.
