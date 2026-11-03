@@ -3201,7 +3201,7 @@
     "cancel": "Cancelar",
     "capture_failed": "Não foi possível fazer a captura",
     "capture_error_game_not_recognized": "O Hydra não conseguiu reconhecer o jogo em execução",
-    "capture_error_game_not_focused": "Verifique se {{game}} está em primeiro plano e tente novamente",
+    "capture_error_game_not_focused": "O Hydra não detecta {{game}} em primeiro plano. Mude para o jogo e tente novamente",
     "capture_error_window_capture_failed": "O Hydra não conseguiu capturar a janela de {{game}}",
     "capture_error_blank_frame": "{{game}} retornou uma imagem em branco. Tente o modo sem bordas",
     "capture_error_disk_full": "Seu disco está cheio. Libere espaço e tente novamente",

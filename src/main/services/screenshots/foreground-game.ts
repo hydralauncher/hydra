@@ -32,6 +32,8 @@ const WINDOWS_SCREEN_CLIPPING_EXECUTABLES = new Set([
   "screenclippinghost.exe",
   "snippingtool.exe",
 ]);
+const WINDOWS_DESKTOP_WINDOW_CLASSES = new Set(["Progman", "WorkerW"]);
+const WINDOWS_STORE_APP_WINDOW_CLASS = "ApplicationFrameWindow";
 
 export interface ResolvedForegroundGame {
   status: "resolved";
@@ -404,13 +406,20 @@ const isWindowsSystemExecutable = (exe: string) => {
   );
 };
 
-const isWindowsSystemProcess = async (processId: number | null) => {
-  const processes = await NativeAddon.listProcesses();
-  const exe = processes.find((entry) => entry.pid === processId)?.exe;
-  return exe != null && isWindowsSystemExecutable(exe);
+const isWindowsSystemWindow = (windowHandle: string) => {
+  const owner = NativeAddon.getWindowsWindowOwner(windowHandle);
+  if (!owner || owner.className === WINDOWS_STORE_APP_WINDOW_CLASS) {
+    return false;
+  }
+
+  return (
+    WINDOWS_DESKTOP_WINDOW_CLASSES.has(owner.className) ||
+    (owner.executablePath != null &&
+      isWindowsSystemExecutable(owner.executablePath))
+  );
 };
 
-const isFullscreenAppInForeground = async (
+const isFullscreenAppInForeground = (
   foreground: ForegroundWindowInfo | null
 ) => {
   if (!foreground?.windowHandle || foreground.processId === process.pid) {
@@ -419,28 +428,23 @@ const isFullscreenAppInForeground = async (
 
   return (
     NativeAddon.isWindowsWindowFullscreen(foreground.windowHandle) &&
-    !(await isWindowsSystemProcess(foreground.processId))
+    !isWindowsSystemWindow(foreground.windowHandle)
   );
 };
 
-export const getUnresolvedGameFailure = async (
+export const getUnresolvedGameFailure = (
   source: ScreenshotTriggerSource,
   { candidates, foreground }: UnresolvedForegroundGame
-): Promise<ScreenshotFailureToast | null> => {
-  if (!candidates.length) {
-    return (await isFullscreenAppInForeground(foreground))
-      ? { kind: "game_not_recognized", gameTitle: null }
-      : null;
-  }
-
+): ScreenshotFailureToast | null => {
   const isFocusUnknown = foreground?.processId == null;
-  if (isFocusUnknown && source === "deeplink") return null;
+  if (candidates.length && isFocusUnknown && source === "deeplink") return null;
 
-  const isGameBehindAnotherWindow =
-    !isFocusUnknown || BrowserWindow.getFocusedWindow() !== null;
-  if (candidates.length === 1 && isGameBehindAnotherWindow) {
+  if (candidates.length === 1) {
     return { kind: "game_not_focused", gameTitle: candidates[0].game.title };
   }
 
-  return { kind: "game_not_recognized", gameTitle: null };
+  const isUnidentifiedPress = candidates.length > 1 && isFocusUnknown;
+  return isUnidentifiedPress || isFullscreenAppInForeground(foreground)
+    ? { kind: "game_not_recognized", gameTitle: null }
+    : null;
 };

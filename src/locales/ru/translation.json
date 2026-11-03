@@ -2789,7 +2789,7 @@
     "cancel": "Отмена",
     "capture_failed": "Не удалось сделать скриншот",
     "capture_error_game_not_recognized": "Hydra не удалось распознать запущенную игру",
-    "capture_error_game_not_focused": "Убедитесь, что {{game}} на переднем плане, и повторите попытку",
+    "capture_error_game_not_focused": "Hydra не видит {{game}} на переднем плане. Переключитесь на игру и попробуйте снова",
     "capture_error_window_capture_failed": "Hydra не удалось захватить окно {{game}}",
     "capture_error_blank_frame": "Пустое изображение из {{game}}. Попробуйте режим без рамки",
     "capture_error_disk_full": "Диск заполнен. Освободите место и повторите попытку",

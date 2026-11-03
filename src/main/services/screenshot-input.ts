@@ -383,7 +383,11 @@ export class ScreenshotInputService {
       return;
     }
 
-    if (this.gamepadListening !== this.getListeningSettings().gamepadEnabled) {
+    const listeningSettings = this.getListeningSettings();
+    if (
+      this.gamepadListening !== listeningSettings.gamepadEnabled &&
+      !this.updateGamepadListening(listeningSettings)
+    ) {
       this.stopListening();
       this.startListening();
       return;
@@ -416,6 +420,25 @@ export class ScreenshotInputService {
         logger.error("Failed to update screenshot input binding", error);
       }
     }
+  }
+
+  private static updateGamepadListening(settings: ScreenshotInputSettings) {
+    if (!this.nativeStatus) return false;
+
+    const gamepadStatus = NativeAddon.updateScreenshotInputGamepad(
+      toScreenshotInputNativeConfig(settings)
+    );
+    if (!gamepadStatus) return false;
+
+    this.gamepadListening = settings.gamepadEnabled;
+    this.nativeStatus = { ...this.nativeStatus, ...gamepadStatus };
+    const status = this.applyListeningStatus(this.nativeStatus);
+    logger.info("Screenshot gamepad input changed", {
+      ...status,
+      gamepadListening: this.gamepadListening,
+      gamepadError: gamepadStatus.gamepadError ?? null,
+    });
+    return true;
   }
 
   private static startListening() {

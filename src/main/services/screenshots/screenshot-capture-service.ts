@@ -14,6 +14,7 @@ import type {
 } from "@types";
 
 import { getSignedInScreenshotOwnerId } from "./local-screenshot-owner";
+import { hasTrackedGamesRunning } from "../game-running-state";
 import { logger } from "../logger";
 import { getSourceClientAreaCrop } from "../windows-window-bounds";
 import {
@@ -61,6 +62,7 @@ import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { readUserPreferences } from "./screenshot-user-preferences";
 import { CaptureCallTimeoutError } from "./window-bound-promise";
 
+const DISK_FULL_ERROR_CODES = new Set(["ENOSPC", "EDQUOT"]);
 const CAPTURE_JPEG_QUALITY = 0.95;
 const FALLBACK_JPEG_QUALITY = 95;
 const FALLBACK_PREVIEW_JPEG_QUALITY = 85;
@@ -269,10 +271,16 @@ const getFrameFailureKind = (error: unknown): ScreenshotFailureKind =>
     ? "blank_frame"
     : "window_capture_failed";
 
+const isDiskFullError = (error: unknown) =>
+  DISK_FULL_ERROR_CODES.has(
+    (error as NodeJS.ErrnoException | null)?.code ?? ""
+  );
+
 const getWriteFailureKind = (error: unknown): ScreenshotFailureKind =>
-  (error as NodeJS.ErrnoException | null)?.code === "ENOSPC"
-    ? "disk_full"
-    : "file_write_failed";
+  isDiskFullError(error) ? "disk_full" : "file_write_failed";
+
+const getStoreFailureKind = (error: unknown): ScreenshotFailureKind =>
+  isDiskFullError(error) ? "disk_full" : "save_failed";
 
 const playCaptureSound = () => {
   void ScreenshotFeedback.playCaptureSound().catch((error) => {
@@ -435,23 +443,15 @@ const createCaptureTimer = (
 
 type SaveCapturedScreenshot = () => Promise<void>;
 
-const reportUnresolvedGame = async (
+const reportUnresolvedGame = (
   source: ScreenshotTriggerSource,
   unresolved: UnresolvedForegroundGame,
   toastEnabled: boolean
 ) => {
-  ScreenshotTelemetry.record(
-    "capture",
-    "ignored",
-    unresolved.candidates.length ? "no_foreground_game" : "no_running_game"
-  );
-
-  const failure = await getUnresolvedGameFailure(source, unresolved).catch(
-    (error) => {
-      logger.error("Failed to explain the unresolved screenshot game", error);
-      return null;
-    }
-  );
+  const failure = getUnresolvedGameFailure(source, unresolved);
+  if (unresolved.candidates.length || failure) {
+    ScreenshotTelemetry.record("capture", "ignored", "no_foreground_game");
+  }
   if (failure && toastEnabled) {
     showCaptureFailure(failure.kind, failure.gameTitle);
   }
@@ -500,6 +500,9 @@ const grabResolvedGame = async (
   }
   timer.mark("frame");
 
+  playCaptureSound();
+  timer.mark("sound");
+
   let images: EncodedScreenshotImages;
   try {
     images = await frame.encode(CAPTURE_JPEG_QUALITY);
@@ -540,11 +543,10 @@ const grabResolvedGame = async (
         previewPath,
       });
     } catch (error) {
-      failCapture("store", error, "save_failed");
+      failCapture("store", error, getStoreFailureKind(error));
       await discardUnrecordedCapture(filePath, previewPath);
       return;
     }
-    playCaptureSound();
     showCapturedToast(gameTitle, ownerId);
     timer.mark("saved");
     timer.flush(target.gameKey);
@@ -568,10 +570,19 @@ const grabScreenshot = async (
   }
   timer.mark("checks");
 
-  const lookup = await resolveForegroundGame(source);
+  let lookup: Awaited<ReturnType<typeof resolveForegroundGame>>;
+  try {
+    lookup = await resolveForegroundGame(source);
+  } catch (error) {
+    logger.error("Failed to resolve the screenshot game", error);
+    if (preferences.toastEnabled && hasTrackedGamesRunning()) {
+      showCaptureFailure("unexpected_error", null);
+    }
+    return null;
+  }
   timer.mark("foreground");
   if (lookup.status === "unresolved") {
-    await reportUnresolvedGame(source, lookup, preferences.toastEnabled);
+    reportUnresolvedGame(source, lookup, preferences.toastEnabled);
     return null;
   }
 

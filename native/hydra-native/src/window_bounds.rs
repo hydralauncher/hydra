@@ -84,6 +84,60 @@ pub fn is_window_fullscreen(_window_handle: &str) -> bool {
     false
 }
 
+pub struct WindowOwner {
+    pub class_name: String,
+    pub executable_path: Option<String>,
+}
+
+#[cfg(windows)]
+fn get_process_image_path(process_id: u32) -> Option<String> {
+    use windows_sys::Win32::Foundation::CloseHandle;
+    use windows_sys::Win32::System::Threading::{
+        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+    };
+
+    let mut path = [0u16; 32_768];
+    let mut length = path.len() as u32;
+
+    unsafe {
+        let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, process_id);
+        if process.is_null() {
+            return None;
+        }
+        let succeeded =
+            QueryFullProcessImageNameW(process, PROCESS_NAME_WIN32, path.as_mut_ptr(), &mut length);
+        CloseHandle(process);
+        (succeeded != 0).then(|| String::from_utf16_lossy(&path[..length as usize]))
+    }
+}
+
+#[cfg(windows)]
+pub fn get_window_owner(window_handle: &str) -> Option<WindowOwner> {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{GetClassNameW, GetWindowThreadProcessId};
+
+    let window = parse_window_handle(window_handle)?;
+    let mut class_name = [0u16; 256];
+    let mut process_id = 0u32;
+
+    unsafe {
+        let length = GetClassNameW(window, class_name.as_mut_ptr(), class_name.len() as i32);
+        if length <= 0 || GetWindowThreadProcessId(window, &mut process_id) == 0 {
+            return None;
+        }
+
+        Some(WindowOwner {
+            class_name: String::from_utf16_lossy(&class_name[..length as usize]),
+            executable_path: get_process_image_path(process_id),
+        })
+    }
+}
+
+#[cfg(not(windows))]
+pub fn get_window_owner(_window_handle: &str) -> Option<WindowOwner> {
+    None
+}
+
 #[cfg(windows)]
 pub fn get_window_bounds(window_handle: &str) -> Option<WindowBounds> {
     use windows_sys::Win32::Foundation::{POINT, RECT};

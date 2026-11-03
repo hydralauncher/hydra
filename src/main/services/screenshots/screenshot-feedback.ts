@@ -157,8 +157,11 @@ export class ScreenshotFeedback {
     return this.playSound(captureSoundUrl);
   }
 
-  public static async playFailureSound() {
-    await this.playSound(failureSoundUrl);
+  public static playFailureSound() {
+    return this.playSound(failureSoundUrl);
+  }
+
+  private static scheduleIdleRelease() {
     if (hasTrackedGamesRunning()) return;
 
     clearIdleSoundWindowTimer();
@@ -189,6 +192,7 @@ export class ScreenshotFeedback {
       .catch((error) => {
         logger.error("Failed to play the screenshot sound", error);
       });
+    this.scheduleIdleRelease();
   }
 
   public static async showToast(toast: ScreenshotFeedbackToast) {

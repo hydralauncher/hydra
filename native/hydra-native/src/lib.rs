@@ -124,6 +124,20 @@ pub fn is_windows_window_fullscreen(window_handle: String) -> bool {
     window_bounds::is_window_fullscreen(&window_handle)
 }
 
+#[napi(object)]
+pub struct NativeWindowOwner {
+    pub class_name: String,
+    pub executable_path: Option<String>,
+}
+
+#[napi]
+pub fn get_windows_window_owner(window_handle: String) -> Option<NativeWindowOwner> {
+    window_bounds::get_window_owner(&window_handle).map(|owner| NativeWindowOwner {
+        class_name: owner.class_name,
+        executable_path: owner.executable_path,
+    })
+}
+
 #[napi]
 pub fn get_windows_window_bounds(window_handle: String) -> Option<NativeWindowBounds> {
     window_bounds::get_window_bounds(&window_handle).map(|bounds| NativeWindowBounds {

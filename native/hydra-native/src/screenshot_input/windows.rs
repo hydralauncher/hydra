@@ -67,9 +67,32 @@ struct RawInputThread {
     control: Arc<RawInputControl>,
 }
 
+struct XInputThread {
+    handle: JoinHandle<()>,
+    cancelled: Arc<AtomicBool>,
+}
+
+impl XInputThread {
+    fn spawn(context: &Arc<Context>) -> std::io::Result<Self> {
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let thread_cancelled = cancelled.clone();
+        let thread_context = context.clone();
+        let handle = thread::Builder::new()
+            .name("hydra-screenshot-xinput".into())
+            .spawn(move || run_xinput(&thread_context, &thread_cancelled))?;
+        Ok(Self { handle, cancelled })
+    }
+
+    fn stop(self) {
+        self.cancelled.store(true, Ordering::SeqCst);
+        self.handle.thread().unpark();
+        let _ = self.handle.join();
+    }
+}
+
 pub struct Runtime {
     keyboard: Option<RawInputThread>,
-    gamepad: Option<JoinHandle<()>>,
+    gamepad: Option<XInputThread>,
 }
 
 impl Runtime {
@@ -79,9 +102,28 @@ impl Runtime {
             let _ = keyboard.handle.join();
         }
         if let Some(gamepad) = self.gamepad {
-            gamepad.thread().unpark();
-            let _ = gamepad.join();
+            gamepad.stop();
         }
+    }
+
+    pub fn set_gamepad(&mut self, context: &Arc<Context>, enabled: bool) -> Option<BackendResult> {
+        if !enabled {
+            if let Some(gamepad) = self.gamepad.take() {
+                gamepad.stop();
+            }
+            return Some(BackendResult::disabled());
+        }
+        if self.gamepad.is_some() {
+            return Some(BackendResult::active(Backend::XInput));
+        }
+
+        Some(match XInputThread::spawn(context) {
+            Ok(gamepad) => {
+                self.gamepad = Some(gamepad);
+                BackendResult::active(Backend::XInput)
+            }
+            Err(_) => BackendResult::unavailable("thread-failed"),
+        })
     }
 }
 
@@ -134,12 +176,8 @@ pub fn start(context: Arc<Context>, options: StartOptions) -> (Runtime, Platform
     }
 
     if options.gamepad {
-        let thread_context = context.clone();
-        match thread::Builder::new()
-            .name("hydra-screenshot-xinput".into())
-            .spawn(move || run_xinput(&thread_context))
-        {
-            Ok(handle) => runtime.gamepad = Some(handle),
+        match XInputThread::spawn(&context) {
+            Ok(gamepad) => runtime.gamepad = Some(gamepad),
             Err(_) => status.gamepad = BackendResult::unavailable("thread-failed"),
         }
     }
@@ -400,11 +438,11 @@ fn handle_raw_input(context: &Context, state: &mut KeyboardState, lparam: LPARAM
     }
 }
 
-fn run_xinput(context: &Context) {
+fn run_xinput(context: &Context, cancelled: &AtomicBool) {
     let mut combos: [ComboMatcher; XINPUT_USER_COUNT] = Default::default();
     let mut next_probe: [Option<Instant>; XINPUT_USER_COUNT] = [None; XINPUT_USER_COUNT];
 
-    while !context.is_stopped() {
+    while !context.is_stopped() && !cancelled.load(Ordering::SeqCst) {
         let combo = context.binding().gamepad_mask;
         let now = Instant::now();
         for user in 0..XINPUT_USER_COUNT {

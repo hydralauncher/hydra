@@ -72,6 +72,14 @@ impl Runtime {
             let _ = thread.join();
         }
     }
+
+    pub fn set_gamepad(
+        &mut self,
+        _context: &Arc<Context>,
+        _enabled: bool,
+    ) -> Option<BackendResult> {
+        None
+    }
 }
 
 fn is_wayland_session() -> bool {

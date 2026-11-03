@@ -268,6 +268,30 @@ pub fn update_screenshot_input_binding(config: ScreenshotInputConfig) -> bool {
     true
 }
 
+#[napi(object)]
+pub struct ScreenshotInputGamepadStatus {
+    pub gamepad_backend: String,
+    pub gamepad_error: Option<String>,
+}
+
+#[napi]
+pub fn update_screenshot_input_gamepad(
+    config: ScreenshotInputConfig,
+) -> Option<ScreenshotInputGamepadStatus> {
+    let mut guard = runtime().lock().ok()?;
+    let current = guard.as_mut()?;
+    let parsed = parse_config(&config);
+    current.context.set_binding(parsed.binding);
+    let gamepad = current
+        .platform
+        .set_gamepad(&current.context, parsed.options.gamepad)?;
+
+    Some(ScreenshotInputGamepadStatus {
+        gamepad_backend: gamepad.backend.as_str().to_string(),
+        gamepad_error: parsed.gamepad_error.or(gamepad.error).map(str::to_string),
+    })
+}
+
 #[napi]
 pub fn stop_screenshot_input() {
     let previous = runtime().lock().ok().and_then(|mut guard| guard.take());

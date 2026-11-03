@@ -2711,7 +2711,7 @@
     "cancel": "Cancelar",
     "capture_failed": "No se pudo hacer la captura",
     "capture_error_game_not_recognized": "Hydra no pudo reconocer el juego que estás ejecutando",
-    "capture_error_game_not_focused": "Asegúrate de que {{game}} esté en primer plano e inténtalo de nuevo",
+    "capture_error_game_not_focused": "Hydra no detecta {{game}} en primer plano. Cambia al juego e inténtalo de nuevo",
     "capture_error_window_capture_failed": "Hydra no pudo capturar la ventana de {{game}}",
     "capture_error_blank_frame": "{{game}} devolvió una imagen en blanco. Prueba el modo sin bordes",
     "capture_error_disk_full": "Tu disco está lleno. Libera espacio e inténtalo de nuevo",
