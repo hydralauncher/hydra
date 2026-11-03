@@ -22,6 +22,9 @@ import { readUserPreferences } from "./screenshot-user-preferences";
 const DEFAULT_CAPTURE_SOUND_VOLUME = 0.15;
 const DEFAULT_TOAST_POSITION = "top-left";
 const IDLE_SOUND_WINDOW_RELEASE_MS = 30_000;
+const ALWAYS_SHOWN_TOASTS = new Set<ScreenshotFeedbackToast["kind"]>([
+  "share_pending",
+]);
 const FAILURE_DESCRIPTION_KEYS: Record<ScreenshotFailureKind, string> = {
   game_not_recognized: "capture_error_game_not_recognized",
   game_not_focused: "capture_error_game_not_focused",
@@ -200,7 +203,9 @@ export class ScreenshotFeedback {
   public static async showToast(toast: ScreenshotFeedbackToast) {
     const userPreferences = await readUserPreferences();
     const preferences = resolveScreenshotPreferences(userPreferences);
-    if (!preferences.toastEnabled) return;
+    if (!ALWAYS_SHOWN_TOASTS.has(toast.kind) && !preferences.toastEnabled) {
+      return;
+    }
 
     presentToast(
       userPreferences,
