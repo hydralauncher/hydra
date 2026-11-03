@@ -25,6 +25,7 @@ import {
 } from "./achievement-sync-coordinator";
 import { isAxiosError } from "axios";
 import { getRetryAfterMs } from "./retry-after";
+import { notifyBigPictureAchievementUnlocked } from "../notifications";
 
 export type PendingAchievementSync = {
   revision: string;
@@ -38,6 +39,7 @@ export type PendingAchievementSync = {
   nextAttemptAt: number;
   serverErrors?: number;
   terminal?: boolean;
+  notifyBigPicture?: boolean;
 };
 
 const pending = db.sublevel<string, PendingAchievementSync>(
@@ -129,6 +131,8 @@ export class AchievementSyncWorker {
         retry?.nextAttemptAt ?? 0,
         (this.dispatchedAt.get(key) ?? 0) + ACHIEVEMENT_SYNC_COALESCE_WINDOW_MS
       ),
+      notifyBigPicture:
+        previous?.notifyBigPicture === true || item.notifyBigPicture === true,
     });
   }
 
@@ -248,6 +252,14 @@ export class AchievementSyncWorker {
         },
         current
       );
+
+      if (item.notifyBigPicture) {
+        const latest = await pending.get(key).catch(() => null);
+        if (!latest || latest.revision === item.revision) {
+          notifyBigPictureAchievementUnlocked();
+        }
+      }
+
       return true;
     } catch (error) {
       if (error instanceof AchievementSyncCancelledError || !current())

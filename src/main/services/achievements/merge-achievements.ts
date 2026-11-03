@@ -23,7 +23,6 @@ import { AchievementWatcherManager } from "./achievement-watcher-manager";
 import { AchievementMemoryStore } from "./achievement-memory-store";
 import { UnlockedAchievementsCache } from "./unlocked-achievements-cache";
 import { publishAchievementUnlockNotifications } from "./achievement-unlock-notifications";
-import { notifyBigPictureAchievementUnlocked } from "../notifications";
 import { ScreenshotService } from "../screenshot";
 import { PendingAchievementSouvenirStore } from "./pending-achievement-souvenir-store";
 import { PendingGroupedSouvenirStore } from "./grouped-souvenir-store";
@@ -284,11 +283,8 @@ const mergeAchievementsLocally = async (
         shop: game.shop,
         objectId: game.objectId,
         achievements: achievementsToSync,
+        notifyBigPicture: publishNotification && newAchievements.length > 0,
       });
-  }
-
-  if (publishNotification) {
-    notifyBigPictureAchievementUnlocked();
   }
 
   if (pendingGroupedSouvenir) void groupedSouvenirWorker.trigger();
