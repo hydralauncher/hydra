@@ -22,10 +22,12 @@ import HydraIconUrl from "@renderer/assets/icons/hydra.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
+import { armNotificationAnimations } from "./arm-notification-animations";
 import { resolveImageUrl } from "./resolve-image-url";
 
 const NOTIFICATION_TIMEOUT = 4_000;
 const CLOSING_TIMEOUT = 450;
+const ARMING_TIMEOUT = 1_000;
 
 type NotificationPhase = "idle" | "prepared" | "playing" | "closing";
 
@@ -234,6 +236,33 @@ export function AchievementNotification() {
     [finishNotification]
   );
 
+  const beginPlayback = useCallback(
+    (requestId: string) => {
+      const request = requestRef.current;
+      if (!request || request.id !== requestId) return;
+
+      if (
+        request.type !== "screenshot" &&
+        playedSoundBatch.current !== request.batchId
+      ) {
+        const batchId = request.batchId;
+        playedSoundBatch.current = batchId;
+        void playAudio().then((played) => {
+          if (!played && playedSoundBatch.current === batchId) {
+            playedSoundBatch.current = null;
+          }
+        });
+      }
+
+      displayTimer.current = window.setTimeout(() => {
+        if (requestRef.current?.id !== requestId) return;
+        setPhase("closing");
+        scheduleClosing(requestId);
+      }, NOTIFICATION_TIMEOUT);
+    },
+    [playAudio, scheduleClosing]
+  );
+
   useEffect(() => {
     const unsubscribe = window.electron.onStartAchievementNotification(
       (requestId) => {
@@ -244,57 +273,34 @@ export function AchievementNotification() {
 
         setIsArming(true);
         setPhase("playing");
-
-        if (
-          request.type !== "screenshot" &&
-          playedSoundBatch.current !== request.batchId
-        ) {
-          const batchId = request.batchId;
-          playedSoundBatch.current = batchId;
-          void playAudio().then((played) => {
-            if (!played && playedSoundBatch.current === batchId) {
-              playedSoundBatch.current = null;
-            }
-          });
-        }
-
-        displayTimer.current = window.setTimeout(() => {
-          if (requestRef.current?.id !== requestId) return;
-          setPhase("closing");
-          scheduleClosing(requestId);
-        }, NOTIFICATION_TIMEOUT);
       }
     );
 
     return () => unsubscribe();
-  }, [clearAnimationTimers, playAudio, scheduleClosing]);
+  }, [clearAnimationTimers]);
 
   useLayoutEffect(() => {
     if (phase !== "playing" || !isArming) return;
 
     const card = shadowRootRef?.querySelector(".achievement-notification");
-    const animations = card?.getAnimations({ subtree: true }) ?? [];
 
-    for (const animation of animations) {
-      animation.pause();
-      animation.currentTime = 0;
-    }
-
-    let firstFrame = 0;
-    let secondFrame = 0;
-
-    firstFrame = window.requestAnimationFrame(() => {
-      secondFrame = window.requestAnimationFrame(() => {
-        for (const animation of animations) animation.play();
+    return armNotificationAnimations({
+      card: card ?? null,
+      scheduler: {
+        requestFrame: (callback) => window.requestAnimationFrame(callback),
+        cancelFrame: (handle) => window.cancelAnimationFrame(handle),
+        setTimeout: (callback, delay) => window.setTimeout(callback, delay),
+        clearTimeout: (handle) => window.clearTimeout(handle),
+      },
+      timeoutMs: ARMING_TIMEOUT,
+      onArmed: () => {
         setIsArming(false);
-      });
-    });
 
-    return () => {
-      window.cancelAnimationFrame(firstFrame);
-      window.cancelAnimationFrame(secondFrame);
-    };
-  }, [isArming, phase, shadowRootRef]);
+        const requestId = requestRef.current?.id;
+        if (requestId) beginPlayback(requestId);
+      },
+    });
+  }, [beginPlayback, isArming, phase, shadowRootRef]);
 
   useEffect(() => {
     return () => {

@@ -39,21 +39,20 @@ describe("waitForAchievementNotificationFrames", () => {
     assert.equal(calls, 1);
   });
 
-  it("resolves after the timeout when the renderer never reports a frame", async () => {
-    const startedAt = Date.now();
-
-    await settleWithinDeadline(
-      waitForAchievementNotificationFrames(
-        {
-          executeJavaScript() {
-            return new Promise(() => {});
+  it("rejects after the timeout when the renderer never reports a frame", async () => {
+    await assert.rejects(
+      settleWithinDeadline(
+        waitForAchievementNotificationFrames(
+          {
+            executeJavaScript() {
+              return new Promise(() => {});
+            },
           },
-        },
-        FRAME_TIMEOUT
-      )
+          FRAME_TIMEOUT
+        )
+      ),
+      /notification window did not show/
     );
-
-    assert.ok(Date.now() - startedAt >= FRAME_TIMEOUT / 2);
   });
 
   it("propagates renderer errors", async () => {

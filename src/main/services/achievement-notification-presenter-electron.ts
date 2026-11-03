@@ -9,7 +9,7 @@ import { WindowManager } from "./window-manager";
 
 const NOTIFICATION_WINDOW_WIDTH = 360;
 const NOTIFICATION_WINDOW_HEIGHT = 180;
-const NOTIFICATION_SHOWN_FRAME_TIMEOUT_MS = 250;
+const NOTIFICATION_SHOWN_FRAME_TIMEOUT_MS = 1_000;
 
 const getNotificationWindowPosition = (
   position: AchievementCustomNotificationPosition

@@ -14,8 +14,11 @@ export async function waitForAchievementNotificationFrames(
   try {
     await Promise.race([
       webContents.executeJavaScript(FRAME_SCRIPT),
-      new Promise<void>((resolve) => {
-        timeout = setTimeout(resolve, timeoutMs);
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error("notification window did not show")),
+          timeoutMs
+        );
         timeout.unref?.();
       }),
     ]);
