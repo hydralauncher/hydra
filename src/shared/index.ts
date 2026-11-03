@@ -146,7 +146,7 @@ export const formatBytesToMbps = (bytesPerSecond: number): string => {
 };
 
 export const pipe =
-  <T>(...fns: ((arg: T) => any)[]) =>
+  <T>(...fns: ((arg: T) => T)[]) =>
   (arg: T) =>
     fns.reduce((prev, fn) => fn(prev), arg);
 
@@ -383,7 +383,7 @@ export const formatDate = (
 };
 
 export const generateAchievementCustomNotificationTest = (
-  t: any,
+  t: (key: string, options?: Record<string, unknown>) => string,
   language?: string,
   options: { isHidden?: boolean; isRare?: boolean; isPlatinum?: boolean } = {}
 ): AchievementNotificationInfo => {

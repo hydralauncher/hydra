@@ -207,7 +207,6 @@ export function useBigPictureDownloadsPageData() {
   const { t } = useTranslation("big_picture");
   const [userPreferences, setUserPreferences] =
     useState<UserPreferences | null>(null);
-  const [renderTick, setRenderTick] = useState(0);
   const lastPacket = useBigPictureDownloadsStore((state) => state.lastPacket);
   const seedingStatuses = useBigPictureDownloadsStore(
     (state) => state.seedingStatuses
@@ -243,23 +242,6 @@ export function useBigPictureDownloadsPageData() {
         setUserPreferences(null);
       });
   }, []);
-
-  useEffect(() => {
-    const hasSeedingActivity = seedingStatuses.some(
-      (status) => status.status === "seeding" && status.uploadSpeed > 0
-    );
-    const shouldTick = Boolean(lastPacket || hasSeedingActivity);
-
-    if (!shouldTick) return;
-
-    const interval = globalThis.window.setInterval(() => {
-      setRenderTick((current) => current + 1);
-    }, 1000);
-
-    return () => {
-      globalThis.window.clearInterval(interval);
-    };
-  }, [lastPacket, seedingStatuses]);
 
   const downloadsById = useMemo(() => {
     return new Map(
@@ -408,7 +390,6 @@ export function useBigPictureDownloadsPageData() {
     extractionProgressByGameId,
     formatDistance,
     lastPacket,
-    renderTick,
     userPreferences,
     t,
   ]);
@@ -555,14 +536,7 @@ export function useBigPictureDownloadsPageData() {
         game,
       };
     });
-  }, [
-    completedGames,
-    formatTime,
-    renderTick,
-    seedingStatuses,
-    t,
-    userPreferences,
-  ]);
+  }, [completedGames, formatTime, seedingStatuses, t, userPreferences]);
 
   const hasDownloads = Boolean(
     activeDownload ||
@@ -665,7 +639,7 @@ export function useBigPictureDownloadsPageData() {
         setLastPacket(null);
       }
     },
-    [lastPacket?.gameId]
+    [lastPacket?.gameId, setLastPacket]
   );
 
   const getPauseWarning = useCallback(async (game: LibraryGame) => {
@@ -748,7 +722,7 @@ export function useBigPictureDownloadsPageData() {
         { keepEpicUpdateFiles: true }
       );
     },
-    [lastPacket?.gameId]
+    [lastPacket?.gameId, setLastPacket]
   );
 
   const removeDownload = useCallback(

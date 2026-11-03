@@ -456,7 +456,11 @@ describe("externally deleted library paths", () => {
     // installation without an executable, so the whole check is skipped.
     const f = fixture(
       "none",
-      { epicInstallation: { epicAppName: "test" } as any },
+      {
+        epicInstallation: {
+          epicAppName: "test",
+        } as unknown as Game["epicInstallation"],
+      },
       { deleted: [executablePath] }
     );
     const [game] = await f.read();

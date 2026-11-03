@@ -125,8 +125,7 @@ const resolveExecutable = async (key: string, game: Game) => {
   // Fetch the latest record to avoid reporting a stale path if the user just
   // selected a new executable while we were checking.
   const latestGame = await gamesSublevel.get(key).catch(() => undefined);
-  const effectiveExecutablePath =
-    latestGame?.executablePath ?? executablePath;
+  const effectiveExecutablePath = latestGame?.executablePath ?? executablePath;
 
   // Re-evaluate against the latest path: the user may have already pointed the
   // game at a new executable. Nothing is written to the database here.

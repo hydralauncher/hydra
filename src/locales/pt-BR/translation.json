@@ -2574,6 +2574,7 @@
     "category_classics": "Clássicos",
     "installed": "Pronto",
     "installed_tooltip": "Executável definido, pronto para jogar",
+    "not_installed_tooltip": "Executável não encontrado. Localize-o para jogar.",
     "importing_classics_title": "Importando seus clássicos",
     "importing_classics_description": "Estamos escaneando suas pastas de ROM para trazer seus clássicos de volta. Isso pode levar um momento.",
     "all_consoles": "Todos os Consoles",

@@ -792,14 +792,17 @@ export function DownloadGroup({
     }
   }, [library, title, t, extractDominantColor]);
 
-  const isGameSeeding = (game: LibraryGame) => {
-    const entry = seedingStatus.find((s) => s.gameId === game.id);
-    if (entry) {
-      const rawStatus = (entry as { status?: unknown }).status;
-      return rawStatus === "seeding" || rawStatus === 5;
-    }
-    return game.download?.status === "seeding";
-  };
+  const isGameSeeding = useCallback(
+    (game: LibraryGame) => {
+      const entry = seedingStatus.find((s) => s.gameId === game.id);
+      if (entry) {
+        const rawStatus = (entry as { status?: unknown }).status;
+        return rawStatus === "seeding" || rawStatus === 5;
+      }
+      return game.download?.status === "seeding";
+    },
+    [seedingStatus]
+  );
 
   const isGameDownloadingMap = useMemo(() => {
     const map: Record<string, boolean> = {};
@@ -811,24 +814,27 @@ export function DownloadGroup({
     return map;
   }, [library, lastPacket?.gameId, optimisticallyResumed]);
 
-  const getFinalDownloadSize = (game: LibraryGame) => {
-    const download = game.download!;
-    const isGameDownloading = isGameDownloadingMap[game.id];
+  const getFinalDownloadSize = useCallback(
+    (game: LibraryGame) => {
+      const download = game.download!;
+      const isGameDownloading = isGameDownloadingMap[game.id];
 
-    // Check lastPacket first for most up-to-date size during active downloads
-    if (
-      isGameDownloading &&
-      lastPacket?.download.fileSize &&
-      lastPacket.download.fileSize > 0
-    )
-      return formatBytes(lastPacket.download.fileSize);
+      // Check lastPacket first for most up-to-date size during active downloads
+      if (
+        isGameDownloading &&
+        lastPacket?.download.fileSize &&
+        lastPacket.download.fileSize > 0
+      )
+        return formatBytes(lastPacket.download.fileSize);
 
-    // Then check the stored download size (must be > 0 to be valid)
-    if (download.fileSize != null && download.fileSize > 0)
-      return formatBytes(download.fileSize);
+      // Then check the stored download size (must be > 0 to be valid)
+      if (download.fileSize != null && download.fileSize > 0)
+        return formatBytes(download.fileSize);
 
-    return "N/A";
-  };
+      return "N/A";
+    },
+    [isGameDownloadingMap, lastPacket?.download.fileSize]
+  );
 
   const formatSpeed = (speed: number): string => {
     return userPreferences?.showDownloadSpeedInMegabytes
@@ -1077,13 +1083,7 @@ export function DownloadGroup({
         progress: game.download?.progress || 0,
         isSeeding: isGameSeeding(game),
       })),
-    [
-      library,
-      lastPacket?.gameId,
-      lastPacket?.download.fileSize,
-      isGameDownloadingMap,
-      seedingStatus,
-    ]
+    [library, getFinalDownloadSize, isGameSeeding]
   );
 
   const getCompletedDownloadStep = (

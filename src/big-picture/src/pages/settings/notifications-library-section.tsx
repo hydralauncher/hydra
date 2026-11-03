@@ -1,6 +1,6 @@
 import "./notifications-library-section.scss";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Checkbox, VerticalFocusGroup } from "../../components";
 import { useUserPreferences } from "../../hooks";
@@ -71,14 +71,15 @@ export function NotificationsLibrarySection({
     setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
-  const updateUserPreferences = async (
-    values: Partial<NotificationsLibraryForm>
-  ) => {
-    const nextForm = { ...form, ...values };
-    setForm(nextForm);
+  const updateUserPreferences = useCallback(
+    async (values: Partial<NotificationsLibraryForm>) => {
+      const nextForm = { ...form, ...values };
+      setForm(nextForm);
 
-    await globalThis.window.electron.updateUserPreferences(values);
-  };
+      await globalThis.window.electron.updateUserPreferences(values);
+    },
+    [form]
+  );
 
   const items = useMemo<NotificationsLibraryItem[]>(() => {
     return [
@@ -125,7 +126,7 @@ export function NotificationsLibrarySection({
           }),
       },
     ];
-  }, [form]);
+  }, [form, updateUserPreferences]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>

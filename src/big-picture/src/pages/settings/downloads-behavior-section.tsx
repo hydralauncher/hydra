@@ -1,6 +1,6 @@
 import "./downloads-behavior-section.scss";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Checkbox, VerticalFocusGroup } from "../../components";
 import { useUserPreferences } from "../../hooks";
@@ -76,14 +76,15 @@ export function DownloadsBehaviorSection({
   const isWindows = globalThis.window.electron.platform === "win32";
   const isLinux = globalThis.window.electron.platform === "linux";
 
-  const updateUserPreferences = async (
-    values: Partial<DownloadsBehaviorForm>
-  ) => {
-    const nextForm = { ...form, ...values };
-    setForm(nextForm);
+  const updateUserPreferences = useCallback(
+    async (values: Partial<DownloadsBehaviorForm>) => {
+      const nextForm = { ...form, ...values };
+      setForm(nextForm);
 
-    await globalThis.window.electron.updateUserPreferences(values);
-  };
+      await globalThis.window.electron.updateUserPreferences(values);
+    },
+    [form]
+  );
 
   const items = useMemo<DownloadsBehaviorItem[]>(() => {
     const baseItems: DownloadsBehaviorItem[] = [
@@ -136,7 +137,7 @@ export function DownloadsBehaviorSection({
     }
 
     return baseItems;
-  }, [form, isWindows, isLinux]);
+  }, [form, isWindows, isLinux, updateUserPreferences]);
 
   const navigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
