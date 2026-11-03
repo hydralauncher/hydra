@@ -21,6 +21,7 @@ import {
 } from "../linux-game-capture-session";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
+import { NativeAddon } from "../native-addon";
 import { ScreenshotInputService } from "../screenshot-input";
 import { WindowManager } from "../window-manager";
 import { forgetForegroundGame } from "./foreground-game";
@@ -102,6 +103,7 @@ export const initializeScreenshots = () => {
 const releaseRunningGameResources = () => {
   ScreenshotFeedback.release();
   ScreenshotFrameWorker.release();
+  NativeAddon.releaseWindowsDesktopCapture();
   stopWaylandFocusWatch();
 };
 
@@ -118,6 +120,7 @@ export const onScreenshotGameStarted = async (gameKey: string) => {
       startWaylandFocusWatch();
     } else if (process.platform === "win32" || process.platform === "linux") {
       ScreenshotFrameWorker.prepare();
+      NativeAddon.prepareWindowsDesktopCapture();
     }
   } catch (error) {
     logger.error("Failed to prepare screenshots for a running game", error);

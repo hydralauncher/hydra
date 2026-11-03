@@ -19,6 +19,7 @@ export interface AchievementNotificationHost {
   load(): Promise<void>;
   send(channel: string, ...args: unknown[]): void;
   setPosition(position: AchievementCustomNotificationPosition): Promise<void>;
+  setContentProtection(isProtected: boolean): void;
   showInactive(): void;
   hide(): void;
   destroy(): void;
@@ -219,6 +220,7 @@ export class AchievementNotificationPresenter {
     this.clearWatchdog();
 
     try {
+      host.setContentProtection(this.activeItem?.request.type === "screenshot");
       host.showInactive();
       this.stage = "visible";
       this.dependencies.log(`Achievement notification started: ${requestId}`);

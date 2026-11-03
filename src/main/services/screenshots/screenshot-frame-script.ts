@@ -174,6 +174,10 @@ const toBgra = (rgba: Uint8Array) => {
 const isByteArray = (value: unknown): value is Uint8Array =>
   value instanceof Uint8Array;
 
+export const isBlankBgraSample = (bgra: Uint8Array) =>
+  isNearlyUniformScreenshot(getBitmapColorRange(bgra)) ||
+  isMostlyBlackScreenshot(bgra);
+
 export const parseGrabbedFrame = (value: unknown): GrabbedFrameInfo => {
   const frame = value as Record<string, unknown> | null;
   if (
@@ -185,13 +189,10 @@ export const parseGrabbedFrame = (value: unknown): GrabbedFrameInfo => {
     throw new TypeError("Screenshot capture returned an invalid frame");
   }
 
-  const bgra = toBgra(frame.pixels);
   return {
     width: frame.width,
     height: frame.height,
-    isBlank:
-      isNearlyUniformScreenshot(getBitmapColorRange(bgra)) ||
-      isMostlyBlackScreenshot(bgra),
+    isBlank: isBlankBgraSample(toBgra(frame.pixels)),
   };
 };
 

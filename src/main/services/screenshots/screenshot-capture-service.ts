@@ -29,6 +29,7 @@ import {
   type GameScreenshotCaptureTarget,
 } from "../screenshot";
 import { buildWindowsWindowSourceId } from "../windows-game-window-match";
+import { grabDesktopDuplicationFrame } from "./desktop-duplication-frame";
 import { resolveForegroundGame } from "./foreground-game";
 import type { ScreenshotGameTarget } from "./foreground-game-match";
 import { LocalScreenshotStore } from "./local-screenshot-store";
@@ -282,7 +283,7 @@ const grabFromDirectWindowsSource = async (
 
   try {
     return await ScreenshotFrameWorker.grab(sourceId, {
-      waitForNextFrame: true,
+      waitForNextFrame: false,
       crop: getSourceClientAreaCrop(sourceId),
     });
   } catch (error) {
@@ -309,13 +310,18 @@ const acquireFrame = async (
     });
   }
 
+  const desktopFrame = await grabDesktopDuplicationFrame(
+    captureTarget.windowHandle
+  );
+  if (desktopFrame) return desktopFrame;
+
   const directFrame = await grabFromDirectWindowsSource(captureTarget);
   if (directFrame) return directFrame;
 
   const sourceId = await resolveGameCaptureSourceId(captureTarget);
   if (sourceId) {
     return ScreenshotFrameWorker.grab(sourceId, {
-      waitForNextFrame: true,
+      waitForNextFrame: process.platform !== "win32",
       crop: getSourceClientAreaCrop(sourceId),
     });
   }
