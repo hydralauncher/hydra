@@ -956,8 +956,6 @@
     "screenshots_settings_save_failed": "No se pudieron guardar los ajustes de capturas",
     "screenshots_settings_title": "Capturas",
     "screenshots_settings_toast": "Mostrar una notificación al capturar",
-    "screenshots_settings_listen_outside_games": "Escuchar el atajo cuando no se detecte ningún juego",
-    "screenshots_settings_listen_outside_games_warning": "Si lo desactivas, Hydra no podrá avisarte cuando no reconozca tu juego. El atajo solo funcionará mientras Hydra detecte un juego.",
     "screenshots_settings_hide_community": "Ocultar las capturas de la comunidad en las páginas de juegos",
     "screenshots_review_delete_description": "El archivo de la captura se eliminará de este equipo. No se puede deshacer.",
     "screenshots_review_delete_title": "¿Eliminar esta captura?",

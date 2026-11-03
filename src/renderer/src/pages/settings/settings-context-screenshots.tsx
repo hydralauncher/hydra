@@ -16,7 +16,6 @@ import { logger } from "@renderer/logger";
 import {
   HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID,
   SCREENSHOT_VISIBILITY_OPTIONS,
-  canListenOutsideGames,
   resolveScreenshotPreferences,
 } from "@shared";
 import type {
@@ -250,25 +249,6 @@ export function SettingsContextScreenshots() {
             )
           }
         />
-
-        {canListenOutsideGames(window.electron.platform) && (
-          <>
-            <CheckboxField
-              label={t("screenshots_listen_outside_games")}
-              checked={form.listenOutsideGames}
-              disabled={isCaptureDisabled}
-              onChange={() =>
-                savePreferences(
-                  { listenOutsideGames: !form.listenOutsideGames },
-                  { screenshotListenOutsideGames: !form.listenOutsideGames }
-                )
-              }
-            />
-            <small className="settings-screenshots__hint">
-              {t("screenshots_listen_outside_games_warning")}
-            </small>
-          </>
-        )}
       </div>
 
       <div className="settings-context-panel__group">

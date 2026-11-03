@@ -9,12 +9,10 @@ import type {
   UserPreferences,
 } from "@types";
 import {
-  canListenOutsideGames,
   isSameScreenshotGamepadCombo,
   isSameScreenshotHotkey,
   normalizeScreenshotGamepadCombo,
   normalizeScreenshotHotkey,
-  resolveScreenshotPreferences,
   toScreenshotHotkeyAccelerator,
 } from "@shared";
 
@@ -30,7 +28,6 @@ import {
   type ScreenshotInputNativeStatus,
 } from "./native-addon";
 import {
-  FEATURE_CACHE_TTL_MS,
   isScreenshotsFeatureEnabled,
   onScreenshotsFeatureChange,
 } from "./screenshots/screenshot-feature";
@@ -44,15 +41,11 @@ export const SCREENSHOT_INPUT_RESTART_DELAY_MS = 5_000;
 export const SCREENSHOT_INPUT_MAX_RESTARTS = 3;
 export const SCREENSHOT_INPUT_STABLE_RUN_MS = 60_000;
 
-const SCREENSHOT_FEATURE_REFRESH_MS = FEATURE_CACHE_TTL_MS + 60_000;
-const UNSUPPORTED_KEY_ERROR = "unsupported-key";
-
 export interface ScreenshotInputSettings {
   enabled: boolean;
   hotkey: ScreenshotHotkeyBinding;
   gamepadEnabled: boolean;
   gamepadCombo: ScreenshotGamepadButton[];
-  listenOutsideGames: boolean;
 }
 
 const SCREENSHOT_INPUT_BACKENDS = new Set<ScreenshotInputBackend>([
@@ -80,9 +73,6 @@ export const getScreenshotInputSettings = (
   gamepadCombo: normalizeScreenshotGamepadCombo(
     preferences?.screenshotGamepadCombo
   ),
-  listenOutsideGames:
-    canListenOutsideGames(process.platform) &&
-    resolveScreenshotPreferences(preferences).listenOutsideGames,
 });
 
 export const toScreenshotInputNativeConfig = (
@@ -161,10 +151,6 @@ const withPortalKeyboard = (
   keyboardError: undefined,
 });
 
-const canRetryKeyboardStart = (status: ScreenshotInputNativeStatus | null) =>
-  Boolean(status?.keyboardError) &&
-  status?.keyboardError !== UNSUPPORTED_KEY_ERROR;
-
 const isNativeTriggerSource = (
   source: string
 ): source is "keyboard" | "gamepad" =>
@@ -191,7 +177,6 @@ export class ScreenshotInputService {
   private static listening = false;
   private static sessionGeneration = 0;
   private static gamesRunning = false;
-  private static gamepadListening = false;
   private static featureEnabled = false;
   private static readonly lastTriggerAt = new Map<
     ScreenshotTriggerChannel,
@@ -200,8 +185,6 @@ export class ScreenshotInputService {
   private static restartAttempts = 0;
   private static listeningSince: number | null = null;
   private static restartTimer: ReturnType<typeof setTimeout> | null = null;
-  private static featureRefreshTimer: ReturnType<typeof setTimeout> | null =
-    null;
   private static portalAccelerator: string | null = null;
   private static nativeStatus: ScreenshotInputNativeStatus | null = null;
   private static pendingGamesRunningCheck: ReturnType<
@@ -233,9 +216,7 @@ export class ScreenshotInputService {
       });
       return false;
     }
-    const requiresTrackedGame =
-      source === "deeplink" || !this.settings.listenOutsideGames;
-    if (requiresTrackedGame && !hasTrackedGamesRunning()) {
+    if (!hasTrackedGamesRunning()) {
       logger.debug("Screenshot trigger ignored: no tracked game running", {
         source,
       });
@@ -285,7 +266,6 @@ export class ScreenshotInputService {
     }
 
     this.reconcile(previous);
-    this.scheduleFeatureRefresh();
   }
 
   public static refreshStatus(): ScreenshotInputStatus {
@@ -317,8 +297,6 @@ export class ScreenshotInputService {
   public static shutdown() {
     this.shuttingDown = true;
     this.cancelRestart();
-    if (this.featureRefreshTimer) clearTimeout(this.featureRefreshTimer);
-    this.featureRefreshTimer = null;
     this.cancelTrackedGamesRunningCheck();
     this.unsubscribeGamesRunning?.();
     this.unsubscribeGamesRunning = null;
@@ -346,8 +324,6 @@ export class ScreenshotInputService {
     if (gamesRunning === this.gamesRunning) return;
 
     this.gamesRunning = gamesRunning;
-    this.restartAttempts = 0;
-    if (canRetryKeyboardStart(this.nativeStatus)) this.stopListening();
     this.reconcile(this.settings);
     if (gamesRunning) void this.refreshFeatureFlag();
   }
@@ -358,24 +334,6 @@ export class ScreenshotInputService {
     } catch (error) {
       logger.error("Failed to read the screenshots feature flag", error);
     }
-    this.scheduleFeatureRefresh();
-  }
-
-  private static scheduleFeatureRefresh() {
-    if (
-      this.shuttingDown ||
-      this.featureRefreshTimer ||
-      !this.settings.enabled ||
-      !this.settings.listenOutsideGames
-    ) {
-      return;
-    }
-
-    this.featureRefreshTimer = setTimeout(() => {
-      this.featureRefreshTimer = null;
-      void this.refreshFeatureFlag();
-    }, SCREENSHOT_FEATURE_REFRESH_MS);
-    this.featureRefreshTimer.unref?.();
   }
 
   private static applyFeatureFlag(featureEnabled: boolean) {
@@ -385,20 +343,13 @@ export class ScreenshotInputService {
     if (!this.listening) this.refreshStatus();
   }
 
-  private static getListeningSettings(): ScreenshotInputSettings {
-    return {
-      ...this.settings,
-      gamepadEnabled: this.settings.gamepadEnabled && this.gamesRunning,
-    };
-  }
-
   private static shouldListen() {
     return (
       this.initialized &&
       !this.shuttingDown &&
       this.featureEnabled &&
       this.settings.enabled &&
-      (this.settings.listenOutsideGames || this.gamesRunning)
+      this.gamesRunning
     );
   }
 
@@ -415,41 +366,22 @@ export class ScreenshotInputService {
       return;
     }
 
-    const listeningSettings = this.getListeningSettings();
-    if (
-      this.gamepadListening !== listeningSettings.gamepadEnabled &&
-      !this.updateGamepadListening(listeningSettings)
-    ) {
+    if (previous.gamepadEnabled !== this.settings.gamepadEnabled) {
       this.stopListening();
       this.startListening();
       return;
     }
 
-    const hotkeyChanged = !isSameScreenshotHotkey(
-      previous.hotkey,
-      this.settings.hotkey
-    );
-    const gamepadSettingChanged =
-      previous.gamepadEnabled !== this.settings.gamepadEnabled;
-
     if (
-      hotkeyChanged &&
-      this.nativeStatus?.keyboardError &&
-      !shouldUsePortalShortcut(this.nativeStatus)
+      !isSameScreenshotHotkey(previous.hotkey, this.settings.hotkey) &&
+      this.nativeStatus
     ) {
-      this.restartAttempts = 0;
-      this.stopListening();
-      this.startListening();
-      return;
-    }
-
-    if ((hotkeyChanged || gamepadSettingChanged) && this.nativeStatus) {
-      if (hotkeyChanged) this.unregisterPortalShortcut();
+      this.unregisterPortalShortcut();
       this.applyListeningStatus(this.nativeStatus);
     }
 
     if (
-      hotkeyChanged ||
+      !isSameScreenshotHotkey(previous.hotkey, this.settings.hotkey) ||
       !isSameScreenshotGamepadCombo(
         previous.gamepadCombo,
         this.settings.gamepadCombo
@@ -457,7 +389,7 @@ export class ScreenshotInputService {
     ) {
       try {
         NativeAddon.updateScreenshotInputBinding(
-          toScreenshotInputNativeConfig(this.getListeningSettings())
+          toScreenshotInputNativeConfig(this.settings)
         );
       } catch (error) {
         logger.error("Failed to update screenshot input binding", error);
@@ -465,65 +397,27 @@ export class ScreenshotInputService {
     }
   }
 
-  private static updateGamepadListening(settings: ScreenshotInputSettings) {
-    if (!this.nativeStatus) return false;
-
-    const gamepadStatus = NativeAddon.updateScreenshotInputGamepad(
-      toScreenshotInputNativeConfig(settings)
-    );
-    if (!gamepadStatus || gamepadStatus.gamepadError) return false;
-
-    this.gamepadListening = settings.gamepadEnabled;
-    this.nativeStatus = { ...this.nativeStatus, ...gamepadStatus };
-    const status = this.applyListeningStatus(this.nativeStatus);
-    logger.info("Screenshot gamepad input changed", {
-      ...status,
-      gamepadListening: this.gamepadListening,
-    });
-    return true;
-  }
-
   private static startListening() {
     const generation = ++this.sessionGeneration;
-    const listeningSettings = this.getListeningSettings();
     try {
       const nativeStatus = NativeAddon.startScreenshotInput(
-        toScreenshotInputNativeConfig(listeningSettings),
+        toScreenshotInputNativeConfig(this.settings),
         (event) => this.handleNativeEvent(event, generation)
       );
       this.listening = true;
-      this.gamepadListening = listeningSettings.gamepadEnabled;
       this.listeningSince = performance.now();
       this.nativeStatus = nativeStatus;
       const status = this.applyListeningStatus(nativeStatus);
       logger.info("Screenshot input started", {
         ...status,
-        gamepadListening: this.gamepadListening,
         keyboardError: nativeStatus.keyboardError ?? null,
         gamepadError: nativeStatus.gamepadError ?? null,
       });
-      this.retryFailedKeyboardStart(nativeStatus);
     } catch (error) {
       logger.error("Failed to start screenshot input", error);
       this.listening = false;
       this.setStatus({ ...INACTIVE_STATUS, hint: "hotkey_unavailable" });
     }
-  }
-
-  private static retryFailedKeyboardStart(
-    nativeStatus: ScreenshotInputNativeStatus
-  ) {
-    if (
-      !this.settings.listenOutsideGames ||
-      this.gamepadListening ||
-      !canRetryKeyboardStart(nativeStatus) ||
-      this.restartAttempts >= SCREENSHOT_INPUT_MAX_RESTARTS
-    ) {
-      return;
-    }
-
-    this.stopListening();
-    this.scheduleRestart();
   }
 
   private static applyListeningStatus(
@@ -534,7 +428,7 @@ export class ScreenshotInputService {
         ? withPortalKeyboard(nativeStatus)
         : nativeStatus;
     const status = toScreenshotInputStatus(
-      this.withIdleGamepadProbe(effectiveStatus),
+      effectiveStatus,
       this.settings,
       true
     );
@@ -545,24 +439,6 @@ export class ScreenshotInputService {
     );
     this.setStatus(nextStatus);
     return nextStatus;
-  }
-
-  private static withIdleGamepadProbe(
-    nativeStatus: ScreenshotInputNativeStatus
-  ): ScreenshotInputNativeStatus {
-    if (!this.settings.gamepadEnabled || this.gamepadListening) {
-      return nativeStatus;
-    }
-
-    try {
-      const { gamepadBackend, gamepadError } = NativeAddon.probeScreenshotInput(
-        toScreenshotInputNativeConfig(this.settings)
-      );
-      return { ...nativeStatus, gamepadBackend, gamepadError };
-    } catch (error) {
-      logger.error("Failed to probe the idle gamepad backend", error);
-      return nativeStatus;
-    }
   }
 
   private static registerPortalShortcut() {
@@ -662,10 +538,6 @@ export class ScreenshotInputService {
 
     if (this.restartAttempts >= SCREENSHOT_INPUT_MAX_RESTARTS) return;
 
-    this.scheduleRestart();
-  }
-
-  private static scheduleRestart() {
     this.restartAttempts += 1;
     this.cancelRestart();
     this.restartTimer = setTimeout(() => {

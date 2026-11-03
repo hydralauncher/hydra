@@ -1889,8 +1889,6 @@
     "screenshots_community_group": "Comunidad",
     "screenshots_hide_community": "Ocultar las capturas de la comunidad en las páginas de juegos",
     "screenshots_toast": "Mostrar una notificación con vista previa",
-    "screenshots_listen_outside_games": "Escuchar el atajo cuando no se detecte ningún juego",
-    "screenshots_listen_outside_games_warning": "Si lo desactivas, Hydra no podrá avisarte cuando no reconozca tu juego. El atajo solo funcionará mientras Hydra detecte un juego.",
     "screenshots_gamepad_add": "Añadir un botón",
     "screenshots_gamepad_remove": "Quitar este botón",
     "screenshots_gamepad_duplicate": "Cada botón solo se puede usar una vez",

@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import path from "node:path";
 import { BrowserWindow } from "electron";
 
 import { gamesSublevel } from "@main/level";
@@ -27,13 +26,6 @@ import {
   type ScreenshotGameTarget,
 } from "./foreground-game-match";
 import { getWaylandFocus } from "./wayland-focus";
-
-const WINDOWS_SCREEN_CLIPPING_EXECUTABLES = new Set([
-  "screenclippinghost.exe",
-  "snippingtool.exe",
-]);
-const WINDOWS_DESKTOP_WINDOW_CLASSES = new Set(["Progman", "WorkerW"]);
-const WINDOWS_STORE_APP_WINDOW_CLASS = "ApplicationFrameWindow";
 
 export interface ResolvedForegroundGame {
   status: "resolved";
@@ -299,11 +291,7 @@ export const resolveForegroundGame = async (
   const candidates = await getScreenshotGameTargets();
   if (!candidates.length) {
     logger.debug("Screenshot hotkey ignored: no running game", { source });
-    return {
-      status: "unresolved",
-      candidates,
-      foreground: NativeAddon.getWindowsForegroundWindow() ?? null,
-    };
+    return { status: "unresolved", candidates, foreground: null };
   }
 
   const foreground = await resolveForegroundWindow();
@@ -399,56 +387,20 @@ export const resolveForegroundGame = async (
   return { status: "resolved", ...soleCandidate, foreground: null };
 };
 
-const isWindowsSystemExecutable = (exe: string) => {
-  const systemRoot = process.env.SystemRoot?.toLowerCase();
-  return (
-    WINDOWS_SCREEN_CLIPPING_EXECUTABLES.has(
-      path.win32.basename(exe).toLowerCase()
-    ) ||
-    (systemRoot !== undefined &&
-      exe.toLowerCase().startsWith(`${systemRoot}\\`))
-  );
-};
-
-const isWindowsSystemWindow = (windowHandle: string) => {
-  const owner = NativeAddon.getWindowsWindowOwner(windowHandle);
-  if (!owner || owner.className === WINDOWS_STORE_APP_WINDOW_CLASS) {
-    return false;
-  }
-
-  return (
-    WINDOWS_DESKTOP_WINDOW_CLASSES.has(owner.className) ||
-    (owner.executablePath != null &&
-      isWindowsSystemExecutable(owner.executablePath))
-  );
-};
-
-const isFullscreenAppInForeground = (
-  foreground: ForegroundWindowInfo | null
-) => {
-  if (!foreground?.windowHandle || foreground.processId === process.pid) {
-    return false;
-  }
-
-  return (
-    NativeAddon.isWindowsWindowFullscreen(foreground.windowHandle) &&
-    !isWindowsSystemWindow(foreground.windowHandle)
-  );
-};
-
 export const getUnresolvedGameFailure = (
   source: ScreenshotTriggerSource,
   { candidates, foreground }: UnresolvedForegroundGame
 ): ScreenshotFailureToast | null => {
+  if (!candidates.length) return null;
+
   const isFocusUnknown = foreground?.processId == null;
-  if (candidates.length && isFocusUnknown && source === "deeplink") return null;
+  if (isFocusUnknown && source === "deeplink") return null;
 
   if (candidates.length === 1) {
     return { kind: "game_not_focused", gameTitle: candidates[0].game.title };
   }
 
-  const isUnidentifiedPress = candidates.length > 1 && isFocusUnknown;
-  return isUnidentifiedPress || isFullscreenAppInForeground(foreground)
+  return isFocusUnknown
     ? { kind: "game_not_recognized", gameTitle: null }
     : null;
 };

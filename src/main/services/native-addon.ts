@@ -68,17 +68,6 @@ export interface ScreenshotInputNativeStatus {
   gamepadError?: string | null;
   waylandSession: boolean;
 }
-
-export interface ScreenshotInputGamepadStatus {
-  gamepadBackend: string;
-  gamepadError?: string | null;
-}
-
-interface NativeWindowOwnerResponse {
-  className: string;
-  executablePath?: string | null;
-}
-
 type NativeScreenRect = {
   left: number;
   top: number;
@@ -161,13 +150,6 @@ type HydraNativeModule = {
   getWindowsWindowBounds?: (
     windowHandle: string
   ) => NativeWindowBoundsResponse | null;
-  isWindowsWindowFullscreen?: (windowHandle: string) => boolean;
-  getWindowsWindowOwner?: (
-    windowHandle: string
-  ) => NativeWindowOwnerResponse | null;
-  updateScreenshotInputGamepad?: (
-    config: ScreenshotInputNativeConfig
-  ) => ScreenshotInputGamepadStatus | null;
   extractArchiveInPlace: (
     options: InPlaceExtractionOptions,
     onProgress: (fraction: number) => void
@@ -527,17 +509,6 @@ export class NativeAddon {
     return this.load().updateScreenshotInputBinding(config);
   }
 
-  public static updateScreenshotInputGamepad(
-    config: ScreenshotInputNativeConfig
-  ) {
-    try {
-      return this.load().updateScreenshotInputGamepad?.(config) ?? null;
-    } catch (error) {
-      logger.error("Failed to update the screenshot gamepad input", error);
-      return null;
-    }
-  }
-
   public static stopScreenshotInput() {
     this.nativeModule?.stopScreenshotInput();
   }
@@ -574,28 +545,6 @@ export class NativeAddon {
       return this.load().getWindowsWindowBounds?.(windowHandle) ?? null;
     } catch (error) {
       logger.error("Failed to read the Windows window bounds", error);
-      return null;
-    }
-  }
-
-  public static isWindowsWindowFullscreen(windowHandle: string) {
-    if (process.platform !== "win32") return false;
-
-    try {
-      return this.load().isWindowsWindowFullscreen?.(windowHandle) ?? false;
-    } catch (error) {
-      logger.error("Failed to check if a Windows window is fullscreen", error);
-      return false;
-    }
-  }
-
-  public static getWindowsWindowOwner(windowHandle: string) {
-    if (process.platform !== "win32") return null;
-
-    try {
-      return this.load().getWindowsWindowOwner?.(windowHandle) ?? null;
-    } catch (error) {
-      logger.error("Failed to identify a Windows window owner", error);
       return null;
     }
   }

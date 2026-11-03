@@ -5,14 +5,6 @@ pub struct Runtime;
 
 impl Runtime {
     pub fn stop(self) {}
-
-    pub fn set_gamepad(
-        &mut self,
-        _context: &Arc<Context>,
-        _enabled: bool,
-    ) -> Option<BackendResult> {
-        None
-    }
 }
 
 pub fn probe(_options: StartOptions) -> PlatformStatus {
