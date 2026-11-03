@@ -368,7 +368,7 @@ export function GameDetailsContextProvider({
       window.electron.off("on-game-transfer-cancelled", onTransferCancelled);
       window.electron.off("on-game-transfer-error", onTransferError);
     };
-  }, [game]);
+  }, [game, updateGame]);
 
   useEffect(() => {
     gameRequestId.current += 1;
