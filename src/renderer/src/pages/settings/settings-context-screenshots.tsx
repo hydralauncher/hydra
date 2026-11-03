@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FileDirectoryIcon, HistoryIcon } from "@primer/octicons-react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   Button,
@@ -13,6 +14,7 @@ import { useAppSelector } from "@renderer/hooks";
 import { useScreenshotInputStatus } from "@renderer/hooks/use-screenshot-input-status";
 import { logger } from "@renderer/logger";
 import {
+  HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID,
   SCREENSHOT_VISIBILITY_OPTIONS,
   resolveScreenshotPreferences,
 } from "@shared";
@@ -77,6 +79,8 @@ export function SettingsContextScreenshots() {
   const { t: tCapture } = useTranslation("screenshots_capture");
   const { updateUserPreferences } = useContext(settingsContext);
   const inputStatus = useScreenshotInputStatus();
+  const { hash, search } = useLocation();
+  const navigate = useNavigate();
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -101,6 +105,21 @@ export function SettingsContextScreenshots() {
         logger.error("Failed to read the screenshots folder", error)
       );
   }, []);
+
+  useEffect(() => {
+    if (hash !== `#${HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID}`) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      const toggle = document.getElementById(
+        HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID
+      );
+      toggle?.scrollIntoView({ block: "center" });
+      toggle?.focus({ focusVisible: true } as FocusOptions);
+      navigate({ search }, { replace: true });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [hash, navigate, search]);
 
   const savePreferences = useCallback(
     (
@@ -249,6 +268,22 @@ export function SettingsContextScreenshots() {
               { screenshotDefaultVisibility: value }
             );
           }}
+        />
+      </div>
+
+      <div className="settings-context-panel__group">
+        <h3>{t("screenshots_community_group")}</h3>
+
+        <CheckboxField
+          id={HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID}
+          label={t("screenshots_hide_community")}
+          checked={form.hideCommunity}
+          onChange={() =>
+            savePreferences(
+              { hideCommunity: !form.hideCommunity },
+              { hideCommunityScreenshots: !form.hideCommunity }
+            )
+          }
         />
       </div>
 
