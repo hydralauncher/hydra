@@ -21,7 +21,7 @@ import {
 } from "@renderer/context";
 import { useDownload } from "@renderer/hooks";
 import { GameOptionsModal, RepacksModal } from "./modals";
-import { Downloader, getDownloadersForUri, getRepackUriParts } from "@shared";
+import { Downloader, getRepackUriParts, selectRepackUri } from "@shared";
 import { CloudSyncFilesModal } from "./cloud-sync-files-modal/cloud-sync-files-modal";
 import { CloudSaveV2Provider } from "./cloud-save-v2";
 import "./game-details.scss";
@@ -73,9 +73,6 @@ export default function GameDetails() {
     }
   };
 
-  const selectRepackUri = (repack: GameRepack, downloader: Downloader) =>
-    repack.uris.find((uri) => getDownloadersForUri(uri).includes(downloader))!;
-
   return (
     <GameDetailsContextProvider
       gameTitle={gameTitle!}
@@ -110,7 +107,7 @@ export default function GameDetails() {
             automaticallyDeleteArchiveFiles = false,
             signal?: AbortSignal
           ) => {
-            const uri = selectRepackUri(repack, downloader);
+            const uri = selectRepackUri(repack, downloader)!;
             const payload = {
               objectId: downloadGame?.objectId ?? game?.objectId ?? objectId!,
               title: gameTitle,

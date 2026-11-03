@@ -33,6 +33,7 @@ import {
   formatBytes,
   getDownloadersForUri,
   parseBytes,
+  selectRepackUri,
 } from "@shared";
 import type { GameRepack, TorrentFile, TorrentFilesResponse } from "@types";
 import { motion } from "framer-motion";
@@ -348,11 +349,7 @@ export function DownloadSettingsModal({
   const selectedUri = useMemo(() => {
     if (!repack || selectedDownloader === null) return null;
 
-    return (
-      repack.uris.find((uri) =>
-        getDownloadersForUri(uri).includes(selectedDownloader)
-      ) ?? null
-    );
+    return selectRepackUri(repack, selectedDownloader);
   }, [repack, selectedDownloader]);
 
   const selectedMagnetUri = useMemo(() => {
