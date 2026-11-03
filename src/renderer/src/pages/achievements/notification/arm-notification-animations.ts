@@ -35,8 +35,7 @@ export const armNotificationAnimations = ({
     paused.add(animation);
   }
 
-  let settled = false;
-  let cancelled = false;
+  let done = false;
   let firstFrame = 0;
   let secondFrame = 0;
   let timeout = 0;
@@ -48,8 +47,8 @@ export const armNotificationAnimations = ({
   };
 
   const finishFrames = () => {
-    if (settled || cancelled) return;
-    settled = true;
+    if (done) return;
+    done = true;
     clearScheduled();
 
     const currentAnimations = card?.getAnimations({ subtree: true }) ?? [];
@@ -67,8 +66,8 @@ export const armNotificationAnimations = ({
   };
 
   timeout = scheduler.setTimeout(() => {
-    if (settled || cancelled) return;
-    settled = true;
+    if (done) return;
+    done = true;
     clearScheduled();
     onTimeout();
   }, timeoutMs);
@@ -77,8 +76,8 @@ export const armNotificationAnimations = ({
   });
 
   return () => {
-    if (cancelled) return;
-    cancelled = true;
+    if (done) return;
+    done = true;
     clearScheduled();
   };
 };

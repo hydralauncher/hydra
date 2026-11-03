@@ -239,8 +239,8 @@ export class AchievementNotificationPresenter {
 
     try {
       this.dependencies.log(`Achievement notification started: ${requestId}`);
-      host.send("start-achievement-notification", requestId);
       host.showInactive();
+      host.send("start-achievement-notification", requestId);
       this.startWatchdog(
         ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT,
         "notification animation timed out"

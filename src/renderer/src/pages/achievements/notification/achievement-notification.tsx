@@ -234,7 +234,9 @@ export function AchievementNotification() {
 
     const requestId = request.id;
 
-    void window.electron.achievementNotificationStarted(requestId);
+    void window.electron
+      .achievementNotificationStarted(requestId)
+      .catch(() => undefined);
 
     if (
       request.type !== "screenshot" &&
