@@ -82,10 +82,15 @@ export const armNotificationAnimations = ({
       return;
     }
 
-    if (retried || !canPlayWithoutFrames()) {
+    if (!canPlayWithoutFrames()) {
       done = true;
       clearScheduled();
       onTimeout();
+      return;
+    }
+
+    if (retried) {
+      finishFrames();
       return;
     }
 

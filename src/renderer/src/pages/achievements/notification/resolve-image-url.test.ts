@@ -49,6 +49,14 @@ describe("resolveImageUrl", () => {
     assert.equal(await promise, "icon");
   });
 
+  it("keeps the source when decoding stalls", { timeout: 1000 }, async () => {
+    const promise = resolveImageUrl("icon", "hydra", 10);
+    latestImage().decode = () => new Promise(() => {});
+    latestImage().onload?.();
+
+    assert.equal(await promise, "icon");
+  });
+
   it("falls back when the image fails to load", async () => {
     const promise = resolveImageUrl("icon", "hydra", 100);
 

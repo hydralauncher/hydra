@@ -189,19 +189,18 @@ describe("armNotificationAnimations", () => {
     assert.equal(scheduler.frameCount, 0);
   });
 
-  it("fails when a visible retry also misses frames", () => {
+  it("resumes when a visible retry also misses frames", () => {
     const animation = new FakeAnimation();
     const card = new FakeCard([[animation], [animation]]);
     const scheduler = new FakeScheduler();
-    let timeoutCount = 0;
+    let armedCount = 0;
 
     armNotificationAnimations({
       card,
       scheduler,
       timeoutMs: 1000,
-      onArmed: () => {},
-      onTimeout: () => {
-        timeoutCount += 1;
+      onArmed: () => {
+        armedCount += 1;
       },
       canPlayWithoutFrames: () => true,
     });
@@ -209,8 +208,8 @@ describe("armNotificationAnimations", () => {
     scheduler.runTimeout();
     scheduler.runTimeout();
 
-    assert.equal(animation.playCount, 0);
-    assert.equal(timeoutCount, 1);
+    assert.equal(animation.playCount, 1);
+    assert.equal(armedCount, 1);
     assert.equal(scheduler.frameCount, 0);
   });
 

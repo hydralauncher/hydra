@@ -99,6 +99,7 @@ async function fixture(
     export const presentCombinedAchievements = () => [];
     export const createCombinedDefinitionLookup = () => () => undefined;
     export const publishNewAchievementNotification = () => {};
+    export const notifyBigPictureAchievementUnlocked = () => {};
     export const registerEvent = (name, handler) => state.events.set(name, handler);
     export const gamesSublevel = {get: async () => state.game};
     export const collectGameAchievementFiles = async () => [];

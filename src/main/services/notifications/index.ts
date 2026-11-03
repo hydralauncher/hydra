@@ -430,6 +430,15 @@ export const publishChatUnreadNotification = (
         signal
       );
 
+export const notifyBigPictureAchievementUnlocked = () => {
+  WindowManager.bigPictureWindow?.webContents.send(
+    "on-achievement-unlocked",
+    undefined,
+    undefined,
+    true
+  );
+};
+
 export const publishCombinedNewAchievementNotification = async (
   achievementCount,
   gameCount
@@ -539,11 +548,4 @@ export const publishNewAchievementNotification = async (info: {
     const soundPath = await getAchievementSoundPath();
     sound.play(soundPath);
   }
-
-  WindowManager.bigPictureWindow?.webContents.send(
-    "on-achievement-unlocked",
-    undefined,
-    undefined,
-    true
-  );
 };
