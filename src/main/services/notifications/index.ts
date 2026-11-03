@@ -430,6 +430,10 @@ export const publishChatUnreadNotification = (
         signal
       );
 
+export const notifyBigPictureAchievementUnlocked = () => {
+  WindowManager.bigPictureWindow?.webContents.send("on-achievement-unlocked");
+};
+
 export const publishCombinedNewAchievementNotification = async (
   achievementCount,
   gameCount

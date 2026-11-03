@@ -21,7 +21,10 @@ import {
   trackAchievementBatchGame,
 } from "./achievement-batch-games";
 import { Cracker } from "@shared";
-import { publishCombinedNewAchievementNotification } from "../notifications";
+import {
+  notifyBigPictureAchievementUnlocked,
+  publishCombinedNewAchievementNotification,
+} from "../notifications";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { setTimeout } from "node:timers/promises";
 import { Wine } from "../wine";
@@ -582,6 +585,8 @@ export class AchievementWatcherManager {
     totalNewGamesWithAchievements: number,
     totalNewAchievements: number
   ) {
+    notifyBigPictureAchievementUnlocked();
+
     const userPreferences = await db.get<string, UserPreferences>(
       levelKeys.userPreferences,
       {

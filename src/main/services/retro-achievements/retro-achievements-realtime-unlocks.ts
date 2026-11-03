@@ -5,6 +5,7 @@ import { achievementsLogger } from "../logger";
 import { WindowManager } from "../window-manager";
 import { AchievementMemoryStore } from "../achievements/achievement-memory-store";
 import { publishAchievementUnlockNotifications } from "../achievements/achievement-unlock-notifications";
+import { notifyBigPictureAchievementUnlocked } from "../notifications";
 import { syncRetroAchievements } from "./retro-achievements-sync";
 import {
   createRetroAchievementsUnlockConfirmer,
@@ -65,6 +66,7 @@ export const createRetroAchievementsRealtimeUnlocks = (
         `on-update-achievements-${game.objectId}-${game.shop}`,
         achievements
       );
+      notifyBigPictureAchievementUnlocked();
 
       const unnotified = confirmed.filter(
         ({ name }) => !notifiedKeys.has(retroAchievementKey(name))
