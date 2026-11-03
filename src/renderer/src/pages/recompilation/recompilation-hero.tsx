@@ -55,7 +55,8 @@ export function RecompilationHero({
   const isInstalled = state?.installed === true;
   const hasUpdate = isInstalled && state.version !== details.version;
   const handlesRom = rom.state?.handlesRom === true;
-  const needsRomChoice = handlesRom && !rom.state?.romPath;
+  const needsRomChoice =
+    handlesRom && !rom.state?.romPath && !rom.state?.isReady;
   const needsRomDownload =
     rom.state !== null &&
     !handlesRom &&
@@ -167,7 +168,11 @@ export function RecompilationHero({
           </Button>
         )}
         {!install.isRunning && !needsRomChoice && !needsRomDownload && (
-          <Button theme={hasUpdate ? "outline" : "primary"} onClick={runPlay}>
+          <Button
+            theme={hasUpdate ? "outline" : "primary"}
+            onClick={runPlay}
+            disabled={install.isLaunching}
+          >
             <PlayIcon />
             {t("play")}
           </Button>
@@ -176,7 +181,14 @@ export function RecompilationHero({
           align="end"
           items={[
             ...(needsRomDownload && !install.isRunning
-              ? [{ icon: <PlayIcon />, label: t("play"), onClick: runPlay }]
+              ? [
+                  {
+                    icon: <PlayIcon />,
+                    label: t("play"),
+                    onClick: runPlay,
+                    disabled: install.isLaunching,
+                  },
+                ]
               : []),
             ...(handlesRom && !needsRomChoice
               ? [

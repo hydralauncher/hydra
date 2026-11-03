@@ -144,6 +144,8 @@ const creditPlaytime = async (baseKey: string, deltaMs: number) => {
     lastTimePlayed: new Date(),
   };
   await gamesSublevel.put(baseKey, updated);
+  // Pages showing the base game (its reviews unlock with playtime) reload it.
+  WindowManager.sendToAppWindows("on-library-batch-complete");
 
   const pendingDelta =
     deltaMs + (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);

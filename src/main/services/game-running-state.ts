@@ -55,7 +55,9 @@ export const onTrackedGamesRunningChange = (listener: () => void) => {
 };
 
 export const hasTrackedGamesRunning = () =>
-  mutableGamesPlaytime.size > 0 || emulatorGamesRunning.size > 0;
+  mutableGamesPlaytime.size > 0 ||
+  emulatorGamesRunning.size > 0 ||
+  recompilationGameSessions.size > 0;
 
 export const gamesPlaytime: ReadonlyMap<string, GamePlaytimeState> =
   mutableGamesPlaytime;
@@ -126,11 +128,11 @@ export const deleteEmulatorGameRunning = (gameKey: string) => {
 };
 
 /**
- * Games Hydra started outside the process watcher and the emulator tracker
- * (a recompilation counts as playing its base game), with their start time,
- * so they show up in the running list sent to the app.
+ * Running recompilations, by the port's key. Each one plays its base game,
+ * which counts as running while any of them is open. Kept apart from the
+ * emulator set, so closing a port never ends the base game's emulator
+ * session or another port of the same game.
  */
-/** Running recompilations, by the port's key; each plays its base game. */
 export const recompilationGameSessions = new Map<
   string,
   { gameKey: string; recompilationSlug: string; startedAt: number }
@@ -146,15 +148,19 @@ export const setRecompilationGameRunning = (
     recompilationSlug,
     startedAt: performance.now(),
   });
-  setEmulatorGameRunning(gameKey);
+  notifyTrackedGamesRunningChange();
 };
 
 export const deleteRecompilationGameRunning = (portKey: string) => {
-  const session = recompilationGameSessions.get(portKey);
-  if (!session) return;
-  recompilationGameSessions.delete(portKey);
-  deleteEmulatorGameRunning(session.gameKey);
+  if (recompilationGameSessions.delete(portKey)) {
+    notifyTrackedGamesRunningChange();
+  }
 };
+
+const isRecompilationBaseGameRunning = (gameKey: string) =>
+  Array.from(recompilationGameSessions.values()).some(
+    (session) => session.gameKey === gameKey
+  );
 
 export const getTrackedGamesRunning = (now = performance.now()) =>
   Array.from(gamesPlaytime.entries()).map(
@@ -168,7 +174,9 @@ export const getTrackedGamesRunning = (now = performance.now()) =>
   );
 
 export const isTrackedGameKeyRunning = (gameKey: string) =>
-  mutableGamesPlaytime.has(gameKey) || emulatorGamesRunning.has(gameKey);
+  mutableGamesPlaytime.has(gameKey) ||
+  emulatorGamesRunning.has(gameKey) ||
+  isRecompilationBaseGameRunning(gameKey);
 
 export const isGameRunning = (objectId: string, shop: Game["shop"]) =>
   isTrackedGameKeyRunning(levelKeys.game(shop, objectId));

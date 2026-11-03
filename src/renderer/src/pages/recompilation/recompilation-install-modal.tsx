@@ -24,6 +24,9 @@ import "./recompilation-install-modal.scss";
 
 type InstallStep = "rom" | "sources" | "done";
 
+/** How long a picked source waits for the download's first report. */
+const ROM_DOWNLOAD_START_TIMEOUT_MS = 10_000;
+
 interface RecompilationInstallModalProps {
   visible: boolean;
   details: RecompilationDetails;
@@ -106,7 +109,7 @@ function InstallModalContent({
     if (!isStartingDownload) return;
     const timeout = window.setTimeout(
       () => setIsStartingDownload(false),
-      10000
+      ROM_DOWNLOAD_START_TIMEOUT_MS
     );
     return () => window.clearTimeout(timeout);
   }, [isStartingDownload]);
@@ -345,7 +348,7 @@ function InstallModalContent({
         <Button theme="outline" onClick={onClose}>
           {t("close")}
         </Button>
-        <Button onClick={play} disabled={!canPlay}>
+        <Button onClick={play} disabled={!canPlay || install.isLaunching}>
           <PlayIcon />
           {t("play")}
         </Button>

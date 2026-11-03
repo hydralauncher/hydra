@@ -3,6 +3,12 @@ import type { RecompilationRomSource, RecompilationRomState } from "@types";
 
 import { useAppSelector } from "@renderer/hooks";
 
+/**
+ * After a download ends, Hydra registers the extracted ROM as the game's disc
+ * a moment later, so the ROM is looked up again after these delays.
+ */
+const ROM_REFRESH_DELAYS_AFTER_DOWNLOAD_MS = [1500, 4000];
+
 export interface RecompilationRom {
   state: RecompilationRomState | null;
   /** Progress (0 to 1) of the base game's download, while it runs. */
@@ -65,7 +71,7 @@ export function useRecompilationRom(
   // game's disc, so look again a little after it ends.
   useEffect(() => {
     if (isDownloading) return;
-    const timeouts = [1500, 4000].map((delay) =>
+    const timeouts = ROM_REFRESH_DELAYS_AFTER_DOWNLOAD_MS.map((delay) =>
       window.setTimeout(() => void refresh(), delay)
     );
     return () => timeouts.forEach((timeout) => window.clearTimeout(timeout));

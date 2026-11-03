@@ -39,6 +39,9 @@ import "./recompilation-page.scss";
 
 type RecompilationTab = "about" | "news";
 
+/** How long the release feed takes to collapse its notes before a jump. */
+const RELEASE_SCROLL_DELAY_MS = 150;
+
 export default function RecompilationPage() {
   const { objectId = "", slug = "" } = useParams();
   const { t } = useTranslation("recompilation");
@@ -62,7 +65,7 @@ export default function RecompilationPage() {
         .getElementById(releaseAnchor(scrollToRelease))
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
       setScrollToRelease(null);
-    }, 150);
+    }, RELEASE_SCROLL_DELAY_MS);
     return () => window.clearTimeout(timeout);
   }, [scrollToRelease, activeTab]);
 
@@ -119,17 +122,33 @@ export default function RecompilationPage() {
       })
       .catch((error) => logger.error("Failed to load releases", error));
 
-    window.electron
-      .getGameByObjectId("launchbox", objectId)
-      .then((libraryGame) => {
-        if (!cancelled) setGame(libraryGame);
-      })
-      .catch(() => {});
-
     return () => {
       cancelled = true;
     };
   }, [objectId, slug]);
+
+  // The base game's playtime unlocks reviews. Playing a port adds the game to
+  // the library and credits its time, so read it again when the library
+  // changes.
+  useEffect(() => {
+    let cancelled = false;
+    const loadGame = () => {
+      window.electron
+        .getGameByObjectId("launchbox", objectId)
+        .then((libraryGame) => {
+          if (!cancelled) setGame(libraryGame);
+        })
+        .catch(() => {});
+    };
+
+    setGame(null);
+    loadGame();
+    const unsubscribe = window.electron.onLibraryBatchComplete(loadGame);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [objectId]);
 
   const latestRelease = useMemo(
     () => releases.find((release) => release.isLatest) ?? releases[0] ?? null,

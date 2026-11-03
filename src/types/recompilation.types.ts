@@ -155,6 +155,11 @@ export interface RecompilationRomMeta {
   once?: boolean;
   /** Where the port reads the ROM from, per OS. Hydra copies it there. */
   copyTo?: Partial<Record<"win32" | "linux" | "darwin", string>>;
+  /**
+   * Files the port writes once it has imported the game data, per OS. Any of
+   * them on disk means the port starts without the ROM.
+   */
+  imported?: Partial<Record<"win32" | "linux" | "darwin", string[]>>;
   /** Byte order the port needs (N64 ROMs); Hydra converts other orders. */
   format?: "z64";
   /** File extensions the port reads, lower case with the dot. */
@@ -171,6 +176,11 @@ export interface RecompilationRomState {
   romPath: string | null;
   /** The base game's ROM in the library, when it exists on disk. */
   libraryRomPath: string | null;
+  /**
+   * The port already has what it needs from the ROM (imported data or the
+   * copy Hydra made), so it starts even if the ROM file is gone.
+   */
+  isReady: boolean;
   /** Extensions the file picker accepts, without the dot. */
   extensions: string[];
 }

@@ -20,15 +20,31 @@ import recompilationMeta from "./recompilation-meta.json";
 
 const ROM_META = recompilationMeta as Record<
   string,
-  { rom: RecompilationRomMeta | null } | undefined
+  | {
+      rom: RecompilationRomMeta | null;
+      /** Ports Hydra cannot hand a ROM to: how to spot it in the library. */
+      romExtensions?: string[];
+    }
+  | undefined
 >;
+
+const getRomMetaEntry = (slug: string) =>
+  Object.hasOwn(ROM_META, slug) ? ROM_META[slug] : undefined;
 
 /**
  * How a port receives the ROM, or null when Hydra cannot hand it one (the
  * port asks for it itself). Ports missing from the meta file count as null.
  */
 const getRecompilationRomMeta = (slug: string): RecompilationRomMeta | null =>
-  (Object.hasOwn(ROM_META, slug) ? ROM_META[slug]?.rom : null) ?? null;
+  getRomMetaEntry(slug)?.rom ?? null;
+
+/** Extensions that identify the port's ROM in the library. */
+const getLibraryRomExtensions = (slug: string) =>
+  getRecompilationRomMeta(slug)?.extensions ??
+  getRomMetaEntry(slug)?.romExtensions ??
+  [];
+
+type MetaPlatform = "win32" | "linux" | "darwin";
 
 /** The ROM the user chose for a port. Lives in the port folder. */
 const ROM_CHOICE_FILE = ".hydra-recompilation-rom.json";
@@ -43,6 +59,8 @@ interface RomChoice {
   path?: string;
   /** The ROM file the port folder was prepared from (copy or installer). */
   preparedFrom?: string;
+  /** Where that ROM was copied to, for ports that read a copy. */
+  preparedTarget?: string;
   /** Set after the first launch with this ROM, for `once` ports. */
   launched?: boolean;
 }
@@ -169,11 +187,30 @@ const getCopyTarget = (
   installDirectory: string,
   romName: string
 ) => {
-  const template =
-    meta.copyTo?.[process.platform as "win32" | "linux" | "darwin"];
+  const template = meta.copyTo?.[process.platform as MetaPlatform];
   return template
     ? resolvePlaceholders(template, installDirectory, romName)
     : null;
+};
+
+/**
+ * Whether the port already has the game data: one of the files it writes
+ * after importing the ROM, or the copy Hydra made for it.
+ */
+const isPortReady = async (
+  meta: RecompilationRomMeta,
+  installDirectory: string,
+  choice: RomChoice | null
+) => {
+  const imported = meta.imported?.[process.platform as MetaPlatform] ?? [];
+  for (const template of imported) {
+    if (await fileExists(resolvePlaceholders(template, installDirectory, ""))) {
+      return true;
+    }
+  }
+  return (
+    meta.copyTo !== undefined && (await fileExists(choice?.preparedTarget))
+  );
 };
 
 export const getRecompilationRomState = async (
@@ -186,7 +223,7 @@ export const getRecompilationRomState = async (
   const installDirectory = await getRecompilationInstallDirectory(ref.slug);
   const [choice, libraryRomPath] = await Promise.all([
     readRomChoice(installDirectory),
-    getLibraryRomPath(ref.objectId, meta?.extensions ?? []),
+    getLibraryRomPath(ref.objectId, getLibraryRomExtensions(ref.slug)),
   ]);
 
   let romPath: string | null = null;
@@ -201,6 +238,7 @@ export const getRecompilationRomState = async (
     source: choice?.source ?? null,
     romPath,
     libraryRomPath,
+    isReady: meta ? await isPortReady(meta, installDirectory, choice) : false,
     extensions: (meta?.extensions ?? []).map((extension) => extension.slice(1)),
   };
 };
@@ -230,7 +268,14 @@ export const setRecompilationRom = async (
     return { ok: false, reason: "invalid_rom" };
   }
 
-  await writeRomChoice(await getRecompilationInstallDirectory(ref.slug), {
+  // What the port was prepared from is kept: choosing the same ROM again
+  // does not redo the copy or the import.
+  const installDirectory = await getRecompilationInstallDirectory(ref.slug);
+  const previous = await readRomChoice(installDirectory);
+  await writeRomChoice(installDirectory, {
+    preparedFrom: previous?.preparedFrom,
+    preparedTarget: previous?.preparedTarget,
+    launched: previous?.launched,
     source,
     path: source === "file" ? (romPath as string) : undefined,
   });
@@ -352,6 +397,13 @@ export const prepareRecompilationRom = async (
 
   const state = await getRecompilationRomState(ref);
   const choice = await readRomChoice(installDirectory);
+
+  // A port that has the game data starts without the ROM, so the ROM file
+  // can be moved or deleted. A newly chosen ROM is still handed over.
+  const isNewRom =
+    Boolean(state?.romPath) && choice?.preparedFrom !== state?.romPath;
+  if (state?.isReady && !isNewRom) return { ok: true, args: [], env: {} };
+
   if (!state?.romPath || !choice) return { ok: false, reason: "no_rom" };
 
   const isPrepared = choice.preparedFrom === state.romPath;
@@ -391,23 +443,30 @@ export const prepareRecompilationRom = async (
     }
     if (target) romPath = target;
 
-    if (meta.path?.installer && !isPrepared) {
+    // Reaching here with an import check means the import is not there yet
+    // (or a new ROM was chosen), so the installer runs again.
+    if (meta.path?.installer && (!isPrepared || meta.imported)) {
       await runRomInstaller(meta.path.installer, installDirectory, romPath);
+    }
+
+    if (!isPrepared || (target ?? undefined) !== choice.preparedTarget) {
+      await writeRomChoice(installDirectory, {
+        ...choice,
+        preparedFrom: state.romPath,
+        preparedTarget: target ?? undefined,
+        launched: isPrepared ? choice.launched : false,
+      });
     }
   } catch (error) {
     logger.error(`Failed to prepare the ROM for ${ref.slug}`, error);
     return { ok: false, reason: "rom_prepare_failed" };
   }
 
-  if (!isPrepared) {
-    await writeRomChoice(installDirectory, {
-      ...choice,
-      preparedFrom: state.romPath,
-      launched: false,
-    });
-  }
-
-  const passRom = !(meta.once && isPrepared && choice.launched);
+  // Ports with an import check get the ROM until their import is on disk;
+  // the others only on the first launch with it.
+  const passRom =
+    meta.imported !== undefined ||
+    !(meta.once && isPrepared && choice.launched);
   const fill = (value: string) =>
     value
       .replaceAll("{rom}", romPath)

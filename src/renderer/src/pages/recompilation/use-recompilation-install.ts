@@ -10,6 +10,8 @@ export interface RecompilationInstall {
   isBusy: boolean;
   /** True while this port is open. */
   isRunning: boolean;
+  /** True from a Play click until the port starts or fails to. */
+  isLaunching: boolean;
   install: () => Promise<boolean>;
   uninstall: () => Promise<boolean>;
   play: () => Promise<boolean>;
@@ -30,6 +32,7 @@ export function useRecompilationInstall(
     null
   );
   const [isRunning, setIsRunning] = useState(false);
+  const [isLaunching, setIsLaunching] = useState(false);
 
   // A running port shows in the games running as its base game, tagged with
   // its slug.
@@ -99,7 +102,12 @@ export function useRecompilationInstall(
   }, [objectId, slug, refresh]);
 
   const play = useCallback(async () => {
-    const result = await window.electron.playRecompilation({ objectId, slug });
+    // Preparing the ROM and the cloud save takes a while before the port
+    // shows as running; the Play buttons stay disabled until then.
+    setIsLaunching(true);
+    const result = await window.electron
+      .playRecompilation({ objectId, slug })
+      .finally(() => setIsLaunching(false));
     // A save conflict opens on the page instead of starting: not a failure.
     return result.ok || result.reason === "cloud_save_conflict";
   }, [objectId, slug]);
@@ -126,6 +134,7 @@ export function useRecompilationInstall(
     progress,
     isBusy,
     isRunning,
+    isLaunching,
     install,
     uninstall,
     play,

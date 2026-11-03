@@ -60,11 +60,14 @@ function RomSourceRow({
         .filter((option) => option.isAvailable)
         .map((option) => option.downloader)
     );
+    const unavailableUris = new Set(repack.unavailableUris ?? []);
     const uri =
       downloader === null
         ? undefined
-        : repack.uris.find((candidate) =>
-            getDownloadersForUri(candidate).includes(downloader)
+        : repack.uris.find(
+            (candidate) =>
+              !unavailableUris.has(candidate) &&
+              getDownloadersForUri(candidate).includes(downloader)
           );
     if (downloader === null || !uri) {
       showErrorToast(t("rom_download_unavailable"));

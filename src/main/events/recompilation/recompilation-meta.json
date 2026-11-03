@@ -39,6 +39,15 @@
         "arg": ["{rom}"]
       },
       "once": true,
+      "imported": {
+        "win32": ["<base>/oot.o2r", "<base>/oot-mq.o2r"],
+        "linux": [
+          "<xdgData>/soh/oot.o2r",
+          "<xdgData>/soh/oot-mq.o2r",
+          "<base>/oot.o2r",
+          "<base>/oot-mq.o2r"
+        ]
+      },
       "extensions": [".z64", ".n64", ".v64"]
     }
   },
@@ -48,6 +57,10 @@
         "arg": ["{rom}"]
       },
       "once": true,
+      "imported": {
+        "win32": ["<base>/sm64.o2r"],
+        "linux": ["<xdgData>/sm64/sm64.o2r", "<base>/sm64.o2r"]
+      },
       "extensions": [".z64", ".n64", ".v64"],
       "format": "z64"
     }
@@ -69,6 +82,10 @@
         "installer": ["Tenkaichi3Decomp-setup", "--install", "{rom}"]
       },
       "once": true,
+      "imported": {
+        "win32": ["<base>/gamedata/.installed"],
+        "linux": ["<base>/gamedata/.installed"]
+      },
       "extensions": [".iso"]
     }
   },
@@ -93,6 +110,7 @@
     }
   },
   "spaghettikart": {
-    "rom": null
+    "rom": null,
+    "romExtensions": [".z64", ".n64", ".v64"]
   }
 }
