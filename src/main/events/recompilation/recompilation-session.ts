@@ -31,6 +31,8 @@ interface RecompilationSession {
   child: ChildProcess;
   startedAt: number;
   heartbeat: ReturnType<typeof setInterval> | null;
+  /** Settles once the base game is in the library, to credit playtime. */
+  baseGameReady: Promise<void>;
 }
 
 /** Running ports, keyed by the port's cloud save game key. */
@@ -179,15 +181,20 @@ const finishSession = async (ref: RecompilationRef) => {
   deleteRecompilationGameRunning(portKey);
 
   const deltaMs = Math.max(0, performance.now() - session.startedAt);
+
+  // The backup does not wait on the library: a stalled base game lookup
+  // only delays the playtime, which needs the game to land on.
+  const backup = hasCloudSaveLaunchGuard(objectId, SHOP)
+    ? runAutomaticCloudSavePostExit(objectId, SHOP).catch((error) => {
+        logger.error("Failed to sync recompilation save after exit", error);
+      })
+    : Promise.resolve();
+
+  await session.baseGameReady;
   await creditPlaytime(baseKey, deltaMs).catch((error) => {
     logger.error("Failed to save recompilation playtime", error);
   });
-
-  if (hasCloudSaveLaunchGuard(objectId, SHOP)) {
-    await runAutomaticCloudSavePostExit(objectId, SHOP).catch((error) => {
-      logger.error("Failed to sync recompilation save after exit", error);
-    });
-  }
+  await backup;
 };
 
 /**
@@ -208,6 +215,14 @@ export const startRecompilationSession = async (
     child,
     startedAt: performance.now(),
     heartbeat: null,
+    baseGameReady: getOrAddBaseGame(ref)
+      .then(() => undefined)
+      .catch((error) => {
+        logger.error(
+          "Failed to add the recompilation's game to the library",
+          error
+        );
+      }),
   };
   sessions.set(portKey, session);
   // The port's own key only blocks its cloud save mid-session; the base
@@ -215,19 +230,8 @@ export const startRecompilationSession = async (
   setEmulatorGameRunning(portKey);
   setRecompilationGameRunning(portKey, baseKey, ref.slug);
 
-  await getOrAddBaseGame(ref).catch((error) => {
-    logger.error(
-      "Failed to add the recompilation's game to the library",
-      error
-    );
-  });
-
-  void sendPresencePing(baseKey);
-  session.heartbeat = setInterval(() => {
-    void sendPresencePing(baseKey);
-  }, PRESENCE_HEARTBEAT_INTERVAL_MS);
-  session.heartbeat.unref?.();
-
+  // Exit tracking comes before the library work, so a port that closes
+  // while the base game is still being added stops counting as running.
   const finish = () => {
     if (sessions.get(portKey) !== session) return;
     void finishSession(ref);
@@ -235,6 +239,15 @@ export const startRecompilationSession = async (
   child.once("exit", finish);
   child.once("error", finish);
   if (child.exitCode !== null || child.signalCode !== null) finish();
+
+  await session.baseGameReady;
+  if (sessions.get(portKey) !== session) return;
+
+  void sendPresencePing(baseKey);
+  session.heartbeat = setInterval(() => {
+    void sendPresencePing(baseKey);
+  }, PRESENCE_HEARTBEAT_INTERVAL_MS);
+  session.heartbeat.unref?.();
 };
 
 export const isRecompilationRunning = (ref: RecompilationRef) =>
