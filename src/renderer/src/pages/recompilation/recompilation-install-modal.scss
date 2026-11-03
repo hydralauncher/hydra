@@ -135,9 +135,16 @@
     padding-right: 4px;
   }
 
+  // The list's own gap already separates the filters from the rows.
+  .repacks-modal__filter-top {
+    margin-bottom: 0;
+  }
+
   .repacks-modal__repack-button {
     flex-shrink: 0;
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    // Room on the right for the availability orb.
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 4)
+      calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
   }
 
   &__empty {

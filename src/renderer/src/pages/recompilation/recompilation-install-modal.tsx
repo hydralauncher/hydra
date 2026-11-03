@@ -15,8 +15,8 @@ import {
   gameDetailsContext,
   GameDetailsContextProvider,
 } from "@renderer/context";
-import { useAppSelector, useToast } from "@renderer/hooks";
-import { RomSourceList } from "./rom-source-list";
+import { useToast } from "@renderer/hooks";
+import { RomSourcesPanel } from "./rom-source-list";
 import type { RecompilationInstall } from "./use-recompilation-install";
 import type { RecompilationRom } from "./use-recompilation-rom";
 import "@renderer/components/setup-modal/setup-modal.scss";
@@ -89,9 +89,6 @@ function InstallModalContent({
   const { t, i18n } = useTranslation("recompilation");
   const { showErrorToast } = useToast();
   const { repacks } = useContext(gameDetailsContext);
-  const userPreferences = useAppSelector(
-    (state) => state.userPreferences.value
-  );
 
   const romState = rom.state;
   // Set when a source is picked, until the download reports back, so the
@@ -126,16 +123,7 @@ function InstallModalContent({
   );
   // The library ROM is offered first; "Change" goes back to the choices.
   const [skipLibrary, setSkipLibrary] = useState(false);
-  const [downloadPath, setDownloadPath] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (userPreferences?.downloadsPath) {
-      setDownloadPath(userPreferences.downloadsPath);
-      return;
-    }
-    void window.electron.getDefaultDownloadsPath().then(setDownloadPath);
-  }, [userPreferences?.downloadsPath]);
 
   const { state, progress } = install;
   const isInstalled = state?.installed === true;
@@ -179,15 +167,6 @@ function InstallModalContent({
       return;
     }
     setStep("done");
-  };
-
-  const changeDownloadPath = async () => {
-    const { filePaths } = await window.electron.showOpenDialog({
-      defaultPath: downloadPath,
-      properties: ["openDirectory"],
-    });
-    const [folder] = filePaths ?? [];
-    if (folder) setDownloadPath(folder);
   };
 
   const play = async () => {
@@ -329,26 +308,9 @@ function InstallModalContent({
   const renderSourcesStep = () => (
     <>
       <h3 className="setup-modal__body-title">{t("rom_choice_download")}</h3>
-      <div className="recompilation-install__location">
-        <span className="recompilation-install__choice-text">
-          <span className="recompilation-install__choice-info">
-            {t("rom_download_to")}
-          </span>
-          <span
-            className="recompilation-install__location-path"
-            title={downloadPath}
-          >
-            {downloadPath}
-          </span>
-        </span>
-        <Button theme="outline" onClick={changeDownloadPath}>
-          {t("rom_change_folder")}
-        </Button>
-      </div>
-      <RomSourceList
+      <RomSourcesPanel
         objectId={details.game.objectId}
         gameTitle={details.game.title}
-        downloadPath={downloadPath}
         onStarted={() => {
           // The new download becomes the library ROM: show it when it lands,
           // even if "Change" hid the previous one.

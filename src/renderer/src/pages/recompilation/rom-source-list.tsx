@@ -1,10 +1,13 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { orderBy } from "lodash-es";
-import type { GameRepack } from "@types";
+import { ChevronDownIcon, ChevronUpIcon } from "@primer/octicons-react";
+import { Tooltip } from "react-tooltip";
+import type { DownloadSource, GameRepack } from "@types";
 import { getDownloadersForUri, getRepackUriParts } from "@shared";
 
 import { Button } from "@renderer/components/button/button";
+import { CheckboxField } from "@renderer/components/checkbox-field/checkbox-field";
 import { TextField } from "@renderer/components/text-field/text-field";
 import { gameDetailsContext } from "@renderer/context";
 import {
@@ -13,11 +16,14 @@ import {
   useDownload,
   useToast,
 } from "@renderer/hooks";
+import { levelDBService } from "@renderer/services/leveldb.service";
+import { getRepackAvailabilityStatus } from "../game-details/modals/repack-availability";
 import {
   getDefaultDownloader,
   useDownloadOptions,
 } from "../game-details/modals/use-download-options";
 import "../game-details/modals/repacks-modal.scss";
+import "./recompilation-install-modal.scss";
 
 interface RomSourceListProps {
   objectId: string;
@@ -34,8 +40,11 @@ function RomSourceRow({
   onStarted,
 }: Readonly<RomSourceListProps & { repack: GameRepack }>) {
   const { t } = useTranslation("recompilation");
+  const { t: tGame } = useTranslation("game_details");
   const { formatDate } = useDate();
   const { startDownload } = useDownload();
+  const availability = getRepackAvailabilityStatus(repack);
+  const tooltipId = `rom-source-orb-${repack.id}`;
   const { showErrorToast } = useToast();
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -92,6 +101,12 @@ function RomSourceRow({
       onClick={start}
       disabled={!downloadPath || isStarting}
     >
+      <span
+        className={`repacks-modal__availability-orb repacks-modal__availability-orb--${availability}`}
+        data-tooltip-id={tooltipId}
+        data-tooltip-content={tGame(`source_${availability}`)}
+      />
+      <Tooltip id={tooltipId} />
       <p className="repacks-modal__repack-title">{repack.title}</p>
       <p className="repacks-modal__repack-info">
         {repack.fileSize} - {repack.downloadSourceName} -{" "}
@@ -108,17 +123,58 @@ function RomSourceRow({
 export function RomSourceList(props: Readonly<RomSourceListProps>) {
   const { t } = useTranslation("recompilation");
   const { repacks, isLoading } = useContext(gameDetailsContext);
+  const { t: tGame } = useTranslation("game_details");
   const [filter, setFilter] = useState("");
+  const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
+  const [selectedFingerprints, setSelectedFingerprints] = useState<string[]>(
+    []
+  );
+  const [isSourceFilterOpen, setIsSourceFilterOpen] = useState(false);
 
+  useEffect(() => {
+    void levelDBService
+      .values("downloadSources")
+      .then((sources) =>
+        setDownloadSources(
+          orderBy(sources as DownloadSource[], "createdAt", "desc")
+        )
+      );
+  }, []);
+
+  // Same filters as the game page's "Download options": text, then sources.
   const visibleRepacks = useMemo(() => {
     const term = filter.trim().toLowerCase();
+    const selectedNames = new Set(
+      downloadSources
+        .filter(
+          (source) =>
+            source.fingerprint &&
+            selectedFingerprints.includes(source.fingerprint)
+        )
+        .map((source) => source.name)
+    );
+
     return orderBy(repacks, [(repack) => repack.uploadDate], ["desc"]).filter(
       (repack) =>
-        !term ||
-        repack.title.toLowerCase().includes(term) ||
-        repack.downloadSourceName.toLowerCase().includes(term)
+        (!term ||
+          repack.title.toLowerCase().includes(term) ||
+          repack.downloadSourceName.toLowerCase().includes(term)) &&
+        (selectedFingerprints.length === 0 ||
+          selectedNames.has(repack.downloadSourceName))
     );
-  }, [repacks, filter]);
+  }, [repacks, filter, downloadSources, selectedFingerprints]);
+
+  const toggleFingerprint = (fingerprint: string) =>
+    setSelectedFingerprints((previous) =>
+      previous.includes(fingerprint)
+        ? previous.filter((value) => value !== fingerprint)
+        : [...previous, fingerprint]
+    );
+
+  const filterableSources = downloadSources.filter(
+    (source): source is DownloadSource & { fingerprint: string } =>
+      source.fingerprint !== undefined
+  );
 
   if (!isLoading && repacks.length === 0) {
     return <p className="rom-source-list__empty">{t("rom_no_sources")}</p>;
@@ -126,16 +182,109 @@ export function RomSourceList(props: Readonly<RomSourceListProps>) {
 
   return (
     <div className="rom-source-list">
-      <TextField
-        placeholder={t("rom_filter_sources")}
-        value={filter}
-        onChange={(event) => setFilter(event.target.value)}
-      />
+      <div className="repacks-modal__filter-top">
+        <TextField
+          placeholder={t("rom_filter_sources")}
+          value={filter}
+          onChange={(event) => setFilter(event.target.value)}
+        />
+        {filterableSources.length > 0 && (
+          <Button
+            type="button"
+            theme="outline"
+            className="repacks-modal__filter-toggle"
+            onClick={() => setIsSourceFilterOpen((open) => !open)}
+          >
+            {tGame("filter_by_source")}
+            {isSourceFilterOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+          </Button>
+        )}
+      </div>
+
+      {isSourceFilterOpen && (
+        <div className="repacks-modal__source-grid">
+          {filterableSources.map((source) => {
+            const label = source.name || source.url;
+            return (
+              <div
+                key={source.fingerprint}
+                className="repacks-modal__source-item"
+              >
+                <CheckboxField
+                  label={label.length > 16 ? `${label.slice(0, 16)}...` : label}
+                  checked={selectedFingerprints.includes(source.fingerprint)}
+                  onChange={() => toggleFingerprint(source.fingerprint)}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="repacks-modal__repacks">
         {visibleRepacks.map((repack) => (
           <RomSourceRow key={repack.id} repack={repack} {...props} />
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * "Download to" with a folder picker, then the source list. Used by the
+ * install modal and by the "See download options" modal.
+ */
+export function RomSourcesPanel({
+  objectId,
+  gameTitle,
+  onStarted,
+}: Readonly<Omit<RomSourceListProps, "downloadPath">>) {
+  const { t } = useTranslation("recompilation");
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+  const [downloadPath, setDownloadPath] = useState("");
+
+  useEffect(() => {
+    if (userPreferences?.downloadsPath) {
+      setDownloadPath(userPreferences.downloadsPath);
+      return;
+    }
+    void window.electron.getDefaultDownloadsPath().then(setDownloadPath);
+  }, [userPreferences?.downloadsPath]);
+
+  const changeDownloadPath = async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      defaultPath: downloadPath,
+      properties: ["openDirectory"],
+    });
+    const [folder] = filePaths ?? [];
+    if (folder) setDownloadPath(folder);
+  };
+
+  return (
+    <>
+      <div className="recompilation-install__location">
+        <span className="recompilation-install__choice-text">
+          <span className="recompilation-install__choice-info">
+            {t("rom_download_to")}
+          </span>
+          <span
+            className="recompilation-install__location-path"
+            title={downloadPath}
+          >
+            {downloadPath}
+          </span>
+        </span>
+        <Button theme="outline" onClick={changeDownloadPath}>
+          {t("rom_change_folder")}
+        </Button>
+      </div>
+      <RomSourceList
+        objectId={objectId}
+        gameTitle={gameTitle}
+        downloadPath={downloadPath}
+        onStarted={onStarted}
+      />
+    </>
   );
 }

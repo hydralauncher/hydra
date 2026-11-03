@@ -1,9 +1,10 @@
-import type { GameRepack } from "@types";
-import { Downloader, getDownloadersForUri, getRepackUriParts } from "@shared";
+import { useTranslation } from "react-i18next";
 
+import { Modal } from "@renderer/components/modal/modal";
 import { GameDetailsContextProvider } from "@renderer/context";
-import { useDownload } from "@renderer/hooks";
-import { RepacksModal } from "../game-details/modals";
+import { RomSourcesPanel } from "./rom-source-list";
+import "@renderer/components/setup-modal/setup-modal.scss";
+import "./recompilation-install-modal.scss";
 
 interface RomDownloadModalProps {
   visible: boolean;
@@ -14,8 +15,8 @@ interface RomDownloadModalProps {
 }
 
 /**
- * The base game's "Download options", the same modal as on the game page,
- * for getting a port's ROM.
+ * The base game's download options for a port's ROM, the same list as the
+ * install modal's "Download with Hydra" step.
  */
 export function RomDownloadModal({
   visible,
@@ -24,59 +25,38 @@ export function RomDownloadModal({
   onStarted,
   onClose,
 }: Readonly<RomDownloadModalProps>) {
-  const { startDownload } = useDownload();
-
-  if (!visible) return null;
-
-  const handleStartDownload = async (
-    repack: GameRepack,
-    downloader: Downloader,
-    downloadPath: string,
-    automaticallyExtract: boolean,
-    addToQueueOnly = false,
-    fileIndices?: number[],
-    selectedFilesSize?: number | null,
-    automaticallyDeleteArchiveFiles = false,
-    signal?: AbortSignal
-  ) => {
-    const uri = repack.uris.find((candidate) =>
-      getDownloadersForUri(candidate).includes(downloader)
-    )!;
-    const payload = {
-      objectId,
-      title: gameTitle,
-      downloader,
-      shop: "launchbox" as const,
-      downloadPath,
-      uri,
-      parts: getRepackUriParts(repack, uri),
-      automaticallyExtract,
-      automaticallyDeleteArchiveFiles,
-      fileSize: repack.fileSize,
-      fileIndices,
-      selectedFilesSize,
-    };
-
-    const response = addToQueueOnly
-      ? await window.electron.addGameToQueue(payload)
-      : await startDownload(payload, signal);
-
-    if (response.ok) onStarted();
-    return response;
-  };
+  const { t } = useTranslation("recompilation");
 
   return (
-    <GameDetailsContextProvider
-      objectId={objectId}
-      gameTitle={gameTitle}
-      shop="launchbox"
-      syncHeaderTitle={false}
+    <Modal
+      visible={visible}
+      title={
+        <div className="setup-modal__header">
+          <h2 className="setup-modal__header-title">
+            {t("rom_choice_download")}
+          </h2>
+        </div>
+      }
+      onClose={onClose}
     >
-      <RepacksModal
-        visible
-        startDownload={handleStartDownload}
-        onClose={onClose}
-      />
-    </GameDetailsContextProvider>
+      {visible && (
+        <GameDetailsContextProvider
+          objectId={objectId}
+          gameTitle={gameTitle}
+          shop="launchbox"
+          syncHeaderTitle={false}
+        >
+          <div className="setup-modal recompilation-install">
+            <div className="setup-modal__body">
+              <RomSourcesPanel
+                objectId={objectId}
+                gameTitle={gameTitle}
+                onStarted={onStarted}
+              />
+            </div>
+          </div>
+        </GameDetailsContextProvider>
+      )}
+    </Modal>
   );
 }
