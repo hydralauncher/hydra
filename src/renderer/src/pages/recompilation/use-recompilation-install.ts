@@ -8,9 +8,12 @@ export interface RecompilationInstall {
   state: RecompilationInstallState | null;
   progress: RecompilationInstallProgress | null;
   isBusy: boolean;
+  /** True while this port is open. */
+  isRunning: boolean;
   install: () => Promise<boolean>;
   uninstall: () => Promise<boolean>;
   play: () => Promise<boolean>;
+  close: () => Promise<boolean>;
   openFolder: () => Promise<void>;
 }
 
@@ -26,6 +29,30 @@ export function useRecompilationInstall(
   const [progress, setProgress] = useState<RecompilationInstallProgress | null>(
     null
   );
+  const [isRunning, setIsRunning] = useState(false);
+
+  // A running port shows in the games running as its base game, tagged with
+  // its slug.
+  useEffect(() => {
+    const gameId = `launchbox:${objectId}`;
+    const update = (
+      gamesRunning: { id: string; recompilationSlug?: string }[]
+    ) => {
+      setIsRunning(
+        gamesRunning.some(
+          (gameRunning) =>
+            gameRunning.id === gameId && gameRunning.recompilationSlug === slug
+        )
+      );
+    };
+
+    setIsRunning(false);
+    window.electron
+      .getGamesRunning()
+      .then(update)
+      .catch(() => {});
+    return window.electron.onGamesRunning(update);
+  }, [objectId, slug]);
 
   const refresh = useCallback(async () => {
     const next = await window.electron.getRecompilationInstallState({
@@ -73,6 +100,15 @@ export function useRecompilationInstall(
 
   const play = useCallback(async () => {
     const result = await window.electron.playRecompilation({ objectId, slug });
+    // A save conflict opens on the page instead of starting: not a failure.
+    return result.ok || result.reason === "cloud_save_conflict";
+  }, [objectId, slug]);
+
+  const close = useCallback(async () => {
+    const result = await window.electron.closeRecompilation({
+      objectId,
+      slug,
+    });
     return result.ok;
   }, [objectId, slug]);
 
@@ -85,5 +121,15 @@ export function useRecompilationInstall(
     progress?.phase === "downloading" ||
     progress?.phase === "extracting";
 
-  return { state, progress, isBusy, install, uninstall, play, openFolder };
+  return {
+    state,
+    progress,
+    isBusy,
+    isRunning,
+    install,
+    uninstall,
+    play,
+    close,
+    openFolder,
+  };
 }

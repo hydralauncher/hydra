@@ -35,6 +35,7 @@ import {
   markRecompilationRomLaunched,
   prepareRecompilationRom,
 } from "./recompilation-rom";
+import recompilationSaves from "./recompilation-saves.json";
 
 const INSTALL_MARKER_FILE = ".hydra-recompilation.json";
 const EXECUTABLE_SCAN_DEPTH = 3;
@@ -240,6 +241,7 @@ export const getRecompilationInstallState = async (
     version: installed ? marker.version : null,
     installPath: installed ? installDirectory : null,
     executablePath: installed ? marker.executablePath : null,
+    hasCloudSaves: Object.hasOwn(recompilationSaves, ref.slug),
   };
 };
 
@@ -407,8 +409,23 @@ export const playRecompilation = async (
     return { ok: false, reason: "no_executable" };
   }
 
+  // Loaded on demand: the session pulls in the cloud save services, which
+  // read port installs back through this module.
+  const {
+    isRecompilationRunning,
+    prepareRecompilationCloudSave,
+    startRecompilationSession,
+  } = await import("./recompilation-session");
+  if (isRecompilationRunning(ref)) return { ok: false, reason: "running" };
+
   const launch = await prepareRecompilationRom(ref, state.installPath);
   if (!launch.ok) return { ok: false, reason: launch.reason };
+
+  // Restore the cloud save first. A conflict sends the user to the port's
+  // page to pick a side, so the port does not start.
+  if (!(await prepareRecompilationCloudSave(ref))) {
+    return { ok: false, reason: "cloud_save_conflict" };
+  }
 
   return new Promise((resolve) => {
     const child = spawn(state.executablePath!, launch.args, {
@@ -421,6 +438,7 @@ export const playRecompilation = async (
     child.once("spawn", () => {
       child.unref();
       void markRecompilationRomLaunched(state.installPath!);
+      void startRecompilationSession(ref, child);
       resolve({ ok: true });
     });
     child.once("error", (error) => {

@@ -3436,6 +3436,7 @@
     "size_of_total": "{{loaded}} of {{total}}",
     "install_failed": "Couldn't install. Try again.",
     "play_failed": "Couldn't open the game.",
+    "close_failed": "Couldn't close the game.",
     "uninstall_failed": "Couldn't uninstall.",
     "uninstall_title": "Uninstall {{name}}?",
     "uninstall_description": "The project folder will be deleted, including any saves and mods inside it.",

@@ -161,6 +161,11 @@ export interface GameRunning {
   objectId: string;
   shop: GameShop;
   sessionDurationInMillis: number;
+  /**
+   * Set when this is a recompilation running as the game: it counts as
+   * playing the game, but the game's own buttons don't open or close it.
+   */
+  recompilationSlug?: string;
 }
 
 export interface Steam250Game {

@@ -1,6 +1,7 @@
 import type { GameShop, RetroArchPlatform } from "@types";
 
 import { platformToRetroArchPlatform } from "./retroarch-platform.js";
+import { parseRecompilationCloudSaveObjectId } from "./recompilations.js";
 
 export type CloudSaveEmulatorProvider = "rpcs3" | "retroarch";
 
@@ -57,8 +58,11 @@ export const hasCloudSaveExecutableSelection = (game: {
 
 export const isCloudSaveV2Eligible = (
   shop: GameShop,
-  platform?: string | null
+  platform?: string | null,
+  objectId?: string
 ) =>
   shop === "steam" ||
   shop === "epic" ||
-  getCloudSaveEmulatorProvider(shop, platform) !== null;
+  getCloudSaveEmulatorProvider(shop, platform) !== null ||
+  (objectId !== undefined &&
+    parseRecompilationCloudSaveObjectId(shop, objectId) !== null);

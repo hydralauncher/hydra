@@ -7,11 +7,15 @@ import type {
   RecompilationReadme,
   RecompilationRelease,
 } from "@types";
-import { pickRecompilationInstallAsset } from "@shared";
+import {
+  pickRecompilationInstallAsset,
+  toRecompilationCloudSaveObjectId,
+} from "@shared";
 
 import { useAppDispatch, useUserDetails } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { logger } from "@renderer/logger";
+import { CloudSaveV2Provider } from "../game-details/cloud-save-v2";
 import { GameReviews } from "../game-details/game-reviews";
 import { useUserReviewStatus } from "../game-details/use-user-review-status";
 import { RecompilationHero } from "./recompilation-hero";
@@ -142,6 +146,36 @@ export default function RecompilationPage() {
     [latestRelease]
   );
 
+  // Ports are not in the library, so cloud save gets a game built from the
+  // install, under the port's own key.
+  const cloudSaveObjectId = toRecompilationCloudSaveObjectId(objectId, slug);
+  const installState = install.state;
+  const cloudSaveGame = useMemo<LibraryGame | null>(() => {
+    if (
+      !details ||
+      !installState?.installed ||
+      !installState.hasCloudSaves ||
+      !installState.executablePath
+    ) {
+      return null;
+    }
+    return {
+      id: `launchbox:${cloudSaveObjectId}`,
+      shop: "launchbox",
+      objectId: cloudSaveObjectId,
+      title: details.game.title,
+      iconUrl: details.iconUrl ?? null,
+      libraryHeroImageUrl: details.game.libraryHeroImageUrl ?? null,
+      logoImageUrl: null,
+      playTimeInMilliseconds: 0,
+      lastTimePlayed: null,
+      remoteId: null,
+      isDeleted: false,
+      executablePath: installState.executablePath,
+      download: null,
+    };
+  }, [details, installState, cloudSaveObjectId]);
+
   const { hasUserReviewed, isCheckingUserReview, updateHasUserReviewed } =
     useUserReviewStatus({
       shop: "launchbox",
@@ -168,79 +202,87 @@ export default function RecompilationPage() {
   };
 
   return (
-    <div className="recompilation-page">
-      <RecompilationHero
-        details={details}
-        installAsset={installAsset}
-        install={install}
-        rom={rom}
-        onOpenInstall={() => setIsInstallOpen(true)}
-        onDownloadRom={() => setIsRomDownloadOpen(true)}
-      />
-
-      <RecompilationInstallModal
-        visible={isInstallOpen && rom.state?.handlesRom === true}
-        details={details}
-        install={install}
-        rom={rom}
-        onClose={() => setIsInstallOpen(false)}
-      />
-
-      <RomDownloadModal
-        visible={isRomDownloadOpen}
-        objectId={objectId}
-        gameTitle={details.game.title}
-        onStarted={() => setIsRomDownloadOpen(false)}
-        onClose={() => setIsRomDownloadOpen(false)}
-      />
-
-      <div className="recompilation-page__body">
-        <RecompilationTabBar
-          tabs={[
-            { id: "about", label: t("tab_about") },
-            { id: "news", label: t("tab_news") },
-          ]}
-          activeTab={activeTab}
-          onChange={setActiveTab}
-        />
-      </div>
-
-      <div className="game-details__description-container">
-        {/* Keyed by tab, so any tab, current or future, fades in on switch. */}
-        <div
-          key={activeTab}
-          className="game-details__description-content recompilation-page__tab-content"
-        >
-          {activeTab === "about" && (
-            <>
-              <RecompilationReadmeSection details={details} readme={readme} />
-              <GameReviews
-                shop="launchbox"
-                objectId={objectId}
-                game={game}
-                userDetailsId={userDetails?.id}
-                hasUserReviewed={hasUserReviewed}
-                isCheckingUserReview={isCheckingUserReview}
-                onUserReviewedChange={updateHasUserReviewed}
-                recompilationSlug={slug}
-              />
-            </>
-          )}
-
-          {activeTab === "news" && (
-            <RecompilationNewsTab details={details} releases={releases} />
-          )}
-        </div>
-
-        <RecompilationSidebar
+    <CloudSaveV2Provider
+      objectId={cloudSaveObjectId}
+      shop="launchbox"
+      game={cloudSaveGame}
+      isGameRunning={install.isRunning}
+    >
+      <div className="recompilation-page">
+        <RecompilationHero
           details={details}
+          hasCloudSave={cloudSaveGame !== null}
           installAsset={installAsset}
           install={install}
           rom={rom}
-          releases={releases}
-          onSelectRelease={selectRelease}
+          onOpenInstall={() => setIsInstallOpen(true)}
+          onDownloadRom={() => setIsRomDownloadOpen(true)}
         />
+
+        <RecompilationInstallModal
+          visible={isInstallOpen && rom.state?.handlesRom === true}
+          details={details}
+          install={install}
+          rom={rom}
+          onClose={() => setIsInstallOpen(false)}
+        />
+
+        <RomDownloadModal
+          visible={isRomDownloadOpen}
+          objectId={objectId}
+          gameTitle={details.game.title}
+          onStarted={() => setIsRomDownloadOpen(false)}
+          onClose={() => setIsRomDownloadOpen(false)}
+        />
+
+        <div className="recompilation-page__body">
+          <RecompilationTabBar
+            tabs={[
+              { id: "about", label: t("tab_about") },
+              { id: "news", label: t("tab_news") },
+            ]}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+          />
+        </div>
+
+        <div className="game-details__description-container">
+          {/* Keyed by tab, so any tab, current or future, fades in on switch. */}
+          <div
+            key={activeTab}
+            className="game-details__description-content recompilation-page__tab-content"
+          >
+            {activeTab === "about" && (
+              <>
+                <RecompilationReadmeSection details={details} readme={readme} />
+                <GameReviews
+                  shop="launchbox"
+                  objectId={objectId}
+                  game={game}
+                  userDetailsId={userDetails?.id}
+                  hasUserReviewed={hasUserReviewed}
+                  isCheckingUserReview={isCheckingUserReview}
+                  onUserReviewedChange={updateHasUserReviewed}
+                  recompilationSlug={slug}
+                />
+              </>
+            )}
+
+            {activeTab === "news" && (
+              <RecompilationNewsTab details={details} releases={releases} />
+            )}
+          </div>
+
+          <RecompilationSidebar
+            details={details}
+            installAsset={installAsset}
+            install={install}
+            rom={rom}
+            releases={releases}
+            onSelectRelease={selectRelease}
+          />
+        </div>
       </div>
-    </div>
+    </CloudSaveV2Provider>
   );
 }

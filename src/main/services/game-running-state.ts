@@ -125,9 +125,43 @@ export const deleteEmulatorGameRunning = (gameKey: string) => {
   if (emulatorGamesRunning.delete(gameKey)) notifyTrackedGamesRunningChange();
 };
 
+/**
+ * Games Hydra started outside the process watcher and the emulator tracker
+ * (a recompilation counts as playing its base game), with their start time,
+ * so they show up in the running list sent to the app.
+ */
+/** Running recompilations, by the port's key; each plays its base game. */
+export const recompilationGameSessions = new Map<
+  string,
+  { gameKey: string; recompilationSlug: string; startedAt: number }
+>();
+
+export const setRecompilationGameRunning = (
+  portKey: string,
+  gameKey: string,
+  recompilationSlug: string
+) => {
+  recompilationGameSessions.set(portKey, {
+    gameKey,
+    recompilationSlug,
+    startedAt: performance.now(),
+  });
+  setEmulatorGameRunning(gameKey);
+};
+
+export const deleteRecompilationGameRunning = (portKey: string) => {
+  const session = recompilationGameSessions.get(portKey);
+  if (!session) return;
+  recompilationGameSessions.delete(portKey);
+  deleteEmulatorGameRunning(session.gameKey);
+};
+
 export const getTrackedGamesRunning = (now = performance.now()) =>
   Array.from(gamesPlaytime.entries()).map(
-    ([id, session]): Pick<GameRunning, "id" | "sessionDurationInMillis"> => ({
+    ([id, session]): Pick<
+      GameRunning,
+      "id" | "sessionDurationInMillis" | "recompilationSlug"
+    > => ({
       id,
       sessionDurationInMillis: now - session.firstTick,
     })

@@ -57,6 +57,7 @@ import {
   gamesPlaytime,
   getGamePlaytimeDeltas,
   getTrackedGamesRunning,
+  recompilationGameSessions,
   setGamePlaytime,
 } from "./game-running-state";
 import {
@@ -145,6 +146,14 @@ export const getGamesRunning = () => {
     gamesRunning.push({
       id: gameKey,
       sessionDurationInMillis: now - session.startedAt,
+    });
+  }
+
+  for (const session of recompilationGameSessions.values()) {
+    gamesRunning.push({
+      id: session.gameKey,
+      sessionDurationInMillis: now - session.startedAt,
+      recompilationSlug: session.recompilationSlug,
     });
   }
 

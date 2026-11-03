@@ -3449,6 +3449,7 @@
     "size_of_total": "{{loaded}} de {{total}}",
     "install_failed": "Não foi possível instalar. Tente de novo.",
     "play_failed": "Não foi possível abrir o jogo.",
+    "close_failed": "Não foi possível fechar o jogo.",
     "uninstall_failed": "Não foi possível desinstalar.",
     "uninstall_title": "Desinstalar {{name}}?",
     "uninstall_description": "A pasta do projeto vai ser apagada, incluindo saves e mods que estiverem dentro dela.",

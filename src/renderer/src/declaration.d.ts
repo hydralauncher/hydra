@@ -624,11 +624,17 @@ declare global {
       objectId: string
     ) => Promise<number>;
     getGamesRunning: () => Promise<
-      Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+      Pick<
+        GameRunning,
+        "id" | "sessionDurationInMillis" | "recompilationSlug"
+      >[]
     >;
     onGamesRunning: (
       cb: (
-        gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+        gamesRunning: Pick<
+          GameRunning,
+          "id" | "sessionDurationInMillis" | "recompilationSlug"
+        >[]
       ) => void
     ) => () => Electron.IpcRenderer;
     onGameSessionSynced: (cb: () => void) => () => Electron.IpcRenderer;
@@ -796,6 +802,9 @@ declare global {
       ref: RecompilationRef
     ) => Promise<RecompilationActionResult>;
     playRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    closeRecompilation: (
       ref: RecompilationRef
     ) => Promise<RecompilationActionResult>;
     getRecompilationRomState: (

@@ -28,7 +28,7 @@ function RecompilationRow({
 }: Readonly<RecompilationRowProps>) {
   const { t } = useTranslation("recompilation");
   const navigate = useNavigate();
-  const { state, progress, play } = useRecompilationInstall(
+  const { state, progress, isRunning, play, close } = useRecompilationInstall(
     objectId,
     recompilation.slug
   );
@@ -58,7 +58,9 @@ function RecompilationRow({
     label: t("play"),
     onClick: () => void play(),
   };
-  if (hasUpdate) {
+  if (isRunning) {
+    action = { label: t("close"), onClick: () => void close() };
+  } else if (hasUpdate) {
     action = { label: t("update"), onClick: openPage };
   } else if (isMissingRom) {
     action = {
@@ -123,7 +125,7 @@ function RecompilationRow({
 
       {state?.installed && !isDownloading && !isExtracting && (
         <Button
-          theme={hasUpdate ? "outline" : "primary"}
+          theme={hasUpdate || isRunning ? "outline" : "primary"}
           className="recompilations-section__action"
           onClick={action.onClick}
         >

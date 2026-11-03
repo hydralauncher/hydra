@@ -8,7 +8,7 @@ import {
   SyncIcon,
   TrashIcon,
 } from "@primer/octicons-react";
-import { Disc3 } from "lucide-react";
+import { Disc3, XCircle } from "lucide-react";
 import type { RecompilationDetails, RecompilationReleaseAsset } from "@types";
 import { formatBytes } from "@shared";
 
@@ -17,15 +17,19 @@ import { ConfirmationModal } from "@renderer/components/confirmation-modal/confi
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { InstallProgressBar } from "@renderer/components/setup-modal/install-progress-bar";
 import { useToast } from "@renderer/hooks";
+import { CloudSaveWidget } from "../game-details/cloud-save-v2";
 import type { RecompilationInstall } from "./use-recompilation-install";
 import type { RecompilationRom } from "./use-recompilation-rom";
 import "@renderer/components/setup-modal/setup-modal.scss";
+import "../game-details/hero.scss";
 
 interface RecompilationHeroProps {
   details: RecompilationDetails;
   installAsset: RecompilationReleaseAsset | null;
   install: RecompilationInstall;
   rom: RecompilationRom;
+  /** Shows the cloud save widget, for an installed port Hydra has saves for. */
+  hasCloudSave: boolean;
   /** Opens the install modal on step 1 (install) or 2 (ROM). */
   onOpenInstall: () => void;
   /** Opens the base game download options, for ports Hydra cannot hand a ROM to. */
@@ -37,6 +41,7 @@ export function RecompilationHero({
   installAsset,
   install,
   rom,
+  hasCloudSave,
   onOpenInstall,
   onDownloadRom,
 }: Readonly<RecompilationHeroProps>) {
@@ -65,6 +70,11 @@ export function RecompilationHero({
   const runPlay = async () => {
     const ok = await install.play();
     if (!ok) showErrorToast(t("play_failed"));
+  };
+
+  const runClose = async () => {
+    const ok = await install.close();
+    if (!ok) showErrorToast(t("close_failed"));
   };
 
   const runUninstall = async () => {
@@ -126,13 +136,13 @@ export function RecompilationHero({
 
     return (
       <>
-        {hasUpdate && (
+        {hasUpdate && !install.isRunning && (
           <Button onClick={runInstall}>
             <SyncIcon />
             {t("update")}
           </Button>
         )}
-        {needsRomChoice && (
+        {needsRomChoice && !install.isRunning && (
           <Button
             theme={hasUpdate ? "outline" : "primary"}
             onClick={onOpenInstall}
@@ -141,7 +151,7 @@ export function RecompilationHero({
             {t("choose_rom")}
           </Button>
         )}
-        {needsRomDownload && (
+        {needsRomDownload && !install.isRunning && (
           <Button
             theme={hasUpdate ? "outline" : "primary"}
             onClick={onDownloadRom}
@@ -150,7 +160,13 @@ export function RecompilationHero({
             {t("download_rom")}
           </Button>
         )}
-        {!needsRomChoice && !needsRomDownload && (
+        {install.isRunning && (
+          <Button theme="outline" onClick={runClose}>
+            <XCircle size={16} />
+            {t("close")}
+          </Button>
+        )}
+        {!install.isRunning && !needsRomChoice && !needsRomDownload && (
           <Button theme={hasUpdate ? "outline" : "primary"} onClick={runPlay}>
             <PlayIcon />
             {t("play")}
@@ -159,7 +175,7 @@ export function RecompilationHero({
         <DropdownMenu
           align="end"
           items={[
-            ...(needsRomDownload
+            ...(needsRomDownload && !install.isRunning
               ? [{ icon: <PlayIcon />, label: t("play"), onClick: runPlay }]
               : []),
             ...(handlesRom && !needsRomChoice
@@ -168,6 +184,7 @@ export function RecompilationHero({
                     icon: <Disc3 size={16} />,
                     label: t("change_rom"),
                     onClick: onOpenInstall,
+                    disabled: install.isRunning,
                   },
                 ]
               : []),
@@ -185,6 +202,7 @@ export function RecompilationHero({
               icon: <TrashIcon />,
               label: t("uninstall"),
               onClick: () => setIsUninstallOpen(true),
+              disabled: install.isRunning,
             },
           ]}
         >
@@ -226,6 +244,7 @@ export function RecompilationHero({
 
         <div className="recompilation-page__hero-actions">
           <div className="recompilation-page__hero-buttons">
+            {hasCloudSave && <CloudSaveWidget />}
             {renderPrimary()}
           </div>
         </div>

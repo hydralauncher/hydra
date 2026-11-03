@@ -56,11 +56,18 @@ export default function Downloads() {
   useEffect(() => {
     let cancelled = false;
 
-    const updateRunningGameIds = (gamesRunning: { id: string }[]) => {
+    const updateRunningGameIds = (
+      gamesRunning: { id: string; recompilationSlug?: string }[]
+    ) => {
       if (cancelled) return;
 
       setRunningGameIds((previous) => {
-        const next = new Set(gamesRunning.map((game) => game.id));
+        // A port playing the game doesn't make the game's download running.
+        const next = new Set(
+          gamesRunning
+            .filter((game) => !game.recompilationSlug)
+            .map((game) => game.id)
+        );
         const unchanged =
           previous !== null &&
           next.size === previous.size &&

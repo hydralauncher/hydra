@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type { RecompilationReleaseAsset } from "@types";
+import { isCloudSaveV2Eligible } from "./cloud-save-emulator-provider.js";
 import {
   isRecompilationAssetFromRepository,
+  parseRecompilationCloudSaveObjectId,
   pickRecompilationInstallAsset,
+  toCloudSaveApiGame,
+  toRecompilationCloudSaveObjectId,
 } from "./recompilations.js";
 
 const asset = (
@@ -69,5 +73,51 @@ describe("isRecompilationAssetFromRepository", () => {
         "v1.2.2"
       )
     );
+  });
+});
+
+describe("recompilation cloud save key", () => {
+  it("round-trips a port through its cloud save object id", () => {
+    const objectId = toRecompilationCloudSaveObjectId("167", "zelda64recomp");
+    assert.equal(objectId, "167:zelda64recomp");
+    assert.deepEqual(
+      parseRecompilationCloudSaveObjectId("launchbox", objectId),
+      {
+        objectId: "167",
+        slug: "zelda64recomp",
+      }
+    );
+  });
+
+  it("only reads ports from launchbox keys", () => {
+    assert.equal(
+      parseRecompilationCloudSaveObjectId("steam", "167:zelda"),
+      null
+    );
+    assert.equal(parseRecompilationCloudSaveObjectId("launchbox", "167"), null);
+    assert.equal(
+      parseRecompilationCloudSaveObjectId("launchbox", "abc:zelda"),
+      null
+    );
+  });
+
+  it("splits the port for the API and leaves other games alone", () => {
+    assert.deepEqual(toCloudSaveApiGame("launchbox", "167:zelda64recomp"), {
+      shop: "launchbox",
+      objectId: "167",
+      recompilationSlug: "zelda64recomp",
+    });
+    assert.deepEqual(toCloudSaveApiGame("launchbox", "167"), {
+      shop: "launchbox",
+      objectId: "167",
+    });
+  });
+
+  it("makes ports eligible for cloud save V2 without a platform", () => {
+    assert.equal(
+      isCloudSaveV2Eligible("launchbox", null, "167:zelda64recomp"),
+      true
+    );
+    assert.equal(isCloudSaveV2Eligible("launchbox", null, "167"), false);
   });
 });

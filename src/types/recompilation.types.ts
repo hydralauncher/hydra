@@ -134,6 +134,8 @@ export interface RecompilationInstallState {
   version: string | null;
   installPath: string | null;
   executablePath: string | null;
+  /** True when Hydra knows where this port keeps its saves. */
+  hasCloudSaves: boolean;
 }
 
 /**

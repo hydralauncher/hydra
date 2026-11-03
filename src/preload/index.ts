@@ -646,6 +646,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openRecompilationFolder", ref),
   playRecompilation: (ref: RecompilationRef) =>
     ipcRenderer.invoke("playRecompilation", ref),
+  closeRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("closeRecompilation", ref),
   getRecompilationRomState: (ref: RecompilationRef) =>
     ipcRenderer.invoke("getRecompilationRomState", ref),
   setRecompilationRom: (
@@ -1354,7 +1356,10 @@ contextBridge.exposeInMainWorld("electron", {
   getGamesRunning: () => ipcRenderer.invoke("getGamesRunning"),
   onGamesRunning: (
     cb: (
-      gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+      gamesRunning: Pick<
+        GameRunning,
+        "id" | "sessionDurationInMillis" | "recompilationSlug"
+      >[]
     ) => void
   ) => {
     const listener = (_event: Electron.IpcRendererEvent, gamesRunning) =>

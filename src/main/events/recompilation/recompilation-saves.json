@@ -1,0 +1,292 @@
+{
+  "shipwright": {
+    "saves": [
+      {
+        "path": "<base>/Save/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<xdgData>/soh/Save/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "linux"
+          }
+        ]
+      }
+    ]
+  },
+  "dusklight": {
+    "saves": [
+      {
+        "path": "<winAppData>/TwilitRealm/Dusklight/{USA,EUR,JAP}/Card A/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "windows"
+          }
+        ]
+      },
+      {
+        "path": "<xdgData>/TwilitRealm/Dusklight/{USA,EUR,JAP}/Card A/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "linux"
+          }
+        ]
+      }
+    ]
+  },
+  "zelda64recomp": {
+    "saves": [
+      {
+        "path": "<winLocalAppData>/Zelda64Recompiled/saves/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "windows"
+          }
+        ]
+      },
+      {
+        "path": "<home>/.config/Zelda64Recompiled/saves/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "linux"
+          }
+        ]
+      },
+      {
+        "path": "<base>/saves/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "super-mario-bros-remastered-public": {
+    "saves": [
+      {
+        "path": "<winAppData>/SMB1R/saves/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "windows"
+          }
+        ]
+      },
+      {
+        "path": "<winAppData>/SMB1R/achievements.sav",
+        "kind": "file",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "windows"
+          }
+        ]
+      },
+      {
+        "path": "<xdgData>/SMB1R/saves/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "linux"
+          }
+        ]
+      },
+      {
+        "path": "<xdgData>/SMB1R/achievements.sav",
+        "kind": "file",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "linux"
+          }
+        ]
+      }
+    ]
+  },
+  "spaghettikart": {
+    "saves": [
+      {
+        "path": "<base>/default.sav",
+        "kind": "file",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/controllerPak_*.sav",
+        "kind": "file",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "ghostship": {
+    "saves": [
+      {
+        "path": "<base>/saves/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "gen1recomp": {
+    "saves": [
+      {
+        "path": "<winAppData>/pokemon-love2d/saves/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "windows"
+          }
+        ]
+      },
+      {
+        "path": "<winAppData>/pokemon-love2d/box/storage.lua",
+        "kind": "file",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "windows"
+          }
+        ]
+      },
+      {
+        "path": "<xdgData>/pokemon-love2d/saves/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "linux"
+          }
+        ]
+      },
+      {
+        "path": "<xdgData>/pokemon-love2d/box/storage.lua",
+        "kind": "file",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "linux"
+          }
+        ]
+      },
+      {
+        "path": "<base>/saves/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/box/storage.lua",
+        "kind": "file",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "tenkaichi3decomp": {
+    "saves": [
+      {
+        "path": "<base>/saves/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "ico-pc": {
+    "saves": [
+      {
+        "path": "<winAppData>/ico-pc/ico-pc/memcard/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "windows"
+          }
+        ]
+      },
+      {
+        "path": "<winAppData>/ico-pc/ico-pc/memcard-preview/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "windows"
+          }
+        ]
+      },
+      {
+        "path": "<winAppData>/ico-pc/ico-pc/memcard2/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "windows"
+          }
+        ]
+      },
+      {
+        "path": "<xdgData>/ico-pc/ico-pc/memcard2/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "linux"
+          }
+        ]
+      },
+      {
+        "path": "<xdgData>/ico-pc/ico-pc/memcard/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "linux"
+          }
+        ]
+      },
+      {
+        "path": "<xdgData>/ico-pc/ico-pc/memcard-preview/",
+        "kind": "dir",
+        "tags": ["save"],
+        "when": [
+          {
+            "os": "linux"
+          }
+        ]
+      },
+      {
+        "path": "<base>/userdata/memcard/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/userdata/memcard-preview/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/userdata/memcard2/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "silent-hill-decomp": {
+    "saves": [
+      {
+        "path": "<base>/gamedata/save/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  }
+}
