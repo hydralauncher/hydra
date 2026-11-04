@@ -1,50 +1,29 @@
-@use "../../scss/globals.scss";
-
 .tested-medal {
-  --tested-medal-color: #{globals.$rank-gold-color};
-  --tested-medal-ribbon: #{globals.$rank-gold-ribbon};
-
   flex-shrink: 0;
 
-  &--silver {
-    --tested-medal-color: #{globals.$rank-silver-color};
-    --tested-medal-ribbon: #{globals.$rank-silver-ribbon};
-  }
-
-  &--bronze {
-    --tested-medal-color: #{globals.$rank-bronze-color};
-    --tested-medal-ribbon: #{globals.$rank-bronze-ribbon};
-  }
-
-  &--platinum {
-    --tested-medal-color: url(#tested-medal-platinum);
-    --tested-medal-ribbon: #{globals.$brand-teal};
-  }
-
-  &--untested {
-    --tested-medal-color: rgba(255, 255, 255, 0.25);
-    --tested-medal-ribbon: rgba(255, 255, 255, 0.15);
-  }
-
-  &__ribbon {
-    fill: var(--tested-medal-ribbon);
-  }
-
-  &__disc {
-    fill: var(--tested-medal-color);
-  }
-
-  &__rim {
-    fill: none;
-    stroke: rgba(0, 0, 0, 0.22);
-    stroke-width: 1;
+  &__inner {
+    stroke: rgba(0, 0, 0, 0.18);
+    stroke-width: 0.75;
   }
 
   &__mark {
     fill: none;
-    stroke: globals.$dark-background-color;
+    stroke: rgba(0, 0, 0, 0.72);
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
+  }
+
+  &__empty {
+    fill: rgba(255, 255, 255, 0.04);
+    stroke: rgba(255, 255, 255, 0.18);
+    stroke-width: 1;
+  }
+
+  &__dash {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.4);
+    stroke-width: 2;
+    stroke-linecap: round;
   }
 }

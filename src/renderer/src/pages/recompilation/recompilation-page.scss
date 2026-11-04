@@ -315,16 +315,17 @@
   &__features {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin: 0;
+    gap: 16px;
+    margin: 4px 0 0;
     padding: 0;
     list-style: none;
 
     li {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       font-size: 13px;
+      line-height: 18px;
       color: globals.$muted-color;
     }
   }
