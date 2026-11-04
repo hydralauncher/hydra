@@ -1,4 +1,5 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import { CheckIcon, ChevronRightIcon, PlayIcon } from "@primer/octicons-react";
 import type { RecompilationDetails, RecompilationReleaseAsset } from "@types";
@@ -52,18 +53,41 @@ function StatusLine({
   label,
   detail,
   progress,
+  isDone = false,
 }: Readonly<{
   label: string;
   detail?: string;
   progress?: InstallProgressLike;
+  isDone?: boolean;
 }>) {
+  const lastProgress = useRef(progress);
+  if (progress) lastProgress.current = progress;
+  const shownProgress = progress ?? lastProgress.current;
+
   return (
     <div className="recompilation-install__status">
       <div className="setup-modal__progress-meta">
-        <span className="setup-modal__progress-status">{label}</span>
+        <span className="setup-modal__progress-status recompilation-install__status-label">
+          {isDone ? (
+            <span className="recompilation-install__status-check">
+              <CheckIcon size={12} />
+            </span>
+          ) : (
+            <span className="recompilation-install__status-spinner" />
+          )}
+          {label}
+        </span>
         {detail && <span>{detail}</span>}
       </div>
-      {progress && <InstallProgressBar progress={progress} />}
+      <div
+        className={cn("recompilation-install__status-progress", {
+          "recompilation-install__status-progress--open": Boolean(progress),
+        })}
+      >
+        <div>
+          {shownProgress && <InstallProgressBar progress={shownProgress} />}
+        </div>
+      </div>
     </div>
   );
 }
@@ -94,7 +118,12 @@ function InstallModalContent({
   install,
   rom,
   onClose,
-}: Readonly<Omit<RecompilationInstallModalProps, "visible">>) {
+  onFreeSpaceChange,
+}: Readonly<
+  Omit<RecompilationInstallModalProps, "visible"> & {
+    onFreeSpaceChange: (freeSpace: number | null) => void;
+  }
+>) {
   const { t, i18n } = useTranslation("recompilation");
   const { showErrorToast } = useToast();
   const { repacks } = useContext(gameDetailsContext);
@@ -125,6 +154,7 @@ function InstallModalContent({
   const { state, progress } = install;
   const isInstalled = state?.installed === true;
   const { updateLibrary } = useLibrary();
+  const [hasSeenPortProgress, setHasSeenPortProgress] = useState(false);
 
   const [hasLocationStep] = useState(!isInstalled && !install.isBusy);
   const [step, setStep] = useState<InstallStep>(
@@ -173,6 +203,10 @@ function InstallModalContent({
   const hasEnoughSpace =
     freeSpace === null || !installAsset || freeSpace >= installAsset.size;
 
+  useEffect(() => {
+    onFreeSpaceChange(freeSpace);
+  }, [onFreeSpaceChange, freeSpace]);
+
   const pickParentDirectory = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
       defaultPath: parentDirectory || undefined,
@@ -203,6 +237,7 @@ function InstallModalContent({
     void addBaseGameToLibrary().catch(() => {});
     const result = await install.install(parentDirectory || undefined);
     if (!result.ok && result.reason !== "already_installing") {
+      setHasSeenPortProgress(false);
       showErrorToast(t(getInstallErrorKey(result.reason)));
     }
   };
@@ -273,12 +308,19 @@ function InstallModalContent({
     onClose();
   };
 
+  useEffect(() => {
+    if (progress?.phase === "downloading" || progress?.phase === "extracting") {
+      setHasSeenPortProgress(true);
+    }
+  }, [progress?.phase]);
+
   const renderPortStatus = () => {
     if (isInstalled && !install.isBusy) {
       return (
         <StatusLine
           label={t("install_port_installed")}
           detail={`v${state.version}`}
+          isDone
         />
       );
     }
@@ -307,6 +349,9 @@ function InstallModalContent({
           progress={progress}
         />
       );
+    }
+    if (hasSeenPortProgress && progress?.phase !== "error") {
+      return <StatusLine label={t("install_port_extracting")} />;
     }
     return null;
   };
@@ -349,9 +394,8 @@ function InstallModalContent({
       {details.romRequirement && (
         <p className="setup-modal__body-intro">
           {t("rom_needs")}{" "}
-          <strong className="recompilation-install__strong">
-            {details.romRequirement}
-          </strong>
+          <strong className="recompilation-install__strong">{romName}</strong>
+          {romDetails && ` (${romDetails})`}
         </p>
       )}
 
@@ -459,11 +503,6 @@ function InstallModalContent({
         readOnly
         disabled
         label={t("install_location_label")}
-        hint={
-          freeSpace !== null && hasEnoughSpace
-            ? t("install_free_space", { size: formatBytes(freeSpace) })
-            : undefined
-        }
         error={hasEnoughSpace ? undefined : t("install_not_enough_space")}
         rightContent={
           <Button theme="outline" onClick={pickParentDirectory}>
@@ -572,6 +611,7 @@ export function RecompilationInstallModal({
   onClose,
 }: Readonly<RecompilationInstallModalProps>) {
   const { t } = useTranslation("recompilation");
+  const [freeSpace, setFreeSpace] = useState<number | null>(null);
 
   return (
     <Modal
@@ -582,6 +622,11 @@ export function RecompilationInstallModal({
             {t("install_title", { name: details.name })}
           </h2>
         </div>
+      }
+      description={
+        freeSpace === null
+          ? undefined
+          : t("install_free_space", { size: formatBytes(freeSpace) })
       }
       onClose={onClose}
     >
@@ -598,6 +643,7 @@ export function RecompilationInstallModal({
             install={install}
             rom={rom}
             onClose={onClose}
+            onFreeSpaceChange={setFreeSpace}
           />
         </GameDetailsContextProvider>
       )}
