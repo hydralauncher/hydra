@@ -26,7 +26,8 @@
 
     .tested-medal {
       flex-shrink: 0;
-      margin-left: 0.5px;
+      position: relative;
+      top: 1px;
     }
   }
 
