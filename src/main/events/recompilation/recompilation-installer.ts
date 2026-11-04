@@ -101,14 +101,12 @@ const looksLikeLinuxExecutable = async (filePath: string) => {
 
 const isExecutableCandidate = async (filePath: string) => {
   const lower = filePath.toLowerCase();
-  if (process.platform === "win32") {
-    return (
-      lower.endsWith(".exe") &&
-      !/(unins|setup|install|crash|vc_?redist|dxsetup)/.test(
-        path.basename(lower)
-      )
-    );
+  if (
+    /(unins|setup|install|crash|vc_?redist|dxsetup)/.test(path.basename(lower))
+  ) {
+    return false;
   }
+  if (process.platform === "win32") return lower.endsWith(".exe");
   if (/\.(so(\.\d+)*|sh|txt|json|md)$/.test(lower)) return false;
   return looksLikeLinuxExecutable(filePath);
 };
@@ -182,13 +180,14 @@ const hashFile = (filePath: string) =>
   });
 
 const isExecutableInUse = async (executablePath: string | null) => {
-  if (process.platform !== "win32" || !executablePath) return false;
+  if (!executablePath) return false;
   try {
     const handle = await fs.promises.open(executablePath, "r+");
     await handle.close();
     return false;
   } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "EBUSY";
+    const { code } = error as NodeJS.ErrnoException;
+    return code === "EBUSY" || code === "ETXTBSY";
   }
 };
 
@@ -483,7 +482,12 @@ const launchRecompilation = async (
     prepareRecompilationCloudSave,
     startRecompilationSession,
   } = await loadSession();
-  if (isRecompilationRunning(ref)) return { ok: false, reason: "running" };
+  if (
+    isRecompilationRunning(ref) ||
+    (await isExecutableInUse(state.executablePath))
+  ) {
+    return { ok: false, reason: "running" };
+  }
 
   const launch = await prepareRecompilationRom(ref, state.installPath);
   if (!launch.ok) return { ok: false, reason: launch.reason };

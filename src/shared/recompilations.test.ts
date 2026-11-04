@@ -73,6 +73,33 @@ describe("isRecompilationAssetFromRepository", () => {
         "v1.2.2"
       )
     );
+    assert.ok(
+      !isRecompilationAssetFromRepository(
+        asset({
+          url: "https://github.com/Zelda64Recomp/Zelda64Recomp/releases/download/v1.2.2/../../../../Other/Repo/releases/download/v1/evil.zip",
+        }),
+        "Zelda64Recomp/Zelda64Recomp",
+        "v1.2.2"
+      )
+    );
+    assert.ok(
+      !isRecompilationAssetFromRepository(
+        asset({
+          url: "https://github.com/Zelda64Recomp/Zelda64Recomp/releases/download/v1.2.2/%2e%2e/%2e%2e/%2e%2e/%2e%2e/Other/Repo/releases/download/v1/evil.zip",
+        }),
+        "Zelda64Recomp/Zelda64Recomp",
+        "v1.2.2"
+      )
+    );
+    assert.ok(
+      isRecompilationAssetFromRepository(
+        asset({
+          url: "https://github.com/Zelda64Recomp/Zelda64Recomp/releases/download/release%2F1.0/Port.zip",
+        }),
+        "Zelda64Recomp/Zelda64Recomp",
+        "release/1.0"
+      )
+    );
   });
 });
 

@@ -597,6 +597,7 @@ export function CloudSaveV2Provider({
         overview,
         shop,
         platform: game?.platform,
+        objectId,
         canUseCloudSaves,
         hasExecutablePath,
         retroArchExecutableStatus,

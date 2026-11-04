@@ -10,6 +10,7 @@ import type {
   RecompilationRomSource,
   RecompilationRomState,
 } from "@types";
+import { isCompletedLikeDownload } from "@types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { logger, SevenZip } from "@main/services";
 import {
@@ -132,7 +133,9 @@ const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
   }
 
   const download = await downloadsSublevel.get(key).catch(() => null);
-  if (download?.status !== "complete" || !download.folderName) return null;
+  if (!download || !isCompletedLikeDownload(download) || !download.folderName) {
+    return null;
+  }
 
   const downloaded = path.join(download.downloadPath, download.folderName);
   if (await fileExists(downloaded)) {
@@ -303,6 +306,20 @@ const writeRomFile = async (
   }
 };
 
+const removeStaleRomTarget = async (
+  installDirectory: string,
+  previous: string | undefined,
+  current: string | null,
+  romPath: string
+) => {
+  if (!previous || previous === current) return;
+  if (path.resolve(previous) === path.resolve(romPath)) return;
+
+  const relative = path.relative(installDirectory, previous);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) return;
+  await fs.promises.rm(previous, { force: true });
+};
+
 const copyRom = async (
   source: string,
   target: string,
@@ -427,6 +444,12 @@ export const prepareRecompilationRom = async (
       await copyRom(romPath, target, meta.format);
     }
     if (target) romPath = target;
+    await removeStaleRomTarget(
+      installDirectory,
+      choice.preparedTarget,
+      target,
+      state.romPath
+    );
 
     if (meta.path?.installer && (!isPrepared || meta.imported)) {
       await runRomInstaller(meta.path.installer, installDirectory, romPath);

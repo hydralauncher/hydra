@@ -55,17 +55,47 @@ export const pickRecompilationInstallAsset = (
   );
 };
 
+const parseUrl = (value: string) => {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+};
+
+const decodeSegment = (segment: string) => {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return null;
+  }
+};
+
 export const isRecompilationAssetFromRepository = (
   asset: RecompilationReleaseAsset,
   repository: string,
   tag: string
-) =>
-  asset.url.startsWith(
-    `https://github.com/${repository}/releases/download/${encodeURIComponent(tag)}/`
-  ) ||
-  asset.url.startsWith(
-    `https://github.com/${repository}/releases/download/${tag}/`
+) => {
+  const url = parseUrl(asset.url);
+  if (
+    url?.protocol !== "https:" ||
+    url.host !== "github.com" ||
+    url.username ||
+    url.password
+  ) {
+    return false;
+  }
+
+  const prefix = `/${repository}/releases/download/`;
+  if (!url.pathname.startsWith(prefix)) return false;
+
+  const segments = url.pathname.slice(prefix.length).split("/");
+  return (
+    segments.length === 2 &&
+    segments[1] !== "" &&
+    decodeSegment(segments[0]) === tag
   );
+};
 
 export const countWorkingRecompilationFeatures = (
   tested: RecompilationTested

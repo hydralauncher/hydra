@@ -255,6 +255,16 @@ export const isRecompilationRunning = (ref: RecompilationRef) =>
 export const closeRecompilation = (ref: RecompilationRef) => {
   const session = sessions.get(portKeyOf(ref));
   if (!session) return false;
+
+  const { pid } = session.child;
+  try {
+    if (pid && process.platform !== "win32") {
+      process.kill(-pid, "SIGKILL");
+      return true;
+    }
+  } catch {
+    return session.child.kill();
+  }
   return session.child.kill();
 };
 
