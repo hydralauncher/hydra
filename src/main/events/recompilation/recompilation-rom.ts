@@ -449,12 +449,14 @@ export const prepareRecompilationRom = async (
     if (target && (!isPrepared || !(await fileExists(target)))) {
       await copyRom(romPath, target, meta.format);
     }
+    // The resolved source, not the archive: it may be the previous target.
+    const sourceRomPath = romPath;
     if (target) romPath = target;
     await removeStaleRomTarget(
       installDirectory,
       choice.preparedTarget,
       target,
-      state.romPath
+      sourceRomPath
     );
 
     if (meta.path?.installer && (!isPrepared || meta.imported)) {
