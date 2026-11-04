@@ -1,14 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  CheckIcon,
-  ChevronRightIcon,
-  DownloadIcon,
-  PackageIcon,
-  PlayIcon,
-  TagIcon,
-} from "@primer/octicons-react";
-import { Disc3 } from "lucide-react";
+import { CheckIcon, ChevronRightIcon, PlayIcon } from "@primer/octicons-react";
 import type { RecompilationDetails, RecompilationReleaseAsset } from "@types";
 import { formatBytes } from "@shared";
 
@@ -399,64 +391,60 @@ function InstallModalContent({
   const renderLocationStep = () => (
     <>
       <h3 className="setup-modal__body-title">{t("install_step_location")}</h3>
-      <div className="recompilation-install__picked recompilation-install__port">
-        {details.iconUrl ? (
-          <img
-            className="recompilation-install__port-icon"
-            src={details.iconUrl}
-            alt=""
-          />
-        ) : (
-          <span className="recompilation-install__port-icon" />
-        )}
-        <span className="recompilation-install__choice-text">
-          <span className="recompilation-install__port-name">
-            {details.name}
+      <div className="recompilation-install__port-block">
+        <div className="recompilation-install__picked recompilation-install__port">
+          {details.iconUrl ? (
+            <img
+              className="recompilation-install__port-icon"
+              src={details.iconUrl}
+              alt=""
+            />
+          ) : (
+            <span className="recompilation-install__port-icon" />
+          )}
+          <span className="recompilation-install__choice-text">
+            <span className="recompilation-install__port-name">
+              {details.name}
+            </span>
+            <span className="recompilation-install__choice-info">
+              {details.author}
+            </span>
           </span>
-          <span className="recompilation-install__choice-info">
-            {details.author}
+          <span className="recompilation-install__port-tested">
+            <TestedMedal level={details.tested.level} size={16} />
+            {t(`tested_level_${details.tested.level}`)}
           </span>
-        </span>
-        <span className="recompilation-install__port-tested">
-          <TestedMedal level={details.tested.level} size={16} />
-          {t(`tested_level_${details.tested.level}`)}
-        </span>
-      </div>
+        </div>
 
-      <ul className="recompilation-install__facts">
-        <li>
-          <TagIcon size={16} />
-          <span>
-            <strong>{details.version}</strong>
-            {t("version")}
-          </span>
-        </li>
-        {installAsset && (
-          <li>
-            <PackageIcon size={16} />
-            <span>
-              <strong>{formatBytes(installAsset.size)}</strong>
-              {t("row_size")}
-            </span>
-          </li>
-        )}
-        <li>
-          <DownloadIcon size={16} />
-          <span>
-            <strong>{numberFormatter.format(details.downloadCount)}</strong>
-            {t("downloads")}
-          </span>
-        </li>
-        {handlesRom && details.romRequirement && (
-          <li className="recompilation-install__facts-wide">
-            <Disc3 size={16} />
-            <span>
-              <strong>{details.romRequirement}</strong>
-              {t("rom_group")}
-            </span>
-          </li>
-        )}
-      </ul>
+        <dl className="recompilation-install__table">
+          <div>
+            <dt>{t("version")}</dt>
+            <dd>{details.version}</dd>
+          </div>
+          {installAsset && (
+            <div>
+              <dt>{t("row_size")}</dt>
+              <dd>{formatBytes(installAsset.size)}</dd>
+            </div>
+          )}
+          <div>
+            <dt>{t("downloads")}</dt>
+            <dd>{numberFormatter.format(details.downloadCount)}</dd>
+          </div>
+          {handlesRom && details.romRequirement && (
+            <div>
+              <dt>{t("rom_group")}</dt>
+              <dd>{details.romRequirement.split(" (")[0]}</dd>
+            </div>
+          )}
+          {handlesRom && extensionList && (
+            <div>
+              <dt>{t("rom_format")}</dt>
+              <dd>{extensionList}</dd>
+            </div>
+          )}
+        </dl>
+      </div>
       <p className="setup-modal__body-intro">
         {t("install_location_intro", { name: details.name })}
       </p>
