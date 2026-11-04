@@ -366,32 +366,19 @@ function InstallModalContent({
 
   const renderRomStatus = () => {
     if (!isRomDownloading) return null;
-    if (rom.downloadPhase === null || romPercent === 0) {
+    if (rom.downloadPhase === "extracting") {
       return (
         <StatusLine
-          label={
-            rom.downloadPhase === "extracting"
-              ? t("rom_extracting")
-              : t("rom_downloading")
-          }
-          progress={{ phase: "starting" }}
+          label={t("rom_extracting")}
+          progress={{ phase: "extracting" }}
         />
       );
     }
     return (
       <StatusLine
-        label={
-          rom.downloadPhase === "extracting"
-            ? t("rom_extracting")
-            : t("rom_downloading")
-        }
-        detail={`${romPercent}%`}
-        progress={{
-          phase:
-            rom.downloadPhase === "extracting" ? "extracting" : "downloading",
-          loaded: romPercent,
-          total: 100,
-        }}
+        label={t("rom_downloading")}
+        detail={romPercent > 0 ? `${romPercent}%` : undefined}
+        progress={{ phase: "downloading", loaded: romPercent, total: 100 }}
       />
     );
   };
