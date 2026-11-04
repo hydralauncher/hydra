@@ -35,6 +35,7 @@ export const readCachedFeatures = (): string[] => {
 
 export function useFeature() {
   const [features, setFeatures] = useState<string[] | null>(null);
+  const [hasFeaturesFailed, setHasFeaturesFailed] = useState(false);
 
   useEffect(() => {
     window.electron.hydraApi
@@ -44,7 +45,10 @@ export function useFeature() {
         localStorage.setItem("features", JSON.stringify(safeFeatures));
         setFeatures(safeFeatures);
       })
-      .catch(logger.error);
+      .catch((error) => {
+        logger.error(error);
+        setHasFeaturesFailed(true);
+      });
   }, []);
 
   const isFeatureEnabled = useCallback(
@@ -57,6 +61,7 @@ export function useFeature() {
   return {
     isFeatureEnabled,
     isFeaturesLoaded: features !== null,
+    isFeaturesSettled: features !== null || hasFeaturesFailed,
     Feature,
   };
 }

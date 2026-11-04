@@ -427,7 +427,12 @@ export const uninstallRecompilation = async (
     return { ok: false, reason: "running" };
   }
 
-  await fs.promises.rm(installDirectory, { recursive: true, force: true });
+  try {
+    await fs.promises.rm(installDirectory, { recursive: true, force: true });
+  } catch (error) {
+    logger.error(`Failed to uninstall ${ref.slug}`, error);
+    return { ok: false, reason: "uninstall_failed" };
+  }
   await forgetRecompilationInstallDirectory(ref.slug);
   return { ok: true };
 };

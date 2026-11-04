@@ -14,13 +14,16 @@ import {
   useAppSelector,
   useDate,
   useDownload,
+  useFeature,
   useToast,
+  useUserDetails,
 } from "@renderer/hooks";
+import type { Feature } from "@renderer/hooks/use-feature";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { getRepackAvailabilityStatus } from "../game-details/modals/repack-availability";
 import {
   getDefaultDownloader,
-  useDownloadOptions,
+  getDownloadOptions,
 } from "../game-details/modals/use-download-options";
 import "../game-details/modals/repacks-modal.scss";
 import "./recompilation-install-modal.scss";
@@ -38,7 +41,15 @@ function RomSourceRow({
   gameTitle,
   downloadPath,
   onStarted,
-}: Readonly<RomSourceListProps & { repack: GameRepack }>) {
+  hasActiveSubscription,
+  isFeatureEnabled,
+}: Readonly<
+  RomSourceListProps & {
+    repack: GameRepack;
+    hasActiveSubscription: boolean;
+    isFeatureEnabled: (feature: Feature) => boolean;
+  }
+>) {
   const { t } = useTranslation("recompilation");
   const { t: tGame } = useTranslation("game_details");
   const { formatDate } = useDate();
@@ -49,10 +60,14 @@ function RomSourceRow({
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
-  const downloadOptions = useDownloadOptions(repack);
   const [isStarting, setIsStarting] = useState(false);
 
   const start = async () => {
+    const downloadOptions = getDownloadOptions(repack, {
+      userPreferences,
+      hasActiveSubscription,
+      isFeatureEnabled,
+    });
     const downloader = getDefaultDownloader(
       downloadOptions
         .filter((option) => option.isAvailable)
@@ -127,6 +142,8 @@ export function RomSourceList(props: Readonly<RomSourceListProps>) {
     []
   );
   const [isSourceFilterOpen, setIsSourceFilterOpen] = useState(false);
+  const { isFeatureEnabled } = useFeature();
+  const { hasActiveSubscription } = useUserDetails();
 
   useEffect(() => {
     void levelDBService
@@ -218,7 +235,13 @@ export function RomSourceList(props: Readonly<RomSourceListProps>) {
       )}
       <div className="repacks-modal__repacks">
         {visibleRepacks.map((repack) => (
-          <RomSourceRow key={repack.id} repack={repack} {...props} />
+          <RomSourceRow
+            key={repack.id}
+            repack={repack}
+            hasActiveSubscription={hasActiveSubscription}
+            isFeatureEnabled={isFeatureEnabled}
+            {...props}
+          />
         ))}
       </div>
     </div>

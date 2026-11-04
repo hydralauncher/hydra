@@ -3060,6 +3060,8 @@
     "rom_download_unavailable": "No hay ningún gestor de descargas disponible para esta opción.",
     "rom_download_failed": "No se pudo iniciar la descarga.",
     "rom_wrong_format": "Elige el archivo ROM en sí: {{extensions}}.",
+    "rom_not_found": "No encontramos este archivo ROM. Elígelo de nuevo.",
+    "rom_save_failed": "No se pudo guardar la ROM. Inténtalo de nuevo.",
     "rom_extracting": "ROM · extrayendo"
   }
 }

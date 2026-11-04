@@ -150,16 +150,24 @@ function InstallModalContent({
   };
   const romSource = getRomSource();
 
+  const romChoiceErrorMessage = (reason?: string) => {
+    if (reason === "rom_wrong_format") {
+      return t("rom_wrong_format", { extensions: extensionList });
+    }
+    if (reason === "rom_not_found") return t("rom_not_found");
+    return t("rom_save_failed");
+  };
+
   const saveChoice = async () => {
     if (!romSource) return;
     setIsSaving(true);
-    const ok =
+    const result =
       romSource === "file"
         ? await rom.choose("file", pickedFile!)
         : await rom.choose("library");
     setIsSaving(false);
-    if (!ok) {
-      showErrorToast(t("rom_wrong_format", { extensions: extensionList }));
+    if (!result.ok) {
+      showErrorToast(romChoiceErrorMessage(result.reason));
       return;
     }
     setStep("done");

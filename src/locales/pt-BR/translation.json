@@ -3550,6 +3550,8 @@
     "rom_download_unavailable": "Nenhum downloader está disponível para esta opção.",
     "rom_download_failed": "Não foi possível começar o download.",
     "rom_wrong_format": "Escolha o arquivo da ROM: {{extensions}}.",
+    "rom_not_found": "Não encontramos esse arquivo de ROM. Escolha de novo.",
+    "rom_save_failed": "Não foi possível salvar a ROM. Tente de novo.",
     "rom_extracting": "ROM · extraindo"
   }
 }

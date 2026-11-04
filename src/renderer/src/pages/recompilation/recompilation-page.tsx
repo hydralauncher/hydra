@@ -45,7 +45,7 @@ export default function RecompilationPage() {
   const { objectId = "", slug = "" } = useParams();
   const { t } = useTranslation("recompilation");
   const { userDetails } = useUserDetails();
-  const { isFeatureEnabled, isFeaturesLoaded, Feature } = useFeature();
+  const { isFeatureEnabled, isFeaturesSettled, Feature } = useFeature();
   const isRecompilationsEnabled = isFeatureEnabled(Feature.Recompilations);
   const isCloudSaveEnabled = isFeatureEnabled(Feature.RecompilationCloudSaves);
 
@@ -196,7 +196,7 @@ export default function RecompilationPage() {
       recompilationSlug: slug,
     });
 
-  if (!isRecompilationsEnabled && !isFeaturesLoaded) {
+  if (!isRecompilationsEnabled && !isFeaturesSettled) {
     return <div className="recompilation-page" aria-busy="true" />;
   }
 

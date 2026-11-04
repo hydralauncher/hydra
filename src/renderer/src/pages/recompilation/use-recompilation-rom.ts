@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import type { RecompilationRomSource, RecompilationRomState } from "@types";
+import type {
+  RecompilationActionResult,
+  RecompilationRomSource,
+  RecompilationRomState,
+} from "@types";
 
 import { useAppSelector } from "@renderer/hooks";
 
@@ -10,7 +14,10 @@ export interface RecompilationRom {
   downloadProgress: number | null;
   downloadPhase: "downloading" | "extracting" | null;
   refresh: () => Promise<void>;
-  choose: (source: RecompilationRomSource, path?: string) => Promise<boolean>;
+  choose: (
+    source: RecompilationRomSource,
+    path?: string
+  ) => Promise<RecompilationActionResult>;
 }
 
 export function useRecompilationRom(
@@ -66,7 +73,7 @@ export function useRecompilationRom(
         { source, path }
       );
       await refresh();
-      return result.ok;
+      return result;
     },
     [objectId, slug, refresh]
   );

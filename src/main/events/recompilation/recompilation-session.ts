@@ -30,6 +30,7 @@ import { isRecompilationCloudSaveEnabled } from "./recompilation-features";
 
 const SHOP = "launchbox";
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
+const CLOSE_GRACE_PERIOD_MS = 10_000;
 
 interface RecompilationSession {
   ref: RecompilationRef;
@@ -69,7 +70,7 @@ export const prepareRecompilationCloudSave = async (
     context
   );
   if (outcome.result?.action === "conflict") {
-    WindowManager.redirectToGameWindow(
+    WindowManager.redirectToMainWindow(
       `recompilation/${ref.objectId}/${ref.slug}?openCloudSaveConflict=1`
     );
     return false;
@@ -266,20 +267,28 @@ export const startRecompilationSession = async (
 export const isRecompilationRunning = (ref: RecompilationRef) =>
   sessions.has(portKeyOf(ref));
 
+const signalProcessGroup = (pid: number, signal: NodeJS.Signals) => {
+  try {
+    process.kill(-pid, signal);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const closeRecompilation = (ref: RecompilationRef) => {
   const session = sessions.get(portKeyOf(ref));
   if (!session) return false;
 
   const { pid } = session.child;
-  try {
-    if (pid && process.platform !== "win32") {
-      process.kill(-pid, "SIGKILL");
-      return true;
-    }
-  } catch {
-    return session.child.kill();
-  }
-  return session.child.kill();
+  if (!pid || process.platform === "win32") return session.child.kill();
+  if (!signalProcessGroup(pid, "SIGTERM")) return session.child.kill();
+
+  setTimeout(
+    () => signalProcessGroup(pid, "SIGKILL"),
+    CLOSE_GRACE_PERIOD_MS
+  ).unref();
+  return true;
 };
 
 export const saveRecompilationPlaytimeOnQuit = async () => {

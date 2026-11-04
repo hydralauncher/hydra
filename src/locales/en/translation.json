@@ -3537,6 +3537,8 @@
     "rom_download_unavailable": "No downloader is available for this option.",
     "rom_download_failed": "Could not start the download.",
     "rom_wrong_format": "Choose the ROM file itself: {{extensions}}.",
+    "rom_not_found": "Couldn't find this ROM file. Choose it again.",
+    "rom_save_failed": "Couldn't save the ROM. Try again.",
     "rom_extracting": "ROM · extracting"
   }
 }
