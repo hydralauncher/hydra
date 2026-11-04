@@ -22,6 +22,8 @@ import {
 } from "@main/services/game-running-state";
 import { HydraApi } from "@main/services/hydra-api";
 import { createGame, trackGamePlaytime } from "@main/services/library-sync";
+import { getHydraPlaytimeRevision } from "@main/services/library-sync/library-write-queue";
+import { persistGamePlaytime } from "@main/services/process-watcher";
 import { logger } from "@main/services/logger";
 import { WindowManager } from "@main/services/window-manager";
 import { isRecompilationCloudSaveEnabled } from "./recompilation-features";
@@ -102,7 +104,12 @@ const fetchBaseGameDetails = (ref: RecompilationRef) =>
 const getOrAddBaseGame = async (ref: RecompilationRef): Promise<Game> => {
   const key = baseKeyOf(ref);
   const existing = await gamesSublevel.get(key);
-  if (existing && !existing.isDeleted) return existing;
+  if (existing && !existing.isDeleted) {
+    if (!existing.remoteId && HydraApi.isLoggedIn()) {
+      await createGame(existing).catch(() => {});
+    }
+    return existing;
+  }
 
   const details = await fetchBaseGameDetails(ref);
   const game: Game = existing
@@ -134,49 +141,56 @@ const getOrAddBaseGame = async (ref: RecompilationRef): Promise<Game> => {
 };
 
 const sendPresencePing = async (baseKey: string) => {
+  if (!HydraApi.isLoggedIn()) return;
   const game = await gamesSublevel.get(baseKey);
-  if (!game) return;
+  if (!game?.remoteId) return;
   await trackGamePlaytime(game, 0, new Date()).catch((error) => {
     logger.error("Failed to send recompilation presence ping", error);
   });
 };
 
-const saveLocalPlaytime = async (baseKey: string, deltaMs: number) => {
-  const game = await gamesSublevel.get(baseKey);
-  if (!game) return null;
-
-  const updated: Game = {
-    ...game,
-    playTimeInMilliseconds: (game.playTimeInMilliseconds ?? 0) + deltaMs,
-    lastTimePlayed: new Date(),
-  };
-  await gamesSublevel.put(baseKey, updated);
-  WindowManager.sendToAppWindows("on-library-batch-complete");
-  return {
-    updated,
-    pendingDelta: deltaMs + (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0),
-  };
-};
-
 const creditPlaytime = async (baseKey: string, deltaMs: number) => {
-  const saved = await saveLocalPlaytime(baseKey, deltaMs);
-  if (!saved) return;
+  const game = await gamesSublevel.get(baseKey);
+  if (!game) return;
 
-  const { updated, pendingDelta } = saved;
-  await trackGamePlaytime(updated, pendingDelta, updated.lastTimePlayed!)
+  const authContext = HydraApi.getAuthContext();
+  const hydraRevision = getHydraPlaytimeRevision(baseKey);
+  const deltaToSync = deltaMs + (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);
+  const lastTimePlayed = new Date();
+
+  await persistGamePlaytime(baseKey, { lastTimePlayed }, authContext, deltaMs);
+  WindowManager.sendToAppWindows("on-library-batch-complete");
+
+  if (!game.remoteId) {
+    await createGame({ ...game, lastTimePlayed }).catch((error) => {
+      logger.error(
+        "Failed to add the recompilation's game to the profile",
+        error
+      );
+    });
+    return;
+  }
+
+  await trackGamePlaytime(game, deltaToSync, lastTimePlayed)
     .then(() => {
       WindowManager.sendToAppWindows("on-game-session-synced");
-      return gamesSublevel.put(baseKey, {
-        ...updated,
-        unsyncedDeltaPlayTimeInMilliseconds: 0,
-      });
+      return persistGamePlaytime(
+        baseKey,
+        { unsyncedDeltaPlayTimeInMilliseconds: 0 },
+        authContext,
+        undefined,
+        hydraRevision
+      );
     })
     .catch((error) => {
       logger.error("Failed to sync recompilation playtime", error);
-      return gamesSublevel.put(baseKey, {
-        ...updated,
-        unsyncedDeltaPlayTimeInMilliseconds: pendingDelta,
-      });
+      return persistGamePlaytime(
+        baseKey,
+        { unsyncedDeltaPlayTimeInMilliseconds: deltaToSync },
+        authContext,
+        undefined,
+        hydraRevision
+      );
     });
 };
 
@@ -273,12 +287,18 @@ export const saveRecompilationPlaytimeOnQuit = async () => {
     Array.from(sessions.values(), async (session) => {
       const deltaMs = endSession(session);
       const baseKey = baseKeyOf(session.ref);
-      const saved = await saveLocalPlaytime(baseKey, deltaMs);
-      if (!saved) return;
-      await gamesSublevel.put(baseKey, {
-        ...saved.updated,
-        unsyncedDeltaPlayTimeInMilliseconds: saved.pendingDelta,
-      });
+      const game = await gamesSublevel.get(baseKey);
+      if (!game) return;
+      await persistGamePlaytime(
+        baseKey,
+        {
+          lastTimePlayed: new Date(),
+          unsyncedDeltaPlayTimeInMilliseconds:
+            deltaMs + (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0),
+        },
+        HydraApi.getAuthContext(),
+        deltaMs
+      );
     })
   );
 };

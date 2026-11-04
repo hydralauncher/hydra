@@ -254,7 +254,7 @@ const getSystemProcessMap = async () => {
 };
 
 // Do not restore an old import flag or executable after an asynchronous sync.
-const persistGamePlaytime = async (
+export const persistGamePlaytime = async (
   gameKey: string,
   update: Partial<
     Pick<
