@@ -3511,6 +3511,8 @@
     "install_location_intro": "Escolha onde instalar o {{name}} no seu PC.",
     "install_location_label": "Pasta",
     "install_location_change": "Alterar",
+    "install_free_space": "{{size}} livres neste disco",
+    "install_not_enough_space": "Não há espaço neste disco. Escolha outra pasta.",
     "install_port_asks_rom": "O jogo vai pedir a ROM na primeira vez que você abrir.",
     "install_folder_unwritable": "O Hydra não consegue gravar nesta pasta. Escolha outra.",
     "install_port_installed": "Versão para PC instalada",

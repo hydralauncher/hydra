@@ -68,7 +68,81 @@
   }
 
   &__port {
+    display: flex;
+    flex-direction: column;
     margin-bottom: calc(globals.$spacing-unit * 2);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.04);
+    overflow: hidden;
+  }
+
+  &__port-head {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 2);
+  }
+
+  &__port-tested {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+  }
+
+  &__port-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px calc(globals.$spacing-unit * 2);
+    }
+
+    div + div {
+      border-left: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    dt {
+      color: #a1a1aa;
+      font-size: globals.$small-font-size;
+    }
+
+    dd {
+      margin: 0;
+      color: #fafafa;
+      font-weight: 600;
+    }
+  }
+
+  &__port-rom {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px calc(globals.$spacing-unit * 2);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+
+    span {
+      color: #a1a1aa;
+      font-size: globals.$small-font-size;
+    }
+
+    p {
+      margin: 0;
+      color: globals.$muted-color;
+      line-height: 1.4;
+    }
   }
 
   &__port-icon {

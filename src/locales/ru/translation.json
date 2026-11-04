@@ -3115,6 +3115,8 @@
     "install_location_intro": "Выберите, куда установить {{name}} на ваш ПК.",
     "install_location_label": "Папка",
     "install_location_change": "Изменить",
+    "install_free_space": "Свободно на диске: {{size}}",
+    "install_not_enough_space": "На этом диске недостаточно места. Выберите другую папку.",
     "install_port_asks_rom": "При первом запуске игра попросит ROM.",
     "install_folder_unwritable": "Hydra не может записывать в эту папку. Выберите другую.",
     "install_port_installed": "Версия для ПК установлена",

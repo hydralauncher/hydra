@@ -7,6 +7,7 @@ import { formatBytes } from "@shared";
 import { Button } from "@renderer/components/button/button";
 import { Modal } from "@renderer/components/modal/modal";
 import { TextField } from "@renderer/components/text-field/text-field";
+import { TestedMedal } from "@renderer/components/tested-medal/tested-medal";
 import {
   InstallProgressBar,
   type InstallProgressLike,
@@ -16,7 +17,7 @@ import {
   gameDetailsContext,
   GameDetailsContextProvider,
 } from "@renderer/context";
-import { useLibrary, useToast } from "@renderer/hooks";
+import { useFormat, useLibrary, useToast } from "@renderer/hooks";
 import { RomSourcesPanel } from "./rom-source-list";
 import {
   getInstallErrorKey,
@@ -149,6 +150,28 @@ function InstallModalContent({
   useEffect(() => {
     if (step === "rom" && romState && !romState.handlesRom) setStep("done");
   }, [step, romState]);
+
+  const { numberFormatter } = useFormat();
+  const [freeSpace, setFreeSpace] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!hasLocationStep || !parentDirectory) return;
+    let cancelled = false;
+    window.electron
+      .getDiskFreeSpace(parentDirectory)
+      .then((usage) => {
+        if (!cancelled) setFreeSpace(usage?.free ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setFreeSpace(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hasLocationStep, parentDirectory]);
+
+  const hasEnoughSpace =
+    freeSpace === null || !installAsset || freeSpace >= installAsset.size;
 
   const pickParentDirectory = async () => {
     const { filePaths } = await window.electron.showOpenDialog({
@@ -368,30 +391,52 @@ function InstallModalContent({
   const renderLocationStep = () => (
     <>
       <h3 className="setup-modal__body-title">{t("install_step_location")}</h3>
-      <div className="recompilation-install__picked recompilation-install__port">
-        {details.iconUrl ? (
-          <img
-            className="recompilation-install__port-icon"
-            src={details.iconUrl}
-            alt=""
-          />
-        ) : (
-          <span className="recompilation-install__port-icon" />
+      <div className="recompilation-install__port">
+        <div className="recompilation-install__port-head">
+          {details.iconUrl ? (
+            <img
+              className="recompilation-install__port-icon"
+              src={details.iconUrl}
+              alt=""
+            />
+          ) : (
+            <span className="recompilation-install__port-icon" />
+          )}
+          <span className="recompilation-install__choice-text">
+            <span className="recompilation-install__port-name">
+              {details.name}
+            </span>
+            <span className="recompilation-install__choice-info">
+              {details.author}
+            </span>
+          </span>
+          <span className="recompilation-install__port-tested">
+            <TestedMedal level={details.tested.level} size={16} />
+            {t(`tested_level_${details.tested.level}`)}
+          </span>
+        </div>
+
+        <dl className="recompilation-install__port-stats">
+          <div>
+            <dt>{t("version")}</dt>
+            <dd>{details.version}</dd>
+          </div>
+          <div>
+            <dt>{t("row_size")}</dt>
+            <dd>{installAsset ? formatBytes(installAsset.size) : "—"}</dd>
+          </div>
+          <div>
+            <dt>{t("downloads")}</dt>
+            <dd>{numberFormatter.format(details.downloadCount)}</dd>
+          </div>
+        </dl>
+
+        {handlesRom && details.romRequirement && (
+          <div className="recompilation-install__port-rom">
+            <span>{t("rom_group")}</span>
+            <p>{details.romRequirement}</p>
+          </div>
         )}
-        <span className="recompilation-install__choice-text">
-          <span className="recompilation-install__port-name">
-            {details.name}
-          </span>
-          <span className="recompilation-install__choice-info">
-            {[
-              details.author,
-              `v${details.version}`,
-              installAsset ? formatBytes(installAsset.size) : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </span>
-        </span>
       </div>
       <p className="setup-modal__body-intro">
         {t("install_location_intro", { name: details.name })}
@@ -401,6 +446,12 @@ function InstallModalContent({
         readOnly
         disabled
         label={t("install_location_label")}
+        hint={
+          freeSpace !== null && hasEnoughSpace
+            ? t("install_free_space", { size: formatBytes(freeSpace) })
+            : undefined
+        }
+        error={hasEnoughSpace ? undefined : t("install_not_enough_space")}
         rightContent={
           <Button theme="outline" onClick={pickParentDirectory}>
             {t("install_location_change")}
@@ -487,7 +538,9 @@ function InstallModalContent({
         showSkip={false}
         continueHidden={step !== "rom" && step !== "location"}
         continueDisabled={
-          step === "location" ? !parentDirectory : !romSource || isSaving
+          step === "location"
+            ? !parentDirectory || !hasEnoughSpace
+            : !romSource || isSaving
         }
         onBack={() => setStep("rom")}
         onSkip={() => {}}

@@ -3021,6 +3021,8 @@
     "install_location_intro": "Elige dónde instalar {{name}} en tu PC.",
     "install_location_label": "Carpeta",
     "install_location_change": "Cambiar",
+    "install_free_space": "{{size}} libres en este disco",
+    "install_not_enough_space": "No hay espacio en este disco. Elige otra carpeta.",
     "install_port_asks_rom": "El juego pedirá la ROM la primera vez que lo abras.",
     "install_folder_unwritable": "Hydra no puede escribir en esta carpeta. Elige otra.",
     "install_port_installed": "Versión para PC instalada",

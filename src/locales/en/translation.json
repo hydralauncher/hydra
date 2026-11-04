@@ -3498,6 +3498,8 @@
     "install_location_intro": "Choose where to install {{name}} on your PC.",
     "install_location_label": "Folder",
     "install_location_change": "Change",
+    "install_free_space": "{{size}} free on this drive",
+    "install_not_enough_space": "Not enough space on this drive. Choose another folder.",
     "install_port_asks_rom": "The game will ask for the ROM the first time you open it.",
     "install_folder_unwritable": "Hydra can't write to this folder. Choose another one.",
     "install_port_installed": "PC version installed",
