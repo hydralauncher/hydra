@@ -28,7 +28,7 @@ export const DeleteAllThemesModal = ({
       removeCustomCss();
     }
 
-    await levelDBService.clear("themes");
+    await window.electron.deleteAllCustomThemes();
     await window.electron.closeEditorWindow();
     onClose();
     onThemesDeleted();
