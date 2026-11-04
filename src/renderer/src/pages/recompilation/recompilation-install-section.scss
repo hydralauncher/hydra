@@ -1,0 +1,103 @@
+@use "../../scss/globals.scss";
+
+.recompilation-install-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+  padding: calc(globals.$spacing-unit * 2);
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+
+    & + &,
+    & + .recompilation-install-section__need {
+      padding-top: calc(globals.$spacing-unit * 2);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .stats__category {
+      gap: calc(globals.$spacing-unit * 2);
+    }
+
+    .stats__category-title {
+      flex-shrink: 0;
+      margin: 0;
+    }
+  }
+
+  &__group-title {
+    margin: 0 0 2px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #8e919b;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  &__value {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+    max-width: 65%;
+    overflow: hidden;
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    text-align: right;
+
+    strong {
+      color: globals.$muted-color;
+      font-weight: 600;
+    }
+
+    &--off {
+      color: #8e919b;
+    }
+  }
+
+  &__path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__open {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background: transparent;
+    color: globals.$body-color;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__need {
+    margin: 0;
+    padding-top: calc(globals.$spacing-unit * 2);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: globals.$small-font-size;
+    line-height: 18px;
+    color: globals.$body-color;
+
+    strong {
+      color: globals.$muted-color;
+    }
+  }
+
+  .setup-modal__progress-bar {
+    margin-top: 0 !important;
+  }
+}

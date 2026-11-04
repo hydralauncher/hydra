@@ -52,7 +52,10 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
       const updatedIsGameRunning =
         !!game?.id &&
-        !!gamesIds.find((gameRunning) => gameRunning.id == game.id);
+        !!gamesIds.find(
+          (gameRunning) =>
+            gameRunning.id == game.id && !gameRunning.recompilationSlug
+        );
 
       setIsGameRunning(updatedIsGameRunning);
     });
