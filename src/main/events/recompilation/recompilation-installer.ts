@@ -13,6 +13,7 @@ import type {
   RecompilationDetails,
   RecompilationInstallProgress,
   RecompilationInstallState,
+  RecompilationPrepareProgress,
   RecompilationRef,
   RecompilationReleases,
 } from "@types";
@@ -53,6 +54,13 @@ const launchesInProgress = new Set<string>();
 const sendProgress = (progress: RecompilationInstallProgress) => {
   WindowManager.mainWindow?.webContents.send(
     "on-recompilation-install-progress",
+    progress
+  );
+};
+
+const sendPrepareProgress = (progress: RecompilationPrepareProgress) => {
+  WindowManager.mainWindow?.webContents.send(
+    "on-recompilation-prepare-progress",
     progress
   );
 };
@@ -503,7 +511,9 @@ const launchRecompilation = async (
     return { ok: false, reason: "running" };
   }
 
-  const launch = await prepareRecompilationRom(ref, state.installPath);
+  const launch = await prepareRecompilationRom(ref, state.installPath, (step) =>
+    sendPrepareProgress({ slug: ref.slug, phase: "running", ...step })
+  );
   if (!launch.ok) return { ok: false, reason: launch.reason };
 
   if (!(await prepareRecompilationCloudSave(ref))) {
@@ -535,6 +545,38 @@ export const playRecompilation = async (
   launchesInProgress.add(ref.slug);
   try {
     return await launchRecompilation(ref);
+  } finally {
+    launchesInProgress.delete(ref.slug);
+  }
+};
+
+export const prepareRecompilation = async (
+  rawRef: unknown
+): Promise<RecompilationActionResult> => {
+  const ref = parseRef(rawRef);
+  if (!ref) return { ok: false, reason: "invalid_port" };
+  if (launchesInProgress.has(ref.slug)) return { ok: false, reason: "running" };
+  if (installsInProgress.has(ref.slug)) {
+    return { ok: false, reason: "already_installing" };
+  }
+
+  const state = await getRecompilationInstallState(ref);
+  if (!state?.installPath) return { ok: false, reason: "not_installed" };
+
+  launchesInProgress.add(ref.slug);
+  sendPrepareProgress({ slug: ref.slug, phase: "running" });
+  try {
+    const result = await prepareRecompilationRom(
+      ref,
+      state.installPath,
+      (step) =>
+        sendPrepareProgress({ slug: ref.slug, phase: "running", ...step })
+    );
+    sendPrepareProgress({
+      slug: ref.slug,
+      phase: result.ok ? "done" : "error",
+    });
+    return result.ok ? { ok: true } : { ok: false, reason: result.reason };
   } finally {
     launchesInProgress.delete(ref.slug);
   }

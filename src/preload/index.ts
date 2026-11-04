@@ -33,6 +33,7 @@ import type {
   EmulatorBinary,
   EmulatorInstallProgress,
   RecompilationInstallProgress,
+  RecompilationPrepareProgress,
   RecompilationRef,
   RecompilationRomSource,
   RetroArchCoreName,
@@ -653,6 +654,17 @@ contextBridge.exposeInMainWorld("electron", {
     ref: RecompilationRef,
     choice: { source: RecompilationRomSource; path?: string }
   ) => ipcRenderer.invoke("setRecompilationRom", ref, choice),
+  prepareRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("prepareRecompilation", ref),
+  onRecompilationPrepareProgress: (
+    cb: (payload: RecompilationPrepareProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RecompilationPrepareProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-recompilation-prepare-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-recompilation-prepare-progress", listener);
+  },
   onRecompilationInstallProgress: (
     cb: (payload: RecompilationInstallProgress) => void
   ) => {

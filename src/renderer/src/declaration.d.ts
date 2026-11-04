@@ -62,6 +62,7 @@ import type {
   EmulatorInstallProgress,
   RecompilationActionResult,
   RecompilationInstallProgress,
+  RecompilationPrepareProgress,
   RecompilationInstallState,
   RecompilationRef,
   RecompilationRomSource,
@@ -816,6 +817,12 @@ declare global {
     ) => Promise<RecompilationActionResult>;
     onRecompilationInstallProgress: (
       cb: (payload: RecompilationInstallProgress) => void
+    ) => () => void;
+    prepareRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    onRecompilationPrepareProgress: (
+      cb: (payload: RecompilationPrepareProgress) => void
     ) => () => void;
     /* RetroArch */
     getRetroArchConfig: () => Promise<RetroArchConfig>;

@@ -2,7 +2,11 @@ import { useContext, useEffect, useRef, useState } from "react";
 import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import { CheckIcon, ChevronRightIcon, PlayIcon } from "@primer/octicons-react";
-import type { RecompilationDetails, RecompilationReleaseAsset } from "@types";
+import type {
+  RecompilationDetails,
+  RecompilationPrepareProgress,
+  RecompilationReleaseAsset,
+} from "@types";
 import { formatBytes } from "@shared";
 
 import { Button } from "@renderer/components/button/button";
@@ -28,7 +32,14 @@ import type { RecompilationRom } from "./use-recompilation-rom";
 import "@renderer/components/setup-modal/setup-modal.scss";
 import "./recompilation-install-modal.scss";
 
-type InstallStep = "location" | "rom" | "sources" | "done";
+type InstallStep = "location" | "rom" | "sources" | "prepare" | "done";
+
+const PREPARE_STEP_KEYS: Record<string, string> = {
+  "Disc image": "prepare_step_disc",
+  "Game data": "prepare_step_data",
+  "Self-test": "prepare_step_test",
+  "European languages": "prepare_step_languages",
+};
 
 const ROM_DOWNLOAD_START_TIMEOUT_MS = 10_000;
 
@@ -178,6 +189,24 @@ function InstallModalContent({
   const [isSaving, setIsSaving] = useState(false);
 
   const handlesRom = romState?.handlesRom !== false;
+  const needsPreparation = romState?.needsPreparation === true;
+  const [prepare, setPrepare] = useState<RecompilationPrepareProgress | null>(
+    null
+  );
+
+  useEffect(
+    () =>
+      window.electron.onRecompilationPrepareProgress((payload) => {
+        if (payload.slug !== details.slug) return;
+        setPrepare(payload);
+        if (payload.phase === "done") {
+          void refreshRom().then(() =>
+            setStep((current) => (current === "prepare" ? "done" : current))
+          );
+        }
+      }),
+    [details.slug, refreshRom]
+  );
 
   useEffect(() => {
     if (state?.installParentPath) {
@@ -304,16 +333,37 @@ function InstallModalContent({
       showErrorToast(romChoiceErrorMessage(result.reason));
       return;
     }
-    setStep("done");
+    setStep(needsPreparation ? "prepare" : "done");
   };
 
-  const play = async () => {
-    const ok = await install.play();
-    if (!ok) {
-      showErrorToast(t("play_failed"));
-      return;
+  const isReadyToPrepare =
+    isInstalled &&
+    !install.isBusy &&
+    !isRomDownloading &&
+    Boolean(romState?.romPath);
+
+  const startPreparing = async () => {
+    setPrepare({ slug: details.slug, phase: "running" });
+    const result = await window.electron.prepareRecompilation({
+      objectId: details.game.objectId,
+      slug: details.slug,
+    });
+    if (result.ok) {
+      await refreshRom();
+      setStep("done");
+    } else if (result.reason !== "running") {
+      setPrepare({ slug: details.slug, phase: "error" });
     }
+  };
+
+  useEffect(() => {
+    if (step !== "prepare" || prepare !== null || !isReadyToPrepare) return;
+    void startPreparing();
+  });
+
+  const play = async () => {
     onClose();
+    if (!(await install.play())) showErrorToast(t("play_failed"));
   };
 
   useEffect(() => {
@@ -526,7 +576,55 @@ function InstallModalContent({
   const canPlay =
     isInstalled &&
     !install.isBusy &&
-    (!handlesRom || Boolean(romState?.romPath || romState?.isReady));
+    (!handlesRom ||
+      Boolean(romState?.isReady || (!needsPreparation && romState?.romPath)));
+
+  const renderPrepareStatus = () => {
+    if (prepare?.phase === "error") {
+      return (
+        <div className="recompilation-install__prepare-error">
+          <span>{t("prepare_failed")}</span>
+          <Button theme="outline" onClick={() => void startPreparing()}>
+            {t("prepare_retry")}
+          </Button>
+        </div>
+      );
+    }
+    if (!prepare) return null;
+
+    const key = prepare.title ? PREPARE_STEP_KEYS[prepare.title] : undefined;
+    const label = key ? t(key) : (prepare.title ?? t("prepare_starting"));
+    const stepText =
+      prepare.step && prepare.steps
+        ? t("prepare_step_count", { step: prepare.step, steps: prepare.steps })
+        : null;
+    const percentText =
+      prepare.percent === undefined ? null : `${prepare.percent}%`;
+
+    return (
+      <StatusLine
+        label={label}
+        detail={
+          [stepText, percentText].filter(Boolean).join(" · ") || undefined
+        }
+        progress={
+          prepare.percent === undefined
+            ? { phase: "extracting" }
+            : { phase: "downloading", loaded: prepare.percent, total: 100 }
+        }
+      />
+    );
+  };
+
+  const renderPrepareStep = () => (
+    <>
+      <h3 className="setup-modal__body-title">{t("prepare_title")}</h3>
+      <p className="setup-modal__body-intro">{t("prepare_intro")}</p>
+      {renderRomStatus()}
+      {renderPortStatus()}
+      {renderPrepareStatus()}
+    </>
+  );
 
   const renderDoneStep = () => (
     <div className="setup-modal__done">
@@ -565,6 +663,7 @@ function InstallModalContent({
   const stepOrder: InstallStep[] = [
     ...(hasLocationStep ? (["location"] as const) : []),
     ...(handlesRom ? (["rom"] as const) : []),
+    ...(needsPreparation ? (["prepare"] as const) : []),
     "done",
   ];
   const stepIndex = stepOrder.indexOf(step === "sources" ? "rom" : step);
@@ -575,6 +674,7 @@ function InstallModalContent({
         {step === "location" && renderLocationStep()}
         {step === "rom" && renderRomStep()}
         {step === "sources" && renderSourcesStep()}
+        {step === "prepare" && renderPrepareStep()}
         {step === "done" && renderDoneStep()}
       </div>
 

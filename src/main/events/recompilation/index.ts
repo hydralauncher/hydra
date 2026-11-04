@@ -3,6 +3,7 @@ import "./install-recompilation";
 import "./uninstall-recompilation";
 import "./open-recompilation-folder";
 import "./play-recompilation";
+import "./prepare-recompilation";
 import "./close-recompilation";
 import "./get-recompilation-rom-state";
 import "./set-recompilation-rom";

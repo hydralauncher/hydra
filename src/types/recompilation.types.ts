@@ -154,7 +154,20 @@ export interface RecompilationRomState {
   romPath: string | null;
   libraryRomPath: string | null;
   isReady: boolean;
+  needsPreparation: boolean;
   extensions: string[];
+}
+
+export interface RecompilationPrepareStep {
+  step?: number;
+  steps?: number;
+  title?: string;
+  percent?: number;
+}
+
+export interface RecompilationPrepareProgress extends RecompilationPrepareStep {
+  slug: string;
+  phase: "running" | "done" | "error";
 }
 
 export interface RecompilationActionResult {

@@ -2,9 +2,11 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import readline from "node:readline";
 
 import type {
   RecompilationActionResult,
+  RecompilationPrepareStep,
   RecompilationRef,
   RecompilationRomMeta,
   RecompilationRomSource,
@@ -222,6 +224,7 @@ export const getRecompilationRomState = async (
     source: choice?.source ?? null,
     romPath,
     libraryRomPath,
+    needsPreparation: Boolean(meta?.path?.installer),
     isReady: meta
       ? await isPortReady(
           meta,
@@ -366,10 +369,24 @@ const getRomTarget = (
   );
 };
 
+const readInstallerEvent = (
+  line: string,
+  current: RecompilationPrepareStep
+): RecompilationPrepareStep | null => {
+  const step = /^@step (\d+) (\d+) (.+)$/.exec(line);
+  if (step) {
+    return { step: Number(step[1]), steps: Number(step[2]), title: step[3] };
+  }
+  const percent = /^@note (\d+)%/.exec(line);
+  if (percent) return { ...current, percent: Number(percent[1]) };
+  return null;
+};
+
 const runRomInstaller = (
   command: string[],
   installDirectory: string,
-  romPath: string
+  romPath: string,
+  onStep?: (step: RecompilationPrepareStep) => void
 ) =>
   new Promise<void>((resolve, reject) => {
     const [name, ...args] = command;
@@ -386,8 +403,19 @@ const runRomInstaller = (
     const child = spawn(
       executable,
       args.map((arg) => fillRomPlaceholders(arg, romPath)),
-      { cwd: installDirectory, stdio: "ignore", shell: false }
+      {
+        cwd: installDirectory,
+        stdio: ["ignore", "pipe", "ignore"],
+        shell: false,
+      }
     );
+    let current: RecompilationPrepareStep = {};
+    readline.createInterface({ input: child.stdout }).on("line", (line) => {
+      const next = readInstallerEvent(line.trim(), current);
+      if (!next) return;
+      current = next;
+      onStep?.(next);
+    });
     child.once("error", reject);
     child.once("exit", (code) =>
       code === 0
@@ -430,7 +458,8 @@ export type RecompilationLaunch =
 
 export const prepareRecompilationRom = async (
   ref: RecompilationRef,
-  installDirectory: string
+  installDirectory: string,
+  onStep?: (step: RecompilationPrepareStep) => void
 ): Promise<RecompilationLaunch> => {
   const meta = getRecompilationRomMeta(ref.slug);
   if (!meta) return { ok: true, args: [], env: {} };
@@ -482,7 +511,12 @@ export const prepareRecompilationRom = async (
     );
 
     if (meta.path?.installer && (!isPrepared || meta.imported)) {
-      await runRomInstaller(meta.path.installer, installDirectory, romPath);
+      await runRomInstaller(
+        meta.path.installer,
+        installDirectory,
+        romPath,
+        onStep
+      );
     }
     if (meta.path?.config) {
       await writeRomConfig(meta.path.config, baseDirectory, romPath);
