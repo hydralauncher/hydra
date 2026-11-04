@@ -163,6 +163,89 @@ const getJumpLabel = (newMessageCount: number, t: TFunction<"chat_window">) =>
     ? t("jump_to_new_messages", { count: newMessageCount })
     : t("jump_to_latest");
 
+interface ChatMessageActionsProps {
+  canReact: boolean;
+  canReport: boolean;
+  isReacting: boolean;
+  isReactionBarOpen: boolean;
+  onToggleReactions: (button: HTMLButtonElement) => void;
+  onReply: () => void;
+  onReport: () => void;
+}
+
+function ChatMessageAction({
+  label,
+  icon,
+  className,
+  ...props
+}: Readonly<
+  { label: string; icon: React.ReactNode } & Omit<
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    "type" | "aria-label"
+  >
+>) {
+  return (
+    <button
+      type="button"
+      className={cn("chat-window__message-action", className)}
+      aria-label={label}
+      {...props}
+    >
+      {icon}
+      <span className="chat-window__message-action-tooltip" aria-hidden="true">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+/** The hover buttons beside a message; Report also covers keyboard users. */
+function ChatMessageActions({
+  canReact,
+  canReport,
+  isReacting,
+  isReactionBarOpen,
+  onToggleReactions,
+  onReply,
+  onReport,
+}: Readonly<ChatMessageActionsProps>) {
+  const { t } = useTranslation("chat_window");
+
+  return (
+    <div
+      className={cn("chat-window__message-actions", {
+        "chat-window__message-actions--visible": isReacting,
+      })}
+    >
+      {canReact && (
+        <>
+          <ChatMessageAction
+            label={t("add_reaction")}
+            icon={<SmileyIcon size={16} />}
+            className={cn({
+              "chat-window__message-action--active": isReacting,
+            })}
+            onClick={(event) => onToggleReactions(event.currentTarget)}
+            aria-expanded={isReactionBarOpen}
+          />
+          <ChatMessageAction
+            label={t("reply")}
+            icon={<ReplyIcon size={16} />}
+            onClick={onReply}
+          />
+        </>
+      )}
+      {canReport && (
+        <ChatMessageAction
+          label={t("report_message")}
+          icon={<ReportIcon size={16} />}
+          onClick={onReport}
+        />
+      )}
+    </div>
+  );
+}
+
 interface ChatMessageQuoteProps {
   reply: ChatMessageReply;
   friendName: string;
@@ -691,48 +774,18 @@ export function ChatMessageList({
                         const align = group.fromMe ? "end" : "start";
 
                         const actions = seq !== undefined &&
-                          canAct(message) && (
-                            <div
-                              className={cn("chat-window__message-actions", {
-                                "chat-window__message-actions--visible":
-                                  isReacting,
-                              })}
-                            >
-                              <button
-                                type="button"
-                                className={cn("chat-window__message-action", {
-                                  "chat-window__message-action--active":
-                                    isReacting,
-                                })}
-                                onClick={(event) =>
-                                  toggleReactionBar(seq, event.currentTarget)
-                                }
-                                aria-label={t("add_reaction")}
-                                aria-expanded={isReactionBarOpen}
-                              >
-                                <SmileyIcon size={16} />
-                                <span
-                                  className="chat-window__message-action-tooltip"
-                                  aria-hidden="true"
-                                >
-                                  {t("add_reaction")}
-                                </span>
-                              </button>
-                              <button
-                                type="button"
-                                className="chat-window__message-action"
-                                onClick={() => onReply(message)}
-                                aria-label={t("reply")}
-                              >
-                                <ReplyIcon size={16} />
-                                <span
-                                  className="chat-window__message-action-tooltip"
-                                  aria-hidden="true"
-                                >
-                                  {t("reply")}
-                                </span>
-                              </button>
-                            </div>
+                          (canAct(message) || canReport(message)) && (
+                            <ChatMessageActions
+                              canReact={canAct(message)}
+                              canReport={canReport(message)}
+                              isReacting={isReacting}
+                              isReactionBarOpen={isReactionBarOpen}
+                              onToggleReactions={(button) =>
+                                toggleReactionBar(seq, button)
+                              }
+                              onReply={() => onReply(message)}
+                              onReport={() => setReportSeq(seq)}
+                            />
                           );
 
                         return (

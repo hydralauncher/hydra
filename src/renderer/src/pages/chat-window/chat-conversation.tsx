@@ -178,6 +178,15 @@ export function ChatConversationView({
   const [preparingCount, setPreparingCount] = useState(0);
   // Ahead of rendering, so preparations finishing together see each other.
   const draftImagesRef = useRef(draftImages);
+  // A tab switch remounts this view; an earlier one's images are dropped so
+  // only this view's checks decide what joins the draft.
+  const isMountedRef = useRef(false);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     draftImagesRef.current = draftImages;
@@ -205,6 +214,10 @@ export function ChatConversationView({
 
       void prepareChatImage(file)
         .then((prepared) => {
+          if (!isMountedRef.current) {
+            URL.revokeObjectURL(prepared.url);
+            return;
+          }
           if (!fitsMessageBudget(draftImagesRef.current, prepared.blob.size)) {
             URL.revokeObjectURL(prepared.url);
             setImageNote("too_large");
