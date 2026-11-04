@@ -9,7 +9,9 @@
 // The tag defaults to v<package.json version>, matching the tags past hydra
 // releases used. GITHUB_TOKEN must be set. Writes the notes to
 // release-notes.md and, when GITHUB_OUTPUT is present, exposes
-// tag_name=<tag-name>.
+// tag_name=<tag-name>. Fails when the tag's release is already published:
+// action-gh-release would otherwise overwrite the live assets and
+// latest.yml, which the auto-updater reads.
 const fs = require("node:fs");
 
 const SECTIONS = [
@@ -85,30 +87,46 @@ function groupBullets(markdown) {
     .join("\n\n");
 }
 
-async function generateNotes(tagName, previousTag) {
+function githubHeaders() {
   const repo = process.env.GITHUB_REPOSITORY;
   const token = process.env.GITHUB_TOKEN;
   if (!repo || !token)
     throw new Error("GITHUB_REPOSITORY and GITHUB_TOKEN are required");
+  return {
+    url: `https://api.github.com/repos/${repo}`,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  };
+}
 
-  const response = await fetch(
-    `https://api.github.com/repos/${repo}/releases/generate-notes`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-      body: JSON.stringify({
-        tag_name: tagName,
-        previous_tag_name: previousTag || undefined,
-        // Generate against the commit being built (a release/** branch), not
-        // the default branch, which is used when the tag doesn't exist yet.
-        target_commitish: process.env.GITHUB_SHA || undefined,
-      }),
-    }
-  );
+// True when a published (not draft) release already exists for the tag.
+async function isPublished(tagName) {
+  const { url, headers } = githubHeaders();
+  const response = await fetch(`${url}/releases/tags/${tagName}`, { headers });
+  if (response.status === 404) return false;
+  if (!response.ok)
+    throw new Error(
+      `GitHub release lookup failed: ${response.status} ${await response.text()}`
+    );
+  return !(await response.json()).draft;
+}
+
+async function generateNotes(tagName, previousTag) {
+  const { url, headers } = githubHeaders();
+  const response = await fetch(`${url}/releases/generate-notes`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      tag_name: tagName,
+      previous_tag_name: previousTag || undefined,
+      // Generate against the commit being built (a release/** branch), not
+      // the default branch, which is used when the tag doesn't exist yet.
+      target_commitish: process.env.GITHUB_SHA || undefined,
+    }),
+  });
   if (!response.ok)
     throw new Error(
       `GitHub generate-notes failed: ${response.status} ${await response.text()}`
@@ -137,6 +155,13 @@ function defaultTagName() {
 async function main() {
   const [tagArg, previousTag] = process.argv.slice(2);
   const tagName = tagArg || defaultTagName();
+
+  // A push to an already-published release/** branch must not touch the
+  // live release: bump package.json and the branch name instead.
+  if (await isPublished(tagName))
+    throw new Error(
+      `Release ${tagName} is already published; refusing to overwrite it`
+    );
 
   const notes = groupBullets(await generateNotes(tagName, previousTag));
   fs.writeFileSync("release-notes.md", `${notes}\n`);
