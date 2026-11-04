@@ -2994,7 +2994,7 @@
     "tested_feature_playtime": "Registra el tiempo de juego",
     "tested_feature_cloudSaves": "Guardado en la nube",
     "tested_feature_achievements": "Logros",
-    "tested_feature_controllerBigPicture": "Mando y Big Picture",
+    "tested_feature_controllerBigPicture": "Mando",
     "tested_status_works": "Funciona",
     "tested_status_testing": "En pruebas",
     "tested_status_unsupported": "No compatible",
@@ -3079,6 +3079,15 @@
     "rom_wrong_format": "Elige el archivo ROM en sí: {{extensions}}.",
     "rom_not_found": "No encontramos este archivo ROM. Elígelo de nuevo.",
     "rom_save_failed": "No se pudo guardar la ROM. Inténtalo de nuevo.",
-    "rom_extracting": "ROM · extrayendo"
+    "rom_extracting": "ROM · extrayendo",
+    "play_section_title": "Para jugar",
+    "version_latest_long": "versión más reciente",
+    "not_installed": "No instalado",
+    "rom_needs_short": "Necesitas {{rom}}",
+    "not_selected": "Ninguna ROM elegida",
+    "tested_count_one": "{{count}} de 5 funciones funciona",
+    "tested_count_other": "{{count}} de 5 funciones funcionan",
+    "about_project": "Sobre el proyecto",
+    "github_repository": "Repositorio en GitHub"
   }
 }

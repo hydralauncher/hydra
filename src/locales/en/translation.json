@@ -3471,7 +3471,7 @@
     "tested_feature_playtime": "Tracks playtime",
     "tested_feature_cloudSaves": "Cloud saves",
     "tested_feature_achievements": "Achievements",
-    "tested_feature_controllerBigPicture": "Controller and Big Picture",
+    "tested_feature_controllerBigPicture": "Controller",
     "tested_status_works": "Works",
     "tested_status_testing": "Testing",
     "tested_status_unsupported": "Not supported",
@@ -3556,6 +3556,15 @@
     "rom_wrong_format": "Choose the ROM file itself: {{extensions}}.",
     "rom_not_found": "Couldn't find this ROM file. Choose it again.",
     "rom_save_failed": "Couldn't save the ROM. Try again.",
-    "rom_extracting": "ROM · extracting"
+    "rom_extracting": "ROM · extracting",
+    "play_section_title": "To play",
+    "version_latest_long": "latest version",
+    "not_installed": "Not installed",
+    "rom_needs_short": "You need {{rom}}",
+    "not_selected": "No ROM chosen",
+    "tested_count_one": "{{count}} of 5 features work",
+    "tested_count_other": "{{count}} of 5 features work",
+    "about_project": "About the project",
+    "github_repository": "GitHub repository"
   }
 }

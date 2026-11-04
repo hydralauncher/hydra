@@ -1,13 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import cn from "classnames";
 import {
-  DeviceDesktopIcon,
-  DownloadIcon,
-  FileIcon,
+  CheckIcon,
   FileDirectoryIcon,
   LinkExternalIcon,
-  PackageIcon,
+  XIcon,
 } from "@primer/octicons-react";
 import type { RecompilationDetails, RecompilationReleaseAsset } from "@types";
 import { formatBytes } from "@shared";
@@ -17,16 +14,11 @@ import {
   type InstallProgressLike,
 } from "@renderer/components/setup-modal/install-progress-bar";
 import { SidebarSection } from "../game-details/sidebar-section/sidebar-section";
+import { splitRomRequirement } from "./rom-requirement";
 import type { RecompilationInstall } from "./use-recompilation-install";
 import type { RecompilationRom } from "./use-recompilation-rom";
 import "@renderer/components/setup-modal/setup-modal.scss";
 import "./recompilation-install-section.scss";
-
-const OS_LABELS: Record<RecompilationReleaseAsset["os"], string> = {
-  windows: "Windows",
-  linux: "Linux",
-  macos: "macOS",
-};
 
 const shortPath = (fullPath: string) => {
   const separator = fullPath.includes("\\") ? "\\" : "/";
@@ -35,50 +27,31 @@ const shortPath = (fullPath: string) => {
 
 const fileName = (fullPath: string) => fullPath.split(/[\\/]/).pop() ?? "";
 
+const withoutExtension = (name: string) =>
+  name.includes(".") ? name.slice(0, name.lastIndexOf(".")) : name;
+
 const folderOf = (fullPath: string) =>
   fullPath.slice(
     0,
     Math.max(fullPath.lastIndexOf("\\"), fullPath.lastIndexOf("/"))
   );
 
-function Row({
-  icon,
-  label,
-  children,
-  off = false,
-}: Readonly<{
-  icon: ReactNode;
-  label: string;
-  children: ReactNode;
-  off?: boolean;
-}>) {
+export function StatusDot({ ok }: Readonly<{ ok: boolean }>) {
   return (
-    <div className="stats__category">
-      <p className="stats__category-title">
-        {icon}
-        {label}
-      </p>
-      <div
-        className={cn("recompilation-install-section__value", {
-          "recompilation-install-section__value--off": off,
-        })}
-      >
-        {children}
-      </div>
-    </div>
+    <span className="recompilation-status-dot">
+      {ok ? <CheckIcon size={12} /> : <XIcon size={12} />}
+    </span>
   );
 }
 
 function Truncated({
   text,
   fullText = text,
-  strong = false,
-}: Readonly<{ text: string; fullText?: string; strong?: boolean }>) {
+}: Readonly<{ text: string; fullText?: string }>) {
   const [tooltip, setTooltip] = useState<string | undefined>();
-  const Tag = strong ? "strong" : "span";
 
   return (
-    <Tag
+    <span
       className="recompilation-install-section__path"
       title={tooltip}
       onMouseEnter={(event) => {
@@ -89,24 +62,50 @@ function Truncated({
       }}
     >
       {text}
-    </Tag>
+    </span>
   );
 }
 
-function OpenButton({
-  label,
-  onClick,
-}: Readonly<{ label: string; onClick: () => void }>) {
+function LocationRow({
+  path,
+  openLabel,
+  onOpen,
+}: Readonly<{ path: string; openLabel: string; onOpen: () => void }>) {
+  const { t } = useTranslation("recompilation");
+
   return (
-    <button
-      type="button"
-      className="recompilation-install-section__open"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-    >
-      <LinkExternalIcon size={14} />
-    </button>
+    <div className="recompilation-install-section__location">
+      <span className="recompilation-install-section__location-label">
+        <FileDirectoryIcon size={14} />
+        {t("row_location")}
+      </span>
+      <Truncated text={`…\\${shortPath(path)}`} fullText={path} />
+      <button
+        type="button"
+        className="recompilation-install-section__open"
+        aria-label={openLabel}
+        title={openLabel}
+        onClick={onOpen}
+      >
+        <LinkExternalIcon size={14} />
+      </button>
+    </div>
+  );
+}
+
+function Item({
+  done,
+  title,
+  children,
+}: Readonly<{ done: boolean; title: string; children: ReactNode }>) {
+  return (
+    <div className="recompilation-install-section__item">
+      <div className="recompilation-install-section__item-head">
+        <StatusDot ok={done} />
+        <strong>{title}</strong>
+      </div>
+      <div className="recompilation-install-section__item-body">{children}</div>
+    </div>
   );
 }
 
@@ -133,9 +132,12 @@ export function RecompilationInstallSection({
   const romState = rom.state;
   const isRomDownloading = rom.downloadPhase !== null;
   const romPercent = Math.round((rom.downloadProgress ?? 0) * 100);
-  const romFile =
-    romState?.romPath ??
-    (romState && !romState.handlesRom ? romState.libraryRomPath : null);
+  const romFile = romState?.romPath ?? null;
+  const { romName, romDetails } = splitRomRequirement(details.romRequirement);
+  const cover =
+    details.game.coverImageUrl ??
+    details.game.libraryImageUrl ??
+    details.game.iconUrl;
 
   const renderPort = () => {
     if (isDownloading || isExtracting) {
@@ -145,7 +147,7 @@ export function RecompilationInstallSection({
           : null;
       return (
         <>
-          <Row icon={<DownloadIcon size={14} />} label={t("row_downloading")}>
+          <p className="recompilation-install-section__sub">
             {isExtracting || percent === null
               ? t("extracting")
               : t("downloading_value", {
@@ -153,7 +155,7 @@ export function RecompilationInstallSection({
                   total: formatBytes(progress.total ?? 0),
                   percent,
                 })}
-          </Row>
+          </p>
           <InstallProgressBar progress={progress} />
         </>
       );
@@ -163,66 +165,47 @@ export function RecompilationInstallSection({
       const hasUpdate = state.version !== details.version;
       return (
         <>
-          <Row icon={<DeviceDesktopIcon size={14} />} label={t("row_version")}>
-            <span>
-              <strong>v{state.version}</strong> ·{" "}
-              {hasUpdate
-                ? t("version_available", { version: details.version })
-                : t("version_latest")}
-            </span>
-          </Row>
+          <p className="recompilation-install-section__sub">
+            <strong>v{state.version}</strong>
+            {" · "}
+            {hasUpdate
+              ? t("version_available", { version: details.version })
+              : t("version_latest_long")}
+          </p>
           {state.installPath && (
-            <Row
-              icon={<FileDirectoryIcon size={14} />}
-              label={t("row_location")}
-            >
-              <Truncated
-                text={shortPath(state.installPath)}
-                fullText={state.installPath}
-              />
-              <OpenButton
-                label={t("open_folder")}
-                onClick={() => void install.openFolder()}
-              />
-            </Row>
+            <LocationRow
+              path={state.installPath}
+              openLabel={t("open_folder")}
+              onOpen={() => void install.openFolder()}
+            />
           )}
         </>
       );
     }
 
     return (
-      <>
-        <Row
-          icon={<DeviceDesktopIcon size={14} />}
-          label={t("row_version")}
-          off
-        >
-          {t("value_absent")}
-        </Row>
-        <Row icon={<PackageIcon size={14} />} label={t("row_size")}>
-          {installAsset
-            ? `${formatBytes(installAsset.size)} · ${OS_LABELS[installAsset.os]}`
-            : t("no_file_for_this_pc")}
-        </Row>
-      </>
+      <p className="recompilation-install-section__sub">
+        {[
+          t("not_installed"),
+          installAsset ? formatBytes(installAsset.size) : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
     );
   };
 
   const renderRom = () => {
     if (isRomDownloading) {
       const isRomExtracting = rom.downloadPhase === "extracting";
-      const hasPercent = romPercent > 0;
-      const romProgress: InstallProgressLike = hasPercent
-        ? { phase: "downloading", loaded: romPercent, total: 100 }
-        : { phase: "starting" };
-      const percentText = hasPercent ? `${romPercent}%` : "";
+      const romProgress: InstallProgressLike = isRomExtracting
+        ? { phase: "extracting" }
+        : { phase: "downloading", loaded: romPercent, total: 100 };
       return (
         <>
-          <Row icon={<DownloadIcon size={14} />} label={t("row_downloading")}>
-            {isRomExtracting
-              ? [t("extracting"), percentText].filter(Boolean).join(" · ")
-              : percentText}
-          </Row>
+          <p className="recompilation-install-section__sub">
+            {isRomExtracting ? t("rom_extracting") : `${romPercent}%`}
+          </p>
           <InstallProgressBar progress={romProgress} />
         </>
       );
@@ -231,51 +214,57 @@ export function RecompilationInstallSection({
     if (romFile) {
       return (
         <>
-          <Row icon={<FileIcon size={14} />} label={t("row_file")}>
-            <Truncated text={fileName(romFile)} strong />
-          </Row>
-          <Row icon={<FileDirectoryIcon size={14} />} label={t("row_location")}>
-            <Truncated
-              text={shortPath(folderOf(romFile))}
-              fullText={folderOf(romFile)}
-            />
-            <OpenButton
-              label={t("open_rom_folder")}
-              onClick={() => void window.electron.showItemInFolder(romFile)}
-            />
-          </Row>
+          <div className="recompilation-install-section__rom">
+            {cover ? (
+              <img
+                className="recompilation-install-section__cover"
+                src={cover}
+                alt=""
+              />
+            ) : (
+              <span className="recompilation-install-section__cover" />
+            )}
+            <div className="recompilation-install-section__rom-text">
+              <strong title={fileName(romFile)}>
+                {withoutExtension(fileName(romFile))}
+              </strong>
+              {romDetails && <span>{romDetails}</span>}
+            </div>
+          </div>
+          <LocationRow
+            path={folderOf(romFile)}
+            openLabel={t("open_rom_folder")}
+            onOpen={() => void window.electron.showItemInFolder(romFile)}
+          />
         </>
       );
     }
 
     return (
-      <Row icon={<FileIcon size={14} />} label={t("row_file")} off>
-        {t("value_absent")}
-      </Row>
+      <p className="recompilation-install-section__sub">
+        {romName
+          ? t("rom_needs_short", {
+              rom: romDetails ? `${romName} (${romDetails})` : romName,
+            })
+          : t("not_selected")}
+      </p>
     );
   };
 
   return (
-    <SidebarSection title={t("install_section_title")}>
+    <SidebarSection title={t("play_section_title")}>
       <div className="recompilation-install-section">
-        <div className="recompilation-install-section__group">
-          <p className="recompilation-install-section__group-title">
-            {t("install_step_port")}
-          </p>
+        <Item done={isInstalled} title={t("install_step_port")}>
           {renderPort()}
-        </div>
+        </Item>
 
-        <div className="recompilation-install-section__group">
-          <p className="recompilation-install-section__group-title">
-            {t("rom_group")}
-          </p>
-          {renderRom()}
-        </div>
-
-        {!romFile && details.romRequirement && (
-          <p className="recompilation-install-section__need">
-            <strong>{t("needs")}</strong> {details.romRequirement}
-          </p>
+        {romState?.handlesRom && (
+          <Item
+            done={Boolean(romFile) || romState.isReady}
+            title={t("install_step_rom")}
+          >
+            {renderRom()}
+          </Item>
         )}
       </div>
     </SidebarSection>

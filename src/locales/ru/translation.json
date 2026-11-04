@@ -3088,7 +3088,7 @@
     "tested_feature_playtime": "Учитывает время игры",
     "tested_feature_cloudSaves": "Облачные сохранения",
     "tested_feature_achievements": "Достижения",
-    "tested_feature_controllerBigPicture": "Контроллер и Big Picture",
+    "tested_feature_controllerBigPicture": "Контроллер",
     "tested_status_works": "Работает",
     "tested_status_testing": "Проверяется",
     "tested_status_unsupported": "Не поддерживается",
@@ -3175,6 +3175,17 @@
     "rom_wrong_format": "Выберите сам файл ROM: {{extensions}}.",
     "rom_not_found": "Файл ROM не найден. Выберите его ещё раз.",
     "rom_save_failed": "Не удалось сохранить ROM. Попробуйте ещё раз.",
-    "rom_extracting": "ROM · распаковка"
+    "rom_extracting": "ROM · распаковка",
+    "play_section_title": "Для игры",
+    "version_latest_long": "последняя версия",
+    "not_installed": "Не установлено",
+    "rom_needs_short": "Нужен {{rom}}",
+    "not_selected": "ROM не выбран",
+    "tested_count_one": "Работает {{count}} из 5 функций",
+    "tested_count_few": "Работают {{count}} из 5 функций",
+    "tested_count_many": "Работают {{count}} из 5 функций",
+    "tested_count_other": "Работают {{count}} из 5 функций",
+    "about_project": "О проекте",
+    "github_repository": "Репозиторий на GitHub"
   }
 }
