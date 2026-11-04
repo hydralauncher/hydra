@@ -32,9 +32,6 @@ export function ReleaseRail({
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
   const previewId = hoveredId ?? focusedId;
-  const highlightIndex = items.findIndex(
-    (item) => item.id === (previewId ?? selectedId)
-  );
   const previewIndex = items.findIndex((item) => item.id === previewId);
   const preview = previewIndex >= 0 ? items[previewIndex] : null;
   const previewY = previewIndex * ITEM_SIZE + ITEM_SIZE / 2;
@@ -66,7 +63,9 @@ export function ReleaseRail({
       {items.map((item, index) => {
         const isSelected = item.id === selectedId;
         const scale =
-          TICK_SCALES[Math.abs(index - highlightIndex)] ?? REST_SCALE;
+          previewIndex < 0
+            ? REST_SCALE
+            : (TICK_SCALES[Math.abs(index - previewIndex)] ?? REST_SCALE);
 
         return (
           <button
@@ -74,7 +73,7 @@ export function ReleaseRail({
             type="button"
             className={cn("release-rail__item", {
               "release-rail__item--selected": isSelected,
-              "release-rail__item--highlighted": index === highlightIndex,
+              "release-rail__item--highlighted": index === previewIndex,
             })}
             aria-label={`${item.label}, ${item.description}`}
             aria-current={isSelected ? "true" : undefined}

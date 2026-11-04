@@ -122,13 +122,15 @@ export function RecompilationReleasesTab({
   return (
     <div className="recompilation-page__releases">
       {releases.length > 1 && (
-        <div className="recompilation-page__releases-rail">
-          <ReleaseRail
-            items={items}
-            selectedId={release.tag}
-            label={t("tab_releases")}
-            onSelect={setSelectedTag}
-          />
+        <div className="recompilation-page__column recompilation-page__releases-rail">
+          <div className="release-rail-sticky">
+            <ReleaseRail
+              items={items}
+              selectedId={release.tag}
+              label={t("tab_releases")}
+              onSelect={setSelectedTag}
+            />
+          </div>
         </div>
       )}
 
