@@ -70,8 +70,10 @@ const makeExecutable = async (filePath: string) => {
   await fs.promises.chmod(filePath, mode | 0o111);
 };
 
-/** An extracted AppImage starts through AppRun, which passes the game to its runtime. */
-const findDeclaredEntry = async (root: string, override: string | null) => {
+export const findDeclaredRecompilationEntry = async (
+  root: string,
+  override: string | null
+) => {
   const entries = [
     ...(override ? [override] : []),
     ...(process.platform === "win32" ? [] : [APPIMAGE_ENTRY]),
@@ -94,7 +96,10 @@ export const findRecompilationExecutable = async (
   portName: string,
   override: string | null
 ) => {
-  const declared = await findDeclaredEntry(installDirectory, override);
+  const declared = await findDeclaredRecompilationEntry(
+    installDirectory,
+    override
+  );
   if (declared) return declared;
 
   const candidates = await collectExecutables(installDirectory);

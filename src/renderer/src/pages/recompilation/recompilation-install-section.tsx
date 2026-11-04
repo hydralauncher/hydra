@@ -22,7 +22,8 @@ import "./recompilation-install-section.scss";
 
 const shortPath = (fullPath: string) => {
   const separator = fullPath.includes("\\") ? "\\" : "/";
-  return fullPath.split(/[\\/]/).filter(Boolean).slice(-2).join(separator);
+  const tail = fullPath.split(/[\\/]/).filter(Boolean).slice(-2);
+  return `…${separator}${tail.join(separator)}`;
 };
 
 const fileName = (fullPath: string) => fullPath.split(/[\\/]/).pop() ?? "";
@@ -85,7 +86,7 @@ function LocationRow({
         <FileDirectoryIcon size={14} />
         {t("row_location")}
       </span>
-      <Truncated text={`…\\${shortPath(path)}`} fullText={path} />
+      <Truncated text={shortPath(path)} fullText={path} />
       <button
         type="button"
         className="recompilation-install-section__open"
@@ -189,14 +190,17 @@ export function RecompilationInstallSection({
       );
     }
 
+    if (!installAsset) {
+      return (
+        <p className="recompilation-install-section__sub">
+          {t("no_file_for_this_pc")}
+        </p>
+      );
+    }
+
     return (
       <p className="recompilation-install-section__sub">
-        {[
-          t("not_installed"),
-          installAsset ? formatBytes(installAsset.size) : null,
-        ]
-          .filter(Boolean)
-          .join(" · ")}
+        {t("not_installed")} · {formatBytes(installAsset.size)}
       </p>
     );
   };
@@ -246,6 +250,8 @@ export function RecompilationInstallSection({
       );
     }
 
+    if (romState?.isReady) return null;
+
     return (
       <p className="recompilation-install-section__sub">
         {romName
@@ -271,6 +277,12 @@ export function RecompilationInstallSection({
           >
             {renderRom()}
           </Item>
+        )}
+
+        {romState && !romState.handlesRom && details.romRequirement && (
+          <p className="recompilation-install-section__sub">
+            {t("needs")} {details.romRequirement}
+          </p>
         )}
       </div>
     </SidebarSection>

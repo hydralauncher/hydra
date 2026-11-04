@@ -30,6 +30,7 @@ export interface GameDetailsContext {
   shop: GameShop;
   gameTitle: string;
   isGameRunning: boolean;
+  runningRecompilationSlug: string | null;
   isLoading: boolean;
   objectId: string | undefined;
   showRepacksModal: boolean;

@@ -45,6 +45,7 @@ import {
 } from "./recompilation-rom";
 import recompilationSaves from "./recompilation-saves.json";
 import {
+  findDeclaredRecompilationEntry,
   findRecompilationExecutable,
   isNestedReleaseArchive,
   restoreExecutableBits,
@@ -113,7 +114,27 @@ const getSingleEntry = async (directory: string) => {
   return entries.length === 1 ? entries[0] : null;
 };
 
-/** Unwraps a release packed more than once, like a zip holding a .tar.gz. */
+const refreshDeclaredEntry = async (
+  slug: string,
+  installDirectory: string,
+  executablePath: string
+) => {
+  const declared = await findDeclaredRecompilationEntry(
+    installDirectory,
+    getRecompilationExecutableOverride(slug)
+  ).catch(() => null);
+  if (!declared || declared === executablePath) return executablePath;
+
+  const marker = await readInstallMarker(installDirectory);
+  if (marker) {
+    await fs.promises.writeFile(
+      path.join(installDirectory, INSTALL_MARKER_FILE),
+      JSON.stringify({ ...marker, executablePath: declared }, null, 2)
+    );
+  }
+  return declared;
+};
+
 const extractNestedArchives = async (stagingDirectory: string) => {
   for (let layer = 0; layer < MAX_NESTED_ARCHIVES; layer++) {
     const entry = await getSingleEntry(stagingDirectory);
@@ -441,7 +462,12 @@ const launchRecompilation = async (
   if (!state?.installPath) return { ok: false, reason: "not_installed" };
   if (!state.executablePath) return { ok: false, reason: "no_executable" };
 
-  const relative = path.relative(state.installPath, state.executablePath);
+  const executablePath = await refreshDeclaredEntry(
+    ref.slug,
+    state.installPath,
+    state.executablePath
+  );
+  const relative = path.relative(state.installPath, executablePath);
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
     return { ok: false, reason: "no_executable" };
   }
@@ -454,14 +480,26 @@ const launchRecompilation = async (
   } = await loadSession();
   if (
     isRecompilationRunning(ref) ||
-    (await isExecutableInUse(state.executablePath))
+    (await isExecutableInUse(executablePath))
   ) {
     return { ok: false, reason: "running" };
   }
 
-  const launch = await prepareRecompilationRom(ref, state.installPath, (step) =>
-    sendPrepareProgress({ slug: ref.slug, phase: "running", ...step })
+  let prepared = false;
+  const launch = await prepareRecompilationRom(
+    ref,
+    state.installPath,
+    (step) => {
+      prepared = true;
+      sendPrepareProgress({ slug: ref.slug, phase: "running", ...step });
+    }
   );
+  if (prepared) {
+    sendPrepareProgress({
+      slug: ref.slug,
+      phase: launch.ok ? "done" : "error",
+    });
+  }
   if (!launch.ok) return { ok: false, reason: launch.reason };
 
   if (!(await prepareRecompilationCloudSave(ref))) {
@@ -471,7 +509,7 @@ const launchRecompilation = async (
   const consoleHider = shouldHideRecompilationConsole(ref.slug)
     ? startConsoleHider()
     : null;
-  const spawned = await spawnPort(state.executablePath, launch);
+  const spawned = await spawnPort(executablePath, launch);
   if (spawned.ok && spawned.child.pid) {
     consoleHider?.stdin?.end(`${spawned.child.pid}\n`);
   } else {

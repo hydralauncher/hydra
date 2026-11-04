@@ -3,6 +3,7 @@ import type {
   RecompilationActionResult,
   RecompilationInstallProgress,
   RecompilationInstallState,
+  RecompilationPrepareProgress,
 } from "@types";
 
 export interface RecompilationInstall {
@@ -11,6 +12,8 @@ export interface RecompilationInstall {
   isBusy: boolean;
   isRunning: boolean;
   isLaunching: boolean;
+  isPreparing: boolean;
+  prepareFailed: boolean;
   install: (parentDirectory?: string) => Promise<RecompilationActionResult>;
   uninstall: () => Promise<boolean>;
   play: () => Promise<boolean>;
@@ -36,6 +39,16 @@ export function useRecompilationInstall(
   );
   const [isRunning, setIsRunning] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
+  const [preparePhase, setPreparePhase] = useState<
+    RecompilationPrepareProgress["phase"] | null
+  >(null);
+
+  useEffect(() => {
+    setPreparePhase(null);
+    return window.electron.onRecompilationPrepareProgress((payload) => {
+      if (payload.slug === slug) setPreparePhase(payload.phase);
+    });
+  }, [slug]);
 
   useEffect(() => {
     const gameId = `launchbox:${objectId}`;
@@ -140,6 +153,8 @@ export function useRecompilationInstall(
     isBusy,
     isRunning,
     isLaunching,
+    isPreparing: preparePhase === "running",
+    prepareFailed: preparePhase === "error",
     install,
     uninstall,
     play,

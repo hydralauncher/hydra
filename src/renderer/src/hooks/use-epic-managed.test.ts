@@ -2411,8 +2411,8 @@ describe("Epic managed UI lifecycle", () => {
           },
           "./use-installed-recompilations": {
             RECOMPILATION_CHOICE_PREFIX: "recompilation:",
-            getRememberedRecompilation: () => null,
-            setRememberedRecompilation: () => {},
+            getRememberedPlayChoice: () => null,
+            setRememberedPlayChoice: () => {},
             useInstalledRecompilations: () => async () => [],
           },
           "../modals/epic-cloud-save-conflict-modal": {

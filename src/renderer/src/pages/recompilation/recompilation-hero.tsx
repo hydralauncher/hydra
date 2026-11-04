@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   DownloadIcon,
@@ -66,6 +66,11 @@ export function RecompilationHero({
   const handlesRom = rom.state?.handlesRom === true;
   const needsRomChoice =
     handlesRom && !rom.state?.romPath && !rom.state?.isReady;
+
+  const { prepareFailed } = install;
+  useEffect(() => {
+    if (prepareFailed) showErrorToast(t("prepare_failed"));
+  }, [prepareFailed, showErrorToast, t]);
 
   const runUpdate = async () => {
     const result = await install.install();
@@ -159,10 +164,10 @@ export function RecompilationHero({
           <Button
             theme={hasUpdate ? "outline" : "primary"}
             onClick={runPlay}
-            disabled={install.isLaunching}
+            disabled={install.isLaunching || install.isPreparing}
           >
             <PlayIcon />
-            {t("play")}
+            {install.isPreparing ? t("prepare_title") : t("play")}
           </Button>
         )}
         <DropdownMenu

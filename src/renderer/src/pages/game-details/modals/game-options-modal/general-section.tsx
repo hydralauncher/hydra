@@ -29,8 +29,8 @@ import {
   platformToSystem,
 } from "@renderer/helpers";
 import {
-  getRememberedRecompilation,
-  setRememberedRecompilation,
+  getRememberedPlayChoice,
+  setRememberedPlayChoice,
 } from "../../hero/use-installed-recompilations";
 
 interface ClassicsDiscSectionProps {
@@ -49,8 +49,8 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     [game.platform]
   );
 
-  const [rememberedPort, setRememberedPort] = useState(() =>
-    getRememberedRecompilation(game.objectId)
+  const [rememberedChoice, setRememberedChoice] = useState(() =>
+    getRememberedPlayChoice(game.objectId)
   );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -133,8 +133,8 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
 
   const handleToggleDontAsk = async (checked: boolean) => {
     if (!checked) {
-      setRememberedRecompilation(game.objectId, null);
-      setRememberedPort(null);
+      setRememberedPlayChoice(game.objectId, null);
+      setRememberedChoice(null);
     }
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
       dontAskDiscSelection: checked,
@@ -371,10 +371,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
           </div>
         )}
 
-        {(discs.length > 1 || rememberedPort) && (
+        {(discs.length > 1 || rememberedChoice) && (
           <CheckboxField
             label={t("dont_ask_disc_again")}
-            checked={Boolean(game.dontAskDiscSelection || rememberedPort)}
+            checked={Boolean(game.dontAskDiscSelection || rememberedChoice)}
             onChange={(e) => void handleToggleDontAsk(e.target.checked)}
           />
         )}

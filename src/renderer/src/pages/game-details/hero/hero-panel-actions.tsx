@@ -39,9 +39,9 @@ import {
 import { DiscSelectionModal } from "../modals/disc-selection-modal";
 import { buildRecompilationPath } from "../../recompilation/recompilations-api";
 import {
-  getRememberedRecompilation,
+  getRememberedPlayChoice,
   RECOMPILATION_CHOICE_PREFIX,
-  setRememberedRecompilation,
+  setRememberedPlayChoice,
   useInstalledRecompilations,
   type InstalledRecompilation,
 } from "./use-installed-recompilations";
@@ -72,6 +72,7 @@ export function HeroPanelActions() {
     presentation,
     repacks,
     isGameRunning,
+    runningRecompilationSlug,
     shop,
     objectId,
     gameTitle,
@@ -317,7 +318,7 @@ export function HeroPanelActions() {
   const launchRecompilation = async (recompilation: InstalledRecompilation) => {
     if (!game) return;
 
-    if (recompilation.needsRom) {
+    if (recompilation.needsSetup) {
       navigate(
         `${buildRecompilationPath(game.objectId, recompilation.slug)}?rom=1`
       );
@@ -328,7 +329,11 @@ export function HeroPanelActions() {
       objectId: game.objectId,
       slug: recompilation.slug,
     });
-    if (!result.ok && result.reason !== "cloud_save_conflict") {
+    if (
+      !result.ok &&
+      result.reason !== "cloud_save_conflict" &&
+      result.reason !== "running"
+    ) {
       showErrorToast(t("play_failed", { ns: "recompilation" }));
     }
   };
@@ -341,19 +346,26 @@ export function HeroPanelActions() {
     setPlayableRecompilations(recompilations);
 
     if (recompilations.length > 0) {
-      const remembered = recompilations.find(
-        (item) => item.slug === getRememberedRecompilation(game.objectId)
+      const remembered = getRememberedPlayChoice(game.objectId);
+      const rememberedPort = recompilations.find(
+        (item) => RECOMPILATION_CHOICE_PREFIX + item.slug === remembered
       );
-      if (remembered) {
-        await launchRecompilation(remembered);
+      if (rememberedPort) {
+        await launchRecompilation(rememberedPort);
         return;
       }
+      if (remembered && discs.some((disc) => disc.path === remembered)) {
+        await launchClassicsWithErrorHandling(remembered);
+        return;
+      }
+
+      setShowDiscSelectionModal(true);
+      return;
     }
 
     if (
-      recompilations.length === 0 &&
-      (discs.length === 0 ||
-        (discs.length === 1 && game.selectedDiscPath !== null))
+      discs.length === 0 ||
+      (discs.length === 1 && game.selectedDiscPath !== null)
     ) {
       await launchClassicsWithErrorHandling();
       return;
@@ -374,17 +386,20 @@ export function HeroPanelActions() {
     if (!game) return;
     setShowDiscSelectionModal(false);
 
+    const offeredPorts = playableRecompilations.length > 0;
+    setRememberedPlayChoice(
+      game.objectId,
+      dontAskAgain && offeredPorts ? discPath : null
+    );
+
     if (discPath.startsWith(RECOMPILATION_CHOICE_PREFIX)) {
-      const slug = discPath.slice(RECOMPILATION_CHOICE_PREFIX.length);
       const recompilation = playableRecompilations.find(
-        (item) => item.slug === slug
+        (item) => RECOMPILATION_CHOICE_PREFIX + item.slug === discPath
       );
-      setRememberedRecompilation(game.objectId, dontAskAgain ? slug : null);
       if (recompilation) await launchRecompilation(recompilation);
       return;
     }
 
-    setRememberedRecompilation(game.objectId, null);
     try {
       await window.electron.updateClassicsDisc(game.shop, game.objectId, {
         selectedDiscPath: discPath,
@@ -512,6 +527,13 @@ export function HeroPanelActions() {
   };
 
   const closeGame = () => {
+    if (game && runningRecompilationSlug) {
+      void window.electron.closeRecompilation({
+        objectId: game.objectId,
+        slug: runningRecompilationSlug,
+      });
+      return;
+    }
     if (game) window.electron.closeGame(game.shop, game.objectId);
   };
 
@@ -658,7 +680,7 @@ export function HeroPanelActions() {
       );
     }
 
-    if (isGameRunning) {
+    if (isGameRunning || runningRecompilationSlug) {
       return (
         <Button
           onClick={closeGame}

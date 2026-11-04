@@ -42,7 +42,6 @@ const getRecompilationRomMeta = (slug: string): RecompilationRomMeta | null =>
 export const shouldHideRecompilationConsole = (slug: string) =>
   Object.hasOwn(ROM_META, slug) && ROM_META[slug]?.hideConsole === true;
 
-/** Path inside the release to launch when picking an executable would guess wrong. */
 export const getRecompilationExecutableOverride = (slug: string) =>
   (Object.hasOwn(ROM_META, slug)
     ? ROM_META[slug]?.executable?.[process.platform as MetaPlatform]

@@ -9,31 +9,32 @@ export interface InstalledRecompilation {
   slug: string;
   name: string;
   iconUrl: string | null;
-  needsRom: boolean;
+  needsSetup: boolean;
 }
 
-const REMEMBERED_KEY_PREFIX = "recompilationPlayChoice:";
+const REMEMBERED_KEY_PREFIX = "playChoice:";
 
 export const RECOMPILATION_CHOICE_PREFIX = "recompilation:";
 
-export const getRememberedRecompilation = (objectId: string) => {
+export const getRememberedPlayChoice = (objectId: string) => {
   try {
     return window.localStorage.getItem(REMEMBERED_KEY_PREFIX + objectId);
-  } catch {
+  } catch (error) {
+    logger.warn("Failed to read the play choice", error);
     return null;
   }
 };
 
-export const setRememberedRecompilation = (
+export const setRememberedPlayChoice = (
   objectId: string,
-  slug: string | null
+  choice: string | null
 ) => {
   try {
-    if (slug)
-      window.localStorage.setItem(REMEMBERED_KEY_PREFIX + objectId, slug);
+    if (choice)
+      window.localStorage.setItem(REMEMBERED_KEY_PREFIX + objectId, choice);
     else window.localStorage.removeItem(REMEMBERED_KEY_PREFIX + objectId);
-  } catch {
-    // the choice is a convenience; launching still works without it
+  } catch (error) {
+    logger.warn("Failed to save the play choice", error);
   }
 };
 
@@ -68,7 +69,6 @@ export function useInstalledRecompilations(
   return useCallback(async (): Promise<InstalledRecompilation[]> => {
     if (!isEnabled || !objectId) return [];
 
-    // Waits for the list instead of reading it mid-flight, and retries a failed load.
     const pending =
       summaries.current?.objectId === objectId
         ? summaries.current.request
@@ -88,7 +88,10 @@ export function useInstalledRecompilations(
           slug: summary.slug,
           name: summary.name,
           iconUrl: summary.iconUrl ?? null,
-          needsRom: rom?.handlesRom === true && !rom.romPath && !rom.isReady,
+          needsSetup:
+            rom?.handlesRom === true &&
+            !rom.isReady &&
+            (!rom.romPath || rom.needsPreparation),
         };
       })
     );

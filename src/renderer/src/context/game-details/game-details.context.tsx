@@ -47,6 +47,7 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   shop: "steam",
   gameTitle: "",
   isGameRunning: false,
+  runningRecompilationSlug: null,
   isLoading: false,
   objectId: undefined,
   showRepacksModal: false,
@@ -105,6 +106,9 @@ export function GameDetailsContextProvider({
 
   const [isLoading, setIsLoading] = useState(true);
   const [isGameRunning, setIsGameRunning] = useState(false);
+  const [runningRecompilationSlug, setRunningRecompilationSlug] = useState<
+    string | null
+  >(null);
   const [showRepacksModal, setShowRepacksModal] = useState(false);
   const [showGameOptionsModal, setShowGameOptionsModal] = useState(false);
   const [gameOptionsInitialCategory, setGameOptionsInitialCategory] =
@@ -423,6 +427,14 @@ export function GameDetailsContextProvider({
       }
 
       setIsGameRunning(updatedIsGameRunning);
+      setRunningRecompilationSlug(
+        (game?.id &&
+          gamesIds.find(
+            (gameRunning) =>
+              gameRunning.id == game.id && gameRunning.recompilationSlug
+          )?.recompilationSlug) ||
+          null
+      );
     });
 
     return () => {
@@ -647,6 +659,7 @@ export function GameDetailsContextProvider({
         repacks,
         gameTitle: presentation?.title ?? shopDetails?.name ?? gameTitle,
         isGameRunning,
+        runningRecompilationSlug,
         isLoading,
         objectId: lockAchievementIdentity
           ? achievementObjectId
