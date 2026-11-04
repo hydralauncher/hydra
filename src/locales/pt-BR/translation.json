@@ -945,6 +945,9 @@
     "all_files": "Todos os arquivos",
     "select_disc_title": "Selecione um disco para começar",
     "select_disc_subtitle": "Este jogo tem múltiplos discos. Selecione um para iniciar.",
+    "select_play_title": "Escolha como jogar",
+    "select_play_subtitle": "Escolha um disco ou a versão para PC.",
+    "pc_version": "Versão para PC",
     "dont_ask_disc_again": "Não perguntar novamente para este jogo",
     "launch_game": "Iniciar Jogo",
     "emulator_not_configured_toast": "Emulador não configurado. Configure-o em Ajustes → Emulação.",
@@ -3483,7 +3486,6 @@
     "tested_feature_launch": "Abre pelo Hydra",
     "tested_feature_playtime": "Conta tempo de jogo",
     "tested_feature_cloudSaves": "Salvamento na nuvem",
-    "tested_feature_achievements": "Conquistas",
     "tested_feature_controllerBigPicture": "Controle",
     "tested_status_works": "Funciona",
     "tested_status_testing": "Em teste",
@@ -3575,10 +3577,10 @@
     "not_installed": "Não instalado",
     "rom_needs_short": "Você precisa de {{rom}}",
     "not_selected": "Nenhuma ROM escolhida",
-    "tested_count_one": "{{count}} de 5 recursos funciona",
-    "tested_count_other": "{{count}} de 5 recursos funcionam",
+    "tested_count_one": "{{count}} de {{total}} recursos funciona",
+    "tested_count_other": "{{count}} de {{total}} recursos funcionam",
     "about_project": "Sobre o projeto",
     "github_repository": "Repositório no GitHub",
-    "tested_count_zero": "0 de 5 recursos funcionam"
+    "tested_count_zero": "0 de {{total}} recursos funcionam"
   }
 }

@@ -37,6 +37,14 @@ import {
   handleClassicsLaunchError,
 } from "@renderer/helpers";
 import { DiscSelectionModal } from "../modals/disc-selection-modal";
+import { buildRecompilationPath } from "../../recompilation/recompilations-api";
+import {
+  getRememberedRecompilation,
+  RECOMPILATION_CHOICE_PREFIX,
+  setRememberedRecompilation,
+  useInstalledRecompilations,
+  type InstalledRecompilation,
+} from "./use-installed-recompilations";
 import { EpicCloudSaveConflictModal } from "../modals/epic-cloud-save-conflict-modal";
 
 import "./hero-panel-actions.scss";
@@ -101,6 +109,13 @@ export function HeroPanelActions() {
   const location = useLocation();
 
   const [showDiscSelectionModal, setShowDiscSelectionModal] = useState(false);
+  const getInstalledRecompilations = useInstalledRecompilations(
+    game?.shop,
+    game?.objectId
+  );
+  const [playableRecompilations, setPlayableRecompilations] = useState<
+    InstalledRecompilation[]
+  >([]);
 
   useEffect(() => {
     const state = (location.state as Record<string, unknown> | null) ?? {};
@@ -299,14 +314,46 @@ export function HeroPanelActions() {
     }
   };
 
+  const launchRecompilation = async (recompilation: InstalledRecompilation) => {
+    if (!game) return;
+
+    if (recompilation.needsRom) {
+      navigate(
+        `${buildRecompilationPath(game.objectId, recompilation.slug)}?rom=1`
+      );
+      return;
+    }
+
+    const result = await window.electron.playRecompilation({
+      objectId: game.objectId,
+      slug: recompilation.slug,
+    });
+    if (!result.ok && result.reason !== "cloud_save_conflict") {
+      showErrorToast(t("play_failed", { ns: "recompilation" }));
+    }
+  };
+
   const openClassicsGame = async () => {
     if (!game) return;
 
     const discs = game.discs ?? [];
+    const recompilations = await getInstalledRecompilations();
+    setPlayableRecompilations(recompilations);
+
+    if (recompilations.length > 0) {
+      const remembered = recompilations.find(
+        (item) => item.slug === getRememberedRecompilation(game.objectId)
+      );
+      if (remembered) {
+        await launchRecompilation(remembered);
+        return;
+      }
+    }
 
     if (
-      discs.length === 0 ||
-      (discs.length === 1 && game.selectedDiscPath !== null)
+      recompilations.length === 0 &&
+      (discs.length === 0 ||
+        (discs.length === 1 && game.selectedDiscPath !== null))
     ) {
       await launchClassicsWithErrorHandling();
       return;
@@ -326,6 +373,18 @@ export function HeroPanelActions() {
   ) => {
     if (!game) return;
     setShowDiscSelectionModal(false);
+
+    if (discPath.startsWith(RECOMPILATION_CHOICE_PREFIX)) {
+      const slug = discPath.slice(RECOMPILATION_CHOICE_PREFIX.length);
+      const recompilation = playableRecompilations.find(
+        (item) => item.slug === slug
+      );
+      setRememberedRecompilation(game.objectId, dontAskAgain ? slug : null);
+      if (recompilation) await launchRecompilation(recompilation);
+      return;
+    }
+
+    setRememberedRecompilation(game.objectId, null);
     try {
       await window.electron.updateClassicsDisc(game.shop, game.objectId, {
         selectedDiscPath: discPath,
@@ -816,6 +875,7 @@ export function HeroPanelActions() {
           <DiscSelectionModal
             visible={showDiscSelectionModal}
             discs={game.discs ?? []}
+            recompilations={playableRecompilations}
             defaultDiscPath={game.selectedDiscPath ?? null}
             defaultDontAsk={Boolean(game.dontAskDiscSelection)}
             onClose={() => setShowDiscSelectionModal(false)}

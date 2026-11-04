@@ -91,6 +91,7 @@ export function RecompilationSidebar({
               <span>
                 {t("tested_count", {
                   count: countWorkingRecompilationFeatures(tested),
+                  total: RECOMPILATION_TESTED_FEATURE_KEYS.length,
                 })}
               </span>
             </div>

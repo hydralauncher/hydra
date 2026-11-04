@@ -237,7 +237,11 @@ export default function RecompilationPage() {
           <RecompilationTabBar
             tabs={[
               { id: "about", label: t("tab_about") },
-              { id: "releases", label: t("tab_releases") },
+              {
+                id: "releases",
+                label: t("tab_releases"),
+                count: releases.length,
+              },
             ]}
             activeTab={activeTab}
             onChange={setActiveTab}

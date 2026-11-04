@@ -412,6 +412,9 @@
     "all_files": "All files",
     "select_disc_title": "Select a disc to start",
     "select_disc_subtitle": "This game has multiple discs. Select one to launch.",
+    "select_play_title": "Choose how to play",
+    "select_play_subtitle": "Choose a disc or the PC version.",
+    "pc_version": "PC version",
     "dont_ask_disc_again": "Don't ask again for this game",
     "launch_game": "Launch Game",
     "emulator_not_configured_toast": "Emulator not configured. Set it up in Settings → Emulation.",
@@ -3470,7 +3473,6 @@
     "tested_feature_launch": "Launches from Hydra",
     "tested_feature_playtime": "Tracks playtime",
     "tested_feature_cloudSaves": "Cloud saves",
-    "tested_feature_achievements": "Achievements",
     "tested_feature_controllerBigPicture": "Controller",
     "tested_status_works": "Works",
     "tested_status_testing": "Testing",
@@ -3562,10 +3564,10 @@
     "not_installed": "Not installed",
     "rom_needs_short": "You need {{rom}}",
     "not_selected": "No ROM chosen",
-    "tested_count_one": "{{count}} of 5 features work",
-    "tested_count_other": "{{count}} of 5 features work",
+    "tested_count_one": "{{count}} of {{total}} features work",
+    "tested_count_other": "{{count}} of {{total}} features work",
     "about_project": "About the project",
     "github_repository": "GitHub repository",
-    "tested_count_zero": "0 of 5 features work"
+    "tested_count_zero": "0 of {{total}} features work"
   }
 }

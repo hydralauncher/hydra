@@ -9,7 +9,6 @@ export type RecompilationTestedFeatureKey =
   | "launch"
   | "playtime"
   | "cloudSaves"
-  | "achievements"
   | "controllerBigPicture";
 
 export type RecompilationTestedFeatureStatus =

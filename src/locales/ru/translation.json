@@ -414,6 +414,9 @@
     "all_files": "Все файлы",
     "select_disc_title": "Выберите диск для запуска",
     "select_disc_subtitle": "У этой игры несколько дисков. Выберите один для запуска.",
+    "select_play_title": "Выберите, как играть",
+    "select_play_subtitle": "Выберите диск или версию для ПК.",
+    "pc_version": "Версия для ПК",
     "dont_ask_disc_again": "Больше не спрашивать для этой игры",
     "launch_game": "Запустить игру",
     "emulator_not_configured_toast": "Эмулятор не настроен. Настройте его в Настройки → Эмуляция.",
@@ -3087,7 +3090,6 @@
     "tested_feature_launch": "Запускается из Hydra",
     "tested_feature_playtime": "Учитывает время игры",
     "tested_feature_cloudSaves": "Облачные сохранения",
-    "tested_feature_achievements": "Достижения",
     "tested_feature_controllerBigPicture": "Контроллер",
     "tested_status_works": "Работает",
     "tested_status_testing": "Проверяется",
@@ -3181,12 +3183,12 @@
     "not_installed": "Не установлено",
     "rom_needs_short": "Нужен {{rom}}",
     "not_selected": "ROM не выбран",
-    "tested_count_one": "Работает {{count}} из 5 функций",
-    "tested_count_few": "Работают {{count}} из 5 функций",
-    "tested_count_many": "Работают {{count}} из 5 функций",
-    "tested_count_other": "Работают {{count}} из 5 функций",
+    "tested_count_one": "Работает {{count}} из {{total}} функций",
+    "tested_count_few": "Работают {{count}} из {{total}} функций",
+    "tested_count_many": "Работают {{count}} из {{total}} функций",
+    "tested_count_other": "Работают {{count}} из {{total}} функций",
     "about_project": "О проекте",
     "github_repository": "Репозиторий на GitHub",
-    "tested_count_zero": "Работают 0 из 5 функций"
+    "tested_count_zero": "Работают 0 из {{total}} функций"
   }
 }

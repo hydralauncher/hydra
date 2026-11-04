@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
 import { Button, CheckboxField, Modal } from "@renderer/components";
-import { FileIcon } from "@primer/octicons-react";
+import { DeviceDesktopIcon, FileIcon } from "@primer/octicons-react";
 import { Disc3 } from "lucide-react";
 import { getClassicsDiscLabel } from "@shared";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
@@ -12,6 +12,10 @@ import {
   type SkuRegion,
 } from "@renderer/helpers";
 import type { ClassicsDisc } from "@types";
+import {
+  RECOMPILATION_CHOICE_PREFIX,
+  type InstalledRecompilation,
+} from "../hero/use-installed-recompilations";
 import "./disc-selection-modal.scss";
 
 const REGION_TRANSLATION_KEYS: Record<SkuRegion, string> = {
@@ -25,6 +29,7 @@ const REGION_TRANSLATION_KEYS: Record<SkuRegion, string> = {
 interface DiscSelectionModalProps {
   visible: boolean;
   discs: ClassicsDisc[];
+  recompilations?: Pick<InstalledRecompilation, "slug" | "name" | "iconUrl">[];
   defaultDiscPath?: string | null;
   defaultDontAsk?: boolean;
   onClose: () => void;
@@ -34,6 +39,7 @@ interface DiscSelectionModalProps {
 export function DiscSelectionModal({
   visible,
   discs,
+  recompilations = [],
   defaultDiscPath,
   defaultDontAsk = false,
   onClose,
@@ -73,9 +79,15 @@ export function DiscSelectionModal({
   }, [discs]);
 
   const initialSelected = useMemo(
-    () => defaultDiscPath ?? sortedDiscs[0]?.path ?? null,
-    [defaultDiscPath, sortedDiscs]
+    () =>
+      defaultDiscPath ??
+      sortedDiscs[0]?.path ??
+      (recompilations[0]
+        ? RECOMPILATION_CHOICE_PREFIX + recompilations[0].slug
+        : null),
+    [defaultDiscPath, sortedDiscs, recompilations]
   );
+  const hasRecompilations = recompilations.length > 0;
 
   const [selected, setSelected] = useState<string | null>(initialSelected);
   const [dontAsk, setDontAsk] = useState(defaultDontAsk);
@@ -115,8 +127,10 @@ export function DiscSelectionModal({
   return (
     <Modal
       visible={visible}
-      title={t("select_disc_title")}
-      description={t("select_disc_subtitle")}
+      title={t(hasRecompilations ? "select_play_title" : "select_disc_title")}
+      description={t(
+        hasRecompilations ? "select_play_subtitle" : "select_disc_subtitle"
+      )}
       onClose={onClose}
     >
       <div className="disc-selection-modal__body">
@@ -149,6 +163,40 @@ export function DiscSelectionModal({
                   data-tooltip-content={regionName}
                 />
               )}
+            </button>
+          );
+        })}
+        {recompilations.map((recompilation) => {
+          const choice = RECOMPILATION_CHOICE_PREFIX + recompilation.slug;
+          return (
+            <button
+              key={choice}
+              type="button"
+              className={`disc-selection-modal__option ${selected === choice ? "disc-selection-modal__option--active" : ""}`}
+              onClick={() => setSelected(choice)}
+            >
+              {recompilation.iconUrl ? (
+                <img
+                  src={recompilation.iconUrl}
+                  alt=""
+                  width={20}
+                  height={20}
+                  className="disc-selection-modal__option-icon disc-selection-modal__option-icon--image"
+                />
+              ) : (
+                <DeviceDesktopIcon
+                  size={20}
+                  className="disc-selection-modal__option-icon"
+                />
+              )}
+              <div className="disc-selection-modal__option-text">
+                <span className="disc-selection-modal__option-label">
+                  {recompilation.name}
+                </span>
+                <span className="disc-selection-modal__option-filename">
+                  {t("pc_version")}
+                </span>
+              </div>
             </button>
           );
         })}
