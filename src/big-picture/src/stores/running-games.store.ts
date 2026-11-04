@@ -34,8 +34,13 @@ export function initializeBigPictureRunningGamesStore() {
 
   runningGamesStoreInitialized = true;
 
-  const setRunningGames = (games: BigPictureRunningGame[]) => {
-    useBigPictureRunningGamesStore.getState().setRunningGames(games);
+  // Ports report under the base game's id; Big Picture has no port pages yet.
+  const setRunningGames = (
+    games: (BigPictureRunningGame & Pick<GameRunning, "recompilationSlug">)[]
+  ) => {
+    useBigPictureRunningGamesStore
+      .getState()
+      .setRunningGames(games.filter((game) => !game.recompilationSlug));
   };
 
   if (typeof electron.getGamesRunning === "function") {

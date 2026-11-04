@@ -242,15 +242,16 @@ const extractRelease = async (
     await extractNestedTar(stagingDirectory);
     const root = await resolveExtractedRoot(stagingDirectory);
     await restoreExecutableBits(root);
-    if (!(await findExecutable(root, portName))) {
-      throw new RecompilationInstallError("no_executable");
-    }
+    const executablePath = await findExecutable(root, portName);
+    if (!executablePath) throw new RecompilationInstallError("no_executable");
     await fs.promises.mkdir(installDirectory, { recursive: true });
     await fs.promises.cp(root, installDirectory, {
       recursive: true,
       force: true,
       verbatimSymlinks: true,
     });
+    // Picked from this release only: files left by an older one must not win.
+    return path.join(installDirectory, path.relative(root, executablePath));
   } finally {
     await fs.promises.rm(stagingDirectory, { recursive: true, force: true });
   }
@@ -343,10 +344,11 @@ const downloadAndInstall = async (
   }
 
   sendProgress({ slug: ref.slug, phase: "extracting" });
-  await extractRelease(archivePath, installDirectory, details.name);
-
-  const executablePath = await findExecutable(installDirectory, details.name);
-  if (!executablePath) throw new RecompilationInstallError("no_executable");
+  const executablePath = await extractRelease(
+    archivePath,
+    installDirectory,
+    details.name
+  );
 
   const marker: InstallMarker = {
     slug: ref.slug,
