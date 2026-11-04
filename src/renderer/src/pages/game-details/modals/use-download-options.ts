@@ -6,7 +6,16 @@ import { useAppSelector, useFeature, useUserDetails } from "@renderer/hooks";
 import { Feature } from "@renderer/hooks/use-feature";
 
 interface DownloadOptionsContext {
-  userPreferences: UserPreferences | null | undefined;
+  userPreferences:
+    | Pick<
+        UserPreferences,
+        | "realDebridApiToken"
+        | "premiumizeApiToken"
+        | "allDebridApiToken"
+        | "torBoxApiToken"
+      >
+    | null
+    | undefined;
   hasActiveSubscription: boolean;
   isFeatureEnabled: (feature: Feature) => boolean;
 }
@@ -119,14 +128,33 @@ export function useDownloadOptions(repack: GameRepack | null) {
   const { isFeatureEnabled } = useFeature();
   const { hasActiveSubscription } = useUserDetails();
 
+  const realDebridApiToken = userPreferences?.realDebridApiToken;
+  const premiumizeApiToken = userPreferences?.premiumizeApiToken;
+  const allDebridApiToken = userPreferences?.allDebridApiToken;
+  const torBoxApiToken = userPreferences?.torBoxApiToken;
+
+  // Only the tokens: other preference changes must not reset the picked downloader.
   return useMemo(
     () =>
       getDownloadOptions(repack, {
-        userPreferences,
+        userPreferences: {
+          realDebridApiToken,
+          premiumizeApiToken,
+          allDebridApiToken,
+          torBoxApiToken,
+        },
         hasActiveSubscription,
         isFeatureEnabled,
       }),
-    [repack, userPreferences, hasActiveSubscription, isFeatureEnabled]
+    [
+      repack,
+      realDebridApiToken,
+      premiumizeApiToken,
+      allDebridApiToken,
+      torBoxApiToken,
+      hasActiveSubscription,
+      isFeatureEnabled,
+    ]
   );
 }
 
