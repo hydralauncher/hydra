@@ -3565,6 +3565,7 @@
     "tested_count_one": "{{count}} of 5 features work",
     "tested_count_other": "{{count}} of 5 features work",
     "about_project": "About the project",
-    "github_repository": "GitHub repository"
+    "github_repository": "GitHub repository",
+    "tested_count_zero": "0 of 5 features work"
   }
 }

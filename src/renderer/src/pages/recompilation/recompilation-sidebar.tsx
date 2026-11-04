@@ -45,7 +45,6 @@ export function RecompilationSidebar({
   const { t } = useTranslation("recompilation");
   const { numberFormatter } = useFormat();
   const { tested } = details;
-  const isTested = tested.level !== "untested";
 
   const works = (key: string) =>
     tested.features.find((feature) => feature.key === key)?.status === "works";
@@ -86,29 +85,25 @@ export function RecompilationSidebar({
       <SidebarSection title={t("tested_title")}>
         <div className="recompilation-sidebar">
           <div className="recompilation-sidebar__tested-head">
-            <TestedMedal level={tested.level} size={28} />
+            <TestedMedal level={tested.level} size={18} />
             <div>
               <strong>{t(`tested_level_${tested.level}`)}</strong>
               <span>
-                {isTested
-                  ? t("tested_count", {
-                      count: countWorkingRecompilationFeatures(tested),
-                    })
-                  : t("tested_untested_description")}
+                {t("tested_count", {
+                  count: countWorkingRecompilationFeatures(tested),
+                })}
               </span>
             </div>
           </div>
 
-          {isTested && (
-            <ul className="recompilation-sidebar__features">
-              {RECOMPILATION_TESTED_FEATURE_KEYS.map((key) => (
-                <li key={key}>
-                  <StatusDot ok={works(key)} />
-                  {t(`tested_feature_${key}`)}
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul className="recompilation-sidebar__features">
+            {RECOMPILATION_TESTED_FEATURE_KEYS.map((key) => (
+              <li key={key}>
+                <StatusDot ok={works(key)} />
+                {t(`tested_feature_${key}`)}
+              </li>
+            ))}
+          </ul>
         </div>
       </SidebarSection>
 

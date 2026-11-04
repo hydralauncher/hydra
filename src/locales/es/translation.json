@@ -3088,6 +3088,7 @@
     "tested_count_one": "{{count}} de 5 funciones funciona",
     "tested_count_other": "{{count}} de 5 funciones funcionan",
     "about_project": "Sobre el proyecto",
-    "github_repository": "Repositorio en GitHub"
+    "github_repository": "Repositorio en GitHub",
+    "tested_count_zero": "0 de 5 funciones funcionan"
   }
 }

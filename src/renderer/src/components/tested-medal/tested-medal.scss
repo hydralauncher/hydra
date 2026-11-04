@@ -13,17 +13,4 @@
     stroke-linecap: round;
     stroke-linejoin: round;
   }
-
-  &__empty {
-    fill: rgba(255, 255, 255, 0.04);
-    stroke: rgba(255, 255, 255, 0.18);
-    stroke-width: 1;
-  }
-
-  &__dash {
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.4);
-    stroke-width: 2;
-    stroke-linecap: round;
-  }
 }

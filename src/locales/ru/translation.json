@@ -3186,6 +3186,7 @@
     "tested_count_many": "Работают {{count}} из 5 функций",
     "tested_count_other": "Работают {{count}} из 5 функций",
     "about_project": "О проекте",
-    "github_repository": "Репозиторий на GitHub"
+    "github_repository": "Репозиторий на GitHub",
+    "tested_count_zero": "Работают 0 из 5 функций"
   }
 }

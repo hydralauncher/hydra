@@ -10,15 +10,14 @@ export interface TestedMedalProps {
   className?: string;
 }
 
-const TIER_COLORS: Record<
-  Exclude<RecompilationTestedLevel, "untested">,
-  [string, string, string]
-> = {
-  platinum: ["#d6fff6", "#5ee6c8", "#159c84"],
-  gold: ["#fff1c2", "#f2c94c", "#b7861f"],
-  silver: ["#ffffff", "#c9ced6", "#848b97"],
-  bronze: ["#ffd9bd", "#d98f5c", "#94552c"],
-};
+const TIER_COLORS: Record<RecompilationTestedLevel, [string, string, string]> =
+  {
+    platinum: ["#d6fff6", "#5ee6c8", "#159c84"],
+    gold: ["#fff1c2", "#f2c94c", "#b7861f"],
+    silver: ["#ffffff", "#c9ced6", "#848b97"],
+    bronze: ["#ffd9bd", "#d98f5c", "#94552c"],
+    untested: ["#6b6e75", "#4a4c52", "#2f3035"],
+  };
 
 export function TestedMedal({
   level,
@@ -26,22 +25,6 @@ export function TestedMedal({
   className,
 }: Readonly<TestedMedalProps>) {
   const id = useId();
-
-  if (level === "untested") {
-    return (
-      <svg
-        className={cn("tested-medal", "tested-medal--untested", className)}
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <circle className="tested-medal__empty" cx="12" cy="12" r="10.5" />
-        <path className="tested-medal__dash" d="M8.5 12h7" />
-      </svg>
-    );
-  }
-
   const [light, base, dark] = TIER_COLORS[level];
 
   return (
@@ -64,15 +47,17 @@ export function TestedMedal({
           <stop offset="100%" stopColor={dark} />
         </linearGradient>
       </defs>
-      <circle cx="12" cy="12" r="11" fill={`url(#${id}-face)`} />
+      <circle cx="12" cy="12" r="12" fill={`url(#${id}-face)`} />
       <circle
         cx="12"
         cy="12"
-        r="8"
+        r="8.75"
         fill={`url(#${id}-inner)`}
         className="tested-medal__inner"
       />
-      <path className="tested-medal__mark" d="M8.4 12.2l2.5 2.5 4.7-4.9" />
+      {level !== "untested" && (
+        <path className="tested-medal__mark" d="M8.4 12.2l2.5 2.5 4.7-4.9" />
+      )}
     </svg>
   );
 }

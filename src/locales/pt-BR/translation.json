@@ -3578,6 +3578,7 @@
     "tested_count_one": "{{count}} de 5 recursos funciona",
     "tested_count_other": "{{count}} de 5 recursos funcionam",
     "about_project": "Sobre o projeto",
-    "github_repository": "Repositório no GitHub"
+    "github_repository": "Repositório no GitHub",
+    "tested_count_zero": "0 de 5 recursos funcionam"
   }
 }
