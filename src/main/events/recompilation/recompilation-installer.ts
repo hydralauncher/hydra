@@ -30,7 +30,10 @@ import {
 import {
   forgetRecompilationInstallDirectory,
   getRecompilationInstallDirectory as getInstallDirectory,
+  INSTALL_MARKER_FILE,
+  type InstallMarker,
   parseRecompilationRef as parseRef,
+  readInstallMarker,
   saveRecompilationInstallDirectory,
 } from "./recompilation-paths";
 import {
@@ -39,18 +42,8 @@ import {
 } from "./recompilation-rom";
 import recompilationSaves from "./recompilation-saves.json";
 
-const INSTALL_MARKER_FILE = ".hydra-recompilation.json";
 const EXECUTABLE_SCAN_DEPTH = 3;
 const ELF_MAGIC = [0x7f, 0x45, 0x4c, 0x46];
-
-interface InstallMarker {
-  slug: string;
-  objectId: string;
-  version: string;
-  assetName: string;
-  executablePath: string | null;
-  installedAt: string;
-}
 
 class RecompilationInstallError extends Error {}
 
@@ -68,20 +61,6 @@ const apiPath = ({ objectId, slug }: RecompilationRef) =>
   `/games/launchbox/${objectId}/recompilations/${slug}`;
 
 const loadSession = () => import("./recompilation-session");
-
-const readInstallMarker = async (
-  installDirectory: string
-): Promise<InstallMarker | null> => {
-  try {
-    const raw = await fs.promises.readFile(
-      path.join(installDirectory, INSTALL_MARKER_FILE),
-      "utf-8"
-    );
-    return JSON.parse(raw) as InstallMarker;
-  } catch {
-    return null;
-  }
-};
 
 const looksLikeLinuxExecutable = async (filePath: string) => {
   if (filePath.toLowerCase().endsWith(".appimage")) return true;

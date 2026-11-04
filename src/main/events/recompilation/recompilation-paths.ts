@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 
 import type { RecompilationRef } from "@types";
@@ -31,6 +32,47 @@ const readSavedInstallDirectory = async (slug: string) => {
 export const getRecompilationInstallDirectory = async (slug: string) =>
   (await readSavedInstallDirectory(slug)) ??
   path.join(await getDownloadsPath(), "recompilations", slug);
+
+export const INSTALL_MARKER_FILE = ".hydra-recompilation.json";
+
+export interface InstallMarker {
+  slug: string;
+  objectId: string;
+  version: string;
+  assetName: string;
+  executablePath: string | null;
+  installedAt: string;
+}
+
+export const readInstallMarker = async (
+  installDirectory: string
+): Promise<InstallMarker | null> => {
+  try {
+    const raw = await fs.promises.readFile(
+      path.join(installDirectory, INSTALL_MARKER_FILE),
+      "utf-8"
+    );
+    return JSON.parse(raw) as InstallMarker;
+  } catch {
+    return null;
+  }
+};
+
+// The port runs with cwd set to its executable's folder, so `<base>` paths
+// resolve from there.
+export const getRecompilationBaseDirectory = async (
+  installDirectory: string
+) => {
+  const executablePath = (await readInstallMarker(installDirectory))
+    ?.executablePath;
+  if (!executablePath) return installDirectory;
+
+  const directory = path.dirname(executablePath);
+  const relative = path.relative(installDirectory, directory);
+  return relative.startsWith("..") || path.isAbsolute(relative)
+    ? installDirectory
+    : directory;
+};
 
 export const saveRecompilationInstallDirectory = (
   slug: string,

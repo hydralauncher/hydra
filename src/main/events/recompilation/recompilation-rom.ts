@@ -14,6 +14,7 @@ import { isCompletedLikeDownload } from "../../../types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { logger, SevenZip } from "@main/services";
 import {
+  getRecompilationBaseDirectory,
   getRecompilationInstallDirectory,
   parseRecompilationRef,
 } from "./recompilation-paths";
@@ -155,12 +156,12 @@ const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
 
 const resolvePlaceholders = (
   template: string,
-  installDirectory: string,
+  baseDirectory: string,
   romName: string
 ) => {
   const home = os.homedir();
   const values: Record<string, string> = {
-    "<base>": installDirectory,
+    "<base>": baseDirectory,
     "<home>": home,
     "<winLocalAppData>":
       process.env.LOCALAPPDATA ?? path.join(home, "AppData", "Local"),
@@ -181,23 +182,23 @@ const resolvePlaceholders = (
 
 const getCopyTarget = (
   meta: RecompilationRomMeta,
-  installDirectory: string,
+  baseDirectory: string,
   romName: string
 ) => {
   const template = meta.copyTo?.[process.platform as MetaPlatform];
   return template
-    ? resolvePlaceholders(template, installDirectory, romName)
+    ? resolvePlaceholders(template, baseDirectory, romName)
     : null;
 };
 
 const isPortReady = async (
   meta: RecompilationRomMeta,
-  installDirectory: string,
+  baseDirectory: string,
   choice: RomChoice | null
 ) => {
   const imported = meta.imported?.[process.platform as MetaPlatform] ?? [];
   for (const template of imported) {
-    if (await fileExists(resolvePlaceholders(template, installDirectory, ""))) {
+    if (await fileExists(resolvePlaceholders(template, baseDirectory, ""))) {
       return true;
     }
   }
@@ -231,7 +232,13 @@ export const getRecompilationRomState = async (
     source: choice?.source ?? null,
     romPath,
     libraryRomPath,
-    isReady: meta ? await isPortReady(meta, installDirectory, choice) : false,
+    isReady: meta
+      ? await isPortReady(
+          meta,
+          await getRecompilationBaseDirectory(installDirectory),
+          choice
+        )
+      : false,
     extensions: (meta?.extensions ?? []).map((extension) => extension.slice(1)),
   };
 };
@@ -354,13 +361,10 @@ const fillRomPlaceholders = (value: string, romPath: string) =>
 const getRomTarget = (
   meta: RecompilationRomMeta,
   installDirectory: string,
+  baseDirectory: string,
   romPath: string
 ) => {
-  const copyTarget = getCopyTarget(
-    meta,
-    installDirectory,
-    path.basename(romPath)
-  );
+  const copyTarget = getCopyTarget(meta, baseDirectory, path.basename(romPath));
   if (copyTarget) return copyTarget;
   if (meta.format !== "z64" || path.extname(romPath).toLowerCase() === ".z64") {
     return null;
@@ -445,7 +449,12 @@ export const prepareRecompilationRom = async (
         (await unpackRom(state.romPath, installDirectory, meta.extensions));
     }
 
-    const target = getRomTarget(meta, installDirectory, romPath);
+    const target = getRomTarget(
+      meta,
+      installDirectory,
+      await getRecompilationBaseDirectory(installDirectory),
+      romPath
+    );
     if (target && (!isPrepared || !(await fileExists(target)))) {
       await copyRom(romPath, target, meta.format);
     }
