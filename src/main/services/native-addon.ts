@@ -171,7 +171,7 @@ type HydraNativeModule = {
     windowHandle: string
   ) => NativeWindowBoundsResponse | null;
   prepareWindowsDesktopCapture?: () => Promise<void>;
-  releaseWindowsDesktopCapture?: () => void;
+  releaseWindowsDesktopCapture?: () => Promise<void>;
   captureWindowsDesktopFrame?: (
     windowHandle: string
   ) => Promise<NativeDesktopFrameResponse | null>;
@@ -595,7 +595,11 @@ export class NativeAddon {
     if (process.platform !== "win32") return;
 
     try {
-      this.load().releaseWindowsDesktopCapture?.();
+      void this.load()
+        .releaseWindowsDesktopCapture?.()
+        .catch((error) => {
+          logger.warn("Failed to release desktop duplication", error);
+        });
     } catch (error) {
       logger.warn("Failed to release desktop duplication", error);
     }

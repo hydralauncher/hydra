@@ -160,8 +160,10 @@ pub async fn prepare_windows_desktop_capture() -> napi::Result<()> {
 }
 
 #[napi]
-pub fn release_windows_desktop_capture() {
-    desktop_duplication::release_capture_device();
+pub async fn release_windows_desktop_capture() -> napi::Result<()> {
+    tokio::task::spawn_blocking(desktop_duplication::release_capture_device)
+        .await
+        .map_err(|err| Error::from_reason(err.to_string()))
 }
 
 #[napi]

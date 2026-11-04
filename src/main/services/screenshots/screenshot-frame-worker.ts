@@ -22,6 +22,7 @@ const RECYCLE_AFTER_IDLE_MS = SHOULD_HOLD_STREAM ? 5 * 60_000 : 10_000;
 const MAX_FRAME_ATTEMPTS = 3;
 const STALE_FRAME_SIZE_TOLERANCE_PX = 16;
 const RESIZED_FRAME_TIMEOUT_MS = 300;
+const RESIZED_FRAME_POLL_MS = 50;
 const WORKER_CLOSED_MESSAGE = "The screenshot capture worker was closed";
 
 interface WorkerWindow {
@@ -129,14 +130,14 @@ const buildSingleUseStreamGrabExpression = (
   }
 })()`;
 
-const WAIT_FOR_RESIZED_FRAME_FUNCTION = `async (video, { crop, tolerance, timeout }) => {
+const WAIT_FOR_RESIZED_FRAME_FUNCTION = `async (video, { crop, tolerance, timeout, pollInterval }) => {
   if (!crop) return;
   const hasOutdatedSize = () =>
     Math.abs(video.videoWidth - crop.sourceWidth) > tolerance ||
     Math.abs(video.videoHeight - crop.sourceHeight) > tolerance;
   if (!hasOutdatedSize()) return;
   const nextFrame = () => new Promise((resolve) => {
-    const timer = setTimeout(resolve, 50);
+    const timer = setTimeout(resolve, pollInterval);
     video.requestVideoFrameCallback(() => { clearTimeout(timer); resolve(); });
   });
   const deadline = performance.now() + timeout;
@@ -171,6 +172,7 @@ const buildHeldStreamGrabExpression = (
       crop: options.crop ?? null,
       tolerance: STALE_FRAME_SIZE_TOLERANCE_PX,
       timeout: RESIZED_FRAME_TIMEOUT_MS,
+      pollInterval: RESIZED_FRAME_POLL_MS,
     })});
     return await ${buildGrabFrameExpression("video", options)};
   } catch (error) {

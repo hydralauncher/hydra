@@ -321,7 +321,11 @@ mod platform {
         if is_hdr_output(&output) {
             return Ok(None);
         }
-        with_capture_device(&adapter, |capture| grab_output_frame(&output, capture))
+        let frame = with_capture_device(&adapter, |capture| grab_output_frame(&output, capture))?;
+        if find_covered_monitor(window_handle) != Some(monitor) {
+            return Ok(None);
+        }
+        Ok(frame)
     }
 
     pub fn prepare() -> Result<()> {
