@@ -10,7 +10,7 @@ import type {
   RecompilationRomSource,
   RecompilationRomState,
 } from "@types";
-import { isCompletedLikeDownload } from "@types";
+import { isCompletedLikeDownload } from "../../../types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { logger, SevenZip } from "@main/services";
 import {
