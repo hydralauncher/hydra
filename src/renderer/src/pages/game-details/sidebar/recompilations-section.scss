@@ -1,89 +1,27 @@
-@use "../../../scss/globals.scss";
-
 .recompilations-section {
-  display: flex;
-  flex-direction: column;
-
-  &__row {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    padding: globals.$spacing-unit globals.$spacing-unit * 2;
-
-    & + & {
-      border-top: 1px solid globals.$border-color;
-    }
-  }
-
-  &__link {
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit * 1.5;
-    flex: 1;
-    min-width: 0;
-    padding: 0;
-    background: none;
-    border: 0;
-    color: globals.$muted-color;
-    text-align: left;
-    cursor: pointer;
-
-    &:hover .recompilations-section__name {
-      text-decoration: underline;
-    }
-  }
-
-  &__icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
+  &__no-icon {
     flex-shrink: 0;
-    object-fit: cover;
     background: rgba(255, 255, 255, 0.06);
   }
 
   &__text {
     display: flex;
     flex-direction: column;
-    gap: 2px;
     min-width: 0;
+
+    p {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
-  &__name {
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  &__subtitle {
+  &__meta {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: globals.$small-font-size;
-    color: globals.$body-color;
+    min-width: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  &__chevron {
-    margin-left: auto;
-    flex-shrink: 0;
-    opacity: 0.6;
-  }
-
-  &__action {
-    flex-shrink: 0;
-  }
-
-  &__progress {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 2px;
-    background: #fafafa;
-    transition: width 200ms ease;
   }
 }
