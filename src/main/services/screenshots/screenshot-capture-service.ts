@@ -444,13 +444,18 @@ const createCaptureTimer = (
 
 type SaveCapturedScreenshot = () => Promise<void>;
 
+const recordUnexpectedFailure = (error: unknown) => {
+  const errorName = error instanceof Error ? error.name : "unknown_error";
+  ScreenshotTelemetry.record("capture", "failed", `unexpected_${errorName}`);
+};
+
 const reportUnresolvedGame = (
   source: ScreenshotTriggerSource,
   unresolved: UnresolvedForegroundGame,
   toastEnabled: boolean
 ) => {
   const failure = getUnresolvedGameFailure(source, unresolved);
-  if (unresolved.candidates.length || failure) {
+  if (unresolved.candidates.length) {
     ScreenshotTelemetry.record("capture", "ignored", "no_foreground_game");
   }
   if (failure && toastEnabled) {
@@ -584,6 +589,7 @@ const grabScreenshot = async (
     lookup = await resolveForegroundGame(source);
   } catch (error) {
     logger.error("Failed to resolve the screenshot game", error);
+    recordUnexpectedFailure(error);
     if (preferences.toastEnabled && hasTrackedGamesRunning()) {
       showCaptureFailure("unexpected_error", null);
     }
@@ -599,6 +605,7 @@ const grabScreenshot = async (
     return await grabResolvedGame(lookup, source, preferences, timer);
   } catch (error) {
     logger.error("Screenshot capture failed", error);
+    recordUnexpectedFailure(error);
     showCaptureFailure("unexpected_error", null);
     return null;
   }
