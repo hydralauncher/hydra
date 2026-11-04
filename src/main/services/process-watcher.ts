@@ -32,6 +32,7 @@ import {
   hasLaunchedPidMatch,
   getExecutablePathAliases,
   hasLinuxNativeOrAppImageMatch,
+  refreshExecutableRealPaths,
   type LinuxProcessInfo,
 } from "./linux-process-match";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
@@ -294,8 +295,10 @@ const hasLinuxCompatibilityProcessMatch = (
 
   const executableName = path.basename(executablePath).toLowerCase();
   const executableNameWithoutExtension = executableName.replace(/\.exe$/i, "");
-  const executableDirectories = getExecutablePathAliases(executablePath).map(
-    (alias) => path.dirname(alias).toLowerCase()
+  const executableDirectories = new Set(
+    getExecutablePathAliases(executablePath).map((alias) =>
+      path.dirname(alias).toLowerCase()
+    )
   );
   const expectedWinePrefix = Wine.getEffectivePrefixPath(
     game.winePrefixPath,
@@ -303,7 +306,7 @@ const hasLinuxCompatibilityProcessMatch = (
   )?.toLowerCase();
 
   return linuxProcesses.some((process) => {
-    if (!executableDirectories.includes(process.cwd)) {
+    if (!executableDirectories.has(process.cwd)) {
       return false;
     }
 
@@ -347,6 +350,16 @@ export const watchProcesses = async () => {
     });
 
   if (!games.length) return;
+
+  if (platform === "linux") {
+    await refreshExecutableRealPaths(
+      games.flatMap((game) =>
+        [game.executablePath, ...(game.trackingExecutablePaths ?? [])].filter(
+          (value): value is string => Boolean(value)
+        )
+      )
+    );
+  }
 
   const systemProcessMap = await getSystemProcessMap().catch((error) => {
     interruptManagedEpicPlaytime();

@@ -12,19 +12,69 @@ export interface LinuxProcessInfo {
 
 type RealPathResolver = (value: string) => string;
 
-const resolveRealPath: RealPathResolver = (value) => {
-  if (process.platform !== "linux") return value;
+type AsyncRealPathResolver = (value: string) => Promise<string>;
 
-  try {
-    return fs.realpathSync(value);
-  } catch {
-    return value;
+export const REAL_PATH_CACHE_TTL_MS = 30_000;
+
+const realPathCache = new Map<
+  string,
+  { resolved: string; expiresAt: number }
+>();
+const pendingRealPaths = new Map<string, Promise<void>>();
+
+const lookupCachedRealPath: RealPathResolver = (value) =>
+  realPathCache.get(value)?.resolved ?? value;
+
+export const clearExecutableRealPathCache = () => {
+  realPathCache.clear();
+  pendingRealPaths.clear();
+};
+
+const refreshRealPath = (
+  value: string,
+  resolve: AsyncRealPathResolver,
+  now: number
+) => {
+  const cached = realPathCache.get(value);
+  if (cached && cached.expiresAt > now) return undefined;
+
+  const pending = pendingRealPaths.get(value);
+  if (pending) return pending;
+
+  const refresh = resolve(value)
+    .catch(() => value)
+    .then((resolved) => {
+      realPathCache.set(value, {
+        resolved,
+        expiresAt: now + REAL_PATH_CACHE_TTL_MS,
+      });
+    })
+    .finally(() => {
+      pendingRealPaths.delete(value);
+    });
+
+  pendingRealPaths.set(value, refresh);
+  return refresh;
+};
+
+export const refreshExecutableRealPaths = async (
+  executablePaths: Iterable<string>,
+  resolve: AsyncRealPathResolver = fs.promises.realpath,
+  now = Date.now()
+) => {
+  const refreshes = new Set<Promise<void>>();
+
+  for (const executablePath of new Set(executablePaths)) {
+    const refresh = refreshRealPath(executablePath, resolve, now);
+    if (refresh) refreshes.add(refresh);
   }
+
+  await Promise.all(refreshes);
 };
 
 export const getExecutablePathAliases = (
   executablePath: string,
-  resolve: RealPathResolver = resolveRealPath
+  resolve: RealPathResolver = lookupCachedRealPath
 ) => {
   const resolved = resolve(executablePath);
 
@@ -38,15 +88,17 @@ export const hasLinuxNativeOrAppImageMatch = (
   linuxProcesses: LinuxProcessInfo[],
   resolve?: RealPathResolver
 ) => {
-  const targets = getExecutablePathAliases(executablePath, resolve).map(
-    (alias) => alias.toLowerCase()
+  const targets = new Set(
+    getExecutablePathAliases(executablePath, resolve).map((alias) =>
+      alias.toLowerCase()
+    )
   );
 
   return linuxProcesses.some(
     (matchedProcess) =>
-      targets.includes(matchedProcess.exe) ||
+      targets.has(matchedProcess.exe) ||
       (matchedProcess.appImagePath !== null &&
-        targets.includes(matchedProcess.appImagePath))
+        targets.has(matchedProcess.appImagePath))
   );
 };
 
@@ -68,15 +120,15 @@ export const processReferencesExecutable = (
   resolve?: RealPathResolver
 ) => {
   const aliases = getExecutablePathAliases(executablePath, resolve);
-  const targets = aliases.map((alias) => alias.toLowerCase());
-  const gameDirectories = aliases.map((alias) =>
-    path.dirname(alias).toLowerCase()
+  const targets = new Set(aliases.map((alias) => alias.toLowerCase()));
+  const gameDirectories = new Set(
+    aliases.map((alias) => path.dirname(alias).toLowerCase())
   );
 
   return (
-    gameDirectories.includes((matchedProcess.cwd ?? "").toLowerCase()) ||
-    targets.includes((matchedProcess.exe ?? "").toLowerCase()) ||
-    targets.includes((matchedProcess.appImagePath ?? "").toLowerCase())
+    gameDirectories.has((matchedProcess.cwd ?? "").toLowerCase()) ||
+    targets.has((matchedProcess.exe ?? "").toLowerCase()) ||
+    targets.has((matchedProcess.appImagePath ?? "").toLowerCase())
   );
 };
 

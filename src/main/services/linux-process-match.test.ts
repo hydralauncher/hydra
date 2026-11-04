@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { beforeEach, describe, it, mock } from "node:test";
 
 import {
+  REAL_PATH_CACHE_TTL_MS,
+  clearExecutableRealPathCache,
   doesSteamCompatDataPathMatchWinePrefix,
   getExecutablePathAliases,
   hasLaunchedPidMatch,
   hasLinuxNativeOrAppImageMatch,
   isLinuxGameWindowProcess,
   processReferencesExecutable,
+  refreshExecutableRealPaths,
   type LinuxProcessInfo,
 } from "./linux-process-match.js";
 
@@ -227,10 +230,79 @@ describe("symlinked executable path matching", () => {
       true
     );
   });
+});
 
-  it("falls back to the stored path when it cannot be resolved", () => {
-    const missing = "/nonexistent-hydra-test/Game.exe";
+describe("executable real path cache", () => {
+  const storedPath = "/home/user/Games/Game/Game.exe";
+  const resolvedPath = "/var/home/user/Games/Game/Game.exe";
 
-    assert.deepEqual(getExecutablePathAliases(missing), [missing]);
+  beforeEach(() => {
+    clearExecutableRealPathCache();
+  });
+
+  it("returns only the stored path until a refresh has populated the cache", () => {
+    assert.deepEqual(getExecutablePathAliases(storedPath), [storedPath]);
+  });
+
+  it("serves resolved paths from the cache after a refresh", async () => {
+    const resolve = mock.fn(async () => resolvedPath);
+
+    await refreshExecutableRealPaths([storedPath], resolve, 0);
+
+    assert.deepEqual(getExecutablePathAliases(storedPath), [
+      storedPath,
+      resolvedPath,
+    ]);
+    assert.equal(resolve.mock.callCount(), 1);
+  });
+
+  it("resolves each distinct path once per refresh and reuses it within the ttl", async () => {
+    const resolve = mock.fn(async () => resolvedPath);
+
+    await refreshExecutableRealPaths([storedPath, storedPath], resolve, 0);
+    await refreshExecutableRealPaths(
+      [storedPath],
+      resolve,
+      REAL_PATH_CACHE_TTL_MS - 1
+    );
+
+    assert.equal(resolve.mock.callCount(), 1);
+
+    await refreshExecutableRealPaths(
+      [storedPath],
+      resolve,
+      REAL_PATH_CACHE_TTL_MS
+    );
+
+    assert.equal(resolve.mock.callCount(), 2);
+  });
+
+  it("shares an in-flight resolution between concurrent refreshes", async () => {
+    let finish!: (value: string) => void;
+    const resolve = mock.fn(
+      () =>
+        new Promise<string>((resolveValue) => {
+          finish = resolveValue;
+        })
+    );
+
+    const first = refreshExecutableRealPaths([storedPath], resolve, 0);
+    const second = refreshExecutableRealPaths([storedPath], resolve, 0);
+    finish(resolvedPath);
+    await Promise.all([first, second]);
+
+    assert.equal(resolve.mock.callCount(), 1);
+  });
+
+  it("keeps the stored path and does not throw when resolution fails", async () => {
+    const resolve = mock.fn(async () => {
+      throw new Error("ENOENT");
+    });
+
+    await refreshExecutableRealPaths([storedPath], resolve, 0);
+
+    assert.deepEqual(getExecutablePathAliases(storedPath), [storedPath]);
+    await refreshExecutableRealPaths([storedPath], resolve, 1);
+    assert.equal(resolve.mock.callCount(), 1);
   });
 });
