@@ -565,6 +565,7 @@ function InstallModalContent({
         objectId={details.game.objectId}
         gameTitle={details.game.title}
         onStarted={() => {
+          setPickedFile(null);
           setSkipLibrary(false);
           setIsStartingDownload(true);
           setStep("rom");

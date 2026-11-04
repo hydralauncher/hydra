@@ -5,6 +5,7 @@ import path from "node:path";
 import readline from "node:readline";
 
 import type {
+  Download,
   RecompilationActionResult,
   RecompilationPrepareStep,
   RecompilationRef,
@@ -118,27 +119,11 @@ const findRomInFolder = async (
   return best;
 };
 
-const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
-  const key = levelKeys.game("launchbox", objectId);
-
-  const game = await gamesSublevel.get(key).catch(() => null);
-  if (game && !game.isDeleted) {
-    const disc = game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
-    if (disc && hasExtension(disc, extensions) && (await fileExists(disc))) {
-      return disc;
-    }
-  }
-
-  const download = await downloadsSublevel.get(key).catch(() => null);
-  if (
-    !download ||
-    !isCompletedLikeDownload(download) ||
-    download.extracting ||
-    !download.folderName
-  ) {
-    return null;
-  }
-
+const getDownloadedRomPath = async (
+  download: Download,
+  extensions: string[]
+) => {
+  if (!download.folderName) return null;
   const downloaded = path.join(download.downloadPath, download.folderName);
   if (await fileExists(downloaded)) {
     return hasExtension(downloaded, extensions) ||
@@ -147,6 +132,30 @@ const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
       : null;
   }
   return (await findRomInFolder(downloaded, extensions))?.path ?? null;
+};
+
+const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
+  const key = levelKeys.game("launchbox", objectId);
+
+  const download = await downloadsSublevel.get(key).catch(() => null);
+  if (download && isCompletedLikeDownload(download)) {
+    if (download.extracting) return null;
+    const downloaded = await getDownloadedRomPath(download, extensions);
+    if (downloaded) return downloaded;
+  } else if (
+    download &&
+    download.status !== "error" &&
+    download.status !== "removed"
+  ) {
+    return null;
+  }
+
+  const game = await gamesSublevel.get(key).catch(() => null);
+  if (!game || game.isDeleted) return null;
+  const disc = game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
+  return disc && hasExtension(disc, extensions) && (await fileExists(disc))
+    ? disc
+    : null;
 };
 
 const resolvePlaceholders = (
