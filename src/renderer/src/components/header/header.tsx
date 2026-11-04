@@ -508,7 +508,7 @@ export function Header() {
       )}
 
       {window.electron.hasNativeWindowDecorations && (
-        <Tooltip id={bigPictureTooltipId} style={{ zIndex: 1 }} />
+        <Tooltip id={bigPictureTooltipId} style={{ zIndex: 9999 }} />
       )}
 
       <AutoUpdateSubHeader />
