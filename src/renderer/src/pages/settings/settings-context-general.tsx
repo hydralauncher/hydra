@@ -1,6 +1,5 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { changeLanguage } from "i18next";
 import { orderBy } from "lodash-es";
 
 import {
@@ -12,7 +11,8 @@ import {
 import type { DownloadDirectoryPreference, UserPreferences } from "@types";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
-import languageResources from "@locales";
+import { applyLanguage } from "../../../../locales/apply-language";
+import { languageNames, resolveLanguage } from "../../../../locales/languages";
 import {
   prepareDefaultDownloadPathSync,
   replaceSavedDownloadDirectoryAndSetDefault,
@@ -26,8 +26,8 @@ interface LanguageOption {
 }
 
 const LANGUAGE_OPTIONS: LanguageOption[] = orderBy(
-  Object.entries(languageResources).map(([language, value]) => ({
-    nativeName: value.language_name,
+  Object.entries(languageNames).map(([language, nativeName]) => ({
+    nativeName,
     option: language,
   })),
   ["nativeName"],
@@ -47,18 +47,6 @@ interface DownloadDirectoryReplacementState {
   replaceableDirectories: DownloadDirectoryPreference[];
   selectedReplacementPath: string;
 }
-
-const resolveLanguage = (language: string | undefined) => {
-  const languageKeys = Object.keys(languageResources);
-
-  return (
-    languageKeys.find((languageKey) => languageKey === language) ??
-    languageKeys.find((languageKey) =>
-      languageKey.startsWith(language?.split("-")[0] ?? "en")
-    ) ??
-    "en"
-  );
-};
 
 const buildForm = (
   preferences: UserPreferences | null,
@@ -112,9 +100,9 @@ export function SettingsContextGeneral({
   const handleLanguageChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    const value = event.target.value;
-    handleChange({ language: value });
-    changeLanguage(value);
+    const language = resolveLanguage(event.target.value);
+    handleChange({ language });
+    applyLanguage(language);
   };
 
   const handleChooseDownloadsPath = async () => {

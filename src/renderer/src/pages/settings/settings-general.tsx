@@ -15,8 +15,8 @@ import {
 import type { DownloadDirectoryPreference } from "@types";
 import { useTranslation } from "react-i18next";
 import { useAppSelector } from "@renderer/hooks";
-import { changeLanguage } from "i18next";
-import languageResources from "@locales";
+import { applyLanguage } from "../../../../locales/apply-language";
+import { languageNames } from "../../../../locales/languages";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
 import "./settings-general.scss";
@@ -92,9 +92,9 @@ export function SettingsGeneral() {
 
     setLanguageOptions(
       orderBy(
-        Object.entries(languageResources).map(([language, value]) => {
+        Object.entries(languageNames).map(([language, nativeName]) => {
           return {
-            nativeName: value.language_name,
+            nativeName,
             option: language,
           };
         }),
@@ -113,7 +113,7 @@ export function SettingsGeneral() {
 
   useEffect(() => {
     if (userPreferences) {
-      const languageKeys = Object.keys(languageResources);
+      const languageKeys = Object.keys(languageNames);
       const language =
         languageKeys.find(
           (language) => language === userPreferences.language
@@ -170,7 +170,7 @@ export function SettingsGeneral() {
     const value = event.target.value;
 
     handleChange({ language: value });
-    changeLanguage(value);
+    applyLanguage(value);
   };
 
   const handleChange = async (values: Partial<typeof form>) => {

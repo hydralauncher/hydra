@@ -55,6 +55,8 @@ export default defineConfig(({ mode }) => {
     renderer: {
       build: {
         sourcemap: true,
+        minify: "esbuild",
+        cssMinify: true,
       },
       esbuild: {
         keepNames: true,
