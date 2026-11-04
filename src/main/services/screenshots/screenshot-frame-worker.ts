@@ -130,20 +130,30 @@ const buildSingleUseStreamGrabExpression = (
   }
 })()`;
 
-const WAIT_FOR_RESIZED_FRAME_FUNCTION = `async (video, { crop, tolerance, timeout, pollInterval }) => {
-  if (!crop) return;
+const WAIT_FOR_RESIZED_FRAME_FUNCTION = `async (video, sizeScale, { crop, tolerance, timeout, pollInterval }) => {
+  if (!crop) return true;
   const hasOutdatedSize = () =>
-    Math.abs(video.videoWidth - crop.sourceWidth) > tolerance ||
-    Math.abs(video.videoHeight - crop.sourceHeight) > tolerance;
-  if (!hasOutdatedSize()) return;
+    Math.abs(video.videoWidth - crop.sourceWidth * (sizeScale?.x ?? 1)) > tolerance ||
+    Math.abs(video.videoHeight - crop.sourceHeight * (sizeScale?.y ?? 1)) > tolerance;
+  if (!hasOutdatedSize()) return true;
   const nextFrame = () => new Promise((resolve) => {
     const timer = setTimeout(resolve, pollInterval);
     video.requestVideoFrameCallback(() => { clearTimeout(timer); resolve(); });
   });
   const deadline = performance.now() + timeout;
   while (hasOutdatedSize() && performance.now() < deadline) await nextFrame();
+  if (hasOutdatedSize()) return false;
   await nextFrame();
+  return true;
 }`;
+
+const CLOSE_HELD_STREAM_FUNCTION = `(video) => {
+  globalThis.__hydraHeldCapture?.stream.getTracks().forEach((track) => track.stop());
+  globalThis.__hydraHeldCapture = null;
+  video.srcObject = null;
+}`;
+
+const CLOSE_HELD_STREAM_EXPRESSION = `(${CLOSE_HELD_STREAM_FUNCTION})(document.querySelector("video"))`;
 
 const buildHeldStreamGrabExpression = (
   sourceId: string,
@@ -151,30 +161,38 @@ const buildHeldStreamGrabExpression = (
 ) => `(async () => {
   ${GET_CAPTURE_VIDEO}
   const sourceId = ${JSON.stringify(sourceId)};
-  const closeHeldStream = () => {
-    globalThis.__hydraHeldCapture?.stream.getTracks().forEach((track) => track.stop());
-    globalThis.__hydraHeldCapture = null;
-    video.srcObject = null;
-  };
+  const crop = ${JSON.stringify(options.crop ?? null)};
+  const closeHeldStream = () => (${CLOSE_HELD_STREAM_FUNCTION})(video);
   const held = globalThis.__hydraHeldCapture;
   const isHeldStreamLive =
     held?.sourceId === sourceId &&
     held.stream.getVideoTracks().some((track) => track.readyState === "live");
   try {
-    if (!isHeldStreamLive) {
+    const canReuseStream =
+      isHeldStreamLive &&
+      (await (${WAIT_FOR_RESIZED_FRAME_FUNCTION})(video, held.sizeScale, ${JSON.stringify(
+        {
+          crop: options.crop ?? null,
+          tolerance: STALE_FRAME_SIZE_TOLERANCE_PX,
+          timeout: RESIZED_FRAME_TIMEOUT_MS,
+          pollInterval: RESIZED_FRAME_POLL_MS,
+        }
+      )}));
+    if (!canReuseStream) {
       closeHeldStream();
       const stream = await ${buildOpenStreamExpression(sourceId)};
-      globalThis.__hydraHeldCapture = { sourceId, stream };
+      globalThis.__hydraHeldCapture = { sourceId, stream, sizeScale: null };
       video.srcObject = stream;
       await video.play();
     }
-    await (${WAIT_FOR_RESIZED_FRAME_FUNCTION})(video, ${JSON.stringify({
-      crop: options.crop ?? null,
-      tolerance: STALE_FRAME_SIZE_TOLERANCE_PX,
-      timeout: RESIZED_FRAME_TIMEOUT_MS,
-      pollInterval: RESIZED_FRAME_POLL_MS,
-    })});
-    return await ${buildGrabFrameExpression("video", options)};
+    const frame = await ${buildGrabFrameExpression("video", options)};
+    if (!canReuseStream && crop) {
+      globalThis.__hydraHeldCapture.sizeScale = {
+        x: video.videoWidth / crop.sourceWidth,
+        y: video.videoHeight / crop.sourceHeight,
+      };
+    }
+    return frame;
   } catch (error) {
     closeHeldStream();
     throw error;
@@ -225,6 +243,9 @@ const grabFrame = async (
     attempt,
   });
   if (attempt >= MAX_FRAME_ATTEMPTS) throw new BlankScreenshotFrameError();
+  if (SHOULD_HOLD_STREAM && attempt === MAX_FRAME_ATTEMPTS - 1) {
+    await runInWorker(current, CLOSE_HELD_STREAM_EXPRESSION);
+  }
   return grabFrame(
     current,
     sourceId,
@@ -236,7 +257,6 @@ const grabFrame = async (
 export class ScreenshotFrameWorker {
   public static prepare() {
     isPrepared = true;
-    clearRecycleTimer();
     void getWorker().ready.catch(() => undefined);
   }
 
