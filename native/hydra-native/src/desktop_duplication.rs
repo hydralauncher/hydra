@@ -81,7 +81,7 @@ mod platform {
     use crate::window_bounds::get_window_bounds;
 
     const FIRST_FRAME_TIMEOUT_MS: u32 = 500;
-    const NEW_FRAME_TIMEOUT_MS: u32 = 50;
+    const NEW_FRAME_TIMEOUT_MS: u32 = 150;
     const MAX_MONITOR_OVERSHOOT_PX: i32 = 8;
 
     struct CaptureDevice {

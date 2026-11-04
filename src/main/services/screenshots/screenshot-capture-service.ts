@@ -14,7 +14,10 @@ import type {
 
 import { getSignedInScreenshotOwnerId } from "./local-screenshot-owner";
 import { logger } from "../logger";
-import { getSourceClientAreaCrop } from "../windows-window-bounds";
+import {
+  getSourceClientAreaCrop,
+  getSourceWindowSize,
+} from "../windows-window-bounds";
 import {
   getLinuxGameCaptureFailure,
   getLinuxGameCaptureState,
@@ -297,6 +300,7 @@ const grabFromDirectWindowsSource = async (
     return await ScreenshotFrameWorker.grab(sourceId, {
       waitForNextFrame: false,
       crop: getSourceClientAreaCrop(sourceId),
+      expectedSize: getSourceWindowSize(sourceId),
     });
   } catch (error) {
     if (
@@ -335,6 +339,7 @@ const acquireFrame = async (
     return ScreenshotFrameWorker.grab(sourceId, {
       waitForNextFrame: process.platform !== "win32",
       crop: getSourceClientAreaCrop(sourceId),
+      expectedSize: getSourceWindowSize(sourceId),
     });
   }
 

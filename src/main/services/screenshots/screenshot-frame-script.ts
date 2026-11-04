@@ -25,6 +25,7 @@ export interface ScreenshotFrameCrop {
 export interface ScreenshotFrameGrabOptions {
   waitForNextFrame: boolean;
   crop?: ScreenshotFrameCrop | null;
+  expectedSize?: { width: number; height: number } | null;
 }
 
 export interface GrabbedFrameInfo {

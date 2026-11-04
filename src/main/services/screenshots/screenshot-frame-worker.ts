@@ -130,11 +130,11 @@ const buildSingleUseStreamGrabExpression = (
   }
 })()`;
 
-const WAIT_FOR_RESIZED_FRAME_FUNCTION = `async (video, sizeScale, { crop, tolerance, timeout, pollInterval }) => {
-  if (!crop) return true;
+const WAIT_FOR_RESIZED_FRAME_FUNCTION = `async (video, sizeScale, { expectedSize, tolerance, timeout, pollInterval }) => {
+  if (!expectedSize) return true;
   const hasOutdatedSize = () =>
-    Math.abs(video.videoWidth - crop.sourceWidth * (sizeScale?.x ?? 1)) > tolerance ||
-    Math.abs(video.videoHeight - crop.sourceHeight * (sizeScale?.y ?? 1)) > tolerance;
+    Math.abs(video.videoWidth - expectedSize.width * (sizeScale?.x ?? 1)) > tolerance ||
+    Math.abs(video.videoHeight - expectedSize.height * (sizeScale?.y ?? 1)) > tolerance;
   if (!hasOutdatedSize()) return true;
   const nextFrame = () => new Promise((resolve) => {
     const timer = setTimeout(resolve, pollInterval);
@@ -161,7 +161,7 @@ const buildHeldStreamGrabExpression = (
 ) => `(async () => {
   ${GET_CAPTURE_VIDEO}
   const sourceId = ${JSON.stringify(sourceId)};
-  const crop = ${JSON.stringify(options.crop ?? null)};
+  const expectedSize = ${JSON.stringify(options.expectedSize ?? null)};
   const closeHeldStream = () => (${CLOSE_HELD_STREAM_FUNCTION})(video);
   const held = globalThis.__hydraHeldCapture;
   const isHeldStreamLive =
@@ -172,7 +172,7 @@ const buildHeldStreamGrabExpression = (
       isHeldStreamLive &&
       (await (${WAIT_FOR_RESIZED_FRAME_FUNCTION})(video, held.sizeScale, ${JSON.stringify(
         {
-          crop: options.crop ?? null,
+          expectedSize: options.expectedSize ?? null,
           tolerance: STALE_FRAME_SIZE_TOLERANCE_PX,
           timeout: RESIZED_FRAME_TIMEOUT_MS,
           pollInterval: RESIZED_FRAME_POLL_MS,
@@ -186,10 +186,10 @@ const buildHeldStreamGrabExpression = (
       await video.play();
     }
     const frame = await ${buildGrabFrameExpression("video", options)};
-    if (!canReuseStream && crop) {
+    if (!canReuseStream && expectedSize) {
       globalThis.__hydraHeldCapture.sizeScale = {
-        x: video.videoWidth / crop.sourceWidth,
-        y: video.videoHeight / crop.sourceHeight,
+        x: video.videoWidth / expectedSize.width,
+        y: video.videoHeight / expectedSize.height,
       };
     }
     return frame;
