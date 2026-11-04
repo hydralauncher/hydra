@@ -30,17 +30,11 @@ export const clearExecutableRealPathCache = () => {
   pendingRealPaths.clear();
 };
 
-const refreshRealPath = (
+const startRealPathRefresh = (
   value: string,
   resolve: AsyncRealPathResolver,
   now: number
 ) => {
-  const cached = realPathCache.get(value);
-  if (cached && cached.expiresAt > now) return undefined;
-
-  const pending = pendingRealPaths.get(value);
-  if (pending) return pending;
-
   const refresh = resolve(value)
     .catch(() => value)
     .then((resolved) => {
@@ -57,6 +51,19 @@ const refreshRealPath = (
   return refresh;
 };
 
+const refreshRealPath = (
+  value: string,
+  resolve: AsyncRealPathResolver,
+  now: number
+): Promise<void> => {
+  const cached = realPathCache.get(value);
+  if (cached && cached.expiresAt > now) return Promise.resolve();
+
+  return (
+    pendingRealPaths.get(value) ?? startRealPathRefresh(value, resolve, now)
+  );
+};
+
 export const refreshExecutableRealPaths = async (
   executablePaths: Iterable<string>,
   resolve: AsyncRealPathResolver = fs.promises.realpath,
@@ -65,8 +72,7 @@ export const refreshExecutableRealPaths = async (
   const refreshes = new Set<Promise<void>>();
 
   for (const executablePath of new Set(executablePaths)) {
-    const refresh = refreshRealPath(executablePath, resolve, now);
-    if (refresh) refreshes.add(refresh);
+    refreshes.add(refreshRealPath(executablePath, resolve, now));
   }
 
   await Promise.all(refreshes);
