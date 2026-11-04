@@ -921,7 +921,10 @@ function GalleryLightboxContent({
           "gallery-lightbox--with-filmstrip": showFilmstrip,
           "gallery-lightbox--with-sidebar": isSidebarOpen,
           "gallery-lightbox--titlebar-offset": !isFullscreen && !isLinux,
-          "gallery-lightbox--below-titlebar": !isFullscreen && isLinux,
+          "gallery-lightbox--below-titlebar":
+            !isFullscreen &&
+            isLinux &&
+            !window.electron?.hasNativeWindowDecorations,
         })}
         style={
           {
