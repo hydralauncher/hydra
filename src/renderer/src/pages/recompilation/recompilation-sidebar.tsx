@@ -10,7 +10,6 @@ import {
 import { Gamepad2 } from "lucide-react";
 import type {
   RecompilationDetails,
-  RecompilationRelease,
   RecompilationReleaseAsset,
   RecompilationTestedFeatureStatus,
 } from "@types";
@@ -47,8 +46,6 @@ interface RecompilationSidebarProps {
   installAsset: RecompilationReleaseAsset | null;
   install: RecompilationInstall;
   rom: RecompilationRom;
-  releases: RecompilationRelease[];
-  onSelectRelease: (tag: string) => void;
 }
 
 export function RecompilationSidebar({
@@ -56,8 +53,6 @@ export function RecompilationSidebar({
   installAsset,
   install,
   rom,
-  releases,
-  onSelectRelease,
 }: Readonly<RecompilationSidebarProps>) {
   const { t } = useTranslation("recompilation");
   const { formatDate } = useDate();
@@ -130,29 +125,6 @@ export function RecompilationSidebar({
         install={install}
         rom={rom}
       />
-
-      {releases.length > 0 && (
-        <SidebarSection title={t("updates")}>
-          <ul className="recompilation-page__list">
-            {releases.map((release) => (
-              <li key={release.tag} className="recompilation-page__list-row">
-                <button
-                  type="button"
-                  className={cn("recompilation-page__list-link", {
-                    "recompilation-page__list-link--active": release.isLatest,
-                  })}
-                  onClick={() => onSelectRelease(release.tag)}
-                >
-                  <span>{release.tag}</span>
-                  <span className="recompilation-page__muted">
-                    {formatDate(release.publishedAt)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </SidebarSection>
-      )}
 
       <SidebarSection title={t("details")}>
         <div className="launchbox-details">

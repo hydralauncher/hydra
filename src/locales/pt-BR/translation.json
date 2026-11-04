@@ -3438,7 +3438,7 @@
   "recompilation": {
     "pc_versions": "Versões para PC",
     "tab_about": "Visão geral",
-    "tab_news": "Novidades",
+    "tab_releases": "Releases",
     "downloads_count_one": "{{formatted}} download",
     "downloads_count_other": "{{formatted}} downloads",
     "install": "Instalar",
@@ -3556,7 +3556,6 @@
     "needs": "Precisa de",
     "open_rom_folder": "Abrir local da ROM",
     "no_file_for_this_pc": "Sem arquivo para este sistema",
-    "updates": "Atualizações",
     "rom_sources_count_zero": "Nenhuma opção nas suas fontes",
     "rom_sources_count_one": "{{count}} opção nas suas fontes",
     "rom_sources_count_other": "{{count}} opções nas suas fontes",

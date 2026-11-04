@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LinkExternalIcon } from "@primer/octicons-react";
 import type {
@@ -11,6 +11,7 @@ import { Button } from "@renderer/components/button/button";
 import { useDate } from "@renderer/hooks";
 import { getReadmeBaseUrls } from "./readme-html";
 import { RecompilationMarkdown } from "./recompilation-readme";
+import { ReleaseRail } from "./release-rail";
 
 function ColumnHeader({
   title,
@@ -74,23 +75,22 @@ export function RecompilationReadmeSection({
   );
 }
 
-interface NewsTabProps {
+interface ReleasesTabProps {
   details: RecompilationDetails;
   releases: RecompilationRelease[];
 }
 
-export const releaseAnchor = (tag: string) => `recompilation-release-${tag}`;
-
 const latestOf = (releases: RecompilationRelease[]) =>
   releases.find((release) => release.isLatest) ?? releases[0];
 
-export function RecompilationNewsTab({
+export function RecompilationReleasesTab({
   details,
   releases,
-}: Readonly<NewsTabProps>) {
+}: Readonly<ReleasesTabProps>) {
   const { t } = useTranslation("recompilation");
   const { formatDate } = useDate();
   const latest = latestOf(releases);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const base = useMemo(
     () =>
       getReadmeBaseUrls(
@@ -98,6 +98,15 @@ export function RecompilationNewsTab({
         details.repository.defaultBranch
       ),
     [details.repository]
+  );
+  const items = useMemo(
+    () =>
+      releases.map((release) => ({
+        id: release.tag,
+        label: release.name,
+        description: formatDate(release.publishedAt),
+      })),
+    [releases, formatDate]
   );
 
   if (!latest) {
@@ -108,35 +117,42 @@ export function RecompilationNewsTab({
     );
   }
 
+  const release = releases.find((item) => item.tag === selectedTag) ?? latest;
+
   return (
-    <>
-      {releases.map((release) => (
-        <article
-          key={release.tag}
-          id={releaseAnchor(release.tag)}
-          className="recompilation-page__release"
-        >
-          <ColumnHeader
-            title={release.name}
-            subtitle={t("released_on", {
-              date: formatDate(release.publishedAt),
-            })}
-            url={release.url}
+    <div className="recompilation-page__releases">
+      {releases.length > 1 && (
+        <div className="recompilation-page__releases-rail">
+          <ReleaseRail
+            items={items}
+            selectedId={release.tag}
+            label={t("tab_releases")}
+            onSelect={setSelectedTag}
           />
-          {release.notesMarkdown ? (
-            <RecompilationMarkdown
-              source={release.notesMarkdown}
-              base={base}
-              collapsible
-              kind="notes"
-            />
-          ) : (
-            <p className="recompilation-page__column recompilation-page__empty">
-              {t("no_release_notes")}
-            </p>
-          )}
-        </article>
-      ))}
-    </>
+        </div>
+      )}
+
+      <article key={release.tag} className="recompilation-page__release">
+        <ColumnHeader
+          title={release.name}
+          subtitle={t("released_on", {
+            date: formatDate(release.publishedAt),
+          })}
+          url={release.url}
+        />
+        {release.notesMarkdown ? (
+          <RecompilationMarkdown
+            source={release.notesMarkdown}
+            base={base}
+            collapsible
+            kind="notes"
+          />
+        ) : (
+          <p className="recompilation-page__column recompilation-page__empty">
+            {t("no_release_notes")}
+          </p>
+        )}
+      </article>
+    </div>
   );
 }

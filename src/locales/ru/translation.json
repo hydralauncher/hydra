@@ -3038,7 +3038,7 @@
   "recompilation": {
     "pc_versions": "Версии для ПК",
     "tab_about": "Обзор",
-    "tab_news": "Что нового",
+    "tab_releases": "Релизы",
     "downloads_count_one": "{{formatted}} загрузка",
     "downloads_count_few": "{{formatted}} загрузки",
     "downloads_count_many": "{{formatted}} загрузок",
@@ -3160,7 +3160,6 @@
     "needs": "Требуется",
     "open_rom_folder": "Открыть расположение ROM",
     "no_file_for_this_pc": "Нет файла для этой системы",
-    "updates": "Обновления",
     "rom_sources_count_zero": "В ваших источниках нет вариантов",
     "rom_sources_count_one": "{{count}} вариант в ваших источниках",
     "rom_sources_count_few": "{{count}} варианта в ваших источниках",

@@ -24,9 +24,8 @@ import { RomDownloadModal } from "./rom-download-modal";
 import { RecompilationSidebar } from "./recompilation-sidebar";
 import { RecompilationTabBar } from "./recompilation-tab-bar";
 import {
-  RecompilationNewsTab,
   RecompilationReadmeSection,
-  releaseAnchor,
+  RecompilationReleasesTab,
 } from "./recompilation-tabs";
 import {
   getRecompilation,
@@ -37,9 +36,7 @@ import { useRecompilationInstall } from "./use-recompilation-install";
 import { useRecompilationRom } from "./use-recompilation-rom";
 import "./recompilation-page.scss";
 
-type RecompilationTab = "about" | "news";
-
-const RELEASE_SCROLL_DELAY_MS = 150;
+type RecompilationTab = "about" | "releases";
 
 export default function RecompilationPage() {
   const { objectId = "", slug = "" } = useParams();
@@ -55,18 +52,6 @@ export default function RecompilationPage() {
   const [game, setGame] = useState<LibraryGame | null>(null);
   const [isNotFound, setIsNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<RecompilationTab>("about");
-  const [scrollToRelease, setScrollToRelease] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!scrollToRelease || activeTab !== "news") return;
-    const timeout = window.setTimeout(() => {
-      document
-        .getElementById(releaseAnchor(scrollToRelease))
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      setScrollToRelease(null);
-    }, RELEASE_SCROLL_DELAY_MS);
-    return () => window.clearTimeout(timeout);
-  }, [scrollToRelease, activeTab]);
 
   const install = useRecompilationInstall(objectId, slug);
   const rom = useRecompilationRom(objectId, slug);
@@ -212,11 +197,6 @@ export default function RecompilationPage() {
     return <div className="recompilation-page" aria-busy="true" />;
   }
 
-  const selectRelease = (tag: string) => {
-    setActiveTab("news");
-    setScrollToRelease(tag);
-  };
-
   return (
     <CloudSaveV2Provider
       objectId={cloudSaveObjectId}
@@ -256,7 +236,7 @@ export default function RecompilationPage() {
           <RecompilationTabBar
             tabs={[
               { id: "about", label: t("tab_about") },
-              { id: "news", label: t("tab_news") },
+              { id: "releases", label: t("tab_releases") },
             ]}
             activeTab={activeTab}
             onChange={setActiveTab}
@@ -284,8 +264,8 @@ export default function RecompilationPage() {
               </>
             )}
 
-            {activeTab === "news" && (
-              <RecompilationNewsTab details={details} releases={releases} />
+            {activeTab === "releases" && (
+              <RecompilationReleasesTab details={details} releases={releases} />
             )}
           </div>
 
@@ -294,8 +274,6 @@ export default function RecompilationPage() {
             installAsset={installAsset}
             install={install}
             rom={rom}
-            releases={releases}
-            onSelectRelease={selectRelease}
           />
         </div>
       </div>
