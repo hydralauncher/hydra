@@ -1,7 +1,7 @@
 use napi_derive::napi;
 
 use crate::cloud_save::hashing::LocalFileHashCacheEntry;
-use crate::cloud_save::manifest::types::CloudSaveRule;
+use crate::cloud_save::manifest::types::{CloudSaveRule, RecompilationSaveRule};
 
 #[napi(object)]
 pub struct BuildLocalGameSnapshotPipelineInput {
@@ -21,4 +21,5 @@ pub struct BuildLocalGameSnapshotPipelineInput {
     pub environment_id: String,
     pub hash_cache: Vec<LocalFileHashCacheEntry>,
     pub extra_rules: Option<Vec<CloudSaveRule>>,
+    pub recompilation_rules: Option<Vec<RecompilationSaveRule>>,
 }
