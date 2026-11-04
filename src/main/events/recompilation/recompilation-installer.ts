@@ -38,14 +38,19 @@ import {
   saveRecompilationInstallDirectory,
 } from "./recompilation-paths";
 import {
+  getRecompilationExecutableOverride,
   markRecompilationRomLaunched,
   prepareRecompilationRom,
   shouldHideRecompilationConsole,
 } from "./recompilation-rom";
 import recompilationSaves from "./recompilation-saves.json";
+import {
+  findRecompilationExecutable,
+  isNestedReleaseArchive,
+  restoreExecutableBits,
+} from "./recompilation-executable";
 
-const EXECUTABLE_SCAN_DEPTH = 3;
-const ELF_MAGIC = [0x7f, 0x45, 0x4c, 0x46];
+const MAX_NESTED_ARCHIVES = 3;
 
 class RecompilationInstallError extends Error {}
 
@@ -70,93 +75,6 @@ const apiPath = ({ objectId, slug }: RecompilationRef) =>
   `/games/launchbox/${objectId}/recompilations/${slug}`;
 
 const loadSession = () => import("./recompilation-session");
-
-const looksLikeLinuxExecutable = async (filePath: string) => {
-  if (filePath.toLowerCase().endsWith(".appimage")) return true;
-
-  const handle = await fs.promises.open(filePath, "r");
-  try {
-    const header = Buffer.alloc(ELF_MAGIC.length);
-    const { bytesRead } = await handle.read(header, 0, ELF_MAGIC.length, 0);
-    return (
-      bytesRead === ELF_MAGIC.length &&
-      ELF_MAGIC.every((byte, index) => header[index] === byte)
-    );
-  } finally {
-    await handle.close();
-  }
-};
-
-const isExecutableCandidate = async (filePath: string) => {
-  const lower = filePath.toLowerCase();
-  if (
-    /(unins|setup|install|crash|vc_?redist|dxsetup)/.test(path.basename(lower))
-  ) {
-    return false;
-  }
-  if (process.platform === "win32") return lower.endsWith(".exe");
-  if (/\.(so(\.\d+)*|sh|txt|json|md)$/.test(lower)) return false;
-  return looksLikeLinuxExecutable(filePath);
-};
-
-const collectExecutables = async (
-  directory: string,
-  depth = 0
-): Promise<string[]> => {
-  if (depth > EXECUTABLE_SCAN_DEPTH) return [];
-
-  const entries = await fs.promises.readdir(directory, { withFileTypes: true });
-  const found: string[] = [];
-
-  for (const entry of entries) {
-    const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      found.push(...(await collectExecutables(entryPath, depth + 1)));
-    } else if (entry.isFile() && (await isExecutableCandidate(entryPath))) {
-      found.push(entryPath);
-    }
-  }
-
-  return found;
-};
-
-const findExecutable = async (installDirectory: string, portName: string) => {
-  const candidates = await collectExecutables(installDirectory);
-  if (candidates.length === 0) return null;
-
-  const words = portName
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter((word) => word.length >= 3);
-  const depth = (filePath: string) =>
-    path.relative(installDirectory, filePath).split(path.sep).length;
-  const matchesName = (filePath: string) =>
-    words.some((word) => path.basename(filePath).toLowerCase().includes(word));
-
-  return (
-    [...candidates].sort(
-      (left, right) =>
-        depth(left) - depth(right) ||
-        Number(matchesName(right)) - Number(matchesName(left)) ||
-        left.localeCompare(right)
-    )[0] ?? null
-  );
-};
-
-const restoreExecutableBits = async (directory: string, depth = 0) => {
-  if (process.platform === "win32" || depth > EXECUTABLE_SCAN_DEPTH) return;
-
-  const entries = await fs.promises.readdir(directory, { withFileTypes: true });
-  for (const entry of entries) {
-    const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      await restoreExecutableBits(entryPath, depth + 1);
-    } else if (entry.isFile() && (await looksLikeLinuxExecutable(entryPath))) {
-      const { mode } = await fs.promises.stat(entryPath);
-      await fs.promises.chmod(entryPath, mode | 0o111);
-    }
-  }
-};
 
 const hashFile = (filePath: string) =>
   new Promise<string>((resolve, reject) => {
@@ -195,16 +113,19 @@ const getSingleEntry = async (directory: string) => {
   return entries.length === 1 ? entries[0] : null;
 };
 
-const extractNestedTar = async (stagingDirectory: string) => {
-  const entry = await getSingleEntry(stagingDirectory);
-  if (!entry?.isFile() || !entry.name.toLowerCase().endsWith(".tar")) return;
+/** Unwraps a release packed more than once, like a zip holding a .tar.gz. */
+const extractNestedArchives = async (stagingDirectory: string) => {
+  for (let layer = 0; layer < MAX_NESTED_ARCHIVES; layer++) {
+    const entry = await getSingleEntry(stagingDirectory);
+    if (!entry?.isFile() || !isNestedReleaseArchive(entry.name)) return;
 
-  const tarPath = path.join(stagingDirectory, entry.name);
-  await SevenZip.extractFile({
-    filePath: tarPath,
-    outputPath: stagingDirectory,
-  });
-  await fs.promises.rm(tarPath, { force: true });
+    const archivePath = path.join(stagingDirectory, entry.name);
+    await SevenZip.extractFile({
+      filePath: archivePath,
+      outputPath: stagingDirectory,
+    });
+    await fs.promises.rm(archivePath, { force: true });
+  }
 };
 
 const resolveExtractedRoot = async (stagingDirectory: string) => {
@@ -217,7 +138,8 @@ const resolveExtractedRoot = async (stagingDirectory: string) => {
 const extractRelease = async (
   archivePath: string,
   installDirectory: string,
-  portName: string
+  portName: string,
+  executableOverride: string | null
 ) => {
   const stagingDirectory = `${installDirectory}.partial`;
   await fs.promises.rm(stagingDirectory, { recursive: true, force: true });
@@ -227,10 +149,14 @@ const extractRelease = async (
       filePath: archivePath,
       outputPath: stagingDirectory,
     });
-    await extractNestedTar(stagingDirectory);
+    await extractNestedArchives(stagingDirectory);
     const root = await resolveExtractedRoot(stagingDirectory);
     await restoreExecutableBits(root);
-    const executablePath = await findExecutable(root, portName);
+    const executablePath = await findRecompilationExecutable(
+      root,
+      portName,
+      executableOverride
+    );
     if (!executablePath) throw new RecompilationInstallError("no_executable");
     await fs.promises.mkdir(installDirectory, { recursive: true });
     await fs.promises.cp(root, installDirectory, {
@@ -357,7 +283,8 @@ const downloadAndInstall = async (
   const executablePath = await extractRelease(
     archivePath,
     installDirectory,
-    details.name
+    details.name,
+    getRecompilationExecutableOverride(ref.slug)
   );
 
   const marker: InstallMarker = {

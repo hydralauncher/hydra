@@ -127,6 +127,7 @@
     }
   },
   "symphonyrecomp": {
+    "executable": { "linux": "run.sh" },
     "rom": {
       "path": {
         "config": {

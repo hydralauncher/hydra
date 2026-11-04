@@ -24,9 +24,16 @@ import {
 import recompilationMeta from "./recompilation-meta.json";
 import { toZ64 } from "./n64-rom";
 
+type MetaPlatform = "win32" | "linux";
+
 const ROM_META = recompilationMeta as Record<
   string,
-  { rom: RecompilationRomMeta | null; hideConsole?: boolean } | undefined
+  | {
+      rom: RecompilationRomMeta | null;
+      hideConsole?: boolean;
+      executable?: Partial<Record<MetaPlatform, string>>;
+    }
+  | undefined
 >;
 
 const getRecompilationRomMeta = (slug: string): RecompilationRomMeta | null =>
@@ -35,10 +42,14 @@ const getRecompilationRomMeta = (slug: string): RecompilationRomMeta | null =>
 export const shouldHideRecompilationConsole = (slug: string) =>
   Object.hasOwn(ROM_META, slug) && ROM_META[slug]?.hideConsole === true;
 
+/** Path inside the release to launch when picking an executable would guess wrong. */
+export const getRecompilationExecutableOverride = (slug: string) =>
+  (Object.hasOwn(ROM_META, slug)
+    ? ROM_META[slug]?.executable?.[process.platform as MetaPlatform]
+    : undefined) ?? null;
+
 const getLibraryRomExtensions = (slug: string) =>
   getRecompilationRomMeta(slug)?.extensions ?? [];
-
-type MetaPlatform = "win32" | "linux";
 
 const ROM_CHOICE_FILE = ".hydra-recompilation-rom.json";
 const EXTRACTED_ROM_FOLDER = ".hydra-rom";
