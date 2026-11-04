@@ -95,16 +95,6 @@
     align-items: center;
     gap: calc(globals.$spacing-unit / 3);
   }
-
-  &__checkbox-container {
-    opacity: globals.$disabled-opacity;
-    cursor: not-allowed;
-
-    &--enabled {
-      opacity: 1;
-      cursor: pointer;
-    }
-  }
 }
 
 .settings-context-compatibility {
