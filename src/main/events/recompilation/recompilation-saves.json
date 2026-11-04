@@ -328,5 +328,19 @@
         "tags": ["save"]
       }
     ]
+  },
+  "symphonyrecomp": {
+    "saves": [
+      {
+        "path": "<base>/carda.sav",
+        "kind": "file",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/cardb.sav",
+        "kind": "file",
+        "tags": ["save"]
+      }
+    ]
   }
 }
