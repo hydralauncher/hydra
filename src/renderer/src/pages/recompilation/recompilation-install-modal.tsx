@@ -207,6 +207,15 @@ function InstallModalContent({
     }
   };
 
+  const romRequirementMatch = /^(.*?)\s*\((.*)\)\s*$/.exec(
+    details.romRequirement ?? ""
+  );
+  const romName = romRequirementMatch?.[1] ?? details.romRequirement;
+  const romDetails = romRequirementMatch?.[2]
+    .replace(/\s+in\s+[^,]*$/i, "")
+    .replace(/\s+image\b/gi, "")
+    .trim();
+
   const extensionList = new Intl.ListFormat(i18n.language, {
     type: "disjunction",
   }).format((romState?.extensions ?? []).map((extension) => `.${extension}`));
@@ -434,7 +443,7 @@ function InstallModalContent({
           {handlesRom && details.romRequirement && (
             <div>
               <dt>{t("rom_group")}</dt>
-              <dd>{details.romRequirement.split(" (")[0]}</dd>
+              <dd>{romDetails ? `${romName} (${romDetails})` : romName}</dd>
             </div>
           )}
           {handlesRom && extensionList && (
@@ -445,9 +454,6 @@ function InstallModalContent({
           )}
         </dl>
       </div>
-      <p className="setup-modal__body-intro">
-        {t("install_location_intro", { name: details.name })}
-      </p>
       <TextField
         value={parentDirectory}
         readOnly

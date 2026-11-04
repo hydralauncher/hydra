@@ -3508,7 +3508,6 @@
     "install_step_port": "Versão para PC",
     "install_step_rom": "ROM do jogo",
     "install_step_location": "Local de instalação",
-    "install_location_intro": "Escolha onde instalar o {{name}} no seu PC.",
     "install_location_label": "Pasta",
     "install_location_change": "Alterar",
     "install_free_space": "{{size}} livres neste disco",

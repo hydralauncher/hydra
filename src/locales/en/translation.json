@@ -3495,7 +3495,6 @@
     "install_step_port": "PC version",
     "install_step_rom": "Game ROM",
     "install_step_location": "Install location",
-    "install_location_intro": "Choose where to install {{name}} on your PC.",
     "install_location_label": "Folder",
     "install_location_change": "Change",
     "install_free_space": "{{size}} free on this drive",

@@ -3112,7 +3112,6 @@
     "install_step_port": "Версия для ПК",
     "install_step_rom": "ROM игры",
     "install_step_location": "Место установки",
-    "install_location_intro": "Выберите, куда установить {{name}} на ваш ПК.",
     "install_location_label": "Папка",
     "install_location_change": "Изменить",
     "install_free_space": "Свободно на диске: {{size}}",
