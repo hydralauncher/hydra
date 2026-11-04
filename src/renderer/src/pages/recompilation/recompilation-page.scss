@@ -254,7 +254,7 @@
 
     .release-rail-sticky {
       width: max-content;
-      transform: translateX(calc(-100% - 16px));
+      transform: translateX(calc(-100% - 28px));
       pointer-events: auto;
     }
   }
@@ -297,7 +297,7 @@
   &-sticky {
     position: sticky;
     top: calc(globals.$spacing-unit * 2);
-    padding-top: 29px;
+    padding-top: 31px;
   }
 
   &__item {
