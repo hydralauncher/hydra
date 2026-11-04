@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 
 export interface LinuxProcessInfo {
@@ -9,15 +10,43 @@ export interface LinuxProcessInfo {
   steamCompatDataPath: string | null;
 }
 
+type RealPathResolver = (value: string) => string;
+
+const resolveRealPath: RealPathResolver = (value) => {
+  if (process.platform !== "linux") return value;
+
+  try {
+    return fs.realpathSync(value);
+  } catch {
+    return value;
+  }
+};
+
+export const getExecutablePathAliases = (
+  executablePath: string,
+  resolve: RealPathResolver = resolveRealPath
+) => {
+  const resolved = resolve(executablePath);
+
+  return resolved === executablePath
+    ? [executablePath]
+    : [executablePath, resolved];
+};
+
 export const hasLinuxNativeOrAppImageMatch = (
   executablePath: string,
-  linuxProcesses: LinuxProcessInfo[]
+  linuxProcesses: LinuxProcessInfo[],
+  resolve?: RealPathResolver
 ) => {
-  const target = executablePath.toLowerCase();
+  const targets = getExecutablePathAliases(executablePath, resolve).map(
+    (alias) => alias.toLowerCase()
+  );
 
   return linuxProcesses.some(
     (matchedProcess) =>
-      matchedProcess.exe === target || matchedProcess.appImagePath === target
+      targets.includes(matchedProcess.exe) ||
+      (matchedProcess.appImagePath !== null &&
+        targets.includes(matchedProcess.appImagePath))
   );
 };
 
@@ -35,29 +64,34 @@ interface LinuxWindowProcess extends ProcessLocation {
 
 export const processReferencesExecutable = (
   matchedProcess: ProcessLocation,
-  executablePath: string
+  executablePath: string,
+  resolve?: RealPathResolver
 ) => {
-  const target = executablePath.toLowerCase();
-  const gameDirectory = path.dirname(executablePath).toLowerCase();
+  const aliases = getExecutablePathAliases(executablePath, resolve);
+  const targets = aliases.map((alias) => alias.toLowerCase());
+  const gameDirectories = aliases.map((alias) =>
+    path.dirname(alias).toLowerCase()
+  );
 
   return (
-    (matchedProcess.cwd ?? "").toLowerCase() === gameDirectory ||
-    (matchedProcess.exe ?? "").toLowerCase() === target ||
-    (matchedProcess.appImagePath ?? "").toLowerCase() === target
+    gameDirectories.includes((matchedProcess.cwd ?? "").toLowerCase()) ||
+    targets.includes((matchedProcess.exe ?? "").toLowerCase()) ||
+    targets.includes((matchedProcess.appImagePath ?? "").toLowerCase())
   );
 };
 
 export const hasLaunchedPidMatch = (
   launchedPid: number | undefined,
   executablePath: string,
-  pidToProcess: Map<number, LinuxProcessInfo>
+  pidToProcess: Map<number, LinuxProcessInfo>,
+  resolve?: RealPathResolver
 ) => {
   if (launchedPid === undefined) return false;
 
   const matchedProcess = pidToProcess.get(launchedPid);
   if (!matchedProcess) return false;
 
-  return processReferencesExecutable(matchedProcess, executablePath);
+  return processReferencesExecutable(matchedProcess, executablePath, resolve);
 };
 
 export const doesSteamCompatDataPathMatchWinePrefix = (

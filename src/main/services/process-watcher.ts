@@ -30,6 +30,7 @@ import {
 import {
   doesSteamCompatDataPathMatchWinePrefix,
   hasLaunchedPidMatch,
+  getExecutablePathAliases,
   hasLinuxNativeOrAppImageMatch,
   type LinuxProcessInfo,
 } from "./linux-process-match";
@@ -293,14 +294,16 @@ const hasLinuxCompatibilityProcessMatch = (
 
   const executableName = path.basename(executablePath).toLowerCase();
   const executableNameWithoutExtension = executableName.replace(/\.exe$/i, "");
-  const executableDirectory = path.dirname(executablePath).toLowerCase();
+  const executableDirectories = getExecutablePathAliases(executablePath).map(
+    (alias) => path.dirname(alias).toLowerCase()
+  );
   const expectedWinePrefix = Wine.getEffectivePrefixPath(
     game.winePrefixPath,
     game.objectId
   )?.toLowerCase();
 
   return linuxProcesses.some((process) => {
-    if (process.cwd !== executableDirectory) {
+    if (!executableDirectories.includes(process.cwd)) {
       return false;
     }
 
@@ -385,7 +388,16 @@ export const watchProcesses = async () => {
         .slice(matchPath.lastIndexOf(platform === "win32" ? "\\" : "/") + 1)
         .toLowerCase();
 
-      if (processMap.get(executable)?.has(matchPath)) return true;
+      const knownPaths = processMap.get(executable);
+      if (
+        knownPaths &&
+        (platform === "linux"
+          ? getExecutablePathAliases(matchPath)
+          : [matchPath]
+        ).some((alias) => knownPaths.has(alias))
+      ) {
+        return true;
+      }
 
       if (platform === "linux") {
         return (
