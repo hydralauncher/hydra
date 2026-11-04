@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import cn from "classnames";
 
@@ -16,8 +16,8 @@ interface ReleaseRailProps {
 }
 
 const ITEM_SIZE = 24;
-const TICK_SCALES = [1, 0.68, 0.44];
-const REST_SCALE = 0.25;
+const TICK_WIDTHS = [48, 32, 20];
+const REST_WIDTH = 12;
 const TICK_SPRING = { type: "spring", stiffness: 500, damping: 38 } as const;
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
@@ -29,10 +29,8 @@ export function ReleaseRail({
 }: Readonly<ReleaseRailProps>) {
   const reduce = useReducedMotion();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [focusedId, setFocusedId] = useState<string | null>(null);
 
-  const previewId = hoveredId ?? focusedId;
-  const previewIndex = items.findIndex((item) => item.id === previewId);
+  const previewIndex = items.findIndex((item) => item.id === hoveredId);
   const preview = previewIndex >= 0 ? items[previewIndex] : null;
   const previewY = previewIndex * ITEM_SIZE + ITEM_SIZE / 2;
 
@@ -46,26 +44,14 @@ export function ReleaseRail({
     return () => nav.removeEventListener("pointerleave", clearHover);
   }, []);
 
-  const moveSelection = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const step = { ArrowDown: 1, ArrowUp: -1 }[event.key];
-    if (!step) return;
-    event.preventDefault();
-    const index = items.findIndex((item) => item.id === selectedId) + step;
-    if (index < 0 || index >= items.length) return;
-    onSelect(items[index].id);
-    navRef.current
-      ?.querySelectorAll<HTMLButtonElement>(".release-rail__item")
-      [index]?.focus();
-  };
-
   return (
     <nav ref={navRef} className="release-rail" aria-label={label}>
       {items.map((item, index) => {
         const isSelected = item.id === selectedId;
-        const scale =
+        const width =
           previewIndex < 0
-            ? REST_SCALE
-            : (TICK_SCALES[Math.abs(index - previewIndex)] ?? REST_SCALE);
+            ? REST_WIDTH
+            : (TICK_WIDTHS[Math.abs(index - previewIndex)] ?? REST_WIDTH);
 
         return (
           <button
@@ -77,20 +63,15 @@ export function ReleaseRail({
             })}
             aria-label={`${item.label}, ${item.description}`}
             aria-current={isSelected ? "true" : undefined}
+            tabIndex={-1}
             onPointerEnter={() => setHoveredId(item.id)}
-            onFocus={(event) => {
-              if (event.currentTarget.matches(":focus-visible")) {
-                setFocusedId(item.id);
-              }
-            }}
-            onBlur={() => setFocusedId(null)}
-            onKeyDown={moveSelection}
+            onMouseDown={(event) => event.preventDefault()}
             onClick={() => onSelect(item.id)}
           >
             <motion.span
               className="release-rail__tick"
               initial={false}
-              animate={{ scaleX: scale }}
+              animate={{ width }}
               transition={reduce ? { duration: 0 } : TICK_SPRING}
             />
           </button>

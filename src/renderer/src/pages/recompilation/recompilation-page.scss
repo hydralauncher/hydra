@@ -317,20 +317,16 @@
       color: #fafafa;
     }
 
-    &:focus-visible {
-      outline: 2px solid rgba(255, 255, 255, 0.5);
-      outline-offset: 2px;
-      border-radius: 2px;
-    }
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   &__tick {
     display: block;
-    width: 48px;
+    width: 12px;
     height: 2px;
     border-radius: 1px;
     background: currentColor;
-    transform-origin: left center;
   }
 
   &__preview {
