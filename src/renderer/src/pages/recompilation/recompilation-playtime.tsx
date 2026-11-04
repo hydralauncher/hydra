@@ -3,7 +3,7 @@ import type { LibraryGame } from "@types";
 import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
-import { useDate, useFormat } from "@renderer/hooks";
+import { useFormat } from "@renderer/hooks";
 
 interface RecompilationPlaytimeProps {
   game: LibraryGame | null;
@@ -16,7 +16,6 @@ export function RecompilationPlaytime({
 }: Readonly<RecompilationPlaytimeProps>) {
   const { t } = useTranslation("game_details");
   const { numberFormatter } = useFormat();
-  const { formatDistance } = useDate();
 
   if (!game) return null;
 
@@ -45,17 +44,6 @@ export function RecompilationPlaytime({
       : t("amount_hours", { amount: numberFormatter.format(minutes / 60) });
 
   return (
-    <div className="recompilation-page__playtime">
-      <p>{t("play_time", { amount })}</p>
-      {game.lastTimePlayed && (
-        <p>
-          {t("last_time_played", {
-            period: formatDistance(game.lastTimePlayed, new Date(), {
-              addSuffix: true,
-            }),
-          })}
-        </p>
-      )}
-    </div>
+    <p className="recompilation-page__playtime">{t("play_time", { amount })}</p>
   );
 }
