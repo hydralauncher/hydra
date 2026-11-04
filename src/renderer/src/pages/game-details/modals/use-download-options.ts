@@ -133,7 +133,6 @@ export function useDownloadOptions(repack: GameRepack | null) {
   const allDebridApiToken = userPreferences?.allDebridApiToken;
   const torBoxApiToken = userPreferences?.torBoxApiToken;
 
-  // Only the tokens: other preference changes must not reset the picked downloader.
   return useMemo(
     () =>
       getDownloadOptions(repack, {

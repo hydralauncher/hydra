@@ -58,8 +58,6 @@ export const readInstallMarker = async (
   }
 };
 
-// The port runs with cwd set to its executable's folder, so `<base>` paths
-// resolve from there.
 export const getRecompilationBaseDirectory = async (
   installDirectory: string
 ) => {

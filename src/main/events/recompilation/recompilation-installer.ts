@@ -229,7 +229,6 @@ const extractRelease = async (
       force: true,
       verbatimSymlinks: true,
     });
-    // Picked from this release only: files left by an older one must not win.
     return path.join(installDirectory, path.relative(root, executablePath));
   } finally {
     await fs.promises.rm(stagingDirectory, { recursive: true, force: true });
@@ -251,9 +250,32 @@ export const getRecompilationInstallState = async (
     isInstalling: installsInProgress.has(ref.slug),
     version: installed ? marker.version : null,
     installPath: installed ? installDirectory : null,
+    installParentPath: path.dirname(installDirectory),
     executablePath: installed ? marker.executablePath : null,
     hasCloudSaves: Object.hasOwn(recompilationSaves, ref.slug),
   };
+};
+
+const resolveTargetDirectory = async (
+  ref: RecompilationRef,
+  rawParentDirectory: unknown,
+  isInstalled: boolean
+) => {
+  if (
+    isInstalled ||
+    typeof rawParentDirectory !== "string" ||
+    !path.isAbsolute(rawParentDirectory)
+  ) {
+    return getInstallDirectory(ref.slug);
+  }
+
+  try {
+    await fs.promises.mkdir(rawParentDirectory, { recursive: true });
+    await fs.promises.access(rawParentDirectory, fs.constants.W_OK);
+  } catch {
+    throw new RecompilationInstallError("install_folder_unwritable");
+  }
+  return path.join(rawParentDirectory, ref.slug);
 };
 
 const fetchRelease = async (ref: RecompilationRef) => {
@@ -288,10 +310,10 @@ const fetchRelease = async (ref: RecompilationRef) => {
 
 const downloadAndInstall = async (
   ref: RecompilationRef,
+  installDirectory: string,
   onArchivePath: (archivePath: string) => void
 ) => {
   const { details, release, asset } = await fetchRelease(ref);
-  const installDirectory = await getInstallDirectory(ref.slug);
   const archivePath = path.join(
     SystemPath.getPath("temp"),
     `hydra-recompilation-${ref.slug}-${path.basename(asset.name)}`
@@ -345,7 +367,8 @@ const downloadAndInstall = async (
 };
 
 export const installRecompilation = async (
-  rawRef: unknown
+  rawRef: unknown,
+  rawParentDirectory?: unknown
 ): Promise<RecompilationActionResult> => {
   const ref = parseRef(rawRef);
   if (!ref) return { ok: false, reason: "invalid_port" };
@@ -364,7 +387,12 @@ export const installRecompilation = async (
       return { ok: false, reason: "running" };
     }
 
-    await downloadAndInstall(ref, (downloadPath) => {
+    const installDirectory = await resolveTargetDirectory(
+      ref,
+      rawParentDirectory,
+      current?.installed === true
+    );
+    await downloadAndInstall(ref, installDirectory, (downloadPath) => {
       archivePath = downloadPath;
     });
     result = { ok: true };

@@ -109,7 +109,28 @@
     }
   },
   "spaghettikart": {
-    "rom": null,
-    "romExtensions": [".z64", ".n64", ".v64"]
+    "rom": {
+      "copyTo": {
+        "win32": "<base>/baserom.us.z64",
+        "linux": "<base>/baserom.us.z64"
+      },
+      "imported": {
+        "win32": ["<base>/mk64.o2r"],
+        "linux": ["<base>/mk64.o2r", "<xdgData>/spaghettikart/mk64.o2r"]
+      },
+      "format": "z64",
+      "extensions": [".z64", ".n64", ".v64"]
+    }
+  },
+  "symphonyrecomp": {
+    "rom": {
+      "path": {
+        "config": {
+          "file": "<base>/settings.json",
+          "key": ["system", "discPath"]
+        }
+      },
+      "extensions": [".cue", ".chd"]
+    }
   }
 }

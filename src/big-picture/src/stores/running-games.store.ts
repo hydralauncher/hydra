@@ -34,7 +34,6 @@ export function initializeBigPictureRunningGamesStore() {
 
   runningGamesStoreInitialized = true;
 
-  // Ports report under the base game's id; Big Picture has no port pages yet.
   const setRunningGames = (
     games: (BigPictureRunningGame & Pick<GameRunning, "recompilationSlug">)[]
   ) => {

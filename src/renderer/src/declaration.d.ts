@@ -792,7 +792,8 @@ declare global {
       ref: RecompilationRef
     ) => Promise<RecompilationInstallState | null>;
     installRecompilation: (
-      ref: RecompilationRef
+      ref: RecompilationRef,
+      parentDirectory?: string
     ) => Promise<RecompilationActionResult>;
     uninstallRecompilation: (
       ref: RecompilationRef

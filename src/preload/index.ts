@@ -637,8 +637,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
   getRecompilationInstallState: (ref: RecompilationRef) =>
     ipcRenderer.invoke("getRecompilationInstallState", ref),
-  installRecompilation: (ref: RecompilationRef) =>
-    ipcRenderer.invoke("installRecompilation", ref),
+  installRecompilation: (ref: RecompilationRef, parentDirectory?: string) =>
+    ipcRenderer.invoke("installRecompilation", ref, parentDirectory),
   uninstallRecompilation: (ref: RecompilationRef) =>
     ipcRenderer.invoke("uninstallRecompilation", ref),
   openRecompilationFolder: (ref: RecompilationRef) =>

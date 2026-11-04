@@ -11,12 +11,20 @@ export interface RecompilationInstall {
   isBusy: boolean;
   isRunning: boolean;
   isLaunching: boolean;
-  install: () => Promise<RecompilationActionResult>;
+  install: (parentDirectory?: string) => Promise<RecompilationActionResult>;
   uninstall: () => Promise<boolean>;
   play: () => Promise<boolean>;
   close: () => Promise<boolean>;
   openFolder: () => Promise<void>;
 }
+
+export const getInstallErrorKey = (reason?: string) => {
+  if (reason === "running") return "install_running";
+  if (reason === "no_executable") return "install_no_executable";
+  if (reason === "install_folder_unwritable")
+    return "install_folder_unwritable";
+  return "install_failed";
+};
 
 export function useRecompilationInstall(
   objectId: string,
@@ -76,18 +84,21 @@ export function useRecompilationInstall(
     });
   }, [refresh, slug]);
 
-  const install = useCallback(async () => {
-    setProgress({ slug, phase: "downloading", loaded: 0 });
-    const result = await window.electron.installRecompilation({
-      objectId,
-      slug,
-    });
-    if (!result.ok) {
-      setProgress(null);
-      await refresh();
-    }
-    return result;
-  }, [objectId, slug, refresh]);
+  const install = useCallback(
+    async (parentDirectory?: string) => {
+      setProgress({ slug, phase: "downloading", loaded: 0 });
+      const result = await window.electron.installRecompilation(
+        { objectId, slug },
+        parentDirectory
+      );
+      if (!result.ok) {
+        setProgress(null);
+        await refresh();
+      }
+      return result;
+    },
+    [objectId, slug, refresh]
+  );
 
   const uninstall = useCallback(async () => {
     const result = await window.electron.uninstallRecompilation({

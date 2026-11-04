@@ -6,6 +6,7 @@ import { formatBytes } from "@shared";
 
 import { Button } from "@renderer/components/button/button";
 import { Modal } from "@renderer/components/modal/modal";
+import { TextField } from "@renderer/components/text-field/text-field";
 import {
   InstallProgressBar,
   type InstallProgressLike,
@@ -15,14 +16,17 @@ import {
   gameDetailsContext,
   GameDetailsContextProvider,
 } from "@renderer/context";
-import { useToast } from "@renderer/hooks";
+import { useLibrary, useToast } from "@renderer/hooks";
 import { RomSourcesPanel } from "./rom-source-list";
-import type { RecompilationInstall } from "./use-recompilation-install";
+import {
+  getInstallErrorKey,
+  type RecompilationInstall,
+} from "./use-recompilation-install";
 import type { RecompilationRom } from "./use-recompilation-rom";
 import "@renderer/components/setup-modal/setup-modal.scss";
 import "./recompilation-install-modal.scss";
 
-type InstallStep = "rom" | "sources" | "done";
+type InstallStep = "location" | "rom" | "sources" | "done";
 
 const ROM_DOWNLOAD_START_TIMEOUT_MS = 10_000;
 
@@ -115,15 +119,68 @@ function InstallModalContent({
     void refreshRom();
   }, [refreshRom]);
 
-  const [step, setStep] = useState<InstallStep>("rom");
+  const { state, progress } = install;
+  const isInstalled = state?.installed === true;
+  const { updateLibrary } = useLibrary();
+
+  const [hasLocationStep] = useState(!isInstalled && !install.isBusy);
+  const [step, setStep] = useState<InstallStep>(
+    hasLocationStep ? "location" : "rom"
+  );
+  const [parentDirectory, setParentDirectory] = useState(
+    state?.installParentPath ?? ""
+  );
   const [pickedFile, setPickedFile] = useState<string | null>(
     romState?.source === "file" ? romState.romPath : null
   );
   const [skipLibrary, setSkipLibrary] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { state, progress } = install;
-  const isInstalled = state?.installed === true;
+  const handlesRom = romState?.handlesRom !== false;
+
+  useEffect(() => {
+    if (state?.installParentPath) {
+      setParentDirectory((current) => current || state.installParentPath);
+    }
+  }, [state?.installParentPath]);
+
+  useEffect(() => {
+    if (step === "rom" && romState && !romState.handlesRom) setStep("done");
+  }, [step, romState]);
+
+  const pickParentDirectory = async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      defaultPath: parentDirectory || undefined,
+      properties: ["openDirectory"],
+    });
+    const [directory] = filePaths ?? [];
+    if (directory) setParentDirectory(directory);
+  };
+
+  const addBaseGameToLibrary = async () => {
+    const { objectId, title, platform } = details.game;
+    const libraryGame = await window.electron
+      .getGameByObjectId("launchbox", objectId)
+      .catch(() => null);
+    if (libraryGame && !libraryGame.isDeleted) return;
+
+    await window.electron.addGameToLibrary(
+      "launchbox",
+      objectId,
+      title,
+      platform
+    );
+    updateLibrary();
+  };
+
+  const startInstall = async () => {
+    setStep(handlesRom ? "rom" : "done");
+    void addBaseGameToLibrary().catch(() => {});
+    const result = await install.install(parentDirectory || undefined);
+    if (!result.ok && result.reason !== "already_installing") {
+      showErrorToast(t(getInstallErrorKey(result.reason)));
+    }
+  };
 
   const extensionList = new Intl.ListFormat(i18n.language, {
     type: "disjunction",
@@ -306,6 +363,27 @@ function InstallModalContent({
     </>
   );
 
+  const renderLocationStep = () => (
+    <>
+      <h3 className="setup-modal__body-title">{t("install_step_location")}</h3>
+      <p className="setup-modal__body-intro">{t("install_location_intro")}</p>
+      <TextField
+        value={parentDirectory}
+        readOnly
+        disabled
+        label={t("install_location_label")}
+        hint={t("install_location_hint", {
+          path: `${parentDirectory}${parentDirectory.includes("/") ? "/" : "\\"}${details.slug}`,
+        })}
+        rightContent={
+          <Button theme="outline" onClick={pickParentDirectory}>
+            {t("install_location_change")}
+          </Button>
+        }
+      />
+    </>
+  );
+
   const renderSourcesStep = () => (
     <>
       <h3 className="setup-modal__body-title">{t("rom_choice_download")}</h3>
@@ -321,7 +399,10 @@ function InstallModalContent({
     </>
   );
 
-  const canPlay = isInstalled && !install.isBusy && Boolean(romState?.romPath);
+  const canPlay =
+    isInstalled &&
+    !install.isBusy &&
+    (!handlesRom || Boolean(romState?.romPath || romState?.isReady));
 
   const renderDoneStep = () => (
     <div className="setup-modal__done">
@@ -334,6 +415,9 @@ function InstallModalContent({
       <p className="setup-modal__done-body">
         {canPlay ? t("install_ready") : t("install_waiting")}
       </p>
+      {!handlesRom && (
+        <p className="setup-modal__done-body">{t("install_port_asks_rom")}</p>
+      )}
       {!canPlay && (
         <div className="recompilation-install__waiting">
           {renderRomStatus()}
@@ -352,24 +436,34 @@ function InstallModalContent({
     </div>
   );
 
+  const stepOrder: InstallStep[] = [
+    ...(hasLocationStep ? (["location"] as const) : []),
+    ...(handlesRom ? (["rom"] as const) : []),
+    "done",
+  ];
+  const stepIndex = stepOrder.indexOf(step === "sources" ? "rom" : step);
+
   return (
     <div className="setup-modal recompilation-install">
       <div className="setup-modal__body">
+        {step === "location" && renderLocationStep()}
         {step === "rom" && renderRomStep()}
         {step === "sources" && renderSourcesStep()}
         {step === "done" && renderDoneStep()}
       </div>
 
       <SetupFooter
-        currentStepIndex={step === "done" ? 1 : 0}
-        totalSteps={2}
+        currentStepIndex={stepIndex}
+        totalSteps={stepOrder.length}
         showBack={step === "sources"}
         showSkip={false}
-        continueHidden={step !== "rom"}
-        continueDisabled={!romSource || isSaving}
+        continueHidden={step !== "rom" && step !== "location"}
+        continueDisabled={
+          step === "location" ? !parentDirectory : !romSource || isSaving
+        }
         onBack={() => setStep("rom")}
         onSkip={() => {}}
-        onContinue={saveChoice}
+        onContinue={step === "location" ? startInstall : saveChoice}
       />
     </div>
   );

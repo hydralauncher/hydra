@@ -236,7 +236,7 @@ export default function RecompilationPage() {
         />
 
         <RecompilationInstallModal
-          visible={isInstallOpen && rom.state?.handlesRom === true}
+          visible={isInstallOpen}
           details={details}
           install={install}
           rom={rom}

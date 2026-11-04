@@ -35,10 +35,7 @@ function RecompilationRow({
   const { showErrorToast } = useToast();
   const rom = useRecompilationRom(objectId, recompilation.slug);
   const isMissingRom =
-    rom.state !== null &&
-    (rom.state.handlesRom
-      ? !rom.state.romPath && !rom.state.isReady
-      : !rom.state.libraryRomPath && rom.downloadPhase === null);
+    rom.state?.handlesRom === true && !rom.state.romPath && !rom.state.isReady;
 
   const runPlay = async () => {
     if (!(await play())) showErrorToast(t("play_failed"));
@@ -52,11 +49,7 @@ function RecompilationRow({
   const openPage = () =>
     navigate(buildRecompilationPath(objectId, recompilation.slug));
   const openRomStep = () =>
-    navigate(
-      rom.state?.handlesRom
-        ? `${buildRecompilationPath(objectId, recompilation.slug)}?rom=1`
-        : buildRecompilationPath(objectId, recompilation.slug)
-    );
+    navigate(`${buildRecompilationPath(objectId, recompilation.slug)}?rom=1`);
 
   let action: { label: string; onClick: () => void } = {
     label: t("play"),
@@ -67,10 +60,7 @@ function RecompilationRow({
   } else if (hasUpdate) {
     action = { label: t("update"), onClick: openPage };
   } else if (isMissingRom) {
-    action = {
-      label: rom.state?.handlesRom ? t("choose_rom") : t("download_rom"),
-      onClick: openRomStep,
-    };
+    action = { label: t("choose_rom"), onClick: openRomStep };
   }
 
   let subtitle = `${t(`tested_level_short_${recompilation.tested.level}`)} · ${recompilation.author}`;

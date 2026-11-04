@@ -127,6 +127,7 @@ export interface RecompilationInstallState {
   isInstalling: boolean;
   version: string | null;
   installPath: string | null;
+  installParentPath: string;
   executablePath: string | null;
   hasCloudSaves: boolean;
 }
@@ -136,6 +137,7 @@ export interface RecompilationRomMeta {
     arg?: string[];
     env?: Record<string, string>;
     installer?: string[];
+    config?: { file: string; key: string[] };
   };
   once?: boolean;
   copyTo?: Partial<Record<"win32" | "linux", string>>;

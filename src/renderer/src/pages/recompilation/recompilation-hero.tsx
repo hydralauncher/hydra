@@ -16,9 +16,12 @@ import { Button } from "@renderer/components/button/button";
 import { ConfirmationModal } from "@renderer/components/confirmation-modal/confirmation-modal";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { InstallProgressBar } from "@renderer/components/setup-modal/install-progress-bar";
-import { useLibrary, useToast } from "@renderer/hooks";
+import { useToast } from "@renderer/hooks";
 import { CloudSaveWidget } from "../game-details/cloud-save-v2";
-import type { RecompilationInstall } from "./use-recompilation-install";
+import {
+  getInstallErrorKey,
+  type RecompilationInstall,
+} from "./use-recompilation-install";
 import type { RecompilationRom } from "./use-recompilation-rom";
 import "@renderer/components/setup-modal/setup-modal.scss";
 import "../game-details/hero.scss";
@@ -44,7 +47,6 @@ export function RecompilationHero({
 }: Readonly<RecompilationHeroProps>) {
   const { t } = useTranslation("recompilation");
   const { showErrorToast } = useToast();
-  const { updateLibrary } = useLibrary();
   const [isUninstallOpen, setIsUninstallOpen] = useState(false);
 
   const { state, progress } = install;
@@ -57,39 +59,11 @@ export function RecompilationHero({
   const handlesRom = rom.state?.handlesRom === true;
   const needsRomChoice =
     handlesRom && !rom.state?.romPath && !rom.state?.isReady;
-  const needsRomDownload =
-    rom.state !== null &&
-    !handlesRom &&
-    !rom.state.libraryRomPath &&
-    rom.downloadPhase === null;
 
-  const addBaseGameToLibrary = async () => {
-    const { objectId, title, platform } = details.game;
-    const libraryGame = await window.electron
-      .getGameByObjectId("launchbox", objectId)
-      .catch(() => null);
-    if (libraryGame && !libraryGame.isDeleted) return;
-
-    await window.electron.addGameToLibrary(
-      "launchbox",
-      objectId,
-      title,
-      platform
-    );
-    updateLibrary();
-  };
-
-  const installErrorMessage = (reason?: string) => {
-    if (reason === "running") return t("install_running");
-    if (reason === "no_executable") return t("install_no_executable");
-    return t("install_failed");
-  };
-
-  const runInstall = async () => {
-    void addBaseGameToLibrary().catch(() => {});
+  const runUpdate = async () => {
     const result = await install.install();
     if (!result.ok && result.reason !== "already_installing") {
-      showErrorToast(installErrorMessage(result.reason));
+      showErrorToast(t(getInstallErrorKey(result.reason)));
     }
   };
 
@@ -144,17 +118,7 @@ export function RecompilationHero({
 
     if (!isInstalled) {
       return (
-        <Button
-          onClick={
-            handlesRom
-              ? () => {
-                  void runInstall();
-                  onOpenInstall();
-                }
-              : runInstall
-          }
-          disabled={!installAsset}
-        >
+        <Button onClick={onOpenInstall} disabled={!installAsset}>
           <DownloadIcon />
           {t("install")}
         </Button>
@@ -164,7 +128,7 @@ export function RecompilationHero({
     return (
       <>
         {hasUpdate && !install.isRunning && !install.isLaunching && (
-          <Button onClick={runInstall}>
+          <Button onClick={runUpdate}>
             <SyncIcon />
             {t("update")}
           </Button>
@@ -178,22 +142,13 @@ export function RecompilationHero({
             {t("choose_rom")}
           </Button>
         )}
-        {needsRomDownload && !install.isRunning && (
-          <Button
-            theme={hasUpdate ? "outline" : "primary"}
-            onClick={onDownloadRom}
-          >
-            <DownloadIcon />
-            {t("download_rom")}
-          </Button>
-        )}
         {install.isRunning && (
           <Button theme="outline" onClick={runClose}>
             <XCircle size={16} />
             {t("close")}
           </Button>
         )}
-        {!install.isRunning && !needsRomChoice && !needsRomDownload && (
+        {!install.isRunning && !needsRomChoice && (
           <Button
             theme={hasUpdate ? "outline" : "primary"}
             onClick={runPlay}
@@ -206,16 +161,6 @@ export function RecompilationHero({
         <DropdownMenu
           align="end"
           items={[
-            ...(needsRomDownload && !install.isRunning
-              ? [
-                  {
-                    icon: <PlayIcon />,
-                    label: t("play"),
-                    onClick: runPlay,
-                    disabled: install.isLaunching,
-                  },
-                ]
-              : []),
             ...(handlesRom && !needsRomChoice
               ? [
                   {

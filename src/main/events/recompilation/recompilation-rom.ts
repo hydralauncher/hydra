@@ -23,23 +23,14 @@ import { toZ64 } from "./n64-rom";
 
 const ROM_META = recompilationMeta as Record<
   string,
-  | {
-      rom: RecompilationRomMeta | null;
-      romExtensions?: string[];
-    }
-  | undefined
+  { rom: RecompilationRomMeta | null } | undefined
 >;
 
-const getRomMetaEntry = (slug: string) =>
-  Object.hasOwn(ROM_META, slug) ? ROM_META[slug] : undefined;
-
 const getRecompilationRomMeta = (slug: string): RecompilationRomMeta | null =>
-  getRomMetaEntry(slug)?.rom ?? null;
+  (Object.hasOwn(ROM_META, slug) ? ROM_META[slug]?.rom : null) ?? null;
 
 const getLibraryRomExtensions = (slug: string) =>
-  getRecompilationRomMeta(slug)?.extensions ??
-  getRomMetaEntry(slug)?.romExtensions ??
-  [];
+  getRecompilationRomMeta(slug)?.extensions ?? [];
 
 type MetaPlatform = "win32" | "linux";
 
@@ -134,7 +125,6 @@ const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
   }
 
   const download = await downloadsSublevel.get(key).catch(() => null);
-  // A download still extracting counts as complete, but its files are partial.
   if (
     !download ||
     !isCompletedLikeDownload(download) ||
@@ -406,6 +396,34 @@ const runRomInstaller = (
     );
   });
 
+const writeRomConfig = async (
+  config: NonNullable<NonNullable<RecompilationRomMeta["path"]>["config"]>,
+  baseDirectory: string,
+  romPath: string
+) => {
+  const file = resolvePlaceholders(config.file, baseDirectory, "");
+  let root: Record<string, unknown> = {};
+  try {
+    const parsed = JSON.parse(await fs.promises.readFile(file, "utf-8"));
+    if (parsed && typeof parsed === "object") root = parsed;
+  } catch {
+    root = {};
+  }
+
+  const parentKeys = config.key.slice(0, -1);
+  let node = root;
+  for (const key of parentKeys) {
+    const next = node[key];
+    node[key] =
+      next && typeof next === "object" && !Array.isArray(next) ? next : {};
+    node = node[key] as Record<string, unknown>;
+  }
+  node[config.key.at(-1)!] = romPath;
+
+  await fs.promises.mkdir(path.dirname(file), { recursive: true });
+  await fs.promises.writeFile(file, JSON.stringify(root, null, 2));
+};
+
 export type RecompilationLaunch =
   | { ok: true; args: string[]; env: Record<string, string> }
   | { ok: false; reason: string };
@@ -449,16 +467,11 @@ export const prepareRecompilationRom = async (
         (await unpackRom(state.romPath, installDirectory, meta.extensions));
     }
 
-    const target = getRomTarget(
-      meta,
-      installDirectory,
-      await getRecompilationBaseDirectory(installDirectory),
-      romPath
-    );
+    const baseDirectory = await getRecompilationBaseDirectory(installDirectory);
+    const target = getRomTarget(meta, installDirectory, baseDirectory, romPath);
     if (target && (!isPrepared || !(await fileExists(target)))) {
       await copyRom(romPath, target, meta.format);
     }
-    // The resolved source, not the archive: it may be the previous target.
     const sourceRomPath = romPath;
     if (target) romPath = target;
     await removeStaleRomTarget(
@@ -470,6 +483,9 @@ export const prepareRecompilationRom = async (
 
     if (meta.path?.installer && (!isPrepared || meta.imported)) {
       await runRomInstaller(meta.path.installer, installDirectory, romPath);
+    }
+    if (meta.path?.config) {
+      await writeRomConfig(meta.path.config, baseDirectory, romPath);
     }
 
     if (!isPrepared || (target ?? undefined) !== choice.preparedTarget) {
