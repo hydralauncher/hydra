@@ -4,7 +4,7 @@ import type {
   AchievementCustomNotificationPosition,
   UserPreferences,
 } from "@types";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -94,14 +94,15 @@ export function NotificationsAchievementsSection({
     setForm(buildForm(userPreferences));
   }, [userPreferences]);
 
-  const updateUserPreferences = async (
-    values: Partial<NotificationsAchievementsForm>
-  ) => {
-    const nextForm = { ...form, ...values };
-    setForm(nextForm);
+  const updateUserPreferences = useCallback(
+    async (values: Partial<NotificationsAchievementsForm>) => {
+      const nextForm = { ...form, ...values };
+      setForm(nextForm);
 
-    await globalThis.window.electron.updateUserPreferences(values);
-  };
+      await globalThis.window.electron.updateUserPreferences(values);
+    },
+    [form]
+  );
 
   const items = useMemo<NotificationsAchievementsItem[]>(() => {
     return [
@@ -138,7 +139,7 @@ export function NotificationsAchievementsSection({
         },
       },
     ];
-  }, [form]);
+  }, [form, updateUserPreferences]);
 
   const focusableItems = useMemo(
     () => items.filter((item) => !item.disabled),

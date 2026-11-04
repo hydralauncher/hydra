@@ -25,11 +25,24 @@ const parseUnlockTime = (unlockTime: string | number) =>
     ? Number(unlockTime) * 1000 * 1000
     : Number(unlockTime) * 1000;
 
+type IniSection = Record<string, string | number>;
+type IniData = Record<string, IniSection>;
+
+interface GoldbergAchievement {
+  name: string;
+  earned?: boolean;
+  earned_time: number;
+}
+
+type GoldbergData =
+  | GoldbergAchievement[]
+  | Record<string, GoldbergAchievement | null | undefined>;
+
 export const iniParse = (filePath: string) => {
   const lines = readFileLines(filePath);
 
   let objectName = "";
-  const object: Record<string, Record<string, string | number>> = {};
+  const object: IniData = {};
 
   for (const line of lines) {
     const trimmedLine = line.trim();
@@ -81,7 +94,7 @@ export const processRazor1911 = (filePath: string): UnlockedAchievement[] => {
 };
 
 export const processOnlineFix = (
-  unlockedAchievements: any
+  unlockedAchievements: IniData
 ): UnlockedAchievement[] => {
   const parsedUnlockedAchievements: UnlockedAchievement[] = [];
 
@@ -91,7 +104,7 @@ export const processOnlineFix = (
     if (unlockedAchievement?.achieved == "true") {
       parsedUnlockedAchievements.push({
         name: achievement,
-        unlockTime: unlockedAchievement.timestamp * 1000,
+        unlockTime: Number(unlockedAchievement.timestamp) * 1000,
       });
     } else if (unlockedAchievement?.Achieved == "true") {
       parsedUnlockedAchievements.push({
@@ -105,7 +118,7 @@ export const processOnlineFix = (
 };
 
 export const processCreamAPI = (
-  unlockedAchievements: any
+  unlockedAchievements: IniData
 ): UnlockedAchievement[] => {
   const parsedUnlockedAchievements: UnlockedAchievement[] = [];
 
@@ -124,18 +137,19 @@ export const processCreamAPI = (
 };
 
 export const processSkidrow = (
-  unlockedAchievements: any
+  unlockedAchievements: IniData
 ): UnlockedAchievement[] => {
   const parsedUnlockedAchievements: UnlockedAchievement[] = [];
   const achievements = unlockedAchievements["Achievements"];
 
   for (const achievement of Object.keys(achievements)) {
-    const unlockedAchievement = achievements[achievement].split("@");
+    const unlockedAchievement = String(achievements[achievement]).split("@");
 
     if (unlockedAchievement[0] === "1") {
       parsedUnlockedAchievements.push({
         name: achievement,
-        unlockTime: unlockedAchievement[unlockedAchievement.length - 1] * 1000,
+        unlockTime:
+          Number(unlockedAchievement[unlockedAchievement.length - 1]) * 1000,
       });
     }
   }
@@ -144,7 +158,7 @@ export const processSkidrow = (
 };
 
 export const processGoldberg = (
-  unlockedAchievements: any
+  unlockedAchievements: GoldbergData
 ): UnlockedAchievement[] => {
   const newUnlockedAchievements: UnlockedAchievement[] = [];
 
@@ -175,7 +189,7 @@ export const processGoldberg = (
 };
 
 export const process3DM = (
-  unlockedAchievements: any
+  unlockedAchievements: IniData
 ): UnlockedAchievement[] => {
   const newUnlockedAchievements: UnlockedAchievement[] = [];
 
@@ -200,7 +214,7 @@ export const process3DM = (
 };
 
 export const processDefault = (
-  unlockedAchievements: any,
+  unlockedAchievements: IniData,
   achievedKey = "Achieved",
   unlockTimeKey = "UnlockTime"
 ): UnlockedAchievement[] => {
@@ -212,7 +226,7 @@ export const processDefault = (
     if (unlockedAchievement?.[achievedKey] == "1") {
       newUnlockedAchievements.push({
         name: achievement,
-        unlockTime: unlockedAchievement[unlockTimeKey] * 1000,
+        unlockTime: Number(unlockedAchievement[unlockTimeKey]) * 1000,
       });
     }
   }
@@ -221,7 +235,7 @@ export const processDefault = (
 };
 
 export const processRld = (
-  unlockedAchievements: any
+  unlockedAchievements: IniData
 ): UnlockedAchievement[] => {
   const newUnlockedAchievements: UnlockedAchievement[] = [];
 
@@ -255,7 +269,7 @@ export const processRld = (
 };
 
 export const processUserStats = (
-  unlockedAchievements: any
+  unlockedAchievements: IniData
 ): UnlockedAchievement[] => {
   const newUnlockedAchievements: UnlockedAchievement[] = [];
 

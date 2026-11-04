@@ -204,6 +204,7 @@ async function fixture(
     }),
     useUserDetails: () => ({ userDetails: null }),
   };
+  hooks.useGameExecutablePicker = () => async () => false;
   const shared = {
     findLibraryGamePresentation,
     mergeLibraryCatalogueMetadata,
@@ -809,6 +810,19 @@ describe("context menu download identity", () => {
     await state.removeSteamUninstallBridge();
 
     assert.equal(state.hasItem("remove-files"), false);
+  });
+
+  it("hides Locate executable when the executable is present", async (t) => {
+    const state = await fixture(t, [steam]);
+
+    assert.equal(state.hasItem("locate-executable"), false);
+  });
+
+  it("shows Locate executable when the executable is missing", async (t) => {
+    const missing = { ...steam, executableMissing: true };
+    const state = await fixture(t, [missing], missing);
+
+    assert.equal(state.item("locate-executable").label, "locate_executable");
   });
 
   it("hides Steam removal for an invalid app ID", async (t) => {

@@ -424,6 +424,9 @@ const CatalogueFiltersModalList = forwardRef<
       }
 
       if (scrollAnimationFrameRef.current !== null) {
+        // The ref holds an animation frame id (not a DOM node), so the latest
+        // value must be read at cleanup time.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         globalThis.cancelAnimationFrame(scrollAnimationFrameRef.current);
       }
     };
@@ -1027,6 +1030,7 @@ export function CatalogueFiltersModal({
       displayedFilterType,
       displayedItems,
       filtersSearchTerms,
+      handleSelectedListScroll,
       isMainFading,
       removeSelectedFilter,
       selectedFilterItems,

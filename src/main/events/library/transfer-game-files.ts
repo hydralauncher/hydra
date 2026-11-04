@@ -248,10 +248,19 @@ async function validateDestination(
   return { valid: true };
 }
 
+interface StatfsResult {
+  bfree: number;
+  bsize: number;
+}
+
+type FsWithStatfs = { statfs?: (path: string) => Promise<StatfsResult> };
+
 async function checkDiskSpace(destParent: string, requiredSize: number) {
   try {
-    if (typeof (fs as any).statfs === "function") {
-      const stats = await (fs as any).statfs(destParent);
+    const fsWithStatfs = fs as unknown as FsWithStatfs;
+
+    if (typeof fsWithStatfs.statfs === "function") {
+      const stats = await fsWithStatfs.statfs(destParent);
       const available = stats.bfree * stats.bsize;
       if (available < requiredSize) {
         return {

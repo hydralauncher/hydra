@@ -22,8 +22,20 @@ const processFltFolder = (filePath: string): UnlockedAchievement[] =>
     unlockTime: Date.now(),
   }));
 
+interface SteamCacheHighlight {
+  bAchieved: boolean;
+  strID: string;
+  rtUnlocked: number;
+}
+
+interface SteamCacheAchievementsData {
+  data: { vecHighlight: SteamCacheHighlight[] };
+}
+
+type SteamCacheEntry = [string, unknown];
+
 const processSteamCacheAchievement = (
-  unlockedAchievements: any[]
+  unlockedAchievements: SteamCacheEntry[]
 ): UnlockedAchievement[] => {
   const newUnlockedAchievements: UnlockedAchievement[] = [];
 
@@ -36,8 +48,10 @@ const processSteamCacheAchievement = (
     return [];
   }
 
-  const unlockedAchievementsData =
-    unlockedAchievements[achievementIndex][1]["data"]["vecHighlight"];
+  const achievementsEntry = unlockedAchievements[
+    achievementIndex
+  ][1] as SteamCacheAchievementsData;
+  const unlockedAchievementsData = achievementsEntry.data.vecHighlight;
 
   for (const achievement of unlockedAchievementsData) {
     if (achievement.bAchieved) {

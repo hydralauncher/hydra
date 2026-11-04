@@ -162,6 +162,7 @@ export function BigPictureSettingsSection({
     form.bigPictureLaunchToLibraryPage,
     handleLaunchInBigPictureChange,
     handleLaunchToLibraryPageChange,
+    t,
   ]);
 
   const inputItems = useMemo<BigPictureItem[]>(() => {
@@ -174,7 +175,7 @@ export function BigPictureSettingsSection({
         onChange: handleVirtualKeyboardChange,
       },
     ];
-  }, [form.bigPictureVirtualKeyboardEnabled, handleVirtualKeyboardChange]);
+  }, [form.bigPictureVirtualKeyboardEnabled, handleVirtualKeyboardChange, t]);
 
   const audioItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -186,7 +187,7 @@ export function BigPictureSettingsSection({
         onChange: handleBigPictureSoundsChange,
       },
     ];
-  }, [form.bigPictureSoundsEnabled, handleBigPictureSoundsChange]);
+  }, [form.bigPictureSoundsEnabled, handleBigPictureSoundsChange, t]);
 
   const diagnosticsItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -198,7 +199,7 @@ export function BigPictureSettingsSection({
         onChange: handleDiagnosticsEnabledChange,
       },
     ];
-  }, [form.bigPictureDiagnosticsEnabled, handleDiagnosticsEnabledChange]);
+  }, [form.bigPictureDiagnosticsEnabled, handleDiagnosticsEnabledChange, t]);
 
   const diagnosticsPositionOptions = useMemo<
     Array<DropdownSelectOption<BigPictureDiagnosticsPosition>>
@@ -216,7 +217,7 @@ export function BigPictureSettingsSection({
       value: position,
       label: getPositionLabel(position, t),
     }));
-  }, []);
+  }, [t]);
 
   const inputNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>

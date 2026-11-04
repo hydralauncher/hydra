@@ -3,6 +3,19 @@
 $disc-menu-max-height: 280px;
 $disc-menu-transition-duration: 0.15s;
 
+.game-options-modal__missing-executable-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f59e0b;
+  font-size: 13px;
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+}
+
 .game-options-modal {
   &__container {
     display: flex;

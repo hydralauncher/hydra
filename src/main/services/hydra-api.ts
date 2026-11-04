@@ -712,9 +712,11 @@ export class HydraApi {
     return this.handleUnauthorizedError(err, generation);
   }
 
+  // Default stays `any` so existing untyped call sites keep compiling.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async get<T = any>(
     url: string,
-    params?: any,
+    params?: unknown,
     options?: HydraApiOptions
   ) {
     const generation = await this.validateOptions(options);
@@ -736,9 +738,11 @@ export class HydraApi {
       .catch((err) => this.requestError(err, options, generation));
   }
 
+  // Default stays `any` so existing untyped call sites keep compiling.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async getResponse<T = any>(
     url: string,
-    params?: any,
+    params?: unknown,
     options?: HydraApiOptions
   ) {
     const generation = await this.validateOptions(options);
@@ -764,9 +768,11 @@ export class HydraApi {
       .catch((err) => this.requestError(err, options, generation));
   }
 
+  // Default stays `any` so existing untyped call sites keep compiling.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async post<T = any>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: HydraApiOptions
   ) {
     const generation = await this.validateOptions(options);
@@ -794,9 +800,11 @@ export class HydraApi {
       .catch((err) => this.requestError(err, options, generation));
   }
 
+  // Default stays `any` so existing untyped call sites keep compiling.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async put<T = any>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: HydraApiOptions
   ) {
     const generation = await this.validateOptions(options);
@@ -809,9 +817,11 @@ export class HydraApi {
       .catch((err) => this.requestError(err, options, generation));
   }
 
+  // Default stays `any` so existing untyped call sites keep compiling.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async patch<T = any>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: HydraApiOptions
   ) {
     const generation = await this.validateOptions(options);
@@ -824,6 +834,8 @@ export class HydraApi {
       .catch((err) => this.requestError(err, options, generation));
   }
 
+  // Default stays `any` so existing untyped call sites keep compiling.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async delete<T = any>(url: string, options?: HydraApiOptions) {
     const generation = await this.validateOptions(options);
     return this.instance

@@ -7,6 +7,9 @@ interface RegisterEventOptions {
 
 export const registerEvent = (
   name: string,
+  // `any` is required here so listeners can declare their own typed arguments
+  // (function parameter variance) and return arbitrary serializable results.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   listener: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => any,
   { jsonSafeResult = false }: RegisterEventOptions = {}
 ) => {
