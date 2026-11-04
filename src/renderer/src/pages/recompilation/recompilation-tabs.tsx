@@ -146,7 +146,6 @@ export function RecompilationReleasesTab({
           <RecompilationMarkdown
             source={release.notesMarkdown}
             base={base}
-            collapsible
             kind="notes"
           />
         ) : (
