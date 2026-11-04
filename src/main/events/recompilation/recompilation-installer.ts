@@ -40,6 +40,7 @@ import {
 import {
   markRecompilationRomLaunched,
   prepareRecompilationRom,
+  shouldHideRecompilationConsole,
 } from "./recompilation-rom";
 import recompilationSaves from "./recompilation-saves.json";
 
@@ -486,6 +487,26 @@ const spawnPort = (
     child.once("error", (error) => resolve({ ok: false, error }));
   });
 
+const HIDE_CONSOLE_SCRIPT = [
+  'Add-Type -TypeDefinition \'using System; using System.Text; using System.Runtime.InteropServices; public static class HydraPortConsole { delegate bool EnumProc(IntPtr h, IntPtr l); [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc f, IntPtr l); [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint p); [DllImport("user32.dll")] static extern int GetClassName(IntPtr h, StringBuilder s, int n); [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h); [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int c); public static int Hide(uint pid) { int hidden = 0; EnumWindows((h, l) => { uint p; GetWindowThreadProcessId(h, out p); if (p != pid || !IsWindowVisible(h)) return true; var name = new StringBuilder(64); GetClassName(h, name, 64); if (name.ToString() == "ConsoleWindowClass") { ShowWindow(h, 0); hidden++; } return true; }, IntPtr.Zero); return hidden; } }\'',
+  "$portId = [uint32][Console]::In.ReadLine()",
+  "$deadline = (Get-Date).AddSeconds(20)",
+  "while ((Get-Date) -lt $deadline) { if (-not (Get-Process -Id $portId -ErrorAction SilentlyContinue)) { break }; if ([HydraPortConsole]::Hide($portId) -gt 0) { $deadline = (Get-Date).AddSeconds(2) }; Start-Sleep -Milliseconds 50 }",
+].join("; ");
+
+const startConsoleHider = () => {
+  if (process.platform !== "win32") return null;
+  const hider = spawn(
+    "powershell.exe",
+    ["-NoProfile", "-NonInteractive", "-Command", HIDE_CONSOLE_SCRIPT],
+    { stdio: ["pipe", "ignore", "ignore"], windowsHide: true }
+  );
+  hider.once("error", (error) =>
+    logger.error("Failed to start the port console hider", error)
+  );
+  return hider;
+};
+
 const launchRecompilation = async (
   ref: RecompilationRef
 ): Promise<RecompilationActionResult> => {
@@ -520,7 +541,15 @@ const launchRecompilation = async (
     return { ok: false, reason: "cloud_save_conflict" };
   }
 
+  const consoleHider = shouldHideRecompilationConsole(ref.slug)
+    ? startConsoleHider()
+    : null;
   const spawned = await spawnPort(state.executablePath, launch);
+  if (spawned.ok && spawned.child.pid) {
+    consoleHider?.stdin?.end(`${spawned.child.pid}\n`);
+  } else {
+    consoleHider?.kill();
+  }
   if (!spawned.ok) {
     logger.error("Failed to launch recompilation", spawned.error);
     clearRecompilationCloudSaveGuard(ref);

@@ -109,6 +109,7 @@
     }
   },
   "spaghettikart": {
+    "hideConsole": true,
     "rom": {
       "copyTo": {
         "win32": "<base>/baserom.us.z64",

@@ -25,11 +25,14 @@ import { toZ64 } from "./n64-rom";
 
 const ROM_META = recompilationMeta as Record<
   string,
-  { rom: RecompilationRomMeta | null } | undefined
+  { rom: RecompilationRomMeta | null; hideConsole?: boolean } | undefined
 >;
 
 const getRecompilationRomMeta = (slug: string): RecompilationRomMeta | null =>
   (Object.hasOwn(ROM_META, slug) ? ROM_META[slug]?.rom : null) ?? null;
+
+export const shouldHideRecompilationConsole = (slug: string) =>
+  Object.hasOwn(ROM_META, slug) && ROM_META[slug]?.hideConsole === true;
 
 const getLibraryRomExtensions = (slug: string) =>
   getRecompilationRomMeta(slug)?.extensions ?? [];
