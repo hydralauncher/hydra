@@ -23,6 +23,11 @@
     min-width: 0;
     overflow: hidden;
     white-space: nowrap;
+
+    .tested-medal {
+      flex-shrink: 0;
+      margin-left: 0.5px;
+    }
   }
 
   &__chevron {
