@@ -297,7 +297,7 @@
   &-sticky {
     position: sticky;
     top: calc(globals.$spacing-unit * 2);
-    padding-top: calc(globals.$spacing-unit * 3);
+    padding-top: 29px;
   }
 
   &__item {
