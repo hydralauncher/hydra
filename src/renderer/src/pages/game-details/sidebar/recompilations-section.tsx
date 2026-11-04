@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ChevronRightIcon } from "@primer/octicons-react";
 import type { RecompilationSummary } from "@types";
 
 import { Link } from "@renderer/components/link/link";
@@ -70,6 +71,7 @@ export function RecompilationsSection({
                   {recompilation.author}
                 </small>
               </div>
+              <ChevronRightIcon className="recompilations-section__chevron" />
             </Link>
           </li>
         ))}

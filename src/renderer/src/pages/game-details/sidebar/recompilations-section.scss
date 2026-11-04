@@ -24,4 +24,10 @@
     overflow: hidden;
     white-space: nowrap;
   }
+
+  &__chevron {
+    flex-shrink: 0;
+    margin-left: auto;
+    opacity: 0.6;
+  }
 }
