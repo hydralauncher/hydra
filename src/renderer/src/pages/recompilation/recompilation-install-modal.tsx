@@ -51,9 +51,7 @@ const folderOf = (filePath: string) =>
 
 const toBarProgress = (progress?: InstallProgressLike) => {
   if (!progress) return undefined;
-  if (progress.phase === "extracting") {
-    return { phase: "downloading", loaded: 1, total: 1 };
-  }
+  if (progress.phase === "extracting") return { phase: "extracting" };
   if (!progress.total) return { phase: "downloading", loaded: 0, total: 1 };
   return { ...progress, phase: "downloading" };
 };
