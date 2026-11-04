@@ -367,8 +367,6 @@ function InstallModalContent({
 
   const renderLocationStep = () => (
     <>
-      <h3 className="setup-modal__body-title">{t("install_step_location")}</h3>
-      <p className="setup-modal__body-intro">{t("install_location_intro")}</p>
       <div className="recompilation-install__picked recompilation-install__port">
         {details.iconUrl ? (
           <img
@@ -394,6 +392,8 @@ function InstallModalContent({
           </span>
         </span>
       </div>
+      <h3 className="setup-modal__body-title">{t("install_step_location")}</h3>
+      <p className="setup-modal__body-intro">{t("install_location_intro")}</p>
       <TextField
         value={parentDirectory}
         readOnly
