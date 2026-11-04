@@ -20,6 +20,10 @@
     -webkit-app-region: no-drag;
   }
 
+  &--hide-sidebar-darwin {
+    padding-left: 80px;
+  }
+
   &__search {
     background-color: globals.$background-color;
     display: inline-flex;
