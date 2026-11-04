@@ -82,6 +82,7 @@ mod platform {
 
     const FIRST_FRAME_TIMEOUT_MS: u32 = 500;
     const NEW_FRAME_TIMEOUT_MS: u32 = 50;
+    const MAX_MONITOR_OVERSHOOT_PX: i32 = 8;
 
     struct CaptureDevice {
         adapter_id: LUID,
@@ -121,10 +122,14 @@ mod platform {
             }
 
             let screen = info.rcMonitor;
-            let covers_monitor = client.left <= screen.left
-                && client.top <= screen.top
-                && client.right >= screen.right
-                && client.bottom >= screen.bottom;
+            let covers_monitor = [
+                screen.left - client.left,
+                screen.top - client.top,
+                client.right - screen.right,
+                client.bottom - screen.bottom,
+            ]
+            .iter()
+            .all(|overshoot| (0..=MAX_MONITOR_OVERSHOOT_PX).contains(overshoot));
             covers_monitor.then_some(monitor)
         }
     }
