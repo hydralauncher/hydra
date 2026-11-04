@@ -918,6 +918,7 @@ export async function launchEpicLinuxGame(
     launchOptions?: string | null;
     useGamemode?: boolean;
     useMangohud?: boolean;
+    gamescopeArgs?: string[];
     signal?: AbortSignal;
     onStatus?: UmuStatusListener;
     wasGameDetected?: () => boolean;
@@ -940,6 +941,14 @@ export async function launchEpicLinuxGame(
         context.prefixGeneration
     )
       throw new EpicManagedError("compatibility-runtime-unavailable");
+    const wrapperCommands: (string | string[])[] = [];
+    if (options.gamescopeArgs && options.gamescopeArgs.length > 0) {
+      wrapperCommands.push(options.gamescopeArgs);
+    }
+    if (options.useGamemode) {
+      wrapperCommands.push("gamemoderun");
+    }
+
     const resolved = resolveLaunchCommand({
       baseCommand: context.pythonRunnerPath,
       baseArgs: [
@@ -948,7 +957,7 @@ export async function launchEpicLinuxGame(
         ...parameters.args,
       ],
       launchOptions: options.launchOptions,
-      wrapperCommands: options.useGamemode ? ["gamemoderun"] : [],
+      wrapperCommands,
     });
     if (
       parseLaunchOptions(options.launchOptions).some((argument) =>

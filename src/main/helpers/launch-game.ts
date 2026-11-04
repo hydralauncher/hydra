@@ -74,6 +74,7 @@ export interface LaunchGameOptions {
 }
 
 const LAUNCH_DELAY_IN_MS = 2_000;
+const gamescopeResolutionRegex = /^\s*(\d+)\s*[xX]\s*(\d+)\s*$/;
 
 const createUmuStatusReporter =
   (gameKey: string) =>
@@ -769,15 +770,17 @@ const launchGameWithCloudSaveChecks = async (
   if (useGamescope) {
     gamescopeArgs.push("gamescope", "-f");
     if (game?.gamescopeResolution) {
-      const parts = game.gamescopeResolution.split("x");
-      if (parts.length === 2) {
-        gamescopeArgs.push("-w", parts[0], "-h", parts[1]);
+      const match = gamescopeResolutionRegex.exec(game.gamescopeResolution);
+      if (match) {
+        gamescopeArgs.push("-w", match[1], "-h", match[2]);
       }
     }
     if (game?.gamescopeOutputResolution) {
-      const parts = game.gamescopeOutputResolution.split("x");
-      if (parts.length === 2) {
-        gamescopeArgs.push("-W", parts[0], "-H", parts[1]);
+      const match = gamescopeResolutionRegex.exec(
+        game.gamescopeOutputResolution
+      );
+      if (match) {
+        gamescopeArgs.push("-W", match[1], "-H", match[2]);
       }
     }
     if (game?.gamescopeUpscaler) {
@@ -991,6 +994,7 @@ const launchGameWithCloudSaveChecks = async (
                 launchOptions,
                 useGamemode,
                 useMangohud,
+                gamescopeArgs,
                 onStatus: createUmuStatusReporter(gameKey),
               }
             );

@@ -339,19 +339,10 @@ export function GameCompatibilitySettingsTab({
         gamescopeFramerateLimit: payloadGamescopeFramerateLimit,
       };
 
-      if (key === "gamescopeUpscaler") {
-        void electron.updateGameGamescopeSettings(
-          game.shop,
-          game.objectId,
-          payload
-        );
-      } else {
-        debounceUpdateGamescopeSettings(game.shop, game.objectId, payload);
-      }
+      debounceUpdateGamescopeSettings(game.shop, game.objectId, payload);
     },
     [
       debounceUpdateGamescopeSettings,
-      electron,
       game.shop,
       game.objectId,
       gamescopeResolution,
