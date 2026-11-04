@@ -233,6 +233,7 @@ const initializeApp = async () => {
   const forceBigPicture = process.argv.includes("--big-picture");
 
   await loadSocialWindowsBounds();
+  await WindowManager.loadWindowDecorationsPreference();
 
   if (
     !process.argv.includes("--hidden") &&

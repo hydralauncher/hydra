@@ -713,7 +713,12 @@ export function App() {
   const [isWindowMaximized, setIsWindowMaximized] = useState(false);
 
   useEffect(() => {
-    if (window.electron.platform !== "linux") return;
+    if (
+      window.electron.platform !== "linux" ||
+      window.electron.hasNativeWindowDecorations
+    ) {
+      return;
+    }
 
     if (window.electron.isWayland) {
       document.body.classList.add("window-rounded");
@@ -764,45 +769,50 @@ export function App() {
             {t("big_picture", { ns: "sidebar" })}
           </button>
 
-          {window.electron.platform === "linux" && (
-            <div className="title-bar__window-controls">
-              <button
-                type="button"
-                className="title-bar__window-control"
-                onClick={() => window.electron.minimizeMainWindow()}
-                title={t("header:minimize")}
-                aria-label={t("header:minimize")}
-              >
-                <DashIcon size={16} />
-              </button>
-              <button
-                type="button"
-                className="title-bar__window-control"
-                onClick={() => window.electron.toggleMaximizeMainWindow()}
-                title={
-                  isWindowMaximized ? t("header:restore") : t("header:maximize")
-                }
-                aria-label={
-                  isWindowMaximized ? t("header:restore") : t("header:maximize")
-                }
-              >
-                {isWindowMaximized ? (
-                  <ScreenNormalIcon size={16} />
-                ) : (
-                  <ScreenFullIcon size={16} />
-                )}
-              </button>
-              <button
-                type="button"
-                className="title-bar__window-control title-bar__window-control--close"
-                onClick={() => window.electron.closeMainWindow()}
-                title={t("header:close")}
-                aria-label={t("header:close")}
-              >
-                <XIcon size={16} />
-              </button>
-            </div>
-          )}
+          {window.electron.platform === "linux" &&
+            !window.electron.hasNativeWindowDecorations && (
+              <div className="title-bar__window-controls">
+                <button
+                  type="button"
+                  className="title-bar__window-control"
+                  onClick={() => window.electron.minimizeMainWindow()}
+                  title={t("header:minimize")}
+                  aria-label={t("header:minimize")}
+                >
+                  <DashIcon size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="title-bar__window-control"
+                  onClick={() => window.electron.toggleMaximizeMainWindow()}
+                  title={
+                    isWindowMaximized
+                      ? t("header:restore")
+                      : t("header:maximize")
+                  }
+                  aria-label={
+                    isWindowMaximized
+                      ? t("header:restore")
+                      : t("header:maximize")
+                  }
+                >
+                  {isWindowMaximized ? (
+                    <ScreenNormalIcon size={16} />
+                  ) : (
+                    <ScreenFullIcon size={16} />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="title-bar__window-control title-bar__window-control--close"
+                  onClick={() => window.electron.closeMainWindow()}
+                  title={t("header:close")}
+                  aria-label={t("header:close")}
+                >
+                  <XIcon size={16} />
+                </button>
+              </div>
+            )}
         </div>
       )}
 
