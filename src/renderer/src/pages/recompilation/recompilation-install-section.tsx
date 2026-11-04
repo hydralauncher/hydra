@@ -38,7 +38,13 @@ const folderOf = (fullPath: string) =>
 
 export function StatusDot({ ok }: Readonly<{ ok: boolean }>) {
   return (
-    <span className="recompilation-status-dot">
+    <span
+      className={
+        ok
+          ? "recompilation-status-dot"
+          : "recompilation-status-dot recompilation-status-dot--off"
+      }
+    >
       {ok ? <CheckIcon size={12} /> : <XIcon size={12} />}
     </span>
   );

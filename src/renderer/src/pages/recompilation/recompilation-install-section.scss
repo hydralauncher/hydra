@@ -10,6 +10,12 @@
   border-radius: 50%;
   background: #fafafa;
   color: #0a0a0a;
+
+  &--off {
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.08);
+    color: #a1a1aa;
+  }
 }
 
 .recompilation-install-section {
