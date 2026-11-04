@@ -6,6 +6,8 @@ import { logger } from "@renderer/logger";
 import { getGameRecompilations } from "../../recompilation/recompilations-api";
 
 export interface InstalledRecompilation {
+  /** The port's main page, which can differ from the game being played from. */
+  objectId: string;
   slug: string;
   name: string;
   iconUrl: string | null;
@@ -67,7 +69,10 @@ export function useInstalledRecompilations(
 
     const results = await Promise.all(
       summaries.current.map(async (summary) => {
-        const ref = { objectId, slug: summary.slug };
+        const ref = {
+          objectId: summary.objectId ?? objectId,
+          slug: summary.slug,
+        };
         const [install, rom] = await Promise.all([
           window.electron.getRecompilationInstallState(ref).catch(() => null),
           window.electron.getRecompilationRomState(ref).catch(() => null),
@@ -75,6 +80,7 @@ export function useInstalledRecompilations(
         if (!install?.installed) return null;
 
         return {
+          objectId: ref.objectId,
           slug: summary.slug,
           name: summary.name,
           iconUrl: summary.iconUrl ?? null,

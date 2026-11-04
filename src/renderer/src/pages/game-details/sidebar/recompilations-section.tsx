@@ -50,7 +50,10 @@ export function RecompilationsSection({
         {recompilations.map((recompilation) => (
           <li key={recompilation.slug}>
             <Link
-              to={buildRecompilationPath(objectId, recompilation.slug)}
+              to={buildRecompilationPath(
+                recompilation.objectId ?? objectId,
+                recompilation.slug
+              )}
               className="list__item"
             >
               {recompilation.iconUrl ? (

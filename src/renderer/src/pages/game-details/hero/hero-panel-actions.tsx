@@ -319,13 +319,13 @@ export function HeroPanelActions() {
 
     if (recompilation.needsRom) {
       navigate(
-        `${buildRecompilationPath(game.objectId, recompilation.slug)}?rom=1`
+        `${buildRecompilationPath(recompilation.objectId, recompilation.slug)}?rom=1`
       );
       return;
     }
 
     const result = await window.electron.playRecompilation({
-      objectId: game.objectId,
+      objectId: recompilation.objectId,
       slug: recompilation.slug,
     });
     if (!result.ok && result.reason !== "cloud_save_conflict") {

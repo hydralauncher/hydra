@@ -27,6 +27,8 @@ export interface RecompilationTested {
 }
 
 export interface RecompilationSummary {
+  /** The port's main page. Another page of the same game can list it too. */
+  objectId?: string;
   slug: string;
   name: string;
   author: string;
