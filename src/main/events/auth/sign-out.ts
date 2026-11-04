@@ -8,6 +8,7 @@ import {
   retroarch,
 } from "@main/services";
 import { clearGamesPlaytimeState } from "@main/services/game-running-state";
+import { clearSteamClientSession } from "@main/services/steam-integration/steam-client-session";
 import {
   downloadLayoutStateSublevel,
   downloadsSublevel,
@@ -25,6 +26,7 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
     clearGamesPlaytimeState();
 
     const results = await Promise.allSettled([
+      clearSteamClientSession(),
       gamesSublevel.clear(),
       downloadsSublevel.clear(),
       downloadLayoutStateSublevel.clear(),

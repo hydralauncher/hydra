@@ -1,5 +1,21 @@
 export type SteamConnectErrorCode = "already-linked" | "generic";
 
+export type SteamLoginErrorCode =
+  | "invalid-credentials"
+  | "invalid-code"
+  | "rate-limited"
+  | "generic";
+
+export type SteamLoginGuardKind = "email" | "device" | "confirmation";
+
+export type SteamLoginState =
+  | { status: "idle" }
+  | { status: "qr"; challengeUrl: string }
+  | { status: "submitting" }
+  | { status: "guard"; kind: SteamLoginGuardKind }
+  | { status: "completing" }
+  | { status: "error"; code: SteamLoginErrorCode };
+
 export type SteamSyncRunTrigger = "FIRST_LINK" | "MANUAL";
 
 export type SteamSyncRunStatus = "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED";

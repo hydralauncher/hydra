@@ -11,6 +11,7 @@ import {
   hasImportedSteamData,
 } from "@main/services/steam-integration/steam-imported-games";
 import { clearImportedSteamGames } from "@main/services/steam-integration/clear-imported-steam-games";
+import { clearSteamClientSession } from "@main/services/steam-integration/steam-client-session";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
 import { UnlockedAchievementsCache } from "@main/services/achievements/unlocked-achievements-cache";
 import { db, gamesSublevel } from "@main/level";
@@ -93,6 +94,8 @@ const disconnectSteam = async (
     steamSyncLogger.error("Failed to disconnect Steam", error);
     throw new Error(message ?? "steam-disconnect-failed");
   }
+
+  await clearSteamClientSession();
 
   const localUpdates: [string, Game][] = [];
 

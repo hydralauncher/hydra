@@ -26,6 +26,13 @@ export class SteamRateLimitedError extends Error {
   }
 }
 
+export class SteamClientUnavailableError extends Error {
+  constructor() {
+    super("steam-upstream-unavailable");
+    this.name = "SteamClientUnavailableError";
+  }
+}
+
 export class SteamSyncRunNotPendingError extends Error {
   constructor() {
     super("steam-sync-run-not-pending");

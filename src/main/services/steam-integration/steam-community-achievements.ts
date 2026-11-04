@@ -1,5 +1,7 @@
 export const STEAM_COMMUNITY_ORIGIN = "https://steamcommunity.com";
 
+const STEAM_COMMUNITY_SSR_SCRIPT_ID = "valve-ssr-data";
+
 export const shouldFetchSteamCommunityAchievements = (
   playTimeInSeconds: number
 ) => playTimeInSeconds > 0;
@@ -120,6 +122,7 @@ export const isSteamCommunityLoginPage = (url: string, body: string) => {
   if (isSteamCommunityLoginUrl(url)) return true;
   if (isSteamCommunityPlayerstatsXml(body)) return false;
   if (/\bachieveRow\b/.test(body)) return false;
+  if (body.includes(STEAM_COMMUNITY_SSR_SCRIPT_ID)) return false;
   return /login\.steampowered\.com/i.test(body) && /sign in/i.test(body);
 };
 
@@ -244,6 +247,85 @@ export const parseSteamCommunityAchievementHtml = (
       },
     ];
   });
+};
+
+const parseJsonOrNull = (text: string): unknown => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
+// Steam nests its page data as JSON text inside JSON, at varying depths.
+const visitSsrValues = (value: unknown, visit: (value: unknown) => void) => {
+  if (typeof value === "string") {
+    if (value.startsWith("{") || value.startsWith("[")) {
+      visitSsrValues(parseJsonOrNull(value), visit);
+    }
+    return;
+  }
+
+  if (typeof value !== "object" || value === null) return;
+
+  visit(value);
+  for (const child of Object.values(value)) {
+    visitSsrValues(child, visit);
+  }
+};
+
+/**
+ * Reads the JSON embedded in the achievements page. Returns null when the page
+ * has no data for this player and game, or names an achievement it does not
+ * define, so an unreadable page never looks like a game with no unlocks.
+ */
+export const parseSteamCommunitySsrAchievements = (
+  html: string,
+  steamId64: string,
+  steamAppId: string
+) => {
+  const script = new RegExp(
+    `<script[^>]*\\bid="${STEAM_COMMUNITY_SSR_SCRIPT_ID}"[^>]*>([\\s\\S]*?)</script>`,
+    "i"
+  ).exec(html)?.[1];
+  if (!script) return null;
+
+  const apiNames = new Map<number, string>();
+  let unlocks: unknown[] | null = null;
+
+  visitSsrValues(parseJsonOrNull(script), (value) => {
+    if (!isRecord(value)) return;
+
+    if (
+      typeof value.internal_key === "number" &&
+      typeof value.api_name === "string"
+    ) {
+      apiNames.set(value.internal_key, value.api_name);
+    }
+
+    if (
+      String(value.appid) === steamAppId &&
+      String(value.steamid) === steamId64 &&
+      isRecord(value.achievements)
+    ) {
+      unlocks = Object.values(value.achievements);
+    }
+  });
+
+  if (!unlocks) return null;
+
+  const achievements: Parameters<typeof playerstatsPayload>[0] = [];
+  for (const unlock of unlocks as unknown[]) {
+    if (!isRecord(unlock) || !unlock.unlocked) continue;
+
+    const apiname = apiNames.get(Number(unlock.internal_key));
+    const unlocktime = Number(unlock.unlock_time);
+    if (!apiname || !unlocktime) return null;
+
+    achievements.push({ apiname, achieved: 1, unlocktime });
+  }
+
+  return playerstatsPayload(achievements);
 };
 
 export const parseSteamGameAchievementSchema = (
@@ -434,6 +516,13 @@ export const fetchSteamCommunityPlayerAchievements = async ({
   const profileHtml = await readHtml(
     steamCommunityStatsHtmlUrl(steamId64, steamAppId)
   );
+  const fromSsr = parseSteamCommunitySsrAchievements(
+    profileHtml,
+    steamId64,
+    steamAppId
+  );
+  if (fromSsr) return fromSsr;
+
   const fromProfile = await mapUnlocks(profileHtml);
   if (fromProfile) return fromProfile;
 
@@ -453,5 +542,5 @@ export const fetchSteamCommunityPlayerAchievements = async ({
     return parseSteamCommunityAchievementsXml(xmlBody);
   }
 
-  return playerstatsPayload([]);
+  return null;
 };

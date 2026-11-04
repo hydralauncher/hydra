@@ -83,6 +83,7 @@ import type {
   SteamSyncFinishedPayload,
   SteamSyncRunStatus,
   SteamConnectErrorCode,
+  SteamLoginState,
   ExtractionFailure,
   FriendsSnapshot,
   ChatAttachmentUploadProgress,
@@ -2118,6 +2119,36 @@ contextBridge.exposeInMainWorld("electron", {
     return () => ipcRenderer.removeListener("on-epic-sync-finished", listener);
   },
   startSteamOAuth: (lng: string) => ipcRenderer.invoke("startSteamOAuth", lng),
+  openSteamConnectionWindow: () =>
+    ipcRenderer.invoke("openSteamConnectionWindow"),
+  minimizeSteamConnectionWindow: () =>
+    ipcRenderer.invoke("minimizeSteamConnectionWindow"),
+  closeSteamConnectionWindow: () =>
+    ipcRenderer.invoke("closeSteamConnectionWindow"),
+  startSteamQrLogin: (lng: string) =>
+    ipcRenderer.invoke("startSteamQrLogin", lng),
+  startSteamCredentialsLogin: (
+    accountName: string,
+    password: string,
+    lng: string
+  ) =>
+    ipcRenderer.invoke(
+      "startSteamCredentialsLogin",
+      accountName,
+      password,
+      lng
+    ),
+  submitSteamLoginGuardCode: (code: string) =>
+    ipcRenderer.invoke("submitSteamLoginGuardCode", code),
+  cancelSteamLogin: () => ipcRenderer.invoke("cancelSteamLogin"),
+  onSteamLoginState: (cb: (state: SteamLoginState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: SteamLoginState
+    ) => cb(state);
+    ipcRenderer.on("on-steam-login-state", listener);
+    return () => ipcRenderer.removeListener("on-steam-login-state", listener);
+  },
   disconnectSteam: (deleteImportedData: boolean) =>
     ipcRenderer.invoke("disconnectSteam", deleteImportedData),
   startSteamSync: () => ipcRenderer.invoke("startSteamSync"),

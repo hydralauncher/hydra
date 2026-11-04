@@ -63,7 +63,7 @@ const isSteamAlreadyLinkedError = (message?: string) =>
 export function SettingsSteam() {
   const { userDetails } = useUserDetails();
   const { showSuccessToast, showErrorToast } = useToast();
-  const { t, i18n } = useTranslation("settings");
+  const { t } = useTranslation("settings");
 
   const [isLoading, setIsLoading] = useState(
     () => Boolean(userDetails) && !getPendingSteamDisconnect()
@@ -357,8 +357,9 @@ export function SettingsSteam() {
         }
 
         if (
-          payload.origin === "manual" &&
-          payload.message !== "steam-sync-aborted"
+          (payload.origin === "manual" &&
+            payload.message !== "steam-sync-aborted") ||
+          payload.message === "steam-upstream-unavailable"
         ) {
           showErrorToast(getSteamSyncErrorMessage(payload.message));
         }
@@ -379,16 +380,8 @@ export function SettingsSteam() {
     t,
   ]);
 
-  const handleConnect = async () => {
-    setIsSubmitting(true);
-
-    try {
-      await globalThis.window.electron.startSteamOAuth(i18n.language);
-    } catch (error) {
-      showErrorToast(getSteamErrorMessage(error, "steam_connect_error"));
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleConnect = () => {
+    void globalThis.window.electron.openSteamConnectionWindow();
   };
 
   const handleSync = async () => {
