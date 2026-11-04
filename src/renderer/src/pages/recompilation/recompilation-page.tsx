@@ -207,6 +207,7 @@ export default function RecompilationPage() {
       <div className="recompilation-page">
         <RecompilationHero
           details={details}
+          game={game}
           hasCloudSave={cloudSaveGame !== null}
           installAsset={installAsset}
           install={install}

@@ -9,7 +9,11 @@ import {
   TrashIcon,
 } from "@primer/octicons-react";
 import { Disc3, XCircle } from "lucide-react";
-import type { RecompilationDetails, RecompilationReleaseAsset } from "@types";
+import type {
+  LibraryGame,
+  RecompilationDetails,
+  RecompilationReleaseAsset,
+} from "@types";
 import { formatBytes } from "@shared";
 
 import { Button } from "@renderer/components/button/button";
@@ -23,11 +27,13 @@ import {
   type RecompilationInstall,
 } from "./use-recompilation-install";
 import type { RecompilationRom } from "./use-recompilation-rom";
+import { RecompilationPlaytime } from "./recompilation-playtime";
 import "@renderer/components/setup-modal/setup-modal.scss";
 import "../game-details/hero.scss";
 
 interface RecompilationHeroProps {
   details: RecompilationDetails;
+  game: LibraryGame | null;
   installAsset: RecompilationReleaseAsset | null;
   install: RecompilationInstall;
   rom: RecompilationRom;
@@ -38,6 +44,7 @@ interface RecompilationHeroProps {
 
 export function RecompilationHero({
   details,
+  game,
   installAsset,
   install,
   rom,
@@ -223,6 +230,7 @@ export function RecompilationHero({
 
         <div className="recompilation-page__hero-text">
           <h1 className="recompilation-page__title">{details.name}</h1>
+          <RecompilationPlaytime game={game} isRunning={install.isRunning} />
         </div>
 
         <div className="recompilation-page__hero-actions">
