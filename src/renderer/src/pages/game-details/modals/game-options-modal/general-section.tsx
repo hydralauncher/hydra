@@ -28,6 +28,10 @@ import {
   getSkuRegionFlag,
   platformToSystem,
 } from "@renderer/helpers";
+import {
+  getRememberedRecompilation,
+  setRememberedRecompilation,
+} from "../../hero/use-installed-recompilations";
 
 interface ClassicsDiscSectionProps {
   game: LibraryGame;
@@ -45,6 +49,9 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     [game.platform]
   );
 
+  const [rememberedPort, setRememberedPort] = useState(() =>
+    getRememberedRecompilation(game.objectId)
+  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
@@ -125,6 +132,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
   };
 
   const handleToggleDontAsk = async (checked: boolean) => {
+    if (!checked) {
+      setRememberedRecompilation(game.objectId, null);
+      setRememberedPort(null);
+    }
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
       dontAskDiscSelection: checked,
     });
@@ -360,10 +371,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
           </div>
         )}
 
-        {discs.length > 1 && (
+        {(discs.length > 1 || rememberedPort) && (
           <CheckboxField
             label={t("dont_ask_disc_again")}
-            checked={Boolean(game.dontAskDiscSelection)}
+            checked={Boolean(game.dontAskDiscSelection || rememberedPort)}
             onChange={(e) => void handleToggleDontAsk(e.target.checked)}
           />
         )}

@@ -44,29 +44,39 @@ export function useInstalledRecompilations(
   const { isFeatureEnabled, Feature } = useFeature();
   const isEnabled =
     isFeatureEnabled(Feature.Recompilations) && shop === "launchbox";
-  const summaries = useRef<RecompilationSummary[]>([]);
+  const summaries = useRef<{
+    objectId: string;
+    request: Promise<RecompilationSummary[] | null>;
+  } | null>(null);
+
+  const loadSummaries = useCallback((id: string) => {
+    const request = getGameRecompilations(id)
+      .then((items) => (Array.isArray(items) ? items : []))
+      .catch((error) => {
+        logger.error("Failed to load recompilations", error);
+        return null;
+      });
+    summaries.current = { objectId: id, request };
+    return request;
+  }, []);
 
   useEffect(() => {
-    summaries.current = [];
-    if (!isEnabled || !objectId) return;
-
-    let cancelled = false;
-    getGameRecompilations(objectId)
-      .then((items) => {
-        if (!cancelled) summaries.current = Array.isArray(items) ? items : [];
-      })
-      .catch((error) => logger.error("Failed to load recompilations", error));
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isEnabled, objectId]);
+    summaries.current = null;
+    if (isEnabled && objectId) void loadSummaries(objectId);
+  }, [isEnabled, objectId, loadSummaries]);
 
   return useCallback(async (): Promise<InstalledRecompilation[]> => {
     if (!isEnabled || !objectId) return [];
 
+    // Waits for the list instead of reading it mid-flight, and retries a failed load.
+    const pending =
+      summaries.current?.objectId === objectId
+        ? summaries.current.request
+        : loadSummaries(objectId);
+    const items = (await pending) ?? (await loadSummaries(objectId)) ?? [];
+
     const results = await Promise.all(
-      summaries.current.map(async (summary) => {
+      items.map(async (summary) => {
         const ref = { objectId, slug: summary.slug };
         const [install, rom] = await Promise.all([
           window.electron.getRecompilationInstallState(ref).catch(() => null),
@@ -86,5 +96,5 @@ export function useInstalledRecompilations(
     return results.filter(
       (item): item is InstalledRecompilation => item !== null
     );
-  }, [isEnabled, objectId]);
+  }, [isEnabled, objectId, loadSummaries]);
 }
