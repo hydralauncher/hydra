@@ -368,6 +368,9 @@ function InstallModalContent({
   const renderLocationStep = () => (
     <>
       <h3 className="setup-modal__body-title">{t("install_step_location")}</h3>
+      <p className="setup-modal__body-intro">
+        {t("install_location_intro", { name: details.name })}
+      </p>
       <div className="recompilation-install__picked recompilation-install__port">
         {details.iconUrl ? (
           <img
@@ -435,9 +438,11 @@ function InstallModalContent({
       <h3 className="setup-modal__done-title">
         {canPlay ? t("install_done_title") : t("install_wait_title")}
       </h3>
-      {!canPlay && (
-        <p className="setup-modal__done-body">{t("install_waiting")}</p>
-      )}
+      <p className="setup-modal__done-body">
+        {canPlay
+          ? t("install_ready", { name: details.name })
+          : t("install_waiting")}
+      </p>
       {!handlesRom && (
         <p className="setup-modal__done-body">{t("install_port_asks_rom")}</p>
       )}
