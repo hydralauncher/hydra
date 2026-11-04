@@ -1,6 +1,5 @@
 import type {
   AchievementNotificationInfo,
-  AchievementNotificationRequest,
   Game,
   SteamAchievement,
   UserPreferences,
@@ -75,26 +74,17 @@ export const publishAchievementUnlockNotifications = ({
     userPreferences?.achievementCustomNotificationPosition ?? "top-left";
 
   const publishOsNotification = (
-    requests?: AchievementNotificationRequest[],
-    soundPlayed = false
-  ) => {
-    const remainingAchievements = requests
-      ? requests.flatMap((request) =>
-          request.type === "achievement" ? [request.achievement] : []
-        )
-      : achievementsInfo;
-
-    if (!remainingAchievements.length) return;
-
-    return publishNewAchievementNotification({
-      achievements: remainingAchievements,
+    achievements: AchievementNotificationInfo[],
+    suppressSound = false
+  ) =>
+    publishNewAchievementNotification({
+      achievements,
       unlockedAchievementCount,
       totalAchievementCount,
       gameTitle: game.title,
       gameIcon: game.iconUrl,
-      suppressSound: soundPlayed,
+      suppressSound,
     });
-  };
 
   if (process.platform === "linux") {
     const shownInApp =
@@ -102,15 +92,21 @@ export const publishAchievementUnlockNotifications = ({
       WindowManager.sendAchievementToFocusedWindow(position, achievementsInfo);
 
     if (!shownInApp) {
-      void publishOsNotification();
+      void publishOsNotification(achievementsInfo);
     }
   } else if (customNotificationsOnly) {
     achievementNotificationPresenter.enqueueAchievements(
       position,
       achievementsInfo,
-      publishOsNotification
+      (requests, soundPlayed) =>
+        publishOsNotification(
+          requests.flatMap((request) =>
+            request.type === "achievement" ? [request.achievement] : []
+          ),
+          soundPlayed
+        )
     );
   } else {
-    void publishOsNotification();
+    void publishOsNotification(achievementsInfo);
   }
 };

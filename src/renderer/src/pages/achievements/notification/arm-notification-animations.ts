@@ -16,8 +16,8 @@ interface ArmNotificationAnimationsOptions {
   scheduler: ArmingScheduler;
   timeoutMs: number;
   onArmed: () => void;
-  onTimeout?: () => void;
-  canPlayWithoutFrames?: () => boolean;
+  onTimeout: () => void;
+  canPlayWithoutFrames: () => boolean;
 }
 
 export const armNotificationAnimations = ({
@@ -25,8 +25,8 @@ export const armNotificationAnimations = ({
   scheduler,
   timeoutMs,
   onArmed,
-  onTimeout = () => {},
-  canPlayWithoutFrames = () => false,
+  onTimeout,
+  canPlayWithoutFrames,
 }: ArmNotificationAnimationsOptions): (() => void) => {
   const animations = card?.getAnimations({ subtree: true }) ?? [];
   const paused = new Set<NotificationAnimation>();

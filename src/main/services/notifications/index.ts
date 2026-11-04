@@ -508,8 +508,6 @@ export const publishNewAchievementNotification = async (info: {
           icon: (await downloadImage(info.achievements[0].iconUrl)) ?? icon,
         };
 
-  const suppressSound = info.suppressSound === true;
-
   const options: NotificationOptions = {
     ...partialOptions,
     silent: true,
@@ -531,9 +529,9 @@ export const publishNewAchievementNotification = async (info: {
   if (WindowManager.mainWindow) {
     WindowManager.mainWindow.webContents.send(
       "on-achievement-unlocked",
-      suppressSound
+      info.suppressSound
     );
-  } else if (!suppressSound && process.platform !== "linux") {
+  } else if (!info.suppressSound && process.platform !== "linux") {
     const soundPath = await getAchievementSoundPath();
     sound.play(soundPath);
   }

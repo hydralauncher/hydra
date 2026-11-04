@@ -18,6 +18,7 @@ import {
 } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { levelDBService } from "@renderer/services/leveldb.service";
+import { logger } from "@renderer/logger";
 import HydraIconUrl from "@renderer/assets/icons/hydra.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
@@ -244,7 +245,7 @@ export function AchievementNotification() {
           batchId
         );
       } catch (error) {
-        console.error("Failed to report notification sound", error);
+        logger.error("Failed to report notification sound", error);
       }
     },
     [playAudio]
@@ -259,7 +260,7 @@ export function AchievementNotification() {
     void window.electron
       .achievementNotificationStarted(requestId)
       .catch((error) => {
-        console.error("Failed to report notification start", error);
+        logger.error("Failed to report notification start", error);
       });
 
     if (

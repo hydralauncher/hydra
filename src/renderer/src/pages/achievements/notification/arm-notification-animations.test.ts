@@ -97,7 +97,7 @@ class FakeCard {
   }
 }
 
-const setupArming = (canPlayWithoutFrames?: () => boolean) => {
+const setupArming = (canPlayWithoutFrames = () => false) => {
   const animation = new FakeAnimation();
   const card = new FakeCard([[animation], [animation]]);
   const scheduler = new FakeScheduler();
@@ -110,6 +110,7 @@ const setupArming = (canPlayWithoutFrames?: () => boolean) => {
     onArmed: () => {
       armedCount += 1;
     },
+    onTimeout: () => {},
     canPlayWithoutFrames,
   });
 
@@ -134,6 +135,8 @@ describe("armNotificationAnimations", () => {
       onArmed: () => {
         armedCount += 1;
       },
+      onTimeout: () => {},
+      canPlayWithoutFrames: () => false,
     });
 
     assert.equal(first.pauseCount, 1);
@@ -223,6 +226,7 @@ describe("armNotificationAnimations", () => {
       onTimeout: () => {
         timeoutCount += 1;
       },
+      canPlayWithoutFrames: () => false,
     });
 
     scheduler.runTimeout();
@@ -244,6 +248,8 @@ describe("armNotificationAnimations", () => {
       scheduler,
       timeoutMs: 1000,
       onArmed: () => {},
+      onTimeout: () => {},
+      canPlayWithoutFrames: () => false,
     });
 
     scheduler.runFrame();
@@ -305,6 +311,8 @@ describe("armNotificationAnimations", () => {
       scheduler,
       timeoutMs: 1000,
       onArmed: () => {},
+      onTimeout: () => {},
+      canPlayWithoutFrames: () => false,
     });
 
     scheduler.runFrame();
@@ -327,6 +335,8 @@ describe("armNotificationAnimations", () => {
       onArmed: () => {
         armedCount += 1;
       },
+      onTimeout: () => {},
+      canPlayWithoutFrames: () => false,
     });
 
     cancel();
