@@ -67,6 +67,28 @@
     white-space: nowrap;
   }
 
+  &__port {
+    margin-bottom: calc(globals.$spacing-unit * 2);
+  }
+
+  &__port-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &__port-name {
+    color: #fafafa;
+    font-size: 15px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   &__choice-info {
     font-size: globals.$small-font-size;
     color: #a1a1aa;

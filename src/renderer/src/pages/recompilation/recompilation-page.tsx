@@ -238,6 +238,7 @@ export default function RecompilationPage() {
         <RecompilationInstallModal
           visible={isInstallOpen}
           details={details}
+          installAsset={installAsset}
           install={install}
           rom={rom}
           onClose={() => setIsInstallOpen(false)}

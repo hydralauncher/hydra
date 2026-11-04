@@ -3497,7 +3497,6 @@
     "install_step_location": "Install location",
     "install_location_intro": "Choose where to put the PC version. Hydra creates a folder for it inside the one you pick.",
     "install_location_label": "Folder",
-    "install_location_hint": "It will be installed in {{path}}",
     "install_location_change": "Change",
     "install_port_asks_rom": "This version asks for the game file the first time you open it.",
     "install_folder_unwritable": "Hydra can't write to this folder. Choose another one.",

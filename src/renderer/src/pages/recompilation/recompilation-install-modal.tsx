@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckIcon, ChevronRightIcon, PlayIcon } from "@primer/octicons-react";
-import type { RecompilationDetails } from "@types";
+import type { RecompilationDetails, RecompilationReleaseAsset } from "@types";
 import { formatBytes } from "@shared";
 
 import { Button } from "@renderer/components/button/button";
@@ -33,6 +33,7 @@ const ROM_DOWNLOAD_START_TIMEOUT_MS = 10_000;
 interface RecompilationInstallModalProps {
   visible: boolean;
   details: RecompilationDetails;
+  installAsset: RecompilationReleaseAsset | null;
   install: RecompilationInstall;
   rom: RecompilationRom;
   onClose: () => void;
@@ -88,6 +89,7 @@ function ChoiceRow({
 
 function InstallModalContent({
   details,
+  installAsset,
   install,
   rom,
   onClose,
@@ -367,14 +369,36 @@ function InstallModalContent({
     <>
       <h3 className="setup-modal__body-title">{t("install_step_location")}</h3>
       <p className="setup-modal__body-intro">{t("install_location_intro")}</p>
+      <div className="recompilation-install__picked recompilation-install__port">
+        {details.iconUrl ? (
+          <img
+            className="recompilation-install__port-icon"
+            src={details.iconUrl}
+            alt=""
+          />
+        ) : (
+          <span className="recompilation-install__port-icon" />
+        )}
+        <span className="recompilation-install__choice-text">
+          <span className="recompilation-install__port-name">
+            {details.name}
+          </span>
+          <span className="recompilation-install__choice-info">
+            {[
+              details.author,
+              `v${details.version}`,
+              installAsset ? formatBytes(installAsset.size) : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        </span>
+      </div>
       <TextField
         value={parentDirectory}
         readOnly
         disabled
         label={t("install_location_label")}
-        hint={t("install_location_hint", {
-          path: `${parentDirectory}${parentDirectory.includes("/") ? "/" : "\\"}${details.slug}`,
-        })}
         rightContent={
           <Button theme="outline" onClick={pickParentDirectory}>
             {t("install_location_change")}
@@ -472,6 +496,7 @@ function InstallModalContent({
 export function RecompilationInstallModal({
   visible,
   details,
+  installAsset,
   install,
   rom,
   onClose,
@@ -499,6 +524,7 @@ export function RecompilationInstallModal({
         >
           <InstallModalContent
             details={details}
+            installAsset={installAsset}
             install={install}
             rom={rom}
             onClose={onClose}
