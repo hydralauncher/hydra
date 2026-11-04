@@ -133,7 +133,13 @@ const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
   }
 
   const download = await downloadsSublevel.get(key).catch(() => null);
-  if (!download || !isCompletedLikeDownload(download) || !download.folderName) {
+  // A download still extracting counts as complete, but its files are partial.
+  if (
+    !download ||
+    !isCompletedLikeDownload(download) ||
+    download.extracting ||
+    !download.folderName
+  ) {
     return null;
   }
 
