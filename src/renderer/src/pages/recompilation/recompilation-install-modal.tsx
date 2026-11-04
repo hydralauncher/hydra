@@ -43,6 +43,23 @@ const PREPARE_STEP_KEYS: Record<string, string> = {
 
 const ROM_DOWNLOAD_START_TIMEOUT_MS = 10_000;
 
+const splitRomRequirement = (requirement: string | null) => {
+  const open = requirement?.indexOf(" (") ?? -1;
+  if (!requirement || open < 0 || !requirement.endsWith(")")) {
+    return { romName: requirement, romDetails: undefined };
+  }
+
+  const parts = requirement.slice(open + 2, -1).split(", ");
+  const last = parts.at(-1) ?? "";
+  const formatAt = last.indexOf(" in ");
+  if (formatAt >= 0) parts[parts.length - 1] = last.slice(0, formatAt);
+
+  return {
+    romName: requirement.slice(0, open),
+    romDetails: parts.join(", ").replaceAll(" image", "").trim(),
+  };
+};
+
 interface RecompilationInstallModalProps {
   visible: boolean;
   details: RecompilationDetails;
@@ -279,14 +296,7 @@ function InstallModalContent({
     }
   };
 
-  const romRequirementMatch = /^(.*?)\s*\((.*)\)\s*$/.exec(
-    details.romRequirement ?? ""
-  );
-  const romName = romRequirementMatch?.[1] ?? details.romRequirement;
-  const romDetails = romRequirementMatch?.[2]
-    .replace(/\s+in\s+[^,]*$/i, "")
-    .replace(/\s+image\b/gi, "")
-    .trim();
+  const { romName, romDetails } = splitRomRequirement(details.romRequirement);
 
   const extensionList = new Intl.ListFormat(i18n.language, {
     type: "disjunction",
