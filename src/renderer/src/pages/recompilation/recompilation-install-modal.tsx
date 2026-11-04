@@ -49,6 +49,15 @@ const folderOf = (filePath: string) =>
     Math.max(filePath.lastIndexOf("\\"), filePath.lastIndexOf("/"))
   );
 
+const toBarProgress = (progress?: InstallProgressLike) => {
+  if (!progress) return undefined;
+  if (progress.phase === "extracting") {
+    return { phase: "downloading", loaded: 1, total: 1 };
+  }
+  if (!progress.total) return { phase: "downloading", loaded: 0, total: 1 };
+  return { ...progress, phase: "downloading" };
+};
+
 function StatusLine({
   label,
   detail,
@@ -60,9 +69,10 @@ function StatusLine({
   progress?: InstallProgressLike;
   isDone?: boolean;
 }>) {
-  const lastProgress = useRef(progress);
-  if (progress) lastProgress.current = progress;
-  const shownProgress = progress ?? lastProgress.current;
+  const barProgress = toBarProgress(progress);
+  const lastProgress = useRef(barProgress);
+  if (barProgress) lastProgress.current = barProgress;
+  const shownProgress = barProgress ?? lastProgress.current;
 
   return (
     <div className="recompilation-install__status">
