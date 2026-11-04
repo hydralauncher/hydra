@@ -34,6 +34,7 @@ import {
   stopWaylandFocusWatch,
 } from "./services/screenshots";
 import { isWaylandSession } from "./services/linux-game-capture-session";
+import { recompilationGameSessions } from "./services/game-running-state";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
@@ -441,6 +442,12 @@ app.on("window-all-closed", () => {
 
 const SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS = 2_000;
 
+const saveRecompilationPlaytimeOnQuit = async () => {
+  if (recompilationGameSessions.size === 0) return;
+  const session = await import("./events/recompilation/recompilation-session");
+  await session.saveRecompilationPlaytimeOnQuit();
+};
+
 let canAppBeClosed = false;
 let isAppClosing = false;
 
@@ -475,6 +482,7 @@ app.on("before-quit", async (e) => {
       Lock.releaseLock(),
       TorrentService.shutdown(),
       clearGamesPlaytime(),
+      saveRecompilationPlaytimeOnQuit(),
       emulators.stopAllEmulatorSouvenirCaptureSessions(),
       flushScreenshotTelemetry(SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS),
     ]);

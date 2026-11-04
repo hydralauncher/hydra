@@ -1,0 +1,239 @@
+@use "../../scss/globals.scss";
+
+$markdown-border: rgba(255, 255, 255, 0.12);
+$markdown-surface: rgba(255, 255, 255, 0.06);
+$markdown-muted: #8e919b;
+$markdown-mono:
+  ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+  monospace;
+
+.game-details__description.recompilation-markdown {
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  color: #b4b6be;
+  overflow: visible;
+
+  &.game-details__description--collapsed {
+    max-height: 600px;
+    overflow: hidden;
+  }
+
+  > *:first-child {
+    margin-top: 0 !important;
+  }
+
+  > *:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-top: 24px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #fafafa;
+  }
+
+  h1 {
+    padding-bottom: 0.3em;
+    font-size: 2em;
+    border-bottom: 1px solid $markdown-border;
+  }
+
+  h2 {
+    padding-bottom: 0.3em;
+    font-size: 1.5em;
+    border-bottom: 1px solid $markdown-border;
+  }
+
+  h3 {
+    font-size: 1.25em;
+  }
+
+  h4 {
+    font-size: 1em;
+  }
+
+  h5 {
+    font-size: 0.875em;
+  }
+
+  h6 {
+    font-size: 0.85em;
+    color: $markdown-muted;
+  }
+
+  p,
+  blockquote,
+  ul,
+  ol,
+  dl,
+  table,
+  pre,
+  details {
+    margin-top: 0;
+    margin-bottom: 16px;
+  }
+
+  b,
+  strong {
+    font-weight: 600;
+    color: globals.$muted-color;
+  }
+
+  a {
+    color: globals.$muted-color;
+    text-decoration: underline;
+  }
+
+  ul,
+  ol {
+    padding-left: 2em;
+  }
+
+  ul ul,
+  ul ol,
+  ol ol,
+  ol ul {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  li + li {
+    margin-top: 0.25em;
+  }
+
+  li > p {
+    margin-top: 16px;
+  }
+
+  blockquote {
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0 1em;
+    color: $markdown-muted;
+    border-left: 0.25em solid $markdown-border;
+
+    > :first-child {
+      margin-top: 0;
+    }
+
+    > :last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .markdown-alert {
+    padding: 8px 16px;
+    color: inherit;
+    border-left-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .markdown-alert-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: 600;
+    line-height: 1;
+    color: #fafafa;
+  }
+
+  hr {
+    height: 0.25em;
+    margin: 24px 0;
+    padding: 0;
+    border: 0;
+    background-color: $markdown-border;
+  }
+
+  code,
+  tt {
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-family: $markdown-mono;
+    font-size: 85%;
+    white-space: break-spaces;
+    background-color: $markdown-surface;
+    border-radius: 6px;
+  }
+
+  pre {
+    padding: 16px;
+    font-family: $markdown-mono;
+    font-size: 85%;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background-color: $markdown-surface;
+    border-radius: 6px;
+
+    > code {
+      padding: 0;
+      font-size: 100%;
+      white-space: pre-wrap;
+      background: transparent;
+    }
+  }
+
+  kbd {
+    display: inline-block;
+    padding: 4px;
+    font: 11px $markdown-mono;
+    line-height: 10px;
+    vertical-align: middle;
+    background-color: $markdown-surface;
+    border: 1px solid $markdown-border;
+    border-radius: 6px;
+  }
+
+  table {
+    max-width: 100%;
+    border-spacing: 0;
+    border-collapse: collapse;
+    font-variant: tabular-nums;
+
+    th {
+      font-weight: 600;
+    }
+
+    th,
+    td {
+      overflow-wrap: anywhere;
+      padding: 6px 13px;
+      border: 1px solid $markdown-border;
+    }
+
+    tr:nth-child(2n) {
+      background-color: rgba(255, 255, 255, 0.03);
+    }
+  }
+
+  dl {
+    padding: 0;
+
+    dt {
+      margin-top: 16px;
+      font-style: italic;
+      font-weight: 600;
+    }
+
+    dd {
+      margin-bottom: 16px;
+      padding: 0 16px;
+    }
+  }
+
+  img {
+    display: inline !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0;
+    vertical-align: middle;
+  }
+}

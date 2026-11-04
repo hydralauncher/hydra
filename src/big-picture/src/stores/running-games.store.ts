@@ -34,8 +34,12 @@ export function initializeBigPictureRunningGamesStore() {
 
   runningGamesStoreInitialized = true;
 
-  const setRunningGames = (games: BigPictureRunningGame[]) => {
-    useBigPictureRunningGamesStore.getState().setRunningGames(games);
+  const setRunningGames = (
+    games: (BigPictureRunningGame & Pick<GameRunning, "recompilationSlug">)[]
+  ) => {
+    useBigPictureRunningGamesStore
+      .getState()
+      .setRunningGames(games.filter((game) => !game.recompilationSlug));
   };
 
   if (typeof electron.getGamesRunning === "function") {
