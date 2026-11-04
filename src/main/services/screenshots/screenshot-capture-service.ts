@@ -49,7 +49,7 @@ import {
 } from "./screenshot-preview";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { resolveManualScreenshotPath } from "./screenshot-file-path";
-import { getScreenshotsFolder } from "./screenshots-folder";
+import { getScreenshotFolderCandidates } from "./screenshots-folder";
 import {
   ensureRootMarkerId,
   getScreenshotsRoot,
@@ -157,19 +157,31 @@ const saveCaptureFile = async (
   capturedAt: Date,
   data: Buffer
 ) => {
-  const screenshotsRoot = await getScreenshotsFolder();
-  await fs.promises.mkdir(
-    path.dirname(
-      resolveManualScreenshotPath(screenshotsRoot, gameTitle, capturedAt)
-    ),
-    { recursive: true }
-  );
-  return writeScreenshotToAvailablePath(
-    screenshotsRoot,
-    gameTitle,
-    capturedAt,
-    data
-  );
+  let lastError: unknown = null;
+  for (const screenshotsRoot of await getScreenshotFolderCandidates()) {
+    try {
+      await fs.promises.mkdir(
+        path.dirname(
+          resolveManualScreenshotPath(screenshotsRoot, gameTitle, capturedAt)
+        ),
+        { recursive: true }
+      );
+      return await writeScreenshotToAvailablePath(
+        screenshotsRoot,
+        gameTitle,
+        capturedAt,
+        data
+      );
+    } catch (error) {
+      logger.warn("Failed to save a screenshot to this folder", {
+        screenshotsRoot,
+        error: error instanceof Error ? error.message : error,
+      });
+      lastError = error;
+    }
+  }
+
+  throw lastError;
 };
 
 interface FinishCaptureOptions {
