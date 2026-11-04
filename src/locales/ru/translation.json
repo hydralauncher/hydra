@@ -1485,7 +1485,6 @@
     "downloads": "Загрузки",
     "create_shortcuts_on_download": "Создавать ярлыки после завершения загрузки игры",
     "default_wine_prefix": "Расположение префикса Wine по умолчанию",
-    "default_proton_version": "Версия Proton по умолчанию",
     "default_proton_version_description": "Выберите версию Proton, которую использует автоматический режим, если для игры не задана отдельная настройка",
     "proton_version_auto": "Авто (глобальное значение по умолчанию или значение umu по умолчанию)",
     "proton_source_umu_default": "выбор umu по умолчанию",

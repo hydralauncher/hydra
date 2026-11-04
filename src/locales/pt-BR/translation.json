@@ -1551,7 +1551,6 @@
     "global_trackers_save_error": "Falha ao salvar trackers. Tente novamente.",
     "create_shortcuts_on_download": "Criar atalhos quando o jogo terminar de baixar",
     "default_wine_prefix": "Local padrão do prefixo Wine",
-    "default_proton_version": "Versão padrão do Proton",
     "default_proton_version_description": "Selecione a versão do Proton usada pelo modo Automático quando um jogo não tiver substituição personalizada",
     "proton_version_auto": "Automático (padrão global ou padrão do umu)",
     "proton_source_umu_default": "seleção padrão do umu",
