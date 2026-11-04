@@ -44,6 +44,7 @@ const pathTitle: Record<string, string> = {
   "/downloads": "downloads",
   "/leaderboards": "leaderboards",
   "/settings": "settings",
+  "/shop": "shop",
 };
 
 export function Header() {
@@ -135,6 +136,7 @@ export function Header() {
 
   const title = useMemo(() => {
     if (location.pathname.startsWith("/game")) return headerTitle;
+    if (location.pathname.startsWith("/recompilation")) return headerTitle;
     if (location.pathname.startsWith("/achievements")) return headerTitle;
     if (location.pathname.startsWith("/profile")) return headerTitle;
     if (location.pathname.startsWith("/notifications")) return headerTitle;

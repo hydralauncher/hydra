@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
@@ -20,12 +21,14 @@ import { focusWithPhysicalKeyboard } from "../../../helpers/physical-keyboard-fo
 import "./styles.scss";
 import { ArrowLeftIcon, XIcon } from "@phosphor-icons/react";
 import { NavigationLayer } from "../navigation-layer";
+import type { ScreenActions } from "../../../types";
 
 export interface ModalProps {
   visible: boolean;
   onClose: () => void;
   onBack?: () => void;
   title: string;
+  headerContent?: ReactNode;
   description?: string;
   children: ReactNode;
   className?: string;
@@ -34,19 +37,48 @@ export interface ModalProps {
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
   closeOnB?: boolean;
+  busy?: boolean;
   ariaLabel?: string;
   animateLayout?: boolean;
   initialFocusId?: string;
   layoutTransition?: Transition;
+  onExitComplete?: () => void;
 }
 
 export const MODAL_OWNED_OVERLAY_ATTRIBUTE = "data-hydra-modal-owned-overlay";
+
+interface ModalBackActionProps {
+  enabled: boolean;
+  isExiting: boolean;
+  isBusy: boolean;
+  onBack: () => void;
+}
+
+const swallowBPress = () => {};
+
+function getModalBackActions({
+  enabled,
+  isExiting,
+  isBusy,
+  onBack,
+}: Readonly<ModalBackActionProps>): ScreenActions {
+  if (isExiting || isBusy) return { press: { b: swallowBPress } };
+  if (enabled) return { press: { b: onBack } };
+  return {};
+}
+
+function ModalBackAction(props: Readonly<ModalBackActionProps>) {
+  useNavigationScreenActions(getModalBackActions(props));
+
+  return null;
+}
 
 export function Modal({
   visible,
   onClose,
   onBack,
   title,
+  headerContent,
   description,
   children,
   coverImage,
@@ -55,19 +87,33 @@ export function Modal({
   closeOnBackdrop = true,
   closeOnEscape = true,
   closeOnB = true,
+  busy = false,
   ariaLabel = title,
   animateLayout = false,
   initialFocusId,
   layoutTransition,
+  onExitComplete,
 }: Readonly<ModalProps>) {
   const modalContentRef = useRef<HTMLDivElement | null>(null);
   const virtualKeyboardTarget = useVirtualKeyboardStore(
     (state) => state.target
   );
   const isVirtualKeyboardOpen = virtualKeyboardTarget !== null;
+  const [wasVisible, setWasVisible] = useState(visible);
+  const [isExiting, setIsExiting] = useState(false);
+
+  if (wasVisible !== visible) {
+    setWasVisible(visible);
+    setIsExiting(!visible);
+  }
+
+  const handleExitComplete = useCallback(() => {
+    setIsExiting(false);
+    onExitComplete?.();
+  }, [onExitComplete]);
 
   const isTopMostModal = () => {
-    const openModals = document.querySelectorAll("[role=dialog]");
+    const openModals = document.querySelectorAll("[role=dialog], dialog[open]");
     return (
       openModals.length &&
       openModals[openModals.length - 1] === modalContentRef.current
@@ -88,7 +134,9 @@ export function Modal({
     }
   };
 
-  const shouldCloseOnB = visible && closeOnB && !isVirtualKeyboardOpen;
+  const shouldCloseOnB = visible && closeOnB && !busy && !isVirtualKeyboardOpen;
+  const isBusyOnB = visible && busy && !isVirtualKeyboardOpen;
+
   const resolvedLayoutTransition = layoutTransition ?? {
     duration: 0.4,
     ease: "easeInOut",
@@ -98,10 +146,6 @@ export function Modal({
     if (!isTopMostModal()) return;
     handleCloseClick();
   }, [handleCloseClick]);
-
-  useNavigationScreenActions(
-    shouldCloseOnB ? { press: { b: handleBPress } } : {}
-  );
 
   useEffect(() => {
     if (!visible) return;
@@ -182,7 +226,15 @@ export function Modal({
 
   return createPortal(
     <FocusRegionContext.Provider value={null}>
-      <AnimatePresence>
+      {visible || isExiting ? (
+        <ModalBackAction
+          enabled={shouldCloseOnB}
+          isExiting={isExiting}
+          isBusy={isBusyOnB}
+          onBack={handleBPress}
+        />
+      ) : null}
+      <AnimatePresence onExitComplete={handleExitComplete}>
         {visible && (
           <Backdrop className={backdropClassName}>
             <motion.aside
@@ -223,7 +275,7 @@ export function Modal({
                       </button>
                     )}
 
-                    <h4>{title}</h4>
+                    {headerContent ?? <h4>{title}</h4>}
                   </div>
 
                   {description && (

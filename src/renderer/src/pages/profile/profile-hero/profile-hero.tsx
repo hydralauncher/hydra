@@ -1,4 +1,4 @@
-import { useCallback, useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { userProfileContext } from "@renderer/context";
 import {
   BlockedIcon,
@@ -23,19 +23,26 @@ import { useTranslation } from "react-i18next";
 import {
   useAppSelector,
   useDate,
+  useGamificationProgress,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
 import { addSeconds } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { AuthPage } from "@shared";
+import {
+  AuthPage,
+  EDIT_PROFILE_SEARCH_PARAM,
+  EDIT_PROFILE_SEARCH_VALUE,
+} from "@shared";
 import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 
 import type { FriendRequestAction } from "@types";
 import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 import Skeleton from "react-loading-skeleton";
 import { UploadBackgroundImageButton } from "../upload-background-image-button/upload-background-image-button";
+import { ProfileGamificationPills } from "./profile-gamification-pills";
+import { CoinIcon } from "@renderer/components/gamification";
 import "./profile-hero.scss";
 
 type FriendAction =
@@ -61,7 +68,31 @@ export function ProfileHero() {
     userDetails,
   } = useUserDetails();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editRequested =
+    searchParams.get(EDIT_PROFILE_SEARCH_PARAM) === EDIT_PROFILE_SEARCH_VALUE;
+
+  useEffect(() => {
+    if (!editRequested || !isMe) return;
+    setShowEditProfileModal(true);
+    setSearchParams(
+      (params) => {
+        params.delete(EDIT_PROFILE_SEARCH_PARAM);
+        return params;
+      },
+      { replace: true }
+    );
+  }, [editRequested, isMe, setSearchParams]);
+
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
+  const isShopEnabled = useAppSelector(
+    (state) => state.gamification.isEnabled && state.gamification.isShopEnabled
+  );
+  const { refreshProgress } = useGamificationProgress();
+
+  useEffect(() => {
+    if (isMe) void refreshProgress();
+  }, [isMe, refreshProgress]);
 
   const { t } = useTranslation("user_profile");
   const { formatDistance } = useDate();
@@ -168,6 +199,17 @@ export function ProfileHero() {
     if (isMe) {
       return (
         <>
+          {isShopEnabled && (
+            <Button
+              theme="outline"
+              onClick={() => navigate("/shop")}
+              className="profile-hero__button--outline"
+            >
+              <CoinIcon />
+              {t("shop")}
+            </Button>
+          )}
+
           <Button
             theme="outline"
             onClick={() => setShowEditProfileModal(true)}
@@ -279,7 +321,15 @@ export function ProfileHero() {
         </Button>
       </>
     );
-  }, [handleFriendAction, isMe, t, isPerformingAction, userProfile]);
+  }, [
+    handleFriendAction,
+    isMe,
+    t,
+    isPerformingAction,
+    userProfile,
+    isShopEnabled,
+    navigate,
+  ]);
 
   const handleAvatarClick = useCallback(() => {
     if (userProfile?.profileImageUrl) {
@@ -423,6 +473,8 @@ export function ProfileHero() {
               ) : (
                 <Skeleton width={150} height={28} />
               )}
+
+              <ProfileGamificationPills />
 
               {currentGame && (
                 <div className="profile-hero__current-game-wrapper">

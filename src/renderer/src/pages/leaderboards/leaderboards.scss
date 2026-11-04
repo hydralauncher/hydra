@@ -1,31 +1,271 @@
 @use "../../scss/globals.scss";
 
-$leaderboards-muted-text: #c0c1c7;
 $leaderboards-surface: #1a1a1a;
 $leaderboards-up: #4ade80;
 $leaderboards-down: #ff6b81;
 $leaderboards-ended: #838383;
 $leaderboards-streak-from: #22c7ee;
 $leaderboards-streak-to: #b05cff;
+$leaderboards-friend-row-height: 72px;
+$leaderboards-scrollbar-width: 9px;
+$leaderboards-heat-size: 12px;
+$leaderboards-heat-gap: 6px;
 
 .leaderboards {
   display: flex;
   flex-direction: column;
-  gap: calc(globals.$spacing-unit * 3);
   width: 100%;
-  padding: calc(globals.$spacing-unit * 3);
+  // Fills the window when short, and the app's scroll moves the whole page.
+  flex: 1 0 auto;
+
+  &__body {
+    flex: 1;
+    display: flex;
+  }
 
   &__content {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 3);
+    padding: calc(globals.$spacing-unit * 3);
+  }
+
+  &__sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2.5);
+    padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2)
+      calc(globals.$spacing-unit * 4);
+    border-right: solid 1px globals.$border-color;
+
+    .leaderboards__selector-option {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+
+  &__side-group {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+
+    &--stats {
+      padding-bottom: calc(globals.$spacing-unit * 2);
+      border-bottom: solid 1px globals.$border-color;
+    }
+  }
+
+  &__side-item {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    flex-shrink: 0;
+    width: 100%;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: globals.$spacing-unit 10px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: globals.$body-color;
+    font-size: globals.$body-font-size;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+
+    > *:not(.leaderboards__side-banner) {
+      position: relative;
+      z-index: 1;
+    }
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+      color: globals.$muted-color;
+    }
+
+    &--banner {
+      background-color: rgba(255, 255, 255, 0.03);
+
+      // A layer, because a gradient background cannot animate.
+      &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        opacity: 0;
+        background-image: linear-gradient(
+          to right,
+          rgba(255, 255, 255, 0.1) 30%,
+          transparent 100%
+        );
+        transition: opacity 0.15s ease;
+        pointer-events: none;
+      }
+
+      // Drawn on top of the content, so the banner cannot show through or
+      // beside it at the rounded corners.
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        border: solid 1px rgba(255, 255, 255, 0.06);
+        border-radius: inherit;
+        pointer-events: none;
+      }
+    }
+
+    &--selected,
+    &--selected:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__side-banner {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.5;
+    background-size: cover;
+    background-position: center;
+    mask-image: linear-gradient(to left, #000 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  // The selected fill fades out where the banner starts, so the banner looks
+  // the same as on the other items.
+  &__side-item--selected#{&}__side-item--banner,
+  &__side-item--selected#{&}__side-item--banner:hover {
+    background-color: transparent;
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &__side-icon {
+    flex-shrink: 0;
+    display: flex;
+    color: inherit;
+  }
+
+  &__side-cover {
+    flex-shrink: 0;
+    width: 32px;
+    height: 48px;
+    border-radius: 4px;
+    object-fit: cover;
+    background-color: $leaderboards-surface;
+  }
+
+  &__side-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__side-top {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+
+  &__side-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__side-rank {
+    flex-shrink: 0;
+    font-size: globals.$small-font-size;
+    font-variant-numeric: tabular-nums;
+    color: globals.$body-color;
+  }
+
+  &__side-leader {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    font-size: globals.$small-font-size;
+    font-weight: 400;
+    color: globals.$body-color;
+  }
+
+  &__side-leader-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: globals.$body-color;
+  }
+
+  &__side-note {
+    font-size: globals.$small-font-size;
+    font-weight: 400;
+    color: globals.$body-color;
+  }
+
+  &__side-more {
+    flex-shrink: 0;
+    width: 100%;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: globals.$body-color;
+    font-size: globals.$hint-font-size;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__side-empty {
+    margin: 0;
+    padding: 0 10px;
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+    color: globals.$body-color;
+  }
+
+  &__side-skeleton {
+    display: block;
+    height: 56px;
+    border-radius: 4px;
   }
 
   &__header {
+    flex-shrink: 0;
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-end;
+    align-items: center;
     gap: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 3);
+    border-bottom: solid 1px globals.$border-color;
   }
 
   &__heading {
@@ -35,81 +275,74 @@ $leaderboards-streak-to: #b05cff;
     gap: calc(globals.$spacing-unit / 2);
   }
 
-  &__title {
+  &__period-title {
     margin: 0;
-    font-size: 24px;
-    line-height: 32px;
+    font-size: 16px;
+    line-height: 24px;
     font-weight: 700;
     color: globals.$muted-color;
   }
 
   &__subtitle {
-    font-size: globals.$hint-font-size;
-    color: $leaderboards-muted-text;
+    font-size: globals.$small-font-size;
+    line-height: 16px;
+    color: globals.$body-color;
   }
 
   &__toggles {
-    width: min(100%, 500px);
+    max-width: 100%;
     display: flex;
-    gap: globals.$spacing-unit;
-
-    .leaderboard-controls__segmented {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .leaderboard-controls__segment {
-      height: 34px;
-      font-size: globals.$hint-font-size;
-    }
+    flex-wrap: wrap;
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
-  &__tabs {
-    margin-top: calc(globals.$spacing-unit * -1);
+  &__selector {
     display: flex;
-    gap: calc(globals.$spacing-unit * 3);
-    border-bottom: solid 1px globals.$border-color;
+    flex-direction: column;
+    gap: 4px;
   }
 
-  &__tab {
-    height: 40px;
-    margin-bottom: -1px;
-    padding: 0 2px;
+  &__selector-label {
+    font-size: 11px;
+    line-height: 14px;
+    color: globals.$body-color;
+  }
+
+  &__selector-options {
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+    background-color: globals.$dark-background-color;
+  }
+
+  &__selector-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
     border: 0;
-    border-bottom: solid 2px transparent;
+    border-radius: 6px;
     background: transparent;
-    color: $leaderboards-muted-text;
-    font-size: globals.$body-font-size;
-    font-weight: 700;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    font-weight: 500;
+    white-space: nowrap;
     cursor: pointer;
     transition:
-      color 0.2s ease,
-      border-color 0.2s ease;
+      background-color 0.2s ease,
+      color 0.2s ease;
 
     &:hover {
       color: globals.$muted-color;
     }
 
     &--selected {
-      border-bottom-color: globals.$muted-color;
+      background-color: #262626;
       color: globals.$muted-color;
     }
-  }
-
-  &__leaders {
-    margin-bottom: calc(globals.$spacing-unit * -1.75);
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.25);
-  }
-
-  &__section-title {
-    margin: 0;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: $leaderboards-muted-text;
   }
 
   &__section-header {
@@ -135,153 +368,208 @@ $leaderboards-streak-to: #b05cff;
     color: globals.$muted-color;
   }
 
-  &__cards {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
-    gap: globals.$spacing-unit;
-  }
-
-  &__card {
-    min-width: 0;
+  &__board {
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 1.25);
-    border: solid 1px globals.$border-color;
-    border-radius: 8px;
-    background-color: globals.$background-color;
-    color: globals.$body-color;
-    text-align: left;
-    cursor: pointer;
-    transition:
-      background-color 0.2s ease,
-      border-color 0.2s ease;
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.5);
-    }
-
-    &--selected,
-    &--selected:hover {
-      border-color: globals.$muted-color;
-      background-color: $leaderboards-surface;
-    }
-  }
-
-  &__card-label {
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: globals.$small-font-size;
-    font-weight: 600;
-    white-space: nowrap;
-
-    svg {
-      flex-shrink: 0;
-    }
-  }
-
-  &__card-label-text {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &__card--selected &__card-label {
+    gap: calc(globals.$spacing-unit * 2.5);
     color: globals.$muted-color;
   }
 
-  &__card-leader {
-    min-height: 32px;
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    min-width: 0;
-  }
-
-  &__card-leader-text {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  &__card-leader-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: globals.$hint-font-size;
-    font-weight: 700;
-    color: globals.$muted-color;
-  }
-
-  &__card-leader-value {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: globals.$small-font-size;
-    color: $leaderboards-muted-text;
-    font-variant-numeric: tabular-nums;
-  }
-
-  &__card-empty {
-    font-size: globals.$small-font-size;
-  }
-
-  &__card-placeholder {
-    display: block;
-    height: 86px;
-    border-radius: 8px;
-  }
-
-  &__card-skeleton {
-    height: 28px;
-  }
-
-  &__board,
   &__panel {
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
     padding: calc(globals.$spacing-unit * 2.5);
     border: solid 1px globals.$border-color;
-    border-radius: 8px;
+    border-radius: 4px;
     background-color: globals.$background-color;
     color: globals.$muted-color;
   }
 
-  &__board--game {
-    overflow: hidden;
+  // Fills the page, with the message centered in the space under the header.
+  &__board--empty {
+    flex: 1;
+
+    > .leaderboards__message {
+      flex: 1;
+      justify-content: center;
+    }
   }
 
   &__panel {
     padding: calc(globals.$spacing-unit * 2);
   }
 
-  &__panel-title {
+  &__board-header {
+    container: board-header / inline-size;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
   }
 
-  &__board-header {
+  &__board-icon,
+  &__board-cover {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 4px;
+  }
+
+  &__board-icon {
     display: flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 1.25);
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
+  &__board-cover {
+    display: block;
+    background-color: $leaderboards-surface;
+    object-fit: cover;
+  }
+
+  &__board-media-link,
+  &__board-title-link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  &__board-media-link {
+    flex-shrink: 0;
+    border-radius: 4px;
+    transition: opacity 0.15s ease;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+
+  &__board-title-link:hover {
+    text-decoration: underline;
+  }
+
+  &__board-heading {
+    flex: 1 1 200px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
   &__board-title {
-    flex-grow: 1;
     margin: 0;
-    font-size: 16px;
-    line-height: 24px;
+    font-size: 20px;
+    line-height: 28px;
     font-weight: 700;
+    color: globals.$muted-color;
+  }
+
+  &__board-description {
+    margin: 0;
+    font-size: globals.$hint-font-size;
+    line-height: 18px;
+    color: globals.$body-color;
   }
 
   &__board-count {
     font-size: globals.$small-font-size;
-    color: $leaderboards-muted-text;
+    white-space: nowrap;
+    color: globals.$body-color;
+  }
+
+  &__insight {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+
+  &__insight-icon {
+    flex-shrink: 0;
+    display: flex;
+    color: globals.$body-color;
+  }
+
+  &__insight-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    p {
+      margin: 0;
+      font-size: globals.$body-font-size;
+      line-height: 20px;
+      color: globals.$body-color;
+    }
+
+    b {
+      font-weight: 700;
+      color: globals.$muted-color;
+    }
+
+    small {
+      font-size: globals.$small-font-size;
+      line-height: 16px;
+      color: globals.$body-color;
+    }
+  }
+
+  &__table {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__table-header {
+    height: 24px;
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding-right: calc(globals.$spacing-unit * 2);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: globals.$body-color;
+
+    &--with-action {
+      padding-right: calc(globals.$spacing-unit * 4.5);
+    }
+  }
+
+  &__table-rank {
+    width: 40px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+
+  &__table-player {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__table-delta {
+    width: 64px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  &__table-value {
+    width: 96px;
+    flex-shrink: 0;
+    text-align: right;
   }
 
   &__list {
@@ -290,7 +578,7 @@ $leaderboards-streak-to: #b05cff;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit / 2);
+    gap: globals.$spacing-unit;
   }
 
   &__more {
@@ -305,13 +593,17 @@ $leaderboards-streak-to: #b05cff;
     gap: globals.$spacing-unit;
     padding: calc(globals.$spacing-unit * 5) calc(globals.$spacing-unit * 2);
     text-align: center;
-    color: $leaderboards-muted-text;
+    color: globals.$body-color;
+
+    > button {
+      margin-top: globals.$spacing-unit;
+    }
   }
 
   &__message-title {
     color: globals.$muted-color;
     font-size: globals.$hint-font-size;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   &__message-description {
@@ -328,16 +620,16 @@ $leaderboards-streak-to: #b05cff;
 
   &__skeleton-podium {
     display: block;
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   &__skeleton-row {
     height: 56px;
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   &__block-skeleton {
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   &__sign-in {
@@ -345,7 +637,7 @@ $leaderboards-streak-to: #b05cff;
     align-items: center;
     gap: globals.$spacing-unit;
     font-size: globals.$small-font-size;
-    color: $leaderboards-muted-text;
+    color: globals.$body-color;
   }
 
   &__link {
@@ -356,17 +648,12 @@ $leaderboards-streak-to: #b05cff;
     padding: 0;
     border: 0;
     background: none;
-    color: $leaderboards-muted-text;
+    color: globals.$body-color;
     font-size: globals.$body-font-size;
     cursor: pointer;
 
     &:hover {
       color: globals.$muted-color;
-    }
-
-    &--padded {
-      padding-top: globals.$spacing-unit;
-      font-size: globals.$hint-font-size;
     }
   }
 
@@ -391,67 +678,127 @@ $leaderboards-streak-to: #b05cff;
     clip: rect(0 0 0 0);
   }
 
+  // The selected review reuses the game page review (review-item.scss); these
+  // only add the game link and the upvote badge.
+  &__review-highlight {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
   &__review {
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
     padding: calc(globals.$spacing-unit * 2);
-    border: solid 1px rgba(243, 198, 17, 0.35);
-    border-radius: 8px;
-    background-color: globals.$dark-background-color;
+    border: solid 1px rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    background-color: globals.$background-color;
   }
 
-  &__review-header {
+  &__review-game-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    border-radius: 2px;
+    object-fit: cover;
+  }
+
+  &__review-quote {
+    margin: 0;
+    padding-left: calc(globals.$spacing-unit * 1.5);
+    border-left: solid 2px rgba(255, 255, 255, 0.15);
+    font-style: italic;
+    color: globals.$body-color;
+  }
+
+  &__review-rating {
+    margin-left: 2px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  // A chip like the score's, in the top right corner of the banner.
+  &__review-game.game-details__review-score-stars {
+    position: absolute;
+    z-index: 2;
+    top: globals.$spacing-unit;
+    right: globals.$spacing-unit;
+    max-width: 50%;
+    overflow: hidden;
+    gap: 6px;
+    height: 30px;
+    padding: 2px 10px 2px 6px;
+    font-size: globals.$body-font-size;
+    color: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  &__review-title {
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
     font-size: globals.$body-font-size;
-    font-weight: 600;
+    font-weight: 500;
+    color: globals.$body-color;
+  }
 
-    svg {
-      color: globals.$rank-gold-color;
+  // Only here: a long review must not push the ranking down. The game page
+  // shows reviews in full.
+  &__review-text {
+    margin: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+    overflow: hidden;
+    white-space: pre-line;
+
+    &--expanded {
+      display: block;
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
     }
   }
 
-  &__review-content {
-    display: flex;
-    align-items: flex-start;
-    gap: calc(globals.$spacing-unit * 2);
+  &__review-more {
+    margin-top: globals.$spacing-unit;
+    font-size: globals.$small-font-size;
+    font-style: normal;
   }
 
-  &__review-cover {
-    width: 92px;
-    height: 138px;
-    flex-shrink: 0;
-    object-fit: cover;
-    border: solid 1px globals.$border-color;
-    border-radius: 6px;
-    background-color: $leaderboards-surface;
-  }
-
-  &__review-body {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
-  }
-
-  &__review-game {
-    margin: 0;
-    font-size: globals.$body-font-size;
-    line-height: 20px;
-    font-weight: 700;
-  }
-
-  &__review-author {
+  // Report as cheater: a bare icon, only shown on hover (leaderboard-row and
+  // leaderboard-podium reveal it).
+  &__report {
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
-    gap: globals.$spacing-unit;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background-color: rgb(0 0 0 / 45%);
+    color: globals.$body-color;
+    cursor: pointer;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      background-color: rgb(0 0 0 / 70%);
+      color: globals.$muted-color;
+    }
   }
 
-  &__review-name {
-    font-weight: 700;
+  // The upvote count as a badge next to the score, not a vote button.
+  &__review-likes {
+    cursor: default;
+
+    svg {
+      flex-shrink: 0;
+    }
   }
 
   &__review-score {
@@ -459,39 +806,20 @@ $leaderboards-streak-to: #b05cff;
     align-items: center;
     gap: 4px;
     font-size: globals.$small-font-size;
-    color: $leaderboards-muted-text;
+    color: globals.$body-color;
 
     svg {
-      color: #6a8cff;
+      color: #ffffff;
     }
   }
 
-  &__review-text {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow: hidden;
-    font-size: globals.$hint-font-size;
-    line-height: 20px;
+  &__review-translation-toggle {
+    margin-top: 0;
   }
 
-  &__review-footer {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: globals.$spacing-unit;
-  }
-
-  &__review-votes {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 600;
-
-    svg {
-      color: $leaderboards-streak-from;
-    }
+  &__review-original {
+    margin-top: calc(globals.$spacing-unit * 1.5);
+    opacity: 0.6;
   }
 
   &__review-tip {
@@ -500,7 +828,7 @@ $leaderboards-streak-to: #b05cff;
     gap: calc(globals.$spacing-unit * 1.5);
     padding: calc(globals.$spacing-unit * 1.5);
     border: solid 1px rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
+    border-radius: 4px;
     background-color: globals.$dark-background-color;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
     text-align: left;
@@ -538,243 +866,10 @@ $leaderboards-streak-to: #b05cff;
     font-size: globals.$hint-font-size;
     line-height: 19px;
     color: globals.$muted-color;
-  }
 
-  &__chips {
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: globals.$spacing-unit;
-  }
-
-  &__chip {
-    height: 30px;
-    padding: 0 calc(globals.$spacing-unit * 1.5);
-    border: solid 1px globals.$border-color;
-    border-radius: 999px;
-    background: transparent;
-    color: $leaderboards-muted-text;
-    font-size: globals.$small-font-size;
-    font-weight: 600;
-    cursor: pointer;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease,
-      border-color 0.2s ease;
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.5);
-    }
-
-    &--selected,
-    &--selected:hover {
-      border-color: globals.$muted-color;
-      background-color: globals.$muted-color;
-      color: globals.$dark-background-color;
-    }
-  }
-
-  &__my-games {
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.5);
-  }
-
-  &__search {
-    width: 260px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    padding: 0 calc(globals.$spacing-unit * 1.5);
-    border: solid 1px globals.$border-color;
-    border-radius: 8px;
-    background-color: globals.$background-color;
-    color: $leaderboards-muted-text;
-
-    input {
-      flex: 1;
-      min-width: 0;
-      border: 0;
-      outline: 0;
-      background: transparent;
-      color: globals.$muted-color;
-      font-family: inherit;
-      font-size: globals.$hint-font-size;
-
-      &::placeholder {
-        color: $leaderboards-muted-text;
-      }
-    }
-  }
-
-  &__games {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(200px, 1fr);
-    gap: globals.$spacing-unit;
-    overflow-x: auto;
-    scrollbar-width: thin;
-  }
-
-  &__game {
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 1.5);
-    padding: calc(globals.$spacing-unit * 1.25);
-    border: solid 1px globals.$border-color;
-    border-radius: 8px;
-    background-color: globals.$background-color;
-    color: inherit;
-    text-align: left;
-    cursor: pointer;
-    transition:
-      border-color 0.2s ease,
-      transform 0.2s ease;
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.5);
-      transform: translateY(-2px);
-    }
-
-    &--selected,
-    &--selected:hover {
-      border-color: globals.$muted-color;
-      background-color: $leaderboards-surface;
-    }
-  }
-
-  &__game-cover,
-  &__hero-cover {
-    flex-shrink: 0;
-    border: solid 1px globals.$border-color;
-    border-radius: 4px;
-    background-color: $leaderboards-surface;
-    background-image: var(--cover);
-    background-size: cover;
-    background-position: center;
-  }
-
-  &__game-cover {
-    width: 52px;
-    height: 78px;
-  }
-
-  &__game-body {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  &__game-title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: globals.$body-font-size;
-    font-weight: 700;
-    color: globals.$muted-color;
-  }
-
-  &__game-rank {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-  }
-
-  &__game-position {
-    font-size: 16px;
-    font-weight: 800;
-    color: globals.$muted-color;
-  }
-
-  &__game-total {
-    font-size: globals.$small-font-size;
-    color: $leaderboards-muted-text;
-  }
-
-  &__game-leader {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: $leaderboards-muted-text;
-  }
-
-  &__game-skeleton {
-    height: 100px;
-    border-radius: 8px;
-  }
-
-  &__hero {
-    margin: calc(globals.$spacing-unit * -2.5)
-      calc(globals.$spacing-unit * -2.5) 0;
-    padding: calc(globals.$spacing-unit * 4) calc(globals.$spacing-unit * 2.5)
-      calc(globals.$spacing-unit * 2.5);
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 2);
-
-    &--image {
-      background-image:
-        linear-gradient(
-          180deg,
-          rgba(18, 18, 18, 0.35) 0%,
-          rgba(18, 18, 18, 0.85) 70%,
-          globals.$background-color 100%
-        ),
-        var(--hero);
-      background-size: cover;
-      background-position: center;
-    }
-  }
-
-  &__hero-cover {
-    width: 48px;
-    height: 72px;
-    border-color: rgba(255, 255, 255, 0.15);
-  }
-
-  &__hero-text {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  &__hero-title {
-    margin: 0;
-    font-size: 18px;
-    line-height: 26px;
-    font-weight: 700;
-  }
-
-  &__hero-subtitle {
-    font-size: globals.$small-font-size;
-    color: globals.$body-color;
-  }
-
-  &__hero-link {
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0 calc(globals.$spacing-unit * 1.5);
-    border: solid 1px rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
-    background-color: rgba(13, 13, 13, 0.5);
-    color: globals.$muted-color;
-    font-size: globals.$hint-font-size;
-    cursor: pointer;
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.5);
+    // A translation is HTML and may hold several paragraphs.
+    p {
+      margin: 0;
     }
   }
 
@@ -787,13 +882,32 @@ $leaderboards-streak-to: #b05cff;
     .leaderboards__panel {
       justify-content: space-between;
     }
+
+    // Empty states fill the rest of the card and sit in its middle.
+    .leaderboards__panel > .leaderboards__message {
+      flex: 1;
+      justify-content: center;
+    }
   }
 
+  // The border is drawn on top of the content so the banner header cannot
+  // show through or beside it at the rounded edges.
   &__mine {
+    position: relative;
     overflow: hidden;
-    border: solid 1px globals.$border-color;
-    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 4px;
     background-color: globals.$background-color;
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: solid 1px globals.$border-color;
+      border-radius: inherit;
+      pointer-events: none;
+    }
   }
 
   &__mine-header {
@@ -837,52 +951,88 @@ $leaderboards-streak-to: #b05cff;
     color: globals.$body-color;
   }
 
-  &__mine-list {
-    list-style: none;
-    margin: 0;
-    padding: globals.$spacing-unit;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+  &__mine-body {
+    flex: 1;
+    min-height: 0;
+    padding-inline: calc(globals.$spacing-unit * 2);
+    overflow-x: auto;
   }
 
-  &__mine-row {
+  &__mine-table {
     width: 100%;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 1.25);
-    padding: 0 globals.$spacing-unit;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: globals.$body-color;
+    height: 100%;
+    border-collapse: collapse;
     font-size: globals.$hint-font-size;
-    text-align: left;
-    cursor: pointer;
+    font-variant-numeric: tabular-nums;
 
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.06);
+    th,
+    td {
+      padding: 0 calc(globals.$spacing-unit * 2);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      width: 100%;
+      padding-left: 0;
+      text-align: left;
+    }
+
+    th:last-child,
+    td:last-child {
+      padding-right: 0;
+      padding-left: calc(globals.$spacing-unit * 6);
+    }
+
+    th {
+      height: 36px;
+      border-bottom: solid 1px globals.$border-color;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: globals.$body-color;
+    }
+
+    td {
+      height: 44px;
+      color: globals.$body-color;
+      transition: color 0.2s ease;
+    }
+
+    tbody tr {
+      position: relative;
+      border-bottom: solid 1px globals.$border-color;
+
+      &:last-child {
+        border-bottom: 0;
+      }
+
+      &:hover td,
+      &:focus-within td {
+        color: #ffffff;
+      }
     }
   }
 
-  &__mine-label {
-    flex: 1;
-    color: globals.$muted-color;
-  }
+  &__mine-metric {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.25);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: inherit;
+    cursor: pointer;
 
-  &__mine-delta {
-    min-width: 32px;
-    text-align: right;
-  }
-
-  &__mine-rank {
-    min-width: 32px;
-    margin-left: 2px;
-    text-align: left;
-    font-weight: 700;
-    color: globals.$muted-color;
-    font-variant-numeric: tabular-nums;
+    // Covers the row, so all of it opens the metric through this one button.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+    }
   }
 
   &__mine-error {
@@ -893,98 +1043,129 @@ $leaderboards-streak-to: #b05cff;
   &__mine-retry {
     display: flex;
     justify-content: center;
-    padding: 0 globals.$spacing-unit globals.$spacing-unit;
+    padding: globals.$spacing-unit;
   }
 
-  &__streak-numbers {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: 4px 0;
-  }
-
-  &__streak-number {
+  &__activity-header {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 2px;
-
-    & + & {
-      border-left: solid 1px globals.$border-color;
-    }
+    justify-content: space-between;
+    gap: globals.$spacing-unit calc(globals.$spacing-unit * 2);
   }
 
-  &__streak-label {
-    font-size: globals.$small-font-size;
-    color: $leaderboards-muted-text;
-  }
-
-  &__streak-value {
+  // Inset by the card padding so the numbers do not touch the right edge.
+  &__activity-streaks {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    padding-inline-end: calc(globals.$spacing-unit * 2);
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+  }
+
+  &__activity-streak {
+    display: inline-flex;
     align-items: baseline;
     gap: 6px;
-    font-size: globals.$body-font-size;
-    color: globals.$body-color;
 
     strong {
-      font-size: 24px;
-      line-height: 30px;
-      font-weight: 800;
+      font-size: globals.$body-font-size;
+      line-height: 22px;
+      font-weight: 700;
       color: globals.$muted-color;
     }
   }
 
-  &__heatmap-block {
+  &__activity-area {
+    width: 100%;
+  }
+
+  // The width and --heat-size come from getHeatmapLayout.
+  &__activity-body {
+    position: relative;
+    margin-inline: auto;
     display: flex;
     flex-direction: column;
-    gap: globals.$spacing-unit;
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
-  &__heatmap-header {
+  &__activity-graph {
+    display: grid;
+    grid-template-columns: 30px auto;
+    grid-template-areas:
+      ". months"
+      "days cells";
+    gap: 4px 6px;
+  }
+
+  &__activity-months {
+    grid-area: months;
+    display: grid;
+    // One column per week, like the cells, however many weeks there are.
+    grid-auto-columns: var(--heat-size);
+    column-gap: $leaderboards-heat-gap;
+    height: 14px;
+  }
+
+  &__activity-month {
+    grid-row: 1;
+    font-size: 11px;
+    line-height: 14px;
+    white-space: nowrap;
+    color: globals.$body-color;
+  }
+
+  &__activity-days {
+    grid-area: days;
+    display: grid;
+    grid-template-rows: repeat(7, var(--heat-size));
+    row-gap: $leaderboards-heat-gap;
+  }
+
+  &__activity-footer {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    font-size: 11px;
-    color: $leaderboards-muted-text;
-  }
-
-  &__heatmap-title {
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    gap: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
   }
 
   &__heatmap-legend {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
 
     .leaderboards__heat {
-      width: 10px;
-      height: 10px;
-      border-radius: 2px;
+      width: $leaderboards-heat-size;
+      height: $leaderboards-heat-size;
     }
   }
 
   &__heatmap {
+    grid-area: cells;
     display: grid;
-    grid-template-columns: 12px repeat(15, minmax(0, 1fr));
-    grid-template-rows: repeat(7, auto);
+    grid-template-rows: repeat(7, var(--heat-size));
+    grid-auto-columns: var(--heat-size);
     grid-auto-flow: column;
-    gap: 3px;
+    gap: $leaderboards-heat-gap;
   }
 
   &__heatmap-day {
     display: flex;
     align-items: center;
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1;
-    color: $leaderboards-muted-text;
+    color: globals.$body-color;
   }
 
   &__heat {
-    aspect-ratio: 1;
+    box-sizing: border-box;
     border: solid 1px transparent;
-    border-radius: 3px;
+    border-radius: 2px;
     background-color: rgba(255, 255, 255, 0.06);
 
     &--1 {
@@ -1008,25 +1189,116 @@ $leaderboards-streak-to: #b05cff;
     &--today {
       border-color: globals.$muted-color;
     }
+
+    &[data-heat-index]:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+    }
   }
 
+  // Positioned from the hovered cell in stats-tab.tsx; the modifiers only
+  // choose which side of that point the tip opens to.
+  &__heat-tip {
+    --heat-tip-x: -50%;
+    --heat-tip-y: -100%;
+    position: absolute;
+    z-index: 5;
+    transform: translate(var(--heat-tip-x), var(--heat-tip-y));
+    width: max-content;
+    max-width: 280px;
+    padding: 6px globals.$spacing-unit;
+    border: solid 1px rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    background-color: globals.$dark-background-color;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    font-size: 12px;
+    line-height: 18px;
+    color: globals.$muted-color;
+    pointer-events: none;
+  }
+
+  &__heat-tip--below {
+    --heat-tip-y: 0;
+  }
+
+  &__heat-tip--start {
+    --heat-tip-x: -12px;
+  }
+
+  &__heat-tip--end {
+    --heat-tip-x: calc(-100% + 12px);
+  }
+
+  &__heat-tip-game {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+
+  // Takes the height left in the card instead of setting it, and scrolls inside.
+  // The scrollbar's space stays reserved in the card's padding, so showing it
+  // does not move the rows.
   &__friend-streaks {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 4px calc(globals.$spacing-unit * 2);
+    position: relative;
+    flex: 1 1 0;
+    height: 0;
+    // Six rows and the button under them, so the button shows without scrolling.
+    min-height: calc(
+      $leaderboards-friend-row-height * 6 + globals.$spacing-unit * 6 + 40px
+    );
+    margin-right: -$leaderboards-scrollbar-width;
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    scroll-behavior: smooth;
+
+    > * {
+      flex-shrink: 0;
+    }
+
+    .leaderboards__more button {
+      width: 100%;
+    }
+
+    &--more-below {
+      mask-image: linear-gradient(
+        to bottom,
+        #000 calc(100% - $leaderboards-friend-row-height),
+        transparent
+      );
+    }
   }
 
   &__friend-streak {
-    height: 40px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+    height: $leaderboards-friend-row-height;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
+    border-radius: 4px;
+
+    &--banner {
+      background-image:
+        linear-gradient(90deg, rgb(0 0 0 / 75%), rgb(0 0 0 / 30%)),
+        var(--friend-banner);
+      background-size: cover;
+      background-position: center;
+    }
+  }
+
+  &__friend-head {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
-    padding: 0 globals.$spacing-unit;
-    border-radius: 6px;
-
-    &--viewer {
-      background-color: rgba(255, 255, 255, 0.06);
-    }
   }
 
   &__friend-avatar {
@@ -1034,15 +1306,16 @@ $leaderboards-streak-to: #b05cff;
     display: flex;
   }
 
+  // Same orb as the friends window (friends-window__status-orb).
   &__presence {
     position: absolute;
-    right: -3px;
-    bottom: -3px;
-    width: 9px;
-    height: 9px;
+    right: 0;
+    bottom: 0;
+    width: 12px;
+    height: 12px;
     border: solid 2px globals.$background-color;
-    border-radius: 999px;
-    background-color: $leaderboards-ended;
+    border-radius: 50%;
+    background-color: #6d6d6d;
 
     &--online {
       background-color: globals.$success-color;
@@ -1066,22 +1339,24 @@ $leaderboards-streak-to: #b05cff;
 
   &__friend-presence {
     font-size: 11px;
-    color: $leaderboards-muted-text;
+    color: globals.$body-color;
+    opacity: 0.7;
   }
 
   &__friend-days {
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: globals.$hint-font-size;
+    gap: 6px;
+    font-size: globals.$body-font-size;
     font-weight: 700;
     color: globals.$muted-color;
     white-space: nowrap;
   }
 
   &__friend-skeleton {
-    height: 40px;
-    border-radius: 6px;
+    height: $leaderboards-friend-row-height;
+    border-radius: 4px;
   }
 
   &__badges-section {
@@ -1103,7 +1378,7 @@ $leaderboards-streak-to: #b05cff;
     gap: calc(globals.$spacing-unit * 1.75);
     padding: calc(globals.$spacing-unit * 1.75);
     border: solid 1px rgba(255, 255, 255, 0.34);
-    border-radius: 8px;
+    border-radius: 4px;
     background-color: globals.$background-color;
 
     &--gold {
@@ -1174,12 +1449,23 @@ $leaderboards-streak-to: #b05cff;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: 4px;
     background-color: $leaderboards-surface;
-    background-image: var(--cover);
-    background-size: cover;
-    background-position: center;
+    position: relative;
+    overflow: hidden;
     color: globals.$warning-color;
+  }
+
+  &__badge-cover-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__badge-cover > svg {
+    position: relative;
   }
 
   &__badge--locked &__badge-cover {
@@ -1199,13 +1485,13 @@ $leaderboards-streak-to: #b05cff;
     background: var(--chip-bg);
     color: globals.$dark-background-color;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 700;
     white-space: nowrap;
     transform: translateX(-50%);
   }
 
   &__badge--locked &__badge-chip {
-    color: $leaderboards-muted-text;
+    color: globals.$body-color;
   }
 
   &__badge-body {
@@ -1217,7 +1503,7 @@ $leaderboards-streak-to: #b05cff;
   }
 
   &__badge-title {
-    font-weight: 700;
+    font-weight: 500;
     color: globals.$muted-color;
   }
 
@@ -1227,7 +1513,7 @@ $leaderboards-streak-to: #b05cff;
 
   &__badge-subtitle {
     font-size: globals.$small-font-size;
-    color: $leaderboards-muted-text;
+    color: globals.$body-color;
   }
 
   &__badge-progress {
@@ -1258,7 +1544,7 @@ $leaderboards-streak-to: #b05cff;
 
   &__badge-meta {
     font-size: 11px;
-    color: $leaderboards-muted-text;
+    color: globals.$body-color;
     white-space: nowrap;
 
     &--earned {
@@ -1269,7 +1555,7 @@ $leaderboards-streak-to: #b05cff;
 
   &__badge-skeleton {
     height: 86px;
-    border-radius: 8px;
+    border-radius: 4px;
   }
 }
 
@@ -1278,7 +1564,7 @@ $leaderboards-streak-to: #b05cff;
   font-size: 11px;
   line-height: 13px;
   font-weight: 700;
-  color: $leaderboards-muted-text;
+  color: globals.$body-color;
   text-shadow:
     0 1px 2px rgba(0, 0, 0, 0.9),
     0 0 6px rgba(0, 0, 0, 0.8);
@@ -1302,27 +1588,63 @@ $leaderboards-streak-to: #b05cff;
   }
 }
 
-.leaderboard-podium {
+// Measures the space for the podium. The container is only around the podium
+// because it would also become the reference for the rows' fixed tooltips.
+.leaderboard-podium-wrapper {
   width: 100%;
-  max-width: 840px;
-  margin: 0 auto calc(globals.$spacing-unit * 1.5);
+  container-type: inline-size;
+}
+
+.leaderboard-podium {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr);
+  // The widths follow the card heights below, so all three keep their shape.
+  grid-template-columns:
+    minmax(0, 320fr)
+    minmax(0, 296fr)
+    minmax(0, 272fr);
   gap: calc(globals.$spacing-unit * 1.5);
   align-items: end;
 
-  &__card {
-    --metal-light: #fff3b0;
-    --metal-main: #{globals.$rank-gold-color};
-    --metal-dark: #a8740c;
-    --metal-ink: #5a3d00;
+  // With fewer than three entries, the cards stay in the center with about the
+  // same shape they have in a full podium.
+  &--sparse {
+    grid-template-columns: repeat(var(--podium-count), minmax(0, 420px));
+    justify-content: center;
+  }
 
+  // Holds the card and its corner action; the card keeps its own height.
+  &__slot {
+    position: relative;
+    min-width: 0;
+    display: flex;
+
+    > .leaderboard-podium__card {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__action {
+    position: absolute;
+    top: globals.$spacing-unit;
+    right: globals.$spacing-unit;
+    display: flex;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &__slot:hover &__action,
+  &__slot:focus-within &__action {
+    opacity: 1;
+  }
+
+  &__card {
     position: relative;
     overflow: hidden;
     display: flex;
     padding: 0;
     border: solid 1px globals.$border-color;
-    border-radius: 8px;
+    border-radius: 4px;
     background-color: $leaderboards-surface;
     color: globals.$muted-color;
     text-align: center;
@@ -1334,23 +1656,19 @@ $leaderboards-streak-to: #b05cff;
     }
 
     &--gold {
-      height: 288px;
+      height: 320px;
     }
 
     &--silver {
-      height: 260px;
-      --metal-light: #ffffff;
-      --metal-main: #{globals.$rank-silver-color};
-      --metal-dark: #7d7e84;
-      --metal-ink: #3a3b40;
+      height: 296px;
     }
 
     &--bronze {
-      height: 240px;
-      --metal-light: #f6c49a;
-      --metal-main: #{globals.$rank-bronze-color};
-      --metal-dark: #8a4f24;
-      --metal-ink: #4a2610;
+      height: 272px;
+    }
+
+    &--viewer {
+      border-color: rgba(255, 255, 255, 0.4);
     }
 
     &--selected {
@@ -1358,9 +1676,8 @@ $leaderboards-streak-to: #b05cff;
     }
   }
 
+  // The metal itself comes from leaderboard-row__strip--{tier}.
   &__band {
-    position: relative;
-    overflow: hidden;
     width: 48px;
     flex-shrink: 0;
     display: flex;
@@ -1368,51 +1685,25 @@ $leaderboards-streak-to: #b05cff;
     align-items: center;
     justify-content: space-between;
     padding: calc(globals.$spacing-unit * 1.75) 0;
-    background: linear-gradient(
-      180deg,
-      var(--metal-light) 0%,
-      var(--metal-main) 22%,
-      var(--metal-dark) 48%,
-      var(--metal-main) 62%,
-      var(--metal-light) 80%,
-      var(--metal-dark) 100%
-    );
-    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.3);
-    color: var(--metal-ink);
+  }
 
-    &::after {
-      content: "";
-      position: absolute;
-      left: -60%;
-      top: 0;
-      width: 220%;
-      height: 36px;
-      background: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0),
-        rgba(255, 255, 255, 0.5),
-        rgba(255, 255, 255, 0)
-      );
-      transform: translateY(-60px) skewY(-24deg);
-      animation: leaderboard-podium-glaze 4.8s ease-in-out infinite;
-      will-change: transform;
-      pointer-events: none;
-    }
+  &__rank,
+  &__metal {
+    position: relative;
+    z-index: 2;
   }
 
   &__rank {
-    position: relative;
-    font-size: 26px;
+    font-size: 34px;
     line-height: 1;
-    font-weight: 900;
+    font-weight: 700;
   }
 
   &__metal {
-    position: relative;
     writing-mode: vertical-rl;
     transform: rotate(180deg);
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.24em;
     text-transform: uppercase;
   }
@@ -1423,17 +1714,17 @@ $leaderboards-streak-to: #b05cff;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 6px;
     padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
-    background-image: linear-gradient(180deg, #262626 0%, #1a1a1a 100%);
+    background-image: linear-gradient(180deg, #1f1f1f 0%, #161616 100%);
 
     &--banner {
       background-image:
         linear-gradient(
           180deg,
-          rgba(13, 13, 13, 0.35) 0%,
-          rgba(13, 13, 13, 0.94) 100%
+          rgba(18, 18, 18, 0.45) 0%,
+          rgba(18, 18, 18, 0.96) 100%
         ),
         var(--leaderboard-podium-banner);
       background-size: cover;
@@ -1441,21 +1732,34 @@ $leaderboards-streak-to: #b05cff;
     }
   }
 
+  &__avatar-wrapper {
+    position: relative;
+    display: inline-flex;
+  }
+
   &__avatar {
     border: solid 2px rgba(13, 13, 13, 0.9);
   }
 
-  &__name-line {
-    height: 22px;
-    display: flex;
+  &__you {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    height: 18px;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-width: 0;
-    max-width: 100%;
+    padding: 0 8px;
+    border-radius: 999px;
+    background-color: #ffffff;
+    color: #000000;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    transform: translate(-50%, 50%);
   }
 
   &__name {
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1463,60 +1767,72 @@ $leaderboards-streak-to: #b05cff;
     font-weight: 700;
   }
 
-  &__you {
-    flex-shrink: 0;
-    height: 18px;
-    padding: 0 6px;
-    display: inline-flex;
-    align-items: center;
-    border: solid 1px rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    background-color: rgba(13, 13, 13, 0.55);
-    backdrop-filter: blur(10px);
-    font-size: 11px;
-    font-weight: 600;
-  }
-
   &__value {
-    height: 28px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 16px;
-    font-weight: 400;
+    gap: globals.$spacing-unit;
+    font-size: 20px;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-
-    &--muted {
-      color: $leaderboards-ended;
-    }
-  }
-
-  &__leader,
-  &__foot {
-    height: 20px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: globals.$small-font-size;
-    font-weight: 600;
-    color: globals.$body-color;
-  }
-
-  &__leader svg {
-    color: globals.$rank-gold-color;
   }
 }
 
-@keyframes leaderboard-podium-glaze {
-  0%,
-  55% {
-    transform: translateY(-60px) skewY(-24deg);
+// Three cards do not fit next to the sidebar in a narrow window.
+// On large screens the layout grows with the space. The podium keeps its shape:
+// the heights follow the same proportions as the column widths.
+@media (min-width: 2000px) {
+  .leaderboards__sidebar {
+    width: 380px;
   }
 
-  85%,
-  100% {
-    transform: translateY(340px) skewY(-24deg);
+  .leaderboards__board {
+    max-width: 1680px;
+  }
+
+  .leaderboard-podium--sparse {
+    grid-template-columns: repeat(var(--podium-count), minmax(0, 530px));
+  }
+
+  .leaderboard-podium__card--gold {
+    height: 400px;
+  }
+
+  .leaderboard-podium__card--silver {
+    height: 370px;
+  }
+
+  .leaderboard-podium__card--bronze {
+    height: 340px;
+  }
+}
+
+@container board-header (max-width: 900px) {
+  .leaderboards__selector--collapsible {
+    .leaderboards__selector-option {
+      padding: 0 calc(globals.$spacing-unit * 1.25);
+    }
+
+    .leaderboards__selector-option-label {
+      display: none;
+    }
+  }
+}
+
+@container (max-width: 520px) {
+  .leaderboard-podium,
+  .leaderboard-podium--sparse {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .leaderboard-podium__slot:has(.leaderboard-podium__card--gold) {
+    order: -1;
+  }
+
+  .leaderboard-podium__card--gold,
+  .leaderboard-podium__card--silver,
+  .leaderboard-podium__card--bronze {
+    height: 180px;
   }
 }
 
@@ -1540,16 +1856,17 @@ $leaderboards-streak-to: #b05cff;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .leaderboard-podium__band::after {
-    display: none;
-    animation: none;
-  }
-
   .streak-flame--flicker {
     animation: none;
   }
 
-  .leaderboards__game {
+  .leaderboards__friend-streaks {
+    scroll-behavior: auto;
+  }
+
+  .leaderboards__selector-option,
+  .leaderboards__side-item,
+  .leaderboards__side-item::before {
     transition: none;
   }
 }

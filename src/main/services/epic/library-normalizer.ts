@@ -1,4 +1,7 @@
-import type { EpicSnapshotGame } from "../../../types/epic-integration.types";
+import type {
+  EpicSnapshotDlc,
+  EpicSnapshotGame,
+} from "../../../types/epic-integration.types";
 import { EpicIntegrationError, isRecord } from "./auth-protocol.js";
 import {
   EPIC_MAX_ARTIFACTS,
@@ -6,6 +9,7 @@ import {
   EPIC_GAME_NAME_MAX_LENGTH,
   EPIC_MAX_PLAYTIME_SECONDS,
   EPIC_SNAPSHOT_MAX_GAMES,
+  EPIC_MAX_DLCS_PER_GAME,
 } from "./constants.js";
 
 // Legendary's list can contain applications as well as games.
@@ -58,6 +62,80 @@ export function classifyEpicItem(
   // Extra store labels do not invalidate an explicitly classified game.
   return categories.includes("games") ? "include" : "exclude";
 }
+
+type EpicDlcOwner = {
+  namespace: string;
+  catalogItemId: string;
+  artifactIds: string[];
+};
+
+export function parseEpicSnapshotDlcs(
+  value: unknown,
+  game: EpicDlcOwner
+): EpicSnapshotDlc[] {
+  if (!Array.isArray(value)) return [];
+  const dlcs: EpicSnapshotDlc[] = [];
+  for (const row of value) {
+    if (!isRecord(row)) continue;
+    const { artifactId, namespace, catalogItemId } = row;
+    const name = typeof row.name === "string" ? row.name.trim() : "";
+    if (
+      !validId(namespace) ||
+      namespace.includes(":") ||
+      !validId(catalogItemId) ||
+      catalogItemId.includes(":") ||
+      !validId(artifactId) ||
+      !validId(name, EPIC_GAME_NAME_MAX_LENGTH) ||
+      game.artifactIds.includes(artifactId) ||
+      (namespace === game.namespace && catalogItemId === game.catalogItemId)
+    )
+      continue;
+    dlcs.push({ artifactId, namespace, catalogItemId, name });
+  }
+  return mergeEpicDlcs([], dlcs);
+}
+
+export function normalizeEpicDlcs(
+  value: unknown,
+  game: EpicDlcOwner
+): EpicSnapshotDlc[] {
+  if (!Array.isArray(value)) return [];
+  return parseEpicSnapshotDlcs(
+    value.flatMap((row) => {
+      if (!isRecord(row) || !isRecord(row.metadata)) return [];
+      const windows = isRecord(row.asset_infos)
+        ? row.asset_infos.Windows
+        : undefined;
+      if (
+        !isRecord(windows) ||
+        windows.app_name !== row.app_name ||
+        classifyEpicItem(row.metadata) !== "exclude"
+      )
+        return [];
+      return [
+        {
+          artifactId: row.app_name,
+          namespace: row.metadata.namespace,
+          catalogItemId: row.metadata.id,
+          name: row.app_title,
+        },
+      ];
+    }),
+    game
+  );
+}
+
+const mergeEpicDlcs = (
+  current: EpicSnapshotDlc[],
+  added: EpicSnapshotDlc[]
+): EpicSnapshotDlc[] =>
+  [
+    ...new Map(
+      [...current, ...added].map((dlc) => [dlc.artifactId, dlc])
+    ).values(),
+  ]
+    .sort((a, b) => compareEpicStrings(a.artifactId, b.artifactId))
+    .slice(0, EPIC_MAX_DLCS_PER_GAME);
 
 export interface EpicLibraryDiagnostic {
   reason: string;
@@ -150,7 +228,16 @@ export function normalizeEpicLibrary(
       if (!validId(name, EPIC_GAME_NAME_MAX_LENGTH))
         invalid("title-invalid", platformIndex, entryIndex, entry);
       const existing = games.get(objectId);
+      const dlcs = normalizeEpicDlcs(entry.dlcs, {
+        namespace,
+        catalogItemId: id,
+        artifactIds: existing
+          ? [...existing.artifactIds, artifact]
+          : [artifact],
+      });
       if (existing) {
+        if (dlcs.length)
+          existing.dlcs = mergeEpicDlcs(existing.dlcs ?? [], dlcs);
         existing.artifactIds = [
           ...new Set([...existing.artifactIds, artifact]),
         ].sort(compareEpicStrings);
@@ -165,6 +252,7 @@ export function normalizeEpicLibrary(
           artifactIds: [artifact],
           name,
           playTimeInSeconds: 0,
+          ...(dlcs.length ? { dlcs } : {}),
         });
     }
   }

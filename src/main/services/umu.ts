@@ -435,8 +435,9 @@ export class Umu {
       useGamemode?: boolean;
       onStatus?: UmuStatusListener;
       wasGameDetected?: () => boolean;
+      onExit?: (exitCode: number | null) => void;
     }
-  ): Promise<void> {
+  ): Promise<number | undefined> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
     const workingDirectory = path.dirname(executablePath);
     const umuLogPath = getUmuLogPath(options?.gameId);
@@ -516,6 +517,8 @@ export class Umu {
         }
       );
 
+      if (options?.onExit) child.once("exit", options.onExit);
+
       await observeUmuLaunch({
         child,
         umuLogPath: shouldPipeToTerminal ? null : umuLogPath,
@@ -530,6 +533,7 @@ export class Umu {
           }),
       });
       child.unref();
+      return child.pid;
     } catch (error) {
       const logLine =
         error instanceof UmuEarlyExitError

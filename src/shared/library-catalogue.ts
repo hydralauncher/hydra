@@ -229,6 +229,7 @@ const projectGroup = (
     logoPosition: presentationGame.logoPosition,
     downloadSources: presentationGame.downloadSources,
     selectedArtworkTypes: presentationGame.selectedArtworkTypes,
+    images: presentationGame.images,
     achievementCount: operationalGame.achievementCount,
     unlockedAchievementCount: operationalGame.unlockedAchievementCount,
     customIconUrl: custom("customIconUrl"),

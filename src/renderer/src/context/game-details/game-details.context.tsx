@@ -8,6 +8,7 @@ import {
   useAppDispatch,
   useAppSelector,
   useDownload,
+  useFeature,
   useLibraryGamePresentation,
   useUserDetails,
 } from "@renderer/hooks";
@@ -117,6 +118,10 @@ export function GameDetailsContextProvider({
 
   const { lastPacket } = useDownload();
   const { userDetails } = useUserDetails();
+  const { isFeatureEnabled, Feature } = useFeature();
+  const multipartHosterDownloads = isFeatureEnabled(
+    Feature.MultipartHosterDownloads
+  );
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -408,7 +413,10 @@ export function GameDetailsContextProvider({
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
       const updatedIsGameRunning =
         !!game?.id &&
-        !!gamesIds.find((gameRunning) => gameRunning.id == game.id);
+        !!gamesIds.find(
+          (gameRunning) =>
+            gameRunning.id == game.id && !gameRunning.recompilationSlug
+        );
 
       if (isGameRunning != updatedIsGameRunning) {
         updateGame();
@@ -564,7 +572,8 @@ export function GameDetailsContextProvider({
           ensureArray<GameRepack>(
             downloads,
             `/games/${catalogueShop}/${catalogueObjectId}/download-sources`
-          )
+          ),
+          multipartHosterDownloads
         );
 
         setRepacks(downloadOptions);
@@ -588,7 +597,7 @@ export function GameDetailsContextProvider({
     return () => {
       cancelled = true;
     };
-  }, [shop, catalogueShop, catalogueObjectId]);
+  }, [shop, catalogueShop, catalogueObjectId, multipartHosterDownloads]);
 
   const getDownloadsPath = async () => {
     if (userPreferences?.downloadsPath) return userPreferences.downloadsPath;

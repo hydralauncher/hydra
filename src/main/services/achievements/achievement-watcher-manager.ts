@@ -27,6 +27,7 @@ import { setTimeout } from "node:timers/promises";
 import { Wine } from "../wine";
 import { AchievementMemoryStore } from "./achievement-memory-store";
 import { UnlockedAchievementsCache } from "./unlocked-achievements-cache";
+import { CombinedAchievementsRequests } from "./combined-achievements-requests";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 
 const fileStats: Map<string, number> = new Map();
@@ -241,6 +242,7 @@ export class AchievementWatcherManager {
     this.alreadySyncedGames.clear();
     AchievementMemoryStore.clear();
     UnlockedAchievementsCache.clear();
+    CombinedAchievementsRequests.clear();
   }
 
   public static forgetAchievementFiles(gameKey: string, filePaths: string[]) {

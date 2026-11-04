@@ -38,7 +38,7 @@ const DEFAULT_FORM: DownloadsBehaviorForm = {
   seedAfterDownloadComplete: false,
   showDownloadSpeedInMegabytes: false,
   extractFilesByDefault: true,
-  deleteArchiveFilesAfterExtractionByDefault: false,
+  deleteArchiveFilesAfterExtractionByDefault: true,
   createStartMenuShortcut: true,
 };
 
@@ -53,7 +53,7 @@ const buildForm = (
           preferences.showDownloadSpeedInMegabytes ?? false,
         extractFilesByDefault: preferences.extractFilesByDefault ?? true,
         deleteArchiveFilesAfterExtractionByDefault:
-          preferences.deleteArchiveFilesAfterExtractionByDefault ?? false,
+          preferences.deleteArchiveFilesAfterExtractionByDefault ?? true,
         createStartMenuShortcut: preferences.createStartMenuShortcut ?? true,
       }
     : DEFAULT_FORM;

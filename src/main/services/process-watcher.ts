@@ -57,6 +57,7 @@ import {
   gamesPlaytime,
   getGamePlaytimeDeltas,
   getTrackedGamesRunning,
+  recompilationGameSessions,
   setGamePlaytime,
 } from "./game-running-state";
 import {
@@ -64,6 +65,7 @@ import {
   stopLinuxGameCaptureSession,
 } from "./linux-game-capture-session";
 import { updateGameRecord } from "./game-record-updater";
+import { onScreenshotGameClosed, onScreenshotGameStarted } from "./screenshots";
 import { GameExecutables } from "./game-executables";
 import {
   onManagedEpicClosed,
@@ -144,6 +146,14 @@ export const getGamesRunning = () => {
     gamesRunning.push({
       id: gameKey,
       sessionDurationInMillis: now - session.startedAt,
+    });
+  }
+
+  for (const session of recompilationGameSessions.values()) {
+    gamesRunning.push({
+      id: session.gameKey,
+      sessionDurationInMillis: now - session.startedAt,
+      recompilationSlug: session.recompilationSlug,
     });
   }
 
@@ -244,7 +254,7 @@ const getSystemProcessMap = async () => {
 };
 
 // Do not restore an old import flag or executable after an asynchronous sync.
-const persistGamePlaytime = async (
+export const persistGamePlaytime = async (
   gameKey: string,
   update: Partial<
     Pick<
@@ -518,6 +528,8 @@ async function onOpenGame(game: Game, matchedPath: string) {
     matchedPath,
   });
 
+  void onScreenshotGameStarted(gameKey);
+
   // On Linux, keep the launcher visible briefly and let it auto-close itself.
   if (process.platform !== "linux") {
     WindowManager.closeGameLauncherWindow();
@@ -651,6 +663,7 @@ function onTickGame(game: Game) {
           method: game.remoteId ? "track" : "create",
           deltaToSync,
         });
+        WindowManager.sendToAppWindows("on-game-playtime-synced");
 
         return persistGamePlaytime(
           levelKeys.game(game.shop, game.objectId),
@@ -697,7 +710,7 @@ function onTickGame(game: Game) {
   }
 }
 
-const onCloseGame = (game: Game) => {
+const onCloseGame = (game: Game, options: { isShutdown?: boolean } = {}) => {
   const authContext = HydraApi.getAuthContext();
   const hydraRevision = getHydraPlaytimeRevision(
     levelKeys.game(game.shop, game.objectId)
@@ -747,6 +760,8 @@ const onCloseGame = (game: Game) => {
 
   void persistGamePlaytime(gameKey, updatedGame, authContext, delta);
 
+  if (!options.isShutdown) onScreenshotGameClosed(gameKey);
+
   if (game.shop === "custom") return;
 
   const closedManagedEpic = onManagedEpicClosed(game);
@@ -769,6 +784,7 @@ const onCloseGame = (game: Game) => {
         logPlaytimeTrace("close-sync-track-success", game, {
           deltaToSync,
         });
+        WindowManager.sendToAppWindows("on-game-session-synced");
 
         return persistGamePlaytime(
           gameKey,
@@ -817,13 +833,15 @@ const onCloseGame = (game: Game) => {
 };
 
 export const clearGamesPlaytime = async () => {
-  for (const game of gamesPlaytime.keys()) {
-    const gameData = await gamesSublevel.get(game);
+  await Promise.all(
+    Array.from(gamesPlaytime.keys(), async (game) => {
+      const gameData = await gamesSublevel.get(game);
 
-    if (gameData) {
-      await onCloseGame(gameData);
-    }
-  }
+      if (gameData) {
+        await onCloseGame(gameData, { isShutdown: true });
+      }
+    })
+  );
 
   clearGamesPlaytimeState();
 };
