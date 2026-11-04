@@ -3526,6 +3526,7 @@
     "install_ready": "{{name}} is installed. Have fun!",
     "install_wait_title": "Almost there",
     "install_waiting": "You can close this window. The download keeps going.",
+    "prepare_can_close": "You can close this window. Preparation keeps going.",
     "close": "Close",
     "choose_rom": "Choose ROM",
     "change_rom": "Change ROM",

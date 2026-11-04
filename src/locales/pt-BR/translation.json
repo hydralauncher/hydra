@@ -3539,6 +3539,7 @@
     "install_ready": "O {{name}} está instalado. Bom jogo!",
     "install_wait_title": "Quase lá",
     "install_waiting": "Você pode fechar esta janela. O download continua.",
+    "prepare_can_close": "Você pode fechar esta janela. A preparação continua.",
     "close": "Fechar",
     "choose_rom": "Escolher ROM",
     "change_rom": "Trocar ROM",

@@ -618,6 +618,14 @@ function InstallModalContent({
       {renderRomStatus()}
       {renderPortStatus()}
       {renderPrepareStatus()}
+      {prepare?.phase !== "error" && (
+        <div className="recompilation-install__prepare-footer">
+          <span>{t(prepare ? "prepare_can_close" : "install_waiting")}</span>
+          <Button theme="outline" onClick={onClose}>
+            {t("close")}
+          </Button>
+        </div>
+      )}
     </>
   );
 

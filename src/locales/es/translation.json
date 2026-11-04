@@ -3049,6 +3049,7 @@
     "install_ready": "{{name}} está instalado. ¡Que lo disfrutes!",
     "install_wait_title": "Casi listo",
     "install_waiting": "Puedes cerrar esta ventana. La descarga sigue.",
+    "prepare_can_close": "Puedes cerrar esta ventana. La preparación continúa.",
     "close": "Cerrar",
     "choose_rom": "Elegir ROM",
     "change_rom": "Cambiar ROM",
