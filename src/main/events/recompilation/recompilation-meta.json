@@ -2,7 +2,10 @@
   "dusklight": {
     "rom": {
       "path": {
-        "arg": ["--dvd", "{rom}"]
+        "config": {
+          "file": "<appData>/TwilitRealm/Dusklight/config.json",
+          "key": ["backend.isoPath"]
+        }
       },
       "extensions": [
         ".iso",

@@ -175,10 +175,12 @@ const resolvePlaceholders = (
       process.env.XDG_DATA_HOME ?? path.join(home, ".local", "share"),
     "{romName}": romName,
   };
+  values["<appData>"] =
+    process.platform === "win32" ? values["<winAppData>"] : values["<xdgData>"];
 
   return path.normalize(
     template.replace(
-      /<base>|<home>|<winLocalAppData>|<winAppData>|<xdgData>|\{romName\}/g,
+      /<base>|<home>|<winLocalAppData>|<winAppData>|<xdgData>|<appData>|\{romName\}/g,
       (token) => values[token]
     )
   );
