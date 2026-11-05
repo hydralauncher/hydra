@@ -1,15 +1,16 @@
-import type { Game, GameShop, RecompilationSaveRule } from "@types";
+import type {
+  CloudSavePathContext,
+  Game,
+  GameShop,
+  RecompilationSaveRule,
+} from "@types";
 import { parseRecompilationCloudSaveObjectId } from "@shared";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 import { getRecompilationInstallState } from "@main/events/recompilation/recompilation-installer";
-import {
-  getRecompilationBaseDirectory,
-  resolveRecompilationPath,
-} from "@main/events/recompilation/recompilation-paths";
 import recompilationSaves from "@main/events/recompilation/recompilation-saves.json";
 
-type SaveOs = "windows" | "linux";
+import { NativeAddon } from "../native-addon";
 
 interface RecompilationSaveMapEntry {
   kind: string;
@@ -20,7 +21,7 @@ interface RecompilationSaveMapEntry {
   // A location whose folder differs per OS: it syncs under one name and each
   // machine restores it into its own folder.
   id?: string;
-  paths?: Partial<Record<SaveOs, string>>;
+  paths?: Partial<Record<CloudSavePathContext["platform"], string>>;
 }
 
 const SAVE_MAP = recompilationSaves as Record<
@@ -30,60 +31,69 @@ const SAVE_MAP = recompilationSaves as Record<
 
 const LOGICAL_SAVE_ROOT = "<recompilation>";
 
-const currentSaveOs = (): SaveOs | null => {
-  if (process.platform === "win32") return "windows";
-  if (process.platform === "linux") return "linux";
-  return null;
-};
+// Resolves this machine's folder with the same native resolver the other save
+// rules use (known folders on Windows, XDG on Linux, <base> from the executable).
+const resolveLocalFolder = (
+  pathContext: CloudSavePathContext,
+  rawPath: string,
+  kind: string
+) =>
+  NativeAddon.resolveSaveRules({
+    shop: pathContext.shop,
+    objectId: pathContext.objectId,
+    platform: pathContext.platform,
+    homeDir: pathContext.homeDir,
+    documentsDir: pathContext.documentsDir,
+    appDataDir: pathContext.appDataDir,
+    executablePath: pathContext.executablePath,
+    winePrefixPath: pathContext.winePrefixPath,
+    steamPath: pathContext.steamPath,
+    rules: [
+      { ruleId: rawPath, kind, rawPath, source: "recomp", tags: [], when: [] },
+    ],
+  })[0]?.resolvedPaths[0]?.path;
 
-const getBaseDirectory = async (ref: { objectId: string; slug: string }) => {
-  const state = await getRecompilationInstallState(ref);
-  return state?.installPath
-    ? getRecompilationBaseDirectory(state.installPath)
-    : null;
-};
-
-export const getRecompilationSaveRules = async (
-  shop: GameShop,
-  objectId: string
-): Promise<RecompilationSaveRule[] | undefined> => {
-  const port = parseRecompilationCloudSaveObjectId(shop, objectId);
+export const getRecompilationSaveRules = (
+  pathContext: CloudSavePathContext
+): RecompilationSaveRule[] | undefined => {
+  const port = parseRecompilationCloudSaveObjectId(
+    pathContext.shop,
+    pathContext.objectId
+  );
   if (!port || !Object.hasOwn(SAVE_MAP, port.slug)) return undefined;
 
-  const saveOs = currentSaveOs();
-  let baseDirectory: string | null | undefined;
-  const rules: RecompilationSaveRule[] = [];
+  return (SAVE_MAP[port.slug]?.saves ?? []).flatMap(
+    (entry): RecompilationSaveRule[] => {
+      const kind = entry.kind === "file" ? "file" : "dir";
+      if (entry.path) {
+        return [
+          {
+            rawPath: entry.path,
+            kind,
+            tags: entry.tags,
+            when: entry.when ?? [],
+          },
+        ];
+      }
 
-  for (const entry of SAVE_MAP[port.slug]?.saves ?? []) {
-    const kind = entry.kind === "file" ? "file" : "dir";
+      const template = entry.paths?.[pathContext.platform];
+      const preferredPath =
+        entry.id && template
+          ? resolveLocalFolder(pathContext, template, kind)
+          : undefined;
+      if (!preferredPath) return [];
 
-    if (entry.path) {
-      rules.push({
-        rawPath: entry.path,
-        kind,
-        tags: entry.tags,
-        when: entry.when ?? [],
-      });
-      continue;
+      return [
+        {
+          rawPath: `${LOGICAL_SAVE_ROOT}/${entry.id}${kind === "dir" ? "/" : ""}`,
+          kind,
+          tags: entry.tags,
+          when: [],
+          preferredPath,
+        },
+      ];
     }
-
-    const template = saveOs ? entry.paths?.[saveOs] : undefined;
-    if (!entry.id || !template) continue;
-    if (template.includes("<base>")) {
-      baseDirectory ??= await getBaseDirectory(port);
-      if (!baseDirectory) continue;
-    }
-
-    rules.push({
-      rawPath: `${LOGICAL_SAVE_ROOT}/${entry.id}${kind === "dir" ? "/" : ""}`,
-      kind,
-      tags: entry.tags,
-      when: [],
-      preferredPath: resolveRecompilationPath(template, baseDirectory ?? ""),
-    });
-  }
-
-  return rules;
+  );
 };
 
 export const getRecompilationCloudSaveGame = async (

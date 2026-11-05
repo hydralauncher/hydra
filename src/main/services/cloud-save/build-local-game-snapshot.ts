@@ -59,10 +59,7 @@ export const buildLocalGameSnapshotContext = async (
     userDataPath: SystemPath.getPath("userData"),
     hashCache,
     extraRules,
-    recompilationRules: await getRecompilationSaveRules(
-      pathContext.shop,
-      pathContext.objectId
-    ),
+    recompilationRules: getRecompilationSaveRules(pathContext),
   };
   let nativeSnapshot;
   const stateMetadataByFile = new Map<string, CloudSaveStateMetadata>();
