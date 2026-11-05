@@ -44,12 +44,7 @@
       "once": true,
       "imported": {
         "win32": ["<base>/oot.o2r", "<base>/oot-mq.o2r"],
-        "linux": [
-          "<xdgData>/soh/oot.o2r",
-          "<xdgData>/soh/oot-mq.o2r",
-          "<base>/oot.o2r",
-          "<base>/oot-mq.o2r"
-        ]
+        "linux": ["<base>/oot.o2r", "<base>/oot-mq.o2r"]
       },
       "extensions": [".z64", ".n64", ".v64"],
       "sha1": [

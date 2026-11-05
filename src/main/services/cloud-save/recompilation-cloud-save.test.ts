@@ -9,7 +9,8 @@ import { build } from "esbuild";
 import type { CloudSavePathContext, RecompilationSaveRule } from "@types";
 
 type GetRules = (
-  pathContext: CloudSavePathContext
+  pathContext: CloudSavePathContext,
+  launchExecutablePath?: string | null
 ) => RecompilationSaveRule[] | undefined;
 
 const ROAMING = "C:/Users/Player/AppData/Roaming";
@@ -155,6 +156,37 @@ describe("getRecompilationSaveRules", () => {
     assert.equal(
       folder("153:shipwright", "windows", "<recompilation>/Save/"),
       undefined
+    );
+  });
+
+  // Hydra runs the extracted AppImage without APPIMAGE set, so Ship of Harkinian
+  // keeps its files in the folder it is launched from on Linux too.
+  it("keeps Ship of Harkinian's Linux saves in the port's folder", () => {
+    assert.equal(
+      folder(
+        "153:shipwright",
+        "linux",
+        "<recompilation>/Save/",
+        "/home/player/recompilations/shipwright/AppRun"
+      ),
+      path.normalize("/home/player/recompilations/shipwright/Save/")
+    );
+  });
+
+  it("uses the folder Hydra launches the port from, not where AppRun links to", () => {
+    const rules = getRecompilationSaveRules(
+      context(
+        "153:shipwright",
+        "linux",
+        "/home/player/recompilations/shipwright/usr/bin/soh.elf"
+      ),
+      "/home/player/recompilations/shipwright/AppRun"
+    );
+
+    assert.equal(
+      rules?.find((rule) => rule.rawPath === "<recompilation>/Save/")
+        ?.preferredPath,
+      path.normalize("/home/player/recompilations/shipwright/Save/")
     );
   });
 

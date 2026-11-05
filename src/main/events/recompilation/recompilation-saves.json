@@ -7,7 +7,7 @@
         "tags": ["save"],
         "paths": {
           "windows": "<base>/Save/",
-          "linux": "<xdgData>/soh/Save/"
+          "linux": "<base>/Save/"
         }
       }
     ]
