@@ -177,7 +177,7 @@ const extractRelease = async (
   await fs.promises.rm(stagingDirectory, { recursive: true, force: true });
 
   try {
-    if (isBareReleaseExecutable(assetName)) {
+    if (isBareReleaseExecutable(assetName, executableOverride)) {
       await fs.promises.mkdir(stagingDirectory, { recursive: true });
       await fs.promises.copyFile(
         archivePath,
@@ -626,6 +626,10 @@ const runPreparation = async (
       phase: result.ok ? "done" : "error",
     });
     return result.ok ? { ok: true } : { ok: false, reason: result.reason };
+  } catch (error) {
+    logger.error(`Failed to prepare recompilation ${ref.slug}`, error);
+    sendPrepareProgress({ slug: ref.slug, phase: "error" });
+    return { ok: false, reason: "rom_prepare_failed" };
   } finally {
     launchesInProgress.delete(ref.slug);
   }

@@ -26,6 +26,10 @@ import {
 } from "./recompilation-paths";
 import recompilationMeta from "./recompilation-meta.json";
 import { toZ64 } from "./n64-rom";
+import {
+  isPreparedForVersion,
+  readInstallerEvent,
+} from "./recompilation-prepare";
 
 type MetaPlatform = "win32" | "linux";
 
@@ -210,22 +214,19 @@ const isPortReady = async (
   );
 };
 
-// Ports prepared per version leave no marker file: the preparation recorded for
-// this ROM and this installed version is what makes them ready.
 const isPreparedForInstalledVersion = async (
   meta: RecompilationRomMeta,
   installDirectory: string,
   choice: RomChoice | null,
   romPath: string | null
-) => {
-  if (!meta.prepareOnUpdate || !romPath || choice?.preparedFrom !== romPath) {
-    return false;
-  }
-  return (
-    choice.preparedVersion ===
+) =>
+  meta.prepareOnUpdate === true &&
+  isPreparedForVersion(
+    meta,
+    choice,
+    romPath,
     (await readInstallMarker(installDirectory))?.version
   );
-};
 
 export const getRecompilationRomState = async (
   rawRef: unknown
@@ -441,22 +442,6 @@ const getRomTarget = (
     EXTRACTED_ROM_FOLDER,
     `${path.parse(romPath).name}.z64`
   );
-};
-
-const readInstallerEvent = (
-  line: string,
-  current: RecompilationPrepareStep
-): RecompilationPrepareStep | null => {
-  const step = /^@step (\d+) (\d+) (.+)$/.exec(line);
-  if (step) {
-    return { step: Number(step[1]), steps: Number(step[2]), title: step[3] };
-  }
-  const percent = /^@note (\d+)%/.exec(line);
-  if (percent) return { ...current, percent: Number(percent[1]) };
-  // Crash Bandicoot's --prepare prints "[ 35%] Recompile: ..."
-  const stage = /^\[\s*(\d+)%\]\s+([^:]+):/.exec(line);
-  if (stage) return { percent: Number(stage[1]), title: stage[2].trim() };
-  return null;
 };
 
 const PORT_EXECUTABLE = "{exe}";

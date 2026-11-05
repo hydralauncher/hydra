@@ -77,7 +77,9 @@
   },
   "ghostship": {
     "rom": {
-      "copyTo": { "linux": "<base>/baserom.us.z64" },
+      "copyTo": {
+        "linux": "<base>/baserom.us.z64"
+      },
       "path": {
         "arg": ["{rom}"]
       },
@@ -184,7 +186,8 @@
         "linux": "<home>/.config/Starfox64Recompiled/sf64.n64.us.1.1.z64"
       },
       "format": "z64",
-      "extensions": [".z64", ".n64", ".v64"]
+      "extensions": [".z64", ".n64", ".v64"],
+      "sha1": ["09f0d105f476b00efa5303a3ebc42e60a7753b7a"]
     }
   },
   "donkey-kong-64-recompiled": {
@@ -194,7 +197,8 @@
         "linux": "<home>/.config/DK64Recompiled/DK64.z64"
       },
       "format": "z64",
-      "extensions": [".z64", ".n64", ".v64"]
+      "extensions": [".z64", ".n64", ".v64"],
+      "sha1": ["cf806ff2603640a748fca5026ded28802f1f4a50"]
     }
   },
   "perfect-dark-dabs-mod": {

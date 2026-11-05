@@ -9,9 +9,11 @@ const NESTED_ARCHIVE = /\.(tar|tar\.gz|tgz|appimage)$/i;
 export const isNestedReleaseArchive = (fileName: string) =>
   NESTED_ARCHIVE.test(fileName);
 
-/** A release published as the program itself, like CrashBandicoot.exe or CrashBandicoot-Linux. */
-export const isBareReleaseExecutable = (fileName: string) =>
-  /\.exe$/i.test(fileName) || !path.basename(fileName).includes(".");
+/** A release published as the program itself, like CrashBandicoot.exe. Only ports that name it as their executable opt in. */
+export const isBareReleaseExecutable = (
+  fileName: string,
+  executableName: string | null
+) => executableName !== null && path.basename(fileName) === executableName;
 
 const looksLikeLinuxExecutable = async (filePath: string) => {
   if (filePath.toLowerCase().endsWith(".appimage")) return true;
