@@ -1588,7 +1588,6 @@
     "downloads": "Downloads",
     "create_shortcuts_on_download": "Create shortcuts when a game finishes downloading",
     "default_wine_prefix": "Default Wine prefix location",
-    "default_proton_version": "Default Proton version",
     "default_proton_version_description": "Select the Proton version used by Auto mode when a game has no custom override",
     "emulation": "Emulation",
     "console_cores": "Console Cores",
