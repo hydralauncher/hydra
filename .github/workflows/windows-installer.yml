@@ -18,6 +18,19 @@ jobs:
       run:
         shell: pwsh
 
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Hydra bakes these URLs into the bundle at build time. Upstream keeps them
+      # in repository variables that a fork does not inherit, which produced an
+      # installer with empty URLs: the UI rendered but the catalogue, sign-in
+      # and downloads all failed. These are the documented public production
+      # endpoints (docs.hydralauncher.gg/getting-started).
+      MAIN_VITE_API_URL: https://hydra-api-us-east-1.losbroxas.org
+      MAIN_VITE_AUTH_URL: https://auth.hydralauncher.gg
+      MAIN_VITE_CHECKOUT_URL: https://checkout.hydralauncher.gg
+      MAIN_VITE_EXTERNAL_RESOURCES_URL: https://assets.hydralauncher.gg
+      RENDERER_VITE_EXTERNAL_RESOURCES_URL: https://assets.hydralauncher.gg
+
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
@@ -78,23 +91,30 @@ jobs:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
+      # An empty endpoint still compiles and still launches; it just cannot
+      # reach anything. Fail before spending half an hour building.
+      - name: Verify endpoints are configured
+        run: |
+          $names = @(
+            "MAIN_VITE_API_URL",
+            "MAIN_VITE_AUTH_URL",
+            "MAIN_VITE_CHECKOUT_URL",
+            "MAIN_VITE_EXTERNAL_RESOURCES_URL",
+            "RENDERER_VITE_EXTERNAL_RESOURCES_URL"
+          )
+          foreach ($name in $names) {
+            $value = [Environment]::GetEnvironmentVariable($name)
+            if ([string]::IsNullOrWhiteSpace($value)) {
+              throw "$name is empty: the installer would ship without working endpoints"
+            }
+            "$name = $value" >> $env:GITHUB_STEP_SUMMARY
+          }
+
       - name: Build Windows installer
         run: |
           $ErrorActionPreference = "Continue"
           yarn build:win 2>&1 | Tee-Object -FilePath build-win.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
-          MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
-          MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
-          MAIN_VITE_NIMBUS_API_URL: ${{ vars.MAIN_VITE_NIMBUS_API_URL }}
-          RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
-          MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
-          RENDERER_VITE_REAL_DEBRID_REFERRAL_ID: ${{ vars.RENDERER_VITE_REAL_DEBRID_REFERRAL_ID }}
-          RENDERER_VITE_TORBOX_REFERRAL_CODE: ${{ vars.RENDERER_VITE_TORBOX_REFERRAL_CODE }}
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
 
       # Printed into the run summary so the reason is visible without opening logs.
       - name: Show failure details
