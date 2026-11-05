@@ -956,6 +956,7 @@
     "platform_unknown_toast": "Não foi possível determinar o sistema do emulador para este jogo.",
     "no_disc_toast": "Nenhum disco disponível para este jogo.",
     "launch_failed_toast": "Falha ao iniciar o jogo",
+    "recompilation_already_running_toast": "Esse jogo já está aberto.",
     "pkg_installing_toast": "Instalando o PKG no RPCS3. Quando terminar, clique em Jogar novamente para iniciar o jogo.",
     "pkg_unreadable_toast": "Não foi possível ler este PKG. Instale e inicie o jogo diretamente pelo RPCS3.",
     "rpcs3_already_running_title": "O RPCS3 já está em execução",
@@ -1310,6 +1311,7 @@
     "download_source_matched": "Sincronizada",
     "download_source_matching": "Sincronizando",
     "download_source_failed": "Erro",
+    "download_source_dead": "Fora do ar",
     "download_source_no_information": "Sem informações",
     "sync_download_sources": "Sincronizar",
     "download_sources_synced_successfully": "Fontes de download sincronizadas",
@@ -2064,7 +2066,9 @@
     "no_genres": "Sem categorias",
     "mode_classics": "Clássicos",
     "mode_modern_games": "Jogos Modernos",
-    "platforms": "Plataformas"
+    "platforms": "Plataformas",
+    "recompilations_filter": "Recomps",
+    "recompilation_badge": "Recomp"
   },
   "modal": {
     "close": "Botão de fechar"
@@ -2920,6 +2924,13 @@
     "explore": "Explorar",
     "dont_show_again": "Não mostrar novamente"
   },
+  "recompilation_onboarding": {
+    "title": "Novo no Hydra: Recomps",
+    "heading": "Jogue clássicos, nativos no PC",
+    "body": "Recomps são jogos clássicos recompilados pela comunidade para rodar direto no PC. Ligue o filtro Recomps aqui no Catálogo para ver todos eles. O Hydra instala o projeto, você aponta a ROM do jogo e joga, sem emulador para configurar.\n\nNa maioria dos casos, não demora nem 1 minuto!",
+    "dont_show_again": "Não mostrar novamente",
+    "show_recompilations": "Ver Recomps"
+  },
   "shop": {
     "featured_chip": "Destaque da semana",
     "buy_for": "Comprar por",
@@ -3460,6 +3471,7 @@
     "install_no_executable": "Não foi possível encontrar o jogo nesta versão. Tente de novo mais tarde.",
     "install_running": "Feche o jogo antes de atualizar.",
     "play_failed": "Não foi possível abrir o jogo.",
+    "already_running": "Esse jogo já está aberto.",
     "close_failed": "Não foi possível fechar o jogo.",
     "uninstall_failed": "Não foi possível desinstalar.",
     "uninstall_title": "Desinstalar {{name}}?",
@@ -3498,7 +3510,7 @@
     "install_step_port": "Versão para PC",
     "install_step_rom": "ROM do jogo",
     "prepare_title": "Preparando o jogo",
-    "prepare_intro": "Isso só acontece na primeira vez e pode levar alguns minutos.",
+    "prepare_intro": "Isso pode levar alguns minutos.",
     "prepare_starting": "Começando",
     "prepare_step_count": "Etapa {{step}} de {{steps}}",
     "prepare_step_disc": "Conferindo o disco",
@@ -3566,6 +3578,13 @@
     "tested_count_other": "{{count}} de {{total}} recursos funcionam",
     "about_project": "Sobre o projeto",
     "github_repository": "Repositório no GitHub",
-    "tested_count_zero": "0 de {{total}} recursos funcionam"
+    "tested_count_zero": "0 de {{total}} recursos funcionam",
+    "tip_new": "NOVO!",
+    "tip_close": "Fechar dica",
+    "tip_title": "Este jogo roda nativo no PC",
+    "tip_body": "Escolha uma versão recompilada pela comunidade e instale direto pelo Hydra, sem baixar nem configurar emulador.",
+    "tip_no_emulator": "Sem emulador",
+    "tip_quick_install": "Instalação em minutos",
+    "tip_got_it": "Legal!"
   }
 }

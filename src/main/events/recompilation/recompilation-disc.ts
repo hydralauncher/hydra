@@ -26,9 +26,6 @@ export interface RecompilationDiscInfo {
   iconUrl: string | null;
 }
 
-export const isRecompilationDisc = (disc: ClassicsDisc) =>
-  Boolean(disc.recompilationSlug);
-
 const notifyLibrary = () =>
   WindowManager.sendToAppWindows("on-library-batch-complete");
 

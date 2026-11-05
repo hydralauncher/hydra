@@ -77,11 +77,13 @@ export function RecompilationHero({
     if (!result.ok && result.reason !== "already_installing") {
       showErrorToast(t(getInstallErrorKey(result.reason)));
     }
+    if (result.preparing) onOpenInstall();
   };
 
   const runPlay = async () => {
-    const ok = await install.play();
-    if (!ok) showErrorToast(t("play_failed"));
+    const played = await install.play();
+    if (played === "already_running") showErrorToast(t("already_running"));
+    else if (!played) showErrorToast(t("play_failed"));
   };
 
   const runClose = async () => {
@@ -139,12 +141,15 @@ export function RecompilationHero({
 
     return (
       <>
-        {hasUpdate && !install.isRunning && !install.isLaunching && (
-          <Button onClick={runUpdate}>
-            <SyncIcon />
-            {t("update")}
-          </Button>
-        )}
+        {hasUpdate &&
+          !install.isRunning &&
+          !install.isLaunching &&
+          !install.isPreparing && (
+            <Button onClick={runUpdate}>
+              <SyncIcon />
+              {t("update")}
+            </Button>
+          )}
         {needsRomChoice && !install.isRunning && (
           <Button
             theme={hasUpdate ? "outline" : "primary"}
@@ -179,7 +184,7 @@ export function RecompilationHero({
                     icon: <Disc3 size={16} />,
                     label: t("change_rom"),
                     onClick: onOpenInstall,
-                    disabled: install.isRunning,
+                    disabled: install.isRunning || install.isPreparing,
                   },
                 ]
               : []),
@@ -197,7 +202,7 @@ export function RecompilationHero({
               icon: <TrashIcon />,
               label: t("uninstall"),
               onClick: () => setIsUninstallOpen(true),
-              disabled: install.isRunning,
+              disabled: install.isRunning || install.isPreparing,
             },
           ]}
         >

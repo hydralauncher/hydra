@@ -235,11 +235,17 @@ export const handleClassicsLaunchError = (
   } else if (code === "RECOMPILATION_NEEDS_SETUP") {
     const port = getRecompilationFromLaunchError(error);
     if (port) navigate(`/recompilation/${port.objectId}/${port.slug}?rom=1`);
+  } else if (code === "RECOMPILATION_ALREADY_RUNNING") {
+    showErrorToast(t("recompilation_already_running_toast"));
   } else {
     showErrorToast(t("launch_failed_toast"));
   }
 
-  return code !== "EMULATOR_ALREADY_RUNNING" && code !== "PKG_INSTALLING";
+  return (
+    code !== "EMULATOR_ALREADY_RUNNING" &&
+    code !== "PKG_INSTALLING" &&
+    code !== "RECOMPILATION_ALREADY_RUNNING"
+  );
 };
 
 export const formatDownloadProgress = (
@@ -412,6 +418,7 @@ const CLASSICS_LAUNCH_ERROR_CODES = [
   "RETROARCH_NOT_CONFIGURED",
   "CORE_NOT_INSTALLED",
   "RECOMPILATION_NEEDS_SETUP",
+  "RECOMPILATION_ALREADY_RUNNING",
   "RECOMPILATION_LAUNCH_FAILED",
 ] as const;
 

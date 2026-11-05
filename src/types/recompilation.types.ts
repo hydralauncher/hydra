@@ -72,6 +72,8 @@ export interface RecompilationReadme {
   repository: string;
   defaultBranch: string;
   markdown: string;
+  // Language the markdown was translated to, or null for the original.
+  translatedTo: string | null;
   sha: string;
   lastSyncedAt: string;
 }
@@ -136,10 +138,13 @@ export interface RecompilationRomMeta {
   path?: {
     arg?: string[];
     env?: Record<string, string>;
+    /** The first item names a program in the release, or `{exe}` for the port itself. */
     installer?: string[];
     config?: { file: string; key: string[] };
   };
   once?: boolean;
+  /** Runs the installer again after every port update, for ports that rebuild the game per version. */
+  prepareOnUpdate?: boolean;
   copyTo?: Partial<Record<"win32" | "linux", string>>;
   imported?: Partial<Record<"win32" | "linux", string[]>>;
   format?: "z64";
@@ -175,4 +180,6 @@ export interface RecompilationActionResult {
   ok: boolean;
   reason?: string;
   warning?: string;
+  /** Set when an update finished and the port started preparing again. */
+  preparing?: boolean;
 }
