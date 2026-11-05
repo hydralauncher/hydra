@@ -16,6 +16,7 @@ import type {
 } from "./game.types";
 import type { ArtworkAssetType } from "./artwork.types";
 import type { GameContentWarning } from "./souvenir.types";
+import type { RecompilationSummary } from "./recompilation.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 export * from "./download-contract";
@@ -1017,6 +1018,7 @@ export interface CatalogueSearchPayload {
   releaseYear?: { gte?: number; lte?: number };
   shops?: string[];
   platforms?: string[];
+  recompilation?: "has";
 }
 
 export interface ProtonDBData {
@@ -1047,6 +1049,7 @@ export type CatalogueSearchResult = {
   developers?: string[];
   publishers?: string[];
   skus?: string[];
+  recompilations?: RecompilationSummary[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &

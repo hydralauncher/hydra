@@ -1,0 +1,79 @@
+@use "../../scss/globals.scss";
+
+.recompilation-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
+  width: 100%;
+  padding: calc(globals.$spacing-unit * 2.5) calc(globals.$spacing-unit * 2);
+  background-color: globals.$background-color;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  color: globals.$muted-color;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  &:active {
+    opacity: globals.$active-opacity;
+  }
+
+  &--checked {
+    border-color: rgba(62, 98, 192, 0.55);
+  }
+
+  &__orb {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 32px;
+    height: 18px;
+    margin-left: auto;
+    border-radius: 9px;
+    background-color: #2a2a2c;
+    transition: background-color 0.2s ease;
+  }
+
+  &__knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: #8e919b;
+    transition:
+      transform 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  &--checked &__switch {
+    background-color: #f5f5f5;
+  }
+
+  &--checked &__knob {
+    transform: translateX(14px);
+    background-color: #0d0d0d;
+  }
+}

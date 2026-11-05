@@ -1,4 +1,9 @@
-import { QuestionIcon, PlusIcon, CheckIcon } from "@primer/octicons-react";
+import {
+  QuestionIcon,
+  PlusIcon,
+  CheckIcon,
+  DeviceDesktopIcon,
+} from "@primer/octicons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
@@ -142,6 +147,8 @@ export function GameItemClassics({ game }: GameItemClassicsProps) {
     });
   }, [game.genres, language, steamGenres]);
 
+  const hasRecompilation = (game.recompilations?.length ?? 0) > 0;
+
   return (
     <article className="game-item-classics">
       <Link
@@ -172,8 +179,20 @@ export function GameItemClassics({ game }: GameItemClassicsProps) {
           )}
 
           {game.platform && (
-            <span className="game-item-classics__platform-chip">
+            <span
+              className={cn("game-item-classics__platform-chip", {
+                "game-item-classics__platform-chip--beside-recompilation":
+                  hasRecompilation,
+              })}
+            >
               {game.platform}
+            </span>
+          )}
+
+          {hasRecompilation && (
+            <span className="game-item-classics__recompilation-chip">
+              <DeviceDesktopIcon size={11} aria-hidden="true" />
+              {t("recompilation_badge", { ns: "catalogue" })}
             </span>
           )}
         </div>

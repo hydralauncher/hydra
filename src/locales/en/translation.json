@@ -248,7 +248,9 @@
     "no_genres": "No categories",
     "mode_modern_games": "Modern Games",
     "mode_classics": "Classics",
-    "platforms": "Platforms"
+    "platforms": "Platforms",
+    "recompilations_filter": "Recomps",
+    "recompilation_badge": "Recomp"
   },
   "game_details": {
     "bios_not_configured_toast": "BIOS not found. Please add BIOS folder in Emulation settings.",
@@ -2075,6 +2077,13 @@
     "next": "Next",
     "explore": "Explore",
     "dont_show_again": "Don't show again"
+  },
+  "recompilation_onboarding": {
+    "title": "New on Hydra: Recomps",
+    "heading": "Play classics, native on PC",
+    "body": "Recomps are classic games recompiled by the community to run directly on PC. Turn on the Recomps filter here in the Catalogue to see all of them. Hydra installs the project, you point to the game's ROM and play, with no emulator to set up.\n\nIn most cases, it takes less than a minute!",
+    "dont_show_again": "Don't show again",
+    "show_recompilations": "See Recomps"
   },
   "forms": {
     "toggle_password_visibility": "Toggle password visibility"

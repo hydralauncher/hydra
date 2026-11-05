@@ -120,6 +120,25 @@
     justify-content: center;
   }
 
+  // Left of the add-to-library button, which sits in the top-right corner.
+  &__recompilation-chip {
+    position: absolute;
+    top: 10px;
+    right: 42px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+    background: #3e62c0;
+    border-radius: 4px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
   &__platform-chip {
     position: absolute;
     top: 8px;
@@ -138,6 +157,10 @@
     max-width: calc(100% - 16px);
     overflow: hidden;
     text-overflow: ellipsis;
+
+    &--beside-recompilation {
+      max-width: calc(100% - 130px);
+    }
   }
 
   &__details {

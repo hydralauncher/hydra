@@ -2062,7 +2062,9 @@
     "no_genres": "Sem categorias",
     "mode_classics": "Clássicos",
     "mode_modern_games": "Jogos Modernos",
-    "platforms": "Plataformas"
+    "platforms": "Plataformas",
+    "recompilations_filter": "Recomps",
+    "recompilation_badge": "Recomp"
   },
   "modal": {
     "close": "Botão de fechar"
@@ -2917,6 +2919,13 @@
     "next": "Próximo",
     "explore": "Explorar",
     "dont_show_again": "Não mostrar novamente"
+  },
+  "recompilation_onboarding": {
+    "title": "Novo no Hydra: Recomps",
+    "heading": "Jogue clássicos, nativos no PC",
+    "body": "Recomps são jogos clássicos recompilados pela comunidade para rodar direto no PC. Ligue o filtro Recomps aqui no Catálogo para ver todos eles. O Hydra instala o projeto, você aponta a ROM do jogo e joga, sem emulador para configurar.\n\nNa maioria dos casos, não demora nem 1 minuto!",
+    "dont_show_again": "Não mostrar novamente",
+    "show_recompilations": "Ver Recomps"
   },
   "shop": {
     "featured_chip": "Destaque da semana",
