@@ -68,7 +68,7 @@ export function RecompilationsSection({
           )
         );
         if (cancelled) return;
-        if (false && states.some((state) => state?.installed)) {
+        if (states.some((state) => state?.installed)) {
           dismissTip(objectId);
           return;
         }
