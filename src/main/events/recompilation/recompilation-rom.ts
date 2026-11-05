@@ -1,7 +1,6 @@
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import readline from "node:readline";
 
@@ -23,6 +22,7 @@ import {
   getRecompilationInstallDirectory,
   parseRecompilationRef,
   readInstallMarker,
+  resolveRecompilationPath,
 } from "./recompilation-paths";
 import recompilationMeta from "./recompilation-meta.json";
 import { toZ64 } from "./n64-rom";
@@ -178,34 +178,6 @@ const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
   return null;
 };
 
-const resolvePlaceholders = (
-  template: string,
-  baseDirectory: string,
-  romName: string
-) => {
-  const home = os.homedir();
-  const values: Record<string, string> = {
-    "<base>": baseDirectory,
-    "<home>": home,
-    "<winLocalAppData>":
-      process.env.LOCALAPPDATA ?? path.join(home, "AppData", "Local"),
-    "<winAppData>":
-      process.env.APPDATA ?? path.join(home, "AppData", "Roaming"),
-    "<xdgData>":
-      process.env.XDG_DATA_HOME ?? path.join(home, ".local", "share"),
-    "{romName}": romName,
-  };
-  values["<appData>"] =
-    process.platform === "win32" ? values["<winAppData>"] : values["<xdgData>"];
-
-  return path.normalize(
-    template.replace(
-      /<base>|<home>|<winLocalAppData>|<winAppData>|<xdgData>|<appData>|\{romName\}/g,
-      (token) => values[token]
-    )
-  );
-};
-
 const getCopyTarget = (
   meta: RecompilationRomMeta,
   baseDirectory: string,
@@ -213,7 +185,7 @@ const getCopyTarget = (
 ) => {
   const template = meta.copyTo?.[process.platform as MetaPlatform];
   return template
-    ? resolvePlaceholders(template, baseDirectory, romName)
+    ? resolveRecompilationPath(template, baseDirectory, romName)
     : null;
 };
 
@@ -224,7 +196,9 @@ const isPortReady = async (
 ) => {
   const imported = meta.imported?.[process.platform as MetaPlatform] ?? [];
   for (const template of imported) {
-    if (await fileExists(resolvePlaceholders(template, baseDirectory, ""))) {
+    if (
+      await fileExists(resolveRecompilationPath(template, baseDirectory, ""))
+    ) {
       return true;
     }
   }
@@ -503,7 +477,7 @@ const writeRomConfig = async (
   baseDirectory: string,
   romPath: string
 ) => {
-  const file = resolvePlaceholders(config.file, baseDirectory, "");
+  const file = resolveRecompilationPath(config.file, baseDirectory, "");
   let root: Record<string, unknown> = {};
   try {
     const parsed = JSON.parse(await fs.promises.readFile(file, "utf-8"));
