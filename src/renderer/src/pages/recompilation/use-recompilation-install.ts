@@ -111,6 +111,9 @@ export function useRecompilationInstall(
         setProgress(null);
         await refresh();
       }
+      // The reply can arrive before the "running" event, and the install
+      // modal reads this when it opens.
+      if (result.preparing) setPreparePhase("running");
       return result;
     },
     [objectId, slug, refresh]

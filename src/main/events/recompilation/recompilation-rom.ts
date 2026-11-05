@@ -210,6 +210,23 @@ const isPortReady = async (
   );
 };
 
+// Ports prepared per version leave no marker file: the preparation recorded for
+// this ROM and this installed version is what makes them ready.
+const isPreparedForInstalledVersion = async (
+  meta: RecompilationRomMeta,
+  installDirectory: string,
+  choice: RomChoice | null,
+  romPath: string | null
+) => {
+  if (!meta.prepareOnUpdate || !romPath || choice?.preparedFrom !== romPath) {
+    return false;
+  }
+  return (
+    choice.preparedVersion ===
+    (await readInstallMarker(installDirectory))?.version
+  );
+};
+
 export const getRecompilationRomState = async (
   rawRef: unknown
 ): Promise<RecompilationRomState | null> => {
@@ -237,11 +254,17 @@ export const getRecompilationRomState = async (
     libraryRomPath,
     needsPreparation: Boolean(meta?.path?.installer),
     isReady: meta
-      ? await isPortReady(
+      ? (await isPortReady(
           meta,
           await getRecompilationBaseDirectory(installDirectory),
           choice
-        )
+        )) ||
+        (await isPreparedForInstalledVersion(
+          meta,
+          installDirectory,
+          choice,
+          romPath
+        ))
       : false,
     extensions: (meta?.extensions ?? []).map((extension) => extension.slice(1)),
   };
