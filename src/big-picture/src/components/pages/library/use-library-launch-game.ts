@@ -26,6 +26,10 @@ const CLASSICS_LAUNCH_ERROR_TOASTS: Record<
     title: "BIOS not configured",
     message: "Add the BIOS files for this platform in Settings.",
   },
+  RECOMPILATION_NEEDS_SETUP: {
+    title: "PC version not ready",
+    message: "Open this game in Hydra to choose the ROM for its PC version.",
+  },
   NO_DISC: {
     title: "No disc found",
     message: "Add or rescan discs for this Classics game before launching.",

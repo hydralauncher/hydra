@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -15,18 +16,27 @@ import type {
 } from "@types";
 import { isCompletedLikeDownload } from "../../../types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { logger, SevenZip } from "@main/services";
+import { t } from "i18next";
+import { logger, SevenZip, WindowManager } from "@main/services";
 import {
   getRecompilationBaseDirectory,
   getRecompilationInstallDirectory,
   parseRecompilationRef,
+  readInstallMarker,
 } from "./recompilation-paths";
 import recompilationMeta from "./recompilation-meta.json";
 import { toZ64 } from "./n64-rom";
 
+type MetaPlatform = "win32" | "linux";
+
 const ROM_META = recompilationMeta as Record<
   string,
-  { rom: RecompilationRomMeta | null; hideConsole?: boolean } | undefined
+  | {
+      rom: RecompilationRomMeta | null;
+      hideConsole?: boolean;
+      executable?: Partial<Record<MetaPlatform, string>>;
+    }
+  | undefined
 >;
 
 const getRecompilationRomMeta = (slug: string): RecompilationRomMeta | null =>
@@ -35,10 +45,13 @@ const getRecompilationRomMeta = (slug: string): RecompilationRomMeta | null =>
 export const shouldHideRecompilationConsole = (slug: string) =>
   Object.hasOwn(ROM_META, slug) && ROM_META[slug]?.hideConsole === true;
 
+export const getRecompilationExecutableOverride = (slug: string) =>
+  (Object.hasOwn(ROM_META, slug)
+    ? ROM_META[slug]?.executable?.[process.platform as MetaPlatform]
+    : undefined) ?? null;
+
 const getLibraryRomExtensions = (slug: string) =>
   getRecompilationRomMeta(slug)?.extensions ?? [];
-
-type MetaPlatform = "win32" | "linux";
 
 const ROM_CHOICE_FILE = ".hydra-recompilation-rom.json";
 const EXTRACTED_ROM_FOLDER = ".hydra-rom";
@@ -51,6 +64,7 @@ interface RomChoice {
   preparedFrom?: string;
   preparedTarget?: string;
   launched?: boolean;
+  checkedFrom?: string;
 }
 
 const hasExtension = (filePath: string, extensions: string[]) =>
@@ -152,10 +166,16 @@ const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
 
   const game = await gamesSublevel.get(key).catch(() => null);
   if (!game || game.isDeleted) return null;
-  const disc = game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
-  return disc && hasExtension(disc, extensions) && (await fileExists(disc))
-    ? disc
-    : null;
+  const candidates = [
+    game.selectedDiscPath,
+    ...(game.discs ?? []).map((disc) => disc.path),
+  ];
+  for (const disc of candidates) {
+    if (disc && hasExtension(disc, extensions) && (await fileExists(disc))) {
+      return disc;
+    }
+  }
+  return null;
 };
 
 const resolvePlaceholders = (
@@ -209,7 +229,8 @@ const isPortReady = async (
     }
   }
   return (
-    meta.copyTo !== undefined && (await fileExists(choice?.preparedTarget))
+    getCopyTarget(meta, baseDirectory, "") !== null &&
+    (await fileExists(choice?.preparedTarget))
   );
 };
 
@@ -277,14 +298,53 @@ export const setRecompilationRom = async (
 
   const installDirectory = await getRecompilationInstallDirectory(ref.slug);
   const previous = await readRomChoice(installDirectory);
+  const chosenPath =
+    source === "file"
+      ? (romPath as string)
+      : await getLibraryRomPath(ref.objectId, meta.extensions);
+  const isChecked =
+    chosenPath !== null &&
+    !ARCHIVE_EXTENSIONS.has(path.extname(chosenPath).toLowerCase());
   await writeRomChoice(installDirectory, {
     preparedFrom: previous?.preparedFrom,
     preparedTarget: previous?.preparedTarget,
     launched: false,
     source,
     path: source === "file" ? (romPath as string) : undefined,
+    checkedFrom: isChecked ? chosenPath : undefined,
   });
-  return { ok: true };
+
+  const supported = isChecked
+    ? await isSupportedRomVersion(chosenPath, meta)
+    : true;
+  return supported ? { ok: true } : { ok: true, warning: "rom_version" };
+};
+
+const MAX_HASHED_ROM_BYTES = 128 * 1024 * 1024;
+
+const isSupportedRomVersion = async (
+  romPath: string,
+  meta: RecompilationRomMeta
+) => {
+  if (!meta.sha1?.length) return true;
+  if (ARCHIVE_EXTENSIONS.has(path.extname(romPath).toLowerCase())) return true;
+
+  try {
+    const { size } = await fs.promises.stat(romPath);
+    if (size > MAX_HASHED_ROM_BYTES) return true;
+
+    const data = await fs.promises.readFile(romPath);
+    // Identifies the ROM dump against the hashes the ports publish; not a security check.
+    const sha1 = (bytes: Buffer) =>
+      crypto.createHash("sha1").update(bytes).digest("hex"); // NOSONAR
+    if (meta.sha1.includes(sha1(data))) return true;
+
+    const isN64 = meta.extensions.includes(".z64");
+    return isN64 && meta.sha1.includes(sha1(toZ64(data)));
+  } catch (error) {
+    logger.warn("Failed to check the ROM version", error);
+    return true;
+  }
 };
 
 const unpackRom = async (
@@ -466,6 +526,16 @@ const writeRomConfig = async (
   await fs.promises.writeFile(file, JSON.stringify(root, null, 2));
 };
 
+const warnUnsupportedRom = async (installDirectory: string) => {
+  const name =
+    (await readInstallMarker(installDirectory))?.name ??
+    path.basename(installDirectory);
+  WindowManager.mainWindow?.webContents.send("on-show-toast", {
+    type: "warning",
+    title: t("rom_version_warning", { ns: "recompilation", name }),
+  });
+};
+
 export type RecompilationLaunch =
   | { ok: true; args: string[]; env: Record<string, string> }
   | { ok: false; reason: string };
@@ -536,9 +606,23 @@ export const prepareRecompilationRom = async (
       await writeRomConfig(meta.path.config, baseDirectory, romPath);
     }
 
-    if (!isPrepared || (target ?? undefined) !== choice.preparedTarget) {
+    // ROMs downloaded or picked inside an archive are only checked once they are unpacked.
+    const needsVersionCheck = choice.checkedFrom !== state.romPath;
+    if (
+      needsVersionCheck &&
+      !(await isSupportedRomVersion(sourceRomPath, meta))
+    ) {
+      await warnUnsupportedRom(installDirectory);
+    }
+
+    if (
+      !isPrepared ||
+      needsVersionCheck ||
+      (target ?? undefined) !== choice.preparedTarget
+    ) {
       await writeRomChoice(installDirectory, {
         ...choice,
+        checkedFrom: state.romPath,
         preparedFrom: state.romPath,
         preparedTarget: target ?? undefined,
         launched: isPrepared ? choice.launched : false,

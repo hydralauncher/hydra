@@ -9,7 +9,6 @@ export type RecompilationTestedFeatureKey =
   | "launch"
   | "playtime"
   | "cloudSaves"
-  | "achievements"
   | "controllerBigPicture";
 
 export type RecompilationTestedFeatureStatus =
@@ -125,6 +124,7 @@ export interface RecompilationInstallProgress {
 export interface RecompilationInstallState {
   installed: boolean;
   isInstalling: boolean;
+  isPreparing?: boolean;
   version: string | null;
   installPath: string | null;
   installParentPath: string;
@@ -143,6 +143,7 @@ export interface RecompilationRomMeta {
   copyTo?: Partial<Record<"win32" | "linux", string>>;
   imported?: Partial<Record<"win32" | "linux", string[]>>;
   format?: "z64";
+  sha1?: string[];
   extensions: string[];
 }
 
@@ -173,4 +174,5 @@ export interface RecompilationPrepareProgress extends RecompilationPrepareStep {
 export interface RecompilationActionResult {
   ok: boolean;
   reason?: string;
+  warning?: string;
 }

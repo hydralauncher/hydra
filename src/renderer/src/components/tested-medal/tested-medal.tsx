@@ -1,3 +1,4 @@
+import { useId } from "react";
 import cn from "classnames";
 import type { RecompilationTestedLevel } from "@types";
 
@@ -9,39 +10,53 @@ export interface TestedMedalProps {
   className?: string;
 }
 
+const TIER_COLORS: Record<RecompilationTestedLevel, [string, string, string]> =
+  {
+    platinum: ["#d6fff6", "#5ee6c8", "#159c84"],
+    gold: ["#fff1c2", "#f2c94c", "#b7861f"],
+    silver: ["#ffffff", "#c9ced6", "#848b97"],
+    bronze: ["#ffd9bd", "#d98f5c", "#94552c"],
+    untested: ["#6b6e75", "#4a4c52", "#2f3035"],
+  };
+
 export function TestedMedal({
   level,
   size = 12,
   className,
 }: Readonly<TestedMedalProps>) {
+  const id = useId();
+  const [light, base, dark] = TIER_COLORS[level];
+
   return (
     <svg
       className={cn("tested-medal", `tested-medal--${level}`, className)}
       width={size}
-      height={Math.round((size * 26) / 24)}
-      viewBox="0 0 24 26"
+      height={size}
+      viewBox="0 0 24 24"
       aria-hidden="true"
     >
-      {level === "platinum" && (
-        <defs>
-          <linearGradient
-            id="tested-medal-platinum"
-            x1="0"
-            y1="0"
-            x2="1"
-            y2="1"
-          >
-            <stop offset="0%" stopColor="#30edc5" />
-            <stop offset="100%" stopColor="#16b195" />
-          </linearGradient>
-        </defs>
-      )}
-      <path className="tested-medal__ribbon" d="M6.5 1h4.5l2.2 7.5H8.7z" />
-      <path className="tested-medal__ribbon" d="M17.5 1H13l-2.2 7.5h4.5z" />
-      <circle className="tested-medal__disc" cx="12" cy="17" r="8" />
-      <circle className="tested-medal__rim" cx="12" cy="17" r="6" />
+      <defs>
+        <linearGradient id={`${id}-face`} x1="0.2" y1="0" x2="0.8" y2="1">
+          <stop offset="0%" stopColor={light} />
+          <stop offset="55%" stopColor={base} />
+          <stop offset="100%" stopColor={dark} />
+        </linearGradient>
+        <linearGradient id={`${id}-inner`} x1="0.8" y1="1" x2="0.2" y2="0">
+          <stop offset="0%" stopColor={light} />
+          <stop offset="60%" stopColor={base} />
+          <stop offset="100%" stopColor={dark} />
+        </linearGradient>
+      </defs>
+      <circle cx="12" cy="12" r="12" fill={`url(#${id}-face)`} />
+      <circle
+        cx="12"
+        cy="12"
+        r="8.75"
+        fill={`url(#${id}-inner)`}
+        className="tested-medal__inner"
+      />
       {level !== "untested" && (
-        <path className="tested-medal__mark" d="M8.8 17.2l2.2 2.2 4.2-4.4" />
+        <path className="tested-medal__mark" d="M8.4 12.2l2.5 2.5 4.7-4.9" />
       )}
     </svg>
   );

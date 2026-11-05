@@ -72,6 +72,19 @@
     color: #fafafa;
   }
 
+  &__playtime {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+
+    p {
+      margin: 0;
+    }
+  }
+
   &__hero-actions {
     display: flex;
     flex-direction: column;
@@ -269,22 +282,111 @@
   &__empty {
     color: globals.$body-color;
   }
+}
+
+.recompilation-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+  padding: calc(globals.$spacing-unit * 2);
 
   &__tested-head {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: calc(globals.$spacing-unit * 1.5);
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2) 0;
 
-    p {
-      margin: 4px 0 0;
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    strong {
+      color: #fafafa;
+      font-size: 14px;
+    }
+
+    span {
       font-size: globals.$small-font-size;
       color: globals.$body-color;
     }
   }
 
-  &__feature--off {
-    opacity: 0.5;
+  &__features {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      line-height: 18px;
+      color: globals.$muted-color;
+    }
+  }
+
+  &__about {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+
+    div {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: calc(globals.$spacing-unit * 2);
+      font-size: globals.$small-font-size;
+    }
+
+    dt {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      color: globals.$muted-color;
+      font-weight: 600;
+    }
+
+    dd {
+      margin: 0;
+      color: globals.$body-color;
+      text-align: right;
+    }
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: calc(globals.$spacing-unit * 2) 0 0;
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: none;
+    color: globals.$muted-color;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: color ease 0.2s;
+
+    span {
+      flex: 1;
+      text-align: left;
+    }
+
+    svg:last-child {
+      color: #8e919b;
+    }
+
+    &:hover {
+      color: #fff;
+    }
   }
 }
 

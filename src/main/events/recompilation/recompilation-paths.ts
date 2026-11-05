@@ -42,6 +42,8 @@ export interface InstallMarker {
   assetName: string;
   executablePath: string | null;
   installedAt: string;
+  name?: string;
+  iconUrl?: string | null;
 }
 
 export const readInstallMarker = async (
