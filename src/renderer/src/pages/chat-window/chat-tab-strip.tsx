@@ -576,26 +576,28 @@ export function ChatTabStrip({
         />
       </div>
 
-      <div className="chat-window__window-controls">
-        <button
-          type="button"
-          className="chat-window__window-control"
-          onClick={onMinimize}
-          title={t("minimize")}
-          aria-label={t("minimize")}
-        >
-          <DashIcon size={16} />
-        </button>
-        <button
-          type="button"
-          className="chat-window__window-control chat-window__window-control--close"
-          onClick={onCloseWindow}
-          title={t("close_window")}
-          aria-label={t("close_window")}
-        >
-          <XIcon size={16} />
-        </button>
-      </div>
+      {!globalThis.window.electron.hasNativeWindowDecorations && (
+        <div className="chat-window__window-controls">
+          <button
+            type="button"
+            className="chat-window__window-control"
+            onClick={onMinimize}
+            title={t("minimize")}
+            aria-label={t("minimize")}
+          >
+            <DashIcon size={16} />
+          </button>
+          <button
+            type="button"
+            className="chat-window__window-control chat-window__window-control--close"
+            onClick={onCloseWindow}
+            title={t("close_window")}
+            aria-label={t("close_window")}
+          >
+            <XIcon size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

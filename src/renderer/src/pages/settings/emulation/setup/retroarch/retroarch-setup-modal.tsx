@@ -6,7 +6,7 @@ import { showExecutableOpenDialog } from "@renderer/helpers";
 import { useRetroArchScan, useToast } from "@renderer/hooks";
 import type { RetroArchConfig } from "@types";
 
-import { SetupFooter } from "../setup-footer";
+import { SetupFooter } from "@renderer/components/setup-modal/setup-footer";
 import { SetupStepDone } from "../setup-step-done";
 import { SetupStepRomFolder } from "../setup-step-rom-folder";
 import { SetupStepScanning } from "../setup-step-scanning";

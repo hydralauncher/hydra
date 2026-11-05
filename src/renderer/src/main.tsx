@@ -32,12 +32,14 @@ import Catalogue from "./pages/catalogue/catalogue";
 import Home from "./pages/home/home";
 import Downloads from "./pages/downloads/downloads";
 import GameDetails from "./pages/game-details/game-details";
+import RecompilationPage from "./pages/recompilation/recompilation-page";
 import Settings from "./pages/settings/settings";
 import Profile from "./pages/profile/profile";
 import Achievements from "./pages/achievements/achievements";
 import ThemeEditor from "./pages/theme-editor/theme-editor";
 import Library from "./pages/library/library";
 import Notifications from "./pages/notifications/notifications";
+import Shop from "./pages/shop/shop";
 import Leaderboards from "./pages/leaderboards/leaderboards";
 import { AchievementNotification } from "./pages/achievements/notification/achievement-notification";
 import { AchievementNotificationOverlay } from "./components/achievements/notification/achievement-notification-overlay";
@@ -145,10 +147,15 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                     path="/game/:shop/:objectId"
                     element={<GameDetails />}
                   />
+                  <Route
+                    path="/recompilation/:objectId/:slug"
+                    element={<RecompilationPage />}
+                  />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/profile/:userId" element={<Profile />} />
                   <Route path="/achievements" element={<Achievements />} />
                   <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/shop" element={<Shop />} />
                   <Route path="/leaderboards" element={<Leaderboards />} />
                 </Route>
 

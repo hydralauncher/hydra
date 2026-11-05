@@ -15,9 +15,9 @@ import { ArchIcon, FlatpakIcon } from "../brand-icons";
 import {
   ExternalLinkCard,
   InstallLoadingCard,
-  InstallProgressBar,
   installStatusText,
 } from "../install-progress";
+import { InstallProgressBar } from "@renderer/components/setup-modal/install-progress-bar";
 
 const OFFICIAL_WEBSITE = "https://www.retroarch.com/";
 
