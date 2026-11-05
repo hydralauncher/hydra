@@ -53,6 +53,7 @@ pub struct RecompilationSaveRule {
     pub kind: String,
     pub tags: Vec<String>,
     pub when: Vec<CloudSaveRuleCondition>,
+    pub preferred_path: Option<String>,
 }
 
 #[napi(object)]

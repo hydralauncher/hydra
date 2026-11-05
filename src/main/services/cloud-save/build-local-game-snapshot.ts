@@ -59,7 +59,7 @@ export const buildLocalGameSnapshotContext = async (
     userDataPath: SystemPath.getPath("userData"),
     hashCache,
     extraRules,
-    recompilationRules: getRecompilationSaveRules(
+    recompilationRules: await getRecompilationSaveRules(
       pathContext.shop,
       pathContext.objectId
     ),

@@ -28,17 +28,16 @@ pub fn resolve_rules(
                 };
             }
             let mut resolved = resolve_path(&rule.raw_path, context);
-            if rule.raw_path.starts_with("<custom>") {
-                if let Some(preferred_path) = &rule.preferred_path {
-                    resolved.paths = vec![super::types::ResolvedCloudSavePath {
-                        path: preferred_path.replace('\\', "/"),
-                        case_sensitive: context.platform == "linux"
-                            && !context.windows_compatibility,
-                        dynamic: false,
-                        scan_root: None,
-                    }];
-                    resolved.unresolved_tokens.clear();
-                }
+            // A rule that carries its local folder (custom paths, ports whose save folder
+            // differs per OS) is scanned there; its raw path only names it.
+            if let Some(preferred_path) = &rule.preferred_path {
+                resolved.paths = vec![super::types::ResolvedCloudSavePath {
+                    path: preferred_path.replace('\\', "/"),
+                    case_sensitive: context.platform == "linux" && !context.windows_compatibility,
+                    dynamic: false,
+                    scan_root: None,
+                }];
+                resolved.unresolved_tokens.clear();
             }
             ResolvedCloudSaveRule {
                 rule_id: rule.rule_id,

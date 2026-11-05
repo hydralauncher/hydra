@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 import type { RecompilationRef } from "@types";
@@ -81,3 +82,31 @@ export const saveRecompilationInstallDirectory = (
 
 export const forgetRecompilationInstallDirectory = (slug: string) =>
   recompilationInstallsSublevel.del(slug);
+
+export const resolveRecompilationPath = (
+  template: string,
+  baseDirectory: string,
+  romName = ""
+) => {
+  const home = os.homedir();
+  const values: Record<string, string> = {
+    "<base>": baseDirectory,
+    "<home>": home,
+    "<winLocalAppData>":
+      process.env.LOCALAPPDATA ?? path.join(home, "AppData", "Local"),
+    "<winAppData>":
+      process.env.APPDATA ?? path.join(home, "AppData", "Roaming"),
+    "<xdgData>":
+      process.env.XDG_DATA_HOME ?? path.join(home, ".local", "share"),
+    "{romName}": romName,
+  };
+  values["<appData>"] =
+    process.platform === "win32" ? values["<winAppData>"] : values["<xdgData>"];
+
+  return path.normalize(
+    template.replace(
+      /<base>|<home>|<winLocalAppData>|<winAppData>|<xdgData>|<appData>|\{romName\}/g,
+      (token) => values[token]
+    )
+  );
+};

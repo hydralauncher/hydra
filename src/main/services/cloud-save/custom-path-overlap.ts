@@ -72,7 +72,7 @@ export const getApprovedCloudSaveRules = async (
       title: context.game?.title,
       remoteId: context.game?.remoteId ?? undefined,
       userDataPath: SystemPath.getPath("userData"),
-      recompilationRules: getRecompilationSaveRules(shop, objectId),
+      recompilationRules: await getRecompilationSaveRules(shop, objectId),
     })
   ).rules;
 

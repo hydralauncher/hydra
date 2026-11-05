@@ -89,7 +89,7 @@ export const resolveRestoreManifestTargets = async (
         title: gameContext.game?.title,
         remoteId: gameContext.game?.remoteId ?? undefined,
         userDataPath: SystemPath.getPath("userData"),
-        recompilationRules: getRecompilationSaveRules(
+        recompilationRules: await getRecompilationSaveRules(
           manifest.snapshot.shop,
           manifest.snapshot.objectId
         ),
