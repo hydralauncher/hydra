@@ -127,7 +127,12 @@ export function useRecompilationInstall(
     const result = await window.electron
       .playRecompilation({ objectId, slug })
       .finally(() => setIsLaunching(false));
-    return result.ok || result.reason === "cloud_save_conflict";
+    return (
+      result.ok ||
+      result.reason === "cloud_save_conflict" ||
+      result.reason === "rom_prepare_failed" ||
+      result.reason === "running"
+    );
   }, [objectId, slug]);
 
   const close = useCallback(async () => {
@@ -153,7 +158,9 @@ export function useRecompilationInstall(
     isBusy,
     isRunning,
     isLaunching,
-    isPreparing: preparePhase === "running",
+    isPreparing:
+      preparePhase === "running" ||
+      (preparePhase === null && Boolean(state?.isPreparing)),
     prepareFailed: preparePhase === "error",
     install,
     uninstall,

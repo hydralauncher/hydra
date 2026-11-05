@@ -12,6 +12,7 @@ import {
   recompilationInstallsSublevel,
 } from "@main/level";
 import { HydraApi, logger, WindowManager } from "@main/services";
+import { getCloudSaveRetroArchPlatform } from "@shared";
 import {
   INSTALL_MARKER_FILE,
   type InstallMarker,
@@ -42,18 +43,18 @@ const updateGameDiscs = async (
   const discs = update(game.discs ?? []);
   if (!discs) return false;
 
-  const selectedStillExists = discs.some(
-    (disc) => disc.path === game.selectedDiscPath
-  );
+  const previous = game.selectedDiscPath;
+  const selectionRemoved =
+    typeof previous === "string" &&
+    !discs.some((disc) => disc.path === previous);
+  const fallback = getCloudSaveRetroArchPlatform(SHOP, game.platform)
+    ? null
+    : (discs[0]?.path ?? null);
+
   await gamesSublevel.put(key, {
     ...game,
     discs,
-    selectedDiscPath: selectedStillExists
-      ? game.selectedDiscPath
-      : (discs[0]?.path ?? null),
-    dontAskDiscSelection: selectedStillExists
-      ? game.dontAskDiscSelection
-      : false,
+    selectedDiscPath: selectionRemoved ? fallback : previous,
   });
   return true;
 };
@@ -125,16 +126,28 @@ const readDiscInfo = async (
   return { name: details.name, iconUrl: details.iconUrl };
 };
 
+const isReachable = (directory: string) =>
+  fs.promises
+    .access(directory)
+    .then(() => true)
+    .catch(() => false);
+
 export const reconcileRecompilationDiscs = async () => {
   try {
     const installed = new Map<string, RecompilationRef>();
+    const unreachable = new Set<string>();
 
     for await (const [
       slug,
       directory,
     ] of recompilationInstallsSublevel.iterator()) {
       const marker = await readInstallMarker(directory);
-      if (marker?.slug !== slug) continue;
+      if (marker?.slug !== slug) {
+        if (!(await isReachable(path.parse(directory).root))) {
+          unreachable.add(slug);
+        }
+        continue;
+      }
 
       const ref = { objectId: marker.objectId, slug };
       installed.set(slug, ref);
@@ -149,7 +162,7 @@ export const reconcileRecompilationDiscs = async () => {
       if (game.shop !== SHOP) continue;
       for (const disc of game.discs ?? []) {
         const slug = disc.recompilationSlug;
-        if (!slug) continue;
+        if (!slug || unreachable.has(slug)) continue;
         if (installed.get(slug)?.objectId === game.objectId) continue;
         await removeRecompilationDisc({ objectId: game.objectId, slug });
       }

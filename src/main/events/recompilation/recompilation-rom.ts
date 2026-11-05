@@ -162,10 +162,16 @@ const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
 
   const game = await gamesSublevel.get(key).catch(() => null);
   if (!game || game.isDeleted) return null;
-  const disc = game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
-  return disc && hasExtension(disc, extensions) && (await fileExists(disc))
-    ? disc
-    : null;
+  const candidates = [
+    game.selectedDiscPath,
+    ...(game.discs ?? []).map((disc) => disc.path),
+  ];
+  for (const disc of candidates) {
+    if (disc && hasExtension(disc, extensions) && (await fileExists(disc))) {
+      return disc;
+    }
+  }
+  return null;
 };
 
 const resolvePlaceholders = (

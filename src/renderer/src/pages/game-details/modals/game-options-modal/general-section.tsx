@@ -231,7 +231,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
       objectId: game.objectId,
       slug,
     });
-    if (!result.ok) {
+    if (!result.ok && result.reason !== "not_installed") {
       showErrorToast(t("uninstall_failed", { ns: "recompilation" }));
     }
     await updateGame();

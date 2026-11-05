@@ -61,6 +61,7 @@ class RecompilationInstallError extends Error {}
 
 const installsInProgress = new Set<string>();
 const launchesInProgress = new Set<string>();
+const preparesInProgress = new Set<string>();
 
 const sendProgress = (progress: RecompilationInstallProgress) => {
   WindowManager.mainWindow?.webContents.send(
@@ -70,6 +71,9 @@ const sendProgress = (progress: RecompilationInstallProgress) => {
 };
 
 const sendPrepareProgress = (progress: RecompilationPrepareProgress) => {
+  if (progress.phase === "running") preparesInProgress.add(progress.slug);
+  else preparesInProgress.delete(progress.slug);
+
   WindowManager.mainWindow?.webContents.send(
     "on-recompilation-prepare-progress",
     progress
@@ -208,6 +212,7 @@ export const getRecompilationInstallState = async (
   return {
     installed,
     isInstalling: installsInProgress.has(ref.slug),
+    isPreparing: preparesInProgress.has(ref.slug),
     version: installed ? marker.version : null,
     installPath: installed ? installDirectory : null,
     installParentPath: path.dirname(installDirectory),
@@ -394,7 +399,10 @@ export const uninstallRecompilation = async (
 
   const installDirectory = await getInstallDirectory(ref.slug);
   const marker = await readInstallMarker(installDirectory);
-  if (marker?.slug !== ref.slug) return { ok: false, reason: "not_installed" };
+  if (marker?.slug !== ref.slug) {
+    await removeRecompilationDisc(ref);
+    return { ok: false, reason: "not_installed" };
+  }
 
   if (installsInProgress.has(ref.slug)) {
     return { ok: false, reason: "already_installing" };

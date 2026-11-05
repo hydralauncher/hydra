@@ -124,6 +124,7 @@ export interface RecompilationInstallProgress {
 export interface RecompilationInstallState {
   installed: boolean;
   isInstalling: boolean;
+  isPreparing?: boolean;
   version: string | null;
   installPath: string | null;
   installParentPath: string;
