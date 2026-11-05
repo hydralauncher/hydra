@@ -1,14 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import i18n from "i18next";
+import {
+  OFFICIAL_CHAT_FRIEND_ID,
+  OFFICIAL_MESSAGES_PAGE_MAXIMUM,
+  OFFICIAL_MESSAGES_PATH,
+} from "@shared";
 
 import type {
   ChatAttachmentContentType,
   ChatMessageDto,
   ChatMessageReactionsDto,
   ChatMessagesPage,
+  OfficialMessagesPage,
   ChatPendingMessageDto,
 } from "@types";
 
 import { getUploadProgress } from "./chat-attachments";
+import { toChatMessagesPage } from "./chat-official";
 import {
   createSendCooldown,
   getRateLimitWindowStart,
@@ -98,13 +106,29 @@ const revokeLocalCopies = (attachments: ChatAttachment[] = []) => {
 const chatPath = (friendId: string, suffix: string) =>
   `/profile/chats/${friendId}/${suffix}`;
 
-const fetchMessages = (
+const fetchMessages = async (
   friendId: string,
   params: { before?: number; after?: number; take: number }
-) =>
-  electron.hydraApi.get<ChatMessagesPage>(chatPath(friendId, "messages"), {
-    params,
-  });
+): Promise<ChatMessagesPage> => {
+  if (friendId !== OFFICIAL_CHAT_FRIEND_ID) {
+    return electron.hydraApi.get<ChatMessagesPage>(
+      chatPath(friendId, "messages"),
+      { params }
+    );
+  }
+
+  const page = await electron.hydraApi.get<OfficialMessagesPage>(
+    OFFICIAL_MESSAGES_PATH,
+    {
+      params: {
+        language: i18n.language,
+        limit: Math.min(params.take, OFFICIAL_MESSAGES_PAGE_MAXIMUM),
+        ...(params.before === undefined ? {} : { beforeSeq: params.before }),
+      },
+    }
+  );
+  return toChatMessagesPage(page, params.after);
+};
 
 /** Sets the user's reaction on the message; null removes it. */
 const sendReaction = (friendId: string, seq: number, emoji: string | null) => {
@@ -569,6 +593,12 @@ export function useChat({
   const resyncConversation = useCallback(
     async (conversation: ChatConversation) => {
       const friendId = conversation.friend.id;
+      // Its seq has gaps per user, so "newer than" paging doesn't apply.
+      if (friendId === OFFICIAL_CHAT_FRIEND_ID) {
+        await loadLatest(friendId, { replace: true });
+        return;
+      }
+
       const latestSeq = getLatestSeq(conversation.messages);
       if (conversation.loadState !== "loaded" || latestSeq === 0) {
         await loadLatest(friendId);

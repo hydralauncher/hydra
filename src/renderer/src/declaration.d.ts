@@ -1615,6 +1615,7 @@ declare global {
     getChatUnreadState: () => Promise<ChatUnreadState>;
     /** Resolves to false when the read could not be saved. */
     markChatRead: (friendId: string, seq: number) => Promise<boolean>;
+    refreshOfficialChat: () => Promise<void>;
     onChatMessage: (
       cb: (sync: ChatMessageSync) => void
     ) => () => Electron.IpcRenderer;

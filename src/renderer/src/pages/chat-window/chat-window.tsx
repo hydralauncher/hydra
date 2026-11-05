@@ -3,12 +3,16 @@ import { useTranslation } from "react-i18next";
 import cn from "classnames";
 
 import { useFeature } from "@renderer/hooks/use-feature";
-import { fetchAllProfileFriends, PROFILE_FRIENDS_PATH } from "@shared";
+import {
+  fetchAllProfileFriends,
+  OFFICIAL_MESSAGES_PATH,
+  PROFILE_FRIENDS_PATH,
+} from "@shared";
 import type { ChatConversationsPage, ProfileFriends, UserFriend } from "@types";
 
 import { ChatConversationView } from "./chat-conversation";
 import { ChatConversationHeader } from "./chat-conversation-header";
-import { createMockOfficialConversation } from "./chat-official-mock";
+import { applyOfficialPage, isOfficialMessagesPage } from "./chat-official";
 import { ChatSidebar } from "./chat-sidebar";
 import {
   isOfficialAccount,
@@ -44,13 +48,10 @@ const createConversation = (friend: UserFriend): ChatConversation => ({
 });
 
 export default function ChatWindow() {
-  const { t } = useTranslation("chat_window");
+  const { t, i18n } = useTranslation("chat_window");
   const { isFeatureEnabled, Feature } = useFeature();
 
-  const [conversations, setConversations] = useState<ChatConversation[]>(() =>
-    // Until the API serves the official account, development gets a mock.
-    import.meta.env.DEV ? [createMockOfficialConversation()] : []
-  );
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   // Who the new conversation picker offers.
   const [friends, setFriends] = useState<UserFriend[]>([]);
@@ -126,6 +127,30 @@ export default function ChatWindow() {
 
     setActiveId((activeId) => activeId ?? listed[0]?.friendId ?? null);
   }, []);
+
+  const officialRequestIdRef = useRef(0);
+  const officialRevisionRef = useRef<number | null>(null);
+
+  // Official messages aren't part of the list above: older launchers read that
+  // too, and they would show this as a direct conversation.
+  const loadOfficialConversation = useCallback(async () => {
+    const requestId = ++officialRequestIdRef.current;
+    const page = await electron.hydraApi
+      .get<unknown>(OFFICIAL_MESSAGES_PATH, {
+        params: { language: i18n.language },
+      })
+      .catch(() => null);
+    if (requestId !== officialRequestIdRef.current) return;
+    if (!isOfficialMessagesPage(page)) return;
+
+    setConversations((current) =>
+      applyOfficialPage(current, page, createConversation)
+    );
+    setActiveId((activeId) => {
+      if (page.messages.length > 0) return activeId ?? page.sender.id;
+      return activeId === page.sender.id ? null : activeId;
+    });
+  }, [i18n]);
 
   const updateConversation = useCallback(
     (
@@ -276,7 +301,15 @@ export default function ChatWindow() {
 
   useEffect(() => {
     openPendingConversations();
-    void loadConversations().then(() => refreshFriends());
+    void loadConversations()
+      .then(async () => {
+        await refreshFriends();
+        await electron.refreshOfficialChat().catch(() => {});
+        const unread = await electron.getChatUnreadState().catch(() => null);
+        officialRevisionRef.current = unread?.officialRevision ?? 0;
+        await loadOfficialConversation();
+      })
+      .catch(() => {});
 
     const unsubscribePending = electron.onChatFriendsPending(() => {
       openPendingConversations();
@@ -289,6 +322,20 @@ export default function ChatWindow() {
     const unsubscribeFriends = electron.onFriendsUpdated(() => {
       refreshFriends();
     });
+    const unsubscribeUnread = electron.onChatUnreadUpdated(
+      ({ officialRevision }) => {
+        if (
+          officialRevisionRef.current === null ||
+          officialRevision === undefined ||
+          officialRevision === officialRevisionRef.current
+        ) {
+          return;
+        }
+
+        officialRevisionRef.current = officialRevision;
+        void loadOfficialConversation();
+      }
+    );
     const unsubscribePresence = electron.onFriendPresence(
       ({ friendId, isOnline }) => {
         updateConversation(friendId, (conversation) => ({
@@ -302,10 +349,12 @@ export default function ChatWindow() {
       unsubscribePending();
       unsubscribeSound();
       unsubscribeFriends();
+      unsubscribeUnread();
       unsubscribePresence();
     };
   }, [
     loadConversations,
+    loadOfficialConversation,
     openPendingConversations,
     refreshFriends,
     updateConversation,

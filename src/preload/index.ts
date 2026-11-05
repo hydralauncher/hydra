@@ -2408,6 +2408,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getChatUnreadState") as Promise<ChatUnreadState>,
   markChatRead: (friendId: string, seq: number) =>
     ipcRenderer.invoke("markChatRead", friendId, seq),
+  refreshOfficialChat: () =>
+    ipcRenderer.invoke("refreshOfficialChat") as Promise<void>,
   onChatMessage: (cb: (sync: ChatMessageSync) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,

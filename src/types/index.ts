@@ -382,6 +382,39 @@ export interface ChatUnreadState {
   totalUnread: number;
   byFriend: Record<string, number>;
   lastMessageAtByFriend?: Record<string, string>;
+  /* Bumped by each official messages poll, so an open chat window refetches. */
+  officialRevision?: number;
+}
+
+export interface OfficialMessageDto {
+  id: string;
+  seq: number;
+  senderId: string;
+  body: string;
+  locale: string;
+  attachments: ChatAttachmentDto[];
+  createdAt: string;
+  isUnread: boolean;
+}
+
+export interface OfficialMessagesPage {
+  sender: {
+    id: string;
+    displayName: string;
+    /* Null: the launcher shows its own logo. */
+    profileImageUrl: string | null;
+    isOfficial: boolean;
+  };
+  messages: OfficialMessageDto[];
+  unreadCount: number;
+  hasMoreBefore: boolean;
+  nextPollSeconds: number;
+}
+
+export interface OfficialUnreadSummary {
+  unreadCount: number;
+  latestSeq: number | null;
+  nextPollSeconds: number;
 }
 
 /* friendId is always the other side of the conversation, even for messages

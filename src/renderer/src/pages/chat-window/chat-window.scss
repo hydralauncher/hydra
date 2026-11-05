@@ -1829,6 +1829,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   // with a note instead of an input.
   &__read-only {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 10px;
     min-height: 44px;
@@ -1845,7 +1846,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__read-only-text {
-    flex: 1;
+    flex: 1 1 160px;
     min-width: 0;
     font-size: globals.$hint-font-size;
     color: $faded-text;

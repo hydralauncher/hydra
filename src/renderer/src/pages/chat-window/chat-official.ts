@@ -1,12 +1,11 @@
-import type { ChatMessage } from "./chat-message-groups";
+import type {
+  ChatMessagesPage,
+  OfficialMessagesPage,
+  UserFriend,
+} from "@types";
+
 import type { ChatConversation } from "./chat-types";
-
-// Development only: a stand-in for the official conversation until the API
-// serves one. Its id is no hashid, so nothing about it is ever sent to the
-// server (see chat-state.ts).
-export const MOCK_OFFICIAL_FRIEND_ID = "hydra-official";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { toChatMessage } from "./chat-state.js";
 
 const toSvgUrl = (svg: string) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
@@ -26,94 +25,103 @@ const HYDRA_LOGO_PATHS = `
       <path d="M35.6997 2.11767L35.441 4.23534L34.6649 3.70593H33.1127L33.6301 2.11767L36.9932 0L35.6997 2.11767Z"/>
 `;
 
-const avatarUrl = toSvgUrl(
+const OFFICIAL_AVATAR_URL = toSvgUrl(
   `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
     <rect width="80" height="80" fill="#1c1c1c"/>
     <g transform="translate(14 16.5) scale(0.95)" fill="#ffffff">${HYDRA_LOGO_PATHS}</g>
   </svg>`
 );
 
-const RELEASE_BANNER_WIDTH = 840;
-const RELEASE_BANNER_HEIGHT = 300;
-
-const releaseBannerUrl = toSvgUrl(
-  `<svg xmlns="http://www.w3.org/2000/svg" width="${RELEASE_BANNER_WIDTH}" height="${RELEASE_BANNER_HEIGHT}" viewBox="0 0 ${RELEASE_BANNER_WIDTH} ${RELEASE_BANNER_HEIGHT}">
-    <rect width="${RELEASE_BANNER_WIDTH}" height="${RELEASE_BANNER_HEIGHT}" fill="#16b195"/>
-    <g transform="translate(64 78) scale(2.6)" fill="#0d0d0d">${HYDRA_LOGO_PATHS}</g>
-    <text x="240" y="130" font-family="Noto Sans, sans-serif" font-size="20" font-weight="700" letter-spacing="3" fill="#0d0d0d">NOW AVAILABLE</text>
-    <text x="240" y="200" font-family="Noto Sans, sans-serif" font-size="64" font-weight="700" fill="#0d0d0d">Hydra 3.8</text>
-  </svg>`
-);
-
-const message = (
-  seq: number,
-  text: string,
-  createdAt: Date,
-  attachments?: ChatMessage["attachments"]
-): ChatMessage => ({
-  id: `${MOCK_OFFICIAL_FRIEND_ID}-${seq}`,
-  clientNonce: `${MOCK_OFFICIAL_FRIEND_ID}-${seq}`,
-  seq,
-  fromMe: false,
-  text,
-  createdAt: createdAt.toISOString(),
-  status: "sent",
-  fromHistory: true,
-  ...(attachments ? { attachments } : {}),
+export const toOfficialFriend = (
+  sender: OfficialMessagesPage["sender"]
+): UserFriend => ({
+  id: sender.id,
+  displayName: sender.displayName,
+  profileImageUrl: sender.profileImageUrl ?? OFFICIAL_AVATAR_URL,
+  backgroundImageUrl: null,
+  currentGame: null,
+  isOnline: false,
+  isOfficial: true,
 });
 
-export function createMockOfficialConversation(
-  now = new Date()
-): ChatConversation {
-  const yesterday = new Date(now.getTime() - DAY_MS);
-  yesterday.setHours(18, 30, 0, 0);
-  const today = new Date(now);
-  today.setHours(14, 2, 0, 0);
-  const todayLater = new Date(today.getTime() + 20 * 1000);
+// A Cloudflare error page once reached the launcher as API data, so the shape
+// is checked before it can reach the conversation list.
+export const isOfficialMessagesPage = (
+  value: unknown
+): value is OfficialMessagesPage => {
+  const page = value as Partial<OfficialMessagesPage> | null;
 
-  const messages = [
-    message(
-      1,
-      "Halloween missions are live until Nov 3. Finish three to unlock the Pumpkin Head avatar frame.",
-      yesterday
-    ),
-    message(2, "", today, [
-      {
-        id: `${MOCK_OFFICIAL_FRIEND_ID}-banner`,
-        contentType: "image/svg+xml",
-        width: RELEASE_BANNER_WIDTH,
-        height: RELEASE_BANNER_HEIGHT,
-        spoiler: false,
-        url: releaseBannerUrl,
-      },
-    ]),
-    message(
-      3,
-      "Hydra 3.8 is out: new chat sidebar, Halloween missions and more. Restart Hydra to update.\nhttps://hydralauncher.gg/changelog",
-      todayLater
-    ),
-  ];
+  return (
+    typeof page === "object" &&
+    page !== null &&
+    Array.isArray(page.messages) &&
+    typeof page.sender?.id === "string" &&
+    typeof page.sender.displayName === "string" &&
+    Number.isSafeInteger(page.unreadCount)
+  );
+};
 
-  return {
-    friend: {
-      id: MOCK_OFFICIAL_FRIEND_ID,
-      displayName: "Hydra",
-      profileImageUrl: avatarUrl,
-      backgroundImageUrl: null,
-      currentGame: null,
-      isOnline: false,
-      isOfficial: true,
+/** The official page in the shape the chat's history loading works with. */
+export const toChatMessagesPage = (
+  page: OfficialMessagesPage,
+  afterSeq?: number
+): ChatMessagesPage => ({
+  messages: page.messages
+    .filter(({ seq }) => afterSeq === undefined || seq > afterSeq)
+    .map(({ id, seq, senderId, body, createdAt, attachments }) => ({
+      seq,
+      senderId,
+      body,
+      clientNonce: id,
+      createdAt,
+      attachments,
+    })),
+  hasMore: afterSeq === undefined && page.hasMoreBefore,
+  canSend: false,
+  lastReadSeq: 0,
+  unreadCount: page.unreadCount,
+});
+
+/**
+ * Applies the latest page to the official conversation. Older pages the user
+ * already scrolled to stay; with no visible messages the row goes away.
+ */
+export const applyOfficialPage = (
+  conversations: ChatConversation[],
+  page: OfficialMessagesPage,
+  createConversation: (friend: UserFriend) => ChatConversation
+): ChatConversation[] => {
+  const others = conversations.filter(
+    ({ friend }) => friend.id !== page.sender.id
+  );
+  if (page.messages.length === 0) return others;
+
+  const friend = toOfficialFriend(page.sender);
+  const existing = conversations.find(
+    (conversation) => conversation.friend.id === page.sender.id
+  );
+  const latest = toChatMessagesPage(page).messages.map((message) =>
+    toChatMessage(message, friend.id, true)
+  );
+  const oldestSeq = latest[0]?.seq ?? 0;
+  const older = (existing?.messages ?? []).filter(
+    ({ seq }) => seq !== undefined && seq < oldestSeq
+  );
+
+  return [
+    {
+      ...(existing ?? createConversation(friend)),
+      friend,
+      messages: [...older, ...latest],
+      unreadCount: page.unreadCount,
+      canSend: false,
+      loadState: "loaded",
+      hasMoreBefore:
+        older.length > 0
+          ? (existing?.hasMoreBefore ?? false)
+          : page.hasMoreBefore,
+      gapAfterSeq: null,
     },
-    messages,
-    isTyping: false,
-    unreadCount: 2,
-    draft: "",
-    draftImages: [],
-    replyToSeq: null,
-    canSend: false,
-    loadState: "loaded",
-    hasMoreBefore: false,
-    isLoadingOlder: false,
-    gapAfterSeq: null,
-  };
-}
+    ...others,
+  ];
+};
