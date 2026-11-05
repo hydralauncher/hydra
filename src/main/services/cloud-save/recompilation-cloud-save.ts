@@ -32,14 +32,20 @@ const SAVE_MAP = recompilationSaves as Record<
 
 const LOGICAL_SAVE_ROOT = "<recompilation>";
 
+// `launchExecutablePath` is the port's executable as Hydra launches it. The path
+// context holds it with links resolved, and on Linux an AppImage's `AppRun` is a
+// link into `usr/bin`, while the port runs from the folder that holds `AppRun`.
 export const getRecompilationSaveRules = (
-  pathContext: CloudSavePathContext
+  pathContext: CloudSavePathContext,
+  launchExecutablePath?: string | null
 ): RecompilationSaveRule[] | undefined => {
   const port = parseRecompilationCloudSaveObjectId(
     pathContext.shop,
     pathContext.objectId
   );
   if (!port || !Object.hasOwn(SAVE_MAP, port.slug)) return undefined;
+
+  const executablePath = launchExecutablePath || pathContext.executablePath;
 
   return (SAVE_MAP[port.slug]?.saves ?? []).flatMap(
     (entry): RecompilationSaveRule[] => {
@@ -67,13 +73,13 @@ export const getRecompilationSaveRules = (
 
       const template = entry.paths[pathContext.platform];
       if (!template) return [rule];
-      if (template.includes("<base>") && !pathContext.executablePath) return [];
+      if (template.includes("<base>") && !executablePath) return [];
 
       // Same resolution as the port's ROM paths: environment folders (XDG_DATA_HOME
       // included) and the folder of the port's executable, as a literal path.
       const preferredPath = resolveRecompilationPath(
         template,
-        path.dirname(pathContext.executablePath ?? "")
+        path.dirname(executablePath ?? "")
       );
 
       return [{ ...rule, preferredPath }];
