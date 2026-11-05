@@ -1310,6 +1310,7 @@
     "download_source_matched": "Sincronizada",
     "download_source_matching": "Sincronizando",
     "download_source_failed": "Erro",
+    "download_source_dead": "Fora do ar",
     "download_source_no_information": "Sem informações",
     "sync_download_sources": "Sincronizar",
     "download_sources_synced_successfully": "Fontes de download sincronizadas",
