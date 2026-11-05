@@ -20,8 +20,8 @@
     border-radius: 50%;
     background: #f5f5f5;
     animation:
-      recompilations-section-appear 0.6s ease-out 0.6s both,
-      recompilations-section-pulse 2.4s ease-out 1.2s infinite;
+      recompilations-section-appear 0.6s ease-out 0.3s both,
+      recompilations-section-pulse 2.4s ease-out 0.9s infinite;
   }
 
   &__tip {
@@ -39,7 +39,7 @@
     border-radius: 8px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
     animation: recompilations-section-tip 0.6s cubic-bezier(0.2, 0.7, 0.2, 1)
-      0.6s both;
+      0.3s both;
 
     &::after {
       content: "";
