@@ -366,7 +366,9 @@ function InstallModalContent({
 
   const play = async () => {
     onClose();
-    if (!(await install.play())) showErrorToast(t("play_failed"));
+    const played = await install.play();
+    if (played === "already_running") showErrorToast(t("already_running"));
+    else if (!played) showErrorToast(t("play_failed"));
   };
 
   useEffect(() => {

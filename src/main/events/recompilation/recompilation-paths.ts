@@ -97,7 +97,7 @@ export const resolveRecompilationPath = (
     "<winAppData>":
       process.env.APPDATA ?? path.join(home, "AppData", "Roaming"),
     "<xdgData>":
-      process.env.XDG_DATA_HOME ?? path.join(home, ".local", "share"),
+      process.env.XDG_DATA_HOME || path.join(home, ".local", "share"),
     "{romName}": romName,
   };
   values["<appData>"] =

@@ -81,8 +81,9 @@ export function RecompilationHero({
   };
 
   const runPlay = async () => {
-    const ok = await install.play();
-    if (!ok) showErrorToast(t("play_failed"));
+    const played = await install.play();
+    if (played === "already_running") showErrorToast(t("already_running"));
+    else if (!played) showErrorToast(t("play_failed"));
   };
 
   const runClose = async () => {

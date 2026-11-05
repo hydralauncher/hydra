@@ -33,5 +33,8 @@ export const launchRecompilationDisc = async (
   ) {
     return;
   }
+  if (result.reason === "already_running") {
+    throw launchError("RECOMPILATION_ALREADY_RUNNING", objectId, slug);
+  }
   throw launchError("RECOMPILATION_LAUNCH_FAILED", objectId, slug);
 };

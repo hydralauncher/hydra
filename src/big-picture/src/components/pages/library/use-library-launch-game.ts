@@ -62,6 +62,8 @@ export function useLibraryLaunchGame(
           globalThis.window.dispatchEvent(new Event("library-update"));
         } catch (error) {
           const code = getClassicsLaunchErrorCode(error);
+          // The port is already open: nothing failed.
+          if (code === "RECOMPILATION_ALREADY_RUNNING") return;
           const toast = (code && CLASSICS_LAUNCH_ERROR_TOASTS[code]) || {
             title: "Launch failed",
             message: "Hydra could not launch this Classics game.",

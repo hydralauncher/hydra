@@ -16,7 +16,7 @@ export interface RecompilationInstall {
   prepareFailed: boolean;
   install: (parentDirectory?: string) => Promise<RecompilationActionResult>;
   uninstall: () => Promise<boolean>;
-  play: () => Promise<boolean>;
+  play: () => Promise<boolean | "already_running">;
   close: () => Promise<boolean>;
   openFolder: () => Promise<void>;
 }
@@ -138,6 +138,7 @@ export function useRecompilationInstall(
     const result = await window.electron
       .playRecompilation({ objectId, slug })
       .finally(() => setIsLaunching(false));
+    if (result.reason === "already_running") return "already_running";
     return (
       result.ok ||
       result.reason === "cloud_save_conflict" ||
