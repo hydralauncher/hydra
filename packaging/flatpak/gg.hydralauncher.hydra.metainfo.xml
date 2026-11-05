@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>gg.hydralauncher.hydra</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Hydra Launcher</name>
+  <summary>Open-source game library manager</summary>
+  <description>
+    <p>Hydra is an open-source gaming platform for managing your game library.</p>
+  </description>
+  <launchable type="desktop-id">gg.hydralauncher.hydra.desktop</launchable>
+  <url type="homepage">https://hydralauncher.gg</url>
+  <url type="bugtracker">https://github.com/hydralauncher/hydra/issues</url>
+  <provides>
+    <binary>hydra</binary>
+    <mediatype>x-scheme-handler/hydralauncher</mediatype>
+  </provides>
+  <content_rating type="oars-1.1" />
+</component>

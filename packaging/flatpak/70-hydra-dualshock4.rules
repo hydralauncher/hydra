@@ -1,0 +1,5 @@
+# DualShock 4 Slim over USB (VID:PID 054c:09cc)
+KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="09cc", MODE="0660", TAG+="uaccess"
+
+# DualShock 4 Slim over Bluetooth (HID bus 0005, VID:PID 054c:09cc)
+KERNEL=="hidraw*", KERNELS=="*054C:09CC*", MODE="0660", TAG+="uaccess"
