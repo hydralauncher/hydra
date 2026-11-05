@@ -22,15 +22,14 @@ export interface RecompilationOnboardingModalProps {
   onShowRecompilations: () => void;
 }
 
-// Positions from the design, on a 544px wide stage.
-const GRID_CARDS = [36, 82, 128, 174].flatMap((top, row) =>
-  [32, 108, 184].map((left, column) => ({
+const GRID_CARDS = [36, 82, 128, 174].flatMap((top, row) => {
+  const recompColumn = row % 3;
+  return [32, 108, 184].map((left, column) => ({
     left,
     top,
-    // One Recomp per row, moving along the diagonal.
-    highlighted: column === row % 3,
-  }))
-);
+    highlighted: column === recompColumn,
+  }));
+});
 
 const COLLAPSED_SECTIONS = [
   { key: "platforms", top: 90, color: "#1c9749", count: 12, dimmed: true },

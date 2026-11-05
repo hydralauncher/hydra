@@ -17,7 +17,6 @@ import "./recompilations-section.scss";
 
 const TIP_STORAGE_KEY = "hydra-recompilation-tip-dismissed";
 
-// Games where the "runs native on PC" tip was closed or a recomp was installed.
 const getTipDismissedGames = (): string[] => {
   try {
     const stored = JSON.parse(localStorage.getItem(TIP_STORAGE_KEY) ?? "[]");
@@ -83,6 +82,17 @@ export function RecompilationsSection({
     };
   }, [objectId]);
 
+  useEffect(() => {
+    if (!showTip) return;
+    const slugs = new Set(recompilations.map(({ slug }) => slug));
+
+    return window.electron.onRecompilationInstallProgress(({ slug, phase }) => {
+      if (phase !== "done" || !slugs.has(slug)) return;
+      dismissTip(objectId);
+      setShowTip(false);
+    });
+  }, [showTip, recompilations, objectId]);
+
   if (recompilations.length === 0) return null;
 
   const closeTip = () => {
@@ -99,8 +109,7 @@ export function RecompilationsSection({
       {showTip && (
         <>
           <span className="recompilations-section__beacon" aria-hidden="true" />
-          <dialog
-            open
+          <section
             className="recompilations-section__tip"
             aria-labelledby="recompilations-tip-title"
             aria-describedby="recompilations-tip-body"
@@ -139,7 +148,7 @@ export function RecompilationsSection({
                 {t("tip_got_it")}
               </Button>
             </div>
-          </dialog>
+          </section>
         </>
       )}
 

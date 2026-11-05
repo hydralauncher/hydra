@@ -1,5 +1,4 @@
-// A cursor turns on the Recomps filter in a small Catalogue, and the grid keeps
-// only the Recomps. Positions are for a 544px wide stage, centred in the body.
+$stage-width: 544px;
 $loop: 6s;
 $recomp-blue: #3e62c0;
 
@@ -8,7 +7,7 @@ $recomp-blue: #3e62c0;
     position: absolute;
     top: 0;
     left: 50%;
-    width: 544px;
+    width: $stage-width;
     height: 100%;
     transform: translateX(-50%);
     font-family: "Noto Sans", system-ui, sans-serif;
@@ -271,6 +270,10 @@ $recomp-blue: #3e62c0;
     &__stage *,
     &__switch i {
       animation: none;
+    }
+
+    &__cursor {
+      display: none;
     }
   }
 }

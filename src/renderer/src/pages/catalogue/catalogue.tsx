@@ -13,6 +13,7 @@ import {
 import {
   lazy,
   Suspense,
+  useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -169,38 +170,52 @@ export default function Catalogue() {
 
   const [itemsCount, setItemsCount] = useState(0);
 
-  const { isFeatureEnabled, Feature } = useFeature();
+  const { isFeatureEnabled, isFeaturesLoaded, Feature } = useFeature();
   const isRecompilationsEnabled = isFeatureEnabled(Feature.Recompilations);
 
   const [onboarding, setOnboarding] = useState<
     "classics" | "recompilations" | null
   >(null);
-  // An onboarding counts as seen for this visit once it is closed.
-  const classicsOnboardingSeenRef = useRef(false);
-  const recompilationOnboardingSeenRef = useRef(false);
+  const classicsOnboardingClosedRef = useRef(false);
+  const recompilationOnboardingClosedRef = useRef(false);
 
-  // One onboarding at a time: Classics first when it is due, then Recomps.
+  const getDueOnboarding = useCallback(
+    (catalogueMode: typeof mode) => {
+      if (
+        catalogueMode === "classics" &&
+        !classicsOnboardingClosedRef.current &&
+        !hasDismissedClassicsOnboarding()
+      ) {
+        return "classics";
+      }
+      if (
+        isFeaturesLoaded &&
+        isRecompilationsEnabled &&
+        !recompilationOnboardingClosedRef.current &&
+        !hasDismissedRecompilationOnboarding()
+      ) {
+        return "recompilations";
+      }
+      return null;
+    },
+    [isFeaturesLoaded, isRecompilationsEnabled]
+  );
+
   useEffect(() => {
     if (onboarding) return;
-
-    if (
-      mode === "classics" &&
-      !classicsOnboardingSeenRef.current &&
-      !hasDismissedClassicsOnboarding()
-    ) {
-      setOnboarding("classics");
-    } else if (
-      isRecompilationsEnabled &&
-      !recompilationOnboardingSeenRef.current &&
-      !hasDismissedRecompilationOnboarding()
-    ) {
-      setOnboarding("recompilations");
-    }
-  }, [mode, onboarding, isRecompilationsEnabled]);
+    const due = getDueOnboarding(mode);
+    if (due) setOnboarding(due);
+  }, [mode, onboarding, getDueOnboarding]);
 
   const { formatNumber } = useFormat();
 
   const dispatch = useAppDispatch();
+
+  const showRecompilationsSkippingClassicsOnboarding = () => {
+    classicsOnboardingClosedRef.current = true;
+    if (mode !== "classics") dispatch(setMode("classics"));
+    dispatch(setFilters({ recompilation: "has" }));
+  };
 
   const { t, i18n } = useTranslation("catalogue");
   const shouldShowProtonFeatures = window.electron.platform === "linux";
@@ -675,22 +690,17 @@ export default function Catalogue() {
       <ClassicsOnboardingModal
         visible={onboarding === "classics"}
         onClose={() => {
-          classicsOnboardingSeenRef.current = true;
+          classicsOnboardingClosedRef.current = true;
           setOnboarding(null);
         }}
       />
       <RecompilationOnboardingModal
         visible={onboarding === "recompilations"}
         onClose={() => {
-          recompilationOnboardingSeenRef.current = true;
+          recompilationOnboardingClosedRef.current = true;
           setOnboarding(null);
         }}
-        onShowRecompilations={() => {
-          // Straight to the list: the Classics onboarding waits for next time.
-          classicsOnboardingSeenRef.current = true;
-          if (mode !== "classics") dispatch(setMode("classics"));
-          dispatch(setFilters({ recompilation: "has" }));
-        }}
+        onShowRecompilations={showRecompilationsSkippingClassicsOnboarding}
       />
       <div className="catalogue__header">
         <div className="catalogue__header-row">

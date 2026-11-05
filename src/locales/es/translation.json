@@ -2470,7 +2470,7 @@
     "title": "Nuevo en Hydra: Recomps",
     "heading": "Juega clásicos, nativos en PC",
     "body": "Los Recomps son juegos clásicos recompilados por la comunidad para funcionar directamente en PC. Activa el filtro Recomps aquí en el Catálogo para verlos todos. Hydra instala el proyecto, tú eliges la ROM del juego y juegas, sin emulador que configurar.\n\n¡En la mayoría de los casos, no tarda ni 1 minuto!",
-    "dont_show_again": "No volver a mostrar",
+    "dont_show_again": "No mostrar de nuevo",
     "show_recompilations": "Ver Recomps"
   },
   "leaderboard": {

@@ -1,3 +1,5 @@
+$add-button-offset: 42px;
+
 .game-item-classics {
   position: relative;
   background: #0d0d0d;
@@ -120,11 +122,10 @@
     justify-content: center;
   }
 
-  // Left of the add-to-library button, which sits in the top-right corner.
   &__recompilation-chip {
     position: absolute;
     top: 8px;
-    right: 42px;
+    right: $add-button-offset;
     z-index: 2;
     display: inline-flex;
     align-items: center;
