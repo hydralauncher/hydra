@@ -2406,15 +2406,6 @@ describe("Epic managed UI lifecycle", () => {
             getFinishedDownloadStep: () => null,
           },
           "../modals/disc-selection-modal": { DiscSelectionModal: () => null },
-          "../../recompilation/recompilations-api": {
-            buildRecompilationPath: () => "",
-          },
-          "./use-installed-recompilations": {
-            RECOMPILATION_CHOICE_PREFIX: "recompilation:",
-            getRememberedPlayChoice: () => null,
-            setRememberedPlayChoice: () => {},
-            useInstalledRecompilations: () => async () => [],
-          },
           "../modals/epic-cloud-save-conflict-modal": {
             EpicCloudSaveConflictModal: ({
               game: conflictGame,

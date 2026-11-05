@@ -45,6 +45,10 @@ import {
 } from "./recompilation-rom";
 import recompilationSaves from "./recompilation-saves.json";
 import {
+  addRecompilationDisc,
+  removeRecompilationDisc,
+} from "./recompilation-disc";
+import {
   findDeclaredRecompilationEntry,
   findRecompilationExecutable,
   isNestedReleaseArchive,
@@ -315,12 +319,18 @@ const downloadAndInstall = async (
     assetName: asset.name,
     executablePath,
     installedAt: new Date().toISOString(),
+    name: details.name,
+    iconUrl: details.iconUrl,
   };
   await fs.promises.writeFile(
     path.join(installDirectory, INSTALL_MARKER_FILE),
     JSON.stringify(marker, null, 2)
   );
   await saveRecompilationInstallDirectory(ref.slug, installDirectory);
+  await addRecompilationDisc(ref, installDirectory, {
+    name: details.name,
+    iconUrl: details.iconUrl,
+  });
 };
 
 export const installRecompilation = async (
@@ -400,6 +410,7 @@ export const uninstallRecompilation = async (
     return { ok: false, reason: "uninstall_failed" };
   }
   await forgetRecompilationInstallDirectory(ref.slug);
+  await removeRecompilationDisc(ref);
   return { ok: true };
 };
 

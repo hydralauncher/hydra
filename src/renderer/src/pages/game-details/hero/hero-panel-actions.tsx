@@ -37,14 +37,6 @@ import {
   handleClassicsLaunchError,
 } from "@renderer/helpers";
 import { DiscSelectionModal } from "../modals/disc-selection-modal";
-import { buildRecompilationPath } from "../../recompilation/recompilations-api";
-import {
-  getRememberedPlayChoice,
-  RECOMPILATION_CHOICE_PREFIX,
-  setRememberedPlayChoice,
-  useInstalledRecompilations,
-  type InstalledRecompilation,
-} from "./use-installed-recompilations";
 import { EpicCloudSaveConflictModal } from "../modals/epic-cloud-save-conflict-modal";
 
 import "./hero-panel-actions.scss";
@@ -72,7 +64,6 @@ export function HeroPanelActions() {
     presentation,
     repacks,
     isGameRunning,
-    runningRecompilationSlug,
     shop,
     objectId,
     gameTitle,
@@ -110,13 +101,6 @@ export function HeroPanelActions() {
   const location = useLocation();
 
   const [showDiscSelectionModal, setShowDiscSelectionModal] = useState(false);
-  const getInstalledRecompilations = useInstalledRecompilations(
-    game?.shop,
-    game?.objectId
-  );
-  const [playableRecompilations, setPlayableRecompilations] = useState<
-    InstalledRecompilation[]
-  >([]);
 
   useEffect(() => {
     const state = (location.state as Record<string, unknown> | null) ?? {};
@@ -315,53 +299,10 @@ export function HeroPanelActions() {
     }
   };
 
-  const launchRecompilation = async (recompilation: InstalledRecompilation) => {
-    if (!game) return;
-
-    if (recompilation.needsSetup) {
-      navigate(
-        `${buildRecompilationPath(game.objectId, recompilation.slug)}?rom=1`
-      );
-      return;
-    }
-
-    const result = await window.electron.playRecompilation({
-      objectId: game.objectId,
-      slug: recompilation.slug,
-    });
-    if (
-      !result.ok &&
-      result.reason !== "cloud_save_conflict" &&
-      result.reason !== "running"
-    ) {
-      showErrorToast(t("play_failed", { ns: "recompilation" }));
-    }
-  };
-
   const openClassicsGame = async () => {
     if (!game) return;
 
     const discs = game.discs ?? [];
-    const recompilations = await getInstalledRecompilations();
-    setPlayableRecompilations(recompilations);
-
-    if (recompilations.length > 0) {
-      const remembered = getRememberedPlayChoice(game.objectId);
-      const rememberedPort = recompilations.find(
-        (item) => RECOMPILATION_CHOICE_PREFIX + item.slug === remembered
-      );
-      if (rememberedPort) {
-        await launchRecompilation(rememberedPort);
-        return;
-      }
-      if (remembered && discs.some((disc) => disc.path === remembered)) {
-        await launchClassicsWithErrorHandling(remembered);
-        return;
-      }
-
-      setShowDiscSelectionModal(true);
-      return;
-    }
 
     if (
       discs.length === 0 ||
@@ -385,21 +326,6 @@ export function HeroPanelActions() {
   ) => {
     if (!game) return;
     setShowDiscSelectionModal(false);
-
-    const offeredPorts = playableRecompilations.length > 0;
-    setRememberedPlayChoice(
-      game.objectId,
-      dontAskAgain && offeredPorts ? discPath : null
-    );
-
-    if (discPath.startsWith(RECOMPILATION_CHOICE_PREFIX)) {
-      const recompilation = playableRecompilations.find(
-        (item) => RECOMPILATION_CHOICE_PREFIX + item.slug === discPath
-      );
-      if (recompilation) await launchRecompilation(recompilation);
-      return;
-    }
-
     try {
       await window.electron.updateClassicsDisc(game.shop, game.objectId, {
         selectedDiscPath: discPath,
@@ -527,13 +453,6 @@ export function HeroPanelActions() {
   };
 
   const closeGame = () => {
-    if (game && runningRecompilationSlug) {
-      void window.electron.closeRecompilation({
-        objectId: game.objectId,
-        slug: runningRecompilationSlug,
-      });
-      return;
-    }
     if (game) window.electron.closeGame(game.shop, game.objectId);
   };
 
@@ -680,7 +599,7 @@ export function HeroPanelActions() {
       );
     }
 
-    if (isGameRunning || runningRecompilationSlug) {
+    if (isGameRunning) {
       return (
         <Button
           onClick={closeGame}
@@ -897,7 +816,6 @@ export function HeroPanelActions() {
           <DiscSelectionModal
             visible={showDiscSelectionModal}
             discs={game.discs ?? []}
-            recompilations={playableRecompilations}
             defaultDiscPath={game.selectedDiscPath ?? null}
             defaultDontAsk={Boolean(game.dontAskDiscSelection)}
             onClose={() => setShowDiscSelectionModal(false)}

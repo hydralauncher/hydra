@@ -12,10 +12,6 @@ import {
   type SkuRegion,
 } from "@renderer/helpers";
 import type { ClassicsDisc } from "@types";
-import {
-  RECOMPILATION_CHOICE_PREFIX,
-  type InstalledRecompilation,
-} from "../hero/use-installed-recompilations";
 import "./disc-selection-modal.scss";
 
 const REGION_TRANSLATION_KEYS: Record<SkuRegion, string> = {
@@ -29,7 +25,6 @@ const REGION_TRANSLATION_KEYS: Record<SkuRegion, string> = {
 interface DiscSelectionModalProps {
   visible: boolean;
   discs: ClassicsDisc[];
-  recompilations?: Pick<InstalledRecompilation, "slug" | "name" | "iconUrl">[];
   defaultDiscPath?: string | null;
   defaultDontAsk?: boolean;
   onClose: () => void;
@@ -39,7 +34,6 @@ interface DiscSelectionModalProps {
 export function DiscSelectionModal({
   visible,
   discs,
-  recompilations = [],
   defaultDiscPath,
   defaultDontAsk = false,
   onClose,
@@ -68,7 +62,9 @@ export function DiscSelectionModal({
     };
 
     const numberOf = (disc: ClassicsDisc): number => {
-      if (disc.isExecutable) return Number.MAX_SAFE_INTEGER;
+      if (disc.isExecutable || disc.recompilationSlug) {
+        return Number.MAX_SAFE_INTEGER;
+      }
       const match = /\d+/.exec(disc.label);
       return match ? parseInt(match[0], 10) : Number.MAX_SAFE_INTEGER;
     };
@@ -79,15 +75,9 @@ export function DiscSelectionModal({
   }, [discs]);
 
   const initialSelected = useMemo(
-    () =>
-      defaultDiscPath ??
-      sortedDiscs[0]?.path ??
-      (recompilations[0]
-        ? RECOMPILATION_CHOICE_PREFIX + recompilations[0].slug
-        : null),
-    [defaultDiscPath, sortedDiscs, recompilations]
+    () => defaultDiscPath ?? sortedDiscs[0]?.path ?? null,
+    [defaultDiscPath, sortedDiscs]
   );
-  const hasRecompilations = recompilations.length > 0;
 
   const [selected, setSelected] = useState<string | null>(initialSelected);
   const [dontAsk, setDontAsk] = useState(defaultDontAsk);
@@ -104,7 +94,26 @@ export function DiscSelectionModal({
     onConfirm(selected, dontAsk);
   };
 
+  const hasRecompilation = discs.some((disc) => disc.recompilationSlug);
+
   const renderOptionIcon = (disc: ClassicsDisc) => {
+    if (disc.recompilationSlug) {
+      return disc.iconUrl ? (
+        <img
+          src={disc.iconUrl}
+          alt=""
+          width={20}
+          height={20}
+          className="disc-selection-modal__option-icon disc-selection-modal__option-icon--image"
+        />
+      ) : (
+        <DeviceDesktopIcon
+          size={20}
+          className="disc-selection-modal__option-icon"
+        />
+      );
+    }
+
     if (!disc.isExecutable) {
       return <Disc3 size={20} className="disc-selection-modal__option-icon" />;
     }
@@ -127,9 +136,9 @@ export function DiscSelectionModal({
   return (
     <Modal
       visible={visible}
-      title={t(hasRecompilations ? "select_play_title" : "select_disc_title")}
+      title={t(hasRecompilation ? "select_play_title" : "select_disc_title")}
       description={t(
-        hasRecompilations ? "select_play_subtitle" : "select_disc_subtitle"
+        hasRecompilation ? "select_play_subtitle" : "select_disc_subtitle"
       )}
       onClose={onClose}
     >
@@ -151,7 +160,7 @@ export function DiscSelectionModal({
                   {getClassicsDiscLabel(disc)}
                 </span>
                 <span className="disc-selection-modal__option-filename">
-                  {disc.fileName}
+                  {disc.recompilationSlug ? t("pc_version") : disc.fileName}
                 </span>
               </div>
               {region && regionName && (
@@ -163,40 +172,6 @@ export function DiscSelectionModal({
                   data-tooltip-content={regionName}
                 />
               )}
-            </button>
-          );
-        })}
-        {recompilations.map((recompilation) => {
-          const choice = RECOMPILATION_CHOICE_PREFIX + recompilation.slug;
-          return (
-            <button
-              key={choice}
-              type="button"
-              className={`disc-selection-modal__option ${selected === choice ? "disc-selection-modal__option--active" : ""}`}
-              onClick={() => setSelected(choice)}
-            >
-              {recompilation.iconUrl ? (
-                <img
-                  src={recompilation.iconUrl}
-                  alt=""
-                  width={20}
-                  height={20}
-                  className="disc-selection-modal__option-icon disc-selection-modal__option-icon--image"
-                />
-              ) : (
-                <DeviceDesktopIcon
-                  size={20}
-                  className="disc-selection-modal__option-icon"
-                />
-              )}
-              <div className="disc-selection-modal__option-text">
-                <span className="disc-selection-modal__option-label">
-                  {recompilation.name}
-                </span>
-                <span className="disc-selection-modal__option-filename">
-                  {t("pc_version")}
-                </span>
-              </div>
             </button>
           );
         })}
