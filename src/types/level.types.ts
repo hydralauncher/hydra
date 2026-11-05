@@ -239,6 +239,7 @@ export interface UserPreferences {
   achievementScreenshotsPath?: string;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
+  useNativeWindowDecorations?: boolean;
   enableNewDownloadOptionsBadges?: boolean;
   createStartMenuShortcut?: boolean;
   bigPictureSoundsEnabled?: boolean;
@@ -273,6 +274,7 @@ export interface UserPreferences {
   screenshotToastEnabled?: boolean;
   screenshotDefaultVisibility?: ProfileVisibility;
   showSensitiveScreenshots?: boolean;
+  hideCommunityScreenshots?: boolean;
 }
 
 export interface NetworkInterface {
