@@ -578,7 +578,10 @@ export const prepareRecompilationRom = async (
 
   const isNewRom =
     Boolean(state?.romPath) && choice?.preparedFrom !== state?.romPath;
-  if (state?.isReady && !isNewRom) return { ok: true, args: [], env: {} };
+  // Ports prepared per version are ready yet still need their launch arguments.
+  if (state?.isReady && !isNewRom && !meta.prepareOnUpdate) {
+    return { ok: true, args: [], env: {} };
+  }
 
   if (!state?.romPath || !choice) return { ok: false, reason: "no_rom" };
 
