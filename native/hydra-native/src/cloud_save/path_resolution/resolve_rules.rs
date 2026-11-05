@@ -121,6 +121,33 @@ mod tests {
     }
 
     #[test]
+    fn a_port_folder_is_scanned_as_an_exact_path() {
+        let context = build_context(&ResolveSaveRulesInput {
+            shop: "launchbox".into(),
+            object_id: "153:shipwright".into(),
+            platform: "linux".into(),
+            home_dir: "/home/hydra".into(),
+            documents_dir: None,
+            app_data_dir: None,
+            executable_path: Some("/games/shipwright/soh.appimage".into()),
+            wine_prefix_path: None,
+            steam_path: None,
+            rules: Vec::new(),
+        })
+        .unwrap();
+        let mut port_rule = rule("<recompilation>/Save/", None);
+        port_rule.preferred_path = Some("/home/hydra/{data}[1]/soh/Save/".into());
+        let result = resolve_rules(vec![port_rule], &context);
+
+        assert_eq!(result[0].resolved_paths.len(), 1);
+        assert_eq!(
+            result[0].resolved_paths[0].path,
+            "/home/hydra/[{]data[}][[]1[]]/soh/Save"
+        );
+        assert!(result[0].unresolved_tokens.is_empty());
+    }
+
+    #[test]
     fn separates_native_windows_and_linux_rules() {
         let windows = build_context(&ResolveSaveRulesInput {
             shop: "steam".into(),

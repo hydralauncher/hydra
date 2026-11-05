@@ -93,7 +93,7 @@ after(async () => {
 
 const context = (
   objectId: string,
-  platform: "windows" | "linux",
+  platform: CloudSavePathContext["platform"],
   executablePath?: string
 ): CloudSavePathContext => ({
   shop: "launchbox",
@@ -106,7 +106,7 @@ const context = (
 
 const folder = (
   objectId: string,
-  platform: "windows" | "linux",
+  platform: CloudSavePathContext["platform"],
   rawPath: string,
   executablePath?: string
 ) =>
@@ -156,6 +156,32 @@ describe("getRecompilationSaveRules", () => {
       folder("153:shipwright", "windows", "<recompilation>/Save/"),
       undefined
     );
+  });
+
+  it("leaves a location for other machines on an OS without its folder", () => {
+    assert.deepEqual(
+      getRecompilationSaveRules(context("153:shipwright", "mac", "/Apps/soh")),
+      [
+        {
+          rawPath: "<recompilation>/Save/",
+          kind: "dir",
+          tags: ["save"],
+          when: [{ os: "windows" }, { os: "linux" }],
+        },
+      ]
+    );
+  });
+
+  it("falls back to ~/.local/share when XDG_DATA_HOME is empty", () => {
+    process.env.XDG_DATA_HOME = "";
+    try {
+      assert.equal(
+        folder("2234:gen1recomp", "linux", "<recompilation>/saves/"),
+        path.normalize(`${os.homedir()}/.local/share/pokemon-love2d/saves/`)
+      );
+    } finally {
+      process.env.XDG_DATA_HOME = XDG_DATA;
+    }
   });
 
   it("keeps locations that are the same on every OS as plain rules", () => {
