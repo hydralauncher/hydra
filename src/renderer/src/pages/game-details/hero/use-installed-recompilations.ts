@@ -38,6 +38,16 @@ export const setRememberedPlayChoice = (
   }
 };
 
+const PORT_LIST_TIMEOUT_MS = 5000;
+
+const withTimeout = <T>(promise: Promise<T>) =>
+  Promise.race<T | undefined>([
+    promise,
+    new Promise((resolve) =>
+      setTimeout(() => resolve(undefined), PORT_LIST_TIMEOUT_MS)
+    ),
+  ]);
+
 export function useInstalledRecompilations(
   shop: string | undefined,
   objectId: string | undefined
@@ -73,7 +83,11 @@ export function useInstalledRecompilations(
       summaries.current?.objectId === objectId
         ? summaries.current.request
         : loadSummaries(objectId);
-    const items = (await pending) ?? (await loadSummaries(objectId)) ?? [];
+    const first = await withTimeout(pending);
+    const items =
+      first === undefined
+        ? []
+        : (first ?? (await withTimeout(loadSummaries(objectId))) ?? []);
 
     const results = await Promise.all(
       items.map(async (summary) => {
