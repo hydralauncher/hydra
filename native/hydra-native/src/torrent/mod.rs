@@ -181,6 +181,32 @@ pub async fn torrent_shutdown() -> napi::Result<()> {
     Ok(())
 }
 
+fn selection_priorities(indices: &[i64], count: i32) -> Result<Vec<u8>> {
+    if indices.iter().any(|i| *i < 0 || *i >= count as i64) {
+        return Err("invalid_file_indices".into());
+    }
+    if indices.is_empty() {
+        return Err("empty_selection".into());
+    }
+    let mut values = vec![0; count as usize];
+    for index in indices {
+        values[*index as usize] = 1;
+    }
+    Ok(values)
+}
+fn selection_is_applied(handle: &Handle, indices: Option<&[i64]>) -> Result<bool> {
+    let Some(indices) = indices else {
+        return Ok(true);
+    };
+    if handle.status()?.metadata == 0 {
+        return Ok(false);
+    }
+    let (_, _, count) = handle.info()?;
+    match selection_priorities(indices, count) {
+        Ok(values) => handle.priorities_match(&values),
+        Err(_) => Ok(false),
+    }
+}
 struct Download {
     handle: Rc<Handle>,
     selected_size: Option<i64>,
@@ -544,8 +570,8 @@ impl Engine {
             };
             let trackers = validation::trackers(&request.params["trackers"])?;
             self.cancel_jobs(&game);
-            if indices.is_none() {
-                if let Some(existing) = self.downloads.get(&game) {
+            if let Some(existing) = self.downloads.get(&game) {
+                if selection_is_applied(&existing.handle, indices.as_deref())? {
                     existing.handle.resume()?;
                     for tracker in &trackers {
                         if let Err(e) = existing.handle.add_tracker(tracker) {
@@ -557,7 +583,8 @@ impl Engine {
                     }
                     return Ok(None);
                 }
-            } else if let Some(old) = self.downloads.remove(&game) {
+            }
+            if let Some(old) = self.downloads.remove(&game) {
                 old.handle.pause()?;
                 for entry in &mut self.pool {
                     if Rc::ptr_eq(&old.handle, &entry.handle) {
@@ -667,16 +694,9 @@ impl Engine {
             } => {
                 if priorities.is_none() {
                     let (_, _, count) = job.handle.info()?;
-                    if indices.iter().any(|i| *i < 0 || *i >= count as i64) {
-                        return Err("invalid_file_indices".into());
-                    }
-                    if indices.is_empty() {
-                        return Err("empty_selection".into());
-                    }
+                    let values = selection_priorities(indices, count)?;
                     let mut selected_size = 0;
-                    let mut values = vec![0; count as usize];
-                    for index in indices {
-                        values[*index as usize] = 1;
+                    for index in indices.iter() {
                         selected_size += job.handle.file(*index as i32)?.1;
                     }
                     job.handle.pause()?;
