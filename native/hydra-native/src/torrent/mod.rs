@@ -210,6 +210,7 @@ fn selection_is_applied(handle: &Handle, indices: Option<&[i64]>) -> Result<bool
 struct Download {
     handle: Rc<Handle>,
     selected_size: Option<i64>,
+    save_path: String,
 }
 enum JobKind {
     Files {
@@ -571,7 +572,9 @@ impl Engine {
             let trackers = validation::trackers(&request.params["trackers"])?;
             self.cancel_jobs(&game);
             if let Some(existing) = self.downloads.get(&game) {
-                if selection_is_applied(&existing.handle, indices.as_deref())? {
+                if existing.save_path == path
+                    && selection_is_applied(&existing.handle, indices.as_deref())?
+                {
                     existing.handle.resume()?;
                     for tracker in &trackers {
                         if let Err(e) = existing.handle.add_tracker(tracker) {
@@ -608,6 +611,7 @@ impl Engine {
                 Download {
                     handle: handle.clone(),
                     selected_size: None,
+                    save_path: path.to_string(),
                 },
             );
             if let Some(indices) = indices {
