@@ -6,6 +6,7 @@ import {
   CHAT_SIDEBAR_MAX_WIDTH,
   CHAT_SIDEBAR_MIN_WIDTH,
   clampChatSidebarWidth,
+  dropAbandonedConversations,
   filterConversations,
   getAdjacentConversationId,
   getConversationPreview,
@@ -282,5 +283,44 @@ describe("isOfficialAccount", () => {
     assert.equal(isOfficialAccount({ isOfficial: true }), true);
     assert.equal(isOfficialAccount({ isOfficial: false }), false);
     assert.equal(isOfficialAccount({}), false);
+  });
+});
+
+describe("dropAbandonedConversations", () => {
+  const empty = (id: string) => ({
+    friend: { id },
+    messages: [],
+    lastMessage: undefined,
+    draft: "",
+    draftImages: [],
+    unreadCount: 0,
+  });
+
+  it("drops empty conversations that are no longer active", () => {
+    const result = dropAbandonedConversations(
+      [empty("a"), empty("b"), { ...empty("c"), draft: "hey" }],
+      "b"
+    );
+    assert.deepEqual(
+      result.map(({ friend }) => friend.id),
+      ["b", "c"]
+    );
+  });
+
+  it("keeps listed, unread and active conversations", () => {
+    const listed = {
+      ...empty("a"),
+      lastMessage: {
+        seq: 1,
+        fromMe: false,
+        text: "hi",
+        createdAt: "",
+        isHidden: false,
+        attachmentCount: 0,
+      },
+    };
+    const unread = { ...empty("b"), unreadCount: 1 };
+    const conversations = [listed, unread, empty("c")];
+    assert.equal(dropAbandonedConversations(conversations, "c"), conversations);
   });
 });

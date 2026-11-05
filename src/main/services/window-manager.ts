@@ -887,12 +887,14 @@ export class WindowManager {
 
     return {
       friendsWindowOpen: isFriendsWindowOpen,
-      chatFriends: isChatWindowOpen
-        ? orderChatFriends(
-            this.chatWindowState.openFriendIds,
-            this.chatWindowState.openFriends ?? []
-          )
-        : [],
+      // The sidebar reloads the rest from the API.
+      chatFriends:
+        isChatWindowOpen && this.chatWindowState.activeFriendId
+          ? orderChatFriends(
+              [this.chatWindowState.activeFriendId],
+              this.chatWindowState.openFriends ?? []
+            )
+          : [],
       activeChatFriendId: isChatWindowOpen
         ? this.chatWindowState.activeFriendId
         : null,

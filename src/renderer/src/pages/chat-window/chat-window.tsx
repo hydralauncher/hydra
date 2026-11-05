@@ -15,6 +15,7 @@ import { ChatConversationHeader } from "./chat-conversation-header";
 import { applyOfficialPage, isOfficialMessagesPage } from "./chat-official";
 import { ChatSidebar } from "./chat-sidebar";
 import {
+  dropAbandonedConversations,
   isOfficialAccount,
   toConversationLastMessage,
 } from "./chat-sidebar-layout";
@@ -374,6 +375,9 @@ export default function ChatWindow() {
 
   const handleSelect = (friendId: string) => {
     setActiveId(friendId);
+    setConversations((current) =>
+      dropAbandonedConversations(current, friendId)
+    );
     updateConversation(friendId, (conversation) => ({
       ...conversation,
       unreadCount: 0,

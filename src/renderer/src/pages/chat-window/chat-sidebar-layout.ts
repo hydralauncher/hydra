@@ -168,3 +168,26 @@ export function getConversationPreview(
 
   return null;
 }
+
+/**
+ * Drops conversations opened from the picker and left without a message,
+ * draft or unread message once another one is active.
+ */
+export function dropAbandonedConversations<
+  T extends Pick<
+    ChatConversation,
+    "messages" | "lastMessage" | "draft" | "draftImages" | "unreadCount"
+  > & { friend: Pick<ChatConversation["friend"], "id"> },
+>(conversations: T[], activeId: string | null): T[] {
+  const kept = conversations.filter(
+    (conversation) =>
+      conversation.friend.id === activeId ||
+      conversation.messages.length > 0 ||
+      conversation.lastMessage !== undefined ||
+      conversation.unreadCount > 0 ||
+      conversation.draft.trim() !== "" ||
+      conversation.draftImages.length > 0
+  );
+
+  return kept.length === conversations.length ? conversations : kept;
+}

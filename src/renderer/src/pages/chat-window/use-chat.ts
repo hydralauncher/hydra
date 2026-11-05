@@ -649,17 +649,27 @@ export function useChat({
           take: PAGE_SIZE,
         });
 
-        updateConversation(friendId, (current) => ({
-          ...current,
-          isLoadingOlder: false,
-          hasMoreBefore: page.hasMore,
-          messages: mergeChatMessages(
-            current.messages,
-            page.messages.map((message) =>
-              toChatMessage(message, friendId, true)
-            )
-          ),
-        }));
+        updateConversation(friendId, (current) => {
+          // History replaced meanwhile: this page would leave a hole.
+          const currentOldestSeq = current.messages.find(
+            (message) => message.seq !== undefined
+          )?.seq;
+          if (currentOldestSeq !== oldestSeq) {
+            return { ...current, isLoadingOlder: false };
+          }
+
+          return {
+            ...current,
+            isLoadingOlder: false,
+            hasMoreBefore: page.hasMore,
+            messages: mergeChatMessages(
+              current.messages,
+              page.messages.map((message) =>
+                toChatMessage(message, friendId, true)
+              )
+            ),
+          };
+        });
       } catch {
         updateConversation(friendId, (current) => ({
           ...current,
