@@ -198,6 +198,8 @@ const initializeApp = async () => {
     });
   });
 
+  await WindowManager.loadWindowDecorationsPreference();
+
   try {
     await loadState();
   } catch (error) {
