@@ -1423,6 +1423,8 @@
     "theme_imported": "Tema importado correctamente",
     "enable_friend_request_notifications": "Cuando recibís una solicitud de amistad",
     "enable_auto_install": "Descargar actualizaciones automáticamente",
+    "use_native_window_decorations": "Usar la decoración de ventanas nativa del sistema",
+    "use_native_window_decorations_hint": "Se aplica después de reiniciar Hydra",
     "run_games_with_gamemode": "Ejecutar juegos con GameMode por defecto",
     "run_games_with_mangohud": "Ejecutar juegos con MangoHud por defecto",
     "common_redist": "Common redistributables",

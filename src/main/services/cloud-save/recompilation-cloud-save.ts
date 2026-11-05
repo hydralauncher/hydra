@@ -55,8 +55,18 @@ export const getRecompilationSaveRules = (
         ];
       }
 
-      const template = entry.paths?.[pathContext.platform];
-      if (!entry.id || !template) return [];
+      if (!entry.id || !entry.paths) return [];
+      const rule: RecompilationSaveRule = {
+        rawPath: `${LOGICAL_SAVE_ROOT}/${entry.id}${kind === "dir" ? "/" : ""}`,
+        kind,
+        tags: entry.tags,
+        // Limited to the OSes that have a folder, so on any other OS the cloud copy
+        // is left for another machine instead of counting as missing.
+        when: Object.keys(entry.paths).map((os) => ({ os })),
+      };
+
+      const template = entry.paths[pathContext.platform];
+      if (!template) return [rule];
       if (template.includes("<base>") && !pathContext.executablePath) return [];
 
       // Same resolution as the port's ROM paths: environment folders (XDG_DATA_HOME
@@ -66,15 +76,7 @@ export const getRecompilationSaveRules = (
         path.dirname(pathContext.executablePath ?? "")
       );
 
-      return [
-        {
-          rawPath: `${LOGICAL_SAVE_ROOT}/${entry.id}${kind === "dir" ? "/" : ""}`,
-          kind,
-          tags: entry.tags,
-          when: [],
-          preferredPath,
-        },
-      ];
+      return [{ ...rule, preferredPath }];
     }
   );
 };
