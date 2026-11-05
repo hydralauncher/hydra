@@ -82,7 +82,7 @@ export function AchievementNotification() {
       await audio.play();
       return true;
     } catch (error) {
-      console.error("Failed to play achievement notification sound", error);
+      logger.error("Failed to play achievement notification sound", error);
       return false;
     }
   }, []);

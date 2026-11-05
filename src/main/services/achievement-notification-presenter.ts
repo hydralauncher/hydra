@@ -223,6 +223,9 @@ export class AchievementNotificationPresenter {
 
     if (event.type === "started") {
       if (this.stage !== "visible") return;
+      this.dependencies.log(
+        `Achievement notification started: ${event.requestId}`
+      );
       this.activeItem.shown = true;
       return;
     }
@@ -257,7 +260,7 @@ export class AchievementNotificationPresenter {
     this.stage = "visible";
 
     try {
-      this.dependencies.log(`Achievement notification started: ${requestId}`);
+      this.dependencies.log(`Achievement notification showing: ${requestId}`);
       host.showInactive();
       host.send("start-achievement-notification", requestId);
       this.startWatchdog(
