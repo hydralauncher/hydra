@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import type {
   CloudSavePathContext,
   Game,
@@ -8,9 +10,8 @@ import { parseRecompilationCloudSaveObjectId } from "@shared";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 import { getRecompilationInstallState } from "@main/events/recompilation/recompilation-installer";
+import { resolveRecompilationPath } from "@main/events/recompilation/recompilation-paths";
 import recompilationSaves from "@main/events/recompilation/recompilation-saves.json";
-
-import { NativeAddon } from "../native-addon";
 
 interface RecompilationSaveMapEntry {
   kind: string;
@@ -30,28 +31,6 @@ const SAVE_MAP = recompilationSaves as Record<
 >;
 
 const LOGICAL_SAVE_ROOT = "<recompilation>";
-
-// Resolves this machine's folder with the same native resolver the other save
-// rules use (known folders on Windows, XDG on Linux, <base> from the executable).
-const resolveLocalFolder = (
-  pathContext: CloudSavePathContext,
-  rawPath: string,
-  kind: string
-) =>
-  NativeAddon.resolveSaveRules({
-    shop: pathContext.shop,
-    objectId: pathContext.objectId,
-    platform: pathContext.platform,
-    homeDir: pathContext.homeDir,
-    documentsDir: pathContext.documentsDir,
-    appDataDir: pathContext.appDataDir,
-    executablePath: pathContext.executablePath,
-    winePrefixPath: pathContext.winePrefixPath,
-    steamPath: pathContext.steamPath,
-    rules: [
-      { ruleId: rawPath, kind, rawPath, source: "recomp", tags: [], when: [] },
-    ],
-  })[0]?.resolvedPaths[0]?.path;
 
 export const getRecompilationSaveRules = (
   pathContext: CloudSavePathContext
@@ -77,11 +56,15 @@ export const getRecompilationSaveRules = (
       }
 
       const template = entry.paths?.[pathContext.platform];
-      const preferredPath =
-        entry.id && template
-          ? resolveLocalFolder(pathContext, template, kind)
-          : undefined;
-      if (!preferredPath) return [];
+      if (!entry.id || !template) return [];
+      if (template.includes("<base>") && !pathContext.executablePath) return [];
+
+      // Same resolution as the port's ROM paths: environment folders (XDG_DATA_HOME
+      // included) and the folder of the port's executable, as a literal path.
+      const preferredPath = resolveRecompilationPath(
+        template,
+        path.dirname(pathContext.executablePath ?? "")
+      );
 
       return [
         {

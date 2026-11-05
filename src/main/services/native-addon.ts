@@ -19,8 +19,6 @@ import type {
   ReplaceRestoreTargetsResult,
   ResolveRestoreTargetsInput,
   ResolveRestoreTargetsResult,
-  ResolveSaveRulesInput,
-  ResolvedCloudSaveRule,
   ShouldSkipRestoreFileInput,
   VerifyDownloadedRestoreFileResult,
   CheckCloudSaveCustomPathOverlapInput,
@@ -166,7 +164,6 @@ type HydraNativeModule = {
   getSaveRulesForGame: (
     input: GetSaveRulesForGameInput
   ) => Promise<GameSaveRules>;
-  resolveSaveRules: (input: ResolveSaveRulesInput) => ResolvedCloudSaveRule[];
   buildSnapshotAggregateHash: (
     input: BuildSnapshotAggregateHashInput
   ) => string;
@@ -625,10 +622,6 @@ export class NativeAddon {
 
   public static getSaveRulesForGame(input: GetSaveRulesForGameInput) {
     return this.load().getSaveRulesForGame(input);
-  }
-
-  public static resolveSaveRules(input: ResolveSaveRulesInput) {
-    return this.load().resolveSaveRules(input);
   }
 
   public static checkCloudSaveCustomPathOverlap(

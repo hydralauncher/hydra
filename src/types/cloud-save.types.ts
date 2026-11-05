@@ -263,23 +263,6 @@ export interface LocalFileHashCacheEntry {
   algorithm?: "sha256";
 }
 
-export interface ResolveSaveRulesInput extends CloudSaveGameId {
-  platform: CloudSavePathContext["platform"];
-  homeDir: string;
-  documentsDir?: string;
-  appDataDir?: string;
-  executablePath?: string;
-  winePrefixPath?: string;
-  steamPath?: string;
-  rules: CloudSaveRule[];
-}
-
-export interface ResolvedCloudSaveRule
-  extends Omit<CloudSaveRule, "preferredPath"> {
-  resolvedPaths: { path: string; caseSensitive: boolean; dynamic: boolean }[];
-  unresolvedTokens: string[];
-}
-
 export interface CloudSavePathContext extends CloudSaveGameId {
   platform: "windows" | "linux" | "mac";
   homeDir: string;

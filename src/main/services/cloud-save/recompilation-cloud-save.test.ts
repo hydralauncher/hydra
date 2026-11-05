@@ -12,38 +12,27 @@ type GetRules = (
   pathContext: CloudSavePathContext
 ) => RecompilationSaveRule[] | undefined;
 
-// Stand-in for the native resolver: the folders each OS would resolve to.
-const LOCAL_FOLDERS: Record<string, Record<string, string>> = {
-  windows: {
-    "<winAppData>": "C:/Users/Player/AppData/Roaming",
-    "<base>": "D:/Games/recompilations/shipwright",
-  },
-  linux: {
-    "<xdgData>": "/home/player/.local/share",
-    "<base>": "/home/player/recompilations/shipwright",
-  },
+const ROAMING = "C:/Users/Player/AppData/Roaming";
+const XDG_DATA = "/home/player/{custom}/data";
+const ORIGINAL_ENV = {
+  APPDATA: process.env.APPDATA,
+  XDG_DATA_HOME: process.env.XDG_DATA_HOME,
 };
 
 let root: string;
 let getRecompilationSaveRules: GetRules;
 
 before(async () => {
+  process.env.APPDATA = ROAMING;
+  process.env.XDG_DATA_HOME = XDG_DATA;
+
   root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-recomp-saves-"));
   const bundlePath = path.join(root, "recompilation-cloud-save.mjs");
-  const shared = fileURLToPath(
-    new URL("../../../shared/recompilations.ts", import.meta.url)
-  );
-  const saveMap = fileURLToPath(
-    new URL(
-      "../../events/recompilation/recompilation-saves.json",
-      import.meta.url
-    )
-  );
+  const fromHere = (relative: string) =>
+    fileURLToPath(new URL(relative, import.meta.url));
 
   await build({
-    entryPoints: [
-      fileURLToPath(new URL("./recompilation-cloud-save.ts", import.meta.url)),
-    ],
+    entryPoints: [fromHere("./recompilation-cloud-save.ts")],
     bundle: true,
     platform: "node",
     format: "esm",
@@ -54,18 +43,23 @@ before(async () => {
         name: "stubs",
         setup(pluginBuild) {
           pluginBuild.onResolve({ filter: /^@shared$/ }, () => ({
-            path: shared,
+            path: fromHere("../../../shared/recompilations.ts"),
           }));
           pluginBuild.onResolve(
-            { filter: /recompilation-saves.json$/ },
+            { filter: /recompilation-saves\.json$/ },
             () => ({
-              path: saveMap,
+              path: fromHere(
+                "../../events/recompilation/recompilation-saves.json"
+              ),
             })
           );
+          pluginBuild.onResolve({ filter: /recompilation-paths$/ }, () => ({
+            path: fromHere("../../events/recompilation/recompilation-paths.ts"),
+          }));
           pluginBuild.onResolve(
             {
               filter:
-                /^@main\/level$|recompilation-installer$|^\.\.\/native-addon$/,
+                /^@main\/level$|recompilation-installer$|get-downloads-path$|^@types$/,
             },
             (args) => ({ path: args.path, namespace: "stub" })
           );
@@ -73,15 +67,9 @@ before(async () => {
             contents: [
               "export const gamesSublevel = {};",
               "export const levelKeys = {};",
+              "export const recompilationInstallsSublevel = {};",
               "export const getRecompilationInstallState = async () => null;",
-              `const folders = ${JSON.stringify(LOCAL_FOLDERS)};`,
-              "export const NativeAddon = {",
-              "  resolveSaveRules: ({ platform, rules }) => rules.map((rule) => ({",
-              "    ...rule,",
-              "    resolvedPaths: [{ path: rule.rawPath.replace(/<[A-Za-z]+>/g, (token) => folders[platform][token]), caseSensitive: false, dynamic: false }],",
-              "    unresolvedTokens: [],",
-              "  })),",
-              "};",
+              "export const getDownloadsPath = async () => '';",
             ].join("\n"),
             loader: "js",
           }));
@@ -96,78 +84,85 @@ before(async () => {
 });
 
 after(async () => {
+  for (const [key, value] of Object.entries(ORIGINAL_ENV)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
   await fs.rm(root, { recursive: true, force: true });
 });
 
 const context = (
   objectId: string,
-  platform: CloudSavePathContext["platform"]
+  platform: "windows" | "linux",
+  executablePath?: string
 ): CloudSavePathContext => ({
   shop: "launchbox",
   objectId,
   platform,
   homeDir: platform === "windows" ? "C:/Users/Player" : "/home/player",
+  executablePath,
   storeUserContext: {} as CloudSavePathContext["storeUserContext"],
 });
 
-const rulesOn = (objectId: string, platform: "windows" | "linux") =>
-  getRecompilationSaveRules(context(objectId, platform)) ?? [];
+const folder = (
+  objectId: string,
+  platform: "windows" | "linux",
+  rawPath: string,
+  executablePath?: string
+) =>
+  getRecompilationSaveRules(context(objectId, platform, executablePath))?.find(
+    (rule) => rule.rawPath === rawPath
+  )?.preferredPath;
 
 describe("getRecompilationSaveRules", () => {
-  it("names a per-OS save folder the same on Windows and Linux", () => {
-    const windows = rulesOn("2234:gen1recomp", "windows");
-    const linux = rulesOn("2234:gen1recomp", "linux");
+  it("names a per-OS save location the same on Windows and Linux", () => {
+    const names = (platform: "windows" | "linux") =>
+      getRecompilationSaveRules(context("2234:gen1recomp", platform))?.map(
+        ({ rawPath, kind }) => [rawPath, kind]
+      );
 
-    assert.deepEqual(
-      windows.map(({ rawPath, kind }) => [rawPath, kind]),
-      linux.map(({ rawPath, kind }) => [rawPath, kind])
-    );
+    assert.deepEqual(names("windows"), names("linux"));
     assert.ok(
-      windows.some(({ rawPath }) => rawPath === "<recompilation>/saves/")
+      names("linux")?.some(([rawPath]) => rawPath === "<recompilation>/saves/")
     );
   });
 
-  it("points each machine at its own folder", () => {
-    const folder = (platform: "windows" | "linux", rawPath: string) =>
-      rulesOn("2234:gen1recomp", platform).find(
-        (rule) => rule.rawPath === rawPath
-      )?.preferredPath;
-
+  it("points each machine at its own folder, literally", () => {
     assert.equal(
-      folder("windows", "<recompilation>/saves/"),
-      "C:/Users/Player/AppData/Roaming/pokemon-love2d/saves/"
+      folder("2234:gen1recomp", "windows", "<recompilation>/saves/"),
+      path.normalize(`${ROAMING}/pokemon-love2d/saves/`)
     );
     assert.equal(
-      folder("linux", "<recompilation>/saves/"),
-      "/home/player/.local/share/pokemon-love2d/saves/"
+      folder("2234:gen1recomp", "linux", "<recompilation>/saves/"),
+      path.normalize(`${XDG_DATA}/pokemon-love2d/saves/`)
     );
     assert.equal(
-      folder("windows", "<recompilation>/box/storage.lua"),
-      "C:/Users/Player/AppData/Roaming/pokemon-love2d/box/storage.lua"
-    );
-    assert.equal(
-      folder("linux", "<recompilation>/box/storage.lua"),
-      "/home/player/.local/share/pokemon-love2d/box/storage.lua"
+      folder("2234:gen1recomp", "linux", "<recompilation>/box/storage.lua"),
+      path.normalize(`${XDG_DATA}/pokemon-love2d/box/storage.lua`)
     );
   });
 
-  it("resolves the port folder only where the save lives in it", () => {
+  it("uses the port's executable folder for <base>", () => {
     assert.equal(
-      rulesOn("153:shipwright", "windows")[0]?.preferredPath,
-      "D:/Games/recompilations/shipwright/Save/"
+      folder(
+        "153:shipwright",
+        "windows",
+        "<recompilation>/Save/",
+        "D:/Games/recompilations/shipwright/soh.exe"
+      ),
+      path.normalize("D:/Games/recompilations/shipwright/Save/")
     );
     assert.equal(
-      rulesOn("153:shipwright", "linux")[0]?.preferredPath,
-      "/home/player/.local/share/soh/Save/"
+      folder("153:shipwright", "windows", "<recompilation>/Save/"),
+      undefined
     );
   });
 
   it("keeps locations that are the same on every OS as plain rules", () => {
-    const rules = rulesOn("204:ghostship", "linux");
-
-    assert.deepEqual(rules, [
-      { rawPath: "<base>/saves/", kind: "dir", tags: ["save"], when: [] },
-    ]);
+    assert.deepEqual(
+      getRecompilationSaveRules(context("204:ghostship", "linux")),
+      [{ rawPath: "<base>/saves/", kind: "dir", tags: ["save"], when: [] }]
+    );
   });
 
   it("ignores games that are not ports", () => {
