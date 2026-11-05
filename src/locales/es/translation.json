@@ -3008,7 +3008,7 @@
     "install_step_port": "Versión para PC",
     "install_step_rom": "ROM del juego",
     "prepare_title": "Preparando el juego",
-    "prepare_intro": "Solo pasa la primera vez y puede tardar unos minutos.",
+    "prepare_intro": "Puede tardar unos minutos.",
     "prepare_starting": "Empezando",
     "prepare_step_count": "Paso {{step}} de {{steps}}",
     "prepare_step_disc": "Comprobando el disco",

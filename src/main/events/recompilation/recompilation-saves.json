@@ -177,6 +177,15 @@
         }
       },
       {
+        "id": "memcard2-preview",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/ico-pc/ico-pc/memcard2-preview/",
+          "linux": "<xdgData>/ico-pc/ico-pc/memcard2-preview/"
+        }
+      },
+      {
         "path": "<base>/userdata/memcard/",
         "kind": "dir",
         "tags": ["save"]
@@ -188,6 +197,11 @@
       },
       {
         "path": "<base>/userdata/memcard2/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/userdata/memcard2-preview/",
         "kind": "dir",
         "tags": ["save"]
       }
@@ -212,6 +226,139 @@
       {
         "path": "<base>/cardb.sav",
         "kind": "file",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "starfox64recomp": {
+    "saves": [
+      {
+        "id": "saves",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winLocalAppData>/Starfox64Recompiled/saves/",
+          "linux": "<home>/.config/Starfox64Recompiled/saves/"
+        }
+      }
+    ]
+  },
+  "donkey-kong-64-recompiled": {
+    "saves": [
+      {
+        "id": "saves",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winLocalAppData>/DK64Recompiled/saves/",
+          "linux": "<home>/.config/DK64Recompiled/saves/"
+        }
+      }
+    ]
+  },
+  "perfect-dark-dabs-mod": {
+    "saves": [
+      {
+        "path": "<base>/eeprom.bin",
+        "kind": "file",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/ghosts/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/exported/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/modsaves/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "battleship": {
+    "saves": [
+      {
+        "id": "ssb64_save.bin",
+        "kind": "file",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/ssb64_save.bin",
+          "linux": "<xdgData>/BattleShip/ssb64_save.bin"
+        }
+      }
+    ]
+  },
+  "metroidprimeport": {
+    "saves": [
+      {
+        "id": "USA/Card A",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/USA/Card A/",
+          "linux": "<base>/usr/bin/user/USA/Card A/"
+        }
+      },
+      {
+        "id": "EUR/Card A",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/EUR/Card A/",
+          "linux": "<base>/usr/bin/user/EUR/Card A/"
+        }
+      }
+    ]
+  },
+  "melee-pc": {
+    "saves": [
+      {
+        "id": "USA/Card A",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/melee-pc/USA/Card A/",
+          "linux": "<xdgData>/melee-pc/USA/Card A/"
+        }
+      }
+    ]
+  },
+  "bluewake": {
+    "saves": [
+      {
+        "id": "GZLE01.card",
+        "kind": "file",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/BlueWake/GZLE01.card",
+          "linux": "<xdgData>/BlueWake/GZLE01.card"
+        }
+      }
+    ]
+  },
+  "gen2recomped": {
+    "saves": [
+      {
+        "id": "saves",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/Gen2Recomp/saves/",
+          "linux": "<xdgData>/Gen2Recomp/saves/"
+        }
+      }
+    ]
+  },
+  "crashbandicoot-launcher": {
+    "saves": [
+      {
+        "path": "<base>/save/",
+        "kind": "dir",
         "tags": ["save"]
       }
     ]
