@@ -759,6 +759,9 @@ export function App() {
             {hasActiveSubscription && (
               <span className="title-bar__cloud-text"> Cloud</span>
             )}
+            <span className="title-bar__made-by">
+              Made by shaheer for eesheeta
+            </span>
           </h4>
 
           <button
