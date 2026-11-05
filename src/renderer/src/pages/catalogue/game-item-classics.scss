@@ -123,7 +123,7 @@
   // Left of the add-to-library button, which sits in the top-right corner.
   &__recompilation-chip {
     position: absolute;
-    top: 10px;
+    top: 8px;
     right: 42px;
     z-index: 2;
     display: inline-flex;
@@ -131,9 +131,11 @@
     gap: 4px;
     padding: 4px 8px;
     font-size: 11px;
-    font-weight: 600;
-    color: #ffffff;
-    background: #3e62c0;
+    font-weight: 500;
+    color: #fafafa;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 4px;
     line-height: 1.2;
     white-space: nowrap;
