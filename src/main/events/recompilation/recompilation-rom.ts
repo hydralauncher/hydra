@@ -229,7 +229,8 @@ const isPortReady = async (
     }
   }
   return (
-    meta.copyTo !== undefined && (await fileExists(choice?.preparedTarget))
+    getCopyTarget(meta, baseDirectory, "") !== null &&
+    (await fileExists(choice?.preparedTarget))
   );
 };
 
