@@ -37,6 +37,7 @@ import {
   createReply,
   findGapAfter,
   getLatestSeq,
+  selectMessagesToKeep,
   mergeChatMessages,
   mergePendingMessages,
   removeUnsentMessage,
@@ -457,19 +458,11 @@ export function useChat({
 
         updateConversation(friendId, (conversation) => {
           const isFirstLoad = conversation.loadState !== "loaded";
-          // Live messages that arrived before the first load and are older
-          // than its page would leave a hole that scrolling can't reach.
-          const pageOldestSeq = messages[0]?.seq;
-          const kept = replace
-            ? conversation.messages.filter(
-                (message) => message.seq === undefined
-              )
-            : isFirstLoad && pageOldestSeq !== undefined
-              ? conversation.messages.filter(
-                  (message) =>
-                    message.seq === undefined || message.seq >= pageOldestSeq
-                )
-              : conversation.messages;
+          const kept = selectMessagesToKeep(
+            conversation.messages,
+            messages[0]?.seq,
+            { replace, isFirstLoad }
+          );
 
           return {
             ...conversation,
