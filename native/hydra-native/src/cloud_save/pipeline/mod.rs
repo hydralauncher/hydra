@@ -447,6 +447,7 @@ mod tests {
                     os: Some("windows".into()),
                     store: None,
                 }],
+                preferred_path: None,
             }]),
         };
 
