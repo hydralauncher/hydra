@@ -1,0 +1,147 @@
+@use "../../scss/globals.scss";
+
+.recompilation-status-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fafafa;
+  color: #0a0a0a;
+
+  &--off {
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.08);
+    color: #a1a1aa;
+  }
+}
+
+.recompilation-install-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+  padding: calc(globals.$spacing-unit * 2);
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    & + & {
+      padding-top: calc(globals.$spacing-unit * 2);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  &__item-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fafafa;
+    font-size: 14px;
+  }
+
+  &__item-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-left: 28px;
+    min-width: 0;
+  }
+
+  &__sub {
+    margin: 0;
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+
+    strong {
+      color: globals.$muted-color;
+      font-weight: 600;
+    }
+  }
+
+  &__location {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+  }
+
+  &__location-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    margin-right: auto;
+    color: globals.$muted-color;
+    font-weight: 600;
+  }
+
+  &__path {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__open {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background: transparent;
+    color: globals.$body-color;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: globals.$muted-color;
+    }
+  }
+
+  &__rom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  &__cover {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &__rom-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+
+    strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: globals.$muted-color;
+      font-weight: 600;
+    }
+  }
+
+  .setup-modal__progress-bar {
+    margin-top: 0 !important;
+  }
+}

@@ -161,6 +161,7 @@ export interface GameRunning {
   objectId: string;
   shop: GameShop;
   sessionDurationInMillis: number;
+  recompilationSlug?: string;
 }
 
 export interface Steam250Game {
@@ -761,6 +762,11 @@ export interface GameReview {
     [key: string]: string;
   };
   detectedLanguage: string | null;
+  recompilation?: {
+    slug: string;
+    name: string;
+    iconUrl: string | null;
+  } | null;
 }
 
 export interface TrendingGame extends ShopAssets {
@@ -1094,6 +1100,7 @@ export * from "./artwork.types";
 export * from "./cloud-save.types";
 export * from "./souvenir.types";
 export * from "./screenshot.types";
+export * from "./recompilation.types";
 
 export type ExtractionFailure =
   | { reason: "unsupported-format"; format: string }

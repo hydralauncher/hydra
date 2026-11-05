@@ -60,6 +60,13 @@ import type {
   EmulationBackupProgress,
   EmulatorBinary,
   EmulatorInstallProgress,
+  RecompilationActionResult,
+  RecompilationInstallProgress,
+  RecompilationPrepareProgress,
+  RecompilationInstallState,
+  RecompilationRef,
+  RecompilationRomSource,
+  RecompilationRomState,
   EmulatorInstallResult,
   ResolvedInstallOption,
   DetectedRom,
@@ -618,11 +625,17 @@ declare global {
       objectId: string
     ) => Promise<number>;
     getGamesRunning: () => Promise<
-      Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+      Pick<
+        GameRunning,
+        "id" | "sessionDurationInMillis" | "recompilationSlug"
+      >[]
     >;
     onGamesRunning: (
       cb: (
-        gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+        gamesRunning: Pick<
+          GameRunning,
+          "id" | "sessionDurationInMillis" | "recompilationSlug"
+        >[]
       ) => void
     ) => () => Electron.IpcRenderer;
     onGameSessionSynced: (cb: () => void) => () => Electron.IpcRenderer;
@@ -775,6 +788,41 @@ declare global {
     ) => Promise<EmulatorInstallResult>;
     onEmulatorInstallProgress: (
       cb: (payload: EmulatorInstallProgress) => void
+    ) => () => void;
+    getRecompilationInstallState: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationInstallState | null>;
+    installRecompilation: (
+      ref: RecompilationRef,
+      parentDirectory?: string
+    ) => Promise<RecompilationActionResult>;
+    uninstallRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    openRecompilationFolder: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    playRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    closeRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    getRecompilationRomState: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationRomState | null>;
+    setRecompilationRom: (
+      ref: RecompilationRef,
+      choice: { source: RecompilationRomSource; path?: string }
+    ) => Promise<RecompilationActionResult>;
+    onRecompilationInstallProgress: (
+      cb: (payload: RecompilationInstallProgress) => void
+    ) => () => void;
+    prepareRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    onRecompilationPrepareProgress: (
+      cb: (payload: RecompilationPrepareProgress) => void
     ) => () => void;
     /* RetroArch */
     getRetroArchConfig: () => Promise<RetroArchConfig>;
@@ -1303,6 +1351,7 @@ declare global {
     deleteTempFile: (filePath: string) => Promise<void>;
     platform: NodeJS.Platform;
     isWayland: boolean;
+    hasNativeWindowDecorations: boolean;
 
     /* Auto update */
     onAutoUpdaterEvent: (

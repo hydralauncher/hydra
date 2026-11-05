@@ -1,0 +1,39 @@
+.recompilations-section {
+  &__no-icon {
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    p {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+
+    .tested-medal {
+      flex-shrink: 0;
+      position: relative;
+      top: 1px;
+    }
+  }
+
+  &__chevron {
+    flex-shrink: 0;
+    margin-left: auto;
+    opacity: 0.6;
+  }
+}

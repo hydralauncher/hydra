@@ -10,12 +10,20 @@ use std::path::Path;
 use napi::bindgen_prelude::Error;
 use napi_derive::napi;
 
-pub use types::{GameSaveRules, GetSaveRulesForGameInput};
+pub use types::{GameSaveRules, GetSaveRulesForGameInput, RecompilationSaveRule};
 
 #[napi]
 pub async fn get_save_rules_for_game(
     input: GetSaveRulesForGameInput,
 ) -> napi::Result<GameSaveRules> {
+    if let Some(recompilation_rules) = input.recompilation_rules {
+        return Ok(rules::build_recompilation_save_rules(
+            input.shop,
+            input.object_id,
+            &recompilation_rules,
+        ));
+    }
+
     let source_url = source::resolve_source_url(input.source_url);
     let index = cache::get_manifest_index(Path::new(&input.user_data_path), &source_url)
         .await
