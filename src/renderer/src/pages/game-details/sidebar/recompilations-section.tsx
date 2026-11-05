@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckIcon, ChevronRightIcon, XIcon } from "@primer/octicons-react";
 import cn from "classnames";
@@ -44,6 +44,7 @@ export function RecompilationsSection({
     []
   );
   const [showTip, setShowTip] = useState(false);
+  const gotItButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +72,9 @@ export function RecompilationsSection({
           dismissTip(objectId);
           return;
         }
+        if (states.some((state) => state?.isInstalling || state?.isPreparing)) {
+          return;
+        }
         setShowTip(true);
       })
       .catch((error) => {
@@ -92,6 +96,19 @@ export function RecompilationsSection({
       setShowTip(false);
     });
   }, [showTip, recompilations, objectId]);
+
+  useEffect(() => {
+    if (!showTip) return;
+    gotItButtonRef.current?.focus({ preventScroll: true });
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      dismissTip(objectId);
+      setShowTip(false);
+    };
+    globalThis.addEventListener("keydown", closeOnEscape);
+    return () => globalThis.removeEventListener("keydown", closeOnEscape);
+  }, [showTip, objectId]);
 
   if (recompilations.length === 0) return null;
 
@@ -144,7 +161,7 @@ export function RecompilationsSection({
                   {t("tip_quick_install")}
                 </span>
               </div>
-              <Button theme="primary" onClick={closeTip}>
+              <Button ref={gotItButtonRef} theme="primary" onClick={closeTip}>
                 {t("tip_got_it")}
               </Button>
             </div>

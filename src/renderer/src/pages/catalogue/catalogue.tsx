@@ -760,7 +760,7 @@ export default function Catalogue() {
                           return;
                         }
 
-                        if (filter.value === "toggle") {
+                        if (filter.key === "recompilation") {
                           dispatch(setFilters({ [filter.key]: undefined }));
                           return;
                         }
