@@ -30,6 +30,7 @@ import {
 } from "@renderer/helpers";
 import {
   getRememberedPlayChoice,
+  RECOMPILATION_CHOICE_PREFIX,
   setRememberedPlayChoice,
 } from "../../hero/use-installed-recompilations";
 
@@ -125,6 +126,13 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
 
   const handleSelectDisc = async (path: string) => {
     setIsDropdownOpen(false);
+    if (
+      rememberedChoice &&
+      !rememberedChoice.startsWith(RECOMPILATION_CHOICE_PREFIX)
+    ) {
+      setRememberedPlayChoice(game.objectId, path);
+      setRememberedChoice(path);
+    }
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
       selectedDiscPath: path,
     });
