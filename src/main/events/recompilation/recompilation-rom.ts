@@ -16,11 +16,13 @@ import type {
 } from "@types";
 import { isCompletedLikeDownload } from "../../../types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import { logger, SevenZip } from "@main/services";
+import { t } from "i18next";
+import { logger, SevenZip, WindowManager } from "@main/services";
 import {
   getRecompilationBaseDirectory,
   getRecompilationInstallDirectory,
   parseRecompilationRef,
+  readInstallMarker,
 } from "./recompilation-paths";
 import recompilationMeta from "./recompilation-meta.json";
 import { toZ64 } from "./n64-rom";
@@ -62,6 +64,7 @@ interface RomChoice {
   preparedFrom?: string;
   preparedTarget?: string;
   launched?: boolean;
+  checkedFrom?: string;
 }
 
 const hasExtension = (filePath: string, extensions: string[]) =>
@@ -294,19 +297,23 @@ export const setRecompilationRom = async (
 
   const installDirectory = await getRecompilationInstallDirectory(ref.slug);
   const previous = await readRomChoice(installDirectory);
+  const chosenPath =
+    source === "file"
+      ? (romPath as string)
+      : await getLibraryRomPath(ref.objectId, meta.extensions);
+  const isChecked =
+    chosenPath !== null &&
+    !ARCHIVE_EXTENSIONS.has(path.extname(chosenPath).toLowerCase());
   await writeRomChoice(installDirectory, {
     preparedFrom: previous?.preparedFrom,
     preparedTarget: previous?.preparedTarget,
     launched: false,
     source,
     path: source === "file" ? (romPath as string) : undefined,
+    checkedFrom: isChecked ? chosenPath : undefined,
   });
 
-  const chosenPath =
-    source === "file"
-      ? (romPath as string)
-      : await getLibraryRomPath(ref.objectId, meta.extensions);
-  const supported = chosenPath
+  const supported = isChecked
     ? await isSupportedRomVersion(chosenPath, meta)
     : true;
   return supported ? { ok: true } : { ok: true, warning: "rom_version" };
@@ -518,6 +525,16 @@ const writeRomConfig = async (
   await fs.promises.writeFile(file, JSON.stringify(root, null, 2));
 };
 
+const warnUnsupportedRom = async (installDirectory: string) => {
+  const name =
+    (await readInstallMarker(installDirectory))?.name ??
+    path.basename(installDirectory);
+  WindowManager.mainWindow?.webContents.send("on-show-toast", {
+    type: "warning",
+    title: t("rom_version_warning", { ns: "recompilation", name }),
+  });
+};
+
 export type RecompilationLaunch =
   | { ok: true; args: string[]; env: Record<string, string> }
   | { ok: false; reason: string };
@@ -588,9 +605,23 @@ export const prepareRecompilationRom = async (
       await writeRomConfig(meta.path.config, baseDirectory, romPath);
     }
 
-    if (!isPrepared || (target ?? undefined) !== choice.preparedTarget) {
+    // ROMs downloaded or picked inside an archive are only checked once they are unpacked.
+    const needsVersionCheck = choice.checkedFrom !== state.romPath;
+    if (
+      needsVersionCheck &&
+      !(await isSupportedRomVersion(sourceRomPath, meta))
+    ) {
+      await warnUnsupportedRom(installDirectory);
+    }
+
+    if (
+      !isPrepared ||
+      needsVersionCheck ||
+      (target ?? undefined) !== choice.preparedTarget
+    ) {
       await writeRomChoice(installDirectory, {
         ...choice,
+        checkedFrom: state.romPath,
         preparedFrom: state.romPath,
         preparedTarget: target ?? undefined,
         launched: isPrepared ? choice.launched : false,
