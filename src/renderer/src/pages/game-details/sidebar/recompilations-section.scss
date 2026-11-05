@@ -28,6 +28,9 @@
     position: absolute;
     top: -8px;
     right: calc(100% + 18px);
+    left: auto;
+    margin: 0;
+    color: inherit;
     z-index: 8;
     width: 352px;
     display: flex;

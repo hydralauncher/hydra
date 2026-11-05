@@ -89,9 +89,13 @@ function SourceBadges({ sources }: Readonly<{ sources: string[] }>) {
 
 export interface GameItemClassicsProps {
   game: CatalogueSearchResult;
+  showRecompilationBadge: boolean;
 }
 
-export function GameItemClassics({ game }: GameItemClassicsProps) {
+export function GameItemClassics({
+  game,
+  showRecompilationBadge,
+}: GameItemClassicsProps) {
   const { i18n, t } = useTranslation("game_details");
   const language = i18n.language.split("-")[0];
 
@@ -147,7 +151,8 @@ export function GameItemClassics({ game }: GameItemClassicsProps) {
     });
   }, [game.genres, language, steamGenres]);
 
-  const hasRecompilation = (game.recompilations?.length ?? 0) > 0;
+  const hasRecompilation =
+    showRecompilationBadge && (game.recompilations?.length ?? 0) > 0;
 
   return (
     <article className="game-item-classics">

@@ -4,7 +4,12 @@ import type {
   DownloadSource,
 } from "@types";
 
-import { useAppDispatch, useAppSelector, useFormat } from "@renderer/hooks";
+import {
+  useAppDispatch,
+  useAppSelector,
+  useFeature,
+  useFormat,
+} from "@renderer/hooks";
 import {
   lazy,
   Suspense,
@@ -164,6 +169,9 @@ export default function Catalogue() {
 
   const [itemsCount, setItemsCount] = useState(0);
 
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isRecompilationsEnabled = isFeatureEnabled(Feature.Recompilations);
+
   const [onboarding, setOnboarding] = useState<
     "classics" | "recompilations" | null
   >(null);
@@ -182,12 +190,13 @@ export default function Catalogue() {
     ) {
       setOnboarding("classics");
     } else if (
+      isRecompilationsEnabled &&
       !recompilationOnboardingSeenRef.current &&
       !hasDismissedRecompilationOnboarding()
     ) {
       setOnboarding("recompilations");
     }
-  }, [mode, onboarding]);
+  }, [mode, onboarding, isRecompilationsEnabled]);
 
   const { formatNumber } = useFormat();
 
@@ -803,7 +812,11 @@ export default function Catalogue() {
             </SkeletonTheme>
           ) : mode === "classics" ? (
             results.map((game) => (
-              <GameItemClassics key={game.id} game={game} />
+              <GameItemClassics
+                key={game.id}
+                game={game}
+                showRecompilationBadge={isRecompilationsEnabled}
+              />
             ))
           ) : (
             results.map((game) => <GameItem key={game.id} game={game} />)
@@ -827,7 +840,7 @@ export default function Catalogue() {
           <div className="catalogue__filters-sections">
             <CatalogueModeToggle />
 
-            {mode === "classics" && (
+            {mode === "classics" && isRecompilationsEnabled && (
               <RecompilationFilterToggle
                 checked={filters.recompilation === "has"}
                 onChange={(checked) =>

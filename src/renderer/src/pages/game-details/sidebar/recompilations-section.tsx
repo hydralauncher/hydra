@@ -99,9 +99,9 @@ export function RecompilationsSection({
       {showTip && (
         <>
           <span className="recompilations-section__beacon" aria-hidden="true" />
-          <div
+          <dialog
+            open
             className="recompilations-section__tip"
-            role="dialog"
             aria-labelledby="recompilations-tip-title"
             aria-describedby="recompilations-tip-body"
           >
@@ -139,7 +139,7 @@ export function RecompilationsSection({
                 {t("tip_got_it")}
               </Button>
             </div>
-          </div>
+          </dialog>
         </>
       )}
 

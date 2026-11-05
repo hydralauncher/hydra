@@ -268,8 +268,9 @@ $recomp-blue: #3e62c0;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    &__stage * {
-      animation: none !important;
+    &__stage *,
+    &__switch i {
+      animation: none;
     }
   }
 }
