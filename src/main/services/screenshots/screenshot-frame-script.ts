@@ -13,6 +13,13 @@ export const SCREENSHOT_CAPTURE_CALL_TIMEOUT_MS = 10_000;
 
 const CAPTURED_FRAME_GLOBAL = "globalThis.__hydraCapturedFrame";
 
+export class BlankScreenshotFrameError extends Error {
+  constructor() {
+    super("Screenshot capture returned only blank frames");
+    this.name = "BlankScreenshotFrameError";
+  }
+}
+
 export interface ScreenshotFrameCrop {
   x: number;
   y: number;
