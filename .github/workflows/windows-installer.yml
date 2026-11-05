@@ -1,0 +1,43 @@
+name: Windows Installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - windows-installer-build
+
+jobs:
+  build-windows-installer:
+    runs-on: windows-2022
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.21.0
+          cache: "yarn"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: yarn --frozen-lockfile
+
+      - name: Build Windows installer
+        run: yarn build:win
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: hydra-windows-installer
+          retention-days: 7
+          compression-level: 0
+          path: |
+            dist/*-setup.exe
+            dist/*-portable.exe
+            dist/*.zip
