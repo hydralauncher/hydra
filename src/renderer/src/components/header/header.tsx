@@ -13,6 +13,7 @@ import {
   PlusIcon,
   SearchIcon,
   SyncIcon,
+  VideoIcon,
   XIcon,
 } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
@@ -53,6 +54,7 @@ export function Header() {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const scanButtonTooltipId = useId();
   const addCustomGameTooltipId = useId();
+  const bigPictureTooltipId = useId();
   const [showAddGameModal, setShowAddGameModal] = useState(false);
 
   const navigate = useNavigate();
@@ -443,6 +445,20 @@ export function Header() {
             </button>
           )}
 
+          {window.electron.hasNativeWindowDecorations && (
+            <button
+              type="button"
+              className="header__action-button header__action-button--outlined"
+              onClick={() => window.electron.openBigPictureWindow()}
+              aria-label={t("big_picture", { ns: "sidebar" })}
+              data-tooltip-id={bigPictureTooltipId}
+              data-tooltip-content={t("big_picture", { ns: "sidebar" })}
+              data-tooltip-place="bottom"
+            >
+              <VideoIcon size={16} />
+            </button>
+          )}
+
           <div
             ref={searchContainerRef}
             className={cn("header__search", {
@@ -490,6 +506,10 @@ export function Header() {
 
       {isOnLibraryPage && isLibraryScanSupported && (
         <Tooltip id={scanButtonTooltipId} style={{ zIndex: 1 }} />
+      )}
+
+      {window.electron.hasNativeWindowDecorations && (
+        <Tooltip id={bigPictureTooltipId} style={{ zIndex: 9999 }} />
       )}
 
       <AutoUpdateSubHeader />
