@@ -158,6 +158,20 @@ describe("getRecompilationSaveRules", () => {
     );
   });
 
+  // Hydra runs the extracted AppImage without APPIMAGE set, so Ship of Harkinian
+  // keeps its files in the folder it is launched from on Linux too.
+  it("keeps Ship of Harkinian's Linux saves in the port's folder", () => {
+    assert.equal(
+      folder(
+        "153:shipwright",
+        "linux",
+        "<recompilation>/Save/",
+        "/home/player/recompilations/shipwright/AppRun"
+      ),
+      path.normalize("/home/player/recompilations/shipwright/Save/")
+    );
+  });
+
   it("leaves a location for other machines on an OS without its folder", () => {
     assert.deepEqual(
       getRecompilationSaveRules(context("153:shipwright", "mac", "/Apps/soh")),
