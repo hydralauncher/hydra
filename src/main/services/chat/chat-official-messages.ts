@@ -37,7 +37,7 @@ export class ChatOfficialMessages {
 
   /** Starts polling, unless it already runs. */
   public static start() {
-    if (this.timer || this.polling || !HydraApi.isLoggedIn()) return;
+    if (this.timer || this.polling !== null || !HydraApi.isLoggedIn()) return;
     this.schedule(randomDelay(FIRST_POLL_MAX_DELAY_MS));
   }
 

@@ -38,7 +38,7 @@ export function ChatConversationHeader({
   const currentGame = friend?.currentGame;
 
   const openProfile = () => {
-    if (friend) electron.openFriendProfileInMainWindow(friend.id);
+    if (friend) void electron.openFriendProfileInMainWindow(friend.id);
   };
 
   return (
