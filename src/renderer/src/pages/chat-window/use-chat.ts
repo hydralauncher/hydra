@@ -457,11 +457,19 @@ export function useChat({
 
         updateConversation(friendId, (conversation) => {
           const isFirstLoad = conversation.loadState !== "loaded";
+          // Live messages that arrived before the first load and are older
+          // than its page would leave a hole that scrolling can't reach.
+          const pageOldestSeq = messages[0]?.seq;
           const kept = replace
             ? conversation.messages.filter(
                 (message) => message.seq === undefined
               )
-            : conversation.messages;
+            : isFirstLoad && pageOldestSeq !== undefined
+              ? conversation.messages.filter(
+                  (message) =>
+                    message.seq === undefined || message.seq >= pageOldestSeq
+                )
+              : conversation.messages;
 
           return {
             ...conversation,
