@@ -34,6 +34,8 @@ export class ChatUnreadStore {
   // and official messages have neither a chat API nor notifications.
   private static officialUnread = 0;
   private static officialRevision = 0;
+  // Bumped by each read, so a poll that started before it can't undo it.
+  private static officialReadMark = 0;
   // Bumped on clear() so a load started before sign-out can't repopulate the
   // store with the previous user's counts.
   private static generation = 0;
@@ -125,10 +127,18 @@ export class ChatUnreadStore {
     this.broadcast();
   }
 
-  public static applyOfficialPoll(unreadCount: number, generation: number) {
+  public static getOfficialReadMark() {
+    return this.officialReadMark;
+  }
+
+  public static applyOfficialPoll(
+    unreadCount: number,
+    generation: number,
+    readMark: number
+  ) {
     if (generation !== this.generation) return;
 
-    this.officialUnread = unreadCount;
+    if (readMark === this.officialReadMark) this.officialUnread = unreadCount;
     this.officialRevision++;
     this.broadcast();
   }
@@ -136,6 +146,7 @@ export class ChatUnreadStore {
   public static clearOfficialUnread(generation: number) {
     if (generation !== this.generation) return;
 
+    this.officialReadMark++;
     this.officialUnread = 0;
     this.broadcast();
   }

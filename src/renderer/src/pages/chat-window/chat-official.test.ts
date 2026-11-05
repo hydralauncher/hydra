@@ -148,10 +148,10 @@ describe("applyOfficialPage", () => {
     );
   });
 
-  it("keeps older pages already loaded, and drops retracted recent ones", () => {
+  it("replaces the history with the latest page, dropping retracted messages", () => {
     const loaded = applyOfficialPage(
       [],
-      page([1, 2, 3, 4], { hasMoreBefore: true }),
+      page([1, 2, 3, 4], { hasMoreBefore: false }),
       createConversation
     );
     const [official] = applyOfficialPage(
@@ -162,7 +162,7 @@ describe("applyOfficialPage", () => {
 
     assert.deepEqual(
       official?.messages.map(({ seq }) => seq),
-      [1, 2, 3, 5]
+      [3, 5]
     );
     assert.equal(official?.hasMoreBefore, true);
   });

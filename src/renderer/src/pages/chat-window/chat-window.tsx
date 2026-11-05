@@ -130,6 +130,8 @@ export default function ChatWindow() {
 
   const officialRequestIdRef = useRef(0);
   const officialRevisionRef = useRef<number | null>(null);
+  const language = i18n.language;
+  const languageRef = useRef(language);
 
   // Official messages aren't part of the list above: older launchers read that
   // too, and they would show this as a direct conversation.
@@ -137,7 +139,7 @@ export default function ChatWindow() {
     const requestId = ++officialRequestIdRef.current;
     const page = await electron.hydraApi
       .get<unknown>(OFFICIAL_MESSAGES_PATH, {
-        params: { language: i18n.language },
+        params: { language: languageRef.current },
       })
       .catch(() => null);
     if (requestId !== officialRequestIdRef.current) return;
@@ -150,7 +152,13 @@ export default function ChatWindow() {
       if (page.messages.length > 0) return activeId ?? page.sender.id;
       return activeId === page.sender.id ? null : activeId;
     });
-  }, [i18n]);
+  }, []);
+
+  useEffect(() => {
+    if (languageRef.current === language) return;
+    languageRef.current = language;
+    if (officialRevisionRef.current !== null) void loadOfficialConversation();
+  }, [language, loadOfficialConversation]);
 
   const updateConversation = useCallback(
     (
@@ -322,6 +330,9 @@ export default function ChatWindow() {
     const unsubscribeFriends = electron.onFriendsUpdated(() => {
       refreshFriends();
     });
+    const unsubscribeResync = electron.onChatResync(() => {
+      void loadConversations();
+    });
     const unsubscribeUnread = electron.onChatUnreadUpdated(
       ({ officialRevision }) => {
         if (
@@ -349,6 +360,7 @@ export default function ChatWindow() {
       unsubscribePending();
       unsubscribeSound();
       unsubscribeFriends();
+      unsubscribeResync();
       unsubscribeUnread();
       unsubscribePresence();
     };

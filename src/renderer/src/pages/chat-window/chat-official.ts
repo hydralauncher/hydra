@@ -83,8 +83,9 @@ export const toChatMessagesPage = (
 });
 
 /**
- * Applies the latest page to the official conversation. Older pages the user
- * already scrolled to stay; with no visible messages the row goes away.
+ * Replaces the official conversation with the latest page; older messages
+ * page in again on scroll, so retracted ones never linger. With no visible
+ * messages the row goes away.
  */
 export const applyOfficialPage = (
   conversations: ChatConversation[],
@@ -100,26 +101,20 @@ export const applyOfficialPage = (
   const existing = conversations.find(
     (conversation) => conversation.friend.id === page.sender.id
   );
-  const latest = toChatMessagesPage(page).messages.map((message) =>
+  const messages = toChatMessagesPage(page).messages.map((message) =>
     toChatMessage(message, friend.id, true)
-  );
-  const oldestSeq = latest[0]?.seq ?? 0;
-  const older = (existing?.messages ?? []).filter(
-    ({ seq }) => seq !== undefined && seq < oldestSeq
   );
 
   return [
     {
       ...(existing ?? createConversation(friend)),
       friend,
-      messages: [...older, ...latest],
+      messages,
       unreadCount: page.unreadCount,
       canSend: false,
       loadState: "loaded",
-      hasMoreBefore:
-        older.length > 0
-          ? (existing?.hasMoreBefore ?? false)
-          : page.hasMoreBefore,
+      hasMoreBefore: page.hasMoreBefore,
+      isLoadingOlder: false,
       gapAfterSeq: null,
     },
     ...others,

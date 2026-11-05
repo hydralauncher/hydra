@@ -24,6 +24,12 @@ describe("clampChatSidebarWidth", () => {
     assert.equal(clampChatSidebarWidth(300), 300);
   });
 
+  it("leaves room for the conversation in a narrow window", () => {
+    assert.equal(clampChatSidebarWidth(450, 560), 360);
+    assert.equal(clampChatSidebarWidth(450, 400), CHAT_SIDEBAR_MIN_WIDTH);
+    assert.equal(clampChatSidebarWidth(250, 560), 250);
+  });
+
   it("rounds fractional widths and falls back from garbage", () => {
     assert.equal(clampChatSidebarWidth(300.6), 301);
     assert.equal(clampChatSidebarWidth(Number.NaN), CHAT_SIDEBAR_INITIAL_WIDTH);

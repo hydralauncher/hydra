@@ -81,6 +81,7 @@ export class ChatOfficialMessages {
 
   private static async poll() {
     const generation = ChatUnreadStore.getGeneration();
+    const readMark = ChatUnreadStore.getOfficialReadMark();
     let nextPollSeconds = DEFAULT_POLL_SECONDS;
 
     try {
@@ -93,7 +94,11 @@ export class ChatOfficialMessages {
       );
 
       if (isOfficialUnreadSummary(summary)) {
-        ChatUnreadStore.applyOfficialPoll(summary.unreadCount, generation);
+        ChatUnreadStore.applyOfficialPoll(
+          summary.unreadCount,
+          generation,
+          readMark
+        );
         nextPollSeconds = summary.nextPollSeconds;
       } else {
         logger.error("Unexpected official messages response");
@@ -102,11 +107,14 @@ export class ChatOfficialMessages {
       logger.error("Failed to poll official messages", error);
     }
 
-    if (generation !== ChatUnreadStore.getGeneration()) return;
+    if (!HydraApi.isLoggedIn()) return;
 
+    // A sign-in during the poll starts its session like any other sign-in.
     this.schedule(
-      Math.max(nextPollSeconds, MIN_POLL_SECONDS) * 1000 +
-        randomDelay(POLL_JITTER_MAX_MS)
+      generation === ChatUnreadStore.getGeneration()
+        ? Math.max(nextPollSeconds, MIN_POLL_SECONDS) * 1000 +
+            randomDelay(POLL_JITTER_MAX_MS)
+        : randomDelay(FIRST_POLL_MAX_DELAY_MS)
     );
   }
 }

@@ -35,6 +35,8 @@ const readStoredWidth = () => {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Messages newer than this show a weekday instead of a date. */
+const WEEKDAY_LABEL_DAYS = 7;
 
 /** How long a row takes to glide to its new place after a reorder. */
 const ROW_MOVE_MS = 320;
@@ -136,7 +138,7 @@ function usePreviewTime() {
       });
     }
     if (daysAgo === 1) return t("yesterday");
-    if (daysAgo < 7) {
+    if (daysAgo < WEEKDAY_LABEL_DAYS) {
       return date.toLocaleDateString(i18n.language, { weekday: "short" });
     }
     return date.toLocaleDateString(i18n.language, {
@@ -283,6 +285,8 @@ export function ChatSidebar({
   const { t } = useTranslation("chat_window");
 
   const [width, setWidth] = useState(readStoredWidth);
+  const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
+  const displayedWidth = clampChatSidebarWidth(width, windowWidth);
   const [isResizing, setIsResizing] = useState(false);
   const [query, setQuery] = useState("");
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -343,14 +347,20 @@ export function ChatSidebar({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [conversations, activeId, onSelect, togglePicker]);
 
+  useEffect(() => {
+    const updateWindowWidth = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", updateWindowWidth);
+    return () => window.removeEventListener("resize", updateWindowWidth);
+  }, []);
+
   const handleResizeStart = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     resizeRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
-      startWidth: width,
-      width,
+      startWidth: displayedWidth,
+      width: displayedWidth,
     };
     setIsResizing(true);
   };
@@ -360,7 +370,8 @@ export function ChatSidebar({
     if (!resize || resize.pointerId !== event.pointerId) return;
 
     const next = clampChatSidebarWidth(
-      resize.startWidth + event.clientX - resize.startX
+      resize.startWidth + event.clientX - resize.startX,
+      window.innerWidth
     );
     resize.width = next;
     setWidth(next);
@@ -419,7 +430,7 @@ export function ChatSidebar({
       className={cn("chat-window__sidebar", {
         "chat-window__sidebar--resizing": isResizing,
       })}
-      style={{ width }}
+      style={{ width: displayedWidth }}
       aria-label={t("conversations")}
     >
       {isPickerOpen ? (

@@ -1289,6 +1289,10 @@ export function useChat({
             replyToSeq:
               conversation.replyToSeq === seq ? null : conversation.replyToSeq,
             messages: setMessageVisibility(conversation.messages, seq, null),
+            lastMessage:
+              conversation.lastMessage?.seq === seq
+                ? { ...conversation.lastMessage, text: "", isHidden: true }
+                : conversation.lastMessage,
           }));
           return;
         }
@@ -1343,8 +1347,11 @@ export function useChat({
     const unsubscribeResync = electron.onChatResync(() => {
       setResyncCount((count) => count + 1);
 
+      // Unopened rows load when opened; the window refreshes their previews.
       for (const conversation of conversationsRef.current) {
-        void resyncConversation(conversation);
+        if (conversation.loadState !== "idle") {
+          void resyncConversation(conversation);
+        }
       }
     });
 

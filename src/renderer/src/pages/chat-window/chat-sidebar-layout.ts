@@ -12,11 +12,21 @@ export const CHAT_SIDEBAR_MAX_WIDTH = 450;
 
 export const CHAT_SIDEBAR_WIDTH_STORAGE_KEY = "chatSidebarWidth";
 
-export function clampChatSidebarWidth(width: number): number {
+/** Room the conversation keeps next to the sidebar. */
+export const CHAT_CONVERSATION_MIN_WIDTH = 200;
+
+export function clampChatSidebarWidth(
+  width: number,
+  windowWidth = Number.POSITIVE_INFINITY
+): number {
   if (!Number.isFinite(width)) return CHAT_SIDEBAR_INITIAL_WIDTH;
+  const maxWidth = Math.min(
+    CHAT_SIDEBAR_MAX_WIDTH,
+    windowWidth - CHAT_CONVERSATION_MIN_WIDTH
+  );
   return Math.max(
     CHAT_SIDEBAR_MIN_WIDTH,
-    Math.min(Math.round(width), CHAT_SIDEBAR_MAX_WIDTH)
+    Math.min(Math.round(width), maxWidth)
   );
 }
 
