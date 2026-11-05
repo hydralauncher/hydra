@@ -1,0 +1,443 @@
+@use "../../scss/globals.scss";
+
+.setup-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  min-height: 480px;
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__header-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fafafa;
+    letter-spacing: 0.16px;
+    margin: 0;
+  }
+
+  &__header-subtitle {
+    font-size: 13px;
+    color: #8e919b;
+    margin: 0;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 1;
+  }
+
+  &__body-title {
+    font-size: 21px;
+    font-weight: 600;
+    color: #fafafa;
+    letter-spacing: -0.21px;
+    margin: 0;
+  }
+
+  &__body-intro {
+    font-size: 14px;
+    color: #a1a1aa;
+    line-height: 22px;
+    margin: 0;
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 0 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 24px;
+  }
+
+  &__footer-side {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Both sides share the leftover space equally so the dots land on the exact
+       centre of the footer no matter which buttons are rendered. `max-content`
+       keeps that split from shrinking a side past its buttons, which would let
+       them overflow backwards and overlap the dots. */
+    flex: 1 1 0;
+    min-width: max-content;
+
+    .button {
+      white-space: nowrap;
+    }
+
+    &--end {
+      justify-content: flex-end;
+    }
+  }
+
+  &__footer--single-line {
+    .button {
+      white-space: nowrap;
+    }
+  }
+
+  &__ghost-button {
+    background: transparent;
+    border: 0;
+    color: #a1a1aa;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+
+    &:hover {
+      color: #fafafa;
+    }
+  }
+
+  &__dots {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  &__dot {
+    width: 24px;
+    height: 4px;
+    border-radius: 999px;
+    background: #424244;
+
+    &--active {
+      background: #c0c1c7;
+    }
+  }
+
+  &__row-card {
+    background: #121212;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  &__download-card {
+    background: #121212;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 16px 20px;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      background: #161616;
+    }
+
+    &--loading {
+      cursor: default;
+
+      &:hover {
+        border-color: rgba(255, 255, 255, 0.06);
+        background: #121212;
+      }
+    }
+
+    &--split {
+      padding: 0;
+      gap: 0;
+      cursor: default;
+    }
+  }
+
+  &__download-card-action {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  &__download-card-visit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    align-self: stretch;
+    padding: 16px 18px;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+
+    .setup-modal__download-card-url,
+    .setup-modal__download-card-ext {
+      transition: color 0.15s ease;
+    }
+
+    &:hover .setup-modal__download-card-url,
+    &:hover .setup-modal__download-card-ext {
+      color: #fafafa;
+    }
+  }
+
+  &__download-card-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__download-card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+
+  &__download-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fafafa;
+  }
+
+  &__download-card-desc {
+    font-size: 13px;
+    color: #a1a1aa;
+    line-height: 19px;
+  }
+
+  &__download-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    max-width: 45%;
+  }
+
+  &__download-card-url {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    color: #71717a;
+    font-family: "JetBrains Mono", monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__download-card-ext {
+    color: #71717a;
+    flex-shrink: 0;
+  }
+
+  &__row-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &--warn {
+      background: rgba(245, 158, 11, 0.18);
+      color: #f59e0b;
+    }
+
+    &--folder {
+      background: rgba(142, 145, 155, 0.12);
+      color: #c0c1c7;
+    }
+
+    &--neutral {
+      background: rgba(255, 255, 255, 0.06);
+      color: #8e919b;
+    }
+
+    &--found {
+      background: transparent;
+      color: #c0c1c7;
+    }
+  }
+
+  &__row-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__row-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  &__row-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fafafa;
+  }
+
+  &__row-version {
+    font-size: 11px;
+    color: #71717a;
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  &__row-path {
+    font-size: 11px;
+    color: #a1a1aa;
+    font-family: "JetBrains Mono", monospace;
+    overflow-wrap: anywhere;
+  }
+
+  &__row-description {
+    font-size: 12px;
+    color: #a1a1aa;
+  }
+
+  &__progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #323237;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  &__progress-fill {
+    height: 100%;
+    background: #fafafa;
+    border-radius: 999px;
+    transition: width 0.15s ease;
+
+    &--indeterminate {
+      width: 35%;
+      transition: none;
+      animation: setup-progress-indeterminate 1.1s ease-in-out infinite;
+    }
+  }
+
+  @keyframes setup-progress-indeterminate {
+    from {
+      transform: translateX(-110%);
+    }
+    to {
+      transform: translateX(330%);
+    }
+  }
+
+  &__progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #c0c1c7;
+  }
+
+  &__progress-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #fafafa;
+    font-weight: 600;
+  }
+
+  &__progress-check {
+    color: #8e919b;
+    flex-shrink: 0;
+  }
+
+  &__done {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px 0;
+    text-align: center;
+  }
+
+  &__done-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__done-check {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    color: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: globals.$classics-rainbow;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: 50%;
+      background: globals.$background-color;
+    }
+
+    svg {
+      position: relative;
+      z-index: 1;
+    }
+  }
+
+  &__done-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fafafa;
+    margin: 0;
+  }
+
+  &__done-body {
+    font-size: 14px;
+    color: #a1a1aa;
+    margin: 0;
+    max-width: 440px;
+    line-height: 22px;
+  }
+}

@@ -56,7 +56,9 @@ export default function Downloads() {
   useEffect(() => {
     let cancelled = false;
 
-    const updateRunningGameIds = (gamesRunning: { id: string }[]) => {
+    const updateRunningGameIds = (
+      gamesRunning: { id: string; recompilationSlug?: string }[]
+    ) => {
       if (cancelled) return;
 
       setRunningGameIds((previous) => {

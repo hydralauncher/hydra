@@ -80,6 +80,26 @@ type NativeWindowBoundsResponse = {
   client: NativeScreenRect;
 };
 
+type NativeDesktopFrameResponse = {
+  width: number;
+  height: number;
+  pixels: Buffer;
+};
+
+type NativeBgraScreenshotOptions = {
+  pixels: Buffer;
+  width: number;
+  height: number;
+  quality: number;
+  previewMaxWidth: number;
+  previewQuality: number;
+};
+
+type NativeEncodedScreenshotResponse = {
+  jpeg: Buffer;
+  preview: Buffer;
+};
+
 type NativeForegroundWindowResponse = {
   windowHandle?: string;
   window_handle?: string;
@@ -150,6 +170,14 @@ type HydraNativeModule = {
   getWindowsWindowBounds?: (
     windowHandle: string
   ) => NativeWindowBoundsResponse | null;
+  prepareWindowsDesktopCapture?: () => Promise<void>;
+  releaseWindowsDesktopCapture?: () => Promise<void>;
+  captureWindowsDesktopFrame?: (
+    windowHandle: string
+  ) => Promise<NativeDesktopFrameResponse | null>;
+  encodeBgraScreenshot: (
+    options: NativeBgraScreenshotOptions
+  ) => Promise<NativeEncodedScreenshotResponse>;
   extractArchiveInPlace: (
     options: InPlaceExtractionOptions,
     onProgress: (fraction: number) => void
@@ -547,6 +575,51 @@ export class NativeAddon {
       logger.error("Failed to read the Windows window bounds", error);
       return null;
     }
+  }
+
+  public static prepareWindowsDesktopCapture() {
+    if (process.platform !== "win32") return;
+
+    try {
+      void this.load()
+        .prepareWindowsDesktopCapture?.()
+        .catch((error) => {
+          logger.warn("Failed to prepare desktop duplication", error);
+        });
+    } catch (error) {
+      logger.warn("Failed to prepare desktop duplication", error);
+    }
+  }
+
+  public static releaseWindowsDesktopCapture() {
+    if (process.platform !== "win32") return;
+
+    try {
+      void this.load()
+        .releaseWindowsDesktopCapture?.()
+        .catch((error) => {
+          logger.warn("Failed to release desktop duplication", error);
+        });
+    } catch (error) {
+      logger.warn("Failed to release desktop duplication", error);
+    }
+  }
+
+  public static async captureWindowsDesktopFrame(windowHandle: string) {
+    if (process.platform !== "win32") return null;
+
+    try {
+      return (
+        (await this.load().captureWindowsDesktopFrame?.(windowHandle)) ?? null
+      );
+    } catch (error) {
+      logger.warn("Desktop duplication failed, using window capture", error);
+      return null;
+    }
+  }
+
+  public static encodeBgraScreenshot(options: NativeBgraScreenshotOptions) {
+    return this.load().encodeBgraScreenshot(options);
   }
 
   public static getLinuxWindowClientPid(windowId: string) {

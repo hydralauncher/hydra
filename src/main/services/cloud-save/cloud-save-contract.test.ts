@@ -48,6 +48,37 @@ describe("Cloud Save launcher API contract", () => {
       })
     );
   });
+  it("maps a recompilation restore back to the port's own key", () => {
+    const manifest = {
+      snapshot: {
+        id: "port-snapshot",
+        version: 1,
+        shop: "launchbox",
+        objectId: "167",
+        recompilationSlug: "zelda64recomp",
+      },
+      customPathRawPaths: [],
+      variants: [{ variantId: firstVariantId, kind: "default" }],
+      files: [{ ...file(firstVariantId), rawPath: "<base>/saves" }],
+    };
+    assert.equal(
+      validateRestoreManifest(manifest).snapshot.objectId,
+      "167:zelda64recomp"
+    );
+    assert.equal(
+      validateRestoreManifest({
+        ...manifest,
+        snapshot: { ...manifest.snapshot, recompilationSlug: null },
+      }).snapshot.objectId,
+      "167"
+    );
+    assert.throws(() =>
+      validateRestoreManifest({
+        ...manifest,
+        snapshot: { ...manifest.snapshot, shop: "steam" },
+      })
+    );
+  });
   it("downloads Steam files and emulator states with optional metadata", () => {
     const steamFile = {
       ...file(firstVariantId),

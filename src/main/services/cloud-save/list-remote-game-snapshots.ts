@@ -1,5 +1,6 @@
 import { HydraApi } from "@main/services/hydra-api";
 import type { GameShop, RemoteSnapshotSummary } from "@types";
+import { toCloudSaveApiGame } from "@shared";
 
 import { validateRemoteSnapshotSummary } from "./cloud-save-contract";
 
@@ -18,10 +19,7 @@ export const listRemoteGameSnapshots = async (
   validateRemoteSnapshots(
     await HydraApi.get<unknown>(
       "/profile/cloud-saves/snapshots",
-      {
-        shop,
-        objectId,
-      },
+      toCloudSaveApiGame(shop, objectId),
       {
         needsAuth: true,
         needsSubscription: true,

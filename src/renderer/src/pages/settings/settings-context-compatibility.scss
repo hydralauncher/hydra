@@ -1,35 +1,6 @@
 @use "../../scss/globals.scss";
 
-.settings-behavior {
-  &__screenshots-directory {
-    display: flex;
-    flex-direction: column;
-    gap: globals.$spacing-unit;
-  }
-
-  &__reset-screenshots-button {
-    min-width: 34px;
-    padding-inline: globals.$spacing-unit;
-  }
-
-  &__open-screenshots-button {
-    align-self: flex-start;
-  }
-
-  &__hydra-cloud-row {
-    display: flex;
-    align-items: center;
-    gap: globals.$spacing-unit;
-    align-self: flex-start;
-    padding: 0;
-    border: none;
-    background: none;
-    color: inherit;
-    font-size: inherit;
-    text-align: left;
-    cursor: pointer;
-  }
-
+.settings-context-compatibility {
   &__proton-section {
     display: flex;
     flex-direction: column;
@@ -96,18 +67,6 @@
     gap: calc(globals.$spacing-unit / 3);
   }
 
-  &__checkbox-container {
-    opacity: globals.$disabled-opacity;
-    cursor: not-allowed;
-
-    &--enabled {
-      opacity: 1;
-      cursor: pointer;
-    }
-  }
-}
-
-.settings-context-compatibility {
   &__stack {
     display: flex;
     flex-direction: column;

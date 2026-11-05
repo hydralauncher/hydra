@@ -16,6 +16,7 @@ import type {
 } from "./game.types";
 import type { ArtworkAssetType } from "./artwork.types";
 import type { GameContentWarning } from "./souvenir.types";
+import type { RecompilationSummary } from "./recompilation.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 export * from "./download-contract";
@@ -161,6 +162,7 @@ export interface GameRunning {
   objectId: string;
   shop: GameShop;
   sessionDurationInMillis: number;
+  recompilationSlug?: string;
 }
 
 export interface Steam250Game {
@@ -761,6 +763,11 @@ export interface GameReview {
     [key: string]: string;
   };
   detectedLanguage: string | null;
+  recompilation?: {
+    slug: string;
+    name: string;
+    iconUrl: string | null;
+  } | null;
 }
 
 export interface TrendingGame extends ShopAssets {
@@ -1011,6 +1018,7 @@ export interface CatalogueSearchPayload {
   releaseYear?: { gte?: number; lte?: number };
   shops?: string[];
   platforms?: string[];
+  recompilation?: "has";
 }
 
 export interface ProtonDBData {
@@ -1041,6 +1049,7 @@ export type CatalogueSearchResult = {
   developers?: string[];
   publishers?: string[];
   skus?: string[];
+  recompilations?: RecompilationSummary[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
@@ -1094,6 +1103,7 @@ export * from "./artwork.types";
 export * from "./cloud-save.types";
 export * from "./souvenir.types";
 export * from "./screenshot.types";
+export * from "./recompilation.types";
 
 export type ExtractionFailure =
   | { reason: "unsupported-format"; format: string }

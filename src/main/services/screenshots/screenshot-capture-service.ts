@@ -16,7 +16,10 @@ import type {
 import { getSignedInScreenshotOwnerId } from "./local-screenshot-owner";
 import { hasTrackedGamesRunning } from "../game-running-state";
 import { logger } from "../logger";
-import { getSourceClientAreaCrop } from "../windows-window-bounds";
+import {
+  getSourceClientAreaCrop,
+  getSourceWindowSize,
+} from "../windows-window-bounds";
 import {
   getLinuxGameCaptureFailure,
   getLinuxGameCaptureState,
@@ -31,6 +34,7 @@ import {
   type GameScreenshotCaptureTarget,
 } from "../screenshot";
 import { buildWindowsWindowSourceId } from "../windows-game-window-match";
+import { grabDesktopDuplicationFrame } from "./desktop-duplication-frame";
 import {
   getUnresolvedGameFailure,
   resolveForegroundGame,
@@ -53,7 +57,7 @@ import {
 } from "./screenshot-preview";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { resolveManualScreenshotPath } from "./screenshot-file-path";
-import { getScreenshotsFolder } from "./screenshots-folder";
+import { getScreenshotFolderCandidates } from "./screenshots-folder";
 import {
   ensureRootMarkerId,
   getScreenshotsRoot,
@@ -162,19 +166,31 @@ const saveCaptureFile = async (
   capturedAt: Date,
   data: Buffer
 ) => {
-  const screenshotsRoot = await getScreenshotsFolder();
-  await fs.promises.mkdir(
-    path.dirname(
-      resolveManualScreenshotPath(screenshotsRoot, gameTitle, capturedAt)
-    ),
-    { recursive: true }
-  );
-  return writeScreenshotToAvailablePath(
-    screenshotsRoot,
-    gameTitle,
-    capturedAt,
-    data
-  );
+  let lastError: unknown = null;
+  for (const screenshotsRoot of await getScreenshotFolderCandidates()) {
+    try {
+      await fs.promises.mkdir(
+        path.dirname(
+          resolveManualScreenshotPath(screenshotsRoot, gameTitle, capturedAt)
+        ),
+        { recursive: true }
+      );
+      return await writeScreenshotToAvailablePath(
+        screenshotsRoot,
+        gameTitle,
+        capturedAt,
+        data
+      );
+    } catch (error) {
+      logger.warn("Failed to save a screenshot to this folder", {
+        screenshotsRoot,
+        error: error instanceof Error ? error.message : error,
+      });
+      lastError = error;
+    }
+  }
+
+  throw lastError;
 };
 
 interface FinishCaptureOptions {
@@ -320,8 +336,9 @@ const grabFromDirectWindowsSource = async (
 
   try {
     return await ScreenshotFrameWorker.grab(sourceId, {
-      waitForNextFrame: true,
+      waitForNextFrame: false,
       crop: getSourceClientAreaCrop(sourceId),
+      expectedSize: getSourceWindowSize(sourceId),
     });
   } catch (error) {
     if (
@@ -347,14 +364,20 @@ const acquireFrame = async (
     });
   }
 
+  const desktopFrame = await grabDesktopDuplicationFrame(
+    captureTarget.windowHandle
+  );
+  if (desktopFrame) return desktopFrame;
+
   const directFrame = await grabFromDirectWindowsSource(captureTarget);
   if (directFrame) return directFrame;
 
   const sourceId = await resolveGameCaptureSourceId(captureTarget);
   if (sourceId) {
     return ScreenshotFrameWorker.grab(sourceId, {
-      waitForNextFrame: true,
+      waitForNextFrame: process.platform !== "win32",
       crop: getSourceClientAreaCrop(sourceId),
+      expectedSize: getSourceWindowSize(sourceId),
     });
   }
 
