@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { DeviceDesktopIcon } from "@primer/octicons-react";
+import { ChevronDownIcon, DeviceDesktopIcon } from "@primer/octicons-react";
+import cn from "classnames";
 
 import { Modal } from "../modal/modal";
 import { Button } from "../button/button";
@@ -21,6 +22,22 @@ export interface RecompilationOnboardingModalProps {
   onShowRecompilations: () => void;
 }
 
+// Positions from the design, on a 544px wide stage.
+const GRID_CARDS = [36, 82, 128, 174].flatMap((top, row) =>
+  [32, 108, 184].map((left, column) => ({
+    left,
+    top,
+    // One Recomp per row, moving along the diagonal.
+    highlighted: column === row % 3,
+  }))
+);
+
+const COLLAPSED_SECTIONS = [
+  { key: "platforms", top: 90, color: "#1c9749", count: 12, dimmed: true },
+  { key: "genres", top: 126, color: "#7c3aed", count: 28, dimmed: true },
+  { key: "tags", top: 160, color: "#e11d48", count: 447, dimmed: false },
+];
+
 function CatalogueFilterIllustration() {
   const { t } = useTranslation("catalogue");
 
@@ -30,16 +47,19 @@ function CatalogueFilterIllustration() {
         <i />
         {t("recompilations_filter")}
       </span>
-      <span className="recompilation-onboarding__card recompilation-onboarding__card--highlighted recompilation-onboarding__card--a">
-        <i className="recompilation-onboarding__badge" />
-      </span>
-      <span className="recompilation-onboarding__card recompilation-onboarding__card--dimmed recompilation-onboarding__card--b" />
-      <span className="recompilation-onboarding__card recompilation-onboarding__card--dimmed recompilation-onboarding__card--c" />
-      <span className="recompilation-onboarding__card recompilation-onboarding__card--dimmed recompilation-onboarding__card--d" />
-      <span className="recompilation-onboarding__card recompilation-onboarding__card--highlighted recompilation-onboarding__card--e">
-        <i className="recompilation-onboarding__badge" />
-      </span>
-      <span className="recompilation-onboarding__card recompilation-onboarding__card--dimmed recompilation-onboarding__card--f" />
+      {GRID_CARDS.map(({ highlighted, left, top }) => (
+        <span
+          key={`${left}-${top}`}
+          className={cn("recompilation-onboarding__card", {
+            "recompilation-onboarding__card--highlighted": highlighted,
+            "recompilation-onboarding__card--dimmed": !highlighted,
+          })}
+          style={{ left, top }}
+        >
+          {highlighted && <i className="recompilation-onboarding__badge" />}
+        </span>
+      ))}
+      <div className="recompilation-onboarding__grid-fade" />
 
       <div className="recompilation-onboarding__mode-toggle">
         <span>
@@ -61,28 +81,27 @@ function CatalogueFilterIllustration() {
         <i />
       </span>
 
-      <div className="recompilation-onboarding__section recompilation-onboarding__section--platforms">
-        <div className="recompilation-onboarding__section-header">
-          <span className="recompilation-onboarding__section-orb recompilation-onboarding__section-orb--platforms" />
-          {t("platforms")}
-        </div>
-        <div className="recompilation-onboarding__section-body">
-          <span>
-            <i />
-            Sony Playstation 2
+      {COLLAPSED_SECTIONS.map(({ key, top, color, count, dimmed }) => (
+        <div
+          key={key}
+          className={cn("recompilation-onboarding__section", {
+            "recompilation-onboarding__section--dimmed": dimmed,
+          })}
+          style={{ top }}
+        >
+          <ChevronDownIcon size={7} />
+          <span
+            className="recompilation-onboarding__section-orb"
+            style={{ backgroundColor: color }}
+          />
+          <span className="recompilation-onboarding__section-title">
+            {t(key)}
           </span>
-          <span>
-            <i />
-            Nintendo 64
+          <span className="recompilation-onboarding__section-count">
+            {count}
           </span>
         </div>
-      </div>
-      <div className="recompilation-onboarding__section recompilation-onboarding__section--genres">
-        <div className="recompilation-onboarding__section-header">
-          <span className="recompilation-onboarding__section-orb recompilation-onboarding__section-orb--genres" />
-          {t("genres")}
-        </div>
-      </div>
+      ))}
 
       <span className="recompilation-onboarding__ripple" />
       <svg

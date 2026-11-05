@@ -55,7 +55,7 @@ $recomp-blue: #3e62c0;
   &__card {
     position: absolute;
     width: 68px;
-    height: 52px;
+    height: 40px;
     border-radius: 4px;
     background: #1c1c1c;
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -63,10 +63,10 @@ $recomp-blue: #3e62c0;
     &::before {
       content: "";
       position: absolute;
-      left: 25px;
-      top: 5px;
-      width: 18px;
-      height: 26px;
+      left: 27px;
+      top: 4px;
+      width: 14px;
+      height: 20px;
       border-radius: 2px;
       background: #2a2a2c;
     }
@@ -75,7 +75,7 @@ $recomp-blue: #3e62c0;
       content: "";
       position: absolute;
       left: 6px;
-      top: 38px;
+      top: 29px;
       width: 36px;
       height: 4px;
       border-radius: 2px;
@@ -89,36 +89,20 @@ $recomp-blue: #3e62c0;
     &--highlighted {
       animation: recompilation-onboarding-highlight $loop ease-in-out infinite;
     }
+  }
 
-    &--a {
-      left: 32px;
-      top: 40px;
-    }
-
-    &--b {
-      left: 108px;
-      top: 40px;
-    }
-
-    &--c {
-      left: 184px;
-      top: 40px;
-    }
-
-    &--d {
-      left: 32px;
-      top: 100px;
-    }
-
-    &--e {
-      left: 108px;
-      top: 100px;
-    }
-
-    &--f {
-      left: 184px;
-      top: 100px;
-    }
+  &__grid-fade {
+    position: absolute;
+    left: 24px;
+    top: 140px;
+    width: 236px;
+    height: 55px;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgba(7, 7, 7, 0) 0%,
+      rgba(7, 7, 7, 0.85) 100%
+    );
   }
 
   &__badge {
@@ -173,8 +157,8 @@ $recomp-blue: #3e62c0;
     top: 52px;
     width: 200px;
     height: 30px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
     background: #121212;
     animation: recompilation-onboarding-row $loop ease-in-out infinite;
   }
@@ -224,69 +208,40 @@ $recomp-blue: #3e62c0;
     position: absolute;
     left: 308px;
     width: 200px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    border-radius: 8px;
-    background: #121212;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-
-    &--platforms {
-      top: 90px;
-    }
-
-    &--genres {
-      top: 148px;
-    }
-  }
-
-  &__section-header {
+    height: 29px;
     display: flex;
     align-items: center;
     gap: 5px;
-    height: 22px;
     padding: 0 8px;
-    font-size: 9px;
-    font-weight: 500;
-    color: #f0f1f7;
+    border-radius: 4px;
+    background: #121212;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #d0d1d7;
+
+    &--dimmed > * {
+      opacity: 0.3;
+    }
   }
 
   &__section-orb {
     width: 5px;
     height: 5px;
     border-radius: 50%;
-
-    &--platforms {
-      background: #1c9749;
-    }
-
-    &--genres {
-      background: #7c3aed;
-    }
   }
 
-  &__section-body {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 6px 8px;
-    background: #0d0d0d;
+  &__section-title {
+    font-size: 9px;
+    font-weight: 500;
+    color: #f0f1f7;
+  }
 
-    span {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 8px;
-      color: #d0d1d7;
-    }
-
-    i {
-      width: 7px;
-      height: 7px;
-      border-radius: 2px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: #1c1c1c;
-    }
+  &__section-count {
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    font-size: 7px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
   }
 
   &__ripple {
@@ -402,15 +357,15 @@ $recomp-blue: #3e62c0;
 @keyframes recompilation-onboarding-row {
   0%,
   40% {
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.05);
   }
   44%,
   90% {
-    border-color: rgba(62, 98, 192, 0.8);
+    border-color: rgba(245, 245, 245, 0.3);
   }
   96%,
   100% {
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.05);
   }
 }
 
