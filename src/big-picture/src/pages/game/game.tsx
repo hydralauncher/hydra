@@ -1188,6 +1188,9 @@ export default function Game() {
           return;
         }
 
+        // The port is already open: nothing failed.
+        if (code === "RECOMPILATION_ALREADY_RUNNING") return;
+
         const notice =
           (code && CLASSICS_LAUNCH_NOTICES[code]) ?? CLASSICS_LAUNCH_FALLBACK;
 
