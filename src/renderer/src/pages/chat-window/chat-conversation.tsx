@@ -132,6 +132,8 @@ export interface ChatConversationViewProps {
   onDraftImagesChange: (
     update: (images: ChatDraftImage[]) => ChatDraftImage[]
   ) => void;
+  /** Images picked but not in the draft yet; reported even after unmount. */
+  onPreparingImagesChange: (count: number) => void;
   onReplyChange: (replyToSeq: number | null) => void;
   onSend: (text: string) => void;
   /** Sets the user's reaction on the message with `seq`; null removes it. */
@@ -154,6 +156,7 @@ export function ChatConversationView({
   sendRejections,
   onDraftChange,
   onDraftImagesChange,
+  onPreparingImagesChange,
   onReplyChange,
   onSend,
   onReact,
@@ -210,6 +213,7 @@ export function ChatConversationView({
     for (const file of picked) {
       preparingCountRef.current += 1;
       setPreparingCount((count) => count + 1);
+      onPreparingImagesChange(preparingCountRef.current);
 
       void prepareChatImage(file)
         .then((prepared) => {
@@ -237,6 +241,7 @@ export function ChatConversationView({
         .finally(() => {
           preparingCountRef.current -= 1;
           setPreparingCount((count) => count - 1);
+          onPreparingImagesChange(preparingCountRef.current);
         });
     }
 

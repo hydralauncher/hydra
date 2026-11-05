@@ -178,10 +178,15 @@ export function dropAbandonedConversations<
     ChatConversation,
     "messages" | "lastMessage" | "draft" | "draftImages" | "unreadCount"
   > & { friend: Pick<ChatConversation["friend"], "id"> },
->(conversations: T[], activeId: string | null): T[] {
+>(
+  conversations: T[],
+  activeId: string | null,
+  keepIds: ReadonlySet<string> = new Set()
+): T[] {
   const kept = conversations.filter(
     (conversation) =>
       conversation.friend.id === activeId ||
+      keepIds.has(conversation.friend.id) ||
       conversation.messages.length > 0 ||
       conversation.lastMessage !== undefined ||
       conversation.unreadCount > 0 ||

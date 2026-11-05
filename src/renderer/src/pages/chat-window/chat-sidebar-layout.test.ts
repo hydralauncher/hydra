@@ -307,6 +307,18 @@ describe("dropAbandonedConversations", () => {
     );
   });
 
+  it("keeps conversations whose images are still preparing", () => {
+    const result = dropAbandonedConversations(
+      [empty("a"), empty("b")],
+      "b",
+      new Set(["a"])
+    );
+    assert.deepEqual(
+      result.map(({ friend }) => friend.id),
+      ["a", "b"]
+    );
+  });
+
   it("keeps listed, unread and active conversations", () => {
     const listed = {
       ...empty("a"),

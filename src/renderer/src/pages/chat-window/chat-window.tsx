@@ -182,6 +182,7 @@ export default function ChatWindow() {
   // Images that finish preparing after their conversation closed are freed,
   // not kept.
   const openIdsRef = useRef(new Set<string>());
+  const preparingImagesRef = useRef(new Map<string, number>());
   useEffect(() => {
     openIdsRef.current = new Set(
       conversations.map((conversation) => conversation.friend.id)
@@ -376,7 +377,11 @@ export default function ChatWindow() {
   const handleSelect = (friendId: string) => {
     setActiveId(friendId);
     setConversations((current) =>
-      dropAbandonedConversations(current, friendId)
+      dropAbandonedConversations(
+        current,
+        friendId,
+        new Set(preparingImagesRef.current.keys())
+      )
     );
     updateConversation(friendId, (conversation) => ({
       ...conversation,
@@ -450,6 +455,11 @@ export default function ChatWindow() {
                 ...conversation,
                 draftImages: update(conversation.draftImages),
               }));
+            }}
+            onPreparingImagesChange={(count) => {
+              const friendId = activeConversation.friend.id;
+              if (count > 0) preparingImagesRef.current.set(friendId, count);
+              else preparingImagesRef.current.delete(friendId);
             }}
             onReplyChange={(replyToSeq) =>
               updateConversation(
