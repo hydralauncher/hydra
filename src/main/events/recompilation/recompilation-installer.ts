@@ -510,7 +510,7 @@ const launchRecompilation = async (
     isRecompilationRunning(ref) ||
     (await isExecutableInUse(executablePath))
   ) {
-    return { ok: false, reason: "running" };
+    return { ok: false, reason: "already_running" };
   }
 
   let prepared = false;
