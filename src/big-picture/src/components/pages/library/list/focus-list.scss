@@ -10,6 +10,14 @@
   row-gap: calc(var(--spacing-unit) * 8);
 }
 
+.library-focus-list[data-card-size="small"] .library-focus-list__grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.library-focus-list[data-card-size="large"] .library-focus-list__grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .library-game-card__action-button {
   cursor: pointer;
 }
@@ -91,10 +99,26 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     column-gap: calc(var(--spacing-unit) * 8);
   }
+
+  .library-focus-list[data-card-size="small"] .library-focus-list__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .library-focus-list[data-card-size="large"] .library-focus-list__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 2240px) {
   .library-focus-list__grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .library-focus-list[data-card-size="small"] .library-focus-list__grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .library-focus-list[data-card-size="large"] .library-focus-list__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

@@ -9,6 +9,8 @@ export const LIBRARY_FILTERS_TABS_REGION_ID = "library-filters-tabs";
 export const LIBRARY_FILTERS_SEARCH_INPUT_ID = "library-filters-search-input";
 export const LIBRARY_FILTERS_SORT_SELECT_ID = "library-filters-sort-select";
 export const LIBRARY_FILTERS_FILTER_SELECT_ID = "library-filters-filter-select";
+export const LIBRARY_FILTERS_CARD_SIZE_SELECT_ID =
+  "library-filters-card-size-select";
 export const LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID =
   "library-filters-list-view-button";
 export const LIBRARY_FILTERS_GRID_VIEW_BUTTON_ID =
