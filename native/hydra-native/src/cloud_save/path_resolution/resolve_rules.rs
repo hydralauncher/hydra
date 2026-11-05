@@ -29,10 +29,16 @@ pub fn resolve_rules(
             }
             let mut resolved = resolve_path(&rule.raw_path, context);
             // A rule that carries its local folder (custom paths, ports whose save folder
-            // differs per OS) is scanned there; its raw path only names it.
+            // differs per OS) is scanned there; its raw path only names it. The scanner
+            // matches glob patterns, so a port's literal folder is escaped; custom paths
+            // keep their raw form because overlap checks compare them as plain paths.
             if let Some(preferred_path) = &rule.preferred_path {
                 resolved.paths = vec![super::types::ResolvedCloudSavePath {
-                    path: preferred_path.replace('\\', "/"),
+                    path: if rule.raw_path.starts_with("<custom>") {
+                        preferred_path.replace('\\', "/")
+                    } else {
+                        super::tokens::literal(preferred_path)
+                    },
                     case_sensitive: context.platform == "linux" && !context.windows_compatibility,
                     dynamic: false,
                     scan_root: None,
