@@ -839,7 +839,7 @@ export interface AchievementNotificationInfo {
   isRare: boolean;
   isPlatinum: boolean;
   points?: number;
-  variant?: "screenshot";
+  variant?: "screenshot" | "screenshot-error";
 }
 
 export type AchievementNotificationRequest = {

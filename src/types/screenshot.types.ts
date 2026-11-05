@@ -302,11 +302,22 @@ export interface ScreenshotTelemetryEvent {
 }
 
 export interface ScreenshotFeedbackToast {
-  kind:
-    | "captured"
-    | "saved_locally"
-    | "capture_failed"
-    | "share_pending"
-    | "share_unavailable";
+  kind: "captured" | "saved_locally" | "share_pending";
   gameTitle: string;
+}
+
+export type ScreenshotFailureKind =
+  | "game_not_recognized"
+  | "game_not_focused"
+  | "window_capture_failed"
+  | "blank_frame"
+  | "disk_full"
+  | "file_write_failed"
+  | "save_failed"
+  | "unexpected_error"
+  | "share_unavailable";
+
+export interface ScreenshotFailureToast {
+  kind: ScreenshotFailureKind;
+  gameTitle: string | null;
 }
