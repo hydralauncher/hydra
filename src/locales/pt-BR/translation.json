@@ -3573,6 +3573,13 @@
     "tested_count_other": "{{count}} de {{total}} recursos funcionam",
     "about_project": "Sobre o projeto",
     "github_repository": "Repositório no GitHub",
-    "tested_count_zero": "0 de {{total}} recursos funcionam"
+    "tested_count_zero": "0 de {{total}} recursos funcionam",
+    "tip_new": "NOVO!",
+    "tip_close": "Fechar dica",
+    "tip_title": "Este jogo roda nativo no PC",
+    "tip_body": "Escolha uma versão recompilada pela comunidade e instale direto pelo Hydra, sem baixar nem configurar emulador.",
+    "tip_no_emulator": "Sem emulador",
+    "tip_quick_install": "Instalação em minutos",
+    "tip_got_it": "Legal!"
   }
 }

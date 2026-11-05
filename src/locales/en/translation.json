@@ -3560,6 +3560,13 @@
     "tested_count_other": "{{count}} of {{total}} features work",
     "about_project": "About the project",
     "github_repository": "GitHub repository",
-    "tested_count_zero": "0 of {{total}} features work"
+    "tested_count_zero": "0 of {{total}} features work",
+    "tip_new": "NEW!",
+    "tip_close": "Close tip",
+    "tip_title": "This game runs natively on PC",
+    "tip_body": "Pick a version recompiled by the community and install it straight from Hydra, with no emulator to download or set up.",
+    "tip_no_emulator": "No emulator",
+    "tip_quick_install": "Installs in minutes",
+    "tip_got_it": "Got it!"
   }
 }
