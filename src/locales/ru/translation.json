@@ -1428,6 +1428,8 @@
     "theme_imported": "Тема успешно импортирована",
     "enable_friend_request_notifications": "При получении запроса на добавление в друзья",
     "enable_auto_install": "Загружать обновления автоматически",
+    "use_native_window_decorations": "Использовать системное оформление окон",
+    "use_native_window_decorations_hint": "Применится после перезапуска Hydra",
     "run_games_with_gamemode": "Запускать игры с GameMode по умолчанию",
     "run_games_with_mangohud": "Запускать игры с MangoHud по умолчанию",
     "common_redist": "Библиотеки",

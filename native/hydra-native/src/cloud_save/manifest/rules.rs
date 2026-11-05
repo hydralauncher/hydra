@@ -60,7 +60,7 @@ fn build_recompilation_rule(entry: &RecompilationSaveRule) -> CloudSaveRule {
         raw_path: entry.raw_path.clone(),
         source: RECOMPILATION_RULE_SOURCE.to_string(),
         tags: entry.tags.clone(),
-        preferred_path: None,
+        preferred_path: entry.preferred_path.clone(),
         when: entry.when.clone(),
     };
     rule.rule_id = build_rule_id(&rule);
