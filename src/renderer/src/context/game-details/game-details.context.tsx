@@ -412,11 +412,7 @@ export function GameDetailsContextProvider({
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
       const updatedIsGameRunning =
-        !!game?.id &&
-        !!gamesIds.find(
-          (gameRunning) =>
-            gameRunning.id == game.id && !gameRunning.recompilationSlug
-        );
+        !!game?.id && gamesIds.some((gameRunning) => gameRunning.id == game.id);
 
       if (isGameRunning != updatedIsGameRunning) {
         updateGame();

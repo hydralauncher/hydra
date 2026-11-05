@@ -267,6 +267,10 @@ export const startRecompilationSession = async (
 export const isRecompilationRunning = (ref: RecompilationRef) =>
   sessions.has(portKeyOf(ref));
 
+export const findRunningRecompilation = (objectId: string) =>
+  [...sessions.values()].find((session) => session.ref.objectId === objectId)
+    ?.ref ?? null;
+
 const signalProcessGroup = (pid: number, signal: NodeJS.Signals) => {
   try {
     process.kill(-pid, signal);

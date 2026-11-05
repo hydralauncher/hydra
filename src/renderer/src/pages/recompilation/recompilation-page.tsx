@@ -207,6 +207,7 @@ export default function RecompilationPage() {
       <div className="recompilation-page">
         <RecompilationHero
           details={details}
+          game={game}
           hasCloudSave={cloudSaveGame !== null}
           installAsset={installAsset}
           install={install}
@@ -236,7 +237,11 @@ export default function RecompilationPage() {
           <RecompilationTabBar
             tabs={[
               { id: "about", label: t("tab_about") },
-              { id: "releases", label: t("tab_releases") },
+              {
+                id: "releases",
+                label: t("tab_releases"),
+                count: releases.length,
+              },
             ]}
             activeTab={activeTab}
             onChange={setActiveTab}

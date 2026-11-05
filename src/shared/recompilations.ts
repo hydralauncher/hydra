@@ -6,7 +6,7 @@ import type {
 } from "@types";
 
 export const RECOMPILATION_TESTED_FEATURE_KEYS: RecompilationTestedFeatureKey[] =
-  ["launch", "playtime", "cloudSaves", "achievements", "controllerBigPicture"];
+  ["launch", "playtime", "cloudSaves", "controllerBigPicture"];
 
 export const getRecompilationOs = (
   platform: string
@@ -99,4 +99,9 @@ export const isRecompilationAssetFromRepository = (
 
 export const countWorkingRecompilationFeatures = (
   tested: RecompilationTested
-) => tested.features.filter((feature) => feature.status === "works").length;
+) =>
+  tested.features.filter(
+    (feature) =>
+      feature.status === "works" &&
+      RECOMPILATION_TESTED_FEATURE_KEYS.includes(feature.key)
+  ).length;

@@ -182,6 +182,16 @@
     font-size: 13px;
   }
 
+  &__prepare-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(globals.$spacing-unit * 2);
+    margin-top: 4px;
+    color: globals.$muted-color;
+    font-size: 13px;
+  }
+
   &__status-progress {
     display: grid;
     grid-template-rows: 0fr;

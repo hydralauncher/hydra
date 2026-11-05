@@ -38,19 +38,30 @@ import {
   saveRecompilationInstallDirectory,
 } from "./recompilation-paths";
 import {
+  getRecompilationExecutableOverride,
   markRecompilationRomLaunched,
   prepareRecompilationRom,
   shouldHideRecompilationConsole,
 } from "./recompilation-rom";
 import recompilationSaves from "./recompilation-saves.json";
+import {
+  addRecompilationDisc,
+  removeRecompilationDisc,
+} from "./recompilation-disc";
+import {
+  findDeclaredRecompilationEntry,
+  findRecompilationExecutable,
+  isNestedReleaseArchive,
+  restoreExecutableBits,
+} from "./recompilation-executable";
 
-const EXECUTABLE_SCAN_DEPTH = 3;
-const ELF_MAGIC = [0x7f, 0x45, 0x4c, 0x46];
+const MAX_NESTED_ARCHIVES = 3;
 
 class RecompilationInstallError extends Error {}
 
 const installsInProgress = new Set<string>();
 const launchesInProgress = new Set<string>();
+const preparesInProgress = new Set<string>();
 
 const sendProgress = (progress: RecompilationInstallProgress) => {
   WindowManager.mainWindow?.webContents.send(
@@ -60,6 +71,9 @@ const sendProgress = (progress: RecompilationInstallProgress) => {
 };
 
 const sendPrepareProgress = (progress: RecompilationPrepareProgress) => {
+  if (progress.phase === "running") preparesInProgress.add(progress.slug);
+  else preparesInProgress.delete(progress.slug);
+
   WindowManager.mainWindow?.webContents.send(
     "on-recompilation-prepare-progress",
     progress
@@ -70,93 +84,6 @@ const apiPath = ({ objectId, slug }: RecompilationRef) =>
   `/games/launchbox/${objectId}/recompilations/${slug}`;
 
 const loadSession = () => import("./recompilation-session");
-
-const looksLikeLinuxExecutable = async (filePath: string) => {
-  if (filePath.toLowerCase().endsWith(".appimage")) return true;
-
-  const handle = await fs.promises.open(filePath, "r");
-  try {
-    const header = Buffer.alloc(ELF_MAGIC.length);
-    const { bytesRead } = await handle.read(header, 0, ELF_MAGIC.length, 0);
-    return (
-      bytesRead === ELF_MAGIC.length &&
-      ELF_MAGIC.every((byte, index) => header[index] === byte)
-    );
-  } finally {
-    await handle.close();
-  }
-};
-
-const isExecutableCandidate = async (filePath: string) => {
-  const lower = filePath.toLowerCase();
-  if (
-    /(unins|setup|install|crash|vc_?redist|dxsetup)/.test(path.basename(lower))
-  ) {
-    return false;
-  }
-  if (process.platform === "win32") return lower.endsWith(".exe");
-  if (/\.(so(\.\d+)*|sh|txt|json|md)$/.test(lower)) return false;
-  return looksLikeLinuxExecutable(filePath);
-};
-
-const collectExecutables = async (
-  directory: string,
-  depth = 0
-): Promise<string[]> => {
-  if (depth > EXECUTABLE_SCAN_DEPTH) return [];
-
-  const entries = await fs.promises.readdir(directory, { withFileTypes: true });
-  const found: string[] = [];
-
-  for (const entry of entries) {
-    const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      found.push(...(await collectExecutables(entryPath, depth + 1)));
-    } else if (entry.isFile() && (await isExecutableCandidate(entryPath))) {
-      found.push(entryPath);
-    }
-  }
-
-  return found;
-};
-
-const findExecutable = async (installDirectory: string, portName: string) => {
-  const candidates = await collectExecutables(installDirectory);
-  if (candidates.length === 0) return null;
-
-  const words = portName
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter((word) => word.length >= 3);
-  const depth = (filePath: string) =>
-    path.relative(installDirectory, filePath).split(path.sep).length;
-  const matchesName = (filePath: string) =>
-    words.some((word) => path.basename(filePath).toLowerCase().includes(word));
-
-  return (
-    [...candidates].sort(
-      (left, right) =>
-        depth(left) - depth(right) ||
-        Number(matchesName(right)) - Number(matchesName(left)) ||
-        left.localeCompare(right)
-    )[0] ?? null
-  );
-};
-
-const restoreExecutableBits = async (directory: string, depth = 0) => {
-  if (process.platform === "win32" || depth > EXECUTABLE_SCAN_DEPTH) return;
-
-  const entries = await fs.promises.readdir(directory, { withFileTypes: true });
-  for (const entry of entries) {
-    const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      await restoreExecutableBits(entryPath, depth + 1);
-    } else if (entry.isFile() && (await looksLikeLinuxExecutable(entryPath))) {
-      const { mode } = await fs.promises.stat(entryPath);
-      await fs.promises.chmod(entryPath, mode | 0o111);
-    }
-  }
-};
 
 const hashFile = (filePath: string) =>
   new Promise<string>((resolve, reject) => {
@@ -195,16 +122,39 @@ const getSingleEntry = async (directory: string) => {
   return entries.length === 1 ? entries[0] : null;
 };
 
-const extractNestedTar = async (stagingDirectory: string) => {
-  const entry = await getSingleEntry(stagingDirectory);
-  if (!entry?.isFile() || !entry.name.toLowerCase().endsWith(".tar")) return;
+const refreshDeclaredEntry = async (
+  slug: string,
+  installDirectory: string,
+  executablePath: string
+) => {
+  const declared = await findDeclaredRecompilationEntry(
+    installDirectory,
+    getRecompilationExecutableOverride(slug)
+  ).catch(() => null);
+  if (!declared || declared === executablePath) return executablePath;
 
-  const tarPath = path.join(stagingDirectory, entry.name);
-  await SevenZip.extractFile({
-    filePath: tarPath,
-    outputPath: stagingDirectory,
-  });
-  await fs.promises.rm(tarPath, { force: true });
+  const marker = await readInstallMarker(installDirectory);
+  if (marker) {
+    await fs.promises.writeFile(
+      path.join(installDirectory, INSTALL_MARKER_FILE),
+      JSON.stringify({ ...marker, executablePath: declared }, null, 2)
+    );
+  }
+  return declared;
+};
+
+const extractNestedArchives = async (stagingDirectory: string) => {
+  for (let layer = 0; layer < MAX_NESTED_ARCHIVES; layer++) {
+    const entry = await getSingleEntry(stagingDirectory);
+    if (!entry?.isFile() || !isNestedReleaseArchive(entry.name)) return;
+
+    const archivePath = path.join(stagingDirectory, entry.name);
+    await SevenZip.extractFile({
+      filePath: archivePath,
+      outputPath: stagingDirectory,
+    });
+    await fs.promises.rm(archivePath, { force: true });
+  }
 };
 
 const resolveExtractedRoot = async (stagingDirectory: string) => {
@@ -217,7 +167,8 @@ const resolveExtractedRoot = async (stagingDirectory: string) => {
 const extractRelease = async (
   archivePath: string,
   installDirectory: string,
-  portName: string
+  portName: string,
+  executableOverride: string | null
 ) => {
   const stagingDirectory = `${installDirectory}.partial`;
   await fs.promises.rm(stagingDirectory, { recursive: true, force: true });
@@ -227,10 +178,14 @@ const extractRelease = async (
       filePath: archivePath,
       outputPath: stagingDirectory,
     });
-    await extractNestedTar(stagingDirectory);
+    await extractNestedArchives(stagingDirectory);
     const root = await resolveExtractedRoot(stagingDirectory);
     await restoreExecutableBits(root);
-    const executablePath = await findExecutable(root, portName);
+    const executablePath = await findRecompilationExecutable(
+      root,
+      portName,
+      executableOverride
+    );
     if (!executablePath) throw new RecompilationInstallError("no_executable");
     await fs.promises.mkdir(installDirectory, { recursive: true });
     await fs.promises.cp(root, installDirectory, {
@@ -257,6 +212,7 @@ export const getRecompilationInstallState = async (
   return {
     installed,
     isInstalling: installsInProgress.has(ref.slug),
+    isPreparing: preparesInProgress.has(ref.slug),
     version: installed ? marker.version : null,
     installPath: installed ? installDirectory : null,
     installParentPath: path.dirname(installDirectory),
@@ -357,7 +313,8 @@ const downloadAndInstall = async (
   const executablePath = await extractRelease(
     archivePath,
     installDirectory,
-    details.name
+    details.name,
+    getRecompilationExecutableOverride(ref.slug)
   );
 
   const marker: InstallMarker = {
@@ -367,12 +324,18 @@ const downloadAndInstall = async (
     assetName: asset.name,
     executablePath,
     installedAt: new Date().toISOString(),
+    name: details.name,
+    iconUrl: details.iconUrl,
   };
   await fs.promises.writeFile(
     path.join(installDirectory, INSTALL_MARKER_FILE),
     JSON.stringify(marker, null, 2)
   );
   await saveRecompilationInstallDirectory(ref.slug, installDirectory);
+  await addRecompilationDisc(ref, installDirectory, {
+    name: details.name,
+    iconUrl: details.iconUrl,
+  });
 };
 
 export const installRecompilation = async (
@@ -436,7 +399,10 @@ export const uninstallRecompilation = async (
 
   const installDirectory = await getInstallDirectory(ref.slug);
   const marker = await readInstallMarker(installDirectory);
-  if (marker?.slug !== ref.slug) return { ok: false, reason: "not_installed" };
+  if (marker?.slug !== ref.slug) {
+    await removeRecompilationDisc(ref);
+    return { ok: false, reason: "not_installed" };
+  }
 
   if (installsInProgress.has(ref.slug)) {
     return { ok: false, reason: "already_installing" };
@@ -452,6 +418,7 @@ export const uninstallRecompilation = async (
     return { ok: false, reason: "uninstall_failed" };
   }
   await forgetRecompilationInstallDirectory(ref.slug);
+  await removeRecompilationDisc(ref);
   return { ok: true };
 };
 
@@ -465,6 +432,15 @@ export const openRecompilationFolder = async (
   return error ? { ok: false, reason: error } : { ok: true };
 };
 
+// Set by Hydra's own AppImage; a port's AppRun would resolve its files inside Hydra instead of its own folder.
+const HYDRA_APPIMAGE_ENV = ["APPDIR", "APPIMAGE", "ARGV0", "OWD"];
+
+const getPortEnv = (launchEnv: Record<string, string>) => {
+  const env = { ...process.env, ...launchEnv };
+  for (const key of HYDRA_APPIMAGE_ENV) delete env[key];
+  return env;
+};
+
 const spawnPort = (
   executablePath: string,
   launch: { args: string[]; env: Record<string, string> }
@@ -475,7 +451,7 @@ const spawnPort = (
   >((resolve) => {
     const child = spawn(executablePath, launch.args, {
       cwd: path.dirname(executablePath),
-      env: { ...process.env, ...launch.env },
+      env: getPortEnv(launch.env),
       detached: true,
       stdio: "ignore",
       shell: false,
@@ -514,7 +490,12 @@ const launchRecompilation = async (
   if (!state?.installPath) return { ok: false, reason: "not_installed" };
   if (!state.executablePath) return { ok: false, reason: "no_executable" };
 
-  const relative = path.relative(state.installPath, state.executablePath);
+  const executablePath = await refreshDeclaredEntry(
+    ref.slug,
+    state.installPath,
+    state.executablePath
+  );
+  const relative = path.relative(state.installPath, executablePath);
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
     return { ok: false, reason: "no_executable" };
   }
@@ -527,14 +508,26 @@ const launchRecompilation = async (
   } = await loadSession();
   if (
     isRecompilationRunning(ref) ||
-    (await isExecutableInUse(state.executablePath))
+    (await isExecutableInUse(executablePath))
   ) {
     return { ok: false, reason: "running" };
   }
 
-  const launch = await prepareRecompilationRom(ref, state.installPath, (step) =>
-    sendPrepareProgress({ slug: ref.slug, phase: "running", ...step })
+  let prepared = false;
+  const launch = await prepareRecompilationRom(
+    ref,
+    state.installPath,
+    (step) => {
+      prepared = true;
+      sendPrepareProgress({ slug: ref.slug, phase: "running", ...step });
+    }
   );
+  if (prepared) {
+    sendPrepareProgress({
+      slug: ref.slug,
+      phase: launch.ok ? "done" : "error",
+    });
+  }
   if (!launch.ok) return { ok: false, reason: launch.reason };
 
   if (!(await prepareRecompilationCloudSave(ref))) {
@@ -544,7 +537,7 @@ const launchRecompilation = async (
   const consoleHider = shouldHideRecompilationConsole(ref.slug)
     ? startConsoleHider()
     : null;
-  const spawned = await spawnPort(state.executablePath, launch);
+  const spawned = await spawnPort(executablePath, launch);
   if (spawned.ok && spawned.child.pid) {
     consoleHider?.stdin?.end(`${spawned.child.pid}\n`);
   } else {

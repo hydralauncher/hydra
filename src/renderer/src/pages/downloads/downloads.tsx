@@ -62,11 +62,7 @@ export default function Downloads() {
       if (cancelled) return;
 
       setRunningGameIds((previous) => {
-        const next = new Set(
-          gamesRunning
-            .filter((game) => !game.recompilationSlug)
-            .map((game) => game.id)
-        );
+        const next = new Set(gamesRunning.map((game) => game.id));
         const unchanged =
           previous !== null &&
           next.size === previous.size &&

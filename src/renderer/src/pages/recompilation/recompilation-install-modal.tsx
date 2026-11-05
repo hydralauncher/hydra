@@ -24,6 +24,7 @@ import {
 } from "@renderer/context";
 import { useFormat, useLibrary, useToast } from "@renderer/hooks";
 import { RomSourcesPanel } from "./rom-source-list";
+import { splitRomRequirement } from "./rom-requirement";
 import {
   getInstallErrorKey,
   type RecompilationInstall,
@@ -42,23 +43,6 @@ const PREPARE_STEP_KEYS: Record<string, string> = {
 };
 
 const ROM_DOWNLOAD_START_TIMEOUT_MS = 10_000;
-
-const splitRomRequirement = (requirement: string | null) => {
-  const open = requirement?.indexOf(" (") ?? -1;
-  if (!requirement || open < 0 || !requirement.endsWith(")")) {
-    return { romName: requirement, romDetails: undefined };
-  }
-
-  const parts = requirement.slice(open + 2, -1).split(", ");
-  const last = parts.at(-1) ?? "";
-  const formatAt = last.indexOf(" in ");
-  if (formatAt >= 0) parts[parts.length - 1] = last.slice(0, formatAt);
-
-  return {
-    romName: requirement.slice(0, open),
-    romDetails: parts.join(", ").replaceAll(" image", "").trim(),
-  };
-};
 
 interface RecompilationInstallModalProps {
   visible: boolean;
@@ -161,7 +145,7 @@ function InstallModalContent({
   }
 >) {
   const { t, i18n } = useTranslation("recompilation");
-  const { showErrorToast } = useToast();
+  const { showErrorToast, showWarningToast } = useToast();
   const { repacks } = useContext(gameDetailsContext);
 
   const romState = rom.state;
@@ -342,6 +326,9 @@ function InstallModalContent({
     if (!result.ok) {
       showErrorToast(romChoiceErrorMessage(result.reason));
       return;
+    }
+    if (result.warning === "rom_version") {
+      showWarningToast(t("rom_version_warning", { name: details.name }));
     }
     setStep(needsPreparation ? "prepare" : "done");
   };
@@ -634,6 +621,14 @@ function InstallModalContent({
       {renderRomStatus()}
       {renderPortStatus()}
       {renderPrepareStatus()}
+      {prepare?.phase !== "error" && (
+        <div className="recompilation-install__prepare-footer">
+          <span>{t(prepare ? "prepare_can_close" : "install_waiting")}</span>
+          <Button theme="outline" onClick={onClose}>
+            {t("close")}
+          </Button>
+        </div>
+      )}
     </>
   );
 
