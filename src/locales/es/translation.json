@@ -1284,6 +1284,7 @@
     "download_source_matched": "Actualizada",
     "download_source_matching": "Actualizando",
     "download_source_failed": "Error",
+    "download_source_dead": "Fuera de línea",
     "download_source_no_information": "Sin información disponible",
     "sync_download_sources": "Sincronizar fuentes",
     "removed_download_source": "Fuente de descarga eliminada",

@@ -1287,6 +1287,7 @@
     "download_source_matched": "Обновлен",
     "download_source_matching": "Обновление",
     "download_source_failed": "Ошибка",
+    "download_source_dead": "Недоступен",
     "download_source_no_information": "Информация отсутствует",
     "sync_download_sources": "Обновить источники",
     "removed_download_source": "Источник удален",
