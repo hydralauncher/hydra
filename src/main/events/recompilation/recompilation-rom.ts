@@ -65,6 +65,8 @@ interface RomChoice {
   preparedTarget?: string;
   launched?: boolean;
   checkedFrom?: string;
+  /** Port version the ROM was last prepared for, kept for ports with `prepareOnUpdate`. */
+  preparedVersion?: string;
 }
 
 const hasExtension = (filePath: string, extensions: string[]) =>
@@ -282,6 +284,7 @@ export const setRecompilationRom = async (
   await writeRomChoice(installDirectory, {
     preparedFrom: previous?.preparedFrom,
     preparedTarget: previous?.preparedTarget,
+    preparedVersion: previous?.preparedVersion,
     launched: false,
     source,
     path: source === "file" ? (romPath as string) : undefined,
@@ -427,22 +430,40 @@ const readInstallerEvent = (
   }
   const percent = /^@note (\d+)%/.exec(line);
   if (percent) return { ...current, percent: Number(percent[1]) };
+  // Crash Bandicoot's --prepare prints "[ 35%] Recompile: ..."
+  const stage = /^\[\s*(\d+)%\]\s+([^:]+):/.exec(line);
+  if (stage) return { percent: Number(stage[1]), title: stage[2].trim() };
   return null;
 };
 
-const runRomInstaller = (
+const PORT_EXECUTABLE = "{exe}";
+
+const findInstallerExecutable = async (
+  name: string,
+  installDirectory: string
+) => {
+  if (name === PORT_EXECUTABLE) {
+    return (await readInstallMarker(installDirectory))?.executablePath ?? null;
+  }
+  const candidates =
+    process.platform === "win32" ? [`${name}.exe`, name] : [name];
+  return (
+    candidates
+      .map((candidate) => path.join(installDirectory, candidate))
+      .find((candidate) => fs.existsSync(candidate)) ?? null
+  );
+};
+
+const runRomInstaller = async (
   command: string[],
   installDirectory: string,
   romPath: string,
   onStep?: (step: RecompilationPrepareStep) => void
-) =>
-  new Promise<void>((resolve, reject) => {
-    const [name, ...args] = command;
-    const candidates =
-      process.platform === "win32" ? [`${name}.exe`, name] : [name];
-    const executable = candidates
-      .map((candidate) => path.join(installDirectory, candidate))
-      .find((candidate) => fs.existsSync(candidate));
+) => {
+  const [name, ...args] = command;
+  const executable = await findInstallerExecutable(name, installDirectory);
+
+  return new Promise<void>((resolve, reject) => {
     if (!executable) {
       reject(new Error(`ROM installer ${name} not found`));
       return;
@@ -471,6 +492,7 @@ const runRomInstaller = (
         : reject(new Error(`ROM installer exited with ${code}`))
     );
   });
+};
 
 const writeRomConfig = async (
   config: NonNullable<NonNullable<RecompilationRomMeta["path"]>["config"]>,
@@ -510,6 +532,12 @@ const warnUnsupportedRom = async (installDirectory: string) => {
   });
 };
 
+/** A port that rebuilds the game per version prepares again right after an update. */
+export const shouldPrepareAfterUpdate = async (ref: RecompilationRef) => {
+  if (!getRecompilationRomMeta(ref.slug)?.prepareOnUpdate) return false;
+  return Boolean((await getRecompilationRomState(ref))?.romPath);
+};
+
 export type RecompilationLaunch =
   | { ok: true; args: string[]; env: Record<string, string> }
   | { ok: false; reason: string };
@@ -531,7 +559,12 @@ export const prepareRecompilationRom = async (
 
   if (!state?.romPath || !choice) return { ok: false, reason: "no_rom" };
 
-  const isPrepared = choice.preparedFrom === state.romPath;
+  const portVersion = meta.prepareOnUpdate
+    ? ((await readInstallMarker(installDirectory))?.version ?? undefined)
+    : choice.preparedVersion;
+  const isPrepared =
+    choice.preparedFrom === state.romPath &&
+    choice.preparedVersion === portVersion;
   let romPath = state.romPath;
 
   try {
@@ -599,6 +632,7 @@ export const prepareRecompilationRom = async (
         checkedFrom: state.romPath,
         preparedFrom: state.romPath,
         preparedTarget: target ?? undefined,
+        preparedVersion: portVersion,
         launched: isPrepared ? choice.launched : false,
       });
     }

@@ -4,10 +4,14 @@ import path from "node:path";
 const EXECUTABLE_SCAN_DEPTH = 3;
 const ELF_MAGIC = [0x7f, 0x45, 0x4c, 0x46];
 const APPIMAGE_ENTRY = "AppRun";
-const NESTED_ARCHIVE = /\.(tar|tar\.gz|tgz)$/i;
+const NESTED_ARCHIVE = /\.(tar|tar\.gz|tgz|appimage)$/i;
 
 export const isNestedReleaseArchive = (fileName: string) =>
   NESTED_ARCHIVE.test(fileName);
+
+/** A release published as the program itself, like CrashBandicoot.exe or CrashBandicoot-Linux. */
+export const isBareReleaseExecutable = (fileName: string) =>
+  /\.exe$/i.test(fileName) || !path.basename(fileName).includes(".");
 
 const looksLikeLinuxExecutable = async (filePath: string) => {
   if (filePath.toLowerCase().endsWith(".appimage")) return true;

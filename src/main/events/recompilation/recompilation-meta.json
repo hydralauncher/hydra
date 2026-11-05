@@ -176,5 +176,120 @@
       },
       "extensions": [".cue", ".chd"]
     }
+  },
+  "starfox64recomp": {
+    "rom": {
+      "copyTo": {
+        "win32": "<winLocalAppData>/Starfox64Recompiled/sf64.n64.us.1.1.z64",
+        "linux": "<home>/.config/Starfox64Recompiled/sf64.n64.us.1.1.z64"
+      },
+      "format": "z64",
+      "extensions": [".z64", ".n64", ".v64"]
+    }
+  },
+  "donkey-kong-64-recompiled": {
+    "rom": {
+      "copyTo": {
+        "win32": "<winLocalAppData>/DK64Recompiled/DK64.z64",
+        "linux": "<home>/.config/DK64Recompiled/DK64.z64"
+      },
+      "format": "z64",
+      "extensions": [".z64", ".n64", ".v64"]
+    }
+  },
+  "perfect-dark-dabs-mod": {
+    "rom": {
+      "path": {
+        "arg": ["--rom-file", "{rom}"]
+      },
+      "format": "z64",
+      "extensions": [".z64", ".n64", ".v64"]
+    }
+  },
+  "battleship": {
+    "executable": {
+      "win32": "BattleShip.exe"
+    },
+    "rom": {
+      "copyTo": {
+        "win32": "<base>/baserom.us.z64",
+        "linux": "<xdgData>/BattleShip/baserom.us.z64"
+      },
+      "imported": {
+        "win32": ["<base>/BattleShip.o2r"],
+        "linux": ["<xdgData>/BattleShip/BattleShip.o2r"]
+      },
+      "format": "z64",
+      "extensions": [".z64", ".n64", ".v64"],
+      "sha1": ["e2929e10fccc0aa84e5776227e798abc07cedabf"]
+    }
+  },
+  "metroidprimeport": {
+    "executable": {
+      "win32": "metroid_prime_port.exe"
+    },
+    "rom": {
+      "path": {
+        "arg": ["{rom}"]
+      },
+      "extensions": [
+        ".iso",
+        ".gcm",
+        ".rvz",
+        ".wbfs",
+        ".ciso",
+        ".nkit",
+        ".wia",
+        ".gcz"
+      ]
+    }
+  },
+  "melee-pc": {
+    "hideConsole": true,
+    "rom": {
+      "path": {
+        "arg": ["{rom}"]
+      },
+      "extensions": [".iso", ".gcm", ".ciso", ".rvz", ".gcz", ".wia"]
+    }
+  },
+  "bluewake": {
+    "rom": {
+      "path": {
+        "arg": ["--disc", "{rom}"]
+      },
+      "extensions": [".iso", ".gcm"]
+    }
+  },
+  "gen2recomped": {
+    "rom": {
+      "path": {
+        "env": {
+          "POKEPORT_IMPORT_ROM": "{rom}"
+        }
+      },
+      "once": true,
+      "extensions": [".gbc", ".gb"],
+      "sha1": [
+        "d8b8a3600a465308c9953dfa04f0081c05bdcb94",
+        "49b163f7e57702bc939d642a18f591de55d92dae",
+        "f2f52230b536214ef7c9924f483392993e226cfb",
+        "f4cd194bdee0d04ca4eac29e09b8e4e9d818c133"
+      ]
+    }
+  },
+  "crashbandicoot-launcher": {
+    "executable": {
+      "win32": "CrashBandicoot.exe",
+      "linux": "CrashBandicoot-Linux"
+    },
+    "rom": {
+      "path": {
+        "installer": ["{exe}", "--prepare", "{rom}"],
+        "arg": ["--run", "{rom}"]
+      },
+      "prepareOnUpdate": true,
+      "extensions": [".cue", ".chd"]
+    }
   }
 }
