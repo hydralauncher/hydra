@@ -72,6 +72,8 @@ export interface RecompilationReadme {
   repository: string;
   defaultBranch: string;
   markdown: string;
+  // Language the markdown was translated to, or null for the original.
+  translatedTo: string | null;
   sha: string;
   lastSyncedAt: string;
 }
