@@ -6,9 +6,17 @@ on:
     branches:
       - windows-installer-build
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-windows-installer:
     runs-on: windows-2022
+
+    defaults:
+      run:
+        shell: pwsh
 
     steps:
       - name: Check out Git repository
@@ -23,20 +31,104 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      # vcpkg needs a binary cache dir, otherwise it rebuilds libtorrent from
+      # scratch on every run (and can run out of time).
+      - name: Prepare native caches
+        id: native-cache
+        run: |
+          $cacheDir = Join-Path $env:RUNNER_TEMP "hydra-vcpkg-archives"
+          New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
+          "VCPKG_DEFAULT_BINARY_CACHE=$cacheDir" >> $env:GITHUB_ENV
+          $image = "$env:ImageOS-$env:ImageVersion"
+          "image=$image" >> $env:GITHUB_OUTPUT
+          "prefix=v1-vcpkg-$env:RUNNER_OS-$image-$env:RUNNER_ARCH-x64-windows-static" >> $env:GITHUB_OUTPUT
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native/hydra-native -> target
+          shared-key: native-${{ runner.os }}-${{ runner.arch }}-${{ steps.native-cache.outputs.image }}
+          cache-bin: false
+
+      # A current committed bridge needs no vcpkg packages at all.
+      - name: Check prebuilt torrent bridge
+        id: torrent-bridge
+        run: node scripts/torrent-bridge-prebuilt.cjs check
+
+      - name: Restore vcpkg binary packages
+        if: steps.torrent-bridge.outputs.current != 'true'
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ steps.native-cache.outputs.prefix }}-${{ hashFiles('native/torrent-bridge/**/vcpkg*.json', 'native/torrent-bridge/**/triplets/**') }}
+          restore-keys: |
+            ${{ steps.native-cache.outputs.prefix }}-
+
       - name: Install dependencies
-        run: yarn --frozen-lockfile
+        run: |
+          $ErrorActionPreference = "Continue"
+          yarn --frozen-lockfile 2>&1 | Tee-Object -FilePath yarn-install.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Save vcpkg binary packages
+        if: steps.torrent-bridge.outputs.current != 'true' && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: ${{ steps.vcpkg-cache.outputs.cache-primary-key }}
 
       - name: Build Windows installer
-        run: yarn build:win
+        run: |
+          $ErrorActionPreference = "Continue"
+          yarn build:win 2>&1 | Tee-Object -FilePath build-win.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
+          MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
+          MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
+          MAIN_VITE_NIMBUS_API_URL: ${{ vars.MAIN_VITE_NIMBUS_API_URL }}
+          RENDERER_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
+          MAIN_VITE_EXTERNAL_RESOURCES_URL: ${{ vars.EXTERNAL_RESOURCES_URL }}
+          RENDERER_VITE_REAL_DEBRID_REFERRAL_ID: ${{ vars.RENDERER_VITE_REAL_DEBRID_REFERRAL_ID }}
+          RENDERER_VITE_TORBOX_REFERRAL_CODE: ${{ vars.RENDERER_VITE_TORBOX_REFERRAL_CODE }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          RENDERER_VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+
+      # Printed into the run summary so the reason is visible without opening logs.
+      - name: Show failure details
+        if: failure()
+        run: |
+          "## Build failed" >> $env:GITHUB_STEP_SUMMARY
+          foreach ($log in @("yarn-install.log", "build-win.log")) {
+            if (Test-Path $log) {
+              "### $log (last 60 lines)" >> $env:GITHUB_STEP_SUMMARY
+              "" >> $env:GITHUB_STEP_SUMMARY
+              (Get-Content $log -Tail 60) | ForEach-Object { "    $_" } >> $env:GITHUB_STEP_SUMMARY
+              "" >> $env:GITHUB_STEP_SUMMARY
+            }
+          }
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            yarn-install.log
+            build-win.log
 
       - name: Upload installers
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: hydra-windows-installer
           retention-days: 7
           compression-level: 0
+          if-no-files-found: warn
           path: |
             dist/*-setup.exe
             dist/*-portable.exe
