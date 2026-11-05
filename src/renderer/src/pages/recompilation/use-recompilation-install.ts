@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   RecompilationActionResult,
   RecompilationInstallProgress,
@@ -42,11 +42,14 @@ export function useRecompilationInstall(
   const [preparePhase, setPreparePhase] = useState<
     RecompilationPrepareProgress["phase"] | null
   >(null);
+  const prepareErrorShown = useRef(false);
 
   useEffect(() => {
     setPreparePhase(null);
     return window.electron.onRecompilationPrepareProgress((payload) => {
-      if (payload.slug === slug) setPreparePhase(payload.phase);
+      if (payload.slug !== slug) return;
+      if (payload.phase === "error") prepareErrorShown.current = true;
+      setPreparePhase(payload.phase);
     });
   }, [slug]);
 
@@ -124,13 +127,14 @@ export function useRecompilationInstall(
 
   const play = useCallback(async () => {
     setIsLaunching(true);
+    prepareErrorShown.current = false;
     const result = await window.electron
       .playRecompilation({ objectId, slug })
       .finally(() => setIsLaunching(false));
     return (
       result.ok ||
       result.reason === "cloud_save_conflict" ||
-      result.reason === "rom_prepare_failed" ||
+      (result.reason === "rom_prepare_failed" && prepareErrorShown.current) ||
       result.reason === "running"
     );
   }, [objectId, slug]);

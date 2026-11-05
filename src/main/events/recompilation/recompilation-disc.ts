@@ -143,7 +143,7 @@ export const reconcileRecompilationDiscs = async () => {
     ] of recompilationInstallsSublevel.iterator()) {
       const marker = await readInstallMarker(directory);
       if (marker?.slug !== slug) {
-        if (!(await isReachable(path.parse(directory).root))) {
+        if (!(await isReachable(path.dirname(directory)))) {
           unreachable.add(slug);
         }
         continue;

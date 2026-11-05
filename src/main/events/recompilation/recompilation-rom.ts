@@ -326,8 +326,9 @@ const isSupportedRomVersion = async (
     if (size > MAX_HASHED_ROM_BYTES) return true;
 
     const data = await fs.promises.readFile(romPath);
+    // Identifies the ROM dump against the hashes the ports publish; not a security check.
     const sha1 = (bytes: Buffer) =>
-      crypto.createHash("sha1").update(bytes).digest("hex");
+      crypto.createHash("sha1").update(bytes).digest("hex"); // NOSONAR
     if (meta.sha1.includes(sha1(data))) return true;
 
     const isN64 = meta.extensions.includes(".z64");
