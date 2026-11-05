@@ -13,9 +13,7 @@
   color: globals.$muted-color;
   cursor: pointer;
   text-align: left;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease;
+  transition: background-color 0.2s ease;
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.1);
@@ -23,10 +21,6 @@
 
   &:active {
     opacity: globals.$active-opacity;
-  }
-
-  &--checked {
-    border-color: rgba(62, 98, 192, 0.55);
   }
 
   &__orb {
