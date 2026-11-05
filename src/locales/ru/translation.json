@@ -3098,7 +3098,7 @@
     "install_step_port": "Версия для ПК",
     "install_step_rom": "ROM игры",
     "prepare_title": "Подготовка игры",
-    "prepare_intro": "Это происходит только в первый раз и может занять несколько минут.",
+    "prepare_intro": "Это может занять несколько минут.",
     "prepare_starting": "Начинаем",
     "prepare_step_count": "Шаг {{step}} из {{steps}}",
     "prepare_step_disc": "Проверка диска",
