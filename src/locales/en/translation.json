@@ -3540,6 +3540,7 @@
     "rom_download_failed": "Could not start the download.",
     "rom_wrong_format": "Choose the ROM file itself: {{extensions}}.",
     "rom_not_found": "Couldn't find this ROM file. Choose it again.",
+    "rom_version_warning": "This ROM isn't a version {{name}} supports. It may not start.",
     "rom_save_failed": "Couldn't save the ROM. Try again.",
     "rom_extracting": "ROM · extracting",
     "play_section_title": "To play",

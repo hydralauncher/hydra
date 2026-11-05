@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -300,7 +301,41 @@ export const setRecompilationRom = async (
     source,
     path: source === "file" ? (romPath as string) : undefined,
   });
-  return { ok: true };
+
+  const chosenPath =
+    source === "file"
+      ? (romPath as string)
+      : await getLibraryRomPath(ref.objectId, meta.extensions);
+  const supported = chosenPath
+    ? await isSupportedRomVersion(chosenPath, meta)
+    : true;
+  return supported ? { ok: true } : { ok: true, warning: "rom_version" };
+};
+
+const MAX_HASHED_ROM_BYTES = 128 * 1024 * 1024;
+
+const isSupportedRomVersion = async (
+  romPath: string,
+  meta: RecompilationRomMeta
+) => {
+  if (!meta.sha1?.length) return true;
+  if (ARCHIVE_EXTENSIONS.has(path.extname(romPath).toLowerCase())) return true;
+
+  try {
+    const { size } = await fs.promises.stat(romPath);
+    if (size > MAX_HASHED_ROM_BYTES) return true;
+
+    const data = await fs.promises.readFile(romPath);
+    const sha1 = (bytes: Buffer) =>
+      crypto.createHash("sha1").update(bytes).digest("hex");
+    if (meta.sha1.includes(sha1(data))) return true;
+
+    const isN64 = meta.extensions.includes(".z64");
+    return isN64 && meta.sha1.includes(sha1(toZ64(data)));
+  } catch (error) {
+    logger.warn("Failed to check the ROM version", error);
+    return true;
+  }
 };
 
 const unpackRom = async (

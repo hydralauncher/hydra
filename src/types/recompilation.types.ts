@@ -143,6 +143,7 @@ export interface RecompilationRomMeta {
   copyTo?: Partial<Record<"win32" | "linux", string>>;
   imported?: Partial<Record<"win32" | "linux", string[]>>;
   format?: "z64";
+  sha1?: string[];
   extensions: string[];
 }
 
@@ -173,4 +174,5 @@ export interface RecompilationPrepareProgress extends RecompilationPrepareStep {
 export interface RecompilationActionResult {
   ok: boolean;
   reason?: string;
+  warning?: string;
 }

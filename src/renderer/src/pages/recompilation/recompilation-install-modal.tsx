@@ -145,7 +145,7 @@ function InstallModalContent({
   }
 >) {
   const { t, i18n } = useTranslation("recompilation");
-  const { showErrorToast } = useToast();
+  const { showErrorToast, showWarningToast } = useToast();
   const { repacks } = useContext(gameDetailsContext);
 
   const romState = rom.state;
@@ -326,6 +326,9 @@ function InstallModalContent({
     if (!result.ok) {
       showErrorToast(romChoiceErrorMessage(result.reason));
       return;
+    }
+    if (result.warning === "rom_version") {
+      showWarningToast(t("rom_version_warning", { name: details.name }));
     }
     setStep(needsPreparation ? "prepare" : "done");
   };
