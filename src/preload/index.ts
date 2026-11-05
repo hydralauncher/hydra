@@ -2390,6 +2390,8 @@ contextBridge.exposeInMainWorld("electron", {
   closeChatWindow: () => ipcRenderer.invoke("closeChatWindow"),
   openGameInMainWindow: (gamePath: string) =>
     ipcRenderer.invoke("openGameInMainWindow", gamePath),
+  openChatNotificationSettings: () =>
+    ipcRenderer.invoke("openChatNotificationSettings"),
   consumePendingChatFriends: () =>
     ipcRenderer.invoke("consumePendingChatFriends") as Promise<
       PendingChatFriend[]
@@ -2406,6 +2408,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getChatUnreadState") as Promise<ChatUnreadState>,
   markChatRead: (friendId: string, seq: number) =>
     ipcRenderer.invoke("markChatRead", friendId, seq),
+  refreshOfficialChat: () =>
+    ipcRenderer.invoke("refreshOfficialChat") as Promise<void>,
   onChatMessage: (cb: (sync: ChatMessageSync) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,

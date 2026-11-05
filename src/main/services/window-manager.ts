@@ -887,9 +887,14 @@ export class WindowManager {
 
     return {
       friendsWindowOpen: isFriendsWindowOpen,
+      // The sidebar reloads the rest from the API; with nothing selected, any
+      // remaining conversation still brings the window back.
       chatFriends: isChatWindowOpen
         ? orderChatFriends(
-            this.chatWindowState.openFriendIds,
+            [
+              this.chatWindowState.activeFriendId ??
+                this.chatWindowState.openFriendIds[0],
+            ].filter((friendId): friendId is string => Boolean(friendId)),
             this.chatWindowState.openFriends ?? []
           )
         : [],
