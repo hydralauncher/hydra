@@ -250,7 +250,9 @@
     "no_genres": "Sin categorías",
     "mode_classics": "Clásicos",
     "mode_modern_games": "Juegos modernos",
-    "platforms": "Plataformas"
+    "platforms": "Plataformas",
+    "recompilations_filter": "Recomps",
+    "recompilation_badge": "Recomp"
   },
   "game_details": {
     "similar_games": "Juegos similares",
@@ -2468,6 +2470,13 @@
     "explore": "Explorar",
     "dont_show_again": "No mostrar de nuevo"
   },
+  "recompilation_onboarding": {
+    "title": "Nuevo en Hydra: Recomps",
+    "heading": "Juega clásicos, nativos en PC",
+    "body": "Los Recomps son juegos clásicos recompilados por la comunidad para funcionar directamente en PC. Activa el filtro Recomps aquí en el Catálogo para verlos todos. Hydra instala el proyecto, tú eliges la ROM del juego y juegas, sin emulador que configurar.\n\n¡En la mayoría de los casos, no tarda ni 1 minuto!",
+    "dont_show_again": "No mostrar de nuevo",
+    "show_recompilations": "Ver Recomps"
+  },
   "leaderboard": {
     "title": "Ranking",
     "you": "Tú",
@@ -3011,7 +3020,7 @@
     "install_step_port": "Versión para PC",
     "install_step_rom": "ROM del juego",
     "prepare_title": "Preparando el juego",
-    "prepare_intro": "Solo pasa la primera vez y puede tardar unos minutos.",
+    "prepare_intro": "Puede tardar unos minutos.",
     "prepare_starting": "Empezando",
     "prepare_step_count": "Paso {{step}} de {{steps}}",
     "prepare_step_disc": "Comprobando el disco",
@@ -3079,6 +3088,13 @@
     "tested_count_other": "{{count}} de {{total}} funciones funcionan",
     "about_project": "Sobre el proyecto",
     "github_repository": "Repositorio en GitHub",
-    "tested_count_zero": "0 de {{total}} funciones funcionan"
+    "tested_count_zero": "0 de {{total}} funciones funcionan",
+    "tip_new": "¡NUEVO!",
+    "tip_close": "Cerrar consejo",
+    "tip_title": "Este juego funciona nativo en PC",
+    "tip_body": "Elige una versión recompilada por la comunidad e instálala directo desde Hydra, sin descargar ni configurar emulador.",
+    "tip_no_emulator": "Sin emulador",
+    "tip_quick_install": "Instalación en minutos",
+    "tip_got_it": "¡Entendido!"
   }
 }

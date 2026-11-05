@@ -248,7 +248,9 @@
     "no_genres": "No categories",
     "mode_modern_games": "Modern Games",
     "mode_classics": "Classics",
-    "platforms": "Platforms"
+    "platforms": "Platforms",
+    "recompilations_filter": "Recomps",
+    "recompilation_badge": "Recomp"
   },
   "game_details": {
     "bios_not_configured_toast": "BIOS not found. Please add BIOS folder in Emulation settings.",
@@ -2080,6 +2082,13 @@
     "explore": "Explore",
     "dont_show_again": "Don't show again"
   },
+  "recompilation_onboarding": {
+    "title": "New on Hydra: Recomps",
+    "heading": "Play classics, native on PC",
+    "body": "Recomps are classic games recompiled by the community to run directly on PC. Turn on the Recomps filter here in the Catalogue to see all of them. Hydra installs the project, you point to the game's ROM and play, with no emulator to set up.\n\nIn most cases, it takes less than a minute!",
+    "dont_show_again": "Don't show again",
+    "show_recompilations": "See Recomps"
+  },
   "forms": {
     "toggle_password_visibility": "Toggle password visibility"
   },
@@ -3488,7 +3497,7 @@
     "install_step_port": "PC version",
     "install_step_rom": "Game ROM",
     "prepare_title": "Preparing the game",
-    "prepare_intro": "This only happens the first time and can take a few minutes.",
+    "prepare_intro": "This can take a few minutes.",
     "prepare_starting": "Getting started",
     "prepare_step_count": "Step {{step}} of {{steps}}",
     "prepare_step_disc": "Checking the disc",
@@ -3556,6 +3565,13 @@
     "tested_count_other": "{{count}} of {{total}} features work",
     "about_project": "About the project",
     "github_repository": "GitHub repository",
-    "tested_count_zero": "0 of {{total}} features work"
+    "tested_count_zero": "0 of {{total}} features work",
+    "tip_new": "NEW!",
+    "tip_close": "Close tip",
+    "tip_title": "This game runs natively on PC",
+    "tip_body": "Pick a version recompiled by the community and install it straight from Hydra, with no emulator to download or set up.",
+    "tip_no_emulator": "No emulator",
+    "tip_quick_install": "Installs in minutes",
+    "tip_got_it": "Got it!"
   }
 }

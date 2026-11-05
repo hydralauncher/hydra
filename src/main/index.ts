@@ -316,7 +316,13 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
         await gamesSublevel.put(gameKey, game).catch(() => {});
       }
     }
-    await openClassicsGame(shop, objectId);
+    await openClassicsGame(shop, objectId).catch((error) => {
+      if (
+        (error as { code?: string }).code !== "RECOMPILATION_ALREADY_RUNNING"
+      ) {
+        throw error;
+      }
+    });
     return;
   }
 

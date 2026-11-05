@@ -241,7 +241,11 @@ export const handleClassicsLaunchError = (
     showErrorToast(t("launch_failed_toast"));
   }
 
-  return code !== "EMULATOR_ALREADY_RUNNING" && code !== "PKG_INSTALLING";
+  return (
+    code !== "EMULATOR_ALREADY_RUNNING" &&
+    code !== "PKG_INSTALLING" &&
+    code !== "RECOMPILATION_ALREADY_RUNNING"
+  );
 };
 
 export const formatDownloadProgress = (

@@ -1,8 +1,11 @@
 import { logger } from "@main/services";
 
+const codedError = (code: string, objectId: string, slug: string) =>
+  Object.assign(new Error(`${code}: ${objectId}/${slug}`), { code });
+
 const launchError = (code: string, objectId: string, slug: string) => {
   logger.error("Failed to launch recompilation disc", { code, objectId, slug });
-  return Object.assign(new Error(`${code}: ${objectId}/${slug}`), { code });
+  return codedError(code, objectId, slug);
 };
 
 export const launchRecompilationDisc = async (
@@ -34,7 +37,7 @@ export const launchRecompilationDisc = async (
     return;
   }
   if (result.reason === "already_running") {
-    throw launchError("RECOMPILATION_ALREADY_RUNNING", objectId, slug);
+    throw codedError("RECOMPILATION_ALREADY_RUNNING", objectId, slug);
   }
   throw launchError("RECOMPILATION_LAUNCH_FAILED", objectId, slug);
 };

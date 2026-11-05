@@ -21,10 +21,14 @@ export const getRecompilation = (objectId: string, slug: string) =>
     needsAuth: false,
   });
 
-export const getRecompilationReadme = (objectId: string, slug: string) =>
+export const getRecompilationReadme = (
+  objectId: string,
+  slug: string,
+  language: string
+) =>
   window.electron.hydraApi.get<RecompilationReadme>(
     `${portPath(objectId, slug)}/readme`,
-    { needsAuth: false }
+    { params: { language }, needsAuth: false }
   );
 
 export const getRecompilationReleases = (objectId: string, slug: string) =>

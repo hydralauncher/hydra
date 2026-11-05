@@ -250,7 +250,9 @@
     "no_genres": "Без категорий",
     "mode_modern_games": "Современные игры",
     "mode_classics": "Классика",
-    "platforms": "Платформы"
+    "platforms": "Платформы",
+    "recompilations_filter": "Recomps",
+    "recompilation_badge": "Recomp"
   },
   "game_details": {
     "similar_games": "Похожие игры",
@@ -1989,6 +1991,13 @@
     "explore": "Исследовать",
     "dont_show_again": "Больше не показывать"
   },
+  "recompilation_onboarding": {
+    "title": "Новое в Hydra: Recomps",
+    "heading": "Играйте в классику нативно на ПК",
+    "body": "Recomps — это классические игры, перекомпилированные сообществом для запуска прямо на ПК. Включите фильтр Recomps здесь, в Каталоге, чтобы увидеть их все. Hydra устанавливает проект, вы указываете ROM игры и играете, без настройки эмулятора.\n\nВ большинстве случаев это занимает меньше минуты!",
+    "dont_show_again": "Больше не показывать",
+    "show_recompilations": "Смотреть Recomps"
+  },
   "forms": {
     "toggle_password_visibility": "Показывать пароль"
   },
@@ -3103,7 +3112,7 @@
     "install_step_port": "Версия для ПК",
     "install_step_rom": "ROM игры",
     "prepare_title": "Подготовка игры",
-    "prepare_intro": "Это происходит только в первый раз и может занять несколько минут.",
+    "prepare_intro": "Это может занять несколько минут.",
     "prepare_starting": "Начинаем",
     "prepare_step_count": "Шаг {{step}} из {{steps}}",
     "prepare_step_disc": "Проверка диска",
@@ -3175,6 +3184,13 @@
     "tested_count_other": "Работают {{count}} из {{total}} функций",
     "about_project": "О проекте",
     "github_repository": "Репозиторий на GitHub",
-    "tested_count_zero": "Работают 0 из {{total}} функций"
+    "tested_count_zero": "Работают 0 из {{total}} функций",
+    "tip_new": "НОВОЕ!",
+    "tip_close": "Закрыть подсказку",
+    "tip_title": "Эта игра работает на ПК нативно",
+    "tip_body": "Выберите версию, перекомпилированную сообществом, и установите её прямо через Hydra, без загрузки и настройки эмулятора.",
+    "tip_no_emulator": "Без эмулятора",
+    "tip_quick_install": "Установка за минуты",
+    "tip_got_it": "Понятно!"
   }
 }
