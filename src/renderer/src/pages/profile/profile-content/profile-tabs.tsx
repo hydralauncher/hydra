@@ -6,7 +6,8 @@ export type ProfileTabType =
   | "library"
   | "reviews"
   | "souvenirs"
-  | "screenshots";
+  | "screenshots"
+  | "missions";
 
 const TAB_INDICATOR_SPRING = {
   type: "spring",
@@ -20,6 +21,7 @@ interface ProfileTabsProps {
   souvenirsCount: number;
   screenshotsCount: number;
   showScreenshots: boolean;
+  showMissions: boolean;
   onTabChange: (tab: ProfileTabType) => void;
 }
 
@@ -35,6 +37,7 @@ export function ProfileTabs({
   souvenirsCount,
   screenshotsCount,
   showScreenshots,
+  showMissions,
   onTabChange,
 }: Readonly<ProfileTabsProps>) {
   const { t } = useTranslation(["user_profile", "screenshots"]);
@@ -51,6 +54,10 @@ export function ProfileTabs({
       label: t("tab_title", { ns: "screenshots" }),
       count: screenshotsCount,
     });
+  }
+
+  if (showMissions) {
+    tabs.push({ id: "missions", label: t("missions_tab"), count: 0 });
   }
 
   return (

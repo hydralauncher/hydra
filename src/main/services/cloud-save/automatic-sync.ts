@@ -10,7 +10,6 @@ import {
   hasRpcs3CloudSaveDisc,
   isCloudSaveV2Eligible,
 } from "@shared";
-import { gamesSublevel, levelKeys } from "@main/level";
 
 import { HydraApi } from "../hydra-api";
 import { isGameRunning } from "../game-running-state";
@@ -20,6 +19,7 @@ import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
 import { canAccessCloudSaves } from "./cloud-save-access";
 import { syncGameCloudSave } from "./sync-game-cloud-save";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { getCloudSaveGameRecord } from "./recompilation-cloud-save";
 import { getCloudSaveErrorDetails } from "./cloud-save-error-details";
 import { isCloudSaveEnvironmentChangedError } from "./environment-guard";
 import { isCloudSaveExecutableMissingError } from "./executable-path-guard";
@@ -75,10 +75,10 @@ export const canRunAutomaticCloudSaveSync = async (
     return false;
   }
 
-  const game = await gamesSublevel
-    .get(levelKeys.game(shop, objectId))
-    .catch(() => null);
-  if (!game || !isCloudSaveV2Eligible(shop, game.platform)) return false;
+  const game = await getCloudSaveGameRecord(shop, objectId).catch(() => null);
+  if (!game || !isCloudSaveV2Eligible(shop, game.platform, objectId)) {
+    return false;
+  }
   if (shop === "steam" || shop === "epic") return Boolean(game.executablePath);
   if (
     getCloudSaveEmulatorProvider(shop, game.platform) === "rpcs3" &&
@@ -146,9 +146,8 @@ export const runAutomaticCloudSaveSyncDetailed = async (
   }
 
   let gameReadFailed = false;
-  const game = await gamesSublevel
-    .get(levelKeys.game(shop, objectId))
-    .catch((error: unknown) => {
+  const game = await getCloudSaveGameRecord(shop, objectId).catch(
+    (error: unknown) => {
       logger.error("[Cloud Save] Failed to inspect automatic sync game", {
         shop,
         objectId,
@@ -157,8 +156,9 @@ export const runAutomaticCloudSaveSyncDetailed = async (
       });
       gameReadFailed = true;
       return null;
-    });
-  if (!game || !isCloudSaveV2Eligible(shop, game.platform)) {
+    }
+  );
+  if (!game || !isCloudSaveV2Eligible(shop, game.platform, objectId)) {
     return {
       status: gameReadFailed
         ? classifyAutomaticCloudSaveFailure(trigger)

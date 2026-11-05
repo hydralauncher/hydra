@@ -16,6 +16,7 @@ import type {
 } from "./game.types";
 import type { ArtworkAssetType } from "./artwork.types";
 import type { GameContentWarning } from "./souvenir.types";
+import type { RecompilationSummary } from "./recompilation.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 export * from "./download-contract";
@@ -161,6 +162,7 @@ export interface GameRunning {
   objectId: string;
   shop: GameShop;
   sessionDurationInMillis: number;
+  recompilationSlug?: string;
 }
 
 export interface Steam250Game {
@@ -567,6 +569,118 @@ export interface UserProfile {
   badges: string[];
   badgesDetails?: { badge: string; unlockedAt: string }[];
   hasCompletedWrapped2025: boolean;
+  progress?: LevelProgress | null;
+  loginStreak?: LoginStreak | null;
+}
+
+export interface LevelProgress {
+  level: number;
+  xp: number;
+  xpToNextLevel: number | null;
+}
+
+export interface LoginStreak {
+  current: number;
+  record: number;
+  hasPlayedToday: boolean;
+}
+
+export type PassiveType =
+  | "session"
+  | "achievement"
+  | "souvenir"
+  | "review"
+  | "friend";
+
+export interface PassiveProgress {
+  type: PassiveType;
+  xp: number;
+  dailyLimit: number;
+  today: number;
+  pending: number;
+}
+
+export interface GamificationProgress extends LevelProgress {
+  coins: number;
+  cloudBoostPercent: number | null;
+  loginStreak: LoginStreak;
+  passives: PassiveProgress[];
+}
+
+export interface RewardProgress extends LevelProgress {
+  coins: number;
+}
+
+export type MissionKind = "daily" | "weekly";
+export type MissionGroup = "daily" | "medium" | "hard";
+export type MissionUnit = "seconds" | "days" | "count";
+
+export interface Mission {
+  kind: MissionKind;
+  slot: number;
+  key: string;
+  group: MissionGroup;
+  category: string;
+  unit: MissionUnit;
+  target: number;
+  current: number;
+  isComplete: boolean;
+  isClaimed: boolean;
+  pending: number;
+  xp: number;
+  coins: number;
+}
+
+export interface MissionPeriod {
+  period: string;
+  resetsAt: string;
+  missions: Mission[];
+}
+
+export interface MissionsResponse {
+  cloudBoostPercent: number | null;
+  daily: MissionPeriod;
+  weekly: MissionPeriod;
+  refresh: { isFreeAvailable: boolean; price: number };
+}
+
+export type TrailKey =
+  | "playtime"
+  | "achievements"
+  | "souvenirs"
+  | "friends"
+  | "reviews"
+  | "likesReceived";
+
+export interface TrailLevel {
+  level: number;
+  threshold: number;
+  xp: number;
+  coins: number;
+  isReached: boolean;
+  isClaimed: boolean;
+}
+
+export interface Trail {
+  key: TrailKey;
+  group: "solo" | "social";
+  current: number;
+  isComplete: boolean;
+  pending: number;
+  levels: TrailLevel[];
+}
+
+export interface RewardClaimResponse {
+  wasClaimed: boolean;
+  xp: number;
+  coins: number;
+  progress: RewardProgress;
+}
+
+export interface MissionRefreshResponse {
+  wasFree: boolean;
+  mission: Mission;
+  progress: RewardProgress;
 }
 
 export interface UpdateProfileRequest {
@@ -649,6 +763,11 @@ export interface GameReview {
     [key: string]: string;
   };
   detectedLanguage: string | null;
+  recompilation?: {
+    slug: string;
+    name: string;
+    iconUrl: string | null;
+  } | null;
 }
 
 export interface TrendingGame extends ShopAssets {
@@ -899,6 +1018,7 @@ export interface CatalogueSearchPayload {
   releaseYear?: { gte?: number; lte?: number };
   shops?: string[];
   platforms?: string[];
+  recompilation?: "has";
 }
 
 export interface ProtonDBData {
@@ -929,6 +1049,7 @@ export type CatalogueSearchResult = {
   developers?: string[];
   publishers?: string[];
   skus?: string[];
+  recompilations?: RecompilationSummary[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
@@ -982,6 +1103,7 @@ export * from "./artwork.types";
 export * from "./cloud-save.types";
 export * from "./souvenir.types";
 export * from "./screenshot.types";
+export * from "./recompilation.types";
 
 export type ExtractionFailure =
   | { reason: "unsupported-format"; format: string }
