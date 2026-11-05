@@ -89,7 +89,10 @@ export const resolveRestoreManifestTargets = async (
         title: gameContext.game?.title,
         remoteId: gameContext.game?.remoteId ?? undefined,
         userDataPath: SystemPath.getPath("userData"),
-        recompilationRules: getRecompilationSaveRules(pathContext),
+        recompilationRules: getRecompilationSaveRules(
+          pathContext,
+          gameContext.game?.executablePath
+        ),
       });
   const customPathContext =
     cloudSaveCustomPathContextFromPathContext(pathContext);
