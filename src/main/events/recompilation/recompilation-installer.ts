@@ -432,6 +432,15 @@ export const openRecompilationFolder = async (
   return error ? { ok: false, reason: error } : { ok: true };
 };
 
+// Set by Hydra's own AppImage; a port's AppRun would resolve its files inside Hydra instead of its own folder.
+const HYDRA_APPIMAGE_ENV = ["APPDIR", "APPIMAGE", "ARGV0", "OWD"];
+
+const getPortEnv = (launchEnv: Record<string, string>) => {
+  const env = { ...process.env, ...launchEnv };
+  for (const key of HYDRA_APPIMAGE_ENV) delete env[key];
+  return env;
+};
+
 const spawnPort = (
   executablePath: string,
   launch: { args: string[]; env: Record<string, string> }
@@ -442,7 +451,7 @@ const spawnPort = (
   >((resolve) => {
     const child = spawn(executablePath, launch.args, {
       cwd: path.dirname(executablePath),
-      env: { ...process.env, ...launch.env },
+      env: getPortEnv(launch.env),
       detached: true,
       stdio: "ignore",
       shell: false,
