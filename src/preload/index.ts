@@ -1,6 +1,6 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webFrame } from "electron";
 import { randomUUID } from "node:crypto";
 
 import type {
@@ -1660,6 +1660,7 @@ contextBridge.exposeInMainWorld("electron", {
     imageUrl: string | null,
     options: { width: number; height: number; preserveAnimation?: boolean }
   ) => ipcRenderer.invoke("getProcessedImage", imageUrl, options),
+  clearRendererCache: () => webFrame.clearCache(),
   hydraApi: {
     get: (
       url: string,

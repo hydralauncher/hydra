@@ -5,6 +5,7 @@ import {
   useCallback,
   useDeferredValue,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -51,10 +52,17 @@ import {
 import { ConfirmationModal, DownloadGameModal } from "../../components/modals";
 import {
   LIBRARY_FILTERS_SEARCH_INPUT_ID,
+  LIBRARY_FOCUS_GRID_REGION_ID,
+  LIBRARY_FOCUS_LIST_REGION_ID,
   LIBRARY_HERO_LAUNCH_BUTTON_ID,
   LIBRARY_HERO_OPEN_SETTINGS_BUTTON_ID,
   LIBRARY_PAGE_REGION_ID,
 } from "../../components/pages/library/navigation";
+import {
+  getLibraryViewState,
+  saveLibraryScrollPosition,
+  saveLibrarySearch,
+} from "../../components/pages/library/library-view-state";
 
 import "./page.scss";
 
@@ -66,6 +74,19 @@ interface GameContextMenuState {
 }
 
 const DEFAULT_MENU_POSITION = { x: 0, y: 0 };
+
+function isElementVisibleInScrollContainer(
+  element: HTMLElement,
+  container: HTMLElement
+) {
+  const elementRect = element.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+
+  return (
+    elementRect.bottom > containerRect.top &&
+    elementRect.top < containerRect.bottom
+  );
+}
 
 function getInitialLibraryViewMode(): LibraryViewMode {
   return getInitialLibraryStoredValue(
@@ -122,6 +143,12 @@ export default function LibraryPage() {
   const libraryScrollRef = useRef<HTMLElement | null>(null);
   const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
   const settingsModalRestoreFocusIdRef = useRef<string | null>(null);
+  const initialLibraryViewStateRef = useRef(getLibraryViewState());
+  const hasRestoredLibraryViewRef = useRef(false);
+  const isRestoringLibraryScrollRef = useRef(
+    initialLibraryViewStateRef.current !== null
+  );
+  const isUnmountingLibraryRef = useRef(false);
   const navigate = useNavigate();
   const { setFocus } = useNavigationActions();
   const { showSuccessToast } = useBigPictureToast();
@@ -144,7 +171,9 @@ export default function LibraryPage() {
   const [filterBy, setFilterBy] = useState<LibrarySecondaryFilter>(
     getInitialLibrarySecondaryFilter
   );
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(
+    () => initialLibraryViewStateRef.current?.search ?? ""
+  );
   const [contextMenuState, setContextMenuState] =
     useState<GameContextMenuState>({
       game: null,
@@ -325,6 +354,171 @@ export default function LibraryPage() {
     buildToastOptions: buildLibraryToastOptions,
     fallbackFocusId: LIBRARY_FILTERS_SEARCH_INPUT_ID,
   });
+
+  useLayoutEffect(() => {
+    isUnmountingLibraryRef.current = false;
+    const scrollElement = libraryScrollRef.current;
+
+    return () => {
+      if (!isRestoringLibraryScrollRef.current && scrollElement) {
+        saveLibraryScrollPosition(scrollElement.scrollTop);
+      }
+
+      isUnmountingLibraryRef.current = true;
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (hasRestoredLibraryViewRef.current) return;
+    if (deferredSearchTransition !== search) return;
+
+    if (filteredLibrary.length === 0) {
+      if (library.length > 0) {
+        hasRestoredLibraryViewRef.current = true;
+        isRestoringLibraryScrollRef.current = false;
+        setFocus(LIBRARY_FILTERS_SEARCH_INPUT_ID);
+      }
+
+      return;
+    }
+
+    const scrollElement = libraryScrollRef.current;
+    if (!scrollElement) return;
+
+    const savedState = initialLibraryViewStateRef.current;
+
+    if (!savedState) {
+      hasRestoredLibraryViewRef.current = true;
+      isRestoringLibraryScrollRef.current = false;
+      return;
+    }
+
+    let cancelled = false;
+    let frameId: number | null = null;
+    let restoreAttempts = 0;
+
+    const focusTarget = (attempt: number) => {
+      if (cancelled) return;
+
+      const regionId =
+        viewMode === "list"
+          ? LIBRARY_FOCUS_LIST_REGION_ID
+          : LIBRARY_FOCUS_GRID_REGION_ID;
+      const region = globalThis.document.querySelector(
+        `[data-focus-region-id="${regionId}"]`
+      );
+      const candidates =
+        region instanceof HTMLElement
+          ? Array.from(
+              region.querySelectorAll<HTMLElement>("[data-focus-wrapper]")
+            ).filter((element) =>
+              isElementVisibleInScrollContainer(element, scrollElement)
+            )
+          : [];
+      const savedElement = savedState.focusedItemId
+        ? globalThis.document.getElementById(savedState.focusedItemId)
+        : null;
+      const target =
+        savedElement instanceof HTMLElement && candidates.includes(savedElement)
+          ? savedElement
+          : candidates[0];
+
+      if (target && setFocus(target.id)) return;
+
+      if (attempt >= 10) {
+        setFocus(LIBRARY_FILTERS_SEARCH_INPUT_ID);
+        return;
+      }
+
+      frameId = globalThis.window.requestAnimationFrame(() =>
+        focusTarget(attempt + 1)
+      );
+    };
+
+    const applyScrollPosition = () => {
+      if (cancelled) return;
+
+      const maxScrollTop = Math.max(
+        0,
+        scrollElement.scrollHeight - scrollElement.clientHeight
+      );
+
+      if (maxScrollTop < savedState.scrollTop && restoreAttempts < 30) {
+        restoreAttempts += 1;
+        frameId = globalThis.window.requestAnimationFrame(applyScrollPosition);
+        return;
+      }
+
+      scrollElement.scrollTop = Math.min(savedState.scrollTop, maxScrollTop);
+      hasRestoredLibraryViewRef.current = true;
+      isRestoringLibraryScrollRef.current = false;
+      frameId = globalThis.window.requestAnimationFrame(() => focusTarget(0));
+    };
+
+    frameId = globalThis.window.requestAnimationFrame(applyScrollPosition);
+
+    return () => {
+      cancelled = true;
+
+      if (frameId !== null) {
+        globalThis.window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [
+    deferredSearchTransition,
+    filteredLibrary.length,
+    library.length,
+    search,
+    setFocus,
+    viewMode,
+  ]);
+
+  useEffect(() => {
+    if (filteredLibrary.length === 0) return;
+
+    const scrollElement = libraryScrollRef.current;
+    if (!scrollElement) return;
+
+    let frameId: number | null = null;
+
+    const saveScrollPosition = () => {
+      if (
+        isRestoringLibraryScrollRef.current ||
+        isUnmountingLibraryRef.current
+      ) {
+        return;
+      }
+
+      saveLibraryScrollPosition(scrollElement.scrollTop);
+    };
+
+    const handleScroll = () => {
+      if (frameId !== null) return;
+
+      frameId = globalThis.window.requestAnimationFrame(() => {
+        frameId = null;
+        saveScrollPosition();
+      });
+    };
+
+    scrollElement.addEventListener("scroll", handleScroll, {
+      passive: true,
+    });
+
+    return () => {
+      scrollElement.removeEventListener("scroll", handleScroll);
+
+      if (frameId !== null) {
+        globalThis.window.cancelAnimationFrame(frameId);
+      }
+
+      saveScrollPosition();
+    };
+  }, [filteredLibrary.length]);
+
+  useEffect(() => {
+    saveLibrarySearch(search);
+  }, [search]);
 
   useEffect(() => {
     updateLibrary();

@@ -1208,6 +1208,7 @@ declare global {
       imageUrl: string | null,
       options: { width: number; height: number; preserveAnimation?: boolean }
     ) => Promise<string | null>;
+    clearRendererCache: () => void;
     hydraApi: {
       get: <T = unknown>(
         url: string,

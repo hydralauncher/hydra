@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -10,6 +10,7 @@ import {
   getBigPictureGameRouteMatch,
   getBigPictureSidebarLibraryGameFocusId,
   getBigPictureSidebarItemIdFromPathname,
+  normalizeBigPicturePathname,
   Header,
   Sidebar,
 } from "./layout";
@@ -43,6 +44,7 @@ import {
 } from "./stores";
 import { NavigationAudioService, type FocusOverrides } from "./services";
 import { BigPictureI18nBridge, ensureBigPictureI18nResources } from "./i18n";
+import { hasLibraryViewState } from "./components/pages/library/library-view-state";
 
 import "./styles/globals.scss";
 
@@ -64,6 +66,11 @@ function RouteFocusBridge({
   useEffect(() => {
     if (pendingRouteFocusPathname !== pathname) return;
 
+    if (isLibraryPathname(pathname) && hasLibraryViewState()) {
+      onFocusResolved(null);
+      return;
+    }
+
     const entryRegionId =
       getBigPictureContentEntryRegionIdFromPathname(pathname);
     if (!entryRegionId) return;
@@ -84,6 +91,66 @@ function RouteFocusBridge({
     regions,
     setFocusRegion,
   ]);
+
+  return null;
+}
+
+const RENDERER_CACHE_SECOND_CLEAR_DELAY_MS = 1000;
+const RENDERER_CACHE_HEAVY_ROUTE_PREFIXES = ["/catalogue", "/library"];
+
+function isRendererCacheHeavyRoute(pathname: string) {
+  const normalizedPathname = normalizeBigPicturePathname(pathname);
+
+  return (
+    normalizedPathname === "/" ||
+    RENDERER_CACHE_HEAVY_ROUTE_PREFIXES.some((prefix) =>
+      normalizedPathname.startsWith(prefix)
+    )
+  );
+}
+
+function clearRendererCache() {
+  try {
+    globalThis.window.electron?.clearRendererCache?.();
+  } catch {
+    return;
+  }
+}
+
+function isLibraryPathname(pathname: string) {
+  return normalizeBigPicturePathname(pathname).startsWith("/library");
+}
+
+function RendererCacheCleanupBridge({ pathname }: { pathname: string }) {
+  const previousPathnameRef = useRef(pathname);
+  const delayedClearTimerRef = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    const previousPathname = previousPathnameRef.current;
+    previousPathnameRef.current = pathname;
+
+    if (previousPathname === pathname) return;
+    if (!isRendererCacheHeavyRoute(previousPathname)) return;
+
+    clearRendererCache();
+
+    if (delayedClearTimerRef.current !== null) {
+      globalThis.window.clearTimeout(delayedClearTimerRef.current);
+    }
+
+    delayedClearTimerRef.current = globalThis.window.setTimeout(() => {
+      delayedClearTimerRef.current = null;
+      clearRendererCache();
+    }, RENDERER_CACHE_SECOND_CLEAR_DELAY_MS);
+  }, [pathname]);
+
+  useEffect(() => {
+    return () => {
+      if (delayedClearTimerRef.current !== null) {
+        globalThis.window.clearTimeout(delayedClearTimerRef.current);
+      }
+    };
+  }, []);
 
   return null;
 }
@@ -226,6 +293,7 @@ export default function App() {
         pendingRouteFocusPathname={pendingRouteFocusPathname}
         onFocusResolved={setPendingRouteFocusPathname}
       />
+      <RendererCacheCleanupBridge pathname={pathname} />
       <NavigationStateBridge />
       <NavigationAutoScrollBridge />
       <NavigationHistoryBridge />

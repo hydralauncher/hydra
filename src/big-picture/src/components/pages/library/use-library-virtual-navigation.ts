@@ -12,6 +12,7 @@ import type { LibraryGame } from "@types";
 import { NavigationService } from "../../../services";
 import { useNavigationStore } from "../../../stores";
 import { buildLibraryNavigationModel } from "./library-navigation-model";
+import { saveLibraryFocusedItemId } from "./library-view-state";
 
 interface UseLibraryVirtualNavigationParams {
   games: LibraryGame[];
@@ -126,6 +127,15 @@ export function useLibraryVirtualNavigation({
       setPendingFocusId(null);
     }
   }, [navigationModel.rowByItemId, pendingFocusId]);
+
+  useEffect(() => {
+    if (
+      focusedItemId !== null &&
+      navigationModel.rowByItemId.has(focusedItemId)
+    ) {
+      saveLibraryFocusedItemId(focusedItemId);
+    }
+  }, [focusedItemId, navigationModel.rowByItemId]);
 
   const virtualRows = virtualizer.getVirtualItems();
 
