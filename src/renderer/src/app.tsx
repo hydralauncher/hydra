@@ -60,12 +60,8 @@ import { playMessageSound } from "./pages/chat-window/chat-sounds";
 
 import type { UserPreferences } from "@types";
 import "./app.scss";
-import {
-  getAchievementSoundUrl,
-  getAchievementSoundVolume,
-  injectCustomCss,
-  removeCustomCss,
-} from "./helpers";
+import { getAchievementSoundUrl, getAchievementSoundVolume } from "./helpers";
+import { useActiveTheme } from "./hooks/use-active-theme";
 import { levelDBService } from "./services/leveldb.service";
 
 export interface AppProps {
@@ -632,22 +628,7 @@ export function App() {
     });
   }, [dispatch, draggingDisabled]);
 
-  const loadAndApplyTheme = useCallback(async () => {
-    const allThemes = (await levelDBService.values("themes")) as {
-      isActive?: boolean;
-      code?: string;
-    }[];
-    const activeTheme = allThemes.find((theme) => theme.isActive);
-    if (activeTheme?.code) {
-      injectCustomCss(activeTheme.code);
-    } else {
-      removeCustomCss();
-    }
-  }, []);
-
-  useEffect(() => {
-    loadAndApplyTheme();
-  }, [loadAndApplyTheme]);
+  const loadAndApplyTheme = useActiveTheme();
 
   useEffect(() => {
     const unsubscribe = window.electron.onCustomThemeUpdated(() => {

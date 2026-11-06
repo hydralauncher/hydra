@@ -17,13 +17,14 @@ import {
   VideoIcon,
   ShieldCheckIcon,
 } from "@primer/octicons-react";
-import { Camera, Gamepad2, Wrench } from "lucide-react";
+import { Camera, Gamepad2, Monitor, Wrench } from "lucide-react";
 import { SettingsContextGeneral } from "./settings-context-general";
 import { SettingsContextDownloads } from "./settings-context-downloads";
 import { SettingsContextDownloadSources } from "./settings-context-download-sources";
 import { SettingsContextNotifications } from "./settings-context-notifications";
 import { SettingsContextContentGameplay } from "./settings-context-content-gameplay";
 import { SettingsContextScreenshots } from "./settings-context-screenshots";
+import { SettingsContextOverlay } from "./settings-context-overlay";
 import { SettingsContextIntegrations } from "./settings-context-integrations";
 import { SettingsContextCompatibility } from "./settings-context-compatibility";
 import { SettingsContextBigPicture } from "./settings-context-big-picture";
@@ -69,6 +70,15 @@ export default function Settings() {
               id: "screenshots" as const,
               label: t("screenshots_category"),
               icon: <Camera size={16} />,
+            },
+          ]
+        : []),
+      ...(window.electron.platform === "win32"
+        ? [
+            {
+              id: "overlay" as const,
+              label: t("overlay_category"),
+              icon: <Monitor size={16} />,
             },
           ]
         : []),
@@ -138,6 +148,10 @@ export default function Settings() {
 
             if (selectedCategoryId === "screenshots") {
               return <SettingsContextScreenshots />;
+            }
+
+            if (selectedCategoryId === "overlay") {
+              return <SettingsContextOverlay />;
             }
 
             if (selectedCategoryId === "integrations") {

@@ -6,6 +6,7 @@ import type {
   ScreenshotGamepadButton,
   ScreenshotHotkeyBinding,
 } from "./screenshot.types";
+import type { OverlayHotkeyBinding } from "./overlay.types";
 import type { ProfileVisibility } from "./index";
 import type {
   EpicDownloadMetadata,
@@ -275,6 +276,9 @@ export interface UserPreferences {
   screenshotDefaultVisibility?: ProfileVisibility;
   showSensitiveScreenshots?: boolean;
   hideCommunityScreenshots?: boolean;
+  overlayEnabled?: boolean;
+  overlayHotkey?: OverlayHotkeyBinding;
+  overlayBrowserEnabled?: boolean;
 }
 
 export interface NetworkInterface {

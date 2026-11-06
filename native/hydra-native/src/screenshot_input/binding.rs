@@ -2,6 +2,7 @@
 pub enum TriggerSource {
     Keyboard,
     Gamepad,
+    Overlay,
 }
 
 impl TriggerSource {
@@ -9,6 +10,7 @@ impl TriggerSource {
         match self {
             TriggerSource::Keyboard => "keyboard",
             TriggerSource::Gamepad => "gamepad",
+            TriggerSource::Overlay => "overlay",
         }
     }
 }
@@ -297,6 +299,7 @@ impl HotkeyBinding {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct InputBinding {
     pub hotkey: Option<HotkeyBinding>,
+    pub overlay_hotkey: Option<HotkeyBinding>,
     pub gamepad_mask: u32,
 }
 
@@ -793,6 +796,48 @@ mod tests {
         assert!(!matcher.on_key(code, false, &binding, none));
         assert!(matcher.on_key(code, true, &binding, none));
         assert!(!matcher.on_key(67, true, &binding, none));
+    }
+
+    #[test]
+    fn screenshot_and_overlay_matchers_fire_independently() {
+        let screenshot = f10();
+        let overlay = HotkeyBinding {
+            key: find_key("Tab").unwrap(),
+            ctrl: false,
+            alt: false,
+            shift: true,
+        };
+        let shift = Modifiers {
+            shift: true,
+            ..Modifiers::default()
+        };
+        let mut screenshot_matcher = HotkeyMatcher::default();
+        let mut overlay_matcher = HotkeyMatcher::default();
+
+        assert!(overlay_matcher.on_key(
+            overlay.key.platform_code(),
+            true,
+            &overlay,
+            shift
+        ));
+        assert!(!screenshot_matcher.on_key(
+            overlay.key.platform_code(),
+            true,
+            &screenshot,
+            shift
+        ));
+        assert!(!overlay_matcher.on_key(
+            screenshot.key.platform_code(),
+            true,
+            &overlay,
+            shift
+        ));
+        assert!(screenshot_matcher.on_key(
+            screenshot.key.platform_code(),
+            true,
+            &screenshot,
+            Modifiers::default()
+        ));
     }
 
     #[test]

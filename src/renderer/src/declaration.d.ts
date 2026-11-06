@@ -12,6 +12,11 @@ import type {
   SeedingStatus,
   UserPreferences,
   ScreenshotInputStatus,
+  OverlayBrowserState,
+  OverlayChatWindowKind,
+  OverlayPanel,
+  OverlayPanelState,
+  OverlayState,
   StartGameDownloadPayload,
   RealDebridUser,
   PremiumizeUser,
@@ -1037,6 +1042,30 @@ declare global {
       cb: (preferences: UserPreferences | null) => void
     ) => () => Electron.IpcRenderer;
     getScreenshotInputStatus: () => Promise<ScreenshotInputStatus>;
+    getOverlayState: () => Promise<OverlayState>;
+    closeOverlay: () => Promise<void>;
+    openOverlayPanel: (panel: OverlayPanel) => Promise<void>;
+    closeOverlayPanel: (panel: OverlayPanel) => Promise<void>;
+    setOverlayPanelPinned: (
+      panel: OverlayPanel,
+      pinned: boolean
+    ) => Promise<void>;
+    getOverlayPanelState: (panel: OverlayPanel) => Promise<OverlayPanelState>;
+    onOverlayPanelState: (
+      cb: (state: OverlayPanelState) => void
+    ) => () => Electron.IpcRenderer;
+    getOverlayBrowserState: () => Promise<OverlayBrowserState>;
+    navigateOverlayBrowser: (url: string) => Promise<void>;
+    overlayBrowserGoBack: () => Promise<void>;
+    overlayBrowserGoForward: () => Promise<void>;
+    overlayBrowserReload: () => Promise<void>;
+    overlayBrowserHome: () => Promise<void>;
+    onOverlayBrowserState: (
+      cb: (state: OverlayBrowserState) => void
+    ) => () => Electron.IpcRenderer;
+    onOverlayState: (
+      cb: (state: OverlayState) => void
+    ) => () => Electron.IpcRenderer;
     onScreenshotInputStatusChange: (
       cb: (status: ScreenshotInputStatus) => void
     ) => () => Electron.IpcRenderer;
@@ -1614,6 +1643,10 @@ declare global {
     consumePendingChatFriends: () => Promise<PendingChatFriend[]>;
     onChatFriendsPending: (cb: () => void) => () => Electron.IpcRenderer;
     setChatWindowState: (state: ChatWindowState) => Promise<void>;
+    setOverlayChatWindowState: (
+      state: ChatWindowState,
+      target: OverlayChatWindowKind
+    ) => Promise<void>;
     getChatUnreadState: () => Promise<ChatUnreadState>;
     /** Resolves to false when the read could not be saved. */
     markChatRead: (friendId: string, seq: number) => Promise<boolean>;

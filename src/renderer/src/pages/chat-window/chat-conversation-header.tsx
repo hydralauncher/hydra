@@ -17,6 +17,8 @@ export interface ChatConversationHeaderProps {
   isTyping: boolean;
   onMinimize: () => void;
   onCloseWindow: () => void;
+  /** Embedded views (the in-game overlay) provide their own window controls. */
+  showWindowControls?: boolean;
 }
 
 /**
@@ -30,8 +32,11 @@ export function ChatConversationHeader({
   isTyping,
   onMinimize,
   onCloseWindow,
+  showWindowControls,
 }: Readonly<ChatConversationHeaderProps>) {
   const { t } = useTranslation("chat_window");
+  const shouldShowWindowControls =
+    showWindowControls ?? !electron.hasNativeWindowDecorations;
 
   // Cloud members' profile banner sits behind the header.
   const backgroundImageUrl = friend?.backgroundImageUrl;
@@ -121,7 +126,7 @@ export function ChatConversationHeader({
         </>
       )}
 
-      {!electron.hasNativeWindowDecorations && (
+      {shouldShowWindowControls && (
         <div className="chat-window__window-controls">
           <button
             type="button"

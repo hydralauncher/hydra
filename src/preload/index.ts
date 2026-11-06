@@ -9,6 +9,11 @@ import type {
   DownloadProgress,
   UserPreferences,
   ScreenshotInputStatus,
+  OverlayBrowserState,
+  OverlayChatWindowKind,
+  OverlayPanel,
+  OverlayPanelState,
+  OverlayState,
   AppUpdaterEvent,
   StartGameDownloadPayload,
   GameRunning,
@@ -1005,6 +1010,48 @@ contextBridge.exposeInMainWorld("electron", {
   },
   getScreenshotInputStatus: (): Promise<ScreenshotInputStatus> =>
     ipcRenderer.invoke("getScreenshotInputStatus"),
+  getOverlayState: (): Promise<OverlayState> =>
+    ipcRenderer.invoke("getOverlayState"),
+  closeOverlay: () => ipcRenderer.invoke("closeOverlay"),
+  openOverlayPanel: (panel: OverlayPanel) =>
+    ipcRenderer.invoke("openOverlayPanel", panel),
+  closeOverlayPanel: (panel: OverlayPanel) =>
+    ipcRenderer.invoke("closeOverlayPanel", panel),
+  setOverlayPanelPinned: (panel: OverlayPanel, pinned: boolean) =>
+    ipcRenderer.invoke("setOverlayPanelPinned", panel, pinned),
+  getOverlayPanelState: (panel: OverlayPanel): Promise<OverlayPanelState> =>
+    ipcRenderer.invoke("getOverlayPanelState", panel),
+  onOverlayPanelState: (cb: (state: OverlayPanelState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: OverlayPanelState
+    ) => cb(state);
+    ipcRenderer.on("on-overlay-panel-state", listener);
+    return () => ipcRenderer.removeListener("on-overlay-panel-state", listener);
+  },
+  getOverlayBrowserState: (): Promise<OverlayBrowserState> =>
+    ipcRenderer.invoke("getOverlayBrowserState"),
+  navigateOverlayBrowser: (url: string) =>
+    ipcRenderer.invoke("navigateOverlayBrowser", url),
+  overlayBrowserGoBack: () => ipcRenderer.invoke("overlayBrowserGoBack"),
+  overlayBrowserGoForward: () => ipcRenderer.invoke("overlayBrowserGoForward"),
+  overlayBrowserReload: () => ipcRenderer.invoke("overlayBrowserReload"),
+  overlayBrowserHome: () => ipcRenderer.invoke("overlayBrowserHome"),
+  onOverlayBrowserState: (cb: (state: OverlayBrowserState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: OverlayBrowserState
+    ) => cb(state);
+    ipcRenderer.on("on-overlay-browser-state", listener);
+    return () =>
+      ipcRenderer.removeListener("on-overlay-browser-state", listener);
+  },
+  onOverlayState: (cb: (state: OverlayState) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, state: OverlayState) =>
+      cb(state);
+    ipcRenderer.on("on-overlay-state", listener);
+    return () => ipcRenderer.removeListener("on-overlay-state", listener);
+  },
   onScreenshotInputStatusChange: (
     cb: (status: ScreenshotInputStatus) => void
   ) => {
@@ -2411,6 +2458,10 @@ contextBridge.exposeInMainWorld("electron", {
   },
   setChatWindowState: (state: ChatWindowState) =>
     ipcRenderer.invoke("setChatWindowState", state),
+  setOverlayChatWindowState: (
+    state: ChatWindowState,
+    target: OverlayChatWindowKind
+  ) => ipcRenderer.invoke("setOverlayChatWindowState", state, target),
   getChatUnreadState: () =>
     ipcRenderer.invoke("getChatUnreadState") as Promise<ChatUnreadState>,
   markChatRead: (friendId: string, seq: number) =>

@@ -36,7 +36,7 @@ const resetRetroAchievementsAchievements = async (
       unlockTime: null,
     }));
 
-    WindowManager.mainWindow?.webContents.send(
+    WindowManager.sendToAchievementWindows(
       `on-update-achievements-${objectId}-launchbox`,
       lockedAchievements
     );

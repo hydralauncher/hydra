@@ -32,6 +32,8 @@ export interface LeaderboardRowProps {
   // The Rankings table: a plain number and the rank change in its own column.
   isTableRow?: boolean;
   deltaColumn?: React.ReactNode;
+  /** Overrides the default profile navigation, e.g. for the overlay. */
+  onSelect?: (userId: string) => void;
 }
 
 // Which side of the pointer the tooltip sits on. The position itself is
@@ -60,6 +62,7 @@ export function LeaderboardRow({
   subtitle,
   isTableRow = false,
   deltaColumn,
+  onSelect,
 }: Readonly<LeaderboardRowProps>) {
   const { t } = useTranslation("leaderboard");
   const navigate = useNavigate();
@@ -176,7 +179,10 @@ export function LeaderboardRow({
                 } as React.CSSProperties)
               : undefined
           }
-          onClick={() => navigate(`/profile/${entry.user.id}`)}
+          onClick={() => {
+            if (onSelect) onSelect(entry.user.id);
+            else navigate(`/profile/${entry.user.id}`);
+          }}
           aria-current={isViewer ? "true" : undefined}
         >
           {!strip && isMedalTier(tier) && <RankFrameRing />}

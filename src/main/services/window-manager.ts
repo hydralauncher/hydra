@@ -16,6 +16,7 @@ import type {
   AchievementCustomNotificationPosition,
   AchievementNotificationInfo,
   ChatWindowState,
+  OverlayChatWindowKind,
   PendingChatFriend,
   ScreenState,
   SocialWindowKind,
@@ -86,6 +87,16 @@ export class WindowManager {
   // the window is still loading are not lost.
   private static pendingChatFriends: PendingChatFriend[] = [];
   private static chatWindowState: ChatWindowState = EMPTY_CHAT_WINDOW_STATE;
+  private static overlayChatPanelWindowProvider:
+    | (() => BrowserWindow | null)
+    | null = null;
+  private static overlayBigPictureWindowProvider:
+    | (() => BrowserWindow | null)
+    | null = null;
+  private static overlayChatPanelState: ChatWindowState =
+    EMPTY_CHAT_WINDOW_STATE;
+  private static overlayBigPictureChatState: ChatWindowState =
+    EMPTY_CHAT_WINDOW_STATE;
   private static mainWindowShownResult: boolean | null = null;
   private static mainWindowShownListeners: Array<(shown: boolean) => void> = [];
   private static socialWindowsBounds: SocialWindowsBounds = {};
@@ -265,8 +276,56 @@ export class WindowManager {
       this.bigPicture,
       this.friendsWindow,
       this.chatWindow,
+      ...this.overlayChatWindows(),
     ];
 
+    for (const window of windows) {
+      if (!window || window.isDestroyed()) continue;
+      window.webContents.send(channel, ...args);
+    }
+  }
+
+  public static registerOverlayChatWindowProviders(
+    panelProvider: () => BrowserWindow | null,
+    bigPictureProvider: () => BrowserWindow | null
+  ) {
+    this.overlayChatPanelWindowProvider = panelProvider;
+    this.overlayBigPictureWindowProvider = bigPictureProvider;
+  }
+
+  public static setOverlayChatWindowState(
+    state: ChatWindowState,
+    target: OverlayChatWindowKind
+  ) {
+    if (target === "panel") {
+      this.overlayChatPanelState = state;
+    } else {
+      this.overlayBigPictureChatState = state;
+    }
+  }
+
+  private static overlayChatWindows() {
+    return [
+      this.overlayChatPanelWindowProvider?.(),
+      this.overlayBigPictureWindowProvider?.(),
+    ];
+  }
+
+  private static overlayWindowProvider:
+    | (() => (BrowserWindow | null)[])
+    | null = null;
+
+  public static registerOverlayWindowProvider(
+    provider: () => (BrowserWindow | null)[]
+  ) {
+    this.overlayWindowProvider = provider;
+  }
+
+  public static sendToAchievementWindows(channel: string, ...args: unknown[]) {
+    const windows = [
+      this.mainWindow,
+      ...(this.overlayWindowProvider?.() ?? []),
+    ];
     for (const window of windows) {
       if (!window || window.isDestroyed()) continue;
       window.webContents.send(channel, ...args);
@@ -1049,16 +1108,46 @@ export class WindowManager {
   }
 
   public static isChatConversationVisible(friendId: string) {
+    const overlayChatState = this.getFocusedOverlayChatState();
+
     return (
-      this.isChatWindowFocused() &&
-      this.chatWindowState.activeFriendId === friendId
+      (this.isChatWindowFocused() &&
+        this.chatWindowState.activeFriendId === friendId) ||
+      overlayChatState?.activeFriendId === friendId
     );
   }
 
   public static isChatConversationOpenInFocusedWindow(friendId: string) {
+    const overlayChatState = this.getFocusedOverlayChatState();
+
     return (
-      this.isChatWindowFocused() &&
-      this.chatWindowState.openFriendIds.includes(friendId)
+      (this.isChatWindowFocused() &&
+        this.chatWindowState.openFriendIds.includes(friendId)) ||
+      Boolean(overlayChatState?.openFriendIds.includes(friendId))
+    );
+  }
+
+  private static getFocusedOverlayChatState(): ChatWindowState | null {
+    const panelWindow = this.overlayChatPanelWindowProvider?.();
+    if (this.isWindowFocused(panelWindow)) {
+      return this.overlayChatPanelState;
+    }
+
+    const bigPictureWindow = this.overlayBigPictureWindowProvider?.();
+    if (this.isWindowFocused(bigPictureWindow)) {
+      return this.overlayBigPictureChatState;
+    }
+
+    return null;
+  }
+
+  private static isWindowFocused(window: BrowserWindow | null | undefined) {
+    return Boolean(
+      window &&
+        !window.isDestroyed() &&
+        window.isVisible() &&
+        !window.isMinimized() &&
+        window.isFocused()
     );
   }
 
@@ -1079,8 +1168,11 @@ export class WindowManager {
   }
 
   public static sendToChatWindow(channel: string, ...args: unknown[]) {
-    if (this.chatWindow && !this.chatWindow.isDestroyed()) {
-      this.chatWindow.webContents.send(channel, ...args);
+    const windows = [this.chatWindow, ...this.overlayChatWindows()];
+
+    for (const window of windows) {
+      if (!window || window.isDestroyed()) continue;
+      window.webContents.send(channel, ...args);
     }
   }
 

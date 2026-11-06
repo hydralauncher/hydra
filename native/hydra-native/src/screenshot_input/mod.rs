@@ -30,6 +30,10 @@ pub struct ScreenshotInputConfig {
     pub shift: bool,
     pub gamepad_enabled: bool,
     pub gamepad_buttons: Vec<String>,
+    pub screenshot_enabled: Option<bool>,
+    pub overlay_key: Option<String>,
+    pub overlay_alt: Option<bool>,
+    pub overlay_shift: Option<bool>,
 }
 
 #[napi(object)]
@@ -166,23 +170,37 @@ struct ParsedConfig {
 }
 
 fn parse_config(config: &ScreenshotInputConfig) -> ParsedConfig {
-    let hotkey = find_key(&config.key).map(|key| HotkeyBinding {
+    let screenshot_enabled = config.screenshot_enabled.unwrap_or(true);
+    let screenshot_key = screenshot_enabled.then(|| find_key(&config.key)).flatten();
+    let hotkey = screenshot_key.map(|key| HotkeyBinding {
         key,
         ctrl: config.ctrl,
         alt: config.alt,
         shift: config.shift,
     });
+    let overlay_key = config.overlay_key.as_deref();
+    let overlay_hotkey = overlay_key.and_then(find_key).map(|key| HotkeyBinding {
+        key,
+        ctrl: false,
+        alt: config.overlay_alt.unwrap_or(false),
+        shift: config.overlay_shift.unwrap_or(false),
+    });
     let gamepad_mask = gamepad::combo_mask(&config.gamepad_buttons).unwrap_or(0);
-    let keyboard = hotkey.is_some();
+    let keyboard = hotkey.is_some() || overlay_hotkey.is_some();
     let gamepad = config.gamepad_enabled && gamepad_mask != 0;
+
+    let invalid_screenshot_key = screenshot_enabled && screenshot_key.is_none();
+    let invalid_overlay_key = overlay_key.is_some() && overlay_hotkey.is_none();
 
     ParsedConfig {
         binding: InputBinding {
             hotkey,
+            overlay_hotkey,
             gamepad_mask,
         },
         options: StartOptions { keyboard, gamepad },
-        keyboard_error: hotkey.is_none().then_some("unsupported-key"),
+        keyboard_error: (invalid_screenshot_key || invalid_overlay_key)
+            .then_some("unsupported-key"),
         gamepad_error: (config.gamepad_enabled && gamepad_mask == 0).then_some("invalid-combo"),
     }
 }
@@ -294,6 +312,10 @@ mod tests {
             shift: false,
             gamepad_enabled: true,
             gamepad_buttons: buttons.iter().map(|value| value.to_string()).collect(),
+            screenshot_enabled: Some(true),
+            overlay_key: None,
+            overlay_alt: None,
+            overlay_shift: None,
         }
     }
 
@@ -306,6 +328,54 @@ mod tests {
         assert_eq!(parsed.binding.gamepad_mask, gamepad::BACK | gamepad::RB);
         assert!(parsed.options.keyboard && parsed.options.gamepad);
         assert!(parsed.keyboard_error.is_none() && parsed.gamepad_error.is_none());
+    }
+
+    #[test]
+    fn parses_overlay_binding_alongside_screenshots() {
+        let mut value = config("F10", &[]);
+        value.overlay_key = Some("Tab".to_string());
+        value.overlay_shift = Some(true);
+        let parsed = parse_config(&value);
+        let overlay = parsed.binding.overlay_hotkey.unwrap();
+        assert_eq!(overlay.key.name, "Tab");
+        assert!(overlay.shift && !overlay.alt && !overlay.ctrl);
+        assert!(parsed.binding.hotkey.is_some());
+        assert!(parsed.options.keyboard);
+        assert!(parsed.keyboard_error.is_none());
+    }
+
+    #[test]
+    fn overlay_only_config_starts_keyboard_without_errors() {
+        let mut value = config("F10", &[]);
+        value.screenshot_enabled = Some(false);
+        value.overlay_key = Some("Tab".to_string());
+        value.overlay_shift = Some(true);
+        let parsed = parse_config(&value);
+        assert!(parsed.binding.hotkey.is_none());
+        assert!(parsed.binding.overlay_hotkey.is_some());
+        assert!(parsed.options.keyboard);
+        assert!(parsed.keyboard_error.is_none());
+    }
+
+    #[test]
+    fn disabled_screenshots_ignore_an_invalid_screenshot_key() {
+        let mut value = config("MetaLeft", &[]);
+        value.screenshot_enabled = Some(false);
+        value.overlay_key = Some("Tab".to_string());
+        value.overlay_shift = Some(true);
+        let parsed = parse_config(&value);
+        assert!(parsed.binding.hotkey.is_none());
+        assert!(parsed.binding.overlay_hotkey.is_some());
+        assert!(parsed.keyboard_error.is_none());
+    }
+
+    #[test]
+    fn unsupported_overlay_key_reports_error() {
+        let mut value = config("F10", &[]);
+        value.overlay_key = Some("MetaLeft".to_string());
+        let parsed = parse_config(&value);
+        assert!(parsed.binding.overlay_hotkey.is_none());
+        assert_eq!(parsed.keyboard_error, Some("unsupported-key"));
     }
 
     #[test]

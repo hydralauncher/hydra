@@ -240,13 +240,15 @@ const describeCandidates = (candidates: ScreenshotGameCandidate[]) =>
     processId: candidate.target.processId ?? null,
   }));
 
+type ForegroundGameSource = ScreenshotTriggerSource | "overlay";
+
 const logForegroundMatch = (
-  source: ScreenshotTriggerSource,
+  source: ForegroundGameSource,
   matchedBy: string,
   gameKey: string,
   foreground: ForegroundWindowInfo | null
 ) => {
-  logger.debug("Screenshot foreground game resolved", {
+  logger.debug("Foreground game resolved", {
     source,
     matchedBy,
     gameKey,
@@ -286,11 +288,11 @@ const rememberForegroundProcess = (
 };
 
 export const resolveForegroundGame = async (
-  source: ScreenshotTriggerSource
+  source: ForegroundGameSource
 ): Promise<ResolvedForegroundGame | UnresolvedForegroundGame> => {
   const candidates = await getScreenshotGameTargets();
   if (!candidates.length) {
-    logger.debug("Screenshot hotkey ignored: no running game", { source });
+    logger.debug("Foreground game ignored: no running game", { source });
     return { status: "unresolved", candidates, foreground: null };
   }
 
@@ -339,7 +341,7 @@ export const resolveForegroundGame = async (
     }
 
     if (foreground.processId !== null || !isWaylandSession()) {
-      logger.debug("Screenshot hotkey ignored: no tracked game in foreground", {
+      logger.debug("Foreground game ignored: no tracked game in foreground", {
         source,
         foregroundProcessId: foreground.processId,
         clientProcessId: foreground.clientProcessId ?? null,
@@ -354,7 +356,7 @@ export const resolveForegroundGame = async (
   const isHydraFocused = BrowserWindow.getFocusedWindow() !== null;
   const isDeepLink = source === "deeplink";
   if (!isWayland || isHydraFocused || isDeepLink) {
-    logger.debug("Screenshot hotkey ignored: foreground window unresolved", {
+    logger.debug("Foreground game ignored: foreground window unresolved", {
       source,
       foreground: describeForeground(foreground),
       isWayland,
@@ -372,7 +374,7 @@ export const resolveForegroundGame = async (
     (candidate) => candidate.target === soleTarget
   );
   if (!soleCandidate) {
-    logger.debug("Screenshot hotkey ignored: no single launched game", {
+    logger.debug("Foreground game ignored: no single launched game", {
       source,
       candidates: describeCandidates(candidates),
     });
