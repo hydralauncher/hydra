@@ -12,6 +12,7 @@ class FakeHost implements AchievementNotificationHost {
   public loadCount = 0;
   public showInactiveCount = 0;
   public visible = true;
+  public windowCalls: string[] = [];
   public failStartSend = false;
   public hideCount = 0;
   public destroyCount = 0;
@@ -42,9 +43,11 @@ class FakeHost implements AchievementNotificationHost {
 
   public showInactive(): void {
     this.showInactiveCount += 1;
+    this.windowCalls.push("showInactive");
   }
 
   public isVisible(): boolean {
+    this.windowCalls.push("isVisible");
     return this.visible;
   }
 
@@ -224,10 +227,36 @@ describe("AchievementNotificationPresenter", () => {
     const requestId = await harness.prepareAchievement();
     await harness.contentReady(requestId);
 
+    assert.deepEqual(harness.host.windowCalls, ["showInactive", "isVisible"]);
     assert.deepEqual(harness.host.messages.at(-1), {
       channel: "start-achievement-notification",
       args: [requestId, false],
     });
+  });
+
+  it("applies content protection to screenshot notifications", async () => {
+    const harness = new PresenterHarness();
+
+    harness.presenter.enqueueScreenshot("top-left", achievement("shot"));
+    await harness.flush();
+    harness.presenter.handleRendererEvent(harness.host.webContentsId, {
+      type: "host-ready",
+    });
+    await harness.flush();
+
+    const requestId = harness.latestPreparedRequestId();
+    await harness.contentReady(requestId);
+
+    assert.deepEqual(harness.host.contentProtection, [true]);
+  });
+
+  it("does not apply content protection to achievement notifications", async () => {
+    const harness = new PresenterHarness();
+
+    const requestId = await harness.prepareAchievement();
+    await harness.contentReady(requestId);
+
+    assert.deepEqual(harness.host.contentProtection, [false]);
   });
 
   it("reuses one host for a burst and destroys it after the queue drains", async () => {
