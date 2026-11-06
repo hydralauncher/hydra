@@ -4,6 +4,7 @@ import path from "node:path";
 import vm from "node:vm";
 import { logger } from "../logger";
 import { SystemPath } from "../system-path";
+import { GofileUnexpectedResponseError } from "./gofile-errors";
 
 export interface GofileAccountsReponse {
   id: string;
@@ -51,7 +52,6 @@ class RequestTimeoutError extends Error {
 
 const RATE_LIMIT_MESSAGE =
   "RATE_LIMIT:Gofile rate limit reached. Please enable a VPN and try again in a few minutes.";
-const UNEXPECTED_RESPONSE_MESSAGE = "Gofile returned an unexpected response";
 
 export class GofileApi {
   private static readonly defaultUserAgent =
@@ -449,9 +449,7 @@ export class GofileApi {
       }
 
       if (!payload) {
-        throw new Error(
-          `${UNEXPECTED_RESPONSE_MESSAGE} (HTTP ${response.status})`
-        );
+        throw new GofileUnexpectedResponseError(response.status);
       }
 
       throw new Error(
@@ -720,9 +718,7 @@ export class GofileApi {
     }
 
     if (!payload) {
-      throw new Error(
-        `${UNEXPECTED_RESPONSE_MESSAGE} (HTTP ${response.status})`
-      );
+      throw new GofileUnexpectedResponseError(response.status);
     }
 
     if (payload.status !== "ok" || !payload.data) {
@@ -784,6 +780,10 @@ export class GofileApi {
   }
 
   private static isLikelyTokenAuthError(error: unknown) {
+    if (error instanceof GofileUnexpectedResponseError) {
+      return error.isAuthStatus;
+    }
+
     if (!(error instanceof Error)) {
       return false;
     }
