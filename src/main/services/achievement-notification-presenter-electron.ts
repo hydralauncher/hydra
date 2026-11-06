@@ -91,7 +91,6 @@ export const achievementNotificationPresenter =
       const { x, y } = getNotificationWindowPosition(position);
       const notificationWindow = new BrowserWindow({
         show: false,
-        paintWhenInitiallyHidden: false,
         transparent: true,
         maximizable: false,
         autoHideMenuBar: true,
