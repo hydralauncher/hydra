@@ -21,6 +21,7 @@ import {
 } from "../linux-game-capture-session";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
+import { NativeAddon } from "../native-addon";
 import { ScreenshotInputService } from "../screenshot-input";
 import { WindowManager } from "../window-manager";
 import { forgetForegroundGame } from "./foreground-game";
@@ -45,7 +46,10 @@ import {
 import { ScreenshotFeedback } from "./screenshot-feedback";
 import { ScreenshotFrameWorker } from "./screenshot-frame-worker";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
-import { getScreenshotsFolder } from "./screenshots-folder";
+import {
+  getScreenshotFolderCandidates,
+  getScreenshotsFolder,
+} from "./screenshots-folder";
 import { startWaylandFocusWatch, stopWaylandFocusWatch } from "./wayland-focus";
 import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { ScreenshotUploadNotifier } from "./screenshot-upload-notifier";
@@ -102,6 +106,7 @@ export const initializeScreenshots = () => {
 const releaseRunningGameResources = () => {
   ScreenshotFeedback.release();
   ScreenshotFrameWorker.release();
+  NativeAddon.releaseWindowsDesktopCapture();
   stopWaylandFocusWatch();
 };
 
@@ -118,6 +123,7 @@ export const onScreenshotGameStarted = async (gameKey: string) => {
       startWaylandFocusWatch();
     } else if (process.platform === "win32" || process.platform === "linux") {
       ScreenshotFrameWorker.prepare();
+      NativeAddon.prepareWindowsDesktopCapture();
     }
   } catch (error) {
     logger.error("Failed to prepare screenshots for a running game", error);
@@ -243,8 +249,19 @@ export const updateLocalScreenshotDraft = async (
 };
 
 export const openScreenshotsFolder = async () => {
-  const directory = await getScreenshotsFolder();
-  await fs.promises.mkdir(directory, { recursive: true });
-  const error = await shell.openPath(directory);
-  if (error) logger.error("Failed to open the screenshots folder", error);
+  for (const directory of await getScreenshotFolderCandidates()) {
+    const isAvailable = await fs.promises
+      .mkdir(directory, { recursive: true })
+      .then(
+        () => true,
+        () => false
+      );
+    if (!isAvailable) continue;
+
+    const error = await shell.openPath(directory);
+    if (error) logger.error("Failed to open the screenshots folder", error);
+    return;
+  }
+
+  logger.error("No screenshots folder is available to open");
 };

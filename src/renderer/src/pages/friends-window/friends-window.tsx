@@ -20,13 +20,19 @@ import {
   useUserDetails,
 } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
-import { fetchAllProfileFriends, PROFILE_FRIENDS_PATH } from "@shared";
+import {
+  fetchAllProfileFriends,
+  OFFICIAL_CHAT_FRIEND_ID,
+  PROFILE_FRIENDS_PATH,
+} from "@shared";
 import type {
   ChatUnreadState,
   FriendRequest,
   ProfileFriends,
   UserFriend,
 } from "@types";
+import { ChatOfficialBadge } from "@renderer/pages/chat-window/chat-official-badge";
+import { toOfficialFriend } from "@renderer/pages/chat-window/chat-official";
 
 import {
   BACKGROUND_IMAGE_SIZES,
@@ -82,6 +88,7 @@ const getProcessedImageKey = (imageUrl: string, size: FriendImageSize) =>
 export default function FriendsWindow() {
   const { t } = useTranslation("friends_window");
   const { t: tProfile } = useTranslation("user_profile");
+  const { t: tChat } = useTranslation("chat_window");
   const dispatch = useAppDispatch();
   const toast = useAppSelector((state) => state.toast);
   const handleToastClose = useCallback(() => {
@@ -303,6 +310,22 @@ export default function FriendsWindow() {
       ),
     [displayedFriends, chatUnread]
   );
+
+  const officialFriend = useMemo(
+    () =>
+      toOfficialFriend({
+        id: OFFICIAL_CHAT_FRIEND_ID,
+        displayName: t("official_name"),
+        profileImageUrl: null,
+        isOfficial: true,
+      }),
+    [t]
+  );
+  const showOfficialRow =
+    Boolean(userDetails?.id) &&
+    !isAddMode &&
+    !search.trim() &&
+    (chatUnread.byFriend[OFFICIAL_CHAT_FRIEND_ID] ?? 0) > 0;
 
   const onlineFriends = sortedFriends.filter((friend) => friend.isOnline);
   const offlineFriends = sortedFriends.filter((friend) => !friend.isOnline);
@@ -607,19 +630,87 @@ export default function FriendsWindow() {
     );
   };
 
+  const getMessageLabel = (friend: UserFriend, unreadCount: number) => {
+    const unreadLabel = t("unread_messages", { count: unreadCount });
+    if (friend.isOfficial) return unreadLabel;
+
+    const messageFriendLabel = t("message_friend", {
+      name: friend.displayName,
+    });
+    if (unreadCount === 0) return messageFriendLabel;
+
+    return `${messageFriendLabel}, ${unreadLabel}`;
+  };
+
+  const renderMessageButton = (friend: UserFriend) => {
+    const unreadCount = chatUnread.byFriend[friend.id] ?? 0;
+    const messageLabel = getMessageLabel(friend, unreadCount);
+
+    return (
+      <button
+        type="button"
+        className={`friends-window__message-button${
+          unreadCount > 0 ? " friends-window__message-button--unread" : ""
+        }`}
+        onClick={() => handleMessageFriend(friend)}
+        title={messageLabel}
+        aria-label={messageLabel}
+      >
+        <CommentIcon size={16} />
+        {unreadCount > 0 && (
+          <span className="friends-window__unread-badge" aria-hidden="true">
+            <span className="friends-window__badge-value">
+              {unreadCount > MAX_UNREAD_BADGE_COUNT
+                ? `${MAX_UNREAD_BADGE_COUNT}+`
+                : unreadCount}
+            </span>
+          </span>
+        )}
+      </button>
+    );
+  };
+
+  const renderOfficialSection = () => (
+    <section className="friends-window__section">
+      <ul className="friends-window__list">
+        <li className="friends-window__friend">
+          <button
+            type="button"
+            className="friends-window__friend-button"
+            onClick={() => handleMessageFriend(officialFriend)}
+          >
+            <div className="friends-window__avatar-wrapper">
+              <Avatar
+                size={40}
+                src={officialFriend.profileImageUrl}
+                alt={officialFriend.displayName}
+              />
+            </div>
+
+            <div className="friends-window__friend-details">
+              <span className="friends-window__friend-name-row">
+                <span className="friends-window__friend-name">
+                  {officialFriend.displayName}
+                </span>
+                <ChatOfficialBadge size={14} />
+              </span>
+              <small className="friends-window__friend-status">
+                {tChat("official_subtitle")}
+              </small>
+            </div>
+          </button>
+
+          {renderMessageButton(officialFriend)}
+        </li>
+      </ul>
+    </section>
+  );
+
   const renderFriend = (friend: UserFriend) => {
     const backgroundImageUrl = getProcessedImageUrl(
       friend.backgroundImageUrl,
       BACKGROUND_IMAGE_SIZES.friend
     );
-    const unreadCount = chatUnread.byFriend[friend.id] ?? 0;
-    const messageLabel =
-      unreadCount > 0
-        ? `${t("message_friend", { name: friend.displayName })}, ${t(
-            "unread_messages",
-            { count: unreadCount }
-          )}`
-        : t("message_friend", { name: friend.displayName });
 
     return (
       <li
@@ -684,26 +775,7 @@ export default function FriendsWindow() {
           </div>
         </button>
 
-        <button
-          type="button"
-          className={`friends-window__message-button${
-            unreadCount > 0 ? " friends-window__message-button--unread" : ""
-          }`}
-          onClick={() => handleMessageFriend(friend)}
-          title={messageLabel}
-          aria-label={messageLabel}
-        >
-          <CommentIcon size={16} />
-          {unreadCount > 0 && (
-            <span className="friends-window__unread-badge" aria-hidden="true">
-              <span className="friends-window__badge-value">
-                {unreadCount > MAX_UNREAD_BADGE_COUNT
-                  ? `${MAX_UNREAD_BADGE_COUNT}+`
-                  : unreadCount}
-              </span>
-            </span>
-          )}
-        </button>
+        {renderMessageButton(friend)}
       </li>
     );
   };
@@ -931,29 +1003,31 @@ export default function FriendsWindow() {
           />
         )}
 
-        <header className="friends-window__title-bar">
-          <h4>{t("title")}</h4>
-          <div className="friends-window__window-controls">
-            <button
-              type="button"
-              className="friends-window__window-control"
-              onClick={() => electron.minimizeFriendsWindow()}
-              title={t("minimize")}
-              aria-label={t("minimize")}
-            >
-              <DashIcon size={16} />
-            </button>
-            <button
-              type="button"
-              className="friends-window__window-control friends-window__window-control--close"
-              onClick={() => electron.closeFriendsWindow()}
-              title={t("close")}
-              aria-label={t("close")}
-            >
-              <XIcon size={16} />
-            </button>
-          </div>
-        </header>
+        {!electron.hasNativeWindowDecorations && (
+          <header className="friends-window__title-bar">
+            <h4>{t("title")}</h4>
+            <div className="friends-window__window-controls">
+              <button
+                type="button"
+                className="friends-window__window-control"
+                onClick={() => electron.minimizeFriendsWindow()}
+                title={t("minimize")}
+                aria-label={t("minimize")}
+              >
+                <DashIcon size={16} />
+              </button>
+              <button
+                type="button"
+                className="friends-window__window-control friends-window__window-control--close"
+                onClick={() => electron.closeFriendsWindow()}
+                title={t("close")}
+                aria-label={t("close")}
+              >
+                <XIcon size={16} />
+              </button>
+            </div>
+          </header>
+        )}
 
         <section className="friends-window__profile">
           <div className="friends-window__profile-content">
@@ -1028,6 +1102,8 @@ export default function FriendsWindow() {
           className="friends-window__list-container"
           aria-busy={showSkeleton}
         >
+          {showOfficialRow && renderOfficialSection()}
+
           {showSkeleton ? (
             <>
               {renderSkeletonSection(t("online"), ONLINE_SKELETON_ROWS, 0)}

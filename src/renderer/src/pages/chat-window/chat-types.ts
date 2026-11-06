@@ -5,9 +5,25 @@ import type { ChatMessage } from "./chat-message-groups";
 
 export type ChatLoadState = "idle" | "loading" | "loaded" | "error";
 
+/** The latest message as the conversation list reported it. */
+export interface ChatConversationLastMessage {
+  seq: number;
+  fromMe: boolean;
+  /** Empty when hidden, or images only. */
+  text: string;
+  createdAt: string;
+  isHidden: boolean;
+  attachmentCount: number;
+}
+
 export interface ChatConversation {
   friend: UserFriend;
   messages: ChatMessage[];
+  /**
+   * Stands in for `messages` in the sidebar until history loads; `messages`
+   * wins once it holds something newer.
+   */
+  lastMessage?: ChatConversationLastMessage;
   isTyping: boolean;
   unreadCount: number;
   draft: string;

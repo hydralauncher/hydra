@@ -37,6 +37,11 @@
   &__option-icon {
     flex-shrink: 0;
     color: #8e919b;
+
+    &--image {
+      border-radius: 4px;
+      object-fit: cover;
+    }
   }
 
   &__option-text {

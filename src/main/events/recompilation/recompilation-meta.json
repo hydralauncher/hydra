@@ -1,0 +1,294 @@
+{
+  "dusklight": {
+    "rom": {
+      "path": {
+        "config": {
+          "file": "<appData>/TwilitRealm/Dusklight/config.json",
+          "key": ["backend.isoPath"]
+        }
+      },
+      "extensions": [
+        ".iso",
+        ".gcm",
+        ".ciso",
+        ".gcz",
+        ".nfs",
+        ".rvz",
+        ".wbfs",
+        ".wia",
+        ".tgc"
+      ]
+    }
+  },
+  "ico-pc": {
+    "rom": {
+      "path": {
+        "arg": ["--iso", "{rom}"]
+      },
+      "extensions": [".iso", ".chd", ".bin", ".cue"]
+    }
+  },
+  "super-mario-bros-remastered-public": {
+    "rom": {
+      "path": {
+        "arg": ["-rom", "{rom}"]
+      },
+      "extensions": [".nes"]
+    }
+  },
+  "shipwright": {
+    "rom": {
+      "path": {
+        "arg": ["{rom}"]
+      },
+      "once": true,
+      "imported": {
+        "win32": ["<base>/oot.o2r", "<base>/oot-mq.o2r"],
+        "linux": ["<base>/oot.o2r", "<base>/oot-mq.o2r"]
+      },
+      "extensions": [".z64", ".n64", ".v64"],
+      "sha1": [
+        "328a1f1beba30ce5e178f031662019eb32c5f3b5",
+        "cfbb98d392e4a9d39da8285d10cbef3974c2f012",
+        "0227d7c0074f2d0ac935631990da8ec5914597b4",
+        "f46239439f59a2a594ef83cf68ef65043b1bffe2",
+        "cee6bc3c2a634b41728f2af8da54d9bf8cc14099",
+        "079b855b943d6ad8bd1eb026c0ed169ecbdac7da",
+        "50bebedad9e0f10746a52b07239e47fa6c284d03",
+        "cfecfdc58d650e71a200c81f033de4e6d617a9f6",
+        "ad69c91157f6705e8ab06c79fe08aad47bb57ba7",
+        "d3ecb253776cd847a5aa63d859d8c89a2f37b364",
+        "41b3bdc48d98c48529219919015a1af22f5057c2",
+        "c892bbda3993e66bd0d56a10ecd30b1ee612210f",
+        "dbfc81f655187dc6fefd93fa6798face770d579d",
+        "fa5f5942b27480d60243c2d52c0e93e26b9e6b86",
+        "b82710ba2bd3b4c6ee8aa1a7e9acf787dfc72e9b",
+        "8b5d13aac69bfbf989861cfdc50b1d840945fc1d",
+        "0769c84615422d60f16925cd859593cdfa597f84",
+        "2ce2d1a9f0534c9cd9fa04ea5317b80da21e5e73",
+        "dd14e143c4275861fe93ea79d0c02e36ae8c6c2f"
+      ]
+    }
+  },
+  "ghostship": {
+    "rom": {
+      "copyTo": {
+        "linux": "<base>/baserom.us.z64"
+      },
+      "path": {
+        "arg": ["{rom}"]
+      },
+      "once": true,
+      "imported": {
+        "win32": ["<base>/sm64.o2r"],
+        "linux": ["<xdgData>/sm64/sm64.o2r", "<base>/sm64.o2r"]
+      },
+      "extensions": [".z64", ".n64", ".v64"],
+      "format": "z64",
+      "sha1": [
+        "9bef1128717f958171a4afac3ed78ee2bb4e86ce",
+        "8a20a5c83d6ceb0f0506cfc9fa20d8f438cafe51"
+      ]
+    }
+  },
+  "gen1recomp": {
+    "rom": {
+      "path": {
+        "env": {
+          "POKEPORT_IMPORT_ROM": "{rom}"
+        }
+      },
+      "once": true,
+      "extensions": [".gb"],
+      "sha1": [
+        "ea9bcae617fdf159b045185467ae58b2e4a48b9a",
+        "d7037c83e1ae5b39bde3c30787637ba1d4c48ce2",
+        "cc7d03262ebfaf2f06772c1a480c7d9d5f4a38e1",
+        "d8b8a3600a465308c9953dfa04f0081c05bdcb94",
+        "49b163f7e57702bc939d642a18f591de55d92dae",
+        "f4cd194bdee0d04ca4eac29e09b8e4e9d818c133",
+        "f2f52230b536214ef7c9924f483392993e226cfb"
+      ]
+    }
+  },
+  "tenkaichi3decomp": {
+    "rom": {
+      "path": {
+        "installer": ["Tenkaichi3Decomp-setup", "--install", "{rom}"]
+      },
+      "once": true,
+      "imported": {
+        "win32": ["<base>/gamedata/.installed"],
+        "linux": ["<base>/gamedata/.installed"]
+      },
+      "extensions": [".iso"]
+    }
+  },
+  "zelda64recomp": {
+    "rom": {
+      "copyTo": {
+        "win32": "<winLocalAppData>/Zelda64Recompiled/mm.n64.us.1.0.z64",
+        "linux": "<home>/.config/Zelda64Recompiled/mm.n64.us.1.0.z64"
+      },
+      "format": "z64",
+      "extensions": [".z64", ".n64", ".v64"],
+      "sha1": ["d6133ace5afaa0882cf214cf88daba39e266c078"]
+    }
+  },
+  "silent-hill-decomp": {
+    "rom": {
+      "copyTo": {
+        "win32": "<base>/gamedata/{romName}",
+        "linux": "<base>/gamedata/{romName}"
+      },
+      "extensions": [".bin"]
+    }
+  },
+  "spaghettikart": {
+    "hideConsole": true,
+    "rom": {
+      "copyTo": {
+        "win32": "<base>/baserom.us.z64",
+        "linux": "<base>/baserom.us.z64"
+      },
+      "imported": {
+        "win32": ["<base>/mk64.o2r"],
+        "linux": ["<base>/mk64.o2r", "<xdgData>/spaghettikart/mk64.o2r"]
+      },
+      "format": "z64",
+      "extensions": [".z64", ".n64", ".v64"],
+      "sha1": ["579c48e211ae952530ffc8738709f078d5dd215e"]
+    }
+  },
+  "symphonyrecomp": {
+    "executable": {
+      "linux": "run.sh"
+    },
+    "rom": {
+      "path": {
+        "config": {
+          "file": "<base>/settings.json",
+          "key": ["system", "discPath"]
+        }
+      },
+      "extensions": [".cue", ".chd"]
+    }
+  },
+  "starfox64recomp": {
+    "rom": {
+      "copyTo": {
+        "win32": "<winLocalAppData>/Starfox64Recompiled/sf64.n64.us.1.1.z64",
+        "linux": "<home>/.config/Starfox64Recompiled/sf64.n64.us.1.1.z64"
+      },
+      "format": "z64",
+      "extensions": [".z64", ".n64", ".v64"],
+      "sha1": ["09f0d105f476b00efa5303a3ebc42e60a7753b7a"]
+    }
+  },
+  "donkey-kong-64-recompiled": {
+    "rom": {
+      "copyTo": {
+        "win32": "<winLocalAppData>/DK64Recompiled/DK64.z64",
+        "linux": "<home>/.config/DK64Recompiled/DK64.z64"
+      },
+      "format": "z64",
+      "extensions": [".z64", ".n64", ".v64"],
+      "sha1": ["cf806ff2603640a748fca5026ded28802f1f4a50"]
+    }
+  },
+  "perfect-dark-dabs-mod": {
+    "rom": {
+      "path": {
+        "arg": ["--rom-file", "{rom}"]
+      },
+      "format": "z64",
+      "extensions": [".z64", ".n64", ".v64"]
+    }
+  },
+  "battleship": {
+    "executable": {
+      "win32": "BattleShip.exe"
+    },
+    "rom": {
+      "copyTo": {
+        "win32": "<base>/baserom.us.z64",
+        "linux": "<xdgData>/BattleShip/baserom.us.z64"
+      },
+      "imported": {
+        "win32": ["<base>/BattleShip.o2r"],
+        "linux": ["<xdgData>/BattleShip/BattleShip.o2r"]
+      },
+      "format": "z64",
+      "extensions": [".z64", ".n64", ".v64"],
+      "sha1": ["e2929e10fccc0aa84e5776227e798abc07cedabf"]
+    }
+  },
+  "metroidprimeport": {
+    "executable": {
+      "win32": "metroid_prime_port.exe"
+    },
+    "rom": {
+      "path": {
+        "arg": ["{rom}"]
+      },
+      "extensions": [
+        ".iso",
+        ".gcm",
+        ".rvz",
+        ".wbfs",
+        ".ciso",
+        ".nkit",
+        ".wia",
+        ".gcz"
+      ]
+    }
+  },
+  "melee-pc": {
+    "hideConsole": true,
+    "rom": {
+      "path": {
+        "arg": ["{rom}"]
+      },
+      "extensions": [".iso", ".gcm", ".ciso", ".rvz", ".gcz", ".wia"]
+    }
+  },
+  "bluewake": {
+    "rom": {
+      "path": {
+        "arg": ["--disc", "{rom}"]
+      },
+      "extensions": [".iso", ".gcm"]
+    }
+  },
+  "gen2recomped": {
+    "rom": {
+      "path": {
+        "env": {
+          "POKEPORT_IMPORT_ROM": "{rom}"
+        }
+      },
+      "once": true,
+      "extensions": [".gbc", ".gb"],
+      "sha1": [
+        "d8b8a3600a465308c9953dfa04f0081c05bdcb94",
+        "49b163f7e57702bc939d642a18f591de55d92dae",
+        "f2f52230b536214ef7c9924f483392993e226cfb",
+        "f4cd194bdee0d04ca4eac29e09b8e4e9d818c133"
+      ]
+    }
+  },
+  "crashbandicoot-launcher": {
+    "executable": {
+      "win32": "CrashBandicoot.exe",
+      "linux": "CrashBandicoot-Linux"
+    },
+    "rom": {
+      "path": {
+        "installer": ["{exe}", "--prepare", "{rom}"],
+        "arg": ["--run", "{rom}"]
+      },
+      "prepareOnUpdate": true,
+      "extensions": [".cue", ".chd"]
+    }
+  }
+}

@@ -464,6 +464,14 @@
     background: globals.$dark-background-color;
   }
 
+  &__empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: globals.$spacing-unit;
+    margin-top: globals.$spacing-unit;
+  }
+
   &__loading {
     display: block;
     padding: calc(globals.$spacing-unit * 2);
