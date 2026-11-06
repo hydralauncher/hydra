@@ -33,6 +33,8 @@ export const CONTENT_SECTION_REGION_ID = "content-section-region";
 export const BIG_PICTURE_SECTION_REGION_ID = "big-picture-section-region";
 export const BIG_PICTURE_STARTUP_SECTION_REGION_ID =
   "big-picture-startup-section-region";
+export const BIG_PICTURE_APPEARANCE_SECTION_REGION_ID =
+  "big-picture-appearance-section-region";
 export const BIG_PICTURE_AUDIO_SECTION_REGION_ID =
   "big-picture-audio-section-region";
 export const BIG_PICTURE_DIAGNOSTICS_SECTION_REGION_ID =
@@ -162,6 +164,7 @@ export const CONTENT_ITEM_FOCUS_IDS = {
 export const BIG_PICTURE_ITEM_FOCUS_IDS = {
   launchInBigPicture: "big-picture-launch-in-big-picture",
   launchToLibraryPage: "big-picture-launch-to-library-page",
+  enableCustomTheme: "big-picture-enable-custom-theme",
   enableSounds: "big-picture-enable-sounds",
   enableVirtualKeyboard: "big-picture-enable-virtual-keyboard",
   enableDiagnostics: "big-picture-enable-diagnostics",
