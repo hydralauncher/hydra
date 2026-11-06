@@ -61,7 +61,7 @@ export const createRetroAchievementsRealtimeUnlocks = (
         achievementIds: confirmed.map(({ name }) => name),
       });
 
-      WindowManager.mainWindow?.webContents.send(
+      WindowManager.sendToAchievementWindows(
         `on-update-achievements-${game.objectId}-${game.shop}`,
         achievements
       );

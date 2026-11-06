@@ -269,12 +269,14 @@ interface UseChatOptions {
     friendId: string,
     update: (conversation: ChatConversation) => ChatConversation
   ) => void;
+  syncWindowState?: boolean;
 }
 
 export function useChat({
   conversations,
   activeId,
   updateConversation,
+  syncWindowState = true,
 }: UseChatOptions) {
   const isFocused = useWindowFocus();
 
@@ -1409,6 +1411,8 @@ export function useChat({
   openConversationsRef.current = conversations;
 
   useEffect(() => {
+    if (!syncWindowState) return;
+
     void electron.setChatWindowState({
       activeFriendId: activeId,
       openFriendIds: openFriendIds ? openFriendIds.split(",") : [],
@@ -1416,7 +1420,7 @@ export function useChat({
         (conversation) => conversation.friend
       ),
     });
-  }, [activeId, openFriendIds]);
+  }, [activeId, openFriendIds, syncWindowState]);
 
   const activeConversation = conversations.find(
     (conversation) => conversation.friend.id === activeId

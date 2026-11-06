@@ -7,7 +7,12 @@ import i18next from "i18next";
 import { defaultDownloadsPath } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
-import { DownloadManager, ScreenshotInputService, Wine } from "@main/services";
+import {
+  DownloadManager,
+  OverlayService,
+  ScreenshotInputService,
+  Wine,
+} from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 import {
@@ -226,6 +231,7 @@ const updateUserPreferences = async (
 
   Wine.syncUserPreferences(updatedPreferences);
   ScreenshotInputService.syncUserPreferences(updatedPreferences);
+  OverlayService.syncUserPreferences(updatedPreferences);
 
   await updateEmulatorAchievementTracking(preferences, updatedPreferences);
   await unlinkRetroAchievementsEmulatorAccount(preferences);

@@ -227,6 +227,7 @@ fn run_raw_input(
 
     let mut keyboard = KeyboardState {
         hotkey: HotkeyMatcher::default(),
+        overlay_hotkey: HotkeyMatcher::default(),
         shift: WindowsShiftTracker::new(key_down(VK_LSHIFT), key_down(VK_RSHIFT)),
         print_screen_down: false,
         modifier_releases: ModifierReleases::default(),
@@ -311,6 +312,7 @@ impl ModifierReleases {
 
 struct KeyboardState {
     hotkey: HotkeyMatcher,
+    overlay_hotkey: HotkeyMatcher,
     shift: WindowsShiftTracker,
     print_screen_down: bool,
     modifier_releases: ModifierReleases,
@@ -379,24 +381,41 @@ fn handle_raw_input(context: &Context, state: &mut KeyboardState, lparam: LPARAM
         return;
     }
 
-    let Some(binding) = context.binding().hotkey else {
+    let binding = context.binding();
+    if let Some(hotkey) = binding.hotkey {
+        if code == hotkey.key.platform_code() {
+            let mut modifiers = state.current_modifiers();
+            if release_without_press && !hotkey.matches_modifiers(modifiers) {
+                modifiers =
+                    modifiers.union(state.modifier_releases.within_grace(Instant::now()));
+            }
+            let fired = state.hotkey.on_key(
+                code,
+                pressed || release_without_press,
+                &hotkey,
+                modifiers,
+            );
+            if release_without_press {
+                state.hotkey.on_key(code, false, &hotkey, modifiers);
+            }
+            if fired {
+                context.emit(TriggerSource::Keyboard, Backend::WindowsRawInput);
+            }
+        }
+    }
+
+    let Some(overlay_hotkey) = binding.overlay_hotkey else {
         return;
     };
-    if code != binding.key.platform_code() {
+    if code != overlay_hotkey.key.platform_code() {
         return;
     }
-    let mut modifiers = state.current_modifiers();
-    if release_without_press && !binding.matches_modifiers(modifiers) {
-        modifiers = modifiers.union(state.modifier_releases.within_grace(Instant::now()));
-    }
-    let fired = state
-        .hotkey
-        .on_key(code, pressed || release_without_press, &binding, modifiers);
-    if release_without_press {
-        state.hotkey.on_key(code, false, &binding, modifiers);
-    }
-    if fired {
-        context.emit(TriggerSource::Keyboard, Backend::WindowsRawInput);
+    let modifiers = state.current_modifiers();
+    if state
+        .overlay_hotkey
+        .on_key(code, pressed, &overlay_hotkey, modifiers)
+    {
+        context.emit(TriggerSource::Overlay, Backend::WindowsRawInput);
     }
 }
 

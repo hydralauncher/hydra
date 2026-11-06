@@ -168,7 +168,7 @@ const resetGameAchievementsNow = async (
       current,
       since
     );
-    WindowManager.mainWindow?.webContents.send(
+    WindowManager.sendToAchievementWindows(
       `on-update-achievements-${game.objectId}-${game.shop}`,
       updatedAchievements
     );

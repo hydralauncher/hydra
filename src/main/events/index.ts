@@ -26,6 +26,7 @@ import "./recompilation";
 import "./notifications";
 import "./profile";
 import "./screenshots";
+import "./overlay";
 import "./themes";
 import "./torrenting";
 import "./user";

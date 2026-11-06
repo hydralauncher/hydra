@@ -19,6 +19,7 @@ export * from "./common-redist-manager";
 export * from "./sse";
 export * from "./screenshot";
 export * from "./screenshot-input";
+export * from "./overlay/overlay-service";
 export * from "./system-path";
 export * from "./disk-usage";
 export * from "./library-sync";

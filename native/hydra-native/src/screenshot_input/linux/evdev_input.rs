@@ -160,6 +160,7 @@ struct Watcher {
     devices: Vec<Tracked>,
     ignored: HashSet<PathBuf>,
     hotkey: HotkeyMatcher,
+    overlay_hotkey: HotkeyMatcher,
     inotify: Option<OwnedFd>,
 }
 
@@ -171,6 +172,7 @@ impl Watcher {
             devices: Vec::new(),
             ignored: HashSet::new(),
             hotkey: HotkeyMatcher::default(),
+            overlay_hotkey: HotkeyMatcher::default(),
             inotify: watch_input_dir(),
         }
     }
@@ -260,8 +262,19 @@ impl Watcher {
                     if !tracker.update(code, value != 0) {
                         let modifiers = self.modifiers();
                         if let Some(hotkey) = binding.hotkey {
-                            if self.hotkey.on_key(code, value != 0, &hotkey, modifiers) {
+                            if self
+                                .hotkey
+                                .on_key(code, value != 0, &hotkey, modifiers)
+                            {
                                 self.context.emit(TriggerSource::Keyboard, Backend::Evdev);
+                            }
+                        }
+                        if let Some(overlay_hotkey) = binding.overlay_hotkey {
+                            if self
+                                .overlay_hotkey
+                                .on_key(code, value != 0, &overlay_hotkey, modifiers)
+                            {
+                                self.context.emit(TriggerSource::Overlay, Backend::Evdev);
                             }
                         }
                     }
@@ -280,6 +293,7 @@ impl Watcher {
         let removed = self.devices.swap_remove(index);
         if removed.keyboard.is_some() {
             self.hotkey.reset();
+            self.overlay_hotkey.reset();
         }
     }
 

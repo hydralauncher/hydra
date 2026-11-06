@@ -94,7 +94,7 @@ async function fixture(
     export const db = { get: async key => { if (state.preferenceGate) await state.preferenceGate; return key === "language" ? "en" : { achievementNotificationsEnabled: false }; }, sublevel: () => ({ get: async key => { const item = state.records.get(key); state.recordReadStarted?.(); if (state.recordReadGate) await state.recordReadGate; if (!item) throw new Error('missing'); return item; }, put: async (key, item) => state.records.set(key, item), del: async key => state.records.delete(key), values: () => ({all: async () => {const rows = [...state.records.values()]; state.recordsReadStarted?.(); if (state.recordsReadGate) await state.recordsReadGate; return rows;}}) }) };
     export const pendingAchievementSouvenirsSublevel = {get: async key => state.pendingSouvenirs.get(key), put: async (key, value) => state.pendingSouvenirs.set(key, value), del: async key => state.pendingSouvenirs.delete(key)};
     export const levelKeys = {game: (shop, id) => shop + ':' + id, userPreferences: 'preferences', language: 'language'};
-    export const WindowManager = { mainWindow: { webContents: { send: (channel, achievements) => state.updates.push({channel, achievements}) } } };
+    export const WindowManager = { sendToAchievementWindows: (channel, achievements) => state.updates.push({channel, achievements}), mainWindow: { webContents: { send: () => {} } } };
     export const getUnlockedAchievements = async () => [];
     export const presentCombinedAchievements = () => [];
     export const createCombinedDefinitionLookup = () => () => undefined;
