@@ -19,21 +19,18 @@
     font-size: globals.$small-font-size;
   }
 
-  &__mangohud-toggle {
+  &__gamemode-toggle,
+  &__mangohud-toggle,
+  &__toggle {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: calc(globals.$spacing-unit / 2);
   }
 
-  &__gamemode-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: calc(globals.$spacing-unit / 2);
-  }
-
-  &__mangohud-label {
+  &__gamemode-label,
+  &__mangohud-label,
+  &__toggle-label {
     display: inline-flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
@@ -44,24 +41,9 @@
     }
   }
 
-  &__gamemode-label {
-    display: inline-flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit / 2);
-
-    &--disabled {
-      text-decoration: underline dotted;
-      text-underline-offset: 2px;
-    }
-  }
-
-  &__mangohud-link {
-    display: inline-flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit / 3);
-  }
-
-  &__gamemode-link {
+  &__gamemode-link,
+  &__mangohud-link,
+  &__toggle-link {
     display: inline-flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 3);
@@ -83,5 +65,41 @@
   &__global-toggles {
     padding-top: calc(globals.$spacing-unit / 2);
     gap: calc(globals.$spacing-unit * 1.25);
+  }
+
+  &__env-vars {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__env-vars-label {
+    margin: 0;
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+  }
+
+  &__env-vars-help {
+    margin: 0;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+  }
+
+  &__textarea {
+    width: 100%;
+    min-height: 4.5rem;
+    resize: vertical;
+    font-family: var(--font-space-grotesk), monospace;
+    font-size: 13px;
+    padding: calc(globals.$spacing-unit / 3);
+    background: globals.$dark-background-color;
+    color: globals.$body-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 6px;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 }
