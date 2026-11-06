@@ -6,6 +6,7 @@ import cn from "classnames";
 export interface ScrollAreaProps {
   children: ReactNode;
   className?: string;
+  viewportRef?: React.RefObject<HTMLDivElement>;
   onScroll?: (info: {
     scrollTop: number;
     scrollHeight: number;
@@ -17,10 +18,12 @@ export interface ScrollAreaProps {
 export function ScrollArea({
   children,
   className,
+  viewportRef,
   onScroll,
   showScrollbar = false,
 }: Readonly<ScrollAreaProps>) {
-  const ref = useRef<HTMLDivElement>(null);
+  const localRef = useRef<HTMLDivElement>(null);
+  const ref = viewportRef ?? localRef;
 
   useEffect(() => {
     if (!onScroll) return;
@@ -35,7 +38,7 @@ export function ScrollArea({
 
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
-  }, [onScroll]);
+  }, [onScroll, ref]);
 
   return (
     <div

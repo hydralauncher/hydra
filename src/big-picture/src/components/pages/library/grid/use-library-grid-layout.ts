@@ -1,4 +1,4 @@
-import { type CSSProperties, useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { LIBRARY_FOCUS_GRID_REGION_ID } from "../navigation";
 
 const GRID_NARROW_CARD_MIN_WIDTH = 260;
@@ -11,6 +11,7 @@ const GRID_1440P_WIDTH = 2560;
 interface LibraryGridLayout {
   columnCount: number;
   columnGap: number;
+  width: number;
 }
 
 function getResponsiveColumnCount(width: number) {
@@ -33,6 +34,7 @@ function getLayoutForViewport(
     return {
       columnCount: 6,
       columnGap: GRID_STANDARD_COLUMN_GAP,
+      width: gridWidth,
     };
   }
 
@@ -40,6 +42,7 @@ function getLayoutForViewport(
     return {
       columnCount: 5,
       columnGap: GRID_STANDARD_COLUMN_GAP,
+      width: gridWidth,
     };
   }
 
@@ -47,6 +50,7 @@ function getLayoutForViewport(
     return {
       columnCount: 4,
       columnGap: GRID_STANDARD_COLUMN_GAP,
+      width: gridWidth,
     };
   }
 
@@ -56,6 +60,7 @@ function getLayoutForViewport(
       viewportWidth <= 720
         ? calcNarrowGap(viewportWidth)
         : GRID_NARROW_COLUMN_GAP,
+    width: gridWidth,
   };
 }
 
@@ -65,7 +70,7 @@ function calcNarrowGap(viewportWidth: number) {
 
 function getInitialLayout(): LibraryGridLayout {
   if (typeof globalThis.innerWidth !== "number") {
-    return { columnCount: 1, columnGap: GRID_NARROW_COLUMN_GAP };
+    return { columnCount: 1, columnGap: GRID_NARROW_COLUMN_GAP, width: 0 };
   }
 
   return getLayoutForViewport(globalThis.innerWidth, 0);
@@ -84,11 +89,17 @@ export function useLibraryGridLayout(itemCount: number) {
     if (!(gridElement instanceof HTMLElement)) return;
 
     const updateLayout = () => {
-      setLayout(
-        getLayoutForViewport(
-          globalThis.innerWidth,
-          gridElement.getBoundingClientRect().width
-        )
+      const nextLayout = getLayoutForViewport(
+        globalThis.innerWidth,
+        gridElement.getBoundingClientRect().width
+      );
+
+      setLayout((currentLayout) =>
+        currentLayout.columnCount === nextLayout.columnCount &&
+        currentLayout.columnGap === nextLayout.columnGap &&
+        currentLayout.width === nextLayout.width
+          ? currentLayout
+          : nextLayout
       );
     };
 
@@ -104,12 +115,9 @@ export function useLibraryGridLayout(itemCount: number) {
     };
   }, [itemCount]);
 
-  return useMemo(
-    () =>
-      ({
-        "--library-focus-grid-column-count": `${layout.columnCount}`,
-        "--library-focus-grid-column-gap": `${layout.columnGap}px`,
-      }) as CSSProperties,
-    [layout]
-  );
+  return {
+    columnCount: layout.columnCount,
+    columnGap: layout.columnGap,
+    width: layout.width,
+  };
 }

@@ -19,7 +19,7 @@ import {
   useBigPictureToast,
   useGameCollections,
   useLibrary,
-  useNavigation,
+  useNavigationActions,
 } from "../../hooks";
 import {
   isBuiltinLibraryTab,
@@ -119,10 +119,11 @@ function getInitialLibraryStoredValue<TValue extends string>(
 
 export default function LibraryPage() {
   const hasMountedContentRef = useRef(false);
+  const libraryScrollRef = useRef<HTMLElement | null>(null);
   const downloadModalRestoreFocusIdRef = useRef<string | null>(null);
   const settingsModalRestoreFocusIdRef = useRef<string | null>(null);
   const navigate = useNavigate();
-  const { setFocus } = useNavigation();
+  const { setFocus } = useNavigationActions();
   const { showSuccessToast } = useBigPictureToast();
   const { library, updateLibrary } = useLibrary();
   const {
@@ -417,7 +418,7 @@ export default function LibraryPage() {
 
   if (library.length === 0 && lastPlayedGames.length === 0) {
     return (
-      <section className="library-page">
+      <section ref={libraryScrollRef} className="library-page">
         <VerticalFocusGroup regionId={LIBRARY_PAGE_REGION_ID}>
           <div className="library-page__empty">
             <p>No games in library</p>
@@ -429,7 +430,7 @@ export default function LibraryPage() {
 
   return (
     <>
-      <section className="library-page">
+      <section ref={libraryScrollRef} className="library-page">
         <VerticalFocusGroup
           regionId={LIBRARY_PAGE_REGION_ID}
           style={{ flex: 1 }}
@@ -496,6 +497,7 @@ export default function LibraryPage() {
                 {viewMode === "list" ? (
                   <LibraryFocusList
                     games={filteredLibrary}
+                    scrollElementRef={libraryScrollRef}
                     contextMenuGameId={
                       contextMenuState.visible
                         ? (contextMenuState.game?.id ?? null)
@@ -506,6 +508,7 @@ export default function LibraryPage() {
                 ) : (
                   <LibraryFocusGrid
                     games={filteredLibrary}
+                    scrollElementRef={libraryScrollRef}
                     contextMenuGameId={
                       contextMenuState.visible
                         ? (contextMenuState.game?.id ?? null)

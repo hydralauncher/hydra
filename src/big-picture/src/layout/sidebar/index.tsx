@@ -12,6 +12,8 @@ import {
   StarIcon,
 } from "@phosphor-icons/react";
 import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import type { VirtualItem } from "@tanstack/react-virtual";
 import {
   type FocusEvent,
   forwardRef,
@@ -52,7 +54,7 @@ import {
 } from "../../stores/downloads.store";
 import type { DownloadProgress, LibraryGame } from "@types";
 import type { FocusNode, FocusOverrides, FocusRegion } from "../../services";
-import { useNavigationSnapshot, useVirtualKeyboardStore } from "../../stores";
+import { useNavigationStore, useVirtualKeyboardStore } from "../../stores";
 import {
   BIG_PICTURE_SIDEBAR_POWER_ID,
   BIG_PICTURE_SIDEBAR_ITEM_IDS,
@@ -504,8 +506,10 @@ function SidebarLibrary({
     useState<SidebarLibraryFilter>(getInitialSidebarLibraryFilter);
   const normalizedPathname = normalizeBigPicturePathname(pathname);
   const activeGameRoute = getBigPictureGameRouteMatch(normalizedPathname);
-  const contentEntryTarget =
-    getBigPictureContentSidebarReturnTargetFromPathname(pathname);
+  const contentEntryTarget = useMemo(
+    () => getBigPictureContentSidebarReturnTargetFromPathname(pathname),
+    [pathname]
+  );
 
   useEffect(() => {
     try {
@@ -538,6 +542,66 @@ function SidebarLibrary({
   } else if (search.trim()) {
     emptyLibraryMessage = "No games found";
   }
+
+  const sidebarListScrollRef = useRef<HTMLDivElement>(null);
+  const focusedItemId = useNavigationStore((state) => state.currentFocusId);
+  const sidebarListVirtualizer = useVirtualizer<HTMLDivElement, HTMLLIElement>({
+    count: filteredItems.length,
+    getScrollElement: () => sidebarListScrollRef.current,
+    estimateSize: () => 48,
+    overscan: 8,
+    gap: 4,
+  });
+  const focusIndexById = useMemo(() => {
+    const indexById = new Map<string, number>();
+
+    filteredItems.forEach((game, index) => {
+      indexById.set(
+        getBigPictureSidebarLibraryGameFocusId({
+          shop: game.shop,
+          objectId: game.objectId,
+        }),
+        index
+      );
+    });
+
+    return indexById;
+  }, [filteredItems]);
+  const focusedIndex =
+    focusedItemId !== null ? focusIndexById.get(focusedItemId) : undefined;
+  const virtualRows = sidebarListVirtualizer.getVirtualItems();
+  const rowsToRender = useMemo(() => {
+    const rowsByIndex = new Map(
+      virtualRows.map((virtualRow) => [virtualRow.index, virtualRow])
+    );
+
+    if (focusedIndex !== undefined && !rowsByIndex.has(focusedIndex)) {
+      const offset =
+        sidebarListVirtualizer.getOffsetForIndex(focusedIndex, "start")?.[0] ??
+        focusedIndex * 52;
+
+      rowsByIndex.set(focusedIndex, {
+        index: focusedIndex,
+        key: focusedIndex,
+        start: offset,
+        end: offset + 48,
+        size: 48,
+        lane: 0,
+      });
+    }
+
+    return Array.from(rowsByIndex.values()).sort(
+      (leftRow, rightRow) => leftRow.index - rightRow.index
+    );
+  }, [focusedIndex, sidebarListVirtualizer, virtualRows]);
+
+  useEffect(() => {
+    sidebarListVirtualizer.measure();
+  }, [filteredItems.length, sidebarListVirtualizer]);
+
+  useEffect(() => {
+    sidebarListScrollRef.current?.scrollTo({ top: 0 });
+  }, [search, selectedLibraryFilter]);
 
   const selectedFilterFocusId =
     SIDEBAR_LIBRARY_FILTER_FOCUS_IDS[selectedLibraryFilter];
@@ -588,17 +652,111 @@ function SidebarLibrary({
     };
   };
 
-  const getGameNavigationOverrides = (index: number): FocusOverrides => ({
-    right: contentEntryTarget,
-    ...(index === 0 && {
-      up: getItemFocusTarget(selectedFilterFocusId),
-    }),
-    ...(index === filteredItems.length - 1 && {
-      down: {
-        type: "block" as const,
-      },
-    }),
-  });
+  const gameNavigationOverrides = useMemo(
+    () =>
+      filteredItems.map((_, index): FocusOverrides => {
+        return {
+          right: contentEntryTarget,
+          ...(index === 0 && {
+            up: getItemFocusTarget(selectedFilterFocusId),
+          }),
+          ...(index === filteredItems.length - 1 && {
+            down: {
+              type: "block" as const,
+            },
+          }),
+        };
+      }),
+    [contentEntryTarget, filteredItems, selectedFilterFocusId]
+  );
+
+  const renderGame = (
+    game: LibraryGame,
+    index: number,
+    virtualRow: VirtualItem
+  ) => {
+    const desktopPath = `/big-picture/game/${game.shop}/${game.objectId}`;
+    const focusId = getBigPictureSidebarLibraryGameFocusId({
+      shop: game.shop,
+      objectId: game.objectId,
+    });
+    const active =
+      normalizedPathname === desktopPath ||
+      (activeGameRoute?.shop === game.shop &&
+        activeGameRoute.objectId === game.objectId);
+    const status = getSidebarGameStatus(
+      game,
+      runningGameIds,
+      lastDownloadPacket,
+      extractionProgressByGameId
+    );
+
+    const openContextMenuFromRect = (
+      rect: DOMRect,
+      restoreFocusId: string = focusId
+    ) => {
+      onOpenContextMenu?.(
+        game,
+        {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        },
+        restoreFocusId
+      );
+    };
+
+    return (
+      <li
+        key={virtualRow.key}
+        ref={sidebarListVirtualizer.measureElement}
+        data-index={virtualRow.index}
+        className="library-list__item library-list__item--virtual"
+        style={{
+          transform: `translateY(${virtualRow.start}px)`,
+        }}
+      >
+        <RouteAnchor
+          key={game.id}
+          label={game.title}
+          subtitle={status}
+          href={desktopPath}
+          icon={getPreferredGameAssets(game, null).iconUrl}
+          isFavorite={game.favorite}
+          active={active}
+          focusId={focusId}
+          focusNavigationOrder={index}
+          focusNavigationOverrides={gameNavigationOverrides[index]}
+          focusActions={{
+            primary: null,
+            press: {
+              y: onOpenContextMenu
+                ? () => {
+                    const element = globalThis.document.getElementById(focusId);
+                    const rect = element?.getBoundingClientRect() ?? null;
+
+                    if (rect) {
+                      openContextMenuFromRect(rect);
+                    }
+                  }
+                : undefined,
+            },
+          }}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onOpenContextMenu?.(
+              game,
+              {
+                x: event.clientX,
+                y: event.clientY,
+              },
+              focusId
+            );
+          }}
+        />
+      </li>
+    );
+  };
 
   return (
     <div className="library-container">
@@ -654,91 +812,22 @@ function SidebarLibrary({
         <VerticalFocusGroup
           regionId={BIG_PICTURE_SIDEBAR_LIBRARY_LIST_REGION_ID}
         >
-          <ScrollArea>
+          <ScrollArea viewportRef={sidebarListScrollRef}>
             {filteredItems.length === 0 ? (
               <div className="library-container__empty">
                 {emptyLibraryMessage}
               </div>
             ) : (
-              <ul className="library-list">
-                {filteredItems.map((game, index) => {
-                  const desktopPath = `/big-picture/game/${game.shop}/${game.objectId}`;
-                  const focusId = getBigPictureSidebarLibraryGameFocusId({
-                    shop: game.shop,
-                    objectId: game.objectId,
-                  });
-                  const active =
-                    normalizedPathname === desktopPath ||
-                    (activeGameRoute?.shop === game.shop &&
-                      activeGameRoute.objectId === game.objectId);
-                  const status = getSidebarGameStatus(
-                    game,
-                    runningGameIds,
-                    lastDownloadPacket,
-                    extractionProgressByGameId
-                  );
+              <ul
+                className="library-list library-list--virtual"
+                style={{ height: sidebarListVirtualizer.getTotalSize() }}
+              >
+                {rowsToRender.map((virtualRow) => {
+                  const game = filteredItems[virtualRow.index];
 
-                  const openContextMenuFromRect = (
-                    rect: DOMRect,
-                    restoreFocusId: string = focusId
-                  ) => {
-                    onOpenContextMenu?.(
-                      game,
-                      {
-                        x: rect.left + rect.width / 2,
-                        y: rect.top + rect.height / 2,
-                      },
-                      restoreFocusId
-                    );
-                  };
-
-                  return (
-                    <li key={game.id} className="library-list__item">
-                      <RouteAnchor
-                        key={game.id}
-                        label={game.title}
-                        subtitle={status}
-                        href={desktopPath}
-                        icon={getPreferredGameAssets(game, null).iconUrl}
-                        isFavorite={game.favorite}
-                        active={active}
-                        focusId={focusId}
-                        focusNavigationOrder={index}
-                        focusNavigationOverrides={getGameNavigationOverrides(
-                          index
-                        )}
-                        focusActions={{
-                          primary: null,
-                          press: {
-                            y: onOpenContextMenu
-                              ? () => {
-                                  const element =
-                                    globalThis.document.getElementById(focusId);
-                                  const rect =
-                                    element?.getBoundingClientRect() ?? null;
-
-                                  if (rect) {
-                                    openContextMenuFromRect(rect);
-                                  }
-                                }
-                              : undefined,
-                          },
-                        }}
-                        onContextMenu={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          onOpenContextMenu?.(
-                            game,
-                            {
-                              x: event.clientX,
-                              y: event.clientY,
-                            },
-                            focusId
-                          );
-                        }}
-                      />
-                    </li>
-                  );
+                  return game
+                    ? renderGame(game, virtualRow.index, virtualRow)
+                    : null;
                 })}
               </ul>
             )}
@@ -930,7 +1019,14 @@ function Sidebar() {
   const runningGamesById = useBigPictureRunningGames();
   const { setFocusRegion } = useNavigationActions();
   const { showSuccessToast } = useBigPictureToast();
-  const { currentFocusId, nodes, regions } = useNavigationSnapshot();
+  const sidebarHasNavigationFocus = useNavigationStore((state) =>
+    isFocusedNodeWithinRegion(
+      state.currentFocusId,
+      state.nodes,
+      state.regions,
+      BIG_PICTURE_SIDEBAR_REGION_ID
+    )
+  );
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [restoringNotificationsFocus, setRestoringNotificationsFocus] =
     useState(false);
@@ -968,16 +1064,6 @@ function Sidebar() {
     restoreFocusOnConfirm: false,
   });
 
-  const sidebarHasNavigationFocus = useMemo(
-    () =>
-      isFocusedNodeWithinRegion(
-        currentFocusId,
-        nodes,
-        regions,
-        BIG_PICTURE_SIDEBAR_REGION_ID
-      ),
-    [currentFocusId, nodes, regions]
-  );
   const virtualKeyboardTarget = useVirtualKeyboardStore(
     (state) => state.target
   );

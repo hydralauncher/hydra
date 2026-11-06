@@ -102,6 +102,19 @@
   &__item {
     width: 100%;
   }
+
+  &--virtual {
+    position: relative;
+    display: block;
+    gap: 0;
+  }
+
+  &__item--virtual {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
 }
 
 .sidebar-profile {

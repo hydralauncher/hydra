@@ -149,6 +149,7 @@ export class NavigationService {
     PendingInitialFocusRequest
   >();
   private pendingRequestedFocusId: string | null = null;
+  private missingItemFocusHandler: ((itemId: string) => boolean) | null = null;
 
   public constructor() {
     this.layers.set(ROOT_NAVIGATION_LAYER_ID, {
@@ -682,6 +683,18 @@ export class NavigationService {
     return null;
   }
 
+  public setMissingItemFocusHandler(
+    handler: ((itemId: string) => boolean) | null
+  ) {
+    this.missingItemFocusHandler = handler;
+
+    return () => {
+      if (this.missingItemFocusHandler === handler) {
+        this.missingItemFocusHandler = null;
+      }
+    };
+  }
+
   public setFocusRegion(
     regionId: string,
     entryDirection: FocusDirection = "right",
@@ -730,6 +743,14 @@ export class NavigationService {
     if (nodeOverride) {
       if (nodeOverride.type === "block") {
         return currentNodeId;
+      }
+
+      if (
+        nodeOverride.type === "item" &&
+        !this.nodes.has(nodeOverride.itemId) &&
+        this.missingItemFocusHandler?.(nodeOverride.itemId)
+      ) {
+        return this.currentFocusId;
       }
 
       const overrideNodeId = this.resolveOverrideTargetToNode(

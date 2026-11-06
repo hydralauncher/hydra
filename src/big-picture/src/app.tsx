@@ -14,7 +14,11 @@ import {
   Sidebar,
 } from "./layout";
 import { IS_DESKTOP } from "./constants";
-import { useBigPictureToast, useNavigation, useUserPreferences } from "./hooks";
+import {
+  useBigPictureToast,
+  useNavigationActions,
+  useUserPreferences,
+} from "./hooks";
 import {
   HorizontalFocusGroup,
   InputModeProvider,
@@ -35,11 +39,54 @@ import { getItemFocusTarget } from "./helpers";
 import {
   initializeBigPictureRunningGamesStore,
   useInputModeStore,
+  useNavigationStore,
 } from "./stores";
 import { NavigationAudioService, type FocusOverrides } from "./services";
 import { BigPictureI18nBridge, ensureBigPictureI18nResources } from "./i18n";
 
 import "./styles/globals.scss";
+
+interface RouteFocusBridgeProps {
+  pathname: string;
+  pendingRouteFocusPathname: string | null;
+  onFocusResolved: (pathname: string | null) => void;
+}
+
+function RouteFocusBridge({
+  pathname,
+  pendingRouteFocusPathname,
+  onFocusResolved,
+}: Readonly<RouteFocusBridgeProps>) {
+  const { setFocusRegion } = useNavigationActions();
+  const nodes = useNavigationStore((state) => state.nodes);
+  const regions = useNavigationStore((state) => state.regions);
+
+  useEffect(() => {
+    if (pendingRouteFocusPathname !== pathname) return;
+
+    const entryRegionId =
+      getBigPictureContentEntryRegionIdFromPathname(pathname);
+    if (!entryRegionId) return;
+    if (!regions.some((region) => region.id === entryRegionId)) return;
+
+    const focusedId = setFocusRegion(entryRegionId, "right", {
+      preferRememberedFocus: false,
+    });
+
+    if (focusedId) {
+      onFocusResolved(null);
+    }
+  }, [
+    nodes,
+    onFocusResolved,
+    pathname,
+    pendingRouteFocusPathname,
+    regions,
+    setFocusRegion,
+  ]);
+
+  return null;
+}
 
 export default function App() {
   ensureBigPictureI18nResources();
@@ -49,7 +96,6 @@ export default function App() {
   const navigate = useNavigate();
   const { showErrorToast, showSuccessToast, showWarningToast } =
     useBigPictureToast();
-  const { nodes, regions, setFocusRegion } = useNavigation();
   const userPreferences = useUserPreferences();
   const inputMode = useInputModeStore((state) => state.mode);
   const [pendingRouteFocusPathname, setPendingRouteFocusPathname] = useState<
@@ -167,32 +213,6 @@ export default function App() {
   }, [pathname]);
 
   useEffect(() => {
-    if (pendingRouteFocusPathname !== pathname) return;
-
-    const entryRegionId =
-      getBigPictureContentEntryRegionIdFromPathname(pathname);
-    if (!entryRegionId) return;
-
-    const hasRegion = regions.some((region) => region.id === entryRegionId);
-    if (!hasRegion) return;
-
-    const focusedId = setFocusRegion(entryRegionId, "right", {
-      preferRememberedFocus: false,
-    });
-
-    if (focusedId) {
-      setPendingRouteFocusPathname(null);
-    }
-  }, [
-    leftSidebarTargetId,
-    nodes,
-    pathname,
-    pendingRouteFocusPathname,
-    regions,
-    setFocusRegion,
-  ]);
-
-  useEffect(() => {
     NavigationAudioService.getInstance().setEnabled(
       (userPreferences?.bigPictureSoundsEnabled ?? true) &&
         inputMode === "gamepad"
@@ -201,6 +221,11 @@ export default function App() {
 
   return (
     <Fragment>
+      <RouteFocusBridge
+        pathname={pathname}
+        pendingRouteFocusPathname={pendingRouteFocusPathname}
+        onFocusResolved={setPendingRouteFocusPathname}
+      />
       <NavigationStateBridge />
       <NavigationAutoScrollBridge />
       <NavigationHistoryBridge />
