@@ -231,7 +231,7 @@ export function AnimatedHeroImage({
     verticalFade.addColorStop(0.72, withAlpha(backgroundColor, 0.418));
     verticalFade.addColorStop(0.86, withAlpha(backgroundColor, 0.748));
     verticalFade.addColorStop(0.94, withAlpha(backgroundColor, 0.99));
-    verticalFade.addColorStop(1, backgroundColor);
+    verticalFade.addColorStop(1, withAlpha(backgroundColor, 1));
     context.fillStyle = verticalFade;
     context.fillRect(0, height * 0.32, width, height * 0.68);
   }, [clearBlendCanvas]);
