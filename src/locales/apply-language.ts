@@ -12,7 +12,7 @@ export async function applyLanguage(language: string) {
     }
   }
 
-  if (i18n.language !== languageTag) {
+  if (i18n.resolvedLanguage !== languageTag) {
     await i18n.changeLanguage(languageTag);
   }
 
