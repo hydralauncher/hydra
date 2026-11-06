@@ -518,6 +518,8 @@ contextBridge.exposeInMainWorld("electron", {
     >,
 
   /* Catalogue */
+  getSteamReviewSummary: (steamAppId: string) =>
+    ipcRenderer.invoke("getSteamReviewSummary", steamAppId),
   getGameShopDetails: (
     objectId: string,
     shop: GameShop,
