@@ -6,7 +6,7 @@ import { showExecutableOpenDialog } from "@renderer/helpers";
 import { useClassicsScan, useToast } from "@renderer/hooks";
 import type { EmulatorConfig, EmulatorSystem } from "@types";
 
-import { SetupFooter } from "./setup-footer";
+import { SetupFooter } from "@renderer/components/setup-modal/setup-footer";
 import { SetupStepDownload } from "./setup-step-download";
 import { SetupStepFindEmulator } from "./setup-step-find-emulator";
 import { KNOWN_BINARY_LABELS } from "../known-binary-labels";

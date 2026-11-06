@@ -795,6 +795,13 @@
     min-width: 0;
   }
 
+  &__friend-name-row {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    min-width: 0;
+  }
+
   &__friend-name {
     font-size: globals.$body-font-size;
     color: globals.$muted-color;
