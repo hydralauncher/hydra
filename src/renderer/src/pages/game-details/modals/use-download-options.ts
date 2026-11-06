@@ -35,7 +35,7 @@ export const getDownloadOptions = (
     { hasAvailable: boolean; hasUnavailable: boolean }
   >();
 
-  if (repack) {
+  if (repack && Array.isArray(repack.uris)) {
     for (const uri of repack.uris) {
       const uriDownloaders = getDownloadersForUri(uri);
       const isAvailable = !unavailableUrisSet.has(uri);

@@ -440,6 +440,7 @@
     "region_kr": "Hàn Quốc",
     "region_asia": "Châu Á",
     "download_error": "Tùy chọn tải về này không khả dụng",
+    "invalid_repack": "Không có liên kết tải về nào cho trình tải về đã chọn.",
     "download": "Tải về",
     "download_on_steam": "Tải về trên Steam",
     "executable_path_in_use": "Tệp chạy đang được \"{{game}}\" sử dụng",

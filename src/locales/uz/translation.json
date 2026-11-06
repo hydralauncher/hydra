@@ -224,6 +224,7 @@
     "download_on_steam": "Steam orqali yuklab olish",
     "download_count": "Yuklab olishlar",
     "download_error": "Bu yuklab olish varianti mavjud emas",
+    "invalid_repack": "Tanlangan yuklovchi uchun yuklab olish havolasi mavjud emas.",
     "executable_path_in_use": "Bajarish fayli allaqachon \"{{game}}\" tomonidan ishlatilmoqda",
     "nsfw_content_description": "{{title}} barcha yoshdagilar uchun mos bo'lmasligi mumkin bo'lgan tarkibni o'z ichiga oladi. \nDavom etishni xohlaysizmi?",
     "nsfw_content_title": "Bu o'yin nomunosib tarkibga ega",

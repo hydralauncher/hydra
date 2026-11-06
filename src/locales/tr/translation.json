@@ -258,6 +258,7 @@
     "download_count": "İndirme",
     "player_count": "Aktif oyuncular",
     "download_error": "Bu indirme seçeneği kullanılamıyor",
+    "invalid_repack": "Seçilen indirici için kullanılabilir bir indirme bağlantısı yok.",
     "download": "İndir",
     "download_on_steam": "Steam'de İndir",
     "executable_path_in_use": "Çalıştırılabilir dosya zaten \"{{game}}\" tarafından kullanılıyor",

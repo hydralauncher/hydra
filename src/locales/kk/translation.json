@@ -313,6 +313,7 @@
     "player_count": "Active players",
     "rating_count": "Rating",
     "download_error": "This download option is not available",
+    "invalid_repack": "Таңдалған жүктегіш үшін қолжетімді жүктеу сілтемесі жоқ.",
     "download": "Download",
     "executable_path_in_use": "Executable already in use by \"{{game}}\"",
     "warning": "Warning:",

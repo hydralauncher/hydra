@@ -276,6 +276,7 @@
     "player_count": "Aktivni igralci",
     "rating_count": "Ocena",
     "download_error": "Ta možnost prenosa ni na voljo",
+    "invalid_repack": "Za izbrani prenosnik ni na voljo nobene povezave za prenos.",
     "download": "Prenesi",
     "download_on_steam": "Prenesi v Steamu",
     "executable_path_in_use": "Izvršljiva datoteka že uporablja \"{{game}}\"",

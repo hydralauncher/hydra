@@ -327,6 +327,7 @@
     "player_count": "アクティブプレイヤー",
     "rating_count": "評価",
     "download_error": "このダウンロードオプションは利用できません",
+    "invalid_repack": "選択したダウンローダーで利用できるダウンロードリンクがありません。",
     "download": "ダウンロード",
     "download_on_steam": "Steamでダウンロード",
     "executable_path_in_use": "実行ファイルはすでに「{{game}}」で使用されています",

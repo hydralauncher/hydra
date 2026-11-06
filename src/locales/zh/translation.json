@@ -255,6 +255,7 @@
     "download_count": "下载量",
     "player_count": "活跃玩家",
     "download_error": "此下载选项不可用",
+    "invalid_repack": "所选下载器没有可用的下载链接。",
     "download": "下载",
     "download_on_steam": "在 Steam 上下载",
     "executable_path_in_use": "可执行文件已经被以下游戏 \"{{game}}\" 使用",

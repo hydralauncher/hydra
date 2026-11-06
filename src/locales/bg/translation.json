@@ -392,6 +392,7 @@
     "region_kr": "Корея",
     "region_asia": "Азия",
     "download_error": "Тази опция за изтегляне не е налична",
+    "invalid_repack": "Няма наличен линк за изтегляне за избрания изтегляч.",
     "download": "Изтегли",
     "download_on_steam": "Изтегли в Steam",
     "executable_path_in_use": "Изпълнимият файл вече се използва от \"{{game}}\"",

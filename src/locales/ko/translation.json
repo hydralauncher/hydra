@@ -310,6 +310,7 @@
     "player_count": "Active players",
     "rating_count": "Rating",
     "download_error": "This download option is not available",
+    "invalid_repack": "선택한 다운로더에 사용할 수 있는 다운로드 링크가 없습니다.",
     "download": "Download",
     "executable_path_in_use": "Executable already in use by \"{{game}}\"",
     "warning": "Warning:",
