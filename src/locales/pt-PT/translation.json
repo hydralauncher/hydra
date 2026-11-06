@@ -305,6 +305,7 @@
     "region_kr": "Coreia",
     "region_asia": "Ásia",
     "download_error": "Esta opção de transferência não está disponível",
+    "invalid_repack": "Não há nenhuma ligação de transferência disponível para o downloader selecionado.",
     "download": "Transferir",
     "download_on_steam": "Transferir no Steam",
     "executable_path_in_use": "Executável em uso por \"{{game}}\"",

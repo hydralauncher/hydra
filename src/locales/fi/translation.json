@@ -268,6 +268,7 @@
     "download_count": "Lataukset",
     "player_count": "Aktiiviset pelaajat",
     "download_error": "Tämä latausvaihtoehto ei ole saatavilla",
+    "invalid_repack": "Valitulle lataajalle ei ole saatavilla latauslinkkiä.",
     "download": "Lataa",
     "download_on_steam": "Lataa Steamissä",
     "executable_path_in_use": "Suoritettavaa tiedostoa käyttää jo \"{{game}}\"",

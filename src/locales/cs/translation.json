@@ -256,6 +256,7 @@
     "download_count": "Stažení",
     "player_count": "Aktivní hráči",
     "download_error": "Tahle možnost stažení není dostupná",
+    "invalid_repack": "Pro vybraného správce stahování není k dispozici žádný odkaz ke stažení.",
     "download": "Stáhnout",
     "download_on_steam": "Stáhnout na Steamu",
     "executable_path_in_use": "Spustitelný soubor již používá \"{{game}}\"",

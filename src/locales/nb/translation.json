@@ -255,6 +255,7 @@
     "download_count": "Nedlastinger",
     "player_count": "Aktive spillere",
     "download_error": "Denne nedlastingsmulighet er ikke tilgjengelig",
+    "invalid_repack": "Ingen nedlastingslenke er tilgjengelig for den valgte nedlasteren.",
     "download": "Last ned",
     "download_on_steam": "Last ned på Steam",
     "executable_path_in_use": "Kjørbar fil blir allerede brukt av \"{{game}}\"",

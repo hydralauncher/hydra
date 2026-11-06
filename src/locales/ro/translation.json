@@ -310,6 +310,7 @@
     "player_count": "Active players",
     "rating_count": "Rating",
     "download_error": "This download option is not available",
+    "invalid_repack": "Nu există niciun link de descărcare disponibil pentru programul de descărcare selectat.",
     "download": "Download",
     "executable_path_in_use": "Executable already in use by \"{{game}}\"",
     "warning": "Warning:",

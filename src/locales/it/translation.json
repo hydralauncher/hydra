@@ -282,6 +282,7 @@
     "player_count": "Giocatori attivi",
     "rating_count": "Valutazione",
     "download_error": "Questa opzione di download non è disponibile",
+    "invalid_repack": "Nessun link di download disponibile per il downloader selezionato.",
     "download": "Scarica",
     "download_on_steam": "Scarica su Steam",
     "executable_path_in_use": "Eseguibile già in uso da \"{{game}}\"",
