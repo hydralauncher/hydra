@@ -1696,6 +1696,7 @@ contextBridge.exposeInMainWorld("electron", {
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke("showOpenDialog", options),
   ...fileExplorerApi,
+  getSystemSpecs: () => ipcRenderer.invoke("getSystemSpecs"),
   showItemInFolder: (path: string) =>
     ipcRenderer.invoke("showItemInFolder", path),
   getImageDataUrl: (imageUrl: string) =>

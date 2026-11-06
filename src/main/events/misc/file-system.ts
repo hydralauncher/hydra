@@ -1,8 +1,9 @@
 import { app } from "electron";
-import { access, readdir, stat } from "node:fs/promises";
+import { access, readdir, stat, statfs } from "node:fs/promises";
 import { join } from "node:path";
-import { platform } from "node:os";
+import { platform, totalmem } from "node:os";
 import { registerEvent } from "../register-event";
+import type { SystemSpecs } from "@shared";
 
 const FILE_STAT_CONCURRENCY = 32;
 
@@ -225,6 +226,25 @@ const listDrives = async (
   return ["/"];
 };
 
+const getSystemSpecs = async (
+  event: Electron.IpcMainInvokeEvent
+): Promise<SystemSpecs> => {
+  assertTrustedSender(event);
+
+  // Storage is measured on the home folder, which is where games are usually
+  // installed by default. If it cannot be measured, the value is null and the
+  // requirements check skips the storage comparison instead of failing.
+  const freeStorageBytes = await statfs(app.getPath("home"))
+    .then((stats) => Number(stats.bavail) * Number(stats.bsize))
+    .catch(() => null);
+
+  return {
+    totalMemoryBytes: totalmem(),
+    freeStorageBytes,
+  };
+};
+
 registerEvent("readDirectory", readDirectory);
 registerEvent("getPathInfo", getPathInfo);
 registerEvent("listDrives", listDrives);
+registerEvent("getSystemSpecs", getSystemSpecs);

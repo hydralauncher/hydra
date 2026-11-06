@@ -38,6 +38,7 @@ export {
 export * from "./steam-session";
 export * from "./leaderboard-notifications";
 export * from "./window-layout";
+export * from "./system-requirements";
 export * from "./review-translation";
 export {
   getDisplayedPlayTimeInMilliseconds,
