@@ -37,7 +37,7 @@ export const useOverlayAchievements = (
 
     let request = achievementsRequests.get(requestKey);
 
-    if (!request) {
+    if (request === undefined) {
       request =
         game.shop === "launchbox" && retroAchievementsWebApiKey
           ? electron.getRetroAchievementsAchievements(game.objectId, game.shop)

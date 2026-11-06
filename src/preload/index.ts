@@ -10,6 +10,7 @@ import type {
   UserPreferences,
   ScreenshotInputStatus,
   OverlayBrowserState,
+  OverlayChatWindowKind,
   OverlayPanel,
   OverlayPanelState,
   OverlayState,
@@ -2457,6 +2458,10 @@ contextBridge.exposeInMainWorld("electron", {
   },
   setChatWindowState: (state: ChatWindowState) =>
     ipcRenderer.invoke("setChatWindowState", state),
+  setOverlayChatWindowState: (
+    state: ChatWindowState,
+    target: OverlayChatWindowKind
+  ) => ipcRenderer.invoke("setOverlayChatWindowState", state, target),
   getChatUnreadState: () =>
     ipcRenderer.invoke("getChatUnreadState") as Promise<ChatUnreadState>,
   markChatRead: (friendId: string, seq: number) =>

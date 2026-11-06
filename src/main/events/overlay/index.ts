@@ -1,4 +1,5 @@
 import { OverlayService } from "@main/services";
+import { WindowManager } from "@main/services/window-manager";
 import { registerEvent } from "../register-event";
 
 registerEvent("getOverlayState", () => OverlayService.getState());
@@ -8,6 +9,9 @@ registerEvent("openOverlayPanel", (_event, panel) =>
 );
 registerEvent("closeOverlayPanel", (_event, panel) =>
   OverlayService.closePanel(panel)
+);
+registerEvent("setOverlayChatWindowState", (_event, state, target) =>
+  WindowManager.setOverlayChatWindowState(state, target)
 );
 registerEvent("setOverlayPanelPinned", (_event, panel, pinned) =>
   OverlayService.setPanelPinned(panel, Boolean(pinned))

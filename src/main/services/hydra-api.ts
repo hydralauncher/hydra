@@ -740,7 +740,7 @@ export class HydraApi {
 
     if (requestKey) {
       const existing = this.inFlightGets.get(requestKey);
-      if (existing) return existing as Promise<T>;
+      if (existing !== undefined) return existing as Promise<T>;
     }
 
     const request = this.instance

@@ -13,6 +13,7 @@ import type {
   UserPreferences,
   ScreenshotInputStatus,
   OverlayBrowserState,
+  OverlayChatWindowKind,
   OverlayPanel,
   OverlayPanelState,
   OverlayState,
@@ -1642,6 +1643,10 @@ declare global {
     consumePendingChatFriends: () => Promise<PendingChatFriend[]>;
     onChatFriendsPending: (cb: () => void) => () => Electron.IpcRenderer;
     setChatWindowState: (state: ChatWindowState) => Promise<void>;
+    setOverlayChatWindowState: (
+      state: ChatWindowState,
+      target: OverlayChatWindowKind
+    ) => Promise<void>;
     getChatUnreadState: () => Promise<ChatUnreadState>;
     /** Resolves to false when the read could not be saved. */
     markChatRead: (friendId: string, seq: number) => Promise<boolean>;

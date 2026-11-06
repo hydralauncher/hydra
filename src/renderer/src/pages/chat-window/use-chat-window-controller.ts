@@ -12,7 +12,12 @@ import {
   OFFICIAL_MESSAGES_PATH,
   PROFILE_FRIENDS_PATH,
 } from "@shared";
-import type { ChatConversationsPage, ProfileFriends, UserFriend } from "@types";
+import type {
+  ChatConversationsPage,
+  OverlayChatWindowKind,
+  ProfileFriends,
+  UserFriend,
+} from "@types";
 
 import { applyOfficialPage, isOfficialMessagesPage } from "./chat-official";
 import {
@@ -52,6 +57,8 @@ export interface UseChatWindowControllerOptions {
   playMessageSounds?: boolean;
   /** Only the dedicated chat window may report its state to the main process. */
   syncWindowState?: boolean;
+  /** Overlay chat windows report their own state for notification checks. */
+  syncOverlayWindowState?: OverlayChatWindowKind;
   /** Detached windows without a title bar still set their own title. */
   updateDocumentTitle?: boolean;
   /** Only the dedicated window should claim conversations waiting for it. */
@@ -80,6 +87,7 @@ export interface ChatWindowController {
 export const useChatWindowController = ({
   playMessageSounds = true,
   syncWindowState = true,
+  syncOverlayWindowState,
   updateDocumentTitle = true,
   consumePendingChatFriends = true,
 }: UseChatWindowControllerOptions = {}): ChatWindowController => {
@@ -219,6 +227,7 @@ export const useChatWindowController = ({
     activeId,
     updateConversation,
     syncWindowState,
+    syncOverlayWindowState,
   });
 
   // Images that finish preparing after their conversation closed are freed,
