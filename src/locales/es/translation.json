@@ -2464,7 +2464,8 @@
     "try_again": "Algo salió mal. Inténtalo de nuevo.",
     "copied": "¡Copiado!",
     "minimize": "Minimizar",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "official_name": "Hydra"
   },
   "classics_onboarding": {
     "title": "Te damos la bienvenida a Hydra Classics",

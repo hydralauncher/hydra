@@ -2765,6 +2765,7 @@
     "copied": "Copiado!",
     "minimize": "Minimizar",
     "close": "Fechar",
+    "official_name": "Hydra",
     "message_friend": "Enviar mensagem para {{name}}",
     "unread_messages_one": "{{count}} mensagem não lida",
     "unread_messages_other": "{{count}} mensagens não lidas"

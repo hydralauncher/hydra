@@ -2528,7 +2528,8 @@
     "try_again": "Что-то пошло не так. Попробуйте снова.",
     "copied": "Скопировано!",
     "minimize": "Свернуть",
-    "close": "Закрыть"
+    "close": "Закрыть",
+    "official_name": "Hydra"
   },
   "leaderboard": {
     "title": "Рейтинг",

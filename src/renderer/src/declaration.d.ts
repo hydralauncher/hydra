@@ -1523,10 +1523,7 @@ declare global {
       cb: (notification: LocalNotification) => void
     ) => () => Electron.IpcRenderer;
     onAchievementUnlocked: (
-      cb: (
-        position?: AchievementCustomNotificationPosition,
-        achievements?: AchievementNotificationInfo[]
-      ) => void
+      cb: (suppressSound?: boolean) => void
     ) => () => Electron.IpcRenderer;
     onInAppAchievementUnlocked?: (
       cb: (
@@ -1538,10 +1535,15 @@ declare global {
       cb: (request: AchievementNotificationRequest) => void
     ) => () => Electron.IpcRenderer;
     onStartAchievementNotification: (
-      cb: (requestId: string) => void
+      cb: (requestId: string, visible: boolean) => void
     ) => () => Electron.IpcRenderer;
     achievementNotificationHostReady: () => Promise<void>;
     achievementNotificationContentReady: (requestId: string) => Promise<void>;
+    achievementNotificationStarted: (requestId: string) => Promise<void>;
+    achievementNotificationSoundPlayed: (
+      requestId: string,
+      batchId: string
+    ) => Promise<void>;
     achievementNotificationFinished: (requestId: string) => Promise<void>;
     achievementNotificationFailed: (
       requestId?: string,
