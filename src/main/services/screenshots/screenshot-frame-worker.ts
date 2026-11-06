@@ -3,6 +3,7 @@ import capturePagePath from "@resources/linux-game-capture.html?asset";
 
 import { logger } from "../logger";
 import {
+  BlankScreenshotFrameError,
   buildGrabFrameExpression,
   createGrabbedFrame,
   parseGrabbedFrame,
@@ -17,8 +18,12 @@ import {
   whileWindowAlive,
 } from "./window-bound-promise";
 
-const RECYCLE_AFTER_IDLE_MS = 10_000;
+const SHOULD_HOLD_STREAM = process.platform === "win32";
+const RECYCLE_AFTER_IDLE_MS = SHOULD_HOLD_STREAM ? 5 * 60_000 : 10_000;
 const MAX_FRAME_ATTEMPTS = 3;
+const STALE_FRAME_SIZE_TOLERANCE_PX = 16;
+const RESIZED_FRAME_TIMEOUT_MS = 300;
+const RESIZED_FRAME_POLL_MS = 50;
 const WORKER_CLOSED_MESSAGE = "The screenshot capture worker was closed";
 
 interface WorkerWindow {
@@ -84,22 +89,8 @@ const scheduleRecycle = () => {
   recycleTimer.unref?.();
 };
 
-export class BlankScreenshotFrameError extends Error {
-  constructor() {
-    super("Screenshot capture returned only blank frames");
-    this.name = "BlankScreenshotFrameError";
-  }
-}
-
-const buildGrabExpression = (
-  sourceId: string,
-  options: ScreenshotFrameGrabOptions
-) => `(async () => {
-  const video = document.querySelector("video");
-  if (!navigator.mediaDevices?.getUserMedia || !(video instanceof HTMLVideoElement)) {
-    throw new Error("The screenshot capture page cannot open a stream");
-  }
-  const stream = await navigator.mediaDevices.getUserMedia({
+const buildOpenStreamExpression = (sourceId: string) =>
+  `navigator.mediaDevices.getUserMedia({
     audio: false,
     video: {
       mandatory: {
@@ -110,7 +101,19 @@ const buildGrabExpression = (
         maxFrameRate: 30
       }
     }
-  });
+  })`;
+
+const GET_CAPTURE_VIDEO = `const video = document.querySelector("video");
+  if (!navigator.mediaDevices?.getUserMedia || !(video instanceof HTMLVideoElement)) {
+    throw new Error("The screenshot capture page cannot open a stream");
+  }`;
+
+const buildSingleUseStreamGrabExpression = (
+  sourceId: string,
+  options: ScreenshotFrameGrabOptions
+) => `(async () => {
+  ${GET_CAPTURE_VIDEO}
+  const stream = await ${buildOpenStreamExpression(sourceId)};
   try {
     video.srcObject = stream;
     await video.play();
@@ -120,6 +123,79 @@ const buildGrabExpression = (
     video.srcObject = null;
   }
 })()`;
+
+const WAIT_FOR_RESIZED_FRAME_FUNCTION = `async (video, sizeScale, { expectedSize, tolerance, timeout, pollInterval }) => {
+  if (!expectedSize) return true;
+  const hasOutdatedSize = () =>
+    Math.abs(video.videoWidth - expectedSize.width * (sizeScale?.x ?? 1)) > tolerance ||
+    Math.abs(video.videoHeight - expectedSize.height * (sizeScale?.y ?? 1)) > tolerance;
+  if (!hasOutdatedSize()) return true;
+  const nextFrame = () => new Promise((resolve) => {
+    const timer = setTimeout(resolve, pollInterval);
+    video.requestVideoFrameCallback(() => { clearTimeout(timer); resolve(); });
+  });
+  const deadline = performance.now() + timeout;
+  while (hasOutdatedSize() && performance.now() < deadline) await nextFrame();
+  if (hasOutdatedSize()) return false;
+  await nextFrame();
+  return true;
+}`;
+
+const CLOSE_HELD_STREAM_FUNCTION = `(video) => {
+  globalThis.__hydraHeldCapture?.stream.getTracks().forEach((track) => track.stop());
+  globalThis.__hydraHeldCapture = null;
+  video.srcObject = null;
+}`;
+
+const CLOSE_HELD_STREAM_EXPRESSION = `(${CLOSE_HELD_STREAM_FUNCTION})(document.querySelector("video"))`;
+
+const buildHeldStreamGrabExpression = (
+  sourceId: string,
+  options: ScreenshotFrameGrabOptions
+) => `(async () => {
+  ${GET_CAPTURE_VIDEO}
+  const sourceId = ${JSON.stringify(sourceId)};
+  const expectedSize = ${JSON.stringify(options.expectedSize ?? null)};
+  const closeHeldStream = () => (${CLOSE_HELD_STREAM_FUNCTION})(video);
+  const held = globalThis.__hydraHeldCapture;
+  const isHeldStreamLive =
+    held?.sourceId === sourceId &&
+    held.stream.getVideoTracks().some((track) => track.readyState === "live");
+  try {
+    const canReuseStream =
+      isHeldStreamLive &&
+      (await (${WAIT_FOR_RESIZED_FRAME_FUNCTION})(video, held.sizeScale, ${JSON.stringify(
+        {
+          expectedSize: options.expectedSize ?? null,
+          tolerance: STALE_FRAME_SIZE_TOLERANCE_PX,
+          timeout: RESIZED_FRAME_TIMEOUT_MS,
+          pollInterval: RESIZED_FRAME_POLL_MS,
+        }
+      )}));
+    if (!canReuseStream) {
+      closeHeldStream();
+      const stream = await ${buildOpenStreamExpression(sourceId)};
+      globalThis.__hydraHeldCapture = { sourceId, stream, sizeScale: null };
+      video.srcObject = stream;
+      await video.play();
+    }
+    const frame = await ${buildGrabFrameExpression("video", options)};
+    if (!canReuseStream && expectedSize) {
+      globalThis.__hydraHeldCapture.sizeScale = {
+        x: video.videoWidth / expectedSize.width,
+        y: video.videoHeight / expectedSize.height,
+      };
+    }
+    return frame;
+  } catch (error) {
+    closeHeldStream();
+    throw error;
+  }
+})()`;
+
+const buildGrabExpression = SHOULD_HOLD_STREAM
+  ? buildHeldStreamGrabExpression
+  : buildSingleUseStreamGrabExpression;
 
 const recycleTimedOutWorker = (current: WorkerWindow, stage: string) => () => {
   logger.warn("Screenshot capture worker timed out, recycling it", {
@@ -161,13 +237,20 @@ const grabFrame = async (
     attempt,
   });
   if (attempt >= MAX_FRAME_ATTEMPTS) throw new BlankScreenshotFrameError();
-  return grabFrame(current, sourceId, options, attempt + 1);
+  if (SHOULD_HOLD_STREAM && attempt === MAX_FRAME_ATTEMPTS - 1) {
+    await runInWorker(current, CLOSE_HELD_STREAM_EXPRESSION);
+  }
+  return grabFrame(
+    current,
+    sourceId,
+    SHOULD_HOLD_STREAM ? { ...options, waitForNextFrame: true } : options,
+    attempt + 1
+  );
 };
 
 export class ScreenshotFrameWorker {
   public static prepare() {
     isPrepared = true;
-    clearRecycleTimer();
     void getWorker().ready.catch(() => undefined);
   }
 

@@ -1,6 +1,7 @@
 mod active_window;
 mod cloud_save;
 mod constants;
+mod desktop_duplication;
 mod in_place_extraction;
 mod kde_focus;
 mod linux_process;
@@ -33,7 +34,7 @@ use image::codecs::png::PngDecoder;
 use image::codecs::webp::WebPDecoder;
 use image::imageops::{crop_imm, resize, FilterType};
 use image::{AnimationDecoder, Frame, ImageFormat, ImageReader, ImageResult, RgbaImage};
-use napi::bindgen_prelude::Error;
+use napi::bindgen_prelude::{Buffer, Error};
 use napi_derive::napi;
 use sysinfo::{ProcessesToUpdate, System};
 use uuid::Uuid;
@@ -124,6 +125,86 @@ pub fn get_windows_window_bounds(window_handle: String) -> Option<NativeWindowBo
     window_bounds::get_window_bounds(&window_handle).map(|bounds| NativeWindowBounds {
         frame: to_native_rect(bounds.frame),
         client: to_native_rect(bounds.client),
+    })
+}
+
+#[napi(object)]
+pub struct NativeDesktopFrame {
+    pub width: u32,
+    pub height: u32,
+    pub pixels: Buffer,
+}
+
+#[napi(object)]
+pub struct NativeBgraScreenshotOptions {
+    pub pixels: Buffer,
+    pub width: u32,
+    pub height: u32,
+    pub quality: u8,
+    pub preview_max_width: u32,
+    pub preview_quality: u8,
+}
+
+#[napi(object)]
+pub struct NativeEncodedScreenshot {
+    pub jpeg: Buffer,
+    pub preview: Buffer,
+}
+
+#[napi]
+pub async fn prepare_windows_desktop_capture() -> napi::Result<()> {
+    tokio::task::spawn_blocking(desktop_duplication::prepare_capture_device)
+        .await
+        .map_err(|err| Error::from_reason(err.to_string()))?
+        .map_err(Error::from_reason)
+}
+
+#[napi]
+pub async fn release_windows_desktop_capture() -> napi::Result<()> {
+    tokio::task::spawn_blocking(desktop_duplication::release_capture_device)
+        .await
+        .map_err(|err| Error::from_reason(err.to_string()))
+}
+
+#[napi]
+pub async fn capture_windows_desktop_frame(
+    window_handle: String,
+) -> napi::Result<Option<NativeDesktopFrame>> {
+    let frame = tokio::task::spawn_blocking(move || {
+        desktop_duplication::capture_window_monitor(&window_handle)
+    })
+    .await
+    .map_err(|err| Error::from_reason(err.to_string()))?
+    .map_err(Error::from_reason)?;
+
+    Ok(frame.map(|frame| NativeDesktopFrame {
+        width: frame.width,
+        height: frame.height,
+        pixels: frame.pixels.into(),
+    }))
+}
+
+#[napi]
+pub async fn encode_bgra_screenshot(
+    options: NativeBgraScreenshotOptions,
+) -> napi::Result<NativeEncodedScreenshot> {
+    let encoded = tokio::task::spawn_blocking(move || {
+        desktop_duplication::encode_bgra_screenshot(
+            &options.pixels,
+            options.width,
+            options.height,
+            options.quality,
+            options.preview_max_width,
+            options.preview_quality,
+        )
+    })
+    .await
+    .map_err(|err| Error::from_reason(err.to_string()))?
+    .map_err(Error::from_reason)?;
+
+    Ok(NativeEncodedScreenshot {
+        jpeg: encoded.jpeg.into(),
+        preview: encoded.preview.into(),
     })
 }
 

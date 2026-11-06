@@ -18,7 +18,6 @@ import "./settings-context-compatibility.scss";
 import { logger } from "@renderer/logger";
 import { Tooltip } from "react-tooltip";
 
-import "./settings-behavior.scss";
 import "./settings-general.scss";
 
 interface CompatibilityToggleProps {
@@ -319,8 +318,8 @@ export function SettingsContextCompatibility() {
               />
             </div>
 
-            <div className="settings-behavior__proton-section settings-context-compatibility__section">
-              <p className="settings-behavior__proton-description">
+            <div className="settings-context-compatibility__proton-section settings-context-compatibility__section">
+              <p className="settings-context-compatibility__proton-description">
                 {t("default_proton_version_description")}
               </p>
 
@@ -342,7 +341,7 @@ export function SettingsContextCompatibility() {
             </div>
 
             <div className="settings-context-compatibility__section settings-context-compatibility__global-toggles">
-              <h3 className="settings-behavior__proton-title">
+              <h3 className="settings-context-compatibility__proton-title">
                 {t("behavior")}
               </h3>
 

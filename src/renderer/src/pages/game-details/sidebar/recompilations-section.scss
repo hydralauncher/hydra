@@ -1,0 +1,225 @@
+$spotlight-duration: 0.4s;
+$tip-delay: 0.15s;
+$tip-duration: 0.5s;
+$beacon-pulse-duration: 2.4s;
+
+.recompilations-section {
+  position: relative;
+  border-radius: 12px;
+
+  &--spotlight {
+    z-index: 6;
+    outline: 2px solid #8e919b;
+    box-shadow: 0 0 0 9999px rgba(10, 10, 10, 0.6);
+    animation: recompilations-section-spotlight $spotlight-duration ease-out
+      both;
+  }
+
+  &__beacon {
+    position: absolute;
+    top: 22px;
+    left: -4px;
+    z-index: 7;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    animation:
+      recompilations-section-appear $tip-duration ease-out $tip-delay both,
+      recompilations-section-pulse $beacon-pulse-duration ease-out
+        ($tip-delay + $tip-duration) infinite;
+  }
+
+  &__tip {
+    position: absolute;
+    top: -8px;
+    right: calc(100% + 18px);
+    z-index: 8;
+    width: 352px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    background: #1c1c1c;
+    border: 1px solid #424244;
+    border-radius: 8px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+    animation: recompilations-section-tip $tip-duration
+      cubic-bezier(0.2, 0.7, 0.2, 1) $tip-delay both;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 28px;
+      right: -7px;
+      width: 12px;
+      height: 12px;
+      background: #1c1c1c;
+      border-top: 1px solid #424244;
+      border-right: 1px solid #424244;
+      transform: rotate(45deg);
+    }
+  }
+
+  &__tip-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    height: 22px;
+  }
+
+  &__tip-chip {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #f5f5f5;
+    color: #0d0d0d;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  &__tip-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: -4px -6px 0 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #8e919b;
+    cursor: pointer;
+
+    &:hover {
+      background: #232323;
+      color: #f5f5f5;
+    }
+  }
+
+  &__tip-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.35;
+      font-weight: 700;
+      color: #f5f5f5;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #c0c1c7;
+    }
+  }
+
+  &__tip-footer {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__tip-perks {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 4px;
+      background: #262628;
+      font-size: 12px;
+      color: #c0c1c7;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &--spotlight,
+    &__beacon,
+    &__tip {
+      animation: none;
+    }
+  }
+
+  &__no-icon {
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    p {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+
+    .tested-medal {
+      flex-shrink: 0;
+      position: relative;
+      top: 1px;
+    }
+  }
+
+  &__chevron {
+    flex-shrink: 0;
+    margin-left: auto;
+    opacity: 0.6;
+  }
+}
+
+@keyframes recompilations-section-spotlight {
+  from {
+    outline-color: transparent;
+    box-shadow: 0 0 0 9999px rgba(10, 10, 10, 0);
+  }
+}
+
+@keyframes recompilations-section-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 245, 245, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(245, 245, 245, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 245, 245, 0);
+  }
+}
+
+@keyframes recompilations-section-tip {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@keyframes recompilations-section-appear {
+  from {
+    opacity: 0;
+  }
+}

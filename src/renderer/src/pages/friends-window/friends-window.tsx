@@ -931,29 +931,31 @@ export default function FriendsWindow() {
           />
         )}
 
-        <header className="friends-window__title-bar">
-          <h4>{t("title")}</h4>
-          <div className="friends-window__window-controls">
-            <button
-              type="button"
-              className="friends-window__window-control"
-              onClick={() => electron.minimizeFriendsWindow()}
-              title={t("minimize")}
-              aria-label={t("minimize")}
-            >
-              <DashIcon size={16} />
-            </button>
-            <button
-              type="button"
-              className="friends-window__window-control friends-window__window-control--close"
-              onClick={() => electron.closeFriendsWindow()}
-              title={t("close")}
-              aria-label={t("close")}
-            >
-              <XIcon size={16} />
-            </button>
-          </div>
-        </header>
+        {!electron.hasNativeWindowDecorations && (
+          <header className="friends-window__title-bar">
+            <h4>{t("title")}</h4>
+            <div className="friends-window__window-controls">
+              <button
+                type="button"
+                className="friends-window__window-control"
+                onClick={() => electron.minimizeFriendsWindow()}
+                title={t("minimize")}
+                aria-label={t("minimize")}
+              >
+                <DashIcon size={16} />
+              </button>
+              <button
+                type="button"
+                className="friends-window__window-control friends-window__window-control--close"
+                onClick={() => electron.closeFriendsWindow()}
+                title={t("close")}
+                aria-label={t("close")}
+              >
+                <XIcon size={16} />
+              </button>
+            </div>
+          </header>
+        )}
 
         <section className="friends-window__profile">
           <div className="friends-window__profile-content">

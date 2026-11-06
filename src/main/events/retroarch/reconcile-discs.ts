@@ -45,6 +45,7 @@ export const reconcileDiscsForRemovedFolder = (
   const coveredDiscs = discs.filter(
     (disc) =>
       disc.isExecutable ||
+      Boolean(disc.recompilationSlug) ||
       remainingFolderPaths.some((folder) => isWithin(disc.path, folder))
   );
 
