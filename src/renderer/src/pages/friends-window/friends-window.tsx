@@ -321,8 +321,9 @@ export default function FriendsWindow() {
       }),
     [t]
   );
-  const hasUnreadOfficialMessages =
+  const showOfficialRow =
     Boolean(userDetails?.id) &&
+    !isAddMode &&
     !search.trim() &&
     (chatUnread.byFriend[OFFICIAL_CHAT_FRIEND_ID] ?? 0) > 0;
 
@@ -629,15 +630,21 @@ export default function FriendsWindow() {
     );
   };
 
+  const getMessageLabel = (friend: UserFriend, unreadCount: number) => {
+    const unreadLabel = t("unread_messages", { count: unreadCount });
+    if (friend.isOfficial) return unreadLabel;
+
+    const messageFriendLabel = t("message_friend", {
+      name: friend.displayName,
+    });
+    if (unreadCount === 0) return messageFriendLabel;
+
+    return `${messageFriendLabel}, ${unreadLabel}`;
+  };
+
   const renderMessageButton = (friend: UserFriend) => {
     const unreadCount = chatUnread.byFriend[friend.id] ?? 0;
-    const messageLabel =
-      unreadCount > 0
-        ? `${t("message_friend", { name: friend.displayName })}, ${t(
-            "unread_messages",
-            { count: unreadCount }
-          )}`
-        : t("message_friend", { name: friend.displayName });
+    const messageLabel = getMessageLabel(friend, unreadCount);
 
     return (
       <button
@@ -1095,7 +1102,7 @@ export default function FriendsWindow() {
           className="friends-window__list-container"
           aria-busy={showSkeleton}
         >
-          {hasUnreadOfficialMessages && renderOfficialSection()}
+          {showOfficialRow && renderOfficialSection()}
 
           {showSkeleton ? (
             <>
