@@ -16,10 +16,16 @@ import {
   useState,
 } from "react";
 import { Tooltip } from "react-tooltip";
-import { Button, CheckboxField, TextField } from "@renderer/components";
+import {
+  Button,
+  CheckboxField,
+  ConfirmationModal,
+  TextField,
+} from "@renderer/components";
+import { useToast } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
-import { FileIcon } from "@primer/octicons-react";
+import { DeviceDesktopIcon, FileIcon } from "@primer/octicons-react";
 import { HardDrive, X, FolderOpen, ChevronDown, Disc3 } from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
@@ -45,6 +51,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     [game.platform]
   );
 
+  const { showErrorToast } = useToast();
+  const [portToUninstall, setPortToUninstall] = useState<ClassicsDisc | null>(
+    null
+  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
@@ -54,6 +64,20 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     discs.find((d) => d.path === game.selectedDiscPath) ?? discs[0] ?? null;
 
   const renderDiscIcon = (disc: ClassicsDisc | null) => {
+    if (disc?.recompilationSlug) {
+      return disc.iconUrl ? (
+        <img
+          src={disc.iconUrl}
+          alt=""
+          width={18}
+          height={18}
+          className="disc-field__icon disc-field__icon--image"
+        />
+      ) : (
+        <DeviceDesktopIcon size={18} className="disc-field__icon" />
+      );
+    }
+
     if (disc?.isExecutable) {
       const fileIcon = executableIcons[disc.path];
 
@@ -195,7 +219,33 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     await addDiscFromPath(res.filePaths[0]);
   };
 
+  const discSubtitle = (disc: ClassicsDisc) =>
+    disc.recompilationSlug ? t("pc_version") : disc.fileName;
+
+  const uninstallPort = async () => {
+    const slug = portToUninstall?.recompilationSlug;
+    setPortToUninstall(null);
+    if (!slug) return;
+
+    const result = await window.electron.uninstallRecompilation({
+      objectId: game.objectId,
+      slug,
+    });
+    if (!result.ok && result.reason !== "not_installed") {
+      showErrorToast(t("uninstall_failed", { ns: "recompilation" }));
+    }
+    await updateGame();
+  };
+
   const handleRemoveDisc = async (path: string) => {
+    const port = discs.find(
+      (disc) => disc.path === path && disc.recompilationSlug
+    );
+    if (port) {
+      setPortToUninstall(port);
+      return;
+    }
+
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
       removeDiscPath: path,
     });
@@ -230,7 +280,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                     {selectedDisc && getClassicsDiscLabel(selectedDisc)}
                   </span>
                   <span className="disc-field__filename">
-                    {selectedDisc?.fileName}
+                    {selectedDisc && discSubtitle(selectedDisc)}
                   </span>
                 </span>
                 <ChevronDown
@@ -263,7 +313,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                           {getClassicsDiscLabel(disc)}
                         </span>
                         <span className="disc-field__filename">
-                          {disc.fileName}
+                          {discSubtitle(disc)}
                         </span>
                       </span>
                     </button>
@@ -368,6 +418,19 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
           />
         )}
       </div>
+
+      <ConfirmationModal
+        visible={portToUninstall !== null}
+        title={t("uninstall_title", {
+          ns: "recompilation",
+          name: portToUninstall?.label,
+        })}
+        descriptionText={t("uninstall_description", { ns: "recompilation" })}
+        confirmButtonLabel={t("uninstall", { ns: "recompilation" })}
+        cancelButtonLabel={t("cancel", { ns: "recompilation" })}
+        onClose={() => setPortToUninstall(null)}
+        onConfirm={() => void uninstallPort()}
+      />
     </div>
   );
 }

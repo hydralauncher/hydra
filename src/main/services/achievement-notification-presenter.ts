@@ -19,6 +19,7 @@ export interface AchievementNotificationHost {
   load(): Promise<void>;
   send(channel: string, ...args: unknown[]): void;
   setPosition(position: AchievementCustomNotificationPosition): Promise<void>;
+  setContentProtection(isProtected: boolean): void;
   showInactive(): void;
   hide(): void;
   destroy(): void;
@@ -126,15 +127,17 @@ export class AchievementNotificationPresenter {
     notification: AchievementNotificationInfo,
     fallback?: NotificationFallback
   ): void {
+    const variant = notification.variant ?? "screenshot";
     this.queue = this.queue.filter(
-      (item) => item.request.type !== "screenshot"
+      ({ request }) =>
+        request.type !== "screenshot" || request.achievement.variant !== variant
     );
     this.queue.push({
       request: {
         id: this.nextRequestId(),
         type: "screenshot",
         position,
-        achievement: { ...notification, variant: "screenshot" },
+        achievement: { ...notification, variant },
       },
       fallback: { callback: fallback, invoked: false },
     });
@@ -219,6 +222,7 @@ export class AchievementNotificationPresenter {
     this.clearWatchdog();
 
     try {
+      host.setContentProtection(this.activeItem?.request.type === "screenshot");
       host.showInactive();
       this.stage = "visible";
       this.dependencies.log(`Achievement notification started: ${requestId}`);
