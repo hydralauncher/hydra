@@ -1,0 +1,23 @@
+@use "../../../scss/globals.scss";
+
+.system-requirements-warning {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 0.5);
+  padding: calc(globals.$spacing-unit * 1);
+  margin: 0 calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2);
+  border: 1px solid rgba(255, 170, 0, 0.5);
+  border-radius: 6px;
+  background-color: rgba(255, 170, 0, 0.08);
+  font-size: 0.875rem;
+
+  &__title {
+    font-weight: 600;
+    margin: 0;
+  }
+
+  &__list {
+    margin: 0;
+    padding-left: calc(globals.$spacing-unit * 2);
+  }
+}

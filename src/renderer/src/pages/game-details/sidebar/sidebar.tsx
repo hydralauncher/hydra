@@ -38,6 +38,7 @@ import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
 import { isAchievementConcealed } from "@shared";
 import { ControllerSupportSection } from "./controller-support-section";
+import { SystemRequirementsWarning } from "./system-requirements-warning";
 import { GameScreenshots } from "../game-screenshots/game-screenshots";
 import { LeaderboardSection } from "../leaderboard/leaderboard-section";
 
@@ -426,6 +427,12 @@ export function Sidebar() {
               {t("recommended")}
             </Button>
           </div>
+
+          {activeRequirement === "minimum" && (
+            <SystemRequirementsWarning
+              minimumRequirements={shopDetails?.pc_requirements?.minimum}
+            />
+          )}
 
           <div
             className="requirement__details"

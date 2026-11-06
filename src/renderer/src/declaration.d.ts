@@ -1,4 +1,4 @@
-import type { AuthPage, Downloader } from "@shared";
+import type { AuthPage, Downloader, SystemSpecs } from "@shared";
 import type {
   LocalScreenshot,
   LocalScreenshotDraft,
@@ -1249,6 +1249,7 @@ declare global {
     readDirectory: (path: string) => Promise<FileExplorerEntry[]>;
     getPathInfo: (path: string) => Promise<FileExplorerPathInfo>;
     listDrives: () => Promise<string[]>;
+    getSystemSpecs: () => Promise<SystemSpecs>;
     showItemInFolder: (path: string) => Promise<void>;
     getImageDataUrl: (imageUrl: string) => Promise<string | null>;
     getFileIcon: (filePath: string) => Promise<string | null>;
