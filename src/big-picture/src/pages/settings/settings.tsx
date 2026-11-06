@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID } from "@shared";
 
 import {
   BumperBadge,
@@ -73,7 +74,9 @@ const SETTINGS_TAB_FADE_TRANSITION = {
 } as const;
 
 type SettingsTabId = (typeof ALL_SETTINGS_TABS)[number]["id"];
-type SettingsSectionId = "sources";
+type SettingsSectionId =
+  | "sources"
+  | typeof HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID;
 type SettingsSectionComponentProps = {
   className?: string;
 };
@@ -91,7 +94,10 @@ function getSettingsSectionFromSearch(
 ): SettingsSectionId | null {
   const section = new URLSearchParams(search).get("section");
 
-  return section === "sources" ? "sources" : null;
+  return section === "sources" ||
+    section === HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID
+    ? section
+    : null;
 }
 
 const SETTINGS_TAB_CONTENT: Record<
@@ -317,7 +323,10 @@ export default function Settings() {
       case "screenshots":
         return {
           type: "item",
-          itemId: SCREENSHOT_SETTINGS_FOCUS_IDS.enabled,
+          itemId:
+            requestedSection === HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID
+              ? SCREENSHOT_SETTINGS_FOCUS_IDS.hideCommunity
+              : SCREENSHOT_SETTINGS_FOCUS_IDS.enabled,
         };
       case "big-picture":
         return {

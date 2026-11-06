@@ -1,6 +1,6 @@
 import type { ClassicsDisc } from "@types";
 
-export const findSelectedExecutableDisc = (
+const findChosenDisc = (
   discs: ClassicsDisc[] | undefined,
   requestedPath: string | undefined,
   selectedDiscPath: string | null | undefined
@@ -8,8 +8,25 @@ export const findSelectedExecutableDisc = (
   const chosenPath = requestedPath ?? selectedDiscPath ?? discs?.[0]?.path;
   if (!chosenPath) return null;
 
-  const disc = discs?.find((candidate) => candidate.path === chosenPath);
+  return discs?.find((candidate) => candidate.path === chosenPath) ?? null;
+};
+
+export const findSelectedExecutableDisc = (
+  discs: ClassicsDisc[] | undefined,
+  requestedPath: string | undefined,
+  selectedDiscPath: string | null | undefined
+) => {
+  const disc = findChosenDisc(discs, requestedPath, selectedDiscPath);
   return disc?.isExecutable ? disc : null;
+};
+
+export const findSelectedRecompilationDisc = (
+  discs: ClassicsDisc[] | undefined,
+  requestedPath: string | undefined,
+  selectedDiscPath: string | null | undefined
+) => {
+  const disc = findChosenDisc(discs, requestedPath, selectedDiscPath);
+  return disc?.recompilationSlug ? disc : null;
 };
 
 export const mergeScannedDiscs = (
@@ -17,9 +34,11 @@ export const mergeScannedDiscs = (
   existingDiscs: ClassicsDisc[] | undefined
 ) => {
   const scannedPaths = new Set(scannedDiscs.map((disc) => disc.path));
-  const keptExecutables = (existingDiscs ?? []).filter(
-    (disc) => disc.isExecutable && !scannedPaths.has(disc.path)
+  const keptDiscs = (existingDiscs ?? []).filter(
+    (disc) =>
+      (disc.isExecutable || disc.recompilationSlug) &&
+      !scannedPaths.has(disc.path)
   );
 
-  return [...scannedDiscs, ...keptExecutables];
+  return [...scannedDiscs, ...keptDiscs];
 };

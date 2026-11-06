@@ -5,8 +5,11 @@ import Skeleton from "react-loading-skeleton";
 
 import { Button } from "@renderer/components";
 import { ScreenshotLightbox } from "@renderer/components/screenshots";
-import { useFeature } from "@renderer/hooks";
-import { createScreenshotWriteBus } from "@shared";
+import { useAppSelector, useFeature } from "@renderer/hooks";
+import {
+  createScreenshotWriteBus,
+  resolveScreenshotPreferences,
+} from "@shared";
 
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { GameScreenshotThumbnail } from "./game-screenshot-thumbnail";
@@ -46,6 +49,10 @@ function GameScreenshotsBox({
   const { t } = useTranslation("screenshots");
   const [modalTab, setModalTab] = useState<GameScreenshotsTab | null>(null);
   const [writeBus] = useState(createScreenshotWriteBus);
+  const isCommunityHidden = useAppSelector(
+    (state) =>
+      resolveScreenshotPreferences(state.userPreferences.value).hideCommunity
+  );
   const mine = useMyGameScreenshots({
     shop: libraryGame.shop,
     objectId: libraryGame.objectId,
@@ -84,12 +91,13 @@ function GameScreenshotsBox({
     !mine.hasFailed &&
     !mine.isPartial &&
     topItems.length === 0;
+  const fallsBackToCommunity = hasNoScreenshotsOfMine && !isCommunityHidden;
   const community = useGameScreenshotsCollection({
     shop: catalogueGame.shop,
     objectId: catalogueGame.objectId,
     sort: "top",
     take: SIDEBAR_SCREENSHOT_COUNT,
-    isEnabled: hasNoScreenshotsOfMine,
+    isEnabled: fallsBackToCommunity,
     writeBus,
   });
   const communityItems = community.feed.items.slice(
@@ -122,6 +130,16 @@ function GameScreenshotsBox({
     </>
   );
 
+  const renderEmptyState = () => (
+    <output className="game-screenshots-box__empty">
+      <span className="game-screenshots-box__empty-title">
+        <ImageIcon size={16} />
+        {t("no_game_screenshots_yet")}
+      </span>
+      <GameScreenshotsHotkeyTip />
+    </output>
+  );
+
   const renderCommunity = () => {
     const isCommunityLoading =
       !community.feed.hasLoaded && !community.feed.hasFailed;
@@ -129,17 +147,7 @@ function GameScreenshotsBox({
       return renderSkeleton();
     }
 
-    if (communityItems.length === 0) {
-      return (
-        <output className="game-screenshots-box__empty">
-          <span className="game-screenshots-box__empty-title">
-            <ImageIcon size={16} />
-            {t("no_game_screenshots_yet")}
-          </span>
-          <GameScreenshotsHotkeyTip />
-        </output>
-      );
-    }
+    if (communityItems.length === 0) return renderEmptyState();
 
     return (
       <>
@@ -196,6 +204,15 @@ function GameScreenshotsBox({
       );
     }
 
+    if (topItems.length === 0 && isCommunityHidden) {
+      return (
+        <>
+          {renderEmptyState()}
+          {viewAllButton}
+        </>
+      );
+    }
+
     if (topItems.length === 0) return renderCommunity();
 
     return (
@@ -247,7 +264,7 @@ function GameScreenshotsBox({
   return (
     <SidebarSection
       title={
-        hasNoScreenshotsOfMine
+        fallsBackToCommunity
           ? t("community_screenshots_tab")
           : t("my_screenshots")
       }
@@ -268,6 +285,7 @@ function GameScreenshotsBox({
       <GameScreenshotsModal
         visible={modalTab !== null}
         showCommentCount={showCommentCount}
+        isCommunityHidden={isCommunityHidden}
         libraryGame={libraryGame}
         catalogueGame={catalogueGame}
         writeBus={writeBus}

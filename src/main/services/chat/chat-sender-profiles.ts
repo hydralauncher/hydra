@@ -29,6 +29,7 @@ export const getChatSenderProfile = async (
     profileImageUrl: user.profileImageUrl,
     backgroundImageUrl: user.backgroundImageUrl,
     currentGame: null,
+    ...(user.isOfficial ? { isOfficial: true } : {}),
   };
   profiles.set(friendId, { profile, fetchedAt: Date.now() });
 

@@ -50,6 +50,10 @@ class ElectronAchievementNotificationHost {
     this.window.setPosition(x, y, false);
   }
 
+  public setContentProtection(isProtected: boolean): void {
+    this.window.setContentProtection(isProtected);
+  }
+
   public showInactive(): void {
     this.window.showInactive();
   }

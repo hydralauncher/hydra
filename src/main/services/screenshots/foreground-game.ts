@@ -2,7 +2,11 @@ import fs from "node:fs";
 import { BrowserWindow } from "electron";
 
 import { gamesSublevel } from "@main/level";
-import type { Game, ScreenshotTriggerSource } from "@types";
+import type {
+  Game,
+  ScreenshotFailureToast,
+  ScreenshotTriggerSource,
+} from "@types";
 
 import { emulatorSessions } from "../emulators/emulator-session-tracker";
 import { gamesPlaytime } from "../game-running-state";
@@ -23,11 +27,16 @@ import {
 } from "./foreground-game-match";
 import { getWaylandFocus } from "./wayland-focus";
 
-type ForegroundMatch = ResolvedForegroundGame | null;
-
 export interface ResolvedForegroundGame {
+  status: "resolved";
   target: ScreenshotGameTarget;
   game: Game | null;
+  foreground: ForegroundWindowInfo | null;
+}
+
+export interface UnresolvedForegroundGame {
+  status: "unresolved";
+  candidates: ScreenshotGameCandidate[];
   foreground: ForegroundWindowInfo | null;
 }
 
@@ -278,14 +287,19 @@ const rememberForegroundProcess = (
 
 export const resolveForegroundGame = async (
   source: ScreenshotTriggerSource
-): Promise<ForegroundMatch> => {
+): Promise<ResolvedForegroundGame | UnresolvedForegroundGame> => {
   const candidates = await getScreenshotGameTargets();
   if (!candidates.length) {
     logger.debug("Screenshot hotkey ignored: no running game", { source });
-    return null;
+    return { status: "unresolved", candidates, foreground: null };
   }
 
   const foreground = await resolveForegroundWindow();
+  const unresolved: UnresolvedForegroundGame = {
+    status: "unresolved",
+    candidates,
+    foreground,
+  };
 
   if (
     foreground &&
@@ -298,7 +312,7 @@ export const resolveForegroundGame = async (
       candidates[0].target.gameKey,
       foreground
     );
-    return { ...candidates[0], foreground };
+    return { status: "resolved", ...candidates[0], foreground };
   }
 
   if (foreground) {
@@ -310,7 +324,7 @@ export const resolveForegroundGame = async (
         remembered.target.gameKey,
         foreground
       );
-      return { ...remembered, foreground };
+      return { status: "resolved", ...remembered, foreground };
     }
 
     const target = await findProcessTreeTarget(candidates, foreground);
@@ -321,7 +335,7 @@ export const resolveForegroundGame = async (
           (candidate) => candidate.target.gameKey === target.gameKey
         )?.game ?? null;
       logForegroundMatch(source, "process_tree", target.gameKey, foreground);
-      return { target, game, foreground };
+      return { status: "resolved", target, game, foreground };
     }
 
     if (foreground.processId !== null || !isWaylandSession()) {
@@ -332,7 +346,7 @@ export const resolveForegroundGame = async (
         windowId: foreground.windowId ?? null,
         candidates: describeCandidates(candidates),
       });
-      return null;
+      return unresolved;
     }
   }
 
@@ -348,7 +362,7 @@ export const resolveForegroundGame = async (
       isDeepLink,
       candidates: describeCandidates(candidates),
     });
-    return null;
+    return unresolved;
   }
 
   const soleTarget = findSoleLaunchedTarget(
@@ -362,7 +376,7 @@ export const resolveForegroundGame = async (
       source,
       candidates: describeCandidates(candidates),
     });
-    return null;
+    return unresolved;
   }
   logForegroundMatch(
     source,
@@ -370,5 +384,23 @@ export const resolveForegroundGame = async (
     soleCandidate.target.gameKey,
     null
   );
-  return { ...soleCandidate, foreground: null };
+  return { status: "resolved", ...soleCandidate, foreground: null };
+};
+
+export const getUnresolvedGameFailure = (
+  source: ScreenshotTriggerSource,
+  { candidates, foreground }: UnresolvedForegroundGame
+): ScreenshotFailureToast | null => {
+  if (!candidates.length) return null;
+
+  const isFocusUnknown = foreground?.processId == null;
+  if (isFocusUnknown && source === "deeplink") return null;
+
+  if (candidates.length === 1) {
+    return { kind: "game_not_focused", gameTitle: candidates[0].game.title };
+  }
+
+  return isFocusUnknown
+    ? { kind: "game_not_recognized", gameTitle: null }
+    : null;
 };

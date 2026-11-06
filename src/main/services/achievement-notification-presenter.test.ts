@@ -17,6 +17,7 @@ class FakeHost implements AchievementNotificationHost {
   public destroyCount = 0;
   public destroyed = false;
   public positions: string[] = [];
+  public contentProtection: boolean[] = [];
   public messages: Array<{ channel: string; args: unknown[] }> = [];
   private failureListener: ((reason: string) => void) | null = null;
 
@@ -33,6 +34,10 @@ class FakeHost implements AchievementNotificationHost {
 
   public async setPosition(position: string): Promise<void> {
     this.positions.push(position);
+  }
+
+  public setContentProtection(isProtected: boolean): void {
+    this.contentProtection.push(isProtected);
   }
 
   public showInactive(): void {

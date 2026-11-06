@@ -4,6 +4,7 @@ import { logger } from "../logger";
 import { publishChatUnreadNotification } from "../notifications";
 import { WindowManager } from "../window-manager";
 import { getChatSenderProfile } from "./chat-sender-profiles";
+import { ChatOfficialMessages } from "./chat-official-messages";
 import { ChatUnreadStore } from "./chat-unread-store";
 import {
   getMissedChatConversations,
@@ -167,6 +168,7 @@ export const catchUpChatUnread = (signal?: AbortSignal) => {
 
   const task = (async () => {
     try {
+      ChatOfficialMessages.start();
       await ChatUnreadStore.refresh();
       if (!controller.signal.aborted) {
         await announceMissedMessages(controller.signal);

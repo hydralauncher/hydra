@@ -10,5 +10,6 @@ export const getClassicsDiscLabel = (
 ) => (disc.isExecutable ? stripFileExtension(disc.fileName) : disc.label);
 
 export const getNextClassicsDiscLabel = (
-  discs: Pick<ClassicsDisc, "isExecutable">[]
-) => `Disc ${discs.filter((disc) => !disc.isExecutable).length + 1}`;
+  discs: Pick<ClassicsDisc, "isExecutable" | "recompilationSlug">[]
+) =>
+  `Disc ${discs.filter((disc) => !disc.isExecutable && !disc.recompilationSlug).length + 1}`;

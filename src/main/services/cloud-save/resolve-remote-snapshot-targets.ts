@@ -14,6 +14,7 @@ import type {
 import { NativeAddon } from "../native-addon";
 import { validateRestoreManifest } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { getRecompilationSaveRules } from "./recompilation-cloud-save";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import { customPathToCloudSaveRule } from "./custom-path-store";
 import { getUsableCloudSaveCustomPathBindings } from "./custom-path-overlap";
@@ -88,6 +89,10 @@ export const resolveRestoreManifestTargets = async (
         title: gameContext.game?.title,
         remoteId: gameContext.game?.remoteId ?? undefined,
         userDataPath: SystemPath.getPath("userData"),
+        recompilationRules: getRecompilationSaveRules(
+          pathContext,
+          gameContext.game?.executablePath
+        ),
       });
   const customPathContext =
     cloudSaveCustomPathContextFromPathContext(pathContext);
