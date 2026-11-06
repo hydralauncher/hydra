@@ -13,6 +13,8 @@ import type {
   ChatMessagesPage,
   OfficialMessagesPage,
   ChatPendingMessageDto,
+  ChatWindowState,
+  OverlayChatWindowKind,
 } from "@types";
 
 import { getUploadProgress } from "./chat-attachments";
@@ -270,13 +272,21 @@ interface UseChatOptions {
     update: (conversation: ChatConversation) => ChatConversation
   ) => void;
   syncWindowState?: boolean;
+  syncOverlayWindowState?: OverlayChatWindowKind;
 }
+
+const EMPTY_OVERLAY_CHAT_STATE: ChatWindowState = {
+  activeFriendId: null,
+  openFriendIds: [],
+  openFriends: [],
+};
 
 export function useChat({
   conversations,
   activeId,
   updateConversation,
   syncWindowState = true,
+  syncOverlayWindowState,
 }: UseChatOptions) {
   const isFocused = useWindowFocus();
 
@@ -1411,16 +1421,31 @@ export function useChat({
   openConversationsRef.current = conversations;
 
   useEffect(() => {
-    if (!syncWindowState) return;
+    if (!syncWindowState && !syncOverlayWindowState) return;
 
-    void electron.setChatWindowState({
+    const state: ChatWindowState = {
       activeFriendId: activeId,
       openFriendIds: openFriendIds ? openFriendIds.split(",") : [],
       openFriends: openConversationsRef.current.map(
         (conversation) => conversation.friend
       ),
-    });
-  }, [activeId, openFriendIds, syncWindowState]);
+    };
+
+    if (syncWindowState) void electron.setChatWindowState(state);
+    if (syncOverlayWindowState) {
+      void electron.setOverlayChatWindowState(state, syncOverlayWindowState);
+    }
+  }, [activeId, openFriendIds, syncOverlayWindowState, syncWindowState]);
+
+  useEffect(() => {
+    if (!syncOverlayWindowState) return;
+
+    const target = syncOverlayWindowState;
+
+    return () => {
+      void electron.setOverlayChatWindowState(EMPTY_OVERLAY_CHAT_STATE, target);
+    };
+  }, [syncOverlayWindowState]);
 
   const activeConversation = conversations.find(
     (conversation) => conversation.friend.id === activeId

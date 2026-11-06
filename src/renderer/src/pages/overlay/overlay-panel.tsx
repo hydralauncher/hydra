@@ -133,6 +133,7 @@ function ChatPanelContent({
         onClose={onCloseOverlay}
         showHeader={false}
         className="overlay-panel__chat"
+        syncOverlayWindowState="panel"
       />
     </PanelFrame>
   );

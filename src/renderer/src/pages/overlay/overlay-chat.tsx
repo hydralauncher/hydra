@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
+import type { OverlayChatWindowKind } from "@types";
 
 import { ChatWindowView } from "../chat-window/chat-window-view";
 import { useChatWindowController } from "../chat-window/use-chat-window-controller";
@@ -8,17 +9,20 @@ interface OverlayChatProps {
   onClose: () => void;
   showHeader?: boolean;
   className?: string;
+  syncOverlayWindowState?: OverlayChatWindowKind;
 }
 
 export function OverlayChat({
   onClose,
   showHeader = true,
   className,
+  syncOverlayWindowState,
 }: Readonly<OverlayChatProps>) {
   const { t } = useTranslation("overlay");
   const controller = useChatWindowController({
     playMessageSounds: false,
     syncWindowState: false,
+    syncOverlayWindowState,
     updateDocumentTitle: false,
     consumePendingChatFriends: false,
   });

@@ -33,22 +33,34 @@ export const readCachedFeatures = (): string[] => {
   }
 };
 
+const FEATURE_REFRESH_INTERVAL_MS = 60_000;
+
 let latestFeatures: string[] | null = null;
+let latestFeaturesAt = 0;
 let featuresRequest: Promise<string[]> | null = null;
 const featureListeners = new Set<(features: string[]) => void>();
 
 const loadFeatures = () => {
-  if (featuresRequest) return featuresRequest;
+  if (featuresRequest !== null) return featuresRequest;
+
+  if (
+    latestFeatures &&
+    Date.now() - latestFeaturesAt < FEATURE_REFRESH_INTERVAL_MS
+  ) {
+    return Promise.resolve(latestFeatures);
+  }
 
   featuresRequest = window.electron.hydraApi
     .get<string[]>("/features", { needsAuth: false })
     .then((response) => {
       const safeFeatures = ensureArray<string>(response, "/features");
       latestFeatures = safeFeatures;
+      latestFeaturesAt = Date.now();
       localStorage.setItem("features", JSON.stringify(safeFeatures));
       return safeFeatures;
     })
     .catch((error) => {
+      latestFeaturesAt = 0;
       logger.error(error);
       throw error;
     })
@@ -75,17 +87,17 @@ export function useFeature() {
 
     if (latestFeatures) {
       setFeatures(latestFeatures);
-    } else {
-      void loadFeatures()
-        .then((nextFeatures) => {
-          for (const featureListener of featureListeners) {
-            featureListener(nextFeatures);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) setHasFeaturesFailed(true);
-        });
     }
+
+    void loadFeatures()
+      .then((nextFeatures) => {
+        for (const featureListener of featureListeners) {
+          featureListener(nextFeatures);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setHasFeaturesFailed(true);
+      });
 
     return () => {
       cancelled = true;

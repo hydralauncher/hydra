@@ -21,6 +21,8 @@ export type OverlayMode = "default" | "bigPicture";
 
 export type OverlayPanel = "chat" | "achievements" | "leaderboard" | "browser";
 
+export type OverlayChatWindowKind = "panel" | "bigPicture";
+
 export interface OverlayBrowserState {
   url: string;
   title: string;

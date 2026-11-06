@@ -34,6 +34,35 @@ const OVERLAY_STATE_CHANNEL = "on-overlay-state";
 const OVERLAY_PANEL_STATE_CHANNEL = "on-overlay-panel-state";
 const OVERLAY_BROWSER_STATE_CHANNEL = "on-overlay-browser-state";
 const OVERLAY_FADE_MS = 200;
+const OVERLAY_FOCUS_RETRY_MS = 50;
+const PANEL_PRELOAD_STAGGER_MS = 400;
+const PANEL_BOUNDS_SAVE_DEBOUNCE_MS = 150;
+const PANEL_MARGIN = 24;
+
+const CHAT_PANEL_SIZE = {
+  width: 560,
+  height: 680,
+  minWidth: 400,
+  minHeight: 360,
+};
+const CONTENT_PANEL_SIZE = {
+  width: 760,
+  height: 680,
+  minWidth: 520,
+  minHeight: 360,
+};
+const BROWSER_PANEL_SIZE = {
+  width: 1000,
+  height: 760,
+  minWidth: 640,
+  minHeight: 400,
+};
+
+const getPanelSize = (panel: OverlayPanel) => {
+  if (panel === "chat") return CHAT_PANEL_SIZE;
+  if (panel === "browser") return BROWSER_PANEL_SIZE;
+  return CONTENT_PANEL_SIZE;
+};
 
 export const OVERLAY_PANELS: readonly OverlayPanel[] = [
   "chat",
@@ -111,6 +140,10 @@ export class OverlayService {
 
     WindowManager.registerOverlayWindowProvider(() =>
       this.achievementWindows()
+    );
+    WindowManager.registerOverlayChatWindowProviders(
+      () => this.panels.chat.window,
+      () => (this.state.mode === "bigPicture" ? this.overlayWindow : null)
     );
 
     this.unsubscribeTrigger?.();
@@ -832,7 +865,7 @@ export class OverlayService {
       setTimeout(() => {
         if (!this.enabled || !hasTrackedGamesRunning()) return;
         void this.ensurePanelWindow(panel);
-      }, index * 400);
+      }, index * PANEL_PRELOAD_STAGGER_MS);
     });
   }
 
@@ -848,15 +881,22 @@ export class OverlayService {
   }
 
   private static getPanelBounds(panel: OverlayPanel): Electron.Rectangle {
-    const margin = 24;
+    const margin = PANEL_MARGIN;
+    const size = getPanelSize(panel);
     const fallback = screen.getPrimaryDisplay().workArea;
     const bounds = this.overlayWindow?.getBounds() ?? fallback;
     const display = screen.getDisplayMatching(bounds);
     const workArea = display.workArea;
+    const width = Math.min(
+      size.width,
+      Math.max(size.minWidth, workArea.width - margin * 2)
+    );
+    const height = Math.min(
+      size.height,
+      Math.max(size.minHeight, workArea.height - margin * 2)
+    );
 
     if (panel === "chat") {
-      const width = Math.min(560, Math.max(320, workArea.width - margin * 2));
-      const height = Math.min(680, Math.max(360, workArea.height - margin * 2));
       const x = Math.min(
         Math.max(bounds.x + bounds.width - width - margin, workArea.x + margin),
         workArea.x + workArea.width - width - margin
@@ -874,28 +914,6 @@ export class OverlayService {
       };
     }
 
-    if (panel === "browser") {
-      const width = Math.min(1000, Math.max(640, workArea.width - margin * 2));
-      const height = Math.min(760, Math.max(400, workArea.height - margin * 2));
-      const x = Math.min(
-        Math.max(bounds.x + (bounds.width - width) / 2, workArea.x + margin),
-        workArea.x + workArea.width - width - margin
-      );
-      const y = Math.min(
-        Math.max(bounds.y + margin, workArea.y + margin),
-        workArea.y + workArea.height - height - margin
-      );
-
-      return {
-        x: Math.round(x),
-        y: Math.round(y),
-        width: Math.round(width),
-        height: Math.round(height),
-      };
-    }
-
-    const width = Math.min(760, Math.max(480, workArea.width - margin * 4));
-    const height = Math.min(680, Math.max(360, workArea.height - margin * 2));
     const x = Math.min(
       Math.max(bounds.x + (bounds.width - width) / 2, workArea.x + margin),
       workArea.x + workArea.width - width - margin
@@ -928,7 +946,7 @@ export class OverlayService {
     if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
       return Promise.resolve(this.overlayWindow);
     }
-    if (this.loadingWindow) return this.loadingWindow;
+    if (this.loadingWindow !== null) return this.loadingWindow;
 
     this.loadingWindow = this.createWindow().finally(() => {
       this.loadingWindow = null;
@@ -944,7 +962,7 @@ export class OverlayService {
     if (runtime.window && !runtime.window.isDestroyed()) {
       return Promise.resolve(runtime.window);
     }
-    if (runtime.loading) return runtime.loading;
+    if (runtime.loading !== null) return runtime.loading;
 
     runtime.loading = this.createPanelWindow(panel).finally(() => {
       runtime.loading = null;
@@ -980,7 +998,7 @@ export class OverlayService {
       overlayWindow.setAlwaysOnTop(true, "screen-saver");
       overlayWindow.on("focus", () => {
         this.raiseVisiblePanels();
-        setTimeout(() => this.raiseVisiblePanels(), 50);
+        setTimeout(() => this.raiseVisiblePanels(), OVERLAY_FOCUS_RETRY_MS);
       });
       overlayWindow.on("closed", () => {
         if (this.overlayWindow === overlayWindow) {
@@ -1015,11 +1033,12 @@ export class OverlayService {
     const runtime = this.panels[panel];
 
     try {
+      const size = getPanelSize(panel);
       const panelWindow = new BrowserWindow({
-        width: panel === "browser" ? 1000 : panel === "chat" ? 560 : 760,
-        height: panel === "browser" ? 760 : 680,
-        minWidth: panel === "browser" ? 640 : panel === "chat" ? 400 : 520,
-        minHeight: panel === "browser" ? 400 : 280,
+        width: size.width,
+        height: size.height,
+        minWidth: size.minWidth,
+        minHeight: size.minHeight,
         frame: false,
         transparent: true,
         backgroundColor: "#00000000",
@@ -1052,7 +1071,7 @@ export class OverlayService {
           if (!panelWindow.isDestroyed()) {
             runtime.lastBounds = panelWindow.getBounds();
           }
-        }, 150);
+        }, PANEL_BOUNDS_SAVE_DEBOUNCE_MS);
       };
 
       panelWindow.on("move", saveBounds);

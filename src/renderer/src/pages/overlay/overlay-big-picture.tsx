@@ -214,7 +214,12 @@ export function OverlayBigPicture({
                 <p>{t("loading")}</p>
               </div>
             ) : userDetails ? (
-              <OverlayChat onClose={() => void electron.closeOverlay()} />
+              <OverlayChat
+                onClose={() => void electron.closeOverlay()}
+                syncOverlayWindowState={
+                  activeTab === "friends" ? "bigPicture" : undefined
+                }
+              />
             ) : (
               <div className="overlay__empty">
                 <p>{t("sign_in_required")}</p>
