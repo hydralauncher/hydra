@@ -213,6 +213,7 @@ struct Cached {
 struct Pooled {
     handle: Rc<Handle>,
     delete_partfile: bool,
+    save_path: String,
 }
 struct Engine {
     downloads: BTreeMap<String, Download>,
@@ -282,7 +283,16 @@ impl Engine {
         {
             params.append_tracker(&tracker, tier)?;
         }
-        let handle = self.session.add(&params)?;
+        let mut handle = self.session.add(&params)?;
+        let mut replaced = None;
+        if game.is_some() {
+            if let Some(index) = self.unowned_entry_elsewhere(&handle, path)? {
+                let stale = self.pool.remove(index);
+                self.session.remove(&stale.handle, stale.delete_partfile)?;
+                handle = self.session.add(&params)?;
+                replaced = Some(stale.handle);
+            }
+        }
         // libtorrent may return an existing handle for the same info hash.
         // Metadata lookup must not remove or change the active download.
         for entry in &self.pool {
@@ -328,9 +338,29 @@ impl Engine {
         self.pool.push(Pooled {
             handle: handle.clone(),
             delete_partfile: true,
+            save_path: path.to_string(),
         });
+        if let Some(stale) = replaced {
+            for job in &mut self.jobs {
+                if Rc::ptr_eq(&job.handle, &stale) {
+                    job.handle = handle.clone();
+                }
+            }
+        }
         handle.resume()?;
         Ok(handle)
+    }
+    fn unowned_entry_elsewhere(&self, handle: &Handle, path: &str) -> Result<Option<usize>> {
+        for (index, entry) in self.pool.iter().enumerate() {
+            if handle.same(&entry.handle)? {
+                let owned = self
+                    .downloads
+                    .values()
+                    .any(|d| Rc::ptr_eq(&d.handle, &entry.handle));
+                return Ok((!owned && entry.save_path != path).then_some(index));
+            }
+        }
+        Ok(None)
     }
     fn collect_handles(&mut self) {
         self.pool.retain(|entry| {
