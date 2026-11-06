@@ -1028,6 +1028,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("authenticateTorBox", apiToken),
 
   /* Download sources */
+  exportDownloadSources: () => ipcRenderer.invoke("exportDownloadSources"),
+  importDownloadSources: () => ipcRenderer.invoke("importDownloadSources"),
   addDownloadSource: (url: string) =>
     ipcRenderer.invoke("addDownloadSource", url),
   removeDownloadSource: (url: string, removeAll?: boolean) =>
