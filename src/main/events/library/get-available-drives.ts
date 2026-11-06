@@ -116,11 +116,11 @@ async function queryLinuxDrives(): Promise<DriveInfo[]> {
 const getAvailableDrives = async (): Promise<DriveInfo[]> => {
   try {
     if (process.platform === "win32") {
-      return queryWindowsDrives();
+      return await queryWindowsDrives();
     }
 
     if (process.platform === "linux") {
-      return queryLinuxDrives();
+      return await queryLinuxDrives();
     }
 
     return [];
