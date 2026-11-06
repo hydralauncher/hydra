@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
 import { Button, CheckboxField, Modal } from "@renderer/components";
-import { FileIcon } from "@primer/octicons-react";
+import { DeviceDesktopIcon, FileIcon } from "@primer/octicons-react";
 import { Disc3 } from "lucide-react";
 import { getClassicsDiscLabel } from "@shared";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
@@ -62,7 +62,9 @@ export function DiscSelectionModal({
     };
 
     const numberOf = (disc: ClassicsDisc): number => {
-      if (disc.isExecutable) return Number.MAX_SAFE_INTEGER;
+      if (disc.isExecutable || disc.recompilationSlug) {
+        return Number.MAX_SAFE_INTEGER;
+      }
       const match = /\d+/.exec(disc.label);
       return match ? parseInt(match[0], 10) : Number.MAX_SAFE_INTEGER;
     };
@@ -92,7 +94,26 @@ export function DiscSelectionModal({
     onConfirm(selected, dontAsk);
   };
 
+  const hasRecompilation = discs.some((disc) => disc.recompilationSlug);
+
   const renderOptionIcon = (disc: ClassicsDisc) => {
+    if (disc.recompilationSlug) {
+      return disc.iconUrl ? (
+        <img
+          src={disc.iconUrl}
+          alt=""
+          width={20}
+          height={20}
+          className="disc-selection-modal__option-icon disc-selection-modal__option-icon--image"
+        />
+      ) : (
+        <DeviceDesktopIcon
+          size={20}
+          className="disc-selection-modal__option-icon"
+        />
+      );
+    }
+
     if (!disc.isExecutable) {
       return <Disc3 size={20} className="disc-selection-modal__option-icon" />;
     }
@@ -115,8 +136,10 @@ export function DiscSelectionModal({
   return (
     <Modal
       visible={visible}
-      title={t("select_disc_title")}
-      description={t("select_disc_subtitle")}
+      title={t(hasRecompilation ? "select_play_title" : "select_disc_title")}
+      description={t(
+        hasRecompilation ? "select_play_subtitle" : "select_disc_subtitle"
+      )}
       onClose={onClose}
     >
       <div className="disc-selection-modal__body">
@@ -137,7 +160,7 @@ export function DiscSelectionModal({
                   {getClassicsDiscLabel(disc)}
                 </span>
                 <span className="disc-selection-modal__option-filename">
-                  {disc.fileName}
+                  {disc.recompilationSlug ? t("pc_version") : disc.fileName}
                 </span>
               </div>
               {region && regionName && (

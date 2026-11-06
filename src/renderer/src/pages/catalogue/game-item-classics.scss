@@ -1,3 +1,5 @@
+$add-button-offset: 42px;
+
 .game-item-classics {
   position: relative;
   background: #0d0d0d;
@@ -120,6 +122,26 @@
     justify-content: center;
   }
 
+  &__recompilation-chip {
+    position: absolute;
+    top: 8px;
+    right: $add-button-offset;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #fafafa;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
   &__platform-chip {
     position: absolute;
     top: 8px;
@@ -138,6 +160,10 @@
     max-width: calc(100% - 16px);
     overflow: hidden;
     text-overflow: ellipsis;
+
+    &--beside-recompilation {
+      max-width: calc(100% - 130px);
+    }
   }
 
   &__details {

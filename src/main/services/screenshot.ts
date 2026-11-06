@@ -19,6 +19,7 @@ import {
   isWindowsWindowSource,
 } from "./windows-game-window-match";
 import { captureWindowsGameWindowFrame } from "./windows-game-capture";
+import { BlankScreenshotFrameError } from "./screenshots/screenshot-frame-script";
 import { cropToWindowClientArea } from "./windows-window-bounds";
 import {
   getBitmapColorRange,
@@ -201,7 +202,7 @@ const captureNonBlankX11Frame = async (
     attempt,
   });
   if (attempt >= X11_CAPTURE_ATTEMPTS) {
-    throw new Error("X11 game-window capture returned only blank frames");
+    throw new BlankScreenshotFrameError();
   }
 
   await wait(X11_CAPTURE_RETRY_DELAY_MS);

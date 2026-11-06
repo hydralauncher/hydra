@@ -28,6 +28,7 @@ import type {
   Rpcs3DiscIdentityStatus,
   CloudSaveSyncProgressPayload,
   GameShop,
+  LibraryGame,
   RetroArchLocalBatteryCandidate,
   RetroArchLegacyBatteryCandidate,
 } from "@types";
@@ -169,12 +170,16 @@ interface CloudSaveV2ProviderProps {
   children: React.ReactNode;
   objectId: string;
   shop: GameShop;
+  game?: LibraryGame | null;
+  isGameRunning?: boolean;
 }
 
 export function CloudSaveV2Provider({
   children,
   objectId,
   shop,
+  game: gameOverride,
+  isGameRunning: isGameRunningOverride,
 }: Readonly<CloudSaveV2ProviderProps>) {
   const { t } = useTranslation("game_details");
   const navigate = useNavigate();
@@ -182,18 +187,17 @@ export function CloudSaveV2Provider({
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
   const { showErrorToast, showSuccessToast, showWarningToast } = useToast();
-  const {
-    game,
-    isGameRunning,
-    setShowGameOptionsModal,
-    setGameOptionsInitialCategory,
-  } = useContext(gameDetailsContext);
+  const detailsContext = useContext(gameDetailsContext);
+  const { setShowGameOptionsModal, setGameOptionsInitialCategory } =
+    detailsContext;
+  const game = gameOverride === undefined ? detailsContext.game : gameOverride;
+  const isGameRunning = isGameRunningOverride ?? detailsContext.isGameRunning;
   const cloudSaveAccessAction = getCloudSaveAccessAction(
     Boolean(userDetails),
     hasActiveSubscription
   );
   const canUseCloudSaves = cloudSaveAccessAction === "open";
-  const isV2Eligible = isCloudSaveV2Eligible(shop, game?.platform);
+  const isV2Eligible = isCloudSaveV2Eligible(shop, game?.platform, objectId);
   const isRetroArchGame =
     getCloudSaveEmulatorProvider(shop, game?.platform) === "retroarch";
   const isRpcs3Game =
@@ -593,6 +597,7 @@ export function CloudSaveV2Provider({
         overview,
         shop,
         platform: game?.platform,
+        objectId,
         canUseCloudSaves,
         hasExecutablePath,
         retroArchExecutableStatus,
