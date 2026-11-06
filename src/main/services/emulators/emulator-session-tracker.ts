@@ -260,7 +260,7 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
       .then((result) => {
         if (!result.didChange) return;
 
-        WindowManager.mainWindow?.webContents.send(
+        WindowManager.sendToAchievementWindows(
           `on-update-achievements-${game.objectId}-${game.shop}`,
           result.achievements
         );

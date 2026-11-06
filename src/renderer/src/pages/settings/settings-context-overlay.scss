@@ -1,0 +1,100 @@
+@use "../../scss/globals.scss";
+
+$overlay-hover-duration: 0.2s;
+$overlay-press-duration: 0.08s;
+
+.settings-overlay {
+  min-width: 0;
+
+  &__hint {
+    max-width: 560px;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    opacity: 0.8;
+  }
+
+  &__select {
+    max-width: 240px;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+    min-width: 0;
+  }
+
+  &__field-label {
+    color: globals.$muted-color;
+    font-size: globals.$body-font-size;
+  }
+
+  &__hotkey-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: globals.$spacing-unit;
+  }
+
+  &__keycap {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    background-color: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-bottom-width: 3px;
+    border-radius: 6px;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+    color: globals.$muted-color;
+    font-family: inherit;
+    font-size: globals.$body-font-size;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      transform $overlay-press-duration ease,
+      box-shadow $overlay-press-duration ease,
+      border-color $overlay-hover-duration ease;
+
+    kbd {
+      font-family: inherit;
+    }
+
+    &:hover:not(:disabled) {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(2px);
+      border-bottom-width: 1px;
+      box-shadow: 0 0 0 rgba(0, 0, 0, 0.35);
+    }
+
+    &:focus-visible {
+      outline: 2px solid #dadbe1;
+      outline-offset: 2px;
+    }
+
+    &--recording {
+      border-color: globals.$brand-teal;
+      color: globals.$brand-teal;
+    }
+
+    &--invalid {
+      border-color: globals.$error-color;
+      color: globals.$error-color;
+    }
+  }
+
+  &__error {
+    color: globals.$error-color;
+    font-size: globals.$small-font-size;
+  }
+
+  &__input-status {
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    opacity: 0.7;
+  }
+}

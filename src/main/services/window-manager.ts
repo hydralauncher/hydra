@@ -273,6 +273,27 @@ export class WindowManager {
     }
   }
 
+  private static overlayWindowProvider:
+    | (() => (BrowserWindow | null)[])
+    | null = null;
+
+  public static registerOverlayWindowProvider(
+    provider: () => (BrowserWindow | null)[]
+  ) {
+    this.overlayWindowProvider = provider;
+  }
+
+  public static sendToAchievementWindows(channel: string, ...args: unknown[]) {
+    const windows = [
+      this.mainWindow,
+      ...(this.overlayWindowProvider?.() ?? []),
+    ];
+    for (const window of windows) {
+      if (!window || window.isDestroyed()) continue;
+      window.webContents.send(channel, ...args);
+    }
+  }
+
   public static sendDownloadsUpdated() {
     this.sendToAppWindows("on-downloads-updated");
   }

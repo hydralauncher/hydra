@@ -42,7 +42,7 @@ export const reconcileAchievementMemory = async (
       current,
       since
     );
-    WindowManager.mainWindow?.webContents.send(
+    WindowManager.sendToAchievementWindows(
       `on-update-achievements-${response.objectId}-${response.shop}`,
       achievements
     );

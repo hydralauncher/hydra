@@ -7,7 +7,7 @@ import type {
 import {
   normalizeScreenshotGamepadCombo,
   normalizeScreenshotHotkey,
-} from "./screenshot-input";
+} from "./screenshot-input.js";
 
 export const SCREENSHOT_VISIBILITY_OPTIONS: ProfileVisibility[] = [
   "PUBLIC",

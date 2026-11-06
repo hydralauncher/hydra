@@ -1,5 +1,6 @@
 import { globalShortcut } from "electron";
 import type {
+  OverlayHotkeyBinding,
   ScreenshotGamepadButton,
   ScreenshotHotkeyBinding,
   ScreenshotInputBackend,
@@ -9,8 +10,11 @@ import type {
   UserPreferences,
 } from "@types";
 import {
+  isOverlaySameAsScreenshotHotkey,
+  isSameOverlayHotkey,
   isSameScreenshotGamepadCombo,
   isSameScreenshotHotkey,
+  normalizeOverlayHotkey,
   normalizeScreenshotGamepadCombo,
   normalizeScreenshotHotkey,
   toScreenshotHotkeyAccelerator,
@@ -33,6 +37,7 @@ import {
 } from "./screenshots/screenshot-feature";
 
 type ScreenshotTriggerListener = (source: ScreenshotTriggerSource) => void;
+type OverlayTriggerListener = () => void;
 type ScreenshotTriggerChannel = "input" | "deeplink";
 type ScreenshotInputStatusListener = (status: ScreenshotInputStatus) => void;
 
@@ -40,12 +45,15 @@ export const SCREENSHOT_TRIGGER_COOLDOWN_MS = 500;
 export const SCREENSHOT_INPUT_RESTART_DELAY_MS = 5_000;
 export const SCREENSHOT_INPUT_MAX_RESTARTS = 3;
 export const SCREENSHOT_INPUT_STABLE_RUN_MS = 60_000;
+const OVERLAY_SUPPORTED = process.platform === "win32";
 
 export interface ScreenshotInputSettings {
   enabled: boolean;
   hotkey: ScreenshotHotkeyBinding;
   gamepadEnabled: boolean;
   gamepadCombo: ScreenshotGamepadButton[];
+  overlayEnabled: boolean;
+  overlayHotkey: OverlayHotkeyBinding;
 }
 
 const SCREENSHOT_INPUT_BACKENDS = new Set<ScreenshotInputBackend>([
@@ -66,14 +74,33 @@ const INACTIVE_STATUS: ScreenshotInputStatus = {
 
 export const getScreenshotInputSettings = (
   preferences: UserPreferences | null | undefined
-): ScreenshotInputSettings => ({
-  enabled: preferences?.screenshotsEnabled ?? true,
-  hotkey: normalizeScreenshotHotkey(preferences?.screenshotHotkey),
-  gamepadEnabled: preferences?.screenshotGamepadEnabled ?? true,
-  gamepadCombo: normalizeScreenshotGamepadCombo(
-    preferences?.screenshotGamepadCombo
-  ),
-});
+): ScreenshotInputSettings => {
+  const hotkey = normalizeScreenshotHotkey(preferences?.screenshotHotkey);
+  const overlayHotkey = normalizeOverlayHotkey(preferences?.overlayHotkey);
+  let overlayEnabled = preferences?.overlayEnabled ?? true;
+
+  if (
+    overlayEnabled &&
+    isOverlaySameAsScreenshotHotkey(overlayHotkey, hotkey)
+  ) {
+    logger.warn(
+      "Overlay hotkey collides with the screenshot hotkey; overlay binding disabled",
+      { overlayHotkey, screenshotHotkey: hotkey }
+    );
+    overlayEnabled = false;
+  }
+
+  return {
+    enabled: preferences?.screenshotsEnabled ?? true,
+    hotkey,
+    gamepadEnabled: preferences?.screenshotGamepadEnabled ?? true,
+    gamepadCombo: normalizeScreenshotGamepadCombo(
+      preferences?.screenshotGamepadCombo
+    ),
+    overlayEnabled,
+    overlayHotkey,
+  };
+};
 
 export const toScreenshotInputNativeConfig = (
   settings: ScreenshotInputSettings
@@ -84,6 +111,13 @@ export const toScreenshotInputNativeConfig = (
   shift: settings.hotkey.shift,
   gamepadEnabled: settings.gamepadEnabled,
   gamepadButtons: [...settings.gamepadCombo],
+  screenshotEnabled: settings.enabled,
+  overlayKey:
+    OVERLAY_SUPPORTED && settings.overlayEnabled
+      ? settings.overlayHotkey.key
+      : null,
+  overlayAlt: settings.overlayHotkey.modifier === "alt",
+  overlayShift: settings.overlayHotkey.modifier === "shift",
 });
 
 const toBackend = (value: string): ScreenshotInputBackend =>
@@ -167,6 +201,7 @@ const isSameStatus = (
 
 export class ScreenshotInputService {
   private static readonly listeners = new Set<ScreenshotTriggerListener>();
+  private static readonly overlayListeners = new Set<OverlayTriggerListener>();
   private static readonly statusListeners =
     new Set<ScreenshotInputStatusListener>();
 
@@ -197,6 +232,13 @@ export class ScreenshotInputService {
     this.listeners.add(listener);
     return () => {
       this.listeners.delete(listener);
+    };
+  }
+
+  public static onOverlayTrigger(listener: OverlayTriggerListener) {
+    this.overlayListeners.add(listener);
+    return () => {
+      this.overlayListeners.delete(listener);
     };
   }
 
@@ -270,9 +312,12 @@ export class ScreenshotInputService {
 
   public static refreshStatus(): ScreenshotInputStatus {
     if (this.listening || this.shuttingDown) return this.status;
-    if (!this.featureEnabled) {
+    if (!this.featureEnabled) void this.refreshFeatureFlag();
+    if (
+      !this.featureEnabled &&
+      !(OVERLAY_SUPPORTED && this.settings.overlayEnabled)
+    ) {
       this.setStatus({ ...INACTIVE_STATUS });
-      void this.refreshFeatureFlag();
       return this.status;
     }
 
@@ -339,7 +384,11 @@ export class ScreenshotInputService {
   private static applyFeatureFlag(featureEnabled: boolean) {
     if (this.shuttingDown || featureEnabled === this.featureEnabled) return;
     this.featureEnabled = featureEnabled;
+    if (!featureEnabled) this.unregisterPortalShortcut();
     this.reconcile(this.settings);
+    if (this.listening && this.nativeStatus) {
+      this.applyListeningStatus(this.nativeStatus);
+    }
     if (!this.listening) this.refreshStatus();
   }
 
@@ -347,8 +396,8 @@ export class ScreenshotInputService {
     return (
       this.initialized &&
       !this.shuttingDown &&
-      this.featureEnabled &&
-      this.settings.enabled &&
+      ((this.featureEnabled && this.settings.enabled) ||
+        (OVERLAY_SUPPORTED && this.settings.overlayEnabled)) &&
       this.gamesRunning
     );
   }
@@ -373,7 +422,8 @@ export class ScreenshotInputService {
     }
 
     if (
-      !isSameScreenshotHotkey(previous.hotkey, this.settings.hotkey) &&
+      (!isSameScreenshotHotkey(previous.hotkey, this.settings.hotkey) ||
+        previous.enabled !== this.settings.enabled) &&
       this.nativeStatus
     ) {
       this.unregisterPortalShortcut();
@@ -385,7 +435,13 @@ export class ScreenshotInputService {
       !isSameScreenshotGamepadCombo(
         previous.gamepadCombo,
         this.settings.gamepadCombo
-      )
+      ) ||
+      previous.overlayEnabled !== this.settings.overlayEnabled ||
+      !isSameOverlayHotkey(
+        previous.overlayHotkey,
+        this.settings.overlayHotkey
+      ) ||
+      previous.enabled !== this.settings.enabled
     ) {
       try {
         NativeAddon.updateScreenshotInputBinding(
@@ -424,7 +480,10 @@ export class ScreenshotInputService {
     nativeStatus: ScreenshotInputNativeStatus
   ) {
     const effectiveStatus =
-      shouldUsePortalShortcut(nativeStatus) && this.registerPortalShortcut()
+      this.featureEnabled &&
+      this.settings.enabled &&
+      shouldUsePortalShortcut(nativeStatus) &&
+      this.registerPortalShortcut()
         ? withPortalKeyboard(nativeStatus)
         : nativeStatus;
     const status = toScreenshotInputStatus(
@@ -513,11 +572,38 @@ export class ScreenshotInputService {
       return;
     }
 
+    if (event.source === "overlay") {
+      logger.debug("Overlay native trigger", {
+        backend: event.backend,
+      });
+      this.triggerOverlay();
+      return;
+    }
+
     logger.debug("Screenshot native trigger", {
       source: event.source,
       backend: event.backend,
     });
     if (isNativeTriggerSource(event.source)) this.trigger(event.source);
+  }
+
+  private static triggerOverlay() {
+    if (!this.settings.overlayEnabled) {
+      logger.debug("Overlay trigger ignored: input disabled");
+      return;
+    }
+    if (!hasTrackedGamesRunning()) {
+      logger.debug("Overlay trigger ignored: no tracked game running");
+      return;
+    }
+
+    for (const listener of this.overlayListeners) {
+      try {
+        listener();
+      } catch (error) {
+        logger.error("Overlay trigger listener failed", error);
+      }
+    }
   }
 
   private static handleBackendStopped(event: ScreenshotInputNativeEvent) {

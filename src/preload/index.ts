@@ -9,6 +9,9 @@ import type {
   DownloadProgress,
   UserPreferences,
   ScreenshotInputStatus,
+  OverlayPanel,
+  OverlayPanelState,
+  OverlayState,
   AppUpdaterEvent,
   StartGameDownloadPayload,
   GameRunning,
@@ -1005,6 +1008,31 @@ contextBridge.exposeInMainWorld("electron", {
   },
   getScreenshotInputStatus: (): Promise<ScreenshotInputStatus> =>
     ipcRenderer.invoke("getScreenshotInputStatus"),
+  getOverlayState: (): Promise<OverlayState> =>
+    ipcRenderer.invoke("getOverlayState"),
+  closeOverlay: () => ipcRenderer.invoke("closeOverlay"),
+  openOverlayPanel: (panel: OverlayPanel) =>
+    ipcRenderer.invoke("openOverlayPanel", panel),
+  closeOverlayPanel: (panel: OverlayPanel) =>
+    ipcRenderer.invoke("closeOverlayPanel", panel),
+  setOverlayPanelPinned: (panel: OverlayPanel, pinned: boolean) =>
+    ipcRenderer.invoke("setOverlayPanelPinned", panel, pinned),
+  getOverlayPanelState: (panel: OverlayPanel): Promise<OverlayPanelState> =>
+    ipcRenderer.invoke("getOverlayPanelState", panel),
+  onOverlayPanelState: (cb: (state: OverlayPanelState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: OverlayPanelState
+    ) => cb(state);
+    ipcRenderer.on("on-overlay-panel-state", listener);
+    return () => ipcRenderer.removeListener("on-overlay-panel-state", listener);
+  },
+  onOverlayState: (cb: (state: OverlayState) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, state: OverlayState) =>
+      cb(state);
+    ipcRenderer.on("on-overlay-state", listener);
+    return () => ipcRenderer.removeListener("on-overlay-state", listener);
+  },
   onScreenshotInputStatusChange: (
     cb: (status: ScreenshotInputStatus) => void
   ) => {

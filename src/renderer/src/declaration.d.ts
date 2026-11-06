@@ -12,6 +12,9 @@ import type {
   SeedingStatus,
   UserPreferences,
   ScreenshotInputStatus,
+  OverlayPanel,
+  OverlayPanelState,
+  OverlayState,
   StartGameDownloadPayload,
   RealDebridUser,
   PremiumizeUser,
@@ -1037,6 +1040,21 @@ declare global {
       cb: (preferences: UserPreferences | null) => void
     ) => () => Electron.IpcRenderer;
     getScreenshotInputStatus: () => Promise<ScreenshotInputStatus>;
+    getOverlayState: () => Promise<OverlayState>;
+    closeOverlay: () => Promise<void>;
+    openOverlayPanel: (panel: OverlayPanel) => Promise<void>;
+    closeOverlayPanel: (panel: OverlayPanel) => Promise<void>;
+    setOverlayPanelPinned: (
+      panel: OverlayPanel,
+      pinned: boolean
+    ) => Promise<void>;
+    getOverlayPanelState: (panel: OverlayPanel) => Promise<OverlayPanelState>;
+    onOverlayPanelState: (
+      cb: (state: OverlayPanelState) => void
+    ) => () => Electron.IpcRenderer;
+    onOverlayState: (
+      cb: (state: OverlayState) => void
+    ) => () => Electron.IpcRenderer;
     onScreenshotInputStatusChange: (
       cb: (status: ScreenshotInputStatus) => void
     ) => () => Electron.IpcRenderer;

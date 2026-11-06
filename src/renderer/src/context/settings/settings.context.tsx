@@ -15,6 +15,7 @@ export type SettingsCategoryId =
   | "notifications"
   | "content_gameplay"
   | "screenshots"
+  | "overlay"
   | "integrations"
   | "compatibility"
   | "account_privacy"
@@ -38,6 +39,7 @@ const isSettingsCategoryId = (value: string): value is SettingsCategoryId => {
     "notifications",
     "content_gameplay",
     "screenshots",
+    "overlay",
     "integrations",
     "compatibility",
     "account_privacy",

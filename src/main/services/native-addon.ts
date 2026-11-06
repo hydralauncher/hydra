@@ -53,6 +53,10 @@ export interface ScreenshotInputNativeConfig {
   shift: boolean;
   gamepadEnabled: boolean;
   gamepadButtons: string[];
+  screenshotEnabled?: boolean;
+  overlayKey?: string | null;
+  overlayAlt?: boolean;
+  overlayShift?: boolean;
 }
 
 export interface ScreenshotInputNativeEvent {
