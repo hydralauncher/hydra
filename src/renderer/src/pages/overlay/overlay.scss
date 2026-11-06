@@ -148,7 +148,6 @@ $overlay-duration: 180ms;
       transparent 55%
     ),
     linear-gradient(to bottom, rgba(3, 5, 8, 0.28), rgba(3, 5, 8, 0.78));
-  backdrop-filter: blur(4px);
   color: globals.$body-color;
   font-family:
     Noto Sans,
@@ -307,7 +306,10 @@ $overlay-duration: 180ms;
 .overlay-panel {
   width: 100vw;
   height: 100vh;
-  animation: overlay-panel-in $overlay-duration $overlay-ease both;
+
+  &--visible {
+    animation: overlay-panel-in $overlay-duration $overlay-ease both;
+  }
 
   &--closing {
     pointer-events: none;
@@ -425,6 +427,103 @@ $overlay-duration: 180ms;
       background-color: rgba(0, 0, 0, 0.12);
     }
 
+    @keyframes overlay-browser-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .overlay-browser {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+
+      &__toolbar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+        height: 52px;
+        padding: 0 10px;
+        background-color: rgba(20, 24, 28, 0.9);
+        border-bottom: 1px solid globals.$border-color;
+      }
+
+      &__button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 32px;
+        height: 28px;
+        padding: 0;
+        color: globals.$body-color;
+        background-color: transparent;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition:
+          background-color 0.15s ease,
+          color 0.15s ease,
+          opacity 0.15s ease;
+
+        &:hover:not(:disabled) {
+          color: #ffffff;
+          background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        &:disabled {
+          opacity: 0.35;
+          cursor: default;
+        }
+
+        &:focus-visible {
+          outline: 2px solid globals.$brand-teal;
+          outline-offset: -2px;
+        }
+
+        &--loading svg {
+          animation: overlay-browser-spin 0.9s linear infinite;
+        }
+      }
+
+      &__address {
+        flex: 1;
+        min-width: 0;
+        height: 30px;
+        padding: 0 10px;
+        color: globals.$muted-color;
+        font-family: inherit;
+        font-size: globals.$small-font-size;
+        background-color: rgba(0, 0, 0, 0.3);
+        border: 1px solid globals.$border-color;
+        border-radius: 6px;
+        outline: none;
+
+        &:focus {
+          border-color: globals.$brand-teal;
+        }
+
+        &::placeholder {
+          color: rgba(globals.$body-color, 0.45);
+        }
+      }
+
+      &__view-spacer {
+        flex: 1;
+        min-height: 0;
+      }
+    }
+
+    .overlay-leaderboard {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
     .overlay-achievements {
       overflow-y: auto;
     }
@@ -449,7 +548,6 @@ $overlay-duration: 180ms;
   height: 100%;
   padding: calc(globals.$spacing-unit * 2);
   background-color: rgba(8, 8, 8, 0.82);
-  backdrop-filter: blur(10px);
   color: globals.$body-color;
   font-family:
     Noto Sans,

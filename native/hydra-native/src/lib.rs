@@ -128,6 +128,71 @@ pub fn get_windows_window_bounds(window_handle: String) -> Option<NativeWindowBo
     })
 }
 
+#[napi]
+pub fn focus_windows_window(window_handle: String) -> bool {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Foundation::HWND;
+        use windows_sys::Win32::System::Threading::AttachThreadInput;
+        use windows_sys::Win32::UI::Input::KeyboardAndMouse::SetFocus;
+        use windows_sys::Win32::UI::WindowsAndMessaging::{
+            GetForegroundWindow, GetWindowThreadProcessId, IsIconic,
+            SetForegroundWindow, ShowWindow, SW_RESTORE,
+        };
+
+        let Ok(handle) = window_handle.parse::<i64>() else {
+            return false;
+        };
+        if handle <= 0 {
+            return false;
+        }
+
+        let window = handle as isize as HWND;
+        unsafe {
+            if IsIconic(window) != 0 {
+                ShowWindow(window, SW_RESTORE);
+            }
+
+            if SetForegroundWindow(window) != 0 {
+                return true;
+            }
+
+            // Windows can reject SetForegroundWindow when the target belongs to
+            // another input queue. Temporarily attach to that queue and retry.
+            let foreground = GetForegroundWindow();
+            if foreground.is_null() {
+                return false;
+            }
+
+            let foreground_thread =
+                GetWindowThreadProcessId(foreground, std::ptr::null_mut());
+            let target_thread = GetWindowThreadProcessId(window, std::ptr::null_mut());
+
+            if foreground_thread == 0
+                || target_thread == 0
+                || foreground_thread == target_thread
+            {
+                return false;
+            }
+
+            if AttachThreadInput(foreground_thread, target_thread, 1) == 0 {
+                return false;
+            }
+
+            let focused = SetForegroundWindow(window);
+            SetFocus(window);
+            AttachThreadInput(foreground_thread, target_thread, 0);
+
+            focused != 0
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = window_handle;
+        false
+    }
+}
+
 #[napi(object)]
 pub struct NativeDesktopFrame {
     pub width: u32,

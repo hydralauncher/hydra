@@ -15,3 +15,13 @@ registerEvent("setOverlayPanelPinned", (_event, panel, pinned) =>
 registerEvent("getOverlayPanelState", (_event, panel) =>
   OverlayService.getPanelState(panel)
 );
+registerEvent("getOverlayBrowserState", () => OverlayService.getBrowserState());
+registerEvent("navigateOverlayBrowser", (_event, url) =>
+  OverlayService.navigateBrowser(url)
+);
+registerEvent("overlayBrowserGoBack", () => OverlayService.browserGoBack());
+registerEvent("overlayBrowserGoForward", () =>
+  OverlayService.browserGoForward()
+);
+registerEvent("overlayBrowserReload", () => OverlayService.browserReload());
+registerEvent("overlayBrowserHome", () => OverlayService.browserHome());

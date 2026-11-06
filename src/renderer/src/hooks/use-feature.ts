@@ -33,27 +33,71 @@ export const readCachedFeatures = (): string[] => {
   }
 };
 
+let latestFeatures: string[] | null = null;
+let featuresRequest: Promise<string[]> | null = null;
+const featureListeners = new Set<(features: string[]) => void>();
+
+const loadFeatures = () => {
+  if (featuresRequest) return featuresRequest;
+
+  featuresRequest = window.electron.hydraApi
+    .get<string[]>("/features", { needsAuth: false })
+    .then((response) => {
+      const safeFeatures = ensureArray<string>(response, "/features");
+      latestFeatures = safeFeatures;
+      localStorage.setItem("features", JSON.stringify(safeFeatures));
+      return safeFeatures;
+    })
+    .catch((error) => {
+      logger.error(error);
+      throw error;
+    })
+    .finally(() => {
+      featuresRequest = null;
+    });
+
+  return featuresRequest;
+};
+
 export function useFeature() {
-  const [features, setFeatures] = useState<string[] | null>(null);
+  const [features, setFeatures] = useState<string[] | null>(latestFeatures);
   const [hasFeaturesFailed, setHasFeaturesFailed] = useState(false);
 
   useEffect(() => {
-    window.electron.hydraApi
-      .get<string[]>("/features", { needsAuth: false })
-      .then((response) => {
-        const safeFeatures = ensureArray<string>(response, "/features");
-        localStorage.setItem("features", JSON.stringify(safeFeatures));
-        setFeatures(safeFeatures);
-      })
-      .catch((error) => {
-        logger.error(error);
-        setHasFeaturesFailed(true);
-      });
+    let cancelled = false;
+
+    const listener = (nextFeatures: string[]) => {
+      if (cancelled) return;
+      setFeatures(nextFeatures);
+    };
+
+    featureListeners.add(listener);
+
+    if (latestFeatures) {
+      setFeatures(latestFeatures);
+    } else {
+      void loadFeatures()
+        .then((nextFeatures) => {
+          for (const featureListener of featureListeners) {
+            featureListener(nextFeatures);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setHasFeaturesFailed(true);
+        });
+    }
+
+    return () => {
+      cancelled = true;
+      featureListeners.delete(listener);
+    };
   }, []);
 
   const isFeatureEnabled = useCallback(
     (feature: Feature) => {
-      return (features ?? readCachedFeatures()).includes(feature);
+      return (features ?? latestFeatures ?? readCachedFeatures()).includes(
+        feature
+      );
     },
     [features]
   );

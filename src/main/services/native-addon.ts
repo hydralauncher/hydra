@@ -174,6 +174,7 @@ type HydraNativeModule = {
   getWindowsWindowBounds?: (
     windowHandle: string
   ) => NativeWindowBoundsResponse | null;
+  focusWindowsWindow?: (windowHandle: string) => boolean;
   prepareWindowsDesktopCapture?: () => Promise<void>;
   releaseWindowsDesktopCapture?: () => Promise<void>;
   captureWindowsDesktopFrame?: (
@@ -578,6 +579,17 @@ export class NativeAddon {
     } catch (error) {
       logger.error("Failed to read the Windows window bounds", error);
       return null;
+    }
+  }
+
+  public static focusWindowsWindow(windowHandle: string) {
+    if (process.platform !== "win32") return false;
+
+    try {
+      return this.load().focusWindowsWindow?.(windowHandle) ?? false;
+    } catch (error) {
+      logger.error("Failed to focus the Windows game window", error);
+      return false;
     }
   }
 

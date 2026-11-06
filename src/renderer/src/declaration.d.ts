@@ -12,6 +12,7 @@ import type {
   SeedingStatus,
   UserPreferences,
   ScreenshotInputStatus,
+  OverlayBrowserState,
   OverlayPanel,
   OverlayPanelState,
   OverlayState,
@@ -1051,6 +1052,15 @@ declare global {
     getOverlayPanelState: (panel: OverlayPanel) => Promise<OverlayPanelState>;
     onOverlayPanelState: (
       cb: (state: OverlayPanelState) => void
+    ) => () => Electron.IpcRenderer;
+    getOverlayBrowserState: () => Promise<OverlayBrowserState>;
+    navigateOverlayBrowser: (url: string) => Promise<void>;
+    overlayBrowserGoBack: () => Promise<void>;
+    overlayBrowserGoForward: () => Promise<void>;
+    overlayBrowserReload: () => Promise<void>;
+    overlayBrowserHome: () => Promise<void>;
+    onOverlayBrowserState: (
+      cb: (state: OverlayBrowserState) => void
     ) => () => Electron.IpcRenderer;
     onOverlayState: (
       cb: (state: OverlayState) => void

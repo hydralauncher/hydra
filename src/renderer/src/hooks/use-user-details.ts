@@ -13,6 +13,8 @@ import type {
   FriendRequest,
 } from "@types";
 
+let userDetailsRequest: Promise<UserDetails | null> | null = null;
+
 export function useUserDetails() {
   const dispatch = useAppDispatch();
 
@@ -46,15 +48,21 @@ export function useUserDetails() {
   );
 
   const fetchUserDetails = useCallback(async () => {
-    return globalThis.window.electron.getMe().then((userDetails) => {
-      if (userDetails == null) {
-        clearUserDetails();
-      }
+    if (!userDetailsRequest) {
+      userDetailsRequest = globalThis.window.electron.getMe().finally(() => {
+        userDetailsRequest = null;
+      });
+    }
 
-      window["userDetails"] = userDetails;
+    const userDetails = await userDetailsRequest;
 
-      return userDetails;
-    });
+    if (userDetails == null) {
+      clearUserDetails();
+    }
+
+    window["userDetails"] = userDetails;
+
+    return userDetails;
   }, [clearUserDetails]);
 
   const patchUser = useCallback(

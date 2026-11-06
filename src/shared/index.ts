@@ -48,6 +48,7 @@ export * from "./cloud-save-access";
 export * from "./cloud-save-emulator-provider";
 export * from "./screenshot-input";
 export * from "./overlay-input";
+export * from "./overlay-browser";
 export * from "./profile-friends";
 export * from "./classics-disc-label";
 export {

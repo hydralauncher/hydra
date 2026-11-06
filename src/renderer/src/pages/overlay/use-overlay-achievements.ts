@@ -3,6 +3,10 @@ import { useEffect, useState } from "react";
 import type { OverlayGameInfo, UserAchievement } from "@types";
 
 const electron = globalThis.electron as Electron;
+const achievementsRequests = new Map<
+  string,
+  Promise<UserAchievement[] | null>
+>();
 
 interface OverlayAchievements {
   achievements: UserAchievement[];
@@ -27,10 +31,24 @@ export const useOverlayAchievements = (
 
     let cancelled = false;
 
-    const request =
-      game.shop === "launchbox" && retroAchievementsWebApiKey
-        ? electron.getRetroAchievementsAchievements(game.objectId, game.shop)
-        : electron.getUnlockedAchievements(game.objectId, game.shop);
+    const requestKey = `${game.shop}:${game.objectId}:${
+      retroAchievementsWebApiKey ? "retro" : "default"
+    }`;
+
+    let request = achievementsRequests.get(requestKey);
+
+    if (!request) {
+      request =
+        game.shop === "launchbox" && retroAchievementsWebApiKey
+          ? electron.getRetroAchievementsAchievements(game.objectId, game.shop)
+          : electron.getUnlockedAchievements(game.objectId, game.shop);
+
+      achievementsRequests.set(requestKey, request);
+      request.then(
+        () => achievementsRequests.delete(requestKey),
+        () => achievementsRequests.delete(requestKey)
+      );
+    }
 
     request
       .then((result) => {

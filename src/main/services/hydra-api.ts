@@ -64,6 +64,7 @@ export class HydraApi {
     generation: number;
     promise: Promise<{ accessToken: string; expiresIn: number }>;
   } | null = null;
+  private static readonly inFlightGets = new Map<string, Promise<unknown>>();
 
   public static getAuthContext() {
     return this.authContexts.getContext();
@@ -721,7 +722,28 @@ export class HydraApi {
   ) {
     const generation = await this.validateOptions(options);
     const config = this.requestConfig(options, generation);
-    return this.instance
+
+    const canDedupe =
+      !options?.signal && !options?.validateStatus && !options?.authContext;
+    const requestKey = canDedupe
+      ? [
+          generation,
+          url,
+          JSON.stringify(params ?? null),
+          options?.needsAuth ?? "default",
+          options?.needsSubscription ?? "default",
+          options?.ifNoneMatch ?? "",
+          options?.ifModifiedSince?.toISOString() ?? "",
+          options?.timeout ?? "",
+        ].join("|")
+      : null;
+
+    if (requestKey) {
+      const existing = this.inFlightGets.get(requestKey);
+      if (existing) return existing as Promise<T>;
+    }
+
+    const request = this.instance
       .get<T>(url, {
         ...config,
         params,
@@ -736,6 +758,16 @@ export class HydraApi {
         return response.data;
       })
       .catch((err) => this.requestError(err, options, generation));
+
+    if (requestKey) {
+      this.inFlightGets.set(requestKey, request);
+      request.then(
+        () => this.inFlightGets.delete(requestKey),
+        () => this.inFlightGets.delete(requestKey)
+      );
+    }
+
+    return request;
   }
 
   static async getResponse<T = any>(

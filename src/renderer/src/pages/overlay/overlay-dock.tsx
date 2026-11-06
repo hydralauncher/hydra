@@ -1,6 +1,13 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { PeopleIcon, PinIcon, TrophyIcon, XIcon } from "@primer/octicons-react";
+import {
+  GlobeIcon,
+  GraphIcon,
+  PeopleIcon,
+  PinIcon,
+  TrophyIcon,
+  XIcon,
+} from "@primer/octicons-react";
 import cn from "classnames";
 import { formatOverlayHotkey, normalizeOverlayHotkey } from "@shared";
 
@@ -8,6 +15,7 @@ import { Avatar } from "@renderer/components";
 import { setUserPreferences } from "@renderer/features";
 import { useAppDispatch, useAppSelector } from "@renderer/hooks";
 import type { OverlayPanel, OverlayState } from "@types";
+import { isLeaderboardShop } from "../game-details/leaderboard/game-leaderboard";
 
 const electron = globalThis.electron as Electron;
 
@@ -24,6 +32,8 @@ export function OverlayDock({ state }: Readonly<OverlayDockProps>) {
   const preferences = useAppSelector((state) => state.userPreferences.value);
 
   useEffect(() => {
+    if (preferences) return;
+
     let cancelled = false;
 
     void electron
@@ -36,14 +46,18 @@ export function OverlayDock({ state }: Readonly<OverlayDockProps>) {
     return () => {
       cancelled = true;
     };
-  }, [dispatch]);
+  }, [dispatch, preferences]);
 
   if (!state.game) return null;
 
   const overlayHotkey = normalizeOverlayHotkey(preferences?.overlayHotkey);
   const chat = panelStatus(state, "chat");
   const achievements = panelStatus(state, "achievements");
+  const leaderboard = panelStatus(state, "leaderboard");
+  const browser = panelStatus(state, "browser");
   const showAchievements = state.game.achievementCount !== 0;
+  const showLeaderboard = isLeaderboardShop(state.game.shop);
+  const showBrowser = preferences?.overlayBrowserEnabled ?? true;
 
   return (
     <div className="overlay-dock">
@@ -95,6 +109,40 @@ export function OverlayDock({ state }: Readonly<OverlayDockProps>) {
               <TrophyIcon size={20} />
               <span>{t("achievements")}</span>
               {achievements?.isPinned && (
+                <PinIcon size={10} className="overlay-dock__pin" />
+              )}
+            </button>
+          )}
+
+          {showLeaderboard && (
+            <button
+              type="button"
+              className={cn("overlay-dock__button", {
+                "overlay-dock__button--active": leaderboard?.isOpen,
+              })}
+              onClick={() => void electron.openOverlayPanel("leaderboard")}
+              aria-pressed={Boolean(leaderboard?.isOpen)}
+            >
+              <GraphIcon size={20} />
+              <span>{t("leaderboard")}</span>
+              {leaderboard?.isPinned && (
+                <PinIcon size={10} className="overlay-dock__pin" />
+              )}
+            </button>
+          )}
+
+          {showBrowser && (
+            <button
+              type="button"
+              className={cn("overlay-dock__button", {
+                "overlay-dock__button--active": browser?.isOpen,
+              })}
+              onClick={() => void electron.openOverlayPanel("browser")}
+              aria-pressed={Boolean(browser?.isOpen)}
+            >
+              <GlobeIcon size={20} />
+              <span>{t("browser")}</span>
+              {browser?.isPinned && (
                 <PinIcon size={10} className="overlay-dock__pin" />
               )}
             </button>

@@ -13,6 +13,7 @@ import { Button } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { useFeature } from "@renderer/hooks";
 import { AuthPage } from "@shared";
+import type { GameShop } from "@types";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import {
   buildMetricsRequest,
@@ -42,13 +43,32 @@ const LEADERBOARD_SKELETON_KEYS = Array.from(
   (_, index) => `leaderboard-skeleton-${index}`
 );
 
-export function LeaderboardSection() {
+export interface LeaderboardSectionProps {
+  /** Defaults to the game-details context. */
+  shop?: GameShop;
+  objectId?: string;
+  /** The game page wraps the section in a collapsible sidebar section. */
+  framed?: boolean;
+  showFullRankingLink?: boolean;
+  /** Replaces the default profile navigation, e.g. for the overlay. */
+  onUserSelect?: (userId: string) => void;
+}
+
+export function LeaderboardSection({
+  shop: shopProp,
+  objectId: objectIdProp,
+  framed = true,
+  showFullRankingLink = true,
+  onUserSelect,
+}: Readonly<LeaderboardSectionProps> = {}) {
   const { t } = useTranslation("leaderboard");
   const { catalogueGame } = useContext(gameDetailsContext);
   const navigate = useNavigate();
   const { isFeatureEnabled, Feature } = useFeature();
   const isExtended = isFeatureEnabled(Feature.GameLeaderboardsExtended);
   const formatValue = useLeaderboardValue();
+  const shop = shopProp ?? catalogueGame.shop;
+  const objectId = objectIdProp ?? catalogueGame.objectId;
 
   const {
     period,
@@ -90,8 +110,8 @@ export function LeaderboardSection() {
     dataPeriod,
     retry,
   } = useGameLeaderboard({
-    shop: catalogueGame.shop,
-    objectId: catalogueGame.objectId,
+    shop,
+    objectId,
     period,
     scope: selectedScope,
     metric: requestedMetric,
@@ -222,6 +242,7 @@ export function LeaderboardSection() {
                 value={formatValue(dataMetric, row.entry.value)}
                 showProgress={false}
                 strip
+                onSelect={onUserSelect}
               />
             ))}
           </ol>
@@ -249,6 +270,7 @@ export function LeaderboardSection() {
                 value={formatValue(dataMetric, row.entry.value)}
                 showProgress={false}
                 strip
+                onSelect={onUserSelect}
               />
             ))}
           </ol>
@@ -278,23 +300,24 @@ export function LeaderboardSection() {
               value={formatValue(dataMetric, row.entry.value)}
               showProgress={false}
               strip
+              onSelect={onUserSelect}
               subtitle={row.isViewer ? renderNudge() : null}
             />
           ))}
         </ol>
 
-        {isLoggedIn && (
+        {isLoggedIn && showFullRankingLink && (
           <div className="leaderboard-section__footer">
             <button
               type="button"
               className="leaderboard-section__see-all"
               onClick={() =>
                 navigate(
-                  buildGameLeaderboardPath(
-                    catalogueGame.shop,
-                    catalogueGame.objectId,
-                    { period: dataPeriod, scope: dataScope, metric: dataMetric }
-                  )
+                  buildGameLeaderboardPath(shop, objectId, {
+                    period: dataPeriod,
+                    scope: dataScope,
+                    metric: dataMetric,
+                  })
                 )
               }
             >
@@ -307,44 +330,50 @@ export function LeaderboardSection() {
     );
   };
 
+  const content = (
+    <div className="leaderboard-section">
+      <LeaderboardControls
+        period={period}
+        scope={scope}
+        metric={metric}
+        showScope={isExtended && isLoggedIn}
+        metrics={servedMetrics}
+        showMetrics={isExtended && servedMetrics.length > 1}
+        onPeriodChange={setPeriod}
+        onScopeChange={setSelectedScope}
+        onMetricChange={setSelectedMetric}
+      />
+
+      {renderBody()}
+
+      {!isLoggedIn && state !== "loading" && (
+        <div className="leaderboard-section__sign-in">
+          <p className="leaderboard-section__sign-in-text">
+            {t(isExtended ? "sign_in_hint" : "sign_in_hint_position")}
+          </p>
+          <button
+            type="button"
+            className="leaderboard-section__sign-in-button"
+            onClick={() =>
+              globalThis.window.electron.openAuthWindow(AuthPage.SignIn)
+            }
+          >
+            {t("sign_in")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  if (!framed) return content;
+
   return (
     <SidebarSection
       title={
         isExtended ? `${t("title")} · ${t(`metric_${metric}`)}` : t("title")
       }
     >
-      <div className="leaderboard-section">
-        <LeaderboardControls
-          period={period}
-          scope={scope}
-          metric={metric}
-          showScope={isExtended && isLoggedIn}
-          metrics={servedMetrics}
-          showMetrics={isExtended && servedMetrics.length > 1}
-          onPeriodChange={setPeriod}
-          onScopeChange={setSelectedScope}
-          onMetricChange={setSelectedMetric}
-        />
-
-        {renderBody()}
-
-        {!isLoggedIn && state !== "loading" && (
-          <div className="leaderboard-section__sign-in">
-            <p className="leaderboard-section__sign-in-text">
-              {t(isExtended ? "sign_in_hint" : "sign_in_hint_position")}
-            </p>
-            <button
-              type="button"
-              className="leaderboard-section__sign-in-button"
-              onClick={() =>
-                globalThis.window.electron.openAuthWindow(AuthPage.SignIn)
-              }
-            >
-              {t("sign_in")}
-            </button>
-          </div>
-        )}
-      </div>
+      {content}
     </SidebarSection>
   );
 }

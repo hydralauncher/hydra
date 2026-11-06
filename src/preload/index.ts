@@ -9,6 +9,7 @@ import type {
   DownloadProgress,
   UserPreferences,
   ScreenshotInputStatus,
+  OverlayBrowserState,
   OverlayPanel,
   OverlayPanelState,
   OverlayState,
@@ -1026,6 +1027,23 @@ contextBridge.exposeInMainWorld("electron", {
     ) => cb(state);
     ipcRenderer.on("on-overlay-panel-state", listener);
     return () => ipcRenderer.removeListener("on-overlay-panel-state", listener);
+  },
+  getOverlayBrowserState: (): Promise<OverlayBrowserState> =>
+    ipcRenderer.invoke("getOverlayBrowserState"),
+  navigateOverlayBrowser: (url: string) =>
+    ipcRenderer.invoke("navigateOverlayBrowser", url),
+  overlayBrowserGoBack: () => ipcRenderer.invoke("overlayBrowserGoBack"),
+  overlayBrowserGoForward: () => ipcRenderer.invoke("overlayBrowserGoForward"),
+  overlayBrowserReload: () => ipcRenderer.invoke("overlayBrowserReload"),
+  overlayBrowserHome: () => ipcRenderer.invoke("overlayBrowserHome"),
+  onOverlayBrowserState: (cb: (state: OverlayBrowserState) => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      state: OverlayBrowserState
+    ) => cb(state);
+    ipcRenderer.on("on-overlay-browser-state", listener);
+    return () =>
+      ipcRenderer.removeListener("on-overlay-browser-state", listener);
   },
   onOverlayState: (cb: (state: OverlayState) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, state: OverlayState) =>
