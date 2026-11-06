@@ -8,6 +8,12 @@ export const isEditableTarget = (target: EventTarget | null) =>
 export const isDialogOpen = () =>
   document.querySelector(OPEN_DIALOG_SELECTOR) !== null;
 
+export const isTopmostDialog = (dialog: Element | null) => {
+  if (!dialog) return false;
+  const openDialogs = document.querySelectorAll(OPEN_DIALOG_SELECTOR);
+  return openDialogs[openDialogs.length - 1] === dialog;
+};
+
 export const hasShortcutModifier = (event: KeyboardEvent) =>
   event.ctrlKey || event.metaKey || event.altKey || event.shiftKey;
 

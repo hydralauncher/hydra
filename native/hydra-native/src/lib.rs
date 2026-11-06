@@ -1,8 +1,15 @@
 mod active_window;
 mod cloud_save;
 mod constants;
+mod desktop_duplication;
+mod in_place_extraction;
+mod kde_focus;
 mod linux_process;
+mod screenshot_input;
 mod torrent;
+mod window_bounds;
+mod window_client;
+mod window_order;
 
 pub use cloud_save::hashing::{build_snapshot_aggregate_hash, hash_local_save_file};
 pub use cloud_save::local_snapshot::build_local_game_snapshot;
@@ -27,7 +34,7 @@ use image::codecs::png::PngDecoder;
 use image::codecs::webp::WebPDecoder;
 use image::imageops::{crop_imm, resize, FilterType};
 use image::{AnimationDecoder, Frame, ImageFormat, ImageReader, ImageResult, RgbaImage};
-use napi::bindgen_prelude::Error;
+use napi::bindgen_prelude::{Buffer, Error};
 use napi_derive::napi;
 use sysinfo::{ProcessesToUpdate, System};
 use uuid::Uuid;
@@ -72,6 +79,153 @@ pub fn get_linux_active_window() -> Option<NativeActiveWindow> {
         window_id: window_id.to_string(),
         process_id,
     })
+}
+
+#[napi(object)]
+pub struct NativeForegroundWindow {
+    pub window_handle: String,
+    pub process_id: u32,
+}
+
+#[napi]
+pub fn get_windows_foreground_window() -> Option<NativeForegroundWindow> {
+    window_order::get_foreground_window().map(|(window_handle, process_id)| {
+        NativeForegroundWindow {
+            window_handle,
+            process_id,
+        }
+    })
+}
+
+#[napi(object)]
+pub struct NativeScreenRect {
+    pub left: i32,
+    pub top: i32,
+    pub right: i32,
+    pub bottom: i32,
+}
+
+#[napi(object)]
+pub struct NativeWindowBounds {
+    pub frame: NativeScreenRect,
+    pub client: NativeScreenRect,
+}
+
+fn to_native_rect(rect: window_bounds::ScreenRect) -> NativeScreenRect {
+    NativeScreenRect {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+    }
+}
+
+#[napi]
+pub fn get_windows_window_bounds(window_handle: String) -> Option<NativeWindowBounds> {
+    window_bounds::get_window_bounds(&window_handle).map(|bounds| NativeWindowBounds {
+        frame: to_native_rect(bounds.frame),
+        client: to_native_rect(bounds.client),
+    })
+}
+
+#[napi(object)]
+pub struct NativeDesktopFrame {
+    pub width: u32,
+    pub height: u32,
+    pub pixels: Buffer,
+}
+
+#[napi(object)]
+pub struct NativeBgraScreenshotOptions {
+    pub pixels: Buffer,
+    pub width: u32,
+    pub height: u32,
+    pub quality: u8,
+    pub preview_max_width: u32,
+    pub preview_quality: u8,
+}
+
+#[napi(object)]
+pub struct NativeEncodedScreenshot {
+    pub jpeg: Buffer,
+    pub preview: Buffer,
+}
+
+#[napi]
+pub async fn prepare_windows_desktop_capture() -> napi::Result<()> {
+    tokio::task::spawn_blocking(desktop_duplication::prepare_capture_device)
+        .await
+        .map_err(|err| Error::from_reason(err.to_string()))?
+        .map_err(Error::from_reason)
+}
+
+#[napi]
+pub async fn release_windows_desktop_capture() -> napi::Result<()> {
+    tokio::task::spawn_blocking(desktop_duplication::release_capture_device)
+        .await
+        .map_err(|err| Error::from_reason(err.to_string()))
+}
+
+#[napi]
+pub async fn capture_windows_desktop_frame(
+    window_handle: String,
+) -> napi::Result<Option<NativeDesktopFrame>> {
+    let frame = tokio::task::spawn_blocking(move || {
+        desktop_duplication::capture_window_monitor(&window_handle)
+    })
+    .await
+    .map_err(|err| Error::from_reason(err.to_string()))?
+    .map_err(Error::from_reason)?;
+
+    Ok(frame.map(|frame| NativeDesktopFrame {
+        width: frame.width,
+        height: frame.height,
+        pixels: frame.pixels.into(),
+    }))
+}
+
+#[napi]
+pub async fn encode_bgra_screenshot(
+    options: NativeBgraScreenshotOptions,
+) -> napi::Result<NativeEncodedScreenshot> {
+    let encoded = tokio::task::spawn_blocking(move || {
+        desktop_duplication::encode_bgra_screenshot(
+            &options.pixels,
+            options.width,
+            options.height,
+            options.quality,
+            options.preview_max_width,
+            options.preview_quality,
+        )
+    })
+    .await
+    .map_err(|err| Error::from_reason(err.to_string()))?
+    .map_err(Error::from_reason)?;
+
+    Ok(NativeEncodedScreenshot {
+        jpeg: encoded.jpeg.into(),
+        preview: encoded.preview.into(),
+    })
+}
+
+#[napi]
+pub fn get_linux_window_client_pid(window_id: String) -> Option<u32> {
+    window_client::get_window_client_pid(&window_id)
+}
+
+#[napi]
+pub fn get_kde_focused_process_id() -> napi::Result<Option<u32>> {
+    kde_focus::focused_process_id().map_err(Error::from_reason)
+}
+
+#[napi]
+pub fn start_kde_focus_watch() {
+    kde_focus::start_watch();
+}
+
+#[napi]
+pub fn stop_kde_focus_watch() {
+    kde_focus::stop();
 }
 
 #[napi]

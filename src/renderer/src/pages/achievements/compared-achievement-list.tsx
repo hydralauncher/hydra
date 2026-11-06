@@ -19,7 +19,6 @@ import { TextField } from "@renderer/components";
 import {
   type CSSProperties,
   Fragment,
-  type RefObject,
   useCallback,
   useMemo,
   useState,
@@ -62,7 +61,7 @@ export interface ComparedAchievementListProps {
   achievements: ComparedAchievements;
   owner: ComparedUser;
   target: ComparedUser;
-  scrollRef: RefObject<HTMLElement | null>;
+  scrollElement: HTMLElement | null;
 }
 
 type ComparedAchievement = ComparedAchievements["achievements"][number];
@@ -99,7 +98,7 @@ export function ComparedAchievementList({
   achievements,
   owner,
   target,
-  scrollRef,
+  scrollElement,
 }: Readonly<ComparedAchievementListProps>) {
   const { t, i18n } = useTranslation("achievement");
   const formatUnlockDateTime = (date: number) =>
@@ -272,7 +271,7 @@ export function ComparedAchievementList({
 
   const { listRef, virtualizer, getRowProps } = useVirtualAchievementList({
     count: entries.length,
-    scrollRef,
+    scrollElement,
     getItemKey: (index) => {
       const entry = entries[index];
       return entry.type === "set"

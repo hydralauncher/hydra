@@ -1,4 +1,7 @@
-import { parseEpicSyncRun } from "./sync-protocol.js";
+import {
+  epicConnectionCapabilities,
+  parseEpicSyncRun,
+} from "./sync-protocol.js";
 import { randomUUID } from "node:crypto";
 import type {
   EpicAccountData,
@@ -106,10 +109,9 @@ function validateEpicConnection(response: unknown): EpicConnection {
     epicAccountId: response.epicAccountId,
     displayName: response.displayName,
     connectedAt: response.connectedAt,
-    ...(isRecord(response.capabilities) &&
-    response.capabilities.achievementsSnapshotVersion === 1
-      ? { capabilities: { achievementsSnapshotVersion: 1 as const } }
-      : {}),
+    ...epicConnectionCapabilities(
+      isRecord(response.capabilities) ? response.capabilities : undefined
+    ),
     lastSyncedAt:
       response.lastSyncedAt === undefined || response.lastSyncedAt === null
         ? null

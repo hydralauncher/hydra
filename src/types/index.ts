@@ -1,3 +1,4 @@
+import type { ScreenshotCommentsPolicy } from "./screenshot.types";
 import type { Cracker, DownloadSourceStatus, Downloader } from "@shared";
 import type { SteamAppDetails } from "./steam.types";
 import type {
@@ -15,6 +16,7 @@ import type {
 } from "./game.types";
 import type { ArtworkAssetType } from "./artwork.types";
 import type { GameContentWarning } from "./souvenir.types";
+import type { RecompilationSummary } from "./recompilation.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 export * from "./download-contract";
@@ -62,6 +64,15 @@ export interface ProtonVersion {
   source?: "steam" | "compatibility_tools" | "unknown";
 }
 
+export interface CatalogueImageVariants {
+  base: string;
+  widths: number[];
+  thumbHash: string | null;
+}
+
+/** Resized CDN copies keyed by the original image URL. */
+export type CatalogueImages = Record<string, CatalogueImageVariants>;
+
 export interface ShopAssets {
   objectId: string;
   shop: GameShop;
@@ -77,6 +88,7 @@ export interface ShopAssets {
   epicArtworkUpdatedAtByType?: Partial<
     Record<"icon" | "portrait" | "landscape", number>
   >;
+  images?: CatalogueImages;
 }
 
 export type ShopDetails = SteamAppDetails & {
@@ -150,6 +162,7 @@ export interface GameRunning {
   objectId: string;
   shop: GameShop;
   sessionDurationInMillis: number;
+  recompilationSlug?: string;
 }
 
 export interface Steam250Game {
@@ -194,6 +207,8 @@ export interface UserFriend {
       })
     | null;
   isOnline?: boolean;
+  /* The Hydra team's account: it messages users, nobody messages it. */
+  isOfficial?: boolean;
 }
 
 export interface UserFriends {
@@ -327,6 +342,32 @@ export interface ChatMessagesPage {
   pendingMessages?: ChatPendingMessageDto[];
 }
 
+/* One row of GET /profile/chats: a conversation with at least one message. */
+export interface ChatConversationDto {
+  friendId: string;
+  /* As in the friends list, whatever the friend's visibility or relationship. */
+  friend: {
+    id: string;
+    displayName: string;
+    profileImageUrl: string | null;
+    isOfficial?: boolean;
+  };
+  lastMessage: ChatReplyDto & {
+    seq: number;
+    createdAt: string;
+  };
+  lastMessageAt: string;
+  lastReadSeq: number;
+  unreadCount: number;
+  canSend: boolean;
+}
+
+export interface ChatConversationsPage {
+  conversations: ChatConversationDto[];
+  /* Null on the last page. */
+  nextCursor: string | null;
+}
+
 export interface ChatUnreadSummary {
   totalUnread: number;
   conversations: {
@@ -341,6 +382,39 @@ export interface ChatUnreadState {
   totalUnread: number;
   byFriend: Record<string, number>;
   lastMessageAtByFriend?: Record<string, string>;
+  /* Bumped by each official messages poll, so an open chat window refetches. */
+  officialRevision?: number;
+}
+
+export interface OfficialMessageDto {
+  id: string;
+  seq: number;
+  senderId: string;
+  body: string;
+  locale: string;
+  attachments: ChatAttachmentDto[];
+  createdAt: string;
+  isUnread: boolean;
+}
+
+export interface OfficialMessagesPage {
+  sender: {
+    id: string;
+    displayName: string;
+    /* Null: the launcher shows its own logo. */
+    profileImageUrl: string | null;
+    isOfficial: boolean;
+  };
+  messages: OfficialMessageDto[];
+  unreadCount: number;
+  hasMoreBefore: boolean;
+  nextPollSeconds: number;
+}
+
+export interface OfficialUnreadSummary {
+  unreadCount: number;
+  latestSeq: number | null;
+  nextPollSeconds: number;
 }
 
 /* friendId is always the other side of the conversation, even for messages
@@ -457,6 +531,8 @@ export interface UserDetails {
   allowCloudGifts: boolean;
   allowLeaderboardNotifications?: boolean;
   souvenirsVisibility: ProfileVisibility;
+  screenshotsVisibility?: ProfileVisibility;
+  screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
   bio: string;
   workwondersJwt: string;
   subscription: Subscription | null;
@@ -534,6 +610,9 @@ export interface UserProfile {
   backgroundImageUrl: string | null;
   profileVisibility: ProfileVisibility;
   souvenirsVisibility: ProfileVisibility;
+  screenshotsVisibility?: ProfileVisibility;
+  screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
+  screenshotCount?: number;
   libraryGames: UserGame[];
   recentGames: UserGame[];
   friends: UserFriend[];
@@ -551,12 +630,128 @@ export interface UserProfile {
   badges: string[];
   badgesDetails?: { badge: string; unlockedAt: string }[];
   hasCompletedWrapped2025: boolean;
+  progress?: LevelProgress | null;
+  loginStreak?: LoginStreak | null;
+  /* The Hydra team's account (see UserFriend). */
+  isOfficial?: boolean;
+}
+
+export interface LevelProgress {
+  level: number;
+  xp: number;
+  xpToNextLevel: number | null;
+}
+
+export interface LoginStreak {
+  current: number;
+  record: number;
+  hasPlayedToday: boolean;
+}
+
+export type PassiveType =
+  | "session"
+  | "achievement"
+  | "souvenir"
+  | "review"
+  | "friend";
+
+export interface PassiveProgress {
+  type: PassiveType;
+  xp: number;
+  dailyLimit: number;
+  today: number;
+  pending: number;
+}
+
+export interface GamificationProgress extends LevelProgress {
+  coins: number;
+  cloudBoostPercent: number | null;
+  loginStreak: LoginStreak;
+  passives: PassiveProgress[];
+}
+
+export interface RewardProgress extends LevelProgress {
+  coins: number;
+}
+
+export type MissionKind = "daily" | "weekly";
+export type MissionGroup = "daily" | "medium" | "hard";
+export type MissionUnit = "seconds" | "days" | "count";
+
+export interface Mission {
+  kind: MissionKind;
+  slot: number;
+  key: string;
+  group: MissionGroup;
+  category: string;
+  unit: MissionUnit;
+  target: number;
+  current: number;
+  isComplete: boolean;
+  isClaimed: boolean;
+  pending: number;
+  xp: number;
+  coins: number;
+}
+
+export interface MissionPeriod {
+  period: string;
+  resetsAt: string;
+  missions: Mission[];
+}
+
+export interface MissionsResponse {
+  cloudBoostPercent: number | null;
+  daily: MissionPeriod;
+  weekly: MissionPeriod;
+  refresh: { isFreeAvailable: boolean; price: number };
+}
+
+export type TrailKey =
+  | "playtime"
+  | "achievements"
+  | "souvenirs"
+  | "friends"
+  | "reviews"
+  | "likesReceived";
+
+export interface TrailLevel {
+  level: number;
+  threshold: number;
+  xp: number;
+  coins: number;
+  isReached: boolean;
+  isClaimed: boolean;
+}
+
+export interface Trail {
+  key: TrailKey;
+  group: "solo" | "social";
+  current: number;
+  isComplete: boolean;
+  pending: number;
+  levels: TrailLevel[];
+}
+
+export interface RewardClaimResponse {
+  wasClaimed: boolean;
+  xp: number;
+  coins: number;
+  progress: RewardProgress;
+}
+
+export interface MissionRefreshResponse {
+  wasFree: boolean;
+  mission: Mission;
+  progress: RewardProgress;
 }
 
 export interface UpdateProfileRequest {
   displayName?: string;
   profileVisibility?: ProfileVisibility;
   souvenirsVisibility?: ProfileVisibility;
+  screenshotsVisibility?: ProfileVisibility;
+  screenshotCommentsPolicy?: ScreenshotCommentsPolicy;
   profileImageUrl?: string | null;
   backgroundImageUrl?: string | null;
   bio?: string;
@@ -631,6 +826,11 @@ export interface GameReview {
     [key: string]: string;
   };
   detectedLanguage: string | null;
+  recompilation?: {
+    slug: string;
+    name: string;
+    iconUrl: string | null;
+  } | null;
 }
 
 export interface TrendingGame extends ShopAssets {
@@ -702,10 +902,12 @@ export interface AchievementNotificationInfo {
   isRare: boolean;
   isPlatinum: boolean;
   points?: number;
+  variant?: "screenshot" | "screenshot-error";
 }
 
 export type AchievementNotificationRequest = {
   id: string;
+  batchId: string;
   position: AchievementCustomNotificationPosition;
 } & (
   | {
@@ -716,6 +918,10 @@ export type AchievementNotificationRequest = {
       type: "combined";
       gameCount: number;
       achievementCount: number;
+    }
+  | {
+      type: "screenshot";
+      achievement: AchievementNotificationInfo;
     }
 );
 
@@ -754,6 +960,9 @@ export type NotificationType =
   | "REVIEW_ANSWER"
   | "REVIEW_ANSWER_UPVOTE"
   | "SOUVENIR_LIKE"
+  | "SCREENSHOT_LIKE"
+  | "SCREENSHOT_COMMENT"
+  | "SCREENSHOT_COMMENT_UPVOTE"
   | "RETROACHIEVEMENTS_CREDENTIALS_RESTORED"
   | "RETROACHIEVEMENTS_CREDENTIALS_INVALID"
   | "RETROACHIEVEMENTS_SYNC_FAILED"
@@ -873,6 +1082,7 @@ export interface CatalogueSearchPayload {
   releaseYear?: { gte?: number; lte?: number };
   shops?: string[];
   platforms?: string[];
+  recompilation?: "has";
 }
 
 export interface ProtonDBData {
@@ -903,6 +1113,7 @@ export type CatalogueSearchResult = {
   developers?: string[];
   publishers?: string[];
   skus?: string[];
+  recompilations?: RecompilationSummary[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
@@ -955,6 +1166,8 @@ export * from "./retroarch.types";
 export * from "./artwork.types";
 export * from "./cloud-save.types";
 export * from "./souvenir.types";
+export * from "./screenshot.types";
+export * from "./recompilation.types";
 
 export type ExtractionFailure =
   | { reason: "unsupported-format"; format: string }

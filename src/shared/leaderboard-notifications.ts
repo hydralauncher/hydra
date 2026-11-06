@@ -1,6 +1,11 @@
 export const LEADERBOARD_RANK_CHANGED_NOTIFICATION = "LEADERBOARD_RANK_CHANGED";
 export const LEADERBOARD_MISSING_PHOTO_NOTIFICATION =
   "LEADERBOARD_MISSING_PHOTO";
+export const GLOBAL_LEADERBOARDS_FEATURE = "GLOBAL_LEADERBOARDS";
+
+export const isLeaderboardNotificationType = (type: string) =>
+  type === LEADERBOARD_RANK_CHANGED_NOTIFICATION ||
+  type === LEADERBOARD_MISSING_PHOTO_NOTIFICATION;
 
 export const LEADERBOARD_REQUEST_SOURCES = ["rank_notification"] as const;
 export type LeaderboardRequestSource =

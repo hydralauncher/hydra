@@ -14,7 +14,9 @@ import { gameDetailsContext } from "@renderer/context";
 import {
   useAppSelector,
   useDate,
+  useFeature,
   useFormat,
+  useGlobalLeaderboardsFeature,
   useUserDetails,
 } from "@renderer/hooks";
 import {
@@ -27,6 +29,7 @@ import {
 } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { LaunchboxDetailsSection } from "./launchbox-details-section";
+import { RecompilationsSection } from "./recompilations-section";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -35,6 +38,7 @@ import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
 import { isAchievementConcealed } from "@shared";
 import { ControllerSupportSection } from "./controller-support-section";
+import { GameScreenshots } from "../game-screenshots/game-screenshots";
 import { LeaderboardSection } from "../leaderboard/leaderboard-section";
 
 const ProtonDBSection = lazy(async () => {
@@ -127,6 +131,7 @@ export function Sidebar() {
     useState<keyof SteamAppDetails["pc_requirements"]>("minimum");
 
   const {
+    game,
     gameTitle,
     shopDetails,
     objectId,
@@ -135,14 +140,21 @@ export function Sidebar() {
     stats,
     achievements,
   } = useContext(gameDetailsContext);
+  const myScreenshotsGame = game ?? catalogueGame;
+  const communityScreenshotsGame = catalogueGame.objectId
+    ? catalogueGame
+    : myScreenshotsGame;
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
 
   const { showHydraCloudModal } = useSubscription();
+  const { isFeatureEnabled, Feature } = useFeature();
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
+  const { isEnabled: isGlobalLeaderboardsEnabled } =
+    useGlobalLeaderboardsFeature();
   const achievementsCount = achievements?.length ?? 0;
   const shouldRenderAchievementsSection =
     (!!userDetails && achievementsCount > 0) ||
@@ -198,6 +210,12 @@ export function Sidebar() {
 
   return (
     <aside className="content-sidebar">
+      {shop === "launchbox" &&
+        catalogueGame.objectId &&
+        isFeatureEnabled(Feature.Recompilations) && (
+          <RecompilationsSection objectId={catalogueGame.objectId} />
+        )}
+
       {shouldShowProtonFeatures && (
         <Suspense fallback={null}>
           <ProtonDBSection
@@ -326,7 +344,7 @@ export function Sidebar() {
         </SidebarSection>
       )}
 
-      <LeaderboardSection />
+      {isGlobalLeaderboardsEnabled && <LeaderboardSection />}
 
       {stats && (
         <SidebarSection title={t("stats")}>
@@ -364,6 +382,13 @@ export function Sidebar() {
           </div>
         </SidebarSection>
       )}
+
+      {myScreenshotsGame.shop !== "custom" && myScreenshotsGame.objectId ? (
+        <GameScreenshots
+          libraryGame={myScreenshotsGame}
+          catalogueGame={communityScreenshotsGame}
+        />
+      ) : null}
 
       {shop === "launchbox" && (
         <LaunchboxDetailsSection

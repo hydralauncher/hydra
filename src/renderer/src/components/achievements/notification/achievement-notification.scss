@@ -3,6 +3,9 @@
 $margin-horizontal: 40px;
 $margin-top: 52px;
 $margin-bottom: 28px;
+$screenshot-error-icon-background-opacity: 0.16;
+$screenshot-error-icon-color: #fb7185;
+$screenshot-error-description-max-lines: 3;
 
 @keyframes content-in {
   0% {
@@ -257,6 +260,32 @@ $margin-bottom: 28px;
     height: 64px;
     border-radius: 2px;
     flex: 1;
+  }
+
+  &--screenshot &__icon {
+    display: flex;
+    flex: 0 0 64px;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.06);
+    color: globals.$muted-color;
+  }
+
+  &--screenshot &__additional-overlay {
+    display: none;
+  }
+
+  &--screenshot-error &__icon {
+    background-color: rgba(
+      globals.$error-color,
+      $screenshot-error-icon-background-opacity
+    );
+    color: $screenshot-error-icon-color;
+  }
+
+  &--screenshot-error &__description {
+    -webkit-line-clamp: $screenshot-error-description-max-lines;
+    line-clamp: $screenshot-error-description-max-lines;
   }
 
   &--rare &__icon {
@@ -517,14 +546,9 @@ $margin-bottom: 28px;
     animation: none;
   }
 
+  &--closing &__container::before,
   &--closing *::before,
   &--closing *::after {
-    animation: none !important;
-  }
-
-  &--paused *,
-  &--paused *::before,
-  &--paused *::after {
-    animation-play-state: paused !important;
+    animation: none;
   }
 }

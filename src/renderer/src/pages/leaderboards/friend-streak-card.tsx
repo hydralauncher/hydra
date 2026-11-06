@@ -5,17 +5,12 @@ import { Avatar } from "@renderer/components";
 import { LEADERBOARD_ROW_BANNER_IMAGE_SIZE } from "@renderer/constants";
 import { useProcessedImage } from "@renderer/hooks";
 import type { FriendStreak } from "./global-leaderboard";
-import { StreakFlame } from "./leaderboard-bits";
 
 export interface FriendStreakCardProps {
   item: FriendStreak;
-  isViewer: boolean;
 }
 
-export function FriendStreakCard({
-  item,
-  isViewer,
-}: Readonly<FriendStreakCardProps>) {
+export function FriendStreakCard({ item }: Readonly<FriendStreakCardProps>) {
   const { t } = useTranslation("leaderboards");
   const banner = useProcessedImage(
     item.user.backgroundImageUrl,
@@ -25,7 +20,6 @@ export function FriendStreakCard({
   return (
     <div
       className={cn("leaderboards__friend-streak", {
-        "leaderboards__friend-streak--viewer": isViewer,
         "leaderboards__friend-streak--banner": banner,
       })}
       style={
@@ -61,13 +55,6 @@ export function FriendStreakCard({
       </div>
       <span className="leaderboards__friend-days">
         {t("days_count", { count: item.days })}
-        {item.active && (
-          <StreakFlame
-            size={16}
-            flicker={item.days > 0 && item.days === item.bestDays}
-            label={t("streak_active")}
-          />
-        )}
       </span>
     </div>
   );

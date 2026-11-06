@@ -11,7 +11,7 @@ import {
   type AchievementSortOption,
   type AchievementStatusFilter,
 } from "@shared";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useVirtualList } from "../../../../shared/use-virtual-list";
 import {
   useCollapsedAchievementSets,
@@ -138,11 +138,13 @@ export default function GameAchievements() {
     ? getListEntryId(listEntries[0])
     : null;
 
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(
+    null
+  );
 
   const { listRef, virtualizer, getRowProps } = useVirtualList({
     count: listEntries.length,
-    scrollRef,
+    scrollElement,
     getItemKey: (index) => getListEntryId(listEntries[index]),
     estimateSize: (index) =>
       listEntries[index]?.type === "set"
@@ -213,7 +215,7 @@ export default function GameAchievements() {
   return (
     <VerticalFocusGroup regionId={GAME_ACHIEVEMENTS_PAGE_REGION_ID} asChild>
       <div
-        ref={scrollRef}
+        ref={setScrollElement}
         className={cn("game-achievements-page", {
           "game-achievements-page--pristine": !hasNavigated,
         })}

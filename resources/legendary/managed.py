@@ -20,7 +20,15 @@ sys.dont_write_bytecode = True
 PROTOCOL_VERSION = 1
 LEGENDARY_VERSION = "0.21.1"
 LEGENDARY_REQUEST_TIMEOUT_SECONDS = 15
-CAPABILITIES = ["inspect-target", "install-target", "access-only", "refresh-session"]
+CAPABILITIES = ["inspect-target", "install-target", "access-only", "refresh-session", "install-components"]
+SDL_MAX_PACKS = 64
+SDL_MAX_TAGS = 64
+SDL_ID_MAX_LENGTH = 64
+SDL_NAME_MAX_LENGTH = 128
+INSTALL_TAG_MAX_LENGTH = 128
+IDENTITY = re.compile(r"[A-Za-z0-9_.-]{1,256}")
+SDL_ID = re.compile(r"[A-Za-z0-9_.-]{1,%d}" % SDL_ID_MAX_LENGTH)
+INSTALL_TAG = re.compile(r"[A-Za-z0-9_.-]{0,%d}" % INSTALL_TAG_MAX_LENGTH)
 
 
 class ManagedError(Exception):
@@ -71,14 +79,23 @@ def bootstrap(archive):
         raise ManagedError("runtime-mismatch")
 
 
-def target_from_request(request):
-    target = request.get("target")
+def target_from_request(request, key="target"):
+    target = request.get(key)
     if not isinstance(target, dict) or target.get("platform") != "Windows":
         raise ManagedError("unsupported-platform")
     for name in ("artifactId", "namespace", "catalogItemId"):
-        if not isinstance(target.get(name), str) or not re.fullmatch(r"[A-Za-z0-9_.-]{1,256}", target[name]):
+        if not isinstance(target.get(name), str) or not IDENTITY.fullmatch(target[name]):
             raise ManagedError("invalid-target")
     return target
+
+
+def base_from_request(request):
+    if request.get("base") is None:
+        return None
+    base = target_from_request(request, "base")
+    if base["artifactId"] == request["target"]["artifactId"] or (base["namespace"], base["catalogItemId"]) == (request["target"]["namespace"], request["target"]["catalogItemId"]):
+        raise ManagedError("invalid-target")
+    return base
 
 
 def initialize_access(core):
@@ -122,6 +139,7 @@ def error_code(error):
             "external-launcher-required": "external-launcher-required",
             "unsupported-platform": "not-installable",
             "update-required": "update-required",
+            "base-not-installed": "installation-missing",
         }.get(str(error), "invalid-response")
     status = getattr(getattr(error, "response", None), "status_code", None)
     if status in (401, 403):
@@ -135,9 +153,13 @@ def error_code(error):
     return "invalid-response"
 
 
-def constrain_core(core, game, target, manifest):
+def constrain_core(core, game, target, manifest, base_game=None):
     def exact_game(app_name, *args, **kwargs):
-        if app_name != target["artifactId"] or kwargs.get("platform", "Windows") != "Windows":
+        if kwargs.get("platform", "Windows") != "Windows":
+            raise ManagedError("invalid-target")
+        if base_game is not None and app_name == base_game.app_name:
+            return base_game
+        if app_name != target["artifactId"]:
             raise ManagedError("invalid-target")
         return game
 
@@ -159,15 +181,77 @@ def constrain_core(core, game, target, manifest):
     core.get_cdn_manifest = exact_manifest
 
 
-def validate_metadata(metadata, target):
+def validate_metadata(metadata, target, base=None):
     if not isinstance(metadata, dict) or metadata.get("namespace") != target["namespace"] or metadata.get("id") != target["catalogItemId"]:
         raise ManagedError("invalid-metadata")
     paths = [category.get("path", "") for category in metadata.get("categories", [])]
-    if target["namespace"] == "ue" or "mainGameItem" in metadata or not any(path == "games" or path.startswith("games/") for path in paths) or any(path == "addons" or path.startswith("addons/") for path in paths):
+    if base is not None:
+        validate_dlc_metadata(metadata, paths, base)
+    elif target["namespace"] == "ue" or "mainGameItem" in metadata or not any(path == "games" or path.startswith("games/") for path in paths) or any(path == "addons" or path.startswith("addons/") for path in paths):
         raise ManagedError("unsupported-game")
     attributes = metadata.get("customAttributes", {})
     if any(attributes.get(name, {}).get("value") not in (None, "", "No", "false", False) for name in ("ThirdPartyManagedApp", "ThirdPartyManagedProvider", "partnerLinkType")):
         raise ManagedError("external-launcher-required")
+
+
+def validate_dlc_metadata(metadata, paths, base):
+    main = metadata.get("mainGameItem")
+    releases = main.get("releaseInfo") if isinstance(main, dict) else None
+    if not isinstance(main, dict) or main.get("id") != base["catalogItemId"] or main.get("namespace", base["namespace"]) != base["namespace"] or not isinstance(releases, list) or not releases or not isinstance(releases[0], dict) or releases[0].get("appId") != base["artifactId"]:
+        raise ManagedError("unsupported-game")
+    if base["namespace"] == "ue" or "addons" not in paths or "addons/launchable" in paths:
+        raise ManagedError("unsupported-game")
+
+
+def sdl_definition(core, artifact):
+    from legendary.utils.selective_dl import get_sdl_appname, games
+    name = get_sdl_appname(artifact)
+    if name is None:
+        return None
+    try:
+        data = core.lgdapi.get_sdl_config(name)
+    except Exception:
+        data = None
+    if not valid_sdl(data):
+        data = games.get(name)
+    return data if valid_sdl(data) else None
+
+
+def valid_sdl(data):
+    if not isinstance(data, dict) or not data or len(data) > SDL_MAX_PACKS + 1:
+        return False
+    for key, pack in data.items():
+        if not isinstance(key, str) or not SDL_ID.fullmatch(key) or not isinstance(pack, dict):
+            return False
+        tags, name = pack.get("tags"), pack.get("name")
+        if not isinstance(tags, list) or not tags or len(tags) > SDL_MAX_TAGS or not all(isinstance(tag, str) and INSTALL_TAG.fullmatch(tag) for tag in tags):
+            return False
+        if not isinstance(name, str) or not name.strip() or len(name) > SDL_NAME_MAX_LENGTH:
+            return False
+    return any(key != "__required" for key in data)
+
+
+def selective_packs(definition, parsed):
+    required = set(definition.get("__required", {}).get("tags", []))
+    chunks = {chunk.guid_num: chunk.file_size for chunk in parsed.chunk_data_list.elements}
+    files = parsed.file_manifest_list.elements
+    base_files = [file for file in files if not file.install_tags or required.intersection(file.install_tags)]
+    optional_files = [file for file in files if file.install_tags and not required.intersection(file.install_tags)]
+    base_chunks = {part.guid_num for file in base_files for part in file.chunk_parts}
+
+    def sizes(selected):
+        used = {part.guid_num for file in selected for part in file.chunk_parts} - base_chunks
+        return sum(chunks.get(guid, 0) for guid in used), sum(file.file_size for file in selected)
+
+    base_download = sum(chunks.get(guid, 0) for guid in base_chunks)
+    packs = []
+    for key, pack in definition.items():
+        if key == "__required":
+            continue
+        tags = set(pack["tags"])
+        download, disk = sizes([file for file in optional_files if tags.intersection(file.install_tags)])
+        packs.append({"id": key, "name": pack["name"].strip(), "tags": list(pack["tags"]), "download_size": download, "disk_size": disk})
+    return {"required_tags": sorted(required), "download_size": base_download, "disk_size": sum(file.file_size for file in base_files), "packs": packs}
 
 
 def receipt_path(path, workspace):
@@ -200,12 +284,13 @@ def inspect_target(core, request, workspace):
     from legendary.models.game import Game, GameAsset
 
     target = target_from_request(request)
+    base = base_from_request(request)
     # Both calls concern one authorized item. No assets/library/achievement call.
     with ThreadPoolExecutor(max_workers=2) as executor:
         metadata_future = executor.submit(core.egs.get_game_info, target["namespace"], target["catalogItemId"])
         descriptor_future = executor.submit(core.egs.get_game_manifest, target["namespace"], target["catalogItemId"], target["artifactId"], target["platform"])
         metadata, descriptor = metadata_future.result(), descriptor_future.result()
-    validate_metadata(metadata, target)
+    validate_metadata(metadata, target, base)
     elements = descriptor.get("elements", [])
     if len(elements) != 1:
         raise ManagedError("invalid-manifest")
@@ -264,7 +349,21 @@ def inspect_target(core, request, workspace):
     state_file.write_text(json.dumps(dict(target=target, sourceHash=source_hash, version=parsed.meta.build_version)), encoding="utf-8")
     os.chmod(state_file, 0o600)
     info = dict(game=dict(app_name=game.app_name, version=parsed.meta.build_version, is_dlc=game.is_dlc, external_activation=game.third_party_store or game.partner_link_type, cloud_saves_supported=game.supports_cloud_saves or game.supports_mac_cloud_saves), manifest=dict(is_preloaded=False, download_size=sum(chunk.file_size for chunk in parsed.chunk_data_list.elements), disk_size=sum(file.file_size for file in parsed.file_manifest_list.elements)), install=None)
+    if base is None and (definition := sdl_definition(core, target["artifactId"])):
+        info["sdl"] = selective_packs(definition, parsed)
     return dict(protocolVersion=PROTOCOL_VERSION, info=info, metadata=game.__dict__, receipt=receipt), game, (data, base_urls, False, secrets)
+
+
+def installed_base_game(core, base):
+    if base is None:
+        return None
+    game = core.lgd.get_game_meta(base["artifactId"])
+    metadata = getattr(game, "metadata", None)
+    if game is None or not isinstance(metadata, dict) or metadata.get("namespace") != base["namespace"] or metadata.get("id") != base["catalogItemId"] or "Windows" not in (game.asset_infos or {}):
+        raise ManagedError("invalid-target")
+    if not core.is_installed(base["artifactId"]):
+        raise ManagedError("base-not-installed")
+    return game
 
 
 def run_install(core, request, game, manifest):
@@ -279,10 +378,14 @@ def run_install(core, request, game, manifest):
         raise ManagedError("invalid-target")
     # Prevent a request from overriding the validated manifest, identity, API
     # context or transport. Args come from the trusted main process only.
-    forbidden = ("--manifest", "--old-manifest", "--delta-manifest", "--base-url", "--disable-https", "--config-file", "-c", "--debug", "-v", "--with-dlcs")
+    forbidden = ("--manifest", "--old-manifest", "--delta-manifest", "--base-url", "--disable-https", "--config-file", "-c", "--debug", "-v", "--with-dlcs", "--reset-sdl")
     if any(arg.split("=", 1)[0] in forbidden for arg in args):
         raise ManagedError("invalid-request")
-    constrain_core(core, game, target, manifest)
+    for arg in args:
+        if arg.startswith("--install-tag") and (not arg.startswith("--install-tag=") or not INSTALL_TAG.fullmatch(arg.split("=", 1)[1])):
+            raise ManagedError("invalid-request")
+    base_game = installed_base_game(core, base_from_request(request))
+    constrain_core(core, game, target, manifest, base_game)
     original_cli = cli.LegendaryCLI
 
     class TargetedCLI(original_cli):
