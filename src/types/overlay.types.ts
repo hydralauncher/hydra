@@ -19,7 +19,15 @@ export interface OverlayGameInfo {
 /** Big Picture keeps the original full-window tabbed overlay. */
 export type OverlayMode = "default" | "bigPicture";
 
-export type OverlayPanel = "chat" | "achievements";
+export type OverlayPanel = "chat" | "achievements" | "leaderboard" | "browser";
+
+export interface OverlayBrowserState {
+  url: string;
+  title: string;
+  isLoading: boolean;
+  canGoBack: boolean;
+  canGoForward: boolean;
+}
 
 export interface OverlayPanelStatus {
   panel: OverlayPanel;
@@ -29,6 +37,7 @@ export interface OverlayPanelStatus {
 
 export interface OverlayPanelState extends OverlayPanelStatus {
   isVisible: boolean;
+  isWarm: boolean;
   isOverlayOpen: boolean;
   isOverlayClosing: boolean;
 }

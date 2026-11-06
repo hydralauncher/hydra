@@ -1,7 +1,8 @@
 import path from "node:path";
-import { BrowserWindow, screen } from "electron";
+import { BrowserWindow, WebContentsView, screen, shell } from "electron";
 import type {
   Game,
+  OverlayBrowserState,
   OverlayGameInfo,
   OverlayHotkeyBinding,
   OverlayMode,
@@ -11,7 +12,13 @@ import type {
   OverlayState,
   UserPreferences,
 } from "@types";
-import { normalizeOverlayHotkey } from "@shared";
+import {
+  isAllowedOverlayBrowserUrl,
+  normalizeOverlayBrowserUrl,
+  normalizeOverlayHotkey,
+  OVERLAY_BROWSER_CHROME_HEIGHT,
+  OVERLAY_BROWSER_HOME_URL,
+} from "@shared";
 
 import {
   hasTrackedGamesRunning,
@@ -25,9 +32,15 @@ import { resolveForegroundGame } from "../screenshots/foreground-game";
 
 const OVERLAY_STATE_CHANNEL = "on-overlay-state";
 const OVERLAY_PANEL_STATE_CHANNEL = "on-overlay-panel-state";
+const OVERLAY_BROWSER_STATE_CHANNEL = "on-overlay-browser-state";
 const OVERLAY_FADE_MS = 200;
 
-export const OVERLAY_PANELS: readonly OverlayPanel[] = ["chat", "achievements"];
+export const OVERLAY_PANELS: readonly OverlayPanel[] = [
+  "chat",
+  "achievements",
+  "leaderboard",
+  "browser",
+];
 
 export const isOverlayPanel = (value: unknown): value is OverlayPanel =>
   OVERLAY_PANELS.includes(value as OverlayPanel);
@@ -48,6 +61,10 @@ interface PanelRuntime {
   isVisible: boolean;
   isPinned: boolean;
   token: number;
+  browserView: WebContentsView | null;
+  browserUrl: string;
+  lastBounds: Electron.Rectangle | null;
+  boundsSaveTimer: NodeJS.Timeout | null;
 }
 
 const createPanelRuntime = (): PanelRuntime => ({
@@ -57,13 +74,19 @@ const createPanelRuntime = (): PanelRuntime => ({
   isVisible: false,
   isPinned: false,
   token: 0,
+  browserView: null,
+  browserUrl: "",
+  lastBounds: null,
+  boundsSaveTimer: null,
 });
 
 export class OverlayService {
   private static enabled = true;
+  private static browserEnabled = true;
   private static overlayHotkey: OverlayHotkeyBinding =
     normalizeOverlayHotkey(null);
   private static overlayWindow: BrowserWindow | null = null;
+  private static gameWindowHandle: string | null = null;
   private static state: InternalOverlayState = { ...CLOSED_STATE };
   private static initialized = false;
   private static unsubscribeTrigger: (() => void) | null = null;
@@ -74,16 +97,21 @@ export class OverlayService {
   private static openToken = 0;
   private static closeTimer: NodeJS.Timeout | null = null;
   private static closePanelsOnFinish = false;
+  private static browserSessionConfigured = false;
   private static panels: Record<OverlayPanel, PanelRuntime> = {
     chat: createPanelRuntime(),
     achievements: createPanelRuntime(),
+    leaderboard: createPanelRuntime(),
+    browser: createPanelRuntime(),
   };
 
   public static initialize() {
     if (this.initialized || process.platform !== "win32") return;
     this.initialized = true;
 
-    WindowManager.registerOverlayWindowProvider(() => this.overlayWindows());
+    WindowManager.registerOverlayWindowProvider(() =>
+      this.achievementWindows()
+    );
 
     this.unsubscribeTrigger?.();
     this.unsubscribeGamesRunning?.();
@@ -93,14 +121,30 @@ export class OverlayService {
       void this.toggle();
     });
     this.unsubscribeGamesRunning = onTrackedGamesRunningChange(() => {
-      if (!hasTrackedGamesRunning()) this.close();
+      if (hasTrackedGamesRunning()) {
+        this.preloadPanels();
+      } else {
+        this.gameWindowHandle = null;
+        this.close();
+      }
     });
+
+    if (hasTrackedGamesRunning()) {
+      this.preloadPanels();
+    }
   }
 
   public static syncUserPreferences(preferences: UserPreferences | null) {
     this.enabled = preferences?.overlayEnabled ?? true;
+    this.browserEnabled = preferences?.overlayBrowserEnabled ?? true;
     this.overlayHotkey = normalizeOverlayHotkey(preferences?.overlayHotkey);
 
+    if (
+      !this.browserEnabled &&
+      (this.panels.browser.isOpen || this.panels.browser.window)
+    ) {
+      this.closePanel("browser");
+    }
     if (!this.enabled) this.close();
   }
 
@@ -119,6 +163,7 @@ export class OverlayService {
       panel,
       isOpen: runtime.isOpen,
       isVisible: runtime.isVisible,
+      isWarm: Boolean(runtime.window && !runtime.window.isDestroyed()),
       isPinned: runtime.isPinned,
       isOverlayOpen: this.state.isOpen && !this.state.isClosing,
       isOverlayClosing: this.state.isClosing,
@@ -157,7 +202,13 @@ export class OverlayService {
       }
 
       if (resolved.status !== "resolved" || !resolved.game) {
-        if (this.state.game && this.hasVisiblePanels()) {
+        const lastGame = this.state.game;
+        const canReuseLastGame =
+          Boolean(lastGame) &&
+          (this.hasVisiblePanels() ||
+            this.isOwnOverlayForeground(resolved.foreground?.processId));
+
+        if (canReuseLastGame && lastGame) {
           const overlayWindow = await this.ensureWindow();
           if (
             token !== this.openToken ||
@@ -173,7 +224,7 @@ export class OverlayService {
           this.openWindow(
             overlayWindow,
             overlayWindow.getBounds(),
-            this.state.game,
+            lastGame,
             WindowManager.isBigPictureOpen() ? "bigPicture" : "default"
           );
         }
@@ -182,6 +233,7 @@ export class OverlayService {
 
       const windowHandle = resolved.foreground?.windowHandle;
       if (!windowHandle) return;
+      this.gameWindowHandle = windowHandle;
 
       const bounds = NativeAddon.getWindowsWindowBounds(windowHandle);
       if (!bounds) return;
@@ -253,7 +305,8 @@ export class OverlayService {
   public static openPanel(panel: OverlayPanel) {
     if (!isOverlayPanel(panel)) return;
     if (!this.state.isOpen || this.state.isClosing) return;
-    if (this.state.mode === "bigPicture") return;
+    if (panel === "browser" && !this.browserEnabled) return;
+    if (this.state.mode === "bigPicture" && panel !== "browser") return;
 
     const runtime = this.panels[panel];
     if (runtime.isOpen) {
@@ -284,6 +337,197 @@ export class OverlayService {
     this.sendPanelState(panel);
   }
 
+  public static getBrowserState(): OverlayBrowserState {
+    const runtime = this.panels.browser;
+    const webContents = this.browserWebContents();
+
+    if (!webContents) {
+      return {
+        url: runtime.browserUrl,
+        title: "",
+        isLoading: false,
+        canGoBack: false,
+        canGoForward: false,
+      };
+    }
+
+    return {
+      url: webContents.getURL() || runtime.browserUrl,
+      title: webContents.getTitle(),
+      isLoading: webContents.isLoading(),
+      canGoBack: webContents.navigationHistory.canGoBack(),
+      canGoForward: webContents.navigationHistory.canGoForward(),
+    };
+  }
+
+  public static navigateBrowser(url: string) {
+    if (!this.browserEnabled) return;
+
+    const normalized = normalizeOverlayBrowserUrl(url);
+    if (!normalized) return;
+
+    this.panels.browser.browserUrl = normalized;
+    this.ensureBrowserView("browser");
+
+    const webContents = this.browserWebContents();
+    if (webContents) void webContents.loadURL(normalized);
+  }
+
+  public static browserGoBack() {
+    const webContents = this.browserWebContents();
+    if (webContents?.navigationHistory.canGoBack()) {
+      webContents.navigationHistory.goBack();
+    }
+  }
+
+  public static browserGoForward() {
+    const webContents = this.browserWebContents();
+    if (webContents?.navigationHistory.canGoForward()) {
+      webContents.navigationHistory.goForward();
+    }
+  }
+
+  public static browserReload() {
+    this.browserWebContents()?.reload();
+  }
+
+  public static browserHome() {
+    this.navigateBrowser(OVERLAY_BROWSER_HOME_URL);
+  }
+
+  private static browserWebContents() {
+    const view = this.panels.browser.browserView;
+    if (!view || view.webContents.isDestroyed()) return null;
+    return view.webContents;
+  }
+
+  private static ensureBrowserView(panel: OverlayPanel) {
+    const runtime = this.panels[panel];
+    const panelWindow = runtime.window;
+
+    if (runtime.browserView) {
+      if (!runtime.browserView.webContents.isDestroyed()) return;
+
+      if (panelWindow && !panelWindow.isDestroyed()) {
+        try {
+          panelWindow.contentView.removeChildView(runtime.browserView);
+        } catch {
+          // The view may already be detached.
+        }
+      }
+      runtime.browserView = null;
+    }
+
+    if (!panelWindow || panelWindow.isDestroyed()) return;
+
+    const view = new WebContentsView({
+      webPreferences: {
+        sandbox: true,
+        contextIsolation: true,
+        nodeIntegration: false,
+        webSecurity: true,
+        partition: "persist:overlay-browser",
+      },
+    });
+
+    const webContents = view.webContents;
+
+    if (!this.browserSessionConfigured) {
+      webContents.session.setPermissionRequestHandler(
+        (_webContents, _permission, callback) => callback(false)
+      );
+      webContents.session.on("will-download", (event) => {
+        event.preventDefault();
+      });
+      this.browserSessionConfigured = true;
+    }
+
+    webContents.setWindowOpenHandler(({ url }) => {
+      if (isAllowedOverlayBrowserUrl(url)) void shell.openExternal(url);
+      return { action: "deny" };
+    });
+
+    const blockUnsupportedNavigation = (event: Electron.Event, url: string) => {
+      if (!isAllowedOverlayBrowserUrl(url)) event.preventDefault();
+    };
+
+    webContents.on("will-navigate", blockUnsupportedNavigation);
+    webContents.on("will-redirect", blockUnsupportedNavigation);
+
+    const notify = () => this.sendBrowserState(panel);
+    webContents.on("did-navigate", notify);
+    webContents.on("did-navigate-in-page", notify);
+    webContents.on("page-title-updated", notify);
+    webContents.on("did-start-loading", notify);
+    webContents.on("did-stop-loading", notify);
+    webContents.on("render-process-gone", () => {
+      this.destroyBrowserView(panel);
+    });
+
+    panelWindow.contentView.addChildView(view);
+    runtime.browserView = view;
+    this.updateBrowserViewBounds(panel);
+
+    const target = runtime.browserUrl || OVERLAY_BROWSER_HOME_URL;
+    runtime.browserUrl = target;
+    void webContents.loadURL(target);
+
+    this.sendBrowserState(panel);
+  }
+
+  private static destroyBrowserView(panel: OverlayPanel) {
+    const runtime = this.panels[panel];
+    const view = runtime.browserView;
+    if (!view) return;
+
+    runtime.browserView = null;
+
+    try {
+      const url = view.webContents.getURL();
+      if (url) runtime.browserUrl = url;
+    } catch {
+      // The web contents may already be gone.
+    }
+
+    const panelWindow = runtime.window;
+    if (panelWindow && !panelWindow.isDestroyed()) {
+      try {
+        panelWindow.contentView.removeChildView(view);
+      } catch {
+        // The view may already be detached.
+      }
+    }
+
+    if (!view.webContents.isDestroyed()) view.webContents.close();
+    this.sendBrowserState(panel);
+  }
+
+  private static updateBrowserViewBounds(panel: OverlayPanel) {
+    const runtime = this.panels[panel];
+    const view = runtime.browserView;
+    const panelWindow = runtime.window;
+
+    if (!view || !panelWindow || panelWindow.isDestroyed()) return;
+
+    const { width, height } = panelWindow.getContentBounds();
+    view.setBounds({
+      x: 1,
+      y: OVERLAY_BROWSER_CHROME_HEIGHT,
+      width: Math.max(0, width - 2),
+      height: Math.max(0, height - OVERLAY_BROWSER_CHROME_HEIGHT - 1),
+    });
+  }
+
+  private static sendBrowserState(panel: OverlayPanel) {
+    const panelWindow = this.panels[panel].window;
+    if (!panelWindow || panelWindow.isDestroyed()) return;
+
+    panelWindow.webContents.send(
+      OVERLAY_BROWSER_STATE_CHANNEL,
+      this.getBrowserState()
+    );
+  }
+
   private static finishClose() {
     this.closeTimer = null;
     this.closing = false;
@@ -304,17 +548,20 @@ export class OverlayService {
     } else {
       for (const panel of OVERLAY_PANELS) {
         const runtime = this.panels[panel];
-        if (runtime.isVisible && !runtime.isPinned) {
-          runtime.isVisible = false;
-          runtime.window?.hide();
-        }
+        if (runtime.isPinned) continue;
+
+        runtime.isVisible = false;
+        this.capturePanelBounds(panel);
+        runtime.window?.hide();
+        if (panel === "browser") this.destroyBrowserView(panel);
       }
       this.state = { ...this.state, isOpen: false, isClosing: false };
+      this.broadcastPanelStates();
     }
 
     this.closePanelsOnFinish = false;
     this.broadcastState();
-    this.broadcastPanelStates();
+    this.restoreGameFocus();
   }
 
   private static openWindow(
@@ -344,15 +591,37 @@ export class OverlayService {
     if (mode === "bigPicture") {
       this.closeAllPanels();
     } else {
+      this.preloadPanels();
       this.restoreOpenPanels();
     }
   }
 
   private static restoreOpenPanels() {
+    let focused = false;
+
     for (const panel of OVERLAY_PANELS) {
       if (this.panels[panel].isOpen) {
-        void this.showPanel(panel, false);
+        void this.showPanel(panel, !focused);
+        focused = true;
       }
+    }
+
+    this.raiseVisiblePanels();
+  }
+
+  private static restoreGameFocus() {
+    const windowHandle = this.gameWindowHandle;
+    if (!windowHandle) return;
+
+    if (!hasTrackedGamesRunning()) {
+      this.gameWindowHandle = null;
+      return;
+    }
+
+    if (!NativeAddon.focusWindowsWindow(windowHandle)) {
+      logger.debug("Failed to restore focus to the game window", {
+        windowHandle,
+      });
     }
   }
 
@@ -375,7 +644,7 @@ export class OverlayService {
       panelWindow.isDestroyed() ||
       !this.state.isOpen ||
       this.state.isClosing ||
-      this.state.mode === "bigPicture"
+      (this.state.mode === "bigPicture" && panel !== "browser")
     ) {
       runtime.isOpen = wasOpen;
       runtime.isVisible = wasVisible;
@@ -385,7 +654,17 @@ export class OverlayService {
     }
 
     if (!wasVisible) {
-      panelWindow.setBounds(this.getPanelBounds(panel));
+      const target =
+        runtime.lastBounds && this.isBoundsVisible(runtime.lastBounds)
+          ? runtime.lastBounds
+          : this.getPanelBounds(panel);
+
+      panelWindow.setBounds(target);
+      runtime.lastBounds = target;
+    }
+
+    if (panel === "browser") {
+      this.ensureBrowserView(panel);
     }
 
     if (focus) {
@@ -393,18 +672,39 @@ export class OverlayService {
       panelWindow.focus();
     } else {
       panelWindow.showInactive();
+      panelWindow.moveTop();
     }
 
-    this.broadcastState();
     this.sendPanelState(panel);
+  }
+
+  private static capturePanelBounds(panel: OverlayPanel) {
+    const runtime = this.panels[panel];
+    const panelWindow = runtime.window;
+
+    if (panelWindow && !panelWindow.isDestroyed()) {
+      runtime.lastBounds = panelWindow.getBounds();
+    }
   }
 
   private static hidePanel(panel: OverlayPanel, reset: boolean) {
     const runtime = this.panels[panel];
 
+    this.capturePanelBounds(panel);
     runtime.token += 1;
     runtime.isVisible = false;
     runtime.window?.hide();
+
+    if (panel === "browser") {
+      this.destroyBrowserView(panel);
+      if (
+        !this.browserEnabled &&
+        runtime.window &&
+        !runtime.window.isDestroyed()
+      ) {
+        runtime.window.destroy();
+      }
+    }
 
     if (reset) {
       runtime.isOpen = false;
@@ -413,6 +713,10 @@ export class OverlayService {
 
     this.broadcastState();
     this.sendPanelState(panel);
+
+    if (!this.state.isOpen) {
+      this.restoreGameFocus();
+    }
   }
 
   private static closeAllPanels() {
@@ -422,7 +726,16 @@ export class OverlayService {
       runtime.isOpen = false;
       runtime.isVisible = false;
       runtime.isPinned = false;
+      this.capturePanelBounds(panel);
+      if (runtime.boundsSaveTimer) {
+        clearTimeout(runtime.boundsSaveTimer);
+        runtime.boundsSaveTimer = null;
+      }
       runtime.window?.hide();
+      if (panel === "browser") this.destroyBrowserView(panel);
+      if (runtime.window && !runtime.window.isDestroyed()) {
+        runtime.window.destroy();
+      }
       this.sendPanelState(panel);
     }
   }
@@ -463,8 +776,14 @@ export class OverlayService {
     );
   }
 
-  private static overlayWindows() {
-    return [this.overlayWindow, ...this.panelWindows()];
+  private static achievementWindows() {
+    const achievementsPanel = this.panels.achievements;
+    return [
+      this.state.isOpen && this.state.mode === "bigPicture"
+        ? this.overlayWindow
+        : null,
+      achievementsPanel.isVisible ? achievementsPanel.window : null,
+    ];
   }
 
   private static raiseVisiblePanels() {
@@ -475,6 +794,7 @@ export class OverlayService {
         runtime.window &&
         !runtime.window.isDestroyed()
       ) {
+        runtime.window.setAlwaysOnTop(true, "screen-saver");
         runtime.window.moveTop();
       }
     }
@@ -486,6 +806,45 @@ export class OverlayService {
 
   private static hasVisiblePanels() {
     return OVERLAY_PANELS.some((panel) => this.panels[panel].isVisible);
+  }
+
+  private static isOwnOverlayForeground(processId: number | null | undefined) {
+    if (!processId) return false;
+
+    const windows = [this.overlayWindow, ...this.panelWindows()];
+    return windows.some((window) => {
+      return (
+        window &&
+        !window.isDestroyed() &&
+        window.webContents.getOSProcessId() === processId
+      );
+    });
+  }
+
+  private static preloadPanels() {
+    if (!this.enabled || WindowManager.isBigPictureOpen()) return;
+
+    const panels = OVERLAY_PANELS.filter(
+      (panel) => panel !== "browser" || this.browserEnabled
+    );
+
+    panels.forEach((panel, index) => {
+      setTimeout(() => {
+        if (!this.enabled || !hasTrackedGamesRunning()) return;
+        void this.ensurePanelWindow(panel);
+      }, index * 400);
+    });
+  }
+
+  private static isBoundsVisible(bounds: Electron.Rectangle) {
+    return screen.getAllDisplays().some(({ workArea }) => {
+      return (
+        bounds.x < workArea.x + workArea.width &&
+        bounds.x + bounds.width > workArea.x &&
+        bounds.y < workArea.y + workArea.height &&
+        bounds.y + bounds.height > workArea.y
+      );
+    });
   }
 
   private static getPanelBounds(panel: OverlayPanel): Electron.Rectangle {
@@ -500,6 +859,26 @@ export class OverlayService {
       const height = Math.min(680, Math.max(360, workArea.height - margin * 2));
       const x = Math.min(
         Math.max(bounds.x + bounds.width - width - margin, workArea.x + margin),
+        workArea.x + workArea.width - width - margin
+      );
+      const y = Math.min(
+        Math.max(bounds.y + margin, workArea.y + margin),
+        workArea.y + workArea.height - height - margin
+      );
+
+      return {
+        x: Math.round(x),
+        y: Math.round(y),
+        width: Math.round(width),
+        height: Math.round(height),
+      };
+    }
+
+    if (panel === "browser") {
+      const width = Math.min(1000, Math.max(640, workArea.width - margin * 2));
+      const height = Math.min(760, Math.max(400, workArea.height - margin * 2));
+      const x = Math.min(
+        Math.max(bounds.x + (bounds.width - width) / 2, workArea.x + margin),
         workArea.x + workArea.width - width - margin
       );
       const y = Math.min(
@@ -599,7 +978,10 @@ export class OverlayService {
       });
 
       overlayWindow.setAlwaysOnTop(true, "screen-saver");
-      overlayWindow.on("focus", () => this.raiseVisiblePanels());
+      overlayWindow.on("focus", () => {
+        this.raiseVisiblePanels();
+        setTimeout(() => this.raiseVisiblePanels(), 50);
+      });
       overlayWindow.on("closed", () => {
         if (this.overlayWindow === overlayWindow) {
           if (this.closeTimer) {
@@ -634,10 +1016,10 @@ export class OverlayService {
 
     try {
       const panelWindow = new BrowserWindow({
-        width: panel === "chat" ? 560 : 760,
-        height: panel === "chat" ? 680 : 680,
-        minWidth: panel === "chat" ? 400 : 520,
-        minHeight: 280,
+        width: panel === "browser" ? 1000 : panel === "chat" ? 560 : 760,
+        height: panel === "browser" ? 760 : 680,
+        minWidth: panel === "browser" ? 640 : panel === "chat" ? 400 : 520,
+        minHeight: panel === "browser" ? 400 : 280,
         frame: false,
         transparent: true,
         backgroundColor: "#00000000",
@@ -645,6 +1027,7 @@ export class OverlayService {
         alwaysOnTop: true,
         skipTaskbar: true,
         resizable: true,
+        movable: true,
         minimizable: false,
         maximizable: false,
         fullscreenable: false,
@@ -658,9 +1041,34 @@ export class OverlayService {
 
       panelWindow.setAlwaysOnTop(true, "screen-saver");
       panelWindow.removeMenu();
+
+      const saveBounds = () => {
+        if (runtime.boundsSaveTimer) {
+          clearTimeout(runtime.boundsSaveTimer);
+        }
+
+        runtime.boundsSaveTimer = setTimeout(() => {
+          runtime.boundsSaveTimer = null;
+          if (!panelWindow.isDestroyed()) {
+            runtime.lastBounds = panelWindow.getBounds();
+          }
+        }, 150);
+      };
+
+      panelWindow.on("move", saveBounds);
+      panelWindow.on("resize", () => {
+        saveBounds();
+        if (panel === "browser") this.updateBrowserViewBounds(panel);
+      });
+
       panelWindow.on("closed", () => {
+        if (runtime.boundsSaveTimer) {
+          clearTimeout(runtime.boundsSaveTimer);
+          runtime.boundsSaveTimer = null;
+        }
         if (runtime.window !== panelWindow) return;
         runtime.token += 1;
+        if (panel === "browser") this.destroyBrowserView(panel);
         runtime.window = null;
         runtime.isOpen = false;
         runtime.isVisible = false;
@@ -670,6 +1078,12 @@ export class OverlayService {
 
       runtime.window = panelWindow;
       await WindowManager.loadWindowURL(panelWindow, `overlay/${panel}`);
+
+      if (!this.enabled || !hasTrackedGamesRunning()) {
+        if (!panelWindow.isDestroyed()) panelWindow.destroy();
+        runtime.window = null;
+        return null;
+      }
 
       return panelWindow;
     } catch (error) {

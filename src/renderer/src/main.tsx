@@ -178,6 +178,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                   path="/overlay/achievements"
                   element={<OverlayPanelPage panel="achievements" />}
                 />
+                <Route
+                  path="/overlay/leaderboard"
+                  element={<OverlayPanelPage panel="leaderboard" />}
+                />
+                <Route
+                  path="/overlay/browser"
+                  element={<OverlayPanelPage panel="browser" />}
+                />
                 <Route path="/auth-window" element={<AuthWindow />} />
                 <Route
                   path="/retroachievements-connection"

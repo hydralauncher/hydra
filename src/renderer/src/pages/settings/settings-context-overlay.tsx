@@ -42,6 +42,7 @@ type OverlayHotkeyFormError = OverlayHotkeyError | "hotkey_conflict";
 
 interface OverlayForm {
   enabled: boolean;
+  browserEnabled: boolean;
   hotkey: OverlayHotkeyBinding;
 }
 
@@ -49,6 +50,7 @@ const resolveOverlayForm = (
   preferences: UserPreferences | null | undefined
 ): OverlayForm => ({
   enabled: preferences?.overlayEnabled ?? true,
+  browserEnabled: preferences?.overlayBrowserEnabled ?? true,
   hotkey: normalizeOverlayHotkey(preferences?.overlayHotkey),
 });
 
@@ -147,6 +149,12 @@ export function SettingsContextOverlay() {
     persist({ overlayEnabled: enabled });
   };
 
+  const handleToggleBrowser = () => {
+    const browserEnabled = !form.browserEnabled;
+    setForm((previous) => ({ ...previous, browserEnabled }));
+    persist({ overlayBrowserEnabled: browserEnabled });
+  };
+
   const handleReset = () => {
     setIsRecording(false);
     saveHotkey({ ...DEFAULT_OVERLAY_HOTKEY });
@@ -194,6 +202,12 @@ export function SettingsContextOverlay() {
         />
 
         <p className="settings-overlay__hint">{t("overlay_hint")}</p>
+
+        <CheckboxField
+          label={t("overlay_browser_enable")}
+          checked={form.browserEnabled}
+          onChange={handleToggleBrowser}
+        />
 
         <SelectField
           className="settings-overlay__select"

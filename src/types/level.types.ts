@@ -279,6 +279,7 @@ export interface UserPreferences {
   hideCommunityScreenshots?: boolean;
   overlayEnabled?: boolean;
   overlayHotkey?: OverlayHotkeyBinding;
+  overlayBrowserEnabled?: boolean;
 }
 
 export interface NetworkInterface {

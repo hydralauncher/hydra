@@ -52,7 +52,10 @@ export default function Overlay() {
       })}
     >
       {overlayState.mode === "bigPicture" ? (
-        <OverlayBigPicture game={overlayState.game} />
+        <OverlayBigPicture
+          game={overlayState.game}
+          panels={overlayState.panels}
+        />
       ) : (
         <OverlayDock state={overlayState} />
       )}
