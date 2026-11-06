@@ -2210,17 +2210,11 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-local-notification-created", listener);
   },
-  onAchievementUnlocked: (
-    cb: (
-      position?: AchievementCustomNotificationPosition,
-      achievements?: AchievementNotificationInfo[]
-    ) => void
-  ) => {
+  onAchievementUnlocked: (cb: (suppressSound?: boolean) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      position?: AchievementCustomNotificationPosition,
-      achievements?: AchievementNotificationInfo[]
-    ) => cb(position, achievements);
+      suppressSound?: boolean
+    ) => cb(suppressSound);
     ipcRenderer.on("on-achievement-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
@@ -2251,9 +2245,14 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("prepare-achievement-notification", listener);
   },
-  onStartAchievementNotification: (cb: (requestId: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, requestId: string) =>
-      cb(requestId);
+  onStartAchievementNotification: (
+    cb: (requestId: string, visible: boolean) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      requestId: string,
+      visible: boolean
+    ) => cb(requestId, visible);
     ipcRenderer.on("start-achievement-notification", listener);
     return () =>
       ipcRenderer.removeListener("start-achievement-notification", listener);
@@ -2262,6 +2261,14 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("achievementNotificationHostReady"),
   achievementNotificationContentReady: (requestId: string) =>
     ipcRenderer.invoke("achievementNotificationContentReady", requestId),
+  achievementNotificationStarted: (requestId: string) =>
+    ipcRenderer.invoke("achievementNotificationStarted", requestId),
+  achievementNotificationSoundPlayed: (requestId: string, batchId: string) =>
+    ipcRenderer.invoke(
+      "achievementNotificationSoundPlayed",
+      requestId,
+      batchId
+    ),
   achievementNotificationFinished: (requestId: string) =>
     ipcRenderer.invoke("achievementNotificationFinished", requestId),
   achievementNotificationFailed: (requestId?: string, reason?: string) =>

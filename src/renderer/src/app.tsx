@@ -693,9 +693,11 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(() => {
-      playAudio();
-    });
+    const unsubscribe = window.electron.onAchievementUnlocked(
+      (suppressSound) => {
+        if (!suppressSound) playAudio();
+      }
+    );
 
     return () => {
       unsubscribe();

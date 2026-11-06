@@ -10,6 +10,12 @@ import {
   EyeClosedIcon,
 } from "@primer/octicons-react";
 import Ellipses from "@renderer/assets/icons/ellipses.png";
+import { useLayoutEffect, useRef } from "react";
+import {
+  pauseNotificationPseudoAnimations,
+  restartNotificationAnimations,
+  type NotificationAnimation,
+} from "@renderer/helpers/notification-animations";
 import "./achievement-notification.scss";
 
 const SCREENSHOT_ICON_SIZE = 28;
@@ -18,26 +24,41 @@ interface AchievementNotificationProps {
   position: AchievementCustomNotificationPosition;
   achievement: AchievementNotificationInfo;
   isClosing: boolean;
-  isPaused?: boolean;
 }
 
 export function AchievementNotificationItem({
   position,
   achievement,
   isClosing,
-  isPaused = false,
 }: Readonly<AchievementNotificationProps>) {
   const baseClassName = "achievement-notification";
   const isScreenshotError = achievement.variant === "screenshot-error";
   const isScreenshot =
     achievement.variant === "screenshot" || isScreenshotError;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const pausedAnimations = useRef<NotificationAnimation[]>([]);
+
+  useLayoutEffect(() => {
+    if (isClosing) {
+      pausedAnimations.current = pauseNotificationPseudoAnimations(
+        cardRef.current
+      );
+      return;
+    }
+
+    if (!pausedAnimations.current.length) return;
+
+    const animations = pausedAnimations.current;
+    pausedAnimations.current = [];
+    restartNotificationAnimations(animations);
+  }, [isClosing]);
 
   return (
     <div
+      ref={cardRef}
       className={cn("achievement-notification", {
         [`${baseClassName}--${position}`]: true,
         [`${baseClassName}--closing`]: isClosing,
-        [`${baseClassName}--paused`]: isPaused,
         [`${baseClassName}--hidden`]: achievement.isHidden,
         [`${baseClassName}--rare`]: achievement.isRare,
         [`${baseClassName}--platinum`]: achievement.isPlatinum,

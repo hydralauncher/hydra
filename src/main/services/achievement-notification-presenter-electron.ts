@@ -58,6 +58,10 @@ class ElectronAchievementNotificationHost {
     this.window.showInactive();
   }
 
+  public isVisible(): boolean {
+    return this.window.isVisible();
+  }
+
   public hide(): void {
     this.window.hide();
   }
@@ -102,9 +106,6 @@ export const achievementNotificationPresenter =
         webPreferences: {
           preload: path.join(__dirname, "../preload/index.mjs"),
           sandbox: false,
-          // The window stays hidden until its content reports ready, and that
-          // handshake runs on requestAnimationFrame, which Chromium throttles
-          // for hidden windows.
           backgroundThrottling: false,
         },
       });
