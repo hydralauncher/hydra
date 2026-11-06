@@ -546,14 +546,9 @@ $screenshot-error-description-max-lines: 3;
     animation: none;
   }
 
+  &--closing &__container::before,
   &--closing *::before,
   &--closing *::after {
-    animation: none !important;
-  }
-
-  &--paused *,
-  &--paused *::before,
-  &--paused *::after {
-    animation-play-state: paused !important;
+    animation: none;
   }
 }
