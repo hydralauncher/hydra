@@ -1,6 +1,6 @@
 {
   "name": "hydralauncher",
-  "version": "4.3.0",
+  "version": "4.4.0",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",
@@ -150,6 +150,7 @@
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^4.6.0",
     "husky": "^9.1.7",
+    "javascript-obfuscator": "^5.10.0",
     "prettier": "^3.4.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

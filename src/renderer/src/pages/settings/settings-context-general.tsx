@@ -19,6 +19,7 @@ import {
 } from "@shared";
 import { SettingsAppearance } from "./appearance/settings-appearance";
 import { DownloadDirectoryReplacementModal } from "./download-directory-replacement-modal";
+import "./settings-general.scss";
 
 interface LanguageOption {
   option: string;
@@ -60,6 +61,7 @@ const buildForm = (
   hideToTrayOnGameStart: preferences?.hideToTrayOnGameStart ?? false,
   launchToLibraryPage: preferences?.launchToLibraryPage ?? false,
   enableAutoInstall: preferences?.enableAutoInstall ?? false,
+  useNativeWindowDecorations: preferences?.useNativeWindowDecorations ?? false,
   openFriendsWindowOnStartup: preferences?.openFriendsWindowOnStartup ?? false,
 });
 
@@ -102,7 +104,7 @@ export function SettingsContextGeneral({
   ) => {
     const language = resolveLanguage(event.target.value);
     handleChange({ language });
-    applyLanguage(language);
+    void applyLanguage(language);
   };
 
   const handleChooseDownloadsPath = async () => {
@@ -278,6 +280,21 @@ export function SettingsContextGeneral({
             checked={form.enableAutoInstall}
             onChange={() =>
               handleChange({ enableAutoInstall: !form.enableAutoInstall })
+            }
+          />
+
+          <CheckboxField
+            label={
+              <span className="settings-general__hinted-label">
+                {t("use_native_window_decorations")}
+                <small>{t("use_native_window_decorations_hint")}</small>
+              </span>
+            }
+            checked={form.useNativeWindowDecorations}
+            onChange={() =>
+              handleChange({
+                useNativeWindowDecorations: !form.useNativeWindowDecorations,
+              })
             }
           />
         </div>

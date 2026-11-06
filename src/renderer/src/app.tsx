@@ -685,9 +685,11 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(() => {
-      playAudio();
-    });
+    const unsubscribe = window.electron.onAchievementUnlocked(
+      (suppressSound) => {
+        if (!suppressSound) playAudio();
+      }
+    );
 
     return () => {
       unsubscribe();
@@ -708,7 +710,12 @@ export function App() {
   const [isWindowMaximized, setIsWindowMaximized] = useState(false);
 
   useEffect(() => {
-    if (window.electron.platform !== "linux") return;
+    if (
+      window.electron.platform !== "linux" ||
+      window.electron.hasNativeWindowDecorations
+    ) {
+      return;
+    }
 
     if (window.electron.isWayland) {
       document.body.classList.add("window-rounded");
@@ -737,7 +744,8 @@ export function App() {
   return (
     <>
       {(window.electron.platform === "win32" ||
-        window.electron.platform === "linux") && (
+        (window.electron.platform === "linux" &&
+          !window.electron.hasNativeWindowDecorations)) && (
         <div
           className={`title-bar${
             window.electron.platform === "win32" ? " title-bar--windows" : ""

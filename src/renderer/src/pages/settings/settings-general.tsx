@@ -170,7 +170,7 @@ export function SettingsGeneral() {
     const value = event.target.value;
 
     handleChange({ language: value });
-    applyLanguage(value);
+    void applyLanguage(value);
   };
 
   const handleChange = async (values: Partial<typeof form>) => {

@@ -23,6 +23,7 @@ import {
 import { parseRpcs3SavestateRawPath } from "./emulator-provider-identity";
 import { isEligibleEmulatorManualFile } from "./emulator-manual-file-eligibility.js";
 import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
+import { getRecompilationSaveRules } from "./recompilation-cloud-save";
 
 interface BuildLocalGameSnapshotContextOptions {
   customPathBindings?: CloudSaveCustomPathBindings;
@@ -58,6 +59,10 @@ export const buildLocalGameSnapshotContext = async (
     userDataPath: SystemPath.getPath("userData"),
     hashCache,
     extraRules,
+    recompilationRules: getRecompilationSaveRules(
+      pathContext,
+      game?.executablePath
+    ),
   };
   let nativeSnapshot;
   const stateMetadataByFile = new Map<string, CloudSaveStateMetadata>();

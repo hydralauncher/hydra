@@ -1,6 +1,7 @@
 import type { GameShop, RetroArchPlatform } from "@types";
 
 import { platformToRetroArchPlatform } from "./retroarch-platform.js";
+import { parseRecompilationCloudSaveObjectId } from "./recompilations.js";
 
 export type CloudSaveEmulatorProvider = "rpcs3" | "retroarch";
 
@@ -26,17 +27,32 @@ export const getCloudSaveRetroArchPlatform = (
     ? platformToRetroArchPlatform(platform)
     : null;
 
+type RomDisc = { path: string; recompilationSlug?: string };
+
+export const getRetroArchRomDiscs = <T extends RomDisc>(discs?: T[]) =>
+  (discs ?? []).filter((disc) => !disc.recompilationSlug);
+
+export const getSelectedRetroArchRomPath = (game: {
+  selectedDiscPath?: string | null;
+  discs?: RomDisc[];
+}) => {
+  const romDiscs = getRetroArchRomDiscs(game.discs);
+  const selectsPort = (game.discs ?? []).some(
+    (disc) => disc.recompilationSlug && disc.path === game.selectedDiscPath
+  );
+  const selected = selectsPort ? undefined : game.selectedDiscPath;
+
+  if (selected === null) return null;
+  if (selected !== undefined) {
+    return romDiscs.some((disc) => disc.path === selected) ? selected : null;
+  }
+  return romDiscs.length === 1 ? romDiscs[0].path : null;
+};
+
 export const hasSelectedRetroArchRom = (game: {
   selectedDiscPath?: string | null;
-  discs?: Array<{ path: string }>;
-}) => {
-  const discs = game.discs ?? [];
-  if (game.selectedDiscPath === null) return false;
-  if (game.selectedDiscPath !== undefined) {
-    return discs.some((disc) => disc.path === game.selectedDiscPath);
-  }
-  return discs.length === 1;
-};
+  discs?: RomDisc[];
+}) => getSelectedRetroArchRomPath(game) !== null;
 
 export const hasRpcs3CloudSaveDisc = (game: {
   discs?: Array<{ path: string }>;
@@ -57,8 +73,11 @@ export const hasCloudSaveExecutableSelection = (game: {
 
 export const isCloudSaveV2Eligible = (
   shop: GameShop,
-  platform?: string | null
+  platform?: string | null,
+  objectId?: string
 ) =>
   shop === "steam" ||
   shop === "epic" ||
-  getCloudSaveEmulatorProvider(shop, platform) !== null;
+  getCloudSaveEmulatorProvider(shop, platform) !== null ||
+  (objectId !== undefined &&
+    parseRecompilationCloudSaveObjectId(shop, objectId) !== null);
