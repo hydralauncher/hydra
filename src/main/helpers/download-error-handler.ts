@@ -287,6 +287,10 @@ const handleHostSpecificError = (
     ) {
       return { ok: false, error: DownloadError.HosterUnlockFileNotFound };
     }
+
+    if (normalizedMessage.includes("gofile returned an unexpected response")) {
+      return { ok: false, error: DownloadError.HosterUnlockUnavailable };
+    }
   }
 
   const hostName = HOST_NAMES[downloader];

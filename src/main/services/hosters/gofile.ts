@@ -49,6 +49,10 @@ class RequestTimeoutError extends Error {
   }
 }
 
+const RATE_LIMIT_MESSAGE =
+  "RATE_LIMIT:Gofile rate limit reached. Please enable a VPN and try again in a few minutes.";
+const UNEXPECTED_RESPONSE_MESSAGE = "Gofile returned an unexpected response";
+
 export class GofileApi {
   private static readonly defaultUserAgent =
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
@@ -124,6 +128,24 @@ export class GofileApi {
       throw error;
     } finally {
       clearTimeout(timeoutId);
+    }
+  }
+
+  private static async readJsonPayload<T>(
+    response: Response,
+    request: string
+  ): Promise<T | null> {
+    const body = await response.text();
+
+    try {
+      return JSON.parse(body) as T;
+    } catch {
+      const contentType =
+        response.headers.get("content-type") || "no content-type";
+      logger.warn(
+        `[Gofile] ${request} returned a non-JSON response: HTTP ${response.status} (${contentType})`
+      );
+      return null;
     }
   }
 
@@ -400,24 +422,36 @@ export class GofileApi {
         }
       );
 
-      const payload = (await response.json()) as {
+      const payload = await this.readJsonPayload<{
         status?: string;
         data?: GofileAccountsReponse;
-      };
+      }>(response, "Account creation");
 
-      if (payload.status === "ok" && payload.data?.token) {
+      if (payload?.status === "ok" && payload.data?.token) {
         logger.log("[Gofile] Guest token created");
         await this.persistGuestToken(payload.data.token);
         return payload.data.token;
       }
 
+      const isRateLimited =
+        payload?.status === "error-rateLimit" || response.status === 429;
+
       if (
         attempt < 2 &&
-        (payload.status === "error-rateLimit" ||
-          this.isRetryableStatus(response.status))
+        (isRateLimited || this.isRetryableStatus(response.status))
       ) {
         await this.sleep(2 ** attempt * 1000);
         continue;
+      }
+
+      if (isRateLimited) {
+        throw new Error(RATE_LIMIT_MESSAGE);
+      }
+
+      if (!payload) {
+        throw new Error(
+          `${UNEXPECTED_RESPONSE_MESSAGE} (HTTP ${response.status})`
+        );
       }
 
       throw new Error(
@@ -675,15 +709,19 @@ export class GofileApi {
       }
     );
 
-    const payload = (await response.json()) as {
+    const payload = await this.readJsonPayload<{
       status?: string;
       data?: GofileContentsResponse;
       metadata?: GofileContentMetadata;
-    };
+    }>(response, `Content ${id} lookup`);
 
-    if (payload.status === "error-rateLimit" || response.status === 429) {
+    if (payload?.status === "error-rateLimit" || response.status === 429) {
+      throw new Error(RATE_LIMIT_MESSAGE);
+    }
+
+    if (!payload) {
       throw new Error(
-        "RATE_LIMIT:Gofile rate limit reached. Please enable a VPN and try again in a few minutes."
+        `${UNEXPECTED_RESPONSE_MESSAGE} (HTTP ${response.status})`
       );
     }
 
@@ -772,9 +810,7 @@ export class GofileApi {
     });
 
     if (response.status === 429) {
-      throw new Error(
-        "RATE_LIMIT:Gofile rate limit reached. Please enable a VPN and try again in a few minutes."
-      );
+      throw new Error(RATE_LIMIT_MESSAGE);
     }
 
     if (!response.ok) {
