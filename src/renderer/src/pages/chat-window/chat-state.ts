@@ -368,6 +368,24 @@ export const mergePendingMessages = (
   );
 };
 
+/**
+ * Messages to keep when the latest page loads. A replace keeps only unsent
+ * ones. A first load also drops stored messages older than the page: live ones
+ * cached before it would leave a hole that scrolling can't reach.
+ */
+export const selectMessagesToKeep = (
+  messages: ChatMessage[],
+  pageOldestSeq: number | undefined,
+  { replace, isFirstLoad }: { replace: boolean; isFirstLoad: boolean }
+) => {
+  if (replace) return messages.filter((message) => message.seq === undefined);
+  if (!isFirstLoad || pageOldestSeq === undefined) return messages;
+
+  return messages.filter(
+    (message) => message.seq === undefined || message.seq >= pageOldestSeq
+  );
+};
+
 export const getLatestSeq = (messages: ChatMessage[]) =>
   messages.reduce((latest, message) => Math.max(latest, message.seq ?? 0), 0);
 

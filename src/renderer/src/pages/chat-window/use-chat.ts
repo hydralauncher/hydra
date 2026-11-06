@@ -37,6 +37,7 @@ import {
   createReply,
   findGapAfter,
   getLatestSeq,
+  selectMessagesToKeep,
   mergeChatMessages,
   mergePendingMessages,
   removeUnsentMessage,
@@ -457,11 +458,11 @@ export function useChat({
 
         updateConversation(friendId, (conversation) => {
           const isFirstLoad = conversation.loadState !== "loaded";
-          const kept = replace
-            ? conversation.messages.filter(
-                (message) => message.seq === undefined
-              )
-            : conversation.messages;
+          const kept = selectMessagesToKeep(
+            conversation.messages,
+            messages[0]?.seq,
+            { replace, isFirstLoad }
+          );
 
           return {
             ...conversation,
