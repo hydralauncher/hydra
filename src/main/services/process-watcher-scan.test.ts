@@ -3,6 +3,7 @@ import { describe, it, mock } from "node:test";
 
 import {
   isValidProcessWatcherScan,
+  shouldBroadcastGamesRunning,
   startOptionalExecutableCatalogueLoad,
 } from "./process-watcher-scan.js";
 
@@ -39,5 +40,17 @@ describe("process watcher scan result", () => {
 
     assert.equal(loadOptionalExecutableCatalogue.mock.callCount(), 1);
     finishLoading(false);
+  });
+});
+
+describe("games-running broadcasts", () => {
+  it("sends the first empty state and suppresses repeated empty states", () => {
+    assert.equal(shouldBroadcastGamesRunning(0, false), true);
+    assert.equal(shouldBroadcastGamesRunning(0, true), false);
+  });
+
+  it("always sends while games are running", () => {
+    assert.equal(shouldBroadcastGamesRunning(1, false), true);
+    assert.equal(shouldBroadcastGamesRunning(1, true), true);
   });
 });

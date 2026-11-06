@@ -24,15 +24,17 @@ import { emulatorSessions } from "./emulators/emulator-session-tracker";
 import { launchedGamePids } from "./launched-game-pids";
 import { markGameLauncherGameDetected } from "./game-launcher-status";
 import {
-  isValidProcessWatcherScan,
-  startOptionalExecutableCatalogueLoad,
-} from "./process-watcher-scan";
-import {
-  doesSteamCompatDataPathMatchWinePrefix,
+  buildLinuxProcessMatchIndex,
   hasLaunchedPidMatch,
+  hasLinuxCompatibilityProcessMatch,
   hasLinuxNativeOrAppImageMatch,
   type LinuxProcessInfo,
 } from "./linux-process-match";
+import {
+  isValidProcessWatcherScan,
+  shouldBroadcastGamesRunning,
+  startOptionalExecutableCatalogueLoad,
+} from "./process-watcher-scan";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
 import { HydraApi } from "./hydra-api";
 import { isSteamAppExecutable } from "./steam-integration/steam-library-executable";
@@ -153,6 +155,7 @@ export const getGamesRunning = () => {
 
 const TICKS_TO_UPDATE_API = (3 * 60 * 1000) / INTERVALS.processWatcher; // 3 minutes
 let currentTick = 1;
+let lastGamesRunningBroadcastWasEmpty = false;
 
 const platform = process.platform;
 
@@ -282,49 +285,23 @@ const persistGamePlaytime = async (
   });
 };
 
-const hasLinuxCompatibilityProcessMatch = (
+const hasLinuxGameCompatibilityProcessMatch = (
   game: Game,
   executablePath: string,
-  linuxProcesses: LinuxProcessInfo[]
+  linuxProcessIndex: ReturnType<typeof buildLinuxProcessMatchIndex>
 ) => {
   if (path.extname(executablePath).toLowerCase() !== ".exe") {
     return false;
   }
 
-  const executableName = path.basename(executablePath).toLowerCase();
-  const executableNameWithoutExtension = executableName.replace(/\.exe$/i, "");
-  const executableDirectory = path.dirname(executablePath).toLowerCase();
   const expectedWinePrefix = Wine.getEffectivePrefixPath(
     game.winePrefixPath,
     game.objectId
-  )?.toLowerCase();
+  );
 
-  return linuxProcesses.some((process) => {
-    if (process.cwd !== executableDirectory) {
-      return false;
-    }
-
-    if (
-      expectedWinePrefix &&
-      process.steamCompatDataPath &&
-      !doesSteamCompatDataPathMatchWinePrefix(
-        process.steamCompatDataPath,
-        expectedWinePrefix
-      )
-    ) {
-      return false;
-    }
-
-    if (
-      process.name === executableName ||
-      process.name === executableNameWithoutExtension
-    ) {
-      return true;
-    }
-
-    const processRunsUnderWine = process.exe.includes("wine");
-
-    return processRunsUnderWine && process.name.length > 0;
+  return hasLinuxCompatibilityProcessMatch(linuxProcessIndex, {
+    executablePath,
+    expectedWinePrefix,
   });
 };
 
@@ -355,6 +332,8 @@ export const watchProcesses = async () => {
     return;
   }
   const { processMap, winePrefixMap, linuxProcesses } = systemProcessMap;
+  const linuxProcessIndex =
+    platform === "linux" ? buildLinuxProcessMatchIndex(linuxProcesses) : null;
 
   const pidToProcess = new Map<number, LinuxProcessInfo>(
     linuxProcesses.map((process) => [process.pid, process])
@@ -387,10 +366,14 @@ export const watchProcesses = async () => {
 
       if (processMap.get(executable)?.has(matchPath)) return true;
 
-      if (platform === "linux") {
+      if (platform === "linux" && linuxProcessIndex) {
         return (
-          hasLinuxNativeOrAppImageMatch(matchPath, linuxProcesses) ||
-          hasLinuxCompatibilityProcessMatch(game, matchPath, linuxProcesses)
+          hasLinuxNativeOrAppImageMatch(matchPath, linuxProcessIndex) ||
+          hasLinuxGameCompatibilityProcessMatch(
+            game,
+            matchPath,
+            linuxProcessIndex
+          )
         );
       }
 
@@ -434,7 +417,17 @@ export const watchProcesses = async () => {
 
   currentTick++;
 
-  WindowManager.sendToAppWindows("on-games-running", getGamesRunning());
+  const gamesRunning = getGamesRunning();
+
+  if (
+    shouldBroadcastGamesRunning(
+      gamesRunning.length,
+      lastGamesRunningBroadcastWasEmpty
+    )
+  ) {
+    WindowManager.sendToAppWindows("on-games-running", gamesRunning);
+    lastGamesRunningBroadcastWasEmpty = gamesRunning.length === 0;
+  }
 };
 
 async function onOpenGame(game: Game, matchedPath: string) {
