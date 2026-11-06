@@ -15,6 +15,7 @@ export enum Downloader {
   ArchiveOrg = 14,
   Epic = 15,
   FileKeeper = 16,
+  TorBoxHoster = 17,
 }
 
 export enum DownloadSourceStatus {

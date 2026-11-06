@@ -1,3 +1,4 @@
+import { isTorBoxHosterUri } from "./torbox-hoster-hosts.js";
 import {
   ptBR,
   enUS,
@@ -202,7 +203,7 @@ export const formatName = pipe<string>(
 
 const realDebridHosts = ["https://1fichier.com", "https://mediafire.com"];
 
-export const getDownloadersForUri = (uri: string) => {
+const getHosterDownloadersForUri = (uri: string) => {
   if (uri.startsWith("https://gofile.io")) return [Downloader.Gofile];
 
   if (uri.startsWith("https://pixeldrain.com")) return [Downloader.PixelDrain];
@@ -246,6 +247,16 @@ export const getDownloadersForUri = (uri: string) => {
   }
 
   return [];
+};
+
+export const getDownloadersForUri = (uri: string) => {
+  const downloaders = getHosterDownloadersForUri(uri);
+
+  if (isTorBoxHosterUri(uri)) {
+    return [...downloaders, Downloader.TorBoxHoster];
+  }
+
+  return downloaders;
 };
 
 export const getDownloadersForUris = (uris: string[]) => {

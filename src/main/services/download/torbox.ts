@@ -7,6 +7,7 @@ import type {
   TorBoxTorrentInfoRequest,
   TorBoxAddTorrentRequest,
   TorBoxRequestLinkRequest,
+  TorBoxWebdlCreateRequest,
 } from "@types";
 import { appVersion } from "@main/constants";
 import { DownloadError } from "@shared";
@@ -124,6 +125,51 @@ export class TorBoxClient {
         `[TorBox] requestdl did not return a link for torrent ${id}: ${detail}`
       );
 
+      throw new Error(DownloadError.TorBoxLinkUnavailable);
+    }
+
+    return data;
+  }
+
+  /**
+   * Resolves a direct-download (hoster) link through TorBox web downloads.
+   * Creates a web download for the link, then requests its direct URL.
+   */
+  static async getHosterDownloadUrl(uri: string, signal?: AbortSignal) {
+    const form = new FormData();
+    form.append("link", uri);
+
+    const created = await this.instance.post<TorBoxWebdlCreateRequest>(
+      "/webdl/createwebdownload",
+      form,
+      { validateStatus: () => true, signal }
+    );
+
+    const webId = created.data?.data?.webdownload_id;
+    if (!created.data?.success || typeof webId !== "number") {
+      logger.error(
+        `[TorBox] createwebdownload did not accept ${uri}: ${created.data?.detail}`
+      );
+      throw new Error(DownloadError.TorBoxLinkUnavailable);
+    }
+
+    const searchParams = new URLSearchParams({
+      token: this.apiToken,
+      web_id: webId.toString(),
+      zip_link: "false",
+    });
+
+    const response = await this.instance.get<TorBoxRequestLinkRequest>(
+      "/webdl/requestdl?" + searchParams.toString(),
+      { signal }
+    );
+
+    const { success, detail, data } = response.data;
+
+    if (!success || typeof data !== "string" || !data) {
+      logger.error(
+        `[TorBox] webdl requestdl did not return a link for ${uri}: ${detail}`
+      );
       throw new Error(DownloadError.TorBoxLinkUnavailable);
     }
 

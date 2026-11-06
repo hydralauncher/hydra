@@ -99,7 +99,10 @@ export const getDownloadOptions = (
         isConfigured = !!userPreferences?.premiumizeApiToken;
       } else if (downloader === Downloader.AllDebrid) {
         isConfigured = !!userPreferences?.allDebridApiToken;
-      } else if (downloader === Downloader.TorBox) {
+      } else if (
+        downloader === Downloader.TorBox ||
+        downloader === Downloader.TorBoxHoster
+      ) {
         isConfigured = !!userPreferences?.torBoxApiToken;
       } else if (downloader === Downloader.VikingFile) {
         isConfigured = hasActiveSubscription;

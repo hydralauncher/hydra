@@ -1703,6 +1703,8 @@ export class DownloadManager {
         return this.getAllDebridDownloadOptions(download, resumingFilename);
       case Downloader.TorBox:
         return this.getTorBoxDownloadOptions(download);
+      case Downloader.TorBoxHoster:
+        return this.getTorBoxHosterDownloadOptions(download, resumingFilename);
       case Downloader.Hydra:
         throw new Error(DownloadError.NotCachedOnHydra);
       case Downloader.VikingFile:
@@ -2336,6 +2338,23 @@ export class DownloadManager {
     };
   }
 
+  private static async getTorBoxHosterDownloadOptions(
+    download: Download,
+    resumingFilename?: string
+  ) {
+    const downloadUrl = await TorBoxClient.getHosterDownloadUrl(download.uri);
+    const filename = this.resolveFilename(
+      resumingFilename,
+      download.uri,
+      downloadUrl
+    );
+    return this.buildDownloadOptions(
+      downloadUrl,
+      download.downloadPath,
+      filename
+    );
+  }
+
   private static async getVikingFileDownloadOptions(
     download: Download,
     resumingFilename?: string
@@ -2505,6 +2524,19 @@ export class DownloadManager {
       case Downloader.RealDebrid: {
         const downloadUrl = await RealDebridClient.getDownloadUrl(download.uri);
         if (!downloadUrl) throw new Error(DownloadError.NotCachedOnRealDebrid);
+
+        return {
+          action: "start",
+          game_id: downloadId,
+          url: downloadUrl,
+          save_path: download.downloadPath,
+          allow_multiple_connections: true,
+        };
+      }
+      case Downloader.TorBoxHoster: {
+        const downloadUrl = await TorBoxClient.getHosterDownloadUrl(
+          download.uri
+        );
 
         return {
           action: "start",
