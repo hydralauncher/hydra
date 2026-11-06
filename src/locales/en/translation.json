@@ -2778,6 +2778,7 @@
     "copied": "Copied!",
     "minimize": "Minimize",
     "close": "Close",
+    "official_name": "Hydra",
     "message_friend": "Message {{name}}",
     "unread_messages_one": "{{count}} unread message",
     "unread_messages_other": "{{count}} unread messages"

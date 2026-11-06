@@ -912,6 +912,7 @@ export interface AchievementNotificationInfo {
 
 export type AchievementNotificationRequest = {
   id: string;
+  batchId: string;
   position: AchievementCustomNotificationPosition;
 } & (
   | {
