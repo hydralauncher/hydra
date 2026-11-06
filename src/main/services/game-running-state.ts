@@ -55,7 +55,9 @@ export const onTrackedGamesRunningChange = (listener: () => void) => {
 };
 
 export const hasTrackedGamesRunning = () =>
-  mutableGamesPlaytime.size > 0 || emulatorGamesRunning.size > 0;
+  mutableGamesPlaytime.size > 0 ||
+  emulatorGamesRunning.size > 0 ||
+  recompilationGameSessions.size > 0;
 
 export const gamesPlaytime: ReadonlyMap<string, GamePlaytimeState> =
   mutableGamesPlaytime;
@@ -125,16 +127,50 @@ export const deleteEmulatorGameRunning = (gameKey: string) => {
   if (emulatorGamesRunning.delete(gameKey)) notifyTrackedGamesRunningChange();
 };
 
+export const recompilationGameSessions = new Map<
+  string,
+  { gameKey: string; recompilationSlug: string; startedAt: number }
+>();
+
+export const setRecompilationGameRunning = (
+  portKey: string,
+  gameKey: string,
+  recompilationSlug: string
+) => {
+  recompilationGameSessions.set(portKey, {
+    gameKey,
+    recompilationSlug,
+    startedAt: performance.now(),
+  });
+  notifyTrackedGamesRunningChange();
+};
+
+export const deleteRecompilationGameRunning = (portKey: string) => {
+  if (recompilationGameSessions.delete(portKey)) {
+    notifyTrackedGamesRunningChange();
+  }
+};
+
+const isRecompilationBaseGameRunning = (gameKey: string) =>
+  Array.from(recompilationGameSessions.values()).some(
+    (session) => session.gameKey === gameKey
+  );
+
 export const getTrackedGamesRunning = (now = performance.now()) =>
   Array.from(gamesPlaytime.entries()).map(
-    ([id, session]): Pick<GameRunning, "id" | "sessionDurationInMillis"> => ({
+    ([id, session]): Pick<
+      GameRunning,
+      "id" | "sessionDurationInMillis" | "recompilationSlug"
+    > => ({
       id,
       sessionDurationInMillis: now - session.firstTick,
     })
   );
 
 export const isTrackedGameKeyRunning = (gameKey: string) =>
-  mutableGamesPlaytime.has(gameKey) || emulatorGamesRunning.has(gameKey);
+  mutableGamesPlaytime.has(gameKey) ||
+  emulatorGamesRunning.has(gameKey) ||
+  isRecompilationBaseGameRunning(gameKey);
 
 export const isGameRunning = (objectId: string, shop: Game["shop"]) =>
   isTrackedGameKeyRunning(levelKeys.game(shop, objectId));

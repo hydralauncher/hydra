@@ -14,11 +14,8 @@ function load(game: Game | undefined) {
     environmentPrefixes: [] as Array<string | undefined>,
   };
   const modules: Record<string, unknown> = {
-    "@main/level": {
-      gamesSublevel: { get: async () => game },
-      levelKeys: {
-        game: (shop: string, objectId: string) => `${shop}:${objectId}`,
-      },
+    "./recompilation-cloud-save": {
+      getCloudSaveGameRecord: async () => game,
     },
     "@main/services/steam": { getSteamLocation: async () => undefined },
     "@main/services/system-path": { SystemPath: { getPath: () => "/home" } },

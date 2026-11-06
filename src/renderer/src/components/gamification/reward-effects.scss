@@ -1,0 +1,49 @@
+@use "../../scss/globals.scss";
+
+.gamification-confetti {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: calc(globals.$toast-z-index + 10);
+}
+
+.gamification-float {
+  position: fixed;
+  z-index: calc(globals.$toast-z-index + 11);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background-color: #f0f1f7;
+  color: #0d0d0d;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 0);
+  animation: gamification-float-up 1.2s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+
+  canvas {
+    filter: invert(1);
+  }
+}
+
+@keyframes gamification-float-up {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -56px);
+  }
+}

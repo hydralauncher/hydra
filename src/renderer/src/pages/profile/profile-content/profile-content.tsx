@@ -19,6 +19,7 @@ import {
   useAppSelector,
   useFeature,
   useFormat,
+  useGamificationProgress,
   useUserDetails,
 } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
@@ -37,6 +38,10 @@ import { FriendsBox, FriendsBoxAddButton } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
 import { ProfileSection } from "../profile-section/profile-section";
+import { useProfileGamification } from "../use-profile-gamification";
+import { MissionsSidebar, MissionsTab } from "../missions-tab/missions-tab";
+import { OPEN_PROFILE_TAB_EVENT } from "../profile-tab-events";
+import { LevelBox } from "./level-box";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { ProfileTabs, type ProfileTabType } from "./profile-tabs";
@@ -58,10 +63,19 @@ import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
 
+interface RequestedProfileTabOptions {
+  hasRequestedScreenshot: boolean;
+  isScreenshotsEnabled: boolean;
+  canShowMissions: boolean;
+}
+
 const getRequestedProfileTab = (
   requestedTab: string | null,
-  hasRequestedScreenshot: boolean,
-  isScreenshotsEnabled: boolean
+  {
+    hasRequestedScreenshot,
+    isScreenshotsEnabled,
+    canShowMissions,
+  }: RequestedProfileTabOptions
 ): ProfileTabType => {
   if (requestedTab === "souvenirs") return "souvenirs";
   if (
@@ -70,6 +84,7 @@ const getRequestedProfileTab = (
   ) {
     return "screenshots";
   }
+  if (requestedTab === "missions" && canShowMissions) return "missions";
   return "library";
 };
 
@@ -198,12 +213,17 @@ export function ProfileContent() {
     [platform]
   );
 
+  const isGamificationEnabled = useAppSelector(
+    (state) => state.gamification.isEnabled
+  );
+  const canShowMissions = isMe && isGamificationEnabled;
+
   const [activeTab, setActiveTab] = useState<ProfileTabType>(() =>
-    getRequestedProfileTab(
-      requestedTab,
-      Boolean(requestedScreenshot),
-      isScreenshotsEnabled
-    )
+    getRequestedProfileTab(requestedTab, {
+      hasRequestedScreenshot: Boolean(requestedScreenshot),
+      isScreenshotsEnabled,
+      canShowMissions,
+    })
   );
   const [screenshotsTotal, setScreenshotsTotal] = useState<number | null>(null);
   const screenshotsProfileRef = useRef(userProfile);
@@ -230,6 +250,8 @@ export function ProfileContent() {
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
 
   const dispatch = useAppDispatch();
+  const { level } = useProfileGamification();
+  const { progress: ownProgress } = useGamificationProgress();
 
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
@@ -394,16 +416,52 @@ export function ProfileContent() {
       window.removeEventListener("hydra:game-visibility-updated", refresh);
   }, [getUserProfile, isMe]);
 
+  // Read through a ref so a late feature flag response does not re-run the reset below and wipe
+  // reviews that already loaded.
+  const canShowMissionsRef = useRef(canShowMissions);
+  canShowMissionsRef.current = canShowMissions;
+
   // Clear reviews state and reset tab when switching users
   useEffect(() => {
     setReviews([]);
     setReviewsTotalCount(0);
     setIsLoadingReviews(false);
-    setActiveTab(requestedTab === "souvenirs" ? "souvenirs" : "library");
+    setActiveTab(
+      getRequestedProfileTab(requestedTab, {
+        hasRequestedScreenshot: false,
+        isScreenshotsEnabled: false,
+        canShowMissions: canShowMissionsRef.current,
+      })
+    );
     setPlatform(readStoredProfilePlatform());
     setScreenshotsTotal(null);
   }, [requestedTab, userProfile?.id]);
 
+  // The Missions tab follows the flag on its own: open it once a requested ?tab=missions becomes
+  // available, leave it if the flag turns off.
+  useEffect(() => {
+    setActiveTab((current) => {
+      if (canShowMissions) {
+        return requestedTab === "missions" ? "missions" : current;
+      }
+      return current === "missions"
+        ? getRequestedProfileTab(requestedTab, {
+            hasRequestedScreenshot: false,
+            isScreenshotsEnabled: false,
+            canShowMissions: false,
+          })
+        : current;
+    });
+  }, [canShowMissions, requestedTab]);
+
+  useEffect(() => {
+    const openTab = (event: Event) => {
+      const tab = (event as CustomEvent<ProfileTabType>).detail;
+      if (tab !== "missions" || canShowMissions) setActiveTab(tab);
+    };
+    window.addEventListener(OPEN_PROFILE_TAB_EVENT, openTab);
+    return () => window.removeEventListener(OPEN_PROFILE_TAB_EVENT, openTab);
+  }, [canShowMissions]);
   useEffect(() => {
     if (
       isScreenshotsEnabled &&
@@ -604,7 +662,7 @@ export function ProfileContent() {
     const hasAnyGames = hasGames || hasPinnedGames;
 
     const shouldShowRightContent =
-      hasAnyGames || userProfile.friends.length > 0 || isMe;
+      hasAnyGames || userProfile.friends.length > 0 || isMe || level !== null;
 
     return (
       <section className="profile-content__section">
@@ -613,6 +671,7 @@ export function ProfileContent() {
             activeTab={activeTab}
             reviewsTotalCount={reviewsTotalCount}
             souvenirsCount={souvenirsTotal}
+            showMissions={canShowMissions}
             screenshotsCount={
               screenshotsTotal ?? userProfile.screenshotCount ?? 0
             }
@@ -689,6 +748,7 @@ export function ProfileContent() {
                 />
               )}
 
+              {activeTab === "missions" && canShowMissions && <MissionsTab />}
               {activeTab === "screenshots" && isScreenshotsEnabled && (
                 <ScreenshotsTab
                   key={userProfile.id}
@@ -705,8 +765,19 @@ export function ProfileContent() {
           </div>
         </div>
 
-        {shouldShowRightContent && (
+        {activeTab === "missions" && canShowMissions && ownProgress && (
           <div className="profile-content__right-content">
+            <MissionsSidebar progress={ownProgress} />
+          </div>
+        )}
+
+        {shouldShowRightContent && activeTab !== "missions" && (
+          <div className="profile-content__right-content">
+            {level && (
+              <ProfileSection title={t("level_title")} defaultOpen={true}>
+                <LevelBox level={level} />
+              </ProfileSection>
+            )}
             {userStats && (
               <ProfileSection title={t("stats")} defaultOpen={true}>
                 <UserStatsBox />

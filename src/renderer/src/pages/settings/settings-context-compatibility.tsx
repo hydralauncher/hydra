@@ -20,7 +20,7 @@ import { DesktopDownloadIcon, LinkExternalIcon } from "@primer/octicons-react";
 import { logger } from "@renderer/logger";
 import { Tooltip } from "react-tooltip";
 
-import "./settings-behavior.scss";
+import "./settings-context-compatibility.scss";
 import "./settings-general.scss";
 
 let lastKnownCanInstallCommonRedist = false;
@@ -273,8 +273,8 @@ export function SettingsContextCompatibility() {
               />
             </div>
 
-            <div className="settings-behavior__proton-section settings-context-compatibility__section">
-              <p className="settings-behavior__proton-description">
+            <div className="settings-context-compatibility__proton-section settings-context-compatibility__section">
+              <p className="settings-context-compatibility__proton-description">
                 {t("default_proton_version_description")}
               </p>
 
@@ -296,17 +296,17 @@ export function SettingsContextCompatibility() {
             </div>
 
             <div className="settings-context-compatibility__section settings-context-compatibility__global-toggles">
-              <h3 className="settings-behavior__proton-title">
+              <h3 className="settings-context-compatibility__proton-title">
                 {t("behavior")}
               </h3>
 
-              <div className="settings-behavior__gamemode-toggle">
+              <div className="settings-context-compatibility__gamemode-toggle">
                 <CheckboxField
                   label={
                     <span
-                      className={`settings-behavior__gamemode-label ${
+                      className={`settings-context-compatibility__gamemode-label ${
                         !gamemodeAvailable
-                          ? "settings-behavior__gamemode-label--disabled"
+                          ? "settings-context-compatibility__gamemode-label--disabled"
                           : ""
                       }`}
                       data-tooltip-id={
@@ -326,7 +326,7 @@ export function SettingsContextCompatibility() {
                       <span>{tGameDetails("run_with_gamemode_prefix")}</span>
                       <Link
                         to={GAMEMODE_SITE_URL}
-                        className="settings-behavior__gamemode-link"
+                        className="settings-context-compatibility__gamemode-link"
                       >
                         GameMode
                         <LinkExternalIcon />
@@ -349,13 +349,13 @@ export function SettingsContextCompatibility() {
                 )}
               </div>
 
-              <div className="settings-behavior__mangohud-toggle">
+              <div className="settings-context-compatibility__mangohud-toggle">
                 <CheckboxField
                   label={
                     <span
-                      className={`settings-behavior__mangohud-label ${
+                      className={`settings-context-compatibility__mangohud-label ${
                         !mangohudAvailable
-                          ? "settings-behavior__mangohud-label--disabled"
+                          ? "settings-context-compatibility__mangohud-label--disabled"
                           : ""
                       }`}
                       data-tooltip-id={
@@ -375,7 +375,7 @@ export function SettingsContextCompatibility() {
                       <span>{tGameDetails("run_with_mangohud_prefix")}</span>
                       <Link
                         to={MANGOHUD_SITE_URL}
-                        className="settings-behavior__mangohud-link"
+                        className="settings-context-compatibility__mangohud-link"
                       >
                         MangoHud
                         <LinkExternalIcon />
@@ -398,13 +398,13 @@ export function SettingsContextCompatibility() {
                 )}
               </div>
 
-              <div className="settings-behavior__gamescope-toggle">
+              <div className="settings-context-compatibility__gamescope-toggle">
                 <CheckboxField
                   label={
                     <span
-                      className={`settings-behavior__gamescope-label ${
+                      className={`settings-context-compatibility__gamescope-label ${
                         !gamescopeAvailable
-                          ? "settings-behavior__gamescope-label--disabled"
+                          ? "settings-context-compatibility__gamescope-label--disabled"
                           : ""
                       }`}
                       data-tooltip-id={
@@ -428,7 +428,7 @@ export function SettingsContextCompatibility() {
                       </span>
                       <Link
                         to={GAMESCOPE_SITE_URL}
-                        className="settings-behavior__gamescope-link"
+                        className="settings-context-compatibility__gamescope-link"
                       >
                         Gamescope
                         <LinkExternalIcon />

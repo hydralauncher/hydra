@@ -5,6 +5,7 @@ export interface UseUserReviewStatusParams {
   shop?: GameShop;
   objectId?: string;
   userDetailsId?: string;
+  recompilationSlug?: string;
 }
 
 interface UserReviewStatusResult {
@@ -15,15 +16,23 @@ interface UserReviewStatusResult {
 const buildIdentity = (
   shop?: GameShop,
   objectId?: string,
-  userDetailsId?: string
-) => `${shop ?? ""}:${objectId ?? ""}:${userDetailsId ?? ""}`;
+  userDetailsId?: string,
+  recompilationSlug?: string
+) =>
+  `${shop ?? ""}:${objectId ?? ""}:${userDetailsId ?? ""}:${recompilationSlug ?? ""}`;
 
 export function useUserReviewStatus({
   shop,
   objectId,
   userDetailsId,
+  recompilationSlug,
 }: Readonly<UseUserReviewStatusParams>) {
-  const identity = buildIdentity(shop, objectId, userDetailsId);
+  const identity = buildIdentity(
+    shop,
+    objectId,
+    userDetailsId,
+    recompilationSlug
+  );
   const [result, setResult] = useState<UserReviewStatusResult | null>(null);
 
   useEffect(() => {
@@ -37,7 +46,10 @@ export function useUserReviewStatus({
     window.electron.hydraApi
       .get<{ hasReviewed: boolean }>(
         `/games/${shop}/${objectId}/reviews/check`,
-        { needsAuth: true }
+        {
+          needsAuth: true,
+          params: recompilationSlug ? { recompilationSlug } : undefined,
+        }
       )
       .then((response) => {
         if (cancelled) return;
@@ -52,7 +64,7 @@ export function useUserReviewStatus({
     return () => {
       cancelled = true;
     };
-  }, [identity, shop, objectId, userDetailsId]);
+  }, [identity, shop, objectId, userDetailsId, recompilationSlug]);
 
   const currentResult = result?.identity === identity ? result : null;
 

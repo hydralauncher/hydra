@@ -5,7 +5,7 @@ import type {
   RetroArchCoreName,
 } from "@types";
 
-import { installPercent } from "./setup/install-progress";
+import { installPercent } from "@renderer/components/setup-modal/install-progress-bar";
 
 export interface RetroArchCoreMeta {
   name: RetroArchCoreName;
