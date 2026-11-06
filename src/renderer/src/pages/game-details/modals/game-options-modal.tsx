@@ -9,10 +9,12 @@ import {
 import { useTranslation } from "react-i18next";
 import { Modal, SteamUninstallModal } from "@renderer/components";
 import {
+  buildWineDllOverridesValue,
   formatBytes,
   GAMEMODE_SITE_URL,
   getCloudSaveAccessAction,
   getGameExecutableFilters,
+  mergeLaunchOptionEnvVars,
   getGameCatalogueIdentity,
   getRemoveFilesTarget,
   isSameRemoveFilesTarget,
@@ -954,6 +956,7 @@ export function GameOptionsModal({
   };
 
   const handleClearLaunchOptions = async () => {
+    debounceUpdateLaunchOptions.cancel();
     setLaunchOptions("");
     const gameKey = getGameKey(game.shop, game.objectId);
     const gameData = (await levelDBService.get(
@@ -967,6 +970,51 @@ export function GameOptionsModal({
         "games"
       );
     updateGame();
+  };
+
+  const handleDetectWineDllOverrides = async () => {
+    // Save pending edits first so they neither overwrite the detected options
+    // nor get lost when detection finds nothing to change.
+    await debounceUpdateLaunchOptions.flush();
+
+    const { dllNames, steamOverlayEnv } =
+      await globalThis.window.electron.detectWineDllOverrides(
+        game.shop,
+        game.objectId
+      );
+
+    if (dllNames.length === 0) {
+      showErrorToast(t("no_dlls_found_in_game_folder"));
+      return;
+    }
+
+    const merged = mergeLaunchOptionEnvVars(launchOptions, {
+      WINEDLLOVERRIDES: buildWineDllOverridesValue(dllNames),
+      ...steamOverlayEnv,
+    });
+    setLaunchOptions(merged);
+
+    const gameKey = getGameKey(game.shop, game.objectId);
+    const gameData = (await levelDBService.get(
+      gameKey,
+      "games"
+    )) as Game | null;
+    if (gameData) {
+      await levelDBService.put(
+        gameKey,
+        { ...gameData, launchOptions: merged },
+        "games"
+      );
+    }
+    updateGame();
+    showSuccessToast(
+      t(
+        steamOverlayEnv
+          ? "dll_overrides_and_overlay_detected"
+          : "dll_overrides_detected",
+        { count: dllNames.length }
+      )
+    );
   };
 
   const isLaunchbox = game.shop === "launchbox";
@@ -1258,6 +1306,7 @@ export function GameOptionsModal({
       onResetGameTitle: handleResetGameTitle,
       onChangeLaunchOptions: handleChangeLaunchOptions,
       onClearLaunchOptions: handleClearLaunchOptions,
+      onDetectWineDllOverrides: handleDetectWineDllOverrides,
       onToggleHydraPlaytimeEnabled: handleToggleHydraPlaytimeEnabled,
       isNonSteamExecutable,
       isTransferring,
@@ -1294,6 +1343,7 @@ export function GameOptionsModal({
       handleResetGameTitle,
       handleChangeLaunchOptions,
       handleClearLaunchOptions,
+      handleDetectWineDllOverrides,
       handleToggleHydraPlaytimeEnabled,
       isNonSteamExecutable,
       isTransferring,

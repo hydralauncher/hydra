@@ -1,6 +1,7 @@
 import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
+import { applyAutomaticWineDllOverrides } from "@main/helpers/apply-automatic-wine-dll-overrides";
 import { findGameExecutableInFolder } from "@main/helpers/find-game-executable";
 import { findDownloadInstaller } from "@main/helpers/find-game-installer";
 import {
@@ -768,6 +769,8 @@ export class GameFilesManager {
     logger.info(
       `[GameFilesManager] Auto-detected executable for ${this.objectId}: ${executablePath}`
     );
+
+    await applyAutomaticWineDllOverrides(updatedGame);
 
     void runAutomaticCloudSaveSync(
       this.objectId,

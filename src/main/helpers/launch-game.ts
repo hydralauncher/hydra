@@ -1,4 +1,4 @@
-import { shell } from "electron";
+import { BrowserWindow, shell, type WebContents } from "electron";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -28,6 +28,7 @@ import {
   launchedGamePids,
   type UmuStatus,
 } from "@main/services";
+import { publishSteamOverlayUnavailableNotification } from "@main/services/notifications";
 import {
   clearGameLauncherStatuses,
   sendGameLauncherStatus,
@@ -67,6 +68,8 @@ export interface LaunchGameOptions {
   objectId: string;
   executablePath: string;
   launchOptions?: string | null;
+  skipSteamOverlayCheck?: boolean;
+  requestingWebContents?: WebContents;
   epicSavePolicy?: "local-once";
   epicOffline?: boolean;
   epicSkipUpdateCheck?: boolean;
@@ -616,6 +619,116 @@ const runCommonRedistPreflight = async (shop: GameShop, objectId: string) => {
   }
 };
 
+const STEAM_OVERLAY_LAUNCH_OPTIONS_MARKER = "SteamOverlayGameId=";
+
+const isSteamRunning = async (): Promise<boolean> => {
+  const processes = await NativeAddon.listProcesses().catch(() => []);
+  return processes.some(
+    (runningProcess) => runningProcess.name.toLowerCase() === "steam"
+  );
+};
+
+const shouldBlockLaunchForSteamOverlay = async (
+  launchOptions: string | null | undefined
+): Promise<boolean> => {
+  if (!launchOptions?.includes(STEAM_OVERLAY_LAUNCH_OPTIONS_MARKER)) {
+    return false;
+  }
+
+  return !(await isSteamRunning());
+};
+
+const notifySteamOverlayUnavailable = async (
+  shop: GameShop,
+  objectId: string
+) => {
+  const game = await gamesSublevel
+    .get(levelKeys.game(shop, objectId))
+    .catch(() => null);
+
+  await publishSteamOverlayUnavailableNotification(
+    game?.title ?? objectId
+  ).catch((error) => {
+    logger.error("Failed to publish Steam overlay unavailable notification", {
+      shop,
+      objectId,
+      error,
+    });
+  });
+};
+
+const revealWindow = (window: Electron.BrowserWindow): boolean => {
+  if (window.isDestroyed()) return false;
+  const wasHidden = window.isMinimized() || !window.isVisible();
+  if (window.isMinimized()) window.restore();
+  window.show();
+  window.focus();
+  window.flashFrame(true);
+  return wasHidden;
+};
+
+const revealWindowForWebContents = (webContents: WebContents): boolean => {
+  const window = BrowserWindow.fromWebContents(webContents);
+  if (!window) return false;
+  return revealWindow(window);
+};
+
+const handleBlockedSteamOverlayLaunch = async (
+  shop: GameShop,
+  objectId: string,
+  parsedPath: string,
+  launchOptions: string | null | undefined,
+  requestingWebContents: WebContents | undefined
+) => {
+  const requestingWindowIsAlive =
+    requestingWebContents && !requestingWebContents.isDestroyed();
+
+  if (
+    requestingWindowIsAlive ||
+    (!requestingWebContents && WindowManager.hasAnyAppWindow())
+  ) {
+    await blockLaunchForSteamOverlay(
+      shop,
+      objectId,
+      parsedPath,
+      launchOptions,
+      requestingWindowIsAlive ? requestingWebContents : undefined
+    );
+    return;
+  }
+
+  clearCloudSaveLaunchGuard(objectId, shop);
+  WindowManager.closeGameLauncherWindow();
+  await notifySteamOverlayUnavailable(shop, objectId);
+};
+
+const blockLaunchForSteamOverlay = async (
+  shop: GameShop,
+  objectId: string,
+  executablePath: string,
+  launchOptions: string | null | undefined,
+  requestingWebContents: WebContents | undefined
+) => {
+  clearCloudSaveLaunchGuard(objectId, shop);
+  WindowManager.closeGameLauncherWindow();
+
+  const args = [shop, objectId, executablePath, launchOptions ?? null] as const;
+
+  const wasHidden = requestingWebContents
+    ? revealWindowForWebContents(requestingWebContents)
+    : WindowManager.openMainWindow();
+
+  if (requestingWebContents) {
+    requestingWebContents.send("on-steam-overlay-unavailable", ...args);
+  } else {
+    WindowManager.sendToAppWindows("on-steam-overlay-unavailable", ...args);
+  }
+
+  if (wasHidden) {
+    await notifySteamOverlayUnavailable(shop, objectId);
+  }
+};
+
 const launchResolvedGame = async (
   gameKey: string,
   shop: GameShop,
@@ -625,7 +738,9 @@ const launchResolvedGame = async (
   launchOptions: string | null | undefined,
   useMangohud: boolean,
   useGamemode: boolean,
-  shortcut: ExecutableShortcut | null = null
+  shortcut: ExecutableShortcut | null = null,
+  skipSteamOverlayCheck = false,
+  requestingWebContents?: WebContents
 ) => {
   if (process.platform !== "linux") {
     return launchNatively(
@@ -640,6 +755,20 @@ const launchResolvedGame = async (
   if (isWindowsExecutable(parsedPath)) {
     if (!compatibilityContext) {
       clearCloudSaveLaunchGuard(objectId, shop);
+      return null;
+    }
+
+    if (
+      !skipSteamOverlayCheck &&
+      (await shouldBlockLaunchForSteamOverlay(launchOptions))
+    ) {
+      await handleBlockedSteamOverlayLaunch(
+        shop,
+        objectId,
+        parsedPath,
+        launchOptions,
+        requestingWebContents
+      );
       return null;
     }
 
@@ -702,7 +831,13 @@ const launchAuthenticatedEpicGame = (
 const launchGameWithCloudSaveChecks = async (
   options: LaunchGameOptions
 ): Promise<number | null> => {
-  const { shop, objectId, executablePath, launchOptions } = options;
+  const {
+    shop,
+    objectId,
+    executablePath,
+    skipSteamOverlayCheck,
+    requestingWebContents,
+  } = options;
 
   const parsedPath = parseExecutablePath(executablePath);
   const shortcut = readExecutableShortcut(executablePath);
@@ -710,6 +845,8 @@ const launchGameWithCloudSaveChecks = async (
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
   clearCloudSaveLaunchGuard(objectId, shop);
+
+  const launchOptions = game?.launchOptions;
 
   const steamProtocolLaunch =
     shop === "steam"
@@ -1021,7 +1158,9 @@ const launchGameWithCloudSaveChecks = async (
           launchOptions,
           useMangohud,
           useGamemode,
-          shortcut
+          shortcut,
+          skipSteamOverlayCheck,
+          requestingWebContents
         );
       }
     );
@@ -1054,7 +1193,9 @@ const launchGameWithCloudSaveChecks = async (
     launchOptions,
     useMangohud,
     useGamemode,
-    shortcut
+    shortcut,
+    skipSteamOverlayCheck,
+    requestingWebContents
   );
 };
 
