@@ -1,4 +1,4 @@
-import type { AuthPage, Downloader } from "@shared";
+import type { AuthPage, Downloader, SteamReviewSummary } from "@shared";
 import type {
   LocalScreenshot,
   LocalScreenshotDraft,
@@ -370,6 +370,9 @@ declare global {
     >;
 
     /* Catalogue */
+    getSteamReviewSummary: (
+      steamAppId: string
+    ) => Promise<SteamReviewSummary | null>;
     getGameShopDetails: (
       objectId: string,
       shop: GameShop,

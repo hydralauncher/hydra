@@ -1,5 +1,6 @@
 import "./get-game-assets";
 import "./get-game-shop-details";
+import "./get-steam-review-summary";
 import "./get-game-stats";
 import "./get-catalogue-names";
 import "./get-random-game";

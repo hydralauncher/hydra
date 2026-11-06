@@ -270,6 +270,7 @@
     "downloading_metadata": "Downloading metadata…",
     "filter": "Filter repacks",
     "requirements": "System requirements",
+    "steam_review_summary": "Steam reviews: {{label}} ({{reviews}} reviews)",
     "minimum": "Minimum",
     "recommended": "Recommended",
     "paused": "Paused",

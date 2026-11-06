@@ -3,12 +3,13 @@ import { useContext } from "react";
 import { format } from "date-fns";
 import { getDateLocale } from "@shared";
 import { gameDetailsContext } from "@renderer/context";
+import { SteamReviewSummary } from "./steam-review-summary";
 import "./description-header.scss";
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 export function DescriptionHeader() {
-  const { shopDetails } = useContext(gameDetailsContext);
+  const { shopDetails, shop, objectId } = useContext(gameDetailsContext);
   const { t, i18n } = useTranslation("game_details");
 
   if (!shopDetails) return null;
@@ -35,6 +36,10 @@ export function DescriptionHeader() {
 
         {Array.isArray(shopDetails.publishers) && (
           <p>{t("publisher", { publisher: shopDetails.publishers[0] })}</p>
+        )}
+
+        {shop === "steam" && objectId && (
+          <SteamReviewSummary steamAppId={objectId} />
         )}
       </section>
     </div>
