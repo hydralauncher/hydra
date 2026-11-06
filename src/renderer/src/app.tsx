@@ -117,6 +117,9 @@ export function App() {
   );
 
   const toast = useAppSelector((state) => state.toast);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   const { showSuccessToast, showErrorToast, showWarningToast } = useToast();
   useMissingScreenshotsToast();
@@ -850,7 +853,7 @@ export function App() {
       <RetroArchScanModal />
 
       <main>
-        <Sidebar />
+        {userPreferences?.hideSidebar !== true && <Sidebar />}
 
         <article className="container">
           <Header />

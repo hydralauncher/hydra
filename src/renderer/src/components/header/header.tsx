@@ -15,6 +15,8 @@ import {
   SyncIcon,
   VideoIcon,
   XIcon,
+  SidebarCollapseIcon,
+  SidebarExpandIcon,
 } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
 import { SidebarAddingCustomGameModal } from "@renderer/components/sidebar/sidebar-adding-custom-game-modal";
@@ -30,13 +32,19 @@ import "./header.scss";
 import { AutoUpdateSubHeader } from "./auto-update-sub-header";
 import { useTitleSelection } from "./use-title-selection";
 import { ScanGamesModal, type ScanResult } from "./scan-games-modal";
-import { setFilters, setLibrarySearchQuery } from "@renderer/features";
+import {
+  setFilters,
+  setLibrarySearchQuery,
+  setUserPreferences,
+} from "@renderer/features";
 import cn from "classnames";
 import { SearchDropdown } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import type { GameShop } from "@types";
 import type { SuggestionShop } from "@renderer/hooks/use-search-suggestions";
 import { debounce } from "lodash-es";
+
+const TOOLTIP_Z_INDEX = { zIndex: 1 };
 
 const pathTitle: Record<string, string> = {
   "/": "home",
@@ -72,6 +80,23 @@ export function Header() {
   const librarySearchValue = useAppSelector(
     (state) => state.library.searchQuery
   );
+
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
+
+  const handleToggleSidebar = () => {
+    if (userPreferences) {
+      const newPrefs = {
+        ...userPreferences,
+        hideSidebar: !userPreferences.hideSidebar,
+      };
+      dispatch(setUserPreferences(newPrefs));
+      void window.electron.updateUserPreferences({
+        hideSidebar: newPrefs.hideSidebar,
+      });
+    }
+  };
 
   const isOnLibraryPage = location.pathname.startsWith("/library");
   const isOnCataloguePage = location.pathname.startsWith("/catalogue");
@@ -386,9 +411,28 @@ export function Header() {
         className={cn("header", {
           "header--dragging-disabled": draggingDisabled,
           "header--is-windows": window.electron.platform === "win32",
+          "header--hide-sidebar-darwin":
+            window.electron.platform === "darwin" &&
+            userPreferences?.hideSidebar === true,
         })}
       >
         <section className="header__section header__section--left">
+          <button
+            type="button"
+            className="header__action-button"
+            disabled={!userPreferences}
+            onClick={handleToggleSidebar}
+            data-tooltip-id="sidebar-toggle-tooltip"
+            data-tooltip-content={t("toggle_sidebar", { ns: "sidebar" })}
+            data-tooltip-place="bottom"
+          >
+            {userPreferences?.hideSidebar ? (
+              <SidebarExpandIcon />
+            ) : (
+              <SidebarCollapseIcon />
+            )}
+          </button>
+
           <button
             type="button"
             className={cn("header__back-button", {
@@ -500,12 +544,14 @@ export function Header() {
         </section>
       </header>
 
+      <Tooltip id="sidebar-toggle-tooltip" style={TOOLTIP_Z_INDEX} />
+
       {isOnLibraryPage && (
-        <Tooltip id={addCustomGameTooltipId} style={{ zIndex: 1 }} />
+        <Tooltip id={addCustomGameTooltipId} style={TOOLTIP_Z_INDEX} />
       )}
 
       {isOnLibraryPage && isLibraryScanSupported && (
-        <Tooltip id={scanButtonTooltipId} style={{ zIndex: 1 }} />
+        <Tooltip id={scanButtonTooltipId} style={TOOLTIP_Z_INDEX} />
       )}
 
       {window.electron.hasNativeWindowDecorations && (
