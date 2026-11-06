@@ -8,6 +8,7 @@ const DOWNLOADER_PREFERENCE_KEYS: Partial<
   [Downloader.Premiumize]: "premiumizeApiToken",
   [Downloader.AllDebrid]: "allDebridApiToken",
   [Downloader.TorBox]: "torBoxApiToken",
+  [Downloader.TorBoxHoster]: "torBoxApiToken",
 };
 
 const DOWNLOADER_FEATURE_FLAGS: Partial<Record<Downloader, string>> = {

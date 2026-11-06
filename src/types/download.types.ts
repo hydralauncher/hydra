@@ -104,6 +104,13 @@ export interface TorBoxAddTorrentRequest {
   };
 }
 
+export interface TorBoxWebdlCreateRequest {
+  success: boolean;
+  detail: string;
+  error: string;
+  data: { webdownload_id?: number; hash?: string } | null;
+}
+
 export interface TorBoxRequestLinkRequest {
   success: boolean;
   detail: string;

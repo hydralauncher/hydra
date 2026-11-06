@@ -17,6 +17,7 @@ export const DOWNLOADER_NAME = {
   [Downloader.ArchiveOrg]: "Archive.org",
   [Downloader.Epic]: "Epic Games",
   [Downloader.FileKeeper]: "FileKeeper",
+  [Downloader.TorBoxHoster]: "TorBox (direct links)",
 };
 
 export const MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120;
