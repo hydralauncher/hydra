@@ -598,7 +598,12 @@ export class AchievementWatcherManager {
       achievementNotificationPresenter.enqueueCombined(
         userPreferences.achievementCustomNotificationPosition ?? "top-left",
         totalNewGamesWithAchievements,
-        totalNewAchievements
+        totalNewAchievements,
+        () =>
+          publishCombinedNewAchievementNotification(
+            totalNewAchievements,
+            totalNewGamesWithAchievements
+          )
       );
     } else {
       publishCombinedNewAchievementNotification(
