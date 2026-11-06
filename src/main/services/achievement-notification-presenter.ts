@@ -22,6 +22,7 @@ export interface AchievementNotificationHost {
   send(channel: string, ...args: unknown[]): void;
   setPosition(position: AchievementCustomNotificationPosition): Promise<void>;
   showInactive(): void;
+  isVisible(): boolean;
   hide(): void;
   destroy(): void;
   isDestroyed(): boolean;
@@ -262,7 +263,7 @@ export class AchievementNotificationPresenter {
     try {
       this.dependencies.log(`Achievement notification showing: ${requestId}`);
       host.showInactive();
-      host.send("start-achievement-notification", requestId);
+      host.send("start-achievement-notification", requestId, host.isVisible());
       this.startWatchdog(
         ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT,
         "notification animation timed out"

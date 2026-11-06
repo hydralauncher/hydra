@@ -59,6 +59,7 @@ export function AchievementNotification() {
   const displayTimer = useRef<number | null>(null);
   const closingTimer = useRef<number | null>(null);
   const playedSoundBatch = useRef<string | null>(null);
+  const startVisibleRef = useRef(false);
 
   const clearAnimationTimers = useCallback(() => {
     if (displayTimer.current !== null) {
@@ -279,11 +280,12 @@ export function AchievementNotification() {
 
   useEffect(() => {
     const unsubscribe = window.electron.onStartAchievementNotification(
-      (requestId) => {
+      (requestId, visible) => {
         if (requestRef.current?.id !== requestId) return;
 
         clearAnimationTimers();
 
+        startVisibleRef.current = visible;
         setPhase("arming");
       }
     );
@@ -309,7 +311,7 @@ export function AchievementNotification() {
         setPhase("playing");
         beginPlayback();
       },
-      canPlayWithoutFrames: () => document.visibilityState === "visible",
+      canPlayWithoutFrames: () => startVisibleRef.current,
       onTimeout: () => {
         const requestId = requestRef.current?.id;
         if (!requestId) return;

@@ -2185,9 +2185,14 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("prepare-achievement-notification", listener);
   },
-  onStartAchievementNotification: (cb: (requestId: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, requestId: string) =>
-      cb(requestId);
+  onStartAchievementNotification: (
+    cb: (requestId: string, visible: boolean) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      requestId: string,
+      visible: boolean
+    ) => cb(requestId, visible);
     ipcRenderer.on("start-achievement-notification", listener);
     return () =>
       ipcRenderer.removeListener("start-achievement-notification", listener);

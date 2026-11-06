@@ -11,6 +11,7 @@ class FakeHost implements AchievementNotificationHost {
   public readonly webContentsId = 42;
   public loadCount = 0;
   public showInactiveCount = 0;
+  public visible = true;
   public failStartSend = false;
   public hideCount = 0;
   public destroyCount = 0;
@@ -36,6 +37,10 @@ class FakeHost implements AchievementNotificationHost {
 
   public showInactive(): void {
     this.showInactiveCount += 1;
+  }
+
+  public isVisible(): boolean {
+    return this.visible;
   }
 
   public hide(): void {
@@ -203,7 +208,20 @@ describe("AchievementNotificationPresenter", () => {
     assert.equal(harness.host.showInactiveCount, 1);
     assert.deepEqual(harness.host.messages.at(-1), {
       channel: "start-achievement-notification",
-      args: [requestId],
+      args: [requestId, true],
+    });
+  });
+
+  it("forwards the window visibility when starting playback", async () => {
+    const harness = new PresenterHarness();
+    harness.host.visible = false;
+
+    const requestId = await harness.prepareAchievement();
+    await harness.contentReady(requestId);
+
+    assert.deepEqual(harness.host.messages.at(-1), {
+      channel: "start-achievement-notification",
+      args: [requestId, false],
     });
   });
 
@@ -304,7 +322,7 @@ describe("AchievementNotificationPresenter", () => {
       ({ channel }) => channel === "start-achievement-notification"
     );
     assert.equal(starts.length, 1);
-    assert.deepEqual(starts[0].args, [requestId]);
+    assert.deepEqual(starts[0].args, [requestId, true]);
   });
 
   it("falls back when the renderer reports failure after start", async () => {
