@@ -234,7 +234,7 @@ export function SettingsContextCompatibility() {
                 value={defaultWinePrefixPath}
                 readOnly
                 disabled
-                placeholder={t("no_directory_selected")}
+                placeholder={tGameDetails("no_directory_selected")}
                 rightContent={
                   <>
                     <Button
@@ -250,7 +250,7 @@ export function SettingsContextCompatibility() {
                         theme="outline"
                         onClick={handleClearDefaultWinePrefixPath}
                       >
-                        {t("clear")}
+                        {tGameDetails("clear")}
                       </Button>
                     )}
                   </>
