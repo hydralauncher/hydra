@@ -641,6 +641,25 @@
     background-position: center;
     transform-origin: center;
     z-index: 0;
+
+    // Lives inside the hero's overflow clip and overscans it so it gets the
+    // exact same (possibly fractional) left edge as the animated <img>.
+    &::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      z-index: 2;
+      pointer-events: none;
+      // Own compositing layer, so it snaps to the same pixel boundary as the
+      // composited <img> at fractional scales.
+      will-change: transform;
+      background: linear-gradient(
+        180deg,
+        rgba(8, 8, 8, 0) 0%,
+        44%,
+        #080808 97%
+      );
+    }
   }
 
   &__hero-bg-layer {
@@ -722,7 +741,6 @@
     align-items: flex-start;
     justify-content: flex-end;
     height: 100%;
-    background: linear-gradient(180deg, rgba(8, 8, 8, 0) 0%, 44%, #080808 97%);
     padding: calc(
         var(--big-picture-header-height) + calc(var(--spacing-unit) * 12)
       )
