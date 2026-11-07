@@ -4,10 +4,16 @@ import type {
   DownloadSource,
 } from "@types";
 
-import { useAppDispatch, useAppSelector, useFormat } from "@renderer/hooks";
+import {
+  useAppDispatch,
+  useAppSelector,
+  useFeature,
+  useFormat,
+} from "@renderer/hooks";
 import {
   lazy,
   Suspense,
+  useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -19,7 +25,7 @@ import "./catalogue.scss";
 
 import { Button } from "@renderer/components/button/button";
 import { SelectField } from "@renderer/components/select-field/select-field";
-import { setFilters, setPage } from "@renderer/features";
+import { setFilters, setMode, setPage } from "@renderer/features";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { useLaunchboxFilters } from "@renderer/hooks/use-launchbox-filters";
 import { debounce } from "lodash-es";
@@ -27,6 +33,10 @@ import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import cn from "classnames";
 import { CatalogueModeToggle } from "./catalogue-mode-toggle";
+import {
+  RECOMPILATION_FILTER_COLOR,
+  RecompilationFilterToggle,
+} from "./recompilation-filter-toggle";
 import { getClassicsPlatformGroup } from "./classics-platform-group";
 import { FilterItem } from "./filter-item";
 import { FilterSection } from "./filter-section";
@@ -37,6 +47,10 @@ import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
 } from "@renderer/components/classics-onboarding-modal/classics-onboarding-modal";
+import {
+  RecompilationOnboardingModal,
+  hasDismissedRecompilationOnboarding,
+} from "@renderer/components/recompilation-onboarding-modal";
 
 const ProtonCompatibilitySection = lazy(async () => {
   const mod = await import("./proton-compatibility-section");
@@ -87,6 +101,7 @@ const clearAllCategoryFilters = {
   deckCompatibility: [],
   releaseYear: undefined,
   platforms: [],
+  recompilation: undefined,
 };
 
 const sortValues = [
@@ -155,23 +170,52 @@ export default function Catalogue() {
 
   const [itemsCount, setItemsCount] = useState(0);
 
-  const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
-  const classicsOnboardingTriggeredRef = useRef(false);
+  const { isFeatureEnabled, isFeaturesLoaded, Feature } = useFeature();
+  const isRecompilationsEnabled = isFeatureEnabled(Feature.Recompilations);
+
+  const [onboarding, setOnboarding] = useState<
+    "classics" | "recompilations" | null
+  >(null);
+  const classicsOnboardingClosedRef = useRef(false);
+  const recompilationOnboardingClosedRef = useRef(false);
+
+  const getDueOnboarding = useCallback(
+    (catalogueMode: typeof mode) => {
+      if (
+        catalogueMode === "classics" &&
+        !classicsOnboardingClosedRef.current &&
+        !hasDismissedClassicsOnboarding()
+      ) {
+        return "classics";
+      }
+      if (
+        isFeaturesLoaded &&
+        isRecompilationsEnabled &&
+        !recompilationOnboardingClosedRef.current &&
+        !hasDismissedRecompilationOnboarding()
+      ) {
+        return "recompilations";
+      }
+      return null;
+    },
+    [isFeaturesLoaded, isRecompilationsEnabled]
+  );
 
   useEffect(() => {
-    if (
-      mode === "classics" &&
-      !classicsOnboardingTriggeredRef.current &&
-      !hasDismissedClassicsOnboarding()
-    ) {
-      classicsOnboardingTriggeredRef.current = true;
-      setShowClassicsOnboarding(true);
-    }
-  }, [mode]);
+    if (onboarding) return;
+    const due = getDueOnboarding(mode);
+    if (due) setOnboarding(due);
+  }, [mode, onboarding, getDueOnboarding]);
 
   const { formatNumber } = useFormat();
 
   const dispatch = useAppDispatch();
+
+  const showRecompilationsSkippingClassicsOnboarding = () => {
+    classicsOnboardingClosedRef.current = true;
+    if (mode !== "classics") dispatch(setMode("classics"));
+    dispatch(setFilters({ recompilation: "has" }));
+  };
 
   const { t, i18n } = useTranslation("catalogue");
   const shouldShowProtonFeatures = window.electron.platform === "linux";
@@ -359,6 +403,17 @@ export default function Catalogue() {
 
   const classicsGroupedFilters = useMemo(() => {
     return [
+      ...(filters.recompilation
+        ? [
+            {
+              label: t("recompilations_filter"),
+              filterType: t("recompilations_filter"),
+              orbColor: RECOMPILATION_FILTER_COLOR,
+              key: "recompilation",
+              value: "toggle",
+            },
+          ]
+        : []),
       ...classicsPlatforms.map((platform) => ({
         label:
           launchboxFilters.platforms.find((p) => p.key === platform)?.name ??
@@ -400,6 +455,7 @@ export default function Catalogue() {
       })),
     ];
   }, [
+    filters.recompilation,
     classicsPlatforms,
     filters.genres,
     filters.developers,
@@ -632,8 +688,19 @@ export default function Catalogue() {
   return (
     <div className="catalogue" ref={cataloguePageRef}>
       <ClassicsOnboardingModal
-        visible={showClassicsOnboarding}
-        onClose={() => setShowClassicsOnboarding(false)}
+        visible={onboarding === "classics"}
+        onClose={() => {
+          classicsOnboardingClosedRef.current = true;
+          setOnboarding(null);
+        }}
+      />
+      <RecompilationOnboardingModal
+        visible={onboarding === "recompilations"}
+        onClose={() => {
+          recompilationOnboardingClosedRef.current = true;
+          setOnboarding(null);
+        }}
+        onShowRecompilations={showRecompilationsSkippingClassicsOnboarding}
       />
       <div className="catalogue__header">
         <div className="catalogue__header-row">
@@ -690,6 +757,11 @@ export default function Catalogue() {
                       onRemove={() => {
                         if (filter.value === "range") {
                           dispatch(setFilters({ releaseYear: undefined }));
+                          return;
+                        }
+
+                        if (filter.key === "recompilation") {
+                          dispatch(setFilters({ [filter.key]: undefined }));
                           return;
                         }
 
@@ -750,7 +822,11 @@ export default function Catalogue() {
             </SkeletonTheme>
           ) : mode === "classics" ? (
             results.map((game) => (
-              <GameItemClassics key={game.id} game={game} />
+              <GameItemClassics
+                key={game.id}
+                game={game}
+                showRecompilationBadge={isRecompilationsEnabled}
+              />
             ))
           ) : (
             results.map((game) => <GameItem key={game.id} game={game} />)
@@ -773,6 +849,17 @@ export default function Catalogue() {
         <div className="catalogue__filters-container">
           <div className="catalogue__filters-sections">
             <CatalogueModeToggle />
+
+            {mode === "classics" && isRecompilationsEnabled && (
+              <RecompilationFilterToggle
+                checked={filters.recompilation === "has"}
+                onChange={(checked) =>
+                  dispatch(
+                    setFilters({ recompilation: checked ? "has" : undefined })
+                  )
+                }
+              />
+            )}
 
             {mode === "modern" && shouldShowProtonFeatures && (
               <Suspense fallback={null}>

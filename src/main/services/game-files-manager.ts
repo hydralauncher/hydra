@@ -520,7 +520,8 @@ export class GameFilesManager {
       discs,
       selectedDiscPath:
         game.selectedDiscPath === undefined
-          ? (discs[0]?.path ?? null)
+          ? ((discs.find((disc) => !disc.recompilationSlug) ?? discs[0])
+              ?.path ?? null)
           : game.selectedDiscPath,
     });
 
@@ -550,7 +551,7 @@ export class GameFilesManager {
 
       roms.push({
         path: entry.primaryPath,
-        label: `Disc ${roms.length + 1}`,
+        label: getNextClassicsDiscLabel(roms),
         fileName: path.basename(entry.primaryPath),
         sku: null,
       });

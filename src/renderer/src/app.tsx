@@ -10,6 +10,8 @@ import {
   useAppDispatch,
   useAppSelector,
   useDownload,
+  useGamificationFeatureSync,
+  useGamificationProgressSync,
   useDragTextSelection,
   useLibrary,
   useToast,
@@ -50,6 +52,7 @@ import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
+import { LevelUpModal } from "./components/gamification";
 import { useMissingScreenshotsToast } from "./hooks/use-missing-screenshots-toast";
 import { useScreenshotUploadFailureToast } from "./hooks/use-screenshot-upload-failure-toast";
 import { LeaderboardNotificationLayer } from "./components/leaderboard-notification/leaderboard-notification-layer";
@@ -97,6 +100,9 @@ export function App() {
     updateUserDetails,
     clearUserDetails,
   } = useUserDetails();
+
+  useGamificationFeatureSync();
+  useGamificationProgressSync();
 
   const { hideHydraCloudModal, isHydraCloudModalVisible, hydraCloudFeature } =
     useSubscription();
@@ -684,9 +690,11 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(() => {
-      playAudio();
-    });
+    const unsubscribe = window.electron.onAchievementUnlocked(
+      (suppressSound) => {
+        if (!suppressSound) playAudio();
+      }
+    );
 
     return () => {
       unsubscribe();
@@ -707,7 +715,12 @@ export function App() {
   const [isWindowMaximized, setIsWindowMaximized] = useState(false);
 
   useEffect(() => {
-    if (window.electron.platform !== "linux") return;
+    if (
+      window.electron.platform !== "linux" ||
+      window.electron.hasNativeWindowDecorations
+    ) {
+      return;
+    }
 
     if (window.electron.isWayland) {
       document.body.classList.add("window-rounded");
@@ -736,7 +749,8 @@ export function App() {
   return (
     <>
       {(window.electron.platform === "win32" ||
-        window.electron.platform === "linux") && (
+        (window.electron.platform === "linux" &&
+          !window.electron.hasNativeWindowDecorations)) && (
         <div
           className={`title-bar${
             window.electron.platform === "win32" ? " title-bar--windows" : ""
@@ -808,6 +822,8 @@ export function App() {
         onClose={handleToastClose}
         duration={toast.duration}
       />
+
+      <LevelUpModal />
 
       <CloudSubscriptionModal
         visible={isHydraCloudModalVisible}
