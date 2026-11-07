@@ -1,0 +1,603 @@
+// gallery-lightbox.tsx + gallery-lightbox.scss (image items).
+import { Theme, Icons, Tip, Ids } from "../../theme.slint";
+import { Icon } from "../../components/widgets.slint";
+import { MediaItem } from "../../types.slint";
+import { CornerButton } from "gallery.slint";
+import { VideoPlayer, Playback } from "../../components/video.slint";
+
+// .gallery-lightbox__icon-button / __nav-button
+component CircleButton inherits Rectangle {
+    in property <image> icon;
+    in property <length> icon-size: 20px;
+    in property <length> size: 40px;
+    in property <color> rest: rgba(0, 0, 0, 0.5);
+    in property <bool> hidden;
+    in property <string> tooltip;
+    in property <string> tooltip-place: "bottom";
+    callback clicked();
+    out property <bool> hovered: touch.has-hover;
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+
+    width: root.size;
+    height: root.size;
+    border-radius: root.size / 2;
+    border-width: 1px;
+    border-color: Theme.border;
+    background: touch.has-hover && !root.hidden ? rgba(255, 255, 255, 0.12) : root.rest;
+    opacity: root.hidden ? 0 : 1;
+    transform-scale: root.hidden ? 0.6 : touch.pressed ? 0.92 : 1;
+    animate background { duration: 150ms; easing: ease; }
+    animate transform-scale { duration: 200ms; easing: ease-out-quint; }
+    animate opacity { duration: 300ms; easing: ease; }
+
+    Icon {
+        source: root.icon;
+        width: root.icon-size;
+        height: root.icon-size;
+    }
+
+    touch := TouchArea {
+        enabled: !root.hidden;
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        changed has-hover => {
+            if (self.has-hover && root.tooltip != "") {
+                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, root.tooltip-place);
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+// One crossfade layer (.gallery-lightbox__layer).
+component Layer inherits Rectangle {
+    in property <MediaItem> item;
+    in property <int> item-index;
+    in property <bool> chrome-hidden;
+    callback activity();
+    in property <bool> fullscreen;
+    in property <bool> on-top;
+    in property <bool> other-ready;
+    in property <length> pad-top;
+    in property <length> pad-side;
+    in property <length> pad-bottom;
+    callback toggle-fullscreen();
+    out property <bool> ready: root.item.full.width > 0;
+
+    // Top layer fades in once its full image decoded; the one below fades out
+    // with the "leaving" curve once the top one is ready.
+    opacity: root.on-top ? (root.ready ? 1 : 0) : (root.other-ready ? 0 : 1);
+    animate opacity {
+        duration: 280ms;
+        easing: root.on-top ? ease-out : cubic-bezier(0.55, 0, 1, 0.45);
+    }
+
+    property <length> box-width: root.width - 2 * root.pad-side;
+    property <length> box-height: root.height - root.pad-top - root.pad-bottom;
+    property <float> aspect: root.item.aspect > 0 ? root.item.aspect : 16 / 9;
+
+    frame := Rectangle {
+        width: Math.min(root.box-width, root.box-height * root.aspect);
+        height: self.width / root.aspect;
+        x: root.pad-side + (root.box-width - self.width) / 2;
+        y: root.pad-top + (root.box-height - self.height) / 2;
+        border-radius: root.fullscreen ? 0 : 8px;
+        drop-shadow-offset-y: root.fullscreen ? 0 : 16px;
+        drop-shadow-blur: root.fullscreen ? 0 : 48px;
+        drop-shadow-color: root.fullscreen ? transparent : rgba(0, 0, 0, 0.6);
+        background: transparent;
+
+        if !root.item.is-video: Rectangle {
+            border-radius: parent.border-radius;
+            clip: true;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.item.full;
+                image-fit: contain;
+            }
+        }
+
+        // Swallow clicks so only the backdrop closes the viewer. On a trailer
+        // the surface toggles playback and double-click toggles fullscreen.
+        frame-touch := TouchArea {
+            mouse-cursor: root.item.is-video && root.chrome-hidden ? MouseCursor.none : MouseCursor.default;
+            changed mouse-x => {
+                root.activity();
+            }
+            changed mouse-y => {
+                root.activity();
+            }
+            clicked => {
+                if (root.item.is-video && root.on-top) {
+                    if (Playback.quality-open) {
+                        Playback.quality-open = false;
+                    } else {
+                        Playback.toggle(true);
+                    }
+                }
+            }
+            double-clicked => {
+                if (root.item.is-video) {
+                    root.toggle-fullscreen();
+                }
+            }
+        }
+
+        if root.item.is-video: Rectangle {
+            border-radius: parent.border-radius;
+            clip: true;
+            VideoPlayer {
+                width: parent.width;
+                height: parent.height;
+                poster: root.item.full.width > 0 ? root.item.full : root.item.thumb;
+                inline: false;
+                fullscreen: root.fullscreen;
+                active: root.on-top && Playback.index == root.item-index;
+                chrome-hidden-by-viewer: root.chrome-hidden;
+                toggle-fullscreen => {
+                    root.toggle-fullscreen();
+                }
+            }
+        }
+
+        if !root.fullscreen && root.on-top && !root.item.is-video: CornerButton {
+            size: 40px;
+            x: parent.width - self.width - 16px;
+            y: parent.height - self.height - 8px;
+            tooltip: "Fullscreen (F)";
+            clicked => {
+                root.toggle-fullscreen();
+            }
+        }
+    }
+}
+
+export component Lightbox inherits Rectangle {
+    in property <[MediaItem]> media;
+    in-out property <bool> open;
+    in-out property <int> index;
+    in-out property <bool> fullscreen;
+    // The viewer was opened straight into fullscreen (F key / page button):
+    // leaving fullscreen closes it, like closeOnFullscreenExitRef.
+    in-out property <bool> close-on-fullscreen-exit;
+    in property <float> wheel-scale: 1;
+    callback closed(int);
+
+    property <int> count: root.media.length;
+    property <MediaItem> current: root.media[root.index];
+    property <bool> is-video: root.current.is-video;
+    property <bool> show-filmstrip: root.count > 1 && !(root.fullscreen && root.is-video);
+
+    // Two layers alternate so the outgoing image can fade while the new one fades in.
+    property <int> slot-a;
+    property <int> slot-b;
+    property <bool> a-on-top: true;
+
+    // Chrome auto-hide (FULLSCREEN_IDLE_TIMEOUT_MS = 500 for images; viewer holds chrome).
+    property <bool> idle;
+    property <bool> pointer-over-chrome: top-bar-touch.has-hover || filmstrip-touch.has-hover;
+    // holdChrome: a trailer holds it while paused/scrubbing/menus; images hold it outside fullscreen.
+    property <bool> chrome-hidden: root.idle && !(root.is-video ? Playback.hold : !root.fullscreen);
+
+    public function show(i: int, fs: bool) {
+        root.index = i;
+        root.slot-a = i;
+        root.a-on-top = true;
+        root.close-on-fullscreen-exit = fs;
+        root.fullscreen = fs;
+        root.idle = fs && !root.media[i].is-video;
+        Playback.auto-height = 1080;
+        Playback.looping = false;
+        root.open = true;
+        root.sync-video(i);
+        focus.focus();
+        if (!fs) {
+            root.wake();
+        }
+    }
+
+    public function close() {
+        Playback.auto-height = 720;
+        Playback.looping = true;
+        root.fullscreen = false;
+        root.open = false;
+        root.closed(root.index);
+    }
+
+    public function navigate(i: int) {
+        if (i < 0 || i >= root.count || i == root.index) {
+            return;
+        }
+        root.index = i;
+        if (root.a-on-top) {
+            root.slot-b = i;
+        } else {
+            root.slot-a = i;
+        }
+        root.a-on-top = !root.a-on-top;
+        root.scroll-filmstrip-to(i);
+        root.sync-video(i);
+    }
+
+    function sync-video(i: int) {
+        if (root.media[i].is-video) {
+            Playback.load(i, root.media[i].duration, true);
+        } else if (Playback.is-playing) {
+            Playback.pause();
+        }
+    }
+
+    public function toggle-fullscreen() {
+        if (root.fullscreen && root.close-on-fullscreen-exit) {
+            root.close();
+            return;
+        }
+        root.fullscreen = !root.fullscreen;
+        if (root.fullscreen && !root.is-video) {
+            root.idle = true;
+        } else {
+            root.wake();
+        }
+    }
+
+    function wake() {
+        root.idle = false;
+        idle-timer.running = false;
+        if (!root.pointer-over-chrome) {
+            idle-timer.running = true;
+        }
+    }
+
+    idle-timer := Timer {
+        interval: root.fullscreen ? 500ms : 2500ms;
+        running: false;
+        triggered => {
+            self.running = false;
+            root.idle = true;
+        }
+    }
+
+    visible: root.open;
+    background: root.fullscreen ? #000000 : rgba(0, 0, 0, 0.9);
+    opacity: root.open ? 1 : 0;
+    animate opacity { duration: root.open ? 200ms : 0ms; easing: ease-out; }
+
+    focus := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                if (root.fullscreen && !root.close-on-fullscreen-exit) {
+                    root.toggle-fullscreen();
+                } else {
+                    root.close();
+                }
+                return accept;
+            }
+            if (event.text == "f" || event.text == "F") {
+                root.toggle-fullscreen();
+                return accept;
+            }
+            let video = root.is-video && Playback.index == root.index;
+            if (video && (event.text == " " || event.text == "k" || event.text == "K")) {
+                Playback.toggle(true);
+                root.wake();
+                return accept;
+            }
+            if (video && (event.text == "m" || event.text == "M")) {
+                Playback.toggle-mute();
+                root.wake();
+                return accept;
+            }
+            if (video && event.text == Key.UpArrow) {
+                Playback.change-volume(0.05);
+                root.wake();
+                return accept;
+            }
+            if (video && event.text == Key.DownArrow) {
+                Playback.change-volume(-0.05);
+                root.wake();
+                return accept;
+            }
+            // Arrows seek a trailer by 5s; Shift+arrow (or an image) navigates.
+            if (event.text == Key.LeftArrow) {
+                if (video && !event.modifiers.shift) {
+                    Playback.seek-by(-5);
+                    root.wake();
+                } else {
+                    root.navigate(root.index - 1);
+                }
+                return accept;
+            }
+            if (event.text == Key.RightArrow) {
+                if (video && !event.modifiers.shift) {
+                    Playback.seek-by(5);
+                    root.wake();
+                } else {
+                    root.navigate(root.index + 1);
+                }
+                return accept;
+            }
+            if (event.text == Key.PageUp) {
+                root.navigate(root.index - 1);
+                return accept;
+            }
+            if (event.text == Key.PageDown) {
+                root.navigate(root.index + 1);
+                return accept;
+            }
+            if (event.text == Key.Home) {
+                if (video) {
+                    Playback.seek-to(0);
+                } else {
+                    root.navigate(0);
+                }
+                return accept;
+            }
+            if (event.text == Key.End) {
+                if (video) {
+                    Playback.seek-to(Playback.duration);
+                } else {
+                    root.navigate(root.count - 1);
+                }
+                return accept;
+            }
+            reject
+        }
+
+        backdrop := TouchArea {
+            mouse-cursor: root.chrome-hidden ? MouseCursor.none : MouseCursor.default;
+            changed mouse-x => {
+                root.wake();
+            }
+            changed mouse-y => {
+                root.wake();
+            }
+            clicked => {
+                if (!root.fullscreen) {
+                    root.close();
+                }
+            }
+            scroll-event(event) => {
+                // The page underneath must not scroll while the viewer is open.
+                accept
+            }
+
+            // .gallery-lightbox__stage: scale(0.96) -> none on open.
+            stage := Rectangle {
+                property <length> pad-top: root.fullscreen ? 0 : 64px;
+                property <length> pad-side: root.fullscreen ? 0 : 88px;
+                property <length> pad-bottom: root.fullscreen ? 0 : (root.show-filmstrip ? 104px : 24px);
+                opacity: root.open ? 1 : 0;
+                transform-scale: root.open ? 1 : 0.96;
+                animate opacity, transform-scale {
+                    duration: root.open && !root.fullscreen ? 320ms : 0ms;
+                    easing: ease-out-quint;
+                }
+
+                layer-a := Layer {
+                    item: root.media[root.slot-a];
+                    item-index: root.slot-a;
+                    chrome-hidden: root.chrome-hidden;
+                    activity => {
+                        root.wake();
+                    }
+                    fullscreen: root.fullscreen;
+                    on-top: root.a-on-top;
+                    other-ready: layer-b.ready;
+                    pad-top: stage.pad-top;
+                    pad-side: stage.pad-side;
+                    pad-bottom: stage.pad-bottom;
+                    z: root.a-on-top ? 1 : 0;
+                    toggle-fullscreen => {
+                        root.toggle-fullscreen();
+                    }
+                }
+                layer-b := Layer {
+                    item: root.media[root.slot-b];
+                    item-index: root.slot-b;
+                    chrome-hidden: root.chrome-hidden;
+                    activity => {
+                        root.wake();
+                    }
+                    fullscreen: root.fullscreen;
+                    on-top: !root.a-on-top;
+                    other-ready: layer-a.ready;
+                    pad-top: stage.pad-top;
+                    pad-side: stage.pad-side;
+                    pad-bottom: stage.pad-bottom;
+                    z: root.a-on-top ? 0 : 1;
+                    toggle-fullscreen => {
+                        root.toggle-fullscreen();
+                    }
+                }
+            }
+
+            // ---- chrome (fades out together when idle in fullscreen)
+            top-bar := Rectangle {
+                y: 0;
+                height: 64px;
+                z: 2;
+                background: root.fullscreen ? @linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%) : transparent;
+                opacity: root.chrome-hidden ? 0 : 1;
+                animate opacity { duration: 300ms; easing: ease; }
+
+                top-bar-touch := TouchArea {
+                    HorizontalLayout {
+                        padding-left: 24px;
+                        padding-right: 16px;
+                        spacing: 16px;
+                        HorizontalLayout {
+                            spacing: 12px;
+                            alignment: start;
+                            horizontal-stretch: 1;
+                            Text {
+                                text: (root.index + 1) + " / " + root.count;
+                                color: rgba(255, 255, 255, 0.5);
+                                font-size: Theme.small-size;
+                                vertical-alignment: center;
+                            }
+                            Text {
+                                text: root.current.title;
+                                color: Theme.muted;
+                                font-weight: 600;
+                                vertical-alignment: center;
+                                overflow: elide;
+                            }
+                        }
+                        if !root.fullscreen: VerticalLayout {
+                            alignment: center;
+                            horizontal-stretch: 0;
+                            CircleButton {
+                                icon: Icons.x;
+                                tooltip: "Close (Esc)";
+                                clicked => {
+                                    root.close();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            nav-left := CircleButton {
+                z: 2;
+                size: 48px;
+                icon: Icons.chevron-left;
+                icon-size: 28px;
+                rest: root.fullscreen ? rgba(0, 0, 0, 0.35) : rgba(0, 0, 0, 0.5);
+                x: 16px;
+                y: (parent.height - self.height) / 2;
+                hidden: root.index == 0 || root.chrome-hidden;
+                clicked => {
+                    root.navigate(root.index - 1);
+                }
+            }
+            nav-right := CircleButton {
+                z: 2;
+                size: 48px;
+                icon: Icons.chevron-right;
+                icon-size: 28px;
+                rest: root.fullscreen ? rgba(0, 0, 0, 0.35) : rgba(0, 0, 0, 0.5);
+                x: parent.width - self.width - 16px;
+                y: (parent.height - self.height) / 2;
+                hidden: root.index == root.count - 1 || root.chrome-hidden;
+                clicked => {
+                    root.navigate(root.index + 1);
+                }
+            }
+
+            filmstrip := Rectangle {
+                z: 2;
+                y: parent.height - self.height;
+                height: 104px;
+                visible: root.show-filmstrip;
+                background: root.fullscreen ? @linear-gradient(0deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%) : transparent;
+                opacity: root.chrome-hidden ? 0 : 1;
+                animate opacity { duration: 300ms; easing: ease; }
+
+                filmstrip-touch := TouchArea {
+                    scroll-event(event) => {
+                        // Vertical wheel scrolls the strip sideways.
+                        film-flick.content-x = Math.clamp(film-flick.content-x + (event.delta-y + event.delta-x) * root.wheel-scale, -root.film-max-scroll, 0);
+                        accept
+                    }
+
+                    film-flick := Flickable {
+                        x: 24px;
+                        width: parent.width - 48px - (root.fullscreen ? 64px + 8px : 0);
+                        height: 72px;
+                        y: (parent.height - self.height) / 2;
+                        content-width: Math.max(self.width, root.film-content-width);
+                        content-height: 72px;
+
+                        // Horizontal swipes 1:1 (no added inertia); vertical
+                        // wheel falls through to the handler below.
+                        TouchArea {
+                            x: 0;
+                            width: film-flick.content-width;
+                            height: 72px;
+                            scroll-event(event) => {
+                                if (event.delta-x == 0) {
+                                    return reject;
+                                }
+                                film-flick.content-x = Math.clamp(film-flick.content-x + event.delta-x * root.wheel-scale, -root.film-max-scroll, 0);
+                                accept
+                            }
+                        }
+
+                        for item[i] in root.media: thumb := Rectangle {
+                            property <bool> active: i == root.index;
+                            x: (film-flick.content-width - root.film-content-width) / 2 + 4px + i * (root.film-thumb-width + 8px);
+                            y: 4px + (thumb-touch.has-hover && !self.active ? -2px : 0);
+                            width: root.film-thumb-width;
+                            height: 64px;
+                            border-radius: 6px;
+                            border-width: 2px;
+                            border-color: self.active ? Theme.muted : (root.fullscreen ? (thumb-touch.has-hover ? rgba(255, 255, 255, 0.6) : rgba(255, 255, 255, 0.25)) : transparent);
+                            background: Theme.dark-background;
+                            clip: true;
+                            opacity: self.active ? 1 : thumb-touch.has-hover ? (root.fullscreen ? 1 : 0.85) : (root.fullscreen ? 0.8 : 0.4);
+                            animate opacity, border-color { duration: 200ms; easing: ease; }
+                            animate y { duration: 200ms; easing: ease-out-quint; }
+
+                            Image {
+                                width: parent.width;
+                                height: parent.height;
+                                source: item.thumb;
+                                image-fit: cover;
+                            }
+                            if item.is-video: Rectangle {
+                                width: 26px;
+                                height: 26px;
+                                border-radius: 13px;
+                                background: rgba(0, 0, 0, 0.6);
+                                Icon {
+                                    source: Icons.play-fill;
+                                    width: 12px;
+                                    height: 12px;
+                                    color: white;
+                                }
+                            }
+                            thumb-touch := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => {
+                                    root.navigate(i);
+                                }
+                            }
+                        }
+                    }
+
+                    if root.fullscreen: CornerButton {
+                        icon: Icons.corners-in;
+                        icon-size: 34px;
+                        size: 64px;
+                        x: parent.width - 24px - self.width;
+                        y: (parent.height - self.height) / 2;
+                        tooltip: "Exit fullscreen (F)";
+                        clicked => {
+                            root.toggle-fullscreen();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    property <length> film-thumb-width: 64px * 16 / 9;
+    property <length> film-content-width: root.count * (root.film-thumb-width + 8px) - 8px + 8px;
+    property <length> film-max-scroll: Math.max(0, root.film-content-width - film-flick.width);
+
+    function scroll-filmstrip-to(i: int) {
+        let left = (film-flick.content-width - root.film-content-width) / 2 + 4px + i * (root.film-thumb-width + 8px);
+        let visible-left = -film-flick.content-x;
+        if (left < visible-left || left + root.film-thumb-width > visible-left + film-flick.width) {
+            film-flick.content-x = -Math.clamp(left + root.film-thumb-width / 2 - film-flick.width / 2, 0, root.film-max-scroll);
+        }
+    }
+}

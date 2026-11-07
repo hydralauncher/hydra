@@ -1,0 +1,32 @@
+// Same nesting as the app: Window > FocusScope (forward-focus) > Flickable > layout > ReviewForm.
+import "../ui/fonts/NotoSans-Regular.ttf";
+import { ReviewForm } from "../ui/pages/game-details/reviews.slint";
+
+export component Harness inherits Window {
+    width: 800px;
+    height: 600px;
+    default-font-family: "Noto Sans";
+    out property <string> typed: form.text;
+    out property <bool> focused: form.editor-focused;
+    out property <string> page-keys;
+
+    forward-focus: keys;
+    keys := FocusScope {
+        key-pressed(event) => {
+            root.page-keys += event.text;
+            reject
+        }
+        Flickable {
+            content-height: 1200px;
+            VerticalLayout {
+                y: 0;
+                height: 1200px;
+                padding: 50px;
+                alignment: start;
+                form := ReviewForm {
+                    width: 600px;
+                }
+            }
+        }
+    }
+}

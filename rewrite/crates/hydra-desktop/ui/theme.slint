@@ -1,0 +1,113 @@
+// Design tokens copied from src/renderer/src/scss/globals.scss.
+
+export global Theme {
+    out property <color> background: #121212;
+    out property <color> dark-background: #0d0d0d;
+    out property <color> muted: #f0f1f7;
+    out property <color> body: #d0d1d7;
+    out property <color> border: rgba(255, 255, 255, 0.08);
+    out property <color> success: #1c9749;
+    out property <color> danger: #801d1e;
+    out property <color> error: #e11d48;
+    out property <color> warning: #ffc107;
+    out property <color> brand-blue: #3e62c0;
+    out property <length> body-size: 14px;
+    out property <length> hint-size: 13px;
+    out property <length> small-size: 12px;
+    // Chromium doesn't inherit font-size into <button>: Hydra buttons render at 13.33px.
+    out property <length> button-size: 13.33px;
+    out property <float> disabled-opacity: 0.5;
+    out property <float> active-opacity: 0.7;
+}
+
+// Hydra's game page icons, exported 1:1 from octicons / phosphor / lucide.
+export global Icons {
+    out property <image> play: @image-url("icons/play.svg");
+    out property <image> heart: @image-url("icons/heart.svg");
+    out property <image> heart-fill: @image-url("icons/heart-fill.svg");
+    out property <image> pin: @image-url("icons/pin.svg");
+    out property <image> pin-slash: @image-url("icons/pin-slash.svg");
+    out property <image> gear: @image-url("icons/gear.svg");
+    out property <image> pencil: @image-url("icons/pencil.svg");
+    out property <image> chevron-down: @image-url("icons/chevron-down.svg");
+    out property <image> chevron-up: @image-url("icons/chevron-up.svg");
+    out property <image> chevron-left: @image-url("icons/chevron-left.svg");
+    out property <image> chevron-right: @image-url("icons/chevron-right.svg");
+    out property <image> link-external: @image-url("icons/link-external.svg");
+    out property <image> download: @image-url("icons/download.svg");
+    out property <image> people: @image-url("icons/people.svg");
+    out property <image> star: @image-url("icons/star.svg");
+    out property <image> star-fill: @image-url("icons/star-fill.svg");
+    out property <image> x: @image-url("icons/x.svg");
+    out property <image> lock: @image-url("icons/lock.svg");
+    out property <image> clock: @image-url("icons/clock.svg");
+    out property <image> note: @image-url("icons/note.svg");
+    out property <image> alert: @image-url("icons/alert.svg");
+    out property <image> corners-out: @image-url("icons/corners-out.svg");
+    out property <image> corners-in: @image-url("icons/corners-in.svg");
+    out property <image> play-fill: @image-url("icons/play-fill.svg");
+    out property <image> thumbs-up: @image-url("icons/thumbs-up.svg");
+    out property <image> thumbs-down: @image-url("icons/thumbs-down.svg");
+    out property <image> star-lucide: @image-url("icons/star-lucide.svg");
+    out property <image> star-lucide-fill: @image-url("icons/star-lucide-fill.svg");
+    out property <image> languages: @image-url("icons/languages.svg");
+    out property <image> check: @image-url("icons/check.svg");
+    out property <image> person: @image-url("icons/person.svg");
+    out property <image> cloud-check: @image-url("icons/cloud-check.svg");
+    out property <image> cloud-arrow-up: @image-url("icons/cloud-arrow-up.svg");
+    out property <image> circle-notch: @image-url("icons/circle-notch.svg");
+    out property <image> eye-closed: @image-url("icons/eye-closed.svg");
+    out property <image> x-circle: @image-url("icons/x-circle.svg");
+    out property <image> link: @image-url("icons/link-external.svg");
+    out property <image> thumbs-up-fill: @image-url("icons/thumbs-up-fill.svg");
+    out property <image> thumbs-down-fill: @image-url("icons/thumbs-down-fill.svg");
+    out property <image> reply: @image-url("icons/reply.svg");
+    out property <image> pause: @image-url("icons/pause.svg");
+    out property <image> plus-circle: @image-url("icons/plus-circle.svg");
+    out property <image> speaker-high: @image-url("icons/speaker-high.svg");
+    out property <image> speaker-low: @image-url("icons/speaker-low.svg");
+    out property <image> speaker-x: @image-url("icons/speaker-x.svg");
+    out property <image> gear-six: @image-url("icons/gear-six.svg");
+    out property <image> trash: @image-url("icons/trash.svg");
+    out property <image> xbox: @image-url("icons/xbox.svg");
+    out property <image> playstation: @image-url("icons/playstation.svg");
+}
+
+// One shared tooltip, like react-tooltip's portal. Anchors are in window coordinates.
+export global Tip {
+    in-out property <string> text;
+    in-out property <length> anchor-x;
+    in-out property <length> anchor-y;
+    in-out property <length> anchor-width;
+    in-out property <length> anchor-height;
+    in-out property <string> place: "top";
+    in-out property <bool> shown;
+    in-out property <int> owner;
+
+    public function show(id: int, text: string, x: length, y: length, w: length, h: length, place: string) {
+        self.owner = id;
+        self.text = text;
+        self.anchor-x = x;
+        self.anchor-y = y;
+        self.anchor-width = w;
+        self.anchor-height = h;
+        self.place = place;
+        self.shown = text != "";
+    }
+
+    public function hide(id: int) {
+        if (self.owner == id) {
+            self.shown = false;
+        }
+    }
+}
+
+// Unique ids for tooltip owners.
+export global Ids {
+    in-out property <int> next: 1;
+
+    public function take() -> int {
+        self.next += 1;
+        return self.next;
+    }
+}

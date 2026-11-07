@@ -1,0 +1,900 @@
+// game-reviews.tsx, review-form.tsx, review-sort-options.tsx, review-item.tsx
+import { Theme, Icons, Tip, Ids } from "../../theme.slint";
+import { Icon, HydraButton } from "../../components/widgets.slint";
+import { Review } from "../../types.slint";
+
+export struct FormatEdit {
+    text: string,
+    anchor: int,
+    cursor: int,
+}
+
+export struct Marks {
+    bold: bool,
+    italic: bool,
+    underline: bool,
+}
+
+// Implemented in src/format.rs. Slint's TextInput is plain text, so marks are
+// kept as markdown in the text and toggled around the selection.
+export global ReviewEditor {
+    pure callback toggle(text: string, anchor: int, cursor: int, mark: string) -> FormatEdit;
+    pure callback marks-at(text: string, cursor: int) -> Marks;
+    pure callback plain-length(text: string) -> int;
+    pure callback has-markup(text: string) -> bool;
+    pure callback render(text: string) -> styled-text;
+}
+
+// rich-text-editor.tsx toolbar button (active = mark open at the cursor).
+component ToolbarButton inherits Rectangle {
+    in property <string> label;
+    in property <int> weight: 400;
+    in property <bool> italic;
+    in property <bool> underline;
+    in property <bool> active;
+    in property <string> tooltip;
+    callback clicked();
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+    width: 28px;
+    height: 24px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: root.active ? Theme.brand-blue : touch.has-hover ? rgba(255, 255, 255, 0.2) : rgba(255, 255, 255, 0.15);
+    background: root.active ? Theme.brand-blue : touch.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+    animate background, border-color { duration: 200ms; easing: ease; }
+    Text {
+        text: root.label;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: root.weight;
+        font-italic: root.italic;
+    }
+    if root.underline: Rectangle {
+        y: parent.height / 2 + 6px;
+        width: 7px;
+        height: 1px;
+        background: #ffffff;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        changed has-hover => {
+            if (self.has-hover) {
+                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+component StarButton inherits Rectangle {
+    in property <int> value;
+    in property <int> score;
+    in property <color> fill-color;
+    callback picked(int);
+    property <bool> filled: root.score >= root.value;
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+
+    width: 18px + 4px;
+    height: 18px + 4px;
+    border-radius: 4px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.1) : transparent;
+    transform-scale: touch.has-hover ? 1.1 : 1;
+    animate background, transform-scale { duration: 200ms; easing: ease; }
+
+    Icon {
+        width: 18px;
+        height: 18px;
+        source: root.filled ? Icons.star-lucide-fill : Icons.star-lucide;
+        color: root.filled ? root.fill-color : touch.has-hover ? #ffffff : #666666;
+        animate color { duration: 200ms; easing: ease; }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked(root.value);
+        }
+        changed has-hover => {
+            if (self.has-hover) {
+                Tip.show(root.tip-id, ["Very Negative", "Negative", "Neutral", "Positive", "Very Positive"][root.value - 1], root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+export component ReviewForm inherits VerticalLayout {
+    in property <bool> submitting;
+    out property <string> text: editor.text;
+    out property <bool> editor-focused: editor.has-focus;
+    callback submit(string, int);
+    property <int> score: 0;
+    property <int> max-chars: 1000;
+    property <int> chars: ReviewEditor.plain-length(editor.text);
+    property <Marks> marks: ReviewEditor.marks-at(editor.text, editor.cursor-position-byte-offset);
+    property <bool> show-preview: ReviewEditor.has-markup(editor.text);
+    property <bool> can-submit: editor.text != "" && root.score > 0 && !root.submitting && root.chars <= root.max-chars;
+    property <color> score-color: root.score <= 2 ? #e74c3c : root.score == 3 ? #f39c12 : #27ae60;
+    property <int> submit-tip-id;
+    init => {
+        self.submit-tip-id = Ids.take();
+    }
+
+    public function reset() {
+        editor.text = "";
+        root.score = 0;
+    }
+
+    function apply(mark: string) {
+        let edit = ReviewEditor.toggle(editor.text, editor.anchor-position-byte-offset, editor.cursor-position-byte-offset, mark);
+        editor.text = edit.text;
+        editor.set-selection-offsets(edit.anchor, edit.cursor);
+        editor.focus();
+    }
+
+    spacing: 16px;
+    padding-bottom: 24px;
+
+    Rectangle {
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.1);
+        background: Theme.dark-background;
+        clip: true;
+
+        VerticalLayout {
+            Rectangle {
+                background: Theme.background;
+                HorizontalLayout {
+                    padding-top: 8px;
+                    padding-bottom: 8px;
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    HorizontalLayout {
+                        spacing: 4px;
+                        alignment: start;
+                        ToolbarButton {
+                            label: "B";
+                            weight: 700;
+                            tooltip: "Bold (⌘B)";
+                            active: root.marks.bold;
+                            clicked => {
+                                root.apply("bold");
+                            }
+                        }
+                        ToolbarButton {
+                            label: "I";
+                            italic: true;
+                            tooltip: "Italic (⌘I)";
+                            active: root.marks.italic;
+                            clicked => {
+                                root.apply("italic");
+                            }
+                        }
+                        ToolbarButton {
+                            label: "U";
+                            underline: true;
+                            tooltip: "Underline (⌘U)";
+                            active: root.marks.underline;
+                            clicked => {
+                                root.apply("underline");
+                            }
+                        }
+                    }
+                    Text {
+                        text: root.chars + "/" + root.max-chars;
+                        color: root.chars > root.max-chars ? #ff6b6b : #888888;
+                        font-size: 12px;
+                        vertical-alignment: center;
+                        horizontal-alignment: right;
+                    }
+                }
+                Rectangle {
+                    y: parent.height - 1px;
+                    height: 1px;
+                    background: rgba(255, 255, 255, 0.1);
+                }
+            }
+            Rectangle {
+                min-height: 120px;
+                editor-touch := TouchArea {
+                    mouse-cursor: MouseCursor.text;
+                    clicked => {
+                        editor.focus();
+                    }
+                }
+                VerticalLayout {
+                    padding: 12px;
+                    editor := TextInput {
+                        single-line: false;
+                        wrap: word-wrap;
+                        color: #ffffff;
+                        font-size: 14px;
+                        min-height: 96px;
+                        selection-background-color: rgba(62, 98, 192, 0.6);
+                        key-pressed(event) => {
+                            if (event.modifiers.meta || event.modifiers.control) {
+                                if (event.text == "b" || event.text == "B") {
+                                    root.apply("bold");
+                                    return accept;
+                                }
+                                if (event.text == "i" || event.text == "I") {
+                                    root.apply("italic");
+                                    return accept;
+                                }
+                                if (event.text == "u" || event.text == "U") {
+                                    root.apply("underline");
+                                    return accept;
+                                }
+                            }
+                            reject
+                        }
+                    }
+                    // Slint can't style runs inside a TextInput, so the formatted
+                    // result is shown right under what you type.
+                    if root.show-preview: VerticalLayout {
+                        padding-top: 10px;
+                        spacing: 6px;
+                        Rectangle {
+                            height: 1px;
+                            background: rgba(255, 255, 255, 0.08);
+                        }
+                        Text {
+                            text: "Preview";
+                            color: rgba(255, 255, 255, 0.4);
+                            font-size: 11px;
+                        }
+                        StyledText {
+                            text: ReviewEditor.render(editor.text);
+                            default-color: #ffffff;
+                            default-font-size: 14px;
+                        }
+                    }
+                }
+                if editor.text == "": Text {
+                    x: 12px;
+                    y: 12px;
+                    text: "Share your thoughts about this game...";
+                    color: rgba(255, 255, 255, 0.35);
+                    font-size: 14px;
+                }
+            }
+        }
+    }
+
+    HorizontalLayout {
+        spacing: 16px;
+        HorizontalLayout {
+            spacing: 2px;
+            alignment: start;
+            for value in [1, 2, 3, 4, 5]: VerticalLayout {
+                alignment: center;
+                StarButton {
+                    value: value;
+                    score: root.score;
+                    fill-color: root.score-color;
+                    picked(v) => {
+                        root.score = v;
+                    }
+                }
+            }
+        }
+        submit-wrap := Rectangle {
+            width: submit-button.preferred-width;
+            HydraButton {
+                width: parent.width;
+                height: 40px;
+                kind: "primary";
+                text: root.submitting ? "Submitting..." : "Submit";
+                enabled: root.can-submit;
+                clicked => {
+                    root.submit(editor.text, root.score);
+                }
+            }
+            submit-button := HorizontalLayout {
+                visible: false;
+                padding-left: 16px;
+                padding-right: 16px;
+                Text {
+                    text: root.submitting ? "Submitting..." : "Submit";
+                    font-size: Theme.button-size;
+                }
+            }
+            // The disabled button's wrapper carries the requirements tooltip.
+            TouchArea {
+                enabled: !root.can-submit && !root.submitting;
+                changed has-hover => {
+                    if (self.has-hover) {
+                        Tip.show(root.submit-tip-id, "Write your review and pick a star rating to submit it", submit-wrap.absolute-position.x, submit-wrap.absolute-position.y, submit-wrap.width, submit-wrap.height, "top");
+                    } else {
+                        Tip.hide(root.submit-tip-id);
+                    }
+                }
+                changed enabled => {
+                    if (!self.enabled) {
+                        Tip.hide(root.submit-tip-id);
+                    }
+                }
+            }
+        }
+    }
+}
+
+component SortOption inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> active;
+    callback clicked();
+    width: row.preferred-width;
+    height: 28px;
+    row := HorizontalLayout {
+        spacing: 4px;
+        if root.icon.width > 0: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                width: 16px;
+                height: 16px;
+                color: label.color;
+            }
+        }
+        label := Text {
+            text: root.text;
+            font-size: 14px;
+            font-weight: root.active ? 500 : 300;
+            color: root.active ? rgba(255, 255, 255, 0.9) : touch.has-hover ? rgba(255, 255, 255, 0.6) : rgba(255, 255, 255, 0.4);
+            animate color { duration: 200ms; easing: ease; }
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// .game-details__vote-button with framer-motion's scale pulse and number roll.
+component VoteButton inherits Rectangle {
+    in property <image> icon;
+    in property <image> active-icon;
+    in property <int> count;
+    in property <int> prev-count;
+    in property <int> gen;
+    in property <int> pulse;
+    in property <bool> active;
+    callback clicked();
+
+    // gen flips parity on every count change; the animated phase runs 0->1 or 1->0
+    // and `t` re-maps it so each change plays 0 -> 1.
+    property <float> phase: Math.mod(root.gen, 2);
+    animate phase { duration: 400ms; easing: linear; }
+    property <float> t: Math.mod(root.gen, 2) == 1 ? root.phase : 1 - root.phase;
+    property <bool> increasing: root.count > root.prev-count;
+    property <float> exit-t: Math.min(1, root.t * 2);
+    property <float> enter-t: Math.max(0, root.t * 2 - 1);
+
+    property <float> pulse-phase: Math.mod(root.pulse, 2);
+    animate pulse-phase { duration: 300ms; easing: linear; }
+    property <float> pulse-t: Math.mod(root.pulse, 2) == 1 ? root.pulse-phase : 1 - root.pulse-phase;
+
+    width: content.preferred-width;
+    height: content.preferred-height;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: touch.has-hover ? rgba(255, 255, 255, 0.2) : rgba(255, 255, 255, 0.1);
+    background: touch.has-hover ? #2a2a2a : #1e1e1e;
+    animate background, border-color { duration: 200ms; easing: ease; }
+    transform-scale: 1 + 0.2 * Math.sin(root.pulse-t * 180deg);
+
+    content := HorizontalLayout {
+        padding-top: 6px;
+        padding-bottom: 6px;
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 6px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.active ? root.active-icon : root.icon;
+                width: 16px;
+                height: 16px;
+                color: touch.has-hover || root.active ? #ffffff : Theme.body;
+            }
+        }
+        // span { overflow: hidden } clips the rolling digits
+        Rectangle {
+            width: Math.max(old-label.preferred-width, new-label.preferred-width, 8px);
+            height: new-label.preferred-height;
+            clip: true;
+            old-label := Text {
+                visible: root.t < 0.5;
+                text: root.prev-count;
+                color: touch.has-hover ? #ffffff : Theme.body;
+                font-size: 14px;
+                font-weight: 500;
+                y: (root.increasing ? -10px : 10px) * (1 - (1 - root.exit-t) * (1 - root.exit-t));
+                opacity: 1 - root.exit-t;
+            }
+            new-label := Text {
+                text: root.count;
+                color: touch.has-hover ? #ffffff : Theme.body;
+                font-size: 14px;
+                font-weight: 500;
+                y: (root.increasing ? 10px : -10px) * (1 - root.enter-t) * (1 - root.enter-t);
+                opacity: root.t < 0.5 ? 0 : root.enter-t;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+component Pill inherits Rectangle {
+    in property <image> icon;
+    in property <string> text;
+    height: 22px;
+    width: row.preferred-width;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    row := HorizontalLayout {
+        padding-left: 6px;
+        padding-right: 6px;
+        spacing: 4px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                width: 12px;
+                height: 12px;
+                color: rgba(255, 255, 255, 0.7);
+            }
+        }
+        Text {
+            text: root.text;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 11px;
+            font-weight: 500;
+            vertical-alignment: center;
+        }
+    }
+}
+
+component ReviewItem inherits VerticalLayout {
+    in property <Review> review;
+    callback vote(int, bool);
+    callback delete(int);
+    callback toggle-original(int);
+    property <bool> show-original: root.review.show-original;
+
+    // header
+    HorizontalLayout {
+        spacing: 12px;
+        padding-bottom: 12px;
+        // Avatar: 4px radius square (profile-avatar), PersonIcon fallback.
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 56px;
+                height: 56px;
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: Theme.border;
+                background: Theme.background;
+                Icon {
+                    source: Icons.person;
+                    width: 39px;
+                    height: 39px;
+                }
+                TouchArea {
+                    mouse-cursor: pointer;
+                }
+            }
+        }
+        VerticalLayout {
+            spacing: 6px;
+            alignment: center;
+            horizontal-stretch: 1;
+            name := Text {
+                text: root.review.name;
+                color: rgba(255, 255, 255, 0.9);
+                font-size: 14px;
+                font-weight: 600;
+                overflow: elide;
+                Rectangle {
+                    visible: name-touch.has-hover;
+                    y: parent.height - 2px;
+                    height: 1px;
+                    width: name.preferred-width;
+                    x: 0;
+                    background: rgba(255, 255, 255, 0.9);
+                }
+                name-touch := TouchArea {
+                    mouse-cursor: pointer;
+                }
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                alignment: start;
+                Pill {
+                    icon: Icons.star-lucide-fill;
+                    text: root.review.score + "/5";
+                }
+                if root.review.playtime != "": Pill {
+                    icon: Icons.clock;
+                    text: root.review.playtime;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: start;
+            padding-right: 14px;
+            Text {
+                text: root.review.date;
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 12px;
+            }
+        }
+    }
+
+    StyledText {
+        text: root.review.content;
+        default-color: Theme.body;
+        default-font-size: 14px;
+    }
+
+    if root.review.translated: HorizontalLayout {
+        padding-top: 12px;
+        alignment: start;
+        translate-row := HorizontalLayout {
+            spacing: 8px;
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    source: Icons.languages;
+                    width: 13px;
+                    height: 13px;
+                    color: translate-label.color;
+                }
+            }
+            translate-label := Text {
+                text: root.show-original ? "Hide original" : "Show original (translated from " + root.review.original-language + ")";
+                color: translate-touch.has-hover ? rgba(255, 255, 255, 0.9) : rgba(255, 255, 255, 0.6);
+                animate color { duration: 200ms; easing: ease; }
+                font-size: 14px;
+                Rectangle {
+                    visible: translate-touch.has-hover;
+                    y: parent.height - 2px;
+                    height: 1px;
+                    background: translate-label.color;
+                }
+            }
+            translate-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.toggle-original(root.review.id);
+                }
+            }
+        }
+    }
+    if root.review.translated && root.show-original: VerticalLayout {
+        padding-top: 12px;
+        opacity: 0.6;
+        StyledText {
+            text: root.review.original;
+            default-color: Theme.body;
+            default-font-size: 14px;
+        }
+    }
+
+    // .game-details__review-actions
+    VerticalLayout {
+        padding-top: 12px;
+        Rectangle {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        HorizontalLayout {
+            padding-top: 8px;
+            spacing: 12px;
+            HorizontalLayout {
+                spacing: 12px;
+                alignment: start;
+                VoteButton {
+                    icon: Icons.thumbs-up;
+                    active-icon: Icons.thumbs-up-fill;
+                    count: root.review.upvotes;
+                    prev-count: root.review.prev-upvotes;
+                    gen: root.review.up-gen;
+                    pulse: root.review.up-pulse;
+                    active: root.review.has-upvoted;
+                    clicked => {
+                        root.vote(root.review.id, true);
+                    }
+                }
+                VoteButton {
+                    icon: Icons.thumbs-down;
+                    active-icon: Icons.thumbs-down-fill;
+                    count: root.review.downvotes;
+                    prev-count: root.review.prev-downvotes;
+                    gen: root.review.down-gen;
+                    pulse: root.review.down-pulse;
+                    active: root.review.has-downvoted;
+                    clicked => {
+                        root.vote(root.review.id, false);
+                    }
+                }
+                reply := Rectangle {
+                    width: reply-row.preferred-width;
+                    border-radius: 6px;
+                    background: reply-touch.has-hover ? rgba(255, 255, 255, 0.12) : transparent;
+                    animate background { duration: 200ms; easing: ease; }
+                    reply-row := HorizontalLayout {
+                        padding-left: 6px;
+                        padding-right: 6px;
+                        spacing: 5px;
+                        VerticalLayout {
+                            alignment: center;
+                            Icon {
+                                source: Icons.reply;
+                                width: 14px;
+                                height: 14px;
+                                color: reply-label.color;
+                            }
+                        }
+                        reply-label := Text {
+                            text: "Reply";
+                            color: reply-touch.has-hover ? #ffffff : rgba(255, 255, 255, 0.78);
+                            animate color { duration: 200ms; easing: ease; }
+                            font-size: 12px;
+                            font-weight: 500;
+                            vertical-alignment: center;
+                        }
+                    }
+                    reply-touch := TouchArea {
+                        mouse-cursor: pointer;
+                    }
+                }
+            }
+            if root.review.own: HydraButton {
+                kind: "danger";
+                small: true;
+                icon: Icons.trash;
+                icon-size: 14px;
+                text: "Remove review";
+                clicked => {
+                    root.delete(root.review.id);
+                }
+            }
+        }
+    }
+}
+
+export component GameReviews inherits VerticalLayout {
+    in property <[Review]> reviews;
+    in property <int> total;
+    in property <bool> has-reviewed;
+    in property <bool> loading;
+    in property <bool> loading-more;
+    in property <bool> has-more;
+    in property <bool> submitting;
+    in-out property <string> sort: "newest";
+    callback sort-changed(string);
+    callback vote(int, bool);
+    callback delete(int);
+    callback toggle-original(int);
+    callback load-more();
+    callback submit(string, int);
+
+    changed has-reviewed => {
+        if (root.has-reviewed) {
+            form.reset();
+        }
+    }
+
+    // .game-details__reviews-section: border-top, 24px margin + padding
+    Rectangle {
+        height: 24px;
+    }
+    Rectangle {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+    }
+    Rectangle {
+        height: 24px;
+    }
+
+    if !root.has-reviewed: VerticalLayout {
+        Text {
+            text: "Leave a Review";
+            font-size: 20px;
+            font-weight: 600;
+            color: Theme.muted;
+        }
+        Rectangle {
+            height: 16px;
+        }
+    }
+    form := ReviewForm {
+        visible: !root.has-reviewed;
+        height: root.has-reviewed ? 0 : self.preferred-height;
+        submitting: root.submitting;
+        submit(text, score) => {
+            root.submit(text, score);
+        }
+    }
+    if !root.has-reviewed: VerticalLayout {
+        padding-top: 24px;
+        padding-bottom: 24px;
+        Rectangle {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+    }
+
+    HorizontalLayout {
+        spacing: 8px;
+        padding-bottom: 8px;
+        alignment: start;
+        Text {
+            text: "Reviews";
+            font-size: 20px;
+            font-weight: 600;
+            color: Theme.muted;
+            vertical-alignment: center;
+        }
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: Math.max(24px, badge.preferred-width + 16px);
+                height: badge.preferred-height + 8px;
+                border-radius: 6px;
+                background: rgba(255, 255, 255, 0.1);
+                badge := Text {
+                    text: root.total;
+                    color: rgba(255, 255, 255, 0.7);
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+            }
+        }
+    }
+
+    // review-sort-options.tsx: date and score toggle direction; "most voted" is one-way.
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        padding-bottom: 24px;
+        SortOption {
+            icon: root.sort == "newest" ? Icons.chevron-down : Icons.chevron-up;
+            text: root.sort == "oldest" ? "Oldest" : "Newest";
+            active: root.sort == "newest" || root.sort == "oldest";
+            clicked => {
+                root.sort-changed(root.sort == "newest" ? "oldest" : "newest");
+            }
+        }
+        Text {
+            text: "|";
+            color: rgba(255, 255, 255, 0.3);
+            vertical-alignment: center;
+        }
+        SortOption {
+            icon: root.sort == "score_high" ? Icons.chevron-down : Icons.chevron-up;
+            text: root.sort == "score_low" ? "Lowest Score" : "Highest Score";
+            active: root.sort == "score_high" || root.sort == "score_low";
+            clicked => {
+                root.sort-changed(root.sort == "score_high" ? "score_low" : "score_high");
+            }
+        }
+        Text {
+            text: "|";
+            color: rgba(255, 255, 255, 0.3);
+            vertical-alignment: center;
+        }
+        SortOption {
+            icon: Icons.thumbs-up;
+            text: "Most Voted";
+            active: root.sort == "most_voted";
+            clicked => {
+                if (root.sort != "most_voted") {
+                    root.sort-changed("most_voted");
+                }
+            }
+        }
+    }
+
+    // .game-details__reviews-loading / __reviews-empty
+    if root.loading && root.reviews.length == 0: Text {
+        text: "Loading reviews...";
+        color: rgba(255, 255, 255, 0.6);
+        horizontal-alignment: center;
+        height: 16px + 20px + 16px;
+        vertical-alignment: center;
+    }
+    if !root.loading && root.reviews.length == 0: VerticalLayout {
+        padding-top: 32px;
+        padding-bottom: 32px;
+        padding-left: 16px;
+        padding-right: 16px;
+        spacing: 8px;
+        HorizontalLayout {
+            alignment: center;
+            padding-bottom: 8px;
+            Icon {
+                source: Icons.note;
+                width: 48px;
+                height: 48px;
+                color: rgba(255, 255, 255, 0.6);
+            }
+        }
+        Text {
+            text: "No reviews yet";
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            horizontal-alignment: center;
+        }
+        Text {
+            text: "Be the first to share your thoughts about this game!";
+            color: rgba(255, 255, 255, 0.6);
+            font-size: Theme.small-size;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+    }
+
+    // opacity 0.5 while a re-sort is loading (transition 0.2s)
+    VerticalLayout {
+        spacing: 32px;
+        opacity: root.loading ? 0.5 : 1;
+        animate opacity { duration: 200ms; easing: ease; }
+        for review in root.reviews: ReviewItem {
+            review: review;
+            vote(id, up) => {
+                root.vote(id, up);
+            }
+            delete(id) => {
+                root.delete(id);
+            }
+            toggle-original(id) => {
+                root.toggle-original(id);
+            }
+        }
+    }
+
+    if root.has-more && !root.loading-more: VerticalLayout {
+        padding-top: 16px;
+        HydraButton {
+            kind: "outline";
+            text: "Load more reviews";
+            clicked => {
+                root.load-more();
+            }
+        }
+    }
+    if root.loading-more: Text {
+        text: "Loading more reviews...";
+        color: rgba(255, 255, 255, 0.6);
+        horizontal-alignment: center;
+        height: 16px + 20px + 16px;
+        vertical-alignment: center;
+    }
+}

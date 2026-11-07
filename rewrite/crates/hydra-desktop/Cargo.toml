@@ -1,0 +1,25 @@
+[package]
+name = "hydra-desktop"
+description = "Hydra desktop app (Rust + Slint rewrite of the Electron app)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "hydra"
+path = "src/main.rs"
+
+[dependencies]
+hydra-store = { path = "../hydra-store" }
+hydra-media = { path = "../hydra-media" }
+# Skia (Metal/DX12/Vulkan) measured best overall; winit-030 gives access to raw
+# wheel events (line vs pixel deltas) for Chromium-like scrolling.
+slint = { workspace = true, features = ["backend-winit", "renderer-skia", "renderer-software", "unstable-winit-030", "accessibility"] }
+image.workspace = true
+
+[build-dependencies]
+slint-build = "1.18"
+
+[dev-dependencies]
+i-slint-backend-testing = "=1.18.1"

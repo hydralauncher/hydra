@@ -1,0 +1,16 @@
+[package]
+name = "hydra-media"
+description = "Media for the Rust rewrite: video playback (FFmpeg + hardware decode + cpal) and an off-thread image pipeline"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+slint.workspace = true
+image.workspace = true
+reqwest.workspace = true
+# System FFmpeg 7/8 via pkg-config (Homebrew, vcpkg, distro packages).
+ffmpeg-next = "9"
+cpal = "0.18"
+libc = "0.2"

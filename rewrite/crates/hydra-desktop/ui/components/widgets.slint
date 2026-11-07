@@ -1,0 +1,271 @@
+import { Theme, Icons, Tip, Ids } from "../theme.slint";
+
+// An SVG glyph tinted like CSS `color` tints an inline SVG.
+export component Icon inherits Image {
+    in property <color> color: Theme.muted;
+    colorize: root.color;
+    image-fit: contain;
+}
+
+// src/renderer/src/components/button/button.scss
+export component HydraButton inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    in property <length> icon-size: 16px;
+    // "primary" | "outline" | "danger" | "dark"
+    in property <string> kind: "primary";
+    in property <bool> small;
+    in property <bool> enabled: true;
+    in property <string> tooltip;
+    in property <bool> square-corners;
+    in property <length> horizontal-padding: root.small ? 10px : 16px;
+    callback clicked();
+    out property <bool> hovered: touch.has-hover;
+    property <int> tip-id;
+    property <color> foreground: root.kind == "primary" ? #000000 : Theme.muted;
+    property <bool> lit: touch.has-hover && root.enabled;
+
+    init => {
+        self.tip-id = Ids.take();
+    }
+
+    min-height: root.small ? 28px : 40px;
+    horizontal-stretch: 0;
+    border-radius: root.square-corners ? 0 : (root.small ? 6px : 8px);
+    border-width: 1px;
+    border-color: root.kind == "outline" ? Theme.border : root.kind == "cloud" ? #3dd6e9 : transparent;
+    // button--cloud: gradient + inner glow; hover = brightness(1.12) + outer glow
+    inner-shadow-blur: root.kind == "cloud" ? (root.lit ? 18px : 14px) : 0;
+    inner-shadow-color: root.kind == "cloud" ? (root.lit ? #1debe14d : #1debe12b) : transparent;
+    drop-shadow-blur: root.kind == "cloud" && root.lit ? 10px : 0;
+    drop-shadow-color: root.kind == "cloud" && root.lit ? #1dcceb33 : transparent;
+    background: root.kind == "cloud" ? (root.lit ? @linear-gradient(133deg, #16cfd1 0%, #0b96f3 100%) : @linear-gradient(133deg, #14b9bb 0%, #0a86d9 100%))
+        : root.kind == "primary" ? (touch.has-hover && root.enabled ? #dadbe1 : Theme.muted)
+        : root.kind == "outline" ? (touch.has-hover && root.enabled ? rgba(255, 255, 255, 0.1) : transparent)
+        : root.kind == "danger" ? (touch.has-hover ? #b3203f : Theme.danger)
+        : Theme.dark-background;
+    opacity: !root.enabled ? Theme.disabled-opacity : touch.pressed ? Theme.active-opacity : 1;
+    animate background, opacity, border-color { duration: 200ms; easing: ease; }
+
+    layout := HorizontalLayout {
+        padding-left: root.horizontal-padding;
+        padding-right: root.horizontal-padding;
+        spacing: root.small ? 6px : 8px;
+        alignment: center;
+
+        if root.icon.width > 0: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                color: root.foreground;
+                width: root.icon-size;
+                height: root.icon-size;
+            }
+        }
+        if root.text != "": Text {
+            text: root.text;
+            color: root.foreground;
+            font-size: root.small ? Theme.small-size : Theme.button-size;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        enabled: true;
+        mouse-cursor: root.enabled ? pointer : not-allowed;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+        changed has-hover => {
+            if (self.has-hover && root.tooltip != "") {
+                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+// The circular chevrons of gallery-slider / similar-games / lightbox.
+export component RoundButton inherits Rectangle {
+    in property <image> icon;
+    in property <length> icon-size: 36px;
+    in property <length> size: 48px;
+    in property <bool> bordered;
+    in property <color> rest: rgba(0, 0, 0, 0.4);
+    in property <color> hover: rgba(0, 0, 0, 0.6);
+    in property <float> press-scale: 0.95;
+    callback clicked();
+    out property <bool> hovered: touch.has-hover;
+    out property <bool> pressed: touch.pressed;
+
+    width: root.size;
+    height: root.size;
+    border-radius: root.size / 2;
+    border-width: root.bordered ? 1px : 0;
+    border-color: Theme.border;
+    background: touch.has-hover ? root.hover : root.rest;
+    animate background { duration: 150ms; easing: ease; }
+
+    Icon {
+        source: root.icon;
+        width: root.icon-size;
+        height: root.icon-size;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// react-loading-skeleton with Hydra's SkeletonTheme (#1c1c1c / #444) + skeleton-loading keyframes.
+export component Skeleton inherits Rectangle {
+    in property <length> radius: 4px;
+    border-radius: root.radius;
+    background: #1c1c1c;
+    clip: true;
+
+    // scss: linear-gradient(90deg, #1c1c1c 25%, #2a2a2a 50%, #1c1c1c 75%) / 200% repeat, 1.5s.
+    property <float> css-phase: Math.mod(animation-tick() / 750ms, 1);
+    for tile in [0, 1]: Rectangle {
+        x: -2 * root.width + root.css-phase * 2 * root.width + tile * 2 * root.width;
+        width: 2 * root.width;
+        background: @linear-gradient(90deg, #1c1c1c 25%, #2a2a2a 50%, #1c1c1c 75%);
+    }
+
+    // The library's own ::after sweep: translateX(-100% -> 100%), 1.5s ease-in-out.
+    property <float> sweep: Math.mod(animation-tick() / 1500ms, 1);
+    property <float> eased: root.sweep * root.sweep * (3 - 2 * root.sweep);
+    Rectangle {
+        x: -root.width + root.eased * 2 * root.width;
+        width: root.width;
+        background: @linear-gradient(90deg, rgba(68, 68, 68, 0) 0%, rgba(68, 68, 68, 0.9) 50%, rgba(68, 68, 68, 0) 100%);
+    }
+}
+
+// backdrop-filter: blur() stand-in. Slint has no backdrop filters, so the
+// backend pre-blurs the hero and this element draws the matching slice of it.
+export component Frost inherits Rectangle {
+    in property <image> source;
+    in property <Point> source-origin;
+    in property <length> source-width;
+    in property <length> source-height;
+    in property <ImageVerticalAlignment> source-vertical-alignment: top;
+    in property <brush> tint: rgba(0, 0, 0, 0.6);
+    clip: true;
+
+    Image {
+        source: root.source;
+        x: root.source-origin.x - root.absolute-position.x;
+        y: root.source-origin.y - root.absolute-position.y;
+        width: root.source-width;
+        height: root.source-height;
+        image-fit: cover;
+        vertical-alignment: root.source-vertical-alignment;
+    }
+
+    Rectangle {
+        background: root.tint;
+    }
+
+    @children
+}
+
+// react-tooltip v5 look: #222, 0.9 opacity, 8px 16px padding, 10px offset, arrow.
+export component TooltipHost inherits Rectangle {
+    bubble := Rectangle {
+        property <bool> below: Tip.place == "bottom";
+        property <bool> right: Tip.place == "right";
+        width: label.preferred-width + 32px;
+        height: label.preferred-height + 16px;
+        x: self.right ? Tip.anchor-x + Tip.anchor-width + 10px
+            : Math.clamp(Tip.anchor-x + Tip.anchor-width / 2 - self.width / 2, 4px, root.width - self.width - 4px);
+        y: self.right ? Tip.anchor-y + Tip.anchor-height / 2 - self.height / 2
+            : self.below ? Tip.anchor-y + Tip.anchor-height + 10px
+            : Tip.anchor-y - self.height - 10px;
+        opacity: Tip.shown ? 0.9 : 0;
+        animate opacity { duration: 300ms; easing: ease-out; }
+        visible: self.opacity > 0;
+
+        arrow := Rectangle {
+            width: 8px;
+            height: 8px;
+            background: #222222;
+            transform-rotation: 45deg;
+            x: bubble.right ? -4px : Math.clamp(Tip.anchor-x + Tip.anchor-width / 2 - bubble.x - 4px, 6px, bubble.width - 14px);
+            y: bubble.right ? (bubble.height - 8px) / 2 : bubble.below ? -4px : bubble.height - 4px;
+        }
+
+        Rectangle {
+            background: #222222;
+            border-radius: 3px;
+        }
+
+        label := Text {
+            x: 16px;
+            y: 8px;
+            text: Tip.text;
+            color: #ffffff;
+            font-size: 12.6px;
+        }
+    }
+}
+
+// Hydra's always-visible ::-webkit-scrollbar (9px, rgba(255,255,255,0.15) thumb).
+export component ScrollBar inherits Rectangle {
+    in property <length> content-height;
+    in property <length> viewport-height;
+    // Two-way bound to the Flickable's content-y (0 or negative).
+    in-out property <length> content-y;
+    property <length> offset: -root.content-y;
+    width: 9px;
+    background: Theme.dark-background;
+
+    property <length> max-offset: Math.max(0, root.content-height - root.viewport-height);
+    property <length> thumb-height: root.content-height <= 0 ? root.height : Math.max(32px, root.height * root.viewport-height / root.content-height);
+
+    Rectangle {
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    thumb := Rectangle {
+        visible: root.max-offset > 0;
+        width: root.width;
+        height: root.thumb-height;
+        y: root.max-offset <= 0 ? 0 : (root.height - self.height) * root.offset / root.max-offset;
+        border-radius: 24px;
+        background: drag.has-hover || drag.pressed ? rgba(255, 255, 255, 0.25) : rgba(255, 255, 255, 0.15);
+
+        drag := TouchArea {
+            property <length> start-offset;
+            pointer-event(event) => {
+                if (event.kind == PointerEventKind.down) {
+                    self.start-offset = root.offset;
+                }
+            }
+            moved => {
+                if (self.pressed && root.height > thumb.height) {
+                    root.content-y = -Math.clamp(self.start-offset + (self.mouse-y - self.pressed-y) * root.max-offset / (root.height - thumb.height), 0, root.max-offset);
+                }
+            }
+        }
+    }
+}
+
+// CSS `animation: spin 1s linear infinite`.
+export component Spinner inherits Rectangle {
+    in property <image> source;
+    in property <color> icon-color: Theme.muted;
+    Icon {
+        width: root.width;
+        height: root.height;
+        source: root.source;
+        color: root.icon-color;
+        transform-rotation: Math.mod(animation-tick() / 1000ms, 1) * 360deg;
+    }
+}
