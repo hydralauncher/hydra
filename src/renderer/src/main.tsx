@@ -135,7 +135,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               element={<RetroAchievementsConnectionWindow />}
             />
 
-            <Route path="/big-picture" element={<BigPictureShell />} />
             <Route path="/big-picture/*" element={<BigPictureShell />} />
 
             <Route path="*" element={<MainAppShell />} />
