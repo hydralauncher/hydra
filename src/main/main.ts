@@ -9,6 +9,7 @@ import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
 import { refreshGlobalTrackersUrlCache } from "@main/helpers";
 import { syncRetroAchievementsEmulatorCredentials } from "@main/services/retro-achievements/emulator-credentials/emulator-credential-sync";
+import { reconcileRecompilationDiscs } from "@main/events/recompilation/recompilation-disc";
 import { type Download, type UserPreferences } from "../types";
 import path from "node:path";
 import fs from "node:fs";
@@ -131,6 +132,7 @@ export const loadState = async () => {
   }
 
   void watchSteamLibraries();
+  void reconcileRecompilationDiscs();
   void syncRetroAchievementsEmulatorCredentials();
 
   await HydraApi.setupApi().then(async () => {

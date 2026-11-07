@@ -64,6 +64,8 @@ export interface ChatMessageListProps {
   friendName: string;
   /** False once the users can no longer message each other: no replies or reactions. */
   canReply: boolean;
+  /** False for the official account: its announcements are not reportable. */
+  canReport?: boolean;
   /** The message the composer is replying to, highlighted in the list. */
   replyToSeq: number | null;
   /** A new object scrolls to and flashes the message with that seq. */
@@ -213,6 +215,7 @@ export function ChatMessageList({
   hasMoreBefore,
   friendName,
   canReply,
+  canReport: isReportable = true,
   replyToSeq,
   revealSeq,
   onReply,
@@ -458,7 +461,10 @@ export function ChatMessageList({
 
   // Reports work after an unfriend or block, but only on the friend's messages.
   const canReport = (message: ChatMessage) =>
-    !message.fromMe && message.seq !== undefined && !message.isHidden;
+    isReportable &&
+    !message.fromMe &&
+    message.seq !== undefined &&
+    !message.isHidden;
 
   const openMenu = (event: React.MouseEvent, message: ChatMessage) => {
     const target = event.target as Element;

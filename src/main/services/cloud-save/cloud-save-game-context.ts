@@ -1,4 +1,3 @@
-import { gamesSublevel, levelKeys } from "@main/level";
 import { getSteamLocation } from "@main/services/steam";
 import { SystemPath } from "@main/services/system-path";
 import { Wine } from "@main/services/wine";
@@ -10,6 +9,7 @@ import { getEmulatorConfig } from "../emulators/emulators-repository";
 import { getRetroArchConfig } from "../retroarch/retroarch-repository";
 import { getEmulatorSaveEnvironmentKey } from "./emulator-save-provider";
 import { emulatorEnvironmentId } from "./emulator-provider-identity";
+import { getCloudSaveGameRecord } from "./recompilation-cloud-save";
 
 import {
   resolveCloudSaveEnvironment,
@@ -58,9 +58,9 @@ export const getCloudSaveGameContext = async (
   shop: GameShop,
   overrides?: CloudSaveGameContextOverrides
 ) => {
-  const game = await gamesSublevel
-    .get(levelKeys.game(shop, objectId))
-    .catch(() => undefined);
+  const game = await getCloudSaveGameRecord(shop, objectId).catch(
+    () => undefined
+  );
   const steamPath =
     shop === "epic"
       ? undefined

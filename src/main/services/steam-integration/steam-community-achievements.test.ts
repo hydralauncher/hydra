@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 // @ts-ignore The Node ESM test runner requires the source extension.
 import {
   fetchSteamCommunityPlayerAchievements,
-  isSteamCommunityLoginPage,
+  isSteamCommunityLoginUrl,
   isSteamCommunityPrivateStatsXml,
   mapCommunityHtmlToPlayerstats,
   parseSteamCommunityAchievementHtml,
@@ -13,7 +13,6 @@ import {
   parseSteamTimezoneOffsetSeconds,
   parseSteamUnlockTimeText,
   shouldFetchSteamCommunityAchievements,
-  steamCommunityOwnerStatsHtmlUrl,
   steamCommunityStatsHtmlUrl,
   steamCommunityStatsXmlUrl,
   steamCommunityStatsXmlUrlForPage,
@@ -180,23 +179,29 @@ describe("Steam community achievement parsers", () => {
     assert.equal(parseSteamTimezoneOffsetSeconds(undefined), 0);
   });
 
-  it("detects Steam login pages", () => {
+  it("detects Steam login pages by URL only", () => {
     assert.equal(
-      isSteamCommunityLoginPage("https://login.steampowered.com/openid", ""),
+      isSteamCommunityLoginUrl("https://login.steampowered.com/openid"),
       true
     );
     assert.equal(
-      isSteamCommunityLoginPage(
-        "https://steamcommunity.com/id/x/stats/1",
-        statsHtml
+      isSteamCommunityLoginUrl(
+        "https://steamcommunity.com/login/home/?goto=%2Fmy%2Fstats%2F1"
       ),
+      true
+    );
+    assert.equal(
+      isSteamCommunityLoginUrl("https://steamcommunity.com/id/login/stats/1"),
       false
     );
+    assert.equal(isSteamCommunityLoginUrl(""), false);
   });
 });
 
 describe("fetchSteamCommunityPlayerAchievements", () => {
-  it("uses public XML when the owner HTML page has no achievement rows", async () => {
+  it("reads the XML feed first and makes no other request", async () => {
+    const requested: string[] = [];
+
     const payload = await fetchSteamCommunityPlayerAchievements({
       steamId64: token.steamId64,
       steamAppId: "883710",
@@ -205,29 +210,37 @@ describe("fetchSteamCommunityPlayerAchievements", () => {
       },
       communityFetch: (input) => {
         const url = String(input);
-        if (url.includes("xml=1")) {
-          assert.equal(
-            url,
-            steamCommunityStatsXmlUrl(token.steamId64, "883710")
-          );
-          return Promise.resolve(textResponse(200, unlockedXml, url));
-        }
-        if (url.includes("/my/stats/")) {
-          assert.equal(url, steamCommunityOwnerStatsHtmlUrl("883710"));
-          return Promise.resolve(textResponse(200, "<html></html>", url));
-        }
-        assert.equal(
-          url,
-          steamCommunityStatsHtmlUrl(token.steamId64, "883710")
-        );
-        return Promise.resolve(textResponse(200, "<html></html>", url));
+        requested.push(url);
+        return Promise.resolve(textResponse(200, unlockedXml, url));
       },
     });
 
+    assert.deepEqual(requested, [
+      steamCommunityStatsXmlUrl(token.steamId64, "883710"),
+    ]);
     assert.equal(
       (payload as { playerstats: { achievements: unknown[] } }).playerstats
         .achievements.length,
       2
+    );
+  });
+
+  it("does not mistake achievement text for a login page", async () => {
+    const page = `<html>"LOGIN_BASE_URL":"https://login.steampowered.com/"
+      Earn 3 Stars at the Eagle's Perch Danger Sign in a Ford Supervan</html>`;
+
+    const payload = await fetchSteamCommunityPlayerAchievements({
+      steamId64: token.steamId64,
+      steamAppId: "1551360",
+      loadSchema: async () => ({}),
+      communityFetch: (input) =>
+        Promise.resolve(textResponse(200, page, String(input))),
+    });
+
+    assert.deepEqual(
+      (payload as { playerstats: { achievements: unknown[] } }).playerstats
+        .achievements,
+      []
     );
   });
 
@@ -278,7 +291,7 @@ describe("fetchSteamCommunityPlayerAchievements", () => {
     );
   });
 
-  it("reads owner HTML and schema first", async () => {
+  it("falls back to owner HTML and schema when the XML feed is private", async () => {
     const payload = await fetchSteamCommunityPlayerAchievements({
       steamId64: token.steamId64,
       steamAppId: "883710",
@@ -289,6 +302,9 @@ describe("fetchSteamCommunityPlayerAchievements", () => {
       },
       communityFetch: (input) => {
         const url = String(input);
+        if (url.includes("xml=1")) {
+          return Promise.resolve(textResponse(200, privateXml, url));
+        }
         assert.equal(
           url,
           steamCommunityStatsHtmlUrl(token.steamId64, "883710")
@@ -310,7 +326,7 @@ describe("fetchSteamCommunityPlayerAchievements", () => {
     );
   });
 
-  it("does not fall back to XML when owner HTML has rows without unlock times", async () => {
+  it("returns no unlocks when private XML and owner HTML have no unlock times", async () => {
     const payload = await fetchSteamCommunityPlayerAchievements({
       steamId64: token.steamId64,
       steamAppId: "883710",
@@ -320,6 +336,9 @@ describe("fetchSteamCommunityPlayerAchievements", () => {
       communityFetch: (input) => {
         const url = String(input);
         const emptyRows = `<div class="achieveRow"><h3 class="ellipsis">Locked</h3></div>`;
+        if (url.includes("xml=1")) {
+          return Promise.resolve(textResponse(200, privateXml, url));
+        }
         if (url.includes("/my/stats/")) {
           return Promise.resolve(textResponse(200, emptyRows, url));
         }

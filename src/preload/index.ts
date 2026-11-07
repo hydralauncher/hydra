@@ -32,6 +32,10 @@ import type {
   EmulatorSystem,
   EmulatorBinary,
   EmulatorInstallProgress,
+  RecompilationInstallProgress,
+  RecompilationPrepareProgress,
+  RecompilationRef,
+  RecompilationRomSource,
   RetroArchCoreName,
   RetroArchCoreInstallProgress,
   RetroArchInstallProgress,
@@ -111,6 +115,7 @@ import type {
   ScreenshotUploadProgress,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
+import { NATIVE_WINDOW_DECORATIONS_ARGUMENT } from "../shared/window-layout";
 import type { AxiosProgressEvent } from "axios";
 
 const fileExplorerApi = {
@@ -644,6 +649,44 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-emulator-install-progress", listener);
     return () =>
       ipcRenderer.removeListener("on-emulator-install-progress", listener);
+  },
+  getRecompilationInstallState: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("getRecompilationInstallState", ref),
+  installRecompilation: (ref: RecompilationRef, parentDirectory?: string) =>
+    ipcRenderer.invoke("installRecompilation", ref, parentDirectory),
+  uninstallRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("uninstallRecompilation", ref),
+  openRecompilationFolder: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("openRecompilationFolder", ref),
+  playRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("playRecompilation", ref),
+  closeRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("closeRecompilation", ref),
+  getRecompilationRomState: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("getRecompilationRomState", ref),
+  setRecompilationRom: (
+    ref: RecompilationRef,
+    choice: { source: RecompilationRomSource; path?: string }
+  ) => ipcRenderer.invoke("setRecompilationRom", ref, choice),
+  prepareRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("prepareRecompilation", ref),
+  onRecompilationPrepareProgress: (
+    cb: (payload: RecompilationPrepareProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RecompilationPrepareProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-recompilation-prepare-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-recompilation-prepare-progress", listener);
+  },
+  onRecompilationInstallProgress: (
+    cb: (payload: RecompilationInstallProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RecompilationInstallProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-recompilation-install-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-recompilation-install-progress", listener);
   },
   /* RetroArch */
   getRetroArchConfig: () => ipcRenderer.invoke("getRetroArchConfig"),
@@ -1338,7 +1381,10 @@ contextBridge.exposeInMainWorld("electron", {
   getGamesRunning: () => ipcRenderer.invoke("getGamesRunning"),
   onGamesRunning: (
     cb: (
-      gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+      gamesRunning: Pick<
+        GameRunning,
+        "id" | "sessionDurationInMillis" | "recompilationSlug"
+      >[]
     ) => void
   ) => {
     const listener = (_event: Electron.IpcRendererEvent, gamesRunning) =>
@@ -1809,6 +1855,9 @@ contextBridge.exposeInMainWorld("electron", {
     process.platform === "linux" &&
     (process.env.XDG_SESSION_TYPE?.toLowerCase() === "wayland" ||
       Boolean(process.env.WAYLAND_DISPLAY)),
+  hasNativeWindowDecorations: process.argv.includes(
+    NATIVE_WINDOW_DECORATIONS_ARGUMENT
+  ),
 
   /* Auto update */
   onAutoUpdaterEvent: (cb: (value: AppUpdaterEvent) => void) => {
@@ -2174,17 +2223,11 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-local-notification-created", listener);
   },
-  onAchievementUnlocked: (
-    cb: (
-      position?: AchievementCustomNotificationPosition,
-      achievements?: AchievementNotificationInfo[]
-    ) => void
-  ) => {
+  onAchievementUnlocked: (cb: (suppressSound?: boolean) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      position?: AchievementCustomNotificationPosition,
-      achievements?: AchievementNotificationInfo[]
-    ) => cb(position, achievements);
+      suppressSound?: boolean
+    ) => cb(suppressSound);
     ipcRenderer.on("on-achievement-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
@@ -2215,9 +2258,14 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("prepare-achievement-notification", listener);
   },
-  onStartAchievementNotification: (cb: (requestId: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, requestId: string) =>
-      cb(requestId);
+  onStartAchievementNotification: (
+    cb: (requestId: string, visible: boolean) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      requestId: string,
+      visible: boolean
+    ) => cb(requestId, visible);
     ipcRenderer.on("start-achievement-notification", listener);
     return () =>
       ipcRenderer.removeListener("start-achievement-notification", listener);
@@ -2226,6 +2274,14 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("achievementNotificationHostReady"),
   achievementNotificationContentReady: (requestId: string) =>
     ipcRenderer.invoke("achievementNotificationContentReady", requestId),
+  achievementNotificationStarted: (requestId: string) =>
+    ipcRenderer.invoke("achievementNotificationStarted", requestId),
+  achievementNotificationSoundPlayed: (requestId: string, batchId: string) =>
+    ipcRenderer.invoke(
+      "achievementNotificationSoundPlayed",
+      requestId,
+      batchId
+    ),
   achievementNotificationFinished: (requestId: string) =>
     ipcRenderer.invoke("achievementNotificationFinished", requestId),
   achievementNotificationFailed: (requestId?: string, reason?: string) =>
@@ -2354,6 +2410,8 @@ contextBridge.exposeInMainWorld("electron", {
   closeChatWindow: () => ipcRenderer.invoke("closeChatWindow"),
   openGameInMainWindow: (gamePath: string) =>
     ipcRenderer.invoke("openGameInMainWindow", gamePath),
+  openChatNotificationSettings: () =>
+    ipcRenderer.invoke("openChatNotificationSettings"),
   consumePendingChatFriends: () =>
     ipcRenderer.invoke("consumePendingChatFriends") as Promise<
       PendingChatFriend[]
@@ -2370,6 +2428,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getChatUnreadState") as Promise<ChatUnreadState>,
   markChatRead: (friendId: string, seq: number) =>
     ipcRenderer.invoke("markChatRead", friendId, seq),
+  refreshOfficialChat: () =>
+    ipcRenderer.invoke("refreshOfficialChat") as Promise<void>,
   onChatMessage: (cb: (sync: ChatMessageSync) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
