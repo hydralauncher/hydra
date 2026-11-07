@@ -45,6 +45,7 @@ const epic = (objectId: string): Download => ({
   },
 });
 const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
+const MAX_SETTLE_ATTEMPTS = 100;
 
 /** Exercise the production manager/orchestrator; replace only external I/O ports. */
 function fixture() {
@@ -66,6 +67,9 @@ function fixture() {
     layout: structuredClone(downloadContract.DEFAULT_DOWNLOAD_LAYOUT_STATE),
     completed: new Set<string>(),
     torrentCalls: [] as string[],
+    torrentReply: async (_method: string): Promise<{ data: unknown }> => {
+      throw new Error("Unexpected torrent dispatch");
+    },
     httpStarted: [] as string[],
     httpPaused: 0,
     writes: [] as Download[],
@@ -178,7 +182,7 @@ function fixture() {
       TorrentService: {
         call: async (method: string) => {
           state.torrentCalls.push(method);
-          throw new Error("Unexpected torrent dispatch");
+          return state.torrentReply(method);
         },
       },
     },
@@ -751,5 +755,105 @@ test("a busy Linux prefix waits for cleanup and resumes finalization at full pro
   await f.manager.watchDownloads();
   assert.equal(f.downloads.get(key(download))?.status, "complete");
   assert.equal(f.state.notifications.length, 1);
+  assert.equal(f.manager.getActiveDownloadId(), null);
+});
+
+test("resuming a torrent that startup already started marks it active without restarting it", async () => {
+  const f = fixture();
+  // Startup normalizes the interrupted record to paused/queued, then starts
+  // the downloader directly. Until metadata and file checks finish, the status
+  // poll leaves that record untouched.
+  const download: Download = {
+    shop: "steam",
+    objectId: "1222140",
+    downloader: Downloader.Torrent,
+    uri: "magnet:?xt=urn:btih:0000000000000000000000000000000000000001",
+    downloadPath: path.resolve("torrent-fixture"),
+    folderName: null,
+    fileSize: 1000,
+    bytesDownloaded: 250,
+    progress: 0.25,
+    extracting: false,
+    queued: true,
+    status: "paused",
+    timestamp: 1,
+    automaticallyExtract: false,
+    automaticallyDeleteArchiveFiles: false,
+    shouldSeed: false,
+  };
+  f.add(download);
+  f.state.torrentReply = async () => ({ data: null });
+
+  await f.manager.startDownload(download);
+  assert.equal(f.manager.hasRunningDownload(key(download)), true);
+  assert.deepEqual(f.state.torrentCalls, ["action"]);
+
+  assert.equal(
+    await f.orchestrator.resumeDownload(download.shop, download.objectId),
+    true
+  );
+
+  const resumed = f.downloads.get(key(download))!;
+  assert.equal(resumed.status, "active");
+  assert.equal(resumed.queued, false);
+  assert.equal(resumed.bytesDownloaded, download.bytesDownloaded);
+  // The running torrent keeps its slot; resume must not dispatch a restart.
+  assert.deepEqual(f.state.torrentCalls, ["action"]);
+  assert.equal(f.manager.getActiveDownloadId(), key(download));
+});
+
+test("a runtime failure while resume reads the running record keeps the error", async () => {
+  const f = fixture();
+  const download: Download = {
+    shop: "steam",
+    objectId: "1222140",
+    downloader: Downloader.Torrent,
+    uri: "magnet:?xt=urn:btih:0000000000000000000000000000000000000001",
+    downloadPath: path.resolve("torrent-fixture"),
+    folderName: null,
+    fileSize: 1000,
+    bytesDownloaded: 250,
+    progress: 0.25,
+    extracting: false,
+    queued: true,
+    status: "paused",
+    timestamp: 1,
+    automaticallyExtract: false,
+    automaticallyDeleteArchiveFiles: false,
+    shouldSeed: false,
+  };
+  f.add(download);
+  f.state.torrentReply = async () => ({ data: null });
+  await f.manager.startDownload(download);
+
+  // Fail the runtime exactly while resume re-reads the record it found running.
+  const hasRunningDownload = f.manager.hasRunningDownload.bind(f.manager);
+  let failOnNextRead = false;
+  f.manager.hasRunningDownload = (id: string) => {
+    const running = hasRunningDownload(id);
+    if (running && !failOnNextRead) failOnNextRead = true;
+    return running;
+  };
+  let failure: Promise<void> | undefined;
+  f.state.beforeRead = async (id) => {
+    if (!failOnNextRead || failure || id !== key(download)) return;
+    // The runtime reports independently of the resume; only wait until its
+    // error is persisted so the resume reads the failed record.
+    failure = f.manager.handleRuntimeDownloadError(id, new Error("disk_full"));
+    for (
+      let attempt = 0;
+      attempt < MAX_SETTLE_ATTEMPTS && f.downloads.get(id)?.status !== "error";
+      attempt++
+    )
+      await settle();
+  };
+
+  assert.equal(
+    await f.orchestrator.resumeDownload(download.shop, download.objectId),
+    false
+  );
+  await failure;
+  assert.ok(failure, "the runtime failure was injected");
+  assert.equal(f.downloads.get(key(download))?.status, "error");
   assert.equal(f.manager.getActiveDownloadId(), null);
 });
