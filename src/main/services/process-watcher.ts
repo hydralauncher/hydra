@@ -29,6 +29,7 @@ import {
   hasLinuxCompatibilityProcessMatch,
   hasLinuxNativeOrAppImageMatch,
   type LinuxProcessInfo,
+  type LinuxProcessMatchIndex,
 } from "./linux-process-match";
 import {
   isValidProcessWatcherScan,
@@ -297,7 +298,7 @@ export const persistGamePlaytime = async (
 const hasLinuxGameCompatibilityProcessMatch = (
   game: Game,
   executablePath: string,
-  linuxProcessIndex: ReturnType<typeof buildLinuxProcessMatchIndex>
+  linuxProcessIndex: LinuxProcessMatchIndex
 ) => {
   if (path.extname(executablePath).toLowerCase() !== ".exe") {
     return false;
