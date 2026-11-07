@@ -834,9 +834,13 @@ test("a runtime failure while resume reads the running record keeps the error", 
     if (running && !failOnNextRead) failOnNextRead = true;
     return running;
   };
+  let injectedFailures = 0;
   let failure: Promise<void> | undefined;
   f.state.beforeRead = async (id) => {
-    if (!failOnNextRead || failure || id !== key(download)) return;
+    if (!failOnNextRead || injectedFailures > 0 || id !== key(download)) return;
+    // The handler's own read re-enters this hook synchronously, before
+    // `failure` is assigned, so count the injection first.
+    injectedFailures++;
     // The runtime reports independently of the resume; only wait until its
     // error is persisted so the resume reads the failed record.
     failure = f.manager.handleRuntimeDownloadError(id, new Error("disk_full"));
@@ -853,7 +857,7 @@ test("a runtime failure while resume reads the running record keeps the error", 
     false
   );
   await failure;
-  assert.ok(failure, "the runtime failure was injected");
+  assert.equal(injectedFailures, 1);
   assert.equal(f.downloads.get(key(download))?.status, "error");
   assert.equal(f.manager.getActiveDownloadId(), null);
 });
