@@ -25,6 +25,7 @@ import {
 } from "@main/services";
 import resources from "@locales";
 import { TorrentService } from "./services/torrent-service";
+import { runQuitTasks } from "./services/quit-cleanup";
 import { DownloadManager } from "./services/download/download-manager";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
@@ -455,6 +456,17 @@ const saveRecompilationPlaytimeOnQuit = async () => {
   await session.saveRecompilationPlaytimeOnQuit();
 };
 
+// Covers the torrent client's own 10s request timeout during pause.
+const QUIT_CLEANUP_TIMEOUT_MS = 15_000;
+const FORCE_EXIT_TIMEOUT_MS = 10_000;
+
+const logPendingQuitTasks = (pending: string[]) => {
+  if (pending.length === 0) return;
+  logger.error(
+    `Quit cleanup still pending after ${QUIT_CLEANUP_TIMEOUT_MS}ms: ${pending.join(", ")}; continuing quit`
+  );
+};
+
 let canAppBeClosed = false;
 let isAppClosing = false;
 
@@ -480,27 +492,42 @@ app.on("before-quit", async (e) => {
     DownloadOrchestrator.cancelPendingDebridPreparations();
     PowerSaveBlockerManager.reset();
     ScreenshotInputService.shutdown();
-    try {
-      await DownloadManager.pauseDownload();
-    } catch (error) {
-      logger.error("Could not save active download before quitting", error);
+    const pause = await runQuitTasks(
+      { "pause active download": () => DownloadManager.pauseDownload() },
+      QUIT_CLEANUP_TIMEOUT_MS
+    );
+    for (const { reason } of pause.failed) {
+      logger.error("Could not save active download before quitting", reason);
     }
-    const results = await Promise.allSettled([
-      Lock.releaseLock(),
-      TorrentService.shutdown(),
-      clearGamesPlaytime(),
-      saveRecompilationPlaytimeOnQuit(),
-      emulators.stopAllEmulatorSouvenirCaptureSessions(),
-      flushScreenshotTelemetry(SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS),
-    ]);
-    for (const result of results) {
-      if (result.status === "rejected") {
-        logger.error("Application shutdown cleanup failed", result.reason);
-      }
+    logPendingQuitTasks(pause.pending);
+    const cleanup = await runQuitTasks(
+      {
+        "release lock": () => Lock.releaseLock(),
+        "torrent shutdown": () => TorrentService.shutdown(),
+        "clear playtime": () => clearGamesPlaytime(),
+        "save recompilation playtime": () => saveRecompilationPlaytimeOnQuit(),
+        "stop emulator captures": () =>
+          emulators.stopAllEmulatorSouvenirCaptureSessions(),
+        "flush screenshot telemetry": () =>
+          flushScreenshotTelemetry(SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS),
+      },
+      QUIT_CLEANUP_TIMEOUT_MS
+    );
+    for (const { reason } of cleanup.failed) {
+      logger.error("Application shutdown cleanup failed", reason);
     }
+    logPendingQuitTasks(cleanup.pending);
     achievementNotificationPresenter.shutdown();
     canAppBeClosed = true;
     app.quit();
+    // A process that lingers after quitting keeps the database, the torrent
+    // port and the game files locked until the PC restarts.
+    setTimeout(() => {
+      logger.error(
+        `Application did not exit ${FORCE_EXIT_TIMEOUT_MS}ms after quitting; forcing exit`
+      );
+      app.exit(0);
+    }, FORCE_EXIT_TIMEOUT_MS).unref();
   }
 });
 
