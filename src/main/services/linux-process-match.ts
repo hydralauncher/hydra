@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 
 export interface LinuxProcessInfo {
@@ -9,15 +10,101 @@ export interface LinuxProcessInfo {
   steamCompatDataPath: string | null;
 }
 
+type RealPathResolver = (value: string) => string;
+
+type AsyncRealPathResolver = (value: string) => Promise<string>;
+
+export const REAL_PATH_CACHE_TTL_MS = 30_000;
+
+const realPathCache = new Map<
+  string,
+  { resolved: string; expiresAt: number }
+>();
+const pendingRealPaths = new Map<string, Promise<void>>();
+
+const lookupCachedRealPath: RealPathResolver = (value) =>
+  realPathCache.get(value)?.resolved ?? value;
+
+export const clearExecutableRealPathCache = () => {
+  realPathCache.clear();
+  pendingRealPaths.clear();
+};
+
+const startRealPathRefresh = (
+  value: string,
+  resolve: AsyncRealPathResolver,
+  now: number
+) => {
+  const refresh = resolve(value)
+    .catch(() => value)
+    .then((resolved) => {
+      realPathCache.set(value, {
+        resolved,
+        expiresAt: now + REAL_PATH_CACHE_TTL_MS,
+      });
+    })
+    .finally(() => {
+      pendingRealPaths.delete(value);
+    });
+
+  pendingRealPaths.set(value, refresh);
+  return refresh;
+};
+
+const refreshRealPath = (
+  value: string,
+  resolve: AsyncRealPathResolver,
+  now: number
+): Promise<void> => {
+  const cached = realPathCache.get(value);
+  if (cached && cached.expiresAt > now) return Promise.resolve();
+
+  return (
+    pendingRealPaths.get(value) ?? startRealPathRefresh(value, resolve, now)
+  );
+};
+
+export const refreshExecutableRealPaths = async (
+  executablePaths: Iterable<string>,
+  resolve: AsyncRealPathResolver = fs.promises.realpath,
+  now = Date.now()
+) => {
+  const refreshes = new Set<Promise<void>>();
+
+  for (const executablePath of new Set(executablePaths)) {
+    refreshes.add(refreshRealPath(executablePath, resolve, now));
+  }
+
+  await Promise.all(refreshes);
+};
+
+export const getExecutablePathAliases = (
+  executablePath: string,
+  resolve: RealPathResolver = lookupCachedRealPath
+) => {
+  const resolved = resolve(executablePath);
+
+  return resolved === executablePath
+    ? [executablePath]
+    : [executablePath, resolved];
+};
+
 export const hasLinuxNativeOrAppImageMatch = (
   executablePath: string,
-  linuxProcesses: LinuxProcessInfo[]
+  linuxProcesses: LinuxProcessInfo[],
+  resolve?: RealPathResolver
 ) => {
-  const target = executablePath.toLowerCase();
+  const targets = new Set(
+    getExecutablePathAliases(executablePath, resolve).map((alias) =>
+      alias.toLowerCase()
+    )
+  );
 
   return linuxProcesses.some(
     (matchedProcess) =>
-      matchedProcess.exe === target || matchedProcess.appImagePath === target
+      targets.has(matchedProcess.exe) ||
+      (matchedProcess.appImagePath !== null &&
+        targets.has(matchedProcess.appImagePath))
   );
 };
 
@@ -35,29 +122,34 @@ interface LinuxWindowProcess extends ProcessLocation {
 
 export const processReferencesExecutable = (
   matchedProcess: ProcessLocation,
-  executablePath: string
+  executablePath: string,
+  resolve?: RealPathResolver
 ) => {
-  const target = executablePath.toLowerCase();
-  const gameDirectory = path.dirname(executablePath).toLowerCase();
+  const aliases = getExecutablePathAliases(executablePath, resolve);
+  const targets = new Set(aliases.map((alias) => alias.toLowerCase()));
+  const gameDirectories = new Set(
+    aliases.map((alias) => path.dirname(alias).toLowerCase())
+  );
 
   return (
-    (matchedProcess.cwd ?? "").toLowerCase() === gameDirectory ||
-    (matchedProcess.exe ?? "").toLowerCase() === target ||
-    (matchedProcess.appImagePath ?? "").toLowerCase() === target
+    gameDirectories.has((matchedProcess.cwd ?? "").toLowerCase()) ||
+    targets.has((matchedProcess.exe ?? "").toLowerCase()) ||
+    targets.has((matchedProcess.appImagePath ?? "").toLowerCase())
   );
 };
 
 export const hasLaunchedPidMatch = (
   launchedPid: number | undefined,
   executablePath: string,
-  pidToProcess: Map<number, LinuxProcessInfo>
+  pidToProcess: Map<number, LinuxProcessInfo>,
+  resolve?: RealPathResolver
 ) => {
   if (launchedPid === undefined) return false;
 
   const matchedProcess = pidToProcess.get(launchedPid);
   if (!matchedProcess) return false;
 
-  return processReferencesExecutable(matchedProcess, executablePath);
+  return processReferencesExecutable(matchedProcess, executablePath, resolve);
 };
 
 export const doesSteamCompatDataPathMatchWinePrefix = (
