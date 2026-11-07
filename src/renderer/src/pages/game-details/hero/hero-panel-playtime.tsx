@@ -26,7 +26,7 @@ export function HeroPanelPlaytime() {
   const game = presentation ?? operationalGame;
   const { t } = useTranslation("game_details");
   const { numberFormatter } = useFormat();
-  const { progress, lastPacket } = useDownload();
+  const { progress, lastPacket } = useDownload(game?.id);
   const { formatDistance } = useDate();
   const extraction = useAppSelector((state) => state.download.extraction);
 

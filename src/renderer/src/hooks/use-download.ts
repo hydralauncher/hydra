@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from "./redux";
 import {
   setLastPacket,
   clearDownload,
+  clearDownloadById,
   setGameDeleting,
   removeGameFromDeleting,
 } from "@renderer/features";
@@ -17,15 +18,18 @@ import type {
 import { useDate } from "./use-date";
 import { formatBytes, formatBytesToMbps } from "@shared";
 
-export function useDownload() {
+export function useDownload(gameId?: string) {
   const { updateLibrary } = useLibrary();
   const { formatDistance } = useDate();
 
   const userPrefs = useAppSelector((state) => state.userPreferences.value);
 
-  const { lastPacket, gamesWithDeletionInProgress } = useAppSelector(
+  const { packetsById, gamesWithDeletionInProgress } = useAppSelector(
     (state) => state.download
   );
+  const lastPacket = gameId
+    ? (packetsById[gameId] ?? null)
+    : (Object.values(packetsById)[0] ?? null);
   const dispatch = useAppDispatch();
 
   const createAbortError = () => {
@@ -42,7 +46,7 @@ export function useDownload() {
       throw createAbortError();
     }
 
-    dispatch(clearDownload());
+    dispatch(clearDownloadById(`${payload.shop}:${payload.objectId}`));
 
     const cancelPendingDownload = () =>
       window.electron
@@ -68,7 +72,7 @@ export function useDownload() {
       throw createAbortError();
     }
 
-    if (response.ok) updateLibrary();
+    if (response.ok) void updateLibrary();
 
     return response;
   };
@@ -105,7 +109,7 @@ export function useDownload() {
       throw createAbortError();
     }
 
-    if (response.ok) updateLibrary();
+    if (response.ok) void updateLibrary();
 
     return response;
   };
@@ -122,7 +126,7 @@ export function useDownload() {
     );
     if (paused === false) return false;
     await updateLibrary();
-    if (lastPacket?.gameId === `${shop}:${objectId}`) dispatch(clearDownload());
+    dispatch(clearDownloadById(`${shop}:${objectId}`));
     return paused;
   };
 
@@ -149,7 +153,7 @@ export function useDownload() {
 
     try {
       await window.electron.deleteGameFolder(shop, objectId, options);
-      updateLibrary();
+      void updateLibrary();
     } finally {
       dispatch(removeGameFromDeleting(objectId));
     }
@@ -157,21 +161,16 @@ export function useDownload() {
 
   const cancelDownload = async (shop: GameShop, objectId: string) => {
     const gameId = `${shop}:${objectId}`;
-    const isActiveDownload = lastPacket?.gameId === gameId;
-
     await window.electron.cancelGameDownload(shop, objectId);
+    dispatch(clearDownloadById(gameId));
 
-    if (isActiveDownload) {
-      dispatch(clearDownload());
-    }
-
-    updateLibrary();
+    void updateLibrary();
     await removeGameInstaller(shop, objectId, { keepEpicUpdateFiles: true });
   };
 
   const removeGameFromLibrary = (shop: GameShop, objectId: string) =>
     window.electron.removeGameFromLibrary(shop, objectId).then(() => {
-      updateLibrary();
+      void updateLibrary();
     });
 
   const pauseSeeding = async (shop: GameShop, objectId: string) => {
@@ -209,9 +208,12 @@ export function useDownload() {
   };
 
   return {
+    formatDownloadSpeed,
     downloadSpeed: formatDownloadSpeed(lastPacket?.downloadSpeed ?? 0),
     progress: formatDownloadProgress(lastPacket?.progress ?? 0),
     lastPacket,
+    packetsById,
+    getPacket: (gameId: string) => packetsById[gameId] ?? null,
     eta: calculateETA(),
     startDownload,
     addGameToQueue,
@@ -224,6 +226,7 @@ export function useDownload() {
     pauseSeeding,
     resumeSeeding,
     clearDownload: () => dispatch(clearDownload()),
+    clearDownloadById: (gameId: string) => dispatch(clearDownloadById(gameId)),
     setLastPacket: (packet: DownloadProgress | null) =>
       dispatch(setLastPacket(packet)),
   };

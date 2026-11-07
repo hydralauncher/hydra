@@ -38,6 +38,7 @@ HT_API int ht_equal(ht_handle*, ht_handle*, int32_t*);
 HT_API int ht_remove(ht_session*, ht_handle*, int delete_partfile);
 HT_API int ht_pause(ht_handle*);
 HT_API int ht_resume(ht_handle*);
+HT_API int ht_download_limit(ht_handle*, int32_t limit);
 HT_API int ht_download_mode(ht_handle*, int selective);
 HT_API int ht_add_tracker(ht_handle*, const char*);
 HT_API int ht_get_status(ht_handle*, ht_status*);

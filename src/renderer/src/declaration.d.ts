@@ -350,6 +350,7 @@ declare global {
       confirmed?: boolean
     ) => Promise<boolean>;
     getDownloadLayoutState: () => Promise<DownloadLayoutState>;
+    setPreferredDownloadHero: (downloadId: string | null) => Promise<unknown>;
     onDownloadProgress: (
       cb: (value: DownloadProgress | null) => void
     ) => () => Electron.IpcRenderer;
@@ -396,6 +397,11 @@ declare global {
       objectId: string,
       automaticCloudSync: boolean
     ) => Promise<void>;
+    setDownloadBandwidthPriority: (
+      shop: GameShop,
+      objectId: string,
+      priority: "normal" | "high"
+    ) => Promise<boolean>;
     setGameHydraPlaytimeEnabled: (
       shop: GameShop,
       objectId: string,

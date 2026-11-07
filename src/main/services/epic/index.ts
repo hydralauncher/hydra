@@ -175,30 +175,33 @@ function stopManagedEpic(): Promise<void> {
       ]);
       if (stopped.some((result) => result.status === "rejected"))
         throw new EpicIntegrationError("cleanup-failed");
-      const activeId = DownloadManager.getActiveDownloadId();
-      const active = activeId
-        ? await downloadsSublevel.get(activeId)
-        : undefined;
-      if (active?.downloader === Downloader.Epic) {
-        await DownloadManager.pauseDownload(activeId!);
-        WindowManager.sendToAppWindows("on-download-progress", null);
-      }
-      for (const download of await downloadsSublevel.values().all()) {
-        if (
-          download.downloader !== Downloader.Epic ||
-          (!download.queued && download.status !== "active")
-        )
-          continue;
-        await downloadsSublevel.put(
-          levelKeys.game(download.shop, download.objectId),
-          {
-            ...download,
-            status: "paused",
-            queued: false,
-            pinnedToHero: false,
-          }
-        );
-      }
+      await Promise.all(
+        DownloadManager.getActiveDownloadIds().map(async (activeId) => {
+          const active = await downloadsSublevel.get(activeId);
+          if (active?.downloader === Downloader.Epic)
+            await DownloadManager.pauseDownload(activeId);
+        })
+      );
+      const downloads = await downloadsSublevel.values().all();
+      await Promise.all(
+        downloads
+          .filter(
+            (download) =>
+              download.downloader === Downloader.Epic &&
+              (download.queued || download.status === "active")
+          )
+          .map((download) =>
+            downloadsSublevel.put(
+              levelKeys.game(download.shop, download.objectId),
+              {
+                ...download,
+                status: "paused",
+                queued: false,
+                pinnedToHero: false,
+              }
+            )
+          )
+      );
       await managedRuntime?.cleanupCredentials();
       managedCleanupFailed = false;
       WindowManager.sendDownloadsUpdated();

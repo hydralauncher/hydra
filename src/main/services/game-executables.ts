@@ -10,9 +10,14 @@ import {
 const catalogStore = new GameExecutableCatalogStore(process.platform);
 
 const loadGameExecutables = async () => {
+  const apiUrl = import.meta.env.MAIN_VITE_API_URL?.trim();
+  // Local development is allowed without the Hydra API. Treat the optional
+  // catalogue as unavailable rather than handing Axios an invalid relative URL.
+  if (!apiUrl) return {};
+
   try {
     const response = await axios.get<GameExecutableCatalogResponse>(
-      `${import.meta.env.MAIN_VITE_API_URL}/catalogue/steam/executables`
+      `${apiUrl}/catalogue/steam/executables`
     );
     return response.data;
   } catch (error) {

@@ -37,6 +37,10 @@ void ht_string_free(char* p) { delete[] p; }
 int ht_session_new(uint16_t port, ht_session** out) { return protect([&] {
   lt::settings_pack s;
   s.set_str(lt::settings_pack::listen_interfaces, "0.0.0.0:" + std::to_string(port));
+  // Hydra's scheduler owns download slots. Do not let libtorrent's separate
+  // queue silently pause transfers below the configured concurrency limit.
+  s.set_int(lt::settings_pack::active_downloads, -1);
+  s.set_int(lt::settings_pack::active_limit, -1);
   *out = new ht_session(s);
 }); }
 void ht_session_free(ht_session* p) { protect([&] { delete p; }); }
@@ -85,6 +89,9 @@ int ht_pause(ht_handle* h) { return protect([&] {
 }); }
 int ht_resume(ht_handle* h) { return protect([&] {
   h->value.set_flags(lt::torrent_flags::auto_managed); h->value.resume();
+}); }
+int ht_download_limit(ht_handle* h, int32_t limit) { return protect([&] {
+  h->value.set_download_limit(limit);
 }); }
 int ht_download_mode(ht_handle* h, int selective) { return protect([&] {
   h->value.unset_flags(lt::torrent_flags::upload_mode);

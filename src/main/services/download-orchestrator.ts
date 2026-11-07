@@ -1,10 +1,14 @@
-import { downloadsSublevel, levelKeys } from "@main/level";
+import { db, downloadsSublevel, levelKeys } from "@main/level";
 import { withDownloadActivation } from "./download/download-activation";
 import { DownloadManager } from "./download/download-manager";
 import { isDebridPendingError } from "./download/debrid-files";
 import { WindowManager } from "./window-manager";
 import { logger } from "./logger";
-import { Downloader } from "@shared";
+import {
+  DEFAULT_MAX_CONCURRENT_DOWNLOADS,
+  MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS,
+  Downloader,
+} from "@shared";
 import {
   DEFAULT_DOWNLOAD_LAYOUT_STATE,
   getBigPictureDownloadView,
@@ -14,16 +18,19 @@ import {
   type Download,
   type DownloadLayoutState,
   type GameShop,
+  type UserPreferences,
 } from "../../types";
 import {
-  getNextQueuedDownloadFromLayout,
+  getDownloadLayoutStateRecord,
   getNormalizedDownloadLayoutState,
-  getPausedDownloadsOrderedByLayout,
   getQueuedDownloadsOrderedByLayout,
+  getPausedDownloadsOrderedByLayout,
+  getNextQueuedDownloadFromLayout,
   removeDownloadFromLayoutState,
   saveDownloadLayoutState,
   setDownloadLayoutQueues,
   syncDownloadLayoutState,
+  setPreferredDownloadHero,
 } from "./download-layout-state";
 
 export type ResumeDownloadStrategy = "interruptActive" | "queueIfActive";
@@ -70,14 +77,23 @@ function withInsertedId(ids: string[], id: string, targetIndex?: number) {
   return nextIds;
 }
 
+async function forEachInSeries<T>(
+  items: readonly T[],
+  action: (item: T) => Promise<unknown>,
+  index = 0
+): Promise<void> {
+  if (index >= items.length) return;
+  await action(items[index]);
+  await forEachInSeries(items, action, index + 1);
+}
+
 const NO_INTERNET_GRACE_MS = 15000;
 const RECONNECT_DEBOUNCE_MS = 2000;
 const DEBRID_PREPARATION_WINDOW_MS = 5 * 60 * 1000;
 const DEBRID_READINESS_POLL_MS = 5000;
 
 export class DownloadOrchestrator {
-  private static epicActivationTail: Promise<unknown> = Promise.resolve();
-  private static acceptedEpicActivations = new Map<string, object>();
+  private static readonly acceptedEpicActivations = new Map<string, object>();
   static preparesRealDebridInBackground(download: Download): boolean {
     return (
       download.downloader === Downloader.RealDebrid &&
@@ -174,19 +190,17 @@ export class DownloadOrchestrator {
       this.isOnline = false;
       DownloadManager.notifyReconnecting(true);
 
-      if (!this.reconnectGraceTimer) {
-        this.reconnectGraceTimer = setTimeout(() => {
-          this.reconnectGraceTimer = null;
-          if (this.isOnline) return;
+      this.reconnectGraceTimer ??= setTimeout(() => {
+        this.reconnectGraceTimer = null;
+        if (this.isOnline) return;
 
-          if (!DownloadManager.isActiveDownloadReconnecting()) {
-            this.isOnline = true;
-            return;
-          }
+        if (!DownloadManager.isActiveDownloadReconnecting()) {
+          this.isOnline = true;
+          return;
+        }
 
-          void this.stopActiveDownloadForNoNetwork();
-        }, NO_INTERNET_GRACE_MS);
-      }
+        void this.stopActiveDownloadForNoNetwork();
+      }, NO_INTERNET_GRACE_MS);
       return;
     }
 
@@ -211,19 +225,25 @@ export class DownloadOrchestrator {
   }
 
   private static async stopActiveDownloadForNoNetwork() {
-    const downloadId = DownloadManager.getActiveDownloadId();
-    if (!downloadId) return;
-
-    const download = await downloadsSublevel.get(downloadId).catch(() => null);
-    if (!download) return;
+    const activeDownloadIds = DownloadManager.getActiveDownloadIds();
+    if (activeDownloadIds.length === 0) return;
 
     logger.log(
-      "[DownloadOrchestrator] No connection after the grace window; pausing the download"
+      "[DownloadOrchestrator] No connection after the grace window; pausing active downloads"
     );
-    await this.pauseDownload(download, {
-      reason: "paused",
-      startNextQueued: false,
-    });
+    const downloads = await Promise.all(
+      activeDownloadIds.map((downloadId) =>
+        downloadsSublevel.get(downloadId).catch(() => null)
+      )
+    );
+    await forEachInSeries(
+      downloads.filter((download): download is Download => download != null),
+      (download) =>
+        this.pauseDownload(download, {
+          reason: "paused",
+          startNextQueued: false,
+        })
+    );
   }
 
   private static async getAllDownloads() {
@@ -259,6 +279,33 @@ export class DownloadOrchestrator {
 
       throw error;
     }
+  }
+
+  private static async handleAcceptedEpicPreparationFailure(
+    activeDownload: Download,
+    acceptedTicket: object,
+    isCurrent: () => boolean,
+    error: unknown
+  ) {
+    const downloadId = getDownloadId(activeDownload);
+    const current = await this.getDownload(
+      activeDownload.shop,
+      activeDownload.objectId
+    );
+    // A failed Epic startup parks its own record as paused; while the
+    // ticket is current no user pause or cancel has replaced it.
+    if (
+      !isCurrent() ||
+      this.acceptedEpicActivations.get(downloadId) !== acceptedTicket ||
+      (current?.status !== "active" && current?.status !== "paused") ||
+      current.timestamp !== activeDownload.timestamp
+    )
+      return;
+    logger.error("[DownloadOrchestrator] Epic preparation failed", error);
+    await this.setDownloadPausedState(current, { status: "error" });
+    await syncDownloadLayoutState(await this.getAllDownloads());
+    WindowManager.sendDownloadsUpdated();
+    await this.startNextQueuedDownload();
   }
 
   private static async activateDownload(
@@ -328,20 +375,12 @@ export class DownloadOrchestrator {
         await DownloadManager.resumeDownload(activeDownload, signal);
       } catch (error) {
         if (acceptedTicket) {
-          const current = await this.getDownload(
-            download.shop,
-            download.objectId
+          await this.handleAcceptedEpicPreparationFailure(
+            activeDownload,
+            acceptedTicket,
+            isCurrent,
+            error
           );
-          // A failed Epic startup parks its own record as paused; while the
-          // ticket is current no user pause or cancel has replaced it.
-          if (
-            !isCurrent() ||
-            this.acceptedEpicActivations.get(downloadId) !== acceptedTicket ||
-            (current?.status !== "active" && current?.status !== "paused") ||
-            current.timestamp !== activeDownload.timestamp
-          )
-            return null;
-          await DownloadManager.handleRuntimeDownloadError(downloadId, error);
           return null;
         }
         if (isDebridPendingError(error, download.downloader)) {
@@ -443,10 +482,8 @@ export class DownloadOrchestrator {
     return { downloads, layoutState };
   }
 
-  private static startNextQueuedDownload(downloads?: Download[]) {
-    return withDownloadActivation(() =>
-      this.activateNextQueuedDownload(downloads)
-    );
+  private static startNextQueuedDownload() {
+    return withDownloadActivation(() => this.activateNextQueuedDownload());
   }
 
   private static hasActiveTransfer(downloads: Download[]) {
@@ -457,39 +494,148 @@ export class DownloadOrchestrator {
     );
   }
 
+  private static isTransferActive(download: Download) {
+    // Extraction continues independently after a transfer has released its
+    // network slot.
+    return download.status === "active";
+  }
+
+  private static async getConcurrentDownloadLimit() {
+    const preferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+    const configuredLimit = preferences?.maxConcurrentDownloads;
+
+    return typeof configuredLimit === "number" &&
+      Number.isInteger(configuredLimit) &&
+      configuredLimit >= 1 &&
+      configuredLimit <= MAX_CONFIGURABLE_CONCURRENT_DOWNLOADS
+      ? configuredLimit
+      : DEFAULT_MAX_CONCURRENT_DOWNLOADS;
+  }
+
+  private static async canStartDownload(
+    candidate: Download,
+    downloads: Download[]
+  ) {
+    const activeDownloads = downloads.filter(
+      (download) =>
+        this.isTransferActive(download) &&
+        getDownloadId(download) !== getDownloadId(candidate)
+    );
+
+    if (activeDownloads.length >= (await this.getConcurrentDownloadLimit())) {
+      return false;
+    }
+
+    // Legendary manages one install process. It can coexist with every other
+    // source, but it must remain a single active Epic transfer.
+    if (candidate.downloader === Downloader.Epic) {
+      return !activeDownloads.some(
+        (download) => download.downloader === Downloader.Epic
+      );
+    }
+
+    return true;
+  }
+
   private static async activateNextQueuedDownload(
     downloads?: Download[],
     prepared?: { id: string; isCurrent: () => boolean; signal: AbortSignal }
   ) {
     if (prepared && !prepared.isCurrent()) return null;
     const currentDownloads = downloads ?? (await this.getAllDownloads());
-    if (this.hasActiveTransfer(currentDownloads)) return null;
     const layoutState =
       await getNormalizedDownloadLayoutState(currentDownloads);
-    if (DownloadManager.hasActiveDownload()) return null;
-    const nextDownload = getNextQueuedDownloadFromLayout(
+    const queuedDownloads = getQueuedDownloadsOrderedByLayout(
       currentDownloads,
       layoutState
     );
+    let nextDownload: Download | undefined;
+    for (const queuedDownload of queuedDownloads) {
+      if (await this.canStartDownload(queuedDownload, currentDownloads)) {
+        nextDownload = queuedDownload;
+        break;
+      }
+    }
     if (!nextDownload) {
       WindowManager.sendDownloadsUpdated();
       return null;
     }
+    if (await DownloadManager.shouldHoldQueuedDownload(nextDownload))
+      return null;
     const nextPreparation =
       prepared?.id === getDownloadId(nextDownload) ? prepared : undefined;
-    const activated = await this.activateDownload(
-      nextDownload,
-      nextPreparation?.isCurrent,
-      nextPreparation?.signal
-    );
+    let activated: Download | null;
+    try {
+      activated = await this.activateDownload(
+        nextDownload,
+        nextPreparation?.isCurrent,
+        nextPreparation?.signal
+      );
+    } catch (error) {
+      const current = await this.getDownload(
+        nextDownload.shop,
+        nextDownload.objectId
+      );
+      if (current?.status !== "error") throw error;
+      logger.error(
+        "[DownloadOrchestrator] Queued download failed to start",
+        error
+      );
+      return this.activateNextQueuedDownload(undefined, prepared);
+    }
     if (activated) {
       WindowManager.sendDownloadsUpdated();
-      return nextDownload;
+      return (
+        (await this.activateNextQueuedDownload(
+          await this.getAllDownloads(),
+          prepared
+        )) ?? nextDownload
+      );
     }
     return this.activateNextQueuedDownload(
       await this.getAllDownloads(),
       prepared
     );
+  }
+
+  public static async pumpDownloadQueue() {
+    return withDownloadActivation(async () => {
+      await this.activateNextQueuedDownload(await this.getAllDownloads());
+    });
+  }
+
+  /** Apply a changed global transfer limit without interrupting extraction. */
+  public static async reconcileConcurrentDownloadLimit() {
+    return withDownloadActivation(async () => {
+      const downloads = await this.getAllDownloads();
+      const activeDownloads = downloads.filter(this.isTransferActive);
+      const limit = await this.getConcurrentDownloadLimit();
+      const downloadsToQueue = [...activeDownloads]
+        .filter(
+          (download) =>
+            !DownloadManager.requiresPauseConfirmation(getDownloadId(download))
+        )
+        .sort((left, right) => {
+          const leftPriority = left.bandwidthPriority === "high" ? 1 : 0;
+          const rightPriority = right.bandwidthPriority === "high" ? 1 : 0;
+          if (leftPriority !== rightPriority)
+            return leftPriority - rightPriority;
+          return (right.timestamp ?? 0) - (left.timestamp ?? 0);
+        })
+        .slice(0, Math.max(0, activeDownloads.length - limit));
+
+      await forEachInSeries(downloadsToQueue, (download) =>
+        this.pauseDownload(download, {
+          queueActiveReplacement: true,
+          startNextQueued: false,
+        })
+      );
+
+      await this.activateNextQueuedDownload(await this.getAllDownloads());
+    });
   }
 
   private static async queueDownload(
@@ -580,15 +726,8 @@ export class DownloadOrchestrator {
       );
     }
 
-    if (options.startNextQueued && !DownloadManager.hasActiveDownload()) {
-      const downloads = await this.getAllDownloads();
-      if (!this.hasActiveTransfer(downloads)) {
-        await this.startNextQueuedDownload(
-          downloads.filter(
-            (entry) => getDownloadId(entry) !== getDownloadId(nextDownload)
-          )
-        );
-      }
+    if (options.startNextQueued) {
+      await this.startNextQueuedDownload();
     }
 
     WindowManager.sendDownloadsUpdated();
@@ -644,17 +783,16 @@ export class DownloadOrchestrator {
   }
 
   static async bootstrapDownloadsOnStartup() {
-    const downloads = await this.getAllDownloads();
-    let interruptedDownloadId: string | null = null;
+    const downloads = (await this.getAllDownloads()).sort(
+      (a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0)
+    );
+    const interruptedDownloadIds: string[] = [];
 
     const changedDownloads = downloads
       .map((download) => {
-        const nextDownload = this.normalizeStartupDownload(
-          download,
-          interruptedDownloadId == null
-        );
+        const nextDownload = this.normalizeStartupDownload(download, true);
         if (download.status === "active" && !download.awaitingDebrid)
-          interruptedDownloadId ??= getDownloadId(nextDownload);
+          interruptedDownloadIds.push(getDownloadId(nextDownload));
         return { download, nextDownload };
       })
       .filter(({ download, nextDownload }) =>
@@ -669,8 +807,19 @@ export class DownloadOrchestrator {
     );
 
     const normalizedDownloads = await this.getAllDownloads();
-    await syncDownloadLayoutState(normalizedDownloads);
+    const savedLayout = await getDownloadLayoutStateRecord();
+    await setDownloadLayoutQueues(
+      normalizedDownloads,
+      [
+        ...interruptedDownloadIds,
+        ...savedLayout.queueOrder.filter(
+          (id) => !interruptedDownloadIds.includes(id)
+        ),
+      ],
+      savedLayout.pausedOrder
+    );
 
+    const interruptedDownloadId = interruptedDownloadIds[0];
     if (interruptedDownloadId) {
       return (
         normalizedDownloads.find(
@@ -852,47 +1001,39 @@ export class DownloadOrchestrator {
     try {
       const accepted = await this.queueDownload(download);
       WindowManager.sendDownloadsUpdated();
-      const activation = this.epicActivationTail
-        .catch(() => undefined)
-        .then(async () => {
-          // An explicit Start retains its historical behavior: reserve the
-          // selected game when idle, leaving existing queued items in place.
-          const current = await this.getDownload(
-            download.shop,
-            download.objectId
-          );
-          if (
-            this.acceptedEpicActivations.get(id) !== ticket ||
-            current?.status !== "paused" ||
-            !current.queued ||
-            current.timestamp !== accepted.timestamp
-          )
-            return;
-          const downloads = await this.getAllDownloads();
-          if (
-            this.acceptedEpicActivations.get(id) !== ticket ||
-            downloads.some(isActiveLikeDownload)
-          )
-            return;
-          const active = await this.activateDownload(
-            current,
-            undefined,
-            undefined,
-            ticket
-          );
-          if (!active) return;
-          reserved = true;
-          await removeDownloadFromLayoutState(
-            active,
-            await this.getAllDownloads()
-          );
-          WindowManager.sendDownloadsUpdated();
-        });
-      this.epicActivationTail = activation.catch((error) => {
-        logger.error(
-          "[DownloadOrchestrator] Failed to activate accepted Epic download",
-          error
+      const activation = withDownloadActivation(async () => {
+        // An explicit Start retains its historical behavior: reserve the
+        // selected game when idle, leaving existing queued items in place.
+        const current = await this.getDownload(
+          download.shop,
+          download.objectId
         );
+        if (
+          this.acceptedEpicActivations.get(id) !== ticket ||
+          current?.status !== "paused" ||
+          !current.queued ||
+          current.timestamp !== accepted.timestamp
+        )
+          return;
+        const downloads = await this.getAllDownloads();
+        if (
+          this.acceptedEpicActivations.get(id) !== ticket ||
+          !(await this.canStartDownload(current, downloads))
+        )
+          return;
+        const active = await this.activateDownload(
+          current,
+          undefined,
+          undefined,
+          ticket
+        );
+        if (!active) return;
+        reserved = true;
+        await removeDownloadFromLayoutState(
+          active,
+          await this.getAllDownloads()
+        );
+        WindowManager.sendDownloadsUpdated();
       });
       await activation;
       return { ok: true };
@@ -1247,17 +1388,24 @@ export class DownloadOrchestrator {
     if (!isCurrent()) return false;
     const downloads = await this.getAllDownloads();
     if (!isCurrent()) return false;
+    if (DownloadManager.hasRunningDownload(getGameKey(readyDownload)))
+      return true;
     const currentActiveDownload =
       downloads.find(
         (entry) =>
-          isActiveLikeDownload(entry) &&
-          getDownloadId(entry) !== getDownloadId(readyDownload)
+          this.isTransferActive(entry) &&
+          getDownloadId(entry) !== getDownloadId(readyDownload) &&
+          (readyDownload.downloader !== Downloader.Epic ||
+            entry.downloader === Downloader.Epic ||
+            !downloads.some(
+              (item) =>
+                this.isTransferActive(item) &&
+                item.downloader === Downloader.Epic
+            ))
       ) ?? null;
+    const canStart = await this.canStartDownload(readyDownload, downloads);
 
-    if (
-      strategy === "queue" ||
-      (currentActiveDownload && strategy === "queueIfActive")
-    ) {
+    if (strategy === "queue" || (!canStart && strategy === "queueIfActive")) {
       await this.queueDownload(
         {
           ...readyDownload,
@@ -1278,7 +1426,7 @@ export class DownloadOrchestrator {
       return true;
     }
 
-    if (currentActiveDownload) {
+    if (!canStart && currentActiveDownload) {
       await this.pauseDownload(currentActiveDownload, {
         reason: "paused",
         startNextQueued: false,
@@ -1292,7 +1440,8 @@ export class DownloadOrchestrator {
     );
     if (!activated) {
       if (!isCurrent()) return false;
-      await this.restoreInterruptedDownload(currentActiveDownload);
+      if (!canStart)
+        await this.restoreInterruptedDownload(currentActiveDownload);
       return false;
     }
     const nextDownloads = await this.getAllDownloads();
@@ -1311,7 +1460,14 @@ export class DownloadOrchestrator {
     if (!DownloadManager.confirmPauseDownload(key, confirmed)) return false;
     this.invalidateBackgroundStart(key);
     const download = await this.getDownload(shop, objectId);
-    if (!download) return false;
+    if (
+      !download ||
+      isCompletedLikeDownload(download) ||
+      download.status === "removed" ||
+      download.extracting ||
+      download.status === "extracting"
+    )
+      return false;
 
     await this.pauseDownload(download, {
       reason: "paused",
@@ -1354,9 +1510,7 @@ export class DownloadOrchestrator {
     );
 
     if (wasActive) {
-      await this.startNextQueuedDownload(
-        downloads.filter((entry) => getDownloadId(entry) !== downloadId)
-      );
+      await this.startNextQueuedDownload();
       return true;
     }
 
@@ -1395,7 +1549,7 @@ export class DownloadOrchestrator {
       return this.resumeDownload(
         shop,
         objectId,
-        targetArea === "queue" ? "queue" : "interruptActive",
+        targetArea === "queue" ? "queue" : "queueIfActive",
         targetIndex
       );
     }
@@ -1436,12 +1590,6 @@ export class DownloadOrchestrator {
       return false;
 
     const { downloads, layoutState } = await this.getDownloadsWithLayout();
-    const currentActiveDownload =
-      downloads.find(
-        (entry) =>
-          isActiveLikeDownload(entry) &&
-          getDownloadId(entry) !== getDownloadId(download)
-      ) ?? null;
     const view = getBigPictureDownloadView(downloads, layoutState);
     const downloadId = getDownloadId(download);
     const isHero = view.heroId === downloadId;
@@ -1449,23 +1597,28 @@ export class DownloadOrchestrator {
     const pausedIds = view.pausedIds.filter((id) => id !== downloadId);
 
     if (targetArea === "hero") {
-      if (currentActiveDownload) {
-        await this.pauseDownload(currentActiveDownload, {
-          reason: "paused",
-          queueActiveReplacement: true,
-          startNextQueued: false,
-        });
+      if (isActiveLikeDownload(download)) {
+        await setPreferredDownloadHero(downloadId);
+        WindowManager.sendDownloadsUpdated();
+        return true;
       }
-
-      const activated = await this.activateDownload(download);
-      if (!activated) {
-        await this.restoreInterruptedDownload(currentActiveDownload);
-        return false;
+      const preparation = this.beginPreparation(getGameKey(download));
+      try {
+        const resumed = await this.activateResumedDownload(
+          download,
+          "queueIfActive",
+          preparation.isCurrent,
+          preparation.signal
+        );
+        const current = await this.getDownload(shop, objectId);
+        if (current && isActiveLikeDownload(current)) {
+          await setPreferredDownloadHero(downloadId);
+          WindowManager.sendDownloadsUpdated();
+        }
+        return resumed;
+      } finally {
+        preparation.dispose();
       }
-      const nextDownloads = await this.getAllDownloads();
-      await setDownloadLayoutQueues(nextDownloads, queueIds, pausedIds);
-      WindowManager.sendDownloadsUpdated();
-      return true;
     }
 
     if (targetArea === "queue") {
@@ -1478,7 +1631,7 @@ export class DownloadOrchestrator {
       );
     }
 
-    if (isHero && isActiveLikeDownload(download)) {
+    if (isActiveLikeDownload(download)) {
       await this.pauseDownload(download, {
         reason: "paused",
         startNextQueued: true,
@@ -1506,7 +1659,7 @@ export class DownloadOrchestrator {
     targetIndex?: number
   ): Promise<boolean> {
     const downloadId = getDownloadId(download);
-    if (isHero && isActiveLikeDownload(download)) {
+    if (isActiveLikeDownload(download)) {
       await DownloadManager.pauseDownload(getGameKey(download));
       WindowManager.sendToAppWindows("on-download-progress", null);
     }
@@ -1521,10 +1674,8 @@ export class DownloadOrchestrator {
 
     DownloadManager.clearQueueVerifyAttempt(download);
 
-    if (isHero) {
-      await this.startNextQueuedDownload(
-        nextDownloads.filter((entry) => getDownloadId(entry) !== downloadId)
-      );
+    if (isHero || isActiveLikeDownload(download)) {
+      await this.startNextQueuedDownload();
     } else {
       WindowManager.sendDownloadsUpdated();
     }

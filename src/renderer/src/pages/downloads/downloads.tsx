@@ -47,7 +47,7 @@ export default function Downloads() {
     }
   };
 
-  const { lastPacket } = useDownload();
+  const { packetsById } = useDownload();
 
   const [seedingStatus, setSeedingStatus] = useState<SeedingStatus[]>([]);
   const [runningGameIds, setRunningGameIds] =
@@ -86,7 +86,9 @@ export default function Downloads() {
   }, []);
 
   useEffect(() => {
-    window.electron.onSeedingStatus((value) => setSeedingStatus(value));
+    const unsubscribeSeeding = window.electron.onSeedingStatus((value) =>
+      setSeedingStatus(value)
+    );
 
     const unsubscribeExtraction = window.electron.onExtractionComplete(() => {
       updateLibrary();
@@ -94,6 +96,7 @@ export default function Downloads() {
 
     return () => {
       unsubscribeExtraction();
+      unsubscribeSeeding();
     };
   }, [updateLibrary]);
 
@@ -132,7 +135,8 @@ export default function Downloads() {
 
       const bucket = getRendererDownloadBucket(next.download, {
         hasLiveProgress:
-          lastPacket?.gameId === next.id && next.download.status === "active",
+          packetsById[next.id] !== undefined &&
+          next.download.status === "active",
         isExtracting: extraction?.visibleId === next.id,
       });
 
@@ -181,7 +185,7 @@ export default function Downloads() {
       queued,
       complete,
     };
-  }, [extraction?.visibleId, lastPacket?.gameId, layoutState, library]);
+  }, [extraction?.visibleId, layoutState, library, packetsById]);
 
   const queuedGameIds = useMemo(
     () => libraryGroup.queued.map((game) => game.id),

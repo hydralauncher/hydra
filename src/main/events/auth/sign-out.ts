@@ -18,7 +18,11 @@ const signOut = async (_event: Electron.IpcMainInvokeEvent) => {
   SSEClient.close();
 
   /* Cancels any ongoing downloads */
-  DownloadManager.cancelDownload();
+  await Promise.all(
+    DownloadManager.getActiveDownloadIds().map((id) =>
+      DownloadManager.cancelDownload(id)
+    )
+  );
 
   await HydraApi.handleSignOut(async () => {
     /* Removes all games being played */

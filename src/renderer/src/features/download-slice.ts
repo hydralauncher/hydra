@@ -11,6 +11,7 @@ export interface ExtractionInfo {
 
 export interface DownloadState {
   lastPacket: DownloadProgress | null;
+  packetsById: Record<string, DownloadProgress>;
   gameId: string | null;
   gamesWithDeletionInProgress: string[];
   extraction: ExtractionInfo | null;
@@ -20,6 +21,7 @@ export interface DownloadState {
 
 const initialState: DownloadState = {
   lastPacket: null,
+  packetsById: {},
   gameId: null,
   gamesWithDeletionInProgress: [],
   extraction: null,
@@ -34,6 +36,9 @@ export const downloadSlice = createSlice({
     setLastPacket: (state, action: PayloadAction<DownloadProgress | null>) => {
       state.lastPacket = action.payload;
       const payload = action.payload;
+      if (payload?.gameId) {
+        state.packetsById[payload.gameId] = payload;
+      }
       if (!state.gameId && payload?.gameId) {
         state.gameId = payload.gameId;
       }
@@ -61,8 +66,18 @@ export const downloadSlice = createSlice({
       }
     },
     clearDownload: (state) => {
+      if (state.lastPacket?.gameId) {
+        delete state.packetsById[state.lastPacket.gameId];
+      }
       state.lastPacket = null;
       state.gameId = null;
+    },
+    clearDownloadById: (state, action: PayloadAction<string>) => {
+      delete state.packetsById[action.payload];
+      if (state.lastPacket?.gameId === action.payload) {
+        state.lastPacket = null;
+        state.gameId = null;
+      }
     },
     setGameDeleting: (state, action: PayloadAction<string>) => {
       if (
@@ -113,6 +128,7 @@ export const downloadSlice = createSlice({
 export const {
   setLastPacket,
   clearDownload,
+  clearDownloadById,
   setGameDeleting,
   removeGameFromDeleting,
   setExtractionProgress,

@@ -52,25 +52,26 @@
     overflow: hidden;
     margin: 0;
     padding: 0;
-    padding-bottom: globals.$spacing-unit;
+    border: solid 1px globals.$border-color;
+    border-radius: 12px;
+    background: globals.$background-color;
   }
 
   &__hero-background {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 120%;
+    inset: 0;
+    pointer-events: none;
     z-index: 0;
 
     img {
+      display: block;
       width: 100%;
       height: 100%;
       object-fit: cover;
       object-position: 50% 20%;
     }
   }
-  // PLEASE FIX THE COLORS
+
   &__hero-overlay {
     position: absolute;
     top: 0;
@@ -80,16 +81,15 @@
     background: linear-gradient(
       to bottom,
       rgba(0, 0, 0, 0.3) 0%,
-      rgb(5, 5, 5) 70%,
-      rgb(26, 26, 26) 100%
+      rgba(globals.$background-color, 0.92) 70%,
+      globals.$background-color 100%
     );
   }
 
   &__hero-content {
     position: relative;
     z-index: 1;
-    padding: calc(globals.$spacing-unit * 4);
-    padding-bottom: 0;
+    padding: calc(globals.$spacing-unit * 3);
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
@@ -114,6 +114,12 @@
       &:hover {
         scale: 1.05;
       }
+
+      &:focus-visible {
+        outline: 2px solid globals.$body-color;
+        outline-offset: 4px;
+        border-radius: 4px;
+      }
     }
 
     img {
@@ -121,7 +127,10 @@
       max-height: 60px;
       object-fit: contain;
       cursor: pointer;
-      transition: opacity 0.2s ease;
+      transition:
+        opacity 0.2s ease,
+        max-width 0.25s ease-in-out,
+        max-height 0.25s ease-in-out;
 
       &:hover {
         opacity: 0.8;
@@ -161,7 +170,9 @@
       text-shadow: 2px 2px 12px rgba(0, 0, 0, 0.9);
       margin: 0;
       cursor: pointer;
-      transition: opacity 0.2s ease;
+      transition:
+        font-size 0.25s ease-in-out,
+        opacity 0.2s ease;
 
       &:hover {
         opacity: 0.8;
@@ -196,8 +207,8 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: calc(globals.$spacing-unit * 3);
-    margin-top: calc(globals.$spacing-unit * 4);
-    margin-bottom: calc(globals.$spacing-unit * 2);
+    margin-block: globals.$spacing-unit;
+    transition: margin 0.25s ease-in-out;
   }
 
   &__hero-buttons {
@@ -205,6 +216,11 @@
     gap: calc(globals.$spacing-unit);
     align-items: center;
     flex-shrink: 0;
+  }
+
+  &__hero-menu-btn.button {
+    min-width: unset;
+    padding-inline: calc(globals.$spacing-unit * 1.25);
   }
 
   // Shared outline Button with a frosted surface, since it sits on the hero art.
@@ -289,29 +305,58 @@
     color: globals.$muted-color;
   }
 
+  &--collapsed &__hero-logo img {
+    max-width: 200px;
+    max-height: 52px;
+  }
+
+  &--collapsed &__hero-logo h1 {
+    font-size: 24px;
+  }
+
+  &__details-toggle {
+    align-self: flex-end;
+    flex-shrink: 0;
+  }
+
+  &__details-chevron {
+    transition: transform 0.25s ease-in-out;
+  }
+
+  &--expanded &__details-chevron {
+    transform: rotate(180deg);
+  }
+
   &__hero-stats {
-    display: flex;
-    gap: calc(globals.$spacing-unit * 4);
     padding: calc(globals.$spacing-unit * 2);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(26, 26, 26, 0.1);
+    border-radius: 8px;
+    border: 1px solid globals.$border-color;
+    background: rgba(globals.$dark-background-color, 0.55);
     backdrop-filter: blur(8px);
-    margin-top: calc(globals.$spacing-unit * 2);
   }
 
   &__stats-column {
     display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 2);
-    min-width: 200px;
-    padding-right: calc(globals.$spacing-unit * 2);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-    align-self: flex-start;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 4);
+  }
+
+  &__details-region {
+    // The chart supplies its own spacing, including during the exit animation.
+    margin-top: calc(globals.$spacing-unit * -2);
+  }
+
+  &__details {
+    overflow: hidden;
   }
 
   &__speed-chart {
-    flex: 1;
+    margin-top: calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 2);
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    background: rgba(globals.$dark-background-color, 0.55);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -326,8 +371,8 @@
 
   &__stat-item {
     display: flex;
-    align-items: flex-end;
-    gap: calc(globals.$spacing-unit);
+    align-items: center;
+    gap: globals.$spacing-unit;
 
     svg {
       opacity: 0.8;
@@ -339,7 +384,8 @@
     display: flex;
     justify-content: space-between;
     gap: calc(globals.$spacing-unit / 2);
-    width: 100%;
+    align-items: center;
+    flex-wrap: wrap;
   }
 
   &__stat-label {
@@ -353,8 +399,9 @@
   &__stat-value {
     color: #ffffff;
     font-weight: 700;
-    font-size: 11px;
-    line-height: 1.2;
+    font-size: 12px;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
   }
 
   &__simple-list {
@@ -513,6 +560,7 @@
   }
 
   &__progress-wrapper {
+    min-width: 0;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -520,26 +568,66 @@
   }
 
   &__progress-bar {
+    appearance: none;
     width: 100%;
     height: 8px;
+    display: block;
     background-color: rgba(255, 255, 255, 0.08);
     border-radius: 4px;
     overflow: hidden;
     margin-top: calc(globals.$spacing-unit / 2);
 
+    &::-webkit-progress-bar {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &::-webkit-progress-value {
+      background-color: #fff;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    &::-moz-progress-bar {
+      background-color: #fff;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
     &--small {
       height: 6px;
     }
   }
+}
 
-  &__progress-fill {
-    height: 100%;
-    background-color: #fff;
-    transition: width 0.3s ease;
-    border-radius: 4px;
+@container #{globals.$app-container} (max-width: 850px) {
+  .download-group {
+    &__hero-content {
+      padding: calc(globals.$spacing-unit * 2);
+    }
 
-    &--extraction {
-      background-color: #fff;
+    &__progress-row--bar {
+      flex-wrap: wrap;
+    }
+
+    &__progress-wrapper {
+      flex-basis: 100%;
+    }
+
+    &__hero-buttons {
+      flex: 1;
+      flex-wrap: wrap;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .download-group {
+    &__hero-logo img,
+    &__hero-logo h1,
+    &__hero-action-row,
+    &__details-chevron,
+    &__progress-bar::-webkit-progress-value {
+      transition: none;
     }
   }
 }

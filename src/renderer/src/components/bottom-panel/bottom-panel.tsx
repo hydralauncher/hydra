@@ -28,7 +28,14 @@ export function BottomPanel() {
 
   const { showSuccessToast } = useToast();
 
-  const { lastPacket, progress, downloadSpeed, eta } = useDownload();
+  const {
+    lastPacket,
+    packetsById,
+    progress,
+    downloadSpeed,
+    eta,
+    formatDownloadSpeed,
+  } = useDownload();
 
   const extraction = useAppSelector((state) => state.download.extraction);
 
@@ -88,6 +95,31 @@ export function BottomPanel() {
       }
     }
 
+    const packets = Object.values(packetsById);
+    if (packets.length > 1) {
+      const total = packets.reduce(
+        (sum, packet) => sum + (packet.download.fileSize ?? 0),
+        0
+      );
+      const completed = packets.reduce(
+        (sum, packet) =>
+          sum + packet.progress * (packet.download.fileSize ?? 0),
+        0
+      );
+      const aggregateProgress =
+        total > 0
+          ? completed / total
+          : packets.reduce((sum, packet) => sum + packet.progress, 0) /
+            packets.length;
+      return t("downloading_multiple", {
+        count: packets.length,
+        percentage: Math.round(aggregateProgress * 100) + "%",
+        speed: formatDownloadSpeed(
+          packets.reduce((sum, packet) => sum + packet.downloadSpeed, 0)
+        ),
+      });
+    }
+
     const game = lastPacket
       ? library.find((game) => game.id === lastPacket?.gameId)
       : undefined;
@@ -136,6 +168,8 @@ export function BottomPanel() {
     t,
     library,
     lastPacket,
+    packetsById,
+    formatDownloadSpeed,
     progress,
     eta,
     downloadSpeed,

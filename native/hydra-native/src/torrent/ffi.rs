@@ -42,6 +42,7 @@ extern "C" {
     fn ht_remove(s: Raw, h: Raw, part: i32) -> i32;
     fn ht_pause(h: Raw) -> i32;
     fn ht_resume(h: Raw) -> i32;
+    fn ht_download_limit(h: Raw, limit: i32) -> i32;
     fn ht_download_mode(h: Raw, selective: i32) -> i32;
     fn ht_add_tracker(h: Raw, url: *const c_char) -> i32;
     fn ht_get_status(h: Raw, out: *mut Status) -> i32;
@@ -170,6 +171,9 @@ impl Handle {
     }
     pub fn resume(&self) -> Result<()> {
         unsafe { check(ht_resume(self.0)) }
+    }
+    pub fn download_limit(&self, limit: i32) -> Result<()> {
+        unsafe { check(ht_download_limit(self.0, limit)) }
     }
     pub fn add_tracker(&self, url: &str) -> Result<()> {
         let u = text(url)?;

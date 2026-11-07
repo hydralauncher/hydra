@@ -66,6 +66,14 @@
   gap: calc(var(--spacing-unit) * 8);
 }
 
+.downloads-page__active-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: calc(var(--spacing-unit) * 3);
+  min-width: 0;
+}
+
 .downloads-page__move-mode-banner {
   width: 100%;
   border: 1px solid color-mix(in srgb, var(--primary) 36%, var(--border));
