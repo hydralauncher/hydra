@@ -1,0 +1,69 @@
+export struct MediaItem {
+    is-video: bool,
+    title: string,
+    thumb: image,
+    // Full-resolution frame. The backend fills it only for the slides near
+    // the carousel/lightbox position and clears it again when they move away.
+    full: image,
+    aspect: float,
+    // Trailer length in seconds (0 for screenshots).
+    duration: float,
+}
+
+// kind: 0 heading, 1 paragraph, 2 bullet, 3 image, 4 spacer
+export struct DescBlock {
+    kind: int,
+    text: styled-text,
+    plain: string,
+    img: image,
+}
+
+export struct SimilarGame {
+    title: string,
+    cover: image,
+}
+
+export struct Achievement {
+    name: string,
+    icon: image,
+    unlocked: bool,
+    date: string,
+}
+
+export struct HltbCategory {
+    title: string,
+    duration: string,
+    accuracy: string,
+}
+
+export struct Language {
+    name: string,
+    audio: bool,
+}
+
+export struct Review {
+    id: int,
+    name: string,
+    score: int,
+    playtime: string,
+    date: string,
+    full-date: string,
+    content: styled-text,
+    original: styled-text,
+    original-language: string,
+    translated: bool,
+    show-original: bool,
+    own: bool,
+    upvotes: int,
+    downvotes: int,
+    prev-upvotes: int,
+    prev-downvotes: int,
+    has-upvoted: bool,
+    has-downvoted: bool,
+    // Bumped by the backend whenever a count changes / a vote turns on.
+    // Parity flips drive the "roll" and "pulse" animations.
+    up-gen: int,
+    down-gen: int,
+    up-pulse: int,
+    down-pulse: int,
+}

@@ -1,0 +1,382 @@
+// game-details-content.tsx (hero) + hero.scss + hero/hero-panel*.tsx + cloud-save-widget.tsx
+import { Theme, Icons, Tip, Ids } from "../../theme.slint";
+import { Icon, HydraButton, Frost, Skeleton, Spinner } from "../../components/widgets.slint";
+
+// @keyframes slide-in: translateY(40px + 16px), opacity 0 -> none, 0.3s cubic-bezier(0.33, 1, 0.68, 1)
+component SlideIn inherits Rectangle {
+    in property <bool> shown;
+    property <length> offset: root.shown ? 0 : 56px;
+    opacity: root.shown ? 1 : 0;
+    animate offset, opacity { duration: root.shown ? 300ms : 0ms; easing: cubic-bezier(0.33, 1, 0.68, 1); }
+    inner := Rectangle {
+        y: root.offset;
+        @children
+    }
+}
+
+// .game-details__edit-custom-game-button / .game-details__cloud-sync-button
+component GlassButton inherits Frost {
+    in property <string> tooltip;
+    callback clicked();
+    out property <bool> hovered: touch.has-hover;
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.border;
+    drop-shadow-blur: 10px;
+    drop-shadow-color: rgba(0, 0, 0, 0.8);
+    tint: touch.has-hover ? rgba(0, 0, 0, 0.5) : rgba(0, 0, 0, 0.6);
+    opacity: touch.pressed ? 0.9 : 1;
+    animate tint, opacity { duration: 200ms; easing: ease; }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        changed has-hover => {
+            if (self.has-hover && root.tooltip != "") {
+                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+export component Hero inherits Rectangle {
+    in property <image> hero;
+    in property <image> hero-blur;
+    in property <image> logo;
+    in property <bool> wide;
+    in property <bool> loaded;
+    in property <string> title;
+    // hero-panel.tsx: without a library entry Hydra shows download info and
+    // "Add to library"; with one, playtime and the play/download actions.
+    in property <bool> in-library;
+    in property <bool> has-executable;
+    // Empty when the game was never played.
+    in property <string> playtime;
+    in property <string> last-played;
+    in-out property <bool> favorite;
+    in-out property <bool> pinned;
+    in-out property <bool> running;
+    // -1 hidden, 0 synced, 1 syncing
+    in property <int> cloud-state: -1;
+    in property <float> cloud-progress;
+    callback add-to-library-clicked();
+    callback download-options-clicked();
+    callback play-clicked();
+    callback close-clicked();
+    callback options-clicked();
+    callback edit-clicked();
+    callback cloud-clicked();
+
+    height: 350px;
+
+    property <Point> hero-origin: hero-image.absolute-position;
+    property <ImageVerticalAlignment> hero-align: root.wide ? center : top;
+
+    // .game-details__hero-image: object-fit cover, radius 0 0 8px 8px
+    hero-image := Rectangle {
+        height: 350px;
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+        clip: true;
+        background: @linear-gradient(180deg, #101010 0%, #0a0a0a 100%);
+        if root.loaded: Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.hero;
+            image-fit: cover;
+            vertical-alignment: root.hero-align;
+        }
+        if !root.loaded: Skeleton {
+            radius: 0;
+        }
+    }
+
+    // .game-details__hero-content (padding 16px, logo bottom-left, buttons right)
+    property <length> content-bottom: 350px - 88px - 16px;
+
+    if root.loaded: Image {
+        x: 16px;
+        y: root.content-bottom - 150px;
+        width: 300px;
+        height: 150px;
+        source: root.logo;
+        image-fit: contain;
+        horizontal-alignment: left;
+        vertical-alignment: bottom;
+    }
+
+    buttons := HorizontalLayout {
+        x: root.width - 16px - self.width;
+        y: root.content-bottom - 40px;
+        width: self.preferred-width;
+        height: 40px;
+        spacing: 8px;
+
+        if root.in-library: SlideIn {
+            shown: root.loaded;
+            width: 40px;
+            GlassButton {
+                width: 40px;
+                height: 40px;
+                source: root.hero-blur;
+                source-origin: root.hero-origin;
+                source-width: root.width;
+                source-height: 350px;
+                source-vertical-alignment: root.hero-align;
+                tooltip: "Customize game assets";
+                clicked => {
+                    root.edit-clicked();
+                }
+                Icon {
+                    source: Icons.pencil;
+                    width: 16px;
+                    height: 16px;
+                    color: parent.hovered ? Theme.body : Theme.muted;
+                    animate color { duration: 200ms; }
+                }
+            }
+        }
+
+        // cloud-save-widget.tsx (v2 widget, "synced" tone / syncing spinner + progress)
+        if root.in-library && root.cloud-state >= 0: SlideIn {
+            shown: root.loaded;
+            width: cloud-row.preferred-width + 32px + 2px;
+            cloud-button := GlassButton {
+                property <color> tone: root.cloud-state == 0 ? Theme.success : Theme.muted;
+                width: parent.width;
+                height: 40px;
+                source: root.hero-blur;
+                source-origin: root.hero-origin;
+                source-width: root.width;
+                source-height: 350px;
+                source-vertical-alignment: root.hero-align;
+                border-color: root.cloud-state == 0 ? Theme.success : Theme.border;
+                tooltip: "Cloud save";
+                clicked => {
+                    root.cloud-clicked();
+                }
+                cloud-row := HorizontalLayout {
+                    padding-left: 16px;
+                    padding-right: 16px;
+                    spacing: 8px;
+                    VerticalLayout {
+                        alignment: center;
+                        if root.cloud-state == 0: Icon {
+                            source: Icons.cloud-check;
+                            width: 22px;
+                            height: 22px;
+                            color: Theme.success;
+                        }
+                        if root.cloud-state == 1: Spinner {
+                            source: Icons.circle-notch;
+                            width: 22px;
+                            height: 22px;
+                            icon-color: Theme.muted;
+                        }
+                    }
+                    Text {
+                        text: root.cloud-state == 0 ? "Synchronized" : "Synchronizing";
+                        color: cloud-button.tone;
+                        font-size: Theme.small-size;
+                        vertical-alignment: center;
+                    }
+                }
+                // .cloud-save-v2__sync-progress-bar
+                Rectangle {
+                    visible: root.cloud-state == 1;
+                    x: 0;
+                    y: parent.height - 3px;
+                    height: 3px;
+                    width: parent.width * root.cloud-progress;
+                    animate width { duration: 200ms; easing: ease; }
+                    background: #ffffff;
+                }
+            }
+        }
+    }
+
+    // .game-details__hero-panel (padding 8px) > .hero-panel
+    panel := Frost {
+        x: 8px;
+        y: 350px - 88px + 8px;
+        width: root.width - 16px;
+        height: 72px;
+        source: root.hero-blur;
+        source-origin: root.hero-origin;
+        source-width: root.width;
+        source-height: 350px;
+        source-vertical-alignment: root.hero-align;
+        tint: rgba(0, 0, 0, 0.6);
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.15);
+        drop-shadow-offset-y: 4px;
+        drop-shadow-blur: 6px;
+        drop-shadow-color: rgba(0, 0, 0, 0.1);
+
+        HorizontalLayout {
+            padding-left: 24px;
+            padding-right: 24px;
+            padding-top: 16px;
+            padding-bottom: 16px;
+
+            if root.loaded: VerticalLayout {
+                alignment: center;
+                spacing: 4px;
+                Text {
+                    // TODO(repacks): "Updated at …" / "N download options" once download sources are ported.
+                    text: !root.in-library ? "No downloads available"
+                        : root.running ? "Playing now"
+                        : root.playtime == "" ? "You haven't played " + root.title + " yet"
+                        : root.playtime;
+                    color: Theme.muted;
+                    font-size: Theme.small-size;
+                    font-weight: 600;
+                }
+                if root.in-library && !root.running && root.last-played != "": Text {
+                    text: root.last-played;
+                    color: Theme.muted;
+                    font-size: Theme.small-size;
+                }
+            }
+            if !root.loaded: VerticalLayout {
+                alignment: center;
+                spacing: 4px;
+                Skeleton {
+                    width: 150px;
+                    height: 16px;
+                }
+                Skeleton {
+                    width: 120px;
+                    height: 16px;
+                }
+            }
+
+            Rectangle { }
+
+            // hero-panel-actions.tsx, no library entry
+            if root.loaded && !root.in-library: HorizontalLayout {
+                spacing: 16px;
+                alignment: end;
+                HydraButton {
+                    kind: "outline";
+                    border-color: Theme.muted;
+                    icon: Icons.plus-circle;
+                    text: "Add to library";
+                    clicked => {
+                        root.add-to-library-clicked();
+                    }
+                }
+                HydraButton {
+                    kind: "outline";
+                    border-color: Theme.muted;
+                    text: "Open download options";
+                    clicked => {
+                        root.download-options-clicked();
+                    }
+                }
+            }
+
+            if root.loaded && root.in-library: HorizontalLayout {
+                spacing: 16px;
+                alignment: end;
+                if !root.has-executable: HydraButton {
+                    kind: "outline";
+                    border-color: Theme.muted;
+                    icon: Icons.download;
+                    text: "Download";
+                    clicked => {
+                        root.download-options-clicked();
+                    }
+                }
+                if root.has-executable && !root.running: HydraButton {
+                    kind: "outline";
+                    border-color: Theme.muted;
+                    icon: Icons.play;
+                    text: "Play";
+                    clicked => {
+                        root.play-clicked();
+                    }
+                }
+                if root.has-executable && root.running: HydraButton {
+                    kind: "outline";
+                    border-color: Theme.muted;
+                    icon: Icons.x-circle;
+                    text: "Close";
+                    clicked => {
+                        root.close-clicked();
+                    }
+                }
+                Rectangle {
+                    width: 1px;
+                    background: Theme.muted;
+                    opacity: 0.2;
+                }
+                HydraButton {
+                    kind: "outline";
+                    border-color: Theme.muted;
+                    icon: root.favorite ? Icons.heart-fill : Icons.heart;
+                    tooltip: root.favorite ? "Remove from favorites" : "Add to favorites";
+                    clicked => {
+                        root.favorite = !root.favorite;
+                    }
+                }
+                HydraButton {
+                    kind: "outline";
+                    border-color: Theme.muted;
+                    icon: root.pinned ? Icons.pin-slash : Icons.pin;
+                    tooltip: root.pinned ? "Unpin" : "Pin";
+                    clicked => {
+                        root.pinned = !root.pinned;
+                    }
+                }
+                HydraButton {
+                    kind: "outline";
+                    border-color: Theme.muted;
+                    icon: Icons.gear;
+                    text: "Options";
+                    clicked => {
+                        root.options-clicked();
+                    }
+                }
+            }
+            if !root.loaded: HorizontalLayout {
+                spacing: 16px;
+                alignment: end;
+                VerticalLayout {
+                    alignment: center;
+                    Skeleton {
+                        width: 36px;
+                        height: 36px;
+                        radius: 6px;
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Skeleton {
+                        width: 36px;
+                        height: 36px;
+                        radius: 6px;
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Skeleton {
+                        width: 100px;
+                        height: 36px;
+                        radius: 6px;
+                    }
+                }
+            }
+        }
+    }
+}
