@@ -8,6 +8,7 @@
     "src/big-picture/src/**/*.tsx",
     "src/preload/*.d.ts",
     "src/locales/index.ts",
+    "src/locales/*.ts",
     "src/shared/**/*",
     "src/stories/**/*",
     "src/types/**/*",

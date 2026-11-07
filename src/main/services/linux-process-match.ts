@@ -9,16 +9,101 @@ export interface LinuxProcessInfo {
   steamCompatDataPath: string | null;
 }
 
+export interface LinuxProcessMatchIndex {
+  byExe: Map<string, LinuxProcessInfo[]>;
+  byAppImage: Map<string, LinuxProcessInfo[]>;
+  byCwd: Map<string, LinuxProcessInfo[]>;
+}
+
+const appendProcess = (
+  index: Map<string, LinuxProcessInfo[]>,
+  key: string | null | undefined,
+  process: LinuxProcessInfo
+) => {
+  if (!key) return;
+
+  const normalizedKey = key.toLowerCase();
+  const entries = index.get(normalizedKey);
+
+  if (entries) {
+    entries.push(process);
+    return;
+  }
+
+  index.set(normalizedKey, [process]);
+};
+
+export const buildLinuxProcessMatchIndex = (
+  linuxProcesses: LinuxProcessInfo[]
+): LinuxProcessMatchIndex => {
+  const index: LinuxProcessMatchIndex = {
+    byExe: new Map(),
+    byAppImage: new Map(),
+    byCwd: new Map(),
+  };
+
+  for (const process of linuxProcesses) {
+    appendProcess(index.byExe, process.exe, process);
+    appendProcess(index.byAppImage, process.appImagePath, process);
+    appendProcess(index.byCwd, process.cwd, process);
+  }
+
+  return index;
+};
+
 export const hasLinuxNativeOrAppImageMatch = (
   executablePath: string,
-  linuxProcesses: LinuxProcessInfo[]
+  index: LinuxProcessMatchIndex
 ) => {
   const target = executablePath.toLowerCase();
 
-  return linuxProcesses.some(
-    (matchedProcess) =>
-      matchedProcess.exe === target || matchedProcess.appImagePath === target
+  return Boolean(
+    index.byExe.get(target)?.length || index.byAppImage.get(target)?.length
   );
+};
+
+export interface LinuxCompatibilityProcessMatchOptions {
+  executablePath: string;
+  expectedWinePrefix?: string | null;
+}
+
+export const hasLinuxCompatibilityProcessMatch = (
+  index: LinuxProcessMatchIndex,
+  { executablePath, expectedWinePrefix }: LinuxCompatibilityProcessMatchOptions
+) => {
+  if (path.extname(executablePath).toLowerCase() !== ".exe") {
+    return false;
+  }
+
+  const executableName = path.basename(executablePath).toLowerCase();
+  const executableNameWithoutExtension = executableName.replace(/\.exe$/i, "");
+  const executableDirectory = path.dirname(executablePath).toLowerCase();
+  const normalizedWinePrefix = expectedWinePrefix?.toLowerCase();
+  const candidates = index.byCwd.get(executableDirectory) ?? [];
+
+  return candidates.some((process) => {
+    if (
+      normalizedWinePrefix &&
+      process.steamCompatDataPath &&
+      !doesSteamCompatDataPathMatchWinePrefix(
+        process.steamCompatDataPath,
+        normalizedWinePrefix
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      process.name === executableName ||
+      process.name === executableNameWithoutExtension
+    ) {
+      return true;
+    }
+
+    const processRunsUnderWine = process.exe.includes("wine");
+
+    return processRunsUnderWine && process.name.length > 0;
+  });
 };
 
 interface ProcessLocation {
