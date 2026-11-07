@@ -24,6 +24,7 @@ import {
   mergeLibraryCatalogueMetadata,
 } from "../../../../shared/library-catalogue.js";
 import { getDisplayedPlayTimeInMilliseconds } from "../../../../shared/playtime.js";
+import { isClassicsGameForEmulator } from "../../../../shared/classics-emulator-games.js";
 import { selectLibraryPresentationIndex } from "../../features/library-presentation.js";
 
 const requireModule = createRequire(import.meta.url);
@@ -90,7 +91,13 @@ async function fixture(
     request: AssetsRequest
   ) => Partial<ShopAssets> | null | Promise<Partial<ShopAssets> | null>,
   getStats: () => Promise<GameStats | null> = async () => null,
-  lockAchievementIdentity = false
+  lockAchievementIdentity = false,
+  pageIdentity: { shop: GameShop; objectId: string; title: string } = {
+    shop: "steam",
+    objectId: "123",
+    title: "Steam title",
+  },
+  signedIn = true
 ) {
   let libraryGames = games;
   let lastPacket = initialLastPacket;
@@ -249,7 +256,7 @@ async function fixture(
       useAppSelector: (selector: (state: typeof preferencesState) => unknown) =>
         selector(preferencesState),
       useDownload: () => ({ lastPacket }),
-      useUserDetails: () => ({ userDetails }),
+      useUserDetails: () => ({ userDetails: signedIn ? userDetails : null }),
       useFeature: () => ({
         isFeatureEnabled: () => false,
         Feature: { MultipartHosterDownloads: "MULTIPART_HOSTER_DOWNLOADS" },
@@ -257,6 +264,7 @@ async function fixture(
       useLibraryGamePresentation: presentationHook.useLibraryGamePresentation,
     },
     "@shared": {
+      isClassicsGameForEmulator,
       SteamContentDescriptor: { AdultOnlySexualContent: 3 },
       filterDownloadableRepacks: (values: unknown[]) => values,
       fetchHosterAvailability: async () => [],
@@ -290,9 +298,9 @@ async function fixture(
         React.createElement(
           Provider,
           {
-            shop: "steam",
-            objectId: "123",
-            gameTitle: "Steam title",
+            shop: pageIdentity.shop,
+            objectId: pageIdentity.objectId,
+            gameTitle: pageIdentity.title,
             lockAchievementIdentity,
           },
           React.createElement(Probe)
@@ -336,6 +344,50 @@ async function fixture(
 }
 
 describe("Desktop catalogue page", () => {
+  it("loads local RPCS3 trophies and accepts live updates without an account", async (t) => {
+    const native = {
+      id: "launchbox:42",
+      shop: "launchbox",
+      objectId: "42",
+      title: "Ratchet",
+      platform: "Sony Playstation 3",
+      isDeleted: false,
+      selectedDiscPath: "fixture-game",
+    } as LibraryGame;
+    const state = await fixture(
+      t,
+      [native],
+      undefined,
+      null,
+      undefined,
+      undefined,
+      false,
+      { shop: "launchbox", objectId: "42", title: "Ratchet" },
+      false
+    );
+    assert.ok(
+      state.calls.some(
+        ([kind, shop, objectId]) =>
+          kind === "achievements" && shop === "launchbox" && objectId === "42"
+      )
+    );
+    const rows = [
+      {
+        name: "NPWR12345_00:0",
+        displayName: "Native trophy",
+        icon: "local:fixture",
+        icongray: "local:fixture",
+        hidden: false,
+        unlocked: true,
+        unlockTime: null,
+        source: "rpcs3",
+      },
+    ] as UserAchievement[];
+    await state.emitAchievements("launchbox", "42", rows);
+    assert.deepEqual(state.details.achievements, rows);
+    await state.emitAchievements("launchbox", "42", []);
+    assert.deepEqual(state.details.achievements, []);
+  });
   for (const locked of [false, true]) {
     it(`locked=${locked}: ignores another copy's source-only fallback but accepts combined and operational updates`, async (t) => {
       const steam = {

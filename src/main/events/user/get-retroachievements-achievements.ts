@@ -9,6 +9,13 @@ const getRetroAchievementsAchievements = async (
   shop: GameShop,
   retroAchievementsGameId?: number
 ): Promise<UserAchievement[] | null> => {
+  if (shop === "launchbox") {
+    const { getRpcs3Achievements } = await import(
+      "@main/services/achievements/rpcs3/rpcs3-achievements"
+    );
+    const local = await getRpcs3Achievements(objectId, shop);
+    if (local !== null) return local;
+  }
   const result = await syncRetroAchievements({
     objectId,
     shop,

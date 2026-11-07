@@ -20,6 +20,8 @@ const resetRetroAchievementsAchievements = async (
 
   for (const [key, gameAchievement] of AchievementMemoryStore.all()) {
     if (!key.startsWith(LAUNCHBOX_KEY_PREFIX)) continue;
+    // RPCS3 shares the Classics shop, but its progress belongs to local trophy files.
+    if (gameAchievement.achievements.some((row) => row.trophyGrade)) continue;
 
     const objectId = key.slice(LAUNCHBOX_KEY_PREFIX.length);
     AchievementMemoryStore.set("launchbox", objectId, {

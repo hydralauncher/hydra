@@ -31,12 +31,45 @@ describe("AchievementMemoryStore", () => {
     );
   });
 
-  it("drops all achievement state when the authenticated session changes", () => {
+  it("drops all achievement state on a full clear", () => {
     AchievementMemoryStore.set("steam", "10", entry("ACH_UNLOCK"));
 
     AchievementMemoryStore.clear();
 
     assert.equal(AchievementMemoryStore.get("steam", "10"), undefined);
+  });
+
+  it("preserves local RPCS3 totals across account resets while clearing account entries", () => {
+    const local = {
+      source: "rpcs3" as const,
+      achievements: [
+        { name: "NPWR12345_00:0", trophyGrade: "bronze" } as never,
+      ],
+      unlockedAchievements: [{ name: "NPWR12345_00:0", unlockTime: 0 }],
+    };
+    AchievementMemoryStore.set("launchbox", "ps3", local);
+    AchievementMemoryStore.set("steam", "10", entry("STEAM_UNLOCK"));
+    AchievementMemoryStore.set("epic", "10", entry("EPIC_UNLOCK"));
+    AchievementMemoryStore.set("launchbox", "ra", entry("RA_UNLOCK"));
+
+    // Both sign-in and sign-out use the same account reset operation.
+    for (let reset = 0; reset < 2; reset++) {
+      AchievementMemoryStore.clearAccountEntries();
+      assert.equal(AchievementMemoryStore.get("launchbox", "ps3"), local);
+      assert.equal(resolveAchievementCount("launchbox", "ps3"), 1);
+      assert.equal(resolveUnlockedAchievementCount("launchbox", "ps3"), 1);
+      assert.equal(AchievementMemoryStore.get("steam", "10"), undefined);
+      assert.equal(AchievementMemoryStore.get("epic", "10"), undefined);
+      assert.equal(AchievementMemoryStore.get("launchbox", "ra"), undefined);
+    }
+
+    // The provider can still discard the snapshot when the RPCS3 user changes.
+    AchievementMemoryStore.delete("launchbox", "ps3");
+    assert.equal(resolveAchievementCount("launchbox", "ps3"), 0);
+    assert.equal(resolveUnlockedAchievementCount("launchbox", "ps3"), 0);
+    AchievementMemoryStore.set("launchbox", "ps3", local);
+    AchievementMemoryStore.clear();
+    assert.equal(AchievementMemoryStore.get("launchbox", "ps3"), undefined);
   });
 
   it("drops only the selected game's achievement state", () => {

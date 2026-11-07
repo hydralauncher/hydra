@@ -2157,6 +2157,13 @@
     "loading_souvenirs": "Cargando recuerdos..."
   },
   "achievement": {
+    "local_trophies": "RPCS3 (local)",
+    "trophy_grade_bronze": "Bronce",
+    "trophy_grade_silver": "Plata",
+    "trophy_grade_gold": "Oro",
+    "trophy_grade_platinum": "Platino",
+    "sort_trophy_grade_ascending": "Menor categoría primero",
+    "sort_trophy_grade_descending": "Mayor categoría primero",
     "achievement_unlocked": "Logro desbloqueado",
     "user_achievements": "Logros de {{displayName}}",
     "your_achievements": "Tus logros",

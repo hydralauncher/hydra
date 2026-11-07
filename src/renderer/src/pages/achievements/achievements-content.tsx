@@ -189,7 +189,22 @@ export function AchievementsContent({
   const logoImage =
     game?.customLogoImageUrl || shopDetails?.assets?.logoImageUrl || "";
 
-  if (!objectId || !shop || !gameTitle || !userDetails) return null;
+  const localTrophies = Boolean(
+    achievements?.length && achievements.every((row) => row.source === "rpcs3")
+  );
+  const viewer =
+    userDetails ??
+    (localTrophies && !otherUser
+      ? {
+          id: "local-rpcs3",
+          displayName: t("local_trophies"),
+          profileImageUrl: null,
+          totalAchievementCount: achievements?.length ?? 0,
+          unlockedAchievementCount:
+            achievements?.filter((row) => row.unlocked).length ?? 0,
+        }
+      : null);
+  if (!objectId || !shop || !gameTitle || !viewer) return null;
 
   return (
     <div className="achievements-content__achievements-list">
@@ -251,7 +266,7 @@ export function AchievementsContent({
               {(!otherUser || isComparing) && (
                 <AchievementSummary
                   user={{
-                    ...userDetails,
+                    ...viewer,
                     totalAchievementCount: comparedAchievements
                       ? comparedAchievements.owner.totalAchievementCount
                       : achievements!.length,
@@ -274,7 +289,7 @@ export function AchievementsContent({
           <ComparedAchievementList
             scrollElement={scrollElement}
             achievements={comparedAchievements!}
-            owner={userDetails}
+            owner={viewer}
             target={otherUser}
           />
         )}
