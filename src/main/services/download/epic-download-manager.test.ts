@@ -45,6 +45,7 @@ const epic = (objectId: string): Download => ({
   },
 });
 const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
+const MAX_SETTLE_ATTEMPTS = 100;
 
 /** Exercise the production manager/orchestrator; replace only external I/O ports. */
 function fixture() {
@@ -799,4 +800,60 @@ test("resuming a torrent that startup already started marks it active without re
   // The running torrent keeps its slot; resume must not dispatch a restart.
   assert.deepEqual(f.state.torrentCalls, ["action"]);
   assert.equal(f.manager.getActiveDownloadId(), key(download));
+});
+
+test("a runtime failure while resume reads the running record keeps the error", async () => {
+  const f = fixture();
+  const download: Download = {
+    shop: "steam",
+    objectId: "1222140",
+    downloader: Downloader.Torrent,
+    uri: "magnet:?xt=urn:btih:0000000000000000000000000000000000000001",
+    downloadPath: path.resolve("torrent-fixture"),
+    folderName: null,
+    fileSize: 1000,
+    bytesDownloaded: 250,
+    progress: 0.25,
+    extracting: false,
+    queued: true,
+    status: "paused",
+    timestamp: 1,
+    automaticallyExtract: false,
+    automaticallyDeleteArchiveFiles: false,
+    shouldSeed: false,
+  };
+  f.add(download);
+  f.state.torrentReply = async () => ({ data: null });
+  await f.manager.startDownload(download);
+
+  // Fail the runtime exactly while resume re-reads the record it found running.
+  const hasRunningDownload = f.manager.hasRunningDownload.bind(f.manager);
+  let failOnNextRead = false;
+  f.manager.hasRunningDownload = (id: string) => {
+    const running = hasRunningDownload(id);
+    if (running && !failOnNextRead) failOnNextRead = true;
+    return running;
+  };
+  let failure: Promise<void> | undefined;
+  f.state.beforeRead = async (id) => {
+    if (!failOnNextRead || failure || id !== key(download)) return;
+    // The runtime reports independently of the resume; only wait until its
+    // error is persisted so the resume reads the failed record.
+    failure = f.manager.handleRuntimeDownloadError(id, new Error("disk_full"));
+    for (
+      let attempt = 0;
+      attempt < MAX_SETTLE_ATTEMPTS && f.downloads.get(id)?.status !== "error";
+      attempt++
+    )
+      await settle();
+  };
+
+  assert.equal(
+    await f.orchestrator.resumeDownload(download.shop, download.objectId),
+    false
+  );
+  await failure;
+  assert.ok(failure, "the runtime failure was injected");
+  assert.equal(f.downloads.get(key(download))?.status, "error");
+  assert.equal(f.manager.getActiveDownloadId(), null);
 });

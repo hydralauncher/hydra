@@ -1,40 +1,40 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { runQuitTasks } from "./quit-cleanup.ts";
+import { settleWithin } from "./quit-cleanup.ts";
 
-test("quit cleanup reports failures and waits for every settled task", async () => {
-  const finished: string[] = [];
+const QUIT_STEP_TIMEOUT_MS = 1_000;
+const STALLED_STEP_TIMEOUT_MS = 50;
+// Generous bound so a slow CI machine cannot mistake the deadline for a hang.
+const STALLED_STEP_ELAPSED_LIMIT_MS = 1_000;
 
-  const result = await runQuitTasks(
-    {
-      lock: async () => {
-        finished.push("lock");
-      },
-      torrent: async () => {
-        throw new Error("torrent_shutdown");
-      },
-    },
-    1_000
-  );
+test("a quit step that finishes reports settled", async () => {
+  let finished = false;
 
-  assert.deepEqual(finished, ["lock"]);
-  assert.deepEqual(result.pending, []);
-  assert.equal(result.failed.length, 1);
-  assert.equal(result.failed[0].label, "torrent");
+  const outcome = await settleWithin(async () => {
+    finished = true;
+  }, QUIT_STEP_TIMEOUT_MS);
+
+  assert.equal(outcome, "settled");
+  assert.equal(finished, true);
 });
 
-test("quit cleanup stops waiting for a task that never settles", async () => {
+test("a failing quit step propagates its error", async () => {
+  await assert.rejects(
+    settleWithin(async () => {
+      throw new Error("torrent_shutdown");
+    }, QUIT_STEP_TIMEOUT_MS),
+    /torrent_shutdown/
+  );
+});
+
+test("a quit step that never settles times out", async () => {
   const startedAt = Date.now();
 
-  const result = await runQuitTasks(
-    {
-      lock: async () => {},
-      torrent: () => new Promise<void>(() => {}),
-    },
-    50
+  const outcome = await settleWithin(
+    () => new Promise<void>(() => {}),
+    STALLED_STEP_TIMEOUT_MS
   );
 
-  assert.ok(Date.now() - startedAt < 1_000);
-  assert.deepEqual(result.pending, ["torrent"]);
-  assert.deepEqual(result.failed, []);
+  assert.equal(outcome, "timed-out");
+  assert.ok(Date.now() - startedAt < STALLED_STEP_ELAPSED_LIMIT_MS);
 });

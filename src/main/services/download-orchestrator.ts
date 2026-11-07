@@ -415,6 +415,9 @@ export class DownloadOrchestrator {
     const current =
       (await this.getDownload(download.shop, download.objectId)) ?? download;
     if (!isCurrent()) return null;
+    // A runtime failure releases the slot before persisting its error, so a
+    // lost slot means that failure (or a pause) must keep the record.
+    if (!DownloadManager.hasRunningDownload(getGameKey(download))) return null;
     // Completion may have landed while this action waited; never reopen it.
     if (["complete", "seeding", "removed"].includes(current.status ?? ""))
       return current;

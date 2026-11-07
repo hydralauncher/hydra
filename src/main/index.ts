@@ -25,7 +25,7 @@ import {
 } from "@main/services";
 import resources from "@locales";
 import { TorrentService } from "./services/torrent-service";
-import { runQuitTasks } from "./services/quit-cleanup";
+import { settleWithin } from "./services/quit-cleanup";
 import { DownloadManager } from "./services/download/download-manager";
 import { db, gamesSublevel, levelKeys } from "./level";
 import { GameShop, UserPreferences } from "@types";
@@ -456,15 +456,20 @@ const saveRecompilationPlaytimeOnQuit = async () => {
   await session.saveRecompilationPlaytimeOnQuit();
 };
 
-// Covers the torrent client's own 10s request timeout during pause.
-const QUIT_CLEANUP_TIMEOUT_MS = 15_000;
+// Covers the torrent client's own 10s request timeout during pause. Only the
+// download runtime steps are bounded: playtime uploads have their own request
+// timeouts and must not be cut short.
+const DOWNLOAD_QUIT_STEP_TIMEOUT_MS = 15_000;
 const FORCE_EXIT_TIMEOUT_MS = 10_000;
 
-const logPendingQuitTasks = (pending: string[]) => {
-  if (pending.length === 0) return;
-  logger.error(
-    `Quit cleanup still pending after ${QUIT_CLEANUP_TIMEOUT_MS}ms: ${pending.join(", ")}; continuing quit`
-  );
+const runDownloadQuitStep = async (
+  label: string,
+  step: () => Promise<unknown>
+) => {
+  if ((await settleWithin(step, DOWNLOAD_QUIT_STEP_TIMEOUT_MS)) === "timed-out")
+    logger.error(
+      `Quit: ${label} still pending after ${DOWNLOAD_QUIT_STEP_TIMEOUT_MS}ms; continuing quit`
+    );
 };
 
 let canAppBeClosed = false;
@@ -492,31 +497,26 @@ app.on("before-quit", async (e) => {
     DownloadOrchestrator.cancelPendingDebridPreparations();
     PowerSaveBlockerManager.reset();
     ScreenshotInputService.shutdown();
-    const pause = await runQuitTasks(
-      { "pause active download": () => DownloadManager.pauseDownload() },
-      QUIT_CLEANUP_TIMEOUT_MS
-    );
-    for (const { reason } of pause.failed) {
-      logger.error("Could not save active download before quitting", reason);
+    try {
+      await runDownloadQuitStep("pausing the active download", () =>
+        DownloadManager.pauseDownload()
+      );
+    } catch (error) {
+      logger.error("Could not save active download before quitting", error);
     }
-    logPendingQuitTasks(pause.pending);
-    const cleanup = await runQuitTasks(
-      {
-        "release lock": () => Lock.releaseLock(),
-        "torrent shutdown": () => TorrentService.shutdown(),
-        "clear playtime": () => clearGamesPlaytime(),
-        "save recompilation playtime": () => saveRecompilationPlaytimeOnQuit(),
-        "stop emulator captures": () =>
-          emulators.stopAllEmulatorSouvenirCaptureSessions(),
-        "flush screenshot telemetry": () =>
-          flushScreenshotTelemetry(SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS),
-      },
-      QUIT_CLEANUP_TIMEOUT_MS
-    );
-    for (const { reason } of cleanup.failed) {
-      logger.error("Application shutdown cleanup failed", reason);
+    const results = await Promise.allSettled([
+      Lock.releaseLock(),
+      runDownloadQuitStep("torrent shutdown", () => TorrentService.shutdown()),
+      clearGamesPlaytime(),
+      saveRecompilationPlaytimeOnQuit(),
+      emulators.stopAllEmulatorSouvenirCaptureSessions(),
+      flushScreenshotTelemetry(SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS),
+    ]);
+    for (const result of results) {
+      if (result.status === "rejected") {
+        logger.error("Application shutdown cleanup failed", result.reason);
+      }
     }
-    logPendingQuitTasks(cleanup.pending);
     achievementNotificationPresenter.shutdown();
     canAppBeClosed = true;
     app.quit();
