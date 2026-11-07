@@ -758,11 +758,12 @@ test("a busy Linux prefix waits for cleanup and resumes finalization at full pro
   assert.equal(f.manager.getActiveDownloadId(), null);
 });
 
-test("resuming a torrent that startup already started marks it active without restarting it", async () => {
-  const f = fixture();
-  // Startup normalizes the interrupted record to paused/queued, then starts
-  // the downloader directly. Until metadata and file checks finish, the status
-  // poll leaves that record untouched.
+/**
+ * Startup normalizes the interrupted record to paused/queued, then starts the
+ * downloader directly. Until metadata and file checks finish, the torrent
+ * status poll leaves that record untouched.
+ */
+async function startTorrentAsAtStartup(f: ReturnType<typeof fixture>) {
   const download: Download = {
     shop: "steam",
     objectId: "1222140",
@@ -783,8 +784,13 @@ test("resuming a torrent that startup already started marks it active without re
   };
   f.add(download);
   f.state.torrentReply = async () => ({ data: null });
-
   await f.manager.startDownload(download);
+  return download;
+}
+
+test("resuming a torrent that startup already started marks it active without restarting it", async () => {
+  const f = fixture();
+  const download = await startTorrentAsAtStartup(f);
   assert.equal(f.manager.hasRunningDownload(key(download)), true);
   assert.deepEqual(f.state.torrentCalls, ["action"]);
 
@@ -804,27 +810,7 @@ test("resuming a torrent that startup already started marks it active without re
 
 test("a runtime failure while resume reads the running record keeps the error", async () => {
   const f = fixture();
-  const download: Download = {
-    shop: "steam",
-    objectId: "1222140",
-    downloader: Downloader.Torrent,
-    uri: "magnet:?xt=urn:btih:0000000000000000000000000000000000000001",
-    downloadPath: path.resolve("torrent-fixture"),
-    folderName: null,
-    fileSize: 1000,
-    bytesDownloaded: 250,
-    progress: 0.25,
-    extracting: false,
-    queued: true,
-    status: "paused",
-    timestamp: 1,
-    automaticallyExtract: false,
-    automaticallyDeleteArchiveFiles: false,
-    shouldSeed: false,
-  };
-  f.add(download);
-  f.state.torrentReply = async () => ({ data: null });
-  await f.manager.startDownload(download);
+  const download = await startTorrentAsAtStartup(f);
 
   // Fail the runtime exactly while resume re-reads the record it found running.
   const hasRunningDownload = f.manager.hasRunningDownload.bind(f.manager);
