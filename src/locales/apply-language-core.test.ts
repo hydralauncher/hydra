@@ -5,7 +5,7 @@ import { createInstance } from "i18next";
 
 import { createLanguageApplier } from "./apply-language-core.js";
 
-describe("applyLanguage", () => {
+describe("createLanguageApplier", () => {
   it("recomputes resolvedLanguage when the selected language is already set", async () => {
     const i18n = createInstance();
 
