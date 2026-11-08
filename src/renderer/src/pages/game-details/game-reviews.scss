@@ -5,17 +5,11 @@
     margin-top: calc(globals.$spacing-unit * 3);
     padding-top: calc(globals.$spacing-unit * 3);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
+    @include globals.page-column;
+  }
 
-    @media (min-width: 1280px) {
-      width: 60%;
-    }
-
-    @media (min-width: 1536px) {
-      width: 50%;
-    }
+  &__leave-review--pending {
+    visibility: hidden;
   }
 
   &__reviews-header {
@@ -24,7 +18,7 @@
     align-items: center;
     margin-bottom: calc(globals.$spacing-unit * 2);
 
-    @media (max-width: 768px) {
+    @include globals.page-max-width(900px) {
       flex-direction: column;
       align-items: flex-start;
       gap: calc(globals.$spacing-unit * 1.5);
@@ -32,7 +26,7 @@
   }
 
   &__reviews-title {
-    font-size: 1.25rem;
+    font-size: 20px;
     font-weight: 600;
     color: globals.$muted-color;
     margin: 0;
@@ -50,7 +44,7 @@
     color: rgba(255, 255, 255, 0.7);
     padding: 4px 8px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 600;
     min-width: 24px;
     text-align: center;
@@ -90,13 +84,13 @@
   }
 
   &__reviews-empty-title {
-    color: rgba(255, 255, 255, 0.9);
+    color: globals.$muted-color;
     font-weight: 600;
     margin: 0 0 calc(globals.$spacing-unit * 1) 0;
   }
 
   &__reviews-empty-message {
-    color: rgba(255, 255, 255, 0.6);
+    color: globals.$subtle-color;
     font-size: globals.$small-font-size;
     margin: 0;
     line-height: 1.4;
@@ -104,7 +98,7 @@
 
   &__reviews-loading {
     text-align: center;
-    color: rgba(255, 255, 255, 0.6);
+    color: globals.$subtle-color;
     padding: calc(globals.$spacing-unit * 2);
   }
 

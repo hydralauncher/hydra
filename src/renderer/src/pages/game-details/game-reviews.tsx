@@ -414,8 +414,14 @@ export function GameReviews({
 
   return (
     <div className="game-details__reviews-section">
-      {!isCheckingUserReview && !hasUserReviewed && (
-        <>
+      {/* Kept in the layout (hidden) while the review check runs: most
+          visitors haven't reviewed, so the form usually stays and the list
+          below it doesn't jump when the answer arrives. */}
+      {!hasUserReviewed && (
+        <div
+          className={`game-details__leave-review${isCheckingUserReview ? " game-details__leave-review--pending" : ""}`}
+          aria-hidden={isCheckingUserReview}
+        >
           <div className="game-details__reviews-header">
             <h3 className="game-details__reviews-title">
               {t("leave_a_review")}
@@ -436,7 +442,7 @@ export function GameReviews({
             />
           )}
           <div className="game-details__reviews-separator"></div>
-        </>
+        </div>
       )}
 
       <div className="game-details__reviews-list-header">

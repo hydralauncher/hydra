@@ -211,7 +211,7 @@ $lightbox-sidebar-fade-duration: 0.2s;
   &__counter {
     font-size: globals.$small-font-size;
     font-variant-numeric: tabular-nums;
-    color: rgba(255, 255, 255, 0.5);
+    color: globals.$subtle-color;
     flex-shrink: 0;
   }
 

@@ -13,16 +13,16 @@
   &__option {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     height: 30px;
     padding: 0 calc(globals.$spacing-unit * 1.5);
     border: 0;
     border-radius: 6px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.55);
+    color: globals.$subtle-color;
     cursor: pointer;
     font-family: inherit;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 500;
     user-select: none;
     transition:
@@ -30,7 +30,7 @@
       color motion.$fast-transition-duration ease;
 
     &:hover {
-      color: rgba(255, 255, 255, 0.85);
+      color: globals.$body-color;
     }
 
     &--active {
