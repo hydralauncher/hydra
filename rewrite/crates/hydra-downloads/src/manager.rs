@@ -911,12 +911,35 @@ impl Manager {
         layout::put(&self.db, &done);
         self.emit(Event::Updated);
         self.cancel_runtime(&id);
-        // TODO(downloads): installer size, executable binding without extraction.
+        // TODO(downloads): installer size.
         if extract {
             self.extract(&id);
+        } else {
+            let this = self.clone();
+            let id = id.clone();
+            std::thread::spawn(move || this.bind_executable(&id));
         }
         let _activation = self.activation.lock().unwrap_or_else(|e| e.into_inner());
         self.activate_next_queued();
+    }
+
+    /// searchAndBindExecutable for the download's game; the library
+    /// reloads when it binds one.
+    pub(crate) fn bind_executable(&self, id: &str) {
+        let (Some(api), Some((shop, object_id))) = (self.api(), id.split_once(':')) else {
+            return;
+        };
+        let before: Option<serde_json::Value> = self.db.get_in(hydra_db::keys::GAMES, id);
+        let had = before
+            .as_ref()
+            .and_then(|g| g.get("executablePath"))
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|s| !s.is_empty());
+        if hydra_core::executables::search_and_bind(&self.db, &api, shop, object_id).is_some()
+            && !had
+        {
+            self.emit(Event::Updated);
+        }
     }
 
     /// handleExtraction on a worker thread (also the "Extract" action).

@@ -451,7 +451,7 @@ impl Extraction {
         let Some(mut download) = self.download() else {
             return;
         };
-        // TODO(downloads): searchAndBindExecutable, hasInstaller, classics disc linking.
+        // TODO(downloads): hasInstaller, classics disc linking.
         download.insert("extracting".into(), json!(false));
         layout::put(&self.db, &download);
         self.manager.emit_event(Event::Updated);
@@ -465,6 +465,7 @@ impl Extraction {
                 game.insert("installedSizeInBytes".into(), json!(size));
             });
         }
+        self.manager.bind_executable(&self.id);
         self.manager.emit_event(Event::ExtractionComplete {
             game_id: self.id.clone(),
         });
@@ -507,6 +508,7 @@ impl Extraction {
             }
         } else {
             // handleUnsupportedExtraction({ notify: false })
+            self.manager.bind_executable(&self.id);
             eprintln!(
                 "[GameFilesManager] Skipped extracting unsupported file {}",
                 path.display()
