@@ -1,0 +1,377 @@
+// pages/settings/settings.tsx (settings.scss): a bordered box with the
+// category sidebar and the panel. Rust fills `SettingsData` (settings_page.rs).
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, HydraButton, ScrollBar } from "../../components/widgets.slint";
+import { TextField, CheckboxField, SelectField, SelectOption } from "../../components/fields.slint";
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { T } from "../../globals.slint";
+
+export struct SettingsCategory {
+    id: string,
+    label: string,
+    // "" or "classics": a divider and group label before the first of a group
+    group: string,
+    group-start: bool,
+}
+
+export global SettingsData {
+    in property <[SettingsCategory]> categories;
+    in property <string> category: "general";
+    // the h2 above the panel
+    in property <string> category-label;
+
+    // ---- General
+    in property <string> downloads-path;
+    in property <[SelectOption]> language-options;
+    in property <string> language;
+    in property <string> language-label;
+    in property <bool> show-run-at-startup: true;
+    in property <bool> linux;
+    in property <bool> prefer-quit;
+    in property <bool> hide-to-tray;
+    in property <bool> run-at-startup;
+    in property <bool> start-minimized;
+    in property <bool> launch-to-library;
+    in property <bool> open-friends;
+    in property <bool> enable-auto-install;
+    in property <bool> native-decorations;
+
+    callback select-category(string);
+    callback change-downloads-path();
+    callback language-selected(string);
+    // A checkbox by its preference key (e.g. "preferQuitInsteadOfHiding").
+    callback toggle(string);
+}
+
+// settings__sidebar-button: padding 8px 12px, radius 4px, line-height 1.2
+component SidebarButton inherits Rectangle {
+    in property <SettingsCategory> category;
+    in property <bool> active;
+    callback clicked();
+    height: 14px * 1.2 + 16px;
+    border-radius: 4px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.15) : root.active ? rgba(255, 255, 255, 0.1) : transparent;
+    animate background { duration: 100ms; easing: ease; }
+    // white-space: nowrap -> the sidebar is as wide as its longest label
+    preferred-width: row.preferred-width;
+    row := HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 16px;
+                height: 16px;
+                opacity: 0.9;
+                color: Theme.muted;
+                source: root.category.id == "general" ? Icons.gear
+                    : root.category.id == "downloads" ? Icons.download
+                    : root.category.id == "download_sources" ? @image-url("../../icons/link.svg")
+                    : root.category.id == "notifications" ? Icons.bell
+                    : root.category.id == "content_gameplay" ? Icons.play
+                    : root.category.id == "screenshots" ? @image-url("../../icons/camera.svg")
+                    : root.category.id == "integrations" ? Icons.cloud
+                    : root.category.id == "compatibility" ? Icons.wrench
+                    : root.category.id == "account_privacy" ? @image-url("../../icons/shield-check.svg")
+                    : @image-url("../../icons/gamepad-2.svg");
+            }
+        }
+        Text {
+            text: root.category.label;
+            color: Theme.muted;
+            font-size: Theme.body-size;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// h3 (16.38px bold) inside settings-context-panel__group
+component GroupTitle inherits Text {
+    font-size: 16.38px;
+    font-weight: 700;
+    color: Theme.body;
+    height: 22px;
+    vertical-alignment: center;
+}
+
+// text-field / select-field with a label above (gap 8px)
+component Labeled inherits VerticalLayout {
+    in property <string> label;
+    spacing: 8px;
+    Text {
+        text: root.label;
+        font-size: Theme.body-size;
+        color: Theme.body;
+        height: 19px;
+        vertical-alignment: center;
+    }
+    @children
+}
+
+component Check inherits CheckboxField {
+    in property <string> key;
+    toggled => {
+        SettingsData.toggle(self.key);
+    }
+}
+
+// settings-context-general.tsx (the Appearance/themes group is not ported:
+// the theme editor was removed from the rewrite).
+component GeneralPanel inherits VerticalLayout {
+    spacing: 16px;
+    // settings-context-panel__group: padding-top 12px, gap 12px
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.app_basics");
+        }
+        Labeled {
+            label: T.tr("settings.downloads_path");
+            HorizontalLayout {
+                spacing: 8px;
+                TextField {
+                    text: SettingsData.downloads-path;
+                    read-only: true;
+                }
+                HydraButton {
+                    kind: "outline";
+                    text: T.tr("settings.change");
+                    clicked => {
+                        SettingsData.change-downloads-path();
+                    }
+                }
+            }
+        }
+        Labeled {
+            label: T.tr("settings.language");
+            HorizontalLayout {
+                alignment: start;
+                SelectField {
+                    // a native <select> as wide as its longest option (180px in Electron)
+                    width: 180px;
+                    popup-id: "settings-language";
+                    options: SettingsData.language-options;
+                    value: SettingsData.language;
+                    current-label: SettingsData.language-label;
+                    selected(value) => {
+                        SettingsData.language-selected(value);
+                    }
+                }
+            }
+        }
+    }
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.startup_behavior");
+        }
+        Check {
+            key: "preferQuitInsteadOfHiding";
+            label: T.tr("settings.quit_app_instead_hiding");
+            checked: SettingsData.prefer-quit;
+        }
+        Check {
+            key: "hideToTrayOnGameStart";
+            label: T.tr("settings.hide_to_tray_on_game_start");
+            checked: SettingsData.hide-to-tray;
+        }
+        if SettingsData.show-run-at-startup: Check {
+            key: "runAtStartup";
+            label: T.tr("settings.launch_with_system");
+            checked: SettingsData.run-at-startup;
+        }
+        if SettingsData.show-run-at-startup: Check {
+            key: "startMinimized";
+            label: T.tr("settings.launch_minimized");
+            checked: SettingsData.run-at-startup && SettingsData.start-minimized;
+            enabled: SettingsData.run-at-startup;
+        }
+        Check {
+            key: "launchToLibraryPage";
+            label: T.tr("settings.launch_hydra_in_library_page");
+            checked: SettingsData.launch-to-library;
+        }
+        Check {
+            key: "openFriendsWindowOnStartup";
+            label: T.tr("settings.open_friends_window_on_startup");
+            checked: SettingsData.open-friends;
+        }
+    }
+    if SettingsData.linux: VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.behavior");
+        }
+        Check {
+            key: "enableAutoInstall";
+            label: T.tr("settings.enable_auto_install");
+            checked: SettingsData.enable-auto-install;
+        }
+        Check {
+            key: "useNativeWindowDecorations";
+            label: T.tr("settings.use_native_window_decorations") + " " + T.tr("settings.use_native_window_decorations_hint");
+            checked: SettingsData.native-decorations;
+        }
+    }
+}
+
+export component SettingsPage inherits Rectangle {
+    // ---- panel scrolling (overflow: auto), with the wheel tween
+    property <length> max-scroll: Math.max(0, panel.content-height - panel.height);
+    property <length> scroll-y;
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    property <string> category: SettingsData.category;
+    changed category => {
+        root.tween.active = false;
+        root.scroll-y = 0;
+    }
+
+    // settings__container: padding 24px, inside .container__content's 9px
+    // scrollbar gutter (scrollbar-gutter: stable)
+    box := Rectangle {
+        x: 24px;
+        y: 24px;
+        width: root.width - 48px - 9px;
+        height: root.height - 48px;
+        background: Theme.background;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.border;
+        drop-shadow-blur: 10px;
+        drop-shadow-color: rgba(0, 0, 0, 0.7);
+        clip: true;
+
+        HorizontalLayout {
+            padding: 1px;
+            // ---- settings__sidebar: max-content width, 220..320px
+            Rectangle {
+                width: Math.clamp(sidebar.preferred-width, 220px, 320px);
+                background: Theme.dark-background;
+                sidebar := VerticalLayout {
+                    padding: 16px;
+                    spacing: 8px;
+                    alignment: start;
+                    for category in SettingsData.categories: VerticalLayout {
+                        spacing: 8px;
+                        // settings__sidebar-group: divider (margin-bottom 4) + label, padding-top 8
+                        if category.group-start: VerticalLayout {
+                            padding-top: 8px;
+                            spacing: 8px;
+                            Rectangle {
+                                height: 5px;
+                                Rectangle {
+                                    y: 0;
+                                    height: 1px;
+                                    background: rgba(255, 255, 255, 0.06);
+                                }
+                            }
+                            Text {
+                                text: category.group == "classics" ? T.tr("settings.classics_group") : category.group;
+                                font-size: Theme.tiny-size;
+                                font-weight: 600;
+                                color: Theme.subtle;
+                                letter-spacing: 0.8px;
+                                x: 12px;
+                            }
+                        }
+                        SidebarButton {
+                            category: category;
+                            active: SettingsData.category == category.id;
+                            clicked => {
+                                SettingsData.select-category(category.id);
+                            }
+                        }
+                    }
+                }
+                Rectangle {
+                    x: parent.width - 1px;
+                    width: 1px;
+                    background: Theme.border;
+                }
+            }
+
+            // ---- settings__panel: padding 20px, gap 20px, overflow auto
+            Rectangle {
+                horizontal-stretch: 1;
+                panel := Flickable {
+                    width: parent.width;
+                    height: parent.height;
+                    interactive: false;
+                    viewport-height: column.preferred-height;
+                    viewport-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+                    TouchArea {
+                        width: panel.width;
+                        height: column.preferred-height;
+                        scroll-event(event) => {
+                            root.wheel-by(event.delta-y);
+                            accept
+                        }
+                        column := VerticalLayout {
+                            width: panel.width;
+                            padding: 20px;
+                            spacing: 20px;
+                            alignment: start;
+                            if SettingsData.category != "emulation": Text {
+                                text: SettingsData.category-label;
+                                font-size: 21px;
+                                font-weight: 700;
+                                color: Theme.body;
+                                height: 28px;
+                                vertical-alignment: center;
+                            }
+                            if SettingsData.category == "general": GeneralPanel { }
+                            if SettingsData.category != "general": Text {
+                                text: "TODO(settings): " + SettingsData.category + " not ported yet";
+                                color: Theme.subtle;
+                                font-size: Theme.small-size;
+                            }
+                        }
+                    }
+                }
+                if root.max-scroll > 0: ScrollBar {
+                    x: parent.width - self.width;
+                    height: parent.height;
+                    content-height: panel.viewport-height;
+                    viewport-height: panel.height;
+                    content-y <=> root.scroll-y;
+                    shown-offset: -panel.viewport-y;
+                }
+            }
+        }
+    }
+
+}

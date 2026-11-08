@@ -212,6 +212,9 @@ fn apply(previous: Option<String>) {
     {
         catalogue_page::open();
     }
+    if location.route() == "settings" {
+        crate::settings_page::open(location.param("tab"));
+    }
     if location.route() == "game" {
         let mut parts = location.pathname.trim_start_matches('/').split('/').skip(1);
         let shop = parts.next().unwrap_or("steam").to_string();

@@ -36,6 +36,11 @@ pub fn languages() -> impl Iterator<Item = &'static str> {
     SOURCES.iter().map(|(code, _)| *code)
 }
 
+/// A language's own name (`language_name` in its translation.json).
+pub fn language_name(code: &str) -> Option<String> {
+    table(code)?.strings.get("language_name").cloned()
+}
+
 /// Flattened `namespace.key` -> string for one language, parsed on first use.
 struct Table {
     strings: HashMap<String, String>,
@@ -53,6 +58,11 @@ fn parse(json: &str) -> Table {
     let value: serde_json::Value = serde_json::from_str(json).unwrap_or_default();
     if let Some(namespaces) = value.as_object() {
         for (ns, keys) in namespaces {
+            // Top-level strings such as "language_name"
+            if let Some(text) = keys.as_str() {
+                strings.insert(ns.clone(), text.to_string());
+                continue;
+            }
             let Some(keys) = keys.as_object() else {
                 continue;
             };

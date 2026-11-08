@@ -107,6 +107,11 @@ impl Db {
             .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
     }
 
+    /// `db.put(key, value, { valueEncoding: "utf8" })`
+    pub fn put_utf8(&self, key: &str, value: &str) -> Result<()> {
+        self.put_raw(key, value.as_bytes())
+    }
+
     pub fn get_value(&self, key: &str) -> Option<Value> {
         self.get(key)
     }

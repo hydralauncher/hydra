@@ -157,6 +157,23 @@ pub fn i18n() -> Option<Rc<I18n>> {
     with_shell(|s| s.i18n.clone())
 }
 
+/// i18next.changeLanguage: swap the strings and re-evaluate every T.tr binding.
+pub fn set_language(code: &str) {
+    let i18n = Rc::new(I18n::new(code));
+    let ui = with_shell(|s| {
+        s.i18n = i18n.clone();
+        s.ui.upgrade()
+    })
+    .flatten();
+    if let Some(ui) = ui {
+        let t = ui.global::<T>();
+        t.set_rtl(i18n.dir() == Direction::Rtl);
+        t.set_rev(t.get_rev() + 1);
+    }
+    refresh_rows();
+    crate::library_page::on_library_changed();
+}
+
 /// The language Steam store data is fetched in (steam.ts maps it further).
 pub fn shop_language() -> String {
     with_shell(|s| s.i18n.language().to_string()).unwrap_or_else(|| "en".into())
