@@ -74,6 +74,11 @@ fn confirm_sign_out() {
 
 /// openAuthWindow(page): `lng`, plus a fresh token for the account pages.
 pub fn open(page: Page) {
+    #[cfg(target_os = "linux")]
+    if crate::auth_gtk::is_open() {
+        crate::auth_gtk::present();
+        return;
+    }
     if OPEN.with(|o| o.borrow().is_some()) {
         OPEN.with(|o| {
             if let Some(open) = o.borrow().as_ref() {
@@ -116,6 +121,16 @@ fn show(base: &str, page: Page, language: &str, token: Option<&str>) {
             query.append_pair("token", token);
         }
     }
+    // Linux: a GTK window around WebKitGTK (openLinuxAuthWindow).
+    #[cfg(target_os = "linux")]
+    crate::auth_gtk::open(url.as_str(), on_navigation);
+    #[cfg(not(target_os = "linux"))]
+    show_window(url.to_string());
+}
+
+/// Windows and macOS: a Slint window with the webview as its child.
+#[cfg(not(target_os = "linux"))]
+fn show_window(url: String) {
     let Ok(window) = AuthWindow::new() else {
         return;
     };
@@ -128,11 +143,12 @@ fn show(base: &str, page: Page, language: &str, token: Option<&str>) {
         slint::Timer::single_shot(std::time::Duration::ZERO, close);
         slint::CloseRequestResponse::HideWindow
     });
-    attach_when_ready(window, url.to_string(), 0);
+    attach_when_ready(window, url, 0);
 }
 
 /// winit creates the native window on a later event-loop pass: wait for it,
 /// then attach the webview as a child of it.
+#[cfg(not(target_os = "linux"))]
 fn attach_when_ready(window: AuthWindow, url: String, attempt: u32) {
     let ready = window
         .window()
@@ -163,24 +179,7 @@ fn attach_when_ready(window: AuthWindow, url: String, attempt: u32) {
             position: wry::dpi::LogicalPosition::new(0.0, 0.0).into(),
             size: wry::dpi::LogicalSize::new(600.0, 640.0).into(),
         })
-        .with_navigation_handler(|url: String| {
-            // bindAuthNavigation
-            if url.starts_with("hydralauncher://auth") {
-                let _ = slint::invoke_from_event_loop(move || {
-                    close();
-                    handle_external_auth(&url);
-                });
-                return false;
-            }
-            if url.starts_with("hydralauncher://update-account") {
-                let _ = slint::invoke_from_event_loop(|| {
-                    close();
-                    crate::settings_account::on_account_updated();
-                });
-                return false;
-            }
-            true
-        })
+        .with_navigation_handler(on_navigation)
         .build_as_child(&handle);
     match webview {
         Ok(webview) => OPEN.with(|o| {
@@ -196,7 +195,28 @@ fn attach_when_ready(window: AuthWindow, url: String, attempt: u32) {
     }
 }
 
-fn close() {
+/// bindAuthNavigation: the `hydralauncher://` redirects end the flow.
+fn on_navigation(url: String) -> bool {
+    if url.starts_with("hydralauncher://auth") {
+        let _ = slint::invoke_from_event_loop(move || {
+            close();
+            handle_external_auth(&url);
+        });
+        return false;
+    }
+    if url.starts_with("hydralauncher://update-account") {
+        let _ = slint::invoke_from_event_loop(|| {
+            close();
+            crate::settings_account::on_account_updated();
+        });
+        return false;
+    }
+    true
+}
+
+pub(crate) fn close() {
+    #[cfg(target_os = "linux")]
+    crate::auth_gtk::close();
     let open = OPEN.with(|o| o.borrow_mut().take());
     if let Some(open) = open {
         let _ = open.window.hide();

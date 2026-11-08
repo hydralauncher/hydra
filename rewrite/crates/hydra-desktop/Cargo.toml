@@ -54,6 +54,8 @@ notify-rust = "4"
 # speaks), served from its own thread so the winit loop needs no GTK.
 [target.'cfg(target_os = "linux")'.dependencies]
 ksni = { version = "0.3", default-features = false, features = ["blocking", "async-io"] }
+# The auth window's frame around WebKitGTK (the same gtk wry uses).
+gtk = "0.18"
 
 
 [build-dependencies]

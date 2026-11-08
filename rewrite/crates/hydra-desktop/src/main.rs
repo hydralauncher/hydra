@@ -6,6 +6,8 @@
 
 mod achievements_page;
 mod auth;
+#[cfg(target_os = "linux")]
+mod auth_gtk;
 mod catalogue_page;
 mod classics_bookmark;
 mod collections;
@@ -32,6 +34,8 @@ mod headless;
 mod home_page;
 mod instance;
 mod library_page;
+#[cfg(target_os = "linux")]
+mod linux;
 mod main_window;
 mod nav;
 mod notifications_page;
@@ -152,6 +156,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .backend_name("winit".into())
             .renderer_name("skia".into())
             .select()?;
+    }
+    #[cfg(target_os = "linux")]
+    if !headless_mode {
+        linux::set_app_id();
     }
 
     // ---- local data: the rewrite's own LevelDB, imported from Electron on first run
@@ -296,6 +304,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !headless_mode {
         main_window::restore(&ui);
         tray::init();
+        #[cfg(target_os = "linux")]
+        linux::set_window_icon(&ui);
     }
     // --hidden (auto-launch) and cold-start "run" links stay in the tray
     let start_hidden = tray::available()
