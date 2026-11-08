@@ -95,10 +95,19 @@ export component DownloadIcon inherits Rectangle {
 
     // Catch: squash and rebound, 560ms (keyframes at 14%, 40%, 68%).
     property <duration> catch-start: -1s;
+    property <bool> catching;
     changed catch-count => {
         root.catch-start = animation-tick();
+        root.catching = true;
     }
-    property <float> catch-t: root.catch-start < 0s ? 1 : Math.min(1, (animation-tick() - root.catch-start) / 560ms);
+    catch-timer := Timer {
+        interval: 600ms;
+        running: root.catching;
+        triggered => {
+            root.catching = false;
+        }
+    }
+    property <float> catch-t: !root.catching ? 1 : Math.min(1, (animation-tick() - root.catch-start) / 560ms);
     property <float> catch-sx: root.catch-t < 0.14 ? 1 + 0.12 * root.catch-t / 0.14
         : root.catch-t < 0.4 ? 1.12 + 0.04 * (root.catch-t - 0.14) / 0.26
         : root.catch-t < 0.68 ? 1.16 - 0.2 * (root.catch-t - 0.4) / 0.28

@@ -4,6 +4,7 @@ import { Theme, Tip, Ids } from "../../theme.slint";
 import { Icon, HydraButton, Spinner } from "../../components/widgets.slint";
 import { CheckboxField } from "../../components/fields.slint";
 import { T } from "../../globals.slint";
+import { Flight } from "../../shell/flight.slint";
 
 export struct DownloaderRow {
     // Downloader enum value
@@ -312,6 +313,9 @@ export component DownloadSettingsBody inherits VerticalLayout {
         icon-rotation: DownloadSettings.starting ? Math.mod(animation-tick() / 1ms, 1000) / 1000 * 360deg : 0deg;
         text: DownloadSettings.starting ? T.tr("game_details.loading") : DownloadSettings.has-active-download ? T.tr("game_details.add_to_queue") : T.tr("game_details.download_now");
         clicked => {
+            // beginDownloadFlight(event.currentTarget)
+            Flight.from-x = self.absolute-position.x + self.width / 2;
+            Flight.from-y = self.absolute-position.y + self.height / 2;
             DownloadSettings.start();
         }
     }

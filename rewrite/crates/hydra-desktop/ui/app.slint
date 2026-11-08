@@ -27,6 +27,7 @@ import { HomePage } from "pages/home/page.slint";
 import { CataloguePage } from "pages/catalogue/page.slint";
 import { DownloadsPage, DownloadsData, DownloadCard } from "pages/downloads/page.slint";
 import { DropdownHost, Dropdown, DropdownItem } from "components/dropdown.slint";
+import { FlightHost, Flight } from "shell/flight.slint";
 import { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup } from "pages/catalogue/state.slint";
 import { SelectPopupHost, SelectPopup, SelectOption } from "components/fields.slint";
 import { HomeData, CatalogueCard } from "pages/home/state.slint";
@@ -36,7 +37,7 @@ import { TitleBar } from "shell/title-bar.slint";
 import { Sidebar } from "shell/sidebar.slint";
 
 export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback, RepackRow, RepackSource }
-export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input, Popup, Bookmark, DownloadSettings, DownloaderRow, DownloadCard, Dropdown, DropdownItem }
+export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input, Popup, Bookmark, DownloadSettings, DownloaderRow, DownloadCard, Dropdown, DropdownItem, Flight }
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
 export { HomeData, CatalogueCard, Gifs, Dialogs, DownloadsData }
@@ -139,6 +140,12 @@ export component AppWindow inherits Window {
 
     // Radix dropdowns (above modals: modal z-index + 1)
     DropdownHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // .download-flight (z-index 160)
+    FlightHost {
         width: root.width;
         height: root.height;
     }

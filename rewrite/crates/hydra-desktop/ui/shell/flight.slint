@@ -1,0 +1,110 @@
+// components/sidebar/download-flight.{ts,scss}: when a download starts, the
+// game's icon (or a small light) pops off the button that started it, lifts,
+// falls along a parabola into the sidebar's Downloads icon and is absorbed.
+
+export global Flight {
+    // Where the flight starts (the clicked button) and ends (the Downloads
+    // icon), centres in window coordinates.
+    in-out property <length> from-x;
+    in-out property <length> from-y;
+    in-out property <length> to-x;
+    in-out property <length> to-y;
+    // The Downloads icon's position, kept up to date by the sidebar.
+    in-out property <length> icon-x;
+    in-out property <length> icon-y;
+    in-out property <bool> flying;
+    // ICON_FLIGHT with an image, SPARK_FLIGHT without
+    in-out property <image> image;
+    in-out property <bool> spark;
+    in-out property <duration> started;
+
+    // Starts the clock from the frame time.
+    public function launch() {
+        self.started = animation-tick();
+        self.flying = true;
+    }
+}
+
+export component FlightHost inherits Rectangle {
+    // ICON_FLIGHT / SPARK_FLIGHT
+    property <length> size: Flight.spark ? 8px : 44px;
+    property <float> start-scale: Flight.spark ? 0 : 0.5;
+    property <float> lift-scale: Flight.spark ? 1.3 : 1.1;
+    property <float> end-scale: Flight.spark ? 0.7 : 0.3;
+    property <length> lift-height: Flight.spark ? 10px : 20px;
+    property <float> arc-ratio: Flight.spark ? 0.15 : 0.24;
+    property <float> tilt: Flight.spark ? 0 : -10;
+    property <duration> lift-duration: Flight.spark ? 110ms : 170ms;
+    property <duration> travel-duration: Flight.spark ? 480ms : 600ms;
+    property <duration> absorb-duration: Flight.spark ? 70ms : 90ms;
+
+    property <duration> elapsed: Flight.flying ? animation-tick() - Flight.started : 0ms;
+    property <float> lift-t: Math.clamp(root.elapsed / root.lift-duration, 0, 1);
+    property <float> travel-t: Math.clamp((root.elapsed - root.lift-duration) / root.travel-duration, 0, 1);
+    property <float> absorb-t: Math.clamp((root.elapsed - root.lift-duration - root.travel-duration) / root.absorb-duration, 0, 1);
+
+    // easeOutBack / easeOutCubic
+    pure function ease-out-back(t: float) -> float {
+        return 1 + 2.70158 * Math.pow(t - 1, 3) + 1.70158 * Math.pow(t - 1, 2);
+    }
+    pure function ease-out-cubic(t: float) -> float {
+        return 1 - Math.pow(1 - t, 3);
+    }
+
+    property <length> launch-x: Flight.from-x;
+    property <length> launch-y: Flight.from-y - root.lift-height;
+    property <length> distance: Math.sqrt((Flight.to-x - root.launch-x) / 1px * (Flight.to-x - root.launch-x) / 1px + (Flight.to-y - root.launch-y) / 1px * (Flight.to-y - root.launch-y) / 1px) * 1px;
+    property <length> control-x: Flight.to-x + (root.launch-x - Flight.to-x) * 0.36;
+    property <length> control-y: Math.max(Math.min(root.launch-y, Flight.to-y) - root.distance * root.arc-ratio, 0px);
+    // Starts slow and speeds up, so it drops into the icon.
+    property <float> bt: 0.45 * root.travel-t + 0.55 * root.travel-t * root.travel-t;
+
+    property <bool> in-lift: root.elapsed < root.lift-duration;
+    property <bool> in-travel: !root.in-lift && root.elapsed < root.lift-duration + root.travel-duration;
+    property <length> cx: root.in-lift ? Flight.from-x
+        : root.in-travel ? (1 - root.bt) * (1 - root.bt) * root.launch-x + 2 * root.bt * (1 - root.bt) * root.control-x + root.bt * root.bt * Flight.to-x
+        : Flight.to-x;
+    property <length> cy: root.in-lift ? Flight.from-y - root.lift-height * root.ease-out-cubic(root.lift-t)
+        : root.in-travel ? (1 - root.bt) * (1 - root.bt) * root.launch-y + 2 * root.bt * (1 - root.bt) * root.control-y + root.bt * root.bt * Flight.to-y
+        : Flight.to-y;
+    // Stays big for the first half, then shrinks late, which reads as depth.
+    property <float> scale: root.in-lift ? root.start-scale + (root.lift-scale - root.start-scale) * root.ease-out-back(root.lift-t)
+        : root.in-travel ? root.lift-scale + (root.end-scale - root.lift-scale) * Math.pow(root.travel-t, 2.2)
+        : root.end-scale * (1 - 0.75 * root.absorb-t);
+    property <float> rotation: root.in-travel ? root.tilt * Math.sin(180deg * Math.min(1, root.travel-t * 1.1)) : 0;
+    property <float> alpha: root.in-lift ? Math.min(1, root.lift-t * 4) : root.in-travel ? 1 : 1 - root.absorb-t;
+
+    if Flight.flying: Rectangle {
+        x: root.cx - root.size / 2;
+        y: root.cy - root.size / 2;
+        width: root.size;
+        height: root.size;
+        opacity: root.alpha;
+        Rectangle {
+            transform-scale: root.scale;
+            transform-rotation: root.rotation * 1deg;
+            // --icon: 8px radius, faint backing, cover image, shadow
+            if !Flight.spark: Rectangle {
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.08);
+                drop-shadow-offset-y: 10px;
+                drop-shadow-blur: 24px;
+                drop-shadow-color: rgba(0, 0, 0, 0.55);
+                clip: true;
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: Flight.image;
+                    image-fit: cover;
+                }
+            }
+            // --spark: a glowing dot
+            if Flight.spark: Rectangle {
+                border-radius: self.width / 2;
+                background: #f0f1f7;
+                drop-shadow-blur: 10px;
+                drop-shadow-color: rgba(240, 241, 247, 0.55);
+            }
+        }
+    }
+}

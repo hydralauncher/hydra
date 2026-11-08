@@ -346,6 +346,17 @@ pub fn refresh() {
         )
     });
     with(|s| s.queued_ids = queued.iter().map(|e| e.id.clone()).collect());
+    let all_downloads: Vec<Download> = downloading
+        .iter()
+        .chain(queued.iter())
+        .chain(completed.iter())
+        .map(|e| e.download.clone())
+        .collect();
+    crate::download_indicator::update(crate::download_indicator::compute(
+        &all_downloads,
+        packet.as_ref(),
+        &layout_state.queue_order,
+    ));
 
     let d = ui.global::<DownloadsData>();
     d.set_has_downloads(!downloading.is_empty() || !queued.is_empty() || !completed.is_empty());

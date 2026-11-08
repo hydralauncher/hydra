@@ -93,6 +93,8 @@ export global SidebarState {
     in property <float> download-progress;
     in property <bool> download-has-progress;
     in property <int> download-games;
+    // Bumped when a flight lands: the icon catches it, the row flashes.
+    in property <int> download-catch;
     callback filter-changed(string);
     callback toggle-playable();
     callback game-clicked(string);

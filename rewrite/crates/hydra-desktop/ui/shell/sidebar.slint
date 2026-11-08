@@ -4,6 +4,7 @@ import { Theme, Icons } from "../theme.slint";
 import { Icon, Skeleton, ScrollBar } from "../components/widgets.slint";
 import { T, Nav, Session, SidebarState, SidebarGame } from "../globals.slint";
 import { DownloadIcon } from "download-icon.slint";
+import { Flight } from "flight.slint";
 
 // .sidebar__menu-item + .sidebar__menu-item-button
 component MenuItem inherits Rectangle {
@@ -16,6 +17,29 @@ component MenuItem inherits Rectangle {
     border-radius: 4px;
     background: touch.has-hover ? rgba(255, 255, 255, 0.15) : root.active ? rgba(255, 255, 255, 0.1) : transparent;
     animate background { duration: 100ms; easing: ease; }
+
+    // FLASH_KEYFRAMES: once a flight lands the row flashes (8% of 1s to
+    // rgba(255,255,255,0.14), ease-out), then returns to its background.
+    property <int> flash-count: root.downloads-icon ? SidebarState.download-catch : 0;
+    property <bool> flashing;
+    property <duration> flash-start;
+    changed flash-count => {
+        root.flash-start = animation-tick();
+        root.flashing = true;
+    }
+    Timer {
+        interval: 1050ms;
+        running: root.flashing;
+        triggered => {
+            root.flashing = false;
+        }
+    }
+    property <float> flash-t: root.flashing ? Math.min(1, (animation-tick() - root.flash-start) / 1000ms) : 1;
+    property <float> flash-alpha: root.flash-t < 0.08 ? 1 - (1 - root.flash-t / 0.08) * (1 - root.flash-t / 0.08) : 1 - (root.flash-t - 0.08) / 0.92;
+    if root.flashing: Rectangle {
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.14 * root.flash-alpha);
+    }
     accessible-role: button;
     accessible-label: root.label;
     HorizontalLayout {
@@ -36,6 +60,17 @@ component MenuItem inherits Rectangle {
                 progress: SidebarState.download-progress;
                 has-progress: SidebarState.download-has-progress;
                 games: SidebarState.download-games;
+                catch-count: SidebarState.download-catch;
+                // The flight's target ([data-sidebar-downloads-icon])
+                property <Point> pos: self.absolute-position;
+                init => {
+                    Flight.icon-x = self.absolute-position.x + 8px;
+                    Flight.icon-y = self.absolute-position.y + 8px;
+                }
+                changed pos => {
+                    Flight.icon-x = self.pos.x + 8px;
+                    Flight.icon-y = self.pos.y + 8px;
+                }
             }
         }
         Text {

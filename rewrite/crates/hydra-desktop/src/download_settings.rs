@@ -122,6 +122,19 @@ fn start() {
     let Some(map) = repack.as_object() else {
         return;
     };
+    // The game's icon for the flight (shop assets, else the library record).
+    let icon_url = shell::db().and_then(|db| {
+        let key = format!("{}:{}", game.shop, game.object_id);
+        let from = |sub: &str| {
+            db.get_in::<Value>(sub, &key).and_then(|v| {
+                v.get("iconUrl")
+                    .and_then(Value::as_str)
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_string)
+            })
+        };
+        from(hydra_db::keys::GAME_SHOP_ASSETS).or_else(|| from(hydra_db::keys::GAMES))
+    });
     // selectRepackUri / getRepackUriParts
     let uri = repacks::uri_for(map, downloader).unwrap_or_default();
     let parts = map
@@ -157,7 +170,9 @@ fn start() {
     };
     d.set_starting(true);
     apply();
-    crate::downloads::start(payload, |result| {
+    crate::download_indicator::begin_flight();
+    let icon = icon_url;
+    crate::downloads::start(payload, move |result| {
         let Some(ui) = with(|s| s.ui.upgrade()).flatten() else {
             return;
         };
@@ -165,12 +180,14 @@ fn start() {
         d.set_starting(false);
         match result {
             Ok(()) => {
-                // TODO(downloads): the download flight animation to the sidebar (beginDownloadFlight).
+                // flight.launch(shopDetails?.assets?.iconUrl || game?.iconUrl)
+                crate::download_indicator::launch_flight(icon);
                 d.set_open(false);
                 ui.global::<crate::GameData>().set_repacks_open(false);
                 ui.global::<crate::GameData>().set_options_open(false);
             }
             Err(error) => {
+                crate::download_indicator::cancel_flight();
                 // showErrorToast(t("download_error"), t(response.error), 4_000)
                 let message = if error.starts_with("download_error_") {
                     shell::tr(&format!("game_details.{error}"))
