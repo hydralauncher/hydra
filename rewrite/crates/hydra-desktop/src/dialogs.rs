@@ -185,6 +185,13 @@ pub fn set_field_error(message: &str) {
 }
 
 /// Close the open dialog with its exit animation.
+/// Disables the dialog buttons (buttonsIsDisabled).
+pub fn set_busy(busy: bool) {
+    if let Some(ui) = window() {
+        ui.global::<Dialogs>().set_busy(busy);
+    }
+}
+
 pub fn close() {
     if let Some(ui) = window() {
         let dialogs = ui.global::<Dialogs>();

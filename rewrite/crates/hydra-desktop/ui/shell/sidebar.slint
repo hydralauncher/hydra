@@ -3,7 +3,7 @@
 import { SmoothScroll, ScrollTween } from "../components/smooth-scroll.slint";
 import { Theme, Icons } from "../theme.slint";
 import { Icon, Skeleton, ScrollBar } from "../components/widgets.slint";
-import { T, Nav, Session, SidebarState, SidebarGame } from "../globals.slint";
+import { T, Nav, Session, SidebarState, SidebarGame, Popup } from "../globals.slint";
 import { DownloadIcon } from "download-icon.slint";
 import { Flight } from "flight.slint";
 
@@ -117,7 +117,7 @@ export component Avatar inherits Rectangle {
 
 // .sidebar-profile
 component SidebarProfile inherits VerticalLayout {
-    property <bool> open;
+    property <bool> open: Popup.open == "profile-menu";
     padding-left: 16px;
     padding-right: 16px;
     padding-top: 8px;
@@ -129,18 +129,62 @@ component SidebarProfile inherits VerticalLayout {
         HorizontalLayout {
             padding: 8px;
             spacing: 12px;
-            Avatar {
-                size: 35px;
-                source: Session.avatar;
+            Rectangle {
+                width: 35px;
+                height: 35px;
+                Avatar {
+                    size: 35px;
+                    source: Session.avatar;
+                }
+                // __unread-dot: 10px, error color, 2px dark border, top/right -2px
+                if Session.signed-in && Session.unread-chat > 0: Rectangle {
+                    x: parent.width - 8px;
+                    y: -2px;
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 5px;
+                    background: Theme.error;
+                    border-width: 2px;
+                    border-color: Theme.dark-background;
+                }
             }
-            Text {
+            VerticalLayout {
                 horizontal-stretch: 1;
-                text: Session.signed-in ? Session.display-name : T.tr("sidebar.sign_in");
-                color: Theme.muted;
-                font-weight: 700;
-                font-size: Theme.body-size;
-                vertical-alignment: center;
-                overflow: elide;
+                alignment: center;
+                Text {
+                    text: Session.signed-in ? Session.display-name : T.tr("sidebar.sign_in");
+                    color: Theme.muted;
+                    font-weight: 700;
+                    font-size: Theme.body-size;
+                    overflow: elide;
+                }
+                if Session.signed-in && Session.running-title != "": Text {
+                    text: Session.running-title;
+                    color: Theme.muted;
+                    font-size: 11.67px;
+                    overflow: elide;
+                }
+            }
+            // gameRunningDetails: the icon (24px wide), or the Steam logo
+            if Session.signed-in && Session.running-title != "": VerticalLayout {
+                alignment: center;
+                if Session.running-icon.width > 0: Rectangle {
+                    width: 24px;
+                    height: 24px * Session.running-icon.height / Math.max(1, Session.running-icon.width);
+                    border-radius: 4px;
+                    clip: true;
+                    Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: Session.running-icon;
+                    }
+                }
+                if Session.running-icon.width == 0: Icon {
+                    width: 24px;
+                    height: 24px;
+                    source: Icons.steam-logo;
+                    color: Theme.muted;
+                }
             }
             if Session.signed-in: VerticalLayout {
                 alignment: center;
@@ -161,7 +205,186 @@ component SidebarProfile inherits VerticalLayout {
                 if (!Session.signed-in) {
                     Session.sign-in();
                 } else {
-                    root.open = !root.open;
+                    Popup.toggle("profile-menu", button.absolute-position.x, button.absolute-position.y, button.width, button.height);
+                }
+            }
+        }
+    }
+}
+
+// .sidebar-profile__dropdown-item
+component ProfileMenuItem inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> danger;
+    in property <string> badge;
+    in property <string> badge2;
+    callback clicked();
+    // padding 8px around Chromium's 19px line box, or the 20px badge
+    height: (root.badge != "" || root.badge2 != "" ? 20px : 19px) + 16px;
+    border-radius: 4px;
+    background: touch.has-hover ? (root.danger ? rgba(225, 29, 72, 0.18) : rgba(255, 255, 255, 0.15)) : transparent;
+    animate background { duration: 100ms; easing: ease; }
+    property <color> fg: root.danger ? Theme.error : touch.has-hover ? Theme.body : Theme.muted;
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: root.icon;
+                color: root.fg;
+            }
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.label;
+            font-size: Theme.body-size;
+            color: root.fg;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        // __dropdown-badge (--online: success), --unread: error
+        if root.badge != "": VerticalLayout {
+            alignment: center;
+            Rectangle {
+                height: 20px;
+                width: Math.max(20px, badge-text.preferred-width + 8px);
+                border-radius: 10px;
+                background: Theme.success;
+                badge-text := Text {
+                    text: root.badge;
+                    font-size: Theme.tiny-size;
+                    font-weight: 700;
+                    color: white;
+                }
+            }
+        }
+        if root.badge2 != "": VerticalLayout {
+            alignment: center;
+            Rectangle {
+                height: 20px;
+                width: Math.max(20px, badge2-text.preferred-width + 8px);
+                border-radius: 10px;
+                background: Theme.error;
+                badge2-text := Text {
+                    text: root.badge2;
+                    font-size: Theme.tiny-size;
+                    font-weight: 700;
+                    color: white;
+                }
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// .sidebar-profile__dropdown: rgba(0,0,0,.4) with blur(20px) over the sidebar.
+// Fades in from -8px (200ms ease-out) and back out (150ms ease-in).
+component ProfileMenu inherits Rectangle {
+    in property <bool> closing;
+    property <bool> entered;
+    Timer {
+        interval: 16ms;
+        running: !root.entered;
+        triggered => {
+            root.entered = true;
+            root.publish-box();
+        }
+    }
+    changed height => {
+        root.publish-box();
+    }
+    function publish-box() {
+        Popup.box-x = root.absolute-position.x;
+        Popup.box-y = root.absolute-position.y;
+        Popup.box-width = root.width;
+        Popup.box-height = root.height;
+    }
+    // close without the fade (the sign-out modal snapshots the window next)
+    callback hide-now();
+    function close() {
+        Popup.open = "";
+    }
+    height: items.preferred-height;
+    opacity: root.entered && !root.closing ? 1 : 0;
+    animate opacity { duration: root.closing ? 150ms : 200ms; easing: root.closing ? ease-in : ease-out; }
+    property <length> lift: root.entered && !root.closing ? 0 : -8px;
+    animate lift { duration: root.closing ? 150ms : 200ms; easing: root.closing ? ease-in : ease-out; }
+    // box-shadow: 0 4px 12px rgba(0,0,0,.4)
+    Rectangle {
+        y: root.lift;
+        border-radius: 6px;
+        drop-shadow-offset-y: 4px;
+        drop-shadow-blur: 12px;
+        drop-shadow-color: rgba(0, 0, 0, 0.4);
+        // Slint has no backdrop blur. Under the menu the sidebar is flat, so
+        // the blurred backdrop is one color: #080808 as Chromium paints it.
+        background: #080808;
+        border-width: 1px;
+        border-color: Theme.border;
+        TouchArea { }
+        items := VerticalLayout {
+            padding: 5px;
+            ProfileMenuItem {
+                icon: Icons.person;
+                label: T.tr("user_profile.see_profile");
+                clicked => {
+                    root.close();
+                    Session.open-profile();
+                }
+            }
+            ProfileMenuItem {
+                icon: Icons.bell;
+                label: T.tr("sidebar.notifications");
+                badge: Session.unread-notifications > 99 ? "99+" : Session.unread-notifications > 0 ? Session.unread-notifications : "";
+                clicked => {
+                    root.close();
+                    Session.open-notifications();
+                }
+            }
+            ProfileMenuItem {
+                icon: Icons.people;
+                label: T.tr("sidebar.friends");
+                badge: Session.friends-online > 0 ? Session.friends-online : "";
+                badge2: Session.unread-chat > 99 ? "99+" : Session.unread-chat > 0 ? Session.unread-chat : "";
+                clicked => {
+                    root.close();
+                    Session.open-friends();
+                }
+            }
+            if Session.has-subscription: ProfileMenuItem {
+                icon: Icons.comment-discussion;
+                label: T.tr("sidebar.need_help");
+                clicked => {
+                    root.close();
+                    Session.open-support();
+                }
+            }
+            // __dropdown-separator: 1px, margin 4px 0
+            Rectangle {
+                height: 9px;
+                Rectangle {
+                    height: 1px;
+                    background: Theme.border;
+                }
+            }
+            ProfileMenuItem {
+                icon: Icons.sign-out;
+                label: T.tr("user_profile.sign_out");
+                danger: true;
+                clicked => {
+                    root.close();
+                    root.hide-now();
+                    Session.sign-out();
                 }
             }
         }
@@ -507,7 +730,7 @@ export component Sidebar inherits Rectangle {
 
     VerticalLayout {
         padding-top: 8px;
-        SidebarProfile { }
+        profile := SidebarProfile { }
 
         // .sidebar__content
         VerticalLayout {
@@ -626,6 +849,31 @@ export component Sidebar inherits Rectangle {
                     }
                 }
             }
+        }
+    }
+
+    // the profile dropdown stays mounted while it fades out
+    property <bool> menu-open: Popup.open == "profile-menu" && Session.signed-in;
+    property <bool> menu-alive;
+    changed menu-open => {
+        if (root.menu-open) {
+            root.menu-alive = true;
+        }
+    }
+    Timer {
+        interval: 150ms;
+        running: !root.menu-open && root.menu-alive;
+        triggered => {
+            root.menu-alive = false;
+        }
+    }
+    if root.menu-alive: ProfileMenu {
+        x: 16px;
+        y: profile.y + profile.height;
+        width: root.width - 32px;
+        closing: !root.menu-open;
+        hide-now => {
+            root.menu-alive = false;
         }
     }
 

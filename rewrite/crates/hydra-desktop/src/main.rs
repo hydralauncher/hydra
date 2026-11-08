@@ -228,6 +228,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     auth::init(&ui);
     notifications_page::init(&ui);
     notifications_page::refresh_count();
+    shell::refresh_friends_online();
     download_settings::init(&ui);
     downloads_page::init(&ui, &loader);
     download_indicator::init(&ui, &loader);

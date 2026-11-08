@@ -369,6 +369,8 @@ fn wire_session(ui: &AppWindow) {
     session.on_open_profile(|| eprintln!("TODO(profile): open profile"));
     session.on_open_notifications(|| nav::navigate("/notifications"));
     session.on_open_friends(|| eprintln!("TODO(friends): friends window"));
+    // data-open-support-chat: the support chat is a web widget in Electron
+    session.on_open_support(|| eprintln!("TODO(support): support chat"));
 }
 
 /// The shared image loader and the window scale.
@@ -409,8 +411,10 @@ pub fn reload_user(done: Option<Box<dyn FnOnce() + Send>>) {
             session.set_display_name(Default::default());
             session.set_avatar(Default::default());
             session.set_has_subscription(false);
+            session.set_friends_online(0);
             session.set_loaded(true);
         }
+        crate::notifications_page::refresh_count();
         return;
     }
     std::thread::spawn(move || {
@@ -421,6 +425,8 @@ pub fn reload_user(done: Option<Box<dyn FnOnce() + Send>>) {
                     set_local_storage(&db, "userDetails", &me.to_string());
                 }
                 apply_user(&me);
+                crate::notifications_page::refresh_count();
+                refresh_friends_online();
                 if let Some(done) = done {
                     done();
                 }
@@ -574,6 +580,78 @@ fn game_path(id: &str) -> Option<String> {
 }
 
 /// `updateLibrary()`: read the library on a worker, then group and sort it.
+thread_local! {
+    static FRIENDS_TIMER: slint::Timer = slint::Timer::default();
+}
+
+/// sidebar-profile updateOnlineFriendsCount: GET /profile/friends (take 5)
+/// gives onlineFriends. Without presence events Electron polls every 30s.
+pub fn refresh_friends_online() {
+    let Some((api, ui)) = with_shell(|s| (s.api.clone(), s.ui.clone())) else {
+        return;
+    };
+    FRIENDS_TIMER.with(|t| {
+        if !t.running() {
+            t.start(
+                slint::TimerMode::Repeated,
+                std::time::Duration::from_secs(30),
+                refresh_friends_online,
+            );
+        }
+    });
+    if !api.is_logged_in() {
+        if let Some(ui) = ui.upgrade() {
+            ui.global::<Session>().set_friends_online(0);
+        }
+        return;
+    }
+    std::thread::spawn(move || {
+        let response = api.get(
+            "/profile/friends",
+            &[("take", "5".into()), ("skip", "0".into())],
+            Options::default(),
+        );
+        let online = response
+            .ok()
+            .and_then(|r| r.get("onlineFriends").and_then(Value::as_i64));
+        let _ = slint::invoke_from_event_loop(move || {
+            if let (Some(online), Some(ui)) = (online, ui.upgrade()) {
+                ui.global::<Session>().set_friends_online(online as i32);
+            }
+        });
+    });
+}
+
+/// gameRunning in the sidebar profile: the title and the 24px icon.
+pub fn set_game_running(title: &str, icon_url: &str) {
+    let Some(ui) = with_shell(|s| s.ui.upgrade()).flatten() else {
+        return;
+    };
+    let session = ui.global::<Session>();
+    session.set_running_title(title.into());
+    session.set_running_icon(Default::default());
+    if icon_url.is_empty() {
+        return;
+    }
+    let Some((loader, scale)) = loader() else {
+        return;
+    };
+    let weak = ui.as_weak();
+    let expected = title.to_string();
+    loader.load(
+        icon_url.to_string(),
+        hydra_media::images::Op::MaxWidth((24.0 * scale).ceil() as u32),
+        move |img| {
+            if let Some(ui) = weak.upgrade() {
+                let session = ui.global::<Session>();
+                if session.get_running_title() == expected.as_str() {
+                    session.set_running_icon(img);
+                }
+            }
+        },
+    );
+}
+
 pub fn load_library() {
     let Some(db) = with_shell(|s| s.db.clone()) else {
         return;

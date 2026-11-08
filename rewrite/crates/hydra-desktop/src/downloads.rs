@@ -149,6 +149,12 @@ pub fn cancel(shop: &str, object_id: &str) {
     });
 }
 
+/// DownloadManager.cancelDownload() (sign-out).
+pub fn stop_active() {
+    let Some(manager) = manager() else { return };
+    std::thread::spawn(move || manager.stop_active());
+}
+
 pub fn has_active_download() -> bool {
     last_packet().is_some()
 }

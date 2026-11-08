@@ -15,6 +15,8 @@ static WATCHER: OnceLock<Arc<Watcher>> = OnceLock::new();
 thread_local! {
     /// on-games-running ids
     static RUNNING: RefCell<HashSet<String>> = RefCell::new(HashSet::new());
+    /// gameRunning: the last game in the on-games-running list
+    static SHOWN: RefCell<Option<String>> = const { RefCell::new(None) };
 }
 
 pub fn init(db: Arc<Db>, api: Arc<HydraApi>) {
@@ -30,6 +32,7 @@ pub fn init(db: Arc<Db>, api: Arc<HydraApi>) {
 }
 
 fn on_running(running: Vec<Running>) {
+    update_game_running(&running);
     let ids: HashSet<String> = running.into_iter().map(|r| r.id).collect();
     let changed = RUNNING.with(|r| {
         let mut r = r.borrow_mut();
@@ -45,6 +48,48 @@ fn on_running(running: Vec<Running>) {
         crate::downloads_page::refresh();
         crate::shell::load_library();
     }
+}
+
+/// app.tsx onGamesRunning: the sidebar shows the last running library game,
+/// unless a concealed duplicate that is also running shares its executable.
+fn update_game_running(running: &[Running]) {
+    let Some(db) = crate::shell::db() else { return };
+    let ids: HashSet<&str> = running.iter().map(|r| r.id.as_str()).collect();
+    let game = running
+        .last()
+        .and_then(|last| db.get_in::<Value>(keys::GAMES, &last.id))
+        .filter(|game| {
+            let executable = game
+                .get("executablePath")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_lowercase();
+            !running.iter().any(|r| {
+                ids.contains(r.id.as_str())
+                    && db.get_in::<Value>(keys::GAMES, &r.id).is_some_and(|g| {
+                        g.get("isConcealed").and_then(Value::as_bool) == Some(true)
+                            && g.get("executablePath")
+                                .and_then(Value::as_str)
+                                .is_some_and(|p| !p.is_empty() && p.to_lowercase() == executable)
+                    })
+            })
+        });
+    let id = running
+        .last()
+        .map(|r| r.id.clone())
+        .filter(|_| game.is_some());
+    if SHOWN.with(|s| *s.borrow() == id) {
+        return;
+    }
+    SHOWN.with(|s| *s.borrow_mut() = id);
+    let text = |key: &str| {
+        game.as_ref()
+            .and_then(|g| g.get(key))
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string()
+    };
+    crate::shell::set_game_running(&text("title"), &text("iconUrl"));
 }
 
 /// isGameRunning

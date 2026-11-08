@@ -700,6 +700,14 @@ impl Manager {
         true
     }
 
+    /// DownloadManager.cancelDownload() with no id (sign-out): stop whatever is
+    /// running without touching the queue.
+    pub fn stop_active(&self) {
+        if let Some(id) = self.active_download_id() {
+            self.cancel_runtime(&id);
+        }
+    }
+
     /// cancelDownloadById: stop, mark "removed", start the next one.
     pub fn cancel_by_id(self: &Arc<Self>, shop: &str, object_id: &str) -> bool {
         let _activation = self.activation.lock().unwrap_or_else(|e| e.into_inner());

@@ -42,11 +42,15 @@ export global Session {
     in property <int> unread-chat;
     in property <int> unread-notifications;
     in property <int> friends-online;
+    // gameRunning (app.tsx): title and icon under the name in the sidebar
+    in property <string> running-title;
+    in property <image> running-icon;
     callback sign-in();
     callback sign-out();
     callback open-profile();
     callback open-notifications();
     callback open-friends();
+    callback open-support();
 }
 
 // Window chrome. `platform`: "windows" | "linux" | "macos".

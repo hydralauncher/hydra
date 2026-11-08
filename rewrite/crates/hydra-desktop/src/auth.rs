@@ -46,7 +46,30 @@ pub fn init(ui: &AppWindow) {
     MAIN.with(|m| *m.borrow_mut() = ui.as_weak());
     let session = ui.global::<Session>();
     session.on_sign_in(|| open(Page::SignIn));
-    session.on_sign_out(sign_out);
+    session.on_sign_out(confirm_sign_out);
+}
+
+/// sidebar-profile: the sign-out ConfirmationModal, then signOut, the toast
+/// and navigate("/").
+fn confirm_sign_out() {
+    let t = shell::tr;
+    crate::dialogs::confirm(
+        crate::dialogs::Confirm {
+            title: &t("user_profile.sign_out_modal_title"),
+            description: &t("user_profile.sign_out_modal_text"),
+            body: "",
+            confirm_label: &t("user_profile.sign_out"),
+            cancel_label: &t("user_profile.cancel"),
+            danger: true,
+        },
+        || {
+            crate::dialogs::set_busy(true);
+            sign_out();
+            toast::success(&shell::tr("user_profile.successfully_signed_out"));
+            crate::dialogs::close();
+            crate::nav::navigate("/");
+        },
+    );
 }
 
 /// openAuthWindow(page): `lng`, plus a fresh token for the account pages.
@@ -257,8 +280,9 @@ pub fn sign_out() {
     };
     // useUserDetails.clearUserDetails
     shell::storage_remove("userDetails");
-    // TODO(auth): SSEClient.close, cancel the active download, Epic imports,
-    // achievement/souvenir workers, emulator scan data, friends/chat windows.
+    // TODO(auth): SSEClient.close, Epic imports, achievement/souvenir workers,
+    // emulator scan data, friends/chat windows.
+    crate::downloads::stop_active();
     api.clear_session();
     for sublevel in [keys::GAMES, keys::DOWNLOADS, keys::DOWNLOAD_LAYOUT_STATE] {
         for (key, _) in db.entries::<Value>(sublevel).unwrap_or_default() {
