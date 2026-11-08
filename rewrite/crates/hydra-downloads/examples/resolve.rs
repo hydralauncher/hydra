@@ -197,6 +197,28 @@ fn main() {
         println!("files left in {folder}: {leftovers:?}");
         return;
     }
+    if mode == "game" {
+        // `game <shop> <objectId>`: the library record's key fields.
+        let key = format!(
+            "{}:{}",
+            args.next().expect("shop"),
+            args.next().expect("objectId")
+        );
+        let db = Db::open(data.join("hydra-db")).expect("open the database");
+        let game: Option<serde_json::Value> = db.get_in(hydra_db::keys::GAMES, &key);
+        match game {
+            Some(g) => println!(
+                "{key}: title={} addedToLibraryAt={} remoteId={} isDeleted={} playTime={}",
+                g["title"],
+                g["addedToLibraryAt"],
+                g["remoteId"],
+                g["isDeleted"],
+                g["playTimeInMilliseconds"]
+            ),
+            None => println!("{key}: not in the library"),
+        }
+        return;
+    }
     if mode == "put-downloads" {
         // `put-downloads <file.json>`: download records (an array) into a
         // TEST data copy, to set up Downloads page states; `remove-downloads
@@ -254,6 +276,13 @@ fn main() {
         db.put(hydra_db::keys::USER_PREFERENCES, &prefs)
             .expect("save the preferences");
         println!("{key} updated");
+        return;
+    }
+    if mode == "remove-local-source" {
+        let id = args.next().expect("id");
+        let db = Db::open(data.join("hydra-db")).expect("open the database");
+        let _ = db.delete_in(hydra_db::keys::DOWNLOAD_SOURCES, &id);
+        println!("removed {id}");
         return;
     }
     if mode == "local-source" {
