@@ -21,6 +21,15 @@ struct State {
     writable: Option<bool>,
     /// Bumped per opened option, so a late disk check is dropped.
     generation: u64,
+    game: Option<GameRef>,
+}
+
+/// The game the download is for (title as shown on the page).
+#[derive(Clone)]
+pub struct GameRef {
+    pub shop: String,
+    pub object_id: String,
+    pub title: String,
 }
 
 thread_local! {
@@ -42,6 +51,7 @@ pub fn init(ui: &AppWindow) {
             free_space: None,
             writable: None,
             generation: 0,
+            game: None,
         })
     });
     let d = ui.global::<DownloadSettings>();
@@ -88,8 +98,93 @@ pub fn init(ui: &AppWindow) {
         // data-open-article="cannot-write-directory"
         eprintln!("TODO(help): open the cannot-write-directory article");
     });
-    d.on_start(|| {
-        eprintln!("TODO(downloads): start-game-download");
+    d.on_start(start);
+}
+
+/// handleStartClick: startGameDownload with the chosen downloader and folder.
+fn start() {
+    let Some((ui, repack, downloader, path, game)) = with(|s| {
+        Some((
+            s.ui.upgrade()?,
+            s.repack.clone()?,
+            s.selected?,
+            s.path.clone(),
+            s.game.clone()?,
+        ))
+    })
+    .flatten() else {
+        return;
+    };
+    let d = ui.global::<DownloadSettings>();
+    if !d.get_can_start() {
+        return;
+    }
+    let Some(map) = repack.as_object() else {
+        return;
+    };
+    // selectRepackUri / getRepackUriParts
+    let uri = repacks::uri_for(map, downloader).unwrap_or_default();
+    let parts = map
+        .get("uriGroups")
+        .and_then(Value::as_array)
+        .and_then(|groups| {
+            groups
+                .iter()
+                .filter_map(Value::as_array)
+                .find(|g| g.first().and_then(Value::as_str) == Some(uri.as_str()))
+                .map(|g| {
+                    g.iter()
+                        .filter_map(|p| p.as_str().map(str::to_string))
+                        .collect::<Vec<_>>()
+                })
+        });
+    let payload = hydra_downloads::manager::StartPayload {
+        object_id: game.object_id,
+        title: game.title,
+        shop: game.shop,
+        download_path: path,
+        downloader,
+        uri,
+        parts,
+        automatically_extract: d.get_extract(),
+        automatically_delete_archive_files: d.get_delete_archives(),
+        file_size: map
+            .get("fileSize")
+            .and_then(Value::as_str)
+            .map(str::to_string),
+        file_indices: None,
+        selected_files_size: None,
+    };
+    d.set_starting(true);
+    apply();
+    crate::downloads::start(payload, |result| {
+        let Some(ui) = with(|s| s.ui.upgrade()).flatten() else {
+            return;
+        };
+        let d = ui.global::<DownloadSettings>();
+        d.set_starting(false);
+        match result {
+            Ok(()) => {
+                // TODO(downloads): the download flight animation to the sidebar (beginDownloadFlight).
+                d.set_open(false);
+                ui.global::<crate::GameData>().set_repacks_open(false);
+                ui.global::<crate::GameData>().set_options_open(false);
+            }
+            Err(error) => {
+                // showErrorToast(t("download_error"), t(response.error), 4_000)
+                let message = if error.starts_with("download_error_") {
+                    shell::tr(&format!("game_details.{error}"))
+                } else {
+                    error
+                };
+                crate::toast::error_with(
+                    &shell::tr("game_details.download_error"),
+                    &message,
+                    4_000,
+                );
+                apply();
+            }
+        }
     });
 }
 
@@ -123,7 +218,9 @@ fn rom_folder(db: &hydra_db::Db, platform: Option<&str>) -> Option<String> {
 }
 
 /// The modal opened for `repack` (a download option of the open game).
-pub fn open(repack: Value, shop: &str, platform: Option<String>) {
+pub fn open(repack: Value, game: GameRef, platform: Option<String>) {
+    let shop = game.shop.clone();
+    let shop = shop.as_str();
     let Some(ui) = with(|s| s.ui.upgrade()).flatten() else {
         return;
     };
@@ -171,6 +268,7 @@ pub fn open(repack: Value, shop: &str, platform: Option<String>) {
 
     with(|s| {
         s.repack = Some(repack);
+        s.game = Some(game);
         s.options = options;
         s.selected = repacks::default_downloader(&available);
         s.free_space = None;

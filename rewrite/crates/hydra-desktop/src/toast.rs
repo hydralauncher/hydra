@@ -24,6 +24,11 @@ pub enum Kind {
 /// `showToast({ title, message, type })`. A toast that is already up keeps
 /// its timer (the renderer's effect only restarts when `visible` flips).
 pub fn show(kind: Kind, title: &str, message: Option<&str>) {
+    show_for(kind, title, message, 2500);
+}
+
+/// showToast with a custom duration (milliseconds).
+pub fn show_for(kind: Kind, title: &str, message: Option<&str>, duration: i64) {
     let Some(ui) = WINDOW.with(|w| w.borrow().as_ref().and_then(|w| w.upgrade())) else {
         return;
     };
@@ -39,7 +44,7 @@ pub fn show(kind: Kind, title: &str, message: Option<&str>) {
         .into(),
     );
     // Slint durations are i64 milliseconds.
-    toast.set_duration(2500);
+    toast.set_duration(duration);
     toast.set_visible(true);
 }
 
@@ -49,4 +54,9 @@ pub fn success(title: &str) {
 
 pub fn error(title: &str) {
     show(Kind::Error, title, None);
+}
+
+/// showErrorToast(title, message, duration)
+pub fn error_with(title: &str, message: &str, duration: i64) {
+    show_for(Kind::Error, title, Some(message), duration);
 }

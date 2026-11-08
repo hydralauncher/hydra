@@ -452,6 +452,17 @@ pub fn shutdown() {
     }
 }
 
+/// A download progress packet: the hero's progress bar and panel text.
+pub fn on_download_progress(packet: Option<&hydra_downloads::manager::Progress>) {
+    // TODO(downloads): hero-panel.tsx progress bar and HeroPanelPlaytime download info.
+    let _ = packet;
+}
+
+/// The downloads changed: the hero's actions follow the game's download.
+pub fn on_downloads_updated() {
+    // TODO(downloads): hero-panel-actions.tsx download states.
+}
+
 /// Navigating away from the game page.
 pub fn close() {
     crate::classics_bookmark::stop();

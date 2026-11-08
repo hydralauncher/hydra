@@ -333,6 +333,54 @@ pub fn merge_play_time(local: &Obj, remote: &Value) -> (f64, f64, f64) {
 }
 
 /// library-sync/create-game.ts: register a local game with the API.
+/// prepareGameEntry (download-game-helper.ts): drop any old download record
+/// and make sure the game is in the library.
+pub fn prepare_game_entry(
+    db: &Db,
+    key: &str,
+    title: &str,
+    object_id: &str,
+    shop: &str,
+) -> Result<(), hydra_db::Error> {
+    let game = db.get_in::<Obj>(keys::GAMES, key);
+    let assets = db.get_in::<Obj>(keys::GAME_SHOP_ASSETS, key);
+    db.delete_in(keys::DOWNLOADS, key)?;
+    let _guard = WRITE_QUEUE.lock().unwrap_or_else(|e| e.into_inner());
+    if game.is_some() {
+        let Some(mut latest) = db.get_in::<Obj>(keys::GAMES, key) else {
+            return Ok(());
+        };
+        latest.insert("isDeleted".into(), Value::Bool(false));
+        latest.insert("source".into(), Value::from("hydra"));
+        if shop == "epic" {
+            latest.insert("remoteId".into(), Value::Null);
+        }
+        db.put_in(keys::GAMES, key, &latest)
+    } else {
+        let asset = |name: &str| {
+            assets
+                .as_ref()
+                .and_then(|a| a.get(name))
+                .cloned()
+                .unwrap_or(Value::Null)
+        };
+        let game = serde_json::json!({
+            "title": title,
+            "iconUrl": asset("iconUrl"),
+            "libraryHeroImageUrl": asset("libraryHeroImageUrl"),
+            "logoImageUrl": asset("logoImageUrl"),
+            "objectId": object_id,
+            "shop": shop,
+            "remoteId": null,
+            "playTimeInMilliseconds": 0,
+            "lastTimePlayed": null,
+            "addedToLibraryAt": now_iso(),
+            "isDeleted": false,
+        });
+        db.put_in(keys::GAMES, key, &game)
+    }
+}
+
 pub fn create_game(db: &Db, api: &HydraApi, game: &Obj) -> Result<(), ActionError> {
     let shop = game.get("shop").and_then(Value::as_str).unwrap_or_default();
     if shop == "custom" || game.get("source").and_then(Value::as_str) == Some("epic") {

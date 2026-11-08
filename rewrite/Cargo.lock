@@ -2137,6 +2137,7 @@ dependencies = [
  "fs2",
  "hydra-core",
  "hydra-db",
+ "hydra-downloads",
  "hydra-i18n",
  "hydra-media",
  "hydra-store",
@@ -2156,6 +2157,8 @@ name = "hydra-downloads"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "hydra-core",
+ "hydra-db",
  "reqwest",
  "rustls",
  "serde",

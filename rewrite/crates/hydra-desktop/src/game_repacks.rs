@@ -25,6 +25,7 @@ struct State {
     last_check: Option<String>,
     viewed: Vec<String>,
     shop: String,
+    object_id: String,
     /// The classics platform (download settings pick its emulator ROM folder).
     platform: Option<String>,
 }
@@ -49,6 +50,7 @@ pub fn init(ui: &AppWindow) {
             last_check: None,
             viewed: Vec::new(),
             shop: String::new(),
+            object_id: String::new(),
             platform: None,
         })
     });
@@ -94,11 +96,28 @@ pub fn init(ui: &AppWindow) {
                     .as_deref()
                     == Some(id.as_str())
             })?;
-            Some((repack.clone(), s.shop.clone(), s.platform.clone()))
+            Some((
+                repack.clone(),
+                s.shop.clone(),
+                s.object_id.clone(),
+                s.platform.clone(),
+            ))
         })
         .flatten();
-        if let Some((repack, shop, platform)) = picked {
-            crate::download_settings::open(repack, &shop, platform);
+        if let Some((repack, shop, object_id, platform)) = picked {
+            let title = with(|s| s.ui.upgrade())
+                .flatten()
+                .map(|ui| ui.global::<GameData>().get_game_title().to_string())
+                .unwrap_or_default();
+            crate::download_settings::open(
+                repack,
+                crate::download_settings::GameRef {
+                    shop,
+                    object_id,
+                    title,
+                },
+                platform,
+            );
         }
     });
 }
@@ -124,6 +143,7 @@ pub fn open(shop: &str, object_id: &str) {
         s.repacks.clear();
         s.viewed.clear();
         s.shop = shop.to_string();
+        s.object_id = object_id.to_string();
         s.platform = None;
         s.generation
     }) else {

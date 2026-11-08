@@ -11,6 +11,8 @@ mod context_menu;
 mod devscript;
 mod dialogs;
 mod download_settings;
+mod downloads;
+mod downloads_page;
 mod features;
 mod format;
 mod game_classics;
@@ -150,6 +152,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
+    downloads::init(&ui, db.clone(), api.clone(), &native_dir);
     shell::init(
         &ui,
         db,
