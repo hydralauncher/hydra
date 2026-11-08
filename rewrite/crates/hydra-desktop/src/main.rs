@@ -40,6 +40,7 @@ mod playtime_modals;
 mod popup;
 mod prefs;
 mod realtime;
+mod screenshots;
 mod search;
 mod settings_account;
 mod settings_debrid;
@@ -245,6 +246,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.locale.as_deref(),
         headless_mode,
     );
+    screenshots::init(&ui);
     game_page::init(&ui, &loader);
     game_repacks::init(&ui);
     game_options::init(&ui);
@@ -345,6 +347,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // quit-cleanup.ts: stop media threads first, then leave without running
     // thread-local destructors under worker threads that are still parked.
+    screenshots::shutdown();
     game_page::shutdown();
     library_page::shutdown();
     home_page::shutdown();

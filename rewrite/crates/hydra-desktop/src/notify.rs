@@ -107,6 +107,43 @@ fn show(title: &str, body: &str, icon: Option<&Path>) {
     }
 }
 
+/// new Notification({ title, body, icon, silent: true }).show() with the app
+/// icon (the screenshot capture and upload notifications).
+pub fn show_silent(title: String, body: String) {
+    std::thread::spawn(move || {
+        let icon = tray_icon();
+        #[cfg(windows)]
+        {
+            use tauri_winrt_notification::{IconCrop, Toast};
+            let mut toast = Toast::new(APP_USER_MODEL_ID)
+                .title(&title)
+                .text1(&body)
+                .sound(None);
+            if let Some(icon) = icon.as_deref() {
+                toast = toast.icon(icon, IconCrop::Square, "");
+            }
+            if let Err(error) = toast.show() {
+                eprintln!("Failed to show notification: {error:?}");
+            }
+        }
+        #[cfg(not(windows))]
+        {
+            let mut notification = notify_rust::Notification::new();
+            notification
+                .appname("Hydra")
+                .summary(&title)
+                .body(&body)
+                .hint(notify_rust::Hint::SuppressSound(true));
+            if let Some(icon) = icon.as_deref().and_then(Path::to_str) {
+                notification.image_path(icon);
+            }
+            if let Err(error) = notification.show() {
+                eprintln!("Failed to show notification: {error}");
+            }
+        }
+    });
+}
+
 /// Shows an OS notification from a worker thread (the icon is downloaded first).
 fn show_async(title: String, body: String, icon_url: Option<String>, tray: bool) {
     std::thread::spawn(move || {

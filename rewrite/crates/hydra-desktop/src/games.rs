@@ -34,6 +34,8 @@ pub fn init(db: Arc<Db>, api: Arc<HydraApi>) {
 fn on_running(running: Vec<Running>) {
     update_game_running(&running);
     let ids: HashSet<String> = running.into_iter().map(|r| r.id).collect();
+    // onScreenshotGameStarted / onScreenshotGameClosed
+    crate::screenshots::on_running_games(&ids);
     let changed = RUNNING.with(|r| {
         let mut r = r.borrow_mut();
         if *r == ids {

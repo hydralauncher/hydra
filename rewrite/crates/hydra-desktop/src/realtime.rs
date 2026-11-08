@@ -99,9 +99,7 @@ fn handle(envelope: Envelope) {
         | "chatMessageRejected" => {
             // TODO(chat): the chat window and its unread counts
         }
-        "screenshotModerated" => {
-            // TODO(screenshots): moderation results
-        }
+        "screenshotModerated" => crate::screenshots::on_moderated(&payload),
         other => eprintln!("realtime: unhandled event {other}"),
     }
 }

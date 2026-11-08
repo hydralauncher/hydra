@@ -76,9 +76,7 @@ pub fn handle(uri: &str) {
             .map(|(_, v)| v.into_owned())
     };
     match url.host_str().unwrap_or_default() {
-        "screenshot" => {
-            eprintln!("TODO(screenshots): ScreenshotInputService.trigger(\"deeplink\")")
-        }
+        "screenshot" => crate::screenshots::trigger_deeplink(),
         "run" => {
             if let (Some(shop), Some(object_id)) = (param("shop"), param("objectId")) {
                 run_game(&shop, &object_id);
