@@ -484,15 +484,19 @@ fn load_profile(generation: u64, edit: bool) {
     let Some(api) = shell::api() else { return };
     let user_id = with(|s| s.user_id.clone());
     std::thread::spawn(move || {
-        // needsAuth: false still sends the session; Electron's token is fresh
-        // from the app's other requests, so make sure ours is too (relation).
-        if api.is_logged_in() {
-            let _ = api.fresh_access_token();
-        }
+        // needsAuth: false still sends the session, and Electron's token is
+        // kept fresh by the app's other requests. Here the request may come
+        // first, so signed in it revalidates an expired token (the relation
+        // and private fields depend on it).
+        let options = if api.is_logged_in() {
+            Options::default()
+        } else {
+            Options::public()
+        };
         let result = api.get(
             &format!("/users/{user_id}"),
             &[("shop", "steam".into()), ("shop", "launchbox".into())],
-            Options::public(),
+            options,
         );
         let _ = slint::invoke_from_event_loop(move || {
             if with(|s| s.generation) != generation {
