@@ -8,6 +8,7 @@ mod catalogue_page;
 mod collections;
 mod context_menu;
 mod devscript;
+mod features;
 mod format;
 mod game_menu;
 mod game_page;

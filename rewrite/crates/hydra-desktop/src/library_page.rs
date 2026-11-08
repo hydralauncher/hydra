@@ -1427,7 +1427,7 @@ enum LoadResult {
 }
 
 /// CSS `saturate(amount)` (the filter's color matrix).
-fn saturate(img: &mut image::RgbImage, amount: f32) {
+pub fn saturate(img: &mut image::RgbImage, amount: f32) {
     let s = amount;
     let m = [
         [0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s],

@@ -215,7 +215,10 @@ export component FilterSection inherits Rectangle {
     callback toggled(string);
     callback cleared();
     callback searched(string);
+    callback group-selected(string);
     property <int> rows: Math.min(root.data.items.length, 10);
+    // __group-tabs (+12px margin) when there is more than one group
+    property <length> tabs-height: root.data.groups.length > 1 ? 41px + 12px : 0;
     property <length> list-height: root.data.loading && root.data.items.length == 0 ? 280px : root.rows * 28px;
     // The content width inside the 16px padding and the border.
     property <length> inner-width: root.width - 34px;
@@ -225,7 +228,7 @@ export component FilterSection inherits Rectangle {
     orb: root.data.color;
     count: root.data.count;
     show-count: !(root.data.loading && root.data.items.length == 0);
-    content-height: 17px + 12px + 40px + 12px + root.list-height;
+    content-height: 17px + 12px + root.tabs-height + 40px + 12px + root.list-height;
 
     SectionHint {
         x: 0;
@@ -237,9 +240,61 @@ export component FilterSection inherits Rectangle {
             root.cleared();
         }
     }
-    TextField {
+    if root.data.groups.length > 1: Rectangle {
         x: 0;
         y: 29px;
+        width: root.inner-width;
+        height: 41px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.04);
+        HorizontalLayout {
+            padding: 4px;
+            spacing: 4px;
+            for group in root.data.groups: Rectangle {
+                horizontal-stretch: 1;
+                border-radius: 6px;
+                background: group.active ? rgba(255, 255, 255, 0.1) : tab-touch.has-hover ? rgba(255, 255, 255, 0.05) : transparent;
+                drop-shadow-offset-y: group.active ? 1px : 0;
+                drop-shadow-blur: group.active ? 3px : 0;
+                drop-shadow-color: group.active ? rgba(0, 0, 0, 0.25) : transparent;
+                animate background { duration: 150ms; easing: ease; }
+                HorizontalLayout {
+                    alignment: center;
+                    spacing: 4px;
+                    Text {
+                        text: group.label;
+                        font-size: Theme.small-size;
+                        font-weight: 700; // 600 in scss
+                        color: group.active || tab-touch.has-hover ? Theme.body : Theme.muted;
+                        vertical-alignment: center;
+                    }
+                    if group.count != "": Rectangle {
+                        y: (parent.height - 18px) / 2;
+                        height: 18px;
+                        width: Math.max(18px, pill.preferred-width + 8px);
+                        border-radius: 9px;
+                        background: rgba(255, 255, 255, 0.1);
+                        pill := Text {
+                            text: group.count;
+                            font-size: Theme.tiny-size;
+                            color: Theme.body;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+                tab-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.group-selected(group.value);
+                    }
+                }
+            }
+        }
+    }
+    TextField {
+        x: 0;
+        y: 29px + root.tabs-height;
         width: root.inner-width;
         placeholder: T.tr("catalogue.search");
         edited(text) => {
@@ -248,7 +303,7 @@ export component FilterSection inherits Rectangle {
     }
     list := Rectangle {
         x: 0;
-        y: 81px;
+        y: 81px + root.tabs-height;
         width: root.inner-width;
         height: root.list-height;
         clip: true;
@@ -406,6 +461,68 @@ export component ReleaseYearSection inherits Rectangle {
         }
     }
 }
+}
+
+// recompilation-filter-toggle: a section-like row with a switch
+export component RecompilationToggle inherits Rectangle {
+    in property <bool> checked;
+    callback toggled();
+    height: 62px + 2px;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.05);
+    background: touch.has-hover ? rgba(255, 255, 255, 0.1) : Theme.background;
+    animate background { duration: 200ms; easing: ease; }
+    opacity: touch.pressed ? Theme.active-opacity : 1;
+    drop-shadow-offset-y: 4px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: rgba(0, 0, 0, 0.1);
+    accessible-role: switch;
+    accessible-checked: root.checked;
+    HorizontalLayout {
+        padding-left: 17px;
+        padding-right: 17px;
+        spacing: 8px;
+        Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background: #3e62c0;
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: T.tr("catalogue.recompilations_filter");
+            font-size: 16px;
+            font-weight: 500;
+            color: Theme.muted;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 32px;
+            height: 18px;
+            border-radius: 9px;
+            background: root.checked ? Theme.muted : #2a2a2c;
+            animate background { duration: 200ms; easing: ease; }
+            Rectangle {
+                x: root.checked ? 16px : 2px;
+                y: 2px;
+                width: 14px;
+                height: 14px;
+                border-radius: 7px;
+                background: root.checked ? Theme.dark-background : Theme.subtle;
+                animate x, background { duration: 200ms; easing: ease; }
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.toggled();
+        }
+    }
 }
 
 // filter-item: a chip with the category orb, the value and a remove button.

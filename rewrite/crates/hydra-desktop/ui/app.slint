@@ -21,7 +21,7 @@ import { GameDetailsPage } from "pages/game-details/page.slint";
 import { LibraryPage } from "pages/library/page.slint";
 import { HomePage } from "pages/home/page.slint";
 import { CataloguePage } from "pages/catalogue/page.slint";
-import { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip } from "pages/catalogue/state.slint";
+import { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup } from "pages/catalogue/state.slint";
 import { SelectPopupHost, SelectPopup, SelectOption } from "components/fields.slint";
 import { HomeData, CatalogueCard } from "pages/home/state.slint";
 import { Gifs } from "components/animated.slint";
@@ -34,7 +34,7 @@ export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input, Po
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
 export { HomeData, CatalogueCard, Gifs }
-export { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, SelectPopup, SelectOption }
+export { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup, SelectPopup, SelectOption }
 
 export component AppWindow inherits Window {
     title: GameData.game-title != "" && Nav.route == "game" ? "Hydra — " + GameData.game-title : "Hydra";

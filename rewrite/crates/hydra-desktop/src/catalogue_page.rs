@@ -15,12 +15,69 @@ use serde_json::{Map, Value, json};
 use slint::{Color, ComponentHandle, Image, Model, ModelRc, SharedString, VecModel};
 
 use crate::{
-    AppWindow, CatalogueData, CatalogueItem, FilterChip, FilterOption, FilterSectionData,
-    SelectOption, nav, shell,
+    AppWindow, CatalogueData, CatalogueItem, FilterChip, FilterGroup, FilterOption,
+    FilterSectionData, SelectOption, nav, shell,
 };
 
 const PAGE_SIZE: usize = 30;
 const MIN_RELEASE_YEAR: i32 = 1970;
+/// useLaunchboxFilters: /catalogue/filters?shop=launchbox, once per session.
+fn load_launchbox() {
+    let needed = with_page(|p| p.mode == "classics" && p.launchbox.is_none()).unwrap_or(false);
+    if !needed {
+        return;
+    }
+    let Some(api) = shell::api() else { return };
+    std::thread::spawn(move || {
+        let response = api
+            .get(
+                "/catalogue/filters",
+                &[("shop", "launchbox".to_string())],
+                Options::default(),
+            )
+            .ok();
+        let strings = |v: Option<&Value>| -> Vec<String> {
+            v.and_then(Value::as_array)
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|x| x.as_str().map(str::to_string))
+                        .collect()
+                })
+                .unwrap_or_default()
+        };
+        let filters = response
+            .map(|r| LaunchboxFilters {
+                platforms: r
+                    .get("platforms")
+                    .and_then(Value::as_array)
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|p| match p {
+                                Value::String(s) => Some((s.clone(), s.clone())),
+                                Value::Object(o) => Some((
+                                    o.get("key")?.as_str()?.to_string(),
+                                    o.get("name")
+                                        .and_then(Value::as_str)
+                                        .unwrap_or_default()
+                                        .to_string(),
+                                )),
+                                _ => None,
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+                genres: strings(r.get("genres")),
+                developers: strings(r.get("developers")),
+                publishers: strings(r.get("publishers")),
+            })
+            .unwrap_or_default();
+        let _ = slint::invoke_from_event_loop(move || {
+            with_page(|p| p.launchbox = Some(filters));
+            apply_sections();
+        });
+    });
+}
+
 /// get-catalogue-names.ts keeps the lists for a day.
 const NAMES_CACHE_MS: i64 = 24 * 60 * 60 * 1000;
 const STEAM_METADATA_LANGUAGES: [&str; 5] = ["en", "es", "pt", "ru", "fr"];
@@ -81,6 +138,15 @@ impl Filters {
     }
 }
 
+#[derive(Clone, Default)]
+struct LaunchboxFilters {
+    /// (key, name)
+    platforms: Vec<(String, String)>,
+    genres: Vec<String>,
+    developers: Vec<String>,
+    publishers: Vec<String>,
+}
+
 struct Page {
     ui: slint::Weak<AppWindow>,
     loader: Loader,
@@ -102,6 +168,10 @@ struct Page {
     download_sources: Option<Vec<Value>>,
     /// Each filter section's search box.
     section_search: HashMap<String, String>,
+    /// Each section's chosen platform group tab.
+    section_group: HashMap<String, String>,
+    /// /catalogue/filters?shop=launchbox, kept for the session.
+    launchbox: Option<LaunchboxFilters>,
     adding: HashSet<String>,
     items: Rc<VecModel<CatalogueItem>>,
 }
@@ -152,6 +222,8 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
             publishers: None,
             download_sources: None,
             section_search: HashMap::new(),
+            section_group: HashMap::new(),
+            launchbox: None,
             adding: HashSet::new(),
             items,
         })
@@ -200,6 +272,7 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
         })
         .unwrap_or(false);
         if changed {
+            load_launchbox();
             refresh(true);
         }
     });
@@ -283,6 +356,20 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
     data.on_search_section(|key, text| {
         with_page(|p| p.section_search.insert(key.to_string(), text.to_string()));
         apply_sections();
+    });
+    data.on_select_group(|key, group| {
+        with_page(|p| {
+            p.section_group.insert(key.to_string(), group.to_string());
+            p.section_search.remove(key.as_str());
+        });
+        apply_sections();
+    });
+    data.on_set_recompilation(|checked| {
+        with_page(|p| {
+            p.filters.recompilation = checked.then(|| "has".to_string());
+            p.page = 1;
+        });
+        refresh(true);
     });
     data.on_set_years(move |gte, lte| {
         with_page(|p| {
@@ -373,6 +460,8 @@ pub fn title() -> String {
 /// Entering the page (useCatalogue mounts): lists and a search.
 pub fn open() {
     load_lists();
+    load_launchbox();
+    crate::features::load();
     refresh(true);
 }
 
@@ -559,6 +648,22 @@ fn decode_html(s: &str) -> String {
 }
 
 /// Rebuild the filter rail (sections, counts, chips) from the state.
+/// One filter row: (label, value, checked, platform group).
+type Row = (String, String, bool, Option<&'static str>);
+
+/// getClassicsPlatformGroup
+fn platform_group(platform: &str) -> &'static str {
+    let p = platform.to_lowercase();
+    if p.starts_with("sony ") {
+        "sony"
+    } else if p.contains("nintendo") {
+        "nintendo"
+    } else {
+        "other"
+    }
+}
+
+/// Rebuild the filter rail (sections, counts, chips) from the state.
 fn apply_sections() {
     let Some(ui) = with_page(|p| p.ui.upgrade()).flatten() else {
         return;
@@ -567,21 +672,7 @@ fn apply_sections() {
     let t = |k: &str| shell::tr(k);
     let sections_state = with_page(|p| {
         let f = &p.filters;
-        let genre_names: Vec<(String, String)> = {
-            // steamGenresMapping: localized -> English, sorted by localized name
-            let en = p.genres.get("en").cloned().unwrap_or_default();
-            let local = p.genres.get(&language).cloned().unwrap_or_default();
-            let mut pairs: Vec<(String, String)> = local
-                .iter()
-                .enumerate()
-                .filter_map(|(i, name)| Some((name.clone(), en.get(i)?.clone())))
-                .collect();
-            pairs.sort_by(|a, b| a.0.cmp(&b.0));
-            pairs.dedup_by(|a, b| a.0 == b.0);
-            pairs
-        };
-        let mut tag_names: Vec<(String, i64)> = p.tags.get(&language).cloned().unwrap_or_default();
-        tag_names.sort_by(|a, b| a.0.cmp(&b.0));
+        let classics = p.mode == "classics";
         let sources: Vec<(String, String)> = p
             .download_sources
             .as_ref()
@@ -603,109 +694,233 @@ fn apply_sections() {
                     .collect()
             })
             .unwrap_or_default();
-        let developers = p.developers.clone();
-        let publishers = p.publishers.clone();
-
-        type Section = (&'static str, String, Vec<(String, String, bool)>, bool);
-        let sections: Vec<Section> = vec![
-            (
-                "genres",
-                t("catalogue.genres"),
-                genre_names
-                    .iter()
-                    .map(|(label, value)| (label.clone(), value.clone(), f.genres.contains(value)))
-                    .collect(),
-                !p.genres.contains_key(&language),
-            ),
-            (
-                "tags",
-                t("catalogue.tags"),
-                tag_names
-                    .iter()
-                    .map(|(label, id)| (label.clone(), id.to_string(), f.tags.contains(id)))
-                    .collect(),
-                !p.tags.contains_key(&language),
-            ),
-            (
-                "downloadSourceFingerprints",
-                t("catalogue.download_sources"),
-                sources
-                    .iter()
-                    .map(|(name, fp)| {
-                        (
-                            name.clone(),
-                            fp.clone(),
-                            f.download_source_fingerprints.contains(fp),
-                        )
-                    })
-                    .collect(),
-                p.download_sources.is_none(),
-            ),
-            (
-                "developers",
-                t("catalogue.developers"),
-                developers
-                    .as_ref()
-                    .map(|d| {
-                        d.iter()
-                            .map(|n| (n.clone(), n.clone(), f.developers.contains(n)))
-                            .collect()
-                    })
-                    .unwrap_or_default(),
-                developers.is_none(),
-            ),
-            (
-                "publishers",
-                t("catalogue.publishers"),
-                publishers
-                    .as_ref()
-                    .map(|d| {
-                        d.iter()
-                            .map(|n| (decode_html(n), n.clone(), f.publishers.contains(n)))
-                            .collect()
-                    })
-                    .unwrap_or_default(),
-                publishers.is_none(),
-            ),
-        ];
-
-        // Active chips (groupedFilters), in the renderer's order.
-        let mut chips: Vec<FilterChip> = Vec::new();
-        let chip = |label: String, kind: String, key: &str, value: String| FilterChip {
-            label: label.into(),
-            kind: kind.into(),
-            color: category_color(key),
-            key: key.into(),
-            value: value.into(),
+        let source_rows: Vec<Row> = sources
+            .iter()
+            .map(|(name, fp)| {
+                (
+                    name.clone(),
+                    fp.clone(),
+                    f.download_source_fingerprints.contains(fp),
+                    None,
+                )
+            })
+            .collect();
+        let names = |list: &[String], checked: &[String], decode: bool| -> Vec<Row> {
+            list.iter()
+                .map(|n| {
+                    (
+                        if decode { decode_html(n) } else { n.clone() },
+                        n.clone(),
+                        checked.contains(n),
+                        None,
+                    )
+                })
+                .collect()
         };
-        for genre in &f.genres {
-            let label = genre_names
+
+        let mut chips: Vec<FilterChip> = Vec::new();
+        let chip =
+            |label: String, kind: String, key: &str, value: String, color: Color| FilterChip {
+                label: label.into(),
+                kind: kind.into(),
+                color,
+                key: key.into(),
+                value: value.into(),
+            };
+        type Section = (&'static str, String, Vec<Row>, bool);
+        let sections: Vec<Section>;
+
+        if classics {
+            let lb = p.launchbox.clone();
+            let loaded = lb.is_some();
+            let lb = lb.unwrap_or_default();
+            sections = vec![
+                (
+                    "platforms",
+                    t("catalogue.platforms"),
+                    lb.platforms
+                        .iter()
+                        .map(|(key, name)| {
+                            (
+                                name.clone(),
+                                key.clone(),
+                                f.platforms.contains(key),
+                                Some(platform_group(name)),
+                            )
+                        })
+                        .collect(),
+                    !loaded,
+                ),
+                (
+                    "genres",
+                    t("catalogue.genres"),
+                    names(&lb.genres, &f.genres, false),
+                    !loaded,
+                ),
+                (
+                    "developers",
+                    t("catalogue.developers"),
+                    names(&lb.developers, &f.developers, false),
+                    !loaded,
+                ),
+                (
+                    "publishers",
+                    t("catalogue.publishers"),
+                    names(&lb.publishers, &f.publishers, true),
+                    !loaded,
+                ),
+                (
+                    "downloadSourceFingerprints",
+                    t("catalogue.download_sources"),
+                    source_rows.clone(),
+                    p.download_sources.is_none(),
+                ),
+            ];
+            // classicsGroupedFilters
+            if f.recompilation.is_some() {
+                chips.push(chip(
+                    t("catalogue.recompilations_filter"),
+                    t("catalogue.recompilations_filter"),
+                    "recompilation",
+                    "toggle".into(),
+                    Color::from_rgb_u8(0x3e, 0x62, 0xc0),
+                ));
+            }
+            for platform in &f.platforms {
+                let label = lb
+                    .platforms
+                    .iter()
+                    .find(|(k, _)| k == platform)
+                    .map(|(_, n)| n.clone())
+                    .unwrap_or_else(|| platform.clone());
+                chips.push(chip(
+                    label,
+                    t("catalogue.platforms"),
+                    "platforms",
+                    platform.clone(),
+                    category_color("platforms"),
+                ));
+            }
+            for genre in &f.genres {
+                chips.push(chip(
+                    genre.clone(),
+                    t("catalogue.genres"),
+                    "genres",
+                    genre.clone(),
+                    category_color("genres"),
+                ));
+            }
+        } else {
+            // steamGenresMapping: localized -> English, sorted by localized name
+            let en = p.genres.get("en").cloned().unwrap_or_default();
+            let local = p.genres.get(&language).cloned().unwrap_or_default();
+            let mut genre_names: Vec<(String, String)> = local
                 .iter()
-                .find(|(_, v)| v == genre)
-                .map(|(l, _)| l.clone())
-                .unwrap_or_default();
-            chips.push(chip(label, t("catalogue.genres"), "genres", genre.clone()));
+                .enumerate()
+                .filter_map(|(i, name)| Some((name.clone(), en.get(i)?.clone())))
+                .collect();
+            genre_names.sort_by(|a, b| a.0.cmp(&b.0));
+            genre_names.dedup_by(|a, b| a.0 == b.0);
+            let mut tag_names: Vec<(String, i64)> =
+                p.tags.get(&language).cloned().unwrap_or_default();
+            tag_names.sort_by(|a, b| a.0.cmp(&b.0));
+            let developers = p.developers.clone();
+            let publishers = p.publishers.clone();
+            sections = vec![
+                (
+                    "genres",
+                    t("catalogue.genres"),
+                    genre_names
+                        .iter()
+                        .map(|(l, v)| (l.clone(), v.clone(), f.genres.contains(v), None))
+                        .collect(),
+                    !p.genres.contains_key(&language),
+                ),
+                (
+                    "tags",
+                    t("catalogue.tags"),
+                    tag_names
+                        .iter()
+                        .map(|(l, id)| (l.clone(), id.to_string(), f.tags.contains(id), None))
+                        .collect(),
+                    !p.tags.contains_key(&language),
+                ),
+                (
+                    "downloadSourceFingerprints",
+                    t("catalogue.download_sources"),
+                    source_rows.clone(),
+                    p.download_sources.is_none(),
+                ),
+                (
+                    "developers",
+                    t("catalogue.developers"),
+                    developers
+                        .as_deref()
+                        .map(|d| names(d, &f.developers, false))
+                        .unwrap_or_default(),
+                    developers.is_none(),
+                ),
+                (
+                    "publishers",
+                    t("catalogue.publishers"),
+                    publishers
+                        .as_deref()
+                        .map(|d| names(d, &f.publishers, true))
+                        .unwrap_or_default(),
+                    publishers.is_none(),
+                ),
+            ];
+            for genre in &f.genres {
+                let label = genre_names
+                    .iter()
+                    .find(|(_, v)| v == genre)
+                    .map(|(l, _)| l.clone())
+                    .unwrap_or_default();
+                chips.push(chip(
+                    label,
+                    t("catalogue.genres"),
+                    "genres",
+                    genre.clone(),
+                    category_color("genres"),
+                ));
+            }
+            for tag in &f.tags {
+                let label = tag_names
+                    .iter()
+                    .find(|(_, id)| id == tag)
+                    .map(|(l, _)| l.clone())
+                    .unwrap_or_default();
+                chips.push(chip(
+                    label,
+                    t("catalogue.tags"),
+                    "tags",
+                    tag.to_string(),
+                    category_color("tags"),
+                ));
+            }
         }
-        for tag in &f.tags {
-            let label = tag_names
-                .iter()
-                .find(|(_, id)| id == tag)
-                .map(|(l, _)| l.clone())
-                .unwrap_or_default();
-            chips.push(chip(label, t("catalogue.tags"), "tags", tag.to_string()));
-        }
-        for fp in &f.download_source_fingerprints {
-            let label = sources
-                .iter()
-                .find(|(_, v)| v == fp)
-                .map(|(l, _)| l.clone())
-                .unwrap_or_default();
-            chips.push(chip(
-                label,
-                t("catalogue.download_sources"),
-                "downloadSourceFingerprints",
-                fp.clone(),
-            ));
+        let fp_chips: Vec<FilterChip> = f
+            .download_source_fingerprints
+            .iter()
+            .map(|fp| {
+                let label = sources
+                    .iter()
+                    .find(|(_, v)| v == fp)
+                    .map(|(l, _)| l.clone())
+                    .unwrap_or_default();
+                chip(
+                    label,
+                    t("catalogue.download_sources"),
+                    "downloadSourceFingerprints",
+                    fp.clone(),
+                    category_color("downloadSourceFingerprints"),
+                )
+            })
+            .collect();
+        // Modern: genres, tags, sources, developers, publishers, year.
+        // Classics: recompilation, platforms, genres, developers, publishers, sources.
+        if !classics {
+            chips.extend(fp_chips.clone());
         }
         for developer in &f.developers {
             chips.push(chip(
@@ -713,6 +928,7 @@ fn apply_sections() {
                 t("catalogue.developers"),
                 "developers",
                 developer.clone(),
+                category_color("developers"),
             ));
         }
         for publisher in &f.publishers {
@@ -721,9 +937,12 @@ fn apply_sections() {
                 t("catalogue.publishers"),
                 "publishers",
                 publisher.clone(),
+                category_color("publishers"),
             ));
         }
-        if let Some((gte, lte)) = f.release_year {
+        if classics {
+            chips.extend(fp_chips);
+        } else if let Some((gte, lte)) = f.release_year {
             chips.push(chip(
                 format!(
                     "{} – {}",
@@ -733,25 +952,81 @@ fn apply_sections() {
                 t("catalogue.release_year"),
                 "releaseYear",
                 "range".into(),
+                category_color("releaseYear"),
             ));
         }
-        (sections, chips, p.section_search.clone(), f.release_year)
+        (
+            sections,
+            chips,
+            p.section_search.clone(),
+            p.section_group.clone(),
+            f.release_year,
+            f.recompilation.is_some(),
+        )
     });
-    let Some((sections, chips, search, release_year)) = sections_state else {
+    let Some((sections, chips, search, chosen_groups, release_year, recompilation)) =
+        sections_state
+    else {
         return;
     };
+    const GROUPS: [(&str, &str); 3] = [
+        ("sony", "Sony"),
+        ("nintendo", "Nintendo"),
+        ("other", "Other"),
+    ];
     let models: Vec<FilterSectionData> = sections
         .into_iter()
         .map(|(key, title, items, loading)| {
             let selected = items.iter().filter(|i| i.2).count();
+            // availableGroups / activeGroup (filter-section.tsx)
+            let available: Vec<&(&str, &str)> = GROUPS
+                .iter()
+                .filter(|(value, _)| items.iter().any(|i| i.3 == Some(*value)))
+                .collect();
+            let active_group: Option<&str> = if available.is_empty() {
+                None
+            } else {
+                chosen_groups
+                    .get(key)
+                    .and_then(|g| {
+                        available
+                            .iter()
+                            .find(|(v, _)| *v == g.as_str())
+                            .map(|(v, _)| *v)
+                    })
+                    .or_else(|| {
+                        available
+                            .iter()
+                            .find(|(v, _)| items.iter().any(|i| i.2 && i.3 == Some(*v)))
+                            .map(|(v, _)| *v)
+                    })
+                    .or_else(|| available.first().map(|(v, _)| *v))
+            };
+            let groups: Vec<FilterGroup> = available
+                .iter()
+                .map(|(value, label)| {
+                    let in_group = items.iter().filter(|i| i.2 && i.3 == Some(*value)).count();
+                    FilterGroup {
+                        value: (*value).into(),
+                        label: (*label).into(),
+                        count: if in_group > 0 {
+                            format_number(in_group as f64).into()
+                        } else {
+                            SharedString::default()
+                        },
+                        active: active_group == Some(*value),
+                    }
+                })
+                .collect();
             let query = search
                 .get(key)
                 .map(|s| s.to_lowercase())
                 .unwrap_or_default();
             let shown: Vec<FilterOption> = items
                 .iter()
-                .filter(|(label, _, _)| query.is_empty() || label.to_lowercase().contains(&query))
-                .map(|(label, value, checked)| FilterOption {
+                .filter(|i| active_group.is_none() || i.3 == active_group)
+                .filter(|i| query.is_empty() || i.0.to_lowercase().contains(&query))
+                .map(|(label, value, checked, _)| FilterOption {
                     label: label.into(),
                     value: value.into(),
                     checked: *checked,
@@ -779,6 +1054,7 @@ fn apply_sections() {
                 loading,
                 total: items.len() as i32,
                 items: ModelRc::new(VecModel::from(shown)),
+                groups: ModelRc::new(VecModel::from(groups)),
             }
         })
         .collect();
@@ -803,6 +1079,8 @@ fn apply_sections() {
     );
     data.set_year_lte(release_year.and_then(|(_, l)| l).unwrap_or(year));
     data.set_year_active(release_year.is_some());
+    data.set_recompilation_only(recompilation);
+    data.set_recompilations_enabled(crate::features::enabled("RECOMPILATIONS"));
     with_page(|p| {
         data.set_mode(p.mode.clone().into());
         let sort = format!("{}:{}", p.filters.sort_by, p.filters.sort_order);
@@ -938,6 +1216,7 @@ fn library_keys() -> HashSet<String> {
 fn apply_results() {
     let language = language();
     let library = library_keys();
+    let recompilations = crate::features::enabled("RECOMPILATIONS");
     let Some((ui, loader, items, rows, count, page, request, loading)) = with_page(|p| {
         let en = p.genres.get("en").cloned().unwrap_or_default();
         let local = p.genres.get(&language).cloned();
@@ -987,6 +1266,13 @@ fn apply_results() {
                     )),
                     added: library.contains(&key),
                     adding: p.adding.contains(&key),
+                    platform: s("platform").into(),
+                    recompilation: recompilations
+                        && game
+                            .get("recompilations")
+                            .and_then(Value::as_array)
+                            .is_some_and(|r| !r.is_empty()),
+                    backdrop: Image::default(),
                 }
             })
             .collect();
@@ -1029,8 +1315,32 @@ fn apply_results() {
         data.set_total_pages(count.div_ceil(PAGE_SIZE as u64) as i32);
         data.set_page(page as i32);
         let scale = window.window().scale_factor();
+        let classics = with_page(|p| p.mode == "classics").unwrap_or(false);
         for (index, url) in covers.into_iter().enumerate() {
             let Some(url) = url else { continue };
+            if classics {
+                // __cover-image at 135px tall + the blurred backdrop (blur 14px, saturate 1.1).
+                loader.run(move |http| {
+                    let Some(img) = hydra_media::images::fetch(http, &url.clone().into())
+                        .and_then(|bytes| hydra_media::images::open_bytes(&bytes))
+                    else {
+                        return;
+                    };
+                    let (cover, backdrop) = classics_pixels(img, scale);
+                    let _ = slint::invoke_from_event_loop(move || {
+                        with_page(|p| {
+                            if p.request == request
+                                && let Some(mut row) = p.items.row_data(index)
+                            {
+                                row.cover = cover.into_image();
+                                row.backdrop = backdrop.into_image();
+                                p.items.set_row_data(index, row);
+                            }
+                        });
+                    });
+                });
+                continue;
+            }
             loader.load(
                 url,
                 Op::MaxWidth((200.0 * scale).ceil() as u32),
@@ -1047,6 +1357,29 @@ fn apply_results() {
             );
         }
     }
+}
+
+/// The classics art at its displayed height and a blurred, saturated copy.
+fn classics_pixels(
+    img: image::DynamicImage,
+    scale: f32,
+) -> (hydra_media::images::Pixels, hydra_media::images::Pixels) {
+    use image::imageops::FilterType;
+    let height = (135.0 * scale).ceil() as u32;
+    let cover = if img.height() > height {
+        img.resize(u32::MAX, height, FilterType::CatmullRom)
+    } else {
+        img.clone()
+    };
+    // The backdrop covers a ~250x151 box; blur on a quarter-size copy.
+    let small = img.resize(64, 64, FilterType::Triangle);
+    let sigma = 14.0 * scale * small.width() as f32 / (260.0 * scale);
+    let mut blurred = small.blur(sigma.max(0.5)).to_rgb8();
+    crate::library_page::saturate(&mut blurred, 1.1);
+    (
+        hydra_media::images::to_pixels(cover, Op::Full),
+        hydra_media::images::to_pixels(image::DynamicImage::ImageRgb8(blurred), Op::Full),
+    )
 }
 
 /// addGameToLibrary from the "+" on a result.

@@ -7,7 +7,7 @@ import { Badge } from "../../components/game-card.slint";
 import { T } from "../../globals.slint";
 import { Input } from "../game-details/state.slint";
 import { CatalogueData, CatalogueItem } from "state.slint";
-import { ModeToggle, FilterSection, ReleaseYearSection, FilterChipItem } from "filters.slint";
+import { ModeToggle, FilterSection, ReleaseYearSection, FilterChipItem, RecompilationToggle } from "filters.slint";
 
 // game-item.tsx / game-item.scss: a 105px row (200x103 cover, details).
 component GameItem inherits Rectangle {
@@ -113,6 +113,189 @@ component GameItem inherits Rectangle {
         width: 20px;
         height: 22px;
         opacity: root.item.added || root.item.adding ? 0.5 : (link.has-hover || plus.has-hover) ? 1 : 0;
+        animate opacity { duration: 200ms; easing: ease-in-out; }
+        Icon {
+            width: 16px;
+            height: 16px;
+            source: root.item.added ? @image-url("../../icons/check.svg") : @image-url("../../icons/plus.svg");
+            color: Theme.muted;
+        }
+        plus := TouchArea {
+            mouse-cursor: root.item.added || root.item.adding ? default : pointer;
+            clicked => {
+                if (!root.item.added && !root.item.adding) {
+                    root.add();
+                }
+            }
+        }
+    }
+}
+
+// game-item-classics.{tsx,scss}: a card with the art on a blurred backdrop
+// (151px), the platform / recompilation chips, title, genres and sources.
+component GameItemClassics inherits Rectangle {
+    in property <CatalogueItem> item;
+    callback open();
+    callback add();
+    height: 151px + 8px + details.preferred-height + 2px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: link.has-hover || plus.has-hover ? rgba(255, 255, 255, 0.16) : Theme.border;
+    animate border-color { duration: 150ms; easing: ease; }
+    background: Theme.dark-background;
+    clip: true;
+    accessible-role: button;
+    accessible-label: root.item.title;
+
+    cover-box := Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: 151px;
+        background: #0a0a0a;
+        clip: true;
+        if root.item.has-cover: Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.item.backdrop;
+            image-fit: cover;
+            transform-scale: 1.25;
+            opacity: 0.65;
+        }
+        if root.item.has-cover && root.item.cover.width > 0: Rectangle {
+            property <float> aspect: root.item.cover.width / Math.max(1, root.item.cover.height);
+            height: 135px;
+            width: Math.min(self.height * self.aspect, parent.width * 0.8);
+            border-radius: 4px;
+            drop-shadow-offset-y: 5px;
+            drop-shadow-blur: 5px;
+            drop-shadow-color: rgba(0, 0, 0, 0.09);
+            Rectangle {
+                border-radius: 4px;
+                clip: true;
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.item.cover;
+                    image-fit: contain;
+                }
+            }
+            Rectangle {
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: rgba(255, 255, 255, 0.12);
+            }
+        }
+        if !root.item.has-cover: Icon {
+            width: 32px;
+            height: 32px;
+            source: @image-url("../../icons/question.svg");
+            color: rgba(255, 255, 255, 0.4);
+        }
+        // __platform-chip / __recompilation-chip: 11px on rgba(0,0,0,.6)
+        if root.item.platform != "": Rectangle {
+            x: 8px;
+            y: 8px;
+            height: platform-text.preferred-height + 10px;
+            width: Math.min(platform-text.preferred-width + 18px, parent.width - (root.item.recompilation ? 130px : 16px));
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: rgba(255, 255, 255, 0.12);
+            background: rgba(0, 0, 0, 0.6);
+            platform-text := Text {
+                x: 9px;
+                width: parent.width - 18px;
+                text: root.item.platform;
+                font-size: Theme.tiny-size;
+                font-weight: 500;
+                color: Theme.muted;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+        if root.item.recompilation: Rectangle {
+            x: parent.width - 42px - self.width;
+            y: 8px;
+            height: recomp-row.preferred-height + 10px;
+            width: recomp-row.preferred-width + 18px;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: rgba(255, 255, 255, 0.12);
+            background: rgba(0, 0, 0, 0.6);
+            recomp-row := HorizontalLayout {
+                x: 9px;
+                spacing: 4px;
+                Icon {
+                    y: (parent.height - self.height) / 2;
+                    width: 11px;
+                    height: 11px;
+                    source: @image-url("../../icons/device-desktop-14.svg");
+                    color: Theme.muted;
+                }
+                Text {
+                    text: T.tr("catalogue.recompilation_badge");
+                    font-size: Theme.tiny-size;
+                    font-weight: 500;
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+
+    // __details: padding 4px 12px 12px, gap 4px
+    details := VerticalLayout {
+        x: 1px;
+        y: 1px + 151px + 8px;
+        width: parent.width - 2px;
+        height: self.preferred-height;
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 4px;
+        padding-bottom: 12px;
+        spacing: 4px;
+        Text {
+            text: root.item.title;
+            font-size: Theme.body-size;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.8);
+            overflow: elide;
+        }
+        Text {
+            text: root.item.genres != "" ? root.item.genres : T.tr("catalogue.no_genres");
+            font-size: Theme.small-size;
+            font-italic: root.item.genres == "";
+            color: root.item.genres != "" ? rgba(255, 255, 255, 0.5) : rgba(255, 255, 255, 0.3);
+            overflow: elide;
+        }
+        if root.item.sources.length > 0: HorizontalLayout {
+            padding-top: 4px;
+            spacing: 8px;
+            alignment: start;
+            for source in root.item.sources: Badge {
+                text: source;
+            }
+        }
+    }
+
+    link := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.open();
+        }
+    }
+
+    // __plus-wrapper: round, on the cover
+    Rectangle {
+        x: parent.width - 9px - self.width;
+        y: 9px;
+        width: 26px;
+        height: 26px;
+        border-radius: 13px;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.6);
+        opacity: root.item.added ? 0.5 : (link.has-hover || plus.has-hover) ? 1 : 0;
         animate opacity { duration: 200ms; easing: ease-in-out; }
         Icon {
             width: 16px;
@@ -350,7 +533,19 @@ export component CataloguePage inherits Rectangle {
                         height: self.preferred-height;
                         spacing: 8px;
                         alignment: start;
-                        if CatalogueData.loading: VerticalLayout {
+                        if CatalogueData.loading && CatalogueData.mode == "classics": classics-skeleton := Rectangle {
+                            property <int> columns: root.width <= 1024px ? 2 : 3;
+                            property <length> cell: (content.results-width - 16px * (self.columns - 1)) / self.columns;
+                            height: Math.ceil(30 / self.columns) * (220px + 16px) - 16px;
+                            for i in 30: Skeleton {
+                                x: Math.mod(i, classics-skeleton.columns) * (classics-skeleton.cell + 16px);
+                                y: Math.floor(i / classics-skeleton.columns) * (220px + 16px);
+                                width: classics-skeleton.cell;
+                                height: 220px;
+                                radius: 8px;
+                            }
+                        }
+                        if CatalogueData.loading && CatalogueData.mode != "classics": VerticalLayout {
                             spacing: 8px;
                             for i in 30: Skeleton {
                                 height: 105px;
@@ -359,7 +554,27 @@ export component CataloguePage inherits Rectangle {
                                 border-color: rgba(255, 255, 255, 0.15);
                             }
                         }
-                        if !CatalogueData.loading: VerticalLayout {
+                        // --classics: a grid of 3 (2 at <= 1024px), gap 16
+                        if !CatalogueData.loading && CatalogueData.mode == "classics": classics-grid := Rectangle {
+                            property <int> columns: root.width <= 1024px ? 2 : 3;
+                            property <length> cell: (content.results-width - 16px * (self.columns - 1)) / self.columns;
+                            // Every card has the same rows of content, so they share one height.
+                            property <length> card-height: 151px + 8px + 4px + 19px + 4px + 17px + 4px + 4px + 22px + 12px + 2px;
+                            height: Math.ceil(CatalogueData.items.length / self.columns) * (self.card-height + 16px) - 16px;
+                            for item[i] in CatalogueData.items: GameItemClassics {
+                                x: Math.mod(i, classics-grid.columns) * (classics-grid.cell + 16px);
+                                y: Math.floor(i / classics-grid.columns) * (classics-grid.card-height + 16px);
+                                width: classics-grid.cell;
+                                item: item;
+                                open => {
+                                    CatalogueData.open-item(i);
+                                }
+                                add => {
+                                    CatalogueData.add-item(i);
+                                }
+                            }
+                        }
+                        if !CatalogueData.loading && CatalogueData.mode != "classics": VerticalLayout {
                             spacing: 8px;
                             for item[i] in CatalogueData.items: GameItem {
                                 item: item;
@@ -398,6 +613,12 @@ export component CataloguePage inherits Rectangle {
                                 CatalogueData.set-mode(mode);
                             }
                         }
+                        if CatalogueData.mode == "classics" && CatalogueData.recompilations-enabled: RecompilationToggle {
+                            checked: CatalogueData.recompilation-only;
+                            toggled => {
+                                CatalogueData.set-recompilation(!CatalogueData.recompilation-only);
+                            }
+                        }
                         if CatalogueData.mode == "modern": ReleaseYearSection {
                             // filterCategoryColors.releaseYear: hsl(38deg 50% 40%)
                             range-color: #996f33;
@@ -424,6 +645,9 @@ export component CataloguePage inherits Rectangle {
                             }
                             searched(text) => {
                                 CatalogueData.search-section(section.key, text);
+                            }
+                            group-selected(group) => {
+                                CatalogueData.select-group(section.key, group);
                             }
                         }
                     }

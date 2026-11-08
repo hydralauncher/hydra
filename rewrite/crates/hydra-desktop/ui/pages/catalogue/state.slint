@@ -11,6 +11,20 @@ export struct CatalogueItem {
     sources: [string],
     added: bool,
     adding: bool,
+    // Classics (game-item-classics.tsx)
+    platform: string,
+    recompilation: bool,
+    // The cover blurred for __cover-backdrop (blur 14px, saturate 1.1).
+    backdrop: image,
+}
+
+// filter-section__group-tab (classics platforms: Sony / Nintendo / Other)
+export struct FilterGroup {
+    value: string,
+    label: string,
+    // formatNumber(selected in this group), empty when none
+    count: string,
+    active: bool,
 }
 
 export struct FilterOption {
@@ -34,6 +48,7 @@ export struct FilterSectionData {
     total: int,
     // The items matching the section's own search box.
     items: [FilterOption],
+    groups: [FilterGroup],
 }
 
 // An active filter chip (filter-item.tsx).
@@ -71,6 +86,9 @@ export global CatalogueData {
     in property <bool> year-active;
     // Bumped when the page changes: results scroll back to the top.
     in property <int> scroll-reset;
+    // Classics: the RECOMPILATIONS feature and its filter.
+    in property <bool> recompilations-enabled;
+    in property <bool> recompilation-only;
 
     callback open-item(int);
     callback add-item(int);
@@ -85,6 +103,8 @@ export global CatalogueData {
     callback set-years(int, int);
     callback clear-years();
     callback visible-range(int, int);
+    callback select-group(string, string);
+    callback set-recompilation(bool);
     // formatNumber (Intl.NumberFormat of the UI language)
     pure callback format-page(int) -> string;
 }
