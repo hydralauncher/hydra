@@ -12,7 +12,8 @@ use hydra_core::library_actions;
 use hydra_db::{Db, keys};
 use serde_json::{Map, Value, json};
 
-use crate::processes;
+use crate::linux_match::{self, LinuxProcess};
+use crate::{processes, wine};
 
 /// INTERVALS.processWatcher
 pub const INTERVAL_MS: u64 = 2_000;
@@ -162,10 +163,21 @@ impl Watcher {
         }
         let list = processes::list();
         let map = processes::process_map(&list);
+        let wine_map = processes::wine_prefix_map(&list);
+        let linux = cfg!(target_os = "linux");
+        let linux_processes = processes::linux_processes(&list);
+        let by_pid: HashMap<u32, &LinuxProcess> =
+            linux_processes.iter().map(|p| (p.pid, p)).collect();
+        let roots = if linux { wine::Roots::current() } else { None };
+        let prefs: Option<Value> = if linux {
+            self.db.get(keys::USER_PREFERENCES)
+        } else {
+            None
+        };
         for (key, game) in games {
             let Some(executable) = str_field(&game, "executablePath") else {
                 if let Some(object_id) = str_field(&game, "objectId") {
-                    self.find_game_path_by_process(&map, object_id);
+                    self.find_game_path_by_process(&map, &wine_map, object_id);
                 }
                 continue;
             };
@@ -192,12 +204,45 @@ impl Watcher {
                     .collect()
             };
             let separator = if cfg!(windows) { '\\' } else { '/' };
-            let matched = candidates.iter().find(|path| {
-                let name = path.rsplit(separator).next().unwrap_or(path).to_lowercase();
-                map.get(&name)
-                    .is_some_and(|paths| paths.iter().any(|p| crate::same_path(p, path)))
-            });
-            // TODO(launch): Linux native/AppImage/Wine matches, launched pid matches, Epic.
+            // Wine.getEffectivePrefixPath(game.winePrefixPath, objectId), lowercased
+            let expected_prefix = roots
+                .as_ref()
+                .and_then(|roots| {
+                    wine::effective_prefix(
+                        roots,
+                        prefs.as_ref().and_then(Value::as_object),
+                        str_field(&game, "winePrefixPath"),
+                        str_field(&game, "objectId"),
+                    )
+                })
+                .map(|p| p.to_string_lossy().to_lowercase());
+            let mut matched = candidates
+                .iter()
+                .find(|path| {
+                    let name = path.rsplit(separator).next().unwrap_or(path).to_lowercase();
+                    if map
+                        .get(&name)
+                        .is_some_and(|paths| paths.iter().any(|p| crate::same_path(p, path)))
+                    {
+                        return true;
+                    }
+                    linux
+                        && (linux_match::has_native_or_appimage_match(path, &linux_processes)
+                            || linux_match::has_compatibility_match(
+                                path,
+                                expected_prefix.as_deref(),
+                                &linux_processes,
+                            ))
+                })
+                .cloned();
+            if matched.is_none()
+                && linux
+                && linux_match::has_launched_pid_match(launched_pid(&key), executable, &by_pid)
+            {
+                matched = Some(executable.to_string());
+            }
+            let matched = matched.as_ref();
+            // TODO(launch): Epic managed process proof.
             let tracked = self
                 .sessions
                 .lock()
@@ -219,6 +264,7 @@ impl Watcher {
     fn find_game_path_by_process(
         &self,
         map: &HashMap<String, std::collections::HashSet<String>>,
+        wine_map: &HashMap<String, String>,
         object_id: &str,
     ) {
         let Some(executables) = hydra_core::executables::for_game(object_id) else {
@@ -239,11 +285,16 @@ impl Watcher {
                 if !(lowered.ends_with(&executable.name) || lowered.ends_with(&without_extension)) {
                     continue;
                 }
-                // TODO(launch): winePrefixPath from STEAM_COMPAT_DATA_PATH on Linux.
                 let updated = library_actions::update_game_record(&self.db, &key, |game| {
                     if game.get("executablePath").and_then(Value::as_str) != Some(path.as_str()) {
                         game.insert("executablePath".into(), json!(path));
                         game.insert("executablePathUpdatedAt".into(), json!(now_iso()));
+                    }
+                    // A Proton game: its prefix is Steam's compatdata folder.
+                    if cfg!(target_os = "linux")
+                        && let Some(prefix) = wine_map.get(path)
+                    {
+                        game.insert("winePrefixPath".into(), json!(prefix));
                     }
                 });
                 if matches!(updated, Ok(Some(_))) {

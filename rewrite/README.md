@@ -32,7 +32,9 @@ a `TODO(area)` line to stderr instead of doing nothing silently.
 - Rust 1.85+ (edition 2024).
 - FFmpeg 7 or 8 and dav1d, found through `pkg-config`.
   - macOS: `brew install ffmpeg pkg-config`
-  - Linux: the distro's `libav*-dev`, `libdav1d-dev`, `libasound2-dev`
+  - Linux: the distro's `libav*-dev`, `libdav1d-dev`, `libasound2-dev`,
+    `libwebkit2gtk-4.1-dev`, `libgtk-3-dev` (full list, WSL workflow and
+    packaging in [`docs/linux.md`](docs/linux.md))
   - Windows: vcpkg `ffmpeg[core,avcodec,avformat,swscale,swresample]` + `dav1d`
 
   Only macOS has been built and run so far. The code has no macOS-only

@@ -39,8 +39,46 @@ Caveats, so the numbers aren't read as more than they are:
   textures). It is the next thing to look at: images are uploaded at
   decode size, and the hero is decoded at full size.
 
-## Linux
+## 2026-11-08: Linux (WSL)
 
-Pending: the Electron reference has to be built inside WSL (native
-modules) to compare on the same machine. WSL renders through Mesa's D3D12
-layer and decodes video in software, so Linux rows will be marked WSL.
+Measured with `tools/bench-linux.sh` in WSL 2 (Ubuntu 26.04, kernel 6.18,
+WSLg on Wayland) on the same machine: the bench-windows scenario, real
+windows at 1200×860, release builds, the same account and library (a Linux
+copy of the Electron reference data; the rewrite imported it). Each app ran
+once to warm its caches, then the measured run. Electron 41 is `main` at
+`4d00d98e2` built inside WSL (`yarn install`, `electron-vite build`).
+
+Memory is summed over the app's process tree from `/proc/<pid>/smaps_rollup`:
+USS is the private resident memory (the closest thing to Task Manager's
+private working set), PSS also counts each process's share of shared pages.
+CPU is user + system time over the sample, as % of one core.
+
+**Everything draws in software here.** This machine's WSL GPU path is
+broken (the `dxg` ioctls fail with EINVAL, Mesa only offers llvmpipe, WSLg
+runs in copy mode): Chromium blocklists the GPU and composites on the CPU,
+and the rewrite uses Skia's CPU raster (see decisions.md). Both decode the
+trailer in software. There are no per-process GPU memory counters in WSL, so
+there is no GPU column.
+
+| Scenario (WSL) | Electron USS | Electron PSS | Electron CPU | Native USS | Native PSS | Native CPU | Memory saved (USS) |
+|---|---|---|---|---|---|---|---|
+| Start → first paint | | | **3.07 s** | | | **0.21 s** | 15× faster |
+| Home page after start (Electron only) | 917.3 MB | 1,097.3 MB | 86.9% | | | | |
+| Game page (Cyberpunk 2077), trailer playing | 1,682.1 MB | 1,883.2 MB | 170.6% | **391.9 MB** | 397.1 MB | 34.5% | 4.3× less |
+| Scrolling the 942-game library list | 2,037.3 MB | 2,247.3 MB | 193.5% | **419.7 MB** | 424.9 MB | 59.0% | 4.9× less |
+| Idle after scrolling (trailer still playing) | 1,983.9 MB | 2,182.9 MB | 113.5% | **435.5 MB** | 440.7 MB | 32.3% | 4.6× less |
+
+Electron runs 10 processes here; the rewrite runs one.
+
+Caveats:
+
+- Native start is to the event loop's first turn after the window exists,
+  Electron's is first-contentful-paint, both from the launch, as on Windows.
+  The native start includes the forked EGL device check (decisions.md);
+  runs ranged 0.13 to 0.45 s.
+- Before the Linux renderer choice, the rewrite drew with Slint's default
+  Skia surface, wgpu on Vulkan, which got lavapipe (CPU Vulkan) here: 709
+  to 731 MB and 333% CPU with the trailer playing. That is the number a
+  machine without a hardware Vulkan driver would have seen.
+- A real Linux desktop with a GPU runs Skia on OpenGL and Chromium with GPU
+  compositing; that comparison still has to be measured on hardware.

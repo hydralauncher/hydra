@@ -9,6 +9,8 @@ mod achievement_watcher;
 mod achievements_page;
 mod auth;
 mod autolaunch;
+#[cfg(target_os = "linux")]
+mod auth_gtk;
 mod catalogue_page;
 mod chat_service;
 mod chat_window;
@@ -49,6 +51,8 @@ mod leaderboards_page;
 #[cfg(windows)]
 mod layered_window;
 mod library_page;
+#[cfg(target_os = "linux")]
+mod linux;
 mod main_window;
 mod nav;
 mod notifications_page;
@@ -119,8 +123,16 @@ pub(crate) fn wheel_notch_px() -> f32 {
     lines as f32 * 100.0 / 3.0
 }
 
-/// TODO(linux): measure Chromium on X11/Wayland; 40px is the old value.
-#[cfg(not(windows))]
+/// Linux: Chromium turns a notch into its 120-unit wheel delta and scrolls
+/// 120px, animated over about 200ms (measured on Electron 41, X11, with real
+/// XTEST wheel clicks).
+#[cfg(target_os = "linux")]
+pub(crate) fn wheel_notch_px() -> f32 {
+    120.0
+}
+
+/// TODO(macos): measure Chromium; 40px is the old value.
+#[cfg(not(any(windows, target_os = "linux")))]
 pub(crate) fn wheel_notch_px() -> f32 {
     40.0
 }
@@ -160,6 +172,7 @@ fn parse_args() -> Args {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    hydra_launch::remove_appimage_library_path();
     hydra_store::init_tls();
     let args = parse_args();
 
@@ -181,12 +194,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         headless::Headless::install(width, height, scale)?;
     } else if std::env::var_os("SLINT_BACKEND").is_none() {
         // Skia measured best overall (see docs/decisions.md). SLINT_BACKEND overrides.
+        // Linux picks OpenGL or the CPU raster like Chromium (linux::renderer):
+        // Skia's default there is wgpu on Vulkan, which can land on a CPU
+        // Vulkan driver.
+        #[cfg(target_os = "linux")]
+        let renderer = linux::renderer();
+        #[cfg(not(target_os = "linux"))]
+        let renderer = "skia";
         slint::BackendSelector::new()
             .backend_name("winit".into())
-            .renderer_name("skia".into())
+            .renderer_name(renderer.into())
             // the chat window opens in the background for incoming messages
             .with_winit_window_attributes_hook(social::window_attributes)
             .select()?;
+    }
+    #[cfg(target_os = "linux")]
+    if !headless_mode {
+        linux::set_app_id();
     }
 
     // ---- local data: the rewrite's own LevelDB, imported from Electron on first run
@@ -360,6 +384,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !headless_mode {
         main_window::restore(&ui);
         tray::init();
+        #[cfg(target_os = "linux")]
+        linux::set_window_icon(&ui);
     }
     // --hidden (auto-launch) and cold-start "run" links stay in the tray
     let start_hidden = tray::available()

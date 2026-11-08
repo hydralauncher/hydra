@@ -10,8 +10,19 @@ use crate::shell;
 /// getDefaultDownloadsPath: app.getPath("downloads")
 pub fn default_downloads_path() -> String {
     dirs::download_dir()
+        .or_else(xdg_downloads_fallback)
         .map(|p| p.to_string_lossy().into_owned())
         .unwrap_or_default()
+}
+
+/// Chromium on Linux asks xdg-user-dirs for DOWNLOAD and falls back to
+/// `$HOME/Downloads` when the user has no `user-dirs.dirs` (dirs returns None).
+fn xdg_downloads_fallback() -> Option<std::path::PathBuf> {
+    if cfg!(target_os = "linux") {
+        dirs::home_dir().map(|home| home.join("Downloads"))
+    } else {
+        None
+    }
 }
 
 pub fn get() -> Map<String, Value> {

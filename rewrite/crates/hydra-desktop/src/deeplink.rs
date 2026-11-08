@@ -156,6 +156,9 @@ pub fn register_protocol() {
             eprintln!("Failed to register {PROTOCOL}://: {error}");
         }
     }
-    // Linux and macOS register through the package (.desktop MimeType,
-    // Info.plist CFBundleURLTypes).
+    // Linux: the package installs hydralauncher.desktop with the MimeType;
+    // like Electron, make it the scheme's default handler with xdg-settings.
+    #[cfg(target_os = "linux")]
+    crate::linux::register_protocol();
+    // macOS registers through Info.plist CFBundleURLTypes.
 }

@@ -125,6 +125,10 @@ fn show_toast(
         let _ = progress;
         let mut notification = notify_rust::Notification::new();
         notification.appname("Hydra").summary(title).body(body);
+        // Electron's libnotify notifications name the desktop entry, so the
+        // desktop groups them under the app (GetXdgAppId).
+        #[cfg(target_os = "linux")]
+        notification.hint(notify_rust::Hint::DesktopEntry(crate::linux::APP_ID.into()));
         if let Some(icon) = icon.and_then(Path::to_str) {
             notification.image_path(icon);
         }
@@ -466,4 +470,22 @@ pub fn extraction_complete(game_id: &str) {
         icon.as_deref(),
         Some(&url),
     );
+}
+
+#[cfg(test)]
+mod tests {
+    /// A real OS notification with the tray icon (needs a notification
+    /// server; on Linux a D-Bus org.freedesktop.Notifications).
+    /// `cargo test -p hydra-desktop --bin hydra -- --ignored os_notification`
+    #[test]
+    #[ignore]
+    fn os_notification() {
+        let icon = super::tray_icon();
+        assert!(icon.as_deref().is_some_and(std::path::Path::exists));
+        super::show(
+            "Download complete",
+            "Hollow Knight is ready to install",
+            icon.as_deref(),
+        );
+    }
 }

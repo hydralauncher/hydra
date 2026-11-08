@@ -64,6 +64,8 @@ export global Chrome {
     callback toggle-maximize();
     callback close();
     callback drag();
+    // frameless Linux: "north", "south-east", ... (see shell/resize-edges.slint)
+    callback start-resize(string);
 }
 
 // One row of the sidebar game list (sidebar-game-item.tsx).
