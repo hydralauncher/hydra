@@ -554,23 +554,26 @@ fn release_running_game_resources() {
 /// updateUserPreferences side effects: ScreenshotInputService
 /// .syncUserPreferences, and applyScreenshotsEnabledPreference when the
 /// patch has `screenshotsEnabled`.
-pub fn on_preferences_updated(patch: &Map<String, Value>, merged: &Map<String, Value>) {
+/// Off the UI thread: starting a backend can wait for its thread, and the
+/// latest stored preferences are read so quick successive updates settle
+/// on the last one.
+pub fn on_preferences_updated(patch: &Map<String, Value>) {
     let Some(service) = service() else { return };
-    input::sync_user_preferences(merged);
-    if let Some(enabled) = patch.get("screenshotsEnabled") {
-        let enabled = enabled.as_bool();
-        std::thread::spawn(move || {
-            if enabled == Some(false) {
-                release_running_game_resources();
-                return;
-            }
-            for key in service.running_games() {
-                if service.game(&key).is_some() {
-                    on_game_started(&service, &key);
+    let enabled = patch.get("screenshotsEnabled").map(Value::as_bool);
+    std::thread::spawn(move || {
+        input::sync_user_preferences(&service.preferences());
+        match enabled {
+            None => {}
+            Some(Some(false)) => release_running_game_resources(),
+            Some(_) => {
+                for key in service.running_games() {
+                    if service.game(&key).is_some() {
+                        on_game_started(&service, &key);
+                    }
                 }
             }
-        });
-    }
+        }
+    });
 }
 
 /// `hydralauncher://screenshot`: ScreenshotInputService.trigger("deeplink").
@@ -708,9 +711,18 @@ pub fn open_screenshots_folder() {
         if std::fs::create_dir_all(&directory).is_err() {
             continue;
         }
-        if !hydra_launch::open_path(&directory.to_string_lossy()) {
+        // shell.openPath
+        #[cfg(windows)]
+        let opened = std::process::Command::new("explorer")
+            .arg(&directory)
+            .spawn();
+        #[cfg(not(windows))]
+        let opened = std::process::Command::new("xdg-open")
+            .arg(&directory)
+            .spawn();
+        if let Err(error) = opened {
             eprintln!(
-                "Failed to open the screenshots folder {}",
+                "Failed to open the screenshots folder {}: {error}",
                 directory.display()
             );
         }

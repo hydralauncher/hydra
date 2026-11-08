@@ -34,12 +34,16 @@ impl std::error::Error for CaptureError {}
 
 /// prepareWindowsDesktopCapture: create the D3D device ahead of the first capture.
 pub fn prepare() -> Result<(), String> {
+    #[cfg(windows)]
+    wgc::prepare();
     crate::desktop_duplication::prepare_capture_device()
 }
 
-/// releaseWindowsDesktopCapture
+/// releaseWindowsDesktopCapture (and the window capture's D3D device)
 pub fn release() {
     crate::desktop_duplication::release_capture_device();
+    #[cfg(windows)]
+    wgc::release();
 }
 
 /// grabDesktopDuplicationFrame: None when the window doesn't cover its
@@ -72,6 +76,7 @@ pub fn window_rects(window_handle: &str) -> Option<(Rect, Rect)> {
 }
 
 /// cropToWindowClientArea: drop the title bar and borders of a windowed game.
+#[cfg_attr(not(windows), allow(dead_code))]
 fn crop_to_client(frame: Frame, window_handle: &str) -> Frame {
     let Some((outer, client)) = window_rects(window_handle) else {
         return frame;
@@ -167,6 +172,31 @@ mod wgc {
         device: ID3D11Device,
         context: ID3D11DeviceContext,
         winrt: IDirect3DDevice,
+    }
+
+    // Used only while DEVICE is locked (one capture at a time).
+    unsafe impl Send for Device {}
+
+    /// Kept between captures while games run (released with the desktop
+    /// duplication device), like the capture worker keeps its stream.
+    static DEVICE: std::sync::Mutex<Option<Device>> = std::sync::Mutex::new(None);
+
+    pub fn release() {
+        DEVICE.lock().unwrap_or_else(|e| e.into_inner()).take();
+    }
+
+    /// Creates the device ahead of the first capture (a game started).
+    pub fn prepare() {
+        unsafe {
+            let _ = RoInitialize(RO_INIT_MULTITHREADED);
+        }
+        let mut slot = DEVICE.lock().unwrap_or_else(|e| e.into_inner());
+        if slot.is_none() {
+            match create_device() {
+                Ok(device) => *slot = Some(device),
+                Err(error) => eprintln!("screenshots: failed to prepare window capture: {error}"),
+            }
+        }
     }
 
     fn create_device() -> windows::core::Result<Device> {
@@ -285,7 +315,17 @@ mod wgc {
         unsafe {
             let _ = RoInitialize(RO_INIT_MULTITHREADED);
         }
-        let device = create_device().map_err(|e| failed("D3D11 device", e))?;
+        let mut slot = DEVICE.lock().unwrap_or_else(|e| e.into_inner());
+        let device = match slot.take() {
+            Some(device) if unsafe { device.device.GetDeviceRemovedReason() }.is_ok() => device,
+            _ => create_device().map_err(|e| failed("D3D11 device", e))?,
+        };
+        let result = capture_with(&device, handle);
+        *slot = Some(device);
+        result
+    }
+
+    fn capture_with(device: &Device, handle: HWND) -> Result<Frame, CaptureError> {
         let interop = factory::<GraphicsCaptureItem, IGraphicsCaptureItemInterop>()
             .map_err(|e| failed("capture interop", e))?;
         let item: GraphicsCaptureItem =
@@ -315,7 +355,7 @@ mod wgc {
             let mut capture = next_frame(&pool, FIRST_FRAME_TIMEOUT)
                 .ok_or_else(|| CaptureError::Failed("Screenshot stream timed out".into()))?;
             for attempt in 1..=MAX_FRAME_ATTEMPTS {
-                let frame = read_frame(&device, &capture).map_err(|e| failed("read frame", e))?;
+                let frame = read_frame(device, &capture).map_err(|e| failed("read frame", e))?;
                 let _ = capture.Close();
                 if !frame::is_blank_frame(&frame) {
                     return Ok(frame);

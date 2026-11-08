@@ -2771,6 +2771,7 @@ dependencies = [
  "evdev",
  "image",
  "libc",
+ "serde",
  "serde_json",
  "sysinfo",
  "tempfile",

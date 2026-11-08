@@ -61,7 +61,8 @@ pub fn update(patch: Map<String, Value>) -> Map<String, Value> {
         merged.insert(key, value);
     }
     let _ = db.put(keys::USER_PREFERENCES, &merged);
-    crate::screenshots::on_preferences_updated(&patch, &merged);
+    // ScreenshotInputService.syncUserPreferences + applyScreenshotsEnabledPreference
+    crate::screenshots::on_preferences_updated(&patch);
     // TODO(settings): Wine/screenshot input sync, achievement caches, emulator
     // tracking and the download manager's speed limits on preference changes.
     merged
