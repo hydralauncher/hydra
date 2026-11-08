@@ -242,12 +242,11 @@ pub fn run(spawn: Spawn<'_, '_>) -> Finished {
         if finished.interrupted.is_none() && exit.is_none() {
             if spawn.cancel.is_cancelled() {
                 finished.interrupted = Some(Interruption::Cancelled);
-            } else if spawn.timeout.is_some_and(|t| started.elapsed() >= t) {
-                finished.interrupted = Some(Interruption::Timeout);
-            } else if streaming
-                && spawn
-                    .stall_timeout
-                    .is_some_and(|t| last_activity.elapsed() >= t)
+            } else if spawn.timeout.is_some_and(|t| started.elapsed() >= t)
+                || (streaming
+                    && spawn
+                        .stall_timeout
+                        .is_some_and(|t| last_activity.elapsed() >= t))
             {
                 finished.interrupted = Some(Interruption::Timeout);
             }
@@ -283,7 +282,7 @@ pub fn run(spawn: Spawn<'_, '_>) -> Finished {
         }
     }
     tree.close();
-    if let Some(callback) = on_line.as_deref_mut() {
+    if let Some(callback) = on_line {
         out_decoder.end(callback);
         err_decoder.end(callback);
     }

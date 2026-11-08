@@ -153,7 +153,7 @@ fn read_json(response: Response, max: u64) -> Result<Value> {
 /// EpicPlaytimeSource: Epic's playtime per artifact, cached for 15s.
 pub struct PlaytimeSource {
     client: Client,
-    cache: Mutex<HashMap<String, (Instant, HashMap<String, i64>)>>,
+    cache: Mutex<HashMap<String, CachedTimes>>,
     flight: Mutex<()>,
 }
 
@@ -299,6 +299,33 @@ pub fn parse_achievement_targets(
         .collect()
 }
 
+type CachedTimes = (Instant, HashMap<String, i64>);
+
+/// /^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/
+fn iso_shaped(text: &str) -> bool {
+    let b = text.as_bytes();
+    let digits = |range: std::ops::Range<usize>| b[range].iter().all(u8::is_ascii_digit);
+    if b.len() < 11
+        || !digits(0..4)
+        || b[4] != b'-'
+        || !digits(5..7)
+        || b[7] != b'-'
+        || !digits(8..10)
+        || b[10] != b'T'
+    {
+        return false;
+    }
+    if b.ends_with(b"Z") {
+        return true;
+    }
+    let tail = &b[b.len() - 6..];
+    b.len() >= 17
+        && (tail[0] == b'+' || tail[0] == b'-')
+        && tail[1..3].iter().all(u8::is_ascii_digit)
+        && tail[3] == b':'
+        && tail[4..6].iter().all(u8::is_ascii_digit)
+}
+
 /// parseEpicPlayerAchievements: the unlocked achievements of one sandbox.
 pub fn parse_player_achievements(
     value: &Value,
@@ -392,18 +419,7 @@ pub fn parse_player_achievements(
         let date = row
             .get("unlockDate")
             .and_then(Value::as_str)
-            .filter(|d| {
-                let shaped = d.len() >= 11
-                    && d.as_bytes()[4] == b'-'
-                    && d.as_bytes()[7] == b'-'
-                    && d.as_bytes()[10] == b'T'
-                    && d[..4].chars().all(|c| c.is_ascii_digit())
-                    && (d.ends_with('Z') || {
-                        let tail = &d[d.len().saturating_sub(6)..];
-                        (tail.starts_with('+') || tail.starts_with('-')) && &tail[3..4] == ":"
-                    });
-                shaped
-            })
+            .filter(|d| iso_shaped(d))
             .and_then(parse_ms)
             .filter(|ms| *ms > 0)
             .ok_or_else(invalid)?;
@@ -430,6 +446,7 @@ pub struct AchievementCollection {
 
 /// EpicAchievementSource.collect: unlocks for the supported games, pending
 /// games first, within the time budget.
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub fn collect_achievements(
     session: &SessionProvider,
     context: &Context,

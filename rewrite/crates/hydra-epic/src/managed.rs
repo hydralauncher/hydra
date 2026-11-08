@@ -385,6 +385,7 @@ pub fn write_credentials(directory: &Path, bundle: &Bundle) -> Result<()> {
 
 /// EpicTargetRuntime.refresh: the adapter's `refresh` operation (OAuth
 /// rotation without listing anything), in the `session-refresh` preview.
+#[allow(clippy::too_many_arguments)]
 pub fn refresh_session(
     command: &ManagedCommand,
     user_data: &Path,

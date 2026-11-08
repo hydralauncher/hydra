@@ -79,9 +79,7 @@ pub fn bundle_dir() -> Option<PathBuf> {
 
 /// Legendary.getBinaryPath
 pub fn binary_path() -> Option<PathBuf> {
-    if arch().is_none() {
-        return None;
-    }
+    arch()?;
     bundle_dir().map(|dir| dir.join(binary_name()))
 }
 
