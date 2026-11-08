@@ -1,0 +1,21 @@
+// src/renderer/src/pages/downloads/downloads.{tsx,scss}
+// TODO(downloads): the download groups (download-group.tsx) once the
+// download engine is ported; today only the empty state shows.
+import { T } from "../../globals.slint";
+import { EmptyState } from "../library/page.slint";
+
+export global DownloadsData {
+    in property <bool> has-downloads;
+}
+
+export component DownloadsPage inherits Rectangle {
+    // .downloads__no-downloads fills .container__content (9px gutter)
+    if !DownloadsData.has-downloads: EmptyState {
+        x: 0;
+        width: root.width - 9px;
+        height: root.height;
+        icon: @image-url("../../icons/arrow-down-24.svg");
+        title: T.tr("downloads.no_downloads_title");
+        description: T.tr("downloads.no_downloads_description");
+    }
+}

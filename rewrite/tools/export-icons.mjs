@@ -141,6 +141,7 @@ const icons = {
   "lucide-chevrons-left": [lucide.ChevronsLeft, { size: 18, strokeWidth: 2.25, absoluteStrokeWidth: true }],
   "lucide-chevrons-right": [lucide.ChevronsRight, { size: 18, strokeWidth: 2.25, absoluteStrokeWidth: true }],
   question: [oct.QuestionIcon, { size: 28 }],
+  "arrow-down-24": [oct.ArrowDownIcon, { size: 24 }],
 };
 
 for (const [name, [Icon, props]] of Object.entries(icons)) {

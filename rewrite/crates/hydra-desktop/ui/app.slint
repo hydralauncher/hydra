@@ -22,6 +22,7 @@ import { GameDetailsPage } from "pages/game-details/page.slint";
 import { LibraryPage } from "pages/library/page.slint";
 import { HomePage } from "pages/home/page.slint";
 import { CataloguePage } from "pages/catalogue/page.slint";
+import { DownloadsPage, DownloadsData } from "pages/downloads/page.slint";
 import { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup } from "pages/catalogue/state.slint";
 import { SelectPopupHost, SelectPopup, SelectOption } from "components/fields.slint";
 import { HomeData, CatalogueCard } from "pages/home/state.slint";
@@ -34,7 +35,7 @@ export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language,
 export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input, Popup }
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
-export { HomeData, CatalogueCard, Gifs, Dialogs }
+export { HomeData, CatalogueCard, Gifs, Dialogs, DownloadsData }
 export { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup, SelectPopup, SelectOption }
 
 export component AppWindow inherits Window {
@@ -98,7 +99,12 @@ export component AppWindow inherits Window {
                     height: parent.height;
                 }
 
-                if Nav.route != "game" && Nav.route != "library" && Nav.route != "home" && Nav.route != "catalogue": Text {
+                if Nav.route == "downloads": DownloadsPage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route != "game" && Nav.route != "library" && Nav.route != "home" && Nav.route != "catalogue" && Nav.route != "downloads": Text {
                     text: "TODO(" + Nav.route + "): not ported yet";
                     color: Theme.subtle;
                     font-size: Theme.small-size;
