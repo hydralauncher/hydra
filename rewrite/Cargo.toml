@@ -10,7 +10,7 @@ publish = false
 
 [workspace.dependencies]
 slint = { version = "1.18", default-features = false, features = ["std", "compat-1-2"] }
-image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp", "avif-native"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp", "avif-native", "ico", "bmp"] }
 # avif-native: Steam serves description images as AVIF; decoded with system dav1d (an FFmpeg dependency already).
 # Same HTTP/TLS stack as native/hydra-native (reqwest 0.13 + rustls with ring).
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "http2", "charset", "system-proxy", "rustls-no-provider"] }

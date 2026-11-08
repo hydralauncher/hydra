@@ -1,0 +1,20 @@
+// Mounts the game page alone for headless tests (tests/modal.rs).
+import { GameDetailsPage } from "../ui/pages/game-details/page.slint";
+import { GameData } from "../ui/pages/game-details/state.slint";
+export { GameData }
+
+export component GamePageHarness inherits Window {
+    width: 1440px;
+    height: 900px;
+    page := GameDetailsPage {
+        width: root.width;
+        height: root.height;
+    }
+    out property <bool> modal-open: page.modal-open;
+    public function open-game-options() {
+        page.open-game-options();
+    }
+    public function open-cloud-save() {
+        page.open-cloud-save();
+    }
+}

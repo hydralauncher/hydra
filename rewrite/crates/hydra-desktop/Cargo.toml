@@ -13,6 +13,12 @@ path = "src/main.rs"
 [dependencies]
 hydra-store = { path = "../hydra-store" }
 hydra-media = { path = "../hydra-media" }
+hydra-core = { path = "../hydra-core" }
+hydra-db = { path = "../hydra-db" }
+hydra-i18n = { path = "../hydra-i18n" }
+serde_json.workspace = true
+# i18next-browser-languagedetector stand-in: the OS language.
+sys-locale = "0.3"
 # Skia (Metal/DX12/Vulkan) measured best overall; winit-030 gives access to raw
 # wheel events (line vs pixel deltas) for Chromium-like scrolling.
 slint = { workspace = true, features = ["backend-winit", "renderer-skia", "renderer-software", "unstable-winit-030", "accessibility"] }

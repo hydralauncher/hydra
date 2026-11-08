@@ -1,0 +1,101 @@
+// App-wide state the backend drives. Pages read from these globals instead of
+// receiving dozens of properties through the window.
+
+// UI strings (hydra-i18n): i18next keys, `namespace.key`.
+// `rev` changes when the language changes; the backend reads it inside each
+// call, so every binding that uses a string re-evaluates.
+export global T {
+    in property <int> rev;
+    // "ltr" | "rtl" (i18n.dir())
+    in property <bool> rtl;
+    pure callback tr(string) -> string;
+    // Interpolation: args are name/value pairs: ["title", "Hades", "count", "3"].
+    pure callback tr-with(string, [string]) -> string;
+    // Plurals (`key_one`, `key_other`, …) with `{{count}}`.
+    pure callback tr-count(string, int, [string]) -> string;
+}
+
+// Routes of src/renderer/src/main.tsx.
+export global Nav {
+    // "home" | "catalogue" | "library" | "downloads" | "leaderboards" | "settings"
+    // | "game" | "profile" | "achievements" | "notifications" | "shop" | "recompilation"
+    in-out property <string> route: "home";
+    // Full path, e.g. "/game/steam/1091500" (sidebar active states compare it).
+    in-out property <string> path: "/";
+    in property <bool> can-go-back;
+    in property <bool> can-go-forward;
+    callback navigate(string);
+    callback back();
+    callback forward();
+}
+
+// Signed-in user (userDetails in the renderer's Redux store).
+export global Session {
+    in property <bool> signed-in;
+    in property <bool> loaded;
+    in property <string> display-name;
+    in property <image> avatar;
+    in property <bool> has-subscription;
+    in property <string> version;
+    in property <int> unread-chat;
+    in property <int> unread-notifications;
+    in property <int> friends-online;
+    callback sign-in();
+    callback sign-out();
+    callback open-profile();
+    callback open-notifications();
+    callback open-friends();
+}
+
+// Window chrome. `platform`: "windows" | "linux" | "macos".
+export global Chrome {
+    in property <string> platform: "windows";
+    in property <bool> maximized;
+    in property <bool> native-decorations;
+    callback minimize();
+    callback toggle-maximize();
+    callback close();
+    callback drag();
+}
+
+// One row of the sidebar game list (sidebar-game-item.tsx).
+export struct SidebarGame {
+    id: string,
+    title: string,
+    icon: image,
+    // 0: none (custom game without art), 1: Steam logo, 2: Epic logo
+    fallback: int,
+    favorite: bool,
+    // download.status === "removed"
+    muted: bool,
+    // "+3" when new download options exist
+    badge: string,
+    // 0 none, 1 Steam, 2 Epic library badge on the icon
+    library-badge: int,
+    // Imported from both Steam and Epic (--multiple badge with a "+").
+    badge-both: bool,
+    path: string,
+}
+
+// The sidebar's library list, filter and resize (sidebar.tsx).
+export global SidebarState {
+    in-out property <length> width: 250px;
+    in property <[SidebarGame]> games;
+    in property <bool> loading;
+    in property <bool> has-active-filter;
+    in property <bool> playable-only;
+    in property <bool> leaderboards-enabled: true;
+    // Download indicator (sidebar-download-icon.tsx / download-indicator.ts):
+    // "idle" | "downloading" | "paused" | "extracting" | "preparing"
+    in property <string> download-phase: "idle";
+    in property <float> download-progress;
+    in property <bool> download-has-progress;
+    in property <int> download-games;
+    callback filter-changed(string);
+    callback toggle-playable();
+    callback game-clicked(string);
+    callback game-double-clicked(string);
+    // First and last rows on screen (plus overscan), for lazy icon loading.
+    callback visible-rows(int, int);
+    callback width-committed(length);
+}

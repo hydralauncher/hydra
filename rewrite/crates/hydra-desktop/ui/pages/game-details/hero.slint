@@ -100,11 +100,11 @@ export component Hero inherits Rectangle {
         }
     }
 
-    // .game-details__hero-content (padding 16px, logo bottom-left, buttons right)
+    // .game-details__hero-content (padding 16px $page-gutter, logo bottom-left, buttons right)
     property <length> content-bottom: 350px - 88px - 16px;
 
     if root.loaded: Image {
-        x: 16px;
+        x: 24px;
         y: root.content-bottom - 150px;
         width: 300px;
         height: 150px;
@@ -115,7 +115,7 @@ export component Hero inherits Rectangle {
     }
 
     buttons := HorizontalLayout {
-        x: root.width - 16px - self.width;
+        x: root.width - 24px - self.width;
         y: root.content-bottom - 40px;
         width: self.preferred-width;
         height: 40px;
@@ -204,11 +204,11 @@ export component Hero inherits Rectangle {
         }
     }
 
-    // .game-details__hero-panel (padding 8px) > .hero-panel
+    // .game-details__hero-panel (padding 8px $page-gutter) > .hero-panel
     panel := Frost {
-        x: 8px;
+        x: 24px;
         y: 350px - 88px + 8px;
-        width: root.width - 16px;
+        width: root.width - 48px;
         height: 72px;
         source: root.hero-blur;
         source-origin: root.hero-origin;

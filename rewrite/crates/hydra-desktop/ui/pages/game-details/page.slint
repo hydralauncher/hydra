@@ -1,0 +1,496 @@
+// The Hydra game details page (src/renderer/src/pages/game-details) in Slint.
+// Data and actions come from the GameData global (state.slint).
+import { Theme, Icons, Tip } from "../../theme.slint";
+import { Icon, HydraButton, Skeleton, ScrollBar } from "../../components/widgets.slint";
+import { Hero } from "hero.slint";
+import { GallerySlider } from "gallery.slint";
+import { Lightbox } from "lightbox.slint";
+import { DescriptionHeader, Description } from "description.slint";
+import { SimilarGames } from "similar.slint";
+import { SidebarSection, AchievementsSection, StatsSection, HowLongToBeatSection, ControllerSection, RequirementsSection, LanguageSection } from "sidebar.slint";
+import { GameReviews } from "reviews.slint";
+import { Modal, ModalController } from "../../components/modal.slint";
+import { PlaybackDriver, Playback } from "../../components/video.slint";
+import { GameData, Input } from "state.slint";
+
+export component GameDetailsPage inherits Rectangle {
+
+    out property <bool> modal-open: options-state.open || cloud-state.open;
+
+    // A modal finishing its exit animation must not steal focus from a modal
+    // or viewer that opened in the meantime.
+    function restore-page-focus() {
+        if (!options-state.mounted && !cloud-state.mounted && !lightbox.open) {
+            keys.focus();
+        }
+    }
+
+    public function scroll-to-top() {
+        page.content-y = 0;
+    }
+
+    // ---- page scrolling, the way Chromium scrolls a page:
+    // wheel/trackpad deltas are applied directly (macOS supplies acceleration
+    // and momentum; nothing is added on top); keyboard scrolls animate briefly.
+    property <length> max-scroll: Math.max(0, page.content-height - page.height);
+    function scroll-by-wheel(dy: length) {
+        root.kb-tweening = false;
+        page.content-y = Math.clamp(page.content-y + dy * Input.wheel-scale, -root.max-scroll, 0);
+    }
+    property <length> kb-from;
+    property <length> kb-to;
+    property <duration> kb-start;
+    property <bool> kb-tweening;
+    function scroll-by-key(dy: length) {
+        let base = root.kb-tweening ? root.kb-to : page.content-y;
+        root.kb-from = page.content-y;
+        root.kb-to = Math.clamp(base + dy, -root.max-scroll, 0);
+        root.kb-start = animation-tick();
+        root.kb-tweening = true;
+    }
+    Timer {
+        interval: 8ms;
+        running: root.kb-tweening;
+        triggered => {
+            let t = Math.min(1, (animation-tick() - root.kb-start) / 200ms);
+            let eased = 1 - (1 - t) * (1 - t) * (1 - t);
+            page.content-y = root.kb-from + (root.kb-to - root.kb-from) * eased;
+            if (t >= 1) {
+                root.kb-tweening = false;
+            }
+        }
+    }
+
+    // ---- public API (also used by the headless tests)
+    public function open-game-options() {
+        GameData.modal-opening();
+        options-state.open = true;
+    }
+    public function open-cloud-save() {
+        GameData.modal-opening();
+        cloud-state.open = true;
+    }
+
+    // ---- layout (container queries: the page is the container, not the window)
+    property <length> vw: root.width;
+    // description container content box = page - scrollbar - 2 x $page-gutter
+    property <length> container-content: root.width - 9px - 2 * Theme.page-gutter;
+    // .content-sidebar: $page-rail-width = clamp(280px, 28%, 380px)
+    property <length> sidebar-width: Math.clamp(root.container-content * 0.28, 280px, 380px);
+    // .game-details__description-content (flex: 1)
+    property <length> content-width: root.container-content - Theme.page-gutter - root.sidebar-width;
+    // page-column: width 100%, max 800px, centered
+    property <length> column-width: Math.min(Theme.page-column-max-width, root.content-width);
+
+    property <int> gallery-index;
+    changed gallery-index => {
+        GameData.media-window-changed(root.gallery-index, lightbox.open ? lightbox.index : -1);
+    }
+
+    forward-focus: keys;
+    keys := FocusScope {
+        key-pressed(event) => {
+            // Cmd+R replays the load: skeleton -> content -> entrance animations.
+            if (event.modifiers.meta && (event.text == "r" || event.text == "R")) {
+                GameData.reload();
+                return accept;
+            }
+            // Gallery shortcuts (gallery-slider.tsx) while the gallery is on screen:
+            // F fullscreen; for a trailer also M mute, Space play/pause, arrows seek.
+            let gallery-in-view = -page.content-y < 1000px && -page.content-y + page.height > 450px;
+            if (!lightbox.open && GameData.loaded && gallery-in-view && !event.modifiers.meta) {
+                if (event.text == "f" || event.text == "F") {
+                    lightbox.show(root.gallery-index, true);
+                    return accept;
+                }
+                if (GameData.media[root.gallery-index].is-video && Playback.index == root.gallery-index) {
+                    if (event.text == "m" || event.text == "M") {
+                        Playback.toggle-mute();
+                        return accept;
+                    }
+                    if (event.text == " ") {
+                        Playback.toggle(true);
+                        return accept;
+                    }
+                    if (event.text == Key.LeftArrow) {
+                        Playback.seek-by(-5);
+                        return accept;
+                    }
+                    if (event.text == Key.RightArrow) {
+                        Playback.seek-by(5);
+                        return accept;
+                    }
+                }
+            }
+            // Chromium page keys: arrows 40px, Space/PageDown ~ a viewport, Home/End.
+            if (!lightbox.open && !root.modal-open) {
+                let viewport = page.height * 0.875;
+                if (event.text == Key.DownArrow) {
+                    root.scroll-by-key(-40px);
+                    return accept;
+                }
+                if (event.text == Key.UpArrow) {
+                    root.scroll-by-key(40px);
+                    return accept;
+                }
+                if (event.text == Key.PageDown || (event.text == " " && !event.modifiers.shift)) {
+                    root.scroll-by-key(-viewport);
+                    return accept;
+                }
+                if (event.text == Key.PageUp || (event.text == " " && event.modifiers.shift)) {
+                    root.scroll-by-key(viewport);
+                    return accept;
+                }
+                if (event.text == Key.Home) {
+                    root.scroll-by-key(root.max-scroll);
+                    return accept;
+                }
+                if (event.text == Key.End) {
+                    root.scroll-by-key(-root.max-scroll);
+                    return accept;
+                }
+            }
+            reject
+        }
+
+        page := Flickable {
+            x: 0;
+            width: root.width - scrollbar.width;
+            height: root.height;
+            content-width: self.width;
+            content-height: column.preferred-height;
+            // A web page has no mouse drag-to-pan and no extra inertia;
+            // wheel/trackpad scrolling is handled by page-wheel below.
+            interactive: false;
+
+            page-wheel := TouchArea {
+              width: page.width;
+              height: column.preferred-height;
+              // Children that don't scroll (or can't in this direction, like the
+              // horizontal preview strip) let the event bubble up to here.
+              scroll-event(event) => {
+                  root.scroll-by-wheel(event.delta-y);
+                  accept
+              }
+
+            column := VerticalLayout {
+                width: page.width;
+
+                Hero {
+                    hero: GameData.hero;
+                    hero-blur: GameData.hero-blur;
+                    logo: GameData.logo;
+                    // page-min-width(1000px): object-position center
+                    wide: root.vw >= 1000px;
+                    loaded: GameData.loaded;
+                    title: GameData.game-title;
+                    in-library: GameData.in-library;
+                    has-executable: GameData.has-executable;
+                    playtime: GameData.playtime;
+                    last-played: GameData.last-played;
+                    favorite <=> GameData.favorite;
+                    pinned <=> GameData.pinned;
+                    running <=> GameData.running;
+                    cloud-state: GameData.cloud-state;
+                    cloud-progress: GameData.cloud-progress;
+                    add-to-library-clicked => {
+                        GameData.add-to-library();
+                    }
+                    download-options-clicked => {
+                        GameData.open-download-options();
+                    }
+                    play-clicked => {
+                        GameData.play();
+                    }
+                    close-clicked => {
+                        GameData.close-game();
+                    }
+                    cloud-clicked => {
+                        GameData.modal-opening();
+                        cloud-state.open = true;
+                    }
+                    options-clicked => {
+                        GameData.modal-opening();
+                        options-state.open = true;
+                    }
+                    edit-clicked => {
+                        GameData.modal-opening();
+                        options-state.open = true;
+                    }
+                }
+
+                // .game-details__description-container
+                Rectangle {
+                    background: @linear-gradient(0deg, Theme.background 50%, Theme.dark-background 100%);
+
+                    HorizontalLayout {
+                        padding: Theme.page-gutter;
+                        spacing: Theme.page-gutter;
+                        alignment: stretch;
+
+                        content := VerticalLayout {
+                            horizontal-stretch: 1;
+                            spacing: 12px;
+                            alignment: start;
+
+                            DescriptionHeader {
+                                release-date: GameData.release-date;
+                                publisher: GameData.publisher;
+                                loaded: GameData.loaded;
+                            }
+
+                            HorizontalLayout {
+                                alignment: center;
+                                if GameData.loaded: GallerySlider {
+                                    width: root.column-width;
+                                    media: GameData.media;
+                                    index <=> root.gallery-index;
+                                    wheel-scale: Input.wheel-scale;
+                                    // aspect-ratio 16 / 9, max-height: 60vh (the window, title bar included)
+                                    max-viewport-height: (root.height + 40px) * 0.6;
+                                    preview-width-fraction: 0.12;
+                                    open-viewer(i, fullscreen) => {
+                                        lightbox.show(i, fullscreen);
+                                    }
+                                }
+                                if !GameData.loaded: VerticalLayout {
+                                    padding-top: 12px;
+                                    padding-bottom: 12px;
+                                    Skeleton {
+                                        width: root.column-width;
+                                        height: 250px;
+                                        radius: 8px;
+                                    }
+                                }
+                            }
+
+                            HorizontalLayout {
+                                alignment: center;
+                                Description {
+                                    width: root.column-width;
+                                    blocks: GameData.description;
+                                    loaded: GameData.loaded;
+                                }
+                            }
+
+                            if GameData.loaded && GameData.similar.length > 0: HorizontalLayout {
+                                alignment: center;
+                                SimilarGames {
+                                    width: root.column-width;
+                                    games: GameData.similar;
+                                }
+                            }
+
+                            if GameData.loaded: HorizontalLayout {
+                                alignment: center;
+                                GameReviews {
+                                    width: root.column-width;
+                                    reviews: GameData.reviews;
+                                    total: GameData.reviews-total;
+                                    loading: GameData.reviews-loading;
+                                    loading-more: GameData.reviews-loading-more;
+                                    has-more: GameData.reviews-has-more;
+                                    has-reviewed: GameData.has-reviewed;
+                                    submitting: GameData.submitting-review;
+                                    sort-changed(mode) => {
+                                        self.sort = mode;
+                                        GameData.review-sort(mode);
+                                    }
+                                    vote(id, up) => {
+                                        GameData.review-vote(id, up);
+                                    }
+                                    delete(id) => {
+                                        GameData.review-delete(id);
+                                    }
+                                    toggle-original(id) => {
+                                        GameData.review-toggle-original(id);
+                                    }
+                                    load-more => {
+                                        GameData.review-load-more();
+                                    }
+                                    submit(text, score) => {
+                                        GameData.review-submit(text, score);
+                                    }
+                                }
+                            }
+                        }
+
+                        // aside.content-sidebar
+                        VerticalLayout {
+                            width: root.sidebar-width;
+                            spacing: 12px;
+                            alignment: start;
+
+                            if GameData.loaded && GameData.achievements.length > 0: AchievementsSection {
+                                achievements: GameData.achievements;
+                                unlocked: GameData.achievements-unlocked;
+                                total: GameData.achievements-total;
+                            }
+                            if GameData.loaded && GameData.has-stats: StatsSection {
+                                downloads: GameData.downloads;
+                                players: GameData.players;
+                                rating: GameData.rating;
+                                column: root.vw >= 1024px;
+                            }
+                            if GameData.loaded && GameData.hltb.length > 0: HowLongToBeatSection {
+                                categories: GameData.hltb;
+                            }
+                            if GameData.loaded && GameData.controller-support != "none": ControllerSection {
+                                support: GameData.controller-support;
+                            }
+                            if GameData.loaded: RequirementsSection {
+                                minimum: GameData.requirements-minimum;
+                                recommended: GameData.requirements-recommended;
+                            }
+                            if GameData.loaded: LanguageSection {
+                                languages: GameData.languages;
+                            }
+
+                            // game-details-skeleton.tsx sidebar
+                            if !GameData.loaded: SidebarSection {
+                                skeleton-title: true;
+                                VerticalLayout {
+                                    padding: 16px;
+                                    spacing: 8px;
+                                    for w in [[80px, 40px], [70px, 35px], [60px, 30px]]: HorizontalLayout {
+                                        HorizontalLayout {
+                                            spacing: 8px;
+                                            alignment: start;
+                                            Skeleton {
+                                                width: 14px;
+                                                height: 14px;
+                                            }
+                                            Skeleton {
+                                                width: w[0];
+                                                height: 14px;
+                                            }
+                                        }
+                                        HorizontalLayout {
+                                            alignment: end;
+                                            Skeleton {
+                                                width: w[1];
+                                                height: 14px;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if !GameData.loaded: SidebarSection {
+                                skeleton-title: true;
+                                skeleton-title-width: 136px;
+                                VerticalLayout {
+                                    padding: 16px;
+                                    spacing: 16px;
+                                    for i in 4: HorizontalLayout {
+                                        padding: 8px;
+                                        spacing: 16px;
+                                        alignment: start;
+                                        Skeleton {
+                                            width: 54px;
+                                            height: 54px;
+                                        }
+                                        VerticalLayout {
+                                            alignment: center;
+                                            spacing: 4px;
+                                            Skeleton {
+                                                width: 120px;
+                                                height: 14px;
+                                            }
+                                            Skeleton {
+                                                width: 80px;
+                                                height: 12px;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        }
+
+        scrollbar := ScrollBar {
+            x: root.width - self.width;
+            height: root.height;
+            content-height: page.content-height;
+            viewport-height: page.height;
+            content-y <=> page.content-y;
+        }
+
+        lightbox := Lightbox {
+            width: root.width;
+            height: root.height;
+            media: GameData.media;
+            wheel-scale: Input.wheel-scale;
+            changed index => {
+                GameData.media-window-changed(root.gallery-index, self.open ? self.index : -1);
+            }
+            changed open => {
+                GameData.media-window-changed(root.gallery-index, self.open ? self.index : -1);
+            }
+            changed fullscreen => {
+                GameData.fullscreen-changed(self.fullscreen);
+            }
+            closed(i) => {
+                root.gallery-index = i;
+                keys.focus();
+            }
+        }
+
+        PlaybackDriver { }
+
+        options-state := ModalController {
+            closed => {
+                root.restore-page-focus();
+            }
+        }
+        cloud-state := ModalController {
+            closed => {
+                root.restore-page-focus();
+            }
+        }
+
+        // game-options-modal.tsx shell: large, no content padding (content left empty here).
+        if options-state.mounted: Modal {
+            width: root.width;
+            height: root.height;
+            title: GameData.game-title;
+            large: true;
+            no-content-padding: true;
+            content-min-height: 420px;
+            closing: options-state.closing;
+            blurred-page: GameData.modal-backdrop;
+            request-close => {
+                options-state.close();
+            }
+        }
+
+        // cloud-save-modal.tsx shell
+        if cloud-state.mounted: Modal {
+            width: root.width;
+            height: root.height;
+            title: "Cloud Save V2 (BETA)";
+            description: "View and sync this game's saves.";
+            closing: cloud-state.closing;
+            blurred-page: GameData.modal-backdrop;
+            request-close => {
+                cloud-state.close();
+            }
+            HorizontalLayout {
+                alignment: start;
+                HydraButton {
+                    kind: "cloud";
+                    icon: Icons.cloud-arrow-up;
+                    icon-size: 20px;
+                    text: "Sync now";
+                    clicked => {
+                        cloud-state.close();
+                        GameData.cloud-sync();
+                    }
+                }
+            }
+        }
+    }
+}

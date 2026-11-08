@@ -1,4 +1,5 @@
-// The Hydra game details page (pages/game-details) rebuilt in Slint.
+// The main window: src/renderer/src/app.tsx + app.scss.
+// Title bar on top, sidebar on the left, the routed page in `.container`.
 import "fonts/NotoSans-Regular.ttf";
 import "fonts/NotoSans-Medium.ttf";
 import "fonts/NotoSans-SemiBold.ttf";
@@ -7,572 +8,77 @@ import "fonts/NotoSans-Italic.ttf";
 import "fonts/NotoSans-BoldItalic.ttf";
 
 import { Theme, Icons, Tip } from "theme.slint";
-import { Icon, HydraButton, Skeleton, TooltipHost, ScrollBar } from "components/widgets.slint";
+import { TooltipHost } from "components/widgets.slint";
 import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review } from "types.slint";
-import { Hero } from "pages/game-details/hero.slint";
-import { GallerySlider } from "pages/game-details/gallery.slint";
-import { Lightbox } from "pages/game-details/lightbox.slint";
-import { DescriptionHeader, Description } from "pages/game-details/description.slint";
-import { SimilarGames } from "pages/game-details/similar.slint";
-import { SidebarSection, AchievementsSection, StatsSection, HowLongToBeatSection, ControllerSection, RequirementsSection, LanguageSection } from "pages/game-details/sidebar.slint";
-import { GameReviews, ReviewEditor, FormatEdit, Marks } from "pages/game-details/reviews.slint";
-import { Modal, ModalController } from "components/modal.slint";
-import { PlaybackDriver, Playback } from "components/video.slint";
+import { ReviewEditor, FormatEdit, Marks } from "pages/game-details/reviews.slint";
+import { Playback } from "components/video.slint";
+import { T, Nav, Session, Chrome, SidebarState, SidebarGame } from "globals.slint";
+import { GameData, Input } from "pages/game-details/state.slint";
+import { GameDetailsPage } from "pages/game-details/page.slint";
+import { TitleBar } from "shell/title-bar.slint";
+import { Sidebar } from "shell/sidebar.slint";
 
 export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback }
+export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input }
 
 export component AppWindow inherits Window {
-    title: "Hydra — " + root.game-title;
-    preferred-width: 1440px;
-    preferred-height: 900px;
-    min-width: 900px;
+    title: GameData.game-title != "" && Nav.route == "game" ? "Hydra — " + GameData.game-title : "Hydra";
+    preferred-width: 1200px;
+    preferred-height: 860px;
+    min-width: 1024px;
     min-height: 600px;
     background: Theme.background;
     default-font-family: "Noto Sans";
     default-font-size: Theme.body-size;
+    // Hydra draws its own title bar and window controls (Windows; frameless Linux).
+    no-frame: Chrome.platform == "windows" || (Chrome.platform == "linux" && !Chrome.native-decorations);
 
-    // ---- data from the backend
-    in property <string> game-title;
-    in property <bool> loaded;
-    in property <image> hero;
-    in property <image> hero-blur;
-    in property <image> logo;
-    in property <string> release-date;
-    in property <string> publisher;
-    // Library state (Hydra's main process owns the library; not ported yet).
-    in-out property <bool> in-library;
-    in property <bool> has-executable;
-    // Empty when never played.
-    in property <string> playtime;
-    in property <string> last-played;
-    in property <[MediaItem]> media;
-    in property <[DescBlock]> description;
-    in property <[SimilarGame]> similar;
-    in property <[Achievement]> achievements;
-    in property <int> achievements-unlocked;
-    in property <int> achievements-total;
-    // Hydra API data. Sections stay hidden until their data is wired.
-    in property <bool> has-stats;
-    in property <string> downloads;
-    in property <string> players;
-    in property <string> rating;
-    // "full" | "partial" | "none" (Steam appdetails `controller_support`).
-    in property <string> controller-support: "none";
-    in property <[HltbCategory]> hltb;
-    in property <styled-text> requirements-minimum;
-    in property <styled-text> requirements-recommended;
-    in property <[Language]> languages;
-    in property <[Review]> reviews;
-    in property <int> reviews-total;
-    in property <bool> reviews-loading;
-    in property <bool> reviews-loading-more;
-    in property <bool> reviews-has-more;
-    in property <bool> has-reviewed;
-    in property <bool> submitting-review;
-    // -1 hidden (no cloud save info), 0 synced, 1 syncing
-    in property <int> cloud-state: -1;
-    in property <float> cloud-progress;
-    in-out property <bool> favorite;
-    in-out property <bool> pinned;
-    in-out property <bool> running;
+    callback search-submitted(string);
+    callback search-changed(string);
 
-    // ---- callbacks to the backend
-    callback media-window-changed(int, int);
-    // Set by the backend from the raw macOS event before Slint handles it:
-    // mouse-wheel lines get Chromium's 40px (Slint's default is 60px), trackpad
-    // pixel deltas stay 1:1.
-    in property <float> wheel-scale: 1;
-    callback reload();
-    callback add-to-library();
-    callback open-download-options();
-    callback play();
-    callback close-game();
-    callback cloud-sync();
-    // Rust snapshots + blurs the page so the modal backdrop can fake backdrop-filter: blur(2px).
-    callback modal-opening();
-    in property <image> modal-backdrop;
-    callback review-sort(string);
-    callback review-vote(int, bool);
-    callback review-delete(int);
-    callback review-toggle-original(int);
-    callback review-load-more();
-    callback review-submit(string, int);
-
-    out property <bool> modal-open: options-state.open || cloud-state.open;
-
-    // A modal finishing its exit animation must not steal focus from a modal
-    // or viewer that opened in the meantime.
-    function restore-page-focus() {
-        if (!options-state.mounted && !cloud-state.mounted && !lightbox.open) {
-            keys.focus();
+    VerticalLayout {
+        TitleBar {
+            search-submitted(text) => {
+                root.search-submitted(text);
+            }
+            search-changed(text) => {
+                root.search-changed(text);
+            }
         }
-    }
 
-    public function scroll-to-top() {
-        page.content-y = 0;
-    }
+        // <main>: sidebar + .container
+        HorizontalLayout {
+            vertical-stretch: 1;
+            Sidebar {
+                min-width: SidebarState.width;
+                max-width: SidebarState.width;
+                wheel-scale: Input.wheel-scale;
+            }
 
-    // ---- page scrolling, the way Chromium scrolls a page:
-    // wheel/trackpad deltas are applied directly (macOS supplies acceleration
-    // and momentum; nothing is added on top); keyboard scrolls animate briefly.
-    property <length> max-scroll: Math.max(0, page.content-height - page.height);
-    function scroll-by-wheel(dy: length) {
-        root.kb-tweening = false;
-        page.content-y = Math.clamp(page.content-y + dy * root.wheel-scale, -root.max-scroll, 0);
-    }
-    property <length> kb-from;
-    property <length> kb-to;
-    property <duration> kb-start;
-    property <bool> kb-tweening;
-    function scroll-by-key(dy: length) {
-        let base = root.kb-tweening ? root.kb-to : page.content-y;
-        root.kb-from = page.content-y;
-        root.kb-to = Math.clamp(base + dy, -root.max-scroll, 0);
-        root.kb-start = animation-tick();
-        root.kb-tweening = true;
-    }
-    Timer {
-        interval: 8ms;
-        running: root.kb-tweening;
-        triggered => {
-            let t = Math.min(1, (animation-tick() - root.kb-start) / 200ms);
-            let eased = 1 - (1 - t) * (1 - t) * (1 - t);
-            page.content-y = root.kb-from + (root.kb-to - root.kb-from) * eased;
-            if (t >= 1) {
-                root.kb-tweening = false;
+            // .container__content: linear-gradient(0deg, dark 50%, background 100%)
+            container := Rectangle {
+                horizontal-stretch: 1;
+                background: @linear-gradient(0deg, Theme.dark-background 50%, Theme.background 100%);
+                clip: true;
+
+                if Nav.route == "game": GameDetailsPage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route != "game": Text {
+                    text: "TODO(" + Nav.route + "): not ported yet";
+                    color: Theme.subtle;
+                    font-size: Theme.small-size;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
             }
         }
     }
 
-    // ---- public API (also used by the headless tests)
-    public function open-game-options() {
-        root.modal-opening();
-        options-state.open = true;
-    }
-    public function open-cloud-save() {
-        root.modal-opening();
-        cloud-state.open = true;
-    }
-
-    // ---- responsive breakpoints (the page is the viewport here)
-    property <length> vw: root.width;
-    property <length> sidebar-width: root.vw >= 1440px ? 420px : root.vw >= 1280px ? 380px : root.vw >= 1024px ? 320px : 280px;
-    property <float> column-fraction: root.vw >= 1536px ? 0.5 : root.vw >= 1280px ? 0.6 : 1;
-    // description-content width = page - scrollbar - container padding - gap - sidebar
-    property <length> content-width: root.width - 9px - 24px - 12px - root.sidebar-width;
-    property <length> column-width: root.content-width * root.column-fraction;
-
-    property <int> gallery-index;
-    changed gallery-index => {
-        root.media-window-changed(root.gallery-index, lightbox.open ? lightbox.index : -1);
-    }
-
-    forward-focus: keys;
-    keys := FocusScope {
-        key-pressed(event) => {
-            // Cmd+R replays the load: skeleton -> content -> entrance animations.
-            if (event.modifiers.meta && (event.text == "r" || event.text == "R")) {
-                root.reload();
-                return accept;
-            }
-            // Gallery shortcuts (gallery-slider.tsx) while the gallery is on screen:
-            // F fullscreen; for a trailer also M mute, Space play/pause, arrows seek.
-            let gallery-in-view = -page.content-y < 1000px && -page.content-y + page.height > 450px;
-            if (!lightbox.open && root.loaded && gallery-in-view && !event.modifiers.meta) {
-                if (event.text == "f" || event.text == "F") {
-                    lightbox.show(root.gallery-index, true);
-                    return accept;
-                }
-                if (root.media[root.gallery-index].is-video && Playback.index == root.gallery-index) {
-                    if (event.text == "m" || event.text == "M") {
-                        Playback.toggle-mute();
-                        return accept;
-                    }
-                    if (event.text == " ") {
-                        Playback.toggle(true);
-                        return accept;
-                    }
-                    if (event.text == Key.LeftArrow) {
-                        Playback.seek-by(-5);
-                        return accept;
-                    }
-                    if (event.text == Key.RightArrow) {
-                        Playback.seek-by(5);
-                        return accept;
-                    }
-                }
-            }
-            // Chromium page keys: arrows 40px, Space/PageDown ~ a viewport, Home/End.
-            if (!lightbox.open && !root.modal-open) {
-                let viewport = page.height * 0.875;
-                if (event.text == Key.DownArrow) {
-                    root.scroll-by-key(-40px);
-                    return accept;
-                }
-                if (event.text == Key.UpArrow) {
-                    root.scroll-by-key(40px);
-                    return accept;
-                }
-                if (event.text == Key.PageDown || (event.text == " " && !event.modifiers.shift)) {
-                    root.scroll-by-key(-viewport);
-                    return accept;
-                }
-                if (event.text == Key.PageUp || (event.text == " " && event.modifiers.shift)) {
-                    root.scroll-by-key(viewport);
-                    return accept;
-                }
-                if (event.text == Key.Home) {
-                    root.scroll-by-key(root.max-scroll);
-                    return accept;
-                }
-                if (event.text == Key.End) {
-                    root.scroll-by-key(-root.max-scroll);
-                    return accept;
-                }
-            }
-            reject
-        }
-
-        page := Flickable {
-            width: root.width - scrollbar.width;
-            height: root.height;
-            content-width: self.width;
-            content-height: column.preferred-height;
-            // A web page has no mouse drag-to-pan and no extra inertia;
-            // wheel/trackpad scrolling is handled by page-wheel below.
-            interactive: false;
-
-            page-wheel := TouchArea {
-              width: page.width;
-              height: column.preferred-height;
-              // Children that don't scroll (or can't in this direction, like the
-              // horizontal preview strip) let the event bubble up to here.
-              scroll-event(event) => {
-                  root.scroll-by-wheel(event.delta-y);
-                  accept
-              }
-
-            column := VerticalLayout {
-                width: page.width;
-
-                Hero {
-                    hero: root.hero;
-                    hero-blur: root.hero-blur;
-                    logo: root.logo;
-                    wide: root.vw >= 1250px;
-                    loaded: root.loaded;
-                    title: root.game-title;
-                    in-library: root.in-library;
-                    has-executable: root.has-executable;
-                    playtime: root.playtime;
-                    last-played: root.last-played;
-                    favorite <=> root.favorite;
-                    pinned <=> root.pinned;
-                    running <=> root.running;
-                    cloud-state: root.cloud-state;
-                    cloud-progress: root.cloud-progress;
-                    add-to-library-clicked => {
-                        root.add-to-library();
-                    }
-                    download-options-clicked => {
-                        root.open-download-options();
-                    }
-                    play-clicked => {
-                        root.play();
-                    }
-                    close-clicked => {
-                        root.close-game();
-                    }
-                    cloud-clicked => {
-                        root.modal-opening();
-                        cloud-state.open = true;
-                    }
-                    options-clicked => {
-                        root.modal-opening();
-                        options-state.open = true;
-                    }
-                    edit-clicked => {
-                        root.modal-opening();
-                        options-state.open = true;
-                    }
-                }
-
-                // .game-details__description-container
-                Rectangle {
-                    background: @linear-gradient(0deg, Theme.background 50%, Theme.dark-background 100%);
-
-                    HorizontalLayout {
-                        padding: 12px;
-                        spacing: 12px;
-                        alignment: stretch;
-
-                        content := VerticalLayout {
-                            horizontal-stretch: 1;
-                            spacing: 12px;
-                            alignment: start;
-
-                            DescriptionHeader {
-                                release-date: root.release-date;
-                                publisher: root.publisher;
-                                loaded: root.loaded;
-                            }
-
-                            HorizontalLayout {
-                                alignment: center;
-                                if root.loaded: GallerySlider {
-                                    width: root.column-width;
-                                    media: root.media;
-                                    index <=> root.gallery-index;
-                                    wheel-scale: root.wheel-scale;
-                                    max-viewport-height: root.vw >= 1536px ? 600px : root.vw >= 1280px ? 500px : 100000px;
-                                    preview-width-fraction: root.vw >= 1536px ? 0.10 : root.vw >= 1280px ? 0.12 : root.vw >= 1024px ? 0.15 : 0.20;
-                                    open-viewer(i, fullscreen) => {
-                                        lightbox.show(i, fullscreen);
-                                    }
-                                }
-                                if !root.loaded: VerticalLayout {
-                                    padding-top: 12px;
-                                    padding-bottom: 12px;
-                                    Skeleton {
-                                        width: root.column-width;
-                                        height: 250px;
-                                        radius: 8px;
-                                    }
-                                }
-                            }
-
-                            HorizontalLayout {
-                                alignment: center;
-                                Description {
-                                    width: root.column-width;
-                                    blocks: root.description;
-                                    loaded: root.loaded;
-                                }
-                            }
-
-                            if root.loaded && root.similar.length > 0: HorizontalLayout {
-                                alignment: center;
-                                SimilarGames {
-                                    width: root.column-width;
-                                    games: root.similar;
-                                }
-                            }
-
-                            if root.loaded: HorizontalLayout {
-                                alignment: center;
-                                GameReviews {
-                                    width: root.column-width;
-                                    reviews: root.reviews;
-                                    total: root.reviews-total;
-                                    loading: root.reviews-loading;
-                                    loading-more: root.reviews-loading-more;
-                                    has-more: root.reviews-has-more;
-                                    has-reviewed: root.has-reviewed;
-                                    submitting: root.submitting-review;
-                                    sort-changed(mode) => {
-                                        self.sort = mode;
-                                        root.review-sort(mode);
-                                    }
-                                    vote(id, up) => {
-                                        root.review-vote(id, up);
-                                    }
-                                    delete(id) => {
-                                        root.review-delete(id);
-                                    }
-                                    toggle-original(id) => {
-                                        root.review-toggle-original(id);
-                                    }
-                                    load-more => {
-                                        root.review-load-more();
-                                    }
-                                    submit(text, score) => {
-                                        root.review-submit(text, score);
-                                    }
-                                }
-                            }
-                        }
-
-                        // aside.content-sidebar
-                        VerticalLayout {
-                            width: root.sidebar-width;
-                            spacing: 12px;
-                            alignment: start;
-
-                            if root.loaded && root.achievements.length > 0: AchievementsSection {
-                                achievements: root.achievements;
-                                unlocked: root.achievements-unlocked;
-                                total: root.achievements-total;
-                            }
-                            if root.loaded && root.has-stats: StatsSection {
-                                downloads: root.downloads;
-                                players: root.players;
-                                rating: root.rating;
-                                column: root.vw >= 1024px;
-                            }
-                            if root.loaded && root.hltb.length > 0: HowLongToBeatSection {
-                                categories: root.hltb;
-                            }
-                            if root.loaded && root.controller-support != "none": ControllerSection {
-                                support: root.controller-support;
-                            }
-                            if root.loaded: RequirementsSection {
-                                minimum: root.requirements-minimum;
-                                recommended: root.requirements-recommended;
-                            }
-                            if root.loaded: LanguageSection {
-                                languages: root.languages;
-                            }
-
-                            // game-details-skeleton.tsx sidebar
-                            if !root.loaded: SidebarSection {
-                                skeleton-title: true;
-                                VerticalLayout {
-                                    padding: 16px;
-                                    spacing: 8px;
-                                    for w in [[80px, 40px], [70px, 35px], [60px, 30px]]: HorizontalLayout {
-                                        HorizontalLayout {
-                                            spacing: 8px;
-                                            alignment: start;
-                                            Skeleton {
-                                                width: 14px;
-                                                height: 14px;
-                                            }
-                                            Skeleton {
-                                                width: w[0];
-                                                height: 14px;
-                                            }
-                                        }
-                                        HorizontalLayout {
-                                            alignment: end;
-                                            Skeleton {
-                                                width: w[1];
-                                                height: 14px;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            if !root.loaded: SidebarSection {
-                                skeleton-title: true;
-                                skeleton-title-width: 136px;
-                                VerticalLayout {
-                                    padding: 16px;
-                                    spacing: 16px;
-                                    for i in 4: HorizontalLayout {
-                                        padding: 8px;
-                                        spacing: 16px;
-                                        alignment: start;
-                                        Skeleton {
-                                            width: 54px;
-                                            height: 54px;
-                                        }
-                                        VerticalLayout {
-                                            alignment: center;
-                                            spacing: 4px;
-                                            Skeleton {
-                                                width: 120px;
-                                                height: 14px;
-                                            }
-                                            Skeleton {
-                                                width: 80px;
-                                                height: 12px;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        }
-
-        scrollbar := ScrollBar {
-            x: root.width - self.width;
-            height: root.height;
-            content-height: page.content-height;
-            viewport-height: page.height;
-            content-y <=> page.content-y;
-        }
-
-        lightbox := Lightbox {
-            width: root.width;
-            height: root.height;
-            media: root.media;
-            wheel-scale: root.wheel-scale;
-            changed index => {
-                root.media-window-changed(root.gallery-index, self.open ? self.index : -1);
-            }
-            changed open => {
-                root.media-window-changed(root.gallery-index, self.open ? self.index : -1);
-            }
-            changed fullscreen => {
-                root.full-screen = self.fullscreen;
-            }
-            closed(i) => {
-                root.gallery-index = i;
-                keys.focus();
-            }
-        }
-
-        PlaybackDriver { }
-
-        options-state := ModalController {
-            closed => {
-                root.restore-page-focus();
-            }
-        }
-        cloud-state := ModalController {
-            closed => {
-                root.restore-page-focus();
-            }
-        }
-
-        // game-options-modal.tsx shell: large, no content padding (content left empty here).
-        if options-state.mounted: Modal {
-            width: root.width;
-            height: root.height;
-            title: root.game-title;
-            large: true;
-            no-content-padding: true;
-            content-min-height: 420px;
-            closing: options-state.closing;
-            blurred-page: root.modal-backdrop;
-            request-close => {
-                options-state.close();
-            }
-        }
-
-        // cloud-save-modal.tsx shell
-        if cloud-state.mounted: Modal {
-            width: root.width;
-            height: root.height;
-            title: "Cloud Save V2 (BETA)";
-            description: "View and sync this game's saves.";
-            closing: cloud-state.closing;
-            blurred-page: root.modal-backdrop;
-            request-close => {
-                cloud-state.close();
-            }
-            HorizontalLayout {
-                alignment: start;
-                HydraButton {
-                    kind: "cloud";
-                    icon: Icons.cloud-arrow-up;
-                    icon-size: 20px;
-                    text: "Sync now";
-                    clicked => {
-                        cloud-state.close();
-                        root.cloud-sync();
-                    }
-                }
-            }
-        }
-
-        TooltipHost {
-            width: root.width;
-            height: root.height;
-        }
+    TooltipHost {
+        width: root.width;
+        height: root.height;
     }
 }

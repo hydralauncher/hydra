@@ -11,6 +11,13 @@ export global Theme {
     out property <color> error: #e11d48;
     out property <color> warning: #ffc107;
     out property <color> brand-blue: #3e62c0;
+    out property <color> brand-teal: #16b195;
+    out property <color> subtle: #8e919b;
+    out property <length> tiny-size: 11px;
+    out property <length> spacing: 8px;
+    // $page-gutter / $page-column-max-width / $page-rail-width (globals.scss)
+    out property <length> page-gutter: 24px;
+    out property <length> page-column-max-width: 800px;
     out property <length> body-size: 14px;
     out property <length> hint-size: 13px;
     out property <length> small-size: 12px;
@@ -71,6 +78,30 @@ export global Icons {
     out property <image> trash: @image-url("icons/trash.svg");
     out property <image> xbox: @image-url("icons/xbox.svg");
     out property <image> playstation: @image-url("icons/playstation.svg");
+    // App shell
+    out property <image> arrow-left: @image-url("icons/arrow-left.svg");
+    out property <image> arrow-right: @image-url("icons/arrow-right.svg");
+    out property <image> search: @image-url("icons/search.svg");
+    out property <image> x-small: @image-url("icons/x-small.svg");
+    out property <image> video: @image-url("icons/video.svg");
+    out property <image> dash: @image-url("icons/dash.svg");
+    out property <image> screen-full: @image-url("icons/screen-full.svg");
+    out property <image> screen-normal: @image-url("icons/screen-normal.svg");
+    out property <image> home: @image-url("icons/home.svg");
+    out property <image> apps: @image-url("icons/apps.svg");
+    out property <image> book: @image-url("icons/book.svg");
+    out property <image> leaderboards: @image-url("icons/leaderboards.svg");
+    out property <image> check-circle: @image-url("icons/check-circle.svg");
+    out property <image> check-circle-fill: @image-url("icons/check-circle-fill.svg");
+    out property <image> sliders: @image-url("icons/sliders.svg");
+    out property <image> bell: @image-url("icons/bell.svg");
+    out property <image> comment-discussion: @image-url("icons/comment-discussion.svg");
+    out property <image> sign-out: @image-url("icons/sign-out.svg");
+    out property <image> heart-fill-12: @image-url("icons/heart-fill-12.svg");
+    out property <image> chevron-down-12: @image-url("icons/chevron-down-12.svg");
+    out property <image> steam-logo: @image-url("icons/steam-logo.svg");
+    out property <image> epic-logo: @image-url("icons/epic-logo.svg");
+    out property <image> bi-steam: @image-url("icons/bi-steam.svg");
 }
 
 // One shared tooltip, like react-tooltip's portal. Anchors are in window coordinates.

@@ -1,0 +1,19 @@
+[package]
+name = "hydra-core"
+description = "Hydra's main-process logic for the Rust rewrite: library, preferences, Hydra API, auth"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hydra-db = { path = "../hydra-db" }
+serde.workspace = true
+serde_json.workspace = true
+reqwest.workspace = true
+# Intl.Collator(undefined, { sensitivity: "base" }) for title sorting.
+icu_collator = "2"
+icu_locale_core = "2"
+
+[dev-dependencies]
+rustls.workspace = true

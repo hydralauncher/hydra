@@ -1,0 +1,382 @@
+// src/renderer/src/components/app-title-bar/app-title-bar.{tsx,scss},
+// title-bar-search.{tsx,scss}, navigation-arrows/navigation-arrows.{tsx,scss}
+import { Theme, Icons } from "../theme.slint";
+import { Icon } from "../components/widgets.slint";
+import { T, Nav, Session, Chrome, SidebarState } from "../globals.slint";
+
+// .navigation-arrows__button
+component NavArrow inherits Rectangle {
+    in property <image> icon;
+    in property <bool> enabled;
+    in property <string> label;
+    callback clicked();
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    background: touch.has-hover && root.enabled ? rgba(255, 255, 255, 0.1) : transparent;
+    opacity: root.enabled ? 1 : 0.3;
+    animate background, opacity { duration: 100ms; easing: ease; }
+    accessible-role: button;
+    accessible-label: root.label;
+    Icon {
+        source: root.icon;
+        width: 14px;
+        height: 14px;
+        color: Theme.muted;
+    }
+    touch := TouchArea {
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+}
+
+// .title-bar__window-control (46px wide, full bar height)
+component WindowControl inherits Rectangle {
+    in property <image> icon;
+    in property <bool> close;
+    in property <string> label;
+    callback clicked();
+    width: 46px;
+    background: touch.has-hover ? (root.close ? Theme.error : rgba(255, 255, 255, 0.08)) : transparent;
+    animate background { duration: 200ms; easing: ease; }
+    accessible-role: button;
+    accessible-label: root.label;
+    Icon {
+        source: root.icon;
+        width: 16px;
+        height: 16px;
+        color: touch.has-hover ? (root.close ? #ffffff : #dadbe1) : Theme.muted;
+        animate color { duration: 200ms; easing: ease; }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// Windows: Chromium's titleBarOverlay buttons (WindowsCaptionButton): 10px
+// line glyphs in symbolColor #DADBE1, hover 10% of the symbol color (close:
+// #E81123 with a white glyph), pressed 20%.
+component CaptionButton inherits Rectangle {
+    // "minimize" | "maximize" | "restore" | "close"
+    in property <string> kind;
+    in property <string> label;
+    callback clicked();
+    width: 46px;
+    property <bool> close: root.kind == "close";
+    background: touch.pressed ? (root.close ? #e81123 : #dadbe133) : touch.has-hover ? (root.close ? #e81123 : #dadbe11a) : transparent;
+    animate background { duration: 150ms; easing: ease-out; }
+    accessible-role: button;
+    accessible-label: root.label;
+    property <color> glyph: touch.has-hover && root.close ? #ffffff : #dadbe1;
+    Path {
+        width: 10px;
+        height: 10px;
+        viewbox-width: 10;
+        viewbox-height: 10;
+        stroke: root.glyph;
+        stroke-width: 1px;
+        fill: transparent;
+        commands: root.kind == "minimize" ? "M 0 5.5 L 10 5.5"
+            : root.kind == "maximize" ? "M 0.5 0.5 L 9.5 0.5 L 9.5 9.5 L 0.5 9.5 Z"
+            : root.kind == "restore" ? "M 2.5 0.5 L 9.5 0.5 L 9.5 7.5 M 0.5 2.5 L 7.5 2.5 L 7.5 9.5 L 0.5 9.5 Z"
+            : "M 0 0 L 10 10 M 10 0 L 0 10";
+    }
+    touch := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// .title-bar-search
+export component TitleBarSearch inherits Rectangle {
+    in property <bool> library;
+    callback submitted(string);
+    callback changed-text(string);
+    out property <bool> focused: input.has-focus;
+    height: 28px;
+    border-radius: 6px;
+    border-width: 1px;
+    background: Theme.background;
+    border-color: input.has-focus ? #dadbe1 : hover.has-hover ? rgba(255, 255, 255, 0.2) : Theme.border;
+    animate border-color { duration: 200ms; easing: ease; }
+
+    hover := TouchArea {
+        // The field's cursor is `default` until it has focus, then `text`.
+        mouse-cursor: input.has-focus ? text : default;
+        clicked => {
+            input.focus();
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        spacing: 8px;
+        alignment: stretch;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                source: Icons.search;
+                width: 14px;
+                height: 14px;
+                color: Theme.subtle;
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+            placeholder := Text {
+                x: 0;
+                width: parent.width;
+                text: root.library ? T.tr("header.search_library") : T.tr("header.search");
+                color: Theme.subtle;
+                font-size: Theme.hint-size;
+                vertical-alignment: center;
+                overflow: elide;
+                visible: input.text == "";
+            }
+            input := TextInput {
+                width: parent.width;
+                height: parent.height;
+                color: #dadbe1;
+                font-size: Theme.hint-size;
+                vertical-alignment: center;
+                single-line: true;
+                selection-background-color: #3e62c0;
+                accessible-label: placeholder.text;
+                edited => {
+                    root.changed-text(self.text);
+                }
+                key-pressed(event) => {
+                    if (event.text == Key.Return && self.text != "") {
+                        root.submitted(self.text);
+                        self.clear-focus();
+                        return accept;
+                    }
+                    if (event.text == Key.Escape) {
+                        self.clear-focus();
+                        return accept;
+                    }
+                    reject
+                }
+            }
+        }
+        if input.text != "": VerticalLayout {
+            alignment: center;
+            clear := Rectangle {
+                width: 12px;
+                height: 12px;
+                Icon {
+                    source: Icons.x-small;
+                    width: 12px;
+                    height: 12px;
+                    color: clear-touch.has-hover ? Theme.muted : Theme.subtle;
+                }
+                clear-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        input.text = "";
+                        root.changed-text("");
+                        input.focus();
+                    }
+                }
+            }
+        }
+    }
+}
+
+// .title-bar: brand + version over the sidebar, arrows, search, window controls.
+export component TitleBar inherits Rectangle {
+    in property <bool> library-route: Nav.route == "library";
+    callback search-submitted(string);
+    callback search-changed(string);
+    height: 40px;
+    background: Theme.dark-background;
+
+    // -webkit-app-region: drag (double-click maximizes, like the system bar)
+    drag := TouchArea {
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                Chrome.drag();
+            }
+        }
+        double-clicked => {
+            Chrome.toggle-maximize();
+        }
+    }
+
+    property <bool> custom-frame: Chrome.platform == "windows" || (Chrome.platform == "linux" && !Chrome.native-decorations);
+    property <bool> custom-controls: Chrome.platform == "windows" || (Chrome.platform == "linux" && !Chrome.native-decorations);
+
+    HorizontalLayout {
+        padding-right: root.custom-controls ? 0 : 12px;
+        alignment: stretch;
+
+        // .title-bar__brand: as wide as the sidebar
+        brand := HorizontalLayout {
+            width: SidebarState.width;
+            padding-left: Chrome.platform == "macos" ? 80px : 16px;
+            spacing: 8px;
+            alignment: start;
+            if root.custom-frame: HorizontalLayout {
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: "Hydra";
+                        font-size: 14px;
+                        font-weight: 700;
+                        color: Theme.body;
+                    }
+                }
+                if Session.has-subscription: VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: " Cloud";
+                        font-size: 14px;
+                        font-weight: 700;
+                        // background: linear-gradient(270deg, teal 50%, blue 100%) clipped to text
+                        color: @linear-gradient(270deg, Theme.brand-teal 50%, Theme.brand-blue 100%);
+                    }
+                }
+            }
+            if Session.version != "": VerticalLayout {
+                alignment: center;
+                version := Rectangle {
+                    height: 20px;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    background: version-touch.has-hover ? rgba(255, 255, 255, 0.1) : rgba(255, 255, 255, 0.04);
+                    animate background { duration: 100ms; easing: ease; }
+                    HorizontalLayout {
+                        padding-left: 8px;
+                        padding-right: 8px;
+                        Text {
+                            text: "v" + Session.version;
+                            font-size: Theme.tiny-size;
+                            color: version-touch.has-hover ? Theme.muted : Theme.body;
+                            vertical-alignment: center;
+                            animate color { duration: 100ms; easing: ease; }
+                        }
+                    }
+                    version-touch := TouchArea {
+                        mouse-cursor: pointer;
+                    }
+                }
+            }
+        }
+
+        // .title-bar__navigation
+        HorizontalLayout {
+            padding-left: 8px;
+            spacing: 2px;
+            alignment: start;
+            VerticalLayout {
+                alignment: center;
+                NavArrow {
+                    icon: Icons.arrow-left;
+                    enabled: Nav.can-go-back;
+                    label: T.tr("header.back");
+                    clicked => {
+                        Nav.back();
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                NavArrow {
+                    icon: Icons.arrow-right;
+                    enabled: Nav.can-go-forward;
+                    label: T.tr("header.forward");
+                    clicked => {
+                        Nav.forward();
+                    }
+                }
+            }
+        }
+
+        // .title-bar__search: centered in the remaining room, max 440px
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 64px;
+            TitleBarSearch {
+                width: Math.max(0, Math.min(440px, parent.width - 32px));
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                library: root.library-route;
+                submitted(text) => {
+                    root.search-submitted(text);
+                }
+                changed-text(text) => {
+                    root.search-changed(text);
+                }
+            }
+        }
+
+        // Windows: the titleBarOverlay caption buttons.
+        if Chrome.platform == "windows": HorizontalLayout {
+            CaptionButton {
+                kind: "minimize";
+                label: T.tr("header.minimize");
+                clicked => {
+                    Chrome.minimize();
+                }
+            }
+            CaptionButton {
+                kind: Chrome.maximized ? "restore" : "maximize";
+                label: Chrome.maximized ? T.tr("header.restore") : T.tr("header.maximize");
+                clicked => {
+                    Chrome.toggle-maximize();
+                }
+            }
+            CaptionButton {
+                kind: "close";
+                label: T.tr("header.close");
+                clicked => {
+                    Chrome.close();
+                }
+            }
+        }
+
+        // Frameless Linux: Hydra's own window controls (.title-bar__window-controls).
+        if Chrome.platform == "linux" && !Chrome.native-decorations: HorizontalLayout {
+            padding-left: 8px;
+            WindowControl {
+                icon: Icons.dash;
+                label: T.tr("header.minimize");
+                clicked => {
+                    Chrome.minimize();
+                }
+            }
+            WindowControl {
+                icon: Chrome.maximized ? Icons.screen-normal : Icons.screen-full;
+                label: Chrome.maximized ? T.tr("header.restore") : T.tr("header.maximize");
+                clicked => {
+                    Chrome.toggle-maximize();
+                }
+            }
+            WindowControl {
+                icon: Icons.x-small;
+                close: true;
+                label: T.tr("header.close");
+                clicked => {
+                    Chrome.close();
+                }
+            }
+        }
+    }
+
+    // border-bottom: 1px solid $border-color
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.border;
+    }
+}

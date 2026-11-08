@@ -1,0 +1,74 @@
+// Game page data and actions; the backend (game_page.rs) fills this.
+import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review } from "../../types.slint";
+
+export global GameData {
+    in property <string> game-title;
+    in property <bool> loaded;
+    in property <image> hero;
+    in property <image> hero-blur;
+    in property <image> logo;
+    in property <string> release-date;
+    in property <string> publisher;
+    // Library state
+    in-out property <bool> in-library;
+    in property <bool> has-executable;
+    // Empty when never played.
+    in property <string> playtime;
+    in property <string> last-played;
+    in property <[MediaItem]> media;
+    in property <[DescBlock]> description;
+    in property <[SimilarGame]> similar;
+    in property <[Achievement]> achievements;
+    in property <int> achievements-unlocked;
+    in property <int> achievements-total;
+    // Hydra API data. Sections stay hidden until their data arrives.
+    in property <bool> has-stats;
+    in property <string> downloads;
+    in property <string> players;
+    in property <string> rating;
+    // "full" | "partial" | "none" (Steam appdetails `controller_support`).
+    in property <string> controller-support: "none";
+    in property <[HltbCategory]> hltb;
+    in property <styled-text> requirements-minimum;
+    in property <styled-text> requirements-recommended;
+    in property <[Language]> languages;
+    in property <[Review]> reviews;
+    in property <int> reviews-total;
+    in property <bool> reviews-loading;
+    in property <bool> reviews-loading-more;
+    in property <bool> reviews-has-more;
+    in property <bool> has-reviewed;
+    in property <bool> submitting-review;
+    // -1 hidden (no cloud save info), 0 synced, 1 syncing
+    in property <int> cloud-state: -1;
+    in property <float> cloud-progress;
+    in-out property <bool> favorite;
+    in-out property <bool> pinned;
+    in-out property <bool> running;
+    // Rust snapshots + blurs the window so the modal backdrop can fake backdrop-filter: blur(2px).
+    in property <image> modal-backdrop;
+
+    callback media-window-changed(int, int);
+    callback reload();
+    callback add-to-library();
+    callback open-download-options();
+    callback play();
+    callback close-game();
+    callback cloud-sync();
+    callback modal-opening();
+    callback review-sort(string);
+    callback review-vote(int, bool);
+    callback review-delete(int);
+    callback review-toggle-original(int);
+    callback review-load-more();
+    callback review-submit(string, int);
+    // Viewer fullscreen (the window goes fullscreen with it).
+    callback fullscreen-changed(bool);
+}
+
+// Set by the backend from the raw OS wheel event before Slint handles it:
+// mouse-wheel lines get Chromium's 40px (Slint's default is 60px), trackpad
+// pixel deltas stay 1:1.
+export global Input {
+    in property <float> wheel-scale: 1;
+}

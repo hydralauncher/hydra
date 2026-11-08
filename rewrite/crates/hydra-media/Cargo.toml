@@ -17,3 +17,5 @@ libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Threading"] }
+# FFmpeg's OpenSSL doesn't read the Windows certificate store; export it as PEM.
+rustls-native-certs = "0.8"

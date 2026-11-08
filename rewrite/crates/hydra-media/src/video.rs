@@ -583,6 +583,58 @@ fn parse_master(url: &str, text: &str) -> Option<Master> {
     (!master.variants.is_empty()).then_some(master)
 }
 
+/// Windows: FFmpeg's TLS (OpenSSL) has no CA store of its own. Export the
+/// system's trusted roots to a PEM file and point OpenSSL at it
+/// (`SSL_CERT_FILE`). Call once at startup, before any other thread runs.
+#[cfg(windows)]
+pub fn prepare_tls(cache_dir: &std::path::Path) {
+    use std::fmt::Write as _;
+    if std::env::var_os("SSL_CERT_FILE").is_some() {
+        return;
+    }
+    let certs = rustls_native_certs::load_native_certs();
+    let mut pem = String::new();
+    for cert in certs.certs {
+        let encoded = base64_encode(cert.as_ref());
+        pem.push_str("-----BEGIN CERTIFICATE-----\n");
+        for line in encoded.as_bytes().chunks(64) {
+            let _ = writeln!(pem, "{}", std::str::from_utf8(line).unwrap_or_default());
+        }
+        pem.push_str("-----END CERTIFICATE-----\n");
+    }
+    let path = cache_dir.join("ca-bundle.pem");
+    if std::fs::create_dir_all(cache_dir).is_ok() && std::fs::write(&path, pem).is_ok() {
+        // OpenSSL reads the C runtime's copy of the environment (getenv), which
+        // SetEnvironmentVariableW (std::env::set_var) doesn't update.
+        unsafe extern "C" {
+            fn _putenv_s(name: *const std::ffi::c_char, value: *const std::ffi::c_char) -> i32;
+        }
+        let value = std::ffi::CString::new(path.to_string_lossy().as_bytes()).unwrap_or_default();
+        // SAFETY: called on the main thread before workers start.
+        unsafe {
+            std::env::set_var("SSL_CERT_FILE", &path);
+            _putenv_s(c"SSL_CERT_FILE".as_ptr(), value.as_ptr());
+        }
+    }
+}
+
+#[cfg(not(windows))]
+pub fn prepare_tls(_cache_dir: &std::path::Path) {}
+
+#[cfg(windows)]
+fn base64_encode(bytes: &[u8]) -> String {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let n = (chunk[0] as u32) << 16 | (*chunk.get(1).unwrap_or(&0) as u32) << 8 | *chunk.get(2).unwrap_or(&0) as u32;
+        out.push(TABLE[(n >> 18) as usize & 63] as char);
+        out.push(TABLE[(n >> 12) as usize & 63] as char);
+        out.push(if chunk.len() > 1 { TABLE[(n >> 6) as usize & 63] as char } else { '=' });
+        out.push(if chunk.len() > 2 { TABLE[n as usize & 63] as char } else { '=' });
+    }
+    out
+}
+
 fn open_url(
     url: &str,
     shared: &Arc<Shared>,
