@@ -32,6 +32,8 @@ base64 = "0.22"
 # showOpenDialog (folder pickers), the system Downloads folder, free disk space.
 rfd = "0.15"
 dirs = "6"
+# os.networkInterfaces() for the torrent network adapter setting
+if-addrs = "0.13"
 fs2 = "0.4"
 
 [build-dependencies]

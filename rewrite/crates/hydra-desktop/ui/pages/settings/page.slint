@@ -36,6 +36,31 @@ export global SettingsData {
     in property <bool> enable-auto-install;
     in property <bool> native-decorations;
 
+    // ---- Downloads
+    in-out property <string> max-speed;
+    in property <string> max-speed-label;
+    in property <string> max-speed-hint;
+    in property <[SelectOption]> network-options;
+    in property <string> network-interface;
+    in property <string> network-label;
+    // the longest option, for the native select's max-content width
+    in property <string> network-longest;
+    in property <bool> seed-after;
+    in property <bool> extract-by-default;
+    in property <bool> speed-in-megabytes;
+    in property <bool> delete-archives;
+    in property <bool> show-shortcuts: true;
+    in property <bool> create-shortcuts;
+    in property <bool> append-trackers;
+    in-out property <string> manual-trackers;
+    in property <bool> append-trackers-url;
+    in-out property <string> trackers-url;
+    in property <string> trackers-error;
+    callback max-speed-committed();
+    callback network-selected(string);
+    callback trackers-edited();
+    callback trackers-url-committed();
+
     callback select-category(string);
     callback change-downloads-path();
     callback language-selected(string);
@@ -226,6 +251,215 @@ component GeneralPanel inherits VerticalLayout {
     }
 }
 
+// settings-global-trackers__textarea / __url-input: dark, 1px border,
+// radius 8, padding 12, monospace 12px with line-height 1.5
+component MonoField inherits Rectangle {
+    in property <string> placeholder;
+    in property <bool> multi-line;
+    in property <bool> enabled: true;
+    in-out property <string> text;
+    callback edited();
+    callback focus-lost();
+    height: root.multi-line ? 5 * 18px + 24px + 2px : 18px + 24px + 2px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: input.has-focus ? #dadbe1 : Theme.border;
+    background: Theme.dark-background;
+    TouchArea {
+        mouse-cursor: root.enabled ? MouseCursor.text : MouseCursor.default;
+        clicked => {
+            input.focus();
+        }
+    }
+    Text {
+        x: 13px;
+        y: 13px;
+        width: parent.width - 26px;
+        text: root.placeholder;
+        visible: input.text == "";
+        color: rgba(255, 255, 255, 0.4);
+        font-family: "Cascadia Code";
+        font-size: Theme.small-size;
+        wrap: word-wrap;
+    }
+    input := TextInput {
+        x: 13px;
+        y: 13px;
+        width: parent.width - 26px;
+        height: parent.height - 26px;
+        text <=> root.text;
+        enabled: root.enabled;
+        single-line: !root.multi-line;
+        wrap: root.multi-line ? word-wrap : no-wrap;
+        color: #dadbe1;
+        font-family: "Cascadia Code";
+        font-size: Theme.small-size;
+        edited => {
+            root.edited();
+        }
+        changed has-focus => {
+            if (!self.has-focus) {
+                root.focus-lost();
+            }
+        }
+    }
+}
+
+// settings-context-downloads.tsx
+component DownloadsPanel inherits VerticalLayout {
+    spacing: 16px;
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.download_behavior");
+        }
+        // text-field with a label and a <small> hint
+        VerticalLayout {
+            spacing: 8px;
+            Text {
+                text: SettingsData.max-speed-label;
+                font-size: Theme.body-size;
+                color: Theme.body;
+            }
+            TextField {
+                placeholder: T.tr("settings.max_download_speed_unlimited");
+                text <=> SettingsData.max-speed;
+                focus-lost => {
+                    SettingsData.max-speed-committed();
+                }
+            }
+            Text {
+                text: SettingsData.max-speed-hint;
+                font-size: 11.67px;
+                color: Theme.body;
+            }
+        }
+        // settings-general__network-interface: gap 8, margin-block 16
+        VerticalLayout {
+            padding-top: 16px;
+            padding-bottom: 16px;
+            spacing: 8px;
+            Text {
+                text: T.tr("settings.network_interface");
+                font-size: Theme.body-size;
+                color: Theme.body;
+            }
+            Rectangle {
+                height: 40px;
+                // the select's max-content width
+                network-measure := Text {
+                    visible: false;
+                    text: SettingsData.network-longest;
+                    font-size: Theme.body-size;
+                }
+                SelectField {
+                    x: 0;
+                    width: Math.max(180px, network-measure.preferred-width + 54px);
+                    popup-id: "settings-network";
+                    options: SettingsData.network-options;
+                    value: SettingsData.network-interface;
+                    current-label: SettingsData.network-label;
+                    selected(value) => {
+                        SettingsData.network-selected(value);
+                    }
+                }
+            }
+            Text {
+                text: T.tr("settings.network_interface_hint");
+                font-size: 13px;
+                color: Theme.muted;
+                wrap: word-wrap;
+            }
+        }
+        Check {
+            key: "seedAfterDownloadComplete";
+            label: T.tr("settings.seed_after_download_complete");
+            checked: SettingsData.seed-after;
+        }
+        Check {
+            key: "extractFilesByDefault";
+            label: T.tr("settings.extract_files_by_default");
+            checked: SettingsData.extract-by-default;
+        }
+        Check {
+            key: "showDownloadSpeedInMegabytes";
+            label: T.tr("settings.show_download_speed_in_megabytes");
+            checked: SettingsData.speed-in-megabytes;
+        }
+        Check {
+            key: "deleteArchiveFilesAfterExtractionByDefault";
+            label: T.tr("settings.delete_archive_files_after_extraction");
+            checked: SettingsData.delete-archives;
+        }
+        if SettingsData.show-shortcuts: Check {
+            key: "createStartMenuShortcut";
+            label: T.tr("settings.create_shortcuts_on_download");
+            checked: SettingsData.create-shortcuts;
+        }
+    }
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.global_trackers");
+        }
+        // settings-global-trackers: gap 16
+        VerticalLayout {
+            spacing: 16px;
+            Text {
+                text: T.tr("settings.global_trackers_description");
+                font-size: Theme.small-size;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+            if SettingsData.trackers-error != "": Text {
+                text: SettingsData.trackers-error;
+                font-size: Theme.small-size;
+                color: Theme.error;
+            }
+            VerticalLayout {
+                spacing: 8px;
+                Check {
+                    key: "appendGlobalTrackers";
+                    label: T.tr("settings.global_trackers_append_manual");
+                    checked: SettingsData.append-trackers;
+                }
+                MonoField {
+                    multi-line: true;
+                    opacity: SettingsData.append-trackers ? 1 : 0.5;
+                    enabled: SettingsData.append-trackers;
+                    placeholder: T.tr("settings.global_trackers_manual_placeholder");
+                    text <=> SettingsData.manual-trackers;
+                    edited => {
+                        SettingsData.trackers-edited();
+                    }
+                }
+            }
+            VerticalLayout {
+                spacing: 8px;
+                Check {
+                    key: "appendGlobalTrackersUrl";
+                    label: T.tr("settings.global_trackers_append_url");
+                    checked: SettingsData.append-trackers-url;
+                }
+                MonoField {
+                    opacity: SettingsData.append-trackers-url ? 1 : 0.5;
+                    enabled: SettingsData.append-trackers-url;
+                    placeholder: T.tr("settings.global_trackers_url_placeholder");
+                    text <=> SettingsData.trackers-url;
+                    edited => {
+                        SettingsData.trackers-edited();
+                    }
+                    focus-lost => {
+                        SettingsData.trackers-url-committed();
+                    }
+                }
+            }
+        }
+    }
+}
+
 export component SettingsPage inherits Rectangle {
     // ---- panel scrolling (overflow: auto), with the wheel tween
     property <length> max-scroll: Math.max(0, panel.content-height - panel.height);
@@ -354,7 +588,8 @@ export component SettingsPage inherits Rectangle {
                                 vertical-alignment: center;
                             }
                             if SettingsData.category == "general": GeneralPanel { }
-                            if SettingsData.category != "general": Text {
+                            if SettingsData.category == "downloads": DownloadsPanel { }
+                            if SettingsData.category != "general" && SettingsData.category != "downloads": Text {
                                 text: "TODO(settings): " + SettingsData.category + " not ported yet";
                                 color: Theme.subtle;
                                 font-size: Theme.small-size;
