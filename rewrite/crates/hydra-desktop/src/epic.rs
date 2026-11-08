@@ -461,6 +461,10 @@ pub fn init(ui: &AppWindow, user_data: &Path) {
 /// HydraApi.onAuthContextChanged: called whenever the user may have
 /// changed (sign-in, sign-out, a refreshed /profile/me).
 pub fn on_auth_maybe_changed() {
+    // Before init() the account is read there; nothing to compare yet.
+    if SHARED.get().is_none() {
+        return;
+    }
     let Some(db) = shell::db() else { return };
     let previous = auth_context();
     let next = compute_auth(&db, previous.as_ref().map_or(0, |p| p.generation));
