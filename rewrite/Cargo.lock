@@ -2742,6 +2742,7 @@ dependencies = [
  "hydra-db",
  "icu_collator",
  "icu_locale_core",
+ "image",
  "reqwest",
  "rustls",
  "rustls-platform-verifier",
@@ -2764,6 +2765,7 @@ dependencies = [
 name = "hydra-desktop"
 version = "0.1.0"
 dependencies = [
+ "arboard",
  "base64 0.22.1",
  "dirs 6.0.0",
  "fs2",

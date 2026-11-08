@@ -12,5 +12,7 @@ pub mod emulation;
 pub mod executables;
 pub mod library;
 pub mod library_actions;
+pub mod profile;
+pub mod profile_image;
 pub mod realtime;
 pub mod repacks;
