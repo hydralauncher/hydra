@@ -80,8 +80,9 @@ the remote `external-resources/bundle.js` script.
 
 ## Phase 2: browsing
 
-- [ ] **Home** (`pages/home`)
-- [ ] **Catalogue** (`pages/catalogue`, `catalogue/*` events: filters, names, random game, covers)
+- [x] **Home** (`pages/home`): featured hero, Hot now / Top games of the week / Games to beat, card stats on hover, Surprise me (Steam250), the flame and stars GIFs
+- [x] **Catalogue, modern games:** results, sort select (Chromium-style popup), pagination, filter rail (mode toggle, release year slider, genres/tags/download sources/developers/publishers sections with search and virtual lists), chips, add to library
+- [ ] **Catalogue, remaining:** classics mode (`game-item-classics`, platform groups, recompilation toggle), chips wrapping, Proton/Deck section on Linux, classics/recompilation onboarding modals, the pagination jump input
 - [x] **Game details, done so far:** layout from #3095 (gutters, rail, column, 16:9 gallery), library state in the hero (played time, last played, favorite, pinned, Download/Play/Close), Steam details and artwork from the local caches first, achievements section (remote unlocks, combined Steam/Epic sets), review prompt banner
 - [ ] **Game details, remaining:** Cloud save widget (cloud save v2), stats, HowLongToBeat, similar games; review list/vote/submit/delete/translate/replies (`review-thread.tsx`, `review-replies`, `review-reply-composer.tsx`), review gate notice and prompt banner; leaderboard section (`game-details/leaderboard`); screenshots tab (`game-screenshots`); NSFW/content descriptor gate; randomizer; custom games and Epic/classics variants; text selection in description and reviews
 - [x] **Library, done so far:** toolbar (category, Filters menu with collections/libraries/consoles/installed only, sort + view menu), compact/grid/large views virtualized like the renderer, covers from `game.images` copies with ThumbHash placeholders, frosted badges, achievement bars, empty states, header that hides on scroll, title-bar search; context menu actions for favorites, collections, pin, hide/conceal, open folder (`library_actions`)
