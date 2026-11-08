@@ -15,7 +15,10 @@ pub enum Origin {
     /// The rewrite's database already existed.
     Existing,
     /// Copied from the Electron app's `<userData>/<db name>`.
-    Imported { from: PathBuf, local_storage_entries: usize },
+    Imported {
+        from: PathBuf,
+        local_storage_entries: usize,
+    },
     /// No Electron data found: a fresh install.
     Fresh,
 }

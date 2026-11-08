@@ -1,5 +1,5 @@
 // Game page data and actions; the backend (game_page.rs) fills this.
-import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review } from "../../types.slint";
+import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, RepackRow, RepackSource } from "../../types.slint";
 
 export global GameData {
     in property <string> game-title;
@@ -64,6 +64,33 @@ export global GameData {
     callback review-submit(string, int);
     // Viewer fullscreen (the window goes fullscreen with it).
     callback fullscreen-changed(bool);
+    // Game page modals (hosted in app.slint, see modals.slint)
+    in-out property <bool> options-open;
+    in-out property <bool> repacks-open;
+    in-out property <bool> cloud-open;
+    in-out property <bool> modals-mounted;
+    // Classics (launchbox) hero: game-details__hero--classics-wrapper
+    in property <bool> classics;
+    in property <image> classics-cover;
+    // Op::CoverBlur images: blur(24px) scale(1.1) backdrop, and the same under
+    // the panel's blur(10px) with the 0.48 overlay, over the page background.
+    in property <image> classics-backdrop;
+    in property <image> classics-frost;
+    // Their ceil(3σ) padding as a fraction of the 1.1 × hero width box.
+    in property <float> classics-pad-ratio;
+    in property <string> classics-title;
+    in property <string> classics-chip;
+    in property <int> classics-emulator;
+    // Download options (game-details.context repacks)
+    in property <int> repacks-count;
+    in property <string> repacks-updated;
+    in property <[RepackRow]> repack-rows;
+    in property <[RepackSource]> repack-sources;
+    callback repacks-opened();
+    callback repacks-closed();
+    callback repacks-filter(string);
+    callback repacks-toggle-source(string);
+    callback repack-selected(string);
     // Review prompt: 0 hidden, 1 pending (keeps its space, invisible), 2 shown.
     in property <int> review-prompt;
     callback review-prompt-yes();

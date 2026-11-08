@@ -26,9 +26,9 @@ macro_rules! locales {
 
 /// Every language the Electron app ships, in `src/locales/index.ts` order.
 static SOURCES: &[(&str, &str)] = locales!(
-    "pt-BR", "pt-PT", "en", "de", "el", "es", "nl", "fr", "hu", "it", "pl", "ru", "tr", "be",
-    "uk", "zh", "id", "ko", "da", "ar", "fa", "fi", "ro", "ca", "bg", "kk", "cs", "nb", "et",
-    "uz", "sv", "lv", "vi", "ja", "sl",
+    "pt-BR", "pt-PT", "en", "de", "el", "es", "nl", "fr", "hu", "it", "pl", "ru", "tr", "be", "uk",
+    "zh", "id", "ko", "da", "ar", "fa", "fi", "ro", "ca", "bg", "kk", "cs", "nb", "et", "uz", "sv",
+    "lv", "vi", "ja", "sl",
 );
 
 /// Language codes Hydra has translations for.
@@ -53,7 +53,9 @@ fn parse(json: &str) -> Table {
     let value: serde_json::Value = serde_json::from_str(json).unwrap_or_default();
     if let Some(namespaces) = value.as_object() {
         for (ns, keys) in namespaces {
-            let Some(keys) = keys.as_object() else { continue };
+            let Some(keys) = keys.as_object() else {
+                continue;
+            };
             for (key, text) in keys {
                 if let Some(text) = text.as_str() {
                     strings.insert(format!("{ns}.{key}"), text.to_string());
@@ -198,7 +200,9 @@ impl I18n {
 
     /// A `<Trans>` string split into styled runs.
     pub fn rich(&self, key: &str, count: Option<f64>, args: &[(&str, Arg)]) -> Vec<Span> {
-        let template = self.lookup(key, count).unwrap_or_else(|| missing(key).to_string());
+        let template = self
+            .lookup(key, count)
+            .unwrap_or_else(|| missing(key).to_string());
         parse_tags(&template)
             .into_iter()
             .map(|mut span| {
@@ -539,7 +543,11 @@ mod tests {
     #[test]
     fn trans_tags() {
         let en = I18n::new("en");
-        let spans = en.rich("game_details.download_size", None, &[("size", "4 GB".into())]);
+        let spans = en.rich(
+            "game_details.download_size",
+            None,
+            &[("size", "4 GB".into())],
+        );
         assert_eq!(
             spans,
             vec![
@@ -555,7 +563,10 @@ mod tests {
             ]
         );
         let md = en.rich_markdown("game_details.select_folder_hint", None, &[]);
-        assert_eq!(md, "To change the default folder, go to the [Settings](hydra-trans:0)");
+        assert_eq!(
+            md,
+            "To change the default folder, go to the [Settings](hydra-trans:0)"
+        );
     }
 
     #[test]

@@ -5,14 +5,17 @@
 //! for what is next.
 
 mod catalogue_page;
+mod classics_bookmark;
 mod collections;
 mod context_menu;
 mod devscript;
 mod dialogs;
 mod features;
 mod format;
+mod game_classics;
 mod game_menu;
 mod game_page;
+mod game_repacks;
 mod gifs;
 mod headless;
 mod home_page;
@@ -155,6 +158,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         headless_mode,
     );
     game_page::init(&ui, &loader);
+    game_repacks::init(&ui);
+    classics_bookmark::init(&ui);
     library_page::init(&ui);
     home_page::init(&ui, &loader);
     catalogue_page::init(&ui, &loader);

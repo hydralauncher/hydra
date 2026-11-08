@@ -60,7 +60,10 @@ fn render(language: &str, token: &str, count: i64, suffix: Option<i32>) -> Strin
 }
 
 fn local(ms: i64) -> DateTime<Local> {
-    Local.timestamp_millis_opt(ms).single().unwrap_or_else(Local::now)
+    Local
+        .timestamp_millis_opt(ms)
+        .single()
+        .unwrap_or_else(Local::now)
 }
 
 /// JavaScript `getTimezoneOffset()` in minutes (UTC - local).
@@ -86,7 +89,11 @@ fn difference_in_months(left: i64, right: i64) -> i64 {
         shifted = shifted.with_day(30).unwrap_or(shifted);
     }
     let months = Months::new(difference as u32);
-    shifted = if sign > 0 { shifted - months } else { shifted + months };
+    shifted = if sign > 0 {
+        shifted - months
+    } else {
+        shifted + months
+    };
     let mut last_month_not_full = (shifted.timestamp_millis() - right).signum() == -sign;
     if is_last_day_of_month(&l) && difference == 1 && left > right {
         last_month_not_full = false;
@@ -97,9 +104,14 @@ fn difference_in_months(left: i64, right: i64) -> i64 {
 /// `formatDistance(date, baseDate, { addSuffix })` with the language's date-fns locale.
 pub fn format_distance(language: &str, date_ms: i64, base_ms: i64, add_suffix: bool) -> String {
     let comparison = (date_ms - base_ms).signum() as i32;
-    let (later, earlier) = if comparison > 0 { (date_ms, base_ms) } else { (base_ms, date_ms) };
+    let (later, earlier) = if comparison > 0 {
+        (date_ms, base_ms)
+    } else {
+        (base_ms, date_ms)
+    };
     let seconds = (later - earlier) / 1000;
-    let offset_seconds = (tz_offset_minutes(&local(later)) - tz_offset_minutes(&local(earlier))) * 60;
+    let offset_seconds =
+        (tz_offset_minutes(&local(later)) - tz_offset_minutes(&local(earlier))) * 60;
     let minutes = ((seconds - offset_seconds) as f64 / 60.0).round() as i64;
     let suffix = add_suffix.then_some(comparison);
     let say = |token: &str, count: i64| render(language, token, count, suffix);
@@ -108,7 +120,11 @@ pub fn format_distance(language: &str, date_ms: i64, base_ms: i64, add_suffix: b
     const MINUTES_IN_ALMOST_TWO_DAYS: i64 = 2520;
     const MINUTES_IN_MONTH: i64 = 43200;
     if minutes < 2 {
-        return if minutes < 1 { say("lessThanXMinutes", 1) } else { say("xMinutes", minutes) };
+        return if minutes < 1 {
+            say("lessThanXMinutes", 1)
+        } else {
+            say("xMinutes", minutes)
+        };
     }
     if minutes < 45 {
         return say("xMinutes", minutes);
@@ -123,10 +139,16 @@ pub fn format_distance(language: &str, date_ms: i64, base_ms: i64, add_suffix: b
         return say("xDays", 1);
     }
     if minutes < MINUTES_IN_MONTH {
-        return say("xDays", (minutes as f64 / MINUTES_IN_DAY as f64).round() as i64);
+        return say(
+            "xDays",
+            (minutes as f64 / MINUTES_IN_DAY as f64).round() as i64,
+        );
     }
     if minutes < MINUTES_IN_MONTH * 2 {
-        return say("aboutXMonths", (minutes as f64 / MINUTES_IN_MONTH as f64).round() as i64);
+        return say(
+            "aboutXMonths",
+            (minutes as f64 / MINUTES_IN_MONTH as f64).round() as i64,
+        );
     }
     let months = difference_in_months(later, earlier);
     if months < 12 {
@@ -173,39 +195,252 @@ pub fn format_pattern(date_ms: i64, pattern: &str) -> String {
     out
 }
 
+/// date-fns `MMM` (formatting context) per getDateLocale (shared/index.ts).
+const MONTHS_SHORT: &[(&str, [&str; 12])] = &[
+    (
+        "pt",
+        [
+            "jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez",
+        ],
+    ),
+    (
+        "es",
+        [
+            "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic",
+        ],
+    ),
+    (
+        "fr",
+        [
+            "janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.",
+            "nov.", "déc.",
+        ],
+    ),
+    (
+        "hu",
+        [
+            "jan.", "febr.", "márc.", "ápr.", "máj.", "jún.", "júl.", "aug.", "szept.", "okt.",
+            "nov.", "dec.",
+        ],
+    ),
+    (
+        "pl",
+        [
+            "sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru",
+        ],
+    ),
+    (
+        "tr",
+        [
+            "Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara",
+        ],
+    ),
+    (
+        "ru",
+        [
+            "янв.",
+            "фев.",
+            "мар.",
+            "апр.",
+            "мая",
+            "июн.",
+            "июл.",
+            "авг.",
+            "сент.",
+            "окт.",
+            "нояб.",
+            "дек.",
+        ],
+    ),
+    (
+        "it",
+        [
+            "gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic",
+        ],
+    ),
+    (
+        "be",
+        [
+            "студз.",
+            "лют.",
+            "сак.",
+            "крас.",
+            "мая",
+            "чэрв.",
+            "ліп.",
+            "жн.",
+            "вер.",
+            "кастр.",
+            "ліст.",
+            "снеж.",
+        ],
+    ),
+    (
+        "zh",
+        [
+            "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月",
+        ],
+    ),
+    (
+        "da",
+        [
+            "jan.", "feb.", "mar.", "apr.", "maj", "jun.", "jul.", "aug.", "sep.", "okt.", "nov.",
+            "dec.",
+        ],
+    ),
+    (
+        "el",
+        [
+            "Ιαν", "Φεβ", "Μαρ", "Απρ", "Μαΐ", "Ιουν", "Ιουλ", "Αυγ", "Σεπ", "Οκτ", "Νοε", "Δεκ",
+        ],
+    ),
+    (
+        "vi",
+        [
+            "thg 1", "thg 2", "thg 3", "thg 4", "thg 5", "thg 6", "thg 7", "thg 8", "thg 9",
+            "thg 10", "thg 11", "thg 12",
+        ],
+    ),
+    (
+        "ja",
+        [
+            "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月",
+        ],
+    ),
+    (
+        "sl",
+        [
+            "jan.", "feb.", "mar.", "apr.", "maj", "jun.", "jul.", "avg.", "sep.", "okt.", "nov.",
+            "dec.",
+        ],
+    ),
+];
+const MONTHS_SHORT_EN: [&str; 12] = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/// description-header.tsx: a "YYYY-MM-DD" release date shown as
+/// `format(date, "MMM d, yyyy", { locale })`; anything else is kept as is.
+pub fn format_release_date(language: &str, raw: &str) -> String {
+    let b = raw.as_bytes();
+    let iso = b.len() == 10
+        && b[4] == b'-'
+        && b[7] == b'-'
+        && raw
+            .chars()
+            .enumerate()
+            .all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit());
+    if !iso {
+        return raw.to_string();
+    }
+    let (Ok(year), Ok(month), Ok(day)) = (
+        raw[0..4].parse::<u32>(),
+        raw[5..7].parse::<usize>(),
+        raw[8..10].parse::<u32>(),
+    ) else {
+        return raw.to_string();
+    };
+    if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
+        return raw.to_string();
+    }
+    let months = MONTHS_SHORT
+        .iter()
+        .find(|(p, _)| language.starts_with(p))
+        .map(|(_, m)| m)
+        .unwrap_or(&MONTHS_SHORT_EN);
+    format!("{} {day}, {year}", months[month - 1])
+}
+
 /// `formatDateTime` (use-date.ts).
 pub fn format_date_time(language: &str, date_ms: i64) -> String {
-    format_pattern(date_ms, if language == "en" { "MM-dd-yyyy - hh:mm a" } else { "dd/MM/yyyy HH:mm" })
+    format_pattern(
+        date_ms,
+        if language == "en" {
+            "MM-dd-yyyy - hh:mm a"
+        } else {
+            "dd/MM/yyyy HH:mm"
+        },
+    )
 }
 
 /// `formatDate` (shared/index.ts).
 pub fn format_date(language: &str, date_ms: i64) -> String {
-    format_pattern(date_ms, if language == "en" { "MM-dd-yyyy" } else { "dd/MM/yyyy" })
+    format_pattern(
+        date_ms,
+        if language == "en" {
+            "MM-dd-yyyy"
+        } else {
+            "dd/MM/yyyy"
+        },
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[test]
+    fn release_dates() {
+        assert_eq!(format_release_date("en-US", "2005-03-22"), "Mar 22, 2005");
+        assert_eq!(format_release_date("pt-BR", "2005-03-02"), "mar 2, 2005");
+        assert_eq!(format_release_date("en", "Sep 4, 2025"), "Sep 4, 2025");
+    }
+
     const DAY: i64 = 86_400_000;
 
     #[test]
     fn distance_matches_date_fns_wording() {
         let now = 1_762_560_000_000; // 2025-11-08
-        assert_eq!(format_distance("en", now - 20 * 1000, now, true), "less than a minute ago");
+        assert_eq!(
+            format_distance("en", now - 20 * 1000, now, true),
+            "less than a minute ago"
+        );
         // Math.round(30s / 60) = 1, like date-fns.
-        assert_eq!(format_distance("en", now - 30 * 1000, now, true), "1 minute ago");
-        assert_eq!(format_distance("en", now - 5 * 60_000, now, true), "5 minutes ago");
-        assert_eq!(format_distance("en", now - 3 * 3_600_000, now, true), "about 3 hours ago");
-        assert_eq!(format_distance("en", now - 3 * DAY, now, true), "3 days ago");
-        assert_eq!(format_distance("en", now - 240 * DAY, now, true), "8 months ago");
-        assert_eq!(format_distance("pt-BR", now - 240 * DAY, now, true), "há 8 meses");
+        assert_eq!(
+            format_distance("en", now - 30 * 1000, now, true),
+            "1 minute ago"
+        );
+        assert_eq!(
+            format_distance("en", now - 5 * 60_000, now, true),
+            "5 minutes ago"
+        );
+        assert_eq!(
+            format_distance("en", now - 3 * 3_600_000, now, true),
+            "about 3 hours ago"
+        );
+        assert_eq!(
+            format_distance("en", now - 3 * DAY, now, true),
+            "3 days ago"
+        );
+        assert_eq!(
+            format_distance("en", now - 240 * DAY, now, true),
+            "8 months ago"
+        );
+        assert_eq!(
+            format_distance("pt-BR", now - 240 * DAY, now, true),
+            "há 8 meses"
+        );
         // Expected values printed by date-fns 3.6 itself.
-        assert_eq!(format_distance("en", now - 800 * DAY, now, true), "about 2 years ago");
-        assert_eq!(format_distance("en", now - 1000 * DAY, now, true), "over 2 years ago");
-        assert_eq!(format_distance("ru", now - 45 * DAY, now, true), "около 1 месяца назад");
-        assert_eq!(format_distance("ru", now - 5 * DAY, now, true), "5 дней назад");
+        assert_eq!(
+            format_distance("en", now - 800 * DAY, now, true),
+            "about 2 years ago"
+        );
+        assert_eq!(
+            format_distance("en", now - 1000 * DAY, now, true),
+            "over 2 years ago"
+        );
+        assert_eq!(
+            format_distance("ru", now - 45 * DAY, now, true),
+            "около 1 месяца назад"
+        );
+        assert_eq!(
+            format_distance("ru", now - 5 * DAY, now, true),
+            "5 дней назад"
+        );
         // German isn't in getDateLocale: English wording.
-        assert_eq!(format_distance("de", now - 3 * DAY, now, true), "3 days ago");
+        assert_eq!(
+            format_distance("de", now - 3 * DAY, now, true),
+            "3 days ago"
+        );
     }
 }

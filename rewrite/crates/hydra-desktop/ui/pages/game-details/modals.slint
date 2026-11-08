@@ -1,0 +1,92 @@
+// Game page modals (game-options, repacks, cloud save). They cover the whole
+// window like Electron's portal modals, so they are hosted next to the other
+// overlays in app.slint; the page opens them through GameData.
+import { Theme, Icons } from "../../theme.slint";
+import { HydraButton } from "../../components/widgets.slint";
+import { Modal, ModalController } from "../../components/modal.slint";
+import { RepacksModalBody } from "repacks.slint";
+import { GameData } from "state.slint";
+import { Nav, T } from "../../globals.slint";
+
+export component GameModalsHost inherits Rectangle {
+    out property <bool> mounted: options-state.mounted || repacks-state.mounted || cloud-state.mounted;
+    changed mounted => {
+        GameData.modals-mounted = self.mounted;
+    }
+
+    options-state := ModalController {
+        open <=> GameData.options-open;
+    }
+    repacks-state := ModalController {
+        open <=> GameData.repacks-open;
+        closed => {
+            GameData.repacks-closed();
+        }
+    }
+    cloud-state := ModalController {
+        open <=> GameData.cloud-open;
+    }
+
+    // game-options-modal.tsx shell: large, no content padding (content left empty here).
+    if options-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: GameData.game-title;
+        large: true;
+        no-content-padding: true;
+        content-min-height: 420px;
+        closing: options-state.closing;
+        blurred-page: GameData.modal-backdrop;
+        request-close => {
+            options-state.close();
+        }
+    }
+
+    // repacks-modal.tsx
+    if repacks-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.download_options_title");
+        description: T.tr("game_details.repacks_modal_description");
+        closing: repacks-state.closing;
+        blurred-page: GameData.modal-backdrop;
+        request-close => {
+            repacks-state.close();
+        }
+        RepacksModalBody {
+            selected(id) => {
+                GameData.repack-selected(id);
+            }
+            add-source => {
+                repacks-state.close();
+                Nav.navigate("/settings?tab=download_sources");
+            }
+        }
+    }
+
+    // cloud-save-modal.tsx shell
+    if cloud-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: "Cloud Save V2 (BETA)";
+        description: "View and sync this game's saves.";
+        closing: cloud-state.closing;
+        blurred-page: GameData.modal-backdrop;
+        request-close => {
+            cloud-state.close();
+        }
+        HorizontalLayout {
+            alignment: start;
+            HydraButton {
+                kind: "cloud";
+                icon: Icons.cloud-arrow-up;
+                icon-size: 20px;
+                text: "Sync now";
+                clicked => {
+                    cloud-state.close();
+                    GameData.cloud-sync();
+                }
+            }
+        }
+    }
+}

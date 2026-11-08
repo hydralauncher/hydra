@@ -1,5 +1,6 @@
-// Mounts the game page alone for headless tests (tests/modal.rs).
+// Mounts the game page and its modal host for headless tests (tests/modal.rs).
 import { GameDetailsPage } from "../ui/pages/game-details/page.slint";
+import { GameModalsHost } from "../ui/pages/game-details/modals.slint";
 import { GameData } from "../ui/pages/game-details/state.slint";
 export { GameData }
 
@@ -10,7 +11,12 @@ export component GamePageHarness inherits Window {
         width: root.width;
         height: root.height;
     }
+    host := GameModalsHost {
+        width: root.width;
+        height: root.height;
+    }
     out property <bool> modal-open: page.modal-open;
+    out property <bool> host-mounted: host.mounted;
     public function open-game-options() {
         page.open-game-options();
     }

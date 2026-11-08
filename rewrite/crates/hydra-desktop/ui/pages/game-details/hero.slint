@@ -1,7 +1,10 @@
 // game-details-content.tsx (hero) + hero.scss + hero/hero-panel*.tsx + cloud-save-widget.tsx
 import { Theme, Icons, Tip, Ids } from "../../theme.slint";
 import { Icon, HydraButton, Frost, Skeleton, Spinner } from "../../components/widgets.slint";
-import { T } from "../../globals.slint";
+import { T, Nav } from "../../globals.slint";
+import { GameData } from "state.slint";
+import { LibraryIcons } from "../library/card.slint";
+import { ClassicsBookmark } from "bookmark.slint";
 
 // @keyframes slide-in: translateY(40px + 16px), opacity 0 -> none, 0.3s cubic-bezier(0.33, 1, 0.68, 1)
 component SlideIn inherits Rectangle {
@@ -77,19 +80,43 @@ export component Hero inherits Rectangle {
     callback edit-clicked();
     callback cloud-clicked();
 
-    height: 350px;
+    // $hero-height, 400px for the classics hero
+    property <length> hero-h: GameData.classics ? 400px : 350px;
+    height: root.hero-h;
 
     property <Point> hero-origin: hero-image.absolute-position;
+    // The panel and glass buttons blur what is under them: the hero image, or
+    // the classics backdrop (scale 1.1 around the centre, plus blur padding).
+    property <length> classics-pad: GameData.classics-pad-ratio * root.width * 1.1;
+    property <image> frost-source: GameData.classics ? GameData.classics-frost : root.hero-blur;
+    property <Point> frost-origin: GameData.classics ? {
+        x: root.hero-origin.x - root.width * 0.05 - root.classics-pad,
+        y: root.hero-origin.y - 20px - root.classics-pad,
+    } : root.hero-origin;
+    property <length> frost-width: GameData.classics ? root.width * 1.1 + 2 * root.classics-pad : root.width;
+    property <length> frost-height: GameData.classics ? 440px + 2 * root.classics-pad : root.hero-h;
     property <ImageVerticalAlignment> hero-align: root.wide ? center : top;
 
     // .game-details__hero-image: object-fit cover, radius 0 0 8px 8px
     hero-image := Rectangle {
-        height: 350px;
+        height: root.hero-h;
         border-bottom-left-radius: 8px;
         border-bottom-right-radius: 8px;
         clip: true;
-        background: @linear-gradient(180deg, #101010 0%, #0a0a0a 100%);
-        if root.loaded: Image {
+        background: GameData.classics ? transparent : @linear-gradient(180deg, #101010 0%, #0a0a0a 100%);
+        // .game-details__hero-classics-backdrop: the cover, blur(24px) scale(1.1), 0.48 black overlay
+        if root.loaded && GameData.classics: Image {
+            x: -root.width * 0.05 - root.classics-pad;
+            y: -20px - root.classics-pad;
+            width: root.width * 1.1 + 2 * root.classics-pad;
+            height: 440px + 2 * root.classics-pad;
+            source: GameData.classics-backdrop;
+            image-fit: fill;
+        }
+        if root.loaded && GameData.classics: Rectangle {
+            background: rgba(0, 0, 0, 0.48);
+        }
+        if root.loaded && !GameData.classics: Image {
             width: parent.width;
             height: parent.height;
             source: root.hero;
@@ -102,9 +129,123 @@ export component Hero inherits Rectangle {
     }
 
     // .game-details__hero-content (padding 16px $page-gutter, logo bottom-left, buttons right)
-    property <length> content-bottom: 350px - 88px - 16px;
+    property <length> content-bottom: root.hero-h - 88px - 16px;
 
-    if root.loaded: Image {
+    if root.loaded && GameData.classics: ClassicsBookmark {
+        width: root.width;
+        height: root.hero-h;
+    }
+
+    // .game-details__hero-classics-content: left 16px, right 200px, bottom 80px;
+    // the cover (200×240, contain) and the title + platform chips, gap 40px
+    if root.loaded && GameData.classics: HorizontalLayout {
+        x: 16px;
+        y: 0;
+        width: root.width - 16px - 200px;
+        height: root.hero-h - 80px;
+        spacing: 40px;
+        alignment: start;
+        Rectangle {
+            width: 200px;
+            height: 240px;
+            y: (parent.height - self.height) / 2;
+            property <float> fit: GameData.classics-cover.width == 0 ? 0
+                : Math.min(200 / GameData.classics-cover.width, 240 / GameData.classics-cover.height);
+            property <length> cover-w: GameData.classics-cover.width * self.fit * 1px;
+            property <length> cover-h: GameData.classics-cover.height * self.fit * 1px;
+            for shadow in [
+                { y: 20px, blur: 8px, alpha: 0.01 },
+                { y: 11px, blur: 7px, alpha: 0.05 },
+                { y: 5px, blur: 5px, alpha: 0.09 },
+                { y: 1px, blur: 3px, alpha: 0.1 },
+            ]: Rectangle {
+                x: (parent.width - parent.cover-w) / 2;
+                y: (parent.height - parent.cover-h) / 2;
+                width: parent.cover-w;
+                height: parent.cover-h;
+                border-radius: 4px;
+                drop-shadow-offset-y: shadow.y;
+                drop-shadow-blur: shadow.blur;
+                drop-shadow-color: rgba(0, 0, 0, shadow.alpha);
+            }
+            Rectangle {
+                x: (parent.width - parent.cover-w) / 2;
+                y: (parent.height - parent.cover-h) / 2;
+                width: parent.cover-w;
+                height: parent.cover-h;
+                border-radius: 4px;
+                clip: true;
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: GameData.classics-cover;
+                    image-fit: fill;
+                }
+            }
+            Rectangle {
+                x: (parent.width - parent.cover-w) / 2;
+                y: (parent.height - parent.cover-h) / 2;
+                width: parent.cover-w;
+                height: parent.cover-h;
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: rgba(255, 255, 255, 0.12);
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 16px;
+            // __hero-classics-title: 700 36px/44px, -0.72px, two lines at most
+            Text {
+                text: GameData.classics-title;
+                font-size: 36px;
+                font-weight: 700;
+                letter-spacing: -0.72px;
+                color: Theme.muted;
+                wrap: word-wrap;
+                overflow: elide;
+                vertical-alignment: center;
+                // line-height 44px: one line is a 44px box, two are 88px
+                height: self.preferred-height > 60px ? 88px : 44px;
+            }
+            if GameData.classics-chip != "": HorizontalLayout {
+                alignment: start;
+                spacing: 4px;
+                height: 24px;
+                Rectangle {
+                    width: chip-text.preferred-width + 16px + 2px;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: rgba(255, 255, 255, 0.12);
+                    background: rgba(0, 0, 0, 0.24);
+                    chip-text := Text {
+                        text: GameData.classics-chip;
+                        color: #ffffff;
+                        font-size: Theme.tiny-size;
+                        font-weight: 700; // 600 in scss
+                        vertical-alignment: center;
+                        horizontal-alignment: center;
+                    }
+                }
+                if GameData.classics-emulator > 0: Rectangle {
+                    width: 24px;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: rgba(255, 255, 255, 0.12);
+                    background: rgba(0, 0, 0, 0.24);
+                    Image {
+                        width: 16px;
+                        height: 16px;
+                        source: LibraryIcons.emulator(GameData.classics-emulator);
+                        image-fit: contain;
+                    }
+                }
+            }
+        }
+    }
+
+    if root.loaded && !GameData.classics: Image {
         x: 24px;
         y: root.content-bottom - 150px;
         width: 300px;
@@ -128,11 +269,11 @@ export component Hero inherits Rectangle {
             GlassButton {
                 width: 40px;
                 height: 40px;
-                source: root.hero-blur;
-                source-origin: root.hero-origin;
-                source-width: root.width;
-                source-height: 350px;
-                source-vertical-alignment: root.hero-align;
+                source: root.frost-source;
+                source-origin: root.frost-origin;
+                source-width: root.frost-width;
+                source-height: root.frost-height;
+                source-vertical-alignment: GameData.classics ? ImageVerticalAlignment.center : root.hero-align;
                 tooltip: T.tr("game_details.edit_game_modal_button");
                 clicked => {
                     root.edit-clicked();
@@ -155,11 +296,11 @@ export component Hero inherits Rectangle {
                 property <color> tone: root.cloud-state == 0 ? Theme.success : Theme.muted;
                 width: parent.width;
                 height: 40px;
-                source: root.hero-blur;
-                source-origin: root.hero-origin;
-                source-width: root.width;
-                source-height: 350px;
-                source-vertical-alignment: root.hero-align;
+                source: root.frost-source;
+                source-origin: root.frost-origin;
+                source-width: root.frost-width;
+                source-height: root.frost-height;
+                source-vertical-alignment: GameData.classics ? ImageVerticalAlignment.center : root.hero-align;
                 border-color: root.cloud-state == 0 ? Theme.success : Theme.border;
                 tooltip: T.tr("game_details.cloud_save");
                 clicked => {
@@ -208,14 +349,14 @@ export component Hero inherits Rectangle {
     // .game-details__hero-panel (padding 8px $page-gutter) > .hero-panel
     panel := Frost {
         x: 24px;
-        y: 350px - 88px + 8px;
+        y: root.hero-h - 88px + 8px;
         width: root.width - 48px;
         height: 72px;
-        source: root.hero-blur;
-        source-origin: root.hero-origin;
-        source-width: root.width;
-        source-height: 350px;
-        source-vertical-alignment: root.hero-align;
+        source: root.frost-source;
+        source-origin: root.frost-origin;
+        source-width: root.frost-width;
+        source-height: root.frost-height;
+        source-vertical-alignment: GameData.classics ? ImageVerticalAlignment.center : root.hero-align;
         tint: rgba(0, 0, 0, 0.6);
         border-radius: 8px;
         border-width: 1px;
@@ -233,8 +374,19 @@ export component Hero inherits Rectangle {
             if root.loaded: VerticalLayout {
                 alignment: center;
                 spacing: 4px;
-                Text {
-                    // TODO(repacks): "Updated at …" / "N download options" once download sources are ported.
+                // hero-panel.tsx getInfo(): the latest option's date and the count
+                if !root.in-library && GameData.repacks-count > 0: Text {
+                    text: GameData.repacks-updated;
+                    color: Theme.muted;
+                    font-size: Theme.small-size;
+                    font-weight: 700; // 600 in scss; Electron has no SemiBold face
+                }
+                if !root.in-library && GameData.repacks-count > 0: Text {
+                    text: T.tr-count("game_details.download_options", GameData.repacks-count, []);
+                    color: Theme.muted;
+                    font-size: Theme.small-size;
+                }
+                if root.in-library || GameData.repacks-count == 0: Text {
                     text: !root.in-library ? T.tr("game_details.no_downloads")
                         : root.running ? T.tr("game_details.playing_now")
                         : root.playtime == "" ? T.tr-with("game_details.not_played_yet", ["title", root.title])
@@ -266,7 +418,7 @@ export component Hero inherits Rectangle {
 
             // hero-panel-actions.tsx, no library entry
             if root.loaded && !root.in-library: HorizontalLayout {
-                spacing: 16px;
+                spacing: 8px;
                 alignment: end;
                 HydraButton {
                     kind: "outline";

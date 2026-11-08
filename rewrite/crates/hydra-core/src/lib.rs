@@ -6,3 +6,4 @@ pub mod api;
 pub mod config;
 pub mod library;
 pub mod library_actions;
+pub mod repacks;

@@ -26,8 +26,13 @@ impl Torrent {
                 }
             })
             .map_err(|e| e.to_string())?;
-        initialized.recv().map_err(|_| "torrent_shutdown".to_string())??;
-        Ok(Torrent { sender, thread: Some(thread) })
+        initialized
+            .recv()
+            .map_err(|_| "torrent_shutdown".to_string())??;
+        Ok(Torrent {
+            sender,
+            thread: Some(thread),
+        })
     }
 
     /// torrent_request: `method` with JSON `params`; the engine's result or error code.
@@ -37,9 +42,15 @@ impl Torrent {
         }
         let (reply, result) = oneshot::channel();
         self.sender
-            .send(Command::Request(Request { method: method.to_string(), params, reply }))
+            .send(Command::Request(Request {
+                method: method.to_string(),
+                params,
+                reply,
+            }))
             .map_err(|_| "torrent_shutdown".to_string())?;
-        result.blocking_recv().map_err(|_| "torrent_shutdown".to_string())?
+        result
+            .blocking_recv()
+            .map_err(|_| "torrent_shutdown".to_string())?
     }
 
     /// torrent_shutdown: stop and wait until the session is destroyed.

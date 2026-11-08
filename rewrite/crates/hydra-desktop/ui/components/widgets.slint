@@ -187,11 +187,13 @@ export component TooltipHost inherits Rectangle {
     bubble := Rectangle {
         property <bool> below: Tip.place == "bottom";
         property <bool> right: Tip.place == "right";
+        property <bool> left: Tip.place == "left";
         width: label.preferred-width + 32px;
         height: label.preferred-height + 16px;
         x: self.right ? Tip.anchor-x + Tip.anchor-width + 10px
+            : self.left ? Tip.anchor-x - self.width - 10px
             : Math.clamp(Tip.anchor-x + Tip.anchor-width / 2 - self.width / 2, 4px, root.width - self.width - 4px);
-        y: self.right ? Tip.anchor-y + Tip.anchor-height / 2 - self.height / 2
+        y: self.right || self.left ? Tip.anchor-y + Tip.anchor-height / 2 - self.height / 2
             : self.below ? Tip.anchor-y + Tip.anchor-height + 10px
             : Tip.anchor-y - self.height - 10px;
         opacity: Tip.shown ? 0.9 : 0;
@@ -203,8 +205,8 @@ export component TooltipHost inherits Rectangle {
             height: 8px;
             background: #222222;
             transform-rotation: 45deg;
-            x: bubble.right ? -4px : Math.clamp(Tip.anchor-x + Tip.anchor-width / 2 - bubble.x - 4px, 6px, bubble.width - 14px);
-            y: bubble.right ? (bubble.height - 8px) / 2 : bubble.below ? -4px : bubble.height - 4px;
+            x: bubble.right ? -4px : bubble.left ? bubble.width - 4px : Math.clamp(Tip.anchor-x + Tip.anchor-width / 2 - bubble.x - 4px, 6px, bubble.width - 14px);
+            y: bubble.right || bubble.left ? (bubble.height - 8px) / 2 : bubble.below ? -4px : bubble.height - 4px;
         }
 
         Rectangle {

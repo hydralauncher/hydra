@@ -157,6 +157,17 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
     });
     let g = gd(&ui);
     g.set_loaded(false);
+    crate::classics_bookmark::stop();
+    g.set_options_open(false);
+    g.set_repacks_open(false);
+    g.set_cloud_open(false);
+    g.set_classics(shop == "launchbox");
+    g.set_classics_cover(Image::default());
+    g.set_classics_backdrop(Image::default());
+    g.set_classics_frost(Image::default());
+    g.set_classics_title(SharedString::default());
+    g.set_classics_chip(SharedString::default());
+    g.set_classics_emulator(0);
     g.set_game_title(title.into());
     g.set_hero(Image::default());
     g.set_hero_blur(Image::default());
@@ -174,6 +185,7 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
     g.set_achievements_unlocked(0);
     fetch_game();
     fetch_achievements(shop, object_id);
+    crate::game_repacks::open(shop, object_id);
 }
 
 /// game-details.context.tsx: `getUnlockedAchievements` once the user is known.
@@ -442,6 +454,13 @@ pub fn shutdown() {
 
 /// Navigating away from the game page.
 pub fn close() {
+    crate::classics_bookmark::stop();
+    if let Some(ui) = with_app(|app| app.ui.upgrade()).flatten() {
+        // Leaving the page unmounts its modals (they live in the page in Electron).
+        gd(&ui).set_options_open(false);
+        gd(&ui).set_repacks_open(false);
+        gd(&ui).set_cloud_open(false);
+    }
     with_app(|app| {
         app.generation += 1;
         app.video = None;
@@ -461,8 +480,14 @@ pub fn fetch_game() {
         return;
     };
     if app_id == 0 {
-        // TODO(game-details): Epic, custom and classics games (shop details from the Hydra API).
-        eprintln!("TODO(game-details): non-Steam game pages");
+        let (shop, object_id) =
+            with_app(|app| (app.shop.clone(), app.object_id.clone())).unwrap_or_default();
+        if shop == "launchbox" {
+            fetch_classics(object_id, locale, generation);
+        } else {
+            // TODO(game-details): Epic and custom games.
+            eprintln!("TODO(game-details): {shop} game pages");
+        }
         return;
     }
     let db = crate::shell::db();
@@ -527,13 +552,62 @@ pub fn fetch_game() {
             .unwrap_or_else(|| steam::steam_cdn_assets(app_id));
         let _ = slint::invoke_from_event_loop(move || {
             if with_app(|app| app.generation) == Some(generation) {
-                apply_game(details, assets);
+                apply_game(details, assets, None);
             }
         });
     });
 }
 
-fn apply_game(details: Result<Option<steam::AppDetails>, String>, assets: steam::Assets) {
+/// get-game-shop-details.ts `getLaunchboxShopDetails`, then the same page
+/// with the classics hero.
+fn fetch_classics(object_id: String, language: String, generation: u64) {
+    let db = crate::shell::db();
+    let api = crate::shell::api();
+    std::thread::spawn(move || {
+        let (details, assets) =
+            crate::game_classics::fetch(db.as_ref(), api.as_ref(), &object_id, &language);
+        let game: Option<serde_json::Value> = db.as_ref().and_then(|db| {
+            db.get_in(
+                hydra_db::keys::GAMES,
+                &hydra_db::keys::game("launchbox", &object_id),
+            )
+        });
+        let classics =
+            crate::game_classics::classics(details.as_ref(), assets.as_ref(), game.as_ref());
+        let parsed = details.as_ref().and_then(|data| {
+            steam::parse_app_details(
+                &serde_json::json!({ "0": { "success": true, "data": data } }),
+                0,
+            )
+        });
+        let field = |key: &str| {
+            assets
+                .as_ref()
+                .and_then(|a| a.get(key))
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .map(str::to_string)
+        };
+        let artwork = steam::Assets {
+            hero: field("libraryHeroImageUrl"),
+            logo: field("logoImageUrl"),
+            cover: field("coverImageUrl"),
+            library: field("libraryImageUrl"),
+            icon: field("iconUrl"),
+        };
+        let _ = slint::invoke_from_event_loop(move || {
+            if with_app(|app| app.generation) == Some(generation) {
+                apply_game(Ok(parsed), artwork, Some(classics));
+            }
+        });
+    });
+}
+
+fn apply_game(
+    details: Result<Option<steam::AppDetails>, String>,
+    assets: steam::Assets,
+    classics: Option<crate::game_classics::Classics>,
+) {
     let Some((ui, loader)) =
         with_app(|app| app.ui.upgrade().map(|ui| (ui, app.loader.clone()))).flatten()
     else {
@@ -560,7 +634,24 @@ fn apply_game(details: Result<Option<steam::AppDetails>, String>, assets: steam:
     };
 
     gd(&ui).set_game_title(details.name.clone().into());
-    gd(&ui).set_release_date(details.release_date.clone().into());
+    let language = crate::shell::shop_language();
+    gd(&ui).set_release_date(
+        hydra_i18n::date::format_release_date(&language, &details.release_date).into(),
+    );
+    if let Some(classics) = &classics {
+        let (label, emulator) =
+            crate::library_page::classics_badge("launchbox", classics.platform.as_deref());
+        gd(&ui).set_classics_title(classics.title.clone().into());
+        gd(&ui).set_classics_chip(
+            label
+                .map(str::to_string)
+                .or_else(|| classics.platform.clone())
+                .unwrap_or_default()
+                .into(),
+        );
+        gd(&ui).set_classics_emulator(emulator);
+        crate::classics_bookmark::start();
+    }
     gd(&ui).set_publisher(
         details
             .publishers
@@ -710,23 +801,26 @@ fn apply_game(details: Result<Option<steam::AppDetails>, String>, assets: steam:
     }
 
     // ---- hero artwork (the skeleton stays until hero + logo arrive)
-    let startup: Vec<(Option<String>, Op, SetImage)> = vec![
-        (assets.hero.clone(), Op::Full, |ui, img| {
-            gd(&ui).set_hero(img)
-        }),
-        // blur(10px) on a ~1280px-wide hero shown from a 1920px image ~= sigma 3.75 at 1/4 size
-        (
-            assets.hero.clone(),
-            Op::Blur {
-                shrink: 4,
-                sigma: 3.75,
-            },
-            |ui, img| gd(&ui).set_hero_blur(img),
-        ),
-        (assets.logo.clone(), Op::Full, |ui, img| {
-            gd(&ui).set_logo(img)
-        }),
-    ];
+    let startup: Vec<(Option<String>, Op, SetImage)> = match &classics {
+        Some(classics) => classics_startup(&ui, classics),
+        None => vec![
+            (assets.hero.clone(), Op::Full, |ui, img| {
+                gd(&ui).set_hero(img)
+            }),
+            // blur(10px) on a ~1280px-wide hero shown from a 1920px image ~= sigma 3.75 at 1/4 size
+            (
+                assets.hero.clone(),
+                Op::Blur {
+                    shrink: 4,
+                    sigma: 3.75,
+                },
+                |ui, img| gd(&ui).set_hero_blur(img),
+            ),
+            (assets.logo.clone(), Op::Full, |ui, img| {
+                gd(&ui).set_logo(img)
+            }),
+        ],
+    };
     with_app(|app| {
         app.startup_pending = startup.iter().filter(|(url, _, _)| url.is_some()).count()
     });
@@ -751,6 +845,59 @@ fn apply_game(details: Result<Option<steam::AppDetails>, String>, assets: steam:
     }
 
     update_media_window(0, -1);
+}
+
+/// The classics hero's images: the cover, its blur(24px) scale(1.1)
+/// backdrop, and the backdrop as the panel and glass buttons see it
+/// (another blur(10px), under the 0.48 overlay, over the page background).
+fn classics_startup(
+    ui: &AppWindow,
+    classics: &crate::game_classics::Classics,
+) -> Vec<(Option<String>, Op, SetImage)> {
+    let window = ui.window();
+    let logical = window.size().to_logical(window.scale_factor());
+    // The hero spans the page next to the sidebar; the blur only needs its scale.
+    let hero_width = (logical.width - 250.0).max(400.0);
+    // The 1.1 × width by 440px box at about 1/8 size: blurred this much, the
+    // low resolution is invisible once stretched back.
+    let box_width = ((hero_width * 1.1) / 8.0).round().max(1.0) as u32;
+    let unit = hero_width * 1.1 / box_width as f32;
+    let box_height = (440.0 / unit).round().max(1.0) as u32;
+    let sigma = 24.0 * 1.1 / unit;
+    let frost_sigma = (26.4f32 * 26.4 + 10.0 * 10.0).sqrt() / unit;
+    let pad = (frost_sigma * 3.0).ceil() as u32;
+    gd(ui).set_classics_pad_ratio(pad as f32 / box_width as f32);
+    vec![
+        (
+            classics.cover.clone(),
+            Op::MaxWidth((200.0 * window.scale_factor() * 2.0).ceil() as u32),
+            |ui, img| gd(&ui).set_classics_cover(img),
+        ),
+        (
+            classics.cover.clone(),
+            Op::CoverBlur {
+                width: box_width,
+                height: box_height,
+                sigma,
+                pad,
+                darken: 1.0,
+                background: None,
+            },
+            |ui, img| gd(&ui).set_classics_backdrop(img),
+        ),
+        (
+            classics.cover.clone(),
+            Op::CoverBlur {
+                width: box_width,
+                height: box_height,
+                sigma: frost_sigma,
+                pad,
+                darken: 0.52,
+                background: Some([0x12, 0x12, 0x12]),
+            },
+            |ui, img| gd(&ui).set_classics_frost(img),
+        ),
+    ]
 }
 
 fn startup_step() {

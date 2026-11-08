@@ -13,11 +13,13 @@ import { TooltipHost } from "components/widgets.slint";
 import { ContextMenuHost, ContextMenu, MenuEntry, MenuLeaf } from "components/context-menu.slint";
 import { ToastHost, Toast } from "components/toast.slint";
 import { DialogHost, Dialogs } from "components/dialogs.slint";
-import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review } from "types.slint";
+import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, RepackRow, RepackSource } from "types.slint";
 import { ReviewEditor, FormatEdit, Marks } from "pages/game-details/reviews.slint";
 import { Playback } from "components/video.slint";
 import { T, Nav, Session, Chrome, SidebarState, SidebarGame, Popup } from "globals.slint";
 import { GameData, Input } from "pages/game-details/state.slint";
+import { Bookmark } from "pages/game-details/bookmark.slint";
+import { GameModalsHost } from "pages/game-details/modals.slint";
 import { GameDetailsPage } from "pages/game-details/page.slint";
 import { LibraryPage } from "pages/library/page.slint";
 import { HomePage } from "pages/home/page.slint";
@@ -31,8 +33,8 @@ import { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar } from "pages
 import { TitleBar } from "shell/title-bar.slint";
 import { Sidebar } from "shell/sidebar.slint";
 
-export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback }
-export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input, Popup }
+export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback, RepackRow, RepackSource }
+export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input, Popup, Bookmark }
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
 export { HomeData, CatalogueCard, Gifs, Dialogs, DownloadsData }
@@ -118,6 +120,12 @@ export component AppWindow inherits Window {
     // Stacking like the renderer's z-indexes: the context menu drops behind an
     // open modal (context-menu--modal-open), toasts (150) sit above modals (5).
     ContextMenuHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // Game page modals (z-index 5, like the dialogs).
+    GameModalsHost {
         width: root.width;
         height: root.height;
     }

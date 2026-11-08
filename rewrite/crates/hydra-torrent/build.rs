@@ -9,8 +9,14 @@ fn main() {
     let prebuilt = manifest.join("../../../native/torrent-bridge/prebuilt");
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     let (lib_dir, shared) = match target_os.as_str() {
-        "windows" => (prebuilt.join("x64-windows-static/lib"), prebuilt.join("x64-windows-static/bin/hydra_torrent_bridge.dll")),
-        "linux" => (prebuilt.join("x64-linux/lib"), prebuilt.join("x64-linux/lib/libhydra_torrent_bridge.so")),
+        "windows" => (
+            prebuilt.join("x64-windows-static/lib"),
+            prebuilt.join("x64-windows-static/bin/hydra_torrent_bridge.dll"),
+        ),
+        "linux" => (
+            prebuilt.join("x64-linux/lib"),
+            prebuilt.join("x64-linux/lib/libhydra_torrent_bridge.so"),
+        ),
         other => panic!("no prebuilt torrent bridge for {other}"),
     };
     println!("cargo:rustc-link-search=native={}", lib_dir.display());

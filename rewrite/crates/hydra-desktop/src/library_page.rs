@@ -972,7 +972,7 @@ fn format_play_time(i18n: &hydra_i18n::I18n, ms: f64, short: bool) -> String {
 }
 
 /// resolveClassicsBadge: the platform label and the emulator icon.
-fn classics_badge(shop: &str, platform: Option<&str>) -> (Option<&'static str>, i32) {
+pub(crate) fn classics_badge(shop: &str, platform: Option<&str>) -> (Option<&'static str>, i32) {
     if shop != "launchbox" {
         return (None, 0);
     }

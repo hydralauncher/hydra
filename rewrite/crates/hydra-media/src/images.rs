@@ -21,6 +21,64 @@ pub enum Op {
     Blur { shrink: u32, sigma: f32 },
     /// CSS `filter: grayscale(100%)` for locked achievements.
     Grayscale,
+    /// An `object-fit: cover` image in a `width`×`height` box under CSS
+    /// `filter: blur(sigma)`: transparent outside the box, so the edges fade.
+    /// The result has `pad` extra pixels on every side (at least 3σ). With
+    /// `background`, it is composited over that colour and then darkened
+    /// (multiplied by `darken`), like a black overlay on top.
+    CoverBlur {
+        width: u32,
+        height: u32,
+        sigma: f32,
+        pad: u32,
+        darken: f32,
+        background: Option<[u8; 3]>,
+    },
+}
+
+fn cover_blur(
+    img: &DynamicImage,
+    width: u32,
+    height: u32,
+    sigma: f32,
+    pad: u32,
+    darken: f32,
+    background: Option<[u8; 3]>,
+) -> DynamicImage {
+    let fitted = img
+        .resize_to_fill(width.max(1), height.max(1), FilterType::Triangle)
+        .to_rgba8();
+    // Transparent pixels are (0, 0, 0, 0), so the canvas is premultiplied as is.
+    let mut canvas = image::RgbaImage::new(width + 2 * pad, height + 2 * pad);
+    image::imageops::overlay(&mut canvas, &fitted, pad as i64, pad as i64);
+    let blurred = image::imageops::blur(&canvas, sigma);
+    match background {
+        Some([r, g, b]) => {
+            let mut out = image::RgbImage::new(blurred.width(), blurred.height());
+            for (dst, src) in out.pixels_mut().zip(blurred.pixels()) {
+                let inv = 1.0 - src[3] as f32 / 255.0;
+                let mix = |c: u8, bg: u8| {
+                    ((c as f32 + bg as f32 * inv) * darken)
+                        .round()
+                        .clamp(0.0, 255.0) as u8
+                };
+                *dst = image::Rgb([mix(src[0], r), mix(src[1], g), mix(src[2], b)]);
+            }
+            DynamicImage::ImageRgb8(out)
+        }
+        None => {
+            let mut out = blurred;
+            for px in out.pixels_mut() {
+                let a = px[3] as f32 / 255.0;
+                if a > 0.0 {
+                    for c in 0..3 {
+                        px[c] = (px[c] as f32 / a).round().clamp(0.0, 255.0) as u8;
+                    }
+                }
+            }
+            DynamicImage::ImageRgba8(out)
+        }
+    }
 }
 
 pub enum Pixels {
@@ -100,6 +158,11 @@ pub fn set_cache_dir(dir: PathBuf) {
             .name("image-cache-trim".into())
             .spawn(move || trim_cache(&dir));
     }
+}
+
+/// The image cache folder, once set.
+pub fn cache_dir() -> Option<&'static Path> {
+    CACHE_DIR.get().map(PathBuf::as_path)
 }
 
 fn trim_cache(dir: &Path) {
@@ -216,6 +279,14 @@ fn transform(img: DynamicImage, op: Op) -> Pixels {
             )
             .blur(sigma),
         Op::Grayscale => DynamicImage::ImageLuma8(img.to_luma8()),
+        Op::CoverBlur {
+            width,
+            height,
+            sigma,
+            pad,
+            darken,
+            background,
+        } => cover_blur(&img, width, height, sigma, pad, darken, background),
     };
     // Opaque images stay 3 bytes per pixel.
     if img.color().has_alpha() {

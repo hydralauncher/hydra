@@ -1,0 +1,267 @@
+// modals/repacks-modal.{tsx,scss}: the filter, the "filter by source"
+// drawer, and one dark button per download option with its availability orb.
+import { Theme, Tip, Ids } from "../../theme.slint";
+import { Icon, HydraButton } from "../../components/widgets.slint";
+import { TextField, CheckboxField } from "../../components/fields.slint";
+import { Badge } from "../../components/game-card.slint";
+import { T } from "../../globals.slint";
+import { GameData } from "state.slint";
+import { RepackRow } from "../../types.slint";
+
+// __repack-button: Button theme="dark" (#0d0d0d), padding 16
+// (32 right), title + info, the orb top-right with a tooltip.
+component RepackButton inherits Rectangle {
+    in property <RepackRow> option;
+    callback clicked();
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+    // The modal is as wide as the longest option (max-content), up to its max-width.
+    preferred-width: column.preferred-width + 2px;
+    min-width: 0;
+    height: column.preferred-height + 2px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: transparent;
+    // button--dark has no hover state
+    background: Theme.dark-background;
+    animate opacity { duration: 200ms; easing: ease; }
+    opacity: touch.pressed ? Theme.active-opacity : 1;
+    accessible-role: button;
+    accessible-label: root.option.title;
+
+    column := VerticalLayout {
+        x: 1px;
+        width: parent.width - 2px;
+        padding: 16px;
+        padding-right: 32px;
+        spacing: 8px;
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            // p { line-height: 20px }
+            Text {
+                text: root.option.title;
+                font-size: Theme.button-size;
+                color: Theme.muted;
+                wrap: word-wrap;
+                vertical-alignment: center;
+                min-height: 20px;
+            }
+            if root.option.is-new: Rectangle {
+                y: (parent.height - self.height) / 2;
+                height: new-text.preferred-height + 6px;
+                width: new-text.preferred-width + 18px;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: rgba(34, 197, 94, 0.5);
+                background: rgba(34, 197, 94, 0.15);
+                new-text := Text {
+                    text: T.tr("game_details.new_download_option");
+                    font-size: Theme.tiny-size;
+                    color: rgb(187, 247, 208);
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+        if root.option.last-downloaded: HorizontalLayout {
+            alignment: start;
+            Badge {
+                text: T.tr("game_details.last_downloaded_option");
+            }
+        }
+        Text {
+            text: root.option.info;
+            font-size: Theme.small-size;
+            color: Theme.body;
+            wrap: word-wrap;
+            vertical-alignment: center;
+            min-height: 20px;
+        }
+    }
+
+    // __availability-orb: 8px, top/right 12px, with a glow
+    orb := Rectangle {
+        // top/right 12px inside the 1px border
+        x: parent.width - 1px - 12px - 8px;
+        y: 13px;
+        width: 8px;
+        height: 8px;
+        border-radius: 4px;
+        background: root.option.availability == "online" ? Theme.success : root.option.availability == "partial" ? Theme.warning : Theme.error;
+        opacity: root.option.availability == "offline" ? 0.7 : 1;
+        drop-shadow-blur: 6px;
+        drop-shadow-color: root.option.availability == "online" ? rgba(28, 151, 73, 0.5) : root.option.availability == "partial" ? rgba(255, 193, 7, 0.5) : rgba(225, 29, 72, 0.4);
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    // The orb's tooltip (react-tooltip, shown on the orb's left here)
+    TouchArea {
+        x: orb.x;
+        y: orb.y;
+        width: orb.width;
+        height: orb.height;
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        changed has-hover => {
+            if (self.has-hover) {
+                Tip.show(root.tip-id, T.tr("game_details.source_" + root.option.availability), orb.absolute-position.x, orb.absolute-position.y, 8px, 8px, "left");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+// __filter-toggle: an outline button, 600 12px, padding 8px 12px, radius 6px,
+// the chevron after the label.
+component FilterToggle inherits Rectangle {
+    in property <bool> open;
+    callback clicked();
+    height: 40px;
+    width: toggle-row.preferred-width + 2px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.border;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.1) : transparent;
+    animate background { duration: 200ms; easing: ease; }
+    opacity: touch.pressed ? Theme.active-opacity : 1;
+    toggle-row := HorizontalLayout {
+        x: 1px;
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        Text {
+            text: T.tr("game_details.filter_by_source");
+            font-size: Theme.small-size;
+            font-weight: 700; // 600 in scss
+            color: Theme.body;
+            vertical-alignment: center;
+        }
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: root.open ? @image-url("../../icons/chevron-up.svg") : @image-url("../../icons/chevron-down.svg");
+                color: Theme.body;
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component RepacksModalBody inherits VerticalLayout {
+    callback selected(string);
+    callback add-source();
+    property <bool> drawer-open;
+    spacing: 0;
+
+    // __filter-top: filter field + "Filter by source" (gap 8, margin-bottom 16)
+    HorizontalLayout {
+        spacing: 8px;
+        padding-bottom: 16px;
+        TextField {
+            horizontal-stretch: 1;
+            placeholder: T.tr("game_details.filter");
+            edited(text) => {
+                GameData.repacks-filter(text);
+            }
+        }
+        if GameData.repack-sources.length > 0: FilterToggle {
+            open: root.drawer-open;
+            clicked => {
+                root.drawer-open = !root.drawer-open;
+            }
+        }
+    }
+
+    // __download-sources: max-height 0 -> 280px over 0.3s, margin 8px 0 16px
+    // (the top margin collapses into the filter row's 16px); a 3-column grid
+    // of 40px items, gap 8px, padding 4px 4px 4px 0, at most 200px tall.
+    drawer := Rectangle {
+        property <int> rows: Math.ceil(GameData.repack-sources.length / 3);
+        property <length> full: Math.min(200px, self.rows * 48px);
+        height: (root.drawer-open ? self.full : 0) + 16px;
+        animate height { duration: 300ms; easing: ease; }
+        clip: true;
+        // The 16px below is margin: only the box itself shows the grid.
+        Rectangle {
+            y: 0;
+            height: drawer.height - 16px;
+            clip: true;
+            border-radius: 8px;
+            for source[i] in GameData.repack-sources: Rectangle {
+                property <length> cell: (parent.width - 4px - 16px) / 3;
+                x: Math.mod(i, 3) * (self.cell + 8px);
+                y: 4px + Math.floor(i / 3) * 48px;
+                width: self.cell;
+                height: 40px;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: source-touch.has-hover ? rgba(255, 255, 255, 0.2) : rgba(255, 255, 255, 0.12);
+                animate border-color { duration: 200ms; easing: ease; }
+                background: rgba(0, 0, 0, 0.03);
+                source-touch := TouchArea { }
+                CheckboxField {
+                    x: 9px;
+                    width: parent.width - 18px;
+                    label: source.label;
+                    checked: source.checked;
+                    toggled => {
+                        GameData.repacks-toggle-source(source.fingerprint);
+                    }
+                }
+            }
+        }
+    }
+
+    // __repacks: gap 16
+    VerticalLayout {
+        spacing: 16px;
+        if GameData.repack-rows.length == 0: VerticalLayout {
+            padding-top: 32px;
+            padding-bottom: 32px;
+            spacing: 12px;
+            alignment: center;
+            Text {
+                text: T.tr("game_details.no_repacks_found");
+                font-size: Theme.small-size;
+                color: Theme.muted;
+                horizontal-alignment: center;
+            }
+            HorizontalLayout {
+                alignment: center;
+                HydraButton {
+                    kind: "primary";
+                    icon: @image-url("../../icons/plus-circle.svg");
+                    text: T.tr("settings.add_download_source");
+                    clicked => {
+                        root.add-source();
+                    }
+                }
+            }
+        }
+        for row in GameData.repack-rows: RepackButton {
+            option: row;
+            clicked => {
+                root.selected(row.id);
+            }
+        }
+    }
+}

@@ -103,7 +103,8 @@ impl Db {
 
     /// `db.get(key, { valueEncoding: "utf8" })`: values stored as plain text.
     pub fn get_utf8(&self, key: &str) -> Option<String> {
-        self.get_raw(key).map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+        self.get_raw(key)
+            .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
     }
 
     pub fn get_value(&self, key: &str) -> Option<Value> {
@@ -153,7 +154,11 @@ impl Db {
 
     /// `sublevel.values()`.
     pub fn values<T: DeserializeOwned>(&self, sublevel: &str) -> Result<Vec<T>> {
-        Ok(self.entries(sublevel)?.into_iter().map(|(_, v)| v).collect())
+        Ok(self
+            .entries(sublevel)?
+            .into_iter()
+            .map(|(_, v)| v)
+            .collect())
     }
 
     fn scan_prefix(&self, prefix: &[u8]) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
@@ -162,7 +167,9 @@ impl Db {
         iter.seek(prefix);
         let mut out = Vec::new();
         while iter.valid() {
-            let Some((key, value)) = iter.current() else { break };
+            let Some((key, value)) = iter.current() else {
+                break;
+            };
             if !key.starts_with(prefix) {
                 break;
             }
@@ -200,8 +207,11 @@ mod tests {
     fn root_and_sublevels() {
         let dir = tempfile::tempdir().unwrap();
         let db = Db::open(dir.path().join("hydra-db")).unwrap();
-        db.put("userPreferences", &serde_json::json!({ "language": "pt-BR" }))
-            .unwrap();
+        db.put(
+            "userPreferences",
+            &serde_json::json!({ "language": "pt-BR" }),
+        )
+        .unwrap();
         db.put_in(
             "games",
             "steam:1",
@@ -220,8 +230,12 @@ mod tests {
             },
         )
         .unwrap();
-        db.put_in("downloads", "steam:1", &serde_json::json!({ "status": "paused" }))
-            .unwrap();
+        db.put_in(
+            "downloads",
+            "steam:1",
+            &serde_json::json!({ "status": "paused" }),
+        )
+        .unwrap();
 
         let prefs: Value = db.get("userPreferences").unwrap();
         assert_eq!(prefs["language"], "pt-BR");

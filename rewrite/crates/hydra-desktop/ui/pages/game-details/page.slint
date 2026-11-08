@@ -9,19 +9,26 @@ import { DescriptionHeader, Description } from "description.slint";
 import { SimilarGames } from "similar.slint";
 import { SidebarSection, AchievementsSection, StatsSection, HowLongToBeatSection, ControllerSection, RequirementsSection, LanguageSection } from "sidebar.slint";
 import { GameReviews } from "reviews.slint";
-import { Modal, ModalController } from "../../components/modal.slint";
 import { PlaybackDriver, Playback } from "../../components/video.slint";
 import { GameData, Input } from "state.slint";
+import { Nav, T } from "../../globals.slint";
 import { ReviewPromptBanner } from "review-prompt.slint";
 
 export component GameDetailsPage inherits Rectangle {
 
-    out property <bool> modal-open: options-state.open || cloud-state.open;
+    out property <bool> modal-open: GameData.options-open || GameData.repacks-open || GameData.cloud-open;
+    // Focus returns to the page once the last modal finished its exit.
+    property <bool> modals-mounted: GameData.modals-mounted;
+    changed modals-mounted => {
+        if (!self.modals-mounted) {
+            root.restore-page-focus();
+        }
+    }
 
     // A modal finishing its exit animation must not steal focus from a modal
     // or viewer that opened in the meantime.
     function restore-page-focus() {
-        if (!options-state.mounted && !cloud-state.mounted && !lightbox.open) {
+        if (!GameData.modals-mounted && !lightbox.open) {
             keys.focus();
         }
     }
@@ -71,11 +78,11 @@ export component GameDetailsPage inherits Rectangle {
     // ---- public API (also used by the headless tests)
     public function open-game-options() {
         GameData.modal-opening();
-        options-state.open = true;
+        GameData.options-open = true;
     }
     public function open-cloud-save() {
         GameData.modal-opening();
-        cloud-state.open = true;
+        GameData.cloud-open = true;
     }
 
     // ---- layout (container queries: the page is the container, not the window)
@@ -204,7 +211,9 @@ export component GameDetailsPage inherits Rectangle {
                         GameData.add-to-library();
                     }
                     download-options-clicked => {
-                        GameData.open-download-options();
+                        GameData.modal-opening();
+                        GameData.repacks-opened();
+                        GameData.repacks-open = true;
                     }
                     play-clicked => {
                         GameData.play();
@@ -214,15 +223,15 @@ export component GameDetailsPage inherits Rectangle {
                     }
                     cloud-clicked => {
                         GameData.modal-opening();
-                        cloud-state.open = true;
+                        GameData.cloud-open = true;
                     }
                     options-clicked => {
                         GameData.modal-opening();
-                        options-state.open = true;
+                        GameData.options-open = true;
                     }
                     edit-clicked => {
                         GameData.modal-opening();
-                        options-state.open = true;
+                        GameData.options-open = true;
                     }
                 }
 
@@ -470,57 +479,5 @@ export component GameDetailsPage inherits Rectangle {
         }
 
         PlaybackDriver { }
-
-        options-state := ModalController {
-            closed => {
-                root.restore-page-focus();
-            }
-        }
-        cloud-state := ModalController {
-            closed => {
-                root.restore-page-focus();
-            }
-        }
-
-        // game-options-modal.tsx shell: large, no content padding (content left empty here).
-        if options-state.mounted: Modal {
-            width: root.width;
-            height: root.height;
-            title: GameData.game-title;
-            large: true;
-            no-content-padding: true;
-            content-min-height: 420px;
-            closing: options-state.closing;
-            blurred-page: GameData.modal-backdrop;
-            request-close => {
-                options-state.close();
-            }
-        }
-
-        // cloud-save-modal.tsx shell
-        if cloud-state.mounted: Modal {
-            width: root.width;
-            height: root.height;
-            title: "Cloud Save V2 (BETA)";
-            description: "View and sync this game's saves.";
-            closing: cloud-state.closing;
-            blurred-page: GameData.modal-backdrop;
-            request-close => {
-                cloud-state.close();
-            }
-            HorizontalLayout {
-                alignment: start;
-                HydraButton {
-                    kind: "cloud";
-                    icon: Icons.cloud-arrow-up;
-                    icon-size: 20px;
-                    text: "Sync now";
-                    clicked => {
-                        cloud-state.close();
-                        GameData.cloud-sync();
-                    }
-                }
-            }
-        }
     }
 }

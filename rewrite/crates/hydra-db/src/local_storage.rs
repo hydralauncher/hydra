@@ -31,10 +31,7 @@ fn decode(bytes: &[u8]) -> Option<String> {
 /// `http://localhost:5173` for `yarn dev`). The folder is copied first,
 /// because Chromium holds the database lock while Electron runs.
 pub fn read(leveldb_dir: &Path, origin: &str) -> Result<BTreeMap<String, String>> {
-    let scratch = std::env::temp_dir().join(format!(
-        "hydra-local-storage-{}",
-        std::process::id()
-    ));
+    let scratch = std::env::temp_dir().join(format!("hydra-local-storage-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&scratch);
     copy_dir_without_lock(leveldb_dir, &scratch)?;
     let result = read_unlocked(&scratch, origin);
@@ -53,7 +50,9 @@ fn read_unlocked(dir: &Path, origin: &str) -> Result<BTreeMap<String, String>> {
     iter.seek(&prefix);
     let mut out = BTreeMap::new();
     while iter.valid() {
-        let Some((key, value)) = iter.current() else { break };
+        let Some((key, value)) = iter.current() else {
+            break;
+        };
         if !key.starts_with(&prefix) {
             break;
         }

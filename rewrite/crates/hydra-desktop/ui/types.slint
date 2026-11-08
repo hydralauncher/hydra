@@ -1,3 +1,21 @@
+// repacks-modal.tsx rows
+export struct RepackRow {
+    id: string,
+    title: string,
+    // "{fileSize} - {downloadSourceName} - {uploadDate}"
+    info: string,
+    // "online" | "partial" | "offline"
+    availability: string,
+    is-new: bool,
+    last-downloaded: bool,
+}
+
+export struct RepackSource {
+    label: string,
+    fingerprint: string,
+    checked: bool,
+}
+
 export struct MediaItem {
     is-video: bool,
     title: string,
