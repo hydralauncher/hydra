@@ -236,6 +236,25 @@ fn deck_compatible(deck: &[String]) -> bool {
     same_values(deck, &["playable", "verified"])
 }
 
+thread_local! {
+    /// classicsOnboardingClosedRef: closed once, it doesn't come back this session.
+    static CLASSICS_ONBOARDING_CLOSED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// getDueOnboarding("classics"): the Classics welcome over classics mode.
+/// TODO(recompilation): the recompilation onboarding that follows it.
+fn maybe_classics_onboarding() {
+    let classics = with_page(|p| p.mode == "classics").unwrap_or(false);
+    if classics
+        && !CLASSICS_ONBOARDING_CLOSED.with(|c| c.get())
+        && !crate::library_modals::classics_onboarding_dismissed()
+    {
+        crate::library_modals::open_classics_onboarding(|| {
+            CLASSICS_ONBOARDING_CLOSED.with(|c| c.set(true));
+        });
+    }
+}
+
 /// pagination.tsx onJumpChange: digits only, "" when none, clamped to 1..total.
 pub(crate) fn jump_value(text: &str, total: i32) -> String {
     let digits: String = text.chars().filter(char::is_ascii_digit).collect();
@@ -423,6 +442,7 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
             load_launchbox();
             refresh(true);
         }
+        maybe_classics_onboarding();
     });
     data.on_set_page(|page| {
         with_page(|p| p.page = page.max(1) as usize);
@@ -644,6 +664,9 @@ pub fn open() {
     load_launchbox();
     crate::features::load();
     refresh(true);
+    // A fresh mount: its onboarding refs start over.
+    CLASSICS_ONBOARDING_CLOSED.with(|c| c.set(false));
+    maybe_classics_onboarding();
 }
 
 pub fn shutdown() {

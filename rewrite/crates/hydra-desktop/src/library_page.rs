@@ -112,6 +112,8 @@ struct Page {
     collection: Option<String>,
     query: String,
     search_timer: slint::Timer,
+    /// classicsOnboardingTriggeredRef: once per visit to the page.
+    classics_onboarding_shown: bool,
 
     /// The cards in the grid, in order.
     shown: Vec<Rc<Presentation>>,
@@ -202,6 +204,7 @@ pub fn init(ui: &AppWindow) {
             collection: None,
             query: String::new(),
             search_timer: slint::Timer::default(),
+            classics_onboarding_shown: false,
             shown: Vec::new(),
             cards,
             card_px: (0, 0),
@@ -284,6 +287,7 @@ fn wire(ui: &AppWindow) {
             }
         });
         apply_filters(true);
+        maybe_classics_onboarding();
     });
     data.on_set_sort(|value| {
         with_page(|p| {
@@ -481,6 +485,24 @@ pub fn open() {
     load_hidden();
     crate::collections::load();
     apply_filters(true);
+    with_page(|p| p.classics_onboarding_shown = false);
+    maybe_classics_onboarding();
+}
+
+/// library.tsx: the Classics category shows the onboarding once per visit
+/// until it is dismissed for good.
+fn maybe_classics_onboarding() {
+    let due = with_page(|p| {
+        let due = p.category == Category::Classics && !p.classics_onboarding_shown;
+        if due {
+            p.classics_onboarding_shown = true;
+        }
+        due
+    })
+    .unwrap_or(false);
+    if due && !crate::library_modals::classics_onboarding_dismissed() {
+        crate::library_modals::open_classics_onboarding(|| {});
+    }
 }
 
 pub fn close() {

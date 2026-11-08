@@ -79,6 +79,110 @@ export global LibraryModals {
     callback scan-confirm-picks();
     // handleClose (the modal hides; a scan keeps running)
     callback closing();
+
+    // ---- ClassicsOnboardingModal (three steps)
+    in-out property <int> onboarding-step;
+    in-out property <bool> onboarding-dont-show: true;
+}
+
+// classics-onboarding-modal.scss: a 195px illustration over the footer
+// (copy, then the "don't show again" checkbox, progress pills and Next).
+component ClassicsOnboardingContent inherits VerticalLayout {
+    property <int> step: LibraryModals.onboarding-step;
+    // __body: #070707, the step's art, object-fit: cover
+    Rectangle {
+        height: 195px;
+        background: #070707;
+        clip: true;
+        Image {
+            width: parent.width;
+            height: parent.height;
+            image-fit: cover;
+            source: root.step == 0 ? @image-url("../../images/classics-onboarding/step1.png")
+                : root.step == 1 ? @image-url("../../images/classics-onboarding/step2.png")
+                : @image-url("../../images/classics-onboarding/step3.png");
+        }
+    }
+    // __footer: padding 16, gap 32, border-top 1px rgba(255,255,255,.06)
+    Rectangle {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.06);
+    }
+    VerticalLayout {
+        padding: 16px;
+        padding-top: 16px;
+        spacing: 32px;
+        // __copy: gap 16, min-height 132
+        VerticalLayout {
+            spacing: 16px;
+            min-height: 132px;
+            alignment: start;
+            Text {
+                text: T.tr(root.step == 0 ? "classics_onboarding.step1_heading" : root.step == 1 ? "classics_onboarding.step2_heading" : "classics_onboarding.step3_heading");
+                font-size: 20px;
+                font-weight: 700;
+                letter-spacing: 0.21px;
+                color: #c0c1c7;
+                wrap: word-wrap;
+            }
+            // line-height 1.5 (21px lines)
+            Text {
+                text: T.tr(root.step == 0 ? "classics_onboarding.step1_body" : root.step == 1 ? "classics_onboarding.step2_body" : "classics_onboarding.step3_body");
+                font-size: Theme.body-size;
+                letter-spacing: 0.14px;
+                color: Theme.subtle;
+                wrap: word-wrap;
+                vertical-alignment: center;
+                height: Math.max(1, Math.round(self.preferred-height / (14px * 1.362))) * 21px;
+            }
+        }
+        // __actions: space-between, gap 16
+        HorizontalLayout {
+            spacing: 16px;
+            // the checkbox at its max-content width (a wrapping label measures narrow)
+            Rectangle {
+                width: dont-show-measure.preferred-width + 28px;
+                dont-show-measure := Text {
+                    visible: false;
+                    text: T.tr("classics_onboarding.dont_show_again");
+                    font-size: Theme.body-size;
+                }
+                CheckboxField {
+                    y: (parent.height - self.height) / 2;
+                    label: T.tr("classics_onboarding.dont_show_again");
+                    checked: LibraryModals.onboarding-dont-show;
+                    toggled => {
+                        LibraryModals.onboarding-dont-show = !LibraryModals.onboarding-dont-show;
+                    }
+                }
+            }
+            // __progress: 24x4 pills, gap 8 (space-between centers it between its neighbours)
+            HorizontalLayout {
+                horizontal-stretch: 1;
+                spacing: 8px;
+                alignment: center;
+                for i in 3: Rectangle {
+                    y: (parent.height - self.height) / 2;
+                    width: 24px;
+                    height: 4px;
+                    border-radius: 2px;
+                    background: i <= root.step ? #c0c1c7 : #424244;
+                    animate background { duration: 200ms; easing: ease; }
+                }
+            }
+            HydraButton {
+                text: root.step < 2 ? T.tr("classics_onboarding.next") : T.tr("classics_onboarding.explore");
+                clicked => {
+                    if (root.step < 2) {
+                        LibraryModals.onboarding-step += 1;
+                    } else {
+                        LibraryModals.closing();
+                        LibraryModals.close-request += 1;
+                    }
+                }
+            }
+        }
+    }
 }
 
 // text-field-container: a label above the field (gap 8)
@@ -640,8 +744,11 @@ export component LibraryModalsHost inherits Rectangle {
     if controller.mounted: Modal {
         width: root.width;
         height: root.height;
-        title: LibraryModals.kind == "custom-game" ? T.tr("sidebar.custom_game_modal") : T.tr("header.scan_games_title");
+        title: LibraryModals.kind == "custom-game" ? T.tr("sidebar.custom_game_modal")
+            : LibraryModals.kind == "classics-onboarding" ? T.tr("classics_onboarding.title")
+            : T.tr("header.scan_games_title");
         description: LibraryModals.kind == "custom-game" ? T.tr("sidebar.custom_game_modal_description") : "";
+        no-content-padding: LibraryModals.kind == "classics-onboarding";
         // clickOutsideToClose={!isScanning}
         click-outside-to-close: !(LibraryModals.kind == "scan" && LibraryModals.scanning);
         closing: controller.closing;
@@ -655,5 +762,6 @@ export component LibraryModalsHost inherits Rectangle {
         }
         if LibraryModals.kind == "custom-game": CustomGameContent { }
         if LibraryModals.kind == "scan": ScanContent { }
+        if LibraryModals.kind == "classics-onboarding": ClassicsOnboardingContent { }
     }
 }

@@ -39,6 +39,8 @@ struct State {
     custom_path: String,
     custom_adding: bool,
     scan: Scan,
+    /// The onboarding's onClose
+    onboarding_closed: Option<Box<dyn FnOnce()>>,
     icons: HashMap<String, Image>,
     pending_icons: std::collections::HashSet<String>,
 }
@@ -157,11 +159,43 @@ fn on_closing() {
         STATE.with(|s| s.borrow_mut().custom_path.clear());
         modals.set_custom_title(SharedString::default());
         modals.set_custom_path(SharedString::default());
+    } else if modals.get_kind() == "classics-onboarding" {
+        // handleClose: "Don't show again" (checked by default) sticks.
+        if modals.get_onboarding_dont_show() {
+            shell::storage_set(CLASSICS_ONBOARDING_KEY, "true");
+        }
+        if let Some(on_closed) = STATE.with(|s| s.borrow_mut().onboarding_closed.take()) {
+            on_closed();
+        }
     } else if modals.get_kind() == "scan" {
         // setSelectedFolders([]); setScanMode(default)
         STATE.with(|s| s.borrow_mut().scan.folders.clear());
         modals.set_scan_mode(if cfg!(windows) { "automatic" } else { "manual" }.into());
     }
+}
+
+// ---- ClassicsOnboardingModal
+
+const CLASSICS_ONBOARDING_KEY: &str = "hydra-classics-onboarding-dismissed";
+
+/// hasDismissedClassicsOnboarding
+pub fn classics_onboarding_dismissed() -> bool {
+    shell::storage_get(CLASSICS_ONBOARDING_KEY).as_deref() == Some("true")
+}
+
+/// The Classics welcome (library Classics category, catalogue classics mode);
+/// `on_closed` runs when it closes.
+pub fn open_classics_onboarding(on_closed: impl FnOnce() + 'static) {
+    let Some(ui) = window() else { return };
+    let modals = ui.global::<LibraryModals>();
+    if !modals.get_kind().is_empty() {
+        return;
+    }
+    snapshot_backdrop(&ui);
+    STATE.with(|s| s.borrow_mut().onboarding_closed = Some(Box::new(on_closed)));
+    modals.set_onboarding_step(0);
+    modals.set_onboarding_dont_show(true);
+    modals.set_kind("classics-onboarding".into());
 }
 
 // ---- SidebarAddingCustomGameModal
