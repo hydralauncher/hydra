@@ -1,0 +1,252 @@
+// What leaderboards_page.rs fills for pages/leaderboards: the header, the
+// sidebar lists, the board (ranking or game), the stats tab and the badges.
+
+// A metric in the sidebar (leaderboards-sidebar.tsx renderMetric).
+export struct LbMetric {
+    id: string,
+    label: string,
+    selected: bool,
+    // "loading" | "error" | "none" | "leader"
+    leader-state: string,
+    leader-name: string,
+    leader-avatar: image,
+    leader-value: string,
+    // the leader's banner (row size), when they have one
+    banner: image,
+    has-banner: bool,
+}
+
+// A game in the sidebar (renderGame).
+export struct LbSideGame {
+    key: string,
+    title: string,
+    cover: image,
+    rank: string,
+    has-leader: bool,
+    leader-name: string,
+    leader-avatar: image,
+    banner: image,
+    has-banner: bool,
+    selected: bool,
+}
+
+// A podium card (leaderboard-podium.tsx).
+export struct LbPodiumCard {
+    user-id: string,
+    rank: int,
+    // "gold" | "silver" | "bronze"
+    tier: string,
+    name: string,
+    avatar: image,
+    banner: image,
+    has-banner: bool,
+    value: string,
+    // RankDelta: shown when has-delta (ranks after the first)
+    has-delta: bool,
+    delta: int,
+    viewer: bool,
+    selected: bool,
+    reportable: bool,
+}
+
+// A table row (leaderboard-row.tsx with strip and isTableRow).
+export struct LbRow {
+    user-id: string,
+    rank: int,
+    // "gold" | "silver" | "bronze" | "top10" | "default"
+    tier: string,
+    name: string,
+    avatar: image,
+    banner: image,
+    has-banner: bool,
+    value: string,
+    has-delta: bool,
+    delta: int,
+    viewer: bool,
+    gap-before: bool,
+    reportable: bool,
+    // the review tooltip (reviews metric)
+    has-tip: bool,
+    tip-cover: image,
+    tip-game: string,
+    tip-score: string,
+    tip-text: string,
+}
+
+// A metric selector option (HeaderSelector).
+export struct LbOption {
+    id: string,
+    label: string,
+}
+
+// A row of "Your week" (stats-tab.tsx mine table).
+export struct LbMineRow {
+    metric-id: string,
+    label: string,
+    value: string,
+    rank: string,
+    pending: bool,
+    failed: bool,
+}
+
+// A friend's streak card (friend-streak-card.tsx).
+export struct LbFriendStreak {
+    user-id: string,
+    name: string,
+    avatar: image,
+    banner: image,
+    has-banner: bool,
+    online: bool,
+    days: string,
+}
+
+// A heatmap cell (week-major, like the grid).
+export struct LbHeatCell {
+    level: int,
+    future: bool,
+    today: bool,
+    // the tip: "Today · 1 h 20 min" and the games
+    summary: string,
+    games: string,
+}
+
+export struct LbMonth {
+    week: int,
+    label: string,
+}
+
+// A badge (badges-section.tsx).
+export struct LbBadge {
+    id: string,
+    // "gold" | "silver" | "bronze" | "streak"
+    tier: string,
+    locked: bool,
+    ring: bool,
+    streak: bool,
+    title: string,
+    subtitle: string,
+    chip: string,
+    meta: string,
+    progress: float,
+    cover: image,
+}
+
+export global LeaderboardsData {
+    in property <bool> signed-in;
+    // "ranking" | "games" | "stats"
+    in property <string> tab: "ranking";
+    // header (week-subtitle.tsx)
+    in property <string> period: "week";
+    in property <string> scope: "global";
+    in property <string> period-title;
+    in property <string> subtitle;
+    // bumped on every board change, like the content's React key
+    in property <int> generation;
+    // bumped by a view change: the page scrolls back to the top
+    in property <int> scroll-top;
+
+    // sidebar
+    // "categories" | "games"
+    in property <string> side-list: "categories";
+    in property <bool> metrics-loading: true;
+    in property <[LbMetric]> metrics;
+    in property <bool> games-loading;
+    in property <bool> games-error;
+    // the viewer has games (before the search filter)
+    in property <bool> has-games;
+    in property <[LbSideGame]> games;
+    in-out property <string> game-search;
+
+    // board (ranking and game tabs)
+    // "loading" | "error" | "empty" | "empty_friends" | "ready" | "no_metrics" | "none"
+    in property <string> board-state: "loading";
+    in property <string> board-title;
+    in property <string> board-description;
+    // the ranking's metric icon, or the game's cover
+    in property <string> board-icon;
+    in property <image> board-cover;
+    in property <bool> board-is-game;
+    in property <string> board-count;
+    in property <styled-text> insight-main;
+    in property <styled-text> insight-detail;
+    in property <bool> has-insight;
+    in property <bool> has-insight-detail;
+    in property <[LbPodiumCard]> podium;
+    in property <[LbRow]> rows;
+    in property <bool> show-delta-column;
+    in property <string> value-column;
+    in property <bool> has-more;
+    in property <bool> can-report;
+    in property <[LbOption]> game-metrics;
+    in property <string> game-metric;
+    // empty states
+    in property <string> empty-title;
+    in property <string> empty-description;
+    // "clock" | "people" | "trophy"
+    in property <string> empty-icon;
+    in property <string> empty-action;
+    // "see_all" | "library" | "friends" | "game_page" | "global" | ""
+    in property <string> empty-action-kind;
+
+    // stats tab
+    in property <string> mine-title;
+    in property <string> viewer-name;
+    in property <image> viewer-avatar;
+    in property <image> viewer-banner;
+    in property <bool> has-viewer-banner;
+    in property <[LbMineRow]> mine;
+    in property <bool> mine-failed;
+    // "loading" | "error" | "empty" | "ready"
+    in property <string> friends-state: "loading";
+    in property <[LbFriendStreak]> friend-streaks;
+    in property <int> friends-visible: 6;
+    in property <int> friends-total;
+    // "loading" | "error" | "ready"
+    in property <string> activity-state: "loading";
+    in property <[LbHeatCell]> heat-cells;
+    in property <[LbMonth]> heat-months;
+    in property <[string]> heat-days;
+    in property <length> heat-size: 12px;
+    in property <int> heat-weeks;
+    in property <length> heat-width;
+    in property <string> activity-total;
+    in property <string> streak-current;
+    in property <string> streak-best;
+    in property <string> streak-current-unit;
+    in property <string> streak-best-unit;
+    // the report modal's confirm icon (ReportIcon)
+    out property <image> report-icon: @image-url("../../icons/report-12.svg");
+
+    // badges (LEADERBOARD_BADGES)
+    in property <bool> show-badges;
+    // "loading" | "error" | "ready"
+    in property <string> badges-state: "loading";
+    in property <[LbBadge]> badges;
+    in property <string> badges-count;
+    in property <bool> badges-more;
+
+    callback set-scope(string);
+    callback set-period(string);
+    callback set-side-list(string);
+    callback open-stats();
+    callback open-metric(string);
+    callback open-game(string);
+    callback set-game-metric(string);
+    callback search-games(string);
+    callback retry();
+    callback retry-games();
+    callback load-more();
+    callback open-profile(string);
+    callback select-entry(string);
+    callback open-game-page();
+    callback empty-clicked();
+    callback go-library();
+    callback report(string);
+    callback friends-more();
+    callback retry-friends();
+    callback retry-activity();
+    callback show-more-badges();
+    callback retry-badges();
+    // the activity card's inner width, for the heatmap layout
+    callback activity-width-changed(length);
+}

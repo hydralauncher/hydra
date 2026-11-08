@@ -13,6 +13,7 @@ pub mod download_directories;
 pub mod emulation;
 pub mod executables;
 pub mod integrations;
+pub mod leaderboards;
 pub mod library;
 pub mod library_actions;
 pub mod profile;

@@ -17,6 +17,8 @@ struct State {
     ui: slint::Weak<AppWindow>,
     on_confirm: Option<Action>,
     on_created: Option<Rc<dyn Fn(String)>>,
+    /// maxLength of the field dialog's input
+    field_max: Option<usize>,
 }
 
 thread_local! {
@@ -29,6 +31,7 @@ pub fn init(ui: &AppWindow) {
             ui: ui.as_weak(),
             on_confirm: None,
             on_created: None,
+            field_max: None,
         })
     });
     let dialogs = ui.global::<Dialogs>();
@@ -51,6 +54,13 @@ pub fn init(ui: &AppWindow) {
             // maxLength={60} (create-collection-modal)
             if dialogs.get_kind() == "create-collection" && text.chars().count() > 60 {
                 dialogs.set_field_text(text.chars().take(60).collect::<String>().into());
+            }
+            let field_max = STATE.with(|s| s.borrow().as_ref().and_then(|s| s.field_max));
+            if dialogs.get_kind() == "field"
+                && let Some(max) = field_max
+                && text.chars().count() > max
+            {
+                dialogs.set_field_text(text.chars().take(max).collect::<String>().into());
             }
             dialogs.set_field_error(Default::default());
         }
@@ -106,6 +116,7 @@ pub fn confirm(spec: Confirm, on_confirm: impl Fn() + 'static) {
     dialogs.set_confirm_label(spec.confirm_label.into());
     dialogs.set_cancel_label(spec.cancel_label.into());
     dialogs.set_confirm_kind(if spec.danger { "danger" } else { "primary" }.into());
+    dialogs.set_confirm_icon(Default::default());
     dialogs.set_busy(false);
     dialogs.set_checkbox_label("".into());
     dialogs.set_checkbox_checked(false);
@@ -151,12 +162,15 @@ pub fn field(spec: Field, on_submit: impl Fn(String) + 'static) {
     dialogs.set_field_placeholder(spec.placeholder.into());
     dialogs.set_field_text(spec.text.into());
     dialogs.set_field_error(Default::default());
+    dialogs.set_body(Default::default());
+    dialogs.set_confirm_icon(Default::default());
     dialogs.set_confirm_label(spec.confirm_label.into());
     dialogs.set_cancel_label(spec.cancel_label.into());
     dialogs.set_busy(false);
     let on_submit = Rc::new(on_submit);
     STATE.with(|s| {
         if let Some(s) = s.borrow_mut().as_mut() {
+            s.field_max = None;
             let on_submit = on_submit.clone();
             s.on_confirm = Some(Rc::new(move || {
                 let text = window()
@@ -175,6 +189,22 @@ pub fn set_field_busy(busy: bool, confirm_label: &str) {
         let dialogs = ui.global::<Dialogs>();
         dialogs.set_busy(busy);
         dialogs.set_confirm_label(confirm_label.into());
+    }
+}
+
+/// The field dialog as a ConfirmationModal with a field: its description
+/// above the field, an icon on the confirm button and the field's maxLength
+/// (call right after `field`).
+pub fn set_field_extras(body: &str, confirm_icon: Image, max_length: Option<usize>) {
+    STATE.with(|s| {
+        if let Some(s) = s.borrow_mut().as_mut() {
+            s.field_max = max_length;
+        }
+    });
+    if let Some(ui) = window() {
+        let dialogs = ui.global::<Dialogs>();
+        dialogs.set_body(body.into());
+        dialogs.set_confirm_icon(confirm_icon);
     }
 }
 
