@@ -294,8 +294,26 @@ export component TitleBar inherits Rectangle {
 
     // -webkit-app-region: drag (double-click maximizes, like the system bar)
     drag := TouchArea {
+        // Linux: the window manager owns the pointer once a move starts, and
+        // would swallow the second click of a double-click. Start the move
+        // only after the pointer travels a few pixels, like GTK header bars.
+        property <length> press-x;
+        property <length> press-y;
+        property <bool> moving;
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                if (Chrome.platform == "linux") {
+                    self.press-x = self.mouse-x;
+                    self.press-y = self.mouse-y;
+                    self.moving = false;
+                } else {
+                    Chrome.drag();
+                }
+            }
+        }
+        moved => {
+            if (Chrome.platform == "linux" && self.pressed && !self.moving && (abs(self.mouse-x - self.press-x) > 4px || abs(self.mouse-y - self.press-y) > 4px)) {
+                self.moving = true;
                 Chrome.drag();
             }
         }

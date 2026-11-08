@@ -1147,9 +1147,16 @@ fn wire_chrome(ui: &AppWindow, headless: bool) {
         let weak = weak.clone();
         move || {
             if let Some(ui) = weak.upgrade() {
-                ui.window().with_winit_window(|window| {
-                    let _ = window.drag_window();
-                });
+                let started = ui
+                    .window()
+                    .with_winit_window(|window| window.drag_window().is_ok())
+                    .unwrap_or(false);
+                #[cfg(target_os = "linux")]
+                if started {
+                    release_pointer_after_wm_drag(weak.clone());
+                }
+                #[cfg(not(target_os = "linux"))]
+                let _ = started;
             }
         }
     });
@@ -1169,10 +1176,31 @@ fn wire_chrome(ui: &AppWindow, headless: bool) {
                 _ => return,
             };
             if let Some(ui) = weak.upgrade() {
-                ui.window().with_winit_window(|window| {
-                    let _ = window.drag_resize_window(direction);
-                });
+                let started = ui
+                    .window()
+                    .with_winit_window(|window| window.drag_resize_window(direction).is_ok())
+                    .unwrap_or(false);
+                if started {
+                    release_pointer_after_wm_drag(weak.clone());
+                }
             }
+        }
+    });
+}
+
+/// The window manager grabs the pointer for a move or resize, so the button
+/// release never reaches the app and Slint keeps the title bar or the edge as
+/// the pointer grabber (the next press anywhere would move or resize again).
+/// Release it once the handler is done; outside the window, so it can't count
+/// as a click.
+fn release_pointer_after_wm_drag(weak: slint::Weak<AppWindow>) {
+    slint::Timer::single_shot(std::time::Duration::ZERO, move || {
+        if let Some(ui) = weak.upgrade() {
+            ui.window()
+                .dispatch_event(slint::platform::WindowEvent::PointerReleased {
+                    position: slint::LogicalPosition::new(-1.0, -1.0),
+                    button: slint::platform::PointerEventButton::Left,
+                });
         }
     });
 }

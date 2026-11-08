@@ -148,7 +148,11 @@ the rewrite ships needs:
   as in Electron).
 - **Mouse wheel on Wayland** uses the 120px per notch measured on X11
   (Electron under Xvfb with XTEST wheel clicks); WSL can't inject Wayland
-  wheel events to measure it there.
+  wheel events to measure it there. Under XTEST, winit reported two wheel
+  events for some single clicks (the X server also emulates a scroll
+  valuator event, which Chromium ignores), so the rewrite scrolled 240px
+  there; a real mouse goes the other way (valuators, with emulated buttons
+  flagged) and wasn't available to test.
 - **Audio in WSL**: cpal opens ALSA's default device, which WSLg doesn't
   route to PulseAudio unless `libasound2-plugins` is configured. Desktop
   distributions route ALSA to PipeWire/PulseAudio by default.
