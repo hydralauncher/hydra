@@ -629,7 +629,10 @@ pub fn dev_community_probe() {
         let page = crate::steam_browser::read_page(
             steam::COMMUNITY_REFRESH_URL,
             steam::COMMUNITY_STEAM_ID_SCRIPT,
-            &["https://steamcommunity.com/", "https://store.steampowered.com/"],
+            &[
+                "https://steamcommunity.com/",
+                "https://store.steampowered.com/",
+            ],
             &|| false,
         );
         match page {
