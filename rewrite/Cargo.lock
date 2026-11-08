@@ -2793,6 +2793,7 @@ dependencies = [
  "icu_locale_core",
  "icu_properties",
  "image",
+ "regex",
  "reqwest",
  "rustls",
  "rustls-platform-verifier",

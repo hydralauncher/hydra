@@ -23,4 +23,5 @@ pub mod realtime;
 pub mod repacks;
 pub mod screenshots;
 pub mod social;
+pub mod steam_sync;
 pub mod screenshot_prefs;
