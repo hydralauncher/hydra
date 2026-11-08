@@ -39,6 +39,10 @@ fn on_running(running: Vec<Running>) {
         if *r == ids {
             false
         } else {
+            // onOpenGame: syncGameAchievementFiles for each game that just started
+            for id in ids.difference(&r) {
+                crate::achievement_watcher::on_game_opened(id);
+            }
             *r = ids;
             true
         }

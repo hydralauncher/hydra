@@ -4,6 +4,8 @@
 //! See `rewrite/README.md` for what is ported and `rewrite/docs/parity-plan.md`
 //! for what is next.
 
+mod achievement_notification;
+mod achievement_watcher;
 mod achievements_page;
 mod auth;
 mod catalogue_page;
@@ -31,6 +33,8 @@ mod gifs;
 mod headless;
 mod home_page;
 mod instance;
+#[cfg(windows)]
+mod layered_window;
 mod library_page;
 mod main_window;
 mod nav;
@@ -237,6 +241,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     downloads::init(&ui, db.clone(), api.clone(), &native_dir);
     games::init(db.clone(), api.clone());
+    achievement_watcher::init(db.clone(), api.clone());
     shell::init(
         &ui,
         db,

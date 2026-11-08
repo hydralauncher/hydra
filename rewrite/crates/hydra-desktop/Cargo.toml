@@ -46,6 +46,8 @@ tauri-winrt-notification = "0.8"
 winreg = "0.55"
 # the system tray (Windows; Linux needs a StatusNotifierItem host instead of GTK)
 tray-icon = "0.26"
+# the achievement notification's layered window (UpdateLayeredWindow)
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader"] }
 
 [target.'cfg(not(windows))'.dependencies]
 notify-rust = "4"

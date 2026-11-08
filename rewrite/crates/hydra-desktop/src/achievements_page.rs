@@ -126,9 +126,10 @@ pub fn open(shop: &str, object_id: &str, title: &str) {
     let (Some(api), Some(db)) = (shell::api(), shell::db()) else {
         return;
     };
+    crate::achievement_watcher::viewing("achievements", shop, object_id);
     let (shop, object_id) = (shop.to_string(), object_id.to_string());
     std::thread::spawn(move || {
-        let result = hydra_core::achievements::unlocked_achievements(&api, &db, &shop, &object_id);
+        let result = crate::achievement_watcher::sync_and_get(&api, &db, &shop, &object_id);
         let _ = slint::invoke_from_event_loop(move || {
             if with(|s| s.generation) != generation {
                 return;
@@ -143,6 +144,16 @@ pub fn open(shop: &str, object_id: &str, title: &str) {
             apply();
         });
     });
+}
+
+/// on-update-achievements-${objectId}-${shop}: the watcher merged new unlocks.
+pub fn on_achievements_updated(shop: &str, object_id: &str, list: Vec<Achievement>) {
+    let current = with(|s| s.shop == shop && s.object_id == object_id);
+    if !current {
+        return;
+    }
+    with(|s| s.achievements = list);
+    apply();
 }
 
 /// heroImage / logoImage: the custom artwork, else the shop assets.

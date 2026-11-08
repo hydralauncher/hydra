@@ -2788,6 +2788,7 @@ dependencies = [
  "tauri-winrt-notification",
  "thumbhash",
  "tray-icon",
+ "windows-sys 0.61.2",
  "winreg",
  "wry",
 ]

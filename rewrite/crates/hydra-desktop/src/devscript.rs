@@ -13,6 +13,8 @@
 //! - `type <text>` - text input
 //! - `keydown|keyup|tap <key> [count]` - key names: shift, meta, control,
 //!   left, right, up, down, home, end, pagedown, space, escape, or a character
+//! - `notify-achievement-test`, `notify-achievement-combined <games> <n>`,
+//!   `shot-notification <name>` - the achievement notification window
 //! - `quit`
 
 use slint::platform::{Key, PointerEventButton, WindowEvent};
@@ -129,6 +131,26 @@ fn next<C: ComponentHandle + 'static>(
         "notify-extract" => {
             crate::notify::extraction_complete(args.first().copied().unwrap_or_default())
         }
+        // the Settings → Notifications test (plain, rare + hidden, platinum)
+        "notify-achievement-test" => crate::achievement_notification::show_test(),
+        // the combined "N achievements on M games" notification
+        "notify-achievement-combined" => crate::achievement_notification::publish_combined(
+            num(0).max(1.0) as usize,
+            num(1).max(1.0) as usize,
+        ),
+        // hold the notification at <ms> (4000+ is the closing), or `off`
+        "notification-time" => crate::achievement_notification::dev_pin(
+            args.first().and_then(|a| a.parse::<f32>().ok()),
+        ),
+        // a frame of the achievement notification window
+        "shot-notification" => match crate::achievement_notification::window() {
+            Some(notification) => snapshot(
+                notification.window(),
+                &out,
+                args.first().copied().unwrap_or("notification"),
+            ),
+            None => eprintln!("devscript: no notification window"),
+        },
         "quit" => {
             let _ = slint::quit_event_loop();
             return;

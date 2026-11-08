@@ -268,6 +268,7 @@ pub fn handle_external_auth(uri: &str) {
     // TODO(auth): uploadGamesBatch, syncDownloadSourcesFromApi, Steam/Epic
     // startup syncs, the souvenir worker.
     crate::realtime::connect();
+    crate::achievement_watcher::on_signed_in();
     shell::reload_user(Some(Box::new(|| {
         toast::success(&shell::tr("app.successfully_signed_in"))
     })));
@@ -286,6 +287,7 @@ pub fn sign_out() {
     crate::realtime::close();
     crate::downloads::stop_active();
     api.clear_session();
+    crate::achievement_watcher::on_signed_out();
     for sublevel in [keys::GAMES, keys::DOWNLOADS, keys::DOWNLOAD_LAYOUT_STATE] {
         for (key, _) in db.entries::<Value>(sublevel).unwrap_or_default() {
             let _ = db.delete_in(sublevel, &key);

@@ -38,6 +38,10 @@ impl EventLoopProxy for Proxy {
 
 pub struct Headless {
     window: Rc<MinimalSoftwareWindow>,
+    /// The first window is the app's; later ones (the achievement
+    /// notification) get their own buffer, sized by their component.
+    main_taken: std::cell::Cell<bool>,
+    scale: f32,
     start: Instant,
     tx: mpsc::Sender<Message>,
     rx: mpsc::Receiver<Message>,
@@ -57,6 +61,8 @@ impl Headless {
         let (tx, rx) = mpsc::channel();
         slint::platform::set_platform(Box::new(Headless {
             window,
+            main_taken: std::cell::Cell::new(false),
+            scale,
             start: Instant::now(),
             tx,
             rx,
@@ -67,7 +73,14 @@ impl Headless {
 
 impl Platform for Headless {
     fn create_window_adapter(&self) -> Result<Rc<dyn WindowAdapter>, PlatformError> {
-        Ok(self.window.clone())
+        if !self.main_taken.replace(true) {
+            return Ok(self.window.clone());
+        }
+        let window = MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
+        window.dispatch_event(WindowEvent::ScaleFactorChanged {
+            scale_factor: self.scale,
+        });
+        Ok(window)
     }
 
     fn duration_since_start(&self) -> Duration {
