@@ -34,7 +34,7 @@ $description-outline-fade-duration: 0.15s;
     display: flex;
     flex-shrink: 0;
     flex-direction: column;
-    gap: 6px;
+    gap: globals.$spacing-unit;
   }
 
   &__date-row {
@@ -101,7 +101,7 @@ $description-outline-fade-duration: 0.15s;
     min-width: 0;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     color: globals.$body-color;
     font-size: globals.$body-font-size;
   }
@@ -110,7 +110,7 @@ $description-outline-fade-duration: 0.15s;
     display: inline-flex;
     min-width: 0;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     color: globals.$muted-color;
     font-weight: 500;
     overflow-wrap: anywhere;
@@ -124,7 +124,7 @@ $description-outline-fade-duration: 0.15s;
     display: inline-flex;
     min-width: 0;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
   }
 
   &__game-icon {
@@ -166,7 +166,7 @@ $description-outline-fade-duration: 0.15s;
     flex-shrink: 0;
     align-items: center;
     gap: 4px;
-    padding: 2px 6px;
+    padding: 2px globals.$spacing-unit;
     border: 1px solid globals.$border-color;
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.06);
@@ -194,8 +194,8 @@ $description-outline-fade-duration: 0.15s;
     min-height: 36px;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 0 calc(globals.$spacing-unit * 1.25);
+    gap: globals.$spacing-unit;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
     border: 1px solid globals.$border-color;
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.06);
@@ -223,7 +223,7 @@ $description-outline-fade-duration: 0.15s;
     }
 
     &--active {
-      color: #fff;
+      color: globals.$muted-color;
     }
 
     &--icon {
@@ -273,7 +273,7 @@ $description-outline-fade-duration: 0.15s;
     justify-content: space-between;
     gap: globals.$spacing-unit;
     flex-shrink: 0;
-    padding: calc(globals.$spacing-unit * 1.25) calc(globals.$spacing-unit * 2);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
     border-bottom: 1px solid globals.$border-color;
   }
 
@@ -348,7 +348,7 @@ $description-outline-fade-duration: 0.15s;
       min-height: 64px;
       max-height: 200px;
       overflow-y: auto;
-      padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.25);
+      padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
 
       .ProseMirror {
         min-height: 44px;
@@ -382,7 +382,7 @@ $description-outline-fade-duration: 0.15s;
   &__composer &__editor {
     flex-direction: column-reverse;
     border-color: rgba(255, 255, 255, 0.16);
-    border-radius: 14px;
+    border-radius: 16px;
     background: #1c1c1c;
     transition:
       border-color motion.$composer-expand-duration motion.$composer-easing,
@@ -402,7 +402,8 @@ $description-outline-fade-duration: 0.15s;
 
     .rich-text-editor__input {
       min-height: 44px;
-      padding: 10px 14px 4px;
+      padding: globals.$spacing-unit calc(globals.$spacing-unit * 2)
+        calc(globals.$spacing-unit / 2);
       transition:
         min-height motion.$composer-expand-duration motion.$composer-easing,
         padding motion.$composer-expand-duration motion.$composer-easing;
@@ -427,8 +428,8 @@ $description-outline-fade-duration: 0.15s;
 
     .button {
       height: 28px;
-      padding: 0 14px;
-      border-radius: 14px;
+      padding: 0 calc(globals.$spacing-unit * 1.5);
+      border-radius: 999px;
       font-size: globals.$small-font-size;
     }
   }
@@ -459,7 +460,7 @@ $description-outline-fade-duration: 0.15s;
 
     .rich-text-editor__input {
       min-height: 38px;
-      padding: 8px 14px;
+      padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
 
       .ProseMirror {
         min-height: 20px;
@@ -486,7 +487,7 @@ $description-outline-fade-duration: 0.15s;
     align-items: center;
     justify-content: space-between;
     gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 1.25);
+    padding: calc(globals.$spacing-unit * 1.5);
     border: 1px dashed globals.$border-color;
     border-radius: 6px;
     color: globals.$body-color;
@@ -561,16 +562,16 @@ $description-outline-fade-duration: 0.15s;
     min-width: 0;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 6px;
+    gap: globals.$spacing-unit;
   }
 
   &__badge {
     user-select: none;
-    padding: 0 6px;
+    padding: 0 calc(globals.$spacing-unit / 2);
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.08);
     color: globals.$muted-color;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
   }
 
@@ -586,7 +587,7 @@ $description-outline-fade-duration: 0.15s;
     min-width: 0;
     overflow: hidden;
     color: globals.$muted-color;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -620,7 +621,7 @@ $description-outline-fade-duration: 0.15s;
     align-items: center;
     justify-content: space-between;
     gap: globals.$spacing-unit;
-    margin-left: -6px;
+    margin-left: calc(globals.$spacing-unit / -2);
   }
 
   &__votes,
@@ -633,7 +634,7 @@ $description-outline-fade-duration: 0.15s;
   &__vote {
     @extend %vote-button;
 
-    padding: 2px 6px;
+    padding: 2px calc(globals.$spacing-unit / 2);
     border-color: transparent;
     background: transparent;
     font-family: inherit;

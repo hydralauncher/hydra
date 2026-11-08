@@ -3,7 +3,7 @@
 .level-box {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: globals.$spacing-unit;
   padding: calc(globals.$spacing-unit * 2);
 
   &__header {
@@ -27,6 +27,6 @@
 
   &__hint {
     font-size: globals.$small-font-size;
-    color: #a6a7ad;
+    color: globals.$subtle-color;
   }
 }

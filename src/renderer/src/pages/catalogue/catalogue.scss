@@ -6,7 +6,7 @@
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 2);
   width: 100%;
-  padding: 16px;
+  padding: globals.$page-gutter;
   scroll-behavior: smooth;
 
   &__filters-container {
@@ -40,7 +40,7 @@
   }
 
   &__filters-hint {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     color: rgba(255, 255, 255, 0.6);
   }
 
@@ -52,13 +52,13 @@
   }
 
   &__sort-label {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     color: rgba(255, 255, 255, 0.7);
     white-space: nowrap;
   }
 
   &__active-filters-label {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     color: rgba(255, 255, 255, 0.7);
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -86,8 +86,8 @@
   &__clear-all-button {
     flex-shrink: 0;
     min-height: 32px;
-    padding: 6px 12px;
-    font-size: 12px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+    font-size: globals.$small-font-size;
     align-self: center;
   }
 
@@ -105,9 +105,15 @@
 
   &__content {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) clamp(300px, 22vw, 380px);
+    grid-template-columns: minmax(0, 1fr) globals.$page-rail-width;
     gap: calc(globals.$spacing-unit * 2);
     align-items: start;
+
+    // Below this the results column gets too narrow beside the rail, so the
+    // filters drop under the results.
+    @include globals.page-max-width(768px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   &__games-container {
@@ -123,12 +129,8 @@
       gap: 16px;
       align-content: start;
 
-      @media (max-width: 1280px) {
+      @include globals.page-max-width(1024px) {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      @media (max-width: 768px) {
-        grid-template-columns: minmax(0, 1fr);
       }
 
       .catalogue__pagination-container,
@@ -146,7 +148,7 @@
   }
 
   &__result-count {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 500;
     color: globals.$body-color;
   }
@@ -165,32 +167,6 @@
     &--classics {
       height: 220px;
       border-radius: 8px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    &__content {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  @media (max-width: 768px) {
-    &__header-row {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    &__sort-inline {
-      width: 100%;
-      justify-content: space-between;
-    }
-
-    &__sort-select {
-      flex: 1;
-    }
-
-    &__clear-all-button {
-      width: 100%;
     }
   }
 }

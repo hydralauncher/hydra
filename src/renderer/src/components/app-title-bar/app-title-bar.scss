@@ -1,0 +1,148 @@
+@use "../../scss/globals.scss";
+
+.title-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: var(--title-bar-height);
+  min-height: var(--title-bar-height);
+  padding-right: calc(globals.$spacing-unit * 1.5);
+  background-color: globals.$dark-background-color;
+  border-bottom: 1px solid globals.$border-color;
+  -webkit-app-region: drag;
+  z-index: globals.$title-bar-z-index;
+
+  // Leaves room for the window controls Windows draws over the bar.
+  &--windows {
+    padding-right: calc(
+      100vw - env(titlebar-area-width, calc(100vw - 140px)) - env(
+          titlebar-area-x,
+          0px
+        )
+    );
+  }
+
+  // As wide as the sidebar, so the arrows start where pages do. The sidebar
+  // sets the width while it is resized.
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    width: var(--sidebar-width, 250px);
+    height: 100%;
+    flex-shrink: 0;
+    padding-left: calc(globals.$spacing-unit * 2);
+    overflow: hidden;
+
+    h4 {
+      margin: 0;
+      white-space: nowrap;
+    }
+  }
+
+  // The traffic lights sit over the start of the bar.
+  &--darwin &__brand {
+    padding-left: 80px;
+  }
+
+  &__cloud-text {
+    background: linear-gradient(
+      270deg,
+      globals.$brand-teal 50%,
+      globals.$brand-blue 100%
+    );
+    background-clip: text;
+    color: transparent;
+  }
+
+  &__version {
+    padding: 2px globals.$spacing-unit;
+    border: 1px solid globals.$border-color;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: globals.$body-color;
+    font-size: globals.$tiny-font-size;
+    line-height: 14px;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+    transition:
+      color ease 0.1s,
+      background-color ease 0.1s;
+
+    &:hover {
+      color: globals.$muted-color;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__navigation {
+    margin-left: globals.$spacing-unit;
+  }
+
+  // Centers the search in the room between the arrows and the buttons.
+  &__search {
+    display: flex;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+    padding: 0 calc(globals.$spacing-unit * 2);
+  }
+
+  &__big-picture {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: calc(globals.$spacing-unit / 2);
+    padding: 4px globals.$spacing-unit;
+    border-radius: 4px;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    white-space: nowrap;
+    opacity: 0.6;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+    transition:
+      opacity ease 0.1s,
+      background-color ease 0.1s;
+
+    &:hover {
+      opacity: 1;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__window-controls {
+    display: flex;
+    align-self: stretch;
+    margin-left: globals.$spacing-unit;
+    margin-right: calc(globals.$spacing-unit * -1.5);
+    -webkit-app-region: no-drag;
+  }
+
+  &__window-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: globals.$muted-color;
+    cursor: pointer;
+    outline: none;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: #dadbe1;
+    }
+
+    &--close:hover {
+      background-color: globals.$error-color;
+      color: #ffffff;
+    }
+  }
+}

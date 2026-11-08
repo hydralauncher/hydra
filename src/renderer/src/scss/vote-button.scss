@@ -7,20 +7,20 @@ $vote-button-hover-background: #2a2a2a;
 %vote-button {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(globals.$spacing-unit / 2);
   background: $vote-button-background;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
-  padding: 6px 12px;
+  padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 1.5);
   color: globals.$body-color;
-  font-size: 14px;
+  font-size: globals.$body-font-size;
   cursor: pointer;
   transition: all $vote-button-transition-duration ease;
 
   &:hover {
     background: $vote-button-hover-background;
     border-color: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
+    color: globals.$muted-color;
   }
 
   span {
@@ -33,6 +33,6 @@ $vote-button-hover-background: #2a2a2a;
 
 %vote-button-active {
   svg {
-    fill: white;
+    fill: globals.$muted-color;
   }
 }

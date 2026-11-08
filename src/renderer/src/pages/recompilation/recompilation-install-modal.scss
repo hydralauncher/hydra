@@ -6,7 +6,7 @@
   max-width: 100%;
 
   &__strong {
-    color: #fafafa;
+    color: globals.$muted-color;
     font-weight: 600;
   }
 
@@ -70,15 +70,15 @@
   &__port-block {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: globals.$spacing-unit;
   }
 
   &__port-tested {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     flex-shrink: 0;
-    padding: 4px 10px;
+    padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 1.5);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.06);
     color: globals.$muted-color;
@@ -107,7 +107,7 @@
 
     dt {
       flex-shrink: 0;
-      color: #8e919b;
+      color: globals.$subtle-color;
     }
 
     dd {
@@ -127,8 +127,8 @@
   }
 
   &__port-name {
-    color: #fafafa;
-    font-size: 15px;
+    color: globals.$muted-color;
+    font-size: 16px;
     font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -137,14 +137,14 @@
 
   &__choice-info {
     font-size: globals.$small-font-size;
-    color: #a1a1aa;
+    color: globals.$subtle-color;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   &__location-path {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     color: globals.$muted-color;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -153,16 +153,16 @@
 
   &__chevron {
     flex-shrink: 0;
-    color: #8e919b;
+    color: globals.$subtle-color;
   }
 
   &__status {
     display: flex;
     flex-direction: column;
-    padding: 14px 18px;
-    border-radius: 10px;
+    padding: calc(globals.$spacing-unit * 2);
+    border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    background: #121212;
+    background: globals.$background-color;
 
     .setup-modal__progress-bar {
       margin-top: 0 !important;
@@ -174,12 +174,12 @@
     align-items: center;
     justify-content: space-between;
     gap: calc(globals.$spacing-unit * 2);
-    padding: 14px 18px;
-    border-radius: 10px;
+    padding: calc(globals.$spacing-unit * 2);
+    border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    background: #121212;
+    background: globals.$background-color;
     color: globals.$muted-color;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
   }
 
   &__prepare-footer {
@@ -189,7 +189,7 @@
     gap: calc(globals.$spacing-unit * 2);
     margin-top: 4px;
     color: globals.$muted-color;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
   }
 
   &__status-progress {
@@ -230,7 +230,7 @@
   &__status-label {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: globals.$spacing-unit;
   }
 
   &__status-spinner,
@@ -243,7 +243,7 @@
 
   &__status-spinner {
     border: 2px solid rgba(255, 255, 255, 0.15);
-    border-top-color: #fafafa;
+    border-top-color: globals.$muted-color;
     animation: recompilation-install-spin 0.8s linear infinite;
   }
 
@@ -251,8 +251,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #fafafa;
-    color: #0a0a0a;
+    background: globals.$muted-color;
+    color: globals.$dark-background-color;
   }
 }
 
@@ -286,6 +286,6 @@
 
   &__empty {
     margin: 0;
-    color: #a1a1aa;
+    color: globals.$subtle-color;
   }
 }

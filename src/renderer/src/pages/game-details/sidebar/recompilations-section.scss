@@ -1,3 +1,5 @@
+@use "../../../scss/globals.scss";
+
 $spotlight-duration: 0.4s;
 $tip-delay: 0.15s;
 $tip-duration: 0.5s;
@@ -9,7 +11,7 @@ $beacon-pulse-duration: 2.4s;
 
   &--spotlight {
     z-index: 6;
-    outline: 2px solid #8e919b;
+    outline: 2px solid globals.$subtle-color;
     box-shadow: 0 0 0 9999px rgba(10, 10, 10, 0.6);
     animation: recompilations-section-spotlight $spotlight-duration ease-out
       both;
@@ -72,9 +74,9 @@ $beacon-pulse-duration: 2.4s;
   &__tip-chip {
     padding: 4px 8px;
     border-radius: 4px;
-    background: #f5f5f5;
-    color: #0d0d0d;
-    font-size: 11px;
+    background: globals.$muted-color;
+    color: globals.$dark-background-color;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     line-height: 1.2;
   }
@@ -89,12 +91,12 @@ $beacon-pulse-duration: 2.4s;
     border: 0;
     border-radius: 6px;
     background: transparent;
-    color: #8e919b;
+    color: globals.$subtle-color;
     cursor: pointer;
 
     &:hover {
       background: #232323;
-      color: #f5f5f5;
+      color: globals.$muted-color;
     }
   }
 
@@ -108,14 +110,14 @@ $beacon-pulse-duration: 2.4s;
       font-size: 16px;
       line-height: 1.35;
       font-weight: 700;
-      color: #f5f5f5;
+      color: globals.$muted-color;
     }
 
     p {
       margin: 0;
-      font-size: 13px;
+      font-size: globals.$hint-font-size;
       line-height: 1.55;
-      color: #c0c1c7;
+      color: globals.$body-color;
     }
   }
 
@@ -130,18 +132,18 @@ $beacon-pulse-duration: 2.4s;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 6px;
+    gap: globals.$spacing-unit;
 
     span {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: calc(globals.$spacing-unit / 2);
       height: 24px;
       padding: 0 8px;
       border-radius: 4px;
       background: #262628;
-      font-size: 12px;
-      color: #c0c1c7;
+      font-size: globals.$small-font-size;
+      color: globals.$body-color;
     }
   }
 
@@ -173,7 +175,7 @@ $beacon-pulse-duration: 2.4s;
   &__meta {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     min-width: 0;
     overflow: hidden;
     white-space: nowrap;

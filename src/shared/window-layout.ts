@@ -1,6 +1,8 @@
 export const AUTH_WINDOW_CONTENT_WIDTH = 600;
 export const AUTH_WINDOW_CONTENT_HEIGHT = 640;
 export const CUSTOM_WINDOW_TITLE_BAR_HEIGHT = 34;
+/** The main window's title bar, which also holds navigation and search. */
+export const MAIN_WINDOW_TITLE_BAR_HEIGHT = 40;
 export const CUSTOM_WINDOW_BORDER_WIDTH = 1;
 export const NATIVE_WINDOW_DECORATIONS_ARGUMENT = "--native-window-decorations";
 

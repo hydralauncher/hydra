@@ -6,7 +6,7 @@
   &__download-heading {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: globals.$spacing-unit;
   }
 
   &__download-heading-icon {
@@ -21,18 +21,18 @@
     align-self: flex-start;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     margin: -4px 0 4px;
     padding: 0;
     background: transparent;
     border: 0;
-    color: #a1a1aa;
-    font-size: 13px;
+    color: globals.$subtle-color;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
     cursor: pointer;
 
     &:hover {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
   }
 
@@ -41,8 +41,8 @@
     padding: 2px 8px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.1);
-    color: #c0c1c7;
-    font-size: 11px;
+    color: globals.$body-color;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
     vertical-align: middle;
   }
@@ -69,28 +69,28 @@
 
   &__hint {
     display: flex;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     align-items: center;
     justify-content: space-between;
-    padding-top: 6px;
-    font-size: 12px;
-    color: #71717a;
+    padding-top: globals.$spacing-unit;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
   }
 
   &__hint-group {
     display: flex;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     align-items: center;
   }
 
   &__link-button {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     background: transparent;
     border: 0;
-    color: #c0c1c7;
-    font-size: 12px;
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
     font-weight: 500;
     cursor: pointer;
     padding: 0;
@@ -101,13 +101,13 @@
   }
 
   &__numbered-list {
-    background: #121212;
+    background: globals.$background-color;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
-    padding: 18px;
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 2);
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__numbered-item {
@@ -122,8 +122,8 @@
     height: 24px;
     border-radius: 50%;
     background: #323237;
-    color: #a1a1aa;
-    font-size: 11px;
+    color: globals.$subtle-color;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -132,8 +132,8 @@
   }
 
   &__numbered-text {
-    font-size: 13px;
-    color: #fafafa;
+    font-size: globals.$hint-font-size;
+    color: globals.$muted-color;
     line-height: 18px;
   }
 
@@ -145,46 +145,46 @@
   &__bios-picker {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: globals.$spacing-unit;
   }
 
   &__bios-path {
     flex: 1;
     min-width: 0;
-    padding: 9px 12px;
-    background: #121212;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+    background: globals.$background-color;
+    border: 1px solid globals.$border-color;
     border-radius: 8px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-family: "JetBrains Mono", monospace;
-    color: #fafafa;
+    color: globals.$muted-color;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 
     &--placeholder {
-      color: #71717a;
+      color: globals.$subtle-color;
       font-family: inherit;
     }
   }
 
   &__bios-hint {
     margin: 0;
-    font-size: 12px;
-    color: #a1a1aa;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
     line-height: 17px;
   }
 
   &__alert {
-    border-radius: 10px;
-    padding: 14px;
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 2);
     display: flex;
     align-items: center;
     gap: 12px;
 
     &--warn {
-      background: rgba(245, 158, 11, 0.06);
-      border: 1px solid rgba(245, 158, 11, 0.22);
+      background: rgba(globals.$warning-color, 0.06);
+      border: 1px solid rgba(globals.$warning-color, 0.22);
     }
 
     &--neutral {
@@ -202,31 +202,31 @@
   }
 
   &__alert-title {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 500;
-    color: #fafafa;
+    color: globals.$muted-color;
   }
 
   &__alert-note {
-    font-size: 12px;
-    color: #a1a1aa;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
   }
 
   &__scan-file {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-family: "JetBrains Mono", monospace;
   }
 
   &__scan-file-icon {
-    color: #71717a;
+    color: globals.$subtle-color;
     flex-shrink: 0;
   }
 
   &__scan-file-name {
-    color: #fafafa;
+    color: globals.$muted-color;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -238,11 +238,11 @@
     font-weight: 500;
 
     &--matched {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
 
     &--unmatched {
-      color: #71717a;
+      color: globals.$subtle-color;
     }
 
     &--wrong_platform {
@@ -263,8 +263,8 @@
   &__scan-keep-open {
     margin: auto 0 0;
     text-align: center;
-    font-size: 12px;
-    color: #71717a;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
   }
 
   &__stats {
@@ -274,13 +274,13 @@
   }
 
   &__stat {
-    background: #0d0d0d;
+    background: globals.$dark-background-color;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: globals.$spacing-unit;
   }
 
   &__stat-head {
@@ -290,21 +290,21 @@
   }
 
   &__stat-icon {
-    color: #8e919b;
+    color: globals.$subtle-color;
     flex-shrink: 0;
   }
 
   &__stat-label {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 500;
-    color: #8e919b;
+    color: globals.$subtle-color;
   }
 
   &__stat-value {
-    font-size: 21px;
+    font-size: 20px;
     font-weight: 700;
     letter-spacing: -0.21px;
-    color: #fafafa;
+    color: globals.$muted-color;
   }
 
   &__folder-list {
@@ -314,10 +314,10 @@
   }
 
   &__rom-card {
-    background: #121212;
+    background: globals.$background-color;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
-    padding: 18px;
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 2);
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -326,7 +326,7 @@
   &__rom-card-top {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__rom-card-text {
@@ -338,17 +338,17 @@
   }
 
   &__rom-card-title {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   &__rom-card-subtitle {
-    font-size: 12px;
-    color: #a1a1aa;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
   }
 
   &__rom-card-subfolder {
@@ -363,24 +363,24 @@
   }
 
   &__rom-card-subfolder-hint {
-    font-size: 12px;
-    color: #71717a;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
     padding-left: 26px;
   }
 
   &__add-folder {
     background: transparent;
     border: 0;
-    color: #a1a1aa;
-    font-size: 13px;
+    color: globals.$subtle-color;
+    font-size: globals.$hint-font-size;
     cursor: pointer;
-    padding: 6px 0;
+    padding: calc(globals.$spacing-unit / 2) 0;
     display: inline-flex;
     align-items: center;
     gap: 8px;
 
     &:hover {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
   }
 
@@ -388,16 +388,16 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
-    color: #c0c1c7;
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
     cursor: pointer;
     padding-top: 8px;
   }
 
   &__unmatched {
-    background: #121212;
+    background: globals.$background-color;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
   }
 
@@ -408,8 +408,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 14px 16px;
-    color: #a1a1aa;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
+    color: globals.$subtle-color;
     cursor: pointer;
     text-align: left;
 
@@ -418,19 +418,19 @@
     }
 
     &:hover {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
   }
 
   &__unmatched-title {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
   }
 
   &__unmatched-list {
     list-style: none;
     margin: 0;
-    padding: 0 16px 14px;
+    padding: 0 calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -442,17 +442,17 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-family: "JetBrains Mono", monospace;
   }
 
   &__unmatched-icon {
-    color: #71717a;
+    color: globals.$subtle-color;
     flex-shrink: 0;
   }
 
   &__unmatched-name {
-    color: #c0c1c7;
+    color: globals.$body-color;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -462,11 +462,11 @@
   &__unmatched-reason {
     margin-left: auto;
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 500;
 
     &--unmatched {
-      color: #71717a;
+      color: globals.$subtle-color;
     }
 
     &--wrong_platform {
