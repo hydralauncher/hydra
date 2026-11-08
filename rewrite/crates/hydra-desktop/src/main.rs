@@ -20,6 +20,7 @@ mod format;
 mod frametrace;
 mod game_classics;
 mod game_menu;
+mod game_options;
 mod game_page;
 mod game_repacks;
 mod games;
@@ -209,6 +210,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     game_page::init(&ui, &loader);
     game_repacks::init(&ui);
+    game_options::init(&ui);
     download_settings::init(&ui);
     downloads_page::init(&ui, &loader);
     download_indicator::init(&ui, &loader);

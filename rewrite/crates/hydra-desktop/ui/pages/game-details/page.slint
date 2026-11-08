@@ -1,6 +1,7 @@
 // The Hydra game details page (src/renderer/src/pages/game-details) in Slint.
 // Data and actions come from the GameData global (state.slint).
 import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { GameOptions } from "options.slint";
 import { Theme, Icons, Tip } from "../../theme.slint";
 import { Icon, HydraButton, Skeleton, ScrollBar } from "../../components/widgets.slint";
 import { Hero } from "hero.slint";
@@ -106,6 +107,7 @@ export component GameDetailsPage inherits Rectangle {
     // ---- public API (also used by the headless tests)
     public function open-game-options() {
         GameData.modal-opening();
+        GameOptions.opened("general");
         GameData.options-open = true;
     }
     public function open-cloud-save() {
@@ -256,10 +258,12 @@ export component GameDetailsPage inherits Rectangle {
                     }
                     options-clicked => {
                         GameData.modal-opening();
+                        GameOptions.opened("general");
                         GameData.options-open = true;
                     }
                     edit-clicked => {
                         GameData.modal-opening();
+                        GameOptions.opened("assets");
                         GameData.options-open = true;
                     }
                 }

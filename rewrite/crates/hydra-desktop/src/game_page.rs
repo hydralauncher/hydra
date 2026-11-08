@@ -496,6 +496,11 @@ fn apply_download_state(packet: Option<&hydra_downloads::manager::Progress>) {
     g.set_progress_bar_value(shown as f32);
 }
 
+/// The open game (shop, objectId).
+pub fn current() -> Option<(String, String)> {
+    with_app(|app| (app.shop.clone(), app.object_id.clone())).filter(|(shop, _)| !shop.is_empty())
+}
+
 /// on-games-running: the open game's "running" state.
 pub fn on_games_running() {
     let Some((ui, shop, object_id)) =

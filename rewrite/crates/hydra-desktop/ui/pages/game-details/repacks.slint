@@ -1,6 +1,6 @@
 // modals/repacks-modal.{tsx,scss}: the filter, the "filter by source"
 // drawer, and one dark button per download option with its availability orb.
-import { Theme, Tip, Ids } from "../../theme.slint";
+import { Theme, Tip, Ids, Icons } from "../../theme.slint";
 import { Icon, HydraButton } from "../../components/widgets.slint";
 import { TextField, CheckboxField } from "../../components/fields.slint";
 import { Badge } from "../../components/game-card.slint";
@@ -166,6 +166,97 @@ component FilterToggle inherits Rectangle {
     }
 }
 
+// The Steam option: a dark repack button with an online orb, the Steam logo
+// and the title, and "Download on Steam".
+component SteamOption inherits Rectangle {
+    callback clicked();
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+    preferred-width: column.preferred-width + 2px;
+    min-width: 0;
+    height: column.preferred-height + 2px;
+    border-radius: 8px;
+    background: Theme.dark-background;
+    animate opacity { duration: 200ms; easing: ease; }
+    opacity: touch.pressed ? Theme.active-opacity : 1;
+    accessible-role: button;
+    accessible-label: GameData.game-title;
+
+    column := VerticalLayout {
+        x: 1px;
+        width: parent.width - 2px;
+        padding: 16px;
+        padding-right: 32px;
+        spacing: 8px;
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 16px;
+                    height: 16px;
+                    source: Icons.bi-steam;
+                    color: Theme.body;
+                }
+            }
+            Text {
+                text: GameData.game-title;
+                font-size: Theme.button-size;
+                color: Theme.body;
+                wrap: word-wrap;
+                vertical-alignment: center;
+                min-height: 20px;
+            }
+        }
+        Text {
+            text: T.tr("game_details.download_on_steam");
+            font-size: Theme.small-size;
+            color: Theme.body;
+            vertical-alignment: center;
+            min-height: 20px;
+        }
+    }
+
+    orb := Rectangle {
+        x: parent.width - 1px - 12px - 8px;
+        y: 13px;
+        width: 8px;
+        height: 8px;
+        border-radius: 4px;
+        background: Theme.success;
+        drop-shadow-blur: 6px;
+        drop-shadow-color: rgba(28, 151, 73, 0.5);
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    TouchArea {
+        x: orb.x;
+        y: orb.y;
+        width: orb.width;
+        height: orb.height;
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        changed has-hover => {
+            if (self.has-hover) {
+                Tip.show(root.tip-id, T.tr("game_details.source_online"), orb.absolute-position.x, orb.absolute-position.y, 8px, 8px, "left");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
 export component RepacksModalBody inherits VerticalLayout {
     callback selected(string);
     callback add-source();
@@ -234,7 +325,17 @@ export component RepacksModalBody inherits VerticalLayout {
     // __repacks: gap 16
     VerticalLayout {
         spacing: 16px;
-        if GameData.repack-rows.length == 0: VerticalLayout {
+        if GameData.steam-option: SteamOption {
+            clicked => {
+                GameData.steam-option-clicked();
+            }
+        }
+        // __separator between the store options and the repacks
+        if GameData.steam-option && GameData.repack-rows.length > 0: Rectangle {
+            height: 1px;
+            background: Theme.border;
+        }
+        if GameData.repack-rows.length == 0 && !GameData.steam-option: VerticalLayout {
             padding-top: 32px;
             padding-bottom: 32px;
             spacing: 12px;

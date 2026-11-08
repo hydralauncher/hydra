@@ -9,7 +9,11 @@ import { Popup } from "../globals.slint";
 export component TextField inherits Rectangle {
     in property <string> placeholder;
     in-out property <string> text;
+    // A disabled, read-only field (the executable path).
+    in property <bool> read-only;
     callback edited(string);
+    // onBlur
+    callback focus-lost();
     height: 40px;
     border-radius: 8px;
     border-width: 1px;
@@ -17,7 +21,7 @@ export component TextField inherits Rectangle {
     border-color: input.has-focus ? #dadbe1 : hover.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
     animate border-color { duration: 200ms; easing: ease; }
     hover := TouchArea {
-        mouse-cursor: MouseCursor.text;
+        mouse-cursor: root.read-only ? MouseCursor.default : MouseCursor.text;
         clicked => {
             input.focus();
         }
@@ -44,7 +48,14 @@ export component TextField inherits Rectangle {
             font-size: Theme.button-size;
             vertical-alignment: center;
             single-line: true;
+            read-only: root.read-only;
+            enabled: !root.read-only;
             accessible-label: root.placeholder;
+            changed has-focus => {
+                if (!self.has-focus) {
+                    root.focus-lost();
+                }
+            }
             edited => {
                 root.edited(self.text);
             }

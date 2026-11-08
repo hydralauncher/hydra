@@ -1,0 +1,423 @@
+// game-options-modal.tsx: a 210px category sidebar and one panel per
+// category (game-options-modal.scss). Rust fills `GameOptions` and handles
+// the actions (game_options.rs).
+import { Theme, Icons } from "../../theme.slint";
+import { HydraButton, Icon } from "../../components/widgets.slint";
+import { TextField, CheckboxField } from "../../components/fields.slint";
+import { T } from "../../globals.slint";
+import { GameData } from "state.slint";
+
+export struct OptionsCategory {
+    id: string,
+    label: string,
+}
+
+export global GameOptions {
+    in property <[OptionsCategory]> categories;
+    in-out property <string> category: "general";
+
+    // General
+    in-out property <string> title-text;
+    in property <bool> title-busy;
+    // SteamPlaytimeSection: only for games imported from Steam/Epic
+    in property <bool> steam-import;
+    in property <string> steam-playtime-title;
+    in property <string> steam-playtime-description;
+    in property <bool> hydra-tracking;
+    in-out property <string> launch-options;
+    in property <bool> has-launch-options;
+    in property <bool> show-launch-options: true;
+
+    // Locations
+    in property <string> executable;
+    // win32 and not a custom game
+    in property <bool> show-save-folder;
+    in property <bool> save-folder-loading;
+    in property <bool> has-save-folder;
+
+    // Downloads
+    in property <bool> custom;
+    // isLibraryGameDownloading
+    in property <bool> downloading;
+    // getOfficialStoreMembers: Steam or Epic imported
+    in property <bool> has-official-source;
+    in property <bool> has-download-path;
+
+    // Danger zone
+    in property <bool> deleting;
+    in property <bool> can-reset-achievements;
+    in property <bool> can-remove-files;
+
+    // The modal is opening on this category ("general", "assets" from the edit button).
+    callback opened(string);
+    callback select-category(string);
+    callback title-edited(string);
+    callback title-committed();
+    callback title-cleared();
+    callback hydra-tracking-toggled();
+    callback launch-options-edited(string);
+    callback launch-options-cleared();
+    callback select-executable();
+    callback clear-executable();
+    callback open-executable-folder();
+    callback open-save-folder();
+    callback open-download-options();
+    callback open-download-location();
+    callback remove-from-library();
+    callback reset-achievements();
+    callback update-playtime();
+    callback reset-playtime();
+    callback remove-files();
+}
+
+// game-options-modal__sidebar-button: 12px padding, 4px radius, muted text,
+// hover rgba(255,255,255,.15), active .1 (background 0.1s).
+component SidebarButton inherits Rectangle {
+    in property <OptionsCategory> category;
+    in property <bool> active;
+    callback clicked();
+    height: 14px * 1.2 + 24px;
+    border-radius: 4px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.15) : root.active ? rgba(255, 255, 255, 0.1) : transparent;
+    animate background { duration: 100ms; easing: ease; }
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: root.category.id == "general" ? Icons.gear : root.category.id == "locations" ? Icons.file-directory : root.category.id == "assets" ? Icons.image : root.category.id == "downloads" ? Icons.download : root.category.id == "compatibility" ? Icons.wrench : root.category.id == "danger_zone" ? Icons.alert : Icons.cloud;
+                color: Theme.muted;
+                opacity: 0.9;
+            }
+        }
+        Text {
+            text: root.category.label;
+            color: Theme.muted;
+            font-size: Theme.body-size;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// game-options-modal__header: h2 (21px bold) over an h4 (14px regular), 8px apart.
+component Header inherits VerticalLayout {
+    in property <string> title;
+    in property <string> description;
+    spacing: 8px;
+    Text {
+        text: root.title;
+        font-size: 21px;
+        font-weight: 700;
+        color: Theme.body;
+        height: 28px;
+        vertical-alignment: center;
+    }
+    if root.description != "": Text {
+        text: root.description;
+        font-size: Theme.body-size;
+        color: Theme.body;
+        wrap: word-wrap;
+    }
+}
+
+export component GameOptionsBody inherits Rectangle {
+    min-height: 520px;
+
+    HorizontalLayout {
+        // ---- game-options-modal__sidebar
+        Rectangle {
+            width: 210px;
+            background: Theme.dark-background;
+            VerticalLayout {
+                padding: 16px;
+                spacing: 8px;
+                alignment: start;
+                for category in GameOptions.categories: SidebarButton {
+                    category: category;
+                    active: GameOptions.category == category.id;
+                    clicked => {
+                        GameOptions.select-category(category.id);
+                    }
+                }
+            }
+            // border-right: 1px solid $border-color
+            Rectangle {
+                x: parent.width - 1px;
+                width: 1px;
+                background: Theme.border;
+            }
+        }
+
+        // ---- game-options-modal__panel: padding 20px, gap 20px
+        panel := VerticalLayout {
+            padding: 20px;
+            spacing: 20px;
+            alignment: start;
+
+            if GameOptions.category == "general": VerticalLayout {
+                spacing: 20px;
+                // Title: a labelled field and Clear, aligned to the bottom.
+                VerticalLayout {
+                    spacing: 8px;
+                    Text {
+                        text: T.tr("game_details.edit_game_modal_title");
+                        font-size: Theme.body-size;
+                        color: Theme.body;
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        title-field := TextField {
+                            placeholder: T.tr("game_details.edit_game_modal_enter_title");
+                            text: GameOptions.title-text;
+                            edited(value) => {
+                                GameOptions.title-edited(value);
+                            }
+                            focus-lost => {
+                                GameOptions.title-committed();
+                            }
+                        }
+                        HydraButton {
+                            text: T.tr("game_details.clear");
+                            kind: "outline";
+                            enabled: !GameOptions.title-busy;
+                            clicked => {
+                                GameOptions.title-cleared();
+                            }
+                        }
+                    }
+                }
+
+                if GameOptions.steam-import: VerticalLayout {
+                    spacing: 12px;
+                    Header {
+                        title: GameOptions.steam-playtime-title;
+                        description: GameOptions.steam-playtime-description;
+                    }
+                    CheckboxField {
+                        label: T.tr("game_details.enable_hydra_playtime_tracking");
+                        checked: GameOptions.hydra-tracking;
+                        toggled => {
+                            GameOptions.hydra-tracking-toggled();
+                        }
+                    }
+                }
+
+                if GameOptions.show-launch-options: VerticalLayout {
+                    spacing: 8px;
+                    Header {
+                        title: T.tr("game_details.launch_options");
+                        description: T.tr("game_details.launch_options_description");
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        TextField {
+                            placeholder: T.tr("game_details.launch_options_placeholder");
+                            text: GameOptions.launch-options;
+                            edited(value) => {
+                                GameOptions.launch-options-edited(value);
+                            }
+                        }
+                        if GameOptions.has-launch-options: HydraButton {
+                            text: T.tr("game_details.clear");
+                            kind: "outline";
+                            clicked => {
+                                GameOptions.launch-options-cleared();
+                            }
+                        }
+                    }
+                }
+            }
+
+            if GameOptions.category == "locations": VerticalLayout {
+                spacing: 12px;
+                Header {
+                    title: T.tr("game_details.executable_section_title");
+                    description: T.tr("game_details.executable_section_description");
+                }
+                VerticalLayout {
+                    spacing: 8px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        TextField {
+                            placeholder: T.tr("game_details.no_executable_selected");
+                            text: GameOptions.executable;
+                            read-only: true;
+                        }
+                        HydraButton {
+                            icon: Icons.file;
+                            text: T.tr("game_details.select_executable");
+                            kind: "outline";
+                            clicked => {
+                                GameOptions.select-executable();
+                            }
+                        }
+                        if GameOptions.executable != "": HydraButton {
+                            text: T.tr("game_details.clear");
+                            kind: "outline";
+                            clicked => {
+                                GameOptions.clear-executable();
+                            }
+                        }
+                    }
+                    // executable-field-buttons: margin-top 4px
+                    HorizontalLayout {
+                        padding-top: 4px;
+                        spacing: 8px;
+                        alignment: start;
+                        if GameOptions.executable != "": HydraButton {
+                            icon: Icons.folder-open-14;
+                            icon-size: 14px;
+                            text: T.tr("game_details.open_folder");
+                            kind: "outline";
+                            clicked => {
+                                GameOptions.open-executable-folder();
+                            }
+                        }
+                        if GameOptions.show-save-folder: HydraButton {
+                            icon: Icons.hard-drive-14;
+                            icon-size: 14px;
+                            text: GameOptions.save-folder-loading ? T.tr("game_details.searching_save_folder") : GameOptions.has-save-folder ? T.tr("game_details.open_save_folder") : T.tr("game_details.no_save_folder_found");
+                            kind: "outline";
+                            enabled: !GameOptions.save-folder-loading && GameOptions.has-save-folder;
+                            clicked => {
+                                GameOptions.open-save-folder();
+                            }
+                        }
+                    }
+                }
+            }
+
+            if GameOptions.category == "downloads" && GameOptions.custom: Text {
+                text: T.tr("game_details.settings_not_available_for_custom_games");
+                font-size: Theme.small-size;
+                color: Theme.muted;
+            }
+            if GameOptions.category == "downloads" && !GameOptions.custom: VerticalLayout {
+                spacing: 8px;
+                Header {
+                    title: T.tr("game_details.downloads_section_title");
+                    description: T.tr("game_details.downloads_section_description");
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    HydraButton {
+                        text: T.tr("game_details.open_download_options");
+                        kind: "outline";
+                        enabled: !GameOptions.deleting && !GameOptions.downloading && (GameData.repacks-count > 0 || GameOptions.has-official-source);
+                        clicked => {
+                            GameOptions.open-download-options();
+                        }
+                    }
+                    if GameOptions.has-download-path: HydraButton {
+                        text: T.tr("game_details.open_download_location");
+                        kind: "outline";
+                        enabled: !GameOptions.deleting;
+                        clicked => {
+                            GameOptions.open-download-location();
+                        }
+                    }
+                }
+            }
+
+            if GameOptions.category == "danger_zone": VerticalLayout {
+                spacing: 8px;
+                Header {
+                    title: T.tr("game_details.danger_zone_section_title");
+                    description: T.tr("game_details.danger_zone_section_description");
+                }
+                danger := Rectangle {
+                    // danger-zone-buttons: flex-wrap, gap 8px. Buttons flow left to
+                    // right and start a new 40px row when the next one doesn't fit.
+                    property <length> w1: b1.preferred-width;
+                    property <length> w2: GameOptions.custom ? 0 : b2.preferred-width;
+                    property <length> w3: b3.preferred-width;
+                    property <length> w4: b4.preferred-width;
+                    property <length> w5: GameOptions.custom ? 0 : b5.preferred-width;
+                    // x/row of each button
+                    property <length> x2: self.w2 == 0 ? self.w1 : (self.w1 + 8px + self.w2 <= self.width ? self.w1 + 8px : 0);
+                    property <int> r2: self.w2 == 0 || self.x2 > 0 ? 0 : 1;
+                    property <length> e2: self.w2 == 0 ? self.w1 : self.x2 + self.w2;
+                    property <length> x3: self.e2 + 8px + self.w3 <= self.width ? self.e2 + 8px : 0;
+                    property <int> r3: self.x3 > 0 ? self.r2 : self.r2 + 1;
+                    property <length> x4: self.x3 + self.w3 + 8px + self.w4 <= self.width ? self.x3 + self.w3 + 8px : 0;
+                    property <int> r4: self.x4 > 0 ? self.r3 : self.r3 + 1;
+                    property <length> x5: self.w5 == 0 ? self.x4 : (self.x4 + self.w4 + 8px + self.w5 <= self.width ? self.x4 + self.w4 + 8px : 0);
+                    property <int> r5: self.w5 == 0 || self.x5 > 0 ? self.r4 : self.r4 + 1;
+                    height: (self.r5 + 1) * 48px - 8px;
+                    b1 := HydraButton {
+                        x: 0;
+                        y: 0;
+                        width: self.preferred-width;
+                        height: 40px;
+                        text: T.tr("game_details.remove_from_library");
+                        kind: "danger";
+                        enabled: !GameOptions.deleting;
+                        clicked => {
+                            GameOptions.remove-from-library();
+                        }
+                    }
+                    b2 := HydraButton {
+                        visible: !GameOptions.custom;
+                        x: danger.x2;
+                        y: danger.r2 * 48px;
+                        width: self.preferred-width;
+                        height: 40px;
+                        text: T.tr("game_details.reset_achievements");
+                        kind: "danger";
+                        enabled: GameOptions.can-reset-achievements;
+                        clicked => {
+                            GameOptions.reset-achievements();
+                        }
+                    }
+                    b3 := HydraButton {
+                        x: danger.x3;
+                        y: danger.r3 * 48px;
+                        width: self.preferred-width;
+                        height: 40px;
+                        text: T.tr("game_details.update_game_playtime");
+                        kind: "danger";
+                        clicked => {
+                            GameOptions.update-playtime();
+                        }
+                    }
+                    b4 := HydraButton {
+                        x: danger.x4;
+                        y: danger.r4 * 48px;
+                        width: self.preferred-width;
+                        height: 40px;
+                        text: T.tr("game_details.reset_playtime");
+                        kind: "danger";
+                        clicked => {
+                            GameOptions.reset-playtime();
+                        }
+                    }
+                    b5 := HydraButton {
+                        visible: !GameOptions.custom;
+                        x: danger.x5;
+                        y: danger.r5 * 48px;
+                        width: self.preferred-width;
+                        height: 40px;
+                        text: T.tr("game_details.remove_files");
+                        kind: "danger";
+                        enabled: GameOptions.can-remove-files;
+                        clicked => {
+                            GameOptions.remove-files();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

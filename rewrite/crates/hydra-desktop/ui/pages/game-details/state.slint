@@ -103,6 +103,10 @@ export global GameData {
     in property <[RepackSource]> repack-sources;
     callback repacks-opened();
     callback repacks-closed();
+    // showSteamOption: a Steam-imported game without an executable, no source
+    // filter, and a filter term matching "steam" or the title.
+    in property <bool> steam-option;
+    callback steam-option-clicked();
     callback repacks-filter(string);
     callback repacks-toggle-source(string);
     callback repack-selected(string);

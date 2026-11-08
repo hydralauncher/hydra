@@ -7,6 +7,7 @@ import { Modal, ModalController } from "../../components/modal.slint";
 import { RepacksModalBody } from "repacks.slint";
 import { DownloadSettingsBody, DownloadSettings } from "download-settings.slint";
 import { GameData } from "state.slint";
+import { GameOptionsBody } from "options.slint";
 import { Nav, T } from "../../globals.slint";
 
 export component GameModalsHost inherits Rectangle {
@@ -35,19 +36,21 @@ export component GameModalsHost inherits Rectangle {
         }
     }
 
-    // game-options-modal.tsx shell: large, no content padding (content left empty here).
+    // game-options-modal.tsx: large, no content padding.
     if options-state.mounted: Modal {
         width: root.width;
         height: root.height;
         title: GameData.game-title;
         large: true;
         no-content-padding: true;
-        content-min-height: 420px;
+        content-min-height: 520px;
         closing: options-state.closing;
+        covered: repacks-state.mounted;
         blurred-page: GameData.modal-backdrop;
         request-close => {
             options-state.close();
         }
+        GameOptionsBody { }
     }
 
     // repacks-modal.tsx
@@ -58,7 +61,8 @@ export component GameModalsHost inherits Rectangle {
         description: T.tr("game_details.repacks_modal_description");
         closing: repacks-state.closing;
         covered: settings-state.mounted;
-        blurred-page: GameData.modal-backdrop;
+        // Opened from the options modal: the snapshot has that modal in it.
+        blurred-page: options-state.mounted ? GameData.stacked-backdrop : GameData.modal-backdrop;
         request-close => {
             repacks-state.close();
         }

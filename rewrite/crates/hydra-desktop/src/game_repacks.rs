@@ -55,6 +55,14 @@ pub fn init(ui: &AppWindow) {
         })
     });
     let g = ui.global::<GameData>();
+    g.on_steam_option_clicked(|| {
+        if let Some(app_id) = with(|s| s.object_id.clone()) {
+            install_on_steam(&app_id);
+        }
+        if let Some(ui) = with(|s| s.ui.upgrade()).flatten() {
+            ui.global::<GameData>().set_repacks_open(false);
+        }
+    });
     g.on_repacks_filter(|text| {
         with(|s| s.filter = text.to_string());
         apply_rows();
@@ -263,10 +271,57 @@ fn on_opened() {
 }
 
 /// filteredRepacks + rows for the modal and the hero's summary.
+/// canDownloadOnSteam: a Steam game imported from the user's Steam library
+/// that has no executable yet.
+fn steam_option(s: &State) -> bool {
+    if s.shop != "steam" || !s.fingerprints.is_empty() {
+        return false;
+    }
+    let Some(game) = shell::db().and_then(|db| {
+        db.get_in::<Value>(hydra_db::keys::GAMES, &format!("steam:{}", s.object_id))
+    }) else {
+        return false;
+    };
+    let imported = game.get("isDeleted").and_then(Value::as_bool) != Some(true)
+        && game.get("hasActiveSteamImport").and_then(Value::as_bool) == Some(true);
+    let no_executable = game
+        .get("executablePath")
+        .and_then(Value::as_str)
+        .is_none_or(str::is_empty);
+    // TODO(downloads): isSteamImportedGame && useIsNonSteamExecutable
+    let term = s.filter.trim().to_lowercase();
+    let title = game
+        .get("title")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_lowercase();
+    imported
+        && no_executable
+        && (term.is_empty() || "steam".contains(&term) || title.contains(&term))
+}
+
+/// installGameOnSteam: steam://install/<appid>
+fn install_on_steam(app_id: &str) {
+    if app_id.is_empty() || !app_id.chars().all(|c| c.is_ascii_digit()) {
+        return;
+    }
+    let url = format!("steam://install/{app_id}");
+    #[cfg(windows)]
+    let _ = std::process::Command::new("cmd")
+        .args(["/C", "start", "", &url])
+        .spawn();
+    #[cfg(not(windows))]
+    let _ = std::process::Command::new("xdg-open").arg(&url).spawn();
+    // TODO(downloads): watchSteamAppInstall
+}
+
 fn apply_rows() {
     let Some(ui) = with(|s| s.ui.upgrade()).flatten() else {
         return;
     };
+    if let Some(show) = with(|s| steam_option(s)) {
+        ui.global::<GameData>().set_steam_option(show);
+    }
     let language = shell::i18n()
         .map(|i| i.language().to_string())
         .unwrap_or_else(|| "en".into());
