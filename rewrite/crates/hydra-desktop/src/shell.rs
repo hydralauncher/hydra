@@ -428,6 +428,7 @@ pub fn reload_user(done: Option<Box<dyn FnOnce() + Send>>) {
     };
     // HydraApi.onAuthContextChanged
     crate::screenshots::on_auth_changed();
+    crate::epic::on_auth_maybe_changed();
     if !api.is_logged_in() {
         if let Some(ui) = ui.upgrade() {
             let session = ui.global::<Session>();

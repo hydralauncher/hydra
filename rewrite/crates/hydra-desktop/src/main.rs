@@ -16,6 +16,8 @@ mod context_menu;
 mod deeplink;
 mod devscript;
 mod dialogs;
+mod epic;
+mod epic_auth_window;
 mod download_indicator;
 mod download_settings;
 mod downloads;
@@ -290,6 +292,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     settings_debrid::init(&ui);
     settings_modals::init(&ui);
     settings_integrations::init(&ui);
+    epic::init(&ui, &native_dir);
     settings_screenshots::init(&ui);
     settings_compatibility::init(&ui);
     settings_emulation::init(&ui);

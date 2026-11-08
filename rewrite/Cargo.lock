@@ -2827,6 +2827,7 @@ dependencies = [
  "hydra-core",
  "hydra-db",
  "hydra-downloads",
+ "hydra-epic",
  "hydra-i18n",
  "hydra-launch",
  "hydra-media",

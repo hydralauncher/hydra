@@ -545,9 +545,13 @@ fn remove_files() {
             }
             with_ui(|ui| ui.global::<GameOptions>().set_deleting(true));
             let key = key.clone();
+            // Epic installs: the managed install folder and Legendary's record
+            let epic = crate::epic::removal_context(&key);
             std::thread::spawn(move || {
-                let result =
-                    hydra_downloads::removal::delete_game_folder(&db, &key, delete_archive);
+                let result = match epic {
+                    Some(remove) => remove(&db),
+                    None => hydra_downloads::removal::delete_game_folder(&db, &key, delete_archive),
+                };
                 let _ = slint::invoke_from_event_loop(move || {
                     with_ui(|ui| ui.global::<GameOptions>().set_deleting(false));
                     if let Err(error) = result {

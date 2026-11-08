@@ -20,6 +20,8 @@ hydra-db = { path = "../hydra-db" }
 hydra-i18n = { path = "../hydra-i18n" }
 # the in-game screenshot service: capture, focus and the hotkey (shared with native/hydra-native)
 hydra-capture = { path = "../hydra-capture" }
+# the Epic Games integration (bundled Legendary, session store, library sync)
+hydra-epic = { path = "../hydra-epic" }
 uuid = { version = "1", features = ["v4"] }
 serde_json.workspace = true
 reqwest.workspace = true
