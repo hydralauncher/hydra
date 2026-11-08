@@ -4,6 +4,7 @@
 pub mod achievements;
 pub mod api;
 pub mod config;
+pub mod debrid;
 pub mod download_directories;
 pub mod emulation;
 pub mod executables;

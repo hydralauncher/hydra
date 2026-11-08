@@ -22,6 +22,27 @@ export struct CheckRow {
     guide: string,
 }
 
+// One debrid provider (settings-debrid__section + settings-<provider>).
+export struct DebridRow {
+    key: string,
+    title: string,
+    description: string,
+    create-label: string,
+    create-url: string,
+    enable-label: string,
+    // the "debrid_api_token_hint" sentence split around its link
+    hint-before: string,
+    hint-link: string,
+    hint-after: string,
+    token-url: string,
+    collapsed: bool,
+    enabled: bool,
+    token: string,
+    // a saved token: the check mark next to the title
+    linked: bool,
+    busy: bool,
+}
+
 export struct BlockedUser {
     id: string,
     name: string,
@@ -119,6 +140,14 @@ export global SettingsData {
     callback change-screenshots-path();
     callback reset-screenshots-path();
     callback open-screenshots-path();
+
+    // ---- Integrations: debrid services
+    in property <[DebridRow]> debrid;
+    callback debrid-collapse(string);
+    callback debrid-enable(string);
+    callback debrid-token-edited(string, string);
+    callback debrid-save(string);
+    callback open-url(string);
 
     // ---- Account & Privacy
     in property <bool> account-loaded;
@@ -978,6 +1007,195 @@ component ContentPanel inherits VerticalLayout {
     }
 }
 
+// settings-debrid: a collapsible section per provider.
+component DebridSection inherits VerticalLayout {
+    in property <DebridRow> item;
+    // __section--expanded:not(:last-child): margin-bottom 24
+    in property <bool> last;
+    padding-bottom: !root.item.collapsed && !root.last ? 24px : 0;
+    // __section-header: gap 8, margin-bottom 16
+    HorizontalLayout {
+        padding-bottom: 16px;
+        spacing: 8px;
+        alignment: start;
+        collapse := Rectangle {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            background: collapse-touch.has-hover ? rgba(255, 255, 255, 0.1) : transparent;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: Icons.chevron-right;
+                color: collapse-touch.has-hover ? rgba(255, 255, 255, 0.9) : rgba(255, 255, 255, 0.7);
+                rotation-angle: root.item.collapsed ? 0deg : 90deg;
+                animate rotation-angle { duration: 200ms; easing: ease; }
+            }
+            collapse-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    SettingsData.debrid-collapse(root.item.key);
+                }
+            }
+        }
+        Text {
+            text: root.item.title;
+            font-size: 16px;
+            font-weight: 600;
+            color: Theme.muted;
+            vertical-alignment: center;
+        }
+        if root.item.linked: VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: Icons.check-circle-fill;
+                color: Theme.muted;
+            }
+        }
+    }
+    // settings-real-debrid__form: gap 16
+    if !root.item.collapsed: VerticalLayout {
+        spacing: 16px;
+        VerticalLayout {
+            spacing: 8px;
+            Text {
+                text: root.item.description;
+                font-size: Theme.body-size;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+            HorizontalLayout {
+                alignment: start;
+                spacing: 8px;
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        width: 16px;
+                        height: 16px;
+                        source: Icons.link-external;
+                        color: Theme.body;
+                    }
+                }
+                Text {
+                    text: root.item.create-label;
+                    font-size: Theme.body-size;
+                    color: Theme.body;
+                    TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            SettingsData.open-url(root.item.create-url);
+                        }
+                    }
+                }
+            }
+        }
+        CheckboxField {
+            label: root.item.enable-label;
+            checked: root.item.enabled;
+            toggled => {
+                SettingsData.debrid-enable(root.item.key);
+            }
+        }
+        if root.item.enabled: VerticalLayout {
+            spacing: 8px;
+            Text {
+                text: T.tr("settings.api_token");
+                font-size: Theme.body-size;
+                color: Theme.body;
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                TextField {
+                    placeholder: T.tr("settings.api_token");
+                    password: true;
+                    text: root.item.token;
+                    edited(value) => {
+                        SettingsData.debrid-token-edited(root.item.key, value);
+                    }
+                }
+                HydraButton {
+                    text: T.tr("settings.save_changes");
+                    enabled: root.item.token != "" && !root.item.busy;
+                    clicked => {
+                        SettingsData.debrid-save(root.item.key);
+                    }
+                }
+            }
+            // <small> hint with the token page link
+            HorizontalLayout {
+                alignment: start;
+                Text {
+                    text: root.item.hint-before;
+                    font-size: 11.67px;
+                    color: Theme.body;
+                }
+                Text {
+                    text: root.item.hint-link;
+                    font-size: 11.67px;
+                    color: Theme.body;
+                    Rectangle {
+                        y: parent.height - 2px;
+                        height: 1px;
+                        background: Theme.body;
+                    }
+                    TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            SettingsData.open-url(root.item.token-url);
+                        }
+                    }
+                }
+                Text {
+                    text: root.item.hint-after;
+                    font-size: 11.67px;
+                    color: Theme.body;
+                }
+            }
+        }
+    }
+}
+
+// settings-context-integrations.tsx (Steam, Epic and RetroAchievements cards are TODO)
+component IntegrationsPanel inherits VerticalLayout {
+    spacing: 16px;
+    Text {
+        text: "TODO(settings): Steam, Epic Games and RetroAchievements cards";
+        color: Theme.subtle;
+        font-size: Theme.small-size;
+    }
+    // settings-context-panel__divider
+    Rectangle {
+        height: 1px;
+        background: Theme.border;
+    }
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.debrid_services");
+        }
+        // settings-debrid: gap 16; the description has margin-bottom 16
+        VerticalLayout {
+            spacing: 16px;
+            Text {
+                text: T.tr("settings.debrid_description");
+                font-size: Theme.body-size;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+            Rectangle {
+                height: 0;
+            }
+            for provider[i] in SettingsData.debrid: DebridSection {
+                item: provider;
+                last: i == SettingsData.debrid.length - 1;
+            }
+        }
+    }
+}
+
 // A labelled select-field section that saves on change.
 component AccountSelect inherits Labeled {
     in property <string> key;
@@ -1472,7 +1690,8 @@ export component SettingsPage inherits Rectangle {
                             if SettingsData.category == "notifications": NotificationsPanel { }
                             if SettingsData.category == "content_gameplay": ContentPanel { }
                             if SettingsData.category == "account_privacy" && SettingsData.account-loaded: AccountPanel { }
-                            if SettingsData.category != "general" && SettingsData.category != "downloads" && SettingsData.category != "download_sources" && SettingsData.category != "notifications" && SettingsData.category != "content_gameplay" && SettingsData.category != "account_privacy": Text {
+                            if SettingsData.category == "integrations": IntegrationsPanel { }
+                            if SettingsData.category != "general" && SettingsData.category != "downloads" && SettingsData.category != "download_sources" && SettingsData.category != "notifications" && SettingsData.category != "content_gameplay" && SettingsData.category != "account_privacy" && SettingsData.category != "integrations": Text {
                                 text: "TODO(settings): " + SettingsData.category + " not ported yet";
                                 color: Theme.subtle;
                                 font-size: Theme.small-size;

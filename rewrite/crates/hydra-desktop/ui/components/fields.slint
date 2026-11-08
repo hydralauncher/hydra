@@ -11,6 +11,8 @@ export component TextField inherits Rectangle {
     in-out property <string> text;
     // A disabled, read-only field (the executable path).
     in property <bool> read-only;
+    // type="password"
+    in property <bool> password;
     callback edited(string);
     // onBlur
     callback focus-lost();
@@ -50,6 +52,7 @@ export component TextField inherits Rectangle {
             single-line: true;
             read-only: root.read-only;
             enabled: !root.read-only;
+            input-type: root.password ? InputType.password : InputType.text;
             accessible-label: root.placeholder;
             changed has-focus => {
                 if (!self.has-focus) {

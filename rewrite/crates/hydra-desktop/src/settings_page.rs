@@ -253,6 +253,9 @@ fn select(id: &str) {
     if id == "account_privacy" {
         crate::settings_account::refresh();
     }
+    if id == "integrations" {
+        crate::settings_debrid::refresh();
+    }
     let label = categories()
         .into_iter()
         .find(|(c, _, _)| c == id)
