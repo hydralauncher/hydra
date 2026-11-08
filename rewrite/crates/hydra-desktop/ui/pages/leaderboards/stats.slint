@@ -1,0 +1,873 @@
+// The "Your stats" tab of pages/leaderboards (stats-tab.tsx,
+// friend-streak-list.tsx, friend-streak-card.tsx) and the badges section
+// (badges-section.tsx).
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, HydraButton, Skeleton, ScrollBar } from "../../components/widgets.slint";
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { T } from "../../globals.slint";
+import { LeaderboardsData, LbFriendStreak, LbBadge } from "state.slint";
+import { LbAvatar, MetricIcon, BlockMessage, BlockError } from "parts.slint";
+
+// One cell of the "Your week" table (th 36px, td 44px, a bottom border).
+component MineCell inherits Rectangle {
+    in property <string> text;
+    in property <bool> head;
+    in property <bool> last-row;
+    in property <bool> first-column;
+    in property <bool> last-column;
+    in property <bool> hovered;
+    in property <bool> pending;
+    in property <bool> failed;
+    in property <string> metric;
+    callback hover(bool);
+    callback clicked();
+    min-height: root.head ? 36px : 44px;
+    horizontal-stretch: root.first-column ? 1 : 0;
+    vertical-stretch: root.head ? 36 : 44;
+    min-width: content.preferred-width;
+    property <brush> ink: !root.head && root.hovered ? Theme.muted : Theme.body;
+    if !root.last-row: Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.border;
+    }
+    content := HorizontalLayout {
+        padding-left: root.first-column ? 0 : root.last-column ? 48px : 16px;
+        padding-right: root.last-column || root.first-column ? 0 : 16px;
+        spacing: 8px;
+        alignment: root.first-column ? start : end;
+        if root.first-column && !root.head: MetricIcon {
+            y: (parent.height - self.height) / 2;
+            metric: root.metric;
+            tint: root.ink;
+        }
+        if root.pending: VerticalLayout {
+            alignment: center;
+            Skeleton {
+                width: 48px;
+                height: 13px;
+            }
+        }
+        if !root.pending: Text {
+            text: root.head ? root.text.to-uppercase() : root.text;
+            font-size: root.head ? Theme.tiny-size : root.failed ? Theme.small-size : Theme.hint-size;
+            font-weight: root.head ? 700 : 400;
+            letter-spacing: root.head ? 0.88px : 0;
+            color: root.failed ? Theme.muted : root.ink;
+            animate color { duration: 200ms; easing: ease; }
+            vertical-alignment: center;
+        }
+    }
+    if !root.head: TouchArea {
+        mouse-cursor: pointer;
+        changed has-hover => {
+            root.hover(self.has-hover);
+        }
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// .leaderboards__mine: the viewer's banner header and the metric table.
+component MineCard inherits Rectangle {
+    property <int> hover-row: -1;
+    border-radius: 4px;
+    background: Theme.background;
+    clip: true;
+    min-height: column.preferred-height;
+    column := VerticalLayout {
+        header := Rectangle {
+            if LeaderboardsData.has-viewer-banner: Image {
+                width: parent.width;
+                height: parent.height;
+                source: LeaderboardsData.viewer-banner;
+                image-fit: cover;
+            }
+            if LeaderboardsData.has-viewer-banner: Rectangle {
+                background: @linear-gradient(180deg, rgba(18, 18, 18, 0.15) 0%, rgba(18, 18, 18, 0.85) 75%, #121212 100%);
+            }
+            if !LeaderboardsData.has-viewer-banner: Rectangle {
+                y: parent.height - 1px;
+                height: 1px;
+                background: Theme.border;
+            }
+            HorizontalLayout {
+                padding-top: 32px;
+                padding-bottom: LeaderboardsData.has-viewer-banner ? 16px : 17px;
+                padding-left: 16px;
+                padding-right: 16px;
+                spacing: 12px;
+                LbAvatar {
+                    size: 48px;
+                    source: LeaderboardsData.viewer-avatar;
+                }
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 2px;
+                    Text {
+                        text: LeaderboardsData.mine-title;
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: Theme.muted;
+                    }
+                    Text {
+                        text: LeaderboardsData.viewer-name;
+                        font-size: Theme.small-size;
+                        color: Theme.body;
+                    }
+                }
+            }
+        }
+        GridLayout {
+            vertical-stretch: 1;
+            padding-left: 16px;
+            padding-right: 16px;
+            Row {
+                MineCell {
+                    head: true;
+                    first-column: true;
+                    text: T.tr("leaderboards.metric_label");
+                }
+                MineCell {
+                    head: true;
+                    text: T.tr("leaderboards.column_value");
+                }
+                MineCell {
+                    head: true;
+                    last-column: true;
+                    text: T.tr("leaderboards.column_rank");
+                }
+            }
+            for item[i] in LeaderboardsData.mine: Row {
+                MineCell {
+                    first-column: true;
+                    metric: item.metric-id;
+                    text: item.label;
+                    last-row: i == LeaderboardsData.mine.length - 1;
+                    hovered: root.hover-row == i;
+                    hover(on) => {
+                        root.hover-row = on ? i : root.hover-row == i ? -1 : root.hover-row;
+                    }
+                    clicked => {
+                        LeaderboardsData.open-metric(item.metric-id);
+                    }
+                }
+                MineCell {
+                    text: item.value;
+                    pending: item.pending;
+                    failed: item.failed;
+                    last-row: i == LeaderboardsData.mine.length - 1;
+                    hovered: root.hover-row == i;
+                    hover(on) => {
+                        root.hover-row = on ? i : root.hover-row == i ? -1 : root.hover-row;
+                    }
+                    clicked => {
+                        LeaderboardsData.open-metric(item.metric-id);
+                    }
+                }
+                MineCell {
+                    last-column: true;
+                    text: item.rank;
+                    last-row: i == LeaderboardsData.mine.length - 1;
+                    hovered: root.hover-row == i;
+                    hover(on) => {
+                        root.hover-row = on ? i : root.hover-row == i ? -1 : root.hover-row;
+                    }
+                    clicked => {
+                        LeaderboardsData.open-metric(item.metric-id);
+                    }
+                }
+            }
+        }
+        if LeaderboardsData.mine-failed: HorizontalLayout {
+            padding: 8px;
+            alignment: center;
+            HydraButton {
+                kind: "outline";
+                small: true;
+                text: T.tr("leaderboards.retry");
+                clicked => {
+                    LeaderboardsData.retry();
+                }
+            }
+        }
+    }
+    // ::after: the border drawn over the banner
+    Rectangle {
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: Theme.border;
+    }
+}
+
+// friend-streak-card.tsx: 72px, the friend's banner behind a dark gradient,
+// the avatar with the presence orb, the name and the days.
+component FriendStreakCard inherits Rectangle {
+    in property <LbFriendStreak> item;
+    height: 72px;
+    border-radius: 4px;
+    clip: true;
+    if root.item.has-banner: Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.item.banner;
+        image-fit: cover;
+    }
+    if root.item.has-banner: Rectangle {
+        background: @linear-gradient(90deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.3) 100%);
+    }
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        spacing: 16px;
+        HorizontalLayout {
+            horizontal-stretch: 1;
+            spacing: 8px;
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 40px;
+                    height: 40px;
+                    LbAvatar {
+                        size: 40px;
+                        source: root.item.avatar;
+                    }
+                    // the friends window's status orb: 12px, a 2px #121212 ring
+                    Rectangle {
+                        x: parent.width - 12px;
+                        y: parent.height - 12px;
+                        width: 12px;
+                        height: 12px;
+                        border-radius: 6px;
+                        border-width: 2px;
+                        border-color: Theme.background;
+                        background: root.item.online ? Theme.success : #6d6d6d;
+                    }
+                }
+            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                Text {
+                    text: root.item.name;
+                    font-size: Theme.hint-size;
+                    color: Theme.muted;
+                    overflow: elide;
+                }
+                Text {
+                    text: root.item.online ? T.tr("leaderboards.online") : T.tr("leaderboards.offline");
+                    font-size: Theme.tiny-size;
+                    color: Theme.body;
+                    opacity: 0.7;
+                }
+            }
+        }
+        Text {
+            text: root.item.days;
+            font-size: Theme.body-size;
+            font-weight: 700;
+            color: Theme.muted;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// friend-streak-list.tsx: a scroller inside the card (six rows and the button
+// fit without scrolling), "Show more" adds six and scrolls to the first new
+// one, and the last row fades out while there is more below.
+component FriendStreakList inherits Rectangle {
+    // flex: 1 1 0 with a 520px floor: six rows and the button
+    min-height: 520px;
+    preferred-height: 520px;
+    vertical-stretch: 1;
+    property <length> max-scroll: Math.max(0, list.content-height - list.height);
+    property <length> scroll-y;
+    property <ScrollTween> tween;
+    property <int> seen: LeaderboardsData.friends-visible;
+    changed seen => {
+        // scroll-behavior: smooth to the first new row (offsetTop)
+        let target = Math.clamp((self.seen - 6) * 80px, 0, root.max-scroll + 6 * 80px);
+        root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, -target - root.scroll-y, -1000000px, 0);
+        root.scroll-y = root.tween.to;
+    }
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+                root.scroll-y = Math.clamp(root.scroll-y, -root.max-scroll, 0);
+            }
+        }
+    }
+    property <length> shown-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+    list := Flickable {
+        x: 0;
+        width: root.width;
+        height: root.height;
+        interactive: false;
+        content-height: rows.preferred-height;
+        content-y: Math.clamp(root.shown-y, -root.max-scroll, 0);
+        TouchArea {
+            width: list.width;
+            height: list.content-height;
+            scroll-event(event) => {
+                let down = event.delta-y < 0;
+                if (root.max-scroll <= 0 || (down && root.scroll-y <= -root.max-scroll) || (!down && root.scroll-y >= 0)) {
+                    return reject;
+                }
+                root.wheel-by(event.delta-y);
+                accept
+            }
+            rows := VerticalLayout {
+                x: 0;
+                width: root.width - 9px;
+                spacing: 8px;
+                for item[i] in LeaderboardsData.friend-streaks: FriendStreakCard {
+                    item: item;
+                }
+                if LeaderboardsData.friends-total > LeaderboardsData.friends-visible: HydraButton {
+                    kind: "outline";
+                    text: T.tr("leaderboards.show_more");
+                    horizontal-stretch: 1;
+                    clicked => {
+                        LeaderboardsData.friends-more();
+                    }
+                }
+            }
+        }
+    }
+    // --more-below: the bottom 72px fade into the card (#121212)
+    if root.max-scroll > 0 && -root.shown-y < root.max-scroll - 1px: Rectangle {
+        x: 0;
+        y: root.height - 72px;
+        width: root.width - 9px;
+        height: 72px;
+        background: @linear-gradient(180deg, rgba(18, 18, 18, 0) 0%, #121212 100%);
+    }
+    if root.max-scroll > 0: ScrollBar {
+        x: root.width - 9px;
+        height: root.height;
+        content-height: list.content-height;
+        viewport-height: list.height;
+        content-y <=> root.scroll-y;
+        shown-offset: -list.content-y;
+    }
+}
+
+// The activity heatmap's tip (stats-tab.tsx renderHeatTip).
+component HeatTip inherits Rectangle {
+    in property <string> label;
+    width: Math.min(280px, tip-text.preferred-width + 18px);
+    height: tip-text.preferred-height + 18px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: Theme.dark-background;
+    drop-shadow-offset-y: 8px;
+    drop-shadow-blur: 24px;
+    drop-shadow-color: rgba(0, 0, 0, 0.5);
+    tip-text := Text {
+        x: 9px;
+        y: 9px;
+        width: parent.width - 18px;
+        text: root.label;
+        font-size: Theme.small-size;
+        color: Theme.muted;
+        wrap: word-wrap;
+    }
+}
+
+// Activity: current and best streak, and the heatmap of played days.
+component ActivityCard inherits Rectangle {
+    property <length> cell: LeaderboardsData.heat-size;
+    property <length> step: root.cell + 6px;
+    property <int> tip-index: -1;
+    property <int> hover-index: -1;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: Theme.border;
+    background: Theme.background;
+    min-height: column.preferred-height;
+    column := VerticalLayout {
+        padding: 17px;
+        spacing: 16px;
+        // __activity-header
+        HorizontalLayout {
+            spacing: 16px;
+            Text {
+                text: T.tr("leaderboards.activity_title");
+                font-size: 16px;
+                font-weight: 700;
+                color: Theme.muted;
+                vertical-alignment: center;
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+            if LeaderboardsData.activity-state == "ready": HorizontalLayout {
+                spacing: 16px;
+                padding-right: 16px;
+                for streak[i] in [
+                    { label: T.tr("leaderboards.streak_current"), value: LeaderboardsData.streak-current, unit: LeaderboardsData.streak-current-unit },
+                    { label: T.tr("leaderboards.streak_best"), value: LeaderboardsData.streak-best, unit: LeaderboardsData.streak-best-unit },
+                ]: HorizontalLayout {
+                    spacing: 4px;
+                    Text {
+                        text: streak.label;
+                        font-size: Theme.small-size;
+                        color: Theme.body;
+                        vertical-alignment: center;
+                    }
+                    Text {
+                        text: streak.value;
+                        height: 22px;
+                        font-size: Theme.body-size;
+                        font-weight: 700;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                    }
+                    Text {
+                        text: streak.unit;
+                        font-size: Theme.small-size;
+                        color: Theme.body;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+        if LeaderboardsData.activity-state == "loading": Skeleton {
+            height: 150px;
+        }
+        if LeaderboardsData.activity-state == "error": BlockError {
+            action-clicked => {
+                LeaderboardsData.retry-activity();
+            }
+        }
+        if LeaderboardsData.activity-state == "ready": area := Rectangle {
+            height: body.height;
+            changed width => {
+                LeaderboardsData.activity-width-changed(self.width);
+            }
+            init => {
+                LeaderboardsData.activity-width-changed(self.width);
+            }
+            body := Rectangle {
+                x: (parent.width - self.width) / 2;
+                width: LeaderboardsData.heat-width;
+                height: 14px + 4px + 7 * root.cell + 6 * 6px + 12px + 17px;
+                // month labels on the first week of each month
+                for month in LeaderboardsData.heat-months: Text {
+                    x: 36px + month.week * root.step;
+                    y: 0;
+                    height: 14px;
+                    text: month.label;
+                    font-size: Theme.tiny-size;
+                    color: Theme.body;
+                    vertical-alignment: center;
+                }
+                // Mon / Wed / Fri
+                for day[i] in LeaderboardsData.heat-days: Text {
+                    x: 0;
+                    y: 18px + i * root.step;
+                    width: 30px;
+                    height: root.cell;
+                    text: day;
+                    font-size: Theme.tiny-size;
+                    color: Theme.body;
+                    vertical-alignment: center;
+                }
+                cells := Rectangle {
+                    x: 36px;
+                    y: 18px;
+                    width: LeaderboardsData.heat-weeks * root.step - 6px;
+                    height: 7 * root.step - 6px;
+                    for heat[i] in LeaderboardsData.heat-cells: Rectangle {
+                        x: Math.floor(i / 7) * root.step;
+                        y: Math.mod(i, 7) * root.step;
+                        width: root.cell;
+                        height: root.cell;
+                        border-radius: 2px;
+                        border-width: 1px;
+                        border-color: heat.today ? Theme.muted : root.hover-index == i && !heat.future ? rgba(255, 255, 255, 0.6) : transparent;
+                        background: heat.future ? transparent : heat.level == 1 ? rgba(34, 199, 238, 0.28) : heat.level == 2 ? rgba(106, 140, 255, 0.62) : heat.level == 3 ? #c98dff : rgba(255, 255, 255, 0.06);
+                        drop-shadow-blur: heat.future ? 0 : heat.level == 2 ? 4px : heat.level == 3 ? 6px : 0;
+                        drop-shadow-color: heat.level == 2 ? rgba(106, 140, 255, 0.3) : rgba(176, 92, 255, 0.55);
+                    }
+                    // The gaps between cells keep the current tip; future cells hide it.
+                    TouchArea {
+                        moved => {
+                            let column = Math.floor(self.mouse-x / root.step);
+                            let row = Math.floor(self.mouse-y / root.step);
+                            let in-gap = self.mouse-x - column * root.step > root.cell || self.mouse-y - row * root.step > root.cell;
+                            let index = column * 7 + row;
+                            if (in-gap || row > 6 || index >= LeaderboardsData.heat-cells.length) {
+                                root.hover-index = -1;
+                                return;
+                            }
+                            root.hover-index = index;
+                            root.tip-index = LeaderboardsData.heat-cells[index].future ? -1 : index;
+                        }
+                        changed has-hover => {
+                            if (!self.has-hover) {
+                                root.tip-index = -1;
+                                root.hover-index = -1;
+                            }
+                        }
+                    }
+                }
+                // __activity-footer: the total and the legend
+                HorizontalLayout {
+                    y: parent.height - 17px;
+                    height: 17px;
+                    Text {
+                        horizontal-stretch: 0;
+                        text: LeaderboardsData.activity-total;
+                        font-size: Theme.small-size;
+                        color: Theme.body;
+                        vertical-alignment: center;
+                    }
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+                    HorizontalLayout {
+                        horizontal-stretch: 0;
+                        spacing: 4px;
+                        Text {
+                            horizontal-stretch: 0;
+                            text: T.tr("leaderboards.legend_less");
+                            font-size: Theme.small-size;
+                            color: Theme.body;
+                            vertical-alignment: center;
+                        }
+                        for level in [0, 1, 2, 3]: Rectangle {
+                            y: (parent.height - 12px) / 2;
+                            width: 12px;
+                            height: 12px;
+                            border-radius: 2px;
+                            background: level == 1 ? rgba(34, 199, 238, 0.28) : level == 2 ? rgba(106, 140, 255, 0.62) : level == 3 ? #c98dff : rgba(255, 255, 255, 0.06);
+                            drop-shadow-blur: level == 2 ? 4px : level == 3 ? 6px : 0;
+                            drop-shadow-color: level == 2 ? rgba(106, 140, 255, 0.3) : rgba(176, 92, 255, 0.55);
+                        }
+                        Text {
+                            horizontal-stretch: 0;
+                            text: T.tr("leaderboards.legend_more");
+                            font-size: Theme.small-size;
+                            color: Theme.body;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+                // Tips near the left and right edges open inward and tips in
+                // the top two rows open below.
+                if root.tip-index >= 0: tip := HeatTip {
+                    property <length> cx: cells.x + Math.floor(root.tip-index / 7) * root.step + root.cell / 2;
+                    property <length> cy: cells.y + Math.mod(root.tip-index, 7) * root.step;
+                    property <bool> below: Math.mod(root.tip-index, 7) < 2;
+                    label: LeaderboardsData.heat-cells[root.tip-index].summary + LeaderboardsData.heat-cells[root.tip-index].games;
+                    x: self.cx < 150px ? self.cx - 12px : body.width - self.cx < 150px ? self.cx - self.width + 12px : self.cx - self.width / 2;
+                    y: self.below ? self.cy + root.cell + 6px : self.cy - 6px - self.height;
+                }
+            }
+        }
+    }
+}
+
+// The stats tab: "Your week" and the friends' streaks side by side when they
+// fit (auto-fit minmax(320px, 1fr)), then Activity.
+export component StatsTab inherits VerticalLayout {
+    property <int> columns: Math.max(1, Math.floor((self.width + 24px) / 344px));
+    property <length> column-width: (self.width - (root.columns - 1) * 24px) / root.columns;
+    spacing: 24px;
+    property <length> row-height: root.columns > 1 ? Math.max(mine.min-height, friends.min-height) : 0;
+    grid := Rectangle {
+        height: root.columns > 1 ? root.row-height : mine.min-height + 24px + friends.min-height;
+        mine := MineCard {
+            x: 0;
+            y: 0;
+            width: root.column-width;
+            height: root.columns > 1 ? root.row-height : self.min-height;
+        }
+        friends := Rectangle {
+            x: root.columns > 1 ? root.column-width + 24px : 0;
+            y: root.columns > 1 ? 0 : mine.min-height + 24px;
+            width: root.column-width;
+            height: root.columns > 1 ? root.row-height : self.min-height;
+            min-height: panel.preferred-height;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: Theme.border;
+            background: Theme.background;
+            // the list reaches 9px into the right padding (margin-right: -9px)
+            // for its scrollbar gutter; everything else keeps the padding
+            panel := VerticalLayout {
+                padding-top: 17px;
+                padding-bottom: 17px;
+                padding-left: 17px;
+                padding-right: 8px;
+                spacing: 16px;
+                alignment: space-between;
+                if LeaderboardsData.friends-state != "empty": HorizontalLayout {
+                    padding-right: 9px;
+                    Text {
+                        text: T.tr("leaderboards.friends_streak");
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: Theme.muted;
+                    }
+                }
+                if LeaderboardsData.friends-state == "loading": VerticalLayout {
+                    padding-right: 9px;
+                    spacing: 8px;
+                    for i in 6: Skeleton {
+                        height: 72px;
+                    }
+                }
+                if LeaderboardsData.friends-state == "error": BlockError {
+                    vertical-stretch: 1;
+                    padding-right: 25px;
+                    action-clicked => {
+                        LeaderboardsData.retry-friends();
+                    }
+                }
+                if LeaderboardsData.friends-state == "empty": BlockMessage {
+                    vertical-stretch: 1;
+                    padding-right: 25px;
+                    icon: "people";
+                    title: T.tr("leaderboards.empty_friend_streaks_title");
+                    description: T.tr("leaderboards.empty_friend_streaks_description");
+                    action: T.tr("leaderboards.find_friends");
+                    action-clicked => {
+                        LeaderboardsData.empty-clicked();
+                    }
+                }
+                if LeaderboardsData.friends-state == "ready": FriendStreakList { }
+            }
+        }
+    }
+    ActivityCard { }
+}
+
+// The badges' rank frame: a 1.5px ring in the metal (soft) with a highlight
+// spinning around it (4.5s); silver and bronze trail gold by 1/3 and 2/3 turn.
+component RankFrameRing inherits Rectangle {
+    in property <string> tier;
+    property <color> frame: root.tier == "silver" ? #d0d1d7 : root.tier == "bronze" ? #d08a52 : #f3c611;
+    property <float> soft: root.tier == "silver" ? 0.34 : root.tier == "bronze" ? 0.42 : 0.4;
+    property <float> offset: root.tier == "silver" ? -2 / 3 : root.tier == "bronze" ? -1 / 3 : 0;
+    border-radius: 4px;
+    clip: true;
+    background: root.frame.with-alpha(root.soft);
+    Rectangle {
+        property <length> side: root.width + 64px;
+        x: (root.width - self.side) / 2;
+        y: (root.height - self.side) / 2;
+        width: self.side;
+        height: self.side;
+        background: @conic-gradient(transparent 0deg, transparent 190deg, root.frame 290deg, #ffffff 315deg, root.frame 335deg, transparent 360deg);
+        transform-rotation: Math.mod(animation-tick() / 4500ms - root.offset, 1) * 360deg;
+    }
+    // the mask: the badge's own background inside the ring
+    Rectangle {
+        x: 1.5px;
+        y: 1.5px;
+        width: root.width - 3px;
+        height: root.height - 3px;
+        border-radius: 2.5px;
+        background: Theme.background;
+    }
+}
+
+component BadgeCard inherits Rectangle {
+    in property <LbBadge> badge;
+    border-radius: 4px;
+    background: Theme.background;
+    min-height: bar.preferred-height;
+    // --streak (earned): a 1.5px cyan-blue-violet gradient border and a glow
+    drop-shadow-blur: root.badge.tier == "streak" && !root.badge.locked ? 24px : 0;
+    drop-shadow-color: rgba(106, 140, 255, 0.12);
+    if root.badge.ring: RankFrameRing {
+        tier: root.badge.tier;
+    }
+    if root.badge.tier == "streak" && !root.badge.locked: Rectangle {
+        border-radius: 4px;
+        background: @linear-gradient(90deg, #22c7ee 0%, #6a8cff 50%, #b05cff 100%);
+        Rectangle {
+            x: 1.5px;
+            y: 1.5px;
+            width: parent.width - 3px;
+            height: parent.height - 3px;
+            border-radius: 2.5px;
+            background: Theme.background;
+        }
+    }
+    // the plain border; locked badges are dashed in Electron (drawn solid)
+    if !root.badge.ring && !(root.badge.tier == "streak" && !root.badge.locked): Rectangle {
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: root.badge.locked ? rgba(255, 255, 255, 0.15) : rgba(255, 255, 255, 0.34);
+    }
+    bar := HorizontalLayout {
+        padding: 13px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 56px;
+                height: 56px;
+                Rectangle {
+                    border-radius: 4px;
+                    background: #1a1a1a;
+                    clip: true;
+                    opacity: root.badge.locked ? 0.45 : 1;
+                    if root.badge.cover.width > 0: Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: root.badge.cover;
+                        image-fit: cover;
+                    }
+                    if root.badge.streak: Path {
+                        width: 24px;
+                        height: 24px;
+                        viewbox-width: 16;
+                        viewbox-height: 16;
+                        commands: "M8 14c-2.8 0-4.5-1.9-4.5-4.3 0-2.6 2.2-3.9 2.7-6.7 1.6 1 2.3 2.4 2.3 3.6.8-.4 1.3-1.2 1.4-2 1.6 1.3 2.6 3 2.6 5.1C12.5 12.1 10.8 14 8 14z";
+                        fill: root.badge.locked ? Theme.warning : @linear-gradient(45deg, #22c7ee 0%, #b05cff 100%);
+                    }
+                }
+                // __badge-chip: centered on the bottom edge (-8px)
+                Rectangle {
+                    width: chip.preferred-width + 16px;
+                    height: 18px;
+                    x: (parent.width - self.width) / 2;
+                    y: parent.height - 10px;
+                    border-radius: 6px;
+                    background: root.badge.locked ? #262626 : root.badge.tier == "silver" ? #d0d1d7 : root.badge.tier == "bronze" ? #d08a52 : root.badge.tier == "streak" ? @linear-gradient(90deg, #22c7ee 0%, #b05cff 100%) : #f3c611;
+                    chip := Text {
+                        text: root.badge.chip;
+                        font-size: Theme.tiny-size;
+                        font-weight: 700;
+                        color: root.badge.locked ? Theme.body : Theme.dark-background;
+                    }
+                }
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 4px;
+            Text {
+                text: root.badge.title;
+                font-size: Theme.body-size;
+                font-weight: 500;
+                color: root.badge.locked ? Theme.body : Theme.muted;
+                wrap: word-wrap;
+            }
+            Text {
+                text: root.badge.subtitle;
+                font-size: Theme.small-size;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+            if root.badge.locked: HorizontalLayout {
+                spacing: 8px;
+                padding-top: 2px;
+                Rectangle {
+                    horizontal-stretch: 1;
+                    height: 4px;
+                    y: (parent.height - 4px) / 2;
+                    border-radius: 2px;
+                    background: Theme.border;
+                    clip: true;
+                    Rectangle {
+                        x: 0;
+                        width: parent.width * root.badge.progress / 100;
+                        border-radius: 2px;
+                        background: @linear-gradient(90deg, #22c7ee 0%, #b05cff 100%);
+                    }
+                }
+                Text {
+                    text: root.badge.meta;
+                    font-size: Theme.tiny-size;
+                    color: Theme.body;
+                }
+            }
+            if !root.badge.locked: Text {
+                text: root.badge.meta;
+                font-size: Theme.small-size;
+                color: Theme.body;
+            }
+        }
+    }
+}
+
+// badges-section.tsx: "Your badges" and a grid of cards (auto-fill
+// minmax(280px, 1fr)), eight at first.
+export component BadgesSection inherits VerticalLayout {
+    property <int> columns: Math.max(1, Math.floor((self.width + 12px) / 292px));
+    property <length> card-width: (self.width - (root.columns - 1) * 12px) / root.columns;
+    spacing: 12px;
+    HorizontalLayout {
+        spacing: 12px;
+        Text {
+            horizontal-stretch: 1;
+            text: T.tr("leaderboards.badges_title");
+            font-size: 16px;
+            font-weight: 700;
+            color: Theme.muted;
+        }
+        if LeaderboardsData.badges-count != "": Text {
+            text: LeaderboardsData.badges-count;
+            font-size: Theme.small-size;
+            color: Theme.body;
+            vertical-alignment: center;
+        }
+    }
+    if LeaderboardsData.badges-state == "loading": Rectangle {
+        height: Math.ceil(6 / root.columns) * 98px - 12px;
+        for i in 6: Skeleton {
+            x: Math.mod(i, root.columns) * (root.card-width + 12px);
+            y: Math.floor(i / root.columns) * 98px;
+            width: root.card-width;
+            height: 86px;
+        }
+    }
+    if LeaderboardsData.badges-state == "error": BlockError {
+        action-clicked => {
+            LeaderboardsData.retry-badges();
+        }
+    }
+    if LeaderboardsData.badges-state == "ready": Rectangle {
+        property <int> rows: Math.ceil(LeaderboardsData.badges.length / root.columns);
+        height: self.rows * 98px - 12px;
+        for badge[i] in LeaderboardsData.badges: BadgeCard {
+            x: Math.mod(i, root.columns) * (root.card-width + 12px);
+            y: Math.floor(i / root.columns) * 98px;
+            width: root.card-width;
+            height: 86px;
+            badge: badge;
+        }
+    }
+    if LeaderboardsData.badges-state == "ready" && LeaderboardsData.badges-more: HorizontalLayout {
+        alignment: center;
+        HydraButton {
+            kind: "outline";
+            text: T.tr("leaderboards.show_more");
+            clicked => {
+                LeaderboardsData.show-more-badges();
+            }
+        }
+    }
+}

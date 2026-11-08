@@ -12,6 +12,19 @@ use crate::shell;
 thread_local! {
     static FEATURES: RefCell<Option<Vec<String>>> = const { RefCell::new(None) };
     static LOADING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    /// GET /features answered this session (isFeaturesLoaded).
+    static LOADED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static LISTENERS: RefCell<Vec<Box<dyn Fn()>>> = RefCell::new(Vec::new());
+}
+
+/// Whether the flags came from the API this session (`isFeaturesLoaded`).
+pub fn loaded() -> bool {
+    LOADED.with(|l| l.get())
+}
+
+/// Runs `f` each time the flags arrive from the API.
+pub fn on_loaded(f: impl Fn() + 'static) {
+    LISTENERS.with(|l| l.borrow_mut().push(Box::new(f)));
 }
 
 fn cached() -> Vec<String> {
@@ -48,6 +61,8 @@ pub fn load() {
                     &serde_json::to_string(&names).unwrap_or_default(),
                 );
                 FEATURES.with(|f| *f.borrow_mut() = Some(names));
+                LOADED.with(|l| l.set(true));
+                LISTENERS.with(|l| l.borrow().iter().for_each(|f| f()));
             }
         });
     });

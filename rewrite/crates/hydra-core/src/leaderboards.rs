@@ -39,6 +39,8 @@ const BOARD_PODIUM_LAST_RANK: u32 = 3;
 /// Merged into "reviews" by the API (hydra-api#858), so it is never listed.
 const EXCLUDED_METRICS: [&str; 1] = ["review_upvotes"];
 
+/// LEADERBOARD_REQUEST_SOURCES: links that tag the board request they open.
+pub const LEADERBOARD_REQUEST_SOURCES: [&str; 1] = ["rank_notification"];
 pub const PERIODS: [&str; 2] = ["week", "all"];
 pub const SCOPES: [&str; 2] = ["global", "friends"];
 pub const TABS: [&str; 3] = ["ranking", "games", "stats"];
@@ -119,6 +121,8 @@ pub struct Entry {
 pub struct Viewer {
     pub rank: u32,
     pub value: f64,
+    /// The game board's cut to the top (rank, value), when the API sends it.
+    pub to_top: Option<(u32, f64)>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -440,9 +444,14 @@ fn normalize_entry(value: &Value) -> Option<Entry> {
 
 fn normalize_viewer(value: &Value) -> Option<Viewer> {
     let object = record(value)?;
+    let to_top = object
+        .get("toTop")
+        .and_then(record)
+        .and_then(|target| Some((positive_integer(target.get("rank")?)?, entry_value(target)?)));
     Some(Viewer {
         rank: positive_integer(object.get("rank")?)?,
         value: entry_value(object)?,
+        to_top,
     })
 }
 
@@ -1053,7 +1062,8 @@ pub fn utc_week_range(now_ms: i64) -> (i64, i64) {
     (start, start + WEEK_MS)
 }
 
-fn parse_date(text: &str) -> Option<i64> {
+/// `new Date(iso).getTime()` for the API's ISO dates.
+pub fn parse_date(text: &str) -> Option<i64> {
     DateTime::parse_from_rfc3339(text)
         .ok()
         .map(|d| d.timestamp_millis())
@@ -1221,6 +1231,149 @@ pub fn heatmap_layout(width: Option<f64>, total_weeks: usize) -> HeatmapLayout {
         weeks,
         cell_size,
         width: HEATMAP_DAY_LABELS_WIDTH + weeks as f64 * (cell_size + HEATMAP_GAP) - HEATMAP_GAP,
+    }
+}
+
+// ---- the game page card (game-leaderboard.ts) ---------------------------
+
+/// LEADERBOARD_CARD_SIZE: rows on the game page card.
+pub const CARD_SIZE: usize = 5;
+/// LEADERBOARD_METRICS the card knows.
+pub const CARD_METRICS: [&str; 4] = ["playtime", "sessions", "souvenirs", "streak"];
+
+/// isLeaderboardShop
+pub fn is_leaderboard_shop(shop: &str) -> bool {
+    matches!(shop, "steam" | "epic" | "launchbox")
+}
+
+/// getServedMetrics: the card's metrics the API serves, else playtime.
+pub fn served_metrics(served: Option<&[String]>) -> Vec<&'static str> {
+    let list: Vec<&'static str> = CARD_METRICS
+        .iter()
+        .copied()
+        .filter(|metric| served.is_some_and(|ids| ids.iter().any(|id| id == metric)))
+        .collect();
+    if list.is_empty() {
+        vec!["playtime"]
+    } else {
+        list
+    }
+}
+
+/// buildLeaderboardRequest: the card's board.
+pub fn card_request(
+    shop: &str,
+    object_id: &str,
+    metric: &str,
+    period: &str,
+    scope: &str,
+    logged_in: bool,
+) -> Request {
+    Request::new(
+        board_path(metric, Some((shop, object_id))),
+        &[
+            ("take", TAKE.to_string()),
+            ("range", period.to_string()),
+            ("scope", scope.to_string()),
+        ],
+        logged_in,
+    )
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Nudge {
+    Leading,
+    Behind {
+        gap: f64,
+        target: User,
+        target_rank: u32,
+    },
+    ToTop {
+        gap: f64,
+        rank: u32,
+    },
+}
+
+/// getLeaderboardNudge: what the viewer needs for the next place, or for the
+/// top N (global boards) when the players right above are not listed.
+pub fn nudge(board: &Board, viewer: Option<&User>, scope: &str) -> Option<Nudge> {
+    let own = viewer_entry(board, viewer)?;
+    if own.rank == 1 {
+        return Some(Nudge::Leading);
+    }
+    let ahead: Vec<&Entry> = board
+        .entries
+        .iter()
+        .filter(|e| e.rank < own.rank && e.user.id != own.user.id)
+        .collect();
+    if ahead.is_empty() || ahead.len() < own.rank as usize - 1 {
+        let to_top = if scope == "global" {
+            board.viewer.and_then(|v| v.to_top)
+        } else {
+            None
+        };
+        let (rank, value) = to_top.filter(|(rank, _)| *rank < own.rank)?;
+        let gap = value - own.value;
+        return (gap > 0.0).then_some(Nudge::ToTop { gap, rank });
+    }
+    let above = ahead[ahead.len() - 1];
+    let gap = above.value - own.value;
+    (gap > 0.0).then(|| Nudge::Behind {
+        gap,
+        target: above.user.clone(),
+        target_rank: above.rank,
+    })
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CardState {
+    Hidden,
+    Loading,
+    Error,
+    Ready,
+    EmptyWeek,
+    EmptyAll,
+    EmptyFriends,
+    Solo,
+}
+
+/// getLeaderboardState
+pub fn card_state(
+    is_eligible: bool,
+    has_error: bool,
+    board: Option<&Board>,
+    period: &str,
+    scope: &str,
+    viewer_id: Option<&str>,
+) -> CardState {
+    if !is_eligible {
+        return CardState::Hidden;
+    }
+    if has_error {
+        return CardState::Error;
+    }
+    let Some(board) = board else {
+        return CardState::Loading;
+    };
+    let others = board
+        .entries
+        .iter()
+        .filter(|e| Some(e.user.id.as_str()) != viewer_id)
+        .count();
+    if scope == "friends" && others == 0 {
+        return CardState::EmptyFriends;
+    }
+    if !board.entries.is_empty() {
+        return if viewer_id.is_some() && others == 0 {
+            CardState::Solo
+        } else {
+            CardState::Ready
+        };
+    }
+    if period == "week" {
+        CardState::EmptyWeek
+    } else {
+        CardState::EmptyAll
     }
 }
 
@@ -1398,7 +1551,8 @@ mod tests {
             board.viewer,
             Some(Viewer {
                 rank: 40,
-                value: 3.0
+                value: 3.0,
+                to_top: None
             })
         );
         assert_eq!(board.viewer_previous_rank, Some(38));
@@ -1570,7 +1724,8 @@ mod tests {
                     top.clone(),
                     Some(Viewer {
                         rank: 250,
-                        value: 3.0
+                        value: 3.0,
+                        to_top: None
                     })
                 ),
                 Some("me2")
@@ -1609,6 +1764,7 @@ mod tests {
             Some(Viewer {
                 rank: 9,
                 value: 0.0,
+                to_top: None,
             }),
         );
         let me = user("me");
@@ -1832,6 +1988,104 @@ mod tests {
             })
         );
         assert_eq!(badges.badges[2].target.as_ref().unwrap().value, 25.0);
+    }
+
+    #[test]
+    fn nudges_on_the_game_card() {
+        let me = user("me");
+        let listed = board(
+            vec![
+                entry(1, "a", 100.0),
+                entry(2, "b", 50.0),
+                entry(3, "me", 20.0),
+            ],
+            None,
+        );
+        assert_eq!(
+            nudge(&listed, Some(&me), "global"),
+            Some(Nudge::Behind {
+                gap: 30.0,
+                target: user("b"),
+                target_rank: 2,
+            })
+        );
+        let leading = board(vec![entry(1, "me", 9.0)], None);
+        assert_eq!(nudge(&leading, Some(&me), "global"), Some(Nudge::Leading));
+        let far = board(
+            vec![entry(1, "a", 100.0)],
+            Some(Viewer {
+                rank: 300,
+                value: 5.0,
+                to_top: Some((100, 45.0)),
+            }),
+        );
+        assert_eq!(
+            nudge(&far, Some(&me), "global"),
+            Some(Nudge::ToTop {
+                gap: 40.0,
+                rank: 100,
+            })
+        );
+        assert_eq!(nudge(&far, Some(&me), "friends"), None);
+        assert_eq!(nudge(&far, None, "global"), None);
+        let parsed = normalize_board(&json!({
+            "entries": [],
+            "viewer": { "rank": 300, "value": 5, "toTop": { "rank": 100, "value": 45 } },
+        }))
+        .unwrap();
+        assert_eq!(parsed.viewer.unwrap().to_top, Some((100, 45.0)));
+    }
+
+    #[test]
+    fn card_states_and_metrics() {
+        let one = board(vec![entry(1, "me", 1.0)], None);
+        let two = board(vec![entry(1, "me", 1.0), entry(2, "b", 1.0)], None);
+        let empty = board(Vec::new(), None);
+        let me = Some("me");
+        assert_eq!(
+            card_state(false, false, None, "week", "global", me),
+            CardState::Hidden
+        );
+        assert_eq!(
+            card_state(true, true, None, "week", "global", me),
+            CardState::Error
+        );
+        assert_eq!(
+            card_state(true, false, None, "week", "global", me),
+            CardState::Loading
+        );
+        assert_eq!(
+            card_state(true, false, Some(&one), "week", "global", me),
+            CardState::Solo
+        );
+        assert_eq!(
+            card_state(true, false, Some(&one), "week", "friends", me),
+            CardState::EmptyFriends
+        );
+        assert_eq!(
+            card_state(true, false, Some(&two), "week", "global", me),
+            CardState::Ready
+        );
+        assert_eq!(
+            card_state(true, false, Some(&one), "week", "global", None),
+            CardState::Ready
+        );
+        assert_eq!(
+            card_state(true, false, Some(&empty), "week", "global", me),
+            CardState::EmptyWeek
+        );
+        assert_eq!(
+            card_state(true, false, Some(&empty), "all", "global", me),
+            CardState::EmptyAll
+        );
+        assert_eq!(served_metrics(None), ["playtime"]);
+        let ids = vec!["streak".to_string(), "games".into(), "playtime".into()];
+        assert_eq!(served_metrics(Some(&ids)), ["playtime", "streak"]);
+        assert!(is_leaderboard_shop("launchbox") && !is_leaderboard_shop("custom"));
+        let request = card_request("steam", "1", "playtime", "week", "global", false);
+        assert_eq!(request.path, "/games/steam/1/leaderboards/playtime");
+        assert_eq!(request.param("range"), Some("week"));
+        assert!(!request.needs_auth);
     }
 
     #[test]

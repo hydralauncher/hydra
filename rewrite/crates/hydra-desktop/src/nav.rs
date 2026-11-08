@@ -155,6 +155,24 @@ pub fn navigate(path: &str) {
     apply(previous);
 }
 
+/// `setSearchParams(…, { replace: true })`: the current entry's URL changes
+/// without a new entry or a route change.
+pub fn replace_current(path: &str) {
+    let ui = HISTORY.with(|h| {
+        let mut h = h.borrow_mut();
+        let h = h.as_mut()?;
+        let index = h.index;
+        if let Some(entry) = h.entries.get_mut(index) {
+            *entry = path.to_string();
+        }
+        h.ui.upgrade()
+    });
+    if let Some(ui) = ui {
+        ui.global::<Nav>()
+            .set_path(Location::parse(path).pathname.into());
+    }
+}
+
 /// `navigate(-1)` / `navigate(1)`.
 pub fn go(delta: i64) {
     let previous = current();
@@ -233,6 +251,14 @@ fn apply(previous: Option<String>) {
     }
     if location.route() == "notifications" {
         crate::notifications_page::open_page();
+    }
+    if previous_location.as_ref().map(|l| l.route()) == Some("leaderboards")
+        && location.route() != "leaderboards"
+    {
+        crate::leaderboards_page::close();
+    }
+    if location.route() == "leaderboards" {
+        crate::leaderboards_page::open(&location);
     }
     if location.route() == "settings" {
         crate::settings_page::open(location.param("tab"), location.param("urls"));

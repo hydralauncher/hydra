@@ -1,0 +1,691 @@
+// pages/leaderboards (leaderboards.tsx, leaderboards.scss): the week header
+// with the scope and period selectors, the sidebar (your stats, categories or
+// your games) and the board, game board or stats. The whole page scrolls in
+// the app's container. Rust fills `LeaderboardsData` (leaderboards_page.rs).
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, HydraButton, Skeleton, ScrollBar } from "../../components/widgets.slint";
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { T } from "../../globals.slint";
+import { LeaderboardsData, LbMetric, LbSideGame, LbOption } from "state.slint";
+import { LbAvatar, MetricIcon, Selector, BlockMessage, BlockError, BoardSkeleton } from "parts.slint";
+import { BoardHeader, Insight, Podium, TableHeader, TableRow } from "board.slint";
+import { StatsTab, BadgesSection } from "stats.slint";
+
+export { LeaderboardsData }
+
+// .leaderboards__side-item: 40px+, padding 8 12, radius 4; hover and
+// selected fills (0.15s). With a banner (pre-faded by Rust: opacity 0.5 and
+// the mask to the left), a 1px rim on top, and the selected item's white
+// fade instead of the fill.
+component SideItem inherits Rectangle {
+    in property <bool> selected;
+    in property <bool> has-banner;
+    in property <image> banner;
+    callback clicked();
+    out property <brush> ink: root.selected || touch.has-hover ? Theme.muted : Theme.body;
+    min-height: 40px;
+    border-radius: 4px;
+    clip: true;
+    background: root.has-banner ? (root.selected ? transparent : touch.has-hover ? rgba(255, 255, 255, 0.05) : rgba(255, 255, 255, 0.03))
+        : root.selected ? rgba(255, 255, 255, 0.1) : touch.has-hover ? rgba(255, 255, 255, 0.05) : transparent;
+    animate background { duration: 150ms; easing: ease; }
+    if root.has-banner: Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.banner;
+        image-fit: fill;
+    }
+    // ::before: linear-gradient(to right, rgba(255,255,255,0.1) 30%, transparent)
+    if root.has-banner: Rectangle {
+        opacity: root.selected ? 1 : 0;
+        animate opacity { duration: 150ms; easing: ease; }
+        background: @linear-gradient(90deg, rgba(255, 255, 255, 0.1) 30%, rgba(255, 255, 255, 0) 100%);
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+    @children
+    if root.has-banner: Rectangle {
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.06);
+    }
+}
+
+// side-leader: a 20px avatar and the name (12px).
+component SideLeader inherits HorizontalLayout {
+    in property <image> avatar;
+    in property <string> name;
+    spacing: 8px;
+    height: 20px;
+    LbAvatar {
+        size: 20px;
+        source: root.avatar;
+    }
+    Text {
+        horizontal-stretch: 1;
+        text: root.name;
+        font-size: Theme.small-size;
+        color: Theme.body;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component MetricItem inherits SideItem {
+    in property <LbMetric> metric;
+    selected: root.metric.selected;
+    has-banner: root.metric.has-banner;
+    banner: root.metric.banner;
+    height: 59px;
+    clicked => {
+        LeaderboardsData.open-metric(root.metric.id);
+    }
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        spacing: 8px;
+        VerticalLayout {
+            alignment: center;
+            MetricIcon {
+                metric: root.metric.id;
+                size: 20px;
+                tint: root.ink;
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 4px;
+            alignment: center;
+            HorizontalLayout {
+                spacing: 8px;
+                height: 19px;
+                Text {
+                    horizontal-stretch: 1;
+                    text: root.metric.label;
+                    font-size: Theme.body-size;
+                    font-weight: 500;
+                    color: root.ink;
+                    animate color { duration: 150ms; easing: ease; }
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                if root.metric.leader-state == "leader": Text {
+                    text: root.metric.leader-value;
+                    font-size: Theme.small-size;
+                    font-weight: 500;
+                    color: Theme.body;
+                    vertical-alignment: center;
+                }
+            }
+            if root.metric.leader-state == "leader": SideLeader {
+                avatar: root.metric.leader-avatar;
+                name: root.metric.leader-name;
+            }
+            if root.metric.leader-state == "loading": HorizontalLayout {
+                alignment: start;
+                height: 20px;
+                Skeleton {
+                    width: 120px;
+                    height: 14px;
+                    y: 3px;
+                }
+            }
+            if root.metric.leader-state == "none" || root.metric.leader-state == "error": Text {
+                height: 20px;
+                text: root.metric.leader-state == "error" ? T.tr("leaderboards.leader_error") : T.tr("leaderboards.no_leader");
+                font-size: Theme.small-size;
+                color: Theme.body;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+component GameItem inherits SideItem {
+    in property <LbSideGame> game;
+    selected: root.game.selected;
+    has-banner: root.game.has-banner;
+    banner: root.game.banner;
+    height: 64px;
+    clicked => {
+        LeaderboardsData.open-game(root.game.key);
+    }
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        spacing: 8px;
+        // __side-cover: 32x48, radius 4, #1a1a1a
+        Rectangle {
+            width: 32px;
+            height: 48px;
+            border-radius: 4px;
+            background: #1a1a1a;
+            clip: true;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.game.cover;
+                image-fit: cover;
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 4px;
+            alignment: center;
+            HorizontalLayout {
+                spacing: 8px;
+                height: 19px;
+                Text {
+                    horizontal-stretch: 1;
+                    text: root.game.title;
+                    font-size: Theme.body-size;
+                    font-weight: 500;
+                    color: root.ink;
+                    animate color { duration: 150ms; easing: ease; }
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                Text {
+                    text: root.game.rank;
+                    font-size: Theme.small-size;
+                    font-weight: 500;
+                    color: Theme.body;
+                    vertical-alignment: center;
+                }
+            }
+            if root.game.has-leader: SideLeader {
+                avatar: root.game.leader-avatar;
+                name: root.game.leader-name;
+            }
+        }
+    }
+}
+
+// .leaderboards__side-more: a 36px text button (retry, go to library).
+component SideMore inherits Rectangle {
+    in property <string> text;
+    callback clicked();
+    height: 36px;
+    border-radius: 4px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.15) : transparent;
+    Text {
+        x: 12px;
+        text: root.text;
+        font-size: Theme.hint-size;
+        color: touch.has-hover ? Theme.muted : Theme.body;
+        vertical-alignment: center;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// The game search (text-field, theme dark).
+component SearchField inherits Rectangle {
+    height: 40px;
+    border-radius: 8px;
+    border-width: 1px;
+    background: Theme.background;
+    border-color: input.has-focus ? #dadbe1 : hover.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
+    animate border-color { duration: 200ms; easing: ease; }
+    hover := TouchArea {
+        mouse-cursor: MouseCursor.text;
+        clicked => {
+            input.focus();
+        }
+    }
+    Text {
+        x: 9px;
+        width: parent.width - 18px;
+        text: T.tr("leaderboards.search_game_placeholder");
+        color: #757575;
+        font-size: Theme.button-size;
+        vertical-alignment: center;
+        overflow: elide;
+        visible: input.text == "";
+    }
+    input := TextInput {
+        x: 9px;
+        width: parent.width - 18px;
+        height: parent.height;
+        text <=> LeaderboardsData.game-search;
+        color: #dadbe1;
+        font-size: Theme.button-size;
+        vertical-alignment: center;
+        single-line: true;
+        accessible-label: T.tr("leaderboards.search_game");
+        edited => {
+            LeaderboardsData.search-games(self.text);
+        }
+        key-pressed(event) => {
+            if (event.text == Key.Escape && self.text != "") {
+                self.text = "";
+                LeaderboardsData.search-games("");
+                return accept;
+            }
+            reject
+        }
+    }
+}
+
+// nav.leaderboards__sidebar: padding 20 16 32, gap 20, a 1px border on the right.
+component Sidebar inherits Rectangle {
+    callback option-hover(string, bool, length, length, length);
+    Rectangle {
+        x: parent.width - 1px;
+        width: 1px;
+        background: Theme.border;
+    }
+    VerticalLayout {
+        padding-top: 20px;
+        padding-bottom: 32px;
+        padding-left: 16px;
+        padding-right: 17px;
+        spacing: 20px;
+        alignment: start;
+        if LeaderboardsData.signed-in: VerticalLayout {
+            spacing: 16px;
+            SideItem {
+                height: 40px;
+                selected: LeaderboardsData.tab == "stats";
+                clicked => {
+                    LeaderboardsData.open-stats();
+                }
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    spacing: 8px;
+                    Icon {
+                        y: (parent.height - 16px) / 2;
+                        width: 16px;
+                        height: 16px;
+                        source: Icons.graph;
+                        color: LeaderboardsData.tab == "stats" ? Theme.muted : Theme.body;
+                    }
+                    Text {
+                        horizontal-stretch: 1;
+                        text: T.tr("leaderboards.tab_stats");
+                        font-size: Theme.body-size;
+                        font-weight: 500;
+                        color: LeaderboardsData.tab == "stats" ? Theme.muted : Theme.body;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+            Rectangle {
+                height: 1px;
+                background: Theme.border;
+            }
+        }
+        if LeaderboardsData.signed-in: Selector {
+            show-label: false;
+            stretch: true;
+            options: [
+                { id: "categories", label: T.tr("leaderboards.sidebar_categories") },
+                { id: "games", label: T.tr("leaderboards.tab_games") },
+            ];
+            value: LeaderboardsData.side-list;
+            changed(id) => {
+                LeaderboardsData.set-side-list(id);
+            }
+        }
+        VerticalLayout {
+            spacing: 8px;
+            if LeaderboardsData.side-list == "categories" && LeaderboardsData.metrics-loading && LeaderboardsData.metrics.length == 0: VerticalLayout {
+                spacing: 8px;
+                for i in 4: Skeleton {
+                    height: 56px;
+                }
+            }
+            if LeaderboardsData.side-list == "categories": VerticalLayout {
+                spacing: 8px;
+                for metric in LeaderboardsData.metrics: MetricItem {
+                    metric: metric;
+                }
+            }
+            if LeaderboardsData.side-list == "games" && LeaderboardsData.games-loading && !LeaderboardsData.has-games: VerticalLayout {
+                spacing: 8px;
+                for i in 4: Skeleton {
+                    height: 56px;
+                }
+            }
+            if LeaderboardsData.side-list == "games" && !(LeaderboardsData.games-loading && !LeaderboardsData.has-games) && LeaderboardsData.games-error: SideMore {
+                text: T.tr("leaderboards.retry");
+                clicked => {
+                    LeaderboardsData.retry-games();
+                }
+            }
+            if LeaderboardsData.side-list == "games" && !LeaderboardsData.games-loading && !LeaderboardsData.games-error && !LeaderboardsData.has-games: VerticalLayout {
+                spacing: 8px;
+                Text {
+                    x: 12px;
+                    width: parent.width - 24px;
+                    text: T.tr("leaderboards.games_empty_description");
+                    font-size: Theme.small-size;
+                    color: Theme.body;
+                    wrap: word-wrap;
+                }
+                SideMore {
+                    text: T.tr("leaderboards.go_to_library");
+                    clicked => {
+                        LeaderboardsData.go-library();
+                    }
+                }
+            }
+            if LeaderboardsData.side-list == "games" && !LeaderboardsData.games-error && LeaderboardsData.has-games: SearchField { }
+            if LeaderboardsData.side-list == "games" && !LeaderboardsData.games-error && LeaderboardsData.has-games && LeaderboardsData.games.length == 0: Text {
+                x: 12px;
+                width: parent.width - 24px;
+                text: T.tr("leaderboards.games_search_empty");
+                font-size: Theme.small-size;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+            if LeaderboardsData.side-list == "games" && !LeaderboardsData.games-error && LeaderboardsData.has-games: VerticalLayout {
+                spacing: 8px;
+                for game in LeaderboardsData.games: GameItem {
+                    game: game;
+                }
+            }
+        }
+    }
+}
+
+// .leaderboards__board: max 1200px (1680 on wide pages), centered, gap 20.
+component Board inherits VerticalLayout {
+    in property <bool> wide;
+    callback option-hover(string, bool, length, length, length);
+    spacing: 20px;
+    property <bool> empty: LeaderboardsData.board-state == "empty" || LeaderboardsData.board-state == "empty_friends" || LeaderboardsData.board-state == "no_metrics";
+    BoardHeader {
+        vertical-stretch: 0;
+        option-hover(label, on, x, y, w) => {
+            root.option-hover(label, on, x, y, w);
+        }
+    }
+    if LeaderboardsData.board-state == "loading": BoardSkeleton {
+        vertical-stretch: 0;
+        stacked: self.width <= 520px;
+    }
+    if LeaderboardsData.board-state == "error": BlockError {
+        vertical-stretch: 0;
+        action-clicked => {
+            LeaderboardsData.retry();
+        }
+    }
+    if root.empty: BlockMessage {
+        vertical-stretch: 1;
+        icon: LeaderboardsData.empty-icon;
+        title: LeaderboardsData.empty-title;
+        description: LeaderboardsData.empty-description;
+        action: LeaderboardsData.empty-action;
+        action-clicked => {
+            LeaderboardsData.empty-clicked();
+        }
+    }
+    if LeaderboardsData.board-state == "ready" && LeaderboardsData.has-insight: Insight {
+        vertical-stretch: 0;
+    }
+    if LeaderboardsData.board-state == "ready": Podium {
+        vertical-stretch: 0;
+        wide: root.wide;
+    }
+    if LeaderboardsData.board-state == "ready" && LeaderboardsData.rows.length > 0: VerticalLayout {
+        vertical-stretch: 0;
+        spacing: 8px;
+        TableHeader { }
+        for row in LeaderboardsData.rows: TableRow {
+            item: row;
+        }
+    }
+    if LeaderboardsData.board-state == "ready" && LeaderboardsData.has-more: HorizontalLayout {
+        vertical-stretch: 0;
+        alignment: center;
+        HydraButton {
+            kind: "outline";
+            text: T.tr("leaderboards.load_more");
+            clicked => {
+                LeaderboardsData.load-more();
+            }
+        }
+    }
+}
+
+export component LeaderboardsPage inherits Rectangle {
+    // the app container's width (scrollbar included), for page-min-width(1750px)
+    property <bool> wide: root.width >= 1750px;
+    property <length> side-width: root.wide ? 380px : 320px;
+    property <length> max-scroll: Math.max(0, page.content-height - page.height);
+    property <length> scroll-y;
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        root.tip-on = false;
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    // a view change scrolls back to the top (scrollTo({ top: 0 }))
+    property <int> scroll-top: LeaderboardsData.scroll-top;
+    changed scroll-top => {
+        root.tween.active = false;
+        root.scroll-y = 0;
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    // the content shrinks (a smaller board, another tab): keep the offset valid
+    changed max-scroll => {
+        if (-root.scroll-y > root.max-scroll) {
+            root.tween.active = false;
+            root.scroll-y = -root.max-scroll;
+        }
+    }
+
+    // use-selector-tooltip.tsx: a collapsed option's name above it, fading in
+    // after 0.25s (0.15s); aligned to its end near the window's edge.
+    property <string> tip-label;
+    property <bool> tip-on;
+    property <length> tip-x;
+    property <length> tip-y;
+    property <bool> tip-edge;
+    function option-hover(label: string, on: bool, x: length, y: length, w: length) {
+        if (!on) {
+            root.tip-on = false;
+            return;
+        }
+        root.tip-label = label;
+        root.tip-edge = root.width + 9px - (x - root.absolute-position.x + w) < 72px;
+        root.tip-x = root.tip-edge ? x - root.absolute-position.x + w : x - root.absolute-position.x + w / 2;
+        root.tip-y = y - root.absolute-position.y - 8px;
+        root.tip-on = true;
+    }
+
+    property <length> content-width: root.width - 9px;
+    page := Flickable {
+        x: 0;
+        width: root.content-width;
+        height: root.height;
+        interactive: false;
+        content-height: Math.max(column.preferred-height, root.height);
+        content-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+        TouchArea {
+            width: page.width;
+            height: page.content-height;
+            scroll-event(event) => {
+                root.wheel-by(event.delta-y);
+                accept
+            }
+            column := VerticalLayout {
+                width: page.width;
+                min-height: root.height;
+                // __header: padding 24, a bottom border; the week and the toggles
+                Rectangle {
+                    vertical-stretch: 0;
+                    Rectangle {
+                        y: parent.height - 1px;
+                        height: 1px;
+                        background: Theme.border;
+                    }
+                    HorizontalLayout {
+                        padding-left: 24px;
+                        padding-right: 24px;
+                        padding-top: 24px;
+                        padding-bottom: 25px;
+                        spacing: 16px;
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            alignment: center;
+                            spacing: 4px;
+                            Text {
+                                height: 24px;
+                                text: LeaderboardsData.period-title;
+                                font-size: 16px;
+                                font-weight: 700;
+                                color: Theme.muted;
+                                vertical-alignment: center;
+                            }
+                            Text {
+                                height: 16px;
+                                text: LeaderboardsData.subtitle;
+                                font-size: Theme.small-size;
+                                color: Theme.body;
+                                vertical-alignment: center;
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 12px;
+                            if LeaderboardsData.signed-in: Selector {
+                                label: T.tr("leaderboards.scope_label");
+                                options: [
+                                    { id: "global", label: T.tr("leaderboards.scope_global") },
+                                    { id: "friends", label: T.tr("leaderboards.scope_friends") },
+                                ];
+                                value: LeaderboardsData.scope;
+                                changed(id) => {
+                                    LeaderboardsData.set-scope(id);
+                                }
+                            }
+                            Selector {
+                                label: T.tr("leaderboards.period_label");
+                                options: [
+                                    { id: "week", label: T.tr("leaderboards.period_week") },
+                                    { id: "all", label: T.tr("leaderboards.period_all") },
+                                ];
+                                value: LeaderboardsData.period;
+                                changed(id) => {
+                                    LeaderboardsData.set-period(id);
+                                }
+                            }
+                        }
+                    }
+                }
+                // __body: the sidebar and the content
+                HorizontalLayout {
+                    vertical-stretch: 1;
+                    Sidebar {
+                        width: root.side-width;
+                    }
+                    // __content: padding 24, gap 24
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        padding: 24px;
+                        spacing: 24px;
+                        alignment: start;
+                        if LeaderboardsData.tab != "stats": HorizontalLayout {
+                            vertical-stretch: LeaderboardsData.board-state == "empty" || LeaderboardsData.board-state == "empty_friends" || LeaderboardsData.board-state == "no_metrics" ? 1 : 0;
+                            alignment: center;
+                            Board {
+                                width: Math.min(self.max-board, root.content-width - root.side-width - 48px);
+                                property <length> max-board: root.wide ? 1680px : 1200px;
+                                wide: root.wide;
+                                option-hover(label, on, x, y, w) => {
+                                    root.option-hover(label, on, x, y, w);
+                                }
+                            }
+                        }
+                        if LeaderboardsData.tab == "stats": StatsTab {
+                            vertical-stretch: 0;
+                        }
+                        if LeaderboardsData.tab == "stats" && LeaderboardsData.signed-in && LeaderboardsData.show-badges: BadgesSection {
+                            vertical-stretch: 0;
+                        }
+                        // __sign-in: a trophy and the hint (signed out)
+                        if !LeaderboardsData.signed-in: HorizontalLayout {
+                            vertical-stretch: 0;
+                            spacing: 8px;
+                            alignment: start;
+                            Icon {
+                                y: (parent.height - 14px) / 2;
+                                width: 14px;
+                                height: 14px;
+                                source: @image-url("../../icons/trophy-14.svg");
+                                color: Theme.body;
+                            }
+                            Text {
+                                text: T.tr("leaderboards.sign_in_hint");
+                                font-size: Theme.small-size;
+                                color: Theme.body;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    ScrollBar {
+        x: root.content-width;
+        height: root.height;
+        content-height: page.content-height;
+        viewport-height: page.height;
+        content-y <=> root.scroll-y;
+        shown-offset: -page.content-y;
+    }
+
+    tip := Rectangle {
+        x: root.tip-edge ? root.tip-x - self.width : root.tip-x - self.width / 2;
+        y: root.tip-y - self.height;
+        width: tip-text.preferred-width + 18px;
+        height: 26px;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.15);
+        background: Theme.dark-background;
+        opacity: root.tip-on ? 1 : 0;
+        animate opacity { duration: root.tip-on ? 150ms : 0ms; delay: root.tip-on ? 250ms : 0ms; easing: ease; }
+        visible: self.opacity > 0;
+        tip-text := Text {
+            text: root.tip-label;
+            font-size: Theme.small-size;
+            font-weight: 500;
+            color: Theme.muted;
+        }
+    }
+}

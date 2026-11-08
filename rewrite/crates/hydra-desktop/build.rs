@@ -15,6 +15,12 @@ fn main() {
     slint_build::compile_with_output_path(
         "tests/game_page_harness.slint",
         out_dir.join("game_page_harness.rs"),
+        config.clone(),
+    )
+    .expect("Slint harness build failed");
+    slint_build::compile_with_output_path(
+        "tests/leaderboards_harness.slint",
+        out_dir.join("leaderboards_harness.rs"),
         config,
     )
     .expect("Slint harness build failed");

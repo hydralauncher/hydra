@@ -31,6 +31,7 @@ mod gifs;
 mod headless;
 mod home_page;
 mod instance;
+mod leaderboards_page;
 mod library_page;
 mod main_window;
 mod nav;
@@ -255,6 +256,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     settings_debrid::init(&ui);
     auth::init(&ui);
     notifications_page::init(&ui);
+    leaderboards_page::init(&ui);
     search::init(&ui);
     achievements_page::init(&ui);
     if let Some(api) = shell::api() {

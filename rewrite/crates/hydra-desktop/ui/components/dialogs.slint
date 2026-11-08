@@ -15,6 +15,8 @@ export global Dialogs {
     // confirmation-modal__description (16px / 24px)
     in property <string> body;
     in property <string> confirm-label;
+    // an icon before the confirm label (confirmButtonIcon)
+    in property <image> confirm-icon;
     in property <string> cancel-label;
     // "primary" | "danger"
     in property <string> confirm-kind: "primary";
@@ -176,6 +178,13 @@ export component DialogHost inherits Rectangle {
         // create-collection-modal, or any one-field form ("field": add-download-source-modal)
         if Dialogs.kind == "create-collection" || Dialogs.kind == "field": VerticalLayout {
             spacing: 16px;
+            // a ConfirmationModal with a field: its descriptionText above it
+            if Dialogs.body != "": Text {
+                text: Dialogs.body;
+                font-size: 16px;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
             LabeledField { }
             HorizontalLayout {
                 alignment: end;
@@ -192,6 +201,8 @@ export component DialogHost inherits Rectangle {
                 HydraButton {
                     kind: "primary";
                     enabled: !Dialogs.busy;
+                    icon: Dialogs.confirm-icon;
+                    icon-size: 14px;
                     text: Dialogs.confirm-label;
                     clicked => {
                         Dialogs.confirmed();

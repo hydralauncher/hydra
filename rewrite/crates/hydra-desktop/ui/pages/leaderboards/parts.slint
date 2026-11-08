@@ -1,0 +1,451 @@
+// Shared pieces of pages/leaderboards: avatars, metric icons (metric-icon.tsx),
+// the segmented selector (header-selector.tsx), the metal strip of the top
+// three (leaderboard.scss `leaderboard-row__strip--{tier}`), rank deltas and
+// the block messages and skeletons (leaderboard-bits.tsx).
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, HydraButton, Skeleton } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+import { LbOption } from "state.slint";
+
+// components/avatar: 4px radius, 1px border, the person glyph at 70%.
+// `inner-border` is the podium's 2px rgba(13, 13, 13, 0.9) border on the image.
+export component LbAvatar inherits Rectangle {
+    in property <image> source;
+    in property <length> size: 40px;
+    in property <length> inner-border;
+    width: root.size;
+    height: root.size;
+    border-radius: 4px;
+    background: Theme.background;
+    clip: true;
+    if root.source.width > 0: Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        border-radius: 4px;
+        clip: true;
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.source;
+            image-fit: cover;
+        }
+        if root.inner-border > 0: Rectangle {
+            border-radius: 4px;
+            border-width: root.inner-border;
+            border-color: rgba(13, 13, 13, 0.9);
+        }
+    }
+    if root.source.width == 0: Icon {
+        width: root.size * 0.7;
+        height: root.size * 0.7;
+        source: root.size * 0.7 >= 24px ? @image-url("../../icons/person-24.svg") : Icons.person;
+        color: Theme.muted;
+    }
+    Rectangle {
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: Theme.border;
+    }
+}
+
+// metric-icon.tsx: 16x16 strokes, 1.4 wide, round caps and joins.
+export component MetricIcon inherits Rectangle {
+    in property <string> metric;
+    in property <length> size: 16px;
+    in property <brush> tint: Theme.muted;
+    property <length> line: 1.4px * root.size / 16px;
+    width: root.size;
+    height: root.size;
+    if root.metric == "playtime": Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        commands: "M8 2a6 6 0 1 0 0 12A6 6 0 1 0 8 2zM8 5v3l2 1.5";
+        stroke: root.tint;
+        stroke-width: root.line;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+    }
+    if root.metric == "games": Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        commands: "M5 4.5h6a3.5 3.5 0 0 1 0 7H5a3.5 3.5 0 0 1 0-7zM4.5 8h3M6 6.5v3M10.5 7.5h.01M12 9h.01";
+        stroke: root.tint;
+        stroke-width: root.line;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+    }
+    if root.metric == "friends": Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        commands: "M6 3a2.5 2.5 0 1 0 0 5 2.5 2.5 0 1 0 0-5zM1.5 13.5c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4M11.5 3a2 2 0 1 0 0 4 2 2 0 1 0 0-4zM11.5 9.5c1.8 0 3 1.3 3 3.5";
+        stroke: root.tint;
+        stroke-width: root.line;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+    }
+    if root.metric == "achievements": Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        commands: "M5 2.5h6V6a3 3 0 0 1-6 0zM5 4H3v1a2 2 0 0 0 2 2M11 4h2v1a2 2 0 0 1-2 2M8 9v3M5.5 13.5h5";
+        stroke: root.tint;
+        stroke-width: root.line;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+    }
+    if root.metric == "souvenirs": Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        commands: "M2.5 6h11v3h-11zM3 9v4.5h10V9M8 6v7.5M8 6C7 4 5.5 2.8 4.8 3.5S5.5 6 8 6zM8 6c1-2 2.5-3.2 3.2-2.5S10.5 6 8 6z";
+        stroke: root.tint;
+        stroke-width: root.line;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+    }
+    if root.metric == "streak": Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        commands: "M8 14c-2.8 0-4.5-1.9-4.5-4.3 0-2.6 2.2-3.9 2.7-6.7 1.6 1 2.3 2.4 2.3 3.6.8-.4 1.3-1.2 1.4-2 1.6 1.3 2.6 3 2.6 5.1C12.5 12.1 10.8 14 8 14z";
+        stroke: root.tint;
+        stroke-width: root.line;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+    }
+    if root.metric == "sessions": Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        commands: "M8 2a6 6 0 1 0 0 12A6 6 0 1 0 8 2zM6.5 5.5v5l4-2.5z";
+        stroke: root.tint;
+        stroke-width: root.line;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+    }
+    if root.metric == "reviews": Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        commands: "M5 7v6.5H2.5V7zM5 7l2.5-4.5c1 0 1.7.8 1.5 1.8L8.6 7h4a1.4 1.4 0 0 1 1.4 1.6l-.8 4A1.4 1.4 0 0 1 11.8 14H5";
+        stroke: root.tint;
+        stroke-width: root.line;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+    }
+    if root.metric != "playtime" && root.metric != "games" && root.metric != "friends" && root.metric != "achievements" && root.metric != "souvenirs" && root.metric != "streak" && root.metric != "sessions" && root.metric != "reviews": Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        commands: "M3 13.5V9M8 13.5V3M13 13.5V6.5M2 13.5h12";
+        stroke: root.tint;
+        stroke-width: root.line;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+    }
+}
+
+// .leaderboards__selector-option: 28px, padding 0 12 (8 when collapsed),
+// radius 6, 12px 500; the selected one #262626 and muted; 0.2s.
+component SelectorOption inherits Rectangle {
+    in property <LbOption> option;
+    in property <bool> selected;
+    in property <bool> stretch;
+    in property <bool> collapsed;
+    in property <bool> icons;
+    callback clicked();
+    callback hover(bool);
+    out property <bool> hovered: touch.has-hover;
+    height: 28px;
+    horizontal-stretch: root.stretch ? 1 : 0;
+    // flex: 1 (a zero basis) splits a stretched group evenly
+    min-width: root.stretch ? 0 : content.preferred-width;
+    preferred-width: root.stretch ? 0 : content.preferred-width;
+    border-radius: 6px;
+    background: root.selected ? #262626 : transparent;
+    animate background { duration: 200ms; easing: ease; }
+    property <brush> ink: root.selected || touch.has-hover ? Theme.muted : Theme.body;
+    content := HorizontalLayout {
+        padding-left: root.collapsed ? 8px : 12px;
+        padding-right: root.collapsed ? 8px : 12px;
+        spacing: 8px;
+        alignment: center;
+        if root.icons: MetricIcon {
+            y: (parent.height - self.height) / 2;
+            metric: root.option.id;
+            size: 14px;
+            tint: root.ink;
+        }
+        if !root.collapsed: Text {
+            text: root.option.label;
+            font-size: Theme.small-size;
+            font-weight: 500;
+            color: root.ink;
+            animate color { duration: 200ms; easing: ease; }
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        changed has-hover => {
+            root.hover(self.has-hover);
+        }
+    }
+}
+
+// header-selector.tsx: an optional 11px label above a 2px-padded group.
+// `hovered-option` reports a collapsed option under the pointer (its name
+// shows in a tooltip, use-selector-tooltip.tsx).
+export component Selector inherits VerticalLayout {
+    in property <string> label;
+    in property <bool> show-label: true;
+    in property <bool> stretch;
+    in property <bool> collapsed;
+    in property <bool> icons;
+    in property <[LbOption]> options;
+    in property <string> value;
+    callback changed(string);
+    callback option-hover(string, bool, length, length, length);
+    spacing: 4px;
+    if root.show-label: Text {
+        text: root.label;
+        height: 14px;
+        font-size: Theme.tiny-size;
+        color: Theme.body;
+        vertical-alignment: center;
+    }
+    Rectangle {
+        height: 34px;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.border;
+        background: Theme.dark-background;
+        HorizontalLayout {
+            padding: 3px;
+            spacing: 2px;
+            for option in root.options: opt := SelectorOption {
+                option: option;
+                selected: option.id == root.value;
+                stretch: root.stretch;
+                collapsed: root.collapsed;
+                icons: root.icons;
+                clicked => {
+                    root.changed(option.id);
+                }
+                hover(on) => {
+                    root.option-hover(option.label, on && root.collapsed, self.absolute-position.x, self.absolute-position.y, self.width);
+                }
+            }
+        }
+    }
+}
+
+// The metal of the top three: leaderboard-row__strip--{gold,silver,bronze}
+// (gradient, the light rim on the upper edge and the shine that sweeps down
+// every 7s). mix-blend-mode: screen over the metal is drawn as normal alpha
+// blending: with white light both give base + (1 - base) * alpha.
+export component MetalStrip inherits Rectangle {
+    in property <string> tier;
+    clip: true;
+    background: root.tier == "gold" ? @linear-gradient(189.58deg, rgb(232, 173, 21) 0.6%, rgb(213, 144, 15) 11.31%, rgb(232, 173, 21) 16.44%, rgb(228, 170, 21) 29.24%, rgb(202, 137, 14) 34.32%, rgb(202, 136, 14) 40.3%, rgb(236, 190, 26) 45.31%, rgb(236, 189, 26) 50.2%, rgb(179, 121, 13) 55.81%, rgb(102, 71, 10) 82.04%, rgb(163, 122, 19) 85.71%, rgb(152, 113, 18) 87.27%, rgb(80, 56, 8) 93.47%, rgb(62, 45, 8) 96.6%)
+        : root.tier == "silver" ? @linear-gradient(189.58deg, rgb(227, 227, 227) 0.6%, rgb(205, 205, 205) 11.31%, rgb(232, 232, 232) 16.44%, rgb(226, 226, 226) 29.24%, rgb(190, 190, 190) 34.32%, rgb(189, 189, 189) 40.3%, rgb(238, 238, 238) 45.31%, rgb(226, 226, 226) 50.2%, rgb(167, 167, 167) 55.81%, rgb(98, 98, 98) 82.04%, rgb(175, 175, 175) 85.71%, rgb(151, 151, 151) 87.27%, rgb(70, 70, 70) 93.47%, rgb(54, 54, 54) 96.6%)
+        : @linear-gradient(189.65deg, rgb(232, 102, 21) 0.6%, rgb(213, 121, 15) 11.31%, rgb(232, 127, 21) 16.44%, rgb(228, 125, 21) 29.24%, rgb(202, 93, 14) 34.32%, rgb(202, 80, 14) 40.3%, rgb(236, 131, 26) 45.31%, rgb(178, 111, 44) 50.2%, rgb(179, 63, 13) 55.81%, rgb(102, 42, 10) 82.04%, rgb(163, 62, 19) 85.71%, rgb(152, 74, 18) 87.27%, rgb(80, 27, 8) 93.47%, rgb(62, 20, 8) 96.6%);
+
+    // ::after: background-size 100% 300% moving from 0 160% to 0 -70% in the
+    // first 55% of 7s (ease-in-out), then resting below the strip.
+    property <float> shine: root.tier == "gold" ? 1 : root.tier == "silver" ? 0.6 : 0.35;
+    property <color> shine-edge: root.tier == "silver" ? rgba(255, 255, 255, 0.35) : rgba(255, 244, 200, 0.35);
+    property <bool> sweep;
+    Timer {
+        interval: 16ms;
+        running: !root.sweep;
+        triggered => {
+            root.sweep = true;
+        }
+    }
+    Timer {
+        interval: 7000ms;
+        running: true;
+        triggered => {
+            root.sweep = false;
+        }
+    }
+    Rectangle {
+        width: root.width;
+        height: root.height * 3;
+        y: root.sweep ? root.height * 1.4 : root.height * -3.2;
+        animate y { duration: root.sweep ? 3850ms : 0ms; easing: ease-in-out; }
+        opacity: root.shine;
+        background: @linear-gradient(195deg, root.shine-edge.with-alpha(0) 40%, root.shine-edge 46%, rgba(255, 255, 255, 0.7) 50%, root.shine-edge 54%, root.shine-edge.with-alpha(0) 60%);
+    }
+
+    // ::before: a 1px rim, rgba(255,255,255,0.48) at the top fading out by 82%.
+    Rectangle {
+        y: 0;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.48);
+    }
+    Rectangle {
+        x: 0;
+        width: 1px;
+        background: @linear-gradient(180deg, rgba(255, 255, 255, 0.48) 0%, rgba(255, 255, 255, 0.48) 50%, rgba(255, 255, 255, 0) 82%);
+    }
+    Rectangle {
+        x: root.width - 1px;
+        width: 1px;
+        background: @linear-gradient(180deg, rgba(255, 255, 255, 0.48) 0%, rgba(255, 255, 255, 0.48) 50%, rgba(255, 255, 255, 0) 82%);
+    }
+    // box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.25)
+    Rectangle {
+        x: root.width - 1px;
+        width: 1px;
+        background: rgba(0, 0, 0, 0.25);
+    }
+
+    @children
+}
+
+// leaderboard-bits.tsx RankDelta: ▲ up (#4ade80), ▼ down (#ff6b81), – same.
+export component RankDelta inherits Text {
+    in property <int> delta;
+    text: root.delta > 0 ? "▲" + root.delta : root.delta < 0 ? "▼" + (-root.delta) : "–";
+    font-size: Theme.tiny-size;
+    font-weight: 700;
+    color: root.delta > 0 ? #4ade80 : root.delta < 0 ? #ff6b81 : Theme.body;
+    vertical-alignment: center;
+}
+
+// BlockMessage: centered column, gap 8, padding 40 16, a 32px icon, the
+// title (13px 500 muted) and a description (12px/16, max 360px).
+export component BlockMessage inherits VerticalLayout {
+    // "clock" | "people" | "trophy" | ""
+    in property <string> icon;
+    in property <string> title;
+    in property <string> description;
+    in property <string> action;
+    in property <string> action-kind: "primary";
+    in property <bool> small-action;
+    callback action-clicked();
+    padding-top: 40px;
+    padding-bottom: 40px;
+    padding-left: 16px;
+    padding-right: 16px;
+    spacing: 8px;
+    alignment: center;
+    if root.icon != "": HorizontalLayout {
+        alignment: center;
+        Icon {
+            width: 32px;
+            height: 32px;
+            color: Theme.body;
+            source: root.icon == "clock" ? @image-url("../../icons/clock-24.svg") : root.icon == "people" ? @image-url("../../icons/people-24.svg") : @image-url("../../icons/trophy-24.svg");
+        }
+    }
+    Text {
+        text: root.title;
+        font-size: Theme.hint-size;
+        font-weight: 500;
+        color: Theme.muted;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+    }
+    if root.description != "": HorizontalLayout {
+        alignment: center;
+        Text {
+            max-width: 360px;
+            text: root.description;
+            font-size: Theme.small-size;
+            color: Theme.body;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+    }
+    if root.action != "": HorizontalLayout {
+        alignment: center;
+        padding-top: 8px;
+        HydraButton {
+            kind: root.action-kind;
+            small: root.small-action;
+            text: root.action;
+            clicked => {
+                root.action-clicked();
+            }
+        }
+    }
+}
+
+// BlockError: "Couldn't load this" with an outline "Try again".
+export component BlockError inherits BlockMessage {
+    title: T.tr("leaderboards.error_title");
+    description: T.tr("leaderboards.error_description");
+    action: T.tr("leaderboards.retry");
+    action-kind: "outline";
+    small-action: true;
+}
+
+// BoardSkeleton: the podium's three cards (320/296/272, like the podium grid)
+// and five 56px rows. Each react-loading-skeleton sits in an inline line box
+// (with a <br>), measured in Chromium: the podium block is 339px tall and a
+// row is 3px down in a 59px box.
+export component BoardSkeleton inherits VerticalLayout {
+    in property <bool> stacked;
+    spacing: 4px;
+    if !root.stacked: Rectangle {
+        height: 339px;
+        property <length> unit: (self.width - 24px) / 888;
+        Skeleton {
+            x: 0;
+            y: 0;
+            width: parent.unit * 320;
+            height: 320px;
+        }
+        Skeleton {
+            x: parent.unit * 320 + 12px;
+            y: 24px;
+            width: parent.unit * 296;
+            height: 296px;
+        }
+        Skeleton {
+            x: parent.unit * 616 + 24px;
+            y: 48px;
+            width: parent.unit * 272;
+            height: 272px;
+        }
+    }
+    if root.stacked: VerticalLayout {
+        spacing: 12px;
+        Skeleton {
+            height: 320px;
+        }
+        Skeleton {
+            height: 296px;
+        }
+        Skeleton {
+            height: 272px;
+        }
+    }
+    for i in 5: Rectangle {
+        height: 59px;
+        Skeleton {
+            y: 3px;
+            height: 56px;
+        }
+    }
+}

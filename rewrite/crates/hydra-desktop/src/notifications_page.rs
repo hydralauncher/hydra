@@ -840,8 +840,12 @@ fn open(key: &str) {
         eprintln!("TODO(cloud): openCloudGiftModal");
         return;
     }
+    // buildLeaderboardNotificationTarget: a rank change opens its board on the
+    // Rankings page (the URL as sent, `source=rank_notification` included)
     let destination = if text(&n, "type") == "LEADERBOARD_MISSING_PHOTO" {
         shell::user_details().map(|u| format!("/profile/{}?edit=profile", text(&u, "id")))
+    } else if leaderboard_text(&n).is_some() {
+        Some(text(&n, "url")).filter(|url| !url.is_empty())
     } else {
         target(&n)
     };
