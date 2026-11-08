@@ -1063,6 +1063,16 @@ pub fn on_local_created() {
     }
 }
 
+/// A realtime "notification" event: the count, and the list when it is open.
+pub fn on_remote_change() {
+    let open = with(|s| s.ui.upgrade())
+        .is_some_and(|ui| ui.global::<crate::Nav>().get_route() == "notifications");
+    if open {
+        load_all();
+    }
+    refresh_count();
+}
+
 /// fetchApiNotificationCount (startup and after sign-in).
 pub fn refresh_count() {
     let local = local_notifications();

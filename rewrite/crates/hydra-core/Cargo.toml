@@ -16,6 +16,9 @@ icu_collator = "2"
 icu_locale_core = "2"
 # new Date().toISOString()
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+# the realtime WebSocket (services/sse/websocket-client.ts) over rustls with the OS roots
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+rustls.workspace = true
+rustls-platform-verifier = "0.7"
 
 [dev-dependencies]
-rustls.workspace = true

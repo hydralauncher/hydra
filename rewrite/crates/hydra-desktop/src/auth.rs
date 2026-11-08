@@ -265,8 +265,9 @@ pub fn handle_external_auth(uri: &str) {
         let _ = db.put(keys::AUTH, &stored);
     }
     // on-signin: fetch the user, then the library
-    // TODO(auth): uploadGamesBatch, SSE reconnect, syncDownloadSourcesFromApi,
-    // Steam/Epic startup syncs, the souvenir worker.
+    // TODO(auth): uploadGamesBatch, syncDownloadSourcesFromApi, Steam/Epic
+    // startup syncs, the souvenir worker.
+    crate::realtime::connect();
     shell::reload_user(Some(Box::new(|| {
         toast::success(&shell::tr("app.successfully_signed_in"))
     })));
@@ -280,8 +281,9 @@ pub fn sign_out() {
     };
     // useUserDetails.clearUserDetails
     shell::storage_remove("userDetails");
-    // TODO(auth): SSEClient.close, Epic imports, achievement/souvenir workers,
-    // emulator scan data, friends/chat windows.
+    // TODO(auth): Epic imports, achievement/souvenir workers, emulator scan
+    // data, friends/chat windows.
+    crate::realtime::close();
     crate::downloads::stop_active();
     api.clear_session();
     for sublevel in [keys::GAMES, keys::DOWNLOADS, keys::DOWNLOAD_LAYOUT_STATE] {

@@ -38,6 +38,7 @@ mod notify;
 mod playtime_modals;
 mod popup;
 mod prefs;
+mod realtime;
 mod search;
 mod settings_account;
 mod settings_debrid;
@@ -254,6 +255,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     auth::init(&ui);
     notifications_page::init(&ui);
     search::init(&ui);
+    if let Some(api) = shell::api() {
+        realtime::init(api);
+    }
     notifications_page::refresh_count();
     shell::refresh_friends_online();
     download_settings::init(&ui);

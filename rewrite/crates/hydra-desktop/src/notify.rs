@@ -110,13 +110,39 @@ fn show(title: &str, body: &str, icon: Option<&Path>) {
 /// Shows an OS notification from a worker thread (the icon is downloaded first).
 fn show_async(title: String, body: String, icon_url: Option<String>, tray: bool) {
     std::thread::spawn(move || {
+        // a picture that fails to load falls back to the tray icon
         let icon = if tray {
             tray_icon()
         } else {
-            icon_url.as_deref().and_then(icon_for)
+            icon_url.as_deref().and_then(icon_for).or_else(tray_icon)
         };
         show(&title, &body, icon.as_deref());
     });
+}
+
+/// publishNewFriendRequestNotification: the sender's picture, else the tray icon.
+pub fn new_friend_request(display_name: &str, picture: Option<String>) {
+    let title = shell::tr("notifications.new_friend_request_title");
+    let body = shell::tr_with(
+        "notifications.new_friend_request_description",
+        &[("displayName", display_name.to_string().into())],
+    );
+    let tray = picture.is_none();
+    show_async(title, body, picture, tray);
+}
+
+/// publishFriendStartedPlayingGameNotification
+pub fn friend_started_playing(
+    display_name: &str,
+    picture: Option<String>,
+    game_title: Option<String>,
+) {
+    let title = shell::tr_with(
+        "notifications.friend_started_playing_game",
+        &[("displayName", display_name.to_string().into())],
+    );
+    let tray = picture.is_none();
+    show_async(title, game_title.unwrap_or_default(), picture, tray);
 }
 
 /// LocalNotificationManager.createNotification
