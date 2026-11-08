@@ -2571,6 +2571,13 @@
     "view_large": "Large"
   },
   "achievement": {
+    "local_trophies": "RPCS3 (local)",
+    "trophy_grade_bronze": "Bronze",
+    "trophy_grade_silver": "Silver",
+    "trophy_grade_gold": "Gold",
+    "trophy_grade_platinum": "Platinum",
+    "sort_trophy_grade_ascending": "Lowest grade first",
+    "sort_trophy_grade_descending": "Highest grade first",
     "achievement_unlocked": "Achievement unlocked",
     "user_achievements": "{{displayName}}'s Achievements",
     "your_achievements": "Your Achievements",

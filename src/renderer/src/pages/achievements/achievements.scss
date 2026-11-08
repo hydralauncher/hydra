@@ -1,6 +1,28 @@
 @use "../../scss/globals.scss";
 @use "sass:math";
 
+.achievements__item-trophy-grade {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  &[data-grade="bronze"] {
+    color: #dbab83;
+  }
+  &[data-grade="silver"] {
+    color: #c5cfda;
+  }
+  &[data-grade="gold"] {
+    color: #edce75;
+  }
+  &[data-grade="platinum"] {
+    color: #a6d9ed;
+  }
+}
+
 $hero-height: 150px;
 $logo-height: 100px;
 $logo-max-width: 200px;

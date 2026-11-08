@@ -2309,6 +2309,13 @@
     "view_large": "Крупный"
   },
   "achievement": {
+    "local_trophies": "RPCS3 (локально)",
+    "trophy_grade_bronze": "Бронза",
+    "trophy_grade_silver": "Серебро",
+    "trophy_grade_gold": "Золото",
+    "trophy_grade_platinum": "Платина",
+    "sort_trophy_grade_ascending": "Сначала низший ранг",
+    "sort_trophy_grade_descending": "Сначала высший ранг",
     "achievement_unlocked": "Достижение разблокировано",
     "user_achievements": "Достижения {{displayName}}",
     "your_achievements": "Ваши достижения",

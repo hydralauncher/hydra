@@ -57,6 +57,23 @@ const defaults = {
 };
 
 describe("filterAndSortAchievements", () => {
+  it("sorts native trophies by grade without requiring points", () => {
+    const rows = (["platinum", "bronze", "gold", "silver"] as const).map(
+      (trophyGrade) => ({ ...achievement(trophyGrade), trophyGrade })
+    );
+    assert.deepEqual(names(filterAndSortAchievements(rows, defaults)), [
+      "bronze",
+      "silver",
+      "gold",
+      "platinum",
+    ]);
+    assert.deepEqual(
+      names(
+        filterAndSortAchievements(rows, { ...defaults, sort: "most_rare" })
+      ),
+      ["platinum", "gold", "silver", "bronze"]
+    );
+  });
   it("sorts from most common to most rare with unknown rarity last", () => {
     assert.deepEqual(names(filterAndSortAchievements(achievements, defaults)), [
       "Common",

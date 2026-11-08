@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@renderer/components";
 import { useFeature } from "@renderer/hooks";
-import type { RemoveFilesTarget } from "@shared";
+import { isClassicsGameForEmulator, type RemoveFilesTarget } from "@shared";
 import type { LibraryGame, UserDetails } from "@types";
 
 import { MyScreenshotsDangerZone } from "./my-screenshots-danger-zone";
@@ -57,20 +57,24 @@ export function DangerZoneSection({
           {t("remove_from_library")}
         </Button>
 
-        {game.shop !== "custom" && (
-          <Button
-            onClick={onOpenResetAchievements}
-            theme="danger"
-            disabled={
-              deleting ||
-              isDeletingAchievements ||
-              !hasAchievements ||
-              !userDetails
-            }
-          >
-            {t("reset_achievements")}
-          </Button>
-        )}
+        {game.shop !== "custom" &&
+          !isClassicsGameForEmulator(game, {
+            kind: "emulator",
+            system: "ps3",
+          }) && (
+            <Button
+              onClick={onOpenResetAchievements}
+              theme="danger"
+              disabled={
+                deleting ||
+                isDeletingAchievements ||
+                !hasAchievements ||
+                !userDetails
+              }
+            >
+              {t("reset_achievements")}
+            </Button>
+          )}
 
         <Button onClick={onOpenChangePlaytime} theme="danger">
           {t("update_game_playtime")}

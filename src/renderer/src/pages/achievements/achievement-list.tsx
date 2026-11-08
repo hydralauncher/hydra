@@ -67,6 +67,9 @@ export function AchievementList({
   const isOtherUser = viewerUnlockedNames !== undefined;
   const { t, i18n } = useTranslation("achievement");
   const { hasActiveSubscription } = useUserDetails();
+  const localTrophies =
+    achievements.length > 0 &&
+    achievements.every((row) => row.source === "rpcs3");
   const { showHydraCloudModal } = useSubscription();
   const formatUnlockDateTime = (date: number) =>
     formatAchievementUnlockDateTime(date, i18n.language);
@@ -162,12 +165,16 @@ export function AchievementList({
   const sortOptions: AchievementSelectOption<AchievementSortOption>[] = [
     {
       value: "most_common",
-      label: t("sort_most_common"),
+      label: t(
+        localTrophies ? "sort_trophy_grade_ascending" : "sort_most_common"
+      ),
       icon: <SortDescIcon size={16} />,
     },
     {
       value: "most_rare",
-      label: t("sort_most_rare"),
+      label: t(
+        localTrophies ? "sort_trophy_grade_descending" : "sort_most_rare"
+      ),
       icon: <SortAscIcon size={16} />,
     },
     {
@@ -281,6 +288,14 @@ export function AchievementList({
                   </span>
                 )}
                 {achievement.displayName}
+                {achievement.trophyGrade && (
+                  <span
+                    className="achievements__item-trophy-grade"
+                    data-grade={achievement.trophyGrade}
+                  >
+                    {t(`trophy_grade_${achievement.trophyGrade}`)}
+                  </span>
+                )}
                 {achievement.hardcoreUnlockTime != null && (
                   <span
                     className="achievements__item-hardcore-badge"
@@ -372,19 +387,21 @@ export function AchievementList({
               </span>
             )}
 
-            {hasActiveSubscription && achievement.points != null && (
-              <div
-                className="achievements__item-points"
-                title={t("achievement_earn_points", {
-                  points: achievement.points,
-                })}
-              >
-                <HydraIcon className="achievements__item-points-icon" />
-                <span className="achievements__item-points-value">
-                  {achievement.points}
-                </span>
-              </div>
-            )}
+            {!achievement.trophyGrade &&
+              hasActiveSubscription &&
+              achievement.points != null && (
+                <div
+                  className="achievements__item-points"
+                  title={t("achievement_earn_points", {
+                    points: achievement.points,
+                  })}
+                >
+                  <HydraIcon className="achievements__item-points-icon" />
+                  <span className="achievements__item-points-value">
+                    {achievement.points}
+                  </span>
+                </div>
+              )}
           </div>
         </div>
       </li>
@@ -420,36 +437,37 @@ export function AchievementList({
         />
 
         <div className="achievements__toolbar-end">
-          {!isOtherUser && (
+          {!isOtherUser && !localTrophies && (
             <RetroAchievementsConnectBanner className="achievements__toolbar-retro-achievements" />
           )}
 
-          {hasActiveSubscription ? (
-            <div className="achievements__toolbar-points">
-              <span className="achievements__toolbar-points-label">
-                {t("earned_points")}
-              </span>
-              <HydraIcon className="achievements__toolbar-points-icon" />
-              <span>
-                {earnedPoints} / {totalPoints}
-              </span>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="achievements__toolbar-points achievements__toolbar-points--locked"
-              title={t("how_to_earn_achievements_points")}
-              onClick={() => showHydraCloudModal("achievements-points")}
-            >
-              <span className="achievements__toolbar-points-label">
-                {t("earned_points")}
-              </span>
-              <HydraIcon className="achievements__toolbar-points-icon" />
-              <span className="achievements__toolbar-points-value">
-                ??? / ???
-              </span>
-            </button>
-          )}
+          {!localTrophies &&
+            (hasActiveSubscription ? (
+              <div className="achievements__toolbar-points">
+                <span className="achievements__toolbar-points-label">
+                  {t("earned_points")}
+                </span>
+                <HydraIcon className="achievements__toolbar-points-icon" />
+                <span>
+                  {earnedPoints} / {totalPoints}
+                </span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="achievements__toolbar-points achievements__toolbar-points--locked"
+                title={t("how_to_earn_achievements_points")}
+                onClick={() => showHydraCloudModal("achievements-points")}
+              >
+                <span className="achievements__toolbar-points-label">
+                  {t("earned_points")}
+                </span>
+                <HydraIcon className="achievements__toolbar-points-icon" />
+                <span className="achievements__toolbar-points-value">
+                  ??? / ???
+                </span>
+              </button>
+            ))}
         </div>
       </div>
 

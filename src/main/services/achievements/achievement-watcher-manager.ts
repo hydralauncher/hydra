@@ -29,6 +29,7 @@ import { AchievementMemoryStore } from "./achievement-memory-store";
 import { UnlockedAchievementsCache } from "./unlocked-achievements-cache";
 import { CombinedAchievementsRequests } from "./combined-achievements-requests";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
+import { isClassicsGameForEmulator } from "../../../shared/classics-emulator-games.js";
 
 const fileStats: Map<string, number> = new Map();
 const fltFiles: Map<string, Set<string>> = new Map();
@@ -63,11 +64,27 @@ const getEnableSteamAchievements = async () => {
   return userPreferences?.enableSteamAchievements ?? false;
 };
 
+const isLocalRpcs3Game = async (shop: GameShop, objectId: string) => {
+  if (shop !== "launchbox") return false;
+  const game = await gamesSublevel
+    .get(levelKeys.game(shop, objectId))
+    .catch(() => null);
+  return Boolean(
+    game && isClassicsGameForEmulator(game, { kind: "emulator", system: "ps3" })
+  );
+};
+
 const getWatchedGames = async (onlyWithWinePrefix = false) => {
   const games = await gamesSublevel
     .values()
     .all()
-    .then((games) => games.filter((game) => !game.isDeleted));
+    .then((games) =>
+      games.filter(
+        (game) =>
+          !game.isDeleted &&
+          !isClassicsGameForEmulator(game, { kind: "emulator", system: "ps3" })
+      )
+    );
 
   if (!onlyWithWinePrefix) return games;
 
@@ -240,7 +257,8 @@ export class AchievementWatcherManager {
     achievementSyncWorker.stop();
     void achievementSyncWorker.trigger();
     this.alreadySyncedGames.clear();
-    AchievementMemoryStore.clear();
+    // RPCS3 progress belongs to the local emulator user, not the Hydra account.
+    AchievementMemoryStore.clearAccountEntries();
     UnlockedAchievementsCache.clear();
     CombinedAchievementsRequests.clear();
   }
@@ -268,6 +286,8 @@ export class AchievementWatcherManager {
     objectId: string
   ) {
     if (shop === "custom" || shop === "epic") return;
+
+    if (await isLocalRpcs3Game(shop, objectId)) return;
 
     const gameKey = levelKeys.game(shop, objectId);
     if (this.alreadySyncedGames.get(gameKey)) return;

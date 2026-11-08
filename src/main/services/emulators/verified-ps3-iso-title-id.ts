@@ -50,7 +50,8 @@ const readIsoExtent = async (
 ): Promise<Buffer> => {
   const len = Math.min(byteLength, cap);
   const buf = Buffer.alloc(len);
-  await fh.read(buf, 0, len, lba * ISO_SECTOR);
+  const { bytesRead } = await fh.read(buf, 0, len, lba * ISO_SECTOR);
+  if (bytesRead !== len) throw new Error("Incomplete PS3 ISO extent");
   return buf;
 };
 
@@ -64,6 +65,48 @@ const findIsoEntry = (
       e.name !== ".." &&
       e.name.toUpperCase() === name.toUpperCase()
   ) ?? null;
+
+const readIsoSubdirectory = async (
+  fh: import("node:fs/promises").FileHandle,
+  entries: IsoDirEntry[],
+  name: string
+): Promise<IsoDirEntry[] | null> => {
+  const entry = findIsoEntry(entries, name);
+  if (!entry?.isDir || entry.size > ISO_DIR_READ_CAP) return null;
+  return parseIsoDirRecords(
+    await readIsoExtent(fh, entry.lba, entry.size, ISO_DIR_READ_CAP)
+  );
+};
+
+/** Read trophy communication IDs from the disc's directory records, never its filename. */
+export const extractTrophySetIdsFromIso = async (
+  isoPath: string
+): Promise<string[]> => {
+  const fh = await fs.open(isoPath, "r");
+  try {
+    const pvd = await readIsoExtent(fh, 16, ISO_SECTOR, ISO_SECTOR);
+    if (pvd[0] !== 1 || pvd.subarray(1, 6).toString("latin1") !== "CD001")
+      throw new Error("Invalid PS3 ISO volume descriptor");
+    const root = parseIsoDirRecords(
+      await readIsoExtent(
+        fh,
+        pvd.readUInt32LE(158),
+        pvd.readUInt32LE(166),
+        ISO_DIR_READ_CAP
+      )
+    );
+    // Each child extent depends on its parent's directory records.
+    const game = await readIsoSubdirectory(fh, root, "PS3_GAME");
+    if (!game) return [];
+    const trophies = await readIsoSubdirectory(fh, game, "TROPDIR");
+    if (!trophies) return [];
+    return trophies
+      .filter((entry) => entry.isDir && /^NPWR\d{5}_\d{2}$/.test(entry.name))
+      .map((entry) => entry.name);
+  } finally {
+    await fh.close();
+  }
+};
 
 export const extractTitleIdFromIso = async (
   isoPath: string
