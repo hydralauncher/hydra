@@ -56,6 +56,18 @@ fn next<C: ComponentHandle + 'static>(
     match cmd {
         "wait" => delay = Duration::from_millis(num(0) as u64),
         "shot" => snapshot(window, &out, args.first().copied().unwrap_or("shot")),
+        "click" | "rclick" => {
+            let position = LogicalPosition::new(num(0), num(1));
+            let button = if cmd == "rclick" {
+                PointerEventButton::Right
+            } else {
+                PointerEventButton::Left
+            };
+            window.dispatch_event(WindowEvent::PointerMoved { position });
+            crate::popup::pointer_pressed_at(num(0), num(1));
+            window.dispatch_event(WindowEvent::PointerPressed { position, button });
+            window.dispatch_event(WindowEvent::PointerReleased { position, button });
+        }
         "move" | "press" | "release" => {
             let position = LogicalPosition::new(num(0), num(1));
             window.dispatch_event(WindowEvent::PointerMoved { position });

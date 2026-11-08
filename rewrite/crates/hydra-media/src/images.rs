@@ -66,6 +66,49 @@ pub fn decode(path: &Path, op: Op) -> Option<Pixels> {
     Some(transform(img, op))
 }
 
+/// Decode a file or downloaded bytes without transforming it (callers derive
+/// several sizes/effects from one decode).
+pub fn open_bytes(bytes: &[u8]) -> Option<DynamicImage> {
+    ImageReader::new(std::io::Cursor::new(bytes))
+        .with_guessed_format()
+        .ok()?
+        .decode()
+        .ok()
+}
+
+pub fn open_path(path: &Path) -> Option<DynamicImage> {
+    ImageReader::open(path)
+        .ok()?
+        .with_guessed_format()
+        .ok()?
+        .decode()
+        .ok()
+}
+
+/// Fetch a source's bytes (blocking; call from a worker).
+pub fn fetch(http: &reqwest::blocking::Client, source: &Source) -> Option<Vec<u8>> {
+    match source {
+        Source::Path(path) => std::fs::read(path).ok(),
+        Source::Url(url) => http
+            .get(url)
+            .send()
+            .and_then(|r| r.error_for_status())
+            .and_then(|r| r.bytes())
+            .ok()
+            .map(|b| b.to_vec()),
+    }
+}
+
+/// Apply `op` to a decoded image and keep 3 bytes per pixel when opaque.
+pub fn to_pixels(img: DynamicImage, op: Op) -> Pixels {
+    transform(img, op)
+}
+
+/// Raw RGBA pixels (e.g. a ThumbHash) as `Pixels`.
+pub fn rgba_pixels(width: u32, height: u32, rgba: &[u8]) -> Pixels {
+    Pixels::Rgba(SharedPixelBuffer::clone_from_slice(rgba, width, height))
+}
+
 pub fn decode_bytes(bytes: &[u8], op: Op) -> Option<Pixels> {
     let img = ImageReader::new(std::io::Cursor::new(bytes))
         .with_guessed_format()
@@ -179,6 +222,13 @@ impl Loader {
                 let _ = slint::invoke_from_event_loop(move || done(pixels.into_image()));
             }
         }));
+    }
+
+    /// Run `job` on a worker with the shared HTTP client. The job hands its
+    /// results back with `slint::invoke_from_event_loop` itself.
+    pub fn run(&self, job: impl FnOnce(&reqwest::blocking::Client) + Send + 'static) {
+        let http = self.http.clone();
+        let _ = self.tx.send(Box::new(move || job(&http)));
     }
 
     /// Fetch + decode `source` on a worker, then run `done` on the UI thread.

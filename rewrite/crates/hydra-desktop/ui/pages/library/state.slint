@@ -1,0 +1,114 @@
+// Library page data and actions; the backend (library_page.rs) fills this.
+
+// .library-game-card-large__size-bar: installer (zip) / installed (database).
+export struct LibrarySizeBar {
+    // 0 installer, 1 installed
+    kind: int,
+    label: string,
+    // Proportional to the larger size, at most 80px.
+    width: length,
+}
+
+// One card of the grid (library-game-card.tsx / library-game-card-large.tsx).
+export struct LibraryCard {
+    id: string,
+    title: string,
+    // The decoded cover (empty until it loads).
+    cover: image,
+    // ThumbHash placeholder from `game.images`, shown until `cover` loads.
+    placeholder: image,
+    // The cover pre-blurred for the badges' `backdrop-filter: blur(8px)`.
+    frost: image,
+    // Classics: the cover blurred for `.library-game-card__classics-backdrop`.
+    backdrop: image,
+    // 0 cover (object-fit: cover), 1 picked cover (contain on #0a0a0a),
+    // 2 classics (blurred backdrop + centered art), 3 no art (ImageIcon),
+    // 4 waiting for the cover poster (empty placeholder)
+    mode: int,
+    show-playtime: bool,
+    playtime-long: string,
+    playtime-short: string,
+    manual-playtime: bool,
+    hidden-from-others: bool,
+    concealed: bool,
+    steam-badge: bool,
+    epic-badge: bool,
+    // Classics platform ("PS2", "SNES", …); empty when hidden.
+    platform-label: string,
+    ready: bool,
+    // 0 none, 1 duckstation, 2 pcsx2, 3 rpcs3, 4 ppsspp, 5 dolphin, 6 retroarch
+    emulator: int,
+    show-achievements: bool,
+    achievements: int,
+    unlocked: int,
+    // Large view (library-game-card-large.tsx): the hero art, its logo
+    // (with the drop-shadow filter pre-rendered) and the size bars.
+    hero: image,
+    hero-placeholder: image,
+    hero-frost: image,
+    logo: image,
+    logo-shadow: image,
+    // The shadow image's padding around the logo (blur reach), in image pixels.
+    logo-shadow-pad: float,
+    // The logo's rendered width (max 400px x 120px, natural size at most).
+    logo-width: length,
+    sizes: [LibrarySizeBar],
+}
+
+// A row of the Filters menu (collections, libraries, consoles).
+export struct LibraryMenuItem {
+    id: string,
+    label: string,
+    // Collections: 0 folder, 1 heart (favorites), 2 lock (hidden). Sources: 3 hydra, 4 steam, 5 epic.
+    icon: int,
+    count: string,
+    checked: bool,
+}
+
+export global LibraryData {
+    in property <[LibraryCard]> cards;
+    // isLibraryLoading: the skeleton grid.
+    in property <bool> loading: true;
+    // "" (grid) | "no-games" | "classics-importing" | "favorites" | "collection"
+    // | "hidden" | "hidden-loading" | "hidden-failed" | "no-results"
+    in property <string> empty-state;
+    in property <bool> has-games;
+    in property <bool> show-controls;
+    in property <string> view-mode: "compact";
+    in property <string> sort-by: "title_asc";
+    in property <string> category: "all";
+    in property <bool> filters-active;
+    in property <bool> scan-supported;
+    in property <bool> scanning;
+    in property <[LibraryMenuItem]> collections;
+    // A collection is selected ("All games" unchecked).
+    in property <bool> collections-any-checked;
+    in property <bool> show-sources;
+    in property <[LibraryMenuItem]> sources;
+    in property <bool> show-platforms;
+    in property <[LibraryMenuItem]> platforms;
+    in property <bool> installed-only;
+    // Bumped when the filters change: the grid scrolls back to the top and
+    // the toolbar comes back (library.tsx's scrollTo({ top: 0 }) effect).
+    in property <int> scroll-reset;
+
+    // Cards on screen plus overscan, as indexes into `cards`.
+    callback visible-range(int, int);
+    // The card width in physical pixels, for picking image sizes.
+    callback card-width-changed(int, int);
+    callback open-card(int);
+    callback card-context-menu(int, length, length);
+    callback set-category(string);
+    callback set-sort(string);
+    callback set-view-mode(string);
+    callback select-collection(string);
+    callback toggle-source(string);
+    callback toggle-platform(string);
+    callback set-installed-only(bool);
+    callback clear-filters();
+    callback create-collection();
+    callback collection-context-menu(string, length, length);
+    callback scan();
+    callback add-game();
+    callback retry-hidden();
+}

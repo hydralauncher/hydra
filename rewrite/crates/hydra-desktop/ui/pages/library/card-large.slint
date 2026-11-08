@@ -1,0 +1,521 @@
+// library-game-card-large.{tsx,scss}: the "large" view, a 300px banner
+// with the hero art, the logo (or title), badges and achievement progress.
+import { Theme, Tip, Ids } from "../../theme.slint";
+import { Icon } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+import { LibraryCard } from "state.slint";
+import { LibraryIcons, Rainbow, PlatinumFill } from "card.slint";
+
+export global LargeIcons {
+    out property <image> file-zip: @image-url("../../icons/file-zip-11.svg");
+    out property <image> database: @image-url("../../icons/database-11.svg");
+    out property <image> check-circle-fill: @image-url("../../icons/check-circle-fill-12.svg");
+    out property <image> trophy: @image-url("../../icons/trophy-14.svg");
+}
+
+component TipZone inherits Rectangle {
+    in property <string> tip;
+    in property <bool> pointer-over;
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+    changed pointer-over => {
+        if (self.pointer-over && root.tip != "") {
+            Tip.show(root.tip-id, root.tip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+        } else {
+            Tip.hide(root.tip-id);
+        }
+    }
+}
+
+// backdrop-filter: blur(8px) over the hero, from the pre-blurred hero.
+component FrostBadge inherits Rectangle {
+    in property <image> frost;
+    in property <Point> hero-origin;
+    in property <length> hero-width;
+    in property <length> hero-height;
+    border-radius: 4px;
+    drop-shadow-offset-y: 2px;
+    drop-shadow-blur: 4px;
+    drop-shadow-color: rgba(0, 0, 0, 0.2);
+    height: 28px;
+
+    Rectangle {
+        border-radius: 4px;
+        clip: true;
+        Image {
+            source: root.frost;
+            x: root.hero-origin.x - root.absolute-position.x;
+            y: root.hero-origin.y - root.absolute-position.y;
+            width: root.hero-width;
+            height: root.hero-height;
+            image-fit: cover;
+        }
+    }
+
+    Rectangle {
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.4);
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    @children
+}
+
+component RainbowBadge inherits Rectangle {
+    border-radius: 6px;
+    background: Rainbow.brush;
+    drop-shadow-offset-y: 2px;
+    drop-shadow-blur: 4px;
+    drop-shadow-color: rgba(0, 0, 0, 0.25);
+    height: 28px;
+    Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        border-radius: 5px;
+        background: #1c1c1c;
+    }
+
+    @children
+}
+
+export component LibraryGameCardLarge inherits Rectangle {
+    in property <LibraryCard> card;
+    callback clicked();
+    callback context-menu(length, length);
+
+    property <bool> hovered: touch.has-hover;
+    property <bool> classics: root.card.mode == 2;
+    property <bool> has-achievements: root.card.show-achievements && (root.card.achievements > 0 || root.card.unlocked > 0);
+    property <bool> completed: root.card.achievements > 0 && root.card.unlocked >= root.card.achievements;
+
+    accessible-role: button;
+    accessible-label: root.card.title;
+
+    pure function over(origin: Point, w: length, h: length) -> bool {
+        if (!touch.has-hover) {
+            return false;
+        }
+        return touch.absolute-position.x + touch.mouse-x >= origin.x && touch.absolute-position.x + touch.mouse-x < origin.x + w
+            && touch.absolute-position.y + touch.mouse-y >= origin.y && touch.absolute-position.y + touch.mouse-y < origin.y + h;
+    }
+
+    // :hover { transform: scale(1.01); box-shadow: 0 8px 16px rgba(0,0,0,.3); border-color: .1 } over 0.2s
+    body := Rectangle {
+        transform-scale: root.hovered ? 1.01 : 1;
+        animate transform-scale { duration: 200ms; easing: ease; }
+        border-radius: 8px;
+        drop-shadow-offset-y: root.hovered ? 8px : 0;
+        drop-shadow-blur: root.hovered ? 16px : 0;
+        drop-shadow-color: root.hovered ? rgba(0, 0, 0, 0.3) : transparent;
+        animate drop-shadow-offset-y, drop-shadow-blur, drop-shadow-color { duration: 200ms; easing: ease; }
+        background: Theme.background;
+
+        frame := Rectangle {
+            border-radius: 8px;
+            clip: true;
+
+            // __background: the hero (cover, centered) over its ThumbHash
+            if !root.classics: Rectangle {
+                if root.card.hero.width == 0: Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.card.hero-placeholder;
+                    image-fit: cover;
+                }
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.card.hero;
+                    image-fit: cover;
+                }
+            }
+
+            // --classics: blur(18px) saturate(1.1) scale(1.2) at 0.6 + the art up to 60% x 80%
+            if root.classics: Rectangle {
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.card.backdrop;
+                    image-fit: cover;
+                    transform-scale: 1.2;
+                    opacity: 0.6;
+                }
+                if root.card.cover.width > 0: Rectangle {
+                    property <float> aspect: root.card.cover.width / Math.max(1, root.card.cover.height);
+                    property <length> box-w: parent.width * 0.6;
+                    property <length> box-h: parent.height * 0.8;
+                    // max-width/max-height with the image's natural size as the upper bound.
+                    property <length> natural-w: root.card.cover.width * 1phx;
+                    property <length> fit-w: self.aspect > self.box-w / self.box-h ? self.box-w : self.box-h * self.aspect;
+                    width: Math.min(self.fit-w, self.natural-w);
+                    height: self.width / self.aspect;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 6px;
+                    drop-shadow-offset-y: 5px;
+                    drop-shadow-blur: 5px;
+                    drop-shadow-color: rgba(0, 0, 0, 0.09);
+                    Rectangle {
+                        border-radius: 6px;
+                        clip: true;
+                        Image {
+                            width: parent.width;
+                            height: parent.height;
+                            source: root.card.cover;
+                            image-fit: fill;
+                        }
+                    }
+                    Rectangle {
+                        border-radius: 6px;
+                        border-width: 1px;
+                        border-color: rgba(255, 255, 255, 0.12);
+                    }
+                }
+            }
+
+            // ::before sheen
+            Rectangle {
+                y: (root.hovered ? -0.2 : -0.36) * self.height;
+                height: parent.height * 1.72;
+                opacity: root.hovered ? 1 : 0.5;
+                animate y, opacity { duration: 300ms; easing: ease; }
+                background: @linear-gradient(35deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.07) 51.5%, rgba(255, 255, 255, 0.15) 64%, rgba(255, 255, 255, 0.1) 100%);
+            }
+
+            // __gradient (not for classics)
+            if root.has-achievements && !root.classics: Rectangle {
+                background: @linear-gradient(0deg, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0.26) 7%, rgba(0, 0, 0, 0.09) 14%, transparent 20%);
+            }
+        }
+
+        // border: 1px solid rgba(255, 255, 255, 0.05 -> 0.1)
+        Rectangle {
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: root.hovered ? rgba(255, 255, 255, 0.1) : rgba(255, 255, 255, 0.05);
+            animate border-color { duration: 200ms; easing: ease; }
+        }
+
+        // __overlay: padding 12px; top section, logo, info bar
+        overlay := Rectangle {
+            property <Point> hero-origin: { x: frame.absolute-position.x, y: frame.absolute-position.y };
+
+            // __size-badges (left)
+            if root.card.sizes.length > 0: FrostBadge {
+                frost: root.card.hero-frost;
+                hero-origin: overlay.hero-origin;
+                hero-width: frame.width;
+                hero-height: frame.height;
+                x: 13px;
+                y: 13px;
+                width: sizes.preferred-width;
+                height: Math.max(28px, sizes.preferred-height);
+                sizes := VerticalLayout {
+                    padding-left: 13px;
+                    padding-right: 13px;
+                    padding-top: 5px;
+                    padding-bottom: 5px;
+                    spacing: 4px;
+                    for bar in root.card.sizes: HorizontalLayout {
+                        spacing: 8px;
+                        Icon {
+                            y: (parent.height - self.height) / 2;
+                            width: 11px;
+                            height: 11px;
+                            source: bar.kind == 0 ? LargeIcons.file-zip : LargeIcons.database;
+                            color: rgba(255, 255, 255, 0.95);
+                        }
+                        Rectangle {
+                            y: (parent.height - self.height) / 2;
+                            width: bar.width;
+                            height: 4px;
+                            border-radius: 4px;
+                            background: @linear-gradient(90deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.8));
+                            animate width { duration: 300ms; easing: ease; }
+                        }
+                        Text {
+                            text: bar.label;
+                            font-size: Theme.small-size;
+                            font-weight: 500;
+                            color: rgba(255, 255, 255, 0.95);
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+
+            // __top-right: visibility, playtime, imports, platform, installed (gap 8)
+            top-right := HorizontalLayout {
+                x: root.width - 13px - self.preferred-width;
+                y: 13px;
+                width: self.preferred-width;
+                height: 28px;
+                spacing: 8px;
+
+                if root.card.concealed || root.card.hidden-from-others: FrostBadge {
+                    frost: root.card.hero-frost;
+                    hero-origin: overlay.hero-origin;
+                    hero-width: frame.width;
+                    hero-height: frame.height;
+                    width: 37px;
+                    Icon {
+                        width: 11px;
+                        height: 11px;
+                        source: root.card.concealed ? LibraryIcons.lock : LibraryIcons.eye-closed;
+                        color: rgba(255, 255, 255, 0.95);
+                    }
+                    TipZone {
+                        tip: root.card.concealed ? T.tr("library.hidden_game_tooltip") : T.tr("library.hidden_from_others_tooltip");
+                        pointer-over: root.over(self.absolute-position, self.width, self.height);
+                    }
+                }
+
+                if root.card.show-playtime: FrostBadge {
+                    frost: root.card.hero-frost;
+                    hero-origin: overlay.hero-origin;
+                    hero-width: frame.width;
+                    hero-height: frame.height;
+                    HorizontalLayout {
+                        padding-left: 13px;
+                        padding-right: 13px;
+                        spacing: 8px;
+                        Icon {
+                            y: (parent.height - self.height) / 2;
+                            width: 11px;
+                            height: 11px;
+                            source: root.card.manual-playtime ? LibraryIcons.alert-fill : LibraryIcons.clock;
+                            color: root.card.manual-playtime ? Theme.warning : rgba(255, 255, 255, 0.95);
+                        }
+                        Text {
+                            text: root.card.playtime-long;
+                            font-size: Theme.small-size;
+                            font-weight: 500;
+                            color: rgba(255, 255, 255, 0.95);
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+
+                if root.card.steam-badge || root.card.epic-badge: HorizontalLayout {
+                    spacing: 4px;
+                    horizontal-stretch: 0;
+                    if root.card.steam-badge: FrostBadge {
+                        frost: root.card.hero-frost;
+                        hero-origin: overlay.hero-origin;
+                        hero-width: frame.width;
+                        hero-height: frame.height;
+                        width: 28px;
+                        Icon {
+                            width: 13px;
+                            height: 13px;
+                            source: LibraryIcons.steam;
+                            color: rgba(255, 255, 255, 0.95);
+                        }
+                        TipZone {
+                            tip: T.tr("library.imported_from_steam");
+                            pointer-over: root.over(self.absolute-position, self.width, self.height);
+                        }
+                    }
+                    if root.card.epic-badge: FrostBadge {
+                        frost: root.card.hero-frost;
+                        hero-origin: overlay.hero-origin;
+                        hero-width: frame.width;
+                        hero-height: frame.height;
+                        width: 28px;
+                        Icon {
+                            width: 13px;
+                            height: 13px;
+                            source: LibraryIcons.epic;
+                            color: rgba(255, 255, 255, 0.95);
+                        }
+                        TipZone {
+                            tip: T.tr("library.imported_from_epic");
+                            pointer-over: root.over(self.absolute-position, self.width, self.height);
+                        }
+                    }
+                }
+
+                if root.card.platform-label != "": RainbowBadge {
+                    width: Math.min(96px, platform-text.preferred-width + 18px);
+                    platform-text := Text {
+                        x: 9px;
+                        width: parent.width - 18px;
+                        text: root.card.platform-label;
+                        font-size: Theme.tiny-size;
+                        font-weight: 500;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                        horizontal-alignment: center;
+                        overflow: elide;
+                    }
+                }
+
+                if root.card.ready && root.card.emulator == 0: FrostBadge {
+                    frost: root.card.hero-frost;
+                    hero-origin: overlay.hero-origin;
+                    hero-width: frame.width;
+                    hero-height: frame.height;
+                    HorizontalLayout {
+                        padding-left: 13px;
+                        padding-right: 13px;
+                        spacing: 8px;
+                        Icon {
+                            y: (parent.height - self.height) / 2;
+                            width: 12px;
+                            height: 12px;
+                            source: LargeIcons.check-circle-fill;
+                            color: #ffffff;
+                        }
+                        Text {
+                            text: T.tr("library.installed");
+                            font-size: Theme.small-size;
+                            font-weight: 500;
+                            color: rgba(255, 255, 255, 0.95);
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+                if root.card.ready && root.card.emulator > 0: RainbowBadge {
+                    HorizontalLayout {
+                        padding-left: 9px;
+                        padding-right: 9px;
+                        spacing: 8px;
+                        Rectangle {
+                            y: (parent.height - self.height) / 2;
+                            width: 16px;
+                            height: 16px;
+                            border-radius: 4px;
+                            clip: true;
+                            Image {
+                                source: LibraryIcons.emulator(root.card.emulator);
+                                image-fit: contain;
+                            }
+                        }
+                        Text {
+                            text: T.tr("library.installed");
+                            font-size: Theme.small-size;
+                            font-weight: 500;
+                            color: Theme.muted;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+
+            // __logo-container (flex: 1 between the top section and the info bar)
+            property <length> logo-top: 13px + 28px;
+            property <length> logo-bottom: root.has-achievements ? root.height - 13px - info.preferred-height : root.height - 13px;
+            if root.card.logo.width > 0: Rectangle {
+                property <float> aspect: root.card.logo.width / Math.max(1, root.card.logo.height);
+                // CSS px per logo image pixel
+                property <float> k: self.width / (root.card.logo.width * 1px);
+                x: 13px;
+                width: root.card.logo-width;
+                height: self.width / self.aspect;
+                y: overlay.logo-top + (overlay.logo-bottom - overlay.logo-top - self.height) / 2;
+                // filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6)), pre-rendered from the logo's alpha
+                Image {
+                    x: -root.card.logo-shadow-pad * parent.k * 1px;
+                    y: 4px - root.card.logo-shadow-pad * parent.k * 1px;
+                    width: parent.width + 2 * root.card.logo-shadow-pad * parent.k * 1px;
+                    height: parent.height + 2 * root.card.logo-shadow-pad * parent.k * 1px;
+                    source: root.card.logo-shadow;
+                    image-fit: fill;
+                }
+                Image {
+                    source: root.card.logo;
+                    image-fit: fill;
+                }
+            }
+            if root.card.logo.width == 0: Text {
+                x: 13px;
+                width: root.width - 26px;
+                y: overlay.logo-top + (overlay.logo-bottom - overlay.logo-top - self.preferred-height) / 2;
+                text: root.card.title;
+                font-size: 28px;
+                font-weight: 700;
+                color: rgba(255, 255, 255, 0.95);
+                wrap: word-wrap;
+                overflow: elide;
+                max-height: 2 * 28px * 1.36;
+            }
+
+            // __info-bar: AchievementProgress (trophy 14px)
+            info := VerticalLayout {
+                x: 13px;
+                width: root.width - 26px;
+                y: root.height - 13px - self.preferred-height;
+                spacing: 8px;
+                visible: root.has-achievements;
+                HorizontalLayout {
+                    HorizontalLayout {
+                        spacing: 8px;
+                        if !root.completed: Icon {
+                            y: (parent.height - self.height) / 2;
+                            width: 14px;
+                            height: 14px;
+                            source: LargeIcons.trophy;
+                            color: #ffffff;
+                        }
+                        Text {
+                            text: root.card.unlocked + " / " + root.card.achievements;
+                            font-size: Theme.body-size;
+                            font-weight: 500;
+                            color: rgba(255, 255, 255, 0.9);
+                            vertical-alignment: center;
+                        }
+                    }
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+                    if root.completed: Icon {
+                        y: (parent.height - self.height) / 2;
+                        width: 14px;
+                        height: 14px;
+                        source: LargeIcons.trophy;
+                        color: Theme.brand-teal;
+                    }
+                    if !root.completed: Text {
+                        text: Math.round(root.card.unlocked / Math.max(1, root.card.achievements) * 100) + "%";
+                        font-size: Theme.body-size;
+                        color: rgba(255, 255, 255, 0.85);
+                        vertical-alignment: center;
+                    }
+                }
+                Rectangle {
+                    height: 4px;
+                    border-radius: 4px;
+                    clip: true;
+                    background: rgba(255, 255, 255, 0.08);
+                    Rectangle {
+                        x: 0;
+                        width: parent.width * Math.min(1, root.card.unlocked / Math.max(1, root.card.achievements));
+                        animate width { duration: 300ms; easing: ease; }
+                        border-radius: 4px;
+                        background: Theme.muted;
+                        if root.completed: PlatinumFill {
+                            border-radius: 4px;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
+                root.context-menu(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+            }
+        }
+    }
+}

@@ -22,7 +22,10 @@ pub enum ApiError {
     /// `UserNotLoggedInError`.
     NotLoggedIn,
     /// The API answered with an error status (body kept for `code`/`message`).
-    Status { status: u16, body: Option<Value> },
+    Status {
+        status: u16,
+        body: Option<Value>,
+    },
     Network(String),
 }
 
@@ -30,7 +33,9 @@ impl ApiError {
     /// The API's error code (`{ code, message }` bodies), when there is one.
     pub fn code(&self) -> Option<&str> {
         match self {
-            ApiError::Status { body: Some(body), .. } => body.get("code").and_then(Value::as_str),
+            ApiError::Status {
+                body: Some(body), ..
+            } => body.get("code").and_then(Value::as_str),
             _ => None,
         }
     }
@@ -125,11 +130,15 @@ impl HydraApi {
         let stored: Option<Value> = self.db.get(keys::AUTH);
         let field = |name: &str| stored.as_ref().and_then(|a| a.get(name)).cloned();
         let auth = UserAuth {
-            auth_token: field("accessToken").and_then(|v| v.as_str().map(str::to_string)).unwrap_or_default(),
+            auth_token: field("accessToken")
+                .and_then(|v| v.as_str().map(str::to_string))
+                .unwrap_or_default(),
             refresh_token: field("refreshToken")
                 .and_then(|v| v.as_str().map(str::to_string))
                 .unwrap_or_default(),
-            expiration_timestamp: field("tokenExpirationTimestamp").and_then(|v| v.as_f64()).unwrap_or(0.0) as i64,
+            expiration_timestamp: field("tokenExpirationTimestamp")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0) as i64,
         };
         if let Ok(mut current) = self.auth.lock() {
             *current = auth;
@@ -143,7 +152,10 @@ impl HydraApi {
     }
 
     pub fn is_logged_in(&self) -> bool {
-        self.auth.lock().map(|a| !a.auth_token.is_empty()).unwrap_or(false)
+        self.auth
+            .lock()
+            .map(|a| !a.auth_token.is_empty())
+            .unwrap_or(false)
     }
 
     /// `HydraApi.handleSignIn` payload (auth window redirect): store the session.
@@ -170,7 +182,11 @@ impl HydraApi {
     }
 
     fn refresh_token(&self) -> Result<(), ApiError> {
-        let refresh = self.auth.lock().map(|a| a.refresh_token.clone()).unwrap_or_default();
+        let refresh = self
+            .auth
+            .lock()
+            .map(|a| a.refresh_token.clone())
+            .unwrap_or_default();
         let response = self
             .client
             .post(format!("{}/auth/refresh", self.base))
@@ -186,8 +202,14 @@ impl HydraApi {
                 body: response.json().ok(),
             });
         }
-        let body: Value = response.json().map_err(|e| ApiError::Network(e.to_string()))?;
-        let access = body.get("accessToken").and_then(Value::as_str).unwrap_or_default().to_string();
+        let body: Value = response
+            .json()
+            .map_err(|e| ApiError::Network(e.to_string()))?;
+        let access = body
+            .get("accessToken")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
         let expires_in = body.get("expiresIn").and_then(Value::as_f64).unwrap_or(0.0);
         let expiration = now_ms() + (expires_in * 1000.0) as i64 - EXPIRATION_OFFSET_MS;
         if let Ok(mut auth) = self.auth.lock() {
@@ -223,7 +245,11 @@ impl HydraApi {
         if !self.is_logged_in() {
             return Err(ApiError::NotLoggedIn);
         }
-        let expired = self.auth.lock().map(|a| a.expiration_timestamp < now_ms()).unwrap_or(true);
+        let expired = self
+            .auth
+            .lock()
+            .map(|a| a.expiration_timestamp < now_ms())
+            .unwrap_or(true);
         if expired && let Err(error) = self.refresh_token() {
             self.handle_unauthorized(&error);
             return Err(error);
@@ -232,7 +258,11 @@ impl HydraApi {
     }
 
     fn request(&self, method: Method, path: &str, options: Options) -> RequestBuilder {
-        let token = self.auth.lock().map(|a| a.auth_token.clone()).unwrap_or_default();
+        let token = self
+            .auth
+            .lock()
+            .map(|a| a.auth_token.clone())
+            .unwrap_or_default();
         let mut builder = self
             .client
             .request(method, format!("{}{}", self.base, path))
@@ -245,9 +275,13 @@ impl HydraApi {
     }
 
     fn send(&self, builder: RequestBuilder, options: Options) -> Result<Value, ApiError> {
-        let response = builder.send().map_err(|e| ApiError::Network(e.to_string()))?;
+        let response = builder
+            .send()
+            .map_err(|e| ApiError::Network(e.to_string()))?;
         let status = response.status().as_u16();
-        let text = response.text().map_err(|e| ApiError::Network(e.to_string()))?;
+        let text = response
+            .text()
+            .map_err(|e| ApiError::Network(e.to_string()))?;
         let body: Option<Value> = serde_json::from_str(&text).ok();
         if (200..300).contains(&status) {
             return Ok(body.unwrap_or(Value::Null));
@@ -259,7 +293,12 @@ impl HydraApi {
         Err(error)
     }
 
-    pub fn get(&self, path: &str, query: &[(&str, String)], options: Options) -> Result<Value, ApiError> {
+    pub fn get(
+        &self,
+        path: &str,
+        query: &[(&str, String)],
+        options: Options,
+    ) -> Result<Value, ApiError> {
         self.validate(options)?;
         let path = if query.is_empty() {
             path.to_string()

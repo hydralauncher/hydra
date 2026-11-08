@@ -17,6 +17,9 @@ export component HydraButton inherits Rectangle {
     in property <bool> small;
     in property <bool> enabled: true;
     in property <string> tooltip;
+    in property <string> tooltip-place: "top";
+    // The icon's rotation (library__action--scanning spins the sync icon).
+    in property <angle> icon-rotation;
     in property <bool> square-corners;
     in property <length> horizontal-padding: root.small ? 10px : 16px;
     callback clicked();
@@ -47,9 +50,10 @@ export component HydraButton inherits Rectangle {
     opacity: !root.enabled ? Theme.disabled-opacity : touch.pressed ? Theme.active-opacity : 1;
     animate background, opacity, border-color { duration: 200ms; easing: ease; }
 
+    // The padding sits inside the 1px border (CSS box model).
     layout := HorizontalLayout {
-        padding-left: root.horizontal-padding;
-        padding-right: root.horizontal-padding;
+        padding-left: root.horizontal-padding + 1px;
+        padding-right: root.horizontal-padding + 1px;
         spacing: root.small ? 6px : 8px;
         alignment: center;
 
@@ -60,6 +64,7 @@ export component HydraButton inherits Rectangle {
                 color: root.foreground;
                 width: root.icon-size;
                 height: root.icon-size;
+                transform-rotation: root.icon-rotation;
             }
         }
         if root.text != "": Text {
@@ -80,7 +85,7 @@ export component HydraButton inherits Rectangle {
         }
         changed has-hover => {
             if (self.has-hover && root.tooltip != "") {
-                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, root.tooltip-place);
             } else {
                 Tip.hide(root.tip-id);
             }

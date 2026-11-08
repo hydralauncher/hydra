@@ -5,7 +5,7 @@ use std::cell::RefCell;
 
 use slint::ComponentHandle;
 
-use crate::{AppWindow, Nav, game_page, shell};
+use crate::{AppWindow, Nav, game_page, library_page, shell};
 
 struct History {
     ui: slint::Weak<AppWindow>,
@@ -35,13 +35,20 @@ impl Location {
             })
             .collect();
         Location {
-            pathname: if pathname.is_empty() { "/".into() } else { pathname.to_string() },
+            pathname: if pathname.is_empty() {
+                "/".into()
+            } else {
+                pathname.to_string()
+            },
             query,
         }
     }
 
     pub fn param(&self, name: &str) -> Option<&str> {
-        self.query.iter().find(|(k, _)| k == name).map(|(_, v)| v.as_str())
+        self.query
+            .iter()
+            .find(|(k, _)| k == name)
+            .map(|(_, v)| v.as_str())
     }
 
     /// The route name the window switches on (Nav.route).
@@ -95,7 +102,9 @@ pub fn encode(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     for byte in text.bytes() {
         match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'*' => out.push(byte as char),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'*' => {
+                out.push(byte as char)
+            }
             b' ' => out.push('+'),
             _ => out.push_str(&format!("%{byte:02X}")),
         }
@@ -153,7 +162,11 @@ pub fn go(delta: i64) {
 }
 
 pub fn current() -> Option<String> {
-    HISTORY.with(|h| h.borrow().as_ref().and_then(|h| h.entries.get(h.index).cloned()))
+    HISTORY.with(|h| {
+        h.borrow()
+            .as_ref()
+            .and_then(|h| h.entries.get(h.index).cloned())
+    })
 }
 
 fn apply(previous: Option<String>) {
@@ -177,6 +190,16 @@ fn apply(previous: Option<String>) {
 
     if previous_location.as_ref().map(|l| l.route()) == Some("game") && location.route() != "game" {
         game_page::close();
+    }
+    if previous_location.as_ref().map(|l| l.route()) == Some("library")
+        && location.route() != "library"
+    {
+        library_page::close();
+    }
+    if location.route() == "library"
+        && previous_location.as_ref().map(|l| l.route()) != Some("library")
+    {
+        library_page::open();
     }
     if location.route() == "game" {
         let mut parts = location.pathname.trim_start_matches('/').split('/').skip(1);

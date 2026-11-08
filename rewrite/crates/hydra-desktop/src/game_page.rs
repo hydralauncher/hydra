@@ -17,7 +17,9 @@ use std::{
 };
 
 use crate::format;
-use crate::{AppWindow, DescBlock, FormatEdit, GameData, Language, Marks, MediaItem, Playback, ReviewEditor};
+use crate::{
+    AppWindow, DescBlock, FormatEdit, GameData, Language, Marks, MediaItem, Playback, ReviewEditor,
+};
 
 /// UI-thread state of the open game page.
 struct App {
@@ -130,7 +132,9 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
 
 /// Navigating to `/game/:shop/:objectId`.
 pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
-    let Some(ui) = with_app(|app| app.ui.upgrade()).flatten() else { return };
+    let Some(ui) = with_app(|app| app.ui.upgrade()).flatten() else {
+        return;
+    };
     // Leaving the previous game: stop its trailer, drop its images.
     with_app(|app| {
         app.generation += 1;
@@ -145,7 +149,11 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
         app.locale = locale.to_string();
         app.shop = shop.to_string();
         app.object_id = object_id.to_string();
-        app.app_id = if shop == "steam" { object_id.parse().unwrap_or(0) } else { 0 };
+        app.app_id = if shop == "steam" {
+            object_id.parse().unwrap_or(0)
+        } else {
+            0
+        };
     });
     let g = gd(&ui);
     g.set_loaded(false);
@@ -159,7 +167,9 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
     g.set_publisher(SharedString::default());
     g.set_controller_support("none".into());
     apply_library_state(&ui, shop, object_id);
-    g.set_achievements(ModelRc::new(VecModel::from(Vec::<crate::Achievement>::new())));
+    g.set_achievements(ModelRc::new(VecModel::from(
+        Vec::<crate::Achievement>::new(),
+    )));
     g.set_achievements_total(0);
     g.set_achievements_unlocked(0);
     fetch_game();
@@ -168,11 +178,15 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
 
 /// game-details.context.tsx: `getUnlockedAchievements` once the user is known.
 fn fetch_achievements(shop: &str, object_id: &str) {
-    let (Some(api), Some(db)) = (crate::shell::api(), crate::shell::db()) else { return };
+    let (Some(api), Some(db)) = (crate::shell::api(), crate::shell::db()) else {
+        return;
+    };
     if shop == "custom" || !api.is_logged_in() {
         return;
     }
-    let Some(generation) = with_app(|app| app.generation) else { return };
+    let Some(generation) = with_app(|app| app.generation) else {
+        return;
+    };
     let (shop, object_id) = (shop.to_string(), object_id.to_string());
     std::thread::spawn(move || {
         let result = hydra_core::achievements::unlocked_achievements(&api, &db, &shop, &object_id);
@@ -189,10 +203,14 @@ fn fetch_achievements(shop: &str, object_id: &str) {
 }
 
 fn apply_achievements(list: Vec<hydra_core::achievements::Achievement>, generation: u64) {
-    let Some((ui, loader)) = with_app(|app| app.ui.upgrade().map(|ui| (ui, app.loader.clone()))).flatten() else {
+    let Some((ui, loader)) =
+        with_app(|app| app.ui.upgrade().map(|ui| (ui, app.loader.clone()))).flatten()
+    else {
         return;
     };
-    let language = crate::shell::i18n().map(|i| i.language().to_string()).unwrap_or_else(|| "en".into());
+    let language = crate::shell::i18n()
+        .map(|i| i.language().to_string())
+        .unwrap_or_else(|| "en".into());
     let show_hidden = crate::shell::preference("showHiddenAchievementsDescription");
     let unlocked = list.iter().filter(|a| a.unlocked).count();
     let rows: Vec<crate::Achievement> = list
@@ -223,7 +241,11 @@ fn apply_achievements(list: Vec<hydra_core::achievements::Achievement>, generati
         if achievement.icon.is_empty() {
             continue;
         }
-        let op = if achievement.unlocked { Op::MaxWidth(size) } else { Op::Grayscale };
+        let op = if achievement.unlocked {
+            Op::MaxWidth(size)
+        } else {
+            Op::Grayscale
+        };
         let weak = ui.as_weak();
         loader.load(achievement.icon.clone(), op, move |img| {
             if with_app(|app| app.generation) != Some(generation) {
@@ -258,7 +280,9 @@ fn now_ms() -> i64 {
 
 /// use-review-prompt.ts `readDismissal`.
 fn review_prompt_dismissed() -> bool {
-    let Some(value) = crate::shell::storage_get(REVIEW_PROMPT_DISMISSED_STORAGE_KEY) else { return false };
+    let Some(value) = crate::shell::storage_get(REVIEW_PROMPT_DISMISSED_STORAGE_KEY) else {
+        return false;
+    };
     match value.parse::<i64>() {
         Ok(at) if now_ms() - at < REVIEW_PROMPT_DISMISS_TTL_IN_MS => true,
         _ => {
@@ -270,7 +294,13 @@ fn review_prompt_dismissed() -> bool {
 
 /// useReviewPrompt + useUserReviewStatus: eligible games show the banner
 /// (space kept while `/reviews/check` is pending) unless already reviewed.
-fn update_review_prompt(ui: &AppWindow, shop: &str, object_id: &str, play_time: f64, in_library: bool) {
+fn update_review_prompt(
+    ui: &AppWindow,
+    shop: &str,
+    object_id: &str,
+    play_time: f64,
+    in_library: bool,
+) {
     let g = gd(ui);
     let eligible = shop != "custom"
         && !object_id.is_empty()
@@ -288,14 +318,25 @@ fn update_review_prompt(ui: &AppWindow, shop: &str, object_id: &str, play_time: 
         Some(false) => g.set_review_prompt(2),
         None => g.set_review_prompt(1),
     }
-    let Some(api) = crate::shell::api() else { return };
-    let Some(generation) = with_app(|app| app.generation) else { return };
+    let Some(api) = crate::shell::api() else {
+        return;
+    };
+    let Some(generation) = with_app(|app| app.generation) else {
+        return;
+    };
     let (shop, object_id) = (shop.to_string(), object_id.to_string());
     std::thread::spawn(move || {
-        let result = api.get(&format!("/games/{shop}/{object_id}/reviews/check"), &[], hydra_core::api::Options::default());
+        let result = api.get(
+            &format!("/games/{shop}/{object_id}/reviews/check"),
+            &[],
+            hydra_core::api::Options::default(),
+        );
         let _ = slint::invoke_from_event_loop(move || {
             let has_reviewed = match result {
-                Ok(body) => body.get("hasReviewed").and_then(|v| v.as_bool()).unwrap_or(false),
+                Ok(body) => body
+                    .get("hasReviewed")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false),
                 // The hook treats a failed check as "not reviewed".
                 Err(_) => false,
             };
@@ -321,7 +362,10 @@ pub fn apply_library_state(ui: &AppWindow, shop: &str, object_id: &str) {
         ui,
         shop,
         object_id,
-        group.as_ref().map(|g| g.game.displayed_play_time()).unwrap_or(0.0),
+        group
+            .as_ref()
+            .map(|g| g.game.displayed_play_time())
+            .unwrap_or(0.0),
         group.is_some(),
     );
     let Some(group) = group else {
@@ -339,7 +383,9 @@ pub fn apply_library_state(ui: &AppWindow, shop: &str, object_id: &str) {
     g.set_has_executable(operational.executable_path().is_some());
     g.set_favorite(game.flag("favorite"));
     g.set_pinned(game.flag("isPinned"));
-    let Some(i18n) = crate::shell::i18n() else { return };
+    let Some(i18n) = crate::shell::i18n() else {
+        return;
+    };
     let milliseconds = game.displayed_play_time();
     let last_played = game
         .str("lastTimePlayed")
@@ -352,12 +398,21 @@ pub fn apply_library_state(ui: &AppWindow, shop: &str, object_id: &str) {
     // MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120: minutes below two hours, hours after.
     let minutes = milliseconds / 1000.0 / 60.0;
     let amount = if minutes < 120.0 {
-        i18n.t_with("game_details.amount_minutes", &[("amount", format!("{minutes:.0}").into())])
+        i18n.t_with(
+            "game_details.amount_minutes",
+            &[("amount", format!("{minutes:.0}").into())],
+        )
     } else {
         let hours = (minutes / 60.0).round();
-        i18n.t_with("game_details.amount_hours", &[("amount", i18n.format_number(hours).into())])
+        i18n.t_with(
+            "game_details.amount_hours",
+            &[("amount", i18n.format_number(hours).into())],
+        )
     };
-    g.set_playtime(i18n.t_with("game_details.play_time", &[("amount", amount.into())]).into());
+    g.set_playtime(
+        i18n.t_with("game_details.play_time", &[("amount", amount.into())])
+            .into(),
+    );
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis() as i64)
@@ -366,7 +421,10 @@ pub fn apply_library_state(ui: &AppWindow, shop: &str, object_id: &str) {
         last_played
             .map(|at| {
                 let period = hydra_i18n::date::format_distance(i18n.language(), at, now, true);
-                i18n.t_with("game_details.last_time_played", &[("period", period.into())])
+                i18n.t_with(
+                    "game_details.last_time_played",
+                    &[("period", period.into())],
+                )
             })
             .unwrap_or_default()
             .into(),
@@ -411,19 +469,28 @@ pub fn fetch_game() {
     std::thread::spawn(move || {
         let client = hydra_store::http_client();
         let steam_language = steam::steam_language(&locale);
-        let cache_key = hydra_db::keys::game_shop_cache_item("steam", &app_id.to_string(), steam_language);
+        let cache_key =
+            hydra_db::keys::game_shop_cache_item("steam", &app_id.to_string(), steam_language);
         let game_key = hydra_db::keys::game("steam", &app_id.to_string());
 
         // get-game-shop-details.ts: cached details render at once; the request
         // still runs and refreshes the cache for next time.
-        let cached: Option<serde_json::Value> =
-            db.as_ref().and_then(|db| db.get_in(hydra_db::keys::GAME_SHOP_CACHE, &cache_key));
-        let cached_assets: Option<serde_json::Value> =
-            db.as_ref().and_then(|db| db.get_in(hydra_db::keys::GAME_SHOP_ASSETS, &game_key));
+        let cached: Option<serde_json::Value> = db
+            .as_ref()
+            .and_then(|db| db.get_in(hydra_db::keys::GAME_SHOP_CACHE, &cache_key));
+        let cached_assets: Option<serde_json::Value> = db
+            .as_ref()
+            .and_then(|db| db.get_in(hydra_db::keys::GAME_SHOP_ASSETS, &game_key));
         let wrap = |data: &serde_json::Value| serde_json::json!({ app_id.to_string(): { "success": true, "data": data } });
 
         let assets_from = |value: &serde_json::Value| {
-            let field = |key: &str| value.get(key).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(str::to_string);
+            let field = |key: &str| {
+                value
+                    .get(key)
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_string)
+            };
             steam::Assets {
                 hero: field("libraryHeroImageUrl"),
                 logo: field("logoImageUrl"),
@@ -433,7 +500,10 @@ pub fn fetch_game() {
             }
         };
 
-        let details = match cached.as_ref().and_then(|data| steam::parse_app_details(&wrap(data), app_id)) {
+        let details = match cached
+            .as_ref()
+            .and_then(|data| steam::parse_app_details(&wrap(data), app_id))
+        {
             Some(details) => {
                 let (client, db, key) = (client.clone(), db.clone(), cache_key.clone());
                 std::thread::spawn(move || {
@@ -450,9 +520,9 @@ pub fn fetch_game() {
             .filter(|a| a.hero.is_some() || a.logo.is_some())
             .or_else(|| {
                 let api = hydra_core::config::api_url();
-                Some(api)
-                    .filter(|api| !api.is_empty())
-                    .and_then(|api| steam::hydra_assets(&client, &api, "steam", &app_id.to_string()))
+                Some(api).filter(|api| !api.is_empty()).and_then(|api| {
+                    steam::hydra_assets(&client, &api, "steam", &app_id.to_string())
+                })
             })
             .unwrap_or_else(|| steam::steam_cdn_assets(app_id));
         let _ = slint::invoke_from_event_loop(move || {
@@ -641,7 +711,9 @@ fn apply_game(details: Result<Option<steam::AppDetails>, String>, assets: steam:
 
     // ---- hero artwork (the skeleton stays until hero + logo arrive)
     let startup: Vec<(Option<String>, Op, SetImage)> = vec![
-        (assets.hero.clone(), Op::Full, |ui, img| gd(&ui).set_hero(img)),
+        (assets.hero.clone(), Op::Full, |ui, img| {
+            gd(&ui).set_hero(img)
+        }),
         // blur(10px) on a ~1280px-wide hero shown from a 1920px image ~= sigma 3.75 at 1/4 size
         (
             assets.hero.clone(),
@@ -651,7 +723,9 @@ fn apply_game(details: Result<Option<steam::AppDetails>, String>, assets: steam:
             },
             |ui, img| gd(&ui).set_hero_blur(img),
         ),
-        (assets.logo.clone(), Op::Full, |ui, img| gd(&ui).set_logo(img)),
+        (assets.logo.clone(), Op::Full, |ui, img| {
+            gd(&ui).set_logo(img)
+        }),
     ];
     with_app(|app| {
         app.startup_pending = startup.iter().filter(|(url, _, _)| url.is_some()).count()
@@ -695,7 +769,8 @@ fn startup_step() {
 }
 
 fn wire_callbacks(ui: &AppWindow, loader: &Loader) {
-    ui.global::<GameData>().on_media_window_changed(update_media_window);
+    ui.global::<GameData>()
+        .on_media_window_changed(update_media_window);
 
     // ---- trailer playback (hydra_media::video)
     let playback = ui.global::<Playback>();
@@ -812,18 +887,29 @@ fn wire_callbacks(ui: &AppWindow, loader: &Loader) {
             }
         }
     });
-    ui.global::<GameData>().on_open_download_options(|| eprintln!("TODO(downloads): repacks modal / download sources"));
-    ui.global::<GameData>().on_play(|| eprintln!("TODO(launcher): open-game.ts (launch executable, process watcher)"));
-    ui.global::<GameData>().on_close_game(|| eprintln!("TODO(launcher): close-game.ts"));
-    ui.global::<GameData>().on_cloud_sync(|| eprintln!("TODO(cloud-save): cloud save v2 sync"));
+    ui.global::<GameData>().on_open_download_options(|| {
+        eprintln!("TODO(downloads): repacks modal / download sources")
+    });
+    ui.global::<GameData>()
+        .on_play(|| eprintln!("TODO(launcher): open-game.ts (launch executable, process watcher)"));
+    ui.global::<GameData>()
+        .on_close_game(|| eprintln!("TODO(launcher): close-game.ts"));
+    ui.global::<GameData>()
+        .on_cloud_sync(|| eprintln!("TODO(cloud-save): cloud save v2 sync"));
 
     // ---- reviews (Hydra API; not ported yet)
-    ui.global::<GameData>().on_review_sort(|mode| eprintln!("TODO(reviews): fetch reviews sorted by {mode}"));
-    ui.global::<GameData>().on_review_load_more(|| eprintln!("TODO(reviews): next page"));
-    ui.global::<GameData>().on_review_vote(|id, up| eprintln!("TODO(reviews): vote {id} up={up}"));
-    ui.global::<GameData>().on_review_delete(|id| eprintln!("TODO(reviews): delete {id}"));
-    ui.global::<GameData>().on_review_toggle_original(|id| eprintln!("TODO(reviews): toggle original {id}"));
-    ui.global::<GameData>().on_review_submit(|_, score| eprintln!("TODO(reviews): submit review (score {score})"));
+    ui.global::<GameData>()
+        .on_review_sort(|mode| eprintln!("TODO(reviews): fetch reviews sorted by {mode}"));
+    ui.global::<GameData>()
+        .on_review_load_more(|| eprintln!("TODO(reviews): next page"));
+    ui.global::<GameData>()
+        .on_review_vote(|id, up| eprintln!("TODO(reviews): vote {id} up={up}"));
+    ui.global::<GameData>()
+        .on_review_delete(|id| eprintln!("TODO(reviews): delete {id}"));
+    ui.global::<GameData>()
+        .on_review_toggle_original(|id| eprintln!("TODO(reviews): toggle original {id}"));
+    ui.global::<GameData>()
+        .on_review_submit(|_, score| eprintln!("TODO(reviews): submit review (score {score})"));
 }
 
 /// Quality menu index -> rendition height (0 = Auto).
@@ -955,7 +1041,9 @@ fn fetch_and_cache(
     cache_key: &str,
     db: Option<&hydra_db::Db>,
 ) -> Result<Option<steam::AppDetails>, String> {
-    let url = format!("https://store.steampowered.com/api/appdetails?appids={app_id}&l={steam_language}&cc=us");
+    let url = format!(
+        "https://store.steampowered.com/api/appdetails?appids={app_id}&l={steam_language}&cc=us"
+    );
     let body: serde_json::Value = client
         .get(&url)
         .send()

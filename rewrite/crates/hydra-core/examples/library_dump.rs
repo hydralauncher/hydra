@@ -16,9 +16,15 @@ fn main() {
     let mut groups = library::group_library_games(&games, &[]);
     library::sort_games(&mut groups, sort);
     // Sidebar default: favorites first.
-    let (favorites, rest): (Vec<_>, Vec<_>) = groups.into_iter().partition(|g| g.game.flag("favorite"));
+    let (favorites, rest): (Vec<_>, Vec<_>) =
+        groups.into_iter().partition(|g| g.game.flag("favorite"));
     let ordered: Vec<_> = favorites.into_iter().chain(rest).collect();
-    eprintln!("{} games, {} rows in {:?}", games.len(), ordered.len(), started.elapsed());
+    eprintln!(
+        "{} games, {} rows in {:?}",
+        games.len(),
+        ordered.len(),
+        started.elapsed()
+    );
     for group in ordered.iter().take(15) {
         println!("{}", group.game.title());
     }

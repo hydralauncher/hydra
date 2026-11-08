@@ -6,8 +6,12 @@ fn main() {
 
     // Small component harnesses used by the headless tests.
     let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
-    slint_build::compile_with_output_path("tests/editor_harness.slint", out_dir.join("editor_harness.rs"), config.clone())
-        .expect("Slint harness build failed");
+    slint_build::compile_with_output_path(
+        "tests/editor_harness.slint",
+        out_dir.join("editor_harness.rs"),
+        config.clone(),
+    )
+    .expect("Slint harness build failed");
     slint_build::compile_with_output_path(
         "tests/game_page_harness.slint",
         out_dir.join("game_page_harness.rs"),

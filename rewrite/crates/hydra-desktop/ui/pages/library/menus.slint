@@ -1,0 +1,457 @@
+// The toolbar's Radix dropdowns: library-display-menu.tsx (sort + view) and
+// library-filters-menu.tsx (collections, libraries, consoles, installed only).
+// Styles: library-toolbar-menu.scss and _library-dropdown.scss.
+import { Theme } from "../../theme.slint";
+import { Icon, ScrollBar } from "../../components/widgets.slint";
+import { T, Popup } from "../../globals.slint";
+import { LibraryData, LibraryMenuItem } from "state.slint";
+import { ToolbarIcons } from "toolbar.slint";
+
+// dropdown.content: #0d0d0d, 1px border, radius 6, padding 4; align="end",
+// sideOffset 6, collisionPadding 16; library-dropdown-fade-in 0.15s ease-out.
+export component MenuContent inherits Rectangle {
+    in property <length> anchor-x;
+    in property <length> anchor-y;
+    in property <length> anchor-width;
+    in property <length> anchor-height;
+    in property <length> room-width;
+    in property <length> room-height;
+    // The page's offset in the window (collision padding is against the viewport).
+    in property <length> page-x;
+    in property <length> min-menu-width: 280px;
+    property <bool> entered;
+    // The body's padding (4px) is in its preferred size; add the 1px border.
+    property <length> natural-height: body.preferred-height + 2px;
+
+    width: Math.max(root.min-menu-width, body.preferred-width + 2px);
+    x: Math.max(16px - root.page-x, Math.min(root.anchor-x + root.anchor-width - self.width, root.room-width - self.width - 16px));
+    y: root.anchor-y + root.anchor-height + 6px + (root.entered ? 0 : -4px);
+    height: Math.min(root.natural-height, root.room-height - (root.anchor-y + root.anchor-height + 6px) - 16px);
+    opacity: root.entered ? 1 : 0;
+    animate opacity, y { duration: 150ms; easing: ease-out; }
+    background: Theme.dark-background;
+    border-width: 1px;
+    border-color: Theme.border;
+    border-radius: 6px;
+    clip: true;
+
+
+    init => {
+        root.entered = true;
+        root.publish-box();
+    }
+    changed width => {
+        root.publish-box();
+    }
+    changed height => {
+        root.publish-box();
+    }
+
+    function publish-box() {
+        Popup.box-x = root.absolute-position.x;
+        Popup.box-y = root.absolute-position.y + (root.entered ? 0 : 4px);
+        Popup.box-width = root.width;
+        Popup.box-height = root.height;
+    }
+
+    // Swallow presses inside the menu so they don't reach the page below.
+    TouchArea { }
+
+    flick := Flickable {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        content-height: body.preferred-height;
+        interactive: false;
+        body := VerticalLayout {
+            padding: 4px;
+            alignment: start;
+            @children
+        }
+    }
+}
+
+// .library-toolbar-menu__label
+export component MenuLabel inherits HorizontalLayout {
+    in property <string> text;
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 8px;
+    padding-bottom: 4px;
+    Text {
+        // Chromium's line-height: normal rounds ascent and descent: 17px at 12px.
+        height: 17px;
+        text: root.text;
+        font-size: Theme.small-size;
+        font-weight: 700; // 600 in scss; Electron has no SemiBold face
+        color: rgba(255, 255, 255, 0.6);
+    }
+}
+
+// .library-toolbar-menu__separator: 1px, margin 4px
+export component MenuSeparator inherits Rectangle {
+    height: 9px;
+    Rectangle {
+        x: 4px;
+        y: 4px;
+        width: parent.width - 8px;
+        height: 1px;
+        background: Theme.border;
+    }
+}
+
+// .library-toolbar-menu__item (+ __item-indicator): 34px, radius 4, check on the right
+export component MenuItem inherits Rectangle {
+    in property <image> icon;
+    in property <length> icon-size: 16px;
+    // The Hydra mark bleeds 2px (source-icon.scss).
+    in property <bool> hydra-icon;
+    in property <string> label;
+    in property <string> count;
+    in property <bool> checked;
+    // Radio/checkbox items keep 32px on the right for the indicator.
+    in property <bool> indicator: true;
+    in property <bool> muted;
+    callback activated();
+    callback context-menu(length, length);
+
+    height: 34px;
+    border-radius: 4px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+    animate background { duration: 100ms; easing: ease-in-out; }
+    accessible-role: button;
+    accessible-checked: root.checked;
+    accessible-label: root.label;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: root.indicator ? 32px : 12px;
+        spacing: 8px;
+        if root.icon.width > 0 && !root.hydra-icon: Icon {
+            y: (parent.height - self.height) / 2;
+            width: root.icon-size;
+            height: root.icon-size;
+            source: root.icon;
+            color: root.muted ? rgba(255, 255, 255, 0.6) : Theme.muted;
+        }
+        if root.hydra-icon: Rectangle {
+            width: 14px;
+            Icon {
+                x: 0;
+                width: 16px;
+                height: 16px;
+                source: root.icon;
+                color: Theme.muted;
+            }
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.label;
+            font-size: Theme.body-size;
+            color: root.muted ? rgba(255, 255, 255, 0.6) : Theme.muted;
+            vertical-alignment: center;
+            overflow: elide;
+            animate color { duration: 100ms; easing: ease-in-out; }
+        }
+        if root.count != "": Text {
+            text: root.count;
+            font-size: Theme.small-size;
+            color: rgba(255, 255, 255, 0.5);
+            vertical-alignment: center;
+        }
+    }
+
+    if root.indicator: Icon {
+        x: parent.width - 12px - 14px;
+        y: (parent.height - self.height) / 2;
+        width: 14px;
+        height: 14px;
+        source: ToolbarIcons.check;
+        color: #ffffff;
+        transform-scale: root.checked ? 1 : 0.4;
+        opacity: root.checked ? 1 : 0;
+        animate transform-scale, opacity { duration: 150ms; easing: ease-out; }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.activated();
+        }
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
+                root.context-menu(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+            }
+        }
+    }
+}
+
+// .library-toolbar-menu__list: max-height calc(34px * 6), scrolls inside the menu
+component MenuList inherits Rectangle {
+    in property <int> rows;
+    property <length> content: root.rows * 34px;
+    property <length> content-y;
+    height: Math.min(root.content, 6 * 34px);
+    clip: true;
+
+    TouchArea {
+        scroll-event(event) => {
+            if (root.content <= root.height) {
+                return reject;
+            }
+            root.content-y = -Math.clamp(-root.content-y - event.delta-y, 0, root.content - root.height);
+            accept
+        }
+    }
+
+    VerticalLayout {
+        y: root.content-y;
+        height: root.content;
+        @children
+    }
+
+    if root.content > root.height: ScrollBar {
+        x: parent.width - self.width;
+        height: parent.height;
+        content-height: root.content;
+        viewport-height: root.height;
+        content-y <=> root.content-y;
+    }
+}
+
+// .library-toolbar-menu__view: icon over label, checked = border + lighter
+component ViewOption inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> checked;
+    callback activated();
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: root.checked ? rgba(255, 255, 255, 0.12) : transparent;
+    background: root.checked ? rgba(255, 255, 255, 0.06) : touch.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+    animate background { duration: 100ms; easing: ease-in-out; }
+    property <color> fg: root.checked ? #ffffff : touch.has-hover ? Theme.muted : rgba(255, 255, 255, 0.6);
+    accessible-role: button;
+    accessible-label: root.label;
+
+    VerticalLayout {
+        padding-top: 10px;
+        padding-bottom: 8px;
+        spacing: 6px;
+        alignment: center;
+        HorizontalLayout {
+            alignment: center;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: root.icon;
+                color: root.fg;
+            }
+        }
+        Text {
+            text: root.label;
+            font-size: Theme.small-size;
+            color: root.fg;
+            horizontal-alignment: center;
+            animate color { duration: 100ms; easing: ease-in-out; }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.activated();
+        }
+    }
+}
+
+export component DisplayMenu inherits MenuContent {
+    MenuLabel {
+        text: T.tr("library.sort_by");
+    }
+    for option in [
+        { value: "title_asc", key: "library.sort_title_asc" },
+        { value: "recently_played", key: "library.recently_played" },
+        { value: "most_played", key: "library.sort_most_played" },
+        { value: "achievements", key: "library.sort_achievements" },
+        { value: "installed_first", key: "library.sort_installed_first" },
+        { value: "title_desc", key: "library.sort_title_desc" },
+    ]: MenuItem {
+        label: T.tr(option.key);
+        checked: LibraryData.sort-by == option.value;
+        // A radio item closes the menu (no keepOpen here).
+        activated => {
+            LibraryData.set-sort(option.value);
+            Popup.open = "";
+        }
+    }
+    MenuSeparator { }
+    MenuLabel {
+        text: T.tr("library.view_mode");
+    }
+    // .library-toolbar-menu__views: 3 columns, gap 4px, padding 0 4px 4px
+    HorizontalLayout {
+        padding-left: 4px;
+        padding-right: 4px;
+        padding-bottom: 4px;
+        spacing: 4px;
+        for view in [
+            { value: "compact", key: "library.view_compact", icon: ToolbarIcons.square },
+            { value: "grid", key: "library.view_grid", icon: ToolbarIcons.apps },
+            { value: "large", key: "library.view_large", icon: ToolbarIcons.rows },
+        ]: ViewOption {
+            horizontal-stretch: 1;
+            icon: view.icon;
+            label: T.tr(view.key);
+            checked: LibraryData.view-mode == view.value;
+            activated => {
+                LibraryData.set-view-mode(view.value);
+                Popup.open = "";
+            }
+        }
+    }
+}
+
+// The "Show installed only" switch row (__switch-item, __switch)
+component SwitchItem inherits Rectangle {
+    in property <string> label;
+    in property <bool> checked;
+    callback toggled();
+    height: 38px;
+    border-radius: 4px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+    animate background { duration: 100ms; easing: ease-in-out; }
+    accessible-role: switch;
+    accessible-checked: root.checked;
+    accessible-label: root.label;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        Text {
+            horizontal-stretch: 1;
+            text: root.label;
+            font-size: Theme.body-size;
+            color: Theme.muted;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 32px;
+            height: 18px;
+            border-radius: 9px;
+            background: root.checked ? Theme.muted : rgba(255, 255, 255, 0.15);
+            animate background { duration: 150ms; easing: ease; }
+            Rectangle {
+                x: root.checked ? 16px : 2px;
+                y: 2px;
+                width: 14px;
+                height: 14px;
+                border-radius: 7px;
+                background: root.checked ? Theme.dark-background : Theme.muted;
+                animate x, background { duration: 150ms; easing: ease; }
+            }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.toggled();
+        }
+    }
+}
+
+export component FiltersMenu inherits MenuContent {
+    MenuLabel {
+        text: T.tr("library.collections");
+    }
+    MenuList {
+        rows: LibraryData.collections.length + 1;
+        MenuItem {
+            label: T.tr("library.all_games");
+            checked: !LibraryData.collections-any-checked;
+            activated => {
+                LibraryData.select-collection("");
+            }
+        }
+        for item in LibraryData.collections: MenuItem {
+            icon: item.icon == 1 ? ToolbarIcons.heart : item.icon == 2 ? ToolbarIcons.lock : ToolbarIcons.folder;
+            label: item.label;
+            count: item.count;
+            checked: item.checked;
+            activated => {
+                LibraryData.select-collection(item.id);
+            }
+            context-menu(x, y) => {
+                if (item.icon == 0) {
+                    LibraryData.collection-context-menu(item.id, x, y);
+                }
+            }
+        }
+    }
+    MenuItem {
+        icon: ToolbarIcons.plus;
+        label: T.tr("sidebar.create_collection");
+        indicator: false;
+        muted: true;
+        activated => {
+            LibraryData.create-collection();
+        }
+    }
+
+    if LibraryData.show-sources: MenuSeparator { }
+    if LibraryData.show-sources: MenuLabel {
+        text: T.tr("sidebar.libraries_label");
+    }
+    if LibraryData.show-sources: VerticalLayout {
+        for item in LibraryData.sources: MenuItem {
+            icon: item.icon == 4 ? ToolbarIcons.steam : item.icon == 5 ? ToolbarIcons.epic : ToolbarIcons.hydra;
+            icon-size: 14px;
+            hydra-icon: item.icon == 3;
+            label: item.label;
+            checked: item.checked;
+            activated => {
+                LibraryData.toggle-source(item.id);
+            }
+        }
+    }
+
+    if LibraryData.show-platforms: MenuSeparator { }
+    if LibraryData.show-platforms: MenuLabel {
+        text: T.tr("sidebar.consoles_label");
+    }
+    if LibraryData.show-platforms: MenuList {
+        rows: LibraryData.platforms.length;
+        for item in LibraryData.platforms: MenuItem {
+            label: item.label;
+            checked: item.checked;
+            activated => {
+                LibraryData.toggle-platform(item.id);
+            }
+        }
+    }
+
+    MenuSeparator { }
+    SwitchItem {
+        label: T.tr("library.show_installed_only");
+        checked: LibraryData.installed-only;
+        toggled => {
+            LibraryData.set-installed-only(!LibraryData.installed-only);
+        }
+    }
+
+    if LibraryData.filters-active: MenuSeparator { }
+    if LibraryData.filters-active: MenuItem {
+        label: T.tr("library.clear_filters");
+        indicator: false;
+        muted: true;
+        activated => {
+            LibraryData.clear-filters();
+            Popup.open = "";
+        }
+    }
+}

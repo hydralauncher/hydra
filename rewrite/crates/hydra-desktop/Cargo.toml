@@ -24,6 +24,9 @@ sys-locale = "0.3"
 # wheel events (line vs pixel deltas) for Chromium-like scrolling.
 slint = { workspace = true, features = ["backend-winit", "renderer-skia", "renderer-software", "unstable-winit-030", "accessibility"] }
 image.workspace = true
+# ThumbHash placeholders sent with catalogue images (game.images[url].thumbHash).
+thumbhash = "0.1"
+base64 = "0.22"
 
 [build-dependencies]
 slint-build = "1.18"

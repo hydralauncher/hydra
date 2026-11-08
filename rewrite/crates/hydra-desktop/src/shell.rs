@@ -29,6 +29,11 @@ struct Shell {
     scale: f32,
     /// Grouped library, in sidebar order (sort + favorites first + category filters).
     library: Vec<Presentation>,
+    /// The grouped library before sorting (selectGroupedLibrary), for the library page.
+    groups: Vec<Presentation>,
+    /// The ungrouped library length.
+    library_len: usize,
+    library_loading: bool,
     /// `removeDiacritics(title).toLowerCase()` per row of `library`.
     search_keys: Vec<String>,
     /// Indexes into `library` currently shown.
@@ -85,7 +90,11 @@ pub fn shutdown() {
 pub fn find_library_game(shop: &str, object_id: &str) -> Option<Presentation> {
     with_shell(|s| {
         let key = format!("{shop}:{object_id}");
-        if let Some(owned) = s.library.iter().find(|g| g.members.iter().any(|m| m.identity_key() == key)) {
+        if let Some(owned) = s
+            .library
+            .iter()
+            .find(|g| g.members.iter().any(|m| m.identity_key() == key))
+        {
             return Some(owned.clone());
         }
         let matching: Vec<&Presentation> = s
@@ -96,6 +105,11 @@ pub fn find_library_game(shop: &str, object_id: &str) -> Option<Presentation> {
         (matching.len() == 1).then(|| matching[0].clone())
     })
     .flatten()
+}
+
+/// The grouped library (unsorted), the ungrouped length and whether it is still loading.
+pub fn library_snapshot() -> Option<(Vec<Presentation>, usize, bool)> {
+    with_shell(|s| (s.groups.clone(), s.library_len, s.library_loading))
 }
 
 /// The renderer's `localStorage` (imported from Electron, kept in LevelDB).
@@ -115,9 +129,12 @@ pub fn storage_remove(key: &str) {
 
 /// Whether the signed-in user's details are known (userDetails.id).
 pub fn signed_in() -> bool {
-    with_shell(|s| s.ui.upgrade().map(|ui| ui.global::<Session>().get_signed_in()))
-        .flatten()
-        .unwrap_or(false)
+    with_shell(|s| {
+        s.ui.upgrade()
+            .map(|ui| ui.global::<Session>().get_signed_in())
+    })
+    .flatten()
+    .unwrap_or(false)
 }
 
 /// The Hydra API client.
@@ -145,7 +162,14 @@ pub fn shop_language() -> String {
     with_shell(|s| s.i18n.language().to_string()).unwrap_or_else(|| "en".into())
 }
 
-pub fn init(ui: &AppWindow, db: Arc<Db>, api: Arc<HydraApi>, loader: Loader, locale: Option<&str>, headless: bool) {
+pub fn init(
+    ui: &AppWindow,
+    db: Arc<Db>,
+    api: Arc<HydraApi>,
+    loader: Loader,
+    locale: Option<&str>,
+    headless: bool,
+) {
     // i18n: userPreferences.language, else the system language (LanguageDetector).
     let preferences: Option<Value> = db.get(keys::USER_PREFERENCES);
     let language = locale
@@ -167,7 +191,9 @@ pub fn init(ui: &AppWindow, db: Arc<Db>, api: Arc<HydraApi>, loader: Loader, loc
         .clamp(200.0, 450.0);
     let sort_by = SortBy::parse(&local_storage(&db, "sidebar-sort-by").unwrap_or_default());
     let sort_by = match sort_by {
-        SortBy::TitleAsc | SortBy::RecentlyPlayed | SortBy::MostPlayed | SortBy::Achievements => sort_by,
+        SortBy::TitleAsc | SortBy::RecentlyPlayed | SortBy::MostPlayed | SortBy::Achievements => {
+            sort_by
+        }
         _ => SortBy::TitleAsc,
     };
     let favorites_first = local_storage(&db, "sidebar-favorites-first").as_deref() != Some("false");
@@ -197,6 +223,9 @@ pub fn init(ui: &AppWindow, db: Arc<Db>, api: Arc<HydraApi>, loader: Loader, loc
             loader,
             scale: ui.window().scale_factor(),
             library: Vec::new(),
+            groups: Vec::new(),
+            library_len: 0,
+            library_loading: true,
             search_keys: Vec::new(),
             visible: Vec::new(),
             rows,
@@ -220,7 +249,8 @@ pub fn init(ui: &AppWindow, db: Arc<Db>, api: Arc<HydraApi>, loader: Loader, loc
     wire_sidebar(ui);
     wire_chrome(ui, headless);
 
-    ui.global::<Session>().set_version(hydra_core::config::app_version().into());
+    ui.global::<Session>()
+        .set_version(hydra_core::config::app_version().into());
     load_library();
     load_user();
 }
@@ -242,7 +272,12 @@ fn wire_i18n(ui: &AppWindow, i18n: &Rc<I18n>) {
         let items: Vec<SharedString> = args.iter().collect();
         items
             .chunks(2)
-            .map(|pair| (pair[0].to_string(), pair.get(1).map(|v| v.to_string()).unwrap_or_default()))
+            .map(|pair| {
+                (
+                    pair[0].to_string(),
+                    pair.get(1).map(|v| v.to_string()).unwrap_or_default(),
+                )
+            })
             .collect()
     };
     t.on_tr({
@@ -258,7 +293,10 @@ fn wire_i18n(ui: &AppWindow, i18n: &Rc<I18n>) {
             touch();
             let args = pairs(&args);
             with_shell(|s| {
-                let args: Vec<(&str, Arg)> = args.iter().map(|(k, v)| (k.as_str(), Arg::from(v.as_str()))).collect();
+                let args: Vec<(&str, Arg)> = args
+                    .iter()
+                    .map(|(k, v)| (k.as_str(), Arg::from(v.as_str())))
+                    .collect();
                 s.i18n.t_with(&key, &args)
             })
             .unwrap_or_default()
@@ -269,7 +307,10 @@ fn wire_i18n(ui: &AppWindow, i18n: &Rc<I18n>) {
         touch();
         let args = pairs(&args);
         with_shell(|s| {
-            let args: Vec<(&str, Arg)> = args.iter().map(|(k, v)| (k.as_str(), Arg::from(v.as_str()))).collect();
+            let args: Vec<(&str, Arg)> = args
+                .iter()
+                .map(|(k, v)| (k.as_str(), Arg::from(v.as_str())))
+                .collect();
             s.i18n.t_count(&key, count as f64, &args)
         })
         .unwrap_or_default()
@@ -277,7 +318,7 @@ fn wire_i18n(ui: &AppWindow, i18n: &Rc<I18n>) {
     });
 }
 
-fn tr(key: &str) -> String {
+pub fn tr(key: &str) -> String {
     with_shell(|s| s.i18n.t(key)).unwrap_or_default()
 }
 
@@ -298,8 +339,12 @@ fn wire_session(ui: &AppWindow) {
 
 /// app.tsx setupExternalResources: cached `userDetails` first, then `getMe`.
 fn load_user() {
-    let Some((db, api, ui)) = with_shell(|s| (s.db.clone(), s.api.clone(), s.ui.clone())) else { return };
-    if let Some(cached) = local_storage(&db, "userDetails").and_then(|v| serde_json::from_str::<Value>(&v).ok()) {
+    let Some((db, api, ui)) = with_shell(|s| (s.db.clone(), s.api.clone(), s.ui.clone())) else {
+        return;
+    };
+    if let Some(cached) =
+        local_storage(&db, "userDetails").and_then(|v| serde_json::from_str::<Value>(&v).ok())
+    {
         apply_user(&cached);
     }
     if !api.is_logged_in() {
@@ -323,10 +368,16 @@ fn load_user() {
 }
 
 fn apply_user(user: &Value) {
-    let Some((ui, loader, scale)) = with_shell(|s| (s.ui.upgrade(), s.loader.clone(), s.scale)) else { return };
+    let Some((ui, loader, scale)) = with_shell(|s| (s.ui.upgrade(), s.loader.clone(), s.scale))
+    else {
+        return;
+    };
     let Some(ui) = ui else { return };
     let session = ui.global::<Session>();
-    let name = user.get("displayName").and_then(Value::as_str).unwrap_or_default();
+    let name = user
+        .get("displayName")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
     session.set_signed_in(!name.is_empty());
     session.set_display_name(name.into());
     let subscription_active = user
@@ -337,13 +388,21 @@ fn apply_user(user: &Value) {
         .is_some_and(|expires| expires > now_ms());
     session.set_has_subscription(subscription_active);
     session.set_loaded(true);
-    if let Some(url) = user.get("profileImageUrl").and_then(Value::as_str).filter(|u| !u.is_empty()) {
+    if let Some(url) = user
+        .get("profileImageUrl")
+        .and_then(Value::as_str)
+        .filter(|u| !u.is_empty())
+    {
         let weak = ui.as_weak();
-        loader.load(url.to_string(), Op::MaxWidth((35.0 * scale).ceil() as u32), move |img| {
-            if let Some(ui) = weak.upgrade() {
-                ui.global::<Session>().set_avatar(img);
-            }
-        });
+        loader.load(
+            url.to_string(),
+            Op::MaxWidth((35.0 * scale).ceil() as u32),
+            move |img| {
+                if let Some(ui) = weak.upgrade() {
+                    ui.global::<Session>().set_avatar(img);
+                }
+            },
+        );
     }
 }
 
@@ -367,7 +426,11 @@ fn wire_sidebar(ui: &AppWindow) {
         move || {
             let next = with_shell(|s| {
                 s.playable_only = !s.playable_only;
-                set_local_storage(&s.db, "sidebar-playable-only", if s.playable_only { "true" } else { "false" });
+                set_local_storage(
+                    &s.db,
+                    "sidebar-playable-only",
+                    if s.playable_only { "true" } else { "false" },
+                );
                 s.playable_only
             });
             if let (Some(ui), Some(next)) = (weak.upgrade(), next) {
@@ -407,7 +470,9 @@ fn game_path(id: &str) -> Option<String> {
 
 /// `updateLibrary()`: read the library on a worker, then group and sort it.
 pub fn load_library() {
-    let Some(db) = with_shell(|s| s.db.clone()) else { return };
+    let Some(db) = with_shell(|s| s.db.clone()) else {
+        return;
+    };
     std::thread::spawn(move || {
         let started = std::time::Instant::now();
         let games = library::load_library(&db, Collection::Visible, None).unwrap_or_else(|e| {
@@ -415,9 +480,18 @@ pub fn load_library() {
             Vec::new()
         });
         let groups = library::group_library_games(&games, &[]);
-        eprintln!("library: {} games, {} rows in {:?}", games.len(), groups.len(), started.elapsed());
+        let games_len = games.len();
+        eprintln!(
+            "library: {} games, {} rows in {:?}",
+            games.len(),
+            groups.len(),
+            started.elapsed()
+        );
         let _ = slint::invoke_from_event_loop(move || {
             with_shell(|s| {
+                s.groups = groups.clone();
+                s.library_len = games_len;
+                s.library_loading = false;
                 let mut groups = groups;
                 library::sort_games(&mut groups, s.sort_by);
                 if s.favorites_first {
@@ -425,7 +499,10 @@ pub fn load_library() {
                         groups.into_iter().partition(|g| g.game.flag("favorite"));
                     groups = favorites.into_iter().chain(rest).collect();
                 }
-                s.search_keys = groups.iter().map(|g| library::search_key(g.game.title())).collect();
+                s.search_keys = groups
+                    .iter()
+                    .map(|g| library::search_key(g.game.title()))
+                    .collect();
                 s.library = groups;
                 if let Some(ui) = s.ui.upgrade() {
                     ui.global::<SidebarState>().set_loading(false);
@@ -433,6 +510,7 @@ pub fn load_library() {
             });
             refresh_rows();
             crate::game_page::on_library_changed();
+            crate::library_page::on_library_changed();
         });
     });
 }
@@ -444,10 +522,13 @@ fn refresh_rows() {
         let searching = !s.filter.trim().is_empty();
         let visible: Vec<usize> = if searching {
             let query = library::search_key(&s.filter);
-            (0..s.library.len()).filter(|&i| s.search_keys[i].contains(&query)).collect()
+            (0..s.library.len())
+                .filter(|&i| s.search_keys[i].contains(&query))
+                .collect()
         } else {
             let filtered = library::filter_games(&s.library, s.category, &s.sources, &s.platforms);
-            let allowed: HashSet<*const Presentation> = filtered.into_iter().map(|p| p as *const _).collect();
+            let allowed: HashSet<*const Presentation> =
+                filtered.into_iter().map(|p| p as *const _).collect();
             (0..s.library.len())
                 .filter(|&i| allowed.contains(&(&s.library[i] as *const _)))
                 .filter(|&i| !s.playable_only || s.library[i].game.is_playable())
@@ -463,7 +544,8 @@ fn refresh_rows() {
         s.visible = visible;
         s.rows.set_vec(rows);
         if let Some(ui) = s.ui.upgrade() {
-            ui.global::<SidebarState>().set_has_active_filter(has_active_filter);
+            ui.global::<SidebarState>()
+                .set_has_active_filter(has_active_filter);
         }
     });
     // The list only reports range changes; a new list starts at the top.
@@ -474,11 +556,16 @@ fn refresh_rows() {
 fn icon_url(group: &Presentation) -> Option<String> {
     let game = &group.game;
     let url = if game.shop() == "custom" {
-        game.str("libraryImageUrl").filter(|u| !u.is_empty()).or_else(|| game.str("iconUrl"))
+        game.str("libraryImageUrl")
+            .filter(|u| !u.is_empty())
+            .or_else(|| game.str("iconUrl"))
     } else {
-        game.str("customIconUrl").filter(|u| !u.is_empty()).or_else(|| game.str("iconUrl"))
+        game.str("customIconUrl")
+            .filter(|u| !u.is_empty())
+            .or_else(|| game.str("iconUrl"))
     };
-    url.filter(|u| !u.trim().is_empty()).map(|u| u.trim().to_string())
+    url.filter(|u| !u.trim().is_empty())
+        .map(|u| u.trim().to_string())
 }
 
 /// `getGameTitle` (sidebar.tsx).
@@ -497,7 +584,9 @@ fn row_title(group: &Presentation) -> String {
 
 fn row_for(s: &Shell, group: &Presentation) -> SidebarGame {
     let game = &group.game;
-    let icon = icon_url(group).and_then(|url| s.icons.get(&url).cloned()).unwrap_or_default();
+    let icon = icon_url(group)
+        .and_then(|url| s.icons.get(&url).cloned())
+        .unwrap_or_default();
     let new_options = game.number("newDownloadOptionsCount").unwrap_or(0.0);
     SidebarGame {
         id: game.id().into(),
@@ -510,16 +599,30 @@ fn row_for(s: &Shell, group: &Presentation) -> SidebarGame {
         },
         favorite: game.flag("favorite"),
         muted: game.download_status() == Some("removed"),
-        badge: if new_options > 0.0 { format!("+{new_options}").into() } else { SharedString::default() },
+        badge: if new_options > 0.0 {
+            format!("+{new_options}").into()
+        } else {
+            SharedString::default()
+        },
         // SteamLibraryBadge in sidebar-game-item.tsx, hidden by the user preferences.
         library_badge: match library::badge_source(group) {
             Some("steam") if !s.hide_steam_badges => 1,
             Some("epic") if !s.hide_epic_badges => 2,
             _ => 0,
         },
-        badge_both: group.members.iter().any(|m| m.0.get("hasActiveSteamImport") == Some(&Value::Bool(true)))
-            && group.members.iter().any(|m| m.0.get("hasActiveEpicImport") == Some(&Value::Bool(true))),
-        path: format!("/game/{}/{}", group.catalogue_shop, group.catalogue_object_id).into(),
+        badge_both: group
+            .members
+            .iter()
+            .any(|m| m.0.get("hasActiveSteamImport") == Some(&Value::Bool(true)))
+            && group
+                .members
+                .iter()
+                .any(|m| m.0.get("hasActiveEpicImport") == Some(&Value::Bool(true))),
+        path: format!(
+            "/game/{}/{}",
+            group.catalogue_shop, group.catalogue_object_id
+        )
+        .into(),
     }
 }
 
@@ -533,7 +636,10 @@ fn load_icons(first: usize, last: usize) {
             let group = &s.library[s.visible[row]];
             let Some(url) = icon_url(group) else { continue };
             wanted.insert(url.clone());
-            if s.icons.contains_key(&url) || s.icons_pending.contains(&url) || s.icons_failed.contains(&url) {
+            if s.icons.contains_key(&url)
+                || s.icons_pending.contains(&url)
+                || s.icons_failed.contains(&url)
+            {
                 continue;
             }
             s.icons_pending.insert(url.clone());
@@ -545,7 +651,9 @@ fn load_icons(first: usize, last: usize) {
         }
         (s.loader.clone(), s.scale, jobs)
     });
-    let Some((loader, scale, jobs)) = jobs else { return };
+    let Some((loader, scale, jobs)) = jobs else {
+        return;
+    };
     for url in jobs {
         let source: hydra_media::images::Source = match url.strip_prefix("local:") {
             Some(path) => std::path::PathBuf::from(path).into(),
@@ -553,20 +661,24 @@ fn load_icons(first: usize, last: usize) {
             None => std::path::PathBuf::from(&url).into(),
         };
         let key = url.clone();
-        loader.load(source, Op::MaxWidth((20.0 * scale).ceil() as u32), move |img| {
-            with_shell(|s| {
-                s.icons_pending.remove(&key);
-                s.icons.insert(key.clone(), img.clone());
-                for (row, &index) in s.visible.iter().enumerate() {
-                    if icon_url(&s.library[index]).as_deref() == Some(key.as_str())
-                        && let Some(mut data) = s.rows.row_data(row)
-                    {
-                        data.icon = img.clone();
-                        s.rows.set_row_data(row, data);
+        loader.load(
+            source,
+            Op::MaxWidth((20.0 * scale).ceil() as u32),
+            move |img| {
+                with_shell(|s| {
+                    s.icons_pending.remove(&key);
+                    s.icons.insert(key.clone(), img.clone());
+                    for (row, &index) in s.visible.iter().enumerate() {
+                        if icon_url(&s.library[index]).as_deref() == Some(key.as_str())
+                            && let Some(mut data) = s.rows.row_data(row)
+                        {
+                            data.icon = img.clone();
+                            s.rows.set_row_data(row, data);
+                        }
                     }
-                }
-            });
-        });
+                });
+            },
+        );
     }
 }
 

@@ -2,7 +2,8 @@
 // Title bar on top, sidebar on the left, the routed page in `.container`.
 import "fonts/NotoSans-Regular.ttf";
 import "fonts/NotoSans-Medium.ttf";
-import "fonts/NotoSans-SemiBold.ttf";
+// Electron bundles Noto Sans 400/500/700 only (@fontsource): CSS weight 600
+// resolves to Bold there, so the Slint UI uses 700 wherever the scss says 600.
 import "fonts/NotoSans-Bold.ttf";
 import "fonts/NotoSans-Italic.ttf";
 import "fonts/NotoSans-BoldItalic.ttf";
@@ -12,14 +13,17 @@ import { TooltipHost } from "components/widgets.slint";
 import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review } from "types.slint";
 import { ReviewEditor, FormatEdit, Marks } from "pages/game-details/reviews.slint";
 import { Playback } from "components/video.slint";
-import { T, Nav, Session, Chrome, SidebarState, SidebarGame } from "globals.slint";
+import { T, Nav, Session, Chrome, SidebarState, SidebarGame, Popup } from "globals.slint";
 import { GameData, Input } from "pages/game-details/state.slint";
 import { GameDetailsPage } from "pages/game-details/page.slint";
+import { LibraryPage } from "pages/library/page.slint";
+import { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar } from "pages/library/state.slint";
 import { TitleBar } from "shell/title-bar.slint";
 import { Sidebar } from "shell/sidebar.slint";
 
 export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback }
-export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input }
+export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input, Popup }
+export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
 
 export component AppWindow inherits Window {
     title: GameData.game-title != "" && Nav.route == "game" ? "Hydra — " + GameData.game-title : "Hydra";
@@ -66,7 +70,13 @@ export component AppWindow inherits Window {
                     height: parent.height;
                 }
 
-                if Nav.route != "game": Text {
+                if Nav.route == "library": LibraryPage {
+                    width: parent.width;
+                    height: parent.height;
+                    wheel-scale: Input.wheel-scale;
+                }
+
+                if Nav.route != "game" && Nav.route != "library": Text {
                     text: "TODO(" + Nav.route + "): not ported yet";
                     color: Theme.subtle;
                     font-size: Theme.small-size;

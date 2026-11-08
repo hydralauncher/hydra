@@ -14,7 +14,10 @@ pub fn auth_url() -> String {
 }
 
 pub fn checkout_url() -> String {
-    runtime_or("MAIN_VITE_CHECKOUT_URL", env!("HYDRA_BUILD_MAIN_VITE_CHECKOUT_URL"))
+    runtime_or(
+        "MAIN_VITE_CHECKOUT_URL",
+        env!("HYDRA_BUILD_MAIN_VITE_CHECKOUT_URL"),
+    )
 }
 
 pub fn app_version() -> &'static str {

@@ -518,7 +518,7 @@ component ReviewItem inherits VerticalLayout {
                 text: root.review.name;
                 color: rgba(255, 255, 255, 0.9);
                 font-size: 14px;
-                font-weight: 600;
+                font-weight: 700; // 600 in scss; Electron has no SemiBold face
                 overflow: elide;
                 Rectangle {
                     visible: name-touch.has-hover;
@@ -727,7 +727,7 @@ export component GameReviews inherits VerticalLayout {
         Text {
             text: "Leave a Review";
             font-size: 20px;
-            font-weight: 600;
+            font-weight: 700; // 600 in scss; Electron has no SemiBold face
             color: Theme.muted;
         }
         Rectangle {
@@ -758,7 +758,7 @@ export component GameReviews inherits VerticalLayout {
         Text {
             text: "Reviews";
             font-size: 20px;
-            font-weight: 600;
+            font-weight: 700; // 600 in scss; Electron has no SemiBold face
             color: Theme.muted;
             vertical-alignment: center;
         }
@@ -773,7 +773,7 @@ export component GameReviews inherits VerticalLayout {
                     text: root.total;
                     color: rgba(255, 255, 255, 0.7);
                     font-size: 12px;
-                    font-weight: 600;
+                    font-weight: 700; // 600 in scss; Electron has no SemiBold face
                 }
             }
         }
@@ -849,7 +849,7 @@ export component GameReviews inherits VerticalLayout {
         Text {
             text: "No reviews yet";
             color: rgba(255, 255, 255, 0.9);
-            font-weight: 600;
+            font-weight: 700; // 600 in scss; Electron has no SemiBold face
             horizontal-alignment: center;
         }
         Text {

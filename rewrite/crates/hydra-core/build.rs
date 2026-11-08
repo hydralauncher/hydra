@@ -22,10 +22,14 @@ fn main() {
         let value = std::env::var(key).ok().or_else(|| {
             file.lines().find_map(|line| {
                 let (k, v) = line.split_once('=')?;
-                (k.trim() == *key).then(|| v.trim().trim_matches('"').trim_matches('\'').to_string())
+                (k.trim() == *key)
+                    .then(|| v.trim().trim_matches('"').trim_matches('\'').to_string())
             })
         });
-        println!("cargo:rustc-env=HYDRA_BUILD_{key}={}", value.unwrap_or_default());
+        println!(
+            "cargo:rustc-env=HYDRA_BUILD_{key}={}",
+            value.unwrap_or_default()
+        );
     }
 
     let package = root.join("package.json");

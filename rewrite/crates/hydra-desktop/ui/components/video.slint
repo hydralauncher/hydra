@@ -440,7 +440,7 @@ export component VideoPlayer inherits Rectangle {
                 text: (Playback.seek-dir < 0 ? "-" : "+") + Playback.seek-amount + "s";
                 color: white;
                 font-size: root.fullscreen ? 16px : root.inline ? 12px : 13px;
-                font-weight: 600;
+                font-weight: 700; // 600 in scss; Electron has no SemiBold face
                 horizontal-alignment: center;
                 transform-scale: 1 + 0.2 * (1 - Math.min(1, seek-pulse.t * 4));
             }
@@ -498,7 +498,7 @@ export component VideoPlayer inherits Rectangle {
                 min-width: 40px;
                 color: white;
                 font-size: root.fullscreen ? 16px : 13px;
-                font-weight: 600;
+                font-weight: 700; // 600 in scss; Electron has no SemiBold face
                 horizontal-alignment: right;
                 vertical-alignment: center;
             }

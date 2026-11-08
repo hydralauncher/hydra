@@ -33,27 +33,46 @@ pub struct Achievement {
 }
 
 fn text(value: &Value, key: &str) -> String {
-    value.get(key).and_then(Value::as_str).unwrap_or_default().to_string()
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string()
 }
 
 /// `levelKeys.language` is stored as plain UTF-8, not JSON.
 fn achievement_language(db: &Db) -> String {
-    db.get_utf8(keys::LANGUAGE).filter(|l| !l.is_empty()).unwrap_or_else(|| "en".into())
+    db.get_utf8(keys::LANGUAGE)
+        .filter(|l| !l.is_empty())
+        .unwrap_or_else(|| "en".into())
 }
 
 /// The account-level language (userPreferences.language) used for remote requests.
 fn preferences_language(db: &Db) -> String {
     db.get::<Value>(keys::USER_PREFERENCES)
-        .and_then(|p| p.get("language").and_then(Value::as_str).map(str::to_string))
+        .and_then(|p| {
+            p.get("language")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
         .unwrap_or_else(|| "en".into())
 }
 
 fn icon_gray(icon: &str, icongray: &str) -> String {
-    if icongray.ends_with('/') || icongray.is_empty() { icon.to_string() } else { icongray.to_string() }
+    if icongray.ends_with('/') || icongray.is_empty() {
+        icon.to_string()
+    } else {
+        icongray.to_string()
+    }
 }
 
 /// `getUnlockedAchievements(objectId, shop)`.
-pub fn unlocked_achievements(api: &HydraApi, db: &Db, shop: &str, object_id: &str) -> Result<Vec<Achievement>, ApiError> {
+pub fn unlocked_achievements(
+    api: &HydraApi,
+    db: &Db,
+    shop: &str,
+    object_id: &str,
+) -> Result<Vec<Achievement>, ApiError> {
     if shop == "custom" {
         return Ok(Vec::new());
     }
@@ -69,7 +88,10 @@ pub fn unlocked_achievements(api: &HydraApi, db: &Db, shop: &str, object_id: &st
         .unwrap_or_default();
 
     let remote_language = preferences_language(db);
-    let user_id = db.get::<Value>(keys::USER).map(|u| text(&u, "id")).unwrap_or_default();
+    let user_id = db
+        .get::<Value>(keys::USER)
+        .map(|u| text(&u, "id"))
+        .unwrap_or_default();
     let remote: Vec<Value> = if user_id.is_empty() {
         Vec::new()
     } else {
@@ -89,7 +111,10 @@ pub fn unlocked_achievements(api: &HydraApi, db: &Db, shop: &str, object_id: &st
     let souvenirs: HashMap<String, String> = remote
         .iter()
         .filter_map(|a| {
-            let url = a.get("imageUrl").and_then(Value::as_str).filter(|u| !u.is_empty())?;
+            let url = a
+                .get("imageUrl")
+                .and_then(Value::as_str)
+                .filter(|u| !u.is_empty())?;
             Some((text(a, "name").to_uppercase(), url.to_string()))
         })
         .collect();
@@ -119,9 +144,12 @@ pub fn unlocked_achievements(api: &HydraApi, db: &Db, shop: &str, object_id: &st
             && let Some(groups) = combined.get("achievements").and_then(Value::as_array)
         {
             let includes_copy = groups.iter().any(|g| {
-                g.get("variants").and_then(Value::as_array).is_some_and(|vs| {
-                    vs.iter().any(|v| text(v, "shop") == shop && text(v, "objectId") == object_id)
-                })
+                g.get("variants")
+                    .and_then(Value::as_array)
+                    .is_some_and(|vs| {
+                        vs.iter()
+                            .any(|v| text(v, "shop") == shop && text(v, "objectId") == object_id)
+                    })
             });
             if !groups.is_empty() && includes_copy {
                 return Ok(present_combined(groups, &catalogue));
@@ -129,7 +157,11 @@ pub fn unlocked_achievements(api: &HydraApi, db: &Db, shop: &str, object_id: &st
         }
     }
 
-    let definitions: Vec<Value> = if !catalogue.is_empty() { catalogue } else { remote.clone() };
+    let definitions: Vec<Value> = if !catalogue.is_empty() {
+        catalogue
+    } else {
+        remote.clone()
+    };
     let mut list: Vec<Achievement> = definitions
         .iter()
         .map(|d| {
@@ -137,7 +169,9 @@ pub fn unlocked_achievements(api: &HydraApi, db: &Db, shop: &str, object_id: &st
             let key = name.to_uppercase();
             let icon = text(d, "icon");
             let gray = icon_gray(&icon, &text(d, "icongray"));
-            let display_name = Some(text(d, "displayName")).filter(|s| !s.is_empty()).unwrap_or_else(|| name.clone());
+            let display_name = Some(text(d, "displayName"))
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| name.clone());
             let unlock_time = unlocked.get(&key).copied();
             Achievement {
                 display_name,
@@ -166,8 +200,10 @@ pub fn unlocked_achievements(api: &HydraApi, db: &Db, shop: &str, object_id: &st
 /// `presentCombinedAchievements`: one row per canonical achievement, the
 /// unlocked (Steam-first) variant shown.
 fn present_combined(groups: &[Value], catalogue: &[Value]) -> Vec<Achievement> {
-    let definitions: HashMap<String, &Value> =
-        catalogue.iter().map(|d| (text(d, "name").to_uppercase(), d)).collect();
+    let definitions: HashMap<String, &Value> = catalogue
+        .iter()
+        .map(|d| (text(d, "name").to_uppercase(), d))
+        .collect();
     let mut list: Vec<Achievement> = groups
         .iter()
         .filter_map(|group| {
@@ -176,11 +212,21 @@ fn present_combined(groups: &[Value], catalogue: &[Value]) -> Vec<Achievement> {
                 .iter()
                 .filter(|v| v.get("unlockTime").and_then(Value::as_f64).is_some())
                 .collect();
-            let choices: Vec<&Value> = if unlocked.is_empty() { variants.iter().collect() } else { unlocked };
-            let selected = choices.iter().find(|v| text(v, "shop") == "steam").or(choices.first())?;
+            let choices: Vec<&Value> = if unlocked.is_empty() {
+                variants.iter().collect()
+            } else {
+                unlocked
+            };
+            let selected = choices
+                .iter()
+                .find(|v| text(v, "shop") == "steam")
+                .or(choices.first())?;
             let name = text(selected, "name");
             let icon = text(selected, "icon");
-            let unlock_time = selected.get("unlockTime").and_then(Value::as_f64).map(|t| t as i64);
+            let unlock_time = selected
+                .get("unlockTime")
+                .and_then(Value::as_f64)
+                .map(|t| t as i64);
             let percentage = std::iter::once(*selected)
                 .chain(variants.iter())
                 .find_map(|v| {
@@ -190,14 +236,22 @@ fn present_combined(groups: &[Value], catalogue: &[Value]) -> Vec<Achievement> {
                         .and_then(Value::as_f64)
                 });
             Some(Achievement {
-                display_name: Some(text(selected, "displayName")).filter(|s| !s.is_empty()).unwrap_or_else(|| name.clone()),
+                display_name: Some(text(selected, "displayName"))
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or_else(|| name.clone()),
                 description: text(selected, "description"),
                 icon_gray: icon_gray(&icon, &text(selected, "icongray")),
                 icon,
-                hidden: selected.get("hidden").and_then(Value::as_bool).unwrap_or(false),
+                hidden: selected
+                    .get("hidden")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false),
                 unlocked: unlock_time.is_some(),
                 unlock_time,
-                image_url: selected.get("imageUrl").and_then(Value::as_str).map(str::to_string),
+                image_url: selected
+                    .get("imageUrl")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
                 global_unlock_percentage: percentage,
                 name,
             })

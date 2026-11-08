@@ -8,7 +8,9 @@ mod devscript;
 mod format;
 mod game_page;
 mod headless;
+mod library_page;
 mod nav;
+mod popup;
 mod shell;
 
 use std::path::PathBuf;
@@ -55,8 +57,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(1.0);
-        let width = std::env::var("HYDRA_HEADLESS_WIDTH").ok().and_then(|s| s.parse().ok()).unwrap_or(1200);
-        let height = std::env::var("HYDRA_HEADLESS_HEIGHT").ok().and_then(|s| s.parse().ok()).unwrap_or(860);
+        let width = std::env::var("HYDRA_HEADLESS_WIDTH")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(1200);
+        let height = std::env::var("HYDRA_HEADLESS_HEIGHT")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(860);
         headless::Headless::install(width, height, scale)?;
     } else if std::env::var_os("SLINT_BACKEND").is_none() {
         // Skia measured best overall (see docs/decisions.md). SLINT_BACKEND overrides.
@@ -71,7 +79,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let native_dir = paths::native_user_data().ok_or("no user data folder")?;
     let electron_dir = paths::electron_user_data();
     hydra_media::video::prepare_tls(&native_dir);
-    let (db, origin) = import::open_or_import(&native_dir, electron_dir.as_deref(), paths::database_name(&api_url))?;
+    let (db, origin) = import::open_or_import(
+        &native_dir,
+        electron_dir.as_deref(),
+        paths::database_name(&api_url),
+    )?;
     eprintln!("data: {} ({origin:?})", db.path().display());
     let db = Arc::new(db);
     let api = Arc::new(HydraApi::new(db.clone(), hydra_store::http_client()));
@@ -85,21 +97,54 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !headless_mode {
         use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
         let weak = ui.as_weak();
-        ui.window().on_winit_window_event(move |_, event| {
-            if let winit::event::WindowEvent::MouseWheel { delta, .. } = event
-                && let Some(ui) = weak.upgrade()
-            {
-                ui.global::<Input>().set_wheel_scale(match delta {
-                    winit::event::MouseScrollDelta::LineDelta(..) => 40.0 / 60.0,
-                    winit::event::MouseScrollDelta::PixelDelta(..) => 1.0,
-                });
+        let cursor = std::cell::Cell::new((0.0f32, 0.0f32));
+        ui.window().on_winit_window_event(move |window, event| {
+            let Some(ui) = weak.upgrade() else {
+                return EventResult::Propagate;
+            };
+            match event {
+                winit::event::WindowEvent::MouseWheel { delta, .. } => {
+                    ui.global::<Input>().set_wheel_scale(match delta {
+                        winit::event::MouseScrollDelta::LineDelta(..) => 40.0 / 60.0,
+                        winit::event::MouseScrollDelta::PixelDelta(..) => 1.0,
+                    });
+                }
+                winit::event::WindowEvent::CursorMoved { position, .. } => {
+                    let scale = window.scale_factor();
+                    cursor.set((position.x as f32 / scale, position.y as f32 / scale));
+                }
+                winit::event::WindowEvent::MouseInput {
+                    state: winit::event::ElementState::Pressed,
+                    ..
+                } => {
+                    let (x, y) = cursor.get();
+                    popup::pointer_pressed(&ui, x, y);
+                }
+                winit::event::WindowEvent::KeyboardInput { event, .. }
+                    if event.state == winit::event::ElementState::Pressed
+                        && event.logical_key
+                            == winit::keyboard::Key::Named(winit::keyboard::NamedKey::Escape)
+                        && popup::escape(&ui) =>
+                {
+                    return EventResult::PreventDefault;
+                }
+                _ => {}
             }
             EventResult::Propagate
         });
     }
 
-    shell::init(&ui, db, api, loader.clone(), args.locale.as_deref(), headless_mode);
+    shell::init(
+        &ui,
+        db,
+        api,
+        loader.clone(),
+        args.locale.as_deref(),
+        headless_mode,
+    );
     game_page::init(&ui, &loader);
+    library_page::init(&ui);
+    popup::init(&ui);
     nav::init(&ui, args.path.as_deref().unwrap_or("/"));
 
     // HYDRA_TIMING=1: print when the first frame is on screen (benchmarks).
@@ -109,7 +154,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // event loop's first turn: the window is mapped and the first frame
         // is painted right after it.
         let _ = slint::invoke_from_event_loop(move || {
-            eprintln!("timing: first frame {} ms after main() (event loop running)", started.elapsed().as_millis());
+            eprintln!(
+                "timing: first frame {} ms after main() (event loop running)",
+                started.elapsed().as_millis()
+            );
         });
     }
 
@@ -125,6 +173,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // quit-cleanup.ts: stop media threads first, then leave without running
     // thread-local destructors under worker threads that are still parked.
     game_page::shutdown();
+    library_page::shutdown();
     shell::shutdown();
     drop(ui);
     std::process::exit(0);

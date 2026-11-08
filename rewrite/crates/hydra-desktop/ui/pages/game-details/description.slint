@@ -24,7 +24,7 @@ export component DescriptionHeader inherits Rectangle {
             text: "Released on " + root.release-date;
             color: Theme.muted;
             font-size: Theme.small-size;
-            font-weight: 600;
+            font-weight: 700; // 600 in scss; Electron has no SemiBold face
         }
         if root.loaded: Text {
             text: "Published by " + root.publisher;
@@ -123,7 +123,7 @@ export component Description inherits VerticalLayout {
     if root.loaded: Text {
         text: "About this game";
         font-size: 20px;
-        font-weight: 600;
+        font-weight: 700; // 600 in scss; Electron has no SemiBold face
         color: Theme.body;
     }
 

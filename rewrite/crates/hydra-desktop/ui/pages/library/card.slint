@@ -1,0 +1,612 @@
+// library-game-card.{tsx,scss}: a 2:3 cover with playtime, import, platform
+// and installed badges on top and the achievement progress at the bottom.
+import { Theme, Tip, Ids } from "../../theme.slint";
+import { Icon } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+import { LibraryCard } from "state.slint";
+
+export global LibraryIcons {
+    out property <image> clock: @image-url("../../icons/clock-11.svg");
+    out property <image> alert-fill: @image-url("../../icons/alert-fill-11.svg");
+    out property <image> check-circle-fill: @image-url("../../icons/check-circle-fill-11.svg");
+    out property <image> trophy: @image-url("../../icons/trophy-13.svg");
+    out property <image> image: @image-url("../../icons/image-48.svg");
+    out property <image> steam: @image-url("../../icons/bi-steam.svg");
+    out property <image> epic: @image-url("../../icons/epic-integration-logo.svg");
+    out property <image> lock: @image-url("../../icons/lock-11.svg");
+    out property <image> eye-closed: @image-url("../../icons/eye-closed-11.svg");
+    out property <image> duckstation: @image-url("../../images/emulators/duckstation.png");
+    out property <image> pcsx2: @image-url("../../images/emulators/pcsx2.png");
+    out property <image> rpcs3: @image-url("../../images/emulators/rpcs3.png");
+    out property <image> ppsspp: @image-url("../../images/emulators/ppsspp.png");
+    out property <image> dolphin: @image-url("../../images/emulators/dolphin.png");
+    out property <image> retroarch: @image-url("../../images/emulators/retroarch.png");
+
+    public pure function emulator(index: int) -> image {
+        if (index == 1) {
+            return self.duckstation;
+        }
+        if (index == 2) {
+            return self.pcsx2;
+        }
+        if (index == 3) {
+            return self.rpcs3;
+        }
+        if (index == 4) {
+            return self.ppsspp;
+        }
+        if (index == 5) {
+            return self.dolphin;
+        }
+        if (index == 6) {
+            return self.retroarch;
+        }
+        return @image-url("");
+    }
+}
+
+// $classics-rainbow: conic-gradient(from 0deg, #fb0026 5deg, #c80078 70deg,
+// #7300a4 145deg, #f8c802 220deg, #fc5812 290deg, #fb0026 365deg)
+export global Rainbow {
+    out property <brush> brush: @conic-gradient(from 0deg, #fb0026 5deg, #c80078 70deg, #7300a4 145deg, #f8c802 220deg, #fc5812 290deg, #fb0026 360deg);
+}
+
+// Hydra's react-tooltip (place "top"). The card's own TouchArea tracks the
+// pointer (so clicks anywhere still open the game); badges only test whether
+// the pointer is over them.
+component TipZone inherits Rectangle {
+    in property <string> tip;
+    in property <bool> pointer-over;
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+    changed pointer-over => {
+        if (self.pointer-over && root.tip != "") {
+            Tip.show(root.tip-id, root.tip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+        } else {
+            Tip.hide(root.tip-id);
+        }
+    }
+}
+
+// backdrop-filter: blur(8px) stand-in: the matching slice of the pre-blurred cover.
+component FrostBadge inherits Rectangle {
+    in property <image> frost;
+    in property <Point> cover-origin;
+    in property <length> cover-width;
+    in property <length> cover-height;
+    in property <brush> tint: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    // box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2)
+    drop-shadow-offset-y: 2px;
+    drop-shadow-blur: 4px;
+    drop-shadow-color: rgba(0, 0, 0, 0.2);
+
+    Rectangle {
+        border-radius: 4px;
+        clip: true;
+        Image {
+            source: root.frost;
+            x: root.cover-origin.x - root.absolute-position.x;
+            y: root.cover-origin.y - root.absolute-position.y;
+            width: root.cover-width;
+            height: root.cover-height;
+            image-fit: cover;
+        }
+    }
+
+    Rectangle {
+        border-radius: 4px;
+        background: root.tint;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    @children
+}
+
+// .library-game-card__platform-badge / __installed-badge--classics:
+// a rainbow 1px border around #1c1c1c.
+component RainbowBadge inherits Rectangle {
+    border-radius: 6px;
+    background: Rainbow.brush;
+    drop-shadow-offset-y: 2px;
+    drop-shadow-blur: 4px;
+    drop-shadow-color: rgba(0, 0, 0, 0.25);
+    Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        border-radius: 5px;
+        background: #1c1c1c;
+    }
+
+    @children
+}
+
+// .library-game-card__achievement-bar--platinum (globals.platinum-gradient)
+export component PlatinumFill inherits Rectangle {
+    Rectangle {
+        border-radius: parent.border-radius;
+        background: @linear-gradient(120deg, transparent 0%, #30edc5 30%, Theme.brand-teal 100%);
+    }
+
+    Rectangle {
+        border-radius: parent.border-radius;
+        background: @linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%, rgba(255, 255, 255, 0.15) 100%);
+    }
+
+    Rectangle {
+        border-radius: parent.border-radius;
+        background: @linear-gradient(105deg, transparent 70%, rgba(255, 255, 255, 0.1) 80%, rgba(255, 255, 255, 0.2) 85%, rgba(255, 255, 255, 0.1) 90%, transparent 100%);
+    }
+}
+
+export component LibraryGameCard inherits Rectangle {
+    in property <LibraryCard> card;
+    callback clicked();
+    callback context-menu(length, length);
+
+    // @container queries on the card's own width.
+    property <bool> narrow-140: root.width <= 140px;
+    property <bool> narrow-200: root.width <= 200px;
+    property <bool> narrow-260: root.width <= 260px;
+    property <bool> hovered: touch.has-hover;
+    property <bool> has-achievements: root.card.show-achievements && (root.card.achievements > 0 || root.card.unlocked > 0);
+    property <bool> completed: root.card.achievements > 0 && root.card.unlocked >= root.card.achievements;
+
+    accessible-role: button;
+
+    pure function over(origin: Point, w: length, h: length) -> bool {
+        if (!touch.has-hover) {
+            return false;
+        }
+        // The pointer in window coordinates (the card's hover scale is ignored).
+        return touch.absolute-position.x + touch.mouse-x >= origin.x && touch.absolute-position.x + touch.mouse-x < origin.x + w
+            && touch.absolute-position.y + touch.mouse-y >= origin.y && touch.absolute-position.y + touch.mouse-y < origin.y + h;
+    }
+    accessible-label: root.card.title;
+
+    // :hover { transform: scale(1.02) } over 0.2s
+    body := Rectangle {
+        transform-scale: root.hovered ? 1.02 : 1;
+        animate transform-scale { duration: 200ms; easing: ease; }
+
+        // box-shadow: 0 8px 10px -2px rgba(0, 0, 0, 0.5) (the -2px spread insets the shadow's box)
+        Rectangle {
+            x: 2px;
+            y: 2px;
+            width: parent.width - 4px;
+            height: parent.height - 4px;
+            border-radius: 2px;
+            background: #000000;
+            drop-shadow-offset-y: 8px;
+            drop-shadow-blur: 10px;
+            drop-shadow-color: rgba(0, 0, 0, 0.5);
+        }
+
+        frame := Rectangle {
+            border-radius: 4px;
+            clip: true;
+
+            // ---- cover media (z-index 0)
+            if root.card.mode == 0: Rectangle {
+                border-radius: 4px;
+                clip: true;
+                // The img's background is the ThumbHash until the cover loads.
+                if root.card.cover.width == 0: Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.card.placeholder;
+                    image-fit: cover;
+                }
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.card.cover;
+                    image-fit: cover;
+                }
+            }
+
+            // __game-image--contain: a picked cover keeps its whole frame
+            if root.card.mode == 1: Rectangle {
+                border-radius: 4px;
+                clip: true;
+                background: #0a0a0a;
+                if root.card.cover.width == 0: Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.card.placeholder;
+                    image-fit: cover;
+                }
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.card.cover;
+                    image-fit: contain;
+                }
+            }
+
+            // __classics-cover: blurred backdrop + the art at up to 80% x 80%
+            if root.card.mode == 2: Rectangle {
+                border-radius: 4px;
+                clip: true;
+                background: #0a0a0a;
+                // filter: blur(16px) saturate(1.1); transform: scale(1.25); opacity: 0.65
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.card.backdrop;
+                    image-fit: cover;
+                    transform-scale: 1.25;
+                    opacity: 0.65;
+                }
+                if root.card.cover.width > 0: Rectangle {
+                    property <float> aspect: root.card.cover.width / Math.max(1, root.card.cover.height);
+                    property <length> box-w: parent.width * 0.8;
+                    property <length> box-h: parent.height * 0.8;
+                    width: self.aspect > self.box-w / self.box-h ? self.box-w : self.box-h * self.aspect;
+                    height: self.aspect > self.box-w / self.box-h ? self.box-w / self.aspect : self.box-h;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 4px;
+                    // 0 11px 7px rgba(0,0,0,.05), 0 5px 5px rgba(0,0,0,.09), 0 1px 3px rgba(0,0,0,.1)
+                    drop-shadow-offset-y: 5px;
+                    drop-shadow-blur: 5px;
+                    drop-shadow-color: rgba(0, 0, 0, 0.09);
+                    Rectangle {
+                        border-radius: 4px;
+                        clip: true;
+                        Image {
+                            width: parent.width;
+                            height: parent.height;
+                            source: root.card.cover;
+                            image-fit: fill;
+                        }
+                    }
+                    Rectangle {
+                        border-radius: 4px;
+                        border-width: 1px;
+                        border-color: rgba(255, 255, 255, 0.12);
+                    }
+                }
+            }
+
+            // __cover-placeholder: gradient, plus ImageIcon when there is no art
+            if root.card.mode >= 3: Rectangle {
+                border-radius: 4px;
+                background: @linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.08) 100%);
+                if root.card.mode == 3: Icon {
+                    width: 48px;
+                    height: 48px;
+                    source: LibraryIcons.image;
+                    color: rgba(255, 255, 255, 0.3);
+                }
+            }
+
+            // ---- ::before sheen (z-index 1): 172% tall, translateY(-36% -> -20%), opacity 0.5 -> 1
+            Rectangle {
+                y: (root.hovered ? -0.2 : -0.36) * self.height;
+                height: parent.height * 1.72;
+                opacity: root.hovered ? 1 : 0.5;
+                animate y, opacity { duration: 300ms; easing: ease; }
+                background: @linear-gradient(35deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.07) 51.5%, rgba(255, 255, 255, 0.15) 64%, rgba(255, 255, 255, 0.1) 100%);
+            }
+
+            // ---- __overlay (z-index 3): bottom fade unless classics / no achievements
+            if root.card.mode != 2 && root.has-achievements: Rectangle {
+                background: @linear-gradient(0deg, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0.26) 7%, rgba(0, 0, 0, 0.09) 14%, transparent 20%);
+            }
+        }
+
+        // __overlay content: padding 8px, top section + achievements
+        overlay := Rectangle {
+            property <Point> cover-origin: { x: frame.absolute-position.x, y: frame.absolute-position.y };
+
+            // __top-section
+            top-left := HorizontalLayout {
+                x: 8px;
+                y: 8px;
+                height: 24px;
+                spacing: 4px;
+                alignment: start;
+
+                // GameVisibilityBadge
+                if root.card.concealed || root.card.hidden-from-others: FrostBadge {
+                    frost: root.card.mode == 0 ? root.card.frost : @image-url("");
+                    cover-origin: overlay.cover-origin;
+                    cover-width: frame.width;
+                    cover-height: frame.height;
+                    // padding 0 8px + 1px border
+                    width: 29px;
+                    HorizontalLayout {
+                        padding-left: 9px;
+                        padding-right: 9px;
+                        alignment: center;
+                        Icon {
+                            y: (parent.height - self.height) / 2;
+                            width: 11px;
+                            height: 11px;
+                            source: root.card.concealed ? LibraryIcons.lock : LibraryIcons.eye-closed;
+                            color: rgba(255, 255, 255, 0.8);
+                        }
+                    }
+                    TipZone {
+                        tip: root.card.concealed ? T.tr("library.hidden_game_tooltip") : T.tr("library.hidden_from_others_tooltip");
+                        pointer-over: root.over(self.absolute-position, self.width, self.height);
+                    }
+                }
+
+                // __playtime
+                if root.card.show-playtime: FrostBadge {
+                    frost: root.card.mode == 0 ? root.card.frost : @image-url("");
+                    cover-origin: overlay.cover-origin;
+                    cover-width: frame.width;
+                    cover-height: frame.height;
+                    // padding 0 8px + 1px border
+                    HorizontalLayout {
+                        padding-left: 9px;
+                        padding-right: 9px;
+                        spacing: 4px;
+                        Icon {
+                            y: (parent.height - self.height) / 2;
+                            width: 11px;
+                            height: 11px;
+                            source: root.card.manual-playtime ? LibraryIcons.alert-fill : LibraryIcons.clock;
+                            color: root.card.manual-playtime ? Theme.warning : rgba(255, 255, 255, 0.8);
+                        }
+                        Text {
+                            text: root.narrow-200 ? root.card.playtime-short : root.card.playtime-long;
+                            font-size: Theme.small-size;
+                            color: rgba(255, 255, 255, 0.8);
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+
+            // __top-right: a row; at <= 260px a column-reverse aligned to the end
+            top-right := Rectangle {
+                property <length> badge-gap: 4px;
+                property <length> import-width: (root.card.steam-badge ? 24px : 0) + (root.card.epic-badge ? 24px : 0) + (root.card.steam-badge && root.card.epic-badge ? 4px : 0);
+                property <bool> show-imports: root.card.steam-badge || root.card.epic-badge;
+                property <bool> show-platform: root.card.platform-label != "";
+                property <length> platform-width: Math.min(96px, platform-measure.preferred-width + 18px);
+                property <length> ready-width: root.card.emulator > 0
+                    ? 18px + 15px + (root.narrow-140 ? 0 : 4px + ready-measure-classics.preferred-width)
+                    : 10px + 11px + (root.narrow-140 ? 0 : 4px + ready-measure.preferred-width);
+                property <length> ready-height: root.card.emulator > 0 ? 24px : Math.max(21px, ready-measure.preferred-height + 10px);
+                // Row widths, right to left: ready, platform, imports.
+                property <length> row-width: (root.card.ready ? self.ready-width : 0)
+                    + (self.show-platform ? self.platform-width + (root.card.ready ? self.badge-gap : 0) : 0)
+                    + (self.show-imports ? self.import-width + (root.card.ready || self.show-platform ? self.badge-gap : 0) : 0);
+                property <bool> column: root.narrow-260;
+                x: 8px;
+                y: 8px;
+                width: root.width - 16px;
+                height: 24px;
+
+                // Text measurements for the row/column placement.
+                platform-measure := Text {
+                    visible: false;
+                    text: root.card.platform-label;
+                    font-size: Theme.tiny-size;
+                    font-weight: 500;
+                }
+                ready-measure := Text {
+                    visible: false;
+                    text: T.tr("library.installed");
+                    font-size: Theme.small-size;
+                }
+                ready-measure-classics := Text {
+                    visible: false;
+                    text: T.tr("library.installed");
+                    font-size: Theme.tiny-size;
+                    font-weight: 500;
+                }
+
+                // Imports: leftmost in a row; bottom of the column.
+                if self.show-imports: HorizontalLayout {
+                    spacing: 4px;
+                    x: top-right.column ? top-right.width - top-right.import-width : top-right.width - top-right.row-width;
+                    y: top-right.column
+                        ? (root.card.ready ? top-right.ready-height + 4px : 0) + (top-right.show-platform ? 28px : 0)
+                        : 0;
+                    width: top-right.import-width;
+                    height: 24px;
+                    if root.card.steam-badge: FrostBadge {
+                        frost: root.card.mode == 0 ? root.card.frost : @image-url("");
+                        cover-origin: overlay.cover-origin;
+                        cover-width: frame.width;
+                        cover-height: frame.height;
+                        width: 24px;
+                        Icon {
+                            width: 12px;
+                            height: 12px;
+                            source: LibraryIcons.steam;
+                            color: rgba(255, 255, 255, 0.8);
+                        }
+                        TipZone {
+                            tip: T.tr("library.imported_from_steam");
+                            pointer-over: root.over(self.absolute-position, self.width, self.height);
+                        }
+                    }
+                    if root.card.epic-badge: FrostBadge {
+                        frost: root.card.mode == 0 ? root.card.frost : @image-url("");
+                        cover-origin: overlay.cover-origin;
+                        cover-width: frame.width;
+                        cover-height: frame.height;
+                        width: 24px;
+                        Icon {
+                            width: 13px;
+                            height: 13px;
+                            source: LibraryIcons.epic;
+                            color: rgba(255, 255, 255, 0.8);
+                        }
+                        TipZone {
+                            tip: T.tr("library.imported_from_epic");
+                            pointer-over: root.over(self.absolute-position, self.width, self.height);
+                        }
+                    }
+                }
+
+                // __platform-badge
+                if self.show-platform: RainbowBadge {
+                    width: top-right.platform-width;
+                    height: 24px;
+                    x: top-right.column ? top-right.width - self.width
+                        : top-right.width - (root.card.ready ? top-right.ready-width + top-right.badge-gap : 0) - self.width;
+                    y: top-right.column ? (root.card.ready ? top-right.ready-height + 4px : 0) : 0;
+                    Text {
+                        x: 9px;
+                        width: parent.width - 18px;
+                        text: root.card.platform-label;
+                        font-size: Theme.tiny-size;
+                        font-weight: 500;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                        horizontal-alignment: center;
+                        overflow: elide;
+                    }
+                }
+
+                // __installed-badge (title="Installed" is a native tooltip in Electron)
+                if root.card.ready && root.card.emulator == 0: FrostBadge {
+                    frost: root.card.mode == 0 ? root.card.frost : @image-url("");
+                    cover-origin: overlay.cover-origin;
+                    cover-width: frame.width;
+                    cover-height: frame.height;
+                    x: top-right.width - self.width;
+                    y: top-right.column ? 0 : (24px - self.height) / 2;
+                    width: top-right.ready-width;
+                    height: top-right.ready-height;
+                    // padding 4px + 1px border
+                    HorizontalLayout {
+                        padding: 5px;
+                        spacing: 4px;
+                        Icon {
+                            y: (parent.height - self.height) / 2;
+                            width: 11px;
+                            height: 11px;
+                            source: LibraryIcons.check-circle-fill;
+                            color: #ffffff;
+                        }
+                        Text {
+                            visible: !root.narrow-140;
+                            text: T.tr("library.installed");
+                            font-size: Theme.small-size;
+                            color: rgba(255, 255, 255, 0.8);
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+                if root.card.ready && root.card.emulator > 0: RainbowBadge {
+                    x: top-right.width - self.width;
+                    y: 0;
+                    width: top-right.ready-width;
+                    height: 24px;
+                    HorizontalLayout {
+                        padding-left: 9px;
+                        padding-right: 9px;
+                        spacing: 4px;
+                        Rectangle {
+                            width: 15px;
+                            height: 15px;
+                            y: (parent.height - self.height) / 2;
+                            border-radius: 4px;
+                            clip: true;
+                            Image {
+                                source: LibraryIcons.emulator(root.card.emulator);
+                                image-fit: contain;
+                            }
+                        }
+                        Text {
+                            visible: !root.narrow-140;
+                            text: T.tr("library.installed");
+                            font-size: Theme.tiny-size;
+                            font-weight: 500;
+                            color: Theme.muted;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+
+            // AchievementProgress (__achievements): header 18px, 8px gap, 4px bar
+            if root.has-achievements: VerticalLayout {
+                x: 8px;
+                width: root.width - 16px;
+                y: root.height - 8px - 30px;
+                height: 30px;
+                spacing: 8px;
+                HorizontalLayout {
+                    height: 18px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        if !root.completed: Icon {
+                            y: (parent.height - self.height) / 2;
+                            width: 13px;
+                            height: 13px;
+                            source: LibraryIcons.trophy;
+                            color: #ffffff;
+                        }
+                        Text {
+                            text: root.card.unlocked + " / " + root.card.achievements;
+                            font-size: Theme.button-size;
+                            color: Theme.muted;
+                            vertical-alignment: center;
+                        }
+                    }
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+                    if root.completed: Icon {
+                        y: (parent.height - self.height) / 2;
+                        width: 13px;
+                        height: 13px;
+                        source: LibraryIcons.trophy;
+                        color: Theme.brand-teal;
+                    }
+                    if !root.completed: Text {
+                        text: Math.round(root.card.unlocked / Math.max(1, root.card.achievements) * 100) + "%";
+                        font-size: Theme.button-size;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                    }
+                }
+                // __achievement-progress
+                Rectangle {
+                    height: 4px;
+                    border-radius: 4px;
+                    clip: true;
+                    background: rgba(255, 255, 255, 0.15);
+                    animate background { duration: 200ms; easing: ease; }
+                    bar := Rectangle {
+                        x: 0;
+                        width: parent.width * Math.min(1, root.card.unlocked / Math.max(1, root.card.achievements));
+                        animate width { duration: 300ms; easing: ease; }
+                        border-radius: 4px;
+                        background: Theme.muted;
+                        if root.completed: PlatinumFill {
+                            border-radius: 4px;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
+                root.context-menu(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+            }
+        }
+    }
+}

@@ -69,7 +69,11 @@ impl LibraryGame {
     pub fn catalogue_identity(&self) -> (String, String) {
         match self.get("catalogueGame").and_then(Value::as_object) {
             Some(catalogue) => (
-                catalogue.get("shop").and_then(Value::as_str).unwrap_or_default().to_string(),
+                catalogue
+                    .get("shop")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .to_string(),
                 catalogue
                     .get("objectId")
                     .and_then(Value::as_str)
@@ -83,7 +87,9 @@ impl LibraryGame {
         self.get("download").and_then(Value::as_object)
     }
     pub fn download_status(&self) -> Option<&str> {
-        self.download().and_then(|d| d.get("status")).and_then(Value::as_str)
+        self.download()
+            .and_then(|d| d.get("status"))
+            .and_then(Value::as_str)
     }
     pub fn download_queued(&self) -> bool {
         self.download().is_some_and(|d| truthy(d.get("queued")))
@@ -93,10 +99,14 @@ impl LibraryGame {
     }
     /// `getDisplayedPlayTimeInMilliseconds` (shared/playtime.ts).
     pub fn displayed_play_time(&self) -> f64 {
-        ["playTimeInMilliseconds", "steamPlayTimeInMilliseconds", "epicPlayTimeInMilliseconds"]
-            .iter()
-            .map(|k| self.number(k).unwrap_or(0.0).max(0.0))
-            .sum()
+        [
+            "playTimeInMilliseconds",
+            "steamPlayTimeInMilliseconds",
+            "epicPlayTimeInMilliseconds",
+        ]
+        .iter()
+        .map(|k| self.number(k).unwrap_or(0.0).max(0.0))
+        .sum()
     }
     /// `isGameInstalled` (helpers.ts).
     pub fn is_installed(&self) -> bool {
@@ -109,14 +119,21 @@ impl LibraryGame {
         self.executable_path().is_some() || (self.shop() == "launchbox" && self.discs_len() > 0)
     }
     fn discs_len(&self) -> usize {
-        self.get("discs").and_then(Value::as_array).map_or(0, Vec::len)
+        self.get("discs")
+            .and_then(Value::as_array)
+            .map_or(0, Vec::len)
     }
     /// `getLibraryCollectionIds`.
     pub fn collection_ids(&self) -> Vec<String> {
         if let Some(ids) = self.0.get("collectionIds").and_then(Value::as_array) {
-            return ids.iter().filter_map(|v| v.as_str().map(str::to_string)).collect();
+            return ids
+                .iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect();
         }
-        self.str("collectionId").map(|id| vec![id.to_string()]).unwrap_or_default()
+        self.str("collectionId")
+            .map(|id| vec![id.to_string()])
+            .unwrap_or_default()
     }
 
     fn set(&mut self, key: &str, value: Value) {
@@ -197,7 +214,10 @@ fn contextual_epic_game(mut game: Obj, context: Option<&AuthContext>) -> Obj {
 /// `composeAssetsWithArtwork` (shared/artwork-resolver.ts).
 fn compose_assets_with_artwork(assets: Option<Obj>, selection: Option<&Obj>) -> Option<Obj> {
     let mut assets = assets?;
-    let Some(selected) = selection.and_then(|s| s.get("selected")).and_then(Value::as_object) else {
+    let Some(selected) = selection
+        .and_then(|s| s.get("selected"))
+        .and_then(Value::as_object)
+    else {
         return Some(assets);
     };
     let pick = |kind: &str| {
@@ -243,7 +263,8 @@ pub fn load_library(
     // point lookups in LevelDB cost far more than a sequential read.
     let downloads: HashMap<String, Obj> = db.entries(keys::DOWNLOADS)?.into_iter().collect();
     let assets: HashMap<String, Obj> = db.entries(keys::GAME_SHOP_ASSETS)?.into_iter().collect();
-    let selections: HashMap<String, Obj> = db.entries(keys::ARTWORK_SELECTION)?.into_iter().collect();
+    let selections: HashMap<String, Obj> =
+        db.entries(keys::ARTWORK_SELECTION)?.into_iter().collect();
 
     let mut shop_cache_platforms: Option<HashMap<String, String>> = None;
     let mut library = Vec::with_capacity(entries.len());
@@ -251,7 +272,9 @@ pub fn load_library(
         let catalogue_key = match game.get("catalogueGame").and_then(Value::as_object) {
             Some(c) => keys::game(
                 c.get("shop").and_then(Value::as_str).unwrap_or_default(),
-                c.get("objectId").and_then(Value::as_str).unwrap_or_default(),
+                c.get("objectId")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default(),
             ),
             None => key.clone(),
         };
@@ -259,7 +282,11 @@ pub fn load_library(
         let shop_assets: Option<Obj> = assets.get(&catalogue_key).cloned();
         let selection: Option<Obj> = selections.get(&key).cloned();
 
-        let shop = game.get("shop").and_then(Value::as_str).unwrap_or_default().to_string();
+        let shop = game
+            .get("shop")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
         let catalogue_is_steam = game
             .get("catalogueGame")
             .and_then(|c| c.get("shop"))
@@ -282,7 +309,10 @@ pub fn load_library(
         let composed = compose_assets_with_artwork(shop_assets, selection.as_ref());
 
         let installer_size = resolve_installer_size(&game, download.as_ref());
-        let mut installed_size = game.get("installedSizeInBytes").filter(|v| !v.is_null()).cloned();
+        let mut installed_size = game
+            .get("installedSizeInBytes")
+            .filter(|v| !v.is_null())
+            .cloned();
         if installed_size.as_ref().is_some_and(truthy_value)
             && let Some(exe) = game.get("executablePath").and_then(Value::as_str)
             && let Some(dir) = Path::new(exe).parent()
@@ -306,15 +336,24 @@ pub fn load_library(
         }
         row.set_opt("installerSizeInBytes", installer_size);
         row.set_opt("installedSizeInBytes", installed_size.or(Some(Value::Null)));
-        row.set("download", download.map(Value::Object).unwrap_or(Value::Null));
+        row.set(
+            "download",
+            download.map(Value::Object).unwrap_or(Value::Null),
+        );
         if let Some(assets) = &composed {
             for (k, v) in assets {
                 row.set(k, v.clone());
             }
         }
         row.set("shop", game.get("shop").cloned().unwrap_or(Value::Null));
-        row.set("objectId", game.get("objectId").cloned().unwrap_or(Value::Null));
-        row.set_opt("unlockedAchievementCount", game.get("unlockedAchievementCount").cloned());
+        row.set(
+            "objectId",
+            game.get("objectId").cloned().unwrap_or(Value::Null),
+        );
+        row.set_opt(
+            "unlockedAchievementCount",
+            game.get("unlockedAchievementCount").cloned(),
+        );
         row.set_opt("achievementCount", game.get("achievementCount").cloned());
         if shop == "epic" && !catalogue_is_steam {
             row.set(
@@ -365,7 +404,10 @@ fn resolve_installer_size(game: &Obj, download: Option<&Obj>) -> Option<Value> {
     if !truthy_value(size_value) {
         return size;
     }
-    let folder = download.get("folderName").and_then(Value::as_str).filter(|f| !f.is_empty());
+    let folder = download
+        .get("folderName")
+        .and_then(Value::as_str)
+        .filter(|f| !f.is_empty());
     let base = download.get("downloadPath").and_then(Value::as_str);
     match (folder, base) {
         (Some(folder), Some(base)) if !Path::new(base).join(folder).exists() => Some(Value::Null),
@@ -383,7 +425,8 @@ fn platforms_from_shop_cache(db: &Db) -> HashMap<String, String> {
             };
             // `${shop}:${objectId}:${language}`
             if let Some((game_key, _language)) = key.rsplit_once(':') {
-                out.entry(game_key.to_string()).or_insert_with(|| platform.to_string());
+                out.entry(game_key.to_string())
+                    .or_insert_with(|| platform.to_string());
             }
         }
     }
@@ -399,10 +442,15 @@ fn select_operational(games: &[LibraryGame], running: &HashSet<String>) -> usize
     let mut order: Vec<usize> = (0..games.len()).collect();
     order.sort_by(|&a, &b| {
         let (a, b) = (&games[a], &games[b]);
-        let is_running = |g: &LibraryGame| running.contains(g.id()) || running.contains(&g.identity_key());
+        let is_running =
+            |g: &LibraryGame| running.contains(g.id()) || running.contains(&g.identity_key());
         is_running(b)
             .cmp(&is_running(a))
-            .then(b.executable_path().is_some().cmp(&a.executable_path().is_some()))
+            .then(
+                b.executable_path()
+                    .is_some()
+                    .cmp(&a.executable_path().is_some()),
+            )
             .then(store_priority(a.shop()).cmp(&store_priority(b.shop())))
             .then(a.identity_key().cmp(&b.identity_key()))
     });
@@ -412,7 +460,9 @@ fn select_operational(games: &[LibraryGame], running: &HashSet<String>) -> usize
 /// `isLibraryGameDownloading`.
 pub fn is_downloading(game: &LibraryGame) -> bool {
     matches!(game.download_status(), Some("active" | "extracting"))
-        || game.download().is_some_and(|d| d.get("extracting") == Some(&Value::Bool(true)))
+        || game
+            .download()
+            .is_some_and(|d| d.get("extracting") == Some(&Value::Bool(true)))
 }
 
 fn download_priority(game: &LibraryGame) -> u8 {
@@ -429,7 +479,8 @@ fn download_priority(game: &LibraryGame) -> u8 {
 
 /// `selectDownloadLibraryGame`.
 fn select_download(games: &[LibraryGame], operational: &LibraryGame) -> LibraryGame {
-    let mut candidates: Vec<&LibraryGame> = games.iter().filter(|g| download_priority(g) > 0).collect();
+    let mut candidates: Vec<&LibraryGame> =
+        games.iter().filter(|g| download_priority(g) > 0).collect();
     let operational_key = operational.identity_key();
     candidates.sort_by(|a, b| {
         download_priority(b)
@@ -438,17 +489,28 @@ fn select_download(games: &[LibraryGame], operational: &LibraryGame) -> LibraryG
             .then(store_priority(a.shop()).cmp(&store_priority(b.shop())))
             .then(a.identity_key().cmp(&b.identity_key()))
     });
-    candidates.first().map(|g| (*g).clone()).unwrap_or_else(|| operational.clone())
+    candidates
+        .first()
+        .map(|g| (*g).clone())
+        .unwrap_or_else(|| operational.clone())
 }
 
 /// Latest/earliest of ISO date strings, ignoring invalid ones (`latestDate`, `earliestDate`).
 fn pick_date<'a>(values: impl Iterator<Item = Option<&'a Value>>, latest: bool) -> Value {
     let mut best: Option<(i64, &Value)> = None;
     for value in values.flatten() {
-        let Some(ms) = value.as_str().and_then(parse_iso_millis) else { continue };
+        let Some(ms) = value.as_str().and_then(parse_iso_millis) else {
+            continue;
+        };
         let better = match best {
             None => true,
-            Some((current, _)) => if latest { ms > current } else { ms < current },
+            Some((current, _)) => {
+                if latest {
+                    ms > current
+                } else {
+                    ms < current
+                }
+            }
         };
         if better {
             best = Some((ms, value));
@@ -469,12 +531,19 @@ pub fn parse_iso_millis(text: &str) -> Option<i64> {
     let (hour, minute, second) = (num(11..13)?, num(14..16)?, num(17..19)?);
     let mut millis = 0;
     if bytes.get(19) == Some(&b'.') {
-        let digits: String = text[20..].chars().take_while(|c| c.is_ascii_digit()).collect();
+        let digits: String = text[20..]
+            .chars()
+            .take_while(|c| c.is_ascii_digit())
+            .collect();
         let padded = format!("{digits:0<3}");
         millis = padded[..3].parse::<i64>().ok()?;
     }
     // Days from civil (Howard Hinnant's algorithm).
-    let (y, m) = if month <= 2 { (year - 1, month + 9) } else { (year, month - 3) };
+    let (y, m) = if month <= 2 {
+        (year - 1, month + 9)
+    } else {
+        (year, month - 3)
+    };
     let era = y.div_euclid(400);
     let yoe = y - era * 400;
     let doy = (153 * m + 2) / 5 + day - 1;
@@ -486,7 +555,10 @@ pub fn parse_iso_millis(text: &str) -> Option<i64> {
 fn project_group(members: Vec<LibraryGame>, running: &HashSet<String>) -> Presentation {
     let operational_index = select_operational(&members, running);
     let operational = members[operational_index].clone();
-    let candidates: Vec<(String, String)> = members.iter().map(LibraryGame::catalogue_identity).collect();
+    let candidates: Vec<(String, String)> = members
+        .iter()
+        .map(LibraryGame::catalogue_identity)
+        .collect();
     let catalogue = candidates
         .iter()
         .find(|(shop, _)| shop == "steam")
@@ -508,7 +580,10 @@ fn project_group(members: Vec<LibraryGame>, running: &HashSet<String>) -> Presen
     let mut shops: Vec<String> = Vec::new();
     for member in &members {
         let list: Vec<String> = match member.get("availableShops").and_then(Value::as_array) {
-            Some(list) => list.iter().filter_map(|v| v.as_str().map(str::to_string)).collect(),
+            Some(list) => list
+                .iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect(),
             None => vec![member.shop().to_string()],
         };
         for shop in list {
@@ -539,13 +614,18 @@ fn project_group(members: Vec<LibraryGame>, running: &HashSet<String>) -> Presen
     ] {
         game.set_opt(field, presentation.0.get(field).cloned());
     }
-    game.set_opt("achievementCount", operational.0.get("achievementCount").cloned());
+    game.set_opt(
+        "achievementCount",
+        operational.0.get("achievementCount").cloned(),
+    );
     game.set_opt(
         "unlockedAchievementCount",
         operational.0.get("unlockedAchievementCount").cloned(),
     );
-    let custom_candidates: Vec<&LibraryGame> =
-        std::iter::once(&operational).chain(std::iter::once(&presentation)).chain(members.iter()).collect();
+    let custom_candidates: Vec<&LibraryGame> = std::iter::once(&operational)
+        .chain(std::iter::once(&presentation))
+        .chain(members.iter())
+        .collect();
     for field in [
         "customIconUrl",
         "customLogoImageUrl",
@@ -560,18 +640,27 @@ fn project_group(members: Vec<LibraryGame>, running: &HashSet<String>) -> Presen
         game.set(field, value);
     }
     let download_game = select_download(&members, &operational);
-    game.set("downloadGameId", Value::String(download_game.id().to_string()));
+    game.set(
+        "downloadGameId",
+        Value::String(download_game.id().to_string()),
+    );
     let mut catalogue_obj = Obj::new();
     catalogue_obj.insert("shop".into(), Value::String(catalogue.0.clone()));
     catalogue_obj.insert("objectId".into(), Value::String(catalogue.1.clone()));
     game.set("catalogueGame", Value::Object(catalogue_obj));
-    game.set("availableShops", Value::Array(shops.into_iter().map(Value::String).collect()));
+    game.set(
+        "availableShops",
+        Value::Array(shops.into_iter().map(Value::String).collect()),
+    );
     for field in [
         "playTimeInMilliseconds",
         "steamPlayTimeInMilliseconds",
         "epicPlayTimeInMilliseconds",
     ] {
-        let total: f64 = members.iter().map(|m| m.number(field).unwrap_or(0.0).max(0.0)).sum();
+        let total: f64 = members
+            .iter()
+            .map(|m| m.number(field).unwrap_or(0.0).max(0.0))
+            .sum();
         game.set(field, Value::from(total));
     }
     let any = |field: &str| Value::Bool(members.iter().any(|m| m.flag(field)));
@@ -584,8 +673,14 @@ fn project_group(members: Vec<LibraryGame>, running: &HashSet<String>) -> Presen
     ] {
         game.set(field, any(field));
     }
-    game.set("isConcealed", Value::Bool(members.iter().all(|m| m.flag("isConcealed"))));
-    game.set("pinnedDate", pick_date(members.iter().map(|m| m.0.get("pinnedDate")), true));
+    game.set(
+        "isConcealed",
+        Value::Bool(members.iter().all(|m| m.flag("isConcealed"))),
+    );
+    game.set(
+        "pinnedDate",
+        pick_date(members.iter().map(|m| m.0.get("pinnedDate")), true),
+    );
     let mut collection_ids: Vec<String> = Vec::new();
     for member in &members {
         for id in member.collection_ids() {
@@ -598,7 +693,10 @@ fn project_group(members: Vec<LibraryGame>, running: &HashSet<String>) -> Presen
         "collectionIds",
         Value::Array(collection_ids.into_iter().map(Value::String).collect()),
     );
-    game.set("lastTimePlayed", pick_date(members.iter().map(|m| m.0.get("lastTimePlayed")), true));
+    game.set(
+        "lastTimePlayed",
+        pick_date(members.iter().map(|m| m.0.get("lastTimePlayed")), true),
+    );
     game.set(
         "addedToLibraryAt",
         pick_date(members.iter().map(|m| m.0.get("addedToLibraryAt")), false),
@@ -618,7 +716,9 @@ pub fn group_library_games(games: &[LibraryGame], running_ids: &[String]) -> Vec
     let running: HashSet<String> = running_ids.iter().cloned().collect();
     let mut confirmed: HashMap<String, HashSet<String>> = HashMap::new();
     for game in games {
-        let Some(canonical) = game.str("canonicalId").filter(|c| !c.is_empty()) else { continue };
+        let Some(canonical) = game.str("canonicalId").filter(|c| !c.is_empty()) else {
+            continue;
+        };
         if game.flag("isDeleted") || !matches!(game.shop(), "steam" | "epic") {
             continue;
         }
@@ -715,7 +815,12 @@ pub fn compare_titles(a: &str, b: &str) -> Ordering {
 
 /// `sortLibraryGames`.
 pub fn sort_games(games: &mut [Presentation], sort_by: SortBy) {
-    games.sort_by(|a, b| {
+    games.sort_by(|a, b| compare_presentations(a, b, sort_by));
+}
+
+/// The `sortLibraryGames` comparator.
+pub fn compare_presentations(a: &Presentation, b: &Presentation, sort_by: SortBy) -> Ordering {
+    {
         let (a, b) = (&a.game, &b.game);
         let first = match sort_by {
             SortBy::RecentlyPlayed => recently_played(a, b),
@@ -735,7 +840,7 @@ pub fn sort_games(games: &mut [Presentation], sort_by: SortBy) {
             Some(Ordering::Equal) => compare_titles(a.title(), b.title()),
             Some(order) => order,
         }
-    });
+    }
 }
 
 /// `getPlayTimeDifference`; `None` where the JS comparator returns NaN.
@@ -761,15 +866,25 @@ fn achievement_rate(a: &LibraryGame, b: &LibraryGame) -> Ordering {
         if a_total == b_total {
             return Ordering::Equal;
         }
-        return if a_total == 0.0 { Ordering::Greater } else { Ordering::Less };
+        return if a_total == 0.0 {
+            Ordering::Greater
+        } else {
+            Ordering::Less
+        };
     }
     let a_unlocked = a.number("unlockedAchievementCount").unwrap_or(0.0);
     let b_unlocked = b.number("unlockedAchievementCount").unwrap_or(0.0);
     let rate = b_unlocked * a_total - a_unlocked * b_total;
     if rate != 0.0 {
-        return if rate > 0.0 { Ordering::Greater } else { Ordering::Less };
+        return if rate > 0.0 {
+            Ordering::Greater
+        } else {
+            Ordering::Less
+        };
     }
-    (b_unlocked - a_unlocked).partial_cmp(&0.0).unwrap_or(Ordering::Equal)
+    (b_unlocked - a_unlocked)
+        .partial_cmp(&0.0)
+        .unwrap_or(Ordering::Equal)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -840,7 +955,9 @@ pub fn filter_games<'a>(
         .filter(|p| {
             if classics(p) {
                 return platforms.is_empty()
-                    || p.game.str("platform").is_some_and(|pl| platforms.contains(pl));
+                    || p.game
+                        .str("platform")
+                        .is_some_and(|pl| platforms.contains(pl));
             }
             sources.is_empty() || p.members.iter().any(|m| sources.contains(game_source(m)))
         })
@@ -862,17 +979,30 @@ pub fn available_sources(games: &[Presentation]) -> (Vec<&'static str>, bool) {
         }
     }
     (
-        ["hydra", "steam", "epic"].into_iter().filter(|s| set.contains(s)).collect(),
+        ["hydra", "steam", "epic"]
+            .into_iter()
+            .filter(|s| set.contains(s))
+            .collect(),
         imported,
     )
 }
 
 /// `getLibraryPresentationBadgeSource`.
 pub fn badge_source(group: &Presentation) -> Option<&'static str> {
-    let active: Vec<&LibraryGame> = group.members.iter().filter(|m| !m.flag("isDeleted")).collect();
-    if active.iter().any(|m| m.0.get("hasActiveSteamImport") == Some(&Value::Bool(true))) {
+    let active: Vec<&LibraryGame> = group
+        .members
+        .iter()
+        .filter(|m| !m.flag("isDeleted"))
+        .collect();
+    if active
+        .iter()
+        .any(|m| m.0.get("hasActiveSteamImport") == Some(&Value::Bool(true)))
+    {
         Some("steam")
-    } else if active.iter().any(|m| m.0.get("hasActiveEpicImport") == Some(&Value::Bool(true))) {
+    } else if active
+        .iter()
+        .any(|m| m.0.get("hasActiveEpicImport") == Some(&Value::Bool(true)))
+    {
         Some("epic")
     } else {
         None
@@ -955,14 +1085,21 @@ mod tests {
     #[test]
     fn iso_dates() {
         assert_eq!(parse_iso_millis("1970-01-01T00:00:00.000Z"), Some(0));
-        assert_eq!(parse_iso_millis("2024-03-01T12:30:15.250Z"), Some(1_709_296_215_250));
+        assert_eq!(
+            parse_iso_millis("2024-03-01T12:30:15.250Z"),
+            Some(1_709_296_215_250)
+        );
     }
 
     #[test]
     fn groups_confirmed_steam_and_epic_copies() {
         let games = vec![
-            game(json!({ "id": "steam:1", "shop": "steam", "objectId": "1", "title": "Game", "canonicalId": "c1", "favorite": true })),
-            game(json!({ "id": "epic:a", "shop": "epic", "objectId": "a", "title": "Game (Epic)", "canonicalId": "c1", "executablePath": "C:/g.exe", "catalogueGame": { "shop": "steam", "objectId": "1" } })),
+            game(
+                json!({ "id": "steam:1", "shop": "steam", "objectId": "1", "title": "Game", "canonicalId": "c1", "favorite": true }),
+            ),
+            game(
+                json!({ "id": "epic:a", "shop": "epic", "objectId": "a", "title": "Game (Epic)", "canonicalId": "c1", "executablePath": "C:/g.exe", "catalogueGame": { "shop": "steam", "objectId": "1" } }),
+            ),
             game(json!({ "id": "custom:x", "shop": "custom", "objectId": "x", "title": "Mine" })),
         ];
         let groups = group_library_games(&games, &[]);
@@ -982,8 +1119,12 @@ mod tests {
             &[
                 game(json!({ "id": "steam:2", "shop": "steam", "objectId": "2", "title": "zeta" })),
                 game(json!({ "id": "steam:3", "shop": "steam", "objectId": "3", "title": "Élan" })),
-                game(json!({ "id": "steam:1", "shop": "steam", "objectId": "1", "title": "Alpha" })),
-                game(json!({ "id": "steam:4", "shop": "steam", "objectId": "4", "title": "#BLUD" })),
+                game(
+                    json!({ "id": "steam:1", "shop": "steam", "objectId": "1", "title": "Alpha" }),
+                ),
+                game(
+                    json!({ "id": "steam:4", "shop": "steam", "objectId": "4", "title": "#BLUD" }),
+                ),
             ],
             &[],
         );

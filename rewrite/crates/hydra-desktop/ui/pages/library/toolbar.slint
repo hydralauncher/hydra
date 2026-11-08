@@ -1,0 +1,191 @@
+// The library toolbar: category-filter.{tsx,scss} and the menu triggers of
+// library-toolbar-menu.scss / _library-dropdown.scss.
+import { Theme } from "../../theme.slint";
+import { Icon } from "../../components/widgets.slint";
+
+export global ToolbarIcons {
+    out property <image> stack: @image-url("../../icons/stack-14.svg");
+    out property <image> desktop: @image-url("../../icons/device-desktop-14.svg");
+    out property <image> classics: @image-url("../../icons/classics.svg");
+    out property <image> filter: @image-url("../../icons/filter.svg");
+    out property <image> sort-desc: @image-url("../../icons/sort-desc.svg");
+    out property <image> chevron-down: @image-url("../../icons/chevron-down-12.svg");
+    out property <image> sync: @image-url("../../icons/sync.svg");
+    out property <image> plus: @image-url("../../icons/plus.svg");
+    out property <image> check: @image-url("../../icons/check.svg");
+    out property <image> square: @image-url("../../icons/square.svg");
+    out property <image> apps: @image-url("../../icons/apps.svg");
+    out property <image> rows: @image-url("../../icons/rows.svg");
+    out property <image> heart: @image-url("../../icons/heart.svg");
+    out property <image> lock: @image-url("../../icons/lock-16.svg");
+    out property <image> folder: @image-url("../../icons/file-directory.svg");
+    out property <image> steam: @image-url("../../icons/bi-steam.svg");
+    out property <image> epic: @image-url("../../icons/epic-integration-logo.svg");
+    out property <image> hydra: @image-url("../../icons/hydra-source.svg");
+}
+
+// .library-category-filter__option
+component CategoryOption inherits Rectangle {
+    in property <image> icon;
+    in property <length> icon-size: 14px;
+    // The classics icon carries its own gradient stroke.
+    in property <bool> keep-colors;
+    in property <string> label;
+    in property <bool> active;
+    callback clicked();
+    property <color> fg: root.active || touch.has-hover ? Theme.muted : Theme.subtle;
+
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: root.active ? Theme.border : transparent;
+    background: root.active ? rgba(255, 255, 255, 0.04) : transparent;
+    animate background, border-color { duration: 150ms; easing: ease; }
+    accessible-role: button;
+    accessible-label: root.label;
+
+    // padding 0 12px inside the 1px border
+    HorizontalLayout {
+        padding-left: 13px;
+        padding-right: 13px;
+        spacing: 8px;
+        if !root.keep-colors: Icon {
+            y: (parent.height - self.height) / 2;
+            width: root.icon-size;
+            height: root.icon-size;
+            source: root.icon;
+            color: root.fg;
+            animate color { duration: 150ms; easing: ease; }
+        }
+        if root.keep-colors: Image {
+            y: (parent.height - self.height) / 2;
+            width: root.icon-size;
+            height: root.icon-size;
+            source: root.icon;
+        }
+        Text {
+            text: root.label;
+            font-size: Theme.hint-size;
+            font-weight: 700; // 600 in scss; Electron has no SemiBold face
+            color: root.fg;
+            vertical-alignment: center;
+            animate color { duration: 150ms; easing: ease; }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// CategoryFilter: All / PC / Classics
+export component CategoryFilter inherits Rectangle {
+    in property <string> category;
+    in property <string> all-label;
+    in property <string> pc-label;
+    in property <string> classics-label;
+    callback changed-category(string);
+
+    height: 40px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.06);
+    background: Theme.dark-background;
+    width: options.preferred-width;
+
+    // padding 2px inside the 1px border
+    options := HorizontalLayout {
+        padding: 3px;
+        spacing: 2px;
+        CategoryOption {
+            icon: ToolbarIcons.stack;
+            label: root.all-label;
+            active: root.category == "all";
+            clicked => {
+                root.changed-category("all");
+            }
+        }
+        CategoryOption {
+            icon: ToolbarIcons.desktop;
+            label: root.pc-label;
+            active: root.category == "pc";
+            clicked => {
+                root.changed-category("pc");
+            }
+        }
+        CategoryOption {
+            icon: ToolbarIcons.classics;
+            icon-size: 16px;
+            keep-colors: true;
+            label: root.classics-label;
+            active: root.category == "classics";
+            clicked => {
+                root.changed-category("classics");
+            }
+        }
+    }
+}
+
+// .library-toolbar-menu__trigger (dropdown.trigger): no transitions on the border.
+export component MenuTrigger inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> open;
+    in property <bool> chevron;
+    in property <bool> dot;
+    callback clicked();
+
+    height: 40px;
+    width: row.preferred-width;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: root.open ? #dadbe1 : touch.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
+    background: Theme.background;
+    accessible-role: button;
+    accessible-label: root.label;
+
+    // padding 0 12px inside the 1px border
+    row := HorizontalLayout {
+        padding-left: 13px;
+        padding-right: 13px;
+        spacing: 8px;
+        Icon {
+            y: (parent.height - self.height) / 2;
+            width: 16px;
+            height: 16px;
+            source: root.icon;
+            color: #dadbe1;
+        }
+        Text {
+            text: root.label;
+            font-size: Theme.body-size;
+            color: #dadbe1;
+            vertical-alignment: center;
+        }
+        if root.dot: Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 6px;
+            height: 6px;
+            border-radius: 3px;
+            background: Theme.muted;
+        }
+        if root.chevron: Icon {
+            y: (parent.height - self.height) / 2;
+            width: 12px;
+            height: 12px;
+            source: ToolbarIcons.chevron-down;
+            color: Theme.muted;
+            transform-rotation: root.open ? 180deg : 0deg;
+            animate transform-rotation { duration: 150ms; easing: ease; }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}

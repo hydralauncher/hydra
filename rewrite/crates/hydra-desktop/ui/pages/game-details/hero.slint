@@ -241,7 +241,7 @@ export component Hero inherits Rectangle {
                         : root.playtime;
                     color: Theme.muted;
                     font-size: Theme.small-size;
-                    font-weight: 600;
+                    font-weight: 700; // 600 in scss; Electron has no SemiBold face
                 }
                 if root.in-library && !root.running && root.last-played != "": Text {
                     text: root.last-played;
