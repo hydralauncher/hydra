@@ -1411,6 +1411,8 @@ pub fn dev(args: &[&str]) {
         "steam-start" => {
             steam_sync::start(steam_sync::Origin::Manual);
         }
+        // the hidden Community page and its cookies (names only)
+        "steam-community-probe" => steam_sync::dev_community_probe(),
         "steam-reconnect" => steam_sync::simulate(SteamSync::Idle {
             requires_reconnect: true,
         }),

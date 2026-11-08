@@ -619,6 +619,48 @@ pub fn sync_game_on_game_page(steam_app_id: &str) {
     });
 }
 
+/// Dev hook: read the Community session through the hidden page and print
+/// the login state and cookie names (never their values).
+pub fn dev_community_probe() {
+    std::thread::spawn(|| {
+        let access = Steam {
+            aborted: Arc::new(AtomicBool::new(false)),
+        };
+        let page = crate::steam_browser::read_page(
+            steam::COMMUNITY_REFRESH_URL,
+            steam::COMMUNITY_STEAM_ID_SCRIPT,
+            &["https://steamcommunity.com/", "https://store.steampowered.com/"],
+            &|| false,
+        );
+        match page {
+            Ok(page) => eprintln!(
+                "[steam-sync] probe: loaded={} url={} value={} cookies={:?}",
+                page.loaded,
+                page.url,
+                page.value,
+                page.cookies
+                    .iter()
+                    .map(|(u, n, _)| format!("{u}{n}"))
+                    .collect::<Vec<_>>()
+            ),
+            Err(error) => eprintln!("[steam-sync] probe failed: {error}"),
+        }
+        match access.community_session() {
+            Ok(session) => eprintln!(
+                "[steam-sync] probe: login={:?} timezone={} cookie header names={:?}",
+                session.login,
+                session.time_zone_offset_seconds,
+                session
+                    .cookie_header
+                    .split("; ")
+                    .filter_map(|c| c.split('=').next())
+                    .collect::<Vec<_>>()
+            ),
+            Err(error) => eprintln!("[steam-sync] probe session failed: {error}"),
+        }
+    });
+}
+
 /// Dev hook: show a sync state without running one (screenshots).
 pub fn simulate(next: SteamSync) {
     set_state(next);
