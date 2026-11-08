@@ -102,6 +102,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     game_page::init(&ui, &loader);
     nav::init(&ui, args.path.as_deref().unwrap_or("/"));
 
+    // HYDRA_TIMING=1: print when the first frame is on screen (benchmarks).
+    if std::env::var_os("HYDRA_TIMING").is_some() {
+        let started = std::time::Instant::now();
+        // Skia on Direct3D doesn't call rendering notifiers, so take the
+        // event loop's first turn: the window is mapped and the first frame
+        // is painted right after it.
+        let _ = slint::invoke_from_event_loop(move || {
+            eprintln!("timing: first frame {} ms after main() (event loop running)", started.elapsed().as_millis());
+        });
+    }
+
     if let Ok(steps) = std::env::var("HYDRA_DEV_SCRIPT") {
         let out = std::env::var("HYDRA_DEV_SHOTS")
             .map(PathBuf::from)
