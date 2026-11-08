@@ -2,6 +2,7 @@ mod ffi;
 mod validation;
 
 use ffi::{Handle, Params, Result, Session};
+#[cfg(not(hydra_rewrite))]
 use napi_derive::napi;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, HashMap, VecDeque};
@@ -98,14 +99,20 @@ struct Runtime {
     sender: mpsc::Sender<Command>,
     thread: thread::JoinHandle<()>,
 }
+// The Node addon's entry points. The Rust + Slint rewrite (rewrite/) builds
+// this module without napi and drives the engine through rewrite_api.
+#[cfg(not(hydra_rewrite))]
 static RUNTIME: OnceLock<Mutex<Option<Runtime>>> = OnceLock::new();
+#[cfg(not(hydra_rewrite))]
 fn runtime() -> &'static Mutex<Option<Runtime>> {
     RUNTIME.get_or_init(|| Mutex::new(None))
 }
+#[cfg(not(hydra_rewrite))]
 fn napi_error(e: impl ToString) -> napi::Error {
     napi::Error::from_reason(e.to_string())
 }
 
+#[cfg(not(hydra_rewrite))]
 #[napi]
 pub async fn torrent_initialize(port: u16) -> napi::Result<()> {
     let mut runtime = runtime().lock().await;
@@ -133,6 +140,7 @@ pub async fn torrent_initialize(port: u16) -> napi::Result<()> {
 
 // JSON preserves the existing numeric/null payload contract without exposing
 // libtorrent pointers or its ABI to JavaScript. Transport errors are separate.
+#[cfg(not(hydra_rewrite))]
 #[napi]
 pub async fn torrent_request(method: String, params_json: String) -> napi::Result<String> {
     let result = async {
@@ -166,6 +174,7 @@ pub async fn torrent_request(method: String, params_json: String) -> napi::Resul
     .to_string())
 }
 
+#[cfg(not(hydra_rewrite))]
 #[napi]
 pub async fn torrent_shutdown() -> napi::Result<()> {
     // Hold the lifecycle lock until the old session is completely destroyed.
@@ -735,3 +744,7 @@ impl Engine {
         self.collect_handles();
     }
 }
+
+#[cfg(hydra_rewrite)]
+#[path = "../../../../rewrite/crates/hydra-torrent/src/engine_api.rs"]
+pub mod rewrite_api;

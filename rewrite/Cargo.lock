@@ -2071,6 +2071,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "hydra-torrent"
+version = "0.1.0"
+dependencies = [
+ "reqwest",
+ "serde_json",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "hyper"
 version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
