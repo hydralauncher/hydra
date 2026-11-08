@@ -34,6 +34,29 @@ fn main() {
     let copy = std::env::temp_dir().join(format!("hydra-library-sync-{}", std::process::id()));
     copy_dir(&source, &copy);
     let db = Arc::new(Db::open(&copy).expect("open copy"));
+    // --empty-copy <data folder>: write a copy of the data folder with an
+    // empty library (a new install that is signed in), for app runs.
+    let args: Vec<String> = std::env::args().collect();
+    if let Some(target) = args
+        .iter()
+        .position(|a| a == "--empty-copy")
+        .and_then(|i| args.get(i + 1))
+    {
+        let mut batch = hydra_db::Batch::default();
+        for sublevel in [keys::GAMES, keys::GAME_SHOP_ASSETS] {
+            for (key, _) in db.entries::<Value>(sublevel).expect("entries") {
+                batch.delete_in(sublevel, &key);
+            }
+        }
+        db.write(batch).expect("clear");
+        drop(db);
+        let target = std::path::PathBuf::from(target);
+        let _ = std::fs::remove_dir_all(target.join(source.file_name().expect("db name")));
+        copy_dir(&copy, &target.join(source.file_name().expect("db name")));
+        let _ = std::fs::remove_dir_all(&copy);
+        println!("wrote {} with an empty library", target.display());
+        return;
+    }
     let _ = rustls::crypto::ring::default_provider().install_default();
     let api = HydraApi::new(db.clone(), reqwest::blocking::Client::new());
     println!("api: {}", hydra_core::config::api_url());
