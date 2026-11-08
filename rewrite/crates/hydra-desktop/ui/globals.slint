@@ -83,6 +83,15 @@ export struct SidebarGame {
     path: string,
 }
 
+// A library or console row in the sidebar filter menu.
+export struct SidebarFilterOption {
+    id: string,
+    label: string,
+    // sources: 3 hydra, 4 steam, 5 epic
+    icon: int,
+    checked: bool,
+}
+
 // The sidebar's library list, filter and resize (sidebar.tsx).
 export global SidebarState {
     in-out property <length> width: 250px;
@@ -107,6 +116,24 @@ export global SidebarState {
     // First and last rows on screen (plus overscan), for lazy icon loading.
     callback visible-rows(int, int);
     callback width-committed(length);
+
+    // sidebar-filter-menu.tsx
+    in property <string> filter-category: "all";
+    in property <string> filter-sort: "title_asc";
+    in property <bool> filter-favorites-first: true;
+    in property <bool> filter-show-sources;
+    in property <[SidebarFilterOption]> filter-sources;
+    in property <bool> filter-sources-any;
+    in property <bool> filter-show-platforms;
+    in property <[SidebarFilterOption]> filter-platforms;
+    in property <bool> filter-platforms-any;
+    callback set-category(string);
+    callback set-sort(string);
+    callback set-favorites-first(bool);
+    callback set-sources-all();
+    callback toggle-source(string);
+    callback set-platforms-all();
+    callback toggle-platform(string);
 }
 
 // The one open dropdown or context menu (Radix: one menu at a time). The

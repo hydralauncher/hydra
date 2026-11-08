@@ -502,7 +502,7 @@ pub fn on_library_changed() {
     apply_filters(false);
 }
 
-fn platform_options(groups: &[Presentation]) -> Vec<String> {
+pub(crate) fn platform_options(groups: &[Presentation]) -> Vec<String> {
     let mut set: Vec<String> = Vec::new();
     for group in groups {
         for member in &group.members {

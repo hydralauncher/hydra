@@ -18,7 +18,7 @@ use serde_json::Value;
 use slint::{ComponentHandle, Image, Model, ModelRc, SharedString, VecModel};
 
 use crate::nav;
-use crate::{AppWindow, Chrome, Session, SidebarGame, SidebarState, T};
+use crate::{AppWindow, Chrome, Session, SidebarFilterOption, SidebarGame, SidebarState, T};
 
 struct Shell {
     ui: slint::Weak<AppWindow>,
@@ -538,6 +538,87 @@ fn wire_sidebar(ui: &AppWindow) {
             refresh_rows();
         }
     });
+    // sidebar-filter-menu.tsx
+    sidebar.on_set_category(|value| {
+        with_shell(|s| {
+            s.category = Category::parse(&value);
+            set_local_storage(&s.db, "sidebar-category", category_str(s.category));
+            if !s.category.shows_platforms() {
+                s.platforms.clear();
+                save_list(s, "sidebar-platforms", &[]);
+            }
+            if !s.category.shows_sources() {
+                s.sources.clear();
+                save_list(s, "sidebar-sources", &[]);
+            }
+        });
+        sync_filter_menu();
+        refresh_rows();
+    });
+    sidebar.on_set_sort(|value| {
+        with_shell(|s| {
+            s.sort_by = SortBy::parse(&value);
+            set_local_storage(&s.db, "sidebar-sort-by", s.sort_by.as_str());
+            order_library(s);
+        });
+        sync_filter_menu();
+        refresh_rows();
+    });
+    sidebar.on_set_favorites_first(|next| {
+        with_shell(|s| {
+            s.favorites_first = next;
+            set_local_storage(
+                &s.db,
+                "sidebar-favorites-first",
+                if next { "true" } else { "false" },
+            );
+            order_library(s);
+        });
+        sync_filter_menu();
+        refresh_rows();
+    });
+    sidebar.on_set_sources_all(|| {
+        with_shell(|s| {
+            s.sources.clear();
+            save_list(s, "sidebar-sources", &[]);
+        });
+        sync_filter_menu();
+        refresh_rows();
+    });
+    sidebar.on_toggle_source(|id| {
+        with_shell(|s| {
+            // onSourcesChange keeps the available sources' order
+            let (available, _) = library::available_sources(&s.groups);
+            let (mut effective, _) = effective_filters(s);
+            toggle_in(&mut effective, &id);
+            s.sources = available
+                .iter()
+                .filter(|a| effective.iter().any(|e| e == *a))
+                .map(|a| a.to_string())
+                .collect();
+            save_list(s, "sidebar-sources", &s.sources);
+        });
+        sync_filter_menu();
+        refresh_rows();
+    });
+    sidebar.on_set_platforms_all(|| {
+        with_shell(|s| {
+            s.platforms.clear();
+            save_list(s, "sidebar-platforms", &[]);
+        });
+        sync_filter_menu();
+        refresh_rows();
+    });
+    sidebar.on_toggle_platform(|id| {
+        with_shell(|s| {
+            let mut platforms = s.platforms.clone();
+            toggle_in(&mut platforms, &id);
+            s.platforms = platforms;
+            save_list(s, "sidebar-platforms", &s.platforms);
+        });
+        sync_filter_menu();
+        refresh_rows();
+    });
     sidebar.on_game_clicked(|id| {
         if let Some(path) = game_path(&id) {
             nav::navigate(&path);
@@ -672,25 +753,15 @@ pub fn load_library() {
         );
         let _ = slint::invoke_from_event_loop(move || {
             with_shell(|s| {
-                s.groups = groups.clone();
+                s.groups = groups;
                 s.library_len = games_len;
                 s.library_loading = false;
-                let mut groups = groups;
-                library::sort_games(&mut groups, s.sort_by);
-                if s.favorites_first {
-                    let (favorites, rest): (Vec<_>, Vec<_>) =
-                        groups.into_iter().partition(|g| g.game.flag("favorite"));
-                    groups = favorites.into_iter().chain(rest).collect();
-                }
-                s.search_keys = groups
-                    .iter()
-                    .map(|g| library::search_key(g.game.title()))
-                    .collect();
-                s.library = groups;
+                order_library(s);
                 if let Some(ui) = s.ui.upgrade() {
                     ui.global::<SidebarState>().set_loading(false);
                 }
             });
+            sync_filter_menu();
             refresh_rows();
             crate::game_page::on_library_changed();
             crate::library_page::on_library_changed();
@@ -698,6 +769,120 @@ pub fn load_library() {
             crate::downloads_page::refresh();
         });
     });
+}
+
+/// sidebar.tsx sortedLibrary: the sidebar sort, favorites first when on.
+fn order_library(s: &mut Shell) {
+    let mut groups = s.groups.clone();
+    library::sort_games(&mut groups, s.sort_by);
+    if s.favorites_first {
+        let (favorites, rest): (Vec<_>, Vec<_>) =
+            groups.into_iter().partition(|g| g.game.flag("favorite"));
+        groups = favorites.into_iter().chain(rest).collect();
+    }
+    s.search_keys = groups
+        .iter()
+        .map(|g| library::search_key(g.game.title()))
+        .collect();
+    s.library = groups;
+}
+
+fn category_str(category: Category) -> &'static str {
+    match category {
+        Category::All => "all",
+        Category::Pc => "pc",
+        Category::Classics => "classics",
+    }
+}
+
+/// effectiveSources / effectivePlatforms: selections that still apply to
+/// this library (sources only once something is imported).
+fn effective_filters(s: &Shell) -> (Vec<String>, Vec<String>) {
+    let (available, imported) = library::available_sources(&s.groups);
+    let sources = if imported {
+        s.sources
+            .iter()
+            .filter(|x| available.contains(&x.as_str()))
+            .cloned()
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let has_platforms = !crate::library_page::platform_options(&s.groups).is_empty();
+    let platforms = if has_platforms {
+        s.platforms.clone()
+    } else {
+        Vec::new()
+    };
+    (sources, platforms)
+}
+
+/// The SidebarFilterMenu props.
+fn sync_filter_menu() {
+    with_shell(|s| {
+        let (available, imported) = library::available_sources(&s.groups);
+        let platforms = crate::library_page::platform_options(&s.groups);
+        // drop selected consoles the library no longer has
+        if !platforms.is_empty() && s.platforms.iter().any(|p| !platforms.contains(p)) {
+            s.platforms.retain(|p| platforms.contains(p));
+            set_local_storage(
+                &s.db,
+                "sidebar-platforms",
+                &serde_json::to_string(&s.platforms).unwrap_or_default(),
+            );
+        }
+        let (effective_sources, _) = effective_filters(s);
+        let Some(ui) = s.ui.upgrade() else { return };
+        let sidebar = ui.global::<SidebarState>();
+        sidebar.set_filter_category(category_str(s.category).into());
+        sidebar.set_filter_sort(s.sort_by.as_str().into());
+        sidebar.set_filter_favorites_first(s.favorites_first);
+        sidebar.set_filter_show_sources(s.category.shows_sources() && imported);
+        let sources: Vec<SidebarFilterOption> = available
+            .iter()
+            .map(|id| SidebarFilterOption {
+                id: (*id).into(),
+                label: s.i18n.t(&format!("library.library_{id}")).into(),
+                icon: match *id {
+                    "steam" => 4,
+                    "epic" => 5,
+                    _ => 3,
+                },
+                checked: effective_sources.iter().any(|e| e == id),
+            })
+            .collect();
+        sidebar.set_filter_sources_any(!effective_sources.is_empty());
+        sidebar.set_filter_sources(ModelRc::new(VecModel::from(sources)));
+        sidebar.set_filter_show_platforms(s.category.shows_platforms() && !platforms.is_empty());
+        let items: Vec<SidebarFilterOption> = platforms
+            .iter()
+            .map(|p| SidebarFilterOption {
+                id: p.clone().into(),
+                label: p.clone().into(),
+                icon: -1,
+                checked: s.platforms.contains(p),
+            })
+            .collect();
+        sidebar.set_filter_platforms_any(!s.platforms.is_empty());
+        sidebar.set_filter_platforms(ModelRc::new(VecModel::from(items)));
+    });
+}
+
+/// FilterGroup handleToggle: add, or remove (the last one clears to "All").
+fn toggle_in(list: &mut Vec<String>, value: &str) {
+    if let Some(i) = list.iter().position(|v| v == value) {
+        list.remove(i);
+    } else {
+        list.push(value.to_string());
+    }
+}
+
+fn save_list(s: &Shell, key: &str, list: &[String]) {
+    set_local_storage(
+        &s.db,
+        key,
+        &serde_json::to_string(list).unwrap_or_else(|_| "[]".into()),
+    );
 }
 
 /// sidebar.tsx `visibleGames`: category/source/platform filters, then the
@@ -711,7 +896,8 @@ pub(crate) fn refresh_rows() {
                 .filter(|&i| s.search_keys[i].contains(&query))
                 .collect()
         } else {
-            let filtered = library::filter_games(&s.library, s.category, &s.sources, &s.platforms);
+            let (sources, platforms) = effective_filters(s);
+            let filtered = library::filter_games(&s.library, s.category, &sources, &platforms);
             let allowed: HashSet<*const Presentation> =
                 filtered.into_iter().map(|p| p as *const _).collect();
             (0..s.library.len())
@@ -719,10 +905,11 @@ pub(crate) fn refresh_rows() {
                 .filter(|&i| !s.playable_only || s.library[i].game.is_playable())
                 .collect()
         };
+        let (sources, platforms) = effective_filters(s);
         let has_active_filter = !s.library.is_empty()
             && (s.category != Category::All
-                || (s.category.shows_sources() && !s.sources.is_empty())
-                || (s.category.shows_platforms() && !s.platforms.is_empty())
+                || (s.category.shows_sources() && !sources.is_empty())
+                || (s.category.shows_platforms() && !platforms.is_empty())
                 || s.playable_only
                 || searching);
         let rows: Vec<SidebarGame> = visible.iter().map(|&i| row_for(s, &s.library[i])).collect();

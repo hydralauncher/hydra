@@ -23,10 +23,14 @@ pub fn pointer_pressed_at(x: f32, y: f32) {
     }
 }
 
+/// Radix menus left modal (the default): a layer over the window takes the
+/// outside press and the wheel, so nothing below reacts (ui/app.slint).
+const MODAL: [&str; 1] = ["sidebar-filters"];
+
 /// Call before the window handles a press at `(x, y)` (logical coordinates).
 pub fn pointer_pressed(ui: &AppWindow, x: f32, y: f32) {
     let popup = ui.global::<Popup>();
-    if popup.get_open().is_empty() {
+    if popup.get_open().is_empty() || MODAL.contains(&popup.get_open().as_str()) {
         return;
     }
     let inside =

@@ -1,7 +1,7 @@
 // src/renderer/src/components/sidebar/{sidebar,sidebar-game-list,sidebar-game-item,
 // sidebar-profile,routes}.{tsx,scss}, text-field/text-field.scss, avatar/avatar.scss
 import { SmoothScroll, ScrollTween } from "../components/smooth-scroll.slint";
-import { Theme, Icons } from "../theme.slint";
+import { Theme, Icons, Tip } from "../theme.slint";
 import { Icon, Skeleton, ScrollBar } from "../components/widgets.slint";
 import { T, Nav, Session, SidebarState, SidebarGame, Popup } from "../globals.slint";
 import { DownloadIcon } from "download-icon.slint";
@@ -119,7 +119,8 @@ export component Avatar inherits Rectangle {
 component SidebarProfile inherits VerticalLayout {
     property <bool> open: Popup.open == "profile-menu";
     padding-left: 16px;
-    padding-right: 16px;
+    // 16px inside the 1px border-right (border-box)
+    padding-right: 17px;
     padding-top: 8px;
     padding-bottom: 8px;
     button := Rectangle {
@@ -440,6 +441,7 @@ component IconToggle inherits Rectangle {
     in property <image> icon;
     in property <bool> active;
     in property <string> tooltip;
+    in property <int> tip-id;
     callback clicked();
     width: 16px;
     height: 16px;
@@ -454,6 +456,13 @@ component IconToggle inherits Rectangle {
         mouse-cursor: pointer;
         clicked => {
             root.clicked();
+        }
+        changed has-hover => {
+            if (self.has-hover && root.tooltip != "") {
+                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+            } else {
+                Tip.hide(root.tip-id);
+            }
         }
     }
 }
@@ -732,10 +741,10 @@ export component Sidebar inherits Rectangle {
         padding-top: 8px;
         profile := SidebarProfile { }
 
-        // .sidebar__content
+        // .sidebar__content (16px inside the 1px border-right)
         VerticalLayout {
             padding-left: 16px;
-            padding-right: 16px;
+            padding-right: 17px;
             spacing: 16px;
             vertical-stretch: 1;
 
@@ -812,16 +821,28 @@ export component Sidebar inherits Rectangle {
                             icon: SidebarState.playable-only ? Icons.check-circle-fill : Icons.check-circle;
                             active: SidebarState.playable-only;
                             tooltip: T.tr("library.show_installed_only");
+                            tip-id: 9101;
                             clicked => {
                                 SidebarState.toggle-playable();
                             }
                         }
                     }
-                    VerticalLayout {
+                    // .sidebar-filter-menu__trigger: margin-right 8px
+                    HorizontalLayout {
+                        padding-right: 8px;
                         alignment: center;
-                        IconToggle {
+                        VerticalLayout {
+                        alignment: center;
+                        filter-trigger := IconToggle {
                             icon: Icons.sliders;
+                            tooltip: T.tr("sidebar.filter_sort_tooltip");
+                            tip-id: 9102;
+                            clicked => {
+                                Tip.hide(9102);
+                                Popup.toggle("sidebar-filters", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                            }
                         }
+                    }
                     }
                 }
 
