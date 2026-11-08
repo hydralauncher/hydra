@@ -43,8 +43,13 @@ const stubs: Record<string, unknown> = {
   "..": {
     ConfirmationModal: () => null,
     GameContextMenu: () => null,
+    QuickLaunchButton: () => null,
     SteamLibraryBadge: () => null,
-    useGameActions: () => ({ canPlay: true, rpcs3ConfirmPending: null }),
+    useGameActions: () => ({
+      canPlay: true,
+      isGameRunning: false,
+      rpcs3ConfirmPending: null,
+    }),
   },
 };
 const exports: Record<string, React.ElementType> = {};

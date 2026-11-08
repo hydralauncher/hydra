@@ -133,7 +133,8 @@
     gap: globals.$spacing-unit;
     cursor: pointer;
     overflow: hidden;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     padding: 9px globals.$spacing-unit;
   }
 
