@@ -303,6 +303,14 @@ fn wire_i18n(ui: &AppWindow, i18n: &Rc<I18n>) {
             .into()
         }
     });
+    t.on_tr_parts({
+        let touch = touch.clone();
+        move |key, part| {
+            touch();
+            let text = with_shell(|s| s.i18n.t(&key)).unwrap_or_default();
+            trans_part(&text, part as usize).into()
+        }
+    });
     t.on_tr_count(move |key, count, args| {
         touch();
         let args = pairs(&args);
@@ -316,6 +324,17 @@ fn wire_i18n(ui: &AppWindow, i18n: &Rc<I18n>) {
         .unwrap_or_default()
         .into()
     });
+}
+
+/// A react-i18next `<Trans>` string split at its `<0>…</0>` tag.
+pub fn trans_part(text: &str, part: usize) -> String {
+    let (before, rest) = text.split_once("<0>").unwrap_or((text, ""));
+    let (inside, after) = rest.split_once("</0>").unwrap_or((rest, ""));
+    [before, inside, after]
+        .get(part)
+        .copied()
+        .unwrap_or_default()
+        .to_string()
 }
 
 pub fn tr(key: &str) -> String {

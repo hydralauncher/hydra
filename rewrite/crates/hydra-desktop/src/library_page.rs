@@ -1298,7 +1298,7 @@ fn card_for(
 }
 
 /// formatBytes (shared/index.ts): 1024-based, truncated to one decimal.
-fn format_bytes(bytes: f64) -> String {
+pub(crate) fn format_bytes(bytes: f64) -> String {
     const UNITS: [&str; 9] = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
     if !bytes.is_finite() || bytes <= 0.0 {
         return "0 B".into();

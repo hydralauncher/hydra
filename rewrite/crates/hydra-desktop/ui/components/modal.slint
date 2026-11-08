@@ -13,6 +13,13 @@ export component Modal inherits Rectangle {
     in property <length> content-min-height;
     in property <bool> closing;
     in property <image> blurred-page;
+    // Another modal is stacked on top; when it goes away, keys come back here.
+    in property <bool> covered;
+    changed covered => {
+        if (!self.covered && !self.closing) {
+            focus.focus();
+        }
+    }
     callback request-close();
 
     // Flipped one frame after creation, so the "from" values get rendered first.

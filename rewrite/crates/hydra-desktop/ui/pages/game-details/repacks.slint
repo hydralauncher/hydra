@@ -260,6 +260,7 @@ export component RepacksModalBody inherits VerticalLayout {
         for row in GameData.repack-rows: RepackButton {
             option: row;
             clicked => {
+                GameData.stacked-modal-opening();
                 root.selected(row.id);
             }
         }

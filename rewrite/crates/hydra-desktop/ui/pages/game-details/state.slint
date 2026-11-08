@@ -47,6 +47,9 @@ export global GameData {
     in-out property <bool> running;
     // Rust snapshots + blurs the window so the modal backdrop can fake backdrop-filter: blur(2px).
     in property <image> modal-backdrop;
+    // The page with a modal on it, under a second (stacked) modal.
+    in property <image> stacked-backdrop;
+    callback stacked-modal-opening();
 
     callback media-window-changed(int, int);
     callback reload();

@@ -27,6 +27,10 @@ image.workspace = true
 # ThumbHash placeholders sent with catalogue images (game.images[url].thumbHash).
 thumbhash = "0.1"
 base64 = "0.22"
+# showOpenDialog (folder pickers), the system Downloads folder, free disk space.
+rfd = "0.15"
+dirs = "6"
+fs2 = "0.4"
 
 [build-dependencies]
 slint-build = "1.18"

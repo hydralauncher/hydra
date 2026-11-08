@@ -24,6 +24,9 @@ struct State {
     /// `downloadSourcesSinceValue`: repacks created after it are "new".
     last_check: Option<String>,
     viewed: Vec<String>,
+    shop: String,
+    /// The classics platform (download settings pick its emulator ROM folder).
+    platform: Option<String>,
 }
 
 thread_local! {
@@ -45,6 +48,8 @@ pub fn init(ui: &AppWindow) {
             fingerprints: Vec::new(),
             last_check: None,
             viewed: Vec::new(),
+            shop: String::new(),
+            platform: None,
         })
     });
     let g = ui.global::<GameData>();
@@ -78,7 +83,23 @@ pub fn init(ui: &AppWindow) {
             }
         });
         apply_rows();
-        eprintln!("TODO(downloads): DownloadSettingsModal for repack {id}");
+        let picked = with(|s| {
+            let repack = s.repacks.iter().find(|r| {
+                r.get("id")
+                    .map(|v| {
+                        v.as_str()
+                            .map(str::to_string)
+                            .unwrap_or_else(|| v.to_string())
+                    })
+                    .as_deref()
+                    == Some(id.as_str())
+            })?;
+            Some((repack.clone(), s.shop.clone(), s.platform.clone()))
+        })
+        .flatten();
+        if let Some((repack, shop, platform)) = picked {
+            crate::download_settings::open(repack, &shop, platform);
+        }
     });
 }
 
@@ -102,6 +123,8 @@ pub fn open(shop: &str, object_id: &str) {
         s.generation += 1;
         s.repacks.clear();
         s.viewed.clear();
+        s.shop = shop.to_string();
+        s.platform = None;
         s.generation
     }) else {
         return;
@@ -202,6 +225,11 @@ pub fn open(shop: &str, object_id: &str) {
             }
         }
     });
+}
+
+/// The classics game's platform, once its details arrived.
+pub fn set_platform(platform: Option<String>) {
+    with(|s| s.platform = platform);
 }
 
 /// The modal opened: clear the game's "new download options" count and

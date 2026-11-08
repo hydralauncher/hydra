@@ -369,6 +369,137 @@ pub fn availability(repack: &Map<String, Value>) -> &'static str {
     }
 }
 
+// ---- download settings (use-download-options.ts) --------------------------
+
+/// What the downloader list can offer for a repack.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DownloadOption {
+    pub downloader: Downloader,
+    pub available: bool,
+    pub not_configured: bool,
+}
+
+/// Account state the options depend on.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct OptionsContext {
+    pub real_debrid_token: bool,
+    pub premiumize_token: bool,
+    pub all_debrid_token: bool,
+    pub torbox_token: bool,
+    pub subscription: bool,
+    pub premiumize_feature: bool,
+    pub all_debrid_feature: bool,
+}
+
+/// getDownloadOptions: one row per downloader a link supports (Nimbus and
+/// Epic left out), available first, then offline, then not configured.
+pub fn download_options(repack: &Map<String, Value>, ctx: &OptionsContext) -> Vec<DownloadOption> {
+    let unavailable: HashSet<String> = strings(repack.get("unavailableUris")).into_iter().collect();
+    // (has an available link, has an unavailable link)
+    let mut found: Vec<(Downloader, bool, bool)> = Vec::new();
+    for uri in strings(repack.get("uris")) {
+        let ok = !unavailable.contains(&uri);
+        for downloader in downloaders_for_uri(&uri) {
+            match found.iter_mut().find(|(d, _, _)| *d == downloader) {
+                Some(entry) => {
+                    entry.1 |= ok;
+                    entry.2 |= !ok;
+                }
+                None => found.push((downloader, ok, !ok)),
+            }
+        }
+    }
+    let mut options: Vec<DownloadOption> = Downloader::ALL
+        .into_iter()
+        .filter(|d| *d != Downloader::Epic && *d != Downloader::Hydra)
+        .filter_map(|downloader| {
+            let (_, has_available, _) = *found.iter().find(|(d, _, _)| *d == downloader)?;
+            if (downloader == Downloader::Premiumize && !ctx.premiumize_feature)
+                || (downloader == Downloader::AllDebrid && !ctx.all_debrid_feature)
+            {
+                return None;
+            }
+            let configured = match downloader {
+                Downloader::RealDebrid => ctx.real_debrid_token,
+                Downloader::Premiumize => ctx.premiumize_token,
+                Downloader::AllDebrid => ctx.all_debrid_token,
+                Downloader::TorBox => ctx.torbox_token,
+                Downloader::VikingFile => ctx.subscription,
+                _ => true,
+            };
+            Some(DownloadOption {
+                downloader,
+                available: has_available && configured,
+                not_configured: has_available && !configured,
+            })
+        })
+        .collect();
+    let priority = |o: &DownloadOption| {
+        if o.available {
+            0
+        } else if o.not_configured {
+            2
+        } else {
+            1
+        }
+    };
+    options.sort_by_key(priority);
+    options
+}
+
+/// getDefaultDownloader: a debrid service when one is available, else the first.
+pub fn default_downloader(available: &[Downloader]) -> Option<Downloader> {
+    [
+        Downloader::RealDebrid,
+        Downloader::Premiumize,
+        Downloader::AllDebrid,
+        Downloader::TorBox,
+    ]
+    .into_iter()
+    .find(|d| available.contains(d))
+    .or_else(|| available.first().copied())
+}
+
+/// MINIMUM_FREE_DISK_SPACE_BYTES (shared/constants.ts)
+pub const MINIMUM_FREE_DISK_SPACE_BYTES: u64 = 512 * 1024 * 1024;
+
+/// parseBytes (shared/index.ts): "6.98 GB" -> bytes.
+pub fn parse_bytes(size: &str) -> Option<u64> {
+    const UNITS: [&str; 9] = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    let size = size.trim();
+    let split = size.find(|c: char| !(c.is_ascii_digit() || c == '.' || c == ','))?;
+    let (number, unit) = size.split_at(split);
+    let unit = unit.trim_start();
+    if number.is_empty() || unit.is_empty() || !unit.chars().all(|c| c.is_ascii_alphabetic()) {
+        return None;
+    }
+    // parseFloat after replacing commas: stops at a second dot.
+    let normalized = number.replace(',', ".");
+    let mut seen_dot = false;
+    let prefix: String = normalized
+        .chars()
+        .take_while(|c| {
+            if *c == '.' {
+                if seen_dot {
+                    return false;
+                }
+                seen_dot = true;
+            }
+            true
+        })
+        .collect();
+    let value: f64 = prefix.parse().ok()?;
+    let index = UNITS.iter().position(|u| *u == unit.to_uppercase())?;
+    Some((value * 1024f64.powi(index as i32)).round() as u64)
+}
+
+/// The link a downloader uses: the first URI it supports.
+pub fn uri_for(repack: &Map<String, Value>, downloader: Downloader) -> Option<String> {
+    strings(repack.get("uris"))
+        .into_iter()
+        .find(|uri| downloaders_for_uri(uri).contains(&downloader))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -413,6 +544,46 @@ mod tests {
         let kept = filter_downloadable(repacks, true);
         assert_eq!(kept[0]["uris"], json!(["https://gofile.io/d/1"]));
         assert_eq!(kept[0]["uriGroups"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn options_for_a_magnet() {
+        let repack = json!({ "uris": ["magnet:?xt=urn:btih:1"] });
+        let ctx = OptionsContext {
+            real_debrid_token: false,
+            torbox_token: true,
+            ..Default::default()
+        };
+        let options = download_options(repack.as_object().unwrap(), &ctx);
+        let names: Vec<_> = options
+            .iter()
+            .map(|o| (o.downloader, o.available, o.not_configured))
+            .collect();
+        assert_eq!(
+            names,
+            vec![
+                (Downloader::Torrent, true, false),
+                (Downloader::TorBox, true, false),
+                (Downloader::RealDebrid, false, true),
+            ]
+        );
+        let available: Vec<_> = options
+            .iter()
+            .filter(|o| o.available)
+            .map(|o| o.downloader)
+            .collect();
+        assert_eq!(default_downloader(&available), Some(Downloader::TorBox));
+    }
+
+    #[test]
+    fn parses_sizes() {
+        assert_eq!(
+            parse_bytes("6.98 GB"),
+            Some((6.98 * 1024f64.powi(3)).round() as u64)
+        );
+        assert_eq!(parse_bytes("1,5 MB"), Some(1572864));
+        assert_eq!(parse_bytes("12 GiB"), None);
+        assert_eq!(parse_bytes("GB"), None);
     }
 
     #[test]

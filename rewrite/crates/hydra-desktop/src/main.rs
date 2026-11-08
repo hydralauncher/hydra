@@ -10,6 +10,7 @@ mod collections;
 mod context_menu;
 mod devscript;
 mod dialogs;
+mod download_settings;
 mod features;
 mod format;
 mod game_classics;
@@ -159,6 +160,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     game_page::init(&ui, &loader);
     game_repacks::init(&ui);
+    download_settings::init(&ui);
     classics_bookmark::init(&ui);
     library_page::init(&ui);
     home_page::init(&ui, &loader);

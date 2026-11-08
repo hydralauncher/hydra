@@ -5,11 +5,12 @@ import { Theme, Icons } from "../../theme.slint";
 import { HydraButton } from "../../components/widgets.slint";
 import { Modal, ModalController } from "../../components/modal.slint";
 import { RepacksModalBody } from "repacks.slint";
+import { DownloadSettingsBody, DownloadSettings } from "download-settings.slint";
 import { GameData } from "state.slint";
 import { Nav, T } from "../../globals.slint";
 
 export component GameModalsHost inherits Rectangle {
-    out property <bool> mounted: options-state.mounted || repacks-state.mounted || cloud-state.mounted;
+    out property <bool> mounted: options-state.mounted || repacks-state.mounted || cloud-state.mounted || settings-state.mounted;
     changed mounted => {
         GameData.modals-mounted = self.mounted;
     }
@@ -25,6 +26,13 @@ export component GameModalsHost inherits Rectangle {
     }
     cloud-state := ModalController {
         open <=> GameData.cloud-open;
+    }
+    // download-settings-modal.tsx, stacked on the repacks modal
+    settings-state := ModalController {
+        open <=> DownloadSettings.open;
+        closed => {
+            DownloadSettings.closed();
+        }
     }
 
     // game-options-modal.tsx shell: large, no content padding (content left empty here).
@@ -49,6 +57,7 @@ export component GameModalsHost inherits Rectangle {
         title: T.tr("game_details.download_options_title");
         description: T.tr("game_details.repacks_modal_description");
         closing: repacks-state.closing;
+        covered: settings-state.mounted;
         blurred-page: GameData.modal-backdrop;
         request-close => {
             repacks-state.close();
@@ -62,6 +71,19 @@ export component GameModalsHost inherits Rectangle {
                 Nav.navigate("/settings?tab=download_sources");
             }
         }
+    }
+
+    if settings-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.download_settings");
+        description: DownloadSettings.free-space;
+        closing: settings-state.closing;
+        blurred-page: GameData.stacked-backdrop;
+        request-close => {
+            settings-state.close();
+        }
+        DownloadSettingsBody { }
     }
 
     // cloud-save-modal.tsx shell

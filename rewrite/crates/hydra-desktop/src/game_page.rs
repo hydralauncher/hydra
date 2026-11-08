@@ -650,6 +650,7 @@ fn apply_game(
                 .into(),
         );
         gd(&ui).set_classics_emulator(emulator);
+        crate::game_repacks::set_platform(classics.platform.clone());
         crate::classics_bookmark::start();
     }
     gd(&ui).set_publisher(
@@ -1016,6 +1017,32 @@ fn wire_callbacks(ui: &AppWindow, loader: &Loader) {
                 move |img| {
                     if let Some(ui) = weak.upgrade() {
                         gd(&ui).set_modal_backdrop(img);
+                    }
+                },
+            );
+        }
+    });
+    // A modal opening over another one blurs the page and the first modal.
+    ui.global::<GameData>().on_stacked_modal_opening({
+        let weak = ui.as_weak();
+        let loader = loader.clone();
+        move || {
+            let Some(ui) = weak.upgrade() else { return };
+            gd(&ui).set_stacked_backdrop(Image::default());
+            let Ok(snapshot) = ui.window().take_snapshot() else {
+                return;
+            };
+            let scale = ui.window().scale_factor();
+            let (w, h) = (snapshot.width(), snapshot.height());
+            let rgba = snapshot.as_bytes().to_vec();
+            let weak = weak.clone();
+            // 2 CSS px at the window's scale, measured after shrinking by 2.
+            let sigma = 2.0 * scale / 2.0;
+            loader.spawn(
+                move || images::blur_rgba(w, h, rgba, 2, sigma),
+                move |img| {
+                    if let Some(ui) = weak.upgrade() {
+                        gd(&ui).set_stacked_backdrop(img);
                     }
                 },
             );

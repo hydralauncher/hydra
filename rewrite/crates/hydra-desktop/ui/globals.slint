@@ -13,6 +13,8 @@ export global T {
     pure callback tr-with(string, [string]) -> string;
     // Plurals (`key_one`, `key_other`, …) with `{{count}}`.
     pure callback tr-count(string, int, [string]) -> string;
+    // <Trans> markup: part 0 before "<0>", 1 inside "<0>…</0>", 2 after.
+    pure callback tr-parts(string, int) -> string;
 }
 
 // Routes of src/renderer/src/main.tsx.
