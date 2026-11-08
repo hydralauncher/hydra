@@ -285,6 +285,11 @@ fn apply(previous: Option<String>) {
         crate::game_leaderboard::open(&shop, &object_id);
     }
     let route_changed = previous_location.as_ref().map(|l| l.route()) != Some(location.route());
+    // useEffect([location.pathname, location.search]): scrollTop = 0. There is
+    // no per-entry restoration in Electron: back/forward land at the top too.
+    if previous.as_deref() != Some(path.as_str()) {
+        nav.set_location_key(nav.get_location_key().wrapping_add(1));
+    }
     nav.set_route(location.route().into());
     nav.set_path(location.pathname.clone().into());
     if route_changed {

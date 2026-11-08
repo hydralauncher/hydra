@@ -26,6 +26,10 @@ export global Nav {
     in-out property <string> path: "/";
     in property <bool> can-go-back;
     in property <bool> can-go-forward;
+    // Bumped when the pathname or the search changes (app.tsx sets
+    // .container__content's scrollTop to 0 then): a page that stays mounted
+    // across locations (game -> game) scrolls back to the top on it.
+    in property <int> location-key;
     callback navigate(string);
     callback back();
     callback forward();
