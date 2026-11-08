@@ -1,0 +1,691 @@
+// chat-sidebar.tsx, chat-new-conversation.tsx and their chat-window.scss
+// rules: the conversation list (searchable, resizable) and the friend picker.
+import { Theme } from "../theme.slint";
+import { Icon } from "../components/widgets.slint";
+import { T } from "../globals.slint";
+import { SocialIcons, Css, AvatarWithOrb, UnreadBadge, OfficialBadge, TypingDots } from "../social/common.slint";
+import { ChatData, ChatConversationRow, ChatPickerRow } from "state.slint";
+
+// .chat-window__emoji-search (also the sidebar and picker search): 32px.
+export component SearchBox inherits Rectangle {
+    in property <string> placeholder;
+    in property <string> value;
+    in property <length> pad-left: 8px;
+    in property <color> fill: Theme.dark-background;
+    in property <bool> clearable: true;
+    in property <int> focus-request;
+    callback edited(string);
+    callback key(KeyEvent) -> EventResult;
+    out property <bool> focused: input.has-focus;
+    public function focus-input() {
+        input.focus();
+    }
+    height: 32px;
+    border-radius: 6px;
+    background: root.fill;
+    border-width: 1px;
+    border-color: input.has-focus ? #dadbe1 : Theme.border;
+    animate border-color { duration: 200ms; easing: ease; }
+    changed focus-request => {
+        input.focus();
+    }
+    TouchArea {
+        mouse-cursor: MouseCursor.text;
+        clicked => {
+            input.focus();
+        }
+    }
+    HorizontalLayout {
+        padding-left: root.pad-left + 1px;
+        padding-right: 9px;
+        spacing: 8px;
+        Icon {
+            y: (parent.height - 14px) / 2;
+            width: 14px;
+            height: 14px;
+            source: SocialIcons.search;
+            color: Theme.subtle;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+            Text {
+                x: 0;
+                width: parent.width;
+                visible: input.text == "";
+                text: root.placeholder;
+                color: Theme.body;
+                opacity: 0.6;
+                font-size: Theme.hint-size;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            input := TextInput {
+                x: 0;
+                width: parent.width;
+                height: parent.height;
+                text: root.value;
+                color: Theme.muted;
+                font-size: Theme.hint-size;
+                vertical-alignment: center;
+                single-line: true;
+                selection-background-color: #3e62c0;
+                edited => {
+                    root.edited(self.text);
+                }
+                key-pressed(event) => {
+                    root.key(event)
+                }
+            }
+            property <string> backend: root.value;
+            changed backend => {
+                if (input.text != self.backend) {
+                    input.text = self.backend;
+                }
+            }
+        }
+        if root.clearable && root.value != "": Rectangle {
+            width: 20px;
+            Rectangle {
+                width: 20px;
+                height: 20px;
+                border-radius: 4px;
+                background: clear.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+                Icon {
+                    width: 12px;
+                    height: 12px;
+                    source: SocialIcons.x-12;
+                    color: clear.has-hover ? Theme.muted : Theme.body;
+                }
+                clear := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.edited("");
+                        input.focus();
+                    }
+                }
+            }
+        }
+    }
+}
+
+// .chat-window__icon-button (--small: 28px)
+export component IconButton inherits Rectangle {
+    in property <image> icon;
+    in property <length> icon-size: 16px;
+    in property <bool> enabled: true;
+    in property <bool> pressed-look;
+    callback clicked();
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: (touch.has-hover && root.enabled) || root.pressed-look ? rgba(255, 255, 255, 0.08) : transparent;
+    animate background { duration: 200ms; easing: ease; }
+    opacity: root.enabled ? 1 : Theme.disabled-opacity;
+    Icon {
+        width: root.icon-size;
+        height: root.icon-size;
+        source: root.icon;
+        color: (touch.has-hover && root.enabled) || root.pressed-look ? Theme.muted : Theme.body;
+        animate color { duration: 200ms; easing: ease; }
+    }
+    touch := TouchArea {
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+}
+
+// ChatFriendStatus: typing, the game being played, or online/offline.
+export component FriendStatus inherits HorizontalLayout {
+    in property <bool> typing;
+    in property <string> game;
+    in property <image> game-icon;
+    in property <bool> game-has-icon;
+    in property <bool> online;
+    // unread rows and banners recolor the status
+    in property <color> override-color;
+    in property <bool> overridden;
+    in property <bool> underline;
+    property <bool> highlight: root.typing || root.game != "";
+    property <color> fg: root.overridden ? root.override-color : root.highlight ? Theme.body : Theme.subtle;
+    spacing: 4px;
+    alignment: start;
+    if root.typing: TypingDots {
+        y: (parent.height - 16px) / 2;
+        small: true;
+        dot-color: Theme.body;
+    }
+    if !root.typing && root.game != "" && root.game-has-icon: Rectangle {
+        y: (parent.height - 14px) / 2;
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        clip: true;
+        Image {
+            width: 14px;
+            height: 14px;
+            source: root.game-icon;
+        }
+    }
+    if !root.typing && root.game != "" && !root.game-has-icon: Icon {
+        y: (parent.height - 14px) / 2;
+        width: 14px;
+        height: 14px;
+        source: SocialIcons.steam;
+        color: root.fg;
+    }
+    Rectangle {
+        horizontal-stretch: 1;
+        min-width: 0;
+        preferred-width: label.preferred-width;
+        height: label.preferred-height;
+        label := Text {
+            width: parent.width;
+            text: root.typing ? T.tr("chat_window.typing_short") : root.game != "" ? root.game : root.online ? T.tr("chat_window.online") : T.tr("chat_window.offline");
+            font-size: Theme.small-size;
+            color: root.fg;
+            overflow: elide;
+        }
+        if root.underline: Rectangle {
+            y: 14.3px;
+            width: Math.min(parent.width, label.preferred-width);
+            height: 1px;
+            background: root.fg;
+        }
+    }
+}
+
+// .chat-window__sidebar-row (56px, the surface color rings the orb)
+component ConversationRowView inherits Rectangle {
+    in property <ChatConversationRow> conversation;
+    property <bool> unread: !root.conversation.active && root.conversation.unread > 0;
+    property <color> surface: root.conversation.active ? #202020 : touch.has-hover ? #171717 : Theme.dark-background;
+    height: 56px;
+    border-radius: 8px;
+    background: root.surface;
+    animate background { duration: 150ms; easing: ease; }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            ChatData.select(root.conversation.id);
+        }
+    }
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 8px;
+        spacing: 12px;
+        AvatarWithOrb {
+            y: (parent.height - 40px) / 2;
+            size: 40px;
+            source: root.conversation.avatar;
+            official: root.conversation.official;
+            online: root.conversation.online;
+            ring-color: root.surface;
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 2px;
+            // __sidebar-row-top: baseline-aligned name and time
+            HorizontalLayout {
+                spacing: 8px;
+                HorizontalLayout {
+                    horizontal-stretch: 1;
+                    spacing: 4px;
+                    alignment: start;
+                    Text {
+                        text: root.conversation.name;
+                        font-size: Theme.body-size;
+                        font-weight: 700;
+                        color: Theme.muted;
+                        overflow: elide;
+                    }
+                    if root.conversation.official: OfficialBadge {
+                        y: (parent.height - 14px) / 2;
+                        size: 14px;
+                    }
+                }
+                if root.conversation.time != "": Rectangle {
+                    width: time.preferred-width;
+                    time := Text {
+                        // baseline of 11px text on the 14px name's line
+                        y: 3.2px;
+                        text: root.conversation.time;
+                        font-size: Theme.tiny-size;
+                        color: root.unread ? Theme.muted : Theme.subtle;
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                height: 17px;
+                if root.conversation.typing || root.conversation.preview-kind == "": FriendStatus {
+                    horizontal-stretch: 1;
+                    typing: root.conversation.typing;
+                    game: root.conversation.official ? "" : root.conversation.game;
+                    game-icon: root.conversation.game-icon;
+                    game-has-icon: root.conversation.game-has-icon;
+                    online: root.conversation.online;
+                    overridden: root.unread;
+                    override-color: Theme.muted;
+                }
+                if !root.conversation.typing && root.conversation.preview-kind != "": Text {
+                    horizontal-stretch: 1;
+                    text: root.conversation.preview;
+                    font-size: Theme.small-size;
+                    font-italic: root.conversation.preview-kind == "removed";
+                    color: root.unread ? Theme.muted : Theme.subtle;
+                    overflow: elide;
+                    vertical-alignment: center;
+                }
+                if root.unread: UnreadBadge {
+                    y: (parent.height - 16px) / 2;
+                    label: root.conversation.unread;
+                }
+            }
+        }
+    }
+}
+
+// .chat-window__picker-option (44px), dropping in one after another.
+component PickerOption inherits Rectangle {
+    in property <ChatPickerRow> friend;
+    in property <int> index;
+    in property <bool> active;
+    in property <bool> settled;
+    property <bool> banner: root.friend.banner.width > 0;
+    property <duration> mounted;
+    init => {
+        self.mounted = animation-tick();
+    }
+    // chat-window-picker-option-in 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    // 80ms + min(index, 8) * 30ms late; nothing once the panel settled
+    property <float> t: root.settled && root.mounted == 0 ? 1 : Math.clamp((animation-tick() - root.mounted - 80ms - Math.min(root.index, 8) * 30ms) / 320ms, 0, 1);
+    property <float> eased: Css.bezier(0.16, 1, 0.3, 1, root.t);
+    height: 44px;
+    border-radius: 8px;
+    clip: root.banner;
+    background: root.active || touch.has-hover ? rgba(255, 255, 255, 0.06) : transparent;
+    animate background { duration: 150ms; easing: ease; }
+    opacity: root.eased;
+    if root.banner: Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.friend.banner;
+        image-fit: cover;
+    }
+    if root.banner: Rectangle {
+        background: @linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.64) 36%, rgba(0, 0, 0, 0) 80%);
+    }
+    // filter: brightness(1.2) on the active banner
+    if root.banner && root.active: Rectangle {
+        background: rgba(255, 255, 255, 0.08);
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        moved => {
+            ChatData.picker-active = root.index;
+        }
+        clicked => {
+            ChatData.picker-pick(root.friend.id);
+        }
+    }
+    HorizontalLayout {
+        y: -4px * (1 - root.eased);
+        padding-left: 8px;
+        padding-right: 8px;
+        spacing: 12px;
+        AvatarWithOrb {
+            y: (parent.height - 32px) / 2;
+            size: 32px;
+            source: root.friend.avatar;
+            online: root.friend.online;
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            HorizontalLayout {
+                alignment: start;
+                Text {
+                    text: root.friend.before;
+                    font-size: Theme.hint-size;
+                    font-weight: 500;
+                    color: Theme.muted;
+                    overflow: elide;
+                }
+                if root.friend.match != "": Rectangle {
+                    width: match.preferred-width;
+                    match := Text {
+                        text: root.friend.match;
+                        font-size: Theme.hint-size;
+                        font-weight: 700;
+                        color: Theme.muted;
+                    }
+                    Rectangle {
+                        y: 16px;
+                        height: 1px;
+                        background: Theme.muted;
+                    }
+                }
+                Text {
+                    horizontal-stretch: 1;
+                    text: root.friend.after;
+                    font-size: Theme.hint-size;
+                    font-weight: 500;
+                    color: Theme.muted;
+                    overflow: elide;
+                }
+            }
+            FriendStatus {
+                game: root.friend.game;
+                game-icon: root.friend.game-icon;
+                game-has-icon: root.friend.game-has-icon;
+                online: root.friend.online;
+            }
+        }
+        if root.friend.open: Text {
+            text: T.tr("chat_window.open_conversation");
+            font-size: Theme.tiny-size;
+            font-weight: 700;
+            color: Theme.subtle;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// .chat-window__sidebar-header: 52px, the window's drag area.
+component SidebarHeader inherits Rectangle {
+    height: 52px;
+    TouchArea {
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                ChatData.drag();
+            }
+        }
+    }
+    @children
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.border;
+    }
+}
+
+// The friend picker in place of the conversation list (fades in 0.15s).
+component Picker inherits Rectangle {
+    property <bool> entered;
+    init => {
+        self.entered = true;
+    }
+    opacity: self.entered ? 1 : 0;
+    animate opacity { duration: 150ms; easing: ease; }
+    VerticalLayout {
+        SidebarHeader {
+            HorizontalLayout {
+                padding-left: 16px;
+                padding-right: 8px;
+                spacing: 4px;
+                IconButton {
+                    y: (parent.height - 28px) / 2;
+                    width: 28px;
+                    height: 28px;
+                    icon: SocialIcons.arrow-left;
+                    clicked => {
+                        ChatData.toggle-picker();
+                    }
+                }
+                Text {
+                    horizontal-stretch: 1;
+                    text: T.tr("chat_window.new_conversation");
+                    font-size: 16px;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    overflow: elide;
+                    vertical-alignment: center;
+                }
+            }
+        }
+        HorizontalLayout {
+            padding: 8px;
+            SearchBox {
+                pad-left: 7px;
+                fill: Theme.background;
+                clearable: false;
+                placeholder: T.tr("chat_window.search_friends");
+                value: ChatData.picker-query;
+                focus-request: 1;
+                init => {
+                    self.focus-input();
+                }
+                edited(text) => {
+                    ChatData.picker-edited(text);
+                }
+                key(event) => {
+                    if (ChatData.picker-key(event.text)) {
+                        return accept;
+                    }
+                    reject
+                }
+            }
+        }
+        // .chat-window__picker-title
+        HorizontalLayout {
+            padding-left: 8px;
+            padding-right: 8px;
+            padding-top: 8px;
+            padding-bottom: 4px;
+            Text {
+                text: T.tr("chat_window.friends").to-uppercase();
+                font-size: Theme.small-size;
+                font-weight: 700;
+                letter-spacing: 0.48px;
+                color: Theme.subtle;
+            }
+        }
+        if ChatData.picker-rows.length == 0: VerticalLayout {
+            vertical-stretch: 1;
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-top: 24px;
+            alignment: start;
+            Text {
+                text: ChatData.picker-query == "" ? T.tr("chat_window.no_friends_to_message") : T.tr-with("chat_window.no_friends_match", ["query", ChatData.picker-query]);
+                font-size: Theme.hint-size;
+                color: Theme.subtle;
+                horizontal-alignment: center;
+                wrap: word-wrap;
+            }
+        }
+        if ChatData.picker-rows.length > 0: list := Flickable {
+            vertical-stretch: 1;
+            content-height: options.preferred-height;
+            options := VerticalLayout {
+                padding-left: 8px;
+                padding-right: 8px;
+                padding-bottom: 8px;
+                spacing: 2px;
+                alignment: start;
+                for friend[index] in ChatData.picker-rows: PickerOption {
+                    friend: friend;
+                    index: index;
+                    active: index == ChatData.picker-active;
+                    settled: ChatData.picker-settled;
+                }
+            }
+        }
+        // .chat-window__picker-hint
+        Rectangle {
+            height: hint.preferred-height + 20px + 1px;
+            Rectangle {
+                y: 0;
+                height: 1px;
+                background: Theme.border;
+            }
+            hint := Text {
+                x: 16px;
+                y: 9px;
+                width: parent.width - 32px;
+                text: T.tr("chat_window.picker_hint");
+                font-size: Theme.tiny-size;
+                color: Theme.subtle;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+// .chat-window__sidebar
+export component ChatSidebar inherits Rectangle {
+    background: Theme.dark-background;
+    opacity: ChatData.resizing ? Theme.active-opacity : 1;
+    animate opacity { duration: 200ms; easing: ease; }
+
+    if ChatData.picker-open: Picker {
+        width: root.width - 1px;
+    }
+
+    if !ChatData.picker-open: VerticalLayout {
+        width: root.width - 1px;
+        SidebarHeader {
+            HorizontalLayout {
+                padding-left: 16px;
+                padding-right: 8px;
+                spacing: 4px;
+                HorizontalLayout {
+                    horizontal-stretch: 1;
+                    spacing: 8px;
+                    alignment: start;
+                    Text {
+                        text: T.tr("chat_window.chats");
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: Theme.muted;
+                        overflow: elide;
+                        vertical-alignment: center;
+                    }
+                    // .chat-window__sidebar-count
+                    Rectangle {
+                        y: (parent.height - 18px) / 2;
+                        height: 18px;
+                        width: Math.max(18px, count.preferred-width + 8px);
+                        border-radius: 9px;
+                        background: rgba(255, 255, 255, 0.08);
+                        count := Text {
+                            text: ChatData.conversation-count;
+                            font-size: Theme.tiny-size;
+                            font-weight: 700;
+                            color: Theme.body;
+                        }
+                    }
+                }
+                // .chat-window__new-conversation-button: the + turns into an x
+                new := Rectangle {
+                    y: (parent.height - 28px) / 2;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 6px;
+                    background: new-touch.has-hover ? rgba(255, 255, 255, 0.16) : rgba(255, 255, 255, 0.1);
+                    animate background { duration: 150ms; easing: ease; }
+                    Icon {
+                        width: 14px;
+                        height: 14px;
+                        source: SocialIcons.plus;
+                        color: new-touch.has-hover || ChatData.picker-open ? Theme.muted : Theme.subtle;
+                        animate color { duration: 150ms; easing: ease; }
+                        transform-rotation: ChatData.picker-open ? 45deg : 0deg;
+                        animate transform-rotation { duration: 360ms; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+                    }
+                    new-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            ChatData.toggle-picker();
+                        }
+                    }
+                }
+            }
+        }
+        HorizontalLayout {
+            padding: 8px;
+            SearchBox {
+                pad-left: 7px;
+                fill: Theme.background;
+                placeholder: T.tr("chat_window.search_conversations");
+                value: ChatData.query;
+                edited(text) => {
+                    ChatData.query-edited(text);
+                }
+                key(event) => {
+                    if (event.text == Key.Escape && ChatData.query != "") {
+                        ChatData.query-edited("");
+                        return accept;
+                    }
+                    reject
+                }
+            }
+        }
+        // .chat-window__sidebar-list: rows glide to their place (FLIP, 320ms)
+        list := Flickable {
+            vertical-stretch: 1;
+            content-height: Math.max(ChatData.visible-count * 58px - 2px + 8px, 0px) + (ChatData.visible-count == 0 && ChatData.conversation-count > 0 ? empty.preferred-height + 48px : 0px);
+            for conversation in ChatData.conversations: ConversationRowView {
+                x: 8px;
+                width: list.width - 16px;
+                y: Math.max(0, conversation.order) * 58px;
+                animate y { duration: 320ms; easing: cubic-bezier(0.22, 1, 0.36, 1); }
+                visible: conversation.order >= 0;
+                conversation: conversation;
+            }
+            empty := Text {
+                visible: ChatData.visible-count == 0 && ChatData.conversation-count > 0;
+                x: 16px;
+                y: 24px;
+                width: list.width - 32px;
+                text: T.tr-with("chat_window.no_conversations_match", ["query", ChatData.query]);
+                font-size: Theme.hint-size;
+                color: Theme.subtle;
+                horizontal-alignment: center;
+                wrap: word-wrap;
+            }
+        }
+    }
+
+    // border-right
+    Rectangle {
+        x: root.width - 1px;
+        width: 1px;
+        background: Theme.border;
+    }
+
+    // .chat-window__sidebar-handle: 6px, 3px over the edge
+    if !ChatData.picker-open: handle := Rectangle {
+        x: root.width - 3px;
+        width: 6px;
+        background: handle-touch.has-hover || handle-touch.pressed ? rgba(255, 255, 255, 0.18) : transparent;
+        animate background { duration: 150ms; easing: ease; }
+        handle-touch := TouchArea {
+            mouse-cursor: col-resize;
+            property <length> start-width;
+            pointer-event(event) => {
+                if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                    self.start-width = ChatData.sidebar-width;
+                    ChatData.resizing = true;
+                }
+                if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                    if (ChatData.resizing) {
+                        ChatData.resizing = false;
+                        ChatData.sidebar-resized(ChatData.sidebar-width);
+                    }
+                }
+            }
+            moved => {
+                // the handle moves with the width: offset from where it was pressed
+                if (self.pressed) {
+                    ChatData.sidebar-resized(ChatData.sidebar-width + self.mouse-x - self.pressed-x);
+                }
+            }
+        }
+    }
+}

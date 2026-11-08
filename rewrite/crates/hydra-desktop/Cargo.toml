@@ -43,6 +43,8 @@ dirs = "6"
 if-addrs = "0.13"
 fs2 = "0.4"
 interprocess = "2"
+# chat times, day dividers and message timestamps
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 
 # OS notifications: Windows toasts (Electron sets the icon as appLogoOverride),
 # libnotify-style D-Bus notifications elsewhere.

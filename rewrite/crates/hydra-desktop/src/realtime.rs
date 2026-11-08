@@ -42,6 +42,8 @@ pub fn connect() {
     if let Some(client) = CLIENT.get() {
         client.close();
         client.connect();
+        // messages sent while the launcher was closed are never pushed
+        crate::chat_service::on_connect();
     }
 }
 
@@ -50,6 +52,8 @@ pub fn close() {
     if let Some(client) = CLIENT.get() {
         client.close();
     }
+    // a catch-up still running belongs to the previous account
+    crate::chat_service::cancel_catch_up();
 }
 
 fn text(value: &Value, key: &str) -> Option<String> {
@@ -88,17 +92,25 @@ fn handle(envelope: Envelope) {
             );
         }
         // on-friend-presence: the sidebar refetches the online count
-        "friendPresence" => shell::refresh_friends_online(),
+        "friendPresence" => {
+            shell::refresh_friends_online();
+            // onFriendPresence in the friends and chat windows
+            if let (Some(id), Some(online)) = (
+                text(&payload, "friendId"),
+                payload.get("isOnline").and_then(Value::as_bool),
+            ) {
+                crate::friends_window::on_presence(&id, online);
+                crate::chat_window::on_presence(&id, online);
+            }
+        }
         // resyncNotifications
         "notification" => crate::notifications_page::on_remote_change(),
-        "chatMessage"
-        | "chatTyping"
-        | "chatReaction"
-        | "chatMessageHidden"
-        | "chatMessageRestored"
-        | "chatMessageRejected" => {
-            // TODO(chat): the chat window and its unread counts
-        }
+        "chatMessage" => crate::chat_service::on_message(&payload),
+        "chatTyping" => crate::chat_service::on_typing(&payload),
+        "chatReaction" => crate::chat_service::on_reaction(&payload),
+        "chatMessageHidden" => crate::chat_service::on_visibility(&payload, true),
+        "chatMessageRestored" => crate::chat_service::on_visibility(&payload, false),
+        "chatMessageRejected" => crate::chat_service::on_rejected(&payload),
         "screenshotModerated" => crate::screenshots::on_moderated(&payload),
         other => eprintln!("realtime: unhandled event {other}"),
     }
@@ -109,8 +121,9 @@ fn friend_request(payload: &Value) {
     let Some(api) = shell::api() else { return };
     let sender = text(payload, "senderId");
     std::thread::spawn(move || {
-        // resyncFriendRequests (the count waits for the friends window)
+        // resyncFriendRequests
         let _ = api.get("/profile/friend-requests", &[], Options::default());
+        let _ = slint::invoke_from_event_loop(crate::friends_window::on_friend_requests_changed);
         let Some(sender) = sender else { return };
         let Ok(user) = api.get(&format!("/users/{sender}"), &[], Options::default()) else {
             return;
@@ -143,7 +156,7 @@ fn friends_updated() {
                     FRIENDS_UPDATE_THROTTLE - now.duration_since(at),
                     || {
                         LAST_FRIENDS_UPDATE.with(|l| l.set(Some(Instant::now())));
-                        shell::refresh_friends_online();
+                        broadcast_friends_updated();
                     },
                 );
                 *t = Some(timer);
@@ -151,13 +164,24 @@ fn friends_updated() {
         }
         _ => {
             LAST_FRIENDS_UPDATE.with(|l| l.set(Some(now)));
-            shell::refresh_friends_online();
+            broadcast_friends_updated();
         }
     }
+}
+
+/// on-friends-updated in every app window: the sidebar count, and the
+/// friends and chat windows refetch their lists.
+fn broadcast_friends_updated() {
+    shell::refresh_friends_online();
+    crate::friends_window::on_friends_updated();
+    crate::chat_window::on_friends_updated();
 }
 
 /// resyncAfterReconnect: events missed while disconnected are not replayed.
 fn resync() {
     friends_updated();
+    crate::friends_window::on_friend_requests_changed();
     crate::notifications_page::refresh_count();
+    // syncChat: open conversations refetch what they missed
+    crate::chat_service::resync();
 }

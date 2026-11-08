@@ -50,6 +50,16 @@ pub fn on_second_instance(args: Vec<String>) {
     }
 }
 
+/// The main window, while it exists.
+pub fn main_window() -> Option<AppWindow> {
+    UI.with(|u| u.borrow().upgrade())
+}
+
+/// showToastInMainWindow's check: the main window is on screen.
+pub fn main_window_visible() -> bool {
+    main_window().is_some_and(|ui| ui.window().is_visible() && !ui.window().is_minimized())
+}
+
 /// mainWindow.restore() + focus() (or show it again from the tray).
 pub fn show_main_window() {
     let Some(ui) = UI.with(|u| u.borrow().upgrade()) else {

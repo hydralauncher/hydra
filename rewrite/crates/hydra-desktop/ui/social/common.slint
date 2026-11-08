@@ -1,0 +1,272 @@
+// Pieces the friends window (pages/friends-window) and the chat window
+// (pages/chat-window) share: their icons, the avatar with its status orb,
+// the unread badge, the official seal, the typing dots and CSS easings.
+import { Theme } from "../theme.slint";
+import { Icon } from "../components/widgets.slint";
+
+export global SocialIcons {
+    out property <image> person: @image-url("../icons/person.svg");
+    out property <image> check: @image-url("../icons/check-16.svg");
+    out property <image> chevron-down: @image-url("../icons/chevron-down.svg");
+    out property <image> chevron-right: @image-url("../icons/chevron-right-16.svg");
+    out property <image> comment: @image-url("../icons/comment.svg");
+    out property <image> copy: @image-url("../icons/copy-14.svg");
+    out property <image> dash: @image-url("../icons/dash.svg");
+    out property <image> person-add: @image-url("../icons/person-add.svg");
+    out property <image> search: @image-url("../icons/search.svg");
+    out property <image> x: @image-url("../icons/x-16.svg");
+    out property <image> x-12: @image-url("../icons/x-12.svg");
+    out property <image> x-14: @image-url("../icons/x-14.svg");
+    out property <image> plus: @image-url("../icons/plus-14.svg");
+    out property <image> plus-16: @image-url("../icons/plus.svg");
+    out property <image> steam: @image-url("../icons/steam-logo.svg");
+    out property <image> link-external: @image-url("../icons/link-external.svg");
+    out property <image> link-external-14: @image-url("../icons/link-external-14.svg");
+    out property <image> alert: @image-url("../icons/alert-12.svg");
+    out property <image> alert-14: @image-url("../icons/alert-14.svg");
+    out property <image> alert-fill: @image-url("../icons/alert-fill-12.svg");
+    out property <image> bell: @image-url("../icons/bell-12.svg");
+    out property <image> image: @image-url("../icons/image.svg");
+    out property <image> image-24: @image-url("../icons/image-24.svg");
+    out property <image> lock: @image-url("../icons/lock-14.svg");
+    out property <image> unlock: @image-url("../icons/unlock-14.svg");
+    out property <image> send: @image-url("../icons/paper-airplane.svg");
+    out property <image> reply-12: @image-url("../icons/reply-12.svg");
+    out property <image> reply: @image-url("../icons/reply-16.svg");
+    out property <image> smiley: @image-url("../icons/smiley.svg");
+    out property <image> arrow-down: @image-url("../icons/arrow-down-16.svg");
+    out property <image> arrow-left: @image-url("../icons/arrow-left-16.svg");
+    out property <image> circle-slash: @image-url("../icons/circle-slash-14.svg");
+    out property <image> report: @image-url("../icons/report.svg");
+    out property <image> eye-closed: @image-url("../icons/eye-closed-16.svg");
+    out property <image> eye-closed-12: @image-url("../icons/eye-closed-12.svg");
+    out property <image> eye-closed-20: @image-url("../icons/eye-closed-20.svg");
+    out property <image> sync: @image-url("../icons/sync-14.svg");
+    out property <image> clock: @image-url("../icons/clock-16.svg");
+    out property <image> globe: @image-url("../icons/globe.svg");
+    out property <image> heart: @image-url("../icons/heart-16.svg");
+    out property <image> light-bulb: @image-url("../icons/light-bulb.svg");
+    out property <image> squirrel: @image-url("../icons/squirrel.svg");
+    out property <image> trophy: @image-url("../icons/trophy-16.svg");
+    out property <image> hydra: @image-url("../icons/hydra-logo.svg");
+    // chat-official.ts OFFICIAL_AVATAR_URL: the logo on a #1c1c1c square
+    out property <image> official-avatar: @image-url("../images/official-avatar.svg");
+}
+
+// CSS timing functions for keyframe animations driven by animation-tick().
+export global Css {
+    // cubic-bezier(x1, y1, x2, y2) at progress p (0..1): x(t) = p solved with
+    // Newton steps, then y(t).
+    public pure function bezier(x1: float, y1: float, x2: float, y2: float, p: float) -> float {
+        if (p <= 0) {
+            return 0;
+        }
+        if (p >= 1) {
+            return 1;
+        }
+        let cx = 3 * x1;
+        let bx = 3 * (x2 - x1) - cx;
+        let ax = 1 - cx - bx;
+        let cy = 3 * y1;
+        let by = 3 * (y2 - y1) - cy;
+        let ay = 1 - cy - by;
+        let t0 = p;
+        let t1 = t0 - (((ax * t0 + bx) * t0 + cx) * t0 - p) / Math.max(0.000001, (3 * ax * t0 + 2 * bx) * t0 + cx);
+        let t2 = t1 - (((ax * t1 + bx) * t1 + cx) * t1 - p) / Math.max(0.000001, (3 * ax * t1 + 2 * bx) * t1 + cx);
+        let t3 = t2 - (((ax * t2 + bx) * t2 + cx) * t2 - p) / Math.max(0.000001, (3 * ax * t2 + 2 * bx) * t2 + cx);
+        let t4 = t3 - (((ax * t3 + bx) * t3 + cx) * t3 - p) / Math.max(0.000001, (3 * ax * t3 + 2 * bx) * t3 + cx);
+        let t = Math.clamp(t4, 0, 1);
+        return ((ay * t + by) * t + cy) * t;
+    }
+
+    // `ease-in-out` (cubic-bezier(0.42, 0, 0.58, 1))
+    public pure function ease-in-out(p: float) -> float {
+        return bezier(0.42, 0, 0.58, 1, p);
+    }
+
+    // `ease` (cubic-bezier(0.25, 0.1, 0.25, 1))
+    public pure function ease(p: float) -> float {
+        return bezier(0.25, 0.1, 0.25, 1, p);
+    }
+}
+
+// .friends-window__status-orb / .chat-window__status-orb: 12px border-box,
+// a 2px ring in the color of what is under it.
+export component StatusOrb inherits Rectangle {
+    in property <bool> online;
+    in property <length> size: 12px;
+    in property <length> ring: 2px;
+    in property <color> ring-color: Theme.background;
+    width: root.size;
+    height: root.size;
+    border-radius: root.size / 2;
+    background: root.ring-color;
+    Rectangle {
+        x: root.ring;
+        y: root.ring;
+        width: root.size - 2 * root.ring;
+        height: root.size - 2 * root.ring;
+        border-radius: self.width / 2;
+        background: root.online ? Theme.success : #6d6d6d;
+    }
+}
+
+// components/avatar: 4px radius, 1px border, the person icon at 70% without a picture.
+export component SocialAvatar inherits Rectangle {
+    in property <image> source;
+    in property <length> size: 40px;
+    // The official account: the Hydra logo stands in for a picture.
+    in property <bool> official;
+    width: root.size;
+    height: root.size;
+    border-radius: 4px;
+    background: Theme.background;
+    clip: true;
+    if root.official: Image {
+        width: root.size;
+        height: root.size;
+        source: SocialIcons.official-avatar;
+        image-fit: cover;
+    }
+    if !root.official && root.source.width > 0: Image {
+        width: root.size;
+        height: root.size;
+        source: root.source;
+        image-fit: cover;
+    }
+    if !root.official && root.source.width == 0: Icon {
+        source: SocialIcons.person;
+        width: root.size * 0.7;
+        height: root.size * 0.7;
+        color: Theme.muted;
+    }
+    // border: solid 1px $border-color, drawn over the picture like CSS.
+    Rectangle {
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: Theme.border;
+    }
+}
+
+// The avatar with the presence orb at its bottom right (none for the official account).
+export component AvatarWithOrb inherits Rectangle {
+    in property <image> source;
+    in property <length> size: 40px;
+    in property <bool> official;
+    in property <bool> online;
+    in property <bool> show-orb: !root.official;
+    in property <length> orb-size: 12px;
+    in property <length> orb-ring: 2px;
+    in property <length> orb-inset: 0px;
+    in property <color> ring-color: Theme.background;
+    width: root.size;
+    height: root.size;
+    SocialAvatar {
+        source: root.source;
+        size: root.size;
+        official: root.official;
+    }
+    if root.show-orb: StatusOrb {
+        x: root.size - root.orb-size - root.orb-inset;
+        y: root.size - root.orb-size - root.orb-inset;
+        size: root.orb-size;
+        ring: root.orb-ring;
+        online: root.online;
+        ring-color: root.ring-color;
+    }
+}
+
+// The unread pill: 16px tall, $error-color, white 11px bold.
+export component UnreadBadge inherits Rectangle {
+    in property <string> label;
+    height: 16px;
+    width: Math.max(16px, value.preferred-width + 8px);
+    border-radius: 8px;
+    background: Theme.error;
+    value := Text {
+        text: root.label;
+        color: #ffffff;
+        font-size: Theme.tiny-size;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+// chat-official-badge.tsx: a filled rosette with a white check, #1d9bf0.
+export component OfficialBadge inherits Rectangle {
+    in property <length> size: 14px;
+    width: root.size;
+    height: root.size;
+    Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        fill: #1d9bf0;
+        commands: "M8 .5l1.9 1.3 2.3-.2.8 2.2 2 1.2-.5 2.3 1 2.1-1.7 1.6-.2 2.3-2.3.5L10 15.5 8 14.3l-2 1.2-1.3-1.9-2.3-.5-.2-2.3L.5 9.2l1-2.1L1 4.8l2-1.2.8-2.2 2.3.2z";
+    }
+    Path {
+        width: root.size;
+        height: root.size;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        fill: transparent;
+        stroke: #ffffff;
+        stroke-width: root.size * 1.5 / 16;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+        commands: "M5.4 8.3l1.7 1.7 3.6-3.6";
+    }
+}
+
+// .chat-window__typing-dots: three dots bouncing (chat-window-typing 1.2s,
+// 0.15s apart). `small`: 3px dots in a 16px box.
+export component TypingDots inherits Rectangle {
+    in property <bool> small;
+    in property <color> dot-color: Theme.body;
+    property <length> dot: root.small ? 3px : 6px;
+    property <length> gap: root.small ? 2px : 4px;
+    width: root.small ? 16px : 3 * root.dot + 2 * root.gap;
+    height: root.small ? 16px : root.dot + 2px;
+    property <length> start-x: (root.width - (3 * root.dot + 2 * root.gap)) / 2;
+    for i in 3: Rectangle {
+        // 0%, 60%, 100%: opacity 0.3, y 0; 30%: opacity 1, y -2px (ease-in-out)
+        property <float> phase: Math.mod((animation-tick() - i * 150ms) / 1200ms + 10, 1);
+        property <float> up: self.phase < 0.3 ? Css.ease-in-out(self.phase / 0.3) : self.phase < 0.6 ? 1 - Css.ease-in-out((self.phase - 0.3) / 0.3) : 0;
+        x: root.start-x + i * (root.dot + root.gap);
+        y: (root.height - root.dot) / 2 - 2px * self.up;
+        width: root.dot;
+        height: root.dot;
+        border-radius: root.dot / 2;
+        background: root.dot-color;
+        opacity: 0.3 + 0.7 * self.up;
+    }
+}
+
+// The window controls of the frameless social windows (minimize, close):
+// rgba(255,255,255,0.08) on hover, $error-color behind a white close icon.
+export component SocialWindowControl inherits Rectangle {
+    in property <image> icon;
+    in property <bool> close;
+    in property <string> label;
+    in property <color> icon-color: Theme.muted;
+    callback clicked();
+    background: touch.has-hover ? (root.close ? Theme.error : rgba(255, 255, 255, 0.08)) : transparent;
+    animate background { duration: 200ms; easing: ease; }
+    accessible-role: button;
+    accessible-label: root.label;
+    Icon {
+        source: root.icon;
+        width: 16px;
+        height: 16px;
+        color: touch.has-hover && root.close ? #ffffff : root.icon-color;
+        animate color { duration: 200ms; easing: ease; }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}

@@ -207,6 +207,9 @@ component SidebarProfile inherits VerticalLayout {
                     Session.sign-in();
                 } else {
                     Popup.toggle("profile-menu", button.absolute-position.x, button.absolute-position.y, button.width, button.height);
+                    if (Popup.open == "profile-menu") {
+                        Session.prefetch-friends();
+                    }
                 }
             }
         }

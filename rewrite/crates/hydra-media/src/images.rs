@@ -21,6 +21,9 @@ pub enum Op {
     Blur { shrink: u32, sigma: f32 },
     /// CSS `filter: grayscale(100%)` for locked achievements.
     Grayscale,
+    /// `object-fit: cover` into a `width`×`height` box (never upscaled past
+    /// the source), so a banner keeps only the strip it shows.
+    Cover { width: u32, height: u32 },
     /// An `object-fit: cover` image in a `width`×`height` box under CSS
     /// `filter: blur(sigma)`: transparent outside the box, so the edges fade.
     /// The result has `pad` extra pixels on every side (at least 3σ). With
@@ -260,8 +263,47 @@ pub fn decode_bytes(bytes: &[u8], op: Op) -> Option<Pixels> {
         .with_guessed_format()
         .ok()?
         .decode()
-        .ok()?;
+        .ok()
+        .or_else(|| decode_ico_entries(bytes))?;
     Some(transform(img, op))
+}
+
+/// Steam's .ico files can hold two 256px PNG entries, which the `image`
+/// crate refuses as a whole. Chromium shows them, so decode each entry on
+/// its own (as a one-entry ICO) and keep the largest that works.
+fn decode_ico_entries(bytes: &[u8]) -> Option<DynamicImage> {
+    if bytes.len() < 6 || bytes[0..4] != [0, 0, 1, 0] {
+        return None;
+    }
+    let count = u16::from_le_bytes([bytes[4], bytes[5]]) as usize;
+    let mut best: Option<DynamicImage> = None;
+    for i in 0..count {
+        let entry = 6 + i * 16;
+        let Some(dir) = bytes.get(entry..entry + 16) else {
+            break;
+        };
+        let size = u32::from_le_bytes([dir[8], dir[9], dir[10], dir[11]]) as usize;
+        let offset = u32::from_le_bytes([dir[12], dir[13], dir[14], dir[15]]) as usize;
+        let Some(data) = bytes.get(offset..offset.saturating_add(size)) else {
+            continue;
+        };
+        let decoded = if data.starts_with(&[0x89, b'P', b'N', b'G']) {
+            image::load_from_memory_with_format(data, image::ImageFormat::Png).ok()
+        } else {
+            let mut single = Vec::with_capacity(22 + data.len());
+            single.extend_from_slice(&[0, 0, 1, 0, 1, 0]);
+            single.extend_from_slice(&dir[0..12]);
+            single.extend_from_slice(&22u32.to_le_bytes());
+            single.extend_from_slice(data);
+            image::load_from_memory_with_format(&single, image::ImageFormat::Ico).ok()
+        };
+        if let Some(img) = decoded
+            && best.as_ref().is_none_or(|b| img.width() > b.width())
+        {
+            best = Some(img);
+        }
+    }
+    best
 }
 
 fn transform(img: DynamicImage, op: Op) -> Pixels {
@@ -279,6 +321,15 @@ fn transform(img: DynamicImage, op: Op) -> Pixels {
             )
             .blur(sigma),
         Op::Grayscale => DynamicImage::ImageLuma8(img.to_luma8()),
+        Op::Cover { width, height } => {
+            // Keep the box aspect, at most the source resolution.
+            let scale = (img.width() as f32 / width.max(1) as f32)
+                .min(img.height() as f32 / height.max(1) as f32)
+                .min(1.0);
+            let w = ((width as f32 * scale).round() as u32).max(1);
+            let h = ((height as f32 * scale).round() as u32).max(1);
+            img.resize_to_fill(w, h, FilterType::Triangle)
+        }
         Op::CoverBlur {
             width,
             height,

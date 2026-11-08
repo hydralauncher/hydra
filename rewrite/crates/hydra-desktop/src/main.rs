@@ -7,6 +7,8 @@
 mod achievements_page;
 mod auth;
 mod catalogue_page;
+mod chat_service;
+mod chat_window;
 mod classics_bookmark;
 mod collections;
 mod context_menu;
@@ -21,6 +23,7 @@ mod downloads_page;
 mod features;
 mod format;
 mod frametrace;
+mod friends_window;
 mod game_classics;
 mod game_menu;
 mod game_options;
@@ -48,6 +51,9 @@ mod settings_debrid;
 mod settings_page;
 mod settings_sources;
 mod shell;
+mod social;
+mod sound;
+mod taskbar_badge;
 mod toast;
 mod torrent_step;
 mod tray;
@@ -66,7 +72,7 @@ slint::include_modules!();
 /// 100/3px per line times the system wheel scroll lines (3 by default, so
 /// 100px, measured on Electron).
 #[cfg(windows)]
-fn wheel_notch_px() -> f32 {
+pub(crate) fn wheel_notch_px() -> f32 {
     #[link(name = "user32")]
     unsafe extern "system" {
         fn SystemParametersInfoW(
@@ -90,7 +96,7 @@ fn wheel_notch_px() -> f32 {
 
 /// TODO(linux): measure Chromium on X11/Wayland; 40px is the old value.
 #[cfg(not(windows))]
-fn wheel_notch_px() -> f32 {
+pub(crate) fn wheel_notch_px() -> f32 {
     40.0
 }
 
@@ -153,6 +159,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         slint::BackendSelector::new()
             .backend_name("winit".into())
             .renderer_name("skia".into())
+            // the chat window opens in the background for incoming messages
+            .with_winit_window_attributes_hook(social::window_attributes)
             .select()?;
     }
 
@@ -262,6 +270,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     settings_account::init(&ui);
     settings_debrid::init(&ui);
     auth::init(&ui);
+    social::load_bounds();
     notifications_page::init(&ui);
     search::init(&ui);
     achievements_page::init(&ui);
@@ -342,6 +351,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if !start_hidden {
         ui.show()?;
+        // restoreSocialWindows: only with the main window on screen
+        if !headless_mode {
+            slint::Timer::single_shot(std::time::Duration::from_millis(0), social::restore);
+        }
     }
     // fitToWorkArea once the native window exists
     let weak = ui.as_weak();
@@ -353,6 +366,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Hiding the window keeps the app running in the tray.
     slint::run_event_loop_until_quit()?;
 
+    // before-quit: saveSocialWindowsSession
+    social::shutdown();
     // quit-cleanup.ts: stop media threads first, then leave without running
     // thread-local destructors under worker threads that are still parked.
     screenshots::shutdown();

@@ -282,8 +282,10 @@ pub fn sign_out() {
     // useUserDetails.clearUserDetails
     shell::storage_remove("userDetails");
     // TODO(auth): Epic imports, achievement/souvenir workers, emulator scan
-    // data, friends/chat windows.
+    // data.
     crate::realtime::close();
+    // sendSignOutEvent: chat state, notifications and the social windows
+    crate::social::on_sign_out();
     crate::downloads::stop_active();
     api.clear_session();
     for sublevel in [keys::GAMES, keys::DOWNLOADS, keys::DOWNLOAD_LAYOUT_STATE] {

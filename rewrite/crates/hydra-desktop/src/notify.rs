@@ -56,7 +56,7 @@ fn transcode(bytes: &[u8], name: &str) -> Option<PathBuf> {
 
 /// downloadImage: remote icons are fetched, `local:` ones read from disk.
 /// Blocking, so call it off the UI thread.
-fn icon_for(url: &str) -> Option<PathBuf> {
+pub(crate) fn icon_for(url: &str) -> Option<PathBuf> {
     if let Some(local) = url.strip_prefix("local:") {
         let bytes = std::fs::read(local).ok()?;
         return transcode(&bytes, url);
@@ -73,7 +73,7 @@ fn icon_for(url: &str) -> Option<PathBuf> {
     transcode(&bytes, url)
 }
 
-fn tray_icon() -> Option<PathBuf> {
+pub(crate) fn tray_icon() -> Option<PathBuf> {
     let path = icon_directory().join("tray-icon.png");
     if !path.exists() {
         std::fs::write(&path, TRAY_ICON).ok()?;
@@ -142,6 +142,66 @@ pub fn show_silent(title: String, body: String) {
             }
         }
     });
+}
+
+/// A notification that runs `on_click` when activated (chat messages).
+/// `silent`: no system sound (chat plays its own). The callback runs on a
+/// notification thread; hand work to the UI thread from it.
+pub fn show_clickable(
+    title: &str,
+    body: &str,
+    icon: Option<&Path>,
+    silent: bool,
+    on_click: impl Fn() + Send + Sync + 'static,
+) {
+    #[cfg(windows)]
+    {
+        use tauri_winrt_notification::{IconCrop, Toast};
+        let mut toast = Toast::new(APP_USER_MODEL_ID).title(title).text1(body);
+        if let Some(icon) = icon {
+            toast = toast.icon(icon, IconCrop::Square, "");
+        }
+        if silent {
+            toast = toast.sound(None);
+        }
+        toast = toast.on_activated(move |_| {
+            on_click();
+            Ok(())
+        });
+        if let Err(error) = toast.show() {
+            eprintln!("Failed to show notification: {error:?}");
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let mut notification = notify_rust::Notification::new();
+        notification
+            .appname("Hydra")
+            .summary(title)
+            .body(body)
+            .action("default", "default");
+        if let Some(icon) = icon.and_then(Path::to_str) {
+            notification.image_path(icon);
+        }
+        let _ = silent;
+        match notification.show() {
+            #[cfg(all(unix, not(target_os = "macos")))]
+            Ok(handle) => {
+                std::thread::spawn(move || {
+                    handle.wait_for_action(|action| {
+                        if action == "default" {
+                            on_click();
+                        }
+                    })
+                });
+            }
+            #[cfg(not(all(unix, not(target_os = "macos"))))]
+            Ok(_) => {
+                let _ = on_click;
+            }
+            Err(error) => eprintln!("Failed to show notification: {error}"),
+        }
+    }
 }
 
 /// Shows an OS notification from a worker thread (the icon is downloaded first).

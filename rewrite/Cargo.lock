@@ -2791,6 +2791,7 @@ dependencies = [
  "hydra-db",
  "icu_collator",
  "icu_locale_core",
+ "icu_properties",
  "image",
  "reqwest",
  "rustls",
@@ -2818,6 +2819,7 @@ name = "hydra-desktop"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "chrono",
  "dirs 6.0.0",
  "fs2",
  "hydra-capture",

@@ -23,6 +23,8 @@ import { GameOptions, OptionsCategory } from "pages/game-details/options.slint";
 import { PlaytimeModals, PlaytimeColumn } from "pages/game-details/playtime.slint";
 import { AuthWindow } from "auth-window.slint";
 import { HosterBrowserWindow } from "hoster-browser-window.slint";
+import { FriendsWindow, FriendsData, FriendRow } from "friends-window.slint";
+import { ChatWindow, ChatData, ChatConversationRow, ChatPickerRow, ChatReactionPill, ChatImageCell, ChatItem, ChatDraftImage, ChatEmoji } from "chat-window.slint";
 import { SidebarFilterMenu } from "shell/filter-menu.slint";
 import { AchievementsPage, AchievementsData, AchievementRow } from "pages/achievements/page.slint";
 import { SearchDropdown, SearchData, SearchPart, SearchSuggestionRow } from "shell/search-dropdown.slint";
@@ -56,6 +58,8 @@ export { AchievementsData, AchievementRow }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
 export { HomeData, CatalogueCard, Gifs, Dialogs, DownloadsData }
 export { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup, SelectPopup, SelectOption }
+export { FriendsWindow, FriendsData, FriendRow, ChatWindow }
+export { ChatData, ChatConversationRow, ChatPickerRow, ChatReactionPill, ChatImageCell, ChatItem, ChatDraftImage, ChatEmoji }
 
 export component AppWindow inherits Window {
     title: GameData.game-title != "" && Nav.route == "game" ? "Hydra — " + GameData.game-title : "Hydra";
