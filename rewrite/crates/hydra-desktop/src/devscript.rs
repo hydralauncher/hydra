@@ -13,12 +13,18 @@
 //! - `type <text>` - text input
 //! - `keydown|keyup|tap <key> [count]` - key names: shift, meta, control,
 //!   left, right, up, down, home, end, pagedown, space, escape, or a character
+//! - `open-friends`, `open-chat <friend id>`: open the social windows
+//! - `target main|friends|chat`: later steps go to that window
 //! - `quit`
 
 use slint::platform::{Key, PointerEventButton, WindowEvent};
 use slint::{ComponentHandle, LogicalPosition, Timer};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+
+thread_local! {
+    static TARGET: std::cell::RefCell<String> = std::cell::RefCell::new("main".into());
+}
 
 pub fn run<C: ComponentHandle + 'static>(component: &C, script: &str, out_dir: PathBuf) {
     let _ = std::fs::create_dir_all(&out_dir);
@@ -42,7 +48,18 @@ fn next<C: ComponentHandle + 'static>(
     let Some(component) = weak.upgrade() else {
         return;
     };
-    let window = component.window();
+    let target = TARGET.with(|t| t.borrow().clone());
+    let friends = (target == "friends")
+        .then(crate::friends_window::window)
+        .flatten();
+    let chat = (target == "chat")
+        .then(crate::chat_window::window)
+        .flatten();
+    let window = match (&friends, &chat) {
+        (Some(friends), _) => friends.window(),
+        (_, Some(chat)) => chat.window(),
+        _ => component.window(),
+    };
     let mut parts = step.split_whitespace();
     let cmd = parts.next().unwrap_or_default();
     let args: Vec<&str> = parts.collect();
@@ -64,7 +81,9 @@ fn next<C: ComponentHandle + 'static>(
                 PointerEventButton::Left
             };
             window.dispatch_event(WindowEvent::PointerMoved { position });
-            crate::popup::pointer_pressed_at(num(0), num(1));
+            if target == "main" {
+                crate::popup::pointer_pressed_at(num(0), num(1));
+            }
             window.dispatch_event(WindowEvent::PointerPressed { position, button });
             window.dispatch_event(WindowEvent::PointerReleased { position, button });
         }
@@ -128,6 +147,11 @@ fn next<C: ComponentHandle + 'static>(
         }
         "notify-extract" => {
             crate::notify::extraction_complete(args.first().copied().unwrap_or_default())
+        }
+        "open-friends" => crate::friends_window::open(),
+        "open-chat" => crate::chat_window::open_by_id(args.first().copied().unwrap_or_default()),
+        "target" => {
+            TARGET.with(|t| *t.borrow_mut() = args.first().copied().unwrap_or("main").into())
         }
         "quit" => {
             let _ = slint::quit_event_loop();

@@ -38,6 +38,11 @@ impl EventLoopProxy for Proxy {
 
 pub struct Headless {
     window: Rc<MinimalSoftwareWindow>,
+    scale: f32,
+    /// Windows created after the main one (the friends and chat windows):
+    /// each gets its own software window, sized by its component.
+    extra: std::cell::RefCell<Vec<Rc<MinimalSoftwareWindow>>>,
+    main_taken: std::cell::Cell<bool>,
     start: Instant,
     tx: mpsc::Sender<Message>,
     rx: mpsc::Receiver<Message>,
@@ -57,6 +62,9 @@ impl Headless {
         let (tx, rx) = mpsc::channel();
         slint::platform::set_platform(Box::new(Headless {
             window,
+            scale,
+            extra: Default::default(),
+            main_taken: Default::default(),
             start: Instant::now(),
             tx,
             rx,
@@ -67,7 +75,19 @@ impl Headless {
 
 impl Platform for Headless {
     fn create_window_adapter(&self) -> Result<Rc<dyn WindowAdapter>, PlatformError> {
-        Ok(self.window.clone())
+        if !self.main_taken.replace(true) {
+            return Ok(self.window.clone());
+        }
+        let window = MinimalSoftwareWindow::new(RepaintBufferType::NewBuffer);
+        window.dispatch_event(WindowEvent::ScaleFactorChanged {
+            scale_factor: self.scale,
+        });
+        window.set_size(PhysicalSize::new(
+            (420.0 * self.scale) as u32,
+            (780.0 * self.scale) as u32,
+        ));
+        self.extra.borrow_mut().push(window.clone());
+        Ok(window)
     }
 
     fn duration_since_start(&self) -> Duration {
@@ -91,6 +111,14 @@ impl Platform for Headless {
                 self.window.draw_if_needed(|renderer| {
                     renderer.render(&mut buffer, size.width as usize);
                 });
+                for window in self.extra.borrow().iter() {
+                    let size = window.size();
+                    let mut buffer =
+                        vec![slint::Rgb8Pixel::default(); (size.width * size.height) as usize];
+                    window.draw_if_needed(|renderer| {
+                        renderer.render(&mut buffer, size.width as usize);
+                    });
+                }
             }
             while let Ok(message) = self.rx.try_recv() {
                 match message {

@@ -16,6 +16,8 @@ export global Toast {
 }
 
 export component ToastHost inherits Rectangle {
+    // The friends window's toast: left/right/bottom 16px, no max-width.
+    in property <bool> stretch;
     property <bool> shown: Toast.visible;
 
     if root.shown: toast := Rectangle {
@@ -23,11 +25,11 @@ export component ToastHost inherits Rectangle {
         property <duration> started;
         // 100 -> 0 over `duration` (requestAnimationFrame in the renderer)
         property <float> progress: Math.max(0, 1 - (animation-tick() - self.started) / Toast.duration);
-        width: Math.min(420px, content.preferred-width + 2px);
+        width: root.stretch ? root.width - 32px : Math.min(420px, content.preferred-width + 2px);
         height: content.preferred-height + 5px + 2px;
         x: root.width - self.width - 16px;
         // bottom: 28px + 16px; translateY(100%) while entering and closing
-        y: root.height - 44px - self.height + (self.entered && !Toast.closing ? 0 : self.height);
+        y: root.height - (root.stretch ? 16px : 44px) - self.height + (self.entered && !Toast.closing ? 0 : self.height);
         opacity: self.entered ? 1 : 0;
         animate y, opacity { duration: 200ms; easing: ease-in-out; }
         background: Theme.dark-background;

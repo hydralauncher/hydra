@@ -22,6 +22,8 @@ import { SmoothScroll } from "components/smooth-scroll.slint";
 import { GameOptions, OptionsCategory } from "pages/game-details/options.slint";
 import { PlaytimeModals, PlaytimeColumn } from "pages/game-details/playtime.slint";
 import { AuthWindow } from "auth-window.slint";
+import { FriendsWindow, FriendsData, FriendRow } from "friends-window.slint";
+import { ChatWindow } from "chat-window.slint";
 import { SidebarFilterMenu } from "shell/filter-menu.slint";
 import { AchievementsPage, AchievementsData, AchievementRow } from "pages/achievements/page.slint";
 import { SearchDropdown, SearchData, SearchPart, SearchSuggestionRow } from "shell/search-dropdown.slint";
@@ -53,6 +55,7 @@ export { AchievementsData, AchievementRow }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
 export { HomeData, CatalogueCard, Gifs, Dialogs, DownloadsData }
 export { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup, SelectPopup, SelectOption }
+export { FriendsWindow, FriendsData, FriendRow, ChatWindow }
 
 export component AppWindow inherits Window {
     title: GameData.game-title != "" && Nav.route == "game" ? "Hydra — " + GameData.game-title : "Hydra";

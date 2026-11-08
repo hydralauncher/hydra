@@ -50,6 +50,8 @@ export global Session {
     callback open-profile();
     callback open-notifications();
     callback open-friends();
+    // prefetchFriends: the profile menu opened, so Friends is likely next.
+    callback prefetch-friends();
     callback open-support();
 }
 

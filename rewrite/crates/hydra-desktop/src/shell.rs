@@ -172,6 +172,7 @@ pub fn set_language(code: &str) {
     }
     refresh_rows();
     crate::library_page::on_library_changed();
+    crate::social::on_language_changed();
 }
 
 /// The language Steam store data is fetched in (steam.ts maps it further).
@@ -368,9 +369,22 @@ fn wire_session(ui: &AppWindow) {
     let session = ui.global::<Session>();
     session.on_open_profile(|| eprintln!("TODO(profile): open profile"));
     session.on_open_notifications(|| nav::navigate("/notifications"));
-    session.on_open_friends(|| eprintln!("TODO(friends): friends window"));
+    session.on_open_friends(crate::friends_window::open);
+    session.on_prefetch_friends(crate::friends_window::prefetch);
     // data-open-support-chat: the support chat is a web widget in Electron
     session.on_open_support(|| eprintln!("TODO(support): support chat"));
+}
+
+/// HYDRA_HEADLESS: no OS windows (scripted validation).
+pub fn headless() -> bool {
+    std::env::var_os("HYDRA_HEADLESS").is_some()
+}
+
+/// The chat unread total on the sidebar avatar dot and the Friends row.
+pub fn set_unread_chat(count: i32) {
+    if let Some(ui) = with_shell(|s| s.ui.upgrade()).flatten() {
+        ui.global::<Session>().set_unread_chat(count);
+    }
 }
 
 /// The shared image loader and the window scale.
@@ -726,6 +740,7 @@ pub fn refresh_friends_online() {
 
 /// gameRunning in the sidebar profile: the title and the 24px icon.
 pub fn set_game_running(title: &str, icon_url: &str) {
+    crate::friends_window::set_game_running(title, icon_url);
     let Some(ui) = with_shell(|s| s.ui.upgrade()).flatten() else {
         return;
     };
