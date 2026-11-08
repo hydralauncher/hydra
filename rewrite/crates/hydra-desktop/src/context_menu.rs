@@ -88,6 +88,8 @@ pub fn init(ui: &AppWindow) {
             secondary(&id, x, y);
         }
     });
+    ui.global::<crate::SecondaryMenu>()
+        .on_activated(|id| secondary_activated(&id));
 }
 
 fn leaf(item: &Item, danger_border: bool) -> MenuLeaf {
@@ -193,6 +195,98 @@ pub fn close() {
     {
         crate::popup::close(&ui);
     }
+}
+
+#[derive(Default)]
+struct SecondaryState {
+    items: Vec<Item>,
+    handler: Option<Handler>,
+    on_close: Option<Rc<dyn Fn()>>,
+    generation: i32,
+}
+
+thread_local! {
+    static SECONDARY: RefCell<SecondaryState> = RefCell::new(SecondaryState::default());
+}
+
+/// A second menu over the first one (the collection context menu). It has
+/// no submenus; an item closes it unless it is disabled. `on_close` runs
+/// whenever it closes (item, outside press, scroll, Escape).
+pub fn show_secondary(
+    x: f32,
+    y: f32,
+    items: Vec<Item>,
+    handler: impl Fn(&str) + 'static,
+    on_close: Option<Rc<dyn Fn()>>,
+) {
+    let Some(ui) = STATE.with(|s| s.borrow().as_ref().and_then(|s| s.ui.upgrade())) else {
+        return;
+    };
+    let generation = SECONDARY.with(|s| {
+        let mut s = s.borrow_mut();
+        s.items = items.clone();
+        s.handler = Some(Rc::new(handler));
+        s.on_close = on_close;
+        s.generation += 1;
+        s.generation
+    });
+    let menu = ui.global::<crate::SecondaryMenu>();
+    menu.set_items(ModelRc::new(VecModel::from(entries(&items, false))));
+    menu.set_x(x);
+    menu.set_y(y);
+    menu.set_generation(generation);
+    menu.set_open(true);
+}
+
+/// Rebuild the open secondary menu's rows.
+pub fn update_secondary(items: Vec<Item>) {
+    let Some(ui) = STATE.with(|s| s.borrow().as_ref().and_then(|s| s.ui.upgrade())) else {
+        return;
+    };
+    SECONDARY.with(|s| s.borrow_mut().items = items.clone());
+    ui.global::<crate::SecondaryMenu>()
+        .set_items(ModelRc::new(VecModel::from(entries(&items, false))));
+}
+
+pub fn secondary_open() -> bool {
+    STATE
+        .with(|s| s.borrow().as_ref().and_then(|s| s.ui.upgrade()))
+        .is_some_and(|ui| ui.global::<crate::SecondaryMenu>().get_open())
+}
+
+pub fn close_secondary() {
+    let Some(ui) = STATE.with(|s| s.borrow().as_ref().and_then(|s| s.ui.upgrade())) else {
+        return;
+    };
+    let menu = ui.global::<crate::SecondaryMenu>();
+    if !menu.get_open() {
+        return;
+    }
+    menu.set_open(false);
+    if let Some(on_close) = SECONDARY.with(|s| s.borrow_mut().on_close.take()) {
+        on_close();
+    }
+}
+
+fn secondary_activated(id: &str) {
+    let Some((item, handler)) = SECONDARY.with(|s| {
+        let s = s.borrow();
+        Some((
+            s.items.iter().find(|i| i.id == id)?.clone(),
+            s.handler.clone()?,
+        ))
+    }) else {
+        return;
+    };
+    if item.disabled {
+        return;
+    }
+    // Closed first, so `on_close` sees the menu gone before the item opens
+    // its modal (the first menu keeps its submenu open for that modal).
+    if !item.keep_open {
+        close_secondary();
+    }
+    handler(id);
 }
 
 fn find<'a>(items: &'a [Item], id: &str) -> Option<&'a Item> {

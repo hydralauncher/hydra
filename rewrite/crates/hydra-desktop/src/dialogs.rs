@@ -17,8 +17,12 @@ struct State {
     ui: slint::Weak<AppWindow>,
     on_confirm: Option<Action>,
     on_created: Option<Rc<dyn Fn(String)>>,
+    /// Runs once the open dialog is gone (any way it closed).
+    on_closed: Option<Action>,
     /// maxLength of the field dialog's input
     field_max: Option<usize>,
+    /// The confirm button waits for non-blank text (`disabled={!name.trim()}`).
+    needs_text: bool,
 }
 
 thread_local! {
@@ -31,8 +35,16 @@ pub fn init(ui: &AppWindow) {
             ui: ui.as_weak(),
             on_confirm: None,
             on_created: None,
+            on_closed: None,
             field_max: None,
+            needs_text: false,
         })
+    });
+    ui.global::<Dialogs>().on_closed(|| {
+        let action = STATE.with(|s| s.borrow_mut().as_mut().and_then(|s| s.on_closed.take()));
+        if let Some(action) = action {
+            action();
+        }
     });
     let dialogs = ui.global::<Dialogs>();
     dialogs.on_confirmed(|| {
@@ -63,8 +75,52 @@ pub fn init(ui: &AppWindow) {
                 dialogs.set_field_text(text.chars().take(max).collect::<String>().into());
             }
             dialogs.set_field_error(Default::default());
+            if STATE.with(|s| s.borrow().as_ref().is_some_and(|s| s.needs_text)) {
+                dialogs.set_confirm_disabled(dialogs.get_field_text().trim().is_empty());
+            }
         }
     });
+}
+
+/// Reset what one dialog set for itself before another one opens.
+fn reset(dialogs: &Dialogs) {
+    STATE.with(|s| {
+        if let Some(s) = s.borrow_mut().as_mut() {
+            s.on_closed = None;
+            s.needs_text = false;
+        }
+    });
+    dialogs.set_confirm_disabled(false);
+    dialogs.set_submit_on_enter(true);
+}
+
+/// Run `action` once the open dialog has closed (cancelled or done).
+pub fn set_on_closed(action: impl Fn() + 'static) {
+    STATE.with(|s| {
+        if let Some(s) = s.borrow_mut().as_mut() {
+            s.on_closed = Some(Rc::new(action));
+        }
+    });
+}
+
+/// The field dialog's confirm button waits for non-blank text, and Enter
+/// doesn't submit (a Modal without a form). Call right after `field`.
+pub fn set_field_needs_text() {
+    STATE.with(|s| {
+        if let Some(s) = s.borrow_mut().as_mut() {
+            s.needs_text = true;
+        }
+    });
+    if let Some(ui) = window() {
+        let dialogs = ui.global::<Dialogs>();
+        dialogs.set_submit_on_enter(false);
+        dialogs.set_confirm_disabled(dialogs.get_field_text().trim().is_empty());
+    }
+}
+
+/// Is a dialog up (or still animating out)?
+pub fn is_open() -> bool {
+    window().is_some_and(|ui| !ui.global::<Dialogs>().get_kind().is_empty())
 }
 
 fn window() -> Option<AppWindow> {
@@ -110,6 +166,7 @@ pub fn confirm(spec: Confirm, on_confirm: impl Fn() + 'static) {
     let Some(ui) = window() else { return };
     snapshot_backdrop(&ui);
     let dialogs = ui.global::<Dialogs>();
+    reset(&dialogs);
     dialogs.set_title(spec.title.into());
     dialogs.set_description(spec.description.into());
     dialogs.set_body(spec.body.into());
@@ -156,6 +213,7 @@ pub fn field(spec: Field, on_submit: impl Fn(String) + 'static) {
     let Some(ui) = window() else { return };
     snapshot_backdrop(&ui);
     let dialogs = ui.global::<Dialogs>();
+    reset(&dialogs);
     dialogs.set_title(spec.title.into());
     dialogs.set_description(spec.description.into());
     dialogs.set_field_label(spec.label.into());
@@ -239,6 +297,15 @@ pub fn create_collection_modal(on_created: Option<Rc<dyn Fn(String)>>) {
     }
     snapshot_backdrop(&ui);
     let dialogs = ui.global::<Dialogs>();
+    reset(&dialogs);
+    STATE.with(|s| {
+        if let Some(s) = s.borrow_mut().as_mut() {
+            s.needs_text = true;
+        }
+    });
+    // disabled={!name.trim() || isCreating}; no form, so Enter does nothing.
+    dialogs.set_confirm_disabled(true);
+    dialogs.set_submit_on_enter(false);
     dialogs.set_title(shell::tr("sidebar.create_collection").into());
     dialogs.set_description(shell::tr("sidebar.create_collection_description").into());
     dialogs.set_field_label(shell::tr("sidebar.collection_name").into());
@@ -279,6 +346,7 @@ fn create_collection() {
     }
     let Some(api) = shell::api() else { return };
     dialogs.set_busy(true);
+    dialogs.set_confirm_label(shell::tr("sidebar.creating_collection").into());
     std::thread::spawn(move || {
         let result = api.post(
             "/profile/games/collections",
@@ -292,6 +360,7 @@ fn create_collection() {
             let Some(ui) = window() else { return };
             let dialogs = ui.global::<Dialogs>();
             dialogs.set_busy(false);
+            dialogs.set_confirm_label(shell::tr("sidebar.create").into());
             match result {
                 Ok(collection) => {
                     toast::success(&shell::tr("sidebar.collection_created"));

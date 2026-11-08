@@ -290,6 +290,23 @@ fn apply(previous: Option<String>) {
     if route_changed {
         crate::search::sync_text(location.route());
     }
+    // ScanGamesProvider: `?openScanModal=true` (the scan notification) opens
+    // the modal and leaves the URL (setSearchParams, replace).
+    if location.param("openScanModal") == Some("true") {
+        let rest: Vec<String> = location
+            .query
+            .iter()
+            .filter(|(k, _)| k != "openScanModal")
+            .map(|(k, v)| format!("{}={}", encode(k), encode(v)))
+            .collect();
+        let path = if rest.is_empty() {
+            location.pathname.clone()
+        } else {
+            format!("{}?{}", location.pathname, rest.join("&"))
+        };
+        replace_current(&path);
+        crate::library_modals::open_scan();
+    }
 }
 
 #[cfg(test)]

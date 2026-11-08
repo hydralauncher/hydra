@@ -377,10 +377,17 @@ fn wire(ui: &AppWindow) {
         crate::dialogs::create_collection_modal(None);
     });
     data.on_collection_context_menu(|id, x, y| {
-        eprintln!("TODO(collections): collection context menu for {id} at {x},{y}");
+        let name = crate::collections::get()
+            .items
+            .into_iter()
+            .find(|(c, _)| *c == id.as_str())
+            .map(|(_, name)| name);
+        if let Some(name) = name {
+            crate::collections::open_context_menu(&id, &name, x, y, None);
+        }
     });
-    data.on_scan(|| eprintln!("TODO(scan): open the scan games modal"));
-    data.on_add_game(|| eprintln!("TODO(custom games): SidebarAddingCustomGameModal"));
+    data.on_scan(crate::library_modals::open_scan);
+    data.on_add_game(crate::library_modals::open_custom_game);
     data.on_retry_hidden(|| load_hidden());
 
     // The title bar search filters the library while on it (debounced 180ms).
@@ -490,6 +497,32 @@ pub fn close() {
         p.pending.clear();
         p.wanted.lock().unwrap().clear();
     });
+}
+
+/// isScanning: the toolbar's sync icon spins while a scan runs.
+pub fn set_scanning(scanning: bool) {
+    if let Some(ui) = with_page(|p| p.ui.upgrade()).flatten() {
+        ui.global::<LibraryData>().set_scanning(scanning);
+    }
+}
+
+/// A collection was deleted: leave it if it is the selected one.
+pub fn on_collection_deleted(id: &str) {
+    let selected = with_page(|p| {
+        if p.collection.as_deref() == Some(id) {
+            p.collection = None;
+            true
+        } else {
+            false
+        }
+    })
+    .unwrap_or(false);
+    if selected {
+        shell::storage_remove("library-collection");
+        if on_library() {
+            apply_filters(true);
+        }
+    }
 }
 
 /// hydra:game-visibility-updated: hidden games and collections reload.
