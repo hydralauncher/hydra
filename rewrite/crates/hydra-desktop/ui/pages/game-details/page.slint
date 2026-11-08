@@ -68,6 +68,10 @@ export component GameDetailsPage inherits Rectangle {
 
     // reviewsRef.scrollIntoView({ behavior: "smooth" })
     property <length> reviews-top;
+    property <int> scroll-reviews-request: GameData.scroll-reviews-request;
+    changed scroll-reviews-request => {
+        root.scroll-to-reviews();
+    }
     public function scroll-to-reviews() {
         root.scroll-by-key(-Math.min(root.reviews-top, root.max-scroll) - root.scroll-y);
     }

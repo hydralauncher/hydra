@@ -43,6 +43,8 @@ export global GameData {
     in property <[Language]> languages;
     // shop !== "custom": the reviews and the sidebar
     in property <bool> show-reviews: true;
+    // Bumped to scroll the reviews into view (`?reviews=true`).
+    in property <int> scroll-reviews-request;
     // -1 hidden (no cloud save info), 0 synced, 1 syncing
     in property <int> cloud-state: -1;
     in property <float> cloud-progress;

@@ -7,7 +7,7 @@ import { Modal, ModalController } from "../../components/modal.slint";
 import { RepacksModalBody } from "repacks.slint";
 import { DownloadSettingsBody, DownloadSettings } from "download-settings.slint";
 import { GameData } from "state.slint";
-import { GameOptionsBody } from "options.slint";
+import { GameOptionsBody, GameOptions } from "options.slint";
 import { PlaytimeModals, UpdatePlaytimeBody, ResetPlaytimeBody } from "playtime.slint";
 import { OptionModals, ResetAchievementsBody, SteamUninstallBody } from "option-modals.slint";
 import { Nav, T } from "../../globals.slint";
@@ -55,7 +55,8 @@ export component GameModalsHost inherits Rectangle {
     if options-state.mounted: Modal {
         width: root.width;
         height: root.height;
-        title: GameData.game-title;
+        // presentation?.title ?? game.title (the modal also opens over the library)
+        title: GameOptions.modal-title != "" ? GameOptions.modal-title : GameData.game-title;
         large: true;
         no-content-padding: true;
         content-min-height: 520px;

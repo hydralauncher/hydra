@@ -143,6 +143,24 @@ fn open(category: &str) {
     let Some((shop, object_id)) = crate::game_page::current() else {
         return;
     };
+    open_game(shop, object_id, category);
+}
+
+/// The library context menu's "Customize" / "Properties": the same modal
+/// over the library (GameOptionsModal in game-context-menu.tsx).
+pub fn open_for(shop: &str, object_id: &str, category: &str) {
+    open_game(shop.to_string(), object_id.to_string(), category);
+    // The blurred backdrop is a snapshot: take it after the menu item's
+    // handler returns and the context menu closes, so it isn't frozen in.
+    slint::Timer::single_shot(Duration::ZERO, || {
+        with_ui(|ui| {
+            ui.global::<GameData>().invoke_modal_opening();
+            ui.global::<GameData>().set_options_open(true);
+        });
+    });
+}
+
+fn open_game(shop: String, object_id: String, category: &str) {
     STATE.with(|s| {
         let mut s = s.borrow_mut();
         s.shop = shop.clone();
@@ -219,6 +237,7 @@ fn refresh() {
             label: t("game_details.settings_category_danger_zone").into(),
         });
         options.set_categories(ModelRc::new(VecModel::from(categories)));
+        options.set_modal_title(title.clone().into());
         options.set_title_text(title.into());
         options.set_title_busy(false);
         options.set_steam_import(steam_import);
@@ -302,6 +321,7 @@ fn set_title(key: &str, title: &str) {
         Ok(Some(_)) => {
             STATE.with(|s| s.borrow_mut().title = title.to_string());
             with_ui(|ui| {
+                ui.global::<GameOptions>().set_modal_title(title.into());
                 ui.global::<GameOptions>().set_title_text(title.into());
                 ui.global::<GameData>().set_game_title(title.into());
             });

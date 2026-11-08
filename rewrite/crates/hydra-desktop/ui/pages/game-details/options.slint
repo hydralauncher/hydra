@@ -24,6 +24,8 @@ export struct ProtonOption {
 export global GameOptions {
     in property <[OptionsCategory]> categories;
     in-out property <string> category: "general";
+    // The modal title (presentation?.title ?? game.title)
+    in property <string> modal-title;
 
     // Compatibility (Linux): compatibility-section.tsx
     in property <string> wine-prefix;

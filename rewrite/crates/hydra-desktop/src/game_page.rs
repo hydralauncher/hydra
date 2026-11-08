@@ -315,6 +315,22 @@ pub fn refresh_artwork() {
     }
 }
 
+/// `?reviews=true`: scrollIntoView the reviews 500ms after the page opens.
+pub fn scroll_to_reviews_later() {
+    let Some(generation) = with_app(|app| app.generation) else {
+        return;
+    };
+    Timer::single_shot(Duration::from_millis(500), move || {
+        if with_app(|app| app.generation) != Some(generation) {
+            return;
+        }
+        if let Some(ui) = with_app(|app| app.ui.upgrade()).flatten() {
+            let g = gd(&ui);
+            g.set_scroll_reviews_request(g.get_scroll_reviews_request() + 1);
+        }
+    });
+}
+
 /// The open game's achievements changed (reset): load them again.
 pub fn refresh_achievements() {
     if let Some((shop, object_id)) = current() {

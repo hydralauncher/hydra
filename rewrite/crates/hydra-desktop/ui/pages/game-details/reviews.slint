@@ -434,7 +434,8 @@ component ReviewGateNotice inherits Rectangle {
         VerticalLayout {
             alignment: center;
             Icon {
-                source: Icons.lock;
+                // LockIcon size={20}: the 16px octicon scaled
+                source: @image-url("../../icons/lock-16.svg");
                 width: 20px;
                 height: 20px;
                 color: Theme.muted;
