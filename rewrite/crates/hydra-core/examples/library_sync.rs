@@ -41,6 +41,20 @@ fn main() {
     let mut summary: Vec<_> = library_sync::summarize(&db).into_iter().collect();
     summary.sort();
     println!("local: {summary:?}");
+    match api.get(
+        "/profile/integrations/steam",
+        &[],
+        hydra_core::api::Options::default(),
+    ) {
+        Ok(status) => println!(
+            "steam: connected={} snapshotPreserved={} lastSyncedAt={} latestSyncRun={}",
+            status["connected"],
+            status["snapshotPreserved"],
+            status["lastSyncedAt"],
+            status["latestSyncRun"]["status"]
+        ),
+        Err(error) => println!("steam status: {error}"),
+    }
 
     // uploadGamesBatch, printed only
     let games: Vec<(String, Map<String, Value>)> = db.entries(keys::GAMES).expect("games");

@@ -1297,7 +1297,7 @@ pub fn upload_local_games(
                     && str_of(game, "source") != Some("epic")
             })
             .collect();
-        if latest.is_empty() {
+        if latest.is_empty() || !api.is_logged_in() {
             continue;
         }
         let body = Value::Array(latest.iter().map(upload_item).collect());
@@ -1309,8 +1309,9 @@ pub fn upload_local_games(
             eprintln!("[library-sync] dry run: POST /profile/games/batch {body}");
             continue;
         }
-        // `.catch(() => {})`: a failed chunk doesn't stop the others.
-        if let Err(error) = api.post(
+        // `.catch(() => {})`: a failed chunk doesn't stop the others. Signed
+        // out, validateOptions refuses before any request.
+        match api.post(
             "/profile/games/batch",
             &body,
             Options {
@@ -1318,7 +1319,9 @@ pub fn upload_local_games(
                 timeout: Some(GAME_REQUEST_TIMEOUT),
             },
         ) {
-            eprintln!("[library-sync] games batch failed: {error}");
+            Ok(_) => {}
+            Err(ApiError::NotLoggedIn) => sent -= latest.len(),
+            Err(error) => eprintln!("[library-sync] games batch failed: {error}"),
         }
     }
     Ok(sent)
@@ -1451,6 +1454,13 @@ pub fn summarize(db: &Db) -> HashMap<&'static str, usize> {
             .count(),
     );
     out.insert("upload candidates", upload_candidates(&games).len());
+    out.insert(
+        "steam imports",
+        games
+            .iter()
+            .filter(|(_, g)| is_true(g, "hasActiveSteamImport"))
+            .count(),
+    );
     out
 }
 
