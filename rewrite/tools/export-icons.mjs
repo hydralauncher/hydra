@@ -190,6 +190,23 @@ const icons = {
   "lucide-chevrons-right": [lucide.ChevronsRight, { size: 18, strokeWidth: 2.25, absoluteStrokeWidth: true }],
   question: [oct.QuestionIcon, { size: 28 }],
   "arrow-down-24": [oct.ArrowDownIcon, { size: 24 }],
+  // Profile (profile-hero, profile-content, edit-profile-modal, image-crop-modal)
+  "copy-16": [oct.CopyIcon, { size: 16 }],
+  "person-add": [oct.PersonAddIcon, { size: 16 }],
+  blocked: [oct.BlockedIcon, { size: 16 }],
+  "gift-16": [oct.GiftIcon, { size: 16 }],
+  upload: [oct.UploadIcon, { size: 16 }],
+  "chevron-down-14": [oct.ChevronDownIcon, { size: 14 }],
+  "report-13": [oct.ReportIcon, { size: 13 }],
+  "device-camera-38": [oct.DeviceCameraIcon, { size: 38 }],
+  "award-20": [lucide.Award, { size: 20 }],
+  "trash-lucide-14": [lucide.TrashIcon, { size: 14 }],
+  "grid-2x2": [lucide.Grid2x2Icon, { size: 16 }],
+  "minus-lucide": [lucide.MinusIcon, { size: 16 }],
+  "plus-lucide": [lucide.PlusIcon, { size: 16 }],
+  "rotate-ccw-square": [lucide.RotateCcwSquareIcon, { size: 16 }],
+  "rotate-ccw": [lucide.RotateCcwIcon, { size: 16 }],
+  "lock-24": [oct.LockIcon, { size: 24 }],
 };
 
 for (const [name, [Icon, props]] of Object.entries(icons)) {

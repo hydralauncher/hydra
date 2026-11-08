@@ -1,0 +1,15 @@
+// Mounts the profile's modal host for headless tests (tests/profile_crop.rs).
+import "../ui/fonts/NotoSans-Regular.ttf";
+import { ProfileModalsHost, ProfileModals } from "../ui/pages/profile/modals.slint";
+import { T } from "../ui/globals.slint";
+export { ProfileModals, T }
+
+export component ProfileHarness inherits Window {
+    width: 1440px;
+    height: 900px;
+    default-font-family: "Noto Sans";
+    ProfileModalsHost {
+        width: root.width;
+        height: root.height;
+    }
+}

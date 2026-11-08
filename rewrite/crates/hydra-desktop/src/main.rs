@@ -39,6 +39,9 @@ mod notify;
 mod playtime_modals;
 mod popup;
 mod prefs;
+mod profile_modals;
+mod profile_page;
+mod profile_souvenirs;
 mod realtime;
 mod search;
 mod settings_account;
@@ -257,6 +260,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     notifications_page::init(&ui);
     search::init(&ui);
     achievements_page::init(&ui);
+    profile_page::init(&ui);
+    profile_modals::init(&ui);
+    profile_souvenirs::init(&ui);
     if let Some(api) = shell::api() {
         realtime::init(api);
     }
@@ -276,6 +282,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if owner == "catalogue-sort" {
                 catalogue_page::set_sort(&value);
             }
+            profile_modals::select_chosen(&owner, &value);
         });
     }
     gifs::init(&ui);
@@ -349,6 +356,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     library_page::shutdown();
     home_page::shutdown();
     catalogue_page::shutdown();
+    profile_page::close();
     shell::shutdown();
     drop(ui);
     std::process::exit(0);

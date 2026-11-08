@@ -17,6 +17,15 @@ thread_local! {
     static RUNNING: RefCell<HashSet<String>> = RefCell::new(HashSet::new());
     /// gameRunning: the last game in the on-games-running list
     static SHOWN: RefCell<Option<String>> = const { RefCell::new(None) };
+    /// gameRunning.sessionDurationInMillis of the shown game
+    static SESSION: RefCell<u64> = const { RefCell::new(0) };
+}
+
+/// gameRunning: the shown game's "shop:objectId" and its session length.
+pub fn shown_game() -> Option<(String, u64)> {
+    SHOWN
+        .with(|s| s.borrow().clone())
+        .map(|id| (id, SESSION.with(|s| *s.borrow())))
 }
 
 pub fn init(db: Arc<Db>, api: Arc<HydraApi>) {
@@ -32,7 +41,9 @@ pub fn init(db: Arc<Db>, api: Arc<HydraApi>) {
 }
 
 fn on_running(running: Vec<Running>) {
+    SESSION.with(|s| *s.borrow_mut() = running.last().map(|r| r.session_millis).unwrap_or(0));
     update_game_running(&running);
+    crate::profile_page::on_games_running();
     let ids: HashSet<String> = running.into_iter().map(|r| r.id).collect();
     let changed = RUNNING.with(|r| {
         let mut r = r.borrow_mut();

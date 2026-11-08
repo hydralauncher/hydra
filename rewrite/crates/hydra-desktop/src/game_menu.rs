@@ -342,11 +342,15 @@ fn activated(id: &str) {
                 },
                 move |result| {
                     match result {
-                        Ok(()) => toast::success(&t(if pin {
-                            "game_details.game_added_to_pinned"
-                        } else {
-                            "game_details.game_removed_from_pinned"
-                        })),
+                        Ok(()) => {
+                            // "hydra:game-pin-toggled": the profile reloads its library
+                            crate::profile_page::on_pin_toggled();
+                            toast::success(&t(if pin {
+                                "game_details.game_added_to_pinned"
+                            } else {
+                                "game_details.game_removed_from_pinned"
+                            }))
+                        }
                         Err(error) => {
                             eprintln!("Failed to toggle pin: {error}");
                             toast::error(&t("game_details.failed_update_pinned"));
@@ -563,6 +567,7 @@ fn set_visibility(field: Visibility, value: bool) {
                     context_menu::close();
                     // hydra:game-visibility-updated: the library reloads its hidden games too.
                     crate::library_page::on_visibility_changed();
+                    crate::profile_page::on_visibility_changed();
                 }
                 Err(error) => {
                     eprintln!("Failed to update game visibility: {error}");

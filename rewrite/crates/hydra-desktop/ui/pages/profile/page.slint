@@ -1,0 +1,678 @@
+// pages/profile (profile.tsx, profile-content.{tsx,scss}): the hero, the
+// tabs (spring underline), the tab panels and the right rail, in the
+// page's own scroller (#scrollableDiv). Rust fills `ProfileData`
+// (profile_page.rs).
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, ScrollBar } from "../../components/widgets.slint";
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { T, Popup } from "../../globals.slint";
+import { ProfileData } from "state.slint";
+import { ProfileHero, ProfileIcons } from "hero.slint";
+import { ProfileRail } from "rail.slint";
+import { LibraryGrid, PinnedGrid, SectionHeader, LibrarySkeleton, NoGames } from "library.slint";
+import { ReviewsTab } from "reviews.slint";
+import { SouvenirsTab } from "souvenirs.slint";
+import { FilterTrigger, FilterOption } from "widgets.slint";
+
+export { ProfileData }
+
+// profile-content__tab: subtle, body on hover, muted when active; the count pill
+component Tab inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    in property <int> count;
+    callback clicked();
+    width: row.preferred-width;
+    height: 35px;
+    row := HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        spacing: 4px;
+        Text {
+            text: root.label;
+            font-size: Theme.body-size;
+            font-weight: 500;
+            color: root.active ? Theme.muted : touch.has-hover ? Theme.body : Theme.subtle;
+            animate color { duration: 200ms; easing: ease; }
+            vertical-alignment: center;
+        }
+        if root.count > 0: VerticalLayout {
+            alignment: center;
+            Rectangle {
+                height: 18px;
+                width: Math.max(18px, count-text.preferred-width + 8px);
+                border-radius: 9px;
+                background: rgba(255, 255, 255, 0.15);
+                count-text := Text {
+                    text: root.count;
+                    font-size: Theme.tiny-size;
+                    font-weight: 700;
+                    color: rgba(255, 255, 255, 0.9);
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// locked-profile: the lock in a 60px circle and the title
+component LockedProfile inherits VerticalLayout {
+    spacing: 8px;
+    alignment: center;
+    HorizontalLayout {
+        alignment: center;
+        padding-bottom: 16px;
+        Rectangle {
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.06);
+            Icon {
+                width: 24px;
+                height: 24px;
+                source: @image-url("../../icons/lock-24.svg");
+                color: Theme.muted;
+            }
+        }
+    }
+    Text {
+        text: T.tr("user_profile.locked_profile");
+        font-size: 21px;
+        font-weight: 700;
+        color: Theme.body;
+        horizontal-alignment: center;
+    }
+}
+
+// filter-dropdown__menu: min-width 100%, 6px under the trigger, fade/slide in 0.12s
+component FilterMenu inherits Rectangle {
+    in property <length> anchor-x;
+    in property <length> anchor-y;
+    in property <length> anchor-width;
+    in property <length> anchor-height;
+    property <bool> entered;
+    Timer {
+        interval: 16ms;
+        running: !root.entered;
+        triggered => {
+            root.entered = true;
+        }
+    }
+    x: root.anchor-x;
+    y: root.anchor-y + root.anchor-height + 6px + (root.entered ? 0 : -4px);
+    animate y { duration: 120ms; easing: ease; }
+    opacity: root.entered ? 1 : 0;
+    animate opacity { duration: 120ms; easing: ease; }
+    width: Math.max(root.anchor-width, list.preferred-width);
+    height: list.preferred-height;
+    background: Theme.dark-background;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+    drop-shadow-offset-y: 8px;
+    drop-shadow-blur: 24px;
+    drop-shadow-color: rgba(0, 0, 0, 0.5);
+    function publish-box() {
+        Popup.box-x = root.absolute-position.x;
+        Popup.box-y = root.absolute-position.y + (root.entered ? 0 : 4px);
+        Popup.box-width = root.width;
+        Popup.box-height = root.height;
+    }
+    init => {
+        root.publish-box();
+    }
+    changed width => {
+        root.publish-box();
+    }
+    changed height => {
+        root.publish-box();
+    }
+    // Clicks between the options stay in the menu.
+    TouchArea { }
+    list := VerticalLayout {
+        padding: 5px;
+        spacing: 2px;
+        @children
+    }
+}
+
+component BannerMenuItem inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    callback activated();
+    height: row.preferred-height;
+    border-radius: 4px;
+    background: touch.has-hover && !ProfileData.banner-uploading ? rgba(255, 255, 255, 0.1) : transparent;
+    animate background { duration: 100ms; easing: ease-in-out; }
+    opacity: ProfileData.banner-uploading ? 0.6 : 1;
+    row := HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+        spacing: 8px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: root.icon;
+                color: Theme.body;
+            }
+        }
+        Text {
+            text: root.label;
+            font-size: Theme.body-size;
+            color: Theme.body;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: ProfileData.banner-uploading ? default : pointer;
+        clicked => {
+            if (!ProfileData.banner-uploading) {
+                root.activated();
+            }
+        }
+    }
+}
+
+// The banner menu (Replace / Remove), position: fixed under the button,
+// right-aligned: menu-fade-in 0.2s ease-out, menu-fade-out 0.15s ease-in.
+component BannerMenu inherits Rectangle {
+    in property <length> anchor-right;
+    in property <length> anchor-bottom;
+    in property <bool> closing;
+    property <bool> entered;
+    Timer {
+        interval: 16ms;
+        running: !root.entered;
+        triggered => {
+            root.entered = true;
+        }
+    }
+    property <bool> shown: root.entered && !root.closing;
+    width: Math.max(180px, list.preferred-width);
+    height: list.preferred-height;
+    x: root.anchor-right - self.width;
+    y: root.anchor-bottom + 5px + (root.shown ? 0 : -8px);
+    animate y { duration: root.closing ? 150ms : 200ms; easing: root.closing ? ease-in : ease-out; }
+    opacity: root.shown ? 1 : 0;
+    animate opacity { duration: root.closing ? 150ms : 200ms; easing: root.closing ? ease-in : ease-out; }
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: Theme.border;
+    // rgba(0,0,0,.4) over backdrop-filter: blur(20px) (drawn as the average dark)
+    background: #0b0b0bee;
+    drop-shadow-offset-y: 4px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: rgba(0, 0, 0, 0.4);
+    init => {
+        Popup.box-x = self.absolute-position.x;
+        Popup.box-y = self.absolute-position.y + 8px;
+        Popup.box-width = self.width;
+        Popup.box-height = self.height;
+    }
+    TouchArea { }
+    list := VerticalLayout {
+        padding: 5px;
+        BannerMenuItem {
+            icon: ProfileIcons.upload;
+            label: T.tr("user_profile.replace_banner");
+            activated => {
+                Popup.open = "";
+                ProfileData.banner-clicked(-1px, 0, 0, 0);
+            }
+        }
+        BannerMenuItem {
+            icon: ProfileIcons.trash;
+            label: T.tr("user_profile.remove_banner");
+            activated => {
+                Popup.open = "";
+                ProfileData.banner-clicked(-2px, 0, 0, 0);
+            }
+        }
+    }
+}
+
+export component ProfilePage inherits Rectangle {
+    // ---- scrolling (#scrollableDiv): Chromium-like wheel tween
+    property <length> max-scroll: Math.max(0, page.content-height - page.height);
+    property <length> scroll-y;
+    property <ScrollTween> tween;
+    property <length> shown-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+    function wheel-by(dy: length) {
+        if (Popup.open == "profile-banner") {
+            Popup.open = "";
+        }
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    // A new profile starts at the top.
+    property <string> user: ProfileData.user-id;
+    changed user => {
+        root.tween.active = false;
+        root.scroll-y = 0;
+    }
+
+    // The panel on screen: the motion panels (reviews, souvenirs) play their
+    // 200ms exit before the next one mounts (AnimatePresence mode="wait").
+    property <string> wanted-tab: ProfileData.tab;
+    property <string> shown-tab: "library";
+    property <bool> leaving;
+    init => {
+        root.shown-tab = ProfileData.tab;
+    }
+    changed wanted-tab => {
+        if (root.shown-tab == "reviews" || root.shown-tab == "souvenirs") {
+            root.leaving = true;
+            exit-timer.running = false;
+            exit-timer.running = true;
+        } else {
+            root.shown-tab = root.wanted-tab;
+        }
+    }
+    exit-timer := Timer {
+        interval: 200ms;
+        running: false;
+        triggered => {
+            self.running = false;
+            root.leaving = false;
+            root.shown-tab = root.wanted-tab;
+        }
+    }
+
+    // InfiniteScroll (scrollThreshold 0.9) on the library tab
+    property <bool> near-end: -root.shown-y + page.height >= page.content-height * 0.9;
+    changed near-end => {
+        if (root.near-end && ProfileData.tab == "library") {
+            ProfileData.load-more-games();
+        }
+        if (root.near-end && ProfileData.tab == "souvenirs") {
+            ProfileData.load-more-souvenirs();
+        }
+    }
+    property <int> souvenir-count: ProfileData.souvenirs.length;
+    changed souvenir-count => {
+        if (root.near-end && ProfileData.tab == "souvenirs") {
+            ProfileData.load-more-souvenirs();
+        }
+    }
+    property <int> game-count: ProfileData.games.length;
+    changed game-count => {
+        if (root.near-end && ProfileData.tab == "library") {
+            ProfileData.load-more-games();
+        }
+    }
+
+    // .container__content keeps a 9px scrollbar gutter.
+    property <length> content-width: root.width - 9px;
+    property <bool> show-rail: ProfileData.show-rail;
+    property <length> main-width: root.content-width - 48px - (root.show-rail ? 280px + 24px : 0);
+    // tabs (36) + 16
+    property <bool> has-any-games: ProfileData.games.length > 0 || ProfileData.pinned.length > 0;
+
+    page := Flickable {
+        x: 0;
+        width: root.content-width;
+        height: root.height;
+        interactive: false;
+        content-height: column.preferred-height;
+        content-y: root.shown-y;
+        TouchArea {
+            width: page.width;
+            height: page.content-height;
+            scroll-event(event) => {
+                root.wheel-by(event.delta-y);
+                accept
+            }
+            column := VerticalLayout {
+                ProfileHero { }
+
+                if ProfileData.loaded && ProfileData.locked: LockedProfile { }
+
+                // __section: padding 24, gap 24 (main + rail)
+                if ProfileData.loaded && !ProfileData.locked: HorizontalLayout {
+                    padding: 24px;
+                    spacing: 24px;
+                    main := VerticalLayout {
+                        width: root.main-width;
+                        alignment: start;
+                        // __tabs: 35px buttons over a 1px border, margin-bottom 16
+                        Rectangle {
+                            height: 36px;
+                            Rectangle {
+                                y: parent.height - 1px;
+                                height: 1px;
+                                background: rgba(255, 255, 255, 0.1);
+                            }
+                            tabs := HorizontalLayout {
+                                height: 35px;
+                                y: 0;
+                                alignment: start;
+                                spacing: 8px;
+                                library-tab := Tab {
+                                    label: T.tr("user_profile.library");
+                                    active: ProfileData.tab == "library";
+                                    clicked => {
+                                        ProfileData.set-tab("library");
+                                    }
+                                }
+                                reviews-tab := Tab {
+                                    label: T.tr("user_profile.user_reviews");
+                                    active: ProfileData.tab == "reviews";
+                                    count: ProfileData.reviews-count;
+                                    clicked => {
+                                        ProfileData.set-tab("reviews");
+                                    }
+                                }
+                                souvenirs-tab := Tab {
+                                    label: T.tr("user_profile.souvenirs");
+                                    active: ProfileData.tab == "souvenirs";
+                                    count: ProfileData.souvenirs-count;
+                                    clicked => {
+                                        ProfileData.set-tab("souvenirs");
+                                    }
+                                }
+                                screenshots-tab := Tab {
+                                    visible: ProfileData.show-screenshots;
+                                    width: ProfileData.show-screenshots ? self.preferred-width : 0;
+                                    label: T.tr("screenshots.tab_title");
+                                    active: ProfileData.tab == "screenshots";
+                                    count: ProfileData.screenshots-count;
+                                    clicked => {
+                                        ProfileData.set-tab("screenshots");
+                                    }
+                                }
+                            }
+                            // __tab-underline: layoutId spring (stiffness 300, damping 30)
+                            Rectangle {
+                                y: 33px;
+                                height: 2px;
+                                background: #ffffff;
+                                x: ProfileData.tab == "library" ? library-tab.x
+                                    : ProfileData.tab == "reviews" ? reviews-tab.x
+                                    : ProfileData.tab == "souvenirs" ? souvenirs-tab.x : screenshots-tab.x;
+                                width: ProfileData.tab == "library" ? library-tab.width
+                                    : ProfileData.tab == "reviews" ? reviews-tab.width
+                                    : ProfileData.tab == "souvenirs" ? souvenirs-tab.width : screenshots-tab.width;
+                                animate x, width { duration: 350ms; easing: cubic-bezier(0.2, 0.9, 0.3, 1); }
+                            }
+                        }
+                        Rectangle {
+                            height: 16px;
+                        }
+
+                        // ---- Library tab
+                        if root.shown-tab == "library": VerticalLayout {
+                            // __library-filters: gap 8, margin-bottom 16
+                            HorizontalLayout {
+                                alignment: start;
+                                spacing: 8px;
+                                padding-bottom: 16px;
+                                platform-trigger := FilterTrigger {
+                                    placeholder: T.tr("user_profile.platform");
+                                    label: ProfileData.platform == "pc" ? T.tr("user_profile.platform_pc") : ProfileData.platform == "classics" ? T.tr("user_profile.platform_classics") : T.tr("user_profile.platform_all");
+                                    icon: ProfileData.platform == "pc" ? @image-url("../../icons/device-desktop-14.svg") : ProfileData.platform == "classics" ? @image-url("../../icons/classics.svg") : @image-url("../../icons/stack-14.svg");
+                                    keep-colors: ProfileData.platform == "classics";
+                                    open: Popup.open == "profile-platform";
+                                    clicked => {
+                                        Popup.toggle("profile-platform", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                                    }
+                                }
+                                if root.has-any-games: sort-trigger := FilterTrigger {
+                                    placeholder: T.tr("user_profile.sort_by");
+                                    label: ProfileData.sort == "playtime" ? T.tr("user_profile.playtime") : ProfileData.sort == "achievementCount" ? T.tr("user_profile.achievements_earned") : T.tr("user_profile.played_recently");
+                                    icon: ProfileData.sort == "playtime" ? @image-url("../../icons/clock-14.svg") : ProfileData.sort == "achievementCount" ? @image-url("../../icons/trophy-14.svg") : @image-url("../../icons/history-14.svg");
+                                    open: Popup.open == "profile-sort";
+                                    clicked => {
+                                        Popup.toggle("profile-sort", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                                    }
+                                }
+                            }
+                            if ProfileData.library-awaiting: LibrarySkeleton { }
+                            if !ProfileData.library-awaiting && !root.has-any-games: NoGames {
+                                padding-top: 24px;
+                            }
+                            if !ProfileData.library-awaiting && ProfileData.pinned.length > 0: VerticalLayout {
+                                padding-bottom: 32px;
+                                SectionHeader {
+                                    title: T.tr("user_profile.pinned");
+                                    count: ProfileData.pinned.length;
+                                }
+                                Rectangle {
+                                    height: 16px;
+                                }
+                                PinnedGrid { }
+                            }
+                            if !ProfileData.library-awaiting && ProfileData.games.length > 0: VerticalLayout {
+                                SectionHeader {
+                                    title: T.tr("user_profile.library");
+                                    count: ProfileData.library-count;
+                                }
+                                Rectangle {
+                                    height: 16px;
+                                }
+                                grid := LibraryGrid {
+                                    chunk: root.width >= 3000px ? 12 : root.width >= 2600px ? 8 : root.width >= 2000px ? 6 : root.width >= 1300px ? 5 : root.width >= 900px ? 4 : 2;
+                                    view-top: page.absolute-position.y - self.absolute-position.y;
+                                    view-height: page.height;
+                                }
+                            }
+                        }
+
+                        // ---- Reviews tab (motion: opacity 0 -> 1, x -10 -> 0, 0.2s)
+                        if root.shown-tab == "reviews": ReviewsTab {
+                            leaving: root.leaving;
+                        }
+
+                        if root.shown-tab == "souvenirs": SouvenirsTab {
+                            leaving: root.leaving;
+                        }
+
+                        if root.shown-tab == "screenshots": Text {
+                            height: 120px;
+                            text: "TODO(profile): " + ProfileData.tab;
+                            color: Theme.subtle;
+                            font-size: Theme.small-size;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                    if root.show-rail: ProfileRail {
+                        width: 280px;
+                        alignment: start;
+                    }
+                }
+            }
+        }
+    }
+
+    if root.max-scroll > 0: ScrollBar {
+        x: root.width - self.width;
+        height: root.height;
+        content-height: page.content-height;
+        viewport-height: page.height;
+        content-y <=> root.scroll-y;
+        shown-offset: -root.shown-y;
+    }
+
+    // filter-dropdown menus (closed by a press outside or Escape)
+    if Popup.open == "profile-platform": FilterMenu {
+        anchor-x: Popup.anchor-x - root.absolute-position.x;
+        anchor-y: Popup.anchor-y - root.absolute-position.y;
+        anchor-width: Popup.anchor-width;
+        anchor-height: Popup.anchor-height;
+        FilterOption {
+            label: T.tr("user_profile.platform_all");
+            icon: @image-url("../../icons/stack-14.svg");
+            active: ProfileData.platform == "all";
+            activated => {
+                ProfileData.set-platform("all");
+                Popup.open = "";
+            }
+        }
+        FilterOption {
+            label: T.tr("user_profile.platform_pc");
+            icon: @image-url("../../icons/device-desktop-14.svg");
+            active: ProfileData.platform == "pc";
+            activated => {
+                ProfileData.set-platform("pc");
+                Popup.open = "";
+            }
+        }
+        FilterOption {
+            label: T.tr("user_profile.platform_classics");
+            icon: @image-url("../../icons/classics.svg");
+            keep-colors: true;
+            active: ProfileData.platform == "classics";
+            activated => {
+                ProfileData.set-platform("classics");
+                Popup.open = "";
+            }
+        }
+    }
+    if Popup.open == "profile-sort": FilterMenu {
+        anchor-x: Popup.anchor-x - root.absolute-position.x;
+        anchor-y: Popup.anchor-y - root.absolute-position.y;
+        anchor-width: Popup.anchor-width;
+        anchor-height: Popup.anchor-height;
+        FilterOption {
+            label: T.tr("user_profile.played_recently");
+            icon: @image-url("../../icons/history-14.svg");
+            active: ProfileData.sort == "playedRecently";
+            activated => {
+                ProfileData.set-sort("playedRecently");
+                Popup.open = "";
+            }
+        }
+        FilterOption {
+            label: T.tr("user_profile.playtime");
+            icon: @image-url("../../icons/clock-14.svg");
+            active: ProfileData.sort == "playtime";
+            activated => {
+                ProfileData.set-sort("playtime");
+                Popup.open = "";
+            }
+        }
+        if ProfileData.sort-achievements: FilterOption {
+            label: T.tr("user_profile.achievements_earned");
+            icon: @image-url("../../icons/trophy-14.svg");
+            active: ProfileData.sort == "achievementCount";
+            activated => {
+                ProfileData.set-sort("achievementCount");
+                Popup.open = "";
+            }
+        }
+    }
+
+    if Popup.open == "profile-souvenir-grouping": FilterMenu {
+        anchor-x: Popup.anchor-x - root.absolute-position.x;
+        anchor-y: Popup.anchor-y - root.absolute-position.y;
+        anchor-width: Popup.anchor-width;
+        anchor-height: Popup.anchor-height;
+        FilterOption {
+            label: T.tr("user_profile.group_by_game");
+            icon: @image-url("../../icons/stack-14.svg");
+            active: ProfileData.souvenir-grouping == "game";
+            activated => {
+                ProfileData.set-souvenir-grouping("game");
+                Popup.open = "";
+            }
+        }
+        FilterOption {
+            label: T.tr("user_profile.no_grouping");
+            icon: @image-url("../../icons/search.svg");
+            active: ProfileData.souvenir-grouping == "none";
+            activated => {
+                ProfileData.set-souvenir-grouping("none");
+                Popup.open = "";
+            }
+        }
+    }
+    if Popup.open == "profile-souvenir-sort": FilterMenu {
+        anchor-x: Popup.anchor-x - root.absolute-position.x;
+        anchor-y: Popup.anchor-y - root.absolute-position.y;
+        anchor-width: Popup.anchor-width;
+        anchor-height: Popup.anchor-height;
+        FilterOption {
+            label: T.tr("user_profile.most_recent");
+            icon: @image-url("../../icons/history-14.svg");
+            active: ProfileData.souvenir-sort == "recent";
+            activated => {
+                ProfileData.set-souvenir-sort("recent");
+                Popup.open = "";
+            }
+        }
+        FilterOption {
+            label: T.tr("user_profile.oldest_first");
+            icon: @image-url("../../icons/history-14.svg");
+            active: ProfileData.souvenir-sort == "oldest";
+            activated => {
+                ProfileData.set-souvenir-sort("oldest");
+                Popup.open = "";
+            }
+        }
+        FilterOption {
+            label: T.tr("user_profile.rarest_first");
+            icon: @image-url("../../icons/trophy-14.svg");
+            active: ProfileData.souvenir-sort == "rare";
+            activated => {
+                ProfileData.set-souvenir-sort("rare");
+                Popup.open = "";
+            }
+        }
+    }
+
+    // The banner menu, kept 150ms after it closes for the fade-out.
+    property <bool> banner-open: Popup.open == "profile-banner";
+    property <bool> banner-closing;
+    changed banner-open => {
+        if (!self.banner-open) {
+            root.banner-closing = true;
+            banner-timer.running = true;
+        } else {
+            root.banner-closing = false;
+            banner-timer.running = false;
+        }
+    }
+    banner-timer := Timer {
+        interval: 150ms;
+        running: false;
+        triggered => {
+            self.running = false;
+            root.banner-closing = false;
+        }
+    }
+    if root.banner-open || root.banner-closing: BannerMenu {
+        anchor-right: Popup.anchor-x + Popup.anchor-width - root.absolute-position.x;
+        anchor-bottom: Popup.anchor-y + Popup.anchor-height - root.absolute-position.y;
+        closing: root.banner-closing;
+    }
+}
