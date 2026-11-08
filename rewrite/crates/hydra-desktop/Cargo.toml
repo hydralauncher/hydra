@@ -50,6 +50,11 @@ tray-icon = "0.26"
 [target.'cfg(not(windows))'.dependencies]
 notify-rust = "4"
 
+# The Linux tray: a StatusNotifierItem over D-Bus (what Electron's Linux tray
+# speaks), served from its own thread so the winit loop needs no GTK.
+[target.'cfg(target_os = "linux")'.dependencies]
+ksni = { version = "0.3", default-features = false, features = ["blocking", "async-io"] }
+
 
 [build-dependencies]
 slint-build = "1.18"
