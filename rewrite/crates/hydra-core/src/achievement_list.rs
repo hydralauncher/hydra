@@ -39,7 +39,10 @@ impl Status {
 
 /// getAchievementKey
 pub fn key(achievement: &Achievement) -> &str {
-    &achievement.name
+    achievement
+        .canonical_id
+        .as_deref()
+        .unwrap_or(&achievement.name)
 }
 
 /// isAchievementConcealed
@@ -225,9 +228,9 @@ mod tests {
             hidden: false,
             unlocked,
             unlock_time: time,
-            image_url: None,
             global_unlock_percentage: percentage,
             points,
+            ..Achievement::default()
         }
     }
 

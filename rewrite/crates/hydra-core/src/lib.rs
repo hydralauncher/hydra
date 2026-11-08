@@ -2,7 +2,10 @@
 //! Each module names the files it ports.
 
 pub mod achievement_files;
+pub mod achievement_game_files;
 pub mod achievement_list;
+pub mod achievement_store;
+pub mod achievement_watcher;
 pub mod achievements;
 pub mod api;
 pub mod config;

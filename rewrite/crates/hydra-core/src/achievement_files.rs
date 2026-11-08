@@ -59,6 +59,7 @@ const CRACKERS: [Cracker; 12] = [
 ];
 
 /// The Windows folders the crackers write to (a Wine prefix maps them under drive_c).
+#[derive(Clone, Debug)]
 pub struct Folders {
     pub app_data: PathBuf,
     pub local_app_data: PathBuf,

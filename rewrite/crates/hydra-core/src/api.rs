@@ -357,4 +357,83 @@ impl HydraApi {
         let builder = self.request(Method::DELETE, path, options);
         self.send(builder, options)
     }
+
+    /// `getResponse` with `ifNoneMatch` and `validateStatus` accepting 304:
+    /// the body and its ETag, or `NotModified`.
+    pub fn get_conditional(
+        &self,
+        path: &str,
+        query: &[(&str, String)],
+        if_none_match: Option<&str>,
+        options: Options,
+    ) -> Result<Conditional, ApiError> {
+        self.validate(options)?;
+        let url = reqwest::Url::parse_with_params(&format!("http://q{path}"), query)
+            .map_err(|e| ApiError::Network(e.to_string()))?;
+        let path = match url.query() {
+            Some(q) if !q.is_empty() => format!("{}?{q}", url.path()),
+            _ => url.path().to_string(),
+        };
+        let mut builder = self.request(Method::GET, &path, options);
+        if let Some(etag) = if_none_match {
+            builder = builder.header("If-None-Match", etag);
+        }
+        let response = builder
+            .send()
+            .map_err(|e| ApiError::Network(e.to_string()))?;
+        let status = response.status().as_u16();
+        if status == 304 {
+            return Ok(Conditional::NotModified);
+        }
+        let etag = response
+            .headers()
+            .get("etag")
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_string);
+        let text = response
+            .text()
+            .map_err(|e| ApiError::Network(e.to_string()))?;
+        let body: Option<Value> = serde_json::from_str(&text).ok();
+        if (200..300).contains(&status) {
+            return Ok(Conditional::Fresh {
+                body: body.unwrap_or(Value::Null),
+                etag,
+            });
+        }
+        let error = ApiError::Status { status, body };
+        if options.needs_auth {
+            self.handle_unauthorized(&error);
+        }
+        Err(error)
+    }
+
+    /// `HydraApi.getAuthContext()`: the signed-in account (the API URL and
+    /// the token's `userId` claim), or None when signed out.
+    pub fn auth_context(&self) -> Option<AuthContext> {
+        let token = self.auth.lock().ok()?.auth_token.clone();
+        if token.is_empty() {
+            return None;
+        }
+        let payload = crate::realtime::base64url_decode(token.split('.').nth(1)?)?;
+        let claims: Value = serde_json::from_slice(&payload).ok()?;
+        let user_id = claims.get("userId").and_then(Value::as_str)?.to_string();
+        Some(AuthContext {
+            environment: self.base.clone(),
+            user_id,
+        })
+    }
+}
+
+/// `getResponse` result with a 304 allowed.
+#[derive(Debug, Clone)]
+pub enum Conditional {
+    NotModified,
+    Fresh { body: Value, etag: Option<String> },
+}
+
+/// `HydraApiAuthContext` without the generation: an account on an API.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuthContext {
+    pub environment: String,
+    pub user_id: String,
 }
