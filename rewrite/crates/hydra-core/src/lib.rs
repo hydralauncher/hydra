@@ -15,3 +15,4 @@ pub mod library;
 pub mod library_actions;
 pub mod realtime;
 pub mod repacks;
+pub mod screenshot_prefs;

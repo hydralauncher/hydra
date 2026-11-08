@@ -26,7 +26,9 @@ export component HydraButton inherits Rectangle {
     callback clicked();
     out property <bool> hovered: touch.has-hover;
     property <int> tip-id;
-    property <color> foreground: root.kind == "primary" ? #000000 : Theme.muted;
+    // .button--primary sets no color: Chromium's buttontext, and on
+    // :disabled its rgba(16, 16, 16, 0.3)
+    property <color> foreground: root.kind == "primary" ? (root.enabled ? #000000 : rgba(16, 16, 16, 0.3)) : Theme.muted;
     property <bool> lit: touch.has-hover && root.enabled;
 
     init => {

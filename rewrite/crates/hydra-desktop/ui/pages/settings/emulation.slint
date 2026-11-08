@@ -1,0 +1,386 @@
+// settings-context-emulation.tsx's console grid (console-card.tsx,
+// console-card.scss, settings-context-emulation.scss). Rust fills
+// `EmulationData` (settings_emulation.rs) and lays the cards out in rows
+// for the grid's auto-fill column count.
+import { Theme, Icons } from "../../theme.slint";
+import { Icon } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+
+export struct ConsoleCard {
+    // ps1 | ps2 | ps3 | psp | dolphin | retroarch
+    id: string,
+    title: string,
+    emulator: string,
+    // the cores list (RetroArch's emulator name tooltip)
+    emulator-tip: string,
+    version: string,
+    configured: bool,
+    // executable exists and the BIOS / firmware / cores are there
+    ready: bool,
+    // "stats" | "hint"
+    body: string,
+    total-files: string,
+    files-label: string,
+    // "Last scan 3 hr. ago" or the add-a-folder hint
+    last-scan: string,
+    hint-title: string,
+    hint-text: string,
+}
+
+export struct ConsoleRow {
+    cards: [ConsoleCard],
+    // empty cells to keep the column widths on a short last row
+    fillers: int,
+}
+
+export global EmulationData {
+    in property <bool> loaded;
+    in property <[ConsoleRow]> rows;
+    in property <int> columns: 2;
+    callback grid-resized(length);
+    callback configure(string);
+    callback start-setup(string);
+}
+
+// console-card__art: 140x94 bottom-left, two smaller images for GameCube & Wii
+component Art inherits Rectangle {
+    in property <string> id;
+    width: root.id == "dolphin" ? 190px : 140px;
+    height: 94px;
+    if root.id != "dolphin": Image {
+        width: 140px;
+        height: 94px;
+        image-fit: contain;
+        horizontal-alignment: left;
+        vertical-alignment: bottom;
+        source: root.id == "ps1" ? @image-url("../../images/emulation/ps1.png")
+            : root.id == "ps2" ? @image-url("../../images/emulation/ps2.png")
+            : root.id == "ps3" ? @image-url("../../images/emulation/ps3.png")
+            : root.id == "psp" ? @image-url("../../images/emulation/psp.png")
+            : @image-url("../../images/emulation/retroarch.png");
+    }
+    // --multiple: gap 2, each image max-width 110, height 78, bottom center
+    if root.id == "dolphin": HorizontalLayout {
+        spacing: 2px;
+        alignment: start;
+        VerticalLayout {
+            alignment: end;
+            Image {
+                height: 78px;
+                width: Math.min(110px, 78px * 206 / 144);
+                image-fit: contain;
+                vertical-alignment: bottom;
+                source: @image-url("../../images/emulation/gamecube.png");
+            }
+        }
+        VerticalLayout {
+            alignment: end;
+            Image {
+                height: 78px;
+                width: 78px;
+                image-fit: contain;
+                vertical-alignment: bottom;
+                source: @image-url("../../images/emulation/wii.png");
+            }
+        }
+    }
+}
+
+component HintBox inherits Rectangle {
+    in property <string> title;
+    in property <string> text;
+    background: #151515;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.border;
+    height: column.preferred-height;
+    column := VerticalLayout {
+        padding: 13px;
+        spacing: 4px;
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 14px;
+                    height: 14px;
+                    source: Icons.alert;
+                    color: Theme.body;
+                }
+            }
+            Text {
+                text: root.title;
+                font-size: Theme.hint-size;
+                font-weight: 500;
+                color: Theme.body;
+                vertical-alignment: center;
+            }
+        }
+        // __hint-text: 12px, line-height 18px
+        Text {
+            text: root.text;
+            font-size: Theme.small-size;
+            color: Theme.subtle;
+            wrap: word-wrap;
+            vertical-alignment: center;
+            height: Math.max(1, Math.round(self.preferred-height / (12px * 1.362))) * 18px;
+        }
+    }
+}
+
+component ConsoleCardView inherits Rectangle {
+    in property <ConsoleCard> card;
+    background: Theme.dark-background;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: hover.has-hover ? rgba(255, 255, 255, 0.2) : Theme.border;
+    animate border-color { duration: 150ms; easing: ease; }
+    min-height: Math.max(280px, column.preferred-height);
+    hover := TouchArea { }
+    // __art: top -40, left 12 (over the card's top edge)
+    Art {
+        x: 12px;
+        y: -40px;
+        id: root.card.id;
+    }
+    // padding 64 24 24, gap 24
+    column := VerticalLayout {
+        padding-top: 65px;
+        padding-left: 25px;
+        padding-right: 25px;
+        padding-bottom: 25px;
+        spacing: 24px;
+        // __heading: gap 4
+        VerticalLayout {
+            spacing: 4px;
+            Text {
+                text: root.card.title;
+                font-size: 20px;
+                font-weight: 700; // 600 in scss
+                color: Theme.muted;
+                letter-spacing: -0.22px;
+            }
+            // __subline: gap 8
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                Text {
+                    text: root.card.emulator;
+                    font-size: Theme.hint-size;
+                    font-weight: 500;
+                    color: Theme.body;
+                    vertical-alignment: center;
+                }
+                if root.card.version != "": VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 3px;
+                        height: 3px;
+                        border-radius: 1.5px;
+                        background: Theme.subtle;
+                    }
+                }
+                if root.card.version != "": Text {
+                    text: "v" + root.card.version;
+                    font-size: Theme.hint-size;
+                    color: Theme.subtle;
+                    max-width: 120px;
+                    overflow: elide;
+                    vertical-alignment: center;
+                }
+            }
+        }
+        // __body: flex 1, gap 8
+        VerticalLayout {
+            vertical-stretch: 1;
+            alignment: start;
+            spacing: 8px;
+            if root.card.body == "stats": VerticalLayout {
+                spacing: 8px;
+                // __stat-row: baseline-aligned, gap 8
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    VerticalLayout {
+                        alignment: center;
+                        Rectangle {
+                            width: 6px;
+                            height: 6px;
+                            border-radius: 3px;
+                            background: Theme.body;
+                        }
+                    }
+                    Text {
+                        text: root.card.total-files;
+                        font-size: 32px;
+                        font-weight: 700; // 600 in scss
+                        letter-spacing: -0.72px;
+                        color: Theme.muted;
+                        height: 32px;
+                        vertical-alignment: center;
+                    }
+                    VerticalLayout {
+                        alignment: end;
+                        Text {
+                            text: root.card.files-label;
+                            font-size: Theme.body-size;
+                            color: Theme.body;
+                            height: 19px;
+                        }
+                    }
+                }
+                Text {
+                    text: root.card.last-scan;
+                    font-size: Theme.small-size;
+                    color: Theme.subtle;
+                    wrap: word-wrap;
+                    vertical-alignment: center;
+                    // measured 20px lines in Electron (2 lines = 40px)
+                    height: Math.max(1, Math.round(self.preferred-height / (12px * 1.362))) * 20px;
+                }
+            }
+            if root.card.body == "hint": HintBox {
+                title: root.card.hint-title;
+                text: root.card.hint-text;
+            }
+        }
+        // __divider
+        Rectangle {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.06);
+        }
+        // __footer: the chip, then the CTA at the end
+        HorizontalLayout {
+            spacing: 8px;
+            Rectangle {
+                width: chip.preferred-width;
+                height: chip.preferred-height;
+                border-radius: 8px;
+                background: rgba(192, 193, 199, 0.12);
+                chip := HorizontalLayout {
+                    padding-top: 4px;
+                    padding-bottom: 4px;
+                    padding-left: 8px;
+                    padding-right: 12px;
+                    spacing: 4px;
+                    VerticalLayout {
+                        alignment: center;
+                        Rectangle {
+                            width: 7px;
+                            height: 7px;
+                            border-radius: 3.5px;
+                            background: Theme.body;
+                        }
+                    }
+                    Text {
+                        text: root.card.ready ? T.tr("settings.ready_to_play") : T.tr("settings.setup_needed");
+                        font-size: Theme.small-size;
+                        color: Theme.body;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+            // __cta: gear 14, label, chevron 12 (muted on hover)
+            cta := HorizontalLayout {
+                spacing: 4px;
+                padding-top: 4px;
+                padding-bottom: 4px;
+                property <color> tint: cta-touch.has-hover ? Theme.muted : Theme.body;
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        width: 14px;
+                        height: 14px;
+                        source: Icons.gear;
+                        color: cta.tint;
+                    }
+                }
+                Text {
+                    text: !root.card.configured ? T.tr("settings.start_setup") : root.card.ready ? T.tr("settings.manage_emulator") : T.tr("settings.configure_emulator");
+                    font-size: Theme.hint-size;
+                    font-weight: 500;
+                    color: cta.tint;
+                    vertical-alignment: center;
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        width: 12px;
+                        height: 12px;
+                        source: @image-url("../../icons/chevron-right-12.svg");
+                        color: cta.tint;
+                    }
+                }
+                cta-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        if (root.card.configured) {
+                            EmulationData.configure(root.card.id);
+                        } else {
+                            EmulationData.start-setup(root.card.id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// .settings-emulation: header, then the grid (gap 40)
+export component EmulationPanel inherits VerticalLayout {
+    spacing: 40px;
+    // __header: gap 8
+    VerticalLayout {
+        spacing: 8px;
+        Text {
+            text: T.tr("settings.emulation");
+            font-size: 28px;
+            font-weight: 700; // 600 in scss
+            letter-spacing: -0.56px;
+            color: Theme.muted;
+        }
+        Text {
+            text: T.tr("settings.emulation_description");
+            font-size: Theme.body-size;
+            color: Theme.subtle;
+            wrap: word-wrap;
+            max-width: 680px;
+            vertical-alignment: center;
+            // line-height 22px
+            height: Math.max(1, Math.round(self.preferred-height / (14px * 1.362))) * 22px;
+        }
+    }
+    if !EmulationData.loaded: Text {
+        text: "…";
+        font-size: Theme.hint-size;
+        color: Theme.subtle;
+    }
+    // __cards: auto-fill minmax(260px, 1fr), gap 44 16, padding-top 32
+    if EmulationData.loaded: cells := Rectangle {
+        min-height: grid.preferred-height;
+        changed width => {
+            EmulationData.grid-resized(self.width);
+        }
+        init => {
+            EmulationData.grid-resized(self.width);
+        }
+        // 1fr columns: every cell gets the same width
+        property <length> cell: (self.width - (EmulationData.columns - 1) * 16px) / Math.max(1, EmulationData.columns);
+        grid := VerticalLayout {
+            padding-top: 32px;
+            spacing: 44px;
+            for row in EmulationData.rows: HorizontalLayout {
+                spacing: 16px;
+                alignment: start;
+                for card in row.cards: ConsoleCardView {
+                    width: cells.cell;
+                    card: card;
+                }
+            }
+        }
+    }
+}

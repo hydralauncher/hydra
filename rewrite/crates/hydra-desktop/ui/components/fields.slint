@@ -13,13 +13,15 @@ export component TextField inherits Rectangle {
     in property <bool> read-only;
     // type="password"
     in property <bool> password;
+    // theme "primary" (text-field.tsx's default): the #0d0d0d field
+    in property <bool> primary;
     callback edited(string);
     // onBlur
     callback focus-lost();
     height: 40px;
     border-radius: 8px;
     border-width: 1px;
-    background: Theme.background;
+    background: root.primary ? Theme.dark-background : Theme.background;
     border-color: input.has-focus ? #dadbe1 : hover.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
     animate border-color { duration: 200ms; easing: ease; }
     hover := TouchArea {

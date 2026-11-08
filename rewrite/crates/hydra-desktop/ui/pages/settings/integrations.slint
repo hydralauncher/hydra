@@ -330,11 +330,11 @@ export component IntegrationCardView inherits Rectangle {
             min-height: 40px;
             spacing: 12px;
             alignment: start;
-            if root.card.plain != "": Text {
+            // a bare <p> (line-height 20px)
+            if root.card.plain != "": Para {
                 text: root.card.plain;
                 font-size: Theme.body-size;
-                color: Theme.body;
-                wrap: word-wrap;
+                line: 20px;
             }
             if root.card.description != "": Para {
                 text: root.card.description;

@@ -266,6 +266,17 @@ fn select(id: &str) {
         crate::settings_debrid::refresh();
         crate::settings_integrations::refresh();
     }
+    if id == "screenshots" {
+        crate::settings_screenshots::refresh();
+    }
+    if id == "compatibility" {
+        crate::settings_compatibility::refresh();
+    } else {
+        crate::settings_compatibility::leave();
+    }
+    if id == "emulation" {
+        crate::settings_emulation::refresh();
+    }
     let label = categories()
         .into_iter()
         .find(|(c, _, _)| c == id)

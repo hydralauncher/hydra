@@ -6,6 +6,9 @@ import { TextField, CheckboxField, SelectField, SelectOption } from "../../compo
 import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
 import { T } from "../../globals.slint";
 import { IntegrationCardView, IntegrationsData } from "integrations.slint";
+import { ScreenshotsPanel } from "screenshots.slint";
+import { CompatibilityPanel } from "compatibility.slint";
+import { EmulationPanel } from "emulation.slint";
 
 export struct SettingsCategory {
     id: string,
@@ -1689,6 +1692,7 @@ export component SettingsPage inherits Rectangle {
                             accept
                         }
                         column := VerticalLayout {
+                            x: 0;
                             width: panel.width - (root.scrolls ? 9px : 0);
                             padding: 20px;
                             spacing: 20px;
@@ -1710,11 +1714,9 @@ export component SettingsPage inherits Rectangle {
                             if SettingsData.category == "integrations": IntegrationsPanel {
                                 narrow: root.width <= 760px;
                             }
-                            if SettingsData.category != "general" && SettingsData.category != "downloads" && SettingsData.category != "download_sources" && SettingsData.category != "notifications" && SettingsData.category != "content_gameplay" && SettingsData.category != "account_privacy" && SettingsData.category != "integrations": Text {
-                                text: "TODO(settings): " + SettingsData.category + " not ported yet";
-                                color: Theme.subtle;
-                                font-size: Theme.small-size;
-                            }
+                            if SettingsData.category == "screenshots": ScreenshotsPanel { }
+                            if SettingsData.category == "compatibility": CompatibilityPanel { }
+                            if SettingsData.category == "emulation": EmulationPanel { }
                         }
                     }
                 }

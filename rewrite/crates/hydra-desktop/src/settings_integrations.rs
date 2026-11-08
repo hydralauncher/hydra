@@ -1399,6 +1399,10 @@ pub fn dev(args: &[&str]) {
             );
         }
         "ra-window" => crate::retroachievements::open(),
+        "emulation-demo" => {
+            crate::settings_emulation::dev_demo();
+            return;
+        }
         // settings-dev ra-shot <name>: the connection window into HYDRA_DEV_SHOTS
         "ra-shot" => {
             let dir = std::env::var_os("HYDRA_DEV_SHOTS")
