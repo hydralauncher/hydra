@@ -398,6 +398,7 @@ pub fn apply_library_state(ui: &AppWindow, shop: &str, object_id: &str) {
             .unwrap_or(0.0),
         group.is_some(),
     );
+    crate::steam_sync::on_game_page(shop, object_id, group.as_ref());
     let Some(group) = group else {
         g.set_in_library(false);
         g.set_has_executable(false);

@@ -241,15 +241,11 @@ pub fn handle_external_auth(uri: &str) {
     let (Some(db), Some(api)) = (shell::db(), shell::api()) else {
         return;
     };
-    // A new account: the previous account's remote ids no longer apply
-    // (clearGamesRemoteIds).
-    for (key, mut game) in db.entries::<Value>(keys::GAMES).unwrap_or_default() {
-        if game.get("remoteId").is_some_and(|v| !v.is_null())
-            && let Some(map) = game.as_object_mut()
-        {
-            map.insert("remoteId".into(), Value::Null);
-            let _ = db.put_in(keys::GAMES, &key, &game);
-        }
+    // A new account: the previous account's remote ids and visibility no
+    // longer apply (clearGamesRemoteIds).
+    // TODO(epic): clearStaleEpicImports before and after.
+    if let Err(error) = hydra_core::library_sync::clear_games_remote_ids(&db) {
+        eprintln!("auth: clearing remote ids: {error}");
     }
     api.sign_in(
         &text("accessToken"),
@@ -264,10 +260,13 @@ pub fn handle_external_auth(uri: &str) {
         }
         let _ = db.put(keys::AUTH, &stored);
     }
-    // on-signin: fetch the user, then the library
-    // TODO(auth): uploadGamesBatch, syncDownloadSourcesFromApi, Steam/Epic
-    // startup syncs, the souvenir worker.
+    // The main process: getUserData, the Steam startup sync,
+    // uploadGamesBatch and syncDownloadSourcesFromApi.
+    // TODO(auth): the Epic startup sync and the souvenir worker.
+    crate::library_sync::on_signed_in();
     crate::realtime::connect();
+    // on-signin: the account library is awaited, the user fetched
+    shell::set_library_awaiting_account(true);
     shell::reload_user(Some(Box::new(|| {
         toast::success(&shell::tr("app.successfully_signed_in"))
     })));
@@ -284,6 +283,8 @@ pub fn sign_out() {
     // TODO(auth): Epic imports, achievement/souvenir workers, emulator scan
     // data.
     crate::realtime::close();
+    // resetSteamStartupSync
+    crate::steam_sync::reset_startup();
     // sendSignOutEvent: chat state, notifications and the social windows
     crate::social::on_sign_out();
     crate::downloads::stop_active();

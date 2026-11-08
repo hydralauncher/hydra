@@ -39,6 +39,7 @@ mod hoster_browser;
 mod instance;
 mod leaderboards_page;
 mod library_page;
+mod library_sync;
 mod main_window;
 mod nav;
 mod notifications_page;
@@ -66,6 +67,7 @@ mod shell;
 mod social;
 mod sound;
 mod taskbar_badge;
+mod steam_browser;
 mod steam_openid;
 mod steam_sync;
 mod text_metrics;
@@ -306,6 +308,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(api) = shell::api() {
         realtime::init(api);
     }
+    // main.ts after setupApi: uploadGamesBatch, syncDownloadSourcesFromApi,
+    // startSteamSyncOnStartup
+    library_sync::init();
     notifications_page::refresh_count();
     shell::refresh_friends_online();
     download_settings::init(&ui);

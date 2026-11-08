@@ -82,6 +82,19 @@ fn main() {
         }
     };
     println!("remote games: {} in {:?}", remote.len(), started.elapsed());
+    // --fresh: an empty library (a new install signing in), so every row is
+    // created from the account and compared with the stored one.
+    if std::env::args().any(|a| a == "--fresh") {
+        let mut batch = hydra_db::Batch::default();
+        for key in before.keys() {
+            batch.delete_in(keys::GAMES, key);
+        }
+        for key in assets_before.keys() {
+            batch.delete_in(keys::GAME_SHOP_ASSETS, key);
+        }
+        db.write(batch).expect("clear");
+        println!("cleared the copy's games and shop assets");
+    }
     let subscribed = std::env::var_os("SUBSCRIBED").is_some();
     let current = || true;
     let ctx = MergeContext {
