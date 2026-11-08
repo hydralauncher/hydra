@@ -2789,6 +2789,7 @@ dependencies = [
  "sys-locale",
  "tauri-winrt-notification",
  "thumbhash",
+ "tokio",
  "tray-icon",
  "winreg",
  "wry",

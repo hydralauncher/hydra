@@ -9,7 +9,44 @@ use hydra_db::keys;
 use serde_json::Value;
 use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 
-use crate::{AppWindow, DownloadSettings, DownloaderRow, Session, shell};
+use crate::{AppWindow, DownloadSettings, DownloaderRow, RealDebridInfo, Session, shell};
+
+/// The window (page and open modals) blurred like backdrop-filter:
+/// blur(2px), for a modal stacked on the download settings.
+pub fn snapshot_backdrop(set: fn(&AppWindow, slint::Image)) {
+    let Some(ui) = with(|s| s.ui.upgrade()).flatten() else {
+        return;
+    };
+    set(&ui, slint::Image::default());
+    let Ok(snapshot) = ui.window().take_snapshot() else {
+        return;
+    };
+    let Some((loader, _)) = shell::loader() else {
+        return;
+    };
+    let scale = ui.window().scale_factor();
+    let (w, h) = (snapshot.width(), snapshot.height());
+    let rgba = snapshot.as_bytes().to_vec();
+    let weak = ui.as_weak();
+    // 2 CSS px at the window's scale, measured after shrinking by 2.
+    let sigma = 2.0 * scale / 2.0;
+    loader.spawn(
+        move || hydra_media::images::blur_rgba(w, h, rgba, 2, sigma),
+        move |img| {
+            if let Some(ui) = weak.upgrade() {
+                set(&ui, img);
+            }
+        },
+    );
+}
+
+/// REAL_DEBRID_URL (with RENDERER_VITE_REAL_DEBRID_REFERRAL_ID when set).
+fn real_debrid_url() -> String {
+    match std::env::var("RENDERER_VITE_REAL_DEBRID_REFERRAL_ID") {
+        Ok(id) if !id.is_empty() => format!("https://real-debrid.com/?id={id}"),
+        _ => "https://real-debrid.com".into(),
+    }
+}
 
 struct State {
     ui: slint::Weak<AppWindow>,
@@ -22,6 +59,8 @@ struct State {
     /// Bumped per opened option, so a late disk check is dropped.
     generation: u64,
     game: Option<GameRef>,
+    /// singleArchiveSelectionKey: `${downloader}:${magnet}` served as one archive.
+    single_archive_key: Option<String>,
 }
 
 /// The game the download is for (title as shown on the page).
@@ -52,6 +91,7 @@ pub fn init(ui: &AppWindow) {
             writable: None,
             generation: 0,
             game: None,
+            single_archive_key: None,
         })
     });
     let d = ui.global::<DownloadSettings>();
@@ -66,15 +106,46 @@ pub fn init(ui: &AppWindow) {
             return;
         };
         if option.not_configured {
-            // TODO(downloads): RealDebridInfoModal / Hydra Cloud modal for VikingFile.
-            eprintln!(
-                "TODO(downloads): {} is not configured",
-                option.downloader.name()
-            );
+            if matches!(
+                option.downloader,
+                Downloader::RealDebrid | Downloader::Premiumize | Downloader::AllDebrid
+            ) {
+                // RealDebridInfoModal
+                snapshot_backdrop(|ui, img| ui.global::<RealDebridInfo>().set_backdrop(img));
+                if let Some(ui) = with(|s| s.ui.upgrade()).flatten() {
+                    ui.global::<RealDebridInfo>().set_open(true);
+                }
+            } else if option.downloader == Downloader::VikingFile {
+                eprintln!("TODO(cloud): showHydraCloudModal(\"vikingfile\")");
+            }
             return;
         }
-        with(|s| s.selected = Some(option.downloader));
+        let changed = with(|s| {
+            let changed = s.selected != Some(option.downloader);
+            s.selected = Some(option.downloader);
+            changed
+        })
+        .unwrap_or(false);
+        if changed {
+            crate::torrent_step::reset();
+        }
         apply();
+    });
+    d.on_select_files(open_torrent_step);
+    d.on_closed(|| {
+        // The modal closed: drop the pending step and the archive notice.
+        with(|s| s.single_archive_key = None);
+        crate::torrent_step::reset();
+    });
+    let info = ui.global::<RealDebridInfo>();
+    info.on_create_account(|| crate::settings_debrid::open_url(&real_debrid_url()));
+    info.on_go_to_settings(|| {
+        if let Some(ui) = with(|s| s.ui.upgrade()).flatten() {
+            ui.global::<RealDebridInfo>().set_open(false);
+            ui.global::<DownloadSettings>().set_open(false);
+            ui.global::<crate::GameData>().set_repacks_open(false);
+            crate::nav::navigate("/settings?tab=integrations");
+        }
     });
     d.on_change_path(|| {
         let current = with(|s| s.path.clone()).unwrap_or_default();
@@ -101,8 +172,75 @@ pub fn init(ui: &AppWindow) {
     d.on_start(start);
 }
 
+/// The selected option's magnet (TorBox / Real-Debrid file selection).
+fn selected_magnet() -> Option<(Downloader, String)> {
+    with(|s| {
+        let downloader = s.selected?;
+        let repack = s.repack.as_ref()?.as_object()?;
+        let uri = repacks::uri_for(repack, downloader)?;
+        uri.starts_with("magnet:").then_some((downloader, uri))
+    })
+    .flatten()
+}
+
+/// canOpenTorrentStep (TorBox and Real-Debrid with a token; torrents need
+/// the torrent engine's file list).
+fn can_open_torrent_step() -> bool {
+    let Some((downloader, _)) = selected_magnet() else {
+        return false;
+    };
+    let prefs: Option<Value> = shell::db().and_then(|db| db.get(keys::USER_PREFERENCES));
+    let token = |key: &str| {
+        prefs
+            .as_ref()
+            .and_then(|p| p.get(key))
+            .and_then(Value::as_str)
+            .is_some_and(|t| !t.is_empty())
+    };
+    match downloader {
+        Downloader::TorBox => token("torBoxApiToken"),
+        Downloader::RealDebrid => token("realDebridApiToken"),
+        _ => false,
+    }
+}
+
+/// handleOpenTorrentStep
+fn open_torrent_step() {
+    let Some((downloader, magnet)) = selected_magnet() else {
+        return;
+    };
+    let key = format!("{}:{magnet}", downloader as i64);
+    crate::torrent_step::fetch(
+        downloader,
+        magnet,
+        Some(Box::new(move |single_archive| {
+            if single_archive {
+                with(|s| s.single_archive_key = Some(key));
+            }
+            apply();
+        })),
+    );
+}
+
+/// handleTorrentStepDownload: the step's selection and its size.
+pub fn start_with_files() {
+    let Some((indices, size)) = crate::torrent_step::selection() else {
+        return;
+    };
+    start_download(Some(indices), Some(size));
+}
+
+/// Re-applies the modal (the torrent step's state changed).
+pub fn refresh() {
+    apply();
+}
+
 /// handleStartClick: startGameDownload with the chosen downloader and folder.
 fn start() {
+    start_download(None, None);
+}
+
+fn start_download(file_indices: Option<Vec<i64>>, selected_files_size: Option<u64>) {
     let Some((ui, repack, downloader, path, game)) = with(|s| {
         Some((
             s.ui.upgrade()?,
@@ -116,7 +254,8 @@ fn start() {
         return;
     };
     let d = ui.global::<DownloadSettings>();
-    if !d.get_can_start() {
+    let from_step = file_indices.is_some();
+    if !from_step && !d.get_can_start() {
         return;
     }
     let Some(map) = repack.as_object() else {
@@ -165,14 +304,17 @@ fn start() {
             .get("fileSize")
             .and_then(Value::as_str)
             .map(str::to_string),
-        file_indices: None,
-        selected_files_size: None,
+        file_indices,
+        selected_files_size,
     };
     d.set_starting(true);
     apply();
+    crate::torrent_step::apply();
     crate::download_indicator::begin_flight();
     let icon = icon_url;
-    crate::downloads::start(payload, move |result| {
+    // addToQueueOnly = hasActiveDownload
+    let add_to_queue = d.get_has_active_download();
+    let done = move |result: Result<(), String>| {
         let Some(ui) = with(|s| s.ui.upgrade()).flatten() else {
             return;
         };
@@ -182,6 +324,7 @@ fn start() {
             Ok(()) => {
                 // flight.launch(shopDetails?.assets?.iconUrl || game?.iconUrl)
                 crate::download_indicator::launch_flight(icon);
+                crate::torrent_step::reset();
                 d.set_open(false);
                 ui.global::<crate::GameData>().set_repacks_open(false);
                 ui.global::<crate::GameData>().set_options_open(false);
@@ -200,9 +343,15 @@ fn start() {
                     4_000,
                 );
                 apply();
+                crate::torrent_step::apply();
             }
         }
-    });
+    };
+    if add_to_queue {
+        crate::downloads::add_to_queue(payload, done);
+    } else {
+        crate::downloads::start(payload, done);
+    }
 }
 
 /// `downloadsPath` from the preferences, else the system Downloads folder.
@@ -290,13 +439,15 @@ pub fn open(repack: Value, game: GameRef, platform: Option<String>) {
         s.selected = repacks::default_downloader(&available);
         s.free_space = None;
         s.writable = None;
+        s.single_archive_key = None;
     });
+    crate::torrent_step::reset();
     let d = ui.global::<DownloadSettings>();
     d.set_extract(pref_flag("extractFilesByDefault"));
     d.set_delete_archives(pref_flag("deleteArchiveFilesAfterExtractionByDefault"));
     d.set_starting(false);
-    // TODO(downloads): hasActiveDownload from the download manager's last packet.
-    d.set_has_active_download(false);
+    // hasActiveDownload = lastPacket !== null
+    d.set_has_active_download(crate::downloads::has_active_download());
     set_path(path);
     d.set_open(true);
 }
@@ -339,6 +490,7 @@ fn set_path(path: String) {
             })
             .unwrap_or(false);
             if current {
+                crate::torrent_step::set_free_space(free);
                 apply();
             }
         });
@@ -457,4 +609,10 @@ fn apply() {
             && enough_space
             && option_ok,
     );
+    let can_select = can_open_torrent_step();
+    let key = selected_magnet().map(|(d, m)| format!("{}:{m}", d as i64));
+    let single = key.is_some() && with(|s| s.single_archive_key.clone()).flatten() == key;
+    d.set_can_select_files(can_select);
+    d.set_single_archive(single);
+    d.set_files_loading(crate::torrent_step::is_loading());
 }

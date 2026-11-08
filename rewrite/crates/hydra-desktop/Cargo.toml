@@ -27,6 +27,8 @@ sys-locale = "0.3"
 slint = { workspace = true, features = ["backend-winit", "renderer-skia", "renderer-software", "unstable-winit-030", "accessibility", "raw-window-handle-06"] }
 # The auth site and other web flows in an OS webview (WebView2 / WebKitGTK).
 wry = "0.57"
+# Answers from the hidden hoster webview back to the downloads runtime.
+tokio = { version = "1", features = ["sync"] }
 image.workspace = true
 # ThumbHash placeholders sent with catalogue images (game.images[url].thumbHash).
 thumbhash = "0.1"
