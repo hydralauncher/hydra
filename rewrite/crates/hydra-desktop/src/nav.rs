@@ -216,7 +216,7 @@ fn apply(previous: Option<String>) {
         crate::notifications_page::open_page();
     }
     if location.route() == "settings" {
-        crate::settings_page::open(location.param("tab"));
+        crate::settings_page::open(location.param("tab"), location.param("urls"));
     }
     if location.route() == "game" {
         let mut parts = location.pathname.trim_start_matches('/').split('/').skip(1);

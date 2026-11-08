@@ -235,12 +235,23 @@ pub fn init(ui: &AppWindow) {
 }
 
 /// The /settings route opened (`?tab=` picks the category).
-pub fn open(tab: Option<&str>) {
+/// `?tab=` picks the category; `?urls=` (hydralauncher://install-source)
+/// opens Download sources with the add modal prefilled (settings.context.tsx).
+pub fn open(tab: Option<&str>, source_url: Option<&str>) {
     refresh();
     let category = tab
         .filter(|tab| categories().iter().any(|(id, _, _)| id == tab))
         .unwrap_or("general")
         .to_string();
+    if let Some(url) = source_url.filter(|u| !u.is_empty()) {
+        select("download_sources");
+        // after the route switches, so the modal backdrop shows Settings
+        let url = url.to_string();
+        slint::Timer::single_shot(std::time::Duration::from_millis(50), move || {
+            crate::settings_sources::open_add_modal(&url);
+        });
+        return;
+    }
     select(&category);
 }
 

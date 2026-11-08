@@ -9,6 +9,7 @@ mod catalogue_page;
 mod classics_bookmark;
 mod collections;
 mod context_menu;
+mod deeplink;
 mod devscript;
 mod dialogs;
 mod download_indicator;
@@ -28,6 +29,7 @@ mod games;
 mod gifs;
 mod headless;
 mod home_page;
+mod instance;
 mod library_page;
 mod nav;
 mod notifications_page;
@@ -88,20 +90,31 @@ fn wheel_notch_px() -> f32 {
 struct Args {
     path: Option<String>,
     locale: Option<String>,
+    /// a `hydralauncher://` link (protocol launches and shortcuts)
+    deep_link: Option<String>,
+    /// --hidden: start in the tray (auto-launch)
+    hidden: bool,
+    raw: Vec<String>,
 }
 
 fn parse_args() -> Args {
+    let raw: Vec<String> = std::env::args().skip(1).collect();
     let mut args = Args {
         path: None,
         locale: None,
+        deep_link: deeplink::find(&raw),
+        hidden: false,
+        raw: raw.clone(),
     };
-    let mut it = std::env::args().skip(1);
+    let mut it = raw.into_iter();
     while let Some(arg) = it.next() {
         match arg.as_str() {
             "--path" => args.path = it.next(),
             // Kept from the game-page spike: `--steam-app <id>`.
             "--steam-app" => args.path = it.next().map(|id| format!("/game/steam/{id}")),
             "--locale" => args.locale = it.next(),
+            "--hidden" => args.hidden = true,
+            link if link.starts_with("hydralauncher://") => {}
             other => eprintln!("unknown argument {other:?} (use --path <route> --locale <code>)"),
         }
     }
@@ -139,6 +152,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ---- local data: the rewrite's own LevelDB, imported from Electron on first run
     let api_url = hydra_core::config::api_url();
     let native_dir = paths::native_user_data().ok_or("no user data folder")?;
+    // app.requestSingleInstanceLock(): a second launch hands over its
+    // arguments and quits (before it would fail on the LevelDB lock).
+    // HYDRA_TEST_SINGLE_INSTANCE: exercise the lock in headless test runs.
+    if (!headless_mode || std::env::var_os("HYDRA_TEST_SINGLE_INSTANCE").is_some())
+        && let instance::Lock::Forwarded = instance::acquire(&native_dir, &args.raw, |args| {
+            let _ = slint::invoke_from_event_loop(move || deeplink::on_second_instance(args));
+        })
+    {
+        return Ok(());
+    }
     let electron_dir = paths::electron_user_data();
     hydra_media::video::prepare_tls(&native_dir);
     hydra_media::images::set_cache_dir(native_dir.join("Cache").join("images"));
@@ -253,6 +276,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     context_menu::init(&ui);
     dialogs::init(&ui);
     nav::init(&ui, args.path.as_deref().unwrap_or("/"));
+    deeplink::init(&ui);
+    if !headless_mode {
+        deeplink::register_protocol();
+    }
+    // TODO(tray): --hidden and cold-start "run" links keep the window
+    // hidden in Electron; that needs the system tray first.
+    let _ = args.hidden;
+    if let Some(link) = args.deep_link.clone() {
+        let _ = slint::invoke_from_event_loop(move || deeplink::handle(&link));
+    }
 
     // HYDRA_TIMING=1: print when the first frame is on screen (benchmarks).
     if std::env::var_os("HYDRA_TIMING").is_some() {
