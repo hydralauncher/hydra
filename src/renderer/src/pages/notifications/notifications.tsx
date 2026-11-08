@@ -518,15 +518,11 @@ export default function Notifications() {
   const shouldDisableMarkAllAsRead =
     isClearing || (hasNoNotifications && !hasApiUnread);
 
-  const renderContent = () => {
-    if (isInitialLoad && isLoading) {
-      return (
-        <div className="notifications__loading">
-          <span>{t("loading")}</span>
-        </div>
-      );
-    }
+  // The page frame (tabs and actions) renders right away; only the list area
+  // waits for the first load, so nothing moves when it finishes.
+  const isFirstLoad = isInitialLoad && isLoading;
 
+  const renderContent = () => {
     return (
       <div className="notifications">
         <div className="notifications__header">
@@ -559,7 +555,11 @@ export default function Notifications() {
             exit={{ opacity: 0, x: 10 }}
             transition={{ duration: 0.2 }}
           >
-            {hasNoNotifications && !isClearing ? (
+            {isFirstLoad ? (
+              <div className="notifications__loading">
+                <span>{t("loading")}</span>
+              </div>
+            ) : hasNoNotifications && !isClearing ? (
               <div className="notifications__empty">
                 <div className="notifications__icon-container">
                   <BellIcon size={24} />
