@@ -649,3 +649,100 @@ pub fn remove_from_library(
     }
     Ok(())
 }
+
+/// encodeURIComponent for a path segment.
+fn encode_segment(value: &str) -> String {
+    value
+        .bytes()
+        .map(|b| match b {
+            b'A'..=b'Z'
+            | b'a'..=b'z'
+            | b'0'..=b'9'
+            | b'-'
+            | b'_'
+            | b'.'
+            | b'!'
+            | b'~'
+            | b'*'
+            | b'\''
+            | b'('
+            | b')' => (b as char).to_string(),
+            _ => format!("%{b:02X}"),
+        })
+        .collect()
+}
+
+/// changeGamePlaytime: PUT /profile/games/:shop/:id/playtime when synced,
+/// then the record (hasManuallyUpdatedPlaytime, source "hydra").
+pub fn change_playtime(
+    db: &Db,
+    api: &HydraApi,
+    shop: &str,
+    object_id: &str,
+    seconds: u64,
+) -> Result<(), ActionError> {
+    let key = game_key(shop, object_id);
+    let Some(game) = local_game(db, &key) else {
+        return Ok(());
+    };
+    if game
+        .get("remoteId")
+        .and_then(Value::as_str)
+        .is_some_and(|r| !r.is_empty())
+    {
+        api.put(
+            &format!(
+                "/profile/games/{shop}/{}/playtime",
+                encode_segment(object_id)
+            ),
+            &serde_json::json!({ "playTimeInSeconds": seconds }),
+            auth(),
+        )
+        .map_err(ActionError::Api)?;
+    }
+    update_game_record(db, &key, |game| {
+        game.insert("source".into(), Value::from("hydra"));
+        game.insert("playTimeInMilliseconds".into(), Value::from(seconds * 1000));
+        game.insert("hasManuallyUpdatedPlaytime".into(), Value::Bool(true));
+        game.insert("unsyncedDeltaPlayTimeInMilliseconds".into(), Value::from(0));
+    })
+    .map_err(ActionError::Db)?;
+    // TODO(launch): resetHydraPlaytimeTicks for a running session.
+    Ok(())
+}
+
+/// resetGamePlaytime: DELETE /profile/games/:shop/:id/playtime when synced,
+/// then zero the record.
+pub fn reset_playtime(
+    db: &Db,
+    api: &HydraApi,
+    shop: &str,
+    object_id: &str,
+) -> Result<(), ActionError> {
+    let key = game_key(shop, object_id);
+    let Some(game) = local_game(db, &key) else {
+        return Ok(());
+    };
+    if game
+        .get("remoteId")
+        .and_then(Value::as_str)
+        .is_some_and(|r| !r.is_empty())
+    {
+        api.delete(
+            &format!(
+                "/profile/games/{shop}/{}/playtime",
+                encode_segment(object_id)
+            ),
+            auth(),
+        )
+        .map_err(ActionError::Api)?;
+    }
+    update_game_record(db, &key, |game| {
+        game.insert("playTimeInMilliseconds".into(), Value::from(0));
+        game.insert("lastTimePlayed".into(), Value::Null);
+        game.insert("hasManuallyUpdatedPlaytime".into(), Value::Bool(false));
+        game.insert("unsyncedDeltaPlayTimeInMilliseconds".into(), Value::from(0));
+    })
+    .map_err(ActionError::Db)?;
+    Ok(())
+}

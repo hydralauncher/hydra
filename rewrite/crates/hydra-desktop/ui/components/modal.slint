@@ -71,6 +71,13 @@ export component Modal inherits Rectangle {
             }
         }
 
+        // The description on one line: its max-content width.
+        description-measure := Text {
+            visible: false;
+            text: root.description;
+            font-size: Theme.body-size;
+        }
+
         // .modal: scale-fade-in / scale-fade-out, 0.2s cubic-bezier(0.33, 1, 0.68, 1)
         dialog := Rectangle {
             property <length> max-w: root.large ? 800px : 600px;
@@ -111,6 +118,8 @@ export component Modal inherits Rectangle {
                                 color: Theme.body;
                                 font-size: Theme.body-size;
                                 wrap: word-wrap;
+                                // The modal grows to the text's max-content width (up to max-width).
+                                preferred-width: description-measure.preferred-width;
                             }
                         }
                         // .modal__close-button (align-self: flex-start, hover opacity .75)

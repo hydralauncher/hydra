@@ -29,6 +29,7 @@ mod headless;
 mod home_page;
 mod library_page;
 mod nav;
+mod playtime_modals;
 mod popup;
 mod shell;
 mod toast;
@@ -211,6 +212,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     game_page::init(&ui, &loader);
     game_repacks::init(&ui);
     game_options::init(&ui);
+    playtime_modals::init(&ui);
     download_settings::init(&ui);
     downloads_page::init(&ui, &loader);
     download_indicator::init(&ui, &loader);

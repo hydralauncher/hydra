@@ -8,16 +8,24 @@ import { RepacksModalBody } from "repacks.slint";
 import { DownloadSettingsBody, DownloadSettings } from "download-settings.slint";
 import { GameData } from "state.slint";
 import { GameOptionsBody } from "options.slint";
+import { PlaytimeModals, UpdatePlaytimeBody, ResetPlaytimeBody } from "playtime.slint";
 import { Nav, T } from "../../globals.slint";
 
 export component GameModalsHost inherits Rectangle {
-    out property <bool> mounted: options-state.mounted || repacks-state.mounted || cloud-state.mounted || settings-state.mounted;
+    out property <bool> mounted: options-state.mounted || repacks-state.mounted || cloud-state.mounted || settings-state.mounted || update-playtime-state.mounted || reset-playtime-state.mounted;
     changed mounted => {
         GameData.modals-mounted = self.mounted;
     }
 
     options-state := ModalController {
         open <=> GameData.options-open;
+    }
+    // Stacked on the options modal
+    update-playtime-state := ModalController {
+        open <=> PlaytimeModals.update-open;
+    }
+    reset-playtime-state := ModalController {
+        open <=> PlaytimeModals.reset-open;
     }
     repacks-state := ModalController {
         open <=> GameData.repacks-open;
@@ -45,12 +53,46 @@ export component GameModalsHost inherits Rectangle {
         no-content-padding: true;
         content-min-height: 520px;
         closing: options-state.closing;
-        covered: repacks-state.mounted;
+        covered: repacks-state.mounted || update-playtime-state.mounted || reset-playtime-state.mounted;
         blurred-page: GameData.modal-backdrop;
         request-close => {
             options-state.close();
         }
         GameOptionsBody { }
+    }
+
+    if update-playtime-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.update_playtime_title");
+        description: PlaytimeModals.description;
+        closing: update-playtime-state.closing;
+        blurred-page: GameData.stacked-backdrop;
+        request-close => {
+            update-playtime-state.close();
+        }
+        UpdatePlaytimeBody {
+            cancel => {
+                update-playtime-state.close();
+            }
+        }
+    }
+
+    if reset-playtime-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.reset_playtime_title");
+        description: PlaytimeModals.description;
+        closing: reset-playtime-state.closing;
+        blurred-page: GameData.stacked-backdrop;
+        request-close => {
+            reset-playtime-state.close();
+        }
+        ResetPlaytimeBody {
+            cancel => {
+                reset-playtime-state.close();
+            }
+        }
     }
 
     // repacks-modal.tsx

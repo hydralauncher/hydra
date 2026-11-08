@@ -119,8 +119,16 @@ pub fn init(ui: &AppWindow) {
     });
     options.on_remove_from_library(remove_from_library);
     options.on_reset_achievements(|| eprintln!("TODO(game options): ResetAchievementsModal"));
-    options.on_update_playtime(|| eprintln!("TODO(game options): ChangeGamePlaytimeModal"));
-    options.on_reset_playtime(|| eprintln!("TODO(game options): ResetPlaytimeModal"));
+    options.on_update_playtime(|| {
+        if let Some((shop, object_id, _)) = game_key() {
+            crate::playtime_modals::open_update(&shop, &object_id);
+        }
+    });
+    options.on_reset_playtime(|| {
+        if let Some((shop, object_id, _)) = game_key() {
+            crate::playtime_modals::open_reset(&shop, &object_id);
+        }
+    });
     options.on_remove_files(|| eprintln!("TODO(game options): remove files"));
     options.on_opened(|category| open(&category));
 }
@@ -144,6 +152,16 @@ fn open(category: &str) {
     });
     refresh();
     with_ui(|ui| ui.global::<GameOptions>().set_category(category.into()));
+}
+
+/// The game record changed while the modal is open (playtime modals).
+pub fn refresh_open() {
+    let open = STATE
+        .with(|s| s.borrow().ui.upgrade())
+        .is_some_and(|ui| ui.global::<GameData>().get_options_open());
+    if open {
+        refresh();
+    }
 }
 
 /// Copies the game record into `GameOptions`.
