@@ -163,6 +163,8 @@ fn next<C: ComponentHandle + 'static>(
         }
         // settings states the account can't reach on its own (settings_integrations::dev)
         "settings-dev" => crate::settings_integrations::dev(&args),
+        // the auth window's redirect with the stored session (auth::dev_sign_in_again)
+        "resign-in" => crate::auth::dev_sign_in_again(),
         "quit" => {
             let _ = slint::quit_event_loop();
             return;

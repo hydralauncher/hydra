@@ -159,6 +159,9 @@ pub fn upload_games_batch() {
         let current = || api.is_generation_current(generation);
         match sync::upload_local_games(&db, &api, &current) {
             Ok(0) => {}
+            Ok(sent) if sync::dry_run() => {
+                eprintln!("[library-sync] dry run: {sent} games printed, none sent")
+            }
             Ok(sent) => eprintln!("[library-sync] uploaded {sent} games"),
             Err(error) => eprintln!("[library-sync] upload: {error}"),
         }

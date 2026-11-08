@@ -273,6 +273,37 @@ pub fn handle_external_auth(uri: &str) {
     shell::load_library();
 }
 
+/// Dev hook: replay the `hydralauncher://auth` redirect with the session
+/// already stored, to exercise sign-in (clearGamesRemoteIds, the upload,
+/// the merge) without a password. The tokens never leave the process.
+pub fn dev_sign_in_again() {
+    let Some(db) = shell::db() else { return };
+    let Some(stored) = db.get::<Value>(keys::AUTH) else {
+        eprintln!("resign-in: not signed in");
+        return;
+    };
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as f64)
+        .unwrap_or_default();
+    let expiration = stored
+        .get("tokenExpirationTimestamp")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    // sign_in stores expiresIn minus the 5 minute offset again
+    let expires_in = ((expiration - now) / 1000.0 + 300.0).max(0.0);
+    let payload = json!({
+        "accessToken": stored.get("accessToken").cloned().unwrap_or(Value::Null),
+        "refreshToken": stored.get("refreshToken").cloned().unwrap_or(Value::Null),
+        "expiresIn": expires_in,
+        "workwondersJwt": stored.get("workwondersJwt").cloned().unwrap_or(Value::Null),
+    });
+    let encoded = base64::engine::general_purpose::STANDARD.encode(payload.to_string());
+    let mut url = reqwest::Url::parse("hydralauncher://auth").expect("static url");
+    url.query_pairs_mut().append_pair("payload", &encoded);
+    handle_external_auth(url.as_str());
+}
+
 /// sign-out.ts: drop the session and the account's local library.
 pub fn sign_out() {
     let (Some(db), Some(api)) = (shell::db(), shell::api()) else {
