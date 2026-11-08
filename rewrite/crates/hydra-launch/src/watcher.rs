@@ -147,11 +147,17 @@ impl Watcher {
         if games.is_empty() {
             return;
         }
+        if let Some(api) = &self.api {
+            // GameExecutables.ensureLoaded (retries every 30s after a failure)
+            hydra_core::executables::ensure_loaded(api, false);
+        }
         let list = processes::list();
         let map = processes::process_map(&list);
         for (key, game) in games {
             let Some(executable) = str_field(&game, "executablePath") else {
-                // TODO(launch): GameExecutables catalogue (findGamePathByProcess).
+                if let Some(object_id) = str_field(&game, "objectId") {
+                    self.find_game_path_by_process(&map, object_id);
+                }
                 continue;
             };
             let tracking: Vec<String> = game
@@ -197,6 +203,45 @@ impl Watcher {
         }
         *self.tick.lock().unwrap_or_else(|e| e.into_inner()) += 1;
         (self.listener)(self.running());
+    }
+
+    /// findGamePathByProcess: a Steam game without an executable gets the
+    /// path of a running process that matches its catalogue entry.
+    fn find_game_path_by_process(
+        &self,
+        map: &HashMap<String, std::collections::HashSet<String>>,
+        object_id: &str,
+    ) {
+        let Some(executables) = hydra_core::executables::for_game(object_id) else {
+            return;
+        };
+        let key = format!("steam:{object_id}");
+        for executable in executables {
+            let lower = executable.exe.to_lowercase();
+            let without_extension = lower.strip_suffix(".exe").unwrap_or(&lower).to_string();
+            let Some(paths) = map
+                .get(&executable.exe)
+                .or_else(|| map.get(&without_extension))
+            else {
+                continue;
+            };
+            for path in paths {
+                let lowered = path.to_lowercase();
+                if !(lowered.ends_with(&executable.name) || lowered.ends_with(&without_extension)) {
+                    continue;
+                }
+                // TODO(launch): winePrefixPath from STEAM_COMPAT_DATA_PATH on Linux.
+                let updated = library_actions::update_game_record(&self.db, &key, |game| {
+                    if game.get("executablePath").and_then(Value::as_str) != Some(path.as_str()) {
+                        game.insert("executablePath".into(), json!(path));
+                        game.insert("executablePathUpdatedAt".into(), json!(now_iso()));
+                    }
+                });
+                if matches!(updated, Ok(Some(_))) {
+                    eprintln!("Set game path {key} {path}");
+                }
+            }
+        }
     }
 
     fn on_open(&self, key: &str, game: &Map<String, Value>, matched: &str) {

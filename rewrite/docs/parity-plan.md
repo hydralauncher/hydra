@@ -104,7 +104,8 @@ the remote `external-resources/bundle.js` script.
 
 ## Phase 4: playing
 
-- [ ] **Launching games** (`library/open-game*`, `close-game`, `services/process-watcher.ts`, playtime tracking, running state in the hero)
+- [x] **Launching games, Windows native path** (`hydra-launch`): Play/Close (`launch-game.ts`, `close-game.ts`, `%command%`/env launch options), the process watcher with playtime (local each tick, API every 3 min and on close), the running state in the hero and Downloads, binding executables from the API catalogue after downloads/extraction and from running processes (`hydra-core::executables`)
+- [ ] **Launching, remaining:** Wine/UMU/Proton on Linux, Steam protocol and Epic launches, emulators and recompilations, common redist preflight, cloud save gates, Steam/Epic playtime policies, hideToTrayOnGameStart, achievements and screenshots on open/close, desktop and start menu shortcuts (with `hydralauncher://` deep links)
 - [ ] **Wine/Proton/umu on Linux** (`services/wine.ts`, `umu*.ts`, gamemode, mangohud, winetricks)
 - [ ] **macOS game launching:** Wine must stay free (no paid CrossOver). Bridges to Steam (`lsteamclient`) are deferred
 - [ ] **Achievements:** watcher, unlock notifications (achievement notification window), achievements page (`pages/achievements`), souvenirs/screenshots
