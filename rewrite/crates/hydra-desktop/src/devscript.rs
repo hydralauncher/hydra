@@ -12,7 +12,8 @@
 //! - `wheel <x> <y> <dy>`, `hwheel <x> <y> <dx>` - scroll events
 //! - `type <text>` - text input
 //! - `keydown|keyup|tap <key> [count]` - key names: shift, meta, control,
-//!   left, right, up, down, home, end, pagedown, space, escape, or a character
+//!   left, right, up, down, home, end, pagedown, space, escape, tab, backtab,
+//!   or a character
 //! - `open-friends`, `open-chat <friend id>`: open the social windows
 //! - `target main|friends|chat`: later steps go to that window
 //! - `quit`
@@ -127,6 +128,8 @@ fn next<C: ComponentHandle + 'static>(
                 "end" => Key::End.into(),
                 "pagedown" => Key::PageDown.into(),
                 "escape" => Key::Escape.into(),
+                "tab" => Key::Tab.into(),
+                "backtab" => Key::Backtab.into(),
                 "return" | "enter" => Key::Return.into(),
                 "space" => " ".into(),
                 other => other.into(),

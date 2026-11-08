@@ -1,7 +1,7 @@
 // The library toolbar: category-filter.{tsx,scss} and the menu triggers of
 // library-toolbar-menu.scss / _library-dropdown.scss.
 import { Theme } from "../../theme.slint";
-import { Icon } from "../../components/widgets.slint";
+import { Icon, KeyboardFocus, FocusRing } from "../../components/widgets.slint";
 
 export global ToolbarIcons {
     out property <image> stack: @image-url("../../icons/stack-14.svg");
@@ -77,6 +77,19 @@ component CategoryOption inherits Rectangle {
         clicked => {
             root.clicked();
         }
+    }
+    focus := KeyboardFocus {
+        activated => {
+            root.clicked();
+        }
+    }
+    FocusRing {
+        x: -2px;
+        y: -2px;
+        width: root.width + 4px;
+        height: root.height + 4px;
+        visible: focus.ring;
+        radius: root.border-radius;
     }
 }
 
@@ -187,5 +200,18 @@ export component MenuTrigger inherits Rectangle {
         clicked => {
             root.clicked();
         }
+    }
+    focus := KeyboardFocus {
+        activated => {
+            root.clicked();
+        }
+    }
+    FocusRing {
+        x: -2px;
+        y: -2px;
+        width: root.width + 4px;
+        height: root.height + 4px;
+        visible: focus.ring;
+        radius: root.border-radius;
     }
 }
