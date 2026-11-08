@@ -221,6 +221,11 @@ const MULTIPART_DOWNLOADERS: [Downloader; 8] = [
     Downloader::Rootz,
     Downloader::FileKeeper,
 ];
+/// MULTIPART_DOWNLOADERS.has(downloader)
+pub fn is_multipart_downloader(downloader: Downloader) -> bool {
+    MULTIPART_DOWNLOADERS.contains(&downloader)
+}
+
 const MULTIPART_FEATURE_URI_PREFIXES: [&str; 2] =
     ["https://fuckingfast.net", "https://filekeeper.net/"];
 

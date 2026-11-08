@@ -231,6 +231,107 @@ pub fn save_identity(file: &Path, resource: &str) -> Result<(), String> {
     save_metadata(&identity_path(file)?, &contents)
 }
 
+/// getResourceIdentityState
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IdentityState {
+    /// No receipt for this resource.
+    Unidentified,
+    /// The file was started from this resource.
+    Identified,
+    /// The file finished from this resource and hasn't changed since.
+    Complete,
+    /// It finished from this resource but the file changed afterwards.
+    Changed,
+}
+
+/// Node's `stat.mtimeMs` / `stat.ctimeMs`: seconds * 1e3 + nanoseconds / 1e6.
+fn node_ms(seconds: i64, nanoseconds: i64) -> f64 {
+    seconds as f64 * 1e3 + nanoseconds as f64 / 1e6
+}
+
+#[cfg(windows)]
+fn file_times(file: &Path) -> Result<(u64, f64, f64), String> {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_BASIC_INFO, FileBasicInfo, GetFileInformationByHandleEx,
+    };
+    let handle = std::fs::File::open(file).map_err(|e| e.to_string())?;
+    let size = handle.metadata().map_err(|e| e.to_string())?.len();
+    let mut info: FILE_BASIC_INFO = unsafe { std::mem::zeroed() };
+    let ok = unsafe {
+        GetFileInformationByHandleEx(
+            handle.as_raw_handle() as _,
+            FileBasicInfo,
+            &mut info as *mut _ as *mut _,
+            std::mem::size_of::<FILE_BASIC_INFO>() as u32,
+        )
+    };
+    if ok == 0 {
+        return Err(std::io::Error::last_os_error().to_string());
+    }
+    // libuv: FILETIME (100ns since 1601) to a timespec since 1970.
+    let to_ms = |filetime: i64| {
+        let since_epoch = filetime - 116_444_736_000_000_000;
+        node_ms(
+            since_epoch.div_euclid(10_000_000),
+            since_epoch.rem_euclid(10_000_000) * 100,
+        )
+    };
+    Ok((size, to_ms(info.LastWriteTime), to_ms(info.ChangeTime)))
+}
+
+#[cfg(unix)]
+fn file_times(file: &Path) -> Result<(u64, f64, f64), String> {
+    use std::os::unix::fs::MetadataExt;
+    let meta = std::fs::metadata(file).map_err(|e| e.to_string())?;
+    Ok((
+        meta.len(),
+        node_ms(meta.mtime(), meta.mtime_nsec()),
+        node_ms(meta.ctime(), meta.ctime_nsec()),
+    ))
+}
+
+/// getResourceIdentityState
+pub fn identity_state(file: &Path, resource: &str) -> Result<IdentityState, String> {
+    let Some(id) = read_identity(file)? else {
+        return Ok(IdentityState::Unidentified);
+    };
+    if Some(id) != resource_id(Some(resource)) {
+        return Ok(IdentityState::Unidentified);
+    }
+    let path = identity_path(file)?;
+    let record: serde_json::Value = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default();
+    let Some(completed) = record.get("completed").filter(|c| c.is_object()) else {
+        return Ok(IdentityState::Identified);
+    };
+    let is_file = std::fs::metadata(file).is_ok_and(|m| m.is_file());
+    let (size, mtime, ctime) = file_times(file)?;
+    let same = is_file
+        && completed.get("size").and_then(|v| v.as_f64()) == Some(size as f64)
+        && completed.get("mtimeMs").and_then(|v| v.as_f64()) == Some(mtime)
+        && completed.get("ctimeMs").and_then(|v| v.as_f64()) == Some(ctime);
+    Ok(if same {
+        IdentityState::Complete
+    } else {
+        IdentityState::Changed
+    })
+}
+
+/// saveCompletedResourceIdentity: the receipt that `file` finished from `resource`.
+pub fn save_completed_identity(file: &Path, resource: &str) -> Result<(), String> {
+    let (size, mtime, ctime) = file_times(file)?;
+    let contents = serde_json::json!({
+        "version": 1,
+        "resourceId": resource_id(Some(resource)),
+        "completed": { "size": size, "mtimeMs": mtime, "ctimeMs": ctime },
+    })
+    .to_string();
+    save_metadata(&identity_path(file)?, &contents)
+}
+
 /// removeResourceIdentity
 pub fn remove_identity(file: &Path) {
     if let Ok(path) = identity_path(file) {
@@ -270,6 +371,41 @@ mod tests {
             serde_json::to_string(&s).unwrap(),
             r#"{"version":1,"total":100,"validator":"\"x\"","resourceId":null,"ranges":[[0,5]]}"#
         );
+    }
+
+    #[test]
+    fn completion_receipts() {
+        let dir = std::env::temp_dir().join(format!("hydra-identity-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        configure_directory(std::env::temp_dir().join("hydra-ranges-test"));
+        let file = dir.join("part.bin");
+        std::fs::write(&file, b"abc").unwrap();
+        assert_eq!(
+            identity_state(&file, "res").unwrap(),
+            IdentityState::Unidentified
+        );
+        save_identity(&file, "res").unwrap();
+        assert_eq!(
+            identity_state(&file, "res").unwrap(),
+            IdentityState::Identified
+        );
+        assert_eq!(
+            identity_state(&file, "other").unwrap(),
+            IdentityState::Unidentified
+        );
+        save_completed_identity(&file, "res").unwrap();
+        assert_eq!(
+            identity_state(&file, "res").unwrap(),
+            IdentityState::Complete
+        );
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        std::fs::write(&file, b"abcd").unwrap();
+        assert_eq!(
+            identity_state(&file, "res").unwrap(),
+            IdentityState::Changed
+        );
+        remove_identity(&file);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
