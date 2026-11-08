@@ -10,6 +10,7 @@ pub mod debrid;
 pub mod download_directories;
 pub mod emulation;
 pub mod executables;
+pub mod leaderboards;
 pub mod library;
 pub mod library_actions;
 pub mod realtime;
