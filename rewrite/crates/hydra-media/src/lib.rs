@@ -9,5 +9,6 @@
 //!   to display size, blur (stand-in for CSS `backdrop-filter`), grayscale.
 
 pub mod images;
+pub mod sound;
 pub mod strips;
 pub mod video;
