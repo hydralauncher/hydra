@@ -58,7 +58,7 @@ themes or theme editor. The UI follows `main` after #3095: one 40px title
 bar, no bottom panel.
 
 - [x] **App shell, main parts:** 40px title bar (`components/app-title-bar`: brand, version, back/forward, search field, Windows caption buttons / Linux window controls), sidebar (`components/sidebar`: profile, menu with the animated Downloads icon, virtualized library list with lazy icons and Steam/Epic badges, playable-only toggle, resize handle, persisted width)
-- [ ] **App shell, still open:** search dropdown (`search-dropdown`, history, suggestions), sidebar profile dropdown, sidebar filter menu (`sidebar-filter-menu`), game context menu, version changelog (WorkWonders widget: web-only, see below), Windows 11 snap layouts on the maximize button, window drag/resize edge cases
+- [ ] **App shell, still open:** search dropdown (`search-dropdown`, history, suggestions), sidebar profile dropdown, sidebar filter menu (`sidebar-filter-menu`), version changelog (WorkWonders widget: web-only, see below), Windows 11 snap layouts on the maximize button, window drag/resize edge cases
 - [x] **Navigation:** react-router-like history (push, back, forward), routes parsed from paths like `/game/steam/1091500?title=…`
 - [ ] **Navigation, still open:** scroll restoration per entry, `onNavigate` from the main process
 - [x] **i18n:** decided: Rust-side lookup (`crates/hydra-i18n`) over `src/locales/*/translation.json` with i18next 23 semantics, exposed to Slint as `T.tr / tr-with / tr-count`; date-fns `formatDistance`/`format` wording exported from date-fns' own locales
@@ -69,7 +69,8 @@ bar, no bottom panel.
 - [ ] **Hydra API, still open:** SSE (`services/sse`), tokio
 - [ ] **Auth:** `auth/*` (auth window flow via an on-demand OS webview, session, sign out), deep links `hydralauncher://` (`src/main/index.ts`)
 - [ ] **Single instance**, logging (`services/logger.ts`), crash-safe shutdown (`quit-cleanup.ts`; exit already drops media threads and HTTP clients first)
-- [ ] **Toasts** (`components/toast`), **context menus** (`components/context-menu`, `game-context-menu`), **dropdowns/selects/checkboxes/text fields** as reusable Slint components
+- [x] **Toasts** (`components/toast`), **context menus** (`components/context-menu`, `game-context-menu` on library cards and sidebar rows), Radix-style dropdowns (`Popup` global: one open menu, closes on a press outside, Escape, scroll)
+- [ ] **Still open:** selects/checkboxes/text fields as reusable Slint components; keyboard focus rings (Chromium shows the accent-colored `outline: auto` on `:focus-visible`, e.g. a menu trigger after picking an item)
 - [ ] **Shared crate with `native/hydra-native`:** move reusable modules (cloud_save, torrent FFI, extraction, window/process helpers) into a crate both builds use, instead of copying
 
 Web-only pieces of the Electron renderer that have no native equivalent and
@@ -83,7 +84,8 @@ the remote `external-resources/bundle.js` script.
 - [ ] **Catalogue** (`pages/catalogue`, `catalogue/*` events: filters, names, random game, covers)
 - [x] **Game details, done so far:** layout from #3095 (gutters, rail, column, 16:9 gallery), library state in the hero (played time, last played, favorite, pinned, Download/Play/Close), Steam details and artwork from the local caches first, achievements section (remote unlocks, combined Steam/Epic sets), review prompt banner
 - [ ] **Game details, remaining:** Cloud save widget (cloud save v2), stats, HowLongToBeat, similar games; review list/vote/submit/delete/translate/replies (`review-thread.tsx`, `review-replies`, `review-reply-composer.tsx`), review gate notice and prompt banner; leaderboard section (`game-details/leaderboard`); screenshots tab (`game-screenshots`); NSFW/content descriptor gate; randomizer; custom games and Epic/classics variants; text selection in description and reviews
-- [ ] **Library** (`pages/library`, `library/*` events: favorites, pin, collections, visibility, artwork selection, custom games, shortcuts)
+- [x] **Library, done so far:** toolbar (category, Filters menu with collections/libraries/consoles/installed only, sort + view menu), compact/grid/large views virtualized like the renderer, covers from `game.images` copies with ThumbHash placeholders, frosted badges, achievement bars, empty states, header that hides on scroll, title-bar search; context menu actions for favorites, collections, pin, hide/conceal, open folder (`library_actions`)
+- [ ] **Library, remaining:** create/rename/delete collection modals and the collection context menu, add custom game modal, scan games modal, classics onboarding modal, remove from library / remove files modals, shortcuts, animated covers (play on hover), `refreshLibraryAssets` on entering the page, an image disk cache like Chromium's HTTP cache
 - [ ] **Game options modal** (`game-details/modals`): executable, launch options, Wine/Proton prefix, shortcuts, remove/uninstall, reset playtime/achievements, assets
 - [ ] **Animated description images** (Steam serves animated AVIF; today only the first frame shows)
 
@@ -118,13 +120,13 @@ the remote `external-resources/bundle.js` script.
 ## Phase 6: the rest
 
 - [ ] **Settings** (`pages/settings`), every tab
-- [ ] **Themes** and theme editor (`pages/theme-editor`, `themes/*`). CSS themes don't map to Slint; decide what a theme can change (colors, sounds) and convert
+- [x] **Themes and the theme editor:** removed from the native client (decided 2026-11-08)
 - [ ] **Emulators, RetroArch, classics import, memory cards** (`emulators/*`, `retroarch/*`)
 - [ ] **Shop** (`pages/shop`: profile frames; mock catalog in Electron too until the shop API exists)
 - [ ] **Recompilation** (`pages/recompilation`, `recompilation/*`)
 - [ ] **RetroAchievements** (`pages/retroachievements-connection-window`)
 - [ ] **Epic / Legendary** (`epic/*`, `services/legendary.ts`)
-- [ ] **Big Picture** (`big-picture/*`)
+- [ ] **Big Picture** (`big-picture/*`): out of scope for now (decided 2026-11-08); its title-bar button is hidden
 - [ ] **Decky plugin** install (`misc/install-hydra-decky-plugin`)
 - [ ] **Auto-update** (`autoupdater/*`)
 

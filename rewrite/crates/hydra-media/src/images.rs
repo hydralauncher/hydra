@@ -85,17 +85,92 @@ pub fn open_path(path: &Path) -> Option<DynamicImage> {
         .ok()
 }
 
-/// Fetch a source's bytes (blocking; call from a worker).
+static CACHE_DIR: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+/// Cached images newer than this are used without asking the server.
+const CACHE_FRESH: std::time::Duration = std::time::Duration::from_secs(7 * 24 * 3600);
+/// The cache is trimmed (oldest first) past this size.
+const CACHE_MAX_BYTES: u64 = 512 * 1024 * 1024;
+
+/// Keep downloaded images on disk, like Chromium's HTTP cache keeps covers
+/// and icons between runs. Trims old entries in the background.
+pub fn set_cache_dir(dir: PathBuf) {
+    let _ = std::fs::create_dir_all(&dir);
+    if CACHE_DIR.set(dir.clone()).is_ok() {
+        let _ = thread::Builder::new().name("image-cache-trim".into()).spawn(move || trim_cache(&dir));
+    }
+}
+
+fn trim_cache(dir: &Path) {
+    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let mut files: Vec<(std::time::SystemTime, u64, PathBuf)> = entries
+        .filter_map(Result::ok)
+        .filter_map(|e| {
+            let meta = e.metadata().ok()?;
+            if !meta.is_file() {
+                return None;
+            }
+            Some((meta.modified().ok()?, meta.len(), e.path()))
+        })
+        .collect();
+    let mut total: u64 = files.iter().map(|f| f.1).sum();
+    if total <= CACHE_MAX_BYTES {
+        return;
+    }
+    files.sort_by_key(|f| f.0);
+    for (_, len, path) in files {
+        if total <= CACHE_MAX_BYTES * 3 / 4 {
+            break;
+        }
+        if std::fs::remove_file(&path).is_ok() {
+            total -= len;
+        }
+    }
+}
+
+/// FNV-1a 64: a stable file name per URL.
+fn cache_key(url: &str) -> String {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for byte in url.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("{hash:016x}-{:x}", url.len())
+}
+
+/// Fetch a source's bytes (blocking; call from a worker). URLs go through
+/// the disk cache when one is set.
 pub fn fetch(http: &reqwest::blocking::Client, source: &Source) -> Option<Vec<u8>> {
     match source {
         Source::Path(path) => std::fs::read(path).ok(),
-        Source::Url(url) => http
-            .get(url)
-            .send()
-            .and_then(|r| r.error_for_status())
-            .and_then(|r| r.bytes())
-            .ok()
-            .map(|b| b.to_vec()),
+        Source::Url(url) => {
+            let cached = CACHE_DIR.get().map(|dir| dir.join(cache_key(url)));
+            if let Some(path) = &cached
+                && let Ok(meta) = std::fs::metadata(path)
+                && meta.modified().ok().and_then(|m| m.elapsed().ok()).is_some_and(|age| age < CACHE_FRESH)
+                && let Ok(bytes) = std::fs::read(path)
+            {
+                return Some(bytes);
+            }
+            let bytes = http
+                .get(url)
+                .send()
+                .and_then(|r| r.error_for_status())
+                .and_then(|r| r.bytes())
+                .ok()
+                .map(|b| b.to_vec());
+            match (&bytes, &cached) {
+                (Some(bytes), Some(path)) => {
+                    let tmp = path.with_extension("tmp");
+                    if std::fs::write(&tmp, bytes).is_ok() {
+                        let _ = std::fs::rename(&tmp, path);
+                    }
+                }
+                // Offline: an expired copy beats nothing.
+                (None, Some(path)) => return std::fs::read(path).ok(),
+                _ => {}
+            }
+            bytes
+        }
     }
 }
 
@@ -243,13 +318,7 @@ impl Loader {
         let _ = self.tx.send(Box::new(move || {
             let pixels = match &source {
                 Source::Path(path) => decode(path, op),
-                Source::Url(url) => http
-                    .get(url)
-                    .send()
-                    .and_then(|r| r.error_for_status())
-                    .and_then(|r| r.bytes())
-                    .ok()
-                    .and_then(|bytes| decode_bytes(&bytes, op)),
+                Source::Url(_) => fetch(&http, &source).and_then(|bytes| decode_bytes(&bytes, op)),
             };
             match pixels {
                 Some(pixels) => {

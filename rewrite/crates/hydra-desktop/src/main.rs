@@ -83,6 +83,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let native_dir = paths::native_user_data().ok_or("no user data folder")?;
     let electron_dir = paths::electron_user_data();
     hydra_media::video::prepare_tls(&native_dir);
+    hydra_media::images::set_cache_dir(native_dir.join("Cache").join("images"));
     let (db, origin) = import::open_or_import(
         &native_dir,
         electron_dir.as_deref(),
