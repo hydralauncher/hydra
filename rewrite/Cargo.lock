@@ -2742,6 +2742,7 @@ dependencies = [
  "hydra-db",
  "icu_collator",
  "icu_locale_core",
+ "icu_properties",
  "reqwest",
  "rustls",
  "rustls-platform-verifier",

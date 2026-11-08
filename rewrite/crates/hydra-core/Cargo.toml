@@ -20,5 +20,8 @@ chrono = { version = "0.4", default-features = false, features = ["std", "clock"
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 rustls.workspace = true
 rustls-platform-verifier = "0.7"
+# Extended_Pictographic for emoji-only chat messages (chat-emoji.ts); already in the
+# tree through icu_collator.
+icu_properties = "2"
 
 [dev-dependencies]
