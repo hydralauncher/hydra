@@ -430,3 +430,108 @@ mod tests {
         assert_eq!(merge_play_time(&local, &remote), (90_000.0, 0.0, 7_000.0));
     }
 }
+
+/// add-game-to-library.ts: revive a removed entry or create one from the
+/// shop assets, then register it with the API.
+pub fn add_to_library(
+    db: &Db,
+    api: &HydraApi,
+    shop: &str,
+    object_id: &str,
+    title: &str,
+    platform: Option<&str>,
+) -> Result<(), ActionError> {
+    let key = game_key(shop, object_id);
+    let assets: Option<Obj> = db.get_in(keys::GAME_SHOP_ASSETS, &key);
+    let resolved_platform = platform.map(str::to_string).or_else(|| {
+        (shop == "launchbox")
+            .then(|| {
+                let prefix = format!("{shop}:{object_id}:");
+                db.entries::<Obj>(keys::GAME_SHOP_CACHE)
+                    .ok()?
+                    .into_iter()
+                    .find(|(k, v)| {
+                        k.starts_with(&prefix) && v.get("platform").is_some_and(|p| !p.is_null())
+                    })
+                    .and_then(|(_, v)| {
+                        v.get("platform")
+                            .and_then(Value::as_str)
+                            .map(str::to_string)
+                    })
+            })
+            .flatten()
+    });
+    {
+        let _guard = WRITE_QUEUE.lock().unwrap_or_else(|e| e.into_inner());
+        let game = match local_game(db, &key) {
+            Some(mut game) => {
+                clear_finished_download(db, &key);
+                game.insert("isDeleted".into(), Value::Bool(false));
+                if game.get("addedToLibraryAt").is_none_or(Value::is_null) {
+                    game.insert("addedToLibraryAt".into(), json!(now_iso()));
+                }
+                game.insert("source".into(), json!("hydra"));
+                if shop == "epic" {
+                    game.insert("remoteId".into(), Value::Null);
+                }
+                if let Some(platform) = &resolved_platform
+                    && game
+                        .get("platform")
+                        .is_none_or(|p| p.is_null() || p.as_str() == Some(""))
+                {
+                    game.insert("platform".into(), json!(platform));
+                }
+                game
+            }
+            None => {
+                let asset = |field: &str| {
+                    assets
+                        .as_ref()
+                        .and_then(|a| a.get(field))
+                        .cloned()
+                        .unwrap_or(Value::Null)
+                };
+                let mut game = Obj::new();
+                game.insert("title".into(), json!(title));
+                game.insert("iconUrl".into(), asset("iconUrl"));
+                game.insert("libraryHeroImageUrl".into(), asset("libraryHeroImageUrl"));
+                game.insert("logoImageUrl".into(), asset("logoImageUrl"));
+                game.insert("objectId".into(), json!(object_id));
+                game.insert("shop".into(), json!(shop));
+                game.insert("remoteId".into(), Value::Null);
+                game.insert("isDeleted".into(), Value::Bool(false));
+                game.insert("playTimeInMilliseconds".into(), json!(0));
+                game.insert("lastTimePlayed".into(), Value::Null);
+                game.insert("addedToLibraryAt".into(), json!(now_iso()));
+                game.insert(
+                    "platform".into(),
+                    resolved_platform.map(Value::from).unwrap_or(Value::Null),
+                );
+                game.insert("source".into(), json!("hydra"));
+                game
+            }
+        };
+        db.put_in(keys::GAMES, &key, &game)?;
+    }
+    if let Some(game) = local_game(db, &key) {
+        // createGame(game).catch(() => {})
+        let _ = create_game(db, api, &game);
+    }
+    // TODO(achievements): AchievementWatcherManager.syncGameAchievementFiles
+    Ok(())
+}
+
+/// clearFinishedDownload: drop a removed or finished download entry
+/// (canDiscardDownload; active and seeding ones stay).
+fn clear_finished_download(db: &Db, key: &str) {
+    let Some(download) = db.get_in::<Obj>(keys::DOWNLOADS, key) else {
+        return;
+    };
+    let status = download
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if matches!(status, "removed" | "complete") {
+        let _ = db.delete_in(keys::DOWNLOADS, key);
+    }
+}

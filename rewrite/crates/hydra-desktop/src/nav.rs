@@ -5,7 +5,7 @@ use std::cell::RefCell;
 
 use slint::ComponentHandle;
 
-use crate::{AppWindow, Nav, game_page, home_page, library_page, shell};
+use crate::{AppWindow, Nav, catalogue_page, game_page, home_page, library_page, shell};
 
 struct History {
     ui: slint::Weak<AppWindow>,
@@ -203,6 +203,11 @@ fn apply(previous: Option<String>) {
     }
     if location.route() == "home" && previous_location.as_ref().map(|l| l.route()) != Some("home") {
         home_page::open();
+    }
+    if location.route() == "catalogue"
+        && previous_location.as_ref().map(|l| l.route()) != Some("catalogue")
+    {
+        catalogue_page::open();
     }
     if location.route() == "game" {
         let mut parts = location.pathname.trim_start_matches('/').split('/').skip(1);

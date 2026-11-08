@@ -22,6 +22,7 @@ export component HydraButton inherits Rectangle {
     in property <angle> icon-rotation;
     in property <bool> square-corners;
     in property <length> horizontal-padding: root.small ? 10px : 16px;
+    in property <length> text-size: root.small ? Theme.small-size : Theme.button-size;
     callback clicked();
     out property <bool> hovered: touch.has-hover;
     property <int> tip-id;
@@ -70,7 +71,7 @@ export component HydraButton inherits Rectangle {
         if root.text != "": Text {
             text: root.text;
             color: root.foreground;
-            font-size: root.small ? Theme.small-size : Theme.button-size;
+            font-size: root.text-size;
             vertical-alignment: center;
         }
     }

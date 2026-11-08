@@ -4,6 +4,7 @@
 //! See `rewrite/README.md` for what is ported and `rewrite/docs/parity-plan.md`
 //! for what is next.
 
+mod catalogue_page;
 mod collections;
 mod context_menu;
 mod devscript;
@@ -154,6 +155,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     game_page::init(&ui, &loader);
     library_page::init(&ui);
     home_page::init(&ui, &loader);
+    catalogue_page::init(&ui, &loader);
+    {
+        let select = ui.global::<SelectPopup>();
+        select.on_chosen(|owner, value| {
+            if owner == "catalogue-sort" {
+                catalogue_page::set_sort(&value);
+            }
+        });
+    }
     gifs::init(&ui);
     popup::init(&ui);
     toast::init(&ui);
@@ -188,6 +198,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     game_page::shutdown();
     library_page::shutdown();
     home_page::shutdown();
+    catalogue_page::shutdown();
     shell::shutdown();
     drop(ui);
     std::process::exit(0);

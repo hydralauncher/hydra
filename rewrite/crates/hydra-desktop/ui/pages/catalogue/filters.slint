@@ -1,0 +1,462 @@
+// The catalogue's filter rail: catalogue-mode-toggle, release-year-section,
+// filter-section (+ filter.scss) and the active filter chips (filter-item).
+import { Theme } from "../../theme.slint";
+import { Icon } from "../../components/widgets.slint";
+import { TextField, CheckboxField } from "../../components/fields.slint";
+import { T } from "../../globals.slint";
+import { FilterSectionData, FilterChip } from "state.slint";
+
+// catalogue-mode-toggle.scss: like the library category switch, full width.
+export component ModeToggle inherits Rectangle {
+    in property <string> mode;
+    callback changed-mode(string);
+    height: 40px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.06);
+    background: Theme.dark-background;
+    HorizontalLayout {
+        padding: 3px;
+        spacing: 2px;
+        for option in [
+            { value: "modern", key: "catalogue.mode_modern_games", icon: @image-url("../../icons/device-desktop-14.svg"), size: 14px, tint: true },
+            { value: "classics", key: "catalogue.mode_classics", icon: @image-url("../../icons/classics.svg"), size: 16px, tint: false },
+        ]: opt := Rectangle {
+            property <bool> active: root.mode == option.value;
+            property <color> fg: self.active || touch.has-hover ? Theme.muted : Theme.subtle;
+            horizontal-stretch: 1;
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: self.active ? Theme.border : transparent;
+            background: self.active ? rgba(255, 255, 255, 0.04) : transparent;
+            animate background, border-color { duration: 150ms; easing: ease; }
+            HorizontalLayout {
+                padding-left: 13px;
+                padding-right: 13px;
+                spacing: 8px;
+                alignment: center;
+                if option.tint: Icon {
+                    y: (parent.height - self.height) / 2;
+                    width: option.size;
+                    height: option.size;
+                    source: option.icon;
+                    color: opt.fg;
+                }
+                if !option.tint: Image {
+                    y: (parent.height - self.height) / 2;
+                    width: option.size;
+                    height: option.size;
+                    source: option.icon;
+                }
+                Text {
+                    text: T.tr(option.key);
+                    font-size: Theme.hint-size;
+                    font-weight: 700; // 600 in scss; Electron has no SemiBold face
+                    color: opt.fg;
+                    vertical-alignment: center;
+                    overflow: elide;
+                    animate color { duration: 150ms; easing: ease; }
+                }
+            }
+            touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.changed-mode(option.value);
+                }
+            }
+        }
+    }
+}
+
+// .filter-section shell: a header button (chevron, orb, title, count) and
+// content that collapses with grid-template-rows over 0.3s.
+export component SectionShell inherits Rectangle {
+    in property <string> title;
+    in property <color> orb;
+    in property <string> count;
+    in property <bool> show-count: true;
+    in-out property <bool> open: true;
+    in property <length> content-height;
+    property <length> shown-height: root.open ? root.content-height + 32px : 0;
+    animate shown-height { duration: 300ms; easing: ease; }
+
+    height: 62px + 2px + root.shown-height;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.05);
+    background: Theme.background;
+    drop-shadow-offset-y: 4px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: rgba(0, 0, 0, 0.1);
+    clip: true;
+
+    header := Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: 62px;
+        background: touch.has-hover ? rgba(255, 255, 255, 0.1) : Theme.background;
+        animate background { duration: 200ms; easing: ease; }
+        opacity: touch.pressed ? Theme.active-opacity : 1;
+        HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            spacing: 8px;
+            Icon {
+                y: (parent.height - self.height) / 2;
+                width: 16px;
+                height: 16px;
+                source: @image-url("../../icons/chevron-down.svg");
+                color: Theme.muted;
+                transform-rotation: root.open ? 180deg : 0deg;
+                animate transform-rotation { duration: 200ms; easing: ease; }
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                Rectangle {
+                    y: (parent.height - self.height) / 2;
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 5px;
+                    background: root.orb;
+                }
+                Text {
+                    text: root.title;
+                    font-size: 16px;
+                    font-weight: 500;
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                if root.count != "": Rectangle {
+                    y: (parent.height - self.height) / 2;
+                    height: 25px;
+                    width: Math.max(24px, count-text.preferred-width + 16px);
+                    border-radius: 6px;
+                    background: rgba(255, 255, 255, 0.1);
+                    opacity: root.show-count ? 1 : 0;
+                    count-text := Text {
+                        text: root.count;
+                        font-size: Theme.small-size;
+                        font-weight: 700; // 600 in scss
+                        color: rgba(255, 255, 255, 0.7);
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.open = !root.open;
+            }
+        }
+    }
+
+    // .filter-section__content: #0d0d0d, padding 16px (0 when closed)
+    Rectangle {
+        x: 1px;
+        y: 63px;
+        width: parent.width - 2px;
+        height: root.shown-height;
+        background: Theme.dark-background;
+    }
+    // The content, inset by the padding and clipped while collapsing.
+    Rectangle {
+        x: 17px;
+        y: 79px;
+        width: parent.width - 34px;
+        height: Math.max(0, root.shown-height - 16px);
+        clip: true;
+        @children
+    }
+}
+
+// filter-section__count / __clear-button
+component SectionHint inherits Rectangle {
+    in property <string> text;
+    in property <bool> clear;
+    callback clear-clicked();
+    height: 17px;
+    Text {
+        x: 0;
+        text: root.text;
+        font-size: Theme.small-size;
+        color: Theme.body;
+        vertical-alignment: center;
+    }
+    if root.clear: Rectangle {
+        x: 0;
+        y: parent.height - 2px;
+        width: hint-measure.preferred-width;
+        height: 1px;
+        background: Theme.body;
+    }
+    hint-measure := Text {
+        visible: false;
+        text: root.text;
+        font-size: Theme.small-size;
+    }
+    if root.clear: TouchArea {
+        x: 0;
+        width: hint-measure.preferred-width;
+        mouse-cursor: pointer;
+        clicked => {
+            root.clear-clicked();
+        }
+    }
+}
+
+// FilterSection: hint, search box, a 10-row virtual list (rc-virtual-list) of checkboxes.
+export component FilterSection inherits Rectangle {
+    in property <FilterSectionData> data;
+    callback toggled(string);
+    callback cleared();
+    callback searched(string);
+    property <int> rows: Math.min(root.data.items.length, 10);
+    property <length> list-height: root.data.loading && root.data.items.length == 0 ? 280px : root.rows * 28px;
+    // The content width inside the 16px padding and the border.
+    property <length> inner-width: root.width - 34px;
+    height: shell.height;
+    shell := SectionShell {
+    title: root.data.title;
+    orb: root.data.color;
+    count: root.data.count;
+    show-count: !(root.data.loading && root.data.items.length == 0);
+    content-height: 17px + 12px + 40px + 12px + root.list-height;
+
+    SectionHint {
+        x: 0;
+        y: 0;
+        width: root.inner-width;
+        text: root.data.hint;
+        clear: root.data.selected > 0;
+        clear-clicked => {
+            root.cleared();
+        }
+    }
+    TextField {
+        x: 0;
+        y: 29px;
+        width: root.inner-width;
+        placeholder: T.tr("catalogue.search");
+        edited(text) => {
+            root.searched(text);
+        }
+    }
+    list := Rectangle {
+        x: 0;
+        y: 81px;
+        width: root.inner-width;
+        height: root.list-height;
+        clip: true;
+        property <length> content: root.data.items.length * 28px;
+        property <length> max-scroll: Math.max(0, self.content - self.height);
+        property <length> offset;
+        property <int> first: Math.max(0, Math.floor(self.offset / 28px) - 1);
+        changed content => {
+            self.offset = Math.min(self.offset, self.max-scroll);
+        }
+        TouchArea {
+            scroll-event(event) => {
+                if (list.max-scroll <= 0) {
+                    return reject;
+                }
+                list.offset = Math.clamp(list.offset - event.delta-y, 0, list.max-scroll);
+                accept
+            }
+        }
+        for i in Math.min(root.data.items.length - list.first, 12): CheckboxField {
+            property <int> index: list.first + i;
+            x: 0;
+            y: self.index * 28px - list.offset;
+            width: parent.width - (list.max-scroll > 0 ? 12px : 0);
+            label: root.data.items[self.index].label;
+            checked: root.data.items[self.index].checked;
+            toggled => {
+                root.toggled(root.data.items[self.index].value);
+            }
+        }
+        // rc-virtual-list scrollbar: rgba(255,255,255,.03) track, .08 thumb;
+        // it shows while scrolling and hides again after a pause.
+        property <bool> scrolling;
+        changed offset => {
+            self.scrolling = true;
+            hide-timer.running = false;
+            hide-timer.running = true;
+        }
+        hide-timer := Timer {
+            interval: 3000ms;
+            running: false;
+            triggered => {
+                self.running = false;
+                list.scrolling = false;
+            }
+        }
+        if list.max-scroll > 0 && list.scrolling: Rectangle {
+            x: parent.width - 8px;
+            width: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            Rectangle {
+                y: (parent.height - self.height) * list.offset / list.max-scroll;
+                height: Math.max(20px, parent.height * parent.height / list.content);
+                border-radius: 24px;
+                background: rgba(255, 255, 255, 0.08);
+            }
+        }
+    }
+}
+}
+
+// release-year-section: two thumbs over a colored range
+export component ReleaseYearSection inherits Rectangle {
+    in property <color> range-color;
+    in property <int> min-year;
+    in property <int> max-year;
+    in property <int> gte;
+    in property <int> lte;
+    in property <bool> active;
+    callback changed-years(int, int);
+    callback cleared();
+    property <float> gte-fraction: (root.gte - root.min-year) / Math.max(1, root.max-year - root.min-year);
+    property <float> lte-fraction: (root.lte - root.min-year) / Math.max(1, root.max-year - root.min-year);
+    property <length> inner-width: root.width - 34px;
+    height: year-shell.height;
+    year-shell := SectionShell {
+    title: T.tr("catalogue.release_year");
+    orb: root.range-color;
+    count: "";
+    content-height: 17px + 12px + 17px + 28px;
+
+    SectionHint {
+        x: 0;
+        y: 0;
+        width: root.inner-width;
+        text: root.active ? T.tr-with("catalogue.clear_filters", ["filterCount", "1"]) : T.tr("catalogue.filter_by_release_year");
+        clear: root.active;
+        clear-clicked => {
+            root.cleared();
+        }
+    }
+    // __labels: 12px, rgba(255,255,255,.86), 600
+    Text {
+        x: 0;
+        y: 29px;
+        text: root.gte;
+        font-size: Theme.small-size;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.86);
+    }
+    Text {
+        width: self.preferred-width;
+        x: root.inner-width - self.width;
+        y: 29px;
+        text: root.lte;
+        font-size: Theme.small-size;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.86);
+    }
+    slider := Rectangle {
+        x: 0;
+        y: 46px;
+        width: root.inner-width;
+        height: 28px;
+        property <length> usable: self.width - 16px;
+        Rectangle {
+            y: 12px;
+            height: 4px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.12);
+        }
+        // The colored stretch of the track gradient (percent of the full track).
+        Rectangle {
+            x: slider.width * root.gte-fraction;
+            y: 12px;
+            width: slider.width * (root.lte-fraction - root.gte-fraction);
+            height: 4px;
+            background: root.range-color;
+        }
+        for which in 2: Rectangle {
+            property <float> fraction: which == 0 ? root.gte-fraction : root.lte-fraction;
+            x: slider.usable * self.fraction;
+            y: 6px;
+            width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            background: Theme.muted;
+            drop-shadow-offset-y: 1px;
+            drop-shadow-blur: 4px;
+            drop-shadow-color: rgba(0, 0, 0, 0.5);
+            thumb := TouchArea {
+                mouse-cursor: pointer;
+                moved => {
+                    if (self.pressed) {
+                        let pos = (parent.x + self.mouse-x - 8px) / slider.usable;
+                        let year = Math.round(root.min-year + Math.clamp(pos, 0, 1) * (root.max-year - root.min-year));
+                        if (which == 0) {
+                            root.changed-years(Math.min(year, root.lte), root.lte);
+                        } else {
+                            root.changed-years(root.gte, Math.max(year, root.gte));
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+}
+
+// filter-item: a chip with the category orb, the value and a remove button.
+export component FilterChipItem inherits Rectangle {
+    in property <FilterChip> chip;
+    callback removed();
+    height: 32px;
+    width: Math.min(row.preferred-width, 300px);
+    border-radius: 8px;
+    border-width: 1px;
+    // color-mix(dark 84%, color 16%) / border color-mix(border 70%, color 30%)
+    background: Theme.dark-background.mix(root.chip.color, 0.84);
+    border-color: Theme.border.mix(root.chip.color, 0.7);
+    row := HorizontalLayout {
+        padding-left: 9px;
+        padding-right: 5px;
+        spacing: 8px;
+        Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 9px;
+            height: 9px;
+            border-radius: 4.5px;
+            background: root.chip.color;
+            drop-shadow-blur: 0;
+            border-width: 0;
+        }
+        Text {
+            text: root.chip.label;
+            font-size: Theme.small-size;
+            color: Theme.body;
+            vertical-alignment: center;
+            overflow: elide;
+            max-width: 220px;
+        }
+        Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 22px;
+            height: 22px;
+            Icon {
+                width: 14px;
+                height: 14px;
+                source: @image-url("../../icons/x-small.svg");
+                color: remove.has-hover ? Theme.body : Theme.body.mix(root.chip.color, 0.84);
+                animate color { duration: 200ms; easing: ease; }
+            }
+            remove := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.removed();
+                }
+            }
+        }
+    }
+}

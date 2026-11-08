@@ -322,7 +322,7 @@ pub fn tr(key: &str) -> String {
     with_shell(|s| s.i18n.t(key)).unwrap_or_default()
 }
 
-fn tr_with(key: &str, args: &[(&str, Arg)]) -> String {
+pub fn tr_with(key: &str, args: &[(&str, Arg)]) -> String {
     with_shell(|s| s.i18n.t_with(key, args)).unwrap_or_default()
 }
 
@@ -523,6 +523,7 @@ pub fn load_library() {
             refresh_rows();
             crate::game_page::on_library_changed();
             crate::library_page::on_library_changed();
+            crate::catalogue_page::on_library_changed();
         });
     });
 }

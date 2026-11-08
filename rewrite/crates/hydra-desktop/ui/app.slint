@@ -20,6 +20,9 @@ import { GameData, Input } from "pages/game-details/state.slint";
 import { GameDetailsPage } from "pages/game-details/page.slint";
 import { LibraryPage } from "pages/library/page.slint";
 import { HomePage } from "pages/home/page.slint";
+import { CataloguePage } from "pages/catalogue/page.slint";
+import { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip } from "pages/catalogue/state.slint";
+import { SelectPopupHost, SelectPopup, SelectOption } from "components/fields.slint";
 import { HomeData, CatalogueCard } from "pages/home/state.slint";
 import { Gifs } from "components/animated.slint";
 import { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar } from "pages/library/state.slint";
@@ -31,6 +34,7 @@ export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input, Po
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
 export { HomeData, CatalogueCard, Gifs }
+export { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, SelectPopup, SelectOption }
 
 export component AppWindow inherits Window {
     title: GameData.game-title != "" && Nav.route == "game" ? "Hydra — " + GameData.game-title : "Hydra";
@@ -88,7 +92,12 @@ export component AppWindow inherits Window {
                     height: parent.height;
                 }
 
-                if Nav.route != "game" && Nav.route != "library" && Nav.route != "home": Text {
+                if Nav.route == "catalogue": CataloguePage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route != "game" && Nav.route != "library" && Nav.route != "home" && Nav.route != "catalogue": Text {
                     text: "TODO(" + Nav.route + "): not ported yet";
                     color: Theme.subtle;
                     font-size: Theme.small-size;
@@ -105,6 +114,11 @@ export component AppWindow inherits Window {
     }
 
     ContextMenuHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    SelectPopupHost {
         width: root.width;
         height: root.height;
     }

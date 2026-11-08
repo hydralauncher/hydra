@@ -1,0 +1,233 @@
+// components/text-field (theme dark), components/checkbox-field and
+// components/select-field as reusable Slint pieces.
+import { Theme } from "../theme.slint";
+import { Icon } from "widgets.slint";
+import { Popup } from "../globals.slint";
+
+// text-field.scss, theme "dark": 40px, radius 8, #121212, 1px border that
+// lightens on hover and turns #dadbe1 on focus (0.2s).
+export component TextField inherits Rectangle {
+    in property <string> placeholder;
+    in-out property <string> text;
+    callback edited(string);
+    height: 40px;
+    border-radius: 8px;
+    border-width: 1px;
+    background: Theme.background;
+    border-color: input.has-focus ? #dadbe1 : hover.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
+    animate border-color { duration: 200ms; easing: ease; }
+    hover := TouchArea {
+        mouse-cursor: MouseCursor.text;
+        clicked => {
+            input.focus();
+        }
+    }
+    Rectangle {
+        x: 9px;
+        width: parent.width - 18px;
+        Text {
+            x: 0;
+            width: parent.width;
+            text: root.placeholder;
+            color: #757575;
+            // Chromium doesn't inherit font-size into <input>: 13.33px.
+            font-size: Theme.button-size;
+            vertical-alignment: center;
+            overflow: elide;
+            visible: input.text == "";
+        }
+        input := TextInput {
+            width: parent.width;
+            height: parent.height;
+            text <=> root.text;
+            color: #dadbe1;
+            font-size: Theme.button-size;
+            vertical-alignment: center;
+            single-line: true;
+            accessible-label: root.placeholder;
+            edited => {
+                root.edited(self.text);
+            }
+        }
+    }
+}
+
+// checkbox-field: a 20px box (white with a dark check when checked; the
+// check scales 0.65 -> 1 and fades in over 0.2s) and a 14px label.
+export component CheckboxField inherits Rectangle {
+    in property <string> label;
+    in property <bool> checked;
+    in property <bool> enabled: true;
+    callback toggled();
+    height: Math.max(20px, label-text.preferred-height);
+    opacity: root.enabled ? 1 : Theme.disabled-opacity;
+    accessible-role: checkbox;
+    accessible-checked: root.checked;
+    accessible-label: root.label;
+
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        box := Rectangle {
+            width: 20px;
+            height: 20px;
+            y: 0;
+            border-radius: 4px;
+            border-width: 1px;
+            background: root.checked ? #ffffff : Theme.dark-background;
+            border-color: root.checked ? #ffffff : touch.has-hover && root.enabled ? rgba(255, 255, 255, 0.5) : Theme.border;
+            animate background, border-color { duration: 200ms; easing: ease; }
+            Icon {
+                width: 14px;
+                height: 14px;
+                source: @image-url("../icons/check.svg");
+                color: Theme.dark-background;
+                opacity: root.checked ? 1 : 0;
+                transform-scale: root.checked ? 1 : 0.65;
+                animate opacity, transform-scale { duration: 200ms; easing: ease; }
+            }
+        }
+        label-text := Text {
+            text: root.label;
+            font-size: Theme.body-size;
+            color: Theme.body;
+            wrap: word-wrap;
+            vertical-alignment: top;
+            min-height: 20px;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: root.enabled ? pointer : not-allowed;
+        clicked => {
+            if (root.enabled) {
+                root.toggled();
+            }
+        }
+    }
+}
+
+export struct SelectOption {
+    value: string,
+    label: string,
+}
+
+// select-field.scss: 40px, radius 8, 1px border (hover .5, focus #dadbe1),
+// the <select> text 14px #dadbe1 with 8px padding and Chromium's arrow.
+// The popup is Chromium's own list (white-on-dark per color-scheme).
+export component SelectField inherits Rectangle {
+    in property <[SelectOption]> options;
+    in property <string> value;
+    in property <string> popup-id;
+    in property <bool> dark;
+    callback selected(string);
+    property <bool> open: Popup.open == root.popup-id;
+    // The selected option's label (functions can't loop over models).
+    in property <string> current-label;
+    height: 40px;
+    border-radius: 8px;
+    border-width: 1px;
+    background: root.dark ? Theme.background : Theme.dark-background;
+    border-color: root.open ? #dadbe1 : touch.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
+    animate border-color { duration: 200ms; easing: ease; }
+    accessible-role: combobox;
+    accessible-value: root.current-label;
+
+    Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        border-radius: 8px;
+        background: Theme.dark-background;
+        Text {
+            x: 13px;
+            width: parent.width - 13px - 28px;
+            text: root.current-label;
+            font-size: Theme.body-size;
+            color: #dadbe1;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        // Chromium's select arrow
+        Path {
+            x: parent.width - 21px;
+            y: (parent.height - 6px) / 2;
+            width: 10px;
+            height: 6px;
+            viewbox-width: 10;
+            viewbox-height: 6;
+            commands: "M 1 1 L 5 5 L 9 1";
+            stroke: #dadbe1;
+            stroke-width: 1.5px;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: default;
+        clicked => {
+            SelectPopup.options = root.options;
+            SelectPopup.value = root.value;
+            SelectPopup.owner = root.popup-id;
+            Popup.toggle(root.popup-id, root.absolute-position.x, root.absolute-position.y, root.width, root.height);
+        }
+    }
+}
+
+// The open <select> list, drawn at window level (SelectPopupHost in app.slint).
+export global SelectPopup {
+    in-out property <[SelectOption]> options;
+    in-out property <string> value;
+    in-out property <string> owner;
+    callback chosen(string, string);
+}
+
+// Chromium's <select> popup: the select's inner width, 27px rows, #0d0d0d
+// (the option background), a 1px #767676 border and the #1967d2 highlight
+// that follows the pointer.
+export component SelectPopupHost inherits Rectangle {
+    property <bool> shown: SelectPopup.owner != "" && Popup.open == SelectPopup.owner;
+    if root.shown: list := Rectangle {
+        property <int> hovered: -1;
+        x: Popup.anchor-x + 1px;
+        y: Popup.anchor-y + Popup.anchor-height - 1px;
+        width: Popup.anchor-width - 2px;
+        height: SelectPopup.options.length * 27px + 2px;
+        background: Theme.dark-background;
+        border-width: 1px;
+        border-color: #767676;
+        init => {
+            Popup.box-x = self.x;
+            Popup.box-y = self.y;
+            Popup.box-width = self.width;
+            Popup.box-height = self.height;
+        }
+        TouchArea { }
+        for option[i] in SelectPopup.options: option-row := Rectangle {
+            property <bool> lit: list.hovered >= 0 ? list.hovered == i : option.value == SelectPopup.value;
+            x: 1px;
+            y: 1px + i * 27px;
+            width: parent.width - 2px;
+            height: 27px;
+            background: self.lit ? #1967d2 : transparent;
+            Text {
+                x: 6px;
+                text: option.label;
+                font-size: Theme.body-size;
+                color: option-row.lit ? #ffffff : #dadbe1;
+                vertical-alignment: center;
+            }
+            row-touch := TouchArea {
+                changed has-hover => {
+                    if (self.has-hover) {
+                        list.hovered = i;
+                    }
+                }
+                clicked => {
+                    SelectPopup.chosen(SelectPopup.owner, option.value);
+                    Popup.open = "";
+                }
+            }
+        }
+    }
+}

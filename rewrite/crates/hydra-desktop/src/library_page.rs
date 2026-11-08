@@ -386,6 +386,17 @@ fn wire(ui: &AppWindow) {
     // The title bar search filters the library while on it (debounced 180ms).
     ui.on_search_changed(|text| {
         if !on_library() {
+            // Everywhere else the title bar search edits the catalogue title (250ms debounce).
+            let text: String = text.chars().take(255).collect();
+            with_page(|p| {
+                p.search_timer.start(
+                    slint::TimerMode::SingleShot,
+                    std::time::Duration::from_millis(250),
+                    move || {
+                        crate::catalogue_page::set_title(&text);
+                    },
+                );
+            });
             return;
         }
         let text: String = text.chars().take(255).collect();
@@ -402,6 +413,19 @@ fn wire(ui: &AppWindow) {
     });
     ui.on_search_submitted(|text| {
         if !on_library() {
+            // executeSearch: apply now and open the catalogue.
+            let text: String = text.chars().take(255).collect();
+            with_page(|p| p.search_timer.stop());
+            crate::catalogue_page::set_title(&text);
+            let on_catalogue = with_page(|p| {
+                p.ui.upgrade()
+                    .map(|ui| ui.global::<Nav>().get_route() == "catalogue")
+            })
+            .flatten()
+            .unwrap_or(false);
+            if !on_catalogue {
+                nav::navigate("/catalogue");
+            }
             return;
         }
         let text: String = text.chars().take(255).collect();

@@ -135,6 +135,12 @@ const icons = {
   "x-16": [oct.XIcon, { size: 16 }],
   "x-circle-fill": [oct.XCircleFillIcon, { size: 16 }],
   "alert-16": [oct.AlertIcon, { size: 16 }],
+  // Catalogue (pagination, game items, filter sections)
+  "lucide-chevron-left": [lucide.ChevronLeft, { size: 16, strokeWidth: 2.25, absoluteStrokeWidth: true }],
+  "lucide-chevron-right": [lucide.ChevronRight, { size: 16, strokeWidth: 2.25, absoluteStrokeWidth: true }],
+  "lucide-chevrons-left": [lucide.ChevronsLeft, { size: 18, strokeWidth: 2.25, absoluteStrokeWidth: true }],
+  "lucide-chevrons-right": [lucide.ChevronsRight, { size: 18, strokeWidth: 2.25, absoluteStrokeWidth: true }],
+  question: [oct.QuestionIcon, { size: 28 }],
 };
 
 for (const [name, [Icon, props]] of Object.entries(icons)) {
