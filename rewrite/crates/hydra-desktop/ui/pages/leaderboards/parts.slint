@@ -358,12 +358,15 @@ export component BlockMessage inherits VerticalLayout {
             source: root.icon == "clock" ? @image-url("../../icons/clock-24.svg") : root.icon == "people" ? @image-url("../../icons/people-24.svg") : @image-url("../../icons/trophy-24.svg");
         }
     }
+    // 13px in a 20px line, like the global <p> line height
     Text {
+        min-height: 20px;
         text: root.title;
         font-size: Theme.hint-size;
         font-weight: 500;
         color: Theme.muted;
         horizontal-alignment: center;
+        vertical-alignment: center;
         wrap: word-wrap;
     }
     if root.description != "": HorizontalLayout {

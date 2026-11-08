@@ -23,7 +23,7 @@ component SideItem inherits Rectangle {
     in property <bool> has-banner;
     in property <image> banner;
     callback clicked();
-    out property <brush> ink: root.selected || touch.has-hover ? Theme.muted : Theme.body;
+    out property <color> ink: root.selected || touch.has-hover ? Theme.muted : Theme.body;
     min-height: 40px;
     border-radius: 4px;
     clip: true;
@@ -297,7 +297,7 @@ component Sidebar inherits Rectangle {
         alignment: start;
         if LeaderboardsData.signed-in: VerticalLayout {
             spacing: 16px;
-            SideItem {
+            stats-item := SideItem {
                 height: 40px;
                 selected: LeaderboardsData.tab == "stats";
                 clicked => {
@@ -312,14 +312,15 @@ component Sidebar inherits Rectangle {
                         width: 16px;
                         height: 16px;
                         source: Icons.graph;
-                        color: LeaderboardsData.tab == "stats" ? Theme.muted : Theme.body;
+                        color: stats-item.ink;
                     }
                     Text {
                         horizontal-stretch: 1;
                         text: T.tr("leaderboards.tab_stats");
                         font-size: Theme.body-size;
                         font-weight: 500;
-                        color: LeaderboardsData.tab == "stats" ? Theme.muted : Theme.body;
+                        color: stats-item.ink;
+                        animate color { duration: 150ms; easing: ease; }
                         vertical-alignment: center;
                     }
                 }
@@ -607,14 +608,20 @@ export component LeaderboardsPage inherits Rectangle {
                     Sidebar {
                         width: root.side-width;
                     }
-                    // __content: padding 24, gap 24
-                    VerticalLayout {
+                    // __content: padding 24, gap 24. An empty board fills the
+                    // rest of the page (its message centered in it); otherwise
+                    // a spacer takes the extra height, and its 24px gap stands
+                    // in for the bottom padding.
+                    content := VerticalLayout {
+                        property <bool> board-fills: LeaderboardsData.tab != "stats" && (LeaderboardsData.board-state == "empty" || LeaderboardsData.board-state == "empty_friends" || LeaderboardsData.board-state == "no_metrics");
                         horizontal-stretch: 1;
-                        padding: 24px;
+                        padding-top: 24px;
+                        padding-left: 24px;
+                        padding-right: 24px;
+                        padding-bottom: self.board-fills ? 24px : 0;
                         spacing: 24px;
-                        alignment: start;
                         if LeaderboardsData.tab != "stats": HorizontalLayout {
-                            vertical-stretch: LeaderboardsData.board-state == "empty" || LeaderboardsData.board-state == "empty_friends" || LeaderboardsData.board-state == "no_metrics" ? 1 : 0;
+                            vertical-stretch: content.board-fills ? 1 : 0;
                             alignment: center;
                             Board {
                                 width: Math.min(self.max-board, root.content-width - root.side-width - 48px);
@@ -649,6 +656,9 @@ export component LeaderboardsPage inherits Rectangle {
                                 color: Theme.body;
                                 vertical-alignment: center;
                             }
+                        }
+                        if !content.board-fills: Rectangle {
+                            vertical-stretch: 1;
                         }
                     }
                 }

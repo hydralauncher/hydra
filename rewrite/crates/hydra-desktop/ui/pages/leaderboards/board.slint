@@ -40,7 +40,15 @@ export component BoardHeader inherits Rectangle {
     height: bar.preferred-height;
     bar := HorizontalLayout {
         spacing: 16px;
-        if !LeaderboardsData.board-is-game: Rectangle {
+        // no metric yet: BoardImage without a url, an empty #1a1a1a cover
+        if !LeaderboardsData.board-is-game && LeaderboardsData.board-icon == "": Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 44px;
+            height: 44px;
+            border-radius: 4px;
+            background: #1a1a1a;
+        }
+        if !LeaderboardsData.board-is-game && LeaderboardsData.board-icon != "": Rectangle {
             y: (parent.height - self.height) / 2;
             width: 44px;
             height: 44px;
