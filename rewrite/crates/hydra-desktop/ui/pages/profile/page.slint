@@ -457,9 +457,7 @@ export component ProfilePage inherits Rectangle {
                                 }
                             }
                             if ProfileData.library-awaiting: LibrarySkeleton { }
-                            if !ProfileData.library-awaiting && !root.has-any-games: NoGames {
-                                padding-top: 24px;
-                            }
+                            if !ProfileData.library-awaiting && !root.has-any-games: NoGames { }
                             if !ProfileData.library-awaiting && ProfileData.pinned.length > 0: VerticalLayout {
                                 padding-bottom: 32px;
                                 SectionHeader {

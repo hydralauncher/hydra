@@ -462,7 +462,8 @@ component Notice inherits Rectangle {
     }
 }
 
-// The empty/locked/upsell copy (centered, margin-top 36 + 16)
+// The empty/locked/upsell copy: margin-top 36 + 16, which collapses with
+// the tabs' 16px margin (the page already adds those 16).
 component EmptyCopy inherits VerticalLayout {
     in property <string> title;
     in property <string> text;
@@ -470,7 +471,7 @@ component EmptyCopy inherits VerticalLayout {
     in property <string> action;
     in property <image> action-icon;
     callback acted();
-    padding-top: 52px;
+    padding-top: 36px;
     spacing: 8px;
     alignment: start;
     if root.icon.width > 0: HorizontalLayout {

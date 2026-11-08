@@ -3,8 +3,9 @@
 //! reviews tab, the right rail) and profile-hero (banner or avatar color,
 //! friend code, current game, the profile actions).
 //!
-//! The modals it opens live in `profile_modals.rs`. Not ported yet: the
-//! Souvenirs and Screenshots tabs' content (they show a TODO panel), and the
+//! The modals it opens live in `profile_modals.rs`, the Souvenirs tab in
+//! `profile_souvenirs.rs`. Not ported yet: the Screenshots tab's content (a
+//! TODO panel; it needs the shared screenshot components) and the
 //! gamification pieces (level box, pills, Missions tab, Shop button), which
 //! stay hidden while the GAMIFICATION flag is off, as it is in production.
 
