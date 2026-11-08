@@ -205,6 +205,7 @@ component GameRow inherits Rectangle {
     in property <bool> active;
     callback clicked();
     callback double-clicked();
+    callback context-menu(length, length);
     height: 36px;
     border-radius: 4px;
     opacity: root.game.muted && !touch.has-hover ? Theme.disabled-opacity : 1;
@@ -329,6 +330,11 @@ component GameRow inherits Rectangle {
         double-clicked => {
             root.double-clicked();
         }
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
+                root.context-menu(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+            }
+        }
     }
 }
 
@@ -377,6 +383,9 @@ component GameList inherits Rectangle {
         }
         double-clicked => {
             SidebarState.game-double-clicked(self.game.id);
+        }
+        context-menu(x, y) => {
+            SidebarState.game-context-menu(self.game.id, x, y);
         }
     }
 

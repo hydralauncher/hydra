@@ -36,6 +36,11 @@ pub fn pointer_pressed(ui: &AppWindow, x: f32, y: f32) {
         popup.get_box_y(),
         popup.get_box_width(),
         popup.get_box_height(),
+    ) || inside(
+        popup.get_box2_x(),
+        popup.get_box2_y(),
+        popup.get_box2_width(),
+        popup.get_box2_height(),
     );
     let in_trigger = inside(
         popup.get_anchor_x(),
@@ -43,8 +48,52 @@ pub fn pointer_pressed(ui: &AppWindow, x: f32, y: f32) {
         popup.get_anchor_width(),
         popup.get_anchor_height(),
     );
+    if std::env::var_os("HYDRA_DEBUG_POPUP").is_some() {
+        eprintln!(
+            "popup: press {x},{y} open={} box=({},{},{},{}) box2=({},{},{},{}) in_menu={in_menu} in_trigger={in_trigger}",
+            popup.get_open(),
+            popup.get_box_x(),
+            popup.get_box_y(),
+            popup.get_box_width(),
+            popup.get_box_height(),
+            popup.get_box2_x(),
+            popup.get_box2_y(),
+            popup.get_box2_width(),
+            popup.get_box2_height()
+        );
+    }
     if !in_menu && !in_trigger {
-        popup.set_open(Default::default());
+        close(ui);
+    }
+}
+
+pub fn close(ui: &AppWindow) {
+    let popup = ui.global::<Popup>();
+    popup.set_open(Default::default());
+    popup.set_box2_width(0.0);
+}
+
+/// Scrolling outside the open context menu closes it (context-menu.tsx
+/// listens to scroll events in the capture phase).
+pub fn wheel_at(ui: &AppWindow, x: f32, y: f32) {
+    let popup = ui.global::<Popup>();
+    if popup.get_open() != "context-menu" {
+        return;
+    }
+    let inside =
+        |bx: f32, by: f32, bw: f32, bh: f32| x >= bx && x < bx + bw && y >= by && y < by + bh;
+    if !inside(
+        popup.get_box_x(),
+        popup.get_box_y(),
+        popup.get_box_width(),
+        popup.get_box_height(),
+    ) && !inside(
+        popup.get_box2_x(),
+        popup.get_box2_y(),
+        popup.get_box2_width(),
+        popup.get_box2_height(),
+    ) {
+        close(ui);
     }
 }
 
@@ -54,6 +103,6 @@ pub fn escape(ui: &AppWindow) -> bool {
     if popup.get_open().is_empty() {
         return false;
     }
-    popup.set_open(Default::default());
+    close(ui);
     true
 }

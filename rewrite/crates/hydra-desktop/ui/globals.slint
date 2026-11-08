@@ -95,6 +95,7 @@ export global SidebarState {
     callback toggle-playable();
     callback game-clicked(string);
     callback game-double-clicked(string);
+    callback game-context-menu(string, length, length);
     // First and last rows on screen (plus overscan), for lazy icon loading.
     callback visible-rows(int, int);
     callback width-committed(length);
@@ -116,6 +117,11 @@ export global Popup {
     in-out property <length> box-y;
     in-out property <length> box-width;
     in-out property <length> box-height;
+    // A second box (an open context submenu); width 0 when none.
+    in-out property <length> box2-x;
+    in-out property <length> box2-y;
+    in-out property <length> box2-width;
+    in-out property <length> box2-height;
 
     public function toggle(id: string, x: length, y: length, w: length, h: length) {
         if (self.open == id) {

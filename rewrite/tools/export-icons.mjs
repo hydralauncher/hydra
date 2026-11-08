@@ -126,6 +126,15 @@ const icons = {
   "database-11": [oct.DatabaseIcon, { size: 11 }],
   "check-circle-fill-12": [oct.CheckCircleFillIcon, { size: 12 }],
   "trophy-14": [oct.TrophyIcon, { size: 14 }],
+  // Context menus (game-context-menu.tsx) and toasts
+  "file-directory-fill": [oct.FileDirectoryFillIcon, { size: 16 }],
+  link: [oct.LinkIcon, { size: 16 }],
+  image: [oct.ImageIcon, { size: 16 }],
+  "eye-closed-16": [oct.EyeClosedIcon, { size: 16 }],
+  "trash-16": [oct.TrashIcon, { size: 16 }],
+  "x-16": [oct.XIcon, { size: 16 }],
+  "x-circle-fill": [oct.XCircleFillIcon, { size: 16 }],
+  "alert-16": [oct.AlertIcon, { size: 16 }],
 };
 
 for (const [name, [Icon, props]] of Object.entries(icons)) {

@@ -4,14 +4,18 @@
 //! See `rewrite/README.md` for what is ported and `rewrite/docs/parity-plan.md`
 //! for what is next.
 
+mod collections;
+mod context_menu;
 mod devscript;
 mod format;
+mod game_menu;
 mod game_page;
 mod headless;
 mod library_page;
 mod nav;
 mod popup;
 mod shell;
+mod toast;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -104,6 +108,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             match event {
                 winit::event::WindowEvent::MouseWheel { delta, .. } => {
+                    let (x, y) = cursor.get();
+                    popup::wheel_at(&ui, x, y);
                     ui.global::<Input>().set_wheel_scale(match delta {
                         winit::event::MouseScrollDelta::LineDelta(..) => 40.0 / 60.0,
                         winit::event::MouseScrollDelta::PixelDelta(..) => 1.0,
@@ -145,6 +151,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     game_page::init(&ui, &loader);
     library_page::init(&ui);
     popup::init(&ui);
+    toast::init(&ui);
+    context_menu::init(&ui);
     nav::init(&ui, args.path.as_deref().unwrap_or("/"));
 
     // HYDRA_TIMING=1: print when the first frame is on screen (benchmarks).

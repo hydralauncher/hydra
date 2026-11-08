@@ -304,7 +304,7 @@ export component LibraryPage inherits Rectangle {
         wheel := TouchArea {
             scroll-event(event) => {
                 // useCloseOnLibraryScroll: the toolbar menus close on wheel.
-                if (Popup.open == "library-filters" || Popup.open == "library-display") {
+                if (Popup.open == "library-filters" || Popup.open == "library-display" || Popup.open == "context-menu") {
                     Popup.open = "";
                 }
                 // The first wheel down hides the toolbar, the first wheel up brings it back;

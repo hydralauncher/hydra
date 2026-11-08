@@ -10,6 +10,8 @@ import "fonts/NotoSans-BoldItalic.ttf";
 
 import { Theme, Icons, Tip } from "theme.slint";
 import { TooltipHost } from "components/widgets.slint";
+import { ContextMenuHost, ContextMenu, MenuEntry, MenuLeaf } from "components/context-menu.slint";
+import { ToastHost, Toast } from "components/toast.slint";
 import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review } from "types.slint";
 import { ReviewEditor, FormatEdit, Marks } from "pages/game-details/reviews.slint";
 import { Playback } from "components/video.slint";
@@ -24,6 +26,7 @@ import { Sidebar } from "shell/sidebar.slint";
 export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback }
 export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input, Popup }
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
+export { ContextMenu, MenuEntry, MenuLeaf, Toast }
 
 export component AppWindow inherits Window {
     title: GameData.game-title != "" && Nav.route == "game" ? "Hydra — " + GameData.game-title : "Hydra";
@@ -85,6 +88,16 @@ export component AppWindow inherits Window {
                 }
             }
         }
+    }
+
+    ToastHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    ContextMenuHost {
+        width: root.width;
+        height: root.height;
     }
 
     TooltipHost {

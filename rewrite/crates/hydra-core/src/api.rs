@@ -59,6 +59,17 @@ impl std::fmt::Display for ApiError {
 
 impl std::error::Error for ApiError {}
 
+fn with_body(
+    builder: reqwest::blocking::RequestBuilder,
+    body: &Value,
+) -> reqwest::blocking::RequestBuilder {
+    if body.is_null() {
+        builder
+    } else {
+        builder.json(body)
+    }
+}
+
 #[derive(Clone, Default)]
 struct UserAuth {
     auth_token: String,
@@ -311,21 +322,22 @@ impl HydraApi {
         self.send(builder, options)
     }
 
+    /// `body` Null sends no body (axios with no data).
     pub fn post(&self, path: &str, body: &Value, options: Options) -> Result<Value, ApiError> {
         self.validate(options)?;
-        let builder = self.request(Method::POST, path, options).json(body);
+        let builder = with_body(self.request(Method::POST, path, options), body);
         self.send(builder, options)
     }
 
     pub fn put(&self, path: &str, body: &Value, options: Options) -> Result<Value, ApiError> {
         self.validate(options)?;
-        let builder = self.request(Method::PUT, path, options).json(body);
+        let builder = with_body(self.request(Method::PUT, path, options), body);
         self.send(builder, options)
     }
 
     pub fn patch(&self, path: &str, body: &Value, options: Options) -> Result<Value, ApiError> {
         self.validate(options)?;
-        let builder = self.request(Method::PATCH, path, options).json(body);
+        let builder = with_body(self.request(Method::PATCH, path, options), body);
         self.send(builder, options)
     }
 

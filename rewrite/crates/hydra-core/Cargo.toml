@@ -14,6 +14,8 @@ reqwest.workspace = true
 # Intl.Collator(undefined, { sensitivity: "base" }) for title sorting.
 icu_collator = "2"
 icu_locale_core = "2"
+# new Date().toISOString()
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 
 [dev-dependencies]
 rustls.workspace = true

@@ -448,6 +448,18 @@ fn wire_sidebar(ui: &AppWindow) {
         // TODO(launcher): useGameActions().handlePlayGame (or the no-executable toast).
         eprintln!("TODO(launcher): play {id}");
     });
+    sidebar.on_game_context_menu(|id, x, y| {
+        let group = with_shell(|s| {
+            s.library
+                .iter()
+                .find(|g| g.game.id() == id.as_str())
+                .cloned()
+        })
+        .flatten();
+        if let Some(group) = group {
+            crate::game_menu::show(std::rc::Rc::new(group), x, y, None);
+        }
+    });
     sidebar.on_visible_rows(|first, last| load_icons(first.max(0) as usize, last.max(0) as usize));
     sidebar.on_width_committed(|width| {
         with_shell(|s| set_local_storage(&s.db, "sidebarWidth", &format!("{}", width.round())));

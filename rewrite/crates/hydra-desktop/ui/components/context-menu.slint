@@ -1,0 +1,397 @@
+// components/context-menu/context-menu.{tsx,scss}: the right-click menu with
+// one level of hover submenus. The backend builds the items and handles
+// `activated` (context_menu.rs).
+import { Theme } from "../theme.slint";
+import { Icon } from "widgets.slint";
+import { Popup } from "../globals.slint";
+
+export struct MenuLeaf {
+    id: string,
+    label: string,
+    icon: string,
+    disabled: bool,
+    danger: bool,
+    // `.context-menu__item--danger:first-of-type`: a border above danger rows
+    danger-border: bool,
+    // A separator above the row.
+    separator: bool,
+}
+
+export struct MenuEntry {
+    id: string,
+    label: string,
+    icon: string,
+    disabled: bool,
+    danger: bool,
+    danger-border: bool,
+    separator: bool,
+    children: [MenuLeaf],
+}
+
+export global ContextMenu {
+    in property <[MenuEntry]> items;
+    // The click position (window coordinates).
+    in property <length> x;
+    in property <length> y;
+    // Keeps a submenu open while its confirmation or modal is up.
+    in property <string> force-submenu;
+    in-out property <string> open-submenu;
+    // Bumped on every show, so the fade-in replays.
+    in property <int> generation;
+    callback activated(string);
+    callback item-context-menu(string, length, length);
+
+    public pure function icon(name: string) -> image {
+        if (name == "play") {
+            return @image-url("../icons/play.svg");
+        }
+        if (name == "download") {
+            return @image-url("../icons/download.svg");
+        }
+        if (name == "x") {
+            return @image-url("../icons/x-16.svg");
+        }
+        if (name == "heart") {
+            return @image-url("../icons/heart.svg");
+        }
+        if (name == "heart-fill") {
+            return @image-url("../icons/heart-fill.svg");
+        }
+        if (name == "folder") {
+            return @image-url("../icons/file-directory.svg");
+        }
+        if (name == "folder-fill") {
+            return @image-url("../icons/file-directory-fill.svg");
+        }
+        if (name == "plus") {
+            return @image-url("../icons/plus.svg");
+        }
+        if (name == "link") {
+            return @image-url("../icons/link.svg");
+        }
+        if (name == "steam") {
+            return @image-url("../icons/steam-logo.svg");
+        }
+        if (name == "gear") {
+            return @image-url("../icons/gear.svg");
+        }
+        if (name == "pin") {
+            return @image-url("../icons/pin.svg");
+        }
+        if (name == "pin-slash") {
+            return @image-url("../icons/pin-slash.svg");
+        }
+        if (name == "image") {
+            return @image-url("../icons/image.svg");
+        }
+        if (name == "eye-closed") {
+            return @image-url("../icons/eye-closed-16.svg");
+        }
+        if (name == "lock") {
+            return @image-url("../icons/lock-16.svg");
+        }
+        if (name == "trash") {
+            return @image-url("../icons/trash-16.svg");
+        }
+        if (name == "pencil") {
+            return @image-url("../icons/pencil.svg");
+        }
+        return @image-url("");
+    }
+}
+
+// .context-menu__item: padding 8px 12px, gap 8, radius 4, 14px
+component MenuRow inherits Rectangle {
+    in property <string> icon;
+    in property <string> label;
+    in property <bool> disabled;
+    in property <bool> danger;
+    in property <bool> has-submenu;
+    // .context-menu__item--active (its submenu is open)
+    in property <bool> active;
+    callback activated();
+    callback secondary(length, length);
+    out property <bool> hovered: touch.has-hover;
+
+    height: 35px;
+    border-radius: 4px;
+    property <bool> lit: touch.has-hover && !root.disabled;
+    background: root.danger
+        ? (root.lit ? (touch.pressed ? rgba(225, 29, 72, 0.28) : rgba(225, 29, 72, 0.18)) : transparent)
+        : root.lit ? (touch.pressed ? rgba(255, 255, 255, 0.22) : rgba(255, 255, 255, 0.15))
+        : root.active ? rgba(255, 255, 255, 0.1) : transparent;
+    animate background { duration: 100ms; easing: ease-in-out; }
+    opacity: root.disabled ? 0.5 : 1;
+    property <color> fg: root.danger ? Theme.error : (root.lit || root.active) ? Theme.body : Theme.muted;
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-enabled: !root.disabled;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        if root.icon != "": Icon {
+            y: (parent.height - self.height) / 2;
+            width: 16px;
+            height: 16px;
+            source: ContextMenu.icon(root.icon);
+            color: root.fg;
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.label;
+            font-size: Theme.body-size;
+            color: root.fg;
+            vertical-alignment: center;
+            overflow: elide;
+            animate color { duration: 100ms; easing: ease-in-out; }
+        }
+        // .context-menu__item-arrow: "▶" at 11px. Drawn, since the glyph
+        // falls back to a color emoji outside the browser.
+        if root.has-submenu: Rectangle {
+            width: 10px;
+            Path {
+                x: 1px;
+                y: (parent.height - 8px) / 2;
+                width: 7px;
+                height: 8px;
+                viewbox-width: 7;
+                viewbox-height: 8;
+                commands: "M 0 0 L 7 4 L 0 8 Z";
+                fill: Theme.muted;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: root.disabled ? not-allowed : pointer;
+        clicked => {
+            if (!root.disabled) {
+                root.activated();
+            }
+        }
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
+                root.secondary(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+            }
+        }
+    }
+}
+
+// .context-menu / .context-menu__submenu box: #0d0d0d, 1px border, radius 6,
+// box-shadow 0 4px 12px rgba(0, 0, 0, 0.4), padding 4px
+component MenuBox inherits Rectangle {
+    background: Theme.dark-background;
+    border-width: 1px;
+    border-color: Theme.border;
+    border-radius: 6px;
+    drop-shadow-offset-y: 4px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: rgba(0, 0, 0, 0.4);
+    // Presses inside never reach the page below.
+    TouchArea { }
+}
+
+// Row height plus what sits above it (separator 9px or the danger border 5px).
+component RowSlot inherits VerticalLayout {
+    in property <bool> separator;
+    in property <bool> danger-border;
+    if root.separator: Rectangle {
+        height: 9px;
+        Rectangle {
+            y: 4px;
+            height: 1px;
+            border-radius: 1px;
+            background: Theme.border;
+        }
+    }
+    if root.danger-border: Rectangle {
+        height: 5px;
+        Rectangle {
+            y: 4px;
+            height: 1px;
+            background: Theme.border;
+        }
+    }
+    @children
+}
+
+export component ContextMenuHost inherits Rectangle {
+    property <bool> shown: Popup.open == "context-menu";
+    // The open submenu: its row in `items` and where that row is.
+    property <int> sub-index: -1;
+    property <length> anchor-x;
+    property <length> anchor-y;
+    property <length> anchor-width;
+    property <bool> sub-open: root.shown && root.sub-index >= 0 && root.sub-index < ContextMenu.items.length
+        && (ContextMenu.open-submenu == ContextMenu.items[root.sub-index].id || ContextMenu.force-submenu == ContextMenu.items[root.sub-index].id);
+
+    if root.shown: menu := MenuBox {
+        property <bool> entered;
+        property <length> natural-width: Math.max(180px, rows.preferred-width + 10px);
+        property <length> natural-height: rows.preferred-height + 10px;
+        width: self.natural-width;
+        height: self.natural-height;
+        // Kept inside the window, 10px from the edges.
+        x: ContextMenu.x + self.width > root.width ? root.width - self.width - 10px : ContextMenu.x;
+        y: (ContextMenu.y + self.height > root.height ? root.height - self.height - 10px : ContextMenu.y) + (self.entered ? 0 : -4px);
+        // contextMenuFadeIn 0.15s ease-out
+        opacity: self.entered ? 1 : 0;
+        animate opacity, y { duration: 150ms; easing: ease-out; }
+        function publish() {
+            Popup.box-x = self.x;
+            Popup.box-y = self.y;
+            Popup.box-width = self.width;
+            Popup.box-height = self.height;
+        }
+        init => {
+            self.entered = true;
+            Popup.anchor-width = 0;
+            Popup.anchor-height = 0;
+            self.publish();
+        }
+        changed height => {
+            self.publish();
+        }
+        changed width => {
+            self.publish();
+        }
+        changed x => {
+            self.publish();
+        }
+        changed y => {
+            self.publish();
+        }
+
+        rows := VerticalLayout {
+            x: 5px;
+            y: 5px;
+            width: parent.width - 10px;
+            alignment: start;
+            for entry[index] in ContextMenu.items: RowSlot {
+                separator: entry.separator;
+                danger-border: entry.danger-border;
+                row := MenuRow {
+                    property <bool> open: ContextMenu.open-submenu == entry.id || ContextMenu.force-submenu == entry.id;
+                    icon: entry.icon;
+                    label: entry.label;
+                    disabled: entry.disabled;
+                    danger: entry.danger;
+                    has-submenu: entry.children.length > 0;
+                    active: self.open;
+                    function publish() {
+                        root.sub-index = index;
+                        root.anchor-x = self.absolute-position.x;
+                        root.anchor-y = self.absolute-position.y;
+                        root.anchor-width = self.width;
+                    }
+                    init => {
+                        if (self.open) {
+                            self.publish();
+                        }
+                    }
+                    changed open => {
+                        if (self.open) {
+                            self.publish();
+                        }
+                    }
+                    activated => {
+                        if (entry.children.length > 0) {
+                            ContextMenu.open-submenu = ContextMenu.open-submenu == entry.id ? "" : entry.id;
+                        }
+                        ContextMenu.activated(entry.id);
+                    }
+                    secondary(x, y) => {
+                        ContextMenu.item-context-menu(entry.id, x, y);
+                    }
+                    // Hover opens the submenu; leaving closes it after 120ms
+                    // unless the pointer reaches the submenu.
+                    changed hovered => {
+                        if (self.hovered && entry.children.length > 0 && ContextMenu.force-submenu == "") {
+                            close-timer.running = false;
+                            ContextMenu.open-submenu = entry.id;
+                        } else if (!self.hovered && entry.children.length > 0 && ContextMenu.open-submenu == entry.id) {
+                            close-timer.running = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // .context-menu__submenu: left 100% of its row (margin-left -1px), top 0;
+    // flips left and moves up to stay in the window.
+    if root.sub-open: sub := MenuBox {
+        property <length> sub-width: Math.max(160px, sub-rows.preferred-width + 10px);
+        property <length> sub-height: sub-rows.preferred-height + 10px;
+        property <bool> flip: root.anchor-x + root.anchor-width + self.sub-width > root.width - 8px;
+        property <length> overflow-bottom: root.anchor-y + self.sub-height - root.height;
+        width: self.sub-width;
+        height: self.sub-height;
+        x: self.flip ? root.anchor-x - self.sub-width + 1px : root.anchor-x + root.anchor-width - 1px;
+        y: root.anchor-y - (self.overflow-bottom > 0 ? Math.min(self.overflow-bottom + 8px, root.anchor-y - 8px) : 0);
+        function publish() {
+            Popup.box2-x = self.x;
+            Popup.box2-y = self.y;
+            Popup.box2-width = self.width;
+            Popup.box2-height = self.height;
+        }
+        init => {
+            self.publish();
+        }
+        changed x => {
+            self.publish();
+        }
+        changed y => {
+            self.publish();
+        }
+        changed height => {
+            self.publish();
+        }
+        // The rows sit inside this TouchArea, so it stays hovered over them.
+        sub-touch := TouchArea {
+            changed has-hover => {
+                if (self.has-hover) {
+                    close-timer.running = false;
+                } else if (ContextMenu.force-submenu == "") {
+                    close-timer.running = true;
+                }
+            }
+        sub-rows := VerticalLayout {
+            x: 5px;
+            y: 5px;
+            width: parent.width - 10px;
+            alignment: start;
+            for leaf in ContextMenu.items[root.sub-index].children: RowSlot {
+                separator: leaf.separator;
+                danger-border: leaf.danger-border;
+                MenuRow {
+                    icon: leaf.icon;
+                    label: leaf.label;
+                    disabled: leaf.disabled;
+                    danger: leaf.danger;
+                    activated => {
+                        ContextMenu.activated(leaf.id);
+                    }
+                    secondary(x, y) => {
+                        ContextMenu.item-context-menu(leaf.id, x, y);
+                    }
+                }
+            }
+        }
+        }
+    }
+
+    close-timer := Timer {
+        interval: 120ms;
+        running: false;
+        triggered => {
+            self.running = false;
+            if (ContextMenu.force-submenu == "") {
+                ContextMenu.open-submenu = "";
+                Popup.box2-width = 0;
+            }
+        }
+    }
+}

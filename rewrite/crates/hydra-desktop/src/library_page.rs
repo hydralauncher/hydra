@@ -15,7 +15,6 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use base64::Engine;
-use hydra_core::api::Options;
 use hydra_core::library::{self, Category, Collection, Presentation, SortBy};
 use hydra_media::images::{self, Loader, Op, Pixels, Source};
 use image::DynamicImage;
@@ -103,10 +102,6 @@ struct Page {
     hidden: Vec<Rc<Presentation>>,
     hidden_loading: bool,
     hidden_failed: bool,
-    /// `/profile/games/collections`: (id, name)
-    collections: Vec<(String, String)>,
-    collections_loaded: bool,
-    collections_failed: bool,
 
     sort_by: SortBy,
     view: ViewMode,
@@ -198,9 +193,6 @@ pub fn init(ui: &AppWindow) {
             hidden: Vec::new(),
             hidden_loading: true,
             hidden_failed: false,
-            collections: Vec::new(),
-            collections_loaded: false,
-            collections_failed: false,
             sort_by,
             view,
             category,
@@ -226,6 +218,12 @@ pub fn init(ui: &AppWindow) {
     });
 
     wire(ui);
+    crate::collections::subscribe(|| {
+        if on_library() {
+            apply_filters(false);
+        }
+        crate::game_menu::on_collections_changed();
+    });
     on_library_changed();
 }
 
@@ -260,7 +258,16 @@ fn wire(ui: &AppWindow) {
         }
     });
     data.on_card_context_menu(|index, x, y| {
-        eprintln!("TODO(context-menu): game context menu for card {index} at {x},{y}");
+        let target = with_page(|p| {
+            p.shown
+                .get(index as usize)
+                .cloned()
+                .map(|g| (g, p.collection.clone()))
+        })
+        .flatten();
+        if let Some((group, collection)) = target {
+            crate::game_menu::show(group, x, y, collection);
+        }
     });
     data.on_set_category(|value| {
         let category = Category::parse(&value);
@@ -424,7 +431,7 @@ pub fn open() {
         }
     });
     load_hidden();
-    load_collections();
+    crate::collections::load();
     apply_filters(true);
 }
 
@@ -442,6 +449,14 @@ pub fn close() {
         p.pending.clear();
         p.wanted.lock().unwrap().clear();
     });
+}
+
+/// hydra:game-visibility-updated: hidden games and collections reload.
+pub fn on_visibility_changed() {
+    if on_library() {
+        load_hidden();
+        crate::collections::load();
+    }
 }
 
 pub fn shutdown() {
@@ -514,51 +529,6 @@ fn load_hidden() {
     });
 }
 
-fn load_collections() {
-    if !shell::signed_in() {
-        return;
-    }
-    let Some(api) = shell::api() else { return };
-    std::thread::spawn(move || {
-        let result = api.get(
-            "/profile/games/collections",
-            &[],
-            Options {
-                needs_auth: true,
-                ..Default::default()
-            },
-        );
-        let _ = slint::invoke_from_event_loop(move || {
-            with_page(|p| match result {
-                Ok(Value::Array(items)) => {
-                    p.collections = items
-                        .iter()
-                        .filter_map(|c| {
-                            Some((
-                                c.get("id")?.as_str()?.to_string(),
-                                c.get("name")?.as_str()?.to_string(),
-                            ))
-                        })
-                        .collect();
-                    p.collections_loaded = true;
-                    p.collections_failed = false;
-                }
-                Ok(other) => {
-                    eprintln!(
-                        "Expected an array from /profile/games/collections, received {other}"
-                    );
-                    p.collections_loaded = true;
-                }
-                Err(error) => {
-                    eprintln!("collections: {error}");
-                    p.collections_failed = true;
-                }
-            });
-            apply_filters(false);
-        });
-    });
-}
-
 /// `buildGameDetailsPath({ ...game, ...game.catalogueGame })`
 fn game_path(group: &Presentation) -> String {
     format!(
@@ -590,6 +560,7 @@ fn apply_filters(reset_scroll: bool) {
         return;
     };
     let signed_in = shell::signed_in();
+    let collections_state = crate::collections::get();
     let state = with_page(|p| {
         let hidden_selected = p.collection.as_deref() == Some(HIDDEN_COLLECTION_ID);
         let favorites_selected = p.collection.as_deref() == Some(FAVORITES_COLLECTION_ID);
@@ -722,7 +693,7 @@ fn apply_filters(reset_scroll: bool) {
                 checked: hidden_selected,
             });
         }
-        for (id, name) in &p.collections {
+        for (id, name) in &collections_state.items {
             let count = p
                 .groups
                 .iter()
@@ -770,9 +741,9 @@ fn apply_filters(reset_scroll: bool) {
             Some(FAVORITES_COLLECTION_ID) | None => false,
             Some(HIDDEN_COLLECTION_ID) => !signed_in,
             Some(id) => {
-                if p.collections_loaded {
-                    !p.collections.iter().any(|(c, _)| c == id)
-                } else if p.collections_failed && p.library_len > 0 {
+                if collections_state.loaded {
+                    !collections_state.items.iter().any(|(c, _)| c == id)
+                } else if collections_state.failed && p.library_len > 0 {
                     !p.groups
                         .iter()
                         .any(|g| g.game.collection_ids().iter().any(|c| c == id))
