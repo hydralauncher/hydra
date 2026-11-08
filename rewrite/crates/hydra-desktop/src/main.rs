@@ -33,6 +33,7 @@ mod playtime_modals;
 mod popup;
 mod prefs;
 mod settings_page;
+mod settings_sources;
 mod shell;
 mod toast;
 
@@ -216,6 +217,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     game_options::init(&ui);
     playtime_modals::init(&ui);
     settings_page::init(&ui);
+    settings_sources::init(&ui);
     download_settings::init(&ui);
     downloads_page::init(&ui, &loader);
     download_indicator::init(&ui, &loader);

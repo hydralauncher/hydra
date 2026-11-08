@@ -14,6 +14,19 @@ export struct SettingsCategory {
     group-start: bool,
 }
 
+// One download source (settings-download-sources__item).
+export struct SourceCard {
+    id: string,
+    name: string,
+    url: string,
+    status-label: string,
+    // PENDING_MATCHING / MATCHING
+    pending: bool,
+    // "23,927 download options" or "No information yet"
+    count-label: string,
+    fingerprint: string,
+}
+
 export global SettingsData {
     in property <[SettingsCategory]> categories;
     in property <string> category: "general";
@@ -56,6 +69,17 @@ export global SettingsData {
     in property <bool> append-trackers-url;
     in-out property <string> trackers-url;
     in property <string> trackers-error;
+    // ---- Download sources
+    in property <[SourceCard]> sources;
+    in property <bool> sources-loaded;
+    in property <bool> sources-syncing;
+    in property <bool> sources-removing;
+    callback sync-sources();
+    callback remove-all-sources();
+    callback add-source();
+    callback remove-source(string);
+    callback open-source-in-catalogue(string);
+
     callback max-speed-committed();
     callback network-selected(string);
     callback trackers-edited();
@@ -460,6 +484,156 @@ component DownloadsPanel inherits VerticalLayout {
     }
 }
 
+// settings-download-sources.tsx
+component SourcesPanel inherits VerticalLayout {
+    property <bool> busy: SettingsData.sources-syncing || SettingsData.sources-removing;
+    property <bool> empty: SettingsData.sources-loaded && SettingsData.sources.length == 0;
+    spacing: 16px;
+    Text {
+        text: T.tr("settings.download_sources_description");
+        font-size: Theme.body-size;
+        color: Theme.body;
+        wrap: word-wrap;
+    }
+    // settings-download-sources__header: space-between
+    HorizontalLayout {
+        spacing: 8px;
+        HydraButton {
+            kind: "outline";
+            icon: @image-url("../../icons/sync.svg");
+            text: T.tr("settings.sync_download_sources");
+            enabled: !root.empty && !root.busy;
+            clicked => {
+                SettingsData.sync-sources();
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+        HydraButton {
+            kind: "danger";
+            icon: @image-url("../../icons/trash-16.svg");
+            text: T.tr("settings.button_delete_all_sources");
+            enabled: !root.empty && !root.busy;
+            clicked => {
+                SettingsData.remove-all-sources();
+            }
+        }
+        HydraButton {
+            kind: "outline";
+            icon: Icons.plus-circle;
+            text: T.tr("settings.add_download_source");
+            enabled: !root.busy;
+            clicked => {
+                SettingsData.add-source();
+            }
+        }
+    }
+    // settings-download-sources__list: gap 16
+    for source in SettingsData.sources: Rectangle {
+        background: Theme.dark-background;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.border;
+        opacity: SettingsData.sources-syncing ? Theme.disabled-opacity : source.pending ? 0.6 : 1;
+        animate opacity { duration: 200ms; easing: ease; }
+        height: item.preferred-height + 2px;
+        item := VerticalLayout {
+            x: 1px;
+            width: parent.width - 2px;
+            padding: 16px;
+            spacing: 8px;
+            // __item-header (margin-bottom 8)
+            VerticalLayout {
+                padding-bottom: 8px;
+                spacing: 8px;
+                Text {
+                    text: source.name;
+                    font-size: 21px;
+                    font-weight: 700;
+                    color: Theme.body;
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    spacing: 4px;
+                    Rectangle {
+                        height: status.preferred-height + 10px;
+                        width: status-row.preferred-width + 18px;
+                        border-radius: 6px;
+                        border-width: 1px;
+                        border-color: rgba(255, 255, 255, 0.2);
+                        background: rgba(255, 255, 255, 0.1);
+                        status-row := HorizontalLayout {
+                            alignment: center;
+                            spacing: 4px;
+                            if source.pending: VerticalLayout {
+                                alignment: center;
+                                Icon {
+                                    width: 12px;
+                                    height: 12px;
+                                    source: @image-url("../../icons/sync-12.svg");
+                                    color: Theme.muted;
+                                    transform-rotation: Math.mod(animation-tick() / 1000ms, 1) * 360deg;
+                                }
+                            }
+                            status := Text {
+                                text: source.status-label;
+                                font-size: Theme.tiny-size;
+                                font-weight: 700;
+                                color: Theme.muted;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+                // __navigate-button: underlined <small>
+                HorizontalLayout {
+                    alignment: start;
+                    count := Text {
+                        text: source.count-label;
+                        font-size: 11.67px;
+                        color: Theme.muted;
+                        Rectangle {
+                            y: parent.height - 2px;
+                            height: 1px;
+                            width: parent.width;
+                            background: Theme.muted;
+                            visible: source.fingerprint != "";
+                        }
+                        TouchArea {
+                            mouse-cursor: source.fingerprint != "" ? MouseCursor.pointer : MouseCursor.default;
+                            clicked => {
+                                if (source.fingerprint != "") {
+                                    SettingsData.open-source-in-catalogue(source.fingerprint);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Labeled {
+                label: T.tr("settings.download_source_url");
+                HorizontalLayout {
+                    spacing: 8px;
+                    TextField {
+                        text: source.url;
+                        read-only: true;
+                    }
+                    HydraButton {
+                        kind: "outline";
+                        icon: @image-url("../../icons/no-entry.svg");
+                        text: T.tr("settings.remove_download_source");
+                        enabled: !SettingsData.sources-removing;
+                        clicked => {
+                            SettingsData.remove-source(source.id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 export component SettingsPage inherits Rectangle {
     // ---- panel scrolling (overflow: auto), with the wheel tween
     property <length> max-scroll: Math.max(0, panel.content-height - panel.height);
@@ -589,7 +763,8 @@ export component SettingsPage inherits Rectangle {
                             }
                             if SettingsData.category == "general": GeneralPanel { }
                             if SettingsData.category == "downloads": DownloadsPanel { }
-                            if SettingsData.category != "general" && SettingsData.category != "downloads": Text {
+                            if SettingsData.category == "download_sources": SourcesPanel { }
+                            if SettingsData.category != "general" && SettingsData.category != "downloads" && SettingsData.category != "download_sources": Text {
                                 text: "TODO(settings): " + SettingsData.category + " not ported yet";
                                 color: Theme.subtle;
                                 font-size: Theme.small-size;

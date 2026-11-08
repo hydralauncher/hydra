@@ -48,8 +48,8 @@ pub fn init(ui: &AppWindow) {
     dialogs.on_field_edited(|text| {
         if let Some(ui) = window() {
             let dialogs = ui.global::<Dialogs>();
-            // maxLength={60}
-            if text.chars().count() > 60 {
+            // maxLength={60} (create-collection-modal)
+            if dialogs.get_kind() == "create-collection" && text.chars().count() > 60 {
                 dialogs.set_field_text(text.chars().take(60).collect::<String>().into());
             }
             dialogs.set_field_error(Default::default());
@@ -127,6 +127,61 @@ pub fn set_checkbox(label: &str) {
 /// The checkbox state when the dialog is confirmed.
 pub fn checkbox_checked() -> bool {
     window().is_some_and(|ui| ui.global::<Dialogs>().get_checkbox_checked())
+}
+
+/// A one-field form (AddDownloadSourceModal): `on_submit` gets the text;
+/// use `set_field_busy` / `set_field_error` and `close()` from it.
+pub struct Field<'a> {
+    pub title: &'a str,
+    pub description: &'a str,
+    pub label: &'a str,
+    pub placeholder: &'a str,
+    pub text: &'a str,
+    pub confirm_label: &'a str,
+    pub cancel_label: &'a str,
+}
+
+pub fn field(spec: Field, on_submit: impl Fn(String) + 'static) {
+    let Some(ui) = window() else { return };
+    snapshot_backdrop(&ui);
+    let dialogs = ui.global::<Dialogs>();
+    dialogs.set_title(spec.title.into());
+    dialogs.set_description(spec.description.into());
+    dialogs.set_field_label(spec.label.into());
+    dialogs.set_field_placeholder(spec.placeholder.into());
+    dialogs.set_field_text(spec.text.into());
+    dialogs.set_field_error(Default::default());
+    dialogs.set_confirm_label(spec.confirm_label.into());
+    dialogs.set_cancel_label(spec.cancel_label.into());
+    dialogs.set_busy(false);
+    let on_submit = Rc::new(on_submit);
+    STATE.with(|s| {
+        if let Some(s) = s.borrow_mut().as_mut() {
+            let on_submit = on_submit.clone();
+            s.on_confirm = Some(Rc::new(move || {
+                let text = window()
+                    .map(|ui| ui.global::<Dialogs>().get_field_text().to_string())
+                    .unwrap_or_default();
+                on_submit(text);
+            }));
+        }
+    });
+    dialogs.set_kind("field".into());
+}
+
+/// The field dialog is working: buttons disabled, confirm label swapped.
+pub fn set_field_busy(busy: bool, confirm_label: &str) {
+    if let Some(ui) = window() {
+        let dialogs = ui.global::<Dialogs>();
+        dialogs.set_busy(busy);
+        dialogs.set_confirm_label(confirm_label.into());
+    }
+}
+
+pub fn set_field_error(message: &str) {
+    if let Some(ui) = window() {
+        ui.global::<Dialogs>().set_field_error(message.into());
+    }
 }
 
 /// Close the open dialog with its exit animation.

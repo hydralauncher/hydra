@@ -437,6 +437,16 @@ pub fn set_sort(value: &str) {
     refresh(true);
 }
 
+/// clearFilters() + setFilters({ downloadSourceFingerprints: [fingerprint] })
+/// (settings > download sources links into the catalogue).
+pub fn show_download_source(fingerprint: &str) {
+    with_page(|p| {
+        p.filters = Filters::initial();
+        p.filters.download_source_fingerprints = vec![fingerprint.to_string()];
+        p.page = 1;
+    });
+}
+
 /// The title bar search on the catalogue (setFilters({ title }), debounced 250ms there).
 pub fn set_title(title: &str) {
     let changed = with_page(|p| {

@@ -182,6 +182,11 @@ pub fn open(tab: Option<&str>) {
 }
 
 fn select(id: &str) {
+    if id == "download_sources" {
+        crate::settings_sources::refresh();
+    } else {
+        crate::settings_sources::leave();
+    }
     let label = categories()
         .into_iter()
         .find(|(c, _, _)| c == id)

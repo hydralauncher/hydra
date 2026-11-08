@@ -127,7 +127,8 @@ the remote `external-resources/bundle.js` script.
 
 - [x] **Settings shell and General** (`settings_page.rs`, `prefs.rs`): category sidebar (max-content 220..320px, Classics group), panel with wheel tween, General (downloads path through `hydra-core::download_directories`, language list by native name with live switching and the profile PATCH, startup checkboxes, Linux behavior). Big Picture and the theme Appearance group are not part of the rewrite
 - [x] **Settings: Downloads** (speed limit in Mbps or MB/s with Electron's parse/format, torrent network adapters from `if-addrs`, the download checkboxes, global trackers with the 1s debounce and URL cache reset); the live speed limit and the torrent adapter binding wait for those services
-- [ ] **Settings, remaining tabs:** Download sources, Notifications, Content & gameplay, Screenshots, Integrations (Steam, Epic, RetroAchievements, debrid), Compatibility, Account & Privacy, Emulation; autoLaunch; DownloadDirectoryReplacementModal
+- [x] **Settings: Download sources** (`settings_sources.rs`): source cards with status badges and the matching spinner, 5s polling while matching, sync, remove one/all (profile DELETE for subscribers), the add-source dialog (URL checks, duplicate and failure errors, profile POST for subscribers), download counts linking to the catalogue filtered by that source
+- [ ] **Settings, remaining tabs:** Notifications, Content & gameplay, Screenshots, Integrations (Steam, Epic, RetroAchievements, debrid), Compatibility, Account & Privacy, Emulation; autoLaunch; DownloadDirectoryReplacementModal
 - [x] **Themes and the theme editor:** removed from the native client (decided 2026-11-08)
 - [ ] **Emulators, RetroArch, classics import, memory cards** (`emulators/*`, `retroarch/*`)
 - [ ] **Shop** (`pages/shop`: profile frames; mock catalog in Electron too until the shop API exists)

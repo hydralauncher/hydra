@@ -173,7 +173,8 @@ export component DialogHost inherits Rectangle {
         }
 
         // create-collection-modal: the name field, then Cancel / Create (gap 16)
-        if Dialogs.kind == "create-collection": VerticalLayout {
+        // create-collection-modal, or any one-field form ("field": add-download-source-modal)
+        if Dialogs.kind == "create-collection" || Dialogs.kind == "field": VerticalLayout {
             spacing: 16px;
             LabeledField { }
             HorizontalLayout {
