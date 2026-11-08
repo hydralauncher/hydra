@@ -21,6 +21,8 @@ export component HydraButton inherits Rectangle {
     // The icon's rotation (library__action--scanning spins the sync icon).
     in property <angle> icon-rotation;
     in property <bool> square-corners;
+    // the icon after the label (chat-leaving-modal: "Open link" + icon)
+    in property <bool> icon-after;
     in property <length> horizontal-padding: root.small ? 10px : 16px;
     in property <length> text-size: root.small ? Theme.small-size : Theme.button-size;
     callback clicked();
@@ -58,7 +60,7 @@ export component HydraButton inherits Rectangle {
         spacing: root.small ? 6px : 8px;
         alignment: center;
 
-        if root.icon.width > 0: VerticalLayout {
+        if root.icon.width > 0 && !root.icon-after: VerticalLayout {
             alignment: center;
             Icon {
                 source: root.icon;
@@ -73,6 +75,15 @@ export component HydraButton inherits Rectangle {
             color: root.foreground;
             font-size: root.text-size;
             vertical-alignment: center;
+        }
+        if root.icon.width > 0 && root.icon-after: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                color: root.foreground;
+                width: root.icon-size;
+                height: root.icon-size;
+            }
         }
     }
 

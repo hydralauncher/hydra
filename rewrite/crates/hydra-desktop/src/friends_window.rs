@@ -3,7 +3,7 @@
 //! openFriendsWindow and friends-snapshot.ts (the list the profile menu
 //! prefetches so the window opens on real data).
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -87,6 +87,8 @@ struct Models {
 }
 
 thread_local! {
+    /// The developer script's background open (no focus taken).
+    static QUIET: Cell<bool> = const { Cell::new(false) };
     static STATE: RefCell<Option<State>> = const { RefCell::new(None) };
     static SNAPSHOT: RefCell<SnapshotCache> = RefCell::new(SnapshotCache::default());
     static GAME: RefCell<(String, String)> = const { RefCell::new((String::new(), String::new())) };
@@ -205,7 +207,12 @@ pub fn open() {
         social::focus(window.window());
         return;
     }
-    let Ok(window) = FriendsWindow::new() else {
+    let window = if QUIET.with(Cell::get) {
+        social::create_inactive(FriendsWindow::new)
+    } else {
+        FriendsWindow::new()
+    };
+    let Ok(window) = window else {
         return;
     };
     crate::wire_translations!(&window);
@@ -323,9 +330,20 @@ fn show_now() {
         return;
     }
     if window.show().is_ok() {
+        // the frame comes off once the native window exists: size it again
+        social::resize_when_ready(window.as_weak(), Kind::Friends, DEFAULT_SIZE, 0);
+        if QUIET.with(Cell::get) {
+            return;
+        }
         social::set_focused(Kind::Friends);
         social::focus(window.window());
     }
+}
+
+/// The developer script's `open-friends-bg`: opened without taking focus.
+pub fn open_quiet() {
+    QUIET.with(|q| q.set(true));
+    open();
 }
 
 /// The window was closed: drop it (and its pictures).
@@ -416,16 +434,23 @@ pub fn fetch_friends() {
     }) else {
         return;
     };
+    let started = Instant::now();
+    if std::env::var_os("HYDRA_DEBUG_SOCIAL").is_some() {
+        eprintln!("friends: fetching ({request})");
+    }
     std::thread::spawn(move || {
-        let result = chat::fetch_all_profile_friends(|take, skip| {
-            api.get(
-                chat::PROFILE_FRIENDS_PATH,
-                &[("take", take.to_string()), ("skip", skip.to_string())],
-                Options::default(),
-            )
-            .map(|v| parse::<ProfileFriends>(&v).unwrap_or_default())
-        });
+        let result = social::fetch_all_friends(&api);
         let _ = slint::invoke_from_event_loop(move || {
+            if let Err(error) = &result {
+                eprintln!("Failed to load friends: {error}");
+            }
+            if std::env::var_os("HYDRA_DEBUG_SOCIAL").is_some() {
+                eprintln!(
+                    "friends: {} in {:?}",
+                    result.as_ref().map_or(0, |r| r.friends.len()),
+                    started.elapsed()
+                );
+            }
             with_state(|s| {
                 if let Ok(response) = result
                     && request == s.friends_request

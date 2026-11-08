@@ -84,6 +84,9 @@ fn next<C: ComponentHandle + 'static>(
             if target == "main" {
                 crate::popup::pointer_pressed_at(num(0), num(1));
             }
+            if target == "chat" {
+                crate::chat_window::pointer_pressed_at(num(0), num(1));
+            }
             window.dispatch_event(WindowEvent::PointerPressed { position, button });
             window.dispatch_event(WindowEvent::PointerReleased { position, button });
         }
@@ -149,7 +152,12 @@ fn next<C: ComponentHandle + 'static>(
             crate::notify::extraction_complete(args.first().copied().unwrap_or_default())
         }
         "open-friends" => crate::friends_window::open(),
+        "open-friends-bg" => crate::friends_window::open_quiet(),
         "open-chat" => crate::chat_window::open_by_id(args.first().copied().unwrap_or_default()),
+        // the chat window opened in the background (an incoming message)
+        "open-chat-bg" => {
+            crate::chat_window::open_in_background(args.first().copied().unwrap_or_default())
+        }
         "target" => {
             TARGET.with(|t| *t.borrow_mut() = args.first().copied().unwrap_or("main").into())
         }

@@ -1,0 +1,1257 @@
+// chat-message-list.tsx, chat-message-reactions.tsx, chat-message-images.tsx,
+// chat-message-text.tsx, chat-scrollbar.tsx and their chat-window.scss rules.
+// The list is anchored to the newest message like `column-reverse`: the
+// scroll position is kept as the distance from the bottom, so older history
+// loading above never moves what is on screen.
+import { Theme } from "../theme.slint";
+import { Icon } from "../components/widgets.slint";
+import { SmoothScroll, ScrollTween } from "../components/smooth-scroll.slint";
+import { T } from "../globals.slint";
+import { SocialIcons, Css } from "../social/common.slint";
+import { ChatData, ChatItem, ChatReactionPill, ChatImageCell } from "state.slint";
+
+// $popover-background
+global Pop {
+    out property <color> background: #1c1c1c;
+    out property <color> border: rgba(255, 255, 255, 0.1);
+}
+
+// .chat-window__day-divider / __new-divider: a label between two rules.
+component Divider inherits HorizontalLayout {
+    in property <string> label;
+    in property <bool> fresh;
+    spacing: 12px;
+    Rectangle {
+        horizontal-stretch: 1;
+        Rectangle {
+            height: 1px;
+            background: root.fresh ? rgba(240, 241, 247, 0.4) : Theme.border;
+        }
+    }
+    Text {
+        text: root.fresh ? root.label : root.label.to-uppercase();
+        font-size: Theme.small-size;
+        font-weight: 700;
+        letter-spacing: root.fresh ? 0px : 0.48px;
+        color: root.fresh ? Theme.muted : Theme.subtle;
+        vertical-alignment: center;
+    }
+    Rectangle {
+        horizontal-stretch: 1;
+        Rectangle {
+            height: 1px;
+            background: root.fresh ? rgba(240, 241, 247, 0.4) : Theme.border;
+        }
+    }
+}
+
+// A popover tooltip (__message-action-tooltip / __reaction-tooltip).
+component Tooltip inherits Rectangle {
+    in property <string> label;
+    in property <string> hint;
+    in property <bool> shown;
+    in property <duration> delay;
+    width: column.preferred-width + 18px;
+    height: column.preferred-height + 10px;
+    background: Pop.background;
+    border-width: 1px;
+    border-color: Pop.border;
+    border-radius: 6px;
+    drop-shadow-blur: 12px;
+    drop-shadow-offset-y: 4px;
+    drop-shadow-color: rgba(0, 0, 0, 0.4);
+    opacity: root.shown ? 1 : 0;
+    animate opacity { duration: 150ms; easing: ease; delay: root.shown ? root.delay : 0ms; }
+    visible: self.opacity > 0;
+    column := VerticalLayout {
+        x: 9px;
+        y: 5px;
+        spacing: 2px;
+        Text {
+            text: root.label;
+            font-size: Theme.small-size;
+            font-weight: root.hint != "" ? 700 : 400;
+            color: Theme.muted;
+        }
+        if root.hint != "": Text {
+            text: root.hint;
+            font-size: Theme.tiny-size;
+            color: Theme.subtle;
+        }
+    }
+}
+
+// .chat-window__message-action: react or reply, with its tooltip.
+component MessageAction inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> active;
+    callback clicked();
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: touch.has-hover || root.active ? rgba(255, 255, 255, 0.08) : transparent;
+    animate background { duration: 150ms; easing: ease; }
+    Icon {
+        width: 16px;
+        height: 16px;
+        source: root.icon;
+        color: touch.has-hover || root.active ? Theme.muted : Theme.body;
+        animate color { duration: 150ms; easing: ease; }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+    Tooltip {
+        x: (root.width - self.width) / 2;
+        y: -self.height - 6px;
+        label: root.label;
+        shown: touch.has-hover;
+    }
+}
+
+// .chat-window__reaction: a pill hanging off the bubble.
+component ReactionPill inherits Rectangle {
+    in property <ChatReactionPill> pill;
+    in property <bool> can-react;
+    in property <bool> end;
+    callback toggled();
+    width: content.preferred-width + 18px;
+    height: 24px;
+    property <bool> popped;
+    init => {
+        self.popped = true;
+    }
+    // chat-window-badge-in 0.3s (pills already there don't pop in)
+    property <float> scale: root.pill.initial || self.popped ? 1 : 0.3;
+    animate scale { duration: 300ms; easing: cubic-bezier(0.34, 1.4, 0.64, 1); }
+    // the 2px ring in the window color
+    Rectangle {
+        x: -2px;
+        y: -2px;
+        width: parent.width + 4px;
+        height: parent.height + 4px;
+        border-radius: 14px;
+        background: Theme.background;
+        transform-scale: root.scale;
+    }
+    bubble := Rectangle {
+        border-radius: 12px;
+        background: root.pill.mine ? #2d2d2d : Pop.background;
+        border-width: 1px;
+        border-color: touch.has-hover && root.can-react && !root.pill.pending ? (root.pill.mine ? Theme.muted : rgba(255, 255, 255, 0.32)) : root.pill.mine ? rgba(240, 241, 247, 0.6) : rgba(255, 255, 255, 0.12);
+        animate border-color { duration: 150ms; easing: ease; }
+        opacity: root.pill.pending ? 0.6 : 1;
+        animate opacity { duration: 150ms; easing: ease; }
+        transform-scale: root.scale;
+        content := HorizontalLayout {
+            x: 9px;
+            spacing: 4px;
+            Text {
+                text: root.pill.emoji;
+                font-family: "Segoe UI Emoji";
+                font-size: Theme.body-size;
+                vertical-alignment: center;
+            }
+            if root.pill.both: Text {
+                text: "2";
+                font-size: Theme.tiny-size;
+                font-weight: 700;
+                color: Theme.muted;
+                vertical-alignment: center;
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: root.can-react && !root.pill.pending ? pointer : default;
+        clicked => {
+            if (root.can-react && !root.pill.pending) {
+                root.toggled();
+            }
+        }
+    }
+    Tooltip {
+        x: root.end ? root.width - self.width : 0;
+        y: -self.height - 6px;
+        label: root.pill.label;
+        hint: root.can-react ? root.pill.hint : "";
+        shown: touch.has-hover;
+        delay: 350ms;
+    }
+}
+
+// The rounded corners of a bubble or an image box: tight (4px) on the
+// sender's side between messages of a group.
+component Corners {
+    in property <bool> mine;
+    in property <bool> first;
+    in property <bool> last;
+    // a caption follows the images: the bottom corners stay tight
+    in property <bool> captioned;
+    // images above a caption: the top corners follow those
+    in property <bool> below-images;
+    out property <length> top-left: root.mine ? 12px : (root.first && !root.below-images ? 12px : 4px);
+    out property <length> top-right: root.mine ? (root.first && !root.below-images ? 12px : 4px) : 12px;
+    out property <length> bottom-left: root.mine ? (root.captioned ? 4px : 12px) : (root.last && !root.captioned ? 12px : 4px);
+    out property <length> bottom-right: root.mine ? (root.last && !root.captioned ? 12px : 4px) : (root.captioned ? 4px : 12px);
+}
+
+// The replying / flash rings: 2px off the bubble in the window color, then
+// a muted ring (box-shadow transition 0.35s).
+component Rings inherits Rectangle {
+    in property <bool> replying;
+    in property <bool> flashing;
+    in property <length> tl;
+    in property <length> tr;
+    in property <length> bl;
+    in property <length> br;
+    property <length> ring: root.flashing ? 4px : 3px;
+    opacity: root.replying || root.flashing ? 1 : 0;
+    animate opacity { duration: 350ms; easing: ease; }
+    Rectangle {
+        x: -root.ring;
+        y: -root.ring;
+        width: root.width + 2 * root.ring;
+        height: root.height + 2 * root.ring;
+        border-top-left-radius: root.tl + root.ring;
+        border-top-right-radius: root.tr + root.ring;
+        border-bottom-left-radius: root.bl + root.ring;
+        border-bottom-right-radius: root.br + root.ring;
+        background: root.flashing ? rgba(240, 241, 247, 0.9) : rgba(240, 241, 247, 0.5);
+    }
+    Rectangle {
+        x: -2px;
+        y: -2px;
+        width: root.width + 4px;
+        height: root.height + 4px;
+        border-top-left-radius: root.tl + 2px;
+        border-top-right-radius: root.tr + 2px;
+        border-bottom-left-radius: root.bl + 2px;
+        border-bottom-right-radius: root.br + 2px;
+        background: Theme.background;
+    }
+}
+
+// .chat-window__message: the bubble (text, a reply quote, links, emoji).
+component Bubble inherits Rectangle {
+    in property <ChatItem> item;
+    in property <length> limit;
+    in property <bool> below-images;
+    in property <bool> replying;
+    in property <bool> flashing;
+    callback jump(int);
+    callback open-link(string);
+    property <bool> emoji: root.item.emoji > 0;
+    property <length> font: root.item.emoji == 1 ? 40px : root.item.emoji == 2 ? 28px : Theme.body-size;
+    property <color> fg: root.item.mine && !root.emoji ? Theme.background : Theme.muted;
+    property <length> pad-x: root.emoji ? 2px : 12px;
+    property <length> pad-y: root.emoji ? 0px : 8px;
+    // max-content of the text and of the quote (its -8px margins cancel its padding)
+    property <length> text-natural: measure.preferred-width;
+    property <length> quote-natural: root.item.reply ? Math.max(name-measure.preferred-width + 16px, quote-measure.preferred-width) : 0px;
+    property <length> inner: Math.min(Math.max(root.text-natural, root.quote-natural), root.limit - 2 * root.pad-x - 2px);
+    corners := Corners {
+        mine: root.item.mine;
+        first: root.item.first;
+        last: root.item.last;
+        below-images: root.below-images;
+    }
+    width: root.inner + 2 * root.pad-x + 2px;
+    height: column.preferred-height + 2px;
+    measure := Text {
+        visible: false;
+        text: root.item.text;
+        font-size: root.font;
+        font-family: root.emoji ? "Segoe UI Emoji" : "Noto Sans";
+    }
+    name-measure := Text {
+        visible: false;
+        text: root.item.reply-name;
+        font-size: Theme.small-size;
+        font-weight: 700;
+    }
+    quote-measure := Text {
+        visible: false;
+        text: root.item.reply-text;
+        font-size: Theme.small-size;
+        font-italic: root.item.reply-removed;
+    }
+    Rings {
+        replying: root.replying;
+        flashing: root.flashing;
+        tl: corners.top-left;
+        tr: corners.top-right;
+        bl: corners.bottom-left;
+        br: corners.bottom-right;
+    }
+    Rectangle {
+        border-top-left-radius: corners.top-left;
+        border-top-right-radius: corners.top-right;
+        border-bottom-left-radius: corners.bottom-left;
+        border-bottom-right-radius: corners.bottom-right;
+        background: root.emoji ? transparent : root.item.mine ? Theme.muted : Pop.background;
+        border-width: 1px;
+        // a failed message: 1px dashed $error-color (Slint draws it solid)
+        border-color: root.item.status == "failed" && root.item.images.length == 0 ? Theme.error : root.emoji || root.item.mine ? transparent : Theme.border;
+    }
+    column := VerticalLayout {
+        x: 1px;
+        y: 1px;
+        width: root.width - 2px;
+        padding-left: root.pad-x;
+        padding-right: root.pad-x;
+        padding-top: root.pad-y;
+        padding-bottom: root.pad-y;
+        // .chat-window__message-quote: the replied-to message (margin -4px -8px 8px)
+        if root.item.reply && root.item.reply-available: Rectangle {
+            height: quote.height + 4px;
+            quote := Rectangle {
+                x: -8px;
+                y: -4px;
+                width: parent.width + 16px;
+                height: quote-column.preferred-height + 8px;
+                border-radius: 6px;
+                background: root.item.mine ? (quote-touch.has-hover ? rgba(18, 18, 18, 0.14) : rgba(18, 18, 18, 0.08)) : (quote-touch.has-hover ? rgba(255, 255, 255, 0.1) : rgba(255, 255, 255, 0.06));
+                animate background { duration: 150ms; easing: ease; }
+                quote-column := VerticalLayout {
+                    x: 8px;
+                    y: 4px;
+                    width: parent.width - 16px;
+                    HorizontalLayout {
+                        spacing: 4px;
+                        alignment: start;
+                        Icon {
+                            y: (parent.height - 12px) / 2;
+                            width: 12px;
+                            height: 12px;
+                            source: SocialIcons.reply-12;
+                            color: root.item.mine ? rgba(18, 18, 18, 0.8) : Theme.muted;
+                        }
+                        Text {
+                            text: root.item.reply-name;
+                            font-size: Theme.small-size;
+                            font-weight: 700;
+                            color: root.item.mine ? rgba(18, 18, 18, 0.8) : Theme.muted;
+                            height: 16px;
+                            vertical-alignment: center;
+                        }
+                    }
+                    Text {
+                        text: root.item.reply-text;
+                        font-size: Theme.small-size;
+                        font-italic: root.item.reply-removed;
+                        color: root.item.mine ? rgba(18, 18, 18, 0.66) : Theme.subtle;
+                        overflow: elide;
+                        height: 16px;
+                        vertical-alignment: center;
+                    }
+                }
+                quote-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.jump(root.item.reply-seq);
+                    }
+                }
+            }
+        }
+        // the replied-to message is past chat retention
+        if root.item.reply && !root.item.reply-available: Rectangle {
+            height: unavailable-box.height + 4px;
+            unavailable-box := Rectangle {
+                x: -8px;
+                y: -4px;
+                width: parent.width + 16px;
+                height: unavailable.preferred-height + 8px;
+                border-radius: 6px;
+                background: root.item.mine ? rgba(18, 18, 18, 0.08) : rgba(255, 255, 255, 0.06);
+                unavailable := Text {
+                    x: 8px;
+                    y: 4px;
+                    width: parent.width - 16px;
+                    text: T.tr("chat_window.reply_unavailable");
+                    font-size: Theme.small-size;
+                    font-italic: true;
+                    color: root.item.mine ? rgba(18, 18, 18, 0.66) : Theme.subtle;
+                    wrap: word-wrap;
+                }
+            }
+        }
+        if !root.item.has-links: Text {
+            text: root.item.text;
+            font-size: root.font;
+            font-family: root.emoji ? "Segoe UI Emoji" : "Noto Sans";
+            color: root.fg;
+            wrap: word-wrap;
+            // line-height: 20px (48px / 36px for emoji)
+            line-height-factor: root.item.emoji == 1 ? 48 / 54.5 : root.item.emoji == 2 ? 36 / 38.1 : 20 / 19.07;
+        }
+        if root.item.has-links: StyledText {
+            text: root.item.styled;
+            default-font-size: Theme.body-size;
+            default-color: root.fg;
+            link-color: root.item.mine ? #2350c8 : #7aa2ff;
+            link-clicked(url) => {
+                root.open-link(url);
+            }
+        }
+    }
+}
+
+// .chat-window__message--removed: the placeholder for a removed message.
+component RemovedBubble inherits Rectangle {
+    width: content.preferred-width + 26px;
+    height: content.preferred-height + 18px;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.2);
+    content := HorizontalLayout {
+        x: 13px;
+        y: 9px;
+        spacing: 4px;
+        Icon {
+            y: (parent.height - 14px) / 2;
+            width: 14px;
+            height: 14px;
+            source: SocialIcons.circle-slash;
+            color: Theme.subtle;
+        }
+        Text {
+            text: T.tr("chat_window.message_removed");
+            font-size: Theme.hint-size;
+            font-italic: true;
+            color: Theme.subtle;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// .chat-window__message-images: one keeps its shape, more share a grid.
+component Images inherits Rectangle {
+    in property <ChatItem> item;
+    in property <bool> replying;
+    in property <bool> flashing;
+    callback open(string);
+    callback reveal(string);
+    callback retry();
+    corners := Corners {
+        mine: root.item.mine;
+        first: root.item.first;
+        last: root.item.last;
+        captioned: root.item.captioned;
+    }
+    width: root.item.images-width;
+    height: root.item.images-height;
+    property <bool> busy: root.item.status == "pending" || root.item.status == "checking";
+    Rings {
+        replying: root.replying;
+        flashing: root.flashing;
+        tl: corners.top-left;
+        tr: corners.top-right;
+        bl: corners.bottom-left;
+        br: corners.bottom-right;
+    }
+    frame := Rectangle {
+        border-top-left-radius: corners.top-left;
+        border-top-right-radius: corners.top-right;
+        border-bottom-left-radius: corners.bottom-left;
+        border-bottom-right-radius: corners.bottom-right;
+        background: root.item.hidden ? transparent : Pop.background;
+        border-width: 1px;
+        border-color: root.item.hidden ? rgba(255, 255, 255, 0.2) : Theme.border;
+        clip: true;
+        if !root.item.hidden: Rectangle {
+            x: 1px;
+            y: 1px;
+            width: parent.width - 2px;
+            height: parent.height - 2px;
+            for cell in root.item.images: Rectangle {
+                x: cell.x;
+                y: cell.y;
+                width: cell.width;
+                height: cell.height;
+                clip: true;
+                property <bool> blocked: root.item.status == "blocked";
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: cell.covered || parent.blocked ? cell.blurred : cell.image;
+                    image-fit: cover;
+                    opacity: root.busy || root.item.status == "failed" ? 0.55 : 1;
+                    animate opacity { duration: 300ms; easing: ease; }
+                }
+                // hover: filter brightness(1.08)
+                if cell-touch.has-hover && !cell.covered && root.item.status == "sent": Rectangle {
+                    background: rgba(255, 255, 255, 0.05);
+                }
+                if cell.covered: Rectangle {
+                    width: spoiler.preferred-width + 16px;
+                    height: spoiler.preferred-height + 8px;
+                    border-radius: 4px;
+                    background: rgba(18, 18, 18, 0.8);
+                    spoiler := Text {
+                        text: T.tr("chat_window.spoiler").to-uppercase();
+                        font-size: Theme.small-size;
+                        font-weight: 700;
+                        letter-spacing: 0.72px;
+                        color: Theme.muted;
+                    }
+                }
+                cell-touch := TouchArea {
+                    enabled: root.item.status == "sent" && cell.has-source;
+                    mouse-cursor: pointer;
+                    clicked => {
+                        if (cell.covered) {
+                            root.reveal(cell.id);
+                        } else {
+                            root.open(cell.id);
+                        }
+                    }
+                }
+            }
+        }
+        // removed by moderation: no preview, a dashed placeholder (solid here)
+        if root.item.hidden: VerticalLayout {
+            alignment: center;
+            spacing: 8px;
+            padding-left: 8px;
+            padding-right: 8px;
+            Icon {
+                x: (parent.width - 16px) / 2;
+                width: 16px;
+                height: 16px;
+                source: SocialIcons.eye-closed;
+                color: Theme.subtle;
+            }
+            Text {
+                text: root.item.images-removed-title;
+                font-size: Theme.hint-size;
+                font-weight: 700;
+                color: Theme.muted;
+                horizontal-alignment: center;
+            }
+            Text {
+                text: T.tr("chat_window.image_removed_description");
+                font-size: Theme.small-size;
+                color: Theme.subtle;
+                horizontal-alignment: center;
+                wrap: word-wrap;
+            }
+        }
+        // the upload bar (checking: pulses)
+        if root.busy: Rectangle {
+            y: parent.height - 3px;
+            height: 3px;
+            background: rgba(18, 18, 18, 0.6);
+            Rectangle {
+                x: 0;
+                width: parent.width * (root.item.status == "checking" ? 1 : root.item.upload-progress);
+                animate width { duration: 150ms; easing: linear; }
+                background: Theme.muted;
+                opacity: root.item.status == "checking" ? 0.35 + 0.65 * (0.5 - 0.5 * Math.cos(Math.mod(animation-tick() / 1000ms, 1) * 360deg)) : 1;
+            }
+        }
+        if root.item.status == "blocked": Rectangle {
+            background: rgba(18, 18, 18, 0.55);
+            VerticalLayout {
+                alignment: center;
+                spacing: 8px;
+                Icon {
+                    x: (parent.width - 20px) / 2;
+                    width: 20px;
+                    height: 20px;
+                    source: SocialIcons.eye-closed-20;
+                    color: Theme.muted;
+                }
+                Text {
+                    text: T.tr("chat_window.image_not_sent");
+                    font-size: Theme.hint-size;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    horizontal-alignment: center;
+                }
+            }
+        }
+        if root.item.status == "failed": Rectangle {
+            background: rgba(18, 18, 18, 0.45);
+            retry := Rectangle {
+                width: retry-row.preferred-width + 26px;
+                height: 32px;
+                border-radius: 6px;
+                background: rgba(18, 18, 18, 0.85);
+                border-width: 1px;
+                border-color: retry-touch.has-hover ? rgba(255, 255, 255, 0.4) : rgba(255, 255, 255, 0.16);
+                retry-row := HorizontalLayout {
+                    spacing: 8px;
+                    alignment: center;
+                    Icon {
+                        y: (parent.height - 14px) / 2;
+                        width: 14px;
+                        height: 14px;
+                        source: SocialIcons.sync;
+                        color: Theme.muted;
+                    }
+                    Text {
+                        text: T.tr("chat_window.retry");
+                        font-size: Theme.hint-size;
+                        font-weight: 700;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                    }
+                }
+                retry-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.retry();
+                    }
+                }
+            }
+        }
+    }
+}
+
+// .chat-window__message-status-action: underlined, 600
+component StatusAction inherits Rectangle {
+    in property <string> label;
+    callback clicked();
+    width: text.preferred-width;
+    text := Text {
+        text: root.label;
+        font-size: Theme.small-size;
+        font-weight: 700;
+        color: touch.has-hover ? #ffffff : Theme.muted;
+    }
+    Rectangle {
+        y: 14.5px;
+        height: 1px;
+        background: text.color;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// .chat-window__message-row: the body (images, bubble, reactions) with
+// the react/reply actions on the side away from the sender.
+component MessageRow inherits Rectangle {
+    in property <ChatItem> item;
+    callback open-bar(string, length, length, length, length);
+    property <length> max-body: root.width * 0.75;
+    property <bool> has-bubble: !root.item.hidden && (root.item.text != "" || root.item.reply);
+    property <bool> has-images: root.item.images.length > 0;
+    property <bool> replying: root.item.key == ChatData.replying-key || root.item.key == ChatData.reacting-key;
+    property <bool> flashing: root.item.key == ChatData.flash-key;
+    property <bool> faded: root.item.status == "pending" || root.item.status == "checking" || (root.item.status == "failed" && !root.has-images) || (root.has-images && root.item.status != "sent");
+    property <bool> detached: root.item.emoji > 0;
+    property <length> pills-height: root.item.reactions.length > 0 && !root.item.hidden ? (root.detached ? 26px : 16px) : 0px;
+    property <length> images-h: root.has-images ? images.height : 0px;
+    property <length> gap-after-images: root.has-images && root.has-bubble ? 2px : 0px;
+    property <length> bubble-h: root.has-bubble ? bubble.height : root.item.hidden && !root.has-images ? removed.height : 0px;
+    property <length> body-height: root.images-h + root.gap-after-images + root.bubble-h + root.pills-height;
+    property <length> body-width: Math.max(root.has-images ? images.width : 0px, root.has-bubble ? bubble.width : root.item.hidden && !root.has-images ? removed.width : 0px);
+    property <bool> status-line: root.item.status-text != "" || (root.item.status == "failed" && !root.has-images);
+    // the 12px status line (16.34px line box)
+    property <length> status-h: root.status-line ? 4px + 17px : 0px;
+    // the row's natural height; it grows from 0 when the message is new
+    out property <length> natural-height: root.body-height + root.status-h;
+    property <bool> show-actions: root.item.can-act && (row-touch.has-hover || root.item.key == ChatData.reacting-key);
+    property <length> body-x: root.item.mine ? root.width - root.body-width : 0px;
+
+    // entrance: the row grows (0.2s), the bubble pops in (0.32s)
+    property <bool> entered: !root.item.enter;
+    init => {
+        self.entered = true;
+    }
+    property <float> grow: root.entered ? 1 : 0;
+    animate grow { duration: 200ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    property <float> pop: root.entered ? 1 : 0;
+    animate pop { duration: 320ms; easing: cubic-bezier(0.34, 1.4, 0.64, 1); }
+    height: root.natural-height * root.grow;
+    clip: root.grow < 1;
+
+    row-touch := TouchArea {
+        mouse-cursor: default;
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
+                if (root.item.can-act || root.item.can-report) {
+                    ChatData.message-menu(root.item.key, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+                }
+            }
+        }
+    }
+
+    body := Rectangle {
+        x: root.body-x;
+        y: 0;
+        width: root.body-width;
+        height: root.body-height;
+        opacity: root.faded ? 0.6 : 1;
+        images := Images {
+            visible: root.has-images;
+            x: root.item.mine ? parent.width - self.width : 0;
+            y: 0;
+            item: root.item;
+            replying: root.replying;
+            flashing: root.flashing;
+            opacity: Math.min(1, root.pop * 1.2);
+            transform-scale: 0.9 + 0.1 * root.pop;
+            open(id) => {
+                ChatData.open-image(root.item.key, id);
+            }
+            reveal(id) => {
+                ChatData.reveal-spoiler(id);
+            }
+            retry => {
+                ChatData.retry(root.item.key);
+            }
+        }
+        bubble := Bubble {
+            visible: root.has-bubble;
+            x: root.item.mine ? parent.width - self.width : 0;
+            y: root.images-h + root.gap-after-images + 6px * (1 - root.pop);
+            item: root.item;
+            limit: root.max-body;
+            below-images: root.has-images;
+            replying: root.replying && !root.has-images;
+            flashing: root.flashing && !root.has-images;
+            opacity: Math.min(1, root.pop * 1.2);
+            transform-scale: 0.9 + 0.1 * root.pop;
+            jump(seq) => {
+                ChatData.jump-to(seq);
+            }
+            open-link(url) => {
+                ChatData.open-link(url);
+            }
+        }
+        removed := RemovedBubble {
+            visible: root.item.hidden && !root.has-images;
+            x: root.item.mine ? parent.width - self.width : 0;
+            y: 0;
+        }
+        // .chat-window__reactions: hanging 8px over the bubble's bottom edge
+        if root.item.reactions.length > 0 && !root.item.hidden: HorizontalLayout {
+            property <length> pad: root.detached ? 2px : 12px;
+            x: root.item.mine ? parent.width - self.width - self.pad : self.pad;
+            y: root.images-h + root.gap-after-images + root.bubble-h + (root.detached ? 2px : -8px);
+            spacing: 4px;
+            for pill in root.item.reactions: ReactionPill {
+                pill: pill;
+                can-react: root.item.can-react;
+                end: root.item.mine;
+                toggled => {
+                    ChatData.pill-toggled(root.item.key, pill.emoji);
+                }
+            }
+        }
+    }
+
+    // .chat-window__message-actions: fade in on hover (0.15s)
+    if root.item.can-act: actions := HorizontalLayout {
+        x: root.item.mine ? root.body-x - 4px - 58px : root.body-x + root.body-width + 4px;
+        y: (root.body-height - 28px) / 2;
+        width: 58px;
+        height: 28px;
+        spacing: 2px;
+        opacity: root.show-actions ? 1 : 0;
+        animate opacity { duration: 150ms; easing: ease; }
+        react := MessageAction {
+            icon: SocialIcons.smiley;
+            label: T.tr("chat_window.add_reaction");
+            active: root.item.key == ChatData.reacting-key;
+            clicked => {
+                root.open-bar(root.item.key, body.x, 0, body.width, root.images-h + root.gap-after-images + root.bubble-h);
+            }
+        }
+        MessageAction {
+            icon: SocialIcons.reply;
+            label: T.tr("chat_window.reply");
+            clicked => {
+                ChatData.reply(root.item.key);
+            }
+        }
+    }
+
+    // the retry link or the images' status line, under the body
+    status := HorizontalLayout {
+        visible: root.status-line;
+        x: 0;
+        width: root.width;
+        y: root.body-height + 4px;
+        height: 17px;
+        spacing: 8px;
+        // align-items: flex-end for the sender's own rows
+        alignment: root.item.mine ? LayoutAlignment.end : LayoutAlignment.start;
+        if root.item.status == "failed" && !root.has-images: HorizontalLayout {
+            spacing: 4px;
+            Icon {
+                y: (parent.height - 12px) / 2;
+                width: 12px;
+                height: 12px;
+                source: SocialIcons.alert;
+                color: Theme.error;
+            }
+            Rectangle {
+                width: retry-text.preferred-width;
+                retry-text := Text {
+                    text: T.tr("chat_window.send_failed") + " · " + T.tr("chat_window.retry");
+                    font-size: Theme.small-size;
+                    color: Theme.error;
+                }
+                if retry-touch.has-hover: Rectangle {
+                    y: 14.5px;
+                    height: 1px;
+                    background: Theme.error;
+                }
+                retry-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        ChatData.retry(root.item.key);
+                    }
+                }
+            }
+        }
+        if root.item.status-text != "": Text {
+            text: root.item.status-text;
+            font-size: Theme.small-size;
+            color: Theme.subtle;
+            opacity: root.item.status == "checking" ? 0.35 + 0.65 * (0.5 - 0.5 * Math.cos(Math.mod(animation-tick() / 1000ms, 1) * 360deg)) : 1;
+        }
+        if root.item.status == "failed" && root.has-images: StatusAction {
+            label: T.tr("chat_window.retry");
+            clicked => {
+                ChatData.retry(root.item.key);
+            }
+        }
+        if (root.item.status == "failed" || root.item.status == "blocked") && root.has-images: StatusAction {
+            label: T.tr("chat_window.remove");
+            clicked => {
+                ChatData.remove(root.item.key);
+            }
+        }
+    }
+}
+
+// One entry of the flattened list.
+component ItemView inherits VerticalLayout {
+    in property <ChatItem> item;
+    in property <length> list-width;
+    in property <length> scroll-top;
+    in property <int> scroll-stamp;
+    callback open-bar(string, length, length, length, length);
+    callback reveal-at(length, length);
+    padding-top: root.item.gap;
+    if root.item.kind == "day": day := Divider {
+        label: root.item.label;
+        // the sticky day: whether this divider scrolled out above
+        property <bool> above: root.scroll-stamp > 0 && root.y + root.height <= root.scroll-top;
+        changed above => {
+            ChatData.day-above(root.item.key, self.above);
+        }
+    }
+    if root.item.kind == "new": Divider {
+        label: T.tr("chat_window.new_messages");
+        fresh: true;
+    }
+    if root.item.kind == "time": HorizontalLayout {
+        alignment: root.item.mine ? end : start;
+        padding-top: 2px;
+        Text {
+            property <bool> shown: !root.item.enter;
+            init => {
+                self.shown = true;
+            }
+            text: root.item.label;
+            font-size: Theme.small-size;
+            color: Theme.subtle;
+            opacity: self.shown ? 1 : 0;
+            animate opacity { duration: 200ms; delay: 120ms; easing: ease; }
+        }
+    }
+    if root.item.kind == "message": row := MessageRow {
+        item: root.item;
+        width: root.list-width;
+        open-bar(key, x, y, w, h) => {
+            root.open-bar(key, x, root.y + root.item.gap + y, w, h);
+        }
+        // scrollIntoView({ block: "center" }) and the flash
+        property <int> reveal: ChatData.reveal-request;
+        changed reveal => {
+            if (ChatData.reveal-key == root.item.key) {
+                root.reveal-at(root.y + root.item.gap, self.height);
+            }
+        }
+    }
+}
+
+// .chat-window__reaction-bar: the quick reactions over a message.
+component ReactionBar inherits Rectangle {
+    in property <bool> end;
+    property <bool> entered;
+    init => {
+        self.entered = true;
+    }
+    width: row.preferred-width + 10px;
+    height: 46px;
+    background: Pop.background;
+    border-width: 1px;
+    border-color: Pop.border;
+    border-radius: 8px;
+    drop-shadow-blur: 32px;
+    drop-shadow-offset-y: 12px;
+    drop-shadow-color: rgba(0, 0, 0, 0.55);
+    // chat-window-popover-in 0.18s
+    opacity: self.entered ? 1 : 0;
+    animate opacity { duration: 180ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    transform-scale: self.entered ? 1 : 0.94;
+    animate transform-scale { duration: 180ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    transform-origin: { x: root.end ? self.width : 0, y: self.height };
+    TouchArea { }
+    row := HorizontalLayout {
+        x: 5px;
+        y: 5px;
+        spacing: 2px;
+        for emoji[index] in ChatData.quick-reactions: Rectangle {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            property <bool> selected: emoji == ChatData.reaction-bar-selected;
+            property <bool> landed;
+            init => {
+                self.landed = true;
+            }
+            background: selected ? rgba(240, 241, 247, 0.14) : option-touch.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+            animate background { duration: 150ms; easing: ease; }
+            border-width: selected ? 1px : 0;
+            border-color: rgba(240, 241, 247, 0.4);
+            // chat-window-reaction-option-in, 25ms apart
+            opacity: self.landed ? 1 : 0;
+            animate opacity { duration: 280ms; delay: index * 25ms; easing: cubic-bezier(0.34, 1.4, 0.64, 1); }
+            Text {
+                text: emoji;
+                font-family: "Segoe UI Emoji";
+                font-size: 20px;
+                transform-scale: option-touch.has-hover ? 1.2 : 1;
+                animate transform-scale { duration: 150ms; easing: cubic-bezier(0.34, 1.4, 0.64, 1); }
+            }
+            option-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    ChatData.react-bar-pick(emoji);
+                }
+            }
+        }
+        Rectangle {
+            width: 9px;
+            Rectangle {
+                width: 1px;
+                height: 20px;
+                background: Pop.border;
+            }
+        }
+        Rectangle {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            background: more-touch.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: SocialIcons.plus-16;
+                color: more-touch.has-hover ? Theme.muted : Theme.body;
+            }
+            more-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    ChatData.react-more();
+                }
+            }
+        }
+    }
+}
+
+// .chat-window__messages-viewport
+export component MessageList inherits Rectangle {
+    // distance from the newest message (column-reverse's -scrollTop)
+    in-out property <length> from-bottom;
+    property <ScrollTween> tween;
+    property <length> content-h: content.preferred-height;
+    property <length> max-scroll: Math.max(0, root.content-h - root.height);
+    property <length> shown-from-bottom: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.from-bottom;
+    property <length> scroll-top: root.max-scroll - root.shown-from-bottom;
+    // set once the user scrolls: until then nothing has scrolled out above
+    property <int> scroll-stamp;
+    property <bool> scrolling;
+    property <bool> away: root.from-bottom > 200px;
+    // the reaction bar's message, in content coordinates
+    property <string> bar-key;
+    property <length> bar-x;
+    property <length> bar-y;
+    property <length> bar-w;
+    property <length> bar-h;
+
+    function wheel-by(dy: length) {
+        root.scroll-stamp = 1;
+        root.scrolling = true;
+        hide-timer.running = false;
+        hide-timer.running = true;
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.from-bottom, dy * SmoothScroll.wheel-scale, 0, root.max-scroll);
+            root.from-bottom = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.from-bottom = Math.clamp(root.from-bottom + dy * SmoothScroll.wheel-scale, 0, root.max-scroll);
+        }
+    }
+    // A programmatic smooth scroll (scrollTo / scrollIntoView, ~400ms).
+    function glide-to(target: length) {
+        let goal = Math.clamp(target, 0, root.max-scroll);
+        root.scroll-stamp = 1;
+        root.tween = {
+            active: true,
+            from: root.shown-from-bottom,
+            to: goal,
+            velocity: 0,
+            start: animation-tick(),
+            span: 400ms,
+        };
+        root.from-bottom = goal;
+    }
+    changed from-bottom => {
+        if (root.tween.active && root.from-bottom != root.tween.to) {
+            root.tween.active = false;
+        }
+        ChatData.scrolled(root.from-bottom, root.max-scroll - root.from-bottom);
+    }
+    changed max-scroll => {
+        if (root.from-bottom > root.max-scroll) {
+            root.from-bottom = root.max-scroll;
+        }
+        ChatData.scrolled(root.from-bottom, root.max-scroll - root.from-bottom);
+    }
+    property <int> latest-request: ChatData.scroll-to-latest;
+    changed latest-request => {
+        root.glide-to(0);
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    hide-timer := Timer {
+        interval: 1000ms;
+        running: false;
+        triggered => {
+            root.scrolling = false;
+            self.running = false;
+        }
+    }
+
+    viewport := TouchArea {
+        scroll-event(event) => {
+            root.wheel-by(event.delta-y);
+            accept
+        }
+        clip := Rectangle {
+            clip: true;
+            content := VerticalLayout {
+                // short histories sit at the bottom, like column-reverse
+                y: root.content-h < root.height ? root.height - root.content-h : -(root.max-scroll - root.shown-from-bottom);
+                padding: 16px;
+                for item in ChatData.items: ItemView {
+                    item: item;
+                    list-width: root.width - 32px;
+                    scroll-top: root.scroll-top;
+                    scroll-stamp: root.scroll-stamp;
+                    open-bar(key, x, y, w, h) => {
+                        if (root.bar-key == key) {
+                            root.bar-key = "";
+                            ChatData.reaction-bar-closed();
+                            return;
+                        }
+                        root.bar-key = key;
+                        root.bar-x = x + 16px;
+                        root.bar-y = y + 16px;
+                        root.bar-w = w;
+                        root.bar-h = h;
+                        // below when the bubble is too close to the top (56px)
+                        ChatData.react-toggle(key, y + 16px - root.scroll-top < 56px);
+                    }
+                    // scrollIntoView({ block: "center", behavior: "smooth" })
+                    reveal-at(y, h) => {
+                        root.glide-to(root.max-scroll - (y + 16px + h / 2 - root.height / 2));
+                        ChatData.revealed(ChatData.reveal-key, y, h);
+                    }
+                }
+            }
+            // the reaction bar scrolls with its message
+            if ChatData.reaction-bar-key != "" && ChatData.reaction-bar-key == root.bar-key: ReactionBar {
+                property <length> content-y: content.y;
+                end: root.bar-x > root.width / 2;
+                x: self.end ? root.bar-x + root.bar-w - self.width : root.bar-x;
+                y: self.content-y + (ChatData.reaction-bar-below ? root.bar-y + root.bar-h + 6px : root.bar-y - self.height - 6px);
+            }
+        }
+    }
+
+    // .chat-window__sticky-day
+    if root.away && ChatData.sticky-day != "": Rectangle {
+        property <bool> entered;
+        init => {
+            self.entered = true;
+        }
+        x: (root.width - self.width) / 2;
+        y: 8px;
+        width: sticky.preferred-width + 18px;
+        height: sticky.preferred-height + 10px;
+        background: rgba(28, 28, 28, 0.92);
+        border-width: 1px;
+        border-color: Theme.border;
+        border-radius: 6px;
+        drop-shadow-blur: 12px;
+        drop-shadow-offset-y: 4px;
+        drop-shadow-color: rgba(0, 0, 0, 0.4);
+        opacity: self.entered ? 1 : 0;
+        animate opacity { duration: 150ms; easing: ease; }
+        sticky := Text {
+            text: ChatData.sticky-day.to-uppercase();
+            font-size: Theme.tiny-size;
+            font-weight: 700;
+            letter-spacing: 0.44px;
+            color: Theme.subtle;
+        }
+    }
+
+    // .chat-window__scrollbar: overlay thumb (4px, 6px on hover/drag)
+    if root.max-scroll >= 1px: bar := Rectangle {
+        property <length> track: root.height - 8px;
+        property <length> thumb-h: Math.min(self.track, Math.max(24px, root.height / root.content-h * self.track));
+        property <float> progress: root.max-scroll <= 0 ? 0 : Math.clamp(root.scroll-top / root.max-scroll, 0, 1);
+        x: root.width - 3px - 6px;
+        y: 4px;
+        width: 6px;
+        height: self.track;
+        opacity: root.scrolling || drag.dragging || viewport.has-hover ? 1 : 0;
+        animate opacity { duration: 200ms; easing: ease; }
+        thumb := Rectangle {
+            property <bool> wide: drag.on-thumb || drag.dragging;
+            x: parent.width - self.width;
+            y: bar.progress * (bar.track - bar.thumb-h);
+            width: self.wide ? 6px : 4px;
+            animate width { duration: 150ms; easing: ease; }
+            height: bar.thumb-h;
+            border-radius: 3px;
+            background: self.wide ? rgba(255, 255, 255, 0.36) : rgba(255, 255, 255, 0.22);
+            animate background { duration: 150ms; easing: ease; }
+        }
+        drag := TouchArea {
+            property <length> start-top;
+            property <bool> dragging;
+            out property <bool> on-thumb: self.has-hover && self.mouse-y >= thumb.y && self.mouse-y <= thumb.y + thumb.height;
+            pointer-event(event) => {
+                if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left && self.on-thumb) {
+                    self.start-top = root.scroll-top;
+                    self.dragging = true;
+                    root.tween.active = false;
+                    root.scroll-stamp = 1;
+                }
+                if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                    self.dragging = false;
+                }
+            }
+            moved => {
+                if (self.dragging && bar.track > bar.thumb-h) {
+                    let top = Math.clamp(self.start-top + (self.mouse-y - self.pressed-y) * root.max-scroll / (bar.track - bar.thumb-h), 0, root.max-scroll);
+                    root.from-bottom = root.max-scroll - top;
+                }
+            }
+        }
+    }
+
+    // .chat-window__jump: blooms in from a blurred dot, shrinks back out
+    property <bool> jump-leaving;
+    changed away => {
+        if (!root.away) {
+            root.jump-leaving = true;
+            leave-timer.running = true;
+        } else {
+            root.jump-leaving = false;
+        }
+    }
+    leave-timer := Timer {
+        interval: 160ms;
+        running: false;
+        triggered => {
+            root.jump-leaving = false;
+            self.running = false;
+        }
+    }
+    if root.away || root.jump-leaving: jump := Rectangle {
+        property <bool> entered: self.mounted && !root.jump-leaving;
+        property <bool> mounted;
+        init => {
+            self.mounted = true;
+        }
+        x: root.width - 16px - 36px;
+        y: root.height - 12px - 36px;
+        width: 36px;
+        height: 36px;
+        border-radius: 18px;
+        background: Pop.background;
+        border-width: 1px;
+        border-color: jump-touch.has-hover ? rgba(255, 255, 255, 0.3) : rgba(255, 255, 255, 0.12);
+        animate border-color { duration: 200ms; easing: ease; }
+        drop-shadow-blur: 16px;
+        drop-shadow-offset-y: 6px;
+        drop-shadow-color: rgba(0, 0, 0, 0.5);
+        opacity: self.entered ? 1 : 0;
+        animate opacity { duration: root.jump-leaving ? 160ms : 260ms; easing: root.jump-leaving ? ease-in : cubic-bezier(0.2, 0.8, 0.2, 1); }
+        transform-scale: self.entered ? 1 : root.jump-leaving ? 0.8 : 0.6;
+        animate transform-scale { duration: root.jump-leaving ? 160ms : 260ms; easing: root.jump-leaving ? ease-in : cubic-bezier(0.2, 0.8, 0.2, 1); }
+        Icon {
+            width: 16px;
+            height: 16px;
+            source: SocialIcons.arrow-down;
+            color: Theme.muted;
+        }
+        jump-touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.glide-to(0);
+                ChatData.jump-latest();
+            }
+        }
+        if ChatData.jump-count > 0: Rectangle {
+            property <bool> landed;
+            init => {
+                self.landed = true;
+            }
+            x: parent.width + 6px - self.width;
+            y: -6px;
+            height: 18px;
+            width: Math.max(18px, count.preferred-width + 8px) + 4px;
+            border-radius: 11px;
+            background: Theme.muted;
+            border-width: 2px;
+            border-color: Theme.background;
+            transform-scale: self.landed ? 1 : 0.3;
+            animate transform-scale { duration: 260ms; delay: 120ms; easing: cubic-bezier(0.34, 1.4, 0.64, 1); }
+            opacity: self.landed ? 1 : 0;
+            animate opacity { duration: 180ms; delay: 120ms; easing: ease; }
+            count := Text {
+                text: ChatData.jump-count > 99 ? "99+" : ChatData.jump-count;
+                font-size: Theme.tiny-size;
+                font-weight: 700;
+                color: Theme.background;
+            }
+        }
+    }
+}

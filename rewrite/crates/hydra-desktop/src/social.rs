@@ -78,6 +78,80 @@ pub fn spawn<T: Send + 'static>(
     });
 }
 
+/// The API client for worker threads (shell::api() is the UI thread's).
+static API: std::sync::OnceLock<std::sync::Arc<HydraApi>> = std::sync::OnceLock::new();
+
+/// The UI language, for requests made on worker threads.
+static LANGUAGE: std::sync::RwLock<String> = std::sync::RwLock::new(String::new());
+
+pub fn language() -> String {
+    LANGUAGE
+        .read()
+        .map(|l| l.clone())
+        .ok()
+        .filter(|l| !l.is_empty())
+        .unwrap_or_else(|| "en".into())
+}
+
+/// The shared API client, from any thread.
+pub fn api() -> Option<std::sync::Arc<HydraApi>> {
+    API.get().cloned()
+}
+
+/// fetchAllProfileFriends: the first page, then the rest in parallel
+/// (Promise.all), friends repeated across pages dropped. Blocking.
+pub fn fetch_all_friends(api: &HydraApi) -> Result<hydra_core::chat::ProfileFriends, ApiError> {
+    use hydra_core::chat::{
+        PROFILE_FRIENDS_PAGE_SIZE, PROFILE_FRIENDS_PATH, ProfileFriends, parse,
+    };
+    let page = |skip: u32| {
+        api.get(
+            PROFILE_FRIENDS_PATH,
+            &[
+                ("take", PROFILE_FRIENDS_PAGE_SIZE.to_string()),
+                ("skip", skip.to_string()),
+            ],
+            Options::default(),
+        )
+        .map(|v| parse::<ProfileFriends>(&v).unwrap_or_default())
+    };
+    let first = page(0)?;
+    let total = first.total_friends.max(0) as u32;
+    let skips: Vec<u32> = (1..)
+        .map(|i| i * PROFILE_FRIENDS_PAGE_SIZE)
+        .take_while(|skip| *skip < total)
+        .collect();
+    let rest: Vec<Result<ProfileFriends, ApiError>> = std::thread::scope(|scope| {
+        let handles: Vec<_> = skips
+            .iter()
+            .map(|&skip| scope.spawn(move || page(skip)))
+            .collect();
+        handles
+            .into_iter()
+            .map(|h| {
+                h.join()
+                    .unwrap_or_else(|_| Err(ApiError::Network("panicked".into())))
+            })
+            .collect()
+    });
+    let mut seen = std::collections::HashSet::new();
+    let mut friends = Vec::new();
+    let total_friends = first.total_friends;
+    let online_friends = first.online_friends;
+    for page in std::iter::once(Ok(first)).chain(rest) {
+        for friend in page?.friends {
+            if seen.insert(friend.id.clone()) {
+                friends.push(friend);
+            }
+        }
+    }
+    Ok(ProfileFriends {
+        total_friends,
+        online_friends,
+        friends,
+    })
+}
+
 /// Dev guard: no friends or chat write leaves the app.
 pub fn dry_run() -> bool {
     std::env::var_os("HYDRA_SOCIAL_DRY_RUN").is_some()
@@ -92,7 +166,7 @@ pub fn write<R>(
         eprintln!("social dry run: skipped {what}");
         return Err(ApiError::Network("dry run".into()));
     }
-    let api = shell::api().ok_or(ApiError::NotLoggedIn)?;
+    let api = api().ok_or(ApiError::NotLoggedIn)?;
     request(&api)
 }
 
@@ -206,6 +280,9 @@ pub fn tr_count(key: &str, count: f64, args: &[(&str, hydra_i18n::Arg)]) -> Stri
 
 /// i18n.changeLanguage reached the main window: re-evaluate the social windows' strings.
 pub fn on_language_changed() {
+    if let Ok(mut language) = LANGUAGE.write() {
+        *language = shell::shop_language();
+    }
     crate::friends_window::on_language_changed();
     crate::chat_window::on_language_changed();
 }
@@ -286,8 +363,14 @@ pub fn has_focus(window: &slint::Window) -> bool {
 
 // ---- bounds (social-window-bounds.ts) -----------------------------------
 
-/// loadSocialWindowsBounds
+/// loadSocialWindowsBounds (and the API handle for worker threads).
 pub fn load_bounds() {
+    if let Some(api) = shell::api() {
+        let _ = API.set(api);
+    }
+    if let Ok(mut language) = LANGUAGE.write() {
+        *language = shell::shop_language();
+    }
     let bounds: SocialWindowsBounds = shell::db()
         .and_then(|db| db.get::<Value>(keys::SOCIAL_WINDOWS_BOUNDS))
         .and_then(|v| serde_json::from_value(v).ok())
@@ -337,6 +420,31 @@ pub fn apply_saved_bounds(window: &slint::Window, kind: Kind, default: (f32, f32
         }
         None => window.set_size(LogicalSize::new(default.0, default.1)),
     }
+}
+
+/// The frame comes off when winit creates the native window, after show():
+/// size the window again once it exists, or its client area keeps the
+/// framed outer size.
+pub fn resize_when_ready<C: ComponentHandle + 'static>(
+    weak: slint::Weak<C>,
+    kind: Kind,
+    default: (f32, f32),
+    attempt: u32,
+) {
+    let Some(component) = weak.upgrade() else {
+        return;
+    };
+    let ready = component
+        .window()
+        .with_winit_window(|_: &winit::window::Window| ())
+        .is_some();
+    if ready || attempt > 100 || shell::headless() {
+        apply_saved_bounds(component.window(), kind, default);
+        return;
+    }
+    slint::Timer::single_shot(std::time::Duration::from_millis(10), move || {
+        resize_when_ready(weak, kind, default, attempt + 1)
+    });
 }
 
 /// captureSocialWindowBounds: the window's normal bounds, in logical pixels.
