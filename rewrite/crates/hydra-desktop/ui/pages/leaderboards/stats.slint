@@ -396,6 +396,18 @@ component ActivityCard inherits Rectangle {
     property <length> step: root.cell + 6px;
     property <int> tip-index: -1;
     property <int> hover-index: -1;
+    function track-heat(x: length, y: length) {
+        let column = Math.floor(x / root.step);
+        let row = Math.floor(y / root.step);
+        let in-gap = x - column * root.step > root.cell || y - row * root.step > root.cell;
+        let index = column * 7 + row;
+        if (in-gap || row > 6 || x < 0 || y < 0 || index >= LeaderboardsData.heat-cells.length) {
+            root.hover-index = -1;
+            return;
+        }
+        root.hover-index = index;
+        root.tip-index = LeaderboardsData.heat-cells[index].future ? -1 : index;
+    }
     border-radius: 4px;
     border-width: 1px;
     border-color: Theme.border;
@@ -507,18 +519,13 @@ component ActivityCard inherits Rectangle {
                         drop-shadow-color: heat.level == 2 ? rgba(106, 140, 255, 0.3) : rgba(176, 92, 255, 0.55);
                     }
                     // The gaps between cells keep the current tip; future cells hide it.
-                    TouchArea {
-                        moved => {
-                            let column = Math.floor(self.mouse-x / root.step);
-                            let row = Math.floor(self.mouse-y / root.step);
-                            let in-gap = self.mouse-x - column * root.step > root.cell || self.mouse-y - row * root.step > root.cell;
-                            let index = column * 7 + row;
-                            if (in-gap || row > 6 || index >= LeaderboardsData.heat-cells.length) {
-                                root.hover-index = -1;
-                                return;
-                            }
-                            root.hover-index = index;
-                            root.tip-index = LeaderboardsData.heat-cells[index].future ? -1 : index;
+                    // (moved only fires while pressed: hover follows mouse-x/y)
+                    heat-touch := TouchArea {
+                        changed mouse-x => {
+                            root.track-heat(self.mouse-x, self.mouse-y);
+                        }
+                        changed mouse-y => {
+                            root.track-heat(self.mouse-x, self.mouse-y);
                         }
                         changed has-hover => {
                             if (!self.has-hover) {

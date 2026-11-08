@@ -527,14 +527,19 @@ export component LeaderboardsPage inherits Rectangle {
     }
 
     property <length> content-width: root.width - 9px;
-    page := Flickable {
+    // A clipped viewport rather than a Flickable: Slint scrolls a Flickable to
+    // reveal a TextInput that gains focus (the game search) by setting its
+    // content-y, which would drop this binding for good.
+    page := Rectangle {
         x: 0;
         width: root.content-width;
         height: root.height;
-        interactive: false;
-        content-height: Math.max(column.preferred-height, root.height);
-        content-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+        clip: true;
+        property <length> content-height: Math.max(column.preferred-height, root.height);
+        property <length> content-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
         TouchArea {
+            x: 0;
+            y: page.content-y;
             width: page.width;
             height: page.content-height;
             scroll-event(event) => {

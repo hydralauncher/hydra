@@ -366,6 +366,7 @@ fn fetch(request: &Request, done: impl FnOnce(Result<Value, FetchError>) + 'stat
     let generation = with(|s| s.cache.generation());
     let mut params = request.params.clone();
     if let Some(source) = take_source(request) {
+        eprintln!("leaderboards: {} tagged with source={source}", request.path);
         params.push(("source".into(), source));
     }
     let Some(api) = shell::api() else {
