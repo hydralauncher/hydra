@@ -785,6 +785,7 @@ pub fn load_library() {
             });
             sync_filter_menu();
             refresh_rows();
+            crate::tray::refresh();
             crate::game_page::on_library_changed();
             crate::library_page::on_library_changed();
             crate::catalogue_page::on_library_changed();
@@ -1126,8 +1127,13 @@ fn wire_chrome(ui: &AppWindow, headless: bool) {
             }
         }
     });
-    chrome.on_close(|| {
-        let _ = slint::quit_event_loop();
+    chrome.on_close({
+        let weak = weak.clone();
+        move || {
+            if let Some(ui) = weak.upgrade() {
+                crate::main_window::close(&ui);
+            }
+        }
     });
     chrome.on_drag({
         let weak = weak.clone();

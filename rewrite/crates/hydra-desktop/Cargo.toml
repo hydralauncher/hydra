@@ -44,9 +44,12 @@ interprocess = "2"
 [target.'cfg(windows)'.dependencies]
 tauri-winrt-notification = "0.8"
 winreg = "0.55"
+# the system tray (Windows; Linux needs a StatusNotifierItem host instead of GTK)
+tray-icon = "0.26"
 
 [target.'cfg(not(windows))'.dependencies]
 notify-rust = "4"
+
 
 [build-dependencies]
 slint-build = "1.18"

@@ -31,6 +31,7 @@ mod headless;
 mod home_page;
 mod instance;
 mod library_page;
+mod main_window;
 mod nav;
 mod notifications_page;
 mod notify;
@@ -44,6 +45,7 @@ mod settings_page;
 mod settings_sources;
 mod shell;
 mod toast;
+mod tray;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -275,14 +277,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     toast::init(&ui);
     context_menu::init(&ui);
     dialogs::init(&ui);
-    nav::init(&ui, args.path.as_deref().unwrap_or("/"));
+    nav::init(
+        &ui,
+        &args.path.clone().unwrap_or_else(main_window::start_path),
+    );
     deeplink::init(&ui);
     if !headless_mode {
         deeplink::register_protocol();
     }
-    // TODO(tray): --hidden and cold-start "run" links keep the window
-    // hidden in Electron; that needs the system tray first.
-    let _ = args.hidden;
+    main_window::init(&ui);
+    if !headless_mode {
+        main_window::restore(&ui);
+        tray::init();
+    }
+    // --hidden (auto-launch) and cold-start "run" links stay in the tray
+    let start_hidden = tray::available()
+        && (args.hidden
+            || deeplink::is_background(
+                args.deep_link.as_deref(),
+                &deeplink::COLD_START_BACKGROUND_HOSTS,
+            ));
     if let Some(link) = args.deep_link.clone() {
         let _ = slint::invoke_from_event_loop(move || deeplink::handle(&link));
     }
@@ -310,7 +324,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         devscript::run(&ui, &steps, out);
     }
 
-    ui.run()?;
+    if !start_hidden {
+        ui.show()?;
+    }
+    // fitToWorkArea once the native window exists
+    let weak = ui.as_weak();
+    slint::Timer::single_shot(std::time::Duration::from_millis(0), move || {
+        if let Some(ui) = weak.upgrade() {
+            main_window::fit_to_monitor(&ui);
+        }
+    });
+    // Hiding the window keeps the app running in the tray.
+    slint::run_event_loop_until_quit()?;
 
     // quit-cleanup.ts: stop media threads first, then leave without running
     // thread-local destructors under worker threads that are still parked.

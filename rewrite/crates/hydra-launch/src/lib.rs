@@ -39,6 +39,12 @@ fn remember_launch(db: &Db, key: &str, executable: &str, launch_options: Option<
     });
 }
 
+/// shell.openPath (the tray's recently played games).
+#[cfg(windows)]
+pub fn open_path(path: &str) -> bool {
+    shell_open(path)
+}
+
 #[cfg(windows)]
 fn shell_open(path: &str) -> bool {
     // shell.openPath: ShellExecute "open", like double-clicking the file.

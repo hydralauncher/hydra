@@ -127,6 +127,18 @@ pub fn init(ui: &AppWindow, start: &str) {
     apply(None);
 }
 
+/// A fresh history at `start` (a new main window after closing to the tray).
+pub fn reset(start: &str) {
+    let previous = current();
+    HISTORY.with(|h| {
+        if let Some(h) = h.borrow_mut().as_mut() {
+            h.entries = vec![start.to_string()];
+            h.index = 0;
+        }
+    });
+    apply(previous);
+}
+
 /// `navigate(path)`: a new entry; whatever was ahead is dropped.
 pub fn navigate(path: &str) {
     let previous = current();
