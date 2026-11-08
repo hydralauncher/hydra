@@ -161,6 +161,8 @@ fn next<C: ComponentHandle + 'static>(
         "target" => {
             TARGET.with(|t| *t.borrow_mut() = args.first().copied().unwrap_or("main").into())
         }
+        // settings states the account can't reach on its own (settings_integrations::dev)
+        "settings-dev" => crate::settings_integrations::dev(&args),
         "quit" => {
             let _ = slint::quit_event_loop();
             return;

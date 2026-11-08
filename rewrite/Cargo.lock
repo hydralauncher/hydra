@@ -2845,6 +2845,7 @@ dependencies = [
  "thumbhash",
  "tokio",
  "tray-icon",
+ "ttf-parser",
  "uuid",
  "winreg",
  "wry",

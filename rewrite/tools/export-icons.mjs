@@ -222,6 +222,11 @@ const icons = {
   "light-bulb": [oct.LightBulbIcon, { size: 16 }],
   squirrel: [oct.SquirrelIcon, { size: 16 }],
   "trophy-16": [oct.TrophyIcon, { size: 16 }],
+  // Settings: integrations, screenshots, compatibility, emulation
+  "link-external-16": [oct.LinkExternalIcon, { size: 16 }],
+  "desktop-download": [oct.DesktopDownloadIcon, { size: 16 }],
+  "chevron-right-12": [oct.ChevronRightIcon, { size: 12 }],
+  "eye-16": [oct.EyeIcon, { size: 16 }],
 };
 
 for (const [name, [Icon, props]] of Object.entries(icons)) {

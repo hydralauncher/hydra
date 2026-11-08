@@ -6,6 +6,7 @@
 
 mod achievements_page;
 mod auth;
+mod autolaunch;
 mod catalogue_page;
 mod chat_service;
 mod chat_window;
@@ -45,15 +46,24 @@ mod popup;
 mod prefs;
 mod realtime;
 mod screenshots;
+mod retroachievements;
 mod search;
 mod settings_account;
+mod settings_compatibility;
 mod settings_debrid;
+mod settings_emulation;
+mod settings_integrations;
+mod settings_modals;
 mod settings_page;
+mod settings_screenshots;
 mod settings_sources;
 mod shell;
 mod social;
 mod sound;
 mod taskbar_badge;
+mod steam_openid;
+mod steam_sync;
+mod text_metrics;
 mod toast;
 mod torrent_step;
 mod tray;
@@ -240,6 +250,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 {
                     return EventResult::PreventDefault;
                 }
+                // window "focus": the Steam card re-reads its status
+                winit::event::WindowEvent::Focused(true) => {
+                    settings_integrations::on_window_focus();
+                }
                 _ => {}
             }
             EventResult::Propagate
@@ -269,6 +283,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     settings_sources::init(&ui);
     settings_account::init(&ui);
     settings_debrid::init(&ui);
+    settings_modals::init(&ui);
+    settings_integrations::init(&ui);
+    settings_screenshots::init(&ui);
+    settings_compatibility::init(&ui);
+    settings_emulation::init(&ui);
     auth::init(&ui);
     social::load_bounds();
     notifications_page::init(&ui);

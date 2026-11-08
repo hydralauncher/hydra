@@ -1,0 +1,428 @@
+// settings-integration-card.tsx (+ .scss) and the Steam, Epic Games and
+// RetroAchievements cards (settings-steam.tsx, settings-epic.tsx,
+// settings-retroachievements.tsx). Rust fills `IntegrationsData`
+// (settings_integrations.rs); the cards only lay out what they're given.
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, HydraButton, Skeleton } from "../../components/widgets.slint";
+
+// A header button: `icon` is "" | "link" | "sync".
+export struct IntegrationAction {
+    id: string,
+    label: string,
+    kind: string,
+    icon: string,
+    enabled: bool,
+}
+
+export struct IntegrationCard {
+    // "steam" | "epic" | "retroachievements"
+    id: string,
+    title: string,
+    status: string,
+    // "neutral" | "success" | "warning"
+    tone: string,
+    loading: bool,
+    actions: [IntegrationAction],
+    // a bare <p> (14px): "Sign in to Hydra to connect your Steam account"
+    plain: string,
+    // __description (12px, line-height 1.5)
+    description: string,
+    show-profile: bool,
+    avatar: image,
+    username: string,
+    // SettingsIntegrationLastSynced ("" hides it)
+    meta: string,
+    progress: bool,
+    progress-label: string,
+    progress-count: string,
+    progress-determinate: bool,
+    // 0..100
+    progress-percent: float,
+    // __message paragraphs (12px, line-height 1.5)
+    messages: [string],
+    // settings-retroachievements__reconnect-hint: a 14px text button
+    hint: string,
+    hint-enabled: bool,
+    // the emulator note: a GuideLink paragraph (12px, line-height 1.5)
+    note: string,
+    note-article: string,
+    // the note's line widths (Rust wraps it like Chromium at `note-width`),
+    // so the question icon follows the text inline and the hover underline
+    // matches each line
+    note-lines: [length],
+    note-last-line: length,
+}
+
+export global IntegrationsData {
+    in property <[IntegrationCard]> cards;
+    // The note's width, for Rust's line breaking (changes with the window).
+    callback note-resized(length);
+    callback action(string, string);
+    callback hint(string);
+    callback guide(string);
+}
+
+// A word-wrapped paragraph with CSS line-height: Slint stacks lines at the
+// font's own height (16.34px at 12px), so the box is sized to whole CSS
+// lines and the text centered in it (within a px of Chromium per line).
+export component Para inherits Text {
+    in property <length> line: 18px;
+    wrap: word-wrap;
+    vertical-alignment: center;
+    font-size: Theme.small-size;
+    color: Theme.body;
+    out property <int> lines: Math.max(1, Math.round(self.preferred-height / (self.font-size * 1.362)));
+    height: self.lines * root.line;
+}
+
+// __progress: header (label / count, 12px), then the 4px track.
+component Progress inherits VerticalLayout {
+    in property <IntegrationCard> card;
+    spacing: 8px;
+    HorizontalLayout {
+        spacing: 8px;
+        Text {
+            horizontal-stretch: 1;
+            text: root.card.progress-label;
+            font-size: Theme.small-size;
+            color: Theme.body;
+        }
+        if root.card.progress-count != "": Text {
+            text: root.card.progress-count;
+            // "JetBrains Mono", monospace (not bundled: Chromium falls back to Consolas)
+            font-family: "Consolas";
+            font-size: Theme.small-size;
+            color: Theme.body;
+        }
+    }
+    track := Rectangle {
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.08);
+        clip: true;
+        // transition: width 0.2s ease
+        if root.card.progress-determinate: Rectangle {
+            x: 0;
+            width: track.width * Math.clamp(root.card.progress-percent, 0, 100) / 100;
+            border-radius: 2px;
+            background: Theme.muted;
+            animate width { duration: 200ms; easing: ease; }
+        }
+        // --indeterminate: 35% wide, translateX(-110% -> 300%), 1.2s ease-in-out infinite
+        if !root.card.progress-determinate: Rectangle {
+            property <float> t: Math.mod(animation-tick() / 1200ms, 1);
+            // ease-in-out: cubic-bezier(0.42, 0, 0.58, 1), close to smoothstep
+            property <float> eased: self.t * self.t * (3 - 2 * self.t);
+            width: track.width * 0.35;
+            x: self.width * (-1.1 + 4.1 * self.eased);
+            border-radius: 2px;
+            background: Theme.muted;
+        }
+    }
+}
+
+// GuideLink inside the emulator note: the text (underlined on hover) and
+// the 12px question icon inline after it (vertical-align: middle).
+component GuideNote inherits Rectangle {
+    in property <IntegrationCard> card;
+    height: note-text.height + (root.icon-wraps ? 18px : 0);
+    changed width => {
+        IntegrationsData.note-resized(self.width);
+    }
+    init => {
+        IntegrationsData.note-resized(self.width);
+    }
+    // " " (3.1px at 12px) + the icon: on the last line when it fits
+    property <length> icon-x: root.card.note-last-line + 3.1px;
+    property <bool> icon-wraps: self.icon-x + 12px > root.width;
+    note-text := Para {
+        x: 0;
+        y: 0;
+        width: root.width;
+        text: root.card.note;
+    }
+    property <int> icon-line: Math.max(1, root.card.note-lines.length) - 1 + (self.icon-wraps ? 1 : 0);
+    Icon {
+        x: root.icon-wraps ? 0 : root.icon-x;
+        y: root.icon-line * 18px + 3.8px;
+        width: 12px;
+        height: 12px;
+        source: @image-url("../../icons/question-12.svg");
+        color: Theme.body;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            IntegrationsData.guide(root.card.note-article);
+        }
+    }
+    // .guide-link:hover .guide-link__text: underline, offset 2px
+    if touch.has-hover: Rectangle {
+        for line-width[i] in root.card.note-lines: Rectangle {
+            x: 0;
+            y: i * 18px + 15.5px;
+            width: line-width;
+            height: 1px;
+            background: Theme.body;
+        }
+    }
+}
+
+export component IntegrationCardView inherits Rectangle {
+    in property <IntegrationCard> card;
+    // page-max-width(760px): the header stacks
+    in property <bool> narrow;
+    border-width: 1px;
+    border-color: Theme.border;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.12);
+    height: column.preferred-height;
+
+    column := VerticalLayout {
+        padding: 17px;
+        spacing: 16px;
+
+        // ---- __header: space-between, gap 16, min-height 40
+        header := Rectangle {
+            property <length> actions-width: root.card.loading ? 104px : actions.preferred-width;
+            property <bool> has-actions: root.card.loading || root.card.actions.length > 0;
+            // the heading's room beside the actions (flex: min-width 0)
+            property <length> room: root.narrow || !self.has-actions ? self.width : self.width - self.actions-width - 16px;
+            property <length> status-width: root.card.loading ? 96px : status.preferred-width;
+            // flex-wrap: the status drops under the title when the row doesn't fit
+            property <bool> wraps: 18px + 8px + title.preferred-width + 8px + self.status-width > self.room;
+            property <length> heading-height: self.wraps ? 22px + 8px + 17px : 22px;
+            property <length> row-height: Math.max(40px, self.heading-height, self.has-actions ? 40px : 0);
+            height: root.narrow && self.has-actions ? self.heading-height + 16px + 40px : self.row-height;
+
+            heading := Rectangle {
+                x: 0;
+                y: root.narrow ? 0 : (header.row-height - header.heading-height) / 2;
+                width: header.room;
+                height: header.heading-height;
+                // __logo: 18px
+                if root.card.id == "retroachievements": Image {
+                    x: 0;
+                    y: 2px;
+                    width: 18px;
+                    height: 18px;
+                    source: @image-url("../../icons/retroachievements.png");
+                    image-fit: contain;
+                }
+                if root.card.id != "retroachievements": Icon {
+                    x: 0;
+                    y: 2px;
+                    width: 18px;
+                    height: 18px;
+                    color: Theme.body;
+                    source: root.card.id == "steam" ? @image-url("../../icons/steam-integration-logo.svg") : @image-url("../../icons/epic-integration-logo.svg");
+                }
+                // __title: 16px 600, muted
+                title := Text {
+                    x: 26px;
+                    y: 0;
+                    height: 22px;
+                    text: root.card.title;
+                    font-size: 16px;
+                    font-weight: 700; // 600 in scss (no SemiBold face)
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                }
+                property <length> status-x: header.wraps ? 0 : 26px + title.preferred-width + 8px;
+                property <length> status-y: header.wraps ? 30px : 2.5px;
+                if root.card.loading: Skeleton {
+                    x: heading.status-x;
+                    y: heading.status-y + 1.5px;
+                    width: 96px;
+                    height: 14px;
+                }
+                status := HorizontalLayout {
+                    x: heading.status-x;
+                    y: heading.status-y;
+                    width: self.preferred-width;
+                    height: 17px;
+                    spacing: 4px;
+                    visible: !root.card.loading;
+                    property <color> tint: root.card.tone == "warning" ? Theme.warning : root.card.tone == "success" ? Theme.muted : Theme.body;
+                    VerticalLayout {
+                        alignment: center;
+                        if root.card.tone == "success": Icon {
+                            width: 14px;
+                            height: 14px;
+                            source: Icons.check-circle-fill;
+                            color: status.tint;
+                        }
+                        if root.card.tone == "warning": Icon {
+                            width: 14px;
+                            height: 14px;
+                            source: Icons.alert;
+                            color: status.tint;
+                        }
+                        // __status-dot: 12px ring in currentColor
+                        if root.card.tone != "success" && root.card.tone != "warning": Rectangle {
+                            width: 12px;
+                            height: 12px;
+                            border-radius: 6px;
+                            border-width: 1px;
+                            border-color: status.tint;
+                        }
+                    }
+                    Text {
+                        text: root.card.status;
+                        font-size: Theme.small-size;
+                        color: status.tint;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            // __actions: gap 8, flex-end (flex-start when stacked)
+            if root.card.loading: Skeleton {
+                x: root.narrow ? 0 : header.width - 104px;
+                y: root.narrow ? header.heading-height + 16px : (header.row-height - 40px) / 2;
+                width: 104px;
+                height: 40px;
+                radius: 8px;
+            }
+            actions := HorizontalLayout {
+                x: root.narrow ? 0 : header.width - self.preferred-width;
+                y: root.narrow ? header.heading-height + 16px : (header.row-height - 40px) / 2;
+                width: self.preferred-width;
+                height: 40px;
+                spacing: 8px;
+                visible: !root.card.loading;
+                for item in root.card.actions: HydraButton {
+                    text: item.label;
+                    kind: item.kind;
+                    enabled: item.enabled;
+                    icon: item.icon == "link" ? @image-url("../../icons/link-external-14.svg") : item.icon == "sync" ? @image-url("../../icons/sync.svg") : @image-url("");
+                    icon-size: 14px;
+                    clicked => {
+                        IntegrationsData.action(root.card.id, item.id);
+                    }
+                }
+            }
+        }
+
+        // ---- __content: min-height 40, gap 12
+        if root.card.loading: HorizontalLayout {
+            spacing: 12px;
+            alignment: start;
+            Skeleton {
+                width: 40px;
+                height: 40px;
+                radius: 6px;
+            }
+            VerticalLayout {
+                alignment: center;
+                spacing: 4px;
+                Skeleton {
+                    width: 156px;
+                    height: 14px;
+                }
+                Skeleton {
+                    width: 112px;
+                    height: 12px;
+                }
+            }
+        }
+        if !root.card.loading: VerticalLayout {
+            min-height: 40px;
+            spacing: 12px;
+            alignment: start;
+            // a bare <p> (line-height 20px)
+            if root.card.plain != "": Para {
+                text: root.card.plain;
+                font-size: Theme.body-size;
+                line: 20px;
+            }
+            if root.card.description != "": Para {
+                text: root.card.description;
+            }
+            // __profile: avatar + account, gap 12
+            if root.card.show-profile: HorizontalLayout {
+                spacing: 12px;
+                Rectangle {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 6px;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    background: rgba(255, 255, 255, 0.04);
+                    clip: true;
+                    if root.card.avatar.width > 0: Image {
+                        x: 1px;
+                        y: 1px;
+                        width: 38px;
+                        height: 38px;
+                        source: root.card.avatar;
+                        image-fit: cover;
+                    }
+                    if root.card.avatar.width == 0: Icon {
+                        width: 28px;
+                        height: 28px;
+                        source: Icons.person;
+                        color: Theme.body;
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 4px;
+                    Text {
+                        text: root.card.username;
+                        font-size: Theme.body-size;
+                        font-weight: 700; // 600 in scss (no SemiBold face)
+                        color: Theme.muted;
+                        overflow: elide;
+                        height: 19px;
+                        vertical-alignment: center;
+                    }
+                    if root.card.meta != "": Text {
+                        text: root.card.meta;
+                        font-size: Theme.small-size;
+                        color: Theme.body;
+                        height: 17px;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+            if root.card.progress: Progress {
+                card: root.card;
+            }
+            for message in root.card.messages: Para {
+                text: message;
+            }
+            if root.card.hint != "": Rectangle {
+                height: hint-text.preferred-height;
+                hint-text := Text {
+                    x: 0;
+                    width: parent.width;
+                    text: root.card.hint;
+                    font-size: Theme.body-size;
+                    color: Theme.body;
+                    wrap: word-wrap;
+                    opacity: root.card.hint-enabled ? 1 : Theme.disabled-opacity;
+                }
+                hint-touch := TouchArea {
+                    enabled: root.card.hint-enabled;
+                    mouse-cursor: pointer;
+                    clicked => {
+                        IntegrationsData.hint(root.card.id);
+                    }
+                }
+                // &:hover:not(:disabled) { text-decoration: underline }
+                if hint-touch.has-hover && root.card.hint-enabled: Rectangle {
+                    // Slint has no per-line underline: one rule under the last line
+                    x: 0;
+                    y: hint-text.preferred-height - 3px;
+                    width: Math.min(parent.width, hint-text.preferred-width);
+                    height: 1px;
+                    background: Theme.body;
+                }
+            }
+            if root.card.note != "": GuideNote {
+                card: root.card;
+            }
+        }
+    }
+}
