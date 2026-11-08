@@ -186,6 +186,7 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
     fetch_game();
     fetch_achievements(shop, object_id);
     crate::game_repacks::open(shop, object_id);
+    apply_download_state(crate::downloads::last_packet().as_ref());
 }
 
 /// game-details.context.tsx: `getUnlockedAchievements` once the user is known.
@@ -454,13 +455,43 @@ pub fn shutdown() {
 
 /// A download progress packet: the hero's progress bar and panel text.
 pub fn on_download_progress(packet: Option<&hydra_downloads::manager::Progress>) {
-    // TODO(downloads): hero-panel.tsx progress bar and HeroPanelPlaytime download info.
-    let _ = packet;
+    apply_download_state(packet);
+}
+
+/// hero-panel.tsx / hero-panel-playtime.tsx for the open game's download.
+fn apply_download_state(packet: Option<&hydra_downloads::manager::Progress>) {
+    let Some((ui, shop, object_id)) =
+        with_app(|app| (app.ui.upgrade(), app.shop.clone(), app.object_id.clone()))
+    else {
+        return;
+    };
+    let Some(ui) = ui else { return };
+    let id = format!("{shop}:{object_id}");
+    let download = crate::shell::db().and_then(|db| hydra_downloads::layout::get(&db, &id));
+    let g = gd(&ui);
+    let Some(download) = download else {
+        g.set_has_download(false);
+        g.set_download_active(false);
+        g.set_show_progress_bar(false);
+        return;
+    };
+    let status = hydra_downloads::layout::status(&download).to_string();
+    let progress = download
+        .get("progress")
+        .and_then(serde_json::Value::as_f64)
+        .unwrap_or(0.0);
+    let live = packet.filter(|p| p.game_id == id && status == "active");
+    let shown = live.map_or(progress, |p| p.progress);
+    g.set_has_download(matches!(status.as_str(), "active" | "paused") && progress != 1.0);
+    g.set_download_active(status == "active");
+    g.set_download_progress_text(crate::downloads_page::format_progress(shown, 2).into());
+    g.set_show_progress_bar((status == "active" && progress < 1.0) || status == "paused");
+    g.set_progress_bar_value(shown as f32);
 }
 
 /// The downloads changed: the hero's actions follow the game's download.
 pub fn on_downloads_updated() {
-    // TODO(downloads): hero-panel-actions.tsx download states.
+    apply_download_state(crate::downloads::last_packet().as_ref());
 }
 
 /// Navigating away from the game page.

@@ -84,6 +84,14 @@ export global GameData {
     in property <string> classics-title;
     in property <string> classics-chip;
     in property <int> classics-emulator;
+    // The game's download (hero-panel.tsx / hero-panel-playtime.tsx)
+    // has-download: active or paused and not finished
+    in property <bool> has-download;
+    in property <bool> download-active;
+    // formatDownloadProgress of the live packet or the saved record
+    in property <string> download-progress-text;
+    in property <bool> show-progress-bar;
+    in property <float> progress-bar-value;
     // Download options (game-details.context repacks)
     in property <int> repacks-count;
     in property <string> repacks-updated;

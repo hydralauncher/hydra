@@ -365,6 +365,20 @@ export component Hero inherits Rectangle {
         drop-shadow-blur: 6px;
         drop-shadow-color: rgba(0, 0, 0, 0.1);
 
+        // .hero-panel__progress-bar: 3px along the bottom, dimmed while paused
+        if GameData.show-progress-bar: Rectangle {
+            y: parent.height - 3px;
+            height: 3px;
+            opacity: GameData.download-active ? 1 : Theme.disabled-opacity;
+            animate opacity { duration: 200ms; easing: ease; }
+            Rectangle {
+                x: 0;
+                width: parent.width * Math.clamp(GameData.progress-bar-value, 0, 1);
+                animate width { duration: 200ms; easing: ease; }
+                background: Theme.muted;
+            }
+        }
+
         HorizontalLayout {
             padding-left: 24px;
             padding-right: 24px;
@@ -395,7 +409,36 @@ export component Hero inherits Rectangle {
                     font-size: Theme.small-size;
                     font-weight: 700; // 600 in scss; Electron has no SemiBold face
                 }
-                if root.in-library && !root.running && root.last-played != "": Text {
+                // downloadInProgressInfo: "Download in progress" (link to Downloads) and the percentage
+                if root.in-library && GameData.has-download: HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    link := Text {
+                        text: GameData.download-active ? T.tr("game_details.download_in_progress") : T.tr("game_details.download_paused");
+                        color: Theme.body;
+                        // a div, not a <p>: the panel's 14px
+                        font-size: Theme.body-size;
+                        vertical-alignment: center;
+                        Rectangle {
+                            y: parent.height - 3px;
+                            height: 1px;
+                            background: Theme.body;
+                        }
+                        TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                Nav.navigate("/downloads");
+                            }
+                        }
+                    }
+                    Text {
+                        text: GameData.download-progress-text;
+                        color: Theme.body;
+                        font-size: 11.67px;
+                        vertical-alignment: center;
+                    }
+                }
+                if root.in-library && !root.running && !GameData.has-download && root.last-played != "": Text {
                     text: root.last-played;
                     color: Theme.muted;
                     font-size: Theme.small-size;
@@ -446,6 +489,8 @@ export component Hero inherits Rectangle {
                     kind: "outline";
                     border-color: Theme.muted;
                     icon: Icons.download;
+                    // disabled={isGameDownloading}
+                    enabled: !GameData.download-active;
                     text: T.tr("game_details.download");
                     clicked => {
                         root.download-options-clicked();
