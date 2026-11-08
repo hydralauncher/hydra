@@ -14,3 +14,5 @@ icu_plurals = "2"
 icu_decimal = "2"
 icu_locale_core = "2"
 fixed_decimal = "0.7"
+# Local calendar math for date-fns' formatDistance / format.
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }

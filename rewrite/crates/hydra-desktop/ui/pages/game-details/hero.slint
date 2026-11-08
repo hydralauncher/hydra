@@ -1,6 +1,7 @@
 // game-details-content.tsx (hero) + hero.scss + hero/hero-panel*.tsx + cloud-save-widget.tsx
 import { Theme, Icons, Tip, Ids } from "../../theme.slint";
 import { Icon, HydraButton, Frost, Skeleton, Spinner } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
 
 // @keyframes slide-in: translateY(40px + 16px), opacity 0 -> none, 0.3s cubic-bezier(0.33, 1, 0.68, 1)
 component SlideIn inherits Rectangle {
@@ -132,7 +133,7 @@ export component Hero inherits Rectangle {
                 source-width: root.width;
                 source-height: 350px;
                 source-vertical-alignment: root.hero-align;
-                tooltip: "Customize game assets";
+                tooltip: T.tr("game_details.edit_game_modal_button");
                 clicked => {
                     root.edit-clicked();
                 }
@@ -160,7 +161,7 @@ export component Hero inherits Rectangle {
                 source-height: 350px;
                 source-vertical-alignment: root.hero-align;
                 border-color: root.cloud-state == 0 ? Theme.success : Theme.border;
-                tooltip: "Cloud save";
+                tooltip: T.tr("game_details.cloud_save");
                 clicked => {
                     root.cloud-clicked();
                 }
@@ -184,7 +185,7 @@ export component Hero inherits Rectangle {
                         }
                     }
                     Text {
-                        text: root.cloud-state == 0 ? "Synchronized" : "Synchronizing";
+                        text: root.cloud-state == 0 ? T.tr("game_details.cloud_save_v2_synced") : T.tr("game_details.cloud_save_v2_syncing");
                         color: cloud-button.tone;
                         font-size: Theme.small-size;
                         vertical-alignment: center;
@@ -234,9 +235,9 @@ export component Hero inherits Rectangle {
                 spacing: 4px;
                 Text {
                     // TODO(repacks): "Updated at …" / "N download options" once download sources are ported.
-                    text: !root.in-library ? "No downloads available"
-                        : root.running ? "Playing now"
-                        : root.playtime == "" ? "You haven't played " + root.title + " yet"
+                    text: !root.in-library ? T.tr("game_details.no_downloads")
+                        : root.running ? T.tr("game_details.playing_now")
+                        : root.playtime == "" ? T.tr-with("game_details.not_played_yet", ["title", root.title])
                         : root.playtime;
                     color: Theme.muted;
                     font-size: Theme.small-size;
@@ -271,7 +272,7 @@ export component Hero inherits Rectangle {
                     kind: "outline";
                     border-color: Theme.muted;
                     icon: Icons.plus-circle;
-                    text: "Add to library";
+                    text: T.tr("game_details.add_to_library");
                     clicked => {
                         root.add-to-library-clicked();
                     }
@@ -279,7 +280,7 @@ export component Hero inherits Rectangle {
                 HydraButton {
                     kind: "outline";
                     border-color: Theme.muted;
-                    text: "Open download options";
+                    text: T.tr("game_details.open_download_options");
                     clicked => {
                         root.download-options-clicked();
                     }
@@ -293,7 +294,7 @@ export component Hero inherits Rectangle {
                     kind: "outline";
                     border-color: Theme.muted;
                     icon: Icons.download;
-                    text: "Download";
+                    text: T.tr("game_details.download");
                     clicked => {
                         root.download-options-clicked();
                     }
@@ -302,7 +303,7 @@ export component Hero inherits Rectangle {
                     kind: "outline";
                     border-color: Theme.muted;
                     icon: Icons.play;
-                    text: "Play";
+                    text: T.tr("game_details.play");
                     clicked => {
                         root.play-clicked();
                     }
@@ -311,7 +312,7 @@ export component Hero inherits Rectangle {
                     kind: "outline";
                     border-color: Theme.muted;
                     icon: Icons.x-circle;
-                    text: "Close";
+                    text: T.tr("game_details.close");
                     clicked => {
                         root.close-clicked();
                     }
@@ -325,7 +326,6 @@ export component Hero inherits Rectangle {
                     kind: "outline";
                     border-color: Theme.muted;
                     icon: root.favorite ? Icons.heart-fill : Icons.heart;
-                    tooltip: root.favorite ? "Remove from favorites" : "Add to favorites";
                     clicked => {
                         root.favorite = !root.favorite;
                     }
@@ -334,7 +334,6 @@ export component Hero inherits Rectangle {
                     kind: "outline";
                     border-color: Theme.muted;
                     icon: root.pinned ? Icons.pin-slash : Icons.pin;
-                    tooltip: root.pinned ? "Unpin" : "Pin";
                     clicked => {
                         root.pinned = !root.pinned;
                     }
@@ -343,7 +342,7 @@ export component Hero inherits Rectangle {
                     kind: "outline";
                     border-color: Theme.muted;
                     icon: Icons.gear;
-                    text: "Options";
+                    text: T.tr("game_details.options");
                     clicked => {
                         root.options-clicked();
                     }

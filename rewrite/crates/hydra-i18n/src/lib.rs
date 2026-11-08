@@ -16,6 +16,8 @@ use icu_decimal::DecimalFormatter;
 use icu_locale_core::Locale;
 use icu_plurals::{PluralCategory, PluralRules};
 
+pub mod date;
+
 macro_rules! locales {
     ($($code:literal),* $(,)?) => {
         &[$(($code, include_str!(concat!("../../../../src/locales/", $code, "/translation.json")))),*]

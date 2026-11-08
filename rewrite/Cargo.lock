@@ -2017,6 +2017,7 @@ dependencies = [
  "hydra-store",
  "i-slint-backend-testing",
  "image",
+ "reqwest",
  "serde_json",
  "slint",
  "slint-build",
@@ -2027,6 +2028,7 @@ dependencies = [
 name = "hydra-i18n"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "fixed_decimal",
  "icu_decimal",
  "icu_locale_core",

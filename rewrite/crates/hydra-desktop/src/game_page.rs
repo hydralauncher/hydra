@@ -25,6 +25,9 @@ struct App {
     loader: Loader,
     app_id: u64,
     locale: String,
+    /// The open game (`/game/:shop/:objectId`).
+    shop: String,
+    object_id: String,
     /// Bumped on every navigation, so late results from a previous game are dropped.
     generation: u64,
     media: Rc<VecModel<MediaItem>>,
@@ -80,6 +83,8 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
             loader: loader.clone(),
             app_id: 0,
             locale: "en".into(),
+            shop: String::new(),
+            object_id: String::new(),
             generation: 0,
             media,
             full_sources: Vec::new(),
@@ -119,6 +124,8 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
         app.pending.clear();
         app.wanted.clear();
         app.locale = locale.to_string();
+        app.shop = shop.to_string();
+        app.object_id = object_id.to_string();
         app.app_id = if shop == "steam" { object_id.parse().unwrap_or(0) } else { 0 };
     });
     let g = gd(&ui);
@@ -132,7 +139,60 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
     g.set_release_date(SharedString::default());
     g.set_publisher(SharedString::default());
     g.set_controller_support("none".into());
+    apply_library_state(&ui, shop, object_id);
     fetch_game();
+}
+
+/// The hero panel's library state (hero-panel-playtime.tsx, hero-panel-actions.tsx).
+pub fn apply_library_state(ui: &AppWindow, shop: &str, object_id: &str) {
+    let g = gd(ui);
+    let Some(group) = crate::shell::find_library_game(shop, object_id) else {
+        g.set_in_library(false);
+        g.set_has_executable(false);
+        g.set_favorite(false);
+        g.set_pinned(false);
+        g.set_playtime(SharedString::default());
+        g.set_last_played(SharedString::default());
+        return;
+    };
+    let game = &group.game;
+    let operational = &group.members[group.operational];
+    g.set_in_library(true);
+    g.set_has_executable(operational.executable_path().is_some());
+    g.set_favorite(game.flag("favorite"));
+    g.set_pinned(game.flag("isPinned"));
+    let Some(i18n) = crate::shell::i18n() else { return };
+    let milliseconds = game.displayed_play_time();
+    let last_played = game
+        .str("lastTimePlayed")
+        .and_then(hydra_core::library::parse_iso_millis);
+    if last_played.is_none() && milliseconds <= 0.0 {
+        g.set_playtime(SharedString::default());
+        g.set_last_played(SharedString::default());
+        return;
+    }
+    // MAX_MINUTES_TO_SHOW_IN_PLAYTIME = 120: minutes below two hours, hours after.
+    let minutes = milliseconds / 1000.0 / 60.0;
+    let amount = if minutes < 120.0 {
+        i18n.t_with("game_details.amount_minutes", &[("amount", format!("{minutes:.0}").into())])
+    } else {
+        let hours = (minutes / 60.0).round();
+        i18n.t_with("game_details.amount_hours", &[("amount", i18n.format_number(hours).into())])
+    };
+    g.set_playtime(i18n.t_with("game_details.play_time", &[("amount", amount.into())]).into());
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or_default();
+    g.set_last_played(
+        last_played
+            .map(|at| {
+                let period = hydra_i18n::date::format_distance(i18n.language(), at, now, true);
+                i18n.t_with("game_details.last_time_played", &[("period", period.into())])
+            })
+            .unwrap_or_default()
+            .into(),
+    );
 }
 
 /// App exit: stop the trailer threads while thread-locals are still alive.
@@ -169,14 +229,53 @@ pub fn fetch_game() {
         eprintln!("TODO(game-details): non-Steam game pages");
         return;
     }
+    let db = crate::shell::db();
     std::thread::spawn(move || {
         let client = hydra_store::http_client();
-        let details = steam::app_details(&client, app_id, &locale);
-        // Same source as get-game-assets.ts: the Hydra API, otherwise Steam's CDN.
-        let api = hydra_core::config::api_url();
-        let assets = Some(api)
-            .filter(|api| !api.is_empty())
-            .and_then(|api| steam::hydra_assets(&client, &api, "steam", &app_id.to_string()))
+        let steam_language = steam::steam_language(&locale);
+        let cache_key = hydra_db::keys::game_shop_cache_item("steam", &app_id.to_string(), steam_language);
+        let game_key = hydra_db::keys::game("steam", &app_id.to_string());
+
+        // get-game-shop-details.ts: cached details render at once; the request
+        // still runs and refreshes the cache for next time.
+        let cached: Option<serde_json::Value> =
+            db.as_ref().and_then(|db| db.get_in(hydra_db::keys::GAME_SHOP_CACHE, &cache_key));
+        let cached_assets: Option<serde_json::Value> =
+            db.as_ref().and_then(|db| db.get_in(hydra_db::keys::GAME_SHOP_ASSETS, &game_key));
+        let wrap = |data: &serde_json::Value| serde_json::json!({ app_id.to_string(): { "success": true, "data": data } });
+
+        let assets_from = |value: &serde_json::Value| {
+            let field = |key: &str| value.get(key).and_then(|v| v.as_str()).filter(|s| !s.is_empty()).map(str::to_string);
+            steam::Assets {
+                hero: field("libraryHeroImageUrl"),
+                logo: field("logoImageUrl"),
+                cover: field("coverImageUrl"),
+                library: field("libraryImageUrl"),
+                icon: field("iconUrl"),
+            }
+        };
+
+        let details = match cached.as_ref().and_then(|data| steam::parse_app_details(&wrap(data), app_id)) {
+            Some(details) => {
+                let (client, db, key) = (client.clone(), db.clone(), cache_key.clone());
+                std::thread::spawn(move || {
+                    let _ = fetch_and_cache(&client, app_id, steam_language, &key, db.as_deref());
+                });
+                Ok(Some(details))
+            }
+            None => fetch_and_cache(&client, app_id, steam_language, &cache_key, db.as_deref()),
+        };
+        // Same source as get-game-assets.ts: stored assets, else the Hydra API, else Steam's CDN.
+        let assets = cached_assets
+            .as_ref()
+            .map(assets_from)
+            .filter(|a| a.hero.is_some() || a.logo.is_some())
+            .or_else(|| {
+                let api = hydra_core::config::api_url();
+                Some(api)
+                    .filter(|api| !api.is_empty())
+                    .and_then(|api| steam::hydra_assets(&client, &api, "steam", &app_id.to_string()))
+            })
             .unwrap_or_else(|| steam::steam_cdn_assets(app_id));
         let _ = slint::invoke_from_event_loop(move || {
             if with_app(|app| app.generation) == Some(generation) {
@@ -654,4 +753,39 @@ fn update_media_window(carousel: i32, lightbox: i32) {
             });
         });
     }
+}
+
+/// The library was (re)loaded: refresh the open game's hero panel.
+pub fn on_library_changed() {
+    let Some((ui, shop, object_id)) =
+        with_app(|app| (app.ui.upgrade(), app.shop.clone(), app.object_id.clone()))
+    else {
+        return;
+    };
+    if let Some(ui) = ui
+        && !shop.is_empty()
+    {
+        apply_library_state(&ui, &shop, &object_id);
+    }
+}
+
+/// Steam `appdetails`, stored in `gameShopCache` like get-game-shop-details.ts.
+fn fetch_and_cache(
+    client: &reqwest::blocking::Client,
+    app_id: u64,
+    steam_language: &str,
+    cache_key: &str,
+    db: Option<&hydra_db::Db>,
+) -> Result<Option<steam::AppDetails>, String> {
+    let url = format!("https://store.steampowered.com/api/appdetails?appids={app_id}&l={steam_language}&cc=us");
+    let body: serde_json::Value = client
+        .get(&url)
+        .send()
+        .and_then(|r| r.error_for_status())
+        .and_then(|r| r.json())
+        .map_err(|e| format!("appdetails {app_id}: {e}"))?;
+    if let (Some(db), Some(data)) = (db, body.get(app_id.to_string()).and_then(|e| e.get("data"))) {
+        let _ = db.put_in(hydra_db::keys::GAME_SHOP_CACHE, cache_key, data);
+    }
+    Ok(steam::parse_app_details(&body, app_id))
 }

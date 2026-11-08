@@ -81,6 +81,33 @@ pub fn shutdown() {
     drop(shell);
 }
 
+/// `findLibraryGamePresentation`: the library row a game page belongs to.
+pub fn find_library_game(shop: &str, object_id: &str) -> Option<Presentation> {
+    with_shell(|s| {
+        let key = format!("{shop}:{object_id}");
+        if let Some(owned) = s.library.iter().find(|g| g.members.iter().any(|m| m.identity_key() == key)) {
+            return Some(owned.clone());
+        }
+        let matching: Vec<&Presentation> = s
+            .library
+            .iter()
+            .filter(|g| g.catalogue_shop == shop && g.catalogue_object_id == object_id)
+            .collect();
+        (matching.len() == 1).then(|| matching[0].clone())
+    })
+    .flatten()
+}
+
+/// The local database (the rewrite's copy of Electron's).
+pub fn db() -> Option<Arc<Db>> {
+    with_shell(|s| s.db.clone())
+}
+
+/// The UI language and its strings, for code that formats text in Rust.
+pub fn i18n() -> Option<Rc<I18n>> {
+    with_shell(|s| s.i18n.clone())
+}
+
 /// The language Steam store data is fetched in (steam.ts maps it further).
 pub fn shop_language() -> String {
     with_shell(|s| s.i18n.language().to_string()).unwrap_or_else(|| "en".into())
@@ -373,6 +400,7 @@ pub fn load_library() {
                 }
             });
             refresh_rows();
+            crate::game_page::on_library_changed();
         });
     });
 }
