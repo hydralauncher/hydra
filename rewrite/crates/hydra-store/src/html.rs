@@ -224,6 +224,125 @@ pub fn requirements_markdown(html: &str) -> String {
     out
 }
 
+/// Rich text from Hydra's TipTap editors (reviews, review replies) as markdown
+/// for `StyledText`: one line per paragraph (empty paragraphs collapse like an
+/// empty `<p>` does in Chromium), lists as bullets, headings and quotes as
+/// plain paragraphs, `<br>` as a line break.
+pub fn rich_text_markdown(html: &str) -> String {
+    let dom = match tl::parse(html, tl::ParserOptions::default()) {
+        Ok(dom) => dom,
+        Err(_) => return escape(html),
+    };
+    let parser = dom.parser();
+    let mut lines = Vec::new();
+    for handle in dom.children() {
+        rich_blocks(*handle, parser, "", &mut lines);
+    }
+    lines.join("\n\n")
+}
+
+fn rich_blocks(handle: NodeHandle, parser: &Parser, bullet: &str, out: &mut Vec<String>) {
+    let Some(node) = handle.get(parser) else {
+        return;
+    };
+    match node {
+        Node::Tag(tag) => {
+            let name = tag.name().as_utf8_str().to_ascii_lowercase();
+            match name.as_str() {
+                "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "pre" => {
+                    let md = inline_markdown(handle, parser);
+                    let md = guard_lines(md.trim_matches('\n'));
+                    if md.trim().is_empty() {
+                        return;
+                    }
+                    let md = if name.starts_with('h') {
+                        wrap_trimmed(&md, "**", "**")
+                    } else {
+                        md
+                    };
+                    out.push(format!("{bullet}{md}"));
+                }
+                "ul" | "ol" => {
+                    let children = tag.children();
+                    let items = children.top().iter().filter(|child| {
+                        matches!(child.get(parser), Some(Node::Tag(li)) if li.name().as_utf8_str().eq_ignore_ascii_case("li"))
+                    });
+                    let mut lines = Vec::new();
+                    for (index, child) in items.enumerate() {
+                        let marker = if name == "ol" {
+                            format!("{}. ", index + 1)
+                        } else {
+                            "- ".to_string()
+                        };
+                        // Only the item's first paragraph carries the marker.
+                        rich_blocks(*child, parser, &marker, &mut lines);
+                    }
+                    if !lines.is_empty() {
+                        out.push(lines.join("\n"));
+                    }
+                }
+                "li" => {
+                    let mut item = Vec::new();
+                    for child in tag.children().top().iter() {
+                        rich_blocks(*child, parser, "", &mut item);
+                    }
+                    if item.is_empty() {
+                        let md = guard_lines(inline_markdown(handle, parser).trim());
+                        if !md.is_empty() {
+                            item.push(md);
+                        }
+                    }
+                    if let Some(first) = item.first_mut() {
+                        first.insert_str(0, bullet);
+                    }
+                    out.extend(item);
+                }
+                "hr" => {}
+                "br" => {}
+                "strong" | "b" | "em" | "i" | "u" | "s" | "a" | "span" | "code" => {
+                    let md = guard_lines(inline_markdown(handle, parser).trim());
+                    if !md.is_empty() {
+                        out.push(md);
+                    }
+                }
+                _ => {
+                    for child in tag.children().top().iter() {
+                        rich_blocks(*child, parser, bullet, out);
+                    }
+                }
+            }
+        }
+        Node::Raw(text) => {
+            let text = decode_entities(&text.as_utf8_str());
+            if !text.trim().is_empty() {
+                out.push(guard_lines(&escape(text.trim())));
+            }
+        }
+        Node::Comment(_) => {}
+    }
+}
+
+/// Text that would start a list or an indented code block in markdown stays
+/// literal: leading spaces become no-break spaces, `-`/`+`/`1.` get escaped.
+fn guard_lines(md: &str) -> String {
+    md.split('\n')
+        .map(|line| {
+            let trimmed = line.trim_start_matches(' ');
+            let indent = "\u{a0}".repeat(line.len() - trimmed.len());
+            let digits = trimmed.chars().take_while(char::is_ascii_digit).count();
+            let guarded = if trimmed.starts_with("- ") || trimmed.starts_with("+ ") {
+                format!("\\{trimmed}")
+            } else if digits > 0 && trimmed[digits..].starts_with(". ") {
+                format!("{}\\{}", &trimmed[..digits], &trimmed[digits..])
+            } else {
+                trimmed.to_string()
+            };
+            format!("{indent}{guarded}")
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 /// Same split Hydra does in `game-language-section.tsx`.
 pub fn languages(html: &str) -> Vec<(String, bool)> {
     let first = html.split("<br>").next().unwrap_or_default();
@@ -241,6 +360,26 @@ pub fn languages(html: &str) -> Vec<(String, bool)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn converts_rich_text() {
+        assert_eq!(
+            rich_text_markdown(
+                "<p>Hello <strong>world</strong> &amp; <em>you</em></p><p></p><p><u>x</u> 2*3</p>"
+            ),
+            "Hello **world** & *you*\n\n<u>x</u> 2\\*3"
+        );
+        assert_eq!(
+            rich_text_markdown(
+                "<ul><li><p>One</p></li><li><p>Two</p></li></ul><ol><li><p>A</p></li></ol>"
+            ),
+            "- One\n- Two\n\n1. A"
+        );
+        assert_eq!(rich_text_markdown("<p>- not a list</p>"), "\\- not a list");
+        assert_eq!(rich_text_markdown("<p>1. no</p>"), "1\\. no");
+        assert_eq!(rich_text_markdown("<p>a<br>b</p>"), "a\nb");
+        assert_eq!(rich_text_markdown("plain text"), "plain text");
+    }
 
     #[test]
     fn converts_steam_description() {

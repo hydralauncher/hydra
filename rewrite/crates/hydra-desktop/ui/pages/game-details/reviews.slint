@@ -1,7 +1,12 @@
-// game-reviews.tsx, review-form.tsx, review-sort-options.tsx, review-item.tsx
+// game-reviews.tsx, review-form.tsx, review-gate-notice.tsx,
+// review-sort-options.tsx, review-thread.tsx, review-item.tsx,
+// review-reply-item.tsx, review-reply-composer.tsx and the rich text editor
+// (components/rich-text-editor). game_reviews.rs fills `Reviews` and
+// handles the actions.
 import { Theme, Icons, Tip, Ids } from "../../theme.slint";
 import { Icon, HydraButton } from "../../components/widgets.slint";
-import { Review } from "../../types.slint";
+import { T } from "../../globals.slint";
+import { Review, ReviewReply } from "../../types.slint";
 
 export struct FormatEdit {
     text: string,
@@ -23,9 +28,49 @@ export global ReviewEditor {
     pure callback plain-length(text: string) -> int;
     pure callback has-markup(text: string) -> bool;
     pure callback render(text: string) -> styled-text;
+    // UTF-8 length, for placing the cursor at the end.
+    pure callback byte-length(text: string) -> int;
 }
 
-// rich-text-editor.tsx toolbar button (active = mark open at the cursor).
+// The reviews section of the open game (game_reviews.rs).
+export global Reviews {
+    in property <[Review]> list;
+    in property <int> total;
+    in property <bool> loading;
+    in property <bool> has-more;
+    in-out property <string> sort: "newest";
+    // useUserReviewStatus: the form hides once reviewed, and keeps its space
+    // (invisible) while the check runs.
+    in property <bool> has-reviewed;
+    in property <bool> checking;
+    // isReviewLocked: signed out or under an hour played (the gate notice)
+    in property <bool> locked;
+    in property <bool> signed-in;
+    in property <bool> submitting;
+    // Bumped after a review was sent: the form clears.
+    in property <int> form-reset;
+    callback sort-changed(string);
+    callback load-more();
+    callback submit(string, int);
+    callback vote(string, bool);
+    callback delete(string);
+    callback toggle-original(string);
+    callback toggle-blocked(string);
+    callback open-profile(string);
+    // The thread
+    callback reply-to(string);
+    callback reply-cancel(string);
+    callback reply-submit(string, string);
+    callback replies-expand(string);
+    callback replies-load-more(string);
+    callback replies-hide(string);
+    callback replies-toggle(string);
+    callback reply-vote(string, string, bool);
+    callback reply-delete(string, string);
+    callback reply-toggle-original(string, string);
+}
+
+// rich-text-editor__button (active = mark open at the cursor).
 component ToolbarButton inherits Rectangle {
     in property <string> label;
     in property <int> weight: 400;
@@ -38,16 +83,17 @@ component ToolbarButton inherits Rectangle {
     init => {
         self.tip-id = Ids.take();
     }
-    width: 28px;
-    height: 24px;
+    // padding 4px 8px around the 12px glyph (16px line), 1px border
+    width: glyph.preferred-width + 18px;
+    height: 26px;
     border-radius: 4px;
     border-width: 1px;
     border-color: root.active ? Theme.brand-blue : touch.has-hover ? rgba(255, 255, 255, 0.2) : rgba(255, 255, 255, 0.15);
     background: root.active ? Theme.brand-blue : touch.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
     animate background, border-color { duration: 200ms; easing: ease; }
-    Text {
+    glyph := Text {
         text: root.label;
-        color: #ffffff;
+        color: Theme.muted;
         font-size: 12px;
         font-weight: root.weight;
         font-italic: root.italic;
@@ -56,7 +102,7 @@ component ToolbarButton inherits Rectangle {
         y: parent.height / 2 + 6px;
         width: 7px;
         height: 1px;
-        background: #ffffff;
+        background: Theme.muted;
     }
     touch := TouchArea {
         mouse-cursor: pointer;
@@ -69,6 +115,178 @@ component ToolbarButton inherits Rectangle {
             } else {
                 Tip.hide(root.tip-id);
             }
+        }
+    }
+}
+
+// RichTextEditorField: toolbar + counter over the text input. TipTap's
+// RichTextLimit refuses input past the limit; so does this.
+export component RichEditor inherits Rectangle {
+    in property <string> placeholder;
+    in property <int> max-chars: 1000;
+    in property <length> input-min-height: 120px;
+    in property <bool> editable: true;
+    out property <string> text: editor.text;
+    out property <bool> editor-focused: editor.has-focus;
+    out property <int> chars: ReviewEditor.plain-length(editor.text);
+    property <Marks> marks: ReviewEditor.marks-at(editor.text, editor.cursor-position-byte-offset);
+    property <bool> show-preview: ReviewEditor.has-markup(editor.text);
+    property <string> last-text;
+    property <int> last-cursor;
+
+    public function reset() {
+        editor.text = "";
+        root.last-text = "";
+    }
+
+    // useRichTextEditor({ initialHtml, autofocus: "end" })
+    public function begin(text: string) {
+        editor.text = text;
+        root.last-text = text;
+        editor.focus();
+        editor.set-selection-offsets(ReviewEditor.byte-length(text), ReviewEditor.byte-length(text));
+    }
+
+    public function focus-input() {
+        editor.focus();
+    }
+
+    function apply(mark: string) {
+        if (!root.editable) {
+            return;
+        }
+        let edit = ReviewEditor.toggle(editor.text, editor.anchor-position-byte-offset, editor.cursor-position-byte-offset, mark);
+        editor.text = edit.text;
+        root.last-text = editor.text;
+        editor.set-selection-offsets(edit.anchor, edit.cursor);
+        editor.focus();
+    }
+
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.border;
+    background: Theme.dark-background;
+    clip: true;
+    min-height: column.preferred-height;
+
+    column := VerticalLayout {
+        // rich-text-editor__header: padding 8px 12px, border-bottom
+        Rectangle {
+            background: Theme.background;
+            HorizontalLayout {
+                padding-top: 9px;
+                padding-bottom: 9px;
+                padding-left: 13px;
+                padding-right: 13px;
+                HorizontalLayout {
+                    spacing: 4px;
+                    alignment: start;
+                    ToolbarButton {
+                        label: "B";
+                        weight: 700;
+                        tooltip: T.tr("game_details.editor_bold");
+                        active: root.marks.bold;
+                        clicked => {
+                            root.apply("bold");
+                        }
+                    }
+                    ToolbarButton {
+                        label: "I";
+                        italic: true;
+                        tooltip: T.tr("game_details.editor_italic");
+                        active: root.marks.italic;
+                        clicked => {
+                            root.apply("italic");
+                        }
+                    }
+                    ToolbarButton {
+                        label: "U";
+                        underline: true;
+                        tooltip: T.tr("game_details.editor_underline");
+                        active: root.marks.underline;
+                        clicked => {
+                            root.apply("underline");
+                        }
+                    }
+                }
+                Text {
+                    text: root.chars + "/" + root.max-chars;
+                    color: root.chars > root.max-chars ? Theme.error : Theme.subtle;
+                    font-size: Theme.small-size;
+                    vertical-alignment: center;
+                    horizontal-alignment: right;
+                }
+            }
+            Rectangle {
+                y: parent.height - 1px;
+                height: 1px;
+                background: Theme.border;
+            }
+        }
+        Rectangle {
+            min-height: root.input-min-height;
+            editor-touch := TouchArea {
+                mouse-cursor: MouseCursor.text;
+                clicked => {
+                    editor.focus();
+                }
+            }
+            VerticalLayout {
+                padding: 12px;
+                editor := TextInput {
+                    single-line: false;
+                    wrap: word-wrap;
+                    read-only: !root.editable;
+                    color: Theme.muted;
+                    font-size: Theme.body-size;
+                    min-height: root.input-min-height - 24px;
+                    selection-background-color: rgba(62, 98, 192, 0.6);
+                    edited => {
+                        if (ReviewEditor.plain-length(self.text) > root.max-chars && ReviewEditor.plain-length(self.text) > ReviewEditor.plain-length(root.last-text)) {
+                            self.text = root.last-text;
+                            self.set-selection-offsets(root.last-cursor, root.last-cursor);
+                            return;
+                        }
+                        root.last-text = self.text;
+                        root.last-cursor = self.cursor-position-byte-offset;
+                    }
+                    key-pressed(event) => {
+                        if (event.modifiers.meta || event.modifiers.control) {
+                            if (event.text == "b" || event.text == "B") {
+                                root.apply("bold");
+                                return accept;
+                            }
+                            if (event.text == "i" || event.text == "I") {
+                                root.apply("italic");
+                                return accept;
+                            }
+                            if (event.text == "u" || event.text == "U") {
+                                root.apply("underline");
+                                return accept;
+                            }
+                        }
+                        root.last-cursor = self.cursor-position-byte-offset;
+                        reject
+                    }
+                }
+                // Slint can't style runs inside a TextInput, so the formatted
+                // result is shown right under what you type.
+                if root.show-preview: VerticalLayout {
+                    padding-top: 10px;
+                    spacing: 6px;
+                    Rectangle {
+                        height: 1px;
+                        background: rgba(255, 255, 255, 0.08);
+                    }
+                    StyledText {
+                        text: ReviewEditor.render(editor.text);
+                        default-color: Theme.muted;
+                        default-font-size: Theme.body-size;
+                    }
+                }
+            }
+            // data-placeholder has no ::before rule in Hydra's CSS, so the
+            // empty editor shows no placeholder.
         }
     }
 }
@@ -94,7 +312,8 @@ component StarButton inherits Rectangle {
     Icon {
         width: 18px;
         height: 18px;
-        source: root.filled ? Icons.star-lucide-fill : Icons.star-lucide;
+        // .game-details__star svg { fill: currentColor }: empty stars are filled #666 too.
+        source: Icons.star-lucide-fill;
         color: root.filled ? root.fill-color : touch.has-hover ? #ffffff : #666666;
         animate color { duration: 200ms; easing: ease; }
     }
@@ -106,7 +325,7 @@ component StarButton inherits Rectangle {
         }
         changed has-hover => {
             if (self.has-hover) {
-                Tip.show(root.tip-id, ["Very Negative", "Negative", "Neutral", "Positive", "Very Positive"][root.value - 1], root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+                Tip.show(root.tip-id, T.tr(["game_details.rating_very_negative", "game_details.rating_negative", "game_details.rating_neutral", "game_details.rating_positive", "game_details.rating_very_positive"][root.value - 1]), root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
             } else {
                 Tip.hide(root.tip-id);
             }
@@ -116,15 +335,12 @@ component StarButton inherits Rectangle {
 
 export component ReviewForm inherits VerticalLayout {
     in property <bool> submitting;
-    out property <string> text: editor.text;
-    out property <bool> editor-focused: editor.has-focus;
+    out property <string> text: rich.text;
+    out property <bool> editor-focused: rich.editor-focused;
     callback submit(string, int);
     property <int> score: 0;
     property <int> max-chars: 1000;
-    property <int> chars: ReviewEditor.plain-length(editor.text);
-    property <Marks> marks: ReviewEditor.marks-at(editor.text, editor.cursor-position-byte-offset);
-    property <bool> show-preview: ReviewEditor.has-markup(editor.text);
-    property <bool> can-submit: editor.text != "" && root.score > 0 && !root.submitting && root.chars <= root.max-chars;
+    property <bool> can-submit: rich.text != "" && root.score > 0 && !root.submitting && rich.chars <= root.max-chars;
     property <color> score-color: root.score <= 2 ? #e74c3c : root.score == 3 ? #f39c12 : #27ae60;
     property <int> submit-tip-id;
     init => {
@@ -132,145 +348,16 @@ export component ReviewForm inherits VerticalLayout {
     }
 
     public function reset() {
-        editor.text = "";
+        rich.reset();
         root.score = 0;
     }
 
-    function apply(mark: string) {
-        let edit = ReviewEditor.toggle(editor.text, editor.anchor-position-byte-offset, editor.cursor-position-byte-offset, mark);
-        editor.text = edit.text;
-        editor.set-selection-offsets(edit.anchor, edit.cursor);
-        editor.focus();
-    }
-
     spacing: 16px;
-    padding-bottom: 24px;
 
-    Rectangle {
-        border-radius: 8px;
-        border-width: 1px;
-        border-color: rgba(255, 255, 255, 0.1);
-        background: Theme.dark-background;
-        clip: true;
-
-        VerticalLayout {
-            Rectangle {
-                background: Theme.background;
-                HorizontalLayout {
-                    padding-top: 8px;
-                    padding-bottom: 8px;
-                    padding-left: 12px;
-                    padding-right: 12px;
-                    HorizontalLayout {
-                        spacing: 4px;
-                        alignment: start;
-                        ToolbarButton {
-                            label: "B";
-                            weight: 700;
-                            tooltip: "Bold (⌘B)";
-                            active: root.marks.bold;
-                            clicked => {
-                                root.apply("bold");
-                            }
-                        }
-                        ToolbarButton {
-                            label: "I";
-                            italic: true;
-                            tooltip: "Italic (⌘I)";
-                            active: root.marks.italic;
-                            clicked => {
-                                root.apply("italic");
-                            }
-                        }
-                        ToolbarButton {
-                            label: "U";
-                            underline: true;
-                            tooltip: "Underline (⌘U)";
-                            active: root.marks.underline;
-                            clicked => {
-                                root.apply("underline");
-                            }
-                        }
-                    }
-                    Text {
-                        text: root.chars + "/" + root.max-chars;
-                        color: root.chars > root.max-chars ? #ff6b6b : #888888;
-                        font-size: 12px;
-                        vertical-alignment: center;
-                        horizontal-alignment: right;
-                    }
-                }
-                Rectangle {
-                    y: parent.height - 1px;
-                    height: 1px;
-                    background: rgba(255, 255, 255, 0.1);
-                }
-            }
-            Rectangle {
-                min-height: 120px;
-                editor-touch := TouchArea {
-                    mouse-cursor: MouseCursor.text;
-                    clicked => {
-                        editor.focus();
-                    }
-                }
-                VerticalLayout {
-                    padding: 12px;
-                    editor := TextInput {
-                        single-line: false;
-                        wrap: word-wrap;
-                        color: #ffffff;
-                        font-size: 14px;
-                        min-height: 96px;
-                        selection-background-color: rgba(62, 98, 192, 0.6);
-                        key-pressed(event) => {
-                            if (event.modifiers.meta || event.modifiers.control) {
-                                if (event.text == "b" || event.text == "B") {
-                                    root.apply("bold");
-                                    return accept;
-                                }
-                                if (event.text == "i" || event.text == "I") {
-                                    root.apply("italic");
-                                    return accept;
-                                }
-                                if (event.text == "u" || event.text == "U") {
-                                    root.apply("underline");
-                                    return accept;
-                                }
-                            }
-                            reject
-                        }
-                    }
-                    // Slint can't style runs inside a TextInput, so the formatted
-                    // result is shown right under what you type.
-                    if root.show-preview: VerticalLayout {
-                        padding-top: 10px;
-                        spacing: 6px;
-                        Rectangle {
-                            height: 1px;
-                            background: rgba(255, 255, 255, 0.08);
-                        }
-                        Text {
-                            text: "Preview";
-                            color: rgba(255, 255, 255, 0.4);
-                            font-size: 11px;
-                        }
-                        StyledText {
-                            text: ReviewEditor.render(editor.text);
-                            default-color: #ffffff;
-                            default-font-size: 14px;
-                        }
-                    }
-                }
-                if editor.text == "": Text {
-                    x: 12px;
-                    y: 12px;
-                    text: "Share your thoughts about this game...";
-                    color: rgba(255, 255, 255, 0.35);
-                    font-size: 14px;
-                }
-            }
-        }
+    rich := RichEditor {
+        placeholder: T.tr("game_details.write_review_placeholder");
+        max-chars: root.max-chars;
+        editable: !root.submitting;
     }
 
     HorizontalLayout {
@@ -296,18 +383,18 @@ export component ReviewForm inherits VerticalLayout {
                 width: parent.width;
                 height: 40px;
                 kind: "primary";
-                text: root.submitting ? "Submitting..." : "Submit";
+                text: root.submitting ? T.tr("game_details.submitting") : T.tr("game_details.submit_review");
                 enabled: root.can-submit;
                 clicked => {
-                    root.submit(editor.text, root.score);
+                    root.submit(rich.text, root.score);
                 }
             }
             submit-button := HorizontalLayout {
                 visible: false;
-                padding-left: 16px;
-                padding-right: 16px;
+                padding-left: 17px;
+                padding-right: 17px;
                 Text {
-                    text: root.submitting ? "Submitting..." : "Submit";
+                    text: root.submitting ? T.tr("game_details.submitting") : T.tr("game_details.submit_review");
                     font-size: Theme.button-size;
                 }
             }
@@ -316,7 +403,7 @@ export component ReviewForm inherits VerticalLayout {
                 enabled: !root.can-submit && !root.submitting;
                 changed has-hover => {
                     if (self.has-hover) {
-                        Tip.show(root.submit-tip-id, "Write your review and pick a star rating to submit it", submit-wrap.absolute-position.x, submit-wrap.absolute-position.y, submit-wrap.width, submit-wrap.height, "top");
+                        Tip.show(root.submit-tip-id, T.tr("game_details.review_submit_requirements"), submit-wrap.absolute-position.x, submit-wrap.absolute-position.y, submit-wrap.width, submit-wrap.height, "top");
                     } else {
                         Tip.hide(root.submit-tip-id);
                     }
@@ -331,15 +418,59 @@ export component ReviewForm inherits VerticalLayout {
     }
 }
 
+// review-gate-notice.tsx
+component ReviewGateNotice inherits Rectangle {
+    in property <bool> signed-in;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.05);
+    HorizontalLayout {
+        padding-top: 13px;
+        padding-bottom: 13px;
+        padding-left: 17px;
+        padding-right: 17px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                source: Icons.lock;
+                width: 20px;
+                height: 20px;
+                color: Theme.muted;
+            }
+        }
+        VerticalLayout {
+            spacing: 2px;
+            alignment: center;
+            Text {
+                text: T.tr("game_details.review_locked_title");
+                font-size: Theme.small-size;
+                font-weight: 700; // 600 in scss; Electron has no SemiBold face
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+            Text {
+                text: root.signed-in ? T.tr-count("game_details.review_requires_playtime", 1, []) : T.tr("game_details.review_requires_sign_in");
+                font-size: Theme.small-size;
+                color: Theme.subtle;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
 component SortOption inherits Rectangle {
     in property <string> text;
     in property <image> icon;
     in property <bool> active;
+    // page-max-width(700px): icons only
+    in property <bool> icon-only;
     callback clicked();
     width: row.preferred-width;
-    height: 28px;
+    height: 27px;
     row := HorizontalLayout {
-        spacing: 4px;
+        spacing: root.icon-only ? 0 : 4px;
         if root.icon.width > 0: VerticalLayout {
             alignment: center;
             Icon {
@@ -350,10 +481,12 @@ component SortOption inherits Rectangle {
             }
         }
         label := Text {
+            visible: !root.icon-only;
+            width: root.icon-only ? 0 : self.preferred-width;
             text: root.text;
-            font-size: 14px;
+            font-size: Theme.body-size;
             font-weight: root.active ? 500 : 300;
-            color: root.active ? rgba(255, 255, 255, 0.9) : touch.has-hover ? rgba(255, 255, 255, 0.6) : rgba(255, 255, 255, 0.4);
+            color: root.active ? Theme.muted : touch.has-hover ? Theme.subtle : rgba(255, 255, 255, 0.4);
             animate color { duration: 200ms; easing: ease; }
             vertical-alignment: center;
         }
@@ -370,68 +503,78 @@ component SortOption inherits Rectangle {
 component VoteButton inherits Rectangle {
     in property <image> icon;
     in property <image> active-icon;
-    in property <int> count;
-    in property <int> prev-count;
+    in property <string> label;
+    in property <string> prev-label;
+    in property <bool> increasing;
     in property <int> gen;
     in property <int> pulse;
     in property <bool> active;
+    in property <bool> busy;
+    // review-reply-item: smaller (padding 4px 8px, 12px text, 14px icons),
+    // and inert when signed out.
+    in property <bool> compact;
+    in property <bool> enabled: true;
+    // The number rolls only on reviews.
+    in property <bool> roll: true;
     callback clicked();
 
     // gen flips parity on every count change; the animated phase runs 0->1 or 1->0
     // and `t` re-maps it so each change plays 0 -> 1.
     property <float> phase: Math.mod(root.gen, 2);
     animate phase { duration: 400ms; easing: linear; }
-    property <float> t: Math.mod(root.gen, 2) == 1 ? root.phase : 1 - root.phase;
-    property <bool> increasing: root.count > root.prev-count;
+    property <float> t: !root.roll ? 1 : Math.mod(root.gen, 2) == 1 ? root.phase : 1 - root.phase;
     property <float> exit-t: Math.min(1, root.t * 2);
     property <float> enter-t: Math.max(0, root.t * 2 - 1);
 
     property <float> pulse-phase: Math.mod(root.pulse, 2);
     animate pulse-phase { duration: 300ms; easing: linear; }
     property <float> pulse-t: Math.mod(root.pulse, 2) == 1 ? root.pulse-phase : 1 - root.pulse-phase;
+    property <bool> lit: touch.has-hover && !root.busy && root.enabled;
+    property <length> font: root.compact ? Theme.small-size : Theme.body-size;
 
     width: content.preferred-width;
     height: content.preferred-height;
     border-radius: 6px;
     border-width: 1px;
-    border-color: touch.has-hover ? rgba(255, 255, 255, 0.2) : rgba(255, 255, 255, 0.1);
-    background: touch.has-hover ? #2a2a2a : #1e1e1e;
-    animate background, border-color { duration: 200ms; easing: ease; }
+    border-color: root.lit ? rgba(255, 255, 255, 0.2) : rgba(255, 255, 255, 0.1);
+    background: root.lit ? #2a2a2a : #1e1e1e;
+    opacity: root.busy ? 0.5 : 1;
+    animate background, border-color, opacity { duration: 200ms; easing: ease; }
     transform-scale: 1 + 0.2 * Math.sin(root.pulse-t * 180deg);
 
     content := HorizontalLayout {
-        padding-top: 6px;
-        padding-bottom: 6px;
-        padding-left: 12px;
-        padding-right: 12px;
-        spacing: 6px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+        padding-left: root.compact ? 9px : 13px;
+        padding-right: root.compact ? 9px : 13px;
+        spacing: 4px;
         VerticalLayout {
             alignment: center;
             Icon {
                 source: root.active ? root.active-icon : root.icon;
-                width: 16px;
-                height: 16px;
-                color: touch.has-hover || root.active ? #ffffff : Theme.body;
+                width: root.compact ? 14px : 16px;
+                height: root.compact ? 14px : 16px;
+                color: root.lit ? Theme.muted : Theme.body;
             }
         }
         // span { overflow: hidden } clips the rolling digits
         Rectangle {
-            width: Math.max(old-label.preferred-width, new-label.preferred-width, 8px);
+            width: Math.max(old-label.preferred-width, new-label.preferred-width, 7px);
             height: new-label.preferred-height;
             clip: true;
             old-label := Text {
                 visible: root.t < 0.5;
-                text: root.prev-count;
-                color: touch.has-hover ? #ffffff : Theme.body;
-                font-size: 14px;
+                text: root.prev-label;
+                color: root.lit ? Theme.muted : Theme.body;
+                font-size: root.font;
                 font-weight: 500;
                 y: (root.increasing ? -10px : 10px) * (1 - (1 - root.exit-t) * (1 - root.exit-t));
                 opacity: 1 - root.exit-t;
             }
             new-label := Text {
-                text: root.count;
-                color: touch.has-hover ? #ffffff : Theme.body;
-                font-size: 14px;
+                text: root.label;
+                color: root.lit ? Theme.muted : Theme.body;
+                font-size: root.font;
                 font-weight: 500;
                 y: (root.increasing ? 10px : -10px) * (1 - root.enter-t) * (1 - root.enter-t);
                 opacity: root.t < 0.5 ? 0 : root.enter-t;
@@ -440,25 +583,32 @@ component VoteButton inherits Rectangle {
     }
 
     touch := TouchArea {
-        mouse-cursor: pointer;
+        mouse-cursor: !root.enabled ? MouseCursor.default : root.busy ? MouseCursor.not-allowed : MouseCursor.pointer;
         clicked => {
-            root.clicked();
+            if (root.enabled && !root.busy) {
+                root.clicked();
+            }
         }
     }
 }
 
+// .game-details__review-score-stars / __review-playtime
 component Pill inherits Rectangle {
     in property <image> icon;
     in property <string> text;
+    in property <color> text-color: Theme.body;
+    in property <color> icon-color: rgba(255, 255, 255, 0.7);
+    // Over a profile banner: darker chips, white text.
+    in property <bool> on-banner;
     height: 22px;
     width: row.preferred-width;
-    border-radius: 8px;
+    border-radius: 6px;
     border-width: 1px;
-    border-color: rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
+    border-color: root.on-banner ? rgba(255, 255, 255, 0.2) : rgba(255, 255, 255, 0.1);
+    background: root.on-banner ? rgba(0, 0, 0, 0.35) : rgba(255, 255, 255, 0.05);
     row := HorizontalLayout {
-        padding-left: 6px;
-        padding-right: 6px;
+        padding-left: 9px;
+        padding-right: 9px;
         spacing: 4px;
         VerticalLayout {
             alignment: center;
@@ -466,223 +616,686 @@ component Pill inherits Rectangle {
                 source: root.icon;
                 width: 12px;
                 height: 12px;
-                color: rgba(255, 255, 255, 0.7);
+                color: root.on-banner ? rgba(255, 255, 255, 0.9) : root.icon-color;
             }
         }
         Text {
             text: root.text;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 11px;
+            color: root.on-banner ? #ffffff : root.text-color;
+            font-size: Theme.tiny-size;
             font-weight: 500;
             vertical-alignment: center;
         }
     }
 }
 
+// profile-avatar: 4px radius, 1px border, PersonIcon fallback at 70%.
+component Avatar inherits Rectangle {
+    in property <image> source;
+    in property <length> size: 56px;
+    callback clicked();
+    width: root.size;
+    height: root.size;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: Theme.border;
+    background: Theme.background;
+    clip: true;
+    if root.source.width == 0: Icon {
+        source: Icons.person;
+        width: root.size * 0.7;
+        height: root.size * 0.7;
+        color: Theme.muted;
+    }
+    if root.source.width > 0: Image {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        source: root.source;
+        image-fit: cover;
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// .game-details__review-display-name--clickable
+component DisplayName inherits Text {
+    in property <bool> on-banner;
+    callback clicked();
+    color: root.on-banner ? #ffffff : Theme.muted;
+    font-size: Theme.body-size;
+    font-weight: 700; // 600 in scss; Electron has no SemiBold face
+    overflow: elide;
+    Rectangle {
+        visible: name-touch.has-hover;
+        y: parent.height - 3px;
+        height: 1px;
+        width: Math.min(parent.preferred-width, parent.width);
+        x: 0;
+        background: parent.color;
+    }
+    name-touch := TouchArea {
+        width: Math.min(parent.preferred-width, parent.width);
+        x: 0;
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// The banner behind a review/reply header (aspect-ratio 388/56 between a
+// min and max height), with its 135deg darkening gradient.
+component ProfileBanner inherits Rectangle {
+    in property <image> source;
+    border-radius: 8px;
+    clip: true;
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.source;
+        image-fit: cover;
+    }
+    Rectangle {
+        background: @linear-gradient(135deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.18) 100%);
+    }
+}
+
+// .game-details__review-translation-toggle
+component TranslationToggle inherits HorizontalLayout {
+    in property <string> label;
+    callback clicked();
+    alignment: start;
+    row := HorizontalLayout {
+        spacing: 8px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                source: Icons.languages;
+                width: 13px;
+                height: 13px;
+                color: label.color;
+            }
+        }
+        label := Text {
+            text: root.label;
+            color: touch.has-hover ? Theme.muted : Theme.subtle;
+            animate color { duration: 200ms; easing: ease; }
+            font-size: Theme.body-size;
+            Rectangle {
+                visible: touch.has-hover;
+                y: parent.height - 3px;
+                height: 1px;
+                background: label.color;
+            }
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.clicked();
+            }
+        }
+    }
+}
+
+// .game-details__blocked-review-show-link / -hide-link
+component WarningLink inherits Text {
+    callback clicked();
+    color: touch.has-hover ? #ffeb3b : Theme.warning;
+    animate color { duration: 200ms; easing: ease; }
+    font-size: Theme.small-size;
+    Rectangle {
+        y: parent.height - 2px;
+        height: 1px;
+        background: parent.color;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// review-item.tsx
 component ReviewItem inherits VerticalLayout {
     in property <Review> review;
-    callback vote(int, bool);
-    callback delete(int);
-    callback toggle-original(int);
-    property <bool> show-original: root.review.show-original;
+    // The reply link sits in the actions row (review-thread.tsx replyAction).
+    property <bool> has-banner: root.review.banner.width > 0;
+    property <int> reply-tip-id;
+    init => {
+        self.reply-tip-id = Ids.take();
+    }
 
-    // header
-    HorizontalLayout {
-        spacing: 12px;
-        padding-bottom: 12px;
-        // Avatar: 4px radius square (profile-avatar), PersonIcon fallback.
-        VerticalLayout {
-            alignment: center;
-            Rectangle {
-                width: 56px;
-                height: 56px;
-                border-radius: 4px;
-                border-width: 1px;
-                border-color: Theme.border;
-                background: Theme.background;
-                Icon {
-                    source: Icons.person;
-                    width: 39px;
-                    height: 39px;
+    if root.review.blocked && !root.review.blocked-visible: HorizontalLayout {
+        spacing: 4px;
+        alignment: start;
+        Text {
+            text: T.tr("game_details.review_from_blocked_user");
+            color: Theme.subtle;
+            font-size: Theme.small-size;
+        }
+        WarningLink {
+            text: T.tr("game_details.show");
+            clicked => {
+                Reviews.toggle-blocked(root.review.id);
+            }
+        }
+    }
+
+    if !root.review.blocked || root.review.blocked-visible: VerticalLayout {
+        // .game-details__review-header (margin-bottom 12px)
+        header := Rectangle {
+            // aspect-ratio 388/56, min 76px, max 132px with a banner
+            height: root.has-banner ? Math.clamp(self.width * 56 / 388, 76px, 132px) : top-row.preferred-height;
+            if root.has-banner: ProfileBanner {
+                source: root.review.banner;
+            }
+            // justify-content: center: the row keeps its height in the banner.
+            top-row := HorizontalLayout {
+                x: root.has-banner ? 12px : 0;
+                width: parent.width - 2 * self.x;
+                height: self.preferred-height;
+                y: (parent.height - self.height) / 2;
+                spacing: 8px;
+                HorizontalLayout {
+                    spacing: 12px;
+                    horizontal-stretch: 1;
+                    VerticalLayout {
+                        alignment: center;
+                        Avatar {
+                            source: root.review.avatar;
+                            clicked => {
+                                Reviews.open-profile(root.review.user-id);
+                            }
+                        }
+                    }
+                    VerticalLayout {
+                        spacing: 4px;
+                        alignment: center;
+                        horizontal-stretch: 1;
+                        min-width: 0;
+                        DisplayName {
+                            text: root.review.name;
+                            on-banner: root.has-banner;
+                            clicked => {
+                                Reviews.open-profile(root.review.user-id);
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 4px;
+                            alignment: start;
+                            min-height: 22px;
+                            Pill {
+                                icon: Icons.star-lucide;
+                                text: root.review.score + "/5";
+                                on-banner: root.has-banner;
+                            }
+                            if root.review.playtime != "": Pill {
+                                icon: @image-url("../../icons/clock-12.svg");
+                                text: root.review.playtime;
+                                text-color: rgba(255, 255, 255, 0.7);
+                                icon-color: rgba(255, 255, 255, 0.6);
+                                on-banner: root.has-banner;
+                            }
+                            if root.review.recompilation != "": Text {
+                                text: root.review.recompilation;
+                                color: rgba(255, 255, 255, 0.7);
+                                font-size: Theme.tiny-size;
+                                font-weight: 500;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
                 }
-                TouchArea {
-                    mouse-cursor: pointer;
+                // .game-details__review-date: align-self flex-start, line-height 1
+                // The 12px line box; the glyphs overflow it evenly.
+                VerticalLayout {
+                    alignment: start;
+                    padding-right: root.has-banner ? 4px : 16px;
+                    Rectangle {
+                        height: 12px;
+                        width: date.preferred-width;
+                        date := Text {
+                            y: (12px - self.preferred-height) / 2;
+                            text: root.review.date;
+                            color: root.has-banner ? #ffffff : Theme.subtle;
+                            font-size: Theme.small-size;
+                        }
+                    }
                 }
             }
         }
+        Rectangle {
+            height: 12px;
+        }
+
+        StyledText {
+            text: root.review.content;
+            default-color: Theme.body;
+            default-font-size: Theme.body-size;
+            link-color: Theme.body;
+        }
+
+        if root.review.translated-from != "": VerticalLayout {
+            padding-top: 12px;
+            TranslationToggle {
+                label: root.review.show-original ? T.tr("game_details.hide_original") : root.review.translated-from;
+                clicked => {
+                    Reviews.toggle-original(root.review.id);
+                }
+            }
+        }
+        if root.review.translated-from != "" && root.review.show-original: VerticalLayout {
+            padding-top: 12px;
+            opacity: 0.6;
+            StyledText {
+                text: root.review.original;
+                default-color: Theme.body;
+                default-font-size: Theme.body-size;
+                link-color: Theme.body;
+            }
+        }
+
+        // .game-details__review-actions: margin-top 12, padding-top 8, border-top
         VerticalLayout {
-            spacing: 6px;
-            alignment: center;
-            horizontal-stretch: 1;
-            name := Text {
-                text: root.review.name;
-                color: rgba(255, 255, 255, 0.9);
-                font-size: 14px;
-                font-weight: 700; // 600 in scss; Electron has no SemiBold face
-                overflow: elide;
-                Rectangle {
-                    visible: name-touch.has-hover;
-                    y: parent.height - 2px;
-                    height: 1px;
-                    width: name.preferred-width;
-                    x: 0;
-                    background: rgba(255, 255, 255, 0.9);
-                }
-                name-touch := TouchArea {
-                    mouse-cursor: pointer;
-                }
+            padding-top: 12px;
+            Rectangle {
+                height: 1px;
+                background: rgba(255, 255, 255, 0.1);
             }
             HorizontalLayout {
-                spacing: 6px;
+                padding-top: 8px;
+                spacing: 12px;
+                HorizontalLayout {
+                    spacing: 12px;
+                    alignment: start;
+                    VoteButton {
+                        icon: Icons.thumbs-up;
+                        active-icon: Icons.thumbs-up-fill;
+                        label: root.review.up-label;
+                        prev-label: root.review.prev-up-label;
+                        increasing: root.review.upvotes > root.review.prev-upvotes;
+                        gen: root.review.up-gen;
+                        pulse: root.review.up-pulse;
+                        active: root.review.has-upvoted;
+                        busy: root.review.voting;
+                        clicked => {
+                            Reviews.vote(root.review.id, true);
+                        }
+                    }
+                    VoteButton {
+                        icon: Icons.thumbs-down;
+                        active-icon: Icons.thumbs-down-fill;
+                        label: root.review.down-label;
+                        prev-label: root.review.prev-down-label;
+                        increasing: root.review.downvotes > root.review.prev-downvotes;
+                        gen: root.review.down-gen;
+                        pulse: root.review.down-pulse;
+                        active: root.review.has-downvoted;
+                        busy: root.review.voting;
+                        clicked => {
+                            Reviews.vote(root.review.id, false);
+                        }
+                    }
+                    // .game-details__reply-action-link
+                    if root.review.show-inline-reply: reply := Rectangle {
+                        property <bool> lit: reply-touch.has-hover && root.review.can-reply;
+                        width: reply-row.preferred-width;
+                        border-radius: 6px;
+                        background: self.lit ? rgba(255, 255, 255, 0.12) : transparent;
+                        opacity: root.review.can-reply ? 1 : 0.45;
+                        animate background { duration: 200ms; easing: ease; }
+                        reply-row := HorizontalLayout {
+                            padding-left: 8px;
+                            padding-right: 8px;
+                            spacing: 4px;
+                            VerticalLayout {
+                                alignment: center;
+                                Icon {
+                                    source: Icons.reply;
+                                    width: 14px;
+                                    height: 14px;
+                                    color: reply-label.color;
+                                }
+                            }
+                            reply-label := Text {
+                                text: T.tr("game_details.reply");
+                                color: reply.lit ? Theme.muted : Theme.body;
+                                animate color { duration: 200ms; easing: ease; }
+                                font-size: Theme.small-size;
+                                font-weight: 500;
+                                vertical-alignment: center;
+                            }
+                        }
+                        reply-touch := TouchArea {
+                            mouse-cursor: root.review.can-reply ? MouseCursor.pointer : MouseCursor.not-allowed;
+                            clicked => {
+                                if (root.review.can-reply) {
+                                    Reviews.reply-to(root.review.id);
+                                }
+                            }
+                            changed has-hover => {
+                                if (self.has-hover && !root.review.can-reply) {
+                                    Tip.show(root.reply-tip-id, T.tr-count("game_details.reply_requires_playtime", 1, []), reply.absolute-position.x, reply.absolute-position.y, reply.width, reply.height, "top");
+                                } else {
+                                    Tip.hide(root.reply-tip-id);
+                                }
+                            }
+                        }
+                    }
+                }
+                if root.review.own: VerticalLayout {
+                    alignment: center;
+                    HydraButton {
+                        kind: "danger";
+                        small: true;
+                        icon: @image-url("../../icons/trash.svg");
+                        icon-size: 14px;
+                        text: T.tr("game_details.remove_review");
+                        clicked => {
+                            Reviews.delete(root.review.id);
+                        }
+                    }
+                }
+                if root.review.blocked && root.review.blocked-visible: VerticalLayout {
+                    alignment: center;
+                    WarningLink {
+                        text: T.tr("game_details.hide");
+                        clicked => {
+                            Reviews.toggle-blocked(root.review.id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// review-reply-item.tsx
+component ReplyItem inherits VerticalLayout {
+    in property <string> review-id;
+    in property <ReviewReply> reply;
+    in property <bool> signed-in;
+    property <bool> has-banner: root.reply.banner.width > 0;
+
+    // .game-details__reply-header (margin-bottom 8px)
+    Rectangle {
+        height: root.has-banner ? Math.clamp(self.width * 56 / 388, 64px, 110px) : reply-top.preferred-height;
+        if root.has-banner: ProfileBanner {
+            source: root.reply.banner;
+        }
+        reply-top := HorizontalLayout {
+            x: root.has-banner ? 12px : 0;
+            width: parent.width - 2 * self.x;
+            height: self.preferred-height;
+            y: (parent.height - self.height) / 2;
+            spacing: 12px;
+            VerticalLayout {
+                alignment: center;
+                Avatar {
+                    size: 44px;
+                    source: root.reply.avatar;
+                    clicked => {
+                        Reviews.open-profile(root.reply.user-id);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                horizontal-stretch: 1;
+                min-width: 0;
+                DisplayName {
+                    text: root.reply.name;
+                    on-banner: root.has-banner;
+                    clicked => {
+                        Reviews.open-profile(root.reply.user-id);
+                    }
+                }
+            }
+            VerticalLayout {
                 alignment: start;
-                Pill {
-                    icon: Icons.star-lucide-fill;
-                    text: root.review.score + "/5";
-                }
-                if root.review.playtime != "": Pill {
-                    icon: Icons.clock;
-                    text: root.review.playtime;
+                padding-right: root.has-banner ? 4px : 16px;
+                Text {
+                    text: root.reply.date;
+                    color: root.has-banner ? #ffffff : Theme.subtle;
+                    font-size: Theme.small-size;
                 }
             }
         }
-        VerticalLayout {
-            alignment: start;
-            padding-right: 14px;
-            Text {
-                text: root.review.date;
-                color: rgba(255, 255, 255, 0.6);
-                font-size: 12px;
-            }
-        }
+    }
+    Rectangle {
+        height: 8px;
     }
 
     StyledText {
-        text: root.review.content;
+        text: root.reply.content;
         default-color: Theme.body;
-        default-font-size: 14px;
+        default-font-size: Theme.body-size;
+        link-color: Theme.body;
     }
-
-    if root.review.translated: HorizontalLayout {
+    if root.reply.translated-from != "": VerticalLayout {
         padding-top: 12px;
-        alignment: start;
-        translate-row := HorizontalLayout {
-            spacing: 8px;
-            VerticalLayout {
-                alignment: center;
-                Icon {
-                    source: Icons.languages;
-                    width: 13px;
-                    height: 13px;
-                    color: translate-label.color;
-                }
-            }
-            translate-label := Text {
-                text: root.show-original ? "Hide original" : "Show original (translated from " + root.review.original-language + ")";
-                color: translate-touch.has-hover ? rgba(255, 255, 255, 0.9) : rgba(255, 255, 255, 0.6);
-                animate color { duration: 200ms; easing: ease; }
-                font-size: 14px;
-                Rectangle {
-                    visible: translate-touch.has-hover;
-                    y: parent.height - 2px;
-                    height: 1px;
-                    background: translate-label.color;
-                }
-            }
-            translate-touch := TouchArea {
-                mouse-cursor: pointer;
-                clicked => {
-                    root.toggle-original(root.review.id);
-                }
+        TranslationToggle {
+            label: root.reply.show-original ? T.tr("game_details.hide_original") : root.reply.translated-from;
+            clicked => {
+                Reviews.reply-toggle-original(root.review-id, root.reply.id);
             }
         }
     }
-    if root.review.translated && root.show-original: VerticalLayout {
-        padding-top: 12px;
+    if root.reply.translated-from != "" && root.reply.show-original: VerticalLayout {
+        padding-top: 8px;
         opacity: 0.6;
         StyledText {
-            text: root.review.original;
+            text: root.reply.original;
             default-color: Theme.body;
-            default-font-size: 14px;
+            default-font-size: Theme.body-size;
+            link-color: Theme.body;
         }
     }
 
-    // .game-details__review-actions
-    VerticalLayout {
-        padding-top: 12px;
-        Rectangle {
-            height: 1px;
-            background: rgba(255, 255, 255, 0.1);
-        }
+    // .game-details__reply-actions: margin-top 8, gap 8
+    HorizontalLayout {
+        padding-top: 8px;
+        spacing: 8px;
         HorizontalLayout {
-            padding-top: 8px;
             spacing: 12px;
-            HorizontalLayout {
-                spacing: 12px;
-                alignment: start;
-                VoteButton {
-                    icon: Icons.thumbs-up;
-                    active-icon: Icons.thumbs-up-fill;
-                    count: root.review.upvotes;
-                    prev-count: root.review.prev-upvotes;
-                    gen: root.review.up-gen;
-                    pulse: root.review.up-pulse;
-                    active: root.review.has-upvoted;
-                    clicked => {
-                        root.vote(root.review.id, true);
-                    }
+            alignment: start;
+            VoteButton {
+                compact: true;
+                roll: false;
+                icon: Icons.thumbs-up;
+                active-icon: Icons.thumbs-up-fill;
+                label: root.reply.upvotes;
+                active: root.reply.has-upvoted;
+                pulse: root.reply.up-pulse;
+                busy: root.reply.voting;
+                enabled: root.signed-in;
+                clicked => {
+                    Reviews.reply-vote(root.review-id, root.reply.id, true);
                 }
-                VoteButton {
-                    icon: Icons.thumbs-down;
-                    active-icon: Icons.thumbs-down-fill;
-                    count: root.review.downvotes;
-                    prev-count: root.review.prev-downvotes;
-                    gen: root.review.down-gen;
-                    pulse: root.review.down-pulse;
-                    active: root.review.has-downvoted;
-                    clicked => {
-                        root.vote(root.review.id, false);
-                    }
+            }
+            VoteButton {
+                compact: true;
+                roll: false;
+                icon: Icons.thumbs-down;
+                active-icon: Icons.thumbs-down-fill;
+                label: root.reply.downvotes;
+                active: root.reply.has-downvoted;
+                pulse: root.reply.down-pulse;
+                busy: root.reply.voting;
+                enabled: root.signed-in;
+                clicked => {
+                    Reviews.reply-vote(root.review-id, root.reply.id, false);
                 }
-                reply := Rectangle {
-                    width: reply-row.preferred-width;
-                    border-radius: 6px;
-                    background: reply-touch.has-hover ? rgba(255, 255, 255, 0.12) : transparent;
-                    animate background { duration: 200ms; easing: ease; }
-                    reply-row := HorizontalLayout {
-                        padding-left: 6px;
-                        padding-right: 6px;
-                        spacing: 5px;
-                        VerticalLayout {
-                            alignment: center;
-                            Icon {
-                                source: Icons.reply;
-                                width: 14px;
-                                height: 14px;
-                                color: reply-label.color;
-                            }
-                        }
-                        reply-label := Text {
-                            text: "Reply";
-                            color: reply-touch.has-hover ? #ffffff : rgba(255, 255, 255, 0.78);
-                            animate color { duration: 200ms; easing: ease; }
-                            font-size: 12px;
-                            font-weight: 500;
-                            vertical-alignment: center;
-                        }
-                    }
-                    reply-touch := TouchArea {
-                        mouse-cursor: pointer;
+            }
+        }
+        // .game-details__delete-reply-button: margin-left auto
+        if root.reply.own: VerticalLayout {
+            alignment: center;
+            delete := Rectangle {
+                width: 14px + 10px;
+                height: 14px + 10px;
+                border-radius: 6px;
+                border-width: 1px;
+                border-color: delete-touch.has-hover ? Theme.error : rgba(225, 29, 72, 0.3);
+                background: delete-touch.has-hover ? rgba(225, 29, 72, 0.2) : rgba(225, 29, 72, 0.1);
+                animate background, border-color { duration: 200ms; easing: ease; }
+                Icon {
+                    source: @image-url("../../icons/trash.svg");
+                    width: 14px;
+                    height: 14px;
+                    color: Theme.error;
+                }
+                delete-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        Reviews.reply-delete(root.review-id, root.reply.id);
                     }
                 }
             }
-            if root.review.own: HydraButton {
-                kind: "danger";
-                small: true;
-                icon: Icons.trash;
-                icon-size: 14px;
-                text: "Remove review";
+        }
+    }
+}
+
+// .game-details__reply-toggle
+component ThreadToggle inherits Text {
+    in property <bool> enabled: true;
+    callback clicked();
+    color: touch.has-hover && root.enabled ? Theme.muted : Theme.body;
+    animate color { duration: 200ms; easing: ease; }
+    font-size: Theme.small-size;
+    font-weight: 700; // 600 in scss; Electron has no SemiBold face
+    opacity: root.enabled ? 1 : 0.6;
+    Rectangle {
+        visible: touch.has-hover && root.enabled;
+        y: parent.height - 2px;
+        height: 1px;
+        background: parent.color;
+    }
+    touch := TouchArea {
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+}
+
+// review-reply-composer.tsx
+component ReplyComposer inherits VerticalLayout {
+    in property <string> review-id;
+    in property <string> prefill;
+    in property <bool> submitting;
+    spacing: 8px;
+    init => {
+        rich.begin(root.prefill);
+    }
+    rich := RichEditor {
+        placeholder: T.tr("game_details.write_reply_placeholder");
+        input-min-height: 72px;
+        editable: !root.submitting;
+    }
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: end;
+        HydraButton {
+            kind: "outline";
+            text: T.tr("game_details.cancel");
+            enabled: !root.submitting;
+            clicked => {
+                Reviews.reply-cancel(root.review-id);
+            }
+        }
+        HydraButton {
+            kind: "primary";
+            text: root.submitting ? T.tr("game_details.posting_reply") : T.tr("game_details.post_reply");
+            enabled: ReviewEditor.plain-length(rich.text) > 0 && !root.submitting && rich.chars <= 1000;
+            clicked => {
+                Reviews.reply-submit(root.review-id, rich.text);
+            }
+        }
+    }
+}
+
+// review-thread.tsx
+component ReviewThread inherits VerticalLayout {
+    in property <Review> review;
+    in property <bool> signed-in;
+    property <bool> collapsed: root.review.blocked && !root.review.blocked-visible;
+
+    ReviewItem {
+        review: root.review;
+    }
+
+    // .game-details__review-replies: margin 16px 0 0 20px, padding-left 16px
+    if !root.collapsed && (root.review.has-replies || root.review.composer-open): VerticalLayout {
+        padding-top: 16px;
+        padding-left: 20px;
+        replies := Rectangle {
+            height: replies-list.preferred-height;
+            // .game-details__reply-thread-line: a 2px line in a 10px hit area
+            if root.review.has-replies: line-touch := TouchArea {
+                x: -4px;
+                width: 10px;
+                height: parent.height;
+                enabled: !root.review.replies-loading;
+                mouse-cursor: self.enabled ? MouseCursor.pointer : MouseCursor.default;
                 clicked => {
-                    root.delete(root.review.id);
+                    Reviews.replies-toggle(root.review.id);
+                }
+                Rectangle {
+                    x: 4px;
+                    width: 2px;
+                    background: line-touch.has-hover && line-touch.enabled ? rgba(255, 255, 255, 0.32) : rgba(255, 255, 255, 0.12);
+                    animate background { duration: 200ms; easing: ease; }
+                }
+            }
+            replies-list := VerticalLayout {
+                padding-left: 16px;
+                spacing: 16px;
+                if root.review.has-replies: VerticalLayout {
+                    spacing: 28px;
+                    for reply in root.review.replies: ReplyItem {
+                        review-id: root.review.id;
+                        reply: reply;
+                        signed-in: root.signed-in;
+                    }
+                }
+                if root.review.can-view-all || root.review.can-load-more || root.review.show-hide: HorizontalLayout {
+                    spacing: 12px;
+                    alignment: start;
+                    if root.review.can-view-all: ThreadToggle {
+                        text: root.review.replies-loading ? T.tr("game_details.loading_replies") : T.tr-with("game_details.view_all_replies", ["count", root.review.reply-total]);
+                        enabled: !root.review.replies-loading;
+                        clicked => {
+                            Reviews.replies-expand(root.review.id);
+                        }
+                    }
+                    if root.review.can-load-more: ThreadToggle {
+                        text: root.review.replies-loading ? T.tr("game_details.loading_replies") : T.tr("game_details.load_more_replies");
+                        enabled: !root.review.replies-loading;
+                        clicked => {
+                            Reviews.replies-load-more(root.review.id);
+                        }
+                    }
+                    if root.review.show-hide: ThreadToggle {
+                        text: T.tr("game_details.hide_replies");
+                        clicked => {
+                            Reviews.replies-hide(root.review.id);
+                        }
+                    }
+                }
+                if root.review.composer-open && root.signed-in: ReplyComposer {
+                    review-id: root.review.id;
+                    prefill: root.review.composer-prefill;
+                    submitting: root.review.reply-submitting;
                 }
             }
         }
@@ -690,25 +1303,20 @@ component ReviewItem inherits VerticalLayout {
 }
 
 export component GameReviews inherits VerticalLayout {
-    in property <[Review]> reviews;
-    in property <int> total;
-    in property <bool> has-reviewed;
-    in property <bool> loading;
-    in property <bool> loading-more;
-    in property <bool> has-more;
-    in property <bool> submitting;
-    in-out property <string> sort: "newest";
-    callback sort-changed(string);
-    callback vote(int, bool);
-    callback delete(int);
-    callback toggle-original(int);
-    callback load-more();
-    callback submit(string, int);
+    // The page container's width (page-max-width queries).
+    in property <length> page-width: 1200px;
+    property <bool> narrow: root.page-width <= 700px;
+    property <bool> form-shown: !Reviews.has-reviewed;
 
     changed has-reviewed => {
         if (root.has-reviewed) {
             form.reset();
         }
+    }
+    property <bool> has-reviewed: Reviews.has-reviewed;
+    property <int> form-reset: Reviews.form-reset;
+    changed form-reset => {
+        form.reset();
     }
 
     // .game-details__reviews-section: border-top, 24px margin + padding
@@ -723,9 +1331,11 @@ export component GameReviews inherits VerticalLayout {
         height: 24px;
     }
 
-    if !root.has-reviewed: VerticalLayout {
+    // .game-details__leave-review (visibility: hidden while the check runs)
+    if root.form-shown: VerticalLayout {
+        visible: !Reviews.checking;
         Text {
-            text: "Leave a Review";
+            text: T.tr("game_details.leave_a_review");
             font-size: 20px;
             font-weight: 700; // 600 in scss; Electron has no SemiBold face
             color: Theme.muted;
@@ -733,16 +1343,23 @@ export component GameReviews inherits VerticalLayout {
         Rectangle {
             height: 16px;
         }
-    }
-    form := ReviewForm {
-        visible: !root.has-reviewed;
-        height: root.has-reviewed ? 0 : self.preferred-height;
-        submitting: root.submitting;
-        submit(text, score) => {
-            root.submit(text, score);
+        if Reviews.locked: VerticalLayout {
+            ReviewGateNotice {
+                signed-in: Reviews.signed-in;
+            }
         }
     }
-    if !root.has-reviewed: VerticalLayout {
+    form := ReviewForm {
+        visible: root.form-shown && !Reviews.locked && !Reviews.checking;
+        height: root.form-shown && !Reviews.locked ? self.preferred-height : 0;
+        submitting: Reviews.submitting;
+        submit(text, score) => {
+            Reviews.submit(text, score);
+        }
+    }
+    // .game-details__reviews-separator: margin 24px 0 (collapses with the form's)
+    if root.form-shown: VerticalLayout {
+        visible: !Reviews.checking;
         padding-top: 24px;
         padding-bottom: 24px;
         Rectangle {
@@ -756,7 +1373,7 @@ export component GameReviews inherits VerticalLayout {
         padding-bottom: 8px;
         alignment: start;
         Text {
-            text: "Reviews";
+            text: T.tr("game_details.reviews");
             font-size: 20px;
             font-weight: 700; // 600 in scss; Electron has no SemiBold face
             color: Theme.muted;
@@ -770,9 +1387,9 @@ export component GameReviews inherits VerticalLayout {
                 border-radius: 6px;
                 background: rgba(255, 255, 255, 0.1);
                 badge := Text {
-                    text: root.total;
+                    text: Reviews.total;
                     color: rgba(255, 255, 255, 0.7);
-                    font-size: 12px;
+                    font-size: Theme.small-size;
                     font-weight: 700; // 600 in scss; Electron has no SemiBold face
                 }
             }
@@ -781,64 +1398,66 @@ export component GameReviews inherits VerticalLayout {
 
     // review-sort-options.tsx: date and score toggle direction; "most voted" is one-way.
     HorizontalLayout {
-        spacing: 8px;
+        spacing: root.page-width <= 900px ? 6px : 8px;
         alignment: start;
         padding-bottom: 24px;
         SortOption {
-            icon: root.sort == "newest" ? Icons.chevron-down : Icons.chevron-up;
-            text: root.sort == "oldest" ? "Oldest" : "Newest";
-            active: root.sort == "newest" || root.sort == "oldest";
+            icon-only: root.narrow;
+            icon: Reviews.sort == "newest" ? Icons.chevron-down : Icons.chevron-up;
+            text: Reviews.sort == "oldest" ? T.tr("game_details.sort_oldest") : T.tr("game_details.sort_newest");
+            active: Reviews.sort == "newest" || Reviews.sort == "oldest";
             clicked => {
-                root.sort-changed(root.sort == "newest" ? "oldest" : "newest");
+                Reviews.sort-changed(Reviews.sort == "newest" ? "oldest" : "newest");
             }
         }
-        Text {
+        if !root.narrow: Text {
             text: "|";
             color: rgba(255, 255, 255, 0.3);
             vertical-alignment: center;
         }
         SortOption {
-            icon: root.sort == "score_high" ? Icons.chevron-down : Icons.chevron-up;
-            text: root.sort == "score_low" ? "Lowest Score" : "Highest Score";
-            active: root.sort == "score_high" || root.sort == "score_low";
+            icon-only: root.narrow;
+            icon: Reviews.sort == "score_high" ? Icons.chevron-down : Icons.chevron-up;
+            text: Reviews.sort == "score_low" ? T.tr("game_details.sort_lowest_score") : T.tr("game_details.sort_highest_score");
+            active: Reviews.sort == "score_high" || Reviews.sort == "score_low";
             clicked => {
-                root.sort-changed(root.sort == "score_high" ? "score_low" : "score_high");
+                Reviews.sort-changed(Reviews.sort == "score_high" ? "score_low" : "score_high");
             }
         }
-        Text {
+        if !root.narrow: Text {
             text: "|";
             color: rgba(255, 255, 255, 0.3);
             vertical-alignment: center;
         }
         SortOption {
+            icon-only: root.narrow;
             icon: Icons.thumbs-up;
-            text: "Most Voted";
-            active: root.sort == "most_voted";
+            text: T.tr("game_details.sort_most_voted");
+            active: Reviews.sort == "most_voted";
             clicked => {
-                if (root.sort != "most_voted") {
-                    root.sort-changed("most_voted");
+                if (Reviews.sort != "most_voted") {
+                    Reviews.sort-changed("most_voted");
                 }
             }
         }
     }
 
     // .game-details__reviews-loading / __reviews-empty
-    if root.loading && root.reviews.length == 0: Text {
-        text: "Loading reviews...";
-        color: rgba(255, 255, 255, 0.6);
+    if Reviews.loading && Reviews.list.length == 0: Text {
+        text: T.tr("game_details.loading_reviews");
+        color: Theme.subtle;
         horizontal-alignment: center;
-        height: 16px + 20px + 16px;
+        height: 16px + 19px + 16px;
         vertical-alignment: center;
     }
-    if !root.loading && root.reviews.length == 0: VerticalLayout {
+    if !Reviews.loading && Reviews.list.length == 0: VerticalLayout {
         padding-top: 32px;
-        padding-bottom: 32px;
+        padding-bottom: 32px + 16px;
         padding-left: 16px;
         padding-right: 16px;
-        spacing: 8px;
         HorizontalLayout {
             alignment: center;
-            padding-bottom: 8px;
+            padding-bottom: 16px;
             Icon {
                 source: Icons.note;
                 width: 48px;
@@ -847,14 +1466,17 @@ export component GameReviews inherits VerticalLayout {
             }
         }
         Text {
-            text: "No reviews yet";
-            color: rgba(255, 255, 255, 0.9);
+            text: T.tr("game_details.no_reviews_yet");
+            color: Theme.muted;
             font-weight: 700; // 600 in scss; Electron has no SemiBold face
             horizontal-alignment: center;
         }
+        Rectangle {
+            height: 8px;
+        }
         Text {
-            text: "Be the first to share your thoughts about this game!";
-            color: rgba(255, 255, 255, 0.6);
+            text: T.tr("game_details.be_first_to_review");
+            color: Theme.subtle;
             font-size: Theme.small-size;
             horizontal-alignment: center;
             wrap: word-wrap;
@@ -864,37 +1486,29 @@ export component GameReviews inherits VerticalLayout {
     // opacity 0.5 while a re-sort is loading (transition 0.2s)
     VerticalLayout {
         spacing: 32px;
-        opacity: root.loading ? 0.5 : 1;
+        opacity: Reviews.loading && Reviews.list.length > 0 ? 0.5 : 1;
         animate opacity { duration: 200ms; easing: ease; }
-        for review in root.reviews: ReviewItem {
+        for review in Reviews.list: ReviewThread {
             review: review;
-            vote(id, up) => {
-                root.vote(id, up);
-            }
-            delete(id) => {
-                root.delete(id);
-            }
-            toggle-original(id) => {
-                root.toggle-original(id);
-            }
+            signed-in: Reviews.signed-in;
         }
     }
 
-    if root.has-more && !root.loading-more: VerticalLayout {
+    if Reviews.has-more && !Reviews.loading: VerticalLayout {
         padding-top: 16px;
         HydraButton {
             kind: "outline";
-            text: "Load more reviews";
+            text: T.tr("game_details.load_more_reviews");
             clicked => {
-                root.load-more();
+                Reviews.load-more();
             }
         }
     }
-    if root.loading-more: Text {
-        text: "Loading more reviews...";
-        color: rgba(255, 255, 255, 0.6);
+    if Reviews.loading && Reviews.list.length > 0: Text {
+        text: T.tr("game_details.loading_more_reviews");
+        color: Theme.subtle;
         horizontal-alignment: center;
-        height: 16px + 20px + 16px;
+        height: 16px + 19px + 16px;
         vertical-alignment: center;
     }
 }

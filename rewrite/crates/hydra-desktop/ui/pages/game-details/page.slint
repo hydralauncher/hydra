@@ -338,50 +338,29 @@ export component GameDetailsPage inherits Rectangle {
                                 }
                             }
 
-                            if GameData.loaded && GameData.similar.length > 0: HorizontalLayout {
+                            if GameData.loaded && GameData.similar-state != "hidden": HorizontalLayout {
                                 alignment: center;
                                 SimilarGames {
                                     width: root.column-width;
+                                    state: GameData.similar-state;
                                     games: GameData.similar;
+                                    game-clicked(i) => {
+                                        GameData.similar-clicked(i);
+                                    }
                                 }
                             }
 
-                            if GameData.loaded: HorizontalLayout {
+                            if GameData.loaded && GameData.show-reviews: HorizontalLayout {
                                 alignment: center;
                                 GameReviews {
                                     width: root.column-width;
+                                    page-width: root.vw;
                                     // Where the reviews start in the page, for the review prompt's "Yes".
                                     init => {
                                         root.reviews-top = self.absolute-position.y - column.absolute-position.y;
                                     }
                                     changed absolute-position => {
                                         root.reviews-top = self.absolute-position.y - column.absolute-position.y;
-                                    }
-                                    reviews: GameData.reviews;
-                                    total: GameData.reviews-total;
-                                    loading: GameData.reviews-loading;
-                                    loading-more: GameData.reviews-loading-more;
-                                    has-more: GameData.reviews-has-more;
-                                    has-reviewed: GameData.has-reviewed;
-                                    submitting: GameData.submitting-review;
-                                    sort-changed(mode) => {
-                                        self.sort = mode;
-                                        GameData.review-sort(mode);
-                                    }
-                                    vote(id, up) => {
-                                        GameData.review-vote(id, up);
-                                    }
-                                    delete(id) => {
-                                        GameData.review-delete(id);
-                                    }
-                                    toggle-original(id) => {
-                                        GameData.review-toggle-original(id);
-                                    }
-                                    load-more => {
-                                        GameData.review-load-more();
-                                    }
-                                    submit(text, score) => {
-                                        GameData.review-submit(text, score);
                                     }
                                 }
                             }
@@ -405,15 +384,15 @@ export component GameDetailsPage inherits Rectangle {
                                 downloads: GameData.downloads;
                                 players: GameData.players;
                                 rating: GameData.rating;
-                                column: root.vw >= 1024px;
                             }
-                            if GameData.loaded && GameData.hltb.length > 0: HowLongToBeatSection {
+                            if GameData.loaded && (GameData.hltb-loading || GameData.hltb.length > 0): HowLongToBeatSection {
+                                loading: GameData.hltb-loading && GameData.hltb.length == 0;
                                 categories: GameData.hltb;
                             }
                             if GameData.loaded && GameData.controller-support != "none": ControllerSection {
                                 support: GameData.controller-support;
                             }
-                            if GameData.loaded: RequirementsSection {
+                            if GameData.loaded && GameData.show-requirements: RequirementsSection {
                                 minimum: GameData.requirements-minimum;
                                 recommended: GameData.requirements-recommended;
                             }

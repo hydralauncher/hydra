@@ -26,6 +26,8 @@ mod game_menu;
 mod game_options;
 mod game_page;
 mod game_repacks;
+mod game_reviews;
+mod game_sidebar;
 mod games;
 mod gifs;
 mod headless;
@@ -246,6 +248,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         headless_mode,
     );
     game_page::init(&ui, &loader);
+    game_reviews::init(&ui);
+    game_sidebar::init(&ui);
     game_repacks::init(&ui);
     game_options::init(&ui);
     playtime_modals::init(&ui);

@@ -1,9 +1,68 @@
 // similar-games.tsx + similar-games.scss + vertical-cover-card.scss
 import { Theme, Icons } from "../../theme.slint";
-import { Icon, RoundButton } from "../../components/widgets.slint";
+import { Icon, RoundButton, Skeleton } from "../../components/widgets.slint";
 import { SimilarGame } from "../../types.slint";
+import { T } from "../../globals.slint";
+
+// vertical-cover-card.tsx: the cover, the classics layout (contained cover
+// over its blurred copy) or the placeholder with the image icon.
+component CoverMedia inherits Rectangle {
+    in property <SimilarGame> game;
+    clip: true;
+    if !root.game.classics && !root.game.missing: Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.game.cover;
+        image-fit: cover;
+    }
+    if root.game.classics && !root.game.missing: Rectangle {
+        background: Theme.dark-background;
+        // blur(16px) saturate(1.1), opacity .65, scale(1.25)
+        Image {
+            x: -parent.width * 0.125;
+            y: -parent.height * 0.125;
+            width: parent.width * 1.25;
+            height: parent.height * 1.25;
+            source: root.game.backdrop;
+            image-fit: cover;
+            opacity: 0.65;
+        }
+        // max 80% each way, object-fit: contain, 1px border, 4px radius
+        property <float> aspect: root.game.cover.width > 0 ? root.game.cover.width / root.game.cover.height : 0.7;
+        property <length> fit-w: Math.min(parent.width * 0.8, parent.height * 0.8 * self.aspect);
+        property <length> fit-h: self.fit-w / self.aspect;
+        Rectangle {
+            width: parent.fit-w;
+            height: parent.fit-h;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: rgba(255, 255, 255, 0.12);
+            drop-shadow-offset-y: 5px;
+            drop-shadow-blur: 5px;
+            drop-shadow-color: rgba(0, 0, 0, 0.09);
+            clip: true;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.game.cover;
+                image-fit: contain;
+            }
+        }
+    }
+    if root.game.missing: Rectangle {
+        background: @linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.08) 100%);
+        Icon {
+            source: Icons.image;
+            width: 48px;
+            height: 48px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+    }
+}
 
 export component SimilarGames inherits VerticalLayout {
+    // getSimilarGamesSectionState: "loading" | "ready" | "empty"
+    in property <string> state: "ready";
     in property <[SimilarGame]> games;
     callback game-clicked(int);
     spacing: 12px;
@@ -26,13 +85,40 @@ export component SimilarGames inherits VerticalLayout {
     property <bool> suppress-click;
 
     Text {
-        text: "More like this";
+        text: T.tr("game_details.similar_games");
         font-size: 20px;
         font-weight: 700; // 600 in scss; Electron has no SemiBold face
         color: Theme.body;
     }
 
-    carousel := Rectangle {
+    // SimilarGamesSkeleton: three 2:3 skeleton slides
+    if root.state == "loading": Rectangle {
+        height: root.card-height + 6px;
+        for i in 3: Skeleton {
+            x: i * root.slide-width;
+            y: 3px;
+            width: root.card-width;
+            height: root.card-height;
+        }
+    }
+
+    // .similar-games__empty: aspect-ratio 2/1, centered muted text
+    if root.state == "empty": Rectangle {
+        height: root.width / 2;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.03);
+        Text {
+            x: 16px;
+            width: parent.width - 32px;
+            text: T.tr("game_details.no_similar_games");
+            color: Theme.muted;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            wrap: word-wrap;
+        }
+    }
+
+    if root.state == "ready": carousel := Rectangle {
         height: root.card-height + 6px;
 
         // overflow: clip with overflow-clip-margin growing to 14px while a card is hovered,
@@ -104,15 +190,9 @@ export component SimilarGames inherits VerticalLayout {
                             opacity: card-touch.pressed ? Theme.active-opacity : 1;
                             animate transform-scale, opacity { duration: 200ms; easing: ease; }
 
-                            Rectangle {
+                            CoverMedia {
                                 border-radius: 4px;
-                                clip: true;
-                                Image {
-                                    width: parent.width;
-                                    height: parent.height;
-                                    source: game.cover;
-                                    image-fit: cover;
-                                }
+                                game: game;
                             }
 
                             card-touch := TouchArea {
