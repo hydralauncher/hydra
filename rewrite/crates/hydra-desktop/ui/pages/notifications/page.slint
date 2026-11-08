@@ -1,0 +1,477 @@
+// pages/notifications (notifications.scss, notification-item.scss): All /
+// Unread tabs, mark all as read, clear all, and the merged list of API and
+// local notifications. Rust fills `NotificationsData` (notifications_page.rs).
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, HydraButton, ScrollBar } from "../../components/widgets.slint";
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { T } from "../../globals.slint";
+
+export struct NotificationRow {
+    // "api:<id>" or "local:<id>"
+    key: string,
+    title: string,
+    description: string,
+    time: string,
+    unread: bool,
+    picture: image,
+    // the fallback glyph: download, package, sync, trophy, person, star,
+    // thumbsup, comment, gift, heart, ra
+    icon: string,
+    // star / review pictures are amber (#f5a623)
+    amber: bool,
+    // badge pictures are 32px, contained
+    badge: bool,
+    // leaderboard notifications: "#3"
+    chip: string,
+    friend-request: bool,
+    dismissable: bool,
+    // set while the row slides out (clear all, dismiss)
+    leaving: bool,
+}
+
+export global NotificationsData {
+    in property <string> filter: "all";
+    in property <[NotificationRow]> rows;
+    in property <int> unread;
+    in property <bool> first-load: true;
+    in property <bool> loading;
+    in property <bool> clearing;
+    in property <bool> has-more;
+    in property <bool> mark-all-disabled;
+    // filter switch: 0 shown, 1 sliding out (+10px), 2 placed at -10px before sliding in
+    in property <int> switch-phase;
+    callback set-filter(string);
+    callback open(string);
+    callback dismiss(string);
+    callback accept(string);
+    callback refuse(string);
+    callback mark-all-read();
+    callback clear-all();
+    callback load-more();
+}
+
+// notifications__tab: subtle, muted when active, 500 14px, padding 8px 16px
+component Tab inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    in property <int> count;
+    callback clicked();
+    width: row.preferred-width;
+    height: row.preferred-height;
+    row := HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        spacing: 4px;
+        Text {
+            text: root.label;
+            font-size: Theme.body-size;
+            font-weight: 500;
+            color: root.active ? Theme.muted : touch.has-hover ? Theme.body : Theme.subtle;
+            animate color { duration: 200ms; easing: ease; }
+            vertical-alignment: center;
+        }
+        if root.count > 0: Rectangle {
+            y: (parent.height - 20px) / 2;
+            height: 20px;
+            width: Math.max(20px, count-text.preferred-width + 8px);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            count-text := Text {
+                text: root.count;
+                font-size: Theme.tiny-size;
+                font-weight: 600;
+                color: Theme.muted;
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+component Item inherits Rectangle {
+    in property <NotificationRow> item;
+    // motion: from opacity 0 / x -20, out to opacity 0 / x +80
+    property <bool> entered;
+    Timer {
+        interval: 16ms;
+        running: !root.entered;
+        triggered => {
+            root.entered = true;
+        }
+    }
+    height: Math.max(48px, content.preferred-height) + 34px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.border;
+    background: touch.has-hover && !root.item.unread ? #141414 : Theme.dark-background;
+    // .notification-item opacity 0.4 (0.6 on hover), unread 1
+    property <float> base-opacity: root.item.unread ? 1 : touch.has-hover ? 0.6 : 0.4;
+    opacity: root.item.leaving || !root.entered ? 0 : root.base-opacity;
+    animate opacity { duration: root.item.leaving ? 250ms : 200ms; easing: ease; }
+    // the slide, applied through the children (x on the root would move the layout slot)
+    property <length> shift: root.item.leaving ? 80px : root.entered ? 0 : -20px;
+    animate shift { duration: root.item.leaving ? 250ms : 200ms; easing: ease; }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            NotificationsData.open(root.item.key);
+        }
+    }
+    // --unread: a 3px teal left border
+    if root.item.unread: Rectangle {
+        x: root.shift;
+        width: 3px;
+        border-top-left-radius: 8px;
+        border-bottom-left-radius: 8px;
+        background: #16b195;
+    }
+    HorizontalLayout {
+        x: root.shift;
+        padding: 16px;
+        padding-left: root.item.unread ? 18px : 16px;
+        spacing: 16px;
+        // __picture: 48px, radius 8, background
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 48px;
+                height: 48px;
+                border-radius: 8px;
+                background: Theme.background;
+                clip: true;
+                if root.item.picture.width > 0 && !root.item.badge: Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.item.picture;
+                    image-fit: root.item.icon == "ra" ? contain : cover;
+                }
+                if root.item.picture.width > 0 && root.item.badge: Image {
+                    width: 32px;
+                    height: 32px;
+                    source: root.item.picture;
+                    image-fit: contain;
+                }
+                if root.item.picture.width == 0 && root.item.icon == "ra": Image {
+                    width: 32px;
+                    height: 32px;
+                    source: @image-url("../../icons/retroachievements.png");
+                    image-fit: contain;
+                }
+                if root.item.picture.width == 0 && root.item.icon != "ra": Icon {
+                    width: 24px;
+                    height: 24px;
+                    color: root.item.amber ? #f5a623 : Theme.muted;
+                    source: root.item.icon == "download" ? @image-url("../../icons/download-24.svg")
+                        : root.item.icon == "package" ? @image-url("../../icons/package-24.svg")
+                        : root.item.icon == "sync" ? @image-url("../../icons/sync-24.svg")
+                        : root.item.icon == "trophy" ? @image-url("../../icons/trophy-24.svg")
+                        : root.item.icon == "star" ? @image-url("../../icons/star-fill-24.svg")
+                        : root.item.icon == "thumbsup" ? @image-url("../../icons/thumbsup-24.svg")
+                        : root.item.icon == "comment" ? @image-url("../../icons/comment-discussion-24.svg")
+                        : root.item.icon == "gift" ? @image-url("../../icons/gift-24.svg")
+                        : root.item.icon == "heart" ? @image-url("../../icons/heart-fill-24.svg")
+                        : @image-url("../../icons/person-24.svg");
+                }
+            }
+        }
+        // __content: gap 4
+        content := VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 4px;
+            alignment: center;
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                Text {
+                    text: root.item.title;
+                    font-size: Theme.body-size;
+                    font-weight: 600;
+                    color: Theme.muted;
+                    overflow: elide;
+                }
+                if root.item.chip != "": Rectangle {
+                    height: 18px;
+                    width: chip-text.preferred-width + 8px;
+                    border-radius: 4px;
+                    background: rgba(255, 255, 255, 0.1);
+                    chip-text := Text {
+                        text: root.item.chip;
+                        font-size: Theme.tiny-size;
+                        font-weight: 700;
+                        color: Theme.muted;
+                    }
+                }
+            }
+            if root.item.description != "": Text {
+                text: root.item.description;
+                font-size: Theme.small-size;
+                color: Theme.body;
+                overflow: elide;
+            }
+            HorizontalLayout {
+                spacing: 4px;
+                alignment: start;
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        width: 12px;
+                        height: 12px;
+                        source: @image-url("../../icons/clock-12.svg");
+                        color: Theme.subtle;
+                    }
+                }
+                Text {
+                    text: root.item.time;
+                    font-size: Theme.small-size;
+                    color: Theme.subtle;
+                }
+            }
+        }
+        if root.item.friend-request: HorizontalLayout {
+            spacing: 8px;
+            alignment: center;
+            HydraButton {
+                text: T.tr("notifications_page.accept");
+                clicked => {
+                    NotificationsData.accept(root.item.key);
+                }
+            }
+            HydraButton {
+                kind: "outline";
+                text: T.tr("notifications_page.refuse");
+                clicked => {
+                    NotificationsData.refuse(root.item.key);
+                }
+            }
+        }
+    }
+    // __dismiss: top/right 4px, padding 4, round, opacity .5 -> 1
+    if root.item.dismissable: Rectangle {
+        x: root.width - 4px - 24px + root.shift;
+        y: 4px;
+        width: 24px;
+        height: 24px;
+        border-radius: 12px;
+        background: dismiss.has-hover ? rgba(255, 255, 255, 0.1) : transparent;
+        opacity: dismiss.has-hover ? 1 : 0.5;
+        animate opacity, background { duration: 200ms; easing: ease; }
+        Icon {
+            width: 16px;
+            height: 16px;
+            source: Icons.x;
+            color: Theme.body;
+        }
+        dismiss := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                NotificationsData.dismiss(root.item.key);
+            }
+        }
+    }
+}
+
+export component NotificationsPage inherits Rectangle {
+    property <length> max-scroll: Math.max(0, page.viewport-height - page.height);
+    property <length> scroll-y;
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    // .container__content's 9px gutter
+    property <length> content-width: root.width - 9px;
+    // page-column: max-width 800 (border-box, so 752 inside the 24px gutter), centered
+    property <length> column-width: Math.min(752px, root.content-width - 48px);
+
+    page := Flickable {
+        x: 0;
+        width: root.content-width;
+        height: root.height;
+        interactive: false;
+        viewport-height: Math.max(column.preferred-height, root.height);
+        viewport-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+        TouchArea {
+            width: page.width;
+            height: page.viewport-height;
+            scroll-event(event) => {
+                root.wheel-by(event.delta-y);
+                accept
+            }
+            column := VerticalLayout {
+                x: (page.width - root.column-width) / 2;
+                width: root.column-width;
+                padding-top: 24px;
+                padding-bottom: 24px;
+                spacing: 16px;
+                // __header: tabs (with the bottom border) and the actions
+                HorizontalLayout {
+                    spacing: 16px;
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        height: 40px;
+                        Rectangle {
+                            y: parent.height - 1px;
+                            height: 1px;
+                            background: Theme.border;
+                        }
+                        tabs := HorizontalLayout {
+                            alignment: start;
+                            spacing: 8px;
+                            all-tab := Tab {
+                                y: (parent.height - self.height) / 2;
+                                label: T.tr("notifications_page.filter_all");
+                                active: NotificationsData.filter == "all";
+                                clicked => {
+                                    NotificationsData.set-filter("all");
+                                }
+                            }
+                            unread-tab := Tab {
+                                y: (parent.height - self.height) / 2;
+                                label: T.tr("notifications_page.filter_unread");
+                                active: NotificationsData.filter == "unread";
+                                count: NotificationsData.unread;
+                                clicked => {
+                                    NotificationsData.set-filter("unread");
+                                }
+                            }
+                        }
+                        // __tab-underline: a 2px bar that springs to the active tab
+                        Rectangle {
+                            y: parent.height - 2px;
+                            height: 2px;
+                            background: Theme.muted;
+                            x: NotificationsData.filter == "all" ? 0 : all-tab.width + 8px;
+                            width: NotificationsData.filter == "all" ? all-tab.width : unread-tab.width;
+                            animate x, width { duration: 300ms; easing: cubic-bezier(0.34, 1.2, 0.64, 1); }
+                        }
+                    }
+                    HydraButton {
+                        kind: "outline";
+                        text: T.tr("notifications_page.mark_all_as_read");
+                        enabled: !NotificationsData.mark-all-disabled;
+                        clicked => {
+                            NotificationsData.mark-all-read();
+                        }
+                    }
+                    HydraButton {
+                        kind: "danger";
+                        text: T.tr("notifications_page.clear_all");
+                        enabled: !NotificationsData.clearing && NotificationsData.rows.length > 0;
+                        clicked => {
+                            NotificationsData.clear-all();
+                        }
+                    }
+                }
+                // __content-wrapper, keyed by the filter (opacity/x motion, 200ms)
+                Rectangle {
+                    min-height: switched.preferred-height;
+                    opacity: NotificationsData.switch-phase == 0 ? 1 : 0;
+                    animate opacity { duration: NotificationsData.switch-phase == 2 ? 0 : 200ms; easing: ease; }
+                    switched := VerticalLayout {
+                        x: NotificationsData.switch-phase == 1 ? 10px : NotificationsData.switch-phase == 2 ? -10px : 0;
+                        animate x { duration: NotificationsData.switch-phase == 2 ? 0 : 200ms; easing: ease; }
+                        width: parent.width;
+                        height: parent.height;
+                if NotificationsData.first-load: Text {
+                    height: Math.max(200px, root.height - 200px);
+                    text: T.tr("notifications_page.loading");
+                    font-size: Theme.body-size;
+                    color: Theme.body;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+                if !NotificationsData.first-load && NotificationsData.rows.length == 0 && !NotificationsData.clearing: VerticalLayout {
+                    min-height: root.height - 200px;
+                    alignment: center;
+                    spacing: 8px;
+                    HorizontalLayout {
+                        alignment: center;
+                        padding-bottom: 16px;
+                        Rectangle {
+                            width: 60px;
+                            height: 60px;
+                            border-radius: 30px;
+                            background: rgba(255, 255, 255, 0.06);
+                            Icon {
+                                width: 24px;
+                                height: 24px;
+                                source: @image-url("../../icons/bell-24.svg");
+                                color: Theme.muted;
+                            }
+                        }
+                    }
+                    Text {
+                        text: T.tr("notifications_page.empty_title");
+                        font-size: 21px;
+                        font-weight: 700;
+                        color: Theme.body;
+                        horizontal-alignment: center;
+                    }
+                    Text {
+                        text: NotificationsData.filter == "unread" ? T.tr("notifications_page.empty_filter_description") : T.tr("notifications_page.empty_description");
+                        font-size: Theme.body-size;
+                        color: Theme.body;
+                        horizontal-alignment: center;
+                    }
+                }
+                // __list: gap 8, padding-bottom 24
+                if !NotificationsData.first-load && NotificationsData.rows.length > 0: VerticalLayout {
+                    spacing: 8px;
+                    padding-bottom: 24px;
+                    for row in NotificationsData.rows: Item {
+                        item: row;
+                    }
+                }
+                    }
+                }
+                if NotificationsData.has-more && !NotificationsData.clearing: HorizontalLayout {
+                    alignment: center;
+                    padding-top: 16px;
+                    padding-bottom: 24px;
+                    HydraButton {
+                        kind: "outline";
+                        text: NotificationsData.loading ? T.tr("notifications_page.loading") : T.tr("notifications_page.load_more");
+                        enabled: !NotificationsData.loading;
+                        clicked => {
+                            NotificationsData.load-more();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if root.max-scroll > 0: ScrollBar {
+        x: root.width - self.width;
+        height: root.height;
+        content-height: page.viewport-height;
+        viewport-height: page.height;
+        content-y <=> root.scroll-y;
+        shown-offset: -page.viewport-y;
+    }
+}

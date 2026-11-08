@@ -38,6 +38,14 @@ dirs = "6"
 if-addrs = "0.13"
 fs2 = "0.4"
 
+# OS notifications: Windows toasts (Electron sets the icon as appLogoOverride),
+# libnotify-style D-Bus notifications elsewhere.
+[target.'cfg(windows)'.dependencies]
+tauri-winrt-notification = "0.8"
+
+[target.'cfg(not(windows))'.dependencies]
+notify-rust = "4"
+
 [build-dependencies]
 slint-build = "1.18"
 

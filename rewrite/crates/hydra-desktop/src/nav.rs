@@ -212,6 +212,9 @@ fn apply(previous: Option<String>) {
     {
         catalogue_page::open();
     }
+    if location.route() == "notifications" {
+        crate::notifications_page::open_page();
+    }
     if location.route() == "settings" {
         crate::settings_page::open(location.param("tab"));
     }

@@ -121,6 +121,13 @@ fn next<C: ComponentHandle + 'static>(
                 }
             }
         }
+        // fire the download / extraction notifications for a game id (shop:objectId)
+        "notify-download" => {
+            crate::notify::download_complete(args.first().copied().unwrap_or_default())
+        }
+        "notify-extract" => {
+            crate::notify::extraction_complete(args.first().copied().unwrap_or_default())
+        }
         "quit" => {
             let _ = slint::quit_event_loop();
             return;

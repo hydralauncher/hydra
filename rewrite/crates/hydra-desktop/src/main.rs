@@ -30,6 +30,8 @@ mod headless;
 mod home_page;
 mod library_page;
 mod nav;
+mod notifications_page;
+mod notify;
 mod playtime_modals;
 mod popup;
 mod prefs;
@@ -224,6 +226,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     settings_account::init(&ui);
     settings_debrid::init(&ui);
     auth::init(&ui);
+    notifications_page::init(&ui);
+    notifications_page::refresh_count();
     download_settings::init(&ui);
     downloads_page::init(&ui, &loader);
     download_indicator::init(&ui, &loader);

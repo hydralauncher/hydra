@@ -74,12 +74,12 @@ fn on_event(event: Event) {
             crate::downloads_page::refresh();
             crate::game_page::on_downloads_updated();
         }
-        Event::ExtractionComplete { .. } => {
+        Event::ExtractionComplete { game_id } => {
             EXTRACTION.with(|e| *e.borrow_mut() = None);
             crate::downloads_page::refresh();
             crate::game_page::on_downloads_updated();
             crate::shell::load_library();
-            // TODO(notifications): publishExtractionCompleteNotification
+            crate::notify::extraction_complete(&game_id);
         }
         Event::ExtractionFailed { failure, .. } => {
             EXTRACTION.with(|e| *e.borrow_mut() = None);
@@ -107,9 +107,8 @@ fn on_event(event: Event) {
             crate::toast::error_with(&title, &description, 2500);
         }
         Event::Completed { title, game_id } => {
-            // TODO(notifications): publishDownloadCompleteNotification (OS notification when
-            // downloadNotificationsEnabled, and a local notification linking to the game).
             eprintln!("[Downloads] {game_id} complete: {title}");
+            crate::notify::download_complete(&game_id);
         }
     }
 }

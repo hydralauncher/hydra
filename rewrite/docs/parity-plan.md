@@ -119,7 +119,8 @@ the remote `external-resources/bundle.js` script.
 - [ ] **Profile** (`pages/profile`, `profile/*`, image crop)
 - [ ] **Friends window** (`pages/friends-window`, `friends/*`)
 - [ ] **Chat window** (`pages/chat-window`, `chat/*`, attachments)
-- [ ] **Notifications** (`pages/notifications`, `notifications/*`, unread badges)
+- [x] **Notifications page** (`pages/notifications`): API + local notifications merged like Electron (priority 1 first, then by date), feature-gated leaderboard/screenshot types, every type's title/description/icon (badges from GET /badges, leaderboard rank chip), All/Unread tabs with the spring underline and the unread badge, mark read on click + navigation targets, dismiss (slide-out 250ms), mark all as read, clear all (70ms stagger), load more, friend request accept/refuse, filter switch slide (AnimatePresence mode=wait), row enter animation. The unread count (GET /profile/notifications/count + local unread) is kept in `Session.unread-notifications` for the profile dropdown. Clear all was not run against prod (it deletes every notification on the account). Cloud gift notifications log a TODO until the cloud gift modal exists.
+- [x] **OS notifications** (`services/notifications`): download complete (when downloadNotificationsEnabled) and extraction complete toasts, Windows toasts under Electron's AppUserModelID with the icon as appLogoOverride, D-Bus notifications on Linux, icons fetched and transcoded to <=256px PNG, plus the matching local notifications. Download halted, update ready, friend request/started playing, chat and achievement notifications come with their features.
 - [ ] **Leaderboards** (`pages/leaderboards`)
 - [ ] **Steam integration:** sync, OAuth, shortcuts (`user/*steam*`, `services/steam-integration`)
 
