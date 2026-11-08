@@ -31,6 +31,7 @@ const icons = {
   "folder-open-14": [lucide.FolderOpen, { size: 14 }],
   camera: [lucide.Camera, { size: 16 }],
   "no-entry": [oct.NoEntryIcon, { size: 16 }],
+  unmute: [oct.UnmuteIcon, { size: 16 }],
   "sync-12": [oct.SyncIcon, { size: 12 }],
   "shield-check": [oct.ShieldCheckIcon, { size: 16 }],
   "gamepad-2": [lucide.Gamepad2, { size: 16 }],

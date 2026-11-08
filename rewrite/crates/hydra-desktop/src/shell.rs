@@ -373,6 +373,26 @@ fn wire_session(ui: &AppWindow) {
     session.on_open_friends(|| eprintln!("TODO(friends): friends window"));
 }
 
+/// The cached `userDetails` (localStorage), as patchUser keeps it.
+pub fn user_details() -> Option<Value> {
+    let db = with_shell(|s| s.db.clone())?;
+    local_storage(&db, "userDetails").and_then(|v| serde_json::from_str::<Value>(&v).ok())
+}
+
+/// useUserDetails().patchUser: merge into the cached userDetails.
+pub fn patch_user_details(patch: &serde_json::Map<String, Value>) {
+    let Some(db) = with_shell(|s| s.db.clone()) else {
+        return;
+    };
+    let mut user = user_details().unwrap_or_else(|| serde_json::json!({}));
+    if let Some(map) = user.as_object_mut() {
+        for (k, v) in patch {
+            map.insert(k.clone(), v.clone());
+        }
+    }
+    set_local_storage(&db, "userDetails", &user.to_string());
+}
+
 /// app.tsx setupExternalResources: cached `userDetails` first, then `getMe`.
 fn load_user() {
     let Some((db, api, ui)) = with_shell(|s| (s.db.clone(), s.api.clone(), s.ui.clone())) else {

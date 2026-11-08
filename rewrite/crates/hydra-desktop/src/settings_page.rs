@@ -12,6 +12,7 @@ use crate::{AppWindow, SelectOption, SettingsCategory, SettingsData, prefs, shel
 thread_local! {
     static UI: RefCell<slint::Weak<AppWindow>> = RefCell::new(slint::Weak::default());
     static TRACKERS_TIMER: RefCell<Option<slint::Timer>> = const { RefCell::new(None) };
+    static VOLUME_TIMER: RefCell<Option<slint::Timer>> = const { RefCell::new(None) };
 }
 
 /// Preferences whose checkbox defaults to on (buildForm's `?? true`).
@@ -21,6 +22,12 @@ fn pref_bool(p: &Map<String, Value>, key: &str) -> bool {
         "extractFilesByDefault"
             | "deleteArchiveFilesAfterExtractionByDefault"
             | "createStartMenuShortcut"
+            | "friendStartGameNotificationsEnabled"
+            | "chatMessageNotificationsEnabled"
+            | "leaderboardSlamEnabled"
+            | "leaderboardDropNotificationsEnabled"
+            | "achievementNotificationsEnabled"
+            | "achievementCustomNotificationsEnabled"
     );
     p.get(key).and_then(Value::as_bool).unwrap_or(default)
 }
@@ -147,6 +154,30 @@ pub fn init(ui: &AppWindow) {
     });
     data.on_change_downloads_path(change_downloads_path);
     data.on_max_speed_committed(commit_max_speed);
+    data.on_position_selected(|value| {
+        prefs::update(Map::from_iter([(
+            "achievementCustomNotificationPosition".to_string(),
+            json!(value.to_string()),
+        )]));
+        // TODO(notifications): updateAchievementCustomNotificationWindow
+        refresh();
+    });
+    data.on_test_notification(|| eprintln!("TODO(notifications): showAchievementTestNotification"));
+    data.on_volume_changed(|value| {
+        // 300ms debounce, stored as 0..1
+        let timer = slint::Timer::default();
+        timer.start(
+            slint::TimerMode::SingleShot,
+            std::time::Duration::from_millis(300),
+            move || {
+                prefs::update(Map::from_iter([(
+                    "achievementSoundVolume".to_string(),
+                    json!(value as f64 / 100.0),
+                )]));
+            },
+        );
+        VOLUME_TIMER.with(|t| *t.borrow_mut() = Some(timer));
+    });
     data.on_network_selected(|value| {
         prefs::update(Map::from_iter([(
             "torrentNetworkInterface".to_string(),
@@ -273,6 +304,100 @@ pub fn refresh() {
         data.set_native_decorations(prefs::flag(&p, "useNativeWindowDecorations"));
     });
     refresh_downloads(&p);
+    refresh_notifications(&p);
+}
+
+/// userDetails.allowLeaderboardNotifications ?? true
+fn leaderboard_notifications() -> bool {
+    shell::user_details()
+        .and_then(|u| {
+            u.get("allowLeaderboardNotifications")
+                .and_then(Value::as_bool)
+        })
+        .unwrap_or(true)
+}
+
+fn refresh_notifications(p: &Map<String, Value>) {
+    let position = p
+        .get("achievementCustomNotificationPosition")
+        .and_then(Value::as_str)
+        .unwrap_or("top-left")
+        .to_string();
+    let options: Vec<SelectOption> = [
+        "top-left",
+        "top-center",
+        "top-right",
+        "bottom-left",
+        "bottom-center",
+        "bottom-right",
+    ]
+    .iter()
+    .map(|p| SelectOption {
+        value: (*p).into(),
+        label: t(&format!("settings.{p}")).into(),
+    })
+    .collect();
+    let position_label = options
+        .iter()
+        .find(|o| o.value == position.as_str())
+        .map(|o| o.label.clone())
+        .unwrap_or_default();
+    let volume = (p
+        .get("achievementSoundVolume")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.15)
+        * 100.0)
+        .round() as i32;
+    with_ui(|ui| {
+        let data = ui.global::<SettingsData>();
+        data.set_notify_download(pref_bool(p, "downloadNotificationsEnabled"));
+        data.set_notify_repack(pref_bool(p, "repackUpdatesNotificationsEnabled"));
+        data.set_notify_friend_request(pref_bool(p, "friendRequestNotificationsEnabled"));
+        data.set_notify_friend_game(pref_bool(p, "friendStartGameNotificationsEnabled"));
+        data.set_notify_chat(pref_bool(p, "chatMessageNotificationsEnabled"));
+        data.set_show_leaderboard(
+            shell::signed_in() && crate::features::enabled("GLOBAL_LEADERBOARDS"),
+        );
+        data.set_leaderboard_notifications(leaderboard_notifications());
+        data.set_leaderboard_slam(pref_bool(p, "leaderboardSlamEnabled"));
+        data.set_leaderboard_drop(pref_bool(p, "leaderboardDropNotificationsEnabled"));
+        data.set_notify_achievements(pref_bool(p, "achievementNotificationsEnabled"));
+        data.set_notify_achievements_custom(pref_bool(p, "achievementCustomNotificationsEnabled"));
+        data.set_position_options(ModelRc::new(VecModel::from(options)));
+        data.set_position(position.into());
+        data.set_position_label(position_label);
+        data.set_volume(volume);
+    });
+}
+
+/// toggleLeaderboardNotifications: PATCH /profile, reverted on failure.
+fn toggle_leaderboard_notifications() {
+    let next = !leaderboard_notifications();
+    with_ui(|ui| {
+        ui.global::<SettingsData>()
+            .set_leaderboard_notifications(next)
+    });
+    let Some(api) = shell::api() else { return };
+    std::thread::spawn(move || {
+        let result = api.patch(
+            "/profile",
+            &json!({ "allowLeaderboardNotifications": next }),
+            hydra_core::api::Options::default(),
+        );
+        let _ = slint::invoke_from_event_loop(move || match result {
+            Ok(_) => shell::patch_user_details(&Map::from_iter([(
+                "allowLeaderboardNotifications".to_string(),
+                json!(next),
+            )])),
+            Err(error) => {
+                eprintln!("Failed to update leaderboard notifications: {error}");
+                with_ui(|ui| {
+                    ui.global::<SettingsData>()
+                        .set_leaderboard_notifications(!next)
+                });
+            }
+        });
+    });
 }
 
 fn refresh_downloads(p: &Map<String, Value>) {
@@ -475,7 +600,21 @@ fn save_trackers(manual: &str, url: &str, append_manual: bool, append_url: bool)
 }
 
 fn toggle(key: &str) {
+    if key == "allowLeaderboardNotifications" {
+        toggle_leaderboard_notifications();
+        return;
+    }
     let p = prefs::get();
+    if (key == "leaderboardSlamEnabled" || key == "leaderboardDropNotificationsEnabled")
+        && !leaderboard_notifications()
+    {
+        return;
+    }
+    if key == "achievementCustomNotificationsEnabled"
+        && !pref_bool(&p, "achievementNotificationsEnabled")
+    {
+        return;
+    }
     if key == "appendGlobalTrackers" || key == "appendGlobalTrackersUrl" {
         // handleToggleManual / handleToggleUrl save right away
         TRACKERS_TIMER.with(|t| *t.borrow_mut() = None);

@@ -69,6 +69,28 @@ export global SettingsData {
     in property <bool> append-trackers-url;
     in-out property <string> trackers-url;
     in property <string> trackers-error;
+    // ---- Notifications (preference flags by key, so Rust applies the defaults)
+    in property <bool> notify-download;
+    in property <bool> notify-repack;
+    in property <bool> notify-friend-request;
+    in property <bool> notify-friend-game;
+    in property <bool> notify-chat;
+    // userDetails && GLOBAL_LEADERBOARDS
+    in property <bool> show-leaderboard;
+    in property <bool> leaderboard-notifications;
+    in property <bool> leaderboard-slam;
+    in property <bool> leaderboard-drop;
+    in property <bool> notify-achievements;
+    in property <bool> notify-achievements-custom;
+    in property <[SelectOption]> position-options;
+    in property <string> position;
+    in property <string> position-label;
+    // 0..100
+    in-out property <int> volume;
+    callback position-selected(string);
+    callback test-notification();
+    callback volume-changed(int);
+
     // ---- Download sources
     in property <[SourceCard]> sources;
     in property <bool> sources-loaded;
@@ -484,6 +506,254 @@ component DownloadsPanel inherits VerticalLayout {
     }
 }
 
+// settings-general__hinted-label: the label over a 12px hint at 60% opacity
+component HintedCheck inherits Rectangle {
+    in property <string> key;
+    in property <string> label;
+    in property <string> hint;
+    in property <bool> checked;
+    in property <bool> enabled: true;
+    height: column.preferred-height;
+    check := CheckboxField {
+        y: 0;
+        height: 20px;
+        label: "";
+        checked: root.checked;
+        enabled: root.enabled;
+        toggled => {
+            SettingsData.toggle(root.key);
+        }
+    }
+    column := VerticalLayout {
+        x: 28px;
+        width: parent.width - 28px;
+        spacing: 2px;
+        opacity: root.enabled ? 1 : Theme.disabled-opacity;
+        // line boxes as Chromium lays them out: 21px + 2px gap + 19px
+        Text {
+            text: root.label;
+            font-size: Theme.body-size;
+            color: Theme.body;
+            min-height: 21px;
+            vertical-alignment: center;
+        }
+        Text {
+            text: root.hint;
+            font-size: Theme.small-size;
+            color: Theme.body;
+            opacity: 0.6;
+            min-height: 19px;
+            vertical-alignment: center;
+        }
+    }
+    TouchArea {
+        x: 28px;
+        width: parent.width - 28px;
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.not-allowed;
+        clicked => {
+            SettingsData.toggle(root.key);
+        }
+    }
+}
+
+// <input type="range"> styled by settings-general__volume-slider: a 6px
+// track filled up to the value, an 18px thumb that grows 1.1x on hover.
+component VolumeSlider inherits Rectangle {
+    in-out property <int> value;
+    callback changed-by-user(int);
+    height: 18px;
+    property <float> fraction: root.value / 100;
+    Rectangle {
+        y: (parent.height - 6px) / 2;
+        height: 6px;
+        border-radius: 3px;
+        background: @linear-gradient(90deg, Theme.muted 0%, Theme.muted root.fraction * 100%, Theme.dark-background root.fraction * 100%, Theme.dark-background 100%);
+    }
+    thumb := Rectangle {
+        x: (parent.width - 18px) * root.fraction;
+        width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        background: Theme.muted;
+        border-width: 2px;
+        border-color: Theme.background;
+        drop-shadow-offset-y: 2px;
+        drop-shadow-blur: touch.has-hover ? 6px : 4px;
+        drop-shadow-color: touch.has-hover ? rgba(255, 255, 255, 0.4) : rgba(0, 0, 0, 0.3);
+        transform-scale: touch.pressed ? 1.05 : touch.has-hover ? 1.1 : 1;
+        animate transform-scale, drop-shadow-blur, drop-shadow-color { duration: 200ms; easing: ease; }
+    }
+    function set-from(x: length) {
+        let next = Math.round(Math.clamp((x - 9px) / Math.max(1px, root.width - 18px), 0, 1) * 100);
+        if (next != root.value) {
+            root.value = next;
+            root.changed-by-user(next);
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down) {
+                root.set-from(self.mouse-x);
+            }
+        }
+        moved => {
+            if (self.pressed) {
+                root.set-from(self.mouse-x);
+            }
+        }
+    }
+}
+
+// settings-context-notifications.tsx
+component NotificationsPanel inherits VerticalLayout {
+    spacing: 16px;
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.library_notifications");
+        }
+        Check {
+            key: "downloadNotificationsEnabled";
+            label: T.tr("settings.enable_download_notifications");
+            checked: SettingsData.notify-download;
+        }
+        Check {
+            key: "repackUpdatesNotificationsEnabled";
+            label: T.tr("settings.enable_repack_list_notifications");
+            checked: SettingsData.notify-repack;
+        }
+        Check {
+            key: "friendRequestNotificationsEnabled";
+            label: T.tr("settings.enable_friend_request_notifications");
+            checked: SettingsData.notify-friend-request;
+        }
+        Check {
+            key: "friendStartGameNotificationsEnabled";
+            label: T.tr("settings.enable_friend_start_game_notifications");
+            checked: SettingsData.notify-friend-game;
+        }
+        Check {
+            key: "chatMessageNotificationsEnabled";
+            label: T.tr("settings.enable_chat_message_notifications");
+            checked: SettingsData.notify-chat;
+        }
+    }
+    if SettingsData.show-leaderboard: VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.leaderboard_notifications");
+        }
+        HintedCheck {
+            key: "allowLeaderboardNotifications";
+            label: T.tr("settings.enable_leaderboard_notifications");
+            hint: T.tr("settings.enable_leaderboard_notifications_hint");
+            checked: SettingsData.leaderboard-notifications;
+        }
+        HintedCheck {
+            key: "leaderboardSlamEnabled";
+            label: T.tr("settings.enable_leaderboard_slam");
+            hint: T.tr("settings.enable_leaderboard_slam_hint");
+            checked: SettingsData.leaderboard-notifications && SettingsData.leaderboard-slam;
+            enabled: SettingsData.leaderboard-notifications;
+        }
+        HintedCheck {
+            key: "leaderboardDropNotificationsEnabled";
+            label: T.tr("settings.enable_leaderboard_drop_notifications");
+            hint: T.tr("settings.enable_leaderboard_drop_notifications_hint");
+            checked: SettingsData.leaderboard-notifications && SettingsData.leaderboard-drop;
+            enabled: SettingsData.leaderboard-notifications;
+        }
+    }
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.achievement_notifications");
+        }
+        Check {
+            key: "achievementNotificationsEnabled";
+            label: T.tr("settings.enable_achievement_notifications");
+            checked: SettingsData.notify-achievements;
+        }
+        Check {
+            key: "achievementCustomNotificationsEnabled";
+            label: T.tr("settings.enable_achievement_custom_notifications");
+            checked: SettingsData.notify-achievements-custom;
+            enabled: SettingsData.notify-achievements;
+        }
+        if SettingsData.notify-achievements && SettingsData.notify-achievements-custom: Labeled {
+            label: T.tr("settings.achievement_custom_notification_position");
+            HorizontalLayout {
+                alignment: start;
+                SelectField {
+                    width: 138px;
+                    popup-id: "settings-position";
+                    options: SettingsData.position-options;
+                    value: SettingsData.position;
+                    current-label: SettingsData.position-label;
+                    selected(value) => {
+                        SettingsData.position-selected(value);
+                    }
+                }
+            }
+        }
+        if SettingsData.notify-achievements && SettingsData.notify-achievements-custom: HorizontalLayout {
+            alignment: start;
+            HydraButton {
+                text: T.tr("settings.test_notification");
+                clicked => {
+                    SettingsData.test-notification();
+                }
+            }
+        }
+        // settings-general__volume-control: gap 12; the slider row is 200px
+        if SettingsData.notify-achievements: VerticalLayout {
+            spacing: 12px;
+            Text {
+                text: T.tr("settings.achievement_sound_volume");
+                font-size: Theme.body-size;
+                color: Theme.muted;
+            }
+            HorizontalLayout {
+                alignment: start;
+                HorizontalLayout {
+                    width: 200px;
+                    spacing: 8px;
+                    VerticalLayout {
+                        alignment: center;
+                        Icon {
+                            width: 16px;
+                            height: 16px;
+                            source: @image-url("../../icons/unmute.svg");
+                            color: Theme.muted;
+                        }
+                    }
+                    VolumeSlider {
+                        horizontal-stretch: 1;
+                        value <=> SettingsData.volume;
+                        changed-by-user(value) => {
+                            SettingsData.volume-changed(value);
+                        }
+                    }
+                    Text {
+                        min-width: 40px;
+                        text: SettingsData.volume + "%";
+                        font-size: Theme.body-size;
+                        font-weight: 500;
+                        color: Theme.body;
+                        horizontal-alignment: right;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}
+
 // settings-download-sources.tsx
 component SourcesPanel inherits VerticalLayout {
     property <bool> busy: SettingsData.sources-syncing || SettingsData.sources-removing;
@@ -764,7 +1034,8 @@ export component SettingsPage inherits Rectangle {
                             if SettingsData.category == "general": GeneralPanel { }
                             if SettingsData.category == "downloads": DownloadsPanel { }
                             if SettingsData.category == "download_sources": SourcesPanel { }
-                            if SettingsData.category != "general" && SettingsData.category != "downloads" && SettingsData.category != "download_sources": Text {
+                            if SettingsData.category == "notifications": NotificationsPanel { }
+                            if SettingsData.category != "general" && SettingsData.category != "downloads" && SettingsData.category != "download_sources" && SettingsData.category != "notifications": Text {
                                 text: "TODO(settings): " + SettingsData.category + " not ported yet";
                                 color: Theme.subtle;
                                 font-size: Theme.small-size;
