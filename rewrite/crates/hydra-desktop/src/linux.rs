@@ -39,10 +39,55 @@ pub fn renderer() -> &'static str {
     }
 }
 
+/// The device check runs in a forked child: once libEGL has enumerated
+/// devices, Mesa (libgallium, with LLVM) stays mapped, about 50 MB resident
+/// that the CPU raster never uses. Call it before any thread starts (fork).
+/// A child that fails or takes over 2s counts as no hardware GL.
+fn has_hardware_gl() -> bool {
+    // SAFETY: fork with no other threads running (the top of main); the child
+    // only probes, writes one byte and _exits.
+    unsafe {
+        let mut fds = [0; 2];
+        if libc::pipe(fds.as_mut_ptr()) != 0 {
+            return probe_hardware_gl();
+        }
+        match libc::fork() {
+            -1 => {
+                libc::close(fds[0]);
+                libc::close(fds[1]);
+                probe_hardware_gl()
+            }
+            0 => {
+                libc::close(fds[0]);
+                let answer: u8 = if probe_hardware_gl() { b'1' } else { b'0' };
+                libc::write(fds[1], (&raw const answer).cast(), 1);
+                libc::_exit(0);
+            }
+            child => {
+                libc::close(fds[1]);
+                let mut poll = libc::pollfd {
+                    fd: fds[0],
+                    events: libc::POLLIN,
+                    revents: 0,
+                };
+                let mut answer = 0u8;
+                let ready = libc::poll(&mut poll, 1, 2000) == 1
+                    && libc::read(fds[0], (&raw mut answer).cast(), 1) == 1;
+                libc::close(fds[0]);
+                if !ready {
+                    libc::kill(child, libc::SIGKILL);
+                }
+                libc::waitpid(child, std::ptr::null_mut(), 0);
+                ready && answer == b'1'
+            }
+        }
+    }
+}
+
 /// Whether EGL lists a device that isn't Mesa's software one
 /// (EGL_EXT_device_enumeration, EGL_MESA_device_software). libEGL is loaded
 /// on demand; without it there's no hardware GL either.
-fn has_hardware_gl() -> bool {
+fn probe_hardware_gl() -> bool {
     use std::ffi::{CStr, c_char, c_int, c_void};
     type GetProcAddress = unsafe extern "C" fn(*const c_char) -> *mut c_void;
     type QueryDevices = unsafe extern "C" fn(c_int, *mut *mut c_void, *mut c_int) -> u32;

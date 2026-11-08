@@ -62,6 +62,14 @@ A clean debug build takes about 5 minutes.
   process watcher and Close without the UI. The first umu-run downloads the
   Steam Linux Runtime and UMU-Proton (several hundred MB) into
   `~/.local/share/umu`.
+- Benchmarks: `tools/bench-linux.sh electron|native` (the bench-windows
+  scenario; results in `performance.md`). The Electron reference builds in
+  WSL with Node 22.12+ and yarn 1.22 (`corepack enable`): `yarn install
+  --frozen-lockfile`, then `MAIN_VITE_USER_DATA_PATH=<data copy>
+  electron-vite build`.
+- If the WSL GPU path doesn't work (`glxinfo -B` says llvmpipe, `dmesg`
+  shows failing `dxg` ioctls, WSLg titles say COPY MODE), everything draws in
+  software, Chromium included.
 - WSL clears `/tmp` (a tmpfs) whenever the distro stops between commands.
 
 ## Packaging
@@ -93,9 +101,10 @@ the rewrite ships needs:
   at startup so games and Wine don't inherit it (Electron does the same).
 - Runtime libraries: GTK 3, WebKitGTK 4.1 (the auth window), libsoup 3,
   FFmpeg 8 (libavcodec, libavformat, libswscale, libswresample), dav1d,
-  ALSA (cpal; PipeWire/PulseAudio through the ALSA plugin), fontconfig, D-Bus.
-  Vulkan or OpenGL for Skia (EGL/GLX); it falls back to the software
-  renderer with `SLINT_BACKEND=winit-software`.
+  ALSA (cpal; PipeWire/PulseAudio through the ALSA plugin), fontconfig, D-Bus,
+  libEGL. Skia draws with OpenGL when EGL lists a hardware device and with
+  its CPU raster otherwise, like Chromium's compositor choice
+  (`SLINT_BACKEND` overrides, e.g. `winit-skia-opengl`).
 - Optional tools the app looks for on `PATH`: `gamemoderun`, `mangohud`,
   `winetricks`, `wine` (the fallback when umu-run fails), `python3` 3.10+
   (to run the umu-run zipapp), `xdg-open`, `xdg-settings`.
