@@ -1399,6 +1399,9 @@ pub fn dev(args: &[&str]) {
             );
         }
         "ra-window" => crate::retroachievements::open(),
+        // the real Connect flow: OAuth start + the OpenID window (no sign-in)
+        "steam-connect" => steam_connect(),
+        "steam-openid-close" => crate::steam_openid::close(),
         "emulation-demo" => {
             crate::settings_emulation::dev_demo();
             return;

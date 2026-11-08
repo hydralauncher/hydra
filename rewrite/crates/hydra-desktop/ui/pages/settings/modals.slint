@@ -90,11 +90,14 @@ component ReplacementContent inherits VerticalLayout {
 // settings-retroachievements__modal: note, checkbox, actions (gap 16)
 component RaDisconnectContent inherits VerticalLayout {
     spacing: 16px;
+    // __modal-note: line-height 1.5 (21px lines)
     Text {
         text: T.tr("settings.retroachievements_disconnect_description");
         font-size: Theme.body-size;
         color: Theme.body;
         wrap: word-wrap;
+        vertical-alignment: center;
+        height: Math.max(1, Math.round(self.preferred-height / (14px * 1.362))) * 21px;
     }
     CheckboxField {
         label: T.tr("settings.retroachievements_delete_on_disconnect");

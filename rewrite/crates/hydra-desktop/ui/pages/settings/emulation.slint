@@ -2,7 +2,7 @@
 // console-card.scss, settings-context-emulation.scss). Rust fills
 // `EmulationData` (settings_emulation.rs) and lays the cards out in rows
 // for the grid's auto-fill column count.
-import { Theme, Icons } from "../../theme.slint";
+import { Theme, Icons, Tip, Ids } from "../../theme.slint";
 import { Icon } from "../../components/widgets.slint";
 import { T } from "../../globals.slint";
 
@@ -165,12 +165,26 @@ component ConsoleCardView inherits Rectangle {
             HorizontalLayout {
                 spacing: 8px;
                 alignment: start;
-                Text {
+                emulator := Text {
                     text: root.card.emulator;
                     font-size: Theme.hint-size;
                     font-weight: 500;
                     color: Theme.body;
                     vertical-alignment: center;
+                    // RetroArch: the supported cores (data-tooltip-place="bottom", pre-line)
+                    property <int> tip-id;
+                    init => {
+                        self.tip-id = Ids.take();
+                    }
+                    if root.card.emulator-tip != "": TouchArea {
+                        changed has-hover => {
+                            if (self.has-hover) {
+                                Tip.show(emulator.tip-id, root.card.emulator-tip, emulator.absolute-position.x, emulator.absolute-position.y, emulator.width, emulator.height, "bottom");
+                            } else {
+                                Tip.hide(emulator.tip-id);
+                            }
+                        }
+                    }
                 }
                 if root.card.version != "": VerticalLayout {
                     alignment: center;

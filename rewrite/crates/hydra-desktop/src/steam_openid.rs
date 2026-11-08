@@ -72,6 +72,7 @@ fn intercept(url: &str) -> bool {
 }
 
 pub fn open(authorization_url: &str) {
+    eprintln!("Opening Steam OpenID authorization window");
     close();
     let Ok(window) = WebWindow::new() else {
         return;
@@ -127,6 +128,9 @@ fn attach_when_ready(window: WebWindow, url: String, attempt: u32) {
         })
         // BrowserWindow's default title follows the page
         .with_document_title_changed_handler(move |title: String| {
+            if std::env::var_os("HYDRA_DEBUG_WEBVIEW").is_some() {
+                eprintln!("steam openid page title: {title}");
+            }
             let weak = weak.clone();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(window) = weak.upgrade() {
@@ -138,6 +142,12 @@ fn attach_when_ready(window: WebWindow, url: String, attempt: u32) {
         .with_on_page_load_handler(|event, url| {
             if !matches!(event, wry::PageLoadEvent::Finished) {
                 return;
+            }
+            if std::env::var_os("HYDRA_DEBUG_WEBVIEW").is_some() {
+                let host = reqwest::Url::parse(&url)
+                    .ok()
+                    .and_then(|u| u.host_str().map(str::to_string));
+                eprintln!("steam openid page loaded: {host:?}");
             }
             let _ = slint::invoke_from_event_loop(move || read_body(url));
         })
