@@ -103,12 +103,27 @@ Steam HLS master ─► our playlist parser ─► video rendition input ─┐
 
 Slint's `Flickable` adds its own inertia on top of the momentum macOS
 already applies to trackpad deltas, which made scrolling fly. The page uses
-Chromium's rules instead: trackpad/Magic Mouse pixel deltas 1:1, mouse wheel
-lines at 40px (Slint uses 60px), no drag-to-pan, ↑/↓ 40px, Space/PageDown
-87.5% of the viewport, Home/End, with a 200ms ease. Line vs. pixel deltas are
-told apart through the winit event hook (`unstable-winit-030`). Horizontal
-strips follow the same 1:1 rule. Trackpad feel still needs a human check on
-real hardware.
+Chromium's rules instead: trackpad/Magic Mouse pixel deltas 1:1, no
+drag-to-pan, ↑/↓ 40px, Space/PageDown 87.5% of the viewport, Home/End, with a
+200ms ease. Line vs. pixel deltas are told apart through the winit event hook
+(`unstable-winit-030`). Horizontal strips follow the same 1:1 rule. Trackpad
+feel still needs a human check on real hardware.
+
+Mouse wheels are animated like Chromium (`components/smooth-scroll.slint`).
+Measured on Electron on Windows with real posted `WM_MOUSEWHEEL` notches: one
+notch moves 100px (3 system wheel lines x 100/3px) over about 200ms,
+ease-in-out. Notches that arrive during the animation move the target and
+keep the current speed (cc's `kInverseDelta` durations: 12 frames up to 120px,
+6 frames from 480px). The first Rust build moved 40px instantly per notch,
+which felt jumpy. Linux still uses 40px until it is measured.
+
+Frame pacing on a fast wheel spin (30 notches 30ms apart over the 943-game
+library, release builds, 60Hz): Electron p50 16.6ms, p95 28.2ms, max 29.5ms.
+Rust p50 17.3ms, p95 24.7ms, max 37.5ms. `HYDRA_DEV_FRAMES=1` logs the gap
+between redraws and the library offset. Library cards use recycled slots, so
+a row scrolling out re-binds only that row. The scrollbar's drag area covers
+the whole track: on the moving thumb, pointer positions lagged the thumb and
+the drag overshot about 3x.
 
 ## HTTP and TLS
 

@@ -8,6 +8,7 @@ import { LibraryGameCard } from "card.slint";
 import { LibraryGameCardLarge } from "card-large.slint";
 import { CategoryFilter, MenuTrigger, ToolbarIcons } from "toolbar.slint";
 import { DisplayMenu, FiltersMenu } from "menus.slint";
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
 
 export global EmptyIcons {
     out property <image> telescope: @image-url("../../icons/telescope-24.svg");
@@ -100,12 +101,16 @@ export component LibraryPage inherits Rectangle {
     property <int> row-count: Math.ceil(root.count / root.columns);
     property <length> total-height: root.row-count * root.row-step + 8px;
     property <length> max-scroll: Math.max(0, root.total-height - root.viewport);
+    // The scroll target; `offset` is what is shown, which trails the target
+    // while a wheel tween runs.
     property <length> content-y;
-    property <length> offset: -root.content-y;
+    property <ScrollTween> tween;
+    property <length> offset: root.tween.active ? -SmoothScroll.value(root.tween, animation-tick()) : -root.content-y;
     property <int> first-row: Math.max(0, Math.floor((root.offset - 4px) / root.row-step) - 3);
     property <int> rendered-rows: Math.max(0, Math.min(root.row-count - root.first-row, Math.ceil(root.viewport / root.row-step) + 7));
     property <int> first-card: root.first-row * root.columns;
     property <int> last-card: Math.min(root.count, (root.first-row + root.rendered-rows) * root.columns);
+    property <int> slots: Math.max(1, Math.min(root.count, (Math.ceil(root.viewport / root.row-step) + 7) * root.columns));
     property <int> card-px: Math.round(root.card-width / 1phx);
     property <int> card-px-h: Math.round(root.card-height / 1phx);
     property <int> reset: LibraryData.scroll-reset;
@@ -152,6 +157,26 @@ export component LibraryPage inherits Rectangle {
     changed count => {
         root.content-y = -Math.min(root.offset, root.max-scroll);
         root.report-range();
+    }
+    // Anything else that moves the scroller (scrollbar drag, a new list) ends the tween.
+    changed offset => {
+        if (LibraryData.trace) {
+            LibraryData.shown-offset = root.offset;
+        }
+    }
+    changed content-y => {
+        if (root.tween.active && root.content-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
     }
     changed reset => {
         root.content-y = 0;
@@ -317,7 +342,13 @@ export component LibraryPage inherits Rectangle {
                     root.header-hidden = false;
                     return accept;
                 }
-                root.content-y = -Math.clamp(root.offset - event.delta-y * root.wheel-scale, 0, root.max-scroll);
+                if (SmoothScroll.lines) {
+                    root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.content-y, event.delta-y * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+                    root.content-y = root.tween.to;
+                } else {
+                    root.tween.active = false;
+                    root.content-y = -Math.clamp(root.offset - event.delta-y * SmoothScroll.wheel-scale, 0, root.max-scroll);
+                }
                 accept
             }
         }
@@ -337,8 +368,11 @@ export component LibraryPage inherits Rectangle {
         }
 
         if !LibraryData.loading && LibraryData.empty-state == "" && !root.large: Rectangle {
-            for k in root.last-card - root.first-card: LibraryGameCard {
-                property <int> index: root.first-card + k;
+            // Recycled slots: when a row scrolls out, only that row's slots take new
+            // games; the others keep theirs, so nothing else re-binds.
+            for k in root.slots: LibraryGameCard {
+                property <int> index: root.first-card + Math.mod(k - root.first-card, root.slots);
+                visible: self.index < root.last-card;
                 property <int> cell-row: Math.floor(self.index / root.columns);
                 property <int> cell-col: Math.mod(self.index, root.columns);
                 x: 4px + self.cell-col * (root.card-width + 16px);
@@ -356,8 +390,11 @@ export component LibraryPage inherits Rectangle {
         }
 
         if !LibraryData.loading && LibraryData.empty-state == "" && root.large: Rectangle {
-            for k in root.last-card - root.first-card: LibraryGameCardLarge {
-                property <int> index: root.first-card + k;
+            // Recycled slots: when a row scrolls out, only that row's slots take new
+            // games; the others keep theirs, so nothing else re-binds.
+            for k in root.slots: LibraryGameCardLarge {
+                property <int> index: root.first-card + Math.mod(k - root.first-card, root.slots);
+                visible: self.index < root.last-card;
                 property <int> cell-row: Math.floor(self.index / root.columns);
                 property <int> cell-col: Math.mod(self.index, root.columns);
                 x: 4px + self.cell-col * (root.card-width + 16px);
@@ -391,6 +428,7 @@ export component LibraryPage inherits Rectangle {
             content-height: root.total-height;
             viewport-height: root.viewport;
             content-y <=> root.content-y;
+            shown-offset: root.offset;
         }
     }
 

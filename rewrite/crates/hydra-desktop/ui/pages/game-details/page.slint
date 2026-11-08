@@ -1,5 +1,6 @@
 // The Hydra game details page (src/renderer/src/pages/game-details) in Slint.
 // Data and actions come from the GameData global (state.slint).
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
 import { Theme, Icons, Tip } from "../../theme.slint";
 import { Icon, HydraButton, Skeleton, ScrollBar } from "../../components/widgets.slint";
 import { Hero } from "hero.slint";
@@ -33,14 +34,41 @@ export component GameDetailsPage inherits Rectangle {
         }
     }
 
+    property <length> scroll-y;
+    // Wheel tween (components/smooth-scroll.slint): root.scroll-y is the target,
+    // the page shows the tween while it runs.
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
     public function scroll-to-top() {
-        page.content-y = 0;
+        root.scroll-y = 0;
     }
 
     // reviewsRef.scrollIntoView({ behavior: "smooth" })
     property <length> reviews-top;
     public function scroll-to-reviews() {
-        root.scroll-by-key(-Math.min(root.reviews-top, root.max-scroll) - page.content-y);
+        root.scroll-by-key(-Math.min(root.reviews-top, root.max-scroll) - root.scroll-y);
     }
 
     // ---- page scrolling, the way Chromium scrolls a page:
@@ -49,15 +77,15 @@ export component GameDetailsPage inherits Rectangle {
     property <length> max-scroll: Math.max(0, page.content-height - page.height);
     function scroll-by-wheel(dy: length) {
         root.kb-tweening = false;
-        page.content-y = Math.clamp(page.content-y + dy * Input.wheel-scale, -root.max-scroll, 0);
+        root.wheel-by(dy);
     }
     property <length> kb-from;
     property <length> kb-to;
     property <duration> kb-start;
     property <bool> kb-tweening;
     function scroll-by-key(dy: length) {
-        let base = root.kb-tweening ? root.kb-to : page.content-y;
-        root.kb-from = page.content-y;
+        let base = root.kb-tweening ? root.kb-to : root.scroll-y;
+        root.kb-from = page.viewport-y;
         root.kb-to = Math.clamp(base + dy, -root.max-scroll, 0);
         root.kb-start = animation-tick();
         root.kb-tweening = true;
@@ -68,7 +96,7 @@ export component GameDetailsPage inherits Rectangle {
         triggered => {
             let t = Math.min(1, (animation-tick() - root.kb-start) / 200ms);
             let eased = 1 - (1 - t) * (1 - t) * (1 - t);
-            page.content-y = root.kb-from + (root.kb-to - root.kb-from) * eased;
+            root.scroll-y = root.kb-from + (root.kb-to - root.kb-from) * eased;
             if (t >= 1) {
                 root.kb-tweening = false;
             }
@@ -176,6 +204,7 @@ export component GameDetailsPage inherits Rectangle {
             // A web page has no mouse drag-to-pan and no extra inertia;
             // wheel/trackpad scrolling is handled by page-wheel below.
             interactive: false;
+        viewport-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
 
             page-wheel := TouchArea {
               width: page.width;
@@ -455,7 +484,8 @@ export component GameDetailsPage inherits Rectangle {
             height: root.height;
             content-height: page.content-height;
             viewport-height: page.height;
-            content-y <=> page.content-y;
+            content-y <=> root.scroll-y;
+            shown-offset: -page.viewport-y;
         }
 
         lightbox := Lightbox {

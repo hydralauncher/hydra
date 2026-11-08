@@ -230,7 +230,9 @@ export component ScrollBar inherits Rectangle {
     in property <length> viewport-height;
     // Two-way bound to the Flickable's content-y (0 or negative).
     in-out property <length> content-y;
-    property <length> offset: -root.content-y;
+    // What the page shows, when it trails content-y (a wheel tween).
+    in property <length> shown-offset: -root.content-y;
+    property <length> offset: root.shown-offset;
     width: 9px;
     background: Theme.dark-background;
 
@@ -247,19 +249,29 @@ export component ScrollBar inherits Rectangle {
         height: root.thumb-height;
         y: root.max-offset <= 0 ? 0 : (root.height - self.height) * root.offset / root.max-offset;
         border-radius: 24px;
-        background: drag.has-hover || drag.pressed ? rgba(255, 255, 255, 0.25) : rgba(255, 255, 255, 0.15);
+        background: (drag.on-thumb && drag.has-hover) || drag.dragging ? rgba(255, 255, 255, 0.25) : rgba(255, 255, 255, 0.15);
+    }
 
-        drag := TouchArea {
-            property <length> start-offset;
-            pointer-event(event) => {
-                if (event.kind == PointerEventKind.down) {
-                    self.start-offset = root.offset;
-                }
+    // The drag area covers the whole track, which never moves, so pointer
+    // positions stay stable while the thumb follows them. (On the moving
+    // thumb, mouse-y lags the thumb and the drag overshoots or shakes.)
+    drag := TouchArea {
+        property <length> start-offset;
+        property <bool> dragging;
+        out property <bool> on-thumb: self.mouse-y >= thumb.y && self.mouse-y <= thumb.y + thumb.height;
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left && self.on-thumb && root.max-offset > 0) {
+                self.start-offset = root.offset;
+                self.dragging = true;
             }
-            moved => {
-                if (self.pressed && root.height > thumb.height) {
-                    root.content-y = -Math.clamp(self.start-offset + (self.mouse-y - self.pressed-y) * root.max-offset / (root.height - thumb.height), 0, root.max-offset);
-                }
+            if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                self.dragging = false;
+            }
+            // TODO(scrollbar): a press on the track pages toward it, like Chromium.
+        }
+        moved => {
+            if (self.dragging && root.height > thumb.height) {
+                root.content-y = -Math.clamp(self.start-offset + (self.mouse-y - self.pressed-y) * root.max-offset / (root.height - thumb.height), 0, root.max-offset);
             }
         }
     }

@@ -1,5 +1,6 @@
 // src/renderer/src/components/sidebar/{sidebar,sidebar-game-list,sidebar-game-item,
 // sidebar-profile,routes}.{tsx,scss}, text-field/text-field.scss, avatar/avatar.scss
+import { SmoothScroll, ScrollTween } from "../components/smooth-scroll.slint";
 import { Theme, Icons } from "../theme.slint";
 import { Icon, Skeleton, ScrollBar } from "../components/widgets.slint";
 import { T, Nav, Session, SidebarState, SidebarGame } from "../globals.slint";
@@ -382,7 +383,33 @@ component GameList inherits Rectangle {
     property <length> max-scroll: Math.max(0, root.content-height - root.height + 6px);
     // Scroll position as a Flickable content-y (0 or negative), shared with the scrollbar.
     property <length> content-y;
-    property <length> offset: -root.content-y;
+    property <length> offset: root.tween.active ? -SmoothScroll.value(root.tween, animation-tick()) : -root.content-y;
+    // Wheel tween (components/smooth-scroll.slint): root.content-y is the target,
+    // the page shows the tween while it runs.
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.content-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.content-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.content-y = Math.clamp(root.content-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed content-y => {
+        if (root.tween.active && root.content-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
     property <int> first: Math.max(0, Math.floor(root.offset / root.row-height) - 5);
     property <int> count: Math.max(0, Math.min(root.games.length - root.first, Math.ceil(root.height / root.row-height) + 10));
     clip: true;
@@ -400,7 +427,7 @@ component GameList inherits Rectangle {
 
     wheel := TouchArea {
         scroll-event(event) => {
-            root.content-y = -Math.clamp(root.offset - event.delta-y * root.wheel-scale / 1px, 0, root.max-scroll);
+            root.wheel-by(event.delta-y);
             accept
         }
     }
@@ -440,6 +467,7 @@ component GameList inherits Rectangle {
         content-height: root.content-height;
         viewport-height: root.height - 6px;
         content-y <=> root.content-y;
+        shown-offset: root.offset;
     }
 }
 

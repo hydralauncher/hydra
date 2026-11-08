@@ -1,4 +1,5 @@
 // src/renderer/src/pages/home/home.{tsx,scss} with components/hero.
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
 import { Theme } from "../../theme.slint";
 import { Skeleton, ScrollBar, Icon } from "../../components/widgets.slint";
 import { T } from "../../globals.slint";
@@ -71,6 +72,33 @@ export component HomePage inherits Rectangle {
     property <int> columns: root.width >= 1350px ? 4 : root.width >= 1000px ? 3 : 2;
     property <length> max-scroll: Math.max(0, page.content-height - page.height);
 
+    property <length> scroll-y;
+    // Wheel tween (components/smooth-scroll.slint): root.scroll-y is the target,
+    // the page shows the tween while it runs.
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
     page := Flickable {
         x: 0;
         width: root.content-width - scrollbar.width;
@@ -78,12 +106,13 @@ export component HomePage inherits Rectangle {
         content-width: self.width;
         content-height: column.preferred-height;
         interactive: false;
+        viewport-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
 
         TouchArea {
             width: page.width;
             height: column.preferred-height;
             scroll-event(event) => {
-                page.content-y = Math.clamp(page.content-y + event.delta-y * Input.wheel-scale, -root.max-scroll, 0);
+                root.wheel-by(event.delta-y);
                 accept
             }
 
@@ -301,6 +330,7 @@ export component HomePage inherits Rectangle {
         height: root.height;
         content-height: page.content-height;
         viewport-height: page.height;
-        content-y <=> page.content-y;
+        content-y <=> root.scroll-y;
+            shown-offset: -page.viewport-y;
     }
 }

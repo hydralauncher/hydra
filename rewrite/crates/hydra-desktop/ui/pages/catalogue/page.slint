@@ -1,5 +1,6 @@
 // src/renderer/src/pages/catalogue/catalogue.{tsx,scss}: results with
 // pagination on the left, the filter rail (280px) on the right.
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
 import { Theme } from "../../theme.slint";
 import { Icon, Skeleton, ScrollBar, HydraButton } from "../../components/widgets.slint";
 import { SelectField, SelectOption } from "../../components/fields.slint";
@@ -406,9 +407,36 @@ export component CataloguePage inherits Rectangle {
     property <length> content-width: root.width - 9px;
     property <bool> stacked: root.width <= 768px;
     property <length> max-scroll: Math.max(0, page.content-height - page.height);
+    property <length> scroll-y;
+    // Wheel tween (components/smooth-scroll.slint): root.scroll-y is the target,
+    // the page shows the tween while it runs.
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
     property <int> reset: CatalogueData.scroll-reset;
     changed reset => {
-        page.content-y = 0;
+        root.scroll-y = 0;
     }
 
     page := Flickable {
@@ -418,12 +446,13 @@ export component CataloguePage inherits Rectangle {
         content-width: self.width;
         content-height: column.preferred-height;
         interactive: false;
+        viewport-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
 
         TouchArea {
             width: page.width;
             height: column.preferred-height;
             scroll-event(event) => {
-                page.content-y = Math.clamp(page.content-y + event.delta-y * Input.wheel-scale, -root.max-scroll, 0);
+                root.wheel-by(event.delta-y);
                 accept
             }
 
@@ -661,6 +690,7 @@ export component CataloguePage inherits Rectangle {
         height: root.height;
         content-height: page.content-height;
         viewport-height: page.height;
-        content-y <=> page.content-y;
+        content-y <=> root.scroll-y;
+            shown-offset: -page.viewport-y;
     }
 }

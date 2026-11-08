@@ -66,6 +66,9 @@ export struct LibraryMenuItem {
 }
 
 export global LibraryData {
+    // HYDRA_DEV_FRAMES: the shown scroll offset, for the frame trace.
+    in property <bool> trace;
+    in-out property <length> shown-offset;
     in property <[LibraryCard]> cards;
     // isLibraryLoading: the skeleton grid.
     in property <bool> loading: true;

@@ -17,6 +17,7 @@ mod downloads_menu;
 mod downloads_page;
 mod features;
 mod format;
+mod frametrace;
 mod game_classics;
 mod game_menu;
 mod game_page;
@@ -40,6 +41,38 @@ use hydra_media::images::Loader;
 use slint::ComponentHandle;
 
 slint::include_modules!();
+
+/// The px one mouse wheel notch scrolls, as Chromium does it: on Windows
+/// 100/3px per line times the system wheel scroll lines (3 by default, so
+/// 100px, measured on Electron).
+#[cfg(windows)]
+fn wheel_notch_px() -> f32 {
+    #[link(name = "user32")]
+    unsafe extern "system" {
+        fn SystemParametersInfoW(
+            action: u32,
+            param: u32,
+            value: *mut std::ffi::c_void,
+            ini: u32,
+        ) -> i32;
+    }
+    const SPI_GETWHEELSCROLLLINES: u32 = 0x0068;
+    let mut lines: u32 = 3;
+    // SAFETY: SPI_GETWHEELSCROLLLINES writes one UINT to the pointer.
+    let ok =
+        unsafe { SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, (&raw mut lines).cast(), 0) };
+    // WHEEL_PAGESCROLL (u32::MAX) scrolls pages; fall back to the default.
+    if ok == 0 || lines == 0 || lines == u32::MAX {
+        lines = 3;
+    }
+    lines as f32 * 100.0 / 3.0
+}
+
+/// TODO(linux): measure Chromium on X11/Wayland; 40px is the old value.
+#[cfg(not(windows))]
+fn wheel_notch_px() -> f32 {
+    40.0
+}
 
 struct Args {
     path: Option<String>,
@@ -125,10 +158,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 winit::event::WindowEvent::MouseWheel { delta, .. } => {
                     let (x, y) = cursor.get();
                     popup::wheel_at(&ui, x, y);
-                    ui.global::<Input>().set_wheel_scale(match delta {
-                        winit::event::MouseScrollDelta::LineDelta(..) => 40.0 / 60.0,
-                        winit::event::MouseScrollDelta::PixelDelta(..) => 1.0,
-                    });
+                    let lines = matches!(delta, winit::event::MouseScrollDelta::LineDelta(..));
+                    if frametrace::enabled() {
+                        eprintln!("[wheel] {delta:?}");
+                    }
+                    ui.global::<Input>()
+                        .set_wheel_scale(if lines { 40.0 / 60.0 } else { 1.0 });
+                    let smooth = ui.global::<SmoothScroll>();
+                    smooth.set_lines(lines);
+                    // Slint turns one line into 60px.
+                    smooth.set_wheel_scale(if lines { wheel_notch_px() / 60.0 } else { 1.0 });
+                }
+                winit::event::WindowEvent::RedrawRequested if frametrace::enabled() => {
+                    frametrace::on_redraw(&ui);
                 }
                 winit::event::WindowEvent::CursorMoved { position, .. } => {
                     let scale = window.scale_factor();
@@ -203,6 +245,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         });
     }
+
+    frametrace::install(&ui);
 
     if let Ok(steps) = std::env::var("HYDRA_DEV_SCRIPT") {
         let out = std::env::var("HYDRA_DEV_SHOTS")
