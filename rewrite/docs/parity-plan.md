@@ -93,8 +93,10 @@ the remote `external-resources/bundle.js` script.
 ## Phase 3: downloads
 
 - [ ] **Download sources** (`download-sources/*`, `services/download-sources-checker.ts`), repacks modal
-- [ ] **Downloads page** (`pages/downloads`) and queue (`torrenting/*`: start, pause, resume, cancel, queue order, seeding)
-- [ ] **Torrent engine** through the existing libtorrent bridge (`native/torrent-bridge`, `native/hydra-native/src/torrent`)
+- [x] **Downloads page, empty state**
+- [ ] **Downloads page groups** and queue (`torrenting/*`: start, pause, resume, cancel, queue order, seeding): see the download flow above
+- [x] **Torrent engine:** `crates/hydra-torrent` compiles `native/hydra-native/src/torrent` without napi (the same engine and libtorrent bridge as the Node addon)
+- [ ] **Download flow, in order:** (1) repacks: `/games/{shop}/{id}/download-sources` with the stored download source ids, `filterDownloadableRepacks`, hoster availability (`game-details.context.tsx`); (2) `repacks-modal.tsx` (498 lines) and `download-settings-modal.tsx` (1611 lines: path, downloader choice, debrid states); (3) `start-game-download.ts` + `DownloadOrchestrator` (queue, layout state, pause/resume/cancel, reconnect) + `DownloadManager.watchDownloads` with the torrent path first (status packets, completion, seeding); (4) the Downloads page groups (`download-group.tsx` 1517 lines: hero view, speed chart, animated percentage, queued and completed rows, seeding toggles); (5) HTTP downloads (`js-http-downloader.ts`, parallel ranges), hosters (`services/hosters`), debrid services; (6) extraction (hatchzip in-place, 7z)
 - [ ] **HTTP/debrid hosters** (`services/hosters`, Real-Debrid, AllDebrid, Premiumize, TorBox auth in `user-preferences/*`)
 - [ ] **Extraction** (`services/archive-extraction.ts`, `in_place_extraction.rs`), disk space checks (`hardware/*`)
 - [ ] **Common redistributables** (`services/common-redist-manager.ts`)
