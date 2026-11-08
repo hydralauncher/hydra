@@ -142,7 +142,7 @@ pub trait Dependencies {
     fn cancel_run(&self, id: &str, cancel: &Cancel) -> Result<()>;
     fn journal(&self) -> Option<Journal>;
     fn save_journal(&self, journal: Option<&Journal>) -> Result<()>;
-    fn merge(&self, progress: &dyn Fn(usize, usize), cancel: &Cancel) -> Result<bool>;
+    fn merge(&self, progress: &(dyn Fn(usize, usize) + Sync), cancel: &Cancel) -> Result<bool>;
     fn emit(&self, state: SyncState);
 }
 
@@ -565,7 +565,7 @@ mod tests {
             *self.journal.borrow_mut() = journal.cloned();
             Ok(())
         }
-        fn merge(&self, _: &dyn Fn(usize, usize), _: &Cancel) -> Result<bool> {
+        fn merge(&self, _: &(dyn Fn(usize, usize) + Sync), _: &Cancel) -> Result<bool> {
             self.note("merge".into());
             Ok(true)
         }

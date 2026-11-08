@@ -19,11 +19,13 @@
 pub mod cancel;
 pub mod error;
 pub mod imports;
+pub mod install;
 pub mod legendary;
 pub mod library;
 pub mod managed;
 pub mod process;
 pub mod protocol;
+pub mod removal;
 pub mod runner;
 pub mod session;
 pub mod snapshot;
