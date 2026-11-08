@@ -19,6 +19,7 @@ pub mod library_actions;
 pub mod profile;
 pub mod profile_image;
 pub mod realtime;
+pub mod remote_library;
 pub mod repacks;
 pub mod screenshots;
 pub mod social;
