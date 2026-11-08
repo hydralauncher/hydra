@@ -2,6 +2,7 @@
 import { Theme, Icons, Tip, Ids } from "../../theme.slint";
 import { Icon, HydraButton } from "../../components/widgets.slint";
 import { Review } from "../../types.slint";
+import { T } from "../../globals.slint";
 
 export struct FormatEdit {
     text: string,
@@ -106,7 +107,7 @@ component StarButton inherits Rectangle {
         }
         changed has-hover => {
             if (self.has-hover) {
-                Tip.show(root.tip-id, ["Very Negative", "Negative", "Neutral", "Positive", "Very Positive"][root.value - 1], root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+                Tip.show(root.tip-id, [T.tr("game_details.rating_very_negative"), T.tr("game_details.rating_negative"), T.tr("game_details.rating_neutral"), T.tr("game_details.rating_positive"), T.tr("game_details.rating_very_positive")][root.value - 1], root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
             } else {
                 Tip.hide(root.tip-id);
             }
@@ -167,7 +168,7 @@ export component ReviewForm inherits VerticalLayout {
                         ToolbarButton {
                             label: "B";
                             weight: 700;
-                            tooltip: "Bold (⌘B)";
+                            tooltip: T.tr("game_details.editor_bold");
                             active: root.marks.bold;
                             clicked => {
                                 root.apply("bold");
@@ -176,7 +177,7 @@ export component ReviewForm inherits VerticalLayout {
                         ToolbarButton {
                             label: "I";
                             italic: true;
-                            tooltip: "Italic (⌘I)";
+                            tooltip: T.tr("game_details.editor_italic");
                             active: root.marks.italic;
                             clicked => {
                                 root.apply("italic");
@@ -185,7 +186,7 @@ export component ReviewForm inherits VerticalLayout {
                         ToolbarButton {
                             label: "U";
                             underline: true;
-                            tooltip: "Underline (⌘U)";
+                            tooltip: T.tr("game_details.editor_underline");
                             active: root.marks.underline;
                             clicked => {
                                 root.apply("underline");
@@ -265,7 +266,7 @@ export component ReviewForm inherits VerticalLayout {
                 if editor.text == "": Text {
                     x: 12px;
                     y: 12px;
-                    text: "Share your thoughts about this game...";
+                    text: T.tr("game_details.write_review_placeholder");
                     color: rgba(255, 255, 255, 0.35);
                     font-size: 14px;
                 }
@@ -296,7 +297,7 @@ export component ReviewForm inherits VerticalLayout {
                 width: parent.width;
                 height: 40px;
                 kind: "primary";
-                text: root.submitting ? "Submitting..." : "Submit";
+                text: root.submitting ? T.tr("game_details.submitting") : T.tr("game_details.submit_review");
                 enabled: root.can-submit;
                 clicked => {
                     root.submit(editor.text, root.score);
@@ -307,7 +308,7 @@ export component ReviewForm inherits VerticalLayout {
                 padding-left: 16px;
                 padding-right: 16px;
                 Text {
-                    text: root.submitting ? "Submitting..." : "Submit";
+                    text: root.submitting ? T.tr("game_details.submitting") : T.tr("game_details.submit_review");
                     font-size: Theme.button-size;
                 }
             }
@@ -316,7 +317,7 @@ export component ReviewForm inherits VerticalLayout {
                 enabled: !root.can-submit && !root.submitting;
                 changed has-hover => {
                     if (self.has-hover) {
-                        Tip.show(root.submit-tip-id, "Write your review and pick a star rating to submit it", submit-wrap.absolute-position.x, submit-wrap.absolute-position.y, submit-wrap.width, submit-wrap.height, "top");
+                        Tip.show(root.submit-tip-id, T.tr("game_details.review_submit_requirements"), submit-wrap.absolute-position.x, submit-wrap.absolute-position.y, submit-wrap.width, submit-wrap.height, "top");
                     } else {
                         Tip.hide(root.submit-tip-id);
                     }
@@ -577,7 +578,7 @@ component ReviewItem inherits VerticalLayout {
                 }
             }
             translate-label := Text {
-                text: root.show-original ? "Hide original" : "Show original (translated from " + root.review.original-language + ")";
+                text: root.show-original ? T.tr("game_details.hide_original") : T.tr-with("game_details.show_original_translated_from", ["language", root.review.original-language]);
                 color: translate-touch.has-hover ? rgba(255, 255, 255, 0.9) : rgba(255, 255, 255, 0.6);
                 animate color { duration: 200ms; easing: ease; }
                 font-size: 14px;
@@ -662,7 +663,7 @@ component ReviewItem inherits VerticalLayout {
                             }
                         }
                         reply-label := Text {
-                            text: "Reply";
+                            text: T.tr("game_details.reply");
                             color: reply-touch.has-hover ? #ffffff : rgba(255, 255, 255, 0.78);
                             animate color { duration: 200ms; easing: ease; }
                             font-size: 12px;
@@ -680,7 +681,7 @@ component ReviewItem inherits VerticalLayout {
                 small: true;
                 icon: Icons.trash;
                 icon-size: 14px;
-                text: "Remove review";
+                text: T.tr("game_details.remove_review");
                 clicked => {
                     root.delete(root.review.id);
                 }
@@ -725,7 +726,7 @@ export component GameReviews inherits VerticalLayout {
 
     if !root.has-reviewed: VerticalLayout {
         Text {
-            text: "Leave a Review";
+            text: T.tr("game_details.leave_a_review");
             font-size: 20px;
             font-weight: 700; // 600 in scss; Electron has no SemiBold face
             color: Theme.muted;
@@ -756,7 +757,7 @@ export component GameReviews inherits VerticalLayout {
         padding-bottom: 8px;
         alignment: start;
         Text {
-            text: "Reviews";
+            text: T.tr("game_details.reviews");
             font-size: 20px;
             font-weight: 700; // 600 in scss; Electron has no SemiBold face
             color: Theme.muted;
@@ -786,7 +787,7 @@ export component GameReviews inherits VerticalLayout {
         padding-bottom: 24px;
         SortOption {
             icon: root.sort == "newest" ? Icons.chevron-down : Icons.chevron-up;
-            text: root.sort == "oldest" ? "Oldest" : "Newest";
+            text: root.sort == "oldest" ? T.tr("game_details.sort_oldest") : T.tr("game_details.sort_newest");
             active: root.sort == "newest" || root.sort == "oldest";
             clicked => {
                 root.sort-changed(root.sort == "newest" ? "oldest" : "newest");
@@ -799,7 +800,7 @@ export component GameReviews inherits VerticalLayout {
         }
         SortOption {
             icon: root.sort == "score_high" ? Icons.chevron-down : Icons.chevron-up;
-            text: root.sort == "score_low" ? "Lowest Score" : "Highest Score";
+            text: root.sort == "score_low" ? T.tr("game_details.sort_lowest_score") : T.tr("game_details.sort_highest_score");
             active: root.sort == "score_high" || root.sort == "score_low";
             clicked => {
                 root.sort-changed(root.sort == "score_high" ? "score_low" : "score_high");
@@ -812,7 +813,7 @@ export component GameReviews inherits VerticalLayout {
         }
         SortOption {
             icon: Icons.thumbs-up;
-            text: "Most Voted";
+            text: T.tr("game_details.sort_most_voted");
             active: root.sort == "most_voted";
             clicked => {
                 if (root.sort != "most_voted") {
@@ -824,7 +825,7 @@ export component GameReviews inherits VerticalLayout {
 
     // .game-details__reviews-loading / __reviews-empty
     if root.loading && root.reviews.length == 0: Text {
-        text: "Loading reviews...";
+        text: T.tr("game_details.loading_reviews");
         color: rgba(255, 255, 255, 0.6);
         horizontal-alignment: center;
         height: 16px + 20px + 16px;
@@ -847,13 +848,13 @@ export component GameReviews inherits VerticalLayout {
             }
         }
         Text {
-            text: "No reviews yet";
+            text: T.tr("game_details.no_reviews_yet");
             color: rgba(255, 255, 255, 0.9);
             font-weight: 700; // 600 in scss; Electron has no SemiBold face
             horizontal-alignment: center;
         }
         Text {
-            text: "Be the first to share your thoughts about this game!";
+            text: T.tr("game_details.be_first_to_review");
             color: rgba(255, 255, 255, 0.6);
             font-size: Theme.small-size;
             horizontal-alignment: center;
@@ -884,14 +885,14 @@ export component GameReviews inherits VerticalLayout {
         padding-top: 16px;
         HydraButton {
             kind: "outline";
-            text: "Load more reviews";
+            text: T.tr("game_details.load_more_reviews");
             clicked => {
                 root.load-more();
             }
         }
     }
     if root.loading-more: Text {
-        text: "Loading more reviews...";
+        text: T.tr("game_details.loading_more_reviews");
         color: rgba(255, 255, 255, 0.6);
         horizontal-alignment: center;
         height: 16px + 20px + 16px;

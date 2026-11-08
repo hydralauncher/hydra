@@ -2,6 +2,7 @@
 import { Theme, Icons } from "../../theme.slint";
 import { Icon, RoundButton } from "../../components/widgets.slint";
 import { SimilarGame } from "../../types.slint";
+import { T } from "../../globals.slint";
 
 export component SimilarGames inherits VerticalLayout {
     in property <[SimilarGame]> games;
@@ -26,7 +27,7 @@ export component SimilarGames inherits VerticalLayout {
     property <bool> suppress-click;
 
     Text {
-        text: "More like this";
+        text: T.tr("game_details.similar_games");
         font-size: 20px;
         font-weight: 700; // 600 in scss; Electron has no SemiBold face
         color: Theme.body;

@@ -185,16 +185,16 @@ export component StatsSection inherits SidebarSection {
     in property <string> players;
     in property <string> rating;
     in property <bool> column;
-    title: "Stats";
+    title: T.tr("game_details.stats");
 
     if !root.column: HorizontalLayout {
         padding: 16px;
         spacing: 8px;
         alignment: space-between;
         for stat in [
-            { icon: Icons.download, label: "Downloads", value: root.downloads, star: false },
-            { icon: Icons.people, label: "Active players", value: root.players, star: false },
-            { icon: Icons.star, label: "Rating", value: root.rating, star: true },
+            { icon: Icons.download, label: T.tr("game_details.download_count"), value: root.downloads, star: false },
+            { icon: Icons.people, label: T.tr("game_details.player_count"), value: root.players, star: false },
+            { icon: Icons.star, label: T.tr("game_details.rating_count"), value: root.rating, star: true },
         ]: VerticalLayout {
             spacing: 4px;
             HorizontalLayout {
@@ -242,9 +242,9 @@ export component StatsSection inherits SidebarSection {
         padding: 16px;
         spacing: 8px;
         for stat in [
-            { icon: Icons.download, label: "Downloads", value: root.downloads, star: false },
-            { icon: Icons.people, label: "Active players", value: root.players, star: false },
-            { icon: Icons.star, label: "Rating", value: root.rating, star: true },
+            { icon: Icons.download, label: T.tr("game_details.download_count"), value: root.downloads, star: false },
+            { icon: Icons.people, label: T.tr("game_details.player_count"), value: root.players, star: false },
+            { icon: Icons.star, label: T.tr("game_details.rating_count"), value: root.rating, star: true },
         ]: HorizontalLayout {
             spacing: 4px;
             HorizontalLayout {
@@ -318,7 +318,7 @@ export component HowLongToBeatSection inherits SidebarSection {
                     color: Theme.muted;
                 }
                 if category.accuracy != "": Text {
-                    text: category.accuracy + "% accuracy";
+                    text: T.tr-with("game_details.accuracy", ["accuracy", category.accuracy]);
                     color: Theme.body;
                     font-size: 11.6px;
                 }
@@ -330,7 +330,7 @@ export component HowLongToBeatSection inherits SidebarSection {
 export component ControllerSection inherits SidebarSection {
     // "full" | "partial" (controller-support-section.tsx)
     in property <string> support: "full";
-    title: "Controller support";
+    title: T.tr("game_details.controller_support");
 
     VerticalLayout {
         padding: 16px;
@@ -361,7 +361,7 @@ export component ControllerSection inherits SidebarSection {
                 border-radius: self.height / 2;
                 background: root.support == "full" ? rgba(154, 205, 50, 0.15) : rgba(255, 165, 0, 0.15);
                 badge := Text {
-                    text: root.support == "full" ? "FULL SUPPORT" : "PARTIAL SUPPORT";
+                    text: (root.support == "full" ? T.tr("game_details.controller_support_full_label") : T.tr("game_details.controller_support_partial_label")).to-uppercase(); // text-transform: uppercase
                     color: root.support == "full" ? #9acd32 : #ffa500;
                     font-size: Theme.small-size;
                     font-weight: 700;
@@ -369,7 +369,7 @@ export component ControllerSection inherits SidebarSection {
             }
         }
         Text {
-            text: root.support == "full" ? "Plays great with Xbox and PlayStation controllers." : "Some menus may require a keyboard and mouse.";
+            text: root.support == "full" ? T.tr("game_details.controller_support_full_description") : T.tr("game_details.controller_support_partial_description");
             color: Theme.body;
             horizontal-alignment: center;
             wrap: word-wrap;
@@ -381,11 +381,11 @@ export component RequirementsSection inherits SidebarSection {
     in property <styled-text> minimum;
     in property <styled-text> recommended;
     in-out property <bool> show-recommended;
-    title: "System requirements";
+    title: T.tr("game_details.requirements");
 
     HorizontalLayout {
         HydraButton {
-            text: "Minimum";
+            text: T.tr("game_details.minimum");
             kind: root.show-recommended ? "outline" : "primary";
             square-corners: true;
             horizontal-stretch: 1;
@@ -394,7 +394,7 @@ export component RequirementsSection inherits SidebarSection {
             }
         }
         HydraButton {
-            text: "Recommended";
+            text: T.tr("game_details.recommended");
             kind: root.show-recommended ? "primary" : "outline";
             square-corners: true;
             horizontal-stretch: 1;
@@ -415,7 +415,7 @@ export component RequirementsSection inherits SidebarSection {
 
 export component LanguageSection inherits SidebarSection {
     in property <[Language]> languages;
-    title: "Language";
+    title: T.tr("game_details.language");
 
     Rectangle {
         background: rgba(255, 255, 255, 0.02);
@@ -423,7 +423,7 @@ export component LanguageSection inherits SidebarSection {
             Rectangle {
                 background: rgba(255, 255, 255, 0.05);
                 HorizontalLayout {
-                    for label[i] in ["Language", "Caption", "Audio"]: Text {
+                    for label[i] in [T.tr("game_details.language"), T.tr("game_details.caption"), T.tr("game_details.audio")]: Text {
                         text: label;
                         color: Theme.muted;
                         font-size: Theme.small-size;

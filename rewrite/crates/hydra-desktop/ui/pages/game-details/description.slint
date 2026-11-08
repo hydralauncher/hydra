@@ -2,6 +2,7 @@
 import { Theme, Icons } from "../../theme.slint";
 import { Icon, Skeleton } from "../../components/widgets.slint";
 import { DescBlock } from "../../types.slint";
+import { T } from "../../globals.slint";
 
 export component DescriptionHeader inherits Rectangle {
     in property <string> release-date;
@@ -21,13 +22,13 @@ export component DescriptionHeader inherits Rectangle {
         spacing: 4px;
         alignment: center;
         if root.loaded: Text {
-            text: "Released on " + root.release-date;
+            text: T.tr-with("game_details.release_date", ["date", root.release-date]);
             color: Theme.muted;
             font-size: Theme.small-size;
             font-weight: 700; // 600 in scss; Electron has no SemiBold face
         }
         if root.loaded: Text {
-            text: "Published by " + root.publisher;
+            text: T.tr-with("game_details.publisher", ["publisher", root.publisher]);
             color: Theme.muted;
             font-size: Theme.small-size;
         }
@@ -121,7 +122,7 @@ export component Description inherits VerticalLayout {
     spacing: 12px;
 
     if root.loaded: Text {
-        text: "About this game";
+        text: T.tr("game_details.about_this_game");
         font-size: 20px;
         font-weight: 700; // 600 in scss; Electron has no SemiBold face
         color: Theme.body;
@@ -164,7 +165,7 @@ export component Description inherits VerticalLayout {
             background: toggle-touch.has-hover ? rgba(255, 255, 255, 0.1) : transparent;
             animate background, border-color { duration: 200ms; easing: ease; }
             label := Text {
-                text: root.expanded ? "Show less" : "Show more";
+                text: root.expanded ? T.tr("game_details.show_less") : T.tr("game_details.show_more");
                 color: Theme.body;
                 font-size: Theme.body-size;
             }
