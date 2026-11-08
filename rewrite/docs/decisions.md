@@ -115,7 +115,11 @@ notch moves 100px (3 system wheel lines x 100/3px) over about 200ms,
 ease-in-out. Notches that arrive during the animation move the target and
 keep the current speed (cc's `kInverseDelta` durations: 12 frames up to 120px,
 6 frames from 480px). The first Rust build moved 40px instantly per notch,
-which felt jumpy. Linux still uses 40px until it is measured.
+which felt jumpy. Linux, measured on Electron 41 under X11 with real XTEST
+wheel clicks: one notch moves 120px (Chromium's 120-unit wheel delta, no
+system line setting) over about 200ms with the same easing. Wayland wasn't
+measurable in WSL (no input injection); Chromium normalizes its axis values
+to the same 120 units per notch. macOS still uses 40px until it is measured.
 
 Frame pacing on a fast wheel spin (30 notches 30ms apart over the 943-game
 library, release builds, 60Hz): Electron p50 16.6ms, p95 28.2ms, max 29.5ms.

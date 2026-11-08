@@ -146,8 +146,9 @@ the rewrite ships needs:
   bind the wrong path; and a process whose working directory is the game's
   folder counts as the game (umu-run's own setup time counts as playtime,
   as in Electron).
-- **Mouse wheel distance** is still 40px per notch on Linux (Chromium's
-  Linux value hasn't been measured; Windows uses the measured 100px).
+- **Mouse wheel on Wayland** uses the 120px per notch measured on X11
+  (Electron under Xvfb with XTEST wheel clicks); WSL can't inject Wayland
+  wheel events to measure it there.
 - **Audio in WSL**: cpal opens ALSA's default device, which WSLg doesn't
   route to PulseAudio unless `libasound2-plugins` is configured. Desktop
   distributions route ALSA to PipeWire/PulseAudio by default.

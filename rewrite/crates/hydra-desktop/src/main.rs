@@ -89,8 +89,16 @@ fn wheel_notch_px() -> f32 {
     lines as f32 * 100.0 / 3.0
 }
 
-/// TODO(linux): measure Chromium on X11/Wayland; 40px is the old value.
-#[cfg(not(windows))]
+/// Linux: Chromium turns a notch into its 120-unit wheel delta and scrolls
+/// 120px, animated over about 200ms (measured on Electron 41, X11, with real
+/// XTEST wheel clicks).
+#[cfg(target_os = "linux")]
+fn wheel_notch_px() -> f32 {
+    120.0
+}
+
+/// TODO(macos): measure Chromium; 40px is the old value.
+#[cfg(not(any(windows, target_os = "linux")))]
 fn wheel_notch_px() -> f32 {
     40.0
 }
