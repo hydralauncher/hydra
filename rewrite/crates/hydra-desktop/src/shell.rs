@@ -98,6 +98,28 @@ pub fn find_library_game(shop: &str, object_id: &str) -> Option<Presentation> {
     .flatten()
 }
 
+/// The renderer's `localStorage` (imported from Electron, kept in LevelDB).
+pub fn storage_get(key: &str) -> Option<String> {
+    with_shell(|s| local_storage(&s.db, key)).flatten()
+}
+
+pub fn storage_set(key: &str, value: &str) {
+    with_shell(|s| set_local_storage(&s.db, key, value));
+}
+
+pub fn storage_remove(key: &str) {
+    with_shell(|s| {
+        let _ = s.db.delete_in(keys::LOCAL_STORAGE, key);
+    });
+}
+
+/// Whether the signed-in user's details are known (userDetails.id).
+pub fn signed_in() -> bool {
+    with_shell(|s| s.ui.upgrade().map(|ui| ui.global::<Session>().get_signed_in()))
+        .flatten()
+        .unwrap_or(false)
+}
+
 /// The Hydra API client.
 pub fn api() -> Option<Arc<HydraApi>> {
     with_shell(|s| s.api.clone())

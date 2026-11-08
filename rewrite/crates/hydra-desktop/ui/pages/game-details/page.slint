@@ -12,6 +12,7 @@ import { GameReviews } from "reviews.slint";
 import { Modal, ModalController } from "../../components/modal.slint";
 import { PlaybackDriver, Playback } from "../../components/video.slint";
 import { GameData, Input } from "state.slint";
+import { ReviewPromptBanner } from "review-prompt.slint";
 
 export component GameDetailsPage inherits Rectangle {
 
@@ -27,6 +28,12 @@ export component GameDetailsPage inherits Rectangle {
 
     public function scroll-to-top() {
         page.content-y = 0;
+    }
+
+    // reviewsRef.scrollIntoView({ behavior: "smooth" })
+    property <length> reviews-top;
+    public function scroll-to-reviews() {
+        root.scroll-by-key(-Math.min(root.reviews-top, root.max-scroll) - page.content-y);
     }
 
     // ---- page scrolling, the way Chromium scrolls a page:
@@ -239,6 +246,22 @@ export component GameDetailsPage inherits Rectangle {
                                 loaded: GameData.loaded;
                             }
 
+                            if GameData.review-prompt > 0: HorizontalLayout {
+                                alignment: center;
+                                ReviewPromptBanner {
+                                    width: root.column-width;
+                                    pending: GameData.review-prompt == 1;
+                                    narrow: root.vw <= 900px;
+                                    yes-clicked => {
+                                        GameData.review-prompt-yes();
+                                        root.scroll-to-reviews();
+                                    }
+                                    later-clicked => {
+                                        GameData.review-prompt-later();
+                                    }
+                                }
+                            }
+
                             HorizontalLayout {
                                 alignment: center;
                                 if GameData.loaded: GallerySlider {
@@ -285,6 +308,13 @@ export component GameDetailsPage inherits Rectangle {
                                 alignment: center;
                                 GameReviews {
                                     width: root.column-width;
+                                    // Where the reviews start in the page, for the review prompt's "Yes".
+                                    init => {
+                                        root.reviews-top = self.absolute-position.y - column.absolute-position.y;
+                                    }
+                                    changed absolute-position => {
+                                        root.reviews-top = self.absolute-position.y - column.absolute-position.y;
+                                    }
                                     reviews: GameData.reviews;
                                     total: GameData.reviews-total;
                                     loading: GameData.reviews-loading;

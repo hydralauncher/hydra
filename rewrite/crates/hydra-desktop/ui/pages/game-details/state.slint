@@ -64,6 +64,10 @@ export global GameData {
     callback review-submit(string, int);
     // Viewer fullscreen (the window goes fullscreen with it).
     callback fullscreen-changed(bool);
+    // Review prompt: 0 hidden, 1 pending (keeps its space, invisible), 2 shown.
+    in property <int> review-prompt;
+    callback review-prompt-yes();
+    callback review-prompt-later();
 }
 
 // Set by the backend from the raw OS wheel event before Slint handles it:

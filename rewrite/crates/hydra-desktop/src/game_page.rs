@@ -99,6 +99,25 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
         })
     });
     wire_callbacks(ui, loader);
+    // handleReviewPromptYes: dismiss for this visit and scroll to the reviews.
+    gd(ui).on_review_prompt_yes({
+        let weak = ui.as_weak();
+        move || {
+            if let Some(ui) = weak.upgrade() {
+                gd(&ui).set_review_prompt(0);
+            }
+        }
+    });
+    // handleReviewPromptLater: hide for 7 days.
+    gd(ui).on_review_prompt_later({
+        let weak = ui.as_weak();
+        move || {
+            crate::shell::storage_set(REVIEW_PROMPT_DISMISSED_STORAGE_KEY, &now_ms().to_string());
+            if let Some(ui) = weak.upgrade() {
+                gd(&ui).set_review_prompt(0);
+            }
+        }
+    });
     gd(ui).on_fullscreen_changed({
         let weak = ui.as_weak();
         move |fullscreen| {
@@ -220,10 +239,92 @@ fn apply_achievements(list: Vec<hydra_core::achievements::Achievement>, generati
     }
 }
 
+const REVIEW_MIN_PLAYTIME_IN_MS: f64 = 60.0 * 60.0 * 1000.0;
+const REVIEW_PROMPT_DISMISS_TTL_IN_MS: i64 = 7 * 24 * 60 * 60 * 1000;
+const REVIEW_PROMPT_DISMISSED_STORAGE_KEY: &str = "reviewPromptDismissedAt";
+
+thread_local! {
+    /// use-user-review-status.ts reviewStatusCache: last answer per game, so a
+    /// revisit doesn't move the page when the prompt appears.
+    static REVIEW_STATUS: RefCell<std::collections::HashMap<String, bool>> = RefCell::new(Default::default());
+}
+
+fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or_default()
+}
+
+/// use-review-prompt.ts `readDismissal`.
+fn review_prompt_dismissed() -> bool {
+    let Some(value) = crate::shell::storage_get(REVIEW_PROMPT_DISMISSED_STORAGE_KEY) else { return false };
+    match value.parse::<i64>() {
+        Ok(at) if now_ms() - at < REVIEW_PROMPT_DISMISS_TTL_IN_MS => true,
+        _ => {
+            crate::shell::storage_remove(REVIEW_PROMPT_DISMISSED_STORAGE_KEY);
+            false
+        }
+    }
+}
+
+/// useReviewPrompt + useUserReviewStatus: eligible games show the banner
+/// (space kept while `/reviews/check` is pending) unless already reviewed.
+fn update_review_prompt(ui: &AppWindow, shop: &str, object_id: &str, play_time: f64, in_library: bool) {
+    let g = gd(ui);
+    let eligible = shop != "custom"
+        && !object_id.is_empty()
+        && crate::shell::signed_in()
+        && in_library
+        && !review_prompt_dismissed()
+        && play_time >= REVIEW_MIN_PLAYTIME_IN_MS;
+    if !eligible {
+        g.set_review_prompt(0);
+        return;
+    }
+    let identity = format!("{shop}:{object_id}");
+    match REVIEW_STATUS.with(|c| c.borrow().get(&identity).copied()) {
+        Some(true) => g.set_review_prompt(0),
+        Some(false) => g.set_review_prompt(2),
+        None => g.set_review_prompt(1),
+    }
+    let Some(api) = crate::shell::api() else { return };
+    let Some(generation) = with_app(|app| app.generation) else { return };
+    let (shop, object_id) = (shop.to_string(), object_id.to_string());
+    std::thread::spawn(move || {
+        let result = api.get(&format!("/games/{shop}/{object_id}/reviews/check"), &[], hydra_core::api::Options::default());
+        let _ = slint::invoke_from_event_loop(move || {
+            let has_reviewed = match result {
+                Ok(body) => body.get("hasReviewed").and_then(|v| v.as_bool()).unwrap_or(false),
+                // The hook treats a failed check as "not reviewed".
+                Err(_) => false,
+            };
+            REVIEW_STATUS.with(|c| c.borrow_mut().insert(identity, has_reviewed));
+            if with_app(|app| app.generation) != Some(generation) {
+                return;
+            }
+            if let Some(ui) = with_app(|app| app.ui.upgrade()).flatten() {
+                let g = gd(&ui);
+                if g.get_review_prompt() != 0 {
+                    g.set_review_prompt(if has_reviewed { 0 } else { 2 });
+                }
+            }
+        });
+    });
+}
+
 /// The hero panel's library state (hero-panel-playtime.tsx, hero-panel-actions.tsx).
 pub fn apply_library_state(ui: &AppWindow, shop: &str, object_id: &str) {
     let g = gd(ui);
-    let Some(group) = crate::shell::find_library_game(shop, object_id) else {
+    let group = crate::shell::find_library_game(shop, object_id);
+    update_review_prompt(
+        ui,
+        shop,
+        object_id,
+        group.as_ref().map(|g| g.game.displayed_play_time()).unwrap_or(0.0),
+        group.is_some(),
+    );
+    let Some(group) = group else {
         g.set_in_library(false);
         g.set_has_executable(false);
         g.set_favorite(false);
