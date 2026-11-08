@@ -46,6 +46,15 @@ pub fn remember_launched_pid(key: &str, pid: u32) {
         .insert(key.to_string(), pid);
 }
 
+/// launchedGamePids.get(gameKey): the pid Hydra started the game with.
+pub fn launched_pid(key: &str) -> Option<u32> {
+    LAUNCHED_PIDS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .as_ref()
+        .and_then(|map| map.get(key).copied())
+}
+
 fn forget_launched_pid(key: &str) {
     if let Some(map) = LAUNCHED_PIDS
         .lock()

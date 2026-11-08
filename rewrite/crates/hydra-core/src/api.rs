@@ -357,4 +357,39 @@ impl HydraApi {
         let builder = self.request(Method::DELETE, path, options);
         self.send(builder, options)
     }
+
+    /// `post`, keeping a failed response's `Retry-After` (seconds, as ms):
+    /// the screenshot upload honors it for rate limits and moderation waits.
+    pub fn post_with_retry_after(
+        &self,
+        path: &str,
+        body: &Value,
+        options: Options,
+    ) -> Result<Value, (ApiError, Option<u64>)> {
+        self.validate(options).map_err(|e| (e, None))?;
+        let builder = with_body(self.request(Method::POST, path, options), body);
+        let response = builder
+            .send()
+            .map_err(|e| (ApiError::Network(e.to_string()), None))?;
+        let status = response.status().as_u16();
+        let retry_after = response
+            .headers()
+            .get("retry-after")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.trim().parse::<f64>().ok())
+            .filter(|seconds| seconds.is_finite() && *seconds >= 0.0)
+            .map(|seconds| (seconds * 1000.0) as u64);
+        let text = response
+            .text()
+            .map_err(|e| (ApiError::Network(e.to_string()), None))?;
+        let body: Option<Value> = serde_json::from_str(&text).ok();
+        if (200..300).contains(&status) {
+            return Ok(body.unwrap_or(Value::Null));
+        }
+        let error = ApiError::Status { status, body };
+        if options.needs_auth {
+            self.handle_unauthorized(&error);
+        }
+        Err((error, retry_after))
+    }
 }

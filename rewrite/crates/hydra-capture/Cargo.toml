@@ -1,0 +1,48 @@
+[package]
+name = "hydra-capture"
+description = "Game window capture and the screenshot hotkey for the Rust rewrite: native/hydra-native's desktop duplication, window, focus and input modules (built without napi) plus Windows Graphics Capture and X11 window capture"
+version.workspace = true
+# native/hydra-native is edition 2021.
+edition = "2021"
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+# encode_bgra_screenshot (desktop_duplication.rs): the same versions as native/hydra-native.
+image = { version = "0.25.8", default-features = false, features = ["jpeg"] }
+serde_json.workspace = true
+# NativeAddon.listProcesses (parent pids, cwd, environ)
+sysinfo = { version = "0.37.2", default-features = false, features = ["system"] }
+
+[target.'cfg(windows)'.dependencies]
+# native/hydra-native's features, plus Windows Graphics Capture (window capture).
+windows = { version = "=0.61.3", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_WinRT",
+    "Win32_System_WinRT_Direct3D11",
+    "Win32_System_WinRT_Graphics_Capture",
+    "Foundation",
+    "Graphics",
+    "Graphics_Capture",
+    "Graphics_DirectX",
+    "Graphics_DirectX_Direct3D11",
+] }
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Graphics_Dwm", "Win32_Graphics_Gdi", "Win32_Storage_FileSystem", "Win32_System_LibraryLoader", "Win32_System_Threading", "Win32_UI_Input", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Input_XboxController", "Win32_UI_WindowsAndMessaging"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# kde_focus.rs (zbus method bodies)
+serde.workspace = true
+evdev = "0.13.2"
+libc = "0.2.183"
+# "composite": the X11 window capture (Chromium's XComposite path)
+x11rb = { version = "0.13.2", default-features = false, features = ["res", "xinput", "composite"] }
+zbus = { version = "5", default-features = false, features = ["blocking-api", "async-io"] }
+
+[dev-dependencies]
+tempfile = "3"

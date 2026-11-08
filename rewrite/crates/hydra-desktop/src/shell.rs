@@ -404,6 +404,8 @@ pub fn reload_user(done: Option<Box<dyn FnOnce() + Send>>) {
     let Some((api, ui)) = with_shell(|s| (s.api.clone(), s.ui.clone())) else {
         return;
     };
+    // HydraApi.onAuthContextChanged
+    crate::screenshots::on_auth_changed();
     if !api.is_logged_in() {
         if let Some(ui) = ui.upgrade() {
             let session = ui.global::<Session>();

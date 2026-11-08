@@ -20,5 +20,10 @@ chrono = { version = "0.4", default-features = false, features = ["std", "clock"
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 rustls.workspace = true
 rustls-platform-verifier = "0.7"
+# screenshots: upload compression (sharp), souvenir path hashes, client ids
+image.workspace = true
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
+tempfile = "3"

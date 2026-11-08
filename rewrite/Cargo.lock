@@ -670,6 +670,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitvec"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ddcec3d12c579d40898fe0a9a358a803c23e9c52ca3c425707f81c9436211837"
+dependencies = [
+ "funty",
+ "radium",
+ "tap",
+ "wyz",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1736,6 +1748,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "evdev"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25b686663ba7f08d92880ff6ba22170f1df4e83629341cba34cf82cd65ebea99"
+dependencies = [
+ "bitvec",
+ "cfg-if",
+ "libc",
+ "nix 0.29.0",
+]
+
+[[package]]
 name = "event-listener"
 version = "5.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1979,6 +2003,12 @@ dependencies = [
  "rustix 1.1.6",
  "windows-sys 0.61.2",
 ]
+
+[[package]]
+name = "funty"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6d5a32815ae3f33302d95fdcb2ce17862f8c65363dcfd29360480ba1001fc9c"
 
 [[package]]
 name = "futures"
@@ -2737,6 +2767,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "hydra-capture"
+version = "0.1.0"
+dependencies = [
+ "evdev",
+ "image",
+ "libc",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tempfile",
+ "windows 0.61.3",
+ "windows-sys 0.61.2",
+ "x11rb",
+ "zbus 5.19.0",
+]
+
+[[package]]
 name = "hydra-core"
 version = "0.1.0"
 dependencies = [
@@ -2744,12 +2791,16 @@ dependencies = [
  "hydra-db",
  "icu_collator",
  "icu_locale_core",
+ "image",
  "reqwest",
  "rustls",
  "rustls-platform-verifier",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
  "tungstenite",
+ "uuid",
 ]
 
 [[package]]
@@ -2769,6 +2820,7 @@ dependencies = [
  "base64 0.22.1",
  "dirs 6.0.0",
  "fs2",
+ "hydra-capture",
  "hydra-core",
  "hydra-db",
  "hydra-downloads",
@@ -2791,6 +2843,7 @@ dependencies = [
  "thumbhash",
  "tokio",
  "tray-icon",
+ "uuid",
  "winreg",
  "wry",
 ]
@@ -2957,7 +3010,7 @@ dependencies = [
  "input",
  "libseat",
  "memmap2",
- "nix",
+ "nix 0.31.3",
  "raw-window-handle",
  "xkbcommon",
 ]
@@ -4238,6 +4291,18 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
 name = "nix"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "71e2746dc3a24dd78b3cfcb7be93368c6de9963d30f43a6a73998a9cf4b17b46"
+dependencies = [
+ "bitflags 2.13.2",
+ "cfg-if",
+ "cfg_aliases",
+ "libc",
+]
+
+[[package]]
+name = "nix"
 version = "0.31.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf20d2fde8ff38632c426f1165ed7436270b44f199fc55284c38276f9db47c3d"
@@ -5328,6 +5393,12 @@ name = "r-efi"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
+
+[[package]]
+name = "radium"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
 name = "rand"
@@ -6654,6 +6725,12 @@ dependencies = [
  "quote",
  "syn 2.0.119",
 ]
+
+[[package]]
+name = "tap"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tar"
@@ -8557,6 +8634,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "wyz"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05f360fc0b24296329c78fda852a1e9ae82de9cf7b27dae4b7f62f118f77b9ed"
+dependencies = [
+ "tap",
+]
+
+[[package]]
 name = "x11"
 version = "2.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8974,7 +9060,7 @@ dependencies = [
  "libc",
  "lzma-rust2 0.25.0",
  "memchr",
- "nix",
+ "nix 0.31.3",
  "pbkdf2",
  "ppmd-rust",
  "sha1",
