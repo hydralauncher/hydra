@@ -32,6 +32,7 @@ mod nav;
 mod playtime_modals;
 mod popup;
 mod prefs;
+mod settings_account;
 mod settings_page;
 mod settings_sources;
 mod shell;
@@ -218,6 +219,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     playtime_modals::init(&ui);
     settings_page::init(&ui);
     settings_sources::init(&ui);
+    settings_account::init(&ui);
     download_settings::init(&ui);
     downloads_page::init(&ui, &loader);
     download_indicator::init(&ui, &loader);

@@ -373,6 +373,11 @@ fn wire_session(ui: &AppWindow) {
     session.on_open_friends(|| eprintln!("TODO(friends): friends window"));
 }
 
+/// The shared image loader and the window scale.
+pub fn loader() -> Option<(Loader, f32)> {
+    with_shell(|s| (s.loader.clone(), s.scale))
+}
+
 /// The cached `userDetails` (localStorage), as patchUser keeps it.
 pub fn user_details() -> Option<Value> {
     let db = with_shell(|s| s.db.clone())?;

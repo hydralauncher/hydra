@@ -22,6 +22,12 @@ export struct CheckRow {
     guide: string,
 }
 
+export struct BlockedUser {
+    id: string,
+    name: string,
+    avatar: image,
+}
+
 // One download source (settings-download-sources__item).
 export struct SourceCard {
     id: string,
@@ -113,6 +119,35 @@ export global SettingsData {
     callback change-screenshots-path();
     callback reset-screenshots-path();
     callback open-screenshots-path();
+
+    // ---- Account & Privacy
+    in property <bool> account-loaded;
+    in property <[SelectOption]> visibility-options;
+    in property <string> profile-visibility;
+    in property <string> profile-visibility-label;
+    in property <string> souvenirs-visibility;
+    in property <string> souvenirs-visibility-label;
+    in property <bool> show-screenshot-privacy;
+    in property <string> screenshots-visibility;
+    in property <string> screenshots-visibility-label;
+    in property <bool> show-comments-policy;
+    in property <[SelectOption]> comments-options;
+    in property <string> comments-policy;
+    in property <string> comments-policy-label;
+    in property <string> username;
+    in property <string> email;
+    // subscription_* lines (small text)
+    in property <[string]> cloud-lines;
+    in property <string> cloud-action;
+    in property <bool> allow-gifts;
+    in property <bool> account-busy;
+    in property <[BlockedUser]> blocked;
+    in property <bool> unblocking;
+    callback account-select(string, string);
+    callback update-email();
+    callback update-password();
+    callback open-checkout();
+    callback unblock(string);
 
     // ---- Download sources
     in property <[SourceCard]> sources;
@@ -943,6 +978,217 @@ component ContentPanel inherits VerticalLayout {
     }
 }
 
+// A labelled select-field section that saves on change.
+component AccountSelect inherits Labeled {
+    in property <string> key;
+    in property <[SelectOption]> options;
+    in property <string> value;
+    in property <string> popup;
+    in property <string> current-label;
+    HorizontalLayout {
+        alignment: start;
+        SelectField {
+            width: 124px;
+            popup-id: root.popup;
+            options: root.options;
+            value: root.value;
+            current-label: root.current-label;
+            selected(value) => {
+                SettingsData.account-select(root.key, value);
+            }
+        }
+    }
+}
+
+// settings-account.tsx (settings-account__form: gap 16; sections gap 8)
+component AccountPanel inherits VerticalLayout {
+    spacing: 16px;
+    AccountSelect {
+        key: "profileVisibility";
+        label: T.tr("settings.profile_visibility");
+        options: SettingsData.visibility-options;
+        value: SettingsData.profile-visibility;
+        current-label: SettingsData.profile-visibility-label;
+        popup: "settings-profile-visibility";
+    }
+    AccountSelect {
+        key: "souvenirsVisibility";
+        label: T.tr("settings.souvenirs_visibility");
+        options: SettingsData.visibility-options;
+        value: SettingsData.souvenirs-visibility;
+        current-label: SettingsData.souvenirs-visibility-label;
+        popup: "settings-souvenirs-visibility";
+    }
+    if SettingsData.show-screenshot-privacy: AccountSelect {
+        key: "screenshotsVisibility";
+        label: T.tr("screenshots.privacy_screenshots_visibility");
+        options: SettingsData.visibility-options;
+        value: SettingsData.screenshots-visibility;
+        current-label: SettingsData.screenshots-visibility-label;
+        popup: "settings-screenshots-visibility";
+    }
+    if SettingsData.show-comments-policy: AccountSelect {
+        key: "screenshotCommentsPolicy";
+        label: T.tr("screenshots.privacy_screenshot_comments_policy");
+        options: SettingsData.comments-options;
+        value: SettingsData.comments-policy;
+        current-label: SettingsData.comments-policy-label;
+        popup: "settings-comments-policy";
+    }
+    // username / email: h4 (14px bold) over p (20px line)
+    VerticalLayout {
+        spacing: 8px;
+        Text {
+            text: T.tr("settings.current_username");
+            font-size: Theme.body-size;
+            font-weight: 700;
+            color: Theme.body;
+        }
+        Text {
+            text: SettingsData.username;
+            font-size: Theme.body-size;
+            color: Theme.body;
+            height: 20px;
+            vertical-alignment: center;
+        }
+        Text {
+            text: T.tr("settings.current_email");
+            font-size: Theme.body-size;
+            font-weight: 700;
+            color: Theme.body;
+        }
+        Text {
+            text: SettingsData.email != "" ? SettingsData.email : T.tr("settings.no_email_account");
+            font-size: Theme.body-size;
+            color: Theme.body;
+            height: 20px;
+            vertical-alignment: center;
+        }
+        // __actions: margin-top 8
+        HorizontalLayout {
+            padding-top: 8px;
+            spacing: 8px;
+            alignment: start;
+            HydraButton {
+                kind: "outline";
+                icon: @image-url("../../icons/mail.svg");
+                text: T.tr("settings.update_email");
+                clicked => {
+                    SettingsData.update-email();
+                }
+            }
+            HydraButton {
+                kind: "outline";
+                icon: @image-url("../../icons/key.svg");
+                text: T.tr("settings.update_password");
+                clicked => {
+                    SettingsData.update-password();
+                }
+            }
+        }
+    }
+    VerticalLayout {
+        spacing: 8px;
+        GroupTitle {
+            text: T.tr("settings.hydra_cloud");
+        }
+        // __subscription-info: small lines, gap 16
+        VerticalLayout {
+            spacing: 16px;
+            for line in SettingsData.cloud-lines: Text {
+                text: line;
+                font-size: 11.67px;
+                color: Theme.body;
+            }
+        }
+        HorizontalLayout {
+            alignment: start;
+            HydraButton {
+                kind: "outline";
+                icon: Icons.cloud;
+                text: SettingsData.cloud-action;
+                clicked => {
+                    SettingsData.open-checkout();
+                }
+            }
+        }
+    }
+    VerticalLayout {
+        spacing: 8px;
+        GroupTitle {
+            text: T.tr("settings.cloud_gifts");
+        }
+        CheckboxField {
+            label: T.tr("settings.allow_cloud_gifts");
+            checked: SettingsData.allow-gifts;
+            enabled: !SettingsData.account-busy;
+            toggled => {
+                SettingsData.account-select("allowCloudGifts", SettingsData.allow-gifts ? "false" : "true");
+            }
+        }
+    }
+    VerticalLayout {
+        spacing: 8px;
+        GroupTitle {
+            text: T.tr("settings.blocked_users");
+        }
+        if SettingsData.blocked.length == 0: Text {
+            text: T.tr("settings.no_users_blocked");
+            font-size: 11.67px;
+            color: Theme.body;
+        }
+        for user in SettingsData.blocked: HorizontalLayout {
+            spacing: 8px;
+            // __user-avatar is grayscale (the image comes in gray)
+            Rectangle {
+                width: 32px;
+                height: 32px;
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: Theme.border;
+                background: Theme.background;
+                clip: true;
+                if user.avatar.width > 0: Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: user.avatar;
+                    image-fit: cover;
+                }
+                if user.avatar.width == 0: Icon {
+                    width: 19px;
+                    height: 19px;
+                    source: Icons.person;
+                    color: Theme.muted;
+                }
+            }
+            Text {
+                horizontal-stretch: 1;
+                text: user.name;
+                font-size: Theme.body-size;
+                color: Theme.body;
+                vertical-alignment: center;
+            }
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 16px;
+                    height: 16px;
+                    source: @image-url("../../icons/x-circle-fill.svg");
+                    color: Theme.danger;
+                    opacity: SettingsData.unblocking ? Theme.disabled-opacity : 1;
+                    TouchArea {
+                        enabled: !SettingsData.unblocking;
+                        mouse-cursor: pointer;
+                        clicked => {
+                            SettingsData.unblock(user.id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // settings-download-sources.tsx
 component SourcesPanel inherits VerticalLayout {
     property <bool> busy: SettingsData.sources-syncing || SettingsData.sources-removing;
@@ -1225,7 +1471,8 @@ export component SettingsPage inherits Rectangle {
                             if SettingsData.category == "download_sources": SourcesPanel { }
                             if SettingsData.category == "notifications": NotificationsPanel { }
                             if SettingsData.category == "content_gameplay": ContentPanel { }
-                            if SettingsData.category != "general" && SettingsData.category != "downloads" && SettingsData.category != "download_sources" && SettingsData.category != "notifications" && SettingsData.category != "content_gameplay": Text {
+                            if SettingsData.category == "account_privacy" && SettingsData.account-loaded: AccountPanel { }
+                            if SettingsData.category != "general" && SettingsData.category != "downloads" && SettingsData.category != "download_sources" && SettingsData.category != "notifications" && SettingsData.category != "content_gameplay" && SettingsData.category != "account_privacy": Text {
                                 text: "TODO(settings): " + SettingsData.category + " not ported yet";
                                 color: Theme.subtle;
                                 font-size: Theme.small-size;

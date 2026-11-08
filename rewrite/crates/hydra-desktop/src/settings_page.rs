@@ -250,6 +250,9 @@ fn select(id: &str) {
     } else {
         crate::settings_sources::leave();
     }
+    if id == "account_privacy" {
+        crate::settings_account::refresh();
+    }
     let label = categories()
         .into_iter()
         .find(|(c, _, _)| c == id)
