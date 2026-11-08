@@ -27,6 +27,7 @@ uuid = { version = "1", features = ["v4"] }
 # Extended_Pictographic for emoji-only chat messages (chat-emoji.ts); already in the
 # tree through icu_collator.
 icu_properties = "2"
+# (image also crops profile pictures: events/profile, sharp in Electron)
 
 [dev-dependencies]
 tempfile = "3"

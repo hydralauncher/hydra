@@ -56,6 +56,9 @@ import { Gifs } from "components/animated.slint";
 import { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar } from "pages/library/state.slint";
 import { TitleBar } from "shell/title-bar.slint";
 import { Sidebar } from "shell/sidebar.slint";
+import { ProfilePage } from "pages/profile/page.slint";
+import { ProfileData, ProfileGameCard, ProfileBadge, ProfileFriend, ProfileRecentGame, ProfileReview, ProfileSouvenirCard, ProfileSouvenirGroup } from "pages/profile/state.slint";
+import { ProfileModalsHost, ProfileModals } from "pages/profile/modals.slint";
 
 export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback, RepackRow, RepackSource }
 export { T, Nav, Session, Chrome, SidebarState, SidebarGame, SidebarFilterOption, GameData, Input, SmoothScroll, GameOptions, OptionsCategory, PlaytimeModals, PlaytimeColumn, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow, AuthWindow, HosterBrowserWindow, NotificationsData, NotificationRow, Popup, Bookmark, DownloadSettings, DownloaderRow, TorrentStep, TorrentRow, RealDebridInfo, DownloadCard, Dropdown, DropdownItem, Flight }
@@ -69,6 +72,7 @@ export { ScreenshotsData, CompatibilityData, ProtonOption, EmulationData, Consol
 export { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup, SelectPopup, SelectOption }
 export { FriendsWindow, FriendsData, FriendRow, ChatWindow }
 export { ChatData, ChatConversationRow, ChatPickerRow, ChatReactionPill, ChatImageCell, ChatItem, ChatDraftImage, ChatEmoji }
+export { ProfileData, ProfileGameCard, ProfileBadge, ProfileFriend, ProfileRecentGame, ProfileReview, ProfileSouvenirCard, ProfileSouvenirGroup, ProfileModals }
 
 export component AppWindow inherits Window {
     title: GameData.game-title != "" && Nav.route == "game" ? "Hydra — " + GameData.game-title : "Hydra";
@@ -151,7 +155,12 @@ export component AppWindow inherits Window {
                     height: parent.height;
                 }
 
-                if Nav.route != "game" && Nav.route != "library" && Nav.route != "home" && Nav.route != "catalogue" && Nav.route != "downloads" && Nav.route != "settings" && Nav.route != "notifications" && Nav.route != "achievements": Text {
+                if Nav.route == "profile": ProfilePage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route != "game" && Nav.route != "library" && Nav.route != "home" && Nav.route != "catalogue" && Nav.route != "downloads" && Nav.route != "settings" && Nav.route != "notifications" && Nav.route != "achievements" && Nav.route != "profile": Text {
                     text: "TODO(" + Nav.route + "): not ported yet";
                     color: Theme.subtle;
                     font-size: Theme.small-size;
@@ -171,6 +180,12 @@ export component AppWindow inherits Window {
 
     // Game page modals (z-index 5, like the dialogs).
     GameModalsHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // The profile's modals (pages/profile), under the confirmation dialogs.
+    ProfileModalsHost {
         width: root.width;
         height: root.height;
     }

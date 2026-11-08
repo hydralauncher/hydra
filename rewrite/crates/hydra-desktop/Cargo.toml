@@ -47,6 +47,8 @@ interprocess = "2"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 # Noto Sans advances for line breaks Slint can't report (text_metrics.rs)
 ttf-parser = "0.25"
+# clipboard.writeText (copy friend code); already in the tree through Slint's winit backend.
+arboard = { version = "3.7", default-features = false }
 
 # OS notifications: Windows toasts (Electron sets the icon as appLogoOverride),
 # libnotify-style D-Bus notifications elsewhere.

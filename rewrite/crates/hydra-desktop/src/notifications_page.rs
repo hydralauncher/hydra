@@ -752,8 +752,67 @@ fn mark_read(key: &str) {
     });
 }
 
-/// buildProfileTarget / parseNotificationUrl / getNotificationTarget
+/// getNotificationTarget: the URL's target, plus the souvenir or screenshot
+/// to open (buildSouvenirNotificationTarget / buildScreenshotNotificationTarget).
 fn target(n: &Value) -> Option<String> {
+    let base = url_target(n)?;
+    let kind = text(n, "type");
+    let (pathname, query) = base.split_once('?').unwrap_or((base.as_str(), ""));
+    let mut params: Vec<(String, String)> = nav::Location::parse(&format!("/?{query}")).query;
+    let set = |params: &mut Vec<(String, String)>, key: &str, value: String| {
+        params.retain(|(k, _)| k != key);
+        params.push((key.to_string(), value));
+    };
+    if kind == "SOUVENIR_LIKE" {
+        let souvenir = Some(var(n, "souvenirId"))
+            .filter(|v| !v.is_empty())
+            .or_else(|| Some(var(n, "souvenirKey")).filter(|v| !v.is_empty()));
+        let Some(souvenir) = souvenir else {
+            return Some(base);
+        };
+        set(&mut params, "tab", "souvenirs".into());
+        set(&mut params, "souvenir", souvenir);
+    } else if kind.starts_with("SCREENSHOT_") {
+        let owner = Some(var(n, "ownerId"))
+            .filter(|v| !v.is_empty())
+            .or_else(|| {
+                params
+                    .iter()
+                    .find(|(k, _)| k == "userId")
+                    .map(|(_, v)| v.clone())
+            });
+        params.retain(|(k, _)| k != "userId");
+        let path = match owner {
+            Some(owner) if !pathname.starts_with("/profile/") => {
+                format!("/profile/{}", url_encode(&owner))
+            }
+            _ => pathname.to_string(),
+        };
+        set(&mut params, "tab", "screenshots".into());
+        let screenshot = var(n, "screenshotId");
+        if !screenshot.is_empty() {
+            set(&mut params, "screenshot", screenshot);
+        }
+        return Some(with_query(&path, &params));
+    } else {
+        return Some(base);
+    }
+    Some(with_query(pathname, &params))
+}
+
+fn with_query(path: &str, params: &[(String, String)]) -> String {
+    if params.is_empty() {
+        return path.to_string();
+    }
+    let query: Vec<String> = params
+        .iter()
+        .map(|(k, v)| format!("{}={}", nav::encode(k), nav::encode(v)))
+        .collect();
+    format!("{path}?{}", query.join("&"))
+}
+
+/// buildProfileTarget / parseNotificationUrl
+fn url_target(n: &Value) -> Option<String> {
     let kind = text(n, "type");
     let mut url = text(n, "url");
     if url.is_empty() {
@@ -785,7 +844,18 @@ fn target(n: &Value) -> Option<String> {
     if path == "/profile"
         && let Some(user) = param("userId")
     {
-        return Some(format!("/profile/{user}"));
+        // PROFILE_DEEP_LINK_PARAMS
+        let mut query: Vec<String> = Vec::new();
+        for key in ["tab", "souvenir", "screenshot"] {
+            if let Some(value) = param(key).filter(|v| !v.is_empty()) {
+                query.push(format!("{key}={}", url_encode(&value)));
+            }
+        }
+        return Some(if query.is_empty() {
+            format!("/profile/{user}")
+        } else {
+            format!("/profile/{user}?{}", query.join("&"))
+        });
     }
     if path == "/badges"
         && let Some(name) = param("name")

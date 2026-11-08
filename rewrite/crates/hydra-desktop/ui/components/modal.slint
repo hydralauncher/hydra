@@ -7,6 +7,10 @@ import { Icon } from "widgets.slint";
 // start from their first frame.
 export component Modal inherits Rectangle {
     in property <string> title;
+    // A count chip after the title (all-badges / all-friends modals); "" for none.
+    in property <string> title-count;
+    // clickOutsideToClose={false}: only Escape and the close button close it.
+    in property <bool> click-outside-to-close: true;
     in property <string> description;
     in property <bool> large;
     in property <bool> no-content-padding;
@@ -62,7 +66,7 @@ export component Modal inherits Rectangle {
         // pointerdown outside the dialog closes it (Hydra listens on pointerdown, not click).
         outside := TouchArea {
             pointer-event(event) => {
-                if (event.kind == PointerEventKind.down && !root.closing) {
+                if (event.kind == PointerEventKind.down && !root.closing && root.click-outside-to-close) {
                     root.request-close();
                 }
             }
@@ -106,12 +110,38 @@ export component Modal inherits Rectangle {
                             spacing: 4px;
                             alignment: center;
                             horizontal-stretch: 1;
-                            Text {
+                            if root.title-count == "": Text {
                                 text: root.title;
                                 color: Theme.body;
                                 font-size: 16.38px;
                                 font-weight: 700;
                                 wrap: word-wrap;
+                            }
+                            // __title: the title and the count pill (gap 8)
+                            if root.title-count != "": HorizontalLayout {
+                                spacing: 8px;
+                                alignment: start;
+                                Text {
+                                    text: root.title;
+                                    color: Theme.body;
+                                    font-size: 16.38px;
+                                    font-weight: 700;
+                                    vertical-alignment: center;
+                                }
+                                Rectangle {
+                                    height: 25px;
+                                    width: Math.max(24px, title-count-text.preferred-width + 16px);
+                                    border-radius: 6px;
+                                    background: rgba(255, 255, 255, 0.1);
+                                    title-count-text := Text {
+                                        text: root.title-count;
+                                        font-size: Theme.small-size;
+                                        font-weight: 700;
+                                        color: rgba(255, 255, 255, 0.7);
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                }
                             }
                             if root.description != "": Text {
                                 text: root.description;

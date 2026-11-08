@@ -367,7 +367,15 @@ pub fn tr_with(key: &str, args: &[(&str, Arg)]) -> String {
 
 fn wire_session(ui: &AppWindow) {
     let session = ui.global::<Session>();
-    session.on_open_profile(|| eprintln!("TODO(profile): open profile"));
+    // sidebar-profile "See profile": /profile/{userDetails.id}
+    session.on_open_profile(|| {
+        if let Some(id) = user_details()
+            .and_then(|u| u.get("id").and_then(Value::as_str).map(str::to_string))
+            .filter(|id| !id.is_empty())
+        {
+            nav::navigate(&format!("/profile/{id}"));
+        }
+    });
     session.on_open_notifications(|| nav::navigate("/notifications"));
     session.on_open_friends(crate::friends_window::open);
     session.on_prefetch_friends(crate::friends_window::prefetch);

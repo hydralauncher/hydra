@@ -231,6 +231,18 @@ fn apply(previous: Option<String>) {
             location.param("title").unwrap_or_default(),
         );
     }
+    if previous_location.as_ref().map(|l| l.route()) == Some("profile")
+        && location.route() != "profile"
+    {
+        crate::profile_page::close();
+    }
+    if location.route() == "profile" {
+        crate::profile_page::open(
+            &location.pathname,
+            &location,
+            previous_location.as_ref().map(|l| l.pathname.as_str()),
+        );
+    }
     if location.route() == "notifications" {
         crate::notifications_page::open_page();
     }

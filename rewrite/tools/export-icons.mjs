@@ -110,7 +110,6 @@ const icons = {
   bold: [lucide.Bold, { size: 16 }],
   italic: [lucide.Italic, { size: 16 }],
   underline: [lucide.Underline, { size: 16 }],
-  cloud: [oct.CloudIcon, { size: 16 }],
   check: [oct.CheckIcon, { size: 14 }],
   person: [oct.PersonIcon, { size: 40 }],
   "cloud-check": [phosphor.CloudCheck, { size: 22, weight: "fill" }],
@@ -157,9 +156,7 @@ const icons = {
   "telescope-24": [oct.TelescopeIcon, { size: 24 }],
   "heart-24": [oct.HeartIcon, { size: 24 }],
   "file-directory-24": [oct.FileDirectoryIcon, { size: 24 }],
-  "file-directory": [oct.FileDirectoryIcon, { size: 16 }],
   "search-24": [oct.SearchIcon, { size: 24 }],
-  "sync-24": [oct.SyncIcon, { size: 24 }],
   sync: [oct.SyncIcon, { size: 16 }],
   plus: [oct.PlusIcon, { size: 16 }],
   filter: [oct.FilterIcon, { size: 16 }],
@@ -176,12 +173,8 @@ const icons = {
   "trophy-14": [oct.TrophyIcon, { size: 14 }],
   // Context menus (game-context-menu.tsx) and toasts
   "file-directory-fill": [oct.FileDirectoryFillIcon, { size: 16 }],
-  link: [oct.LinkIcon, { size: 16 }],
-  image: [oct.ImageIcon, { size: 16 }],
   "eye-closed-16": [oct.EyeClosedIcon, { size: 16 }],
-  "trash-16": [oct.TrashIcon, { size: 16 }],
   "x-16": [oct.XIcon, { size: 16 }],
-  "x-circle-fill": [oct.XCircleFillIcon, { size: 16 }],
   "alert-16": [oct.AlertIcon, { size: 16 }],
   // Catalogue (pagination, game items, filter sections)
   "lucide-chevron-left": [lucide.ChevronLeft, { size: 16, strokeWidth: 2.25, absoluteStrokeWidth: true }],
@@ -227,6 +220,22 @@ const icons = {
   "desktop-download": [oct.DesktopDownloadIcon, { size: 16 }],
   "chevron-right-12": [oct.ChevronRightIcon, { size: 12 }],
   "eye-16": [oct.EyeIcon, { size: 16 }],
+  // Profile (profile-hero, profile-content, edit-profile-modal, image-crop-modal)
+  "copy-16": [oct.CopyIcon, { size: 16 }],
+  blocked: [oct.BlockedIcon, { size: 16 }],
+  "gift-16": [oct.GiftIcon, { size: 16 }],
+  upload: [oct.UploadIcon, { size: 16 }],
+  "chevron-down-14": [oct.ChevronDownIcon, { size: 14 }],
+  "report-13": [oct.ReportIcon, { size: 13 }],
+  "device-camera-38": [oct.DeviceCameraIcon, { size: 38 }],
+  "award-20": [lucide.Award, { size: 20 }],
+  "trash-lucide-14": [lucide.TrashIcon, { size: 14 }],
+  "grid-2x2": [lucide.Grid2x2Icon, { size: 16 }],
+  "minus-lucide": [lucide.MinusIcon, { size: 16 }],
+  "plus-lucide": [lucide.PlusIcon, { size: 16 }],
+  "rotate-ccw-square": [lucide.RotateCcwSquareIcon, { size: 16 }],
+  "rotate-ccw": [lucide.RotateCcwIcon, { size: 16 }],
+  "lock-24": [oct.LockIcon, { size: 24 }],
 };
 
 for (const [name, [Icon, props]] of Object.entries(icons)) {
