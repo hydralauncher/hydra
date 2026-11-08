@@ -19,6 +19,9 @@ import { T, Nav, Session, Chrome, SidebarState, SidebarGame, Popup } from "globa
 import { GameData, Input } from "pages/game-details/state.slint";
 import { GameDetailsPage } from "pages/game-details/page.slint";
 import { LibraryPage } from "pages/library/page.slint";
+import { HomePage } from "pages/home/page.slint";
+import { HomeData, CatalogueCard } from "pages/home/state.slint";
+import { Gifs } from "components/animated.slint";
 import { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar } from "pages/library/state.slint";
 import { TitleBar } from "shell/title-bar.slint";
 import { Sidebar } from "shell/sidebar.slint";
@@ -27,6 +30,7 @@ export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language,
 export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input, Popup }
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
+export { HomeData, CatalogueCard, Gifs }
 
 export component AppWindow inherits Window {
     title: GameData.game-title != "" && Nav.route == "game" ? "Hydra — " + GameData.game-title : "Hydra";
@@ -79,7 +83,12 @@ export component AppWindow inherits Window {
                     wheel-scale: Input.wheel-scale;
                 }
 
-                if Nav.route != "game" && Nav.route != "library": Text {
+                if Nav.route == "home": HomePage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route != "game" && Nav.route != "library" && Nav.route != "home": Text {
                     text: "TODO(" + Nav.route + "): not ported yet";
                     color: Theme.subtle;
                     font-size: Theme.small-size;

@@ -1,0 +1,195 @@
+// components/game-card/game-card.{tsx,scss}: a 180px catalogue card. Hover
+// zooms the cover (1.05) and slides the content up 24px to show the stats.
+import { Theme } from "../theme.slint";
+import { Icon } from "widgets.slint";
+import { CatalogueCard } from "../pages/home/state.slint";
+import { T } from "../globals.slint";
+
+// components/badge: 11px, padding 4px 8px, 1px rgba(255,255,255,.2) border,
+// radius 6, rgba(255,255,255,.1) over a backdrop blur.
+export component Badge inherits Rectangle {
+    in property <string> text;
+    height: label.preferred-height + 10px;
+    width: label.preferred-width + 18px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    drop-shadow-offset-y: 2px;
+    drop-shadow-blur: 4px;
+    drop-shadow-color: rgba(0, 0, 0, 0.1);
+    label := Text {
+        text: root.text;
+        font-size: Theme.tiny-size;
+        color: Theme.muted;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+    }
+}
+
+export component GameCard inherits Rectangle {
+    in property <CatalogueCard> card;
+    callback clicked();
+    callback hovered();
+    property <bool> hover: touch.has-hover;
+
+    height: 180px;
+    border-radius: 4px;
+    // box-shadow: 0 0 15px #000
+    drop-shadow-blur: 15px;
+    drop-shadow-color: #000000;
+    background: Theme.dark-background;
+    opacity: touch.pressed ? Theme.active-opacity : 1;
+    animate opacity { duration: 200ms; easing: ease; }
+    accessible-role: button;
+    accessible-label: root.card.title;
+
+    Rectangle {
+        border-radius: 4px;
+        clip: true;
+
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.card.cover;
+            image-fit: cover;
+            transform-scale: root.hover ? 1.05 : 1;
+            animate transform-scale { duration: 200ms; easing: ease; }
+        }
+
+        // __backdrop: linear-gradient(0deg, rgba(0,0,0,.7) 50%, transparent 100%)
+        Rectangle {
+            background: @linear-gradient(0deg, rgba(0, 0, 0, 0.7) 50%, transparent 100%);
+        }
+
+        // __content: padding 8px 16px, gap 8, translateY(24px) until hovered
+        content := VerticalLayout {
+            x: 1px;
+            width: parent.width - 2px;
+            height: self.preferred-height;
+            y: parent.height - 1px - self.preferred-height + (root.hover ? 0 : 24px);
+            animate y { duration: 200ms; easing: ease; }
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            spacing: 8px;
+
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                if root.card.shop != "": Icon {
+                    y: (parent.height - self.height) / 2;
+                    width: 20px;
+                    height: 20px;
+                    source: root.card.shop == "epic" ? @image-url("../icons/epic-logo.svg") : @image-url("../icons/steam-logo.svg");
+                    color: Theme.muted;
+                }
+                Text {
+                    text: root.card.title;
+                    font-size: 16px;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+            }
+
+            if root.card.sources.length > 0: HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                for source in root.card.sources: Badge {
+                    text: source;
+                }
+                if root.card.more-sources != "": Badge {
+                    text: root.card.more-sources;
+                }
+            }
+            if root.card.sources.length == 0: Text {
+                text: T.tr("game_card.no_downloads");
+                font-weight: 700;
+                color: Theme.body;
+                font-size: Theme.button-size;
+            }
+
+            // __specifics: downloads, players, rating (12px)
+            HorizontalLayout {
+                spacing: 16px;
+                alignment: start;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Icon {
+                        y: (parent.height - self.height) / 2;
+                        width: 16px;
+                        height: 16px;
+                        source: @image-url("../icons/download.svg");
+                        color: Theme.muted;
+                    }
+                    Text {
+                        text: root.card.downloads;
+                        font-size: Theme.small-size;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    Icon {
+                        y: (parent.height - self.height) / 2;
+                        width: 16px;
+                        height: 16px;
+                        source: @image-url("../icons/people.svg");
+                        color: Theme.muted;
+                    }
+                    Text {
+                        text: root.card.players;
+                        font-size: Theme.small-size;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                    }
+                }
+                // StarRating (single star + value)
+                HorizontalLayout {
+                    spacing: 2px;
+                    Icon {
+                        y: (parent.height - self.height) / 2;
+                        width: 14px;
+                        height: 14px;
+                        source: @image-url("../icons/star-fill.svg");
+                        color: #ffffff;
+                    }
+                    // __value: margin-left 4px
+                    HorizontalLayout {
+                        padding-left: 4px;
+                        Text {
+                            text: root.card.rating;
+                            font-size: Theme.small-size;
+                            font-weight: 500;
+                            color: Theme.muted;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // border: 1px solid $border-color
+    Rectangle {
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: Theme.border;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        changed has-hover => {
+            if (self.has-hover) {
+                root.hovered();
+            }
+        }
+    }
+}

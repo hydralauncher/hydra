@@ -1,0 +1,38 @@
+// Home page data and actions; the backend (home_page.rs) fills this.
+
+// components/game-card (catalogue ShopAssets + lazily fetched stats).
+export struct CatalogueCard {
+    title: string,
+    // "steam" | "epic" | ""
+    shop: string,
+    cover: image,
+    // First three download source names.
+    sources: [string],
+    // "+2 available" when there are more; empty otherwise.
+    more-sources: string,
+    stats-loaded: bool,
+    downloads: string,
+    players: string,
+    // averageScore.toFixed(1), "…" until loaded
+    rating: string,
+}
+
+export global HomeData {
+    // components/hero: the featured game.
+    in property <bool> featured-loading: true;
+    in property <bool> featured-shown;
+    in property <image> featured-hero;
+    in property <image> featured-logo;
+    in property <string> featured-description;
+    // "hot" | "weekly" | "achievements"
+    in property <string> category: "hot";
+    in property <bool> loading: true;
+    in property <[CatalogueCard]> cards;
+    in property <bool> random-ready;
+
+    callback open-featured();
+    callback select-category(string);
+    callback surprise();
+    callback open-card(int);
+    callback card-hovered(int);
+}

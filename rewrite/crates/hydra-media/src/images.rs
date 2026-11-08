@@ -96,12 +96,16 @@ const CACHE_MAX_BYTES: u64 = 512 * 1024 * 1024;
 pub fn set_cache_dir(dir: PathBuf) {
     let _ = std::fs::create_dir_all(&dir);
     if CACHE_DIR.set(dir.clone()).is_ok() {
-        let _ = thread::Builder::new().name("image-cache-trim".into()).spawn(move || trim_cache(&dir));
+        let _ = thread::Builder::new()
+            .name("image-cache-trim".into())
+            .spawn(move || trim_cache(&dir));
     }
 }
 
 fn trim_cache(dir: &Path) {
-    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
     let mut files: Vec<(std::time::SystemTime, u64, PathBuf)> = entries
         .filter_map(Result::ok)
         .filter_map(|e| {
@@ -146,7 +150,11 @@ pub fn fetch(http: &reqwest::blocking::Client, source: &Source) -> Option<Vec<u8
             let cached = CACHE_DIR.get().map(|dir| dir.join(cache_key(url)));
             if let Some(path) = &cached
                 && let Ok(meta) = std::fs::metadata(path)
-                && meta.modified().ok().and_then(|m| m.elapsed().ok()).is_some_and(|age| age < CACHE_FRESH)
+                && meta
+                    .modified()
+                    .ok()
+                    .and_then(|m| m.elapsed().ok())
+                    .is_some_and(|age| age < CACHE_FRESH)
                 && let Ok(bytes) = std::fs::read(path)
             {
                 return Some(bytes);

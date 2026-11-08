@@ -10,7 +10,9 @@ mod devscript;
 mod format;
 mod game_menu;
 mod game_page;
+mod gifs;
 mod headless;
+mod home_page;
 mod library_page;
 mod nav;
 mod popup;
@@ -151,6 +153,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     game_page::init(&ui, &loader);
     library_page::init(&ui);
+    home_page::init(&ui, &loader);
+    gifs::init(&ui);
     popup::init(&ui);
     toast::init(&ui);
     context_menu::init(&ui);
@@ -183,6 +187,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // thread-local destructors under worker threads that are still parked.
     game_page::shutdown();
     library_page::shutdown();
+    home_page::shutdown();
     shell::shutdown();
     drop(ui);
     std::process::exit(0);
