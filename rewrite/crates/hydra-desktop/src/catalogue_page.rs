@@ -174,6 +174,9 @@ struct Page {
     launchbox: Option<LaunchboxFilters>,
     adding: HashSet<String>,
     items: Rc<VecModel<CatalogueItem>>,
+    /// The filter chips' wrapper width (catalogue__filters-wrapper).
+    chips_width: f32,
+    chips: Rc<VecModel<FilterChip>>,
 }
 
 thread_local! {
@@ -190,6 +193,135 @@ fn language() -> String {
         .unwrap_or_else(|| "en".into())
 }
 
+/// protonCompatibilityThresholds: (value, label key, ProtonDB tiers)
+const PROTON_THRESHOLDS: [(&str, &str, &[&str]); 3] = [
+    (
+        "silver_plus",
+        "catalogue.protondb_silver_plus",
+        &["silver", "gold", "platinum"],
+    ),
+    (
+        "gold_plus",
+        "catalogue.protondb_gold_plus",
+        &["gold", "platinum"],
+    ),
+    (
+        "platinum_only",
+        "catalogue.protondb_platinum_only",
+        &["platinum"],
+    ),
+];
+
+/// shouldShowProtonFeatures (`HYDRA_DEV_LINUX_UI=1` shows it elsewhere for testing).
+fn show_proton() -> bool {
+    cfg!(target_os = "linux") || std::env::var_os("HYDRA_DEV_LINUX_UI").is_some()
+}
+
+/// areSameValues: same length, every item in the other.
+fn same_values(a: &[String], b: &[&str]) -> bool {
+    a.len() == b.len() && a.iter().all(|x| b.contains(&x.as_str()))
+}
+
+/// The threshold whose tiers are exactly the selected ProtonDB badges.
+fn proton_threshold(
+    badges: &[String],
+) -> Option<(&'static str, &'static str, &'static [&'static str])> {
+    PROTON_THRESHOLDS
+        .iter()
+        .copied()
+        .find(|(_, _, values)| same_values(badges, values))
+}
+
+fn deck_compatible(deck: &[String]) -> bool {
+    same_values(deck, &["playable", "verified"])
+}
+
+/// pagination.tsx onJumpChange: digits only, "" when none, clamped to 1..total.
+pub(crate) fn jump_value(text: &str, total: i32) -> String {
+    let digits: String = text.chars().filter(char::is_ascii_digit).collect();
+    if digits.is_empty() {
+        return String::new();
+    }
+    // parseInt of a long digit run is a huge number: past the total either way.
+    let value: i64 = digits.parse().unwrap_or(i64::MAX);
+    value.clamp(1, total.max(1) as i64).to_string()
+}
+
+/// filter-item's width: 9px orb + 8 + the label (max 220px) + 8 + the 22px
+/// remove button, inside 9px / 5px of padding (the 1px border included),
+/// at most 300px.
+fn chip_width(label: &str) -> f32 {
+    let text = crate::text_metrics::width(label, 12.0).ceil().min(220.0);
+    (9.0 + 9.0 + 8.0 + text + 8.0 + 22.0 + 5.0).min(300.0)
+}
+
+/// catalogue__filters-list: `flex-wrap: wrap; gap: 8px` over the wrapper width.
+pub(crate) fn wrap_chips(widths: &[f32], room: f32) -> (Vec<(f32, f32)>, f32) {
+    const HEIGHT: f32 = 32.0;
+    const GAP: f32 = 8.0;
+    let (mut x, mut y) = (0.0f32, 0.0f32);
+    let mut out = Vec::with_capacity(widths.len());
+    for &w in widths {
+        if x > 0.0 && x + w > room + 0.5 {
+            x = 0.0;
+            y += HEIGHT + GAP;
+        }
+        out.push((x, y));
+        x += w + GAP;
+    }
+    let height = if widths.is_empty() { 0.0 } else { y + HEIGHT };
+    (out, height)
+}
+
+/// Lay the chips out in rows (positions in the model, in place).
+fn layout_chips() {
+    let Some((ui, chips, room)) = with_page(|p| (p.ui.clone(), p.chips.clone(), p.chips_width))
+    else {
+        return;
+    };
+    let Some(ui) = ui.upgrade() else { return };
+    let widths: Vec<f32> = (0..chips.row_count())
+        .filter_map(|i| chips.row_data(i))
+        .map(|c| chip_width(&c.label))
+        .collect();
+    let (positions, height) = wrap_chips(&widths, room.max(1.0));
+    for (i, ((x, y), w)) in positions.into_iter().zip(widths).enumerate() {
+        if let Some(mut chip) = chips.row_data(i)
+            && (chip.x != x || chip.y != y || chip.width != w)
+        {
+            chip.x = x;
+            chip.y = y;
+            chip.width = w;
+            chips.set_row_data(i, chip);
+        }
+    }
+    ui.global::<CatalogueData>().set_chips_height(height);
+}
+
+#[cfg(test)]
+mod layout_tests {
+    use super::*;
+
+    #[test]
+    fn jump_values_are_digits_clamped_to_the_pages() {
+        assert_eq!(jump_value("", 40), "");
+        assert_eq!(jump_value("abc", 40), "");
+        assert_eq!(jump_value("0", 40), "1");
+        assert_eq!(jump_value("4a2", 40), "40");
+        assert_eq!(jump_value("12", 40), "12");
+        assert_eq!(jump_value("99999999999999999999999", 40), "40");
+    }
+
+    #[test]
+    fn chips_wrap_onto_rows_of_32px() {
+        let (positions, height) = wrap_chips(&[100.0, 100.0, 100.0], 250.0);
+        assert_eq!(positions, vec![(0.0, 0.0), (108.0, 0.0), (0.0, 40.0)]);
+        assert_eq!(height, 72.0);
+        let (_, one_row) = wrap_chips(&[50.0], 250.0);
+        assert_eq!(one_row, 32.0);
+    }
+}
+
 fn format_number(value: f64) -> String {
     shell::i18n()
         .map(|i| i.format_number(value))
@@ -198,8 +330,10 @@ fn format_number(value: f64) -> String {
 
 pub fn init(ui: &AppWindow, loader: &Loader) {
     let items = Rc::new(VecModel::from(Vec::<CatalogueItem>::new()));
+    let chips = Rc::new(VecModel::from(Vec::<FilterChip>::new()));
     let data = ui.global::<CatalogueData>();
     data.set_items(ModelRc::from(items.clone()));
+    data.set_chips(ModelRc::from(chips.clone()));
     let year = current_year();
     data.set_year_max(year);
     data.set_year_lte(year);
@@ -226,10 +360,24 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
             launchbox: None,
             adding: HashSet::new(),
             items,
+            chips_width: 0.0,
+            chips: chips.clone(),
         })
     });
 
     data.on_format_page(|n| format_number(n as f64).into());
+    data.on_jump_value(|text, total| jump_value(&text, total).into());
+    data.on_chips_width(|width| {
+        let changed = with_page(|p| {
+            let changed = (p.chips_width - width).abs() > 0.5;
+            p.chips_width = width;
+            changed
+        })
+        .unwrap_or(false);
+        if changed {
+            layout_chips();
+        }
+    });
     data.on_open_item(|index| {
         let game = with_page(|p| p.results.get(index as usize).cloned()).flatten();
         if let Some(game) = game {
@@ -388,6 +536,29 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
     data.on_clear_years(|| {
         with_page(|p| {
             p.filters.release_year = None;
+            p.page = 1;
+        });
+        refresh(true);
+    });
+    data.set_show_proton(show_proton());
+    data.on_set_proton_tier(|value| {
+        with_page(|p| {
+            p.filters.protondb = PROTON_THRESHOLDS
+                .iter()
+                .find(|(v, _, _)| *v == value.as_str())
+                .map(|(_, _, tiers)| tiers.iter().map(|t| t.to_string()).collect())
+                .unwrap_or_default();
+            p.page = 1;
+        });
+        refresh(true);
+    });
+    data.on_set_deck(|checked| {
+        with_page(|p| {
+            p.filters.deck = if checked {
+                vec!["playable".into(), "verified".into()]
+            } else {
+                Vec::new()
+            };
             p.page = 1;
         });
         refresh(true);
@@ -736,6 +907,9 @@ fn apply_sections() {
                 color,
                 key: key.into(),
                 value: value.into(),
+                x: 0.0,
+                y: 0.0,
+                width: 0.0,
             };
         type Section = (&'static str, String, Vec<Row>, bool);
         let sections: Vec<Section>;
@@ -950,6 +1124,27 @@ fn apply_sections() {
                 category_color("publishers"),
             ));
         }
+        // shouldShowProtonFeatures: the ProtonDB threshold and Steam Deck chips
+        if !classics && show_proton() {
+            if let Some((_, key, _)) = proton_threshold(&f.protondb) {
+                chips.push(chip(
+                    t(key),
+                    t("catalogue.protondb"),
+                    "protondbSupportBadges",
+                    "threshold".into(),
+                    category_color("protondbSupportBadges"),
+                ));
+            }
+            if deck_compatible(&f.deck) {
+                chips.push(chip(
+                    t("catalogue.steam_deck_compatible"),
+                    t("catalogue.steam_deck_minimum"),
+                    "deckCompatibility",
+                    "threshold".into(),
+                    category_color("deckCompatibility"),
+                ));
+            }
+        }
         if classics {
             chips.extend(fp_chips);
         } else if let Some((gte, lte)) = f.release_year {
@@ -1071,7 +1266,16 @@ fn apply_sections() {
     let data = ui.global::<CatalogueData>();
     let chip_count = chips.len();
     data.set_sections(ModelRc::new(VecModel::from(models)));
-    data.set_chips(ModelRc::new(VecModel::from(chips)));
+    with_page(|p| {
+        p.chips.set_vec(chips);
+        data.set_proton_tier(
+            proton_threshold(&p.filters.protondb)
+                .map_or("", |(value, _, _)| value)
+                .into(),
+        );
+        data.set_deck_compatible(deck_compatible(&p.filters.deck));
+    });
+    layout_chips();
     data.set_show_hint(chip_count == 0);
     data.set_clear_all_label(
         shell::tr_with(

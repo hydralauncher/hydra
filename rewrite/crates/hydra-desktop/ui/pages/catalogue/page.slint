@@ -8,7 +8,7 @@ import { Badge } from "../../components/game-card.slint";
 import { T } from "../../globals.slint";
 import { Input } from "../game-details/state.slint";
 import { CatalogueData, CatalogueItem } from "state.slint";
-import { ModeToggle, FilterSection, ReleaseYearSection, FilterChipItem, RecompilationToggle } from "filters.slint";
+import { ModeToggle, FilterSection, ReleaseYearSection, FilterChipItem, RecompilationToggle, ProtonSection } from "filters.slint";
 
 // game-item.tsx / game-item.scss: a 105px row (200x103 cover, details).
 component GameItem inherits Rectangle {
@@ -324,10 +324,74 @@ component PageButton inherits HydraButton {
     horizontal-padding: 0;
 }
 
+// JumpControl: "..." opens a 40px page input (digits only, clamped to
+// 1..total); Enter goes, Escape or blur closes it.
+component JumpControl inherits Rectangle {
+    in property <int> total;
+    in-out property <bool> open;
+    callback go(int);
+    width: 40px;
+    height: 40px;
+    if !root.open: PageButton {
+        kind: "outline";
+        label: "...";
+        clicked => {
+            root.open = true;
+        }
+    }
+    // .pagination__page-input: 1px border, radius 8, transparent, 12px centered
+    if root.open: Rectangle {
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.border;
+        accessible-role: text-input;
+        accessible-label: T.tr("catalogue.go_to_page");
+        FocusScope {
+            key-pressed(event) => {
+                if (event.text == Key.Escape) {
+                    root.open = false;
+                    return accept;
+                }
+                reject
+            }
+            input := TextInput {
+                x: 5px;
+                width: parent.width - 10px;
+                height: parent.height;
+                single-line: true;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                font-size: Theme.small-size;
+                color: Theme.muted;
+                init => {
+                    // setTimeout(() => input.focus(), 0)
+                    self.focus();
+                }
+                edited => {
+                    self.text = CatalogueData.jump-value(self.text, root.total);
+                }
+                accepted => {
+                    if (self.text != "") {
+                        root.go(Math.clamp(self.text.to-float(), 1, root.total));
+                        root.open = false;
+                    }
+                }
+                changed has-focus => {
+                    if (!self.has-focus) {
+                        root.open = false;
+                    }
+                }
+            }
+        }
+    }
+}
+
 component Pagination inherits HorizontalLayout {
     in property <int> page;
     in property <int> total;
     callback go(int);
+    // isJumpOpen (one input; only one of the two jumps shows at a time)
+    property <bool> jump-open;
     property <int> first-shown: root.total - Math.max(1, root.page - 1) + 1 < 5 ? Math.max(1, root.total - 4) : Math.max(1, root.page - 1);
     property <int> last-shown: Math.min(root.total, root.first-shown + 4);
     spacing: 4px;
@@ -359,9 +423,12 @@ component Pagination inherits HorizontalLayout {
             root.go(1);
         }
     }
-    if root.last-shown >= root.total && root.first-shown > 1: PageButton {
-        kind: "outline";
-        label: "...";
+    if root.last-shown >= root.total && root.first-shown > 1: JumpControl {
+        total: root.total;
+        open <=> root.jump-open;
+        go(n) => {
+            root.go(n);
+        }
     }
     for n in root.last-shown - root.first-shown + 1: PageButton {
         kind: root.page == root.first-shown + n ? "primary" : "outline";
@@ -370,9 +437,12 @@ component Pagination inherits HorizontalLayout {
             root.go(root.first-shown + n);
         }
     }
-    if root.last-shown < root.total: PageButton {
-        kind: "outline";
-        label: "...";
+    if root.last-shown < root.total: JumpControl {
+        total: root.total;
+        open <=> root.jump-open;
+        go(n) => {
+            root.go(n);
+        }
     }
     if root.last-shown < root.total: PageButton {
         kind: "outline";
@@ -513,19 +583,28 @@ export component CataloguePage inherits Rectangle {
                     if CatalogueData.chips.length > 0: HorizontalLayout {
                         spacing: 12px;
                         Text {
-                            // text-transform: uppercase
+                            // text-transform: uppercase; align-self: center
                             text: CatalogueData.active-filters-label;
                             font-size: Theme.small-size;
                             letter-spacing: 0.48px;
                             color: rgba(255, 255, 255, 0.7);
                             vertical-alignment: center;
                         }
-                        // TODO(catalogue): flex-wrap the chips onto more lines.
-                        HorizontalLayout {
+                        // __filters-wrapper (flex: 1): the chips wrap onto more rows
+                        chips-wrapper := Rectangle {
                             horizontal-stretch: 1;
-                            spacing: 8px;
-                            alignment: start;
+                            min-width: 0;
+                            height: CatalogueData.chips-height;
+                            init => {
+                                CatalogueData.chips-width(self.width);
+                            }
+                            changed width => {
+                                CatalogueData.chips-width(self.width);
+                            }
                             for chip in CatalogueData.chips: FilterChipItem {
+                                x: chip.x;
+                                y: chip.y;
+                                width: chip.width;
                                 chip: chip;
                                 removed => {
                                     CatalogueData.remove-chip(chip.key, chip.value);
@@ -646,6 +725,17 @@ export component CataloguePage inherits Rectangle {
                             checked: CatalogueData.recompilation-only;
                             toggled => {
                                 CatalogueData.set-recompilation(!CatalogueData.recompilation-only);
+                            }
+                        }
+                        // shouldShowProtonFeatures: Linux only
+                        if CatalogueData.mode == "modern" && CatalogueData.show-proton: ProtonSection {
+                            value: CatalogueData.proton-tier;
+                            deck: CatalogueData.deck-compatible;
+                            set-tier(value) => {
+                                CatalogueData.set-proton-tier(value);
+                            }
+                            set-deck(checked) => {
+                                CatalogueData.set-deck(checked);
                             }
                         }
                         if CatalogueData.mode == "modern": ReleaseYearSection {
