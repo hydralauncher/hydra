@@ -9,10 +9,11 @@ import { DownloadSettingsBody, DownloadSettings } from "download-settings.slint"
 import { GameData } from "state.slint";
 import { GameOptionsBody } from "options.slint";
 import { PlaytimeModals, UpdatePlaytimeBody, ResetPlaytimeBody } from "playtime.slint";
+import { OptionModals, ResetAchievementsBody, SteamUninstallBody } from "option-modals.slint";
 import { Nav, T } from "../../globals.slint";
 
 export component GameModalsHost inherits Rectangle {
-    out property <bool> mounted: options-state.mounted || repacks-state.mounted || cloud-state.mounted || settings-state.mounted || update-playtime-state.mounted || reset-playtime-state.mounted;
+    out property <bool> mounted: options-state.mounted || repacks-state.mounted || cloud-state.mounted || settings-state.mounted || update-playtime-state.mounted || reset-playtime-state.mounted || reset-achievements-state.mounted || steam-uninstall-state.mounted;
     changed mounted => {
         GameData.modals-mounted = self.mounted;
     }
@@ -26,6 +27,12 @@ export component GameModalsHost inherits Rectangle {
     }
     reset-playtime-state := ModalController {
         open <=> PlaytimeModals.reset-open;
+    }
+    reset-achievements-state := ModalController {
+        open <=> OptionModals.reset-achievements-open;
+    }
+    steam-uninstall-state := ModalController {
+        open <=> OptionModals.steam-uninstall-open;
     }
     repacks-state := ModalController {
         open <=> GameData.repacks-open;
@@ -53,12 +60,14 @@ export component GameModalsHost inherits Rectangle {
         no-content-padding: true;
         content-min-height: 520px;
         closing: options-state.closing;
-        covered: repacks-state.mounted || update-playtime-state.mounted || reset-playtime-state.mounted;
+        covered: repacks-state.mounted || update-playtime-state.mounted || reset-playtime-state.mounted || reset-achievements-state.mounted || steam-uninstall-state.mounted;
         blurred-page: GameData.modal-backdrop;
         request-close => {
             options-state.close();
         }
-        GameOptionsBody { }
+        GameOptionsBody {
+            modal-width: Math.min(root.width - 48px, 800px);
+        }
     }
 
     if update-playtime-state.mounted: Modal {
@@ -91,6 +100,44 @@ export component GameModalsHost inherits Rectangle {
         ResetPlaytimeBody {
             cancel => {
                 reset-playtime-state.close();
+            }
+        }
+    }
+
+    // reset-achievements-modal.tsx
+    if reset-achievements-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.reset_achievements_title");
+        description: OptionModals.reset-description;
+        closing: reset-achievements-state.closing;
+        blurred-page: GameData.stacked-backdrop;
+        request-close => {
+            reset-achievements-state.close();
+        }
+        ResetAchievementsBody {
+            cancel => {
+                reset-achievements-state.close();
+            }
+        }
+    }
+
+    // components/steam-uninstall-modal (no outside click while it works)
+    if steam-uninstall-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.steam_uninstall_title");
+        description: OptionModals.steam-uninstall-description;
+        closing: steam-uninstall-state.closing;
+        blurred-page: GameData.stacked-backdrop;
+        request-close => {
+            if (!OptionModals.steam-uninstalling) {
+                steam-uninstall-state.close();
+            }
+        }
+        SteamUninstallBody {
+            cancel => {
+                steam-uninstall-state.close();
             }
         }
     }

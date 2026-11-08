@@ -393,7 +393,11 @@ fn activated(id: &str) {
             );
         }
         "customize" | "properties" => eprintln!("TODO(game options): GameOptionsModal"),
-        "desktop-shortcut" | "steam-shortcut" => eprintln!("TODO(shortcuts): {id}"),
+        // use-game-actions.ts handleCreateShortcut: desktop (+ Start Menu on Windows)
+        "desktop-shortcut" => {
+            crate::game_shortcuts::create_all_with_toast(game.shop(), game.object_id())
+        }
+        "steam-shortcut" => eprintln!("TODO(steam-integration): {id}"),
         other => eprintln!("game menu: unhandled {other}"),
     }
 }

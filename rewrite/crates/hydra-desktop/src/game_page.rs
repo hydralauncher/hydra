@@ -46,6 +46,8 @@ struct App {
     video_timer: Timer,
     /// useReviewPrompt isDismissed: "Yes" hides the prompt for this visit.
     prompt_dismissed: bool,
+    /// The shop's hero and logo before custom artwork (for refresh_artwork).
+    base_assets: (Option<String>, Option<String>),
 }
 
 thread_local! {
@@ -100,6 +102,7 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
             video: None,
             video_timer: Timer::default(),
             prompt_dismissed: false,
+            base_assets: (None, None),
         })
     });
     wire_callbacks(ui, loader);
@@ -215,6 +218,108 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
     crate::game_repacks::open(shop, object_id);
     apply_download_state(crate::downloads::last_packet().as_ref());
     on_games_running();
+}
+
+/// game-details-content.tsx heroImage / game-logo.tsx: the custom asset
+/// (customHeroImageUrl / customLogoImageUrl), else the SteamGridDB pick
+/// (composeAssetsWithArtwork), else the shop's.
+fn custom_artwork(shop: &str, object_id: &str) -> (Option<String>, Option<String>) {
+    let Some(db) = crate::shell::db() else {
+        return (None, None);
+    };
+    let key = hydra_db::keys::game(shop, object_id);
+    let game: Option<serde_json::Value> = db.get_in(hydra_db::keys::GAMES, &key);
+    let selection: Option<serde_json::Value> = db.get_in(hydra_db::keys::ARTWORK_SELECTION, &key);
+    let field = |v: &Option<serde_json::Value>, path: &[&str]| {
+        path.iter()
+            .try_fold(v.as_ref()?, |v, k| v.get(*k))
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+    };
+    let hero = field(&game, &["customHeroImageUrl"])
+        .or_else(|| field(&selection, &["selected", "hero", "url"]));
+    let logo = field(&game, &["customLogoImageUrl"])
+        .or_else(|| field(&selection, &["selected", "logo", "url"]));
+    (hero, logo)
+}
+
+/// `local:<path>` URLs are files.
+fn image_source(url: String) -> images::Source {
+    match url.strip_prefix("local:") {
+        Some(path) => images::Source::Path(std::path::PathBuf::from(path)),
+        None => images::Source::Url(url),
+    }
+}
+
+/// The custom artwork changed (Customization tab): reload the hero and logo.
+pub fn refresh_artwork() {
+    let Some((ui, loader, shop, object_id, base)) = with_app(|app| {
+        app.ui.upgrade().map(|ui| {
+            (
+                ui,
+                app.loader.clone(),
+                app.shop.clone(),
+                app.object_id.clone(),
+                app.base_assets.clone(),
+            )
+        })
+    })
+    .flatten() else {
+        return;
+    };
+    if shop == "launchbox" {
+        return;
+    }
+    let (hero, logo) = custom_artwork(&shop, &object_id);
+    let hero = hero.or(base.0);
+    let logo = logo.or(base.1);
+    let generation = with_app(|app| app.generation);
+    if let Some(url) = hero {
+        let weak = ui.as_weak();
+        loader.load(image_source(url.clone()), Op::Full, move |img| {
+            if let Some(ui) = weak.upgrade()
+                && with_app(|app| app.generation) == generation
+            {
+                gd(&ui).set_hero(img);
+            }
+        });
+        let weak = ui.as_weak();
+        loader.load(
+            image_source(url),
+            Op::Blur {
+                shrink: 4,
+                sigma: 3.75,
+            },
+            move |img| {
+                if let Some(ui) = weak.upgrade()
+                    && with_app(|app| app.generation) == generation
+                {
+                    gd(&ui).set_hero_blur(img);
+                }
+            },
+        );
+    }
+    match logo {
+        Some(url) => {
+            let weak = ui.as_weak();
+            loader.load(image_source(url), Op::Full, move |img| {
+                if let Some(ui) = weak.upgrade()
+                    && with_app(|app| app.generation) == generation
+                {
+                    gd(&ui).set_logo(img);
+                }
+            });
+        }
+        None => gd(&ui).set_logo(Image::default()),
+    }
+}
+
+/// The open game's achievements changed (reset): load them again.
+pub fn refresh_achievements() {
+    if let Some((shop, object_id)) = current() {
+        fetch_achievements(&shop, &object_id);
+    }
 }
 
 /// game-details.context.tsx: `getUnlockedAchievements` once the user is known.
@@ -872,24 +977,26 @@ fn apply_game(
     }
 
     // ---- hero artwork (the skeleton stays until hero + logo arrive)
+    with_app(|app| app.base_assets = (assets.hero.clone(), assets.logo.clone()));
+    let (custom_hero, custom_logo) = current()
+        .map(|(shop, object_id)| custom_artwork(&shop, &object_id))
+        .unwrap_or_default();
+    let hero_url = custom_hero.or(assets.hero.clone());
+    let logo_url = custom_logo.or(assets.logo.clone());
     let startup: Vec<(Option<String>, Op, SetImage)> = match &classics {
         Some(classics) => classics_startup(&ui, classics),
         None => vec![
-            (assets.hero.clone(), Op::Full, |ui, img| {
-                gd(&ui).set_hero(img)
-            }),
+            (hero_url.clone(), Op::Full, |ui, img| gd(&ui).set_hero(img)),
             // blur(10px) on a ~1280px-wide hero shown from a 1920px image ~= sigma 3.75 at 1/4 size
             (
-                assets.hero.clone(),
+                hero_url,
                 Op::Blur {
                     shrink: 4,
                     sigma: 3.75,
                 },
                 |ui, img| gd(&ui).set_hero_blur(img),
             ),
-            (assets.logo.clone(), Op::Full, |ui, img| {
-                gd(&ui).set_logo(img)
-            }),
+            (logo_url, Op::Full, |ui, img| gd(&ui).set_logo(img)),
         ],
     };
     with_app(|app| {
@@ -897,7 +1004,7 @@ fn apply_game(
     });
     for (url, op, set) in startup {
         let Some(url) = url else { continue };
-        loader.load(url, op, move |img| {
+        loader.load(image_source(url), op, move |img| {
             if let Some(ui) = with_app(|app| app.ui.upgrade()).flatten() {
                 set(&ui, img);
             }
@@ -1122,19 +1229,32 @@ fn wire_callbacks(ui: &AppWindow, loader: &Loader) {
 
     ui.global::<GameData>().on_reload(fetch_game);
 
-    // ---- library (owned by Hydra's main process today; not ported yet)
+    // hero-panel-actions.tsx addGameToLibrary: addGameToLibrary, then updateLibrary.
     ui.global::<GameData>().on_add_to_library({
         let weak = ui.as_weak();
         move || {
-            // TODO(library): persist like add-game-to-library.ts; in memory for now.
-            if let Some(ui) = weak.upgrade() {
-                gd(&ui).set_in_library(true);
-            }
+            let (Some(db), Some(api)) = (crate::shell::db(), crate::shell::api()) else {
+                return;
+            };
+            let Some((shop, object_id)) = current() else {
+                return;
+            };
+            let title = weak
+                .upgrade()
+                .map(|ui| gd(&ui).get_game_title().to_string())
+                .unwrap_or_default();
+            std::thread::spawn(move || {
+                if let Err(error) = hydra_core::library_actions::add_to_library(
+                    &db, &api, &shop, &object_id, &title, None,
+                ) {
+                    eprintln!("Failed to add game to library: {error}");
+                }
+                let _ = slint::invoke_from_event_loop(crate::shell::load_library);
+            });
         }
     });
-    ui.global::<GameData>().on_open_download_options(|| {
-        eprintln!("TODO(downloads): repacks modal / download sources")
-    });
+    // Unused: the hero opens the repacks modal itself (page.slint).
+    ui.global::<GameData>().on_open_download_options(|| {});
     ui.global::<GameData>().on_play(|| {
         if let Some((shop, object_id)) = with_app(|app| (app.shop.clone(), app.object_id.clone())) {
             crate::games::play(&shop, &object_id);

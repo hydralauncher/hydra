@@ -19,8 +19,10 @@ import { Playback } from "components/video.slint";
 import { T, Nav, Session, Chrome, SidebarState, SidebarGame, Popup, SidebarFilterOption } from "globals.slint";
 import { GameData, Input } from "pages/game-details/state.slint";
 import { SmoothScroll } from "components/smooth-scroll.slint";
-import { GameOptions, OptionsCategory } from "pages/game-details/options.slint";
+import { GameOptions, OptionsCategory, ProtonOption } from "pages/game-details/options.slint";
 import { PlaytimeModals, PlaytimeColumn } from "pages/game-details/playtime.slint";
+import { OptionModals } from "pages/game-details/option-modals.slint";
+import { GameAssets, ArtworkTile } from "pages/game-details/assets.slint";
 import { AuthWindow } from "auth-window.slint";
 import { SidebarFilterMenu } from "shell/filter-menu.slint";
 import { AchievementsPage, AchievementsData, AchievementRow } from "pages/achievements/page.slint";
@@ -46,7 +48,7 @@ import { TitleBar } from "shell/title-bar.slint";
 import { Sidebar } from "shell/sidebar.slint";
 
 export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewReply, ReviewEditor, Reviews, FormatEdit, Marks, Playback, RepackRow, RepackSource }
-export { T, Nav, Session, Chrome, SidebarState, SidebarGame, SidebarFilterOption, GameData, Input, SmoothScroll, GameOptions, OptionsCategory, PlaytimeModals, PlaytimeColumn, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow, AuthWindow, NotificationsData, NotificationRow, Popup, Bookmark, DownloadSettings, DownloaderRow, DownloadCard, Dropdown, DropdownItem, Flight }
+export { T, Nav, Session, Chrome, SidebarState, SidebarGame, SidebarFilterOption, GameData, Input, SmoothScroll, GameOptions, OptionsCategory, ProtonOption, PlaytimeModals, PlaytimeColumn, OptionModals, GameAssets, ArtworkTile, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow, AuthWindow, NotificationsData, NotificationRow, Popup, Bookmark, DownloadSettings, DownloaderRow, DownloadCard, Dropdown, DropdownItem, Flight }
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
 export { SearchData, SearchPart, SearchSuggestionRow }
 export { AchievementsData, AchievementRow }
