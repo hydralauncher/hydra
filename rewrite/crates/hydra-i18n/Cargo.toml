@@ -1,0 +1,16 @@
+[package]
+name = "hydra-i18n"
+description = "UI strings for the Rust rewrite: reads src/locales/*/translation.json with i18next 23 semantics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde_json.workspace = true
+# CLDR plural categories and number formatting, the same data Intl.PluralRules /
+# Intl.NumberFormat use in Chromium.
+icu_plurals = "2"
+icu_decimal = "2"
+icu_locale_core = "2"
+fixed_decimal = "0.7"

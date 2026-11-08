@@ -1075,6 +1075,7 @@ fn build_audio(
 }
 
 /// CPU time used by the calling thread, in seconds.
+#[cfg(unix)]
 fn thread_cpu_seconds() -> f64 {
     let mut ts = libc::timespec {
         tv_sec: 0,
@@ -1082,6 +1083,22 @@ fn thread_cpu_seconds() -> f64 {
     };
     unsafe { libc::clock_gettime(libc::CLOCK_THREAD_CPUTIME_ID, &mut ts) };
     ts.tv_sec as f64 + ts.tv_nsec as f64 / 1e9
+}
+
+/// CPU time used by the calling thread, in seconds.
+#[cfg(windows)]
+fn thread_cpu_seconds() -> f64 {
+    use windows_sys::Win32::Foundation::FILETIME;
+    use windows_sys::Win32::System::Threading::{GetCurrentThread, GetThreadTimes};
+    let zero = || FILETIME {
+        dwLowDateTime: 0,
+        dwHighDateTime: 0,
+    };
+    let (mut created, mut exited, mut kernel, mut user) = (zero(), zero(), zero(), zero());
+    unsafe { GetThreadTimes(GetCurrentThread(), &mut created, &mut exited, &mut kernel, &mut user) };
+    let ticks = |t: FILETIME| ((t.dwHighDateTime as u64) << 32 | t.dwLowDateTime as u64) as f64;
+    // FILETIME counts 100 ns intervals.
+    (ticks(kernel) + ticks(user)) / 1e7
 }
 
 /// `HYDRA_VIDEO_STATS=1`: log decode-thread CPU and per-frame cost every 5s.
