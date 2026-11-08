@@ -1,0 +1,471 @@
+// download-group.tsx HeroDownloadView + download-group.scss: the hero art
+// under a dark gradient, the logo, sizes, ETA, the animated percentage, the
+// progress bar, glass Pause/Resume/Cancel buttons and the stats panel with
+// the speed chart.
+import { Theme, Icons } from "../../theme.slint";
+import { Icon } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+import { DownloadsData } from "state.slint";
+
+// AnimatedPercentage: each character that changes slides out upwards
+// (y 0 -> -10px, fading) and the new one slides in from below (10px -> 0),
+// 0.3s ease-out each (AnimatePresence mode="wait").
+component PercentChar inherits Rectangle {
+    in property <string> char;
+    property <string> shown: root.char;
+    property <string> previous: root.char;
+    property <bool> animating;
+    property <duration> started;
+    // Only tied to the frame clock while the swap runs.
+    property <duration> elapsed: root.animating ? animation-tick() - root.started : 600ms;
+    property <float> out-t: Math.clamp(root.elapsed / 300ms, 0, 1);
+    property <float> in-t: Math.clamp((root.elapsed - 300ms) / 300ms, 0, 1);
+    // ease-out (cubic-bezier(0, 0, 0.58, 1)) ~ 1 - (1 - t)^2
+    property <float> out-e: 1 - (1 - root.out-t) * (1 - root.out-t);
+    property <float> in-e: 1 - (1 - root.in-t) * (1 - root.in-t);
+    changed char => {
+        root.previous = root.shown;
+        root.shown = root.char;
+        root.started = animation-tick();
+        root.animating = true;
+    }
+    width: Math.max(old-text.preferred-width, new-text.preferred-width);
+    clip: true;
+    old-text := Text {
+        visible: root.animating && root.out-t < 1;
+        text: root.previous;
+        y: -10px * root.out-e;
+        opacity: 1 - root.out-e;
+        font-size: Theme.body-size;
+        font-weight: 700;
+        color: #ffffff;
+        vertical-alignment: center;
+    }
+    new-text := Text {
+        visible: !root.animating || root.out-t >= 1;
+        text: root.shown;
+        y: root.animating ? 10px * (1 - root.in-e) : 0;
+        opacity: root.animating ? root.in-e : 1;
+        font-size: Theme.body-size;
+        font-weight: 700;
+        color: #ffffff;
+        vertical-alignment: center;
+    }
+    Timer {
+        interval: 650ms;
+        running: root.animating;
+        triggered => {
+            root.animating = false;
+        }
+    }
+}
+
+component AnimatedPercentage inherits HorizontalLayout {
+    // One entry per character (a fixed-length model, so each slot keeps its
+    // element and animates when its character changes).
+    in property <[string]> chars;
+    for c in root.chars: PercentChar {
+        char: c;
+        visible: c != "";
+    }
+}
+
+// object-fit: cover with object-position 50% 20%
+component CoverImage inherits Rectangle {
+    in property <image> source;
+    property <float> ratio: root.source.width > 0 ? root.source.height / root.source.width : 0;
+    property <bool> fit-width: root.ratio * root.width >= root.height;
+    clip: true;
+    if root.ratio > 0: Image {
+        source: root.source;
+        image-fit: fill;
+        width: root.fit-width ? root.width : root.height / root.ratio;
+        height: root.fit-width ? root.width * root.ratio : root.height;
+        x: (root.width - self.width) * 0.5;
+        y: (root.height - self.height) * 0.2;
+    }
+}
+
+// What a backdrop-filter sees behind it: the blurred art under the hero
+// gradient, laid out in the hero background's coordinates.
+component GlassSurface inherits Rectangle {
+    in property <image> source;
+    in property <Point> origin;
+    in property <length> source-width;
+    in property <length> source-height;
+    in property <brush> tint;
+    clip: true;
+    Rectangle {
+        x: root.origin.x - root.absolute-position.x;
+        y: root.origin.y - root.absolute-position.y;
+        width: root.source-width;
+        height: root.source-height;
+        CoverImage {
+            source: root.source;
+        }
+        Rectangle {
+            background: @linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgb(5, 5, 5) 70%, rgb(26, 26, 26) 100%);
+        }
+    }
+    Rectangle {
+        background: root.tint;
+    }
+    @children
+}
+
+// __glass-btn: outline button on a frosted surface
+component GlassButton inherits GlassSurface {
+    in property <image> icon;
+    in property <string> label;
+    callback clicked();
+    height: 40px;
+    width: row.preferred-width + 2px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.2);
+    tint: touch.has-hover ? rgba(255, 255, 255, 0.2) : rgba(255, 255, 255, 0.1);
+    animate tint { duration: 200ms; easing: ease; }
+    drop-shadow-offset-y: 10px;
+    drop-shadow-blur: 15px;
+    drop-shadow-color: rgba(0, 0, 0, 0.1);
+    opacity: touch.pressed ? Theme.active-opacity : 1;
+    row := HorizontalLayout {
+        x: 1px;
+        padding-left: 16px;
+        padding-right: 16px;
+        spacing: 8px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 14px;
+                height: 14px;
+                source: root.icon;
+                color: Theme.muted;
+            }
+        }
+        Text {
+            text: root.label;
+            font-size: 13.33px;
+            color: Theme.muted;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// SpeedChart: 4px bars at least 10px apart; a faint full-height track each,
+// filled from the bottom by speed / peak with the colour fading to 0.7.
+component SpeedChart inherits Rectangle {
+    in property <[float]> speeds;
+    in property <color> bar-color;
+    property <int> total: Math.max(1, Math.min(300, Math.floor((root.width / 1px + 10) / 14)));
+    property <length> spacing: root.total > 1 ? (root.width - 4px) / (root.total - 1) : 0;
+    property <int> offset: Math.max(0, root.speeds.length - root.total);
+    property <int> shown: Math.min(root.speeds.length, root.total);
+    for i in root.total: Rectangle {
+        x: i * root.spacing;
+        width: 4px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.08);
+        if i < root.shown && root.speeds[root.offset + i] > 0: Rectangle {
+            property <length> fill: root.height * Math.min(1, root.speeds[root.offset + i]);
+            y: parent.height - self.fill;
+            height: self.fill;
+            border-radius: 2px;
+            background: @linear-gradient(180deg, root.bar-color 0%, root.bar-color.with-alpha(0.7) 100%);
+        }
+    }
+}
+
+export component DownloadHero inherits Rectangle {
+    // Width of the page container (the logo grows with it).
+    in property <length> page-width;
+    property <length> logo-max-width: root.page-width >= 1500px ? 400px : root.page-width >= 1200px ? 340px : root.page-width >= 900px ? 280px : root.page-width >= 700px ? 220px : 180px;
+    property <length> logo-max-height: root.page-width >= 1500px ? 130px : root.page-width >= 1200px ? 115px : root.page-width >= 900px ? 95px : root.page-width >= 700px ? 75px : 60px;
+    property <length> title-size: root.page-width >= 1200px ? 32px : root.page-width >= 900px ? 28px : root.page-width >= 700px ? 24px : 20px;
+    property <length> logo-height: DownloadsData.hero-logo.width > 0
+        ? Math.min(root.logo-max-height, root.logo-max-width * DownloadsData.hero-logo.height / DownloadsData.hero-logo.width)
+        : title-text.preferred-height;
+    property <length> logo-width: DownloadsData.hero-logo.width > 0
+        ? root.logo-height * DownloadsData.hero-logo.width / DownloadsData.hero-logo.height
+        : title-text.preferred-width;
+
+    // content: padding 32px; action row margin 32px 0 16px; progress; stats (margin-top 16px)
+    property <length> logo-y: 64px;
+    property <length> progress-y: root.logo-y + root.logo-height + 16px + 16px;
+    property <length> stats-y: root.progress-y + 64px + 16px + 16px;
+    height: root.stats-y + 123px + 8px;
+    clip: true;
+
+    // __hero-background: 120% tall, cover at 50% 20%, under the gradient
+    bg := Rectangle {
+        height: root.height * 1.2;
+        CoverImage {
+            source: DownloadsData.hero-image;
+        }
+        Rectangle {
+            background: @linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgb(5, 5, 5) 70%, rgb(26, 26, 26) 100%);
+        }
+    }
+
+    // __hero-logo (button: scale 1.05 on hover; the image dims to 0.8)
+    logo := Rectangle {
+        x: 32px;
+        y: root.logo-y;
+        width: root.logo-width;
+        height: root.logo-height;
+        transform-scale: logo-touch.has-hover ? 1.05 : 1;
+        animate transform-scale { duration: 200ms; easing: ease; }
+        if DownloadsData.hero-logo.width > 0: Image {
+            width: parent.width;
+            height: parent.height;
+            source: DownloadsData.hero-logo;
+            image-fit: contain;
+            opacity: logo-touch.has-hover ? 0.8 : 1;
+            animate opacity { duration: 200ms; easing: ease; }
+        }
+        title-text := Text {
+            visible: DownloadsData.hero-logo.width == 0;
+            text: DownloadsData.hero-title;
+            font-size: root.title-size;
+            font-weight: 700;
+            color: #ffffff;
+            opacity: logo-touch.has-hover ? 0.8 : 1;
+        }
+        logo-touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                DownloadsData.open-game(DownloadsData.hero-id);
+            }
+        }
+    }
+
+    // __hero-progress
+    progress := Rectangle {
+        x: 32px;
+        y: root.progress-y;
+        width: root.width - 64px;
+        height: 64px;
+        property <length> buttons-width: DownloadsData.hero-extracting ? 0 : buttons.preferred-width + 16px;
+        // first info row: status or "42.1 MB / 6.9 GB"
+        HorizontalLayout {
+            x: 0;
+            y: 8px;
+            height: 18px;
+            width: parent.width - parent.buttons-width;
+            spacing: 8px;
+            alignment: start;
+            if DownloadsData.hero-status != "": Text {
+                text: DownloadsData.hero-status;
+                font-size: 13px;
+                font-weight: 700; // 600 in scss
+                letter-spacing: 0.5px;
+                color: rgba(255, 255, 255, 0.9);
+                vertical-alignment: center;
+            }
+            if DownloadsData.hero-status == "": VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 14px;
+                    height: 14px;
+                    source: Icons.download;
+                    color: rgba(255, 255, 255, 0.9);
+                }
+            }
+            if DownloadsData.hero-status == "": Text {
+                text: DownloadsData.hero-size;
+                font-size: 13px;
+                font-weight: 700; // 600 in scss
+                color: rgba(255, 255, 255, 0.9);
+                vertical-alignment: center;
+            }
+        }
+        // second info row: ETA and the percentage
+        HorizontalLayout {
+            x: 0;
+            y: 30px;
+            height: 18px;
+            width: parent.width - parent.buttons-width;
+            spacing: 8px;
+            if DownloadsData.hero-eta != "": VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 14px;
+                    height: 14px;
+                    source: Icons.clock;
+                    color: Theme.muted;
+                }
+            }
+            Text {
+                text: DownloadsData.hero-eta;
+                font-size: 13px;
+                color: Theme.muted;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+            }
+            AnimatedPercentage {
+                y: 1px;
+                height: 17px;
+                chars: DownloadsData.hero-percentage-chars;
+            }
+        }
+        // __progress-bar (8px, fill animates its width over 0.3s)
+        Rectangle {
+            x: 0;
+            y: 56px;
+            height: 8px;
+            width: parent.width - parent.buttons-width;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            clip: true;
+            Rectangle {
+                x: 0;
+                width: parent.width * Math.clamp(DownloadsData.hero-progress, 0, 1);
+                animate width { duration: 300ms; easing: ease; }
+                border-radius: 4px;
+                background: Theme.muted;
+            }
+        }
+        buttons := HorizontalLayout {
+            visible: !DownloadsData.hero-extracting;
+            x: parent.width - self.preferred-width;
+            y: 24px;
+            width: self.preferred-width;
+            height: 40px;
+            spacing: 8px;
+            if DownloadsData.hero-downloading: GlassButton {
+                source: DownloadsData.hero-blur;
+                origin: bg.absolute-position;
+                source-width: bg.width;
+                source-height: bg.height;
+                icon: Icons.columns;
+                label: T.tr("downloads.pause");
+                clicked => {
+                    DownloadsData.pause(DownloadsData.hero-id);
+                }
+            }
+            if !DownloadsData.hero-downloading: GlassButton {
+                source: DownloadsData.hero-blur;
+                origin: bg.absolute-position;
+                source-width: bg.width;
+                source-height: bg.height;
+                icon: Icons.play;
+                label: T.tr("downloads.resume");
+                clicked => {
+                    DownloadsData.resume(DownloadsData.hero-id);
+                }
+            }
+            GlassButton {
+                source: DownloadsData.hero-blur;
+                origin: bg.absolute-position;
+                source-width: bg.width;
+                source-height: bg.height;
+                icon: Icons.x-circle;
+                label: T.tr("downloads.cancel");
+                clicked => {
+                    DownloadsData.cancel(DownloadsData.hero-id);
+                }
+            }
+        }
+    }
+
+    // __hero-stats: blur(8px) panel, network / peak / downloader, then the chart
+    stats := GlassSurface {
+        x: 32px;
+        y: root.stats-y;
+        width: root.width - 64px;
+        height: 123px;
+        source: DownloadsData.hero-blur;
+        origin: bg.absolute-position;
+        source-width: bg.width;
+        source-height: bg.height;
+        tint: rgba(26, 26, 26, 0.1);
+        border-radius: 12px;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.1);
+
+        column := VerticalLayout {
+            x: 17px;
+            y: 17px;
+            width: 200px;
+            spacing: 16px;
+            alignment: start;
+            for stat in [
+                { icon: Icons.download, label: T.tr("downloads.network"), value: DownloadsData.hero-network },
+                { icon: Icons.graph, label: T.tr("downloads.peak"), value: DownloadsData.hero-peak },
+            ]: HorizontalLayout {
+                height: 16px;
+                spacing: 8px;
+                padding-right: 17px;
+                Icon {
+                    width: 16px;
+                    height: 16px;
+                    source: stat.icon;
+                    color: DownloadsData.hero-color;
+                    opacity: 0.8;
+                }
+                Text {
+                    text: stat.label + ":";
+                    font-size: Theme.tiny-size;
+                    font-weight: 700; // 600 in scss
+                    letter-spacing: 0.5px;
+                    color: rgba(255, 255, 255, 0.6);
+                    vertical-alignment: bottom;
+                    horizontal-stretch: 1;
+                }
+                Text {
+                    text: stat.value;
+                    font-size: Theme.tiny-size;
+                    font-weight: 700;
+                    color: #ffffff;
+                    vertical-alignment: bottom;
+                }
+            }
+            if DownloadsData.hero-peers != "": Text {
+                text: DownloadsData.hero-peers;
+                font-size: Theme.tiny-size;
+                font-weight: 700;
+                color: rgba(255, 255, 255, 0.6);
+            }
+            if DownloadsData.hero-downloader != "": HorizontalLayout {
+                alignment: start;
+                Rectangle {
+                    height: 25px;
+                    width: badge-text.preferred-width + 16px + 2px;
+                    border-radius: 6px;
+                    border-width: 1px;
+                    border-color: rgba(255, 255, 255, 0.2);
+                    background: rgba(255, 255, 255, 0.1);
+                    badge-text := Text {
+                        text: DownloadsData.hero-downloader;
+                        font-size: Theme.tiny-size;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+        }
+        // __stats-column border-right
+        Rectangle {
+            x: 17px + 200px - 1px;
+            y: 17px;
+            width: 1px;
+            height: column.preferred-height;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        SpeedChart {
+            x: 17px + 200px + 32px;
+            y: (parent.height - 80px) / 2;
+            width: parent.width - self.x - 17px;
+            height: 80px;
+            speeds: DownloadsData.hero-speeds;
+            bar-color: DownloadsData.hero-color;
+        }
+    }
+}

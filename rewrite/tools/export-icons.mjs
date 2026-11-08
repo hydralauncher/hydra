@@ -24,6 +24,17 @@ fs.mkdirSync(out, { recursive: true });
 
 const icons = {
   play: [oct.PlayIcon, { size: 16 }],
+  columns: [oct.ColumnsIcon, { size: 16 }],
+  graph: [oct.GraphIcon, { size: 16 }],
+  "more-vertical": [lucide.MoreVertical, { size: 16 }],
+  "folder-open": [lucide.FolderOpen, { size: 16 }],
+  "file-archive": [lucide.FileArchive, { size: 16 }],
+  file: [oct.FileIcon, { size: 16 }],
+  link: [oct.LinkIcon, { size: 16 }],
+  unlink: [oct.UnlinkIcon, { size: 16 }],
+  "arrow-up-16": [oct.ArrowUpIcon, { size: 16 }],
+  "arrow-down-16": [oct.ArrowDownIcon, { size: 16 }],
+  "trash-16": [oct.TrashIcon, { size: 16 }],
   "plus-circle": [oct.PlusCircleIcon, { size: 16 }],
   heart: [oct.HeartIcon, { size: 16 }],
   "heart-fill": [oct.HeartFillIcon, { size: 16 }],

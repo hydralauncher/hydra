@@ -1,0 +1,163 @@
+// components/dropdown-menu (Radix DropdownMenu): a dark list under its
+// trigger, min-width 200px, a separator on top, 4px group padding, items
+// 8px 12px with a 16px icon; fades in from 8px above over 0.2s. Modal like
+// Radix: an outside press or Escape closes it.
+import { Theme } from "../theme.slint";
+import { Icon } from "widgets.slint";
+
+export struct DropdownItem {
+    id: string,
+    label: string,
+    icon: string,
+    disabled: bool,
+}
+
+export global Dropdown {
+    in-out property <bool> open;
+    // Trigger rectangle (window coordinates) and alignment ("start" | "end")
+    in property <length> anchor-x;
+    in property <length> anchor-y;
+    in property <length> anchor-width;
+    in property <length> anchor-height;
+    in property <string> align: "end";
+    in property <[DropdownItem]> items;
+    callback chosen(string);
+
+    public pure function icon(name: string) -> image {
+        if (name == "columns") {
+            return @image-url("../icons/columns.svg");
+        }
+        if (name == "x-circle") {
+            return @image-url("../icons/x-circle.svg");
+        }
+        if (name == "play") {
+            return @image-url("../icons/play.svg");
+        }
+        if (name == "arrow-up") {
+            return @image-url("../icons/arrow-up-16.svg");
+        }
+        if (name == "arrow-down") {
+            return @image-url("../icons/arrow-down-16.svg");
+        }
+        if (name == "gear") {
+            return @image-url("../icons/gear.svg");
+        }
+        if (name == "download") {
+            return @image-url("../icons/download.svg");
+        }
+        if (name == "file") {
+            return @image-url("../icons/file.svg");
+        }
+        if (name == "folder-open") {
+            return @image-url("../icons/folder-open.svg");
+        }
+        if (name == "file-archive") {
+            return @image-url("../icons/file-archive.svg");
+        }
+        if (name == "unlink") {
+            return @image-url("../icons/unlink.svg");
+        }
+        if (name == "link") {
+            return @image-url("../icons/link.svg");
+        }
+        if (name == "trash") {
+            return @image-url("../icons/trash-16.svg");
+        }
+        return @image-url("");
+    }
+}
+
+export component DropdownHost inherits Rectangle {
+    // collisionPadding 16px, sideOffset 5px
+    property <length> menu-x: Math.clamp(
+        Dropdown.align == "end" ? Dropdown.anchor-x + Dropdown.anchor-width - menu.width
+            : Dropdown.align == "start" ? Dropdown.anchor-x
+            : Dropdown.anchor-x + (Dropdown.anchor-width - menu.width) / 2,
+        16px, root.width - menu.width - 16px);
+    property <bool> below: Dropdown.anchor-y + Dropdown.anchor-height + 5px + menu.height <= root.height - 16px;
+    property <length> menu-y: root.below ? Dropdown.anchor-y + Dropdown.anchor-height + 5px : Dropdown.anchor-y - 5px - menu.height;
+
+    if Dropdown.open: TouchArea {
+        // Radix: outside presses close the menu without reaching the page.
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down) {
+                Dropdown.open = false;
+            }
+        }
+    }
+    if Dropdown.open: FocusScope {
+        init => {
+            self.focus();
+        }
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                Dropdown.open = false;
+            }
+            accept
+        }
+    }
+
+    menu := Rectangle {
+        visible: Dropdown.open;
+        x: root.menu-x;
+        y: root.menu-y + (Dropdown.open ? 0 : -8px);
+        opacity: Dropdown.open ? 1 : 0;
+        animate y, opacity { duration: Dropdown.open ? 200ms : 0ms; easing: ease-out; }
+        width: Math.max(200px, list.preferred-width + 2px);
+        height: list.preferred-height + 2px;
+        background: Theme.dark-background;
+        border-width: 1px;
+        border-color: Theme.border;
+        border-radius: 6px;
+        list := VerticalLayout {
+            x: 1px;
+            y: 1px;
+            width: parent.width - 2px;
+            Rectangle {
+                height: 1px;
+                background: Theme.border;
+            }
+            VerticalLayout {
+                padding: 4px;
+                for item in Dropdown.items: Rectangle {
+                    height: row.preferred-height;
+                    border-radius: 4px;
+                    background: touch.has-hover && !item.disabled ? rgba(255, 255, 255, 0.15) : transparent;
+                    animate background { duration: 100ms; easing: ease-in-out; }
+                    opacity: item.disabled ? 0.6 : 1;
+                    row := HorizontalLayout {
+                        padding-top: 8px;
+                        padding-bottom: 8px;
+                        padding-left: 12px;
+                        padding-right: 12px;
+                        spacing: 8px;
+                        if item.icon != "": VerticalLayout {
+                            alignment: center;
+                            Icon {
+                                width: 16px;
+                                height: 16px;
+                                source: Dropdown.icon(item.icon);
+                                color: touch.has-hover && !item.disabled ? Theme.muted : Theme.body;
+                            }
+                        }
+                        Text {
+                            text: item.label;
+                            font-size: Theme.body-size;
+                            color: touch.has-hover && !item.disabled ? Theme.muted : Theme.body;
+                            vertical-alignment: center;
+                        }
+                    }
+                    touch := TouchArea {
+                        mouse-cursor: item.disabled ? default : pointer;
+                        clicked => {
+                            if (!item.disabled) {
+                                Dropdown.open = false;
+                                Dropdown.chosen(item.id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

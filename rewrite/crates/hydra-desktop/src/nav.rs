@@ -204,6 +204,9 @@ fn apply(previous: Option<String>) {
     if location.route() == "home" && previous_location.as_ref().map(|l| l.route()) != Some("home") {
         home_page::open();
     }
+    if location.route() == "downloads" {
+        crate::downloads_page::refresh();
+    }
     if location.route() == "catalogue"
         && previous_location.as_ref().map(|l| l.route()) != Some("catalogue")
     {

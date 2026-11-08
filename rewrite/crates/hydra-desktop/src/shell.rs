@@ -543,13 +543,14 @@ pub fn load_library() {
             crate::game_page::on_library_changed();
             crate::library_page::on_library_changed();
             crate::catalogue_page::on_library_changed();
+            crate::downloads_page::refresh();
         });
     });
 }
 
 /// sidebar.tsx `visibleGames`: category/source/platform filters, then the
 /// text filter (over the whole ordered library) or "playable only".
-fn refresh_rows() {
+pub(crate) fn refresh_rows() {
     with_shell(|s| {
         let searching = !s.filter.trim().is_empty();
         let visible: Vec<usize> = if searching {
@@ -601,15 +602,28 @@ fn icon_url(group: &Presentation) -> Option<String> {
 }
 
 /// `getGameTitle` (sidebar.tsx).
-fn row_title(group: &Presentation) -> String {
+/// sidebar.tsx getGameTitle (inside `with_shell`, so it uses `s.i18n`).
+fn row_title(s: &Shell, group: &Presentation) -> String {
     let game = &group.game;
     let title = game.title();
     let status = game.download_status();
+    if let Some(packet) = crate::downloads::last_packet()
+        && packet.game_id == game.id()
+    {
+        let percentage = crate::downloads_page::format_progress(packet.progress, 2);
+        return s.i18n.t_with(
+            "sidebar.downloading",
+            &[
+                ("title", title.into()),
+                ("percentage", percentage.as_str().into()),
+            ],
+        );
+    }
     if game.download_queued() && !matches!(status, Some("removed" | "complete" | "seeding")) {
-        return tr_with("sidebar.queued", &[("title", title.into())]);
+        return s.i18n.t_with("sidebar.queued", &[("title", title.into())]);
     }
     if status == Some("paused") {
-        return tr_with("sidebar.paused", &[("title", title.into())]);
+        return s.i18n.t_with("sidebar.paused", &[("title", title.into())]);
     }
     title.to_string()
 }
@@ -622,7 +636,7 @@ fn row_for(s: &Shell, group: &Presentation) -> SidebarGame {
     let new_options = game.number("newDownloadOptionsCount").unwrap_or(0.0);
     SidebarGame {
         id: game.id().into(),
-        title: row_title(group).into(),
+        title: row_title(s, group).into(),
         icon,
         fallback: match game.shop() {
             "custom" => 0,

@@ -12,6 +12,7 @@ mod devscript;
 mod dialogs;
 mod download_settings;
 mod downloads;
+mod downloads_menu;
 mod downloads_page;
 mod features;
 mod format;
@@ -164,6 +165,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     game_page::init(&ui, &loader);
     game_repacks::init(&ui);
     download_settings::init(&ui);
+    downloads_page::init(&ui, &loader);
+    downloads_menu::init(&ui);
     classics_bookmark::init(&ui);
     library_page::init(&ui);
     home_page::init(&ui, &loader);

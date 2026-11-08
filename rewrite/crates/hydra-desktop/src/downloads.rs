@@ -41,6 +41,7 @@ pub fn init(ui: &AppWindow, db: Arc<Db>, api: Arc<HydraApi>, user_data: &Path) {
         }),
     );
     let _ = MANAGER.set(manager.clone());
+    let _ = slint::invoke_from_event_loop(crate::downloads_page::refresh);
     std::thread::spawn(move || {
         manager.bootstrap();
         manager.spawn_watch_loop();
@@ -53,6 +54,8 @@ fn on_event(event: Event) {
             LAST_PACKET.with(|p| *p.borrow_mut() = packet.clone());
             crate::downloads_page::on_progress(packet.as_ref());
             crate::game_page::on_download_progress(packet.as_ref());
+            // getGameTitle: "Downloading (12%)" in the sidebar list
+            crate::shell::refresh_rows();
         }
         Event::Updated => {
             crate::downloads_page::refresh();

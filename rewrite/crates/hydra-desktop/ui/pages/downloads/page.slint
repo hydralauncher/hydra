@@ -1,11 +1,369 @@
-// src/renderer/src/pages/downloads/downloads.{tsx,scss}
-// TODO(downloads): the download groups (download-group.tsx) once the
-// download engine is ported; today only the empty state shows.
+// src/renderer/src/pages/downloads/downloads.{tsx,scss} + download-group:
+// the download in progress as a hero, then the queued and completed lists.
+import { Theme, Icons, Tip, Ids } from "../../theme.slint";
+import { Icon, HydraButton, ScrollBar } from "../../components/widgets.slint";
 import { T } from "../../globals.slint";
 import { EmptyState } from "../library/page.slint";
+import { DownloadsData, DownloadCard } from "state.slint";
+import { DownloadHero } from "hero.slint";
 
-export global DownloadsData {
-    in property <bool> has-downloads;
+export { DownloadsData, DownloadCard }
+
+// __simple-menu-btn / __simple-action-btn: 8px padding, no min-height
+component SmallButton inherits Rectangle {
+    in property <string> kind: "outline";
+    in property <image> icon;
+    in property <string> label;
+    in property <string> tooltip;
+    in property <bool> enabled: true;
+    in property <bool> wide;
+    callback clicked();
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+    height: 34px;
+    width: root.label == "" ? 34px : Math.max(row.preferred-width + 2px, root.wide ? 120px : 0);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: root.kind == "outline" ? Theme.border : transparent;
+    background: root.kind == "primary" ? (touch.has-hover && root.enabled ? #dadbe1 : Theme.muted)
+        : (touch.has-hover && root.enabled ? rgba(255, 255, 255, 0.1) : transparent);
+    animate background { duration: 200ms; easing: ease; }
+    opacity: !root.enabled ? Theme.disabled-opacity : touch.pressed ? Theme.active-opacity : 1;
+    row := HorizontalLayout {
+        x: 1px;
+        width: parent.width - 2px;
+        padding-left: 8px;
+        padding-right: 8px;
+        spacing: 8px;
+        alignment: center;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: root.icon;
+                color: root.kind == "primary" ? #000000 : Theme.muted;
+            }
+        }
+        if root.label != "": Text {
+            text: root.label;
+            font-size: 13.33px;
+            color: root.kind == "primary" ? #000000 : Theme.muted;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: root.enabled ? pointer : not-allowed;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+        changed has-hover => {
+            if (self.has-hover && root.tooltip != "") {
+                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+// .download-group__simple-card
+component DownloadRow inherits Rectangle {
+    in property <DownloadCard> card;
+    in property <bool> queued-group;
+    height: 100px;
+
+    // __simple-thumbnail: 200x100, radius 6, border, cover
+    thumb := Rectangle {
+        x: 0;
+        width: 200px;
+        height: 100px;
+        border-radius: 6px;
+        clip: true;
+        background: rgba(0, 0, 0, 0.3);
+        opacity: thumb-touch.has-hover ? 0.9 : 1;
+        animate opacity { duration: 200ms; easing: ease; }
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.card.cover;
+            image-fit: cover;
+        }
+        Rectangle {
+            border-radius: 6px;
+            border-width: 1px;
+            border-color: Theme.border;
+        }
+        thumb-touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                DownloadsData.open-game(root.card.id);
+            }
+        }
+    }
+
+    property <length> actions-width: actions.preferred-width;
+    property <length> progress-width: root.queued-group ? 200px + 16px : 0;
+
+    // __simple-info: title, downloader badge, size (column gap 8, meta gap 12)
+    info := VerticalLayout {
+        x: 216px;
+        width: root.width - 216px - root.progress-width - root.actions-width - 16px;
+        alignment: center;
+        spacing: 8px;
+        HorizontalLayout {
+            alignment: start;
+            title-text := Text {
+                text: root.card.title;
+                font-size: 16px;
+                font-weight: 700; // 600 in scss
+                color: Theme.muted;
+                overflow: elide;
+                height: 22px;
+                vertical-alignment: center;
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        DownloadsData.open-game(root.card.id);
+                    }
+                }
+            }
+        }
+        VerticalLayout {
+            spacing: 12px;
+            HorizontalLayout {
+                alignment: start;
+                Rectangle {
+                    height: 25px;
+                    width: badge-text.preferred-width + 16px + 2px;
+                    border-radius: 6px;
+                    border-width: 1px;
+                    border-color: rgba(255, 255, 255, 0.2);
+                    background: rgba(255, 255, 255, 0.1);
+                    badge-text := Text {
+                        text: root.card.downloader;
+                        font-size: Theme.tiny-size;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+            HorizontalLayout {
+                alignment: start;
+                spacing: 16px;
+                height: 18px;
+                HorizontalLayout {
+                    spacing: 4px;
+                    if !root.card.extracting: VerticalLayout {
+                        alignment: center;
+                        Icon {
+                            width: 14px;
+                            height: 14px;
+                            source: Icons.download;
+                            color: Theme.muted;
+                        }
+                    }
+                    Text {
+                        text: root.card.size;
+                        font-size: 13px;
+                        font-weight: 500;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                    }
+                }
+                if root.card.seeding: Text {
+                    text: T.tr("downloads.seeding");
+                    font-size: Theme.tiny-size;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                    color: Theme.success;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+
+    // __simple-progress (queued list)
+    if root.queued-group: VerticalLayout {
+        x: root.width - root.actions-width - 16px - 200px;
+        width: 200px;
+        alignment: center;
+        spacing: 4px;
+        Text {
+            text: root.card.progress-text;
+            font-size: Theme.small-size;
+            font-weight: 700; // 600 in scss
+            color: rgba(255, 255, 255, 0.8);
+            horizontal-alignment: right;
+        }
+        Rectangle {
+            height: 10px;
+            Rectangle {
+                y: 4px;
+                height: 6px;
+                border-radius: 4px;
+                background: rgba(255, 255, 255, 0.08);
+                clip: true;
+                Rectangle {
+                    x: 0;
+                    width: parent.width * Math.clamp(root.card.progress, 0, 1);
+                    animate width { duration: 300ms; easing: ease; }
+                    border-radius: 4px;
+                    background: #ffffff;
+                }
+            }
+        }
+    }
+
+    // __simple-actions
+    actions := HorizontalLayout {
+        x: root.width - self.preferred-width;
+        y: (root.height - 34px) / 2;
+        height: 34px;
+        width: self.preferred-width;
+        spacing: 8px;
+        if root.card.step == "open-folder": SmallButton {
+            kind: "primary";
+            wide: true;
+            icon: Icons.folder-open;
+            label: T.tr("game_details.open_folder");
+            clicked => {
+                DownloadsData.completed-action(root.card.id, root.card.step);
+            }
+        }
+        if root.card.step == "play": SmallButton {
+            kind: "primary";
+            wide: true;
+            icon: Icons.play;
+            label: T.tr("game_details.play");
+            clicked => {
+                DownloadsData.completed-action(root.card.id, root.card.step);
+            }
+        }
+        if root.card.step == "close": SmallButton {
+            wide: true;
+            icon: Icons.x-circle;
+            label: T.tr("game_details.close");
+            clicked => {
+                DownloadsData.completed-action(root.card.id, root.card.step);
+            }
+        }
+        if root.card.step == "extract": SmallButton {
+            kind: "primary";
+            wide: true;
+            icon: Icons.file-archive;
+            label: T.tr("downloads.extract");
+            clicked => {
+                DownloadsData.completed-action(root.card.id, root.card.step);
+            }
+        }
+        if root.card.step == "install": SmallButton {
+            kind: "primary";
+            wide: true;
+            icon: Icons.download;
+            label: T.tr("downloads.install");
+            clicked => {
+                DownloadsData.completed-action(root.card.id, root.card.step);
+            }
+        }
+        if root.card.step == "installing": SmallButton {
+            kind: "primary";
+            wide: true;
+            enabled: false;
+            label: T.tr("downloads.installing");
+        }
+        if root.card.step == "select-executable": SmallButton {
+            wide: true;
+            icon: Icons.folder-open;
+            label: T.tr("game_details.open_folder");
+            clicked => {
+                DownloadsData.completed-action(root.card.id, "open-folder");
+            }
+        }
+        if root.card.step == "select-executable": SmallButton {
+            kind: "primary";
+            wide: true;
+            icon: Icons.file;
+            label: T.tr("downloads.select_executable");
+            clicked => {
+                DownloadsData.completed-action(root.card.id, root.card.step);
+            }
+        }
+        // "checking": the slot is held, invisible
+        if root.card.step == "checking": SmallButton {
+            kind: "primary";
+            wide: true;
+            enabled: false;
+            opacity: 0;
+            icon: Icons.play;
+            label: T.tr("game_details.play");
+        }
+        if root.queued-group && root.card.resumable: SmallButton {
+            kind: "primary";
+            icon: Icons.download;
+            tooltip: T.tr("downloads.resume");
+            clicked => {
+                DownloadsData.resume(root.card.id);
+            }
+        }
+        menu-button := SmallButton {
+            icon: Icons.more-vertical;
+            clicked => {
+                DownloadsData.menu(root.card.id, self.absolute-position.x + self.width, self.absolute-position.y + self.height);
+            }
+        }
+    }
+}
+
+// .download-group (header with the count chip, then the rows)
+component DownloadGroupList inherits VerticalLayout {
+    in property <string> title;
+    in property <[DownloadCard]> cards;
+    in property <bool> queued-group;
+    padding-left: 24px;
+    padding-right: 24px;
+    spacing: 16px;
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        height: 27px;
+        Text {
+            text: root.title;
+            font-size: 20px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.95);
+            vertical-alignment: center;
+        }
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                height: 25px;
+                width: Math.max(24px, count.preferred-width + 16px);
+                border-radius: 6px;
+                background: rgba(255, 255, 255, 0.1);
+                count := Text {
+                    text: root.cards.length;
+                    font-size: Theme.small-size;
+                    font-weight: 700; // 600 in scss
+                    color: rgba(255, 255, 255, 0.7);
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+    VerticalLayout {
+        spacing: 16px;
+        for card in root.cards: DownloadRow {
+            card: card;
+            queued-group: root.queued-group;
+        }
+    }
 }
 
 export component DownloadsPage inherits Rectangle {
@@ -17,5 +375,41 @@ export component DownloadsPage inherits Rectangle {
         icon: @image-url("../../icons/arrow-down-24.svg");
         title: T.tr("downloads.no_downloads_title");
         description: T.tr("downloads.no_downloads_description");
+    }
+
+    if DownloadsData.has-downloads: Rectangle {
+        width: root.width - 9px;
+        x: 0;
+        scroller := Flickable {
+            viewport-height: groups.preferred-height;
+            groups := VerticalLayout {
+                // .downloads__groups: gap 24px
+                spacing: 0;
+                if DownloadsData.has-hero: DownloadHero {
+                    page-width: scroller.width;
+                }
+                if DownloadsData.queued.length > 0: Rectangle {
+                    // .downloads__groups gap (24px) + padding-top 24px; --queued has no bottom padding
+                    height: queued-list.preferred-height + (DownloadsData.has-hero ? 48px : 24px);
+                    queued-list := DownloadGroupList {
+                        y: DownloadsData.has-hero ? 48px : 24px;
+                        height: self.preferred-height;
+                        title: DownloadsData.queued-title;
+                        cards: DownloadsData.queued;
+                        queued-group: true;
+                    }
+                }
+                if DownloadsData.completed.length > 0: Rectangle {
+                    // --completed: padding-top 24px after the 24px gap; 24px below
+                    height: completed-list.preferred-height + (DownloadsData.queued.length > 0 || DownloadsData.has-hero ? 48px : 24px) + 24px;
+                    completed-list := DownloadGroupList {
+                        y: DownloadsData.queued.length > 0 || DownloadsData.has-hero ? 48px : 24px;
+                        height: self.preferred-height;
+                        title: DownloadsData.completed-title;
+                        cards: DownloadsData.completed;
+                    }
+                }
+            }
+        }
     }
 }

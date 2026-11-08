@@ -578,7 +578,11 @@ fn set_visibility(field: Visibility, value: bool) {
 
 /// openGameExecutablePath: the folder with the executable selected.
 fn open_folder_of(executable: &str) {
-    let path = std::path::Path::new(executable);
+    reveal(std::path::Path::new(executable));
+}
+
+/// shell.showItemInFolder
+pub fn reveal(path: &std::path::Path) {
     #[cfg(windows)]
     {
         let _ = std::process::Command::new("explorer")
