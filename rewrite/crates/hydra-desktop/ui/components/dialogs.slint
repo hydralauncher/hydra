@@ -1,0 +1,191 @@
+// App-level dialogs opened from menus anywhere: components/confirmation-modal
+// (also RemoveGameFromLibraryModal, which is the same shape) and
+// components/create-collection-modal. The backend fills `Dialogs` and
+// handles the buttons (dialogs.rs).
+import { Theme } from "../theme.slint";
+import { HydraButton } from "widgets.slint";
+import { Modal, ModalController } from "modal.slint";
+
+export global Dialogs {
+    // "" | "confirm" | "create-collection"
+    in-out property <string> kind;
+    in property <string> title;
+    in property <string> description;
+    // confirmation-modal__description (16px / 24px)
+    in property <string> body;
+    in property <string> confirm-label;
+    in property <string> cancel-label;
+    // "primary" | "danger"
+    in property <string> confirm-kind: "primary";
+    in property <bool> busy;
+    // create-collection-modal: the name field
+    in property <string> field-label;
+    in property <string> field-placeholder;
+    in-out property <string> field-text;
+    in property <string> field-error;
+    // The window, blurred, under the backdrop (backdrop-filter: blur(2px)).
+    in property <image> backdrop;
+    // Bumped by the backend to close the open dialog with its exit animation.
+    in property <int> close-request;
+    callback confirmed();
+    callback cancelled();
+    callback field-edited(string);
+}
+
+// text-field (theme dark) with a label above and an error below.
+component LabeledField inherits VerticalLayout {
+    spacing: 8px;
+    Text {
+        text: Dialogs.field-label;
+        font-size: Theme.body-size;
+        color: Theme.body;
+    }
+    field := Rectangle {
+        height: 40px;
+        border-radius: 8px;
+        border-width: 1px;
+        background: Theme.background;
+        border-color: Dialogs.field-error != "" ? Theme.danger : input.has-focus ? #dadbe1 : hover.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
+        animate border-color { duration: 200ms; easing: ease; }
+        opacity: Dialogs.busy ? Theme.disabled-opacity : 1;
+        hover := TouchArea {
+            mouse-cursor: MouseCursor.text;
+            clicked => {
+                input.focus();
+            }
+        }
+        Rectangle {
+            x: 9px;
+            width: parent.width - 18px;
+            Text {
+                x: 0;
+                width: parent.width;
+                text: Dialogs.field-placeholder;
+                color: #757575;
+                font-size: Theme.button-size;
+                vertical-alignment: center;
+                visible: input.text == "";
+            }
+            input := TextInput {
+                width: parent.width;
+                height: parent.height;
+                text <=> Dialogs.field-text;
+                color: #dadbe1;
+                font-size: Theme.button-size;
+                vertical-alignment: center;
+                single-line: true;
+                enabled: !Dialogs.busy;
+                accessible-label: Dialogs.field-label;
+                init => {
+                    self.focus();
+                }
+                edited => {
+                    // maxLength={60}
+                    Dialogs.field-edited(self.text);
+                }
+                accepted => {
+                    Dialogs.confirmed();
+                }
+            }
+        }
+    }
+    if Dialogs.field-error != "": Text {
+        text: Dialogs.field-error;
+        // <small>: font-size smaller
+        font-size: 11.67px;
+        color: Theme.error;
+    }
+}
+
+export component DialogHost inherits Rectangle {
+    property <int> close-request: Dialogs.close-request;
+    changed close-request => {
+        controller.close();
+    }
+    property <bool> wanted: Dialogs.kind != "";
+    changed wanted => {
+        if (self.wanted) {
+            controller.open = true;
+        }
+    }
+
+    controller := ModalController {
+        closed => {
+            Dialogs.kind = "";
+        }
+    }
+
+    if controller.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: Dialogs.title;
+        description: Dialogs.description;
+        closing: controller.closing;
+        blurred-page: Dialogs.backdrop;
+        request-close => {
+            if (!Dialogs.busy) {
+                Dialogs.cancelled();
+                controller.close();
+            }
+        }
+
+        // confirmation-modal: description, then the buttons at the end (gap 16)
+        if Dialogs.kind == "confirm": VerticalLayout {
+            spacing: 16px;
+            if Dialogs.body != "": Text {
+                text: Dialogs.body;
+                font-size: 16px;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+            HorizontalLayout {
+                alignment: end;
+                spacing: 8px;
+                HydraButton {
+                    kind: "outline";
+                    enabled: !Dialogs.busy;
+                    text: Dialogs.cancel-label;
+                    clicked => {
+                        Dialogs.cancelled();
+                        controller.close();
+                    }
+                }
+                HydraButton {
+                    kind: Dialogs.confirm-kind;
+                    enabled: !Dialogs.busy;
+                    text: Dialogs.confirm-label;
+                    clicked => {
+                        Dialogs.confirmed();
+                    }
+                }
+            }
+        }
+
+        // create-collection-modal: the name field, then Cancel / Create (gap 16)
+        if Dialogs.kind == "create-collection": VerticalLayout {
+            spacing: 16px;
+            LabeledField { }
+            HorizontalLayout {
+                alignment: end;
+                spacing: 8px;
+                HydraButton {
+                    kind: "outline";
+                    enabled: !Dialogs.busy;
+                    text: Dialogs.cancel-label;
+                    clicked => {
+                        Dialogs.cancelled();
+                        controller.close();
+                    }
+                }
+                HydraButton {
+                    kind: "primary";
+                    enabled: !Dialogs.busy;
+                    text: Dialogs.confirm-label;
+                    clicked => {
+                        Dialogs.confirmed();
+                    }
+                }
+            }
+        }
+    }
+}

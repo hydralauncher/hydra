@@ -535,3 +535,69 @@ fn clear_finished_download(db: &Db, key: &str) {
         let _ = db.delete_in(keys::DOWNLOADS, key);
     }
 }
+
+/// helpers/remove-library-game.ts: mark the game deleted, drop custom art
+/// (and its local files), reset shop assets and the artwork selection, and
+/// remove the remote entry.
+pub fn remove_from_library(
+    db: &Db,
+    api: &HydraApi,
+    shop: &str,
+    object_id: &str,
+) -> Result<(), ActionError> {
+    let key = game_key(shop, object_id);
+    let Some(game) = local_game(db, &key) else {
+        return Ok(());
+    };
+    let url_fields: &[&str] = if shop == "custom" {
+        &[
+            "iconUrl",
+            "logoImageUrl",
+            "libraryHeroImageUrl",
+            "customCoverImageUrl",
+        ]
+    } else {
+        &[
+            "customIconUrl",
+            "customLogoImageUrl",
+            "customHeroImageUrl",
+            "customCoverImageUrl",
+        ]
+    };
+    let local_assets: Vec<String> = url_fields
+        .iter()
+        .filter_map(|field| game.get(*field).and_then(Value::as_str))
+        .filter_map(|url| url.strip_prefix("local:").map(str::to_string))
+        .collect();
+    {
+        let _guard = WRITE_QUEUE.lock().unwrap_or_else(|e| e.into_inner());
+        let mut updated = game.clone();
+        // updateGameExecutablePath(game, null)
+        updated.insert("executablePath".into(), Value::Null);
+        updated.insert("isDeleted".into(), Value::Bool(true));
+        if shop != "custom" {
+            for field in [
+                "customIconUrl",
+                "customLogoImageUrl",
+                "customHeroImageUrl",
+                "customCoverImageUrl",
+            ] {
+                updated.insert(field.into(), Value::Null);
+            }
+        }
+        db.put_in(keys::GAMES, &key, &updated)?;
+    }
+    // TODO(souvenirs): groupedSouvenirWorker.trigger()
+    let _ = db.delete_in(keys::ARTWORK_SELECTION, &key);
+    if let Some(remote_id) = game
+        .get("remoteId")
+        .and_then(Value::as_str)
+        .filter(|r| !r.is_empty())
+    {
+        let _ = api.delete(&format!("/profile/games/{remote_id}"), auth());
+    }
+    for path in local_assets {
+        let _ = std::fs::remove_file(path);
+    }
+    Ok(())
+}

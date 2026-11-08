@@ -374,7 +374,7 @@ fn wire(ui: &AppWindow) {
             eprintln!("TODO(auth): openAuthWindow(SignIn)");
             return;
         }
-        eprintln!("TODO(collections): CreateCollectionModal");
+        crate::dialogs::create_collection_modal(None);
     });
     data.on_collection_context_menu(|id, x, y| {
         eprintln!("TODO(collections): collection context menu for {id} at {x},{y}");

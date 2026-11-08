@@ -323,7 +323,12 @@ fn activated(id: &str) {
                 eprintln!("TODO(auth): openAuthWindow(SignIn)");
                 return;
             }
-            eprintln!("TODO(collections): CreateCollectionModal from the context menu");
+            // onCreated: assign the game to the new collection right away.
+            context_menu::force_submenu("collection");
+            crate::dialogs::create_collection_modal(Some(Rc::new(|id: String| {
+                context_menu::force_submenu("");
+                toggle_collection(id);
+            })));
         }
         id if id.starts_with("collection-") => {
             toggle_collection(id.trim_start_matches("collection-").to_string())
@@ -371,13 +376,54 @@ fn activated(id: &str) {
         "download-location" => eprintln!("TODO(downloads): openGameInstallerPath"),
         "remove-library" => {
             context_menu::force_submenu("manage");
-            eprintln!("TODO(library): RemoveGameFromLibraryModal");
-            context_menu::force_submenu("");
+            let description = shell::tr_with(
+                "game_details.remove_from_library_description",
+                &[("game", game.title().into())],
+            );
+            crate::dialogs::confirm(
+                crate::dialogs::Confirm {
+                    title: &t("game_details.remove_from_library_title"),
+                    description: &description,
+                    body: "",
+                    confirm_label: &t("game_details.remove"),
+                    cancel_label: &t("game_details.cancel"),
+                    danger: true,
+                },
+                remove_from_library,
+            );
         }
         "customize" | "properties" => eprintln!("TODO(game options): GameOptionsModal"),
         "desktop-shortcut" | "steam-shortcut" => eprintln!("TODO(shortcuts): {id}"),
         other => eprintln!("game menu: unhandled {other}"),
     }
+}
+
+/// handleRemoveFromLibrary (after the confirmation)
+fn remove_from_library() {
+    crate::dialogs::close();
+    context_menu::force_submenu("");
+    context_menu::close();
+    let Some(group) = with_open(|o| o.group.clone()) else {
+        return;
+    };
+    run_for_members(
+        &group,
+        |db, api, shop, object_id| {
+            // TODO(downloads): cancelGameDownload when member.download.status === "active"
+            library_actions::remove_from_library(db, api, shop, object_id)
+        },
+        |result| {
+            match result {
+                Ok(()) => toast::success(&t("game_details.game_removed_from_library")),
+                Err(error) => {
+                    eprintln!("Failed to remove from library: {error}");
+                    toast::error(&t("game_details.failed_remove_from_library"));
+                }
+            }
+            shell::load_library();
+            collections::load();
+        },
+    );
 }
 
 /// handleToggleFavoriteStatus

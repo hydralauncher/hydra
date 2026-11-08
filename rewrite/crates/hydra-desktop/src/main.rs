@@ -8,6 +8,7 @@ mod catalogue_page;
 mod collections;
 mod context_menu;
 mod devscript;
+mod dialogs;
 mod features;
 mod format;
 mod game_menu;
@@ -169,6 +170,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     popup::init(&ui);
     toast::init(&ui);
     context_menu::init(&ui);
+    dialogs::init(&ui);
     nav::init(&ui, args.path.as_deref().unwrap_or("/"));
 
     // HYDRA_TIMING=1: print when the first frame is on screen (benchmarks).

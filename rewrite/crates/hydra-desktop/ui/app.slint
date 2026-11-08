@@ -12,6 +12,7 @@ import { Theme, Icons, Tip } from "theme.slint";
 import { TooltipHost } from "components/widgets.slint";
 import { ContextMenuHost, ContextMenu, MenuEntry, MenuLeaf } from "components/context-menu.slint";
 import { ToastHost, Toast } from "components/toast.slint";
+import { DialogHost, Dialogs } from "components/dialogs.slint";
 import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review } from "types.slint";
 import { ReviewEditor, FormatEdit, Marks } from "pages/game-details/reviews.slint";
 import { Playback } from "components/video.slint";
@@ -33,7 +34,7 @@ export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language,
 export { T, Nav, Session, Chrome, SidebarState, SidebarGame, GameData, Input, Popup }
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
-export { HomeData, CatalogueCard, Gifs }
+export { HomeData, CatalogueCard, Gifs, Dialogs }
 export { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup, SelectPopup, SelectOption }
 
 export component AppWindow inherits Window {
@@ -108,12 +109,19 @@ export component AppWindow inherits Window {
         }
     }
 
-    ToastHost {
+    // Stacking like the renderer's z-indexes: the context menu drops behind an
+    // open modal (context-menu--modal-open), toasts (150) sit above modals (5).
+    ContextMenuHost {
         width: root.width;
         height: root.height;
     }
 
-    ContextMenuHost {
+    DialogHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    ToastHost {
         width: root.width;
         height: root.height;
     }
