@@ -19,11 +19,13 @@ component MineCell inherits Rectangle {
     in property <bool> pending;
     in property <bool> failed;
     in property <string> metric;
+    // body rows share a taller card evenly (the header stays 36px)
+    in property <length> body-height: 44px;
     callback hover(bool);
     callback clicked();
-    min-height: root.head ? 36px : 44px;
+    min-height: root.head ? 36px : root.body-height;
+    max-height: self.min-height;
     horizontal-stretch: root.first-column ? 1 : 0;
-    vertical-stretch: root.head ? 36 : 44;
     min-width: content.preferred-width;
     property <brush> ink: !root.head && root.hovered ? Theme.muted : Theme.body;
     if !root.last-row: Rectangle {
@@ -72,12 +74,18 @@ component MineCell inherits Rectangle {
 // .leaderboards__mine: the viewer's banner header and the metric table.
 component MineCard inherits Rectangle {
     property <int> hover-row: -1;
+    property <int> count: Math.max(1, LeaderboardsData.mine.length);
+    property <length> retry-height: LeaderboardsData.mine-failed ? 44px : 0;
+    // header (97) + th (36) + 44px rows + the retry row: its height on its own
+    out property <length> natural-height: 97px + 36px + LeaderboardsData.mine.length * 44px + root.retry-height;
+    // a taller card (a grid row with the friends) grows the body rows evenly
+    property <length> body-height: Math.max(44px, (root.height - 97px - 36px - root.retry-height) / root.count);
     border-radius: 4px;
     background: Theme.background;
     clip: true;
-    min-height: column.preferred-height;
     column := VerticalLayout {
         header := Rectangle {
+            vertical-stretch: 0;
             if LeaderboardsData.has-viewer-banner: Image {
                 width: parent.width;
                 height: parent.height;
@@ -143,6 +151,7 @@ component MineCard inherits Rectangle {
                 MineCell {
                     first-column: true;
                     metric: item.metric-id;
+                    body-height: root.body-height;
                     text: item.label;
                     last-row: i == LeaderboardsData.mine.length - 1;
                     hovered: root.hover-row == i;
@@ -156,6 +165,7 @@ component MineCard inherits Rectangle {
                 MineCell {
                     text: item.value;
                     pending: item.pending;
+                    body-height: root.body-height;
                     failed: item.failed;
                     last-row: i == LeaderboardsData.mine.length - 1;
                     hovered: root.hover-row == i;
@@ -169,6 +179,7 @@ component MineCard inherits Rectangle {
                 MineCell {
                     last-column: true;
                     text: item.rank;
+                    body-height: root.body-height;
                     last-row: i == LeaderboardsData.mine.length - 1;
                     hovered: root.hover-row == i;
                     hover(on) => {
@@ -598,18 +609,18 @@ export component StatsTab inherits VerticalLayout {
     property <int> columns: Math.max(1, Math.floor((self.width + 24px) / 344px));
     property <length> column-width: (self.width - (root.columns - 1) * 24px) / root.columns;
     spacing: 24px;
-    property <length> row-height: root.columns > 1 ? Math.max(mine.min-height, friends.min-height) : 0;
+    property <length> row-height: root.columns > 1 ? Math.max(mine.natural-height, friends.min-height) : 0;
     grid := Rectangle {
-        height: root.columns > 1 ? root.row-height : mine.min-height + 24px + friends.min-height;
+        height: root.columns > 1 ? root.row-height : mine.natural-height + 24px + friends.min-height;
         mine := MineCard {
             x: 0;
             y: 0;
             width: root.column-width;
-            height: root.columns > 1 ? root.row-height : self.min-height;
+            height: root.columns > 1 ? root.row-height : self.natural-height;
         }
         friends := Rectangle {
             x: root.columns > 1 ? root.column-width + 24px : 0;
-            y: root.columns > 1 ? 0 : mine.min-height + 24px;
+            y: root.columns > 1 ? 0 : mine.natural-height + 24px;
             width: root.column-width;
             height: root.columns > 1 ? root.row-height : self.min-height;
             min-height: panel.preferred-height;

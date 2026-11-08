@@ -147,6 +147,8 @@ struct State {
     linked: Option<(String, String)>,
     game_metric: Option<String>,
     side_list: String,
+    /// the effective tab of the last render (isGameBoardSelected's effect)
+    last_tab: String,
     search: String,
     // data
     metrics: Res<Vec<Metric>>,
@@ -1011,6 +1013,13 @@ fn apply_to(ui: &AppWindow) {
     });
     let tab = effective_tab();
     let (period, scope) = with(|s| (s.period.clone(), current_scope(s)));
+    // the sidebar shows the games once a game board is on screen
+    with(|s| {
+        if tab == "games" && s.last_tab != "games" {
+            s.side_list = "games".into();
+        }
+        s.last_tab = tab.clone();
+    });
 
     data.set_signed_in(logged_in);
     data.set_tab(tab.clone().into());
@@ -2739,6 +2748,7 @@ pub fn close() {
     with(|s| {
         s.open = false;
         s.last_link.clear();
+        s.last_tab.clear();
         s.countdown = None;
         s.countdown_end = 0;
         s.linked = None;
