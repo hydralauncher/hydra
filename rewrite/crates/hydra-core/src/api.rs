@@ -4,6 +4,7 @@
 //! stored expiration has passed; expirations are saved 5 minutes early) and
 //! sign-out on 401. Blocking: call it from worker threads only.
 
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -109,6 +110,9 @@ pub struct HydraApi {
     auth: Mutex<UserAuth>,
     /// Called after a 401 cleared the session (`sendSignOutEvent`).
     on_sign_out: Mutex<Option<Box<dyn Fn() + Send + Sync>>>,
+    /// `authContexts.generation`: bumped on every sign-in and sign-out, so
+    /// work started for one session can tell it is stale.
+    generation: AtomicU64,
 }
 
 fn now_ms() -> i64 {
@@ -127,6 +131,7 @@ impl HydraApi {
             db,
             auth: Mutex::new(UserAuth::default()),
             on_sign_out: Mutex::new(None),
+            generation: AtomicU64::new(0),
         };
         api.reload_auth();
         api
@@ -162,6 +167,16 @@ impl HydraApi {
         }
     }
 
+    /// `HydraApi.getAuthContext().generation`; compare with
+    /// [`HydraApi::is_generation_current`] (`isAuthContextCurrent`).
+    pub fn auth_generation(&self) -> u64 {
+        self.generation.load(Ordering::SeqCst)
+    }
+
+    pub fn is_generation_current(&self, generation: u64) -> bool {
+        self.auth_generation() == generation
+    }
+
     pub fn is_logged_in(&self) -> bool {
         self.auth
             .lock()
@@ -180,6 +195,7 @@ impl HydraApi {
                 "tokenExpirationTimestamp": expiration,
             }),
         );
+        self.generation.fetch_add(1, Ordering::SeqCst);
         self.reload_auth();
     }
 
@@ -196,6 +212,7 @@ impl HydraApi {
 
     /// Local half of sign-out: forget the session (`clearPersistedAuth`).
     pub fn clear_session(&self) {
+        self.generation.fetch_add(1, Ordering::SeqCst);
         if let Ok(mut auth) = self.auth.lock() {
             *auth = UserAuth::default();
         }

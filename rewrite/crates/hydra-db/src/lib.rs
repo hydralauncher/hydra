@@ -194,6 +194,47 @@ impl Db {
             .map(|(k, _)| String::from_utf8_lossy(&k).into_owned())
             .collect())
     }
+
+    /// `db.batch().write()`: every operation lands at once, or none does.
+    pub fn write(&self, batch: Batch) -> Result<()> {
+        if batch.len == 0 {
+            return Ok(());
+        }
+        let mut db = self.inner.lock().map_err(|_| Error("poisoned".into()))?;
+        db.write(batch.inner, false)?;
+        db.flush()?;
+        Ok(())
+    }
+}
+
+/// `db.batch()` with `{ sublevel }` puts and dels.
+#[derive(Default)]
+pub struct Batch {
+    inner: rusty_leveldb::WriteBatch,
+    len: usize,
+}
+
+impl Batch {
+    pub fn put_in<T: Serialize>(&mut self, sublevel: &str, key: &str, value: &T) -> Result<()> {
+        let bytes = serde_json::to_vec(value)?;
+        self.inner
+            .put(sublevel_key(sublevel, key).as_bytes(), &bytes);
+        self.len += 1;
+        Ok(())
+    }
+
+    pub fn delete_in(&mut self, sublevel: &str, key: &str) {
+        self.inner.delete(sublevel_key(sublevel, key).as_bytes());
+        self.len += 1;
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
 }
 
 #[cfg(test)]
@@ -252,5 +293,27 @@ mod tests {
         assert_eq!(db.values::<Value>("downloads").unwrap().len(), 1);
         db.delete_in("games", "steam:1").unwrap();
         assert_eq!(db.values::<Game>("games").unwrap().len(), 1);
+    }
+
+    #[test]
+    fn batches_write_together() {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Db::open(dir.path().join("hydra-db")).unwrap();
+        db.put_in("games", "steam:1", &serde_json::json!({ "title": "A" }))
+            .unwrap();
+        let mut batch = Batch::default();
+        batch
+            .put_in("games", "steam:2", &serde_json::json!({ "title": "B" }))
+            .unwrap();
+        batch
+            .put_in("gameShopAssets", "steam:2", &serde_json::json!({ "x": 1 }))
+            .unwrap();
+        batch.delete_in("games", "steam:1");
+        assert_eq!(batch.len(), 3);
+        db.write(batch).unwrap();
+        let games: Vec<(String, Value)> = db.entries("games").unwrap();
+        assert_eq!(games.len(), 1);
+        assert_eq!(games[0].0, "steam:2");
+        assert_eq!(db.values::<Value>("gameShopAssets").unwrap().len(), 1);
     }
 }

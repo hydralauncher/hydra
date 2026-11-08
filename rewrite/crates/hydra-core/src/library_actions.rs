@@ -18,6 +18,71 @@ type Obj = Map<String, Value>;
 
 static WRITE_QUEUE: Mutex<()> = Mutex::new(());
 
+/// `libraryWriteQueue.run`: one read-modify-write of the library at a time.
+/// Keep network requests outside the closure.
+pub fn with_write_lock<R>(task: impl FnOnce() -> R) -> R {
+    let _guard = WRITE_QUEUE.lock().unwrap_or_else(|e| e.into_inner());
+    task()
+}
+
+/// `markHydraPlaytimeChanged` / `getHydraPlaytimeRevision`: a merge that
+/// started before a manual playtime change keeps the local playtime.
+static PLAYTIME_REVISIONS: Mutex<(u64, Vec<(String, u64)>)> = Mutex::new((0, Vec::new()));
+
+pub fn mark_hydra_playtime_changed(key: &str) {
+    let mut state = PLAYTIME_REVISIONS.lock().unwrap_or_else(|e| e.into_inner());
+    state.0 += 1;
+    let revision = state.0;
+    match state.1.iter_mut().find(|(k, _)| k == key) {
+        Some(entry) => entry.1 = revision,
+        None => state.1.push((key.to_string(), revision)),
+    }
+}
+
+/// The latest revision overall (`None`) or of one game.
+pub fn hydra_playtime_revision(key: Option<&str>) -> u64 {
+    let state = PLAYTIME_REVISIONS.lock().unwrap_or_else(|e| e.into_inner());
+    match key {
+        None => state.0,
+        Some(key) => state
+            .1
+            .iter()
+            .find(|(k, _)| k == key)
+            .map_or(0, |(_, r)| *r),
+    }
+}
+
+/// `withHydraClaim` / `hasPendingHydraClaim`: a Hydra write for this game is
+/// in flight (the Epic owner probe leaves it alone).
+static HYDRA_CLAIMS: Mutex<Vec<(String, usize)>> = Mutex::new(Vec::new());
+
+pub fn has_pending_hydra_claim(key: &str) -> bool {
+    HYDRA_CLAIMS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .iter()
+        .any(|(k, n)| k == key && *n > 0)
+}
+
+pub fn with_hydra_claim<R>(key: &str, task: impl FnOnce() -> R) -> R {
+    {
+        let mut claims = HYDRA_CLAIMS.lock().unwrap_or_else(|e| e.into_inner());
+        match claims.iter_mut().find(|(k, _)| k == key) {
+            Some(entry) => entry.1 += 1,
+            None => claims.push((key.to_string(), 1)),
+        }
+    }
+    let result = task();
+    let mut claims = HYDRA_CLAIMS.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(index) = claims.iter().position(|(k, _)| k == key) {
+        claims[index].1 -= 1;
+        if claims[index].1 == 0 {
+            claims.swap_remove(index);
+        }
+    }
+    result
+}
+
 fn auth() -> Options {
     Options {
         needs_auth: true,
@@ -316,12 +381,15 @@ pub fn merge_play_time(local: &Obj, remote: &Value) -> (f64, f64, f64) {
         .unwrap_or(0.0);
     let mut remote = remote.clone();
     if !supports_epic && local_epic != 0.0 {
-        let platforms = remote
-            .as_object_mut()
-            .map(|r| r.entry("runtimeByPlatform").or_insert_with(|| json!({})))
-            .filter(|p| p.is_object());
-        if let Some(Value::Object(platforms)) = platforms {
-            platforms.insert("epic".into(), json!(local_epic / 1000.0));
+        // `{ ...remote.runtimeByPlatform, epic }`: a null spreads as {}.
+        if let Some(r) = remote.as_object_mut() {
+            let platforms = r.entry("runtimeByPlatform").or_insert_with(|| json!({}));
+            if !platforms.is_object() {
+                *platforms = json!({});
+            }
+            if let Value::Object(platforms) = platforms {
+                platforms.insert("epic".into(), json!(local_epic / 1000.0));
+            }
         }
     }
     let (hydra, steam, epic) = remote_play_time_parts(&remote);
@@ -391,6 +459,18 @@ pub fn create_game(db: &Db, api: &HydraApi, game: &Obj) -> Result<(), ActionErro
         .and_then(Value::as_str)
         .unwrap_or_default();
     let key = game_key(shop, object_id);
+    with_hydra_claim(&key, || create_game_claimed(db, api, shop, object_id, &key))
+}
+
+fn create_game_claimed(
+    db: &Db,
+    api: &HydraApi,
+    shop: &str,
+    object_id: &str,
+    key: &str,
+) -> Result<(), ActionError> {
+    let key = key.to_string();
+    let revision = hydra_playtime_revision(None);
     let Some(local) = local_game(db, &key) else {
         return Ok(());
     };
@@ -416,7 +496,10 @@ pub fn create_game(db: &Db, api: &HydraApi, game: &Obj) -> Result<(), ActionErro
                 response.get("id").cloned().unwrap_or(Value::Null),
             );
             latest.insert("source".into(), json!("hydra"));
-            latest.insert("playTimeInMilliseconds".into(), json!(hydra));
+            // a manual playtime change while the request was out wins
+            if hydra_playtime_revision(Some(&key)) <= revision {
+                latest.insert("playTimeInMilliseconds".into(), json!(hydra));
+            }
             latest.insert("steamPlayTimeInMilliseconds".into(), json!(steam));
             latest.insert("epicPlayTimeInMilliseconds".into(), json!(epic));
             if latest.get("addedToLibraryAt").is_none_or(Value::is_null) {
@@ -701,6 +784,7 @@ pub fn change_playtime(
         .map_err(ActionError::Api)?;
     }
     update_game_record(db, &key, |game| {
+        mark_hydra_playtime_changed(&key);
         game.insert("source".into(), Value::from("hydra"));
         game.insert("playTimeInMilliseconds".into(), Value::from(seconds * 1000));
         game.insert("hasManuallyUpdatedPlaytime".into(), Value::Bool(true));
@@ -738,6 +822,7 @@ pub fn reset_playtime(
         .map_err(ActionError::Api)?;
     }
     update_game_record(db, &key, |game| {
+        mark_hydra_playtime_changed(&key);
         game.insert("playTimeInMilliseconds".into(), Value::from(0));
         game.insert("lastTimePlayed".into(), Value::Null);
         game.insert("hasManuallyUpdatedPlaytime".into(), Value::Bool(false));

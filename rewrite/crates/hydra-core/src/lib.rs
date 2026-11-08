@@ -16,6 +16,7 @@ pub mod integrations;
 pub mod leaderboards;
 pub mod library;
 pub mod library_actions;
+pub mod library_sync;
 pub mod profile;
 pub mod profile_image;
 pub mod realtime;
