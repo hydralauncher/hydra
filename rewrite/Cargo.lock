@@ -2877,6 +2877,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "hydra-epic"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "hydra-core",
+ "hydra-db",
+ "icu_collator",
+ "libc",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "uuid",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "hydra-i18n"
 version = "0.1.0"
 dependencies = [
