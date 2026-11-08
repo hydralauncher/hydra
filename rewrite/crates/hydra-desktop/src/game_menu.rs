@@ -320,7 +320,7 @@ fn activated(id: &str) {
         "favorite" => toggle_favorite(),
         "collection-create" => {
             if !shell::signed_in() {
-                eprintln!("TODO(auth): openAuthWindow(SignIn)");
+                crate::auth::open(crate::auth::Page::SignIn);
                 return;
             }
             // onCreated: assign the game to the new collection right away.

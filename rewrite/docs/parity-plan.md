@@ -67,7 +67,7 @@ bar, no bottom panel.
 - [ ] **User preferences:** `user-preferences/*` (language, downloads path, debrid tokens, behavior toggles)
 - [x] **Hydra API client:** `crates/hydra-core/src/api.rs` (same headers, refresh, 401 sign-out); blocking on worker threads for now
 - [ ] **Hydra API, still open:** SSE (`services/sse`), tokio
-- [ ] **Auth:** `auth/*` (auth window flow via an on-demand OS webview, session, sign out), deep links `hydralauncher://` (`src/main/index.ts`)
+- [x] **Auth window and sign-out** (`auth.rs`): the auth site in a 600x640 window with a wry (WebView2) child webview, `lng` and a fresh token for update email/password, the `hydralauncher://auth` payload signing in (remote ids cleared, user refetched, success toast) and `hydralauncher://update-account`; sign-out clears the session, userDetails and the account library. Remaining: deep links from the OS (`hydralauncher://` protocol registration), uploadGamesBatch/SSE/download-source sync after sign-in, Linux (WebKitGTK)
 - [ ] **Single instance**, logging (`services/logger.ts`), crash-safe shutdown (`quit-cleanup.ts`; exit already drops media threads and HTTP clients first)
 - [x] **Toasts** (`components/toast`), **context menus** (`components/context-menu`, `game-context-menu` on library cards and sidebar rows), Radix-style dropdowns (`Popup` global: one open menu, closes on a press outside, Escape, scroll)
 - [ ] **Still open:** selects/checkboxes/text fields as reusable Slint components; keyboard focus rings (Chromium shows the accent-colored `outline: auto` on `:focus-visible`, e.g. a menu trigger after picking an item)

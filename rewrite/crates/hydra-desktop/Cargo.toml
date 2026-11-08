@@ -24,7 +24,9 @@ reqwest.workspace = true
 sys-locale = "0.3"
 # Skia (Metal/DX12/Vulkan) measured best overall; winit-030 gives access to raw
 # wheel events (line vs pixel deltas) for Chromium-like scrolling.
-slint = { workspace = true, features = ["backend-winit", "renderer-skia", "renderer-software", "unstable-winit-030", "accessibility"] }
+slint = { workspace = true, features = ["backend-winit", "renderer-skia", "renderer-software", "unstable-winit-030", "accessibility", "raw-window-handle-06"] }
+# The auth site and other web flows in an OS webview (WebView2 / WebKitGTK).
+wry = "0.57"
 image.workspace = true
 # ThumbHash placeholders sent with catalogue images (game.images[url].thumbHash).
 thumbhash = "0.1"

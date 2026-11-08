@@ -183,6 +183,17 @@ impl HydraApi {
         self.reload_auth();
     }
 
+    /// HydraApi.refreshToken(): a fresh access token (the auth site's
+    /// update-email / update-password pages take it).
+    pub fn fresh_access_token(&self) -> Result<String, ApiError> {
+        self.refresh_token()?;
+        Ok(self
+            .auth
+            .lock()
+            .map(|a| a.auth_token.clone())
+            .unwrap_or_default())
+    }
+
     /// Local half of sign-out: forget the session (`clearPersistedAuth`).
     pub fn clear_session(&self) {
         if let Ok(mut auth) = self.auth.lock() {

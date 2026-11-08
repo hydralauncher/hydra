@@ -4,6 +4,7 @@
 //! See `rewrite/README.md` for what is ported and `rewrite/docs/parity-plan.md`
 //! for what is next.
 
+mod auth;
 mod catalogue_page;
 mod classics_bookmark;
 mod collections;
@@ -222,6 +223,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     settings_sources::init(&ui);
     settings_account::init(&ui);
     settings_debrid::init(&ui);
+    auth::init(&ui);
     download_settings::init(&ui);
     downloads_page::init(&ui, &loader);
     download_indicator::init(&ui, &loader);

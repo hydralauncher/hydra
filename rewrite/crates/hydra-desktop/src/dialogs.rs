@@ -197,7 +197,7 @@ pub fn close() {
 pub fn create_collection_modal(on_created: Option<Rc<dyn Fn(String)>>) {
     let Some(ui) = window() else { return };
     if !shell::signed_in() {
-        eprintln!("TODO(auth): openAuthWindow(SignIn)");
+        crate::auth::open(crate::auth::Page::SignIn);
         return;
     }
     snapshot_backdrop(&ui);

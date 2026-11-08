@@ -36,8 +36,8 @@ pub fn init(ui: &AppWindow) {
     UI.with(|u| *u.borrow_mut() = ui.as_weak());
     let data = ui.global::<SettingsData>();
     data.on_account_select(|key, value| save(key.as_str(), value.as_str()));
-    data.on_update_email(|| eprintln!("TODO(auth): openAuthWindow(UpdateEmail)"));
-    data.on_update_password(|| eprintln!("TODO(auth): openAuthWindow(UpdatePassword)"));
+    data.on_update_email(|| crate::auth::open(crate::auth::Page::UpdateEmail));
+    data.on_update_password(|| crate::auth::open(crate::auth::Page::UpdatePassword));
     data.on_open_checkout(open_checkout);
     data.on_unblock(|id| unblock(id.to_string()));
 }
@@ -332,4 +332,13 @@ fn open_checkout() {
             .arg(url.as_str())
             .spawn();
     });
+}
+
+/// on-account-updated (the auth site's update-account redirect): refetch the
+/// user and say so.
+pub fn on_account_updated() {
+    shell::reload_user(Some(Box::new(|| {
+        toast::success(&t("settings.account_data_updated_successfully"));
+        refresh();
+    })));
 }

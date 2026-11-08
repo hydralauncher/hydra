@@ -366,8 +366,6 @@ pub fn tr_with(key: &str, args: &[(&str, Arg)]) -> String {
 
 fn wire_session(ui: &AppWindow) {
     let session = ui.global::<Session>();
-    session.on_sign_in(|| eprintln!("TODO(auth): open the auth window (wry webview)"));
-    session.on_sign_out(|| eprintln!("TODO(auth): sign out"));
     session.on_open_profile(|| eprintln!("TODO(profile): open profile"));
     session.on_open_notifications(|| nav::navigate("/notifications"));
     session.on_open_friends(|| eprintln!("TODO(friends): friends window"));
@@ -396,6 +394,40 @@ pub fn patch_user_details(patch: &serde_json::Map<String, Value>) {
         }
     }
     set_local_storage(&db, "userDetails", &user.to_string());
+}
+
+/// After a sign-in or sign-out: the cached user is gone, fetch it again
+/// (or clear the session UI). `done` runs once the new user is applied.
+pub fn reload_user(done: Option<Box<dyn FnOnce() + Send>>) {
+    let Some((api, ui)) = with_shell(|s| (s.api.clone(), s.ui.clone())) else {
+        return;
+    };
+    if !api.is_logged_in() {
+        if let Some(ui) = ui.upgrade() {
+            let session = ui.global::<Session>();
+            session.set_signed_in(false);
+            session.set_display_name(Default::default());
+            session.set_avatar(Default::default());
+            session.set_has_subscription(false);
+            session.set_loaded(true);
+        }
+        return;
+    }
+    std::thread::spawn(move || {
+        let me = api.get("/profile/me", &[], Options::default());
+        let _ = slint::invoke_from_event_loop(move || match me {
+            Ok(me) => {
+                if let Some(db) = with_shell(|s| s.db.clone()) {
+                    set_local_storage(&db, "userDetails", &me.to_string());
+                }
+                apply_user(&me);
+                if let Some(done) = done {
+                    done();
+                }
+            }
+            Err(error) => eprintln!("profile/me: {error}"),
+        });
+    });
 }
 
 /// app.tsx setupExternalResources: cached `userDetails` first, then `getMe`.

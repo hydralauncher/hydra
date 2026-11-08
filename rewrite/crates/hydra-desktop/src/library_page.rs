@@ -371,7 +371,7 @@ fn wire(ui: &AppWindow) {
     });
     data.on_create_collection(|| {
         if !shell::signed_in() {
-            eprintln!("TODO(auth): openAuthWindow(SignIn)");
+            crate::auth::open(crate::auth::Page::SignIn);
             return;
         }
         crate::dialogs::create_collection_modal(None);
