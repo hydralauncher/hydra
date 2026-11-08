@@ -225,8 +225,12 @@ fn apply(previous: Option<String>) {
         let title = location.param("title").unwrap_or("").to_string();
         game_page::open(&shop, &object_id, &title, &shell::shop_language());
     }
+    let route_changed = previous_location.as_ref().map(|l| l.route()) != Some(location.route());
     nav.set_route(location.route().into());
     nav.set_path(location.pathname.clone().into());
+    if route_changed {
+        crate::search::sync_text(location.route());
+    }
 }
 
 #[cfg(test)]

@@ -2,7 +2,8 @@
 // title-bar-search.{tsx,scss}, navigation-arrows/navigation-arrows.{tsx,scss}
 import { Theme, Icons } from "../theme.slint";
 import { Icon } from "../components/widgets.slint";
-import { T, Nav, Session, Chrome, SidebarState } from "../globals.slint";
+import { T, Nav, Session, Chrome, SidebarState, Popup } from "../globals.slint";
+import { SearchData } from "search-dropdown.slint";
 
 // .navigation-arrows__button
 component NavArrow inherits Rectangle {
@@ -102,6 +103,65 @@ export component TitleBarSearch inherits Rectangle {
     callback changed-text(string);
     out property <bool> focused: input.has-focus;
     height: 28px;
+
+    function publish-anchor() {
+        SearchData.anchor-x = root.absolute-position.x;
+        SearchData.anchor-y = root.absolute-position.y;
+        SearchData.anchor-width = root.width;
+        SearchData.anchor-height = root.height;
+        Popup.anchor-x = root.absolute-position.x;
+        Popup.anchor-y = root.absolute-position.y;
+        Popup.anchor-width = root.width;
+        Popup.anchor-height = root.height;
+    }
+    changed width => {
+        if (SearchData.open) {
+            root.publish-anchor();
+        }
+    }
+    // handleBlur: a click on the dropdown lands before it closes (200ms)
+    blur-timer := Timer {
+        interval: 200ms;
+        running: false;
+        triggered => {
+            self.running = false;
+            SearchData.focused = false;
+            SearchData.open = false;
+            SearchData.active-index = -1;
+            SearchData.state-changed();
+        }
+    }
+    changed focused => {
+        if (root.focused) {
+            blur-timer.running = false;
+            SearchData.focused = true;
+            SearchData.active-index = -1;
+            root.publish-anchor();
+            SearchData.open = true;
+            // the dropdown closes on a press outside it and the field (Popup)
+            Popup.open = "search";
+            Popup.box-width = 0;
+            SearchData.state-changed();
+        } else {
+            blur-timer.running = true;
+        }
+    }
+    // a press outside closed it (popup.rs): the field loses focus too
+    property <bool> popup-search: Popup.open == "search";
+    changed popup-search => {
+        if (!root.popup-search && SearchData.open) {
+            SearchData.open = false;
+            SearchData.active-index = -1;
+            input.clear-focus();
+        }
+    }
+    property <int> blur-request: SearchData.blur-request;
+    changed blur-request => {
+        input.clear-focus();
+        if (Popup.open == "search") {
+            Popup.open = "";
+        }
+    }
     border-radius: 6px;
     border-width: 1px;
     background: Theme.background;
@@ -145,6 +205,7 @@ export component TitleBarSearch inherits Rectangle {
             input := TextInput {
                 width: parent.width;
                 height: parent.height;
+                text <=> SearchData.text;
                 color: #dadbe1;
                 font-size: Theme.hint-size;
                 vertical-alignment: center;
@@ -152,15 +213,44 @@ export component TitleBarSearch inherits Rectangle {
                 selection-background-color: #3e62c0;
                 accessible-label: placeholder.text;
                 edited => {
+                    SearchData.active-index = -1;
                     root.changed-text(self.text);
+                    SearchData.text-edited(self.text);
                 }
                 key-pressed(event) => {
-                    if (event.text == Key.Return && self.text != "") {
-                        root.submitted(self.text);
-                        self.clear-focus();
+                    if (event.text == Key.Return) {
+                        if (SearchData.active-index >= 0 && SearchData.active-index < SearchData.total) {
+                            if (SearchData.active-index < SearchData.history.length) {
+                                SearchData.select-history(SearchData.history[SearchData.active-index]);
+                            } else {
+                                SearchData.select-suggestion(SearchData.active-index - SearchData.history.length);
+                            }
+                        } else if (self.text != "") {
+                            root.submitted(self.text);
+                        }
+                        return accept;
+                    }
+                    if (event.text == Key.DownArrow) {
+                        if (SearchData.active-index < SearchData.total - 1) {
+                            SearchData.active-index += 1;
+                        }
+                        if (!SearchData.open) {
+                            root.publish-anchor();
+                            SearchData.open = true;
+                            Popup.open = "search";
+                            SearchData.state-changed();
+                        }
+                        return accept;
+                    }
+                    if (event.text == Key.UpArrow) {
+                        if (SearchData.active-index > -1) {
+                            SearchData.active-index -= 1;
+                        }
                         return accept;
                     }
                     if (event.text == Key.Escape) {
+                        SearchData.open = false;
+                        SearchData.active-index = -1;
                         self.clear-focus();
                         return accept;
                     }
@@ -183,7 +273,9 @@ export component TitleBarSearch inherits Rectangle {
                     mouse-cursor: pointer;
                     clicked => {
                         input.text = "";
+                        SearchData.active-index = -1;
                         root.changed-text("");
+                        SearchData.text-edited("");
                         input.focus();
                     }
                 }

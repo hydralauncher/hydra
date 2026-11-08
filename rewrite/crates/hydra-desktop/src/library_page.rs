@@ -411,7 +411,24 @@ fn wire(ui: &AppWindow) {
             );
         });
     });
+    // Enter in the field: executeSearch (history, apply, catalogue).
     ui.on_search_submitted(|text| {
+        if !text.trim().is_empty() {
+            crate::search::execute(&text);
+        }
+    });
+}
+
+/// The library query (state.library.searchQuery).
+pub fn query() -> String {
+    with_page(|p| p.query.clone()).unwrap_or_default()
+}
+
+/// executeSearch's applySearch: the library query now, or the catalogue
+/// title (opening the catalogue from other pages).
+pub fn submit_search(text: &str) {
+    let text = text.to_string();
+    {
         if !on_library() {
             // executeSearch: apply now and open the catalogue.
             let text: String = text.chars().take(255).collect();
@@ -434,7 +451,7 @@ fn wire(ui: &AppWindow) {
             p.query = text;
         });
         apply_filters(false);
-    });
+    }
 }
 
 fn on_library() -> bool {

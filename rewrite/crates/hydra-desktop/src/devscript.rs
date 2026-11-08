@@ -105,6 +105,7 @@ fn next<C: ComponentHandle + 'static>(
                 "end" => Key::End.into(),
                 "pagedown" => Key::PageDown.into(),
                 "escape" => Key::Escape.into(),
+                "return" | "enter" => Key::Return.into(),
                 "space" => " ".into(),
                 other => other.into(),
             };

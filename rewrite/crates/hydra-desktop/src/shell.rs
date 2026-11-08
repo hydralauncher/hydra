@@ -646,6 +646,28 @@ fn wire_sidebar(ui: &AppWindow) {
     });
 }
 
+/// state.library.value for useSearchSuggestions: title, objectId, shop, iconUrl.
+pub fn library_games() -> Vec<(String, String, String, Option<String>)> {
+    with_shell(|s| {
+        s.groups
+            .iter()
+            .flat_map(|g| g.members.iter())
+            .filter(|g| !g.title().is_empty())
+            .map(|g| {
+                (
+                    g.title().to_string(),
+                    g.object_id().to_string(),
+                    g.shop().to_string(),
+                    g.str("iconUrl")
+                        .filter(|u| !u.is_empty())
+                        .map(str::to_string),
+                )
+            })
+            .collect()
+    })
+    .unwrap_or_default()
+}
+
 /// `buildGameDetailsPath` for a sidebar row.
 fn game_path(id: &str) -> Option<String> {
     with_shell(|s| {
@@ -660,7 +682,6 @@ fn game_path(id: &str) -> Option<String> {
     .flatten()
 }
 
-/// `updateLibrary()`: read the library on a worker, then group and sort it.
 thread_local! {
     static FRIENDS_TIMER: slint::Timer = slint::Timer::default();
 }
@@ -733,6 +754,7 @@ pub fn set_game_running(title: &str, icon_url: &str) {
     );
 }
 
+/// `updateLibrary()`: read the library on a worker, then group and sort it.
 pub fn load_library() {
     let Some(db) = with_shell(|s| s.db.clone()) else {
         return;

@@ -23,6 +23,7 @@ import { GameOptions, OptionsCategory } from "pages/game-details/options.slint";
 import { PlaytimeModals, PlaytimeColumn } from "pages/game-details/playtime.slint";
 import { AuthWindow } from "auth-window.slint";
 import { SidebarFilterMenu } from "shell/filter-menu.slint";
+import { SearchDropdown, SearchData, SearchPart, SearchSuggestionRow } from "shell/search-dropdown.slint";
 import { NotificationsPage, NotificationsData, NotificationRow } from "pages/notifications/page.slint";
 import { SettingsPage, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow } from "pages/settings/page.slint";
 import { Bookmark } from "pages/game-details/bookmark.slint";
@@ -46,6 +47,7 @@ import { Sidebar } from "shell/sidebar.slint";
 export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback, RepackRow, RepackSource }
 export { T, Nav, Session, Chrome, SidebarState, SidebarGame, SidebarFilterOption, GameData, Input, SmoothScroll, GameOptions, OptionsCategory, PlaytimeModals, PlaytimeColumn, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow, AuthWindow, NotificationsData, NotificationRow, Popup, Bookmark, DownloadSettings, DownloaderRow, DownloadCard, Dropdown, DropdownItem, Flight }
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
+export { SearchData, SearchPart, SearchSuggestionRow }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
 export { HomeData, CatalogueCard, Gifs, Dialogs, DownloadsData }
 export { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup, SelectPopup, SelectOption }
@@ -175,6 +177,11 @@ export component AppWindow inherits Window {
     SelectPopupHost {
         width: root.width;
         height: root.height;
+    }
+
+    if SearchData.visible: SearchDropdown {
+        room-width: root.width;
+        room-height: root.height;
     }
 
     // Radix modal menu: outside presses only dismiss it, and nothing below

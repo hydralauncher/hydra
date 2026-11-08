@@ -35,6 +35,7 @@ mod notify;
 mod playtime_modals;
 mod popup;
 mod prefs;
+mod search;
 mod settings_account;
 mod settings_debrid;
 mod settings_page;
@@ -227,6 +228,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     settings_debrid::init(&ui);
     auth::init(&ui);
     notifications_page::init(&ui);
+    search::init(&ui);
     notifications_page::refresh_count();
     shell::refresh_friends_online();
     download_settings::init(&ui);
