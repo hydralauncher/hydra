@@ -17,6 +17,36 @@ use hydra_core::library_actions;
 use hydra_db::Db;
 use serde_json::{Value, json};
 
+/// removeAppImageLibraryPath: an AppImage runtime puts `$APPDIR/usr/lib` on
+/// LD_LIBRARY_PATH, and games, Wine and umu-run started from the app must not
+/// inherit Hydra's bundled libraries. Call it first thing in `main`, before
+/// any thread starts (it edits the process environment).
+pub fn remove_appimage_library_path() {
+    if !cfg!(target_os = "linux") {
+        return;
+    }
+    let (Some(_), Some(app_dir), Some(paths)) = (
+        std::env::var_os("APPIMAGE"),
+        std::env::var("APPDIR").ok(),
+        std::env::var("LD_LIBRARY_PATH").ok(),
+    ) else {
+        return;
+    };
+    let bundled = format!("{app_dir}/usr/lib");
+    let remaining: Vec<&str> = paths
+        .split(':')
+        .filter(|entry| !entry.is_empty() && *entry != bundled)
+        .collect();
+    // SAFETY: called from main() before any other thread exists.
+    unsafe {
+        if remaining.is_empty() {
+            std::env::remove_var("LD_LIBRARY_PATH");
+        } else {
+            std::env::set_var("LD_LIBRARY_PATH", remaining.join(":"));
+        }
+    }
+}
+
 /// hasLaunchableExecutable
 pub fn has_launchable_executable(executable: &str) -> bool {
     !executable.is_empty() && Path::new(executable).exists()
@@ -43,6 +73,48 @@ fn remember_launch(db: &Db, key: &str, executable: &str, launch_options: Option<
 #[cfg(windows)]
 pub fn open_path(path: &str) -> bool {
     shell_open(path)
+}
+
+/// shell.openPath: the desktop's default handler (xdg-open on Linux, open on
+/// macOS), detached so the app never waits on it.
+#[cfg(not(windows))]
+pub fn open_path(path: &str) -> bool {
+    let opener = if cfg!(target_os = "macos") {
+        "open"
+    } else {
+        "xdg-open"
+    };
+    let mut command = Command::new(opener);
+    command
+        .arg(path)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    detach(&mut command);
+    match command.spawn() {
+        // reap it so it never lingers as a zombie
+        Ok(mut child) => {
+            std::thread::spawn(move || child.wait());
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+/// spawn(..., { detached: true }): its own session, so closing Hydra (or a
+/// signal to Hydra's process group) doesn't take the child with it.
+#[cfg(unix)]
+pub(crate) fn detach(command: &mut Command) {
+    use std::os::unix::process::CommandExt;
+    // SAFETY: setsid is async-signal-safe and touches no Rust state.
+    unsafe {
+        command.pre_exec(|| {
+            if libc::setsid() == -1 {
+                return Err(std::io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
 }
 
 #[cfg(windows)]

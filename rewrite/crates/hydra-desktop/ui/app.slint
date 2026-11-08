@@ -44,6 +44,7 @@ import { Gifs } from "components/animated.slint";
 import { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar } from "pages/library/state.slint";
 import { TitleBar } from "shell/title-bar.slint";
 import { Sidebar } from "shell/sidebar.slint";
+import { ResizeEdges } from "shell/resize-edges.slint";
 
 export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback, RepackRow, RepackSource }
 export { T, Nav, Session, Chrome, SidebarState, SidebarGame, SidebarFilterOption, GameData, Input, SmoothScroll, GameOptions, OptionsCategory, PlaytimeModals, PlaytimeColumn, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow, AuthWindow, NotificationsData, NotificationRow, Popup, Bookmark, DownloadSettings, DownloaderRow, DownloadCard, Dropdown, DropdownItem, Flight }
@@ -211,6 +212,12 @@ export component AppWindow inherits Window {
     }
 
     TooltipHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // Frameless Linux: resize from the window edges (frameless_view.cc).
+    if Chrome.platform == "linux" && !Chrome.native-decorations && !Chrome.maximized: ResizeEdges {
         width: root.width;
         height: root.height;
     }

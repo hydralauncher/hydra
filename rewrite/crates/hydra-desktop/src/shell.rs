@@ -1104,6 +1104,14 @@ fn wire_chrome(ui: &AppWindow, headless: bool) {
         }
         .into(),
     );
+    // loadWindowDecorationsPreference: read once at startup on Linux, so the
+    // setting applies after a restart like Electron's.
+    if cfg!(target_os = "linux") {
+        chrome.set_native_decorations(crate::prefs::flag(
+            &crate::prefs::get(),
+            "useNativeWindowDecorations",
+        ));
+    }
     if headless {
         return;
     }
@@ -1141,6 +1149,28 @@ fn wire_chrome(ui: &AppWindow, headless: bool) {
             if let Some(ui) = weak.upgrade() {
                 ui.window().with_winit_window(|window| {
                     let _ = window.drag_window();
+                });
+            }
+        }
+    });
+    chrome.on_start_resize({
+        let weak = weak.clone();
+        move |direction| {
+            use slint::winit_030::winit::window::ResizeDirection;
+            let direction = match direction.as_str() {
+                "north" => ResizeDirection::North,
+                "south" => ResizeDirection::South,
+                "west" => ResizeDirection::West,
+                "east" => ResizeDirection::East,
+                "north-west" => ResizeDirection::NorthWest,
+                "north-east" => ResizeDirection::NorthEast,
+                "south-west" => ResizeDirection::SouthWest,
+                "south-east" => ResizeDirection::SouthEast,
+                _ => return,
+            };
+            if let Some(ui) = weak.upgrade() {
+                ui.window().with_winit_window(|window| {
+                    let _ = window.drag_resize_window(direction);
                 });
             }
         }

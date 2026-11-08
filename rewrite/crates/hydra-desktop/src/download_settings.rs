@@ -212,8 +212,7 @@ fn default_downloads_path(prefs: Option<&Value>) -> String {
         .and_then(Value::as_str)
         .filter(|p| !p.is_empty())
         .map(str::to_string)
-        .or_else(|| dirs::download_dir().map(|p| p.to_string_lossy().into_owned()))
-        .unwrap_or_default()
+        .unwrap_or_else(crate::prefs::default_downloads_path)
 }
 
 /// The first ROM folder of the emulator (or RetroArch) a classics platform uses.

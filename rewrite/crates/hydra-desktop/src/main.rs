@@ -126,6 +126,7 @@ fn parse_args() -> Args {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    hydra_launch::remove_appimage_library_path();
     hydra_store::init_tls();
     let args = parse_args();
 

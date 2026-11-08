@@ -12,3 +12,7 @@ hydra-db = { path = "../hydra-db" }
 serde_json.workspace = true
 # Same process listing as native/hydra-native (list_processes).
 sysinfo = { version = "0.37", default-features = false, features = ["system"] }
+
+[target.'cfg(unix)'.dependencies]
+# setsid for detached launches, signals for close-game
+libc = "0.2"
