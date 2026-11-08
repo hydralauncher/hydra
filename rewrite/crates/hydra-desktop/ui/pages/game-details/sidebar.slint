@@ -146,16 +146,21 @@ component AchievementRow inherits Rectangle {
 }
 
 component Link inherits Text {
+    callback clicked();
     color: Theme.body;
     font-size: Theme.body-size;
     property <bool> hovered: touch.has-hover;
     touch := TouchArea {
         mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
     }
 }
 
 export component AchievementsSection inherits SidebarSection {
     in property <[Achievement]> achievements;
+    callback see-all();
     in property <int> unlocked;
     in property <int> total;
     title: root.total > 0 ? T.tr-with("game_details.achievements_count", ["unlockedCount", "" + root.unlocked, "achievementsCount", "" + root.total]) : T.tr("game_details.achievements");
@@ -168,6 +173,9 @@ export component AchievementsSection inherits SidebarSection {
         }
         Link {
             text: T.tr("game_details.see_all_achievements");
+            clicked => {
+                root.see-all();
+            }
         }
     }
 }

@@ -394,6 +394,9 @@ export component GameDetailsPage inherits Rectangle {
                             alignment: start;
 
                             if GameData.loaded && GameData.achievements.length > 0: AchievementsSection {
+                                see-all => {
+                                    GameData.open-achievements();
+                                }
                                 achievements: GameData.achievements;
                                 unlocked: GameData.achievements-unlocked;
                                 total: GameData.achievements-total;

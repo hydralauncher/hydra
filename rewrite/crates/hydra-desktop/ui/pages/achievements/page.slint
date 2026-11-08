@@ -1,0 +1,697 @@
+// pages/achievements (achievements.tsx, achievements-content.tsx,
+// achievement-list.tsx; achievements.scss, achievements-content.scss,
+// achievement-select.scss). Rust fills `AchievementsData` (achievements_page.rs).
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, ScrollBar, Skeleton } from "../../components/widgets.slint";
+import { TextField } from "../../components/fields.slint";
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { T, Popup, Session } from "../../globals.slint";
+import { MenuTrigger } from "../library/toolbar.slint";
+import { MenuContent } from "../library/menus.slint";
+import { PlatinumFill } from "../library/card.slint";
+
+export struct AchievementRow {
+    key: string,
+    title: string,
+    description: string,
+    unlock-time: string,
+    unlocked: bool,
+    // "Hidden achievement / Click to reveal"
+    concealed: bool,
+    // the eye-closed marker on a hidden, locked achievement
+    hidden-marker: bool,
+    icon: image,
+    percentage: string,
+    points: string,
+    // achievement-reveal (0.25s) on the row that was just revealed
+    revealed: bool,
+}
+
+export global AchievementsData {
+    in property <bool> loading: true;
+    in property <bool> signed-in;
+    in property <string> game-title;
+    in property <image> hero;
+    in property <image> logo;
+    in property <bool> has-logo;
+    in property <int> unlocked;
+    in property <int> total;
+    in property <string> percent;
+    in-out property <string> search;
+    in property <string> status: "all";
+    in property <string> sort: "most_common";
+    in property <int> count-all;
+    in property <int> count-unlocked;
+    in property <int> count-locked;
+    in property <bool> subscriber;
+    in property <string> points;
+    in property <[AchievementRow]> rows;
+    callback search-edited(string);
+    callback set-status(string);
+    callback set-sort(string);
+    callback reveal(string);
+    callback open-game();
+    callback hydra-cloud();
+    // first and last rows on screen, for lazy icons
+    callback visible-rows(int, int);
+}
+
+global AchievementIcons {
+    out property <image> trophy: @image-url("../../icons/trophy.svg");
+    out property <image> unlock: @image-url("../../icons/unlock.svg");
+    out property <image> lock: @image-url("../../icons/lock-16.svg");
+    out property <image> sort-desc: @image-url("../../icons/sort-desc.svg");
+    out property <image> sort-asc: @image-url("../../icons/sort-asc.svg");
+    out property <image> clock: @image-url("../../icons/clock.svg");
+    out property <image> people: @image-url("../../icons/people.svg");
+    out property <image> check-circle-fill: @image-url("../../icons/check-circle-fill.svg");
+    out property <image> eye-closed: @image-url("../../icons/eye-closed-12.svg");
+    out property <image> eye-closed-24: @image-url("../../icons/eye-closed-24.svg");
+    out property <image> hydra: @image-url("../../icons/hydra-source.svg");
+    out property <image> trophy-13: @image-url("../../icons/trophy-13.svg");
+}
+
+// achievement-select__item: 34px, icon + label (+ count pill); checked and
+// hovered rows get the background color
+component SelectItem inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <string> count;
+    in property <bool> checked;
+    callback activated();
+    height: 34px;
+    border-radius: 4px;
+    background: touch.has-hover || root.checked ? Theme.background : transparent;
+    animate background { duration: 100ms; easing: ease-in-out; }
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        Icon {
+            y: (parent.height - self.height) / 2;
+            width: 16px;
+            height: 16px;
+            source: root.icon;
+            color: Theme.muted;
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.label;
+            font-size: Theme.body-size;
+            color: Theme.muted;
+            vertical-alignment: center;
+        }
+        if root.count != "": Rectangle {
+            y: (parent.height - self.height) / 2;
+            height: 18px;
+            width: Math.max(22px, count-text.preferred-width + 8px);
+            border-radius: 9px;
+            background: Theme.muted;
+            count-text := Text {
+                text: root.count;
+                font-size: Theme.tiny-size;
+                font-weight: 700;
+                color: Theme.dark-background;
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.activated();
+        }
+    }
+}
+
+component Row inherits Rectangle {
+    in property <AchievementRow> item;
+    property <bool> entered: !root.item.revealed;
+    Timer {
+        interval: 16ms;
+        running: !root.entered;
+        triggered => {
+            root.entered = true;
+        }
+    }
+    // padding 12, icon 64 (taller when the text wraps)
+    height: Math.max(64px, content.preferred-height) + 26px;
+    border-radius: 8px;
+    border-width: 1px;
+    // --unlocked: rgba(255,255,255,.06); --concealed: dashed $border-color
+    border-color: root.item.concealed ? Theme.border : root.item.unlocked ? rgba(255, 255, 255, 0.06) : transparent;
+    background: touch.has-hover ? Theme.border : Theme.dark-background;
+    animate background { duration: 100ms; easing: ease; }
+    touch := TouchArea {
+        mouse-cursor: root.item.concealed ? pointer : default;
+        clicked => {
+            if (root.item.concealed) {
+                AchievementsData.reveal(root.item.key);
+            }
+        }
+    }
+    HorizontalLayout {
+        padding: 13px;
+        spacing: 16px;
+        // achievement-reveal: fade/slide in over 0.25s
+        opacity: root.entered ? 1 : 0;
+        animate opacity { duration: 250ms; easing: ease-out; }
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 64px;
+                height: 64px;
+                if root.item.concealed: Rectangle {
+                    border-radius: 6px;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    background: Theme.background;
+                    Icon {
+                        width: 24px;
+                        height: 24px;
+                        source: AchievementIcons.eye-closed-24;
+                        color: Theme.body;
+                    }
+                }
+                if !root.item.concealed: Rectangle {
+                    border-radius: 6px;
+                    clip: true;
+                    background: root.item.icon.width > 0 ? transparent : #1c1c1c;
+                    Image {
+                        width: 64px;
+                        height: 64px;
+                        source: root.item.icon;
+                        image-fit: cover;
+                        // --locked: grayscale (the gray icon) at 0.6
+                        opacity: root.item.icon.width == 0 ? 0 : root.item.unlocked ? 1 : 0.6;
+                        animate opacity { duration: 200ms; easing: ease; }
+                    }
+                }
+                // __item-check: 16px, bottom/right -5px, 2px dark ring
+                if !root.item.concealed && root.item.unlocked: Rectangle {
+                    width: 20px;
+                    height: 20px;
+                    x: parent.width - 18px + 5px;
+                    y: parent.height - 18px + 5px;
+                    border-radius: 10px;
+                    background: Theme.dark-background;
+                    Icon {
+                        width: 16px;
+                        height: 16px;
+                        source: AchievementIcons.check-circle-fill;
+                        color: white;
+                    }
+                }
+            }
+        }
+        content := VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 4px;
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                if root.item.hidden-marker: VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        width: 12px;
+                        height: 12px;
+                        source: AchievementIcons.eye-closed;
+                        color: Theme.body;
+                        opacity: 0.8;
+                    }
+                }
+                Text {
+                    text: root.item.concealed ? T.tr("achievement.hidden_achievement") : root.item.title;
+                    font-size: Theme.body-size;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    overflow: elide;
+                }
+            }
+            if root.item.concealed || root.item.description != "": Text {
+                text: root.item.concealed ? T.tr("achievement.click_to_reveal") : root.item.description;
+                font-size: Theme.body-size;
+                color: root.item.concealed && touch.has-hover ? Theme.muted : Theme.body;
+                wrap: word-wrap;
+            }
+            if !root.item.concealed && root.item.unlock-time != "": Text {
+                text: T.tr-with("achievement.unlocked_at", ["date", root.item.unlock-time]);
+                font-size: 11.67px;
+                color: Theme.body;
+                overflow: elide;
+            }
+        }
+        // __item-stats: 88px, percentage and points rows
+        VerticalLayout {
+            width: 88px;
+            alignment: center;
+            spacing: 8px;
+            if root.item.percentage != "": HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                Icon {
+                    y: (parent.height - self.height) / 2;
+                    width: 16px;
+                    height: 16px;
+                    source: AchievementIcons.people;
+                    color: Theme.muted;
+                }
+                Text {
+                    text: root.item.percentage;
+                    font-size: Theme.body-size;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                }
+            }
+            if AchievementsData.subscriber && root.item.points != "": HorizontalLayout {
+                spacing: 7px;
+                alignment: start;
+                Icon {
+                    y: (parent.height - self.height) / 2;
+                    width: 18px;
+                    height: 18px;
+                    source: AchievementIcons.hydra;
+                    color: Theme.body;
+                }
+                Text {
+                    text: root.item.points;
+                    font-size: Theme.body-size;
+                    font-weight: 700;
+                    color: Theme.body;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+}
+
+export component AchievementsPage inherits Rectangle {
+    property <length> max-scroll: Math.max(0, page.content-height - page.height);
+    property <length> scroll-y;
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    property <bool> completed: AchievementsData.total > 0 && AchievementsData.unlocked >= AchievementsData.total;
+    property <length> shown-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+    // scrollbar-gutter: stable
+    property <length> content-width: root.width - 9px;
+    // banner: hero 150 + summary wrapper (8 + 8 + 64 + 8 + 8)
+    property <length> banner-height: 150px + 96px;
+    // __toolbar: flex-wrap; the points move to their own row when the line is full
+    property <length> end-width: points-label.preferred-width + 8px + 18px + 8px + points-value.preferred-width;
+    property <bool> wrapped: 360px + 16px + 210px + 16px + sort-trigger.width + 16px + root.end-width > root.content-width - 48px;
+    property <length> toolbar-height: (root.wrapped ? 40px + 16px + 20px : 40px) + 32px + 1px;
+    // rows begin under the toolbar
+    property <length> list-top: root.banner-height + root.toolbar-height;
+    changed shown-y => {
+        AchievementsData.visible-rows(Math.max(0, Math.floor((-root.shown-y - root.list-top) / 98px) - 3), Math.ceil((-root.shown-y - root.list-top + root.height) / 98px) + 3);
+    }
+
+    page := Flickable {
+        x: 0;
+        width: root.content-width;
+        height: root.height;
+        interactive: false;
+        content-height: column.preferred-height;
+        content-y: root.shown-y;
+        TouchArea {
+            width: page.width;
+            height: page.content-height;
+            scroll-event(event) => {
+                root.wheel-by(event.delta-y);
+                accept
+            }
+            column := VerticalLayout {
+                // __banner: the hero under two gradients, then the summary
+                Rectangle {
+                    height: root.banner-height;
+                    background: @linear-gradient(180deg, #101010 0%, #0a0a0a 100%);
+                    clip: true;
+                    if AchievementsData.hero.width > 0: Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: AchievementsData.hero;
+                        image-fit: cover;
+                    }
+                    Rectangle {
+                        background: @linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.5) 45%, Theme.background 100%);
+                    }
+                    Rectangle {
+                        background: @linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 55%);
+                    }
+                    // __hero: 150px, padding 16, the logo (200x100, contain) links to the game
+                    logo-area := Rectangle {
+                        x: 16px;
+                        y: 16px;
+                        width: AchievementsData.has-logo ? 200px : title-text.preferred-width;
+                        height: 100px;
+                        transform-scale: logo-touch.has-hover ? 1.05 : 1;
+                        animate transform-scale { duration: 200ms; easing: ease; }
+                        if AchievementsData.has-logo: Image {
+                            width: 200px;
+                            height: 100px;
+                            source: AchievementsData.logo;
+                            image-fit: contain;
+                        }
+                        title-text := Text {
+                            visible: !AchievementsData.has-logo;
+                            width: Math.min(200px, self.preferred-width);
+                            text: AchievementsData.game-title;
+                            font-size: 32px;
+                            font-weight: 700;
+                            color: white;
+                            wrap: word-wrap;
+                            vertical-alignment: center;
+                        }
+                        logo-touch := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                AchievementsData.open-game();
+                            }
+                        }
+                    }
+                    // __achievements-summary-wrapper > __user-summary
+                    HorizontalLayout {
+                        y: 150px;
+                        height: 96px;
+                        padding-left: 24px;
+                        padding-right: 24px;
+                        padding-top: 16px;
+                        padding-bottom: 16px;
+                        spacing: 16px;
+                        Rectangle {
+                            width: 64px;
+                            height: 64px;
+                            border-radius: 4px;
+                            clip: true;
+                            background: Theme.background;
+                            if Session.avatar.width > 0: Image {
+                                width: parent.width;
+                                height: parent.height;
+                                source: Session.avatar;
+                                image-fit: cover;
+                            }
+                            if Session.avatar.width == 0: Icon {
+                                width: 24px;
+                                height: 24px;
+                                source: Icons.person;
+                                color: Theme.muted;
+                            }
+                        }
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            alignment: center;
+                            spacing: 8px;
+                            Text {
+                                height: 24px;
+                                text: Session.display-name;
+                                font-size: 20px;
+                                font-weight: 700;
+                                color: Theme.muted;
+                                overflow: elide;
+                                vertical-alignment: center;
+                            }
+                            HorizontalLayout {
+                                height: 16px;
+                                spacing: 8px;
+                                if !root.completed: Icon {
+                                    y: (parent.height - self.height) / 2;
+                                    width: 13px;
+                                    height: 13px;
+                                    source: AchievementIcons.trophy-13;
+                                    color: Theme.muted;
+                                }
+                                Text {
+                                    horizontal-stretch: 1;
+                                    text: AchievementsData.unlocked + " / " + AchievementsData.total;
+                                    font-size: Theme.body-size;
+                                    color: Theme.muted;
+                                    vertical-alignment: center;
+                                }
+                                if root.completed: Icon {
+                                    y: (parent.height - self.height) / 2;
+                                    width: 13px;
+                                    height: 13px;
+                                    source: AchievementIcons.trophy-13;
+                                    color: Theme.brand-teal;
+                                }
+                                if !root.completed: Text {
+                                    text: AchievementsData.percent;
+                                    font-size: Theme.body-size;
+                                    color: Theme.muted;
+                                    vertical-alignment: center;
+                                }
+                            }
+                            // the progress track (8px, radius 4)
+                            Rectangle {
+                                height: 8px;
+                                border-radius: 4px;
+                                background: rgba(255, 255, 255, 0.15);
+                                clip: true;
+                                Rectangle {
+                                    x: 0;
+                                    width: AchievementsData.total > 0 ? parent.width * Math.min(1, AchievementsData.unlocked / AchievementsData.total) : 0;
+                                    animate width { duration: 200ms; easing: ease; }
+                                    border-radius: 4px;
+                                    background: Theme.muted;
+                                    if root.completed: PlatinumFill {
+                                        border-radius: 4px;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // the toolbar's place (it is drawn above, sticky)
+                Rectangle {
+                    height: root.toolbar-height;
+                }
+                // __list: padding 16, gap 8
+                if AchievementsData.rows.length == 0 && !AchievementsData.loading: Text {
+                    height: 96px + 19px;
+                    text: T.tr("achievement.no_achievements_found");
+                    font-size: Theme.body-size;
+                    color: Theme.body;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+                if AchievementsData.loading: VerticalLayout {
+                    padding: 16px;
+                    spacing: 8px;
+                    for i in 6: Skeleton {
+                        height: 90px;
+                        border-radius: 8px;
+                    }
+                }
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 8px;
+                    for item in AchievementsData.rows: Row {
+                        item: item;
+                    }
+                }
+            }
+        }
+    }
+
+    // __toolbar: sticky at the top once the banner scrolls away
+    toolbar := Rectangle {
+        x: 0;
+        y: Math.max(0, root.banner-height + root.shown-y);
+        width: root.content-width;
+        height: root.toolbar-height;
+        background: Theme.background;
+        TouchArea {
+            scroll-event(event) => {
+                root.wheel-by(event.delta-y);
+                accept
+            }
+        }
+        Rectangle {
+            y: parent.height - 1px;
+            height: 1px;
+            background: Theme.border;
+        }
+        HorizontalLayout {
+            x: 24px;
+            y: 16px;
+            width: parent.width - 48px;
+            height: 40px;
+            spacing: 16px;
+            alignment: start;
+            TextField {
+                width: 360px;
+                placeholder: T.tr("achievement.search_achievements");
+                text <=> AchievementsData.search;
+                edited(text) => {
+                    AchievementsData.search-edited(text);
+                }
+            }
+            status-trigger := MenuTrigger {
+                width: 210px;
+                icon: AchievementsData.status == "unlocked" ? AchievementIcons.unlock : AchievementsData.status == "locked" ? AchievementIcons.lock : AchievementIcons.trophy;
+                label: AchievementsData.status == "unlocked" ? T.tr("achievement.unlocked") : AchievementsData.status == "locked" ? T.tr("achievement.locked") : T.tr("achievement.all_achievements");
+                chevron: true;
+                open: Popup.open == "achievements-status";
+                clicked => {
+                    Popup.toggle("achievements-status", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                }
+            }
+            sort-trigger := MenuTrigger {
+                icon: AchievementsData.sort == "most_rare" ? AchievementIcons.sort-asc : AchievementsData.sort == "recently_unlocked" ? AchievementIcons.clock : AchievementIcons.sort-desc;
+                label: AchievementsData.sort == "most_rare" ? T.tr("achievement.sort_most_rare") : AchievementsData.sort == "recently_unlocked" ? T.tr("achievement.sort_recently_unlocked") : T.tr("achievement.sort_most_common");
+                chevron: true;
+                open: Popup.open == "achievements-sort";
+                clicked => {
+                    Popup.toggle("achievements-sort", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                }
+            }
+        }
+        // __toolbar-end: margin-left auto (its own row when wrapped)
+        HorizontalLayout {
+            x: parent.width - 24px - self.width;
+            y: root.wrapped ? 16px + 40px + 16px : 16px;
+            width: self.preferred-width;
+            height: root.wrapped ? 20px : 40px;
+            spacing: 8px;
+            points-label := Text {
+                text: T.tr("achievement.earned_points");
+                font-size: Theme.body-size;
+                color: Theme.body;
+                vertical-alignment: center;
+            }
+            Icon {
+                y: (parent.height - self.height) / 2;
+                width: 18px;
+                height: 18px;
+                source: AchievementIcons.hydra;
+                color: Theme.muted;
+            }
+            points-value := Text {
+                text: AchievementsData.subscriber ? AchievementsData.points : "??? / ???";
+                font-size: Theme.body-size;
+                font-weight: 700;
+                color: Theme.muted;
+                vertical-alignment: center;
+            }
+            TouchArea {
+                mouse-cursor: AchievementsData.subscriber ? default : pointer;
+                clicked => {
+                    if (!AchievementsData.subscriber) {
+                        AchievementsData.hydra-cloud();
+                    }
+                }
+            }
+        }
+    }
+
+    if root.max-scroll > 0: ScrollBar {
+        x: root.width - self.width;
+        height: root.height;
+        content-height: page.content-height;
+        viewport-height: page.height;
+        content-y <=> root.scroll-y;
+        shown-offset: -root.shown-y;
+    }
+
+    // achievement-select menus (align end, 6px under the trigger)
+    if Popup.open == "achievements-status": MenuContent {
+        anchor-x: Popup.anchor-x - root.absolute-position.x;
+        anchor-y: Popup.anchor-y - root.absolute-position.y;
+        anchor-width: Popup.anchor-width;
+        anchor-height: Popup.anchor-height;
+        room-width: root.width;
+        room-height: root.height;
+        page-x: root.absolute-position.x;
+        min-menu-width: 210px;
+        SelectItem {
+            icon: AchievementIcons.trophy;
+            label: T.tr("achievement.all_achievements");
+            count: AchievementsData.count-all;
+            checked: AchievementsData.status == "all";
+            activated => {
+                AchievementsData.set-status("all");
+                Popup.open = "";
+            }
+        }
+        SelectItem {
+            icon: AchievementIcons.unlock;
+            label: T.tr("achievement.unlocked");
+            count: AchievementsData.count-unlocked;
+            checked: AchievementsData.status == "unlocked";
+            activated => {
+                AchievementsData.set-status("unlocked");
+                Popup.open = "";
+            }
+        }
+        SelectItem {
+            icon: AchievementIcons.lock;
+            label: T.tr("achievement.locked");
+            count: AchievementsData.count-locked;
+            checked: AchievementsData.status == "locked";
+            activated => {
+                AchievementsData.set-status("locked");
+                Popup.open = "";
+            }
+        }
+    }
+    if Popup.open == "achievements-sort": MenuContent {
+        anchor-x: Popup.anchor-x - root.absolute-position.x;
+        anchor-y: Popup.anchor-y - root.absolute-position.y;
+        anchor-width: Popup.anchor-width;
+        anchor-height: Popup.anchor-height;
+        room-width: root.width;
+        room-height: root.height;
+        page-x: root.absolute-position.x;
+        min-menu-width: Popup.anchor-width;
+        SelectItem {
+            icon: AchievementIcons.sort-desc;
+            label: T.tr("achievement.sort_most_common");
+            checked: AchievementsData.sort == "most_common";
+            activated => {
+                AchievementsData.set-sort("most_common");
+                Popup.open = "";
+            }
+        }
+        SelectItem {
+            icon: AchievementIcons.sort-asc;
+            label: T.tr("achievement.sort_most_rare");
+            checked: AchievementsData.sort == "most_rare";
+            activated => {
+                AchievementsData.set-sort("most_rare");
+                Popup.open = "";
+            }
+        }
+        SelectItem {
+            icon: AchievementIcons.clock;
+            label: T.tr("achievement.sort_recently_unlocked");
+            checked: AchievementsData.sort == "recently_unlocked";
+            activated => {
+                AchievementsData.set-sort("recently_unlocked");
+                Popup.open = "";
+            }
+        }
+    }
+}

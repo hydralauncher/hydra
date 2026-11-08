@@ -224,6 +224,13 @@ fn apply(previous: Option<String>) {
     {
         catalogue_page::open();
     }
+    if location.route() == "achievements" {
+        crate::achievements_page::open(
+            location.param("shop").unwrap_or("steam"),
+            location.param("objectId").unwrap_or_default(),
+            location.param("title").unwrap_or_default(),
+        );
+    }
     if location.route() == "notifications" {
         crate::notifications_page::open_page();
     }

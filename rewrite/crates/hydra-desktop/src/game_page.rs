@@ -101,6 +101,22 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
         })
     });
     wire_callbacks(ui, loader);
+    // "See all achievements": buildGameAchievementPath(game) for the signed-in user
+    gd(ui).on_open_achievements({
+        let weak = ui.as_weak();
+        move || {
+            let Some(ui) = weak.upgrade() else { return };
+            let Some((shop, object_id)) = current() else {
+                return;
+            };
+            let title = gd(&ui).get_game_title().to_string();
+            crate::nav::navigate(&format!(
+                "/achievements?objectId={}&title={}&shop={shop}",
+                crate::nav::encode(&object_id),
+                crate::nav::encode(&title)
+            ));
+        }
+    });
     // handleReviewPromptYes: dismiss for this visit and scroll to the reviews.
     gd(ui).on_review_prompt_yes({
         let weak = ui.as_weak();

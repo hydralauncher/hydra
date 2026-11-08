@@ -115,7 +115,8 @@ the remote `external-resources/bundle.js` script.
 - [ ] **Launching, remaining:** Wine/UMU/Proton on Linux, Steam protocol and Epic launches, emulators and recompilations, common redist preflight, cloud save gates, Steam/Epic playtime policies, hideToTrayOnGameStart, achievements and screenshots on open/close, desktop and start menu shortcuts (with `hydralauncher://` deep links)
 - [ ] **Wine/Proton/umu on Linux** (`services/wine.ts`, `umu*.ts`, gamemode, mangohud, winetricks)
 - [ ] **macOS game launching:** Wine must stay free (no paid CrossOver). Bridges to Steam (`lsteamclient`) are deferred
-- [ ] **Achievements:** watcher, unlock notifications (achievement notification window), achievements page (`pages/achievements`), souvenirs/screenshots
+- [x] **Achievements page** (`pages/achievements`, own achievements): banner with hero/logo (logo links back to the game), summary with the platinum bar, sticky toolbar (search, status menu with counts, sort menu, earned points or the locked "??? / ???"), rows with icon, unlocked check, hidden marker, unlock time, percentage and points, hidden achievements concealed until clicked, lazy icons for the rows on screen; reached from "See all achievements". Remaining: comparing with another user, achievement sets (RetroAchievements), souvenir screenshots, hardcore badges, dashed border on concealed rows (Slint draws it solid).
+- [ ] **Achievements, remaining:** watcher, unlock notifications (achievement notification window), souvenirs/screenshots
 - [ ] **Cloud save v2** (`cloud-save/*`, reuse `native/hydra-native/src/cloud_save`), cloud widget and modals in the game page
 - [ ] **Screenshots** (`screenshots/*`, `services/screenshot*.ts`, capture input)
 - [ ] **Game launcher window** (`pages/game-launcher`)

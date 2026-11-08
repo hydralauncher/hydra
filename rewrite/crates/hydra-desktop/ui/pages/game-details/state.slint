@@ -113,6 +113,8 @@ export global GameData {
     // Review prompt: 0 hidden, 1 pending (keeps its space, invisible), 2 shown.
     in property <int> review-prompt;
     callback review-prompt-yes();
+    // "See all achievements"
+    callback open-achievements();
     callback review-prompt-later();
 }
 

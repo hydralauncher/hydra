@@ -4,6 +4,7 @@
 //! See `rewrite/README.md` for what is ported and `rewrite/docs/parity-plan.md`
 //! for what is next.
 
+mod achievements_page;
 mod auth;
 mod catalogue_page;
 mod classics_bookmark;
@@ -255,6 +256,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     auth::init(&ui);
     notifications_page::init(&ui);
     search::init(&ui);
+    achievements_page::init(&ui);
     if let Some(api) = shell::api() {
         realtime::init(api);
     }
