@@ -664,6 +664,11 @@ impl HttpDownloader {
         self.inner.throttle.set_limit(limit);
     }
 
+    /// Whether both handles are the same download.
+    pub fn same(&self, other: &HttpDownloader) -> bool {
+        Arc::ptr_eq(&self.inner, &other.inner)
+    }
+
     /// startDownload: runs until complete, paused, cancelled or failed.
     pub async fn start(&self, options: Options) -> Result<(), String> {
         if self.lock().is_downloading {

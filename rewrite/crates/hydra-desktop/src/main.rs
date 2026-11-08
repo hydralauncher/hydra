@@ -30,6 +30,7 @@ mod games;
 mod gifs;
 mod headless;
 mod home_page;
+mod hoster_browser;
 mod instance;
 mod library_page;
 mod main_window;
@@ -47,6 +48,7 @@ mod settings_page;
 mod settings_sources;
 mod shell;
 mod toast;
+mod torrent_step;
 mod tray;
 
 use std::path::PathBuf;
@@ -236,6 +238,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     downloads::init(&ui, db.clone(), api.clone(), &native_dir);
+    if !headless_mode {
+        hoster_browser::init(&native_dir);
+    }
     games::init(db.clone(), api.clone());
     shell::init(
         &ui,
@@ -247,6 +252,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     game_page::init(&ui, &loader);
     game_repacks::init(&ui);
+    torrent_step::init(&ui);
     game_options::init(&ui);
     playtime_modals::init(&ui);
     settings_page::init(&ui);
@@ -275,6 +281,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         select.on_chosen(|owner, value| {
             if owner == "catalogue-sort" {
                 catalogue_page::set_sort(&value);
+            } else if owner == "torrent-sort" {
+                torrent_step::set_sort(&value);
             }
         });
     }

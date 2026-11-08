@@ -167,8 +167,10 @@ pub fn show(id: &str, x: f32, y: f32) {
 fn run(id: &str, action: &str) {
     let (shop, object_id) = id.split_once(':').unwrap_or((id, ""));
     match action {
-        "pause" => crate::downloads::pause(shop, object_id),
+        "pause" => crate::downloads::pause_with_warning(shop, object_id),
         "resume" => crate::downloads::resume(shop, object_id, "interruptActive"),
+        "move-up" => crate::downloads::move_in_queue(shop, object_id, true),
+        "move-down" => crate::downloads::move_in_queue(shop, object_id, false),
         "cancel" => {
             if let Some(ui) = ui() {
                 ui.global::<crate::DownloadsData>().invoke_cancel(id.into());

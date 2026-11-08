@@ -33,6 +33,12 @@ export global DownloadSettings {
     in property <bool> starting;
     in property <bool> has-active-download;
     in property <bool> can-start;
+    // canOpenTorrentStep: a magnet with Torrent / TorBox / Real-Debrid
+    in property <bool> can-select-files;
+    in property <bool> files-loading;
+    // isSingleArchive: the service serves one archive, nothing to pick
+    in property <bool> single-archive;
+    callback select-files();
     callback select(int);
     callback change-path();
     callback start();
@@ -196,6 +202,51 @@ export component DownloadSettingsBody inherits VerticalLayout {
                     option: row;
                     selected: DownloadSettings.selected == row.kind;
                     last: i == DownloadSettings.downloaders.length - 1;
+                }
+            }
+        }
+        // __single-archive-notice / __select-files-link (margin-top 8px)
+        if DownloadSettings.can-select-files && DownloadSettings.single-archive: VerticalLayout {
+            padding-top: 8px;
+            Text {
+                text: T.tr("game_details.single_archive_download_notice");
+                font-size: Theme.small-size;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+        }
+        if DownloadSettings.can-select-files && !DownloadSettings.single-archive: files-link := HorizontalLayout {
+            alignment: start;
+            spacing: 4px;
+            padding-top: 8px;
+            property <bool> enabled: !DownloadSettings.starting && !DownloadSettings.files-loading;
+            opacity: self.enabled ? 1 : 0.55;
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 12px;
+                    height: 12px;
+                    source: @image-url("../../icons/file.svg");
+                    color: files-touch.has-hover && files-link.enabled ? Theme.muted : Theme.body;
+                }
+            }
+            files-text := Text {
+                text: DownloadSettings.files-loading ? T.tr("game_details.loading_torrent_files") : T.tr("game_details.select_files_to_download");
+                font-size: Theme.small-size;
+                color: files-touch.has-hover && files-link.enabled ? Theme.muted : Theme.body;
+                // text-decoration: underline; text-underline-offset: 2px
+                Rectangle {
+                    y: parent.height - 1px;
+                    height: 1px;
+                    background: parent.color;
+                }
+                files-touch := TouchArea {
+                    mouse-cursor: files-link.enabled ? pointer : not-allowed;
+                    clicked => {
+                        if (files-link.enabled) {
+                            DownloadSettings.select-files();
+                        }
+                    }
                 }
             }
         }

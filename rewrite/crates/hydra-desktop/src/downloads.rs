@@ -49,10 +49,32 @@ pub fn init(ui: &AppWindow, db: Arc<Db>, api: Arc<HydraApi>, user_data: &Path) {
     );
     let _ = MANAGER.set(manager.clone());
     let _ = slint::invoke_from_event_loop(crate::downloads_page::refresh);
+    let probe = manager.clone();
     std::thread::spawn(move || {
         manager.bootstrap();
         manager.spawn_watch_loop();
     });
+    // HYDRA_DEV_PROBE_LINK="<downloader number> <uri>": resolve one hoster or
+    // debrid link inside the app (FuckingFast needs its webview), print the
+    // direct link without its query, download nothing.
+    if let Ok(spec) = std::env::var("HYDRA_DEV_PROBE_LINK")
+        && let Some((number, uri)) = spec.split_once(' ')
+        && let Some(downloader) = number
+            .parse()
+            .ok()
+            .and_then(hydra_core::repacks::Downloader::from_i64)
+    {
+        let (uri, folder) = (uri.to_string(), user_data.join("probe"));
+        std::thread::spawn(move || {
+            let started = std::time::Instant::now();
+            let result = probe.probe_link(downloader, &uri, &folder.to_string_lossy());
+            eprintln!(
+                "[DevProbe] {} after {:.1}s: {result:?}",
+                downloader.name(),
+                started.elapsed().as_secs_f64()
+            );
+        });
+    }
 }
 
 fn on_event(event: Event) {
@@ -124,13 +146,108 @@ pub fn start(payload: StartPayload, done: impl FnOnce(Result<(), String>) + Send
     });
 }
 
+/// window.electron.addGameToQueue (the modal's "Add to queue" while a
+/// download runs).
+pub fn add_to_queue(payload: StartPayload, done: impl FnOnce(Result<(), String>) + Send + 'static) {
+    let Some(manager) = manager() else {
+        return done(Err("Downloads are not ready".into()));
+    };
+    std::thread::spawn(move || {
+        let result = manager.add_game_to_queue(payload);
+        let _ = slint::invoke_from_event_loop(move || done(result));
+    });
+}
+
 /// pauseGameDownload / resumeGameDownload / cancelGameDownload
 pub fn pause(shop: &str, object_id: &str) {
+    pause_confirmed(shop, object_id, false);
+}
+
+fn pause_confirmed(shop: &str, object_id: &str, confirmed: bool) {
     let Some(manager) = manager() else { return };
     let (shop, object_id) = (shop.to_string(), object_id.to_string());
     std::thread::spawn(move || {
-        manager.pause_by_id(&shop, &object_id);
+        manager.pause_by_id_confirmed(&shop, &object_id, confirmed);
     });
+}
+
+/// download-group.tsx pauseDownload: getDownloadPauseWarning first; a
+/// TorBox ZIP that can't resume asks before it starts over.
+pub fn pause_with_warning(shop: &str, object_id: &str) {
+    let Some(manager) = manager() else { return };
+    let id = format!("{shop}:{object_id}");
+    if !manager.requires_pause_confirmation(&id) {
+        return pause(shop, object_id);
+    }
+    let t = crate::shell::tr;
+    let (shop, object_id) = (shop.to_string(), object_id.to_string());
+    crate::dialogs::confirm(
+        crate::dialogs::Confirm {
+            title: &t("downloads.generated_zip_pause_title"),
+            description: &t("downloads.generated_zip_pause_message"),
+            body: "",
+            confirm_label: &t("downloads.pause"),
+            cancel_label: &t("downloads.generated_zip_keep_downloading"),
+            danger: false,
+        },
+        move || {
+            pause_confirmed(&shop, &object_id, true);
+            crate::dialogs::close();
+        },
+    );
+}
+
+/// updateDownloadQueuePosition(shop, objectId, "up" | "down")
+pub fn move_in_queue(shop: &str, object_id: &str, up: bool) {
+    let Some(manager) = manager() else { return };
+    let (shop, object_id) = (shop.to_string(), object_id.to_string());
+    std::thread::spawn(move || {
+        manager.move_in_queue(&shop, &object_id, up);
+    });
+}
+
+/// window.electron.getDebridFiles(magnet, downloader)
+pub fn debrid_files(
+    magnet: String,
+    downloader: hydra_core::repacks::Downloader,
+    done: impl FnOnce(Result<hydra_downloads::manager::TorrentFiles, String>) + Send + 'static,
+) {
+    let Some(manager) = manager() else {
+        return done(Err("download_error_torrent_files_unavailable".into()));
+    };
+    std::thread::spawn(move || {
+        let result =
+            dev_files_fixture().unwrap_or_else(|| manager.debrid_files(&magnet, downloader));
+        let _ = slint::invoke_from_event_loop(move || done(result));
+    });
+}
+
+/// HYDRA_DEV_DEBRID_FILES=<json>: the file list from a recorded
+/// getDebridFiles answer (`{ name, totalSize, archiveOnly, files: [{ index,
+/// path, length }] }`), for screenshots without a debrid account.
+fn dev_files_fixture() -> Option<Result<hydra_downloads::manager::TorrentFiles, String>> {
+    use serde_json::Value;
+    let path = std::env::var("HYDRA_DEV_DEBRID_FILES").ok()?;
+    let value: Value = serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()?;
+    let files = value
+        .get("files")?
+        .as_array()?
+        .iter()
+        .filter_map(|f| {
+            Some(hydra_downloads::debrid::files::DebridFile {
+                index: f.get("index")?.as_i64()?,
+                path: f.get("path")?.as_str()?.to_string(),
+                size: f.get("length")?.as_u64()?,
+            })
+        })
+        .collect::<Vec<_>>();
+    std::thread::sleep(std::time::Duration::from_millis(600));
+    Some(Ok(hydra_downloads::manager::TorrentFiles {
+        name: value.get("name")?.as_str()?.to_string(),
+        total_size: files.iter().map(|f| f.size).sum(),
+        archive_only: value.get("archiveOnly").and_then(Value::as_bool) == Some(true),
+        files,
+    }))
 }
 
 pub fn resume(shop: &str, object_id: &str, strategy: &'static str) {

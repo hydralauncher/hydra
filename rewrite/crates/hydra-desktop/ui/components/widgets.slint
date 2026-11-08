@@ -232,6 +232,11 @@ export component ScrollBar inherits Rectangle {
     in-out property <length> content-y;
     // What the page shows, when it trails content-y (a wheel tween).
     in property <length> shown-offset: -root.content-y;
+    // A themed track/thumb (the download settings file list's scrollbar).
+    in property <color> track-color: rgba(0, 0, 0, 0.2);
+    in property <color> thumb-color: rgba(255, 255, 255, 0.15);
+    in property <color> thumb-hover-color: rgba(255, 255, 255, 0.25);
+    in property <length> thumb-radius: 24px;
     property <length> offset: root.shown-offset;
     width: 9px;
     background: Theme.dark-background;
@@ -240,7 +245,7 @@ export component ScrollBar inherits Rectangle {
     property <length> thumb-height: root.content-height <= 0 ? root.height : Math.max(32px, root.height * root.viewport-height / root.content-height);
 
     Rectangle {
-        background: rgba(0, 0, 0, 0.2);
+        background: root.track-color;
     }
 
     thumb := Rectangle {
@@ -248,8 +253,8 @@ export component ScrollBar inherits Rectangle {
         width: root.width;
         height: root.thumb-height;
         y: root.max-offset <= 0 ? 0 : (root.height - self.height) * root.offset / root.max-offset;
-        border-radius: 24px;
-        background: (drag.on-thumb && drag.has-hover) || drag.dragging ? rgba(255, 255, 255, 0.25) : rgba(255, 255, 255, 0.15);
+        border-radius: root.thumb-radius;
+        background: (drag.on-thumb && drag.has-hover) || drag.dragging ? root.thumb-hover-color : root.thumb-color;
     }
 
     // The drag area covers the whole track, which never moves, so pointer

@@ -68,7 +68,7 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
     let d = ui.global::<DownloadsData>();
     d.on_pause(|id| {
         let (shop, object_id) = split_id(&id);
-        crate::downloads::pause(shop, object_id);
+        crate::downloads::pause_with_warning(shop, object_id);
     });
     d.on_resume(|id| {
         let (shop, object_id) = split_id(&id);

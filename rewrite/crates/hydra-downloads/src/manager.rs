@@ -5,7 +5,17 @@
 //! The manager is shared between the UI thread (which only calls into it
 //! from worker threads) and its own tokio runtime, where the HTTP transfers
 //! run.
+//!
+//! Hoster and debrid links resolve in [`resolve`], multi-file downloads run
+//! in [`batches`], and the debrid waiting/readiness flow is [`orchestrate`].
 
+mod batches;
+mod orchestrate;
+mod resolve;
+
+pub use resolve::TorrentFiles;
+
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -13,14 +23,61 @@ use hydra_core::api::{HydraApi, Options as ApiOptions};
 use hydra_core::repacks::{self, Downloader};
 use hydra_db::{Db, keys};
 use serde_json::{Value, json};
+use tokio_util::sync::CancellationToken;
 
+use crate::errors::{DlError, is_debrid_pending};
 use crate::http::{self, HttpDownloader, Phase};
 use crate::layout::{self, Download, Layout};
+use crate::torbox_batch::TorBoxBatch;
 
 /// DOWNLOAD_ERROR keys the renderer translates (`t(response.error)`).
 pub mod errors {
     pub const ARCHIVE_ORG_INVALID_FILE_URL: &str = "download_error_archive_org_invalid_file_url";
     pub const DOWNLOAD_LINK_RETURNED_WEB_PAGE: &str = "download_error_link_returned_web_page";
+}
+
+/// The running HTTP transfer: one downloader, or the TorBox batch downloader.
+#[derive(Clone)]
+pub(crate) enum Transfer {
+    Http(HttpDownloader),
+    TorBox(TorBoxBatch),
+}
+
+impl Transfer {
+    fn set_max_download_speed(&self, limit: Option<u64>) {
+        match self {
+            Transfer::Http(d) => d.set_max_download_speed(limit),
+            Transfer::TorBox(d) => d.set_max_download_speed(limit),
+        }
+    }
+
+    fn pause(&self) {
+        match self {
+            Transfer::Http(d) => d.pause(),
+            Transfer::TorBox(d) => d.pause(),
+        }
+    }
+
+    async fn wait_for_idle(&self) {
+        match self {
+            Transfer::Http(d) => d.wait_for_idle().await,
+            Transfer::TorBox(d) => d.wait_for_idle().await,
+        }
+    }
+
+    fn cancel(&self, delete_file: bool) {
+        match self {
+            Transfer::Http(d) => d.cancel(delete_file),
+            Transfer::TorBox(d) => d.cancel(delete_file),
+        }
+    }
+
+    fn status(&self) -> Option<http::Status> {
+        match self {
+            Transfer::Http(d) => d.status(),
+            Transfer::TorBox(d) => Some(d.status()),
+        }
+    }
 }
 
 /// StartGameDownloadPayload
@@ -85,8 +142,12 @@ struct Core {
     downloading_id: Option<String>,
     generation: u64,
     preparing: bool,
-    http: Option<HttpDownloader>,
+    http: Option<Transfer>,
     speed_limit: Option<u64>,
+    /// jsBatch: the multi-file download in progress.
+    batch: Option<batches::Batch>,
+    /// preparationController: cancels the link resolution of the start.
+    preparation: Option<CancellationToken>,
 }
 
 pub struct Manager {
@@ -97,6 +158,12 @@ pub struct Manager {
     /// withDownloadActivation: activations run one at a time.
     activation: Mutex<()>,
     listener: Listener,
+    hosters: crate::hosters::Context,
+    /// preparedJsDownloads: links resolved by the URL check, reused at start.
+    prepared: Mutex<HashMap<String, resolve::PreparedJs>>,
+    /// preparedRealDebridDownloads
+    prepared_real_debrid: Mutex<HashMap<String, resolve::PreparedRd>>,
+    preparations: Mutex<orchestrate::Preparations>,
 }
 
 fn now_ms() -> f64 {
@@ -140,6 +207,10 @@ impl Manager {
             .enable_all()
             .build()
             .expect("downloads runtime");
+        let hosters = crate::hosters::Context {
+            api: api.clone(),
+            user_data: user_data.to_path_buf(),
+        };
         Arc::new(Manager {
             db,
             api,
@@ -147,6 +218,10 @@ impl Manager {
             core: Mutex::new(Core::default()),
             activation: Mutex::new(()),
             listener,
+            hosters,
+            prepared: Mutex::new(HashMap::new()),
+            prepared_real_debrid: Mutex::new(HashMap::new()),
+            preparations: Mutex::new(orchestrate::Preparations::default()),
         })
     }
 
@@ -184,6 +259,86 @@ impl Manager {
             "[Downloads] Start requested for {game_key} (downloader={})",
             payload.downloader as i64
         );
+        let mut download = self.new_download_record(&payload);
+
+        let mut wrote = false;
+        let result = (|| -> Result<(), DlError> {
+            self.check_parts(&payload)?;
+            let in_background = Self::prepares_real_debrid_in_background(&download);
+            if !in_background {
+                self.validate_or_mark_pending(&mut download)?;
+            }
+            hydra_core::library_actions::prepare_game_entry(
+                &self.db,
+                &game_key,
+                &payload.title,
+                &payload.object_id,
+                &payload.shop,
+            )
+            .map_err(|e| DlError::msg(e.to_string()))?;
+            self.cancel_runtime(&game_key);
+            layout::put(&self.db, &download);
+            wrote = true;
+            if download.get("awaitingDebrid").and_then(Value::as_bool) == Some(true) {
+                self.save_awaiting(&download, &|| true);
+                Ok(())
+            } else if in_background {
+                self.prepare_and_start(download.clone())
+            } else {
+                self.start_prepared(download.clone(), None)
+            }
+        })();
+        if let Err(error) = result {
+            if wrote {
+                self.cancel_runtime(&game_key);
+                let _ = self.db.delete_in(keys::DOWNLOADS, &game_key);
+                layout::remove(&self.db, &game_key, &layout::all(&self.db));
+                self.emit(Event::Updated);
+            }
+            if error.is_known() {
+                eprintln!("Failed to start download with expected download error: {error}");
+            } else {
+                eprintln!("[Downloads] Failed to start download: {error}");
+            }
+            return Err(crate::errors::describe(&error, payload.downloader));
+        }
+        self.register_download(&payload, game_key);
+        Ok(())
+    }
+
+    /// addGameToQueue: checked like a start, then queued without starting
+    /// (a running queue continues with it).
+    pub fn add_game_to_queue(self: &Arc<Self>, payload: StartPayload) -> Result<(), String> {
+        let game_key = format!("{}:{}", payload.shop, payload.object_id);
+        let mut download = self.new_download_record(&payload);
+        let prepared = (|| -> Result<(), DlError> {
+            self.check_parts(&payload)?;
+            if !Self::prepares_real_debrid_in_background(&download) {
+                self.validate_or_mark_pending(&mut download)?;
+            }
+            hydra_core::library_actions::prepare_game_entry(
+                &self.db,
+                &game_key,
+                &payload.title,
+                &payload.object_id,
+                &payload.shop,
+            )
+            .map_err(|e| DlError::msg(e.to_string()))?;
+            self.cancel_runtime(&game_key);
+            Ok(())
+        })();
+        if let Err(error) = prepared {
+            eprintln!("Failed to validate download URL for queue: {error}");
+            return Err(crate::errors::describe(&error, payload.downloader));
+        }
+        layout::put(&self.db, &download);
+        self.enqueue_prepared(download);
+        self.register_download(&payload, game_key);
+        Ok(())
+    }
+
+    /// The record startGameDownload / addGameToQueue write.
+    fn new_download_record(&self, payload: &StartPayload) -> Download {
         let parsed_size = payload.file_size.as_deref().and_then(repacks::parse_bytes);
         let mut download: Download = json!({
             "shop": payload.shop,
@@ -215,35 +370,29 @@ impl Manager {
         if let Some(indices) = payload.file_indices.as_ref() {
             download.insert("fileIndices".into(), json!(indices));
         }
+        download
+    }
 
-        let mut wrote = false;
-        let result = (|| -> Result<(), String> {
-            // DownloadOrchestrator.validateDownloadOrMarkPending
-            self.validate_download_url(&download)?;
-            hydra_core::library_actions::prepare_game_entry(
-                &self.db,
-                &game_key,
-                &payload.title,
-                &payload.object_id,
-                &payload.shop,
-            )
-            .map_err(|e| e.to_string())?;
-            self.cancel_runtime(&game_key);
-            layout::put(&self.db, &download);
-            wrote = true;
-            self.start_prepared_download(download.clone());
-            Ok(())
-        })();
-        if let Err(error) = result {
-            if wrote {
-                self.cancel_runtime(&game_key);
-                let _ = self.db.delete_in(keys::DOWNLOADS, &game_key);
-                self.emit(Event::Updated);
-            }
-            eprintln!("[Downloads] Failed to start download: {error}");
-            return Err(error);
+    /// getMultipartDownloadParts: groups only for hosters that support them,
+    /// and only with the feature on.
+    fn check_parts(&self, payload: &StartPayload) -> Result<(), DlError> {
+        let Some(parts) =
+            crate::debrid::files::download_parts(&payload.uri, payload.parts.as_deref())?
+        else {
+            return Ok(());
+        };
+        let _ = parts;
+        if !repacks::is_multipart_downloader(payload.downloader) {
+            return Err(DlError::msg(
+                "This downloader does not support multi-part downloads.",
+            ));
         }
-        // createGame + POST /games/{shop}/{objectId}/download
+        self.runtime
+            .block_on(crate::hosters::assert_multipart_enabled(&self.hosters))
+    }
+
+    /// createGame + POST /games/{shop}/{objectId}/download
+    fn register_download(&self, payload: &StartPayload, game_key: String) {
         if let Some(api) = self.api.clone() {
             let db = self.db.clone();
             let (shop, object_id) = (payload.shop.clone(), payload.object_id.clone());
@@ -258,7 +407,6 @@ impl Manager {
                 );
             });
         }
-        Ok(())
     }
 
     /// getGlobalTrackers (manual list only; the URL list comes with the torrent work).
@@ -276,93 +424,7 @@ impl Manager {
             .unwrap_or_default()
     }
 
-    // ---- links
-
-    /// getJsDownloadOptions: the URL, folder and file name for an HTTP downloader.
-    fn http_options(&self, download: &Download) -> Result<http::Options, String> {
-        let uri = download
-            .get("uri")
-            .and_then(Value::as_str)
-            .unwrap_or_default();
-        let save_path = download
-            .get("downloadPath")
-            .and_then(Value::as_str)
-            .unwrap_or_default();
-        let resuming = download
-            .get("folderName")
-            .and_then(Value::as_str)
-            .filter(|s| !s.is_empty())
-            .map(str::to_string);
-        match downloader_of(download) {
-            Some(Downloader::ArchiveOrg) => {
-                let (identifier, path) = repacks::parse_archive_org_file_uri(uri)
-                    .ok_or(errors::ARCHIVE_ORG_INVALID_FILE_URL)?;
-                let encode = |s: &str| {
-                    s.bytes()
-                        .map(|b| match b {
-                            b'A'..=b'Z'
-                            | b'a'..=b'z'
-                            | b'0'..=b'9'
-                            | b'-'
-                            | b'_'
-                            | b'.'
-                            | b'!'
-                            | b'~'
-                            | b'*'
-                            | b'\''
-                            | b'('
-                            | b')' => (b as char).to_string(),
-                            _ => format!("%{b:02X}"),
-                        })
-                        .collect::<String>()
-                };
-                let encoded_path = path.split('/').map(encode).collect::<Vec<_>>().join("/");
-                let url = format!(
-                    "https://archive.org/download/{}/{encoded_path}",
-                    encode(&identifier)
-                );
-                let filename = path.rsplit('/').next().unwrap_or(&path).to_string();
-                Ok(http::Options::new(
-                    url,
-                    save_path,
-                    Some(resuming.unwrap_or_else(|| crate::filename::sanitize_filename(&filename))),
-                ))
-            }
-            Some(other) => Err(format!(
-                "TODO(downloads): {} links are not supported yet",
-                other.name()
-            )),
-            None => Err("Unknown downloader".into()),
-        }
-    }
-
-    /// validateDownloadUrl: a preflight GET (Range 0-0) so dead links fail before queueing.
-    fn validate_download_url(&self, download: &Download) -> Result<(), String> {
-        let Some(downloader) = downloader_of(download) else {
-            return Ok(());
-        };
-        if !is_http(downloader) {
-            return Ok(());
-        }
-        let options = self.http_options(download)?;
-        self.runtime.block_on(preflight(&options))
-    }
-
     // ---- orchestrator
-
-    /// startPreparedDownload: queue it, then start the queue's head if nothing runs.
-    fn start_prepared_download(self: &Arc<Self>, download: Download) {
-        let _activation = self.activation.lock().unwrap_or_else(|e| e.into_inner());
-        let id = layout::id(&download);
-        if let Some(current) = layout::get(&self.db, &id)
-            && (layout::is_active_like(&current) || layout::is_terminal(&current))
-        {
-            return;
-        }
-        self.queue_download(download, None);
-        self.activate_next_queued();
-        self.emit(Event::Updated);
-    }
 
     fn queue_download(&self, download: Download, target: Option<usize>) -> Download {
         let mut download = download;
@@ -387,31 +449,61 @@ impl Manager {
         self.has_active_download() || downloads.iter().any(|d| layout::status(d) == "active")
     }
 
-    /// activateNextQueuedDownload
+    /// activateNextQueuedDownload after a completion or a failure: a start
+    /// that fails parks that download and the next one is tried.
     fn activate_next_queued(self: &Arc<Self>) {
+        let _ = self.activate_next(false);
+    }
+
+    /// activateNextQueuedDownload: a start that fails stops here and the
+    /// error reaches the caller (startGameDownload's toast).
+    pub(crate) fn activate_next_queued_checked(self: &Arc<Self>) -> Result<(), DlError> {
+        self.activate_next(true)
+    }
+
+    fn activate_next(self: &Arc<Self>, stop_on_error: bool) -> Result<(), DlError> {
         loop {
             let downloads = layout::all(&self.db);
             if self.has_active_transfer(&downloads) {
-                return;
+                return Ok(());
             }
             let state = layout::normalized(&self.db, &downloads);
             let Some(next) = layout::next_queued(&downloads, &state) else {
                 self.emit(Event::Updated);
-                return;
+                return Ok(());
             };
-            if self.activate_download(next).is_some() {
-                self.emit(Event::Updated);
-                return;
+            match self.activate_download_checked(next) {
+                Ok(Some(_)) => {
+                    self.emit(Event::Updated);
+                    return Ok(());
+                }
+                Ok(None) => {}
+                Err(error) if stop_on_error => return Err(error),
+                Err(_) => {}
             }
         }
     }
 
-    /// activateDownload: mark it active and start the transfer.
+    /// activateDownload, with a failed start logged.
     fn activate_download(self: &Arc<Self>, download: Download) -> Option<Download> {
+        self.activate_download_checked(download).ok().flatten()
+    }
+
+    /// activateDownload: mark it active and start the transfer. `Ok(None)`
+    /// when it now waits for its debrid service to prepare the files.
+    pub(crate) fn activate_download_checked(
+        self: &Arc<Self>,
+        download: Download,
+    ) -> Result<Option<Download>, DlError> {
         let id = layout::id(&download);
-        if self.core().downloading_id.as_deref() == Some(id.as_str()) {
-            return Some(download);
+        {
+            let core = self.core();
+            // A repeated manual action keeps the downloader that owns the slot.
+            if core.downloading_id.as_deref() == Some(id.as_str()) && !core.preparing {
+                return Ok(Some(download));
+            }
         }
+        let original = download.clone();
         let mut active = download;
         for key in [
             "debridQueueOnly",
@@ -430,6 +522,17 @@ impl Manager {
         active.insert("timestamp".into(), json!(now_ms()));
         layout::put(&self.db, &active);
         if let Err(error) = self.start_download(&active) {
+            if downloader_of(&active).is_some_and(|d| is_debrid_pending(&error, d)) {
+                let mut waiting = active.clone();
+                for key in ["debridAutoResume", "debridPreparationDeadline"] {
+                    match original.get(key) {
+                        Some(value) => waiting.insert(key.into(), value.clone()),
+                        None => waiting.remove(key),
+                    };
+                }
+                self.save_awaiting(&waiting, &|| true);
+                return Ok(None);
+            }
             eprintln!("[Downloads] Could not start {id}: {error}");
             let failed = layout::as_paused(active, "error");
             layout::put(&self.db, &failed);
@@ -444,67 +547,66 @@ impl Manager {
                 paused,
             );
             self.emit(Event::Updated);
-            return None;
+            return Err(error);
         }
-        Some(active)
+        Ok(Some(active))
     }
 
-    /// DownloadManager.startDownload
-    fn start_download(self: &Arc<Self>, download: &Download) -> Result<(), String> {
+    /// DownloadManager.startDownload: resolves the link(s), then the transfer
+    /// runs on the downloads runtime.
+    fn start_download(self: &Arc<Self>, download: &Download) -> Result<(), DlError> {
         let id = layout::id(download);
-        let downloader = downloader_of(download).ok_or("Unknown downloader")?;
+        let downloader =
+            downloader_of(download).ok_or_else(|| DlError::msg("Unknown downloader"))?;
         if !is_http(downloader) {
-            return Err(format!(
+            return Err(DlError::msg(format!(
                 "TODO(downloads): {} downloads are not supported yet",
                 downloader.name()
-            ));
+            )));
         }
+        let signal = CancellationToken::new();
         let generation = {
             let mut core = self.core();
             core.generation += 1;
+            if let Some(previous) = core.preparation.replace(signal.clone()) {
+                previous.cancel();
+            }
             core.downloading_id = Some(id.clone());
             core.preparing = true;
+            core.http = None;
+            core.batch = None;
             core.generation
         };
-        let options = match self.http_options(download) {
-            Ok(options) => options,
-            Err(error) => {
-                let mut core = self.core();
-                if core.generation == generation {
-                    core.preparing = false;
-                    core.downloading_id = None;
-                }
-                return Err(error);
-            }
-        };
-        let uri = download
-            .get("uri")
-            .and_then(Value::as_str)
-            .unwrap_or_default()
-            .to_string();
-        let mut options = options;
-        options.resource_id = Some(uri);
-        let http = HttpDownloader::new();
-        {
-            let mut core = self.core();
-            if core.generation != generation {
-                return Ok(());
-            }
-            http.set_max_download_speed(core.speed_limit);
-            core.http = Some(http.clone());
-            core.preparing = false;
+        let mut download = download.clone();
+        let result = self.runtime.block_on(self.start_http_download(
+            &mut download,
+            &id,
+            generation,
+            &signal,
+        ));
+        let mut core = self.core();
+        if core.generation != generation {
+            // Paused, cancelled or restarted during the preparation.
+            return Ok(());
         }
-        eprintln!("[Downloads] Using the HTTP downloader for {}", options.url);
-        let this = self.clone();
-        self.runtime.spawn(async move {
-            if let Err(error) = http.start(options).await {
-                let this = this.clone();
-                let id = id.clone();
-                // handleRuntimeDownloadError touches the DB: off the runtime.
-                std::thread::spawn(move || this.handle_runtime_error(&id, &error, generation));
+        let reset = |core: &mut Core| {
+            core.preparing = false;
+            core.downloading_id = None;
+            core.http = None;
+            core.batch = None;
+        };
+        match result {
+            // An aborted manifest lookup can return without a downloader.
+            Ok(()) if core.preparing && signal.is_cancelled() => {
+                reset(&mut core);
+                Err(DlError::Aborted)
             }
-        });
-        Ok(())
+            Ok(()) => Ok(()),
+            Err(error) => {
+                reset(&mut core);
+                Err(error)
+            }
+        }
     }
 
     /// handleRuntimeDownloadError
@@ -521,6 +623,7 @@ impl Manager {
             core.downloading_id = None;
             core.preparing = false;
             core.http = None;
+            core.batch = None;
         }
         self.emit(Event::Progress(None));
         if let Some(mut download) = layout::get(&self.db, id) {
@@ -547,41 +650,48 @@ impl Manager {
 
     /// DownloadManager.pauseDownload: stop the transfer, keep its progress.
     fn pause_runtime(&self, id: &str) {
-        let http = {
+        let (http, generation) = {
             let mut core = self.core();
             if core.downloading_id.as_deref() != Some(id) {
                 return;
             }
             core.generation += 1;
-            core.http.clone()
+            if let Some(preparation) = core.preparation.take() {
+                preparation.cancel();
+            }
+            (core.http.clone(), core.generation)
         };
         if let Some(http) = http {
             http.pause();
             self.runtime.block_on(http.wait_for_idle());
-            // persistPausedJsProgress
-            if let (Some(status), Some(mut download)) = (http.status(), layout::get(&self.db, id)) {
-                download.insert("bytesDownloaded".into(), json!(status.bytes_downloaded));
-                download.insert("progress".into(), json!(status.progress));
-                download.insert("folderName".into(), json!(status.folder_name));
-                if status.file_size > 0 {
-                    download.insert("fileSize".into(), json!(status.file_size));
-                }
-                layout::put(&self.db, &download);
+            if let Err(error) = self.persist_paused_js_progress(id, generation) {
+                eprintln!("[Downloads] Could not save the paused progress: {error}");
             }
         }
         let mut core = self.core();
-        core.downloading_id = None;
-        core.http = None;
+        if core.generation == generation {
+            core.downloading_id = None;
+            core.preparing = false;
+            core.http = None;
+            core.batch = None;
+        }
     }
 
     /// DownloadManager.cancelDownload: stop the transfer and delete its partial file.
     fn cancel_runtime(&self, id: &str) {
+        self.prepared_rd().remove(id);
         let http = {
             let mut core = self.core();
             if core.downloading_id.as_deref() != Some(id) {
                 return;
             }
+            // Invalidate an in-flight preparation so a late answer can't
+            // start a downloader after the cancel.
             core.generation += 1;
+            if let Some(preparation) = core.preparation.take() {
+                preparation.cancel();
+            }
+            core.batch = None;
             core.http.take()
         };
         if let Some(http) = http {
@@ -606,6 +716,7 @@ impl Manager {
         start_next: bool,
     ) -> Download {
         let id = layout::id(&download);
+        self.invalidate_background_start(&id);
         if layout::is_active_like(&download) {
             self.pause_runtime(&id);
             self.emit(Event::Progress(None));
@@ -637,10 +748,39 @@ impl Manager {
         next
     }
 
+    /// pauseDownload/cancelDownload abort a preparation of this download
+    /// first, so it releases the activation it holds.
+    fn interrupt_preparation(&self, id: &str) {
+        self.invalidate_background_start(id);
+        let mut core = self.core();
+        if core.downloading_id.as_deref() == Some(id) && core.preparing {
+            core.generation += 1;
+            if let Some(preparation) = core.preparation.take() {
+                preparation.cancel();
+            }
+        }
+    }
+
     /// pauseDownloadById
     pub fn pause_by_id(self: &Arc<Self>, shop: &str, object_id: &str) -> bool {
+        self.pause_by_id_confirmed(shop, object_id, false)
+    }
+
+    /// pauseDownloadById(shop, objectId, confirmed): a TorBox ZIP that can't
+    /// resume needs the user's confirmation (requiresPauseConfirmation).
+    pub fn pause_by_id_confirmed(
+        self: &Arc<Self>,
+        shop: &str,
+        object_id: &str,
+        confirmed: bool,
+    ) -> bool {
+        let id = format!("{shop}:{object_id}");
+        if !confirmed && self.requires_pause_confirmation(&id) {
+            return false;
+        }
+        self.interrupt_preparation(&id);
         let _activation = self.activation.lock().unwrap_or_else(|e| e.into_inner());
-        let Some(download) = layout::get(&self.db, &format!("{shop}:{object_id}")) else {
+        let Some(download) = layout::get(&self.db, &id) else {
             return false;
         };
         self.pause_download(download, "paused", true);
@@ -655,49 +795,105 @@ impl Manager {
         strategy: &str,
         target: Option<usize>,
     ) -> bool {
-        let _activation = self.activation.lock().unwrap_or_else(|e| e.into_inner());
-        let id = format!("{shop}:{object_id}");
-        let Some(download) = layout::get(&self.db, &id) else {
-            return false;
-        };
-        let progress = download
-            .get("progress")
-            .and_then(Value::as_f64)
-            .unwrap_or(0.0);
-        if !matches!(layout::status(&download), "paused" | "active" | "error")
-            || (progress == 1.0 && downloader_of(&download) != Some(Downloader::Epic))
-        {
-            return false;
+        match self.resume_checked(shop, object_id, strategy, target) {
+            Ok(resumed) => resumed,
+            Err(error) => {
+                eprintln!("[Downloads] Could not resume {shop}:{object_id}: {error}");
+                false
+            }
         }
-        let mut ready = download;
-        ready.insert("awaitingDebrid".into(), json!(false));
+    }
+
+    /// resumeDownload: a download waiting for its debrid service checks
+    /// readiness first (outside the activation lock).
+    pub fn resume_checked(
+        self: &Arc<Self>,
+        shop: &str,
+        object_id: &str,
+        strategy: &str,
+        target: Option<usize>,
+    ) -> Result<bool, DlError> {
+        let id = format!("{shop}:{object_id}");
+        eprintln!("[Downloads] Resume requested for {id} (strategy={strategy})");
+        let preparation = self.begin_preparation(&id)?;
+        let result = (|| {
+            let Some(download) = layout::get(&self.db, &id) else {
+                return Ok(false);
+            };
+            let progress = download
+                .get("progress")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            if !matches!(layout::status(&download), "paused" | "active" | "error")
+                || (progress == 1.0 && downloader_of(&download) != Some(Downloader::Epic))
+            {
+                return Ok(false);
+            }
+            if !self.is_current(&preparation) {
+                return Ok(false);
+            }
+            let Some(ready) = self.ready_for_resume(download, strategy, target, &preparation)?
+            else {
+                return Ok(false);
+            };
+            let _activation = self.activation.lock().unwrap_or_else(|e| e.into_inner());
+            self.activate_resumed(ready, strategy, target, &preparation)
+        })();
+        self.dispose(&preparation);
+        result
+    }
+
+    /// activateResumedDownload
+    fn activate_resumed(
+        self: &Arc<Self>,
+        ready: Download,
+        strategy: &str,
+        target: Option<usize>,
+        preparation: &orchestrate::Preparation,
+    ) -> Result<bool, DlError> {
+        if !self.is_current(preparation) {
+            return Ok(false);
+        }
+        let id = layout::id(&ready);
         let downloads = layout::all(&self.db);
         let active = downloads
             .iter()
             .find(|d| layout::is_active_like(d) && layout::id(d) != id)
             .cloned();
         if strategy == "queue" || (active.is_some() && strategy == "queueIfActive") {
-            ready.insert("debridAutoResume".into(), json!(false));
-            self.queue_download(ready, if strategy == "queue" { target } else { Some(0) });
-            if strategy == "queue" {
-                self.activate_next_queued();
-            }
+            let queue_only = ready.get("debridQueueOnly").and_then(Value::as_bool) == Some(true);
+            let mut queued = ready;
+            queued.insert("debridAutoResume".into(), json!(false));
+            queued.remove("debridPreparationDeadline");
+            self.queue_download(queued, if strategy == "queue" { target } else { Some(0) });
+            let result = if strategy == "queue" && !queue_only {
+                self.activate_next_queued_checked()
+            } else {
+                Ok(())
+            };
             self.emit(Event::Updated);
-            return true;
+            return result.map(|()| true);
         }
         if let Some(active) = active.clone() {
             self.pause_download(active, "paused", false);
         }
-        if self.activate_download(ready.clone()).is_none() {
-            if let Some(previous) = active {
-                self.activate_download(previous);
+        if self.activate_download_checked(ready)?.is_none() {
+            if !self.is_current(preparation) {
+                return Ok(false);
             }
-            return false;
+            // restoreInterruptedDownload
+            if let Some(previous) = active
+                && self.activate_download(previous.clone()).is_some()
+            {
+                layout::remove(&self.db, &layout::id(&previous), &layout::all(&self.db));
+                self.emit(Event::Updated);
+            }
+            return Ok(false);
         }
         let downloads = layout::all(&self.db);
         layout::remove(&self.db, &id, &downloads);
         self.emit(Event::Updated);
-        true
+        Ok(true)
     }
 
     /// DownloadManager.cancelDownload() with no id (sign-out): stop whatever is
@@ -710,8 +906,9 @@ impl Manager {
 
     /// cancelDownloadById: stop, mark "removed", start the next one.
     pub fn cancel_by_id(self: &Arc<Self>, shop: &str, object_id: &str) -> bool {
-        let _activation = self.activation.lock().unwrap_or_else(|e| e.into_inner());
         let id = format!("{shop}:{object_id}");
+        self.interrupt_preparation(&id);
+        let _activation = self.activation.lock().unwrap_or_else(|e| e.into_inner());
         let Some(download) = layout::get(&self.db, &id) else {
             return false;
         };
@@ -763,6 +960,10 @@ impl Manager {
 
     /// bootstrapDownloadsOnStartup + restoring the interrupted download.
     pub fn bootstrap(self: &Arc<Self>) {
+        // GofileApi.initialize: a guest token ready before the first GoFile link.
+        let hosters = self.hosters.clone();
+        self.runtime
+            .spawn(async move { crate::hosters::gofile::initialize(&hosters).await });
         let downloads = layout::all(&self.db);
         let mut interrupted: Option<String> = None;
         for download in &downloads {
@@ -773,8 +974,9 @@ impl Manager {
             if next.get("pinnedToHero").and_then(Value::as_bool) == Some(true) {
                 next.insert("pinnedToHero".into(), json!(false));
             }
+            let awaiting = download.get("awaitingDebrid").and_then(Value::as_bool) == Some(true);
+            normalize_awaiting_startup(&mut next);
             if layout::status(&next) == "active" {
-                let awaiting = next.get("awaitingDebrid").and_then(Value::as_bool) == Some(true);
                 next.insert("status".into(), json!("paused"));
                 next.insert("queued".into(), json!(interrupted.is_none()));
                 if !awaiting && interrupted.is_none() {
@@ -843,44 +1045,28 @@ impl Manager {
             })));
             return;
         }
-        let Some(http) = http else { return };
-        let Some(status) = http.status() else { return };
-        let file_size = if status.file_size > 0 {
-            Some(status.file_size as f64)
-        } else {
-            download.get("fileSize").and_then(Value::as_f64)
+        let Some(_transfer) = http else { return };
+        let Some((updated, js)) = self.js_progress(&id, &download) else {
+            return;
         };
-        let progress = status.progress.clamp(0.0, 1.0);
-        let mut updated = download.clone();
-        updated.insert("bytesDownloaded".into(), json!(status.bytes_downloaded));
-        updated.insert(
-            "fileSize".into(),
-            file_size.map_or(Value::Null, |s| json!(s as u64)),
-        );
-        updated.insert("progress".into(), json!(progress));
-        updated.insert("folderName".into(), json!(status.folder_name));
-        let complete = status.phase == Phase::Complete;
-        updated.insert(
-            "status".into(),
-            json!(if complete { "complete" } else { "active" }),
-        );
-        if matches!(status.phase, Phase::Active | Phase::Complete) {
+        let progress = updated
+            .get("progress")
+            .and_then(Value::as_f64)
+            .unwrap_or(0.0);
+        let complete = js.phase == Phase::Complete;
+        if matches!(js.phase, Phase::Active | Phase::Complete) {
             layout::put(&self.db, &updated);
         }
         let packet = Progress {
-            download_speed: status.download_speed,
-            time_remaining: eta(
-                file_size.unwrap_or(0.0),
-                status.bytes_downloaded as f64,
-                status.download_speed,
-            ),
+            download_speed: js.speed,
+            time_remaining: eta(js.file_size.unwrap_or(0.0), js.bytes as f64, js.speed),
             num_peers: 0,
             num_seeds: 0,
             is_downloading_metadata: false,
             is_checking_files: false,
-            is_reconnecting: status.is_reconnecting,
-            is_recovering: status.is_recovering,
-            recovery_progress: status.recovery_progress,
+            is_reconnecting: js.is_reconnecting,
+            is_recovering: js.is_recovering,
+            recovery_progress: js.recovery_progress,
             progress,
             game_id: id.clone(),
             download: updated.clone(),
@@ -972,8 +1158,10 @@ impl Manager {
         self.api.clone()
     }
 
-    /// The watch loop thread (main-loop.ts: every INTERVALS.downloadWatcher).
+    /// The watch loop thread (main-loop.ts: every INTERVALS.downloadWatcher),
+    /// and the debrid readiness watcher next to it.
     pub fn spawn_watch_loop(self: &Arc<Self>) {
+        self.spawn_debrid_watch_loop();
         let this = self.clone();
         std::thread::Builder::new()
             .name("download-watcher".into())
@@ -987,68 +1175,36 @@ impl Manager {
     }
 }
 
-/// runPreflightAttempt / validatePreflightAttempt
-async fn preflight(options: &http::Options) -> Result<(), String> {
-    const ATTEMPTS: u32 = 3;
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(15))
-        .build()
-        .map_err(|e| e.to_string())?;
-    for attempt in 1..=ATTEMPTS {
-        let mut request = client.get(&options.url);
-        let has = |name: &str| {
-            options
-                .headers
-                .iter()
-                .any(|(k, _)| k.eq_ignore_ascii_case(name))
-        };
-        for (name, value) in &options.headers {
-            request = request.header(name, value);
-        }
-        if !has("user-agent") {
-            request = request.header("user-agent", http::DEFAULT_DOWNLOAD_USER_AGENT);
-        }
-        if !has("accept-encoding") {
-            request = request.header("accept-encoding", "identity");
-        }
-        if !has("range") {
-            request = request.header("range", "bytes=0-0");
-        }
-        let response = request.send().await.map_err(|e| {
-            if e.is_timeout() {
-                "Download URL validation timed out".to_string()
-            } else {
-                e.to_string()
-            }
-        })?;
-        let status = response.status().as_u16();
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("unknown")
-            .to_string();
-        eprintln!("[Downloads] Preflight response status={status} content-type={content_type}");
-        drop(response);
-        if status == 416 {
-            return Ok(());
-        }
-        if [408, 429, 500, 502, 503, 504].contains(&status) {
-            if attempt < ATTEMPTS {
-                tokio::time::sleep(Duration::from_millis(1000 * attempt as u64)).await;
-                continue;
-            }
-            return Ok(());
-        }
-        if status >= 400 {
-            return Err(format!(
-                "The download link is not available (HTTP {status})."
-            ));
-        }
-        if content_type.contains("text/html") || content_type.contains("application/xhtml") {
-            return Err(errors::DOWNLOAD_LINK_RETURNED_WEB_PAGE.into());
-        }
-        return Ok(());
+/// normalizeAwaitingStartupDownload: a download that waited for its debrid
+/// service resumes waiting only inside its preparation window.
+fn normalize_awaiting_startup(download: &mut Download) {
+    if download.get("awaitingDebrid").and_then(Value::as_bool) != Some(true) {
+        return;
     }
-    Ok(())
+    let clear = |download: &mut Download| {
+        download.insert("debridAutoResume".into(), json!(false));
+        for key in [
+            "debridQueueOnly",
+            "debridQueuePosition",
+            "debridPreparationDeadline",
+        ] {
+            download.remove(key);
+        }
+    };
+    if layout::is_terminal(download) {
+        download.insert("awaitingDebrid".into(), json!(false));
+        clear(download);
+        return;
+    }
+    download.insert("status".into(), json!("paused"));
+    download.insert("queued".into(), json!(false));
+    let deadline = download
+        .get("debridPreparationDeadline")
+        .and_then(Value::as_f64)
+        .filter(|d| d.is_finite());
+    if download.get("debridAutoResume").and_then(Value::as_bool) == Some(true)
+        && deadline.is_none_or(|d| d <= now_ms())
+    {
+        clear(download);
+    }
 }

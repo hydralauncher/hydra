@@ -6,13 +6,15 @@ import { HydraButton } from "../../components/widgets.slint";
 import { Modal, ModalController } from "../../components/modal.slint";
 import { RepacksModalBody } from "repacks.slint";
 import { DownloadSettingsBody, DownloadSettings } from "download-settings.slint";
+import { TorrentStepBody, TorrentStep } from "torrent-step.slint";
+import { RealDebridInfoBody, RealDebridInfo } from "real-debrid-info.slint";
 import { GameData } from "state.slint";
 import { GameOptionsBody } from "options.slint";
 import { PlaytimeModals, UpdatePlaytimeBody, ResetPlaytimeBody } from "playtime.slint";
 import { Nav, T } from "../../globals.slint";
 
 export component GameModalsHost inherits Rectangle {
-    out property <bool> mounted: options-state.mounted || repacks-state.mounted || cloud-state.mounted || settings-state.mounted || update-playtime-state.mounted || reset-playtime-state.mounted;
+    out property <bool> mounted: options-state.mounted || repacks-state.mounted || cloud-state.mounted || settings-state.mounted || update-playtime-state.mounted || reset-playtime-state.mounted || torrent-step-state.mounted || real-debrid-state.mounted;
     changed mounted => {
         GameData.modals-mounted = self.mounted;
     }
@@ -42,6 +44,13 @@ export component GameModalsHost inherits Rectangle {
         closed => {
             DownloadSettings.closed();
         }
+    }
+    // The torrent step and the Real-Debrid info, stacked on the settings
+    torrent-step-state := ModalController {
+        open <=> TorrentStep.open;
+    }
+    real-debrid-state := ModalController {
+        open <=> RealDebridInfo.open;
     }
 
     // game-options-modal.tsx: large, no content padding.
@@ -125,11 +134,40 @@ export component GameModalsHost inherits Rectangle {
         title: T.tr("game_details.download_settings");
         description: DownloadSettings.free-space;
         closing: settings-state.closing;
+        covered: torrent-step-state.mounted || real-debrid-state.mounted;
         blurred-page: GameData.stacked-backdrop;
         request-close => {
             settings-state.close();
         }
         DownloadSettingsBody { }
+    }
+
+    // RealDebridInfoModal
+    if real-debrid-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("settings.enable_real_debrid");
+        closing: real-debrid-state.closing;
+        blurred-page: RealDebridInfo.backdrop;
+        request-close => {
+            real-debrid-state.close();
+        }
+        RealDebridInfoBody { }
+    }
+
+    // the torrent step: large, no content padding
+    if torrent-step-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.torrent_files");
+        large: true;
+        no-content-padding: true;
+        closing: torrent-step-state.closing;
+        blurred-page: TorrentStep.backdrop;
+        request-close => {
+            torrent-step-state.close();
+        }
+        TorrentStepBody { }
     }
 
     // cloud-save-modal.tsx shell
