@@ -184,7 +184,8 @@ pub fn completed_action(id: &str, step: &str) {
     let (shop, object_id) = id.split_once(':').unwrap_or((id, ""));
     match step {
         "open-folder" => open_installer_path(id),
-        "play" => crate::nav::navigate(&format!("/game/{shop}/{object_id}")), // TODO(launch): openGame
+        "play" => crate::games::play(shop, object_id),
+        "close" => crate::games::close(shop, object_id),
         other => eprintln!("TODO(downloads): {other} for {id}"),
     }
 }

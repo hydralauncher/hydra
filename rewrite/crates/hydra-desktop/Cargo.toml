@@ -15,6 +15,7 @@ hydra-store = { path = "../hydra-store" }
 hydra-media = { path = "../hydra-media" }
 hydra-core = { path = "../hydra-core" }
 hydra-downloads = { path = "../hydra-downloads" }
+hydra-launch = { path = "../hydra-launch" }
 hydra-db = { path = "../hydra-db" }
 hydra-i18n = { path = "../hydra-i18n" }
 serde_json.workspace = true

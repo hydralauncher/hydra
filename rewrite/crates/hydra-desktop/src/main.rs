@@ -21,6 +21,7 @@ mod game_classics;
 mod game_menu;
 mod game_page;
 mod game_repacks;
+mod games;
 mod gifs;
 mod headless;
 mod home_page;
@@ -155,6 +156,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     downloads::init(&ui, db.clone(), api.clone(), &native_dir);
+    games::init(db.clone(), api.clone());
     shell::init(
         &ui,
         db,

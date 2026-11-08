@@ -479,8 +479,12 @@ fn completed_step(entry: &Entry) -> String {
         return "checking".into();
     }
     if text(game, "executablePath").is_some() {
-        // TODO(launch): "close" while the game runs (getGamesRunning).
-        return "play".into();
+        return if crate::games::is_running(&entry.id) {
+            "close"
+        } else {
+            "play"
+        }
+        .into();
     }
     let shop = text(game, "shop").unwrap_or_default();
     if shop == "launchbox" {

@@ -187,6 +187,7 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
     fetch_achievements(shop, object_id);
     crate::game_repacks::open(shop, object_id);
     apply_download_state(crate::downloads::last_packet().as_ref());
+    on_games_running();
 }
 
 /// game-details.context.tsx: `getUnlockedAchievements` once the user is known.
@@ -493,6 +494,18 @@ fn apply_download_state(packet: Option<&hydra_downloads::manager::Progress>) {
     g.set_download_progress_text(crate::downloads_page::format_progress(shown, 2).into());
     g.set_show_progress_bar((status == "active" && progress < 1.0) || status == "paused");
     g.set_progress_bar_value(shown as f32);
+}
+
+/// on-games-running: the open game's "running" state.
+pub fn on_games_running() {
+    let Some((ui, shop, object_id)) =
+        with_app(|app| (app.ui.upgrade(), app.shop.clone(), app.object_id.clone()))
+    else {
+        return;
+    };
+    if let Some(ui) = ui {
+        gd(&ui).set_running(crate::games::is_running(&format!("{shop}:{object_id}")));
+    }
 }
 
 /// The downloads changed: the hero's actions follow the game's download.
@@ -1112,10 +1125,16 @@ fn wire_callbacks(ui: &AppWindow, loader: &Loader) {
     ui.global::<GameData>().on_open_download_options(|| {
         eprintln!("TODO(downloads): repacks modal / download sources")
     });
-    ui.global::<GameData>()
-        .on_play(|| eprintln!("TODO(launcher): open-game.ts (launch executable, process watcher)"));
-    ui.global::<GameData>()
-        .on_close_game(|| eprintln!("TODO(launcher): close-game.ts"));
+    ui.global::<GameData>().on_play(|| {
+        if let Some((shop, object_id)) = with_app(|app| (app.shop.clone(), app.object_id.clone())) {
+            crate::games::play(&shop, &object_id);
+        }
+    });
+    ui.global::<GameData>().on_close_game(|| {
+        if let Some((shop, object_id)) = with_app(|app| (app.shop.clone(), app.object_id.clone())) {
+            crate::games::close(&shop, &object_id);
+        }
+    });
     ui.global::<GameData>()
         .on_cloud_sync(|| eprintln!("TODO(cloud-save): cloud save v2 sync"));
 
