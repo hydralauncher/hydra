@@ -34,6 +34,10 @@ struct Shell {
     /// The ungrouped library length.
     library_len: usize,
     library_loading: bool,
+    /// library-slice isSyncingRemote (trackRemoteLibrarySync)
+    syncing_remote: bool,
+    /// library-slice isAwaitingAccountLibrary (signed in, account library not merged yet)
+    awaiting_account: bool,
     /// `removeDiacritics(title).toLowerCase()` per row of `library`.
     search_keys: Vec<String>,
     /// Indexes into `library` currently shown.
@@ -109,7 +113,38 @@ pub fn find_library_game(shop: &str, object_id: &str) -> Option<Presentation> {
 
 /// The grouped library (unsorted), the ungrouped length and whether it is still loading.
 pub fn library_snapshot() -> Option<(Vec<Presentation>, usize, bool)> {
-    with_shell(|s| (s.groups.clone(), s.library_len, s.library_loading))
+    with_shell(|s| (s.groups.clone(), s.library_len, is_library_loading(s)))
+}
+
+/// `selectIsLibraryLoading`: not loaded yet, or a remote sync is running
+/// while the library is empty or waits for the account that just signed in.
+fn is_library_loading(s: &Shell) -> bool {
+    s.library_loading || (s.syncing_remote && (s.library_len == 0 || s.awaiting_account))
+}
+
+fn push_library_loading() {
+    let loading = with_shell(|s| {
+        let loading = is_library_loading(s);
+        if let Some(ui) = s.ui.upgrade() {
+            ui.global::<SidebarState>().set_loading(loading);
+        }
+        loading
+    });
+    if loading.is_some() {
+        crate::library_page::on_library_changed();
+    }
+}
+
+/// setLibrarySyncingRemote
+pub fn set_library_syncing_remote(syncing: bool) {
+    with_shell(|s| s.syncing_remote = syncing);
+    push_library_loading();
+}
+
+/// setLibraryAwaitingAccount
+pub fn set_library_awaiting_account(awaiting: bool) {
+    with_shell(|s| s.awaiting_account = awaiting);
+    push_library_loading();
 }
 
 /// The renderer's `localStorage` (imported from Electron, kept in LevelDB).
@@ -244,6 +279,8 @@ pub fn init(
             groups: Vec::new(),
             library_len: 0,
             library_loading: true,
+            syncing_remote: false,
+            awaiting_account: false,
             search_keys: Vec::new(),
             visible: Vec::new(),
             rows,
@@ -781,9 +818,22 @@ pub fn set_game_running(title: &str, icon_url: &str) {
 
 /// `updateLibrary()`: read the library on a worker, then group and sort it.
 pub fn load_library() {
+    load_library_then(|| {});
+}
+
+/// `updateLibrary().finally(done)`
+pub fn load_library_then(done: impl FnOnce() + 'static) {
     let Some(db) = with_shell(|s| s.db.clone()) else {
         return;
     };
+    // `done` stays on the UI thread; the worker carries a ticket for it.
+    let ticket = LIBRARY_DONE.with(|d| {
+        let mut d = d.borrow_mut();
+        d.1 += 1;
+        let ticket = d.1;
+        d.0.push((ticket, Box::new(done)));
+        ticket
+    });
     std::thread::spawn(move || {
         let started = std::time::Instant::now();
         let games = library::load_library(&db, Collection::Visible, None).unwrap_or_else(|e| {
@@ -805,7 +855,8 @@ pub fn load_library() {
                 s.library_loading = false;
                 order_library(s);
                 if let Some(ui) = s.ui.upgrade() {
-                    ui.global::<SidebarState>().set_loading(false);
+                    ui.global::<SidebarState>()
+                        .set_loading(is_library_loading(s));
                 }
             });
             sync_filter_menu();
@@ -815,8 +866,25 @@ pub fn load_library() {
             crate::library_page::on_library_changed();
             crate::catalogue_page::on_library_changed();
             crate::downloads_page::refresh();
+            let done = LIBRARY_DONE.with(|d| {
+                let mut d = d.borrow_mut();
+                d.0.iter()
+                    .position(|(t, _)| *t == ticket)
+                    .map(|i| d.0.remove(i).1)
+            });
+            if let Some(done) = done {
+                done();
+            }
         });
     });
+}
+
+type LibraryDone = Box<dyn FnOnce()>;
+
+thread_local! {
+    /// load_library_then callbacks waiting for their read, by ticket.
+    static LIBRARY_DONE: RefCell<(Vec<(u64, LibraryDone)>, u64)> =
+        const { RefCell::new((Vec::new(), 0)) };
 }
 
 /// sidebar.tsx sortedLibrary: the sidebar sort, favorites first when on.

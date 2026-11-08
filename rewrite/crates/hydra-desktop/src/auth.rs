@@ -261,15 +261,11 @@ pub fn handle_external_auth(uri: &str) {
     let (Some(db), Some(api)) = (shell::db(), shell::api()) else {
         return;
     };
-    // A new account: the previous account's remote ids no longer apply
-    // (clearGamesRemoteIds).
-    for (key, mut game) in db.entries::<Value>(keys::GAMES).unwrap_or_default() {
-        if game.get("remoteId").is_some_and(|v| !v.is_null())
-            && let Some(map) = game.as_object_mut()
-        {
-            map.insert("remoteId".into(), Value::Null);
-            let _ = db.put_in(keys::GAMES, &key, &game);
-        }
+    // A new account: the previous account's remote ids and visibility no
+    // longer apply (clearGamesRemoteIds).
+    // TODO(epic): clearStaleEpicImports before and after.
+    if let Err(error) = hydra_core::library_sync::clear_games_remote_ids(&db) {
+        eprintln!("auth: clearing remote ids: {error}");
     }
     api.sign_in(
         &text("accessToken"),
@@ -284,15 +280,49 @@ pub fn handle_external_auth(uri: &str) {
         }
         let _ = db.put(keys::AUTH, &stored);
     }
-    // on-signin: fetch the user, then the library
-    // TODO(auth): uploadGamesBatch, syncDownloadSourcesFromApi, Steam/Epic
-    // startup syncs, the souvenir worker.
+    // The main process: getUserData, the Steam startup sync,
+    // uploadGamesBatch and syncDownloadSourcesFromApi.
+    // TODO(auth): the Epic startup sync and the souvenir worker.
+    crate::library_sync::on_signed_in();
     crate::realtime::connect();
     crate::achievement_watcher::on_signed_in();
+    // on-signin: the account library is awaited, the user fetched
+    shell::set_library_awaiting_account(true);
     shell::reload_user(Some(Box::new(|| {
         toast::success(&shell::tr("app.successfully_signed_in"))
     })));
     shell::load_library();
+}
+
+/// Dev hook: replay the `hydralauncher://auth` redirect with the session
+/// already stored, to exercise sign-in (clearGamesRemoteIds, the upload,
+/// the merge) without a password. The tokens never leave the process.
+pub fn dev_sign_in_again() {
+    let Some(db) = shell::db() else { return };
+    let Some(stored) = db.get::<Value>(keys::AUTH) else {
+        eprintln!("resign-in: not signed in");
+        return;
+    };
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as f64)
+        .unwrap_or_default();
+    let expiration = stored
+        .get("tokenExpirationTimestamp")
+        .and_then(Value::as_f64)
+        .unwrap_or(0.0);
+    // sign_in stores expiresIn minus the 5 minute offset again
+    let expires_in = ((expiration - now) / 1000.0 + 300.0).max(0.0);
+    let payload = json!({
+        "accessToken": stored.get("accessToken").cloned().unwrap_or(Value::Null),
+        "refreshToken": stored.get("refreshToken").cloned().unwrap_or(Value::Null),
+        "expiresIn": expires_in,
+        "workwondersJwt": stored.get("workwondersJwt").cloned().unwrap_or(Value::Null),
+    });
+    let encoded = base64::engine::general_purpose::STANDARD.encode(payload.to_string());
+    let mut url = reqwest::Url::parse("hydralauncher://auth").expect("static url");
+    url.query_pairs_mut().append_pair("payload", &encoded);
+    handle_external_auth(url.as_str());
 }
 
 /// sign-out.ts: drop the session and the account's local library.
@@ -305,6 +335,8 @@ pub fn sign_out() {
     // TODO(auth): Epic imports, achievement/souvenir workers, emulator scan
     // data.
     crate::realtime::close();
+    // resetSteamStartupSync
+    crate::steam_sync::reset_startup();
     // sendSignOutEvent: chat state, notifications and the social windows
     crate::social::on_sign_out();
     crate::downloads::stop_active();

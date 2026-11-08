@@ -51,6 +51,7 @@ mod leaderboards_page;
 #[cfg(windows)]
 mod layered_window;
 mod library_page;
+mod library_sync;
 #[cfg(target_os = "linux")]
 mod linux;
 mod main_window;
@@ -79,6 +80,7 @@ mod settings_sources;
 mod shell;
 mod social;
 mod sound;
+mod steam_browser;
 mod steam_openid;
 mod steam_sync;
 mod taskbar_badge;
@@ -346,6 +348,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(api) = shell::api() {
         realtime::init(api);
     }
+    // main.ts after setupApi: uploadGamesBatch, syncDownloadSourcesFromApi,
+    // startSteamSyncOnStartup
+    library_sync::init();
     notifications_page::refresh_count();
     shell::refresh_friends_online();
     download_settings::init(&ui);

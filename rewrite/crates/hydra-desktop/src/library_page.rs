@@ -474,6 +474,9 @@ pub fn open() {
     load_hidden();
     crate::collections::load();
     apply_filters(true);
+    // refreshLibraryAssets: the account library (at most once a minute),
+    // then the library, hidden games and collections again
+    crate::library_sync::refresh_library_assets();
 }
 
 pub fn close() {

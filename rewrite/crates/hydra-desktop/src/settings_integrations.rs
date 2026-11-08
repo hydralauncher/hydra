@@ -330,6 +330,46 @@ pub fn on_steam_sync_progress(_state: &SteamSync) {
     render();
 }
 
+/// The Steam card is on screen (SettingsSteam is mounted).
+fn steam_card_mounted() -> bool {
+    ui().is_some_and(|ui| {
+        ui.global::<crate::SettingsData>().get_category() == "integrations"
+            && crate::nav::current().is_some_and(|p| p.starts_with("/settings"))
+    })
+}
+
+/// onSteamSyncFinished: the status the run ended with, the success toast
+/// for manual runs, or the error toast and a silent refresh.
+pub fn on_steam_sync_finished(payload: &hydra_core::steam_sync_run::Finished, manual: bool) {
+    use hydra_core::steam_sync_run::Finished;
+    if !steam_card_mounted() {
+        return;
+    }
+    match payload {
+        Finished::Ok { status } => {
+            let status = SteamStatus::parse(status);
+            load_steam_avatar(&status.avatar_url);
+            with(|s| {
+                s.steam.was_connected = status.connected;
+                s.steam.status = status;
+            });
+            if manual {
+                toast::success(&t("steam_sync_success"));
+            }
+        }
+        Finished::Failed { message } => {
+            if manual && message != "steam-sync-aborted" {
+                toast::error(&t(logic::steam_sync_error_key(Some(message))));
+            }
+            steam_refresh(SteamRefresh {
+                silent: true,
+                ..Default::default()
+            });
+        }
+    }
+    render();
+}
+
 /// on-steam-connected / on-steam-connect-error (the OpenID window or the
 /// `hydralauncher://steam-connected` link), then redirect to the tab.
 pub fn on_steam_openid_return(result: OpenIdReturn) {
@@ -455,8 +495,9 @@ fn steam_disconnect() {
     let (Some(api), Some(db)) = (shell::api(), shell::db()) else {
         return;
     };
+    let can_reconcile = api.is_logged_in() && crate::library_sync::has_active_subscription();
     std::thread::spawn(move || {
-        let result = disconnect_steam(&api, &db, true);
+        let result = disconnect_steam(&api, &db, true, can_reconcile);
         let _ = slint::invoke_from_event_loop(move || {
             with(|s| {
                 s.steam.disconnecting = false;
@@ -487,13 +528,19 @@ fn disconnect_steam(
     api: &hydra_core::api::HydraApi,
     db: &hydra_db::Db,
     delete_imported: bool,
+    can_reconcile: bool,
 ) -> Result<(), Option<String>> {
     let mut steam_only: Vec<String> = Vec::new();
     if delete_imported {
-        // fetchRemoteProfileGames
-        if let Ok(Value::Array(games)) = api.get("/profile/games", &[], Options::default()) {
-            steam_only = logic::collect_steam_only_object_ids(&games);
-        }
+        let games = hydra_core::library_sync::fetch_remote_profile_games(api).map_err(|error| {
+            eprintln!("Failed to disconnect Steam: {error}");
+            api_message(&error).or_else(|| Some(error.to_string()))
+        })?;
+        steam_only = logic::collect_steam_only_object_ids(&games);
+        eprintln!(
+            "[steam-sync] Disconnect collecting steam-only games {}",
+            steam_only.len()
+        );
     }
     api.delete(
         &format!("/profile/oauth/steam?deleteImportedData={delete_imported}"),
@@ -557,8 +604,16 @@ fn disconnect_steam(
         let _ = db.put_in(keys::GAMES, &key, &Value::Object(map));
         let _ = db.delete_in(keys::ARTWORK_SELECTION, &key);
     }
-    // TODO(library-sync): mergeWithRemoteGames. Without the merge, Electron
-    // restores the local last-played values (its merge-failed path).
+    let _ = slint::invoke_from_event_loop(crate::library_sync::library_batch_complete);
+    let merged =
+        crate::library_sync::merge_blocking(db, api, api.auth_generation(), can_reconcile, None);
+    if merged {
+        eprintln!("[steam-sync] Steam disconnected and imported games cleared");
+        return Ok(());
+    }
+    eprintln!(
+        "[steam-sync] Steam disconnect remote merge failed; restored local last-played values"
+    );
     for (key, last_played) in restore {
         if let Some(Value::Object(mut map)) = db.get_in::<Value>(keys::GAMES, &key)
             && map.get("isDeleted").and_then(Value::as_bool) != Some(true)
@@ -1352,6 +1407,12 @@ pub fn dev(args: &[&str]) {
                 games_processed: processed,
             });
         }
+        // a real run, like the Sync button (use HYDRA_STEAM_SYNC_DRY_RUN=1)
+        "steam-start" => {
+            steam_sync::start(steam_sync::Origin::Manual);
+        }
+        // the hidden Community page and its cookies (names only)
+        "steam-community-probe" => steam_sync::dev_community_probe(),
         "steam-reconnect" => steam_sync::simulate(SteamSync::Idle {
             requires_reconnect: true,
         }),

@@ -185,6 +185,8 @@ fn next<C: ComponentHandle + 'static>(
             ),
             None => eprintln!("devscript: no notification window"),
         },
+        // the auth window's redirect with the stored session (auth::dev_sign_in_again)
+        "resign-in" => crate::auth::dev_sign_in_again(),
         "quit" => {
             let _ = slint::quit_event_loop();
             return;
