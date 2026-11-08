@@ -10,6 +10,7 @@ import { LeaderboardsData, LbMetric, LbSideGame, LbOption } from "state.slint";
 import { LbAvatar, MetricIcon, Selector, BlockMessage, BlockError, BoardSkeleton } from "parts.slint";
 import { BoardHeader, Insight, Podium, TableHeader, TableRow } from "board.slint";
 import { StatsTab, BadgesSection } from "stats.slint";
+import { SelectorTip } from "tip.slint";
 
 export { LeaderboardsData }
 
@@ -470,7 +471,7 @@ export component LeaderboardsPage inherits Rectangle {
     property <length> scroll-y;
     property <ScrollTween> tween;
     function wheel-by(dy: length) {
-        root.tip-on = false;
+        SelectorTip.hide();
         if (SmoothScroll.lines) {
             root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
             root.scroll-y = root.tween.to;
@@ -507,23 +508,13 @@ export component LeaderboardsPage inherits Rectangle {
         }
     }
 
-    // use-selector-tooltip.tsx: a collapsed option's name above it, fading in
-    // after 0.25s (0.15s); aligned to its end near the window's edge.
-    property <string> tip-label;
-    property <bool> tip-on;
-    property <length> tip-x;
-    property <length> tip-y;
-    property <bool> tip-edge;
+    // use-selector-tooltip.tsx (the shared SelectorTip host in the window)
     function option-hover(label: string, on: bool, x: length, y: length, w: length) {
-        if (!on) {
-            root.tip-on = false;
-            return;
+        if (on) {
+            SelectorTip.show(label, x, y, w);
+        } else {
+            SelectorTip.hide();
         }
-        root.tip-label = label;
-        root.tip-edge = root.width + 9px - (x - root.absolute-position.x + w) < 72px;
-        root.tip-x = root.tip-edge ? x - root.absolute-position.x + w : x - root.absolute-position.x + w / 2;
-        root.tip-y = y - root.absolute-position.y - 8px;
-        root.tip-on = true;
     }
 
     property <length> content-width: root.width - 9px;
@@ -672,25 +663,5 @@ export component LeaderboardsPage inherits Rectangle {
         viewport-height: page.height;
         content-y <=> root.scroll-y;
         shown-offset: -page.content-y;
-    }
-
-    tip := Rectangle {
-        x: root.tip-edge ? root.tip-x - self.width : root.tip-x - self.width / 2;
-        y: root.tip-y - self.height;
-        width: tip-text.preferred-width + 18px;
-        height: 26px;
-        border-radius: 4px;
-        border-width: 1px;
-        border-color: rgba(255, 255, 255, 0.15);
-        background: Theme.dark-background;
-        opacity: root.tip-on ? 1 : 0;
-        animate opacity { duration: root.tip-on ? 150ms : 0ms; delay: root.tip-on ? 250ms : 0ms; easing: ease; }
-        visible: self.opacity > 0;
-        tip-text := Text {
-            text: root.tip-label;
-            font-size: Theme.small-size;
-            font-weight: 500;
-            color: Theme.muted;
-        }
     }
 }

@@ -220,6 +220,7 @@ fn apply(previous: Option<String>) {
 
     if previous_location.as_ref().map(|l| l.route()) == Some("game") && location.route() != "game" {
         game_page::close();
+        crate::game_leaderboard::close();
     }
     if previous_location.as_ref().map(|l| l.route()) == Some("library")
         && location.route() != "library"
@@ -269,6 +270,7 @@ fn apply(previous: Option<String>) {
         let object_id = parts.next().unwrap_or("").to_string();
         let title = location.param("title").unwrap_or("").to_string();
         game_page::open(&shop, &object_id, &title, &shell::shop_language());
+        crate::game_leaderboard::open(&shop, &object_id);
     }
     let route_changed = previous_location.as_ref().map(|l| l.route()) != Some(location.route());
     nav.set_route(location.route().into());

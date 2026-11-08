@@ -22,6 +22,7 @@ mod features;
 mod format;
 mod frametrace;
 mod game_classics;
+mod game_leaderboard;
 mod game_menu;
 mod game_options;
 mod game_page;
@@ -257,6 +258,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     auth::init(&ui);
     notifications_page::init(&ui);
     leaderboards_page::init(&ui);
+    game_leaderboard::init(&ui);
     search::init(&ui);
     achievements_page::init(&ui);
     if let Some(api) = shell::api() {

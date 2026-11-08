@@ -9,6 +9,7 @@ import { GallerySlider } from "gallery.slint";
 import { Lightbox } from "lightbox.slint";
 import { DescriptionHeader, Description } from "description.slint";
 import { SimilarGames } from "similar.slint";
+import { LeaderboardCard, GameLeaderboard } from "leaderboard.slint";
 import { SidebarSection, AchievementsSection, StatsSection, HowLongToBeatSection, ControllerSection, RequirementsSection, LanguageSection } from "sidebar.slint";
 import { GameReviews } from "reviews.slint";
 import { PlaybackDriver, Playback } from "../../components/video.slint";
@@ -401,6 +402,8 @@ export component GameDetailsPage inherits Rectangle {
                                 unlocked: GameData.achievements-unlocked;
                                 total: GameData.achievements-total;
                             }
+                            // leaderboard-section.tsx (GLOBAL_LEADERBOARDS)
+                            if GameData.loaded && GameLeaderboard.visible: LeaderboardCard { }
                             if GameData.loaded && GameData.has-stats: StatsSection {
                                 downloads: GameData.downloads;
                                 players: GameData.players;

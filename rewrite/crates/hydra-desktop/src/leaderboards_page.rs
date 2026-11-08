@@ -53,9 +53,11 @@ fn now_ms() -> i64 {
 // ---- resources ----------------------------------------------------------
 
 #[derive(Clone, Debug)]
-enum FetchError {
+pub(crate) enum FetchError {
     /// a 400 (older backends reject some params)
     BadRequest,
+    /// UserNotLoggedInError (a request that needs the session without one)
+    SignedOut,
     Other(String),
 }
 
@@ -348,7 +350,7 @@ fn take_source(request: &Request) -> Option<String> {
 
 /// leaderboardsCache.get: a cached answer, a request already on its way, or
 /// a new GET on a worker thread.
-fn fetch(request: &Request, done: impl FnOnce(Result<Value, FetchError>) + 'static) {
+pub(crate) fn fetch(request: &Request, done: impl FnOnce(Result<Value, FetchError>) + 'static) {
     let account = account_id();
     let key = request.key(account.as_deref());
     if let Some(cached) = with(|s| s.cache.peek(&key, now_ms())) {
@@ -387,6 +389,7 @@ fn fetch(request: &Request, done: impl FnOnce(Result<Value, FetchError>) + 'stat
             .get(&path, &query, options)
             .map_err(|error| match error {
                 ApiError::Status { status: 400, .. } => FetchError::BadRequest,
+                ApiError::NotLoggedIn => FetchError::SignedOut,
                 other => FetchError::Other(other.to_string()),
             });
         let _ = slint::invoke_from_event_loop(move || finish(&key, result, generation));
@@ -402,6 +405,7 @@ fn finish(key: &str, result: Result<Value, FetchError>, generation: u64) {
             eprintln!("leaderboards: request failed ({key}): {message}")
         }
         Err(FetchError::BadRequest) => eprintln!("leaderboards: request rejected (400) ({key})"),
+        Err(FetchError::SignedOut) => eprintln!("leaderboards: signed out ({key})"),
         Ok(_) => {}
     }
     let waiting = with(|s| s.in_flight.remove(key)).unwrap_or_default();

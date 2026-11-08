@@ -45,6 +45,8 @@ import { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar } from "pages
 import { TitleBar } from "shell/title-bar.slint";
 import { LeaderboardsPage, LeaderboardsData } from "pages/leaderboards/page.slint";
 import { LbMetric, LbSideGame, LbPodiumCard, LbRow, LbOption, LbMineRow, LbFriendStreak, LbHeatCell, LbMonth, LbBadge } from "pages/leaderboards/state.slint";
+import { SelectorTipHost } from "pages/leaderboards/tip.slint";
+import { GameLeaderboard } from "pages/game-details/leaderboard.slint";
 import { Sidebar } from "shell/sidebar.slint";
 
 export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback, RepackRow, RepackSource }
@@ -55,7 +57,7 @@ export { AchievementsData, AchievementRow }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
 export { HomeData, CatalogueCard, Gifs, Dialogs, DownloadsData }
 export { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup, SelectPopup, SelectOption }
-export { LeaderboardsData, LbMetric, LbSideGame, LbPodiumCard, LbRow, LbOption, LbMineRow, LbFriendStreak, LbHeatCell, LbMonth, LbBadge }
+export { LeaderboardsData, LbMetric, LbSideGame, LbPodiumCard, LbRow, LbOption, LbMineRow, LbFriendStreak, LbHeatCell, LbMonth, LbBadge, GameLeaderboard }
 
 export component AppWindow inherits Window {
     title: GameData.game-title != "" && Nav.route == "game" ? "Hydra — " + GameData.game-title : "Hydra";
@@ -219,6 +221,12 @@ export component AppWindow inherits Window {
     }
 
     TooltipHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // leaderboard selector names (use-selector-tooltip.tsx portals them to the body)
+    SelectorTipHost {
         width: root.width;
         height: root.height;
     }
