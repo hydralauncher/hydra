@@ -10,8 +10,11 @@
 # Mouse clicks don't reach covered windows either: use eval (element.focus(),
 # dispatchEvent(new PointerEvent("pointerdown", {bubbles: true}))) instead.
 # The reference is logged into the user's account: no destructive actions.
+# -Target picks another window by URL or title substring (e.g. "friends");
+# by default the main window is used, never the friends/chat/notification ones.
 param(
     [Parameter(Mandatory = $true)][string]$Commands,
+    [string]$Target = "",
     [int]$WaitSec = 300
 )
 $lock = "C:\Users\helio\hydra-electron-ref.lock"
@@ -27,7 +30,7 @@ while (-not $stream) {
 }
 try {
     $tool = Join-Path $PSScriptRoot "electron-cdp.mjs"
-    node $tool --target index.html $Commands
+    if ($Target) { node $tool --target $Target $Commands } else { node $tool $Commands }
 } finally {
     $stream.Close()
 }

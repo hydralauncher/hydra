@@ -66,6 +66,16 @@ additive edits so merges stay easy.
 
 ## Building and running
 
+A new worktree has no `.env` (the API URLs) and no `node_modules` (the
+pre-commit hook needs prettier). Both are gitignored. Copy the `.env` from
+`C:Usershelioprojectshydrahydra.claudeworktreesust-slint-rewrite.env`
+and junction `node_modules` to that worktree's `node_modules`. If you built
+hydra-core before copying the `.env`, run `cargo clean -p hydra-core`.
+
+A text field inside a Slint `Flickable` moves the Flickable's `content-y`
+when it gets focus, which breaks a bound scroll offset. Use a clipped
+Rectangle for pages with fields in their scrolled area.
+
 From your worktree's `rewrite/` folder, in PowerShell:
 
 ```powershell
