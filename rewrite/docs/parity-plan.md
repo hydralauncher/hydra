@@ -53,22 +53,36 @@ An item is done when all of these hold:
 
 Nothing in later phases works without these.
 
-- [ ] **App shell:** window title bar (`components/window-title-bar`), sidebar (`components/sidebar`: library list, pinned, collections, profile), header with search (`components/header`, `search-dropdown`), bottom panel (`components/bottom-panel`: download progress, version)
-- [ ] **Navigation:** routes for every page in `src/renderer/src/pages`, back/forward, scroll restoration; game page reachable by `shop` + `objectId` (Steam and custom/Epic shops), not only `--steam-app`
-- [ ] **i18n:** load `src/locales/*/translation.json` as the single source (i18next keys, `{{var}}` interpolation, plurals). Options: Slint `@tr()` with bundled translations generated from the JSON at build time, or Rust-side lookup. Decide, write it in `decisions.md`, then replace the English literals in `ui/`
-- [ ] **Local data:** read and write the existing Hydra LevelDB (`userData/hydra-db`, JSON values, sublevels in `src/main/level/sublevels/keys.ts`) so users keep their library, preferences and downloads. Never write until migration is tested on a copy
+Scope set on 2026-11-08: no Big Picture (its title-bar button is hidden), no
+themes or theme editor. The UI follows `main` after #3095: one 40px title
+bar, no bottom panel.
+
+- [x] **App shell, main parts:** 40px title bar (`components/app-title-bar`: brand, version, back/forward, search field, Windows caption buttons / Linux window controls), sidebar (`components/sidebar`: profile, menu with the animated Downloads icon, virtualized library list with lazy icons and Steam/Epic badges, playable-only toggle, resize handle, persisted width)
+- [ ] **App shell, still open:** search dropdown (`search-dropdown`, history, suggestions), sidebar profile dropdown, sidebar filter menu (`sidebar-filter-menu`), game context menu, version changelog (WorkWonders widget: web-only, see below), Windows 11 snap layouts on the maximize button, window drag/resize edge cases
+- [x] **Navigation:** react-router-like history (push, back, forward), routes parsed from paths like `/game/steam/1091500?title=…`
+- [ ] **Navigation, still open:** scroll restoration per entry, `onNavigate` from the main process
+- [x] **i18n:** decided: Rust-side lookup (`crates/hydra-i18n`) over `src/locales/*/translation.json` with i18next 23 semantics, exposed to Slint as `T.tr / tr-with / tr-count`; date-fns `formatDistance`/`format` wording exported from date-fns' own locales
+- [ ] **i18n, still open:** replace the remaining English literals in `ui/pages/game-details`, RTL layout (`ar`, `fa`)
+- [x] **Local data:** `crates/hydra-db` reads/writes the Electron LevelDB layout; first run copies the Electron database and `localStorage` (never writes Electron's)
 - [ ] **User preferences:** `user-preferences/*` (language, downloads path, debrid tokens, behavior toggles)
-- [ ] **Hydra API client:** `services/hydra-api.ts` (auth tokens, refresh, error handling, `hydra-api-call`), then `services/sse` for live updates. Move to tokio here
-- [ ] **Auth:** `auth/*` (auth window flow, session, sign out), deep links `hydralauncher://` (`src/main/index.ts`)
-- [ ] **Single instance**, logging (`services/logger.ts`), crash-safe shutdown (`quit-cleanup.ts`)
+- [x] **Hydra API client:** `crates/hydra-core/src/api.rs` (same headers, refresh, 401 sign-out); blocking on worker threads for now
+- [ ] **Hydra API, still open:** SSE (`services/sse`), tokio
+- [ ] **Auth:** `auth/*` (auth window flow via an on-demand OS webview, session, sign out), deep links `hydralauncher://` (`src/main/index.ts`)
+- [ ] **Single instance**, logging (`services/logger.ts`), crash-safe shutdown (`quit-cleanup.ts`; exit already drops media threads and HTTP clients first)
 - [ ] **Toasts** (`components/toast`), **context menus** (`components/context-menu`, `game-context-menu`), **dropdowns/selects/checkboxes/text fields** as reusable Slint components
 - [ ] **Shared crate with `native/hydra-native`:** move reusable modules (cloud_save, torrent FFI, extraction, window/process helpers) into a crate both builds use, instead of copying
+
+Web-only pieces of the Electron renderer that have no native equivalent and
+need a decision: the WorkWonders changelog/feedback/help-center widgets
+(`app.tsx`, opened from the version badge and `data-open-article` links) and
+the remote `external-resources/bundle.js` script.
 
 ## Phase 2: browsing
 
 - [ ] **Home** (`pages/home`)
 - [ ] **Catalogue** (`pages/catalogue`, `catalogue/*` events: filters, names, random game, covers)
-- [ ] **Game details, remaining:** Hydra API data for achievements, stats, HowLongToBeat, similar games; review list/vote/submit/delete/translate/replies (`review-thread.tsx`, `review-replies`, `review-reply-composer.tsx`), review gate notice and prompt banner; leaderboard section (`game-details/leaderboard`); screenshots tab (`game-screenshots`); NSFW/content descriptor gate; randomizer; custom games and Epic/classics variants; text selection in description and reviews
+- [x] **Game details, done so far:** layout from #3095 (gutters, rail, column, 16:9 gallery), library state in the hero (played time, last played, favorite, pinned, Download/Play/Close), Steam details and artwork from the local caches first, achievements section (remote unlocks, combined Steam/Epic sets), review prompt banner
+- [ ] **Game details, remaining:** Cloud save widget (cloud save v2), stats, HowLongToBeat, similar games; review list/vote/submit/delete/translate/replies (`review-thread.tsx`, `review-replies`, `review-reply-composer.tsx`), review gate notice and prompt banner; leaderboard section (`game-details/leaderboard`); screenshots tab (`game-screenshots`); NSFW/content descriptor gate; randomizer; custom games and Epic/classics variants; text selection in description and reviews
 - [ ] **Library** (`pages/library`, `library/*` events: favorites, pin, collections, visibility, artwork selection, custom games, shortcuts)
 - [ ] **Game options modal** (`game-details/modals`): executable, launch options, Wine/Proton prefix, shortcuts, remove/uninstall, reset playtime/achievements, assets
 - [ ] **Animated description images** (Steam serves animated AVIF; today only the first frame shows)
