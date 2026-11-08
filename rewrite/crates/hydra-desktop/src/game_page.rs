@@ -469,6 +469,12 @@ fn apply_download_state(packet: Option<&hydra_downloads::manager::Progress>) {
     let id = format!("{shop}:{object_id}");
     let download = crate::shell::db().and_then(|db| hydra_downloads::layout::get(&db, &id));
     let g = gd(&ui);
+    let extraction = crate::downloads::extraction().filter(|(visible, _)| *visible == id);
+    g.set_extracting(extraction.is_some());
+    if let Some((_, progress)) = extraction {
+        g.set_extraction_progress(progress as f32);
+        g.set_extraction_progress_text(crate::downloads_page::format_progress(progress, 2).into());
+    }
     let Some(download) = download else {
         g.set_has_download(false);
         g.set_download_active(false);

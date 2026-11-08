@@ -19,10 +19,17 @@ thread_local! {
     static UI: RefCell<Option<slint::Weak<AppWindow>>> = const { RefCell::new(None) };
     /// The last "on-download-progress" packet (`lastPacket` in the renderer).
     static LAST_PACKET: RefCell<Option<Progress>> = const { RefCell::new(None) };
+    /// download-slice `extraction`: (visibleId, progress)
+    static EXTRACTION: RefCell<Option<(String, f64)>> = const { RefCell::new(None) };
 }
 
 pub fn manager() -> Option<Arc<Manager>> {
     MANAGER.get().cloned()
+}
+
+/// The game being extracted and its progress.
+pub fn extraction() -> Option<(String, f64)> {
+    EXTRACTION.with(|e| e.borrow().clone())
 }
 
 /// The live packet, if a download is running.
@@ -61,6 +68,43 @@ fn on_event(event: Event) {
             crate::downloads_page::refresh();
             crate::game_page::on_downloads_updated();
             crate::shell::load_library();
+        }
+        Event::ExtractionProgress { game_id, progress } => {
+            EXTRACTION.with(|e| *e.borrow_mut() = Some((game_id, progress)));
+            crate::downloads_page::refresh();
+            crate::game_page::on_downloads_updated();
+        }
+        Event::ExtractionComplete { .. } => {
+            EXTRACTION.with(|e| *e.borrow_mut() = None);
+            crate::downloads_page::refresh();
+            crate::game_page::on_downloads_updated();
+            crate::shell::load_library();
+            // TODO(notifications): publishExtractionCompleteNotification
+        }
+        Event::ExtractionFailed { failure, .. } => {
+            EXTRACTION.with(|e| *e.borrow_mut() = None);
+            crate::downloads_page::refresh();
+            crate::game_page::on_downloads_updated();
+            crate::shell::load_library();
+            use hydra_downloads::extraction::Failure;
+            let (title, description) = match failure {
+                Failure::UnsupportedFormat(format) => (
+                    crate::shell::tr("downloads.extraction_unsupported_format_title"),
+                    crate::shell::tr_with(
+                        "downloads.extraction_unsupported_format_description",
+                        &[("format", format.as_str().into())],
+                    ),
+                ),
+                Failure::FileNotFound => (
+                    crate::shell::tr("downloads.extraction_file_not_found_title"),
+                    crate::shell::tr("downloads.extraction_file_not_found_description"),
+                ),
+                Failure::Other => (
+                    crate::shell::tr("downloads.extraction_failed_title"),
+                    crate::shell::tr("downloads.extraction_failed_description"),
+                ),
+            };
+            crate::toast::error_with(&title, &description, 2500);
         }
         Event::Completed { title, game_id } => {
             // TODO(notifications): publishDownloadCompleteNotification (OS notification when

@@ -91,6 +91,10 @@ export global GameData {
     // formatDownloadProgress of the live packet or the saved record
     in property <string> download-progress-text;
     in property <bool> show-progress-bar;
+    // extraction?.visibleId === game.id
+    in property <bool> extracting;
+    in property <float> extraction-progress;
+    in property <string> extraction-progress-text;
     in property <float> progress-bar-value;
     // Download options (game-details.context repacks)
     in property <int> repacks-count;

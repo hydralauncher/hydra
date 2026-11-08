@@ -67,6 +67,15 @@ pub enum Event {
     Updated,
     /// The download finished (publishDownloadCompleteNotification).
     Completed { title: String, game_id: String },
+    /// on-extraction-progress (0..1)
+    ExtractionProgress { game_id: String, progress: f64 },
+    /// on-extraction-complete
+    ExtractionComplete { game_id: String },
+    /// on-extraction-failed
+    ExtractionFailed {
+        game_id: String,
+        failure: crate::extraction::Failure,
+    },
 }
 
 type Listener = Box<dyn Fn(Event) + Send + Sync>;
@@ -902,12 +911,34 @@ impl Manager {
         layout::put(&self.db, &done);
         self.emit(Event::Updated);
         self.cancel_runtime(&id);
-        // TODO(downloads): installer size, extraction (hatchzip / 7z), executable binding.
+        // TODO(downloads): installer size, executable binding without extraction.
         if extract {
-            eprintln!("TODO(downloads): extract {id}");
+            self.extract(&id);
         }
         let _activation = self.activation.lock().unwrap_or_else(|e| e.into_inner());
         self.activate_next_queued();
+    }
+
+    /// handleExtraction on a worker thread (also the "Extract" action).
+    pub fn extract(self: &Arc<Self>, id: &str) {
+        let (this, db, id) = (self.clone(), self.db.clone(), id.to_string());
+        if let Some(mut download) = layout::get(&db, &id) {
+            download.insert("extracting".into(), json!(true));
+            layout::put(&db, &download);
+            self.emit(Event::Updated);
+        }
+        std::thread::Builder::new()
+            .name("extraction".into())
+            .spawn(move || crate::extraction::Extraction::new(this, db, id).handle())
+            .expect("extraction thread");
+    }
+
+    pub(crate) fn emit_event(&self, event: Event) {
+        self.emit(event);
+    }
+
+    pub(crate) fn api(&self) -> Option<Arc<HydraApi>> {
+        self.api.clone()
     }
 
     /// The watch loop thread (main-loop.ts: every INTERVALS.downloadWatcher).

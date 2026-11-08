@@ -290,10 +290,12 @@ pub fn refresh() {
         // getRendererDownloadBucket
         let status = layout::status(&download).to_string();
         let live = packet.as_ref().is_some_and(|p| p.game_id == id) && status == "active";
+        let extracting_this =
+            crate::downloads::extraction().is_some_and(|(visible, _)| visible == id);
         let entry = Entry { id, download, game };
         if status == "removed" {
             continue;
-        } else if live || layout::is_active_like(&entry.download) {
+        } else if live || extracting_this || layout::is_active_like(&entry.download) {
             downloading.push(entry);
         } else if layout::is_queued(&entry.download) || layout::is_paused(&entry.download) {
             queued.push(entry);
@@ -390,8 +392,18 @@ pub fn refresh() {
             title: text(game, "title").unwrap_or_default().into(),
             cover: image(cover, Op::MaxWidth(400)),
             downloader: downloader.map(|d| d.name()).unwrap_or_default().into(),
-            size: final_size(download, None).into(),
-            extracting: false,
+            size:
+                match crate::downloads::extraction().filter(|(visible, _)| *visible == entry.id) {
+                    Some((_, progress)) => format!(
+                        "{} ({}%)",
+                        shell::tr("downloads.extracting"),
+                        (progress * 100.0).round() as i64
+                    ),
+                    None => final_size(download, None),
+                }
+                .into(),
+            extracting: crate::downloads::extraction()
+                .is_some_and(|(visible, _)| visible == entry.id),
             progress: progress as f32,
             progress_text: if awaiting {
                 shell::tr("downloads.waiting_for_debrid")
@@ -502,7 +514,8 @@ fn apply_hero(ui: &AppWindow, entry: &Entry, packet: Option<&Progress>, in_megab
     let download = &entry.download;
     let live = packet.filter(|p| p.game_id == entry.id);
     // TODO(downloads): extraction progress (extraction.visibleId).
-    let extracting = false;
+    let extraction = crate::downloads::extraction().filter(|(visible, _)| *visible == entry.id);
+    let extracting = extraction.is_some();
     let downloading = live.is_some() && !extracting;
     let speed = if downloading {
         live.map_or(0.0, |p| p.download_speed)
@@ -519,7 +532,9 @@ fn apply_hero(ui: &AppWindow, entry: &Entry, packet: Option<&Progress>, in_megab
     })
     .unwrap_or_default();
     let peak = stored_peak.filter(|p| *p > 0.0).unwrap_or(speed);
-    let progress = if downloading {
+    let progress = if let Some((_, extraction_progress)) = extraction {
+        extraction_progress
+    } else if downloading {
         live.map_or(0.0, |p| p.progress)
     } else {
         download

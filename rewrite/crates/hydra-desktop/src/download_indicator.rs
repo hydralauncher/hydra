@@ -99,7 +99,13 @@ pub fn compute(
             games,
         };
     }
-    // TODO(downloads): the extraction packet (state.download.extraction).
+    if let Some((_, progress)) = crate::downloads::extraction() {
+        return IndicatorState {
+            phase: "extracting",
+            progress: Some(progress),
+            games,
+        };
+    }
     if let Some(active) = tracked.iter().find(|d| layout::is_active_like(d)) {
         let extracting = active.get("extracting").and_then(|v| v.as_bool()) == Some(true)
             || layout::status(active) == "extracting";
